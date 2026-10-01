@@ -159,7 +159,6 @@ static int32_t fsd_running_worker(void* context) {
     state.extra_hazard_lights = app->extra_hazard_lights;
     state.extra_wiper_off = app->extra_auto_wipers_off;
     state.extra_park_inject = false;
-    state.extra_steering_mode = app->extra_steering_mode;
     state.extra_highbeam_strobe = app->extra_highbeam_strobe;
     state.extra_turn_left = app->extra_turn_left;
     state.extra_turn_right = app->extra_turn_right;

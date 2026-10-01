@@ -16,9 +16,9 @@ Tagged and released. The whole PR set landed:
 - **PR #97** — Flipper HW3 `0x399` DAS_status parser fix (mirror of ESP32 #92)
 - ESP32 side (vrs11): HW3 `0x399` DAS_status fix + `can_signals.h` refactor (#92), HTTP CAN log stream on port 82 (#94), Ignore OTA toggle (#93)
 
-## v2.16 — shipped (beta line, currently beta.26)
+## v2.16 — shipped (beta line, currently beta.32)
 
-The v2.16 beta line shipped and is on **beta.26**. What started as the
+The v2.16 beta line shipped and is on **beta.32**. What started as the
 baseline-capture tooling grew into the Field-Readiness initiative (#127)
 and a long run of on-car 14.x nag / steer-jerk fixes. Highlights across the
 line (see `changelog.md` for the full per-beta history):
@@ -27,12 +27,13 @@ line (see `changelog.md` for the full per-beta history):
 - **Capture tooling** — Flipper CAN Capture (beta), full-rate single-ID capture (beta.3), user-loadable `.cantest` SEND profiles (beta.2), ESP32 STA WiFi + dashboard config (beta.2).
 - **Field-Readiness (#127)** — black-box incident recorder (#124), tap capability checker (#125), `0x39B`/`0x399` variant auto-profiles (#126), from beta.12 on.
 - **14.x nag / steer-jerk work** — ESP32 AP-First (beta.6), EPAS-faithful / Mode-C nag (beta.7/8/10), Nag Burst + ±1.8 Nm cap + Signal Map (beta.11), Abort Guard (beta.11), Soft Engage (beta.10), Instant Engage / Minimal Inject (beta.16/17/19), plus HW4-detect and dashboard fixes (beta.20–24).
-- **`0x229 SCCM_rightStalk` — resolved (#95).** The AUTOSAR-E2E checksum was cracked and documented (`tools/crack_0x229.py`, 224/224 real frames across two full-rate captures, beta.4). Outcome: injection is a dead end on a shared bus — the genuine SCCM never stops sending `0x229`, so an injected pull collides bit-for-bit and breaks the rolling-counter sequence (this is why `0x3C2` ScrollPress works and `0x229` doesn't). `0x229` is therefore blocked from loadable `.cantest` profiles for safety (a pulled-down stalk is a shift-to-DRIVE request the parked/stationary interlock can't catch). Credit @DmitroPanteliuk (full-rate captures), @se7en7777777, @jewelrylin.
+- **`0x229 SCCM_rightStalk` — resolved (#95).** The AUTOSAR-E2E checksum was cracked and documented (`tools/crack_0x229.py`, 224/224 real frames across two full-rate captures, beta.4). Outcome: what's dead is a `0x229` stalk engage as a way to start AP/FSD on HW4 / 2026.14.x (#95, #122). A free-running injected pull collides bit-for-bit with the genuine SCCM stream and breaks the rolling-counter sequence, and Highland / Juniper don't have `0x229` at all (this is why `0x3C2` ScrollPress is the HW4 path). `0x229` injection itself still ships in one place: the ESP32 **Continuous AP** option (HW3/Legacy, off by default) sends a right-stalk double press, continuing the rolling counter from the car's own live `0x229` frames, to re-engage AP after a lane change. `0x229` is blocked from loadable `.cantest` profiles for safety (a pulled-down stalk is a shift-to-DRIVE request the parked/stationary interlock can't catch). Credit @DmitroPanteliuk (full-rate captures), @se7en7777777, @jewelrylin.
 - **LILYGO T-2CAN dual-CAN — shipped (#96).** `lilygo-t2can` is a live PlatformIO env (onboard MCP2515/SPI as Vehicle CAN + native TWAI), carrying Bus 6 plus Vehicle CAN Bus 2 direct on one board. T-2CAN firmware / bus / wiring reference merged into `esp32/README.md` via #137 (beta.25). Credit @ssw0209-sys.
-- **EU / AP feature toggles (beta.25, all opt-in, default OFF)** — Summon EU Unlock (`0x3FD` mux1, clears bit19 + sets bit47, closing the HW3 gap; #111/#139, PR #144); Continue on Green (`0x3FD` mux0 bit39; PR #145); Right-Hand Drive override (`0x3F8` bit41; #66, PR #146); Telemetry Off (experimental — clears reachable telemetry-enable flags, not a ban guarantee; PR #147); AP branch/tier selector (`UI_apmv3Branch`, experimental, non-persistent; PR #148).
-- **Adjustable Track Mode (beta.26, PR #150)** — `0x313 UI_trackModeSettings`: Track Mode ON + Handling Balance (byte1) + Stability Assist (byte2) + post-drive cooling (byte3), additive checksum recomputed and counter preserved. Opt-in, default OFF, works on non-Performance trims. (See Tier 2 / Tier 3 below.)
+- **EU / AP feature toggles (beta.25, all opt-in, default OFF)** — Summon EU Unlock (`0x3FD` mux1, clears bit19 + sets bit47, closing the HW3 gap; #111/#139, PR #144); Continue on Green (`0x3FD` mux0 bit39; PR #145); Right-Hand Drive override (`0x3F8` bit41; #66, PR #146); Telemetry Off (experimental — clears reachable telemetry-enable flags, not a ban guarantee; PR #147); AP branch/tier selector (`UI_apmv3Branch`, experimental, non-persistent; PR #148). ESP32 dashboard only; Telemetry Off is also in Flipper Settings.
+- **Adjustable Track Mode (beta.26, PR #150)** — `0x313 UI_trackModeSettings`: Track Mode ON + Handling Balance (byte1) + Stability Assist (byte2) + post-drive cooling (byte3), additive checksum recomputed and counter preserved. Opt-in, default OFF, works on non-Performance trims. ESP32 dashboard only. (See Tier 2 / Tier 3 below.)
+- **Field fixes (beta.27–32)** — capture fidelity + Flipper Signal Map presets (beta.27); one shared OTA check that only trusts a stable raw 2 (`fsd_logic/fsd_ota.h`), HW4 AP state from `0x39B` byte0 and the in-car Autopark TX pause (beta.28, narrowed so it no longer fires in city traffic in beta.30, #176); browser flasher served from GitHub Pages + LilyGO deep-sleep bus release (beta.29); HW4 `0x3FD` mux2 speed profile back on bits 60-62 (#59), ESP32 DLC>8 drop and web-OTA rollback (beta.31); ESP32 Precondition toggle (beta.32, #192).
 
-### Now / next (post beta.26)
+### Now / next (post beta.32)
 
 Genuinely-open, contributions welcome:
 
@@ -75,7 +76,7 @@ retransmit. Estimated ~30 LOC each.
 ## Tier 2 — stateful handlers (need small state machine)
 
 - [ ] `FollowDistance` full mapping to speed profile (partial today, expose as first-class toggle)
-- [ ] `GearShift` / `SimulatePARK` via `0x229 SCCM_rightStalk` — needs stalk emulation
+- [ ] `GearShift` / `SimulatePARK` via `0x229 SCCM_rightStalk` — needs stalk emulation. The Flipper Park inject builder exists but is hard-disabled (`state.extra_park_inject = false` in `scenes/fsd_running.c`)
 - [ ] `ChargePort` open/close via `0x102 VCLEFT_chargingHandleStatus`
 - [ ] `FoldMirrors` / `MirrorsDip` / `MirrorsDim` (`0x273` bits) — read current state, toggle
 - [ ] `StoppingMode` select (`0x293`)
@@ -134,12 +135,12 @@ native WiFi.
 
 ## Shape of the work
 
-All Tier 1 and most of Tier 2 can land as a single PR that introduces a
-generic **"Extras" scene** — a scrollable list of one-shot toggles that
-share the existing MCP2515 / OpMode / OTA-pause gating infrastructure.
-Adding a new toggle becomes: drop a handler in `fsd_logic/extras/`, add an
-entry to the scene list. That's a cheap architectural change that unlocks
-~20 of the items above in one go.
+The generic **"Extras" scene** shipped in v2.5 (`scenes/extras.c`) — a
+scrollable list of Service-mode-only BETA toggles that share the existing
+MCP2515 / OpMode / OTA-pause gating infrastructure. Adding a new toggle is
+one bool in `TeslaFSDApp`, one toggle in `scenes/extras.c`, a handler in
+`fsd_logic/fsd_handler.c` and one dispatch line in `scenes/fsd_running.c`.
+The rest of Tier 1 and most of Tier 2 can land on top of it.
 
 Tier 3 needs a small "vehicle state cache" so we can show current values
 (HVAC temps, seat heat levels) before a user flips them. This is an

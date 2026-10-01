@@ -104,7 +104,7 @@ typedef struct FSDState {
         // car disengages — keeps injection off the abort edge (#108). Off by default.
     uint8_t
         ap_inject_count; // AP-enable frames modified this engagement (Minimal Inject burst budget;
-    // reset to 0 on disengage, das_ap_state < DAS_APSTATE_ENGAGED)
+        // reset to 0 on disengage, das_ap_state < DAS_APSTATE_ENGAGED)
     uint8_t das_ap_state; // DAS_autopilotState (byte0 low nibble on 0x39B/0x399):
         // 0=DISABLED 1=UNAVAILABLE 2=AVAILABLE (offered, NOT engaged)
         // 3=ACTIVE_NOMINAL (first engaged) 4=ACTIVE_RESTRICTED 5=ACTIVE_NAV
@@ -194,7 +194,8 @@ typedef struct FSDState {
     bool autopark_ready; // byte3 bit0 DAS_autoparkReady
     bool autopark_parked; // byte3 bit1 DAS_autoParked
     bool autopark_waiting_brake; // byte3 bit2 DAS_autoparkWaitingForBrake
-    uint32_t autopark_bit_last_ms; // ms clock any autopark bit was last seen set
+    uint32_t
+        autopark_maneuver_last_ms; // ms clock a maneuver bit (autoParked / waitingForBrake) was last seen set
     uint8_t autopark_prev_ap_state; // das_ap_state at the previous fsd_autopark_update
     bool autopark_episode; // inside a detected Autopark episode (state 6)
     bool autopark_tx_block; // episode AND not confirmed driving -> pause every TX
@@ -289,7 +290,6 @@ typedef struct FSDState {
     bool extra_hazard_lights;
     bool extra_wiper_off;
     bool extra_park_inject; // inject a PARK stalk press
-    uint8_t extra_steering_mode; // 0=no change, 1=comfort 2=standard 3=sport (GTW_epasTuneRequest)
     bool extra_highbeam_strobe; // rapid PULL/IDLE toggle on SCCM_leftStalk
     bool extra_turn_left; // inject left turn signal
     bool extra_turn_right; // inject right turn signal

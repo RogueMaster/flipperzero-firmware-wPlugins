@@ -1,5 +1,5 @@
 /*
- * main.cpp — Tesla FSD Unlock for ESP32
+ * main.cpp — Tesla Mod for ESP32
  *
  * Port of hypery11/flipper-tesla-fsd to M5Stack ATOM Lite + ATOMIC CAN Base.
  *
@@ -31,7 +31,9 @@
 #include "capability.h"
 #include "profile_match.h"
 #include "../../fsd_logic/fsd_events.h"
+#include "../../fsd_logic/fsd_can_ops.h"  // tesla_can_rx_accept
 #include "prefs.h"
+#include "ota_verify.h"
 #if defined(BOARD_TTGO_DISPLAY)
 #include "display.h"
 #endif
@@ -1002,6 +1004,7 @@ static void button_tick() {
         if (g_factory_reset_armed) {
             Serial.println("[BTN] Factory reset confirmed — clearing NVS");
             prefs_clear();
+            ota_verify_confirm("factory reset");
             can_shutdown_all(g_can, CAN_ACTIVE_BUS_COUNT);
             delay(200);
             ESP.restart();
@@ -1064,11 +1067,15 @@ static void update_led() {
 // ── CAN frame dispatcher ──────────────────────────────────────────────────────
 static void process_frame(CanBusId bus, const CanFrame &frame) {
     uint32_t now = millis();
+    // Every id the handlers act on is an 11-bit data frame. Extended frames can
+    // alias a target id and remote frames carry no payload, so they are only
+    // recorded (captures stay complete), never parsed, modified or re-sent.
+    bool usable = tesla_can_rx_accept(frame.id, frame.ext != 0u, frame.req != 0u, frame.dlc);
     state_enter();
     g_state.rx_count++;
     // Configurable signal mapping (#122): when set, read DAS/steering from the
     // user-configured positions and disable the auto-parsers for those signals.
-    fsd_apply_signal_config(&g_state, &frame, millis());
+    if (usable) fsd_apply_signal_config(&g_state, &frame, millis());
     bool das_cfg   = (g_state.cfg_das_id != 0);
     bool steer_cfg = (g_state.cfg_steer_id != 0);
     // AP-First stability debounce: stamp the last time AP was not engaged, so
@@ -1094,12 +1101,14 @@ static void process_frame(CanBusId bus, const CanFrame &frame) {
     blackbox_note_ap_state(g_state.das_ap_state, now);
     FSDEventType bb_evt = fsd_events_poll(&g_state, now);
     FSDState bb_snap = g_state;
-    if (frame.id == CAN_ID_GTW_CAR_STATE)  g_state.seen_gtw_car_state++;
-    if (frame.id == CAN_ID_GTW_CAR_CONFIG) g_state.seen_gtw_car_config++;
-    if (frame.id == CAN_ID_AP_CONTROL)     g_state.seen_ap_control++;
-    if (frame.id == CAN_ID_BMS_HV_BUS)     g_state.seen_bms_hv++;
-    if (frame.id == CAN_ID_BMS_SOC)        g_state.seen_bms_soc++;
-    if (frame.id == CAN_ID_BMS_THERMAL)    g_state.seen_bms_thermal++;
+    if (usable) {
+        if (frame.id == CAN_ID_GTW_CAR_STATE)  g_state.seen_gtw_car_state++;
+        if (frame.id == CAN_ID_GTW_CAR_CONFIG) g_state.seen_gtw_car_config++;
+        if (frame.id == CAN_ID_AP_CONTROL)     g_state.seen_ap_control++;
+        if (frame.id == CAN_ID_BMS_HV_BUS)     g_state.seen_bms_hv++;
+        if (frame.id == CAN_ID_BMS_SOC)        g_state.seen_bms_soc++;
+        if (frame.id == CAN_ID_BMS_THERMAL)    g_state.seen_bms_thermal++;
+    }
     state_exit();
 
     // Autopark block edge (#180): log start/end like the OTA start/finish lines.
@@ -1120,7 +1129,7 @@ static void process_frame(CanBusId bus, const CanFrame &frame) {
 
     // Tap capability checker (#125): count capability-relevant ids per bus during
     // an active listen window. Pure RX — no-op when no check is running.
-    capability_record(bus, frame, now);
+    if (usable) capability_record(bus, frame, now);
 
     can_dump_record(bus, frame);
     // Record to the web stream in BOTH modes so a capture can run *through* an
@@ -1133,6 +1142,8 @@ static void process_frame(CanBusId bus, const CanFrame &frame) {
     g_last_can_rx_ms = millis();
     g_sleep_warned   = false;
 #endif
+
+    if (!usable) return;
 
     // DLC sanity: skip zero-length frames
     if (frame.dlc == 0) return;
@@ -1475,6 +1486,7 @@ static void sleep_tick(uint32_t now) {
     if (idle_ms >= s.sleep_idle_ms) {
         Serial.printf("[SLEEP] Entering deep sleep after %lu ms CAN silence\n",
                       (unsigned long)idle_ms);
+        ota_verify_confirm("deep sleep");  // wake is a reset: don't roll back a running image
         can_dump_stop();
         sd_syslog_close();
         led_set(LED_SLEEP);
@@ -1508,28 +1520,15 @@ void setup() {
     delay(300);
 
     Serial.println("\n============================");
-    Serial.println(" Tesla FSD Unlock — ESP32   ");
+    Serial.println(" Tesla Mod — ESP32          ");
     Serial.println("============================");
     Serial.printf("[FSD] Build: %s %s\n", __DATE__, __TIME__);
 
-    const esp_partition_t *running = esp_ota_get_running_partition();
-    if (running) {
-        Serial.printf("[OTA] Running from: %s\n", running->label);
-
-        esp_ota_img_states_t ota_state;
-        if (esp_ota_get_state_partition(running, &ota_state) == ESP_OK) {
-            if (ota_state == ESP_OTA_IMG_PENDING_VERIFY) {
-                Serial.println("[OTA] First boot after update - marking as valid...");
-                if (esp_ota_mark_app_valid_cancel_rollback() == ESP_OK) {
-                    Serial.println("[OTA] Firmware marked valid");
-                } else {
-                    Serial.println("[OTA] WARNING: Could not mark firmware valid");
-                }
-            } else if (ota_state == ESP_OTA_IMG_VALID) {
-                Serial.println("[OTA] Running verified firmware");
-            }
-        }
+    {
+        const esp_partition_t *running = esp_ota_get_running_partition();
+        if (running) Serial.printf("[OTA] Running from: %s\n", running->label);
     }
+    ota_verify_begin();  // a fresh OTA image stays rollback-able until it has run
 
 #if defined(CAN_DRIVER_T2CAN_DUAL)
     Serial.println("[CAN] Driver: LilyGO T-2CAN dual CAN (TWAI can0 + MCP2515 can1)");
@@ -1708,6 +1707,7 @@ void loop() {
 
     button_tick();
     serial_command_tick();
+    ota_verify_tick(now);
 
     // Drain all available CAN frames in one shot
     uint32_t rx_missed_total = 0;

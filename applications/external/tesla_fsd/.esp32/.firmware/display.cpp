@@ -35,7 +35,7 @@ void display_init() {
     g_tft.setTextColor(TFT_YELLOW, TFT_NAVY);
     g_tft.setTextSize(2); // Use large built-in font
     g_tft.setCursor(10, 5);
-    g_tft.println("Tesla FSD Unlock");
+    g_tft.println("Tesla Mod");
     g_tft.drawLine(0, 25, 240, 25, TFT_WHITE);
 }
 
@@ -104,7 +104,7 @@ void display_update(const FSDState *state) {
         g_tft.setTextColor(TFT_YELLOW, TFT_NAVY);
         g_tft.setTextSize(2);
         g_tft.setCursor(10, 5);
-        g_tft.println("Tesla FSD Unlock");
+        g_tft.println("Tesla Mod");
         g_tft.drawLine(0, 25, 240, 25, TFT_WHITE);
         g_needs_full_clear = false;
     }

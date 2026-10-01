@@ -314,11 +314,9 @@ bool fsd_handle_autopilot_frame(FSDState* state, CANFRAME* frame, uint32_t now_m
                 fsd_set_bit(frame, 48, false);
                 fsd_set_bit(frame, 50, false);
             }
-            // HW4 sets bit47 (summon enable) unconditionally here (pre-existing),
-            // so the summon_unlock toggle is effectively always-on for HW4 on this
-            // build. The toggle's real effect is on the HW3 path above; ESP32 gates
-            // both HW3 and HW4. Reconciling this divergence is a follow-up.
-            fsd_set_bit(frame, 47, true);
+            if(state->summon_unlock) {
+                fsd_set_bit(frame, 47, true); // summon enable (ev-open-can-tools summon-eu-unlock)
+            }
             if(state->enhanced_autopilot) {
                 fsd_set_bit(frame, 46, true);
             }
@@ -335,8 +333,11 @@ bool fsd_handle_autopilot_frame(FSDState* state, CANFRAME* frame, uint32_t now_m
             modified = true;
         }
         if(mux == 2) {
-            frame->buffer[7] &= ~(0x07 << 5);
-            frame->buffer[7] |= (uint8_t)((state->speed_profile & 0x07) << 5);
+            // Speed profile = bits 60-62 (byte7 bits 6:4). Bit 63 is the mux2
+            // valid flag the car always sets; the old <<5 write cleared it and
+            // the speed offset in this same frame stopped taking effect (#59).
+            frame->buffer[7] &= (uint8_t) ~(0x07 << 4);
+            frame->buffer[7] |= (uint8_t)((state->speed_profile & 0x07) << 4);
             // HW4 speed offset runtime override
             // Source: ev-open-can-tools hw4OffsetRuntime
             if(state->hw4_offset > 0) {
@@ -518,19 +519,6 @@ void fsd_handle_esp_status(FSDState* state, const CANFRAME* frame) {
     if(frame->data_lenght < 4) return;
     uint8_t brake = (frame->buffer[3] >> 5) & 0x03;
     state->driver_brake_applied = (brake >= 2);
-}
-
-// --- GTW_epasControl (0x101) steering tune WRITE ---
-// tuncasoftbildik: GTW_epasTuneRequest startBit=2, 3 bits, little-endian
-// Values: 1=COMFORT, 2=STANDARD, 3=SPORT
-// NOTE: Chassis CAN only — not on OBD-II Party CAN
-
-void fsd_build_steering_tune_frame(CANFRAME* frame, uint8_t mode) {
-    memset(frame, 0, sizeof(CANFRAME));
-    frame->canId = CAN_ID_GTW_EPAS_CTRL;
-    frame->data_lenght = 8;
-    // GTW_epasTuneRequest: startBit 2, 3 bits LE → byte0 bits [4:2]
-    frame->buffer[0] = (mode & 0x07) << 2;
 }
 
 // --- DAS_status parser: AP state, blind spot, FCW, speed limit ---

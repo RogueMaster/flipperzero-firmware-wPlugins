@@ -99,7 +99,7 @@ MCP2515/TWAI box without any Commander.
 |----------|--------|----------------|
 | `AutopilotStart` / `AutopilotExtended` / `AutopilotMax` | `0x3FD` (HW3/HW4), `0x3EE` (Legacy HW1/2) | bit46 FSD enable, bit60 FSDV14, CanFeather / our flipper-tesla-fsd |
 | `AutopilotSpeedAdjust` | `0x3FD` | follow-distance bits map to speed profile |
-| `FollowDistance` | `0x3FD` | read `0x118` DI_throttleStatus, write `0x3FD` |
+| `FollowDistance` | `0x3FD` | read `0x3F8` follow distance (byte5 bits 7:5), write `0x3FD` speed profile |
 | `SeatBeltsWarning` (nag) | `0x370` counter+1 echo | EPAS handsOnLevel spoof (MR !44, ported) |
 | `HazardLights` | `0x273` `VCFRONT_lighting` | opendbc |
 | `InteriorLights` | `0x273` bit | opendbc |
@@ -119,8 +119,8 @@ MCP2515/TWAI box without any Commander.
 | `DriveModeAccel` / `DriveModeRegen` / `DriveModeSteering` | `0x118` `DI_vehicleStatus` / `0x293` drivemode | opendbc |
 | `StoppingMode` | `0x293` | opendbc |
 | `TractionControl` / `ESP off` | `0x2A1` `ESP_status` | opendbc |
-| `TrackMode` | `0x293` `UI_driverAssistRoadSign` + `0x2B9` | opendbc + talas9 |
-| `TrackModeStability` / `TrackModeHandling` (0..100 sliders) | `0x2B9` payload | see `DashTrackModeHandling_*` enum values in .so |
+| `TrackMode` | `0x313` `UI_trackModeSettings` | shipped v2.16-beta.26 (PR #150); not `0x293` / `0x2B9` |
+| `TrackModeStability` / `TrackModeHandling` (0..100 sliders) | `0x313` byte2 / byte1 | shipped v2.16-beta.26 (PR #150) |
 | `VentWindows` / `VentLeft/Right` | `0x3E3` window control | opendbc (partial) |
 | `FrontLeftWindow/FrontRightWindow/RearLeftWindow/RearRightWindow` | `0x3E3` per-window | opendbc (partial) |
 | `Suspension` / `RideHandling` | `0x204` `VCFRONT_airSuspension` | mikegapinski |
@@ -204,7 +204,10 @@ Actions in table 2b stay out of scope until we either
 1. **Port table 2a to our Flipper app feature list.** Today we ship FSD
    unlock, nag killer, speed chime suppress, emergency vehicle detect, OTA
    pause, precondition, BMS dashboard. That's maybe 8 of the 35. The other
-   ~27 are low-hanging fruit if we decide to broaden scope.
+   ~27 are low-hanging fruit if we decide to broaden scope. (As of
+   v2.16-beta.32 we also ship TLSSC Restore `0x331`, Track Mode `0x313`, and
+   Service-mode BETA Extras for hazard / wiper-off `0x3F5` and high-beam
+   strobe / turn signals `0x249`.)
 2. **Contact dzid26** (Task #44). Their "Dorky Commander" project is
    explicitly building an open-source alternative — if anyone has already
    done the 2b CAN sniffing work, it's them or the people they talk to.

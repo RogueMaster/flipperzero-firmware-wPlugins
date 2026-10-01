@@ -127,6 +127,7 @@
 
 // ── Timing ────────────────────────────────────────────────────────────────────
 #define WIRING_WARN_MS        5000u   // Red LED / serial warning if no CAN after this
+#define OTA_SELF_VERIFY_MS   15000u   // Runtime before a new web-OTA image is confirmed
 #define PRECOND_INTERVAL_MS    500u   // Re-inject 0x082 precondition every N ms
 #define BMS_PRINT_MS          1000u   // BMS serial print interval
 #define BUTTON_DEBOUNCE_MS        50u

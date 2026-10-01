@@ -1,3 +1,24 @@
+## 2.16-beta.33 — Flipper Summon-bit parity, dead Extras removed, ESP32 rename
+
+- **Flipper: the Summon bit (0x3FD mux1 bit47) is only set when Summon EU Unlock is on (#163).** The HW4 path used to set it on every mux1 frame; it now matches the HW3 path and the ESP32, gating on the toggle. The Flipper menu has no Summon toggle, so a Flipper no longer sets bit47 at all. bit19 (the EU restriction clear) is unchanged. (PR #202)
+- **Removed four Flipper Extras toggles that never did anything.** Rear Window Heat, Fold Mirrors, Rear Fog and Steering [ChassisCAN] had menu entries but sent no frame (the 0x101 steering write was only ever exercised by a host test). The working Extras — Hazard Lights, Auto Wipers Off, High Beam Strobe, Turn L/R, all Service-mode only — and the read-only 0x370 tune-mode parser are untouched. (PR #202)
+- **ESP32: the boot banner and T-Display now say "Tesla Mod",** matching the app rename from v2.5. The dashboard OTA card also notes that a new image is kept only after 15 s of runtime and a crash or power cut before that restores the previous firmware. (PR #202)
+- **Docs:** a full pass to match the current firmware — the nag torque cap, which toggles are Flipper-only vs ESP32-only, the 0x3FD speed-profile bit fix, the OTA rollback behaviour, HW4 speed-profile bits, T-2CAN/T-Display boards, the complete TX list in SECURITY.md, sixteen contributors added to the credits, and a batch of hardware and 0x229 corrections. The "Can this brick my car?" FAQ and several stale `.github/` drafts were removed. (PR #201, #203)
+
+## 2.16-beta.32 — Battery Precondition toggle on the ESP32 dashboard
+
+- **ESP32: Battery Precondition is on the web dashboard now (#192).** The 0x082 preheat trigger and its saved setting were already in the ESP32 build, but the only switch for it was in the Flipper Settings menu, so ESP32 users had no way to turn it on. The dashboard now has a Precondition switch next to Suppress Chime, and it shows in the status JSON and the active-features summary. It transmits through the same gate as everything else (Listen-Only, OTA and the Autopark pause all still apply). Thanks @siksndavis for asking where it went. (PR #196)
+
+## 2.16-beta.31 — HW4 speed profile fix, ESP32 CAN frame checks, OTA rollback
+
+- **HW4: the speed profile no longer clears the 0x3FD mux2 valid bit (#59).** The profile was written into byte 7 at `<<5` (bits 61-63). Real mux2 frames always carry byte 7 = `0x90`, and bit 63 is set on every 0x3FD mux, so it's the per-mux valid flag and the profile is bits 60-62. For profiles 0-3 the old write cleared bit 63 and put 1/3/5/7 in the real profile field, and on-car the speed offset in the same frame stopped working. Both cores now write `<<4`, which matches ev-open-can-tools and the original CanFeather code. A host test built on a real mux2 capture fails if bit 63 or bytes 0-6 ever change. Thanks @Jclevy-CN for the on-car A/B that pinned it. (PR #197)
+- **ESP32: oversized and non-standard CAN frames are handled safely.** TWAI hands up DLC 9-15 unchanged while the payload buffer is 8 bytes, and the driver copied `dlc` bytes into it. Those frames are dropped now. On MCP2515 boards one such frame used to stall RX until reboot, because the library's FAIL path never cleared the RX flag. Extended and remote frames still go into captures but never reach a parser or handler, and `send()` refuses anything that isn't an 11-bit id with at most 8 bytes. Defensive: nothing on a Tesla bus is known to send these. (PR #198)
+- **ESP32: a web-OTA image that crashes early now rolls back.** Arduino-ESP32 2.0.x builds with rollback enabled, but it marks a new image valid before `setup()` runs, so an image that crashed in the first seconds just boot-looped. The new image is now confirmed after 15 s of runtime, and a crash, watchdog or brownout before that boots the previous firmware. Deliberate restarts, deep sleep and the next OTA confirm first. Side effect: pulling power in the first 15 s after an OTA reboot also rolls back, so just OTA again. USB and browser-flasher installs aren't affected. Ideas for both ESP32 fixes came from @Jclevy-CN's fork. (PR #198)
+
+## 2.16-beta.30 — Autopark pause no longer fires in city traffic
+
+- **The in-car Autopark TX pause stopped tripping during normal low-speed driving (#176).** The pause added in beta.28 keyed partly on `DAS_autoparkReady` (0x39B/0x399 byte3 bit0), which is just "parking spot found / Autopark available" (the P icon) and toggles constantly while you drive past parked cars — so on a car whose steady engaged state is 6, every time you slowed below 20 km/h the nag killer (and all TX) paused. Now an episode only starts on the real Autopark signature: entering state 6 from a non-engaged state at a standstill, or a maneuver bit (`DAS_autoParked` / `DAS_autoparkWaitingForBrake`) — `autoparkReady` alone never opens one, and once the car is actually driving the episode ends instead of waiting to re-trigger. A genuine in-car Autopark still pauses TX for the whole maneuver. Thanks @danpadure for catching it in traffic. (PR #194)
+
 ## 2.16-beta.29 — web flasher fix, LilyGO deep-sleep bus release
 
 - **The browser flasher can download firmware now (#176).** It handed ESP Web Tools the GitHub release download URLs, and GitHub sends no CORS headers on those (neither the redirect nor the asset host), so the browser fetch failed with "can't fetch" on the hosted page and in the downloaded `tesla-flasher.html`. A new `pages` workflow publishes the newest release's `-merged.bin` images to GitHub Pages under `/firmware/` after every tagged build (Pages sends `Access-Control-Allow-Origin: *`), and the flasher downloads from there. Docs pages keep building with Jekyll as before. Thanks @adrianpadure99 for the report. (PR #189)
@@ -125,6 +146,8 @@ The theme: make the device understand the bus it's plugged into and auto-record 
 
 - **Soft Engage — steer-jerk mitigation (#108, experimental, off by default).** New opt-in that holds the activation-edge injection until the steering wheel is near-centred (within ±5°), so the DAS's steering-path recompute when FSD enables is small. The steer-jerk @dunckencn reports is the car's own steering correction at the injection moment, and it's worse on curves (bigger path delta) — a plain injection delay doesn't help (confirmed on-car), but engaging only when straight should. Latches once per engagement (so mid-drive turns are fine) and resets when AP drops. Needs `0x129 SCCM_steeringAngle` on the tapped bus to be effective; if absent it degrades to AP-First-only. Now wired on the ESP32 too (the steering parser was Flipper-only). Toggle in Flipper Settings → and the ESP32 dashboard. Host-tested (272). **Needs on-car validation.**
 
+## 2.16-beta.9 — HW4 Highland AP-state fix, Continuous AP + brake fix, ATOM Matrix (testing build)
+
 - **M5Stack ATOM Matrix support + GPIO 39 front-button fix (@maslyankov, from #46).** New `m5stack-atom-matrix` PlatformIO env: drives the 5×5 SK6812 grid (`LED_COUNT`, dimmer brightness so 25 LEDs stay within the USB regulator budget) and maps the button to **GPIO 39** — the ATOM's front-face button, which the firmware previously ignored (it only read GPIO 0, the side BOOT button). ATOM Lite is unchanged (single LED, GPIO 0). Re-applied to current `main` from @maslyankov's PR #46 (the original PR had drifted ~95 commits behind the dual-CAN refactor and couldn't merge as-is).
 - **Continuous AP robustness + brake-state fix (#120, @vrs11).** Continuous AP (HW3/Legacy) gear-sequence hardening: counter-freshness latch, send-result tracking, and split retry/delay timing so the 0x229 double-press path recovers cleanly. Also fixes `ESP_driverBrakeApply` (0x145) to treat only states ≥2 (`Driver_applying` / `Faulty-SNA`) as braking — state 1 (`Not_Applied`) was wrongly counting as a brake-applied, and folding SNA into "applied" fails the interlock closed.
 - **HW4 Highland byte0 AP-state auto-fallback (#116, @0xAccretion).** On some HW4 Highland (China MIC, 2026.20) builds, `0x39B` carries `DAS_autopilotState` in byte0 low nibble while byte1[7:4] stays pinned at 1, so the HW4 parser read AP as "off" the whole drive — pill stuck on "Waiting", AP-First never opened. The parser now auto-detects it: while byte1[7:4] holds at 1, byte0 reaching an active state across 3 frames latches that car to the byte0 reading for the session; the instant byte1[7:4] is ever seen ≠1 the fallback is disqualified, so standard HW4 is byte-for-byte unchanged. Both Flipper + ESP32; host-tested + on-car confirmed on a 2026.20 Highland HW4.
@@ -251,6 +274,18 @@ The theme: make the device understand the bus it's plugged into and auto-record 
 - **8 additional fixes** from adversarial code review: Track Mode safety gate, ESP32 HW4 misclassification race (50-frame threshold), `0x370` EPAS DLC validation, malloc NULL checks, sizeof(pointer) cleanup, SPI handle init.
 - Thanks: @ViPiMP (sizeof BusFault root cause), @dmagyar (Legacy HW + NAG fixes), @Symness (Ban Shield learning approach), @nagotti (OTA false positive testing)
 
+## 2.11.2 — BusFault fix for the Electronic Cats CAN Add-On v1.2
+
+- **Root cause of the v1.2 BusFault (#17, #33).** `read_register()` and `mcp_get_status()` in the MCP2515 SPI driver passed `sizeof(data)` as the RX length, but `data` is a pointer, so the read wrote 4 bytes into a 1-byte stack variable and smashed the return address. Now reads 1 byte. The same bug is in the upstream Electronic Cats driver; their app's 30 KB stack hides it.
+- Includes the v2.11.1 SPI init and stack changes.
+- Thanks: @ViPiMP (root cause + test build), @swatchie-1, @metinkaradk-droid, @nagotti, @bizzul, @theeogflip-bot (testing across firmware versions and HAT revisions).
+
+## 2.11.1 — SPI init + bigger stacks (pre-release)
+
+- **SPI handle init** — `furi_hal_spi_bus_handle_init()` is now called after the handle is allocated (it was filled in but never registered with the bus), and the handle is zeroed first.
+- **Stacks** — worker threads 2048 → 4096 bytes, app main 4 KB → 8 KB. Test build for the Electronic Cats CAN Add-On v1.2 BusFault (#17, #33); the actual cause turned up in v2.11.2.
+- **ESP32: Waveshare ESP32-S3-RS485-CAN** — new `waveshare-s3-can` env (onboard TWAI transceiver). Also fixes `-D PIN_LED` / `-D PIN_BUTTON` build flags being silently overridden by `config.h`. (PR #35, @hkloudou)
+
 ## 2.11 — Legacy HW detection + NAG killer fixes
 
 - **Legacy HW detection fix** — `fsd_detect_hw_version()` fell through to `TeslaHW_Unknown` for `das_hw=0` and `das_hw=1`. MCU2/HW3 retrofit Model S/X reports `das_hw=0`, silently disabling FSD injection for this entire class of vehicle. Now correctly maps to `TeslaHW_Legacy`.
@@ -292,6 +327,12 @@ The theme: make the device understand the bus it's plugged into and auto-record 
 - **MCP2515 SPI NULL crash fix** (v2.7.1 hotfix) — `mcp_alloc()` now properly initializes the SPI bus handle.
 - **SPI callback const fix** — compiles on Momentum and Xtreme firmware.
 - **fsdcanmod.com badge restored** — community tracker site back online with accurate project tracking.
+
+## 2.7.1 — Hotfix: crash on mode select
+
+- **MCP2515 SPI NULL crash (#17)** — the app opened fine but hit `furi_check failed` as soon as any mode was picked (Auto Detect, Force HW3/HW4, Legacy). The MCP2515 struct was allocated with plain `malloc`, so its SPI handle stayed NULL. Now uses `mcp_alloc()`, which sets the handle up via `spi_alloc()`, and `free_mcp2515()` on exit.
+- **Simplified Chinese README** (`README_zh-CN.md`), plus a language switcher on all three READMEs.
+- Thanks: @THER4iN, @MyBigBall, @LeeSSXX (#17).
 
 ## 2.7 — Upstream parity + Momentum fix + X179 guide
 

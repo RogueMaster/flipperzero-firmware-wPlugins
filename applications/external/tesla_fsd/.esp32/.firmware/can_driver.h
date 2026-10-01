@@ -41,6 +41,11 @@ public:
     /** Cumulative count of frames received from the bus. */
     virtual uint32_t rxCount() = 0;
 
+    /** Frames the driver dropped because their DLC was above 8 (legal on the
+     *  wire, but CanFrame holds 8 bytes). Extended / remote frames are passed
+     *  up with frame.ext / frame.req set; process_frame() filters those. */
+    virtual uint32_t rxRejectedCount() { return 0; }
+
     /** Cumulative count of frames the CONTROLLER dropped because its RX queue
      *  overflowed (silent decimation of a busy bus). TWAI: twai_status_info_t
      *  .rx_missed_count. Drivers without the metric return 0. */

@@ -4,7 +4,7 @@
 
 [![GitHub stars](https://img.shields.io/github/stars/hypery11/flipper-tesla-fsd?style=flat-square&logo=github)](https://github.com/hypery11/flipper-tesla-fsd/stargazers)
 [![GitHub forks](https://img.shields.io/github/forks/hypery11/flipper-tesla-fsd?style=flat-square&logo=github)](https://github.com/hypery11/flipper-tesla-fsd/network)
-[![GitHub release](https://img.shields.io/github/v/release/hypery11/flipper-tesla-fsd?style=flat-square&logo=github)](https://github.com/hypery11/flipper-tesla-fsd/releases)
+[![GitHub release](https://img.shields.io/github/v/release/hypery11/flipper-tesla-fsd?include_prereleases&style=flat-square&logo=github)](https://github.com/hypery11/flipper-tesla-fsd/releases)
 [![Downloads](https://img.shields.io/github/downloads/hypery11/flipper-tesla-fsd/total?style=flat-square&logo=github)](https://github.com/hypery11/flipper-tesla-fsd/releases)
 [![Last commit](https://img.shields.io/github/last-commit/hypery11/flipper-tesla-fsd?style=flat-square&logo=github)](https://github.com/hypery11/flipper-tesla-fsd/commits/main)
 [![Open issues](https://img.shields.io/github/issues/hypery11/flipper-tesla-fsd?style=flat-square&logo=github)](https://github.com/hypery11/flipper-tesla-fsd/issues)
@@ -12,7 +12,6 @@
 [![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue?style=flat-square)](LICENSE)
 [![Build](https://img.shields.io/badge/build-ufbt-brightgreen?style=flat-square)](https://github.com/flipperdevices/flipperzero-ufbt)
 [![Flipper target](https://img.shields.io/badge/Flipper%20target-7%20%2F%20API%2087.1-orange?style=flat-square)](https://github.com/flipperdevices/flipperzero-firmware)
-[![Tracked on FSD CAN Mod Hub](https://img.shields.io/badge/tracked%20on-FSD%20CAN%20Mod%20Hub-orange?style=flat-square)](https://fsdcanmod.com/project/hypery11-flipper-zero)
 
 > **Open-source Tesla CAN bus toolkit for Flipper Zero and ESP32.** FSD region-gate bypass, TLSSC Restore for VIN-banned cars, nag killer with organic torque variation, GTW Config Replay, live BMS dashboard, and 30+ CAN handlers across Model 3, Model Y, Model S, and Model X. Supports HW3, HW4, and Legacy HW1/HW2. Free alternative to the $200+ S3XY Commander — total cost from **$14** with the [ESP32 port](https://github.com/hypery11/flipper-tesla-fsd/tree/main/esp32).
 
@@ -48,7 +47,7 @@
 ## Features
 
 ### Core FSD
-- Auto-detect HW3/HW4 from `GTW_carConfig` (`0x398`), with fallback detection via `0x3FD`/`0x399`/`0x3EE` when `0x398` isn't on the tapped bus
+- Auto-detect HW3/HW4 from `GTW_carConfig` (`0x398`), with fallback detection on the ESP32 via `0x39B`/`0x399`/`0x3FD`/`0x3EE` when `0x398` isn't on the tapped bus
 - **Legacy→HW3 auto-upgrade** for Palladium Model S/X — detects `das_hw=0` then upgrades when `0x3FD` appears on the bus
 - FSD unlock via bit manipulation on `UI_autopilotControl` (`0x3FD` / `0x3EE`)
 - **Legacy mode** for HW1/HW2 (Model S/X 2016-2019)
@@ -69,10 +68,10 @@
 
 ### Nag Killer (v2.1+)
 - DAS-aware gating — only echoes when DAS is actually demanding hands-on, zero bus traffic when DAS is satisfied
-- Organic torque variation — xorshift32 PRNG random walk in 1.00-2.40 Nm with grip pulse excursions to 3.10-3.30 Nm every 5-9 seconds
+- Organic torque variation — xorshift32 PRNG random walk in 1.00-1.80 Nm with a grip pulse every 5-9 seconds. Every nag path is capped at ±1.8 Nm since v2.16-beta.11, so grip pulses peak at 1.80 Nm ([#122](https://github.com/hypery11/flipper-tesla-fsd/issues/122))
 - **On-demand grip pulse (v2.15+)** — when `handsOnLevel` rises into a nag-demand state (0 imminent / 3 escalated), an immediate grip pulse fires and the periodic schedule resets. Closes the 2-second yellow-escalation window that could open between scheduled pulses on v2.14 and earlier
 - EPAS counter+1 echo on `0x370` with level 0 (nag imminent) and level 3 (escalated alarm) suppression
-- **Tap Party CAN (X179 pins 2/3) for the nag killer.** `0x370` is on Party CAN — not Vehicle CAN (9/10), and the gateway-forwarded Chassis copy (13/14) trips the 2026.14.x preflight. Confirmed working on HW4 2026.20 by tapping 2/3 ([#100](https://github.com/hypery11/flipper-tesla-fsd/issues/100)). A single-CAN board on the wrong pair has nothing to echo — the usual cause of "nag killer does nothing on HW4." Check your car's **Service Mode → CAN Port** page for which pin is Party on your harness; see [HARDWARE.md](HARDWARE.md).
+- **Tap Party CAN (X179 pins 2/3) for the nag killer.** `0x370` is on Party CAN — not Vehicle CAN (9/10), and the Chassis CAN copy (13/14 on some harnesses) trips the 2026.14.x preflight. Confirmed working on HW4 2026.20 by tapping 2/3 ([#100](https://github.com/hypery11/flipper-tesla-fsd/issues/100)). A single-CAN board on the wrong pair has nothing to echo — the usual cause of "nag killer does nothing on HW4." Check your car's **Service Mode → CAN Port** page for which pin is Party on your harness; see [HARDWARE.md](HARDWARE.md).
 
 ### AP-First mode (v2.14+, for 2026.14.x firmware)
 - Tesla 2026.14.x added a preflight check that blocks AP/TACC engagement if CAN injection is already active
@@ -84,7 +83,7 @@
 - Pessimistic default: most users on 14.x firmware don't know they're affected until autosteer disengages mid-drive. The warning reaches them before they enable any TX feature.
 - Opt-out via the **On 14.x?** Settings toggle (Flipper) or the **Dismiss** button on the banner (ESP32, persisted in NVS). Disable if you are sure you're on pre-14.x firmware.
 - Regional caveat: enforcement intensity varies by market. Some regions (markets without Tesla direct presence) appear to enforce less aggressively. See [#122](https://github.com/hypery11/flipper-tesla-fsd/issues/122) for the running 14.x / 2026.20 tracker.
-- **"Does this unlock FSD on 2026.14.x / .20 / .26.x?"** Short answer: no — the activation preflight and an off-CAN region lock block it, while nag killer / TLSSC / Summon EU / captures still work. Full explanation in the pinned [FSD-on-14.x FAQ (#168)](https://github.com/hypery11/flipper-tesla-fsd/discussions/168), with the frame-level proof in [#163](https://github.com/hypery11/flipper-tesla-fsd/discussions/163).
+- **"Does this unlock FSD on 2026.14.x / .20 / .26.x?"** Short answer: no — the activation preflight and an off-CAN region lock block it, while nag killer / TLSSC / Summon EU / captures still work. Full explanation in the [FSD-on-14.x FAQ (#168)](https://github.com/hypery11/flipper-tesla-fsd/discussions/168), with the frame-level proof in [#163](https://github.com/hypery11/flipper-tesla-fsd/discussions/163).
 
 ### Diagnostics (read-only, no FSD required)
 - Live BMS dashboard: pack voltage, current, SoC, temperature range, **energy consumption (Wh/km)**
@@ -99,6 +98,9 @@
 - **Send Test** — load a user-authored `.cantest` text profile from the SD card and replay your own frames. Defaults to dry-run; transmitting is hard-gated to a **parked, stationary** car (fail-closed) and re-checked before every frame. Result is logged for a bug report. Format + workflow: [docs/cantest-format.md](docs/cantest-format.md), example: [examples/example.cantest](examples/example.cantest).
 
 ### Extra unlocks (v2.16+, opt-in, default OFF)
+
+ESP32 dashboard only for now — the Flipper menu doesn't have these toggles, so a Flipper never sets the summon bit (bit47).
+
 - **Summon EU Unlock** — `0x3FD` mux1: clears bit19 (EU AP restriction) and sets bit47 (summon-enable) to expose Summon on EU-restricted cars
 - **Continue on Green** — `0x3FD` mux0 bit39 `UI_fsdContinueOnGreenWithCIPV` — continue through a green light behind a lead car without a stalk confirmation; pairs with TLSSC
 - **Right-Hand Drive (RHD) override** — `0x3F8` bit41 `UI_drivingSide` = RHD. RHD markets only
@@ -106,6 +108,8 @@
 - **Adjustable Track Mode** — `0x313` `UI_trackModeSettings`: Handling Balance + Stability Assist + post-drive cooling, checksum recomputed. Vehicle bus; defaults to rotation 100 / stability 30%, and works on non-Performance trims too
 
 ### Settings (runtime toggles)
+
+Most toggles are on both builds. Flipper only: GTW Config Replay, Emerg. Vehicle, ScrollPress AP, Nav FSD Route, Lane Graph, Tier Override, Dev Mode, Hands-Off, Force LHD, MCP Crystal. ESP32 only: FSD Unlock (master switch for the `0x3FD` FSD bits, off by default), Ignore OTA, Abort Guard, Continuous AP, China Mode, Right-Hand Drive, the Extra unlocks above and the Hardware selector (the Flipper uses Force HW3/HW4/Legacy in its main menu).
 
 **Stable (car-tested):**
 
@@ -132,7 +136,7 @@
 | **Lane Graph** | `0x3FD` mux1 bit45 | UI_showLaneGraph — lane visualization on non-FSD tier |
 | **Tier Override** | `0x7FF` mux=2 | Force GTW_autopilot to SELF_DRIVING (more aggressive than GTW Config Replay — actively writes rather than replays) |
 | **Dev Mode** | `0x3F8` bit5 | UI_dasDeveloper flag |
-| **Right-Hand Drive (RHD)** | `0x3F8` bit41 | `UI_drivingSide` = RHD (bit41 set, bit40 clear — mutually exclusive with the old LHD probe). RHD markets only. Honest note: the earlier Force-LHD probe was **empirically ineffective** — values 0/1/2 all left FSD on the LHD side on a banned RHD HW3 / 2026.2.6 ([#66](https://github.com/hypery11/flipper-tesla-fsd/issues/66)); RHD now ships as the requested-direction override |
+| **Right-Hand Drive (RHD)** | `0x3F8` bit41 | `UI_drivingSide` = RHD (bit41 set, bit40 clear — mutually exclusive with the old LHD probe). RHD markets only. Honest note: the earlier Force-LHD probe was **empirically ineffective** — values 0/1/2 all left FSD on the LHD side on a banned RHD HW3 / 2026.2.6 ([#66](https://github.com/hypery11/flipper-tesla-fsd/issues/66)); RHD now ships as the requested-direction override (ESP32; the Flipper menu still has the old Force LHD toggle) |
 | **Hands-Off** | `0x3F8` bit14 | UI-level hands-on disable (second nag vector) |
 | **Telemetry Off** | `0x3F8` bits 19/42/43/44/55 + `0x3FD` mux1 bits 48/50 | Clears the reachable telemetry-enable flags (clip / trip / road-segment on 0x3F8, cabin-camera / China on 0x3FD). Experimental — **reachable flags only, not the Vehicle-bus ECU log-upload, and not a ban guarantee.** Use only with SIM pulled |
 
@@ -146,7 +150,9 @@ These target Tesla 2026.14.x / 2026.20 behaviour and are all **off by default**.
 | **Soft Engage** | Steer-jerk mitigation ([#108](https://github.com/hypery11/flipper-tesla-fsd/issues/108)). Holds the activation-edge injection until the wheel is within ±5° of centre. Needs `0x129` (steering angle) on the tapped bus; degrades to AP-First-only if absent. Largely superseded by Abort Guard for straight-road jerks. |
 | **Nag Burst** | Echoes `0x370` in bursts (~1 s on / ~1.5 s off) instead of continuously ([#122](https://github.com/hypery11/flipper-tesla-fsd/issues/122)). The rest periods are the believed reason some in-the-wild devices evade the stricter 14.x nag detector. Pairs with a ±1.8 Nm steering-torque cap. |
 | **EPAS-faithful (Mode-C)** | Demand-state torque model that mirrors a real EPAS instead of flipping `handsOnLevel` ([#100](https://github.com/hypery11/flipper-tesla-fsd/issues/100)). For cars where the standard nag killer trips the preflight. **Not yet confirmed on-car.** |
-| **Signal Map** (ESP32 → advanced) | Override where the nag killer reads AP-state / hands-on / steering: `id + byte/shift/mask` ([#122](https://github.com/hypery11/flipper-tesla-fsd/issues/122)). For variants whose `0x39B`/`0x399` layout differs. Freshness-gated — a wrong map fails closed, and the dashboard warns when the mapped DAS id never shows up on the bus. A field with mask `0` is ignored. Leave DAS id `0` for auto-detect. |
+| **Instant Engage** | Steer-jerk / activation-lag A/B ([#108](https://github.com/hypery11/flipper-tesla-fsd/issues/108), [#129](https://github.com/hypery11/flipper-tesla-fsd/issues/129)). With AP-First on, injects as soon as AP is engaged (DAS state ≥ 3) instead of waiting out the 1 s stability debounce. Still holds while AP is only available (state 2). |
+| **Minimal Inject** | Narrow-road steer-jerk probe ([#108](https://github.com/hypery11/flipper-tesla-fsd/issues/108)). Injects only a short burst (5 frames) at the start of each engagement, then stops until the car disengages. Stacks with Instant Engage. |
+| **Signal Map** (ESP32 → advanced) | Override where the nag killer reads AP-state / hands-on / steering: `id + byte/shift/mask` ([#122](https://github.com/hypery11/flipper-tesla-fsd/issues/122)). For variants whose `0x39B`/`0x399` layout differs. Freshness-gated — a wrong map fails closed, and the dashboard warns when the mapped DAS id never shows up on the bus. A field with mask `0` is ignored. Leave DAS id `0` for auto-detect. The Flipper has a preset picker instead (Auto / `0x39B` b0 / `0x39B` b1 / `0x399` b0). |
 
 **Hardware:**
 
@@ -161,7 +167,7 @@ These target Tesla 2026.14.x / 2026.20 behaviour and are all **off by default**.
 |----------|---------------|---------------|
 | Legacy (HW1/HW2) | bit46 | 3 levels (0-2) |
 | HW3 | bit46 | 3 levels (0-2) |
-| HW4 (FSD V14+) | bit46 + bit60, bit47 | 5 levels (0-4) |
+| HW4 (FSD V14+) | bit46 + bit60 | 5 levels (0-4) |
 
 ---
 
@@ -177,7 +183,7 @@ These target Tesla 2026.14.x / 2026.20 behaviour and are all **off by default**.
 
 ### ESP32 (from $14)
 
-Full-featured ESP32 port with WiFi web dashboard, NVS settings persistence, deep sleep, and factory reset. Same CAN logic as the Flipper app.
+Full-featured ESP32 port with WiFi web dashboard, NVS settings persistence, deep sleep, and factory reset. Same core CAN logic as the Flipper app; a few toggles exist on only one build (see Settings).
 
 The ESP32 firmware maps AP/DAS status by detected hardware version:
 
@@ -192,14 +198,16 @@ The ESP32 firmware maps AP/DAS status by detected hardware version:
 | M5Stack ATOM Lite + ATOMIC CAN | ~$14 | `m5stack-atom` |
 | Lilygo T-CAN485 | ~$15 | `esp32-lilygo` |
 | Waveshare ESP32-S3-RS485-CAN | ~$18 | `waveshare-s3-can` |
+| LilyGO TTGO T-Display + MCP2515 | ~$20 | `ttgo-tdisplay` |
+| LilyGO T-2CAN (dual CAN) | ~$24 | `lilygo-t2can` |
 | Generic ESP32 + MCP2515 | ~$6 | `esp32-mcp2515` |
 
 See [`esp32/README.md`](https://github.com/hypery11/flipper-tesla-fsd/tree/main/esp32) for setup, and [`HARDWARE.md`](HARDWARE.md) for the full comparison + wiring diagrams + X179 pinouts.
 
 ### Connection points
 
-- **OBD-II** (under steering column) — Party CAN. May go silent in Drive on some Model 3/Y builds.
-- **X179** (behind passenger kick panel) — recommended. Pin 13/14 = Bus 6 (mixed forwarding, stays active in all modes). See [`HARDWARE.md`](HARDWARE.md) for 20-pin and 26-pin pinouts.
+- **OBD-II** — Party CAN. On 2019+ Model 3 / 2020–April 2024 Model Y it sits in the rear center console area and needs a Tesla adapter cable; 2024+ Juniper / later Highland builds use DoIP (Ethernet) there, not CAN. May go silent in Drive on some Model 3/Y builds.
+- **X179** (behind the rear center console) — recommended. The pin→bus map varies by harness, so check the car's **Service Mode → CAN Port** page before wiring. See [`HARDWARE.md`](HARDWARE.md) for 20-pin and 26-pin pinouts.
 
 <p align="center">
   <img src="images/wiring_diagram.png" alt="Wiring Diagram" width="700">
@@ -248,7 +256,7 @@ ufbt
 ```bash
 git clone https://github.com/hypery11/flipper-tesla-fsd.git
 cd flipper-tesla-fsd/esp32
-pio run -e m5stack-atom    # or: esp32-lilygo, waveshare-s3-can, esp32-mcp2515
+pio run -e m5stack-atom    # or: esp32-lilygo, waveshare-s3-can, esp32-mcp2515, ttgo-tdisplay, lilygo-t2can
 ```
 
 ---
@@ -256,9 +264,9 @@ pio run -e m5stack-atom    # or: esp32-lilygo, waveshare-s3-can, esp32-mcp2515
 ## Usage
 
 1. Plug the CAN Add-On into your Flipper Zero (or flash the ESP32)
-2. Connect CAN-H/CAN-L to the vehicle via OBD-II or X179 pin 13/14
+2. Connect CAN-H/CAN-L to the vehicle via OBD-II or X179 (Service Mode → CAN Port shows which X179 pins carry which bus)
 3. Open the app: `Apps > GPIO > Tesla Mod`
-4. Select **"Auto Detect & Start"** (or Force HW3/HW4)
+4. Select **"Auto Detect & Start"** (or Force HW3/HW4/Legacy)
 5. Wait for detection (up to 8 seconds) — Palladium S/X will auto-upgrade from Legacy to HW3
 6. The app starts modifying frames automatically when the TLSSC toggle is enabled in the car
 
@@ -336,13 +344,10 @@ FSD features (TLSSC, traffic light/stop sign control) require the FSD entitlemen
 Tesla has been banning VINs server-side since April 2026. The ban downgrades `GTW_autopilot` tier from SELF_DRIVING to ENHANCED and removes the TLSSC toggle. The **TLSSC Restore** feature (0x331) can recover stop sign/traffic light control on Palladium and HW4. See [issue #18](https://github.com/hypery11/flipper-tesla-fsd/issues/18) for the full research. **GTW Config Replay** (0x7FF, formerly "Ban Shield") can replay the learned-healthy configuration in real time, but only at the CAN broadcast layer — it does not undo the underlying NVRAM or server-side state.
 
 **Flipper Zero vs ESP32 — which should I get?**
-ESP32 is cheaper ($14 vs $200+), has WiFi dashboard, NVS persistence, and deep sleep. Flipper is more portable and has a built-in screen. Both run the same CAN logic. If you don't already own a Flipper, get the ESP32.
+ESP32 is cheaper ($14 vs $200+), has WiFi dashboard, NVS persistence, and deep sleep. Flipper is more portable and has a built-in screen. Both run the same core CAN logic (a few toggles are build-specific, see Settings). If you don't already own a Flipper, get the ESP32.
 
 **Does this support Model S / Model X?**
 Yes. Palladium S/X (2021+) is confirmed working with TLSSC Restore. Pre-2021 S/X with HW3 retrofit works via Legacy→HW3 auto-upgrade. HW1/HW2 Model S/X uses Legacy mode (`0x3EE`). Model S/X uses different BMS CAN IDs — BMS dashboard may show incorrect values.
-
-**Can this brick my car?**
-Only UI config frames are touched. No writes to brakes, steering, or powertrain. The app boots in Listen-Only mode by default. See [SECURITY.md](SECURITY.md) for the full TX surface list.
 
 **Do I need a Flipper CAN Add-On?**
 For the Flipper: yes, any MCP2515-based module (Electronic Cats, generic boards). For ESP32: built-in CAN transceiver on most supported boards (M5Stack ATOMIC CAN, Lilygo T-CAN485, Waveshare S3).
@@ -353,7 +358,7 @@ For the Flipper: yes, any MCP2515-based module (Electronic Cats, generic boards)
 
 | Project | What it is | Hardware |
 |---------|------------|----------|
-| [ev-open-can-tools](https://github.com/ev-open-can-tools/ev-open-can-tools) | The upstream community project. Active development is on GitHub (v3.0.x, GPL-3.0). Formerly `Tesla-OPEN-CAN-MOD` on GitLab; that group was renamed to `ev-open-can-tools` and the GitLab repo is now dormant (0 open issues/MRs, last commit 2026-04-25) — track the GitHub repo. | RP2040 CAN, Feather M4, ESP32 |
+| [ev-open-can-tools](https://github.com/ev-open-can-tools/ev-open-can-tools) | The upstream community project. Active development is on GitHub (v3.1.x stable, v4.0 in beta, GPL-3.0). Formerly `Tesla-OPEN-CAN-MOD` on GitLab; that group was renamed to `ev-open-can-tools` and the GitLab repo is now dormant (0 open issues/MRs, last commit 2026-04-25) — track the GitHub repo. | RP2040 CAN, Feather M4, ESP32 |
 | [dzid26/ESP32-DualCAN](https://github.com/dzid26/ESP32-DualCAN) | "Dorky Commander" — open-source hardware alternative to the S3XY Commander | ESP32 + dual CAN |
 | [tuncasoftbildik/tesla-can-mod](https://github.com/tuncasoftbildik/tesla-can-mod) | Arduino reference implementation with frame templates | Arduino + MCP2515 |
 | [tumik/S3XY-candump](https://github.com/tumik/S3XY-candump) | Python CAN dump tool via S3XY Commander (Panda protocol) | Commander dongle |
@@ -363,8 +368,8 @@ For the Flipper: yes, any MCP2515-based module (Electronic Cats, generic boards)
 - [commaai/opendbc](https://github.com/commaai/opendbc) — Tesla CAN signal database
 - [ElectronicCats/flipper-MCP2515-CANBUS](https://github.com/ElectronicCats/flipper-MCP2515-CANBUS) — MCP2515 driver for Flipper
 - Community contributors — the on-car testing, captures, and research this project runs on:
-  - **Protocol, nag killer & 2026.14.x work:** @jewelrylin (T-2CAN dual-bus captures, the frame-content preflight test, the X179 Service Mode pinout), @DrStrangeglovebox (the Feifan `0x370` reference capture + HW4 dual-CAN data + safety findings), @ssw0209-sys (the Mode-C steering-torque reference + HW4 14.x testing), @0xAccretion (HW4 Highland China-MIC DAS-layout findings, #116/#117), @dunckencn (China HW3 start-after-AP validation, steer-jerk + bus-off reports), @kristopf007 (HW4 14.x on-car testing), @anoblekman (Highland HW4 DAS decode + the in-car Autopark safety finding, #177/#180)
-  - **Features, captures & PRs:** @JakNo (ScrollPress AP / `0x3C2`), @vrs11 (Continuous AP), @sqladm1n (RTC capture-log PR + bus/wiring investigation), @DmitroPanteliuk (full-rate `0x229` captures), @se7en7777777 (`0x485` / Highland / checksum analysis), @RoyRakete (TLSSC banned-car combo), @mamixsystem (post-SOP10 connector reference; the definitive frame-level 14.x FSD-engage investigation, #163), @p0sixturtle (Summon / tier-selector pointers, #139), @dahua910 (RHD request, #66), @HamzaObaidat (theatre-mode `0x118` research, #149), @fboulegue (EU / new-harness Juniper reports, #143/#109/#110), @densen2014 (ESP32 HW-selector suggestion #110, TLSSC bit38 toggle PR #159, Summon drive-gear safety-guard suggestion #160), @Tesla234987234sdf (Palladium OTA-latch report + captures, #183/#175), @tommybsb-lab (ATOM Lite / Juniper field report behind the Signal Map fixes, #100), @sb1089 (HW3 2026.26 nag capture, #122), @ukinora (independent `0x318` rolling-counter analysis), @adrianpadure99 (web-flasher "can't fetch" report, #176)
+  - **Protocol, nag killer & 2026.14.x work:** @jewelrylin (T-2CAN dual-bus captures, the frame-content preflight test, the X179 Service Mode pinout), @DrStrangeglovebox (the Feifan `0x370` reference capture + HW4 dual-CAN data + safety findings), @ssw0209-sys (the Mode-C steering-torque reference + HW4 14.x testing), @0xAccretion (HW4 Highland China-MIC DAS-layout findings, #116/#117), @dunckencn (China HW3 start-after-AP validation, steer-jerk + bus-off reports), @kristopf007 (HW4 14.x on-car testing), @anoblekman (Highland HW4 DAS decode + the in-car Autopark safety finding, #177/#180), @SkyRaax (nag killer on Party CAN 2/3, HW4 2026.20, #100), @LonelyCheese09 (labelled HW3 2026.14.6 nag captures behind the EPAS-faithful fix, #122), @jim608 (labelled HW3 2026.14.6 nag captures behind the EPAS-faithful fix, #121/#122), @weigibbor (2026.20 China-MIC capture + region-lock tier TX-test, #117), @7hf6cfqzkb-png (activation-lag report that led to Instant Engage, #129), @cquanu (first 2026.14.2 incompatibility report, #52), @deftdawg (on-demand grip pulse testing + integration, #70; TTGO T-Display test reports), @zdenekbouresh (DAS-aware nag gating, ported from ev-open-can-tools PR #5)
+  - **Features, captures & PRs:** @JakNo (ScrollPress AP / `0x3C2`), @vrs11 (Continuous AP), @sqladm1n (RTC capture-log PR + bus/wiring investigation), @DmitroPanteliuk (full-rate `0x229` captures), @se7en7777777 (`0x485` / Highland / checksum analysis), @RoyRakete (TLSSC banned-car combo), @mamixsystem (post-SOP10 connector reference; the definitive frame-level 14.x FSD-engage investigation, #163), @p0sixturtle (Summon / tier-selector pointers, #139), @dahua910 (RHD request, #66), @HamzaObaidat (theatre-mode `0x118` research, #149), @fboulegue (EU / new-harness Juniper reports, #143/#109/#110), @densen2014 (ESP32 HW-selector suggestion #110, TLSSC bit38 toggle PR #159, Summon drive-gear safety-guard suggestion #160), @Tesla234987234sdf (Palladium OTA-latch report + captures, #183/#175), @tommybsb-lab (ATOM Lite / Juniper field report behind the Signal Map fixes, #100), @sb1089 (HW3 2026.26 nag capture, #122), @ukinora (independent `0x318` rolling-counter analysis), @adrianpadure99 (web-flasher "can't fetch" report, #176), @danpadure (Autopark-pause-in-traffic report, #176), @Jclevy-CN (HW4 speed-profile bit-63 bug + on-car A/B, #59; ESP32 hardening ideas from their fork), @siksndavis (missing ESP32 Precondition toggle, #192), @maslyankov (M5Stack ATOM Matrix + GPIO 39 button, PR #46), @BenjaminFaal (`0x485` gear-shift frame on Juniper, #43), @jangshik (ESP32 Wi-Fi AP+STA request #101, T-2CAN config #96), @TzCoMe (telemetry-disable research behind Telemetry Off), @0n3-70uch (oscilloscope pin map of a post-April-2024 26-pin connector, #52), @TianzeWang (Tesla SOP8/SOP9 electrical-reference pointers, #52), @Tikernel (positive Model Y Juniper HW4 2026.2.11 China compat data), @LeeSSXX (Momentum / Xtreme build error report, #17)
   - **Ban research, platform testing, ESP32, bug fixes:** @THER4iN, @MiniCS, @kp43h8, @gauner1986, @dmagyar, @ViPiMP, @marcobellinoroci-source, @danpadure, @bruvv, @Symness, @hkloudou, @nagotti, @patatman, @JordanzhaoD
 - `Starmixcraft/tesla-fsd-can-mod` — original CanFeather FSD research (GitLab repo removed; mirror at [Karolynaz/waymo-fsd-can-mod](https://github.com/Karolynaz/waymo-fsd-can-mod))
 

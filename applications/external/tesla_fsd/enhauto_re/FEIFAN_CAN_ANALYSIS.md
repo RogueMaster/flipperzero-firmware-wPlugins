@@ -143,6 +143,11 @@ Reads from `DAS_status (0x39B)`:
 
 ### Tier 1 — Can implement NOW (Party CAN, same OBD-II tap)
 
+Status (v2.16-beta.32): all of Tier 1 ships as read-only parsers in the
+shared core (`0x39B` / `0x389` / `0x293`). From Tier 2, AP auto-restart ships
+as the ESP32 Continuous AP option (HW3/Legacy, opt-in, beta.4, #107), which
+uses a `0x229` stalk sequence rather than `0x293`.
+
 | Feature | Read from | Write to | Complexity |
 |---------|-----------|----------|------------|
 | **AP state monitoring** | `0x39B` DAS_autopilotHandsOnState | — | 10 LOC |

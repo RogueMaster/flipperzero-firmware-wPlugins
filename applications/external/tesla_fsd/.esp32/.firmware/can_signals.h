@@ -64,8 +64,9 @@
 #define SIG_AP_HW3_SPEED_OFFSET_LOW_SHIFT   6
 #define SIG_AP_HW3_SPEED_OFFSET_HIGH_SHIFT  2
 
+// HW4 speed profile: bits 60-62. Bit 63 is the mux2 valid flag, keep it (#59).
 #define SIG_AP_HW4_SPEED_PROFILE_BYTE       7
-#define SIG_AP_HW4_SPEED_PROFILE_SHIFT      5
+#define SIG_AP_HW4_SPEED_PROFILE_SHIFT      4
 #define SIG_AP_HW4_SPEED_PROFILE_MASK    0x07u
 
 // Follow distance / legacy stalk

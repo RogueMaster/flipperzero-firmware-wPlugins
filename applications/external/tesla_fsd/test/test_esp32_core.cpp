@@ -15,6 +15,7 @@
 
 #include "fsd_handler.h" // esp32/.firmware/fsd_handler.h (first on the include path)
 #include "fsd_ota.h" // shared reference: fsd_ota_update()
+#include "fsd_can_ops.h" // tesla_can_rx_accept / tesla_can_tx_valid (driver RX/TX filter)
 
 static int g_pass = 0;
 static int g_fail = 0;
@@ -319,7 +320,8 @@ static void test_autopark(void) {
     ap_update(&s, 6, 300);
     CHECK(!s.autopark_tx_block && fsd_can_transmit(&s), "FSD 2->3->6: no block");
 
-    // 2->6 (missed 3) at 0 km/h blocks; fresh speed >20 releases; stale keeps block.
+    // 2->6 (missed 3) at 0 km/h blocks; stale keeps block; fresh speed >20 ENDS
+    // the episode, so slowing back down in the same 6 does not re-block (#176).
     memset(&s, 0, sizeof(s));
     s.op_mode = OpMode_Active;
     s.speed_seen = true;
@@ -328,15 +330,21 @@ static void test_autopark(void) {
     ap_update(&s, 2, 100);
     ap_update(&s, 6, 200);
     CHECK(s.autopark_tx_block, "2->6 missed-3 at 0 km/h: blocked");
-    s.vehicle_speed_kph = 25.0f;
-    s.last_speed_tick_ms = 900;
-    ap_update(&s, 6, 1000);
-    CHECK(!s.autopark_tx_block, "fresh speed >20 releases");
-    s.last_speed_tick_ms = 1000; // stale relative to now
-    ap_update(&s, 6, 3200);
+    ap_update(&s, 6, 1500); // last speed 1.4 s ago -> stale
     CHECK(s.autopark_tx_block, "stale speed keeps block (fail safe)");
+    s.vehicle_speed_kph = 25.0f;
+    s.last_speed_tick_ms = 1900;
+    ap_update(&s, 6, 2000);
+    CHECK(!s.autopark_episode && !s.autopark_tx_block, "fresh speed >20 ends the episode");
+    s.vehicle_speed_kph = 5.0f;
+    s.last_speed_tick_ms = 2900;
+    ap_update(&s, 6, 3000);
+    CHECK(!s.autopark_tx_block && fsd_can_transmit(&s), "5 km/h after release, same 6: no block");
+    ap_update(&s, 6, 5000); // stale again
+    CHECK(!s.autopark_tx_block, "stale speed after release: episode stays ended");
 
-    // SNA speed must NOT release: raw 0xFFF (4095) decodes to 287.6 kph.
+    // SNA speed must NOT release: raw 0xFFF (4095) decodes to 287.6 kph. A valid
+    // release ends the episode, so a later SNA reading cannot re-open it (#176).
     memset(&s, 0, sizeof(s));
     s.op_mode = OpMode_Active;
     s.autopark_ready = true;
@@ -349,24 +357,32 @@ static void test_autopark(void) {
         "SNA raw 0xFFF decodes to %.2f kph (287.6)",
         s.vehicle_speed_kph);
     CHECK(s.autopark_tx_block && !fsd_can_transmit(&s), "fresh SNA speed keeps the block");
-    ap_speed(&s, 0xD0, 0x32, 400); // raw 813 = 25.04 kph, fresh
-    CHECK(!s.autopark_tx_block && fsd_can_transmit(&s), "fresh valid 25 kph releases");
-    ap_speed(&s, 0xF0, 0xFF, 500); // back to SNA
-    CHECK(s.autopark_episode && s.autopark_tx_block, "back to SNA re-blocks mid-episode");
-    ap_speed(&s, 0xE0, 0xFD, 600); // raw 4062 = 284.96, max valid
-    CHECK(!s.autopark_tx_block, "raw 4062 (max valid 284.96 kph) releases");
-    ap_speed(&s, 0xF0, 0xFD, 700); // raw 4063 = 285.04, invalid
+    ap_speed(&s, 0xF0, 0xFD, 400); // raw 4063 = 285.04, invalid
     CHECK(s.autopark_tx_block, "raw 4063 (above max valid) keeps the block");
+    ap_speed(&s, 0xD0, 0x32, 500); // raw 813 = 25.04 kph, fresh
+    CHECK(!s.autopark_tx_block && fsd_can_transmit(&s), "fresh valid 25 kph releases");
+    ap_speed(&s, 0xF0, 0xFF, 600); // back to SNA
+    CHECK(!s.autopark_episode && !s.autopark_tx_block, "SNA after release: episode stays ended");
+    memset(&s, 0, sizeof(s));
+    s.op_mode = OpMode_Active;
+    s.autopark_ready = true;
+    ap_update(&s, 1, 100);
+    ap_update(&s, 6, 200);
+    ap_speed(&s, 0xE0, 0xFD, 300); // raw 4062 = 284.96, max valid
+    CHECK(!s.autopark_tx_block, "raw 4062 (max valid 284.96 kph) releases");
 
-    // autopark bit rising mid-episode at low speed blocks.
+    // Maneuver bit rising mid-6 at low speed blocks; autoparkReady alone does not.
     memset(&s, 0, sizeof(s));
     s.op_mode = OpMode_Active;
     ap_update(&s, 3, 100);
     ap_update(&s, 6, 200);
     CHECK(!s.autopark_tx_block, "FSD 3->6 no bits: no block");
+    s.autopark_ready = true;
+    ap_update(&s, 6, 250);
+    CHECK(!s.autopark_episode && !s.autopark_tx_block, "autoparkReady alone mid-6: no block");
     s.autopark_parked = true;
     ap_update(&s, 6, 300);
-    CHECK(s.autopark_tx_block, "bit rising mid-6: blocks");
+    CHECK(s.autopark_tx_block, "maneuver bit rising mid-6: blocks");
 
     // ignore_ota does NOT override; listen-only still blocks.
     memset(&s, 0, sizeof(s));
@@ -377,6 +393,202 @@ static void test_autopark(void) {
     CHECK(s.autopark_tx_block && !fsd_can_transmit(&s), "ignore_ota does not override autopark");
     s.op_mode = OpMode_ListenOnly;
     CHECK(!fsd_can_transmit(&s), "listen-only blocks TX");
+}
+
+// ── #176 parity: Autopark episode vs normal state-6 driving ──────────────────
+// Same sequences as test_autopark_176 in test_fsd_core.c, through the ESP32
+// 0x39B / 0x257 parsers and fsd_can_transmit().
+static const uint8_t k_das_parked[8] = {0x01, 0x0A, 0xDF, 0xE0, 0xB0, 0x08, 0x71, 0x91};
+static const uint8_t k_das_autopark[8] = {0x06, 0x0A, 0xDF, 0xE5, 0xB0, 0x08, 0x21, 0x4B};
+static void ap_frame(FSDState* s, const uint8_t b[8], uint32_t now) {
+    CanFrame f;
+    memset(&f, 0, sizeof(f));
+    f.id = 0x39Bu;
+    f.dlc = 8;
+    memcpy(f.data, b, 8);
+    fsd_handle_das_status_hw4(s, &f);
+    fsd_autopark_update(s, now);
+}
+// byte0 = DAS_autopilotState, byte3 = autopark bits (0xE0 none, 0xE1 ready).
+static void ap_das(FSDState* s, uint8_t b0, uint8_t b3, uint32_t now) {
+    const uint8_t b[8] = {b0, 0x0A, 0xDF, b3, 0xB0, 0x08, 0x00, 0x00};
+    ap_frame(s, b, now);
+}
+// DI_vehicleSpeed raw = (kph + 40) / 0.08 -> byte1[7:4] + byte2.
+static void ap_kph(FSDState* s, float kph, uint32_t now) {
+    uint16_t raw = (uint16_t)((kph + 40.0f) / 0.08f + 0.5f);
+    ap_speed(s, (uint8_t)((raw & 0x0Fu) << 4), (uint8_t)(raw >> 4), now);
+}
+static void test_autopark_176(void) {
+    FSDState s;
+    int blocked;
+
+    // AP engaged 3->6 at 30 km/h, then city traffic 0..30 km/h with
+    // autoparkReady toggling while in 6: never blocks.
+    memset(&s, 0, sizeof(s));
+    s.op_mode = OpMode_Active;
+    ap_kph(&s, 30.0f, 0);
+    ap_das(&s, 0x02, 0xE0, 50);
+    ap_das(&s, 0x03, 0xE0, 100);
+    ap_das(&s, 0x06, 0xE0, 200);
+    CHECK(!s.autopark_tx_block, "#176 AP 3->6 at 30 km/h: no block");
+    blocked = 0;
+    for(uint32_t i = 0; i < 600; i++) {
+        uint32_t t = 300 + i * 100;
+        uint32_t ph = i % 60;
+        ap_kph(&s, (float)(ph < 30 ? ph : 60 - ph), t);
+        ap_das(&s, 0x06, ((i / 7) & 1u) ? 0xE1 : 0xE0, t + 10);
+        if(s.autopark_tx_block || !fsd_can_transmit(&s)) blocked++;
+    }
+    CHECK(
+        blocked == 0,
+        "#176 city traffic in 6, autoparkReady toggling: %d blocked frames",
+        blocked);
+
+    // 2->6 (missed 3) at 40 km/h: moving at entry -> no episode, ever.
+    memset(&s, 0, sizeof(s));
+    s.op_mode = OpMode_Active;
+    ap_kph(&s, 40.0f, 100);
+    ap_das(&s, 0x02, 0xE0, 150);
+    ap_das(&s, 0x06, 0xE1, 200);
+    CHECK(!s.autopark_episode && !s.autopark_tx_block, "2->6 at 40 km/h: no episode");
+    ap_kph(&s, 0.0f, 300);
+    ap_das(&s, 0x06, 0xE1, 350);
+    CHECK(!s.autopark_tx_block && fsd_can_transmit(&s), "2->6 at 40, then stop + ready: no block");
+
+    // maneuver_recent opens an episode entering 6 from an engaged state; a recent
+    // autoparkReady does not (AP re-engaging near parked cars, not Autopark) (#176).
+    memset(&s, 0, sizeof(s));
+    s.op_mode = OpMode_Active;
+    ap_das(&s, 0x03, 0xE0, 100);
+    ap_das(&s, 0x03, 0xE4, 1000); // waitingForBrake seen at t=1000
+    ap_das(&s, 0x06, 0xE0, 2100); // 3->6, no bit now, recent (1.1 s)
+    CHECK(s.autopark_tx_block, "maneuver_recent opens episode on 3->6");
+    memset(&s, 0, sizeof(s));
+    s.op_mode = OpMode_Active;
+    ap_das(&s, 0x03, 0xE0, 100);
+    ap_das(&s, 0x03, 0xE1, 1000); // autoparkReady seen while engaged
+    ap_das(&s, 0x06, 0xE0, 2100); // 3->6, ready was recent
+    CHECK(!s.autopark_tx_block, "autoparkReady recency on 3->6: no episode");
+
+    // AP re-engaging from a standstill: 2->3->6 at 0..5 km/h with autoparkReady
+    // set (byte3 bit0 only, no maneuver bit), never exceeding 20 km/h. Enters 6
+    // from an engaged state -> not Autopark, never blocks near parked cars (#176).
+    memset(&s, 0, sizeof(s));
+    s.op_mode = OpMode_Active;
+    ap_kph(&s, 0.0f, 100);
+    ap_das(&s, 0x02, 0xE1, 150);
+    ap_das(&s, 0x03, 0xE1, 200);
+    ap_das(&s, 0x06, 0xE1, 300);
+    CHECK(!s.autopark_episode && !s.autopark_tx_block, "2->3->6 at 0 km/h + ready: no episode");
+    blocked = 0;
+    for(uint32_t i = 0; i < 300; i++) {
+        uint32_t t = 400 + i * 100;
+        ap_kph(&s, (float)(i % 6), t);
+        ap_das(&s, 0x06, ((i / 5) & 1u) ? 0xE1 : 0xE0, t + 10);
+        if(s.autopark_tx_block || !fsd_can_transmit(&s)) blocked++;
+    }
+    CHECK(
+        blocked == 0, "re-engage crawl in 6, autoparkReady toggling: %d blocked frames", blocked);
+
+    // Entry boundary: 8.0 km/h still a standstill start, 8.08 is moving.
+    memset(&s, 0, sizeof(s));
+    s.op_mode = OpMode_Active;
+    ap_kph(&s, 8.0f, 100);
+    ap_das(&s, 0x02, 0xE0, 150);
+    ap_das(&s, 0x06, 0xE0, 200);
+    CHECK(s.autopark_tx_block, "2->6 at 8.0 km/h (<= ENTRY_MAX): blocked");
+    memset(&s, 0, sizeof(s));
+    s.op_mode = OpMode_Active;
+    ap_kph(&s, 8.08f, 100);
+    ap_das(&s, 0x02, 0xE0, 150);
+    ap_das(&s, 0x06, 0xE0, 200);
+    CHECK(!s.autopark_tx_block, "2->6 at 8.08 km/h (> ENTRY_MAX): no episode");
+
+    // 2->6 at 0 km/h: blocked; > 20 ends it; 5 km/h in the same 6 stays released;
+    // a maneuver bit re-opens it; leaving 6 resets.
+    memset(&s, 0, sizeof(s));
+    s.op_mode = OpMode_Active;
+    ap_kph(&s, 0.0f, 100);
+    ap_das(&s, 0x02, 0xE0, 150);
+    ap_das(&s, 0x06, 0xE0, 200);
+    CHECK(s.autopark_episode && s.autopark_tx_block, "2->6 at 0 km/h: blocked");
+    ap_kph(&s, 12.0f, 300);
+    CHECK(s.autopark_tx_block, "12 km/h (<= 20) keeps the block");
+    ap_kph(&s, 25.0f, 400);
+    CHECK(!s.autopark_episode && !s.autopark_tx_block, "> 20 km/h ends the episode");
+    ap_kph(&s, 5.0f, 500);
+    ap_das(&s, 0x06, 0xE1, 550);
+    CHECK(
+        !s.autopark_tx_block && fsd_can_transmit(&s),
+        "back to 5 km/h + autoparkReady in the same 6: not re-blocked");
+    ap_das(&s, 0x06, 0xE5, 600);
+    CHECK(
+        s.autopark_episode && s.autopark_tx_block, "waitingForBrake mid-6 after release: blocked");
+    ap_das(&s, 0x06, 0xE0, 700);
+    CHECK(s.autopark_tx_block, "maneuver episode holds after the bit clears (still slow)");
+    ap_kph(&s, 25.0f, 800);
+    CHECK(!s.autopark_tx_block, "> 20 km/h ends the maneuver episode too");
+    ap_kph(&s, 3.0f, 900);
+    ap_das(&s, 0x06, 0xE2, 950);
+    CHECK(s.autopark_tx_block, "autoParked mid-6 after release: blocked");
+    ap_das(&s, 0x02, 0xE0, 1000);
+    CHECK(!s.autopark_episode && !s.autopark_tx_block, "leaving 6 ends the episode");
+    ap_kph(&s, 0.0f, 1100);
+    ap_das(&s, 0x06, 0xE0, 1150);
+    CHECK(s.autopark_tx_block, "new 2->6 at a standstill: blocked (fresh state-6 period)");
+
+    // Unknown / stale / SNA speed at a 1->6 entry: fail safe, blocked.
+    memset(&s, 0, sizeof(s));
+    s.op_mode = OpMode_Active;
+    ap_das(&s, 0x01, 0xE0, 100);
+    ap_das(&s, 0x06, 0xE0, 200);
+    CHECK(!s.speed_seen && s.autopark_tx_block, "1->6, speed never seen: blocked");
+    memset(&s, 0, sizeof(s));
+    s.op_mode = OpMode_Active;
+    ap_kph(&s, 30.0f, 100);
+    ap_das(&s, 0x01, 0xE0, 1500);
+    ap_das(&s, 0x06, 0xE0, 2000);
+    CHECK(s.autopark_tx_block, "1->6, stale 30 km/h: blocked");
+    memset(&s, 0, sizeof(s));
+    s.op_mode = OpMode_Active;
+    ap_speed(&s, 0xF0, 0xFF, 100);
+    ap_das(&s, 0x01, 0xE0, 150);
+    ap_das(&s, 0x06, 0xE0, 200);
+    CHECK(s.autopark_tx_block, "1->6, SNA speed: blocked");
+
+    // Real in-car Autopark (#180 trace): parked, autoparkReady rises, ~1.1 s
+    // later 1->6 on 06 0A DF E5 B0 08 21 4B at 0..5 km/h held 20 s, then 6->1.
+    memset(&s, 0, sizeof(s));
+    s.op_mode = OpMode_Active;
+    uint8_t ready[8];
+    memcpy(ready, k_das_parked, 8);
+    ready[3] = 0xE1;
+    uint32_t t = 0;
+    for(int i = 0; i < 10; i++, t += 100) {
+        ap_kph(&s, 0.0f, t);
+        ap_frame(&s, k_das_parked, t + 10);
+    }
+    CHECK(!s.autopark_tx_block && fsd_can_transmit(&s), "real trace parked: no block");
+    for(int i = 0; i < 11; i++, t += 100) {
+        ap_kph(&s, 0.0f, t);
+        ap_frame(&s, ready, t + 10);
+    }
+    CHECK(
+        s.das_ap_state == 1 && s.autopark_ready && !s.autopark_tx_block,
+        "real trace autoparkReady at state 1: no episode yet");
+    blocked = 0;
+    for(int i = 0; i < 200; i++, t += 100) {
+        ap_kph(&s, (float)(i % 6), t);
+        ap_frame(&s, k_das_autopark, t + 10);
+        if(s.autopark_tx_block && !fsd_can_transmit(&s)) blocked++;
+    }
+    CHECK(blocked == 200, "real Autopark held 20 s at 0..5 km/h: blocked %d/200", blocked);
+    ap_kph(&s, 0.0f, t);
+    ap_frame(&s, k_das_parked, t + 10);
+    CHECK(
+        !s.autopark_episode && !s.autopark_tx_block && fsd_can_transmit(&s),
+        "real trace 6->1: released");
 }
 
 // ── Signal Map hardening (#100): mask-0 ignored + configured-but-absent flag ──
@@ -459,17 +671,77 @@ static void test_state_init(void) {
         s.op_mode == OpMode_ListenOnly && !fsd_can_transmit(&s), "init: listen-only, TX blocked");
 }
 
+// ── 0x3FD mux2 HW4 speed profile layout (#59), parity with the Flipper core ───
+// Real HW4 mux2 payload: byte7 = 0x90 (bit 63 = mux2 valid, bits 60-62 = profile 1).
+static void test_hw4_mux2_profile_layout(void) {
+    static const uint8_t k_hw4_mux2[8] = {0x02, 0x28, 0x00, 0x00, 0x00, 0x00, 0x00, 0x90};
+    for(int p = 0; p <= 4; p++) {
+        FSDState s;
+        memset(&s, 0, sizeof(s));
+        s.hw_version = TeslaHW_HW4;
+        s.fsd_unlock = true;
+        s.speed_profile = p;
+        CanFrame f;
+        memset(&f, 0, sizeof(f));
+        f.id = 0x3FD;
+        f.dlc = 8;
+        memcpy(f.data, k_hw4_mux2, 8);
+        CHECK(fsd_handle_autopilot_frame(&s, &f), "#59 p%d: HW4 mux2 modified", p);
+        CHECK(
+            ((f.data[7] >> 4) & 0x07) == p,
+            "#59 p%d: profile in bits 60-62, got %u",
+            p,
+            (f.data[7] >> 4) & 0x07);
+        CHECK(
+            (f.data[7] & 0x80) != 0,
+            "#59 p%d: bit63 (mux2 valid) kept, byte7=0x%02X",
+            p,
+            f.data[7]);
+        CHECK((f.data[7] & 0x0F) == 0x00, "#59 p%d: byte7 low nibble untouched", p);
+        CHECK(memcmp(f.data, k_hw4_mux2, 7) == 0, "#59 p%d: bytes 0-6 untouched", p);
+    }
+}
+
+// ── driver RX/TX frame filter ─────────────────────────────────────────────────
+// The TWAI driver hands up DLC 9..15 unchanged (twai_message_t.data is 8 bytes)
+// plus extended and remote frames. receive() drops DLC > 8; process_frame()
+// records extended / remote frames to captures but tesla_can_rx_accept() keeps
+// them away from every parser and handler.
+static void test_can_frame_filter(void) {
+    // Standard data frames the handlers use are accepted, DLC 0..8.
+    CHECK(tesla_can_rx_accept(0x3FDu, false, false, 8), "0x3FD dlc8 accepted");
+    CHECK(tesla_can_rx_accept(0x000u, false, false, 0), "id0 dlc0 accepted");
+    CHECK(tesla_can_rx_accept(0x7FFu, false, false, 8), "max std id accepted");
+    // DLC 9..15 is "8 bytes" on the wire but would overflow data[8] if copied.
+    for(uint8_t dlc = 9; dlc <= 15; dlc++)
+        CHECK(!tesla_can_rx_accept(0x3FDu, false, false, dlc), "dlc %u rejected", dlc);
+    // A 29-bit frame whose id masks down to a target id must not alias it.
+    CHECK(!tesla_can_rx_accept(0x3FDu, true, false, 8), "extended 0x3FD rejected");
+    CHECK(!tesla_can_rx_accept(0x18DB33F1u, true, false, 8), "extended OBD id rejected");
+    // A remote frame carries no payload; a modified copy would be garbage.
+    CHECK(!tesla_can_rx_accept(0x370u, false, true, 8), "remote 0x370 rejected");
+    CHECK(!tesla_can_rx_accept(0x800u, false, false, 8), "id > 0x7FF rejected");
+
+    CHECK(tesla_can_tx_valid(0x3FDu, 8), "tx 0x3FD dlc8 valid");
+    CHECK(tesla_can_tx_valid(0x082u, 0), "tx dlc0 valid");
+    CHECK(!tesla_can_tx_valid(0x3FDu, 9), "tx dlc9 invalid");
+    CHECK(!tesla_can_tx_valid(0x800u, 8), "tx id 0x800 invalid");
+}
+
 int main() {
     printf("test_esp32_core: ESP32 firmware handler host tests\n");
+    test_hw4_mux2_profile_layout();
     test_gtw_car_state();
     test_ota_parity();
     test_ota_tx_gate();
     test_das_decode();
     test_engaged();
     test_autopark();
+    test_autopark_176();
     test_signal_map();
     test_di_speed();
     test_state_init();
+    test_can_frame_filter();
 
     printf("\n%d passed, %d failed\n", g_pass, g_fail);
     return g_fail == 0 ? 0 : 1;

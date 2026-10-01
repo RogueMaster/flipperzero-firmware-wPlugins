@@ -18,6 +18,16 @@ ufbt
 The output `.fap` lands in `dist/`. If you need the full firmware SDK
 instead of `ufbt`, see the [ufbt docs](https://github.com/flipperdevices/flipperzero-ufbt).
 
+Run the host tests too. CI runs them first and won't build the `.fap` or
+the ESP32 images if they fail:
+
+```bash
+make -C test check
+```
+
+ESP32 changes: `cd esp32 && pio run -e <env>` (the envs are in
+`esp32/platformio.ini`).
+
 ### Step 2 — Test in Listen-Only mode first
 
 Since v2.4 the app boots in **Listen-Only** mode. The MCP2515 is put into
@@ -54,8 +64,9 @@ If you don't have a Tesla yourself, that's fine — open the PR and tag it
 
 ## Code style
 
-The C side is plain C99, no C++ features, no allocations on the worker
-thread. Match the style of the surrounding file. Concretely:
+The C side is plain C11 (the host tests build with `-std=c11`, see
+`test/Makefile`), no C++ features, no allocations on the worker thread.
+Match the style of the surrounding file. Concretely:
 
 - 4-space indent, no tabs
 - snake_case for functions and locals, PascalCase for types and enum values
@@ -63,8 +74,9 @@ thread. Match the style of the surrounding file. Concretely:
   unlock immediately, work on a stack copy in the worker
 - Bounds-check every byte access against `frame->data_lenght` (yes,
   `data_lenght`, that's the upstream MCP2515 lib spelling — don't fix it)
-- Add new CAN ID `#define`s to `fsd_logic/fsd_handler.h` with the decimal
-  value and a one-line comment
+- Add new CAN ID `#define`s to `fsd_logic/fsd_handler.h` (Flipper / shared
+  core) and `esp32/.firmware/config.h` (ESP32) with the decimal value and a
+  one-line comment
 
 ## Branching
 
@@ -81,8 +93,10 @@ Don't push directly to `main`.
   Write what you actually did, in your own voice, in whatever language
   you're comfortable with — Chinese, English, German, Korean, all welcome
   in PR conversations.
-- Adding features that need a feature flag "for safety" — if it's not
-  safe enough to default on, the design isn't ready
+- New TX features that are on by default. Every new TX path ships off by
+  default and opt-in, the device still boots Listen-Only on first run, and
+  every send goes through `fsd_can_transmit()` (Listen-Only, OTA and
+  Autopark gate)
 - Touching brakes, steering, or powertrain CAN IDs without a long
   conversation in an issue first
 - Bumping the version in your PR — the maintainer does that at release

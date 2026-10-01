@@ -16,9 +16,9 @@ capture format and the send format are deliberately the same.
 One frame per line. `#` starts a comment.
 
 ```
-# Name: poke the right stalk
-229#00112233445566AA  repeat=20  delay=100
-3FD#1000000000004000
+# Name: my test
+3FD#1000000000004000  repeat=20  delay=100
+118#0000000000000000
 (1.234000) can0 370#0000000000000000      # a raw capture line also works
 ```
 
@@ -28,6 +28,9 @@ One frame per line. `#` starts a comment.
 | `repeat=N` | send the frame N times | 1 |
 | `delay=N` | milliseconds between sends (`delay=100ms` also accepted) | 50 |
 | `# Name: ...` | profile name shown on the Flipper | filename |
+
+`0x229` (`SCCM_rightStalk`) lines are skipped on load for safety: a pulled-down
+right stalk is a request to shift into Drive or engage Autopilot.
 
 A leading `(timestamp) bus ` candump prefix is ignored, so you can paste a line
 straight from `apps_data/tesla_mod/captures/*.log`.
@@ -63,9 +66,10 @@ Frames with a rolling counter + checksum (e.g. `0x485`, `0x229`) need the right
 checksum to be accepted. Capture them and recover the parameters:
 
 ```
-python3 tools/tesla_crc_cracker.py --id 0x485 apps_data/tesla_mod/captures/cap_*.log
+python3 tools/tesla_crc_cracker.py --id 0x485 apps_data/tesla_mod/captures/cap_<YYYYMMDD_HHMMSS>.log
 ```
 
-Capture from the **direct vehicle bus** (e.g. Tesla X179 pin 9/10 or OBD-II),
-not a gateway-forwarded subset bus — forwarded frames may be re-emitted without
-the original counter/CRC.
+Capture from the bus that carries the frame natively (for Vehicle-CAN frames,
+the X179 pair your car's **Service Mode → CAN Port** page lists as Vehicle CAN,
+pins 9/10 on harness `1933903-XX`), not a gateway-forwarded subset bus —
+forwarded frames may be re-emitted without the original counter/CRC.

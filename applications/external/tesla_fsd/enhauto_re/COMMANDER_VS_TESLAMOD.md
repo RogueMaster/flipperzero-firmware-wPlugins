@@ -110,7 +110,7 @@ Based on:
 |---|----------|-----------|-----------|-----|--------|
 | 4 | `DriveModeAccel` | ✅ | ❌ `UI_pedalMap` | ETH `0x334` | BLOCKED |
 | 5 | `DriveModeRegen` | ✅ | ❌ | ETH | BLOCKED |
-| 6 | `DriveModeSteering` | ✅ | ✅ `GTW_epasTuneRequest` `0x101` | CHASSIS | SHIPPED v2.5 (Chassis CAN tap required) |
+| 6 | `DriveModeSteering` | ✅ | ❌ removed | CHASSIS | 0x101 write dropped (dead toggle); read-only tune-mode via 0x370 remains, below |
 | 46 | `StoppingMode` | ✅ | ❌ `UI_stoppingMode` | ETH `0x334` | BLOCKED |
 | 55 | `TractionControl` | ✅ | ❌ `UI_tractionControlMode` | ETH `0x293` | BLOCKED |
 | 56 | `SpeedControl` | ✅ | ❌ | ETH | BLOCKED |
@@ -119,16 +119,16 @@ Based on:
 
 | # | ActionID | Commander | Tesla Mod | Bus | Status |
 |---|----------|-----------|-----------|-----|--------|
-| 14 | `TrackMode` | ✅ | ⚠️ read `DI_trackModeState` from `0x118` | ETH (write `0x313`) | READ ONLY |
-| 59 | `TrackModeStability` | ✅ | ❌ `UI_stabilityModeRequest` | ETH `0x313` | BLOCKED |
-| 60 | `TrackModeHandling` | ✅ | ❌ `UI_trackDrivePowerAvailability` | ETH `0x313` | BLOCKED |
+| 14 | `TrackMode` | ✅ | ✅ `0x313` `UI_trackModeSettings` request | VEHICLE | SHIPPED v2.16-beta.26 (ESP32) |
+| 59 | `TrackModeStability` | ✅ | ✅ `0x313` byte2 Stability Assist | VEHICLE | SHIPPED v2.16-beta.26 (ESP32) |
+| 60 | `TrackModeHandling` | ✅ | ✅ `0x313` byte1 Handling Balance | VEHICLE | SHIPPED v2.16-beta.26 (ESP32) |
 
 ### Category: Gear / Parking
 
 | # | ActionID | Commander | Tesla Mod | Bus | Status |
 |---|----------|-----------|-----------|-----|--------|
-| 57 | `GearShift` | ✅ | ✅ `0x229` SCCM_rightStalk | VEHICLE | SHIPPED v2.5 |
-| 58 | `SimulatePARK` | ✅ | ✅ `0x229` parkButtonStatus | VEHICLE | SHIPPED v2.5 |
+| 57 | `GearShift` | ✅ | ❌ `0x229` SCCM_rightStalk | VEHICLE | NOT SHIPPED — the only `0x229` TX is the ESP32 Continuous AP double press (HW3/Legacy, off by default) |
+| 58 | `SimulatePARK` | ✅ | ⚠️ `0x229` parkButtonStatus | VEHICLE | PRESENT BUT HARD-DISABLED — builder added in v2.6, never fires (`state.extra_park_inject = false` in `scenes/fsd_running.c`) |
 
 ### Category: Doors / Trunk / Frunk / Charge Port
 
@@ -225,17 +225,21 @@ built as a separate layer. This is a v3.0+ roadmap item.
 
 ## Score
 
+> Counts below date from the v2.5/v2.6 era. They don't yet include Track
+> Mode (`0x313`, shipped v2.16-beta.26) or the Flipper Extras BETA High Beam
+> Strobe (`0x249`).
+
 | | Commander (€500) | Tesla Mod (free) |
 |---|---|---|
 | Total actions defined | 98 + 73 = 171 | — |
-| Actions SHIPPED today | ~90 (estimated) | **19 TX + RX handlers** |
+| Actions SHIPPED today | ~90 (estimated) | **42 handlers (18 TX, 24 RX)** |
 | Actions on CAN (Flipper reachable) | ~30 | **15 implemented / ~18 possible** |
 | Actions on ETH only | ~40 | 0 (physically unreachable via MCP2515) |
 | Actions via Fleet API only | ~30 | 0 today (ESP32 port roadmap) |
 | Actions needing Commander firmware | ~30 | 0 (need Panda UDP sniff) |
 | **BMS / diagnostic features** | **0** | **7 read-only parsers** |
 | **Safety gates (Listen-Only, OTA Guard)** | **0** | **3 safety features** |
-| **Price** | **€500** | **$0 (+ ~$200 hardware)** |
+| **Price** | **€500** | **$0 (+ from ~$14 with the ESP32 port, ~$200 with a Flipper)** |
 
 ## Key insight
 

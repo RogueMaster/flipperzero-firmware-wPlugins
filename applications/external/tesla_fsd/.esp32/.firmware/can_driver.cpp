@@ -11,8 +11,12 @@
 
 #include "can_driver.h"
 #include "config.h"
+#include "../../fsd_logic/fsd_can_ops.h"  // TESLA_CAN_MAX_DLC / tesla_can_tx_valid
 #include <Arduino.h>
 #include <string.h>
+
+// DLC>8 frames one receive() call may drop before it reports "queue empty".
+#define CAN_RX_REJECT_BURST_MAX 8u
 
 // ── TWAI driver ───────────────────────────────────────────────────────────────
 #if defined(CAN_DRIVER_TWAI) || defined(CAN_DRIVER_T2CAN_DUAL)
@@ -31,6 +35,7 @@ class TwaiDriver : public CanDriver {
     uint32_t filter_id_     = 0;      // standard 11-bit id for single-id capture
     bool     recovering_    = false;  // true while a bus-off recovery is in flight
     bool     busoff_event_  = false;  // consume-on-read edge: recovery just started
+    uint32_t rx_rejected_   = 0;      // DLC>8 frames dropped
 
     bool install_and_start(bool listen_only) {
 #ifdef SNIFFER_ONLY
@@ -94,6 +99,7 @@ public:
 
     bool send(const CanFrame &frame) override {
         if (listen_only_) return false;
+        if (!tesla_can_tx_valid(frame.id, frame.dlc)) return false;
         twai_message_t msg;
         memset(&msg, 0, sizeof(msg));
         msg.identifier       = frame.id;
@@ -106,14 +112,26 @@ public:
     }
 
     bool receive(CanFrame &frame) override {
-        twai_message_t msg;
-        // Non-blocking receive (timeout = 0)
-        if (twai_receive(&msg, 0) != ESP_OK) return false;
-        frame.id  = msg.identifier;
-        frame.dlc = msg.data_length_code;
-        memcpy(frame.data, msg.data, frame.dlc);
-        rx_count_++;
-        return true;
+        for (uint8_t i = 0; i < CAN_RX_REJECT_BURST_MAX; i++) {
+            twai_message_t msg;
+            // Non-blocking receive (timeout = 0)
+            if (twai_receive(&msg, 0) != ESP_OK) return false;
+            // TWAI hands DLC 9..15 up as-is while msg.data stays 8 bytes; a
+            // plain memcpy of dlc bytes overran both buffers. Drop those.
+            if (msg.data_length_code > TESLA_CAN_MAX_DLC) {
+                rx_rejected_++;
+                continue;
+            }
+            memset(&frame, 0, sizeof(frame));
+            frame.id  = msg.identifier;
+            frame.ext = msg.extd ? 1u : 0u;   // process_frame() records these
+            frame.req = msg.rtr  ? 1u : 0u;   // but never hands them to a handler
+            frame.dlc = msg.data_length_code;
+            memcpy(frame.data, msg.data, frame.dlc);
+            rx_count_++;
+            return true;
+        }
+        return false;
     }
 
     uint32_t errorCount() override {
@@ -158,6 +176,8 @@ public:
     uint32_t txCount() override { return tx_count_; }
 
     uint32_t rxCount() override { return rx_count_; }
+
+    uint32_t rxRejectedCount() override { return rx_rejected_; }
 
     uint32_t rxMissedCount() override {
         twai_status_info_t info;
@@ -254,6 +274,7 @@ class Mcp2515Driver : public CanDriver {
     uint32_t err_count_    = 0;
     uint32_t tx_count_     = 0;
     uint32_t rx_count_     = 0;
+    uint32_t rx_rejected_  = 0;   // DLC>8 frames dropped (readMessage FAIL)
 
 public:
 #if defined(BOARD_TTGO_DISPLAY)
@@ -347,6 +368,7 @@ public:
 
     bool send(const CanFrame &frame) override {
         if (!installed_ || listen_only_) return false;
+        if (!tesla_can_tx_valid(frame.id, frame.dlc)) return false;
         struct can_frame f;
         f.can_id  = frame.id;
         f.can_dlc = frame.dlc;
@@ -362,10 +384,26 @@ public:
     bool receive(CanFrame &frame) override {
         if (!installed_) return false;
         struct can_frame f;
-        if (mcp_.readMessage(&f) != MCP2515::ERROR_OK) return false;
-        frame.id  = f.can_id & CAN_EFF_MASK;
-        frame.dlc = f.can_dlc;
-        memcpy(frame.data, f.data, f.can_dlc);
+        MCP2515::ERROR err = mcp_.readMessage(&f);
+        if (err == MCP2515::ERROR_FAIL) {
+            // autowp returns FAIL for a DLC 9..15 frame WITHOUT clearing its
+            // RXnIF flag, and readMessage() always re-reads RXB0 first, so that
+            // one frame would wedge RX for good. Drop it (and whatever sits in
+            // the other buffer) by clearing the RX interrupt flags.
+            mcp_.clearInterrupts();
+            rx_rejected_++;
+            return false;
+        }
+        if (err != MCP2515::ERROR_OK) return false;
+        // autowp flags extended / remote frames in can_id (a remote frame's
+        // data bytes are whatever the previous frame left in the buffer).
+        bool extended = (f.can_id & CAN_EFF_FLAG) != 0u;
+        memset(&frame, 0, sizeof(frame));
+        frame.id  = f.can_id & (extended ? CAN_EFF_MASK : CAN_SFF_MASK);
+        frame.ext = extended ? 1u : 0u;
+        frame.req = (f.can_id & CAN_RTR_FLAG) != 0u ? 1u : 0u;
+        frame.dlc = f.can_dlc;   // readMessage() already refused DLC > 8
+        memcpy(frame.data, f.data, frame.dlc);
         rx_count_++;
         return true;
     }
@@ -377,6 +415,8 @@ public:
     uint32_t txCount() override { return tx_count_; }
 
     uint32_t rxCount() override { return rx_count_; }
+
+    uint32_t rxRejectedCount() override { return rx_rejected_; }
 
     // rxMissedCount(): use the CanDriver default (0). The MCP2515 overflow flag
     // would need an extra SPI read on the hot path, so it is not surfaced here.

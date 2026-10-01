@@ -99,6 +99,11 @@ Our existing Flipper code modifies bits 19, 46, 47, 60. Those are KNOWN position
 from CanFeather. We don't yet know which `UI_*` signal name maps to which bit.
 That mapping requires bit-position metadata we don't have from this dataset.
 
+Update (v2.16): the code now also writes named mux0 bits 38 (TLSSC), 39
+(`UI_fsdContinueOnGreenWithCIPV`) and 59 (emergency vehicle, HW4), and mux1
+bits 40-42 (`UI_apmv3Branch`), 45 (lane graph) and 48/50 (telemetry), with
+names taken from ev-open-can-tools. See `fsd_logic/fsd_handler.c`.
+
 ### Other key frames the dictionary lists
 
 | CAN ID | Frame | Bus | Signals | Notes |
@@ -263,8 +268,10 @@ frame.data[7] = (frame.data[7] & 0x1F) | ((speedProfile & 0x07) << 5);
 ```
 
 Our current code uses `(speed_profile & 0x07) << 4` which is **bits 4-6 = bit 60-62**.
-Different by one bit. Worth verifying empirically which is right — there might be
-a HW3 vs HW4 difference, or one of us is off by one.
+Different by one bit. Resolved (#59): `<< 4` is right. Real mux2 frames carry
+byte7 = 0x90 and bit 63 is set on every 0x3FD mux, so it's the mux valid flag.
+The `<< 5` write clears it for profiles 0-3 and puts 1/3/5/7 in the real profile
+field; on-car, the speed offset in the same frame stopped working until `<< 4`.
 
 **4. Steering effort change** (`0x101` / 257 dec — `GTW_epasControl`):
 
@@ -326,7 +333,7 @@ templates from these sources:
 | **Live energy consumption** | Read `0x33A` | tuncasoftbildik |
 | **Live wheel torque** | Read `0x118` `DI_torqueDriver` etc | mikegapinski + opendbc |
 | **Steering effort change** | Inject `0x101` `GTW_epasTuneRequest` | tuncasoftbildik STEERING_REFERENCE |
-| **Track Mode toggle (untested)** | Inject `0x313` `UI_trackModeRequest` | mikegapinski (no bit position yet) |
+| **Track Mode + handling / stability** | Inject `0x313` `UI_trackModeSettings` (byte0 request, byte1 rotation, byte2 stability, checksum) | shipped v2.16-beta.26 (PR #150, ESP32 dashboard) |
 | **Traction Control toggle (untested)** | Inject `0x293` `UI_tractionControlMode` | mikegapinski (no bit position yet) |
 
 The **untested** ones need empirical bit-position discovery before they'll work.
