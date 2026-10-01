@@ -155,6 +155,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Avocado Zero v0.1.2 (By Endika)](https://github.com/Endika/flipper-avocado-zero)
 - Updated: [HyperFocus Calc v0.1.3 (By Endika)](https://github.com/Endika/flipper-hyper-focus-calc)
 - Updated: [Tesla Mod v2.16b33 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
+- Updated: [Flipper Elements v1.9 (By steanlab)](https://github.com/steanlab/flipper-elements)
 
 <a name="release"></a>
 
@@ -620,7 +621,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [FlipPass v2.0 (By Arckanos)](https://github.com/Arckanos/FlipPass)
 - [Flipper Aid v1.0 (By spaghety)](https://github.com/spaghety/flipper-aid)
 - [Flipper Blackhat v0.4.1 (By o7-machinehum)](https://github.com/o7-machinehum/flipper-blackhat-app) `Req: Blackhat Board` with [Blackhat OS](https://github.com/o7-machinehum/flipper-blackhat-os)
-- [Flipper Elements v1.4 (By steanlab)](https://github.com/steanlab/flipper-elements)
+- [Flipper Elements v1.9 (By steanlab)](https://github.com/steanlab/flipper-elements)
 - [Flipper Printer v1.0 (By alxcrt)](https://github.com/alxcrt/flipper-zero-thermal-printer) `Req: T7-US thermal printer module`
 - [Flipper Share iButton v0.1 (By lomalkin)](https://github.com/lomalkin/flipper-zero-apps/blob/-/flipper_share_ibutton)
 - [Flipper Share IR v1.5 (By lomalkin)](https://github.com/lomalkin/flipper-zero-apps/tree/dev/flipper_share_ir)
