@@ -13,9 +13,7 @@
 #define RECORD_STORAGE 1
 #define FSAM_READ 1
 #define FSOM_OPEN_EXISTING 1
-typedef struct {
-    int unused;
-} Storage;
+typedef int Storage;
 typedef struct {
     FILE *stream;
     DIR *directory;
@@ -50,7 +48,7 @@ static void furi_record_close(int id) {
     assert(id == RECORD_STORAGE && records);
     records--;
 }
-static File *storage_file_alloc(Storage *value) {
+static File *storage_file_alloc(const Storage *value) {
     assert(value == &storage);
     return calloc(1, sizeof(File));
 }
@@ -68,14 +66,16 @@ static bool storage_file_open(File *file, const char *path, int access, int mode
 }
 static uint64_t storage_file_size(File *file) {
     struct stat info;
-    assert(fstat(fileno(file->stream), &info) == 0);
+    int result = fstat(fileno(file->stream), &info);
+    assert(result == 0);
     return (uint64_t)info.st_size;
 }
 static size_t storage_file_read(File *file, void *data, size_t size) {
     return file->fail_read ? 0 : fread(data, 1, size, file->stream);
 }
 static void storage_file_close(File *file) {
-    assert(fclose(file->stream) == 0);
+    int result = fclose(file->stream);
+    assert(result == 0);
     file->stream = NULL;
 }
 static bool storage_dir_open(File *file, const char *path) {
@@ -85,14 +85,15 @@ static bool storage_dir_open(File *file, const char *path) {
     return file->directory != NULL;
 }
 static bool storage_dir_read(File *file, FileInfo *info, char *name, size_t cap) {
-    struct dirent *entry = readdir(file->directory);
+    const struct dirent *entry = readdir(file->directory);
     if (!entry)
         return false;
     snprintf(name, cap, "%s", entry->d_name);
     char path[2048];
     snprintf(path, sizeof(path), "%s/%s", file->path, entry->d_name);
     struct stat status;
-    assert(stat(path, &status) == 0);
+    int result = stat(path, &status);
+    assert(result == 0);
     info->directory = S_ISDIR(status.st_mode);
     return true;
 }
@@ -103,7 +104,7 @@ static void storage_dir_close(File *file) {
 static bool file_info_is_dir(const FileInfo *info) {
     return info->directory;
 }
-static bool storage_simply_remove(Storage *value, const char *path) {
+static bool storage_simply_remove(const Storage *value, const char *path) {
     assert(value == &storage);
     char host[1024];
     if (deny_delete || !translate(path, host, sizeof(host)))
@@ -124,10 +125,14 @@ static void write_copy(const char *name, const char *suffix) {
     snprintf(path, sizeof(path), "%s/dup-test/%s", test_root, name);
     FILE *stream = fopen(path, "wb");
     assert(stream);
-    assert(fwrite(prefix, 1, strlen(prefix), stream) == strlen(prefix));
-    assert(fwrite(suffix, 1, strlen(suffix), stream) == strlen(suffix));
-    assert(fputc('\n', stream) != EOF);
-    assert(fclose(stream) == 0);
+    size_t written = fwrite(prefix, 1, strlen(prefix), stream);
+    assert(written == strlen(prefix));
+    written = fwrite(suffix, 1, strlen(suffix), stream);
+    assert(written == strlen(suffix));
+    int result = fputc('\n', stream);
+    assert(result != EOF);
+    result = fclose(stream);
+    assert(result == 0);
 }
 static bool exists(const char *name) {
     char path[2048];
@@ -152,6 +157,7 @@ int main(int argc, char **argv) {
     if (!strcmp(argv[2], "short-read"))
         unreadable = "b.sub";
     assert(storage_scan_directory(app, "/ext/dup-test", &stats));
+    assert(!strcmp(app->scanned_dir, "/ext/dup-test"));
     if (!strcmp(argv[2], "collision") || !strcmp(argv[2], "short-read")) {
         assert(app->db.num_groups == 0);
         assert(removals == 0 && exists("a.sub") && exists("b.sub"));
