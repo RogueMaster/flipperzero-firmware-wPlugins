@@ -21,34 +21,28 @@ typedef enum {
 static int s_sel = 0;
 
 static void draw_menu(Canvas* canvas) {
-    // Title
     canvas_set_font(canvas, FontPrimary);
     canvas_draw_str(canvas, 40, 12, EN_TITLE);
 
-    // Menu items
     const char* items[M_COUNT] = {EN_M_PLAY, EN_M_LANG, EN_M_ABOUT};
     for(int i = 0; i < M_COUNT; i++) {
         int y = 26 + i * 12;
         if(i == s_sel) {
-            // Highlight: invert
-            canvas_set_color(canvas, ColorBlack);
             canvas_draw_box(canvas, 10, y - 9, 108, 11);
-            canvas_set_color(canvas, ColorWhite);
+            canvas_invert_color(canvas);
             canvas_draw_str(canvas, 16, y, items[i]);
-            canvas_set_color(canvas, ColorBlack);
+            canvas_invert_color(canvas);
         } else {
             canvas_draw_str(canvas, 16, y, items[i]);
         }
     }
 
-    // Language tag next to Language item
     {
         int y = 26 + M_LANG * 12;
         const char* tag = (g.lang == LANG_EN) ? EN_LANG_TAG : EN_ZH_TAG;
         canvas_draw_str(canvas, 100, y, tag);
     }
 
-    // Hint
     canvas_set_font(canvas, FontSecondary);
     canvas_draw_str(canvas, 4, 62, EN_HINT_MENU);
 }
@@ -63,10 +57,8 @@ static void draw_about(Canvas* canvas) {
 }
 
 static void draw_clear(Canvas* canvas) {
-    // Dim background
-    canvas_set_color(canvas, ColorBlack);
     canvas_draw_box(canvas, 0, 0, SCREEN_W, SCREEN_H);
-    canvas_set_color(canvas, ColorWhite);
+    canvas_invert_color(canvas);
     canvas_set_font(canvas, FontPrimary);
     canvas_draw_str(canvas, 44, 26, EN_CLEAR);
     char lv[16];
@@ -74,6 +66,7 @@ static void draw_clear(Canvas* canvas) {
     canvas_draw_str(canvas, 40, 40, lv);
     canvas_set_font(canvas, FontSecondary);
     canvas_draw_str(canvas, 14, 58, EN_CLEAR_BTNS);
+    canvas_invert_color(canvas);
 }
 
 static void draw_callback(Canvas* canvas, void* ctx) {
@@ -85,19 +78,18 @@ static void draw_callback(Canvas* canvas, void* ctx) {
     } else if(g.mode == MODE_ABOUT) {
         draw_about(canvas);
     } else if(g.mode == MODE_PLAY || g.mode == MODE_CLEAR) {
-        // Blit the entire raycast framebuffer in one call (XBM format).
-        // This replaces 8192 canvas_draw_dot calls and is much faster.
-        canvas_draw_xbm(canvas, 0, 0, SCREEN_W, SCREEN_H, g.fb);
+        // Draw the pre-computed raycast scene directly with canvas primitives.
+        engine_draw(canvas);
+
         // HUD overlay
         if(g.show_hud || (g.tick & 63) < 20) {
-            canvas_set_color(canvas, ColorBlack);
             canvas_draw_box(canvas, 0, 0, SCREEN_W, 10);
-            canvas_set_color(canvas, ColorWhite);
+            canvas_invert_color(canvas);
             canvas_set_font(canvas, FontSecondary);
             char buf[32];
             snprintf(buf, sizeof(buf), "%s %d", EN_HUD_LV, g.level);
             canvas_draw_str(canvas, 4, 8, buf);
-            canvas_set_color(canvas, ColorBlack);
+            canvas_invert_color(canvas);
         }
         if(g.show_hud) {
             canvas_set_font(canvas, FontSecondary);
@@ -115,7 +107,6 @@ static void input_callback(InputEvent* ev, void* ctx) {
     furi_message_queue_put(q, &e, FuriWaitForever);
 }
 
-// ---- Menu input ----
 static void handle_menu_input(InputKey key, InputType type) {
     if(type != InputTypeShort) return;
     if(key == InputKeyUp) {
@@ -125,7 +116,6 @@ static void handle_menu_input(InputKey key, InputType type) {
         s_sel = (s_sel + 1) % M_COUNT;
         sfx_play(SFX_MENU_MOVE);
     } else if(key == InputKeyLeft || key == InputKeyRight) {
-        // Toggle language.
         g.lang = (g.lang == LANG_EN) ? LANG_ZH : LANG_EN;
         storage_save();
         sfx_play(SFX_MENU_MOVE);
@@ -137,6 +127,7 @@ static void handle_menu_input(InputKey key, InputType type) {
             g.mode = MODE_ABOUT;
         }
     }
+    g.dirty = true;
 }
 
 static void handle_overlay_input(InputKey key, InputType type) {
@@ -154,12 +145,13 @@ static void handle_overlay_input(InputKey key, InputType type) {
             sfx_play(SFX_MENU_OK);
         }
     }
+    g.dirty = true;
 }
 
 int32_t maze3d_app(void* p) {
     UNUSED(p);
     memset(&g, 0, sizeof(g));
-    g.lang = LANG_EN; // default English
+    g.lang = LANG_EN;
     storage_load();
 
     sfx_init();
@@ -174,7 +166,7 @@ int32_t maze3d_app(void* p) {
 
     AppEvent ev;
     bool running = true;
-    const uint32_t UPDATE_MS = 100; // ~10Hz world update
+    const uint32_t UPDATE_MS = 100;
 
     while(running) {
         FuriStatus st = furi_message_queue_get(q, &ev, UPDATE_MS);
@@ -183,7 +175,6 @@ int32_t maze3d_app(void* p) {
             InputType type = ev.input.type;
 
             if(key == InputKeyBack && type == InputTypeLong) {
-                // Long Back always exits to menu (or quits if already in menu).
                 if(g.mode == MODE_MENU) {
                     running = false;
                 } else {
@@ -196,25 +187,19 @@ int32_t maze3d_app(void* p) {
 
             if(g.mode == MODE_MENU) {
                 handle_menu_input(key, type);
-                g.dirty = true;
             } else if(g.mode == MODE_PLAY) {
                 game_handle_input(key, type);
             } else {
                 handle_overlay_input(key, type);
-                g.dirty = true;
             }
         }
 
-        // World update only while playing (tick always advances for blink anim).
         if(g.mode == MODE_PLAY) {
             game_update();
+            engine_compute();
         }
 
-        // Only re-render when something changed (avoids wasting CPU / watchdog).
         if(g.dirty || g.mode == MODE_PLAY) {
-            if(g.mode == MODE_PLAY) {
-                engine_render();
-            }
             view_port_update(vp);
             g.dirty = false;
         }

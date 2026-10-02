@@ -31,6 +31,7 @@ This software is for experimental purposes only and is not meant for any illegal
 
 - Last Synced/Checked OFW, changes in [commits](https://github.com/flipperdevices/flipperzero-firmware/commits/dev): `2026-09-10 22:55 EST`
 - Last Synced/Checked CFW, changes in [changelog](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/CHANGELOG.md): `2026-08-26 14:01 EST`
+- Updated: [Maze 3D v7.2 (By k20120509)](https://github.com/k20120509/flipper-release)
 
 <a name="release"></a>
 
@@ -236,7 +237,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Mancala v0.1 (By fgreil)](https://github.com/fgreil/mitzi-mancala)
 - [Mandelbrot Set v1.4 (By Possibly-Matt)](https://github.com/Possibly-Matt/flipperzero-firmware-wPlugins)
 - [Matagotchi v1.1 (By MrModd)](https://github.com/MrModd/Matagotchi)
-- [Maze 3D v7.1 (By k20120509)](https://github.com/k20120509/flipper-release)
+- [Maze 3D v7.2 (By k20120509)](https://github.com/k20120509/flipper-release)
 - [MicroCity v2.0 (By apfxtech)](https://github.com/apfxtech/FlipperMicroCity)
 - [Mind Probe v0.1 (By Miksang)](https://github.com/Miksang/flipper_guessing_game)
 - [Minesweeper Redux v1.7 (By squee72564)](https://github.com/squee72564/F0_Minesweeper_Fap)
