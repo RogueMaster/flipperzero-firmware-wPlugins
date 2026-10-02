@@ -1,0 +1,12 @@
+App(
+    appid="step_seq",
+    name="Step Seq",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="step_seq_app",
+    requires=["gui"],
+    stack_size=2 * 1024,
+    fap_category="Media",
+    fap_icon="icon.png",
+    fap_version="0.1",
+    fap_description="16-step melody and drum sequencer for the piezo speaker",
+)
