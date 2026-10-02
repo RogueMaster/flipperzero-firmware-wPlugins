@@ -10,22 +10,22 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define MAP_W 40
-#define MAP_H 26
-#define TILE 8
+#define MAP_W  40
+#define MAP_H  26
+#define TILE   8
 #define VIEW_W 16
 #define VIEW_H 7
-#define HUD_Y (VIEW_H * TILE)
+#define HUD_Y  (VIEW_H * TILE)
 
-#define MAX_ROOMS 12
-#define MIN_ROOMS 5
-#define EXIT_ROOM_W 5
-#define EXIT_ROOM_H 3
+#define MAX_ROOMS    12
+#define MIN_ROOMS    5
+#define EXIT_ROOM_W  5
+#define EXIT_ROOM_H  3
 #define MAX_MONSTERS 16
-#define MAX_ITEMS 6
-#define FOV_RADIUS 4
-#define MAX_COFFEE 9
-#define COFFEE_HEAL 5
+#define MAX_ITEMS    6
+#define FOV_RADIUS   4
+#define MAX_COFFEE   9
+#define COFFEE_HEAL  5
 
 typedef enum {
     TileWall,
@@ -81,45 +81,28 @@ static const MonsterInfo monster_info[MonsterTypeCount] = {
 
 // One floor per street, heading north. The last entry is the boss floor.
 static const char* const level_names[] = {
-    "Burnside",
-    "Couch",
-    "Davis",
-    "Everett",
-    "Flanders",
-    "Glisan",
-    "Hoyt",
-    "Irving",
-    "Johnson",
-    "Kearney",
-    "Lovejoy",
-    "Marshall",
-    "Northrup",
-    "Overton",
-    "Pettygrove",
-    "Quimby",
-    "Raleigh",
-    "Savier",
-    "Thurman",
-    "Witch's Castle",
+    "Burnside",   "Couch",   "Davis",   "Everett", "Flanders", "Glisan",         "Hoyt",
+    "Irving",     "Johnson", "Kearney", "Lovejoy", "Marshall", "Northrup",       "Overton",
+    "Pettygrove", "Quimby",  "Raleigh", "Savier",  "Thurman",  "Witch's Castle",
 };
 #define LEVEL_COUNT ((int)COUNT_OF(level_names))
 
 // Sasquatch wanders down from Forest Park on the northern half of the walk,
 // and is too elusive to be seen from more than a couple of tiles away
 #define SASQUATCH_MIN_TIER 5
-#define SASQUATCH_ODDS 2
-#define SASQUATCH_SIGHT 2
+#define SASQUATCH_ODDS     2
+#define SASQUATCH_SIGHT    2
 
 // Joe's Cellar is a safe room with a bartender on this street
-#define BAR_STREET "Pettygrove"
+#define BAR_STREET       "Pettygrove"
 // Difficulty is scaled as if the walk were this many floors long
 #define DIFFICULTY_TIERS 10
 
 // Sprites are written MSB-left for readability; XBM wants LSB-left.
-#define B(b)                                                                       \
-    (uint8_t)((((b) & 0x80) >> 7) | (((b) & 0x40) >> 5) | (((b) & 0x20) >> 3) |    \
-              (((b) & 0x10) >> 1) | (((b) & 0x08) << 1) | (((b) & 0x04) << 3) |    \
-              (((b) & 0x02) << 5) | (((b) & 0x01) << 7))
+#define B(b)                                                                                    \
+    (uint8_t)(                                                                                  \
+        (((b) & 0x80) >> 7) | (((b) & 0x40) >> 5) | (((b) & 0x20) >> 3) | (((b) & 0x10) >> 1) | \
+        (((b) & 0x08) << 1) | (((b) & 0x04) << 3) | (((b) & 0x02) << 5) | (((b) & 0x01) << 7))
 
 static const uint8_t spr_player[8] = {
     B(0b00111100),
@@ -295,7 +278,7 @@ static const uint8_t spr_items[ItemTypeCount][8] = {
 // Square-wave blips through the notification service, so they follow the
 // Flipper's volume and stealth-mode settings and never block the game loop.
 #define NOTE(n, d) &message_note_##n, &message_delay_##d
-#define SFX_END &message_sound_off, NULL
+#define SFX_END    &message_sound_off, NULL
 
 static const NotificationSequence sfx_hit = {NOTE(a4, 25), NOTE(e4, 25), SFX_END};
 static const NotificationSequence sfx_kill = {NOTE(e5, 25), NOTE(g5, 25), NOTE(c6, 50), SFX_END};
@@ -656,7 +639,8 @@ static void generate_level(Game* g) {
         // The exit always gets a proper room of its own, placed last
         placed_exit = false;
         for(int attempt = 0; attempt < 60 && !placed_exit; attempt++) {
-            placed_exit = try_place_room(g, rooms, &count, EXIT_ROOM_W + rnd(2), EXIT_ROOM_H + rnd(2));
+            placed_exit =
+                try_place_room(g, rooms, &count, EXIT_ROOM_W + rnd(2), EXIT_ROOM_H + rnd(2));
         }
     } while(count < MIN_ROOMS || !placed_exit);
 
@@ -883,7 +867,6 @@ static void witch_summon(Game* g, const Monster* witch) {
 }
 
 static void monsters_act(Game* g) {
-
     for(int i = 0; i < MAX_MONSTERS; i++) {
         Monster* m = &g->monsters[i];
         if(!m->alive) continue;
@@ -1066,8 +1049,7 @@ static void draw_title(Canvas* canvas, Game* g) {
     if(g->dev_mode) {
         char buf[40];
         bool castle = g->dev_start == LEVEL_COUNT - 1;
-        snprintf(
-            buf, sizeof(buf), "DEV < %s%s >", castle ? "" : "NW ", level_names[g->dev_start]);
+        snprintf(buf, sizeof(buf), "DEV < %s%s >", castle ? "" : "NW ", level_names[g->dev_start]);
         canvas_draw_str_aligned(canvas, 64, 19, AlignCenter, AlignTop, buf);
     } else {
         canvas_draw_str_aligned(
@@ -1086,7 +1068,8 @@ static void draw_end(Canvas* canvas, Game* g) {
     if(g->state == StateWon) {
         canvas_draw_str_aligned(canvas, 64, 6, AlignCenter, AlignTop, "The Witch is gone!");
         canvas_set_font(canvas, FontSecondary);
-        canvas_draw_str_aligned(canvas, 64, 24, AlignCenter, AlignTop, "Forest Park is quiet again.");
+        canvas_draw_str_aligned(
+            canvas, 64, 24, AlignCenter, AlignTop, "Forest Park is quiet again.");
         snprintf(buf, sizeof(buf), "Level %d, %d coffees left", g->level, g->coffee);
         canvas_draw_str_aligned(canvas, 64, 35, AlignCenter, AlignTop, buf);
     } else {
@@ -1219,10 +1202,10 @@ static void draw_callback(Canvas* canvas, void* ctx) {
 
 // Title-screen house beat. The speaker has one voice, so each 20 ms tick picks
 // the most important sound: kick > clap > hi-hat > bass.
-#define MUSIC_TICK_MS 20
+#define MUSIC_TICK_MS        20
 #define MUSIC_TICKS_PER_STEP 6 // one 16th note = 120 ms, about 125 BPM
-#define MUSIC_STEPS 32 // two bars
-#define MUSIC_VOLUME 0.5f
+#define MUSIC_STEPS          32 // two bars
+#define MUSIC_VOLUME         0.5f
 
 #define N_E3 164.8f
 #define N_F3 174.6f
