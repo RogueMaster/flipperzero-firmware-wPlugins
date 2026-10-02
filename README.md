@@ -10,6 +10,7 @@ Start on Burnside and head north one street per floor (Couch, Davis, Everett, Fl
 
 - **Floors:** 19 streets plus the castle. Each is a randomly generated maze of rooms, corridors and side alleys with fog of war. The up-arrow tile leads to the next street.
 - **Locals:** rats, crows, raccoons, rogue e-scooters and coyotes. Tougher ones show up the further north you go.
+- **Sasquatch:** occasionally lurks by the exit on the northern streets. You can't see him until he's two tiles away.
 - **Pickups:**
   - Coffee is carried with you and heals 5 HP when you drink it.
   - A pink-box donut raises your max HP.

@@ -39,6 +39,8 @@ typedef enum {
     MonsterScooter,
     MonsterCoyote,
     MonsterWitch,
+    // After the Witch so it stays out of the random spawn pool
+    MonsterSasquatch,
     MonsterTypeCount,
 } MonsterType;
 
@@ -72,6 +74,7 @@ static const MonsterInfo monster_info[MonsterTypeCount] = {
     [MonsterScooter] = {"Scooter", "rams", 4, 3, 4},
     [MonsterCoyote] = {"Coyote", "bites", 8, 3, 6},
     [MonsterWitch] = {"Witch", "smites", 50, 6, 0},
+    [MonsterSasquatch] = {"Sasquatch", "clobbers", 16, 4, 12},
 };
 
 // One floor per street, heading north. The last entry is the boss floor.
@@ -98,6 +101,12 @@ static const char* const level_names[] = {
     "Witch's Castle",
 };
 #define LEVEL_COUNT ((int)COUNT_OF(level_names))
+
+// Sasquatch wanders down from Forest Park on the northern half of the walk,
+// and is too elusive to be seen from more than a couple of tiles away
+#define SASQUATCH_MIN_TIER 5
+#define SASQUATCH_ODDS 4
+#define SASQUATCH_SIGHT 2
 
 // Joe's Cellar is a safe room with a bartender on this street
 #define BAR_STREET "Pettygrove"
@@ -221,6 +230,17 @@ static const uint8_t spr_monsters[MonsterTypeCount][8] = {
             B(0b11111110),
             B(0b11111110),
         },
+};
+
+static const uint8_t spr_sasquatch[8] = {
+    B(0b00111000),
+    B(0b00111000),
+    B(0b01111100),
+    B(0b11111110),
+    B(0b10111010),
+    B(0b00111000),
+    B(0b00101100),
+    B(0b01100100),
 };
 
 static const uint8_t spr_items[ItemTypeCount][8] = {
@@ -680,6 +700,9 @@ static void generate_level(Game* g) {
         } while(bar_level && room == bar_index);
         spawn_monster(g, &rooms[room], (MonsterType)rnd(variety));
     }
+    if(!boss_level && tier >= SASQUATCH_MIN_TIER && rnd(SASQUATCH_ODDS) == 0) {
+        spawn_monster(g, last, MonsterSasquatch);
+    }
 
     spawn_item(g, &rooms[rnd(count)], ItemCoffee);
     if(rnd(2)) spawn_item(g, &rooms[rnd(count)], ItemCoffee);
@@ -1064,12 +1087,21 @@ static void draw_game(Canvas* canvas, Game* g) {
     for(int i = 0; i < MAX_MONSTERS; i++) {
         const Monster* m = &g->monsters[i];
         if(!m->alive || !g->visible[m->y][m->x]) continue;
+        if(m->type == MonsterSasquatch &&
+           MAX(abs(m->x - g->px), abs(m->y - g->py)) > SASQUATCH_SIGHT)
+            continue;
         int vx = m->x - cam_x, vy = m->y - cam_y;
         if(vx < 0 || vy < 0 || vx >= VIEW_W || vy >= VIEW_H) continue;
         canvas_set_color(canvas, ColorWhite);
         canvas_draw_box(canvas, vx * TILE, vy * TILE, TILE, TILE);
         canvas_set_color(canvas, ColorBlack);
-        canvas_draw_xbm(canvas, vx * TILE, vy * TILE, TILE, TILE, spr_monsters[m->type]);
+        canvas_draw_xbm(
+            canvas,
+            vx * TILE,
+            vy * TILE,
+            TILE,
+            TILE,
+            m->type == MonsterSasquatch ? spr_sasquatch : spr_monsters[m->type]);
     }
 
     int player_vy = g->py - cam_y;
