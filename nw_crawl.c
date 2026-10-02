@@ -1217,6 +1217,60 @@ static void draw_callback(Canvas* canvas, void* ctx) {
     furi_mutex_release(g->mutex);
 }
 
+// Title-screen house beat. The speaker has one voice, so each 20 ms tick picks
+// the most important sound: kick > clap > hi-hat > bass.
+#define MUSIC_TICK_MS 20
+#define MUSIC_TICKS_PER_STEP 6 // one 16th note = 120 ms, about 125 BPM
+#define MUSIC_STEPS 32 // two bars
+#define MUSIC_VOLUME 0.5f
+
+#define N_E3 164.8f
+#define N_F3 174.6f
+#define N_G3 196.0f
+#define N_A3 220.0f
+#define N_B3 246.9f
+#define N_C4 261.6f
+
+static float title_music_freq(uint32_t tick) {
+    // Offbeat bass, two notes after each kick
+    static const float bass[MUSIC_STEPS] = {
+        0, 0, N_A3, N_A3, 0, 0, N_A3, N_C4, 0, 0, N_A3, N_A3, 0, 0, N_G3, N_E3,
+        0, 0, N_F3, N_F3, 0, 0, N_F3, N_A3, 0, 0, N_G3, N_G3, 0, 0, N_G3, N_B3,
+    };
+    static const float kick[3] = {180.0f, 120.0f, 80.0f};
+
+    uint32_t step = (tick / MUSIC_TICKS_PER_STEP) % MUSIC_STEPS;
+    uint32_t sub = tick % MUSIC_TICKS_PER_STEP;
+
+    if(step % 4 == 0) {
+        // Four on the floor, with a clap behind beats 2 and 4
+        if(sub < 3) return kick[sub];
+        if(step % 8 == 4 && sub < 5) return sub == 3 ? 2400.0f : 1700.0f;
+        return 0;
+    }
+    if(step % 4 == 2 && sub == 0) return 7000.0f; // offbeat hi-hat
+    if(sub == MUSIC_TICKS_PER_STEP - 1) return 0; // gap so repeated notes re-trigger
+    return bass[step];
+}
+
+static void title_music_tick(uint32_t tick) {
+    if(furi_hal_rtc_is_flag_set(FuriHalRtcFlagStealthMode)) return;
+    if(!furi_hal_speaker_is_mine() && !furi_hal_speaker_acquire(0)) return;
+    float freq = title_music_freq(tick);
+    if(freq > 0) {
+        furi_hal_speaker_start(freq, MUSIC_VOLUME);
+    } else {
+        furi_hal_speaker_stop();
+    }
+}
+
+// Must be called before any sound effect, which needs the speaker for itself
+static void title_music_stop(void) {
+    if(!furi_hal_speaker_is_mine()) return;
+    furi_hal_speaker_stop();
+    furi_hal_speaker_release();
+}
+
 static void input_callback(InputEvent* event, void* ctx) {
     FuriMessageQueue* queue = ctx;
     furi_message_queue_put(queue, event, 0);
@@ -1241,7 +1295,24 @@ int32_t nw_crawl_app(void* p) {
     g->notifications = furi_record_open(RECORD_NOTIFICATION);
 
     InputEvent event;
-    while(furi_message_queue_get(queue, &event, FuriWaitForever) == FuriStatusOk) {
+    uint32_t music_tick = 0;
+    uint32_t next_tick = furi_get_tick();
+    while(true) {
+        // Only this thread changes the state, so it is safe to read without the mutex
+        uint32_t timeout = FuriWaitForever;
+        if(g->state == StateTitle) {
+            uint32_t now = furi_get_tick();
+            // Resync after time away from the title screen rather than fast-forwarding
+            if(now - next_tick > furi_ms_to_ticks(200) && now > next_tick) next_tick = now;
+            if(now >= next_tick) {
+                title_music_tick(music_tick++);
+                next_tick += furi_ms_to_ticks(MUSIC_TICK_MS);
+            }
+            now = furi_get_tick();
+            timeout = next_tick > now ? next_tick - now : 1;
+        }
+        if(furi_message_queue_get(queue, &event, timeout) != FuriStatusOk) continue;
+
         if(event.key == InputKeyBack) {
             if(event.type == InputTypeLong) break;
             continue;
@@ -1255,8 +1326,10 @@ int32_t nw_crawl_app(void* p) {
         const NotificationSequence* sfx = g->sfx;
         furi_mutex_release(g->mutex);
         view_port_update(view_port);
+        if(g->state != StateTitle) title_music_stop();
         if(sfx) notification_message(g->notifications, sfx);
     }
+    title_music_stop();
 
     gui_remove_view_port(gui, view_port);
     view_port_free(view_port);
