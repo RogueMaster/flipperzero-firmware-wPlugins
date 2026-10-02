@@ -2,7 +2,7 @@
 #include "../protopirate_app_i.h"
 #include "proto_pirate_icons.h"
 
-#define TAG "PPNeedSaving"
+#define TAG "ProtoPirateNeedSaving"
 
 static void
     protopirate_scene_need_saving_callback(GuiButtonType result, InputType type, void* context) {

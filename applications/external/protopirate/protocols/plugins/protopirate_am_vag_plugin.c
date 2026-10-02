@@ -1,7 +1,6 @@
 #include "../protopirate_protocol_plugins.h"
 #include "../protocols_common.h"
 #include "../vag.h"
-#include <lib/flipper_application/flipper_application.h>
 
 static const SubGhzProtocol* const protopirate_protocol_registry_am_vag_items[] = {
     &vag_protocol,
@@ -14,7 +13,7 @@ static const SubGhzProtocolRegistry protopirate_protocol_registry_am_vag = {
 };
 
 static const ProtoPirateProtocolPlugin protopirate_am_vag_plugin = {
-    .plugin_name = "AM VAG Registry",
+    .plugin_name = "ProtoPirate AM VAG Registry",
     .kind = ProtoPirateProtocolPluginKindRx,
     .route = ProtoPirateProtocolRegistryRouteAMVag,
     .registry = &protopirate_protocol_registry_am_vag,

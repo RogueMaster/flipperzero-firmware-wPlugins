@@ -20,10 +20,7 @@ void protopirate_preset_init(
 void protopirate_get_frequency_modulation(
     ProtoPirateApp* app,
     FuriString* frequency,
-    size_t frequency_size,
-    FuriString* modulation,
-    size_t modulation_size);
-
+    FuriString* modulation);
 void protopirate_get_frequency_modulation_str(
     ProtoPirateApp* app,
     char* frequency,

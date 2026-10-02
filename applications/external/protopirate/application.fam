@@ -15,7 +15,6 @@ def ProtoPirateDefineEnabled(name, app_manifest_path=app_manifest_path):
 
 _ENABLE_TIMING_TUNER = ProtoPirateDefineEnabled("ENABLE_TIMING_TUNER_SCENE")
 _ENABLE_EMULATE = ProtoPirateDefineEnabled("ENABLE_EMULATE_FEATURE")
-_ENABLE_MODELS_DATABASE = ProtoPirateDefineEnabled("ENABLE_MODELS_DATABASE")
 
 _MAIN_APP_SOURCES = [
     "*.c*",
@@ -26,12 +25,8 @@ _MAIN_APP_SOURCES = [
     "!protocols",
     "!protopirate_emulate_plugin.c",
     "!protopirate_psa_bf_plugin.c",
-    "!protopirate_saved_info_plugin.c",
-    "!protopirate_about_plugin.c",
-    "!protopirate_config_plugin.c",
     "protocols/protocol_items.c",
     "protocols/protocols_common.c",
-    "protocols/protocol_bf_probe.c",
     "!raw_file_reader.c",
 ]
 
@@ -46,37 +41,31 @@ if not _ENABLE_EMULATE:
         "!protopirate_scene_emulate.c",
     ]
 
-
-if _ENABLE_MODELS_DATABASE:
-    _ASSETS = "assets"
-else:
-    _ASSETS = "assets/keystore"
-
 App(
     appid="proto_pirate",
     name="ProtoPirate",
     apptype=FlipperAppType.EXTERNAL,
     targets=["f7"],
     entry_point="protopirate_app",
-    requires=["gui"],
     stack_size=2 * 1024,
     fap_icon="images/protopirate_10px.png",
     fap_icon_assets="images",
-    fap_file_assets=_ASSETS,
-    #  cdefines=["PROTOPIRATE_PROTOCOL_RX_ONLY=1"],
+    fap_file_assets="keystore",
+    fap_icon_assets_symbol="proto_pirate",
+    #  #  cdefines=["PROTOPIRATE_PROTOCOL_RX_ONLY=1"],
     sources=_MAIN_APP_SOURCES,
     fap_category="Sub-GHz",
     fap_author="RocketGod-git & xMasterX",
     fap_weburl="https://github.com/RocketGod-git/ProtoPirate",
     #  fap_weburl="https://protopirate.net/ProtoPirate/ProtoPirate",
-    fap_version="3.8",
+    fap_version="3.5",
     fap_description="Decode car key fob signals from Sub-GHz",
 )
 
 # --- RX protocol plugins ---
 
 App(
-    appid="pp_am",
+    appid="protopirate_am_plugin",
     apptype=FlipperAppType.PLUGIN,
     entry_point="protopirate_am_plugin_ep",
     requires=["proto_pirate"],
@@ -105,7 +94,7 @@ App(
 )
 
 App(
-    appid="pp_am_vag",
+    appid="protopirate_am_vag_plugin",
     apptype=FlipperAppType.PLUGIN,
     entry_point="protopirate_am_vag_plugin_ep",
     requires=["proto_pirate"],
@@ -120,7 +109,7 @@ App(
 )
 
 App(
-    appid="pp_fm",
+    appid="protopirate_fm_plugin",
     apptype=FlipperAppType.PLUGIN,
     entry_point="protopirate_fm_plugin_ep",
     requires=["proto_pirate"],
@@ -144,7 +133,7 @@ App(
 )
 
 App(
-    appid="pp_fm_f4",
+    appid="protopirate_fm_f4_plugin",
     apptype=FlipperAppType.PLUGIN,
     entry_point="protopirate_fm_f4_plugin_ep",
     requires=["proto_pirate"],
@@ -161,7 +150,7 @@ App(
 )
 
 App(
-    appid="pp_fm_honda1",
+    appid="protopirate_fm_honda1_plugin",
     apptype=FlipperAppType.PLUGIN,
     entry_point="protopirate_fm_honda1_plugin_ep",
     requires=["proto_pirate"],
@@ -197,7 +186,7 @@ def ProtoPirateTxProtocolPlugin(
         return
 
     App(
-        appid=f"pp_tx_{key}",
+        appid=f"protopirate_tx_{key}_plugin",
         apptype=FlipperAppType.PLUGIN,
         entry_point="protopirate_tx_protocol_plugin_ep",
         requires=["proto_pirate"],
@@ -378,16 +367,18 @@ ProtoPirateTxProtocolPlugin(
 # --- Tool / scene plugins ---
 
 App(
-    appid="pp_sub_decode",
+    appid="protopirate_sub_decode_plugin",
     apptype=FlipperAppType.PLUGIN,
     entry_point="protopirate_sub_decode_plugin_ep",
     requires=["proto_pirate"],
     cdefines=["PROTOPIRATE_SUB_DECODE_PLUGIN_BUILD=1"],
     sources=[
-        # Everything else this scene needs reaches it through ProtoPirateToolSceneHostApi,
-        # rather than compiling a second copy of host-resident code into the .fal.
         "scenes/protopirate_scene_sub_decode.c",
         "helpers/raw_file_reader.c",
+        "protopirate_history.c",
+        "helpers/protopirate_storage.c",
+        "protocols/protocol_items.c",
+        "protocols/protocols_common.c",
     ],
     fap_icon_assets="images",
     fal_embedded=True,
@@ -395,7 +386,7 @@ App(
 
 if _ENABLE_TIMING_TUNER:
     App(
-        appid="pp_timing_tuner",
+        appid="protopirate_timing_tuner_plugin",
         apptype=FlipperAppType.PLUGIN,
         entry_point="protopirate_timing_tuner_plugin_ep",
         requires=["proto_pirate"],
@@ -409,7 +400,7 @@ if _ENABLE_TIMING_TUNER:
 
 if _ENABLE_EMULATE:
     App(
-        appid="pp_emulate",
+        appid="protopirate_emulate_plugin",
         apptype=FlipperAppType.PLUGIN,
         entry_point="protopirate_emulate_plugin_ep",
         requires=["proto_pirate"],
@@ -421,7 +412,7 @@ if _ENABLE_EMULATE:
     )
 
 App(
-    appid="pp_bf",
+    appid="protopirate_psa_bf_plugin",
     apptype=FlipperAppType.PLUGIN,
     entry_point="protopirate_psa_bf_plugin_ep",
     requires=["proto_pirate"],
@@ -433,50 +424,21 @@ App(
         "protocols/psa_bf_core.c",
         "protocols/renault_v1.c",
         "protocols/protocols_common.c",
-        "protocols/protocol_bf_probe.c",
     ],
     fap_icon_assets="images",
     fal_embedded=True,
 )
 
 App(
-    appid="pp_config",
+    appid="protopirate_config_plugin",
     apptype=FlipperAppType.PLUGIN,
     entry_point="protopirate_config_plugin_ep",
     requires=["proto_pirate"],
-    cdefines=["PROTOPIRATE_CONFIG_PLUGIN_BUILD=1"],
+    cdefines=["PROTOPIRATE_CONFIG_PLUGIN_BUILD"],
     sources=[
         "helpers/protopirate_models.c",
         "helpers/variable_item_list.c",
         "scenes/plugins/protopirate_config_plugin.c",
-    ],
-    fap_icon_assets="images",
-    fal_embedded=True,
-)
-
-App(
-    appid="pp_saved_info",
-    apptype=FlipperAppType.PLUGIN,
-    entry_point="protopirate_saved_info_plugin_ep",
-    requires=["proto_pirate"],
-    cdefines=["PROTOPIRATE_SAVED_INFO_PLUGIN_BUILD=1"],
-    sources=[
-        "scenes/plugins/protopirate_saved_info_plugin.c",
-        "protocols/protocols_common.c",
-        "protocols/protocol_bf_probe.c",
-    ],
-    fap_icon_assets="images",
-    fal_embedded=True,
-)
-
-App(
-    appid="pp_about",
-    apptype=FlipperAppType.PLUGIN,
-    entry_point="protopirate_about_plugin_ep",
-    requires=["proto_pirate"],
-    cdefines=["PROTOPIRATE_ABOUT_PLUGIN_BUILD=1"],
-    sources=[
-        "scenes/plugins/protopirate_about_plugin.c",
     ],
     fap_icon_assets="images",
     fal_embedded=True,

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <lib/flipper_application/flipper_application.h>
 #include <lib/subghz/types.h>
 #include "protocol_items.h"
 

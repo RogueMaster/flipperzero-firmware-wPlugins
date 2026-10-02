@@ -1,15 +1,8 @@
-#include "../defines.h"
 #include "vag.h"
 #include "aut64.h"
 #include "protocols_common.h"
 #include <string.h>
 #include <lib/subghz/subghz_keystore.h>
-
-#ifdef ENABLE_MODELS_DATABASE
-#define PROTOPIRATE_VAG_KEYS_FILE_NAME APP_ASSETS_PATH("keystore/vag")
-#else
-#define PROTOPIRATE_VAG_KEYS_FILE_NAME APP_ASSETS_PATH("vag")
-#endif
 
 #define TAG "VAGProtocol"
 
@@ -555,7 +548,7 @@ void* subghz_protocol_decoder_vag_alloc(SubGhzEnvironment* environment) {
     instance->decrypted = false;
     instance->key_idx = 0xFF;
 
-    protocol_vag_load_keys(PROTOPIRATE_VAG_KEYS_FILE_NAME);
+    protocol_vag_load_keys(APP_ASSETS_PATH("vag"));
 
     return instance;
 }
@@ -1551,7 +1544,7 @@ void* subghz_protocol_encoder_vag_alloc(SubGhzEnvironment* environment) {
     instance->is_running = false;
     instance->key_idx = 0xFF;
 
-    protocol_vag_load_keys(APP_ASSETS_PATH("keystore/vag"));
+    protocol_vag_load_keys(APP_ASSETS_PATH("vag"));
 
     FURI_LOG_I(TAG, "VAG encoder alloc complete, keys loaded: %d", protocol_vag_keys_loaded);
 

@@ -7,7 +7,7 @@
 #include <toolbox/stream/stream.h>
 #include <string.h>
 
-#define TAG "PPStorage"
+#define TAG "ProtoPirateStorage"
 
 bool protopirate_storage_init(void) {
     Storage* storage = furi_record_open(RECORD_STORAGE);

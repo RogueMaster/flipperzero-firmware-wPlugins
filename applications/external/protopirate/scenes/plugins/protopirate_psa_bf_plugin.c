@@ -1,5 +1,4 @@
 #include "protopirate_psa_bf_plugin.h"
-#include "../../protocols/protocol_bf_probe.h"
 
 #include "../../defines.h"
 #include "../../protocols/psa_bf_core.h"
@@ -9,10 +8,8 @@
 
 #include <gui/modules/widget.h>
 #include <gui/modules/widget_elements/widget_element.h>
-#include <lib/flipper_application/flipper_application.h>
-
 #ifdef PROTOPIRATE_PSA_BF_PLUGIN_BUILD
-#include "pp_bf_icons.h"
+#include "protopirate_psa_bf_plugin_icons.h"
 #else
 #include "proto_pirate_icons.h"
 #endif
@@ -95,6 +92,29 @@ static void bf_free_states(void) {
         g_hitag2_state = NULL;
     }
     g_bf_kind = ProtoPirateBfKindNone;
+}
+
+static bool psa_bf_needs_bruteforce(FlipperFormat* ff) {
+    if(!ff) return false;
+    FuriString* s = furi_string_alloc();
+
+    flipper_format_rewind(ff);
+    if(!flipper_format_read_string(ff, FF_PROTOCOL, s) || furi_string_cmp_str(s, "PSA") != 0) {
+        furi_string_free(s);
+        return false;
+    }
+
+    flipper_format_rewind(ff);
+    bool has_key = flipper_format_read_string(ff, FF_KEY, s);
+    if(!has_key) {
+        furi_string_free(s);
+        return false;
+    }
+    uint32_t serial = 0;
+    flipper_format_rewind(ff);
+    bool has_serial = flipper_format_read_uint32(ff, FF_SERIAL, &serial, 1);
+    furi_string_free(s);
+    return !has_serial;
 }
 
 static void show_bf_progress(void* app) {
@@ -310,7 +330,7 @@ static void bf_cancel_thread(void) {
 }
 
 static bool plugin_needs_bruteforce(FlipperFormat* ff) {
-    return protopirate_bf_probe_needs_bruteforce(ff);
+    return psa_bf_needs_bruteforce(ff) || hitag2_bf_needs_bruteforce(ff);
 }
 
 static bool plugin_is_running(void* app) {
@@ -330,38 +350,30 @@ static void plugin_on_scene_enter(void* app, ProtoPiratePsaBfContext ctx) {
 }
 
 static bool start_bruteforce(void* app) {
-    if(g_bf_thread) {
-        FURI_LOG_E(TAG, "Bruteforce already running");
-        return false;
-    }
+    if(g_bf_thread) return false;
 
     if(g_active_ctx == ProtoPiratePsaBfContextSavedInfo) {
         g_storage = furi_record_open(RECORD_STORAGE);
         g_ff = flipper_format_file_alloc(g_storage);
 
         if(!flipper_format_file_open_existing(g_ff, g_host_api->get_loaded_file_path(app))) {
-            FURI_LOG_E(TAG, "Cannot open saved capture for bruteforce");
             furi_record_close(RECORD_STORAGE);
             g_storage = NULL;
             return false;
         }
     } else {
         g_ff = g_host_api->get_history_flipper_format(app);
-        if(!g_ff) {
-            FURI_LOG_E(TAG, "No capture data for bruteforce");
-            return false;
-        }
+        if(!g_ff) return false;
     }
 
-    if(protopirate_bf_probe_psa_needs_bruteforce(g_ff)) {
+    if(!plugin_needs_bruteforce(g_ff)) return false;
+    if(psa_bf_needs_bruteforce(g_ff)) {
         PsaBfState* state = malloc(sizeof(PsaBfState));
         if(!state) {
             g_host_api->notification_error(app);
             return false;
         }
         if(!psa_bf_state_from_flipper_format(state, g_ff)) {
-            // The host probe only checks that Key exists; this also needs Key_2.
-            FURI_LOG_E(TAG, "PSA capture is missing fields needed to bruteforce");
             free(state);
             g_host_api->notification_error(app);
             return false;
@@ -371,14 +383,13 @@ static bool start_bruteforce(void* app) {
         g_bf_state = state;
         g_bf_kind = ProtoPirateBfKindPsa;
         g_bf_thread = furi_thread_alloc_ex("PsaBf", 2048, psa_brute_force_thread_entry, state);
-    } else if(protopirate_bf_probe_hitag2_needs_bruteforce(g_ff)) {
+    } else if(hitag2_bf_needs_bruteforce(g_ff)) {
         Hitag2BfState* state = malloc(sizeof(Hitag2BfState));
         if(!state) {
             g_host_api->notification_error(app);
             return false;
         }
         if(!hitag2_bf_state_from_flipper_format(state, g_ff)) {
-            FURI_LOG_E(TAG, "Hitag2 capture is missing fields needed to bruteforce");
             free(state);
             g_host_api->notification_error(app);
             return false;
@@ -390,12 +401,10 @@ static bool start_bruteforce(void* app) {
         g_bf_thread =
             furi_thread_alloc_ex("Hitag2Bf", 2048, hitag2_brute_force_thread_entry, state);
     } else {
-        FURI_LOG_E(TAG, "No bruteforce kind matches this capture");
         return false;
     }
 
     if(!g_bf_thread) {
-        FURI_LOG_E(TAG, "Failed to allocate bruteforce thread");
         bf_free_states();
         g_host_api->notification_error(app);
 
@@ -446,9 +455,15 @@ static bool
         }
         if(event.event == ProtoPirateCustomEventBruteforceComplete) {
             if(bf_status() == PSA_BF_STATUS_FOUND) {
+                g_host_api->receiver_info_rebuild_widget(app);
                 bf_free_states();
             } else if(bf_status() == PSA_BF_STATUS_RUNNING) {
                 bf_set_cancel();
+            } else {
+                if(g_bf_state || g_hitag2_state) {
+                    bf_finish_and_show_result(app, NULL);
+                }
+                g_host_api->scene_previous(app);
             }
             return true;
         }
@@ -456,13 +471,20 @@ static bool
 
     if(ctx == ProtoPiratePsaBfContextSubDecode) {
         if(event.event == ProtoPirateCustomEventBruteforceStart) {
-            return start_bruteforce(app);
+            if(start_bruteforce(app)) {
+                return true;
+            }
+            return true;
         }
         if(event.event == ProtoPirateCustomEventBruteforceComplete) {
             if(bf_status() == PSA_BF_STATUS_FOUND) {
                 bf_free_states();
             } else if(bf_status() == PSA_BF_STATUS_RUNNING) {
                 bf_set_cancel();
+            } else {
+                if(g_bf_state || g_hitag2_state) {
+                    bf_finish_and_show_result(app, NULL);
+                }
             }
             return true;
         }
@@ -479,6 +501,10 @@ static bool
             } else if(bf_status() == PSA_BF_STATUS_RUNNING) {
                 bf_set_cancel();
                 bf_close_files();
+            } else {
+                if(g_bf_state || g_hitag2_state) {
+                    bf_finish_and_show_result(app, NULL);
+                }
             }
             return true;
         }
@@ -509,7 +535,7 @@ static void plugin_set_host_api(const ProtoPiratePsaBfHostApi* api) {
 }
 
 static const ProtoPiratePsaBfPlugin protopirate_psa_bf_plugin = {
-    .plugin_name = "BF",
+    .plugin_name = "ProtoPirate PSA BF",
     .set_host_api = plugin_set_host_api,
     .needs_bruteforce = plugin_needs_bruteforce,
     .is_running = plugin_is_running,

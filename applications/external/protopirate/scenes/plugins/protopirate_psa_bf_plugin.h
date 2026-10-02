@@ -2,12 +2,13 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <lib/flipper_application/flipper_application.h>
 #include <gui/scene_manager.h>
 #include <flipper_format/flipper_format.h>
 
 #include "../../protocols/psa_bf_types.h"
 
-#define PROTOPIRATE_PSA_BF_PLUGIN_APP_ID      "pp_bf"
+#define PROTOPIRATE_PSA_BF_PLUGIN_APP_ID      "protopirate_psa_bf_plugin"
 #define PROTOPIRATE_PSA_BF_PLUGIN_API_VERSION 2U
 
 typedef struct ProtoPirateApp ProtoPirateApp;

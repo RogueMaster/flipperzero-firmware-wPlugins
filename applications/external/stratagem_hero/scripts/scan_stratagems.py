@@ -119,8 +119,8 @@ def parse_wiki(html: str) -> list[StratagemRow]:
     # sub-type) so each table can be tagged with its full context.
     marker_re = re.compile(
         r'<h3><span class="mw-headline" id="[^"]*">([^<]*)</span></h3>'
-        r"|<summary>([^<]+)</summary>"
-        r"|<big><b>([^<]+)</b></big>"
+        r'|<summary>([^<]+)</summary>'
+        r'|<big><b>([^<]+)</b></big>'
         r'|(<table class="wikitable sortable".*?</table>)',
         re.S,
     )
@@ -243,31 +243,13 @@ def svg_to_png_512(svg_bytes: bytes, out_path: Path) -> None:
         tmp_svg.flush()
         if check_tool("rsvg-convert"):
             subprocess.run(
-                [
-                    "rsvg-convert",
-                    "-w",
-                    "512",
-                    "-h",
-                    "512",
-                    "-o",
-                    str(out_path),
-                    tmp_svg.name,
-                ],
+                ["rsvg-convert", "-w", "512", "-h", "512", "-o", str(out_path), tmp_svg.name],
                 check=True,
             )
         elif check_tool("magick"):
             subprocess.run(
-                [
-                    "magick",
-                    "-background",
-                    "none",
-                    "-density",
-                    "384",
-                    tmp_svg.name,
-                    "-resize",
-                    "512x512",
-                    str(out_path),
-                ],
+                ["magick", "-background", "none", "-density", "384", tmp_svg.name,
+                 "-resize", "512x512", str(out_path)],
                 check=True,
             )
         else:
@@ -303,17 +285,10 @@ def build_c_record(row: StratagemRow, icon_symbol: str) -> tuple[str, str]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
-        "--dry-run",
-        action="store_true",
-        help="report only; don't write images or stratagems.c",
-    )
-    parser.add_argument(
-        "--html",
-        type=Path,
-        default=None,
-        help="parse a locally saved copy of the wiki page instead of fetching it",
-    )
+    parser.add_argument("--dry-run", action="store_true",
+                         help="report only; don't write images or stratagems.c")
+    parser.add_argument("--html", type=Path, default=None,
+                         help="parse a locally saved copy of the wiki page instead of fetching it")
     args = parser.parse_args()
 
     print(f"Fetching {WIKI_URL} ..." if not args.html else f"Reading {args.html} ...")
@@ -390,10 +365,8 @@ def main() -> None:
         if row["svg_filename"] in svg_to_icon:
             icon_name = svg_to_icon[row["svg_filename"]]
             icon_symbol = f"{ICON_PREFIX}{icon_name}"
-            print(
-                f"\n{row['title']}: reusing existing icon '{icon_symbol}' "
-                f"(shares wiki icon '{row['svg_filename']}')"
-            )
+            print(f"\n{row['title']}: reusing existing icon '{icon_symbol}' "
+                  f"(shares wiki icon '{row['svg_filename']}')")
         elif row["svg_src"]:
             icon_name = normalize_name(row["title"])
             icon_symbol = f"{ICON_PREFIX}{icon_name}"
@@ -404,35 +377,25 @@ def main() -> None:
             print(f"  -> saved {out_path.relative_to(REPO_ROOT)} (512x512)")
         else:
             icon_symbol = "no_icon_stratagem"
-            print(
-                f"\n{row['title']}: no icon available on wiki (placeholder); "
-                f"using &I_{icon_symbol}"
-            )
+            print(f"\n{row['title']}: no icon available on wiki (placeholder); "
+                  f"using &I_{icon_symbol}")
 
         enum_name, block = build_c_record(row, icon_symbol)
         print(f"  -> {enum_name}")
         new_blocks.append(block)
 
     with STRATAGEMS_C.open("a", encoding="utf-8") as f:
-        f.write(
-            "\n\n/* --- New stratagems found by scripts/scan_stratagems.py --- */\n"
-        )
+        f.write("\n\n/* --- New stratagems found by scripts/scan_stratagems.py --- */\n")
         f.write("\n".join(new_blocks))
         f.write("\n")
 
-    print(
-        f"\nAppended {len(new_blocks)} new record(s) to {STRATAGEMS_C.relative_to(REPO_ROOT)}."
-    )
-    print(
-        "Move each record to its proper section and add a pointer to the "
-        "`stratagems[]` array to finish wiring it up."
-    )
+    print(f"\nAppended {len(new_blocks)} new record(s) to {STRATAGEMS_C.relative_to(REPO_ROOT)}.")
+    print("Move each record to its proper section and add a pointer to the "
+          "`stratagems[]` array to finish wiring it up.")
 
     if skipped:
-        print(
-            f"\n{len(skipped)} entr{'y' if len(skipped)==1 else 'ies'} skipped "
-            f"(unavailable on wiki): " + ", ".join(r["title"] for r in skipped)
-        )
+        print(f"\n{len(skipped)} entr{'y' if len(skipped)==1 else 'ies'} skipped "
+              f"(unavailable on wiki): " + ", ".join(r["title"] for r in skipped))
 
 
 def fetch_bytes(url: str) -> bytes:

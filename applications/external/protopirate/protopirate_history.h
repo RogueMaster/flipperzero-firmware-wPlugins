@@ -19,6 +19,7 @@ void protopirate_history_format_status_text(
     ProtoPirateHistory* instance,
     char* output,
     size_t output_size);
+void protopirate_history_get_status_text(ProtoPirateHistory* instance, FuriString* output);
 
 bool protopirate_history_get_capture_path(
     ProtoPirateHistory* instance,

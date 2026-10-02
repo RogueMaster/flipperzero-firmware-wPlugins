@@ -1,4 +1,5 @@
 #include "protopirate_config_plugin.h"
+#include "../../protopirate_app_i.h"
 #include "../../helpers/protopirate_models.h"
 
 static const ProtoPirateConfigSceneHostApi* g_config_scene_host_api = NULL;
@@ -131,10 +132,10 @@ static void protopirate_scene_receiver_config_set_hopping_running(VariableItem* 
                 app->scene_manager, ProtoPirateSceneReceiverConfig),
             subghz_setting_get_frequency_default_index(app->setting));
     }
+
     app->txrx->hopper_state = hopping_value[index];
 }
 
-#ifdef ENABLE_MODELS_DATABASE
 static void protopirate_scene_receiver_config_set_model(VariableItem* item) {
     ProtoPirateApp* app = variable_item_get_context(item);
     uint8_t direction = variable_item_get_current_value_index(item);
@@ -174,7 +175,7 @@ static void protopirate_scene_receiver_config_set_model(VariableItem* item) {
         app->setting);
 
     //Add he car model the list, with the correct selection and text.
-    variable_item_set_item_label(item, app->selected_model->name);
+    variable_item_set_item_label(item, furi_string_get_cstr(app->selected_model->name));
     variable_item_set_current_value_text(item, "");
     variable_item_set_current_value_index(item, 0);
 
@@ -238,7 +239,6 @@ static void protopirate_scene_receiver_config_set_model(VariableItem* item) {
     variable_item_set_locked(hop_menu, lock, "Turn off\nCar Model\nto do that!");
     variable_item_set_locked(preset_menu, lock, "Turn off\nCar Model\nto do that!");
 }
-#endif
 
 static uint8_t
     protopirate_scene_receiver_config_next_frequency(const uint32_t value, void* context) {
@@ -280,13 +280,13 @@ static uint8_t protopirate_scene_receiver_config_hopper_value_index(
     ProtoPirateApp* app = context;
 
     if(value == values[0]) {
-        return false;
+        return 0;
     } else {
         variable_item_set_current_value_text(
             (VariableItem*)scene_manager_get_scene_state(
                 app->scene_manager, ProtoPirateSceneReceiverConfig),
             " -----");
-        return true;
+        return 1;
     }
 }
 
@@ -337,26 +337,24 @@ static void
     furi_check(context);
     ProtoPirateApp* app = context;
 
-    FURI_LOG_D("TEST", "Index= %lu", index);
-
     switch(index) {
-#ifdef ENABLE_MODELS_DATABASE
-    case ProtoPirateSettingIndexCarModel:
+    case ProtoPirateSettingIndexCarModel: {
         //Reset the Models Menu
         VariableItem* model_menu =
             variable_item_list_get(app->variable_item_list, ProtoPirateSettingIndexCarModel);
         variable_item_set_current_value_index(model_menu, 0);
         protopirate_scene_receiver_config_set_model(model_menu);
         break;
-#endif
-    case ProtoPirateSettingIndexLock:
+    }
+    case ProtoPirateSettingIndexLock: {
         view_dispatcher_send_custom_event(
             app->view_dispatcher, ProtoPirateCustomEventSceneSettingLock);
         break;
     }
+    }
 }
 
-static void plugin_on_enter(void* context, bool show_lock_keyboard) {
+static void plugin_on_enter(void* context) {
     ProtoPirateApp* app = context;
     VariableItem* item;
     uint8_t value_index;
@@ -368,14 +366,12 @@ static void plugin_on_enter(void* context, bool show_lock_keyboard) {
     }
 
     //Add he car model the list, with the correct selection and text.
-#ifdef ENABLE_MODELS_DATABASE
     item = variable_item_list_add(
         app->variable_item_list,
-        app->selected_model->name,
+        furi_string_get_cstr(app->selected_model->name),
         0, //Plus NONE
         protopirate_scene_receiver_config_set_model,
         app);
-#endif
 
     item = variable_item_list_add(
         app->variable_item_list,
@@ -396,12 +392,10 @@ static void plugin_on_enter(void* context, bool show_lock_keyboard) {
         subghz_setting_get_frequency(app->setting, value_index) / 1000000,
         (subghz_setting_get_frequency(app->setting, value_index) % 1000000) / 10000);
     variable_item_set_current_value_text(item, text_buf);
-#ifdef ENABLE_MODELS_DATABASE
     variable_item_set_locked(
         item,
         app->selected_model && (app->selected_model->index),
         "Turn off\nCar Model\nto do that!");
-#endif
 
     item = variable_item_list_add(
         app->variable_item_list,
@@ -413,12 +407,10 @@ static void plugin_on_enter(void* context, bool show_lock_keyboard) {
         app->txrx->hopper_state, hopping_value, ON_OFF_COUNT, app);
     variable_item_set_current_value_index(item, value_index);
     variable_item_set_current_value_text(item, on_off_text[value_index]);
-#ifdef ENABLE_MODELS_DATABASE
     variable_item_set_locked(
         item,
         app->selected_model && (app->selected_model->index),
         "Turn off\nCar Model\nto do that!");
-#endif
 
     item = variable_item_list_add(
         app->variable_item_list,
@@ -431,12 +423,10 @@ static void plugin_on_enter(void* context, bool show_lock_keyboard) {
     variable_item_set_current_value_index(item, value_index);
     variable_item_set_current_value_text(
         item, subghz_setting_get_preset_name(app->setting, value_index));
-#ifdef ENABLE_MODELS_DATABASE
     variable_item_set_locked(
         item,
         app->selected_model && (app->selected_model->index),
         "Turn off\nCar Model\nto do that!");
-#endif
 
 #ifdef ENABLE_EMULATE_FEATURE
     // TX power option
@@ -449,7 +439,6 @@ static void plugin_on_enter(void* context, bool show_lock_keyboard) {
     variable_item_set_current_value_index(item, app->tx_power);
     variable_item_set_current_value_text(item, tx_power_text[app->tx_power]);
 #endif
-
     // Auto-save option
     item = variable_item_list_add(
         app->variable_item_list,
@@ -459,17 +448,6 @@ static void plugin_on_enter(void* context, bool show_lock_keyboard) {
         app);
     variable_item_set_current_value_index(item, app->auto_save ? 1 : 0);
     variable_item_set_current_value_text(item, on_off_text[app->auto_save ? 1 : 0]);
-
-    //Check Saved Option
-    item = variable_item_list_add(
-        app->variable_item_list,
-        "Check Saved:",
-        ON_OFF_COUNT,
-        protopirate_scene_receiver_config_set_check_saved,
-        app);
-    variable_item_set_current_value_index(item, app->check_saved ? 1 : 0);
-    variable_item_set_current_value_text(item, on_off_text[app->check_saved ? 1 : 0]);
-
     // Date/time filenames option
     item = variable_item_list_add(
         app->variable_item_list,
@@ -481,6 +459,15 @@ static void plugin_on_enter(void* context, bool show_lock_keyboard) {
     variable_item_set_current_value_text(
         item, sequence_time_text[app->datetime_filenames ? 1 : 0]);
 
+    item = variable_item_list_add(
+        app->variable_item_list,
+        "Check Saved:",
+        ON_OFF_COUNT,
+        protopirate_scene_receiver_config_set_check_saved,
+        app);
+    variable_item_set_current_value_index(item, app->check_saved ? 1 : 0);
+    variable_item_set_current_value_text(item, on_off_text[app->check_saved ? 1 : 0]);
+
     // Sound option
     item = variable_item_list_add(
         app->variable_item_list,
@@ -491,12 +478,10 @@ static void plugin_on_enter(void* context, bool show_lock_keyboard) {
     variable_item_set_current_value_index(item, app->sound);
     variable_item_set_current_value_text(item, on_off_text[app->sound ? 1 : 0]);
 
-    //Only show the Lock Keyboard Option in Receiver. Timing Tuner Doesnt respect it, and its wierd in Configuration from the Main Menu.
+    variable_item_list_add(app->variable_item_list, "Lock Keyboard", 1, NULL, NULL);
     variable_item_list_set_enter_callback(
         app->variable_item_list, protopirate_scene_receiver_config_var_list_enter_callback, app);
-    if(show_lock_keyboard) {
-        variable_item_list_add(app->variable_item_list, "Lock Keyboard", 1, NULL, NULL);
-    }
+
     view_dispatcher_switch_to_view(app->view_dispatcher, ProtoPirateViewVariableItemList);
 }
 
@@ -505,11 +490,9 @@ void config_plugin_set_host_api(const ProtoPirateConfigSceneHostApi* host_api) {
 }
 
 static const ProtoPirateConfigPlugin protopirate_config_plugin = {
-    .plugin_name = "Config",
-#ifdef ENABLE_MODELS_DATABASE
+    .plugin_name = "ProtoPirate Config",
     .car_model_get_by_index = car_model_get_by_index,
     .car_model_get_count = car_model_get_count,
-#endif
     .on_enter = plugin_on_enter,
     .set_host_api = config_plugin_set_host_api,
 };

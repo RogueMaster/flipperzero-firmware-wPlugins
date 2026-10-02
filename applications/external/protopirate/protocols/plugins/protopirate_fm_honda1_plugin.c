@@ -1,7 +1,6 @@
 #include "../protopirate_protocol_plugins.h"
 #include "../protocols_common.h"
 #include "../honda_static.h"
-#include <lib/flipper_application/flipper_application.h>
 
 static const SubGhzProtocol* const protopirate_protocol_registry_fm_honda1_items[] = {
     &honda_static_protocol,
@@ -14,7 +13,7 @@ static const SubGhzProtocolRegistry protopirate_protocol_registry_fm_honda1 = {
 };
 
 static const ProtoPirateProtocolPlugin protopirate_fm_honda1_plugin = {
-    .plugin_name = "FM Honda1 Registry",
+    .plugin_name = "ProtoPirate FM Honda1 Registry",
     .kind = ProtoPirateProtocolPluginKindRx,
     .route = ProtoPirateProtocolRegistryRouteFMHonda1,
     .registry = &protopirate_protocol_registry_fm_honda1,
