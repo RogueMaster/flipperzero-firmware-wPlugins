@@ -4,7 +4,7 @@
 &nbsp;<a href='https://www.patreon.com/RogueMaster?filters[tag]=Latest%20Release' target='_blank'><img src='.github/assets/Patreon.png' alt='Latest PATREON Release' title='Latest PATREON Release'></a>
 &nbsp;<a href='https://github.com/RogueMaster/awesome-flipperzero-withModules' target='_blank'><img src='.github/assets/Resources.png' alt='More Research / Assets' title='More Research / Assets'></a></h1>
 
-# Install GitHub Version With [WEB INSTALLER](https://lab.flipper.net/?url=https%3A%2F%2Frogue-master.net%2F%3Ffile%3DRM0819-2255-b3dd8981.tgz&channel=RM0819-2255-b3dd8981&version=0.420.0&target=f7)
+# Install GitHub Version With [WEB INSTALLER](https://lab.flipper.net/?url=https%3A%2F%2Frogue-master.net%2F%3Ffile%3DRM1001-2124-4f2e0620.tgz&channel=RM1001-2124-4f2e0620&version=0.420.0&target=f7)
 
 ## Thank you so much to our RM Pro/SUPER Patreon supporters! Because of people like you, we are able to offer the best and most up-to-date Flipper Zero Firmware!
 
@@ -31,131 +31,6 @@ This software is for experimental purposes only and is not meant for any illegal
 
 - Last Synced/Checked OFW, changes in [commits](https://github.com/flipperdevices/flipperzero-firmware/commits/dev): `2026-09-10 22:55 EST`
 - Last Synced/Checked CFW, changes in [changelog](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/CHANGELOG.md): `2026-08-26 14:01 EST`
-- Updated: [HTW AC Remote v1.2 (By sokogen)](https://github.com/sokogen/flipperzero-htw-ac-remote)
-- NFC: [Protocol scenes moved into their own plugins, roughly halving the app's resident RAM (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1073)
-- NFC: [Fixed the EMV plugin, which never loaded (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1073)
-- NFC: [Removed unreachable EMV render code that called an undefined function (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1085)
-- NFC: [Ultralight - Amiibo/Xiaomi unlock no longer burns an AUTHLIM attempt when the password cannot be derived (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1086)
-- NFC: [Ultralight read result now says whether authentication failed or was never attempted (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1090)
-- NFC: [Ultralight - the default password is no longer tried when AUTHLIM cannot be read (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1089)
-- NFC: [Social Moscow - fixed the parser rejecting most genuine cards (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1092)
-- NFC: [Social Moscow - a partially read card no longer shows an all-zero card number as if it were real (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1097)
-- NFC: [Mosgortrans - an unrecognised ticket layout is now named in the debug log, instead of the Metro/Ground section vanishing with no explanation (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1097)
-- NFC: [SmartRider, All-In-One and Banapass no longer log an error for every card that is not theirs (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1097)
-- NFC: [Metromoney, Plantain, Two Cities and Kazan no longer present values from blocks that were never read - a 42949671.96 GEL balance, an empty purse dated 01.01.2010, a ticket valid from 00.00.2000 - declining the card or naming the field Unknown instead (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1102)
-- NFC: [Plantain no longer claims the PPK keys are installed on every 1K card; a card without the sector that carries them now reads No, and one whose key is missing reads Unknown (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1102)
-- NFC: [A supported-card parser that declines a card no longer leaks its output into the next parser (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1102)
-- NFC: [Social Moscow again parses dumps saved before the format carried a read mask, such as converted PM3 dumps (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1102)
-- NFC: [WashCity, Microel, MiZIP, Bip, CharlieCard, Saflok, CSC, Banapass and H World no longer present values from blocks that were never read; MiZIP no longer guesses which of its two credit blocks is current, and CharlieCard no longer picks a balance sector by comparing two unread counters (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1103)
-- NFC: [SmartRider again parses dumps saved before the file format recorded which blocks were read, such as converted PM3 dumps, and Bambu now parses them too (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1103)
-- NFC: [the SKPPK, SevPPK and SZPPK ticket parsers no longer report a ticket as not issued when its blocks were simply never read (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1103)
-- Added: [Guitar Chords v1.0 (By KingBoa / NoodleNugget-com)](https://github.com/NoodleNugget-com/flipper-guitar-chords)
-- Added: [Handpan Chords v1.0 (By KingBoa / NoodleNugget-com)](https://github.com/NoodleNugget-com/handpan_chords)
-- Added: [Ballu AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
-- Added: [Carrier AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
-- Added: [Coolix AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
-- Added: [Daikin AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
-- Added: [Delonghi AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
-- Added: [Fujitsu AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
-- Added: [Gree AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
-- Added: [Haier AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
-- Added: [LG AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
-- Added: [Midea AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
-- Added: [Mitsubishi AC (New) v1.0 (By Str4ch)](https://github.com/Str4ch/flipperzero-mitsubishi-ac-remote-new-protocol)
-- Added: [MitsuHeavy AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
-- Added: [Neoclima AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
-- Added: [Panasonic AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
-- Added: [TCL AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
-- Added: [Toshiba AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
-- Updated: [Wifi Internet Watch v1.2 (By DruzhininPavel)](https://github.com/DruzhininPavel/wifi-internet-watch-flipper) `Req: ESP32`
-- Updated: [TPMS Bridge v1.1 (By VishovVladimir)](https://github.com/VishovVladimir/flipper-zero-tpms)
-- Updated: [NFC Login v1.1.3 (By Play2BReal)](https://github.com/Play2BReal/NFC-Login)
-- Updated: [NFC Seader v4.2 (By bettse)](https://github.com/bettse/seader)
-- SubGHz: [Add Superrollo (GW60) roller-shutter protocol (KeeLoq HCS361) (67bit rolling code, with CRC) (with add manually support) (By rollorentner)](https://github.com/DarkFlippers/unleashed-firmware/pull/1068)
-- SubGHz: [Read no longer adds a copy of the last received signal a few seconds after it arrived - the duplicate filter now measures the gap between the signals themselves instead of the time they reached the app, so the last repeat of a burst is recognised as a repeat no matter how late the receiver reports it (By xMasterX)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/014eeb2f85dd9a5958aee692ecb08d898d3b0e21)
-- SubGHz: [Fixed a one-past-the-end write when building a transmission (just in case) - the final level duration was stored without a bounds check (By MNeroba)](https://github.com/DarkFlippers/unleashed-firmware/pull/1105)
-- NFC: [FeliCa - a saved dump claiming more blocks than the card can hold is now rejected on load, instead of being read past the end of the block array (By MNeroba)](https://github.com/DarkFlippers/unleashed-firmware/pull/1106)
-- HID: [Mouse Jiggler (Stealth) - movement is now generated within the signed 8-bit range that HID mouse reports carry, instead of a +-1000 value that was truncated before it was sent (By MNeroba)](https://github.com/DarkFlippers/unleashed-firmware/pull/1111)
-- Expansion: [Fixed an off-by-one that accepted FuriHalSerialIdMax itself as a serial id when setting an expansion module callback (By MNeroba)](https://github.com/DarkFlippers/unleashed-firmware/pull/1108)
-- Added: [API Caller v0.1.4 (By todotge)](https://github.com/todotge/Flipper-api-caller)
-- Added: [DNDolphins v3.0 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
-- Added: [DNDBestiary v3.0 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
-- Updated: [API Caller v0.1.4 (By todotge)](https://github.com/todotge/Flipper-api-caller)
-- Updated: [Metroflip v2.0.3 (By luu176)](https://github.com/luu176/Metroflip)
-- Added: [BioVault v0.1 (By flamebarke)](https://github.com/flamebarke/biovault-flipper)
-- Updated: [Catacombs Of The Damned! v4.0 (By apfxtech)](https://github.com/apfxtech/FlipperCatacombs)
-- OFW: [Update the App Development documentation section #4412 (By ellyromanova)](https://github.com/flipperdevices/flipperzero-firmware/pull/4412)
-- NFC: [Stop the CUID dictionary pass ending one key index early (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/be559b2ee1b2bbae3eaf109a4a1b0d7337b3d8a8)
-- NFC: [Keep the CUID dictionary pass end marker out of the sector counter (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1115)
-- SubGHz: [The free/stop/yield/reset/hash/serialize handlers that were byte-identical across 57 protocols now share one implementation instead of 346 copies, freeing ~6 KB of flash (By apfxtech)](https://github.com/DarkFlippers/unleashed-firmware/commit/af2370573dd413e91e27421cdcd6828a70bf0de7)
-- Updated: [Seos compatible v1.3 (By bettse)](https://github.com/bettse/seos_compatible)
-- Added: [DNDAdventure v3.2.31 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
-- Added: [DNDInitiative v3.2.31 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
-- Added: [DNDJournal v3.2.31 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
-- Added: [DNDInventory v3.3.8 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
-- Added: [DNDSpellbook v3.3.8 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
-- Updated: [Cross Remote v3.5 (By leedave)](https://github.com/leedave/flipper-zero-cross-remote)
-- Updated: [DNDolphins v4.19 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
-- Updated: [DNDBestiary v4.19 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
-- Updated: [DNDAdventure v4.19 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
-- Updated: [DNDInitiative v4.19 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
-- Updated: [DNDJournal v4.19 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
-- Updated: [DNDInventory v4.19 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
-- Updated: [DNDSpellbook v4.19 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
-- Updated: [ZeroMesh v3.1 (By SAMS0N1TE)](https://github.com/SAMS0N1TE/ZeroMesh) `Req: Meshtastic`
-- Updated: [Quac! v0.10.0 (By rdefeo)](https://github.com/rdefeo/quac)
-- Updated: [Gurpil v0.1.9 (By Endika)](https://github.com/Endika/flipper-gurpil)
-- Updated: [Avocado Zero v0.1.1 (By Endika)](https://github.com/Endika/flipper-avocado-zero)
-- Updated: [Impostor v0.1.3 (By Endika)](https://github.com/Endika/flipper-impostor-game)
-- Updated: [Fake Chip Detector v0.13 (By hleserg)](https://github.com/hleserg/flipper-fake-chip-detector)
-- Updated: [Vexed v1.1 (By dlvoy)](https://github.com/dlvoy/flipper-zero-vexed) (Version Only)
-- Updated: [Swimmy Fish v3.1 (By Invizabel)](https://github.com/Invizabel/fish)
-- Updated: [WiFi (Marauder) v0.7.11 (By 0xchocolate & tcpassos)](https://github.com/0xchocolate/flipperzero-firmware-with-wifi-marauder-companion)
-- Updated: [Hotspot Arcade v1.10.0 (By tarikbc)](https://github.com/tarikbc/hotspot-arcade) `Req: ESP32`
-- OFW: [Disable license expiration check in PVS options & update PR template- #4445 (By xMasterX)](https://github.com/flipperdevices/flipperzero-firmware/pull/4445)
-- Updated: [FlipDeFlock v0.97 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
-- Updated: [Flipcraft v2.8 (By apfxtech)](https://github.com/apfxtech/Flipcraft)
-- Updated: [FlipCrypt v0.7 (By TAxelAnderson)](https://github.com/TAxelAnderson/FlipCrypt)
-- Updated: [Mystic Balloon v3.0 (By apfxtech)](https://github.com/apfxtech/FlipperMysticBalloon)
-- Updated: [WiFi (Marauder) v0.7.12 (By 0xchocolate & tcpassos)](https://github.com/0xchocolate/flipperzero-firmware-with-wifi-marauder-companion) `Req: ESP32`
-- ESP Flasher: [Bump Marauder v1.17.0 (By justcallmekoko)](https://github.com/justcallmekoko/ESP32Marauder/releases/tag/v1.17.0)
-- Added: [Flipper Elements v1.4 (By steanlab)](https://github.com/steanlab/flipper-elements)
-- Added: [USB Internet Bridge v0.4 (By mete888)](https://github.com/mete888/flipper_usb_to_wifi)
-- Added: [AC Fujitsu General Remote v1.0 (By j-stud-res)](https://github.com/j-stud-res/flipper-ac-fujitsu-general-remote)
-- Added: [Dragotchi v0.4 (By Mohnki)](https://github.com/Mohnki/dragotchi-flipper) `Optional: ESP32`
-- Added: [MicroCity v2.0 (By apfxtech)](https://github.com/apfxtech/FlipperMicroCity)
-- Added: [BeepBack v1.0 (By h4sw5q2wr9-byte)](https://github.com/h4sw5q2wr9-byte/BEEPBACK)
-- Added: [Marauder GUI v1.0 (By mel4mi)](https://github.com/mel4mi/Marauder-GUI-Flipper) `Req: ESP32`
-- Added: [Staff Time Clock v2.16 (By vladpereverzyev)](https://github.com/vladpereverzyev/flipper-staff-time-clock)
-- Added: [5Ghost Wifi Lab v2.7.6 (By pingequalab)](https://github.com/pingequalab/5ghost-wifi-lab) `Req: BW15`
-- Added: [IR Builder v3.2 (By sanoobis)](https://github.com/sanoobis/IR-Builder)
-- Added: [DFC v1.0 (By cindersocket)](https://github.com/cindersocket/dfc-flipper)
-- Added: [YRM100X Pro v1.0 (By AlexeySmirnov74)](https://github.com/AlexeySmirnov74/YRM100X_PRO) `Req: YRM100X`
-- Added: [SigRoam Wardriving v0.3 (By pingequalab)](https://github.com/pingequalab/sigroam-wardriving) `Req: ESP32`
-- Updated: [TagTinker v2.1 (By i12bp8)](https://github.com/i12bp8/TagTinker)
-- Updated: [USB Internet Bridge v0.4 (By mete888)](https://github.com/mete888/flipper_usb_to_wifi)
-- Updated: [BeepBack v1.1 (By h4sw5q2wr9-byte)](https://github.com/h4sw5q2wr9-byte/BEEPBACK)
-- Updated: [FlipRogue v1.2.2 (By Abzac)](https://github.com/Abzac/fliprogue)
-- Updated: [SigRoam Wardriving v0.6 (By pingequalab)](https://github.com/pingequalab/sigroam-wardriving) `Req: ESP32`
-- Updated: [Tesla Mod v2.16b29 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
-- Updated: [ProtoPirate v3.5 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
-- Updated: [Gurpil v0.1.10 (By Endika)](https://github.com/Endika/flipper-gurpil)
-- Updated: [Rush Hour v0.1.8 (By Endika)](https://github.com/Endika/flipper-tutu)
-- Updated: [NFC Stock Manager v0.1.7 (By Endika)](https://github.com/Endika/flipper-nfc-stock)
-- Updated: [Habit Flow v0.1.4 (By Endika)](https://github.com/Endika/flipper-habit-flow)
-- Updated: [DFC v1.1.1 (By cindersocket)](https://github.com/cindersocket/dfc-flipper)
-- Updated: [Faraday v1.3 (By at0m-b0mb)](https://github.com/at0m-b0mb/Faraday-FlipperZero)
-- Updated: [GhostTag v2.0 (By at0m-b0mb)](https://github.com/at0m-b0mb/GhostTag-FlipperZero) `Req: ESP32`
-- Updated: [UHF Expansion v1.4 (By mtoolstec)](https://github.com/mtoolstec/fz-uhf-expansion)
-- Updated: [Specter v3.1.1 (By at0m-b0mb)](https://github.com/at0m-b0mb/Specter-FlipperZero)
-- Updated: [Trivia Zero v0.1.14 (By Endika)](https://github.com/Endika/flipper-trivia-zero)
-- Updated: [Avocado Zero v0.1.2 (By Endika)](https://github.com/Endika/flipper-avocado-zero)
-- Updated: [HyperFocus Calc v0.1.3 (By Endika)](https://github.com/Endika/flipper-hyper-focus-calc)
-- Updated: [Tesla Mod v2.16b34 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
-- Updated: [Sub Duplicate Finder v1.3 (By Endika)](https://github.com/Endika/flipper-sub-dup)
-- Updated: [Maze 3D v7.1 (By k20120509)](https://github.com/k20120509/flipper-release)
-- Updated: [Stratagem Hero v1.0.1 (By maximkulkin)](https://github.com/maximkulkin/flipper-zero-stratagem-hero)
-- Updated: [Flipper Elements v2.0 (By steanlab)](https://github.com/steanlab/flipper-elements)
 
 <a name="release"></a>
 
@@ -1055,7 +930,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [ZeroFIDO v0.8 (By MinorGlitch)](https://github.com/MinorGlitch/zerofido)
 - [ZeroMesh v3.1 (By SAMS0N1TE)](https://github.com/SAMS0N1TE/ZeroMesh) `Req: Meshtastic`
 
-# Install GitHub Version With [WEB INSTALLER](https://lab.flipper.net/?url=https%3A%2F%2Frogue-master.net%2F%3Ffile%3DRM0819-2255-b3dd8981.tgz&channel=RM0819-2255-b3dd8981&version=0.420.0&target=f7)
+# Install GitHub Version With [WEB INSTALLER](https://lab.flipper.net/?url=https%3A%2F%2Frogue-master.net%2F%3Ffile%3DRM1001-2124-4f2e0620.tgz&channel=RM1001-2124-4f2e0620&version=0.420.0&target=f7)
 
 - Have a new app? Submit GitHub link to me on Discord for a special reward (if I add it to RM Firmware).
 
