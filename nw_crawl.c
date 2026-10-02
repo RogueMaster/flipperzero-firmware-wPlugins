@@ -107,7 +107,7 @@ static const char* const level_names[] = {
 // Sasquatch wanders down from Forest Park on the northern half of the walk,
 // and is too elusive to be seen from more than a couple of tiles away
 #define SASQUATCH_MIN_TIER 5
-#define SASQUATCH_ODDS 4
+#define SASQUATCH_ODDS 2
 #define SASQUATCH_SIGHT 2
 
 // Joe's Cellar is a safe room with a bartender on this street
@@ -778,6 +778,18 @@ static void witch_blink(Game* g, Monster* m) {
     }
 }
 
+static void drop_item(Game* g, int x, int y, ItemType type) {
+    for(int i = 0; i < MAX_ITEMS; i++) {
+        Item* it = &g->items[i];
+        if(it->active) continue;
+        it->x = x;
+        it->y = y;
+        it->type = type;
+        it->active = true;
+        return;
+    }
+}
+
 static void attack_monster(Game* g, Monster* m) {
     const MonsterInfo* info = &monster_info[m->type];
     int dmg = 1 + rnd(g->atk);
@@ -796,6 +808,10 @@ static void attack_monster(Game* g, Monster* m) {
     }
     snprintf(g->msg, sizeof(g->msg), "%s down!", info->name);
     play(g, &sfx_kill, SfxPrioKill);
+    if(m->type == MonsterSasquatch) {
+        drop_item(g, m->x, m->y, rnd(2) ? ItemDonut : ItemIpa);
+        say_more(g, "He dropped something.");
+    }
     gain_xp(g, info->xp);
 }
 
