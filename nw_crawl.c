@@ -417,6 +417,10 @@ typedef struct {
     const NotificationSequence* sfx;
     SfxPrio sfx_prio;
 
+    // Dev mode: toggled with Up on the title screen, lets you pick the starting street
+    bool dev_mode;
+    int dev_start;
+
     const char* killer;
     char msg[48];
 } Game;
@@ -721,13 +725,14 @@ static void generate_level(Game* g) {
 
 static void new_game(Game* g) {
     g->state = StatePlaying;
-    g->depth = 0;
-    g->max_hp = 12;
+    g->depth = g->dev_mode ? g->dev_start : 0;
+    // A dev start gets roughly the character a real run would have by that street
+    g->level = 1 + g->depth / 2;
+    g->max_hp = 12 + 3 * (g->level - 1);
     g->hp = g->max_hp;
-    g->atk = 2;
+    g->atk = 2 + (g->level - 1);
     g->xp = 0;
-    g->level = 1;
-    g->coffee = 1;
+    g->coffee = g->depth ? 3 : 1;
     g->killer = NULL;
     generate_level(g);
 }
@@ -980,8 +985,27 @@ static void player_drink_or_wait(Game* g) {
 }
 
 static void handle_key(Game* g, InputKey key) {
+    if(g->state == StateTitle) {
+        if(key == InputKeyOk) {
+            new_game(g);
+        } else if(key == InputKeyUp) {
+            g->dev_mode = !g->dev_mode;
+        } else if(g->dev_mode && key == InputKeyRight) {
+            g->dev_start = (g->dev_start + 1) % LEVEL_COUNT;
+        } else if(g->dev_mode && key == InputKeyLeft) {
+            g->dev_start = (g->dev_start + LEVEL_COUNT - 1) % LEVEL_COUNT;
+        }
+        return;
+    }
     if(g->state != StatePlaying) {
-        if(key == InputKeyOk) new_game(g);
+        // In dev mode go back to the title so another street can be picked
+        if(key == InputKeyOk) {
+            if(g->dev_mode) {
+                g->state = StateTitle;
+            } else {
+                new_game(g);
+            }
+        }
         return;
     }
 
@@ -1006,11 +1030,20 @@ static void handle_key(Game* g, InputKey key) {
     }
 }
 
-static void draw_title(Canvas* canvas) {
+static void draw_title(Canvas* canvas, Game* g) {
     canvas_set_font(canvas, FontPrimary);
     canvas_draw_str_aligned(canvas, 64, 4, AlignCenter, AlignTop, "NW CRAWL");
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str_aligned(canvas, 64, 19, AlignCenter, AlignTop, "Burnside to Witch's Castle");
+    if(g->dev_mode) {
+        char buf[40];
+        bool castle = g->dev_start == LEVEL_COUNT - 1;
+        snprintf(
+            buf, sizeof(buf), "DEV < %s%s >", castle ? "" : "NW ", level_names[g->dev_start]);
+        canvas_draw_str_aligned(canvas, 64, 19, AlignCenter, AlignTop, buf);
+    } else {
+        canvas_draw_str_aligned(
+            canvas, 64, 19, AlignCenter, AlignTop, "Burnside to Witch's Castle");
+    }
     canvas_draw_xbm(canvas, 44, 31, 8, 8, spr_player);
     canvas_draw_xbm(canvas, 60, 31, 8, 8, spr_monsters[MonsterRaccoon]);
     canvas_draw_xbm(canvas, 76, 31, 8, 8, spr_items[ItemCoffee]);
@@ -1143,7 +1176,7 @@ static void draw_callback(Canvas* canvas, void* ctx) {
     canvas_clear(canvas);
     switch(g->state) {
     case StateTitle:
-        draw_title(canvas);
+        draw_title(canvas, g);
         break;
     case StatePlaying:
         draw_game(canvas, g);

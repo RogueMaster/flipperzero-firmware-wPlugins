@@ -28,6 +28,10 @@ Start on Burnside and head north one street per floor (Couch, Davis, Everett, Fl
 | OK | Drink a coffee, or wait a turn at full health |
 | Hold Back | Quit |
 
+## Dev mode
+
+Press Up on the title screen to toggle dev mode, then Left/Right to pick the starting street and OK to start there. You begin with a character scaled to roughly what a real run would have by that point, and the end screens return to the title so you can pick another street.
+
 ## Build and install
 
 You need [ufbt](https://github.com/flipperdevices/flipperzero-ufbt), the Flipper app build tool:
