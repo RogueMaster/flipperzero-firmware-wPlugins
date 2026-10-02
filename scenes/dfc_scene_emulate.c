@@ -33,6 +33,7 @@ static void dfc_set_listener_ats(Iso14443_4aData* data, const uint8_t* ats, size
     if((data->ats_data.t0 & DFC_ATS_T0_TB1) && i < declared) data->ats_data.tb_1 = ats[i++];
     if((data->ats_data.t0 & DFC_ATS_T0_TC1) && i < declared) data->ats_data.tc_1 = ats[i++];
 
+    if(declared < i) return;
     size_t historical_len = declared - i;
     if(historical_len > 0) {
         simple_array_init(data->ats_data.t1_tk, historical_len);
@@ -110,6 +111,14 @@ void dfc_scene_emulate_on_enter(void* context) {
     }
 
     dfc->listener = nfc_listener_alloc(dfc->nfc, NfcProtocolIso14443_4a, data);
+    if(!dfc->listener) {
+        dfc_emulator_free(dfc->dfc_emulator);
+        dfc->dfc_emulator = NULL;
+        popup_set_header(popup, "Out of memory", 64, 24, AlignCenter, AlignTop);
+        popup_set_text(popup, "Could not start\nlistener", 64, 42, AlignCenter, AlignTop);
+        view_dispatcher_switch_to_view(dfc->view_dispatcher, DfcViewPopup);
+        return;
+    }
     dfc->iso_dep_last_response_valid = false;
     dfc->iso_dep_expected_pcd_block = 0;
     dfc->iso_dep_picc_block = 1;

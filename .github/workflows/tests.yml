@@ -33,3 +33,20 @@ jobs:
           make -C lib/core/tests test
           CRYPTO_BACKEND=tiny
           TINY_CRYPTO_DIR=../../tiny-crypto-c
+      - name: Run app security regression checks
+        run: |
+          python3 tests/save_name_security_test.py
+          python3 tests/bytebuf_security_test.py
+
+  engine-sanitizers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Run engine suite with ASan and UBSan
+        run: >-
+          make -C lib/core/tests test
+          CRYPTO_BACKEND=tiny
+          TINY_CRYPTO_DIR=../../tiny-crypto-c
+          SANITIZE=address,undefined

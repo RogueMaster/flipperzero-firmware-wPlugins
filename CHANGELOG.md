@@ -1,3 +1,11 @@
+Unreleased:
+
+- Limit saved card names to the credential model's 32-character capacity.
+- Treat loaded card names as literal text instead of printf format strings.
+- Reject invalid buffer capacities and handle reader, listener, and secure-session allocation failures.
+- Clear credential keys and reader session keys before releasing their memory.
+- Update dfc-core to 1.2.1 and tiny-crypto-c to 2.0.0.
+
 v1.1.1:
 
 - Reset the full DESFire activation when the reader field turns off or the

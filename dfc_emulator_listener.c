@@ -21,7 +21,15 @@ static void send_frame(
     Iso14443_4aListener* iso14443_4a_listener,
     const uint8_t* data,
     size_t length) {
+    if(!data || length > DFC_BYTEBUF_MAX) {
+        FURI_LOG_W(TAG, "Refusing invalid Tx frame length %u", (unsigned)length);
+        return;
+    }
     BitBuffer* radio_buffer = bit_buffer_alloc(DFC_BYTEBUF_MAX);
+    if(!radio_buffer) {
+        FURI_LOG_W(TAG, "Tx buffer allocation failed");
+        return;
+    }
     bit_buffer_append_bytes(radio_buffer, data, length);
 #if __has_include(<lib/nfc/protocols/type_4_tag/type_4_tag.h>)
     UNUSED(dfc);

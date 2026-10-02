@@ -2,8 +2,16 @@
 
 #define TAG "DfcReader"
 
+static void dfc_reader_clear_secure_messaging(DfcReader* reader) {
+    if(!reader->secure_messaging) return;
+    memset(reader->secure_messaging, 0, sizeof(*reader->secure_messaging));
+    dfc_secure_messaging_free(reader->secure_messaging);
+    reader->secure_messaging = NULL;
+}
+
 DfcReader* dfc_reader_alloc(DfcCredential* credential, Iso14443_4aPoller* iso14443_4a_poller) {
     DfcReader* reader = malloc(sizeof(DfcReader));
+    if(!reader) return NULL;
     memset(reader, 0, sizeof(DfcReader));
 
     reader->credential = credential;
@@ -11,6 +19,12 @@ DfcReader* dfc_reader_alloc(DfcCredential* credential, Iso14443_4aPoller* iso144
 
     reader->tx_buffer = bit_buffer_alloc(DFC_WORKER_MAX_BUFFER_SIZE);
     reader->rx_buffer = bit_buffer_alloc(DFC_WORKER_MAX_BUFFER_SIZE);
+    if(!reader->tx_buffer || !reader->rx_buffer) {
+        if(reader->tx_buffer) bit_buffer_free(reader->tx_buffer);
+        if(reader->rx_buffer) bit_buffer_free(reader->rx_buffer);
+        free(reader);
+        return NULL;
+    }
 
     return reader;
 }
@@ -19,9 +33,7 @@ void dfc_reader_free(DfcReader* reader) {
     furi_assert(reader);
     bit_buffer_free(reader->tx_buffer);
     bit_buffer_free(reader->rx_buffer);
-    if(reader->secure_messaging) {
-        dfc_secure_messaging_free(reader->secure_messaging);
-    }
+    dfc_reader_clear_secure_messaging(reader);
     free(reader);
 }
 
@@ -181,14 +193,18 @@ NfcCommand dfc_reader_authenticate(DfcReader* reader, uint8_t key_no, uint8_t ci
     size_t session_key_len = 0;
     dfc_derive_session_key(cipher, key, key_len, rnd_a, rnd_b, session_key, &session_key_len);
 
-    if(reader->secure_messaging) {
-        dfc_secure_messaging_free(reader->secure_messaging);
-    }
+    dfc_reader_clear_secure_messaging(reader);
     const uint8_t* initial_iv = cipher == DFC_CMD_AUTHENTICATE_LEGACY ? NULL : iv;
     reader->secure_messaging =
         dfc_secure_messaging_alloc(cipher, session_key, session_key_len, initial_iv);
+    if(!reader->secure_messaging) {
+        memset(session_key, 0, sizeof(session_key));
+        FURI_LOG_W(TAG, "Secure messaging allocation failed");
+        return NfcCommandStop;
+    }
     // This end is the reader, which a legacy session's enciphered mode cares about.
-    if(reader->secure_messaging) reader->secure_messaging->pcd = true;
+    reader->secure_messaging->pcd = true;
+    memset(session_key, 0, sizeof(session_key));
 
     FURI_LOG_I(TAG, "Authenticated with key no %d", key_no);
     return NfcCommandContinue;
@@ -258,6 +274,10 @@ NfcCommand dfc_state_machine(Dfc* dfc, Iso14443_4aPoller* iso14443_4a_poller) {
     NfcCommand ret = NfcCommandContinue;
 
     DfcReader* reader = dfc_reader_alloc(dfc->credential, iso14443_4a_poller);
+    if(!reader) {
+        view_dispatcher_send_custom_event(dfc->view_dispatcher, DfcCustomEventPollerError);
+        return NfcCommandStop;
+    }
     dfc->dfc_reader = reader;
     DfcCredential* credential = reader->credential;
     const DfcApplication* app = dfc_credential_get_primary_application_const(credential);
