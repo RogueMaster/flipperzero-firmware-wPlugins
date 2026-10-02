@@ -9,8 +9,6 @@ void game_init_level(int level) {
     g.turn_target = 0.0f;
     g.move_fwd_target = 0.0f;
     g.move_bwd_target = 0.0f;
-    g.jump_z = 0.0f;
-    g.jump_timer = 0;
     g.show_hud = false;
 
     // Maze size grows slowly with level, capped at 21.

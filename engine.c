@@ -1,112 +1,29 @@
 #include "maze3d.h"
+#include <gui/canvas.h>
 #include <math.h>
 
 GameState g;
 
-// ---- Framebuffer helpers ----
-static inline void fb_set(int x, int y, uint8_t on) {
-    if((unsigned)x >= SCREEN_W || (unsigned)y >= SCREEN_H) return;
-    uint16_t idx = ((uint16_t)y << 4) + ((uint16_t)x >> 3); // y*16 + x/8
-    uint8_t bit = 1u << (x & 7);
-    if(on)
-        g.fb[idx] |= bit;
-    else
-        g.fb[idx] &= ~bit;
-}
-
-static inline void fb_clear(void) {
-    for(int i = 0; i < FB_BYTES; i++)
-        g.fb[i] = 0;
-}
-
-// ---- Map access ----
 static inline uint8_t map_at(int x, int y) {
     if((unsigned)x >= (unsigned)g.map_w || (unsigned)y >= (unsigned)g.map_h) return WALL_BRICK;
     return g.map[(uint16_t)y * MAP_MAX + x];
 }
 
-static inline bool is_wall(uint8_t c) {
-    return c == WALL_BRICK;
-}
-
-extern uint8_t texture_sample(int tex_id, int tx, int ty);
-
-// Distance shading: farther walls are drawn with sparser patterns.
-// shade level 0..4 (0 = solid/near, 4 = far).
-static inline int shade_from(float perp, int side) {
-    int s;
-    if(perp < 1.5f)
-        s = 0;
-    else if(perp < 3.0f)
-        s = 1;
-    else if(perp < 5.0f)
-        s = 2;
-    else if(perp < 8.0f)
-        s = 3;
-    else
-        s = 4;
-    if(side == 1) s++; // Y-side walls are a touch darker for depth
-    if(s > 4) s = 4;
-    return s;
-}
-
-// Apply a shaded pixel: only set if the texture bit passes the dither for the
-// current shade level. Keeps walls readable at all distances.
-static inline void apply_shade_px(int x, int y, int shade) {
-    if((unsigned)x >= SCREEN_W || (unsigned)y >= SCREEN_H) return;
-    uint8_t on = 1;
-    switch(shade) {
-    case 1:
-        on = ((x + y) & 1) ? 0 : 1;
-        break;
-    case 2:
-        on = (((x >> 1) + (y >> 1)) & 1) ? 0 : 1;
-        break;
-    case 3:
-        on = (((x >> 1) + (y >> 1)) % 3 == 0) ? 1 : 0;
-        break;
-    case 4:
-        on = (((x >> 2) + (y >> 2)) & 1) ? 0 : 1;
-        break;
-    default:
-        on = 1;
-    }
-    if(on) {
-        uint16_t idx = ((uint16_t)y << 4) + ((uint16_t)x >> 3);
-        uint8_t bit = 1u << (x & 7);
-        g.fb[idx] |= bit;
-    }
-}
-
-// Ceiling/floor pattern: simple checker/noise to give orientation cues.
-static inline uint8_t ceil_px(int x, int y) {
-    return (((x >> 3) + (y >> 2)) & 1) ? 1 : 0;
-}
-static inline uint8_t floor_px(int x, int y) {
-    return (((x >> 2) + (y >> 3)) & 1) ? 0 : 1;
-}
-
-// ---- Main raycasting render ----
-void engine_render(void) {
-    fb_clear();
-
+// Compute per-column wall geometry into g.cols. Runs on the app thread.
+void engine_compute(void) {
     Player* p = &g.player;
     const float posX = p->x, posY = p->y;
     const float dirX = p->dir_x, dirY = p->dir_y;
     const float planeX = p->plane_x, planeY = p->plane_y;
 
-    // Render 64 columns; each covers 2 screen pixels.
-    const int RENDER_COLS_DYN = RENDER_COLS;
+    for(int ci = 0; ci < RENDER_COLS; ci++) {
+        ColData* col = &g.cols[ci];
+        col->hit = false;
 
-    for(int ci = 0; ci < RENDER_COLS_DYN; ci++) {
-        int px_start = (ci * SCREEN_W) / RENDER_COLS_DYN;
-        int px_end = ((ci + 1) * SCREEN_W) / RENDER_COLS_DYN - 1;
-        if(px_end < px_start) px_end = px_start;
-        int px_ctr = (px_start + px_end) / 2;
-
-        float cameraX = 2.0f * (float)(px_ctr + 0.5f) / (float)SCREEN_W - 1.0f;
-        float rayX = dirX + planeX * cameraX;
-        float rayY = dirY + planeY * cameraX;
+        // Camera X for the center of this column strip.
+        float cx = (ci + 0.5f) / (float)RENDER_COLS * 2.0f - 1.0f;
+        float rayX = dirX + planeX * cx;
+        float rayY = dirY + planeY * cx;
 
         int mapX = (int)posX;
         int mapY = (int)posY;
@@ -136,8 +53,7 @@ void engine_render(void) {
         }
 
         int side = 0;
-        uint8_t hit = 0;
-        bool exit_on_ray = false;
+        bool hit = false;
         for(int i = 0; i < MAP_MAX + 4 && !hit; i++) {
             if(sideX < sideY) {
                 sideX += deltaX;
@@ -148,21 +64,18 @@ void engine_render(void) {
                 mapY += stepY;
                 side = 1;
             }
-            uint8_t c = map_at(mapX, mapY);
-            if(is_wall(c)) {
-                hit = c;
+            if(map_at(mapX, mapY) == WALL_BRICK) {
+                hit = true;
                 break;
             }
-            if(c == CELL_EXIT) exit_on_ray = true;
         }
 
         if(!hit) {
-            // No wall hit: draw ceiling/floor split at horizon.
-            for(int y = 0; y < SCREEN_H; y++) {
-                uint8_t on = (y < SCREEN_H / 2) ? ceil_px(px_ctr, y) : floor_px(px_ctr, y);
-                for(int px = px_start; px <= px_end; px++)
-                    fb_set(px, y, on);
-            }
+            // Open sky: full ceiling + floor split.
+            col->hit = false;
+            col->wall_top = SCREEN_H / 2;
+            col->wall_bot = SCREEN_H / 2;
+            col->shade = 4;
             continue;
         }
 
@@ -180,86 +93,93 @@ void engine_render(void) {
         if(drawStart < 0) drawStart = 0;
         if(drawEnd >= SCREEN_H) drawEnd = SCREEN_H - 1;
 
-        // Wall hit coordinate for texture mapping.
-        float wallX;
-        if(side == 0)
-            wallX = posY + perp * rayY;
+        // Distance shading 0..4.
+        int s;
+        if(perp < 1.5f)
+            s = 0;
+        else if(perp < 3.0f)
+            s = 1;
+        else if(perp < 5.0f)
+            s = 2;
+        else if(perp < 8.0f)
+            s = 3;
         else
-            wallX = posX + perp * rayX;
-        wallX -= (float)((int)wallX);
-        int texX = (int)(wallX * 8.0f);
-        if(side == 0 && rayX > 0) texX = 7 - texX;
-        if(side == 1 && rayY < 0) texX = 7 - texX;
+            s = 4;
+        if(side == 1) s++;
+        if(s > 4) s = 4;
 
-        int shade = shade_from(perp, side);
+        col->hit = true;
+        col->wall_top = (uint8_t)drawStart;
+        col->wall_bot = (uint8_t)drawEnd;
+        col->shade = (uint8_t)s;
+    }
+}
 
-        // Exit indicator: a blinking pixel above the exit wall column.
-        if(exit_on_ray) {
-            float dxm = mapX - posX, dym = mapY - posY;
-            if(dxm * dxm + dym * dym < 36.0f && (g.tick & 7) < 4) {
-                int yy = drawStart - 1;
-                if(yy >= 0) fb_set(px_start, yy, 1);
-            }
+// Draw ceiling, walls, floor directly with canvas primitives. Runs on GUI thread.
+//
+// Strategy to stay well under the GUI watchdog budget (~80 canvas calls/frame):
+//   * canvas is cleared to white by the caller
+//   * for each column we draw exactly two solid black boxes: ceiling (top)
+//     and floor (bottom). The gap between them is the white wall.
+//   * no per-line stripes, no per-pixel floor dots.
+// This keeps walls readable (white bars on black) while using ~64 box calls.
+void engine_draw(Canvas* canvas) {
+    const int col_w = SCREEN_W / RENDER_COLS; // 4px per column
+
+    for(int ci = 0; ci < RENDER_COLS; ci++) {
+        ColData* col = &g.cols[ci];
+        int x = ci * col_w;
+        int w = col_w;
+
+        int top = col->wall_top;
+        int bot = col->wall_bot;
+
+        // Ceiling: black from y=0 down to the wall top.
+        if(top > 0) {
+            canvas_draw_box(canvas, x, 0, w, top);
         }
 
-        // Ceiling
-        for(int y = 0; y < drawStart; y++) {
-            uint8_t on = ceil_px(px_ctr, y);
-            for(int px = px_start; px <= px_end; px++)
-                fb_set(px, y, on);
+        // Floor: black from just below the wall to the bottom of the screen.
+        int floor_y = bot + 1;
+        if(floor_y < SCREEN_H) {
+            canvas_draw_box(canvas, x, floor_y, w, SCREEN_H - floor_y);
         }
-        // Wall (textured + shaded)
-        int constHalf = -lineH / 2 + SCREEN_H / 2;
-        for(int y = drawStart; y <= drawEnd; y++) {
-            int texY = ((y - constHalf) * 8) / lineH;
-            if(texY < 0)
-                texY = 0;
-            else if(texY > 7)
-                texY = 7;
-            if(texture_sample(0, texX, texY)) {
-                for(int px = px_start; px <= px_end; px++)
-                    apply_shade_px(px, y, shade);
-            }
-        }
-        // Floor
-        for(int y = drawEnd + 1; y < SCREEN_H; y++) {
-            uint8_t on = floor_px(px_ctr, y);
-            for(int px = px_start; px <= px_end; px++)
-                fb_set(px, y, on);
+
+        // Far walls get a single black hairline across their middle so distance
+        // is still readable without per-line dithering.
+        if(col->shade >= 3) {
+            int mid = (top + bot) / 2;
+            canvas_draw_box(canvas, x, mid, w, 1);
         }
     }
 
-    // Exit direction arrow: project the exit cell to screen space.
-    if(g.exit_found) {
+    // Exit direction arrow (simple on-screen indicator).
+    if(g.exit_found && (g.tick & 15) < 10) {
         float spx = (float)g.exit_x + 0.5f - g.player.x;
         float spy = (float)g.exit_y + 0.5f - g.player.y;
         float invDet =
             1.0f / (g.player.plane_x * g.player.dir_y - g.player.dir_x * g.player.plane_y);
-        float transX = invDet * (g.player.dir_y * spx - g.player.dir_x * spy);
         float transY = invDet * (-g.player.plane_y * spx + g.player.plane_x * spy);
 
-        if((g.tick & 15) < 10) {
-            int cy = 14;
-            if(transY > 0.05f) {
-                int ax = (int)((SCREEN_W / 2.0f) * (1.0f + transX / transY));
-                if(ax < 6) ax = 6;
-                if(ax > SCREEN_W - 7) ax = SCREEN_W - 7;
-                int as = 5;
-                for(int i = 0; i <= as; i++) {
-                    fb_set(ax - i, cy - as + i, 1);
-                    fb_set(ax + i, cy - as + i, 1);
-                }
-                fb_set(ax, cy - as - 1, 1);
-                for(int i = -2; i <= 2; i++)
-                    fb_set(ax, cy + i, 1);
-            } else {
-                // Exit is behind: draw arrows on both sides.
-                for(int i = 0; i < 4; i++) {
-                    fb_set(2 + i, cy - i, 1);
-                    fb_set(2 + i, cy + i, 1);
-                    fb_set(SCREEN_W - 3 - i, cy - i, 1);
-                    fb_set(SCREEN_W - 3 - i, cy + i, 1);
-                }
+        int cy = 14;
+        if(transY > 0.05f) {
+            float transX = invDet * (g.player.dir_y * spx - g.player.dir_x * spy);
+            int ax = (int)((SCREEN_W / 2.0f) * (1.0f + transX / transY));
+            if(ax < 6) ax = 6;
+            if(ax > SCREEN_W - 7) ax = SCREEN_W - 7;
+            for(int i = 0; i <= 5; i++) {
+                canvas_draw_dot(canvas, ax - i, cy - 5 + i);
+                canvas_draw_dot(canvas, ax + i, cy - 5 + i);
+            }
+            canvas_draw_dot(canvas, ax, cy - 6);
+            for(int i = -2; i <= 2; i++)
+                canvas_draw_dot(canvas, ax, cy + i);
+        } else {
+            for(int i = 0; i < 4; i++) {
+                canvas_draw_dot(canvas, 2 + i, cy - i);
+                canvas_draw_dot(canvas, 2 + i, cy + i);
+                canvas_draw_dot(canvas, SCREEN_W - 3 - i, cy - i);
+                canvas_draw_dot(canvas, SCREEN_W - 3 - i, cy + i);
             }
         }
     }
