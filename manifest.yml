@@ -2,7 +2,7 @@ sourcecode:
   type: git
   location:
     origin: https://github.com/k20120509/flipper-release.git
-    commit_sha: ae3efcdab906b8ffae54ca80294a339c68937842
+    commit_sha: 4637184587db5a6d2c66f143dd091a58a401e8df
 short_description: Minimal 3D raycasting maze game. Walk through randomly generated mazes and find the exit.
 description: "@README.md"
 changelog: "@CHANGELOG.md"
