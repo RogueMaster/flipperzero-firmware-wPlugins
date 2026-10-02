@@ -10,37 +10,37 @@
 #include <stdio.h>
 #include <string.h>
 
-#define PAGE_STEPS 16
-#define MAX_STEPS 32
-#define SLOTS 8
-#define PITCH_ROWS 15
+#define PAGE_STEPS   16
+#define MAX_STEPS    32
+#define SLOTS        8
+#define PITCH_ROWS   15
 #define VISIBLE_ROWS 8
-#define NOTE_NONE (-1)
+#define NOTE_NONE    (-1)
 
 // Layout
-#define GRID_X 16
-#define CELL_W 7
-#define CELL_H 6
-#define GRID_Y 9
-#define DRUM_Y 58
+#define GRID_X       16
+#define CELL_W       7
+#define CELL_H       6
+#define GRID_Y       9
+#define DRUM_Y       58
 #define MENU_VISIBLE 6
 
 #define AUDIO_POLL_MS 5
-#define PREVIEW_MS 120
+#define PREVIEW_MS    120
 
-#define BPM_MIN 60
-#define BPM_MAX 240
-#define BPM_STEP 5
-#define OCTAVE_MIN 2
-#define OCTAVE_MAX 5
-#define VOLUME_LEVELS 5
+#define BPM_MIN                 60
+#define BPM_MAX                 240
+#define BPM_STEP                5
+#define OCTAVE_MIN              2
+#define OCTAVE_MAX              5
+#define VOLUME_LEVELS           5
 // Each swing level makes the first 16th of every pair 4% longer: 50% (straight) to 70%
-#define SWING_LEVELS 5
+#define SWING_LEVELS            5
 #define SWING_PERCENT_PER_LEVEL 4
 
-#define SAVE_DIR EXT_PATH("apps_data/step_seq")
-#define SAVE_PATH SAVE_DIR "/pattern.bin"
-#define SAVE_MAGIC 0x53455132 // "SEQ2"
+#define SAVE_DIR      EXT_PATH("apps_data/step_seq")
+#define SAVE_PATH     SAVE_DIR "/pattern.bin"
+#define SAVE_MAGIC    0x53455132 // "SEQ2"
 #define SAVE_MAGIC_V1 0x53455131 // "SEQ1": a single 16-step pattern
 
 typedef enum {
@@ -180,7 +180,22 @@ typedef struct {
 } App;
 
 static const int8_t demo_notes[PAGE_STEPS] = {
-    0, NOTE_NONE, 5, 4, NOTE_NONE, 3, 5, NOTE_NONE, 0, NOTE_NONE, 5, 6, NOTE_NONE, 4, 3, NOTE_NONE,
+    0,
+    NOTE_NONE,
+    5,
+    4,
+    NOTE_NONE,
+    3,
+    5,
+    NOTE_NONE,
+    0,
+    NOTE_NONE,
+    5,
+    6,
+    NOTE_NONE,
+    4,
+    3,
+    NOTE_NONE,
 };
 
 static const uint8_t demo_drums[PAGE_STEPS] = {
@@ -834,9 +849,10 @@ int32_t step_seq_app(void* p) {
                 quit = true;
             } else if(is_long && event.key == InputKeyOk) {
                 app->menu_open = true;
-            } else if(event.type == InputTypeShort ||
-                      (event.type == InputTypeRepeat && event.key != InputKeyOk &&
-                       event.key != InputKeyBack)) {
+            } else if(
+                event.type == InputTypeShort ||
+                (event.type == InputTypeRepeat && event.key != InputKeyOk &&
+                 event.key != InputKeyBack)) {
                 handle_grid_key(app, event.key);
             }
             furi_mutex_release(app->mutex);
