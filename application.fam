@@ -1,0 +1,12 @@
+App(
+    appid="nw_crawl",
+    name="NW Crawl",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="nw_crawl_app",
+    requires=["gui"],
+    stack_size=2 * 1024,
+    fap_category="Games",
+    fap_icon="icon.png",
+    fap_version="0.1",
+    fap_description="Tiny roguelike: walk the alphabet streets of NW Portland to the Witch's Castle",
+)
