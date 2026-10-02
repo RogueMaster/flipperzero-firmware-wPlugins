@@ -28,6 +28,7 @@ linter:
 test: logic.o tests/test_logic.o
 	$(CC) $(CFLAGS) -o test_logic logic.o tests/test_logic.o
 	./test_logic
+	python3 tests/test_storage_host.py
 
 prepare:
 	@if [ -d "$(FLIPPER_FIRMWARE_PATH)" ]; then \

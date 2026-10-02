@@ -44,6 +44,9 @@ typedef enum {
 
 uint32_t calculate_crc32(uint32_t crc, const uint8_t *data, size_t size);
 void process_duplicates(HashDatabase *db);
+typedef bool (*FileRecordsEqual)(const FileRecord *a, const FileRecord *b, void *context);
+// CRC and size are only a candidate filter. Confirm content before exposing a group.
+void process_duplicates_verified(HashDatabase *db, FileRecordsEqual equal, void *context);
 void db_remove_record(HashDatabase *db, const char *filename);
 
 bool is_sub_file(const char *name);

@@ -39,10 +39,13 @@ class StorageSafetyTest(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
     def test_crc_collision_is_not_displayed_as_duplicate(self): self.check('collision')
+    def test_true_duplicates_partition_away_from_collision(self): self.check('mixed-collision')
     def test_changed_selected_file_is_preserved(self): self.check('selected-changed')
+    def test_same_crc_collision_replacement_is_preserved(self): self.check('selected-collision')
     def test_changed_or_missing_peer_is_preserved(self):
         self.check('peer-changed')
         self.check('peer-missing')
+        self.check('peer-unreadable')
     def test_identical_copy_delete_preserves_the_other_file(self): self.check('delete')
     def test_delete_failure_preserves_database_and_file(self): self.check('delete-failure')
     def test_short_read_is_not_a_duplicate(self): self.check('short-read')

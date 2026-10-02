@@ -80,6 +80,41 @@ void process_duplicates(HashDatabase *db) {
     }
 }
 
+void process_duplicates_verified(HashDatabase *db, FileRecordsEqual equal, void *context) {
+    db->num_groups = 0;
+    if (!equal || db->count == 0)
+        return;
+    sort_records(db->records, db->count);
+
+    size_t start = 0;
+    while (start < db->count) {
+        size_t run_end = start + 1;
+        while (run_end < db->count && records_match(&db->records[start], &db->records[run_end]))
+            run_end++;
+
+        // A CRC collision can contain several different content classes.
+        // Partition each candidate run; keep equal records contiguous for the UI.
+        while (start < run_end) {
+            size_t end = start + 1;
+            for (size_t i = end; i < run_end; i++) {
+                if (equal(&db->records[start], &db->records[i], context)) {
+                    FileRecord swap = db->records[end];
+                    db->records[end++] = db->records[i];
+                    db->records[i] = swap;
+                }
+            }
+            if (end - start > 1) {
+                DuplicateGroup *group = &db->groups[db->num_groups++];
+                group->hash = db->records[start].hash;
+                group->size = db->records[start].size;
+                group->start_index = start;
+                group->count = end - start;
+            }
+            start = end;
+        }
+    }
+}
+
 bool is_sub_file(const char *name) {
     size_t len = strlen(name);
     if (len < 4)

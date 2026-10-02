@@ -279,8 +279,12 @@ static void files_in_group_callback(void *context, uint32_t index) {
 static void confirm_callback(DialogExResult result, void *context) {
     SubDupFinderApp *app = context;
     if (result == DialogExResultRight) {
-        if (!storage_delete_file(app->selected_path)) {
-            popup_set_text(app->popup, "Delete failed", 64, 32, AlignCenter, AlignCenter);
+        StorageDeleteResult deletion = storage_delete_duplicate(app, app->selected_name);
+        if (deletion != StorageDeleteOk) {
+            popup_set_text(app->popup,
+                           deletion == StorageDeleteChanged ? "Cannot verify\nScan again"
+                                                            : "Delete failed",
+                           64, 32, AlignCenter, AlignCenter);
             view_set_previous_callback(popup_get_view(app->popup), nav_back_to_files);
             view_dispatcher_switch_to_view(app->view_dispatcher, SubDupFinderViewPopup);
             return;
@@ -290,7 +294,7 @@ static void confirm_callback(DialogExResult result, void *context) {
         uint32_t current_size = app->db.groups[app->selected_group_index].size;
 
         db_remove_record(&app->db, app->selected_name);
-        process_duplicates(&app->db);
+        storage_refresh_duplicates(app);
         ui_render_groups(app);
 
         int new_index = -1;
