@@ -31,6 +31,7 @@ typedef struct {
 static const DeckInfo decks[] = {
     {"HSK 1", "hsk1"},
     {"HSK 2", "hsk2"},
+    {"HSK 3", "hsk3"},
 };
 
 // Leitner boxes: 0 is a card never seen, 1 is the most frequent review

@@ -8,7 +8,7 @@ Mandarin flashcards for the [Flipper Zero](https://flipperzero.one): simplified 
 
 ## What it does
 
-- **Decks:** HSK 1 (150 words) and HSK 2 (156 words), each in a rough learning order with its own progress.
+- **Decks:** HSK 1 (150 words), HSK 2 (156 words) and HSK 3 (292 words), each with its own progress. HSK 1 and 2 are in a rough learning order; HSK 3 is shuffled.
 - **Characters:** simplified or traditional, switchable at any time.
 - **Cards:** the front shows the characters. Flip it to see the pinyin and the English.
 - **Tone sound:** on a flip, the speaker glides through each syllable's tone contour (high and flat, rising, dipping, falling), so you hear the shape of the word.
@@ -30,7 +30,7 @@ Mandarin flashcards for the [Flipper Zero](https://flipperzero.one): simplified 
 
 | Setting | Values |
 | --- | --- |
-| Deck | HSK 1 or HSK 2 |
+| Deck | HSK 1, HSK 2 or HSK 3 |
 | Characters | Simplified or Traditional |
 | Front | Hanzi or English |
 | Tone sound | On or Off |
