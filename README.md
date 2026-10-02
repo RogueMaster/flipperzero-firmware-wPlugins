@@ -4,6 +4,8 @@ A tiny roguelike for the [Flipper Zero](https://flipperzero.one), set on the alp
 
 ![Fighting a rat on NW Burnside](screenshot.png)
 
+![Down to 1 HP against the Witch in her castle](screenshot_witch.png)
+
 Start on Burnside and head north one street per floor (Couch, Davis, Everett, Flanders ... Thurman) until you reach the Witch's Castle in Forest Park.
 
 ## The game
