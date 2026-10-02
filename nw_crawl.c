@@ -19,6 +19,8 @@
 
 #define MAX_ROOMS 12
 #define MIN_ROOMS 5
+#define EXIT_ROOM_W 5
+#define EXIT_ROOM_H 3
 #define MAX_MONSTERS 16
 #define MAX_ITEMS 6
 #define FOV_RADIUS 4
@@ -74,7 +76,7 @@ static const MonsterInfo monster_info[MonsterTypeCount] = {
     [MonsterScooter] = {"Scooter", "rams", 4, 3, 4},
     [MonsterCoyote] = {"Coyote", "bites", 8, 3, 6},
     [MonsterWitch] = {"Witch", "smites", 50, 6, 0},
-    [MonsterSasquatch] = {"Sasquatch", "clobbers", 16, 4, 12},
+    [MonsterSasquatch] = {"Sasquatch", "clobbers", 24, 4, 12},
 };
 
 // One floor per street, heading north. The last entry is the boss floor.
@@ -602,55 +604,66 @@ static void place_bartender(Game* g) {
     }
 }
 
+// Carves a room at a random spot and joins it to the previous one with a corridor.
+// Fails without touching the map if it would overlap or touch an existing room.
+static bool try_place_room(Game* g, Room* rooms, int* count, int w, int h) {
+    Room r;
+    r.w = w;
+    r.h = h;
+    r.x = 1 + rnd(MAP_W - r.w - 1);
+    r.y = 1 + rnd(MAP_H - r.h - 1);
+
+    for(int i = 0; i < *count; i++) {
+        const Room* o = &rooms[i];
+        if(r.x <= o->x + o->w && r.x + r.w >= o->x && r.y <= o->y + o->h && r.y + r.h >= o->y) {
+            return false;
+        }
+    }
+
+    for(int y = r.y; y < r.y + r.h; y++)
+        for(int x = r.x; x < r.x + r.w; x++)
+            g->tiles[y][x] = TileFloor;
+
+    if(*count > 0) {
+        const Room* p = &rooms[*count - 1];
+        int ax = p->x + p->w / 2, ay = p->y + p->h / 2;
+        int bx = r.x + r.w / 2, by = r.y + r.h / 2;
+        if(rnd(2)) {
+            carve_h(g, ax, bx, ay);
+            carve_v(g, ay, by, bx);
+        } else {
+            carve_v(g, ay, by, ax);
+            carve_h(g, ax, bx, by);
+        }
+    }
+    rooms[(*count)++] = r;
+    return true;
+}
+
 static void generate_level(Game* g) {
     Room rooms[MAX_ROOMS];
     int count;
     bool bar_level = strcmp(level_names[g->depth], BAR_STREET) == 0;
 
+    bool placed_exit;
+
     do {
         memset(g->tiles, TileWall, sizeof(g->tiles));
         count = 0;
-        for(int attempt = 0; attempt < 150 && count < MAX_ROOMS; attempt++) {
-            Room r;
-            r.w = 3 + rnd(4);
-            r.h = 2 + rnd(3);
-            r.x = 1 + rnd(MAP_W - r.w - 1);
-            r.y = 1 + rnd(MAP_H - r.h - 1);
-
-            bool overlaps = false;
-            for(int i = 0; i < count; i++) {
-                const Room* o = &rooms[i];
-                if(r.x <= o->x + o->w && r.x + r.w >= o->x && r.y <= o->y + o->h &&
-                   r.y + r.h >= o->y) {
-                    overlaps = true;
-                    break;
-                }
-            }
-            if(overlaps) continue;
-
-            for(int y = r.y; y < r.y + r.h; y++)
-                for(int x = r.x; x < r.x + r.w; x++)
-                    g->tiles[y][x] = TileFloor;
-
-            if(count > 0) {
-                const Room* p = &rooms[count - 1];
-                int ax = p->x + p->w / 2, ay = p->y + p->h / 2;
-                int bx = r.x + r.w / 2, by = r.y + r.h / 2;
-                if(rnd(2)) {
-                    carve_h(g, ax, bx, ay);
-                    carve_v(g, ay, by, bx);
-                } else {
-                    carve_v(g, ay, by, ax);
-                    carve_h(g, ax, bx, by);
-                }
-            }
-            rooms[count++] = r;
+        for(int attempt = 0; attempt < 150 && count < MAX_ROOMS - 1; attempt++) {
+            try_place_room(g, rooms, &count, 3 + rnd(4), 2 + rnd(3));
         }
-    } while(count < MIN_ROOMS);
+        // The exit always gets a proper room of its own, placed last
+        placed_exit = false;
+        for(int attempt = 0; attempt < 60 && !placed_exit; attempt++) {
+            placed_exit = try_place_room(g, rooms, &count, EXIT_ROOM_W + rnd(2), EXIT_ROOM_H + rnd(2));
+        }
+    } while(count < MIN_ROOMS || !placed_exit);
 
     // Side alleys off each block: some dead-end, some loop back into other streets
+    // (never starting from the exit room, so it keeps its shape)
     for(int i = 0; i < count * 2; i++) {
-        const Room* r = &rooms[rnd(count)];
+        const Room* r = &rooms[rnd(count - 1)];
         int x = r->x + rnd(r->w), y = r->y + rnd(r->h);
         bool horizontal = rnd(2);
         for(int leg = 0; leg < 3; leg++) {
