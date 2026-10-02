@@ -178,7 +178,7 @@ int main(int argc, char **argv) {
             write_copy("b.sub", "different-payload");
         if (!strcmp(argv[2], "peer-missing")) {
             char path[2048];
-            snprintf(path, sizeof(path), "%s/b.sub", folder);
+            snprintf(path, sizeof(path), "%s/dup-test/b.sub", test_root);
             assert(unlink(path) == 0);
         }
         if (!strcmp(argv[2], "delete-failure"))
