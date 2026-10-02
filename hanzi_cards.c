@@ -10,18 +10,18 @@
 #include <input/input.h>
 #include <storage/storage.h>
 
-#define GLYPH_SIZE 32
+#define GLYPH_SIZE  32
 #define GLYPH_BYTES (GLYPH_SIZE * GLYPH_SIZE / 8)
-#define GLYPH_GAP 2
-#define MAX_HANZI 4
-#define TEXT_LEN 24
-#define MAX_CARDS 512
+#define GLYPH_GAP   2
+#define MAX_HANZI   4
+#define TEXT_LEN    24
+#define MAX_CARDS   512
 
 #define DECK_PATH_FORMAT APP_ASSETS_PATH("%s.deck")
-#define SAVE_DIR EXT_PATH("apps_data/hanzi_cards")
+#define SAVE_DIR         EXT_PATH("apps_data/hanzi_cards")
 #define SAVE_PATH_FORMAT SAVE_DIR "/%s.sav"
-#define SETTINGS_PATH SAVE_DIR "/settings.bin"
-#define PATH_LEN 64
+#define SETTINGS_PATH    SAVE_DIR "/settings.bin"
+#define PATH_LEN         64
 
 typedef struct {
     const char* name;
@@ -35,20 +35,20 @@ static const DeckInfo decks[] = {
 };
 
 // Leitner boxes: 0 is a card never seen, 1 is the most frequent review
-#define BOX_NEW 0
-#define BOX_MAX 5
-#define BOX_KNOWN 3
-#define BOX_LEARNING 2
+#define BOX_NEW         0
+#define BOX_MAX         5
+#define BOX_KNOWN       3
+#define BOX_LEARNING    2
 // New cards are only introduced while fewer than this many are being learned
 #define LEARNING_TARGET 6
-#define SAVE_EVERY 10
+#define SAVE_EVERY      10
 
 // Screen layout (baselines)
-#define PINYIN_Y 45
-#define ENGLISH_Y 54
-#define HINT_Y 63
+#define PINYIN_Y     45
+#define ENGLISH_Y    54
+#define HINT_Y       63
 // x-height of FontPrimary, which the tone marks sit above
-#define PINYIN_XH 6
+#define PINYIN_XH    6
 #define SYLLABLE_GAP 3
 
 #define TONE_GAP_MS 70
@@ -365,11 +365,13 @@ static void tones_play(App* app) {
 
     player->count = 0;
     for(const char* s = app->card.pinyin; *s && player->count < COUNT_OF(player->tones);) {
-        while(*s >= 'a' && *s <= 'z') s++;
+        while(*s >= 'a' && *s <= 'z')
+            s++;
         uint8_t tone = 0;
         if(*s >= '1' && *s <= '4') tone = *s++ - '0';
         player->tones[player->count++] = tone;
-        while(*s && !(*s >= 'a' && *s <= 'z')) s++;
+        while(*s && !(*s >= 'a' && *s <= 'z'))
+            s++;
     }
     if(player->count == 0 || !furi_hal_speaker_acquire(30)) return;
 
@@ -446,7 +448,8 @@ static int pinyin_layout(Canvas* canvas, const char* s, int x, int y, bool draw)
     int start = x;
     while(*s) {
         int len = 0;
-        while(s[len] >= 'a' && s[len] <= 'z') len++;
+        while(s[len] >= 'a' && s[len] <= 'z')
+            len++;
         int tone = (s[len] >= '1' && s[len] <= '4') ? s[len] - '0' : 0;
         int mark = tone ? tone_vowel(s, len) : -1;
 
@@ -640,9 +643,9 @@ static void menu_input(App* app, const InputEvent* event) {
     } else if(step && event->key == InputKeyDown) {
         app->menu_item = (app->menu_item + 1) % MenuCount;
         app->reset_armed = false;
-    } else if(event->type == InputTypeShort &&
-              (event->key == InputKeyLeft || event->key == InputKeyRight ||
-               event->key == InputKeyOk)) {
+    } else if(
+        event->type == InputTypeShort &&
+        (event->key == InputKeyLeft || event->key == InputKeyRight || event->key == InputKeyOk)) {
         menu_change(app);
     }
 }
