@@ -11,7 +11,7 @@ import argparse
 import math
 from pathlib import Path
 
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -417,6 +417,34 @@ PROPS = {
         "###  ",
         "###  ",
     ],
+    "treat": [
+        " ###  #",
+        "#####.#",
+        " ###  #",
+    ],
+    "book": [
+        " ######### ######### ",
+        "#.........#.........#",
+        "#.#######.#.#######.#",
+        "#.........#.........#",
+        "#.#######.#.#####...#",
+        "#.........#.........#",
+        "#.#####...#.#######.#",
+        "#.........#.........#",
+        " ######### ######### ",
+    ],
+    "pad": [
+        "###############",
+        "#.............#",
+        "#..#.....#....#",
+        "#..##...##....#",
+        "#..#######....#",
+        "#..#.#.#.#....#",
+        "#..#######....#",
+        "#...#####.....#",
+        "#.............#",
+        "###############",
+    ],
     "mug": [
         "#######  ",
         "#.....###",
@@ -427,6 +455,67 @@ PROPS = {
         " #####   ",
     ],
 }
+
+# ---------------------------------------------------------------- extras
+
+
+def build_keyboard():
+    """Yulia's keyboard: white keys four pixels wide with black keys on top."""
+    w, h = 37, 9
+    g = [[W] * w for _ in range(h)]
+    for x in range(w):
+        g[0][x] = g[h - 1][x] = B
+    for y in range(h):
+        for x in range(0, w, 4):
+            g[y][x] = B
+    for k in range(1, w // 4):
+        if k % 7 not in (0, 3):  # no black key between E-F and B-C
+            for y in range(1, 5):
+                for x in range(k * 4 - 1, k * 4 + 2):
+                    g[y][x] = B
+    return g
+
+
+# Things Yulia says to the cats. The Flipper's fonts have no Cyrillic, so each
+# phrase is rendered to a bitmap here. (key, Russian, English)
+PHRASES = [
+    ("PIGGY", "Ты моя хрюшка!", "You're my piggy!"),
+    ("PIGLET", "Ах, поросёнок!", "Oh, you piglet!"),
+    ("GOOD_KITTY", "Хороший котик!", "Good kitty!"),
+    ("COME", "Иди ко мне!", "Come to me!"),
+    ("OLD_FELLOW", "Мой старичок", "My old fellow"),
+    ("SWEET", "Сладкий мой", "My sweet boy"),
+    ("LITTLE_GIRL", "Моя малышка", "My little girl"),
+    ("HUNGRY", "Кушать хочешь?", "Are you hungry?"),
+    ("GOOD_NIGHT", "Спокойной ночи", "Good night"),
+    ("GOOD_MORNING", "Доброе утро!", "Good morning!"),
+    ("PIGGY_SHORT", "Хрюшка!", "Piggy!"),
+]
+RU_FONT = "/System/Library/Fonts/Monaco.ttf"
+RU_SIZE = 9
+
+
+def build_phrase(text):
+    font = ImageFont.truetype(RU_FONT, RU_SIZE)
+    img = Image.new("1", (160, 24), 1)
+    draw = ImageDraw.Draw(img)
+    draw.fontmode = "1"
+    draw.text((2, 4), text, font=font, fill=0)
+    box = img.convert("L").point(lambda v: 255 - v).getbbox()
+    img = img.crop(box)
+    return [[B if img.getpixel((x, y)) == 0 else T for x in range(img.width)]
+            for y in range(img.height)]
+
+
+def phrase_tables():
+    out = ["\nenum {\n"]
+    out += [f"    RU_{key},\n" for key, _, _ in PHRASES]
+    out.append("    RU_COUNT,\n};\n")
+    row = ", ".join(f"&spr_ru_{i}" for i in range(len(PHRASES)))
+    out.append(f"static const Sprite* const ru_sprites[RU_COUNT] = {{{row}}};\n")
+    out.append(c_names("ru_english", [en for _, _, en in PHRASES]))
+    return out
+
 
 # ---------------------------------------------------------------- output
 
@@ -472,6 +561,9 @@ def collect():
                 sprites[f"{cat}_{pose}_l"] = flipped(grid)
     for name, rows in PROPS.items():
         sprites[name] = from_ascii(rows, PLAIN)
+    sprites["keyboard"] = build_keyboard()
+    for i, (_, text, _) in enumerate(PHRASES):
+        sprites[f"ru_{i}"] = build_phrase(text)
     return sprites
 
 
@@ -518,6 +610,7 @@ def write_header(sprites, path):
             f"{{{len(grid[0])}, {len(grid)}, spr_{name}_black, spr_{name}_white}};\n\n"
         )
     out += wardrobe_tables()
+    out += phrase_tables()
     path.write_text("".join(out))
 
 
@@ -526,7 +619,7 @@ def write_preview(sprites, path, scale=4):
     looks = [compose(sprites, st, co, (st + co) % len(GLASSES), (st + co) % len(SWEATERS))
              for co in range(len(HAIR_COLORS)) for st in range(len(HAIR_STYLES))]
     looks += [compose(sprites, 0, 0, gl, gl) for gl in range(len(GLASSES))]
-    layer = ("yulia_", "hair_", "glasses_", "sweater_")
+    layer = ("yulia_", "hair_", "glasses_", "sweater_", "ru_")
     rest = [g for name, g in sprites.items() if not name.startswith(layer)]
     pad, per_row = 4, 8
     width = per_row * (YULIA_W + pad) + pad
