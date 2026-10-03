@@ -1,106 +1,76 @@
 # Pack Track
 
-A native shipment tracker for the Flipper Zero — a clean, glanceable list of
-your packages on a 128×64 monochrome display. Works two ways:
+A shipment tracker for the Flipper Zero. Add a tracking number on the device,
+and with a WiFi devboard attached the app fetches real status by itself — a
+glanceable list on a 128×64 monochrome display, and a detail view with carrier,
+tracking number, last known location and the time of the last scan.
 
-- **Manual (default):** keep the list yourself in a plain text file on the SD
-  card. No internet, no accounts, no backend.
-- **Live (optional):** with a WiFi devboard running FlipperHTTP and *your own*
-  tracking-service API key, press RIGHT to fetch real status. The app hardcodes
-  no provider — **you** supply the URL and which JSON fields to read, so it works
-  with any tracking service you have an account with.
+Nothing is hosted by this app, and there is no account to create with anyone
+except the tracking service you choose. Your API key and your WiFi credentials
+stay with you.
 
-> **Nothing is hosted or signed up for by this app.** In live mode, every
-> credential — WiFi, API key, and the service itself — comes from you and lives
-> in a config file on your own SD card.
+## What you need
 
----
+**For live tracking:**
 
-## Setting up your packages
+- A **WiFi devboard running [FlipperHTTP](https://github.com/jblanked/FlipperHTTP)**.
+  A Flipper Zero has no internet of its own, so this is not optional.
+- **Your own API key** from a tracking service. The app knows the settings for
+  [Trace](https://traceapi.dev/) — free tier is 1,000 lookups a month with no
+  card — and any other JSON service can be configured by hand.
 
-On first launch Pack Track creates a template file for you at:
+**Without a devboard**, Pack Track still works as a shipment list you maintain
+yourself, status included. The setup below simply does not apply.
 
-```
-SD card: /apps_data/package_tracker/packages.txt
-```
+## Setting up
 
-Edit that file to list your shipments — **one package per line**, fields
-separated by ` | ` (a pipe):
+All of it happens on the Flipper. Press **LEFT** on the list to open the menu.
 
-```
-Label | Carrier | Tracking | Status | Location | Updated
-```
+### 1. WiFi
 
-- **Status** must be one of: `pending`, `transit`, `out`, `delivered`, `exception`
-- Lines starting with `#` are comments and are ignored.
-- Blank lines are ignored.
-- Up to **12** packages are shown.
+**Menu → WiFi setup.** The board scans, the app shows the networks it found,
+you pick yours and type the password once.
 
-### Example `packages.txt`
+The board joins the network and stores the credentials in its own flash, so the
+password never touches your SD card and the board reconnects by itself from then
+on.
 
-```
-# Pack Track - one package per line:
-#   Label | Carrier | Tracking | Status | Location | Updated
-# Status: pending, transit, out, delivered, exception
-Flipper Case   | UPS   | 1Z999AA10123456784     | transit   | Memphis, TN     | Apr 17 2:14 PM
-Solder Paste   | USPS  | 9400111899223596012345 | out       | Local Facility  | Apr 18 8:02 AM
-Oscilloscope   | FedEx | 771234567890           | delivered | Front Door      | Apr 16 9:41 PM
-PCB Order      | DHL   | 1234567890             | pending   | Shenzhen, CN    | Apr 15 5:30 AM
-```
+### 2. Tracking service
 
-### How to edit the file
+Sign up at [traceapi.dev](https://traceapi.dev/) and create an API key — it
+starts with `trc_`.
 
-- **qFlipper** (easiest): open qFlipper → File Manager → browse to
-  `apps_data/package_tracker/` → drag `packages.txt` out, edit it in any text
-  editor, drag it back.
-- **SD card reader:** power off the Flipper, pop the microSD into your computer,
-  and edit `apps_data/package_tracker/packages.txt` directly.
+**Menu → Tracking setup**, then type the key. The app writes the rest of the
+configuration itself.
 
-Changes take effect the next time you open the app (Pack Track reads the file on
-launch).
+Typing a long key on the on-screen keyboard is tedious; to paste it instead, see
+[Configuring another service](#configuring-another-service) and edit `config.txt`
+from your computer. Holding **OK** on the keyboard inverts the case of a letter,
+which is the only way to type a lowercase first character.
 
----
+### 3. Packages
 
-## Installation
+**Menu → Add package**, then enter the tracking number, a label and a carrier.
 
-### Build with ufbt (recommended)
+The service detects the carrier from the tracking number, so the carrier field is
+only a label for your own benefit.
 
-```bash
-# From the project root
-ufbt
-ufbt launch    # build, upload, and start on the connected Flipper
-```
+That is the setup. The app fetches when it opens, and **Menu → Refresh now**
+forces a refresh at any time.
 
-Or drop `dist/package_tracker.fap` into `apps/Tools/` on your Flipper's microSD
-to sideload manually.
-
-### Build inside the firmware tree
-
-Clone Pack Track into `applications_user/package_tracker/` of your firmware
-checkout (Official, Momentum, Unleashed, or RogueMaster) and run the firmware
-build. It appears under **Apps → Tools → Pack Track**.
-
----
-
-## Usage
+## Controls
 
 | Screen | Input | Action |
 |--------|-------|--------|
 | List | ▲ / ▼ | Move selection (scrolls automatically beyond four rows) |
 | List | OK | Open detail view for the highlighted shipment |
-| List | ▶ | Refresh all (live mode; needs board + `config.txt`) |
-| List | BACK (short) | Exit the application |
-| Detail | ◀ / ▶ | Page between shipments without returning to the list |
-| Detail | BACK (short) | Return to the list |
+| List | ◀ | Open the menu |
+| List | ▶ | Refresh all |
+| List | BACK | Exit |
+| Detail | ◀ / ▶ | Page between shipments |
+| Detail | Hold OK | Delete this package (asks first) |
+| Detail | BACK | Return to the list |
 | Refreshing | BACK | Cancel the refresh |
-| Anywhere | BACK (long) | Force-exit |
-
-Each list row shows a status glyph, the label, and a short status code, plus a
-`current/total` counter in the header. The detail view shows carrier, full
-tracking number, last reported location, and the date you entered. If no
-packages are configured, the app points you to the `packages.txt` file.
-
----
 
 ## Status glyphs
 
@@ -112,85 +82,89 @@ packages are configured, the app points you to the `packages.txt` file.
 | Pending | dash |
 | Exception | ✕ |
 
-Glyphs are drawn procedurally on the canvas — no bitmap assets.
+Drawn procedurally — no bitmap assets.
 
----
+## Limitations
+
+**Amazon's own deliveries are not supported.** Tracking numbers beginning with
+`TBA` belong to Amazon Logistics, which does not publish tracking data that
+third-party services can read. Amazon orders shipped via UPS or USPS carry those
+carriers' numbers instead, and those work normally.
+
+A lookup only succeeds when the service can find dated carrier events. A number
+created moments ago, or one the carrier has not scanned yet, may return nothing
+until it enters the network.
+
+Your API key is stored in plain text in `config.txt` on the SD card. Fine for a
+personal device; not a card to lend out.
+
+## Configuring another service
+
+Pack Track is not tied to Trace. **Menu → Tracking setup** just writes a
+known-good configuration, and `apps_data/package_tracker/config.txt` can be
+edited by hand for any service that takes a tracking number and answers with
+JSON:
+
+```
+METHOD = POST                       # or GET, the default
+URL = https://api.example.com/track # {tracking} and {carrier} are substituted
+HEADER = Authorization: Bearer YOUR_KEY
+HEADER = Content-Type: application/json
+BODY = {"tracking_number":"{tracking}"}
+FIELD_STATUS = status
+FIELD_LOCATION = events.last.location
+FIELD_UPDATED = events.last.timestamp
+```
+
+Field paths use dots for object keys, numbers for array indices
+(`data.0.status`), and `last` for the final element of an array — which is how
+most services expose the most recent event in a timeline.
+
+Status text is matched loosely, so `delivered`, `Delivered`, `in_transit` and
+`In Transit` all map onto the right glyph.
+
+Up to four headers are supported, and up to 12 packages.
+
+## Where things are kept
+
+```
+SD card: /apps_data/package_tracker/
+  packages.txt   your shipments, written by the app
+  config.txt     the tracking service settings
+```
+
+`packages.txt` is a plain pipe-separated list and can be edited from a computer
+if you prefer:
+
+```
+Label | Carrier | Tracking | Status | Location | Updated
+```
+
+Lines beginning with `#` are comments. Changes are picked up the next time the
+app opens.
+
+## Building
+
+```bash
+ufbt            # build
+ufbt launch     # build, upload and run on a connected Flipper
+```
 
 ## Project layout
 
 ```
-flipper-pack-track/
-├── application.fam        # FAP manifest (app id, entry point, metadata)
-├── package_tracker.c      # UI, event loop, file loading, refresh worker
-├── tracker_util.c/.h      # config parse, URL templating, JSON extraction
-├── http.c/.h              # FlipperHTTP UART client (WiFi + GET)
-├── catalog_description.md # Store description for the Apps Catalog
+.
+├── application.fam        # FAP manifest
+├── package_tracker.c      # UI, event loop, refresh worker
+├── tracker_util.c/.h      # config, templating, JSON extraction (host-testable)
+├── http.c/.h              # FlipperHTTP client over the GPIO UART
+├── prompt.c/.h            # on-screen keyboard
+├── menu.c/.h              # list picker
+├── catalog_description.md # store description
 ├── changelog.md
 ├── LICENSE
 └── README.md
 ```
-
-Registered as an external `Tools`-category FAP with entry point
-`package_tracker_app`. The live-tracking helpers in `tracker_util.c` are pure C
-(host-tested); `http.c` talks to the board over the GPIO UART at 115200.
-
----
-
-## Live tracking (optional)
-
-To fetch real status instead of editing it by hand, you need three things —
-**all provided by you, nothing hosted by this app:**
-
-1. **A WiFi devboard running [FlipperHTTP](https://github.com/jblanked/FlipperHTTP).**
-   Flash it onto the board from your Flipper (no computer needed). This is what
-   gives the Flipper internet access.
-2. **A tracking service account + API key.** Sign up with any tracking service
-   or aggregator (e.g. Ship24, AfterShip, TrackingMore, 17track) and get your own
-   key. Pack Track is provider-agnostic — you point it at whatever you use.
-3. **A filled-in `config.txt`** (created automatically at
-   `apps_data/package_tracker/config.txt`).
-
-### `config.txt` format
-
-```
-WIFI_SSID = MyNetwork
-WIFI_PASS = mypassword
-
-# The request URL. {tracking} and {carrier} are replaced for each package.
-# Put your API key wherever your service wants it (query string or a header).
-URL = https://api.example.com/track?number={tracking}&carrier={carrier}
-
-# Optional headers (repeatable) — e.g. an API key header:
-HEADER = Authorization: Bearer YOUR_KEY
-
-# Which JSON fields to read from the response. Dot notation; a number means an
-# array index. Example for a response like {"data":[{"status":"...","location":"..."}]}:
-FIELD_STATUS   = data.0.status
-FIELD_LOCATION = data.0.location
-FIELD_UPDATED  = data.0.checkpoint_time
-```
-
-### Using it
-
-- Add packages in `packages.txt` as usual (the tracking number + carrier are what
-  get sent). Status/location/date can be left as placeholders.
-- Open the app and press **RIGHT** to refresh. The board connects, each package
-  is looked up, and the fetched status/location/date replace what's shown.
-- The header shows progress ("Refreshing 2/5…") and the result ("Updated",
-  "No board found", "WiFi failed", "No URL in config.txt"). **BACK** cancels a
-  refresh.
-- If `config.txt` has no `URL`, the app stays in manual mode.
-
-### Notes & limits
-
-- Your WiFi password and API key sit in **plaintext** on the SD card. Fine for a
-  personal device; don't share the card.
-- The JSON field reader handles nested keys and array indices, string/number
-  leaves. Very large or deeply-irregular responses may not parse — pick a service
-  with a simple response, or the fields nearest the top.
-- The board and the FlipperHTTP firmware must be attached during a refresh.
-
----
 
 ## License
 

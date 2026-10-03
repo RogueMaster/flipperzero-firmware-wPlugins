@@ -464,51 +464,6 @@ static bool tracker_fetch(
     return fhttp_get(http, url, hdrs, config.header_count, out, out_cap);
 }
 
-// Diagnostic: run one real request and show what actually came back.
-static void net_test_flow(TrackerState* state) {
-    if(!config.has_url) {
-        refresh_msg(state, "No URL in config.txt");
-        return;
-    }
-
-    refresh_msg(state, "Connecting board...");
-    FhttpClient* http = fhttp_alloc();
-    if(!fhttp_open(http)) {
-        refresh_msg(state, "No board found");
-        fhttp_free(http);
-        return;
-    }
-    if(!fhttp_ping(http)) {
-        refresh_msg(state, "Board not responding");
-        fhttp_close(http);
-        fhttp_free(http);
-        return;
-    }
-
-    const char* tracking = package_count > 0 ? packages[0].tracking : "1";
-    const char* carrier = package_count > 0 ? packages[0].carrier : "UPS";
-
-    refresh_msg(state, "Requesting...");
-    char* body = malloc(4096);
-    bool ok = tracker_fetch(http, tracking, carrier, body, 4096);
-
-    if(!ok) {
-        refresh_msg(state, "GET failed (no reply)");
-    } else {
-        // The header line is far too short for a real response; write the whole
-        // thing to the SD card where it can be read properly.
-        Storage* storage = furi_record_open(RECORD_STORAGE);
-        storage_common_mkdir(storage, PACK_DIR);
-        write_file(storage, PACK_DIR "/nettest.txt", body);
-        furi_record_close(RECORD_STORAGE);
-        refresh_msg(state, "Wrote nettest.txt");
-    }
-
-    free(body);
-    fhttp_close(http);
-    fhttp_free(http);
-}
-
 static void delete_selected(TrackerState* state) {
     furi_mutex_acquire(state->mutex, FuriWaitForever);
     if(package_count > 0) {
@@ -560,12 +515,15 @@ static int32_t refresh_worker(void* ctx) {
     }
 
     char* body = malloc(4096);
+    uint8_t failed = 0;
     for(uint8_t i = 0; i < package_count && !s->cancel; i++) {
         char m[40];
         snprintf(m, sizeof(m), "Refreshing %d/%d...", i + 1, package_count);
         refresh_msg(s, m);
 
-        if(tracker_fetch(http, packages[i].tracking, packages[i].carrier, body, 4096)) {
+        if(!tracker_fetch(http, packages[i].tracking, packages[i].carrier, body, 4096)) {
+            failed++;
+        } else {
             char stbuf[64];
             if(config.field_status[0] &&
                json_extract(body, config.field_status, stbuf, sizeof(stbuf)) && stbuf[0]) {
@@ -597,7 +555,20 @@ static int32_t refresh_worker(void* ctx) {
     free(body);
     fhttp_close(http);
     fhttp_free(http);
-    refresh_msg(s, s->cancel ? "Cancelled" : "Updated");
+
+    // Saying "Updated" after every lookup failed hides the problem; a silent
+    // failure here is what makes a misconfigured service impossible to debug.
+    if(s->cancel) {
+        refresh_msg(s, "Cancelled");
+    } else if(failed == 0) {
+        refresh_msg(s, "Updated");
+    } else if(failed == package_count) {
+        refresh_msg(s, "No data - check setup");
+    } else {
+        char m[40];
+        snprintf(m, sizeof(m), "Updated, %d failed", failed);
+        refresh_msg(s, m);
+    }
 
 done:;
     TrackerEvent ev = {.type = EventTypeRefreshDone};
@@ -817,6 +788,9 @@ int32_t package_tracker_app(void* p) {
     state->gui = gui;
     gui_add_view_port(gui, view_port, GuiLayerFullscreen);
 
+    // Fetch on open: the point of live tracking is not having to ask for it.
+    if(config.has_url && package_count > 0) start_refresh(state);
+
     bool running = true;
     TrackerEvent event;
 
@@ -906,10 +880,9 @@ int32_t package_tracker_app(void* p) {
                 "WiFi setup",
                 "Refresh now",
                 "Tracking setup",
-                "Net test",
             };
             view_port_enabled_set(view_port, false);
-            int32_t choice = menu_pick(state->gui, "Pack Track", menu_items, 5);
+            int32_t choice = menu_pick(state->gui, "Pack Track", menu_items, 4);
             view_port_enabled_set(view_port, true);
 
             if(choice == 0)
@@ -920,8 +893,6 @@ int32_t package_tracker_app(void* p) {
                 start_refresh(state);
             else if(choice == 3)
                 tracking_setup_flow(state);
-            else if(choice == 4)
-                net_test_flow(state);
         } else if(do_delete)
             delete_selected(state);
         else if(do_refresh)
