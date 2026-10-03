@@ -161,10 +161,11 @@ bool fhttp_wifi(FhttpClient* c, const char* ssid, const char* pass) {
 // Serialise "Name: value" header strings into the JSON object already opened
 // in cmd. Returns the new length.
 // The board prefixes every response body with its own metadata line, for
-// example {"Status-Code":200,"Content-Length":424}. Drop it so callers parse
-// the response itself rather than the envelope around it.
+// example {"Status-Code":200,"Content-Length":424}, sometimes preceded on the
+// same line by a marker such as [POST/SUCCESS]. Drop that whole first line so
+// callers parse the response itself rather than the envelope around it.
 static void strip_meta_line(char* out) {
-    if(strncmp(out, "{\"Status-Code\"", 14) != 0) return;
+    if(out[0] != '[' && strncmp(out, "{\"Status-Code\"", 14) != 0) return;
     char* nl = out;
     while(*nl && *nl != '\n')
         nl++;
@@ -293,8 +294,8 @@ bool fhttp_post(
     furi_stream_buffer_reset(c->rx);
     fhttp_send_line(c, cmd);
 
-    // POST has no success marker of its own: the board prints the response and
-    // then [POST/END].
+    // The board answers [POST/SUCCESS], then the body, then [POST/END].
+    if(!fhttp_wait_any(c, "[POST/SUCCESS]", NULL, 20000)) return false;
     if(!fhttp_collect_until(c, "[POST/END]", out, out_cap, 20000)) return false;
     strip_meta_line(out);
     return true;

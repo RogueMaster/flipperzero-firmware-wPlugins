@@ -58,5 +58,10 @@ size_t
 // Returns true if the path resolved to a string/number leaf.
 bool json_extract(const char* json, const char* path, char* out, size_t cap);
 
+// Shorten an ISO 8601 timestamp (2026-07-27T17:53:00.000Z) to something that
+// fits the detail screen (Jul 27 17:53). Anything that is not an ISO timestamp
+// is copied through unchanged, since other services format dates their own way.
+void iso_to_short(const char* in, char* out, size_t cap);
+
 // Best-effort map of a fetched status string to a PackageStatus (for the glyph).
 PackageStatus status_from_text(const char* s);

@@ -579,12 +579,18 @@ static int32_t refresh_worker(void* ctx) {
                 s->mutex,
                 body,
                 config.field_location);
-            apply_field(
-                packages[i].last_update,
-                sizeof(packages[i].last_update),
-                s->mutex,
-                body,
-                config.field_updated);
+            // Services report ISO timestamps; shorten them to fit the screen.
+            if(config.field_updated[0]) {
+                char raw[64];
+                if(json_extract(body, config.field_updated, raw, sizeof(raw)) && raw[0]) {
+                    char pretty[32];
+                    iso_to_short(raw, pretty, sizeof(pretty));
+                    furi_mutex_acquire(s->mutex, FuriWaitForever);
+                    strncpy(packages[i].last_update, pretty, sizeof(packages[i].last_update) - 1);
+                    packages[i].last_update[sizeof(packages[i].last_update) - 1] = '\0';
+                    furi_mutex_release(s->mutex);
+                }
+            }
         }
         view_port_update(s->view_port);
     }

@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include "tracker_util.h"
 
 #include <string.h>
@@ -360,4 +361,47 @@ int ssid_list_parse(const char* json, char out[][TU_SSID_LEN], int max) {
         if(*p == '"') p++;
     }
     return n;
+}
+
+static bool all_digits(const char* p, int n) {
+    for(int i = 0; i < n; i++)
+        if(p[i] < '0' || p[i] > '9') return false;
+    return true;
+}
+
+void iso_to_short(const char* in, char* out, size_t cap) {
+    static const char* months[] = {
+        "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+    size_t len = 0;
+    while(in[len])
+        len++;
+
+    // Expect at least YYYY-MM-DDTHH:MM
+    bool iso = len >= 16 && all_digits(in, 4) && in[4] == '-' && all_digits(in + 5, 2) &&
+               in[7] == '-' && all_digits(in + 8, 2) && (in[10] == 'T' || in[10] == ' ') &&
+               all_digits(in + 11, 2) && in[13] == ':' && all_digits(in + 14, 2);
+    if(!iso) {
+        size_t n = 0;
+        while(in[n] && n < cap - 1) {
+            out[n] = in[n];
+            n++;
+        }
+        out[n] = '\0';
+        return;
+    }
+
+    int mon = (in[5] - '0') * 10 + (in[6] - '0');
+    if(mon < 1 || mon > 12) mon = 1;
+    int day = (in[8] - '0') * 10 + (in[9] - '0');
+
+    char buf[20];
+    int n = snprintf(
+        buf, sizeof(buf), "%s %d %c%c:%c%c", months[mon - 1], day, in[11], in[12], in[14], in[15]);
+    if(n < 0) n = 0;
+    size_t i = 0;
+    while(buf[i] && i < cap - 1) {
+        out[i] = buf[i];
+        i++;
+    }
+    out[i] = '\0';
 }
