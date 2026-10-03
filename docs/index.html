@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>flipper cerberus — Cerberus — a passive Sub-GHz RF watchdog for the Flipper Zero. Guards </title>
+<meta name="description" content="Cerberus — a passive Sub-GHz RF watchdog for the Flipper Zero. Guards the 433/868/915 MHz bands and alerts on jamming, signal floods and replay attacks. Built in C (CC1101 / ufbt).">
+<meta property="og:title" content="flipper cerberus">
+<meta property="og:description" content="Cerberus — a passive Sub-GHz RF watchdog for the Flipper Zero. Guards the 433/868/915 MHz bands and alerts on jamming, signal floods and replay attacks. Built in C (CC1101 / ufbt).">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet">
+<style>
+:root{--paper:#F3F1EC;--surface:#FFFFFF;--sunken:#EBE7DE;--ink:#1B1813;
+--muted:#575144;--faint:#6B6554;--rule:#DCD6C9;--rule-strong:#C4BCAA;
+--brass:#7A5D18;--shine:#C39B24;--warn:#8A5410;--warn-wash:#FAF0DF;
+--serif:"Source Serif 4",Iowan Old Style,Palatino,Georgia,serif;
+--sans:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+--mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+--paper:#000000;--surface:#131312;--sunken:#0A0A09;--ink:#F3F0E9;--muted:#A29C91;
+--faint:#8C877C;--rule:#2B2B28;--rule-strong:#3D3C38;--brass:#D9B75C;
+--shine:#F1C84B;--warn:#DDA356;--warn-wash:#251A0B;}}
+:root[data-theme="dark"]{--paper:#000000;--surface:#131312;--sunken:#0A0A09;
+--ink:#F3F0E9;--muted:#A29C91;--faint:#8C877C;--rule:#2B2B28;--rule-strong:#3D3C38;
+--brass:#D9B75C;--shine:#F1C84B;--warn:#DDA356;--warn-wash:#251A0B;}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);
+font-size:17px;line-height:1.65;-webkit-font-smoothing:antialiased}
+.wrap{max-width:820px;margin:0 auto;padding:0 24px}
+a{color:var(--brass);text-underline-offset:3px}a:hover{color:var(--shine)}
+code{font-family:var(--mono);font-size:.88em;background:var(--sunken);
+padding:.12em .36em;border-radius:3px}
+pre{font-family:var(--mono);font-size:14px;line-height:1.6;background:var(--surface);
+border:1px solid var(--rule);border-radius:8px;padding:16px 18px;overflow-x:auto}
+pre code{background:none;padding:0;font-size:inherit}
+header.top{border-bottom:1px solid var(--rule);background:var(--sunken)}
+header.top .wrap{display:flex;align-items:center;gap:13px;padding:13px 24px}
+.mk{width:34px;height:34px;border-radius:8px;background:var(--brass);flex:none}
+.mk svg{display:block;width:34px;height:34px}
+.wordmark{font-family:var(--serif);font-size:19px;font-weight:600;letter-spacing:.06em}
+.kind{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint)}
+header.top nav{margin-left:auto;display:flex;gap:16px;align-items:center;font-size:14px}
+button.theme{background:none;border:1px solid var(--rule-strong);color:var(--muted);
+border-radius:999px;padding:5px 13px;font:inherit;font-size:13px;cursor:pointer}
+button.theme:hover{border-color:var(--brass);color:var(--ink)}
+.hero{padding:64px 0 6px;text-align:center}
+.hero h1{font-family:var(--serif);font-size:clamp(30px,5.4vw,46px);line-height:1.12;
+margin:0 0 18px;font-weight:400}
+.hero p.lede{font-size:18px;color:var(--muted);max-width:620px;margin:0 auto 24px}
+.chips{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:24px}
+.chips span{font-size:12px;border:1px solid var(--rule-strong);color:var(--muted);
+border-radius:999px;padding:4px 12px}
+.cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.cta a{display:inline-block;padding:11px 22px;border-radius:6px;text-decoration:none;
+font-size:15px;font-weight:600;border:1px solid var(--brass)}
+.cta a.primary{background:var(--brass);color:var(--paper)}
+.cta a.primary:hover{background:var(--shine);color:#1B1813}
+.cta a.ghost{color:var(--brass)}.cta a.ghost:hover{background:var(--surface)}
+section{padding:46px 0}
+h2{font-family:var(--serif);font-size:25px;font-weight:400;margin:0 0 16px}
+ul.feat{list-style:none;padding:0;margin:0}
+ul.feat li{padding:10px 0 10px 26px;border-bottom:1px solid var(--rule);position:relative;
+color:var(--muted)}
+ul.feat li:before{content:"";position:absolute;left:4px;top:19px;width:7px;height:7px;
+border-radius:2px;background:var(--brass)}
+.notice{background:var(--warn-wash);border:1px solid var(--rule);
+border-left:3px solid var(--warn);border-radius:8px;padding:18px 22px;color:var(--muted)}
+.notice strong{color:var(--ink)}
+.family{border-top:1px solid var(--rule);padding:40px 0 10px}
+.family h2{font-size:19px;text-align:center}
+.family .row{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:18px}
+.family a{text-decoration:none;color:var(--ink);border:1px solid var(--rule);
+border-radius:999px;padding:6px 14px;font-size:13.5px;background:var(--surface)}
+.family a:hover{border-color:var(--brass)}
+.family a span{color:var(--faint);font-size:12px}
+footer{border-top:1px solid var(--rule);margin-top:30px;padding:28px 0 54px;
+color:var(--faint);font-size:13px;text-align:center}
+footer a{color:var(--faint)}
+@media(max-width:560px){.hero{padding-top:44px}.kind{display:none}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <span class="mk"><svg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg' fill='none' stroke='#F3F1EC' stroke-width='6' stroke-linejoin='round' stroke-linecap='round'><style>.f{fill:#F3F1EC;stroke:none}</style><rect x='20' y='28' width='60' height='44' rx='8'/><rect x='29' y='38' width='24' height='5' class='f'/><rect x='29' y='50' width='34' height='5' class='f'/><circle cx='66' cy='42' r='5' class='f'/></svg></span>
+    <div>
+      <div class="wordmark">flipper cerberus</div>
+      <div class="kind">Flipper Zero</div>
+    </div>
+    <nav>
+      <a href="https://github.com/at0m-b0mb/flipper-cerberus">GitHub</a>
+      <button class="theme" id="t" type="button">Dark</button>
+    </nav>
+  </div>
+</header>
+<div class="wrap">
+  <div class="hero">
+    <h1>A watchdog for the Sub-GHz bands.</h1>
+    <p class="lede">Cerberus — a passive Sub-GHz RF watchdog for the Flipper Zero. Guards the 433/868/915 MHz bands and alerts on jamming, signal floods and replay attacks. Built in C (CC1101 / ufbt).</p>
+    <div class="chips"><span>C</span><span>Flipper Zero</span><span>v1.1</span><span>MIT</span><span>5 stars</span></div>
+    <div class="cta">
+      <a class="primary" href="https://github.com/at0m-b0mb/flipper-cerberus">View on GitHub</a>
+      <a class="ghost" href="https://github.com/at0m-b0mb/flipper-cerberus/releases/latest">Release v1.1</a>
+    </div>
+  </div>
+  <section>
+    <h2>About</h2>
+    <p><em>Three heads, three bands. Cerberus sits quietly in your space and watches the <strong>433 / 868 / 915 MHz</strong> ISM bands — barking the instant it sees <strong>jamming</strong>, a <strong>signal flood</strong>, or a <strong>replayed capture</strong> aimed at your own garage, car, alarm or sensors.</em></p>
+  </section>
+  <section>
+    <h2>What it does</h2>
+    <ul class="feat">
+      <li><strong> Three-headed watch</strong> — monitors 433.92, 868.35 and 915.00 MHz, either</li>
+      <li><strong> Three threat detectors</strong></li>
+      <li><strong>Jamming</strong> — the channel is held continuously busy (energy that never</li>
+      <li><strong>Flood</strong> — an abnormal storm of short transmissions per second.</li>
+      <li><strong>Replay / repeat</strong> — the same burst <em>fingerprint</em> repeating far more often</li>
+      <li><strong> Beautiful live UI</strong> — a clean signal meter for each band, an active-head</li>
+    </ul>
+  </section>
+  <section>
+    <h2>Getting started</h2>
+<pre><code># from the root of your flipperzero firmware checkout
+git clone https://github.com/at0m-b0mb/flipper-cerberus.git applications_user/cerberus
+./fbt fap_cerberus                                   # build the .fap
+./fbt launch APPSRC=applications_user/cerberus       # build + run on device</code></pre>
+  </section>
+  <section>
+    <div class="notice"><strong>Scope.</strong> Cerberus <strong>never transmits.</strong> It only listens. See <a href="#-legal--ethics">Legal &amp; ethics</a>.</div>
+  </section>
+  <div class="family">
+    <h2>More from this catalogue</h2>
+    <div class="row">
+        <a href="https://at0m-b0mb.github.io/Herald-Email-Headers/">Herald <span>read the headers</span></a>
+        <a href="https://at0m-b0mb.github.io/Signet-JWT-Inspector/">Signet <span>read the seal</span></a>
+        <a href="https://at0m-b0mb.github.io/Lintel-HTTP-Headers/">Lintel <span>mind the headers</span></a>
+        <a href="https://at0m-b0mb.github.io/Attest-X509/">Attest <span>read the certificate</span></a>
+        <a href="https://at0m-b0mb.github.io/Edict-Email-Policy/">Edict <span>what your domain declares</span></a>
+        <a href="https://at0m-b0mb.github.io/Vigil-Secret-Scanner/">Vigil <span>find it before they do</span></a>
+        <a href="https://at0m-b0mb.github.io/Caveat-Shell-Reader/">Caveat <span>read before you run</span></a>
+    </div>
+  </div>
+  <footer>
+    Built by <a href="https://github.com/at0m-b0mb">at0m-b0mb</a> ·
+    <a href="https://github.com/at0m-b0mb/flipper-cerberus">source</a> · page generated from this repository's own README
+  </footer>
+</div>
+<script>(function(){var r=document.documentElement,b=document.getElementById('t');try{var s=localStorage.getItem('theme');if(s)r.setAttribute('data-theme',s);}catch(e){}function c(){var a=r.getAttribute('data-theme');return a?a:(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');}function p(){b.textContent=c()==='dark'?'Light':'Dark';}p();b.addEventListener('click',function(){var n=c()==='dark'?'light':'dark';r.setAttribute('data-theme',n);try{localStorage.setItem('theme',n);}catch(e){}p();});})();</script>
+</body>
+</html>
