@@ -2,6 +2,7 @@ App(
     appid="ac_detector",
     name="AC Detector",
     apptype=FlipperAppType.EXTERNAL,
+    targets=["f7"],
     entry_point="ac_detector_app",
     stack_size=4 * 1024,
     fap_icon="ac_detector.png",

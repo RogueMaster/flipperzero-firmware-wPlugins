@@ -5,10 +5,10 @@ App(
     targets=["f7"],
     entry_point="nice_o_code_app",
     stack_size=4 * 1024,
-    requires=["gui", "storage", "dialogs"],
     fap_icon="icon.png",
     fap_category="Sub-GHz",
-    fap_author="xMasterX (MMX)",
+    fap_author="zero-mega & xMasterX (MMX)",
+    fap_weburl="https://github.com/DarkFlippers/unleashed-firmware/commit/e6ded9b108454b30a3e710295e6d2b7fd146e188",
     fap_version="1.0",
     fap_description="Recover the installer code of a Nice O-Code remote and save it into a .sub",
 )
