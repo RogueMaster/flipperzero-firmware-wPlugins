@@ -6,6 +6,8 @@ two cats: **Nugget**, an elderly tiger-striped gentleman with white socks, and
 
 ![Screenshots](screenshot.png)
 
+![Wardrobe](wardrobe.png)
+
 ## Playing
 
 | Button       | Action                    |
@@ -19,6 +21,9 @@ two cats: **Nugget**, an elderly tiger-striped gentleman with white socks, and
 - **Play** - toss a ball of yarn for them to chase.
 - **Pet Nugget / Pet Baby** - hearts float up and the Flipper purrs.
 - **Tea time** - Yulia has a warm mug of tea.
+- **Wardrobe** - change Yulia's hair style (bob, long, bun, buns), hair
+  colour, glasses frames and sweater. Up/Down picks a row, Left/Right changes
+  it, OK or Back closes it.
 - **Nap time** - lights off, everyone sleeps. Choose it again to wake up.
 
 Time keeps passing while the app is closed, so the cats get hungry and want

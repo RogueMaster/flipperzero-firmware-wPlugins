@@ -64,6 +64,16 @@ typedef struct {
     uint8_t bubble;
 } Cat;
 
+// Yulia's outfit, chosen in the wardrobe.
+typedef struct {
+    uint8_t hair;
+    uint8_t color;
+    uint8_t glasses;
+    uint8_t sweater;
+} Look;
+
+#define LOOK_ROWS 4
+
 typedef struct {
     uint32_t magic;
     uint32_t first_ts;
@@ -71,6 +81,7 @@ typedef struct {
     uint32_t love;
     int16_t cozy;
     CatStats cats[CAT_COUNT];
+    Look look; // added later: older saves end before this field
 } SaveData;
 
 typedef struct {
@@ -85,6 +96,7 @@ typedef enum {
     ActionPetNugget,
     ActionPetBaby,
     ActionTea,
+    ActionWardrobe,
     ActionNap,
     ActionCount,
 } Action;
@@ -109,6 +121,9 @@ typedef struct {
     uint32_t tick;
     Action action;
     bool show_stats;
+    bool wardrobe;
+    uint8_t wardrobe_row;
+    Look look;
     bool lights_off;
     bool bowl_full;
     uint8_t yarn_timer;
@@ -162,13 +177,14 @@ static int16_t away_drop(int16_t value, uint32_t steps) {
 static void game_load(App* app) {
     uint32_t now = furi_hal_rtc_get_timestamp();
     SaveData save;
+    memset(&save, 0, sizeof(save));
     bool ok = false;
 
     Storage* storage = furi_record_open(RECORD_STORAGE);
     File* file = storage_file_alloc(storage);
     if(storage_file_open(file, SAVE_PATH, FSAM_READ, FSOM_OPEN_EXISTING)) {
-        ok = storage_file_read(file, &save, sizeof(save)) == sizeof(save) &&
-             save.magic == SAVE_MAGIC;
+        size_t got = storage_file_read(file, &save, sizeof(save));
+        ok = got >= offsetof(SaveData, look) && save.magic == SAVE_MAGIC;
     }
     storage_file_close(file);
     storage_file_free(file);
@@ -181,6 +197,12 @@ static void game_load(App* app) {
     } else {
         app->first_ts = save.first_ts;
         app->love = save.love;
+        app->look = (Look){
+            .hair = save.look.hair % HAIR_STYLE_COUNT,
+            .color = save.look.color % HAIR_COLOR_COUNT,
+            .glasses = save.look.glasses % GLASSES_COUNT,
+            .sweater = save.look.sweater % SWEATER_COUNT,
+        };
         app->cozy = clamp_stat(save.cozy);
         uint32_t away = now > save.last_ts ? now - save.last_ts : 0;
         if(away > AWAY_CAP) away = AWAY_CAP;
@@ -208,6 +230,7 @@ static void game_save(App* app) {
         .last_ts = furi_hal_rtc_get_timestamp(),
         .love = app->love,
         .cozy = app->cozy,
+        .look = app->look,
     };
     for(int i = 0; i < CAT_COUNT; i++)
         save.cats[i] = app->cats[i].s;
@@ -327,6 +350,10 @@ static void do_pet(App* app, int i) {
 }
 
 static void do_action(App* app) {
+    if(app->action == ActionWardrobe) {
+        app->wardrobe = true;
+        return;
+    }
     if(busy(app)) return;
     if(app->action == ActionNap) {
         if(app->lights_off) {
@@ -524,11 +551,25 @@ static int16_t mood(const App* app) {
 
 // ---------------------------------------------------------------- draw
 
+// canvas_draw_xbm paints the whole rectangle, so sprites with transparent
+// pixels are plotted dot by dot instead.
+static void draw_bits(Canvas* canvas, int32_t x, int32_t y, const Sprite* sprite, bool white) {
+    const uint8_t* data = white ? sprite->white : sprite->black;
+    const size_t stride = (sprite->w + 7) / 8;
+    canvas_set_color(canvas, white ? ColorWhite : ColorBlack);
+    for(size_t row = 0; row < sprite->h; row++) {
+        for(size_t col = 0; col < stride; col++) {
+            uint8_t bits = data[row * stride + col];
+            for(int32_t bit = 0; bits; bit++, bits >>= 1) {
+                if(bits & 1) canvas_draw_dot(canvas, x + col * 8 + bit, y + row);
+            }
+        }
+    }
+}
+
 static void draw_sprite(Canvas* canvas, int32_t x, int32_t y, const Sprite* sprite) {
-    canvas_set_color(canvas, ColorWhite);
-    canvas_draw_xbm(canvas, x, y, sprite->w, sprite->h, sprite->white);
-    canvas_set_color(canvas, ColorBlack);
-    canvas_draw_xbm(canvas, x, y, sprite->w, sprite->h, sprite->black);
+    draw_bits(canvas, x, y, sprite, true);
+    draw_bits(canvas, x, y, sprite, false);
 }
 
 static Face yulia_face(const App* app) {
@@ -542,7 +583,11 @@ static Face yulia_face(const App* app) {
 }
 
 static void draw_yulia(Canvas* canvas, const App* app) {
-    draw_sprite(canvas, 0, BAR_Y - spr_yulia.h, &spr_yulia);
+    const Look* look = &app->look;
+    draw_sprite(canvas, 0, 0, yulia_sweater[look->sweater]);
+    draw_sprite(canvas, 0, 0, &spr_yulia_face);
+    draw_sprite(canvas, 0, 0, yulia_hair[look->hair][look->color]);
+    draw_sprite(canvas, 0, 0, yulia_glasses[look->glasses]);
     Face face = yulia_face(app);
     canvas_set_color(canvas, ColorBlack);
 
@@ -745,6 +790,8 @@ static const char* action_label(const App* app) {
         return "Pet Baby";
     case ActionTea:
         return "Tea time";
+    case ActionWardrobe:
+        return "Wardrobe";
     default:
         return app->lights_off ? "Wake up" : "Nap time";
     }
@@ -802,12 +849,43 @@ static void draw_stats(Canvas* canvas, const App* app) {
     canvas_draw_str(canvas, 106, 60, buf);
 }
 
+static void draw_wardrobe(Canvas* canvas, const App* app) {
+    static const char* const labels[LOOK_ROWS] = {"Hair", "Color", "Glasses", "Sweater"};
+    const Look* look = &app->look;
+    const char* const values[LOOK_ROWS] = {
+        hair_style_names[look->hair],
+        hair_color_names[look->color],
+        glasses_names[look->glasses],
+        sweater_names[look->sweater],
+    };
+
+    draw_yulia(canvas, app);
+    canvas_set_color(canvas, ColorBlack);
+    canvas_set_font(canvas, FontPrimary);
+    canvas_draw_str(canvas, 48, 10, "Wardrobe");
+    canvas_draw_line(canvas, 0, BAR_Y, 44, BAR_Y);
+
+    canvas_set_font(canvas, FontSecondary);
+    for(int i = 0; i < LOOK_ROWS; i++) {
+        int32_t y = 24 + i * 12;
+        canvas_draw_str(canvas, 48, y, labels[i]);
+        canvas_draw_str_aligned(canvas, 106, y, AlignCenter, AlignBottom, values[i]);
+        if(i == app->wardrobe_row) {
+            canvas_draw_str(canvas, 86, y, "<");
+            canvas_draw_str(canvas, 123, y, ">");
+            canvas_draw_line(canvas, 48, y + 2, 80, y + 2);
+        }
+    }
+}
+
 static void draw_callback(Canvas* canvas, void* ctx) {
     App* app = ctx;
     furi_mutex_acquire(app->mutex, FuriWaitForever);
     canvas_clear(canvas);
     if(app->show_stats) {
         draw_stats(canvas, app);
+    } else if(app->wardrobe) {
+        draw_wardrobe(canvas, app);
     } else {
         draw_scene(canvas, app);
         draw_bar(canvas, app);
@@ -822,12 +900,46 @@ static void input_callback(InputEvent* event, void* ctx) {
     furi_message_queue_put(queue, event, FuriWaitForever);
 }
 
+static void wardrobe_input(App* app, InputKey key) {
+    Look* look = &app->look;
+    uint8_t* const fields[LOOK_ROWS] = {&look->hair, &look->color, &look->glasses, &look->sweater};
+    static const uint8_t counts[LOOK_ROWS] = {
+        HAIR_STYLE_COUNT, HAIR_COLOR_COUNT, GLASSES_COUNT, SWEATER_COUNT};
+    uint8_t row = app->wardrobe_row;
+
+    switch(key) {
+    case InputKeyUp:
+        app->wardrobe_row = (row + LOOK_ROWS - 1) % LOOK_ROWS;
+        break;
+    case InputKeyDown:
+        app->wardrobe_row = (row + 1) % LOOK_ROWS;
+        break;
+    case InputKeyLeft:
+        *fields[row] = (*fields[row] + counts[row] - 1) % counts[row];
+        break;
+    case InputKeyRight:
+        *fields[row] = (*fields[row] + 1) % counts[row];
+        break;
+    case InputKeyOk:
+    case InputKeyBack:
+        app->wardrobe = false;
+        app->happy_timer = 20;
+        break;
+    default:
+        break;
+    }
+}
+
 // Returns false when the app should quit.
 static bool handle_input(App* app, const InputEvent* event) {
     if(event->type != InputTypeShort && event->type != InputTypeRepeat) return true;
 
     if(app->show_stats) {
         app->show_stats = false;
+        return true;
+    }
+    if(app->wardrobe) {
+        wardrobe_input(app, event->key);
         return true;
     }
 
