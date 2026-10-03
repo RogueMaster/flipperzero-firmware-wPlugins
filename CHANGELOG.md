@@ -1,8 +1,6 @@
 ## Main changes
 - Current API: 88.6
 
-### Cumulative integration checkpoint B12: 2026-10-03
-
 - GUI: [Discard keys pressed during a loading animation instead of replaying them into the next screen #1125 (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1125)
 - GUI: [Show a startup loading view in Archive, Desktop settings and RFID settings #1125 (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1125)
 - SubGHz: [Read Prastel 42-bit signals as a rolling-code protocol separate from CAME (By zero-mega & xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/e6ded9b108454b30a3e710295e6d2b7fd146e188)
@@ -61,7 +59,7 @@
 - SubGHz: [Keep the app notification handle when closing Frequency Analyzer #1131 (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1131)
 - Power: [Report failed fuel-gauge or charger initialization accurately #1132 (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1132)
 - SubGHz & System: [Filter radio plugins by filename and continue scanning after unusable or foreign plugins #1133 (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1133)
-- Build: [Keep source ordering stable across Python hash seeds and honor builtin source exclusions #1135 (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1135)
+- Build: [Keep source ordering stable across Python hash seeds, honor builtin source exclusions, and place Frequency Analyzer plugin sources under Sub-GHz #1135 (By mishamyte; RM adaptation by RogueMaster)](https://github.com/DarkFlippers/unleashed-firmware/pull/1135)
 - SubGHz: [Add Nice O-Code decoding and emulation plus installer-code recovery app (By zero-mega & xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/e6ded9b108454b30a3e710295e6d2b7fd146e188)
 - SubGHz: [Add Security+ 2.0 86-bit keypad frames and the Security+ PIN app (By zero-mega & xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/e6ded9b108454b30a3e710295e6d2b7fd146e188)
 - SubGHz: [Support new KeeLoq learning methods for JCM Gen2, Stagnoli, Telcoma, SEA and Wisniowski variants (By zero-mega & xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/e6ded9b108454b30a3e710295e6d2b7fd146e188)

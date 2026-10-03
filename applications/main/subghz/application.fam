@@ -10,6 +10,8 @@ App(
     # Sources separation breaks linking with subghz on internal
     sources=[
         "*.c*",
+        # Plugins ship separately as .fal; exclusions match leaf names.
+        "!plugins",
         "!subghz_frequency_analyzer.c",
         "!subghz_frequency_analyzer_worker.c",
         "!subghz_fap.c",
@@ -100,4 +102,19 @@ App(
     entry_point="subghz_extended_freq",
     sources=["subghz_extended_freq.c"],
     order=650,
+)
+
+# Feature plugin loaded only while Frequency Analyzer is open.
+App(
+    appid="subghz_frequency_analyzer",
+    apptype=FlipperAppType.PLUGIN,
+    targets=["f7"],
+    entry_point="subghz_frequency_analyzer_ep",
+    requires=["subghz"],
+    sources=["plugins/frequency_analyzer/*.c"],
+    # The worker drives the CC1101 registers directly, so hwdrivers puts a second copy of those
+    # 320 bytes in the .fal. Exporting them from the firmware instead would trade SD/RAM bytes
+    # for resident flash, which is the wrong way round here.
+    fap_libs=["assets", "hwdrivers"],
+    fap_exclude_libs=["gcc"],
 )
