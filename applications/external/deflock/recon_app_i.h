@@ -78,7 +78,7 @@ typedef enum {
 // diag.old.csv rather than appending rows of a new shape under an old header --
 // which is what produced a file nobody could parse correctly. See recon_diag_save().
 #define RECON_DIAG_HEADER_LINE \
-    "# FlipDeFlock session diagnostics v2 -- counts only, no MAC/SSID/position\n"
+    "# FlipDeFlock session diagnostics v3 -- counts only, no MAC/SSID/position\n"
 #define RECON_DIAG_OLD_PATH       RECON_APP_FOLDER "/diag.old.csv"
 // Every wildcard-probe transmitter seen during a session, MATCHED OR NOT.
 // Exists because "83,916 frames, zero candidates" is the one result the detector
@@ -654,6 +654,14 @@ typedef struct {
      * which pair produced it.
      */
     char esp_build[12];
+    /** Probe-signature table revision advertised by the companion. This is
+     * separate from app/firmware build versions: two equal binaries can still
+     * be paired with a locally rebuilt table. */
+    char esp_sig_revision[16];
+    uint32_t esp_sigtest_hash; /**< content hash produced by the production self-test */
+    bool esp_sig_mismatch; /**< advertised revision differs from FDF_SIGNATURE_REVISION */
+    bool esp_sigtest_seen; /**< a SIGTEST reply arrived this preflight/session */
+    bool esp_sigtest_pass; /**< that reply matched the production signature table */
 
     /* ---- session diagnostics (see RECON_DIAG_PATH) ----------------------
      * Counted app-side so they can be compared against the companion's OWN
@@ -708,6 +716,13 @@ typedef struct {
     uint32_t ble_mark; /**< ble: tick of the last state transition */
     bool ble_blocked; /**< ble: opened in Marauder mode -> guard screen */
     bool locator_blocked; /**< locator: opened in Marauder mode -> guard screen */
+
+    // Health / Preflight scene. Kept in ReconApp rather than file-scope statics
+    // so a scene re-entry cannot inherit another app instance's timing state.
+    uint32_t preflight_started_tick;
+    uint32_t preflight_last_query_tick;
+    uint32_t preflight_last_draw_tick;
+    uint8_t preflight_page; /**< 0 = summary, 1 = full revision/counter details */
 
     // Locator: hunt down one marked device by live signal strength (hot/cold).
     uint8_t locate_mac[6]; /**< target MAC/BSSID/BLE addr */
@@ -803,6 +818,12 @@ void recon_app_set_esp_lines(ReconApp* app, uint32_t lines);
 /** Record the companion's announced wire-protocol version + whether it mismatches
  *  what this app speaks (thread-safe). See ESP_PROTO_VERSION in esp_parser.h. */
 void recon_app_set_esp_proto(ReconApp* app, uint8_t version, bool mismatch);
+
+/** Record the companion's advertised probe-signature table revision. */
+void recon_app_set_esp_sig_revision(ReconApp* app, const char* revision);
+
+/** Record the companion's production signature-path self-test result. */
+void recon_app_set_esp_sigtest(ReconApp* app, uint32_t hash, bool pass);
 
 /** Update the count of overlong RX lines dropped whole (health metric; thread-safe). */
 /**

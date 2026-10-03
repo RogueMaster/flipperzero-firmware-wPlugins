@@ -182,6 +182,12 @@ static void esp_apply_companion(EspLink* esp, const EspMsg* m) {
     case EspMsgBand:
         recon_app_set_band(app, m->u.band.sel, m->u.band.channels);
         break;
+    case EspMsgSigRevision:
+        recon_app_set_esp_sig_revision(app, m->u.sigrev.revision);
+        break;
+    case EspMsgSigTest:
+        recon_app_set_esp_sigtest(app, m->u.sigtest.hash, m->u.sigtest.pass);
+        break;
     case EspMsgGpsCfg:
         // Recorded regardless of the current source setting: it is the answer to
         // a question we asked, and the badge decides what to make of it. Storing

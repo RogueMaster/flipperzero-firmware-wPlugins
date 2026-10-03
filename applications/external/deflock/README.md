@@ -74,8 +74,8 @@ the Tools menu.
 |---|---|---|
 | Official (OFW) | `flipdeflock.fap` | 87.1 |
 | Momentum | `flipdeflock-momentum.fap` | 87.1 |
-| Unleashed | `flipdeflock-unleashed.fap` | 88.3 |
-| RogueMaster | `deflock.fap` | 88.3 |
+| Unleashed | `flipdeflock-unleashed.fap` | 88.9 |
+| RogueMaster | `deflock.fap` | 88.9 |
 
 A `.fap` records the API version it was built against, and the firmware refuses to
 load one whose **major** version does not match — the number before the dot. **If
@@ -103,14 +103,15 @@ as a prerelease, so it never becomes "latest" and you will not get it by acciden
 
 Take a nightly when a fix you are waiting on has landed but is not tagged yet, or
 when a release turns out to have a problem and you want the state of `main`
-instead. It carries the same three `.fap` files under the same names, so switching
+instead. It carries the same four `.fap` files under the same names, so switching
 back is a matter of copying the stable file over it.
 
 Two things to know about nightlies. They have not been through a release check, so
-treat a nightly the way you would treat any untested build. And the **companion
-firmware is not rebuilt for them** — keep the `.bin` from the newest tagged
-release. If the app and the companion ever disagree about the protocol, the app
-tells you on the scan screen rather than quietly misreporting.
+treat a nightly the way you would treat any untested build. Nightlies rebuild the
+matching WROOM, S2, and experimental C5 companion images too; install the `.fap`
+and board-specific `.bin` from the same nightly. If the app and companion disagree
+about the protocol, the app tells you on the scan screen rather than quietly
+misreporting.
 
 Releases also carry `SHA256SUMS.txt`, covering every asset. If you got your copy
 anywhere other than this repository's releases page, check it:
@@ -133,9 +134,16 @@ in [Troubleshooting](docs/TROUBLESHOOTING.md).
 
 The Flipper's onboard radio is BLE-only and can't do Wi-Fi monitor mode. Flock
 cameras are found most reliably by the Wi-Fi probe requests they spray trying to
-phone home, so the Wi-Fi work runs on an ESP32. Any ESP32 Flipper board works —
-Wi-Fi Dev Board, ESP32 Marauder boards, ReksLab Tri-Board, bare WROOM/WROVER,
-Xiao ESP32-S3.
+phone home, so the Wi-Fi work runs on an ESP32. Board support depends on the chip
+and firmware image:
+
+| Board/chip | Install path | Coverage status |
+|---|---|---|
+| Classic ESP32 WROOM/WROVER | Release `...esp32wroom.bin` | Primary companion target |
+| Official Wi-Fi Devboard / ESP32-S2 | Release `...esp32s2.bin` | Wi-Fi only; the S2 has no BLE radio |
+| ESP32-C5 | Release `...esp32c5_EXPERIMENTAL.bin` | 2.4/5 GHz, compile-verified but not field-verified |
+| ESP32-S3/C3 and other boards | Build from source for the exact chip | Compatibility is experimental until hardware-tested |
+| ESP32 Marauder boards | Keep their existing firmware and select Marauder mode | Wi-Fi text-scraping fallback; no companion-only features |
 
 Wire the ESP32 (and an optional GPS module) to the Flipper's GPIO:
 
@@ -178,7 +186,8 @@ Set **Board Mode** in Settings to match your ESP32 firmware:
   ALPR Detect, GPS, and Reports. The app scrapes MAC/SSID tokens
   from whatever Marauder prints and applies the Flock filter on the Flipper.
 - **Companion** — the project firmware in `esp32_companion/`, a clean line
-  protocol. Adds Locator and dual-band (Wi-Fi + BLE) Flock detection. Flash it from the
+  protocol. Adds Locator and dual-protocol Wi-Fi + BLE detection on chips that
+  have both radios. Flash it from the
   app with **ESP32 Firmware** (no computer needed) or with Arduino IDE /
   arduino-cli (see [`esp32_companion/README.md`](esp32_companion/README.md)).
 
@@ -208,6 +217,14 @@ firmware; in Marauder mode they explain what's missing.
   | `VG:` | Vendor gear, kind unknown | Ubicquia, Motorola Solutions, Verkada, Genetec, Avigilon — one OUI carries plate readers *and* hand-held radios, so the vendor is stated and the product is not |
   | `DR:` | Unmanned aircraft | see **Drones** below |
 
+- **Health / Preflight** — checks the capture stack before a field session. In
+  Companion mode it shows the app and ESP builds, wire-protocol and signature
+  revisions, production signature self-test, live receive rate and frame count,
+  dropped UART lines, companion resets, chip, active band/channel count, and GPS
+  state. `Detect` appears only after the link, protocol, signatures, self-test,
+  and RF receive counter are healthy. A Marauder/Generic link can report only
+  `LIMITED`, because that text protocol has no version or self-test handshake.
+  Use this after flashing and before treating a zero-hit drive as meaningful.
 - **Drones (Remote ID)** — decodes the ASTM F3411 broadcast that every unmanned
   aircraft in US airspace is required to transmit, over both BLE and Wi-Fi. You
   get the aircraft's serial or registration, its type, its position, and **the
@@ -307,10 +324,9 @@ firmware; in Marauder mode they explain what's missing.
 | <img src="media/screenshots/alpr.png" width="330" alt="Flock / ALPR Detect"><br>**Flock / ALPR Detect** | <img src="media/screenshots/menu.png" width="330" alt="Main menu"><br>**Main menu** |
 | <img src="media/screenshots/flock-detail.png" width="330" alt="Detection detail"><br>**Why it was flagged** | <img src="media/screenshots/esp32-firmware.png" width="330" alt="ESP32 Firmware"><br>**ESP32 Firmware** |
 
-<sub>Captured on a Flipper Zero running v0.49. The devices shown are fabricated
-demo records — no real network or location appears in any screenshot.
-The row tags for SoundThinking (`ST`) and Axon (`AX`) arrived later and are not
-pictured here yet.</sub>
+<sub>Historical screenshots captured on a Flipper Zero running v0.49. The current
+menu and status displays have changed since then. The devices shown are fabricated
+demo records; no real network or location appears in any screenshot.</sub>
 
 ## Asset pack
 
@@ -352,6 +368,44 @@ maxes out at `Class?`). Each detection's fingerprint shows as `IE-fp:` on its
 detail screen, so you can read one off a confirmed camera and catch its
 MAC-randomized twins. See the [signatures guide](docs/signatures.md).
 
+## Every identifier is verified
+
+Detector tables tend to get inherited. A prefix shows up on one list, gets copied
+to the next, and nobody goes back to ask who actually registered it. That is how
+a body-cam vendor's prefix ends up pointing at an unrelated networking company
+with a similar name, and how somebody's phone ends up flagged as a police camera.
+
+Every prefix in this repo was resolved against the IEEE registry by organisation
+name before it was added, and that name is the whole argument for keeping it.
+
+A worked example from September 2026. A Flock camera firmware image was published
+showing the hardware runs a Qualcomm radio chip, and the chip's default MAC prefix
+started circulating as a Flock identifier. It is registered to the silicon vendor,
+not to Flock, and that chip has shipped in a decade of routers, tablets and IoT
+gear. Detecting on it would light up a shelf of consumer hardware as surveillance.
+The chipset itself is genuinely useful intelligence, because it tells you what the
+camera's probe request should look like. The chip vendor's prefix is the one part
+of that firmware dump that must never become evidence, so it went on the blocklist
+instead of the detection table.
+
+CI enforces this on every push rather than trusting anyone to remember:
+
+- 6 prefixes that were published and later withdrawn cannot come back
+- 15 look-alike registrations, right-sounding name and wrong company, are blocked
+- 26 chip-vendor and shared IEEE blocks are blocked, including the one above
+- the Flipper and companion tables must agree, and the signature table carries a
+  revision hash the app checks against the companion it is actually talking to
+
+The same standard applies to this project's own mistakes. Six probe fingerprints
+are on a permanent denylist because field evidence later showed them on phones and
+consumer hardware rather than cameras. Two of those were ours, including one we
+had told an operator to add to his own signature file. A denylisted fingerprint
+overrides `signatures.json` as well as the built-ins, so a retraction reaches
+cards already in the field without anyone editing anything.
+
+A false positive costs more than a missed detection here. A detector that cries
+wolf gets ignored, and an ignored detector protects nobody.
+
 ## On-screen legend
 
 RSSI is shown as signal bars (taller = stronger); the highlighted row shows the
@@ -371,6 +425,13 @@ exact dB. `-33dB` closer to 0 means physically closer.
 **Locator**
 - **mark first** — the report star on any Flock, Wi-Fi or BLE detection adds it to the Locator pool, including BLE trackers (AirTag / Tile / SmartTag / Find My / Flipper)
 - **meter / dB** — climbs as you get closer; `WARMER`/`colder` is the trend, the tick above the bar is peak-hold. `out of range` means the target went quiet — walk back to where it was loudest
+
+**Health / Preflight**
+- **`READY: capture OK`** — the Companion UART is live, protocol and signature revisions match, the production signature self-test passed, and the radio frame counter advanced
+- **`CHECK` / `FAIL`** — wait up to eight seconds; the first row then names the missing or incompatible layer (`no companion`, `proto mismatch`, `sig mismatch`, `sig test failed`, `zero RF`, or `UART busy`)
+- **`P1/1 S9627/9627 TPASS`** — actual/expected protocol, abbreviated actual/expected signature revision, and signature-path self-test
+- **`RX25/s F815 D0 R0`** — current frame rate, session frames, dropped UART lines, and detected companion counter resets
+- **More** — shows the full signature revisions, self-test hash/result, line/drop/reset counters, and GPS state
 
 ## Build from source
 
@@ -396,6 +457,29 @@ indicators and verify by eye; if you rely on it for anything that matters, read
 the code and confirm the behavior yourself.
 
 ## What's new
+
+**v0.98** - **A zero-hit session can now prove that the detector was actually
+working.** The new **Health / Preflight** screen checks the live UART, app and
+companion build labels, protocol compatibility, signature-table revision, the
+companion's production signature matcher, and an increasing RF frame counter.
+It also exposes receive rate, UART drops, companion resets, chip, band/channel
+coverage, and GPS state. Companion-backed `Detect` stays unavailable until the
+check reaches `READY`; Marauder/Generic can only make the narrower `LIMITED`
+claim its text stream supports.
+
+The app and companion now advertise the same content-derived signature revision,
+and CI derives that value from the production table instead of trusting two
+hand-maintained copies. Session diagnostics move to schema v3 so a support row
+records expected/actual signature revisions and the self-test result. The
+companion's `sigtest` path is now available from the UI instead of being a hidden
+serial-only bench command.
+
+Release plumbing and public instructions were brought back in line with the
+artifacts that actually ship: lint is blocking, Unleashed/RogueMaster target API
+88.9, S2 is required before release checksums are made, nightlies document all
+three companion images, and generated Arduino/Python files can no longer be
+swept into a later FAP build. The classic ESP32 pair was flashed and exercised
+end to end with live bench traffic; S2 and C5 remain compile-verified only.
 
 **v0.97** - **Telling a camera pole from a two-way radio.** Motorola Solutions
 sells ALPR poles and hand-portable radios on the same OUI, so the vendor prefix

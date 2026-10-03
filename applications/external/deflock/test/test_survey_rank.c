@@ -76,16 +76,21 @@ void suite_survey_rank(void) {
     // the denylist and it is worth a test that hurts: the most compelling row by
     // eye is the one being thrown away.
     //
-    // 7A:B2:1B (0xBA9FAFA0) is what actually survived. It was the throwaway
-    // "2nd camera?" guess here; the later drive found that hash on four devices
-    // 1.1-6.1 km apart, each close and busy. It ranks first now.
+    // 7A:B2:1B carried 0xBA9FAFA0, which survived that round and was then itself
+    // retracted on 2026-10-02 when the reporter watched it follow his car. The
+    // row keeps its place in this fixture with an UNCLASSIFIED hash instead,
+    // because the behaviour under test is the ranker, not that particular hash:
+    // a close, busy, randomised address whose fingerprint is on no denylist is
+    // what must rise. Do not put a real shipped hash here. Every one that has
+    // ever been written into this fixture has later been retracted, and each
+    // time the test went on asserting the retracted answer was correct.
     SurveyRankRow field[7] = {
         mk(0x06, 0xFC, 0xCB, 0x3A, 0xF8, 0x9E, -26, 6, 0x89c3debfu, 10), // RETRACTED
         mk(0x7E, 0x68, 0xF0, 0x04, 0xF6, 0x6B, -50, 1, 0x96fcd1b2u, 2), // generic
         mk(0x7E, 0x68, 0xF0, 0x8E, 0x5A, 0x48, -55, 6, 0x96fcd1b2u, 1), // generic
         mk(0x7E, 0x68, 0xF0, 0xB0, 0xCE, 0xFB, -60, 11, 0x96fcd1b2u, 1), // generic
         mk(0x7E, 0x68, 0xF0, 0x80, 0x2E, 0x5C, -62, 6, 0x96fcd1b2u, 1), // generic
-        mk(0x7A, 0xB2, 0x1B, 0x2C, 0xF2, 0xAD, -37, 8, 0xba9fafa0u, 2), // the real one
+        mk(0x7A, 0xB2, 0x1B, 0x2C, 0xF2, 0xAD, -37, 8, 0x5A17C3E2u, 2), // unclassified
         mk(0xF8, 0xD2, 0xAC, 0xC5, 0x97, 0xAC, -87, 6, 0xc4e51f77u, 1), // Vantiva, far
     };
     size_t n = survey_rank(field, 7, out, 16);

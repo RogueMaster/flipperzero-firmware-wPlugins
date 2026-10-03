@@ -432,6 +432,22 @@ void recon_app_set_esp_proto(ReconApp* app, uint8_t version, bool mismatch) {
     furi_mutex_release(app->mutex);
 }
 
+void recon_app_set_esp_sig_revision(ReconApp* app, const char* revision) {
+    furi_mutex_acquire(app->mutex, FuriWaitForever);
+    snprintf(app->esp_sig_revision, sizeof(app->esp_sig_revision), "%s", revision ? revision : "");
+    app->esp_sig_mismatch = app->esp_sig_revision[0] != '\0' &&
+                            strcmp(app->esp_sig_revision, FDF_SIGNATURE_REVISION) != 0;
+    furi_mutex_release(app->mutex);
+}
+
+void recon_app_set_esp_sigtest(ReconApp* app, uint32_t hash, bool pass) {
+    furi_mutex_acquire(app->mutex, FuriWaitForever);
+    app->esp_sigtest_hash = hash;
+    app->esp_sigtest_seen = true;
+    app->esp_sigtest_pass = pass;
+    furi_mutex_release(app->mutex);
+}
+
 void recon_app_set_ble_tell(ReconApp* app, const uint8_t mac[6], uint8_t tell) {
     furi_mutex_acquire(app->mutex, FuriWaitForever);
     for(size_t i = 0; i < app->flock_count; i++) {
@@ -1536,6 +1552,14 @@ void recon_diag_save(ReconApp* app) {
     // which reported no build at all.
     char esp_build[12];
     snprintf(esp_build, sizeof(esp_build), "%s", app->esp_build[0] ? app->esp_build : "-");
+    char sig_revision[16];
+    snprintf(
+        sig_revision,
+        sizeof(sig_revision),
+        "%s",
+        app->esp_sig_revision[0] ? app->esp_sig_revision : "-");
+    int sig_match = app->esp_sig_revision[0] ? (app->esp_sig_mismatch ? 0 : 1) : -1;
+    int sigtest = app->esp_sigtest_seen ? (app->esp_sigtest_pass ? 1 : 0) : -1;
     uint32_t table = (uint32_t)app->flock_count;
     app->diag_start_epoch = 0; // one row per session, not one per teardown call
     furi_mutex_release(app->mutex);
@@ -1569,12 +1593,14 @@ void recon_diag_save(ReconApp* app) {
                 s,
                 RECON_DIAG_HEADER_LINE
                 "start,end,dur_s,ver,esp_ver,backend,band_req,band_act,band_ch,proto,"
+                "sig_expected,sig_actual,sig_match,sigtest,"
                 "esp_lines,esp_dropped,esp_reboots,esp_frames,esp_hits,"
                 "reports,accepted,rej_conf,rej_full,table\n");
         }
         furi_string_cat_printf(
             s,
-            "%lu,%lu,%lu,%s,%s,%u,%u,%u,%u,%u,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu\n",
+            "%lu,%lu,%lu,%s,%s,%u,%u,%u,%u,%u,%s,%s,%d,%d,"
+            "%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu\n",
             (unsigned long)start,
             (unsigned long)end,
             (unsigned long)(end - start),
@@ -1585,6 +1611,10 @@ void recon_diag_save(ReconApp* app) {
             (unsigned)band_act,
             (unsigned)band_ch,
             (unsigned)proto,
+            FDF_SIGNATURE_REVISION,
+            sig_revision,
+            sig_match,
+            sigtest,
             (unsigned long)lines,
             (unsigned long)dropped,
             (unsigned long)reboots,

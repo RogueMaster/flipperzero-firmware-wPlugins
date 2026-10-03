@@ -36,11 +36,16 @@ have a microSD slot): the Flipper flashes the ESP32 over its own UART pins.
 **If your board has USB, [flash it directly from a computer](#flash-directly-from-a-computer-no-flipper-needed)
 instead — it's significantly faster.**
 
-**One file is all you need.** Download **`flipdeflock_companion_esp32wroom.bin`**
-from the FlipDeFlock [release](https://github.com/ReconGrunt/FlipDeFlock/releases)
-and copy it to the SD card. It is a merged image containing the bootloader,
-partition table and app, and it is flashed **whole at offset `0x0`** — you do not
-set three separate files or offsets.
+**Choose the image for the chip on your board.** Releases provide merged images
+for classic ESP32 WROOM/WROVER, ESP32-S2, and experimental ESP32-C5 targets.
+Each contains the bootloader, partition table and app and is flashed **whole at
+offset `0x0`**; you do not set separate files or offsets.
+
+| Chip | Release image | Notes |
+|---|---|---|
+| Classic ESP32 | `flipdeflock_companion_esp32wroom.bin` | Primary companion target |
+| ESP32-S2 | `flipdeflock_companion_esp32s2.bin` | Wi-Fi only; the S2 has no BLE radio |
+| ESP32-C5 | `flipdeflock_companion_esp32c5_EXPERIMENTAL.bin` | 2.4/5 GHz; not field-verified |
 
 Two ways to flash it:
 
@@ -53,8 +58,8 @@ Two ways to flash it:
 Back up before flashing if the board currently runs something you want back
 (e.g. Marauder) — restoring is just flashing that backup the same way.
 
-> **Prebuilt image is for the classic ESP32 (WROOM).** For other targets — S3,
-> C3, C5 — build from source (below); the prebuilt image will not boot on them.
+> **Images are chip-specific.** Do not flash the WROOM image onto an S2, C5, S3,
+> or C3. S3 and C3 currently require a source build for the exact target.
 
 > **⏱️ Flashing over the Flipper's UART is slow — budget several minutes, not
 > seconds.** The Flipper writes the WHOLE image serially with no skip-blank
@@ -65,14 +70,9 @@ Back up before flashing if the board currently runs something you want back
 > roughly halving the time. **Backups always run at the safe rate**, regardless
 > of that setting.
 >
-> The **`..._esp32c5_EXPERIMENTAL.bin` is ~4 MB** versus **~1.5 MB** for the
-> WROOM image — core 3.x's merge step pads the C5 image out to the full flash
-> size, even though the real firmware inside it is a similar size to the
-> WROOM's (~1.4 MB). Nothing skips that padding on write, so **the C5 image
-> takes roughly 2–3× as long to flash** as the number of useful bytes would
-> suggest. If a flash looks stalled, check the on-screen progress percentage
-> before assuming it hung — this is expected, not a bug (though shrinking that
-> padded image is on the list to fix).
+> Current C5 release images are merged without full-flash padding and are under
+> 1 MB. Flash time follows the actual image size. If a flash looks stalled, use
+> the on-screen byte count and progress percentage rather than an old size estimate.
 
 <sub>Earlier revisions of this page listed `flock_companion.ino.bootloader.bin`,
 `...partitions.bin`, `...ino.bin` and a `flock_companion-merged.bin`. Those
@@ -97,13 +97,16 @@ pip install esptool
 # Classic ESP32 / WROOM
 esptool --chip esp32   --port COM5 write_flash 0x0 flipdeflock_companion_esp32wroom.bin
 
+# ESP32-S2 (Wi-Fi only)
+esptool --chip esp32s2 --port COM5 write_flash 0x0 flipdeflock_companion_esp32s2.bin
+
 # ESP32-C5 (EXPERIMENTAL -- see the warning above; unverified on real hardware)
 esptool --chip esp32c5 --port COM5 write_flash 0x0 flipdeflock_companion_esp32c5_EXPERIMENTAL.bin
 ```
 
 Replace `COM5` with your board's port (`/dev/ttyUSB0` etc. on Linux/macOS). Some
 `esptool` installs expose the command as `esptool.py` instead of `esptool` --
-try that if the above isn't found. Both `.bin` files are the same merged,
+try that if the above isn't found. These `.bin` files are the same merged,
 0x0-flashable images described above; nothing extra to download. If the board
 doesn't auto-reset into bootloader mode, hold **BOOT**, tap **RESET**, release
 **BOOT**, then run the command.
@@ -135,7 +138,7 @@ Pick the band at runtime over the serial link:
 |----------|--------------------------------|
 | `band 2g`  | 13 channels (classic behaviour) |
 | `band 5g`  | 28 channels                     |
-| `band all` | 41 channels (**default** on a C5) |
+| `band all` | 41 channels |
 
 The board replies `BAND,<2g|5g|all>,<channels>` with the band actually in force.
 On a 2.4-only radio that answer is always `2g`, whatever you asked for.
@@ -143,7 +146,8 @@ On a 2.4-only radio that answer is always `2g`, whatever you asked for.
 > **The cost of `all`:** a full sweep is 41 channels instead of 13, so at the
 > same 300 ms dwell it takes ~12.3 s instead of ~3.9 s. Any given camera is
 > revisited a third as often. Use `band 2g` if you would rather have the fast
-> sweep and know your target is on 2.4 GHz.
+> sweep and know your target is on 2.4 GHz. The app defaults to `band 2g` on all
+> chips, including C5, until the operator explicitly selects wider coverage.
 
 > **⚠️ Nobody on this project owns a C5.** The dual-band build is
 > **compile-verified only** — it has never been run on the chip. It may not
@@ -204,7 +208,9 @@ Run a GPS module at the same time on **LPUART (pins 15/16)** to geotag finds.
 TX (board → Flipper), newline-terminated ASCII:
 
 ```
-FLOCKCO,1                                  banner/version
+FLOCKCO,<protocol>,<build>                 protocol and companion build banner
+SIGREV,<revision>                          production signature-table revision
+SIGTEST,<signature>,<hash>,<0|1>           response to `sigtest`; 1 = matcher passed
 S,<frames>,<hits>,<ch>,<deauths>           status ~1 Hz (deauths = last-interval rate)
 D,<mac>,<rssi>,<ch>,<type>,<conf>,<ssid>[,fp=<hex32>][,cls=a][,hid=1]   detection
    type: P=probe-req B=beacon R=probe-resp O=other
@@ -241,8 +247,15 @@ GPSCFG,<on>,<pin>,<baud>                   echo of the relay config
 All trailing `key=value` fields are optional and order-independent, so an older
 Flipper build simply ignores ones it does not know.
 
+`SIGREV` is sent at boot and with `ver`. Its value is derived from the ordered
+production signature table and lets the app reject a separately flashed
+companion whose classifier data does not match. `SIGTEST` reports the readable
+signature generated by the production path, its content hash, and whether that
+same production matcher accepted it.
+
 RX (Flipper → board): `scan` (WiFi Flock), `flockcombo` (interleaved WiFi+BLE
-Flock), `flockwifi`, `wifiscan`, `blescan`, `stop`, `ver`, `ch <1-14>` (0 = hop),
+Flock), `flockwifi`, `wifiscan`, `blescan`, `stop`, `ver`, `sigtest`,
+`ch <1-14>` (0 = hop),
 `locate <w|b> <mac> [ch]` (stream `LOC` for one target; `locate off` ends it),
 `ble_ping <mac>` (one-shot active GATT reachability check), `ble_ring <mac>`
 (separated-state non-owner sound request for an Apple/Find My tracker),

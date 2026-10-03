@@ -696,6 +696,26 @@ void suite_esp_parser(void) {
     CHECK_INT_EQ(m.u.banner.version, 2);
     CHECK_STR_EQ(m.u.banner.build, "0.99");
 
+    // --- signature-table pairing + production-path self-test ---------------
+    CHECK_INT_EQ(P("SIGREV," FDF_SIGNATURE_REVISION), EspMsgSigRevision);
+    CHECK_STR_EQ(m.u.sigrev.revision, FDF_SIGNATURE_REVISION);
+    CHECK_INT_EQ(P("SIGREV,"), EspMsgIgnore);
+    CHECK_INT_EQ(P("SIGREV,96274812,extra"), EspMsgIgnore);
+
+    // The signature itself contains commas. The parser must peel the hash and
+    // result from the RIGHT, preserving the whole human-readable signature.
+    CHECK_INT_EQ(
+        P("SIGTEST,221:506f9a16030103,45,191,221:0050f208000000,89abcdef,1"), EspMsgSigTest);
+    CHECK_STR_EQ(m.u.sigtest.signature, "221:506f9a16030103,45,191,221:0050f208000000");
+    CHECK_INT_EQ((long)m.u.sigtest.hash, (long)0x89abcdefu);
+    CHECK_INT_EQ(m.u.sigtest.pass, 1);
+    CHECK_INT_EQ(P("SIGTEST,1,2,3,00000001,0"), EspMsgSigTest);
+    CHECK_INT_EQ(m.u.sigtest.pass, 0);
+    CHECK_INT_EQ(P("SIGTEST,nohash,zzzzzzzz,1"), EspMsgIgnore);
+    CHECK_INT_EQ(P("SIGTEST,sig,112345678,1"), EspMsgIgnore);
+    CHECK_INT_EQ(P("SIGTEST,sig,12345678,2"), EspMsgIgnore);
+    CHECK_INT_EQ(P("SIGTEST,sig,12345678"), EspMsgIgnore);
+
     // --- v0.96 wire additions: fp2, sg=1, and the printable SV signature -----
 
     // OLD FIRMWARE STILL PARSES. Six-field SV is what every companion before

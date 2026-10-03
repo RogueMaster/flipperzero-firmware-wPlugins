@@ -124,6 +124,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [CFW Settings v2.2 (By WillyJL, ESurge & RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/tree/420/applications/main/cfw_app) — restore the configurable Game Menu with its own menu style, starting game, add/remove/reorder controls, and reset to all installed games.
 - Desktop: [Restore the custom Game Menu on short center press in Game Mode (By ESurge & RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/tree/710_historical)
 - Updated: [Morse Flipper v0.3.0 (By yo3gnd)](https://github.com/yo3gnd/morse-flipper)
+- Updated: [FlipDeFlock v0.98 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
 
 <a name="release"></a>
 
@@ -580,7 +581,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [FlipBoard Simon v1.10 (By jamisonderek)](https://github.com/jamisonderek/flipboard)
 - [FlipCrypt v0.7 (By TAxelAnderson)](https://github.com/TAxelAnderson/FlipCrypt)
 - [FlipDeck v3.0 (By ismail-oe)](https://github.com/ismail-oe/flipdeck)
-- [FlipDeFlock v0.97 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
+- [FlipDeFlock v0.98 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
 - [FlipDownloader v1.3.5 (By jblanked)](https://github.com/jblanked/FlipStore) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
 - [Flipfetch v0.1 (By alexroses47)](https://github.com/alexroses47/flipper-flipfetch)
 - [FlipFlash v1.0 (By Mushi0)](https://github.com/Mushi0/FlippFlash)

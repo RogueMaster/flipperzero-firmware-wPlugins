@@ -884,36 +884,14 @@ static const uint32_t flock_ie_fps[] = {
  * generic 0x7C923B53 skeleton did. Still one operator, one camera, one drive --
  * hence candidate, not verified. Needs a second independent sighting to promote.
  *
- * 0xBA9FAFA0 -- the randomised-MAC signature this whole investigation has been
- * chasing since issue #25, from @wiilover22's 2026-09-11 drive.
- *
- * FOUR devices carry it, every one on a locally administered address, so no OUI
- * table can ever touch them -- which is precisely the case that made his
- * cameras invisible for three weeks. What promotes it above a guess is the
- * GEOGRAPHY: the four are 1.1 km to 6.1 km apart, so they cannot be one device
- * rotating its address, and they cannot be something riding in his car. Four
- * separate fixed installations along a road he reports as having 4-6 cameras.
- * Each is close and busy (-21 to -43 dBm, 28 to 133 probes in one session),
- * which is what a pole-mounted unit looks like and is not what a passing phone
- * looks like. It also recurs across FOUR of his six sessions and appeared in his
- * earlier 2026-09-08 capture, and it has never once been seen on this project's
- * bench.
- *
- * INDEPENDENTLY CORROBORATED, 2026-09-11, and this is the part that is not our
- * own reasoning. Cross-referencing the reporter's own coordinates against the
- * public OpenStreetMap surveillance layer (`man_made=surveillance`, the data
- * the community maps are built from) puts a mapped Flock Safety ALPR 44 m from
- * one of these devices, the one at -31 dBm with 62 probes. Of all EIGHTEEN
- * geotagged detections in that capture, that is the ONLY one within 100 m of a
- * mapped camera, and a second sits at 218 m. The nearest 0x89C3DEBF device is
- * 239 m away and was heard at -96 dBm, i.e. nowhere near the pole.
- *
- * Held at CANDIDATE anyway, for two honest reasons. Two of the four devices are
- * 1.7 km and 2.7 km from anything mapped -- explainable by patchy coverage, but
- * unexplained is not corroborated. And a map record is not a second radio
- * CAPTURE, which is what the promotion bar above actually asks for. Promotion
- * would also buy almost nothing in practice: these addresses are randomised, so
- * there is no OUI underneath for a built-in to auto-Confirm against.
+ * 0xBA9FAFA0 -- WAS HERE, RETRACTED 2026-10-02 to flock_ie_fps_generic[] below.
+ * It was argued onto this list on geography, and the reporter who supplied it
+ * later observed the device following his car. Read that entry before adding
+ * anything on a similar basis: the shape of the mistake was spreading one
+ * CONSUMER HARDWARE CLASS across several kilometres of road and reading the
+ * spread as several fixed installations. Geography separates "one device" from
+ * "several devices". It cannot separate "several cameras" from "several phones",
+ * and nothing in that argument ever did.
  *
  * 0xD0BBEC4C -- the same drive, and the one hash here with a VENDOR ANCHOR.
  * Three devices, all three on OUIs already in flock_ouis[] above, spanning TWO
@@ -931,7 +909,6 @@ static const uint32_t flock_ie_fps[] = {
  */
 static const uint32_t flock_ie_fps_candidate[] = {
     0x42D75CD1u,
-    0xBA9FAFA0u,
     0xD0BBEC4Cu,
 };
 
@@ -984,6 +961,30 @@ static const uint32_t flock_ie_fps_candidate[] = {
  *   probe each, best signal -78 dBm (same capture). Twenty-four addresses seen
  *   once apiece is a street full of phones randomising, not a device. Carried in
  *   CANDIDATES.md as a watch item since 2026-09-09; the MAC count settles it.
+ *
+ * 0xBA9FAFA0 -- RETRACTED 2026-10-02, and it was the strongest candidate this
+ *   project ever shipped. It was promoted on geography: four devices 1.1 to
+ *   6.1 km apart cannot be one unit rotating its address, and a mapped ALPR sat
+ *   44 m from the closest of them. The comment that argued for it said in so
+ *   many words that they "cannot be something riding in his car".
+ *
+ *   Three days later @wiilover22 reported the opposite from the same road: the
+ *   address keeps changing and the device FOLLOWS HIM. Both observations fit one
+ *   explanation the geography argument never considered -- a fingerprint shared
+ *   by a class of consumer hardware, which is simultaneously in his car and in
+ *   other cars spread along several kilometres of road.
+ *
+ *   The signature settles it independently of either reading. The device carries
+ *   221:0050f208001400, a lone WMM vendor element with no Wi-Fi Alliance anchor
+ *   and no HT or VHT capability elements. That is a bare client probe, not the
+ *   ordered shape the probe-signature matcher looks for. In 45 KB of survey log
+ *   off this project's own bench and drives, the production Flock signature
+ *   matched zero times while this hash kept appearing, including at -63 dBm with
+ *   115 sightings on a bench with no camera within range.
+ *
+ *   A map record is a coincidence detector, not a capture. One of eighteen
+ *   detections landing 44 m from a mapped pole is the kind of result a street
+ *   full of phones produces by chance, and that was the entire corroboration.
  */
 static const uint32_t flock_ie_fps_generic[] = {
     0x96FCD1B2u,
@@ -991,6 +992,7 @@ static const uint32_t flock_ie_fps_generic[] = {
     0x7C923B53u,
     0x89C3DEBFu,
     0xC59C341Fu,
+    0xBA9FAFA0u,
 };
 
 #define FLOCK_IE_FP_GENERIC_COUNT (sizeof(flock_ie_fps_generic) / sizeof(flock_ie_fps_generic[0]))

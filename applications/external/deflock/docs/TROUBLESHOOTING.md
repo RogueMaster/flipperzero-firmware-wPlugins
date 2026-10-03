@@ -14,8 +14,8 @@ file per firmware family:
 |---|---|---|
 | Official (OFW) | `flipdeflock.fap` | 87.1 |
 | Momentum | `flipdeflock-momentum.fap` | 87.1 |
-| Unleashed | `flipdeflock-unleashed.fap` | 88.3 |
-| RogueMaster | `deflock.fap` | 88.3 |
+| Unleashed | `flipdeflock-unleashed.fap` | 88.9 |
+| RogueMaster | `deflock.fap` | 88.9 |
 
 "App is old" specifically means the app's API is BELOW the firmware's, which is what you
 get installing the OFW file on Unleashed or RogueMaster. The opposite message, asking you

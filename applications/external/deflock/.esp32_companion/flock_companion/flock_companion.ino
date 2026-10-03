@@ -21,7 +21,9 @@
  * set Serial baud to 115200. No extra libraries required.
  *
  * Line protocol (newline-terminated, ASCII), TX to Flipper:
- *   FLOCKCO,1                              banner / version on boot and on "ver"
+ *   FLOCKCO,1,<build>                      protocol/build banner on boot and "ver"
+ *   SIGREV,<revision>                      production signature-table revision
+ *   SIGTEST,<signature>,<hash>,<0|1>       response to the "sigtest" command
  *   S,<frames>,<hits>,<ch>,<deauth_rate>   status, ~1 Hz (deauth/disassoc per interval)
  *   D,<mac>,<rssi>,<ch>,<type>,<conf>,<ssid>[,fp=<hex32>][,cls=a|x][,hid=1] detection
  *       mac : aabbccddeeff (lower hex, no separators)
@@ -590,8 +592,8 @@ static bool parse_hexmac(const char* s, uint8_t out[6]) {
 // resident (avoids the Bluedroid init/deinit heap leak); the radio is shared by
 // toggling promiscuous off during a BLE scan, then back on. flockcombo
 // interleaves a WiFi-promiscuous phase with a periodic BLE scan phase.
-static bool g_ble_inited = false;
 #if FLOCK_HAS_BLE
+static bool g_ble_inited = false;
 static BLEScan* g_ble = nullptr;
 #endif
 static bool g_combo = false;
@@ -1789,13 +1791,21 @@ static void start_promisc() {
  * precisely what this exists to expose. tools/check_oui_parity.py fails CI if
  * they drift.
  */
-#define FLOCK_COMPANION_VERSION "0.97"
+#define FLOCK_COMPANION_VERSION "0.98"
+// First eight hex digits of SHA-256 over the newline-joined PRODUCTION entries
+// in FLOCK_SIG_TABLE. tools/check_oui_parity.py derives and enforces it, and the
+// Flipper compares this advertised value with FDF_SIGNATURE_REVISION.
+#define FLOCK_SIGNATURE_REVISION "96274812"
 
 static void banner() {
     // Third field is the BUILD version. Appending is wire-safe: an older app
     // splits this line with max=2, so esp_split_fields() glues "1,0.88" into one
     // field and atoi() still reads 1 as the protocol version. It sees no change.
     Serial.print("FLOCKCO,1," FLOCK_COMPANION_VERSION "\n");
+    // Separate record for backward compatibility: older apps ignore it, while
+    // appending it to FLOCKCO would be folded into the build field by parsers
+    // that intentionally split that banner into at most three fields.
+    Serial.print("SIGREV," FLOCK_SIGNATURE_REVISION "\n");
     // What this chip actually is, so the app stops offering a classic ESP32's
     // pinout on every board. Sent as its own line rather than appended to the
     // banner: an older app ignores lines it does not know, but a changed banner
@@ -3199,7 +3209,12 @@ void loop() {
         g_last_status = now;
         uint32_t deauth_rate = g_deauths - g_deauths_last;
         g_deauths_last = g_deauths;
-        Serial.printf("S,%u,%u,%u,%u\n", g_frames, g_hits, g_channel, deauth_rate);
+        Serial.printf(
+            "S,%lu,%lu,%u,%lu\n",
+            (unsigned long)g_frames,
+            (unsigned long)g_hits,
+            (unsigned)g_channel,
+            (unsigned long)deauth_rate);
 
         // Active attack-tool signatures for this interval, then reset the windows.
         // Snapshot and reset the beacon ring under the lock: note_beacon_bssid()
@@ -3211,9 +3226,10 @@ void loop() {
         g_beacon_ring_n = 0;
         portEXIT_CRITICAL(&g_mux);
 
-        if(g_probe_reqs >= PROBE_FLOOD_MIN) Serial.printf("ATK,probeflood,%u\n", g_probe_reqs);
+        if(g_probe_reqs >= PROBE_FLOOD_MIN)
+            Serial.printf("ATK,probeflood,%lu\n", (unsigned long)g_probe_reqs);
         if(beacon_distinct >= BEACON_FLOOD_MIN)
-            Serial.printf("ATK,beaconflood,%u\n", beacon_distinct);
+            Serial.printf("ATK,beaconflood,%lu\n", (unsigned long)beacon_distinct);
         g_probe_reqs = 0;
     }
 }

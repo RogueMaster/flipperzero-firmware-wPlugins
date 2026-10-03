@@ -23,6 +23,11 @@
 extern "C" {
 #endif
 
+/** Short SHA-256-derived revision of the companion's production probe-signature
+ * table. tools/check_oui_parity.py derives it from the table and fails if this
+ * value or the companion's advertised value is stale. */
+#define FDF_SIGNATURE_REVISION "96274812"
+
 /** How sure we are that a wireless device is Flock/ALPR surveillance gear. */
 typedef enum {
     FlockConfidenceNone = 0, /**< No indicators matched. */

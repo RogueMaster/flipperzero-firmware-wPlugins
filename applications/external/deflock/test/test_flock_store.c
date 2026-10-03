@@ -161,12 +161,18 @@ void suite_flock_store(void) {
         CHECK_INT_EQ((int)out.ie_fp, 0); // zeroed, so nothing claims "IE fp"
         CHECK_INT_EQ((int)out.conf, 3); // the recorded rung is left alone
 
-        // A legitimate fingerprint on the same row shape is untouched. ba9fafa0
-        // is the real one from the same reporter's later drive -- four devices
-        // 1.1-6.1 km apart, which is why it survived where 89c3debf did not.
+        // ba9fafa0 was the surviving hash here until 2026-10-02. It is now on the
+        // generic denylist too, so a saved row carrying it must be zeroed on load
+        // exactly like 96fcd1b2 above -- that is how a retraction reaches hits
+        // already written to someone's SD card.
         CHECK(flock_store_parse_line(
             "7A:B2:1B:2C:F2:AD,,-37,8,F,3,ba9fafa0,,,,10,0,1788980501,0,0,", &out));
-        CHECK_INT_EQ((int)out.ie_fp, (int)0xba9fafa0u);
+        CHECK_INT_EQ((int)out.ie_fp, 0);
+
+        // An unclassified fingerprint on the same row shape is untouched.
+        CHECK(flock_store_parse_line(
+            "7A:B2:1B:2C:F2:AD,,-37,8,F,3,5a17c3e2,,,,10,0,1788980501,0,0,", &out));
+        CHECK_INT_EQ((int)out.ie_fp, (int)0x5a17c3e2u);
     }
 
     // --- malformed input is rejected, and *out is left untouched -------------

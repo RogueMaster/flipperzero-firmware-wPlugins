@@ -5,6 +5,7 @@
 
 typedef enum {
     StartItemFlock,
+    StartItemPreflight,
     StartItemFirmware,
     StartItemReports,
     StartItemSettings,
@@ -58,6 +59,8 @@ void recon_scene_start_on_enter(void* context) {
     recon_scene_start_update_header(app);
     submenu_add_item(
         submenu, "Flock / ALPR Detect", StartItemFlock, recon_scene_start_submenu_cb, app);
+    submenu_add_item(
+        submenu, "Health / Preflight", StartItemPreflight, recon_scene_start_submenu_cb, app);
     submenu_add_item(submenu, "Locator", StartItemLocator, recon_scene_start_submenu_cb, app);
     submenu_add_item(submenu, "Flock Map", StartItemFlockMap, recon_scene_start_submenu_cb, app);
     // Post-drive review: confirm what you went and looked at, name what you
@@ -91,6 +94,9 @@ bool recon_scene_start_on_event(void* context, SceneManagerEvent event) {
         switch(event.event) {
         case StartItemFlock:
             scene_manager_next_scene(app->scene_manager, ReconSceneFlock);
+            break;
+        case StartItemPreflight:
+            scene_manager_next_scene(app->scene_manager, ReconScenePreflight);
             break;
         case StartItemLocator:
             scene_manager_next_scene(app->scene_manager, ReconSceneLocator);

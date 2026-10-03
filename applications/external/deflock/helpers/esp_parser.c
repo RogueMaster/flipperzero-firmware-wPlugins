@@ -274,6 +274,42 @@ EspMsgType esp_parse_companion_line(char* line, EspMsg* out) {
         out->type = EspMsgBanner;
         return out->type;
     }
+    if(strncmp(line, "SIGREV,", 7) == 0) {
+        // One bounded token. Keep the parser forwards-compatible with revision
+        // schemes other than hex, but reject an empty or comma-extended value so
+        // the UI never displays a partly parsed claim.
+        const char* revision = line + 7;
+        size_t n = strlen(revision);
+        if(n == 0 || n >= 16 || strchr(revision, ',') != NULL) return EspMsgIgnore;
+        out->u.sigrev.revision = revision;
+        out->type = EspMsgSigRevision;
+        return out->type;
+    }
+    if(strncmp(line, "SIGTEST,", 8) == 0) {
+        // SIGTEST,<signature-with-commas>,<hash>,<0|1>. Split FROM THE RIGHT:
+        // the production signature is deliberately human-readable and contains
+        // commas, so a normal field splitter would silently cut it apart.
+        char* signature = line + 8;
+        char* pass_field = strrchr(signature, ',');
+        if(!pass_field) return EspMsgIgnore;
+        *pass_field++ = '\0';
+        char* hash_field = strrchr(signature, ',');
+        if(!hash_field) return EspMsgIgnore;
+        *hash_field++ = '\0';
+        if(signature[0] == '\0' ||
+           !((pass_field[0] == '0' || pass_field[0] == '1') && pass_field[1] == '\0')) {
+            return EspMsgIgnore;
+        }
+        char* end = NULL;
+        unsigned long hash = strtoul(hash_field, &end, 16);
+        size_t hash_len = strlen(hash_field);
+        if(hash_len == 0 || hash_len > 8 || !end || *end != '\0') return EspMsgIgnore;
+        out->u.sigtest.signature = signature;
+        out->u.sigtest.hash = (uint32_t)hash;
+        out->u.sigtest.pass = pass_field[0] == '1';
+        out->type = EspMsgSigTest;
+        return out->type;
+    }
     // ---- WiFi security scan: WBEGIN / W,... / WEND ----
     if(strncmp(line, "WBEGIN", 6) == 0) {
         out->type = EspMsgWifiBegin;

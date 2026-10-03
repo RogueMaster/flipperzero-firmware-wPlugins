@@ -320,9 +320,14 @@ void suite_flock_db(void) {
     // hits.csv he sent back were phones matched on it.
     CHECK(flock_ie_fp_is_generic(0x89C3DEBFu));
     CHECK(flock_ie_fp_is_generic(0xC59C341Fu)); // 24 randomised MACs, one probe each
+    // RETRACTED 2026-10-02. Promoted on geography -- four devices kilometres
+    // apart "cannot be riding in his car" -- and then the reporter watched it
+    // follow his car. Its signature is a lone WMM element with no Wi-Fi Alliance
+    // anchor, i.e. a bare client probe, and the production Flock signature
+    // matched zero times in the same 45 KB of survey log.
+    CHECK(flock_ie_fp_is_generic(0xBA9FAFA0u));
     CHECK(!flock_ie_fp_is_generic(0)); // 0 is "no fingerprint", not "generic"
     CHECK(!flock_ie_fp_is_generic(0x42D75CD1u)); // the shipped candidates are NOT generic
-    CHECK(!flock_ie_fp_is_generic(0xBA9FAFA0u));
     CHECK(!flock_ie_fp_is_generic(0xD0BBEC4Cu));
     CHECK(!flock_ie_fp_is_generic(0xdeadbeef));
 
@@ -352,17 +357,18 @@ void suite_flock_db(void) {
     // THE RETRACTION HAS TO BEAT A CARD ALREADY IN THE FIELD. wiilover22's
     // signatures.json still lists 0x89C3DEBF because we told him to add it, and
     // he will not edit it. Denylisting only works if it outranks his file.
+    // BOTH hashes on that card are now retracted, and both must go inert on
+    // upgrade without him editing anything. 0xBA9FAFA0 joined 0x89C3DEBF on
+    // 2026-10-02 after he reported it following his car.
     static const uint32_t wiilover_card[] = {0x89C3DEBFu, 0xBA9FAFA0u};
     FlockDbExtras ex_field = {.ie_fps = wiilover_card, .ie_fp_count = 2};
     flock_db_set_extras(&ex_field);
     CHECK_INT_EQ(flock_ie_fp_match(0x89C3DEBFu), FlockIeFpNone); // goes inert, no edit needed
-    // ...while the good hash on the same card still works, as a candidate.
-    CHECK_INT_EQ(flock_ie_fp_match(0xBA9FAFA0u), FlockIeFpCandidate);
+    CHECK_INT_EQ(flock_ie_fp_match(0xBA9FAFA0u), FlockIeFpNone);
     flock_db_set_extras(NULL);
 
     // The shipped candidates still match -- the guard did not blunt detection.
     CHECK_INT_EQ(flock_ie_fp_match(0x42D75CD1u), FlockIeFpCandidate);
-    CHECK_INT_EQ(flock_ie_fp_match(0xBA9FAFA0u), FlockIeFpCandidate);
     CHECK_INT_EQ(flock_ie_fp_match(0xD0BBEC4Cu), FlockIeFpCandidate);
     // A CANDIDATE NEVER AUTO-CONFIRMS, not even riding a Flock OUI. 0xD0BBEC4C
     // was captured on 24:B2:B9 and 70:08:94, both in flock_ouis[], so if it were
@@ -372,9 +378,9 @@ void suite_flock_db(void) {
     // rather than the real unit's, which does not need publishing.
     static const uint8_t flock_oui_mac[6] = {0x24, 0xB2, 0xB9, 0x00, 0x00, 0x01};
     CHECK_INT_EQ(flock_ie_fp_confidence(0xD0BBEC4Cu, flock_oui_mac), FlockConfidenceProbeFp);
-    CHECK_INT_EQ(flock_ie_fp_confidence(0xBA9FAFA0u, NULL), FlockConfidenceProbeFp);
-    // And the retracted one justifies nothing at all, OUI or no OUI.
+    // And a retracted one justifies nothing at all, OUI or no OUI.
     CHECK_INT_EQ(flock_ie_fp_confidence(0x89C3DEBFu, flock_oui_mac), FlockConfidenceNone);
+    CHECK_INT_EQ(flock_ie_fp_confidence(0xBA9FAFA0u, flock_oui_mac), FlockConfidenceNone);
     // and a generic hash must not reach the IE-fp method either.
     CHECK_INT_EQ(flock_method_of(NULL, NULL, 'D', 0x96FCD1B2u), FlockMethodUnknown);
     CHECK_INT_EQ(flock_method_of(NULL, NULL, 'D', 0x42D75CD1u), FlockMethodIeFp);

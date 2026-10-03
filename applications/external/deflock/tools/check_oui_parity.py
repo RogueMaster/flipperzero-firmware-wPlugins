@@ -39,6 +39,7 @@ copies to each other cannot see a mistake made in both.
 Usage:  python tools/check_oui_parity.py     (exit 0 = in sync, 1 = drifted)
 """
 
+import hashlib
 import re
 import sys
 from pathlib import Path
@@ -46,6 +47,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 APP = ROOT / "helpers" / "flock_db.c"
 ESP = ROOT / "esp32_companion" / "flock_companion" / "flock_companion.ino"
+APP_HEADER = ROOT / "helpers" / "flock_db.h"
 
 TRIPLE = re.compile(
     r"\{\s*0x([0-9a-fA-F]{2})\s*,\s*0x([0-9a-fA-F]{2})\s*,\s*0x([0-9a-fA-F]{2})\s*\}"
@@ -180,6 +182,15 @@ MISATTRIBUTED = {
 # And every Espressif entry would make FlipDeFlock detect its OWN companion
 # board, which is an ESP32.
 TOO_GENERIC = {
+    # Added 2026-10-02. A Flock camera firmware image was published in September
+    # 2026 showing the hardware is a Qualcomm MSM8953 with a QCA9377 radio, and
+    # the chip's default MAC prefix was promptly listed elsewhere as a Flock
+    # prefix. It is not one. Resolved at the registry the same day: 00:03:7f is
+    # "Atheros Communications, Inc.", MA-L -- the Wi-Fi silicon vendor, shipped
+    # in a decade of routers, tablets and IoT. Knowing the camera's chipset is
+    # genuinely useful for what its PROBE should look like; the chip vendor's
+    # OUI is the one part of that dump that must never become evidence.
+    "00:03:7f": "Atheros Communications -- Wi-Fi chip vendor (QCA9377); identifies silicon, not an operator",
     "48:27:ea": "Samsung Electronics -- phones and hotspots; the exact FP class already field-reported",
     "a4:cf:12": "Espressif -- chip vendor, incl. our own companion board",
     "24:0a:c4": "Espressif -- chip vendor, incl. our own companion board",
@@ -362,6 +373,45 @@ def check_version_parity():
     return True
 
 
+def check_signature_revision():
+    """Derive the production probe-signature revision and require both halves.
+
+    A hand-maintained revision that can stay unchanged while the table changes
+    is only a label. Deriving it here turns the banner into an actual content
+    identity and makes a stale app/companion pairing visible in preflight.
+    """
+    esp = ESP.read_text(encoding="utf-8", errors="replace")
+    app = APP_HEADER.read_text(encoding="utf-8", errors="replace")
+    block = re.search(r"FLOCK_SIG_TABLE\s*\[\]\s*=\s*\{(.*?)\n\};", esp, re.S)
+    if not block:
+        print("  MISS signature revision: no FLOCK_SIG_TABLE in companion")
+        return False
+
+    # Bench-only entries are compiled only under FLOCK_SIG_BENCH_TEST and are
+    # deliberately not part of the shipped revision.
+    production = block.group(1).split("#ifdef FLOCK_SIG_BENCH_TEST", 1)[0]
+    entries = re.findall(r'"([^"]+)"', production)
+    if not entries:
+        print("  MISS signature revision: production signature table is empty")
+        return False
+    derived = hashlib.sha256("\n".join(entries).encode("utf-8")).hexdigest()[:8]
+
+    m_app = re.search(r'#define\s+FDF_SIGNATURE_REVISION\s+"([^"]+)"', app)
+    m_esp = re.search(r'#define\s+FLOCK_SIGNATURE_REVISION\s+"([^"]+)"', esp)
+    if not m_app or not m_esp:
+        print("  MISS signature revision: app or companion constant not found")
+        return False
+    if m_app.group(1) != derived or m_esp.group(1) != derived:
+        print(
+            "  DRIFT signature revision: derived=%s app=%s companion=%s"
+            % (derived, m_app.group(1), m_esp.group(1))
+        )
+        print("        Update both constants to the derived table revision.")
+        return False
+    print(f"  OK   signature revision: app, companion, and table all {derived}")
+    return True
+
+
 def check_sv_wire_format():
     """The SV line's field count, on both sides of the wire.
 
@@ -467,6 +517,10 @@ def main():
     print()
     print("App / companion build version")
     ok &= check_version_parity()
+
+    print()
+    print("Probe-signature table revision")
+    ok &= check_signature_revision()
 
     if not ok:
         print("\nFAIL: the tables have drifted. Update BOTH files, keeping the")

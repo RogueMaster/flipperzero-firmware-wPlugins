@@ -61,6 +61,8 @@ typedef enum {
     EspMsgSurvey, /**< SV: one wildcard-probe transmitter seen, matched or NOT */
     EspMsgBand, /**< BAND: the band selection actually in force */
     EspMsgRemoteId, /**< RID: an ASTM F3411 Remote ID broadcast from an aircraft */
+    EspMsgSigRevision, /**< SIGREV: companion probe-signature table revision */
+    EspMsgSigTest, /**< SIGTEST: production signature-path self-test result */
 } EspMsgType;
 
 /**
@@ -255,6 +257,14 @@ typedef struct {
              */
             char build[12];
         } banner;
+        struct { // EspMsgSigRevision (SIGREV)
+            const char* revision; /**< borrowed token in the mutable line buffer */
+        } sigrev;
+        struct { // EspMsgSigTest (SIGTEST)
+            const char* signature; /**< may contain commas; borrowed from line */
+            uint32_t hash;
+            bool pass;
+        } sigtest;
     } u;
 } EspMsg;
 
