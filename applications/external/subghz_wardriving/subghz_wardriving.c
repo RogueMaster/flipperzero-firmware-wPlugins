@@ -172,8 +172,10 @@ SubGhz* subghz_alloc() {
     //Init Error_str
     subghz->error_str = furi_string_alloc();
     subghz->gps = subghz_gps_apply(
-        NULL, subghz->last_settings->gps_protocol, subghz->last_settings->gps_baudrate,
-            subghz->last_settings->gps_pins);
+        NULL,
+        subghz->last_settings->gps_protocol,
+        subghz->last_settings->gps_baudrate,
+        subghz->last_settings->gps_pins);
 
     return subghz;
 }

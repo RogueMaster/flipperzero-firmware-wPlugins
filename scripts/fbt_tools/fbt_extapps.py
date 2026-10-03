@@ -280,11 +280,15 @@ class AppBuilder:
             for directory, dirs, files in os.walk(asset_root):
                 for name in dirs:
                     path = pathlib.Path(directory, name)
-                    asset_entries.append(("dir", path.relative_to(asset_root).as_posix()))
+                    asset_entries.append(
+                        ("dir", path.relative_to(asset_root).as_posix())
+                    )
                 for name in files:
                     path = pathlib.Path(directory, name)
                     asset_files.append(self.app_env.File(str(path)))
-                    asset_entries.append(("file", path.relative_to(asset_root).as_posix()))
+                    asset_entries.append(
+                        ("file", path.relative_to(asset_root).as_posix())
+                    )
             self.app_env.Depends(
                 app_artifacts.compact,
                 (*asset_files, self.app_env.Value(sorted(asset_entries))),

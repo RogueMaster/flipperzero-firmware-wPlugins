@@ -121,8 +121,9 @@ const uint32_t repeater_value[REPEATER_COUNT] = {
     SubGhzRepeaterStateOnShort,
 };
 
-static void
-    subghz_scene_receiver_config_set_ignore_filter(VariableItem* item, SubGhzProtocolFilter filter) {
+static void subghz_scene_receiver_config_set_ignore_filter(
+    VariableItem* item,
+    SubGhzProtocolFilter filter) {
     SubGhz* subghz = variable_item_get_context(item);
     uint8_t index = variable_item_get_current_value_index(item);
 

@@ -7,7 +7,12 @@ App(
     stack_size=3 * 1024,
     fap_icon="icon.png",
     fap_icon_assets="ex_icons",
-    sources=["*.c", "!helpers/subghz_wardriving_gps.c", "!helpers/minmea.c", "!helpers/ubox.c"],
+    sources=[
+        "*.c",
+        "!helpers/subghz_wardriving_gps.c",
+        "!helpers/minmea.c",
+        "!helpers/ubox.c",
+    ],
     fap_libs=["assets", "hwdrivers"],
     fap_category="Sub-GHz",
     fap_author="xMasterX",

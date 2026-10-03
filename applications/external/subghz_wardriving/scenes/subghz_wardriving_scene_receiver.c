@@ -269,7 +269,9 @@ void subghz_scene_receiver_on_enter(void* context) {
 
     if(subghz_rx_key_state_get(subghz) == SubGhzRxKeyStateIDLE) {
         subghz->gps = subghz_gps_apply(
-            subghz->gps, subghz->last_settings->gps_protocol, subghz->last_settings->gps_baudrate,
+            subghz->gps,
+            subghz->last_settings->gps_protocol,
+            subghz->last_settings->gps_baudrate,
             subghz->last_settings->gps_pins);
 
         subghz_wardriving_txrx_set_preset_internal(

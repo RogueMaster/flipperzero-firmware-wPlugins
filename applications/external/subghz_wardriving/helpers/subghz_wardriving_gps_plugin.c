@@ -129,10 +129,8 @@ void subghz_gps_cat_realtime(
         subghz_gps->fix_second);
 }
 
-SubGhzGPS* subghz_gps_plugin_init(
-    SubGhzGpsProtocol protocol,
-    uint32_t baudrate,
-    SubGhzGpsPins pins) {
+SubGhzGPS*
+    subghz_gps_plugin_init(SubGhzGpsProtocol protocol, uint32_t baudrate, SubGhzGpsPins pins) {
     //bool connected = expansion_is_connected(furi_record_open(RECORD_EXPANSION));
     //furi_record_close(RECORD_EXPANSION);
     //if(connected) return NULL;

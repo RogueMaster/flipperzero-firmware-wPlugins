@@ -70,10 +70,8 @@ void subghz_gps_cat_realtime(
  *
  * @return SubGhzGPS* object, or NULL on load failure
 */
-SubGhzGPS* subghz_gps_plugin_init(
-    SubGhzGpsProtocol protocol,
-    uint32_t baudrate,
-    SubGhzGpsPins pins);
+SubGhzGPS*
+    subghz_gps_plugin_init(SubGhzGpsProtocol protocol, uint32_t baudrate, SubGhzGpsPins pins);
 
 /**
  * Unload the UART GPS plugin.

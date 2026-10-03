@@ -25,10 +25,35 @@ if sys.platform != "darwin":
 lib = ctypes.CDLL(ctypes.util.find_library("PCSC"))
 handle = ctypes.c_int32
 dword = ctypes.c_uint32
-lib.SCardEstablishContext.argtypes = [dword, ctypes.c_void_p, ctypes.c_void_p, ctypes.POINTER(handle)]
-lib.SCardListReaders.argtypes = [handle, ctypes.c_char_p, ctypes.c_void_p, ctypes.POINTER(dword)]
-lib.SCardConnect.argtypes = [handle, ctypes.c_char_p, dword, dword, ctypes.POINTER(handle), ctypes.POINTER(dword)]
-lib.SCardTransmit.argtypes = [handle, ctypes.POINTER(IORequest), ctypes.c_void_p, dword, ctypes.c_void_p, ctypes.c_void_p, ctypes.POINTER(dword)]
+lib.SCardEstablishContext.argtypes = [
+    dword,
+    ctypes.c_void_p,
+    ctypes.c_void_p,
+    ctypes.POINTER(handle),
+]
+lib.SCardListReaders.argtypes = [
+    handle,
+    ctypes.c_char_p,
+    ctypes.c_void_p,
+    ctypes.POINTER(dword),
+]
+lib.SCardConnect.argtypes = [
+    handle,
+    ctypes.c_char_p,
+    dword,
+    dword,
+    ctypes.POINTER(handle),
+    ctypes.POINTER(dword),
+]
+lib.SCardTransmit.argtypes = [
+    handle,
+    ctypes.POINTER(IORequest),
+    ctypes.c_void_p,
+    dword,
+    ctypes.c_void_p,
+    ctypes.c_void_p,
+    ctypes.POINTER(dword),
+]
 lib.SCardDisconnect.argtypes = [handle, dword]
 lib.SCardReleaseContext.argtypes = [handle]
 
@@ -58,7 +83,9 @@ def cmac(key, iv, message):
 
     def shift(value):
         number = int.from_bytes(value, "big")
-        return (((number << 1) & ((1 << 64) - 1)) ^ (0x1B if number >> 63 else 0)).to_bytes(8, "big")
+        return (
+            ((number << 1) & ((1 << 64) - 1)) ^ (0x1B if number >> 63 else 0)
+        ).to_bytes(8, "big")
 
     k1 = shift(block(zero))
     k2 = shift(k1)
@@ -68,23 +95,31 @@ def cmac(key, iv, message):
         mask = k1
     else:
         head = message[: len(message) // 8 * 8]
-        last = message[len(head):] + b"\x80" + b"\0" * (7 - (len(message) - len(head)))
+        last = message[len(head) :] + b"\x80" + b"\0" * (7 - (len(message) - len(head)))
         mask = k2
     state = iv
     for offset in range(0, len(head), 8):
-        state = block(bytes(a ^ b for a, b in zip(state, head[offset:offset + 8])))
+        state = block(bytes(a ^ b for a, b in zip(state, head[offset : offset + 8])))
     return block(bytes(a ^ b ^ c for a, b, c in zip(state, last, mask)))
 
 
 parser = argparse.ArgumentParser(description=__doc__)
-parser.add_argument("credential", type=Path, help=".dfc text credential loaded on the Flipper")
+parser.add_argument(
+    "credential", type=Path, help=".dfc text credential loaded on the Flipper"
+)
 parser.add_argument("--reader", default="ACR1552", help="PC/SC reader name substring")
-parser.add_argument("--application", type=int, default=0, help="application index in the .dfc file")
+parser.add_argument(
+    "--application", type=int, default=0, help="application index in the .dfc file"
+)
 parser.add_argument("--file", type=int, default=0, help="file index in the application")
 parser.add_argument("--key", type=int, default=1, help="read key index")
 args = parser.parse_args()
 
-fields = dict(line.split(":", 1) for line in args.credential.read_text().splitlines() if ":" in line)
+fields = dict(
+    line.split(":", 1)
+    for line in args.credential.read_text().splitlines()
+    if ":" in line
+)
 fields = {name.strip(): value.strip() for name, value in fields.items()}
 app_prefix = f"Application {args.application:02d}"
 file_prefix = f"{app_prefix} File {args.file:02d}"
@@ -108,7 +143,9 @@ card = handle()
 protocol = dword()
 try:
     for attempt in range(60):
-        result = lib.SCardConnect(context, reader, 2, 3, ctypes.byref(card), ctypes.byref(protocol))
+        result = lib.SCardConnect(
+            context, reader, 2, 3, ctypes.byref(card), ctypes.byref(protocol)
+        )
         if result == 0:
             break
         if result & 0xFFFFFFFF != 0x8010000C:
@@ -122,7 +159,17 @@ try:
     def exchange(command):
         response = ctypes.create_string_buffer(4096)
         length = dword(len(response))
-        check(lib.SCardTransmit(card, ctypes.byref(request), command, len(command), None, response, ctypes.byref(length)))
+        check(
+            lib.SCardTransmit(
+                card,
+                ctypes.byref(request),
+                command,
+                len(command),
+                None,
+                response,
+                ctypes.byref(length),
+            )
+        )
         value = response.raw[: length.value]
         if len(value) < 2 or value[-2] != 0x91:
             raise RuntimeError(f"Unexpected response tail: {value[-2:].hex()}")
@@ -131,13 +178,17 @@ try:
     _, status = exchange(apdu(0x5A, aid))
     assert status == 0, f"SelectApplication status {status:02X}"
     enc_b, status = exchange(apdu(0x1A, bytes([args.key])))
-    assert status == 0xAF and len(enc_b) == 8, f"Authenticate challenge status {status:02X} len {len(enc_b)}"
+    assert (
+        status == 0xAF and len(enc_b) == 8
+    ), f"Authenticate challenge status {status:02X} len {len(enc_b)}"
     rnd_b = crypt(key, b"\0" * 8, enc_b, False)
     rnd_a = os.urandom(8)
     challenge = rnd_a + rnd_b[1:] + rnd_b[:1]
     enc_challenge = crypt(key, enc_b, challenge, True)
     enc_a, status = exchange(apdu(0xAF, enc_challenge))
-    assert status == 0 and len(enc_a) == 8, f"Authenticate response status {status:02X} len {len(enc_a)}"
+    assert (
+        status == 0 and len(enc_a) == 8
+    ), f"Authenticate response status {status:02X} len {len(enc_a)}"
     rotated_a = crypt(key, enc_challenge[-8:], enc_a, False)
     assert rotated_a == rnd_a[1:] + rnd_a[:1], "Card authentication proof mismatch"
     print("ISO 2K3DES authentication: verified")
@@ -149,10 +200,14 @@ try:
     command = bytes([file_number]) + b"\0\0\0" + count.to_bytes(3, "little")
     iv = cmac(session_key, iv, b"\xBD" + command)
     response, status = exchange(apdu(0xBD, command))
-    print(f"ReadData count {count}: status {status:02X}, response bytes {len(response)}")
+    print(
+        f"ReadData count {count}: status {status:02X}, response bytes {len(response)}"
+    )
     while status == 0xAF:
         continuation, status = exchange(apdu(0xAF))
-        print(f"AdditionalFrame: status {status:02X}, response bytes {len(continuation)}")
+        print(
+            f"AdditionalFrame: status {status:02X}, response bytes {len(continuation)}"
+        )
         response += continuation
     assert status == 0, f"ReadData status {status:02X}"
     assert len(response) == count + 8, "Missing or extra response MAC bytes"
