@@ -22,9 +22,7 @@
 #include <gui/modules/widget.h>
 #include "views/dict_attack.h"
 #include "views/detect_reader.h"
-#include "views/dict_attack.h"
 #include "views/ndef_text_input.h"
-#include "views/loading_label.h"
 
 #include <nfc/scenes/nfc_scene.h>
 #include "helpers/nfc_detected_protocols.h"
@@ -226,7 +224,7 @@ struct NfcApp {
     DialogEx* dialog_ex;
     Popup* popup;
     Loading* loading;
-    LoadingLabel* loading_label;
+    Loading* loading_label;
     TextInput* text_input;
     NdefTextInput* ndef_text_input;
     ByteInput* byte_input;
@@ -305,6 +303,9 @@ void nfc_show_loading_popup(void* context, bool show);
 
 // Like nfc_show_loading_popup, but with a text label beside the spinner (e.g. naming a slow load).
 void nfc_show_loading_label_popup(void* context, const char* text, bool show);
+
+// Shows/updates a bar under an open nfc_show_loading_label_popup's label; 0.0f to 1.0f.
+void nfc_set_loading_label_progress(void* context, float progress);
 
 bool nfc_has_shadow_file(NfcApp* instance);
 

@@ -12,6 +12,8 @@
 #include "loader_menu_storage_i.h"
 
 #include <flipper_application/flipper_application.h>
+#include <flipper_application/plugins/plugin_manager.h>
+#include <loader/firmware_api/firmware_api.h>
 #include <toolbox/stream/file_stream.h>
 #include <gui/modules/file_browser.h>
 #include <core/dangerous_defines.h>
@@ -117,9 +119,31 @@ LIST_DEF(MenuAppList, MenuApp, M_POD_OPLIST)
 typedef struct {
     LoaderMenu* loader_menu;
     Menu* primary_menu;
+    PluginManager* style_manager;
     Submenu* settings_menu;
     MenuAppList_t apps_list;
 } LoaderMenuApp;
+
+static void loader_menu_load_style(LoaderMenuApp* app) {
+    char name[32];
+    loader_get_menu_style_name(app->loader_menu->loader, name);
+    if(!name[0]) return; // List stays available without an SD card.
+
+    PluginManager* manager = plugin_manager_alloc(
+        MENU_STYLE_PLUGIN_APP_ID, MENU_STYLE_PLUGIN_API_VERSION, firmware_api_interface);
+    FuriString* path = furi_string_alloc_printf("%s/%s", LOADER_MENU_STYLES_PATH, name);
+    PluginManagerError error = plugin_manager_load_single(manager, furi_string_get_cstr(path));
+    const MenuStylePlugin* style =
+        error == PluginManagerErrorNone ? plugin_manager_get_ep(manager, 0) : NULL;
+    if(style && style->draw && style->navigate) {
+        menu_set_style(app->primary_menu, style);
+        app->style_manager = manager;
+    } else {
+        FURI_LOG_W(TAG, "Style %s unavailable or invalid (%u), using List", name, error);
+        plugin_manager_free(manager);
+    }
+    furi_string_free(path);
+}
 
 static void loader_menu_start(const char* name) {
     Loader* loader = furi_record_open(RECORD_LOADER);
@@ -371,11 +395,13 @@ static void loader_menu_build_submenu(LoaderMenuApp* app, LoaderMenu* loader_men
 static LoaderMenuApp* loader_menu_app_alloc(LoaderMenu* loader_menu) {
     LoaderMenuApp* app = malloc(sizeof(LoaderMenuApp));
     app->loader_menu = loader_menu;
+    app->style_manager = NULL;
 
     // Primary menu
     if(!app->loader_menu->settings_only) {
         app->primary_menu = menu_alloc();
         loader_menu_build_menu(app, loader_menu);
+        loader_menu_load_style(app);
     }
 
     // Settings menu
@@ -399,7 +425,10 @@ static void loader_menu_app_free(LoaderMenuApp* app) {
 
     if(!app->loader_menu->settings_only) {
         app->loader_menu->selected_primary = menu_get_selected_item(app->primary_menu);
+        // Detach the plugin vtable under the model mutex before its image can be unmapped.
+        menu_set_style(app->primary_menu, NULL);
         menu_free(app->primary_menu);
+        if(app->style_manager) plugin_manager_free(app->style_manager);
         for
             M_EACH(menu_app, app->apps_list, MenuAppList_t) {
                 // Path only set for FAPs, if unset then name and

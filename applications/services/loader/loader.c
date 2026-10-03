@@ -6,15 +6,21 @@
 #include <assets_icons.h>
 
 #include <dialogs/dialogs.h>
+#include <gui/gui_i.h>
 #include <toolbox/path.h>
 #include <flipper_application/flipper_application.h>
 #include <loader/firmware_api/firmware_api.h>
 
 #include <cfw/asset_packs.h>
+#include <cfw/settings.h>
 
 #define TAG "Loader"
 
 #define LOADER_MAGIC_THREAD_VALUE 0xDEADBEEF
+
+// The animation consumes input while it is visible, so bound the startup hold.
+#define LOADER_LOADING_HOLD_PERIOD_MS 50
+#define LOADER_LOADING_HOLD_MAX_MS    2000
 
 // helpers
 
@@ -264,6 +270,54 @@ void loader_show_settings(Loader* loader) {
     furi_message_queue_put(loader->queue, &message, FuriWaitForever);
 }
 
+static bool loader_menu_style_name_is_valid(const char* name) {
+    if(!name || !name[0]) return true;
+    const size_t length = strlen(name);
+    if(length >= 32 || length <= strlen("menu_style_.fal") ||
+       strncmp(name, "menu_style_", strlen("menu_style_")) != 0 ||
+       strcmp(name + length - strlen(".fal"), ".fal") != 0) {
+        return false;
+    }
+    for(size_t i = strlen("menu_style_"); i < length - strlen(".fal"); i++) {
+        const char ch = name[i];
+        if(!((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') ||
+             ch == '_')) {
+            return false;
+        }
+    }
+    return true;
+}
+
+void loader_set_menu_style(Loader* loader, const char* name) {
+    furi_check(loader);
+    if(!loader_menu_style_name_is_valid(name)) {
+        FURI_LOG_E(TAG, "Invalid menu style filename, ignoring");
+        return;
+    }
+    LoaderMessage message = {
+        .type = LoaderMessageTypeSetMenuStyle,
+        .menu_style_name = strdup(name ? name : ""),
+    };
+    furi_message_queue_put(loader->queue, &message, FuriWaitForever);
+}
+
+void loader_get_menu_style_name(Loader* loader, char name[32]) {
+    furi_check(loader);
+    furi_check(name);
+    furi_mutex_acquire(loader->menu_style_mutex, FuriWaitForever);
+    // Card insertion reloads the CFW settings without going through the picker.
+    // A custom API filename remains selected until that numeric setting changes.
+    const MenuStyle setting = cfw_settings.menu_style;
+    if(loader->menu_style_setting != (uint32_t)setting) {
+        const char* filename = cfw_menu_style_get_plugin_name(setting);
+        strlcpy(
+            loader->menu_style_name, filename ? filename : "", sizeof(loader->menu_style_name));
+        loader->menu_style_setting = (uint32_t)setting;
+    }
+    memcpy(name, loader->menu_style_name, sizeof(loader->menu_style_name));
+    furi_mutex_release(loader->menu_style_mutex);
+}
+
 FuriPubSub* loader_get_pubsub(Loader* loader) {
     furi_check(loader);
     // it's safe to return pubsub without locking
@@ -362,6 +416,14 @@ static void
 
 // implementation
 
+static void loader_loading_timer_callback(void* context) {
+    furi_assert(context);
+    Loader* loader = context;
+    // The queue is one deep; a poll that does not fit is covered by the next one.
+    LoaderMessage message = {.type = LoaderMessageTypeLoadingCheck};
+    furi_message_queue_put(loader->queue, &message, 0);
+}
+
 static Loader* loader_alloc(void) {
     Loader* loader = malloc(sizeof(Loader));
     loader->pubsub = furi_pubsub_alloc();
@@ -369,6 +431,16 @@ static Loader* loader_alloc(void) {
     loader->gui = furi_record_open(RECORD_GUI);
     loader->view_holder = view_holder_alloc();
     loader->loading = loading_alloc();
+    loader->menu_style_mutex = furi_mutex_alloc(FuriMutexTypeNormal);
+    const MenuStyle setting = cfw_settings.menu_style;
+    loader->menu_style_setting = (uint32_t)setting;
+    const char* style_name = cfw_menu_style_get_plugin_name(setting);
+    strlcpy(
+        loader->menu_style_name, style_name ? style_name : "", sizeof(loader->menu_style_name));
+    loader->loading_depth = 0;
+    loader->loading_held = false;
+    loader->loading_timer =
+        furi_timer_alloc(loader_loading_timer_callback, FuriTimerTypePeriodic, loader);
     view_holder_attach_to_gui(loader->view_holder, loader->gui);
     return loader;
 }
@@ -519,6 +591,13 @@ static LoaderStatusError
     }
 }
 
+// Runs on the loader thread while the GUI thread draws the loading view.
+static void loader_do_assets_progress(void* context, size_t done, size_t total) {
+    Loader* loader = context;
+    if(total == 0) return;
+    loading_set_progress(loader->loading, (float)done / (float)total);
+}
+
 static LoaderMessageLoaderStatusResult loader_start_external_app(
     Loader* loader,
     Storage* storage,
@@ -535,6 +614,9 @@ static LoaderMessageLoaderStatusResult loader_start_external_app(
 
         FURI_LOG_I(TAG, "Loading %s", path);
 
+        flipper_application_set_assets_progress_callback(
+            loader->app.fap, loader_do_assets_progress, loader);
+
         // Calling preload will load whole FAP file, so need to preload manifest first to
         // get flags value, unload asset packs if requested by flags, then preload whole FAP
         FlipperApplicationFlag flags = FlipperApplicationFlagDefault;
@@ -550,6 +632,8 @@ static LoaderMessageLoaderStatusResult loader_start_external_app(
             }
             preload_res = flipper_application_preload(loader->app.fap, path);
         }
+
+        loading_reset_progress(loader->loading);
 
         bool api_mismatch = false;
         if(preload_res == FlipperApplicationPreloadStatusApiTooOld ||
@@ -685,6 +769,89 @@ static bool loader_do_is_locked(Loader* loader) {
     return loader->app.thread != NULL;
 }
 
+static bool loader_is_application_running(Loader* loader) {
+    FuriThread* app_thread = loader->app.thread;
+    return app_thread && (app_thread != (FuriThread*)LOADER_MAGIC_THREAD_VALUE);
+}
+
+static void loader_do_set_menu_style(Loader* loader, const char* name) {
+    furi_mutex_acquire(loader->menu_style_mutex, FuriWaitForever);
+    strlcpy(loader->menu_style_name, name, sizeof(loader->menu_style_name));
+    loader->menu_style_setting = (uint32_t)cfw_settings.menu_style;
+    furi_mutex_release(loader->menu_style_mutex);
+}
+
+// Exclude the status bar: service icon changes do not mean the app has appeared.
+static size_t loader_do_count_view_ports(Loader* loader) {
+    return gui_active_view_port_count(loader->gui, GuiLayerDesktop) +
+           gui_active_view_port_count(loader->gui, GuiLayerWindow) +
+           gui_active_view_port_count(loader->gui, GuiLayerFullscreen);
+}
+
+static void loader_do_drop_loading(Loader* loader) {
+    if(!loader->loading_held) return;
+    loader->loading_held = false;
+    furi_timer_stop(loader->loading_timer);
+    // A nested launch bracket still owns the loading view when its depth is nonzero.
+    if(loader->loading_depth == 0) view_holder_set_view(loader->view_holder, NULL);
+}
+
+// Deferred chains and individual app starts nest, so retain the outer owner's view.
+static void loader_do_show_loading(Loader* loader) {
+    loader_do_drop_loading(loader);
+    furi_check(loader->loading_depth < UINT8_MAX);
+    loader->loading_depth++;
+    if(loader->loading_depth == 1) {
+        view_holder_send_to_front(loader->view_holder);
+        view_holder_set_view(loader->view_holder, loading_get_view(loader->loading));
+    }
+    // The menu has already stopped before app starts; our loading view is included.
+    loader->loading_view_ports_baseline = loader_do_count_view_ports(loader);
+}
+
+static bool loader_do_args_are_rpc(const char* args) {
+    return args && strncmp(args, "RPC ", 4) == 0;
+}
+
+static void loader_do_hide_loading(Loader* loader) {
+    furi_check(loader->loading_depth > 0);
+    loader->loading_depth--;
+    if(loader->loading_depth > 0) return;
+
+    // RPC apps can wait for a remote command without drawing a local view.
+    if(loader_is_application_running(loader) && !loader->app.rpc) {
+        loader->loading_hold_start = furi_get_tick();
+        if(furi_timer_start(
+               loader->loading_timer, furi_ms_to_ticks(LOADER_LOADING_HOLD_PERIOD_MS)) ==
+           FuriStatusOk) {
+            loader->loading_held = true;
+            return;
+        }
+        FURI_LOG_E(TAG, "Loading hold timer did not start");
+    }
+    view_holder_set_view(loader->view_holder, NULL);
+}
+
+static void loader_do_check_loading(Loader* loader) {
+    if(!loader->loading_held) return;
+    const size_t view_ports = loader_do_count_view_ports(loader);
+    if(view_ports > loader->loading_view_ports_baseline) {
+        loader_do_drop_loading(loader);
+        return;
+    }
+    // Elapsed ticks bound the wait even when the timer daemon misses queue slots.
+    const uint32_t elapsed = furi_get_tick() - loader->loading_hold_start;
+    if(elapsed >= furi_ms_to_ticks(LOADER_LOADING_HOLD_MAX_MS)) {
+        FURI_LOG_W(
+            TAG,
+            "No view port from the app in %zums, dropping loading (%zu, was %zu)",
+            (size_t)elapsed,
+            view_ports,
+            loader->loading_view_ports_baseline);
+        loader_do_drop_loading(loader);
+    }
+}
+
 static LoaderMessageLoaderStatusResult loader_do_start_by_name(
     Loader* loader,
     const char* name,
@@ -726,6 +893,8 @@ static LoaderMessageLoaderStatusResult loader_do_start_by_name(
         event.type = LoaderEventTypeApplicationBeforeLoad;
         furi_pubsub_publish(loader->pubsub, &event);
 
+        loader->app.rpc = loader_do_args_are_rpc(args);
+
         // Translate app names (mainly for RPC)
         if(!strncmp(name, "Bad USB", strlen("Bad USB"))) {
             name = "Bad KB";
@@ -735,7 +904,9 @@ static LoaderMessageLoaderStatusResult loader_do_start_by_name(
         {
             const FlipperInternalApplication* app = loader_find_application_by_name(name);
             if(app) {
+                loader_do_show_loading(loader);
                 loader_start_internal_app(loader, app, args);
+                loader_do_hide_loading(loader);
                 status.value = loader_make_success_status(error_message);
                 break;
             }
@@ -753,7 +924,9 @@ static LoaderMessageLoaderStatusResult loader_do_start_by_name(
         {
             Storage* storage = furi_record_open(RECORD_STORAGE);
             if(storage_file_exists(storage, name)) {
+                loader_do_show_loading(loader);
                 status = loader_start_external_app(loader, storage, name, args, error_message);
+                loader_do_hide_loading(loader);
                 furi_record_close(RECORD_STORAGE);
                 break;
             }
@@ -811,8 +984,7 @@ static bool loader_do_deferred_launch(Loader* loader, LoaderDeferredLaunchRecord
 
     bool is_successful = false;
     FuriString* error_message = furi_string_alloc();
-    view_holder_set_view(loader->view_holder, loading_get_view(loader->loading));
-    view_holder_send_to_front(loader->view_holder);
+    loader_do_show_loading(loader);
 
     do {
         const char* app_name_str = record->name_or_path;
@@ -832,15 +1004,15 @@ static bool loader_do_deferred_launch(Loader* loader, LoaderDeferredLaunchRecord
         loader_do_next_deferred_launch_if_available(loader);
     } while(false);
 
-    if(!loader->loader_menu) {
-        view_holder_set_view(loader->view_holder, NULL);
-    }
+    loader_do_hide_loading(loader);
     furi_string_free(error_message);
     return is_successful;
 }
 
 static void loader_do_app_closed(Loader* loader) {
     furi_assert(loader->app.thread);
+
+    loader_do_drop_loading(loader);
 
     furi_thread_join(loader->app.thread);
     FURI_LOG_I(TAG, "App returned: %li", furi_thread_get_return_code(loader->app.thread));
@@ -875,11 +1047,6 @@ static void loader_do_app_closed(Loader* loader) {
     }
 
     loader_do_next_deferred_launch_if_available(loader);
-}
-
-static bool loader_is_application_running(Loader* loader) {
-    FuriThread* app_thread = loader->app.thread;
-    return app_thread && (app_thread != (FuriThread*)LOADER_MAGIC_THREAD_VALUE);
 }
 
 static bool loader_do_signal(Loader* loader, uint32_t signal, void* arg) {
@@ -1000,6 +1167,13 @@ int32_t loader_srv(void* p) {
             case LoaderMessageTypeClearLaunchQueue:
                 loader_queue_clear(&loader->launch_queue);
                 api_lock_unlock(message.api_lock);
+                break;
+            case LoaderMessageTypeSetMenuStyle:
+                loader_do_set_menu_style(loader, message.menu_style_name);
+                free(message.menu_style_name);
+                break;
+            case LoaderMessageTypeLoadingCheck:
+                loader_do_check_loading(loader);
                 break;
             }
         }

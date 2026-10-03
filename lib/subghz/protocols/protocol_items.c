@@ -5,6 +5,7 @@ const SubGhzProtocol* const subghz_protocol_registry_items[] = {
     &subghz_protocol_keeloq,
     &subghz_protocol_nice_flo,
     &subghz_protocol_came,
+    &subghz_protocol_prastel,
     &subghz_protocol_faac_slh,
     &subghz_protocol_nice_flor_s,
     &subghz_protocol_came_twee,

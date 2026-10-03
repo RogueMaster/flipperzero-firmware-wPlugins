@@ -19,6 +19,7 @@ typedef struct {
     char* args;
     FuriThread* thread;
     bool insomniac;
+    bool rpc;
     FlipperApplication* fap;
 
     bool unloaded_asset_packs;
@@ -33,10 +34,22 @@ struct Loader {
 
     LoaderLaunchQueue launch_queue;
 
+    FuriMutex* menu_style_mutex;
+    char menu_style_name[32];
+    uint32_t menu_style_setting;
+
     Gui* gui;
     ViewHolder* view_holder;
     Loading* loading;
+    uint8_t loading_depth;
+    FuriTimer* loading_timer;
+    uint32_t loading_hold_start;
+    size_t loading_view_ports_baseline;
+    bool loading_held;
 };
+
+/** Copy the filename selected for the next primary menu into a 32-byte buffer. */
+void loader_get_menu_style_name(Loader* loader, char name[32]);
 
 typedef enum {
     LoaderMessageTypeStartByName,
@@ -55,6 +68,8 @@ typedef enum {
     LoaderMessageTypeClearLaunchQueue,
 
     LoaderMessageTypeShowSettings,
+    LoaderMessageTypeSetMenuStyle,
+    LoaderMessageTypeLoadingCheck,
 } LoaderMessageType;
 
 typedef struct {
@@ -97,6 +112,7 @@ typedef struct {
         LoaderDeferredLaunchRecord defer_start;
         LoaderMessageSignal signal;
         FuriString* application_name;
+        char* menu_style_name;
     };
 
     union {

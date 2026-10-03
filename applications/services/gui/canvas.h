@@ -484,6 +484,12 @@ void canvas_draw_rbox(
     size_t height,
     size_t radius);
 
+/** Set canvas orientation. Useful for menu style plugins drawing a vertical layout. */
+void canvas_set_orientation(Canvas* canvas, CanvasOrientation orientation);
+
+/** Get the orientation attached to the current display/RPC frame. */
+CanvasOrientation canvas_get_orientation(const Canvas* canvas);
+
 #ifdef __cplusplus
 }
 #endif

@@ -1,4 +1,5 @@
 #include "../cfw_app.h"
+#include <loader/loader.h>
 
 // Reference the menu style names from mainmenu scene
 extern const char* const menu_style_names[MenuStyleCount];
@@ -22,7 +23,9 @@ void cfw_app_scene_interface_mainmenu_style_on_enter(void* context) {
     }
 
     submenu_set_header(submenu, "Choose Menu Style:");
-    submenu_set_selected_item(submenu, cfw_settings.menu_style);
+    submenu_set_selected_item(
+        submenu,
+        (uint32_t)cfw_settings.menu_style < MenuStyleCount ? cfw_settings.menu_style : MenuStyleList);
     view_dispatcher_switch_to_view(app->view_dispatcher, CFWAppViewSubmenu);
 }
 
@@ -32,7 +35,11 @@ bool cfw_app_scene_interface_mainmenu_style_on_event(void* context, SceneManager
 
     if(event.type == SceneManagerEventTypeCustom) {
         consumed = true;
+        if(event.event >= MenuStyleCount) return consumed;
         cfw_settings.menu_style = event.event;
+        Loader* loader = furi_record_open(RECORD_LOADER);
+        loader_set_menu_style(loader, cfw_menu_style_get_plugin_name(cfw_settings.menu_style));
+        furi_record_close(RECORD_LOADER);
         app->save_settings = true;
         scene_manager_previous_scene(app->scene_manager);
     }

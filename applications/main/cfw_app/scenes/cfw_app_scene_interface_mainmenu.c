@@ -1,4 +1,5 @@
 #include "../cfw_app.h"
+#include <loader/loader.h>
 
 enum VarItemListIndex {
     VarItemListIndexMenuStyle,
@@ -24,12 +25,19 @@ const char* const menu_style_names[MenuStyleCount] = {
     "Compact",
     "MNTM",
     "CoverFlow",
+    "Grid",
+    "Macintosh",
+    "3D",
 };
 static void cfw_app_scene_interface_mainmenu_menu_style_changed(VariableItem* item) {
     CFWApp* app = variable_item_get_context(item);
     uint8_t index = variable_item_get_current_value_index(item);
+    if(index >= MenuStyleCount) return;
     variable_item_set_current_value_text(item, menu_style_names[index]);
     cfw_settings.menu_style = index;
+    Loader* loader = furi_record_open(RECORD_LOADER);
+    loader_set_menu_style(loader, cfw_menu_style_get_plugin_name(cfw_settings.menu_style));
+    furi_record_close(RECORD_LOADER);
     app->save_settings = true;
 }
 
@@ -70,6 +78,11 @@ void cfw_app_scene_interface_mainmenu_on_enter(void* context) {
     CFWApp* app = context;
     VariableItemList* var_item_list = app->var_item_list;
     VariableItem* item;
+
+    if((uint32_t)cfw_settings.menu_style >= MenuStyleCount) {
+        cfw_settings.menu_style = MenuStyleList;
+        app->save_settings = true;
+    }
 
     item = variable_item_list_add(
         var_item_list,

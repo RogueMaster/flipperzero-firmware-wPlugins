@@ -8,6 +8,11 @@ extern "C" {
 #define RECORD_LOADER            "loader"
 #define LOADER_APPLICATIONS_NAME "Apps"
 
+/** Loader-owned menu plugins are deployed here by requires=["loader"]. */
+#define LOADER_MENU_STYLES_PATH  "/ext/apps_data/loader/plugins"
+/** A menu plugin basename starts with its appid prefix. */
+#define LOADER_MENU_STYLE_PREFIX "menu_style_"
+
 typedef struct Loader Loader;
 
 typedef enum {
@@ -93,6 +98,19 @@ void loader_show_menu(Loader* instance);
  * @param[in] instance loader instance
  */
 void loader_show_settings(Loader* instance);
+
+/**
+ * @brief Select a main menu style for the next menu opening.
+ *
+ * Enqueues a copied plugin filename. An active menu keeps its current plugin until
+ * it closes, so changing the selection cannot unmap code while the GUI uses it.
+ * NULL or an empty string selects the built-in List style. Other names must be
+ * menu_style_*.fal basenames shorter than 32 bytes; invalid names are ignored.
+ *
+ * @param[in] instance loader instance
+ * @param[in] name plugin filename, or NULL for List
+ */
+void loader_set_menu_style(Loader* instance, const char* name);
 
 /**
  * @brief Get loader pubsub

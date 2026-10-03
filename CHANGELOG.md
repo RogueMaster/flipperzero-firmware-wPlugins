@@ -1,5 +1,57 @@
 ## Main changes
-- Current API: 88.4
+- Current API: 88.6
+
+### Cumulative integration checkpoint B05: 2026-10-02
+
+- GUI: [Discard keys pressed during a loading animation instead of replaying them into the next screen #1125 (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1125)
+- GUI: [Allow apps to show a startup loading view; used by the new RFID settings page #1125 (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1125)
+- SubGHz: [Read Prastel 42-bit signals as a rolling-code protocol separate from CAME (By zero-mega & xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/e6ded9b108454b30a3e710295e6d2b7fd146e188)
+- Apps: [Show progress while bundled app assets are unpacked to the SD card](https://github.com/DarkFlippers/unleashed-firmware/commit/69c036819ef2b8415ac3c579104b039e43f91ec6)
+- NFC: [Reset the parse popup so its hourglass does not appear under later screens #1142 (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1142)
+- RFID: [Correct Keri PSK decoding and require two matching frames before accepting a read (OFW #4449) (By mfcarroll)](https://github.com/DarkFlippers/unleashed-firmware/commit/946a52a6408272bd285bbeb8645b3cf2f9991809)
+- RFID: [Measure capture durations from consecutive hardware timestamps (OFW #4442) (By mfcarroll)](https://github.com/DarkFlippers/unleashed-firmware/commit/946a52a6408272bd285bbeb8645b3cf2f9991809)
+- NFC: [Award Dolphin XP when a card is emulated from Favorites (OFW #4448) (By peakji)](https://github.com/DarkFlippers/unleashed-firmware/commit/946a52a6408272bd285bbeb8645b3cf2f9991809)
+- RFID: [Choose and save enabled chip types in Settings -> Write Chips; the app and CLI only try selected targets #1146 (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1146)
+- RFID: [Write EM4100 RF/64 keys to Hitag S / ID8268 clones; enable 8268 in Write Chips because it is off by default #1148 (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1148)
+- SubGHz: [Read and resend Monarch and KEY remotes, add KL: KEY 433MHz, and preserve the Monarch DISC value](https://github.com/DarkFlippers/unleashed-firmware/commit/37e7db36f6912c8c4133f2d02c27a1af624dd15b)
+- NFC: [End the MIFARE Classic dictionary attack as soon as the card is fully read #1151 (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1151)
+- NFC: [Keep reader changes to emulated FeliCa cards by fixing SimpleArray byte lengths and comparing nested FeliCa/DESFire data #1107 (By MNeroba)](https://github.com/DarkFlippers/unleashed-firmware/pull/1107)
+- iButton: [Choose and save enabled blank types in Settings -> Write Blanks and display the current write target #1153 (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1153)
+- HID: [Stop Mouse Jiggler timers correctly, reset their running state, and wait for Bluetooth connectivity #1112 (By MNeroba)](https://github.com/DarkFlippers/unleashed-firmware/pull/1112)
+- RFID: [Add cards manually by facility code and card number, with hex entry retained for other formats #1149 (By matthewb-worthe)](https://github.com/DarkFlippers/unleashed-firmware/pull/1149)
+- RFID: [Read and enter HID H10302, H10304, H10306, AMAG S10401 and Corporate 1000 35-bit formats #1149 (By matthewb-worthe)](https://github.com/DarkFlippers/unleashed-firmware/pull/1149)
+- RFID: [Read Casi-Rusco C10106 badges and add them manually using their printed credential/card numbers #1149 (By matthewb-worthe)](https://github.com/DarkFlippers/unleashed-firmware/pull/1149)
+- GUI: [Start Number Input on a value within its accepted range and validate empty input consistently #1149 (By matthewb-worthe)](https://github.com/DarkFlippers/unleashed-firmware/pull/1149)
+- SubGHz: [Handle unavailable transmitters safely and clear the transmitter pointer after teardown #1104 (By MNeroba)](https://github.com/DarkFlippers/unleashed-firmware/pull/1104)
+- SubGHz: [Send both Nord ICE frames with corrected timings, support all four buttons, and add Nord ICE 433MHz manually](https://github.com/DarkFlippers/unleashed-firmware/commit/5643ae0c42ff4e454fef28e332a4bfa34560507b)
+- RFID: [Ignore unknown chip bits in saved Write Chips settings so newer settings do not confuse the write screen #1164 (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1164)
+- NFC: [Show loading progress for large per-UID (CUID) dictionaries on Read #1167 (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1167)
+- GUI: [Show a text label alongside the loading spinner #1169 (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1169)
+- SubGHz: [Read and send Genius remotes using Manufacture: Genius and add 433MHz/868MHz generation](https://github.com/DarkFlippers/unleashed-firmware/commit/178a99e5d6acecf32e6831aa8ca8b7daf08b6ae2)
+- SubGHz: [Name the new Add Manually entries Genius 433MHz and Genius 868MHz](https://github.com/DarkFlippers/unleashed-firmware/commit/079d84374c7603be6e37ec49ecddc71ae75d9775)
+- SubGHz: [Check external radio initialization in the CLI and clean up failed transmission attempts](https://github.com/DarkFlippers/unleashed-firmware/commit/ed50682677d93e5ef74675b9e3492ef9f4f189ed)
+- SubGHz: [Add HomeGate manufacturer support and HomeGate 433MHz generation with the new manufacturer database](https://github.com/DarkFlippers/unleashed-firmware/commit/e4eda9efca0177401c4b34872b6e366668a80041)
+- SubGHz: [Add Prastel 433MHz generation and button editing; the four-button map remains unverified](https://github.com/DarkFlippers/unleashed-firmware/commit/e4eda9efca0177401c4b34872b6e366668a80041)
+- SubGHz: [Add Seed Capturer to save Fix/Hop pairs from FAAC SLH, Genius and Erreka remotes for offline seed recovery (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/64d285c8e2a7eeef5f34cd5988d8506e2d730743)
+- RPC: [Reject forged app RPC contexts and validate live sessions while registering callbacks #4456](https://github.com/flipperdevices/flipperzero-firmware/pull/4456)
+- NFC: [Limit nested NDEF SmartPoster parsing to prevent stack overflow #4456](https://github.com/flipperdevices/flipperzero-firmware/pull/4456)
+- NFC: [Reject saved DESFire data with oversized access-rights fields #4456](https://github.com/flipperdevices/flipperzero-firmware/pull/4456)
+- iButton: [Reject saved keys whose protocol is unavailable in this firmware #4456](https://github.com/flipperdevices/flipperzero-firmware/pull/4456)
+- Storage: [Treat read errors while extracting TAR files as failures #4456](https://github.com/flipperdevices/flipperzero-firmware/pull/4456)
+- NFC: [Bound ISO14443-3A cascade levels and UID lengths during anticollision #4456](https://github.com/flipperdevices/flipperzero-firmware/pull/4456)
+- Build: [Install FAPs after selected distribution commands to avoid the output-directory race #4457](https://github.com/flipperdevices/flipperzero-firmware/pull/4457)
+- Build: [Report free flash after reserving the radio stack and check minimum headroom in compact CI #4457](https://github.com/flipperdevices/flipperzero-firmware/pull/4457)
+- RFID: [Move Indala224 after existing protocol IDs to preserve app compatibility while retaining RM InstaFob](https://github.com/DarkFlippers/unleashed-firmware/commit/08afbae1b294206fca106003a767c6fc7535ec04)
+- API: [Restore mf_desfire_send_chunks as an exported wrapper so apps using the earlier function can link](https://github.com/DarkFlippers/unleashed-firmware/commit/eedbad331bb263863a09a078a1c58d232586b5fc)
+- SubGHz: [Correct the Prastel 21-bit serial layout and recognize the first frame after the shorter preamble gap](https://github.com/DarkFlippers/unleashed-firmware/commit/7c1b4fff4ba9f5873c9c2cb75f76e080da699272)
+- GUI: [Load main menu styles as separate plugins, including Grid, while retaining List, MNTM and the existing RM styles in CFW Settings -> Interface -> Mainmenu -> Menu Style #1119/#1126 (By apfxtech; original layout authors credited in source)](https://github.com/DarkFlippers/unleashed-firmware/pull/1119)
+- GUI: [Fix C64 and Compact Left/Right navigation when the opposite column is only partly filled #1121 (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1121)
+- GUI: [Correct Vertical screen streaming, validate menu style plugins before use, fall back to List when unavailable, and document the plugin ABI #1121 (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1121)
+- GUI: [Keep the loading animation through app startup until the first app screen appears, including internal apps, with RPC bypass and a bounded hold #1129 (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1129)
+- GUI: [Add Macintosh desktop and 3D carousel menu styles in CFW Settings -> Interface -> Mainmenu -> Menu Style #1155 (By apfxtech; based on Ardutosh by jhhoward and the 3D OLED menu by upiir)](https://github.com/DarkFlippers/unleashed-firmware/pull/1155)
+
+### Previous firmware changes
+
 - SubGHz: **Add Superrollo (GW60) roller-shutter protocol** (KeeLoq HCS361) (67bit rolling code, with CRC) (with add manually support) (PR #1068 | by @rollorentner)
 - SubGHz: **Read no longer adds a copy of the last received signal a few seconds after it arrived** - the duplicate filter now measures the gap between the signals themselves instead of the time they reached the app, so the last repeat of a burst is recognised as a repeat no matter how late the receiver reports it
 - Apps: Build tag (**27aug2026p2**) - **Check out more Apps updates and fixes by following** [this link](https://github.com/xMasterX/all-the-plugins/commits/dev)
