@@ -103,26 +103,26 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Security+ PIN v1.0 (By zero-mega & xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/e6ded9b108454b30a3e710295e6d2b7fd146e188)
 - Build: [Fix embedded plugin asset dependencies on repeated builds, including ProtoPirate 3.8 (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins)
 - Updated: [UHF Expansion v1.5 (By mtoolstec)](https://github.com/mtoolstec/fz-uhf-expansion)
-- Updated: [NFC Magic v2.2 (By gornekich)](https://github.com/flipperdevices/flipperzero-firmware/pull/1966) — Use per-UID cached keys before dictionary attacks and for Gen2 probing; retain RM ISO15693 support.
-- Updated: [Video Game Module Tool v1.4 (By gsurkov)](https://github.com/flipperdevices/flipperzero-good-faps/pull/127) — Make both SWDIO direction changes atomic.
-- Updated: [Daikin AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac) — Add seven additional AC protocol formats and model names.
-- Updated: [Haier AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac) — Add HSU07, AC160 and AC176 protocol support.
-- Updated: [MitsuHeavy AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac) — Add the ZJ-S protocol alongside ZM-S.
-- Updated: [WiFi (Marauder) v0.7.12 (By 0xchocolate & tcpassos)](https://github.com/0xchocolate/flipperzero-firmware-with-wifi-marauder-companion) — Add the FindMy device-index input prompt.
-- Updated: [Hotspot Arcade v1.10.0 (By tarikbc)](https://github.com/tarikbc/hotspot-arcade) — Restore the missing S2, WROOM and C5 firmware bundle files and flash manifests.
+- Updated: [NFC Magic v2.2 (By gornekich)](https://github.com/flipperdevices/flipperzero-firmware/pull/1966) - Use per-UID cached keys before dictionary attacks and for Gen2 probing; retain RM ISO15693 support.
+- Updated: [Video Game Module Tool v1.4 (By gsurkov)](https://github.com/flipperdevices/flipperzero-good-faps/pull/127) - Make both SWDIO direction changes atomic.
+- Updated: [Daikin AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac) - Add seven additional AC protocol formats and model names.
+- Updated: [Haier AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac) - Add HSU07, AC160 and AC176 protocol support.
+- Updated: [MitsuHeavy AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac) - Add the ZJ-S protocol alongside ZM-S.
+- Updated: [WiFi (Marauder) v0.7.12 (By 0xchocolate & tcpassos)](https://github.com/0xchocolate/flipperzero-firmware-with-wifi-marauder-companion) - Add the FindMy device-index input prompt.
+- Updated: [Hotspot Arcade v1.10.0 (By tarikbc)](https://github.com/tarikbc/hotspot-arcade) - Restore the missing S2, WROOM and C5 firmware bundle files and flash manifests.
 - Added: [AC Detector v1.0 (By xMasterX)](https://github.com/xMasterX/all-the-plugins/tree/213baa6e872d1db597a25d2c16e81406e9634440/non_catalog_apps/ac_detector)
 - Added: [Better Mouse v1.2 (By timon)](https://github.com/xMasterX/all-the-plugins/tree/213baa6e872d1db597a25d2c16e81406e9634440/non_catalog_apps/bettermouse)
 - Added: [Bounce v1.0 (By Tom Varghese)](https://github.com/tomxposed/flipper-bounce)
 - Added: [Goodweather AC v1.0 (By xMasterX)](https://github.com/xMasterX/all-the-plugins/tree/213baa6e872d1db597a25d2c16e81406e9634440/non_catalog_apps/goodweather_ac_remote)
 - Added: [Kelon AC v1.0 (By xMasterX)](https://github.com/xMasterX/all-the-plugins/tree/213baa6e872d1db597a25d2c16e81406e9634440/non_catalog_apps/kelon_ac_remote)
 - Added: [Kelvinator AC v1.0 (By xMasterX)](https://github.com/xMasterX/all-the-plugins/tree/213baa6e872d1db597a25d2c16e81406e9634440/non_catalog_apps/kelvinator_ac_remote)
-- Added: [Midea AC (Full) v1.0 (By xMasterX)](https://github.com/xMasterX/all-the-plugins/tree/213baa6e872d1db597a25d2c16e81406e9634440/non_catalog_apps/midea_ac_remote) — Add the full implementation alongside the existing RM remote.
-- Added: [Mitsubishi AC (Full) v1.0 (By xMasterX)](https://github.com/xMasterX/all-the-plugins/tree/213baa6e872d1db597a25d2c16e81406e9634440/non_catalog_apps/mitsubishi_ac_remote) — Add the full implementation alongside the existing RM remote.
-- Added: [Samsung AC (Full) v1.0 (By xMasterX)](https://github.com/xMasterX/all-the-plugins/tree/213baa6e872d1db597a25d2c16e81406e9634440/non_catalog_apps/samsung_ac_remote) — Add the full implementation alongside the existing RM remote.
+- Added: [Midea AC (Full) v1.0 (By xMasterX)](https://github.com/xMasterX/all-the-plugins/tree/213baa6e872d1db597a25d2c16e81406e9634440/non_catalog_apps/midea_ac_remote) - Add the full implementation alongside the existing RM remote.
+- Added: [Mitsubishi AC (Full) v1.0 (By xMasterX)](https://github.com/xMasterX/all-the-plugins/tree/213baa6e872d1db597a25d2c16e81406e9634440/non_catalog_apps/mitsubishi_ac_remote) - Add the full implementation alongside the existing RM remote.
+- Added: [Samsung AC (Full) v1.0 (By xMasterX)](https://github.com/xMasterX/all-the-plugins/tree/213baa6e872d1db597a25d2c16e81406e9634440/non_catalog_apps/samsung_ac_remote) - Add the full implementation alongside the existing RM remote.
 - Added: [Stack Attack v1.0 (By Negenii)](https://github.com/Negenii/flipper-stack-attack)
-- Added: [Sub-GHz WarDriving v0.1 (By xMasterX)](https://github.com/xMasterX/all-the-plugins/tree/213baa6e872d1db597a25d2c16e81406e9634440/base_pack/subghz_wardriving) — Include embedded UART GPS support for NMEA/Ubox; phone RPC GPS requires a firmware service unavailable in this RM base.
-- Updated: [CFW Settings v2.2 (By WillyJL, ESurge & RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/tree/420/applications/main/cfw_app) — restore the configurable Game Menu with its own menu style, starting game, add/remove/reorder controls, and reset to all installed games.
-- Desktop: [Restore the custom Game Menu on short center press in Game Mode (By ESurge & RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/tree/710_historical)
+- Added: [Sub-GHz WarDriving v0.1 (By xMasterX)](https://github.com/xMasterX/all-the-plugins/tree/213baa6e872d1db597a25d2c16e81406e9634440/base_pack/subghz_wardriving) - Include embedded UART GPS support for NMEA/Ubox.
+- Updated: [CFW Settings v2.2 (By WillyJL, ESurge & RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/tree/420/applications/main/cfw_app) - restore the configurable Game Menu with its own menu style, starting game, add/remove/reorder controls, and reset to all installed games.
+- Desktop: [Restore the custom Game Menu on short center press in Game Mode (By ESurge & RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/pull/756)
 - Updated: [Morse Flipper v0.3.0 (By yo3gnd)](https://github.com/yo3gnd/morse-flipper)
 - Updated: [FlipDeFlock v0.98 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
 
@@ -216,6 +216,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - RFID: [Support of Hitag Micro chips (8265/8210/H5.5) (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1002)
 - RFID: [Wipe T5577 (reset to blank, with read-back verification) (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1003)
 - Settings: Battery Meter on Desktop [Thanks to McAzzaMan](https://github.com/McAzzaMan/flipperzero-firmware/tree/BatteryPercentageView)
+- Settings: [Customizable Game Mode Menu (By ESurge & RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/pull/756)
 - CFW Settings => Interface => General => [Game Mode (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/GAMES_ONLY.md)
 - - [UP UP DOWN DOWN LEFT RIGHT LEFT RIGHT FROM CLOCK to EXIT](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/GAMES_ONLY.md)
 - Settings: Power: [About on Power Off (By LeeroysHub)](https://github.com/LeeroysHub/)
