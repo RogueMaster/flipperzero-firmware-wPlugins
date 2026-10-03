@@ -100,3 +100,21 @@ App(
     requires=["loader"],
     sources=["mntm.c"],
 )
+
+App(
+    appid="menu_style_terminal",
+    name="Terminal",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="menu_style_terminal_ep",
+    requires=["loader"],
+    sources=["terminal.c"],
+)
+
+App(
+    appid="menu_style_eurocorp",
+    name="Eurocorp",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="menu_style_eurocorp_ep",
+    requires=["loader"],
+    sources=["eurocorp.c", "font.c"],
+)

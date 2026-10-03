@@ -1,7 +1,7 @@
 ## Main changes
 - Current API: 88.6
 
-### Cumulative integration checkpoint B05: 2026-10-02
+### Cumulative integration checkpoint B05.5: 2026-10-02
 
 - GUI: [Discard keys pressed during a loading animation instead of replaying them into the next screen #1125 (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1125)
 - GUI: [Allow apps to show a startup loading view; used by the new RFID settings page #1125 (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1125)
@@ -49,6 +49,8 @@
 - GUI: [Correct Vertical screen streaming, validate menu style plugins before use, fall back to List when unavailable, and document the plugin ABI #1121 (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1121)
 - GUI: [Keep the loading animation through app startup until the first app screen appears, including internal apps, with RPC bypass and a bounded hold #1129 (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1129)
 - GUI: [Add Macintosh desktop and 3D carousel menu styles in CFW Settings -> Interface -> Mainmenu -> Menu Style #1155 (By apfxtech; based on Ardutosh by jhhoward and the 3D OLED menu by upiir)](https://github.com/DarkFlippers/unleashed-firmware/pull/1155)
+- GUI: [Restore the Terminal main menu style as a plugin in CFW Settings -> Interface -> Mainmenu -> Menu Style (By MatthewKuKanich)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/78555005bd9cd4f080d2cd67aba3f91afd1eff99)
+- GUI: [Restore the Eurocorp main menu style and original font as a plugin in CFW Settings -> Interface -> Mainmenu -> Menu Style (By xtruan)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/ef6826481559db3096d90f88bc3340347f4ab372)
 
 ### Previous firmware changes
 

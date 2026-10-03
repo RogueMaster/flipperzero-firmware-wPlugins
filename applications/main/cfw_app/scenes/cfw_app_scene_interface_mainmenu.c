@@ -28,6 +28,8 @@ const char* const menu_style_names[MenuStyleCount] = {
     "Grid",
     "Macintosh",
     "3D",
+    "Terminal",
+    "Eurocorp",
 };
 static void cfw_app_scene_interface_mainmenu_menu_style_changed(VariableItem* item) {
     CFWApp* app = variable_item_get_context(item);

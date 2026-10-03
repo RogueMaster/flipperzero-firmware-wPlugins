@@ -35,6 +35,8 @@ typedef enum {
     MenuStyleGrid,
     MenuStyleMacintosh,
     MenuStyle3D,
+    MenuStyleTerminal,
+    MenuStyleEurocorp,
     MenuStyleCount,
 } MenuStyle;
 
@@ -63,6 +65,10 @@ static inline const char* cfw_menu_style_get_plugin_name(MenuStyle style) {
         return "menu_style_macintosh.fal";
     case MenuStyle3D:
         return "menu_style_3d.fal";
+    case MenuStyleTerminal:
+        return "menu_style_terminal.fal";
+    case MenuStyleEurocorp:
+        return "menu_style_eurocorp.fal";
     default:
         return NULL;
     }
