@@ -200,6 +200,8 @@ bool subghz_scene_receiver_info_on_event(void* context, SceneManagerEvent event)
             }
         }
     } else if(event.type == SceneManagerEventTypeTick) {
+        // Poll before hopping; this screen has no device indicator to refresh.
+        subghz_txrx_radio_device_poll_active(subghz->txrx);
         if(subghz_txrx_hopper_get_state(subghz->txrx) != SubGhzHopperStateOFF) {
             subghz_txrx_hopper_update(subghz->txrx, subghz->last_settings->hopping_threshold);
         }

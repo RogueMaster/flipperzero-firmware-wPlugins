@@ -357,6 +357,13 @@ bool desktop_lock_menu_input_callback(InputEvent* event, void* context) {
         lock_menu->callback(desktop_event, lock_menu->context);
     }
 
+    // RM uses short left/right to move between its existing tiles. Hold right
+    // to open the additional brightness/volume/vibro page without changing that navigation.
+    if(!show_lock_popup && event->key == InputKeyRight && event->type == InputTypeLong) {
+        lock_menu->callback(DesktopLockMenuEventOpenQuickSettings, lock_menu->context);
+        consumed = true;
+    }
+
     return consumed;
 }
 

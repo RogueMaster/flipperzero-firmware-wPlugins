@@ -779,6 +779,9 @@ bool subghz_scene_receiver_config_on_event(void* context, SceneManagerEvent even
             scene_manager_previous_scene(subghz->scene_manager);
             consumed = true;
         }
+    } else if(event.type == SceneManagerEventTypeTick) {
+        // The receiver keeps running while its configuration screen is open.
+        subghz_txrx_radio_device_poll_active(subghz->txrx);
     }
     return consumed;
 }

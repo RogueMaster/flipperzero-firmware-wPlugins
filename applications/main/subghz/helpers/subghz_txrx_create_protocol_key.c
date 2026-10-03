@@ -577,7 +577,7 @@ bool subghz_txrx_gen_prastel_protocol(
 
     txrx->transmitter =
         subghz_transmitter_alloc_init(txrx->environment, SUBGHZ_PROTOCOL_PRASTEL_NAME);
-    subghz_txrx_set_preset(txrx, preset_name, frequency, NULL, 0);
+    subghz_txrx_set_preset(txrx, preset_name, frequency, NAN, NAN, NULL, 0);
 
     if(txrx->transmitter && subghz_protocol_prastel_create_data(
                                 subghz_transmitter_get_protocol_instance(txrx->transmitter),

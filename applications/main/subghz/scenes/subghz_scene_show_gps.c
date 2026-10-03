@@ -61,6 +61,8 @@ bool subghz_scene_show_gps_on_event(void* context, SceneManagerEvent event) {
     if(scene_manager_get_scene_state(subghz->scene_manager, SubGhzSceneShowGps)) return false;
 
     if(event.type == SceneManagerEventTypeTick) {
+        // Live receiver history leaves RX running; saved-file GPS returns above.
+        subghz_txrx_radio_device_poll_active(subghz->txrx);
         if(subghz->state_notifications == SubGhzNotificationStateRx) {
             if(subghz->gps) {
                 if(subghz->gps->satellites > 0) {

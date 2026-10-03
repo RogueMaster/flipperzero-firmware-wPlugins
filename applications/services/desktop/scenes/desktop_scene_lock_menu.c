@@ -130,6 +130,10 @@ bool desktop_scene_lock_menu_on_event(void* context, SceneManagerEvent event) {
         case DesktopLockMenuEventStealthModeOff:
             desktop_set_stealth_mode_state(desktop, false);
             break;
+        case DesktopLockMenuEventOpenQuickSettings:
+            scene_manager_next_scene(desktop->scene_manager, DesktopSceneQuickSettings);
+            consumed = true;
+            break;
         default:
             break;
         }

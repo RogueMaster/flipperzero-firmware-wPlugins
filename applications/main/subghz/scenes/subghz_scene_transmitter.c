@@ -96,9 +96,10 @@ bool subghz_scene_transmitter_on_event(void* context, SceneManagerEvent event) {
             subghz_block_generic_global.endless_tx = true;
             if(subghz_tx_start(subghz, subghz_txrx_get_fff_data(subghz->txrx))) {
                 subghz->state_notifications = SubGhzNotificationStateTx;
-                subghz_scene_transmitter_update_data_show(subghz);
                 dolphin_deed(DolphinDeedSubGhzSend);
             }
+            // TX startup may have fallen back to the internal radio.
+            subghz_scene_transmitter_update_data_show(subghz);
             return true;
         } else if(event.event == SubGhzCustomEventViewTransmitterSendStop) {
             // user release OK

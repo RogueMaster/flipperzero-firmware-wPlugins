@@ -37,7 +37,7 @@ typedef enum {
     MenuItemStatus = 3,
     MenuItemSettings = 4,
     MenuItemAbout = 5,
-} MenuItem;
+} OsmMenuItem;
 
 // Back depuis le menu principal -> on sort de l'app
 static bool app_navigation_callback(void* ctx) {

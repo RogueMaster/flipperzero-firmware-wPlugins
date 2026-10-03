@@ -19,12 +19,6 @@ extern const SubGhzProtocol subghz_protocol_honeywell;
 void* subghz_protocol_encoder_honeywell_alloc(SubGhzEnvironment* environment);
 
 /**
- * Free SubGhzProtocolEncoderHoneywell.
- * @param context Pointer to a SubGhzProtocolEncoderHoneywell instance
- */
-void subghz_protocol_encoder_honeywell_free(void* context);
-
-/**
  * Deserialize and generating an upload to send.
  * @param context Pointer to a SubGhzProtocolEncoderHoneywell instance
  * @param flipper_format Pointer to a FlipperFormat instance
@@ -34,30 +28,11 @@ SubGhzProtocolStatus
     subghz_protocol_encoder_honeywell_deserialize(void* context, FlipperFormat* flipper_format);
 
 /**
- * Forced transmission stop.
- * @param context Pointer to a SubGhzProtocolEncoderHoneywell instance
- */
-void subghz_protocol_encoder_honeywell_stop(void* context);
-
-/**
- * Getting the level and duration of the upload to be loaded into DMA.
- * @param context Pointer to a SubGhzProtocolEncoderHoneywell instance
- * @return LevelDuration 
- */
-LevelDuration subghz_protocol_encoder_honeywell_yield(void* context);
-
-/**
  * Allocate SubGhzProtocolDecoderHoneywell.
  * @param environment Pointer to a SubGhzEnvironment instance
  * @return SubGhzProtocolDecoderHoneywell* pointer to a SubGhzProtocolDecoderHoneywell instance
  */
 void* subghz_protocol_decoder_honeywell_alloc(SubGhzEnvironment* environment);
-
-/**
- * Free SubGhzProtocolDecoderHoneywell.
- * @param context Pointer to a SubGhzProtocolDecoderHoneywell instance
- */
-void subghz_protocol_decoder_honeywell_free(void* context);
 
 /**
  * Reset decoder SubGhzProtocolDecoderHoneywell.

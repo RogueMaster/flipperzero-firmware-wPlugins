@@ -498,7 +498,6 @@ void subghz_frequency_analyzer_exit(void* context) {
     }
     subghz_frequency_analyzer_worker_free(instance->worker);
 
-    furi_record_close(RECORD_NOTIFICATION);
 }
 
 SubGhzFrequencyAnalyzer* subghz_frequency_analyzer_alloc(SubGhzTxRx* txrx) {

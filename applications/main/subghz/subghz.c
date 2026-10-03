@@ -181,16 +181,6 @@ SubGhz* subghz_alloc(bool alloc_for_tx_only) {
             subghz->view_dispatcher,
             SubGhzViewIdVariableItemList,
             variable_item_list_get_view(subghz->variable_item_list));
-
-#ifndef SUBGHZ_ADD_MANUALLY
-        // Frequency Analyzer
-        // View knows too much
-        subghz->subghz_frequency_analyzer = subghz_frequency_analyzer_alloc(subghz->txrx);
-        view_dispatcher_add_view(
-            subghz->view_dispatcher,
-            SubGhzViewIdFrequencyAnalyzer,
-            subghz_frequency_analyzer_get_view(subghz->subghz_frequency_analyzer));
-#endif
     }
 
 #ifndef SUBGHZ_ADD_MANUALLY
@@ -294,6 +284,11 @@ void subghz_free(SubGhz* subghz, bool alloc_for_tx_only) {
     furi_assert(subghz);
 
 #ifndef SUBGHZ_ADD_MANUALLY
+    // Its scene drops it on exit, but a kill signals the event loop directly and runs no scene
+    // handler, leaving a registered view that view_dispatcher_free furi_checks on. Must stay
+    // above the view dispatcher, last settings and notification teardown - the plugin uses them.
+    subghz_frequency_analyzer_plugin_unload(subghz);
+
     if(subghz->rpc_ctx) {
         rpc_system_app_set_callback(subghz->rpc_ctx, NULL, NULL);
         rpc_system_app_send_exited(subghz->rpc_ctx);
@@ -337,12 +332,6 @@ void subghz_free(SubGhz* subghz, bool alloc_for_tx_only) {
         // Variable Item List
         view_dispatcher_remove_view(subghz->view_dispatcher, SubGhzViewIdVariableItemList);
         variable_item_list_free(subghz->variable_item_list);
-
-#ifndef SUBGHZ_ADD_MANUALLY
-        // Frequency Analyzer
-        view_dispatcher_remove_view(subghz->view_dispatcher, SubGhzViewIdFrequencyAnalyzer);
-        subghz_frequency_analyzer_free(subghz->subghz_frequency_analyzer);
-#endif
     }
 #ifndef SUBGHZ_ADD_MANUALLY
     // Read RAW

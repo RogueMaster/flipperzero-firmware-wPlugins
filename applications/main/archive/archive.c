@@ -142,6 +142,8 @@ int32_t archive_app(void* p) {
     ArchiveApp* archive = archive_alloc();
     view_dispatcher_attach_to_gui(
         archive->view_dispatcher, archive->gui, ViewDispatcherTypeFullscreen);
+    // Cover path setup and the first browser scene, including direct desktop launches.
+    view_dispatcher_show_loading(archive->view_dispatcher);
 
     // If we are sent a path from context, set it in the browser
     if(path && !furi_string_empty(path)) {

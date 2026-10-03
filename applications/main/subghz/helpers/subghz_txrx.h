@@ -9,6 +9,10 @@
 #include <lib/subghz/protocols/raw.h>
 #include <lib/subghz/devices/devices.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct SubGhzTxRx SubGhzTxRx;
 
 typedef void (*SubGhzTxRxNeedSaveCallback)(void* context);
@@ -158,6 +162,10 @@ void subghz_txrx_sleep(SubGhzTxRx* instance);
 
 /**
  * Update frequency CC1101 in automatic mode (hopper)
+ *
+ * Call subghz_txrx_radio_device_poll_active() earlier in the same scene tick.
+ * Hopping is the hot path and does not probe by itself; skipping that check
+ * would keep hopping an external module that has been unplugged.
  * 
  * @param instance Pointer to a SubGhzTxRx
  * @param stay_threshold RSSI theshold over which to stay before hopping
@@ -350,6 +358,9 @@ void subghz_txrx_set_raw_file_encoder_worker_callback_end(
 bool subghz_txrx_radio_device_is_external_connected(SubGhzTxRx* instance, const char* name);
 
 /* Set the selected radio device to use
+* The radio must be stopped first. An active RX/TX selection request is ignored.
+* The return value describes the device that actually began, which may be the
+* internal fallback when an external module is unavailable.
 *
 * @param instance Pointer to a SubGhzTxRx
 * @param radio_device_type Radio device type
@@ -357,6 +368,30 @@ bool subghz_txrx_radio_device_is_external_connected(SubGhzTxRx* instance, const 
 */
 SubGhzRadioDeviceType
     subghz_txrx_radio_device_set(SubGhzTxRx* instance, SubGhzRadioDeviceType radio_device_type);
+
+/** Check an idle/sleeping selected external module and fall back if it is missing.
+ * Uses one status read for a live module and never searches from the internal
+ * radio. RX/TX entry calls this before any device-bound worker is created.
+ *
+ * @return true when the selected radio changes and the scene must redraw its status
+ */
+bool subghz_txrx_radio_device_poll(SubGhzTxRx* instance);
+
+/** Also search for a previously missing external module, at most once per 5 seconds.
+ * The power/self-test timeout can stall, so use only on the idle Sub-GHz menu.
+ * An explicit Internal selection disables both automatic fallback and reacquisition.
+ *
+ * @return true when the selected radio changes and the scene must redraw its status
+ */
+bool subghz_txrx_radio_device_poll_reacquire(SubGhzTxRx* instance);
+
+/** Check for an external module lost during RX, joining the worker before swapping.
+ * Restarts reception with the same preset and frequency on the radio that answered.
+ * Does not switch a running transmitter or search for a missing module during RX.
+ *
+ * @return true when the selected radio changes and the scene must redraw its status
+ */
+bool subghz_txrx_radio_device_poll_active(SubGhzTxRx* instance);
 
 /* Get the selected radio device to use
 *
@@ -436,3 +471,7 @@ const char* subghz_txrx_set_preset_internal(
     uint32_t frequency,
     uint8_t index,
     uint8_t tx_power);
+
+#ifdef __cplusplus
+}
+#endif

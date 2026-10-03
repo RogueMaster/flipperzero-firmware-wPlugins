@@ -1,5 +1,5 @@
 entry,status,name,type,params
-Version,+,88.4,,
+Version,+,88.5,,
 Function,-,LL_ADC_CommonDeInit,ErrorStatus,ADC_Common_TypeDef*
 Function,-,LL_ADC_CommonInit,ErrorStatus,"ADC_Common_TypeDef*, const LL_ADC_CommonInitTypeDef*"
 Function,-,LL_ADC_CommonStructInit,void,LL_ADC_CommonInitTypeDef*
@@ -2148,6 +2148,7 @@ Function,+,plugin_manager_get,const FlipperAppPluginDescriptor*,"PluginManager*,
 Function,+,plugin_manager_get_count,uint32_t,PluginManager*
 Function,+,plugin_manager_get_ep,const void*,"PluginManager*, uint32_t"
 Function,+,plugin_manager_load_all,PluginManagerError,"PluginManager*, const char*"
+Function,+,plugin_manager_load_all_prefixed,PluginManagerError,"PluginManager*, const char*, const char*"
 Function,+,plugin_manager_load_single,PluginManagerError,"PluginManager*, const char*"
 Function,-,popen,FILE*,"const char*, const char*"
 Function,+,popup_alloc,Popup*,
@@ -3257,3 +3258,9 @@ Variable,+,usb_cdc_single,FuriHalUsbInterface,
 Variable,+,usb_hid,FuriHalUsbInterface,
 Variable,+,usb_hid_u2f,FuriHalUsbInterface,
 Variable,+,usbd_devfs,const usbd_driver,
+Function,+,subghz_protocol_decoder_nice_flor_s_set_skip_o_code,void,"void*, _Bool"
+Function,+,subghz_protocol_nice_flor_s_decrypt_ic,uint64_t,"uint64_t, uint16_t, const char*"
+Function,+,subghz_protocol_nice_o_get_parcel,uint8_t,uint64_t
+Function,+,subghz_protocol_nice_o_mask,void,"uint8_t, uint32_t*, uint16_t*"
+Function,+,infrared_brute_force_get_current_record_name,const char*,const InfraredBruteForce*
+Function,+,infrared_brute_force_load_signal,_Bool,"InfraredBruteForce*, uint32_t, InfraredSignal*"

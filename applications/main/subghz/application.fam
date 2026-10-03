@@ -9,7 +9,9 @@ App(
     order=10,
     # Sources separation breaks linking with subghz on internal
     sources=[
-        "*.c",
+        "*.c*",
+        "!subghz_frequency_analyzer.c",
+        "!subghz_frequency_analyzer_worker.c",
         "!subghz_fap.c",
         "!subghz_gps.c",
         "!minmea.c",

@@ -112,7 +112,11 @@ static bool subrem_map_preset_load(SubRemMapPreset* map_preset, FlipperFormat* f
             strint_to_uint16(furi_string_get_cstr(button_str), NULL, &button_code, 16) !=
             StrintParseNoError) {
 #ifdef FURI_DEBUG
-            FURI_LOG_W(TAG, "Invalid Button for %s: %s", map_file_labels[i][0], button_str);
+            FURI_LOG_W(
+                TAG,
+                "Invalid Button for %s: %s",
+                map_file_labels[i][0],
+                furi_string_get_cstr(button_str));
 #endif
         } else {
             sub_preset->button = (uint8_t)button_code;

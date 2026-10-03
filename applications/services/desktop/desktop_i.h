@@ -10,6 +10,7 @@
 #include "views/desktop_view_locked.h"
 #include "views/desktop_view_main.h"
 #include "views/desktop_view_lock_menu.h"
+#include "views/desktop_view_quick_settings.h"
 #include "views/desktop_view_debug.h"
 #include "views/desktop_view_slideshow.h"
 
@@ -27,6 +28,7 @@
 typedef enum {
     DesktopViewIdMain,
     DesktopViewIdLockMenu,
+    DesktopViewIdQuickSettings,
     DesktopViewIdLocked,
     _DesktopViewIdDebug, // Unused, kept for compatibility
     DesktopViewIdPopup,
@@ -51,6 +53,7 @@ struct Desktop {
 
     Popup* popup;
     DesktopLockMenuView* lock_menu;
+    DesktopQuickSettingsView* quick_settings;
     DesktopDebugView* _debug_view; // Unused, kept for compatibility
     DesktopViewLocked* locked_view;
     DesktopMainView* main_view;

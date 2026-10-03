@@ -43,6 +43,7 @@ struct SubGhzProtocolDecoderFaacSLH {
 
     FuriString* manufacture_from_file;
 };
+SUBGHZ_ASSERT_DECODER_COMMON_LAYOUT(SubGhzProtocolDecoderFaacSLH);
 
 struct SubGhzProtocolEncoderFaacSLH {
     SubGhzProtocolEncoderBase base;
@@ -55,6 +56,7 @@ struct SubGhzProtocolEncoderFaacSLH {
 
     FuriString* manufacture_from_file;
 };
+SUBGHZ_ASSERT_ENCODER_GENERIC_LAYOUT(SubGhzProtocolEncoderFaacSLH);
 
 typedef enum {
     FaacSLHDecoderStepReset = 0,
@@ -151,16 +153,9 @@ static uint64_t subghz_protocol_faac_slh_get_key(
 }
 
 void* subghz_protocol_encoder_faac_slh_alloc(SubGhzEnvironment* environment) {
-    SubGhzProtocolEncoderFaacSLH* instance = malloc(sizeof(SubGhzProtocolEncoderFaacSLH));
-
-    instance->base.protocol = &subghz_protocol_faac_slh;
-    instance->generic.protocol_name = instance->base.protocol->name;
+    SubGhzProtocolEncoderFaacSLH* instance = subghz_protocol_encoder_common_alloc(
+        sizeof(SubGhzProtocolEncoderFaacSLH), &subghz_protocol_faac_slh, 3, 256);
     instance->keystore = subghz_environment_get_keystore(environment);
-
-    instance->encoder.repeat = 3;
-    instance->encoder.size_upload = 256;
-    instance->encoder.upload = malloc(instance->encoder.size_upload * sizeof(LevelDuration));
-    instance->encoder.is_running = false;
     instance->manufacture_from_file = furi_string_alloc();
     return instance;
 }
@@ -383,7 +378,7 @@ bool subghz_protocol_faac_slh_create_data(
 /**
  * Generating an upload from data.
  * @param instance Pointer to a SubGhzProtocolEncoderFaacSLH instance
- * @return true On success
+ * @return true Always; this encoder has no failure path
  */
 static bool subghz_protocol_encoder_faac_slh_get_upload(SubGhzProtocolEncoderFaacSLH* instance) {
     furi_assert(instance);
@@ -503,9 +498,8 @@ SubGhzProtocolStatus
 
 void* subghz_protocol_decoder_faac_slh_alloc(SubGhzEnvironment* environment) {
     UNUSED(environment);
-    SubGhzProtocolDecoderFaacSLH* instance = malloc(sizeof(SubGhzProtocolDecoderFaacSLH));
-    instance->base.protocol = &subghz_protocol_faac_slh;
-    instance->generic.protocol_name = instance->base.protocol->name;
+    SubGhzProtocolDecoderFaacSLH* instance = subghz_protocol_decoder_common_alloc(
+        sizeof(SubGhzProtocolDecoderFaacSLH), &subghz_protocol_faac_slh);
     instance->keystore = subghz_environment_get_keystore(environment);
     instance->manufacture_from_file = furi_string_alloc();
     return instance;

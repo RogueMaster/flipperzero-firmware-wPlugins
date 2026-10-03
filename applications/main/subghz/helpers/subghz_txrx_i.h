@@ -7,6 +7,7 @@ struct SubGhzTxRx {
 
     SubGhzEnvironment* environment;
     SubGhzReceiver* receiver;
+    SubGhzProtocolFlag receiver_filter;
     SubGhzTransmitter* transmitter;
     SubGhzProtocolDecoderBase* decoder_result;
     FlipperFormat* fff_data;
@@ -23,6 +24,12 @@ struct SubGhzTxRx {
     SubGhzSpeakerState speaker_state;
     const SubGhzDevice* radio_device;
     SubGhzRadioDeviceType radio_device_type;
+    // Keep the requested external preference when a missing module falls back to internal.
+    bool radio_device_external_wanted;
+    // Last probe of any kind; a failed module is not searched for again immediately.
+    uint32_t radio_device_probe_tick;
+    // Do not disable a rail that was already enabled before this helper acquired it.
+    bool radio_device_otg_owned;
 
     SubGhzTxRxNeedSaveCallback need_save_callback;
     void* need_save_context;

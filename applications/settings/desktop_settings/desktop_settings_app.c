@@ -66,6 +66,7 @@ DesktopSettingsApp* desktop_settings_app_alloc(void) {
         app->view_dispatcher, desktop_settings_back_event_callback);
 
     view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
+    view_dispatcher_show_loading(app->view_dispatcher);
 
     app->popup = popup_alloc();
     app->submenu = submenu_alloc();
