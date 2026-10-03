@@ -79,6 +79,9 @@ static const uint8_t FAN_CODES[MitsubishiHeavyFanCount] = {
     MH_FAN_HIGH,
 };
 
+/// Named after the handset, matching what the detector prints.
+static const char* MODEL_NAMES[MitsubishiHeavyModelCount] = {"ZM-S", "ZJ-S"};
+
 static const char* MODE_NAMES[MitsubishiHeavyModeCount] =
     {"Off", "Cool", "Auto", "Dry", "Heat", "Fan"};
 static const char* FAN_NAMES[MitsubishiHeavyFanCount] = {"Auto", "Low", "Med", "High"};
@@ -88,6 +91,83 @@ static const char* EXTRA_NAMES[MitsubishiHeavyExtraCount] =
     {"Vane top", "Vane high", "Vane mid", "Vane low", "Vane bot", "SwingH on", "SwingH off"};
 
 /// From byte 4 on, every odd byte is the complement of the one before it.
+// ==========================================================================
+// ZJ-S, 11 bytes.
+//
+// Same line coding and the same inverted-byte-pair scheme as ZM-S, but a
+// shorter frame with everything packed differently: mode, power and
+// temperature all share byte 9, and the vertical vane is split across two
+// bytes.
+// ==========================================================================
+
+#define ZJS_LEN     11
+#define ZJS_SIG_LEN 5
+
+#define ZJS_FAN_AUTO  0
+#define ZJS_FAN_LOW   2
+#define ZJS_FAN_MED   3
+#define ZJS_FAN_HIGH  4
+#define ZJS_FAN_TURBO 6
+#define ZJS_FAN_ECONO 7
+
+#define ZJS_SWINGV_OFF  0b000
+#define ZJS_SWINGV_AUTO 0b100
+#define ZJS_SWINGH_OFF  0b0000
+#define ZJS_SWINGH_AUTO 0b1000
+
+static const uint8_t ZJS_SIG[ZJS_SIG_LEN] = {0xAD, 0x51, 0x3C, 0xD9, 0x26};
+
+static const uint8_t FAN_CODES_ZJS[MitsubishiHeavyFanCount] = {
+    ZJS_FAN_AUTO,
+    ZJS_FAN_LOW,
+    ZJS_FAN_MED,
+    ZJS_FAN_HIGH,
+};
+
+static void build_state_zjs(
+    const MitsubishiHeavyRequest* req,
+    bool power,
+    bool swing_v,
+    bool swing_h,
+    uint8_t* st) {
+    memset(st, 0, ZJS_LEN);
+    memcpy(st, ZJS_SIG, ZJS_SIG_LEN);
+
+    MitsubishiHeavyMode mode = req->mode;
+    if(mode == MitsubishiHeavyModeOff || mode >= MitsubishiHeavyModeCount) {
+        mode = MitsubishiHeavyModeCool;
+    }
+
+    uint8_t temp = req->temp;
+    if(temp < MITSUBISHI_HEAVY_TEMP_MIN) temp = MITSUBISHI_HEAVY_TEMP_MIN;
+    if(temp > MITSUBISHI_HEAVY_TEMP_MAX) temp = MITSUBISHI_HEAVY_TEMP_MAX;
+
+    // ZJ-S has no separate quiet bit: the economy speed lives in the fan
+    // field, so the Silent button picks it rather than setting a flag.
+    uint8_t fan = FAN_CODES_ZJS[req->fan % MitsubishiHeavyFanCount];
+    if((req->toggle_bits >> MitsubishiHeavyToggleSilent) & 1) fan = ZJS_FAN_ECONO;
+
+    // The vertical vane is three bits split across bytes 5 and 7: bit 0 sits
+    // in byte 5, bits 1 and 2 in byte 7.
+    uint8_t sv = swing_v ? ZJS_SWINGV_AUTO : ZJS_SWINGV_OFF;
+    uint8_t sh = swing_h ? ZJS_SWINGH_AUTO : ZJS_SWINGH_OFF;
+
+    st[5] = (uint8_t)(((sv & 0b001) << 1) | ((sh & 0b0011) << 2) | ((sh >> 2) << 6));
+    if((req->toggle_bits >> MitsubishiHeavyToggleClean) & 1) st[5] |= 1 << 5;
+
+    st[7] = (uint8_t)((((sv >> 1) & 0b11) << 3) | ((fan & 0x07) << 5));
+
+    st[9] = (uint8_t)(MODE_CODES[mode] & 0x07);
+    if(power) st[9] |= 1 << 3;
+    st[9] |= (uint8_t)(((temp - MITSUBISHI_HEAVY_TEMP_MIN) & 0x0F) << 4);
+
+    // From byte 4 on, every odd byte is the complement of the one before it -
+    // the same scheme ZM-S uses, just over a shorter frame.
+    for(uint8_t i = ZJS_SIG_LEN - 1; i < ZJS_LEN; i += 2) {
+        st[i] = (uint8_t)~st[i - 1];
+    }
+}
+
 static void invert_byte_pairs(uint8_t* st) {
     for(uint8_t i = SIG_LEN - 1; i < STATE_LEN; i += 2) {
         st[i] = (uint8_t)~st[i - 1];
@@ -146,6 +226,28 @@ static bool encode_state_bytes(const uint8_t* st, uint32_t* timings, size_t* cou
     return ir_build_finish(&b, BIT_MARK, count);
 }
 
+/// Build and encode whichever format the Setup screen has selected.
+static bool encode_for_model(
+    const MitsubishiHeavyRequest* req,
+    bool power,
+    uint8_t swing_v,
+    uint8_t swing_h,
+    uint32_t* t,
+    size_t* n) {
+    if(req->option == MitsubishiHeavyModelZjs) {
+        uint8_t st[ZJS_LEN];
+        build_state_zjs(req, power, swing_v != MH_SWINGV_OFF, swing_h != MH_SWINGH_OFF, st);
+        IrBuild b = ir_build_init(t, MITSUBISHI_HEAVY_IR_MAX_TIMINGS);
+        ir_item(&b, HDR_MARK, HDR_SPACE);
+        ir_bytes_lsb(&b, st, ZJS_LEN, BIT_MARK, ONE_SPACE, ZERO_SPACE);
+        return ir_build_finish(&b, BIT_MARK, n);
+    }
+
+    uint8_t st[STATE_LEN];
+    build_state(req, power, swing_v, swing_h, st);
+    return encode_state_bytes(st, t, n);
+}
+
 bool mitsubishi_heavy_ir_encode_state(
     const MitsubishiHeavyRequest* req,
     uint32_t* timings,
@@ -153,9 +255,9 @@ bool mitsubishi_heavy_ir_encode_state(
     if(!req || !timings || !timings_count) return false;
     if(req->mode == MitsubishiHeavyModeOff || req->mode >= MitsubishiHeavyModeCount) return false;
 
-    uint8_t st[STATE_LEN];
-    build_state(req, true, swing_v_for(req), MH_SWINGH_AUTO, st);
-    return encode_state_bytes(st, timings, timings_count);
+    if(req->option >= MitsubishiHeavyModelCount) return false;
+
+    return encode_for_model(req, true, swing_v_for(req), MH_SWINGH_AUTO, timings, timings_count);
 }
 
 bool mitsubishi_heavy_ir_encode_toggle(
@@ -165,10 +267,15 @@ bool mitsubishi_heavy_ir_encode_toggle(
     size_t* timings_count) {
     if(!req || !timings || !timings_count || toggle >= MitsubishiHeavyToggleCount) return false;
 
-    uint8_t st[STATE_LEN];
-    build_state(
-        req, toggle != MitsubishiHeavyTogglePowerOff, swing_v_for(req), MH_SWINGH_AUTO, st);
-    return encode_state_bytes(st, timings, timings_count);
+    if(req->option >= MitsubishiHeavyModelCount) return false;
+
+    return encode_for_model(
+        req,
+        toggle != MitsubishiHeavyTogglePowerOff,
+        swing_v_for(req),
+        MH_SWINGH_AUTO,
+        timings,
+        timings_count);
 }
 
 bool mitsubishi_heavy_ir_encode_extra(
@@ -178,17 +285,16 @@ bool mitsubishi_heavy_ir_encode_extra(
     size_t* timings_count) {
     if(!req || !timings || !timings_count || extra >= MitsubishiHeavyExtraCount) return false;
 
+    if(req->option >= MitsubishiHeavyModelCount) return false;
+
     static const uint8_t VANE[5] = {
         MH_SWINGV_HIGHEST, MH_SWINGV_HIGH, MH_SWINGV_MIDDLE, MH_SWINGV_LOW, MH_SWINGV_LOWEST};
 
-    uint8_t st[STATE_LEN];
     if(extra <= MitsubishiHeavyExtraVaneLowest) {
-        build_state(req, true, VANE[extra], MH_SWINGH_AUTO, st);
-    } else {
-        uint8_t h = extra == MitsubishiHeavyExtraSwingHAuto ? MH_SWINGH_AUTO : MH_SWINGH_OFF;
-        build_state(req, true, swing_v_for(req), h, st);
+        return encode_for_model(req, true, VANE[extra], MH_SWINGH_AUTO, timings, timings_count);
     }
-    return encode_state_bytes(st, timings, timings_count);
+    uint8_t h = extra == MitsubishiHeavyExtraSwingHAuto ? MH_SWINGH_AUTO : MH_SWINGH_OFF;
+    return encode_for_model(req, true, swing_v_for(req), h, timings, timings_count);
 }
 
 void mitsubishi_heavy_ir_format_state(const MitsubishiHeavyRequest* req, char* out, size_t len) {
@@ -263,7 +369,7 @@ const char* mitsubishi_heavy_ir_get_extra_name(MitsubishiHeavyExtra extra) {
 }
 
 uint8_t mitsubishi_heavy_ir_get_option_count(void) {
-    return 0; // one variant only
+    return MitsubishiHeavyModelCount;
 }
 
 const char* mitsubishi_heavy_ir_get_option_label(void) {
@@ -271,8 +377,7 @@ const char* mitsubishi_heavy_ir_get_option_label(void) {
 }
 
 const char* mitsubishi_heavy_ir_get_option_name(uint8_t option) {
-    (void)option;
-    return "-";
+    return option < MitsubishiHeavyModelCount ? MODEL_NAMES[option] : "?";
 }
 
 const char* mitsubishi_heavy_ir_get_protocol_name(void) {

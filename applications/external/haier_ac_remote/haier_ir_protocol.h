@@ -29,7 +29,7 @@ extern "C" {
 
 // Worst-case timing count for one transmission. Size generously; the app
 // allocates this many uint32_t once.
-#define HAIER_IR_MAX_TIMINGS 250
+#define HAIER_IR_MAX_TIMINGS 400
 
 // Temperature range (Celsius)
 #define HAIER_TEMP_MIN 16
@@ -43,6 +43,19 @@ extern "C" {
 
 // Buffer for the short payload string shown on the Extra screen
 #define HAIER_CODE_STR_LEN 24
+
+/// Haier ships four frame formats on the same line coding. Nothing in a
+/// received signal says which one a unit wants, so the Setup screen offers a
+/// picker and the choice is saved to the SD card.
+///
+/// The names match what AC Detector reports.
+typedef enum {
+    HaierModelYrw02 = 0, ///< YR-W02, 14 bytes
+    HaierModelHsu07, ///< HSU07-HEA03, 9 bytes and a different layout
+    HaierModel160, ///< KFR-26GW/83@UI-Ge, 20 bytes
+    HaierModel176, ///< V9014557 M47 8D, 22 bytes
+    HaierModelCount
+} HaierModel;
 
 // Operating modes. Off must be first.
 typedef enum {

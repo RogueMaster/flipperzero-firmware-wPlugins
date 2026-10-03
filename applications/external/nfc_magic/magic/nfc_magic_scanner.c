@@ -6,12 +6,16 @@
 #include "protocols/gen2/gen2_poller.h"
 #include "protocols/gen4/gen4_poller.h"
 #include "protocols/uscuid_ul/uscuid_ul_poller.h"
+#include "../helpers/mfc_key_cache.h"
 #include <nfc/nfc_poller.h>
 #include <nfc/protocols/iso14443_3a/iso14443_3a.h>
 
 #include <furi/furi.h>
 
 #define TAG "NfcMagicScanner"
+
+// One key A plus one key B for sector 0 is everything the key cache can offer the CUID probe.
+#define NFC_MAGIC_SCANNER_MFC_PROBE_KEYS_MAX (2)
 
 typedef enum {
     NfcMagicScannerSessionStateIdle,
@@ -21,13 +25,24 @@ typedef enum {
 
 struct NfcMagicScanner {
     Nfc* nfc;
+    Storage* storage;
     NfcMagicScannerSessionState session_state;
 
     Gen4Password gen4_password;
     Gen4* gen4_data;
     Gen2Type gen2_type;
     uint8_t gen1_uid_len;
+    uint8_t uid[ISO14443_3A_MAX_UID_SIZE];
+    uint8_t uid_len;
     UscuidUlData uscuid_ul_data;
+
+    // Sector-0 keys the key cache holds for the card named by mfc_probe_uid, handed to the Gen2
+    // CUID write probe. Kept across detect passes so the cache is read once per card, not once
+    // per pass; mfc_probe_uid_len is 0 until the first lookup of a session.
+    Gen2ProbeKey mfc_probe_keys[NFC_MAGIC_SCANNER_MFC_PROBE_KEYS_MAX];
+    size_t mfc_probe_key_count;
+    uint8_t mfc_probe_uid[ISO14443_3A_MAX_UID_SIZE];
+    uint8_t mfc_probe_uid_len;
 
     NfcMagicScannerCallback callback;
     void* context;
@@ -46,15 +61,27 @@ static void nfc_magic_scanner_reset(NfcMagicScanner* instance) {
     instance->session_state = NfcMagicScannerSessionStateIdle;
     instance->gen2_type = Gen2TypeUnknown;
     instance->gen1_uid_len = 0;
+    memset(instance->uid, 0, sizeof(instance->uid));
+    instance->uid_len = 0;
     memset(&instance->uscuid_ul_data, 0, sizeof(UscuidUlData));
+    instance->mfc_probe_key_count = 0;
+    memset(instance->mfc_probe_uid, 0, sizeof(instance->mfc_probe_uid));
+    instance->mfc_probe_uid_len = 0;
 }
 
-NfcMagicScanner* nfc_magic_scanner_alloc(Nfc* nfc) {
+NfcMagicScanner* nfc_magic_scanner_alloc(Nfc* nfc, Storage* storage) {
     furi_assert(nfc);
+    furi_assert(storage);
 
     NfcMagicScanner* instance = malloc(sizeof(NfcMagicScanner));
     instance->nfc = nfc;
+    instance->storage = storage;
     instance->gen4_data = gen4_alloc();
+    // Nothing else initialises the scan state before the first session: start doesn't reset, and
+    // reset otherwise runs only once the worker exits. The probe memo below in particular has to
+    // begin zeroed -- a chance match against malloc'd bytes would skip the lookup and hand
+    // gen2_poller_detect_type a garbage key count to iterate.
+    nfc_magic_scanner_reset(instance);
 
     return instance;
 }
@@ -76,13 +103,14 @@ void nfc_magic_scanner_set_gen4_password(NfcMagicScanner* instance, Gen4Password
 
 // One ISO14443-3A identity read via a standard activation. SAK splits the magic families
 // (Ultralight/NTAG answer SAK 0x00, MIFARE Classic does not) BEFORE any backdoor frame,
-// and the UID length (4/7) tells 4- vs 7-byte Gen1 tags apart (the wakeup is UID-agnostic).
+// the UID length (4/7) tells 4- vs 7-byte Gen1 tags apart (the wakeup is UID-agnostic), and
+// the UID itself names the NFC app's per-UID key cache entry, which a magic clone inherits
+// from the card it was cloned from.
 typedef struct {
     bool activated;
     uint8_t sak;
-    uint8_t uid_len; // 4 or 7, else 0 ("unknown")
-    uint8_t uid0; // first two UID bytes, for the unpersonalized UL-5 (AA 55) heuristic
-    uint8_t uid1;
+    uint8_t uid[ISO14443_3A_MAX_UID_SIZE];
+    uint8_t uid_len; // Bytes valid in uid; 0 when not activated
 } NfcMagicScannerIdentity;
 
 static NfcMagicScannerIdentity nfc_magic_scanner_read_identity(Nfc* nfc) {
@@ -93,11 +121,8 @@ static NfcMagicScannerIdentity nfc_magic_scanner_read_identity(Nfc* nfc) {
         const Iso14443_3aData* data = nfc_poller_get_data(poller);
         id.activated = true;
         id.sak = data->sak;
-        id.uid_len = (data->uid_len == 4 || data->uid_len == 7) ? data->uid_len : 0;
-        if(data->uid_len >= 2) {
-            id.uid0 = data->uid[0];
-            id.uid1 = data->uid[1];
-        }
+        id.uid_len = MIN(data->uid_len, (uint8_t)sizeof(id.uid));
+        memcpy(id.uid, data->uid, id.uid_len);
     }
     nfc_poller_free(poller);
 
@@ -134,6 +159,50 @@ static bool nfc_magic_scanner_detect_iso15693(Nfc* nfc) {
     return detected;
 }
 
+// Key B before key A, matching the probe's own FF..FF pair: where a sector has been personalised
+// at all, write access is the permission more often kept for key B. Guessing wrong costs one RF
+// session, so this is a preference and not a requirement.
+static const MfClassicKeyType nfc_magic_scanner_mfc_probe_key_types[] = {
+    MfClassicKeyTypeB,
+    MfClassicKeyTypeA,
+};
+_Static_assert(
+    COUNT_OF(nfc_magic_scanner_mfc_probe_key_types) <= NFC_MAGIC_SCANNER_MFC_PROBE_KEYS_MAX,
+    "Scanner probe key array too small for the key types tried");
+
+// Collects the sector-0 keys the NFC app recorded for this UID (read_identity above says why a
+// clone's UID names them). They are what gets a personalised clone as far as the CUID write probe
+// at all, since the probe's default FF..FF opens only a blank sector 0. The lookup is memoised per
+// UID, hit or miss, so repeating a detect pass on the same card touches no storage.
+static void nfc_magic_scanner_load_mfc_probe_keys(
+    NfcMagicScanner* instance,
+    const uint8_t* uid,
+    uint8_t uid_len) {
+    if(instance->mfc_probe_uid_len == uid_len &&
+       memcmp(instance->mfc_probe_uid, uid, uid_len) == 0) {
+        return;
+    }
+
+    instance->mfc_probe_key_count = 0;
+    memcpy(instance->mfc_probe_uid, uid, uid_len);
+    instance->mfc_probe_uid_len = uid_len;
+
+    MfcKeyCache* key_cache = mfc_key_cache_load(instance->storage, uid, uid_len);
+    if(key_cache == NULL) return;
+
+    for(size_t i = 0; i < COUNT_OF(nfc_magic_scanner_mfc_probe_key_types); i++) {
+        const MfClassicKeyType key_type = nfc_magic_scanner_mfc_probe_key_types[i];
+        Gen2ProbeKey* probe_key = &instance->mfc_probe_keys[instance->mfc_probe_key_count];
+        if(mfc_key_cache_get_key(key_cache, 0, key_type, &probe_key->key)) {
+            probe_key->key_type = key_type;
+            instance->mfc_probe_key_count++;
+        }
+    }
+    FURI_LOG_D(TAG, "Sector 0 keys from cache: %u", (unsigned)instance->mfc_probe_key_count);
+
+    mfc_key_cache_free(key_cache);
+}
+
 static bool nfc_magic_scanner_detect_not_magic(Nfc* nfc) {
     for(size_t i = 0; i < COUNT_OF(nfc_magic_scanner_not_magic_protocols); i++) {
         NfcPoller* poller = nfc_poller_alloc(nfc, nfc_magic_scanner_not_magic_protocols[i]);
@@ -151,6 +220,8 @@ static bool nfc_magic_scanner_detect_not_magic(Nfc* nfc) {
 // answers the same 40/43 wakeup as a Gen1A) from being misdetected as Gen1.
 static bool nfc_magic_scanner_detect_pass(NfcMagicScanner* instance, NfcMagicProtocol* protocol) {
     const NfcMagicScannerIdentity id = nfc_magic_scanner_read_identity(instance->nfc);
+    memcpy(instance->uid, id.uid, sizeof(instance->uid));
+    instance->uid_len = id.uid_len;
 
     // Gen4 (UMC) is family-agnostic and definitive; probe it first so a wiped UMC isn't
     // mistaken for a Gen2 CUID or a blank Ultralight.
@@ -175,7 +246,7 @@ static bool nfc_magic_scanner_detect_pass(NfcMagicScanner* instance, NfcMagicPro
         }
         // Unpersonalized UL-5 has a locked config (so the probe above fails) but is
         // identifiable by its UID prefix AA 55. Report it as a detect-only hint.
-        if(id.uid0 == 0xAA && id.uid1 == 0x55) {
+        if(id.uid_len >= 2 && id.uid[0] == 0xAA && id.uid[1] == 0x55) {
             memset(&instance->uscuid_ul_data, 0, sizeof(UscuidUlData));
             instance->uscuid_ul_data.maybe_ul5 = true;
             *protocol = NfcMagicProtocolUscuidUl;
@@ -191,11 +262,20 @@ static bool nfc_magic_scanner_detect_pass(NfcMagicScanner* instance, NfcMagicPro
     } else if(id.activated) {
         // MIFARE Classic family.
         if(gen1a_poller_detect(instance->nfc)) {
-            instance->gen1_uid_len = id.uid_len;
+            // Gen1 only knows the two standard Classic UID lengths; anything else is "unknown".
+            instance->gen1_uid_len =
+                (id.uid_len == ISO14443_3A_UID_4_BYTES || id.uid_len == ISO14443_3A_UID_7_BYTES) ?
+                    id.uid_len :
+                    0;
             *protocol = NfcMagicProtocolGen1;
             return true;
         }
-        if(gen2_poller_detect_type(instance->nfc, &instance->gen2_type) == Gen2PollerErrorNone) {
+        nfc_magic_scanner_load_mfc_probe_keys(instance, id.uid, id.uid_len);
+        if(gen2_poller_detect_type(
+               instance->nfc,
+               instance->mfc_probe_keys,
+               instance->mfc_probe_key_count,
+               &instance->gen2_type) == Gen2PollerErrorNone) {
             *protocol = NfcMagicProtocolGen2;
             return true;
         }
@@ -236,7 +316,9 @@ static int32_t nfc_magic_scanner_worker(void* context) {
                 .data.gen2_type = instance->gen2_type,
                 .data.gen1_uid_len = instance->gen1_uid_len,
                 .data.uscuid_ul = instance->uscuid_ul_data,
+                .data.uid_len = instance->uid_len,
             };
+            memcpy(event.data.uid, instance->uid, sizeof(event.data.uid));
             instance->callback(event, instance->context);
             break;
         }

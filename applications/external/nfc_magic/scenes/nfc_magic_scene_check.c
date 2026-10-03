@@ -10,6 +10,8 @@ void nfc_magic_check_worker_callback(NfcMagicScannerEvent event, void* context) 
         instance->gen2_type = event.data.gen2_type;
         instance->gen1_uid_len = event.data.gen1_uid_len;
         instance->uscuid_ul_data = event.data.uscuid_ul;
+        memcpy(instance->card_uid, event.data.uid, sizeof(instance->card_uid));
+        instance->card_uid_len = event.data.uid_len;
         view_dispatcher_send_custom_event(
             instance->view_dispatcher, NfcMagicCustomEventWorkerSuccess);
     } else if(event.type == NfcMagicScannerEventTypeDetectedNotMagic) {

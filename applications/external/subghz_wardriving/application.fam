@@ -1,0 +1,27 @@
+App(
+    appid="subghz_wardriving",
+    name="Sub-GHz WarDriving",
+    apptype=FlipperAppType.EXTERNAL,
+    targets=["f7"],
+    entry_point="subghz_app",
+    stack_size=3 * 1024,
+    fap_icon="icon.png",
+    fap_icon_assets="ex_icons",
+    sources=["*.c", "!helpers/subghz_wardriving_gps.c", "!helpers/minmea.c", "!helpers/ubox.c"],
+    fap_libs=["assets", "hwdrivers"],
+    fap_category="Sub-GHz",
+    fap_author="xMasterX",
+    fap_weburl="https://github.com/xMasterX/all-the-plugins/tree/213baa6e872d1db597a25d2c16e81406e9634440/base_pack/subghz_wardriving",
+    fap_version="0.1",
+    fap_description="Record received Sub-GHz signals with GPS coordinates over UART.",
+)
+
+App(
+    appid="subghz_plugin_gps",
+    apptype=FlipperAppType.PLUGIN,
+    targets=["f7"],
+    entry_point="subghz_gps_plugin_ep",
+    requires=["subghz_wardriving"],
+    sources=["helpers/subghz_wardriving_gps.c", "helpers/minmea.c", "helpers/ubox.c"],
+    fal_embedded=True,
+)

@@ -1,0 +1,15 @@
+App(
+    appid="stack_attack",
+    name="Stack Attack",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="stack_attack_app",
+    requires=["gui", "storage", "notification"],
+    stack_size=2 * 1024,
+    fap_icon="icon.png",
+    sources=["stack_attack.c", "game.c", "render.c"],
+    fap_category="Games",
+    fap_author="Negenii",
+    fap_weburl="https://github.com/Negenii/flipper-stack-attack",
+    fap_version="1.0",
+    fap_description="Push crates, fill rows, don't get crushed. A remake of the legendary Siemens mobile game",
+)

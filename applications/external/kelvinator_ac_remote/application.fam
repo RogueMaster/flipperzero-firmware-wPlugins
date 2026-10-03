@@ -1,0 +1,15 @@
+App(
+    appid="kelvinator_ac_remote",
+    name="Kelvinator",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="kelvinator_ac_remote_app",
+    stack_size=4 * 1024,
+    fap_icon="kelvinator_ac_remote.png",
+    sources=["*.c*", "!tests"],
+    fap_libs=["infrared"],
+    fap_category="Infrared",
+    fap_author="xMasterX",
+    fap_weburl="https://github.com/xMasterX/all-the-plugins/tree/213baa6e872d1db597a25d2c16e81406e9634440/non_catalog_apps/kelvinator_ac_remote",
+    fap_version="1.0",
+    fap_description="IR remote for Kelvinator-protocol air conditioners",
+)

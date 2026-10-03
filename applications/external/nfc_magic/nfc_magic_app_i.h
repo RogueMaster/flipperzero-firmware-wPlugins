@@ -2,6 +2,7 @@
 
 #include "nfc_magic_app.h"
 #include "helpers/nfc_magic_custom_events.h"
+#include "helpers/mfc_key_cache.h"
 
 #include <furi.h>
 #include <gui/gui.h>
@@ -76,7 +77,10 @@ enum NfcMagicAppCustomEvent {
 };
 
 typedef struct {
-    KeysDict* dict;
+    KeysDict* dict; // dictionary phases; NULL while the key cache phase runs
+    MfcKeyCache* key_cache; // key cache phase only; NULL selects the dictionary above. Mirrors the
+        // scene state -- prepare_view is the only place both are set
+    uint8_t cache_key_index; // cache cursor within current_sector: 0 = key A, 1 = key B
     uint8_t sectors_total;
     uint8_t sectors_read;
     uint8_t current_sector;
@@ -128,7 +132,9 @@ struct NfcMagicApp {
     Nfc* nfc;
     NfcMagicProtocol protocol;
     Gen2Type gen2_type;
-    uint8_t gen1_uid_len;
+    uint8_t gen1_uid_len; // Gen1 UID length class (4/7) derived from card_uid_len; 0 if not Gen1
+    uint8_t card_uid[ISO14443_3A_MAX_UID_SIZE]; // scanned card's UID; names its key cache entry
+    uint8_t card_uid_len; // 0 when the card never activated (backdoor-only)
     UscuidUlData uscuid_ul_data;
     uint16_t write_progress_current; // USCUID-UL: pages written so far (live progress)
     uint16_t write_progress_total; // USCUID-UL: total pages to write
@@ -198,6 +204,8 @@ typedef enum {
     NfcMagicAppViewDictAttack,
     NfcMagicAppViewWriteProblems,
 } NfcMagicAppView;
+
+void nfc_magic_app_free_dict_attack_keys(NfcMagicApp* instance);
 
 void nfc_magic_app_blink_start(NfcMagicApp* nfc_magic);
 

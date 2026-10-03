@@ -58,6 +58,8 @@ void wifi_marauder_scene_text_input_on_enter(void* context) {
         text_input_set_header_text(text_input, "Add target from AP list");
     } else if(0 == strncmp("select -s", app->selected_tx_string, strlen("select -s"))) {
         text_input_set_header_text(text_input, "Add target from SSID list");
+    } else if(0 == strncmp("findmy -t", app->selected_tx_string, strlen("findmy -t"))) {
+        text_input_set_header_text(text_input, "Enter FindMy device index");
     } else {
         text_input_set_header_text(text_input, "Add command arguments");
     }

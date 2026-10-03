@@ -86,12 +86,10 @@ void nfc_magic_scene_gen2_write_check_on_exit(void* context) {
     instance->write_problems_context.problems.all_problems = 0;
 
     // Backing out to the menu pops the dict-attack scene WITHOUT running its on_exit (the scene
-    // manager only exits the current scene), so its KeysDict would leak. Free it here if still
-    // owned; dict-attack on_exit NULLs it on the forward path, so this won't double-free.
-    if(instance->nfc_dict_context.dict) {
-        keys_dict_free(instance->nfc_dict_context.dict);
-        instance->nfc_dict_context.dict = NULL;
-    }
+    // manager only exits the current scene), so its key source would leak. Free it here if still
+    // owned; dict-attack on_exit clears the pointers on the forward path, so this won't
+    // double-free.
+    nfc_magic_app_free_dict_attack_keys(instance);
 
     write_problems_reset(instance->write_problems);
 }

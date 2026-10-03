@@ -1,0 +1,15 @@
+App(
+    appid="midea_ac_remote_full",
+    name="Midea AC (Full)",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="midea_ac_remote_app",
+    stack_size=4 * 1024,
+    fap_icon="midea_ac_remote.png",
+    sources=["*.c*", "!tests"],
+    fap_libs=["infrared"],
+    fap_category="Infrared",
+    fap_author="xMasterX",
+    fap_weburl="https://github.com/xMasterX/all-the-plugins/tree/213baa6e872d1db597a25d2c16e81406e9634440/non_catalog_apps/midea_ac_remote",
+    fap_version="1.0",
+    fap_description="IR remote for Midea-protocol air conditioners",
+)

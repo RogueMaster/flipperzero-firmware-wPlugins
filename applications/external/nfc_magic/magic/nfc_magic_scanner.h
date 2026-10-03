@@ -2,9 +2,11 @@
 
 #include "protocols/gen4/gen4.h"
 #include <nfc/nfc.h>
+#include <nfc/protocols/iso14443_3a/iso14443_3a.h>
 #include "protocols/nfc_magic_protocols.h"
 #include "protocols/gen2/gen2_poller.h"
 #include "protocols/uscuid_ul/uscuid_ul_poller.h"
+#include <storage/storage.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -19,8 +21,10 @@ typedef enum {
 typedef struct {
     NfcMagicProtocol protocol;
     Gen2Type gen2_type; // Valid when protocol == NfcMagicProtocolGen2
-    uint8_t gen1_uid_len; // Gen1 UID length (4/7) when resolved; 0 if unknown or not Gen1
+    uint8_t gen1_uid_len; // Gen1 UID length class (4/7) derived from uid_len; 0 if not Gen1
     UscuidUlData uscuid_ul; // Valid when protocol == NfcMagicProtocolUscuidUl
+    uint8_t uid[ISO14443_3A_MAX_UID_SIZE]; // UID from the standard activation
+    uint8_t uid_len; // Bytes valid in uid; 0 when the card never activated (backdoor-only)
 } NfcMagicScannerEventData;
 
 typedef struct {
@@ -32,7 +36,10 @@ typedef void (*NfcMagicScannerCallback)(NfcMagicScannerEvent event, void* contex
 
 typedef struct NfcMagicScanner NfcMagicScanner;
 
-NfcMagicScanner* nfc_magic_scanner_alloc(Nfc* nfc);
+// storage is used to look up the NFC app's per-UID MIFARE Classic key cache, whose sector-0 keys
+// widen the Gen2 CUID write probe beyond the default FF..FF. It is borrowed, never freed here, and
+// must outlive the scanner.
+NfcMagicScanner* nfc_magic_scanner_alloc(Nfc* nfc, Storage* storage);
 
 void nfc_magic_scanner_free(NfcMagicScanner* instance);
 

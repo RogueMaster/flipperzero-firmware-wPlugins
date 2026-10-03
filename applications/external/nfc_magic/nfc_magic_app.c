@@ -129,7 +129,7 @@ NfcMagicApp* nfc_magic_app_alloc() {
     // iso15693_poller is allocated on demand by the ISO15693 scenes (see nfc_magic_app_i.h).
     instance->iso15693_poller = NULL;
     instance->iso15693_data = iso15693_data_alloc();
-    instance->scanner = nfc_magic_scanner_alloc(instance->nfc);
+    instance->scanner = nfc_magic_scanner_alloc(instance->nfc, instance->storage);
 
     return instance;
 }
@@ -198,17 +198,34 @@ void nfc_magic_app_free(NfcMagicApp* instance) {
     furi_record_close(RECORD_DIALOGS);
     instance->dialogs = NULL;
 
-    // Storage
-    furi_record_close(RECORD_STORAGE);
-    instance->storage = NULL;
-
     gen4_free(instance->gen4_data);
 
     iso15693_data_free(instance->iso15693_data);
     nfc_magic_scanner_free(instance->scanner);
     nfc_free(instance->nfc);
 
+    // Storage, closed after the scanner: the scanner borrows this handle for its key cache lookups.
+    furi_record_close(RECORD_STORAGE);
+    instance->storage = NULL;
+
     free(instance);
+}
+
+// The dict attack owns exactly one key source at a time: a KeysDict for a dictionary phase, a
+// MfcKeyCache for the key cache phase. Freeing through here and dropping the pointer keeps every
+// exit path -- the phase chain, the scene's on_exit, a write-check back-out -- from freeing the
+// same one twice.
+void nfc_magic_app_free_dict_attack_keys(NfcMagicApp* instance) {
+    furi_assert(instance);
+
+    if(instance->nfc_dict_context.dict) {
+        keys_dict_free(instance->nfc_dict_context.dict);
+        instance->nfc_dict_context.dict = NULL;
+    }
+    if(instance->nfc_dict_context.key_cache) {
+        mfc_key_cache_free(instance->nfc_dict_context.key_cache);
+        instance->nfc_dict_context.key_cache = NULL;
+    }
 }
 
 static const NotificationSequence nfc_magic_sequence_blink_start_cyan = {

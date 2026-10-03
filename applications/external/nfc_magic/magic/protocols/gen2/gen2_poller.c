@@ -237,14 +237,10 @@ Gen2PollerError gen2_poller_detect(Nfc* nfc) {
 
 #define GEN2_STATIC_NONCE_SAMPLES (3)
 
-// Default sector-0 keys tried for the CUID write probe. Blank/fresh magic cards
-// (and blank normal cards) use FF..FF; matching Proxmark3 we try B then A.
-typedef struct {
-    MfClassicKeyType key_type;
-    MfClassicKey key;
-} Gen2ProbeKey;
-
-static const Gen2ProbeKey gen2_cuid_probe_keys[] = {
+// Fallback sector-0 keys for the CUID write probe, tried after whatever card-specific keys the
+// caller supplied. Blank/fresh magic cards (and blank normal cards) use FF..FF; matching
+// Proxmark3 we try B then A.
+static const Gen2ProbeKey gen2_cuid_default_probe_keys[] = {
     {MfClassicKeyTypeB, {.data = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}}},
     {MfClassicKeyTypeA, {.data = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}}},
 };
@@ -328,18 +324,47 @@ static void
     ctx->poller = NULL;
 }
 
-static bool gen2_poller_probe_cuid(Nfc* nfc) {
-    for(size_t i = 0; i < COUNT_OF(gen2_cuid_probe_keys); i++) {
-        Gen2DetectContext ctx = {
-            .key = gen2_cuid_probe_keys[i].key,
-            .key_type = gen2_cuid_probe_keys[i].key_type,
-            .cuid_writable = false,
-        };
-        gen2_poller_run_detect_session(nfc, gen2_poller_cuid_probe_callback, &ctx);
-        if(ctx.cuid_writable) {
+static bool gen2_poller_probe_cuid_with_key(Nfc* nfc, const Gen2ProbeKey* probe_key) {
+    Gen2DetectContext ctx = {
+        .key = probe_key->key,
+        .key_type = probe_key->key_type,
+        .cuid_writable = false,
+    };
+    gen2_poller_run_detect_session(nfc, gen2_poller_cuid_probe_callback, &ctx);
+
+    return ctx.cuid_writable;
+}
+
+static bool gen2_probe_key_already_tried(
+    const Gen2ProbeKey* tried_keys,
+    size_t tried_key_count,
+    const Gen2ProbeKey* probe_key) {
+    for(size_t i = 0; i < tried_key_count; i++) {
+        if(tried_keys[i].key_type == probe_key->key_type &&
+           memcmp(tried_keys[i].key.data, probe_key->key.data, sizeof(MfClassicKey)) == 0) {
             return true;
         }
     }
+
+    return false;
+}
+
+// Card-specific keys go first: they are this card's own sector-0 keys, so they are likelier to
+// authenticate than FF..FF. The auth gates gen2_poller_probe_block0_writable, so on a card with a
+// personalised sector 0 they are the only keys that reach the write probe at all. Every key that
+// doesn't confirm CUID costs one more RF session, which is also why a default that the caller
+// already handed us is not sent twice: plenty of saved cards keep a default sector 0.
+static bool
+    gen2_poller_probe_cuid(Nfc* nfc, const Gen2ProbeKey* extra_keys, size_t extra_key_count) {
+    for(size_t i = 0; i < extra_key_count; i++) {
+        if(gen2_poller_probe_cuid_with_key(nfc, &extra_keys[i])) return true;
+    }
+    for(size_t i = 0; i < COUNT_OF(gen2_cuid_default_probe_keys); i++) {
+        const Gen2ProbeKey* default_key = &gen2_cuid_default_probe_keys[i];
+        if(gen2_probe_key_already_tried(extra_keys, extra_key_count, default_key)) continue;
+        if(gen2_poller_probe_cuid_with_key(nfc, default_key)) return true;
+    }
+
     return false;
 }
 
@@ -380,9 +405,14 @@ static bool gen2_poller_probe_static_nonce(Nfc* nfc) {
     return false;
 }
 
-Gen2PollerError gen2_poller_detect_type(Nfc* nfc, Gen2Type* type) {
+Gen2PollerError gen2_poller_detect_type(
+    Nfc* nfc,
+    const Gen2ProbeKey* extra_keys,
+    size_t extra_key_count,
+    Gen2Type* type) {
     furi_assert(nfc);
     furi_assert(type);
+    furi_assert(extra_keys != NULL || extra_key_count == 0);
 
     *type = Gen2TypeUnknown;
 
@@ -394,7 +424,7 @@ Gen2PollerError gen2_poller_detect_type(Nfc* nfc, Gen2Type* type) {
 
     // 2. Behavioural CUID confirmation, then static-nonce classification. Each probe
     // runs in its own poller session (allocated per session in run_detect_session).
-    if(gen2_poller_probe_cuid(nfc)) {
+    if(gen2_poller_probe_cuid(nfc, extra_keys, extra_key_count)) {
         *type = gen2_poller_probe_static_nonce(nfc) ? Gen2TypeCuidStaticNonce : Gen2TypeCuid;
     }
 

@@ -44,6 +44,15 @@ extern "C" {
 // Buffer for the short payload string shown on the Extra screen
 #define MITSUBISHI_HEAVY_CODE_STR_LEN 24
 
+/// Mitsubishi Heavy ships two frame formats on the same line coding: the
+/// 19-byte ZM-S and the 11-byte ZJ-S. Nothing in a received signal says which
+/// a unit wants, so the Setup screen offers a picker.
+typedef enum {
+    MitsubishiHeavyModelZms = 0, ///< ZM-S, 19 bytes
+    MitsubishiHeavyModelZjs, ///< ZJ-S, 11 bytes
+    MitsubishiHeavyModelCount
+} MitsubishiHeavyModel;
+
 // Operating modes. Off must be first.
 typedef enum {
     MitsubishiHeavyModeOff = 0,

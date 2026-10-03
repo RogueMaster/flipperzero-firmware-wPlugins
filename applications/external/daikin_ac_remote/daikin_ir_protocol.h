@@ -29,7 +29,7 @@ extern "C" {
 
 // Worst-case timing count for one transmission. Size generously; the app
 // allocates this many uint32_t once.
-#define DAIKIN_IR_MAX_TIMINGS 620
+#define DAIKIN_IR_MAX_TIMINGS 700
 
 // Temperature range (Celsius)
 #define DAIKIN_TEMP_MIN 10
@@ -43,6 +43,24 @@ extern "C" {
 
 // Buffer for the short payload string shown on the Extra screen
 #define DAIKIN_CODE_STR_LEN 24
+
+/// Daikin ships eight incompatible frame formats. Nothing in a received
+/// signal tells the unit which one it wants, so the Setup screen offers a
+/// picker and the choice is saved to the SD card.
+///
+/// The names match what AC Detector reports, so a user can read the format
+/// off the detector and pick the same entry here.
+typedef enum {
+    DaikinModelArc433 = 0, ///< ARC433 / ARC466, 35 bytes, three sections
+    DaikinModelArc477, ///< ARC477A1 (FTXZ), 39 bytes
+    DaikinModel216, ///< ARC433B69 / ARC484A4, 27 bytes
+    DaikinModel160, ///< ARC423A5, 20 bytes
+    DaikinModel176, ///< BRC4C151 / BRC4C153, 22 bytes
+    DaikinModel152, ///< ARC480A5, 19 bytes
+    DaikinModel128, ///< BRC52B63 / 17 series, 16 bytes
+    DaikinModel64, ///< DGS01, a single 64-bit word
+    DaikinModelCount
+} DaikinModel;
 
 // Operating modes. Off must be first.
 typedef enum {

@@ -75,11 +75,9 @@ void nfc_magic_scene_mf_classic_write_check_on_exit(void* context) {
     instance->write_problems_context.problems.all_problems = 0;
 
     // Backing out to the menu pops the dict-attack scene without running its on_exit, leaking its
-    // KeysDict; free it here if still owned (dict-attack on_exit NULLs it on the forward path).
-    if(instance->nfc_dict_context.dict) {
-        keys_dict_free(instance->nfc_dict_context.dict);
-        instance->nfc_dict_context.dict = NULL;
-    }
+    // key source; free it here if still owned (dict-attack on_exit clears the pointers on the
+    // forward path).
+    nfc_magic_app_free_dict_attack_keys(instance);
 
     write_problems_reset(instance->write_problems);
 }

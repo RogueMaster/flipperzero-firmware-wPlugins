@@ -86,8 +86,11 @@ static void __attribute__((optimize("-O3"))) swd_turnaround(SwdioDirection mode)
     }
 
     if(mode == SwdioDirectionIn) {
-        // Using LL functions for performance reasons
+        // Using LL functions for performance reasons, but MODER is shared with the internal
+        // I2C pins, so the read-modify-write has to be atomic like furi_hal_gpio_init_ex() is
+        FURI_CRITICAL_ENTER();
         LL_GPIO_SetPinMode(gpio_swdio.port, gpio_swdio.pin, LL_GPIO_MODE_INPUT);
+        FURI_CRITICAL_EXIT();
     } else {
         furi_hal_gpio_write(&gpio_swclk, false);
     }
@@ -98,8 +101,11 @@ static void __attribute__((optimize("-O3"))) swd_turnaround(SwdioDirection mode)
 
     if(mode == SwdioDirectionOut) {
         furi_hal_gpio_write(&gpio_swclk, false);
-        // Using LL functions for performance reasons
+        // Using LL functions for performance reasons, but MODER is shared with the internal
+        // I2C pins, so the read-modify-write has to be atomic like furi_hal_gpio_init_ex() is
+        FURI_CRITICAL_ENTER();
         LL_GPIO_SetPinMode(gpio_swdio.port, gpio_swdio.pin, LL_GPIO_MODE_OUTPUT);
+        FURI_CRITICAL_EXIT();
     }
 }
 

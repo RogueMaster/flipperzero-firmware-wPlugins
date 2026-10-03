@@ -109,9 +109,23 @@ typedef struct Gen2Poller Gen2Poller;
 
 Gen2PollerError gen2_poller_detect(Nfc* nfc);
 
+// One key the CUID write probe can try to open sector 0 with.
+typedef struct {
+    MfClassicKeyType key_type;
+    MfClassicKey key;
+} Gen2ProbeKey;
+
 // Detects whether the card is Gen2 and classifies its sub-type (ATS / CUID /
 // CUID with static nonce). Returns Gen2PollerErrorNone when any Gen2 type is found.
-Gen2PollerError gen2_poller_detect_type(Nfc* nfc, Gen2Type* type);
+// extra_keys are sector-0 keys already known to belong to this particular card; the CUID write
+// probe tries them in the order given, ahead of its FF..FF defaults. The probe is gated behind a
+// successful auth, so without them it cannot reach a card whose sector 0 no longer carries the
+// default key. Pass NULL/0 when none are known.
+Gen2PollerError gen2_poller_detect_type(
+    Nfc* nfc,
+    const Gen2ProbeKey* extra_keys,
+    size_t extra_key_count,
+    Gen2Type* type);
 
 // Gen2 sub-type detail shown under the "Gen 2" type line (e.g. "CUID. Static nonce"),
 // or NULL if none.
