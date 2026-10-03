@@ -1,5 +1,7 @@
 # Flipper Zero Lego Dimensions ToyPad Emulator
 
+[![Flipper App Catalog](https://img.shields.io/badge/Flipper%20App%20Catalog-Install-FF8200)](https://lab.flipper.net/apps/ldtoypad) [![GitHub stars](https://img.shields.io/github/stars/SegerEnd/Flipper-Zero-LD-Toypad-Emulator)](https://github.com/SegerEnd/Flipper-Zero-LD-Toypad-Emulator/stargazers) [![Buy me a coffee](https://img.shields.io/badge/Ko--fi-Buy%20me%20a%20coffee-FF5E5B?logo=ko-fi&logoColor=white)](https://ko-fi.com/seger)
+
 Use your Flipper Zero as a Lego Dimensions ToyPad
 
 This project emulates the behavior of the original USB ToyPad, allowing you to interact with Lego Dimensions using your Flipper Zero. this app can place characters, vehicles directly from your Flipper.
@@ -75,3 +77,9 @@ I used the following similar projects for insights and code snippets that helped
 #
 
 If you'd like to help complete this project, feel free to make a pull request or reach out to me!
+
+## Support
+
+If this app saved you from hunting down a real ToyPad, you can [buy me a coffee](https://ko-fi.com/seger) ☕
+
+More tools by me: [segerend.nl](https://segerend.nl)
