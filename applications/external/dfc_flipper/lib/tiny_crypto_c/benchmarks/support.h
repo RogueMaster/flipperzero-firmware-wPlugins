@@ -21,10 +21,9 @@ void tc_benchmark_consume(const void* value);
 static inline void tc_benchmark_profile(void)
 {
   printf("compiler=%s build=%s sanitizer=%s AES=%d key_bits=%d sbox=%d "
-         "ghash=%d wide=%d zeroize=%d strict=%d\n",
-         TC_BENCHMARK_COMPILER, TC_BENCHMARK_BUILD_TYPE, TC_BENCHMARK_SANITIZE,
-         TC_ENABLE_AES, TC_AES_KEY_BITS, TC_AES_SBOX_MODE,
-         TC_AES_GCM_GHASH_MODE, TC_AES_WIDE_OPS, TC_ZEROIZE, TC_STRICT);
+         "ghash=%d wide=%d\n",
+         TC_BENCHMARK_COMPILER, TC_BENCHMARK_BUILD_TYPE, TC_BENCHMARK_SANITIZE, TC_ENABLE_AES,
+         TC_AES_KEY_BITS, TC_AES_SBOX_MODE, TC_AES_GCM_GHASH_MODE, TC_AES_WIDE_OPS);
 #if TC_ENABLE_AES && TC_AES_SBOX_MODE == TC_AES_SBOX_MODE_RUNTIME
   TC_AES_init_sbox();
 #endif
@@ -33,8 +32,7 @@ static inline void tc_benchmark_profile(void)
 /* An opaque result consumer keeps work even with whole-program optimization.
  * Batching amortizes clock overhead; setup/clear costs belong to each operation.
  * Repeated nonces below are synthetic benchmark inputs, never protocol traffic. */
-static inline int tc_benchmark_run(const char* name, size_t bytes,
-                                  TC_status (*operation)(size_t))
+static inline int tc_benchmark_run(const char* name, size_t bytes, TC_status (*operation)(size_t))
 {
   unsigned long count = 0, batch = 1, i;
   clock_t start, end;
@@ -60,16 +58,13 @@ static inline int tc_benchmark_run(const char* name, size_t bytes,
   } while (elapsed < TC_BENCHMARK_SECONDS);
   if (elapsed <= 0)
     return 1;
-  printf("%s bytes=%lu iterations=%lu seconds=%.6f ops/sec=%.0f bytes/sec=%.0f\n",
-         name, (unsigned long)bytes, count, elapsed, count / elapsed,
-         (double)bytes * count / elapsed);
+  printf("%s bytes=%lu iterations=%lu seconds=%.6f ops/sec=%.0f bytes/sec=%.0f\n", name,
+         (unsigned long)bytes, count, elapsed, count / elapsed, (double)bytes * count / elapsed);
   return 0;
 }
 
-static inline int tc_benchmark_sizes(const char* name,
-                                    TC_status (*operation)(size_t))
+static inline int tc_benchmark_sizes(const char* name, TC_status (*operation)(size_t))
 {
-  return tc_benchmark_run(name, 32, operation) ||
-         tc_benchmark_run(name, 16384, operation);
+  return tc_benchmark_run(name, 32, operation) || tc_benchmark_run(name, 16384, operation);
 }
 #endif

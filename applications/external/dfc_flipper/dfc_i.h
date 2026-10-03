@@ -35,8 +35,6 @@
 #include "des_cmac.h"
 #include "aes_cmac.h"
 
-#define DFC_TEXT_STORE_SIZE 128
-
 enum DfcCustomEvent {
     // Reserve first 100 events for button types and indexes, starting from 0
     DfcCustomEventReserved = 100,
@@ -60,7 +58,7 @@ struct Dfc {
     NotificationApp* notifications;
     SceneManager* scene_manager;
 
-    char text_store[DFC_TEXT_STORE_SIZE + 1];
+    char text_store[DFC_FILE_NAME_MAX_LENGTH + 1];
     FuriString* text_box_store;
 
     // Common Views
@@ -110,7 +108,7 @@ typedef enum {
     DfcViewFileBrowser,
 } DfcView;
 
-void dfc_text_store_set(Dfc* dfc, const char* text, ...);
+void dfc_text_store_set(Dfc* dfc, const char* text);
 
 void dfc_text_store_clear(Dfc* dfc);
 

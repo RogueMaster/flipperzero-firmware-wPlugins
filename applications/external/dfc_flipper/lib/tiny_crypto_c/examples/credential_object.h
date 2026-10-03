@@ -21,20 +21,24 @@ typedef struct {
 typedef TC_PIV_biometric_validation_request ExampleBiometricRequest;
 typedef TC_PIV_security_data ExampleSecurityData;
 typedef TC_PIV_security_validation_request ExampleSecurityRequest;
-/* Adapt the older path/revocation option pair used by focused examples. The
+/* Adapt the path/revocation option pair used by focused examples. The
  * generic API requires one evaluation time and signature provider. */
 TC_result example_validation_options(const TC_CMS_path_options* path,
-    const TC_CMS_revocation_policy* revocation, TC_validation_options* out);
+                                     const TC_CMS_revocation_policy* revocation,
+                                     TC_validation_options* out);
+/* Validate a biometric object bound to request->chuid through a held trust
+ * snapshot. options and revocation use the CHUID's evaluation time. Processing
+ * clears workspace. Only VALID writes out, which borrows the request bytes and
+ * the signer certificate. */
 TC_credential_status example_validate_biometric(
-    const TC_PIV_biometric_validation_request* request,
-    const TC_X509_store_snapshot* snapshot, const TC_CMS_path_options* options,
-    const TC_CMS_revocation_policy* revocation, size_t* work,
-    ExampleCMSCredentialWorkspace* workspace);
-TC_credential_status example_validate_security(
-    const TC_PIV_security_validation_request* request,
-    const TC_X509_store_snapshot* snapshot, const TC_CMS_path_options* options,
-    const TC_CMS_revocation_policy* revocation, size_t* work,
-    ExampleSecurityWorkspace* workspace);
+    const TC_PIV_biometric_validation_request* request, const TC_X509_store_snapshot* snapshot,
+    const TC_CMS_path_options* options, const TC_CMS_revocation_policy* revocation, size_t* work,
+    ExampleCMSCredentialWorkspace* workspace, TC_PIV_biometric_report* out);
+TC_credential_status example_validate_security(const TC_PIV_security_validation_request* request,
+                                               const TC_X509_store_snapshot* snapshot,
+                                               const TC_CMS_path_options* options,
+                                               const TC_CMS_revocation_policy* revocation,
+                                               size_t* work, ExampleSecurityWorkspace* workspace);
 
 typedef struct {
   TC_bytes card, intermediate, expected_uuid, signer_certificate;
@@ -61,9 +65,11 @@ typedef struct {
  * workspace. Only VALID writes out, borrowing the card's original bytes.
  * Complete secure-messaging key confirmation before accepting the session. */
 TC_credential_status example_validate_cvc(const ExampleCVCRequest* request,
-    const TC_X509_store_snapshot* snapshot, const TC_X509_path_options* options,
-    const TC_X509_revocation_options* revocation, size_t* work,
-    ExampleCVCCredentialWorkspace* workspace, TC_PIV_CVC* out);
+                                          const TC_X509_store_snapshot* snapshot,
+                                          const TC_X509_path_options* options,
+                                          const TC_X509_revocation_options* revocation,
+                                          size_t* work, ExampleCVCCredentialWorkspace* workspace,
+                                          TC_PIV_CVC* out);
 
 #ifdef __cplusplus
 }

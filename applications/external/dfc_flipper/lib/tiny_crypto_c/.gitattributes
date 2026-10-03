@@ -1,6 +1,5 @@
 tests/vectors/** -text
+tests/fuzz/** -text
 /.github export-ignore
-/.agents export-ignore
-/.codex export-ignore
 /tests export-ignore
 /tools export-ignore

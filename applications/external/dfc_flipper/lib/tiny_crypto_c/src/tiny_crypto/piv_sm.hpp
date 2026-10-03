@@ -1,12 +1,21 @@
 /* SPDX-FileCopyrightText: Mistial Dev
  * SPDX-License-Identifier: GPL-2.0-or-later */
+/* The PIVSM session class for piv_sm.h and piv_sm_authenticate.h.
+ * Contracts, statuses and lifetimes follow the C header. Conventions:
+ * docs/cpp.md. Library-wide contracts: docs/api.md. */
 #ifndef TINY_CRYPTO_PIV_SM_HPP_
 #define TINY_CRYPTO_PIV_SM_HPP_
+
+#ifndef __cplusplus
+#error Do not include piv_sm.hpp in a C project, include piv_sm.h instead
+#endif
+
 #include <tiny_crypto/common.hpp>
 #include <tiny_crypto/piv_sm.h>
 #if TC_ENABLE_X509 && TC_ENABLE_PIV_CVC
 #include <tiny_crypto/piv_sm_authenticate.h>
 #endif
+#if TC_ENABLE_PIV_SM
 
 namespace tiny_crypto {
 typedef ::TC_PIV_SM_workspace piv_sm_workspace;
@@ -21,50 +30,68 @@ typedef ::TC_PIV_SM_authentication_workspace piv_sm_authentication_workspace;
 #endif
 
 // Moving or copying a session could reuse its message counter.
-class piv_sm {
-    ::TC_PIV_SM session_;
-public:
-    piv_sm() noexcept : session_{} {}
-    ~piv_sm() noexcept { clear(); }
-    piv_sm(const piv_sm&) = delete;
-    piv_sm& operator=(const piv_sm&) = delete;
-    piv_sm(piv_sm&&) = delete;
-    piv_sm& operator=(piv_sm&&) = delete;
+class PIVSM {
+  ::TC_PIV_SM session_;
 
-    void clear() noexcept { ::TC_PIV_SM_clear(&session_); }
-    TC_PIV_SM_state state() const noexcept {
-        return static_cast<TC_PIV_SM_state>(session_.state);
-    }
-    TC_status begin(piv_sm_suite suite, const uint8_t (&host_id)[8],
-                    TC_random_fn random, void* random_user,
-                    piv_sm_handshake& handshake,
-                    piv_sm_workspace& workspace) noexcept {
-        return ::TC_PIV_SM_begin(&session_, suite, host_id, random, random_user,
-                                 &handshake, &workspace);
-    }
-    TC_status finish(const piv_sm_peer& peer,
-                     bytes authenticated_key, piv_sm_workspace& workspace) noexcept {
-        return ::TC_PIV_SM_finish(&session_, &peer, authenticated_key, &workspace);
-    }
+public:
+  PIVSM() noexcept : session_{}
+  {}
+  ~PIVSM() noexcept
+  {
+    clear();
+  }
+  PIVSM(const PIVSM&) = delete;
+  PIVSM& operator=(const PIVSM&) = delete;
+  PIVSM(PIVSM&&) = delete;
+  PIVSM& operator=(PIVSM&&) = delete;
+
+  void clear() noexcept
+  {
+    ::TC_PIV_SM_clear(&session_);
+  }
+  // The C session, for the layers that take a TC_PIV_SM pointer.
+  TC_CPP_NODISCARD ::TC_PIV_SM* native() noexcept
+  {
+    return &session_;
+  }
+  TC_CPP_NODISCARD TC_PIV_SM_state state() const noexcept
+  {
+    return ::TC_PIV_SM_get_state(&session_);
+  }
+  TC_CPP_NODISCARD TC_status begin(piv_sm_suite suite, const uint8_t (&host_id)[8],
+                                   TC_random_source random, piv_sm_handshake& handshake,
+                                   piv_sm_workspace& workspace) noexcept
+  {
+    return ::TC_PIV_SM_begin(&session_, suite, host_id, random, &handshake, &workspace);
+  }
+  TC_CPP_NODISCARD TC_status finish(const piv_sm_peer& peer, bytes authenticated_key,
+                                    piv_sm_workspace& workspace) noexcept
+  {
+    return ::TC_PIV_SM_finish(&session_, &peer, authenticated_key, &workspace);
+  }
 #if TC_ENABLE_X509 && TC_ENABLE_PIV_CVC
-    credential_status authenticate_response(const piv_sm_authentication& authentication,
-                                              size_t& work,
-                                              piv_sm_authentication_workspace& workspace) noexcept {
-        return ::TC_PIV_SM_authenticate_response(&session_, &authentication, &work, &workspace);
-    }
+  TC_CPP_NODISCARD
+  credential_status authenticate_response(const piv_sm_authentication& authentication, size_t& work,
+                                          piv_sm_authentication_workspace& workspace) noexcept
+  {
+    return ::TC_PIV_SM_authenticate_response(&session_, &authentication, &work, &workspace);
+  }
 #endif
-    TC_status protect(const piv_sm_protect_request& request,
-                      size_t& ciphertext_length, uint8_t (&tag)[8],
-                      piv_sm_workspace& workspace) noexcept {
-        return ::TC_PIV_SM_protect(&session_, &request, &ciphertext_length,
-                                   tag, &workspace);
-    }
-    TC_status unprotect(const piv_sm_unprotect_request& request, uint8_t* output,
-                        size_t capacity, size_t& plaintext_length,
-                        piv_sm_workspace& workspace) noexcept {
-        return ::TC_PIV_SM_unprotect(&session_, &request, output, capacity,
-                                     &plaintext_length, &workspace);
-    }
+  TC_CPP_NODISCARD TC_status protect(const piv_sm_protect_request& request,
+                                     size_t& ciphertext_length, uint8_t (&tag)[8],
+                                     piv_sm_workspace& workspace) noexcept
+  {
+    return ::TC_PIV_SM_protect(&session_, &request, &ciphertext_length, buffer{tag, sizeof tag},
+                               &workspace);
+  }
+  // Write at most plaintext.capacity bytes and report the count in plaintext_length.
+  TC_CPP_NODISCARD TC_status unprotect(const piv_sm_unprotect_request& request, buffer plaintext,
+                                       size_t& plaintext_length,
+                                       piv_sm_workspace& workspace) noexcept
+  {
+    return ::TC_PIV_SM_unprotect(&session_, &request, plaintext, &plaintext_length, &workspace);
+  }
 };
 } // namespace tiny_crypto
+#endif
 #endif

@@ -10,7 +10,7 @@
 #   ctest --test-dir build
 
 cmake_minimum_required(VERSION 3.24)
-project(dfc-core VERSION 1.2.0 LANGUAGES C)
+project(dfc-core VERSION 1.2.1 LANGUAGES C)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -103,15 +103,18 @@ if(DFC_CRYPTO STREQUAL "tiny")
         include(FetchContent)
         FetchContent_Declare(tiny_crypto
             GIT_REPOSITORY https://github.com/mistial-dev/tiny_crypto_c.git
-            GIT_TAG 180b054706bc951c0105e44ab3015028a66a7e3a
+            GIT_TAG 64fccd69ae2405574575f971f8b72f5e3e403f56
             # Only the sources are used, compiled with the macros below.
             SOURCE_SUBDIR _sources_only)
         FetchContent_MakeAvailable(tiny_crypto)
     endif()
     set(DFC_CRYPTO_SOURCES
+        ${tiny_crypto_SOURCE_DIR}/src/common.c
+        ${tiny_crypto_SOURCE_DIR}/src/block_modes.c
         ${tiny_crypto_SOURCE_DIR}/src/aes.c
+        ${tiny_crypto_SOURCE_DIR}/src/aes_modes.c
         ${tiny_crypto_SOURCE_DIR}/src/des.c
-        ${tiny_crypto_SOURCE_DIR}/src/common.c)
+        ${tiny_crypto_SOURCE_DIR}/src/des_modes.c)
     set(DFC_CRYPTO_INCLUDES ${tiny_crypto_SOURCE_DIR}/src)
     list(APPEND DFC_DEFINITIONS
         DFC_CRYPTO_BACKEND_TINY=1

@@ -1,3 +1,31 @@
+tiny_crypto_c ESP-IDF Linking Exception
+
+As a special exception, the copyright holders of tiny_crypto_c give you
+permission to link tiny_crypto_c with the Espressif Libraries, statically or
+dynamically, and to distribute the resulting combined work, without the GNU
+General Public License applying to the Espressif Libraries.
+
+"Espressif Libraries" means software distributed by Espressif Systems as part
+of the Espressif IoT Development Framework (ESP-IDF), including its components,
+the third-party libraries distributed with it, and its binary-only libraries,
+used in substantially unmodified form. Substantially unmodified form permits
+configuration through options that Espressif provides, build-system
+integration, and minor changes required for compatibility. It also includes
+the copy of ESP-IDF bootloader_support distributed with tiny_crypto_c under
+ports/esp-idf/vendor, with the changes recorded in its PROVENANCE.md.
+
+This exception does not affect any other part of the combined work. You must
+comply with the GNU General Public License for tiny_crypto_c, for any
+modifications to it, and for any other software in the combined work that
+would otherwise be subject to it.
+
+This exception is an additional permission under the GNU General Public
+License, version 2 or any later version. If you modify tiny_crypto_c, you may
+extend this exception to your version, but you are not obliged to do so. If you
+do not wish to do so, delete this exception statement from your version.
+
+-------------------------------------------------------------------------------
+
                     GNU GENERAL PUBLIC LICENSE
                        Version 2, June 1991
 

@@ -4,11 +4,18 @@
 #define TC_STRING_INTERNAL_H_
 #include <tiny_crypto/tlv.h>
 
+/* Fold ASCII A-Z to a-z and leave every other byte unchanged. Protocol
+ * comparisons use this for case-insensitive ASCII fields such as DNS labels,
+ * URI schemes and "urn:uuid:" prefixes. */
+static inline uint8_t tc_ascii_fold(uint8_t c)
+{
+  return c >= 'A' && c <= 'Z' ? (uint8_t)(c + ('a' - 'A')) : c;
+}
+
 /* Decode one scalar from UTF8String, PrintableString, IA5String, VisibleString,
  * UniversalString or BMPString contents. Offset and point change only on OK.
  * TeletexString needs a separate, explicitly chosen character mapping. */
-TC_TLV_result tc_asn1_string_next(unsigned tag, TC_bytes input,
-    size_t* offset, uint32_t* point);
+TC_TLV_result tc_asn1_string_next(unsigned tag, TC_bytes input, size_t* offset, uint32_t* point);
 
 enum { TC_ASN1_SCALAR_BYTES = 4 };
 typedef struct {
@@ -21,5 +28,5 @@ typedef TC_TLV_result (*tc_asn1_string_consume)(void* context, uint32_t point);
  * used must be zero at end of input. Discard state after an error. All input,
  * state and callback storage must be disjoint. NULL consume checks syntax. */
 TC_TLV_result tc_asn1_string_feed(tc_asn1_string_state* state, TC_bytes bytes,
-    tc_asn1_string_consume consume, void* context);
+                                  tc_asn1_string_consume consume, void* context);
 #endif

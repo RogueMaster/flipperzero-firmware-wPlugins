@@ -17,6 +17,8 @@ The [credential format specification](docs/credential-format-v6.md) defines
 tag. Start with the [v6 example credentials](examples/credentials/README.md),
 then use the [migration guide](docs/credential-migration.md) when updating
 stored credentials.
+The [EV2 data sheet audit](docs/ev2-datasheet-audit.md) compares this implementation
+with NXP's product short data sheet.
 
 It is suitable for hosted systems and freestanding C targets. A build role
 selects the parts one product carries. A card carries the emulator and the

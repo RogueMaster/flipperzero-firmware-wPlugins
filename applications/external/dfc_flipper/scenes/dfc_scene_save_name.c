@@ -57,7 +57,7 @@ bool dfc_scene_save_name_on_event(void* context, SceneManagerEvent event) {
 
     if(event.type == SceneManagerEventTypeCustom) {
         if(event.event == DfcCustomEventTextInputDone) {
-            strlcpy(dfc->credential->name, dfc->text_store, strlen(dfc->text_store) + 1);
+            strlcpy(dfc->credential->name, dfc->text_store, sizeof(dfc->credential->name));
             if(dfc_credential_save(dfc->credential, dfc->text_store)) {
                 scene_manager_next_scene(dfc->scene_manager, DfcSceneSaveSuccess);
                 consumed = true;

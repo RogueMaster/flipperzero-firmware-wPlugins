@@ -99,6 +99,19 @@ The probe exercises the core's virtual card on a host computer. It reports
 unsupported credentials and APDU responses, but does not run the FAP UI, NFC
 listener, radio timing, or a physical reader.
 
+On macOS with a PC/SC reader, start emulating a `.dfc` credential on the Flipper,
+then run the authenticated read probe (requires Python `cryptography`):
+
+```sh
+python3 tests/probe_pcsc_mac_read.py path/to/card.dfc
+```
+
+The probe selects application 0, authenticates with ISO 2K3DES key 1, reads
+all data from file 0 through any DESFire continuation frames, and verifies
+both the data and response MAC. Use `--application`, `--file`, `--key`, or
+`--reader` for another credential or reader. This is a manual hardware gate;
+the host test suite cannot establish radio compatibility.
+
 Build the Flipper application with an installed `ufbt` SDK:
 
 ```sh

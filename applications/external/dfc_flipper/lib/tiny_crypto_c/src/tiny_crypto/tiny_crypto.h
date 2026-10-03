@@ -2,6 +2,9 @@
  * SPDX-FileCopyrightText: Mistial Dev
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
+/* Umbrella header for the configured build. It includes the header of every
+ * enabled module.
+ * Contracts: docs/api.md. */
 #ifndef TINY_CRYPTO_H_
 #define TINY_CRYPTO_H_
 
@@ -27,6 +30,27 @@
 #if TC_ENABLE_TLV
 #include <tiny_crypto/tlv.h>
 #endif
+#if TC_ENABLE_APDU
+#include <tiny_crypto/apdu.h>
+#endif
+#if TC_ENABLE_PIV_COMMAND
+#include <tiny_crypto/piv_command.h>
+#endif
+#if TC_ENABLE_PIV_SM_APDU
+#include <tiny_crypto/piv_sm_apdu.h>
+#endif
+#if TC_ENABLE_PIV_VCI
+#include <tiny_crypto/piv_vci.h>
+#endif
+#if TC_ENABLE_PIV_CATALOG
+#include <tiny_crypto/piv_catalog.h>
+#endif
+#if TC_ENABLE_PIV_KEY_PROOF
+#include <tiny_crypto/piv_key_proof.h>
+#endif
+#if TC_ENABLE_PIV_CARD_CHECK
+#include <tiny_crypto/piv_card_check.h>
+#endif
 #if TC_ENABLE_AAMVA
 #include <tiny_crypto/aamva.h>
 #endif
@@ -51,10 +75,16 @@
 #include <tiny_crypto/x509_path.h>
 #include <tiny_crypto/x509_store.h>
 #endif
+#if TC_ENABLE_TRUST_ANCHOR_FORMAT
+#include <tiny_crypto/x509_trust_anchor.h>
+#endif
 #if TC_ENABLE_X509_REVOCATION
 #include <tiny_crypto/x509_crl.h>
 #include <tiny_crypto/x509_crl_source.h>
 #include <tiny_crypto/x509_revocation.h>
+#endif
+#if TC_ENABLE_X509_OCSP
+#include <tiny_crypto/x509_ocsp.h>
 #endif
 #if TC_ENABLE_PIV_OIDS
 #include <tiny_crypto/piv_oid.h>
@@ -76,7 +106,9 @@
 #include <tiny_crypto/piv_biometric.h>
 #include <tiny_crypto/piv_certificate.h>
 #include <tiny_crypto/piv_card.h>
+#include <tiny_crypto/piv_card_objects.h>
 #include <tiny_crypto/piv_cms.h>
+#include <tiny_crypto/piv_discovery.h>
 #include <tiny_crypto/piv_printed.h>
 #include <tiny_crypto/lds.h>
 #include <tiny_crypto/piv_security.h>
@@ -106,22 +138,28 @@
 #if TC_AES_ENABLE_DYNAMIC
 #include <tiny_crypto/aes_dynamic.h>
 #endif
+#if TC_AES_ENABLE_KW
+#include <tiny_crypto/aes_kw.h>
+#endif
 #endif
 
 #if TC_ENABLE_DES
 #include <tiny_crypto/des.h>
 #endif
 
-#if TC_ENABLE_SHA1 || TC_ENABLE_SHA224 || TC_ENABLE_SHA256 || \
-    TC_ENABLE_SHA384 || TC_ENABLE_SHA512
 #include <tiny_crypto/hash.h>
-#endif
 
 #if TC_ENABLE_KDF
 #include <tiny_crypto/kdf.h>
 #endif
+#if TC_ENABLE_HKDF
+#include <tiny_crypto/hkdf.h>
+#endif
 #if TC_ENABLE_SSKDF
 #include <tiny_crypto/sskdf.h>
+#endif
+#if TC_ENABLE_DRBG
+#include <tiny_crypto/drbg.h>
 #endif
 
 #endif

@@ -1,0 +1,54 @@
+# SPDX-FileCopyrightText: Mistial Dev
+# SPDX-License-Identifier: GPL-2.0-or-later
+minimum_pre_commit_version: '4.2.0'
+exclude: '^(ports/esp-idf/vendor/|tests/vectors/|tests/fuzz/|tests/support/(munit\.[ch]|doctest\.h)$|tests/(des/(test_vectors|edge_vectors)\.h|hash/test_vectors\.h|kdf/test_vectors\.h)$|src/unicode_data\.inc$|docs/benchmarks\.md$|AGENTS\.md$)'
+
+repos:
+  - repo: https://github.com/pre-commit/mirrors-clang-format
+    rev: v22.1.8
+    hooks:
+      - id: clang-format
+        stages: [pre-commit]
+        types: [file]
+        files: &source_files '^(src|tests|examples|benchmarks|ports/esp-idf)/.*\.(c|cc|cpp|cxx|h|hh|hpp|hxx|ino)$'
+      - id: clang-format
+        alias: clang-format-check
+        name: Check clang-format
+        entry: clang-format --dry-run --Werror --style=file
+        args: []
+        stages: [manual]
+        types: [file]
+        files: *source_files
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+        stages: [pre-commit]
+      - id: end-of-file-fixer
+        stages: [pre-commit]
+      - id: check-yaml
+        stages: [pre-commit, manual]
+      - id: check-merge-conflict
+        stages: [pre-commit, manual]
+  - repo: https://github.com/hukkin/mdformat
+    rev: 1.0.0
+    hooks:
+      - id: mdformat
+        additional_dependencies: [mdformat-gfm==1.0.0]
+        args: [--wrap, keep]
+        stages: [pre-commit]
+      - id: mdformat
+        alias: mdformat-check
+        name: Check Markdown formatting
+        entry: mdformat --check --wrap keep
+        args: []
+        additional_dependencies: [mdformat-gfm==1.0.0]
+        stages: [manual]
+  - repo: local
+    hooks:
+      - id: text-format-check
+        name: Check trailing whitespace and final newline
+        entry: python3 tools/check_text_format.py
+        language: system
+        types: [text]
+        stages: [manual]

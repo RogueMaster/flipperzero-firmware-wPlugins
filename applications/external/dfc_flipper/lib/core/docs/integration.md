@@ -44,7 +44,8 @@ For mbedTLS 3.x, compile with:
 Link `libmbedcrypto`, or compile the target's mbedTLS AES and DES sources.
 mbedTLS 4 removed DES, so DFC requires mbedTLS 3.x.
 
-For tiny_crypto_c, compile `src/aes.c`, `src/des.c`, and `src/common.c` and use:
+For tiny_crypto_c 2.0, compile `src/common.c`, `src/block_modes.c`, `src/aes.c`,
+`src/aes_modes.c`, `src/des.c`, and `src/des_modes.c` and use:
 
 ```sh
 -DDFC_CRYPTO_BACKEND_TINY=1 -I/path/to/tiny_crypto_c/src \

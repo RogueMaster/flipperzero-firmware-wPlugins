@@ -2,7 +2,7 @@
 cmake_minimum_required(VERSION 3.24)
 set(IDF_TARGET esp32p4)
 set(COMPONENTS main)
-set(PROJECT_VER "1.0.1")
+set(PROJECT_VER "2.0.0")
 set(SDKCONFIG "${CMAKE_BINARY_DIR}/sdkconfig")
 set(EXTRA_COMPONENT_DIRS "${CMAKE_CURRENT_LIST_DIR}/../../ports/esp-idf/tiny_crypto_c")
 list(APPEND EXTRA_COMPONENT_DIRS "${CMAKE_CURRENT_LIST_DIR}/../../ports/esp-idf/vendor/bootloader_support")

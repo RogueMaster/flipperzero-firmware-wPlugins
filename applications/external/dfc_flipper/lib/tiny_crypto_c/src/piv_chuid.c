@@ -5,94 +5,180 @@
 #include <tiny_crypto/piv_chuid.h>
 #include "internal.h"
 #include "pki_internal.h"
+#include "piv_container_internal.h"
+#include "credential_text_internal.h"
 #include <string.h>
 
-static int expiration(TC_bytes date)
+/* One bit per TC_PIV_CHUID_profile value. */
+#define PROFILE_BIT(profile) (1u << (profile))
+#define PIV_PROFILES                                                                               \
+  (PROFILE_BIT(TC_CHUID_PROFILE_PIV) | PROFILE_BIT(TC_CHUID_PROFILE_LEGACY_KEY_MAP))
+#define SIGNED_PROFILES (PIV_PROFILES | PROFILE_BIT(TC_CHUID_PROFILE_TWIC_SIGNED))
+#define ALL_PROFILES (SIGNED_PROFILES | PROFILE_BIT(TC_CHUID_PROFILE_TWIC_UNSIGNED))
+
+enum {
+  BUFFER_LENGTH_TAG = 0xee,
+  FASCN_TAG = 0x30,
+  ORGANIZATION_TAG = 0x32,
+  DUNS_TAG = 0x33,
+  CARD_UUID_TAG = 0x34,
+  EXPIRATION_TAG = 0x35,
+  CARDHOLDER_UUID_TAG = 0x36,
+  KEY_MAP_TAG = 0x3d,
+  SIGNATURE_TAG = 0x3e,
+  ERROR_DETECTION_TAG = 0xfe,
+  KEY_MAP_MAX_BYTES = 512
+};
+
+/* CHUID fields in their required order. allowed lists the profiles in which a
+ * field may appear. required lists the profiles in which it must appear. PIV
+ * follows SP 800-73-4 Part 1 Table 9, TWIC follows TWIC Part 2 sections 4.6.1
+ * and 4.6.3, and the key map follows SP 800-73-2 Part 1 Table 8. */
+static const struct {
+  uint8_t tag;
+  uint8_t allowed, required;
+} fields[] = {
+    {BUFFER_LENGTH_TAG, PIV_PROFILES, 0},
+    {FASCN_TAG, ALL_PROFILES, ALL_PROFILES},
+    {ORGANIZATION_TAG, PIV_PROFILES, 0},
+    {DUNS_TAG, PIV_PROFILES, 0},
+    {CARD_UUID_TAG, ALL_PROFILES, ALL_PROFILES},
+    {EXPIRATION_TAG, ALL_PROFILES, ALL_PROFILES},
+    {CARDHOLDER_UUID_TAG, PIV_PROFILES, 0},
+    {KEY_MAP_TAG, PROFILE_BIT(TC_CHUID_PROFILE_LEGACY_KEY_MAP), 0},
+    {SIGNATURE_TAG, SIGNED_PROFILES, SIGNED_PROFILES},
+    {ERROR_DETECTION_TAG, ALL_PROFILES, ALL_PROFILES},
+};
+enum { FIELD_COUNT = sizeof fields / sizeof *fields };
+
+/* Advance *position to the field matching tag, skipping fields that are
+ * optional or absent in this profile. Returns 0 when tag is out of order,
+ * repeated, outside the profile, or when a required field is missing. */
+static int field_find(unsigned tag, unsigned profile_bit, size_t* position)
 {
-  unsigned i, y = 0, m, d;
-  if (date.length != 8) return 0;
-  for (i = 0; i < 8; ++i) if (date.data[i] < '0' || date.data[i] > '9') return 0;
-  for (i = 0; i < 4; ++i) y = y * 10 + date.data[i] - '0';
-  m = (date.data[4] - '0') * 10 + date.data[5] - '0';
-  d = (date.data[6] - '0') * 10 + date.data[7] - '0';
-  return tc_pki_date(y, m, d);
+  for (; *position < FIELD_COUNT; ++*position) {
+    if (fields[*position].tag == tag && (fields[*position].allowed & profile_bit))
+      return 1;
+    if (fields[*position].required & profile_bit)
+      return 0;
+  }
+  return 0;
 }
 
-TC_TLV_result TC_PIV_CHUID_read(const uint8_t* data, size_t length,
-                               TC_PIV_CHUID_encoding encoding, TC_PIV_CHUID* out)
+static int fixed_length(const TC_TLV_element* element, size_t length)
 {
-  return TC_PIV_CHUID_read_profile(data, length, encoding, TC_CHUID_PROFILE_PIV, out);
+  return element->value.length == length;
 }
 
-TC_TLV_result TC_PIV_CHUID_read_profile(const uint8_t* data, size_t length,
-    TC_PIV_CHUID_encoding encoding, TC_PIV_CHUID_profile profile, TC_PIV_CHUID* out)
+static TC_TLV_result field_store(const TC_TLV_element* element, TC_PIV_CHUID* chuid)
 {
-  enum { KEY_MAP_TAG = 0x3d, KEY_MAP_MAX_BYTES = 512 };
-  static const uint8_t tags[] = {0x30,0x34,0x35,0x36,KEY_MAP_TAG,0x3e,0xfe};
-  const TC_TLV_limits limits = {SIZE_MAX, SIZE_MAX, sizeof tags, 1};
-  TC_PIV_CHUID chuid;
+  switch (element->header.tag[0]) {
+  /* SP 800-73-4 Part 1 Table 9 gives fixed sizes for the deprecated fields. */
+  case BUFFER_LENGTH_TAG:
+    return fixed_length(element, 2) ? TC_TLV_OK : TC_TLV_INVALID;
+  case ORGANIZATION_TAG:
+    return fixed_length(element, 4) ? TC_TLV_OK : TC_TLV_INVALID;
+  case DUNS_TAG:
+    return fixed_length(element, 9) ? TC_TLV_OK : TC_TLV_INVALID;
+  case FASCN_TAG:
+    if (!fixed_length(element, 25))
+      return TC_TLV_INVALID;
+    chuid->fascn = element->value;
+    return TC_TLV_OK;
+  case CARD_UUID_TAG:
+    if (!fixed_length(element, 16))
+      return TC_TLV_INVALID;
+    chuid->card_uuid = element->value;
+    return TC_TLV_OK;
+  case EXPIRATION_TAG:
+    if (!tc_credential_yyyymmdd(element->value.data, element->value.length, NULL, NULL, NULL))
+      return TC_TLV_INVALID;
+    chuid->expiration = element->value;
+    return TC_TLV_OK;
+  case CARDHOLDER_UUID_TAG:
+    if (!fixed_length(element, 16))
+      return TC_TLV_INVALID;
+    chuid->cardholder_uuid = element->value;
+    return TC_TLV_OK;
+  case KEY_MAP_TAG:
+    if (element->value.length > KEY_MAP_MAX_BYTES)
+      return TC_TLV_INVALID;
+    chuid->authentication_key_map = element->value;
+    return TC_TLV_OK;
+  case SIGNATURE_TAG:
+    if (!element->value.length)
+      return TC_TLV_INVALID;
+    chuid->signature = element->value;
+    return TC_TLV_OK;
+  default:
+    /* The Error Detection Code is empty (SP 800-73-4 Part 1 section 3.1.2). */
+    return element->value.length ? TC_TLV_INVALID : TC_TLV_OK;
+  }
+}
+
+static TC_TLV_result read_fields(TC_bytes contents, TC_PIV_CHUID_profile profile,
+                                 TC_PIV_CHUID* chuid)
+{
+  const TC_TLV_limits limits = {SIZE_MAX, SIZE_MAX, FIELD_COUNT, 1};
+  const unsigned profile_bit = PROFILE_BIT(profile);
   TC_TLV_reader reader;
   TC_TLV_element element;
-  TC_TLV_result result;
-  unsigned position = 0;
-  if (!out || (!data && length) ||
-      (profile != TC_CHUID_PROFILE_PIV && profile != TC_CHUID_PROFILE_TWIC_SIGNED &&
-       profile != TC_CHUID_PROFILE_TWIC_UNSIGNED && profile != TC_CHUID_PROFILE_LEGACY_KEY_MAP) ||
-      (encoding != TC_PIV_CHUID_CONTENTS && encoding != TC_PIV_CHUID_CONTAINER)) return TC_TLV_ARGUMENT;
-  if (!tc_internal_ranges_disjoint(data,length,out,sizeof *out)) return TC_TLV_ARGUMENT;
-  if (encoding == TC_PIV_CHUID_CONTAINER) {
-    result = TC_TLV_read(data, length, TC_TLV_ISO7816, &limits, &element);
-    if (result != TC_TLV_OK) return result;
-    if (element.header.tag_length != 1 || element.header.tag[0] != 0x53 ||
-        element.encoded.length != length) return TC_TLV_INVALID;
-    data = element.value.data; length = element.value.length;
-  }
-  memset(&chuid, 0, sizeof chuid);
-  result = TC_TLV_reader_init(&reader, data, length, TC_TLV_ISO7816, &limits);
-  if (result != TC_TLV_OK) return result;
+  size_t position = 0;
+  /* Signed content starts after the Buffer Length element, which the
+   * signature excludes (SP 800-73-4 Part 1 section 3.1.2). */
+  const uint8_t* signed_start = contents.data;
+  TC_TLV_result result = TC_TLV_reader_init(&reader, contents, TC_TLV_ISO7816, &limits);
+  if (result != TC_TLV_OK)
+    return result;
   /* CHUID tags identify opaque fields, even when their constructed bit is set. */
   while ((result = TC_TLV_next(&reader, &element)) == TC_TLV_OK) {
-    unsigned tag = element.header.tag[0];
-    if (position == 3 && ((profile != TC_CHUID_PROFILE_PIV &&
-        profile != TC_CHUID_PROFILE_LEGACY_KEY_MAP) || tag != 0x36)) ++position;
-    if (position == 4 && (profile != TC_CHUID_PROFILE_LEGACY_KEY_MAP || tag != KEY_MAP_TAG)) ++position;
-    if (position == 5 && profile == TC_CHUID_PROFILE_TWIC_UNSIGNED) ++position;
-    if (position >= sizeof tags || element.header.tag_length != 1 || tag != tags[position])
+    const unsigned tag = element.header.tag[0];
+    if (element.header.tag_length != 1 || !field_find(tag, profile_bit, &position))
       return TC_TLV_INVALID;
     ++position;
-    switch (tag) {
-      case 0x30:
-        if (element.value.length != 25) return TC_TLV_INVALID;
-        chuid.fascn = element.value; break;
-      case 0x34:
-        if (element.value.length != 16) return TC_TLV_INVALID;
-        chuid.card_uuid = element.value; break;
-      case 0x35:
-        if (!expiration(element.value)) return TC_TLV_INVALID;
-        chuid.expiration = element.value; break;
-      case 0x36:
-        if (element.value.length != 16) return TC_TLV_INVALID;
-        chuid.cardholder_uuid = element.value; break;
-      case KEY_MAP_TAG:
-        if (element.value.length > KEY_MAP_MAX_BYTES) return TC_TLV_INVALID;
-        chuid.authentication_key_map = element.value;
-        break;
-      case 0x3e:
-        if (!element.value.length) return TC_TLV_INVALID;
-        chuid.signature = element.value;
-        chuid.signed_content[0] = (TC_bytes){data,(size_t)(element.encoded.data - data)};
-        break;
-      case 0xfe:
-        if (element.value.length || reader.offset != length) return TC_TLV_INVALID;
-        /* The signature covers FE's tag and length, which follow the CMS field. */
-        if (chuid.signature.data) chuid.signed_content[1] = element.encoded;
-        break;
-      default: break;
+    result = field_store(&element, chuid);
+    if (result != TC_TLV_OK)
+      return result;
+    if (tag == BUFFER_LENGTH_TAG)
+      signed_start = contents.data + reader.offset;
+    else if (tag == SIGNATURE_TAG)
+      chuid->signed_content[0] =
+          (TC_bytes){signed_start, (size_t)(element.encoded.data - signed_start)};
+    else if (tag == ERROR_DETECTION_TAG) {
+      if (reader.offset != contents.length)
+        return TC_TLV_INVALID;
+      /* The signature covers FE's tag and length, which follow the CMS field. */
+      if (chuid->signature.data)
+        chuid->signed_content[1] = element.encoded;
     }
   }
   if (result != TC_TLV_END)
+    return result;
+  return position == FIELD_COUNT ? TC_TLV_OK : TC_TLV_INVALID;
+}
+
+TC_TLV_result TC_PIV_CHUID_read(TC_bytes encoded, TC_PIV_CHUID_encoding encoding,
+                                TC_PIV_CHUID_profile profile, TC_PIV_CHUID* out)
+{
+  TC_PIV_CHUID chuid;
+  TC_bytes contents = encoded;
+  TC_TLV_result result;
+  if (!out || (!encoded.data && encoded.length) ||
+      (profile != TC_CHUID_PROFILE_PIV && profile != TC_CHUID_PROFILE_TWIC_SIGNED &&
+       profile != TC_CHUID_PROFILE_TWIC_UNSIGNED && profile != TC_CHUID_PROFILE_LEGACY_KEY_MAP) ||
+      (encoding != TC_PIV_CHUID_CONTENTS && encoding != TC_PIV_CHUID_CONTAINER) ||
+      !tc_internal_ranges_disjoint(encoded.data, encoded.length, out, sizeof *out))
+    return TC_TLV_ARGUMENT;
+  if (encoding == TC_PIV_CHUID_CONTAINER) {
+    const TC_TLV_limits limits = {SIZE_MAX, SIZE_MAX, 1, 1};
+    result = tc_piv_container_contents(encoded, &limits, &contents);
+    if (result != TC_TLV_OK)
+      return result;
+  }
+  memset(&chuid, 0, sizeof chuid);
+  result = read_fields(contents, profile, &chuid);
+  if (result != TC_TLV_OK)
     return result == TC_TLV_MORE && encoding == TC_PIV_CHUID_CONTAINER ? TC_TLV_INVALID : result;
-  if (position != sizeof tags) return TC_TLV_INVALID;
   *out = chuid;
   return TC_TLV_OK;
 }

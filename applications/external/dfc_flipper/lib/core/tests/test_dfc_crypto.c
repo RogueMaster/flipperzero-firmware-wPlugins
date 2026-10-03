@@ -49,6 +49,57 @@ static MunitResult test_des_ecb_vector(const MunitParameter params[], void* data
     return MUNIT_OK;
 }
 
+static void assert_tdes_cbc_vector(
+    const uint8_t* key,
+    size_t key_len,
+    const uint8_t clear[16],
+    const uint8_t expected[16]) {
+    const uint8_t initial_iv[8] = {0x12, 0x34, 0x56, 0x78, 0x90, 0xab, 0xcd, 0xef};
+    uint8_t iv[8];
+    uint8_t buffer[16];
+
+    memcpy(iv, initial_iv, sizeof(iv));
+    munit_assert_true(dfc_crypto_des_cbc(
+        true, key, key_len, iv, clear, buffer, sizeof(buffer)));
+    munit_assert_memory_equal(sizeof(buffer), buffer, expected);
+    munit_assert_memory_equal(sizeof(iv), iv, expected + 8);
+
+    memcpy(iv, initial_iv, sizeof(iv));
+    munit_assert_true(dfc_crypto_des_cbc(
+        false, key, key_len, iv, buffer, buffer, sizeof(buffer)));
+    munit_assert_memory_equal(sizeof(buffer), buffer, clear);
+    munit_assert_memory_equal(sizeof(iv), iv, expected + 8);
+}
+
+static MunitResult test_tdes_cbc_vectors(const MunitParameter params[], void* data) {
+    (void)params;
+    (void)data;
+    /* Pinned known-answer vectors from the tiny_crypto_c 2.0 test suite. */
+    const uint8_t key_2k[16] = {
+        0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef,
+        0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0x01};
+    const uint8_t clear_2k[16] = {
+        0x6b, 0xc1, 0xbe, 0xe2, 0x2e, 0x40, 0x9f, 0x96,
+        0xe9, 0x3d, 0x7e, 0x11, 0x73, 0x93, 0x17, 0x2a};
+    const uint8_t expected_2k[16] = {
+        0xa9, 0xf1, 0xda, 0x98, 0x21, 0xcd, 0x5a, 0x85,
+        0x0a, 0x07, 0xd1, 0x9f, 0x76, 0x83, 0xa8, 0x4b};
+    const uint8_t key_3k[24] = {
+        0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef,
+        0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0x01,
+        0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0x01, 0x23};
+    const uint8_t clear_3k[16] = {
+        0x4e, 0x6f, 0x77, 0x20, 0x69, 0x73, 0x20, 0x74,
+        0x68, 0x65, 0x20, 0x74, 0x69, 0x6d, 0x65, 0x20};
+    const uint8_t expected_3k[16] = {
+        0xf3, 0xc0, 0xff, 0x02, 0x6c, 0x02, 0x30, 0x89,
+        0x65, 0x6f, 0xbb, 0x16, 0x9d, 0xef, 0x7e, 0xdb};
+
+    assert_tdes_cbc_vector(key_2k, sizeof(key_2k), clear_2k, expected_2k);
+    assert_tdes_cbc_vector(key_3k, sizeof(key_3k), clear_3k, expected_3k);
+    return MUNIT_OK;
+}
+
 static MunitResult test_rejects_invalid_lengths(const MunitParameter params[], void* data) {
     (void)params;
     (void)data;
@@ -66,6 +117,7 @@ static MunitResult test_rejects_invalid_lengths(const MunitParameter params[], v
 static MunitTest tests[] = {
     {(char*)"/aes-cbc-vector", test_aes_cbc_vector, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL},
     {(char*)"/des-ecb-vector", test_des_ecb_vector, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL},
+    {(char*)"/tdes-cbc-vectors", test_tdes_cbc_vectors, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL},
     {(char*)"/invalid-lengths", test_rejects_invalid_lengths, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL},
     {NULL, NULL, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL},
 };

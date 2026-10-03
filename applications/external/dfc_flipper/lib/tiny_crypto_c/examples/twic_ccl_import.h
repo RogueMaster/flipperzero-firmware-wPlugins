@@ -20,18 +20,20 @@ typedef struct {
  * The callback appends every record to private staging storage. Inputs, state,
  * callback storage and outputs require disjoint storage. */
 TC_TWIC_CCL_result example_twic_ccl_import_init(ExampleTwicCclImport* state,
-    const uint8_t expected[TC_MD5_DIGESTLEN], size_t max_bytes, size_t max_records,
-    TC_TWIC_CCL_visit append, void* context);
+                                                const uint8_t expected[TC_MD5_DIGESTLEN],
+                                                size_t max_bytes, size_t max_records,
+                                                TC_TWIC_CCL_visit append, void* context);
 TC_TWIC_CCL_result example_twic_ccl_import_update(ExampleTwicCclImport* state, TC_bytes chunk);
 /* After download completion, sort the staged keys and expose the immutable
  * source. Retain duplicates so its count equals the parsed record count.
- * Metadata must describe this download. Only success prepares slot; publication
+ * Metadata must describe this download. Only success prepares slot. Publication
  * follows application persistence and policy checks under the store lock.
  * Failures are sticky and leave slot unchanged. Discard staging and warn on
  * download, parse, checksum or storage failure, keeping the active list. */
 TC_TWIC_CCL_result example_twic_ccl_import_finish(ExampleTwicCclImport* state,
-    const TC_TWIC_CCL_source* staged, const TC_TWIC_CCL_metadata* metadata,
-    TC_TWIC_CCL_snapshot* slot);
+                                                  const TC_TWIC_CCL_source* staged,
+                                                  const TC_TWIC_CCL_metadata* metadata,
+                                                  TC_TWIC_CCL_snapshot* slot);
 void example_twic_ccl_import_clear(ExampleTwicCclImport* state);
 
 #ifdef __cplusplus

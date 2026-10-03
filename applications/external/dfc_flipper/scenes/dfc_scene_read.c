@@ -13,6 +13,12 @@ void dfc_scene_read_on_enter(void* context) {
     popup_set_icon(popup, 0, 3, &I_RFIDDolphinReceive_97x61);
 
     dfc->poller = nfc_poller_alloc(dfc->nfc, NfcProtocolIso14443_4a);
+    if(!dfc->poller) {
+        popup_set_header(popup, "Out of memory", 64, 24, AlignCenter, AlignTop);
+        popup_set_text(popup, "Could not start\nreader", 64, 42, AlignCenter, AlignTop);
+        view_dispatcher_switch_to_view(dfc->view_dispatcher, DfcViewPopup);
+        return;
+    }
     nfc_poller_start(dfc->poller, dfc_worker_poller_callback, dfc);
 
     dfc_blink_start(dfc);

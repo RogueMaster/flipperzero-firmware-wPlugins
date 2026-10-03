@@ -43,7 +43,14 @@ App(
         Lib(
             name="tiny_crypto_c",
             fap_include_paths=["src"],
-            sources=["src/aes.c", "src/des.c", "src/common.c"],
+            sources=[
+                "src/aes.c",
+                "src/aes_modes.c",
+                "src/block_modes.c",
+                "src/common.c",
+                "src/des.c",
+                "src/des_modes.c",
+            ],
         ),
     ],
     sources=["*.c", "*.cpp", "!lib", "!tests", "!text_plugin"],

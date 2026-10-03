@@ -44,7 +44,9 @@ CFLAGS += -DDFC_CRYPTO_BACKEND_TINY=1 -I$(TINY_CRYPTO_DIR)/src \
 	-DTC_ENABLE_AES=1 -DTC_AES_ENABLE_CBC=1 -DTC_AES_ENABLE_CTR=0 \
 	-DTC_ENABLE_DES=1 -DTC_DES_ENABLE_ECB=1 -DTC_DES_ENABLE_CBC=1 -DTC_DES_ENABLE_CTR=0 \
 	-DTC_DES_ENABLE_TDES=1 -DTC_ENABLE_SHA256=0
-CRYPTO_SRC := $(TINY_CRYPTO_DIR)/src/aes.c $(TINY_CRYPTO_DIR)/src/des.c $(TINY_CRYPTO_DIR)/src/common.c
+CRYPTO_SRC := $(TINY_CRYPTO_DIR)/src/common.c $(TINY_CRYPTO_DIR)/src/block_modes.c \
+	$(TINY_CRYPTO_DIR)/src/aes.c $(TINY_CRYPTO_DIR)/src/aes_modes.c \
+	$(TINY_CRYPTO_DIR)/src/des.c $(TINY_CRYPTO_DIR)/src/des_modes.c
 else
 $(error CRYPTO_BACKEND must be 'mbedtls' or 'tiny')
 endif

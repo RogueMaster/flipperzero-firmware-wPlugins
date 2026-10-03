@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.1 (2026-10-01)
+
+- Update tiny_crypto_c to v2.0.0.
+
 ## 1.2.0 (2026-09-25)
 
 - Add a native reader, flat C interface, CMake build, and .NET library.

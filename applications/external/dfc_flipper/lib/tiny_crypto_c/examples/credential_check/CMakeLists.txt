@@ -2,25 +2,26 @@
 cmake_minimum_required(VERSION 3.24)
 project(credential_check LANGUAGES C)
 find_package(tiny_crypto_c CONFIG REQUIRED)
-add_library(credential_io STATIC ../credential_io.c ../credential_pcsc.c)
-target_link_libraries(credential_io PUBLIC tiny_crypto_c::tiny_crypto_c)
+# The PC/SC transport. Card commands come from the library.
+add_library(credential_pcsc STATIC ../credential_pcsc.c)
+target_link_libraries(credential_pcsc PUBLIC tiny_crypto_c::tiny_crypto_c)
 add_executable(credential_check ../credential_check.c)
-target_link_libraries(credential_check PRIVATE credential_io)
+target_link_libraries(credential_check PRIVATE credential_pcsc)
 add_executable(twic_authenticate ../twic_authenticate.c ../credential_system.c
-  ../card_key_policy.c ../credential_auth.c ../credential_validate.c
-  ../credential_object.c ../cms_reader.c ../cms_validate.c ../pki_input.c ../x509_revocation.c)
-target_link_libraries(twic_authenticate PRIVATE credential_io)
+  ../credential_validate.c ../credential_object.c ../cms_reader.c ../cms_validate.c
+  ../pki_input.c ../x509_revocation.c)
+target_link_libraries(twic_authenticate PRIVATE credential_pcsc)
 if(APPLE)
   find_library(PCSC_LIBRARY PCSC REQUIRED)
-  target_link_libraries(credential_io PUBLIC ${PCSC_LIBRARY})
+  target_link_libraries(credential_pcsc PUBLIC ${PCSC_LIBRARY})
 elseif(UNIX)
   find_package(PkgConfig REQUIRED)
   pkg_check_modules(PCSC REQUIRED IMPORTED_TARGET libpcsclite)
-  target_link_libraries(credential_io PUBLIC PkgConfig::PCSC)
+  target_link_libraries(credential_pcsc PUBLIC PkgConfig::PCSC)
 else()
   message(FATAL_ERROR "This utility requires POSIX memory locking and core-file controls")
 endif()
-set_target_properties(credential_io credential_check twic_authenticate PROPERTIES C_STANDARD 99
+set_target_properties(credential_pcsc credential_check twic_authenticate PROPERTIES C_STANDARD 99
   C_STANDARD_REQUIRED ON C_EXTENSIONS OFF)
 enable_testing()
 add_test(NAME credential_check_help COMMAND credential_check --help)

@@ -6,50 +6,89 @@
 #if TC_AES_ENABLE_DYNAMIC
 #include <tiny_crypto/aes_dynamic.h>
 #endif
+#include "block_cipher_internal.h"
 #include "internal.h"
+#if TC_AES_ENABLE_DYNAMIC
+static inline int tc_aes_dynamic_key_valid(const TC_AES_dynamic_key* ctx)
+{
+  return ctx && (ctx->rounds == 10 || ctx->rounds == 12 || ctx->rounds == 14);
+}
+#endif
+
+/* The forward cipher serves every mode. The inverse cipher serves CBC
+ * decryption, ECB, KW unwrap, dynamic keys and the CAVP hooks. */
+#define TC_AES_NEED_FORWARD                                                                        \
+  (TC_AES_ENABLE_CBC || TC_AES_ENABLE_ECB || TC_AES_ENABLE_CTR || TC_AES_ENABLE_OFB ||             \
+   TC_AES_ENABLE_GCM || TC_AES_ENABLE_CCM || TC_AES_ENABLE_EAX || TC_AES_ENABLE_EAX_PRIME ||       \
+   TC_AES_ENABLE_SIV || TC_AES_ENABLE_CMAC || TC_AES_ENABLE_KW || TC_AES_CAVP ||                   \
+   TC_AES_ENABLE_DYNAMIC)
+#define TC_AES_NEED_INVERSE                                                                        \
+  (TC_AES_ENABLE_CBC || TC_AES_ENABLE_ECB || TC_AES_ENABLE_KW || TC_AES_CAVP ||                    \
+   TC_AES_ENABLE_DYNAMIC)
+/* AEAD modes that check one-shot input and output buffers. */
+#define TC_AES_NEED_AEAD_BUFFERS                                                                   \
+  (TC_AES_ENABLE_GCM || TC_AES_ENABLE_CCM || TC_AES_ENABLE_EAX || TC_AES_ENABLE_EAX_PRIME ||       \
+   TC_AES_ENABLE_SIV)
 
 typedef uint8_t state_t[4][4];
 TC_status tc_aes_cipher(state_t* state, const uint8_t* round_key);
 TC_status tc_aes_cipher_rounds(state_t* state, const uint8_t* round_key, uint8_t rounds);
+/* Inverse cipher rounds, built when CBC, ECB, KW, CAVP or dynamic keys are
+ * enabled. */
+TC_status tc_aes_inverse_rounds(state_t* state, const uint8_t* round_key, uint8_t rounds);
 #define TC_AES_FIXED_ROUNDS (TC_AES_KEY_BITS / 32 + 6)
 
-static inline void tc_aes_copy_bytes(uint8_t* dst, const uint8_t* src, size_t length)
+#if TC_AES_NEED_FORWARD
+/* An expanded key schedule and its round count, borrowed by a descriptor. */
+typedef struct {
+  const uint8_t* round_key;
+  uint8_t rounds;
+} tc_aes_block_key;
+
+static inline TC_status tc_aes_block_encrypt(const void* key, uint8_t* block)
 {
-  memcpy(dst, src, length);
+  const tc_aes_block_key* schedule = (const tc_aes_block_key*)key;
+  return tc_aes_cipher_rounds((state_t*)block, schedule->round_key, schedule->rounds);
 }
 
-#if (defined(TC_AES_ENABLE_GCM) && (TC_AES_ENABLE_GCM == 1)) || (defined(TC_AES_ENABLE_CCM) && (TC_AES_ENABLE_CCM == 1)) || \
-    (defined(TC_AES_ENABLE_EAX) && (TC_AES_ENABLE_EAX == 1)) || (defined(TC_AES_ENABLE_EAX_PRIME) && (TC_AES_ENABLE_EAX_PRIME == 1)) || \
-    (defined(TC_AES_ENABLE_SIV) && (TC_AES_ENABLE_SIV == 1))
-/*
- * Completely disjoint buffers (exact alias is not disjoint).
- * Empty lengths are always treated as disjoint.
- *
- * Uses uintptr_t subtraction (not relational pointer compares or
- * pa+len) for C portability across unrelated objects / MCU ABIs.
- */
-static inline int tc_aes_buffers_disjoint(const void* a, size_t a_len,
-                                const void* b, size_t b_len)
+/* Forward-only descriptor for CTR, OFB, CBC encryption and the MACs. */
+static inline tc_block_cipher tc_aes_block_cipher(const tc_aes_block_key* key)
 {
-  return tc_internal_ranges_disjoint(a, a_len, b, b_len);
+  const tc_block_cipher cipher = {TC_AES_BLOCKLEN, key, tc_aes_block_encrypt, NULL};
+  return cipher;
+}
+#endif
+
+#if TC_AES_NEED_INVERSE
+static inline TC_status tc_aes_block_decrypt(const void* key, uint8_t* block)
+{
+  const tc_aes_block_key* schedule = (const tc_aes_block_key*)key;
+  return tc_aes_inverse_rounds((state_t*)block, schedule->round_key, schedule->rounds);
 }
 
-/*
- * Buffer relationship for one-shot in/out pairs:
- *   exact alias (same pointer) — OK
- *   completely disjoint — OK
- *   partial overlap — not OK (TC_ERROR)
- * Empty lengths are always OK.
- */
-static inline int tc_aes_buffers_ok(const void* a, size_t a_len,
-                          const void* b, size_t b_len)
+/* Descriptor with the inverse cipher, for CBC decryption. */
+static inline tc_block_cipher tc_aes_block_cipher_inverse(const tc_aes_block_key* key)
 {
-  const uintptr_t pa = (uintptr_t)a;
-  const uintptr_t pb = (uintptr_t)b;
+  const tc_block_cipher cipher = {TC_AES_BLOCKLEN, key, tc_aes_block_encrypt, tc_aes_block_decrypt};
+  return cipher;
+}
+#endif
 
-  if (a_len == 0 || b_len == 0 || pa == pb)
+#if TC_AES_NEED_AEAD_BUFFERS
+/*
+ * One-shot AEAD text check. Both spans need storage unless empty, the output
+ * holds input.length bytes, and input and output are exact aliases or fully
+ * disjoint. Partial overlap is rejected.
+ */
+static inline int tc_aes_text_ok(TC_bytes input, TC_buffer output)
+{
+  if (!tc_internal_span_valid(input.data, input.length) || output.capacity < input.length)
+    return 0;
+  if (input.length == 0)
     return 1;
-  return tc_aes_buffers_disjoint(a, a_len, b, b_len);
+  return output.data != NULL &&
+         ((const void*)input.data == (const void*)output.data ||
+          tc_internal_ranges_disjoint(input.data, input.length, output.data, input.length));
 }
 #endif
 

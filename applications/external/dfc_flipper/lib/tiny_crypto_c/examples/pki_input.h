@@ -10,20 +10,31 @@ extern "C" {
 #endif
 
 /* Read a nonempty input through EOF. Oversized or unreadable inputs clear the
- * entire buffer; out changes only on success. Buffer, path and out are disjoint.
- * read_stream leaves the stream open; read_file owns its opened stream.
+ * entire buffer. out changes only on success. Buffer, path and out are disjoint.
+ * read_stream leaves the stream open. read_file owns its opened stream.
  * Invalid pointer/capacity arguments preserve buffer and out. */
 int example_read_stream(FILE* stream, uint8_t* buffer, size_t capacity, TC_bytes* out);
 int example_read_file(const char* path, uint8_t* buffer, size_t capacity, TC_bytes* out);
 /* Read a nonempty regular file and its creation time in Unix seconds.
- * Returns 1 on success; out borrows buffer. Both outputs stay unchanged on
- * failure. Missing timestamps fail the read. Read/close failures clear buffer;
- * invalid arguments and open failures leave it unchanged. */
-int example_read_created_file(const char* path, uint8_t* buffer, size_t capacity,
-    TC_bytes* out, uint64_t* created);
+ * Returns 1 on success. out borrows buffer. Both outputs stay unchanged on
+ * failure. Missing timestamps fail the read. Read/close failures clear buffer.
+ * Invalid arguments and open failures leave it unchanged. */
+int example_read_created_file(const char* path, uint8_t* buffer, size_t capacity, TC_bytes* out,
+                              uint64_t* created);
+
+/* Write the dump file name DIR/<tag in lowercase hex>.bin into out. Returns 1
+ * when the whole name and its NUL fit in capacity, and 0 for NULL arguments,
+ * an empty tag or truncation, with out unchanged. */
+int example_dump_path(char* out, size_t capacity, const char* directory, TC_bytes tag);
+
+/* Parse an ISO 8601 UTC time of exactly the form YYYY-MM-DDTHH:MM:SSZ, with
+ * every field zero-padded, into out. Returns 1 on success. out changes only on
+ * success. A NULL argument, other forms, other zones and invalid calendar
+ * times return 0. */
+int example_time_parse(const char* text, TC_X509_time* out);
 
 /* Borrow a seekable binary stream for bounded source reads. Keep the file open
- * and immutable until processing finishes; serialize access to its seek position.
+ * and immutable until processing finishes. Serialize access to its seek position.
  * The size must fit both max_bytes and the host's long file offsets. Setup
  * restores the initial position and changes out only on success. */
 int example_stream_source(FILE* stream, uint64_t max_bytes, TC_source* out);

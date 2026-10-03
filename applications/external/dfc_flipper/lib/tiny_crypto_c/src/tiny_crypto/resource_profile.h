@@ -1,5 +1,9 @@
 /* SPDX-FileCopyrightText: Mistial Dev
  * SPDX-License-Identifier: GPL-2.0-or-later */
+/* Resource profile selection: TC_RESOURCE_PROFILE picks the micro, mini or
+ * desktop column of every TC_PROFILE_VALUE default in config.h.
+ * Configuration: TC_RESOURCE_PROFILE, set by TINY_CRYPTO_RESOURCE_PROFILE.
+ * Contracts: docs/api.md. Options: README.md. */
 #ifndef TINY_CRYPTO_RESOURCE_PROFILE_H_
 #define TINY_CRYPTO_RESOURCE_PROFILE_H_
 

@@ -2,23 +2,19 @@
  * SPDX-License-Identifier: GPL-2.0-or-later */
 #include "rsa_validate.h"
 
-TC_RSA_result example_validate_rsa_key(const TC_RSA_private_key* key,
-    TC_random_fn random, void* random_context, TC_RSA_word* scratch,
-    size_t scratch_words)
+TC_RSA_result example_validate_rsa_key(const TC_RSA_private_key* key, TC_random_source random,
+                                       const TC_RSA_workspace* workspace)
 {
-  enum { MAX_KEY_BITS = 3072, REQUESTS_PER_FACTOR = 4 * TC_RSA_VALIDATION_ROUNDS };
-  if (!key) return TC_RSA_ARGUMENT;
+  enum { MAX_KEY_BITS = 4096, REQUESTS_PER_FACTOR = 4 * TC_RSA_VALIDATION_ROUNDS };
+  if (!key)
+    return TC_RSA_ARGUMENT;
   const size_t length = key->public_key.modulus.length;
-  if (length > MAX_KEY_BITS / 8 || !TC_RSA_validate_workspace_words(length * 8))
+  if (length > MAX_KEY_BITS / 8 || !TC_RSA_workspace_words(TC_RSA_OPERATION_VALIDATE, length * 8))
     return TC_RSA_INVALID;
-  TC_RSA_workspace workspace = {scratch,scratch_words};
-  /* Use wide operands throughout, including on targets with 16-bit size_t. */
-  const uint32_t setup = UINT32_C(24) * length + 3;
-  const uint32_t round = UINT32_C(24) * length + 1;
-  const uint32_t work = UINT32_C(32) * length + 2 +
-      2 * (setup + TC_RSA_VALIDATION_ROUNDS * round + REQUESTS_PER_FACTOR);
-  TC_RSA_execution execution = {
-    {random,random_context},REQUESTS_PER_FACTOR,{work}
-  };
-  return TC_RSA_validate_private_key(key,&workspace,&execution);
+  /* Use 32-bit arithmetic, including on targets with 16-bit size_t. */
+  const uint32_t work = TC_RSA_VALIDATE_WORK((uint32_t)length * 8u, REQUESTS_PER_FACTOR);
+  TC_RSA_execution execution = {random, REQUESTS_PER_FACTOR, {work}};
+  /* Applications that accept keys outside FIPS 186-5, such as e = 3, pass
+   * TC_RSA_EXPONENT_ANY_ODD instead. */
+  return TC_RSA_validate_private_key(key, TC_RSA_EXPONENT_FIPS, workspace, &execution);
 }

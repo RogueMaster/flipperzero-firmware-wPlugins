@@ -135,14 +135,19 @@ bool dfc_crypto_aes_cbc(
     const uint8_t* input,
     uint8_t* output,
     size_t length) {
-    if(key_len != 16 || length % TC_AES_BLOCKLEN != 0) return false;
+    if(key_len != 16 || length % TC_AES_BLOCKLEN != 0 || (length && (!input || !output))) {
+        return false;
+    }
 
-    memmove(output, input, length);
     struct TC_AES_ctx ctx;
-    if(TC_AES_init_ctx_iv(&ctx, key, iv) != TC_OK) return false;
-    TC_status result = encrypt ? TC_AES_CBC_encrypt(&ctx, output, length) :
-                                 TC_AES_CBC_decrypt(&ctx, output, length);
-    memcpy(iv, ctx.iv, TC_AES_BLOCKLEN);
+    TC_status result = TC_AES_init(&ctx, (TC_bytes){key, key_len});
+    if(result == TC_OK) result = TC_AES_set_iv(&ctx, (TC_bytes){iv, TC_AES_BLOCKLEN});
+    if(result == TC_OK) {
+        if(length) memmove(output, input, length);
+        result = encrypt ? TC_AES_CBC_encrypt(&ctx, (TC_buffer){output, length}) :
+                           TC_AES_CBC_decrypt(&ctx, (TC_buffer){output, length});
+    }
+    if(result == TC_OK) memcpy(iv, ctx.iv, TC_AES_BLOCKLEN);
     TC_AES_ctx_clear(&ctx);
     return result == TC_OK;
 }
@@ -155,27 +160,21 @@ bool dfc_crypto_des_cbc(
     const uint8_t* input,
     uint8_t* output,
     size_t length) {
-    if((key_len != 8 && key_len != 16 && key_len != 24) || length % TC_DES_BLOCKLEN != 0) {
+    if((key_len != 8 && key_len != 16 && key_len != 24) ||
+       length % TC_DES_BLOCKLEN != 0 || (length && (!input || !output))) {
         return false;
     }
 
-    memmove(output, input, length);
-    if(key_len == 8) {
-        struct TC_DES_ctx ctx;
-        if(TC_DES_init_ctx_iv(&ctx, key, iv) != TC_OK) return false;
-        TC_status result = encrypt ? TC_DES_CBC_encrypt(&ctx, output, length) :
-                                     TC_DES_CBC_decrypt(&ctx, output, length);
-        memcpy(iv, ctx.Iv, TC_DES_BLOCKLEN);
-        TC_DES_ctx_clear(&ctx);
-        return result == TC_OK;
+    struct TC_DES_ctx ctx;
+    TC_status result = TC_DES_init(&ctx, (TC_bytes){key, key_len});
+    if(result == TC_OK) result = TC_DES_set_iv(&ctx, (TC_bytes){iv, TC_DES_BLOCKLEN});
+    if(result == TC_OK) {
+        if(length) memmove(output, input, length);
+        result = encrypt ? TC_DES_CBC_encrypt(&ctx, (TC_buffer){output, length}) :
+                           TC_DES_CBC_decrypt(&ctx, (TC_buffer){output, length});
     }
-
-    struct TC_DES3_ctx ctx;
-    if(TC_DES3_init_ctx_iv(&ctx, key, key_len, iv) != TC_OK) return false;
-    TC_status result = encrypt ? TC_DES3_CBC_encrypt(&ctx, output, length) :
-                                 TC_DES3_CBC_decrypt(&ctx, output, length);
-    memcpy(iv, ctx.Iv, TC_DES_BLOCKLEN);
-    TC_DES3_ctx_clear(&ctx);
+    if(result == TC_OK) memcpy(iv, ctx.iv, TC_DES_BLOCKLEN);
+    TC_DES_ctx_clear(&ctx);
     return result == TC_OK;
 }
 
@@ -185,23 +184,16 @@ bool dfc_crypto_des_ecb(
     size_t key_len,
     const uint8_t input[8],
     uint8_t output[8]) {
-    if(key_len != 8 && key_len != 16 && key_len != 24) return false;
+    if((key_len != 8 && key_len != 16 && key_len != 24) || !input || !output) return false;
 
-    memcpy(output, input, TC_DES_BLOCKLEN);
-    if(key_len == 8) {
-        struct TC_DES_ctx ctx;
-        if(TC_DES_init_ctx(&ctx, key) != TC_OK) return false;
-        TC_status result = encrypt ? TC_DES_ECB_encrypt(&ctx, output) :
-                                     TC_DES_ECB_decrypt(&ctx, output);
-        TC_DES_ctx_clear(&ctx);
-        return result == TC_OK;
+    struct TC_DES_ctx ctx;
+    TC_status result = TC_DES_init(&ctx, (TC_bytes){key, key_len});
+    if(result == TC_OK) {
+        memmove(output, input, TC_DES_BLOCKLEN);
+        result = encrypt ? TC_DES_ECB_encrypt(&ctx, (TC_buffer){output, TC_DES_BLOCKLEN}) :
+                           TC_DES_ECB_decrypt(&ctx, (TC_buffer){output, TC_DES_BLOCKLEN});
     }
-
-    struct TC_DES3_ctx ctx;
-    if(TC_DES3_init_ctx(&ctx, key, key_len) != TC_OK) return false;
-    TC_status result = encrypt ? TC_DES3_ECB_encrypt(&ctx, output) :
-                                 TC_DES3_ECB_decrypt(&ctx, output);
-    TC_DES3_ctx_clear(&ctx);
+    TC_DES_ctx_clear(&ctx);
     return result == TC_OK;
 }
 

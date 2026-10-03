@@ -188,6 +188,7 @@ void dfc_free(Dfc* dfc) {
     furi_record_close(RECORD_NOTIFICATION);
     dfc->notifications = NULL;
 
+    memset(dfc->credential, 0, sizeof(*dfc->credential));
     dfc_credential_free(dfc->credential);
     dfc_credential_storage_deinit();
 
@@ -199,13 +200,8 @@ void dfc_free(Dfc* dfc) {
     free(dfc);
 }
 
-void dfc_text_store_set(Dfc* dfc, const char* text, ...) {
-    va_list args;
-    va_start(args, text);
-
-    vsnprintf(dfc->text_store, sizeof(dfc->text_store), text, args);
-
-    va_end(args);
+void dfc_text_store_set(Dfc* dfc, const char* text) {
+    strlcpy(dfc->text_store, text, sizeof(dfc->text_store));
 }
 
 void dfc_text_store_clear(Dfc* dfc) {

@@ -3,8 +3,9 @@
 #ifndef EXAMPLE_CREDENTIAL_WORKFLOW_H_
 #define EXAMPLE_CREDENTIAL_WORKFLOW_H_
 
-#include "card_key_policy.h"
 #include <tiny_crypto/credential.h>
+#include <tiny_crypto/piv_card_check.h>
+#include <tiny_crypto/piv_key_proof.h>
 #include <tiny_crypto/piv_printed.h>
 #include <tiny_crypto/twic_ccl.h>
 
@@ -41,18 +42,18 @@ typedef enum {
 
 /* Perform a fresh card-key proof at the application transport boundary.
  * TC_MISMATCH rejects the card; other nonzero values report an API/transport
- * failure. The wrapper enforces the profile's key algorithm policy before the
+ * failure. The wrapper applies TC_PIV_key_parameters_select before the
  * callback and supplies the selected key reference and challenge policy. The
  * callback must consume no validation scratch. */
-typedef TC_status (*ExampleCredentialProof)(
-    void *context, TC_PIV_card_profile profile,
-    ExampleCredentialCardKey key_reference, const TC_X509_public_key *card_key,
-    const TC_key_challenge_options *challenge);
+typedef TC_status (*ExampleCredentialProof)(void* context, TC_PIV_card_profile profile,
+                                            ExampleCredentialCardKey key_reference,
+                                            const TC_X509_public_key* card_key,
+                                            const TC_key_challenge_options* challenge);
 
 typedef struct {
   TC_bytes encoded;
   TC_PIV_security_encoding encoding;
-  const TC_PIV_security_data *objects;
+  const TC_PIV_security_data* objects;
   size_t count;
   /* Optional exact unsigned CHUID represented by container 3002. */
   TC_bytes unsigned_chuid;
@@ -69,6 +70,9 @@ typedef struct {
   int require_current;
 } ExampleCredentialBiometricInput;
 
+/* Fingerprint, face and iris formats may each appear once. */
+enum { EXAMPLE_CREDENTIAL_BIOMETRICS = 3 };
+
 typedef struct {
   TC_PIV_card_profile profile;
   ExampleCredentialCardKey card_key;
@@ -79,31 +83,34 @@ typedef struct {
   /* Select the signed CHUID schema used by this application. */
   TC_PIV_CHUID_profile chuid_profile;
   /* TWIC requires a held CCL and freshness policy. PIV leaves these zero. */
-  const TC_TWIC_CCL_snapshot *ccl;
+  const TC_TWIC_CCL_snapshot* ccl;
   TC_TWIC_CCL_freshness_policy freshness;
   size_t ccl_reads;
-  int allow_legacy_rsa1024;
+  uint8_t allow_legacy_rsa1024;
   /* RSA representative encoding for the fresh proof. EC ignores this field. */
-  ExampleCardRSAPadding rsa_padding;
+  TC_PIV_rsa_padding rsa_padding;
   ExampleCredentialProof proof;
-  void *proof_context;
+  void* proof_context;
   /* Application policy for evidence that must be present in this decision. */
   unsigned required_objects;
   /* Empty encoded spans omit these dependent objects. */
   ExampleCredentialSecurityInput security;
-  /* Each format may appear once. The list is bounded to three modalities. */
-  const ExampleCredentialBiometricInput *biometrics;
+  /* Each format may appear once, up to EXAMPLE_CREDENTIAL_BIOMETRICS. */
+  const ExampleCredentialBiometricInput* biometrics;
   size_t biometric_count;
 } ExampleCredentialValidationRequest;
 
 typedef struct {
-  TC_X509_validation_result card;
+  TC_X509_validation_report card;
   TC_PIV_card_identifiers identifiers;
-  TC_PIV_CHUID_result chuid;
-  TC_PIV_security_result security;
+  TC_PIV_CHUID_report chuid;
+  TC_PIV_security_report security;
   int has_security;
   TC_PIV_printed printed;
   int has_printed;
+  /* One result per request biometric, in request order. */
+  TC_PIV_biometric_report biometrics[EXAMPLE_CREDENTIAL_BIOMETRICS];
+  size_t biometric_count;
 } ExampleCredentialValidationResult;
 
 /* Compose validation over retained PIV or TWIC objects. The card and content
@@ -112,11 +119,10 @@ typedef struct {
  * time. A successful result borrows request and trust bytes. Repeat validation
  * with current policy and evidence before a later access decision. */
 ExampleCredentialVerdict
-example_credential_validate(const ExampleCredentialValidationRequest *request,
-                            const TC_validation_context *card_context,
-                            const TC_validation_context *content_context,
-                            size_t *work,
-                            ExampleCredentialValidationResult *out);
+example_credential_validate(const ExampleCredentialValidationRequest* request,
+                            const TC_validation_context* card_context,
+                            const TC_validation_context* content_context, size_t* work,
+                            ExampleCredentialValidationResult* out);
 
 #ifdef __cplusplus
 }

@@ -29,7 +29,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: mistial-dev/tiny_crypto_c
-          ref: 180b054706bc951c0105e44ab3015028a66a7e3a
+          ref: 64fccd69ae2405574575f971f8b72f5e3e403f56
           path: dependencies/tiny_crypto_c
       - run: make -C tests test CRYPTO_BACKEND=${{ matrix.backend }} TINY_CRYPTO_DIR=../dependencies/tiny_crypto_c CC=${{ matrix.cc }} SANITIZE=${{ matrix.sanitize }} RELEASE=${{ matrix.release }}
 
@@ -53,7 +53,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: mistial-dev/tiny_crypto_c
-          ref: 180b054706bc951c0105e44ab3015028a66a7e3a
+          ref: 64fccd69ae2405574575f971f8b72f5e3e403f56
           path: dependencies/tiny_crypto_c
       - name: Configure
         shell: bash

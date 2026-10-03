@@ -27,8 +27,13 @@ configure:
 	$(CMAKE) -S . -B $(BUILD_DIR) -DCMAKE_BUILD_TYPE=$(CMAKE_BUILD_TYPE) \
 		$(TINY_CRYPTO_CACHE_ARGS) $(CMAKE_ARGS)
 
+# Slow vector, oracle and packaging tests carry the "extended" label. `make
+# test` and the plain sanitizer targets skip them. The -full targets enable the
+# CAVP definitions and run every configured test.
+CTEST_LABELS ?= -LE extended
+
 test: all
-	$(CTEST) --test-dir $(BUILD_DIR) --output-on-failure
+	$(CTEST) --test-dir $(BUILD_DIR) --output-on-failure $(CTEST_LABELS)
 
 test-compilers:
 	@tested=0; failed=0; \
@@ -44,27 +49,25 @@ test-compilers:
 	done; \
 	test $$tested -gt 0 && test $$failed -eq 0
 
+FULL_TEST_ARGS := TINY_CRYPTO_TEST_FULL=ON CTEST_LABELS=
+SANITIZE_ARGS := TINY_CRYPTO_SANITIZE=address,undefined CMAKE_BUILD_TYPE=Debug
+# MemorySanitizer needs clang on Linux. macOS clang does not offer it.
+MSAN_ARGS := TINY_CRYPTO_SANITIZE=memory CMAKE_BUILD_TYPE=Debug
+
 test-full:
-	$(MAKE) test BUILD_DIR=$(BUILD_DIR)-full TINY_CRYPTO_TEST_FULL=ON
+	$(MAKE) test BUILD_DIR=$(BUILD_DIR)-full $(FULL_TEST_ARGS)
 
 test-sanitize:
-	$(MAKE) all BUILD_DIR=$(BUILD_DIR)-sanitize \
-		TINY_CRYPTO_SANITIZE=address,undefined CMAKE_BUILD_TYPE=Debug
-	$(CTEST) --test-dir $(BUILD_DIR)-sanitize --output-on-failure -LE extended
+	$(MAKE) test BUILD_DIR=$(BUILD_DIR)-sanitize $(SANITIZE_ARGS)
 
 test-sanitize-full:
-	$(MAKE) test BUILD_DIR=$(BUILD_DIR)-sanitize-full \
-		TINY_CRYPTO_SANITIZE=address,undefined CMAKE_BUILD_TYPE=Debug
+	$(MAKE) test BUILD_DIR=$(BUILD_DIR)-sanitize-full $(SANITIZE_ARGS) $(FULL_TEST_ARGS)
 
-# MemorySanitizer needs clang on Linux; macOS clang does not offer it.
 test-msan:
-	$(MAKE) all BUILD_DIR=$(BUILD_DIR)-msan \
-		TINY_CRYPTO_SANITIZE=memory CMAKE_BUILD_TYPE=Debug
-	$(CTEST) --test-dir $(BUILD_DIR)-msan --output-on-failure -LE extended
+	$(MAKE) test BUILD_DIR=$(BUILD_DIR)-msan $(MSAN_ARGS)
 
 test-msan-full:
-	$(MAKE) test BUILD_DIR=$(BUILD_DIR)-msan-full \
-		TINY_CRYPTO_SANITIZE=memory CMAKE_BUILD_TYPE=Debug
+	$(MAKE) test BUILD_DIR=$(BUILD_DIR)-msan-full $(MSAN_ARGS) $(FULL_TEST_ARGS)
 
 test-cpp: all
 	$(CTEST) --test-dir $(BUILD_DIR) --output-on-failure -R test_cpp
