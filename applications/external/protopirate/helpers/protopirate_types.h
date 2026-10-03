@@ -21,6 +21,7 @@ typedef enum {
     ProtoPirateCustomEventViewReceiverBack,
     ProtoPirateCustomEventViewReceiverDeleteItem,
     ProtoPirateCustomEventViewReceiverUnlock,
+    ProtoPirateCustomEventViewReceiverHopperUpdate,
     // Custom events for scenes
     ProtoPirateCustomEventSceneReceiverUpdate,
     ProtoPirateCustomEventReceiverDeferredRxStart,
@@ -35,10 +36,10 @@ typedef enum {
     ProtoPirateCustomEventBruteforceStart,
     ProtoPirateCustomEventBruteforceComplete,
     // Emulator
-    ProtoPirateCustomEventSavedInfoEmulate,
     ProtoPirateCustomEventEmulateTransmit,
     ProtoPirateCustomEventEmulateStop,
     ProtoPirateCustomEventEmulateExit,
+    ProtoPirateCustomEventSavedInfoEmulate,
     // Sub decode
     ProtoPirateCustomEventSubDecodeUpdate,
     ProtoPirateCustomEventSubDecodeSave,
@@ -51,6 +52,11 @@ typedef enum {
     ProtoPirateCustomEventSceneExit,
     // About scene
     ProtoPirateCustomEventAboutToggleEmulate,
+    //Plugin Scenes
+    ProtoPirateCustomEventPluginNavigateBack,
+    ProtoPirateCustomEventPluginNavigateEmulate,
+    ProtoPirateCustomEventPluginNavigateConfig,
+    ProtoPirateCustomEventPluginNavigateStopApp,
 } ProtoPirateCustomEvent;
 
 typedef enum {

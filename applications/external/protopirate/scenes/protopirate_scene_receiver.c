@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include "proto_pirate_icons.h"
 
-#define TAG "ProtoPirateSceneRx"
+#define TAG "PPSceneRx"
 
 #define DEFERRED_STORAGE_TIME 1000
 
@@ -24,8 +24,7 @@ static void protopirate_scene_receiver_update_statusbar(void* context) {
     char modulation_str[8] = {0};
     char history_stat_str[16] = {0};
 
-    protopirate_get_frequency_modulation_str(
-        app, frequency_str, sizeof(frequency_str), modulation_str, sizeof(modulation_str));
+    protopirate_get_frequency_modulation_str(app, frequency_str, 16, modulation_str, 8);
 
     bool is_external = false;
     if(app->radio_initialized && app->txrx->radio_device) {
@@ -33,14 +32,20 @@ static void protopirate_scene_receiver_update_statusbar(void* context) {
     }
 
     if(app->txrx->history) {
-        protopirate_history_format_status_text(
-            app->txrx->history, history_stat_str, sizeof(history_stat_str));
+        protopirate_history_format_status_text(app->txrx->history, history_stat_str, 20);
     } else {
-        snprintf(history_stat_str, sizeof(history_stat_str), "0/%u", PROTOPIRATE_HISTORY_MAX);
+        snprintf(history_stat_str, 16, "0/%u", PROTOPIRATE_HISTORY_MAX);
     }
 
     protopirate_view_receiver_add_data_statusbar(
-        app->protopirate_receiver, frequency_str, modulation_str, history_stat_str, is_external);
+        app->protopirate_receiver,
+        frequency_str,
+        16,
+        modulation_str,
+        8,
+        history_stat_str,
+        16,
+        is_external);
 }
 
 static void protopirate_scene_receiver_callback(
@@ -63,6 +68,7 @@ static void protopirate_scene_receiver_callback(
         protopirate_history_add_to_history(app->txrx->history, decoder_base, app->txrx->preset);
 
     if(added) {
+        app->key_found = true;
         if(!(app->sound))
             notification_message(app->notifications, &sequence_semi_success);
         else
@@ -108,7 +114,7 @@ static void protopirate_scene_receiver_callback(
 
     if(app->txrx->hopper_state == ProtoPirateHopperStateRunning) {
         app->txrx->hopper_state = ProtoPirateHopperStatePause;
-        app->txrx->hopper_timeout = 10;
+        app->txrx->hopper_timeout = 50;
     }
 }
 
@@ -359,8 +365,9 @@ void protopirate_scene_receiver_on_enter(void* context) {
     view_dispatcher_send_custom_event(
         app->view_dispatcher, ProtoPirateCustomEventReceiverDeferredRxStart);
 
-    //Kill Config if it exists now to save memory.
+    //Kill Variable Item Lists and Widgets if it exists now to save memory.
     protopirate_variable_item_list_free(app);
+    protopirate_widget_free(app);
 }
 
 static void protopirate_scene_receiver_handle_back(ProtoPirateApp* app) {
@@ -410,10 +417,9 @@ bool protopirate_scene_receiver_on_event(void* context, SceneManagerEvent event)
         case ProtoPirateCustomEventViewReceiverDeleteItem: {
             uint16_t idx = protopirate_view_receiver_get_idx_menu(app->protopirate_receiver);
             if(idx < protopirate_history_get_item(app->txrx->history)) {
-                if(app->loaded_file_path &&
-                   protopirate_history_capture_path_equals(
-                       app->txrx->history, idx, furi_string_get_cstr(app->loaded_file_path))) {
-                    furi_string_free(app->loaded_file_path);
+                if(app->loaded_file_path && protopirate_history_capture_path_equals(
+                                                app->txrx->history, idx, app->loaded_file_path)) {
+                    free(app->loaded_file_path);
                     app->loaded_file_path = NULL;
                 }
                 protopirate_history_delete_item(app->txrx->history, idx);
@@ -435,7 +441,13 @@ bool protopirate_scene_receiver_on_event(void* context, SceneManagerEvent event)
         }
 
         case ProtoPirateCustomEventViewReceiverConfig:
+            //Leaving for Subscene
             scene_manager_set_scene_state(app->scene_manager, ProtoPirateSceneReceiver, 1);
+
+            //Show the lock keyboard option.
+            scene_manager_set_scene_state(app->scene_manager, ProtoPirateSceneReceiverConfig, 1);
+
+            //Start receiver Config.
             scene_manager_next_scene(app->scene_manager, ProtoPirateSceneReceiverConfig);
             consumed = true;
             break;
@@ -450,18 +462,19 @@ bool protopirate_scene_receiver_on_event(void* context, SceneManagerEvent event)
             protopirate_view_receiver_set_lock(app->protopirate_receiver, app->lock);
             consumed = true;
             break;
-        }
-    } else if(event.type == SceneManagerEventTypeTick) {
-        if(app->txrx->hopper_state != ProtoPirateHopperStateOFF) {
-            if(protopirate_hopper_update(app) && protopirate_scene_receiver_bind_rx_stack(app)) {
-                protopirate_rx(app, app->txrx->preset->frequency);
-            }
-            static uint8_t hopper_statusbar_tick = 0;
-            if(++hopper_statusbar_tick >= 8) {
-                hopper_statusbar_tick = 0;
+        case ProtoPirateCustomEventViewReceiverHopperUpdate:
+            if(app->txrx->hopper_state != ProtoPirateHopperStateOFF) {
+                if(protopirate_hopper_update(app) &&
+                   protopirate_scene_receiver_bind_rx_stack(app)) {
+                    protopirate_rx(app, app->txrx->preset->frequency);
+                }
                 protopirate_scene_receiver_update_statusbar(app);
             }
         }
+
+    } else if(event.type == SceneManagerEventTypeTick) {
+        view_dispatcher_send_custom_event(
+            app->view_dispatcher, ProtoPirateCustomEventViewReceiverHopperUpdate);
 
         if(app->radio_initialized && app->txrx->txrx_state == ProtoPirateTxRxStateRx &&
            app->txrx->radio_device) {

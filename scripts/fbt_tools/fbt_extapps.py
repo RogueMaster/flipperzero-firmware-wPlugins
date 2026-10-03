@@ -1,4 +1,5 @@
 import itertools
+import os
 import pathlib
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
@@ -254,12 +255,39 @@ class AppBuilder:
                 self.app_env.File(f"{self.app._apppath}/{self.app.fap_icon}"),
             )
 
-        # Add dependencies on file assets
-        for assets_dir in self.app._assets_dirs:
-            glob_res = self.app_env.GlobRecursive("*", assets_dir)
+        # Track generated plugin targets directly. A recursive glob through a
+        # VariantDir can expose their names under the source assets directory,
+        # where those files do not exist, especially on a second build.
+        plugin_assets_dir = self.app_work_dir.Dir("assets")
+        if self.app.embeds_plugins:
             self.app_env.Depends(
                 app_artifacts.compact,
-                (*glob_res, assets_dir),
+                [
+                    plugin_assets_dir.Dir("plugins").File(f"{plugin.appid}.fal")
+                    for plugin in self.app._plugins
+                    if plugin.fal_embedded
+                ],
+            )
+
+        # Enumerate static assets from disk, not the SCons variant-node graph.
+        # The value dependency also tracks added/removed files and empty dirs.
+        for assets_dir in self.app._assets_dirs:
+            if self.app.embeds_plugins and assets_dir == plugin_assets_dir:
+                continue
+            asset_root = pathlib.Path(assets_dir.abspath)
+            asset_files = []
+            asset_entries = []
+            for directory, dirs, files in os.walk(asset_root):
+                for name in dirs:
+                    path = pathlib.Path(directory, name)
+                    asset_entries.append(("dir", path.relative_to(asset_root).as_posix()))
+                for name in files:
+                    path = pathlib.Path(directory, name)
+                    asset_files.append(self.app_env.File(str(path)))
+                    asset_entries.append(("file", path.relative_to(asset_root).as_posix()))
+            self.app_env.Depends(
+                app_artifacts.compact,
+                (*asset_files, self.app_env.Value(sorted(asset_entries))),
             )
 
         # Always run the validator for the app's binary when building the app

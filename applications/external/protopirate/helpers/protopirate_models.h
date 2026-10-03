@@ -1,12 +1,15 @@
 #pragma once
 #include <furi.h>
+#include "../defines.h"
+
+#ifdef ENABLE_MODELS_DATABASE
 #include <lib/subghz/types.h>
 #include "core/record.h"
 #include <lib/subghz/subghz_setting.h>
 
 typedef struct ProtoPirateCarModel {
     uint16_t index;
-    FuriString* name;
+    char* name;
     SubGhzRadioPreset* preset;
     int16_t last_preset_index;
 } ProtoPirateCarModel;
@@ -18,3 +21,4 @@ bool car_model_get_by_index(
     SubGhzSetting* app_settings);
 
 uint16_t car_model_get_count(void);
+#endif

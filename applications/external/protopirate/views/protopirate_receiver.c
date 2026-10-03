@@ -27,9 +27,9 @@ typedef struct {
     uint8_t history_item;
     float rssi;
     bool auto_save;
-    FuriString* frequency_str;
-    FuriString* preset_str;
-    FuriString* history_stat_str;
+    char* frequency_str;
+    char* preset_str;
+    char* history_stat_str;
     FuriString* draw_scratch;
     bool external_radio;
     ProtoPirateLock lock;
@@ -126,11 +126,15 @@ void protopirate_view_receiver_set_sub_decode_progress(
     uint8_t progress) {
     furi_check(receiver);
     if(progress > 100) progress = 100;
+    bool changed = false;
     with_view_model(
         receiver->view,
         ProtoPirateReceiverModel * model,
-        { model->sub_decode_progress = progress; },
-        true);
+        {
+            changed = model->sub_decode_progress != progress;
+            model->sub_decode_progress = progress;
+        },
+        changed);
 }
 
 void protopirate_view_receiver_set_rssi(ProtoPirateReceiver* receiver, float rssi) {
@@ -191,24 +195,31 @@ static void protopirate_view_receiver_update_offset(ProtoPirateReceiver* receive
 void protopirate_view_receiver_add_data_statusbar(
     ProtoPirateReceiver* receiver,
     const char* frequency_str,
+    size_t freqency_size,
     const char* preset_str,
+    size_t preset_size,
     const char* history_stat_str,
+    size_t history_stat_size,
     bool external_radio) {
     furi_check(receiver);
+    bool changed = false;
     with_view_model(
         receiver->view,
         ProtoPirateReceiverModel * model,
         {
-            furi_string_set_str(model->frequency_str, frequency_str);
-            furi_string_set_str(model->preset_str, preset_str);
-            furi_string_set_str(model->history_stat_str, history_stat_str);
+            changed = model->external_radio != external_radio ||
+                      memcmp(model->frequency_str, frequency_str, freqency_size) != 0 ||
+                      memcmp(model->preset_str, preset_str, preset_size) != 0 ||
+                      memcmp(model->history_stat_str, history_stat_str, history_stat_size) != 0;
+            memcpy(model->frequency_str, frequency_str, freqency_size);
+            memcpy(model->preset_str, preset_str, preset_size);
+            memcpy(model->history_stat_str, history_stat_str, history_stat_size);
             model->external_radio = external_radio;
         },
-        true);
+        changed);
 }
 
 static void protopirate_view_receiver_draw_frame(Canvas* canvas, uint16_t idx, bool scrollbar) {
-    canvas_set_color(canvas, ColorBlack);
     canvas_draw_box(canvas, 0, 0 + idx * FRAME_HEIGHT, scrollbar ? 122 : 127, FRAME_HEIGHT);
 
     canvas_set_color(canvas, ColorWhite);
@@ -279,6 +290,9 @@ void protopirate_view_receiver_draw(Canvas* canvas, ProtoPirateReceiverModel* mo
             canvas_draw_str(
                 canvas, 4, 9 + (i * FRAME_HEIGHT), furi_string_get_cstr(model->draw_scratch));
         }
+
+        //Last item may be selected, it wont reset.
+        canvas_set_color(canvas, ColorBlack);
 
         //Draw scrollbar if needed
         if(scrollbar) {
@@ -360,8 +374,7 @@ void protopirate_view_receiver_draw(Canvas* canvas, ProtoPirateReceiverModel* mo
 
         canvas_set_font(canvas, FontSecondary);
         if(model->sub_decode_mode) {
-            canvas_draw_str_aligned(
-                canvas, 127, 0, AlignRight, AlignTop, furi_string_get_cstr(model->preset_str));
+            canvas_draw_str_aligned(canvas, 127, 0, AlignRight, AlignTop, model->preset_str);
         } else {
             if(model->external_radio) {
                 canvas_draw_str_aligned(canvas, 127, 0, AlignRight, AlignTop, "Ext");
@@ -381,12 +394,12 @@ void protopirate_view_receiver_draw(Canvas* canvas, ProtoPirateReceiverModel* mo
     //Draw the unlock instructions last, so they appear on top...
     if(model->lock_count) {
         if(model->sub_decode_mode) {
-            canvas_draw_str(canvas, 44, 63, furi_string_get_cstr(model->frequency_str));
-            canvas_draw_str(canvas, 96, 63, furi_string_get_cstr(model->history_stat_str));
+            canvas_draw_str(canvas, 44, 63, model->frequency_str);
+            canvas_draw_str(canvas, 96, 63, model->history_stat_str);
         } else {
-            canvas_draw_str(canvas, 44, 63, furi_string_get_cstr(model->frequency_str));
-            canvas_draw_str(canvas, 79, 63, furi_string_get_cstr(model->preset_str));
-            canvas_draw_str(canvas, 96, 63, furi_string_get_cstr(model->history_stat_str));
+            canvas_draw_str(canvas, 44, 63, model->frequency_str);
+            canvas_draw_str(canvas, 79, 63, model->preset_str);
+            canvas_draw_str(canvas, 96, 63, model->history_stat_str);
         }
         canvas_set_font(canvas, FontSecondary);
         elements_bold_rounded_frame(canvas, 14, 8, 99, 48);
@@ -402,12 +415,12 @@ void protopirate_view_receiver_draw(Canvas* canvas, ProtoPirateReceiverModel* mo
             canvas_draw_str(canvas, 74, 62, "Locked");
         } else {
             if(model->sub_decode_mode) {
-                canvas_draw_str(canvas, 44, 63, furi_string_get_cstr(model->frequency_str));
-                canvas_draw_str(canvas, 96, 63, furi_string_get_cstr(model->history_stat_str));
+                canvas_draw_str(canvas, 44, 63, model->frequency_str);
+                canvas_draw_str(canvas, 96, 63, model->history_stat_str);
             } else {
-                canvas_draw_str(canvas, 44, 63, furi_string_get_cstr(model->frequency_str));
-                canvas_draw_str(canvas, 79, 63, furi_string_get_cstr(model->preset_str));
-                canvas_draw_str(canvas, 96, 63, furi_string_get_cstr(model->history_stat_str));
+                canvas_draw_str(canvas, 44, 63, model->frequency_str);
+                canvas_draw_str(canvas, 79, 63, model->preset_str);
+                canvas_draw_str(canvas, 96, 63, model->history_stat_str);
             }
         }
     }
@@ -583,9 +596,9 @@ ProtoPirateReceiver* protopirate_view_receiver_alloc(bool auto_save) {
         ProtoPirateReceiverModel * model,
         {
             model->history = NULL;
-            model->frequency_str = furi_string_alloc();
-            model->preset_str = furi_string_alloc();
-            model->history_stat_str = furi_string_alloc();
+            model->frequency_str = malloc(16);
+            model->preset_str = malloc(8);
+            model->history_stat_str = malloc(16);
             model->draw_scratch = furi_string_alloc();
             furi_check(model->draw_scratch);
             model->list_offset = 0;
@@ -612,9 +625,9 @@ void protopirate_view_receiver_free(ProtoPirateReceiver* receiver) {
         receiver->view,
         ProtoPirateReceiverModel * model,
         {
-            furi_string_free(model->frequency_str);
-            furi_string_free(model->preset_str);
-            furi_string_free(model->history_stat_str);
+            free(model->frequency_str);
+            free(model->preset_str);
+            free(model->history_stat_str);
             furi_string_free(model->draw_scratch);
         },
         false);

@@ -11,3 +11,4 @@ bool protopirate_ensure_view_about(ProtoPirateApp* app);
 bool protopirate_ensure_receiver_view(ProtoPirateApp* app);
 void protopirate_views_free(ProtoPirateApp* app);
 void protopirate_variable_item_list_free(ProtoPirateApp* app);
+void protopirate_widget_free(ProtoPirateApp* app);

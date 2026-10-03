@@ -204,25 +204,12 @@ void protopirate_history_format_status_text(
     furi_check(instance);
     furi_check(output);
 
-    if(output_size == 0) {
-        return;
-    }
-
     uint16_t n = protopirate_history_get_item(instance);
     if(n >= PROTOPIRATE_HISTORY_MAX) {
         snprintf(output, output_size, "FULL");
     } else {
         snprintf(output, output_size, "%u/%u", n, PROTOPIRATE_HISTORY_MAX);
     }
-}
-
-void protopirate_history_get_status_text(ProtoPirateHistory* instance, FuriString* output) {
-    furi_check(instance);
-    furi_check(output);
-
-    char status_text[16];
-    protopirate_history_format_status_text(instance, status_text, sizeof(status_text));
-    furi_string_set_str(output, status_text);
 }
 
 bool protopirate_history_get_capture_path(

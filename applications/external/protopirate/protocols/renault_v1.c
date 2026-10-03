@@ -1467,40 +1467,6 @@ bool hitag2_bf_state_from_flipper_format(Hitag2BfState* state, FlipperFormat* ff
     return true;
 }
 
-bool hitag2_bf_needs_bruteforce(FlipperFormat* ff) {
-    if(!ff) {
-        return false;
-    }
-
-    FuriString* s = furi_string_alloc();
-    flipper_format_rewind(ff);
-    if(!flipper_format_read_string(ff, FF_PROTOCOL, s) ||
-       furi_string_cmp_str(s, RENAULT_PROTOCOL_V1_NAME) != 0) {
-        furi_string_free(s);
-        return false;
-    }
-    flipper_format_rewind(ff);
-
-    bool has_key = flipper_format_read_string(ff, FF_KEY, s);
-    furi_string_free(s);
-    if(!has_key) {
-        return false;
-    }
-
-    uint8_t recovered = 0;
-    uint32_t seed = 0;
-    hitag2_read_recovered_and_seed(ff, &recovered, &seed);
-    UNUSED(seed);
-    if(recovered != 0) {
-        return false;
-    }
-    uint8_t stored_key[6];
-    if(hitag2_read_key(ff, stored_key)) {
-        return false;
-    }
-    return true;
-}
-
 bool hitag2_bf_patch_flipper_format_on_success(FlipperFormat* ff, const Hitag2BfState* state) {
     if(!ff || !state) {
         return false;

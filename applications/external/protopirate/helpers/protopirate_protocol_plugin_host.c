@@ -2,11 +2,10 @@
 #include "protopirate_txrx.h"
 #include "../protocols/protocol_items.h"
 
-#include <loader/firmware_api/firmware_api.h>
 #include <stdio.h>
 #include <string.h>
 
-#define TAG "ProtoPirateProtocolPlugin"
+#define TAG "PPProtocolPlugin"
 #ifdef ENABLE_EMULATE_FEATURE
 #define PROTOPIRATE_TX_PLUGIN_PATH_MAX 160U
 #endif
@@ -14,16 +13,16 @@
 static const char* protopirate_get_registry_plugin_path(ProtoPirateProtocolRegistryRoute route) {
     switch(route) {
     case ProtoPirateProtocolRegistryRouteAMVag:
-        return APP_ASSETS_PATH("plugins/protopirate_am_vag_plugin.fal");
+        return APP_ASSETS_PATH("plugins/pp_am_vag.fal");
     case ProtoPirateProtocolRegistryRouteFMDefault:
-        return APP_ASSETS_PATH("plugins/protopirate_fm_plugin.fal");
+        return APP_ASSETS_PATH("plugins/pp_fm.fal");
     case ProtoPirateProtocolRegistryRouteFMF4:
-        return APP_ASSETS_PATH("plugins/protopirate_fm_f4_plugin.fal");
+        return APP_ASSETS_PATH("plugins/pp_fm_f4.fal");
     case ProtoPirateProtocolRegistryRouteFMHonda1:
-        return APP_ASSETS_PATH("plugins/protopirate_fm_honda1_plugin.fal");
+        return APP_ASSETS_PATH("plugins/pp_fm_honda1.fal");
     case ProtoPirateProtocolRegistryRouteAMDefault:
     default:
-        return APP_ASSETS_PATH("plugins/protopirate_am_plugin.fal");
+        return APP_ASSETS_PATH("plugins/pp_am.fal");
     }
 }
 
@@ -36,11 +35,8 @@ static bool protopirate_build_tx_protocol_plugin_path(
         return false;
     }
 
-    int written = snprintf(
-        plugin_path,
-        plugin_path_size,
-        APP_ASSETS_PATH("plugins/protopirate_tx_%s_plugin.fal"),
-        tx_key);
+    int written =
+        snprintf(plugin_path, plugin_path_size, APP_ASSETS_PATH("plugins/pp_tx_%s.fal"), tx_key);
     return (written > 0) && ((size_t)written < plugin_path_size);
 }
 #endif
@@ -50,30 +46,23 @@ static const SubGhzProtocolRegistry protopirate_empty_protocol_registry = {
     .size = 0,
 };
 
-void protopirate_unload_protocol_plugin(ProtoPirateTxRx* txrx) {
-    furi_check(txrx);
+void protopirate_unload_protocol_plugin(ProtoPirateApp* app) {
+    furi_check(app->txrx);
 
-    if(txrx->environment) {
+    if(app->txrx->environment) {
         subghz_environment_set_protocol_registry(
-            txrx->environment, &protopirate_empty_protocol_registry);
+            app->txrx->environment, &protopirate_empty_protocol_registry);
     }
 
-    txrx->protocol_registry = NULL;
+    app->txrx->protocol_registry = NULL;
 
-    if(txrx->protocol_plugin && txrx->protocol_plugin->release) {
-        txrx->protocol_plugin->release();
-    }
-    txrx->protocol_plugin = NULL;
-
-    if(txrx->protocol_plugin_manager) {
-        plugin_manager_free(txrx->protocol_plugin_manager);
-        txrx->protocol_plugin_manager = NULL;
+    if(app->txrx->protocol_plugin && app->txrx->protocol_plugin->release) {
+        app->txrx->protocol_plugin->release();
     }
 
-    if(txrx->plugin_resolver) {
-        composite_api_resolver_free(txrx->plugin_resolver);
-        txrx->plugin_resolver = NULL;
-    }
+    shared_plugin_unload(
+        (void**)&app->txrx->protocol_plugin_flipper_application,
+        (const void**)&app->txrx->protocol_plugin);
 }
 
 static bool protopirate_ensure_protocol_registry_plugin(
@@ -98,74 +87,39 @@ static bool protopirate_ensure_protocol_registry_plugin(
         return true;
     }
 
-    if(app->txrx->protocol_plugin || app->txrx->protocol_plugin_manager ||
-       app->txrx->plugin_resolver) {
-        protopirate_unload_protocol_plugin(app->txrx);
-    }
-
-    CompositeApiResolver* resolver = composite_api_resolver_alloc();
-    if(!resolver) {
-        FURI_LOG_E(TAG, "Failed to allocate protocol plugin resolver");
-        return false;
-    }
-    composite_api_resolver_add(resolver, firmware_api_interface);
-
-    PluginManager* manager = plugin_manager_alloc(
-        PROTOPIRATE_PROTOCOL_PLUGIN_APP_ID,
-        PROTOPIRATE_PROTOCOL_PLUGIN_API_VERSION,
-        composite_api_resolver_get(resolver));
-    if(!manager) {
-        FURI_LOG_E(TAG, "Failed to allocate protocol plugin manager");
-        composite_api_resolver_free(resolver);
-        return false;
+    if(app->txrx->protocol_plugin) {
+        protopirate_unload_protocol_plugin(app);
     }
 
     const char* plugin_path = protopirate_get_registry_plugin_path(route);
-    PluginManagerError error = plugin_manager_load_single(manager, plugin_path);
-    if(error != PluginManagerErrorNone) {
-        FURI_LOG_E(TAG, "Failed to load protocol plugin %s: %d", plugin_path, (int)error);
-        plugin_manager_free(manager);
-        composite_api_resolver_free(resolver);
+    if(!shared_plugin_load(
+           (void**)&app->txrx->protocol_plugin_flipper_application,
+           (const void**)&app->txrx->protocol_plugin,
+           ProtoPirateSharedPluginsTXRX,
+           plugin_path)) {
+        FURI_LOG_E(TAG, "Failed to load RX protocol plugin %s", plugin_path);
+        protopirate_unload_protocol_plugin(app);
         return false;
     }
 
-    const ProtoPirateProtocolPlugin* plugin = plugin_manager_get_ep(manager, 0U);
-    if(!plugin || !plugin->registry) {
-        FURI_LOG_E(TAG, "Protocol plugin entry point is invalid");
-        if(plugin && plugin->release) {
-            plugin->release();
-        }
-        plugin_manager_free(manager);
-        composite_api_resolver_free(resolver);
-        return false;
-    }
-
-    if(plugin->kind != ProtoPirateProtocolPluginKindRx) {
+    if(app->txrx->protocol_plugin->kind != ProtoPirateProtocolPluginKindRx) {
         FURI_LOG_E(TAG, "Protocol plugin kind mismatch for RX route");
-        if(plugin->release) {
-            plugin->release();
-        }
-        plugin_manager_free(manager);
-        composite_api_resolver_free(resolver);
+        protopirate_unload_protocol_plugin(app);
         return false;
     }
 
-    if(plugin->route != route) {
+    if(app->txrx->protocol_plugin->route != route) {
         FURI_LOG_E(
-            TAG, "Protocol plugin route mismatch (expected %d got %d)", route, plugin->route);
-        if(plugin->release) {
-            plugin->release();
-        }
-        plugin_manager_free(manager);
-        composite_api_resolver_free(resolver);
+            TAG,
+            "Protocol plugin route mismatch (expected %d got %d)",
+            route,
+            app->txrx->protocol_plugin->route);
+        protopirate_unload_protocol_plugin(app);
         return false;
     }
 
-    app->txrx->plugin_resolver = resolver;
-    app->txrx->protocol_plugin_manager = manager;
-    app->txrx->protocol_plugin = plugin;
     app->txrx->protocol_registry_route = route;
-    *registry = plugin->registry;
+    *registry = app->txrx->protocol_plugin->registry;
     return true;
 }
 
@@ -208,65 +162,29 @@ static bool protopirate_ensure_tx_protocol_plugin(
         return true;
     }
 
-    if(app->txrx->protocol_plugin || app->txrx->protocol_plugin_manager ||
-       app->txrx->plugin_resolver) {
-        protopirate_unload_protocol_plugin(app->txrx);
+    if(app->txrx->protocol_plugin) {
+        protopirate_unload_protocol_plugin(app);
     }
 
-    CompositeApiResolver* resolver = composite_api_resolver_alloc();
-    if(!resolver) {
-        FURI_LOG_E(TAG, "Failed to allocate TX protocol plugin resolver");
-        return false;
-    }
-    composite_api_resolver_add(resolver, firmware_api_interface);
-
-    PluginManager* manager = plugin_manager_alloc(
-        PROTOPIRATE_PROTOCOL_PLUGIN_APP_ID,
-        PROTOPIRATE_PROTOCOL_PLUGIN_API_VERSION,
-        composite_api_resolver_get(resolver));
-    if(!manager) {
-        FURI_LOG_E(TAG, "Failed to allocate TX protocol plugin manager");
-        composite_api_resolver_free(resolver);
+    if(!shared_plugin_load(
+           (void**)&app->txrx->protocol_plugin_flipper_application,
+           (const void**)&app->txrx->protocol_plugin,
+           ProtoPirateSharedPluginsTXRX,
+           plugin_path)) {
+        FURI_LOG_E(TAG, "Failed to load TX protocol plugin %s", plugin_path);
+        protopirate_unload_protocol_plugin(app);
         return false;
     }
 
-    PluginManagerError error = plugin_manager_load_single(manager, plugin_path);
-    if(error != PluginManagerErrorNone) {
-        FURI_LOG_E(TAG, "Failed to load TX protocol plugin %s: %d", plugin_path, (int)error);
-        plugin_manager_free(manager);
-        composite_api_resolver_free(resolver);
-        return false;
-    }
-
-    const ProtoPirateProtocolPlugin* plugin = plugin_manager_get_ep(manager, 0U);
-    if(!plugin || plugin->kind != ProtoPirateProtocolPluginKindTx || !plugin->registry ||
-       plugin->registry->size == 0U || !plugin->protocol_name ||
-       strcmp(plugin->protocol_name, registry_name) != 0) {
-        FURI_LOG_E(TAG, "TX protocol plugin entry point is invalid for %s", registry_name);
-        if(plugin && plugin->release) {
-            plugin->release();
-        }
-        plugin_manager_free(manager);
-        composite_api_resolver_free(resolver);
-        return false;
-    }
-
-    const SubGhzProtocol* tx_protocol = plugin->registry->items[0];
+    const SubGhzProtocol* tx_protocol = app->txrx->protocol_plugin->registry->items[0];
     if(!tx_protocol || !tx_protocol->encoder || !tx_protocol->encoder->alloc ||
        !tx_protocol->encoder->deserialize || !tx_protocol->encoder->yield) {
         FURI_LOG_E(TAG, "TX protocol plugin for %s has no encoder", registry_name);
-        if(plugin->release) {
-            plugin->release();
-        }
-        plugin_manager_free(manager);
-        composite_api_resolver_free(resolver);
+        protopirate_unload_protocol_plugin(app); // already calls release()
         return false;
     }
 
-    app->txrx->plugin_resolver = resolver;
-    app->txrx->protocol_plugin_manager = manager;
-    app->txrx->protocol_plugin = plugin;
-    *registry = plugin->registry;
+    *registry = app->txrx->protocol_plugin->registry;
     return true;
 }
 #endif
@@ -292,8 +210,10 @@ bool protopirate_refresh_protocol_registry(ProtoPirateApp* app, bool ensure_rece
 
     if(route_changed) {
         protopirate_rx_stack_teardown_for_registry_switch(app);
+        protopirate_unload_protocol_plugin(app);
     } else if(ensure_receiver_ready && !app->txrx->receiver) {
         protopirate_rx_stack_teardown_for_registry_switch(app);
+        protopirate_unload_protocol_plugin(app);
     }
 
     const SubGhzProtocolRegistry* registry = NULL;

@@ -1,3 +1,6 @@
+#include "../defines.h"
+
+#ifdef ENABLE_MODELS_DATABASE
 #include "helpers/variable_item_list.h"
 #include <gui/elements.h>
 #include <gui/canvas.h>
@@ -6,7 +9,7 @@
 #include <stdint.h>
 
 #ifdef PROTOPIRATE_CONFIG_PLUGIN_BUILD
-#include "protopirate_config_plugin_icons.h"
+#include "pp_config_icons.h"
 #else
 #include "proto_pirate_icons.h"
 #endif
@@ -639,3 +642,4 @@ void* variable_item_get_context(VariableItem* item) {
     furi_check(item);
     return item->context;
 }
+#endif

@@ -4,10 +4,9 @@
 #include <storage/storage.h>
 #include <flipper_format/flipper_format.h>
 #include <furi.h>
-#include "../defines.h"
 #include "../protocols/protocols_common.h"
 
-#define TAG "ProtoPirateSettings"
+#define TAG "PPSettings"
 
 #define SETTINGS_FILE_HEADER  "ProtoPirate Settings"
 #define SETTINGS_FILE_VERSION 1
@@ -22,7 +21,9 @@ void protopirate_settings_set_defaults(ProtoPirateSettings* settings) {
     settings->emulate_feature_enabled = false;
     settings->check_saved = false;
     settings->datetime_filenames = false;
+#ifdef ENABLE_MODELS_DATABASE
     settings->car_model_index = 0;
+#endif
 }
 
 void protopirate_settings_load(ProtoPirateSettings* settings) {
@@ -135,13 +136,14 @@ void protopirate_settings_load(ProtoPirateSettings* settings) {
         }
         settings->datetime_filenames = (datetime_filenames_temp == 1);
 
-        // Read Selected Car Model
+// Read Selected Car Model
+#ifdef ENABLE_MODELS_DATABASE
         uint32_t car_model_index_temp = 0;
         if(!flipper_format_read_uint32(ff, "CarModelIndex", &car_model_index_temp, 1)) {
             car_model_index_temp = 0;
         }
         settings->car_model_index = car_model_index_temp;
-
+#endif
         FURI_LOG_I(
             TAG,
             "Settings loaded: freq=%lu, preset=%u, auto_save=%d, hopping=%d, emulate=%d, check_saved=%d, sound = %d",
@@ -234,12 +236,14 @@ void protopirate_settings_save(ProtoPirateSettings* settings) {
         if(!flipper_format_write_uint32(ff, "DateTimeFilenames", &datetime_filenames_temp, 1)) {
             FURI_LOG_E(TAG, "Failed to write Date Time Filenames");
         }
+#ifdef ENABLE_MODELS_DATABASE
         uint32_t car_model_index_temp = settings->car_model_index;
         if(!flipper_format_write_uint32(ff, "CarModelIndex", &car_model_index_temp, 1)) {
             FURI_LOG_E(TAG, "Failed to write car model");
 
             break;
         }
+#endif
         write_ok = true;
 
         FURI_LOG_I(

@@ -1,7 +1,7 @@
 ## Main changes
 - Current API: 88.6
 
-### Cumulative integration checkpoint B11: 2026-10-03
+### Cumulative integration checkpoint B12: 2026-10-03
 
 - GUI: [Discard keys pressed during a loading animation instead of replaying them into the next screen #1125 (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1125)
 - GUI: [Show a startup loading view in Archive, Desktop settings and RFID settings #1125 (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1125)
@@ -67,6 +67,7 @@
 - SubGHz: [Support new KeeLoq learning methods for JCM Gen2, Stagnoli, Telcoma, SEA and Wisniowski variants (By zero-mega & xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/e6ded9b108454b30a3e710295e6d2b7fd146e188)
 - Apps: [Fix OSM Logger GPS build with RM plugin menu API by using an app-specific menu enum type (By RogueMaster; original app by Simon Grossi)](https://github.com/simongrossi/flipperzero-osm-logger-gps)
 - Build: [Fix plugin builds after cumulative updates by restoring the matching FBT deployment script (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins)
+- Build: [Fix embedded plugin asset dependencies on repeated builds, including ProtoPirate 3.8 (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins)
 
 ### Previous firmware changes
 
