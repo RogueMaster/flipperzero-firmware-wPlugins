@@ -10,5 +10,5 @@ App(
     order=90,
     fap_category="Settings",
     fap_icon="cfw_app_10px.png",
-    fap_version="2.1",
+    fap_version="2.2",
 )

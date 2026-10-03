@@ -3,6 +3,7 @@
 enum VarItemListIndex {
     VarItemListIndexGraphics,
     VarItemListIndexMainmenu,
+    VarItemListIndexGamemenu,
     VarItemListIndexLockscreen,
     VarItemListIndexStatusbar,
     VarItemListIndexFileBrowser,
@@ -24,6 +25,9 @@ void cfw_app_scene_interface_on_enter(void* context) {
     variable_item_set_current_value_text(item, ">");
 
     item = variable_item_list_add(var_item_list, "Mainmenu", 0, NULL, app);
+    variable_item_set_current_value_text(item, ">");
+
+    item = variable_item_list_add(var_item_list, "Game Menu", 0, NULL, app);
     variable_item_set_current_value_text(item, ">");
 
     item = variable_item_list_add(var_item_list, "Lockscreen", 0, NULL, app);
@@ -69,6 +73,10 @@ bool cfw_app_scene_interface_on_event(void* context, SceneManagerEvent event) {
         case VarItemListIndexLockscreen:
             scene_manager_set_scene_state(app->scene_manager, CFWAppSceneInterfaceLockscreen, 0);
             scene_manager_next_scene(app->scene_manager, CFWAppSceneInterfaceLockscreen);
+            break;
+        case VarItemListIndexGamemenu:
+            scene_manager_set_scene_state(app->scene_manager, CFWAppSceneInterfaceGamemenu, 0);
+            scene_manager_next_scene(app->scene_manager, CFWAppSceneInterfaceGamemenu);
             break;
         case VarItemListIndexStatusbar:
             scene_manager_set_scene_state(app->scene_manager, CFWAppSceneInterfaceStatusbar, 0);

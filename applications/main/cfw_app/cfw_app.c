@@ -14,6 +14,16 @@ void callback_reboot(void* context) {
 }
 
 bool cfw_app_apply(CFWApp* app) {
+    if(app->save_gamemenu_apps) {
+        size_t count = CharList_size(app->gamemenu_app_exes);
+        const char* const* paths =
+            count ? (const char* const*)CharList_get(app->gamemenu_app_exes, 0) : NULL;
+        if(!game_menu_save(app->storage, paths, count)) {
+            cfw_app_gamemenu_save_error(app);
+            return true;
+        }
+        app->save_gamemenu_apps = false;
+    }
     if(app->save_mainmenu_apps) {
         Stream* stream = file_stream_alloc(app->storage);
         if(file_stream_open(stream, MAINMENU_APPS_PATH, FSAM_READ_WRITE, FSOM_CREATE_ALWAYS)) {
@@ -265,6 +275,59 @@ void cfw_app_empty_mainmenu_apps(CFWApp* app) {
     CharList_reset(app->mainmenu_app_exes);
 }
 
+bool cfw_app_push_gamemenu_app(CFWApp* app, const char* path) {
+    for(size_t i = 0; i < CharList_size(app->gamemenu_app_exes); i++) {
+        if(strcmp(*CharList_get(app->gamemenu_app_exes, i), path) == 0) return false;
+    }
+    FuriString* exe = furi_string_alloc_set_str(path);
+    FuriString* label = furi_string_alloc();
+    uint8_t unused_icon[FAP_MANIFEST_MAX_ICON_SIZE];
+    uint8_t* unused_icon_ptr = unused_icon;
+    flipper_application_load_name_and_icon(exe, app->storage, &unused_icon_ptr, label);
+    if(furi_string_start_with(label, "[")) {
+        size_t trim = furi_string_search_str(label, "] ", 1);
+        if(trim != FURI_STRING_FAILURE) furi_string_right(label, trim + 2);
+    }
+    CharList_push_back(app->gamemenu_app_exes, strdup(path));
+    CharList_push_back(app->gamemenu_app_labels, strdup(furi_string_get_cstr(label)));
+    furi_string_free(label);
+    furi_string_free(exe);
+    return true;
+}
+
+static void cfw_app_load_game(const char* path, void* context) {
+    cfw_app_push_gamemenu_app(context, path);
+}
+
+void cfw_app_load_gamemenu_apps(CFWApp* app) {
+    app->gamemenu_source = game_menu_load(app->storage, cfw_app_load_game, app);
+    app->gamemenu_apps_loaded = true;
+}
+
+void cfw_app_empty_gamemenu_apps(CFWApp* app) {
+    for(size_t i = 0; i < CharList_size(app->gamemenu_app_labels); i++) {
+        free(*CharList_get(app->gamemenu_app_labels, i));
+        free(*CharList_get(app->gamemenu_app_exes, i));
+    }
+    CharList_reset(app->gamemenu_app_labels);
+    CharList_reset(app->gamemenu_app_exes);
+}
+
+void cfw_app_gamemenu_save_error(CFWApp* app) {
+    DialogMessage* message = dialog_message_alloc();
+    dialog_message_set_header(message, "Game menu not saved", 64, 8, AlignCenter, AlignCenter);
+    dialog_message_set_text(
+        message,
+        "Check storage and retry.\nYour edits are still here.",
+        64,
+        32,
+        AlignCenter,
+        AlignCenter);
+    dialog_message_set_buttons(message, NULL, NULL, "OK");
+    dialog_message_show(app->dialogs, message);
+    dialog_message_free(message);
+}
+
 CFWApp* cfw_app_alloc() {
     CFWApp* app = malloc(sizeof(CFWApp));
     app->gui = furi_record_open(RECORD_GUI);
@@ -350,6 +413,11 @@ CFWApp* cfw_app_alloc() {
     CharList_init(app->mainmenu_app_labels);
     CharList_init(app->mainmenu_app_exes);
     cfw_app_load_mainmenu_apps(app);
+    CharList_init(app->gamemenu_app_labels);
+    CharList_init(app->gamemenu_app_exes);
+    app->gamemenu_app_index = 0;
+    app->gamemenu_apps_loaded = false;
+    app->save_gamemenu_apps = false;
 
     desktop_api_get_settings(app->desktop, &app->desktop_settings);
 
@@ -461,6 +529,9 @@ void cfw_app_free(CFWApp* app) {
     cfw_app_empty_mainmenu_apps(app);
     CharList_clear(app->mainmenu_app_labels);
     CharList_clear(app->mainmenu_app_exes);
+    cfw_app_empty_gamemenu_apps(app);
+    CharList_clear(app->gamemenu_app_labels);
+    CharList_clear(app->gamemenu_app_exes);
 
     FrequencyList_clear(app->subghz_static_freqs);
     FrequencyList_clear(app->subghz_hopper_freqs);

@@ -121,6 +121,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Samsung AC (Full) v1.0 (By xMasterX)](https://github.com/xMasterX/all-the-plugins/tree/213baa6e872d1db597a25d2c16e81406e9634440/non_catalog_apps/samsung_ac_remote) — Add the full implementation alongside the existing RM remote.
 - Added: [Stack Attack v1.0 (By Negenii)](https://github.com/Negenii/flipper-stack-attack)
 - Added: [Sub-GHz WarDriving v0.1 (By xMasterX)](https://github.com/xMasterX/all-the-plugins/tree/213baa6e872d1db597a25d2c16e81406e9634440/base_pack/subghz_wardriving) — Include embedded UART GPS support for NMEA/Ubox; phone RPC GPS requires a firmware service unavailable in this RM base.
+- Updated: [CFW Settings v2.2 (By WillyJL, ESurge & RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/tree/420/applications/main/cfw_app) — restore the configurable Game Menu with its own menu style, starting game, add/remove/reorder controls, and reset to all installed games.
+- Desktop: [Restore the custom Game Menu on short center press in Game Mode (By ESurge & RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/tree/710_historical)
 
 <a name="release"></a>
 
@@ -488,7 +490,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [CCID Emulator v1.1 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
 - [Cerberus v1.1 (By at0m-b0mb)](https://github.com/at0m-b0mb/flipper-cerberus)
 - [CFS Tag Writer v1.0 (By pwschattenberg)](https://github.com/pwschattenberg/cfs-tag-writer)
-- [CFW Settings v2.1 (By WillyJL)](https://github.com/Next-Flip/Momentum-Firmware/tree/dev/applications/main/momentum_app)
+- [CFW Settings v2.2 (By WillyJL)](https://github.com/Next-Flip/Momentum-Firmware/tree/dev/applications/main/momentum_app)
 - [Chameleon Ultra v1.0 (By muylder)](https://github.com/muylder/Chameleon_Flipper)
 - [ChaosID v0.6 (By cybersantana83)](https://github.com/cybersantana83/ChaosID)
 - [Chief Cooker v1.1 (By denr01)](https://github.com/denr01/FZ-ChiefCooker)

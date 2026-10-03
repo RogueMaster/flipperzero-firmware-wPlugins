@@ -27,6 +27,7 @@
 #include <dolphin/dolphin_i.h>
 #include <dolphin/helpers/dolphin_state.h>
 #include <cfw/settings.h>
+#include <cfw/game_menu.h>
 #include <desktop/views/desktop_view_slideshow.h>
 
 #include <applications.h>
@@ -70,6 +71,11 @@ typedef struct {
     CharList_t mainmenu_app_labels;
     CharList_t mainmenu_app_exes;
     uint8_t mainmenu_app_index;
+    CharList_t gamemenu_app_labels;
+    CharList_t gamemenu_app_exes;
+    size_t gamemenu_app_index;
+    GameMenuSource gamemenu_source;
+    bool gamemenu_apps_loaded;
     DesktopSettings desktop_settings;
     PassportSettings passport;
     bool subghz_use_defaults;
@@ -87,6 +93,7 @@ typedef struct {
     FuriString* version_tag;
 
     bool save_mainmenu_apps;
+    bool save_gamemenu_apps;
     bool save_desktop;
     bool save_subghz_freqs;
     bool save_subghz;
@@ -116,3 +123,8 @@ bool cfw_app_apply(CFWApp* app);
 void cfw_app_push_mainmenu_app(CFWApp* app, FuriString* exe);
 void cfw_app_load_mainmenu_apps(CFWApp* app);
 void cfw_app_empty_mainmenu_apps(CFWApp* app);
+
+bool cfw_app_push_gamemenu_app(CFWApp* app, const char* path);
+void cfw_app_load_gamemenu_apps(CFWApp* app);
+void cfw_app_empty_gamemenu_apps(CFWApp* app);
+void cfw_app_gamemenu_save_error(CFWApp* app);

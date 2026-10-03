@@ -146,6 +146,9 @@ typedef struct {
     FuriHalVersionColor spoof_color;
     ScreenFrameColor rpc_color_fg;
     ScreenFrameColor rpc_color_bg;
+    /* Append fields to preserve offsets used by existing external apps. */
+    MenuStyle game_menu_style;
+    uint32_t game_start_point;
 } CFWSettings;
 
 void cfw_settings_save(void);

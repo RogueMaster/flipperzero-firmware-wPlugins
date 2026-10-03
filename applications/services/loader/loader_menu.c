@@ -18,6 +18,7 @@
 #include <gui/modules/file_browser.h>
 #include <core/dangerous_defines.h>
 #include <cfw/cfw.h>
+#include <cfw/game_menu.h>
 #include <gui/icon_i.h>
 #include <m-list.h>
 
@@ -40,6 +41,7 @@ struct LoaderMenu {
     uint32_t selected_setting;
     LoaderMenuView current_view;
     bool settings_only;
+    bool games_only;
 };
 
 static int32_t loader_menu_thread(void* p);
@@ -73,7 +75,9 @@ LoaderMenu* loader_menu_alloc(void (*closed_cb)(void*), void* context, bool sett
     LoaderMenu* loader_menu = malloc(sizeof(LoaderMenu));
     loader_menu->closed_cb = closed_cb;
     loader_menu->context = context;
-    loader_menu->selected_primary = LoaderMenuIndexApplications;
+    loader_menu->games_only = !settings_only && cfw_settings.game_mode;
+    loader_menu->selected_primary = loader_menu->games_only ? cfw_settings.game_start_point :
+                                                              LoaderMenuIndexApplications;
     loader_menu->selected_setting = 0;
     loader_menu->settings_only = settings_only;
     loader_menu->current_view = settings_only ? LoaderMenuViewSettings : LoaderMenuViewPrimary;
@@ -111,6 +115,7 @@ typedef struct {
     const char* name;
     const Icon* icon;
     const char* path;
+    bool icon_owned;
 } MenuApp;
 
 LIST_DEF(MenuAppList, MenuApp, M_POD_OPLIST)
@@ -126,7 +131,12 @@ typedef struct {
 
 static void loader_menu_load_style(LoaderMenuApp* app) {
     char name[32];
-    loader_get_menu_style_name(app->loader_menu->loader, name);
+    if(app->loader_menu->games_only) {
+        const char* plugin = cfw_menu_style_get_plugin_name(cfw_settings.game_menu_style);
+        strlcpy(name, plugin ? plugin : "", sizeof(name));
+    } else {
+        loader_get_menu_style_name(app->loader_menu->loader, name);
+    }
     if(!name[0]) return; // List stays available without an SD card.
 
     PluginManager* manager = plugin_manager_alloc(
@@ -156,7 +166,8 @@ static void loader_menu_apps_callback(void* context, uint32_t index) {
     const MenuApp* menu_app = MenuAppList_get(app->apps_list, index);
     const char* name = menu_app->path ? menu_app->path : menu_app->name;
 
-    if(menu_app->path && !strstr(menu_app->path, ".fap")) {
+    const char* extension = menu_app->path ? strrchr(menu_app->path, '.') : NULL;
+    if(menu_app->path && (!extension || strcasecmp(extension, ".fap") != 0)) {
         run_with_default_app(menu_app->path);
     } else {
         loader_menu_start(name);
@@ -244,8 +255,9 @@ static void loader_menu_add_app_entry(
     LoaderMenuApp* app,
     const char* name,
     const Icon* icon,
-    const char* path) {
-    MenuAppList_push_back(app->apps_list, (MenuApp){name, icon, path});
+    const char* path,
+    bool icon_owned) {
+    MenuAppList_push_back(app->apps_list, (MenuApp){name, icon, path, icon_owned});
     menu_add_item(
         app->primary_menu,
         name,
@@ -289,9 +301,11 @@ static void loader_menu_find_add_app(LoaderMenuApp* app, Storage* storage, FuriS
     const char* name = NULL;
     const Icon* icon = NULL;
     const char* path = NULL;
+    bool icon_owned = false;
     if(furi_string_start_with(line, "/")) {
         path = strdup(furi_string_get_cstr(line));
-        if(!loader_menu_load_fap_meta(storage, line, line, &icon)) {
+        icon_owned = loader_menu_load_fap_meta(storage, line, line, &icon);
+        if(!icon_owned) {
             icon = loader_menu_get_ext_icon(storage, path);
         }
         name = strdup(furi_string_get_cstr(line));
@@ -311,7 +325,7 @@ static void loader_menu_find_add_app(LoaderMenuApp* app, Storage* storage, FuriS
     }
     // Path only set for FAPs
     if(name && icon) {
-        loader_menu_add_app_entry(app, name, icon, path);
+        loader_menu_add_app_entry(app, name, icon, path, icon_owned);
     }
 }
 
@@ -348,12 +362,13 @@ static void loader_menu_build_menu(LoaderMenuApp* app, LoaderMenu* menu) {
         }
     } else {
         for(size_t i = 0; i < FLIPPER_APPS_COUNT; i++) {
-            loader_menu_add_app_entry(app, FLIPPER_APPS[i].name, FLIPPER_APPS[i].icon, NULL);
+            loader_menu_add_app_entry(
+                app, FLIPPER_APPS[i].name, FLIPPER_APPS[i].icon, NULL, false);
         }
         // Until count - 1 because last app is hardcoded below
         for(size_t i = 0; i < FLIPPER_EXTERNAL_APPS_COUNT - 1; i++) {
             loader_menu_add_app_entry(
-                app, FLIPPER_EXTERNAL_APPS[i].name, FLIPPER_EXTERNAL_APPS[i].icon, NULL);
+                app, FLIPPER_EXTERNAL_APPS[i].name, FLIPPER_EXTERNAL_APPS[i].icon, NULL, false);
         }
     }
     furi_string_free(line);
@@ -380,6 +395,33 @@ static void loader_menu_build_menu(LoaderMenuApp* app, LoaderMenu* menu) {
     menu_set_selected_item(app->primary_menu, menu->selected_primary);
 }
 
+typedef struct {
+    LoaderMenuApp* app;
+    Storage* storage;
+} LoaderGameMenuBuildContext;
+
+static void loader_menu_add_game(const char* path, void* context) {
+    LoaderGameMenuBuildContext* build = context;
+    FuriString* line = furi_string_alloc_set_str(path);
+    loader_menu_find_add_app(build->app, build->storage, line);
+    furi_string_free(line);
+}
+
+static void loader_menu_build_games(LoaderMenuApp* app, LoaderMenu* menu) {
+    MenuAppList_init(app->apps_list);
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    LoaderGameMenuBuildContext build = {.app = app, .storage = storage};
+    game_menu_load(storage, loader_menu_add_game, &build);
+    furi_record_close(RECORD_STORAGE);
+
+    size_t count = MenuAppList_size(app->apps_list);
+    if(!count) {
+        menu_add_item(app->primary_menu, "No games found", &A_Plugins_14, 0, NULL, NULL);
+    }
+    menu_set_selected_item(
+        app->primary_menu, menu->selected_primary < count ? menu->selected_primary : 0);
+}
+
 static void loader_menu_build_submenu(LoaderMenuApp* app, LoaderMenu* loader_menu) {
     for(size_t i = 0; i < FLIPPER_SETTINGS_APPS_COUNT; i++) {
         submenu_add_item_ex(
@@ -395,18 +437,26 @@ static void loader_menu_build_submenu(LoaderMenuApp* app, LoaderMenu* loader_men
 static LoaderMenuApp* loader_menu_app_alloc(LoaderMenu* loader_menu) {
     LoaderMenuApp* app = malloc(sizeof(LoaderMenuApp));
     app->loader_menu = loader_menu;
+    app->primary_menu = NULL;
+    app->settings_menu = NULL;
     app->style_manager = NULL;
 
     // Primary menu
     if(!app->loader_menu->settings_only) {
         app->primary_menu = menu_alloc();
-        loader_menu_build_menu(app, loader_menu);
+        if(loader_menu->games_only) {
+            loader_menu_build_games(app, loader_menu);
+        } else {
+            loader_menu_build_menu(app, loader_menu);
+        }
         loader_menu_load_style(app);
     }
 
     // Settings menu
-    app->settings_menu = submenu_alloc();
-    loader_menu_build_submenu(app, loader_menu);
+    if(!loader_menu->games_only) {
+        app->settings_menu = submenu_alloc();
+        loader_menu_build_submenu(app, loader_menu);
+    }
 
     View* view = app->loader_menu->current_view == LoaderMenuViewSettings ?
                      submenu_get_view(app->settings_menu) :
@@ -435,9 +485,11 @@ static void loader_menu_app_free(LoaderMenuApp* app) {
                 // icon point to flash and must not be freed
                 if(menu_app->path) {
                     free((void*)menu_app->name);
-                    free((void*)menu_app->icon->frames[0]);
-                    free((void*)menu_app->icon->frames);
-                    free((void*)menu_app->icon);
+                    if(menu_app->icon_owned) {
+                        free((void*)menu_app->icon->frames[0]);
+                        free((void*)menu_app->icon->frames);
+                        free((void*)menu_app->icon);
+                    }
                     free((void*)menu_app->path);
                 }
             }
@@ -446,7 +498,7 @@ static void loader_menu_app_free(LoaderMenuApp* app) {
     app->loader_menu->selected_setting = app->loader_menu->current_view == LoaderMenuViewSettings ?
                                              submenu_get_selected_item(app->settings_menu) :
                                              0;
-    submenu_free(app->settings_menu);
+    if(app->settings_menu) submenu_free(app->settings_menu);
 
     free(app);
 }
