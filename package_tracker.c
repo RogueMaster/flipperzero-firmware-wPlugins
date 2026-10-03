@@ -231,13 +231,13 @@ static void load_all(void) {
     ensure_file(
         storage,
         PACK_FILE,
+        // Comments only: the app adds packages itself, and nobody should have
+        // to delete example data before using their own. The header documents
+        // the format for anyone who edits this file from a computer.
         "# Pack Track - one package per line:\n"
         "#   Label | Carrier | Tracking | Status | Location | Updated\n"
         "# Status: pending, transit, out, delivered, exception\n"
-        "Flipper Case | UPS | 1Z999AA10123456784 | transit | Memphis, TN | Apr 17 2:14 PM\n"
-        "Solder Paste | USPS | 9400111899223596012345 | out | Local Facility | Apr 18 8:02 AM\n"
-        "Oscilloscope | FedEx | 771234567890 | delivered | Front Door | Apr 16 9:41 PM\n"
-        "PCB Order | DHL | 1234567890 | pending | Shenzhen, CN | Apr 15 5:30 AM\n");
+        "# Packages added in the app are written here automatically.\n");
     ensure_file(
         storage,
         CONFIG_FILE,
@@ -395,6 +395,51 @@ static void wifi_setup_flow(TrackerState* state) {
 
     fhttp_close(http);
     fhttp_free(http);
+}
+
+// Write a ready-made config for Trace (traceapi.dev) with the user's own key.
+// Everything the service needs is known except the key, so this is the whole
+// of live-tracking setup: no file editing, and the key stays on the device.
+static void tracking_setup_flow(TrackerState* state) {
+    char key[72] = "";
+
+    view_port_enabled_set(state->view_port, false);
+    bool got = prompt_text(state->gui, "Trace API key (trc_...)", key, sizeof(key), 4);
+    view_port_enabled_set(state->view_port, true);
+    if(!got) {
+        refresh_msg(state, "");
+        return;
+    }
+
+    // A stray quote or newline would corrupt the header line.
+    sanitize_field(key);
+    for(char* q = key; *q; q++)
+        if(*q == '"') *q = ' ';
+
+    char* text = malloc(768);
+    snprintf(
+        text,
+        768,
+        "# Pack Track live tracking, written by the app.\n"
+        "# Edit by hand only if you want a different service.\n"
+        "METHOD = POST\n"
+        "URL = https://api.traceapi.dev/v1/track\n"
+        "HEADER = Authorization: Bearer %s\n"
+        "HEADER = Content-Type: application/json\n"
+        "BODY = {\"tracking_number\":\"{tracking}\"}\n"
+        "FIELD_STATUS = status\n"
+        "FIELD_LOCATION = events.last.location\n"
+        "FIELD_UPDATED = events.last.timestamp\n",
+        key);
+
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    storage_common_mkdir(storage, PACK_DIR);
+    write_file(storage, CONFIG_FILE, text);
+    furi_record_close(RECORD_STORAGE);
+    free(text);
+
+    load_all(); // pick the new config up immediately
+    refresh_msg(state, "Tracking configured");
 }
 
 // One request for a package, using whichever method the config asks for.
@@ -624,10 +669,11 @@ static void draw_status_icon(Canvas* canvas, int x, int y, PackageStatus s) {
 
 static void draw_empty(Canvas* canvas) {
     canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str_aligned(canvas, 64, 20, AlignCenter, AlignCenter, "No packages yet");
+    canvas_draw_str_aligned(canvas, 64, 18, AlignCenter, AlignCenter, "No packages yet");
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str_aligned(canvas, 64, 40, AlignCenter, AlignCenter, "LEFT: menu");
-    canvas_draw_str_aligned(canvas, 64, 52, AlignCenter, AlignCenter, "BACK: exit");
+    canvas_draw_str_aligned(canvas, 64, 36, AlignCenter, AlignCenter, "LEFT: add one, or set up");
+    canvas_draw_str_aligned(canvas, 64, 46, AlignCenter, AlignCenter, "live tracking");
+    canvas_draw_str_aligned(canvas, 64, 58, AlignCenter, AlignCenter, "BACK: exit");
 }
 
 static void draw_list(Canvas* canvas, TrackerState* state) {
@@ -853,10 +899,11 @@ int32_t package_tracker_app(void* p) {
                 "Add package",
                 "WiFi setup",
                 "Refresh now",
+                "Tracking setup",
                 "Net test",
             };
             view_port_enabled_set(view_port, false);
-            int32_t choice = menu_pick(state->gui, "Pack Track", menu_items, 4);
+            int32_t choice = menu_pick(state->gui, "Pack Track", menu_items, 5);
             view_port_enabled_set(view_port, true);
 
             if(choice == 0)
@@ -866,6 +913,8 @@ int32_t package_tracker_app(void* p) {
             else if(choice == 2)
                 start_refresh(state);
             else if(choice == 3)
+                tracking_setup_flow(state);
+            else if(choice == 4)
                 net_test_flow(state);
         } else if(do_delete)
             delete_selected(state);
