@@ -23,10 +23,12 @@ bool uhf_saved_tags_list(uint16_t* ids, size_t capacity, size_t* count) {
         char name[32];
         FileInfo info;
         while(storage_dir_read(directory, &info, name, sizeof(name))) {
-            if(info.flags & FSF_DIRECTORY || strlen(name) != 11U ||
-               strncmp(name, "tag_", 4U) || strcmp(name + 7U, ".uhf")) continue;
-            if(name[4] < '0' || name[4] > '9' || name[5] < '0' || name[5] > '9' ||
-               name[6] < '0' || name[6] > '9') continue;
+            if(info.flags & FSF_DIRECTORY || strlen(name) != 11U || strncmp(name, "tag_", 4U) ||
+               strcmp(name + 7U, ".uhf"))
+                continue;
+            if(name[4] < '0' || name[4] > '9' || name[5] < '0' || name[5] > '9' || name[6] < '0' ||
+               name[6] > '9')
+                continue;
             const uint16_t id = (name[4] - '0') * 100U + (name[5] - '0') * 10U + name[6] - '0';
             if(id && *count < capacity) ids[(*count)++] = id;
         }
@@ -48,7 +50,10 @@ bool uhf_saved_tags_list(uint16_t* ids, size_t capacity, size_t* count) {
         /* An absent library is empty; storage/media failures remain errors. */
         ok = storage_common_stat(storage, UHF_SAVED_TAG_DIR, &info) == FSE_NOT_EXIST;
     }
-    if(directory) {storage_dir_close(directory); storage_file_free(directory);}
+    if(directory) {
+        storage_dir_close(directory);
+        storage_file_free(directory);
+    }
     furi_record_close(RECORD_STORAGE);
     return ok;
 }
@@ -70,7 +75,10 @@ bool uhf_saved_tag_load(uint16_t id, UhfSavedTag* out) {
             }
         }
     }
-    if(file) {storage_file_close(file); storage_file_free(file);}
+    if(file) {
+        storage_file_close(file);
+        storage_file_free(file);
+    }
     furi_record_close(RECORD_STORAGE);
     return ok;
 }
@@ -90,9 +98,13 @@ bool uhf_saved_tag_save(const UhfSavedTag* tag, uint16_t* id) {
             if(storage_file_exists(storage, path)) continue;
             File* file = storage_file_alloc(storage);
             bool created = file && storage_file_open(file, path, FSAM_WRITE, FSOM_CREATE_NEW);
-            if(created) ok = storage_file_write(file, text, strlen(text)) == strlen(text) &&
-                             storage_file_sync(file);
-            if(file) {storage_file_close(file); storage_file_free(file);}
+            if(created)
+                ok = storage_file_write(file, text, strlen(text)) == strlen(text) &&
+                     storage_file_sync(file);
+            if(file) {
+                storage_file_close(file);
+                storage_file_free(file);
+            }
             if(created && !ok) storage_common_remove(storage, path);
             if(ok) *id = candidate;
             break;
@@ -115,7 +127,8 @@ bool uhf_saved_tag_delete(uint16_t id) {
 /* Stage and sync before replacing the record; retain a backup on rollback failure. */
 bool uhf_saved_tag_update(uint16_t id, const UhfSavedTag* tag) {
     char path[128], temp[136], backup[136], text[UHF_SAVED_TAG_TEXT_MAX];
-    if(!uhf_saved_path(id, path, sizeof(path)) || !uhf_saved_tag_format(tag, text, sizeof(text))) return false;
+    if(!uhf_saved_path(id, path, sizeof(path)) || !uhf_saved_tag_format(tag, text, sizeof(text)))
+        return false;
     snprintf(temp, sizeof(temp), "%s.tmp", path);
     snprintf(backup, sizeof(backup), "%s.bak", path);
     Storage* storage = furi_record_open(RECORD_STORAGE);
@@ -125,13 +138,19 @@ bool uhf_saved_tag_update(uint16_t id, const UhfSavedTag* tag) {
        !storage_file_exists(storage, backup)) {
         File* file = storage_file_alloc(storage);
         const bool created = file && storage_file_open(file, temp, FSAM_WRITE, FSOM_CREATE_NEW);
-        const bool staged = created && storage_file_write(file, text, strlen(text)) == strlen(text) &&
+        const bool staged = created &&
+                            storage_file_write(file, text, strlen(text)) == strlen(text) &&
                             storage_file_sync(file);
-        if(file) {storage_file_close(file); storage_file_free(file);}
+        if(file) {
+            storage_file_close(file);
+            storage_file_free(file);
+        }
         if(staged && storage_common_rename(storage, path, backup) == FSE_OK) {
             ok = storage_common_rename(storage, temp, path) == FSE_OK;
-            if(ok) storage_common_remove(storage, backup);
-            else storage_common_rename(storage, backup, path);
+            if(ok)
+                storage_common_remove(storage, backup);
+            else
+                storage_common_rename(storage, backup, path);
         }
         if(created && !ok) storage_common_remove(storage, temp);
     }

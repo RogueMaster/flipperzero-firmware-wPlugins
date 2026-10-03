@@ -25,7 +25,8 @@ void cfw_app_scene_interface_mainmenu_style_on_enter(void* context) {
     submenu_set_header(submenu, "Choose Menu Style:");
     submenu_set_selected_item(
         submenu,
-        (uint32_t)cfw_settings.menu_style < MenuStyleCount ? cfw_settings.menu_style : MenuStyleList);
+        (uint32_t)cfw_settings.menu_style < MenuStyleCount ? cfw_settings.menu_style :
+                                                             MenuStyleList);
     view_dispatcher_switch_to_view(app->view_dispatcher, CFWAppViewSubmenu);
 }
 

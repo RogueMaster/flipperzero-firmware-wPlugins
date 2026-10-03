@@ -290,7 +290,9 @@ uint32_t menu_get_selected_item(Menu* menu) {
     with_view_model(
         menu->view,
         MenuModel * model,
-        { if(model->position < model->count) index = model->items[model->position].index; },
+        {
+            if(model->position < model->count) index = model->items[model->position].index;
+        },
         false);
     return index;
 }
@@ -302,7 +304,8 @@ void menu_set_selected_item(Menu* menu, uint32_t index) {
         MenuModel * model,
         {
             size_t position = 0;
-            while(position < model->count && model->items[position].index != index) position++;
+            while(position < model->count && model->items[position].index != index)
+                position++;
             if(position >= model->count) position = 0;
             menu_set_position(menu, model, position);
             model->scroll_counter = 0;

@@ -3,7 +3,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#define UHF_SAVED_TAG_LIMIT 999U
+#define UHF_SAVED_TAG_LIMIT    999U
 #define UHF_SAVED_TAG_TEXT_MAX 512U
 
 typedef struct {
