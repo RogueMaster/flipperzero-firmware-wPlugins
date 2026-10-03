@@ -9,6 +9,6 @@ App(
     fap_icon="icon.png",
     fap_author="Zack",
     fap_weburl="https://github.com/rseufert/yulia_cats",
-    fap_version="0.4",
+    fap_version="0.4.1",
     fap_description="Cozy virtual pet: Yulia and her cats Nugget and Baby",
 )

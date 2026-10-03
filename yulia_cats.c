@@ -638,7 +638,10 @@ static void music_restart(App* app) {
 // Yulia's keyboard takes over from the record while she plays; everything
 // rests during naps and in the Flipper's stealth mode.
 static void music_update(App* app, uint32_t now) {
-    static const float volumes[VOLUME_MAX] = {0.01f, 0.03f, 0.08f, 0.2f, 0.5f};
+    // The speaker driver cubes this value, so the steps have to sit high up
+    // the range to be heard: the quietest here is about as loud as it can
+    // usefully go, and each step up is roughly three times the power.
+    static const float volumes[VOLUME_MAX] = {0.2f, 0.3f, 0.42f, 0.6f, 0.85f};
 
     const bool keys = app->doing == DoKeys;
     bool want = (app->sound.on || keys) && !app->lights_off &&
