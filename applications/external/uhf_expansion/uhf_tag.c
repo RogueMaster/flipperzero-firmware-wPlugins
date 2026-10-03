@@ -38,12 +38,14 @@ bool uhf_tag_ascii_to_epc_hex(const char* ascii, char* out, size_t out_size) {
 }
 
 const char* uhf_tag_bank_name(UhfTagBank bank) {
+    if(bank == UhfTagBankReserved) return "Reserved";
     if(bank == UhfTagBankTid) return "TID";
     if(bank == UhfTagBankUser) return "User Data";
     return "EPC";
 }
 
 const char* uhf_tag_bank_button_name(UhfTagBank bank) {
+    if(bank == UhfTagBankReserved) return "RSVD";
     if(bank == UhfTagBankTid) return "TID";
     if(bank == UhfTagBankUser) return "User";
     return "EPC";

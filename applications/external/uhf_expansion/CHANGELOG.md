@@ -1,3 +1,12 @@
+v1.5:
+
+- Reorganized the home screen into Inventory, Tag Tools, EPC Tools, Saved Tags, and Settings.
+- Added Inventory actions for tag control, saved tag records, and CSV export.
+- Added paged tag memory viewing and editing, including EPC, TID, User, and Reserved banks.
+- Added a Saved Tags library with viewing, editing, deletion, and writes to a selected physical tag.
+- Added configurable confirmation for destructive tag and inventory actions.
+- Refined settings persistence, inventory navigation, and result popups.
+
 v1.4:
 
 - Added Tag Control with reversible EPC/TID/User lock, unlock, and guarded erase.

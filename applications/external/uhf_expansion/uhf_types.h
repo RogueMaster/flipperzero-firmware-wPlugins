@@ -15,6 +15,7 @@ typedef enum {
     UhfTagBankTid = 0,
     UhfTagBankEpc = 1,
     UhfTagBankUser = 2,
+    UhfTagBankReserved = 3,
 } UhfTagBank;
 
 typedef enum {
@@ -38,6 +39,8 @@ typedef struct {
     uint8_t rf_power_dbm;
     uint8_t startup_app;
     uint8_t epc_display;
+    uint8_t action_confirm;
+    uint8_t reserved[3];
 } UhfSettingsData;
 
 typedef struct {
@@ -51,6 +54,7 @@ typedef struct {
     bool used;
     char epc[UHF_EPC_HEX_MAX + 1];
     uint16_t read_count;
+    uint16_t pc;
     uint32_t last_seen;
     uint32_t rssi;
     uint32_t frequency;
