@@ -8,6 +8,10 @@ two cats: **Nugget**, an elderly tiger-striped gentleman with white socks, and
 
 ![Wardrobe](wardrobe.png)
 
+![Vinyl reactions](vinyl.png)
+
+![Hip hop](hiphop.png)
+
 ## Playing
 
 | Button       | Action                    |
@@ -24,6 +28,10 @@ two cats: **Nugget**, an elderly tiger-striped gentleman with white socks, and
 - **Wardrobe** - change Yulia's hair style (bob, long, bun, buns), hair
   colour, glasses frames and sweater. Up/Down picks a row, Left/Right changes
   it, OK or Back closes it.
+- **Vinyl** - optional background music on the Flipper's speaker: on/off,
+  volume, and a genre (lo-fi Chill, Hip hop, Pop, House, Party, Metal). Yulia and the cats
+  react for a few seconds whenever a new record goes on, differently for each
+  genre. The music rests during naps and stays silent in stealth mode.
 - **Nap time** - lights off, everyone sleeps. Choose it again to wake up.
 
 Time keeps passing while the app is closed, so the cats get hungry and want

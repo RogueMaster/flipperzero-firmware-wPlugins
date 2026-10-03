@@ -9,6 +9,7 @@
 #include <gui/gui.h>
 #include <input/input.h>
 #include <storage/storage.h>
+#include <math.h>
 
 #include "sprites.h"
 
@@ -33,6 +34,10 @@
 #define CAT_COUNT   2
 #define HEART_COUNT 8
 
+#define REACT_TICKS 70 // how long everyone reacts to a new record
+#define VOLUME_MAX  5
+#define NOTE_GAP_MS 12
+
 #define SLEEPY_BELOW 150
 #define RESTED_ABOVE 800
 #define HUNGRY_BELOW 250
@@ -45,6 +50,7 @@ typedef enum {
     CatEat,
     CatChase,
     CatComePet,
+    CatZoom,
 } CatMode;
 
 typedef struct {
@@ -62,6 +68,7 @@ typedef struct {
     uint16_t timer;
     uint8_t pet_timer;
     uint8_t bubble;
+    const char* bubble_text;
 } Cat;
 
 // Yulia's outfit, chosen in the wardrobe.
@@ -74,6 +81,39 @@ typedef struct {
 
 #define LOOK_ROWS 4
 
+// Record player settings, chosen on the Vinyl screen.
+typedef struct {
+    uint8_t on;
+    uint8_t volume; // 1..VOLUME_MAX
+    uint8_t genre;
+    uint8_t reserved;
+} Sound;
+
+#define VINYL_ROWS 3
+
+typedef enum {
+    GenreChill,
+    GenreHipHop,
+    GenrePop,
+    GenreHouse,
+    GenreParty,
+    GenreMetal,
+    GenreCount,
+} GenreId;
+
+typedef struct {
+    uint8_t note; // MIDI note number, 0 = rest
+    uint8_t steps;
+} Note;
+
+typedef struct {
+    const char* name;
+    const char* cheer;
+    const Note* notes;
+    uint16_t count;
+    uint16_t step_ms;
+} Genre;
+
 typedef struct {
     uint32_t magic;
     uint32_t first_ts;
@@ -82,6 +122,7 @@ typedef struct {
     int16_t cozy;
     CatStats cats[CAT_COUNT];
     Look look; // added later: older saves end before this field
+    Sound sound;
 } SaveData;
 
 typedef struct {
@@ -97,6 +138,7 @@ typedef enum {
     ActionPetBaby,
     ActionTea,
     ActionWardrobe,
+    ActionVinyl,
     ActionNap,
     ActionCount,
 } Action;
@@ -124,6 +166,16 @@ typedef struct {
     bool wardrobe;
     uint8_t wardrobe_row;
     Look look;
+    bool vinyl;
+    uint8_t vinyl_row;
+    Sound sound;
+    Sound sound_before; // to tell whether the record was changed
+    bool music_held; // we own the speaker
+    bool music_gate;
+    uint16_t music_pos;
+    uint32_t music_next;
+    uint8_t react_timer;
+    uint8_t react_genre;
     bool lights_off;
     bool bowl_full;
     uint8_t yarn_timer;
@@ -145,6 +197,59 @@ static const Sprite* const cat_sleep[CAT_COUNT] = {&spr_nugget_sleep, &spr_baby_
 static const Sprite* const cat_walk[CAT_COUNT][2][2] = {
     {{&spr_nugget_walk_a, &spr_nugget_walk_b}, {&spr_nugget_walk_a_l, &spr_nugget_walk_b_l}},
     {{&spr_baby_walk_a, &spr_baby_walk_b}, {&spr_baby_walk_a_l, &spr_baby_walk_b_l}},
+};
+
+// Short original loops for the piezo speaker, one per genre.
+// Chill is lo-fi: lazy swung eighths (two steps, then one) over a jazzy
+// Dm9 - G13 - Cmaj7 - Am7 turnaround, with room to breathe.
+static const Note song_chill[] = {
+    {62, 2}, {65, 1}, {69, 2}, {72, 1}, {76, 3}, {0, 3},  {71, 2}, {69, 1}, {67, 2}, {64, 1},
+    {65, 3}, {0, 3},  {64, 2}, {67, 1}, {71, 2}, {67, 1}, {74, 3}, {71, 2}, {67, 1}, {69, 3},
+    {0, 2},  {64, 1}, {67, 2}, {69, 1}, {60, 3}, {65, 2}, {69, 1}, {72, 2}, {76, 1}, {74, 3},
+    {72, 2}, {69, 1}, {71, 2}, {67, 1}, {65, 2}, {62, 1}, {64, 3}, {0, 3},  {67, 2}, {64, 1},
+    {60, 2}, {64, 1}, {67, 3}, {71, 3}, {69, 2}, {67, 1}, {64, 2}, {60, 1}, {57, 4}, {0, 2},
+};
+// Hip hop is boom bap: a low thump on the one, a high snap on two and four,
+// and a short minor hook in between.
+static const Note song_hiphop[] = {
+    {53, 2}, {0, 1},  {53, 1}, {87, 1}, {0, 1},  {65, 1}, {68, 1}, {0, 1},  {53, 1}, {53, 1},
+    {0, 1},  {87, 1}, {0, 1},  {63, 1}, {65, 1}, {51, 2}, {0, 1},  {51, 1}, {87, 1}, {0, 1},
+    {63, 1}, {66, 1}, {0, 1},  {51, 1}, {51, 1}, {0, 1},  {87, 1}, {0, 1},  {68, 1}, {65, 1},
+    {53, 2}, {0, 1},  {53, 1}, {87, 1}, {0, 1},  {72, 1}, {75, 1}, {72, 2}, {68, 1}, {0, 1},
+    {87, 1}, {0, 1},  {70, 1}, {68, 1}, {51, 2}, {0, 1},  {51, 1}, {87, 1}, {0, 1},  {65, 1},
+    {0, 1},  {51, 1}, {51, 1}, {63, 1}, {0, 1},  {87, 1}, {87, 1}, {0, 2},
+};
+static const Note song_pop[] = {
+    {72, 1}, {72, 1}, {67, 1}, {69, 1}, {72, 2}, {76, 1}, {74, 1}, {72, 1}, {69, 1}, {67, 2},
+    {0, 2},  {69, 1}, {69, 1}, {65, 1}, {67, 1}, {69, 2}, {72, 1}, {71, 1}, {67, 2}, {74, 2},
+    {72, 1}, {72, 1}, {67, 1}, {69, 1}, {72, 2}, {76, 1}, {79, 1}, {77, 1}, {76, 1}, {74, 2},
+    {0, 1},  {74, 1}, {76, 1}, {74, 1}, {72, 1}, {71, 1}, {72, 3}, {0, 3},
+};
+static const Note song_house[] = {
+    {45, 1}, {0, 1}, {69, 1}, {0, 1}, {45, 1}, {0, 1}, {72, 1}, {0, 1},
+    {45, 1}, {0, 1}, {69, 1}, {0, 1}, {45, 1}, {0, 1}, {76, 1}, {74, 1},
+    {41, 1}, {0, 1}, {65, 1}, {0, 1}, {41, 1}, {0, 1}, {69, 1}, {0, 1},
+    {43, 1}, {0, 1}, {67, 1}, {0, 1}, {43, 1}, {0, 1}, {71, 1}, {74, 1},
+};
+static const Note song_party[] = {
+    {60, 1}, {64, 1}, {67, 1}, {72, 1}, {67, 1}, {64, 1}, {60, 2}, {62, 1}, {65, 1},
+    {69, 1}, {74, 1}, {69, 1}, {65, 1}, {62, 2}, {64, 1}, {67, 1}, {71, 1}, {76, 1},
+    {79, 2}, {76, 2}, {72, 1}, {72, 1}, {0, 1},  {72, 1}, {0, 1},  {79, 1}, {84, 2},
+};
+static const Note song_metal[] = {
+    {52, 1}, {52, 1}, {64, 1}, {52, 1}, {52, 1}, {63, 1}, {52, 1}, {52, 1}, {62, 1},
+    {52, 1}, {52, 1}, {60, 1}, {59, 2}, {55, 2}, {52, 2}, {52, 1}, {52, 1}, {52, 2},
+    {52, 1}, {52, 1}, {55, 2}, {57, 2}, {58, 1}, {57, 1}, {55, 2}, {52, 1}, {52, 1},
+    {64, 1}, {52, 1}, {52, 1}, {67, 1}, {66, 2}, {64, 4},
+};
+
+static const Genre genres[GenreCount] = {
+    [GenreChill] = {"Chill", "So mellow...", song_chill, COUNT_OF(song_chill), 250},
+    [GenreHipHop] = {"Hip hop", "Boom bap!", song_hiphop, COUNT_OF(song_hiphop), 165},
+    [GenrePop] = {"Pop", "So catchy!", song_pop, COUNT_OF(song_pop), 170},
+    [GenreHouse] = {"House", "Untz untz!", song_house, COUNT_OF(song_house), 120},
+    [GenreParty] = {"Party", "Party time!", song_party, COUNT_OF(song_party), 110},
+    [GenreMetal] = {"Metal", "METAL!!", song_metal, COUNT_OF(song_metal), 95},
 };
 
 static int16_t clamp_stat(int32_t v) {
@@ -192,9 +297,16 @@ static void game_load(App* app) {
 
     if(!ok) {
         game_new(app, now);
+        app->sound.volume = 3;
         app->toast = "Hello, Yulia!";
         app->toast_timer = 30;
     } else {
+        app->sound = (Sound){
+            .on = save.sound.on ? 1 : 0,
+            .volume =
+                save.sound.volume >= 1 && save.sound.volume <= VOLUME_MAX ? save.sound.volume : 3,
+            .genre = save.sound.genre % GenreCount,
+        };
         app->first_ts = save.first_ts;
         app->love = save.love;
         app->look = (Look){
@@ -231,6 +343,7 @@ static void game_save(App* app) {
         .love = app->love,
         .cozy = app->cozy,
         .look = app->look,
+        .sound = app->sound,
     };
     for(int i = 0; i < CAT_COUNT; i++)
         save.cats[i] = app->cats[i].s;
@@ -253,8 +366,9 @@ static void toast(App* app, const char* text) {
     app->toast_timer = 22;
 }
 
-static void meow(void) {
-    if(furi_hal_rtc_is_flag_set(FuriHalRtcFlagStealthMode)) return;
+static void meow(const App* app) {
+    // The record player has the speaker while music is on.
+    if(app->music_held || furi_hal_rtc_is_flag_set(FuriHalRtcFlagStealthMode)) return;
     if(!furi_hal_speaker_acquire(30)) return;
     furi_hal_speaker_start(880.0f, 0.4f);
     furi_delay_ms(45);
@@ -262,6 +376,94 @@ static void meow(void) {
     furi_delay_ms(60);
     furi_hal_speaker_stop();
     furi_hal_speaker_release();
+}
+
+// ---------------------------------------------------------------- music
+
+static void music_stop(App* app) {
+    if(!app->music_held) return;
+    furi_hal_speaker_stop();
+    furi_hal_speaker_release();
+    app->music_held = false;
+}
+
+static void music_restart(App* app) {
+    if(app->music_held) furi_hal_speaker_stop();
+    app->music_pos = 0;
+    app->music_gate = false;
+    app->music_next = furi_get_tick();
+}
+
+// Steps the record along. Called from the main loop whenever a note is due;
+// the music rests during naps and in the Flipper's stealth mode.
+static void music_update(App* app, uint32_t now) {
+    static const float volumes[VOLUME_MAX] = {0.01f, 0.03f, 0.08f, 0.2f, 0.5f};
+
+    bool want = app->sound.on && !app->lights_off &&
+                !furi_hal_rtc_is_flag_set(FuriHalRtcFlagStealthMode);
+    if(!want) {
+        music_stop(app);
+        return;
+    }
+    if(!app->music_held) {
+        if(!furi_hal_speaker_acquire(10)) return;
+        app->music_held = true;
+        music_restart(app);
+    }
+
+    const Genre* genre = &genres[app->sound.genre];
+    while((int32_t)(now - app->music_next) >= 0) {
+        if(app->music_gate) {
+            // A sliver of silence so repeated notes are heard separately.
+            furi_hal_speaker_stop();
+            app->music_gate = false;
+            app->music_pos = (app->music_pos + 1) % genre->count;
+            app->music_next += NOTE_GAP_MS;
+        } else {
+            const Note* note = &genre->notes[app->music_pos % genre->count];
+            if(note->note) {
+                float freq = 440.0f * powf(2.0f, ((float)note->note - 69.0f) / 12.0f);
+                if(app->sound.genre == GenreChill) {
+                    // A little tape wobble.
+                    freq *= (app->music_pos & 1) ? 1.004f : 0.997f;
+                }
+                furi_hal_speaker_start(freq, volumes[app->sound.volume - 1]);
+            }
+            app->music_gate = true;
+            app->music_next += (uint32_t)note->steps * genre->step_ms - NOTE_GAP_MS;
+        }
+    }
+}
+
+static bool music_playing(const App* app) {
+    return app->music_held;
+}
+
+// Everyone has a moment with the new record. Cats that are busy or fast
+// asleep carry on with what they were doing.
+static void react_start(App* app) {
+    app->react_timer = REACT_TICKS;
+    app->react_genre = app->sound.genre;
+    app->toast = genres[app->sound.genre].cheer;
+    app->toast_timer = 30;
+    for(int i = 0; i < CAT_COUNT; i++) {
+        Cat* cat = &app->cats[i];
+        if(cat->mode != CatSit && cat->mode != CatWalk) continue;
+        if(cat->pet_timer) continue;
+        cat->mode = CatSit;
+        cat->timer = REACT_TICKS;
+        if(app->react_genre == GenreMetal) {
+            if(i == 0) {
+                // Nugget has heard it all before.
+                cat->bubble = 40;
+                cat->bubble_text = "...";
+            } else {
+                // Baby gets the zoomies.
+                cat->mode = CatZoom;
+                cat->target = cat->x < 85 ? ROOM_MAXX : ROOM_MINX;
+            }
+        }
+    }
 }
 
 static void heart_spawn(App* app, int16_t x, int16_t y) {
@@ -352,6 +554,13 @@ static void do_pet(App* app, int i) {
 static void do_action(App* app) {
     if(app->action == ActionWardrobe) {
         app->wardrobe = true;
+        app->wardrobe_row = 0;
+        return;
+    }
+    if(app->action == ActionVinyl) {
+        app->vinyl = true;
+        app->vinyl_row = 0;
+        app->sound_before = app->sound;
         return;
     }
     if(busy(app)) return;
@@ -424,7 +633,8 @@ static void cat_tick(App* app, int i) {
             cat->timer--;
             if(cat->s.full < HUNGRY_BELOW && !cat->bubble && furi_hal_random_get() % 250 == 0) {
                 cat->bubble = 25;
-                meow();
+                cat->bubble_text = "meow!";
+                meow(app);
             }
         } else {
             cat->mode = CatWalk;
@@ -462,6 +672,15 @@ static void cat_tick(App* app, int i) {
             cat->s.energy = clamp_stat(cat->s.energy - 60);
             heart_spawn(app, cat->x, FLOOR_Y - 14);
             cat_rest(cat);
+        }
+        break;
+    case CatZoom:
+        if(cat_step(cat, 3)) {
+            if(app->react_timer) {
+                cat->target = cat->x < 85 ? ROOM_MAXX : ROOM_MINX;
+            } else {
+                cat_rest(cat);
+            }
         }
         break;
     case CatComePet:
@@ -529,6 +748,13 @@ static void game_tick(App* app) {
         }
     }
 
+    if(app->react_timer) {
+        app->react_timer--;
+        if(app->react_genre == GenreParty && app->tick % 7 == 0) {
+            heart_spawn(app, rand_range(ROOM_MINX, ROOM_MAXX), FLOOR_Y - 18);
+        }
+    }
+
     if(app->tea_timer) app->tea_timer--;
     if(app->happy_timer) app->happy_timer--;
     if(app->toast_timer) app->toast_timer--;
@@ -575,6 +801,17 @@ static void draw_sprite(Canvas* canvas, int32_t x, int32_t y, const Sprite* spri
 static Face yulia_face(const App* app) {
     if(app->lights_off) return FaceAsleep;
     if(app->tea_timer) return FaceSip;
+    if(app->react_timer) {
+        switch(app->react_genre) {
+        case GenreChill:
+            return FaceAsleep; // eyes closed, soaking it in
+        case GenreHouse:
+        case GenreHipHop:
+            return FaceSmile;
+        default:
+            return FaceHappy;
+        }
+    }
     if(app->happy_timer) return FaceHappy;
     int16_t m = mood(app);
     if(m > 550) return FaceSmile;
@@ -582,60 +819,86 @@ static Face yulia_face(const App* app) {
     return FaceSad;
 }
 
+// Yulia moves to the music for a moment: a nod, a bounce or a headbang.
+static int32_t yulia_bounce(const App* app) {
+    if(!app->react_timer) return 0;
+    switch(app->react_genre) {
+    case GenrePop:
+    case GenreHipHop:
+        return (app->tick / 3) & 1;
+    case GenreHouse:
+        return (app->tick / 2) & 1;
+    case GenreParty:
+        return (app->tick / 2) & 1 ? -1 : 1;
+    case GenreMetal:
+        return (app->tick & 1) * 3;
+    default:
+        return 0;
+    }
+}
+
 static void draw_yulia(Canvas* canvas, const App* app) {
     const Look* look = &app->look;
-    draw_sprite(canvas, 0, 0, yulia_sweater[look->sweater]);
-    draw_sprite(canvas, 0, 0, &spr_yulia_face);
-    draw_sprite(canvas, 0, 0, yulia_hair[look->hair][look->color]);
-    draw_sprite(canvas, 0, 0, yulia_glasses[look->glasses]);
+    const int32_t dy = yulia_bounce(app);
+    draw_sprite(canvas, 0, dy, yulia_sweater[look->sweater]);
+    draw_sprite(canvas, 0, dy, &spr_yulia_face);
+    draw_sprite(canvas, 0, dy, yulia_hair[look->hair][look->color]);
+    draw_sprite(canvas, 0, dy, yulia_glasses[look->glasses]);
     Face face = yulia_face(app);
     canvas_set_color(canvas, ColorBlack);
 
     // Eyes sit behind the two lenses.
+    const bool shades = app->react_timer && app->react_genre == GenreHipHop && !app->lights_off;
     for(int i = 0; i < 2; i++) {
         int32_t x = i ? 26 : 14;
+        if(shades) {
+            // Too cool: the lenses go dark.
+            canvas_draw_disc(canvas, x, 28 + dy, 4);
+            canvas_draw_disc(canvas, x + 1, 28 + dy, 4);
+            continue;
+        }
         if(face == FaceHappy || face == FaceSip) {
-            canvas_draw_line(canvas, x - 2, 29, x, 27);
-            canvas_draw_line(canvas, x + 1, 27, x + 3, 29);
+            canvas_draw_line(canvas, x - 2, 29 + dy, x, 27 + dy);
+            canvas_draw_line(canvas, x + 1, 27 + dy, x + 3, 29 + dy);
         } else if(face == FaceAsleep || app->blink) {
-            canvas_draw_line(canvas, x - 1, 29, x + 2, 29);
+            canvas_draw_line(canvas, x - 1, 29 + dy, x + 2, 29 + dy);
         } else {
-            canvas_draw_box(canvas, x, 26, 2, 4);
+            canvas_draw_box(canvas, x, 26 + dy, 2, 4);
         }
     }
 
     switch(face) {
     case FaceHappy:
-        canvas_draw_line(canvas, 18, 37, 23, 37);
-        canvas_draw_line(canvas, 19, 38, 22, 38);
-        canvas_draw_line(canvas, 20, 39, 21, 39);
+        canvas_draw_line(canvas, 18, 37 + dy, 23, 37 + dy);
+        canvas_draw_line(canvas, 19, 38 + dy, 22, 38 + dy);
+        canvas_draw_line(canvas, 20, 39 + dy, 21, 39 + dy);
         break;
     case FaceFlat:
-        canvas_draw_line(canvas, 19, 38, 22, 38);
+        canvas_draw_line(canvas, 19, 38 + dy, 22, 38 + dy);
         break;
     case FaceSad:
-        canvas_draw_line(canvas, 19, 37, 22, 37);
-        canvas_draw_dot(canvas, 18, 38);
-        canvas_draw_dot(canvas, 23, 38);
+        canvas_draw_line(canvas, 19, 37 + dy, 22, 37 + dy);
+        canvas_draw_dot(canvas, 18, 38 + dy);
+        canvas_draw_dot(canvas, 23, 38 + dy);
         break;
     case FaceSip:
         break; // hidden behind the mug
     default:
-        canvas_draw_dot(canvas, 18, 37);
-        canvas_draw_dot(canvas, 23, 37);
-        canvas_draw_line(canvas, 19, 38, 22, 38);
+        canvas_draw_dot(canvas, 18, 37 + dy);
+        canvas_draw_dot(canvas, 23, 37 + dy);
+        canvas_draw_line(canvas, 19, 38 + dy, 22, 38 + dy);
         break;
     }
 
     if(app->tea_timer) {
-        draw_sprite(canvas, 17, 35, &spr_mug);
+        draw_sprite(canvas, 17, 35 + dy, &spr_mug);
         // Steam curls up from the mug.
         for(int i = 0; i < 2; i++) {
             int32_t x = 19 + i * 3;
             int32_t phase = (app->tick / 3 + i) & 3;
             for(int k = 0; k < 3; k++) {
                 int32_t wobble = ((k + phase) & 3) == 0 ? 1 : 0;
-                canvas_draw_dot(canvas, x + wobble, 33 - k);
+                canvas_draw_dot(canvas, x + wobble, 33 - k + dy);
             }
         }
     }
@@ -719,7 +982,32 @@ static void draw_cat(Canvas* canvas, const App* app, int i) {
         break;
     }
 
-    int32_t x = cat->x - sprite->w / 2;
+    // A sitting cat joins in with the new record.
+    int32_t sway = 0;
+    if(app->react_timer && cat->mode == CatSit && !cat->pet_timer) {
+        switch(app->react_genre) {
+        case GenreChill:
+            sprite = cat_sleep[i]; // settles into a loaf
+            break;
+        case GenrePop:
+            bob = -(int32_t)((app->tick / 3 + i) & 1);
+            break;
+        case GenreHipHop:
+            bob = -(int32_t)((app->tick / 3) & 1);
+            sway = ((app->tick / 6 + i) & 1) ? 1 : -1;
+            break;
+        case GenreHouse:
+            sway = ((app->tick / 2 + i) & 1) ? 2 : -2;
+            break;
+        case GenreParty:
+            bob = ((app->tick / 2 + i) & 1) ? -4 : 0;
+            break;
+        default:
+            break;
+        }
+    }
+
+    int32_t x = cat->x - sprite->w / 2 + sway;
     int32_t y = FLOOR_Y - sprite->h + 1 + bob;
     draw_sprite(canvas, x, y, sprite);
 
@@ -730,13 +1018,16 @@ static void draw_cat(Canvas* canvas, const App* app, int i) {
         canvas_draw_str(canvas, cat->x + 6 + phase, y - 1 - phase * 2, "z");
     }
     if(cat->bubble) {
-        int32_t bx = cat->x - 14;
+        const char* text = cat->bubble_text ? cat->bubble_text : "meow!";
+        int32_t bw = canvas_string_width(canvas, text) + 6;
+        int32_t bx = cat->x - bw / 2;
         if(bx < ROOM_X + 1) bx = ROOM_X + 1;
+        if(bx + bw > 127) bx = 127 - bw;
         canvas_set_color(canvas, ColorWhite);
-        canvas_draw_box(canvas, bx, y - 12, 29, 11);
+        canvas_draw_box(canvas, bx, y - 12, bw, 11);
         canvas_set_color(canvas, ColorBlack);
-        canvas_draw_rframe(canvas, bx, y - 12, 29, 11, 2);
-        canvas_draw_str(canvas, bx + 3, y - 3, "meow!");
+        canvas_draw_rframe(canvas, bx, y - 12, bw, 11, 2);
+        canvas_draw_str(canvas, bx + 3, y - 3, text);
     }
 }
 
@@ -762,6 +1053,14 @@ static void draw_scene(Canvas* canvas, const App* app) {
     for(int i = 0; i < HEART_COUNT; i++) {
         const Heart* heart = &app->hearts[i];
         if(heart->life) draw_sprite(canvas, heart->x - 3, heart->y, &spr_heart);
+    }
+
+    if(music_playing(app)) {
+        // Notes drift up from the shelf while a record is on.
+        for(int i = 0; i < 2; i++) {
+            int32_t phase = (app->tick / 2 + i * 8) % 16;
+            draw_sprite(canvas, 82 + i * 7 + ((phase / 4) & 1), 22 - phase, &spr_note);
+        }
     }
 
     if(app->toast_timer && app->toast) {
@@ -792,12 +1091,16 @@ static const char* action_label(const App* app) {
         return "Tea time";
     case ActionWardrobe:
         return "Wardrobe";
+    case ActionVinyl:
+        return "Vinyl";
     default:
         return app->lights_off ? "Wake up" : "Nap time";
     }
 }
 
 static void draw_bar(Canvas* canvas, const App* app) {
+    canvas_set_color(canvas, ColorWhite);
+    canvas_draw_box(canvas, 0, BAR_Y, 128, 64 - BAR_Y);
     canvas_set_color(canvas, ColorBlack);
     canvas_draw_line(canvas, 0, BAR_Y, 127, BAR_Y);
     canvas_set_font(canvas, FontSecondary);
@@ -878,6 +1181,54 @@ static void draw_wardrobe(Canvas* canvas, const App* app) {
     }
 }
 
+static void draw_vinyl(Canvas* canvas, const App* app) {
+    static const char* const labels[VINYL_ROWS] = {"Music", "Volume", "Genre"};
+    const Sound* sound = &app->sound;
+
+    // The record: it turns while the music is on.
+    const int32_t cx = 22, cy = 32;
+    canvas_set_color(canvas, ColorBlack);
+    canvas_draw_disc(canvas, cx, cy, 20);
+    canvas_set_color(canvas, ColorWhite);
+    canvas_draw_circle(canvas, cx, cy, 16);
+    canvas_draw_circle(canvas, cx, cy, 12);
+    canvas_draw_disc(canvas, cx, cy, 7);
+    canvas_set_color(canvas, ColorBlack);
+    canvas_draw_disc(canvas, cx, cy, 1);
+    static const int8_t spoke[8][2] = {
+        {5, 0}, {4, 4}, {0, 5}, {-4, 4}, {-5, 0}, {-4, -4}, {0, -5}, {4, -4}};
+    uint32_t turn = sound->on ? (app->tick / 2) % 8 : 0;
+    canvas_draw_dot(canvas, cx + spoke[turn][0], cy + spoke[turn][1]);
+    canvas_draw_dot(canvas, cx - spoke[turn][0], cy - spoke[turn][1]);
+
+    canvas_set_font(canvas, FontPrimary);
+    canvas_draw_str(canvas, 50, 12, "Vinyl");
+
+    canvas_set_font(canvas, FontSecondary);
+    for(int i = 0; i < VINYL_ROWS; i++) {
+        int32_t y = 27 + i * 13;
+        canvas_draw_str(canvas, 50, y, labels[i]);
+        if(i == 1) {
+            for(int32_t v = 0; v < VOLUME_MAX; v++) {
+                int32_t h = 2 + v;
+                if(v < sound->volume) {
+                    canvas_draw_box(canvas, 95 + v * 5, y - h, 3, h);
+                } else {
+                    canvas_draw_dot(canvas, 96 + v * 5, y - 1);
+                }
+            }
+        } else {
+            const char* value = i == 0 ? (sound->on ? "On" : "Off") : genres[sound->genre].name;
+            canvas_draw_str_aligned(canvas, 106, y, AlignCenter, AlignBottom, value);
+        }
+        if(i == app->vinyl_row) {
+            canvas_draw_str(canvas, 84, y, "<");
+            canvas_draw_str(canvas, 124, y, ">");
+            canvas_draw_line(canvas, 50, y + 2, 80, y + 2);
+        }
+    }
+}
+
 static void draw_callback(Canvas* canvas, void* ctx) {
     App* app = ctx;
     furi_mutex_acquire(app->mutex, FuriWaitForever);
@@ -886,6 +1237,8 @@ static void draw_callback(Canvas* canvas, void* ctx) {
         draw_stats(canvas, app);
     } else if(app->wardrobe) {
         draw_wardrobe(canvas, app);
+    } else if(app->vinyl) {
+        draw_vinyl(canvas, app);
     } else {
         draw_scene(canvas, app);
         draw_bar(canvas, app);
@@ -930,6 +1283,44 @@ static void wardrobe_input(App* app, InputKey key) {
     }
 }
 
+static void vinyl_input(App* app, InputKey key) {
+    Sound* sound = &app->sound;
+    uint8_t row = app->vinyl_row;
+    int step = key == InputKeyRight ? 1 : -1;
+
+    switch(key) {
+    case InputKeyUp:
+        app->vinyl_row = (row + VINYL_ROWS - 1) % VINYL_ROWS;
+        break;
+    case InputKeyDown:
+        app->vinyl_row = (row + 1) % VINYL_ROWS;
+        break;
+    case InputKeyLeft:
+    case InputKeyRight:
+        if(row == 0) {
+            sound->on = !sound->on;
+        } else if(row == 1) {
+            int volume = sound->volume + step;
+            sound->volume = volume < 1 ? 1 : volume > VOLUME_MAX ? VOLUME_MAX : volume;
+        } else {
+            sound->genre = (sound->genre + GenreCount + step) % GenreCount;
+            music_restart(app);
+        }
+        break;
+    case InputKeyOk:
+    case InputKeyBack:
+        app->vinyl = false;
+        // A different record, or the player just switched on: time to react.
+        if(sound->on && (!app->sound_before.on || app->sound_before.genre != sound->genre)) {
+            lights_on(app);
+            react_start(app);
+        }
+        break;
+    default:
+        break;
+    }
+}
+
 // Returns false when the app should quit.
 static bool handle_input(App* app, const InputEvent* event) {
     if(event->type != InputTypeShort && event->type != InputTypeRepeat) return true;
@@ -940,6 +1331,10 @@ static bool handle_input(App* app, const InputEvent* event) {
     }
     if(app->wardrobe) {
         wardrobe_input(app, event->key);
+        return true;
+    }
+    if(app->vinyl) {
+        vinyl_input(app, event->key);
         return true;
     }
 
@@ -989,22 +1384,34 @@ int32_t yulia_cats_app(void* p) {
     bool running = true;
     uint32_t next_tick = furi_get_tick() + furi_ms_to_ticks(TICK_MS);
     while(running) {
+        // Sleep until the next game tick or the next note, whichever is first.
         uint32_t now = furi_get_tick();
-        uint32_t wait = next_tick > now ? next_tick - now : 0;
-        InputEvent event;
-        if(furi_message_queue_get(queue, &event, wait) == FuriStatusOk) {
-            furi_mutex_acquire(app->mutex, FuriWaitForever);
-            running = handle_input(app, &event);
-            furi_mutex_release(app->mutex);
-        } else {
-            furi_mutex_acquire(app->mutex, FuriWaitForever);
-            game_tick(app);
-            furi_mutex_release(app->mutex);
-            next_tick += furi_ms_to_ticks(TICK_MS);
+        uint32_t deadline = next_tick;
+        if(app->music_held && (int32_t)(app->music_next - deadline) < 0) {
+            deadline = app->music_next;
         }
-        view_port_update(view_port);
+        uint32_t wait = (int32_t)(deadline - now) > 0 ? deadline - now : 0;
+
+        bool redraw = false;
+        InputEvent event;
+        FuriStatus status = furi_message_queue_get(queue, &event, wait);
+        furi_mutex_acquire(app->mutex, FuriWaitForever);
+        if(status == FuriStatusOk) {
+            running = handle_input(app, &event);
+            redraw = true;
+        }
+        now = furi_get_tick();
+        if((int32_t)(now - next_tick) >= 0) {
+            game_tick(app);
+            next_tick += furi_ms_to_ticks(TICK_MS);
+            redraw = true;
+        }
+        music_update(app, now);
+        furi_mutex_release(app->mutex);
+        if(redraw) view_port_update(view_port);
     }
 
+    music_stop(app);
     furi_hal_vibro_on(false);
     game_save(app);
 
