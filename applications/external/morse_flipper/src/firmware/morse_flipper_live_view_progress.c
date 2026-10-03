@@ -131,13 +131,17 @@ static void morse_flipper_draw_progress_history_row(
     char time[8];
     char score[8];
     char lesson[2] = {row->lesson, '\0'};
+    uint16_t old_year;
     uint8_t stars;
     uint8_t i;
 
-    morse_flipper_progress_history_date_label(
+    old_year = morse_flipper_progress_history_date_label(
         row, reference_year, reference_month, date, sizeof(date));
     if(date[0] == '\0') return;
-    snprintf(time, sizeof(time), "%02u:%02u", (unsigned)row->hour, (unsigned)row->minute);
+    if(old_year != 0U)
+        snprintf(time, sizeof(time), "%u", (unsigned)old_year);
+    else
+        snprintf(time, sizeof(time), "%02u:%02u", (unsigned)row->hour, (unsigned)row->minute);
     snprintf(score, sizeof(score), "%u%%", (unsigned)row->percent);
     stars = morse_flipper_progress_stars(row->percent);
 
@@ -162,10 +166,7 @@ static void morse_flipper_draw_progress_history(Canvas* canvas, MorseFlipperApp*
     canvas_draw_str(canvas, 4, 10, "Recent lessons");
     canvas_set_font(canvas, FontSecondary);
 
-    if(app->progress_row_offset < app->progress_row_count)
-        visible = (uint8_t)(app->progress_row_count - app->progress_row_offset);
-    if(visible > MORSE_FLIPPER_PROGRESS_HISTORY_ROWS)
-        visible = MORSE_FLIPPER_PROGRESS_HISTORY_ROWS;
+    visible = morse_flipper_progress_history_view_visible_rows(&app->progress_history);
 
     if(visible == 0U) {
         canvas_draw_str_aligned(canvas, 64, 34, AlignCenter, AlignCenter, "No lesson history yet");
@@ -175,8 +176,8 @@ static void morse_flipper_draw_progress_history(Canvas* canvas, MorseFlipperApp*
             morse_flipper_draw_progress_history_row(
                 canvas,
                 (uint8_t)(21U + (i * 9U)),
-                &app->progress_rows[app->progress_row_offset + i],
-                i == app->progress_row_cursor,
+                &app->progress_history.rows[app->progress_history.row_offset + i],
+                i == app->progress_history.row_cursor,
                 reference_year,
                 reference_month);
         }

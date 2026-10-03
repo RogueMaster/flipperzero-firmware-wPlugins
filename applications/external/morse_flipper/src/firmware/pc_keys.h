@@ -48,4 +48,13 @@ const char* morse_pc_key_name(uint8_t key);
 
 uint8_t morse_pc_straight_preset_key(uint8_t idx);
 uint8_t morse_pc_paddle_preset_key(uint8_t idx, uint8_t note, bool swapped);
+static inline uint8_t morse_pc_keyboard_key_for_note(
+    uint8_t paddle_preset,
+    uint8_t straight_preset,
+    uint8_t note,
+    bool straight_keying) {
+    if(note > 2U) return MorsePcKeyNone;
+    if(note == 0U || straight_keying) return morse_pc_straight_preset_key(straight_preset);
+    return morse_pc_paddle_preset_key(paddle_preset, note, false);
+}
 uint8_t morse_pc_mouse_button(uint8_t note, bool inverted);

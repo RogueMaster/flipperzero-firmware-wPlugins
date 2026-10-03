@@ -26,6 +26,8 @@ With `Input` set to `buttons` and `Keyer` set to a paddle mode such as `iambic b
 
 There is one awkward rule: when `Back` is acting as a paddle, it cannot also be Back. The app shows the escape hint on live screens: ⏴ long-press `Left` to leave.
 
+When answering a question, press ↓ to delete the last character or ↑ to clear the whole answer. This is deliberately unavailable in transmission exercises: sent Morse stays sent.
+
 ## Straight Key
 
 <img align="right" src="images/100-3--straight-key.webp" alt="Straight key" height="192">

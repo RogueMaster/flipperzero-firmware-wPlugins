@@ -127,7 +127,7 @@ uint8_t morse_flipper_gpio_straight_idx(const MorseFlipperApp* app) {
 }
 
 void morse_flipper_gpio_sync_straight_idx(MorseFlipperApp* app) {
-    if(app == NULL) return;
+    if(app == NULL || app->ardf_gpio_owned) return;
     app->gpio_straight_idx = morse_flipper_gpio_straight_idx(app);
 }
 
@@ -216,22 +216,6 @@ void morse_flipper_gpio_apply(MorseFlipperApp* app) {
     }
 }
 
-void morse_flipper_gpio_alert(MorseFlipperApp* app, MorseFlipperGpioRule rule) {
-    DialogMessage* msg;
-
-    if(app == NULL || app->dialogs == NULL || rule == MorseFlipperGpioRuleOk) {
-        return;
-    }
-
-    msg = dialog_message_alloc();
-    dialog_message_set_header(msg, "GPIO conflict", 64, 10, AlignCenter, AlignTop);
-    dialog_message_set_text(
-        msg, morse_flipper_gpio_rule_text(rule), 64, 30, AlignCenter, AlignTop);
-    dialog_message_set_buttons(msg, NULL, "OK", NULL);
-    dialog_message_show(app->dialogs, msg);
-    dialog_message_free(msg);
-}
-
 bool morse_flipper_gpio_try_apply(
     MorseFlipperApp* app,
     uint8_t dit,
@@ -269,7 +253,7 @@ void morse_flipper_sync_ptt(MorseFlipperApp* app, uint32_t now_ms) {
     const GpioPin* ham_key_pin = morse_flipper_gpio_pins[MorseFlipperGpioPinP15];
     const GpioPin* ham_ptt_pin = morse_flipper_gpio_pins[MorseFlipperGpioPinP16];
 
-    if(app == NULL) return;
+    if(app == NULL || app->ardf_gpio_owned) return;
 
     if(app->screen == MorseFlipperScreenHamRun) {
         tx_active = (app->note_sources[0] != 0U) || (app->note_sources[1] != 0U) ||

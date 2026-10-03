@@ -1,12 +1,13 @@
 # Flipper as a Morse Transceiver
 
-Morse Flipper can use the built-in Sub-GHz radio for small Morse experiments. It sends CW by turning a single RF carrier on and off. That is enough for another Flipper, an SDR, or a receiver that can actually listen to carrier keying. Treat it as a short practice link and a radio bench, not as a field rig.
+Morse Flipper can use the built-in Sub-GHz radio for small Morse experiments. It can send ordinary carrier-keyed CW, or a fixed 700 Hz tone over FM so compatible handhelds hear proper Morse audio. Treat it as a short practice link and radio bench, not as a field rig.
 
-Open `Flipper Radio`. It has three entries:
+Open `Flipper Radio`. It has four entries:
 
 - `Transmit`: send Morse on the selected frequency.
 - `Receive monitor`: listen on the selected frequency and try to decode Morse timing.
 - `Frequency`: choose the radio frequency, in kHz.
+- [`ARDF Foxhunting`](302-ardf-foxhunting.md): run a clock-scheduled Morse beacon.
 
 In real traffic, handover is part of the message. Send `BK` at the end when you are handing it back or inviting the other station in. [Here is how a standard contact in Morse usually happens](internal-help.md#a-complete-morse-contact).
 
@@ -36,6 +37,8 @@ If you open `Transmit` on an `RX only` frequency, the app shows the frequency an
 
 If `Back` is acting as a paddle, long-press `Left` to leave the screen. A short press on `Left` clears the text buffer. Set speed, input, paddle swap, and keyer mode before entering `Transmit`; this screen is for sending, not for menu archaeology.
 
+Short-press `Right` to toggle `CWFM off` or `CWFM on`. Off is the usual keyed carrier. On sends a fixed 700 Hz tone which an FM receiver can hear as Morse. The choice is temporary and returns to `off` when you reopen Transmit.
+
 Sub-GHz keying and sidetone are driven from the same note state, so the beep you hear should track the carrier closely enough for this kind of experiment. It is still a Flipper transmitter: low power, small antenna, and no great claim to being a clean RF neighbour.
 
 ## Receive Monitor
@@ -52,9 +55,9 @@ If decoding looks wrong, put the WPM hint near the sender's speed, then adjust t
 
 ## FM Handhelds
 
-CW in this app is a single carrier being keyed on and off. A stock Baofeng UV-5R, Quansheng UV-K5, or similar handheld FM transceiver is not built to receive that. Those radios expect FM voice: the carrier is always present, and audio is carried as frequency deviation around it. Morse Flipper does not yet send a keyed audio tone inside FM. Here, the Morse is the carrier being interrupted.
+With `CWFM off`, a stock Baofeng UV-5R, Quansheng UV-K5 or similar FM handheld cannot properly receive the Flipper's keyed carrier. Its receive light may blink, but that only proves it noticed RF; useful audio is another matter.
 
-What you may see is the RX indicator, usually a green LED, lighting in time with the Flipper's carrier. That only proves the handheld noticed RF energy on the channel. It does not mean it can demodulate useful Morse audio from an unmodulated carrier - so you will not hear a tone (yet!).
+For actual Morse audio, tune both radios to the same supported frequency, open `Flipper Radio → Transmit`, and short-press `Right` until the screen says `CWFM on`. The handheld will hear a roughly 700 Hz tone for marks and silence between them. This has been tested on a UV-5R, a quansheng and a UV878.
 
 With normal squelch enabled, the handheld may open its receiver during the carrier and play little or nothing. Squelch is the circuit that mutes speaker noise until the radio thinks a real signal is present. Disable squelch and the radio plays its background hiss all the time; when the Flipper transmits, the carrier can quiet that hiss, so the "Morse" becomes interruptions of noise by silence. Technically interesting, awful to copy.
 
@@ -63,5 +66,3 @@ With normal squelch enabled, the handheld may open its receiver during the carri
 You can also use an FM handheld as the transmitter for Flipper's `Receive monitor`. There is enough RF energy for the Flipper radio circuit to detect. Hold the handheld PTT or side button and key it by hand, but expect pain: many handhelds keep transmitting for roughly half a second after you lift your finger, partly because humans are fond of lifting that finger too early. In practice, that makes usable hand-keyed carrier tests about 2-3 WPM. The screenshot here is from my first RX test with a UV-5R because it was what I had on the bench. Notice how uneven the G is. That tiny test took about three minutes to key and roughly five attempts to get right, which is a useful warning label.
 
 Some handhelds, especially Quansheng UV-K5-class radios with alternative firmware, can actually send a plain non-FM carrier. Better still, some of those firmwares can use a real paddle as input and their internal keyer, so the radio can send proper CW instead of PTT abuse with aspirations. Even when they advertise HF support, they are awful in the HF bands. On 2 m and 70 cm they are much more reasonable. In CW mode, they can also receive a keyed carrier from the Flipper.
-
-An FM-CW mode is on the todo list: key an audio tone and send it through FM so common handhelds can hear it. That would be practical, but it loses many of the advantages of CW. The signal is wider, it depends on FM audio and squelch behaviour, and the Flipper was not a brilliant transmitter to begin with. Useful, yes. A substitute for a proper rig, no.
