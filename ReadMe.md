@@ -109,7 +109,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Haier AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac) - Add HSU07, AC160 and AC176 protocol support.
 - Updated: [MitsuHeavy AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac) - Add the ZJ-S protocol alongside ZM-S.
 - Updated: [WiFi (Marauder) v0.7.12 (By 0xchocolate & tcpassos)](https://github.com/0xchocolate/flipperzero-firmware-with-wifi-marauder-companion) - Add the FindMy device-index input prompt.
-- Updated: [Hotspot Arcade v1.10.0 (By tarikbc)](https://github.com/tarikbc/hotspot-arcade) - Restore the missing S2, WROOM and C5 firmware bundle files and flash manifests.
 - Added: [AC Detector v1.0 (By xMasterX)](https://github.com/xMasterX/all-the-plugins/tree/213baa6e872d1db597a25d2c16e81406e9634440/non_catalog_apps/ac_detector)
 - Added: [Better Mouse v1.2 (By timon)](https://github.com/xMasterX/all-the-plugins/tree/213baa6e872d1db597a25d2c16e81406e9634440/non_catalog_apps/bettermouse)
 - Added: [Bounce v1.0 (By Tom Varghese)](https://github.com/tomxposed/flipper-bounce)
