@@ -218,7 +218,8 @@ Iso14443_3aError
                 if(instance->col_res.sel_resp.sak & ISO14443_3A_POLLER_SAK_CASCADE_BIT) {
                     // ISO14443-3 defines at most 3 cascade levels (10-byte UID); a tag
                     // that keeps asserting the cascade bit would overflow data->uid[10].
-                    if(instance->col_res.cascade_level >= 2) {
+                    if((instance->col_res.cascade_level >= ISO14443_3A_POLLER_MAX_CASCADE_LEVEL) ||
+                       (instance->data->uid_len + 3U > ISO14443_3A_MAX_UID_SIZE)) {
                         FURI_LOG_E(TAG, "Too many cascade levels");
                         instance->state = Iso14443_3aPollerStateColResFailed;
                         ret = Iso14443_3aErrorColResFailed;
@@ -233,6 +234,12 @@ Iso14443_3aError
                     instance->col_res.cascade_level++;
                     instance->col_res.state = Iso14443_3aPollerColResStateStateNewCascade;
                 } else {
+                    if(instance->data->uid_len + 4U > ISO14443_3A_MAX_UID_SIZE) {
+                        FURI_LOG_E(TAG, "UID too long");
+                        instance->state = Iso14443_3aPollerStateColResFailed;
+                        ret = Iso14443_3aErrorColResFailed;
+                        break;
+                    }
                     FURI_LOG_T(TAG, "Col resolution complete");
                     instance->data->sak = instance->col_res.sel_resp.sak;
                     memcpy(

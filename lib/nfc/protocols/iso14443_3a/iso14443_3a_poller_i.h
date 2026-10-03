@@ -15,6 +15,9 @@ extern "C" {
 // SAK cascade bit (b3): set => UID not complete, continue to the next cascade level
 #define ISO14443_3A_POLLER_SAK_CASCADE_BIT      (0x04U)
 
+/** Highest cascade level index defined by ISO14443-3 (CL1..CL3 -> 0..2) */
+#define ISO14443_3A_POLLER_MAX_CASCADE_LEVEL (2U)
+
 typedef enum {
     Iso14443_3aPollerColResStateStateIdle,
     Iso14443_3aPollerColResStateStateNewCascade,
