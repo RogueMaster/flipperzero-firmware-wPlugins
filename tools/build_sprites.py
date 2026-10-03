@@ -66,9 +66,15 @@ def sweater_half(y):
 BODY = {(x, y) for x, y in cells() if y >= OFF + 37 and abs(x - CX) <= sweater_half(y)}
 
 
-def hairline(x):
-    """Centre-parted fringe; the hairline makes the top of the heart."""
-    return OFF + 11.5 + 2.2 * math.cos((x - CX) / 12.5 * 2 * math.pi)
+# Where each style's fringe is swept from: the hairline is a round arc that
+# is highest at this x and curves down towards the temples.
+HAIR_PARTS = {"Bob": CX, "Long": CX - 5, "Bun": CX + 5, "Buns": CX}
+
+
+def hairline(x, style):
+    """A rounded hairline, biased to the centre, left or right by style."""
+    u = min(1.0, abs(x - HAIR_PARTS[style]) / 16.0)
+    return min(OFF + 14.5, OFF + 9.5 + 7.0 * (1 - math.sqrt(1 - u * u)))
 
 
 def hair_shape(style):
@@ -96,7 +102,7 @@ def hair_shape(style):
         if not inside(x, y):
             continue
         if (x, y) in FACE:
-            if y >= hairline(x):
+            if y >= hairline(x, style):
                 continue
         elif (x, y) in NECK:
             continue
