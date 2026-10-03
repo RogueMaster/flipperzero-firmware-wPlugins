@@ -1,643 +1,149 @@
-<!DOCTYPE html>
-<html lang="en" data-theme="auto">
+<!doctype html>
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Specter — NFC Reader &amp; Skimmer Bug-Sweep for Flipper Zero</title>
-<meta name="description" content="A powered-on NFC reader has to radiate to work. Specter turns that giveaway into a meter you can walk around a payment terminal, a door panel or a hotel room — using the Flipper's onboard NFC chip, and never transmitting.">
-<link rel="icon" href="shots/splash.png">
-<meta property="og:title" content="Specter — NFC Reader &amp; Skimmer Bug-Sweep for Flipper Zero">
-<meta property="og:description" content="Sweep for the readers you can't see.">
-<meta property="og:image" content="https://at0m-b0mb.github.io/Specter-FlipperZero/social-preview.png">
-<meta name="twitter:card" content="summary_large_image">
+<title>Specter — passive 13.56 MHz NFC reader/skimmer bug-sweep for Flipper Zero. Count</title>
+<meta name="description" content="Specter — passive 13.56 MHz NFC reader/skimmer bug-sweep for Flipper Zero. Counter-surveillance EMF meter using the onboard NFC chip. No extra hardware, never transmits.">
+<meta property="og:title" content="Specter">
+<meta property="og:description" content="Specter — passive 13.56 MHz NFC reader/skimmer bug-sweep for Flipper Zero. Counter-surveillance EMF meter using the onboard NFC chip. No extra hardware, never transmits.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,500;6..96,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet">
 <style>
-/* ---------------------------------------------------------------- tokens --
-   BACKLIGHT, the same system the banner is drawn in. Two rules carry over
-   from tools_gen_banner.py and they are the reason this page looks like the
-   product rather than like a template:
-
-   1. THE ORANGE QUARANTINE. #FE8A2C is the colour the device emits, and it is
-      never painted here. Every orange pixel on this page is inside a real
-      screen capture. Captures are mounted on paper, not on an orange bezel,
-      because the capture already supplies the light.
-   2. THE ACCENT MEANS ONE THING. Gold marks measurement. It is never used for
-      a link, a button, a border or a heading.
-
-   Each colour is declared as a light/dark pair at the point of definition, so
-   the dark theme cannot be forgotten when a token is added. Dark is true
-   black - the colour the device's own stealth mode leaves you with - and
-   explicitly never navy. */
-:root{
-  --paper:#F3F1EC; --card:#FFFFFF; --ink:#16130D; --muted:#57524A;
-  --rule:#D9D4C8; --rule-strong:#C6BFAF;
-  --gold:#8A6714;        /* brass: measurement, and only measurement */
-  --gold-shine:#B07D22;
-  --link:#7A4E12;
-  --yes:#2F6B4F; --no:#9A3324;
-  --shadow:0 1px 2px rgba(22,19,13,.05), 0 10px 30px rgba(22,19,13,.07);
-}
-@media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){
-    --paper:#000000; --card:#0D0C0B; --ink:#F6F4EF; --muted:#C2BBB1;
-    --rule:#221F1B; --rule-strong:#332F2A;
-    --gold:#E09443; --gold-shine:#F0B366;
-    --link:#E8B36A;
-    --yes:#7FD0A8; --no:#FF8A78;
-    --shadow:0 1px 2px rgba(0,0,0,.7), 0 10px 34px rgba(0,0,0,.55);
-  }
-}
-:root[data-theme="dark"]{
-  --paper:#000000; --card:#0D0C0B; --ink:#F6F4EF; --muted:#C2BBB1;
-  --rule:#1C1A17; --rule-strong:#2A2724;
-  --gold:#D8862A; --gold-shine:#E8A54F;
-  --link:#E0A758;
-  --yes:#6FC49A; --no:#FF7A68;
-  --shadow:0 1px 2px rgba(0,0,0,.7), 0 10px 34px rgba(0,0,0,.55);
-}
-
+:root{--paper:#F3F1EC;--surface:#FFFFFF;--sunken:#EBE7DE;--ink:#1B1813;
+--muted:#575144;--faint:#6B6554;--rule:#DCD6C9;--rule-strong:#C4BCAA;
+--brass:#7A5D18;--shine:#C39B24;--warn:#8A5410;--warn-wash:#FAF0DF;
+--serif:"Source Serif 4",Iowan Old Style,Palatino,Georgia,serif;
+--sans:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+--mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+--paper:#000000;--surface:#131312;--sunken:#0A0A09;--ink:#F3F0E9;--muted:#A29C91;
+--faint:#8C877C;--rule:#2B2B28;--rule-strong:#3D3C38;--brass:#D9B75C;
+--shine:#F1C84B;--warn:#DDA356;--warn-wash:#251A0B;}}
+:root[data-theme="dark"]{--paper:#000000;--surface:#131312;--sunken:#0A0A09;
+--ink:#F3F0E9;--muted:#A29C91;--faint:#8C877C;--rule:#2B2B28;--rule-strong:#3D3C38;
+--brass:#D9B75C;--shine:#F1C84B;--warn:#DDA356;--warn-wash:#251A0B;}
 *{box-sizing:border-box}
-html{-webkit-text-size-adjust:100%; scroll-behavior:smooth}
-/* A serif for identity and figures, a NEUTRAL sans for everything you have to
-   read, a mono for measured values. Inter rather than a geometric face: a
-   Futura-like sans is right on a banner and wrong in a paragraph - the closed
-   apertures and near-circular bowls that make it elegant at 100px are exactly
-   what slow you down at 17. The Didone carries Specter's identity instead,
-   which is where it belongs and where the print branding already puts it. */
-body{
-  margin:0; background:var(--paper); color:var(--ink);
-  font-family:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
-  font-size:18px; line-height:1.76; letter-spacing:-.002em;
-  -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
-  font-feature-settings:"kern" 1, "liga" 1, "cv05" 1;
-}
-.wrap{max-width:960px; margin:0 auto; padding:0 24px}
-a{color:var(--link); text-decoration:none; border-bottom:1px solid transparent}
-a:hover{border-bottom-color:currentColor}
-/* PIN THE OPTICAL SIZE. Bodoni Moda is a Didone, and its whole character is
-   the contrast between thick stems and hairline thins. Left to scale
-   automatically the browser pushes opsz towards 96 at heading sizes, which is
-   correct for a poster and wrong on a screen - and actively bad on TRUE BLACK,
-   where a hairline stops being a thin line and starts being an intermittent
-   one. Pinning opsz low keeps the Didone voice with strokes that survive.
-   The hero is set a little higher because at 100px+ it can afford the
-   elegance. */
-h1,h2,h3{font-family:'Bodoni Moda',Didot,'Playfair Display',Georgia,serif; font-weight:700; line-height:1.16; margin:0;
-  font-optical-sizing:none; font-variation-settings:'opsz' 15}
-h2{font-size:clamp(28px,4.4vw,38px); letter-spacing:-.01em; margin:0 0 8px}
-h3{font-size:20px; margin:0 0 6px}
-p{margin:0 0 17px; max-width:72ch}
-ul{margin:0 0 16px; padding-left:20px}
-li{margin:0 0 9px; max-width:72ch}
-code,kbd{font-family:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace}
-code{font-size:.86em; background:color-mix(in srgb, var(--ink) 7%, transparent); padding:.14em .4em; border-radius:4px}
-kbd{font-size:.78em; border:1px solid var(--rule-strong); border-bottom-width:2px; border-radius:5px; padding:.12em .45em; background:var(--card); white-space:nowrap}
-.sec{padding:68px 0; border-top:1px solid var(--rule)}
-.eyebrow{font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:.2em; text-transform:uppercase; color:var(--gold); margin:0 0 12px}
-.lede{font-size:19.5px; line-height:1.68; color:var(--muted); max-width:64ch}
-.skip{position:absolute; left:-9999px}
-.skip:focus{left:8px; top:8px; background:var(--card); padding:10px 14px; border-radius:8px; z-index:50}
-
-/* ------------------------------------------------------------------ nav -- */
-nav{position:sticky; top:0; z-index:20; backdrop-filter:saturate(180%) blur(12px);
-    background:color-mix(in srgb, var(--paper) 86%, transparent); border-bottom:1px solid var(--rule)}
-nav .wrap{display:flex; align-items:center; gap:20px; height:58px}
-.brand{font-family:'Bodoni Moda',serif; font-weight:700; font-size:21px; letter-spacing:.15em; color:var(--ink); font-optical-sizing:none; font-variation-settings:'opsz' 11}
-nav a.n{color:var(--muted); font-size:14.5px; font-weight:500; border:0; white-space:nowrap}
-nav a.n:hover{color:var(--ink)}
-.navlinks{display:flex; gap:20px; overflow-x:auto; scrollbar-width:none}
-.navlinks::-webkit-scrollbar{display:none}
-.spacer{margin-left:auto}
-.themebtn{background:none; border:1px solid var(--rule-strong); color:var(--muted); border-radius:999px;
-  font:inherit; font-size:12px; padding:5px 13px; cursor:pointer; white-space:nowrap}
-.themebtn:hover{color:var(--ink); border-color:var(--ink)}
-
-/* ----------------------------------------------------------------- hero -- */
-header.hero{padding:72px 0 8px}
-.hero h1{font-size:clamp(56px,12vw,112px); line-height:.92; letter-spacing:.06em; margin:0;
-  font-variation-settings:'opsz' 30}
-.hero .tag{font-size:clamp(21px,3vw,27px); color:var(--ink); margin:20px 0 10px; max-width:20ch; font-weight:500}
-.hero .sub{color:var(--muted); max-width:60ch; font-size:18px}
-.rule-gold{width:104px; height:2px; background:var(--gold-shine); margin:22px 0}
-.cta{display:flex; flex-wrap:wrap; gap:12px; margin-top:28px}
-.btn{display:inline-flex; flex-direction:column; padding:11px 19px; border-radius:10px;
-  border:1px solid var(--rule-strong); background:var(--card); color:var(--ink);
-  font-size:14.5px; font-weight:600; box-shadow:var(--shadow)}
-.btn:hover{border-color:var(--ink)}
-.btn.primary{background:var(--ink); color:var(--paper); border-color:var(--ink)}
-.btn small{font-size:11.5px; color:var(--muted); font-weight:400; letter-spacing:.01em}
-.btn.primary small{color:color-mix(in srgb, var(--paper) 72%, transparent)}
-.badges{display:flex; flex-wrap:wrap; gap:8px; margin-top:28px}
-.badge{font-family:'JetBrains Mono',monospace; font-size:10.5px; letter-spacing:.09em; text-transform:uppercase;
-  border:1px solid var(--rule-strong); border-radius:999px; padding:5px 12px; color:var(--muted)}
-
-/* --------------------------------------------------------------- device -- */
-/* No orange bezel: the capture supplies the device's light itself. A capture
-   is presented as a measurement, so it sits on paper behind a hairline. */
-.screen{background:var(--card); border:1px solid var(--rule); border-radius:10px; padding:8px; box-shadow:var(--shadow)}
-.screen img{display:block; width:100%; height:auto; image-rendering:pixelated; border-radius:3px}
-.screen .cap{font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:.1em; text-transform:uppercase;
-  color:var(--muted); padding:9px 3px 2px}
-.demo{display:grid; grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr); gap:44px; align-items:center}
-.demo .screen img{image-rendering:pixelated}
-
-/* --------------------------------------------------------------- modes --- */
-.modes{display:grid; gap:22px}
-.mode{display:grid; grid-template-columns:minmax(0,1fr) 300px; gap:34px; align-items:center;
-  background:var(--card); border:1px solid var(--rule); border-radius:14px; padding:26px 28px; box-shadow:var(--shadow)}
-.mode:nth-child(even){grid-template-columns:300px minmax(0,1fr)}
-.mode:nth-child(even) .mtext{order:2}
-.mode:nth-child(even) .screen{order:1}
-.mode h3{font-size:22px}
-.mode p{margin:0 0 11px; color:var(--muted); font-size:16px; line-height:1.66}
-.mode .keys{font-size:13px; color:var(--muted)}
-.mode .keys kbd{margin-right:3px}
-
-/* --------------------------------------------------------------- tables -- */
-.card{background:var(--card); border:1px solid var(--rule); border-radius:14px; box-shadow:var(--shadow); overflow:hidden}
-table{width:100%; border-collapse:collapse; font-size:15.5px}
-th,td{padding:15px 18px; text-align:left; border-bottom:1px solid var(--rule); vertical-align:top; line-height:1.6}
-thead th{font-family:'JetBrains Mono',monospace; font-size:10.5px; letter-spacing:.13em; text-transform:uppercase; color:var(--muted); font-weight:500}
-tbody tr:last-child td{border-bottom:0}
-td.v{white-space:nowrap; font-weight:600}
-td.v.yes{color:var(--yes)}
-td.v.no{color:var(--no)}
-
-/* --------------------------------------------------------------- shots --- */
-.shots{display:grid; grid-template-columns:repeat(auto-fit,minmax(248px,1fr)); gap:20px}
-
-/* -------------------------------------------------------------- measure -- */
-/* The one place gold is allowed: numbers the device actually measured. */
-.measure{display:grid; grid-template-columns:repeat(auto-fit,minmax(178px,1fr))}
-.measure div{padding:24px 22px; border-right:1px solid var(--rule)}
-.measure div:last-child{border-right:0}
-.measure .n{font-family:'Bodoni Moda',serif; font-size:40px; line-height:1; color:var(--gold); font-optical-sizing:none; font-variation-settings:'opsz' 14}
-.measure .l{font-size:13.5px; color:var(--muted); margin-top:8px}
-
-
-/* ------------------------------------------------------------ colophon -- */
-.colophon{display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:0}
-.colophon > div{padding:24px 24px; border-right:1px solid var(--rule)}
-.colophon > div:last-child{border-right:0}
-.colophon h3{font-size:16px; margin:0 0 10px}
-.colophon p{font-size:14.5px; color:var(--muted); margin:0 0 10px; max-width:none}
-.colophon p:last-child{margin-bottom:0}
-.face{font-size:19px; color:var(--ink); display:block; margin-bottom:2px}
-.face.serif{font-family:'Bodoni Moda',serif; font-weight:700; letter-spacing:.04em; font-optical-sizing:none; font-variation-settings:'opsz' 14}
-.face.sans{font-family:'Inter',sans-serif; font-weight:600}
-.face.mono{font-family:'JetBrains Mono',monospace; font-weight:500; font-size:17px}
-.swatches{display:flex; gap:9px; margin:0 0 12px; flex-wrap:wrap}
-.sw{width:30px; height:30px; border-radius:6px; border:1px solid var(--rule-strong)}
-.sw span{position:absolute; left:-9999px}
-
-/* -------------------------------------------------------------- footer --- */
-footer{border-top:1px solid var(--rule); padding:46px 0 64px; color:var(--muted); font-size:14px}
-footer .row{display:flex; flex-wrap:wrap; gap:16px 28px; align-items:baseline}
-.note{font-size:14.5px; color:var(--muted); border-left:2px solid var(--rule-strong); padding-left:16px; margin:22px 0}
-
-@media (max-width:860px){
-  .demo{grid-template-columns:1fr; gap:28px}
-  .mode,.mode:nth-child(even){grid-template-columns:1fr; gap:20px}
-  .mode:nth-child(even) .mtext,.mode:nth-child(even) .screen{order:0}
-  .sec{padding:52px 0}
-}
-@media (prefers-reduced-motion:reduce){ html{scroll-behavior:auto} }
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);
+font-size:17px;line-height:1.65;-webkit-font-smoothing:antialiased}
+.wrap{max-width:820px;margin:0 auto;padding:0 24px}
+a{color:var(--brass);text-underline-offset:3px}a:hover{color:var(--shine)}
+code{font-family:var(--mono);font-size:.88em;background:var(--sunken);
+padding:.12em .36em;border-radius:3px}
+pre{font-family:var(--mono);font-size:14px;line-height:1.6;background:var(--surface);
+border:1px solid var(--rule);border-radius:8px;padding:16px 18px;overflow-x:auto}
+pre code{background:none;padding:0;font-size:inherit}
+header.top{border-bottom:1px solid var(--rule);background:var(--sunken)}
+header.top .wrap{display:flex;align-items:center;gap:13px;padding:13px 24px}
+.mk{width:34px;height:34px;border-radius:8px;background:var(--brass);flex:none}
+.mk svg{display:block;width:34px;height:34px}
+.wordmark{font-family:var(--serif);font-size:19px;font-weight:600;letter-spacing:.06em}
+.kind{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint)}
+header.top nav{margin-left:auto;display:flex;gap:16px;align-items:center;font-size:14px}
+button.theme{background:none;border:1px solid var(--rule-strong);color:var(--muted);
+border-radius:999px;padding:5px 13px;font:inherit;font-size:13px;cursor:pointer}
+button.theme:hover{border-color:var(--brass);color:var(--ink)}
+.hero{padding:64px 0 6px;text-align:center}
+.hero h1{font-family:var(--serif);font-size:clamp(30px,5.4vw,46px);line-height:1.12;
+margin:0 0 18px;font-weight:400}
+.hero p.lede{font-size:18px;color:var(--muted);max-width:620px;margin:0 auto 24px}
+.chips{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:24px}
+.chips span{font-size:12px;border:1px solid var(--rule-strong);color:var(--muted);
+border-radius:999px;padding:4px 12px}
+.cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.cta a{display:inline-block;padding:11px 22px;border-radius:6px;text-decoration:none;
+font-size:15px;font-weight:600;border:1px solid var(--brass)}
+.cta a.primary{background:var(--brass);color:var(--paper)}
+.cta a.primary:hover{background:var(--shine);color:#1B1813}
+.cta a.ghost{color:var(--brass)}.cta a.ghost:hover{background:var(--surface)}
+section{padding:46px 0}
+h2{font-family:var(--serif);font-size:25px;font-weight:400;margin:0 0 16px}
+ul.feat{list-style:none;padding:0;margin:0}
+ul.feat li{padding:10px 0 10px 26px;border-bottom:1px solid var(--rule);position:relative;
+color:var(--muted)}
+ul.feat li:before{content:"";position:absolute;left:4px;top:19px;width:7px;height:7px;
+border-radius:2px;background:var(--brass)}
+.notice{background:var(--warn-wash);border:1px solid var(--rule);
+border-left:3px solid var(--warn);border-radius:8px;padding:18px 22px;color:var(--muted)}
+.notice strong{color:var(--ink)}
+.family{border-top:1px solid var(--rule);padding:40px 0 10px}
+.family h2{font-size:19px;text-align:center}
+.family .row{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:18px}
+.family a{text-decoration:none;color:var(--ink);border:1px solid var(--rule);
+border-radius:999px;padding:6px 14px;font-size:13.5px;background:var(--surface)}
+.family a:hover{border-color:var(--brass)}
+.family a span{color:var(--faint);font-size:12px}
+footer{border-top:1px solid var(--rule);margin-top:30px;padding:28px 0 54px;
+color:var(--faint);font-size:13px;text-align:center}
+footer a{color:var(--faint)}
+@media(max-width:560px){.hero{padding-top:44px}.kind{display:none}}
 </style>
 </head>
 <body>
-<a class="skip" href="#main">Skip to content</a>
-
-<nav>
+<header class="top">
   <div class="wrap">
-    <span class="brand">SPECTER</span>
-    <div class="navlinks">
-      <a class="n" href="#instrument">The&nbsp;instrument</a>
-      <a class="n" href="#limits">What&nbsp;it&nbsp;senses</a>
-      <a class="n" href="#modes">Modes</a>
-      <a class="n" href="#screens">Screens</a>
-      <a class="n" href="#install">Install</a>
-      <a class="n" href="#colophon">Colophon</a>
+    <span class="mk"><svg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg' fill='none' stroke='#F3F1EC' stroke-width='6' stroke-linejoin='round' stroke-linecap='round'><style>.f{fill:#F3F1EC;stroke:none}</style><rect x='20' y='28' width='60' height='44' rx='8'/><rect x='29' y='38' width='24' height='5' class='f'/><rect x='29' y='50' width='34' height='5' class='f'/><circle cx='66' cy='42' r='5' class='f'/></svg></span>
+    <div>
+      <div class="wordmark">Specter</div>
+      <div class="kind">Flipper Zero</div>
     </div>
-    <span class="spacer"></span>
-    <button class="themebtn" id="themebtn" type="button">Theme</button>
-  </div>
-</nav>
-
-<main id="main">
-<header class="hero">
-  <div class="wrap">
-    <p class="eyebrow">Flipper Zero — NFC</p>
-    <h1>Specter</h1>
-    <div class="rule-gold"></div>
-    <p class="tag">Sweep for the readers you can’t see.</p>
-    <p class="sub">
-      An NFC reader has to radiate to work. A skimmer hidden inside a payment
-      terminal, a rogue reader behind a door panel, a logger taped under a desk —
-      all of them sit there pushing out a 13.56&nbsp;MHz carrier, whether anyone
-      is holding a card to them or not. Specter turns that giveaway into a meter
-      you can walk around a room, using the Flipper’s own NFC chip. It never
-      transmits.
-    </p>
-
-    <div class="cta">
-      <a class="btn primary" href="https://github.com/at0m-b0mb/Specter-FlipperZero/releases/latest">
-        Download <small>specter.fap — official firmware</small>
-      </a>
-      <a class="btn" href="https://github.com/at0m-b0mb/Specter-FlipperZero/releases/latest">
-        Custom firmware <small>specter-fw-dev.fap — Unleashed · RogueMaster · Momentum</small>
-      </a>
-      <a class="btn" href="https://github.com/at0m-b0mb/Specter-FlipperZero">
-        Source <small>MIT licensed</small>
-      </a>
-    </div>
-
-    <div class="badges">
-      <span class="badge">13.56 MHz</span>
-      <span class="badge">Listen-only · never transmits</span>
-      <span class="badge">No extra hardware</span>
-      <span class="badge">Target 7 · API 87.1</span>
-      <span class="badge">In the Flipper Apps Catalog</span>
-    </div>
+    <nav>
+      <a href="https://github.com/at0m-b0mb/Specter-FlipperZero">GitHub</a>
+      <button class="theme" id="t" type="button">Dark</button>
+    </nav>
   </div>
 </header>
-
-<section class="sec" id="instrument">
-  <div class="wrap">
-    <div class="demo">
-      <div class="mtext">
-        <p class="eyebrow">The instrument</p>
-        <h2>A meter for something invisible</h2>
-        <p class="lede">
-          The Flipper’s NFC chip can be told to sit still and report one thing:
-          whether another device’s field is washing over it. Specter samples
-          that bit every two milliseconds and turns the result into a needle,
-          a number, a cadence and a verdict.
-        </p>
-        <p class="lede">
-          Everything on this page is a real capture off a real device, taken
-          over the Flipper’s own RPC session by
-          <code>tools_screenshot.py</code> in the repository. There are no
-          mock-ups here, and there is no mock-up renderer in the project — a
-          drawing of a UI is a second implementation that can quietly disagree
-          with the firmware, and once did.
-        </p>
-      </div>
-      <figure class="screen" style="margin:0">
-        <img src="demo.gif" alt="Specter running on a Flipper Zero: the sweep meter finding a reader, the fingerprint classifier, a site survey verdict and watch mode" width="384" height="192" loading="lazy">
-        <figcaption class="cap">Captured over RPC · real device</figcaption>
-      </figure>
-    </div>
-
-    <div class="card measure" style="margin-top:40px">
-      <div><div class="n">2 ms</div><div class="l">between field samples</div></div>
-      <div><div class="n">0</div><div class="l">bytes transmitted, ever</div></div>
-      <div><div class="n">5</div><div class="l">modes, one question each</div></div>
-      <div><div class="n">527</div><div class="l">host tests gating CI</div></div>
+<div class="wrap">
+  <div class="hero">
+    <h1>Sweep a surface for a skimmer that is still listening.</h1>
+    <p class="lede">Specter — passive 13.56 MHz NFC reader/skimmer bug-sweep for Flipper Zero. Counter-surveillance EMF meter using the onboard NFC chip. No extra hardware, never transmits.</p>
+    <div class="chips"><span>C</span><span>Flipper Zero</span><span>v3.1.1</span><span>MIT</span><span>108 stars</span></div>
+    <div class="cta">
+      <a class="primary" href="https://github.com/at0m-b0mb/Specter-FlipperZero">View on GitHub</a>
+      <a class="ghost" href="https://github.com/at0m-b0mb/Specter-FlipperZero/releases/latest">Release v3.1.1</a>
     </div>
   </div>
-</section>
-
-<section class="sec" id="limits">
-  <div class="wrap">
-    <p class="eyebrow">Read this first</p>
-    <h2>What Specter can and cannot sense</h2>
-    <p class="lede">
-      A counter-surveillance tool that overstates itself is worse than none at
-      all, because you act on it. Specter senses <em>powered, actively polling
-      readers</em> at 13.56&nbsp;MHz. That is the whole claim.
-    </p>
-
-    <div class="card" style="margin-top:26px">
-      <table>
-        <thead><tr><th>Can it sense…</th><th>Verdict</th><th>Why</th></tr></thead>
-        <tbody>
-          <tr>
-            <td>A live NFC reader — payment terminal, door pad, desk reader</td>
-            <td class="v yes">Yes</td>
-            <td>It radiates a carrier continuously or in a polling rhythm, which is exactly what the chip’s field-detect bit reports.</td>
-          </tr>
-          <tr>
-            <td>A skimmer built into or over a reader</td>
-            <td class="v yes">Yes, if powered</td>
-            <td>A skimmer that reads cards has to energise them. Specter sees the field; it cannot tell you the field is criminal.</td>
-          </tr>
-          <tr>
-            <td>A reader that is switched off or asleep</td>
-            <td class="v no">No</td>
-            <td>Nothing is radiating. Silence is not evidence of absence, and Site Survey refuses to call a room clean off a short walk for exactly this reason.</td>
-          </tr>
-          <tr>
-            <td>A card, tag or passport sitting in a wallet</td>
-            <td class="v no">No</td>
-            <td>Those are passive. They have no power of their own and emit nothing until a reader energises them.</td>
-          </tr>
-          <tr>
-            <td>125 kHz low-frequency badges and readers</td>
-            <td class="v no">No</td>
-            <td>The LF path has no external-field-detect bit to read. This is a hardware limit, not a setting.</td>
-          </tr>
-          <tr>
-            <td>Whether a reader you found is malicious</td>
-            <td class="v no">No</td>
-            <td>It tells you something is there, how it polls, and how strong it is. Deciding what it is for is your job.</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <p class="note">
-      Specter is receive-only by construction. It calls
-      <code>furi_hal_nfc_field_detect_start()</code> and reads one bit; there is
-      no code path in the app that transmits, so it cannot wake a tag, clone
-      anything, or announce your presence to the reader you are standing in
-      front of.
-    </p>
-  </div>
-</section>
-
-<section class="sec" id="modes">
-  <div class="wrap">
-    <p class="eyebrow">Five questions</p>
-    <h2>One screen each</h2>
-    <p class="lede" style="margin-bottom:34px">
-      Each mode answers a different question, and none of them asks you to
-      interpret a raw number to get the answer.
-    </p>
-
-    <div class="modes">
-
-      <article class="mode">
-        <div class="mtext">
-          <h3>Sweep — where is it?</h3>
-          <p>
-            An analog-style EMF gauge whose needle rides the field in real time,
-            with a peak-hold marker and a mark drawn at the exact point where
-            <em>reader</em> begins at your current sensitivity — so the dial
-            answers “what counts as a hit?” instead of leaving you to guess.
-            Geiger clicks speed up as you close in, and the Flipper buzzes once
-            when the meter pegs, so you can home in without watching the screen.
-          </p>
-          <p class="keys"><kbd>UP</kbd><kbd>DOWN</kbd> sensitivity, mid-hunt · <kbd>LEFT</kbd> learn the room’s noise floor · <kbd>hold OK</kbd> save the finding</p>
-        </div>
-        <figure class="screen" style="margin:0">
-          <img src="shots/sweep_reader.png" alt="Sweep screen with a reader found: needle at 27%, peak 37%, inverted ACTIVE READER strip reading NEAR" width="512" height="256" loading="lazy">
-          <figcaption class="cap">Sweep — locked on</figcaption>
-        </figure>
-      </article>
-
-      <article class="mode">
-        <div class="mtext">
-          <h3>Fingerprint — what kind of thing is it?</h3>
-          <p>
-            Readers poll on a rhythm, and the rhythm is characteristic. Specter
-            measures period, burst length, jitter and duty, classifies the
-            emitter as <strong>CONTINUOUS</strong>, <strong>POLLING</strong> or
-            <strong>INTERMITTENT</strong>, and draws the raw carrier underneath
-            as a logic-analyser trace — so the verdict is never asked to be
-            believed on its own.
-          </p>
-          <p class="keys"><kbd>OK</kbd> save to the logbook · <kbd>hold OK</kbd> restart the measurement</p>
-        </div>
-        <figure class="screen" style="margin:0">
-          <img src="shots/fingerprint_reader.png" alt="Fingerprint screen classifying a reader as POLLING with 100% confidence, period 40ms, burst 11ms, jitter 2ms, and a square-wave carrier trace" width="512" height="256" loading="lazy">
-          <figcaption class="cap">Fingerprint — a fixed poll</figcaption>
-        </figure>
-      </article>
-
-      <article class="mode">
-        <div class="mtext">
-          <h3>Site Survey — is this room clean?</h3>
-          <p>
-            Start it, walk the space, and get one verdict instead of watching a
-            needle for two minutes: <strong>CLEAN</strong>,
-            <strong>TRACE</strong> or <strong>ACTIVE</strong>, with the peak,
-            average and time-in-field behind it. The grading is deliberately
-            asymmetric — a one-second walk that finds something is a real
-            finding, but a one-second walk that finds nothing reports
-            <strong>TOO SHORT</strong> rather than clearing the room.
-          </p>
-          <p class="keys"><kbd>OK</kbd> finish early and grade what you have · <kbd>OK</kbd> again on the card re-runs it</p>
-        </div>
-        <figure class="screen" style="margin:0">
-          <img src="shots/survey_done.png" alt="Site Survey verdict card: 14 seconds, ACTIVE READER, advice to fingerprint it, peak 100%, average 41%, 3 hits" width="512" height="256" loading="lazy">
-          <figcaption class="cap">Site Survey — the verdict</figcaption>
-        </figure>
-      </article>
-
-      <article class="mode">
-        <div class="mtext">
-          <h3>Watch — tell me if one appears</h3>
-          <p>
-            Leave it standing guard on a desk, in a hotel room, beside a rental
-            car. A big clock counts the quiet; when a carrier appears the screen
-            wakes itself, the band inverts, and the contact is written to the
-            logbook with a timestamp. Presence is latched to the reader’s own
-            measured poll period, so an alarm does not flicker in and out
-            between polls.
-          </p>
-          <p class="keys"><kbd>OK</kbd> re-arm · wakes the backlight on a contact, even in stealth</p>
-        </div>
-        <figure class="screen" style="margin:0">
-          <img src="shots/watch_reader.png" alt="Watch mode with an active reader: inverted ACTIVE READER band, 1 hit, peak 100%, now 100%" width="512" height="256" loading="lazy">
-          <figcaption class="cap">Watch — a contact</figcaption>
-        </figure>
-      </article>
-
-      <article class="mode">
-        <div class="mtext">
-          <h3>Logbook — what did I find?</h3>
-          <p>
-            Every saved finding lands on the SD card twice: a grouped, readable
-            <code>logbook.txt</code> you can scroll on the device, and a flat
-            <code>logbook.csv</code> you can open later. Entries are
-            RTC-stamped, tagged by mode, and filterable on-device, so a sweep
-            ends with something you can hand to somebody.
-          </p>
-          <p class="keys">Files live in <code>apps_data/specter/</code></p>
-        </div>
-        <figure class="screen" style="margin:0">
-          <img src="shots/logbook.png" alt="Logbook screen showing timestamped WATCH contacts with field and peak percentages" width="512" height="256" loading="lazy">
-          <figcaption class="cap">Logbook — on the device</figcaption>
-        </figure>
-      </article>
-
-    </div>
-  </div>
-</section>
-
-<section class="sec" id="screens">
-  <div class="wrap">
-    <p class="eyebrow">Every screen</p>
-    <h2>Captured from the device</h2>
-    <p class="lede" style="margin-bottom:30px">
-      Taken over the RPC session at 4×, in the panel’s own two colours. Nothing
-      here was drawn. These are the screens the five modes above do not
-      already show — the quiet states, the ones you only meet when there is
-      nothing to find, and the key map.
-    </p>
-
-    <div class="shots">
-      <figure class="screen" style="margin:0">
-        <img src="splash.gif" alt="Specter's boot intro: a flat trace writes across the screen, a reader's poll cuts in, the screen inverts, and the SPECTER nameplate engraves itself" width="384" height="192" loading="lazy">
-        <figcaption class="cap">Boot intro — a carrier arrives</figcaption>
-      </figure>
-      <figure class="screen" style="margin:0">
-        <img src="shots/menu.png" alt="Specter main menu" width="512" height="256" loading="lazy">
-        <figcaption class="cap">Main menu</figcaption>
-      </figure>
-      <figure class="screen" style="margin:0">
-        <img src="shots/sweep_idle.png" alt="Sweep screen listening, with the discoverability hint on the bottom strip" width="512" height="256" loading="lazy">
-        <figcaption class="cap">Sweep — listening</figcaption>
-      </figure>
-      <figure class="screen" style="margin:0">
-        <img src="shots/fingerprint.png" alt="Fingerprint screen with no carrier present: NO FIELD, no confidence bar" width="512" height="256" loading="lazy">
-        <figcaption class="cap">Fingerprint — nothing there</figcaption>
-      </figure>
-      <figure class="screen" style="margin:0">
-        <img src="shots/survey_run.png" alt="Site Survey running, with progress bar and live waveform" width="512" height="256" loading="lazy">
-        <figcaption class="cap">Site Survey — walking</figcaption>
-      </figure>
-      <figure class="screen" style="margin:0">
-        <img src="shots/watch_quiet.png" alt="Watch mode quiet, counting up since the last contact" width="512" height="256" loading="lazy">
-        <figcaption class="cap">Watch — standing guard</figcaption>
-      </figure>
-      <figure class="screen" style="margin:0">
-        <img src="shots/settings.png" alt="Settings list: sensitivity, survey time, sound, vibrate" width="512" height="256" loading="lazy">
-        <figcaption class="cap">Settings</figcaption>
-      </figure>
-    </div>
-  </div>
-</section>
-
-<section class="sec" id="install">
-  <div class="wrap">
-    <p class="eyebrow">Install</p>
-    <h2>Which build do I download?</h2>
-
-    <div class="card" style="margin-top:24px">
-      <table>
-        <thead><tr><th>Your firmware</th><th>File</th><th>Why</th></tr></thead>
-        <tbody>
-          <tr>
-            <td>Official Flipper firmware</td>
-            <td><code>specter.fap</code></td>
-            <td>Built against the release SDK, API 87.1. Also installable straight from the Flipper mobile app — Specter is in the official Apps Catalog under NFC.</td>
-          </tr>
-          <tr>
-            <td>Unleashed · RogueMaster · Momentum</td>
-            <td><code>specter-fw-dev.fap</code></td>
-            <td>Built against the dev SDK. Custom firmware runs a newer API than the release SDK targets, and the official build refuses to load with <code>APP:87 &lt; FW:88</code>.</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <p style="margin-top:26px">
-      Copy the <code>.fap</code> to <code>/ext/apps/NFC/</code> with qFlipper,
-      or build it yourself:
-    </p>
-    <p><code>ufbt</code> in the repository root produces <code>dist/specter.fap</code>.</p>
-  </div>
-</section>
-
-
-<section class="sec" id="colophon">
-  <div class="wrap">
-    <p class="eyebrow">Colophon</p>
-    <h2>How it is put together</h2>
-    <p class="lede" style="margin-bottom:30px">
-      Specter’s print identity and this page are one system, called
-      <strong>BACKLIGHT</strong>. The Flipper’s backlight orange and the house
-      gold sit about fifteen degrees apart on the same hue wheel, so they are
-      treated as one ramp read from opposite ends: more ink is more signal on
-      paper, more light is more signal on black.
-    </p>
-
-    <div class="card colophon">
-      <div>
-        <h3>Type</h3>
-        <p><span class="face serif">Bodoni Moda</span> Identity and figures. Instrument nameplates — galvanometers, theodolites — were engraved in Didone, and the printed banner is set in Didot.</p>
-        <p><span class="face sans">Inter</span> Everything you actually have to read. Neutral on purpose: the display face is elegant at 100px and tiring at 17.</p>
-        <p><span class="face mono">JetBrains Mono</span> Anything the device measured, and anything you would type.</p>
-      </div>
-      <div>
-        <h3>Colour</h3>
-        <div class="swatches">
-          <span class="sw" style="background:#F3F1EC" title="Paper #F3F1EC"></span>
-          <span class="sw" style="background:#16130D" title="Ink #16130D"></span>
-          <span class="sw" style="background:#8A6714" title="Brass #8A6714"></span>
-          <span class="sw" style="background:#B07D22" title="Shine #B07D22"></span>
-          <span class="sw" style="background:#FE8A2C" title="Ember #FE8A2C — device only"></span>
-        </div>
-        <p>Paper, ink, and <em>two</em> golds — a deep brass that stays readable as small text, and a brighter one for marks that carry no words. One gold cannot do both jobs.</p>
-        <p>Dark mode is true black, the colour Specter’s own stealth mode leaves you with. Never navy.</p>
-      </div>
-      <div>
-        <h3>Two rules</h3>
-        <p><strong>The orange quarantine.</strong> <code>#FE8A2C</code> is the colour the device emits, and nothing here paints it. Every orange pixel on this page and on the banner is inside a real screen capture — sampled, never chosen.</p>
-        <p><strong>The accent means one thing.</strong> Gold marks measurement and nothing else: not a link, not a button, not a border, not a heading. There is exactly one gold object on the banner, and it is 128 columns of recorded carrier.</p>
-      </div>
-    </div>
-
-    <p class="note" style="margin-top:28px">
-      The banner’s waveform is not a graphic. It is the 13.56&nbsp;MHz carrier of
-      a real polling reader, read back column by column out of the Fingerprint
-      capture beside it. Its duty measures 26% where the device’s own counter
-      printed 28%, and both numbers are printed on the banner. The renderer
-      asserts they agree and refuses to build if they drift.
-    </p>
-  </div>
-</section>
-
-<section class="sec">
-  <div class="wrap">
-    <p class="eyebrow">Please read</p>
-    <h2>Limits, honestly</h2>
-    <ul>
-      <li><strong>It finds fields, not crimes.</strong> A live reader in a shop is a shop’s reader. Specter tells you one is radiating and how it behaves; the judgement is yours.</li>
-      <li><strong>Silence proves nothing.</strong> A reader that is off, asleep, or out of range reads as nothing at all. This is why Site Survey will not certify a room off a short walk.</li>
-      <li><strong>High frequency only.</strong> 13.56&nbsp;MHz. 125&nbsp;kHz LF badge readers are invisible to this hardware path.</li>
-      <li><strong>Range is short.</strong> You are sensing a near-field coupling meant to work across a few centimetres. Specter extends that usefully, not dramatically — it is a bug-sweep, not a room scanner.</li>
-      <li><strong>Use it where you are allowed to.</strong> Passive listening is far less fraught than transmitting, but “less fraught” is not “anywhere”.</li>
+  <section>
+    <h2>About</h2>
+    <p>Specter is five tools around one sensor. Each answers a different question, so the right one depends on what you are actually trying to find out:</p>
+  </section>
+  <section>
+    <h2>What it does</h2>
+    <ul class="feat">
+      <li><strong>The dial</strong> — needle = live reading, the small dot = <em>peak-hold</em> (the strongest</li>
+      <li><strong><code>FIELD %</code></strong> — the same reading as a number, with a <strong>▲ / ▼ trend arrow</strong></li>
+      <li><strong><code>PEAK %</code></strong> — the strongest reading since you armed, the number behind the</li>
+      <li><strong>The mark across the dial</strong> — where <code>READER</code> <em>begins</em> at your current</li>
+      <li><strong>Bottom strip</strong> — until you've found your first reader it carries the two keys</li>
+      <li><strong>Proximity</strong> — <code>FAINT NEAR CLOSE STRONG PEGGED</code>. <code>PEGGED</code> means the meter is</li>
     </ul>
+  </section>
+  <section>
+    <h2>Getting started</h2>
+<pre><code>make -C test     # 527 checks: classifier, verdict, meter scaling, presence,
+                 #             cadence, log filtering, log wrapping</code></pre>
+  </section>
+  <section>
+    <div class="notice"><strong>Scope.</strong> the reader. Use it to sweep <strong>your own</strong> POS area, door, desk or belongings, or hardware you're explicitly</div>
+  </section>
+  <div class="family">
+    <h2>More from this catalogue</h2>
+    <div class="row">
+        <a href="https://at0m-b0mb.github.io/Herald-Email-Headers/">Herald <span>read the headers</span></a>
+        <a href="https://at0m-b0mb.github.io/Signet-JWT-Inspector/">Signet <span>read the seal</span></a>
+        <a href="https://at0m-b0mb.github.io/Lintel-HTTP-Headers/">Lintel <span>mind the headers</span></a>
+        <a href="https://at0m-b0mb.github.io/Attest-X509/">Attest <span>read the certificate</span></a>
+        <a href="https://at0m-b0mb.github.io/Edict-Email-Policy/">Edict <span>what your domain declares</span></a>
+        <a href="https://at0m-b0mb.github.io/Vigil-Secret-Scanner/">Vigil <span>find it before they do</span></a>
+        <a href="https://at0m-b0mb.github.io/Caveat-Shell-Reader/">Caveat <span>read before you run</span></a>
+    </div>
   </div>
-</section>
-</main>
-
-<footer>
-  <div class="wrap row">
-    <span>MIT licensed · built by <a href="https://github.com/at0m-b0mb">at0m-b0mb</a></span>
-    <span class="spacer"></span>
-    <a href="https://github.com/at0m-b0mb/Specter-FlipperZero">Repository</a>
-    <a href="https://github.com/at0m-b0mb/Specter-FlipperZero/blob/main/docs/changelog.md">Changelog</a>
-    <a href="https://github.com/at0m-b0mb/Specter-FlipperZero/blob/main/SECURITY.md">Security</a>
-    <a href="https://github.com/at0m-b0mb/Specter-FlipperZero/issues">Issues</a>
-  </div>
-</footer>
-
-<script>
-/* Theme: auto by default, click to cycle auto -> light -> dark. Stored per
-   browser only; a viewer who has never touched it keeps following the OS. */
-(function () {
-  var root = document.documentElement, btn = document.getElementById('themebtn');
-  var order = ['auto', 'light', 'dark'], label = { auto: 'Theme: auto', light: 'Theme: light', dark: 'Theme: dark' };
-  function read() {
-    try { return localStorage.getItem('specter-theme') || 'auto'; } catch (e) { return 'auto'; }
-  }
-  function apply(t) {
-    root.setAttribute('data-theme', t);
-    btn.textContent = label[t];
-    btn.setAttribute('aria-label', label[t] + ', click to change');
-  }
-  apply(read());
-  btn.addEventListener('click', function () {
-    var next = order[(order.indexOf(read()) + 1) % order.length];
-    try { localStorage.setItem('specter-theme', next); } catch (e) {}
-    apply(next);
-  });
-})();
-</script>
+  <footer>
+    Built by <a href="https://github.com/at0m-b0mb">at0m-b0mb</a> ·
+    <a href="https://github.com/at0m-b0mb/Specter-FlipperZero">source</a> · page generated from this repository's own README
+  </footer>
+</div>
+<script>(function(){var r=document.documentElement,b=document.getElementById('t');try{var s=localStorage.getItem('theme');if(s)r.setAttribute('data-theme',s);}catch(e){}function c(){var a=r.getAttribute('data-theme');return a?a:(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');}function p(){b.textContent=c()==='dark'?'Light':'Dark';}p();b.addEventListener('click',function(){var n=c()==='dark'?'light':'dark';r.setAttribute('data-theme',n);try{localStorage.setItem('theme',n);}catch(e){}p();});})();</script>
 </body>
 </html>
