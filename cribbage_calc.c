@@ -11,31 +11,26 @@
 
 typedef enum {
     CribbageScreenWelcome,
+    CribbageScreenCountType,
     CribbageScreenRank,
     CribbageScreenSuit,
     CribbageScreenDuplicate,
     CribbageScreenResults,
-    CribbageScreenDetails,
 } CribbageScreen;
 
 typedef struct {
-    CribbageCard cards[13];
+    CribbageCard cards[5];
     CribbageCard pending;
-    CribbageScoreBreakdown scores[3];
+    CribbageScoreBreakdown score;
     uint8_t slot;
-    uint8_t detail_hand;
     uint8_t duplicate_slot;
+    bool is_crib;
     CribbageScreen screen;
     FuriMessageQueue* input_queue;
     ViewPort* view_port;
 } CribbageApp;
 
-static const char* const slot_names[] = {
-    "Starter", "Non-dealer 1", "Non-dealer 2", "Non-dealer 3", "Non-dealer 4",
-    "Dealer 1", "Dealer 2", "Dealer 3", "Dealer 4", "Crib 1", "Crib 2", "Crib 3",
-    "Crib 4"};
-
-static const char* const result_names[] = {"Non-dealer", "Dealer hand", "Crib"};
+static const char* const count_types[] = {"Hand", "Crib"};
 
 static void draw_text(Canvas* canvas, uint8_t x, uint8_t y, const char* text, Font font) {
     canvas_set_font(canvas, font);
@@ -44,8 +39,16 @@ static void draw_text(Canvas* canvas, uint8_t x, uint8_t y, const char* text, Fo
 
 static void draw_slot_title(Canvas* canvas, const CribbageApp* app) {
     char buffer[32];
-    snprintf(buffer, sizeof(buffer), "%s  %u/13", slot_names[app->slot], app->slot + 1);
-    if(app->slot == 0) snprintf(buffer, sizeof(buffer), "Starter  1/13");
+    if(app->slot < 4) {
+        snprintf(
+            buffer,
+            sizeof(buffer),
+            "%s card %u/4",
+            app->is_crib ? "Crib" : "Hand",
+            app->slot + 1);
+    } else {
+        snprintf(buffer, sizeof(buffer), "Starter  5/5");
+    }
     draw_text(canvas, 4, 10, buffer, FontSecondary);
 }
 
@@ -132,9 +135,15 @@ static void cribbage_draw_callback(Canvas* canvas, void* context) {
 
     if(app->screen == CribbageScreenWelcome) {
         draw_text(canvas, 4, 12, "Cribbage Calc", FontPrimary);
-        draw_text(canvas, 4, 28, "Score hands and crib", FontSecondary);
-        draw_text(canvas, 4, 48, "OK: enter a deal", FontSecondary);
+        draw_text(canvas, 4, 28, "Count one hand or crib", FontSecondary);
+        draw_text(canvas, 4, 48, "OK: choose count", FontSecondary);
         draw_text(canvas, 4, 60, "BACK: exit", FontSecondary);
+    } else if(app->screen == CribbageScreenCountType) {
+        draw_text(canvas, 4, 12, "What are you counting?", FontPrimary);
+        snprintf(buffer, sizeof(buffer), "> %s", count_types[app->is_crib]);
+        draw_text(canvas, 12, 34, buffer, FontPrimary);
+        draw_text(canvas, 4, 50, "UP/DOWN: choose", FontSecondary);
+        draw_text(canvas, 4, 62, "OK: enter cards  BACK: home", FontSecondary);
     } else if(app->screen == CribbageScreenRank) {
         draw_slot_title(canvas, app);
         snprintf(buffer, sizeof(buffer), "Rank: %s", cribbage_rank_name(app->pending.rank));
@@ -150,30 +159,23 @@ static void cribbage_draw_callback(Canvas* canvas, void* context) {
         draw_text(canvas, 4, 12, "Duplicate card", FontPrimary);
         draw_card(canvas, 27, app->pending, FontPrimary);
         draw_text(canvas, 4, 40, "Already used in:", FontSecondary);
-        draw_text(canvas, 4, 50, slot_names[app->duplicate_slot], FontSecondary);
+        if(app->duplicate_slot < 4) {
+            snprintf(buffer, sizeof(buffer), "%s card %u", app->is_crib ? "Crib" : "Hand", app->duplicate_slot + 1);
+        } else {
+            snprintf(buffer, sizeof(buffer), "Starter");
+        }
+        draw_text(canvas, 4, 50, buffer, FontSecondary);
         draw_text(canvas, 4, 60, "OK: suit   BACK: rank", FontSecondary);
     } else if(app->screen == CribbageScreenResults) {
-        draw_text(canvas, 4, 10, "Scores", FontPrimary);
-        for(uint8_t index = 0; index < 3; index++) {
-            if(index == 1 && cribbage_score_his_heels(app->cards[0])) {
-                snprintf(buffer, sizeof(buffer), "Dealer: %u (+2 heels)", app->scores[index].total);
-            } else {
-                snprintf(buffer, sizeof(buffer), "%s: %u", result_names[index], app->scores[index].total);
-            }
-            draw_text(canvas, 4, 22 + index * 11, buffer, FontSecondary);
-        }
-        draw_text(canvas, 4, 54, "LEFT/RIGHT: details", FontSecondary);
-        draw_text(canvas, 4, 63, "OK: new   BACK: edit", FontSecondary);
-    } else {
-        CribbageScoreBreakdown score = app->scores[app->detail_hand];
-        snprintf(buffer, sizeof(buffer), "%s: %u", result_names[app->detail_hand], score.total);
+        CribbageScoreBreakdown score = app->score;
+        snprintf(buffer, sizeof(buffer), "%s: %u", app->is_crib ? "Crib" : "Hand", score.total);
         draw_text(canvas, 4, 10, buffer, FontPrimary);
         snprintf(buffer, sizeof(buffer), "15s %u  Pairs %u  Runs %u", score.fifteens, score.pairs, score.runs);
         draw_text(canvas, 4, 27, buffer, FontSecondary);
         snprintf(buffer, sizeof(buffer), "Flush %u  Nobs %u", score.flush, score.nobs);
         draw_text(canvas, 4, 39, buffer, FontSecondary);
-        draw_text(canvas, 4, 50, "LEFT/RIGHT: hand", FontSecondary);
-        draw_text(canvas, 4, 60, "OK: new   BACK: scores", FontSecondary);
+        draw_text(canvas, 4, 52, "OK: new count", FontSecondary);
+        draw_text(canvas, 4, 62, "BACK: edit cards", FontSecondary);
     }
 }
 
@@ -182,21 +184,19 @@ static void cribbage_input_callback(InputEvent* input_event, void* context) {
     furi_message_queue_put(app->input_queue, input_event, 0);
 }
 
-static void reset_deal(CribbageApp* app) {
+static void reset_count(CribbageApp* app) {
     memset(app->cards, 0, sizeof(app->cards));
-    memset(app->scores, 0, sizeof(app->scores));
+    memset(&app->score, 0, sizeof(app->score));
     app->slot = 0;
     app->pending = (CribbageCard){.rank = CribbageRankAce, .suit = CribbageSuitHearts};
 }
 
-static void calculate_scores(CribbageApp* app) {
-    app->scores[0] = cribbage_score_hand(&app->cards[1], app->cards[0], false);
-    app->scores[1] = cribbage_score_hand(&app->cards[5], app->cards[0], false);
-    app->scores[2] = cribbage_score_hand(&app->cards[9], app->cards[0], true);
+static void calculate_score(CribbageApp* app) {
+    app->score = cribbage_score_hand(app->cards, app->cards[4], app->is_crib);
 }
 
 static bool find_duplicate(const CribbageApp* app, CribbageCard card, uint8_t* duplicate_slot) {
-    for(uint8_t index = 0; index < 13; index++) {
+    for(uint8_t index = 0; index < 5; index++) {
         if(app->cards[index].set && cribbage_cards_equal(app->cards[index], card)) {
             *duplicate_slot = index;
             return true;
@@ -214,7 +214,7 @@ static void advance_rank(CribbageApp* app, int8_t direction) {
 
 static void begin_previous_slot(CribbageApp* app) {
     if(app->slot == 0) {
-        app->screen = CribbageScreenWelcome;
+        app->screen = CribbageScreenCountType;
         return;
     }
     app->slot--;
@@ -228,10 +228,19 @@ static bool handle_event(CribbageApp* app, const InputEvent* event) {
 
     if(app->screen == CribbageScreenWelcome) {
         if(event->key == InputKeyOk) {
-            reset_deal(app);
-            app->screen = CribbageScreenRank;
+            app->is_crib = false;
+            app->screen = CribbageScreenCountType;
         } else if(event->key == InputKeyBack) {
             return false;
+        }
+    } else if(app->screen == CribbageScreenCountType) {
+        if(event->key == InputKeyUp || event->key == InputKeyDown) {
+            app->is_crib = !app->is_crib;
+        } else if(event->key == InputKeyOk) {
+            reset_count(app);
+            app->screen = CribbageScreenRank;
+        } else if(event->key == InputKeyBack) {
+            app->screen = CribbageScreenWelcome;
         }
     } else if(app->screen == CribbageScreenRank) {
         if(event->key == InputKeyUp) advance_rank(app, 1);
@@ -252,8 +261,8 @@ static bool handle_event(CribbageApp* app, const InputEvent* event) {
             } else {
                 app->pending.set = true;
                 app->cards[app->slot] = app->pending;
-                if(app->slot == 12) {
-                    calculate_scores(app);
+                if(app->slot == 4) {
+                    calculate_score(app);
                     app->screen = CribbageScreenResults;
                 } else {
                     app->slot++;
@@ -268,19 +277,8 @@ static bool handle_event(CribbageApp* app, const InputEvent* event) {
     } else if(app->screen == CribbageScreenResults) {
         if(event->key == InputKeyBack) begin_previous_slot(app);
         else if(event->key == InputKeyOk) {
-            reset_deal(app);
-            app->screen = CribbageScreenRank;
-        } else if(event->key == InputKeyLeft || event->key == InputKeyRight) {
-            app->detail_hand = event->key == InputKeyLeft ? 2 : 0;
-            app->screen = CribbageScreenDetails;
-        }
-    } else {
-        if(event->key == InputKeyBack) app->screen = CribbageScreenResults;
-        else if(event->key == InputKeyLeft) app->detail_hand = (app->detail_hand + 2) % 3;
-        else if(event->key == InputKeyRight) app->detail_hand = (app->detail_hand + 1) % 3;
-        else if(event->key == InputKeyOk) {
-            reset_deal(app);
-            app->screen = CribbageScreenRank;
+            app->is_crib = false;
+            app->screen = CribbageScreenCountType;
         }
     }
     view_port_update(app->view_port);

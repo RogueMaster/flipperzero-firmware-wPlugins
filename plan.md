@@ -2,7 +2,7 @@
 
 ## Summary
 
-Build a standalone External FAP with `ufbt`, following Flipper’s custom-app guidance. It will guide the user through one complete deal—starter, non-dealer hand, dealer hand, and dealer crib—validate all 13 cards are unique, then show each show score and a scoring breakdown.
+Build a standalone External FAP with `ufbt`, following Flipper’s custom-app guidance. It will let the user choose a normal hand or crib, enter that group's four cards plus the starter, validate the five cards are unique, then show a score and scoring breakdown.
 
 ## References
 
@@ -14,21 +14,19 @@ The Flipper documentation is the source of truth for FAP structure and build wor
 ## Key Changes
 
 - Create a native C/C++ Flipper app packaged as a FAP and built with `ufbt`.
-- Guide card entry through 13 slots: starter, four non-dealer cards, four dealer cards, then four crib cards.
+- Choose `Hand` or `Crib`, then guide card entry through four group-card slots followed by the starter.
   - Rank: `UP`/`DOWN` cycles Ace through King; `OK` continues.
   - Suit: `UP ♥`, `RIGHT ♦`, `DOWN ♣`, `LEFT ♠`; `OK` confirms.
   - `Back` returns to the prior step; at the first screen it exits.
-- Reject duplicate physical cards, identify the prior conflicting slot, and keep the current card editable.
+- Reject duplicate physical cards within the count, identify the prior conflicting slot, and keep the current card editable.
 - Implement standard hand-counting rules:
   - Score fifteens, pairs, all run multiplicities, flushes, and his nobs.
   - Ace is low only; face cards count as 10 toward fifteens.
-  - Score the starter in all three five-card counts.
+  - Score the starter in the selected five-card count.
   - Require a five-card crib flush; allow four- or five-card hand flushes.
-  - Show “his heels” as a separate dealer `+2` when the starter is a Jack.
 - Provide results screens:
-  - Overview: non-dealer score, dealer-hand score, crib score, and separate heels bonus.
-  - Detail pages: fifteens, pairs, runs, flush, and nobs for each count.
-  - `Back` returns to the entered deal; `OK` starts a cleared new deal.
+  - One score with fifteens, pairs, runs, flush, and nobs.
+  - `Back` returns to the entered cards; `OK` begins another count.
 
 ## Interfaces and Structure
 
@@ -41,11 +39,10 @@ The Flipper documentation is the source of truth for FAP structure and build wor
 
 - Unit-test canonical and boundary scores: the 29-point hand, fifteens, pairs, all duplicated-run patterns, flush variants, nobs, and Ace-low behavior.
 - Verify crib flush behavior differs from hand flush behavior.
-- Verify starter Jack produces only the separate dealer heels bonus.
-- Verify duplicate cards are rejected, valid 13-card deals reach results, results remain editable via Back, and New Deal clears all slots.
+- Verify duplicate cards are rejected, valid five-card counts reach results, results remain editable via Back, and New Count clears all slots.
 
 ## Assumptions
 
-- v1 calculates post-play hand/crib counts only; pegging and game-to-121 tracking are out of scope.
+- v1 calculates one post-play hand/crib count at a time; pegging, his heels, and game-to-121 tracking are out of scope.
 - Native text and suit symbols are preferred over card artwork for fast, clear use on the Flipper display.
 - No saved deals or statistics are included in v1.

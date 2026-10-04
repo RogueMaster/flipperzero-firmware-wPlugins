@@ -19,9 +19,9 @@ This roadmap prepares Cribbage Calc for a polished public release and eventual s
 - [x] Refine the results overview and breakdown layouts for readable labels, values, and navigation hints.
 - [x] Improve duplicate-card feedback by clearly identifying the conflicting card and slot.
 - [x] Test the complete workflow on-device: new deal, rank/suit selection, Back navigation, duplicate recovery, score details, and New Deal.
-- [ ] Incorporate feedback from real cribbage use before declaring the UI stable.
+- [x] Incorporate feedback from real cribbage use: switch from full-deal entry to an on-demand five-card hand/crib count.
 
-**Done when:** a first-time user can enter a deal, recover from an accidental duplicate, understand every displayed score, and start another deal without outside instructions.
+**Done when:** a first-time user can select a hand or crib, enter five cards, recover from an accidental duplicate, understand the breakdown, and start another count without outside instructions.
 
 ## 3. Apps Catalog Preparation
 
