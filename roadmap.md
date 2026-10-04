@@ -27,7 +27,7 @@ This roadmap prepares Cribbage Calc for a polished public release and eventual s
 
 - [x] Choose and add an OSI-approved open-source `LICENSE` that permits binary distribution by the catalog.
 - [x] Create a 10×10, 1-bit PNG app icon and reference it with `fap_icon` in `application.fam`.
-- [ ] Capture unmodified qFlipper screenshots of the polished app; include a welcome/entry screen and results screen.
+- [x] Capture unmodified qFlipper screenshots of the polished app; include a welcome/entry screen and results screen.
 - [x] Add `changelog.md` with an initial `v1.0` entry; keep it updated for every catalog submission.
 - [x] Finalize README content: app purpose, controls, scoring scope, build instructions, release assets, and source references.
 - [x] Review `application.fam` metadata: unique app ID, display name, category, version, description, author, and project URL.
