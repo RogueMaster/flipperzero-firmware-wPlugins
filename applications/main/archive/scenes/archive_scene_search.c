@@ -77,8 +77,18 @@ uint32_t archive_scene_search_dirwalk(void* context) {
         archive_add_app_item(archive->browser, "/app:search/Error while searching!");
         archive_set_item_count(archive->browser, ++count);
     }
-    furi_string_set(
-        archive_get_file_at(archive->browser, 0)->path, "/app:search/Search for files");
+    with_view_model(
+        archive->browser->view,
+        ArchiveBrowserViewModel * model,
+        {
+            if(model->tab_idx == ArchiveTabSearch && files_array_size(model->files)) {
+                ArchiveFile_t* button = files_array_get(model->files, 0);
+                if(button->type == ArchiveFileTypeSearch) {
+                    furi_string_set(button->path, "/app:search/Search for files");
+                }
+            }
+        },
+        true);
     scene_manager_set_scene_state(archive->scene_manager, ArchiveAppSceneSearch, false);
 
     furi_string_free(name);

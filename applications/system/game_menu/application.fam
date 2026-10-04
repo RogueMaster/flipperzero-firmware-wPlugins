@@ -1,0 +1,8 @@
+App(
+    appid="game_menu",
+    apptype=FlipperAppType.PLUGIN,
+    targets=["f7"],
+    entry_point="game_menu_ep",
+    requires=["loader"],
+    sources=["game_menu.c"],
+)

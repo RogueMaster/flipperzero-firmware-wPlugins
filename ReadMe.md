@@ -30,7 +30,7 @@ This software is for experimental purposes only and is not meant for any illegal
 ## Latest Updates - [PATREON: Latest Release RM1003-1928-5b31e6e6-Patreon](https://www.patreon.com/RogueMaster?filters[tag]=Latest%20Release)
 
 - Last Synced/Checked OFW, changes in [commits](https://github.com/flipperdevices/flipperzero-firmware/commits/dev): `2026-10-03 19:28 EST`
-- Last Synced/Checked CFW, changes in [changelog](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/CHANGELOG.md): `2026-10-03 19:28 EST`
+- Last Synced/Checked CFW, changes in [changelog](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/CHANGELOG.md): 
 - Updated: [Maze 3D v7.2 (By k20120509)](https://github.com/k20120509/flipper-release)
 - Updated: [DFC v1.1.1 (By cindersocket)](https://github.com/cindersocket/dfc-flipper)
 - OFW: [Fixes of various valid issues found by code scan #4456 (By xMasterX)](https://github.com/flipperdevices/flipperzero-firmware/pull/4456)
@@ -124,6 +124,9 @@ This software is for experimental purposes only and is not meant for any illegal
 - Desktop: [Restore the custom Game Menu on short center press in Game Mode (By ESurge & RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/pull/756)
 - Updated: [Morse Flipper v0.3.0 (By yo3gnd)](https://github.com/yo3gnd/morse-flipper)
 - Updated: [FlipDeFlock v0.98 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
+- Game Mode: Load game-menu discovery and configuration parsing from an on-demand FAL, then unload it before showing the menu; existing controls, styles and CFW Settings editing are preserved. (By RogueMaster)
+- Archive: Move the browser UI to an SD-card FAP and unload it before launching a selected app; per-app file pickers, setting favorites and desktop file associations remain in firmware. (By RogueMaster)
+- Archive: Join browser workers before freeing their callbacks' state, copy launch/info selections under the browser lock, release MD5 results and retain mounted images safely if unmount fails. (By RogueMaster)
 
 <a name="release"></a>
 

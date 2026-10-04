@@ -106,6 +106,8 @@ void archive_file_array_rm_all(ArchiveBrowserView* browser);
 void archive_set_item_count(ArchiveBrowserView* browser, uint32_t count);
 
 ArchiveFile_t* archive_get_current_file(ArchiveBrowserView* browser);
+/* The caller initializes and clears the copy. No pointer to the list escapes. */
+bool archive_copy_current_file(ArchiveBrowserView* browser, ArchiveFile_t* copy);
 ArchiveFile_t* archive_get_file_at(ArchiveBrowserView* browser, size_t idx);
 ArchiveTabEnum archive_get_tab(ArchiveBrowserView* browser);
 bool archive_is_home(ArchiveBrowserView* browser);

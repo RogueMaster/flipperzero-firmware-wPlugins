@@ -14,6 +14,10 @@
 #include <cfw/asset_packs.h>
 #include <cfw/settings.h>
 
+#ifdef APP_ARCHIVE
+#include <archive/archive_launcher.h>
+#endif
+
 #define TAG "Loader"
 
 #define LOADER_MAGIC_THREAD_VALUE 0xDEADBEEF
@@ -960,6 +964,9 @@ static void loader_do_unlock(Loader* loader) {
 
 static void loader_do_emit_queue_empty_event(Loader* loader) {
     if(loader_do_is_locked(loader)) return;
+#ifdef APP_ARCHIVE
+    archive_handoff_cleanup();
+#endif
     FURI_LOG_I(TAG, "Launch queue empty");
     LoaderEvent event;
     event.type = LoaderEventTypeNoMoreAppsInQueue;

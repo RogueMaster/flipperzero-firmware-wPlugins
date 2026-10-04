@@ -14,6 +14,9 @@ extern "C" {
 typedef struct Widget Widget;
 typedef struct WidgetElement WidgetElement;
 
+/** Update a text box created by widget_add_text_box_element(). */
+void widget_element_text_box_set_text(WidgetElement* element, const char* text);
+
 /** Allocate Widget that holds Widget Elements
  *
  * @return     Widget instance

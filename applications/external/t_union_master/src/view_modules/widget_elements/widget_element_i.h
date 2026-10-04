@@ -12,7 +12,6 @@
 
 #include "../../utils/unicode_utils.h"
 #include "../elements.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -35,7 +34,6 @@ struct WidgetElement {
     // pointer to widget that hold our element
     Widget* parent;
 };
-
 /** Create multi string element */
 WidgetElement* widget_element_string_multiline_create(
     uint8_t x,
@@ -52,7 +50,6 @@ WidgetElement* widget_element_string_create(
     Align horizontal,
     Align vertical,
     const char* text);
-
 /** Create text box element */
 WidgetElement* widget_element_text_box_create(
     uint8_t x,
@@ -63,9 +60,6 @@ WidgetElement* widget_element_text_box_create(
     Align vertical,
     const char* text,
     bool strip_to_dots);
-
-/** Update text box element */
-void widget_element_text_box_set_text(WidgetElement* gui_string, const char* text);
 
 /** Create button element */
 WidgetElement* widget_element_button_create(
@@ -80,7 +74,6 @@ WidgetElement* widget_element_text_scroll_create(
     uint8_t width,
     uint8_t height,
     const char* text);
-
 #ifdef __cplusplus
 }
 #endif

@@ -4,7 +4,15 @@
 
 #define TAG "Archive"
 
-const char* units[] = {"Bytes", "KiB", "MiB", "GiB", "TiB"};
+static const char* const units[] = {"Bytes", "KiB", "MiB", "GiB", "TiB"};
+
+static void archive_info_set_text(ArchiveApp* instance, WidgetElement* element, const char* text) {
+    // Serialize string resizing against the GUI thread's widget drawing.
+    View* view = widget_get_view(instance->widget);
+    view_get_model(view);
+    widget_element_text_box_set_text(element, text);
+    view_commit_model(view, true);
+}
 
 void archive_scene_info_widget_callback(GuiButtonType result, InputType type, void* context) {
     furi_assert(context);
@@ -23,15 +31,13 @@ static uint32_t archive_scene_info_dirwalk(void* context) {
     uint64_t total = 0;
     uint32_t item_count = 0;
     DirWalk* dir_walk = dir_walk_alloc(furi_record_open(RECORD_STORAGE));
-    ArchiveFile_t* current = archive_get_current_file(instance->browser);
-    if(dir_walk_open(dir_walk, furi_string_get_cstr(current->path))) {
+    if(dir_walk_open(dir_walk, furi_string_get_cstr(instance->info_path))) {
         while(scene_manager_get_scene_state(instance->scene_manager, ArchiveAppSceneInfo)) {
             DirWalkResult result = dir_walk_read(dir_walk, NULL, &fileinfo);
             if(result == DirWalkError) {
-                widget_element_text_box_set_text(instance->size_element, "Size: \e#Error\e#");
+                archive_info_set_text(instance, instance->size_element, "Size: \e#Error\e#");
                 if(instance->count_element) {
-                    widget_element_text_box_set_text(
-                        instance->count_element, "Items: \e#Error\e#");
+                    archive_info_set_text(instance, instance->count_element, "Items: \e#Error\e#");
                 }
                 break;
             }
@@ -41,7 +47,7 @@ static uint32_t archive_scene_info_dirwalk(void* context) {
                 if(!is_last) total += fileinfo.size;
                 double show = total;
                 size_t unit;
-                for(unit = 0; unit < COUNT_OF(units); unit++) {
+                for(unit = 0; unit + 1 < COUNT_OF(units); unit++) {
                     if(show < 1024) break;
                     show /= 1024;
                 }
@@ -52,26 +58,25 @@ static uint32_t archive_scene_info_dirwalk(void* context) {
                     is_last ? "" : "... ",
                     show,
                     units[unit]);
-                widget_element_text_box_set_text(instance->size_element, buf);
+                archive_info_set_text(instance, instance->size_element, buf);
 
                 if(instance->count_element) {
                     snprintf(
                         buf, sizeof(buf), "Items: %s\e#%lu\e#", is_last ? "" : "... ", item_count);
-                    widget_element_text_box_set_text(instance->count_element, buf);
+                    archive_info_set_text(instance, instance->count_element, buf);
                 }
             }
             if(is_last) break;
         }
     } else {
-        widget_element_text_box_set_text(instance->size_element, "Size: \e#Error\e#");
+        archive_info_set_text(instance, instance->size_element, "Size: \e#Error\e#");
         if(instance->count_element) {
-            widget_element_text_box_set_text(instance->count_element, "Items: \e#Error\e#");
+            archive_info_set_text(instance, instance->count_element, "Items: \e#Error\e#");
         }
     }
     dir_walk_free(dir_walk);
     furi_record_close(RECORD_STORAGE);
 
-    view_dispatcher_switch_to_view(instance->view_dispatcher, ArchiveViewWidget);
     return 0;
 }
 
@@ -81,10 +86,9 @@ static uint32_t archive_scene_info_md5sum(void* context) {
 
     // Based on lib/toolbox/md5_calc.c
     File* file = storage_file_alloc(furi_record_open(RECORD_STORAGE));
-    ArchiveFile_t* current = archive_get_current_file(instance->browser);
     bool result = false;
     if(storage_file_open(
-           file, furi_string_get_cstr(current->path), FSAM_READ, FSOM_OPEN_EXISTING)) {
+           file, furi_string_get_cstr(instance->info_path), FSAM_READ, FSOM_OPEN_EXISTING)) {
         uint8_t output[16];
         const size_t size_to_read = 512;
         uint8_t* data = malloc(size_to_read);
@@ -109,7 +113,8 @@ static uint32_t archive_scene_info_md5sum(void* context) {
                 furi_string_cat_printf(md5, "%02x", output[i]);
             }
             furi_string_cat(md5, "\e*");
-            widget_element_text_box_set_text(instance->size_element, furi_string_get_cstr(md5));
+            archive_info_set_text(instance, instance->size_element, furi_string_get_cstr(md5));
+            furi_string_free(md5);
         }
         free(md5_ctx);
         free(data);
@@ -126,10 +131,9 @@ static uint32_t archive_scene_info_md5sum(void* context) {
             strlcat(buf, " ", sizeof(buf));
         }
         strlcat(buf, "\e*", sizeof(buf));
-        widget_element_text_box_set_text(instance->size_element, buf);
+        archive_info_set_text(instance, instance->size_element, buf);
     }
 
-    view_dispatcher_switch_to_view(instance->view_dispatcher, ArchiveViewWidget);
     return 0;
 }
 
@@ -137,27 +141,36 @@ void archive_scene_info_on_enter(void* context) {
     furi_assert(context);
     ArchiveApp* instance = context;
 
+    ArchiveFile_t selected;
+    ArchiveFile_t_init(&selected);
+    if(!archive_copy_current_file(instance->browser, &selected)) {
+        ArchiveFile_t_clear(&selected);
+        scene_manager_previous_scene(instance->scene_manager);
+        return;
+    }
+    instance->info_path = furi_string_alloc_set(selected.path);
+    ArchiveFile_t_clear(&selected);
+
     widget_add_button_element(
         instance->widget, GuiButtonTypeLeft, "Back", archive_scene_info_widget_callback, instance);
 
     FuriString* filename = furi_string_alloc();
     FuriString* dirname = furi_string_alloc();
 
-    ArchiveFile_t* current = archive_get_current_file(instance->browser);
     char buf[128];
 
     // Filename
-    path_extract_filename(current->path, filename, false);
+    path_extract_filename(instance->info_path, filename, false);
     snprintf(buf, sizeof(buf), "\e#%s\e#", furi_string_get_cstr(filename));
     widget_add_text_box_element(instance->widget, 1, 1, 126, 13, AlignLeft, AlignTop, buf, true);
 
     // Directory path
-    path_extract_dirname(furi_string_get_cstr(current->path), dirname);
+    path_extract_dirname(furi_string_get_cstr(instance->info_path), dirname);
     widget_add_text_box_element(
         instance->widget, 1, 12, 126, 20, AlignLeft, AlignTop, furi_string_get_cstr(dirname), true);
 
     // This one to return and cursor select this file
-    path_extract_filename_no_ext(furi_string_get_cstr(current->path), filename);
+    path_extract_filename_no_ext(furi_string_get_cstr(instance->info_path), filename);
     strlcpy(instance->text_store, furi_string_get_cstr(filename), MAX_NAME_LEN);
 
     furi_string_free(filename);
@@ -167,8 +180,9 @@ void archive_scene_info_on_enter(void* context) {
     FileInfo fileinfo;
     bool is_dir = false;
     if(storage_common_stat(
-           furi_record_open(RECORD_STORAGE), furi_string_get_cstr(current->path), &fileinfo) !=
-       FSE_OK) {
+           furi_record_open(RECORD_STORAGE),
+           furi_string_get_cstr(instance->info_path),
+           &fileinfo) != FSE_OK) {
         snprintf(buf, sizeof(buf), "Size: \e#Error\e#");
     } else if(file_info_is_dir(&fileinfo)) {
         is_dir = true;
@@ -176,7 +190,7 @@ void archive_scene_info_on_enter(void* context) {
     } else {
         double show = fileinfo.size;
         size_t unit;
-        for(unit = 0; unit < COUNT_OF(units); unit++) {
+        for(unit = 0; unit + 1 < COUNT_OF(units); unit++) {
             if(show < 1024) break;
             show /= 1024;
         }
@@ -245,5 +259,11 @@ void archive_scene_info_on_exit(void* context) {
         furi_thread_free(app->info_thread);
         app->info_thread = NULL;
     }
+    if(app->info_path) {
+        furi_string_free(app->info_path);
+        app->info_path = NULL;
+    }
+    app->size_element = NULL;
+    app->count_element = NULL;
     widget_reset(app->widget);
 }

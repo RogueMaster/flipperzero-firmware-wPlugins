@@ -1,5 +1,6 @@
 #include "archive_i.h"
 #include "helpers/archive_browser.h"
+#include "helpers/archive_helpers_ext.h"
 
 static bool archive_custom_event_callback(void* context, uint32_t event) {
     furi_assert(context);
@@ -20,7 +21,7 @@ static void archive_tick_event_callback(void* context) {
 }
 
 static ArchiveApp* archive_alloc(void) {
-    ArchiveApp* archive = malloc(sizeof(ArchiveApp));
+    ArchiveApp* archive = calloc(1, sizeof(ArchiveApp));
 
     archive->gui = furi_record_open(RECORD_GUI);
     archive->loader = furi_record_open(RECORD_LOADER);
@@ -69,8 +70,12 @@ void archive_free(ArchiveApp* archive) {
     furi_assert(archive);
     ViewDispatcher* view_dispatcher = archive->view_dispatcher;
 
+    // Hide the active view before releasing resources used by GUI callbacks.
+    view_dispatcher_switch_to_view(view_dispatcher, VIEW_NONE);
     scene_manager_set_scene_state(archive->scene_manager, ArchiveAppSceneInfo, false);
     scene_manager_set_scene_state(archive->scene_manager, ArchiveAppSceneSearch, false);
+    // Directory callbacks can still use the scene manager and browser model.
+    browser_stop(archive->browser);
     if(archive->info_thread) {
         furi_thread_join(archive->info_thread);
         furi_thread_free(archive->info_thread);
@@ -81,11 +86,13 @@ void archive_free(ArchiveApp* archive) {
         furi_thread_free(archive->search_thread);
         archive->search_thread = NULL;
     }
+    if(archive->info_path) {
+        furi_string_free(archive->info_path);
+        archive->info_path = NULL;
+    }
 
     if(archive->browser->disk_image) {
-        storage_virtual_quit(furi_record_open(RECORD_STORAGE));
-        furi_record_close(RECORD_STORAGE);
-        storage_file_free(archive->browser->disk_image);
+        archive_handoff_disk_image(archive->browser->disk_image);
         archive->browser->disk_image = NULL;
     }
 
@@ -137,7 +144,7 @@ void archive_show_loading_popup(ArchiveApp* context, bool show) {
 }
 
 int32_t archive_app(void* p) {
-    FuriString* path = (FuriString*)p;
+    const char* path = p;
 
     ArchiveApp* archive = archive_alloc();
     view_dispatcher_attach_to_gui(
@@ -146,9 +153,9 @@ int32_t archive_app(void* p) {
     view_dispatcher_show_loading(archive->view_dispatcher);
 
     // If we are sent a path from context, set it in the browser
-    if(path && !furi_string_empty(path)) {
+    if(path && path[0]) {
         archive_set_tab(archive->browser, ArchiveTabBrowser);
-        furi_string_set(archive->browser->path, path);
+        furi_string_set_str(archive->browser->path, path);
         archive->browser->is_root = true;
         archive_file_browser_set_path(
             archive->browser,
@@ -156,11 +163,14 @@ int32_t archive_app(void* p) {
             archive_get_tab_ext(ArchiveTabBrowser),
             false,
             !cfw_settings.show_hidden_files,
-            furi_string_get_cstr(path));
+            path);
     }
 
     scene_manager_next_scene(archive->scene_manager, ArchiveAppSceneBrowser);
     view_dispatcher_run(archive->view_dispatcher);
+
+    // Remove subscriptions and scene-owned workers before the FAP is unmapped.
+    scene_manager_stop(archive->scene_manager);
 
     archive_free(archive);
     return 0;

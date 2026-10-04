@@ -1,5 +1,5 @@
 entry,status,name,type,params
-Version,+,88.7,,
+Version,+,88.8,,
 Header,+,applications/drivers/subghz/cc1101_ext/cc1101_ext_interconnect.h,,
 Header,+,applications/main/archive/helpers/archive_helpers_ext.h,,
 Header,+,applications/services/applications.h,,
@@ -703,6 +703,7 @@ Function,-,arc4random,__uint32_t,
 Function,-,arc4random_buf,void,"void*, size_t"
 Function,-,arc4random_uniform,__uint32_t,__uint32_t
 Function,+,archive_favorites_handle_setting_pin_unpin,void,"const char*, const char*"
+Function,+,archive_handoff_disk_image,void,File*
 Function,+,args_char_to_hex,_Bool,"char, char, uint8_t*"
 Function,+,args_get_first_word_length,size_t,FuriString*
 Function,+,args_length,size_t,FuriString*
@@ -1250,12 +1251,16 @@ Function,+,file_browser_worker_alloc,BrowserWorker*,"FuriString*, const char*, c
 Function,+,file_browser_worker_folder_enter,void,"BrowserWorker*, FuriString*, int32_t"
 Function,+,file_browser_worker_folder_exit,void,BrowserWorker*
 Function,+,file_browser_worker_folder_refresh,void,"BrowserWorker*, int32_t"
+Function,+,file_browser_worker_folder_refresh_sel,void,"BrowserWorker*, const char*"
 Function,+,file_browser_worker_free,void,BrowserWorker*
+Function,+,file_browser_worker_get_filter_ext,const char*,BrowserWorker*
+Function,+,file_browser_worker_get_path_current,const char*,BrowserWorker*
 Function,+,file_browser_worker_is_in_start_folder,_Bool,BrowserWorker*
 Function,+,file_browser_worker_load,void,"BrowserWorker*, uint32_t, uint32_t"
 Function,+,file_browser_worker_set_callback_context,void,"BrowserWorker*, void*"
 Function,+,file_browser_worker_set_config,void,"BrowserWorker*, FuriString*, const char*, _Bool, _Bool"
 Function,+,file_browser_worker_set_folder_callback,void,"BrowserWorker*, BrowserWorkerFolderOpenCallback"
+Function,+,file_browser_worker_set_filter_ext,void,"BrowserWorker*, FuriString*, const char*"
 Function,+,file_browser_worker_set_item_callback,void,"BrowserWorker*, BrowserWorkerListItemCallback"
 Function,+,file_browser_worker_set_list_callback,void,"BrowserWorker*, BrowserWorkerListLoadCallback"
 Function,+,file_browser_worker_set_long_load_callback,void,"BrowserWorker*, BrowserWorkerLongLoadCallback"
@@ -2705,11 +2710,11 @@ Function,-,mbedtls_internal_sha256_process,int,"mbedtls_sha256_context*, const u
 Function,-,mbedtls_md,int,"const mbedtls_md_info_t*, const unsigned char*, size_t, unsigned char*"
 Function,-,mbedtls_md5,int,"const unsigned char*, size_t, unsigned char[16]"
 Function,-,mbedtls_md5_clone,void,"mbedtls_md5_context*, const mbedtls_md5_context*"
-Function,-,mbedtls_md5_finish,int,"mbedtls_md5_context*, unsigned char[16]"
+Function,+,mbedtls_md5_finish,int,"mbedtls_md5_context*, unsigned char[16]"
 Function,-,mbedtls_md5_free,void,mbedtls_md5_context*
-Function,-,mbedtls_md5_init,void,mbedtls_md5_context*
-Function,-,mbedtls_md5_starts,int,mbedtls_md5_context*
-Function,-,mbedtls_md5_update,int,"mbedtls_md5_context*, const unsigned char*, size_t"
+Function,+,mbedtls_md5_init,void,mbedtls_md5_context*
+Function,+,mbedtls_md5_starts,int,mbedtls_md5_context*
+Function,+,mbedtls_md5_update,int,"mbedtls_md5_context*, const unsigned char*, size_t"
 Function,-,mbedtls_md_clone,int,"mbedtls_md_context_t*, const mbedtls_md_context_t*"
 Function,-,mbedtls_md_finish,int,"mbedtls_md_context_t*, unsigned char*"
 Function,-,mbedtls_md_free,void,mbedtls_md_context_t*
@@ -3370,7 +3375,7 @@ Function,-,putchar_unlocked,int,int
 Function,-,putenv,int,char*
 Function,-,puts,int,const char*
 Function,-,putw,int,"int, FILE*"
-Function,-,qsort,void,"void*, size_t, size_t, __compar_fn_t"
+Function,+,qsort,void,"void*, size_t, size_t, __compar_fn_t"
 Function,-,qsort_r,void,"void*, size_t, size_t, int (*)(const void*, const void*, void*), void*"
 Function,-,quick_exit,void,int
 Function,+,rand,int,
@@ -4176,6 +4181,7 @@ Function,+,widget_add_text_box_element,WidgetElement*,"Widget*, uint8_t, uint8_t
 Function,+,widget_add_text_scroll_element,void,"Widget*, uint8_t, uint8_t, uint8_t, uint8_t, const char*"
 Function,+,widget_alloc,Widget*,
 Function,+,widget_free,void,Widget*
+Function,+,widget_element_text_box_set_text,void,"WidgetElement*, const char*"
 Function,+,widget_get_view,View*,Widget*
 Function,+,widget_reset,void,Widget*
 Function,-,y0,double,double

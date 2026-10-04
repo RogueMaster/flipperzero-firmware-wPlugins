@@ -673,7 +673,7 @@ static void browser_view_exit(void* context) {
 }
 
 ArchiveBrowserView* browser_alloc(void) {
-    ArchiveBrowserView* browser = malloc(sizeof(ArchiveBrowserView));
+    ArchiveBrowserView* browser = calloc(1, sizeof(ArchiveBrowserView));
     browser->view = view_alloc();
     view_allocate_model(browser->view, ViewModelTypeLocking, sizeof(ArchiveBrowserViewModel));
     view_set_context(browser->view, browser);
@@ -701,14 +701,20 @@ ArchiveBrowserView* browser_alloc(void) {
     return browser;
 }
 
-void browser_free(ArchiveBrowserView* browser) {
+void browser_stop(ArchiveBrowserView* browser) {
     furi_assert(browser);
-
-    furi_timer_free(browser->scroll_timer);
-
+    furi_timer_stop(browser->scroll_timer);
     if(browser->worker_running) {
         file_browser_worker_free(browser->worker);
+        browser->worker = NULL;
+        browser->worker_running = false;
     }
+}
+
+void browser_free(ArchiveBrowserView* browser) {
+    furi_assert(browser);
+    browser_stop(browser);
+    furi_timer_free(browser->scroll_timer);
 
     with_view_model(
         browser->view,
@@ -716,6 +722,8 @@ void browser_free(ArchiveBrowserView* browser) {
         {
             files_array_clear(model->files);
             menu_array_clear(model->context_menu);
+            free(model->clipboard);
+            model->clipboard = NULL;
         },
         false);
 

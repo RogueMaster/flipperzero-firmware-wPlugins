@@ -73,7 +73,7 @@ static void
             {
                 if(model->item_cnt <= BROWSER_SORT_THRESHOLD) {
                     FuriString* selected = NULL;
-                    if(model->item_idx >= 0) {
+                    if(model->item_idx >= 0 && archive_is_item_in_array(model, model->item_idx)) {
                         selected = furi_string_alloc_set(
                             files_array_get(model->files, model->item_idx)->path);
                     }
@@ -81,12 +81,13 @@ static void
                     files_array_sort(model->files);
 
                     if(selected != NULL) {
-                        for(uint32_t i = 0; i < model->item_cnt; i++) {
+                        for(uint32_t i = 0; i < files_array_size(model->files); i++) {
                             if(!furi_string_cmp(files_array_get(model->files, i)->path, selected)) {
                                 model->item_idx = i;
                                 break;
                             }
                         }
+                        furi_string_free(selected);
                     }
                 }
                 if(model->item_idx < 0) {
@@ -347,12 +348,31 @@ ArchiveFile_t* archive_get_current_file(ArchiveBrowserView* browser) {
         browser->view,
         ArchiveBrowserViewModel * model,
         {
-            selected = files_array_size(model->files) ?
+            selected = model->item_idx >= 0 && archive_is_item_in_array(model, model->item_idx) ?
                            files_array_get(model->files, model->item_idx - model->array_offset) :
                            NULL;
         },
         false);
     return selected;
+}
+
+bool archive_copy_current_file(ArchiveBrowserView* browser, ArchiveFile_t* copy) {
+    furi_assert(browser);
+    furi_assert(copy);
+    bool found = false;
+    with_view_model(
+        browser->view,
+        ArchiveBrowserViewModel * model,
+        {
+            if(model->item_idx >= 0 && archive_is_item_in_array(model, model->item_idx)) {
+                ArchiveFile_t* current =
+                    files_array_get(model->files, model->item_idx - model->array_offset);
+                ArchiveFile_t_set(copy, current);
+                found = true;
+            }
+        },
+        false);
+    return found;
 }
 
 ArchiveFile_t* archive_get_file_at(ArchiveBrowserView* browser, size_t idx) {
@@ -364,8 +384,12 @@ ArchiveFile_t* archive_get_file_at(ArchiveBrowserView* browser, size_t idx) {
         browser->view,
         ArchiveBrowserViewModel * model,
         {
-            idx = CLAMP(idx - model->array_offset, files_array_size(model->files), 0u);
-            selected = files_array_size(model->files) ? files_array_get(model->files, idx) : NULL;
+            if(idx >= (size_t)model->array_offset) {
+                idx -= model->array_offset;
+                if(idx < files_array_size(model->files)) {
+                    selected = files_array_get(model->files, idx);
+                }
+            }
         },
         false);
     return selected;

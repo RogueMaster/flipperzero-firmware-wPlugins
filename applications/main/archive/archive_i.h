@@ -37,7 +37,6 @@ struct ArchiveApp {
     Widget* widget;
     DialogsApp* dialogs;
     Loading* loading;
-    FuriPubSubSubscription* loader_stop_subscription;
 
     FuriString* fav_move_str;
     char text_store[MAX_NAME_LEN];
@@ -47,6 +46,7 @@ struct ArchiveApp {
     WidgetElement* count_element;
     FuriThread* info_thread;
     FuriThread* search_thread;
+    FuriString* info_path;
 };
 
 void archive_show_loading_popup(ArchiveApp* context, bool show);
