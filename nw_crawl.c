@@ -6,6 +6,7 @@
 #include <gui/gui.h>
 #include <input/input.h>
 #include <notification/notification_messages.h>
+#include <storage/storage.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -22,7 +23,7 @@
 #define EXIT_ROOM_W  5
 #define EXIT_ROOM_H  3
 #define MAX_MONSTERS 16
-#define MAX_ITEMS    6
+#define MAX_ITEMS    8
 #define FOV_RADIUS   4
 #define MAX_COFFEE   9
 #define COFFEE_HEAL  5
@@ -31,7 +32,11 @@ typedef enum {
     TileWall,
     TileFloor,
     TileExit,
+    // Shopfronts: set into a wall, and walked into to use
     TileBartender,
+    TileClerk,
+    TileCart,
+    TileStreetcar,
 } Tile;
 
 typedef enum {
@@ -64,20 +69,30 @@ typedef enum {
 typedef struct {
     const char* name;
     const char* verb;
+    // For the death recap: "<Done> by <whom>"
+    const char* done;
+    const char* whom;
     uint8_t hp;
     uint8_t atk;
     uint8_t xp;
 } MonsterInfo;
 
 static const MonsterInfo monster_info[MonsterTypeCount] = {
-    [MonsterRat] = {"Rat", "bites", 2, 1, 1},
-    [MonsterCrow] = {"Crow", "pecks", 3, 1, 2},
-    [MonsterRaccoon] = {"Raccoon", "claws", 5, 2, 3},
-    [MonsterScooter] = {"Scooter", "rams", 4, 3, 4},
-    [MonsterCoyote] = {"Coyote", "bites", 8, 3, 6},
-    [MonsterWitch] = {"Witch", "smites", 50, 6, 0},
-    [MonsterSasquatch] = {"Sasquatch", "clobbers", 24, 4, 12},
+    [MonsterRat] = {"Rat", "bites", "Bitten", "a rat", 2, 1, 1},
+    [MonsterCrow] = {"Crow", "pecks", "Pecked", "a crow", 3, 1, 2},
+    [MonsterRaccoon] = {"Raccoon", "claws", "Clawed", "a raccoon", 5, 2, 3},
+    [MonsterScooter] = {"Scooter", "rams", "Rammed", "a scooter", 4, 3, 4},
+    [MonsterCoyote] = {"Coyote", "bites", "Bitten", "a coyote", 8, 3, 6},
+    [MonsterWitch] = {"Witch", "smites", "Smitten", "the Witch", 50, 6, 0},
+    [MonsterSasquatch] = {"Sasquatch", "clobbers", "Clobbered", "Sasquatch", 24, 4, 12},
 };
+
+// Crows fly over the rooftops and home in from this far away, walls or not
+#define CROW_RANGE     6
+// A scooter with a clear run at you covers this many tiles in one turn
+#define SCOOTER_CHARGE 3
+// A raccoon carrying your coffee keeps running while you are this close
+#define RACCOON_FLEE   8
 
 // One floor per street, heading north. The last entry is the boss floor.
 static const char* const level_names[] = {
@@ -93,8 +108,38 @@ static const char* const level_names[] = {
 #define SASQUATCH_ODDS     2
 #define SASQUATCH_SIGHT    2
 
-// Joe's Cellar is a safe room with a bartender on this street
-#define BAR_STREET       "Pettygrove"
+// Landmarks are safe rooms with a shopfront, one per street at most
+typedef enum {
+    LandmarkNone,
+    LandmarkPowells,
+    LandmarkCarts,
+    LandmarkStreetcar,
+    LandmarkBar,
+    LandmarkCount,
+} Landmark;
+
+typedef struct {
+    const char* street;
+    uint8_t tile;
+    const char* greeting;
+} LandmarkInfo;
+
+static const LandmarkInfo landmark_info[LandmarkCount] = {
+    [LandmarkNone] = {NULL, TileWall, NULL},
+    [LandmarkPowells] = {"Couch", TileClerk, "Powell's Books. Shh."},
+    [LandmarkCarts] = {"Kearney", TileCart, "Food carts! Smells great."},
+    [LandmarkStreetcar] = {"Lovejoy", TileStreetcar, "Streetcar stop. Hop on?"},
+    [LandmarkBar] = {"Pettygrove", TileBartender, "Joe's Cellar. Pull up a stool."},
+};
+
+// The trail guide at Powell's costs this many coffees
+#define GUIDE_COST       2
+// A plate at the food carts costs this much XP
+#define CART_COST        4
+// A used book is worth this much XP once the trail guide has made maps redundant
+#define BOOK_XP          3
+// The streetcar carries you this many streets north
+#define STREETCAR_HOP    2
 // Difficulty is scaled as if the walk were this many floors long
 #define DIFFICULTY_TIERS 10
 
@@ -124,6 +169,74 @@ static const uint8_t spr_wall[8] = {
     B(0b00001000),
     B(0b00001000),
     B(0b00001000),
+};
+
+// The northern industrial blocks
+static const uint8_t spr_wall_metal[8] = {
+    B(0b11111111),
+    B(0b10101010),
+    B(0b10101010),
+    B(0b10101010),
+    B(0b10101010),
+    B(0b10101010),
+    B(0b10101010),
+    B(0b00000000),
+};
+
+// The last streets before Forest Park
+static const uint8_t spr_wall_tree[8] = {
+    B(0b00010000),
+    B(0b00111000),
+    B(0b00111000),
+    B(0b01111100),
+    B(0b01111100),
+    B(0b11111110),
+    B(0b00010000),
+    B(0b00010000),
+};
+
+static const uint8_t spr_wall_stone[8] = {
+    B(0b11111111),
+    B(0b10001000),
+    B(0b10001000),
+    B(0b11111111),
+    B(0b00100010),
+    B(0b00100010),
+    B(0b11111111),
+    B(0b10001000),
+};
+
+static const uint8_t spr_clerk[8] = {
+    B(0b00111000),
+    B(0b00111000),
+    B(0b00010000),
+    B(0b01111111),
+    B(0b00010101),
+    B(0b11111111),
+    B(0b11111111),
+    B(0b10101010),
+};
+
+static const uint8_t spr_cart[8] = {
+    B(0b00111100),
+    B(0b01111110),
+    B(0b11111111),
+    B(0b00010000),
+    B(0b11111110),
+    B(0b11111110),
+    B(0b01000100),
+    B(0b11101110),
+};
+
+static const uint8_t spr_streetcar[8] = {
+    B(0b00011000),
+    B(0b11111111),
+    B(0b10100101),
+    B(0b10100101),
+    B(0b11111111),
+    B(0b11111111),
+    B(0b01100110),
+    B(0b00000000),
 };
 
 static const uint8_t spr_exit[8] = {
@@ -281,7 +394,23 @@ static const uint8_t spr_items[ItemTypeCount][8] = {
 #define SFX_END    &message_sound_off, NULL
 
 static const NotificationSequence sfx_hit = {NOTE(a4, 25), NOTE(e4, 25), SFX_END};
-static const NotificationSequence sfx_kill = {NOTE(e5, 25), NOTE(g5, 25), NOTE(c6, 50), SFX_END};
+static const NotificationSequence sfx_kill = {
+    &message_vibro_on,
+    NOTE(e5, 25),
+    &message_vibro_off,
+    NOTE(g5, 25),
+    NOTE(c6, 50),
+    SFX_END,
+};
+static const NotificationSequence sfx_steal = {NOTE(g6, 25), NOTE(d6, 25), NOTE(g5, 50), SFX_END};
+static const NotificationSequence sfx_howl = {NOTE(a4, 50), NOTE(e5, 100), NOTE(d5, 250), SFX_END};
+static const NotificationSequence sfx_bell = {
+    NOTE(e6, 50),
+    &message_sound_off,
+    &message_delay_50,
+    NOTE(e6, 100),
+    SFX_END,
+};
 static const NotificationSequence sfx_hurt = {
     &message_vibro_on,
     NOTE(a2, 50),
@@ -366,6 +495,8 @@ typedef struct {
     int8_t x, y;
     int8_t hp;
     uint8_t type;
+    // A raccoon carrying a stolen coffee, or a coyote that has heard the howl
+    bool flag;
     bool alive;
 } Monster;
 
@@ -374,6 +505,34 @@ typedef struct {
     uint8_t type;
     bool active;
 } Item;
+
+// The run as it stood on arriving at a street, so a walk can be picked up later
+typedef struct {
+    uint32_t magic;
+    uint32_t turns;
+    uint16_t kills;
+    uint16_t max_hp;
+    uint16_t hp;
+    uint8_t depth;
+    uint8_t level;
+    uint8_t atk;
+    uint8_t xp;
+    uint8_t coffee;
+    uint8_t has_guide;
+} SaveData;
+
+typedef struct {
+    uint32_t magic;
+    uint32_t best_turns; // fastest win, 0 if never won
+    uint16_t wins;
+    uint16_t best_kills;
+    uint8_t best_depth;
+} Records;
+
+#define SAVE_MAGIC    0x3143574E // "NWC1"
+#define RECORDS_MAGIC 0x3152574E // "NWR1"
+#define SAVE_PATH     APP_DATA_PATH("save.bin")
+#define RECORDS_PATH  APP_DATA_PATH("records.bin")
 
 typedef struct {
     FuriMutex* mutex;
@@ -389,8 +548,8 @@ typedef struct {
     Monster monsters[MAX_MONSTERS];
     Item items[MAX_ITEMS];
 
-    Room bar;
-    bool has_bar;
+    Room spot;
+    Landmark landmark;
     bool bar_served;
 
     int px, py;
@@ -398,6 +557,22 @@ typedef struct {
     int atk;
     int xp, level;
     int coffee;
+    bool has_guide;
+    int kills;
+    int turns;
+
+    bool show_map;
+
+    // Saved walk and records. The game logic only sets the want_ flags;
+    // the main loop does the SD card work outside the mutex.
+    SaveData save;
+    bool has_save;
+    bool title_new;
+    Records records;
+    bool new_record;
+    bool want_save;
+    bool want_clear;
+    bool want_records;
 
     const NotificationSequence* sfx;
     SfxPrio sfx_prio;
@@ -406,7 +581,7 @@ typedef struct {
     bool dev_mode;
     int dev_start;
 
-    const char* killer;
+    char recap[40];
     char msg[48];
 } Game;
 
@@ -437,9 +612,10 @@ static bool walkable(Game* g, int x, int y) {
     return in_map(x, y) && (g->tiles[y][x] == TileFloor || g->tiles[y][x] == TileExit);
 }
 
-static bool in_bar(Game* g, int x, int y) {
-    const Room* b = &g->bar;
-    return g->has_bar && x >= b->x && x < b->x + b->w && y >= b->y && y < b->y + b->h;
+static bool in_spot(Game* g, int x, int y) {
+    const Room* b = &g->spot;
+    return g->landmark != LandmarkNone && x >= b->x && x < b->x + b->w && y >= b->y &&
+           y < b->y + b->h;
 }
 
 static Monster* monster_at(Game* g, int x, int y) {
@@ -467,7 +643,7 @@ static bool line_of_sight(Game* g, int x0, int y0, int x1, int y1) {
 
     while(true) {
         if(x0 == x1 && y0 == y1) return true;
-        if(g->tiles[y0][x0] == TileWall) return false;
+        if(!walkable(g, x0, y0)) return false;
         int e2 = 2 * err;
         if(e2 >= dy) {
             err += dy;
@@ -554,6 +730,7 @@ static void spawn_monster(Game* g, const Room* room, MonsterType type) {
         m->y = y;
         m->type = type;
         m->hp = monster_info[type].hp;
+        m->flag = false;
         m->alive = true;
         return;
     }
@@ -573,18 +750,49 @@ static void spawn_item(Game* g, const Room* room, ItemType type) {
     }
 }
 
-// The bartender stands in the wall behind the bar, so they can never block a corridor
-static void place_bartender(Game* g) {
-    const Room* b = &g->bar;
+// A shopfront is set into the wall of its room, so it can never block a corridor
+static void place_shopfront(Game* g, uint8_t tile) {
+    const Room* b = &g->spot;
     const int rows[2] = {b->y - 1, b->y + b->h};
     for(int i = 0; i < 2; i++) {
-        for(int x = b->x + b->w / 2; x < b->x + b->w; x++) {
+        for(int n = 0; n < b->w; n++) {
+            int x = b->x + (b->w / 2 + n) % b->w;
             if(g->tiles[rows[i]][x] == TileWall) {
-                g->tiles[rows[i]][x] = TileBartender;
+                g->tiles[rows[i]][x] = tile;
                 return;
             }
         }
     }
+}
+
+// The streets change character on the way north
+typedef struct {
+    uint8_t room_w, room_w_var;
+    uint8_t room_h, room_h_var;
+    uint8_t alleys; // per room
+    uint8_t alley_len, alley_len_var;
+    const uint8_t* wall;
+} Zone;
+
+static const Zone zone_pearl = {4, 4, 3, 3, 1, 3, 5, spr_wall}; // wide open blocks
+static const Zone zone_nob_hill = {3, 4, 2, 3, 2, 3, 7, spr_wall};
+static const Zone zone_industrial = {3, 2, 2, 2, 3, 5, 9, spr_wall_metal}; // long corridors
+static const Zone zone_forest = {3, 2, 2, 2, 3, 5, 9, spr_wall_tree};
+static const Zone zone_castle = {4, 4, 3, 3, 1, 3, 5, spr_wall_stone};
+
+static const Zone* zone_for(int depth) {
+    if(depth >= LEVEL_COUNT - 1) return &zone_castle;
+    if(depth >= 17) return &zone_forest; // Savier and Thurman
+    if(depth >= 13) return &zone_industrial; // Overton on
+    if(depth >= 7) return &zone_nob_hill; // Irving on
+    return &zone_pearl;
+}
+
+static Landmark landmark_for(int depth) {
+    for(int i = LandmarkNone + 1; i < LandmarkCount; i++) {
+        if(strcmp(level_names[depth], landmark_info[i].street) == 0) return (Landmark)i;
+    }
+    return LandmarkNone;
 }
 
 // Carves a room at a random spot and joins it to the previous one with a corridor.
@@ -626,7 +834,8 @@ static bool try_place_room(Game* g, Room* rooms, int* count, int w, int h) {
 static void generate_level(Game* g) {
     Room rooms[MAX_ROOMS];
     int count;
-    bool bar_level = strcmp(level_names[g->depth], BAR_STREET) == 0;
+    const Zone* zone = zone_for(g->depth);
+    Landmark landmark = landmark_for(g->depth);
 
     bool placed_exit;
 
@@ -634,7 +843,12 @@ static void generate_level(Game* g) {
         memset(g->tiles, TileWall, sizeof(g->tiles));
         count = 0;
         for(int attempt = 0; attempt < 150 && count < MAX_ROOMS - 1; attempt++) {
-            try_place_room(g, rooms, &count, 3 + rnd(4), 2 + rnd(3));
+            try_place_room(
+                g,
+                rooms,
+                &count,
+                zone->room_w + rnd(zone->room_w_var),
+                zone->room_h + rnd(zone->room_h_var));
         }
         // The exit always gets a proper room of its own, placed last
         placed_exit = false;
@@ -646,13 +860,13 @@ static void generate_level(Game* g) {
 
     // Side alleys off each block: some dead-end, some loop back into other streets
     // (never starting from the exit room, so it keeps its shape)
-    for(int i = 0; i < count * 2; i++) {
+    for(int i = 0; i < count * zone->alleys; i++) {
         const Room* r = &rooms[rnd(count - 1)];
         int x = r->x + rnd(r->w), y = r->y + rnd(r->h);
         bool horizontal = rnd(2);
         for(int leg = 0; leg < 3; leg++) {
             int step = rnd(2) ? 1 : -1;
-            int len = 3 + rnd(7);
+            int len = zone->alley_len + rnd(zone->alley_len_var);
             for(int n = 0; n < len; n++) {
                 int tx = x + (horizontal ? step : 0);
                 int ty = y + (horizontal ? 0 : step);
@@ -666,12 +880,12 @@ static void generate_level(Game* g) {
     }
 
     // A middle room, so it is never the start room or the exit room
-    int bar_index = count / 2;
-    g->has_bar = bar_level;
+    int spot_index = count / 2;
+    g->landmark = landmark;
     g->bar_served = false;
-    if(bar_level) {
-        g->bar = rooms[bar_index];
-        place_bartender(g);
+    if(landmark != LandmarkNone) {
+        g->spot = rooms[spot_index];
+        place_shopfront(g, landmark_info[landmark].tile);
     }
 
     memset(g->seen, 0, sizeof(g->seen));
@@ -698,8 +912,14 @@ static void generate_level(Game* g) {
         int room;
         do {
             room = 1 + rnd(count - 1);
-        } while(bar_level && room == bar_index);
-        spawn_monster(g, &rooms[room], (MonsterType)rnd(variety));
+        } while(landmark != LandmarkNone && room == spot_index);
+        MonsterType type = (MonsterType)rnd(variety);
+        spawn_monster(g, &rooms[room], type);
+        // Coyotes hunt in pairs
+        if(type == MonsterCoyote && i + 1 < monster_count) {
+            spawn_monster(g, &rooms[room], type);
+            i++;
+        }
     }
     if(!boss_level && tier >= SASQUATCH_MIN_TIER && rnd(SASQUATCH_ODDS) == 0) {
         spawn_monster(g, last, MonsterSasquatch);
@@ -709,7 +929,11 @@ static void generate_level(Game* g) {
     if(rnd(2)) spawn_item(g, &rooms[rnd(count)], ItemCoffee);
     if(rnd(2)) spawn_item(g, &rooms[rnd(count)], ItemDonut);
     if(rnd(3) == 0) spawn_item(g, &rooms[rnd(count)], ItemIpa);
-    if(rnd(2)) spawn_item(g, &rooms[rnd(count)], ItemBook);
+    if(landmark == LandmarkPowells) {
+        spawn_item(g, &g->spot, ItemBook);
+    } else if(rnd(2)) {
+        spawn_item(g, &rooms[rnd(count)], ItemBook);
+    }
 
     if(boss_level) {
         say(g, "The Witch's Castle...");
@@ -717,7 +941,28 @@ static void generate_level(Game* g) {
         snprintf(g->msg, sizeof(g->msg), "NW %s St", level_names[g->depth]);
     }
     play(g, &sfx_stairs, SfxPrioLevel);
+    // Dev runs get the map too, to make a street quick to check
+    if(g->has_guide || g->dev_mode) reveal_map(g);
     update_fov(g);
+
+    // Dev runs are throwaway: they are never saved and set no records
+    if(!g->dev_mode && g->depth > 0) {
+        g->save = (SaveData){
+            .magic = SAVE_MAGIC,
+            .turns = (uint32_t)g->turns,
+            .kills = (uint16_t)g->kills,
+            .max_hp = (uint16_t)g->max_hp,
+            .hp = (uint16_t)g->hp,
+            .depth = (uint8_t)g->depth,
+            .level = (uint8_t)g->level,
+            .atk = (uint8_t)g->atk,
+            .xp = (uint8_t)g->xp,
+            .coffee = (uint8_t)g->coffee,
+            .has_guide = g->has_guide,
+        };
+        g->has_save = true;
+        g->want_save = true;
+    }
 }
 
 static void new_game(Game* g) {
@@ -730,8 +975,65 @@ static void new_game(Game* g) {
     g->atk = 2 + (g->level - 1);
     g->xp = 0;
     g->coffee = g->depth ? 3 : 1;
-    g->killer = NULL;
+    g->has_guide = false;
+    g->kills = 0;
+    g->turns = 0;
+    g->recap[0] = '\0';
+    g->new_record = false;
+    g->show_map = false;
+    if(!g->dev_mode && g->has_save) {
+        g->has_save = false;
+        g->want_clear = true;
+    }
     generate_level(g);
+}
+
+// Picks a saved walk back up at the start of the street it had reached
+static void continue_game(Game* g) {
+    const SaveData* s = &g->save;
+    g->state = StatePlaying;
+    g->depth = s->depth;
+    g->level = s->level;
+    g->max_hp = s->max_hp;
+    g->hp = s->hp;
+    g->atk = s->atk;
+    g->xp = s->xp;
+    g->coffee = s->coffee;
+    g->has_guide = s->has_guide;
+    g->kills = s->kills;
+    g->turns = (int)s->turns;
+    g->recap[0] = '\0';
+    g->new_record = false;
+    g->show_map = false;
+    generate_level(g);
+}
+
+// The run is over, one way or the other: settle the save and the records
+static void finish_run(Game* g, bool won) {
+    g->state = won ? StateWon : StateDead;
+    if(won) {
+        play(g, &sfx_win, SfxPrioFinal);
+    } else {
+        play(g, &sfx_death, SfxPrioFinal);
+    }
+    if(g->dev_mode) return;
+
+    g->has_save = false;
+    g->want_clear = true;
+
+    Records* r = &g->records;
+    if(won) {
+        r->wins++;
+        if(r->best_turns == 0 || (uint32_t)g->turns < r->best_turns) {
+            r->best_turns = (uint32_t)g->turns;
+            g->new_record = true;
+        }
+    } else if(r->wins == 0 && g->depth > r->best_depth) {
+        g->new_record = true;
+    }
+    if(g->depth > r->best_depth) r->best_depth = (uint8_t)g->depth;
+    if(g->kills > r->best_kills) r->best_kills = (uint16_t)g->kills;
+    g->want_records = true;
 }
 
 static void gain_xp(Game* g, int amount) {
@@ -785,9 +1087,9 @@ static void attack_monster(Game* g, Monster* m) {
         return;
     }
     m->alive = false;
+    g->kills++;
     if(m->type == MonsterWitch) {
-        g->state = StateWon;
-        play(g, &sfx_win, SfxPrioFinal);
+        finish_run(g, true);
         return;
     }
     snprintf(g->msg, sizeof(g->msg), "%s down!", info->name);
@@ -795,6 +1097,9 @@ static void attack_monster(Game* g, Monster* m) {
     if(m->type == MonsterSasquatch) {
         drop_item(g, m->x, m->y, rnd(2) ? ItemDonut : ItemIpa);
         say_more(g, "He dropped something.");
+    } else if(m->type == MonsterRaccoon && m->flag && walkable(g, m->x, m->y)) {
+        drop_item(g, m->x, m->y, ItemCoffee);
+        say_more(g, "Your coffee!");
     }
     gain_xp(g, info->xp);
 }
@@ -819,8 +1124,13 @@ static void pick_up(Game* g, Item* it) {
         say(g, "Hazy IPA. Bold!");
         break;
     case ItemBook:
-        reveal_map(g);
-        say(g, "Used book: a map!");
+        if(g->has_guide) {
+            say(g, "A good read. +XP");
+            gain_xp(g, BOOK_XP);
+        } else {
+            reveal_map(g);
+            say(g, "Used book: a map!");
+        }
         break;
     default:
         break;
@@ -831,8 +1141,10 @@ static void pick_up(Game* g, Item* it) {
 
 static const int8_t dirs[4][2] = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
 
-// Returns true if the blow finished the player off
-static bool hurt_player(Game* g, const MonsterInfo* info, const char* verb, int dmg) {
+// Returns true if the blow finished the player off.
+// `done` is the past tense for the death recap, e.g. "Hexed".
+static bool
+    hurt_player(Game* g, const MonsterInfo* info, const char* verb, const char* done, int dmg) {
     char buf[32];
     g->hp -= dmg;
     snprintf(buf, sizeof(buf), "%s %s -%d", info->name, verb, dmg);
@@ -840,9 +1152,8 @@ static bool hurt_player(Game* g, const MonsterInfo* info, const char* verb, int 
     play(g, &sfx_hurt, SfxPrioHurt);
     if(g->hp > 0) return false;
     g->hp = 0;
-    g->killer = info->name;
-    g->state = StateDead;
-    play(g, &sfx_death, SfxPrioFinal);
+    snprintf(g->recap, sizeof(g->recap), "%s by %s", done, info->whom);
+    finish_run(g, false);
     return true;
 }
 
@@ -857,6 +1168,7 @@ static void witch_summon(Game* g, const Monster* witch) {
             m->y = y;
             m->type = MonsterCrow;
             m->hp = monster_info[MonsterCrow].hp;
+            m->flag = false;
             m->alive = true;
             say_more(g, "She calls a crow!");
             play(g, &sfx_magic, SfxPrioMagic);
@@ -864,6 +1176,64 @@ static void witch_summon(Game* g, const Monster* witch) {
         }
         return;
     }
+}
+
+static bool monster_can_enter(Game* g, const Monster* m, int x, int y) {
+    if(x == g->px && y == g->py) return false;
+    if(monster_at(g, x, y)) return false;
+    if(m->type == MonsterCrow) {
+        // Crows fly over the rooftops, but not off the map or into a shopfront
+        return x >= 1 && y >= 1 && x < MAP_W - 1 && y < MAP_H - 1 && g->tiles[y][x] <= TileExit;
+    }
+    return walkable(g, x, y);
+}
+
+static int player_distance(Game* g, int x, int y) {
+    return abs(g->px - x) + abs(g->py - y);
+}
+
+// One step straight at the player, trying the longer axis first. False if blocked.
+static bool monster_approach(Game* g, Monster* m) {
+    int dx = g->px - m->x;
+    int dy = g->py - m->y;
+    bool horizontal_first = abs(dx) > abs(dy) || (abs(dx) == abs(dy) && rnd(2));
+    int step_x = (dx > 0) - (dx < 0);
+    int step_y = (dy > 0) - (dy < 0);
+    for(int attempt = 0; attempt < 2; attempt++) {
+        int tx = m->x, ty = m->y;
+        if(horizontal_first == (attempt == 0)) {
+            tx += step_x;
+        } else {
+            ty += step_y;
+        }
+        if((tx != m->x || ty != m->y) && monster_can_enter(g, m, tx, ty)) {
+            m->x = tx;
+            m->y = ty;
+            return true;
+        }
+    }
+    return false;
+}
+
+// One step to wherever is furthest from the player. False if cornered.
+static bool monster_flee(Game* g, Monster* m) {
+    int best = player_distance(g, m->x, m->y);
+    int best_dir = -1;
+    int first = rnd(4);
+    for(int n = 0; n < 4; n++) {
+        const int8_t* d = dirs[(first + n) % 4];
+        int tx = m->x + d[0], ty = m->y + d[1];
+        if(!monster_can_enter(g, m, tx, ty)) continue;
+        int dist = player_distance(g, tx, ty);
+        if(dist > best) {
+            best = dist;
+            best_dir = (first + n) % 4;
+        }
+    }
+    if(best_dir < 0) return false;
+    m->x += dirs[best_dir][0];
+    m->y += dirs[best_dir][1];
+    return true;
 }
 
 static void monsters_act(Game* g) {
@@ -874,73 +1244,98 @@ static void monsters_act(Game* g) {
 
         int dx = g->px - m->x;
         int dy = g->py - m->y;
+        bool adjacent = abs(dx) + abs(dy) == 1;
+        bool sees = g->visible[m->y][m->x];
 
-        if(abs(dx) + abs(dy) == 1) {
-            if(hurt_player(g, info, info->verb, 1 + rnd(info->atk))) return;
+        // The first coyote to spot you calls the rest of the pack
+        if(m->type == MonsterCoyote && sees && !m->flag) {
+            for(int j = 0; j < MAX_MONSTERS; j++) {
+                if(g->monsters[j].type == MonsterCoyote) g->monsters[j].flag = true;
+            }
+            say_more(g, "A coyote howls!");
+            play(g, &sfx_howl, SfxPrioMagic);
+        }
+
+        if(m->type == MonsterRaccoon) {
+            if(m->flag) {
+                // Makes off with the loot, and only fights when cornered
+                if(abs(dx) + abs(dy) < RACCOON_FLEE && monster_flee(g, m)) continue;
+                if(!adjacent) continue;
+            } else if(adjacent && g->coffee > 0 && rnd(2)) {
+                g->coffee--;
+                m->flag = true;
+                say_more(g, "Raccoon swipes a coffee!");
+                play(g, &sfx_steal, SfxPrioHurt);
+                continue;
+            }
+        }
+
+        if(adjacent) {
+            if(hurt_player(g, info, info->verb, info->done, 1 + rnd(info->atk))) return;
             continue;
         }
 
         // At range the Witch hexes you or calls in crows instead of just walking up
-        if(m->type == MonsterWitch && g->visible[m->y][m->x]) {
+        if(m->type == MonsterWitch && sees) {
             int roll = rnd(4);
             if(roll == 0) {
                 witch_summon(g, m);
                 continue;
             } else if(roll == 1) {
-                if(hurt_player(g, info, "hexes", 1 + rnd(3))) return;
+                if(hurt_player(g, info, "hexes", "Hexed", 1 + rnd(3))) return;
                 continue;
             }
         }
 
-        int nx = m->x, ny = m->y;
-        bool chasing = g->visible[m->y][m->x];
-        // Crows never fly straight
-        if(m->type == MonsterCrow && rnd(2)) chasing = false;
-
-        if(chasing) {
-            bool horizontal_first = abs(dx) > abs(dy) || (abs(dx) == abs(dy) && rnd(2));
+        // A scooter with a straight run at you charges, and rams if it gets there
+        if(m->type == MonsterScooter && sees && (dx == 0 || dy == 0)) {
             int step_x = (dx > 0) - (dx < 0);
             int step_y = (dy > 0) - (dy < 0);
-            for(int attempt = 0; attempt < 2; attempt++) {
-                int tx = m->x, ty = m->y;
-                if(horizontal_first == (attempt == 0)) {
-                    tx += step_x;
-                } else {
-                    ty += step_y;
-                }
-                if((tx != m->x || ty != m->y) && walkable(g, tx, ty) && !monster_at(g, tx, ty)) {
-                    nx = tx;
-                    ny = ty;
-                    break;
-                }
+            int moved = 0;
+            while(moved < SCOOTER_CHARGE && player_distance(g, m->x, m->y) > 1 &&
+                  monster_can_enter(g, m, m->x + step_x, m->y + step_y)) {
+                m->x += step_x;
+                m->y += step_y;
+                moved++;
             }
+            if(moved > 1 && player_distance(g, m->x, m->y) == 1) {
+                if(hurt_player(g, info, info->verb, info->done, 1 + rnd(info->atk))) return;
+            }
+            if(moved) continue;
+        }
+
+        bool chasing = sees;
+        if(m->type == MonsterCoyote && m->flag) chasing = true;
+        if(m->type == MonsterCrow) {
+            if(abs(dx) + abs(dy) <= CROW_RANGE) chasing = true;
+            // Crows never fly straight
+            if(rnd(2)) chasing = false;
+        }
+
+        if(chasing) {
+            monster_approach(g, m);
         } else if(rnd(3) == 0) {
             const int8_t* d = dirs[rnd(4)];
             int tx = m->x + d[0], ty = m->y + d[1];
-            if(walkable(g, tx, ty) && !monster_at(g, tx, ty) && !(tx == g->px && ty == g->py)) {
-                nx = tx;
-                ny = ty;
+            if(monster_can_enter(g, m, tx, ty)) {
+                m->x = tx;
+                m->y = ty;
             }
         }
-        m->x = nx;
-        m->y = ny;
     }
 }
 
 static void end_turn(Game* g) {
     if(g->state != StatePlaying) return;
+    g->turns++;
     monsters_act(g);
     update_fov(g);
 }
 
-static void player_move(Game* g, int dx, int dy) {
-    int nx = g->px + dx;
-    int ny = g->py + dy;
-    if(!in_map(nx, ny) || g->tiles[ny][nx] == TileWall) return;
-
-    g->msg[0] = '\0';
-
-    if(g->tiles[ny][nx] == TileBartender) {
+// Walking into a shopfront. Returns false if the tile is not one.
+static bool use_shopfront(Game* g, uint8_t tile) {
+    switch(tile) {
+    case TileBartender:
         if(g->bar_served) {
             say(g, "\"You're cut off, hon.\"");
         } else {
@@ -950,21 +1345,72 @@ static void player_move(Game* g, int dx, int dy) {
             say(g, "Stiff pour! Full HP, +ATK");
             play(g, &sfx_bar, SfxPrioLevel);
         }
-        end_turn(g);
-        return;
+        return true;
+    case TileClerk:
+        if(g->has_guide) {
+            say(g, "\"Enjoy the trail guide.\"");
+        } else if(g->coffee >= GUIDE_COST) {
+            g->coffee -= GUIDE_COST;
+            g->has_guide = true;
+            reveal_map(g);
+            say(g, "Trail guide! Maps for all.");
+            play(g, &sfx_level_up, SfxPrioLevel);
+        } else {
+            snprintf(g->msg, sizeof(g->msg), "\"Trail guide: %d coffees.\"", GUIDE_COST);
+        }
+        return true;
+    case TileCart:
+        if(g->hp >= g->max_hp) {
+            say(g, "\"You look full, friend.\"");
+        } else if(g->xp >= CART_COST) {
+            g->xp -= CART_COST;
+            g->hp = g->max_hp;
+            snprintf(g->msg, sizeof(g->msg), "Pad thai! Full HP, -%d XP", CART_COST);
+            play(g, &sfx_drink, SfxPrioLevel);
+        } else {
+            snprintf(g->msg, sizeof(g->msg), "A plate is %d XP (have %d)", CART_COST, g->xp);
+        }
+        return true;
+    default:
+        return false;
     }
+}
 
+static void player_move(Game* g, int dx, int dy) {
+    int nx = g->px + dx;
+    int ny = g->py + dy;
+    if(!in_map(nx, ny)) return;
+
+    // Checked before the wall, because a crow may be perched on it
     Monster* m = monster_at(g, nx, ny);
     if(m) {
+        g->msg[0] = '\0';
         attack_monster(g, m);
         end_turn(g);
         return;
     }
 
-    bool was_in_bar = in_bar(g, g->px, g->py);
+    if(g->tiles[ny][nx] == TileWall) return;
+
+    g->msg[0] = '\0';
+
+    if(g->tiles[ny][nx] == TileStreetcar) {
+        g->depth = MIN(g->depth + STREETCAR_HOP, LEVEL_COUNT - 1);
+        generate_level(g);
+        snprintf(g->msg, sizeof(g->msg), "Ding ding! NW %s St", level_names[g->depth]);
+        play(g, &sfx_bell, SfxPrioFinal);
+        return;
+    }
+
+    if(use_shopfront(g, g->tiles[ny][nx])) {
+        end_turn(g);
+        return;
+    }
+
+    bool was_in_spot = in_spot(g, g->px, g->py);
     g->px = nx;
     g->py = ny;
-    if(!was_in_bar && in_bar(g, nx, ny)) say(g, "Joe's Cellar. Pull up a stool.");
+    if(!was_in_spot && in_spot(g, nx, ny)) say(g, landmark_info[g->landmark].greeting);
 
     if(g->tiles[ny][nx] == TileExit) {
         g->depth++;
@@ -974,7 +1420,7 @@ static void player_move(Game* g, int dx, int dy) {
 
     Item* it = item_at(g, nx, ny);
     if(it) {
-        // Keep the bar greeting if we walked in onto an item
+        // Keep the landmark greeting if we walked in onto an item
         char greeting[sizeof(g->msg)];
         strlcpy(greeting, g->msg, sizeof(greeting));
         pick_up(g, it);
@@ -999,9 +1445,16 @@ static void player_drink_or_wait(Game* g) {
 static void handle_key(Game* g, InputKey key) {
     if(g->state == StateTitle) {
         if(key == InputKeyOk) {
-            new_game(g);
+            if(!g->dev_mode && g->has_save && !g->title_new) {
+                continue_game(g);
+            } else {
+                new_game(g);
+            }
+            g->title_new = false;
         } else if(key == InputKeyUp) {
             g->dev_mode = !g->dev_mode;
+        } else if(!g->dev_mode && g->has_save && key == InputKeyDown) {
+            g->title_new = !g->title_new;
         } else if(g->dev_mode && key == InputKeyRight) {
             g->dev_start = (g->dev_start + 1) % LEVEL_COUNT;
         } else if(g->dev_mode && key == InputKeyLeft) {
@@ -1042,52 +1495,140 @@ static void handle_key(Game* g, InputKey key) {
     }
 }
 
+static void street_label(char* buf, size_t size, int depth) {
+    if(depth == LEVEL_COUNT - 1) {
+        strlcpy(buf, level_names[depth], size);
+    } else {
+        snprintf(buf, size, "NW %s", level_names[depth]);
+    }
+}
+
 static void draw_title(Canvas* canvas, Game* g) {
+    char buf[48];
+    char street[24];
     canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str_aligned(canvas, 64, 4, AlignCenter, AlignTop, "NW CRAWL");
+    canvas_draw_str_aligned(canvas, 64, 1, AlignCenter, AlignTop, "NW CRAWL");
     canvas_set_font(canvas, FontSecondary);
     if(g->dev_mode) {
-        char buf[40];
-        bool castle = g->dev_start == LEVEL_COUNT - 1;
-        snprintf(buf, sizeof(buf), "DEV < %s%s >", castle ? "" : "NW ", level_names[g->dev_start]);
-        canvas_draw_str_aligned(canvas, 64, 19, AlignCenter, AlignTop, buf);
+        street_label(street, sizeof(street), g->dev_start);
+        snprintf(buf, sizeof(buf), "DEV < %s >", street);
+        canvas_draw_str_aligned(canvas, 64, 14, AlignCenter, AlignTop, buf);
     } else {
         canvas_draw_str_aligned(
-            canvas, 64, 19, AlignCenter, AlignTop, "Burnside to Witch's Castle");
+            canvas, 64, 14, AlignCenter, AlignTop, "Burnside to Witch's Castle");
     }
-    canvas_draw_xbm(canvas, 44, 31, 8, 8, spr_player);
-    canvas_draw_xbm(canvas, 60, 31, 8, 8, spr_monsters[MonsterRaccoon]);
-    canvas_draw_xbm(canvas, 76, 31, 8, 8, spr_items[ItemCoffee]);
-    canvas_draw_str_aligned(canvas, 64, 44, AlignCenter, AlignTop, "OK: start / drink coffee");
-    canvas_draw_str_aligned(canvas, 64, 54, AlignCenter, AlignTop, "Hold Back: quit");
+    canvas_draw_xbm(canvas, 44, 25, 8, 8, spr_player);
+    canvas_draw_xbm(canvas, 60, 25, 8, 8, spr_monsters[MonsterRaccoon]);
+    canvas_draw_xbm(canvas, 76, 25, 8, 8, spr_items[ItemCoffee]);
+
+    if(!g->dev_mode && g->has_save) {
+        street_label(street, sizeof(street), g->save.depth);
+        snprintf(buf, sizeof(buf), "Continue: %s", street);
+        canvas_draw_str(canvas, 22, 43, buf);
+        canvas_draw_str(canvas, 22, 52, "New walk");
+        canvas_draw_str(canvas, 14, g->title_new ? 52 : 43, ">");
+    } else {
+        canvas_draw_str_aligned(canvas, 64, 35, AlignCenter, AlignTop, "OK: start / drink coffee");
+        canvas_draw_str_aligned(canvas, 64, 44, AlignCenter, AlignTop, "Hold OK: map, Back: quit");
+    }
+
+    const Records* r = &g->records;
+    if(r->wins) {
+        snprintf(buf, sizeof(buf), "Wins %u  Fastest %lu turns", r->wins, r->best_turns);
+        canvas_draw_str_aligned(canvas, 64, 55, AlignCenter, AlignTop, buf);
+    } else if(r->best_depth) {
+        street_label(street, sizeof(street), r->best_depth);
+        snprintf(buf, sizeof(buf), "Furthest: %s", street);
+        canvas_draw_str_aligned(canvas, 64, 55, AlignCenter, AlignTop, buf);
+    }
 }
 
 static void draw_end(Canvas* canvas, Game* g) {
-    char buf[40];
+    char buf[48];
     canvas_set_font(canvas, FontPrimary);
     if(g->state == StateWon) {
-        canvas_draw_str_aligned(canvas, 64, 6, AlignCenter, AlignTop, "The Witch is gone!");
+        canvas_draw_str_aligned(canvas, 64, 2, AlignCenter, AlignTop, "The Witch is gone!");
         canvas_set_font(canvas, FontSecondary);
         canvas_draw_str_aligned(
-            canvas, 64, 24, AlignCenter, AlignTop, "Forest Park is quiet again.");
-        snprintf(buf, sizeof(buf), "Level %d, %d coffees left", g->level, g->coffee);
-        canvas_draw_str_aligned(canvas, 64, 35, AlignCenter, AlignTop, buf);
+            canvas, 64, 16, AlignCenter, AlignTop, "Forest Park is quiet again.");
+        snprintf(buf, sizeof(buf), "%d coffees left", g->coffee);
+        canvas_draw_str_aligned(canvas, 64, 25, AlignCenter, AlignTop, buf);
     } else {
-        canvas_draw_str_aligned(canvas, 64, 6, AlignCenter, AlignTop, "You got Portlanded");
+        canvas_draw_str_aligned(canvas, 64, 2, AlignCenter, AlignTop, "You got Portlanded");
         canvas_set_font(canvas, FontSecondary);
-        snprintf(buf, sizeof(buf), "Bested by a %s", g->killer ? g->killer : "mystery");
-        canvas_draw_str_aligned(canvas, 64, 24, AlignCenter, AlignTop, buf);
+        canvas_draw_str_aligned(
+            canvas, 64, 16, AlignCenter, AlignTop, g->recap[0] ? g->recap : "Bested by a mystery");
         if(g->depth == LEVEL_COUNT - 1) {
             snprintf(buf, sizeof(buf), "at the %s", level_names[g->depth]);
         } else {
             snprintf(buf, sizeof(buf), "on NW %s St", level_names[g->depth]);
         }
-        canvas_draw_str_aligned(canvas, 64, 35, AlignCenter, AlignTop, buf);
+        canvas_draw_str_aligned(canvas, 64, 25, AlignCenter, AlignTop, buf);
     }
-    canvas_draw_str_aligned(canvas, 64, 52, AlignCenter, AlignTop, "OK: again   Hold Back: quit");
+    snprintf(buf, sizeof(buf), "Lv %d   %d KOs   %d turns", g->level, g->kills, g->turns);
+    canvas_draw_str_aligned(canvas, 64, 35, AlignCenter, AlignTop, buf);
+    if(g->new_record) {
+        canvas_draw_str_aligned(
+            canvas,
+            64,
+            44,
+            AlignCenter,
+            AlignTop,
+            g->state == StateWon ? "Your fastest walk yet!" : "Your furthest walk yet!");
+    }
+    canvas_draw_str_aligned(canvas, 64, 55, AlignCenter, AlignTop, "OK: again   Hold Back: quit");
+}
+
+// Whole-street map at 2 px a tile, with the character sheet beside it
+#define MAP_SCALE 2
+#define MAP_X     1
+#define MAP_Y     6
+
+static void draw_map(Canvas* canvas, Game* g) {
+    // Streets are drawn solid and buildings left blank
+    for(int y = 0; y < MAP_H; y++) {
+        for(int x = 0; x < MAP_W; x++) {
+            if(!g->seen[y][x]) continue;
+            int sx = MAP_X + x * MAP_SCALE, sy = MAP_Y + y * MAP_SCALE;
+            uint8_t tile = g->tiles[y][x];
+            if(tile == TileFloor) {
+                canvas_draw_box(canvas, sx, sy, MAP_SCALE, MAP_SCALE);
+            } else if(tile != TileWall) {
+                // The way north and any shopfront get a ring
+                canvas_draw_frame(canvas, sx - 1, sy - 1, MAP_SCALE + 2, MAP_SCALE + 2);
+            }
+        }
+    }
+    canvas_set_color(canvas, ColorWhite);
+    for(int i = 0; i < MAX_ITEMS; i++) {
+        const Item* it = &g->items[i];
+        if(!it->active || !g->seen[it->y][it->x]) continue;
+        canvas_draw_dot(canvas, MAP_X + it->x * MAP_SCALE, MAP_Y + it->y * MAP_SCALE);
+    }
+    int px = MAP_X + g->px * MAP_SCALE, py = MAP_Y + g->py * MAP_SCALE;
+    canvas_draw_disc(canvas, px, py, 5);
+    canvas_set_color(canvas, ColorBlack);
+    canvas_draw_circle(canvas, px, py, 4);
+    canvas_draw_box(canvas, px - 1, py - 1, 3, 3);
+
+    char buf[24];
+    const int tx = MAP_X + MAP_W * MAP_SCALE + 4;
+    canvas_set_font(canvas, FontSecondary);
+    canvas_draw_str(canvas, tx, 8, g->depth == LEVEL_COUNT - 1 ? "Castle" : level_names[g->depth]);
+    canvas_draw_line(canvas, tx, 10, 127, 10);
+    snprintf(buf, sizeof(buf), "Level %d", g->level);
+    canvas_draw_str(canvas, tx, 20, buf);
+    snprintf(buf, sizeof(buf), "XP %d/%d", g->xp, g->level * 6);
+    canvas_draw_str(canvas, tx, 29, buf);
+    snprintf(buf, sizeof(buf), "ATK %d", g->atk);
+    canvas_draw_str(canvas, tx, 38, buf);
+    snprintf(buf, sizeof(buf), "KOs %d", g->kills);
+    canvas_draw_str(canvas, tx, 47, buf);
+    if(g->has_guide) canvas_draw_str(canvas, tx, 56, "Guide");
 }
 
 static void draw_game(Canvas* canvas, Game* g) {
+    const uint8_t* wall = zone_for(g->depth)->wall;
     int cam_x = CLAMP(g->px - VIEW_W / 2, MAP_W - VIEW_W, 0);
     int cam_y = CLAMP(g->py - VIEW_H / 2, MAP_H - VIEW_H, 0);
 
@@ -1098,7 +1639,7 @@ static void draw_game(Canvas* canvas, Game* g) {
             int sx = vx * TILE, sy = vy * TILE;
             switch(g->tiles[my][mx]) {
             case TileWall:
-                canvas_draw_xbm(canvas, sx, sy, TILE, TILE, spr_wall);
+                canvas_draw_xbm(canvas, sx, sy, TILE, TILE, wall);
                 break;
             case TileExit:
                 canvas_draw_xbm(canvas, sx, sy, TILE, TILE, spr_exit);
@@ -1106,11 +1647,20 @@ static void draw_game(Canvas* canvas, Game* g) {
             case TileBartender:
                 canvas_draw_xbm(canvas, sx, sy, TILE, TILE, spr_bartender);
                 break;
+            case TileClerk:
+                canvas_draw_xbm(canvas, sx, sy, TILE, TILE, spr_clerk);
+                break;
+            case TileCart:
+                canvas_draw_xbm(canvas, sx, sy, TILE, TILE, spr_cart);
+                break;
+            case TileStreetcar:
+                canvas_draw_xbm(canvas, sx, sy, TILE, TILE, spr_streetcar);
+                break;
             default:
                 // Lit floor gets a dot; remembered floor stays blank
                 if(!g->visible[my][mx]) break;
-                if(in_bar(g, mx, my)) {
-                    // Checkered bar floor
+                if(in_spot(g, mx, my)) {
+                    // Checkered landmark floor
                     canvas_draw_box(canvas, sx, sy, 2, 2);
                     canvas_draw_box(canvas, sx + 4, sy + 4, 2, 2);
                 } else {
@@ -1191,7 +1741,11 @@ static void draw_callback(Canvas* canvas, void* ctx) {
         draw_title(canvas, g);
         break;
     case StatePlaying:
-        draw_game(canvas, g);
+        if(g->show_map) {
+            draw_map(canvas, g);
+        } else {
+            draw_game(canvas, g);
+        }
         break;
     default:
         draw_end(canvas, g);
@@ -1254,6 +1808,54 @@ static void title_music_stop(void) {
     furi_hal_speaker_release();
 }
 
+static bool file_read(const char* path, void* data, size_t size) {
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    File* file = storage_file_alloc(storage);
+    bool ok = storage_file_open(file, path, FSAM_READ, FSOM_OPEN_EXISTING) &&
+              storage_file_read(file, data, size) == size;
+    storage_file_close(file);
+    storage_file_free(file);
+    furi_record_close(RECORD_STORAGE);
+    return ok;
+}
+
+static void file_write(const char* path, const void* data, size_t size) {
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    File* file = storage_file_alloc(storage);
+    if(storage_file_open(file, path, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
+        storage_file_write(file, data, size);
+    }
+    storage_file_close(file);
+    storage_file_free(file);
+    furi_record_close(RECORD_STORAGE);
+}
+
+static void file_remove(const char* path) {
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    storage_simply_remove(storage, path);
+    furi_record_close(RECORD_STORAGE);
+}
+
+static void storage_load(Game* g) {
+    g->has_save = file_read(SAVE_PATH, &g->save, sizeof(g->save)) && g->save.magic == SAVE_MAGIC &&
+                  g->save.depth < LEVEL_COUNT;
+    if(!file_read(RECORDS_PATH, &g->records, sizeof(g->records)) ||
+       g->records.magic != RECORDS_MAGIC || g->records.best_depth >= LEVEL_COUNT) {
+        memset(&g->records, 0, sizeof(g->records));
+        g->records.magic = RECORDS_MAGIC;
+    }
+}
+
+// Does whatever SD card work the last turn asked for
+static void storage_flush(Game* g) {
+    if(g->want_clear) file_remove(SAVE_PATH);
+    if(g->want_save) file_write(SAVE_PATH, &g->save, sizeof(g->save));
+    if(g->want_records) file_write(RECORDS_PATH, &g->records, sizeof(g->records));
+    g->want_clear = false;
+    g->want_save = false;
+    g->want_records = false;
+}
+
 static void input_callback(InputEvent* event, void* ctx) {
     FuriMessageQueue* queue = ctx;
     furi_message_queue_put(queue, event, 0);
@@ -1266,6 +1868,7 @@ int32_t nw_crawl_app(void* p) {
     memset(g, 0, sizeof(Game));
     g->mutex = furi_mutex_alloc(FuriMutexTypeNormal);
     g->state = StateTitle;
+    storage_load(g);
 
     FuriMessageQueue* queue = furi_message_queue_alloc(8, sizeof(InputEvent));
 
@@ -1300,7 +1903,25 @@ int32_t nw_crawl_app(void* p) {
             if(event.type == InputTypeLong) break;
             continue;
         }
+        // Holding OK opens the map; any press closes it again
+        if(g->state == StatePlaying && !g->show_map && event.key == InputKeyOk &&
+           event.type == InputTypeLong) {
+            furi_mutex_acquire(g->mutex, FuriWaitForever);
+            g->show_map = true;
+            furi_mutex_release(g->mutex);
+            view_port_update(view_port);
+            continue;
+        }
         if(event.type != InputTypeShort && event.type != InputTypeRepeat) continue;
+        if(g->show_map) {
+            if(event.type == InputTypeShort) {
+                furi_mutex_acquire(g->mutex, FuriWaitForever);
+                g->show_map = false;
+                furi_mutex_release(g->mutex);
+                view_port_update(view_port);
+            }
+            continue;
+        }
 
         furi_mutex_acquire(g->mutex, FuriWaitForever);
         g->sfx = NULL;
@@ -1311,8 +1932,16 @@ int32_t nw_crawl_app(void* p) {
         view_port_update(view_port);
         if(g->state != StateTitle) title_music_stop();
         if(sfx) notification_message(g->notifications, sfx);
+        storage_flush(g);
     }
     title_music_stop();
+
+    // Quitting mid-walk still counts towards the furthest street
+    if(g->state == StatePlaying && !g->dev_mode && g->depth > g->records.best_depth) {
+        g->records.best_depth = (uint8_t)g->depth;
+        g->want_records = true;
+        storage_flush(g);
+    }
 
     gui_remove_view_port(gui, view_port);
     view_port_free(view_port);
