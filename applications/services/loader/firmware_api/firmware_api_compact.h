@@ -39,8 +39,7 @@ struct FirmwareCompactApiTable {
 };
 
 template <size_t N>
-constexpr FirmwareCompactApiTable<N>
-    firmware_api_pack(const std::array<sym_entry, N>& entries) {
+constexpr FirmwareCompactApiTable<N> firmware_api_pack(const std::array<sym_entry, N>& entries) {
     FirmwareCompactApiTable<N> result{};
     size_t output = 0;
     for(size_t i = 0; i < N; ++i) {
@@ -74,8 +73,7 @@ inline bool firmware_api_find_symbol(
 
     // Find the last block whose first full hash does not exceed the query.
     size_t begin = 0;
-    size_t end =
-        (interface->entry_count + FirmwareApiBlockEntries - 1) / FirmwareApiBlockEntries;
+    size_t end = (interface->entry_count + FirmwareApiBlockEntries - 1) / FirmwareApiBlockEntries;
     while(begin < end) {
         const size_t middle = begin + (end - begin) / 2;
         const uint32_t first =
@@ -93,8 +91,7 @@ inline bool firmware_api_find_symbol(
     const uint8_t* encoded = interface->hashes + block * FirmwareApiBlockBytes;
     uint32_t candidate = firmware_api_read_hash(encoded);
     encoded += 4;
-    const size_t block_end =
-        std::min(entry + FirmwareApiBlockEntries, interface->entry_count);
+    const size_t block_end = std::min(entry + FirmwareApiBlockEntries, interface->entry_count);
 
     while(true) {
         if(candidate == hash) {
@@ -102,8 +99,7 @@ inline bool firmware_api_find_symbol(
             return true;
         }
         if(candidate > hash || ++entry == block_end) return false;
-        candidate += static_cast<uint32_t>(encoded[0]) |
-                     (static_cast<uint32_t>(encoded[1]) << 8) |
+        candidate += static_cast<uint32_t>(encoded[0]) | (static_cast<uint32_t>(encoded[1]) << 8) |
                      (static_cast<uint32_t>(encoded[2]) << 16);
         encoded += 3;
     }

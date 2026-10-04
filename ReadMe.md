@@ -30,7 +30,7 @@ This software is for experimental purposes only and is not meant for any illegal
 ## Latest Updates - [PATREON: Latest Release RM1003-1928-5b31e6e6-Patreon](https://www.patreon.com/RogueMaster?filters[tag]=Latest%20Release)
 
 - Last Synced/Checked OFW, changes in [commits](https://github.com/flipperdevices/flipperzero-firmware/commits/dev): `2026-10-03 19:28 EST`
-- Last Synced/Checked CFW, changes in [changelog](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/CHANGELOG.md): 
+- Last Synced/Checked CFW, changes in [changelog](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/CHANGELOG.md): `2026-10-03 19:28 EST`
 - Updated: [Maze 3D v7.2 (By k20120509)](https://github.com/k20120509/flipper-release)
 - Updated: [DFC v1.1.1 (By cindersocket)](https://github.com/cindersocket/dfc-flipper)
 - OFW: [Fixes of various valid issues found by code scan #4456 (By xMasterX)](https://github.com/flipperdevices/flipperzero-firmware/pull/4456)
@@ -128,11 +128,11 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Archive: Move the browser UI to an SD-card FAP and unload it before launching a selected app; per-app file pickers, setting favorites and desktop file associations remain in firmware. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/d538092e5d474811d4b1f7530b9c2088a2d00f89)
 - [Archive: Join browser workers before freeing their callbacks' state, copy launch/info selections under the browser lock, release MD5 results and retain mounted images safely if unmount fails. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/d538092e5d474811d4b1f7530b9c2088a2d00f89)
 - [Firmware: Apply selective LTO to compact resident CFW, Flipper Format, Toolbox and u8g2 libraries; keep separate native archives for external apps and preserve updater/debug library flags. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/cdd773a371d283212c11d8d4529578570d9398a0)
-- Updated: [T-Union Master v0.1 (By SocialSisterYi)](https://github.com/SocialSisterYi/T-Union_Master) [Namespace its private text-box setter to preserve compatibility with the Archive widget SDK export. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/)
-- [Firmware assets: Optimize icon compression and share identical immutable frame data while preserving all pixels, public icons, animation order and asset-pack overrides. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/)
-- [Firmware API: Compact the resident export lookup table without changing SDK exports, full symbol addresses or external-app API layouts. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/)
-- [Firmware: Enable selective resident mJS LTO while retaining native external-app archives and the existing updater/debug library flags. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/)
-- [Firmware build: Track linked archives explicitly so incremental firmware builds include asset changes and library LTO selections. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/)
+- Updated: [T-Union Master v0.1 (By SocialSisterYi)](https://github.com/SocialSisterYi/T-Union_Master) [Namespace its private text-box setter to preserve compatibility with the Archive widget SDK export. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/a492b0cb47e50742665748db81a52dec226e25e0)
+- [Firmware assets: Optimize icon compression and share identical immutable frame data while preserving all pixels, public icons, animation order and asset-pack overrides. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/a492b0cb47e50742665748db81a52dec226e25e0)
+- [Firmware API: Compact the resident export lookup table without changing SDK exports, full symbol addresses or external-app API layouts. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/a492b0cb47e50742665748db81a52dec226e25e0)
+- [Firmware: Enable selective resident mJS LTO while retaining native external-app archives and the existing updater/debug library flags. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/a492b0cb47e50742665748db81a52dec226e25e0)
+- [Firmware build: Track linked archives explicitly so incremental firmware builds include asset changes and library LTO selections. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/a492b0cb47e50742665748db81a52dec226e25e0)
 
 <a name="release"></a>
 

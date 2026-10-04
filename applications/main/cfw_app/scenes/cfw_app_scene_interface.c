@@ -13,6 +13,9 @@ enum VarItemListIndex {
 
 void cfw_app_scene_interface_var_item_list_callback(void* context, uint32_t index) {
     CFWApp* app = context;
+    if(cfw_settings.game_mode && index >= VarItemListIndexMainmenu) {
+        index += VarItemListIndexLockscreen - VarItemListIndexMainmenu;
+    }
     view_dispatcher_send_custom_event(app->view_dispatcher, index);
 }
 
@@ -24,11 +27,13 @@ void cfw_app_scene_interface_on_enter(void* context) {
     item = variable_item_list_add(var_item_list, "Graphics", 0, NULL, app);
     variable_item_set_current_value_text(item, ">");
 
-    item = variable_item_list_add(var_item_list, "Mainmenu", 0, NULL, app);
-    variable_item_set_current_value_text(item, ">");
+    if(!cfw_settings.game_mode) {
+        item = variable_item_list_add(var_item_list, "Mainmenu", 0, NULL, app);
+        variable_item_set_current_value_text(item, ">");
 
-    item = variable_item_list_add(var_item_list, "Game Menu", 0, NULL, app);
-    variable_item_set_current_value_text(item, ">");
+        item = variable_item_list_add(var_item_list, "Game Menu", 0, NULL, app);
+        variable_item_set_current_value_text(item, ">");
+    }
 
     item = variable_item_list_add(var_item_list, "Lockscreen", 0, NULL, app);
     variable_item_set_current_value_text(item, ">");
@@ -48,8 +53,15 @@ void cfw_app_scene_interface_on_enter(void* context) {
     variable_item_list_set_enter_callback(
         var_item_list, cfw_app_scene_interface_var_item_list_callback, app);
 
-    variable_item_list_set_selected_item(
-        var_item_list, scene_manager_get_scene_state(app->scene_manager, CFWAppSceneInterface));
+    uint32_t index = scene_manager_get_scene_state(app->scene_manager, CFWAppSceneInterface);
+    if(cfw_settings.game_mode) {
+        if(index >= VarItemListIndexLockscreen) {
+            index -= VarItemListIndexLockscreen - VarItemListIndexMainmenu;
+        } else if(index >= VarItemListIndexMainmenu) {
+            index = VarItemListIndexGraphics;
+        }
+    }
+    variable_item_list_set_selected_item(var_item_list, index);
 
     view_dispatcher_switch_to_view(app->view_dispatcher, CFWAppViewVarItemList);
 }

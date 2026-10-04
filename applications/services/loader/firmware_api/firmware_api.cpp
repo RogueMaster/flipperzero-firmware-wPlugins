@@ -17,10 +17,8 @@ static_assert(
 
 static constexpr auto firmware_compact_api_table = firmware_api_pack(elf_api_table);
 
-static bool firmware_api_resolve(
-    const ElfApiInterface* interface,
-    uint32_t hash,
-    Elf32_Addr* address) {
+static bool
+    firmware_api_resolve(const ElfApiInterface* interface, uint32_t hash, Elf32_Addr* address) {
     furi_check(interface);
     furi_check(address);
     const auto* compact_interface = static_cast<const FirmwareCompactApiInterface*>(interface);
