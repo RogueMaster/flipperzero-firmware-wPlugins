@@ -248,6 +248,15 @@ fwelf = fwenv["FW_ELF"] = fwenv.Program(
     LIBS=firmware_libraries,
 )
 Depends(fwelf, fwenv["LINKER_SCRIPT_PATH"])
+Depends(
+    fwelf,
+    [
+        env["LIB_DIST_DIR"].File(f"lib{library}.a")
+        if isinstance(library, str)
+        else library
+        for library in firmware_libraries
+    ],
+)
 
 # Firmware depends on everything child builders returned
 # Depends(fwelf, lib_targets)

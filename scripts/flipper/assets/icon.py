@@ -2,6 +2,8 @@ import logging
 import subprocess
 import io
 
+from ._heatshrink import encode_heatshrink_8_4
+
 ICONS_SUPPORTED_FORMATS = ["png"]
 
 
@@ -60,18 +62,23 @@ class ImageTools:
 
     def xbm2hs(self, data):
         if self.__hs2_unavailable:
-            return subprocess.check_output(
+            encoded = subprocess.check_output(
                 ["heatshrink", "-e", "-w8", "-l4"], input=data
             )
+        else:
+            try:
+                import heatshrink2
+            except ImportError:
+                self.__hs2_unavailable = True
+                self.logger.info(
+                    "heatshrink2 module is missing, using heatshrink cli util"
+                )
+                return self.xbm2hs(data)
+            encoded = heatshrink2.compress(data, window_sz2=8, lookahead_sz2=4)
 
-        try:
-            import heatshrink2
-        except ImportError:
-            self.__hs2_unavailable = True
-            self.logger.info("heatshrink2 module is missing, using heatshrink cli util")
-            return self.xbm2hs(data)
-
-        return heatshrink2.compress(data, window_sz2=8, lookahead_sz2=4)
+        optimal = encode_heatshrink_8_4(data)
+        # Keep the original stream on ties to avoid unnecessary asset changes.
+        return optimal if len(optimal) < len(encoded) else encoded
 
 
 __tools = ImageTools()
@@ -95,12 +102,14 @@ def file2image(file):
 
     assert data_encoded_str
 
-    data_enc = bytearray(data_encoded_str)
-    data_enc = bytearray([len(data_enc) & 0xFF, len(data_enc) >> 8]) + data_enc
-
     # Use encoded data only if its length less than original, including header
-    if len(data_enc) + 2 < len(data_bin) + 1:
-        data = b"\x01\x00" + data_enc
+    if (
+        len(data_encoded_str) <= 0xFFFF
+        and len(data_encoded_str) + 4 < len(data_bin) + 1
+    ):
+        data = (
+            b"\x01\x00" + len(data_encoded_str).to_bytes(2, "little") + data_encoded_str
+        )
     else:
         data = b"\x00" + data_bin
 

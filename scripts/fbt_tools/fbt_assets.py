@@ -8,6 +8,16 @@ from SCons.Errors import StopError
 from SCons.Node.FS import File
 
 
+def _asset_compiler_dependencies(target, env):
+    env.Depends(
+        target,
+        [
+            env.File("${ASSETS_COMPILER}"),
+            *env.GlobRecursive("*.py", env.Dir("${FBT_SCRIPT_DIR}/flipper/assets")),
+        ],
+    )
+
+
 def _icons_emitter(target, source, env):
     icons_src = env.GlobRecursive("*.png", env["ICON_SRC_DIR"])
     icons_src += env.GlobRecursive("**/frame_rate", env["ICON_SRC_DIR"])
@@ -16,6 +26,7 @@ def _icons_emitter(target, source, env):
         target[0].File(env.subst("${ICON_FILE_NAME}.c")),
         target[0].File(env.subst("${ICON_FILE_NAME}.h")),
     ]
+    _asset_compiler_dependencies(target, env)
     return target, icons_src
 
 
@@ -64,6 +75,7 @@ def _dolphin_emitter(target, source, env):
     #     f"\nsource files:",
     #     list(f.path for f in source),
     # )
+    _asset_compiler_dependencies(target, env)
     return target, source
 
 
@@ -124,6 +136,7 @@ def _packs_emitter(target, source, env):
     )
 
     target = [target_dir.File(path) for path in target]
+    _asset_compiler_dependencies(target, env)
     return target, source
 
 

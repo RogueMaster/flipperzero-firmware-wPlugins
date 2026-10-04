@@ -154,7 +154,7 @@ class Main(App):
             raise Exception(
                 f"Image {file} is too big ({image.width}x{image.height} vs. {MAX_IMAGE_WIDTH}x{MAX_IMAGE_HEIGHT})"
             )
-        return image.width, image.height, image.data_as_carray()
+        return image.width, image.height, image.data
 
     def _iconIsSupported(self, filename):
         extension = filename.lower().split(".")[-1]
@@ -172,6 +172,19 @@ class Main(App):
         )
         icons = []
         paths = []
+        frame_payloads = {}
+
+        def emit_frame(name, data):
+            # Keep Icon objects and each icon's frame-pointer array distinct.
+            # Only immutable private bitmap payloads may share storage.
+            previous = frame_payloads.get(data)
+            if previous is not None:
+                return previous
+            frame_payloads[data] = name
+            c_array = "{" + "".join(f"0x{value:02x}," for value in data) + "}"
+            icons_c.write(ICONS_TEMPLATE_C_FRAME.format(name=name, data=c_array))
+            return name
+
         symbols = pathlib.Path(__file__).parent.parent
         if "UFBT_HOME" in os.environ:
             symbols /= "sdk_headers/f7_sdk"
@@ -213,11 +226,8 @@ class Main(App):
                         height = temp_height
                     assert width == temp_width
                     assert height == temp_height
-                    frame_name = f"_{icon_name}_{frame_count}"
+                    frame_name = emit_frame(f"_{icon_name}_{frame_count}", data)
                     frame_names.append(frame_name)
-                    icons_c.write(
-                        ICONS_TEMPLATE_C_FRAME.format(name=frame_name, data=data)
-                    )
                     frame_count += 1
                 assert frame_rate > 0
                 assert frame_count > 0
@@ -248,10 +258,7 @@ class Main(App):
                         continue
                     fullfilename = os.path.join(dirpath, filename)
                     width, height, data = self._icon2header(fullfilename)
-                    frame_name = f"_{icon_name}_0"
-                    icons_c.write(
-                        ICONS_TEMPLATE_C_FRAME.format(name=frame_name, data=data)
-                    )
+                    frame_name = emit_frame(f"_{icon_name}_0", data)
                     icons_c.write(
                         ICONS_TEMPLATE_C_DATA.format(
                             name=f"_{icon_name}", data=f"{{{frame_name}}}"
