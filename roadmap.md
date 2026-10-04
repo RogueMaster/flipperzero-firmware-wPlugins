@@ -32,7 +32,7 @@ This roadmap prepares Cribbage Calc for a polished public release and eventual s
 - [x] Finalize README content: app purpose, controls, scoring scope, build instructions, release assets, and source references.
 - [x] Review `application.fam` metadata: unique app ID, display name, category, version, description, author, and project URL.
 - [x] Verify a clean `ufbt` build and `ufbt launch` against the connected device.
-- [ ] Tag or otherwise record the exact release commit and update `fap_version` for the catalog release.
+- [x] Tag and record the exact release commit for `v1.0`, and update `fap_version` for the catalog release.
 - [ ] Create the Apps Catalog `manifest.yml` using that commit SHA, add it under the correct catalog application path, validate it, and submit the catalog pull request.
 
 **Done when:** the public repository contains all required assets and metadata, the release builds on the current SDK, and the Apps Catalog pull request is ready for review.
