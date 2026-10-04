@@ -120,7 +120,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Samsung AC (Full) v1.0 (By xMasterX)](https://github.com/xMasterX/all-the-plugins/tree/213baa6e872d1db597a25d2c16e81406e9634440/non_catalog_apps/samsung_ac_remote) - Add the full implementation alongside the existing RM remote.
 - Added: [Stack Attack v1.0 (By Negenii)](https://github.com/Negenii/flipper-stack-attack)
 - Added: [Sub-GHz WarDriving v0.1 (By xMasterX)](https://github.com/xMasterX/all-the-plugins/tree/213baa6e872d1db597a25d2c16e81406e9634440/base_pack/subghz_wardriving) - Include embedded UART GPS support for NMEA/Ubox.
-- Updated: [CFW Settings v2.2 (By WillyJL, ESurge & RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/tree/420/applications/main/cfw_app) - restore the configurable Game Menu with its own menu style, starting game, add/remove/reorder controls, and reset to all installed games.
 - Desktop: [Restore the custom Game Menu on short center press in Game Mode (By ESurge & RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/pull/756)
 - Updated: [Morse Flipper v0.3.0 (By yo3gnd)](https://github.com/yo3gnd/morse-flipper)
 - Updated: [FlipDeFlock v0.98 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
@@ -133,6 +132,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Firmware API: Compact the resident export lookup table without changing SDK exports, full symbol addresses or external-app API layouts. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/a492b0cb47e50742665748db81a52dec226e25e0)
 - [Firmware: Enable selective resident mJS LTO while retaining native external-app archives and the existing updater/debug library flags. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/a492b0cb47e50742665748db81a52dec226e25e0)
 - [Firmware build: Track linked archives explicitly so incremental firmware builds include asset changes and library LTO selections. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/a492b0cb47e50742665748db81a52dec226e25e0)
+- Updated: [CFW Settings v2.2 (By WillyJL, ESurge & RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/tree/420/applications/main/cfw_app) - restore the configurable Game Menu with its own menu style, starting game, add/remove/reorder controls, and reset to all installed games. [CFW Settings now hides Main Menu and Game Menu options while Game Mode is enabled.](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/a45d5eb73a5cd220a1e06880bb2038122c76aa0a)
 
 <a name="release"></a>
 
