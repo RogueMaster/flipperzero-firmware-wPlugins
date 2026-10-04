@@ -25,6 +25,7 @@ env = ENV.Clone(
     IS_BASE_FIRMWARE=fw_build_meta["type"] == "firmware",
     FW_FLAVOR=fw_build_meta["flavor"],
     LIB_DIST_DIR=fw_build_meta["build_dir"].Dir("lib"),
+    FW_LTO_LIB_DIR=fw_build_meta["build_dir"].Dir("lib_lto"),
     RESOURCES_ROOT=fw_build_meta["build_dir"].Dir("resources"),
     TARGETS_ROOT=Dir("#/targets"),
     LINT_SOURCES=[
@@ -227,6 +228,16 @@ if ENV["COMPACT"]:
         ],
     )
 
+firmware_libraries = list(fwenv["TARGET_CFG"].linker_dependencies)
+if env["IS_BASE_FIRMWARE"] and ENV["COMPACT"] and not ENV["DEBUG"] and not ENV["LIB_DEBUG"]:
+    # Explicit nodes prevent stale LTO archives from affecting an unselected library.
+    firmware_libraries = [
+        env["FW_LTO_LIB_DIR"].Dir(name).File(f"lib{name}.a")
+        if name in ENV["FW_LIB_LTO"]
+        else name
+        for name in firmware_libraries
+    ]
+
 # Debug
 # print(fwenv.Dump())
 
@@ -234,7 +245,7 @@ if ENV["COMPACT"]:
 fwelf = fwenv["FW_ELF"] = fwenv.Program(
     "${FIRMWARE_BUILD_CFG}",
     sources,
-    LIBS=fwenv["TARGET_CFG"].linker_dependencies,
+    LIBS=firmware_libraries,
 )
 Depends(fwelf, fwenv["LINKER_SCRIPT_PATH"])
 

@@ -15,6 +15,5 @@ libenv.ApplyLibFlags()
 
 sources = libenv.GlobRecursive("*.c")
 
-lib = libenv.StaticLibrary("${FW_LIB_NAME}", sources)
-libenv.Install("${LIB_DIST_DIR}", lib)
+lib = libenv.BuildFirmwareLibrary(sources)
 Return("lib")

@@ -129,9 +129,38 @@ def ApplyLibFlags(env):
     env.MergeFlags(flags_to_apply)
 
 
+def BuildFirmwareLibrary(env, sources):
+    # Native archives retain the existing paths and flags for external FAPs/FALs.
+    library = env.StaticLibrary("${FW_LIB_NAME}", sources)
+    env.Install("${LIB_DIST_DIR}", library)
+
+    name = env["FW_LIB_NAME"]
+    if (
+        env["IS_BASE_FIRMWARE"]
+        and env["COMPACT"]
+        and not env["DEBUG"]
+        and not env["LIB_DEBUG"]
+        and name in env["FW_LIB_LTO"]
+    ):
+        ltoenv = env.Clone()
+        ltoenv.AppendUnique(CCFLAGS=["-flto", "-ffat-lto-objects"])
+        work_dir = env["FW_LTO_LIB_DIR"].Dir(name)
+        objects = [
+            ltoenv.StaticObject(
+                work_dir.File(env.File(source).get_path(env.Dir(".")) + ".o"),
+                source,
+            )
+            for source in env.Flatten(sources)
+        ]
+        ltoenv.StaticLibrary(work_dir.File(f"lib{name}.a"), objects)
+
+    return library
+
+
 def generate(env):
     env.AddMethod(ConfigureForTarget)
     env.AddMethod(ApplyLibFlags)
+    env.AddMethod(BuildFirmwareLibrary)
 
 
 def exists(env):

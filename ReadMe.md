@@ -127,6 +127,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Game Mode: Load game-menu discovery and configuration parsing from an on-demand FAL, then unload it before showing the menu; existing controls, styles and CFW Settings editing are preserved. (By RogueMaster)
 - Archive: Move the browser UI to an SD-card FAP and unload it before launching a selected app; per-app file pickers, setting favorites and desktop file associations remain in firmware. (By RogueMaster)
 - Archive: Join browser workers before freeing their callbacks' state, copy launch/info selections under the browser lock, release MD5 results and retain mounted images safely if unmount fails. (By RogueMaster)
+- Firmware: Apply selective LTO to compact resident CFW, Flipper Format, Toolbox and u8g2 libraries; keep separate native archives for external apps and preserve updater/debug library flags. (By RogueMaster)
 
 <a name="release"></a>
 
