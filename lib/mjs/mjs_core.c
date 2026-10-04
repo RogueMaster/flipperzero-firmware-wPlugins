@@ -16,6 +16,7 @@
 #include "mjs_primitive.h"
 #include "mjs_string.h"
 #include "mjs_util.h"
+#include "mjs_variadic.h"
 
 #ifndef MJS_OBJECT_ARENA_SIZE
 #define MJS_OBJECT_ARENA_SIZE 20
@@ -73,6 +74,7 @@ void mjs_destroy(struct mjs* mjs) {
 struct mjs* mjs_create(void* context) {
     mjs_val_t global_object;
     struct mjs* mjs = calloc(1, sizeof(*mjs));
+    if(!mjs) return NULL;
     mjs->context = context;
     mbuf_init(&mjs->stack, 0);
     mbuf_init(&mjs->call_stack, 0);
@@ -129,13 +131,18 @@ struct mjs* mjs_create(void* context) {
 mjs_err_t mjs_set_errorf(struct mjs* mjs, mjs_err_t err, const char* fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
+    mjs_err_t result = mjs_vset_errorf(mjs, err, fmt, ap);
+    va_end(ap);
+    return result;
+}
+
+mjs_err_t mjs_vset_errorf(struct mjs* mjs, mjs_err_t err, const char* fmt, va_list ap) {
     free(mjs->error_msg);
     mjs->error_msg = NULL;
     mjs->error = err;
     if(fmt != NULL) {
         mg_avprintf(&mjs->error_msg, 0, fmt, ap);
     }
-    va_end(ap);
     return err;
 }
 
@@ -154,10 +161,16 @@ void* mjs_get_context(struct mjs* mjs) {
 }
 
 mjs_err_t mjs_prepend_errorf(struct mjs* mjs, mjs_err_t err, const char* fmt, ...) {
-    char* old_error_msg = mjs->error_msg;
-    char* new_error_msg = NULL;
     va_list ap;
     va_start(ap, fmt);
+    mjs_err_t result = mjs_vprepend_errorf(mjs, err, fmt, ap);
+    va_end(ap);
+    return result;
+}
+
+mjs_err_t mjs_vprepend_errorf(struct mjs* mjs, mjs_err_t err, const char* fmt, va_list ap) {
+    char* old_error_msg = mjs->error_msg;
+    char* new_error_msg = NULL;
 
     /* err should never be MJS_OK here */
     assert(err != MJS_OK);
@@ -168,7 +181,6 @@ mjs_err_t mjs_prepend_errorf(struct mjs* mjs, mjs_err_t err, const char* fmt, ..
         mjs->error = err;
     }
     mg_avprintf(&new_error_msg, 0, fmt, ap);
-    va_end(ap);
 
     if(old_error_msg != NULL) {
         mg_asprintf(&mjs->error_msg, 0, "%s: %s", new_error_msg, old_error_msg);
@@ -233,43 +245,6 @@ const char* mjs_get_stack_trace(struct mjs* mjs) {
 
 MJS_PRIVATE size_t mjs_get_func_addr(mjs_val_t v) {
     return v & ~MJS_TAG_MASK;
-}
-
-MJS_PRIVATE enum mjs_type mjs_get_type(mjs_val_t v) {
-    int tag;
-    if(mjs_is_number(v)) {
-        return MJS_TYPE_NUMBER;
-    }
-    tag = (v & MJS_TAG_MASK) >> 48;
-    switch(tag) {
-    case MJS_TAG_FOREIGN >> 48:
-        return MJS_TYPE_FOREIGN;
-    case MJS_TAG_UNDEFINED >> 48:
-        return MJS_TYPE_UNDEFINED;
-    case MJS_TAG_OBJECT >> 48:
-        return MJS_TYPE_OBJECT_GENERIC;
-    case MJS_TAG_ARRAY >> 48:
-        return MJS_TYPE_OBJECT_ARRAY;
-    case MJS_TAG_FUNCTION >> 48:
-        return MJS_TYPE_OBJECT_FUNCTION;
-    case MJS_TAG_STRING_I >> 48:
-    case MJS_TAG_STRING_O >> 48:
-    case MJS_TAG_STRING_F >> 48:
-    case MJS_TAG_STRING_D >> 48:
-    case MJS_TAG_STRING_5 >> 48:
-        return MJS_TYPE_STRING;
-    case MJS_TAG_BOOLEAN >> 48:
-        return MJS_TYPE_BOOLEAN;
-    case MJS_TAG_NULL >> 48:
-        return MJS_TYPE_NULL;
-    case MJS_TAG_ARRAY_BUF >> 48:
-        return MJS_TYPE_ARRAY_BUF;
-    case MJS_TAG_ARRAY_BUF_VIEW >> 48:
-        return MJS_TYPE_ARRAY_BUF_VIEW;
-    default:
-        abort();
-        return MJS_TYPE_UNDEFINED;
-    }
 }
 
 mjs_val_t mjs_get_global(struct mjs* mjs) {

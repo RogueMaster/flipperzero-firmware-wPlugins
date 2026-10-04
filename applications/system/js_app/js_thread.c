@@ -240,6 +240,16 @@ static int32_t js_thread(void* arg) {
     composite_api_resolver_add(worker->resolver, application_api_interface);
 
     struct mjs* mjs = mjs_create(worker);
+    if(!mjs) {
+        if(worker->app_callback) {
+            worker->app_callback(
+                JsThreadEventError,
+                "mJS engine unavailable; check SD resources and free memory",
+                worker->context);
+        }
+        composite_api_resolver_free(worker->resolver);
+        return 0;
+    }
     worker->modules = js_modules_create(mjs, worker->resolver);
     mjs_val_t global = mjs_get_global(mjs);
     mjs_val_t console_obj = mjs_mk_object(mjs);

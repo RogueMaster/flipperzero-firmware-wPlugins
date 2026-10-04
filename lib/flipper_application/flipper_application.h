@@ -30,6 +30,7 @@ typedef enum {
     FlipperApplicationLoadStatusSuccess = 0,
     FlipperApplicationLoadStatusUnspecifiedError,
     FlipperApplicationLoadStatusMissingImports,
+    FlipperApplicationLoadStatusMissingRuntime,
 } FlipperApplicationLoadStatus;
 
 /** Get text description of preload status

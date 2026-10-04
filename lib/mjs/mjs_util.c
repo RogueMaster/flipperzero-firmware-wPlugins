@@ -17,39 +17,6 @@
 #include "mjs_array_buf.h"
 #include <furi.h>
 
-const char* mjs_typeof(mjs_val_t v) {
-    return mjs_stringify_type(mjs_get_type(v));
-}
-
-MJS_PRIVATE const char* mjs_stringify_type(enum mjs_type t) {
-    switch(t) {
-    case MJS_TYPE_NUMBER:
-        return "number";
-    case MJS_TYPE_BOOLEAN:
-        return "boolean";
-    case MJS_TYPE_STRING:
-        return "string";
-    case MJS_TYPE_OBJECT_ARRAY:
-        return "array";
-    case MJS_TYPE_OBJECT_GENERIC:
-        return "object";
-    case MJS_TYPE_FOREIGN:
-        return "foreign_ptr";
-    case MJS_TYPE_OBJECT_FUNCTION:
-        return "function";
-    case MJS_TYPE_NULL:
-        return "null";
-    case MJS_TYPE_UNDEFINED:
-        return "undefined";
-    case MJS_TYPE_ARRAY_BUF:
-        return "array_buf";
-    case MJS_TYPE_ARRAY_BUF_VIEW:
-        return "data_view";
-    default:
-        return "???";
-    }
-}
-
 void mjs_jprintf(mjs_val_t v, struct mjs* mjs, struct json_out* out) {
     if(mjs_is_number(v)) {
         double iv, d = mjs_get_double(mjs, v);

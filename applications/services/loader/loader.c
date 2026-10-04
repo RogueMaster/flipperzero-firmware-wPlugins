@@ -80,6 +80,8 @@ static const LoaderError err_invalid_manifest =
     {"Invalid Manifest", "Update firmware or app", "err_03", &I_err_03};
 static const LoaderError err_missing_imports =
     {"Missing Imports", "Update app or firmware", "err_04", &I_err_04};
+static const LoaderError err_missing_runtime =
+    {"mJS Unavailable", "Check SD resources\nand free memory\n(mjs_engine.fal)", NULL, &I_err_04};
 static const LoaderError err_hw_target_mismatch =
     {"HW Target\nMismatch", "App not supported", "err_05", &I_err_05};
 static const LoaderError err_outdated_app = {"Outdated App", "Update the app", "err_06", &I_err_06};
@@ -88,8 +90,10 @@ static const LoaderError err_outdated_firmware =
 
 static void loader_dialog_prepare_and_show(DialogsApp* dialogs, const LoaderError* err) {
     FuriString* header = furi_string_alloc_printf("Error: %s", err->error);
-    FuriString* text =
-        furi_string_alloc_printf("%s\nLearn more:\nr.flipper.net/%s", err->description, err->url);
+    FuriString* text = err->url ?
+                           furi_string_alloc_printf(
+                               "%s\nLearn more:\nr.flipper.net/%s", err->description, err->url) :
+                           furi_string_alloc_set(err->description);
     DialogMessage* message = dialog_message_alloc();
 
     dialog_message_set_header(message, furi_string_get_cstr(header), 64, 0, AlignCenter, AlignTop);
@@ -142,6 +146,9 @@ static void loader_show_gui_error(
             break;
         case LoaderStatusErrorMissingImports:
             loader_dialog_prepare_and_show(dialogs, &err_missing_imports);
+            break;
+        case LoaderStatusErrorMissingRuntime:
+            loader_dialog_prepare_and_show(dialogs, &err_missing_runtime);
             break;
         case LoaderStatusErrorHWMismatch:
             loader_dialog_prepare_and_show(dialogs, &err_hw_target_mismatch);
@@ -590,6 +597,8 @@ static LoaderStatusError
     switch(status) {
     case FlipperApplicationLoadStatusMissingImports:
         return LoaderStatusErrorMissingImports;
+    case FlipperApplicationLoadStatusMissingRuntime:
+        return LoaderStatusErrorMissingRuntime;
     default:
         return LoaderStatusErrorUnknown;
     }

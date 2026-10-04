@@ -10,6 +10,7 @@
 #include "mjs_bcode.h"
 #include "mjs_core.h"
 #include "mjs_exec.h"
+#include "mjs_variadic.h"
 #include "mjs_internal.h"
 #include "mjs_object.h"
 #include "mjs_parser.h"
@@ -1198,14 +1199,25 @@ clean:
 mjs_err_t
     mjs_call(struct mjs* mjs, mjs_val_t* res, mjs_val_t func, mjs_val_t this_val, int nargs, ...) {
     va_list ap;
+    va_start(ap, nargs);
+    mjs_err_t result = mjs_vcall(mjs, res, func, this_val, nargs, ap);
+    va_end(ap);
+    return result;
+}
+
+mjs_err_t mjs_vcall(
+    struct mjs* mjs,
+    mjs_val_t* res,
+    mjs_val_t func,
+    mjs_val_t this_val,
+    int nargs,
+    va_list ap) {
     int i;
     mjs_err_t ret;
     mjs_val_t* args = calloc(nargs, sizeof(mjs_val_t));
-    va_start(ap, nargs);
     for(i = 0; i < nargs; i++) {
         args[i] = va_arg(ap, mjs_val_t);
     }
-    va_end(ap);
 
     ret = mjs_apply(mjs, res, func, this_val, nargs, args);
 

@@ -55,15 +55,6 @@ mjs_val_t mjs_mk_object(struct mjs* mjs) {
     return mjs_object_to_value(o);
 }
 
-int mjs_is_object(mjs_val_t v) {
-    return (v & MJS_TAG_MASK) == MJS_TAG_OBJECT || (v & MJS_TAG_MASK) == MJS_TAG_ARRAY;
-}
-
-int mjs_is_object_based(mjs_val_t v) {
-    return ((v & MJS_TAG_MASK) == MJS_TAG_OBJECT) || ((v & MJS_TAG_MASK) == MJS_TAG_ARRAY) ||
-           ((v & MJS_TAG_MASK) == MJS_TAG_ARRAY_BUF_VIEW);
-}
-
 MJS_PRIVATE struct mjs_property*
     mjs_get_own_property(struct mjs* mjs, mjs_val_t obj, const char* name, size_t len) {
     struct mjs_property* p;

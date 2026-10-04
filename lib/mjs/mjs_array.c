@@ -38,10 +38,6 @@ mjs_val_t mjs_mk_array(struct mjs* mjs) {
     return ret;
 }
 
-int mjs_is_array(mjs_val_t v) {
-    return (v & MJS_TAG_MASK) == MJS_TAG_ARRAY;
-}
-
 mjs_val_t mjs_array_get(struct mjs* mjs, mjs_val_t arr, unsigned long index) {
     return mjs_array_get2(mjs, arr, index, NULL);
 }

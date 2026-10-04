@@ -92,6 +92,7 @@ typedef enum {
     LoaderStatusErrorOutdatedApp,
     LoaderStatusErrorOutOfMemory,
     LoaderStatusErrorOutdatedFirmware,
+    LoaderStatusErrorMissingRuntime,
 } LoaderStatusError;
 
 typedef struct {

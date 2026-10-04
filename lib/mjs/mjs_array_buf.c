@@ -16,19 +16,6 @@
 #define IS_SIGNED(type) \
     (type == MJS_DATAVIEW_I8 || type == MJS_DATAVIEW_I16 || type == MJS_DATAVIEW_I32)
 
-int mjs_is_array_buf(mjs_val_t v) {
-    return (v & MJS_TAG_MASK) == MJS_TAG_ARRAY_BUF;
-}
-
-int mjs_is_data_view(mjs_val_t v) {
-    return (v & MJS_TAG_MASK) == MJS_TAG_ARRAY_BUF_VIEW;
-}
-
-int mjs_is_typed_array(mjs_val_t v) {
-    return ((v & MJS_TAG_MASK) == MJS_TAG_ARRAY_BUF) ||
-           ((v & MJS_TAG_MASK) == MJS_TAG_ARRAY_BUF_VIEW);
-}
-
 char* mjs_array_buf_get_ptr(struct mjs* mjs, mjs_val_t buf, size_t* bytelen) {
     struct mbuf* m = &mjs->array_buffers;
     size_t offset = buf & ~MJS_TAG_MASK;

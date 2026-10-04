@@ -229,11 +229,16 @@ if ENV["COMPACT"]:
     )
 
 firmware_libraries = list(fwenv["TARGET_CFG"].linker_dependencies)
+if env["IS_BASE_FIRMWARE"]:
+    # The loader's native archive also references the import-lifetime bridge,
+    # so place it after the loader when resolving static archive dependencies.
+    firmware_libraries = [name for name in firmware_libraries if name != "mjs"]
+    firmware_libraries.append("mjs_fal")
 if env["IS_BASE_FIRMWARE"] and ENV["COMPACT"] and not ENV["DEBUG"] and not ENV["LIB_DEBUG"]:
     # Explicit nodes prevent stale LTO archives from affecting an unselected library.
     firmware_libraries = [
         env["FW_LTO_LIB_DIR"].Dir(name).File(f"lib{name}.a")
-        if name in ENV["FW_LIB_LTO"]
+        if ("mjs" if name == "mjs_fal" else name) in ENV["FW_LIB_LTO"]
         else name
         for name in firmware_libraries
     ]

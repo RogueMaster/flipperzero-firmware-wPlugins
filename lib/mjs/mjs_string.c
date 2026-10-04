@@ -38,12 +38,6 @@ MJS_PRIVATE void embed_string(
 /* TODO(lsm): NaN payload location depends on endianness, make crossplatform */
 #define GET_VAL_NAN_PAYLOAD(v) ((char*)&(v))
 
-int mjs_is_string(mjs_val_t v) {
-    uint64_t t = v & MJS_TAG_MASK;
-    return t == MJS_TAG_STRING_I || t == MJS_TAG_STRING_F || t == MJS_TAG_STRING_O ||
-           t == MJS_TAG_STRING_5 || t == MJS_TAG_STRING_D;
-}
-
 mjs_val_t mjs_mk_string(struct mjs* mjs, const char* p, size_t len, int copy) {
     struct mbuf* m;
     mjs_val_t offset, tag = MJS_TAG_STRING_F;

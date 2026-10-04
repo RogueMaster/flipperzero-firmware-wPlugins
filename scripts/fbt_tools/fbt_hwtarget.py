@@ -140,7 +140,7 @@ def BuildFirmwareLibrary(env, sources):
         and env["COMPACT"]
         and not env["DEBUG"]
         and not env["LIB_DEBUG"]
-        and name in env["FW_LIB_LTO"]
+        and env.get("FW_LIB_LTO_NAME", name) in env["FW_LIB_LTO"]
     ):
         ltoenv = env.Clone()
         ltoenv.AppendUnique(CCFLAGS=["-flto", "-ffat-lto-objects"])

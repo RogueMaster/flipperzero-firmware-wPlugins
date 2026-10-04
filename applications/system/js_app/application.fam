@@ -43,6 +43,16 @@ App(
 )
 
 App(
+    appid="mjs_engine",
+    apptype=FlipperAppType.PLUGIN,
+    targets=["f7"],
+    entry_point="mjs_engine_ep",
+    requires=["js_app"],
+    sources=["mjs_engine.c"],
+    fap_libs=["mjs", "m", "gcc"],
+)
+
+App(
     appid="js_event_loop",
     apptype=FlipperAppType.PLUGIN,
     entry_point="js_event_loop_ep",

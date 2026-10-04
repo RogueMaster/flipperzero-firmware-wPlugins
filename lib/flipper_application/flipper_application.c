@@ -4,6 +4,9 @@
 #include "application_assets.h"
 #include <loader/firmware_api/firmware_api.h>
 #include <storage/storage_processing.h>
+#ifndef FURI_RAM_EXEC
+#include <mjs/fal/mjs_fal_imports.h>
+#endif
 
 #include <m-list.h>
 
@@ -13,6 +16,9 @@ struct FlipperApplication {
     ELFDebugInfo state;
     FlipperApplicationManifest manifest;
     ELFFile* elf;
+#ifndef FURI_RAM_EXEC
+    MjsFalImports mjs_imports;
+#endif
     FuriThread* thread;
     void* ep_thread_args;
 
@@ -61,6 +67,10 @@ FlipperApplication*
     furi_check(api_interface);
 
     FlipperApplication* app = malloc(sizeof(FlipperApplication));
+#ifndef FURI_RAM_EXEC
+    mjs_fal_imports_init(&app->mjs_imports, api_interface);
+    api_interface = &app->mjs_imports.api;
+#endif
     app->elf = elf_file_alloc(storage, api_interface);
     app->thread = NULL;
     app->ep_thread_args = NULL;
@@ -94,6 +104,10 @@ void flipper_application_free(FlipperApplication* app) {
     }
 
     elf_file_free(app->elf);
+#ifndef FURI_RAM_EXEC
+    /* Keep the engine available through ELF destructors and module cleanup. */
+    mjs_fal_imports_release(&app->mjs_imports);
+#endif
 
     if(app->ep_thread_args) {
         free(app->ep_thread_args);
@@ -259,6 +273,9 @@ FlipperApplicationLoadStatus flipper_application_map_to_memory(FlipperApplicatio
     furi_check(app);
 
     ELFFileLoadStatus status = elf_file_load_sections(app->elf);
+#ifndef FURI_RAM_EXEC
+    if(app->mjs_imports.failed) return FlipperApplicationLoadStatusMissingRuntime;
+#endif
 
     switch(status) {
     case ELFFileLoadStatusSuccess:
@@ -342,6 +359,8 @@ const char* flipper_application_load_status_to_string(FlipperApplicationLoadStat
         return "Unknown error";
     case FlipperApplicationLoadStatusMissingImports:
         return "Update Application or Firmware to compatible versions (MissingImports)";
+    case FlipperApplicationLoadStatusMissingRuntime:
+        return "mJS engine unavailable. Check matching SD resources (mjs_engine.fal) and free memory";
     }
 
     return "Unknown error";
