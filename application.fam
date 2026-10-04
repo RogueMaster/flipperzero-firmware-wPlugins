@@ -8,7 +8,7 @@ App(
     fap_category="Tools",
     fap_icon="icon.png",
     fap_file_assets="assets",
-    fap_author="Zack",
+    fap_author="rseufert",
     fap_weburl="https://github.com/rseufert/hanzi_cards",
     fap_version="0.3",
     fap_description="Mandarin flashcards: HSK 1-3, simplified or traditional, pinyin and tone sounds",
