@@ -26,12 +26,12 @@ This roadmap prepares Cribbage Calc for a polished public release and eventual s
 ## 3. Apps Catalog Preparation
 
 - [x] Choose and add an OSI-approved open-source `LICENSE` that permits binary distribution by the catalog.
-- [ ] Create a 10×10, 1-bit PNG app icon and reference it with `fap_icon` in `application.fam`.
+- [x] Create a 10×10, 1-bit PNG app icon and reference it with `fap_icon` in `application.fam`.
 - [ ] Capture unmodified qFlipper screenshots of the polished app; include a welcome/entry screen and results screen.
-- [ ] Add `changelog.md` with an initial `v0.1` entry; keep it updated for every catalog submission.
-- [ ] Finalize README content: app purpose, controls, scoring scope, build instructions, and source references.
-- [ ] Review `application.fam` metadata: unique app ID, display name, category, version, description, author, and project URL.
-- [ ] Verify a clean `ufbt` build and `ufbt launch` against current Release or Release Candidate firmware.
+- [x] Add `changelog.md` with an initial `v1.0` entry; keep it updated for every catalog submission.
+- [x] Finalize README content: app purpose, controls, scoring scope, build instructions, release assets, and source references.
+- [x] Review `application.fam` metadata: unique app ID, display name, category, version, description, author, and project URL.
+- [x] Verify a clean `ufbt` build and `ufbt launch` against the connected device.
 - [ ] Tag or otherwise record the exact release commit and update `fap_version` for the catalog release.
 - [ ] Create the Apps Catalog `manifest.yml` using that commit SHA, add it under the correct catalog application path, validate it, and submit the catalog pull request.
 

@@ -35,6 +35,10 @@ Run pure scoring tests on the host with:
 make test
 ```
 
+## Release files
+
+Catalog-facing release notes are in [docs/changelog.md](docs/changelog.md), and the catalog description is kept separately in [docs/description.md](docs/description.md) so it contains only the Markdown supported by the Flipper Apps Catalog. The required 10×10 1-bit app icon is [icon.png](icon.png).
+
 ## References
 
 - [Flipper App Development documentation](https://developer.flipper.net/flipperzero/doxygen/applications.html)

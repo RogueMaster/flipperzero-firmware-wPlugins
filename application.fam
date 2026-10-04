@@ -5,7 +5,10 @@ App(
     entry_point="cribbage_calc_app",
     stack_size=2 * 1024,
     fap_category="Games",
-    fap_description="Calculate cribbage hand and crib scores",
-    fap_version="0.1",
+    fap_description="Quickly count a cribbage hand or crib",
+    fap_version="1.0",
+    fap_author="Dylan Christiansen",
+    fap_weburl="https://github.com/dchristiansen/cribCalc",
+    fap_icon="icon.png",
     sources=["*.c", "!tests"],
 )
