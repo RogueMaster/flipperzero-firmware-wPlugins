@@ -124,10 +124,10 @@ This software is for experimental purposes only and is not meant for any illegal
 - Desktop: [Restore the custom Game Menu on short center press in Game Mode (By ESurge & RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/pull/756)
 - Updated: [Morse Flipper v0.3.0 (By yo3gnd)](https://github.com/yo3gnd/morse-flipper)
 - Updated: [FlipDeFlock v0.98 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
-- Game Mode: Load game-menu discovery and configuration parsing from an on-demand FAL, then unload it before showing the menu; existing controls, styles and CFW Settings editing are preserved. (By RogueMaster)
-- Archive: Move the browser UI to an SD-card FAP and unload it before launching a selected app; per-app file pickers, setting favorites and desktop file associations remain in firmware. (By RogueMaster)
-- Archive: Join browser workers before freeing their callbacks' state, copy launch/info selections under the browser lock, release MD5 results and retain mounted images safely if unmount fails. (By RogueMaster)
-- Firmware: Apply selective LTO to compact resident CFW, Flipper Format, Toolbox and u8g2 libraries; keep separate native archives for external apps and preserve updater/debug library flags. (By RogueMaster)
+- [Game Mode: Load game-menu discovery and configuration parsing from an on-demand FAL, then unload it before showing the menu; existing controls, styles and CFW Settings editing are preserved. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/d538092e5d474811d4b1f7530b9c2088a2d00f89)
+- [Archive: Move the browser UI to an SD-card FAP and unload it before launching a selected app; per-app file pickers, setting favorites and desktop file associations remain in firmware. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/d538092e5d474811d4b1f7530b9c2088a2d00f89)
+- [Archive: Join browser workers before freeing their callbacks' state, copy launch/info selections under the browser lock, release MD5 results and retain mounted images safely if unmount fails. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/d538092e5d474811d4b1f7530b9c2088a2d00f89)
+- [Firmware: Apply selective LTO to compact resident CFW, Flipper Format, Toolbox and u8g2 libraries; keep separate native archives for external apps and preserve updater/debug library flags. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/cdd773a371d283212c11d8d4529578570d9398a0)
 
 <a name="release"></a>
 
