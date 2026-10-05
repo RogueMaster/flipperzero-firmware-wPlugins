@@ -1,8 +1,7 @@
-v0.3:
-Added HSK 3 deck
+v0.4:
+- Tone quiz mode: pick each syllable's tone with the D-pad
+- Reviews are now spaced over days using the clock, with a daily limit on new cards
+- Stats screen with due cards, reviews today and day streak
+- Browse mode to page through a whole deck
+- Added HSK 4 (601 words) and Numbers, Food, Travel and Measure word decks
 
-v0.2:
-Added HSK 2 deck, traditional characters and four-character words
-
-v0.1:
-First release with HSK 1 deck
