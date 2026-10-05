@@ -18,8 +18,7 @@ typedef struct {
 } DndFeatureReader;
 
 static void dndinitiative_feature_recharge_path(char* out, size_t size, uint32_t profile) {
-    snprintf(
-        out, size, "%s/feats_%lu.txt", POCKET_D20_CHARACTER_DATA_ROOT, (unsigned long)profile);
+    snprintf(out, size, "%s/feats_%lu.txt", DND_CHARACTER_DATA_ROOT, (unsigned long)profile);
 }
 
 static void dndinitiative_feature_recharge_work_path(
@@ -28,12 +27,7 @@ static void dndinitiative_feature_recharge_work_path(
     uint32_t profile,
     const char* suffix) {
     snprintf(
-        out,
-        size,
-        "%s/feats_%lu.%s",
-        POCKET_D20_CHARACTER_DATA_ROOT,
-        (unsigned long)profile,
-        suffix);
+        out, size, "%s/feats_%lu.%s", DND_CHARACTER_DATA_ROOT, (unsigned long)profile, suffix);
 }
 
 static void dndinitiative_feature_recharge_reader_init(DndFeatureReader* reader, File* file) {

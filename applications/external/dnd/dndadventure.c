@@ -4,6 +4,7 @@
 #include "dnd_fs.h"
 #include "dnd_profile_handoff.h"
 #include "dnd_profile_projection.h"
+#include "dnd_settings.h"
 #include "dnd_rules.h"
 #include "dndadventure_item_reward.h"
 #include "dnd_storage.h"
@@ -30,22 +31,22 @@
 #define ADVENTURE_FULL_TEXT_WIDTH  26U
 
 typedef struct {
-    char label[POCKET_D20_NAME_LEN];
+    char label[DND_NAME_LEN];
     int8_t skill;
     uint8_t dc;
-    char success_scene[POCKET_D20_SHORT_LEN];
-    char failure_scene[POCKET_D20_SHORT_LEN];
-    char reward_item[POCKET_D20_NAME_LEN];
-    char milestone[POCKET_D20_NAME_LEN];
+    char success_scene[DND_SHORT_LEN];
+    char failure_scene[DND_SHORT_LEN];
+    char reward_item[DND_NAME_LEN];
+    char milestone[DND_NAME_LEN];
     uint8_t quest_flag;
     uint8_t achievement;
 } DndAdventureChoice;
 
 typedef struct {
-    char id[POCKET_D20_SHORT_LEN];
-    char title[POCKET_D20_NAME_LEN];
-    char body[POCKET_D20_DETAIL_LEN];
-    char sprite[POCKET_D20_SHORT_LEN];
+    char id[DND_SHORT_LEN];
+    char title[DND_NAME_LEN];
+    char body[DND_DETAIL_LEN];
+    char sprite[DND_SHORT_LEN];
     uint8_t choice_count;
     DndAdventureChoice choices[ADVENTURE_MAX_CHOICES];
 } DndAdventureScene;
@@ -61,6 +62,7 @@ typedef enum {
     DndAdventureScreenCampaigns,
     DndAdventureScreenAdventure,
     DndAdventureScreenResult,
+    DndAdventureScreenRewardPreview,
     DndAdventureScreenFullText,
     DndAdventureScreenRestartConfirm,
 } DndAdventureScreen;
@@ -72,6 +74,7 @@ typedef struct {
     View* view;
 
     DndAdventureProfileProjection character;
+    DndSettings settings;
     uint32_t profile;
     uint8_t character_loaded;
     uint8_t return_to_dnd;
@@ -83,8 +86,8 @@ typedef struct {
 
     uint16_t campaign_count;
     char campaign_rows[5][27];
-    PocketCampaignSummary active_campaign;
-    PocketCampaignProgress progress;
+    DndAdventureCampaignSummary active_campaign;
+    DndAdventureCampaignProgress progress;
     uint8_t active_campaign_valid;
     DndAdventureScene* scene;
     uint8_t adventure_started;
@@ -96,6 +99,8 @@ typedef struct {
     uint8_t last_natural;
     uint8_t last_dc;
     uint8_t last_passed;
+    DndAdventureChoice pending_choice;
+    uint8_t pending_choice_valid;
 } DndAdventureApp;
 
 static void dndadventure_copy(char* destination, size_t size, const char* source) {
@@ -111,7 +116,7 @@ static void dndadventure_set_status(DndAdventureApp* app, const char* status) {
 static uint8_t dndadventure_character_level(const DndAdventureProfileProjection* character) {
     uint16_t total = 0U;
     if(character) {
-        for(uint8_t i = 0U; i < character->class_count && i < POCKET_D20_MAX_CLASSES; ++i)
+        for(uint8_t i = 0U; i < character->class_count && i < DND_MAX_CLASSES; ++i)
             total += character->class_levels[i];
     }
     if(total < 1U) return 1U;
@@ -120,14 +125,14 @@ static uint8_t dndadventure_character_level(const DndAdventureProfileProjection*
 
 static int8_t
     dndadventure_skill_modifier(const DndAdventureProfileProjection* character, uint8_t skill) {
-    if(!character || skill >= POCKET_D20_SKILL_COUNT) return 0;
+    if(!character || skill >= DND_SKILL_COUNT) return 0;
     uint8_t ability = dnd_rules_core_skill_abilities[skill];
     int16_t total = dnd_rules_core_ability_modifier(character->ability_scores[ability]) +
                     character->skill_misc[skill];
     uint8_t pb = (uint8_t)(2U + (dndadventure_character_level(character) - 1U) / 4U);
-    if(character->skill_proficiency[skill] == PocketProficiencyProficient)
+    if(character->skill_proficiency[skill] == DndProficiencyProficient)
         total += pb;
-    else if(character->skill_proficiency[skill] == PocketProficiencyExpertise)
+    else if(character->skill_proficiency[skill] == DndProficiencyExpertise)
         total += pb * 2U;
     if(total < -128) total = -128;
     if(total > 127) total = 127;
@@ -247,7 +252,7 @@ static bool dndadventure_load_scene(DndAdventureApp* app) {
         dndadventure_set_status(app, "Adventure memory low");
         return false;
     }
-    char path[POCKET_D20_LONG_PATH_LEN];
+    char path[DND_FS_LONG_PATH_LEN];
     if(!dndadventure_campaigns_scene_path(
            app->storage, &app->active_campaign, path, sizeof(path))) {
         free(scene);
@@ -292,8 +297,8 @@ static bool dndadventure_save_progress(DndAdventureApp* app) {
 
 static bool dndadventure_resolve_active(DndAdventureApp* app) {
     if(app->active_campaign_valid) return true;
-    char active_id[POCKET_CAMPAIGN_ID_LEN];
-    PocketCampaignSummary campaign;
+    char active_id[DNDADVENTURE_CAMPAIGN_ID_LEN];
+    DndAdventureCampaignSummary campaign;
     bool loaded = app->character_loaded &&
                   dndadventure_campaigns_active_load(
                       app->storage, app->profile, active_id, sizeof(active_id));
@@ -314,14 +319,14 @@ static bool dndadventure_resolve_active(DndAdventureApp* app) {
 }
 
 static bool dndadventure_select_campaign(DndAdventureApp* app, uint16_t index) {
-    PocketCampaignSummary next;
+    DndAdventureCampaignSummary next;
     if(!dndadventure_campaigns_at(app->storage, index, &next)) {
         dndadventure_set_status(app, "Campaign record invalid");
         return false;
     }
-    if(next.pack_version != POCKET_CAMPAIGN_PACK_VERSION ||
-       next.minimum_app > POCKET_CAMPAIGN_APP_VERSION ||
-       (next.maximum_app && next.maximum_app < POCKET_CAMPAIGN_APP_VERSION)) {
+    if(next.pack_version != DNDADVENTURE_PACK_VERSION ||
+       next.minimum_app > DNDADVENTURE_APP_VERSION ||
+       (next.maximum_app && next.maximum_app < DNDADVENTURE_APP_VERSION)) {
         dndadventure_set_status(app, "Campaign incompatible");
         return false;
     }
@@ -348,11 +353,11 @@ static bool dndadventure_select_campaign(DndAdventureApp* app, uint16_t index) {
     return true;
 }
 
-static void dndadventure_reward_item(DndAdventureApp* app, const char* name) {
-    if(!app->character_loaded || !name || !name[0] || !strcmp(name, "-")) return;
-    if(!dndadventure_item_reward_grant_reward(
-           app->storage, app->profile, &app->character, name, "Adventure reward"))
-        dndadventure_set_status(app, "Item reward save failed");
+static bool dndadventure_reward_item(DndAdventureApp* app, const char* name) {
+    if(!name || !name[0] || !strcmp(name, "-")) return true;
+    if(!app->character_loaded) return false;
+    return dndadventure_item_reward_grant_reward(
+        app->storage, app->profile, &app->character, name, "Adventure reward");
 }
 
 static bool dndadventure_journal_write_string(File* file, const char* key, const char* value) {
@@ -393,17 +398,19 @@ static bool dndadventure_writef(File* file, const char* format, ...) {
            storage_file_write(file, line, (size_t)length) == (size_t)length;
 }
 
-static bool dndadventure_write_milestone_journal(DndAdventureApp* app, const char* milestone) {
+static bool dndadventure_write_milestone_journal(
+    DndAdventureApp* app,
+    const char* milestone,
+    char* created_path,
+    size_t created_path_size) {
+    if(created_path && created_path_size) created_path[0] = '\0';
     if(!milestone || !milestone[0] || !strcmp(milestone, "-")) return true;
     if(!app->character_loaded) return true;
     char directory[ADVENTURE_JOURNAL_PATH_LEN];
     int directory_length = snprintf(
-        directory,
-        sizeof(directory),
-        POCKET_D20_JOURNAL_DATA_ROOT "/ch_%lu",
-        (unsigned long)app->profile);
+        directory, sizeof(directory), DND_JOURNAL_DATA_ROOT "/ch_%lu", (unsigned long)app->profile);
     if(directory_length <= 0 || (size_t)directory_length >= sizeof(directory)) return false;
-    storage_common_mkdir(app->storage, POCKET_D20_JOURNAL_DATA_ROOT);
+    storage_common_mkdir(app->storage, DND_JOURNAL_DATA_ROOT);
     storage_common_mkdir(app->storage, directory);
     DateTime now;
     furi_hal_rtc_get_datetime(&now);
@@ -426,14 +433,14 @@ static bool dndadventure_write_milestone_journal(DndAdventureApp* app, const cha
         if(storage_file_exists(app->storage, path)) continue;
         File* file = storage_file_alloc(app->storage);
         if(!file) return false;
-        char body[POCKET_D20_DETAIL_LEN];
+        char body[DND_DETAIL_LEN];
         snprintf(
             body,
             sizeof(body),
             "Milestone reached in %s. Use Continue active Adventure from this entry to resume.",
             app->active_campaign.name[0] ? app->active_campaign.name : "Adventure");
-        bool ok = storage_file_open(file, path, FSAM_WRITE, FSOM_CREATE_ALWAYS) &&
-                  dndadventure_writef(file, "PocketD20Journal=1\n") &&
+        bool opened = storage_file_open(file, path, FSAM_WRITE, FSOM_CREATE_ALWAYS);
+        bool ok = opened && dndadventure_writef(file, "DNDJournal=1\n") &&
                   dndadventure_writef(file, "CharacterId=%lu\n", (unsigned long)app->profile) &&
                   dndadventure_journal_write_string(file, "Title", milestone) &&
                   dndadventure_journal_write_string(file, "Body", body) &&
@@ -444,22 +451,42 @@ static bool dndadventure_write_milestone_journal(DndAdventureApp* app, const cha
                   dndadventure_writef(file, "End=OK\n") && storage_file_sync(file);
         storage_file_close(file);
         storage_file_free(file);
-        if(!ok) storage_common_remove(app->storage, path);
+        /* Only clean up a partial milestone file created by this attempt.
+           A directory or other pre-existing path collision must not be removed
+           merely because storage_file_open() failed. */
+        if(!ok && opened) (void)storage_common_remove(app->storage, path);
+        if(ok && created_path && created_path_size)
+            dndadventure_copy(created_path, created_path_size, path);
         return ok;
     }
     return false;
+}
+
+static bool dndadventure_rollback_choice(
+    DndAdventureApp* app,
+    const DndAdventureCampaignProgress* previous_progress) {
+    app->progress = *previous_progress;
+    bool scene_loaded = dndadventure_load_scene(app);
+    bool progress_saved = dndadventure_save_progress(app);
+    app->selection = 0U;
+    app->scroll = 0U;
+    return scene_loaded && progress_saved;
 }
 
 static bool dndadventure_apply_choice(DndAdventureApp* app, const DndAdventureChoice* choice) {
     uint8_t natural = 0U;
     int8_t modifier = 0;
     bool passed = true;
-    if(choice->skill >= 0 && (uint8_t)choice->skill < POCKET_D20_SKILL_COUNT) {
+    if(choice->skill >= 0 && (uint8_t)choice->skill < DND_SKILL_COUNT) {
         if(!app->character_loaded) {
             dndadventure_set_status(app, "Character not available");
             return false;
         }
         natural = (uint8_t)dnd_rules_core_roll_dice(1U, 20U);
+        if(app->settings.debug)
+            FURI_LOG_I(TAG, "Adventure d20=%u skip=%u", natural, app->settings.skip_dice_loading);
+        /* Adventure has no rolling animation; its result screen is already the
+           immediate-result behavior requested by Skip Dice Loading. */
         modifier = dndadventure_skill_modifier(&app->character, (uint8_t)choice->skill);
         app->last_natural = natural;
         app->last_modifier = modifier;
@@ -470,10 +497,7 @@ static bool dndadventure_apply_choice(DndAdventureApp* app, const DndAdventureCh
         passed = app->last_passed;
     }
 
-    uint32_t previous_quest_flags = app->progress.quest_flags;
-    uint32_t previous_achievements = app->progress.achievements;
-    char previous_scene[POCKET_D20_SHORT_LEN];
-    dndadventure_copy(previous_scene, sizeof(previous_scene), app->progress.scene);
+    DndAdventureCampaignProgress previous_progress = app->progress;
 
     bool quest_guard = choice->quest_flag < 32U;
     bool achievement_guard = choice->achievement < 32U;
@@ -494,9 +518,7 @@ static bool dndadventure_apply_choice(DndAdventureApp* app, const DndAdventureCh
     if(next[0] && strcmp(next, "-"))
         dndadventure_copy(app->progress.scene, sizeof(app->progress.scene), next);
     if(!dndadventure_load_scene(app)) {
-        app->progress.quest_flags = previous_quest_flags;
-        app->progress.achievements = previous_achievements;
-        dndadventure_copy(app->progress.scene, sizeof(app->progress.scene), previous_scene);
+        app->progress = previous_progress;
         dndadventure_load_scene(app);
         dndadventure_set_status(app, "Next scene missing");
         return false;
@@ -505,18 +527,30 @@ static bool dndadventure_apply_choice(DndAdventureApp* app, const DndAdventureCh
     app->scroll = 0U;
     bool progress_saved = dndadventure_save_progress(app);
     if(!progress_saved) {
-        app->progress.quest_flags = previous_quest_flags;
-        app->progress.achievements = previous_achievements;
-        dndadventure_copy(app->progress.scene, sizeof(app->progress.scene), previous_scene);
+        app->progress = previous_progress;
         dndadventure_load_scene(app);
         dndadventure_set_status(app, "Progress save failed");
         return false;
     } else if(grant_pending) {
-        dndadventure_reward_item(app, choice->reward_item);
+        char milestone_path[ADVENTURE_JOURNAL_PATH_LEN] = {0};
         if(milestone_present && !milestone_guarded) {
             dndadventure_set_status(app, "Milestone requires flag/achievement");
-        } else if(milestone_present && !dndadventure_write_milestone_journal(app, choice->milestone)) {
-            dndadventure_set_status(app, "Milestone set; Journal write failed");
+        } else if(
+            milestone_present &&
+            !dndadventure_write_milestone_journal(
+                app, choice->milestone, milestone_path, sizeof(milestone_path))) {
+            bool rolled_back = dndadventure_rollback_choice(app, &previous_progress);
+            dndadventure_set_status(
+                app,
+                rolled_back ? "Journal write failed; retry" : "Journal/progress rollback failed");
+            return false;
+        }
+        if(!dndadventure_reward_item(app, choice->reward_item)) {
+            if(milestone_path[0]) storage_common_remove(app->storage, milestone_path);
+            bool rolled_back = dndadventure_rollback_choice(app, &previous_progress);
+            dndadventure_set_status(
+                app, rolled_back ? "Item reward failed; retry" : "Item/progress rollback failed");
+            return false;
         }
     }
     if(choice->skill >= 0)
@@ -600,7 +634,7 @@ static void dndadventure_prepare_campaign_rows(DndAdventureApp* app) {
         uint16_t index = app->scroll + visible;
         if(index >= rows) continue;
         if(index < app->campaign_count) {
-            PocketCampaignSummary campaign;
+            DndAdventureCampaignSummary campaign;
             if(dndadventure_campaigns_at(app->storage, index, &campaign)) {
                 const char* label = campaign.name[0] ? campaign.name : campaign.id;
                 snprintf(
@@ -680,10 +714,54 @@ static void dndadventure_draw_scene(Canvas* canvas, DndAdventureApp* app) {
     }
 }
 
+static bool dndadventure_choice_has_reward_preview(const DndAdventureChoice* choice) {
+    if(!choice) return false;
+    return (choice->reward_item[0] && strcmp(choice->reward_item, "-")) ||
+           (choice->milestone[0] && strcmp(choice->milestone, "-")) || choice->quest_flag < 32U ||
+           choice->achievement < 32U;
+}
+
+static void dndadventure_draw_reward_preview(Canvas* canvas, DndAdventureApp* app) {
+    dndadventure_draw_header(canvas, app, "Reward Preview", NULL);
+    if(!app->pending_choice_valid) {
+        dndadventure_draw_row(canvas, 0U, false, "No pending choice");
+        return;
+    }
+    const DndAdventureChoice* choice = &app->pending_choice;
+    char row[48];
+    uint8_t line = 0U;
+    if(choice->reward_item[0] && strcmp(choice->reward_item, "-") && line < 3U) {
+        snprintf(row, sizeof(row), "Item: %.19s", choice->reward_item);
+        dndadventure_draw_row(canvas, line++, false, row);
+    }
+    if(choice->milestone[0] && strcmp(choice->milestone, "-") && line < 3U) {
+        snprintf(row, sizeof(row), "Milestone: %.14s", choice->milestone);
+        dndadventure_draw_row(canvas, line++, false, row);
+    }
+    if(choice->quest_flag < 32U && choice->achievement < 32U && line < 3U) {
+        snprintf(
+            row,
+            sizeof(row),
+            "State: Quest %u, Ach %u",
+            (unsigned)choice->quest_flag,
+            (unsigned)choice->achievement);
+        dndadventure_draw_row(canvas, line++, false, row);
+    } else if(choice->quest_flag < 32U && line < 3U) {
+        snprintf(row, sizeof(row), "Quest flag: %u", (unsigned)choice->quest_flag);
+        dndadventure_draw_row(canvas, line++, false, row);
+    } else if(choice->achievement < 32U && line < 3U) {
+        snprintf(row, sizeof(row), "Achievement: %u", (unsigned)choice->achievement);
+        dndadventure_draw_row(canvas, line++, false, row);
+    }
+    if(!line) dndadventure_draw_row(canvas, line++, false, "No character reward");
+    dndadventure_draw_row(canvas, 3U, app->selection == 0U, "Apply Choice");
+    dndadventure_draw_row(canvas, 4U, app->selection == 1U, "Cancel");
+}
+
 static void dndadventure_draw_result(Canvas* canvas, DndAdventureApp* app) {
     dndadventure_draw_header(canvas, app, "Adventure Roll Result", NULL);
     char row[48];
-    if(app->last_skill >= 0 && (uint8_t)app->last_skill < POCKET_D20_SKILL_COUNT)
+    if(app->last_skill >= 0 && (uint8_t)app->last_skill < DND_SKILL_COUNT)
         snprintf(
             row, sizeof(row), "%s check", dnd_rules_core_skill_names[(uint8_t)app->last_skill]);
     else
@@ -788,6 +866,9 @@ static void dndadventure_draw(Canvas* canvas, void* model) {
     case DndAdventureScreenResult:
         dndadventure_draw_result(canvas, app);
         break;
+    case DndAdventureScreenRewardPreview:
+        dndadventure_draw_reward_preview(canvas, app);
+        break;
     case DndAdventureScreenFullText:
         dndadventure_draw_full_text(canvas, app);
         break;
@@ -814,13 +895,13 @@ static void
 
 static bool dndadventure_restart_current(DndAdventureApp* app) {
     if(!app || !app->active_campaign_valid || !app->character_loaded) return false;
-    PocketCampaignProgress restarted;
+    DndAdventureCampaignProgress restarted;
     memset(&restarted, 0, sizeof(restarted));
     dndadventure_copy(restarted.campaign, sizeof(restarted.campaign), app->active_campaign.id);
     dndadventure_copy(restarted.scene, sizeof(restarted.scene), app->active_campaign.entry_scene);
     dndadventure_copy(
         restarted.checkpoint, sizeof(restarted.checkpoint), app->active_campaign.entry_scene);
-    PocketCampaignProgress previous = app->progress;
+    DndAdventureCampaignProgress previous = app->progress;
     app->progress = restarted;
     if(!dndadventure_load_scene(app) || !dndadventure_save_progress(app)) {
         app->progress = previous;
@@ -847,6 +928,10 @@ static void dndadventure_return_to_dnd(DndAdventureApp* app) {
 static void dndadventure_back(DndAdventureApp* app) {
     if(app->screen == DndAdventureScreenCampaigns) {
         dndadventure_return_to_dnd(app);
+    } else if(app->screen == DndAdventureScreenRewardPreview) {
+        app->pending_choice_valid = 0U;
+        app->screen = DndAdventureScreenAdventure;
+        app->status[0] = '\0';
     } else if(app->screen == DndAdventureScreenFullText) {
         app->screen = DndAdventureScreenAdventure;
         app->full_text_offset = 0U;
@@ -929,7 +1014,7 @@ static bool dndadventure_input(InputEvent* event, void* context) {
             if(!app->progress.checkpoint[0]) {
                 dndadventure_set_status(app, "No checkpoint saved");
             } else {
-                char previous_scene[POCKET_D20_SHORT_LEN];
+                char previous_scene[DND_SHORT_LEN];
                 dndadventure_copy(previous_scene, sizeof(previous_scene), app->progress.scene);
                 dndadventure_copy(
                     app->progress.scene, sizeof(app->progress.scene), app->progress.checkpoint);
@@ -956,7 +1041,32 @@ static bool dndadventure_input(InputEvent* event, void* context) {
             app->selection < app->scene->choice_count) {
             DndAdventureChoice choice = app->scene->choices[app->selection];
             app->status[0] = '\0';
-            dndadventure_apply_choice(app, &choice);
+            if(dndadventure_choice_has_reward_preview(&choice)) {
+                app->pending_choice = choice;
+                app->pending_choice_valid = 1U;
+                app->screen = DndAdventureScreenRewardPreview;
+                app->selection = 0U;
+                app->scroll = 0U;
+            } else {
+                dndadventure_apply_choice(app, &choice);
+            }
+        }
+    } else if(app->screen == DndAdventureScreenRewardPreview) {
+        if(move && (event->key == InputKeyUp || event->key == InputKeyDown)) {
+            app->selection = app->selection ? 0U : 1U;
+        } else if(event->type == InputTypeShort && event->key == InputKeyOk) {
+            if(app->selection == 0U && app->pending_choice_valid) {
+                DndAdventureChoice choice = app->pending_choice;
+                app->pending_choice_valid = 0U;
+                app->status[0] = '\0';
+                dndadventure_apply_choice(app, &choice);
+            } else {
+                app->pending_choice_valid = 0U;
+                app->screen = DndAdventureScreenAdventure;
+                app->selection = 0U;
+                app->scroll = 0U;
+                app->status[0] = '\0';
+            }
         }
     } else if(app->screen == DndAdventureScreenResult) {
         if(event->type == InputTypeShort && event->key == InputKeyOk) {
@@ -1031,12 +1141,13 @@ static bool dndadventure_load_character(DndAdventureApp* app, const char* args) 
 
 static DndAdventureApp* dndadventure_app_alloc(const char* args) {
     const bool continue_requested = args &&
-                                    strstr(args, POCKET_D20_HANDOFF_ADVENTURE_CONTINUE) != NULL;
+                                    strstr(args, DND_PROFILE_HANDOFF_ADVENTURE_CONTINUE) != NULL;
     DndAdventureApp* app = calloc(1U, sizeof(DndAdventureApp));
     if(!app) return NULL;
     app->gui = furi_record_open(RECORD_GUI);
     app->storage = furi_record_open(RECORD_STORAGE);
     if(!app->gui || !app->storage) goto fail;
+    if(!dnd_settings_load(app->storage, &app->settings)) dnd_settings_defaults(&app->settings);
 
     /* Reserve the fixed dispatcher/view before campaign indexing and scene
        storage allocate variable-sized buffers. */
@@ -1061,7 +1172,7 @@ static DndAdventureApp* dndadventure_app_alloc(const char* args) {
     if(!app->campaign_count && !app->status[0])
         dndadventure_set_status(app, "No campaign manifests");
 
-    char continue_campaign_id[POCKET_CAMPAIGN_ID_LEN] = {0};
+    char continue_campaign_id[DNDADVENTURE_CAMPAIGN_ID_LEN] = {0};
     bool have_continue_campaign =
         continue_requested && app->character_loaded &&
         dndadventure_campaigns_active_load(
@@ -1122,6 +1233,6 @@ int32_t dndadventure_app(void* context) {
     dndadventure_app_free(app);
     if(return_to_dnd)
         (void)dnd_handoff_launch_if_present(
-            DNDOLPHINS_FAP_PATH, POCKET_D20_RETURN_FOCUS_ADVENTURE);
+            DNDOLPHINS_FAP_PATH, DND_PROFILE_RETURN_FOCUS_ADVENTURE);
     return 0;
 }

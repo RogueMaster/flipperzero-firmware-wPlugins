@@ -6,35 +6,35 @@
 #include <stdint.h>
 
 typedef enum {
-    PocketSpellResolutionNone,
-    PocketSpellResolutionAttack,
-    PocketSpellResolutionSave,
-    PocketSpellResolutionAutomatic,
-    PocketSpellResolutionTriggered,
-    PocketSpellResolutionHealing,
-    PocketSpellResolutionTemporaryHP,
-    PocketSpellResolutionMitigation,
-    PocketSpellResolutionTransfer,
-    PocketSpellResolutionVitality,
-} PocketSpellResolution;
+    DndSpellResolutionNone,
+    DndSpellResolutionAttack,
+    DndSpellResolutionSave,
+    DndSpellResolutionAutomatic,
+    DndSpellResolutionTriggered,
+    DndSpellResolutionHealing,
+    DndSpellResolutionTemporaryHP,
+    DndSpellResolutionMitigation,
+    DndSpellResolutionTransfer,
+    DndSpellResolutionVitality,
+} DndSpellResolution;
 
 typedef enum {
-    PocketSpellSecondaryNone,
-    PocketSpellSecondaryIndependent,
-    PocketSpellSecondaryAlternative,
-    PocketSpellSecondaryLater,
-} PocketSpellSecondaryRelation;
+    DndSpellSecondaryNone,
+    DndSpellSecondaryIndependent,
+    DndSpellSecondaryAlternative,
+    DndSpellSecondaryLater,
+} DndSpellSecondaryRelation;
 
 typedef enum {
-    PocketSpellDerivedNone,
-    PocketSpellDerivedHealHalfPrimary,
-    PocketSpellDerivedHealDoublePrimary,
-} PocketSpellDerivedEffect;
+    DndSpellDerivedNone,
+    DndSpellDerivedHealHalfPrimary,
+    DndSpellDerivedHealDoublePrimary,
+} DndSpellDerivedEffect;
 
 typedef enum {
-    PocketSpellSpecialNone,
-    PocketSpellSpecialSorcerousBurst,
-} PocketSpellSpecial;
+    DndSpellSpecialNone,
+    DndSpellSpecialSorcerousBurst,
+} DndSpellSpecial;
 
 typedef struct {
     uint8_t primary_dice;
@@ -51,11 +51,11 @@ typedef struct {
     uint8_t roll_instances;
     uint8_t derived_effect;
     uint8_t special;
-} PocketSpellDamageSpec;
+} DndSpellDamageSpec;
 
 bool dndolphins_spell_combat_damage_spec(
-    const PocketSpell* spell,
+    const DndSpell* spell,
     uint8_t cast_level,
     uint8_t character_level,
     int8_t spellcasting_modifier,
-    PocketSpellDamageSpec* output);
+    DndSpellDamageSpec* output);

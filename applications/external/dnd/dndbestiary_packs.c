@@ -34,12 +34,12 @@ typedef struct {
 } PackReader;
 
 typedef struct {
-    PocketPackSummary summary;
+    DndBestiaryPackSummary summary;
 } PackRecord;
 
 typedef struct {
-    char id[POCKET_PACK_ID_LEN];
-    char name[POCKET_PACK_NAME_LEN];
+    char id[DND_PACK_ID_LEN];
+    char name[DND_PACK_NAME_LEN];
 } PackManifest;
 
 static PackRecord* dndbestiary_packs_records_alloc(void) {
@@ -198,7 +198,7 @@ static bool
     if(!file) return false;
     bool ok = storage_file_open(file, temporary, FSAM_WRITE, FSOM_CREATE_ALWAYS);
     char line[PACK_LINE_LEN];
-    int length = snprintf(line, sizeof(line), "# PocketPackRegistry=%u\n", PACK_VERSION);
+    int length = snprintf(line, sizeof(line), "# DNDBestiaryPackRegistry=%u\n", PACK_VERSION);
     if(ok && length > 0 && (size_t)length < sizeof(line)) {
         ok = storage_file_write(file, line, (size_t)length) == (size_t)length;
     } else {
@@ -268,7 +268,7 @@ static bool dndbestiary_packs_copy_file(
         storage_common_remove(storage, temporary);
         return false;
     }
-    char backup[POCKET_D20_LONG_PATH_LEN];
+    char backup[DND_FS_LONG_PATH_LEN];
     int length = snprintf(backup, sizeof(backup), "%s.publish.bak", destination);
     if(length < 0 || (size_t)length >= sizeof(backup)) {
         storage_common_remove(storage, temporary);
@@ -374,7 +374,7 @@ static bool dndbestiary_packs_build_enabled_monsters(
                  sizeof(content_header) - 1U;
     for(uint16_t record = 0U; ok && record < count; ++record) {
         if(!records[record].summary.enabled) continue;
-        char index_path[POCKET_D20_PATH_LEN], content_path[POCKET_D20_PATH_LEN];
+        char index_path[DND_FS_PATH_LEN], content_path[DND_FS_PATH_LEN];
         ok = dndbestiary_packs_installed_paths(
                  records[record].summary.id,
                  index_path,
@@ -495,7 +495,7 @@ uint16_t dndbestiary_packs_count(Storage* storage) {
     return valid ? count : 0U;
 }
 
-bool dndbestiary_packs_at(Storage* storage, uint16_t index, PocketPackSummary* output) {
+bool dndbestiary_packs_at(Storage* storage, uint16_t index, DndBestiaryPackSummary* output) {
     if(!output) return false;
     PackRecord* records = dndbestiary_packs_records_alloc();
     if(!records) return false;
@@ -520,7 +520,7 @@ static bool dndbestiary_packs_read_manifest(Storage* storage, PackManifest* outp
         char* value = strchr(line, '=');
         if(!value) continue;
         *value++ = '\0';
-        if(!strcmp(line, "PocketPack")) {
+        if(!strcmp(line, "DNDPack") || !strcmp(line, "PocketPack")) {
             /* Version is informational; recognized manifest fields remain usable. */
         } else if(!strcmp(line, "Id"))
             dndbestiary_packs_copy(output->id, sizeof(output->id), value);
@@ -583,7 +583,7 @@ static bool dndbestiary_packs_unique_record_ids(Storage* storage, const char* ne
     enum {
         PackMaximumIds = 96U
     };
-    char(*ids)[POCKET_PACK_ID_LEN] = calloc(PackMaximumIds, POCKET_PACK_ID_LEN);
+    char(*ids)[DND_PACK_ID_LEN] = calloc(PackMaximumIds, DND_PACK_ID_LEN);
     if(!ids) return false;
     const char* packaged = MONSTER_PACKAGED_INDEX;
     const char* custom = MONSTER_CUSTOM_INDEX;
@@ -614,7 +614,7 @@ static bool dndbestiary_packs_unique_record_ids(Storage* storage, const char* ne
                 ok = false;
                 break;
             }
-        if(ok) dndbestiary_packs_copy(ids[count++], POCKET_PACK_ID_LEN, line);
+        if(ok) dndbestiary_packs_copy(ids[count++], DND_PACK_ID_LEN, line);
     }
     storage_file_close(file);
     storage_file_free(file);
@@ -626,7 +626,7 @@ static bool dndbestiary_packs_publish_install_file(
     Storage* storage,
     const char* source,
     const char* destination) {
-    char temporary[POCKET_D20_LONG_PATH_LEN];
+    char temporary[DND_FS_LONG_PATH_LEN];
     int length = snprintf(temporary, sizeof(temporary), "%s.install", destination);
     if(length <= 0 || (size_t)length >= sizeof(temporary) ||
        storage_file_exists(storage, destination) ||
@@ -674,8 +674,8 @@ bool dndbestiary_packs_install_inbox(Storage* storage, char* status, size_t stat
 
     storage_common_mkdir(storage, APP_DATA_PATH(""));
     storage_common_mkdir(storage, APP_DATA_PATH("packs"));
-    char installed_index[POCKET_D20_PATH_LEN];
-    char installed_content[POCKET_D20_PATH_LEN];
+    char installed_index[DND_FS_PATH_LEN];
+    char installed_content[DND_FS_PATH_LEN];
     if(!dndbestiary_packs_installed_paths(
            manifest.id,
            installed_index,

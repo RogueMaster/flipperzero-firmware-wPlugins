@@ -2,10 +2,10 @@
 
 #include <furi_hal_random.h>
 
-const char* const dnd_rules_core_ability_names[POCKET_D20_ABILITY_COUNT] =
+const char* const dnd_rules_core_ability_names[DND_ABILITY_COUNT] =
     {"STR", "DEX", "CON", "INT", "WIS", "CHA"};
 
-const char* const dnd_rules_core_skill_names[POCKET_D20_SKILL_COUNT] = {
+const char* const dnd_rules_core_skill_names[DND_SKILL_COUNT] = {
     "Acrobatics",
     "Animal Handling",
     "Arcana",
@@ -26,28 +26,28 @@ const char* const dnd_rules_core_skill_names[POCKET_D20_SKILL_COUNT] = {
     "Survival",
 };
 
-const uint8_t dnd_rules_core_skill_abilities[POCKET_D20_SKILL_COUNT] = {
-    PocketAbilityDexterity,
-    PocketAbilityWisdom,
-    PocketAbilityIntelligence,
-    PocketAbilityStrength,
-    PocketAbilityCharisma,
-    PocketAbilityIntelligence,
-    PocketAbilityWisdom,
-    PocketAbilityCharisma,
-    PocketAbilityIntelligence,
-    PocketAbilityWisdom,
-    PocketAbilityIntelligence,
-    PocketAbilityWisdom,
-    PocketAbilityCharisma,
-    PocketAbilityCharisma,
-    PocketAbilityIntelligence,
-    PocketAbilityDexterity,
-    PocketAbilityDexterity,
-    PocketAbilityWisdom,
+const uint8_t dnd_rules_core_skill_abilities[DND_SKILL_COUNT] = {
+    DndAbilityDexterity,
+    DndAbilityWisdom,
+    DndAbilityIntelligence,
+    DndAbilityStrength,
+    DndAbilityCharisma,
+    DndAbilityIntelligence,
+    DndAbilityWisdom,
+    DndAbilityCharisma,
+    DndAbilityIntelligence,
+    DndAbilityWisdom,
+    DndAbilityIntelligence,
+    DndAbilityWisdom,
+    DndAbilityCharisma,
+    DndAbilityCharisma,
+    DndAbilityIntelligence,
+    DndAbilityDexterity,
+    DndAbilityDexterity,
+    DndAbilityWisdom,
 };
 
-const char* const dnd_rules_core_damage_names[PocketDamageTypeCount] = {
+const char* const dnd_rules_core_damage_names[DndDamageTypeCount] = {
     "Bludgeoning",
     "Piercing",
     "Slashing",
@@ -74,33 +74,33 @@ int8_t dnd_rules_core_ability_modifier(int8_t score) {
     return (int8_t) - (((-delta) + 1) / 2);
 }
 
-uint8_t dnd_rules_core_total_level(const PocketCharacter* character) {
+uint8_t dnd_rules_core_total_level(const DndCharacter* character) {
     uint8_t level = 0U;
-    for(uint8_t i = 0U; i < character->class_count && i < POCKET_D20_MAX_CLASSES; ++i)
+    for(uint8_t i = 0U; i < character->class_count && i < DND_MAX_CLASSES; ++i)
         level += character->classes[i].level;
     if(level < 1U) return 1U;
     if(level > 20U) return 20U;
     return level;
 }
 
-uint8_t dnd_rules_core_proficiency_bonus(const PocketCharacter* character) {
+uint8_t dnd_rules_core_proficiency_bonus(const DndCharacter* character) {
     uint8_t total_level = dnd_rules_core_total_level(character);
     if(total_level < 1U) total_level = 1U;
     return (uint8_t)(2U + ((total_level - 1U) / 4U));
 }
 
 static int8_t dnd_rules_core_apply_proficiency(int8_t base, uint8_t proficiency, uint8_t bonus) {
-    if(proficiency == PocketProficiencyExpertise) return (int8_t)(base + (2 * bonus));
-    if(proficiency == PocketProficiencyProficient) return (int8_t)(base + bonus);
+    if(proficiency == DndProficiencyExpertise) return (int8_t)(base + (2 * bonus));
+    if(proficiency == DndProficiencyProficient) return (int8_t)(base + bonus);
     return base;
 }
 
-int8_t dnd_rules_core_exhaustion_penalty(const PocketCharacter* character) {
+int8_t dnd_rules_core_exhaustion_penalty(const DndCharacter* character) {
     return (int8_t)(-2 * character->exhaustion);
 }
 
-int8_t dnd_rules_core_saving_throw_modifier(const PocketCharacter* character, uint8_t ability) {
-    if(ability >= POCKET_D20_ABILITY_COUNT) return 0;
+int8_t dnd_rules_core_saving_throw_modifier(const DndCharacter* character, uint8_t ability) {
+    if(ability >= DND_ABILITY_COUNT) return 0;
     int8_t base = dnd_rules_core_ability_modifier(character->ability_scores[ability]);
     return (int8_t)(dnd_rules_core_apply_proficiency(
                         base,
@@ -110,8 +110,8 @@ int8_t dnd_rules_core_saving_throw_modifier(const PocketCharacter* character, ui
                     dnd_rules_core_exhaustion_penalty(character));
 }
 
-int8_t dnd_rules_core_skill_base_modifier(const PocketCharacter* character, uint8_t skill) {
-    if(skill >= POCKET_D20_SKILL_COUNT) return 0;
+int8_t dnd_rules_core_skill_base_modifier(const DndCharacter* character, uint8_t skill) {
+    if(skill >= DND_SKILL_COUNT) return 0;
     uint8_t ability = dnd_rules_core_skill_abilities[skill];
     int8_t base = dnd_rules_core_ability_modifier(character->ability_scores[ability]);
     return (int8_t)(dnd_rules_core_apply_proficiency(
@@ -121,7 +121,7 @@ int8_t dnd_rules_core_skill_base_modifier(const PocketCharacter* character, uint
                     character->skill_misc[skill]);
 }
 
-int8_t dnd_rules_core_skill_modifier(const PocketCharacter* character, uint8_t skill) {
+int8_t dnd_rules_core_skill_modifier(const DndCharacter* character, uint8_t skill) {
     return (int8_t)(dnd_rules_core_skill_base_modifier(character, skill) +
                     dnd_rules_core_exhaustion_penalty(character));
 }

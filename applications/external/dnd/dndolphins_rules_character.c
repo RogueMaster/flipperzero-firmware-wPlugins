@@ -11,7 +11,7 @@ uint32_t dndolphins_rules_character_minimum_experience_for_level(uint8_t level) 
     return minimum_xp[level - 1U];
 }
 
-void dndolphins_rules_character_apply_experience_floor(PocketCharacter* character) {
+void dndolphins_rules_character_apply_experience_floor(DndCharacter* character) {
     if(!character) return;
     uint32_t minimum = dndolphins_rules_character_minimum_experience_for_level(
         dnd_rules_core_total_level(character));
@@ -19,18 +19,18 @@ void dndolphins_rules_character_apply_experience_floor(PocketCharacter* characte
 }
 
 void dndolphins_rules_character_apply_level_increase(
-    PocketCharacter* character,
+    DndCharacter* character,
     uint8_t class_index,
     uint8_t previous_class_level) {
     if(!character || class_index >= character->class_count) return;
-    PocketClassLevel* class_level = &character->classes[class_index];
+    DndClassLevel* class_level = &character->classes[class_index];
     if(class_level->level <= previous_class_level) return;
 
     const uint8_t levels_gained = (uint8_t)(class_level->level - previous_class_level);
     uint8_t hit_die = class_level->hit_die;
     if(hit_die < 2U) hit_die = 2U;
     const int16_t constitution_modifier =
-        dnd_rules_core_ability_modifier(character->ability_scores[PocketAbilityConstitution]);
+        dnd_rules_core_ability_modifier(character->ability_scores[DndAbilityConstitution]);
     int16_t hp_per_level = (int16_t)(hit_die / 2U + 1U) + constitution_modifier;
     if(hp_per_level < 1) hp_per_level = 1;
 
@@ -56,24 +56,24 @@ void dndolphins_rules_character_apply_level_increase(
     character->hit_dice_current = character->hit_dice_max;
 }
 
-int8_t dndolphins_rules_character_initiative_modifier(const PocketCharacter* character) {
-    return (int8_t)(dnd_rules_core_ability_modifier(
-                        character->ability_scores[PocketAbilityDexterity]) +
-                    character->initiative_misc + dnd_rules_core_exhaustion_penalty(character));
+int8_t dndolphins_rules_character_initiative_modifier(const DndCharacter* character) {
+    return (
+        int8_t)(dnd_rules_core_ability_modifier(character->ability_scores[DndAbilityDexterity]) +
+                character->initiative_misc + dnd_rules_core_exhaustion_penalty(character));
 }
 
-int16_t dndolphins_rules_character_effective_speed(const PocketCharacter* character) {
+int16_t dndolphins_rules_character_effective_speed(const DndCharacter* character) {
     int16_t speed = character->speed - (5 * character->exhaustion);
     return speed > 0 ? speed : 0;
 }
 
 int16_t dndolphins_rules_character_feature_max_uses(
-    const PocketCharacter* character,
-    const PocketFeature* feature) {
-    if(feature->resource_formula == PocketResourceProficiency)
+    const DndCharacter* character,
+    const DndFeature* feature) {
+    if(feature->resource_formula == DndResourceProficiency)
         return dnd_rules_core_proficiency_bonus(character);
-    if(feature->resource_formula == PocketResourceAbility &&
-       feature->resource_ability < POCKET_D20_ABILITY_COUNT) {
+    if(feature->resource_formula == DndResourceAbility &&
+       feature->resource_ability < DND_ABILITY_COUNT) {
         int16_t modifier =
             dnd_rules_core_ability_modifier(character->ability_scores[feature->resource_ability]);
         return modifier > 0 ? modifier : 1;
@@ -81,26 +81,26 @@ int16_t dndolphins_rules_character_feature_max_uses(
     return feature->uses_max;
 }
 
-void dndolphins_rules_character_short_rest(PocketCharacter* character) {
+void dndolphins_rules_character_short_rest(DndCharacter* character) {
     for(uint8_t i = 0U; i < character->feature_count; ++i) {
-        if(character->features[i].recharge == PocketRechargeShortOrLong)
+        if(character->features[i].recharge == DndRechargeShortOrLong)
             character->features[i].uses_current =
                 dndolphins_rules_character_feature_max_uses(character, &character->features[i]);
     }
 }
 
 int16_t dndolphins_rules_character_spend_class_hit_die(
-    PocketCharacter* character,
+    DndCharacter* character,
     uint8_t class_index,
     uint8_t* die_roll) {
     if(class_index >= character->class_count) return -1;
-    PocketClassLevel* class_level = &character->classes[class_index];
+    DndClassLevel* class_level = &character->classes[class_index];
     if(character->hp_current < 1 || character->hp_current >= character->hp_max ||
        class_level->hit_dice_current == 0U)
         return -1;
     uint8_t roll = dnd_rules_core_roll_die(class_level->hit_die);
-    int16_t healing = roll + dnd_rules_core_ability_modifier(
-                                 character->ability_scores[PocketAbilityConstitution]);
+    int16_t healing =
+        roll + dnd_rules_core_ability_modifier(character->ability_scores[DndAbilityConstitution]);
     if(healing < 1) healing = 1;
     int16_t missing = character->hp_max - character->hp_current;
     int16_t regained = healing < missing ? healing : missing;
@@ -110,7 +110,7 @@ int16_t dndolphins_rules_character_spend_class_hit_die(
     return regained;
 }
 
-void dndolphins_rules_character_long_rest(PocketCharacter* character) {
+void dndolphins_rules_character_long_rest(DndCharacter* character) {
     character->hp_current = character->hp_max;
     character->hp_temporary = 0;
     character->death_successes = 0;
@@ -123,12 +123,12 @@ void dndolphins_rules_character_long_rest(PocketCharacter* character) {
     }
     if(character->exhaustion) --character->exhaustion;
     character->arcane_recovery_used = 0U;
-    for(uint8_t i = 1U; i < POCKET_D20_SLOT_COUNT; ++i)
+    for(uint8_t i = 1U; i < DND_SLOT_COUNT; ++i)
         character->spell_slots_current[i] = character->spell_slots_max[i];
     for(uint8_t i = 0U; i < character->feature_count; ++i)
-        if(character->features[i].recharge != PocketRechargeManual &&
-           character->features[i].recharge != PocketRechargeTurn &&
-           character->features[i].recharge != PocketRechargeEncounter)
+        if(character->features[i].recharge != DndRechargeManual &&
+           character->features[i].recharge != DndRechargeTurn &&
+           character->features[i].recharge != DndRechargeEncounter)
             character->features[i].uses_current =
                 dndolphins_rules_character_feature_max_uses(character, &character->features[i]);
 }

@@ -6,8 +6,8 @@
 #include <string.h>
 #include <storage/storage.h>
 
-#define POCKET_D20_PATH_LEN      96U
-#define POCKET_D20_LONG_PATH_LEN 128U
+#define DND_FS_PATH_LEN      96U
+#define DND_FS_LONG_PATH_LEN 128U
 
 /* Build a child path without relying on snprintf truncation. Prefix may be NULL. */
 static inline bool dnd_fs_child_path(
@@ -49,9 +49,9 @@ static inline bool dnd_fs_ensure_directory(Storage* storage, const char* path) {
 static inline bool dnd_fs_ensure_parent_dir(Storage* storage, const char* path) {
     if(!storage || !path || path[0] != '/') return false;
     size_t length = strlen(path);
-    if(length < 2U || length >= POCKET_D20_LONG_PATH_LEN) return false;
+    if(length < 2U || length >= DND_FS_LONG_PATH_LEN) return false;
 
-    char directory[POCKET_D20_LONG_PATH_LEN];
+    char directory[DND_FS_LONG_PATH_LEN];
     memcpy(directory, path, length + 1U);
     char* last = strrchr(directory, '/');
     if(!last || last == directory) return true;
@@ -64,4 +64,25 @@ static inline bool dnd_fs_ensure_parent_dir(Storage* storage, const char* path) 
         *cursor = '/';
     }
     return dnd_fs_ensure_directory(storage, directory);
+}
+
+/* Publish a synced temporary file, retaining the old live file on rename failure.
+   If rollback itself fails, the backup remains available for recovery. */
+static inline bool
+    dnd_fs_publish(Storage* storage, const char* temp, const char* live, const char* backup) {
+    bool had_live = storage_file_exists(storage, live);
+    if(storage_file_exists(storage, backup)) {
+        if(!had_live) {
+            if(storage_common_rename(storage, backup, live) != FSE_OK) return false;
+            had_live = true;
+        } else if(storage_common_remove(storage, backup) != FSE_OK)
+            return false;
+    }
+    if(had_live && storage_common_rename(storage, live, backup) != FSE_OK) return false;
+    if(storage_common_rename(storage, temp, live) != FSE_OK) {
+        if(had_live) (void)storage_common_rename(storage, backup, live);
+        return false;
+    }
+    if(had_live) (void)storage_common_remove(storage, backup);
+    return true;
 }

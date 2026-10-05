@@ -11,21 +11,21 @@ bool dndadventure_item_reward_grant_reward(
     const char* detail) {
     if(!storage || !projection || !name || !name[0] || !strcmp(name, "-")) return false;
 
-    /* Collection storage still accepts the canonical PocketCharacter owner shape.
+    /* Collection storage still accepts the canonical DndCharacter owner shape.
        Adventure creates it only for this bounded I/O operation; it is never part
        of resident app state. */
-    PocketCharacter* character = calloc(1U, sizeof(PocketCharacter));
+    DndCharacter* character = calloc(1U, sizeof(DndCharacter));
     if(!character) return false;
     strncpy(character->name, projection->name, sizeof(character->name) - 1U);
     character->class_count = projection->class_count;
-    for(uint8_t i = 0U; i < projection->class_count && i < POCKET_D20_MAX_CLASSES; ++i)
+    for(uint8_t i = 0U; i < projection->class_count && i < DND_MAX_CLASSES; ++i)
         character->classes[i].level = projection->class_levels[i];
 
     bool result = false;
-    uint8_t total = 0U;
+    uint16_t total = 0U;
     bool first_page = true;
-    for(uint8_t start = 0U; first_page || start < total;
-        start += POCKET_D20_COLLECTION_CACHE_SIZE) {
+    for(uint16_t start = 0U; first_page || start < total;
+        start += DND_STORAGE_COLLECTION_CACHE_SIZE) {
         first_page = false;
         if(!dnd_storage_load_items_window(storage, profile, start, character, &total)) goto done;
         for(uint8_t local = 0U; local < character->item_count; ++local) {
@@ -41,11 +41,7 @@ bool dndadventure_item_reward_grant_reward(
         dnd_data_clear_items(character);
     }
 
-    if(total >= POCKET_D20_MAX_ITEMS) {
-        result = true;
-        goto done;
-    }
-    PocketItem item;
+    DndItem item;
     memset(&item, 0, sizeof(item));
     strncpy(item.name, name, sizeof(item.name) - 1U);
     item.name[sizeof(item.name) - 1U] = '\0';

@@ -34,9 +34,11 @@ Stage:
 Manifest:
 
 ```text
-PocketPack=1
+DNDPack=1
 Id=filename_safe_pack_id
 Name=Display Name
 ```
 
 No checksum is required. Before installation, the inbox preview checks the manifest, requires exactly one matching index record, checks pack/application compatibility, requires `scenes.txt`, requires the declared entry scene to exist as an `S|` record, and rejects stable-ID conflicts. Hold OK installs only after those checks pass; installation repeats the same checks before publishing the pack. Installed content and enabled indexes stay under DNDAdventure app data.
+
+Legacy compatibility: readers continue to accept the historical `PocketPack=1` marker, but new/updated manifests should write `DNDPack=1`.

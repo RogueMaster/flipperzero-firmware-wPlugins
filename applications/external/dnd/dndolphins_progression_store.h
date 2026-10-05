@@ -5,6 +5,7 @@
 #include <storage/storage.h>
 
 #define DND_PROGRESS_CACHE_SIZE 8U
+#define DND_PROGRESS_PAGE_COUNT 32U
 
 void dndolphins_progression_store_feature_path(char* out, size_t size, uint32_t profile);
 void dndolphins_progression_store_applied_path(char* out, size_t size, uint32_t profile);
@@ -20,7 +21,13 @@ bool dndolphins_progression_store_features_exist(Storage* storage, uint32_t prof
 bool dndolphins_progression_store_features_count(
     Storage* storage,
     uint32_t profile,
-    uint8_t* total_count);
+    uint16_t* total_count);
+bool dndolphins_progression_store_features_find_name(
+    Storage* storage,
+    uint32_t profile,
+    const char* name,
+    DndFeature* feature_out,
+    bool* found);
 bool dndolphins_progression_store_features_contains_name(
     Storage* storage,
     uint32_t profile,
@@ -29,26 +36,34 @@ bool dndolphins_progression_store_features_contains_name(
 bool dndolphins_progression_store_features_load_window(
     Storage* storage,
     uint32_t profile,
-    uint8_t start,
-    PocketCharacter* character,
-    uint8_t* total_count);
+    uint16_t start,
+    DndCharacter* character,
+    uint16_t* total_count);
+bool dndolphins_progression_store_features_load_window_indexed(
+    Storage* storage,
+    uint32_t profile,
+    uint16_t start,
+    DndCharacter* character,
+    uint16_t* total_count,
+    uint32_t page_offsets[DND_PROGRESS_PAGE_COUNT],
+    uint8_t* valid_pages);
 bool dndolphins_progression_store_features_save_window(
     Storage* storage,
     uint32_t profile,
-    uint8_t start,
-    const PocketCharacter* character);
+    uint16_t start,
+    const DndCharacter* character);
 bool dndolphins_progression_store_features_append(
     Storage* storage,
     uint32_t profile,
-    const PocketFeature* feature);
+    const DndFeature* feature);
 bool dndolphins_progression_store_features_delete(
     Storage* storage,
     uint32_t profile,
-    uint8_t logical_index);
+    uint16_t logical_index);
 bool dndolphins_progression_store_features_recharge(
     Storage* storage,
     uint32_t profile,
-    const PocketCharacter* character,
+    const DndCharacter* character,
     DndFeatureRechargeEvent event);
 bool dndolphins_progression_store_features_remap_classes(
     Storage* storage,

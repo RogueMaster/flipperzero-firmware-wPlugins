@@ -5,12 +5,12 @@
 #include <storage/storage.h>
 
 typedef struct {
-    char name[POCKET_D20_CHARACTER_NAME_LEN];
-    char species[POCKET_D20_NAME_LEN];
-    char background[POCKET_D20_NAME_LEN];
+    char name[DND_CHARACTER_NAME_LEN];
+    char species[DND_NAME_LEN];
+    char background[DND_NAME_LEN];
     uint8_t class_count;
-    PocketClassLevel classes[POCKET_D20_MAX_CLASSES];
-    int8_t ability_scores[POCKET_D20_ABILITY_COUNT];
+    DndClassLevel classes[DND_MAX_CLASSES];
+    int8_t ability_scores[DND_ABILITY_COUNT];
     int16_t armor_class;
     uint8_t exhaustion;
     uint8_t encumbrance_mode;
@@ -18,18 +18,25 @@ typedef struct {
 } DndInventoryProfileProjection;
 
 typedef struct {
-    char name[POCKET_D20_CHARACTER_NAME_LEN];
+    char name[DND_CHARACTER_NAME_LEN];
     uint8_t class_count;
-    PocketClassLevel classes[POCKET_D20_MAX_CLASSES];
+    DndClassLevel classes[DND_MAX_CLASSES];
+    int8_t ability_scores[DND_ABILITY_COUNT];
+    uint8_t spellcasting_ability;
+    int8_t spell_attack_misc;
+    int8_t spell_save_misc;
+    uint8_t arcane_recovery_used;
+    uint8_t spell_slots_current[DND_SLOT_COUNT];
+    uint8_t spell_slots_max[DND_SLOT_COUNT];
 } DndSpellbookProfileProjection;
 
 typedef struct {
-    char name[POCKET_D20_CHARACTER_NAME_LEN];
+    char name[DND_CHARACTER_NAME_LEN];
     uint8_t class_count;
-    uint8_t class_levels[POCKET_D20_MAX_CLASSES];
-    int8_t ability_scores[POCKET_D20_ABILITY_COUNT];
-    uint8_t skill_proficiency[POCKET_D20_SKILL_COUNT];
-    int8_t skill_misc[POCKET_D20_SKILL_COUNT];
+    uint8_t class_levels[DND_MAX_CLASSES];
+    int8_t ability_scores[DND_ABILITY_COUNT];
+    uint8_t skill_proficiency[DND_SKILL_COUNT];
+    int8_t skill_misc[DND_SKILL_COUNT];
 } DndAdventureProfileProjection;
 
 bool dnd_profile_projection_load_inventory(
@@ -44,6 +51,10 @@ bool dnd_profile_projection_load_spellbook(
     Storage* storage,
     uint32_t profile,
     DndSpellbookProfileProjection* projection);
+bool dnd_profile_projection_save_spellbook_magic(
+    Storage* storage,
+    uint32_t profile,
+    const DndSpellbookProfileProjection* projection);
 bool dnd_profile_projection_load_adventure(
     Storage* storage,
     uint32_t profile,

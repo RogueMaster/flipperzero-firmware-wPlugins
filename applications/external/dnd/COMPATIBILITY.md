@@ -2,8 +2,8 @@
 
 - Character files load best-effort by recognized field name. Unknown fields and unrelated malformed values are ignored when possible.
 - Inventory, Spellbook, Feature and applied-grant sidecars are authoritative under `/ext/apps_data/dndolphins/`; splitting Inventory and Spellbook into separate FAPs does not move or rename those live files.
-- Companion character selection comes only from `custom_active_profile.txt` (`Active=<id>`); launch arguments do not override it and companions never scan for a replacement character. All seven FAPs use `dnd_profile_handoff.*` for this persisted active-ID/exact-profile contract. Inventory, Spellbook, Adventure and Journal require the exact persisted character to load; Initiative and Bestiary use ID `0` only when the metadata itself is absent or unreadable, and an existing stale `Active=<id>` is not replaced by 0.
-- Historical SWD/SHD files are not used as live collection/character state.
+- Companion character selection comes only from `custom_active_profile.txt` (`Active=<id>`); launch arguments do not override it and companions never scan for a replacement character. All eleven FAPs use `dnd_profile_handoff.*` for this persisted active-ID/exact-profile contract. Inventory, Spellbook, Adventure, Journal and DNDCharacter Sheet require the exact persisted character to load; Initiative and Bestiary use ID `0` only when the metadata itself is absent or unreadable, and an existing stale `Active=<id>` is not replaced by 0.
+- SHD files are historical snapshots and are never treated as live collection/character state automatically. The explicit restore workflow in **DNDBackup & Restore** can read both older core-only SHD history and current bundled SHD history. Current bundles restore their matching sidecars; older core-only SHDs restore the character core while preserving current sidecars because those old files did not record whether a collection was absent.
 - Legacy embedded Feature/Grant character fields are tolerated but ignored and are not migrated into sidecars.
 - Journal, Adventure, Initiative and Bestiary keep independent storage ownership except for explicit character-sidecar bridges. Inventory, Spellbook and Adventure use narrow streamed profile projections; this changes only resident access, not the canonical character format or compatibility contract.
 - Companion main-screen Back-to-parent handoff is best-effort: Short Back launches DNDolphins only when `/ext/apps/Games/dndolphins.fap` exists and passes a small non-persistent focus hint so the corresponding DNDolphins home row is selected; otherwise the companion exits normally. Hold Back always exits to firmware and never launches the parent. The focus hint changes no save data and is not a character selector.
@@ -20,3 +20,18 @@
 ## Initiative history and Inventory compatibility
 
 Completed Initiative history is additive app-owned data; existing Initiative live-combat files remain compatible. Inventory keeps the existing Item record schema: Stack Quantity reuses `quantity`, ammunition reuses existing ammo fields, and container deletion remaps the existing logical `container_index` during transactional rewrite. No migration is required.
+
+## Scalable character collections
+
+Languages and equipment-training fields now use `languages_{id}.txt` and `proficiencies_{id}.txt`. Old embedded language/training fields are intentionally ignored; there is no migration or second authoritative format. Saving throws continue to use `SaveProficiency`.
+
+SHD bundle marker version 2 covers six sidecars. A version-1 bundle covers only the original four, and missing Language/Proficiency snapshots in it preserve current live data. Core-only snapshots preserve missing sidecars as before.
+
+Item/Spell/Feature text formats retain compatibility while removing former small collection limits. Known serializes independently of Ritual. Existing Items remain visible when Get Elevated is turned Off or Homebrew is turned No; the legacy persisted `ExtraItems` key is retained for compatibility and defaults to enabled/420 when missing. Deploy matching FAPs/assets together so catalog visibility and generation share the same settings contract.
+
+## SDK build compatibility
+
+
+## Combat and Grant companion ownership
+
+DNDCombat and DNDGrants use the same persisted active-character metadata as the rest of the suite. DNDolphins saves and tears down before launching either app. Initiative uses an explicit launch-source argument only for return routing: `from=combat` returns to DNDCombat on Short Back; other Initiative launches return to DNDolphins. This launch argument does not select or override the active character.

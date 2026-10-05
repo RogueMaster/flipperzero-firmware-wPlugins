@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#define DND_ACTIVE_PROFILE_PATH POCKET_D20_CHARACTER_DATA_ROOT "/custom_active_profile.txt"
+#define DND_ACTIVE_PROFILE_PATH DND_CHARACTER_DATA_ROOT "/custom_active_profile.txt"
 
 static bool dnd_profile_ref_parse_u32(const char* text, uint32_t* output) {
     if(!text || !*text || !output) return false;
@@ -51,7 +51,7 @@ bool dnd_profile_ref_path(Storage* storage, uint32_t profile, char* output, size
     output[0] = '\0';
     File* directory = storage_file_alloc(storage);
     if(!directory) return false;
-    if(!storage_dir_open(directory, POCKET_D20_CHARACTER_DATA_ROOT)) {
+    if(!storage_dir_open(directory, DND_CHARACTER_DATA_ROOT)) {
         storage_file_free(directory);
         return false;
     }
@@ -65,7 +65,7 @@ bool dnd_profile_ref_path(Storage* storage, uint32_t profile, char* output, size
             if(file_info_is_dir(&info)) continue;
             if(!dnd_profile_ref_filename_is_primary(filename, prefix, (size_t)prefix_length))
                 continue;
-            if(dnd_fs_child_path(output, size, POCKET_D20_CHARACTER_DATA_ROOT, NULL, filename)) {
+            if(dnd_fs_child_path(output, size, DND_CHARACTER_DATA_ROOT, NULL, filename)) {
                 found = true;
                 break;
             }

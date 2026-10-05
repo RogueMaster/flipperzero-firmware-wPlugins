@@ -229,9 +229,12 @@ bool dndbestiary_state_party_settings_save(
     uint8_t party_size) {
     if(!storage || party_level < 1U || party_level > 20U || party_size < 1U || party_size > 12U)
         return false;
-    File* file = dndbestiary_state_open_temp(storage, PARTY_SETTINGS_TEMP);
+    if(!dnd_fs_ensure_parent_dir(storage, PARTY_SETTINGS_PATH)) return false;
+    storage_common_remove(storage, PARTY_SETTINGS_TEMP);
+    File* file = storage_file_alloc(storage);
     if(!file) return false;
-    bool ok = dndbestiary_state_write_named_u32(file, "PartyLevel", party_level) &&
+    bool ok = storage_file_open(file, PARTY_SETTINGS_TEMP, FSAM_WRITE, FSOM_CREATE_ALWAYS) &&
+              dndbestiary_state_write_named_u32(file, "PartyLevel", party_level) &&
               dndbestiary_state_write_named_u32(file, "PartySize", party_size) &&
               storage_file_sync(file);
     storage_file_close(file);
@@ -356,7 +359,7 @@ bool dndbestiary_state_favorite_at(Storage* storage, uint16_t index, char* id, s
 
 bool dndbestiary_state_recent_add(Storage* storage, const char* id) {
     if(!storage || !id || !id[0]) return false;
-    char ids[STATE_MAX_RECENTS][POCKET_MONSTER_ID_LEN];
+    char ids[STATE_MAX_RECENTS][DND_MONSTER_ID_LEN];
     uint16_t count = 0U;
     dndbestiary_state_copy(ids[count++], sizeof(ids[0]), id);
     File* input = storage_file_alloc(storage);
@@ -392,7 +395,7 @@ bool dndbestiary_state_recent_at(Storage* storage, uint16_t index, char* id, siz
     return dndbestiary_state_id_at(storage, RECENTS_PATH, index, id, size);
 }
 
-static bool dndbestiary_state_parse_filter(char* line, PocketBestiaryFilterPreset* output) {
+static bool dndbestiary_state_parse_filter(char* line, DndBestiaryFilterPreset* output) {
     /* Legacy compact rows remain readable; new writes use indexed named fields. */
     if(!dndbestiary_state_line_valid(line)) return false;
     char* fields[7];
@@ -420,8 +423,8 @@ static bool dndbestiary_state_parse_filter(char* line, PocketBestiaryFilterPrese
 
 static uint16_t dndbestiary_state_load_filters(
     Storage* storage,
-    PocketBestiaryFilterPreset output[STATE_MAX_FILTERS]) {
-    memset(output, 0, sizeof(PocketBestiaryFilterPreset) * STATE_MAX_FILTERS);
+    DndBestiaryFilterPreset output[STATE_MAX_FILTERS]) {
+    memset(output, 0, sizeof(DndBestiaryFilterPreset) * STATE_MAX_FILTERS);
     File* file = storage_file_alloc(storage);
     if(!file) return 0U;
     if(!storage_file_open(file, FILTERS_PATH, FSAM_READ, FSOM_OPEN_EXISTING)) {
@@ -439,7 +442,7 @@ static uint16_t dndbestiary_state_load_filters(
         char* value = strchr(line, '=');
         if(!value) {
             if(named_seen || legacy_next >= STATE_MAX_FILTERS) continue;
-            PocketBestiaryFilterPreset legacy;
+            DndBestiaryFilterPreset legacy;
             if(dndbestiary_state_parse_filter(original, &legacy)) output[legacy_next++] = legacy;
             continue;
         }
@@ -487,8 +490,7 @@ static uint16_t dndbestiary_state_load_filters(
 
 uint16_t dndbestiary_state_filter_count(Storage* storage) {
     if(!storage) return 0U;
-    PocketBestiaryFilterPreset* filters =
-        calloc(STATE_MAX_FILTERS, sizeof(PocketBestiaryFilterPreset));
+    DndBestiaryFilterPreset* filters = calloc(STATE_MAX_FILTERS, sizeof(DndBestiaryFilterPreset));
     if(!filters) return 0U;
     uint16_t count = dndbestiary_state_load_filters(storage, filters);
     free(filters);
@@ -498,10 +500,9 @@ uint16_t dndbestiary_state_filter_count(Storage* storage) {
 bool dndbestiary_state_filter_at(
     Storage* storage,
     uint16_t wanted,
-    PocketBestiaryFilterPreset* output) {
+    DndBestiaryFilterPreset* output) {
     if(!storage || !output || wanted >= STATE_MAX_FILTERS) return false;
-    PocketBestiaryFilterPreset* filters =
-        calloc(STATE_MAX_FILTERS, sizeof(PocketBestiaryFilterPreset));
+    DndBestiaryFilterPreset* filters = calloc(STATE_MAX_FILTERS, sizeof(DndBestiaryFilterPreset));
     if(!filters) return false;
     uint16_t count = dndbestiary_state_load_filters(storage, filters);
     bool found = wanted < count;
@@ -513,7 +514,7 @@ bool dndbestiary_state_filter_at(
 static bool dndbestiary_state_write_filter(
     File* file,
     uint8_t index,
-    const PocketBestiaryFilterPreset* preset) {
+    const DndBestiaryFilterPreset* preset) {
     if(!file || !preset || index >= STATE_MAX_FILTERS) return false;
     char key[48];
 #define FILTER_WRITE_STRING(suffix, field)                                         \
@@ -538,12 +539,12 @@ static bool dndbestiary_state_write_filter(
     return true;
 }
 
-bool dndbestiary_state_filter_save(Storage* storage, const PocketBestiaryFilterPreset* preset) {
+bool dndbestiary_state_filter_save(Storage* storage, const DndBestiaryFilterPreset* preset) {
     if(!storage || !preset || !preset->name[0]) return false;
     uint16_t count = dndbestiary_state_filter_count(storage);
     bool replacing = false;
     for(uint16_t index = 0U; index < count; ++index) {
-        PocketBestiaryFilterPreset prior;
+        DndBestiaryFilterPreset prior;
         if(dndbestiary_state_filter_at(storage, index, &prior) &&
            !strcmp(prior.name, preset->name)) {
             replacing = true;
@@ -556,7 +557,7 @@ bool dndbestiary_state_filter_save(Storage* storage, const PocketBestiaryFilterP
     bool ok = true;
     uint8_t output_index = 0U;
     for(uint16_t index = 0U; ok && index < count; ++index) {
-        PocketBestiaryFilterPreset prior;
+        DndBestiaryFilterPreset prior;
         if(!dndbestiary_state_filter_at(storage, index, &prior)) continue;
         if(strcmp(prior.name, preset->name))
             ok = dndbestiary_state_write_filter(output, output_index++, &prior);
@@ -578,7 +579,7 @@ bool dndbestiary_state_filter_delete(Storage* storage, uint16_t wanted) {
     bool ok = true;
     uint8_t output_index = 0U;
     for(uint16_t index = 0U; ok && index < count; ++index) {
-        PocketBestiaryFilterPreset preset;
+        DndBestiaryFilterPreset preset;
         if(index != wanted && dndbestiary_state_filter_at(storage, index, &preset))
             ok = dndbestiary_state_write_filter(output, output_index++, &preset);
     }
@@ -608,7 +609,7 @@ static bool dndbestiary_state_parse_u8(
     return true;
 }
 
-static bool dndbestiary_state_parse_encounter(char* line, PocketSavedEncounter* output) {
+static bool dndbestiary_state_parse_encounter(char* line, DndSavedEncounter* output) {
     /* Legacy compact rows remain readable; new writes use indexed named fields. */
     if(!line || !output || !dndbestiary_state_line_valid(line)) return false;
     char* fields[6];
@@ -627,8 +628,8 @@ static bool dndbestiary_state_parse_encounter(char* line, PocketSavedEncounter* 
     if(!dndbestiary_state_parse_u8(fields[1], 1U, 20U, &output->party_level) ||
        !dndbestiary_state_parse_u8(fields[2], 1U, 12U, &output->party_size) ||
        !dndbestiary_state_parse_u8(
-           fields[3], 0U, PocketEncounterDifficultyCount - 1U, &output->difficulty) ||
-       !dndbestiary_state_parse_u8(fields[4], 1U, POCKET_MONSTER_ENCOUNTER_MAX, &output->count))
+           fields[3], 0U, DndEncounterDifficultyCount - 1U, &output->difficulty) ||
+       !dndbestiary_state_parse_u8(fields[4], 1U, DND_MONSTER_ENCOUNTER_MAX, &output->count))
         return false;
     cursor = fields[5];
     for(uint8_t index = 0U; index < output->count; ++index) {
@@ -695,7 +696,7 @@ static uint16_t dndbestiary_state_encounter_count_path(Storage* storage, const c
     if(storage_file_open(file, path, FSAM_READ, FSOM_OPEN_EXISTING)) {
         StateReadWorkspace* workspace = dndbestiary_state_workspace_alloc(file);
         if(workspace) {
-            PocketSavedEncounter encounter;
+            DndSavedEncounter encounter;
             while(count < STATE_MAX_ENCOUNTERS &&
                   dndbestiary_state_read_line(
                       &workspace->reader, workspace->line, sizeof(workspace->line)))
@@ -712,7 +713,7 @@ static bool dndbestiary_state_encounter_at_path(
     Storage* storage,
     const char* path,
     uint16_t wanted,
-    PocketSavedEncounter* output) {
+    DndSavedEncounter* output) {
     uint16_t mask = 0U;
     if(!dndbestiary_state_encounter_named_mask(storage, path, &mask)) return false;
     if(!mask) {
@@ -725,7 +726,7 @@ static bool dndbestiary_state_encounter_at_path(
                 uint16_t ordinal = 0U;
                 while(dndbestiary_state_read_line(
                     &workspace->reader, workspace->line, sizeof(workspace->line))) {
-                    PocketSavedEncounter encounter;
+                    DndSavedEncounter encounter;
                     if(!dndbestiary_state_parse_encounter(workspace->line, &encounter)) continue;
                     if(ordinal++ == wanted) {
                         *output = encounter;
@@ -787,11 +788,11 @@ static bool dndbestiary_state_encounter_at_path(
         ENC_STRING("Name", name)
         ENC_U8("PartyLevel", party_level, 1U, 20U)
         ENC_U8("PartySize", party_size, 1U, 12U)
-        ENC_U8("Difficulty", difficulty, 0U, PocketEncounterDifficultyCount - 1U)
-        ENC_U8("Count", count, 0U, POCKET_MONSTER_ENCOUNTER_MAX)
+        ENC_U8("Difficulty", difficulty, 0U, DndEncounterDifficultyCount - 1U)
+        ENC_U8("Count", count, 0U, DND_MONSTER_ENCOUNTER_MAX)
 #undef ENC_STRING
 #undef ENC_U8
-        for(uint8_t monster = 0U; monster < POCKET_MONSTER_ENCOUNTER_MAX; ++monster) {
+        for(uint8_t monster = 0U; monster < DND_MONSTER_ENCOUNTER_MAX; ++monster) {
             char suffix[32];
             snprintf(suffix, sizeof(suffix), "Monster%uId", monster);
             if(dndbestiary_state_indexed_key(
@@ -824,10 +825,7 @@ uint16_t dndbestiary_state_encounter_count(Storage* storage) {
     return storage ? dndbestiary_state_encounter_count_path(storage, ENCOUNTERS_PATH) : 0U;
 }
 
-bool dndbestiary_state_encounter_at(
-    Storage* storage,
-    uint16_t wanted,
-    PocketSavedEncounter* output) {
+bool dndbestiary_state_encounter_at(Storage* storage, uint16_t wanted, DndSavedEncounter* output) {
     return storage && output &&
            dndbestiary_state_encounter_at_path(storage, ENCOUNTERS_PATH, wanted, output);
 }
@@ -835,7 +833,7 @@ bool dndbestiary_state_encounter_at(
 static bool dndbestiary_state_write_encounter(
     File* file,
     uint8_t index,
-    const PocketSavedEncounter* encounter) {
+    const DndSavedEncounter* encounter) {
     if(!file || !encounter || index >= STATE_MAX_ENCOUNTERS) return false;
     char key[64];
 #define ENC_WRITE_STRING(suffix, value)                                    \
@@ -853,7 +851,7 @@ static bool dndbestiary_state_write_encounter(
     ENC_WRITE_U8("PartySize", encounter->party_size);
     ENC_WRITE_U8("Difficulty", encounter->difficulty);
     ENC_WRITE_U8("Count", encounter->count);
-    for(uint8_t monster = 0U; monster < encounter->count && monster < POCKET_MONSTER_ENCOUNTER_MAX;
+    for(uint8_t monster = 0U; monster < encounter->count && monster < DND_MONSTER_ENCOUNTER_MAX;
         ++monster) {
         char suffix[32];
         snprintf(suffix, sizeof(suffix), "Monster%uId", monster);
@@ -866,11 +864,11 @@ static bool dndbestiary_state_write_encounter(
     return true;
 }
 
-bool dndbestiary_state_encounter_save(Storage* storage, const PocketSavedEncounter* encounter) {
+bool dndbestiary_state_encounter_save(Storage* storage, const DndSavedEncounter* encounter) {
     if(!storage || !encounter || !encounter->name[0] || !encounter->count ||
-       encounter->count > POCKET_MONSTER_ENCOUNTER_MAX)
+       encounter->count > DND_MONSTER_ENCOUNTER_MAX)
         return false;
-    char normalized_name[POCKET_BESTIARY_ENCOUNTER_NAME_LEN];
+    char normalized_name[DND_BESTIARY_ENCOUNTER_NAME_LEN];
     dndbestiary_state_safe_field(normalized_name, sizeof(normalized_name), encounter->name);
     if(!normalized_name[0]) return false;
     uint16_t count = dndbestiary_state_encounter_count(storage);
@@ -880,7 +878,7 @@ bool dndbestiary_state_encounter_save(Storage* storage, const PocketSavedEncount
     bool replacing = false;
     uint8_t out_index = 0U;
     for(uint16_t index = 0U; ok && index < count; ++index) {
-        PocketSavedEncounter prior;
+        DndSavedEncounter prior;
         if(!dndbestiary_state_encounter_at(storage, index, &prior)) continue;
         if(!strcmp(prior.name, normalized_name)) {
             replacing = true;
@@ -890,7 +888,7 @@ bool dndbestiary_state_encounter_save(Storage* storage, const PocketSavedEncount
     }
     if(!replacing && count >= STATE_MAX_ENCOUNTERS) ok = false;
     if(ok) {
-        PocketSavedEncounter normalized = *encounter;
+        DndSavedEncounter normalized = *encounter;
         dndbestiary_state_copy(normalized.name, sizeof(normalized.name), normalized_name);
         ok = dndbestiary_state_write_encounter(output, out_index, &normalized) &&
              storage_file_sync(output);
@@ -914,7 +912,7 @@ bool dndbestiary_state_encounter_delete(Storage* storage, uint16_t wanted) {
     uint8_t out_index = 0U;
     for(uint16_t index = 0U; ok && index < count; ++index) {
         if(index == wanted) continue;
-        PocketSavedEncounter encounter;
+        DndSavedEncounter encounter;
         if(dndbestiary_state_encounter_at(storage, index, &encounter))
             ok = dndbestiary_state_write_encounter(output, out_index++, &encounter);
     }
@@ -930,7 +928,7 @@ bool dndbestiary_state_encounter_delete(Storage* storage, uint16_t wanted) {
 
 bool dndbestiary_state_encounter_rename(Storage* storage, uint16_t wanted, const char* new_name) {
     if(!storage || !new_name || !new_name[0]) return false;
-    char normalized_name[POCKET_BESTIARY_ENCOUNTER_NAME_LEN];
+    char normalized_name[DND_BESTIARY_ENCOUNTER_NAME_LEN];
     dndbestiary_state_safe_field(normalized_name, sizeof(normalized_name), new_name);
     uint16_t count = dndbestiary_state_encounter_count(storage);
     if(!normalized_name[0] || wanted >= count) return false;
@@ -938,7 +936,7 @@ bool dndbestiary_state_encounter_rename(Storage* storage, uint16_t wanted, const
     if(!output) return false;
     bool ok = true;
     for(uint16_t index = 0U; ok && index < count; ++index) {
-        PocketSavedEncounter encounter;
+        DndSavedEncounter encounter;
         if(!dndbestiary_state_encounter_at(storage, index, &encounter)) continue;
         if(index != wanted && !strcmp(encounter.name, normalized_name)) {
             ok = false;
@@ -960,14 +958,14 @@ bool dndbestiary_state_encounter_rename(Storage* storage, uint16_t wanted, const
 
 bool dndbestiary_state_encounter_duplicate(Storage* storage, uint16_t wanted, const char* new_name) {
     if(!storage || !new_name || !new_name[0]) return false;
-    char normalized_name[POCKET_BESTIARY_ENCOUNTER_NAME_LEN];
+    char normalized_name[DND_BESTIARY_ENCOUNTER_NAME_LEN];
     dndbestiary_state_safe_field(normalized_name, sizeof(normalized_name), new_name);
     uint16_t count = dndbestiary_state_encounter_count(storage);
     if(!normalized_name[0] || wanted >= count || count >= STATE_MAX_ENCOUNTERS) return false;
-    PocketSavedEncounter duplicate;
+    DndSavedEncounter duplicate;
     if(!dndbestiary_state_encounter_at(storage, wanted, &duplicate)) return false;
     for(uint16_t index = 0U; index < count; ++index) {
-        PocketSavedEncounter existing;
+        DndSavedEncounter existing;
         if(dndbestiary_state_encounter_at(storage, index, &existing) &&
            !strcmp(existing.name, normalized_name))
             return false;
@@ -976,7 +974,7 @@ bool dndbestiary_state_encounter_duplicate(Storage* storage, uint16_t wanted, co
     if(!output) return false;
     bool ok = true;
     for(uint16_t index = 0U; ok && index < count; ++index) {
-        PocketSavedEncounter existing;
+        DndSavedEncounter existing;
         if(dndbestiary_state_encounter_at(storage, index, &existing))
             ok = dndbestiary_state_write_encounter(output, (uint8_t)index, &existing);
     }
@@ -995,7 +993,7 @@ bool dndbestiary_state_encounter_duplicate(Storage* storage, uint16_t wanted, co
 }
 
 static bool
-    dndbestiary_state_archive_append(Storage* storage, const PocketSavedEncounter* encounter) {
+    dndbestiary_state_archive_append(Storage* storage, const DndSavedEncounter* encounter) {
     if(!storage || !encounter) return false;
     uint16_t count = dndbestiary_state_encounter_count_path(storage, ENCOUNTERS_ARCHIVE_PATH);
     if(count >= STATE_MAX_ENCOUNTERS) return false;
@@ -1003,7 +1001,7 @@ static bool
     if(!output) return false;
     bool ok = true;
     for(uint16_t index = 0U; ok && index < count; ++index) {
-        PocketSavedEncounter archived;
+        DndSavedEncounter archived;
         if(dndbestiary_state_encounter_at_path(storage, ENCOUNTERS_ARCHIVE_PATH, index, &archived))
             ok = dndbestiary_state_write_encounter(output, (uint8_t)index, &archived);
     }
@@ -1021,7 +1019,7 @@ static bool
 
 bool dndbestiary_state_encounter_archive(Storage* storage, uint16_t wanted) {
     if(!storage) return false;
-    PocketSavedEncounter encounter;
+    DndSavedEncounter encounter;
     if(!dndbestiary_state_encounter_at(storage, wanted, &encounter)) return false;
     /* Publish the archive copy first. If active removal fails, the encounter remains
        in both places rather than being lost. */

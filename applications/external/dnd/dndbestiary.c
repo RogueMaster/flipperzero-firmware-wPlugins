@@ -1,9 +1,11 @@
 #include "dndbestiary_monsters.h"
 #include "dndbestiary_state.h"
 #include "dnd_profile_handoff.h"
+#include "dnd_settings.h"
 #include "dndbestiary_packs.h"
 
 #include <furi.h>
+#include <furi_hal_random.h>
 #include <gui/gui.h>
 #include <gui/modules/text_input.h>
 #include <gui/view.h>
@@ -13,11 +15,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define TAG                      "DolphinBestiary"
-#define BESTIARY_WINDOW          15U
-#define BESTIARY_MARQUEE_EVENT   0xB357U
-#define BESTIARY_LONG_BACK_EVENT 0xB358U
-#define BESTIARY_MARQUEE_MS      350U
+#define TAG                         "DolphinBestiary"
+#define BESTIARY_WINDOW             15U
+#define BESTIARY_MARQUEE_EVENT      0xB357U
+#define BESTIARY_LONG_BACK_EVENT    0xB358U
+#define BESTIARY_RELEASE_TEXT_EVENT 0xB359U
+#define BESTIARY_MARQUEE_MS         350U
 
 typedef enum {
     BestiaryViewMain,
@@ -29,6 +32,7 @@ typedef enum {
     BestiaryScreenList,
     BestiaryScreenDetail,
     BestiaryScreenDetailLine,
+    BestiaryScreenTurnTools,
     BestiaryScreenEncounter,
     BestiaryScreenSimulator,
     BestiaryScreenWarnings,
@@ -66,8 +70,18 @@ typedef enum {
 } BestiaryListMode;
 
 typedef struct {
+    char name[28];
+    int8_t attack_bonus;
+    uint8_t dice_count[2];
+    uint8_t dice_sides[2];
+    int8_t dice_modifier[2];
+    uint8_t damage_terms;
+} BestiaryTurnAttack;
+
+typedef struct {
     Gui* gui;
     Storage* storage;
+    DndSharedSettings shared_settings;
     ViewDispatcher* dispatcher;
     View* view;
     TextInput* text_input;
@@ -81,7 +95,7 @@ typedef struct {
     uint16_t selection;
     uint16_t scroll;
     char status[32];
-    char edit_buffer[POCKET_MONSTER_TEXT_LEN];
+    char edit_buffer[DND_MONSTER_TEXT_LEN];
     char detail_title[32];
     uint16_t detail_line_offset;
     uint16_t detail_return_scroll;
@@ -89,14 +103,15 @@ typedef struct {
     uint16_t encounter_return_selection;
     uint16_t encounter_return_scroll;
     BestiaryListMode list_mode;
+    BestiaryScreen list_return_screen;
     uint16_t state_total;
     char state_rows[17][48];
-    PocketBestiaryFilterPreset pending_filter;
+    DndBestiaryFilterPreset pending_filter;
     uint16_t encounter_action_index;
-    char encounter_name[POCKET_BESTIARY_ENCOUNTER_NAME_LEN];
+    char encounter_name[DND_BESTIARY_ENCOUNTER_NAME_LEN];
     uint8_t encounter_delete_armed;
 
-    char search[POCKET_MONSTER_NAME_LEN];
+    char search[DND_MONSTER_NAME_LEN];
     uint8_t max_cr_eighths;
     uint8_t type_filter;
     uint8_t source_filter;
@@ -114,10 +129,11 @@ typedef struct {
     uint8_t monster_total_valid;
     uint16_t page_start;
     uint16_t window_count;
-    PocketMonsterSummary* window;
-    PocketMonsterSummary selected;
-    PocketMonsterDetail* detail;
-    PocketMonsterEncounter* encounter;
+    DndMonsterSummary* window;
+    DndMonsterSummary selected;
+    DndMonsterDetail* detail;
+    DndMonsterEncounter* encounter;
+    uint8_t encounter_custom;
     uint8_t detail_favorite;
     uint8_t edit_existing;
     uint8_t delete_armed;
@@ -133,10 +149,13 @@ typedef struct {
     uint32_t character_id;
     uint8_t pending_launch_initiative;
     uint8_t pending_launch_dnd;
+    uint8_t return_to_initiative;
+    BestiaryTurnAttack turn_attacks[4];
+    uint8_t turn_attack_count;
 } BestiaryApp;
 
 typedef struct {
-    char name[POCKET_MONSTER_NAME_LEN];
+    char name[DND_MONSTER_NAME_LEN];
     uint16_t hit_points;
     uint8_t armor_class;
     int8_t initiative_modifier;
@@ -148,7 +167,7 @@ static uint8_t bestiary_marquee_offset = 0U;
 static bool dndbestiary_launch_dnd(BestiaryApp* app, char* launch_args);
 static bool dndbestiary_launch_dnd_monsters(
     BestiaryApp* app,
-    const PocketMonsterSummary* monsters,
+    const DndMonsterSummary* monsters,
     const uint8_t* quantities,
     uint8_t count);
 static bool dndbestiary_launch_saved_dnd(BestiaryApp* app, uint16_t index);
@@ -173,7 +192,7 @@ static const char* const type_names[] = {
 static const char* const environment_names[] =
     {"Any", "Aquatic", "Dungeon", "Planar", "Urban", "Wilderness"};
 static const char* const source_names[] =
-    {"Any", "Open Reference", "D&Dolphins", "Custom", "Custom Pack"};
+    {"Any", "Open Reference", "D&Dolphins", "Custom", "Homebrew"};
 static const char* const role_names[] =
     {"Any", "Leader", "Controller", "Skirmisher", "Artillery", "Brute", "Minion"};
 static const char* const difficulty_names[] = {"Low", "Moderate", "High"};
@@ -182,9 +201,12 @@ static const uint8_t cr_choices[] = {0U,  1U,  2U,  4U,  8U,   16U,  24U,  32U, 
                                      64U, 72U, 80U, 96U, 112U, 128U, 144U, 160U, 200U, 240U};
 
 static void dndbestiary_copy(char* output, size_t size, const char* value) {
-    if(!size) return;
-    strncpy(output, value ? value : "", size - 1U);
-    output[size - 1U] = '\0';
+    if(!output || !size) return;
+    const char* source = value ? value : "";
+    size_t length = strlen(source);
+    if(length >= size) length = size - 1U;
+    memcpy(output, source, length);
+    output[length] = '\0';
 }
 
 static void dndbestiary_status(BestiaryApp* app, const char* value) {
@@ -202,9 +224,9 @@ static bool dndbestiary_save_party_settings(BestiaryApp* app) {
 
 static uint8_t dndbestiary_warning_count(uint8_t flags) {
     uint8_t count = 0U;
-    if(flags & PocketEncounterWarningUnsupportedLeader) ++count;
-    if(flags & PocketEncounterWarningExposedArtillery) ++count;
-    if(flags & PocketEncounterWarningMinionDensity) ++count;
+    if(flags & DndEncounterWarningUnsupportedLeader) ++count;
+    if(flags & DndEncounterWarningExposedArtillery) ++count;
+    if(flags & DndEncounterWarningMinionDensity) ++count;
     return count;
 }
 
@@ -254,22 +276,71 @@ static bool dndbestiary_contains(const char* text, const char* query) {
     return false;
 }
 
-static bool dndbestiary_filter(const PocketMonsterSummary* monster, void* context) {
+static bool dndbestiary_source_matches(const DndMonsterSummary* monster, uint8_t filter) {
+    if(!monster || !filter) return true;
+    /* Custom pack records retain their stable on-disk source token, but the UI
+       exposes that source as Homebrew. */
+    if(filter == 4U) return !strcmp(monster->source, "Custom Pack");
+    return filter < sizeof(source_names) / sizeof(source_names[0]) &&
+           !strcmp(monster->source, source_names[filter]);
+}
+
+static const char* dndbestiary_source_display(const char* source) {
+    return source && !strcmp(source, "Custom Pack") ? "Homebrew" : source;
+}
+
+static bool dndbestiary_equal_ci(const char* a, const char* b) {
+    if(!a || !b) return false;
+    while(*a && *b) {
+        char left = *a++, right = *b++;
+        if(left >= 'A' && left <= 'Z') left = (char)(left - 'A' + 'a');
+        if(right >= 'A' && right <= 'Z') right = (char)(right - 'A' + 'a');
+        if(left != right) return false;
+    }
+    return !*a && !*b;
+}
+
+typedef struct {
+    const char* name;
+    bool allow_homebrew;
+} BestiaryNameLookup;
+
+static bool dndbestiary_name_lookup_filter(const DndMonsterSummary* monster, void* context) {
+    BestiaryNameLookup* lookup = context;
+    return monster && lookup &&
+           dndbestiary_monsters_source_allowed(monster, lookup->allow_homebrew) &&
+           dndbestiary_equal_ci(monster->name, lookup->name);
+}
+
+static bool dndbestiary_filter(const DndMonsterSummary* monster, void* context) {
     BestiaryApp* app = context;
+    if(!dndbestiary_monsters_source_allowed(monster, app->shared_settings.homebrew)) return false;
     return (!app->max_cr_eighths || monster->cr_eighths <= app->max_cr_eighths) &&
            (!app->type_filter || !strcmp(monster->type, type_names[app->type_filter])) &&
-           (!app->source_filter || !strcmp(monster->source, source_names[app->source_filter])) &&
+           dndbestiary_source_matches(monster, app->source_filter) &&
            (!app->environment_filter ||
             !strcmp(monster->environment, environment_names[app->environment_filter])) &&
            (!app->role_filter || !strcmp(monster->role, role_names[app->role_filter])) &&
            dndbestiary_contains(monster->name, app->search);
 }
 
-static PocketMonsterFilter dndbestiary_active_filter(const BestiaryApp* app) {
-    return app->search[0] || app->max_cr_eighths || app->type_filter || app->source_filter ||
-                   app->environment_filter || app->role_filter ?
+static DndMonsterFilter dndbestiary_active_filter(const BestiaryApp* app) {
+    return !app->shared_settings.homebrew || app->search[0] || app->max_cr_eighths ||
+                   app->type_filter || app->source_filter || app->environment_filter ||
+                   app->role_filter ?
                dndbestiary_filter :
                NULL;
+}
+
+static uint8_t dndbestiary_cycle_source(const BestiaryApp* app, uint8_t current, int8_t delta) {
+    uint8_t count = (uint8_t)(sizeof(source_names) / sizeof(source_names[0]));
+    if(!count) return 0U;
+    uint8_t allowed_count = app->shared_settings.homebrew ? count : (uint8_t)(count - 1U);
+    if(current >= allowed_count) current = 0U;
+    int16_t value = (int16_t)current + delta;
+    if(value < 0) value = (int16_t)allowed_count - 1;
+    if(value >= allowed_count) value = 0;
+    return (uint8_t)value;
 }
 
 static void dndbestiary_release_window(BestiaryApp* app) {
@@ -278,12 +349,13 @@ static void dndbestiary_release_window(BestiaryApp* app) {
     app->window_count = 0U;
 }
 
+static void dndbestiary_input_events_callback(const void* value, void* context);
 static void dndbestiary_release_text_input(BestiaryApp* app);
 
 static bool dndbestiary_load_window(BestiaryApp* app) {
     dndbestiary_release_text_input(app);
     dndbestiary_release_window(app);
-    app->window = calloc(BESTIARY_WINDOW, sizeof(PocketMonsterSummary));
+    app->window = calloc(BESTIARY_WINDOW, sizeof(DndMonsterSummary));
     if(!app->window) {
         dndbestiary_status(app, "Not enough memory");
         return false;
@@ -317,28 +389,44 @@ static bool dndbestiary_load_state_window(BestiaryApp* app, BestiaryListMode mod
     dndbestiary_release_text_input(app);
     dndbestiary_release_window(app);
     app->list_mode = mode;
-    app->monster_total = mode == BestiaryListFavorites ?
+    uint16_t raw_total = mode == BestiaryListFavorites ?
                              dndbestiary_state_favorite_count(app->storage) :
                              dndbestiary_state_recent_count(app->storage);
+    uint16_t visible_total = 0U;
+    for(uint16_t index = 0U; index < raw_total; ++index) {
+        char id[DND_MONSTER_ID_LEN];
+        DndMonsterSummary summary;
+        bool found = mode == BestiaryListFavorites ?
+                         dndbestiary_state_favorite_at(app->storage, index, id, sizeof(id)) :
+                         dndbestiary_state_recent_at(app->storage, index, id, sizeof(id));
+        if(found && dndbestiary_monsters_find(app->storage, id, &summary) &&
+           dndbestiary_monsters_source_allowed(&summary, app->shared_settings.homebrew) &&
+           visible_total < UINT16_MAX)
+            ++visible_total;
+    }
+    app->monster_total = visible_total;
     app->monster_total_valid = 1U;
     if(app->page_start >= app->monster_total && app->page_start)
         app->page_start = ((app->monster_total ? app->monster_total - 1U : 0U) / BESTIARY_WINDOW) *
                           BESTIARY_WINDOW;
-    app->window = calloc(BESTIARY_WINDOW, sizeof(PocketMonsterSummary));
+    app->window = calloc(BESTIARY_WINDOW, sizeof(DndMonsterSummary));
     if(!app->window) {
         dndbestiary_status(app, "Not enough memory");
         return false;
     }
     app->window_count = 0U;
-    for(uint16_t index = app->page_start;
-        index < app->monster_total && app->window_count < BESTIARY_WINDOW;
-        ++index) {
-        char id[POCKET_MONSTER_ID_LEN];
+    uint16_t visible_index = 0U;
+    for(uint16_t index = 0U; index < raw_total && app->window_count < BESTIARY_WINDOW; ++index) {
+        char id[DND_MONSTER_ID_LEN];
+        DndMonsterSummary summary;
         bool found = mode == BestiaryListFavorites ?
                          dndbestiary_state_favorite_at(app->storage, index, id, sizeof(id)) :
                          dndbestiary_state_recent_at(app->storage, index, id, sizeof(id));
-        if(found && dndbestiary_monsters_find(app->storage, id, &app->window[app->window_count]))
-            ++app->window_count;
+        if(!found || !dndbestiary_monsters_find(app->storage, id, &summary) ||
+           !dndbestiary_monsters_source_allowed(&summary, app->shared_settings.homebrew))
+            continue;
+        if(visible_index++ < app->page_start) continue;
+        app->window[app->window_count++] = summary;
     }
     return true;
 }
@@ -353,7 +441,7 @@ static void dndbestiary_cache_filter_rows(BestiaryApp* app) {
     app->state_total = dndbestiary_state_filter_count(app->storage);
     if(app->state_total > 16U) app->state_total = 16U;
     for(uint16_t index = 0U; index < app->state_total; ++index) {
-        PocketBestiaryFilterPreset preset;
+        DndBestiaryFilterPreset preset;
         if(dndbestiary_state_filter_at(app->storage, index, &preset))
             snprintf(app->state_rows[index], sizeof(app->state_rows[index]), "%s", preset.name);
     }
@@ -367,7 +455,7 @@ static void dndbestiary_cache_encounter_rows(BestiaryApp* app) {
     app->state_total = dndbestiary_state_encounter_count(app->storage);
     if(app->state_total > 17U) app->state_total = 17U;
     for(uint16_t index = 0U; index < app->state_total; ++index) {
-        PocketSavedEncounter encounter;
+        DndSavedEncounter encounter;
         if(dndbestiary_state_encounter_at(app->storage, index, &encounter))
             snprintf(
                 app->state_rows[index],
@@ -387,6 +475,7 @@ static void dndbestiary_release_detail(BestiaryApp* app) {
 static void dndbestiary_release_encounter(BestiaryApp* app) {
     free(app->encounter);
     app->encounter = NULL;
+    app->encounter_custom = 0U;
 }
 
 static void dndbestiary_release_text_input(BestiaryApp* app) {
@@ -398,12 +487,32 @@ static void dndbestiary_release_text_input(BestiaryApp* app) {
     app->edit = BestiaryEditNone;
 }
 
+static bool dndbestiary_input_hook_acquire(BestiaryApp* app) {
+    if(!app) return false;
+    if(app->input_subscription && app->input_events) return true;
+    app->input_events = furi_record_open(RECORD_INPUT_EVENTS);
+    if(!app->input_events) return false;
+    app->input_subscription =
+        furi_pubsub_subscribe(app->input_events, dndbestiary_input_events_callback, app);
+    if(!app->input_subscription) {
+        furi_record_close(RECORD_INPUT_EVENTS);
+        app->input_events = NULL;
+        return false;
+    }
+    return true;
+}
+
+static void dndbestiary_input_hook_release(BestiaryApp* app) {
+    if(!app) return;
+    if(app->input_subscription && app->input_events)
+        furi_pubsub_unsubscribe(app->input_events, app->input_subscription);
+    app->input_subscription = NULL;
+    app->input_events = NULL;
+}
+
 static void dndbestiary_quiesce_async(BestiaryApp* app) {
     if(!app) return;
-    if(app->input_subscription && app->input_events) {
-        furi_pubsub_unsubscribe(app->input_events, app->input_subscription);
-        app->input_subscription = NULL;
-    }
+    dndbestiary_input_hook_release(app);
 }
 
 static void dndbestiary_release_monster_memory_for_launch(BestiaryApp* app) {
@@ -543,6 +652,7 @@ static void dndbestiary_draw_home(Canvas* canvas, BestiaryApp* app) {
     const char* rows[] = {
         browse,
         "Generate Encounter",
+        "Custom Encounter",
         party_level,
         party_size,
         difficulty,
@@ -562,8 +672,9 @@ static void dndbestiary_draw_home(Canvas* canvas, BestiaryApp* app) {
         "Recent Monsters",
         "Create Custom Monster",
         "Pack Diagnostics"};
-    dndbestiary_header(canvas, app, "Bestiary v" FAP_VERSION, app->status);
-    dndbestiary_rows(canvas, app, rows, 21U);
+    dndbestiary_header(canvas, app, "Bestiary v" DND_RELEASE_VERSION, app->status);
+    uint16_t row_count = app->shared_settings.debug ? 22U : 21U;
+    dndbestiary_rows(canvas, app, rows, row_count);
 }
 
 static void dndbestiary_draw_list(Canvas* canvas, BestiaryApp* app) {
@@ -589,9 +700,151 @@ static void dndbestiary_draw_list(Canvas* canvas, BestiaryApp* app) {
     }
 }
 
+static int16_t dndbestiary_parse_signed(const char* text, const char** end) {
+    if(!text) return 0;
+    int sign = 1;
+    if(*text == '+')
+        ++text;
+    else if(*text == '-') {
+        sign = -1;
+        ++text;
+    }
+    int16_t value = 0;
+    while(*text >= '0' && *text <= '9') {
+        value = (int16_t)(value * 10 + (*text - '0'));
+        ++text;
+    }
+    if(end) *end = text;
+    return (int16_t)(value * sign);
+}
+
+static bool
+    dndbestiary_parse_dice(const char* text, uint8_t* count, uint8_t* sides, int8_t* modifier) {
+    if(!text || !count || !sides || !modifier) return false;
+    const char* p = text;
+    int16_t c = 0;
+    while(*p >= '0' && *p <= '9') {
+        c = (int16_t)(c * 10 + (*p++ - '0'));
+    }
+    if(*p != 'd' && *p != 'D') return false;
+    ++p;
+    int16_t d = 0;
+    while(*p >= '0' && *p <= '9') {
+        d = (int16_t)(d * 10 + (*p++ - '0'));
+    }
+    while(*p == ' ')
+        ++p;
+    int16_t mod = 0;
+    if(*p == '+' || *p == '-') mod = dndbestiary_parse_signed(p, NULL);
+    if(c < 1 || c > 20 || d < 2 || d > 100 || mod < -50 || mod > 50) return false;
+    *count = (uint8_t)c;
+    *sides = (uint8_t)d;
+    *modifier = (int8_t)mod;
+    return true;
+}
+
+static void dndbestiary_turn_attack_name(
+    char* out,
+    size_t size,
+    const char* actions,
+    const char* attack_roll) {
+    const char* last = attack_roll;
+    while(last > actions && !(last[-1] == '.' && last[0] == ' '))
+        --last;
+    const char* name_end = last > actions ? last - 1U : attack_roll;
+    const char* start = name_end;
+    while(start > actions) {
+        if(start[-1] == '.' && start[0] == ' ') {
+            ++start;
+            break;
+        }
+        --start;
+    }
+    while(*start == ' ')
+        ++start;
+    size_t len = (size_t)(name_end - start);
+    if(!len || len >= size) {
+        dndbestiary_copy(out, size, "Attack");
+        return;
+    }
+    memcpy(out, start, len);
+    out[len] = '\0';
+}
+
+static void dndbestiary_prepare_turn_attacks(BestiaryApp* app) {
+    if(!app || !app->detail) return;
+    app->turn_attack_count = 0U;
+    const char* actions = app->detail->actions;
+    const char* cursor = actions;
+    while(cursor && *cursor && app->turn_attack_count < 4U) {
+        const char* roll = strstr(cursor, "Attack Roll:");
+        if(!roll) break;
+        BestiaryTurnAttack* attack = &app->turn_attacks[app->turn_attack_count];
+        memset(attack, 0, sizeof(*attack));
+        dndbestiary_turn_attack_name(attack->name, sizeof(attack->name), actions, roll);
+        const char* bonus = roll + strlen("Attack Roll:");
+        while(*bonus == ' ')
+            ++bonus;
+        int16_t parsed_bonus = dndbestiary_parse_signed(bonus, NULL);
+        if(parsed_bonus < -50) parsed_bonus = -50;
+        if(parsed_bonus > 50) parsed_bonus = 50;
+        attack->attack_bonus = (int8_t)parsed_bonus;
+
+        const char* hit = strstr(roll, "Hit:");
+        const char* next_roll = strstr(roll + 1U, "Attack Roll:");
+        if(hit && (!next_roll || hit < next_roll)) {
+            const char* p = hit;
+            while((p = strchr(p, '(')) && attack->damage_terms < 2U &&
+                  (!next_roll || p < next_roll)) {
+                ++p;
+                uint8_t term = attack->damage_terms;
+                if(dndbestiary_parse_dice(
+                       p,
+                       &attack->dice_count[term],
+                       &attack->dice_sides[term],
+                       &attack->dice_modifier[term]))
+                    ++attack->damage_terms;
+            }
+        }
+        ++app->turn_attack_count;
+        cursor = next_roll;
+    }
+}
+
+static int16_t dndbestiary_roll_die(uint8_t sides) {
+    if(sides < 2U) return 0;
+    return (int16_t)(furi_hal_random_get() % sides) + 1;
+}
+
+static int16_t dndbestiary_roll_damage(const BestiaryTurnAttack* attack) {
+    int16_t total = 0;
+    if(!attack) return 0;
+    for(uint8_t term = 0U; term < attack->damage_terms; ++term) {
+        for(uint8_t die = 0U; die < attack->dice_count[term]; ++die)
+            total = (int16_t)(total + dndbestiary_roll_die(attack->dice_sides[term]));
+        total = (int16_t)(total + attack->dice_modifier[term]);
+    }
+    return total;
+}
+
+static void dndbestiary_draw_turn_tools(Canvas* canvas, BestiaryApp* app) {
+    dndbestiary_header(canvas, app, "Monster Turn Tools", app->status);
+    if(!app->turn_attack_count) {
+        dndbestiary_row(canvas, 0U, false, "No attack rolls parsed");
+        dndbestiary_row(canvas, 1U, false, "See Actions stat line");
+        return;
+    }
+    for(uint8_t row = 0U; row < app->turn_attack_count && row < 5U; ++row) {
+        char text[48];
+        BestiaryTurnAttack* attack = &app->turn_attacks[row];
+        snprintf(text, sizeof(text), "%.24s %+d", attack->name, attack->attack_bonus);
+        dndbestiary_row(canvas, row, row == app->selection, text);
+    }
+}
+
 static void dndbestiary_draw_detail(Canvas* canvas, BestiaryApp* app) {
     if(!app->detail) return;
-    PocketMonsterDetail* m = app->detail;
+    DndMonsterDetail* m = app->detail;
     char cr[8], core[64], type[48], abilities[64], source[40], role[32], delete_row[32];
     char favorite_row[32];
     dndbestiary_cr(cr, sizeof(cr), m->summary.cr_eighths);
@@ -614,7 +867,7 @@ static void dndbestiary_draw_detail(Canvas* canvas, BestiaryApp* app) {
         m->abilities[4],
         m->abilities[5]);
     snprintf(type, sizeof(type), "Type: %s", m->summary.type);
-    snprintf(source, sizeof(source), "Source: %s", m->summary.source);
+    snprintf(source, sizeof(source), "Source: %s", dndbestiary_source_display(m->summary.source));
     snprintf(role, sizeof(role), "Role: %s", m->summary.role);
     snprintf(
         delete_row,
@@ -642,14 +895,15 @@ static void dndbestiary_draw_detail(Canvas* canvas, BestiaryApp* app) {
         m->actions,
         m->extra,
         favorite_row,
+        "Add to Custom Encounter",
         "Add to Initiative",
+        "Monster Turn Tools",
         "Edit Custom Monster",
         delete_row};
-    uint8_t row_count = !strcmp(m->summary.source, "Custom") ? 18U : 16U;
+    uint8_t row_count = !strcmp(m->summary.source, "Custom") ? 20U : 18U;
     dndbestiary_header(canvas, app, m->summary.name, app->status);
     dndbestiary_rows(canvas, app, rows, row_count);
 }
-
 static const char*
     dndbestiary_next_text_line(const char* cursor, char* output, size_t output_size) {
     if(!cursor || !output_size) return NULL;
@@ -725,16 +979,18 @@ static void dndbestiary_draw_encounter(Canvas* canvas, BestiaryApp* app) {
     snprintf(
         title,
         sizeof(title),
-        "Encounter %lu/%lu XP",
+        "%s %lu/%lu XP",
+        app->encounter_custom ? "Custom" : "Encounter",
         (unsigned long)app->encounter->spent,
         (unsigned long)app->encounter->budget);
     dndbestiary_header(canvas, app, title, app->status);
-    PocketEncounterComposition composition;
+    DndEncounterComposition composition;
     dndbestiary_monsters_analyze_composition(app->encounter, app->party_size, &composition);
     uint8_t warning_count = dndbestiary_warning_count(composition.warning_flags);
+    uint8_t action_count = app->encounter_custom ? 5U : 4U;
     for(uint8_t visible = 0U; visible < 5U; ++visible) {
         uint16_t index = app->scroll + visible;
-        if(index >= app->encounter->count + 4U) break;
+        if(index >= app->encounter->count + action_count) break;
         char row[64], cr[8];
         if(index < app->encounter->count) {
             dndbestiary_cr(cr, sizeof(cr), app->encounter->monsters[index].cr_eighths);
@@ -745,30 +1001,41 @@ static void dndbestiary_draw_encounter(Canvas* canvas, BestiaryApp* app) {
                 app->encounter->quantities[index],
                 app->encounter->monsters[index].name,
                 cr);
-        } else if(index == app->encounter->count) {
-            snprintf(row, sizeof(row), "Difficulty");
-        } else if(index == app->encounter->count + 1U) {
-            snprintf(row, sizeof(row), "Save Encounter");
-        } else if(index == app->encounter->count + 2U) {
-            if(warning_count)
-                snprintf(
-                    row,
-                    sizeof(row),
-                    "Composition: %u warning%s",
-                    warning_count,
-                    warning_count == 1U ? "" : "s");
-            else
-                snprintf(row, sizeof(row), "Composition: OK");
         } else {
-            snprintf(row, sizeof(row), "Add to Initiative");
+            uint16_t action = index - app->encounter->count;
+            if(app->encounter_custom && action == 0U) {
+                snprintf(row, sizeof(row), "+ Add Monster");
+            } else {
+                if(app->encounter_custom) --action;
+                if(action == 0U)
+                    snprintf(
+                        row,
+                        sizeof(row),
+                        "%s",
+                        app->encounter_custom ? "Difficulty Simulator" : "Difficulty");
+                else if(action == 1U)
+                    snprintf(row, sizeof(row), "Save Encounter");
+                else if(action == 2U) {
+                    if(warning_count)
+                        snprintf(
+                            row,
+                            sizeof(row),
+                            "Composition: %u warning%s",
+                            warning_count,
+                            warning_count == 1U ? "" : "s");
+                    else
+                        snprintf(row, sizeof(row), "Composition: OK");
+                } else {
+                    snprintf(row, sizeof(row), "Add to Initiative");
+                }
+            }
         }
         dndbestiary_row(canvas, visible, index == app->selection, row);
     }
 }
-
 static void dndbestiary_draw_simulator(Canvas* canvas, BestiaryApp* app) {
     if(!app->encounter) return;
-    PocketEncounterSimulation simulation;
+    DndEncounterSimulation simulation;
     dndbestiary_monsters_simulate(app->encounter, app->party_level, app->party_size, &simulation);
     char subtitle[40];
     snprintf(
@@ -801,7 +1068,7 @@ static void dndbestiary_draw_simulator(Canvas* canvas, BestiaryApp* app) {
 
 static void dndbestiary_draw_warnings(Canvas* canvas, BestiaryApp* app) {
     if(!app->encounter) return;
-    PocketEncounterComposition composition;
+    DndEncounterComposition composition;
     dndbestiary_monsters_analyze_composition(app->encounter, app->party_size, &composition);
     char summary[48];
     snprintf(
@@ -815,11 +1082,11 @@ static void dndbestiary_draw_warnings(Canvas* canvas, BestiaryApp* app) {
     const char* rows[4];
     uint8_t count = 0U;
     rows[count++] = summary;
-    if(composition.warning_flags & PocketEncounterWarningUnsupportedLeader)
+    if(composition.warning_flags & DndEncounterWarningUnsupportedLeader)
         rows[count++] = "Leader lacks support";
-    if(composition.warning_flags & PocketEncounterWarningExposedArtillery)
+    if(composition.warning_flags & DndEncounterWarningExposedArtillery)
         rows[count++] = "Artillery is exposed";
-    if(composition.warning_flags & PocketEncounterWarningMinionDensity)
+    if(composition.warning_flags & DndEncounterWarningMinionDensity)
         rows[count++] = "Minion density is high";
     if(count == 1U) rows[count++] = "No warnings detected";
     dndbestiary_header(canvas, app, "Composition Warnings", "OK/Back: encounter");
@@ -884,7 +1151,7 @@ static void dndbestiary_draw_diagnostics(Canvas* canvas, BestiaryApp* app) {
 
 static void dndbestiary_draw_edit(Canvas* canvas, BestiaryApp* app) {
     if(!app->detail) return;
-    PocketMonsterDetail* m = app->detail;
+    DndMonsterDetail* m = app->detail;
     char cr[24], xp[24], ac[24], hp[24], environment[32], role[32], ability[6][20];
     char cr_value[8];
     dndbestiary_cr(cr_value, sizeof(cr_value), m->summary.cr_eighths);
@@ -943,6 +1210,9 @@ static void dndbestiary_draw(Canvas* canvas, void* model) {
     case BestiaryScreenDetailLine:
         dndbestiary_draw_detail_line(canvas, app);
         break;
+    case BestiaryScreenTurnTools:
+        dndbestiary_draw_turn_tools(canvas, app);
+        break;
     case BestiaryScreenEncounter:
         dndbestiary_draw_encounter(canvas, app);
         break;
@@ -979,7 +1249,7 @@ static void dndbestiary_begin_text(
 static void dndbestiary_text_done(void* context) {
     BestiaryApp* app = context;
     app->text_input_active = 0U;
-    PocketMonsterDetail* m = app->detail;
+    DndMonsterDetail* m = app->detail;
     BestiaryEdit completed = app->edit;
     switch(app->edit) {
     case BestiaryEditSearch:
@@ -1030,7 +1300,7 @@ static void dndbestiary_text_done(void* context) {
         break;
     case BestiaryEditEncounterName:
         if(app->encounter && app->edit_buffer[0]) {
-            PocketSavedEncounter saved = {0};
+            DndSavedEncounter saved = {0};
             dndbestiary_copy(saved.name, sizeof(saved.name), app->edit_buffer);
             saved.party_level = app->party_level;
             saved.party_size = app->party_size;
@@ -1076,7 +1346,9 @@ static void dndbestiary_text_done(void* context) {
     app->edit = BestiaryEditNone;
     if(app->screen == BestiaryScreenHome || completed == BestiaryEditSearch)
         app->monster_total_valid = 0U;
+    dndbestiary_input_hook_release(app);
     view_dispatcher_switch_to_view(app->dispatcher, BestiaryViewMain);
+    view_dispatcher_send_custom_event(app->dispatcher, BESTIARY_RELEASE_TEXT_EVENT);
     dndbestiary_refresh(app);
 }
 
@@ -1096,6 +1368,7 @@ static void dndbestiary_begin_text(
     }
     app->edit = target;
     app->text_input_active = 1U;
+    (void)dndbestiary_input_hook_acquire(app);
     dndbestiary_copy(app->edit_buffer, sizeof(app->edit_buffer), initial);
     text_input_reset(app->text_input);
     text_input_set_header_text(app->text_input, title);
@@ -1111,11 +1384,11 @@ static void dndbestiary_begin_text(
 
 static bool dndbestiary_open_detail(
     BestiaryApp* app,
-    const PocketMonsterSummary* summary,
+    const DndMonsterSummary* summary,
     BestiaryScreen return_screen) {
     dndbestiary_release_text_input(app);
     dndbestiary_release_detail(app);
-    app->detail = malloc(sizeof(PocketMonsterDetail));
+    app->detail = malloc(sizeof(DndMonsterDetail));
     if(!app->detail || !dndbestiary_monsters_load(app->storage, summary, app->detail)) {
         dndbestiary_release_detail(app);
         dndbestiary_status(app, "Stat block unavailable");
@@ -1134,7 +1407,7 @@ static bool dndbestiary_open_detail(
 
 static void dndbestiary_open_detail_line(BestiaryApp* app) {
     if(!app->detail || app->selection >= 14U) return;
-    PocketMonsterDetail* m = app->detail;
+    DndMonsterDetail* m = app->detail;
     uint8_t field = (uint8_t)app->selection;
     const char* value = NULL;
     char cr[8];
@@ -1232,23 +1505,80 @@ static void dndbestiary_return_to_detail(BestiaryApp* app) {
     app->scroll = app->detail_return_scroll;
 }
 
+static bool dndbestiary_custom_encounter_ensure(BestiaryApp* app) {
+    if(app->encounter && app->encounter_custom) return true;
+    dndbestiary_release_encounter(app);
+    app->encounter = calloc(1U, sizeof(DndMonsterEncounter));
+    if(!app->encounter) {
+        dndbestiary_status(app, "Not enough memory");
+        return false;
+    }
+    app->encounter_custom = 1U;
+    app->encounter->budget = dndbestiary_monsters_xp_budget(
+        app->party_level, app->party_size, (DndEncounterDifficulty)app->difficulty);
+    dndbestiary_copy(app->encounter_name, sizeof(app->encounter_name), "Custom Encounter");
+    return true;
+}
+
+static bool dndbestiary_custom_encounter_add(BestiaryApp* app, const DndMonsterSummary* summary) {
+    if(!app || !summary ||
+       !dndbestiary_monsters_source_allowed(summary, app->shared_settings.homebrew))
+        return false;
+    if(!dndbestiary_custom_encounter_ensure(app)) return false;
+    for(uint8_t i = 0U; i < app->encounter->count; ++i) {
+        if(strcmp(app->encounter->monsters[i].id, summary->id)) continue;
+        if(app->encounter->quantities[i] < 99U) ++app->encounter->quantities[i];
+        DndEncounterSimulation simulation;
+        dndbestiary_monsters_simulate(
+            app->encounter, app->party_level, app->party_size, &simulation);
+        return true;
+    }
+    if(app->encounter->count >= DND_MONSTER_ENCOUNTER_MAX) {
+        dndbestiary_status(app, "Custom encounter full");
+        return false;
+    }
+    uint8_t index = app->encounter->count++;
+    app->encounter->monsters[index] = *summary;
+    app->encounter->quantities[index] = 1U;
+    DndEncounterSimulation simulation;
+    dndbestiary_monsters_simulate(app->encounter, app->party_level, app->party_size, &simulation);
+    return true;
+}
+
+static void dndbestiary_custom_encounter_open_catalog(BestiaryApp* app) {
+    if(!dndbestiary_custom_encounter_ensure(app)) return;
+    app->page_start = 0U;
+    app->list_mode = BestiaryListCatalog;
+    app->list_return_screen = BestiaryScreenEncounter;
+    if(dndbestiary_load_window(app)) dndbestiary_enter(app, BestiaryScreenList);
+}
+
+static void dndbestiary_open_custom_encounter(BestiaryApp* app) {
+    if(!dndbestiary_custom_encounter_ensure(app)) return;
+    DndEncounterSimulation simulation;
+    dndbestiary_monsters_simulate(app->encounter, app->party_level, app->party_size, &simulation);
+    dndbestiary_enter(app, BestiaryScreenEncounter);
+}
+
 static void dndbestiary_generate(BestiaryApp* app) {
     dndbestiary_release_text_input(app);
     dndbestiary_release_encounter(app);
-    app->encounter = calloc(1U, sizeof(PocketMonsterEncounter));
+    app->encounter = calloc(1U, sizeof(DndMonsterEncounter));
     if(!app->encounter) {
         dndbestiary_status(app, "Not enough memory");
         return;
     }
+    app->encounter_custom = 0U;
     bool generated = dndbestiary_monsters_generate(
         app->storage,
         app->party_level,
         app->party_size,
-        (PocketEncounterDifficulty)app->difficulty,
+        (DndEncounterDifficulty)app->difficulty,
         environment_names[app->encounter_environment],
         app->allow_repeats,
-        (PocketEncounterTemplate)app->encounter_template,
+        (DndEncounterTemplate)app->encounter_template,
         role_names[app->encounter_role],
+        app->shared_settings.homebrew,
         app->encounter);
     if(!generated) {
         dndbestiary_release_encounter(app);
@@ -1276,7 +1606,7 @@ static void dndbestiary_diagnose(BestiaryApp* app) {
 static void dndbestiary_new_custom(BestiaryApp* app) {
     dndbestiary_release_text_input(app);
     dndbestiary_release_detail(app);
-    app->detail = calloc(1U, sizeof(PocketMonsterDetail));
+    app->detail = calloc(1U, sizeof(DndMonsterDetail));
     if(!app->detail) {
         dndbestiary_status(app, "Not enough memory");
         return;
@@ -1306,15 +1636,27 @@ static void dndbestiary_new_custom(BestiaryApp* app) {
 static void dndbestiary_back(BestiaryApp* app) {
     switch(app->screen) {
     case BestiaryScreenHome:
-        if(!dndbestiary_launch_dnd(app, NULL)) view_dispatcher_stop(app->dispatcher);
+        if(app->return_to_initiative)
+            view_dispatcher_stop(app->dispatcher);
+        else if(!dndbestiary_launch_dnd(app, NULL))
+            view_dispatcher_stop(app->dispatcher);
         break;
-    case BestiaryScreenList:
+    case BestiaryScreenList: {
+        BestiaryScreen destination = app->list_return_screen;
         dndbestiary_release_window(app);
-        dndbestiary_enter(app, BestiaryScreenHome);
+        dndbestiary_enter(
+            app,
+            destination == BestiaryScreenEncounter && app->encounter ? destination :
+                                                                       BestiaryScreenHome);
         break;
+    }
     case BestiaryScreenDetail: {
         BestiaryScreen destination = app->return_screen;
         dndbestiary_release_detail(app);
+        if(app->return_to_initiative && destination == BestiaryScreenHome) {
+            view_dispatcher_stop(app->dispatcher);
+            break;
+        }
         if(destination == BestiaryScreenList) {
             if(app->list_mode == BestiaryListCatalog)
                 dndbestiary_load_window(app);
@@ -1333,8 +1675,13 @@ static void dndbestiary_back(BestiaryApp* app) {
     case BestiaryScreenDetailLine:
         dndbestiary_return_to_detail(app);
         break;
+    case BestiaryScreenTurnTools:
+        dndbestiary_enter(app, BestiaryScreenDetail);
+        app->selection = 17U;
+        app->scroll = 13U;
+        break;
     case BestiaryScreenEncounter:
-        dndbestiary_release_encounter(app);
+        if(!app->encounter_custom) dndbestiary_release_encounter(app);
         dndbestiary_enter(app, BestiaryScreenHome);
         break;
     case BestiaryScreenSimulator:
@@ -1359,7 +1706,7 @@ static void dndbestiary_back(BestiaryApp* app) {
         break;
     case BestiaryScreenEdit:
         if(app->edit_existing) {
-            PocketMonsterSummary summary = app->selected;
+            DndMonsterSummary summary = app->selected;
             dndbestiary_release_detail(app);
             dndbestiary_open_detail(app, &summary, BestiaryScreenHome);
         } else {
@@ -1371,60 +1718,74 @@ static void dndbestiary_back(BestiaryApp* app) {
 }
 
 static void dndbestiary_handle_home(BestiaryApp* app, const InputEvent* event) {
+    uint16_t home_count = app->shared_settings.debug ? 22U : 21U;
     if(dndbestiary_move_event(event) && event->key == InputKeyUp)
-        dndbestiary_move(app, 21U, -1);
+        dndbestiary_move(app, home_count, -1);
     else if(dndbestiary_move_event(event) && event->key == InputKeyDown)
-        dndbestiary_move(app, 21U, 1);
+        dndbestiary_move(app, home_count, 1);
     else if(
         dndbestiary_move_event(event) &&
         (event->key == InputKeyLeft || event->key == InputKeyRight)) {
+        if(event->key == InputKeyLeft && app->selection >= 11U && app->selection <= 16U) {
+            if(app->selection == 11U)
+                app->search[0] = '\0';
+            else if(app->selection == 12U)
+                app->max_cr_eighths = 0U;
+            else if(app->selection == 13U)
+                app->type_filter = 0U;
+            else if(app->selection == 14U)
+                app->source_filter = 0U;
+            else if(app->selection == 15U)
+                app->environment_filter = 0U;
+            else
+                app->role_filter = 0U;
+            app->monster_total_valid = 0U;
+            return;
+        }
         int8_t delta = event->key == InputKeyRight ? 1 : -1;
-        if(app->selection == 2U) {
+        if(app->selection == 3U) {
             int16_t value = app->party_level + delta;
             app->party_level = (uint8_t)(value < 1 ? 20 : value > 20 ? 1 : value);
             dndbestiary_save_party_settings(app);
-        } else if(app->selection == 3U) {
+        } else if(app->selection == 4U) {
             int16_t value = app->party_size + delta;
             app->party_size = (uint8_t)(value < 1 ? 12 : value > 12 ? 1 : value);
             dndbestiary_save_party_settings(app);
-        } else if(app->selection == 4U) {
+        } else if(app->selection == 5U) {
             int16_t value = app->difficulty + delta;
             app->difficulty = (uint8_t)(value < 0 ? 2 : value > 2 ? 0 : value);
-        } else if(app->selection == 5U) {
+        } else if(app->selection == 6U) {
             int16_t value = app->encounter_environment + delta;
             if(value < 0) value = sizeof(environment_names) / sizeof(environment_names[0]) - 1U;
             if(value >= (int16_t)(sizeof(environment_names) / sizeof(environment_names[0])))
                 value = 0;
             app->encounter_environment = value;
-        } else if(app->selection == 6U) {
+        } else if(app->selection == 7U) {
             int16_t value = app->encounter_role + delta;
             if(value < 0) value = sizeof(role_names) / sizeof(role_names[0]) - 1U;
             if(value >= (int16_t)(sizeof(role_names) / sizeof(role_names[0]))) value = 0;
             app->encounter_role = value;
-        } else if(app->selection == 7U) {
-            app->allow_repeats = !app->allow_repeats;
         } else if(app->selection == 8U) {
+            app->allow_repeats = !app->allow_repeats;
+        } else if(app->selection == 9U) {
             int16_t value = app->encounter_template + delta;
             app->encounter_template = (uint8_t)(value < 0 ? 2 : value > 2 ? 0 : value);
-        } else if(app->selection == 11U) {
-            app->max_cr_eighths = dndbestiary_cycle_cr(app->max_cr_eighths, delta);
         } else if(app->selection == 12U) {
+            app->max_cr_eighths = dndbestiary_cycle_cr(app->max_cr_eighths, delta);
+        } else if(app->selection == 13U) {
             int16_t value = app->type_filter + delta;
             if(value < 0) value = sizeof(type_names) / sizeof(type_names[0]) - 1U;
             if(value >= (int16_t)(sizeof(type_names) / sizeof(type_names[0]))) value = 0;
             app->type_filter = value;
-        } else if(app->selection == 13U) {
-            int16_t value = app->source_filter + delta;
-            if(value < 0) value = sizeof(source_names) / sizeof(source_names[0]) - 1U;
-            if(value >= (int16_t)(sizeof(source_names) / sizeof(source_names[0]))) value = 0;
-            app->source_filter = value;
         } else if(app->selection == 14U) {
+            app->source_filter = dndbestiary_cycle_source(app, app->source_filter, delta);
+        } else if(app->selection == 15U) {
             int16_t value = app->environment_filter + delta;
             if(value < 0) value = sizeof(environment_names) / sizeof(environment_names[0]) - 1U;
             if(value >= (int16_t)(sizeof(environment_names) / sizeof(environment_names[0])))
                 value = 0;
             app->environment_filter = value;
-        } else if(app->selection == 15U) {
+        } else if(app->selection == 16U) {
             int16_t value = app->role_filter + delta;
             if(value < 0) value = sizeof(role_names) / sizeof(role_names[0]) - 1U;
             if(value >= (int16_t)(sizeof(role_names) / sizeof(role_names[0]))) value = 0;
@@ -1432,36 +1793,39 @@ static void dndbestiary_handle_home(BestiaryApp* app, const InputEvent* event) {
         } else {
             return;
         }
-        if(app->selection >= 11U && app->selection <= 15U) app->monster_total_valid = 0U;
+        if(app->selection >= 12U && app->selection <= 16U) app->monster_total_valid = 0U;
     } else if(event->type == InputTypeShort && event->key == InputKeyOk) {
         if(app->selection == 0U) {
             app->page_start = 0U;
             app->list_mode = BestiaryListCatalog;
+            app->list_return_screen = BestiaryScreenHome;
             if(dndbestiary_load_window(app)) dndbestiary_enter(app, BestiaryScreenList);
         } else if(app->selection == 1U) {
             dndbestiary_generate(app);
-        } else if(app->selection == 9U) {
+        } else if(app->selection == 2U) {
+            dndbestiary_open_custom_encounter(app);
+        } else if(app->selection == 10U) {
             dndbestiary_cache_encounter_rows(app);
             dndbestiary_enter(app, BestiaryScreenSavedEncounters);
-        } else if(app->selection == 10U) {
+        } else if(app->selection == 11U) {
             dndbestiary_begin_text(app, BestiaryEditSearch, "Monster Search", app->search);
-        } else if(app->selection == 16U) {
+        } else if(app->selection == 17U) {
             dndbestiary_cache_filter_rows(app);
             dndbestiary_enter(app, BestiaryScreenFilters);
-        } else if(app->selection == 17U || app->selection == 18U) {
+        } else if(app->selection == 18U || app->selection == 19U) {
             app->page_start = 0U;
-            BestiaryListMode mode = app->selection == 17U ? BestiaryListFavorites :
+            BestiaryListMode mode = app->selection == 18U ? BestiaryListFavorites :
                                                             BestiaryListRecents;
+            app->list_return_screen = BestiaryScreenHome;
             if(dndbestiary_load_state_window(app, mode))
                 dndbestiary_enter(app, BestiaryScreenList);
-        } else if(app->selection == 19U) {
-            dndbestiary_new_custom(app);
         } else if(app->selection == 20U) {
+            dndbestiary_new_custom(app);
+        } else if(app->selection == 21U && app->shared_settings.debug) {
             dndbestiary_diagnose(app);
         }
     }
 }
-
 static void dndbestiary_handle_list(BestiaryApp* app, const InputEvent* event) {
     if(dndbestiary_move_event(event) && event->key == InputKeyUp)
         dndbestiary_move(app, app->window_count, -1);
@@ -1484,9 +1848,18 @@ static void dndbestiary_handle_list(BestiaryApp* app, const InputEvent* event) {
                 dndbestiary_load_state_window(app, app->list_mode);
         }
     } else if(
+        event->type == InputTypeLong && event->key == InputKeyOk &&
+        app->list_mode == BestiaryListCatalog && app->selection < app->window_count) {
+        bool added = dndbestiary_custom_encounter_add(app, &app->window[app->selection]);
+        dndbestiary_status(
+            app,
+            added          ? "Added to Custom Encounter" :
+            app->status[0] ? app->status :
+                             "Could not add monster");
+    } else if(
         event->type == InputTypeShort && event->key == InputKeyOk &&
         app->selection < app->window_count) {
-        PocketMonsterSummary summary = app->window[app->selection];
+        DndMonsterSummary summary = app->window[app->selection];
         dndbestiary_release_window(app);
         dndbestiary_open_detail(app, &summary, BestiaryScreenList);
     }
@@ -1495,7 +1868,7 @@ static void dndbestiary_handle_list(BestiaryApp* app, const InputEvent* event) {
 static void dndbestiary_handle_detail(BestiaryApp* app, const InputEvent* event) {
     if(!app->detail) return;
     bool custom = !strcmp(app->detail->summary.source, "Custom");
-    uint8_t row_count = custom ? 18U : 16U;
+    uint8_t row_count = custom ? 19U : 17U;
     if(dndbestiary_move_event(event) && event->key == InputKeyUp) {
         app->delete_armed = 0U;
         dndbestiary_move(app, row_count, -1);
@@ -1515,12 +1888,23 @@ static void dndbestiary_handle_detail(BestiaryApp* app, const InputEvent* event)
                 changed ? (now_favorite ? "Favorite added" : "Favorite removed") :
                           "Favorite update failed");
         } else if(app->selection == 15U) {
+            bool added = dndbestiary_custom_encounter_add(app, &app->detail->summary);
+            dndbestiary_status(
+                app,
+                added          ? "Added to Custom Encounter" :
+                app->status[0] ? app->status :
+                                 "Could not add monster");
+        } else if(app->selection == 16U) {
             dndbestiary_launch_dnd_monsters(app, &app->detail->summary, NULL, 1U);
-        } else if(custom && app->selection == 16U) {
+        } else if(app->selection == 17U) {
+            dndbestiary_prepare_turn_attacks(app);
+            app->selection = app->scroll = 0U;
+            dndbestiary_enter(app, BestiaryScreenTurnTools);
+        } else if(custom && app->selection == 18U) {
             app->edit_existing = 1U;
             app->selected = app->detail->summary;
             dndbestiary_enter(app, BestiaryScreenEdit);
-        } else if(custom && app->selection == 17U) {
+        } else if(custom && app->selection == 19U) {
             if(!app->delete_armed) {
                 app->delete_armed = 1U;
                 dndbestiary_status(app, "OK again deletes custom");
@@ -1535,7 +1919,7 @@ static void dndbestiary_handle_detail(BestiaryApp* app, const InputEvent* event)
         }
     } else if(
         event->type == InputTypeLong && event->key == InputKeyOk && custom &&
-        app->selection == 17U) {
+        app->selection == 19U) {
         if(!app->delete_armed) {
             app->delete_armed = 1U;
             dndbestiary_status(app, "Hold OK again delete");
@@ -1546,6 +1930,24 @@ static void dndbestiary_handle_detail(BestiaryApp* app, const InputEvent* event)
             dndbestiary_enter(app, BestiaryScreenHome);
             dndbestiary_status(app, deleted ? "Custom monster deleted" : "Delete failed");
         }
+    }
+}
+static void dndbestiary_handle_turn_tools(BestiaryApp* app, const InputEvent* event) {
+    if(!app) return;
+    if(dndbestiary_move_event(event) && event->key == InputKeyUp && app->turn_attack_count)
+        dndbestiary_move(app, app->turn_attack_count, -1);
+    else if(dndbestiary_move_event(event) && event->key == InputKeyDown && app->turn_attack_count)
+        dndbestiary_move(app, app->turn_attack_count, 1);
+    else if(
+        event->type == InputTypeShort && event->key == InputKeyOk &&
+        app->selection < app->turn_attack_count) {
+        BestiaryTurnAttack* attack = &app->turn_attacks[app->selection];
+        int16_t attack_total = (int16_t)(dndbestiary_roll_die(20U) + attack->attack_bonus);
+        int16_t damage = dndbestiary_roll_damage(attack);
+        if(attack->damage_terms)
+            snprintf(app->status, sizeof(app->status), "Atk %d  Dmg %d", attack_total, damage);
+        else
+            snprintf(app->status, sizeof(app->status), "Attack %d", attack_total);
     }
 }
 
@@ -1601,12 +2003,12 @@ static bool dndbestiary_launch_args_append(
     const BestiaryLaunchMonster* monster) {
     if(!args || !used || !emitted || !monster) return false;
 
-    char name[POCKET_MONSTER_NAME_LEN];
+    char name[DND_MONSTER_NAME_LEN];
     dndbestiary_launch_name_sanitize(name, sizeof(name), monster->name);
     if(!name[0]) dndbestiary_copy(name, sizeof(name), "Monster");
 
     uint16_t hp = monster->hit_points > 32767U ? 32767U : monster->hit_points;
-    for(uint8_t copy = 0U; copy < monster->quantity && *emitted < POCKET_D20_TRANSFER_MAX;
+    for(uint8_t copy = 0U; copy < monster->quantity && *emitted < DND_PROFILE_TRANSFER_MAX;
         ++copy) {
         int written = snprintf(
             args + *used,
@@ -1632,14 +2034,13 @@ static bool dndbestiary_launch_args_finish(char* args, size_t capacity, size_t* 
 
 static bool dndbestiary_launch_dnd_monsters(
     BestiaryApp* app,
-    const PocketMonsterSummary* monsters,
+    const DndMonsterSummary* monsters,
     const uint8_t* quantities,
     uint8_t count) {
     if(!app || !monsters || !count) return false;
 
-    BestiaryLaunchMonster launch_monsters[POCKET_MONSTER_ENCOUNTER_MAX];
-    uint8_t launch_count = count < POCKET_MONSTER_ENCOUNTER_MAX ? count :
-                                                                  POCKET_MONSTER_ENCOUNTER_MAX;
+    BestiaryLaunchMonster launch_monsters[DND_MONSTER_ENCOUNTER_MAX];
+    uint8_t launch_count = count < DND_MONSTER_ENCOUNTER_MAX ? count : DND_MONSTER_ENCOUNTER_MAX;
     for(uint8_t index = 0U; index < launch_count; ++index) {
         dndbestiary_copy(
             launch_monsters[index].name,
@@ -1659,31 +2060,31 @@ static bool dndbestiary_launch_dnd_monsters(
     dndbestiary_release_window(app);
     dndbestiary_monsters_cache_reset();
 
-    char* args = malloc(POCKET_D20_LAUNCH_ARGS_MAX);
+    char* args = malloc(DND_PROFILE_LAUNCH_ARGS_MAX);
     if(!args) {
         dndbestiary_status(app, "Launch args unavailable");
         return false;
     }
 
     int prefix =
-        snprintf(args, POCKET_D20_LAUNCH_ARGS_MAX, "%lu", (unsigned long)app->character_id);
-    if(prefix < 0 || prefix >= (int)POCKET_D20_LAUNCH_ARGS_MAX) {
+        snprintf(args, DND_PROFILE_LAUNCH_ARGS_MAX, "%lu", (unsigned long)app->character_id);
+    if(prefix < 0 || prefix >= (int)DND_PROFILE_LAUNCH_ARGS_MAX) {
         free(args);
         return false;
     }
     size_t used = (size_t)prefix;
     uint8_t emitted = 0U;
     bool built = true;
-    for(uint8_t index = 0U; index < launch_count && emitted < POCKET_D20_TRANSFER_MAX; ++index) {
+    for(uint8_t index = 0U; index < launch_count && emitted < DND_PROFILE_TRANSFER_MAX; ++index) {
         if(!launch_monsters[index].quantity) continue;
         if(!dndbestiary_launch_args_append(
-               args, POCKET_D20_LAUNCH_ARGS_MAX, &used, &emitted, &launch_monsters[index])) {
+               args, DND_PROFILE_LAUNCH_ARGS_MAX, &used, &emitted, &launch_monsters[index])) {
             built = false;
             break;
         }
     }
 
-    if(!emitted || !dndbestiary_launch_args_finish(args, POCKET_D20_LAUNCH_ARGS_MAX, &used))
+    if(!emitted || !dndbestiary_launch_args_finish(args, DND_PROFILE_LAUNCH_ARGS_MAX, &used))
         built = false;
 
     bool launched = false;
@@ -1699,19 +2100,23 @@ static bool dndbestiary_launch_dnd_monsters(
 
 static bool dndbestiary_launch_saved_dnd(BestiaryApp* app, uint16_t index) {
     if(!app) return false;
-    PocketSavedEncounter saved;
+    DndSavedEncounter saved;
     if(!dndbestiary_state_encounter_at(app->storage, index, &saved)) {
         dndbestiary_status(app, "Saved encounter unavailable");
         return false;
     }
 
-    BestiaryLaunchMonster launch_monsters[POCKET_MONSTER_ENCOUNTER_MAX];
+    BestiaryLaunchMonster launch_monsters[DND_MONSTER_ENCOUNTER_MAX];
     uint8_t launch_count = 0U;
-    for(uint8_t record = 0U; record < saved.count && record < POCKET_MONSTER_ENCOUNTER_MAX;
+    for(uint8_t record = 0U; record < saved.count && record < DND_MONSTER_ENCOUNTER_MAX;
         ++record) {
-        PocketMonsterSummary summary;
+        DndMonsterSummary summary;
         if(!dndbestiary_monsters_find(app->storage, saved.monster_ids[record], &summary)) {
             dndbestiary_status(app, "Saved monster unavailable");
+            return false;
+        }
+        if(!dndbestiary_monsters_source_allowed(&summary, app->shared_settings.homebrew)) {
+            dndbestiary_status(app, "Homebrew is disabled");
             return false;
         }
         dndbestiary_copy(
@@ -1737,32 +2142,32 @@ static bool dndbestiary_launch_saved_dnd(BestiaryApp* app, uint16_t index) {
     dndbestiary_release_window(app);
     dndbestiary_monsters_cache_reset();
 
-    char* args = malloc(POCKET_D20_LAUNCH_ARGS_MAX);
+    char* args = malloc(DND_PROFILE_LAUNCH_ARGS_MAX);
     if(!args) {
         dndbestiary_status(app, "Launch args unavailable");
         return false;
     }
 
     int prefix =
-        snprintf(args, POCKET_D20_LAUNCH_ARGS_MAX, "%lu", (unsigned long)app->character_id);
-    if(prefix < 0 || prefix >= (int)POCKET_D20_LAUNCH_ARGS_MAX) {
+        snprintf(args, DND_PROFILE_LAUNCH_ARGS_MAX, "%lu", (unsigned long)app->character_id);
+    if(prefix < 0 || prefix >= (int)DND_PROFILE_LAUNCH_ARGS_MAX) {
         free(args);
         return false;
     }
     size_t used = (size_t)prefix;
     uint8_t emitted = 0U;
     bool built = true;
-    for(uint8_t record = 0U; record < launch_count && emitted < POCKET_D20_TRANSFER_MAX;
+    for(uint8_t record = 0U; record < launch_count && emitted < DND_PROFILE_TRANSFER_MAX;
         ++record) {
         if(!launch_monsters[record].quantity) continue;
         if(!dndbestiary_launch_args_append(
-               args, POCKET_D20_LAUNCH_ARGS_MAX, &used, &emitted, &launch_monsters[record])) {
+               args, DND_PROFILE_LAUNCH_ARGS_MAX, &used, &emitted, &launch_monsters[record])) {
             built = false;
             break;
         }
     }
 
-    if(!emitted || !dndbestiary_launch_args_finish(args, POCKET_D20_LAUNCH_ARGS_MAX, &used))
+    if(!emitted || !dndbestiary_launch_args_finish(args, DND_PROFILE_LAUNCH_ARGS_MAX, &used))
         built = false;
 
     if(built) app->pending_launch_initiative = 1U;
@@ -1774,7 +2179,8 @@ static bool dndbestiary_launch_saved_dnd(BestiaryApp* app, uint16_t index) {
 
 static void dndbestiary_handle_encounter(BestiaryApp* app, const InputEvent* event) {
     if(!app->encounter) return;
-    uint16_t count = app->encounter->count + 4U;
+    uint16_t action_count = app->encounter_custom ? 5U : 4U;
+    uint16_t count = app->encounter->count + action_count;
     if(dndbestiary_move_event(event) && event->key == InputKeyUp)
         dndbestiary_move(app, count, -1);
     else if(dndbestiary_move_event(event) && event->key == InputKeyDown)
@@ -1782,36 +2188,45 @@ static void dndbestiary_handle_encounter(BestiaryApp* app, const InputEvent* eve
     else if(
         event->type == InputTypeShort && event->key == InputKeyOk &&
         app->selection < app->encounter->count) {
-        PocketMonsterSummary summary = app->encounter->monsters[app->selection];
+        DndMonsterSummary summary = app->encounter->monsters[app->selection];
         app->encounter_return_selection = app->selection;
         app->encounter_return_scroll = app->scroll;
         dndbestiary_open_detail(app, &summary, BestiaryScreenEncounter);
-    } else if(
-        event->type == InputTypeShort && event->key == InputKeyOk &&
-        app->selection == app->encounter->count) {
-        dndbestiary_enter(app, BestiaryScreenSimulator);
-    } else if(
-        event->type == InputTypeShort && event->key == InputKeyOk &&
-        app->selection == app->encounter->count + 1U) {
-        dndbestiary_begin_text(
-            app,
-            BestiaryEditEncounterName,
-            "Encounter Name",
-            app->encounter_name[0] ? app->encounter_name : "Encounter");
-    } else if(
-        event->type == InputTypeShort && event->key == InputKeyOk &&
-        app->selection == app->encounter->count + 2U) {
-        dndbestiary_enter(app, BestiaryScreenWarnings);
-    } else if(
-        event->type == InputTypeShort && event->key == InputKeyOk &&
-        app->selection == app->encounter->count + 3U) {
-        dndbestiary_launch_dnd_monsters(
-            app, app->encounter->monsters, app->encounter->quantities, app->encounter->count);
-    } else if(event->type == InputTypeLong && event->key == InputKeyOk) {
+    } else if(event->type == InputTypeShort && event->key == InputKeyOk) {
+        uint16_t action = app->selection - app->encounter->count;
+        if(app->encounter_custom && action == 0U) {
+            dndbestiary_custom_encounter_open_catalog(app);
+            return;
+        }
+        if(app->encounter_custom) --action;
+        if(action == 0U) {
+            dndbestiary_enter(app, BestiaryScreenSimulator);
+        } else if(action == 1U) {
+            if(!app->encounter->count) {
+                dndbestiary_status(app, "Add monsters first");
+            } else {
+                dndbestiary_begin_text(
+                    app,
+                    BestiaryEditEncounterName,
+                    "Encounter Name",
+                    app->encounter_name[0] ? app->encounter_name : "Encounter");
+            }
+        } else if(action == 2U) {
+            dndbestiary_enter(app, BestiaryScreenWarnings);
+        } else if(action == 3U) {
+            if(!app->encounter->count)
+                dndbestiary_status(app, "Add monsters first");
+            else
+                dndbestiary_launch_dnd_monsters(
+                    app,
+                    app->encounter->monsters,
+                    app->encounter->quantities,
+                    app->encounter->count);
+        }
+    } else if(event->type == InputTypeLong && event->key == InputKeyOk && !app->encounter_custom) {
         dndbestiary_generate(app);
     }
 }
-
 static void dndbestiary_handle_warnings(BestiaryApp* app, const InputEvent* event) {
     if(event->type == InputTypeShort && event->key == InputKeyOk)
         dndbestiary_enter(app, BestiaryScreenEncounter);
@@ -1843,7 +2258,7 @@ static void dndbestiary_handle_simulator(BestiaryApp* app, const InputEvent* eve
                                                             quantity > 99 ? 99 :
                                                                             quantity);
         }
-        PocketEncounterSimulation simulation;
+        DndEncounterSimulation simulation;
         dndbestiary_monsters_simulate(
             app->encounter, app->party_level, app->party_size, &simulation);
     } else if(event->type == InputTypeShort && event->key == InputKeyOk) {
@@ -1852,21 +2267,27 @@ static void dndbestiary_handle_simulator(BestiaryApp* app, const InputEvent* eve
 }
 
 static bool dndbestiary_resume_saved(BestiaryApp* app, uint16_t index) {
-    PocketSavedEncounter saved;
+    DndSavedEncounter saved;
     if(!dndbestiary_state_encounter_at(app->storage, index, &saved)) return false;
     dndbestiary_release_encounter(app);
-    app->encounter = calloc(1U, sizeof(PocketMonsterEncounter));
+    app->encounter = calloc(1U, sizeof(DndMonsterEncounter));
     if(!app->encounter) return false;
+    app->encounter_custom = 0U;
     app->party_level = saved.party_level;
     app->party_size = saved.party_size;
     dndbestiary_save_party_settings(app);
-    app->difficulty = saved.difficulty < PocketEncounterDifficultyCount ? saved.difficulty :
-                                                                          PocketEncounterModerate;
+    app->difficulty = saved.difficulty < DndEncounterDifficultyCount ? saved.difficulty :
+                                                                       DndEncounterModerate;
     for(uint8_t record = 0U; record < saved.count; ++record) {
-        PocketMonsterSummary summary;
+        DndMonsterSummary summary;
         if(!dndbestiary_monsters_find(app->storage, saved.monster_ids[record], &summary)) {
             /* A saved encounter is an atomic composition.  Never resume or hand off a
                silently shortened encounter when one of its stable monster IDs is gone. */
+            dndbestiary_release_encounter(app);
+            return false;
+        }
+        if(!dndbestiary_monsters_source_allowed(&summary, app->shared_settings.homebrew)) {
+            dndbestiary_status(app, "Homebrew is disabled");
             dndbestiary_release_encounter(app);
             return false;
         }
@@ -1878,7 +2299,7 @@ static bool dndbestiary_resume_saved(BestiaryApp* app, uint16_t index) {
         dndbestiary_release_encounter(app);
         return false;
     }
-    PocketEncounterSimulation simulation;
+    DndEncounterSimulation simulation;
     dndbestiary_monsters_simulate(app->encounter, app->party_level, app->party_size, &simulation);
     dndbestiary_copy(app->encounter_name, sizeof(app->encounter_name), saved.name);
     dndbestiary_enter(app, BestiaryScreenEncounter);
@@ -1899,7 +2320,7 @@ static void dndbestiary_handle_saved_encounters(BestiaryApp* app, const InputEve
     } else if(
         event->type == InputTypeLong && event->key == InputKeyOk &&
         app->selection < app->state_total) {
-        PocketSavedEncounter saved;
+        DndSavedEncounter saved;
         if(!dndbestiary_state_encounter_at(app->storage, app->selection, &saved)) {
             dndbestiary_status(app, "Saved encounter unavailable");
             return;
@@ -1939,7 +2360,7 @@ static void dndbestiary_handle_encounter_actions(BestiaryApp* app, const InputEv
             dndbestiary_begin_text(
                 app, BestiaryEditEncounterRename, "Rename Encounter", app->encounter_name);
         } else if(app->selection == 3U) {
-            char copy_name[POCKET_BESTIARY_ENCOUNTER_NAME_LEN];
+            char copy_name[DND_BESTIARY_ENCOUNTER_NAME_LEN];
             snprintf(copy_name, sizeof(copy_name), "%.25s Copy", app->encounter_name);
             dndbestiary_begin_text(app, BestiaryEditEncounterDuplicate, "Duplicate As", copy_name);
         } else if(app->selection == 4U) {
@@ -1988,7 +2409,7 @@ static void dndbestiary_handle_filters(BestiaryApp* app, const InputEvent* event
             app->pending_filter.role_filter = app->role_filter;
             dndbestiary_begin_text(app, BestiaryEditFilterName, "Filter Name", "My Filter");
         } else {
-            PocketBestiaryFilterPreset preset;
+            DndBestiaryFilterPreset preset;
             if(!dndbestiary_state_filter_at(app->storage, app->selection, &preset)) return;
             dndbestiary_copy(app->search, sizeof(app->search), preset.search);
             app->max_cr_eighths = preset.max_cr_eighths;
@@ -1999,6 +2420,7 @@ static void dndbestiary_handle_filters(BestiaryApp* app, const InputEvent* event
                                          sizeof(source_names) / sizeof(source_names[0]) ?
                                      preset.source_filter :
                                      0U;
+            if(!app->shared_settings.homebrew && app->source_filter == 4U) app->source_filter = 0U;
             app->environment_filter =
                 preset.environment_filter <
                         sizeof(environment_names) / sizeof(environment_names[0]) ?
@@ -2022,7 +2444,7 @@ static void dndbestiary_handle_filters(BestiaryApp* app, const InputEvent* event
 }
 
 static void dndbestiary_handle_edit(BestiaryApp* app, const InputEvent* event) {
-    PocketMonsterDetail* m = app->detail;
+    DndMonsterDetail* m = app->detail;
     if(!m) return;
     if(dndbestiary_move_event(event) && event->key == InputKeyUp)
         dndbestiary_move(app, 24U, -1);
@@ -2147,6 +2569,9 @@ static bool dndbestiary_input(InputEvent* event, void* context) {
     case BestiaryScreenDetailLine:
         dndbestiary_handle_detail_line(app, event);
         break;
+    case BestiaryScreenTurnTools:
+        dndbestiary_handle_turn_tools(app, event);
+        break;
     case BestiaryScreenEncounter:
         dndbestiary_handle_encounter(app, event);
         break;
@@ -2206,9 +2631,14 @@ static bool dndbestiary_custom_event(void* context, uint32_t event) {
     if(event == BESTIARY_LONG_BACK_EVENT) {
         app->text_input_active = 0U;
         app->edit = BestiaryEditNone;
+        dndbestiary_input_hook_release(app);
         view_dispatcher_switch_to_view(app->dispatcher, BestiaryViewMain);
         dndbestiary_go_home(app);
         dndbestiary_refresh(app);
+        return true;
+    }
+    if(event == BESTIARY_RELEASE_TEXT_EVENT) {
+        dndbestiary_release_text_input(app);
         return true;
     }
     if(event != BESTIARY_MARQUEE_EVENT) return false;
@@ -2221,31 +2651,39 @@ static bool dndbestiary_navigation(void* context) {
     BestiaryApp* app = context;
     app->text_input_active = 0U;
     app->edit = BestiaryEditNone;
+    dndbestiary_input_hook_release(app);
     view_dispatcher_switch_to_view(app->dispatcher, BestiaryViewMain);
+    view_dispatcher_send_custom_event(app->dispatcher, BESTIARY_RELEASE_TEXT_EVENT);
     dndbestiary_refresh(app);
     return true;
 }
 
 static BestiaryApp* dndbestiary_alloc(const char* args) {
-    (void)args;
+    const char* initiative_monster = NULL;
+    if(args &&
+       !strncmp(
+           args, DND_BESTIARY_LAUNCH_FROM_INITIATIVE, strlen(DND_BESTIARY_LAUNCH_FROM_INITIATIVE)))
+        initiative_monster = args + strlen(DND_BESTIARY_LAUNCH_FROM_INITIATIVE);
     BestiaryApp* app = calloc(1U, sizeof(BestiaryApp));
     if(!app) return NULL;
     app->party_level = 1U;
     app->party_size = 4U;
-    app->difficulty = PocketEncounterModerate;
+    app->difficulty = DndEncounterModerate;
+    app->list_return_screen = BestiaryScreenHome;
     app->allow_repeats = 1U;
     /* Reserve the fixed UI/runtime objects while the heap is still clean. The
        migration/pack work below uses temporary file and cache allocations. */
     app->storage = furi_record_open(RECORD_STORAGE);
     app->gui = furi_record_open(RECORD_GUI);
     if(!app->storage || !app->gui) goto fail;
+    if(!dnd_settings_load_shared(app->storage, &app->shared_settings))
+        dnd_settings_shared_defaults(&app->shared_settings);
     if(!dnd_profile_ref_active_id(app->storage, &app->character_id)) app->character_id = 0U;
     app->dispatcher = view_dispatcher_alloc();
     app->view = view_alloc();
     app->marquee_timer =
         furi_timer_alloc(dndbestiary_marquee_timer_callback, FuriTimerTypePeriodic, app);
-    app->input_events = furi_record_open(RECORD_INPUT_EVENTS);
-    if(!app->dispatcher || !app->view || !app->marquee_timer || !app->input_events) goto fail;
+    if(!app->dispatcher || !app->view || !app->marquee_timer) goto fail;
 
     view_dispatcher_set_event_callback_context(app->dispatcher, app);
     view_dispatcher_set_navigation_event_callback(app->dispatcher, dndbestiary_navigation);
@@ -2272,11 +2710,8 @@ static BestiaryApp* dndbestiary_alloc(const char* args) {
     bool installed_packs_ok = dndbestiary_packs_ensure_enabled(app->storage);
     dndbestiary_monsters_cache_reset();
 
-    /* Subscribe/start asynchronous sources only after startup storage work is
-       complete, so callbacks cannot observe a partially initialized app. */
-    app->input_subscription =
-        furi_pubsub_subscribe(app->input_events, dndbestiary_input_events_callback, app);
-    if(!app->input_subscription) goto fail;
+    /* The marquee is always active while Bestiary is open. The global input
+       hook is intentionally not opened here; it exists only during TextInput. */
     if(furi_timer_start(app->marquee_timer, furi_ms_to_ticks(BESTIARY_MARQUEE_MS)) != FuriStatusOk)
         goto fail;
     view_dispatcher_add_view(app->dispatcher, BestiaryViewMain, app->view);
@@ -2296,14 +2731,31 @@ static BestiaryApp* dndbestiary_alloc(const char* args) {
         dndbestiary_status(app, "Default custom pack added");
     else if(recovered || rolled_back)
         dndbestiary_status(app, "Custom pack recovered");
+
+    if(initiative_monster && initiative_monster[0]) {
+        BestiaryNameLookup lookup = {
+            .name = initiative_monster,
+            .allow_homebrew = app->shared_settings.homebrew != 0U,
+        };
+        DndMonsterSummary summary;
+        uint16_t total = 0U;
+        uint16_t found = dndbestiary_monsters_query(
+            app->storage, dndbestiary_name_lookup_filter, &lookup, 0U, &summary, 1U, &total);
+        if(found == 1U) {
+            app->return_to_initiative = 1U;
+            (void)dndbestiary_open_detail(app, &summary, BestiaryScreenHome);
+        } else {
+            app->return_to_initiative = 1U;
+            dndbestiary_status(app, "Monster not found");
+        }
+    }
     return app;
 
 fail:
     /* Async sources may or may not have started; quiesce the ones that did.
        Also release every optional dynamic block because startup storage/migration
        helpers may have created one before a later UI/runtime allocation failed. */
-    if(app->input_subscription && app->input_events)
-        furi_pubsub_unsubscribe(app->input_events, app->input_subscription);
+    dndbestiary_input_hook_release(app);
     if(app->marquee_timer) furi_timer_stop(app->marquee_timer);
     dndbestiary_release_window(app);
     dndbestiary_release_detail(app);
@@ -2313,7 +2765,6 @@ fail:
     app->pending_launch_args = NULL;
     if(app->marquee_timer) furi_timer_free(app->marquee_timer);
     if(app->view) view_free(app->view);
-    if(app->input_events) furi_record_close(RECORD_INPUT_EVENTS);
     if(app->dispatcher) view_dispatcher_free(app->dispatcher);
     if(app->gui) furi_record_close(RECORD_GUI);
     if(app->storage) furi_record_close(RECORD_STORAGE);
@@ -2358,17 +2809,22 @@ int32_t dndbestiary_app(void* context) {
 
     uint8_t launch_dnd = app->pending_launch_dnd;
     uint8_t launch_initiative = app->pending_launch_initiative;
+    uint8_t return_to_initiative = app->return_to_initiative;
     char* launch_args = app->pending_launch_args;
     app->pending_launch_args = NULL;
     dndbestiary_free(app);
 
     if(launch_dnd) {
-        const char* return_args = launch_args ? launch_args : POCKET_D20_RETURN_FOCUS_BESTIARY;
+        const char* return_args = launch_args ? launch_args : DND_PROFILE_RETURN_FOCUS_BESTIARY;
         bool launch_ok = launch_initiative ?
                              dnd_handoff_launch(DNDINITIATIVE_FAP_PATH, launch_args) :
                              dnd_handoff_launch_if_present(DNDOLPHINS_FAP_PATH, return_args);
         free(launch_args);
         if(launch_initiative && !launch_ok) return -1;
+    } else if(return_to_initiative) {
+        if(!dnd_handoff_launch_if_present(
+               DNDINITIATIVE_FAP_PATH, DND_INITIATIVE_LAUNCH_FROM_BESTIARY))
+            return -1;
     }
     return 0;
 }

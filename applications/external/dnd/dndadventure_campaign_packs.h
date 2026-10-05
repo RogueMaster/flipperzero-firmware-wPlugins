@@ -5,34 +5,34 @@
 #include <stdint.h>
 #include <storage/storage.h>
 
-#define POCKET_CAMPAIGN_PACK_ID_LEN    32U
-#define POCKET_CAMPAIGN_PACK_NAME_LEN  40U
-#define POCKET_CAMPAIGN_PACK_ENTRY_LEN 32U
+#define DNDADVENTURE_PACK_ID_LEN    32U
+#define DNDADVENTURE_PACK_NAME_LEN  40U
+#define DNDADVENTURE_PACK_ENTRY_LEN 32U
 
 typedef struct {
-    char id[POCKET_CAMPAIGN_PACK_ID_LEN];
-    char name[POCKET_CAMPAIGN_PACK_NAME_LEN];
+    char id[DNDADVENTURE_PACK_ID_LEN];
+    char name[DNDADVENTURE_PACK_NAME_LEN];
     uint8_t enabled;
-} PocketCampaignPackSummary;
+} DndAdventureCampaignPackSummary;
 
 typedef struct {
-    PocketCampaignPackSummary summary;
+    DndAdventureCampaignPackSummary summary;
     uint8_t pack_version;
     uint16_t minimum_app;
     uint16_t maximum_app;
-    char entry_scene[POCKET_CAMPAIGN_PACK_ENTRY_LEN];
+    char entry_scene[DNDADVENTURE_PACK_ENTRY_LEN];
     uint8_t content_present;
     uint8_t entry_present;
-} PocketCampaignPackPreview;
+} DndAdventureCampaignPackPreview;
 
 uint16_t dndadventure_campaign_packs_count(Storage* storage);
 bool dndadventure_campaign_packs_at(
     Storage* storage,
     uint16_t index,
-    PocketCampaignPackSummary* output);
+    DndAdventureCampaignPackSummary* output);
 bool dndadventure_campaign_packs_preview_inbox(
     Storage* storage,
-    PocketCampaignPackPreview* output,
+    DndAdventureCampaignPackPreview* output,
     char* status,
     size_t status_size);
 bool dndadventure_campaign_packs_install_inbox(Storage* storage, char* status, size_t status_size);

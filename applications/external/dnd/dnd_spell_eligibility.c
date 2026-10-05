@@ -2,7 +2,7 @@
 
 #include <string.h>
 
-uint8_t dnd_spell_eligibility_class_max_spell_level(const PocketClassLevel* class_level) {
+uint8_t dnd_spell_eligibility_class_max_spell_level(const DndClassLevel* class_level) {
     if(!class_level) return 0U;
     uint8_t level = class_level->level;
     const char* name = class_level->name;
@@ -19,7 +19,7 @@ uint8_t dnd_spell_eligibility_class_max_spell_level(const PocketClassLevel* clas
         uint8_t maximum = (level + 1U) / 2U;
         return maximum > 5U ? 5U : maximum;
     }
-    if(class_level->spellcasting_mode == PocketSpellcastingThird) {
+    if(class_level->spellcasting_mode == DndSpellcastingThird) {
         if(level < 3U) return 0U;
         uint8_t maximum = (level + 5U) / 6U;
         return maximum > 4U ? 4U : maximum;

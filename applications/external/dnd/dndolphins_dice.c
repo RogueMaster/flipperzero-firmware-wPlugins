@@ -1,11 +1,11 @@
 #include "dndolphins_dice.h"
 #include "dnd_rules.h"
 
-uint8_t dndolphins_dice_roll_d20_mode(PocketRollMode mode) {
+uint8_t dndolphins_dice_roll_d20_mode(DndRollMode mode) {
     uint8_t first = dnd_rules_core_roll_die(20U);
-    if(mode != PocketRollAdvantage && mode != PocketRollDisadvantage) return first;
+    if(mode != DndRollAdvantage && mode != DndRollDisadvantage) return first;
     uint8_t second = dnd_rules_core_roll_die(20U);
-    if(mode == PocketRollAdvantage) return second > first ? second : first;
+    if(mode == DndRollAdvantage) return second > first ? second : first;
     return second < first ? second : first;
 }
 

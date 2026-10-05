@@ -6,28 +6,28 @@
 #include <stdint.h>
 #include <storage/storage.h>
 
-#define POCKET_CAMPAIGN_PACK_VERSION 1U
-#define POCKET_CAMPAIGN_APP_VERSION  301U
-#define POCKET_CAMPAIGN_ID_LEN       32U
+#define DNDADVENTURE_PACK_VERSION    1U
+#define DNDADVENTURE_APP_VERSION     301U
+#define DNDADVENTURE_CAMPAIGN_ID_LEN 32U
 
 typedef struct {
-    char id[POCKET_CAMPAIGN_ID_LEN];
-    char name[POCKET_D20_NAME_LEN];
+    char id[DNDADVENTURE_CAMPAIGN_ID_LEN];
+    char name[DND_NAME_LEN];
     uint8_t pack_version;
     uint16_t minimum_app;
     uint16_t maximum_app;
-    char entry_scene[POCKET_D20_SHORT_LEN];
-    char scenes_file[POCKET_D20_SHORT_LEN];
+    char entry_scene[DND_SHORT_LEN];
+    char scenes_file[DND_SHORT_LEN];
     uint8_t bundled;
-} PocketCampaignSummary;
+} DndAdventureCampaignSummary;
 
 typedef struct {
-    char campaign[POCKET_CAMPAIGN_ID_LEN];
-    char scene[POCKET_D20_SHORT_LEN];
-    char checkpoint[POCKET_D20_SHORT_LEN];
+    char campaign[DNDADVENTURE_CAMPAIGN_ID_LEN];
+    char scene[DND_SHORT_LEN];
+    char checkpoint[DND_SHORT_LEN];
     uint32_t quest_flags;
     uint32_t achievements;
-} PocketCampaignProgress;
+} DndAdventureCampaignProgress;
 
 typedef struct {
     uint16_t records;
@@ -37,16 +37,22 @@ typedef struct {
     uint16_t duplicate_scene_ids;
     uint16_t missing_entry_scenes;
     uint16_t broken_links;
-    char problem_id[POCKET_CAMPAIGN_ID_LEN];
+    char problem_id[DNDADVENTURE_CAMPAIGN_ID_LEN];
     char problem[48];
-} PocketCampaignDiagnostics;
+} DndAdventureCampaignDiagnostics;
 
 uint16_t dndadventure_campaigns_count(Storage* storage);
-bool dndadventure_campaigns_at(Storage* storage, uint16_t index, PocketCampaignSummary* output);
-bool dndadventure_campaigns_find(Storage* storage, const char* id, PocketCampaignSummary* output);
+bool dndadventure_campaigns_at(
+    Storage* storage,
+    uint16_t index,
+    DndAdventureCampaignSummary* output);
+bool dndadventure_campaigns_find(
+    Storage* storage,
+    const char* id,
+    DndAdventureCampaignSummary* output);
 bool dndadventure_campaigns_scene_path(
     Storage* storage,
-    const PocketCampaignSummary* campaign,
+    const DndAdventureCampaignSummary* campaign,
     char* output,
     size_t size);
 bool dndadventure_campaigns_active_load(
@@ -61,12 +67,12 @@ bool dndadventure_campaigns_active_save(
 bool dndadventure_campaigns_progress_load(
     Storage* storage,
     uint32_t profile_id,
-    const PocketCampaignSummary* campaign,
-    PocketCampaignProgress* progress);
+    const DndAdventureCampaignSummary* campaign,
+    DndAdventureCampaignProgress* progress);
 bool dndadventure_campaigns_progress_save(
     Storage* storage,
     uint32_t profile_id,
-    const PocketCampaignSummary* campaign,
-    const PocketCampaignProgress* progress);
-void dndadventure_campaigns_diagnose(Storage* storage, PocketCampaignDiagnostics* output);
+    const DndAdventureCampaignSummary* campaign,
+    const DndAdventureCampaignProgress* progress);
+void dndadventure_campaigns_diagnose(Storage* storage, DndAdventureCampaignDiagnostics* output);
 void dndadventure_campaigns_cache_reset(void);

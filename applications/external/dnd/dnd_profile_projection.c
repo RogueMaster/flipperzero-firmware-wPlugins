@@ -7,7 +7,7 @@
 #include <string.h>
 
 #define DND_PROJECTION_PATH_LEN 192U
-#define DND_PROJECTION_LINE_LEN ((POCKET_D20_DETAIL_LEN * 3U) + 64U)
+#define DND_PROJECTION_LINE_LEN ((DND_DETAIL_LEN * 3U) + 64U)
 
 typedef struct {
     File* file;
@@ -197,7 +197,7 @@ static bool dnd_projection_load_common(
             size_t count = dnd_projection_parse_numbers(value, n, 4U);
             if(count) {
                 uint8_t class_count =
-                    n[0] > 0 && n[0] <= (int32_t)POCKET_D20_MAX_CLASSES ? (uint8_t)n[0] : 0U;
+                    n[0] > 0 && n[0] <= (int32_t)DND_MAX_CLASSES ? (uint8_t)n[0] : 0U;
                 if(inventory) inventory->class_count = class_count;
                 if(spellbook) spellbook->class_count = class_count;
                 if(adventure) adventure->class_count = class_count;
@@ -205,7 +205,7 @@ static bool dnd_projection_load_common(
             }
             continue;
         }
-        if(dnd_projection_indexed_key(key, "Class", "Name", POCKET_D20_MAX_CLASSES, &index)) {
+        if(dnd_projection_indexed_key(key, "Class", "Name", DND_MAX_CLASSES, &index)) {
             if(inventory)
                 dnd_projection_decode_string(
                     inventory->classes[index].name, sizeof(inventory->classes[index].name), value);
@@ -218,7 +218,7 @@ static bool dnd_projection_load_common(
             recognized = true;
             continue;
         }
-        if(dnd_projection_indexed_key(key, "Class", "Subclass", POCKET_D20_MAX_CLASSES, &index)) {
+        if(dnd_projection_indexed_key(key, "Class", "Subclass", DND_MAX_CLASSES, &index)) {
             if(inventory)
                 dnd_projection_decode_string(
                     inventory->classes[index].subclass,
@@ -232,15 +232,15 @@ static bool dnd_projection_load_common(
             recognized = true;
             continue;
         }
-        if(dnd_projection_indexed_key(key, "Class", "Data", POCKET_D20_MAX_CLASSES, &index)) {
+        if(dnd_projection_indexed_key(key, "Class", "Data", DND_MAX_CLASSES, &index)) {
             size_t count = dnd_projection_parse_numbers(value, n, 16U);
             if(count) {
-                PocketClassLevel* targets[2] = {
+                DndClassLevel* targets[2] = {
                     inventory ? &inventory->classes[index] : NULL,
                     spellbook ? &spellbook->classes[index] : NULL,
                 };
                 for(uint8_t t = 0U; t < 2U; ++t) {
-                    PocketClassLevel* cl = targets[t];
+                    DndClassLevel* cl = targets[t];
                     if(!cl) continue;
                     if(count >= 1U) cl->level = (uint8_t)n[0];
                     if(count >= 2U) cl->hit_die = (uint8_t)n[1];
@@ -263,24 +263,48 @@ static bool dnd_projection_load_common(
             }
             continue;
         }
-        if((inventory || adventure) && !strcmp(key, "AbilityScores")) {
-            size_t count = dnd_projection_parse_numbers(value, n, POCKET_D20_ABILITY_COUNT);
+        if((inventory || spellbook || adventure) && !strcmp(key, "AbilityScores")) {
+            size_t count = dnd_projection_parse_numbers(value, n, DND_ABILITY_COUNT);
             for(size_t i = 0U; i < count; ++i) {
                 if(inventory) inventory->ability_scores[i] = (int8_t)n[i];
+                if(spellbook) spellbook->ability_scores[i] = (int8_t)n[i];
                 if(adventure) adventure->ability_scores[i] = (int8_t)n[i];
             }
             if(count) recognized = true;
             continue;
         }
+        if(spellbook && !strcmp(key, "Spellcasting")) {
+            size_t count = dnd_projection_parse_numbers(value, n, 4U);
+            if(count >= 1U) spellbook->spellcasting_ability = (uint8_t)n[0];
+            if(count >= 2U) spellbook->spell_attack_misc = (int8_t)n[1];
+            if(count >= 3U) spellbook->spell_save_misc = (int8_t)n[2];
+            if(count >= 4U) spellbook->arcane_recovery_used = (uint8_t)n[3];
+            if(count) recognized = true;
+            continue;
+        }
+        if(spellbook && !strcmp(key, "SpellSlotsCurrent")) {
+            size_t count = dnd_projection_parse_numbers(value, n, DND_SLOT_COUNT);
+            for(size_t i = 0U; i < count; ++i)
+                spellbook->spell_slots_current[i] = (uint8_t)n[i];
+            if(count) recognized = true;
+            continue;
+        }
+        if(spellbook && !strcmp(key, "SpellSlotsMax")) {
+            size_t count = dnd_projection_parse_numbers(value, n, DND_SLOT_COUNT);
+            for(size_t i = 0U; i < count; ++i)
+                spellbook->spell_slots_max[i] = (uint8_t)n[i];
+            if(count) recognized = true;
+            continue;
+        }
         if(adventure && !strcmp(key, "SkillProficiency")) {
-            size_t count = dnd_projection_parse_numbers(value, n, POCKET_D20_SKILL_COUNT);
+            size_t count = dnd_projection_parse_numbers(value, n, DND_SKILL_COUNT);
             for(size_t i = 0U; i < count; ++i)
                 adventure->skill_proficiency[i] = (uint8_t)n[i];
             if(count) recognized = true;
             continue;
         }
         if(adventure && !strcmp(key, "SkillMisc")) {
-            size_t count = dnd_projection_parse_numbers(value, n, POCKET_D20_SKILL_COUNT);
+            size_t count = dnd_projection_parse_numbers(value, n, DND_SKILL_COUNT);
             for(size_t i = 0U; i < count; ++i)
                 adventure->skill_misc[i] = (int8_t)n[i];
             if(count) recognized = true;
@@ -309,9 +333,9 @@ static bool dnd_projection_load_common(
 }
 
 static bool dnd_projection_restore_backup(Storage* storage, uint32_t profile) {
-    PocketSaveData* recovery = calloc(1U, sizeof(PocketSaveData));
+    DndSaveData* recovery = calloc(1U, sizeof(DndSaveData));
     if(!recovery) return false;
-    bool restored = dnd_storage_restore_backup(storage, profile, recovery);
+    bool restored = dnd_storage_recover_profile_backup(storage, profile, recovery);
     dnd_data_clear(recovery);
     free(recovery);
     return restored;
@@ -445,6 +469,109 @@ bool dnd_profile_projection_save_inventory_owned(
     if(ok)
         ok = storage_file_get_error(input) == FSE_OK && saw_vitals && saw_flags &&
              storage_file_sync(output);
+    free(line);
+    storage_file_close(input);
+    storage_file_close(output);
+    storage_file_free(input);
+    storage_file_free(output);
+    if(ok)
+        ok = dnd_projection_publish_temp(storage, temp, live, backup);
+    else
+        storage_common_remove(storage, temp);
+    return ok;
+}
+
+static bool dnd_projection_write_u8_values(
+    File* file,
+    const char* key,
+    const uint8_t* values,
+    size_t count) {
+    if(!file || !key || !values || !count) return false;
+    char line[160];
+    int used = snprintf(line, sizeof(line), "%s=", key);
+    if(used <= 0 || (size_t)used >= sizeof(line)) return false;
+    for(size_t i = 0U; i < count; ++i) {
+        int written =
+            snprintf(line + used, sizeof(line) - (size_t)used, "%s%u", i ? "," : "", values[i]);
+        if(written <= 0 || (size_t)written >= sizeof(line) - (size_t)used) return false;
+        used += written;
+    }
+    return dnd_projection_write_line(file, line);
+}
+
+bool dnd_profile_projection_save_spellbook_magic(
+    Storage* storage,
+    uint32_t profile,
+    const DndSpellbookProfileProjection* projection) {
+    if(!storage || !projection) return false;
+    char live[DND_PROJECTION_PATH_LEN];
+    if(!dnd_storage_find_profile_path(storage, profile, live, sizeof(live))) return false;
+    char temp[DND_PROJECTION_PATH_LEN];
+    char backup[DND_PROJECTION_PATH_LEN];
+    int written = snprintf(temp, sizeof(temp), "%s.magic", live);
+    if(written <= 0 || (size_t)written >= sizeof(temp)) return false;
+    written = snprintf(backup, sizeof(backup), "%s.magic.bak", live);
+    if(written <= 0 || (size_t)written >= sizeof(backup)) return false;
+
+    File* input = storage_file_alloc(storage);
+    File* output = storage_file_alloc(storage);
+    if(!input || !output) {
+        if(input) storage_file_free(input);
+        if(output) storage_file_free(output);
+        return false;
+    }
+    bool ok = storage_file_open(input, live, FSAM_READ, FSOM_OPEN_EXISTING) &&
+              storage_file_open(output, temp, FSAM_WRITE, FSOM_CREATE_ALWAYS);
+    DndProjectionReader reader;
+    dnd_projection_reader_init(&reader, input);
+    char* line = malloc(DND_PROJECTION_LINE_LEN);
+    bool saw_spellcasting = false, saw_current = false, saw_maximum = false;
+    if(!line) ok = false;
+    while(ok && dnd_projection_read_line(&reader, line, DND_PROJECTION_LINE_LEN)) {
+        if(!strncmp(line, "Spellcasting=", 13U)) {
+            char patched[96];
+            snprintf(
+                patched,
+                sizeof(patched),
+                "Spellcasting=%u,%d,%d,%u",
+                projection->spellcasting_ability,
+                projection->spell_attack_misc,
+                projection->spell_save_misc,
+                projection->arcane_recovery_used);
+            ok = dnd_projection_write_line(output, patched);
+            saw_spellcasting = true;
+        } else if(!strncmp(line, "SpellSlotsCurrent=", 18U)) {
+            ok = dnd_projection_write_u8_values(
+                output, "SpellSlotsCurrent", projection->spell_slots_current, DND_SLOT_COUNT);
+            saw_current = true;
+        } else if(!strncmp(line, "SpellSlotsMax=", 14U)) {
+            ok = dnd_projection_write_u8_values(
+                output, "SpellSlotsMax", projection->spell_slots_max, DND_SLOT_COUNT);
+            saw_maximum = true;
+        } else {
+            ok = dnd_projection_write_line(output, line);
+        }
+    }
+    if(ok) ok = storage_file_get_error(input) == FSE_OK;
+    if(ok && !saw_spellcasting) {
+        char patched[96];
+        snprintf(
+            patched,
+            sizeof(patched),
+            "Spellcasting=%u,%d,%d,%u",
+            projection->spellcasting_ability,
+            projection->spell_attack_misc,
+            projection->spell_save_misc,
+            projection->arcane_recovery_used);
+        ok = dnd_projection_write_line(output, patched);
+    }
+    if(ok && !saw_current)
+        ok = dnd_projection_write_u8_values(
+            output, "SpellSlotsCurrent", projection->spell_slots_current, DND_SLOT_COUNT);
+    if(ok && !saw_maximum)
+        ok = dnd_projection_write_u8_values(
+            output, "SpellSlotsMax", projection->spell_slots_max, DND_SLOT_COUNT);
+    if(ok) ok = storage_file_sync(output);
     free(line);
     storage_file_close(input);
     storage_file_close(output);

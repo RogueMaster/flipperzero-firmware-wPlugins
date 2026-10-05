@@ -17,7 +17,7 @@ Stage under `/ext/apps_data/dndbestiary/packs/monster_inbox/`:
 Manifest:
 
 ```text
-PocketPack=1
+DNDPack=1
 Id=filename_safe_pack_id
 Name=Display Name
 ```
@@ -27,3 +27,5 @@ No checksum is required.
 ## Default custom seed
 
 Bundled assets include a small default custom index/statblock pair for Dolphin and Capybara. On startup it is copied to the normal custom-monster app-data files only when neither custom file already exists. It is not merged into or allowed to overwrite an existing user pack.
+
+Legacy compatibility: readers continue to accept the historical `PocketPack=1` marker, but new/updated manifests should write `DNDPack=1`.

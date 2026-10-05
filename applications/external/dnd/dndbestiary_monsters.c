@@ -95,9 +95,9 @@ static bool dndbestiary_monsters_parse_abilities(const char* text, int8_t abilit
     return *cursor == '\0';
 }
 void dndbestiary_monsters_analyze_composition(
-    const PocketMonsterEncounter* encounter,
+    const DndMonsterEncounter* encounter,
     uint8_t party_size,
-    PocketEncounterComposition* output) {
+    DndEncounterComposition* output) {
     if(!output) return;
     memset(output, 0, sizeof(*output));
     if(!encounter) return;
@@ -139,12 +139,12 @@ void dndbestiary_monsters_analyze_composition(
     if(output->total_creatures >= output->leaders)
         non_leaders = (uint16_t)(output->total_creatures - output->leaders);
     if(output->leaders && non_leaders < (uint16_t)output->leaders * 2U)
-        output->warning_flags |= PocketEncounterWarningUnsupportedLeader;
+        output->warning_flags |= DndEncounterWarningUnsupportedLeader;
     if(output->artillery && !output->frontline)
-        output->warning_flags |= PocketEncounterWarningExposedArtillery;
+        output->warning_flags |= DndEncounterWarningExposedArtillery;
     if(output->minions > party_size && output->total_creatures &&
        (uint32_t)output->minions * 3U >= (uint32_t)output->total_creatures * 2U)
-        output->warning_flags |= PocketEncounterWarningMinionDensity;
+        output->warning_flags |= DndEncounterWarningMinionDensity;
 }
 
 typedef struct {
@@ -233,7 +233,7 @@ static bool dndbestiary_monsters_read_line(MonsterReader* reader, char* line, si
     return dndbestiary_monsters_read_line_at(reader, line, size, NULL);
 }
 
-static bool dndbestiary_monsters_parse_summary(char* line, PocketMonsterSummary* output) {
+static bool dndbestiary_monsters_parse_summary(char* line, DndMonsterSummary* output) {
     if(!line[0] || line[0] == '#') return false;
     char* cursor = line;
     char* extended[10] = {0};
@@ -345,7 +345,7 @@ static bool dndbestiary_monsters_build_index_cache(
     bool ok = opened;
     if(opened) {
         char line[MONSTER_LINE_LEN];
-        PocketMonsterSummary summary;
+        DndMonsterSummary summary;
         MonsterReader reader;
         dndbestiary_monsters_reader_init(&reader, file);
         uint32_t line_offset = 0U;
@@ -409,7 +409,7 @@ static uint16_t dndbestiary_monsters_count_path(Storage* storage, const char* pa
     uint16_t count = 0U;
     if(storage_file_open(file, path, FSAM_READ, FSOM_OPEN_EXISTING)) {
         char line[MONSTER_LINE_LEN];
-        PocketMonsterSummary summary;
+        DndMonsterSummary summary;
         MonsterReader reader;
         dndbestiary_monsters_reader_init(&reader, file);
         while(dndbestiary_monsters_read_line(&reader, line, sizeof(line)))
@@ -424,7 +424,7 @@ static bool dndbestiary_monsters_at_offset(
     Storage* storage,
     const char* path,
     uint32_t offset,
-    PocketMonsterSummary* output) {
+    DndMonsterSummary* output) {
     File* file = storage_file_alloc(storage);
     if(!file) return false;
     bool found = false;
@@ -441,15 +441,20 @@ static bool dndbestiary_monsters_at_offset(
     return found;
 }
 
+bool dndbestiary_monsters_source_allowed(const DndMonsterSummary* summary, bool allow_homebrew) {
+    if(!summary) return false;
+    return allow_homebrew || strcmp(summary->source, "Custom Pack");
+}
+
 uint32_t dndbestiary_monsters_xp_budget(
     uint8_t party_level,
     uint8_t party_size,
-    PocketEncounterDifficulty difficulty) {
+    DndEncounterDifficulty difficulty) {
     if(party_level < 1U) party_level = 1U;
     if(party_level > 20U) party_level = 20U;
     if(party_size < 1U) party_size = 1U;
     if(party_size > 12U) party_size = 12U;
-    if(difficulty >= PocketEncounterDifficultyCount) difficulty = PocketEncounterModerate;
+    if(difficulty >= DndEncounterDifficultyCount) difficulty = DndEncounterModerate;
     return (uint32_t)dndbestiary_monsters_budget[party_level - 1U][difficulty] * party_size;
 }
 
@@ -480,8 +485,7 @@ static void dndbestiary_monsters_validate_paths(
             if(length > 2U && line[0] == '[' && line[length - 1U] == ']') {
                 if(active) {
                     ++section_total;
-                    if((present_fields & PocketMonsterRequiredFields) ==
-                       PocketMonsterRequiredFields)
+                    if((present_fields & DndMonsterRequiredFields) == DndMonsterRequiredFields)
                         ++valid_total;
                 }
                 active = true;
@@ -493,21 +497,21 @@ static void dndbestiary_monsters_validate_paths(
             if(!separator) continue;
             *separator = '\0';
             if(!strcmp(line, "SizeAlignment"))
-                present_fields |= PocketMonsterFieldSize;
+                present_fields |= DndMonsterFieldSize;
             else if(!strcmp(line, "Speed"))
-                present_fields |= PocketMonsterFieldSpeed;
+                present_fields |= DndMonsterFieldSpeed;
             else if(!strcmp(line, "Abilities"))
-                present_fields |= PocketMonsterFieldAbilities;
+                present_fields |= DndMonsterFieldAbilities;
             else if(!strcmp(line, "Senses"))
-                present_fields |= PocketMonsterFieldSenses;
+                present_fields |= DndMonsterFieldSenses;
             else if(!strcmp(line, "Languages"))
-                present_fields |= PocketMonsterFieldLanguages;
+                present_fields |= DndMonsterFieldLanguages;
             else if(!strcmp(line, "Actions"))
-                present_fields |= PocketMonsterFieldActions;
+                present_fields |= DndMonsterFieldActions;
         }
         if(active) {
             ++section_total;
-            if((present_fields & PocketMonsterRequiredFields) == PocketMonsterRequiredFields)
+            if((present_fields & DndMonsterRequiredFields) == DndMonsterRequiredFields)
                 ++valid_total;
         }
     }
@@ -564,7 +568,7 @@ static bool dndbestiary_monsters_find_path(
     const char* path,
     MonsterPathCache* cache,
     const char* id,
-    PocketMonsterSummary* output) {
+    DndMonsterSummary* output) {
     uint32_t hash = dndbestiary_monsters_id_hash(id);
     for(uint8_t i = 0U; i < cache->recent_index_count; ++i) {
         if(cache->recent_index[i].id_hash != hash) continue;
@@ -582,7 +586,7 @@ static bool dndbestiary_monsters_find_path(
         dndbestiary_monsters_reader_init(&reader, file);
         uint32_t line_offset = 0U;
         while(dndbestiary_monsters_read_line_at(&reader, line, sizeof(line), &line_offset)) {
-            PocketMonsterSummary summary;
+            DndMonsterSummary summary;
             if(!dndbestiary_monsters_parse_summary(line, &summary) || strcmp(summary.id, id))
                 continue;
             *output = summary;
@@ -596,7 +600,7 @@ static bool dndbestiary_monsters_find_path(
     return found;
 }
 
-bool dndbestiary_monsters_find(Storage* storage, const char* id, PocketMonsterSummary* output) {
+bool dndbestiary_monsters_find(Storage* storage, const char* id, DndMonsterSummary* output) {
     if(!id || !output || !dndbestiary_monsters_cache_ensure(storage)) return false;
     if(dndbestiary_monsters_find_path(storage, MONSTER_INDEX, &monster_cache.bundled, id, output))
         return true;
@@ -672,7 +676,7 @@ static bool dndbestiary_monsters_initiative_modifier_path(
 
 bool dndbestiary_monsters_initiative_modifier(
     Storage* storage,
-    const PocketMonsterSummary* summary,
+    const DndMonsterSummary* summary,
     int8_t* modifier) {
     if(!modifier) return false;
 
@@ -702,10 +706,10 @@ bool dndbestiary_monsters_initiative_modifier(
 static void dndbestiary_monsters_query_path(
     Storage* storage,
     const char* path,
-    PocketMonsterFilter filter,
+    DndMonsterFilter filter,
     void* context,
     uint16_t start,
-    PocketMonsterSummary* output,
+    DndMonsterSummary* output,
     uint16_t capacity,
     uint16_t* matched,
     uint16_t* loaded,
@@ -717,7 +721,7 @@ static void dndbestiary_monsters_query_path(
         MonsterReader reader;
         dndbestiary_monsters_reader_init(&reader, file);
         while(dndbestiary_monsters_read_line(&reader, line, sizeof(line))) {
-            PocketMonsterSummary summary;
+            DndMonsterSummary summary;
             if(!dndbestiary_monsters_parse_summary(line, &summary) ||
                (filter && !filter(&summary, context)))
                 continue;
@@ -735,7 +739,7 @@ static void dndbestiary_monsters_query_sparse_path(
     const char* path,
     MonsterPathCache* cache,
     uint16_t start,
-    PocketMonsterSummary* output,
+    DndMonsterSummary* output,
     uint16_t capacity,
     uint16_t* loaded) {
     if(start >= cache->index_count || !output || *loaded >= capacity) return;
@@ -752,7 +756,7 @@ static void dndbestiary_monsters_query_sparse_path(
         uint32_t line_offset = offset;
         while(*loaded < capacity &&
               dndbestiary_monsters_read_line_at(&reader, line, sizeof(line), &line_offset)) {
-            PocketMonsterSummary summary;
+            DndMonsterSummary summary;
             if(!dndbestiary_monsters_parse_summary(line, &summary)) continue;
             if(ordinal++ < start) continue;
             output[(*loaded)++] = summary;
@@ -766,10 +770,10 @@ static void dndbestiary_monsters_query_sparse_path(
 
 uint16_t dndbestiary_monsters_query(
     Storage* storage,
-    PocketMonsterFilter filter,
+    DndMonsterFilter filter,
     void* context,
     uint16_t start,
-    PocketMonsterSummary* output,
+    DndMonsterSummary* output,
     uint16_t capacity,
     uint16_t* total_matches) {
     if(!filter && dndbestiary_monsters_cache_ensure(storage)) {
@@ -875,9 +879,9 @@ uint16_t dndbestiary_monsters_query(
 static void dndbestiary_monsters_sample_path(
     Storage* storage,
     const char* path,
-    PocketMonsterFilter filter,
+    DndMonsterFilter filter,
     void* context,
-    PocketMonsterSummary* output,
+    DndMonsterSummary* output,
     uint16_t capacity,
     uint16_t* matched) {
     File* file = storage_file_alloc(storage);
@@ -887,7 +891,7 @@ static void dndbestiary_monsters_sample_path(
         MonsterReader reader;
         dndbestiary_monsters_reader_init(&reader, file);
         while(dndbestiary_monsters_read_line(&reader, line, sizeof(line))) {
-            PocketMonsterSummary summary;
+            DndMonsterSummary summary;
             if(!dndbestiary_monsters_parse_summary(line, &summary) ||
                (filter && !filter(&summary, context)))
                 continue;
@@ -907,9 +911,9 @@ static void dndbestiary_monsters_sample_path(
 
 uint16_t dndbestiary_monsters_sample(
     Storage* storage,
-    PocketMonsterFilter filter,
+    DndMonsterFilter filter,
     void* context,
-    PocketMonsterSummary* output,
+    DndMonsterSummary* output,
     uint16_t capacity,
     uint16_t* total_matches) {
     uint16_t matched = 0U;
@@ -925,24 +929,24 @@ uint16_t dndbestiary_monsters_sample(
     return matched < capacity ? matched : capacity;
 }
 
-static void dndbestiary_monsters_apply_detail_line(char* line, PocketMonsterDetail* output) {
+static void dndbestiary_monsters_apply_detail_line(char* line, DndMonsterDetail* output) {
     char* separator = strchr(line, '=');
     if(!separator) return;
     *separator++ = '\0';
     if(!strcmp(line, "SizeAlignment")) {
         dndbestiary_monsters_copy(
             output->size_alignment, sizeof(output->size_alignment), separator);
-        output->present_fields |= PocketMonsterFieldSize;
+        output->present_fields |= DndMonsterFieldSize;
     } else if(!strcmp(line, "Speed")) {
         dndbestiary_monsters_copy(output->speed, sizeof(output->speed), separator);
-        output->present_fields |= PocketMonsterFieldSpeed;
+        output->present_fields |= DndMonsterFieldSpeed;
     } else if(!strcmp(line, "Abilities")) {
         if(dndbestiary_monsters_parse_abilities(separator, output->abilities))
-            output->present_fields |= PocketMonsterFieldAbilities;
+            output->present_fields |= DndMonsterFieldAbilities;
     } else if(!strcmp(line, "Initiative")) {
         if(dndbestiary_monsters_parse_i8(separator, &output->initiative_modifier)) {
             output->initiative_present = 1U;
-            output->present_fields |= PocketMonsterFieldInitiative;
+            output->present_fields |= DndMonsterFieldInitiative;
         }
     } else if(!strcmp(line, "Skills"))
         dndbestiary_monsters_copy(output->skills, sizeof(output->skills), separator);
@@ -950,15 +954,15 @@ static void dndbestiary_monsters_apply_detail_line(char* line, PocketMonsterDeta
         dndbestiary_monsters_copy(output->defenses, sizeof(output->defenses), separator);
     else if(!strcmp(line, "Senses")) {
         dndbestiary_monsters_copy(output->senses, sizeof(output->senses), separator);
-        output->present_fields |= PocketMonsterFieldSenses;
+        output->present_fields |= DndMonsterFieldSenses;
     } else if(!strcmp(line, "Languages")) {
         dndbestiary_monsters_copy(output->languages, sizeof(output->languages), separator);
-        output->present_fields |= PocketMonsterFieldLanguages;
+        output->present_fields |= DndMonsterFieldLanguages;
     } else if(!strcmp(line, "Traits"))
         dndbestiary_monsters_copy(output->traits, sizeof(output->traits), separator);
     else if(!strcmp(line, "Actions")) {
         dndbestiary_monsters_copy(output->actions, sizeof(output->actions), separator);
-        output->present_fields |= PocketMonsterFieldActions;
+        output->present_fields |= DndMonsterFieldActions;
     } else if(!strcmp(line, "Extra"))
         dndbestiary_monsters_copy(output->extra, sizeof(output->extra), separator);
 }
@@ -968,7 +972,7 @@ static bool dndbestiary_monsters_load_section_at(
     const char* path,
     uint32_t offset,
     const char* wanted_id,
-    PocketMonsterDetail* output) {
+    DndMonsterDetail* output) {
     File* file = storage_file_alloc(storage);
     if(!file) return false;
     bool found = false;
@@ -1000,7 +1004,7 @@ static bool dndbestiary_monsters_load_section_streamed(
     const char* path,
     MonsterPathCache* cache,
     const char* wanted_id,
-    PocketMonsterDetail* output) {
+    DndMonsterDetail* output) {
     File* file = storage_file_alloc(storage);
     if(!file) return false;
     bool opened = storage_file_open(file, path, FSAM_READ, FSOM_OPEN_EXISTING);
@@ -1037,7 +1041,7 @@ static bool dndbestiary_monsters_load_section(
     const char* path,
     MonsterPathCache* cache,
     const char* wanted_id,
-    PocketMonsterDetail* output) {
+    DndMonsterDetail* output) {
     dndbestiary_monsters_cache_prepare_owner(storage);
     uint32_t hash = dndbestiary_monsters_id_hash(wanted_id);
     for(uint8_t i = 0U; i < cache->recent_block_count; ++i) {
@@ -1091,8 +1095,8 @@ void dndbestiary_monsters_pack_versions(
 
 bool dndbestiary_monsters_load(
     Storage* storage,
-    const PocketMonsterSummary* summary,
-    PocketMonsterDetail* output) {
+    const DndMonsterSummary* summary,
+    DndMonsterDetail* output) {
     memset(output, 0, sizeof(*output));
     output->summary = *summary;
     if(!strcmp(summary->source, "Custom Pack"))
@@ -1284,10 +1288,8 @@ bool dndbestiary_monsters_migrate_legacy_custom(Storage* storage, uint16_t* copi
     return true;
 }
 
-static bool dndbestiary_monsters_format_summary(
-    const PocketMonsterSummary* summary,
-    char* line,
-    size_t size) {
+static bool
+    dndbestiary_monsters_format_summary(const DndMonsterSummary* summary, char* line, size_t size) {
     int length = snprintf(
         line,
         size,
@@ -1305,8 +1307,7 @@ static bool dndbestiary_monsters_format_summary(
     return length > 0 && (size_t)length < size;
 }
 
-static bool
-    dndbestiary_monsters_write_block_section(File* block, const PocketMonsterDetail* detail) {
+static bool dndbestiary_monsters_write_block_section(File* block, const DndMonsterDetail* detail) {
     bool ok = true;
     char line[MONSTER_LINE_LEN];
 #define MONSTER_WRITE_FIELD(key, value)                                \
@@ -1375,7 +1376,7 @@ static bool
 
 static bool dndbestiary_monsters_rewrite_index(
     Storage* storage,
-    const PocketMonsterSummary* replacement,
+    const DndMonsterSummary* replacement,
     const char* remove_id) {
     File* output = storage_file_alloc(storage);
     if(!output) return false;
@@ -1397,7 +1398,7 @@ static bool dndbestiary_monsters_rewrite_index(
         MonsterReader reader;
         dndbestiary_monsters_reader_init(&reader, input);
         while(ok && dndbestiary_monsters_read_line(&reader, line, sizeof(line))) {
-            PocketMonsterSummary current;
+            DndMonsterSummary current;
             if(!dndbestiary_monsters_parse_summary(line, &current)) continue;
             if(remove_id && !strcmp(current.id, remove_id)) continue;
             if(replacement && !strcmp(current.id, replacement->id)) {
@@ -1448,7 +1449,7 @@ static bool dndbestiary_monsters_write_transaction(
 
 static bool dndbestiary_monsters_rewrite_blocks(
     Storage* storage,
-    const PocketMonsterDetail* replacement,
+    const DndMonsterDetail* replacement,
     const char* remove_id) {
     File* output = storage_file_alloc(storage);
     File* input = storage_file_alloc(storage);
@@ -1527,7 +1528,7 @@ static bool dndbestiary_monsters_publish_pair(Storage* storage) {
     return false;
 }
 
-static void dndbestiary_monsters_sanitize_summary(PocketMonsterSummary* summary) {
+static void dndbestiary_monsters_sanitize_summary(DndMonsterSummary* summary) {
     char* fields[] = {
         summary->name, summary->type, summary->environment, summary->source, summary->role};
     for(size_t field = 0U; field < sizeof(fields) / sizeof(fields[0]); ++field)
@@ -1537,7 +1538,7 @@ static void dndbestiary_monsters_sanitize_summary(PocketMonsterSummary* summary)
 
 static bool dndbestiary_monsters_save_custom_common(
     Storage* storage,
-    PocketMonsterDetail* detail,
+    DndMonsterDetail* detail,
     bool preserve_id) {
     dndbestiary_monsters_custom_cache_reset();
     storage_common_mkdir(storage, APP_DATA_PATH(""));
@@ -1571,16 +1572,16 @@ static bool dndbestiary_monsters_save_custom_common(
     return ok;
 }
 
-bool dndbestiary_monsters_save_custom(Storage* storage, PocketMonsterDetail* detail) {
+bool dndbestiary_monsters_save_custom(Storage* storage, DndMonsterDetail* detail) {
     return dndbestiary_monsters_save_custom_common(storage, detail, false);
 }
 
-bool dndbestiary_monsters_update_custom(Storage* storage, PocketMonsterDetail* detail) {
+bool dndbestiary_monsters_update_custom(Storage* storage, DndMonsterDetail* detail) {
     return detail->summary.id[0] && !strcmp(detail->summary.source, "Custom") &&
            dndbestiary_monsters_save_custom_common(storage, detail, true);
 }
 
-bool dndbestiary_monsters_delete_custom(Storage* storage, const PocketMonsterSummary* summary) {
+bool dndbestiary_monsters_delete_custom(Storage* storage, const DndMonsterSummary* summary) {
     if(!summary || strcmp(summary->source, "Custom")) return false;
     dndbestiary_monsters_custom_cache_reset();
     bool ok = dndbestiary_monsters_write_transaction(storage, "DELETE", summary->id) &&
@@ -1639,29 +1640,31 @@ bool dndbestiary_monsters_recover_user_pack(
 typedef struct {
     uint32_t budget;
     uint8_t party_level;
-    PocketEncounterTemplate template_kind;
+    DndEncounterTemplate template_kind;
     const char* environment;
+    bool allow_homebrew;
 } MonsterGenerateFilter;
 
 static bool
-    dndbestiary_monsters_generate_filter(const PocketMonsterSummary* candidate, void* context) {
+    dndbestiary_monsters_generate_filter(const DndMonsterSummary* candidate, void* context) {
     const MonsterGenerateFilter* filter = context;
+    if(!dndbestiary_monsters_source_allowed(candidate, filter->allow_homebrew)) return false;
     if(candidate->xp > filter->budget) return false;
     if(filter->environment && strcmp(filter->environment, "Any") &&
        strcmp(candidate->environment, filter->environment))
         return false;
-    if(filter->template_kind == PocketEncounterHorde &&
+    if(filter->template_kind == DndEncounterHorde &&
        candidate->cr_eighths > (uint8_t)(filter->party_level * 4U))
         return false;
-    if(filter->template_kind == PocketEncounterElite &&
+    if(filter->template_kind == DndEncounterElite &&
        candidate->cr_eighths < (uint8_t)(filter->party_level * 4U))
         return false;
     return true;
 }
 
 typedef struct {
-    uint8_t candidates[POCKET_MONSTER_ENCOUNTER_MAX];
-    uint8_t quantities[POCKET_MONSTER_ENCOUNTER_MAX];
+    uint8_t candidates[DND_MONSTER_ENCOUNTER_MAX];
+    uint8_t quantities[DND_MONSTER_ENCOUNTER_MAX];
     uint8_t count;
     uint8_t creature_count;
     uint32_t spent;
@@ -1687,8 +1690,7 @@ static bool dndbestiary_monsters_plan_add(
         if(!allow_repeats || plan->quantities[(uint8_t)existing] == UINT8_MAX) return false;
         ++plan->quantities[(uint8_t)existing];
     } else {
-        if(plan->count >= maximum_types || plan->count >= POCKET_MONSTER_ENCOUNTER_MAX)
-            return false;
+        if(plan->count >= maximum_types || plan->count >= DND_MONSTER_ENCOUNTER_MAX) return false;
         plan->candidates[plan->count] = candidate_index;
         plan->quantities[plan->count++] = 1U;
     }
@@ -1701,25 +1703,26 @@ bool dndbestiary_monsters_generate(
     Storage* storage,
     uint8_t party_level,
     uint8_t party_size,
-    PocketEncounterDifficulty difficulty,
+    DndEncounterDifficulty difficulty,
     const char* environment,
     bool allow_repeats,
-    PocketEncounterTemplate template_kind,
+    DndEncounterTemplate template_kind,
     const char* preferred_role,
-    PocketMonsterEncounter* output) {
+    bool allow_homebrew,
+    DndMonsterEncounter* output) {
     memset(output, 0, sizeof(*output));
     output->budget = dndbestiary_monsters_xp_budget(party_level, party_size, difficulty);
     enum {
         MonsterCandidateWindow = 16U
     };
-    PocketMonsterSummary* candidates =
-        malloc(MonsterCandidateWindow * sizeof(PocketMonsterSummary));
+    DndMonsterSummary* candidates = malloc(MonsterCandidateWindow * sizeof(DndMonsterSummary));
     if(!candidates) return false;
     MonsterGenerateFilter filter = {
         .budget = output->budget,
         .party_level = party_level,
         .template_kind = template_kind,
         .environment = environment,
+        .allow_homebrew = allow_homebrew,
     };
     uint16_t total_eligible = 0U;
     uint16_t candidate_count = dndbestiary_monsters_sample(
@@ -1735,13 +1738,13 @@ bool dndbestiary_monsters_generate(
     }
     uint8_t maximum_creatures = party_size * 2U;
     if(maximum_creatures < 1U) maximum_creatures = 1U;
-    uint8_t maximum_types = template_kind == PocketEncounterElite ? 2U : 3U;
+    uint8_t maximum_types = template_kind == DndEncounterElite ? 2U : 3U;
     MonsterEncounterPlan best = {0};
     for(uint8_t trial = 0U; trial < 48U && best.spent < output->budget; ++trial) {
         MonsterEncounterPlan plan = {0};
         for(uint16_t attempt = 0U; attempt < 160U && plan.spent < output->budget; ++attempt) {
             uint8_t candidate_index = (uint8_t)(furi_hal_random_get() % candidate_count);
-            const PocketMonsterSummary* candidate = &candidates[candidate_index];
+            const DndMonsterSummary* candidate = &candidates[candidate_index];
             if(candidate->xp > output->budget - plan.spent) continue;
             if(preferred_role && strcmp(preferred_role, "Any") &&
                strcmp(candidate->role, preferred_role) && (furi_hal_random_get() % 4U))
@@ -1757,11 +1760,11 @@ bool dndbestiary_monsters_generate(
         if(plan.spent > best.spent) best = plan;
     }
     uint32_t lower_budget =
-        difficulty > PocketEncounterLow ?
+        difficulty > DndEncounterLow ?
             dndbestiary_monsters_xp_budget(
-                party_level, party_size, (PocketEncounterDifficulty)(difficulty - 1U)) :
+                party_level, party_size, (DndEncounterDifficulty)(difficulty - 1U)) :
             0U;
-    if(!best.count || (difficulty > PocketEncounterLow && best.spent <= lower_budget)) {
+    if(!best.count || (difficulty > DndEncounterLow && best.spent <= lower_budget)) {
         free(candidates);
         return false;
     }
@@ -1776,10 +1779,10 @@ bool dndbestiary_monsters_generate(
 }
 
 void dndbestiary_monsters_simulate(
-    PocketMonsterEncounter* encounter,
+    DndMonsterEncounter* encounter,
     uint8_t party_level,
     uint8_t party_size,
-    PocketEncounterSimulation* output) {
+    DndEncounterSimulation* output) {
     memset(output, 0, sizeof(*output));
     for(uint8_t index = 0U; index < encounter->count; ++index) {
         uint32_t record_xp = encounter->monsters[index].xp * encounter->quantities[index];
@@ -1788,18 +1791,16 @@ void dndbestiary_monsters_simulate(
         else
             output->spent += record_xp;
     }
-    output->low_budget =
-        dndbestiary_monsters_xp_budget(party_level, party_size, PocketEncounterLow);
+    output->low_budget = dndbestiary_monsters_xp_budget(party_level, party_size, DndEncounterLow);
     output->moderate_budget =
-        dndbestiary_monsters_xp_budget(party_level, party_size, PocketEncounterModerate);
+        dndbestiary_monsters_xp_budget(party_level, party_size, DndEncounterModerate);
     output->high_budget =
-        dndbestiary_monsters_xp_budget(party_level, party_size, PocketEncounterHigh);
-    output->classification = PocketEncounterLow;
-    if(output->spent > output->low_budget) output->classification = PocketEncounterModerate;
-    if(output->spent > output->moderate_budget) output->classification = PocketEncounterHigh;
+        dndbestiary_monsters_xp_budget(party_level, party_size, DndEncounterHigh);
+    output->classification = DndEncounterLow;
+    if(output->spent > output->low_budget) output->classification = DndEncounterModerate;
+    if(output->spent > output->moderate_budget) output->classification = DndEncounterHigh;
     encounter->spent = output->spent;
-    encounter->budget = output->classification == PocketEncounterLow ? output->low_budget :
-                        output->classification == PocketEncounterModerate ?
-                                                                       output->moderate_budget :
-                                                                       output->high_budget;
+    encounter->budget = output->classification == DndEncounterLow      ? output->low_budget :
+                        output->classification == DndEncounterModerate ? output->moderate_budget :
+                                                                         output->high_budget;
 }

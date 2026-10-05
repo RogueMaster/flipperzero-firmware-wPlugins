@@ -8,12 +8,12 @@
 #include <stdint.h>
 
 typedef struct {
-    char name[POCKET_D20_CHARACTER_NAME_LEN];
-    char species[POCKET_D20_NAME_LEN];
-    char background[POCKET_D20_NAME_LEN];
+    char name[DND_CHARACTER_NAME_LEN];
+    char species[DND_NAME_LEN];
+    char background[DND_NAME_LEN];
     uint8_t class_count;
-    PocketClassLevel classes[POCKET_D20_MAX_CLASSES];
-    int8_t ability_scores[POCKET_D20_ABILITY_COUNT];
+    DndClassLevel classes[DND_MAX_CLASSES];
+    int8_t ability_scores[DND_ABILITY_COUNT];
     int16_t armor_class;
     uint8_t exhaustion;
     uint8_t encumbrance_mode;
@@ -24,7 +24,7 @@ typedef struct {
     int32_t currency_gp;
     int32_t currency_pp;
     uint8_t item_count;
-    PocketItem* items;
+    DndItem* items;
 } DndInventoryCharacterState;
 
 typedef struct {
@@ -60,4 +60,4 @@ int16_t dndinventory_rules_calculated_armor_class(
     const DndInventoryItemAggregate* aggregate);
 int8_t dndinventory_rules_weapon_attack_modifier(
     const DndInventoryCharacterState* character,
-    const PocketItem* item);
+    const DndItem* item);
