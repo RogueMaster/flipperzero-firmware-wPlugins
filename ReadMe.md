@@ -162,6 +162,9 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Desktop Settings: Separate configurable Game Mode Press/Hold keybinds, including OK, with current actions as defaults and Hold Left reserved for Dab Timer; add Game Menu to More Actions in either profile. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/bb035d235703702eaaeedbafb7ffe91f63d6ed08)
 - SubGHz: [Telcoma EDGE manual creation re-added; canonical 32-bit gate-channel fixed codes at 433.92 MHz in Add Manually and Add Manually Advanced. (By RogueMaster - Original Work By half2me)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/bb035d235703702eaaeedbafb7ffe91f63d6ed08)
 - Updated: [NRF Sniff v1.2 (By mothball187, xMasterX); Restore Dolphin discovery deeds for newly confirmed addresses. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/bb035d235703702eaaeedbafb7ffe91f63d6ed08)
+- Updated: [Hanzi Cards v0.4 (By rseufert)](https://github.com/rseufert/hanzi_cards)
+- Updated: [NW Crawl v0.3 (By rseufert)](https://github.com/rseufert/nw_crawl)
+- Updated: [Step Seq v0.2 (By rseufert)](https://github.com/rseufert/step_seq)
 
 <a name="release"></a>
 
@@ -387,7 +390,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Nah 2 da Nah Nah Nah v0.2 (By DigiMancer3D)](https://github.com/DigiMancer3D/nah2nah3)
 - [Network Defender v1.1 (By w84death)](https://github.com/w84death/flipper-zero-apps)
 - [Nu Pogodi! (Ну, погоди!) v1.3 (By sionyx)](https://github.com/sionyx/flipper_nupogodi)
-- [NW Crawl v0.2 (By rseufert)](https://github.com/rseufert/nw_crawl)
+- [NW Crawl v0.3 (By rseufert)](https://github.com/rseufert/nw_crawl)
 - [Oregon Trail v0.1 (By jlaughter)](https://github.com/jlaughter/flipper_oregon_trail)
 - [P1X Adventure v0.1 (By w84death)](https://github.com/w84death/flipper-zero-apps)
 - [P1X Your Own Adventure v0.1 (By w84death)](https://github.com/w84death/flipper-zero-apps)
@@ -708,7 +711,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Haier AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
 - [Ham Scanner v1.1 (By Clawzman)](https://github.com/Clawzman/Flipper-HAM-Scanner)
 - [Handpan Chords v1.0 (By KingBoa / NoodleNugget-com)](https://github.com/NoodleNugget-com/handpan_chords)
-- [Hanzi Cards v0.3 (By rseufert)](https://github.com/rseufert/hanzi_cards)
+- [Hanzi Cards v0.4 (By rseufert)](https://github.com/rseufert/hanzi_cards)
 - [Hard Hat Brigade IR v0.1 (By Anomalous68)](https://github.com/Anomalous68/HHB-Flipper-App) `Req: Hard Hat Brigade Hat`
 - [HC-11 Modem v1.3 (By Giraut)](https://github.com/Giraut/flipper_zero_hc11_wireless_modem) `Req: HC-11`
 - [Hermes v1.3 (By at0m-b0mb)](https://github.com/at0m-b0mb/Hermes-FlipperZero)
@@ -979,7 +982,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Spindle Calculator v1.0 (By Minto97)](https://github.com/Minto97/spindle-calc-flipper)
 - [SSD1306 Test v1.1 (By martinbogo)](https://github.com/martinbogo/ssd1306_test) `Req: SSD1306`
 - [Staff Time Clock v2.16 (By vladpereverzyev)](https://github.com/vladpereverzyev/flipper-staff-time-clock)
-- [Step Seq v0.1 (By rseufert)](https://github.com/rseufert/step_seq)
+- [Step Seq v0.2 (By rseufert)](https://github.com/rseufert/step_seq)
 - [Stopwatch v1.0 (By bergr22)](https://github.com/bergr22/Stopwatch-Flipper)
 - [StroboMeter v1.1 (By LeanderJDev)](https://github.com/LeanderJDev/FlipperStroboMeterApp)
 - [Sub Analyzer v1.0 (By RocketGod)](https://github.com/RocketGod-git/Flipper-Zero-SUB-Analyzer)
