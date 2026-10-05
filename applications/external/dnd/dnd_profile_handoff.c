@@ -137,26 +137,3 @@ bool dnd_profile_ref_active_exact(Storage* storage, uint32_t* profile) {
     if(!dnd_profile_ref_active_id(storage, profile)) return false;
     return dnd_profile_ref_exists(storage, *profile);
 }
-
-bool dnd_handoff_launch(const char* fap_path, const char* args) {
-    if(!fap_path || !fap_path[0]) return false;
-
-    Loader* loader = furi_record_open(RECORD_LOADER);
-    if(!loader) return false;
-
-    loader_enqueue_launch(loader, fap_path, args, LoaderDeferredLaunchFlagGui);
-    furi_record_close(RECORD_LOADER);
-    return true;
-}
-
-bool dnd_handoff_launch_if_present(const char* fap_path, const char* args) {
-    if(!fap_path || !fap_path[0]) return false;
-
-    Storage* storage = furi_record_open(RECORD_STORAGE);
-    if(!storage) return false;
-    bool present = storage_file_exists(storage, fap_path);
-    furi_record_close(RECORD_STORAGE);
-    if(!present) return false;
-
-    return dnd_handoff_launch(fap_path, args);
-}

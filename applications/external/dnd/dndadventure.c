@@ -1228,11 +1228,12 @@ int32_t dndadventure_app(void* context) {
     DndAdventureApp* app = dndadventure_app_alloc(context);
     if(!app) return -1;
     view_dispatcher_switch_to_view(app->dispatcher, 0U);
+    dnd_handoff_ready(DNDADVENTURE_FAP_PATH);
     view_dispatcher_run(app->dispatcher);
     bool return_to_dnd = app->return_to_dnd;
-    dndadventure_app_free(app);
     if(return_to_dnd)
         (void)dnd_handoff_launch_if_present(
             DNDOLPHINS_FAP_PATH, DND_PROFILE_RETURN_FOCUS_ADVENTURE);
+    dndadventure_app_free(app);
     return 0;
 }

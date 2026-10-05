@@ -53,8 +53,12 @@ bool dnd_profile_ref_path(Storage* storage, uint32_t profile, char* output, size
 /* True only when this exact profile ID has a canonical primary character file. */
 bool dnd_profile_ref_exists(Storage* storage, uint32_t profile);
 
-/* Launch an already-known absolute FAP path after caller teardown. */
+/* Queue an absolute FAP path while the caller's GUI is still attached. A DND
+   loading FAL owns the display through teardown until the next view is ready. */
 bool dnd_handoff_launch(const char* fap_path, const char* args);
 
 /* Best-effort return/companion target: launch only when the target FAP exists. */
 bool dnd_handoff_launch_if_present(const char* fap_path, const char* args);
+
+/* Release the DND-owned handoff only after a fullscreen app view is active. */
+void dnd_handoff_ready(const char* current_fap_path);

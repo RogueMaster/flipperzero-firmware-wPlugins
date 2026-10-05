@@ -1,3 +1,5 @@
+Historical 4.19.1 integration audit, retained for the fixes carried into 4.20.2. Current FAL/loading evidence and target limits are in [RELEASE_AUDIT_STATUS.md](RELEASE_AUDIT_STATUS.md) and [FAL_INTEGRATION.md](FAL_INTEGRATION.md).
+
 # Dungeons & Dolphins 4.19.1 integration audit
 
 Audit date: 2026-10-04 (America/New_York)

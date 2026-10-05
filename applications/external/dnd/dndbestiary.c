@@ -1,3 +1,4 @@
+#include "dnd_monster_turn_api.h"
 #include "dndbestiary_monsters.h"
 #include "dndbestiary_state.h"
 #include "dnd_profile_handoff.h"
@@ -32,7 +33,6 @@ typedef enum {
     BestiaryScreenList,
     BestiaryScreenDetail,
     BestiaryScreenDetailLine,
-    BestiaryScreenTurnTools,
     BestiaryScreenEncounter,
     BestiaryScreenSimulator,
     BestiaryScreenWarnings,
@@ -68,15 +68,6 @@ typedef enum {
     BestiaryListFavorites,
     BestiaryListRecents,
 } BestiaryListMode;
-
-typedef struct {
-    char name[28];
-    int8_t attack_bonus;
-    uint8_t dice_count[2];
-    uint8_t dice_sides[2];
-    int8_t dice_modifier[2];
-    uint8_t damage_terms;
-} BestiaryTurnAttack;
 
 typedef struct {
     Gui* gui;
@@ -150,8 +141,7 @@ typedef struct {
     uint8_t pending_launch_initiative;
     uint8_t pending_launch_dnd;
     uint8_t return_to_initiative;
-    BestiaryTurnAttack turn_attacks[4];
-    uint8_t turn_attack_count;
+    uint8_t pending_monster_tools;
 } BestiaryApp;
 
 typedef struct {
@@ -700,148 +690,6 @@ static void dndbestiary_draw_list(Canvas* canvas, BestiaryApp* app) {
     }
 }
 
-static int16_t dndbestiary_parse_signed(const char* text, const char** end) {
-    if(!text) return 0;
-    int sign = 1;
-    if(*text == '+')
-        ++text;
-    else if(*text == '-') {
-        sign = -1;
-        ++text;
-    }
-    int16_t value = 0;
-    while(*text >= '0' && *text <= '9') {
-        value = (int16_t)(value * 10 + (*text - '0'));
-        ++text;
-    }
-    if(end) *end = text;
-    return (int16_t)(value * sign);
-}
-
-static bool
-    dndbestiary_parse_dice(const char* text, uint8_t* count, uint8_t* sides, int8_t* modifier) {
-    if(!text || !count || !sides || !modifier) return false;
-    const char* p = text;
-    int16_t c = 0;
-    while(*p >= '0' && *p <= '9') {
-        c = (int16_t)(c * 10 + (*p++ - '0'));
-    }
-    if(*p != 'd' && *p != 'D') return false;
-    ++p;
-    int16_t d = 0;
-    while(*p >= '0' && *p <= '9') {
-        d = (int16_t)(d * 10 + (*p++ - '0'));
-    }
-    while(*p == ' ')
-        ++p;
-    int16_t mod = 0;
-    if(*p == '+' || *p == '-') mod = dndbestiary_parse_signed(p, NULL);
-    if(c < 1 || c > 20 || d < 2 || d > 100 || mod < -50 || mod > 50) return false;
-    *count = (uint8_t)c;
-    *sides = (uint8_t)d;
-    *modifier = (int8_t)mod;
-    return true;
-}
-
-static void dndbestiary_turn_attack_name(
-    char* out,
-    size_t size,
-    const char* actions,
-    const char* attack_roll) {
-    const char* last = attack_roll;
-    while(last > actions && !(last[-1] == '.' && last[0] == ' '))
-        --last;
-    const char* name_end = last > actions ? last - 1U : attack_roll;
-    const char* start = name_end;
-    while(start > actions) {
-        if(start[-1] == '.' && start[0] == ' ') {
-            ++start;
-            break;
-        }
-        --start;
-    }
-    while(*start == ' ')
-        ++start;
-    size_t len = (size_t)(name_end - start);
-    if(!len || len >= size) {
-        dndbestiary_copy(out, size, "Attack");
-        return;
-    }
-    memcpy(out, start, len);
-    out[len] = '\0';
-}
-
-static void dndbestiary_prepare_turn_attacks(BestiaryApp* app) {
-    if(!app || !app->detail) return;
-    app->turn_attack_count = 0U;
-    const char* actions = app->detail->actions;
-    const char* cursor = actions;
-    while(cursor && *cursor && app->turn_attack_count < 4U) {
-        const char* roll = strstr(cursor, "Attack Roll:");
-        if(!roll) break;
-        BestiaryTurnAttack* attack = &app->turn_attacks[app->turn_attack_count];
-        memset(attack, 0, sizeof(*attack));
-        dndbestiary_turn_attack_name(attack->name, sizeof(attack->name), actions, roll);
-        const char* bonus = roll + strlen("Attack Roll:");
-        while(*bonus == ' ')
-            ++bonus;
-        int16_t parsed_bonus = dndbestiary_parse_signed(bonus, NULL);
-        if(parsed_bonus < -50) parsed_bonus = -50;
-        if(parsed_bonus > 50) parsed_bonus = 50;
-        attack->attack_bonus = (int8_t)parsed_bonus;
-
-        const char* hit = strstr(roll, "Hit:");
-        const char* next_roll = strstr(roll + 1U, "Attack Roll:");
-        if(hit && (!next_roll || hit < next_roll)) {
-            const char* p = hit;
-            while((p = strchr(p, '(')) && attack->damage_terms < 2U &&
-                  (!next_roll || p < next_roll)) {
-                ++p;
-                uint8_t term = attack->damage_terms;
-                if(dndbestiary_parse_dice(
-                       p,
-                       &attack->dice_count[term],
-                       &attack->dice_sides[term],
-                       &attack->dice_modifier[term]))
-                    ++attack->damage_terms;
-            }
-        }
-        ++app->turn_attack_count;
-        cursor = next_roll;
-    }
-}
-
-static int16_t dndbestiary_roll_die(uint8_t sides) {
-    if(sides < 2U) return 0;
-    return (int16_t)(furi_hal_random_get() % sides) + 1;
-}
-
-static int16_t dndbestiary_roll_damage(const BestiaryTurnAttack* attack) {
-    int16_t total = 0;
-    if(!attack) return 0;
-    for(uint8_t term = 0U; term < attack->damage_terms; ++term) {
-        for(uint8_t die = 0U; die < attack->dice_count[term]; ++die)
-            total = (int16_t)(total + dndbestiary_roll_die(attack->dice_sides[term]));
-        total = (int16_t)(total + attack->dice_modifier[term]);
-    }
-    return total;
-}
-
-static void dndbestiary_draw_turn_tools(Canvas* canvas, BestiaryApp* app) {
-    dndbestiary_header(canvas, app, "Monster Turn Tools", app->status);
-    if(!app->turn_attack_count) {
-        dndbestiary_row(canvas, 0U, false, "No attack rolls parsed");
-        dndbestiary_row(canvas, 1U, false, "See Actions stat line");
-        return;
-    }
-    for(uint8_t row = 0U; row < app->turn_attack_count && row < 5U; ++row) {
-        char text[48];
-        BestiaryTurnAttack* attack = &app->turn_attacks[row];
-        snprintf(text, sizeof(text), "%.24s %+d", attack->name, attack->attack_bonus);
-        dndbestiary_row(canvas, row, row == app->selection, text);
-    }
-}
-
 static void dndbestiary_draw_detail(Canvas* canvas, BestiaryApp* app) {
     if(!app->detail) return;
     DndMonsterDetail* m = app->detail;
@@ -1209,9 +1057,6 @@ static void dndbestiary_draw(Canvas* canvas, void* model) {
         break;
     case BestiaryScreenDetailLine:
         dndbestiary_draw_detail_line(canvas, app);
-        break;
-    case BestiaryScreenTurnTools:
-        dndbestiary_draw_turn_tools(canvas, app);
         break;
     case BestiaryScreenEncounter:
         dndbestiary_draw_encounter(canvas, app);
@@ -1675,11 +1520,6 @@ static void dndbestiary_back(BestiaryApp* app) {
     case BestiaryScreenDetailLine:
         dndbestiary_return_to_detail(app);
         break;
-    case BestiaryScreenTurnTools:
-        dndbestiary_enter(app, BestiaryScreenDetail);
-        app->selection = 17U;
-        app->scroll = 13U;
-        break;
     case BestiaryScreenEncounter:
         if(!app->encounter_custom) dndbestiary_release_encounter(app);
         dndbestiary_enter(app, BestiaryScreenHome);
@@ -1868,7 +1708,7 @@ static void dndbestiary_handle_list(BestiaryApp* app, const InputEvent* event) {
 static void dndbestiary_handle_detail(BestiaryApp* app, const InputEvent* event) {
     if(!app->detail) return;
     bool custom = !strcmp(app->detail->summary.source, "Custom");
-    uint8_t row_count = custom ? 19U : 17U;
+    uint8_t row_count = custom ? 20U : 18U;
     if(dndbestiary_move_event(event) && event->key == InputKeyUp) {
         app->delete_armed = 0U;
         dndbestiary_move(app, row_count, -1);
@@ -1897,9 +1737,8 @@ static void dndbestiary_handle_detail(BestiaryApp* app, const InputEvent* event)
         } else if(app->selection == 16U) {
             dndbestiary_launch_dnd_monsters(app, &app->detail->summary, NULL, 1U);
         } else if(app->selection == 17U) {
-            dndbestiary_prepare_turn_attacks(app);
-            app->selection = app->scroll = 0U;
-            dndbestiary_enter(app, BestiaryScreenTurnTools);
+            app->pending_monster_tools = 1U;
+            view_dispatcher_stop(app->dispatcher);
         } else if(custom && app->selection == 18U) {
             app->edit_existing = 1U;
             app->selected = app->detail->summary;
@@ -1932,25 +1771,6 @@ static void dndbestiary_handle_detail(BestiaryApp* app, const InputEvent* event)
         }
     }
 }
-static void dndbestiary_handle_turn_tools(BestiaryApp* app, const InputEvent* event) {
-    if(!app) return;
-    if(dndbestiary_move_event(event) && event->key == InputKeyUp && app->turn_attack_count)
-        dndbestiary_move(app, app->turn_attack_count, -1);
-    else if(dndbestiary_move_event(event) && event->key == InputKeyDown && app->turn_attack_count)
-        dndbestiary_move(app, app->turn_attack_count, 1);
-    else if(
-        event->type == InputTypeShort && event->key == InputKeyOk &&
-        app->selection < app->turn_attack_count) {
-        BestiaryTurnAttack* attack = &app->turn_attacks[app->selection];
-        int16_t attack_total = (int16_t)(dndbestiary_roll_die(20U) + attack->attack_bonus);
-        int16_t damage = dndbestiary_roll_damage(attack);
-        if(attack->damage_terms)
-            snprintf(app->status, sizeof(app->status), "Atk %d  Dmg %d", attack_total, damage);
-        else
-            snprintf(app->status, sizeof(app->status), "Attack %d", attack_total);
-    }
-}
-
 static void dndbestiary_handle_detail_line(BestiaryApp* app, const InputEvent* event) {
     uint16_t line_count = dndbestiary_text_line_count(app->edit_buffer);
     uint16_t maximum = line_count > 5U ? line_count - 5U : 0U;
@@ -1971,10 +1791,8 @@ static void dndbestiary_handle_detail_line(BestiaryApp* app, const InputEvent* e
 static bool dndbestiary_launch_dnd(BestiaryApp* app, char* launch_args) {
     if(!app || !app->dispatcher || app->pending_launch_dnd) return false;
 
-    /* Do not ask Loader to start D&D while Bestiary still owns its dispatcher,
-       views, timers, records, and app state. Retain the already-built argument
-       buffer, stop the UI, free Bestiary completely, and enqueue from the app
-       entry point after teardown. */
+    /* Retain the arguments and stop the UI. The entry point queues the target
+       while its GUI still exists, so Loader can cover teardown with its view. */
     dndbestiary_release_monster_memory_for_launch(app);
     app->pending_launch_args = launch_args;
     app->pending_launch_dnd = 1U;
@@ -2569,9 +2387,6 @@ static bool dndbestiary_input(InputEvent* event, void* context) {
     case BestiaryScreenDetailLine:
         dndbestiary_handle_detail_line(app, event);
         break;
-    case BestiaryScreenTurnTools:
-        dndbestiary_handle_turn_tools(app, event);
-        break;
     case BestiaryScreenEncounter:
         dndbestiary_handle_encounter(app, event);
         break;
@@ -2798,6 +2613,42 @@ static void dndbestiary_free(BestiaryApp* app) {
     free(app);
 }
 
+static DndPluginUiResult dndbestiary_run_monster_tools(BestiaryApp* app) {
+    DndPlugin plugin = {0};
+    DndPluginLoading loading = {0};
+    dnd_plugin_loading_begin(&loading, app->dispatcher, app->storage);
+    DndPluginLoadResult loaded = dnd_plugin_open(
+        &plugin,
+        app->storage,
+        DND_MONSTER_TURN_BESTIARY_PATH,
+        DND_MONSTER_TURN_API_ID,
+        DND_MONSTER_TURN_API_VERSION,
+        sizeof(DndMonsterTurnApi));
+    DndPluginUiResult result = DndPluginUiError;
+    const DndMonsterTurnApi* api = plugin.api;
+    if(loaded == DndPluginLoadOk && api->run)
+        result = api->run(
+            app->dispatcher,
+            app->storage,
+            app->detail,
+            NULL,
+            app->shared_settings.homebrew,
+            true,
+            loading.view != NULL);
+    dnd_plugin_close(&plugin);
+    view_dispatcher_set_event_callback_context(app->dispatcher, app);
+    view_dispatcher_set_navigation_event_callback(app->dispatcher, dndbestiary_navigation);
+    view_dispatcher_set_custom_event_callback(app->dispatcher, dndbestiary_custom_event);
+    view_dispatcher_set_tick_event_callback(app->dispatcher, NULL, 0);
+    if(result == DndPluginUiError)
+        dndbestiary_status(
+            app,
+            loaded == DndPluginLoadOk ? "Monster tools unavailable" :
+                                        dnd_plugin_load_message(loaded));
+    view_dispatcher_switch_to_view(app->dispatcher, 0U);
+    dnd_plugin_loading_end(&loading, app->dispatcher);
+    return result;
+}
 int32_t dndbestiary_app(void* context) {
     BestiaryApp* app = dndbestiary_alloc(context);
     if(!app) {
@@ -2805,26 +2656,36 @@ int32_t dndbestiary_app(void* context) {
         return -1;
     }
     view_dispatcher_switch_to_view(app->dispatcher, BestiaryViewMain);
-    view_dispatcher_run(app->dispatcher);
-
-    uint8_t launch_dnd = app->pending_launch_dnd;
-    uint8_t launch_initiative = app->pending_launch_initiative;
-    uint8_t return_to_initiative = app->return_to_initiative;
-    char* launch_args = app->pending_launch_args;
-    app->pending_launch_args = NULL;
-    dndbestiary_free(app);
-
-    if(launch_dnd) {
-        const char* return_args = launch_args ? launch_args : DND_PROFILE_RETURN_FOCUS_BESTIARY;
-        bool launch_ok = launch_initiative ?
-                             dnd_handoff_launch(DNDINITIATIVE_FAP_PATH, launch_args) :
-                             dnd_handoff_launch_if_present(DNDOLPHINS_FAP_PATH, return_args);
-        free(launch_args);
-        if(launch_initiative && !launch_ok) return -1;
-    } else if(return_to_initiative) {
-        if(!dnd_handoff_launch_if_present(
-               DNDINITIATIVE_FAP_PATH, DND_INITIATIVE_LAUNCH_FROM_BESTIARY))
-            return -1;
+    dnd_handoff_ready(DNDBESTIARY_FAP_PATH);
+    while(true) {
+        view_dispatcher_run(app->dispatcher);
+        if(!app->pending_monster_tools) break;
+        app->pending_monster_tools = 0;
+        dndbestiary_quiesce_async(app);
+        if(app->marquee_timer) furi_timer_stop(app->marquee_timer);
+        DndPluginUiResult result = dndbestiary_run_monster_tools(app);
+        if(result == DndPluginUiExit)
+            dndbestiary_enter(app, BestiaryScreenHome);
+        else {
+            app->screen = BestiaryScreenDetail;
+            app->selection = 17;
+            app->scroll = 13;
+        }
+        if(app->marquee_timer)
+            furi_timer_start(app->marquee_timer, furi_ms_to_ticks(BESTIARY_MARQUEE_MS));
+        view_dispatcher_switch_to_view(app->dispatcher, BestiaryViewMain);
+        dndbestiary_refresh(app);
     }
-    return 0;
+    bool launch_ok = true;
+    if(app->pending_launch_dnd) {
+        const char* args = app->pending_launch_args ? app->pending_launch_args :
+                                                      DND_PROFILE_RETURN_FOCUS_BESTIARY;
+        launch_ok = app->pending_launch_initiative ?
+                        dnd_handoff_launch(DNDINITIATIVE_FAP_PATH, app->pending_launch_args) :
+                        dnd_handoff_launch_if_present(DNDOLPHINS_FAP_PATH, args);
+    } else if(app->return_to_initiative)
+        launch_ok = dnd_handoff_launch_if_present(
+            DNDINITIATIVE_FAP_PATH, DND_INITIATIVE_LAUNCH_FROM_BESTIARY);
+    dndbestiary_free(app);
+    return launch_ok ? 0 : -1;
 }

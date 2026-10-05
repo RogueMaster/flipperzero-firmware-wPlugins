@@ -602,6 +602,7 @@ uint8_t dndolphins_spells_build_cast_options(
 
 typedef struct {
     const DndCharacter* character;
+    DndSpellDamageResolver resolver;
     uint16_t* indices;
     uint16_t start;
     uint16_t capacity;
@@ -625,7 +626,7 @@ static bool dndolphins_spells_combat_spell_index_visitor(
     int8_t ability_modifier =
         dnd_rules_core_ability_modifier(scan->character->ability_scores[ability]);
     DndSpellDamageSpec damage;
-    if(dndolphins_spell_combat_damage_spec(
+    if(scan->resolver(
            spell,
            spell->level,
            dnd_rules_core_total_level(scan->character),
@@ -644,14 +645,16 @@ bool dndolphins_spells_collect_combat_indices(
     Storage* storage,
     uint32_t profile,
     const DndCharacter* character,
+    DndSpellDamageResolver resolver,
     uint16_t start,
     uint16_t* indices,
     uint16_t capacity,
     uint16_t* count,
     uint16_t* total_count) {
-    if(!storage || !character || !count || (capacity && !indices)) return false;
+    if(!storage || !character || !resolver || !count || (capacity && !indices)) return false;
     DndDolphinsCombatSpellIndexContext context = {
         .character = character,
+        .resolver = resolver,
         .indices = indices,
         .start = start,
         .capacity = capacity,
@@ -684,7 +687,7 @@ static bool dndolphins_spells_utility_spell_index_visitor(
     int8_t ability_modifier =
         dnd_rules_core_ability_modifier(scan->character->ability_scores[ability]);
     DndSpellDamageSpec damage;
-    bool mapped = dndolphins_spell_combat_damage_spec(
+    bool mapped = scan->resolver(
         spell,
         spell->level,
         dnd_rules_core_total_level(scan->character),
@@ -704,14 +707,16 @@ bool dndolphins_spells_collect_utility_indices(
     Storage* storage,
     uint32_t profile,
     const DndCharacter* character,
+    DndSpellDamageResolver resolver,
     uint16_t start,
     uint16_t* indices,
     uint16_t capacity,
     uint16_t* count,
     uint16_t* total_count) {
-    if(!storage || !character || !count || (capacity && !indices)) return false;
+    if(!storage || !character || !resolver || !count || (capacity && !indices)) return false;
     DndDolphinsUtilitySpellIndexContext context = {
         .character = character,
+        .resolver = resolver,
         .indices = indices,
         .start = start,
         .capacity = capacity,

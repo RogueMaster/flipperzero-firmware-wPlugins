@@ -20,11 +20,12 @@ Shared source is retained when multiple FAPs use the same canonical contract. Ap
 
 This is intentional source sharing, not runtime co-residency. There are no `.inc` implementation fragments and no three-line source wrappers that textually include a monolith. Build-mode guards plus function/data sections and linker garbage collection prevent Combat and Grant roots from being retained in the normal DNDolphins executable.
 
-The fixed app state has also been reduced rather than merely reorganized. The profile directory is a transient `DndProfileState*`; catalog state is a 48-byte screen-owned runtime; roll/dice state is a 76-byte runtime allocated only on roll-capable Hub screens or for the active Combat session; Grant Review state is a 24-byte runtime owned by DNDGrants; collection cache/index state is a compact 64-byte runtime created only when a streamed collection or spell-count cache is used and released when its last consumer exits; page-offset tables remain separately lazy; and the text edit buffer is allocated only while TextInput is active. Combat-only attack/spell/index state lives in a 248-byte `DndCombatRuntime` allocated only by DNDCombat. The regenerated 32-bit host-layout proxy reports a **3,416-byte** common app state, down from 4,676 bytes (1,260 bytes / 26.9%).
+The fixed app state has also been reduced rather than merely reorganized. The profile directory is a transient `DndProfileState*`; catalog state is a 48-byte screen-owned runtime; roll/dice state is a 76-byte runtime allocated only on roll-capable Hub screens or for the active Combat session; Grant Review state is a 24-byte runtime owned by DNDGrants; collection cache/index state is a compact 64-byte runtime created only when a streamed collection or spell-count cache is used and released when its last consumer exits; page-offset tables remain separately lazy; and the text edit buffer is allocated only while TextInput is active. Combat-only attack/spell/index state lives in a 256-byte `DndCombatRuntime` allocated only by DNDCombat. The regenerated 32-bit host-layout proxy reports a **3,416-byte** common app state, down from 4,676 bytes (1,260 bytes / 26.9%).
 
 ## Shared modules
 
-- `dnd_profile_handoff.*`: used by the suite for persisted `Active=<id>` resolution, exact profile references, common FAP paths, launch arguments and parent-return behavior. Initiative's `from=combat` handoff is defined here.
+- `dnd_profile_handoff.*`: used by the suite for persisted `Active=<id>` resolution, exact profile references, common FAP paths and launch arguments. The header declares parent-return helpers implemented by the FAP-only `dnd_app_handoff.c`; Journal's FAL links only the profile helpers.
+- `dnd_app_handoff.c`: linked by all eleven FAPs; owns deferred launch, retained loading transfer records and destination readiness. It retains only heap data and FAL-owned callbacks across outgoing FAP teardown.
 - `dnd_profile_projection.*`: narrow canonical-field projections used by Inventory, Spellbook and Adventure.
 - `dnd_data.*`: character/record allocation, defaults and sanitize support.
 - `dnd_rules_core.c` / `dnd_rules.h`: shared rule math.
@@ -37,20 +38,20 @@ The fixed app state has also been reduced rather than merely reorganized. The pr
 
 ## App-owned behavior
 
-- **DNDolphins:** character/profile/home/vitals/abilities/skills/features/class progression/dice/settings workflows and companion launching. It exclusively owns the splash plus Graphical Home icon assets/renderer; companion FAPs do not link `dndolphins_menu_graphics.c` or the DNDolphins private icon pack. Home **Magic & Spells** is only a launch bridge to DNDSpellbook. It does not own the runtime Combat workflow, Grant Review workflow or Magic management UI.
-- **DNDCombat:** standalone Combat menu, weapon attacks, spell attacks, rituals, attack templates, combat recovery/state controls and **Jump to Initiative**. Dedicated implementations include `dndolphins_spell_combat.*` and `dndolphins_weapon_combat.*` plus the Combat mode entry/root set.
+- **DNDolphins:** character/profile/home/vitals/abilities/skills/features/class progression/dice/settings workflows and companion launching. It owns its startup splash plus Graphical Home icon assets/renderer; the loading FAL separately owns a splash copy, and companion FAPs do not link `dndolphins_menu_graphics.c` or the DNDolphins private icon pack. Home **Magic & Spells** is only a launch bridge to DNDSpellbook. It does not own the runtime Combat workflow, Grant Review workflow or Magic management UI.
+- **DNDCombat:** standalone Combat menu, weapon attacks, spell attacks, rituals, attack templates, combat recovery/state controls and **Jump to Initiative**. Weapon implementation and casting/resource UI remain Combat-owned; the lazy spell damage resolver/table in `dndolphins_spell_combat.*` belongs to `dnd_spell_damage.fal`.
 - **DNDGrants:** grant review/application and read-only progression diagnostics; standalone **Grant Initial Traits** / **Apply Level Grants**, Grant Review/Edit and grant-choice catalog workflow. It returns to DNDolphins after completion/Short Back; Hold Back exits.
 - **DNDInventory:** Inventory, currency, item catalog/editing, starting-equipment review, bag selection/management and equipment/weight state. Only the selected bag page is resident; Inventory Resources streams all bags.
 - **DNDSpellbook:** Spellbook list/catalog/filtering/editing, deterministic sorting, and the **Magic & Spells** management view for casting ability, Spell Attack/DC misc, Known/knowable/free-granted totals and shared slot current/max values. Normal launch opens the list with **Magic & Spells** as the terminal row after the final spell; the Magic launch argument opens the Magic view directly.
 - **DNDAdventure:** campaigns, campaign packs, Adventure progression and rewards.
-- **DNDJournal:** Journal UI and Journal persistence.
-- **DNDInitiative:** roster, initiative/combat turn order, completed-encounter history browser and feature recharge integration. Monster Turn Tools launches DNDBestiary only for non-party combat participants and preserves the active Initiative state. It returns to DNDCombat only when explicitly launched from Combat.
-- **DNDBestiary:** monster browse/state/packs, encounter generation/handoff, and stat-block-owned Monster Turn Tools. Initiative can deep-link by monster name; Bestiary resolves the allowed catalog entry lazily and returns to Initiative without duplicating monster stat data in Initiative.
+- **DNDJournal:** thin standalone launcher; `dndjournal_fal.c` owns UI and persistence, also used inside the Hub.
+- **DNDInitiative:** roster, initiative/combat turn order, completed-encounter history browser and feature recharge integration. Monster Turn Tools loads the focused FAL for non-party combat participants and preserves the active Initiative state. It returns to DNDCombat only when explicitly launched from Combat.
+- **DNDBestiary:** monster browse/state/packs, encounter generation/handoff, and stat-block Tools launching. The focused FAL borrows Bestiary details or resolves an Initiative participant name with its own bundled catalog; custom data/pack state remain canonically Bestiary-owned.
 - **DNDBackup & Restore:** user-facing SHD backup destination, backup creation, native `.shd` restore browser, external-bundle validation/staging and restore launch, plus active-character clone and read-only character validation. `dnd_backup_storage.*` and the private `dndbackup_images/` icon pack are linked only by this FAP.
 
 ## FAP list
 
-The 4.19.1 suite contains **eleven external FAPs**:
+The 4.20.2 suite contains **eleven external FAPs** plus **five non-embedded FALs**:
 
 1. DNDolphins
 2. DNDCharacter Sheet
@@ -76,7 +77,7 @@ DNDBestiary consumes only the shared Debug and Homebrew bytes from DNDolphins Se
 
 ## DNDCharacter Sheet
 
-- `dndcharactersheet.c` owns the standalone read-only graphical character-sheet UI.
+- `dndcharactersheet.c` owns only standalone setup/return/cleanup; `dndcharactersheet_fal.c` owns the graphical UI, shared with the Hub.
 - It reads the canonical active DNDolphins profile through `dnd_profile_handoff` + `dnd_storage`; it does not own or write character state.
 - `dnd_rules_core.c` remains authoritative for ability, save, skill, proficiency and level-derived modifiers displayed by the sheet.
 
@@ -87,3 +88,9 @@ DNDBestiary consumes only the shared Debug and Homebrew bytes from DNDolphins Se
 ## Refactor integration regression gate
 
 The current host harness compiles the core separately under each manifest build mode, tests real input/screen transitions, and measures optional-state release/retry. Catalog selection snapshots return state before teardown; selected Hub Feats persist before handing dependent review to DNDGrants. Favorite Spells owns its bounded index/page through casting and return; the Combat Roll runtime survives the Magic statistics screen for the session. The obsolete `.inc` and three wrapper files are absent from the corrected package.
+
+## FAL and handoff ownership
+
+See [FAL_INTEGRATION.md](FAL_INTEGRATION.md) for the five descriptors, eight deployment paths, explicit loading-return ABI and failure behavior. `dnd_plugin_loader.*` owns map/validate/unmap and local loading bridges. `dnd_app_handoff.c` retains the loading module in a DND record across outgoing FAP teardown. The FAL owns public direct drawing, Loader-event subscription, animation and callback context; the incoming DND app frees them after activating its view and matching the copied destination path. Unsubscribe and timer delete/flush finish callbacks before their context or module is freed. Failure/timeout restores drawing and leaves one inactive cache until a DND app safely reclaims it. All suite FAPs enqueue while their GUI exists. Integrated Journal return reloads the exact canonical character and frees old collection caches; a failed reload prevents stale character writes.
+
+Public synchronous Loader requests separate DND app-side module map/free from Loader startup/unload work. Firmware services, GUI internals, SDK implementation and API exports remain the supplied originals. The source package contains only DND-family files.

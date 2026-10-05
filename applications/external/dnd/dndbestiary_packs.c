@@ -6,25 +6,33 @@
 #include <stdlib.h>
 #include <string.h>
 
+#if defined(DND_BUILD_MONSTER_TURN_PLUGIN)
+#define DND_MONSTER_DATA_PATH(value)   "/ext/apps_data/dndbestiary/" value
+#define DND_MONSTER_ASSETS_PATH(value) "/ext/apps_assets/dnd_monster_turn/" value
+#else
+#define DND_MONSTER_DATA_PATH(value)   APP_DATA_PATH(value)
+#define DND_MONSTER_ASSETS_PATH(value) APP_ASSETS_PATH(value)
+#endif
+
 #define PACK_VERSION     1U
 #define PACK_MAX_RECORDS 16U
 #define PACK_LINE_LEN    768U
 #define PACK_READ_BUFFER 256U
 
-#define MONSTER_REGISTRY               APP_DATA_PATH("packs/monster_registry.txt")
-#define MONSTER_REGISTRY_TEMP          APP_DATA_PATH("packs/monster_registry.tmp")
-#define MONSTER_REGISTRY_BACKUP        APP_DATA_PATH("packs/monster_registry.bak")
-#define MONSTER_INBOX_MANIFEST         APP_DATA_PATH("packs/monster_inbox/manifest.txt")
-#define MONSTER_INBOX_INDEX            APP_DATA_PATH("packs/monster_inbox/index.txt")
-#define MONSTER_INBOX_CONTENT          APP_DATA_PATH("packs/monster_inbox/statblocks.txt")
-#define MONSTER_ENABLED_INDEX          APP_DATA_PATH("monsters/enabled_index.txt")
-#define MONSTER_ENABLED_INDEX_TEMP     APP_DATA_PATH("monsters/enabled_index.tmp")
-#define MONSTER_ENABLED_INDEX_BACKUP   APP_DATA_PATH("monsters/enabled_index.bak")
-#define MONSTER_ENABLED_CONTENT        APP_DATA_PATH("monsters/enabled_statblocks.txt")
-#define MONSTER_ENABLED_CONTENT_TEMP   APP_DATA_PATH("monsters/enabled_statblocks.tmp")
-#define MONSTER_ENABLED_CONTENT_BACKUP APP_DATA_PATH("monsters/enabled_statblocks.bak")
-#define MONSTER_PACKAGED_INDEX         APP_ASSETS_PATH("monsters/index.txt")
-#define MONSTER_CUSTOM_INDEX           APP_DATA_PATH("monsters/custom_index.txt")
+#define MONSTER_REGISTRY               DND_MONSTER_DATA_PATH("packs/monster_registry.txt")
+#define MONSTER_REGISTRY_TEMP          DND_MONSTER_DATA_PATH("packs/monster_registry.tmp")
+#define MONSTER_REGISTRY_BACKUP        DND_MONSTER_DATA_PATH("packs/monster_registry.bak")
+#define MONSTER_INBOX_MANIFEST         DND_MONSTER_DATA_PATH("packs/monster_inbox/manifest.txt")
+#define MONSTER_INBOX_INDEX            DND_MONSTER_DATA_PATH("packs/monster_inbox/index.txt")
+#define MONSTER_INBOX_CONTENT          DND_MONSTER_DATA_PATH("packs/monster_inbox/statblocks.txt")
+#define MONSTER_ENABLED_INDEX          DND_MONSTER_DATA_PATH("monsters/enabled_index.txt")
+#define MONSTER_ENABLED_INDEX_TEMP     DND_MONSTER_DATA_PATH("monsters/enabled_index.tmp")
+#define MONSTER_ENABLED_INDEX_BACKUP   DND_MONSTER_DATA_PATH("monsters/enabled_index.bak")
+#define MONSTER_ENABLED_CONTENT        DND_MONSTER_DATA_PATH("monsters/enabled_statblocks.txt")
+#define MONSTER_ENABLED_CONTENT_TEMP   DND_MONSTER_DATA_PATH("monsters/enabled_statblocks.tmp")
+#define MONSTER_ENABLED_CONTENT_BACKUP DND_MONSTER_DATA_PATH("monsters/enabled_statblocks.bak")
+#define MONSTER_PACKAGED_INDEX         DND_MONSTER_ASSETS_PATH("monsters/index.txt")
+#define MONSTER_CUSTOM_INDEX           DND_MONSTER_DATA_PATH("monsters/custom_index.txt")
 
 typedef struct {
     File* file;
@@ -113,9 +121,10 @@ static bool dndbestiary_packs_installed_paths(
     if(!dndbestiary_packs_safe_id(id) || !index || !content || index_size == 0U ||
        content_size == 0U)
         return false;
-    int index_length = snprintf(index, index_size, APP_DATA_PATH("packs/monster_%s.index"), id);
+    int index_length =
+        snprintf(index, index_size, DND_MONSTER_DATA_PATH("packs/monster_%s.index"), id);
     int content_length =
-        snprintf(content, content_size, APP_DATA_PATH("packs/monster_%s.blocks"), id);
+        snprintf(content, content_size, DND_MONSTER_DATA_PATH("packs/monster_%s.blocks"), id);
     return index_length > 0 && (size_t)index_length < index_size && content_length > 0 &&
            (size_t)content_length < content_size;
 }
@@ -190,8 +199,8 @@ static uint16_t dndbestiary_packs_load_registry(
 
 static bool
     dndbestiary_packs_write_registry(Storage* storage, const PackRecord* records, uint16_t count) {
-    storage_common_mkdir(storage, APP_DATA_PATH(""));
-    storage_common_mkdir(storage, APP_DATA_PATH("packs"));
+    storage_common_mkdir(storage, DND_MONSTER_DATA_PATH(""));
+    storage_common_mkdir(storage, DND_MONSTER_DATA_PATH("packs"));
     const char* temporary = MONSTER_REGISTRY_TEMP;
     storage_common_remove(storage, temporary);
     File* file = storage_file_alloc(storage);
@@ -352,7 +361,7 @@ static bool dndbestiary_packs_build_enabled_monsters(
     Storage* storage,
     const PackRecord* records,
     uint16_t count) {
-    storage_common_mkdir(storage, APP_DATA_PATH("monsters"));
+    storage_common_mkdir(storage, DND_MONSTER_DATA_PATH("monsters"));
     storage_common_remove(storage, MONSTER_ENABLED_INDEX_TEMP);
     storage_common_remove(storage, MONSTER_ENABLED_CONTENT_TEMP);
     File* index = storage_file_alloc(storage);
@@ -630,7 +639,8 @@ static bool dndbestiary_packs_publish_install_file(
     int length = snprintf(temporary, sizeof(temporary), "%s.install", destination);
     if(length <= 0 || (size_t)length >= sizeof(temporary) ||
        storage_file_exists(storage, destination) ||
-       !dndbestiary_packs_copy_file(storage, source, temporary, APP_DATA_PATH("packs/install.tmp")))
+       !dndbestiary_packs_copy_file(
+           storage, source, temporary, DND_MONSTER_DATA_PATH("packs/install.tmp")))
         return false;
     if(!dndbestiary_packs_files_match(storage, source, temporary) ||
        storage_common_rename(storage, temporary, destination) != FSE_OK) {
@@ -672,8 +682,8 @@ bool dndbestiary_packs_install_inbox(Storage* storage, char* status, size_t stat
         goto done;
     }
 
-    storage_common_mkdir(storage, APP_DATA_PATH(""));
-    storage_common_mkdir(storage, APP_DATA_PATH("packs"));
+    storage_common_mkdir(storage, DND_MONSTER_DATA_PATH(""));
+    storage_common_mkdir(storage, DND_MONSTER_DATA_PATH("packs"));
     char installed_index[DND_FS_PATH_LEN];
     char installed_content[DND_FS_PATH_LEN];
     if(!dndbestiary_packs_installed_paths(

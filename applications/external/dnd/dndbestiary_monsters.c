@@ -6,24 +6,33 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define MONSTER_INDEX                 APP_ASSETS_PATH("monsters/index.txt")
-#define MONSTER_BLOCKS                APP_ASSETS_PATH("monsters/statblocks.txt")
-#define CUSTOM_MONSTER_INDEX          APP_DATA_PATH("monsters/custom_index.txt")
-#define CUSTOM_MONSTER_INDEX_TEMP     APP_DATA_PATH("monsters/custom_index.tmp")
-#define CUSTOM_MONSTER_INDEX_BACKUP   APP_DATA_PATH("monsters/custom_index.bak")
-#define CUSTOM_MONSTER_BLOCKS         APP_DATA_PATH("monsters/custom_statblocks.txt")
-#define CUSTOM_MONSTER_BLOCKS_TEMP    APP_DATA_PATH("monsters/custom_statblocks.tmp")
-#define CUSTOM_MONSTER_BLOCKS_BACKUP  APP_DATA_PATH("monsters/custom_statblocks.bak")
-#define CUSTOM_MONSTER_TRANSACTION    APP_DATA_PATH("monsters/custom_transaction.txt")
-#define ENABLED_MONSTER_INDEX         APP_DATA_PATH("monsters/enabled_index.txt")
-#define ENABLED_MONSTER_BLOCKS        APP_DATA_PATH("monsters/enabled_statblocks.txt")
-#define LEGACY_CUSTOM_MONSTER_INDEX   APP_ASSETS_PATH("monsters/custom_index.txt")
-#define LEGACY_CUSTOM_MONSTER_BLOCKS  APP_ASSETS_PATH("monsters/custom_statblocks.txt")
-#define DEFAULT_CUSTOM_MONSTER_INDEX  APP_ASSETS_PATH("monsters/default_custom_index.txt")
-#define DEFAULT_CUSTOM_MONSTER_BLOCKS APP_ASSETS_PATH("monsters/default_custom_statblocks.txt")
-#define CUSTOM_MONSTER_MIGRATION      APP_DATA_PATH("monsters/custom_migration.txt")
-#define MONSTER_LINE_LEN              768U
-#define MONSTER_READ_BUFFER           512U
+#if defined(DND_BUILD_MONSTER_TURN_PLUGIN)
+#define DND_MONSTER_DATA_PATH(value)   "/ext/apps_data/dndbestiary/" value
+#define DND_MONSTER_ASSETS_PATH(value) "/ext/apps_assets/dnd_monster_turn/" value
+#else
+#define DND_MONSTER_DATA_PATH(value)   APP_DATA_PATH(value)
+#define DND_MONSTER_ASSETS_PATH(value) APP_ASSETS_PATH(value)
+#endif
+
+#define MONSTER_INDEX                DND_MONSTER_ASSETS_PATH("monsters/index.txt")
+#define MONSTER_BLOCKS               DND_MONSTER_ASSETS_PATH("monsters/statblocks.txt")
+#define CUSTOM_MONSTER_INDEX         DND_MONSTER_DATA_PATH("monsters/custom_index.txt")
+#define CUSTOM_MONSTER_INDEX_TEMP    DND_MONSTER_DATA_PATH("monsters/custom_index.tmp")
+#define CUSTOM_MONSTER_INDEX_BACKUP  DND_MONSTER_DATA_PATH("monsters/custom_index.bak")
+#define CUSTOM_MONSTER_BLOCKS        DND_MONSTER_DATA_PATH("monsters/custom_statblocks.txt")
+#define CUSTOM_MONSTER_BLOCKS_TEMP   DND_MONSTER_DATA_PATH("monsters/custom_statblocks.tmp")
+#define CUSTOM_MONSTER_BLOCKS_BACKUP DND_MONSTER_DATA_PATH("monsters/custom_statblocks.bak")
+#define CUSTOM_MONSTER_TRANSACTION   DND_MONSTER_DATA_PATH("monsters/custom_transaction.txt")
+#define ENABLED_MONSTER_INDEX        DND_MONSTER_DATA_PATH("monsters/enabled_index.txt")
+#define ENABLED_MONSTER_BLOCKS       DND_MONSTER_DATA_PATH("monsters/enabled_statblocks.txt")
+#define LEGACY_CUSTOM_MONSTER_INDEX  "/ext/apps_assets/dndbestiary/monsters/custom_index.txt"
+#define LEGACY_CUSTOM_MONSTER_BLOCKS "/ext/apps_assets/dndbestiary/monsters/custom_statblocks.txt"
+#define DEFAULT_CUSTOM_MONSTER_INDEX DND_MONSTER_ASSETS_PATH("monsters/default_custom_index.txt")
+#define DEFAULT_CUSTOM_MONSTER_BLOCKS \
+    DND_MONSTER_ASSETS_PATH("monsters/default_custom_statblocks.txt")
+#define CUSTOM_MONSTER_MIGRATION DND_MONSTER_DATA_PATH("monsters/custom_migration.txt")
+#define MONSTER_LINE_LEN         768U
+#define MONSTER_READ_BUFFER      512U
 
 static const uint16_t dndbestiary_monsters_budget[20][3] = {
     {50, 75, 100},       {100, 150, 200},     {150, 225, 400},      {250, 375, 500},
@@ -1194,11 +1203,11 @@ bool dndbestiary_monsters_seed_default_custom(Storage* storage, uint16_t* copied
        !dndbestiary_monsters_exists(storage, DEFAULT_CUSTOM_MONSTER_BLOCKS))
         return false;
 
-    storage_common_mkdir(storage, APP_DATA_PATH(""));
-    storage_common_mkdir(storage, APP_DATA_PATH("monsters"));
+    storage_common_mkdir(storage, DND_MONSTER_DATA_PATH(""));
+    storage_common_mkdir(storage, DND_MONSTER_DATA_PATH("monsters"));
 
-    const char* seed_index = APP_DATA_PATH("monsters/custom_index.seed");
-    const char* seed_blocks = APP_DATA_PATH("monsters/custom_statblocks.seed");
+    const char* seed_index = DND_MONSTER_DATA_PATH("monsters/custom_index.seed");
+    const char* seed_blocks = DND_MONSTER_DATA_PATH("monsters/custom_statblocks.seed");
     storage_common_remove(storage, seed_index);
     storage_common_remove(storage, seed_blocks);
 
@@ -1242,8 +1251,8 @@ bool dndbestiary_monsters_migrate_legacy_custom(Storage* storage, uint16_t* copi
     if(!dndbestiary_monsters_exists(storage, LEGACY_CUSTOM_MONSTER_INDEX) ||
        !dndbestiary_monsters_exists(storage, LEGACY_CUSTOM_MONSTER_BLOCKS))
         return false;
-    storage_common_mkdir(storage, APP_DATA_PATH(""));
-    storage_common_mkdir(storage, APP_DATA_PATH("monsters"));
+    storage_common_mkdir(storage, DND_MONSTER_DATA_PATH(""));
+    storage_common_mkdir(storage, DND_MONSTER_DATA_PATH("monsters"));
     if(!pending) {
         File* marker = storage_file_alloc(storage);
         if(!marker) return false;
@@ -1257,8 +1266,8 @@ bool dndbestiary_monsters_migrate_legacy_custom(Storage* storage, uint16_t* copi
             return false;
         }
     }
-    const char* migration_index = APP_DATA_PATH("monsters/custom_index.migrate");
-    const char* migration_blocks = APP_DATA_PATH("monsters/custom_statblocks.migrate");
+    const char* migration_index = DND_MONSTER_DATA_PATH("monsters/custom_index.migrate");
+    const char* migration_blocks = DND_MONSTER_DATA_PATH("monsters/custom_statblocks.migrate");
     storage_common_remove(storage, migration_index);
     storage_common_remove(storage, migration_blocks);
     bool blocks_copied =
@@ -1541,8 +1550,8 @@ static bool dndbestiary_monsters_save_custom_common(
     DndMonsterDetail* detail,
     bool preserve_id) {
     dndbestiary_monsters_custom_cache_reset();
-    storage_common_mkdir(storage, APP_DATA_PATH(""));
-    storage_common_mkdir(storage, APP_DATA_PATH("monsters"));
+    storage_common_mkdir(storage, DND_MONSTER_DATA_PATH(""));
+    storage_common_mkdir(storage, DND_MONSTER_DATA_PATH("monsters"));
     if(!preserve_id || !detail->summary.id[0]) {
         char base[20];
         dndbestiary_monsters_safe_id(base, sizeof(base), detail->summary.name);

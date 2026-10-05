@@ -1,7 +1,7 @@
 # Feature Evidence Audit
 
-Checkpoint: 4.19.1 audit
-Date: 2026-10-04 (America/New_York)
+Checkpoint: 4.20.2 source/host audit, including retained 4.19.1 corrections
+Date: 2026-10-05 UTC
 
 This matrix records current-source evidence for the retained feature history from 4.19 onward. Historical changelog bullets are not treated as proof by themselves; each row points to present implementation and/or regression coverage.
 
@@ -27,9 +27,9 @@ This matrix records current-source evidence for the retained feature history fro
 | Feature first-create failure cleanup | `dndolphins_progression_store.c`; failure-injection coverage | Verified |
 | Transactional shared settings publication | `dnd_settings.c`, `dndbackup.c`, `dndbestiary_state.c`; host failure injection | Verified |
 | Retry-safe Adventure campaign-pack install | `dndadventure_campaign_packs.c`; failure-injection retry regression | Verified |
-| Journal → Inventory handoff is failure-safe | `dndjournal.c` copies/publishes the Inventory sidecar transactionally; host failure injection preserves the prior file and validates retry | Verified |
+| Journal → Inventory handoff is failure-safe | `dndjournal_fal.c` copies/publishes the Inventory sidecar transactionally; host failure injection preserves the prior file and validates retry | Verified |
 | Backup/progression copy reads reject I/O failure | `dnd_backup_storage.c` and `dndolphins_progression_store.c` check input file error state before commit; host read-failure injection covers export/copy rollback | Verified |
-| Draw callbacks avoid direct storage/heap mutation | Host audit currently checks 115 direct static draw helpers | Verified by static host gate; device behavior still requires device validation |
+| Draw callbacks avoid direct storage/heap mutation | Host audit currently checks 118 direct static draw helpers | Verified by static host gate; device behavior still requires device validation |
 
 ## Checkpoint 8 collision-ownership evidence
 
@@ -39,3 +39,9 @@ This matrix records current-source evidence for the retained feature history fro
 ## Current shared-core integration evidence
 
 The 2026-10-04 run validates `dnd_app_core.c` under each actual Hub/Combat/Grants build mode; it does not use the retired wrapper/`.inc` implementation. `tests/host/test_lifetimes.c` reproduces real input, first-use, profile, Catalog, Favorites, Feat handoff, Settings and editor transitions. It also injects optional allocation failures and measures draw calls for storage/allocation work. The common layout is regenerated at 3,416 B. See [INTEGRATION_AUDIT.md](INTEGRATION_AUDIT.md) for individual corrections and current target/device limits.
+
+## 4.20.2 evidence
+
+The current retained `tests/host/validation_output.txt` passes eleven actual FAP entry lifecycles, five real dlopen/dlclose FALs and nineteen ASan/UBSan executables. Plugin tests cover descriptor/load/size/version failures, allocation cleanup, callback-safe unload, Journal character refresh and failed-refresh save protection, Monster first-use custom data and exact parent return, and Combat resource preservation when its resolver is missing. Inventory tests cover Hold OK, cancel/rollback, immediate per-item Container moves and draw counters for the changed mover/detail paths. Handoff tests run the DND implementation and real loading FAL through a zero-view gap, destination readiness, native event models, timeout, bounded-cache recovery and simultaneous animation/deletion. Two independently mapped loading images exercise local/handoff overlap. The obsolete firmware-overlay test inputs are removed.
+
+The source import/manifest contract audit matches the supplied API 88.7 and verifies the stock direct-draw, Loader RPC, pubsub and timer contracts; it requires no firmware changes. Normalized host imports are not an ARM relocation certificate. Static draw-helper checks do not establish that every indirect draw path is I/O-free. Current ARM/device gates remain unverified. See `tests/host/VALIDATION.md`, `FAL_INTEGRATION.md` and `DEVICE_TEST_MATRIX.md`.

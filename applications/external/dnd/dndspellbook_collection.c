@@ -3262,11 +3262,12 @@ int32_t dndspellbook_collection_run(void* context) {
     DndSpellbookCollectionApp* app = dndspellbook_collection_alloc(context);
     if(!app) return -1;
     view_dispatcher_switch_to_view(app->dispatcher, DNDSPELLBOOK_COLLECTION_VIEW_MAIN);
+    dnd_handoff_ready(DNDSPELLBOOK_FAP_PATH);
     view_dispatcher_run(app->dispatcher);
     bool return_to_dnd = app->return_to_dnd;
-    dndspellbook_collection_free(app);
     if(return_to_dnd)
         (void)dnd_handoff_launch_if_present(
             DNDOLPHINS_FAP_PATH, DND_PROFILE_RETURN_FOCUS_SPELLBOOK);
+    dndspellbook_collection_free(app);
     return 0;
 }

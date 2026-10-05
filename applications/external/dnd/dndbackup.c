@@ -379,10 +379,15 @@ int32_t dndbackup_app(void* context) {
     view_dispatcher_attach_to_gui(app->dispatcher, app->gui, ViewDispatcherTypeFullscreen);
     view_dispatcher_add_view(app->dispatcher, DNDBACKUP_VIEW_MAIN, app->view);
     view_dispatcher_switch_to_view(app->dispatcher, DNDBACKUP_VIEW_MAIN);
+    dnd_handoff_ready(DNDBACKUP_FAP_PATH);
     view_dispatcher_run(app->dispatcher);
 
 cleanup: {
     bool return_to_parent = app->return_to_parent != 0U;
+    if(return_to_parent)
+        (void)dnd_handoff_launch_if_present(
+            DNDOLPHINS_FAP_PATH, DND_PROFILE_RETURN_FOCUS_CHARACTER);
+
     if(app->text_input) {
         if(app->dispatcher) view_dispatcher_remove_view(app->dispatcher, DNDBACKUP_VIEW_TEXT);
         text_input_free(app->text_input);
@@ -396,9 +401,6 @@ cleanup: {
     if(app->storage) furi_record_close(RECORD_STORAGE);
     if(app->gui) furi_record_close(RECORD_GUI);
     free(app);
-    if(return_to_parent)
-        (void)dnd_handoff_launch_if_present(
-            DNDOLPHINS_FAP_PATH, DND_PROFILE_RETURN_FOCUS_CHARACTER);
 }
     return 0;
 }

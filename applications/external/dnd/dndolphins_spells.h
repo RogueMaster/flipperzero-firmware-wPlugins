@@ -1,6 +1,7 @@
 #pragma once
 
 #include "dnd_data.h"
+#include "dndolphins_spell_combat.h"
 #include "dnd_spell_eligibility.h"
 #include "dnd_storage.h"
 
@@ -71,10 +72,18 @@ bool dndolphins_spells_class_counts(
     DndDolphinsSpellClassCounts* counts,
     uint16_t* total_count);
 
+typedef bool (*DndSpellDamageResolver)(
+    const DndSpell* spell,
+    uint8_t cast_level,
+    uint8_t character_level,
+    int8_t modifier,
+    DndSpellDamageSpec* output);
+
 bool dndolphins_spells_collect_combat_indices(
     Storage* storage,
     uint32_t profile,
     const DndCharacter* character,
+    DndSpellDamageResolver resolver,
     uint16_t start,
     uint16_t* indices,
     uint16_t capacity,
@@ -85,6 +94,7 @@ bool dndolphins_spells_collect_utility_indices(
     Storage* storage,
     uint32_t profile,
     const DndCharacter* character,
+    DndSpellDamageResolver resolver,
     uint16_t start,
     uint16_t* indices,
     uint16_t capacity,

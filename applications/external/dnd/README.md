@@ -6,13 +6,13 @@
 
 # DNDolphins
 
-**Release: 4.19.1**
+**Release: 4.20.2**
 
-The 2026-10-04 integration audit corrects shared-core compilation and lazy-state UI faults, restores Favorite Spells entry/casting and routes selected Feat review through DNDGrants. All eleven current-mode host builds and the sanitizer regressions pass; a fresh target build and device checks remain outstanding. See [INTEGRATION_AUDIT.md](INTEGRATION_AUDIT.md) and [RELEASE_AUDIT_STATUS.md](RELEASE_AUDIT_STATUS.md).
+This release implements four feature FALs plus a DND-owned splash/hourglass FAL, direct per-item bag moves, and Hold OK in Bag Mover. Eleven FAPs, five real shared modules and nineteen host regressions pass. All changes stay in the DND app family and use the supplied stock firmware API. Install the matching FAPs and FALs together. ARM/device verification remains outstanding. See [FAL_INTEGRATION.md](FAL_INTEGRATION.md) and [RELEASE_AUDIT_STATUS.md](RELEASE_AUDIT_STATUS.md).
 
 DNDolphins is an offline 5E-compatible character, combat, campaign and encounter suite for Flipper Zero. It is split into eleven FAPs so the DNDolphins character hub, DNDCharacter Sheet, Grants, Combat, Inventory, Spellbook, Adventure, Journal, Initiative, Bestiary, and DNDBackup & Restore can each keep their own working set small while sharing the same active character where appropriate.
 
-A normal no-argument DNDolphins launch opens with the project's native 128×64 monochrome logo for 2 seconds. Companion return/deep-link launches that provide arguments skip the splash. DNDolphins private image assets are kept target-specific; only images actually used by the hub are linked.
+DNDolphins shows the native 128×64 project splash with an animated hourglass over it during startup. No-argument launch retains the two-second minimum; return/deep-link launches show loading without that minimum. Home becomes active before the startup splash is removed. The DND loading FAL retains the same artwork between suite FAPs using public direct drawing and destination readiness. The Hub privately owns its Graphical Home images; the loading FAL owns its own copy of the existing splash asset. Loading before DND code starts remains controlled by the stock firmware.
 
 Use it as a pocket companion to your table, not as a replacement for the game itself. DNDolphins is not meant to replace the source material, the Player's Handbook, or a good Dungeon Master. Keep the books handy, respect the rulings at your table, and support your local Dungeon Masters.
 
@@ -46,7 +46,7 @@ The Home menu is presented in this order:
 11. **Combat** — Saves the active character, unloads DNDolphins and launches DNDCombat for weapon attacks, spell attacks, rituals, attack templates, recovery actions and combat-state controls.
 12. **Dice Roller** — Opens the general-purpose dice roller.
 13. **Adventure** — Saves the active character and launches DNDAdventure.
-14. **Journal** — Saves the active character and launches DNDJournal.
+14. **Journal** — Saves the active character and opens the Journal FAL in the Hub; reloads that character after Journal changes.
 15. **Settings** — Opens shared Dungeons & Dolphins preferences for dice loading, diagnostics, Get Elevated, catalog scope, Homebrew visibility and **Menu Type**.
 
 ### Characters and Profile Actions
@@ -278,7 +278,7 @@ The Dice Roller contains Dice Count, Die, Modifier, Mode and the Roll action/res
 
 ## DNDCharacter Sheet — graphical active-character sheet
 
-DNDCharacter Sheet is a standalone read-only FAP launched from **DNDolphins → Character → Character Sheet**. It follows the exact persisted active character and presents the familiar tabletop character-sheet information as native 128×64 monochrome pages rather than a scrolling text editor.
+**DNDolphins → Character → Character Sheet** runs the read-only Character Sheet FAL inside the Hub. The standalone **DNDCharacter Sheet** FAP remains a thin wrapper for direct launch. It follows the exact persisted active character and presents the familiar tabletop character-sheet information as native 128×64 monochrome pages rather than a scrolling text editor.
 
 Use **Left/Up** and **Right/Down** to move through ten graphical pages. The pages cover the character header and combat summary; all six ability scores and modifiers; all six saving throws plus Proficiency Bonus and passive scores; all eighteen skills across two pages; Armor Class, Initiative, Speed, HP, Temporary HP, Hit Dice and Death Saves; identity/class fields; spellcasting ability, attack modifier, save DC and spell-slot usage; conditions/defenses; and senses/movement. Proficiency markers are shown beside proficient saves and skills. Short Back returns to DNDolphins with **Character** focused; Hold Back exits to firmware.
 
@@ -316,7 +316,8 @@ The list begins with **Bag: Main <>**, then **+ Add New**, **Currency**, and the
 - **Hold Left / Right on an Item** — Decreases/increases Stack Qty by five, clamped to 0–999.
 - **Inventory Resources** — Short OK opens derived carrying/equipment information and actions.
 - **Grant Initial Inventory** — Short OK opens **Review inventory grant** for the normal class/background starting package; OK on that review screen performs the transaction and Back cancels. Hold OK opens the same review screen for the one-time explicit regrant override when available. Opening an empty Inventory never silently applies the package.
-- **Bag Mover** — Final Inventory-list action. Short OK opens the current bag as a multi-select list. Short OK on Item rows toggles `[X]`; **Move Selected** then opens the destination-bag list. Moving rewrites the source and destination as one two-file transaction and repairs same-bag container indexes. Hold OK on normal Inventory Item rows remains Equip/Unequip and is not repurposed for bag movement.
+- **Bag Mover** — Final Inventory-list action. Short OK opens the current bag as a multi-select list and toggles `[X]` on Item rows. **Hold OK anywhere in Bag Mover** opens the destination list for checked Items; the terminal **Move Selected** row also works. The footer shows `OK: select  Hold OK: move`. Back from destinations cancels while keeping the selection. Moving publishes source and destination together and repairs container indexes. Hold OK on normal Inventory Item rows remains Equip/Unequip.
+- **Item Editor → Container: <bag>** — Short OK or Right cycles to the next bag; Left cycles backwards. Selecting **Container: Group** immediately moves that one Item to Group and continues editing it there, with no extra screen. Main and custom bags work the same way. Quantity, equipment flags and all other Item fields are preserved; held-direction Repeat does not perform further moves.
 
 When the selected bag exceeds one eight-record page, the header shows **PgX<>** at the upper right. The indicator follows that bag's currently resident page; temporary save/status messages take its place while they are active. Carrying, equipped-weight, attunement and related **Inventory Resources** calculations stream across **all bags** for the character rather than only the visible bag.
 
@@ -653,7 +654,7 @@ The bundled Bestiary contains 346 indexed/statblock-matched monsters, including 
 
 ## Data and memory behavior
 
-Character/profile loading is best-effort by recognized field name. Collection and catalog readers use bounded pages/windows, and each FAP is loaded independently so launching DNDCharacter Sheet, Inventory, Spellbook, Adventure, Journal, Initiative or Bestiary does not keep DNDolphins resident.
+Character/profile loading is best-effort by recognized field name. Collection and catalog readers use bounded pages/windows. Separate Inventory, Spellbook, Adventure, Initiative, Bestiary, Combat and Grants FAP launches release the Hub. Integrated Character Sheet and Journal instead keep the Hub resident and unload their FALs on return; standalone wrappers remain available.
 
 For exact storage fields, memory reservations, compatibility rules and pack formats, see the dedicated documentation files in this directory.
 
@@ -678,10 +679,10 @@ For exact storage fields, memory reservations, compatibility rules and pack form
 From a RogueMaster/Flipper firmware tree containing this directory:
 
 ```text
-fbt fap_dndolphins fap_dndcharactersheet fap_dndcombat fap_dndgrants fap_dndinventory fap_dndspellbook fap_dndadventure fap_dndjournal fap_dndinitiative fap_dndbestiary fap_dndbackup
+fbt fap_dndolphins fap_dndcharactersheet fap_dndcombat fap_dndgrants fap_dndinventory fap_dndspellbook fap_dndadventure fap_dndjournal fap_dndinitiative fap_dndbestiary fap_dndbackup fap_dnd_character_sheet fap_dnd_journal fap_dnd_monster_turn fap_dnd_spell_damage fap_dnd_loading
 ```
 
-The suite release label is kept separately from the SDK’s numeric FAP version metadata. Build with the firmware tree or SDK matching your device. `tests/sdk/VALIDATION.md` contains historical pre-3.6 official-SDK evidence only; it is not a current build certificate for the audited 4.19.1. Current host validation is in `tests/host/VALIDATION.md`, and device checks are in `DEVICE_TEST_MATRIX.md`.
+The suite release label is kept separately from numeric `(4, 20)` FAP metadata. Build with the firmware tree/SDK matching your device and install all eight FAL destinations in [FAL_INTEGRATION.md](FAL_INTEGRATION.md), including loading API version 2 under DNDolphins. This release needs no firmware overlay or firmware flash. `tests/sdk/VALIDATION.md` retains historical official-SDK evidence; it is not a current 4.20.2 build certificate. Current host evidence is in `tests/host/VALIDATION.md`; device checks are in `DEVICE_TEST_MATRIX.md`.
 
 ### Abilities & Saves Quick Rolls
 
@@ -699,7 +700,7 @@ DNDSpellbook owns Favorite state for each Spell. DNDCombat exposes a **Favorite 
 
 ### Initiative Monster Turn Tools
 
-While editing a participant in an active DNDInitiative combat, **Monster Turn Tools** is available for non-party participants. Selecting it saves the Initiative state, launches DNDBestiary, resolves the participant name against the currently allowed Bestiary sources, and opens that monster's stat block directly. The stat block's **Monster Turn Tools** entry lists common parsed attack rolls; OK rolls the selected attack and its parsed damage. Back returns to the same active Initiative combat.
+While editing a participant in active DNDInitiative combat, **Monster Turn Tools** loads the focused FAL for non-party participants and resolves their name against allowed Bestiary sources. The stat block's tools list common parsed attacks; OK rolls attack and damage. Back returns to the same member, round and turn without launching the full Bestiary FAP. Bestiary's own stat-block Tools row uses that same FAL with its borrowed detail record, returning to the same stat block and scroll position.
 
 ### Initiative Combat History
 
@@ -734,4 +735,3 @@ In DNDGrants **Grant Review**, hold **Right** to open **Progression Diagnostics*
 **Progression Diagnostics** appears in DNDGrants' Grant Review menu only when **DNDolphins → Settings → Debug** is enabled. When Debug is off, the row is omitted entirely. There is no hidden shortcut; diagnostics is a normal selectable menu action in Debug mode.
 
 ## Package-output policy
-

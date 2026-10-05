@@ -1,21 +1,22 @@
-# Dungeons & Dolphins 4.19.1 audit status
+# Dungeons & Dolphins 4.20.2 audit status
 
-Audit date: 2026-10-04 (America/New_York).
-
-The corrected suite passes the available source and host gates. All eleven manifests use numeric FAP version `(4, 19)` and the common `4.19.1` release label. See [INTEGRATION_AUDIT.md](INTEGRATION_AUDIT.md) for findings, evidence and application instructions.
+Audit date: 2026-10-05 UTC. All sixteen manifests use release label `4.20.2` and numeric `(4, 20)` metadata: eleven FAPs and five versioned, non-embedded FALs. All authorized source changes are implemented within the DND app family. Current ARM and device acceptance remain outstanding.
 
 ## Completed
 
-- Removed the redundant editor-release prototypes that failed in the three shared-core FAP builds.
-- Corrected null runtime access in common input, profile lifecycle, Language/Proficiency first-use and Settings paths; preserved Catalog return state before teardown.
-- Restored Favorite Spells index initialization and casting return ownership; retained Combat Roll state through casting statistics.
-- Saved selected Feats before handing dependent review to DNDGrants. The Hub's linked entry root excludes grant staging/review and Combat workflow roots.
-- Removed the inactive `.inc` and three legacy wrappers; updated every test/audit/layout consumer to the compiled core and actual FAP modes.
-- Passed strict `-Wall -Wextra -Werror -Wstrict-prototypes -Wredundant-decls` compilation at `-O1` and `-Os`, eleven manifest links, eleven balanced startup/teardown smoke tests and fourteen ASan/UBSan regression executables.
-- Regenerated the 32-bit common app state: **3,416 B**, versus the prior **4,676 B**. Optional runtimes retain the documented **48/64/76/24/248/308 B** Catalog/cache/Roll/Grant Review/Combat/profile measurements.
-- Regenerated the same-compiler entry-rooted Hub host proxy: **122,588 B text+rodata**, **2,536 B** below the uploaded core's **125,124 B** proxy. This is not an ARM target-size claim.
-- Retained all catalog assets, persisted schemas, eleven FAPs and current stack reservations. No `dist/` or generated firmware binary is packaged.
+- Preserved the corrected editor-release prototypes and actual-mode Hub/Combat/Grants ownership from 4.19.1.
+- Retained Character Sheet, Journal, Monster Turn and spell damage FALs with descriptor validation, borrowed-data ownership, explicit return/loading contracts and callback-safe cleanup.
+- Retained Hold OK Bag Mover and immediate per-item Container moves, preserving fields and transactional rollback.
+- Replaced the firmware-dependent loading implementation with DND-owned handoff records and loading API version 2. Public direct drawing keeps the splash/hourglass across outgoing teardown; the incoming app releases it after its view is ready and its destination path matches. No firmware overlay, private GUI API, service or SDK implementation change is included or required.
+- Native failure/cancellation/incoming-exit events and a ten-second timeout restore drawing. One inactive loading cache can remain until the next DND readiness/handoff safely unsubscribes, drains the timer and unmaps it. Callbacks never unload their own executing module.
+- Added public synchronous Loader barriers before DND app-side module map/free, separating those operations from Loader startup/unload work without SDK patches.
+- Passed strict `-Wall -Wextra -Werror -Wstrict-prototypes -Wredundant-decls` compilation under all sixteen actual manifest source sets at `-O1` and `-Os`, eleven entry-point lifecycle smokes, five shared-module links and nineteen ASan/UBSan regression executables.
+- Verified zero-view handoffs, wrong-destination readiness, missing/version/allocation fallback, failure-cache recovery, overlapping independent loading images and threaded animation cleanup. Native animation free deletes and flushes the timer queue before callback contexts/views are released.
+- Passed the supplied native manifest parser, public direct-draw/Loader/pubsub/timer source contracts and normalized host FAL import audit against API **88.7**, including native print wrappers. ARM import/relocation checking remains a separate gate.
+- Regenerated 32-bit layout and comparable host size/frame evidence. Common Hub state remains 3,416 B; Bestiary is 1,536 B; lazy Combat runtime is 256 B. Handoff context/transfer proxies add 32 B/148 B plus native framework/ELF allocations. Host figures are not ARM residency or peak-memory measurements.
 
-## Remaining target gates
+## Installation and remaining checks
 
-A current RogueMaster/ARM build and physical-device checks remain unverified here. The environment lacks the ARM compiler/matching SDK, uFBT and clang-format. Historical `tests/sdk` output is preserved as historical evidence only. Device checks remain in [DEVICE_TEST_MATRIX.md](DEVICE_TEST_MATRIX.md).
+Build and install the eleven FAPs plus all eight FAL destinations in [FAL_INTEGRATION.md](FAL_INTEGRATION.md). Install the version-2 loading FAL at `/ext/apps_data/dndolphins/plugins/dnd_loading.fal` together with the matching FAPs. Source changes belong only under `applications/external/dnd/`; no firmware flash is required by this release.
+
+No current ARM compiler/complete matching SDK or connected Flipper is available here. Current ARM links/relocations, rendered startup/handoff timing, held-input routing, heap/stack high-water and device storage/power-loss behavior remain unverified. Loading before DND app entry remains controlled by stock firmware. The retained SDK logs are historical. Use [tests/host/VALIDATION.md](tests/host/VALIDATION.md) and [DEVICE_TEST_MATRIX.md](DEVICE_TEST_MATRIX.md) to distinguish passing source/host gates from required device acceptance. Source ZIPs contain no `dist/`, FAP/FAL binaries, firmware overlay or firmware image.

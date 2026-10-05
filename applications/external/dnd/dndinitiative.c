@@ -1,3 +1,4 @@
+#include "dnd_monster_turn_api.h"
 #include "dnd_fs.h"
 #include "dnd_profile_handoff.h"
 #include "dnd_settings.h"
@@ -108,8 +109,8 @@ typedef struct {
     uint8_t history_count;
     char (*history_lines)[INIT_HISTORY_LINE_LEN];
     uint8_t history_line_count;
-    uint8_t pending_launch_bestiary;
-    char pending_bestiary_args[INIT_NAME_LEN + 32U];
+    uint8_t pending_monster_tools;
+    char pending_monster_name[INIT_NAME_LEN + 32U];
     InitiativeScreen screen;
     char status[32];
 } InitiativeApp;
@@ -1036,15 +1037,11 @@ static bool
     dndinitiative_launch_monster_tools(InitiativeApp* app, const InitiativeMember* member) {
     if(!app || !member || !member->name[0] || dndinitiative_member_is_party(app, member))
         return false;
-    int n = snprintf(
-        app->pending_bestiary_args,
-        sizeof(app->pending_bestiary_args),
-        "%s%s",
-        DND_BESTIARY_LAUNCH_FROM_INITIATIVE,
-        member->name);
-    if(n <= 0 || (size_t)n >= sizeof(app->pending_bestiary_args)) return false;
+    int n =
+        snprintf(app->pending_monster_name, sizeof(app->pending_monster_name), "%s", member->name);
+    if(n <= 0 || (size_t)n >= sizeof(app->pending_monster_name)) return false;
     dndinitiative_save(app);
-    app->pending_launch_bestiary = 1U;
+    app->pending_monster_tools = 1U;
     app->return_to_dnd = 0U;
     view_dispatcher_stop(app->dispatcher);
     return true;
@@ -2070,7 +2067,7 @@ static bool dndinitiative_input(InputEvent* event, void* context) {
                             sizeof(app->status),
                             dndinitiative_member_is_party(app, member) ?
                                 "Party member: no stat block" :
-                                "Bestiary monster not launched");
+                                "Monster tools unavailable");
                     else
                         return true;
                 } else if(app->delete_armed) {
@@ -2261,25 +2258,67 @@ static void dndinitiative_free(InitiativeApp* app) {
     free(app);
 }
 
+static DndPluginUiResult dndinitiative_run_monster_tools(InitiativeApp* app) {
+    DndPlugin plugin = {0};
+    DndPluginLoading loading = {0};
+    dnd_plugin_loading_begin(&loading, app->dispatcher, app->storage);
+    DndPluginLoadResult loaded = dnd_plugin_open(
+        &plugin,
+        app->storage,
+        DND_MONSTER_TURN_INITIATIVE_PATH,
+        DND_MONSTER_TURN_API_ID,
+        DND_MONSTER_TURN_API_VERSION,
+        sizeof(DndMonsterTurnApi));
+    DndPluginUiResult result = DndPluginUiError;
+    const DndMonsterTurnApi* api = plugin.api;
+    if(loaded == DndPluginLoadOk && api->run)
+        result = api->run(
+            app->dispatcher,
+            app->storage,
+            NULL,
+            app->pending_monster_name,
+            app->settings.homebrew,
+            false,
+            loading.view != NULL);
+    dnd_plugin_close(&plugin);
+    view_dispatcher_set_event_callback_context(app->dispatcher, app);
+    view_dispatcher_set_navigation_event_callback(app->dispatcher, dndinitiative_navigation);
+    view_dispatcher_set_custom_event_callback(app->dispatcher, NULL);
+    view_dispatcher_set_tick_event_callback(app->dispatcher, NULL, 0);
+    if(result == DndPluginUiError)
+        dndinitiative_copy(
+            app->status,
+            sizeof(app->status),
+            loaded == DndPluginLoadOk ? "Monster tools unavailable" :
+                                        dnd_plugin_load_message(loaded));
+    view_dispatcher_switch_to_view(app->dispatcher, 0U);
+    dnd_plugin_loading_end(&loading, app->dispatcher);
+    return result;
+}
 int32_t dndinitiative_app(void* context) {
     InitiativeApp* app = dndinitiative_alloc(context);
     if(!app) return -1;
-    view_dispatcher_switch_to_view(app->dispatcher, 0U);
-    view_dispatcher_run(app->dispatcher);
-    bool return_to_dnd = app->return_to_dnd;
-    bool return_to_combat = app->return_to_combat;
-    bool launch_bestiary = app->pending_launch_bestiary != 0U;
-    char bestiary_args[INIT_NAME_LEN + 32U];
-    dndinitiative_copy(bestiary_args, sizeof(bestiary_args), app->pending_bestiary_args);
-    dndinitiative_free(app);
-    if(launch_bestiary) {
-        if(!dnd_handoff_launch_if_present(DNDBESTIARY_FAP_PATH, bestiary_args)) return -1;
-    } else if(return_to_dnd) {
-        if(return_to_combat)
+    view_dispatcher_switch_to_view(app->dispatcher, 0);
+    dnd_handoff_ready(DNDINITIATIVE_FAP_PATH);
+    while(true) {
+        view_dispatcher_run(app->dispatcher);
+        if(!app->pending_monster_tools) break;
+        app->pending_monster_tools = 0;
+        DndPluginUiResult result = dndinitiative_run_monster_tools(app);
+        if(result == DndPluginUiExit) {
+            app->return_to_dnd = 0;
+            break;
+        }
+        view_dispatcher_switch_to_view(app->dispatcher, 0);
+        dndinitiative_redraw(app);
+    }
+    if(app->return_to_dnd) {
+        if(app->return_to_combat)
             (void)dnd_handoff_launch_if_present(DNDCOMBAT_FAP_PATH, NULL);
         else
             (void)dnd_handoff_launch_if_present(
                 DNDOLPHINS_FAP_PATH, DND_PROFILE_RETURN_FOCUS_INITIATIVE);
     }
+    dndinitiative_free(app);
     return 0;
 }

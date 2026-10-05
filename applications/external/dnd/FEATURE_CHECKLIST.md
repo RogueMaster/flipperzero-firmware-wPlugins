@@ -1,10 +1,10 @@
 # Feature checklist
 
-Current user-facing feature coverage for the eleven Dungeons & Dolphins FAPs.
+4.20.2 source/host feature coverage for eleven FAPs plus five FALs. Checked features are implemented; physical-device acceptance is tracked separately in DEVICE_TEST_MATRIX.md.
 
 ## DNDolphins
 
-- [x] No-argument DNDolphins launch shows the native 128×64 project logo for 2 seconds; argument/deep-link launches skip the splash. DNDolphins privately owns the Graphical Home 25×25 icon assets while companion FAPs do not link them.
+- [x] DNDolphins startup shows the native 128×64 project logo with animated hourglass. No-argument launch retains a two-second minimum; argument/deep-link launches show loading without the minimum. DNDolphins privately owns the Graphical Home 25×25 icon assets while companion FAPs do not link them.
 - [x] Multiple character profiles with create, switch, rename, duplicate, archive, delete and save-check actions; user-facing backup/export/restore is owned by the standalone DNDBackup & Restore FAP.
 - [x] Character actions launch **DNDBackup & Restore** for user-facing SHD operations. Its native `.shd` browser restores the exact selected active-character snapshot plus the matching Inventory, Spellbook, Feature, applied-grant, Language, Proficiency and v3 bag companions transactionally.
 - [x] Character identity, species, background, alignment, multiclass levels/subclasses, XP/Milestone leveling, languages, proficiencies and Inspiration.
@@ -45,7 +45,7 @@ Current user-facing feature coverage for the eleven Dungeons & Dolphins FAPs.
 
 ## DNDCharacter Sheet
 
-- [x] Standalone FAP named **DNDCharacter Sheet** (`dndcharactersheet.fap`) launched from the DNDolphins Character menu.
+- [x] Character Sheet FAL opens inside the Hub Character menu; standalone **DNDCharacter Sheet** (`dndcharactersheet.fap`) remains a thin direct-launch wrapper.
 - [x] Exact active-profile loading; no cross-character fallback.
 - [x] Native 128×64 read-only graphical sheet with ten pages and boxed character-sheet-style hierarchy.
 - [x] Shows character identity/class/level/XP, all six ability scores/modifiers, all six saving throws, all 18 skills, Proficiency Bonus, Inspiration, passive Perception/Insight/Investigation, AC, Initiative, Speed, current/max/temp HP, Hit Dice, Death Saves, spellcasting ability/attack/DC/slots, conditions, defenses, senses and movement.
@@ -53,7 +53,8 @@ Current user-facing feature coverage for the eleven Dungeons & Dolphins FAPs.
 
 ## DNDInventory
 
-- [x] **Bag Mover** is the final Inventory-list action and supports multi-select moves from the current bag to another bag while Hold OK on normal Item rows remains Equip/Unequip.
+- [x] **Bag Mover** supports Short OK checkboxes and Hold OK anywhere to choose the destination; terminal Move Selected and Back cancellation remain available. Hold OK on normal Item rows remains Equip/Unequip.
+- [x] Item Editor Container cycles Main/Group/custom bags and immediately moves the Item without another screen; editing continues at its destination, preserving fields and ignoring directional Repeat.
 
 - [x] Opens directly to the active character's Inventory with **Bag** first, **+ Add New** second and **Currency** third; owned Items follow, then Inventory Resources, Grant Initial Inventory and final **Bag Mover**.
 - [x] Explicit **Review inventory grant** confirmation before the normal **Grant Initial Inventory** transaction, plus a reviewed one-time Hold OK regrant override; empty Inventory launch never auto-grants.
@@ -198,3 +199,12 @@ Current user-facing feature coverage for the eleven Dungeons & Dolphins FAPs.
 - [x] Catalog OK/Back preserves return state before releasing the Catalog descriptor.
 - [x] Favorite Spells builds its bounded index on entry and returns through the casting workflow.
 - [x] Selected Hub Feats are saved before DNDGrants reviews dependent grants.
+
+## 4.20.2 FAL and loading integration
+
+- [x] Character Sheet and Journal UI FALs shared by the Hub and standalone wrappers.
+- [x] Journal return reloads the canonical character and invalidates stale collections, with failed-reload save protection.
+- [x] Focused Monster Turn FAL shared by Initiative/Bestiary, with first-use assets/custom-pack visibility and parent-state preservation.
+- [x] Combat spell damage FAL loads before casting resource consumption and unloads outside spell workflows.
+- [x] DND-owned splash/hourglass FAL, enqueue-before-teardown, destination-path readiness and callback-safe cleanup through public firmware APIs. Failure/cancellation/timeout restores drawing; one inactive cache is reclaimed on the next DND readiness/handoff. All changes stay within the app family.
+- [x] Nineteen host regressions, eleven entry lifecycles, five shared-module links and supplied API 88.7 source-contract audit pass.

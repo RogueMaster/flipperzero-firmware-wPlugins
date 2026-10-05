@@ -25,6 +25,7 @@
 #define DNDINVENTORY_COLLECTION_VIEW_TEXT            1U
 #define DNDINVENTORY_COLLECTION_VIEW_NUMBER          2U
 #define DNDINVENTORY_COLLECTION_ROWS                 5U
+#define DNDINVENTORY_COLLECTION_MOVER_ROWS           4U
 #define DNDINVENTORY_COLLECTION_SEARCH_MIN_CHARS     3U
 #define DNDINVENTORY_COLLECTION_CATALOG_PAGE         10U
 #define DNDINVENTORY_COLLECTION_CATALOG_OFFSET_PAGES 64U
@@ -1214,7 +1215,7 @@ static uint16_t dndinventory_collection_selection_item(uint16_t selection) {
     return (uint16_t)(selection - 3U);
 }
 
-static void dndinventory_collection_focus_list(DndInventoryCollectionApp* app, uint8_t logical) {
+static void dndinventory_collection_focus_list(DndInventoryCollectionApp* app, uint16_t logical) {
     app->selection = (uint16_t)logical + 3U;
     dndinventory_collection_list_adjust_scroll(app);
 }
@@ -1577,20 +1578,23 @@ static void dndinventory_collection_mover_adjust_scroll(DndInventoryCollectionAp
         uint16_t page_records = app->total - page_start;
         if(page_records > DND_STORAGE_COLLECTION_CACHE_SIZE)
             page_records = DND_STORAGE_COLLECTION_CACHE_SIZE;
-        if(page_records <= DNDINVENTORY_COLLECTION_ROWS) {
+        if(page_records <= DNDINVENTORY_COLLECTION_MOVER_ROWS) {
             app->mover_scroll = page_start;
             return;
         }
-        uint16_t scroll = app->mover_selection > page_start + 3U ? app->mover_selection - 4U :
-                                                                   page_start;
-        uint16_t maximum = page_start + page_records - DNDINVENTORY_COLLECTION_ROWS;
+        uint16_t scroll = app->mover_selection >
+                                  page_start + (DNDINVENTORY_COLLECTION_MOVER_ROWS - 2U) ?
+                              app->mover_selection - (DNDINVENTORY_COLLECTION_MOVER_ROWS - 1U) :
+                              page_start;
+        uint16_t maximum = page_start + page_records - DNDINVENTORY_COLLECTION_MOVER_ROWS;
         if(scroll > maximum) scroll = maximum;
         app->mover_scroll = scroll;
         return;
     }
 
-    uint16_t scroll = count > DNDINVENTORY_COLLECTION_ROWS ? count - DNDINVENTORY_COLLECTION_ROWS :
-                                                             0U;
+    uint16_t scroll = count > DNDINVENTORY_COLLECTION_MOVER_ROWS ?
+                          count - DNDINVENTORY_COLLECTION_MOVER_ROWS :
+                          0U;
     if(app->total) {
         uint16_t page_start = ((app->total - 1U) / DND_STORAGE_COLLECTION_CACHE_SIZE) *
                               DND_STORAGE_COLLECTION_CACHE_SIZE;
@@ -1667,9 +1671,38 @@ static bool dndinventory_collection_mover_destination_at(
 }
 
 static uint8_t dndinventory_collection_mover_destination_count(DndInventoryCollectionApp* app) {
-    if(!app) return 0U;
-    uint8_t count = dnd_storage_inventory_bag_count(app->storage, app->profile);
-    return count ? (uint8_t)(count - 1U) : 0U;
+    return app && app->bag_count ? (uint8_t)(app->bag_count - 1U) : 0U;
+}
+static void dndinventory_collection_mover_cache_destinations(DndInventoryCollectionApp* app) {
+    /* The destination picker borrows five names from the otherwise idle Catalog page.
+       Storage reads happen on entry/scroll, never in the GUI drawing callback. */
+    app->catalog_page_start = app->mover_destination_scroll;
+    app->catalog_count = 0;
+    uint8_t count = dndinventory_collection_mover_destination_count(app);
+    for(uint8_t row = 0;
+        row < DNDINVENTORY_COLLECTION_ROWS && app->mover_destination_scroll + row < count;
+        row++) {
+        char* name = app->catalog[row].name;
+        if(!dndinventory_collection_mover_destination_at(
+               app, app->mover_destination_scroll + row, name, DND_CATALOG_NAME_LEN))
+            name[0] = '\0';
+        app->catalog_count++;
+    }
+}
+static void dndinventory_collection_mover_choose_destination(DndInventoryCollectionApp* app) {
+    if(!app->mover_selected_count) {
+        dndinventory_collection_set_status(app, "Select one or more items");
+        return;
+    }
+    app->bag_count = dnd_storage_inventory_bag_count(app->storage, app->profile);
+    if(!dndinventory_collection_mover_destination_count(app)) {
+        dndinventory_collection_set_status(app, "No destination bag");
+        return;
+    }
+    app->mover_destination_selection = app->mover_destination_scroll = 0;
+    app->status[0] = '\0';
+    dndinventory_collection_mover_cache_destinations(app);
+    app->screen = DndInventoryCollectionScreenBagMoverDestination;
 }
 
 static void
@@ -1678,7 +1711,7 @@ static void
     snprintf(title, sizeof(title), "Bag Mover: %.24s", app->bag_name);
     dndinventory_collection_draw_header(canvas, app, title, app->status);
     uint16_t count = (uint16_t)app->total + 1U;
-    for(uint8_t row = 0U; row < DNDINVENTORY_COLLECTION_ROWS; ++row) {
+    for(uint8_t row = 0U; row < DNDINVENTORY_COLLECTION_MOVER_ROWS; ++row) {
         uint16_t index = app->mover_scroll + row;
         if(index >= count) break;
         char text[56];
@@ -1701,6 +1734,8 @@ static void
         }
         dndinventory_collection_draw_row(canvas, row, index == app->mover_selection, text);
     }
+    canvas_set_font(canvas, FontSecondary);
+    canvas_draw_str(canvas, 2, 63, "OK: select  Hold OK: move");
 }
 
 static void dndinventory_collection_draw_bag_mover_destination(
@@ -1715,9 +1750,9 @@ static void dndinventory_collection_draw_bag_mover_destination(
     for(uint8_t row = 0U; row < DNDINVENTORY_COLLECTION_ROWS; ++row) {
         uint8_t display = (uint8_t)(app->mover_destination_scroll + row);
         if(display >= count) break;
-        char bag[DND_INVENTORY_BAG_NAME_LEN];
-        if(!dndinventory_collection_mover_destination_at(app, display, bag, sizeof(bag)))
-            dndinventory_collection_copy(bag, sizeof(bag), "Unavailable");
+        const char* bag = row < app->catalog_count && app->catalog[row].name[0] ?
+                              app->catalog[row].name :
+                              "Unavailable";
         char text[52];
         snprintf(text, sizeof(text), "Move to %.38s", bag);
         dndinventory_collection_draw_row(
@@ -1752,6 +1787,11 @@ static bool dndinventory_collection_move_selected_to(
     app->mover_selected_count = 0U;
     app->record_offset_valid_pages = 0U;
     app->item_aggregate_valid = 0U;
+    free(app->data.character.items);
+    app->data.character.items = NULL;
+    app->data.character.item_count = 0;
+    app->total = moved <= app->total ? app->total - moved : 0;
+    app->cache_start = app->selection = app->scroll = 0;
     if(!dndinventory_collection_load_page(app, 0U)) {
         dndinventory_collection_set_status(app, "Moved; reload failed");
         app->screen = DndInventoryCollectionScreenList;
@@ -1871,6 +1911,85 @@ static DndItem*
     if(!app || logical < app->cache_start) return NULL;
     uint16_t local = logical - app->cache_start;
     return local < app->data.character.item_count ? &app->data.character.items[local] : NULL;
+}
+
+static bool dndinventory_collection_move_item_bag(DndInventoryCollectionApp* app, int8_t delta) {
+    if(!app || !app->have_profile || !delta || app->record_index >= app->total) return false;
+    size_t bytes = ((uint32_t)app->total + 7U) / 8U;
+    uint8_t* selected = calloc(bytes, 1);
+    if(!selected) {
+        dndinventory_collection_set_status(app, "Move memory low");
+        return false;
+    }
+    uint8_t count = dnd_storage_inventory_bag_count(app->storage, app->profile);
+    if(count < 2) {
+        free(selected);
+        return false;
+    }
+    int16_t next = app->bag_index + delta;
+    if(next < 0) next = count - 1;
+    if(next >= count) next = 0;
+    char destination[DND_INVENTORY_BAG_NAME_LEN];
+    if(!dnd_storage_inventory_bag_at(
+           app->storage, app->profile, next, destination, sizeof(destination))) {
+        free(selected);
+        dndinventory_collection_set_status(app, "Bag read failed");
+        return false;
+    }
+    selected[app->record_index >> 3U] |= (uint8_t)(1U << (app->record_index & 7U));
+    if(!dndinventory_collection_save_page(app)) {
+        free(selected);
+        return false;
+    }
+    DndCharacter* owner = dndinventory_collection_io_character(&app->data.character, false);
+    uint16_t moved = 0;
+    bool ok = owner && dnd_storage_move_items_bag_selected(
+                           app->storage,
+                           app->profile,
+                           app->bag_name,
+                           destination,
+                           owner,
+                           selected,
+                           app->total,
+                           &moved);
+    dndinventory_collection_free_io_character(owner, false);
+    free(selected);
+    if(!ok) {
+        dndinventory_collection_set_status(app, "Move failed; item kept here");
+        return false;
+    }
+    /* The paired transaction has committed. Drop the old page before any destination read. */
+    free(app->data.character.items);
+    app->data.character.items = NULL;
+    app->data.character.item_count = 0;
+    app->total = moved <= app->total ? app->total - moved : 0;
+    app->cache_start = 0;
+    app->record_offset_valid_pages = 0;
+    app->item_aggregate_valid = 0;
+    free(app->search_matches);
+    app->search_matches = NULL;
+    app->search_match_count = app->search_selection = app->search_scroll = 0;
+    app->search_term[0] = '\0';
+    app->detail_return_search = 0;
+    if(!dndinventory_collection_select_bag(app, (uint8_t)next)) {
+        app->screen = DndInventoryCollectionScreenList;
+        dndinventory_collection_set_status(app, "Moved; reload failed");
+        return true;
+    }
+    app->record_index = app->total ? app->total - 1U : 0;
+    if(!app->total || !dndinventory_collection_prepare_record(app, app->record_index)) {
+        app->screen = DndInventoryCollectionScreenList;
+        dndinventory_collection_set_status(app, "Moved; item read failed");
+        return true;
+    }
+    dndinventory_collection_focus_list(app, app->record_index);
+    app->screen = DndInventoryCollectionScreenDetail;
+    app->detail_selection = 28;
+    app->detail_scroll = 28 - (DNDINVENTORY_COLLECTION_ROWS - 1U);
+    char status[32];
+    snprintf(status, sizeof(status), "Moved to %.22s", destination);
+    dndinventory_collection_set_status(app, status);
+    return true;
 }
 
 static bool dndinventory_collection_add_blank(DndInventoryCollectionApp* app) {
@@ -2198,16 +2317,7 @@ static void dndinventory_collection_format_detail(
             item->use_versatile ? item->versatile_die : item->damage_die);
         break;
     case 28:
-        if(item->container_index < 0) {
-            dndinventory_collection_copy(out, size, "Container: Carried");
-        } else {
-            DndItem* container =
-                dndinventory_collection_item_cached(app, (uint16_t)item->container_index);
-            if(container && container->name[0])
-                snprintf(out, size, "Container: %.21s", container->name);
-            else
-                snprintf(out, size, "Container: Item %u", (unsigned)item->container_index + 1U);
-        }
+        snprintf(out, size, "Container: %.21s", app->bag_name);
         break;
     case 29:
         snprintf(out, size, "Charges: %d/%d", item->charges_current, item->charges_max);
@@ -2750,6 +2860,10 @@ static bool dndinventory_collection_begin_currency_number(
 
 static void
     dndinventory_collection_adjust(DndInventoryCollectionApp* app, uint8_t field, int8_t delta) {
+    if(field == 28U) {
+        (void)dndinventory_collection_move_item_bag(app, delta);
+        return;
+    }
     DndItem* item = dndinventory_collection_item(app, app->record_index);
     if(!item) return;
     switch(field) {
@@ -2845,18 +2959,6 @@ static void
             dndinventory_collection_clamp_i16((int32_t)item->ammo_max + delta, 0, 999);
         if(item->ammo_current > item->ammo_max) item->ammo_current = item->ammo_max;
         break;
-    case 28: {
-        int32_t next = item->container_index + delta;
-        if(next < -1) next = (int32_t)app->total - 1;
-        if(next >= (int32_t)app->total) next = -1;
-        if(next == (int32_t)app->record_index) {
-            next += delta;
-            if(next < -1) next = (int32_t)app->total - 1;
-            if(next >= (int32_t)app->total) next = -1;
-        }
-        item->container_index = next;
-        break;
-    }
     case 29:
         item->charges_current = dndinventory_collection_clamp_i16(
             (int32_t)item->charges_current + delta, 0, item->charges_max);
@@ -3294,21 +3396,12 @@ static bool dndinventory_collection_input(InputEvent* event, void* context) {
                 dndinventory_collection_set_status(app, "Bag read failed");
             }
         } else if(event->key == InputKeyOk && event->type == InputTypeShort) {
-            if(app->mover_selection < app->total) {
+            if(app->mover_selection < app->total)
                 dndinventory_collection_mover_toggle(app, app->mover_selection);
-            } else if(!app->mover_selected_count) {
-                dndinventory_collection_set_status(app, "Select one or more items");
-            } else {
-                uint8_t destinations = dndinventory_collection_mover_destination_count(app);
-                if(!destinations) {
-                    dndinventory_collection_set_status(app, "No destination bag");
-                } else {
-                    app->mover_destination_selection = 0U;
-                    app->mover_destination_scroll = 0U;
-                    app->status[0] = '\0';
-                    app->screen = DndInventoryCollectionScreenBagMoverDestination;
-                }
-            }
+            else
+                dndinventory_collection_mover_choose_destination(app);
+        } else if(event->key == InputKeyOk && event->type == InputTypeLong) {
+            dndinventory_collection_mover_choose_destination(app);
         }
     } else if(app->screen == DndInventoryCollectionScreenBagMoverDestination) {
         uint8_t count = dndinventory_collection_mover_destination_count(app);
@@ -3322,10 +3415,12 @@ static bool dndinventory_collection_input(InputEvent* event, void* context) {
                                                    0U;
         } else if(count && event->key == InputKeyOk && event->type == InputTypeShort) {
             char destination[DND_INVENTORY_BAG_NAME_LEN];
-            if(dndinventory_collection_mover_destination_at(
-                   app, app->mover_destination_selection, destination, sizeof(destination)))
+            uint8_t row = app->mover_destination_selection - app->mover_destination_scroll;
+            if(row < app->catalog_count && app->catalog[row].name[0]) {
+                dndinventory_collection_copy(
+                    destination, sizeof(destination), app->catalog[row].name);
                 (void)dndinventory_collection_move_selected_to(app, destination);
-            else
+            } else
                 dndinventory_collection_set_status(app, "Destination unavailable");
         }
         if(app->mover_destination_selection < app->mover_destination_scroll)
@@ -3334,6 +3429,9 @@ static bool dndinventory_collection_input(InputEvent* event, void* context) {
            app->mover_destination_scroll + DNDINVENTORY_COLLECTION_ROWS)
             app->mover_destination_scroll =
                 (uint8_t)(app->mover_destination_selection - (DNDINVENTORY_COLLECTION_ROWS - 1U));
+        if(app->screen == DndInventoryCollectionScreenBagMoverDestination &&
+           app->catalog_page_start != app->mover_destination_scroll)
+            dndinventory_collection_mover_cache_destinations(app);
     } else if(app->screen == DndInventoryCollectionScreenCurrency) {
         int32_t* values[] = {
             &app->data.character.currency_cp,
@@ -3429,7 +3527,9 @@ static bool dndinventory_collection_input(InputEvent* event, void* context) {
         else if(move && event->key == InputKeyDown)
             app->detail_selection =
                 app->detail_selection + 1U < count ? app->detail_selection + 1U : 0U;
-        else if(move && (event->key == InputKeyLeft || event->key == InputKeyRight))
+        else if(
+            move && (event->key == InputKeyLeft || event->key == InputKeyRight) &&
+            (app->detail_selection != 28U || event->type == InputTypeShort))
             dndinventory_collection_adjust(
                 app, app->detail_selection, event->key == InputKeyRight ? 1 : -1);
         else if(event->key == InputKeyOk && event->type == InputTypeLong)
@@ -3594,11 +3694,12 @@ int32_t dndinventory_collection_run(void* context) {
     DndInventoryCollectionApp* app = dndinventory_collection_alloc(context);
     if(!app) return -1;
     view_dispatcher_switch_to_view(app->dispatcher, DNDINVENTORY_COLLECTION_VIEW_MAIN);
+    dnd_handoff_ready(DNDINVENTORY_FAP_PATH);
     view_dispatcher_run(app->dispatcher);
     bool return_to_dnd = app->return_to_dnd;
-    dndinventory_collection_free(app);
     if(return_to_dnd)
         (void)dnd_handoff_launch_if_present(
             DNDOLPHINS_FAP_PATH, DND_PROFILE_RETURN_FOCUS_INVENTORY);
+    dndinventory_collection_free(app);
     return 0;
 }
