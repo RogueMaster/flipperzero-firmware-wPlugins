@@ -42,14 +42,7 @@ bool desktop_main_input_callback(InputEvent* event, void* context) {
     if(event->type == InputTypeShort || event->type == InputTypeLong) {
         if(event->key == InputKeyOk) {
             if(cfw_settings.game_mode) {
-                if(event->type == InputTypeShort) {
-                    main_view->callback(DesktopMainEventOpenMenu, main_view->context);
-                } else {
-                    loader_start_detached_with_gui_error(
-                        ((Desktop*)main_view->context)->loader,
-                        EXT_PATH("apps/Games/jetpack.fap"),
-                        "");
-                }
+                desktop_run_keybind((Desktop*)main_view->context, event->type, event->key);
             } else {
                 main_view->callback(
                     event->type == InputTypeShort ? DesktopMainEventOpenMenu :

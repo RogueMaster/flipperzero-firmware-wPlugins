@@ -179,5 +179,6 @@ typedef enum {
     SetTypeSecPlus_v2_390_00,
     SetTypeSecPlus_v2_433_00,
 
+    SetTypeTelcomaEdge433,
     SetTypeMAX,
 } SetType;

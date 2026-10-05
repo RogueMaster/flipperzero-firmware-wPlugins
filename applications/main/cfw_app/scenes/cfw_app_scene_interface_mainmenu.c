@@ -3,12 +3,54 @@
 
 enum VarItemListIndex {
     VarItemListIndexMenuStyle,
+    VarItemListIndexStartPoint,
     VarItemListIndexResetMenu,
     VarItemListIndexItem,
     VarItemListIndexAddItem,
     VarItemListIndexMoveItem,
     VarItemListIndexRemoveItem,
 };
+
+static void mainmenu_start_refresh(CFWApp* app) {
+    size_t count = CharList_size(app->mainmenu_app_labels);
+    uint32_t start = cfw_settings.start_point;
+    const char* label;
+    if(start < count) {
+        label = *CharList_get(app->mainmenu_app_labels, start);
+    } else if(start == LoaderMenuIndexLast) {
+        label = FLIPPER_EXTERNAL_APPS[FLIPPER_EXTERNAL_APPS_COUNT - 1].name;
+    } else if(start == LoaderMenuIndexSettings) {
+        label = "Settings";
+    } else {
+        if(start != LoaderMenuIndexApplications) {
+            cfw_settings.start_point = LoaderMenuIndexApplications;
+            app->save_settings = true;
+        }
+        label = "Apps Menu";
+    }
+    VariableItem* item = variable_item_list_get(app->var_item_list, VarItemListIndexStartPoint);
+    variable_item_set_current_value_text(item, label);
+    variable_item_set_current_value_index(item, 1);
+}
+
+static void mainmenu_start_changed(VariableItem* item) {
+    CFWApp* app = variable_item_get_context(item);
+    size_t count = CharList_size(app->mainmenu_app_labels);
+    uint32_t start = cfw_settings.start_point;
+    size_t position = start < count                    ? start + 1 :
+                      start == LoaderMenuIndexLast     ? count + 1 :
+                      start == LoaderMenuIndexSettings ? count + 2 :
+                                                         0;
+    uint8_t direction = variable_item_get_current_value_index(item);
+    if(direction == 0) position = position ? position - 1 : count + 2;
+    if(direction == 2) position = (position + 1) % (count + 3);
+    cfw_settings.start_point = position == 0         ? LoaderMenuIndexApplications :
+                               position <= count     ? position - 1 :
+                               position == count + 1 ? LoaderMenuIndexLast :
+                                                       LoaderMenuIndexSettings;
+    app->save_settings = true;
+    mainmenu_start_refresh(app);
+}
 
 void cfw_app_scene_interface_mainmenu_var_item_list_callback(void* context, uint32_t index) {
     CFWApp* app = context;
@@ -59,17 +101,29 @@ static void cfw_app_scene_interface_mainmenu_move_app_changed(VariableItem* item
     uint8_t idx = app->mainmenu_app_index;
     size_t size = CharList_size(app->mainmenu_app_labels);
     uint8_t dir = variable_item_get_current_value_index(item);
+    size_t target = idx;
     if(size >= 2) {
         if(dir == 2 && idx != size - 1) {
             // Right
             CharList_swap_at(app->mainmenu_app_labels, idx, idx + 1);
             CharList_swap_at(app->mainmenu_app_exes, idx, idx + 1);
             app->mainmenu_app_index++;
+            target = idx + 1;
         } else if(dir == 0 && idx != 0) {
             // Left
             CharList_swap_at(app->mainmenu_app_labels, idx, idx - 1);
             CharList_swap_at(app->mainmenu_app_exes, idx, idx - 1);
             app->mainmenu_app_index--;
+            target = idx - 1;
+        }
+        if(target != idx) {
+            if(cfw_settings.start_point == idx) {
+                cfw_settings.start_point = target;
+                app->save_settings = true;
+            } else if(cfw_settings.start_point == target) {
+                cfw_settings.start_point = idx;
+                app->save_settings = true;
+            }
         }
         view_dispatcher_send_custom_event(app->view_dispatcher, VarItemListIndexMoveItem);
     }
@@ -94,6 +148,9 @@ void cfw_app_scene_interface_mainmenu_on_enter(void* context) {
         app);
     variable_item_set_current_value_text(item, menu_style_names[cfw_settings.menu_style]);
     variable_item_set_current_value_index(item, cfw_settings.menu_style);
+
+    variable_item_list_add(var_item_list, "Start Point", 3, mainmenu_start_changed, app);
+    mainmenu_start_refresh(app);
 
     variable_item_list_add(var_item_list, "Reset Menu", 0, NULL, app);
 
@@ -145,12 +202,24 @@ bool cfw_app_scene_interface_mainmenu_on_event(void* context, SceneManagerEvent 
         case VarItemListIndexMenuStyle:
             scene_manager_next_scene(app->scene_manager, CFWAppSceneInterfaceMainmenuStyle);
             break;
+        case VarItemListIndexStartPoint:
+            scene_manager_next_scene(app->scene_manager, CFWAppSceneInterfaceMainmenuStart);
+            break;
         case VarItemListIndexResetMenu:
             scene_manager_next_scene(app->scene_manager, CFWAppSceneInterfaceMainmenuReset);
             break;
         case VarItemListIndexRemoveItem:
             if(!CharList_size(app->mainmenu_app_labels)) break;
             if(!CharList_size(app->mainmenu_app_exes)) break;
+            if(cfw_settings.start_point == app->mainmenu_app_index) {
+                cfw_settings.start_point = LoaderMenuIndexApplications;
+                app->save_settings = true;
+            } else if(
+                cfw_settings.start_point < CharList_size(app->mainmenu_app_labels) &&
+                cfw_settings.start_point > app->mainmenu_app_index) {
+                cfw_settings.start_point--;
+                app->save_settings = true;
+            }
             free(*CharList_get(app->mainmenu_app_labels, app->mainmenu_app_index));
             free(*CharList_get(app->mainmenu_app_exes, app->mainmenu_app_index));
             CharList_remove_v(
@@ -176,6 +245,7 @@ bool cfw_app_scene_interface_mainmenu_on_event(void* context, SceneManagerEvent 
             }
             variable_item_set_current_value_index(item, app->mainmenu_app_index);
             variable_item_set_values_count(item, count);
+            mainmenu_start_refresh(app);
             break;
         }
         case VarItemListIndexAddItem:

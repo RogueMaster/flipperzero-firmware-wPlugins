@@ -6,6 +6,7 @@ enum {
     GameMenuIndexStyle,
     GameMenuIndexStartPoint,
     GameMenuIndexReset,
+    GameMenuIndexDeleteAll,
     GameMenuIndexItem,
     GameMenuIndexAdd,
     GameMenuIndexMove,
@@ -139,7 +140,8 @@ void cfw_app_scene_interface_gamemenu_on_enter(void* context) {
     variable_item_set_current_value_index(item, cfw_settings.game_menu_style);
     variable_item_set_current_value_text(item, menu_style_names[cfw_settings.game_menu_style]);
     variable_item_list_add(list, "Start Point", 3, gamemenu_start_changed, app);
-    variable_item_list_add(list, "Reset Menu", 0, NULL, app);
+    variable_item_list_add(list, "Rebuild Menu Apps", 0, NULL, app);
+    variable_item_list_add(list, "Delete All Menu Apps", 0, NULL, app);
     /* Three direction values keep the editor usable beyond the widget's uint8_t count limit.
      * OK opens the full selector; Left/Right browse individual entries. */
     variable_item_list_add(list, "Item", 3, gamemenu_item_changed, app);
@@ -174,6 +176,11 @@ bool cfw_app_scene_interface_gamemenu_on_event(void* context, SceneManagerEvent 
         }
         break;
     case GameMenuIndexReset:
+    case GameMenuIndexDeleteAll:
+        scene_manager_set_scene_state(
+            app->scene_manager,
+            CFWAppSceneInterfaceGamemenuReset,
+            event.event == GameMenuIndexDeleteAll);
         scene_manager_next_scene(app->scene_manager, CFWAppSceneInterfaceGamemenuReset);
         break;
     case GameMenuIndexAdd:

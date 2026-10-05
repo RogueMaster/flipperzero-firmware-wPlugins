@@ -27,7 +27,7 @@ void desktop_settings_scene_keybinds_type_on_enter(void* context) {
         desktop_settings_scene_keybinds_type_submenu_callback,
         app);
 
-    submenu_set_header(submenu, "Keybind type:");
+    submenu_set_header(submenu, app->editing_game_keybinds ? "Game Mode keys:" : "Desktop keys:");
 
     submenu_set_selected_item(
         submenu,

@@ -34,13 +34,27 @@ void desktop_settings_scene_keybinds_key_on_enter(void* context) {
         desktop_settings_scene_keybinds_key_submenu_callback,
         app);
 
-    submenu_add_item(
+    bool exit_shortcut =
+        app->editing_game_keybinds &&
+        scene_manager_get_scene_state(app->scene_manager, DesktopSettingsAppSceneKeybindsType) ==
+            DesktopKeybindTypeHold;
+    submenu_add_lockable_item(
         submenu,
-        "Left",
+        exit_shortcut ? "Left (Dab Timer)" : "Left",
         DesktopKeybindKeyLeft,
         desktop_settings_scene_keybinds_key_submenu_callback,
-        app);
+        app,
+        exit_shortcut,
+        "Reserved for\nexiting Game Mode\nthrough Dab Timer.");
 
+    if(app->editing_game_keybinds) {
+        submenu_add_item(
+            submenu,
+            "OK",
+            DesktopKeybindKeyOk,
+            desktop_settings_scene_keybinds_key_submenu_callback,
+            app);
+    }
     submenu_set_header(submenu, "Keybind key:");
 
     submenu_set_selected_item(
@@ -55,6 +69,11 @@ bool desktop_settings_scene_keybinds_key_on_event(void* context, SceneManagerEve
     bool consumed = false;
 
     if(event.type == SceneManagerEventTypeCustom) {
+        if(app->editing_game_keybinds && event.event == DesktopKeybindKeyLeft &&
+           scene_manager_get_scene_state(app->scene_manager, DesktopSettingsAppSceneKeybindsType) ==
+               DesktopKeybindTypeHold) {
+            return true;
+        }
         consumed = true;
         scene_manager_set_scene_state(
             app->scene_manager, DesktopSettingsAppSceneKeybindsKey, event.event);

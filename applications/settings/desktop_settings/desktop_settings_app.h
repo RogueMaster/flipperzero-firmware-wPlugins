@@ -42,6 +42,8 @@ extern const size_t EXTRA_KEYBINDS_COUNT;
 typedef struct {
     DesktopSettings settings;
     DesktopKeybinds keybinds;
+    DesktopKeybinds game_keybinds;
+    bool editing_game_keybinds;
 
     Gui* gui;
     DialogsApp* dialogs;
@@ -61,6 +63,7 @@ typedef struct {
     uint32_t pin_menu_idx;
 
     bool save_keybinds;
+    bool save_game_keybinds;
 } DesktopSettingsApp;
 
 FuriString* desktop_settings_app_get_keybind(DesktopSettingsApp* app);

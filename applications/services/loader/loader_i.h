@@ -70,6 +70,7 @@ typedef enum {
     LoaderMessageTypeShowSettings,
     LoaderMessageTypeSetMenuStyle,
     LoaderMessageTypeLoadingCheck,
+    LoaderMessageTypeShowGamesMenu,
 } LoaderMessageType;
 
 typedef struct {

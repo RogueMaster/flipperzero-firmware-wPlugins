@@ -281,6 +281,12 @@ void loader_show_settings(Loader* loader) {
     furi_message_queue_put(loader->queue, &message, FuriWaitForever);
 }
 
+void loader_show_games_menu(Loader* loader) {
+    furi_check(loader);
+    LoaderMessage message = {.type = LoaderMessageTypeShowGamesMenu};
+    furi_message_queue_put(loader->queue, &message, FuriWaitForever);
+}
+
 static bool loader_menu_style_name_is_valid(const char* name) {
     if(!name || !name[0]) return true;
     const size_t length = strlen(name);
@@ -750,10 +756,10 @@ static LoaderMessageLoaderStatusResult loader_start_external_app(
 
 // process messages
 
-static void loader_do_menu_show(Loader* loader, bool settings_only) {
+static void loader_do_menu_show(Loader* loader, bool settings_only, bool games_only) {
     if(!loader->loader_menu) {
         loader->loader_menu =
-            loader_menu_alloc(loader_menu_closed_callback, loader, settings_only);
+            loader_menu_alloc(loader_menu_closed_callback, loader, settings_only, games_only);
     }
 }
 
@@ -1136,10 +1142,13 @@ int32_t loader_srv(void* p) {
                 break;
             }
             case LoaderMessageTypeShowMenu:
-                loader_do_menu_show(loader, false);
+                loader_do_menu_show(loader, false, false);
                 break;
             case LoaderMessageTypeShowSettings:
-                loader_do_menu_show(loader, true);
+                loader_do_menu_show(loader, true, false);
+                break;
+            case LoaderMessageTypeShowGamesMenu:
+                loader_do_menu_show(loader, false, true);
                 break;
             case LoaderMessageTypeMenuClosed:
                 loader_do_menu_closed(loader);

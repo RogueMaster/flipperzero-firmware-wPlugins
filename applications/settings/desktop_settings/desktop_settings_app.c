@@ -11,6 +11,7 @@
 
 const char* EXTRA_KEYBINDS[] = {
     "Apps Menu",
+    "Game Menu",
     "Archive",
     "Clock",
     "Device Info",
@@ -39,7 +40,7 @@ FuriString* desktop_settings_app_get_keybind(DesktopSettingsApp* app) {
         scene_manager_get_scene_state(app->scene_manager, DesktopSettingsAppSceneKeybindsType);
     DesktopKeybindKey key =
         scene_manager_get_scene_state(app->scene_manager, DesktopSettingsAppSceneKeybindsKey);
-    return app->keybinds[type][key];
+    return app->editing_game_keybinds ? app->game_keybinds[type][key] : app->keybinds[type][key];
 }
 
 void desktop_settings_app_set_keybind(DesktopSettingsApp* app, const char* value) {
@@ -47,8 +48,16 @@ void desktop_settings_app_set_keybind(DesktopSettingsApp* app, const char* value
         scene_manager_get_scene_state(app->scene_manager, DesktopSettingsAppSceneKeybindsType);
     DesktopKeybindKey key =
         scene_manager_get_scene_state(app->scene_manager, DesktopSettingsAppSceneKeybindsKey);
-    furi_string_set(app->keybinds[type][key], value);
-    app->save_keybinds = true;
+    if(app->editing_game_keybinds && type == DesktopKeybindTypeHold &&
+       key == DesktopKeybindKeyLeft)
+        return;
+    if(app->editing_game_keybinds) {
+        furi_string_set(app->game_keybinds[type][key], value);
+        app->save_game_keybinds = true;
+    } else {
+        furi_string_set(app->keybinds[type][key], value);
+        app->save_keybinds = true;
+    }
 }
 
 DesktopSettingsApp* desktop_settings_app_alloc(void) {
@@ -133,6 +142,7 @@ extern int32_t desktop_settings_app(void* p) {
 
     desktop_api_get_settings(desktop, &app->settings);
     desktop_keybinds_load(desktop, &app->keybinds);
+    desktop_keybinds_load_profile(desktop, &app->game_keybinds, true);
 
     if(p && (strcmp(p, DESKTOP_SETTINGS_RUN_PIN_SETUP_ARG) == 0)) {
         scene_manager_next_scene(app->scene_manager, DesktopSettingsAppScenePinSetupHowto);
@@ -145,7 +155,11 @@ extern int32_t desktop_settings_app(void* p) {
     if(app->save_keybinds) {
         desktop_keybinds_save(desktop, &app->keybinds);
     }
+    if(app->save_game_keybinds) {
+        desktop_keybinds_save_profile(desktop, &app->game_keybinds, true);
+    }
     desktop_keybinds_free(&app->keybinds);
+    desktop_keybinds_free(&app->game_keybinds);
     desktop_api_set_settings(desktop, &app->settings);
     furi_record_close(RECORD_DESKTOP);
 

@@ -149,6 +149,8 @@ typedef struct {
     /* Append fields to preserve offsets used by existing external apps. */
     MenuStyle game_menu_style;
     uint32_t game_start_point;
+    uint32_t start_point;
+    bool lock_menu_type;
 } CFWSettings;
 
 void cfw_settings_save(void);

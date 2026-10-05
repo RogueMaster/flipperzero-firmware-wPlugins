@@ -65,19 +65,17 @@ static void loader_pubsub_callback(const void* message, void* context) {
     }
 }
 
-enum {
-    LoaderMenuIndexApplications = (uint32_t)-1,
-    LoaderMenuIndexLast = (uint32_t)-2,
-    LoaderMenuIndexSettings = (uint32_t)-3,
-};
-
-LoaderMenu* loader_menu_alloc(void (*closed_cb)(void*), void* context, bool settings_only) {
+LoaderMenu* loader_menu_alloc(
+    void (*closed_cb)(void*),
+    void* context,
+    bool settings_only,
+    bool games_only) {
     LoaderMenu* loader_menu = malloc(sizeof(LoaderMenu));
     loader_menu->closed_cb = closed_cb;
     loader_menu->context = context;
-    loader_menu->games_only = !settings_only && cfw_settings.game_mode;
+    loader_menu->games_only = !settings_only && (games_only || cfw_settings.game_mode);
     loader_menu->selected_primary = loader_menu->games_only ? cfw_settings.game_start_point :
-                                                              LoaderMenuIndexApplications;
+                                                              cfw_settings.start_point;
     loader_menu->selected_setting = 0;
     loader_menu->settings_only = settings_only;
     loader_menu->current_view = settings_only ? LoaderMenuViewSettings : LoaderMenuViewPrimary;
@@ -392,7 +390,12 @@ static void loader_menu_build_menu(LoaderMenuApp* app, LoaderMenu* menu) {
         loader_menu_switch_to_settings,
         app);
 
-    menu_set_selected_item(app->primary_menu, menu->selected_primary);
+    uint32_t selected = menu->selected_primary;
+    if(selected >= MenuAppList_size(app->apps_list) && selected != LoaderMenuIndexApplications &&
+       selected != LoaderMenuIndexLast && selected != LoaderMenuIndexSettings) {
+        selected = LoaderMenuIndexApplications;
+    }
+    menu_set_selected_item(app->primary_menu, selected);
 }
 
 typedef struct {

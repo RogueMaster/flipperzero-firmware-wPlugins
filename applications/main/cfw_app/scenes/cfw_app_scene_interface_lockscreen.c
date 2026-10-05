@@ -1,6 +1,7 @@
 #include "../cfw_app.h"
 
 enum VarItemListIndex {
+    VarItemListIndexLockMenuStyle,
     VarItemListIndexLockOnBoot,
     VarItemListIndexFormatOn10BadPins,
     VarItemListIndexPinUnlockFromApp,
@@ -10,6 +11,13 @@ enum VarItemListIndex {
     VarItemListIndexShowStatusbar,
     VarItemListIndexUnlockPrompt,
 };
+
+static void lock_menu_style_changed(VariableItem* item) {
+    CFWApp* app = variable_item_get_context(item);
+    cfw_settings.lock_menu_type = variable_item_get_current_value_index(item);
+    variable_item_set_current_value_text(item, cfw_settings.lock_menu_type ? "Grid" : "List");
+    app->save_settings = true;
+}
 
 void cfw_app_scene_interface_lockscreen_var_item_list_callback(void* context, uint32_t index) {
     CFWApp* app = context;
@@ -117,6 +125,11 @@ void cfw_app_scene_interface_lockscreen_on_enter(void* context) {
     CFWApp* app = context;
     VariableItemList* var_item_list = app->var_item_list;
     VariableItem* item;
+
+    item =
+        variable_item_list_add(var_item_list, "Lock Menu Style", 2, lock_menu_style_changed, app);
+    variable_item_set_current_value_index(item, cfw_settings.lock_menu_type);
+    variable_item_set_current_value_text(item, cfw_settings.lock_menu_type ? "Grid" : "List");
 
     item = variable_item_list_add(
         var_item_list,

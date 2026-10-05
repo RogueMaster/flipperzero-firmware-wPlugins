@@ -29,8 +29,8 @@ This software is for experimental purposes only and is not meant for any illegal
 
 ## Latest Updates - [PATREON: Latest Release RM1003-1928-5b31e6e6-Patreon](https://www.patreon.com/RogueMaster?filters[tag]=Latest%20Release)
 
-- Last Synced/Checked OFW, changes in [commits](https://github.com/flipperdevices/flipperzero-firmware/commits/dev): `2026-10-03 19:28 EST`
-- Last Synced/Checked CFW, changes in [changelog](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/CHANGELOG.md): `2026-10-03 19:28 EST`
+- Last Synced/Checked OFW, changes in [commits](https://github.com/flipperdevices/flipperzero-firmware/commits/dev): `2026-10-05 02:06 EST`
+- Last Synced/Checked CFW, changes in [changelog](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/CHANGELOG.md): `2026-10-05 02:06 EST`
 - Updated: [Maze 3D v7.2 (By k20120509)](https://github.com/k20120509/flipper-release)
 - Updated: [DFC v1.1.1 (By cindersocket)](https://github.com/cindersocket/dfc-flipper)
 - OFW: [Fixes of various valid issues found by code scan #4456 (By xMasterX)](https://github.com/flipperdevices/flipperzero-firmware/pull/4456)
@@ -131,7 +131,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Firmware API: Compact the resident export lookup table without changing SDK exports, full symbol addresses or external-app API layouts. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/a492b0cb47e50742665748db81a52dec226e25e0)
 - [Firmware: Enable selective resident mJS LTO while retaining native external-app archives and the existing updater/debug library flags. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/a492b0cb47e50742665748db81a52dec226e25e0)
 - [Firmware build: Track linked archives explicitly so incremental firmware builds include asset changes and library LTO selections. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/a492b0cb47e50742665748db81a52dec226e25e0)
-- Updated: [CFW Settings v2.2 (By WillyJL, ESurge & RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/1bb9a4c195cdf8687afa1006dd717488b9f42257) - restore the configurable Game Menu with its own menu style, starting game, add/remove/reorder controls, and reset to all installed games. [Now hides Main Menu and Game Menu options while Game Mode is enabled. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/a45d5eb73a5cd220a1e06880bb2038122c76aa0a)
 - [Firmware: Load the mJS interpreter on demand from `apps_data/js_app/plugins/mjs_engine.fal`. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/dac66c2c041f068537065e49525eb8200cdbd7de)
 - [Firmware: Disable selective resident mJS LTO while retaining native external-app archives and the existing updater/debug library flags. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/a492b0cb47e50742665748db81a52dec226e25e0)
 - Updated: [DNDAdventure v4.20 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
@@ -159,6 +158,10 @@ This software is for experimental purposes only and is not meant for any illegal
 - SubGHz: [New protocol KeyFinder2 - the colour-button key finder fobs the existing KeyFinder decoder could not read. Shows the button colour next to the code, unverified: the colour names come from a single four button fob, so another fob may name them differently (By xMasterX)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/fc859a4bc8970c29ae1b17e8348533f835d69d0d)
 - SubGHz: [New protocol Doorbell32 - unbranded 433MHz doorbells. KeyFinder, KeyFinder2 and Doorbell32 are all in the Sensors ignore group (By xMasterX)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/197ed204678523e0236d3ff4759b74d12e2cc6bd)
 - NFC: [MIFARE DESFire Light is now correctly detected instead of appearing as ISO14443-4A (Unknown), with automatic command-mode handling, support for hardware type 0x08, and graceful handling of unsupported PICC-level fields. Detection uses GetVersion to distinguish it from MIFARE Plus and NTAG 4xx, while incomplete or refused reads are no longer treated as successful; file-content reading is not included. (By mishamyte)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/5f8727ae0e1fea457416cc445d73906be9d9b276)
+- Updated: [CFW Settings v2.3 (By WillyJL, ESurge & RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/1bb9a4c195cdf8687afa1006dd717488b9f42257) - restore the configurable Game Menu with its own menu style, starting game, add/remove/reorder controls, and reset to all installed games. [Now hides Main Menu and Game Menu options while Game Mode is enabled. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/a45d5eb73a5cd220a1e06880bb2038122c76aa0a) [Restore Main-menu Start Point and Grid/List lock-menu selection; add Delete All Menu Apps and Rebuild Menu Apps to Game Menu. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/)
+- Updated: [Desktop Settings: Separate configurable Game Mode Press/Hold keybinds, including OK, with current actions as defaults and Hold Left reserved for Dab Timer; add Game Menu to More Actions in either profile. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/
+- SubGHz: [Telcoma EDGE manual creation re-added; canonical 32-bit gate-channel fixed codes at 433.92 MHz in Add Manually and Add Manually Advanced. (By RogueMaster - Original Work By Unknown)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/)
+- Updated: [NRF Sniff v1.2 (By mothball187, xMasterX); Restore Dolphin discovery deeds for newly confirmed addresses. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/)
 
 <a name="release"></a>
 
@@ -534,7 +537,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [CCID Emulator v1.1 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
 - [Cerberus v1.1 (By at0m-b0mb)](https://github.com/at0m-b0mb/flipper-cerberus)
 - [CFS Tag Writer v1.0 (By pwschattenberg)](https://github.com/pwschattenberg/cfs-tag-writer)
-- [CFW Settings v2.2 (By WillyJL)](https://github.com/Next-Flip/Momentum-Firmware/tree/dev/applications/main/momentum_app)
+- [CFW Settings v2.3 (By WillyJL)](https://github.com/Next-Flip/Momentum-Firmware/tree/dev/applications/main/momentum_app)
 - [Chameleon Ultra v1.0 (By muylder)](https://github.com/muylder/Chameleon_Flipper)
 - [ChaosID v0.6 (By cybersantana83)](https://github.com/cybersantana83/ChaosID)
 - [Chief Cooker v1.1 (By denr01)](https://github.com/denr01/FZ-ChiefCooker)
@@ -867,7 +870,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Nightstand Clock v1.3 (By nymda)](https://github.com/nymda/FlipperNightStand)
 - [Noptel LRF Sampler v2.4 (By Giraut)](https://github.com/Giraut/flipper_zero_noptel_lrf_sampler)
 - [Notes for FZ WIP (By AdrianN001)](https://github.com/AdrianN001/Flipper-Zero-Note-Application)
-- [NRF Sniff v1.1 (By mothball187)](https://github.com/mothball187/flipperzero-nrf24/tree/main/nrfsniff) [Pin Out from nocomp/Frog/UberGuidoZ](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/tree/420/applications/nrfsniff) `Req: NRF24`
+- [NRF Sniff v1.2 (By mothball187)](https://github.com/mothball187/flipperzero-nrf24/tree/main/nrfsniff) [Pin Out from nocomp/Frog/UberGuidoZ](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/tree/420/applications/nrfsniff) `Req: NRF24`
 - [NRF Sniffer for MS Mouse (Remixed By coded-with-claws)](https://github.com/coded-with-claws/flipperzero-tools/tree/main/applications_user/nrfsniff_ms) `Req: NRF24`
 - [NRF24 Batch v2.0 (By vad7)](https://github.com/vad7/nRF24-Batch)
 - [NRF24 Channel Scanner v1.4 (by htotoo)](https://github.com/htotoo/NRF24ChannelScanner)

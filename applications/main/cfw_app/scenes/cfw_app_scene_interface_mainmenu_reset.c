@@ -34,6 +34,8 @@ bool cfw_app_scene_interface_mainmenu_reset_on_event(void* context, SceneManager
             cfw_app_empty_mainmenu_apps(app);
             cfw_app_load_mainmenu_apps(app);
             app->mainmenu_app_index = 0;
+            cfw_settings.start_point = LoaderMenuIndexApplications;
+            app->save_settings = true;
             app->save_mainmenu_apps = false;
             /* fall through */
         case DialogExResultLeft:

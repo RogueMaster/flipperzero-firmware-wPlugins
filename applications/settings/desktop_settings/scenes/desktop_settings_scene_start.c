@@ -8,6 +8,8 @@ typedef enum {
     DesktopSettingsPinSetup = 0,
     DesktopSettingsKeybindSetup,
     DesktopSettingsResetKeybinds,
+    DesktopSettingsGameKeybindSetup,
+    DesktopSettingsResetGameKeybinds,
     DesktopSettingsAutoLockDelay,
     DesktopSettingsAutoLockPin,
     DesktopSettingsAutoLockInhibit,
@@ -98,6 +100,8 @@ void desktop_settings_scene_start_on_enter(void* context) {
     variable_item_list_add(variable_item_list, "Keybinds Setup", 1, NULL, NULL);
 
     variable_item_list_add(variable_item_list, "Reset Keybinds to Default", 1, NULL, NULL);
+    variable_item_list_add(variable_item_list, "Game Mode Keybinds", 1, NULL, NULL);
+    variable_item_list_add(variable_item_list, "Reset Game Mode Keybinds", 1, NULL, NULL);
 
     item = variable_item_list_add(
         variable_item_list,
@@ -167,6 +171,8 @@ bool desktop_settings_scene_start_on_event(void* context, SceneManagerEvent even
             break;
 
         case DesktopSettingsKeybindSetup:
+        case DesktopSettingsGameKeybindSetup:
+            app->editing_game_keybinds = event.event == DesktopSettingsGameKeybindSetup;
             scene_manager_set_scene_state(
                 app->scene_manager, DesktopSettingsAppSceneKeybindsType, 0);
             scene_manager_next_scene(app->scene_manager, DesktopSettingsAppSceneKeybindsType);
@@ -174,6 +180,8 @@ bool desktop_settings_scene_start_on_event(void* context, SceneManagerEvent even
             break;
 
         case DesktopSettingsResetKeybinds:
+        case DesktopSettingsResetGameKeybinds:
+            app->editing_game_keybinds = event.event == DesktopSettingsResetGameKeybinds;
             scene_manager_set_scene_state(
                 app->scene_manager, DesktopSettingsAppSceneKeybindsType, 0);
             scene_manager_next_scene(app->scene_manager, DesktopSettingsAppSceneKeybindsReset);

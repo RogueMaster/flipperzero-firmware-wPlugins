@@ -12,7 +12,13 @@ void desktop_settings_scene_keybinds_reset_on_enter(void* context) {
     DesktopSettingsApp* app = context;
     DialogEx* dialog_ex = app->dialog_ex;
 
-    dialog_ex_set_header(dialog_ex, "Reset Desktop Keybinds?", 64, 10, AlignCenter, AlignCenter);
+    dialog_ex_set_header(
+        dialog_ex,
+        app->editing_game_keybinds ? "Reset Game Mode Keys?" : "Reset Desktop Keybinds?",
+        64,
+        10,
+        AlignCenter,
+        AlignCenter);
     dialog_ex_set_text(dialog_ex, "Your edits will be lost!", 64, 32, AlignCenter, AlignCenter);
     dialog_ex_set_left_button_text(dialog_ex, "Cancel");
     dialog_ex_set_right_button_text(dialog_ex, "Reset");
@@ -31,11 +37,20 @@ bool desktop_settings_scene_keybinds_reset_on_event(void* context, SceneManagerE
     if(event.type == SceneManagerEventTypeCustom) {
         switch(event.event) {
         case DialogExResultRight:
-            storage_common_remove(furi_record_open(RECORD_STORAGE), DESKTOP_KEYBINDS_PATH);
+            storage_common_remove(
+                furi_record_open(RECORD_STORAGE),
+                app->editing_game_keybinds ? DESKTOP_GAME_KEYBINDS_PATH : DESKTOP_KEYBINDS_PATH);
             furi_record_close(RECORD_STORAGE);
-            desktop_keybinds_load(furi_record_open(RECORD_DESKTOP), &app->keybinds);
+            desktop_keybinds_load_profile(
+                furi_record_open(RECORD_DESKTOP),
+                app->editing_game_keybinds ? &app->game_keybinds : &app->keybinds,
+                app->editing_game_keybinds);
             furi_record_close(RECORD_DESKTOP);
-            app->save_keybinds = false;
+            if(app->editing_game_keybinds) {
+                app->save_game_keybinds = false;
+            } else {
+                app->save_keybinds = false;
+            }
             /* fall through */
         case DialogExResultLeft:
             consumed = scene_manager_previous_scene(app->scene_manager);

@@ -28,6 +28,65 @@ typedef enum {
     DesktopLockMenuIndexTotalCount
 } DesktopLockMenuIndex;
 
+static void desktop_lock_menu_draw_list(Canvas* canvas, DesktopLockMenuViewModel* m) {
+    static const char* const labels[DesktopLockMenuIndexTotalCount] = {
+        "Left-handed",
+        "Game Mode",
+        "Dark Mode",
+        "Lock",
+        "Bluetooth",
+        "CFW Settings",
+        "Brightness",
+        "Volume",
+    };
+    canvas_set_font(canvas, FontSecondary);
+    size_t first = (m->idx / 4) * 4;
+    for(size_t row = 0; row < 4; row++) {
+        size_t i = first + row;
+        if(i >= DesktopLockMenuIndexTotalCount) break;
+        uint8_t y = row * 16;
+        if(i == m->idx) {
+            canvas_draw_rbox(canvas, 0, y, 123, 16, 3);
+            canvas_set_color(canvas, ColorWhite);
+        }
+        canvas_draw_str(canvas, 4, y + 12, labels[i]);
+        const char* state = NULL;
+        char percent[8];
+        switch(i) {
+        case DesktopLockMenuIndexLefthandedMode:
+            state = furi_hal_rtc_is_flag_set(FuriHalRtcFlagHandOrient) ? "ON" : "OFF";
+            break;
+        case DesktopLockMenuIndexGameMode:
+            state = cfw_settings.game_mode ? "ON" : "OFF";
+            break;
+        case DesktopLockMenuIndexDarkMode:
+            state = cfw_settings.dark_mode ? "ON" : "OFF";
+            break;
+        case DesktopLockMenuIndexBluetooth:
+            state = m->lock_menu->bt->bt_settings.enabled ? "ON" : "OFF";
+            break;
+        case DesktopLockMenuIndexBrightness:
+        case DesktopLockMenuIndexVolume:
+            snprintf(
+                percent,
+                sizeof(percent),
+                "%u%%",
+                (unsigned)((i == DesktopLockMenuIndexBrightness ?
+                                m->lock_menu->notification->settings.display_brightness :
+                                m->lock_menu->notification->settings.speaker_volume) *
+                               100.0f +
+                           0.5f));
+            state = i == DesktopLockMenuIndexVolume && m->stealth_mode ? "Mute" : percent;
+            break;
+        default:
+            break;
+        }
+        if(state) canvas_draw_str_aligned(canvas, 119, y + 12, AlignRight, AlignBottom, state);
+        canvas_set_color(canvas, ColorBlack);
+    }
+    elements_scrollbar(canvas, m->idx, DesktopLockMenuIndexTotalCount);
+}
+
 void desktop_lock_menu_set_callback(
     DesktopLockMenuView* lock_menu,
     DesktopLockMenuViewCallback callback,
@@ -75,98 +134,101 @@ void desktop_lock_menu_draw_callback(Canvas* canvas, void* model) {
     uint8_t value = 0;
     int8_t total = 58;
     const Icon* icon = NULL;
-    for(size_t i = 0; i < DesktopLockMenuIndexTotalCount; ++i) {
-        selected = m->idx == i;
-        toggle = i < 6;
-        if(toggle) {
-            x = 2 + 32 * (i / 2);
-            y = 2 + 32 * (i % 2);
-            w = 28;
-            h = 28;
-            enabled = false;
-        } else {
-            x = 98 + 16 * (i % 2);
-            y = 2;
-            w = 12;
-            h = 60;
-            value = 0;
-        }
-
-        switch(i) {
-        case DesktopLockMenuIndexLefthandedMode:
-            icon = &I_CC_LefthandedMode_16x16;
-            enabled = furi_hal_rtc_is_flag_set(FuriHalRtcFlagHandOrient);
-            break;
-        case DesktopLockMenuIndexGameMode:
-            icon = &I_CC_GameMode_16x16;
-            enabled = cfw_settings.game_mode;
-            break;
-        case DesktopLockMenuIndexDarkMode:
-            icon = &I_CC_DarkMode_16x16;
-            enabled = cfw_settings.dark_mode;
-            break;
-        case DesktopLockMenuIndexLock:
-            icon = &I_CC_Lock_16x16;
-            break;
-        case DesktopLockMenuIndexBluetooth:
-            icon = &I_CC_Bluetooth_16x16;
-            enabled = m->lock_menu->bt->bt_settings.enabled;
-            break;
-        case DesktopLockMenuIndexCFW:
-            icon = &I_CC_CFW_16x16;
-            break;
-        case DesktopLockMenuIndexBrightness:
-            icon = &I_Pin_star_7x7;
-            value = total - m->lock_menu->notification->settings.display_brightness * total;
-            break;
-        case DesktopLockMenuIndexVolume:
-            icon = m->stealth_mode ? &I_Muted_8x8 : &I_Volup_8x6;
-            value = total - m->lock_menu->notification->settings.speaker_volume * total;
-            break;
-        default:
-            break;
-        }
-
-        if(selected) {
-            elements_bold_rounded_frame(canvas, x - 1, y - 1, w + 1, h + 1);
-        } else {
-            canvas_draw_rframe(canvas, x, y, w, h, 5);
-        }
-
-        if(toggle) {
-            if(enabled) {
-                canvas_draw_rbox(canvas, x, y, w, h, 5);
-                canvas_set_color(canvas, ColorWhite);
-            }
-            canvas_draw_icon(
-                canvas,
-                x + (w - icon_get_width(icon)) / 2,
-                y + (h - icon_get_height(icon)) / 2,
-                icon);
-            if(enabled) {
-                canvas_set_color(canvas, ColorBlack);
-            }
-        } else {
-            canvas_draw_icon(
-                canvas,
-                x + (w - icon_get_width(icon)) / 2,
-                y + (h - icon_get_height(icon)) / 2,
-                icon);
-            canvas_set_color(canvas, ColorXOR);
-            canvas_draw_box(canvas, x + 1, y + 1 + value, w - 2, h - 2 - value);
-            if(selected) {
-                canvas_set_color(canvas, ColorBlack);
+    if(!cfw_settings.lock_menu_type) {
+        desktop_lock_menu_draw_list(canvas, m);
+    } else
+        for(size_t i = 0; i < DesktopLockMenuIndexTotalCount; ++i) {
+            selected = m->idx == i;
+            toggle = i < 6;
+            if(toggle) {
+                x = 2 + 32 * (i / 2);
+                y = 2 + 32 * (i % 2);
+                w = 28;
+                h = 28;
+                enabled = false;
             } else {
-                canvas_set_color(canvas, ColorWhite);
+                x = 98 + 16 * (i % 2);
+                y = 2;
+                w = 12;
+                h = 60;
+                value = 0;
             }
-            canvas_draw_dot(canvas, x + 1, y + 1);
-            canvas_draw_dot(canvas, x + 1, y + h - 2);
-            canvas_draw_dot(canvas, x + w - 2, y + 1);
-            canvas_draw_dot(canvas, x + w - 2, y + h - 2);
-            canvas_set_color(canvas, ColorBlack);
-            canvas_draw_rframe(canvas, x, y, w, h, 5);
+
+            switch(i) {
+            case DesktopLockMenuIndexLefthandedMode:
+                icon = &I_CC_LefthandedMode_16x16;
+                enabled = furi_hal_rtc_is_flag_set(FuriHalRtcFlagHandOrient);
+                break;
+            case DesktopLockMenuIndexGameMode:
+                icon = &I_CC_GameMode_16x16;
+                enabled = cfw_settings.game_mode;
+                break;
+            case DesktopLockMenuIndexDarkMode:
+                icon = &I_CC_DarkMode_16x16;
+                enabled = cfw_settings.dark_mode;
+                break;
+            case DesktopLockMenuIndexLock:
+                icon = &I_CC_Lock_16x16;
+                break;
+            case DesktopLockMenuIndexBluetooth:
+                icon = &I_CC_Bluetooth_16x16;
+                enabled = m->lock_menu->bt->bt_settings.enabled;
+                break;
+            case DesktopLockMenuIndexCFW:
+                icon = &I_CC_CFW_16x16;
+                break;
+            case DesktopLockMenuIndexBrightness:
+                icon = &I_Pin_star_7x7;
+                value = total - m->lock_menu->notification->settings.display_brightness * total;
+                break;
+            case DesktopLockMenuIndexVolume:
+                icon = m->stealth_mode ? &I_Muted_8x8 : &I_Volup_8x6;
+                value = total - m->lock_menu->notification->settings.speaker_volume * total;
+                break;
+            default:
+                break;
+            }
+
+            if(selected) {
+                elements_bold_rounded_frame(canvas, x - 1, y - 1, w + 1, h + 1);
+            } else {
+                canvas_draw_rframe(canvas, x, y, w, h, 5);
+            }
+
+            if(toggle) {
+                if(enabled) {
+                    canvas_draw_rbox(canvas, x, y, w, h, 5);
+                    canvas_set_color(canvas, ColorWhite);
+                }
+                canvas_draw_icon(
+                    canvas,
+                    x + (w - icon_get_width(icon)) / 2,
+                    y + (h - icon_get_height(icon)) / 2,
+                    icon);
+                if(enabled) {
+                    canvas_set_color(canvas, ColorBlack);
+                }
+            } else {
+                canvas_draw_icon(
+                    canvas,
+                    x + (w - icon_get_width(icon)) / 2,
+                    y + (h - icon_get_height(icon)) / 2,
+                    icon);
+                canvas_set_color(canvas, ColorXOR);
+                canvas_draw_box(canvas, x + 1, y + 1 + value, w - 2, h - 2 - value);
+                if(selected) {
+                    canvas_set_color(canvas, ColorBlack);
+                } else {
+                    canvas_set_color(canvas, ColorWhite);
+                }
+                canvas_draw_dot(canvas, x + 1, y + 1);
+                canvas_draw_dot(canvas, x + 1, y + h - 2);
+                canvas_draw_dot(canvas, x + w - 2, y + 1);
+                canvas_draw_dot(canvas, x + w - 2, y + h - 2);
+                canvas_set_color(canvas, ColorBlack);
+                canvas_draw_rframe(canvas, x, y, w, h, 5);
+            }
         }
-    }
 
     if(m->show_lock_popup) {
         if(cfw_settings.popup_overlay) {
@@ -223,6 +285,13 @@ bool desktop_lock_menu_input_callback(InputEvent* event, void* context) {
                 } else {
                     if(model->idx == DesktopLockMenuIndexLock && event->key == InputKeyOk) {
                         model->show_lock_popup = true;
+                    } else if(!cfw_settings.lock_menu_type) {
+                        if(event->key == InputKeyUp) {
+                            model->idx = model->idx ? model->idx - 1 :
+                                                      DesktopLockMenuIndexTotalCount - 1;
+                        } else if(event->key == InputKeyDown) {
+                            model->idx = (model->idx + 1) % DesktopLockMenuIndexTotalCount;
+                        }
                     } else if(model->idx < 6) {
                         if(event->key == InputKeyUp || event->key == InputKeyDown) {
                             if(model->idx % 2) {
@@ -325,9 +394,9 @@ bool desktop_lock_menu_input_callback(InputEvent* event, void* context) {
             }
         } else if(idx >= 6 && (event->type == InputTypeShort || event->type == InputTypeRepeat)) {
             int8_t offset = 0;
-            if(event->key == InputKeyUp) {
+            if(event->key == (cfw_settings.lock_menu_type ? InputKeyUp : InputKeyRight)) {
                 offset = 1;
-            } else if(event->key == InputKeyDown) {
+            } else if(event->key == (cfw_settings.lock_menu_type ? InputKeyDown : InputKeyLeft)) {
                 offset = -1;
             }
             if(offset) {

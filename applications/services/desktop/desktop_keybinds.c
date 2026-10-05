@@ -1,6 +1,7 @@
 #include "desktop_keybinds.h"
 #include "desktop_keybinds_filename.h"
 #include "desktop_i.h"
+#include <loader/loader_menu.h>
 
 #include <applications/main/archive/helpers/archive_helpers_ext.h>
 #include <flipper_format/flipper_format.h>
@@ -20,7 +21,8 @@ typedef struct {
     char data[OLD_MAX_KEYBIND_LENGTH];
 } OldKeybind;
 
-typedef OldKeybind OldKeybinds[DesktopKeybindTypeMAX][DesktopKeybindKeyMAX];
+// Keep the legacy binary layout at four keys per input type.
+typedef OldKeybind OldKeybinds[DesktopKeybindTypeMAX][DesktopKeybindKeyOk];
 
 void desktop_keybinds_migrate(Desktop* desktop) {
     if(!storage_common_exists(desktop->storage, DESKTOP_KEYBINDS_PATH)) {
@@ -35,7 +37,8 @@ void desktop_keybinds_migrate(Desktop* desktop) {
         if(success) {
             DesktopKeybinds new;
             for(DesktopKeybindType type = 0; type < DesktopKeybindTypeMAX; type++) {
-                for(DesktopKeybindKey key = 0; key < DesktopKeybindKeyMAX; key++) {
+                new[type][DesktopKeybindKeyOk] = furi_string_alloc_set("_");
+                for(DesktopKeybindKey key = 0; key < DesktopKeybindKeyOk; key++) {
                     FuriString* keybind = furi_string_alloc_set(old[type][key].data);
                     if(furi_string_empty(keybind)) {
                         furi_string_set_str(keybind, "_");
@@ -62,6 +65,7 @@ const char* desktop_keybinds_defaults[DesktopKeybindTypeMAX][DesktopKeybindKeyMA
             [DesktopKeybindKeyDown] = "Archive",
             [DesktopKeybindKeyRight] = "Passport",
             [DesktopKeybindKeyLeft] = EXT_PATH("apps/Main/dab_timer.fap"),
+            [DesktopKeybindKeyOk] = "_", // Normal OK remains reserved for Main Menu.
         },
     [DesktopKeybindTypeHold] =
         {
@@ -69,6 +73,7 @@ const char* desktop_keybinds_defaults[DesktopKeybindTypeMAX][DesktopKeybindKeyMA
             [DesktopKeybindKeyDown] = "_",
             [DesktopKeybindKeyRight] = "Device Info",
             [DesktopKeybindKeyLeft] = "Lock with PIN",
+            [DesktopKeybindKeyOk] = "_", // Normal hold OK changes the animation.
         },
 };
 
@@ -79,6 +84,7 @@ const char* desktop_keybinds_game_mode[DesktopKeybindTypeMAX][DesktopKeybindKeyM
             [DesktopKeybindKeyDown] = EXT_PATH("apps/Games/tetris.fap"),
             [DesktopKeybindKeyRight] = "Passport",
             [DesktopKeybindKeyLeft] = EXT_PATH("apps/Games/snake.fap"),
+            [DesktopKeybindKeyOk] = "Game Menu",
         },
     [DesktopKeybindTypeHold] =
         {
@@ -86,6 +92,7 @@ const char* desktop_keybinds_game_mode[DesktopKeybindTypeMAX][DesktopKeybindKeyM
             [DesktopKeybindKeyDown] = EXT_PATH("apps/Games/zombiez.fap"),
             [DesktopKeybindKeyRight] = EXT_PATH("apps/Games/doom.fap"),
             [DesktopKeybindKeyLeft] = EXT_PATH("apps/Main/dab_timer.fap"),
+            [DesktopKeybindKeyOk] = EXT_PATH("apps/Games/jetpack.fap"),
         },
 };
 
@@ -99,15 +106,20 @@ const char* desktop_keybind_keys[DesktopKeybindKeyMAX] = {
     [DesktopKeybindKeyDown] = "Down",
     [DesktopKeybindKeyRight] = "Right",
     [DesktopKeybindKeyLeft] = "Left",
+    [DesktopKeybindKeyOk] = "OK",
 };
 
 static FuriString*
     desktop_keybinds_load_one(Desktop* desktop, DesktopKeybindType type, DesktopKeybindKey key) {
+    if(cfw_settings.game_mode && type == DesktopKeybindTypeHold && key == DesktopKeybindKeyLeft) {
+        return furi_string_alloc_set(desktop_keybinds_game_mode[type][key]);
+    }
     bool success = false;
     FuriString* keybind = furi_string_alloc();
     FlipperFormat* file = flipper_format_file_alloc(desktop->storage);
 
-    if(!cfw_settings.game_mode && flipper_format_file_open_existing(file, DESKTOP_KEYBINDS_PATH)) {
+    const char* path = cfw_settings.game_mode ? DESKTOP_GAME_KEYBINDS_PATH : DESKTOP_KEYBINDS_PATH;
+    if(flipper_format_file_open_existing(file, path)) {
         FuriString* keybind_name = furi_string_alloc_printf(
             "%s%s", desktop_keybind_types[type], desktop_keybind_keys[key]);
         success = flipper_format_read_string(file, furi_string_get_cstr(keybind_name), keybind);
@@ -126,11 +138,12 @@ static FuriString*
     return keybind;
 }
 
-void desktop_keybinds_load(Desktop* desktop, DesktopKeybinds* keybinds) {
+void desktop_keybinds_load_profile(Desktop* desktop, DesktopKeybinds* keybinds, bool game_mode) {
     for(DesktopKeybindType type = 0; type < DesktopKeybindTypeMAX; type++) {
         for(DesktopKeybindKey key = 0; key < DesktopKeybindKeyMAX; key++) {
             const char* default_keybind;
-            default_keybind = desktop_keybinds_defaults[type][key];
+            default_keybind = game_mode ? desktop_keybinds_game_mode[type][key] :
+                                          desktop_keybinds_defaults[type][key];
             if((*keybinds)[type][key]) {
                 furi_string_set((*keybinds)[type][key], default_keybind);
             } else {
@@ -142,20 +155,26 @@ void desktop_keybinds_load(Desktop* desktop, DesktopKeybinds* keybinds) {
     FlipperFormat* file = flipper_format_file_alloc(desktop->storage);
     FuriString* keybind_name = furi_string_alloc();
 
-    if(flipper_format_file_open_existing(file, DESKTOP_KEYBINDS_PATH)) {
+    const char* path = game_mode ? DESKTOP_GAME_KEYBINDS_PATH : DESKTOP_KEYBINDS_PATH;
+    const size_t key_count = game_mode ? DesktopKeybindKeyMAX : DesktopKeybindKeyOk;
+    if(flipper_format_file_open_existing(file, path)) {
         for(DesktopKeybindType type = 0; type < DesktopKeybindTypeMAX; type++) {
-            for(DesktopKeybindKey key = 0; key < DesktopKeybindKeyMAX; key++) {
+            for(DesktopKeybindKey key = 0; key < key_count; key++) {
+                if(game_mode && type == DesktopKeybindTypeHold && key == DesktopKeybindKeyLeft)
+                    continue;
                 furi_string_printf(
                     keybind_name, "%s%s", desktop_keybind_types[type], desktop_keybind_keys[key]);
                 if(!flipper_format_read_string(
                        file, furi_string_get_cstr(keybind_name), (*keybinds)[type][key])) {
-                    furi_string_set((*keybinds)[type][key], desktop_keybinds_defaults[type][key]);
-                    goto fail;
+                    furi_string_set(
+                        (*keybinds)[type][key],
+                        game_mode ? desktop_keybinds_game_mode[type][key] :
+                                    desktop_keybinds_defaults[type][key]);
                 }
+                flipper_format_rewind(file);
             }
         }
     } else {
-    fail:
         FURI_LOG_W(TAG, "Failed to load file, using defaults");
     }
 
@@ -163,19 +182,27 @@ void desktop_keybinds_load(Desktop* desktop, DesktopKeybinds* keybinds) {
     flipper_format_free(file);
 }
 
-void desktop_keybinds_save(Desktop* desktop, const DesktopKeybinds* keybinds) {
+void desktop_keybinds_save_profile(
+    Desktop* desktop,
+    const DesktopKeybinds* keybinds,
+    bool game_mode) {
     FlipperFormat* file = flipper_format_file_alloc(desktop->storage);
     FuriString* keybind_name = furi_string_alloc();
 
-    if(flipper_format_file_open_always(file, DESKTOP_KEYBINDS_PATH)) {
+    const char* path = game_mode ? DESKTOP_GAME_KEYBINDS_PATH : DESKTOP_KEYBINDS_PATH;
+    const size_t key_count = game_mode ? DesktopKeybindKeyMAX : DesktopKeybindKeyOk;
+    if(flipper_format_file_open_always(file, path)) {
         for(DesktopKeybindType type = 0; type < DesktopKeybindTypeMAX; type++) {
-            for(DesktopKeybindKey key = 0; key < DesktopKeybindKeyMAX; key++) {
+            for(DesktopKeybindKey key = 0; key < key_count; key++) {
                 furi_string_printf(
                     keybind_name, "%s%s", desktop_keybind_types[type], desktop_keybind_keys[key]);
                 if(!flipper_format_write_string_cstr(
                        file,
                        furi_string_get_cstr(keybind_name),
-                       furi_string_get_cstr((*keybinds)[type][key]))) {
+                       game_mode && type == DesktopKeybindTypeHold &&
+                               key == DesktopKeybindKeyLeft ?
+                           desktop_keybinds_game_mode[type][key] :
+                           furi_string_get_cstr((*keybinds)[type][key]))) {
                     goto fail;
                 }
             }
@@ -187,6 +214,14 @@ void desktop_keybinds_save(Desktop* desktop, const DesktopKeybinds* keybinds) {
 
     furi_string_free(keybind_name);
     flipper_format_free(file);
+}
+
+void desktop_keybinds_load(Desktop* desktop, DesktopKeybinds* keybinds) {
+    desktop_keybinds_load_profile(desktop, keybinds, false);
+}
+
+void desktop_keybinds_save(Desktop* desktop, const DesktopKeybinds* keybinds) {
+    desktop_keybinds_save_profile(desktop, keybinds, false);
 }
 
 void desktop_keybinds_free(DesktopKeybinds* keybinds) {
@@ -207,11 +242,13 @@ static const DesktopKeybindKey keybind_keys[] = {
     [InputKeyDown] = DesktopKeybindKeyDown,
     [InputKeyRight] = DesktopKeybindKeyRight,
     [InputKeyLeft] = DesktopKeybindKeyLeft,
+    [InputKeyOk] = DesktopKeybindKeyOk,
 };
 
 void desktop_run_keybind(Desktop* desktop, InputType _type, InputKey _key) {
     if(_type != InputTypeShort && _type != InputTypeLong) return;
-    if(_key != InputKeyUp && _key != InputKeyDown && _key != InputKeyRight && _key != InputKeyLeft)
+    if(_key != InputKeyUp && _key != InputKeyDown && _key != InputKeyRight &&
+       _key != InputKeyLeft && !(_key == InputKeyOk && cfw_settings.game_mode))
         return;
 
     DesktopKeybindType type = keybind_types[_type];
@@ -221,6 +258,8 @@ void desktop_run_keybind(Desktop* desktop, InputType _type, InputKey _key) {
     if(furi_string_equal(keybind, "_")) {
     } else if(furi_string_equal(keybind, "Apps Menu")) {
         loader_start_detached_with_gui_error(desktop->loader, LOADER_APPLICATIONS_NAME, NULL);
+    } else if(furi_string_equal(keybind, "Game Menu")) {
+        loader_show_games_menu(desktop->loader);
     } else if(furi_string_equal(keybind, "Archive")) {
         desktop_launch_archive(desktop, NULL);
     } else if(furi_string_equal(keybind, "Passport")) {
