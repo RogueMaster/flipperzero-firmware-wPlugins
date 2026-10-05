@@ -653,6 +653,7 @@ def wardrobe_tables():
         f"#define HAIR_STYLE_COUNT {len(HAIR_STYLES)}\n",
         f"#define HAIR_COLOR_COUNT {len(HAIR_COLORS)}\n",
         f"#define GLASSES_COUNT    {len(GLASSES)}\n",
+        f"#define GLASSES_SHADES   {GLASSES.index('Shades')}\n",
         f"#define SWEATER_COUNT    {len(SWEATERS)}\n\n",
         c_names("hair_style_names", HAIR_STYLES),
         c_names("hair_color_names", HAIR_COLORS),

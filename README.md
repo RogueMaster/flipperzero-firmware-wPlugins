@@ -6,6 +6,10 @@ two cats: **Nugget**, an elderly tiger-striped gentleman with white socks, and
 
 ![Screenshots](screenshot.png)
 
+![Yulia's portraits of Nugget and Baby, the two of them, and the view from the window](views.png)
+
+![The rest of her sketchbook](sketchbook.png)
+
 ![Wardrobe](wardrobe.png)
 
 ![Rugs](rugs.png)
@@ -17,6 +21,8 @@ two cats: **Nugget**, an elderly tiger-striped gentleman with white socks, and
 ![Cats about their day](cats.png)
 
 ![Yulia reading, drawing and playing](activities.png)
+
+![A page from the book she is reading](reading.png)
 
 ![Treats, laser, decor and album](extras.png)
 
@@ -38,12 +44,17 @@ two cats: **Nugget**, an elderly tiger-striped gentleman with white socks, and
 - **Pet** - *Nugget* or *Baby*. Hearts float up and the Flipper purrs.
 - **Yulia** - *Tea*, *Read* a book, *Make art* (she holds up the finished
   portrait) or play her *Keyboard* through the speaker. A cat that is free
-  comes to keep her company.
+  comes to keep her company. While she reads, the page shows a line or two
+  from an old favourite (Austen, Carroll, Tolstoy, Dostoevsky, Mary Shelley,
+  Confucius, Lao Tsu, Kipling's cat who walks by himself, and more), and the title comes up when she closes the book.
+  When she finishes a piece of art she holds it up, full screen, for a few
+  seconds (any button puts it down).
 - **Home**
   - *Wardrobe* - nine hair styles (bob, long, bun, buns, pixie, ponytail,
     braids, curly, bangs) in three colours, nine choices of glasses (round,
     square, kitty, bold, tiny, oval, heart, shades, or none) and nine
     sweaters (cozy, stripes, heart, dark, dots, zigzag, cat, star, checks).
+    Behind the shades her eyes only show when she smiles, blinks or dozes.
   - *Decor* - one of seven rugs (dots, stripes, oval, zigzag, checks,
     braided, tassel) or none, a shelf plant, a cat tree and fairy lights,
     chosen in the room itself.
@@ -52,8 +63,30 @@ two cats: **Nugget**, an elderly tiger-striped gentleman with white socks, and
     Yulia and the cats react for a few seconds whenever a new record goes
     on, differently for each genre. The music rests during naps and stays
     silent in stealth mode.
-  - *Album* - twelve photos, each unlocked by a little milestone.
+  - *Album* - fourteen photos, each unlocked by a little milestone. One
+    is for reading every book on the shelf and one for filling the
+    sketchbook; Yulia reads and draws the ones she has not done first.
+  - *Sketchbook* - everything Yulia has drawn, seventeen pages in all. Left
+    and Right turn the pages.
 - **Nap time** - lights off, everyone sleeps. Choose it again to wake up.
+
+### Yulia's art
+
+Seventeen kinds of piece, and she makes one she has not made before while
+any are left:
+
+- **Pictures:** Nugget, Baby, *The Two of Us* (Yulia, in her current hair
+  colour, with her tall curly-haired fellow's long arm round her), the view
+  from the window (by day or by night, to match the clock) and a pair of
+  giraffes.
+- **Abstracts:** *Black Cat at Night* (after Malevich's black square),
+  *Composition with Yarn* (after Kandinsky), *Suprematist Dinner*, *Cubist
+  Baby* and *Broadway Zoomies* (after Mondrian).
+- **Studies:** *Yarn Tangle*, *Paw Prints*, *Record Grooves*, *Rain*, *Tea
+  Steam*, *Fractal Cat* (a cat whose ears are cats, whose ears are cats)
+  and *Fishbones*. These are drawn afresh each time
+  she makes one, so every one is different and numbered; the sketchbook
+  keeps the latest of each.
 
 ### The cats
 

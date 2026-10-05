@@ -2510,6 +2510,7 @@ static const Sprite spr_ru_10 = {35, 9, spr_ru_10_black, spr_ru_10_white};
 #define HAIR_STYLE_COUNT 9
 #define HAIR_COLOR_COUNT 3
 #define GLASSES_COUNT    9
+#define GLASSES_SHADES   8
 #define SWEATER_COUNT    9
 
 static const char* const hair_style_names[] =

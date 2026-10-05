@@ -12,6 +12,7 @@
 #include <math.h>
 
 #include "sprites.h"
+#include "art.h"
 
 #define SAVE_DIR   EXT_PATH("apps_data/yulia_cats")
 #define SAVE_PATH  SAVE_DIR "/save.bin"
@@ -21,6 +22,8 @@
 #define DEBUG_HOUR -1
 
 #define TICK_MS      100
+// How long Yulia reads for: long enough to take in the page
+#define READ_TICKS   120
 #define STAT_MAX     1000
 #define DECAY_PERIOD 15 // seconds per point of hunger / boredom
 #define AWAY_CAP     (12 * 60 * 60)
@@ -172,6 +175,8 @@ typedef enum {
     PhotoPiggy,
     PhotoArtist,
     PhotoBumped,
+    PhotoBookworm,
+    PhotoGallery,
     PhotoCount,
 } Photo;
 
@@ -180,6 +185,33 @@ typedef struct {
     const char* caption;
     const char* hint;
 } PhotoInfo;
+
+// Yulia's artwork. The first pieces are fixed pictures; the rest are drawn
+// afresh from a seed each time she makes one, so no two are alike.
+typedef enum {
+    ArtNugget,
+    ArtBaby,
+    ArtSelf,
+    ArtWindow,
+    ArtBlackCat,
+    ArtComposition,
+    ArtDinner,
+    ArtCubist,
+    ArtBroadway,
+    ArtGiraffes,
+    ArtYarn, // the generated ones start here
+    ArtPaws,
+    ArtGrooves,
+    ArtRain,
+    ArtSteam,
+    ArtFractal,
+    ArtFishbones,
+    ArtCount,
+} Art;
+#define ART_GENERATED (ArtCount - ArtYarn)
+#define ART_ALL       ((1u << ArtCount) - 1)
+// How long a finished piece is held up before the room comes back
+#define REVEAL_TICKS  60
 
 typedef struct {
     uint32_t magic;
@@ -194,6 +226,9 @@ typedef struct {
     uint32_t photos;
     uint16_t treats;
     uint16_t arts;
+    uint32_t books; // added later still: one bit per excerpt Yulia has read
+    uint32_t sketches; // and one per piece of art she has made
+    uint8_t sketch_count[ART_GENERATED];
 } SaveData;
 
 typedef struct {
@@ -218,6 +253,7 @@ typedef enum {
     ActDecor,
     ActVinyl,
     ActAlbum,
+    ActSketchbook,
     ActNap,
 } Act;
 
@@ -232,7 +268,7 @@ static const Group groups[] = {
     {"Play", ActYarn, 2},
     {"Pet", ActPetNugget, 2},
     {"Yulia", ActTea, 4},
-    {"Home", ActWardrobe, 4},
+    {"Home", ActWardrobe, 5},
     {"Nap time", ActNap, 1},
 };
 #define GROUP_COUNT COUNT_OF(groups)
@@ -244,6 +280,7 @@ typedef enum {
     ScreenVinyl,
     ScreenDecor,
     ScreenAlbum,
+    ScreenView,
 } Screen;
 
 typedef enum {
@@ -321,8 +358,12 @@ typedef struct {
     int8_t toy_dx;
     Doing doing;
     uint8_t doing_timer;
-    uint8_t art_timer; // the finished drawing is held up for a moment
-    uint8_t art_cat;
+    uint8_t quote; // what she is reading
+    uint8_t view; // which picture the View screen is showing
+    uint32_t books; // one bit per excerpt she has finished
+    uint8_t reveal_timer; // a finished piece is on show; the room returns when it runs out
+    uint32_t sketches; // one bit per piece she has made
+    uint8_t sketch_count[ART_GENERATED]; // how many of each generated piece so far
     uint8_t speech_timer;
     uint8_t speech;
     uint8_t happy_timer;
@@ -357,6 +398,7 @@ static const char* const act_names[] = {
     [ActDecor] = "Decor",
     [ActVinyl] = "Vinyl",
     [ActAlbum] = "Album",
+    [ActSketchbook] = "Sketchbook",
     [ActNap] = "Nap time",
 };
 
@@ -380,6 +422,8 @@ static const PhotoInfo photo_info[PhotoCount] = {
     [PhotoPiggy] = {"Piggy!", "Yulia's little piggy", "Yulia will say it..."},
     [PhotoArtist] = {"Artist", "Portrait of a cat", "Make art 3 times"},
     [PhotoBumped] = {"Bumped", "It's Baby's spot now", "Watch the food dish"},
+    [PhotoBookworm] = {"Bookworm", "Every book on the shelf", "Read every book"},
+    [PhotoGallery] = {"Gallery", "A full sketchbook", "Fill the sketchbook"},
 };
 
 // Short original loops for the piezo speaker, one per genre.
@@ -534,6 +578,9 @@ static void game_load(App* app) {
         app->photos = save.photos;
         app->treats = save.treats;
         app->arts = save.arts;
+        app->books = save.books;
+        app->sketches = save.sketches & ART_ALL;
+        memcpy(app->sketch_count, save.sketch_count, sizeof(app->sketch_count));
         app->cozy = clamp_stat(save.cozy);
         uint32_t away = now > save.last_ts ? now - save.last_ts : 0;
         if(away > AWAY_CAP) away = AWAY_CAP;
@@ -567,7 +614,10 @@ static void game_save(App* app) {
         .photos = app->photos,
         .treats = app->treats,
         .arts = app->arts,
+        .books = app->books,
+        .sketches = app->sketches,
     };
+    memcpy(save.sketch_count, app->sketch_count, sizeof(save.sketch_count));
     for(int i = 0; i < CAT_COUNT; i++)
         save.cats[i] = app->cats[i].s;
 
@@ -978,10 +1028,67 @@ static void do_pet(App* app, int i) {
     }
 }
 
+// What Yulia reads: a line or two from a book old enough to be in the public
+// domain, quoted as written. The page shows the author's surname; the title comes up
+// when she closes the book.
+typedef struct {
+    const char* text;
+    const char* author;
+    const char* title;
+} Quote;
+
+static const Quote quotes[] = {
+    {"It is a truth universally acknowledged, that a single man in possession of a good "
+     "fortune, must be in want of a wife.",
+     "Austen",
+     "Pride and Prejudice"},
+    {"We're all mad here. I'm mad. You're mad.", "Carroll", "Alice in Wonderland"},
+    {"Why, sometimes I've believed as many as six impossible things before breakfast.",
+     "Carroll",
+     "Through the Looking-Glass"},
+    {"Happy families are all alike; every unhappy family is unhappy in its own way.",
+     "Tolstoy",
+     "Anna Karenina"},
+    {"It was the best of times, it was the worst of times", "Dickens", "A Tale of Two Cities"},
+    {"I am no bird; and no net ensnares me", "Bronte", "Jane Eyre"},
+    {"I'm not afraid of storms, for I'm learning how to sail my ship.", "Alcott", "Little Women"},
+    {"I'm so glad I live in a world where there are Octobers.",
+     "Montgomery",
+     "Anne of Green Gables"},
+    {"I went to the woods because I wished to live deliberately", "Thoreau", "Walden"},
+    {"Call me Ishmael.", "Melville", "Moby-Dick"},
+    {"I am the Cat who walks by himself, and all places are alike to me.",
+     "Kipling",
+     "Just So Stories"},
+    {"Hope is the thing with feathers / That perches in the soul", "Dickinson", "Poems"},
+    {"Though this be madness, yet there is method in't.", "Shakespeare", "Hamlet"},
+    {"You see, but you do not observe.", "Conan Doyle", "A Scandal in Bohemia"},
+    {"There is nothing - absolute nothing - half so much worth doing as simply messing "
+     "about in boats.",
+     "Grahame",
+     "The Wind in the Willows"},
+    {"There is no place like home.", "Baum", "The Wizard of Oz"},
+    {"Where you tend a rose, my lad, A thistle cannot grow.", "Burnett", "The Secret Garden"},
+    {"I am large, I contain multitudes.", "Whitman", "Song of Myself"},
+    {"Above all, don't lie to yourself.", "Dostoevsky", "The Brothers Karamazov"},
+    {"That which is below is like that which is above and that which is above is like that "
+     "which is below to do the miracle of one only thing",
+     "Trismegistus",
+     "The Emerald Tablet"},
+    {"Beware; for I am fearless, and therefore powerful.", "Mary Shelley", "Frankenstein"},
+    {"Learning without thought is labour lost; thought without learning is perilous.",
+     "Confucius",
+     "The Analects"},
+    {"The journey of a thousand li commenced with a single step.", "Lao Tsu", "Tao Te Ching"},
+};
+
+_Static_assert(COUNT_OF(quotes) < 32, "one bit per excerpt in a uint32_t");
+#define BOOKS_ALL ((1u << COUNT_OF(quotes)) - 1)
+
 // Yulia settles down to something. A cat that is free comes to sit with her.
 static void do_activity(App* app, Doing doing) {
     static const uint8_t ticks[] = {
-        [DoTea] = 40, [DoRead] = 70, [DoArt] = 70, [DoKeys] = KEYS_TICKS};
+        [DoTea] = 40, [DoRead] = READ_TICKS, [DoArt] = 70, [DoKeys] = KEYS_TICKS};
     app->doing = doing;
     app->doing_timer = ticks[doing];
     app->cozy = clamp_stat(app->cozy + (doing == DoTea ? 300 : 250));
@@ -990,6 +1097,20 @@ static void do_activity(App* app, Doing doing) {
         return;
     }
     if(doing == DoKeys) music_restart(app);
+    if(doing == DoRead) {
+        // A book she has not read yet if there is one, otherwise any but the last
+        uint8_t unread[COUNT_OF(quotes)];
+        size_t count = 0;
+        for(size_t i = 0; i < COUNT_OF(quotes); i++) {
+            if(!(app->books & (1u << i))) unread[count++] = (uint8_t)i;
+        }
+        if(count) {
+            app->quote = unread[furi_hal_random_get() % count];
+        } else {
+            app->quote = (app->quote + 1 + furi_hal_random_get() % (COUNT_OF(quotes) - 1)) %
+                         COUNT_OF(quotes);
+        }
+    }
     for(int i = 0; i < CAT_COUNT; i++) {
         Cat* cat = &app->cats[i];
         if(cat_free(cat)) {
@@ -999,17 +1120,40 @@ static void do_activity(App* app, Doing doing) {
     }
 }
 
+// Yulia finishes a piece and holds it up. She makes one she has not made
+// before while there are any, and after that whatever she feels like.
+static void art_finish(App* app) {
+    uint8_t fresh[ArtCount];
+    size_t count = 0;
+    for(size_t i = 0; i < ArtCount; i++) {
+        if(!(app->sketches & (1u << i))) fresh[count++] = (uint8_t)i;
+    }
+    if(count) {
+        app->view = fresh[furi_hal_random_get() % count];
+    } else {
+        app->view = (app->view + 1 + furi_hal_random_get() % (ArtCount - 1)) % ArtCount;
+    }
+    if(app->view >= ArtYarn) {
+        uint8_t* made = &app->sketch_count[app->view - ArtYarn];
+        if(*made < 255) (*made)++;
+    }
+    app->sketches |= 1u << app->view;
+    if(app->sketches == ART_ALL) unlock(app, PhotoGallery);
+    app->screen = ScreenView;
+    app->reveal_timer = REVEAL_TICKS;
+}
+
 static void activity_done(App* app) {
     switch(app->doing) {
     case DoRead:
-        toast(app, "A good chapter");
+        toast(app, quotes[app->quote].title);
+        app->books |= 1u << app->quote;
+        if((app->books & BOOKS_ALL) == BOOKS_ALL) unlock(app, PhotoBookworm);
         break;
     case DoArt:
         app->arts++;
-        app->art_cat = furi_hal_random_get() % CAT_COUNT;
-        app->art_timer = 40;
-        toast(app, app->art_cat == NUGGET ? "It's Nugget!" : "It's Baby!");
         if(app->arts >= 3) unlock(app, PhotoArtist);
+        art_finish(app);
         break;
     case DoKeys:
         toast(app, "Bravo!");
@@ -1068,6 +1212,10 @@ static void do_action(App* app, Act act) {
         return;
     case ActAlbum:
         open_screen(app, ScreenAlbum);
+        return;
+    case ActSketchbook:
+        open_screen(app, ScreenView);
+        app->reveal_timer = 0;
         return;
     default:
         break;
@@ -1346,7 +1494,9 @@ static void game_tick(App* app) {
         say(app, RU_GOOD_KITTY);
     }
 
-    if(app->art_timer) app->art_timer--;
+    if(app->reveal_timer && --app->reveal_timer == 0 && app->screen == ScreenView) {
+        app->screen = ScreenRoom;
+    }
     if(app->speech_timer) app->speech_timer--;
     if(app->happy_timer) app->happy_timer--;
     if(app->toast_timer) app->toast_timer--;
@@ -1506,6 +1656,10 @@ static void draw_yulia(Canvas* canvas, const App* app) {
     // Eyes sit behind the two lenses.
     const bool shades = app->react_timer && app->react_genre == GenreHipHop && !app->lights_off &&
                         app->doing == DoNothing;
+    // Behind her own dark glasses her eyes only show, in white, when they are
+    // doing something: smiling, closed or downcast.
+    const bool dark_lenses = look->glasses == GLASSES_SHADES;
+    if(dark_lenses && !shades) canvas_set_color(canvas, ColorWhite);
     for(int i = 0; i < 2; i++) {
         int32_t x = i ? 26 : 14;
         if(shades) {
@@ -1519,10 +1673,11 @@ static void draw_yulia(Canvas* canvas, const App* app) {
             canvas_draw_line(canvas, x - 1, 29 + dy, x + 2, 29 + dy);
         } else if(face == FaceDown) {
             canvas_draw_box(canvas, x, 28 + dy, 2, 3);
-        } else {
+        } else if(!dark_lenses) {
             canvas_draw_box(canvas, x, 26 + dy, 2, 4);
         }
     }
+    canvas_set_color(canvas, ColorBlack);
 
     switch(face) {
     case FaceHappy:
@@ -1642,61 +1797,90 @@ static void draw_plant(Canvas* canvas, uint8_t plant) {
     }
 }
 
+// Rugs lie on the floor in front of the skirting board, six rows deep. The
+// far edge is a little shorter than the near one, as if seen from above.
+#define RUG_TOP    (FLOOR_Y - 4)
+#define RUG_BOTTOM (FLOOR_Y + 1)
+
+static int32_t rug_left(int32_t y) {
+    return 58 + (RUG_BOTTOM - y);
+}
+
+static int32_t rug_right(int32_t y) {
+    return 118 - (RUG_BOTTOM - y);
+}
+
+static void draw_rug_border(Canvas* canvas) {
+    canvas_draw_line(canvas, rug_left(RUG_TOP), RUG_TOP, rug_right(RUG_TOP), RUG_TOP);
+    canvas_draw_line(canvas, rug_left(RUG_BOTTOM), RUG_BOTTOM, rug_right(RUG_BOTTOM), RUG_BOTTOM);
+    for(int32_t y = RUG_TOP + 1; y < RUG_BOTTOM; y++) {
+        canvas_draw_dot(canvas, rug_left(y), y);
+        canvas_draw_dot(canvas, rug_right(y), y);
+    }
+}
+
+// An oval rug outline, `half_w` wide and `half_h` tall about the middle of the floor.
+static void draw_rug_oval(Canvas* canvas, int32_t half_w, float half_h, int32_t step) {
+    for(int32_t x = 88 - half_w; x <= 88 + half_w; x += step) {
+        float u = ((float)x - 88.0f) / (float)half_w;
+        int32_t dy = (int32_t)(half_h * sqrtf(1.0f - u * u) + 0.5f);
+        canvas_draw_dot(canvas, x, 50 - dy);
+        canvas_draw_dot(canvas, x, 50 + dy);
+    }
+}
+
 static void draw_rug(Canvas* canvas, uint8_t rug) {
     switch(rug) {
     case 0:
-        for(int32_t x = 60; x < 118; x += 2)
-            canvas_draw_dot(canvas, x, FLOOR_Y + 1);
-        break;
-    case 1:
-        for(int32_t x = 58; x < 118; x++) {
-            if((x - 58) % 6 < 4) canvas_draw_dot(canvas, x, FLOOR_Y + 1);
-            if((x - 58) % 6 == 1) canvas_draw_dot(canvas, x, FLOOR_Y);
-        }
-        break;
-    case 2:
-        for(int32_t x = 60; x <= 116; x++) {
-            float u = ((float)x - 88.0f) / 28.0f;
-            int32_t dy = (int32_t)(3.0f * sqrtf(1.0f - u * u) + 0.5f);
-            canvas_draw_dot(canvas, x, 50 - dy);
-            canvas_draw_dot(canvas, x, 50 + dy);
-        }
-        break;
-    case 4: {
-        // Zigzag: a little wave three pixels tall.
-        static const int8_t wave[4] = {1, 0, -1, 0};
-        for(int32_t x = 58; x < 118; x++)
-            canvas_draw_dot(canvas, x, FLOOR_Y + wave[(x - 58) % 4]);
-        break;
-    }
-    case 5:
-        // Checks: two rows of two-pixel squares.
-        for(int32_t x = 58; x < 118; x++) {
-            canvas_draw_dot(canvas, x, FLOOR_Y + ((x - 58) / 2) % 2);
-        }
-        break;
-    case 6:
-        // Braided: an oval rug with a second ring inside it.
-        for(int32_t x = 60; x <= 116; x++) {
-            float u = ((float)x - 88.0f) / 28.0f;
-            int32_t dy = (int32_t)(3.0f * sqrtf(1.0f - u * u) + 0.5f);
-            canvas_draw_dot(canvas, x, 50 - dy);
-            canvas_draw_dot(canvas, x, 50 + dy);
-            if(x >= 68 && x <= 108 && x % 2 == 0) {
-                float v = ((float)x - 88.0f) / 20.0f;
-                int32_t inner = (int32_t)(1.5f * sqrtf(1.0f - v * v) + 0.5f);
-                canvas_draw_dot(canvas, x, 50 - inner);
-                canvas_draw_dot(canvas, x, 50 + inner);
+        // Dots: scattered spots inside a border.
+        draw_rug_border(canvas);
+        for(int32_t y = RUG_TOP + 2; y < RUG_BOTTOM; y += 2) {
+            for(int32_t x = rug_left(y) + 3; x < rug_right(y) - 1; x++) {
+                if((x + y * 2) % 6 == 0) canvas_draw_dot(canvas, x, y);
             }
         }
         break;
+    case 1:
+        // Stripes: bands running from the far edge to the near one.
+        draw_rug_border(canvas);
+        for(int32_t y = RUG_TOP + 1; y < RUG_BOTTOM; y++) {
+            for(int32_t x = rug_left(y) + 1; x < rug_right(y); x++) {
+                if((x - 58) % 6 < 2) canvas_draw_dot(canvas, x, y);
+            }
+        }
+        break;
+    case 2:
+        draw_rug_oval(canvas, 28, 3.0f, 1);
+        break;
+    case 4: {
+        // Zigzag: a wave down the middle of a bordered rug.
+        static const int8_t wave[4] = {1, 0, -1, 0};
+        draw_rug_border(canvas);
+        for(int32_t x = rug_left(FLOOR_Y - 1) + 2; x < rug_right(FLOOR_Y - 1) - 1; x++)
+            canvas_draw_dot(canvas, x, FLOOR_Y - 1 + wave[(x - 58) % 4]);
+        break;
+    }
+    case 5:
+        // Checks: two-pixel squares all the way across.
+        for(int32_t y = RUG_TOP; y <= RUG_BOTTOM; y++) {
+            for(int32_t x = rug_left(y); x <= rug_right(y); x++) {
+                if(((x - 58) / 2 + (y - RUG_TOP) / 2) % 2 == 0) canvas_draw_dot(canvas, x, y);
+            }
+        }
+        break;
+    case 6:
+        // Braided: an oval rug with a second, dotted ring inside it.
+        draw_rug_oval(canvas, 28, 3.0f, 1);
+        draw_rug_oval(canvas, 20, 1.5f, 2);
+        break;
     case 7:
-        // Tassel: a plain runner with a fringe at each end.
-        canvas_draw_line(canvas, 62, FLOOR_Y, 114, FLOOR_Y);
-        canvas_draw_line(canvas, 62, FLOOR_Y + 1, 114, FLOOR_Y + 1);
-        for(int32_t i = 0; i < 3; i++) {
-            canvas_draw_dot(canvas, 60 - i * 2, FLOOR_Y + i % 2);
-            canvas_draw_dot(canvas, 116 + i * 2, FLOOR_Y + i % 2);
+        // Tassel: a plain bordered rug with a fringe at each end.
+        draw_rug_border(canvas);
+        for(int32_t y = RUG_TOP + 1; y <= RUG_BOTTOM; y += 2) {
+            canvas_draw_dot(canvas, rug_left(y) - 2, y);
+            canvas_draw_dot(canvas, rug_left(y) - 3, y);
+            canvas_draw_dot(canvas, rug_right(y) + 2, y);
+            canvas_draw_dot(canvas, rug_right(y) + 3, y);
         }
         break;
     default:
@@ -1905,6 +2089,53 @@ static void draw_speech(Canvas* canvas, const App* app) {
     canvas_draw_str(canvas, x + 4, 21, english);
 }
 
+// The page Yulia is reading, over the wall of the room so the cats stay in
+// view. Long excerpts are split over pages that turn as she reads.
+#define PAGE_LINES     3
+#define PAGE_MAX_LINES 12
+#define PAGE_LINE_LEN  32
+
+static void draw_page(Canvas* canvas, const App* app) {
+    const Quote* quote = &quotes[app->quote];
+    const int32_t x = ROOM_X + 2, w = 127 - x, h = 43, text_w = w - 7;
+    char lines[PAGE_MAX_LINES][PAGE_LINE_LEN];
+    int count = 0;
+
+    canvas_set_font(canvas, FontSecondary);
+    // Greedy word wrap
+    char line[PAGE_LINE_LEN] = "";
+    for(const char* word = quote->text; *word && count < PAGE_MAX_LINES;) {
+        size_t len = strcspn(word, " ");
+        char next[PAGE_LINE_LEN * 2];
+        snprintf(next, sizeof(next), "%s%s%.*s", line, line[0] ? " " : "", (int)len, word);
+        if(line[0] && (int32_t)canvas_string_width(canvas, next) > text_w) {
+            strlcpy(lines[count++], line, PAGE_LINE_LEN);
+            snprintf(line, sizeof(line), "%.*s", (int)len, word);
+        } else {
+            strlcpy(line, next, sizeof(line));
+        }
+        word += len;
+        while(*word == ' ')
+            word++;
+    }
+    if(line[0] && count < PAGE_MAX_LINES) strlcpy(lines[count++], line, PAGE_LINE_LEN);
+
+    int pages = (count + PAGE_LINES - 1) / PAGE_LINES;
+    int elapsed = READ_TICKS - app->doing_timer;
+    int page = MIN(pages - 1, elapsed * pages / READ_TICKS);
+
+    canvas_set_color(canvas, ColorWhite);
+    canvas_draw_box(canvas, x, 0, w, h);
+    canvas_set_color(canvas, ColorBlack);
+    canvas_draw_rframe(canvas, x, 0, w, h, 3);
+    for(int i = 0; i < PAGE_LINES && page * PAGE_LINES + i < count; i++) {
+        canvas_draw_str(canvas, x + 4, 9 + i * 9, lines[page * PAGE_LINES + i]);
+    }
+    canvas_draw_str_aligned(canvas, x + w - 4, h - 2, AlignRight, AlignBottom, quote->author);
+    // More to come on the next page
+    if(page < pages - 1) canvas_draw_str(canvas, x + 4, h - 2, "...");
+}
+
 static void draw_scene(Canvas* canvas, const App* app) {
     draw_room(canvas, app);
 
@@ -1949,11 +2180,6 @@ static void draw_scene(Canvas* canvas, const App* app) {
         }
     }
 
-    if(app->art_timer) {
-        // The finished drawing, held up for everyone to admire.
-        draw_sprite(canvas, 60, 26, &spr_pad);
-    }
-
     if(app->lights_off) {
         canvas_set_color(canvas, ColorXOR);
         canvas_draw_box(canvas, ROOM_X, 0, 128 - ROOM_X, BAR_Y);
@@ -1961,15 +2187,20 @@ static void draw_scene(Canvas* canvas, const App* app) {
 
     draw_yulia(canvas, app);
 
-    if(app->speech_timer) {
+    if(app->doing == DoRead && app->doing_timer < READ_TICKS - 8) {
+        // She has found her place
+        draw_page(canvas, app);
+    } else if(app->speech_timer) {
         draw_speech(canvas, app);
     } else if(app->toast_timer && app->toast) {
         canvas_set_font(canvas, FontSecondary);
         int32_t w = canvas_string_width(canvas, app->toast);
+        // A long one slides left rather than run off the screen
+        int32_t x = MIN(45, 126 - w - 3);
         canvas_set_color(canvas, ColorWhite);
-        canvas_draw_box(canvas, 45, 0, w + 3, 10);
+        canvas_draw_box(canvas, x, 0, w + 3, 10);
         canvas_set_color(canvas, ColorBlack);
-        canvas_draw_str(canvas, 46, 8, app->toast);
+        canvas_draw_str(canvas, x + 1, 8, app->toast);
     }
 }
 
@@ -2224,6 +2455,27 @@ static void draw_photo(Canvas* canvas, const App* app, Photo photo, int32_t fx, 
         canvas_draw_line(canvas, fx + 31, fy + 18, fx + 36, ground);
         canvas_draw_line(canvas, fx + 27, fy + 18, fx + 27, ground);
         break;
+    case PhotoBookworm:
+        // Nugget and Baby either side of a pile of books, one left open on top
+        draw_standing(canvas, fx + 11, ground, nugget);
+        draw_standing(canvas, fx + 43, ground, baby);
+        for(int32_t i = 0; i < 3; i++) {
+            canvas_draw_frame(canvas, fx + 19 + (i % 2), ground - 4 - i * 4, 17, 5);
+            canvas_draw_line(canvas, fx + 22, ground - 2 - i * 4, fx + 31, ground - 2 - i * 4);
+        }
+        draw_sprite(canvas, fx + 17, ground - 22, &spr_book);
+        break;
+    case PhotoGallery:
+        // Three framed pictures on the wall, and a proud artist's cat below
+        for(int32_t i = 0; i < 3; i++) {
+            canvas_draw_frame(canvas, fx + 5 + i * 16, fy + 5 + (i & 1) * 3, 13, 11);
+        }
+        canvas_draw_box(canvas, fx + 8, fy + 8, 7, 5);
+        canvas_draw_circle(canvas, fx + 27, fy + 13, 3);
+        canvas_draw_line(canvas, fx + 39, fy + 14, fx + 47, fy + 7);
+        canvas_draw_line(canvas, fx + 39, fy + 7, fx + 47, fy + 14);
+        draw_standing(canvas, fx + 27, ground, nugget);
+        break;
     case PhotoBumped:
         draw_standing(canvas, fx + 13, ground, baby);
         draw_standing(canvas, fx + 30, ground, &spr_bowl);
@@ -2268,14 +2520,454 @@ static void draw_album(Canvas* canvas, const App* app) {
     canvas_set_font(canvas, FontSecondary);
     canvas_draw_str(canvas, 64, 24, have ? info->title : "Not yet...");
 
-    char buf[24];
+    char buf[32];
     snprintf(buf, sizeof(buf), "< %u/%u >", (unsigned)photo + 1, (unsigned)PhotoCount);
     canvas_draw_str(canvas, 64, 36, buf);
     snprintf(buf, sizeof(buf), "%lu found", (unsigned long)photo_count(app));
     canvas_draw_str(canvas, 64, 46, buf);
 
     canvas_draw_line(canvas, 0, 50, 127, 50);
-    canvas_draw_str(canvas, 2, 61, have ? info->caption : info->hint);
+    if(!have && photo == PhotoBookworm) {
+        // This one shows how far along she is
+        snprintf(
+            buf,
+            sizeof(buf),
+            "Read every book: %d/%d",
+            __builtin_popcount(app->books),
+            (int)COUNT_OF(quotes));
+        canvas_draw_str(canvas, 2, 61, buf);
+    } else if(!have && photo == PhotoGallery) {
+        snprintf(
+            buf,
+            sizeof(buf),
+            "Fill the sketchbook: %d/%d",
+            __builtin_popcount(app->sketches),
+            (int)ArtCount);
+        canvas_draw_str(canvas, 2, 61, buf);
+    } else {
+        canvas_draw_str(canvas, 2, 61, have ? info->caption : info->hint);
+    }
+}
+
+// ---------------------------------------------------------------- artwork
+
+static const char* const art_titles[ArtCount] = {
+    [ArtNugget] = "Nugget",
+    [ArtBaby] = "Baby",
+    [ArtSelf] = "The Two of Us",
+    [ArtWindow] = "The View",
+    [ArtBlackCat] = "Black Cat at Night",
+    [ArtComposition] = "Composition with Yarn",
+    [ArtDinner] = "Suprematist Dinner",
+    [ArtCubist] = "Cubist Baby",
+    [ArtBroadway] = "Broadway Zoomies",
+    [ArtGiraffes] = "Giraffes",
+    [ArtYarn] = "Yarn Tangle",
+    [ArtPaws] = "Paw Prints",
+    [ArtGrooves] = "Record Grooves",
+    [ArtRain] = "Rain",
+    [ArtSteam] = "Tea Steam",
+    [ArtFractal] = "Fractal Cat",
+    [ArtFishbones] = "Fishbones",
+};
+
+// A small repeatable random source, so a generated piece looks the same
+// every time it is looked at.
+static uint32_t art_seed;
+
+static uint32_t art_rand(uint32_t n) {
+    art_seed ^= art_seed << 13;
+    art_seed ^= art_seed >> 17;
+    art_seed ^= art_seed << 5;
+    return n ? (art_seed >> 8) % n : 0;
+}
+
+static float art_unit(void) {
+    return (float)art_rand(1000) / 1000.0f;
+}
+
+// The generated pieces wander off the page, and the canvas's own line and
+// circle routines are very slow with coordinates outside the screen (they
+// wrap round). These draw the same things one checked dot at a time.
+static void art_dot(Canvas* canvas, int32_t x, int32_t y) {
+    if(x >= 0 && x < 128 && y >= 0 && y < 64) canvas_draw_dot(canvas, x, y);
+}
+
+static void art_line(Canvas* canvas, int32_t x0, int32_t y0, int32_t x1, int32_t y1) {
+    // Nothing here is long, so a line far from the page is not worth walking
+    if(x0 < -200 || x0 > 328 || y0 < -200 || y0 > 264) return;
+    if(x1 < -200 || x1 > 328 || y1 < -200 || y1 > 264) return;
+    int32_t dx = abs(x1 - x0), dy = -abs(y1 - y0);
+    int32_t sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
+    int32_t err = dx + dy;
+    while(true) {
+        art_dot(canvas, x0, y0);
+        if(x0 == x1 && y0 == y1) break;
+        int32_t e2 = 2 * err;
+        if(e2 >= dy) {
+            err += dy;
+            x0 += sx;
+        }
+        if(e2 <= dx) {
+            err += dx;
+            y0 += sy;
+        }
+    }
+}
+
+static void art_circle(Canvas* canvas, int32_t cx, int32_t cy, int32_t r) {
+    int32_t x = r, y = 0, err = 1 - r;
+    while(x >= y) {
+        art_dot(canvas, cx + x, cy + y);
+        art_dot(canvas, cx + y, cy + x);
+        art_dot(canvas, cx - y, cy + x);
+        art_dot(canvas, cx - x, cy + y);
+        art_dot(canvas, cx - x, cy - y);
+        art_dot(canvas, cx - y, cy - x);
+        art_dot(canvas, cx + y, cy - x);
+        art_dot(canvas, cx + x, cy - y);
+        y++;
+        if(err < 0) {
+            err += 2 * y + 1;
+        } else {
+            x--;
+            err += 2 * (y - x) + 1;
+        }
+    }
+}
+
+static void art_disc(Canvas* canvas, int32_t cx, int32_t cy, int32_t r) {
+    for(int32_t dy = -r; dy <= r; dy++) {
+        for(int32_t dx = -r; dx <= r; dx++) {
+            if(dx * dx + dy * dy <= r * r + r / 2) art_dot(canvas, cx + dx, cy + dy);
+        }
+    }
+}
+
+// One long loop of wool, wandering about the page
+static void art_yarn(Canvas* canvas) {
+    float x = 20.0f + art_rand(88), y = 12.0f + art_rand(40);
+    float angle = art_unit() * 6.28f, turn = 0;
+    for(int i = 0; i < 260; i++) {
+        turn += (art_unit() - 0.5f) * 0.12f;
+        turn = CLAMP(turn, 0.3f, -0.3f);
+        angle += turn;
+        // Near an edge, come round towards the middle of the page
+        if(x < 8 || x > 120 || y < 6 || y > 58) {
+            float want = atan2f(32.0f - y, 64.0f - x) - angle;
+            while(want > 3.14159f)
+                want -= 6.28318f;
+            while(want < -3.14159f)
+                want += 6.28318f;
+            angle += want * 0.25f;
+            turn = 0;
+        }
+        float nx = x + cosf(angle) * 2.5f, ny = y + sinf(angle) * 2.5f;
+        art_line(canvas, (int32_t)x, (int32_t)y, (int32_t)nx, (int32_t)ny);
+        x = nx;
+        y = ny;
+    }
+    // The ball it came from
+    int32_t bx = 14 + art_rand(100), by = 12 + art_rand(40);
+    canvas_set_color(canvas, ColorWhite);
+    art_disc(canvas, bx, by, 8);
+    canvas_set_color(canvas, ColorBlack);
+    art_circle(canvas, bx, by, 8);
+    for(int32_t d = -5; d <= 5; d += 3) {
+        art_line(canvas, bx - 6, by + d + 1, bx, by + d - 1);
+        art_line(canvas, bx, by + d - 1, bx + 6, by + d + 1);
+    }
+}
+
+static void art_paw(Canvas* canvas, int32_t x, int32_t y, int32_t lean) {
+    art_disc(canvas, x, y, 3);
+    art_disc(canvas, x - 4 + lean, y - 4, 1);
+    art_disc(canvas, x - 1 + lean, y - 6, 1);
+    art_disc(canvas, x + 2 + lean, y - 6, 1);
+    art_disc(canvas, x + 5 + lean, y - 4, 1);
+}
+
+// Wallpaper of paw prints, a little off register, with a trail walked across it
+static void art_paws(Canvas* canvas) {
+    int32_t ox = art_rand(12), oy = art_rand(8);
+    for(int32_t row = -1; row < 5; row++) {
+        for(int32_t col = -1; col < 8; col++) {
+            if(art_rand(7) == 0) continue;
+            int32_t x = ox + col * 20 + (row & 1) * 10 + (int32_t)art_rand(3) - 1;
+            int32_t y = oy + row * 16 + (int32_t)art_rand(3) - 1;
+            art_paw(canvas, x, y, (int32_t)art_rand(3) - 1);
+        }
+    }
+}
+
+// Two records' worth of grooves, laid over each other
+static void art_grooves(Canvas* canvas) {
+    int32_t x1 = 30 + art_rand(40), y1 = 16 + art_rand(32);
+    int32_t x2 = x1 + 10 + art_rand(40), y2 = 16 + art_rand(32);
+    int32_t gap = 3 + art_rand(2);
+    for(int32_t r = 2; r < 96; r += gap)
+        art_circle(canvas, x1, y1, r);
+    for(int32_t r = 3; r < 96; r += gap + 1)
+        art_circle(canvas, x2, y2, r);
+    art_disc(canvas, x1, y1, 2);
+    art_disc(canvas, x2, y2, 2);
+}
+
+// A wet window: slanting streaks, drops on the glass and a puddle or two
+static void art_rain(Canvas* canvas) {
+    int32_t slant = 2 + art_rand(3);
+    for(int i = 0; i < 70; i++) {
+        int32_t x = art_rand(150), y = art_rand(64), len = 3 + art_rand(8);
+        art_line(canvas, x, y, x - len * slant / 5, y + len);
+    }
+    for(int i = 0; i < 9; i++) {
+        int32_t x = 6 + art_rand(116), y = 6 + art_rand(46), r = 1 + art_rand(3);
+        canvas_set_color(canvas, ColorWhite);
+        art_disc(canvas, x, y, r + 1);
+        canvas_set_color(canvas, ColorBlack);
+        art_circle(canvas, x, y, r);
+        art_line(canvas, x, y + r, x, y + r + 2 + art_rand(6));
+    }
+}
+
+// Steam rising in curls from a cup at the bottom of the page
+static void art_steam(Canvas* canvas) {
+    int32_t cx = 40 + art_rand(48);
+    // The cup
+    art_line(canvas, cx - 12, 52, cx + 12, 52);
+    art_line(canvas, cx - 12, 52, cx - 9, 63);
+    art_line(canvas, cx + 12, 52, cx + 9, 63);
+    art_circle(canvas, cx + 15, 58, 4);
+    art_line(canvas, cx - 10, 54, cx + 10, 54);
+    int32_t curls = 4 + art_rand(3);
+    for(int32_t c = 0; c < curls; c++) {
+        float x = (float)cx - 9.0f + 18.0f * (float)c / (float)(curls - 1);
+        float phase = art_unit() * 6.28f, wide = 2.0f + art_unit() * 5.0f;
+        float drift = (art_unit() - 0.5f) * 0.8f;
+        int32_t top = 2 + art_rand(14);
+        float px = x, py = 49.0f;
+        for(int32_t y = 48; y > top; y--) {
+            float rise = (float)(49 - y);
+            float nx = x + drift * rise + sinf(phase + rise * 0.28f) * wide * rise / 40.0f;
+            art_line(canvas, (int32_t)px, (int32_t)py, (int32_t)nx, y);
+            px = nx;
+            py = (float)y;
+        }
+    }
+}
+
+// A cat whose ears are cats, whose ears are cats. `lean` is which way up
+// this head is, and each smaller one leans a little further out.
+static void art_cat_head(
+    Canvas* canvas,
+    float x,
+    float y,
+    float r,
+    float lean,
+    float ratio,
+    float spread,
+    int depth) {
+    art_circle(canvas, (int32_t)x, (int32_t)y, (int32_t)r);
+    for(int side = -1; side <= 1; side += 2) {
+        float a = lean - 1.5708f + (float)side * 0.62f;
+        float tip_x = x + cosf(a) * r * 1.65f, tip_y = y + sinf(a) * r * 1.65f;
+        art_line(
+            canvas,
+            (int32_t)(x + cosf(a - 0.4f) * r),
+            (int32_t)(y + sinf(a - 0.4f) * r),
+            (int32_t)tip_x,
+            (int32_t)tip_y);
+        art_line(
+            canvas,
+            (int32_t)(x + cosf(a + 0.4f) * r),
+            (int32_t)(y + sinf(a + 0.4f) * r),
+            (int32_t)tip_x,
+            (int32_t)tip_y);
+        if(depth > 0 && r * ratio >= 2.0f) {
+            float child = r * ratio;
+            art_cat_head(
+                canvas,
+                tip_x + cosf(a) * child,
+                tip_y + sinf(a) * child,
+                child,
+                lean + (float)side * spread,
+                ratio,
+                spread,
+                depth - 1);
+        }
+    }
+    if(r < 5.0f) return;
+    // A face, turned the way the head leans
+    float ca = cosf(lean), sa = sinf(lean);
+    for(int side = -1; side <= 1; side += 2) {
+        float ex = x + ca * r * 0.4f * (float)side + sa * r * 0.15f;
+        float ey = y + sa * r * 0.4f * (float)side - ca * r * 0.15f;
+        art_disc(canvas, (int32_t)ex, (int32_t)ey, r > 12.0f ? 2 : 1);
+        // Whiskers that fork, and fork again on the big ones
+        float wx = x + ca * r * 0.25f * (float)side - sa * r * 0.35f;
+        float wy = y + sa * r * 0.25f * (float)side + ca * r * 0.35f;
+        for(int w = -1; w <= 1; w++) {
+            float wa = lean + (side > 0 ? 0.0f : 3.1416f) + (float)w * 0.3f * (float)side;
+            float end_x = wx + cosf(wa) * r * 1.1f, end_y = wy + sinf(wa) * r * 1.1f;
+            art_line(canvas, (int32_t)wx, (int32_t)wy, (int32_t)end_x, (int32_t)end_y);
+            if(r > 12.0f) {
+                for(int f = -1; f <= 1; f += 2) {
+                    art_line(
+                        canvas,
+                        (int32_t)end_x,
+                        (int32_t)end_y,
+                        (int32_t)(end_x + cosf(wa + (float)f * 0.5f) * r * 0.3f),
+                        (int32_t)(end_y + sinf(wa + (float)f * 0.5f) * r * 0.3f));
+                }
+            }
+        }
+    }
+    // Nose and mouth
+    int32_t nx = (int32_t)(x - sa * r * 0.3f), ny = (int32_t)(y + ca * r * 0.3f);
+    art_disc(canvas, nx, ny, 1);
+    art_line(canvas, nx, ny, (int32_t)(nx - sa * r * 0.2f), (int32_t)(ny + ca * r * 0.2f));
+}
+
+static void art_fractal(Canvas* canvas) {
+    float ratio = 0.46f + art_unit() * 0.1f;
+    float spread = 0.25f + art_unit() * 0.75f;
+    float lean = (art_unit() - 0.5f) * 0.3f;
+    art_cat_head(canvas, 64.0f, 38.0f, 14.0f, lean, ratio, spread, 4);
+}
+
+static void art_fish(Canvas* canvas, int32_t x, int32_t y, int32_t dir) {
+    art_line(canvas, x, y, x + dir * 13, y); // spine
+    for(int32_t i = 3; i <= 10; i += 3) { // ribs
+        art_line(canvas, x + dir * i, y, x + dir * (i + 2), y - 3);
+        art_line(canvas, x + dir * i, y, x + dir * (i + 2), y + 3);
+    }
+    // Head and tail
+    art_line(canvas, x, y - 3, x - dir * 4, y);
+    art_line(canvas, x, y + 3, x - dir * 4, y);
+    art_line(canvas, x, y - 3, x, y + 3);
+    art_line(canvas, x + dir * 13, y, x + dir * 17, y - 3);
+    art_line(canvas, x + dir * 13, y, x + dir * 17, y + 3);
+}
+
+// What is left of dinner, in tidy rows
+static void art_fishbones(Canvas* canvas) {
+    int32_t ox = art_rand(20), oy = 5 + art_rand(4);
+    for(int32_t row = 0; row < 6; row++) {
+        int32_t dir = (row & 1) ? -1 : 1;
+        for(int32_t col = -1; col < 6; col++) {
+            if(art_rand(9) == 0) continue;
+            int32_t x = ox + col * 28 + (row & 1) * 14;
+            art_fish(canvas, dir > 0 ? x : x + 13, oy + row * 11, dir);
+        }
+    }
+}
+
+// A museum label in the corner
+static void draw_art_label(Canvas* canvas, const char* text) {
+    canvas_set_font(canvas, FontSecondary);
+    int32_t w = canvas_string_width(canvas, text) + 5;
+    canvas_set_color(canvas, ColorWhite);
+    canvas_draw_box(canvas, 127 - w, 53, w + 1, 11);
+    canvas_set_color(canvas, ColorBlack);
+    canvas_draw_frame(canvas, 127 - w, 53, w + 1, 11);
+    canvas_draw_str(canvas, 130 - w, 62, text);
+}
+
+// One piece, full screen. Her portrait with him follows her hair colour, and
+// the view from the window shows day or night with the clock.
+static void draw_art(Canvas* canvas, const App* app, Art art) {
+    static const uint8_t* const self_art[HAIR_COLOR_COUNT] = {
+        art_yulia_black, art_yulia_brown, art_yulia_blonde};
+    const bool dark = app->phase == PhaseEvening || app->phase == PhaseNight;
+    const uint8_t* fixed[ArtYarn] = {
+        [ArtNugget] = art_nugget,
+        [ArtBaby] = art_baby,
+        [ArtSelf] = self_art[app->look.color],
+        [ArtWindow] = dark ? art_window_night : art_window_day,
+        [ArtBlackCat] = art_black_cat,
+        [ArtComposition] = art_composition,
+        [ArtDinner] = art_dinner,
+        [ArtCubist] = art_cubist,
+        [ArtBroadway] = art_broadway,
+        [ArtGiraffes] = art_giraffes,
+    };
+    char label[40];
+
+    canvas_set_color(canvas, ColorBlack);
+    if(art < ArtYarn) {
+        canvas_draw_xbm(canvas, 0, 0, ART_W, ART_H, fixed[art]);
+        if(art == ArtNugget || art == ArtBaby) {
+            // The cats' portraits leave room for a name beside the sitter
+            canvas_set_font(canvas, FontPrimary);
+            canvas_draw_str_aligned(canvas, 125, 12, AlignRight, AlignBottom, art_titles[art]);
+            canvas_set_font(canvas, FontSecondary);
+            canvas_draw_str_aligned(
+                canvas,
+                125,
+                22,
+                AlignRight,
+                AlignBottom,
+                art == ArtNugget ? "old gentleman" : "so chonky");
+            return;
+        }
+        draw_art_label(canvas, art_titles[art]);
+        return;
+    }
+
+    // The same piece every time it is looked at, until she makes another
+    uint8_t number = app->sketch_count[art - ArtYarn];
+    art_seed = 0x9E3779B9u ^ (app->first_ts * 2654435761u) ^ ((uint32_t)art << 16) ^ number;
+    art_rand(1);
+    art_rand(1);
+    switch(art) {
+    case ArtYarn:
+        art_yarn(canvas);
+        break;
+    case ArtPaws:
+        art_paws(canvas);
+        break;
+    case ArtGrooves:
+        art_grooves(canvas);
+        break;
+    case ArtRain:
+        art_rain(canvas);
+        break;
+    case ArtSteam:
+        art_steam(canvas);
+        break;
+    case ArtFractal:
+        art_fractal(canvas);
+        break;
+    default:
+        art_fishbones(canvas);
+        break;
+    }
+    snprintf(label, sizeof(label), "%s No. %u", art_titles[art], number);
+    draw_art_label(canvas, label);
+}
+
+// The View screen: a piece just finished, or a page of the sketchbook
+static void draw_view(Canvas* canvas, const App* app) {
+    if(app->sketches & (1u << app->view)) {
+        draw_art(canvas, app, app->view);
+        return;
+    }
+    // A blank page, waiting
+    char buf[32];
+    canvas_set_color(canvas, ColorBlack);
+    canvas_draw_rframe(canvas, 34, 4, 60, 40, 2);
+    canvas_set_font(canvas, FontPrimary);
+    canvas_draw_str_aligned(canvas, 64, 24, AlignCenter, AlignCenter, "?");
+    canvas_set_font(canvas, FontSecondary);
+    canvas_draw_str_aligned(canvas, 64, 53, AlignCenter, AlignBottom, "Not drawn yet");
+    snprintf(
+        buf,
+        sizeof(buf),
+        "< page %u/%u, %d made >",
+        (unsigned)app->view + 1,
+        (unsigned)ArtCount,
+        __builtin_popcount(app->sketches));
+    canvas_draw_str_aligned(canvas, 64, 63, AlignCenter, AlignBottom, buf);
 }
 
 static void draw_callback(Canvas* canvas, void* ctx) {
@@ -2297,6 +2989,9 @@ static void draw_callback(Canvas* canvas, void* ctx) {
         break;
     case ScreenAlbum:
         draw_album(canvas, app);
+        break;
+    case ScreenView:
+        draw_view(canvas, app);
         break;
     default:
         draw_scene(canvas, app);
@@ -2450,6 +3145,17 @@ static bool handle_input(App* app, const InputEvent* event) {
         break;
     case ScreenAlbum:
         album_input(app, event->key);
+        break;
+    case ScreenView:
+        // Left and Right turn the sketchbook's pages; anything else goes back
+        if(app->reveal_timer) {
+            // A piece just finished: any button puts it down
+            if(event->type == InputTypeShort) app->reveal_timer = 1;
+        } else if(event->key == InputKeyLeft || event->key == InputKeyRight) {
+            cycle(&app->view, ArtCount, event->key);
+        } else if(event->type == InputTypeShort) {
+            app->screen = ScreenRoom;
+        }
         break;
     default:
         return room_input(app, event);
