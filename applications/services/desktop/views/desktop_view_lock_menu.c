@@ -28,6 +28,26 @@ typedef enum {
     DesktopLockMenuIndexTotalCount
 } DesktopLockMenuIndex;
 
+static void desktop_lock_menu_draw_popup(Canvas* canvas, const DesktopLockMenuViewModel* model) {
+    static const char* const labels[DesktopLockMenuPopupIndexMAX] = {
+        [DesktopLockMenuPopupIndexKeypad] = "Keypad Lock",
+        [DesktopLockMenuPopupIndexPinCode] = "PIN Code Lock",
+        [DesktopLockMenuPopupIndexKeypadOff] = "Lock + Off",
+        [DesktopLockMenuPopupIndexPinOff] = "PIN Lock + OFF",
+    };
+    if(cfw_settings.popup_overlay) canvas_draw_overlay(canvas);
+    canvas_set_font(canvas, FontSecondary);
+    elements_bold_rounded_frame(canvas, 24, 4, 80, 56);
+    for(size_t row = 0; row < DESKTOP_LOCK_MENU_POPUP_VISIBLE_ITEMS; row++) {
+        size_t index = model->lock_popup_offset + row;
+        if(index >= DesktopLockMenuPopupIndexMAX) break;
+        canvas_draw_str_aligned(
+            canvas, 64, 16 + row * 16, AlignCenter, AlignCenter, labels[index]);
+    }
+    elements_frame(
+        canvas, 28, 8 + (model->lock_popup_index - model->lock_popup_offset) * 16, 72, 15);
+}
+
 static void desktop_lock_menu_draw_list(Canvas* canvas, DesktopLockMenuViewModel* m) {
     static const char* const labels[DesktopLockMenuIndexTotalCount] = {
         "Left-handed",
@@ -103,7 +123,9 @@ void desktop_lock_menu_set_pin_state(DesktopLockMenuView* lock_menu, bool pin_is
         DesktopLockMenuViewModel * model,
         {
             model->pin_is_set = pin_is_set;
-            model->lock_popup_index = pin_is_set; // Select with PIN by default if set
+            model->lock_popup_index = pin_is_set ? DesktopLockMenuPopupIndexPinCode :
+                                                   DesktopLockMenuPopupIndexKeypad;
+            model->lock_popup_offset = 0;
         },
         true);
 }
@@ -231,15 +253,7 @@ void desktop_lock_menu_draw_callback(Canvas* canvas, void* model) {
         }
 
     if(m->show_lock_popup) {
-        if(cfw_settings.popup_overlay) {
-            canvas_draw_overlay(canvas);
-        }
-        canvas_set_font(canvas, FontSecondary);
-        elements_bold_rounded_frame(canvas, 24, 4, 80, 56);
-        canvas_draw_str_aligned(canvas, 64, 16, AlignCenter, AlignCenter, "Keypad Lock");
-        canvas_draw_str_aligned(canvas, 64, 32, AlignCenter, AlignCenter, "PIN Code Lock");
-        canvas_draw_str_aligned(canvas, 64, 48, AlignCenter, AlignCenter, "PIN Lock + OFF");
-        elements_frame(canvas, 28, 8 + m->lock_popup_index * 16, 72, 15);
+        desktop_lock_menu_draw_popup(canvas, m);
     }
 }
 
@@ -281,6 +295,14 @@ bool desktop_lock_menu_input_callback(InputEvent* event, void* context) {
                         }
                     } else if(event->key == InputKeyBack || event->key == InputKeyOk) {
                         model->show_lock_popup = false;
+                    }
+                    if(model->lock_popup_index < model->lock_popup_offset) {
+                        model->lock_popup_offset = model->lock_popup_index;
+                    } else if(
+                        model->lock_popup_index >=
+                        model->lock_popup_offset + DESKTOP_LOCK_MENU_POPUP_VISIBLE_ITEMS) {
+                        model->lock_popup_offset =
+                            model->lock_popup_index - DESKTOP_LOCK_MENU_POPUP_VISIBLE_ITEMS + 1;
                     }
                 } else {
                     if(model->idx == DesktopLockMenuIndexLock && event->key == InputKeyOk) {
@@ -342,6 +364,9 @@ bool desktop_lock_menu_input_callback(InputEvent* event, void* context) {
                 break;
             case DesktopLockMenuPopupIndexPinOff:
                 desktop_event = DesktopLockMenuEventLockPinOff;
+                break;
+            case DesktopLockMenuPopupIndexKeypadOff:
+                desktop_event = DesktopLockMenuEventLockKeypadOff;
                 break;
             default:
                 break;

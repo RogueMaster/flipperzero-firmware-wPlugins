@@ -5,7 +5,8 @@
 #include <bt/bt_service/bt.h>
 #include <bt/bt_service/bt_i.h>
 
-#define HINT_TIMEOUT 2
+#define HINT_TIMEOUT                          2
+#define DESKTOP_LOCK_MENU_POPUP_VISIBLE_ITEMS 3
 
 typedef struct DesktopLockMenuView DesktopLockMenuView;
 
@@ -26,6 +27,7 @@ struct DesktopLockMenuView {
 typedef enum {
     DesktopLockMenuPopupIndexKeypad,
     DesktopLockMenuPopupIndexPinCode,
+    DesktopLockMenuPopupIndexKeypadOff,
     DesktopLockMenuPopupIndexPinOff,
     DesktopLockMenuPopupIndexMAX,
 } DesktopLockMenuPopupIndex;
@@ -39,6 +41,7 @@ typedef struct {
     bool show_lock_popup;
     DesktopLockMenuPopupIndex lock_popup_index;
     DesktopLockMenuView* lock_menu;
+    uint8_t lock_popup_offset;
 } DesktopLockMenuViewModel;
 
 void desktop_lock_menu_set_callback(
