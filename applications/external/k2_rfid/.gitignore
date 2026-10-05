@@ -1,0 +1,5 @@
+.vscode/
+.sconsign.dblite
+__pycache__/
+*.pyc
+dist/debug/
