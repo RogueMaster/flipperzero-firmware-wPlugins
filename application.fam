@@ -9,6 +9,6 @@ App(
     fap_icon="icon.png",
     fap_author="rseufert",
     fap_weburl="https://github.com/rseufert/nw_crawl",
-    fap_version="0.2",
+    fap_version="0.3",
     fap_description="Tiny roguelike: walk the alphabet streets of NW Portland to the Witch's Castle",
 )
