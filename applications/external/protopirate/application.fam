@@ -501,7 +501,7 @@ if _ENABLE_REMOTE_ANALYZER:
             "scenes/plugins/protopirate_remote_analyzer_plugin.c",
             "views/protopirate_remote_analyzer.c",
             "helpers/RemoteAnalyzer/protopirate_remote_analyzer_worker.c",
-            "helpers/RemoteAnalyzer/cc1101.c"
+            "helpers/RemoteAnalyzer/cc1101.c",
         ],
         fap_icon_assets="images",
         fal_embedded=True,

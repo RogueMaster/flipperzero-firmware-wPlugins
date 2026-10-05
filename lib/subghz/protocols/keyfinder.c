@@ -71,6 +71,8 @@ const SubGhzProtocol subghz_protocol_keyfinder = {
 
     .decoder = &subghz_protocol_keyfinder_decoder,
     .encoder = &subghz_protocol_keyfinder_encoder,
+
+    .filter = SubGhzProtocolFilter_Sensors,
 };
 
 void* subghz_protocol_encoder_keyfinder_alloc(SubGhzEnvironment* environment) {

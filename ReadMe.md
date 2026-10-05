@@ -156,6 +156,9 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Alcohol Calc v1.0 (By vtlklr)](https://github.com/vtlklr/alcohol_calc)
 - Added: [Hanzi Cards v0.3 (By rseufert)](https://github.com/rseufert/hanzi_cards)
 - Updated: [ProtoPirate v4.0 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
+- SubGHz: [New protocol KeyFinder2 - the colour-button key finder fobs the existing KeyFinder decoder could not read. Shows the button colour next to the code, unverified: the colour names come from a single four button fob, so another fob may name them differently (By xMasterX)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/fc859a4bc8970c29ae1b17e8348533f835d69d0d)
+- SubGHz: [New protocol Doorbell32 - unbranded 433MHz doorbells. KeyFinder, KeyFinder2 and Doorbell32 are all in the Sensors ignore group (By xMasterX)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/197ed204678523e0236d3ff4759b74d12e2cc6bd)
+- NFC: [MIFARE DESFire Light is now correctly detected instead of appearing as ISO14443-4A (Unknown), with automatic command-mode handling, support for hardware type 0x08, and graceful handling of unsupported PICC-level fields. Detection uses GetVersion to distinguish it from MIFARE Plus and NTAG 4xx, while incomplete or refused reads are no longer treated as successful; file-content reading is not included. (By mishamyte)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/5f8727ae0e1fea457416cc445d73906be9d9b276)
 
 <a name="release"></a>
 
@@ -252,7 +255,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - - [UP UP DOWN DOWN LEFT RIGHT LEFT RIGHT FROM CLOCK to EXIT](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/GAMES_ONLY.md)
 - Settings: Power: [About on Power Off (By LeeroysHub)](https://github.com/LeeroysHub/)
 - SubGHz: [Add Cardin S508 rolling-code decoder (decode-only) (By half2me)](https://github.com/DarkFlippers/unleashed-firmware/pull/1004)
-- SubGhz: [Add Telcoma/Cardin EDGE protocol (By half2me)](https://github.com/DarkFlippers/unleashed-firmware/pull/1001)
+- SubGHz: [Add Telcoma/Cardin EDGE protocol (By half2me)](https://github.com/DarkFlippers/unleashed-firmware/pull/1001)
 - SubGHz: [All Supported Protocols](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/tree/420/documentation/SubGHzSupportedSystems.md)
 - SubGHz: Region Locked -  To transmit to outside ranges (Unlock), use the CFW Settings app under Apps=>Settings.
 - SubGHz: [Transmit Indicator before Out of Region Frequency Use (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/e24d4a0689db555ae083fec23a471e878adb6cd4)
