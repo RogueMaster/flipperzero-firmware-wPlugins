@@ -3,159 +3,79 @@
 
 #define TAG "DabTimer"
 
-static Vector2 angle_to_vector2(float angle_in_degrees, uint8_t distance, Vector2 center) {
-    float radians = (angle_in_degrees - 90) * (PI / 180);
+/* Precomputed endpoints preserve the existing analog clock pixels without libm. */
+static const DabTimerClockPoint dab_clock_hours[12] = {
+    {92, 10},
+    {103, 12},
+    {111, 21},
+    {114, 32},
+    {111, 42},
+    {103, 51},
+    {92, 53},
+    {81, 51},
+    {72, 43},
+    {70, 32},
+    {72, 21},
+    {80, 12},
+};
 
-    Vector2 vec = {
-        .x = center.x + cos(radians) * distance,
-        .y = center.y + sin(radians) * distance,
-    };
+static const DabTimerClockPoint dab_clock_minutes[60] = {
+    {92, 6},   {94, 6},   {97, 6},   {100, 7},  {102, 8},  {105, 9},  {107, 10}, {109, 12},
+    {111, 14}, {113, 16}, {114, 19}, {115, 21}, {116, 23}, {117, 26}, {117, 29}, {118, 32},
+    {117, 34}, {117, 37}, {116, 40}, {115, 42}, {114, 44}, {113, 47}, {111, 49}, {109, 51},
+    {107, 53}, {105, 54}, {102, 55}, {100, 56}, {97, 57},  {94, 57},  {92, 57},  {89, 57},
+    {86, 57},  {83, 56},  {81, 55},  {79, 54},  {76, 53},  {74, 51},  {72, 49},  {70, 47},
+    {69, 45},  {68, 42},  {67, 40},  {66, 37},  {66, 34},  {66, 32},  {66, 29},  {66, 26},
+    {67, 24},  {68, 21},  {69, 19},  {70, 16},  {72, 14},  {74, 12},  {76, 10},  {78, 9},
+    {81, 8},   {83, 7},   {86, 6},   {89, 6},
+};
 
-    return vec;
-}
+static const DabTimerClockPoint dab_clock_seconds[60] = {
+    {92, 4},   {94, 4},   {97, 4},   {100, 5},  {103, 6},  {106, 7},  {108, 9},  {110, 11},
+    {112, 13}, {114, 15}, {116, 18}, {117, 20}, {118, 23}, {119, 26}, {119, 29}, {120, 32},
+    {119, 34}, {119, 37}, {118, 40}, {117, 43}, {116, 45}, {114, 48}, {112, 50}, {110, 52},
+    {108, 54}, {106, 56}, {103, 57}, {100, 58}, {97, 59},  {94, 59},  {92, 59},  {89, 59},
+    {86, 59},  {83, 58},  {80, 57},  {78, 56},  {75, 54},  {73, 52},  {71, 50},  {69, 48},
+    {67, 46},  {66, 43},  {65, 40},  {64, 37},  {64, 34},  {64, 32},  {64, 29},  {64, 26},
+    {65, 23},  {66, 20},  {67, 18},  {69, 15},  {71, 13},  {73, 11},  {75, 9},   {77, 7},
+    {80, 6},   {83, 5},   {86, 4},   {89, 4},
+};
 
-#if __has_include(<cfw/cfw.h>)
-static void dab_timer_dumbmode_changed(void) {
-    cfw_settings.game_mode = !cfw_settings.game_mode;
-    cfw_settings_save();
-}
-#endif
-
-void dab_timer_render_binary_face(
-    Canvas* const canvas,
-    int32_t value,
-    int32_t height,
-    uint32_t timer_start_timestamp) {
-    if(timer_start_timestamp != 0) {
-        // FuriString* str = furi_string_alloc();
-        // furi_string_printf(str, "%li", value);
-        // canvas_draw_str_aligned(
-        // canvas, 10, height+4, AlignCenter, AlignCenter, furi_string_get_cstr(str)); // DRAW TIME
-        // furi_string_free(str);
-    }
-    int32_t h_loc_start = 24;
-    if(value >= 32) {
-        canvas_draw_icon(canvas, h_loc_start, height, &I_GameModeIcon_11x8);
-        value = value - 32;
-    } else {
-        canvas_draw_icon(canvas, h_loc_start, height, &I_InvertGameMode_11x8);
-    }
-    if(value >= 16) {
-        canvas_draw_icon(canvas, h_loc_start + (14 * 1), height, &I_GameModeIcon_11x8);
-        value = value - 16;
-    } else {
-        canvas_draw_icon(canvas, h_loc_start + (14 * 1), height, &I_InvertGameMode_11x8);
-    }
-    if(value >= 8) {
-        canvas_draw_icon(canvas, h_loc_start + (14 * 2), height, &I_GameModeIcon_11x8);
-        value = value - 8;
-    } else {
-        canvas_draw_icon(canvas, h_loc_start + (14 * 2), height, &I_InvertGameMode_11x8);
-    }
-    if(value >= 4) {
-        canvas_draw_icon(canvas, h_loc_start + (14 * 3), height, &I_GameModeIcon_11x8);
-        value = value - 4;
-    } else {
-        canvas_draw_icon(canvas, h_loc_start + (14 * 3), height, &I_InvertGameMode_11x8);
-    }
-    if(value >= 2) {
-        canvas_draw_icon(canvas, h_loc_start + (14 * 4), height, &I_GameModeIcon_11x8);
-        value = value - 2;
-    } else {
-        canvas_draw_icon(canvas, h_loc_start + (14 * 4), height, &I_InvertGameMode_11x8);
-    }
-    if(value >= 1) {
-        canvas_draw_icon(canvas, h_loc_start + (14 * 5), height, &I_GameModeIcon_11x8);
-        value = value - 1;
-    } else {
-        canvas_draw_icon(canvas, h_loc_start + (14 * 5), height, &I_InvertGameMode_11x8);
+static void dab_timer_render_binary_face(Canvas* canvas, uint32_t value, int32_t height) {
+    /* Retain the six-bit face's existing saturation for values above 63. */
+    const uint32_t bits = MIN(value, 63U);
+    for(uint8_t bit = 0; bit < 6; bit++) {
+        const Icon* icon = bits & (1U << (5 - bit)) ? &I_GameModeIcon_11x8 :
+                                                      &I_InvertGameMode_11x8;
+        canvas_draw_icon(canvas, 24 + 14 * bit, height, icon);
     }
 }
 
-static void dab_timer_input_callback(InputEvent* input_event, void* ctx) {
-    furi_assert(ctx);
-    FuriMessageQueue* event_queue = ctx;
-    PluginEvent event = {.type = EventTypeKey, .input = *input_event};
-    furi_message_queue_put(event_queue, &event, FuriWaitForever);
-}
-
-static void dab_timer_render_callback(Canvas* const canvas, void* ctx) {
-    DabTimerState* plugin_state = ctx;
-    if(furi_mutex_acquire(plugin_state->mutex, 200) != FuriStatusOk) {
-        PluginEvent event = {.type = EventTypeTick};
-        furi_message_queue_put(plugin_state->event_queue, &event, 0);
+static void dab_timer_render_callback(Canvas* canvas, void* context) {
+    DabTimerApp* app = context;
+    DabTimerModel snapshot;
+    if(furi_mutex_acquire(app->mutex, 0) != FuriStatusOk) {
+        furi_thread_flags_set(app->thread_id, DabTimerFlagRedraw);
         return;
     }
-    DateTime curr_dt;
-    furi_hal_rtc_get_datetime(&curr_dt);
-    uint32_t curr_ts = furi_hal_rtc_get_timestamp();
-    char time_string[TIME_LEN];
-    char date_string[DATE_LEN];
-    char meridian_string[MERIDIAN_LEN];
-    char timer_string[20];
-    if(plugin_state->time_format == LocaleTimeFormat24h) {
-        snprintf(
-            time_string,
-            TIME_LEN,
-            DAB_TIMER_TIME_FORMAT,
-            curr_dt.hour,
-            curr_dt.minute,
-            curr_dt.second);
-    } else {
-        bool pm = curr_dt.hour > 12;
-        bool pm12 = curr_dt.hour >= 12;
-        bool am12 = curr_dt.hour == 0;
-        snprintf(
-            time_string,
-            TIME_LEN,
-            DAB_TIMER_TIME_FORMAT,
-            pm ? curr_dt.hour - 12 : (am12 ? 12 : curr_dt.hour),
-            curr_dt.minute,
-            curr_dt.second);
-
-        snprintf(
-            meridian_string,
-            MERIDIAN_LEN,
-            MERIDIAN_FORMAT,
-            pm12 ? MERIDIAN_STRING_PM : MERIDIAN_STRING_AM);
-    }
-    if(plugin_state->date_format == LocaleDateFormatYMD) {
-        snprintf(
-            date_string,
-            DATE_LEN,
-            DAB_TIMER_ISO_DATE_FORMAT,
-            curr_dt.year,
-            curr_dt.month,
-            curr_dt.day);
-    } else if(plugin_state->date_format == LocaleDateFormatMDY) {
-        snprintf(
-            date_string,
-            DATE_LEN,
-            DAB_TIMER_RFC_DATE_FORMAT,
-            curr_dt.month,
-            curr_dt.day,
-            curr_dt.year);
-    } else {
-        snprintf(
-            date_string,
-            DATE_LEN,
-            DAB_TIMER_RFC_DATE_FORMAT,
-            curr_dt.day,
-            curr_dt.month,
-            curr_dt.year);
-    }
-    bool timer_running = plugin_state->timer_running;
-    uint8_t songSelect = plugin_state->songSelect;
-    uint32_t alert_time = plugin_state->alert_time;
-    uint32_t timer_start_timestamp = plugin_state->timer_start_timestamp;
-    uint32_t timer_stopped_seconds = plugin_state->timer_stopped_seconds;
-    char alertTime[4];
-    snprintf(alertTime, sizeof(alertTime), "%ld", alert_time);
-    furi_mutex_release(plugin_state->mutex);
-    if(plugin_state->faceType == FaceStylePwn || plugin_state->faceType == FaceStylePwnInverted) {
-        if(plugin_state->faceType == FaceStylePwnInverted) {
+    snapshot = app->model;
+    furi_mutex_release(app->mutex);
+    const DabTimerModel* plugin_state = &snapshot;
+    const DateTime curr_dt = snapshot.datetime;
+    const char* time_string = snapshot.time_string;
+    const char* date_string = snapshot.date_string;
+    const char* meridian_string = snapshot.meridian_string;
+    const char* timer_string = snapshot.timer_string;
+    const char* alertTime = snapshot.alert_string;
+    const bool timer_running = snapshot.run_state == DabTimerRunning;
+    const bool timer_started = snapshot.run_state != DabTimerReady;
+    const uint32_t elapsed_secs = snapshot.elapsed_seconds;
+    const SoundAlert sound_alert = snapshot.sound_alert;
+    if(plugin_state->face_style == FaceStylePwn ||
+       plugin_state->face_style == FaceStylePwnInverted) {
+        if(plugin_state->face_style == FaceStylePwnInverted) {
             canvas_draw_icon(canvas, 0, 0, &I_black);
-            if(timer_start_timestamp != 0) {
+            if(timer_started) {
                 elements_button_left(canvas, "Reset");
             } else {
                 elements_button_left(canvas, "F6");
@@ -163,7 +83,7 @@ static void dab_timer_render_callback(Canvas* const canvas, void* ctx) {
             canvas_set_color(canvas, ColorWhite);
         } else {
             canvas_set_color(canvas, ColorWhite);
-            if(timer_start_timestamp != 0) {
+            if(timer_started) {
                 elements_button_left(canvas, "Reset");
             } else {
                 elements_button_left(canvas, "F1");
@@ -171,21 +91,18 @@ static void dab_timer_render_callback(Canvas* const canvas, void* ctx) {
             canvas_set_color(canvas, ColorBlack);
         }
         canvas_set_font(canvas, FontBigNumbers);
-        uint32_t elapsed_secs = timer_running ? (curr_ts - timer_start_timestamp) :
-                                                timer_stopped_seconds;
-        snprintf(timer_string, 20, "%.2ld:%.2ld", elapsed_secs / 60, elapsed_secs % 60);
         canvas_draw_str_aligned(canvas, 64, 8, AlignCenter, AlignCenter, time_string); // DRAW TIME
-        if(plugin_state->w_test && timer_start_timestamp != 0) {
+        if(plugin_state->easter_egg && timer_started) {
             int32_t elapsed_secs_img = (elapsed_secs % 60) % 5;
             static const Icon* const count_anim[5] = {
                 &I_HappyFlipper_128x64, &I_G0ku, &I_g0ku_1, &I_g0ku_2, &I_g0ku_3};
             canvas_draw_icon(canvas, -5, 15, count_anim[elapsed_secs_img]);
             canvas_draw_str_aligned(
                 canvas, 96, 31, AlignCenter, AlignTop, timer_string); // DRAW TIMER
-        } else if(timer_start_timestamp != 0) {
+        } else if(timer_started) {
             canvas_draw_str_aligned(
                 canvas, 96, 32, AlignCenter, AlignTop, timer_string); // DRAW TIMER
-            static const Icon* const flip_face[25] = {
+            static const Icon* const flip_face[DabTimerFaceCount] = {
                 &I_angry_flipagotchi,        &I_awake_flipagotchi,
                 &I_bored_flipagotchi,        &I_broken_flipagotchi,
                 &I_cool_flipagotchi,         &I_debug_flipagotchi,
@@ -199,7 +116,7 @@ static void dab_timer_render_callback(Canvas* const canvas, void* ctx) {
                 &I_sleep_flipagotchi,        &I_smart_flipagotchi,
                 &I_upload1_flipagotchi,      &I_upload2_flipagotchi,
                 &I_upload_flipagotchi};
-            canvas_draw_icon(canvas, 1, 32, flip_face[plugin_state->curEmotiveFace]);
+            canvas_draw_icon(canvas, 1, 32, flip_face[plugin_state->emotive_face]);
         } else {
             canvas_draw_icon(canvas, 1, 32, &I_cool_flipagotchi);
         }
@@ -217,12 +134,12 @@ static void dab_timer_render_callback(Canvas* const canvas, void* ctx) {
         canvas_draw_str_aligned(canvas, 64, 20, AlignCenter, AlignTop, date_string); // DRAW DATE
 #endif
     } else if(
-        plugin_state->faceType == FaceStyleOriginal ||
-        plugin_state->faceType == FaceStyleOriginalInverted) {
+        plugin_state->face_style == FaceStyleOriginal ||
+        plugin_state->face_style == FaceStyleOriginalInverted) {
         canvas_set_font(canvas, FontSecondary);
-        if(plugin_state->faceType == FaceStyleOriginalInverted) {
+        if(plugin_state->face_style == FaceStyleOriginalInverted) {
             canvas_draw_icon(canvas, 0, 0, &I_black);
-            if(timer_start_timestamp != 0) {
+            if(timer_started) {
                 elements_button_left(canvas, "Reset");
             } else {
                 elements_button_left(canvas, "F7");
@@ -230,7 +147,7 @@ static void dab_timer_render_callback(Canvas* const canvas, void* ctx) {
             canvas_set_color(canvas, ColorWhite);
         } else {
             canvas_set_color(canvas, ColorWhite);
-            if(timer_start_timestamp != 0) {
+            if(timer_started) {
                 elements_button_left(canvas, "Reset");
             } else {
                 elements_button_left(canvas, "F2");
@@ -238,10 +155,7 @@ static void dab_timer_render_callback(Canvas* const canvas, void* ctx) {
             canvas_set_color(canvas, ColorBlack);
         }
         canvas_set_font(canvas, FontBigNumbers);
-        if(timer_start_timestamp != 0 && !plugin_state->w_test) {
-            uint32_t elapsed_secs = timer_running ? (curr_ts - timer_start_timestamp) :
-                                                    timer_stopped_seconds;
-            snprintf(timer_string, 20, "%.2ld:%.2ld", elapsed_secs / 60, elapsed_secs % 60);
+        if(timer_started && !plugin_state->easter_egg) {
             canvas_draw_str_aligned(
                 canvas, 64, 8, AlignCenter, AlignCenter, time_string); // DRAW TIME
             canvas_draw_str_aligned(
@@ -264,14 +178,11 @@ static void dab_timer_render_callback(Canvas* const canvas, void* ctx) {
 #endif
         } else {
 #ifdef CANVAS_HAS_FONT_BATTERYPERCENT
-            if(plugin_state->w_test) canvas_set_font(canvas, FontBatteryPercent);
+            if(plugin_state->easter_egg) canvas_set_font(canvas, FontBatteryPercent);
 #else
-            if(plugin_state->w_test) canvas_set_font(canvas, FontSecondary);
+            if(plugin_state->easter_egg) canvas_set_font(canvas, FontSecondary);
 #endif
-            if(plugin_state->w_test && timer_start_timestamp != 0) {
-                uint32_t elapsed_secs = timer_running ? (curr_ts - timer_start_timestamp) :
-                                                        timer_stopped_seconds;
-                snprintf(timer_string, 20, "%.2ld:%.2ld", elapsed_secs / 60, elapsed_secs % 60);
+            if(plugin_state->easter_egg && timer_started) {
                 uint32_t elapsed_secs_img = (elapsed_secs % 60) % 5;
                 uint32_t elapsed_secs_img2 = (elapsed_secs % 60) % 4;
                 static const Icon* const count_anim[5] = {
@@ -315,7 +226,7 @@ static void dab_timer_render_callback(Canvas* const canvas, void* ctx) {
                         canvas, 100, 14, AlignCenter, AlignCenter, meridian_string);
             }
 #endif
-            if(!plugin_state->w_test)
+            if(!plugin_state->easter_egg)
                 canvas_draw_str_aligned(
                     canvas, 64, 38, AlignCenter, AlignTop, date_string); // DRAW DATE
 #ifdef CANVAS_HAS_FONT_BATTERYPERCENT
@@ -323,11 +234,11 @@ static void dab_timer_render_callback(Canvas* const canvas, void* ctx) {
 #endif
         }
     } else if(
-        plugin_state->faceType == FaceStyleOriginalSmall ||
-        plugin_state->faceType == FaceStyleOriginalSmallInverted) {
-        if(plugin_state->faceType == FaceStyleOriginalSmallInverted) {
+        plugin_state->face_style == FaceStyleOriginalSmall ||
+        plugin_state->face_style == FaceStyleOriginalSmallInverted) {
+        if(plugin_state->face_style == FaceStyleOriginalSmallInverted) {
             canvas_draw_icon(canvas, 0, 0, &I_black);
-            if(timer_start_timestamp != 0) {
+            if(timer_started) {
                 elements_button_left(canvas, "Reset");
             } else {
                 elements_button_left(canvas, "F8");
@@ -335,7 +246,7 @@ static void dab_timer_render_callback(Canvas* const canvas, void* ctx) {
             canvas_set_color(canvas, ColorWhite);
         } else {
             canvas_set_color(canvas, ColorWhite);
-            if(timer_start_timestamp != 0) {
+            if(timer_started) {
                 elements_button_left(canvas, "Reset");
             } else {
                 elements_button_left(canvas, "F3");
@@ -347,10 +258,7 @@ static void dab_timer_render_callback(Canvas* const canvas, void* ctx) {
 #else
         canvas_set_font(canvas, FontSecondary);
 #endif
-        if(timer_start_timestamp != 0) {
-            int32_t elapsed_secs = timer_running ? (curr_ts - timer_start_timestamp) :
-                                                   timer_stopped_seconds;
-            snprintf(timer_string, 20, "%.2ld:%.2ld", elapsed_secs / 60, elapsed_secs % 60);
+        if(timer_started) {
             canvas_draw_str_aligned(
                 canvas, 64, 31, AlignCenter, AlignTop, timer_string); // DRAW TIMER
         }
@@ -360,7 +268,7 @@ static void dab_timer_render_callback(Canvas* const canvas, void* ctx) {
         canvas_set_font(canvas, FontBatteryPercent);
         if(plugin_state->time_format == LocaleTimeFormat12h)
             canvas_draw_str_aligned(canvas, 69, 15, AlignCenter, AlignCenter, meridian_string);
-        if(!plugin_state->w_test)
+        if(!plugin_state->easter_egg)
             canvas_draw_str_aligned(
                 canvas, 64, 38, AlignCenter, AlignTop, date_string); // DRAW DATE
         canvas_set_font(canvas, FontSecondary);
@@ -368,117 +276,84 @@ static void dab_timer_render_callback(Canvas* const canvas, void* ctx) {
             canvas, 64, 24, AlignCenter, AlignCenter, time_string); // DRAW TIME
         if(plugin_state->time_format == LocaleTimeFormat12h)
             canvas_draw_str_aligned(canvas, 94, 24, AlignCenter, AlignCenter, meridian_string);
-        if(!plugin_state->w_test)
+        if(!plugin_state->easter_egg)
             canvas_draw_str_aligned(
                 canvas, 64, 40, AlignCenter, AlignTop, date_string); // DRAW DATE
 #endif
     } else if(
-        plugin_state->faceType == FaceStyleCircle ||
-        plugin_state->faceType == FaceStyleCircleInverted) {
-        if(plugin_state->faceType == FaceStyleCircleInverted) {
+        plugin_state->face_style == FaceStyleCircle ||
+        plugin_state->face_style == FaceStyleCircleInverted) {
+        if(plugin_state->face_style == FaceStyleCircleInverted) {
             canvas_draw_icon(canvas, 0, 0, &I_black);
-            if(timer_start_timestamp != 0) {
-                // elements_button_left(canvas, "Reset");
-            }
             canvas_set_color(canvas, ColorWhite);
         } else {
             canvas_set_color(canvas, ColorWhite);
-            if(timer_start_timestamp != 0) {
-                // elements_button_left(canvas, "Reset");
-            }
             canvas_set_color(canvas, ColorBlack);
         }
-        int8_t width = 124;
-        int8_t height = 64;
-        Vector2 clock_center = {
-            .x = 30 + width / 2,
-            .y = height / 2,
-        };
-        uint8_t radius = MIN(width, height) / 2 - 2;
-        canvas_draw_circle(canvas, clock_center.x, clock_center.y, radius);
-        FuriString* str = furi_string_alloc();
-        for(uint8_t i = 3; i <= 12; i += 3) {
-            Vector2 pos = angle_to_vector2(360 / 12 * i, radius - 4, clock_center);
-
-            furi_string_printf(str, "%i", i);
-
+        canvas_draw_circle(canvas, 92, 32, 30);
+        static const DabTimerClockPoint numeral_positions[] = {
+            {118, 32}, {92, 57}, {66, 32}, {91, 6}};
+        static const char* const numerals[] = {"3", "6", "9", "12"};
+        for(size_t i = 0; i < COUNT_OF(numerals); i++) {
             canvas_draw_str_aligned(
-                canvas, pos.x, pos.y, AlignCenter, AlignCenter, furi_string_get_cstr(str));
+                canvas,
+                numeral_positions[i].x,
+                numeral_positions[i].y,
+                AlignCenter,
+                AlignCenter,
+                numerals[i]);
         }
-        Vector2 hour_vec =
-            angle_to_vector2(((curr_dt.hour % 12) / 12.f * 360.f), radius - 8, clock_center);
-        canvas_draw_line(canvas, clock_center.x, clock_center.y, hour_vec.x, hour_vec.y);
-        Vector2 minute_vec =
-            angle_to_vector2((curr_dt.minute / 60.f * 360.f), radius - 4, clock_center);
-        canvas_draw_line(canvas, clock_center.x, clock_center.y, minute_vec.x, minute_vec.y);
-        Vector2 second_vec =
-            angle_to_vector2((curr_dt.second / 60.f * 360.f), radius - 2, clock_center);
-        canvas_draw_line(canvas, clock_center.x, clock_center.y, second_vec.x, second_vec.y);
-        canvas_set_font(canvas, FontSecondary); // app->date_time
-        locale_format_date(str, &curr_dt, locale_get_date_format(), ".");
-        uint16_t date_str_width = canvas_string_width(canvas, furi_string_get_cstr(str));
-        canvas_draw_frame(canvas, 0, 41, date_str_width + 6, 13);
-        canvas_draw_str(canvas, 3, 51, furi_string_get_cstr(str));
-        if(timer_start_timestamp != 0) {
-            int32_t elapsed_secs = timer_running ? (curr_ts - timer_start_timestamp) :
-                                                   timer_stopped_seconds;
-            snprintf(timer_string, 20, "%.2ld:%.2ld", elapsed_secs / 60, elapsed_secs % 60);
-            canvas_draw_str_aligned(
-                canvas, 15, 32, AlignCenter, AlignTop, timer_string); // DRAW TIMER
+        const DabTimerClockPoint hour = dab_clock_hours[curr_dt.hour % COUNT_OF(dab_clock_hours)];
+        const DabTimerClockPoint minute = dab_clock_minutes[curr_dt.minute];
+        const DabTimerClockPoint second = dab_clock_seconds[curr_dt.second];
+        canvas_draw_line(canvas, 92, 32, hour.x, hour.y);
+        canvas_draw_line(canvas, 92, 32, minute.x, minute.y);
+        canvas_draw_line(canvas, 92, 32, second.x, second.y);
+        canvas_set_font(canvas, FontSecondary);
+        const char* circle_date = plugin_state->circle_date_string;
+        const uint16_t date_width = canvas_string_width(canvas, circle_date);
+        canvas_draw_frame(canvas, 0, 41, date_width + 6, 13);
+        canvas_draw_str(canvas, 3, 51, circle_date);
+        if(timer_started) {
+            canvas_draw_str_aligned(canvas, 15, 32, AlignCenter, AlignTop, timer_string);
         }
-        furi_string_free(str);
     } else {
-        if(plugin_state->faceType == FaceStyleBinaryInverted) {
+        if(plugin_state->face_style == FaceStyleBinaryInverted) {
             canvas_draw_icon(canvas, 0, 0, &I_black);
-            if(timer_start_timestamp != 0) {
-                // elements_button_left(canvas, "Reset");
-            }
             canvas_set_color(canvas, ColorWhite);
         } else {
             canvas_set_color(canvas, ColorWhite);
-            if(timer_start_timestamp != 0) {
-                // elements_button_left(canvas, "Reset");
-            }
             canvas_set_color(canvas, ColorBlack);
         }
 #ifdef CANVAS_HAS_FONT_BATTERYPERCENT
         canvas_set_font(canvas, FontBatteryPercent);
 #endif
-        if(timer_start_timestamp != 0) {
-            uint32_t elapsed_secs = timer_running ? (curr_ts - timer_start_timestamp) :
-                                                    timer_stopped_seconds;
-            dab_timer_render_binary_face(canvas, elapsed_secs / 60, 5, timer_start_timestamp);
-            dab_timer_render_binary_face(
-                canvas, elapsed_secs % 60, 5 + (9 * 1), timer_start_timestamp);
-            // snprintf(timer_string, 20, "%.2ld:%.2ld", elapsed_secs / 60, elapsed_secs % 60);
-            // canvas_draw_str_aligned(
-            // canvas, 12, 1, AlignCenter, AlignTop, timer_string); // DRAW TIMER
-            // canvas_draw_str_aligned(
-            // canvas, 102, 1, AlignCenter, AlignTop, date_string); // DRAW DATE
-            dab_timer_render_binary_face(canvas, curr_dt.hour, 5 + (9 * 3), timer_start_timestamp);
-            dab_timer_render_binary_face(
-                canvas, curr_dt.minute, 5 + (9 * 4), timer_start_timestamp);
-            dab_timer_render_binary_face(
-                canvas, curr_dt.second, 5 + (9 * 5), timer_start_timestamp);
+        if(timer_started) {
+            dab_timer_render_binary_face(canvas, elapsed_secs / 60, 5);
+            dab_timer_render_binary_face(canvas, elapsed_secs % 60, 5 + (9 * 1));
+            dab_timer_render_binary_face(canvas, curr_dt.hour, 5 + (9 * 3));
+            dab_timer_render_binary_face(canvas, curr_dt.minute, 5 + (9 * 4));
+            dab_timer_render_binary_face(canvas, curr_dt.second, 5 + (9 * 5));
         } else {
-            dab_timer_render_binary_face(canvas, curr_dt.hour, 18, timer_start_timestamp);
-            dab_timer_render_binary_face(canvas, curr_dt.minute, 28, timer_start_timestamp);
-            dab_timer_render_binary_face(canvas, curr_dt.second, 38, timer_start_timestamp);
+            dab_timer_render_binary_face(canvas, curr_dt.hour, 18);
+            dab_timer_render_binary_face(canvas, curr_dt.minute, 28);
+            dab_timer_render_binary_face(canvas, curr_dt.second, 38);
         }
     }
-    if(plugin_state->faceType >= FaceStylePwnInverted) {
+    if(plugin_state->face_style >= FaceStylePwnInverted) {
         canvas_set_color(canvas, ColorBlack);
     }
-    if(plugin_state->faceType < FaceStylePwnInverted) {
+    if(plugin_state->face_style < FaceStylePwnInverted) {
         canvas_set_color(canvas, ColorWhite);
     }
-    if(plugin_state->faceType != FaceStyleCircle && plugin_state->faceType != FaceStyleBinary &&
-       plugin_state->faceType != FaceStyleCircleInverted &&
-       plugin_state->faceType != FaceStyleBinaryInverted) {
+    if(plugin_state->face_style != FaceStyleCircle &&
+       plugin_state->face_style != FaceStyleBinary &&
+       plugin_state->face_style != FaceStyleCircleInverted &&
+       plugin_state->face_style != FaceStyleBinaryInverted) {
 #if __has_include(<cfw/cfw.h>)
-        if(!cfw_settings.game_mode && !plugin_state->w_test) {
+        if(!plugin_state->game_mode && !plugin_state->easter_egg) {
 #else
-        if(!plugin_state->w_test) {
+        if(!plugin_state->easter_egg) {
 #endif
             if(timer_running) {
                 elements_button_center(canvas, "Stop");
@@ -486,340 +361,444 @@ static void dab_timer_render_callback(Canvas* const canvas, void* ctx) {
                 elements_button_center(canvas, "Start");
             }
         }
-        if(timer_running && !plugin_state->w_test) {
-            if(songSelect == SoundAlertOff) {
+        if(timer_running && !plugin_state->easter_egg) {
+            if(sound_alert == SoundAlertOff) {
                 elements_button_right(canvas, "S:OFF");
-            } else if(songSelect == SoundAlertGoGoPoRa) {
+            } else if(sound_alert == SoundAlertGoGoPoRa) {
                 elements_button_right(canvas, "S:PoRa");
-            } else if(songSelect == SoundAlertMario) {
+            } else if(sound_alert == SoundAlertMario) {
                 elements_button_right(canvas, "S:Mario");
-            } else if(songSelect == SoundAlertByMin) {
+            } else if(sound_alert == SoundAlertByMin) {
                 elements_button_right(canvas, "S:ByMin");
-            } else if(songSelect == SoundAlertCont) {
+            } else if(sound_alert == SoundAlertCont) {
                 elements_button_right(canvas, "S:Cont");
             }
         }
 #if __has_include(<cfw/cfw.h>)
-        if(plugin_state->w_test && cfw_settings.game_mode) {
+        if(plugin_state->easter_egg && plugin_state->game_mode) {
 #else
-        if(plugin_state->w_test) {
+        if(plugin_state->easter_egg) {
 #endif
             canvas_draw_icon(canvas, 0, 0, &I_GameModeIcon_11x8);
         }
     }
 }
 
-static void dab_timer_state_init(DabTimerState* const plugin_state) {
-    memset(plugin_state, 0, sizeof(DabTimerState));
-    plugin_state->alert_time = 80;
-    plugin_state->date_format = locale_get_date_format();
-    plugin_state->curEmotiveFace = 0;
-    plugin_state->codeSequence = 0;
-    plugin_state->faceType = FaceStylePwn;
-    plugin_state->lastexp_timestamp = 0;
-    plugin_state->songSelect = SoundAlertMario;
-    plugin_state->time_format = locale_get_time_format();
-    plugin_state->timer_start_timestamp = 0;
-    plugin_state->timer_stopped_seconds = 0;
-    plugin_state->timerSecs = 0;
-    plugin_state->w_test = false;
+static void dab_timer_rearm_alarm(DabTimerState* state) {
+    state->alarm_phase = DabTimerAlarmWaiting;
+    state->last_continuous_second = UINT32_MAX;
 }
 
-void dab_timer_free(DabTimerState* plugin_state) {
-    furi_record_close(RECORD_GUI);
-    furi_record_close(RECORD_NOTIFICATION);
-    furi_message_queue_free(plugin_state->event_queue);
-    furi_mutex_free(plugin_state->mutex);
-    free(plugin_state);
+static void dab_timer_reset_elapsed(DabTimerState* state) {
+    state->model.elapsed_seconds = 0;
+    state->fractional_ticks = 0;
+    state->last_minute = 0;
+    dab_timer_rearm_alarm(state);
 }
 
-static void dab_timer_tick(void* ctx) {
-    // Runs every 1000ms by default
-    furi_assert(ctx);
-    FuriMessageQueue* event_queue = ctx;
-    PluginEvent event = {.type = EventTypeTick};
-    // It's OK to lose this event if system overloaded
-    furi_message_queue_put(event_queue, &event, 0);
+static void dab_timer_state_init(DabTimerState* state, uint32_t now, uint32_t tick_frequency) {
+    memset(state, 0, sizeof(*state));
+    furi_check(tick_frequency);
+    state->last_tick = now;
+    state->tick_frequency = tick_frequency;
+    state->model.alert_time = 80;
+    state->model.face_style = FaceStylePwn;
+    state->model.sound_alert = SoundAlertMario;
+    state->model.run_state = DabTimerReady;
+    state->code_state = DabTimerCodeIdle;
+#if __has_include(<cfw/cfw.h>)
+    state->model.game_mode = cfw_settings.game_mode;
+#endif
+    dab_timer_rearm_alarm(state);
 }
 
-int32_t dab_timer_app(void* p) {
-    UNUSED(p);
-    DabTimerState* plugin_state = malloc(sizeof(DabTimerState));
-    dab_timer_state_init(plugin_state);
-    plugin_state->event_queue = furi_message_queue_alloc(8, sizeof(PluginEvent));
-    if(plugin_state->event_queue == NULL) {
-        FURI_LOG_E(TAG, "cannot create event queue\n");
-        free(plugin_state);
-        return 255;
+static void dab_timer_advance_time(DabTimerState* state, uint32_t now) {
+    const uint32_t delta = now - state->last_tick;
+    state->last_tick = now;
+    if(state->model.run_state != DabTimerRunning) return;
+    const uint32_t frequency = state->tick_frequency;
+    const uint32_t previous_face_step = state->model.elapsed_seconds / 3;
+    uint32_t seconds = delta / frequency;
+    const uint32_t remainder = delta % frequency;
+    /* Carry without overflowing even for a large tick-frequency value. */
+    if(remainder >= frequency - state->fractional_ticks) {
+        seconds++;
+        state->fractional_ticks = remainder - (frequency - state->fractional_ticks);
+    } else {
+        state->fractional_ticks += remainder;
     }
-    plugin_state->mutex = furi_mutex_alloc(FuriMutexTypeNormal);
-    if(plugin_state->mutex == NULL) {
-        FURI_LOG_E(TAG, "cannot create mutex\n");
-        furi_message_queue_free(plugin_state->event_queue);
-        free(plugin_state);
-        return 255;
+    if(seconds > UINT32_MAX - state->model.elapsed_seconds) {
+        state->model.elapsed_seconds = UINT32_MAX;
+    } else {
+        state->model.elapsed_seconds += seconds;
     }
-    FuriTimer* timer =
-        furi_timer_alloc(dab_timer_tick, FuriTimerTypePeriodic, plugin_state->event_queue);
-    if(timer == NULL) {
-        FURI_LOG_E(TAG, "cannot create timer\n");
-        furi_mutex_free(plugin_state->mutex);
-        furi_message_queue_free(plugin_state->event_queue);
-        free(plugin_state);
-        return 255;
+    const uint32_t face_steps = state->model.elapsed_seconds / 3 - previous_face_step;
+    state->model.emotive_face =
+        (DabTimerEmotiveFace)((state->model.emotive_face + face_steps) % DabTimerFaceCount);
+}
+
+static DabTimerAction dab_timer_collect_alerts(DabTimerState* state) {
+    const DabTimerModel* model = &state->model;
+    if(model->run_state != DabTimerRunning) return DabTimerActionNone;
+    DabTimerAction actions = DabTimerActionNone;
+    const uint32_t minute = model->elapsed_seconds / 60;
+    if(minute > state->last_minute) {
+        const uint32_t crossed_minute = (state->last_minute + 1) * 60;
+        if(model->sound_alert != SoundAlertOff &&
+           (crossed_minute < model->alert_time || model->sound_alert == SoundAlertByMin)) {
+            actions |= DabTimerActionMinute;
+        }
+        state->last_minute = minute;
     }
-    // Set system callbacks
-    ViewPort* view_port = view_port_alloc();
-    view_port_draw_callback_set(view_port, dab_timer_render_callback, plugin_state);
-    view_port_input_callback_set(view_port, dab_timer_input_callback, plugin_state->event_queue);
-    NotificationApp* notification = furi_record_open(RECORD_NOTIFICATION);
-    // Open GUI and register view_port
-    Gui* gui = furi_record_open(RECORD_GUI);
-    gui_add_view_port(gui, view_port, GuiLayerFullscreen);
-    furi_timer_start(timer, furi_kernel_get_tick_frequency());
-    // Main loop
-    PluginEvent event;
-    for(bool processing = true; processing;) {
-        FuriStatus event_status = furi_message_queue_get(plugin_state->event_queue, &event, 100);
-        if(event_status == FuriStatusOk) {
-            if(furi_mutex_acquire(plugin_state->mutex, FuriWaitForever) != FuriStatusOk) continue;
-            // press events
-            if(event.type == EventTypeKey) {
-                if(event.input.type == InputTypeShort || event.input.type == InputTypeRepeat) {
-                    switch(event.input.key) {
-                    case InputKeyUp:
-                        if(plugin_state->codeSequence == 0 || plugin_state->codeSequence == 1) {
-                            plugin_state->codeSequence++;
-                            if(plugin_state->timer_running)
-                                plugin_state->alert_time = plugin_state->alert_time + 5;
-                        } else {
-                            plugin_state->codeSequence = 0;
-                            if(plugin_state->timer_running)
-                                plugin_state->alert_time = plugin_state->alert_time + 5;
-                        }
-                        break;
-                    case InputKeyDown:
-                        if(plugin_state->codeSequence == 2 || plugin_state->codeSequence == 3) {
-                            plugin_state->codeSequence++;
-                            if(plugin_state->timer_running && plugin_state->alert_time >= 5)
-                                plugin_state->alert_time = plugin_state->alert_time - 5;
-                        } else {
-                            plugin_state->codeSequence = 0;
-                            if(plugin_state->timer_running && plugin_state->alert_time >= 5)
-                                plugin_state->alert_time = plugin_state->alert_time - 5;
-                        }
-                        break;
-                    case InputKeyRight:
-                        if(plugin_state->codeSequence == 5 || plugin_state->codeSequence == 7) {
-                            plugin_state->codeSequence++;
-                            if(plugin_state->codeSequence == 8) {
+    if(model->elapsed_seconds < model->alert_time) return actions;
+    if(model->sound_alert == SoundAlertCont) {
+        if(state->last_continuous_second != model->elapsed_seconds) {
+            state->last_continuous_second = model->elapsed_seconds;
+            actions |= DabTimerActionMarioFirst;
+        }
+        return actions;
+    }
+    const bool mario = model->sound_alert == SoundAlertMario;
+    const bool rangers = model->sound_alert == SoundAlertGoGoPoRa;
+    if(state->alarm_phase == DabTimerAlarmWaiting) {
+        actions |= mario   ? DabTimerActionMarioFirst :
+                   rangers ? DabTimerActionRangersFirst :
+                             DabTimerActionSilent;
+        state->alarm_phase = mario || rangers ? DabTimerAlarmFirstPlayed : DabTimerAlarmFinished;
+        if(!mario && !rangers) actions |= DabTimerActionRainbow;
+        if(model->easter_egg &&
+           (!state->xp_tick_valid ||
+            (uint32_t)(state->last_tick - state->last_xp_tick) / state->tick_frequency >= 10)) {
+            actions |= DabTimerActionXp;
+            state->last_xp_tick = state->last_tick;
+            state->xp_tick_valid = true;
+        }
+    }
+    const uint32_t phase_elapsed = model->elapsed_seconds - model->alert_time;
+    if(state->alarm_phase == DabTimerAlarmFirstPlayed && phase_elapsed >= 1) {
+        actions |= mario ? DabTimerActionMarioSecond : DabTimerActionRangersSecond;
+        state->alarm_phase = DabTimerAlarmSecondPlayed;
+    }
+    if(state->alarm_phase == DabTimerAlarmSecondPlayed && phase_elapsed >= 2) {
+        actions |= mario ? DabTimerActionMarioThird : DabTimerActionRangersThird;
+        actions |= DabTimerActionRainbow;
+        state->alarm_phase = DabTimerAlarmFinished;
+    }
+    return actions;
+}
+
+static DabTimerInputResult
+    dab_timer_handle_input(DabTimerState* state, const InputEvent* input, DabTimerAction* actions) {
+    DabTimerModel* model = &state->model;
+    if(input->type == InputTypeLong) {
+        if(input->key == InputKeyBack) return DabTimerInputExit;
+        if(input->key != InputKeyLeft) return DabTimerInputIgnored;
+        state->code_state = DabTimerCodeIdle;
+        dab_timer_reset_elapsed(state);
+        model->run_state = DabTimerReady;
+        return DabTimerInputChanged;
+    }
+    if(input->type != InputTypeShort && input->type != InputTypeRepeat)
+        return DabTimerInputIgnored;
+    switch(input->key) {
+    case InputKeyUp:
+        if(state->code_state == DabTimerCodeIdle)
+            state->code_state = DabTimerCodeFirstUp;
+        else if(state->code_state == DabTimerCodeFirstUp)
+            state->code_state = DabTimerCodeSecondUp;
+        else
+            state->code_state = DabTimerCodeIdle;
+        if(model->run_state == DabTimerRunning && model->alert_time <= UINT32_MAX - 5) {
+            model->alert_time += 5;
+            dab_timer_rearm_alarm(state);
+        }
+        break;
+    case InputKeyDown:
+        if(state->code_state == DabTimerCodeSecondUp)
+            state->code_state = DabTimerCodeFirstDown;
+        else if(state->code_state == DabTimerCodeFirstDown)
+            state->code_state = DabTimerCodeSecondDown;
+        else
+            state->code_state = DabTimerCodeIdle;
+        if(model->run_state == DabTimerRunning && model->alert_time >= 5) {
+            model->alert_time -= 5;
+            dab_timer_rearm_alarm(state);
+        }
+        break;
+    case InputKeyLeft:
+        if(state->code_state == DabTimerCodeSecondDown)
+            state->code_state = DabTimerCodeFirstLeft;
+        else if(state->code_state == DabTimerCodeFirstRight)
+            state->code_state = DabTimerCodeSecondLeft;
+        else {
+            state->code_state = DabTimerCodeIdle;
+            if(model->run_state != DabTimerReady)
+                dab_timer_reset_elapsed(state);
+            else
+                model->face_style = (FaceStyle)((model->face_style + 1) % FaceStyleCount);
+        }
+        break;
+    case InputKeyRight:
+        if(state->code_state == DabTimerCodeFirstLeft)
+            state->code_state = DabTimerCodeFirstRight;
+        else if(state->code_state == DabTimerCodeSecondLeft) {
+            state->code_state = DabTimerCodeSecondRight;
 #if __has_include(<cfw/cfw.h>)
-                                dab_timer_dumbmode_changed();
+            model->game_mode = !model->game_mode;
+            *actions |= DabTimerActionSaveGameMode;
 #endif
-                                plugin_state->w_test = true; // OH HEY NOW LETS GAIN EXP & MORE FUN
-                            }
-                        } else {
-                            plugin_state->codeSequence = 0;
-                            if(plugin_state->songSelect < SoundAlertCount - 1) {
-                                plugin_state->songSelect = plugin_state->songSelect + 1;
-                            } else {
-                                plugin_state->songSelect = 0;
-                            }
-                        }
-                        break;
-                    case InputKeyLeft:
-                        if(plugin_state->codeSequence == 4 || plugin_state->codeSequence == 6) {
-                            plugin_state->codeSequence++;
-                        } else {
-                            plugin_state->codeSequence = 0;
-                            if(plugin_state->timer_start_timestamp != 0) {
-                                uint32_t curr_ts = furi_hal_rtc_get_timestamp();
-                                plugin_state->timer_start_timestamp = curr_ts;
-                                plugin_state->timer_stopped_seconds = 0;
-                                plugin_state->timerSecs = 0;
-                            } else {
-                                if(plugin_state->faceType < FaceStyleCount - 1) {
-                                    plugin_state->faceType = plugin_state->faceType + 1;
-                                } else {
-                                    plugin_state->faceType = 0;
-                                }
-                            }
-                        }
-                        break;
-                    case InputKeyOk:
-                        if(plugin_state->codeSequence == 9) {
-                            plugin_state->codeSequence++;
-                        } else {
-                            plugin_state->codeSequence = 0;
+            model->easter_egg = true;
+        } else {
+            state->code_state = DabTimerCodeIdle;
+            model->sound_alert = (SoundAlert)((model->sound_alert + 1) % SoundAlertCount);
+            dab_timer_rearm_alarm(state);
+        }
+        break;
+    case InputKeyOk:
+        if(state->code_state == DabTimerCodeExitBack) {
+            state->code_state = DabTimerCodeIdle;
 #if __has_include(<cfw/cfw.h>)
-                            if(!cfw_settings.game_mode) {
+            model->game_mode = false;
+            *actions |= DabTimerActionSaveGameMode;
 #endif
-                                if(plugin_state->songSelect == SoundAlertMario ||
-                                   plugin_state->songSelect == SoundAlertGoGoPoRa ||
-                                   plugin_state->songSelect == SoundAlertCont ||
-                                   plugin_state->songSelect == SoundAlertByMin) {
-                                    notification_message(notification, &dab_timer_alert_startStop);
-                                }
-                                // START/STOP TIMER
-                                uint32_t curr_ts = furi_hal_rtc_get_timestamp();
-                                if(plugin_state->timer_running) {
-                                    // Update stopped seconds
-                                    plugin_state->timer_stopped_seconds =
-                                        curr_ts - plugin_state->timer_start_timestamp;
-                                } else {
-                                    if(plugin_state->timer_start_timestamp == 0) {
-                                        // Set starting timestamp if this is first time
-                                        plugin_state->timer_start_timestamp = curr_ts;
-                                    } else {
-                                        // Timer was already running, need to slightly readjust so we don't
-                                        // count the intervening time
-                                        plugin_state->timer_start_timestamp =
-                                            curr_ts - plugin_state->timer_stopped_seconds;
-                                    }
-                                }
-                                plugin_state->timer_running = !plugin_state->timer_running;
-#if __has_include(<cfw/cfw.h>)
-                            }
-#endif
-                        }
-                        break;
-                    case InputKeyBack:
-                        if(plugin_state->codeSequence == 8) {
-                            plugin_state->codeSequence++;
-                        } else {
-                            plugin_state->w_test = false;
-                            // Don't Exit the plugin
-                            plugin_state->codeSequence--;
-                            if(plugin_state->codeSequence < (uint8_t)-1) processing = false;
-                        }
-                        break;
-                    default:
-                        break;
-                    }
-                    if(plugin_state->codeSequence == 10) {
-                        plugin_state->codeSequence = 0;
-#if __has_include(<cfw/cfw.h>)
-                        cfw_settings.game_mode = true; // MAKE SURE IT'S ON SO IT GETS TURNED OFF
-                        dab_timer_dumbmode_changed();
-#endif
-                        if(plugin_state->songSelect == SoundAlertMario ||
-                           plugin_state->songSelect == SoundAlertGoGoPoRa ||
-                           plugin_state->songSelect == SoundAlertCont ||
-                           plugin_state->songSelect == SoundAlertByMin) {
-                            notification_message(notification, &sequence_success);
-                            notification_message(notification, &sequence_rainbow);
-                            notification_message(notification, &sequence_rainbow);
-                        }
-#if __has_include(<cfw/cfw.h>)
-                        dolphin_deed(getRandomDeed());
-#else
-                        dolphin_deed(DolphinDeedBadUsbPlayScript);
-#endif
-                    }
-                } else if(event.input.type == InputTypeLong) {
-                    if(event.input.key == InputKeyLeft) {
-                        plugin_state->codeSequence = 0;
-                        if(plugin_state->timer_start_timestamp != 0) {
-                            // Reset seconds
-                            plugin_state->timer_running = false;
-                            plugin_state->timer_start_timestamp = 0;
-                            plugin_state->timer_stopped_seconds = 0;
-                            plugin_state->timerSecs = 0;
-                        }
-                    } else if(event.input.key == InputKeyBack) {
-                        // Exit the plugin
-                        processing = false;
-                    }
-                }
-            } else if(event.type == EventTypeTick) {
-                // Do nothing, just need to update viewport
-                if(plugin_state->timer_running) {
-                    plugin_state->timerSecs = plugin_state->timerSecs + 1;
-                    if(plugin_state->timerSecs != 0 && plugin_state->timerSecs % 3 == 0) {
-                        plugin_state->curEmotiveFace = plugin_state->curEmotiveFace + 1;
-                        if(plugin_state->curEmotiveFace == 25) plugin_state->curEmotiveFace = 0;
-                    }
-                    if(plugin_state->timerSecs % 60 == 0 && plugin_state->timerSecs != 0 &&
-                       plugin_state->songSelect != SoundAlertOff &&
-                       (plugin_state->timerSecs < plugin_state->alert_time ||
-                        plugin_state->songSelect == SoundAlertByMin)) {
-                        notification_message(notification, &dab_timer_alert_perMin);
-                    }
-                    if(plugin_state->songSelect == SoundAlertGoGoPoRa) {
-                        if(plugin_state->timerSecs == plugin_state->alert_time) {
-                            uint32_t curr_ts = furi_hal_rtc_get_timestamp();
-                            if(plugin_state->lastexp_timestamp + 10 <= curr_ts &&
-                               plugin_state->w_test) {
-                                plugin_state->lastexp_timestamp = curr_ts;
-#if __has_include(<cfw/cfw.h>)
-                                dolphin_deed(getRandomDeed());
-#else
-                                dolphin_deed(DolphinDeedBadUsbPlayScript);
-#endif
-                            }
-                            notification_message(notification, &dab_timer_alert_pr1);
-                        }
-                        if(plugin_state->timerSecs == plugin_state->alert_time + 1) {
-                            notification_message(notification, &dab_timer_alert_pr2);
-                        }
-                        if(plugin_state->timerSecs == plugin_state->alert_time + 2) {
-                            notification_message(notification, &dab_timer_alert_pr3);
-                            notification_message(notification, &sequence_rainbow);
-                            notification_message(notification, &sequence_rainbow);
-                        }
-                    } else if(plugin_state->songSelect == SoundAlertCont) {
-                        if(plugin_state->timerSecs >= plugin_state->alert_time) {
-                            notification_message(notification, &dab_timer_alert_mario1);
-                        }
-                    } else if(plugin_state->songSelect == SoundAlertMario) {
-                        if(plugin_state->timerSecs == plugin_state->alert_time) {
-                            uint32_t curr_ts = furi_hal_rtc_get_timestamp();
-                            if(plugin_state->lastexp_timestamp + 10 <= curr_ts &&
-                               plugin_state->w_test) {
-                                plugin_state->lastexp_timestamp = curr_ts;
-#if __has_include(<cfw/cfw.h>)
-                                dolphin_deed(getRandomDeed());
-#else
-                                dolphin_deed(DolphinDeedBadUsbPlayScript);
-#endif
-                            }
-                            notification_message(notification, &dab_timer_alert_mario1);
-                        }
-                        if(plugin_state->timerSecs == plugin_state->alert_time + 1) {
-                            notification_message(notification, &dab_timer_alert_mario2);
-                        }
-                        if(plugin_state->timerSecs == plugin_state->alert_time + 2) {
-                            notification_message(notification, &dab_timer_alert_mario3);
-                            notification_message(notification, &sequence_rainbow);
-                            notification_message(notification, &sequence_rainbow);
-                        }
-                    } else {
-                        if(plugin_state->timerSecs == plugin_state->alert_time) {
-                            uint32_t curr_ts = furi_hal_rtc_get_timestamp();
-                            if(plugin_state->lastexp_timestamp + 10 <= curr_ts &&
-                               plugin_state->w_test) {
-                                plugin_state->lastexp_timestamp = curr_ts;
-#if __has_include(<cfw/cfw.h>)
-                                dolphin_deed(getRandomDeed());
-#else
-                                dolphin_deed(DolphinDeedBadUsbPlayScript);
-#endif
-                            }
-                            notification_message(notification, &dab_timer_alert_silent);
-                            notification_message(notification, &sequence_rainbow);
-                            notification_message(notification, &sequence_rainbow);
-                        }
-                    }
-                }
+            if(model->sound_alert != SoundAlertOff) {
+                *actions |= DabTimerActionSuccess | DabTimerActionRainbow;
+            }
+            *actions |= DabTimerActionXp;
+        } else {
+            state->code_state = DabTimerCodeIdle;
+            if(!model->game_mode) {
+                if(model->sound_alert != SoundAlertOff) *actions |= DabTimerActionStartStop;
+                model->run_state = model->run_state == DabTimerRunning ? DabTimerPaused :
+                                                                         DabTimerRunning;
             }
         }
-        furi_mutex_release(plugin_state->mutex);
-        view_port_update(view_port);
+        break;
+    case InputKeyBack:
+        if(state->code_state == DabTimerCodeSecondRight)
+            state->code_state = DabTimerCodeExitBack;
+        else {
+            model->easter_egg = false;
+            if(state->code_state == DabTimerCodeIdle)
+                state->code_state = DabTimerCodeBackPending;
+            else
+                return DabTimerInputExit;
+        }
+        break;
+    default:
+        return DabTimerInputIgnored;
+    }
+    return DabTimerInputChanged;
+}
+
+static void dab_timer_refresh_display(DabTimerState* state) {
+    DabTimerModel* model = &state->model;
+    DateTime datetime = {0};
+    furi_hal_rtc_get_datetime(&datetime);
+    const LocaleTimeFormat time_format = locale_get_time_format();
+    const LocaleDateFormat date_format = locale_get_date_format();
+    if(!model->time_string[0] || time_format != model->time_format ||
+       datetime.hour != model->datetime.hour || datetime.minute != model->datetime.minute ||
+       datetime.second != model->datetime.second) {
+        unsigned hour = datetime.hour;
+        if(time_format == LocaleTimeFormat12h) hour = hour % 12 ? hour % 12 : 12;
+        snprintf(
+            model->time_string,
+            sizeof(model->time_string),
+            "%02u:%02u:%02u",
+            hour,
+            (unsigned)datetime.minute,
+            (unsigned)datetime.second);
+        snprintf(
+            model->meridian_string,
+            sizeof(model->meridian_string),
+            "%s",
+            datetime.hour >= 12 ? "PM" : "AM");
+    }
+    if(!model->date_string[0] || date_format != model->date_format ||
+       datetime.year != model->datetime.year || datetime.month != model->datetime.month ||
+       datetime.day != model->datetime.day) {
+        const bool ymd = date_format == LocaleDateFormatYMD;
+        const unsigned first = ymd                                ? datetime.year :
+                               date_format == LocaleDateFormatMDY ? datetime.month :
+                                                                    datetime.day;
+        const unsigned second = date_format == LocaleDateFormatMDY ? datetime.day : datetime.month;
+        const unsigned third = ymd ? datetime.day : datetime.year;
+        snprintf(
+            model->date_string,
+            sizeof(model->date_string),
+            ymd ? "%04u-%02u-%02u" : "%02u-%02u-%04u",
+            first,
+            second,
+            third);
+        snprintf(
+            model->circle_date_string,
+            sizeof(model->circle_date_string),
+            ymd ? "%04u.%02u.%02u" : "%02u.%02u.%04u",
+            first,
+            second,
+            third);
+    }
+    model->datetime = datetime;
+    model->date_format = date_format;
+    model->time_format = time_format;
+    snprintf(
+        model->timer_string,
+        sizeof(model->timer_string),
+        "%02lu:%02lu",
+        (unsigned long)(model->elapsed_seconds / 60),
+        (unsigned long)(model->elapsed_seconds % 60));
+    snprintf(
+        model->alert_string, sizeof(model->alert_string), "%lu", (unsigned long)model->alert_time);
+}
+
+static bool dab_timer_apply_actions(
+    NotificationApp* notification,
+    const DabTimerState* state,
+    DabTimerAction actions) {
+#if __has_include(<cfw/cfw.h>)
+    if(actions & DabTimerActionSaveGameMode) {
+        cfw_settings.game_mode = state->model.game_mode;
+        cfw_settings_save();
+    }
+#else
+    UNUSED(state);
+#endif
+    static const struct {
+        DabTimerAction action;
+        const NotificationSequence* sequence;
+    } sequences[] = {
+        {DabTimerActionStartStop, &dab_timer_alert_startStop},
+        {DabTimerActionMinute, &dab_timer_alert_perMin},
+        {DabTimerActionMarioFirst, &dab_timer_alert_mario1},
+        {DabTimerActionMarioSecond, &dab_timer_alert_mario2},
+        {DabTimerActionMarioThird, &dab_timer_alert_mario3},
+        {DabTimerActionRangersFirst, &dab_timer_alert_pr1},
+        {DabTimerActionRangersSecond, &dab_timer_alert_pr2},
+        {DabTimerActionRangersThird, &dab_timer_alert_pr3},
+        {DabTimerActionSilent, &dab_timer_alert_silent},
+        {DabTimerActionSuccess, &sequence_success},
+    };
+    bool queued_notifications = false;
+    for(size_t i = 0; i < COUNT_OF(sequences); i++) {
+        if(actions & sequences[i].action) {
+            notification_message(notification, sequences[i].sequence);
+            queued_notifications = true;
+        }
+    }
+    if(actions & DabTimerActionRainbow) {
+        notification_message(notification, &sequence_rainbow);
+        queued_notifications = true;
+        notification_message(notification, &sequence_rainbow);
+    }
+    if(actions & DabTimerActionXp) {
+#if __has_include(<cfw/cfw.h>)
+        dolphin_deed(getRandomDeed());
+#else
+        dolphin_deed(DolphinDeedBadUsbPlayScript);
+#endif
+    }
+    return queued_notifications;
+}
+
+static void dab_timer_input_callback(InputEvent* input, void* context) {
+    DabTimerApp* app = context;
+    if(input->type == InputTypeLong && input->key == InputKeyBack) {
+        furi_thread_flags_set(app->thread_id, DabTimerFlagExit);
+        return;
+    }
+    if(input->type != InputTypeShort && input->type != InputTypeRepeat &&
+       !(input->type == InputTypeLong && input->key == InputKeyLeft))
+        return;
+    const uint32_t timeout = input->type == InputTypeRepeat ? 0 : 10;
+    if(furi_message_queue_put(app->event_queue, input, timeout) == FuriStatusOk) {
+        furi_thread_flags_set(app->thread_id, DabTimerFlagInput);
+    }
+}
+
+static void dab_timer_tick(void* context) {
+    DabTimerApp* app = context;
+    /* Coalesced wakeups are safe: elapsed time comes from the kernel tick clock. */
+    furi_thread_flags_set(app->thread_id, DabTimerFlagTick);
+}
+
+int32_t dab_timer_app(void* context) {
+    UNUSED(context);
+    DabTimerApp* app = malloc(sizeof(*app));
+    if(!app) return 255;
+    memset(app, 0, sizeof(*app));
+    app->thread_id = furi_thread_get_current_id();
+    app->event_queue = furi_message_queue_alloc(16, sizeof(InputEvent));
+    app->mutex = furi_mutex_alloc(FuriMutexTypeNormal);
+    if(!app->event_queue || !app->mutex) {
+        if(app->event_queue) furi_message_queue_free(app->event_queue);
+        if(app->mutex) furi_mutex_free(app->mutex);
+        free(app);
+        return 255;
+    }
+    FuriTimer* timer = furi_timer_alloc(dab_timer_tick, FuriTimerTypePeriodic, app);
+    if(!timer) {
+        furi_mutex_free(app->mutex);
+        furi_message_queue_free(app->event_queue);
+        free(app);
+        return 255;
+    }
+    DabTimerState state;
+    dab_timer_state_init(&state, furi_get_tick(), furi_kernel_get_tick_frequency());
+    dab_timer_refresh_display(&state);
+    app->model = state.model;
+    ViewPort* view_port = view_port_alloc();
+    view_port_draw_callback_set(view_port, dab_timer_render_callback, app);
+    view_port_input_callback_set(view_port, dab_timer_input_callback, app);
+    NotificationApp* notification = furi_record_open(RECORD_NOTIFICATION);
+    Gui* gui = furi_record_open(RECORD_GUI);
+    gui_add_view_port(gui, view_port, GuiLayerFullscreen);
+    furi_timer_start(timer, state.tick_frequency);
+    bool notifications_sent = false;
+    for(bool processing = true; processing;) {
+        const uint32_t flags = furi_thread_flags_wait(
+            DabTimerFlagInput | DabTimerFlagTick | DabTimerFlagRedraw | DabTimerFlagExit,
+            FuriFlagWaitAny,
+            FuriWaitForever);
+        if(flags & FuriFlagError) break;
+        if(flags & DabTimerFlagExit) break;
+        const DabTimerModel before = state.model;
+        dab_timer_advance_time(&state, furi_get_tick());
+        const DabTimerAction timer_actions = dab_timer_collect_alerts(&state);
+        DabTimerAction actions = DabTimerActionNone;
+        InputEvent input;
+        if(furi_message_queue_get(app->event_queue, &input, 0) == FuriStatusOk) {
+            if(dab_timer_handle_input(&state, &input, &actions) == DabTimerInputExit) {
+                processing = false;
+            }
+        }
+        if(furi_message_queue_get_count(app->event_queue)) {
+            furi_thread_flags_set(app->thread_id, DabTimerFlagInput);
+        }
+        if(!processing) break;
+        actions |= dab_timer_collect_alerts(&state);
+        dab_timer_refresh_display(&state);
+        const bool changed = memcmp(&before, &state.model, sizeof(before)) != 0;
+        if(changed) {
+            furi_check(furi_mutex_acquire(app->mutex, FuriWaitForever) == FuriStatusOk);
+            app->model = state.model;
+            furi_mutex_release(app->mutex);
+        }
+        if(changed || (flags & DabTimerFlagRedraw)) view_port_update(view_port);
+        notifications_sent |= dab_timer_apply_actions(notification, &state, timer_actions);
+        notifications_sent |= dab_timer_apply_actions(notification, &state, actions);
     }
     furi_timer_free(timer);
+    /* The notification queue retains pointers into this FAP until playback finishes. */
+    if(notifications_sent)
+        notification_message_block(notification, &sequence_display_backlight_on);
     view_port_enabled_set(view_port, false);
     gui_remove_view_port(gui, view_port);
     view_port_free(view_port);
-    dab_timer_free(plugin_state);
+    furi_record_close(RECORD_GUI);
+    furi_record_close(RECORD_NOTIFICATION);
+    furi_message_queue_free(app->event_queue);
+    furi_mutex_free(app->mutex);
+    free(app);
     return 0;
 }

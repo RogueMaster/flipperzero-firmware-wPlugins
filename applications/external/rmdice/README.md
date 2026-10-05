@@ -4,15 +4,21 @@
 &nbsp;<a href='https://www.patreon.com/RogueMaster?filters[tag]=Latest%20Release' target='_blank'><img src="https://raw.githubusercontent.com/RogueMaster/flipperzero-firmware-wPlugins/420/.github/assets/Patreon.png"  alt='Latest PATREON Release' title='Latest PATREON Release'></a>
 &nbsp;<a href='https://github.com/RogueMaster/awesome-flipperzero-withModules' target='_blank'><img src="https://raw.githubusercontent.com/RogueMaster/flipperzero-firmware-wPlugins/420/.github/assets/Resources.png"  alt='More Research / Assets' title='More Research / Assets'></a></h1>
 
-# Dice (By RogueMaster)
-- Displays roll date/time on each roll
-## Including d2, d3, d4, d6, d8, d10, d12, d20 & d100 (Works Great for Dungeons and Dragons)
-- Allows 1 to 5 dice to be rolled at once
-- Dolphin +10 EXP:
-- - Dice First Roll for d20+ = sides on dice (i.e. Nat 20 on d20)
-- - Dice First Roll for d20+ = sides on dice - 1 (+1 EXP) (i.e. 19 on d20)
-## Including d59 + d69 (Lotto Dice)
-## Including 8BALL/DEVIL BALL/DRINK/SEX/WAR/WEED DICE
+# Dice (RM) v2.6
+
+## Controls and modes
+
+| Control | Action |
+| --- | --- |
+| Right, including repeat | Advance to the next dice/game mode. |
+| Left, including repeat | Cycle the quantity from one through six dice. |
+| OK, including repeat | Roll, shake, or draw once. |
+| Back | Exit; holding Back also requests exit directly. |
+
+Normal mode order is d2, d3, d4, d6, d8, d10, d12, d20, d100, SEX, WAR,
+8BALL, DBALL, WEED, DRINK, d59, and d69, then back to d2.
+
+WAR draws two distinct cards from the original 52-card ordering.
 
 # If you want this app expanded to add a specific die or functionality, feel free to open a Pull Request with improvements. <br>All improvements are welcomed!
 

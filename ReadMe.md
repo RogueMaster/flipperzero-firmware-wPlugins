@@ -167,7 +167,9 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Lock Menu: Restore Lock + Off without PIN setup; keep three visible rows while scrolling through all four lock actions in both Grid and List styles. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/c737624725d6d749c37bc954ddc2e064b535292c)
 - Updated: [ProtoPirate v4.0 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
 - RFID: [Casi-Rusco offset follows the card field's top bit, not card 195538 (By srkz)](https://github.com/DarkFlippers/unleashed-firmware/pull/1163)
-- FBT: Rebuild/update submodules only on head changes (By RogueMaster)
+- FBT: [Rebuild/update submodules only on head changes (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/13e608aa18772f0dc5a5e45dc6c8ce5399868e31)
+- Updated: [Dice (RM) v2.6 (By RogueMaster)](applications/external/rmdice) - enum-based modes, event-driven rolling and drawing, immutable message tables, unbiased 32-bit random selection, safe WAR card draws and wider scores. All modes, Game Mode exclusions and first-die XP triggers retained. [Refactor details](documentation/RM_DICE_DAB_REFACTOR.md).
+- Updated: [Dab Timer v2.3 (By RogueMaster)](applications/external/dab_timer) - enum-based timer and code states, integer analog-clock rendering, cached dates, monotonic stopwatch/alarm timing, event-driven updates and safe notification cleanup. All ten faces, five sound modes, animations, XP and Game Mode exit controls retained. [Refactor details](documentation/RM_DICE_DAB_REFACTOR.md).
 
 <a name="release"></a>
 

@@ -8,7 +8,6 @@
 #include <gui/gui.h>
 #include <input/input.h>
 #include <locale/locale.h>
-#include <math.h>
 #include <notification/notification.h>
 #include <notification/notification_messages.h>
 
@@ -16,32 +15,14 @@
 #include <cfw/cfw.h>
 #endif
 
-#define DAB_TIMER_ISO_DATE_FORMAT "%.4d-%.2d-%.2d"
-#define DAB_TIMER_RFC_DATE_FORMAT "%.2d-%.2d-%.4d"
-#define DAB_TIMER_TIME_FORMAT     "%.2d:%.2d:%.2d"
-#define MERIDIAN_FORMAT           "%s"
-#define MERIDIAN_STRING_AM        "AM"
-#define MERIDIAN_STRING_PM        "PM"
-#define TIME_LEN                  12
-#define DATE_LEN                  14
-#define MERIDIAN_LEN              3
-#define PI                        3.14
-// #define DAB_TIMER_SETTINGS_PATH CFG_PATH("dab_timer_settings.txt")
+#define TIME_LEN     12
+#define DATE_LEN     14
+#define MERIDIAN_LEN 3
 
 typedef struct {
     uint8_t x;
     uint8_t y;
-} Vector2;
-
-typedef enum {
-    EventTypeTick,
-    EventTypeKey,
-} EventType;
-
-typedef struct {
-    EventType type;
-    InputEvent input;
-} PluginEvent;
+} DabTimerClockPoint;
 
 typedef enum {
     FaceStylePwn,
@@ -66,24 +47,132 @@ typedef enum {
     SoundAlertCount,
 } SoundAlert;
 
+typedef enum {
+    DabTimerReady,
+    DabTimerRunning,
+    DabTimerPaused,
+} DabTimerRunState;
+
+typedef enum {
+    DabTimerCodeIdle,
+    DabTimerCodeFirstUp,
+    DabTimerCodeSecondUp,
+    DabTimerCodeFirstDown,
+    DabTimerCodeSecondDown,
+    DabTimerCodeFirstLeft,
+    DabTimerCodeFirstRight,
+    DabTimerCodeSecondLeft,
+    DabTimerCodeSecondRight,
+    DabTimerCodeExitBack,
+    DabTimerCodeBackPending,
+} DabTimerCodeState;
+
+typedef enum {
+    DabTimerFaceAngry,
+    DabTimerFaceAwake,
+    DabTimerFaceBored,
+    DabTimerFaceBroken,
+    DabTimerFaceCool,
+    DabTimerFaceDebug,
+    DabTimerFaceDemotivated,
+    DabTimerFaceExcited,
+    DabTimerFaceFriend,
+    DabTimerFaceGrateful,
+    DabTimerFaceHappy,
+    DabTimerFaceIntense,
+    DabTimerFaceLonely,
+    DabTimerFaceLookLeft,
+    DabTimerFaceLookLeftHappy,
+    DabTimerFaceLookRight,
+    DabTimerFaceLookRightHappy,
+    DabTimerFaceMotivated,
+    DabTimerFaceSad,
+    DabTimerFaceSleep2,
+    DabTimerFaceSleep,
+    DabTimerFaceSmart,
+    DabTimerFaceUpload1,
+    DabTimerFaceUpload2,
+    DabTimerFaceUpload,
+    DabTimerFaceCount,
+} DabTimerEmotiveFace;
+
+typedef enum {
+    DabTimerAlarmWaiting,
+    DabTimerAlarmFirstPlayed,
+    DabTimerAlarmSecondPlayed,
+    DabTimerAlarmFinished,
+} DabTimerAlarmPhase;
+
+typedef enum {
+    DabTimerActionNone = 0,
+    DabTimerActionStartStop = 1 << 0,
+    DabTimerActionMinute = 1 << 1,
+    DabTimerActionMarioFirst = 1 << 2,
+    DabTimerActionMarioSecond = 1 << 3,
+    DabTimerActionMarioThird = 1 << 4,
+    DabTimerActionRangersFirst = 1 << 5,
+    DabTimerActionRangersSecond = 1 << 6,
+    DabTimerActionRangersThird = 1 << 7,
+    DabTimerActionSilent = 1 << 8,
+    DabTimerActionRainbow = 1 << 9,
+    DabTimerActionSuccess = 1 << 10,
+    DabTimerActionXp = 1 << 11,
+    DabTimerActionSaveGameMode = 1 << 12,
+} DabTimerAction;
+
+typedef enum {
+    DabTimerInputIgnored,
+    DabTimerInputChanged,
+    DabTimerInputExit,
+} DabTimerInputResult;
+
+typedef enum {
+    DabTimerFlagInput = 1 << 0,
+    DabTimerFlagTick = 1 << 1,
+    DabTimerFlagRedraw = 1 << 2,
+    DabTimerFlagExit = 1 << 3,
+} DabTimerThreadFlag;
+
+typedef struct {
+    DateTime datetime;
+    LocaleDateFormat date_format;
+    LocaleTimeFormat time_format;
+    DabTimerRunState run_state;
+    FaceStyle face_style;
+    SoundAlert sound_alert;
+    DabTimerEmotiveFace emotive_face;
+    uint32_t elapsed_seconds;
+    uint32_t alert_time;
+    bool easter_egg;
+    bool game_mode;
+    char time_string[TIME_LEN];
+    char date_string[DATE_LEN];
+    char circle_date_string[DATE_LEN];
+    char meridian_string[MERIDIAN_LEN];
+    char timer_string[20];
+    char alert_string[11];
+} DabTimerModel;
+
+/* Owned by the app thread; only the separately published model is shared with GUI. */
+typedef struct {
+    DabTimerModel model;
+    DabTimerCodeState code_state;
+    DabTimerAlarmPhase alarm_phase;
+    uint32_t last_tick;
+    uint32_t tick_frequency;
+    uint32_t fractional_ticks;
+    uint32_t last_minute;
+    uint32_t last_continuous_second;
+    uint32_t last_xp_tick;
+    bool xp_tick_valid;
+} DabTimerState;
+
 typedef struct {
     FuriMutex* mutex;
     FuriMessageQueue* event_queue;
-    LocaleDateFormat date_format;
-    LocaleTimeFormat time_format;
-    // ViewDispatcher* view_dispatcher;
-    uint32_t timer_start_timestamp;
-    uint32_t lastexp_timestamp;
-    uint32_t timer_stopped_seconds;
-    uint32_t timerSecs;
-    uint32_t alert_time;
-    uint8_t codeSequence;
-    uint8_t curEmotiveFace;
-    bool timer_running;
-    bool w_test;
-    FaceStyle faceType;
-    SoundAlert songSelect;
-} DabTimerState;
+    FuriThreadId thread_id;
+    DabTimerModel model;
+} DabTimerApp;
 
 const NotificationSequence dab_timer_alert_silent = {
     &message_vibro_on,
@@ -285,11 +374,3 @@ const NotificationSequence sequence_rainbow = {
     &message_delay_250, &message_red_255,   &message_green_255,
     &message_blue_255,  &message_delay_250, NULL,
 };
-
-static Vector2 angle_to_vector2(float angle_in_degrees, uint8_t distance, Vector2 center);
-
-void dab_timer_render_binary_face(
-    Canvas* const canvas,
-    int32_t value,
-    int32_t height,
-    uint32_t timer_start_timestamp);
