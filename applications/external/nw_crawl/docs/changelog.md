@@ -1,3 +1,8 @@
+v0.3:
+- Umbrella: Back then a direction shoves a neighbouring enemy back and stuns it
+- Slingshot: won from Sasquatch, fires pebbles in a straight line
+- Pebbles to collect on every street
+
 v0.2:
 - The walk is saved at each new street and can be continued from the title screen
 - Records: furthest street, wins and fastest win

@@ -23,7 +23,7 @@
 #define EXIT_ROOM_W  5
 #define EXIT_ROOM_H  3
 #define MAX_MONSTERS 16
-#define MAX_ITEMS    8
+#define MAX_ITEMS    10
 #define FOV_RADIUS   4
 #define MAX_COFFEE   9
 #define COFFEE_HEAL  5
@@ -56,6 +56,9 @@ typedef enum {
     ItemDonut,
     ItemIpa,
     ItemBook,
+    ItemUmbrella,
+    ItemSlingshot,
+    ItemPebbles,
     ItemTypeCount,
 } ItemType;
 
@@ -106,7 +109,17 @@ static const char* const level_names[] = {
 // and is too elusive to be seen from more than a couple of tiles away
 #define SASQUATCH_MIN_TIER 5
 #define SASQUATCH_ODDS     2
-#define SASQUATCH_SIGHT    2
+
+// The umbrella lies on this street (and every later one until it is picked up)
+#define UMBRELLA_DEPTH   2
+// How far it shoves, and how many of its turns the shoved local loses
+#define SHOVE_TILES      2
+#define SHOVE_STUN       2
+// The slingshot is Sasquatch's; pebbles for it turn up on every street
+#define PEBBLES_PER_PILE 3
+#define MAX_PEBBLES      9
+#define SLING_RANGE      5
+#define SASQUATCH_SIGHT  2
 
 // Landmarks are safe rooms with a shopfront, one per street at most
 typedef enum {
@@ -386,6 +399,39 @@ static const uint8_t spr_items[ItemTypeCount][8] = {
             B(0b01111111),
             B(0b00111111),
         },
+    [ItemUmbrella] =
+        {
+            B(0b00111100),
+            B(0b01111110),
+            B(0b11111111),
+            B(0b00001000),
+            B(0b00001000),
+            B(0b00001000),
+            B(0b00101000),
+            B(0b00010000),
+        },
+    [ItemSlingshot] =
+        {
+            B(0b10000001),
+            B(0b11000011),
+            B(0b01100110),
+            B(0b00111100),
+            B(0b00011000),
+            B(0b00011000),
+            B(0b00011000),
+            B(0b00011000),
+        },
+    [ItemPebbles] =
+        {
+            B(0b00000000),
+            B(0b00000000),
+            B(0b00110000),
+            B(0b00110110),
+            B(0b00000110),
+            B(0b01100000),
+            B(0b01100000),
+            B(0b00000000),
+        },
 };
 
 // Square-wave blips through the notification service, so they follow the
@@ -497,6 +543,8 @@ typedef struct {
     uint8_t type;
     // A raccoon carrying a stolen coffee, or a coyote that has heard the howl
     bool flag;
+    // Turns still to lose after being shoved
+    uint8_t stun;
     bool alive;
 } Monster;
 
@@ -519,7 +567,12 @@ typedef struct {
     uint8_t xp;
     uint8_t coffee;
     uint8_t has_guide;
+    // Added in 0.3. A save from before is the same up to here.
+    uint8_t has_umbrella;
+    uint8_t has_sling;
+    uint8_t pebbles;
 } SaveData;
+#define SAVE_SIZE_V1 offsetof(SaveData, has_umbrella)
 
 typedef struct {
     uint32_t magic;
@@ -558,6 +611,11 @@ typedef struct {
     int xp, level;
     int coffee;
     bool has_guide;
+    bool has_umbrella;
+    bool has_sling;
+    int pebbles;
+    // Back was pressed: the next direction swings the umbrella or fires the slingshot
+    bool aiming;
     int kills;
     int turns;
 
@@ -731,6 +789,7 @@ static void spawn_monster(Game* g, const Room* room, MonsterType type) {
         m->type = type;
         m->hp = monster_info[type].hp;
         m->flag = false;
+        m->stun = 0;
         m->alive = true;
         return;
     }
@@ -921,12 +980,18 @@ static void generate_level(Game* g) {
             i++;
         }
     }
-    if(!boss_level && tier >= SASQUATCH_MIN_TIER && rnd(SASQUATCH_ODDS) == 0) {
+    // He keeps turning up until you have won his slingshot off him
+    if(!boss_level && tier >= SASQUATCH_MIN_TIER && (!g->has_sling || rnd(SASQUATCH_ODDS) == 0)) {
         spawn_monster(g, last, MonsterSasquatch);
     }
 
     spawn_item(g, &rooms[rnd(count)], ItemCoffee);
     if(rnd(2)) spawn_item(g, &rooms[rnd(count)], ItemCoffee);
+    spawn_item(g, &rooms[rnd(count)], ItemPebbles);
+    if(g->has_sling && rnd(2)) spawn_item(g, &rooms[rnd(count)], ItemPebbles);
+    if(!g->has_umbrella && g->depth >= UMBRELLA_DEPTH) {
+        spawn_item(g, &rooms[1 + rnd(count - 1)], ItemUmbrella);
+    }
     if(rnd(2)) spawn_item(g, &rooms[rnd(count)], ItemDonut);
     if(rnd(3) == 0) spawn_item(g, &rooms[rnd(count)], ItemIpa);
     if(landmark == LandmarkPowells) {
@@ -959,6 +1024,9 @@ static void generate_level(Game* g) {
             .xp = (uint8_t)g->xp,
             .coffee = (uint8_t)g->coffee,
             .has_guide = g->has_guide,
+            .has_umbrella = g->has_umbrella,
+            .has_sling = g->has_sling,
+            .pebbles = (uint8_t)g->pebbles,
         };
         g->has_save = true;
         g->want_save = true;
@@ -976,6 +1044,10 @@ static void new_game(Game* g) {
     g->xp = 0;
     g->coffee = g->depth ? 3 : 1;
     g->has_guide = false;
+    g->has_umbrella = g->depth > UMBRELLA_DEPTH;
+    g->has_sling = g->depth * DIFFICULTY_TIERS / (LEVEL_COUNT - 1) > SASQUATCH_MIN_TIER;
+    g->pebbles = g->has_sling ? 6 : 0;
+    g->aiming = false;
     g->kills = 0;
     g->turns = 0;
     g->recap[0] = '\0';
@@ -1000,6 +1072,10 @@ static void continue_game(Game* g) {
     g->xp = s->xp;
     g->coffee = s->coffee;
     g->has_guide = s->has_guide;
+    g->has_umbrella = s->has_umbrella;
+    g->has_sling = s->has_sling;
+    g->pebbles = MIN(s->pebbles, MAX_PEBBLES);
+    g->aiming = false;
     g->kills = s->kills;
     g->turns = (int)s->turns;
     g->recap[0] = '\0';
@@ -1076,12 +1152,12 @@ static void drop_item(Game* g, int x, int y, ItemType type) {
     }
 }
 
-static void attack_monster(Game* g, Monster* m) {
+// Any damage the player deals goes through here. `how` leads the message, e.g. "Hit".
+static void damage_monster(Game* g, Monster* m, int dmg, const char* how) {
     const MonsterInfo* info = &monster_info[m->type];
-    int dmg = 1 + rnd(g->atk);
     m->hp -= dmg;
     if(m->hp > 0) {
-        snprintf(g->msg, sizeof(g->msg), "Hit %s.", info->name);
+        snprintf(g->msg, sizeof(g->msg), "%s %s.", how, info->name);
         play(g, &sfx_hit, SfxPrioHit);
         if(m->type == MonsterWitch && rnd(3) == 0) witch_blink(g, m);
         return;
@@ -1095,13 +1171,19 @@ static void attack_monster(Game* g, Monster* m) {
     snprintf(g->msg, sizeof(g->msg), "%s down!", info->name);
     play(g, &sfx_kill, SfxPrioKill);
     if(m->type == MonsterSasquatch) {
-        drop_item(g, m->x, m->y, rnd(2) ? ItemDonut : ItemIpa);
+        // The first one you beat gives up his slingshot
+        ItemType loot = !g->has_sling ? ItemSlingshot : rnd(2) ? ItemDonut : ItemIpa;
+        drop_item(g, m->x, m->y, loot);
         say_more(g, "He dropped something.");
     } else if(m->type == MonsterRaccoon && m->flag && walkable(g, m->x, m->y)) {
         drop_item(g, m->x, m->y, ItemCoffee);
         say_more(g, "Your coffee!");
     }
     gain_xp(g, info->xp);
+}
+
+static void attack_monster(Game* g, Monster* m) {
+    damage_monster(g, m, 1 + rnd(g->atk), "Hit");
 }
 
 static void pick_up(Game* g, Item* it) {
@@ -1131,6 +1213,22 @@ static void pick_up(Game* g, Item* it) {
             reveal_map(g);
             say(g, "Used book: a map!");
         }
+        break;
+    case ItemUmbrella:
+        g->has_umbrella = true;
+        say(g, "Umbrella! Back to shove.");
+        break;
+    case ItemSlingshot:
+        g->has_sling = true;
+        say(g, "Slingshot! Back to fire.");
+        break;
+    case ItemPebbles:
+        if(g->pebbles >= MAX_PEBBLES) {
+            say(g, "Pockets full of pebbles.");
+            return;
+        }
+        g->pebbles = MIN(g->pebbles + PEBBLES_PER_PILE, MAX_PEBBLES);
+        snprintf(g->msg, sizeof(g->msg), "Pebbles (%d).", g->pebbles);
         break;
     default:
         break;
@@ -1169,6 +1267,7 @@ static void witch_summon(Game* g, const Monster* witch) {
             m->type = MonsterCrow;
             m->hp = monster_info[MonsterCrow].hp;
             m->flag = false;
+            m->stun = 0;
             m->alive = true;
             say_more(g, "She calls a crow!");
             play(g, &sfx_magic, SfxPrioMagic);
@@ -1240,6 +1339,10 @@ static void monsters_act(Game* g) {
     for(int i = 0; i < MAX_MONSTERS; i++) {
         Monster* m = &g->monsters[i];
         if(!m->alive) continue;
+        if(m->stun) {
+            m->stun--;
+            continue;
+        }
         const MonsterInfo* info = &monster_info[m->type];
 
         int dx = g->px - m->x;
@@ -1442,6 +1545,68 @@ static void player_drink_or_wait(Game* g) {
     end_turn(g);
 }
 
+// Swings the umbrella at a local standing next to you: it is shoved back and
+// loses a turn or two. One with nowhere to go is hurt instead.
+static void swing_umbrella(Game* g, Monster* m, int dx, int dy) {
+    const MonsterInfo* info = &monster_info[m->type];
+    if(m->type == MonsterSasquatch) {
+        say(g, "He's too big to shove!");
+        return;
+    }
+    int moved = 0;
+    while(moved < SHOVE_TILES && monster_can_enter(g, m, m->x + dx, m->y + dy)) {
+        m->x += dx;
+        m->y += dy;
+        moved++;
+    }
+    if(moved == 0) {
+        damage_monster(g, m, 1 + rnd(2), "Slammed");
+        if(m->alive && m->type != MonsterWitch) m->stun = SHOVE_STUN;
+        return;
+    }
+    // The Witch can be pushed around, but never loses her footing
+    if(m->type != MonsterWitch) m->stun = SHOVE_STUN;
+    snprintf(g->msg, sizeof(g->msg), "Shoved %s back!", info->name);
+    play(g, &sfx_hit, SfxPrioHit);
+}
+
+// Fires a pebble in a straight line at the first local in the way
+static void fire_slingshot(Game* g, int dx, int dy) {
+    g->pebbles--;
+    int x = g->px, y = g->py;
+    for(int n = 0; n < SLING_RANGE; n++) {
+        x += dx;
+        y += dy;
+        if(!in_map(x, y)) break;
+        // Checked before the wall, because a crow may be perched on it
+        Monster* m = monster_at(g, x, y);
+        if(m) {
+            damage_monster(g, m, 2 + rnd(g->atk / 2 + 1), "Pebble hits");
+            return;
+        }
+        if(!walkable(g, x, y)) break;
+    }
+    say(g, "The pebble skitters away.");
+}
+
+// Back, then a direction: the umbrella if a local is right there, otherwise the slingshot
+static void player_use(Game* g, int dx, int dy) {
+    g->msg[0] = '\0';
+    Monster* m = monster_at(g, g->px + dx, g->py + dy);
+    if(m && g->has_umbrella) {
+        swing_umbrella(g, m, dx, dy);
+    } else if(g->has_sling && g->pebbles > 0) {
+        fire_slingshot(g, dx, dy);
+    } else if(g->has_sling) {
+        say(g, "Out of pebbles!");
+        return;
+    } else {
+        say(g, "Nobody there to shove.");
+        return;
+    }
+    end_turn(g);
+}
+
 static void handle_key(Game* g, InputKey key) {
     if(g->state == StateTitle) {
         if(key == InputKeyOk) {
@@ -1470,6 +1635,45 @@ static void handle_key(Game* g, InputKey key) {
             } else {
                 new_game(g);
             }
+        }
+        return;
+    }
+
+    if(key == InputKeyBack) {
+        if(g->aiming) {
+            g->aiming = false;
+            g->msg[0] = '\0';
+        } else if(!g->has_umbrella && !g->has_sling) {
+            say(g, "Nothing to swing or fire.");
+        } else {
+            g->aiming = true;
+            if(g->has_sling) {
+                snprintf(g->msg, sizeof(g->msg), "Which way? (%d pebbles)", g->pebbles);
+            } else {
+                say(g, "Shove which way?");
+            }
+        }
+        return;
+    }
+    if(g->aiming) {
+        g->aiming = false;
+        g->msg[0] = '\0';
+        switch(key) {
+        case InputKeyUp:
+            player_use(g, 0, -1);
+            break;
+        case InputKeyDown:
+            player_use(g, 0, 1);
+            break;
+        case InputKeyLeft:
+            player_use(g, -1, 0);
+            break;
+        case InputKeyRight:
+            player_use(g, 1, 0);
+            break;
+        default:
+            // OK just puts it away
+            break;
         }
         return;
     }
@@ -1624,7 +1828,21 @@ static void draw_map(Canvas* canvas, Game* g) {
     canvas_draw_str(canvas, tx, 38, buf);
     snprintf(buf, sizeof(buf), "KOs %d", g->kills);
     canvas_draw_str(canvas, tx, 47, buf);
-    if(g->has_guide) canvas_draw_str(canvas, tx, 56, "Guide");
+    // What you are carrying: trail guide, umbrella, slingshot and pebbles
+    int gx = tx;
+    if(g->has_guide) {
+        canvas_draw_xbm(canvas, gx, 50, TILE, TILE, spr_items[ItemBook]);
+        gx += TILE + 2;
+    }
+    if(g->has_umbrella) {
+        canvas_draw_xbm(canvas, gx, 50, TILE, TILE, spr_items[ItemUmbrella]);
+        gx += TILE + 2;
+    }
+    if(g->has_sling) {
+        canvas_draw_xbm(canvas, gx, 50, TILE, TILE, spr_items[ItemSlingshot]);
+        snprintf(buf, sizeof(buf), "%d", g->pebbles);
+        canvas_draw_str(canvas, gx + TILE + 1, 58, buf);
+    }
 }
 
 static void draw_game(Canvas* canvas, Game* g) {
@@ -1808,15 +2026,18 @@ static void title_music_stop(void) {
     furi_hal_speaker_release();
 }
 
-static bool file_read(const char* path, void* data, size_t size) {
+// Reads up to `size` bytes and returns how many there were
+static size_t file_read(const char* path, void* data, size_t size) {
     Storage* storage = furi_record_open(RECORD_STORAGE);
     File* file = storage_file_alloc(storage);
-    bool ok = storage_file_open(file, path, FSAM_READ, FSOM_OPEN_EXISTING) &&
-              storage_file_read(file, data, size) == size;
+    size_t got = 0;
+    if(storage_file_open(file, path, FSAM_READ, FSOM_OPEN_EXISTING)) {
+        got = storage_file_read(file, data, size);
+    }
     storage_file_close(file);
     storage_file_free(file);
     furi_record_close(RECORD_STORAGE);
-    return ok;
+    return got;
 }
 
 static void file_write(const char* path, const void* data, size_t size) {
@@ -1837,9 +2058,12 @@ static void file_remove(const char* path) {
 }
 
 static void storage_load(Game* g) {
-    g->has_save = file_read(SAVE_PATH, &g->save, sizeof(g->save)) && g->save.magic == SAVE_MAGIC &&
+    // A save from before the umbrella and slingshot is shorter, and carries neither
+    memset(&g->save, 0, sizeof(g->save));
+    size_t got = file_read(SAVE_PATH, &g->save, sizeof(g->save));
+    g->has_save = (got == sizeof(g->save) || got == SAVE_SIZE_V1) && g->save.magic == SAVE_MAGIC &&
                   g->save.depth < LEVEL_COUNT;
-    if(!file_read(RECORDS_PATH, &g->records, sizeof(g->records)) ||
+    if(file_read(RECORDS_PATH, &g->records, sizeof(g->records)) != sizeof(g->records) ||
        g->records.magic != RECORDS_MAGIC || g->records.best_depth >= LEVEL_COUNT) {
         memset(&g->records, 0, sizeof(g->records));
         g->records.magic = RECORDS_MAGIC;
@@ -1901,7 +2125,8 @@ int32_t nw_crawl_app(void* p) {
 
         if(event.key == InputKeyBack) {
             if(event.type == InputTypeLong) break;
-            continue;
+            // A short Back only means something during a walk
+            if(event.type != InputTypeShort || g->state != StatePlaying) continue;
         }
         // Holding OK opens the map; any press closes it again
         if(g->state == StatePlaying && !g->show_map && event.key == InputKeyOk &&
