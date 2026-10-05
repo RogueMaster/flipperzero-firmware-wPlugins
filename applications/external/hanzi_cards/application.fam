@@ -9,6 +9,6 @@ App(
     fap_category="Tools",
     fap_author="rseufert",
     fap_weburl="https://github.com/rseufert/hanzi_cards",
-    fap_version="0.3",
-    fap_description="Mandarin flashcards: HSK 1-3, simplified or traditional, pinyin and tone sounds",
+    fap_version="0.4",
+    fap_description="Mandarin flashcards: HSK 1-4, simplified or traditional, pinyin, tone sounds and a tone quiz",
 )

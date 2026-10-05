@@ -6,14 +6,22 @@ Mandarin flashcards for the [Flipper Zero](https://flipperzero.one): simplified 
 
 ![服務員 in traditional characters](screenshot_traditional.png)
 
+![The tone quiz](screenshot_quiz.png) ![Deck stats](screenshot_stats.png)
+
+![Browsing the HSK 4 deck](screenshot_browse.png)
+
 ## What it does
 
-- **Decks:** HSK 1 (150 words), HSK 2 (156 words) and HSK 3 (292 words), each with its own progress. HSK 1 and 2 are in a rough learning order; HSK 3 is shuffled.
+- **Decks:** HSK 1 (150 words), HSK 2 (156), HSK 3 (292) and HSK 4 (601), plus four small themed decks: Numbers and time, Food, Travel and Measure words. Each has its own progress. HSK 1 and 2 are in a rough learning order; HSK 3 and 4 are shuffled.
 - **Characters:** simplified or traditional, switchable at any time.
-- **Cards:** the front shows the characters. Flip it to see the pinyin and the English.
+- **Flashcards:** the front shows the characters. Flip it to see the pinyin and the English.
+- **Tone quiz:** instead of flipping, pick the tone of each syllable with the D-pad. The card then shows the right answer with any wrong syllables inverted, and is marked Good only if every tone was right.
 - **Tone sound:** on a flip, the speaker glides through each syllable's tone contour (high and flat, rising, dipping, falling), so you hear the shape of the word.
-- **Spaced repetition:** cards you miss come back often and cards you know come back rarely. New cards are only introduced while fewer than six are still being learned.
-- **Saving:** progress is saved to the SD card.
+- **Spaced repetition over days:** a card you know comes back after 1, 3, 7, 14, 30 and then 60 days; a card you miss comes back the same day until you get it. It uses the Flipper's clock, so set the date.
+- **Daily limit:** 5, 10, 20 or 50 new cards a day. When nothing is due the app says so, and OK lets you carry on with more new cards or review ahead.
+- **Stats:** known, learning and new counts for the deck, cards due today, reviews today and your day streak.
+- **Browse:** page through the whole deck with pinyin and English, without touching your progress.
+- **Saving:** progress is saved to the SD card. Progress from earlier versions is kept, with its cards spread over the coming days.
 
 ## Controls
 
@@ -26,14 +34,35 @@ Mandarin flashcards for the [Flipper Zero](https://flipperzero.one): simplified 
 | Hold OK | Settings |
 | Hold Back | Save and quit |
 
+### Tone quiz
+
+| Button | Tone |
+| --- | --- |
+| Up | 1st: high and flat |
+| Right | 2nd: rising |
+| Down | 3rd: dipping |
+| Left | 4th: falling |
+| OK | Neutral |
+| Back | Take back the last pick |
+
+After the last syllable the answer is shown: OK moves on, Up plays the tones again. Answers follow the dictionary tones in the deck, so tone changes in speech (such as two third tones in a row) are not applied.
+
+### Browse
+
+Left/Right step through the deck (hold to keep going), Up/Down jump ten cards, OK plays the tones and Back returns to your cards. The corner shows whether a card is new, due, or how many days until it is due.
+
 ## Settings
 
 | Setting | Values |
 | --- | --- |
-| Deck | HSK 1, HSK 2 or HSK 3 |
+| Deck | HSK 1 to 4, Numbers, Food, Travel or Measures |
+| Mode | Flashcards or Tone quiz |
 | Characters | Simplified or Traditional |
-| Front | Hanzi or English |
+| Front | Hanzi or English (flashcards only) |
 | Tone sound | On or Off |
+| New cards a day | 5, 10, 20 or 50 |
+| Stats | Shows the deck's stats |
+| Browse deck | Opens the deck browser |
 | Reset progress | Press twice to clear the current deck's progress |
 
 ## Adding words
