@@ -1,0 +1,72 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Filip Sedivy
+#
+# The host test suite and the formatting gate. Neither needs a Flipper: the
+# protocol and cryptographic layers compile natively against the same mbed TLS
+# release the firmware ships, configured with the firmware's own header.
+
+name: tests
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  host:
+    name: host suites
+    # Pinned to 24.04 rather than ubuntu-latest: emrtd_rng.c uses
+    # arc4random_buf on the host, which needs glibc 2.36 or newer.
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # The sanitizer runtime cannot map its shadow memory when the kernel
+      # hands out more ASLR entropy than it expects, and the runner image
+      # defaults higher than that. Without this the suite dies with
+      # "AddressSanitizer: DEADLYSIGNAL" before it runs a single check.
+      - name: Make the ASLR entropy fit the sanitizer
+        run: sudo sysctl -w vm.mmap_rnd_bits=28
+
+      - name: Run the suites
+        env:
+          ASAN_OPTIONS: detect_leaks=1
+        run: make -C tests/host test
+
+  format:
+    name: clang-format
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+
+      # 18.1.8 is the version in the firmware toolchain, which is what
+      # "ufbt lint" runs locally and in build.yml. A different version
+      # formats this .clang-format differently.
+      - name: Install clang-format
+        run: pip install clang-format==18.1.8
+
+      - name: Check the formatting
+        run: |
+          # git ls-files keeps the vendored mbed TLS clone in tests/host/.deps
+          # out of this by construction: it is not tracked. The firmware's own
+          # mbed TLS configuration lives under tests/host/lib because it is a
+          # verbatim copy of the SDK's header and must stay byte for byte
+          # identical to it - "make -C tests/host config-drift" checks that.
+          # A directory named lib is also what "ufbt lint" skips as third
+          # party code, so the two gates agree.
+          files=$(git ls-files '*.c' '*.h' | grep -v '^tests/host/lib/')
+          test -n "$files" || { echo "no sources found to check"; exit 1; }
+          echo "checking $(echo "$files" | wc -l) files"
+          echo "$files" | xargs clang-format --style=file --dry-run -Werror

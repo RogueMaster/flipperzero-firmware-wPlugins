@@ -1,0 +1,32 @@
+eMRTD
+=====
+
+The mark is the contact plate of the chip module inside a travel
+document: a plate divided into six pads. It is drawn on a ten by ten
+grid so that it survives the Flipper's application icon, and every
+larger form is that same grid scaled by a whole number.
+
+Banner:
+
+    ████████████████
+    ████  ████  ████
+    ████  ████  ████  e M R T D
+    ████████████████
+    ████████████████  electronic document reader
+    ████  ████  ████  for Flipper Zero
+    ████  ████  ████
+    ████████████████
+
+Plain 7-bit form, for a terminal that has no block characters:
+
+    ################
+    ####  ####  ####
+    ####  ####  ####
+    ################
+    ################
+    ####  ####  ####
+    ####  ####  ####
+    ################
+
+Everything here is drawn by assets/make_logo.py, which also writes
+the application icon and the image the reading screen uses.

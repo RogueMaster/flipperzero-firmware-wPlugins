@@ -1,0 +1,135 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Filip Sedivy
+#
+# Deploys the Flipper SDK with ufbt and builds the application package.
+#
+# This is a local copy of flipperdevices/flipperzero-ufbt-action, which has had
+# no release since March 2024 and still nests actions/setup-python@v5 and
+# actions/cache@v4. Both target the Node 20 runtime that GitHub has deprecated,
+# so every job that used it emitted a deprecation warning that nothing in this
+# repository could silence - the versions are pinned inside the upstream
+# action, not passed to it. The steps below are the same ones, with the nested
+# actions on the Node 24 runtime and with the parts this repository never used
+# left out.
+#
+# The outputs keep the upstream names and formats, in particular the suffix,
+# because artifact and release file names are built from it.
+
+name: Build with ufbt
+description: Install ufbt, deploy the SDK for one firmware and build the .fap.
+
+inputs:
+  sdk-channel:
+    description: Release channel to deploy. Passed to "ufbt update --channel".
+    required: false
+    default: ''
+
+  sdk-index-url:
+    description: >
+      Firmware directory to deploy from. Passed to "ufbt update --index-url".
+      Empty leaves ufbt pointed at the official directory.
+    required: false
+    default: ''
+
+outputs:
+  fap-artifacts:
+    description: The built packages, one path per line.
+    value: ${{ steps.build.outputs.fap-artifacts }}
+
+  fap-dir:
+    description: The directory the packages were built into.
+    value: ${{ steps.build.outputs.fap-dir }}
+
+  api-version:
+    description: The firmware API version the package was built against.
+    value: ${{ steps.build.outputs.api-version }}
+
+  suffix:
+    description: Hardware target, API version and SDK version, joined for file names.
+    value: ${{ steps.build.outputs.suffix }}
+
+runs:
+  using: composite
+
+  steps:
+    # 3.12 matches the version the formatting job pins, and is only used to run
+    # ufbt itself: the ARM toolchain ufbt deploys brings its own.
+    - name: Set up Python
+      uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+      with:
+        python-version: '3.12'
+
+    - name: Install ufbt
+      shell: bash
+      run: |
+        python3 -m pip install --upgrade pip
+        python3 -m pip install --upgrade ufbt
+
+    - name: Deploy the SDK
+      shell: bash
+      env:
+        SDK_CHANNEL: ${{ inputs.sdk-channel }}
+        SDK_INDEX_URL: ${{ inputs.sdk-index-url }}
+      run: |
+        set -eu
+        args=""
+        if [ -n "$SDK_CHANNEL" ]; then
+          args="$args --channel $SDK_CHANNEL"
+        fi
+        if [ -n "$SDK_INDEX_URL" ]; then
+          args="$args --index-url $SDK_INDEX_URL"
+        fi
+        # Unquoted on purpose: the arguments are built above and have to split.
+        ufbt update $args
+
+    - name: Read the ufbt status
+      id: status
+      shell: bash
+      run: echo "json=$(ufbt status --json)" >> "$GITHUB_OUTPUT"
+
+    # The SDK names the toolchain it needs; ufbt downloads it on the first
+    # build, which is a few hundred megabytes per job. Restoring it here, after
+    # the SDK is deployed and before anything builds, is the only window where
+    # the version is known and the download has not happened yet.
+    - name: Read the toolchain version the SDK asks for
+      id: toolchain
+      shell: bash
+      env:
+        SDK_DIR: ${{ fromJSON(steps.status.outputs.json).sdk_dir }}
+      run: |
+        set -eu
+        version=$(bash -c "export $(grep 'FBT_TOOLCHAIN_VERSION=' "$SDK_DIR/scripts/toolchain/fbtenv.sh") printenv FBT_TOOLCHAIN_VERSION")
+        test -n "$version" || { echo "no toolchain version in fbtenv.sh"; exit 1; }
+        echo "version=$version" >> "$GITHUB_OUTPUT"
+
+    - name: Cache the toolchain
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ${{ fromJSON(steps.status.outputs.json).toolchain_dir }}
+        key: ${{ runner.os }}-fbt-toolchain-${{ steps.toolchain.outputs.version }}
+
+    # Turns the compiler's file:line:column diagnostics into annotations on the
+    # run, so a build failure points at the source rather than at the log.
+    - name: Add the problem matcher
+      shell: bash
+      run: echo "::add-matcher::${{ github.action_path }}/ufbt-problem-matcher.json"
+
+    - name: Build the package
+      id: build
+      shell: bash
+      env:
+        TARGET: ${{ fromJSON(steps.status.outputs.json).target }}
+        SDK_VERSION: ${{ fromJSON(steps.status.outputs.json).version }}
+      run: |
+        set -euo pipefail
+        ufbt -s
+        api=$(ufbt -s get_apiversion)
+        dist="$PWD/dist"
+        {
+          echo "fap-artifacts<<EOF"
+          ls "$dist"/*.fa[pl]
+          echo "EOF"
+          echo "fap-dir=$dist"
+          echo "api-version=$api"
+          echo "suffix=$TARGET-api-$api-$SDK_VERSION"
+        } >> "$GITHUB_OUTPUT"

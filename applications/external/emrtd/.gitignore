@@ -1,0 +1,21 @@
+# Build output
+/dist/
+/build/
+/.ufbt/
+*.fap
+*.elf
+*.o
+
+# Host test suite
+/tests/host/.build/
+/tests/host/.deps/
+
+# Editors and tooling
+/.idea/
+/.vscode/
+.DS_Store
+__pycache__/
+
+# Anything read off a real document must never be committed
+/dumps/
+*.bin

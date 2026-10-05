@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="718" height="240" viewBox="0 0 718 240" role="img" aria-label="eMRTD, electronic document reader for Flipper Zero">
+  <title>eMRTD</title>
+  <style>
+    svg:root { color: #1f2328 }
+    @media (prefers-color-scheme: dark) {
+      svg:root { color: #e6edf3 }
+    }
+  </style>
+  <path fill="currentColor" fill-rule="evenodd" d="M24 24H216V216H24ZM72 48H96V96H72ZM144 48H168V96H144ZM72 144H96V192H72ZM144 144H168V192H144Z"/>
+  <text x="258" y="111" fill="currentColor" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="110" font-weight="600" textLength="407" lengthAdjust="spacing">eMRTD</text>
+  <text x="258" y="163" fill="currentColor" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="36" opacity="0.72" textLength="436" lengthAdjust="spacing">electronic document reader</text>
+  <text x="258" y="207" fill="currentColor" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="36" opacity="0.72" textLength="246" lengthAdjust="spacing">for Flipper Zero</text>
+</svg>

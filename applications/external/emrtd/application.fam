@@ -1,0 +1,28 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Filip Sedivy
+
+App(
+    appid="emrtd",
+    name="eMRTD Reader",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="emrtd_app",
+    # The scenes and the parsers run on this stack; the access control
+    # cryptography runs on the NFC stack's own thread.
+    stack_size=4 * 1024,
+    fap_category="NFC",
+    fap_version="1.0",
+    fap_icon="images/emrtd_10px.png",
+    fap_description="Reads electronic passports, ID cards and residence permits over NFC, with PACE and BAC, and exports every data group.",
+    fap_author="Filip Sedivy",
+    fap_weburl="https://github.com/filipsedivy/emrtd-flipperzero",
+    fap_icon_assets="images",
+    # AES, DES, SHA-1, SHA-256 and the elliptic curve arithmetic PACE needs.
+    # Brainpool is not compiled into this build of mbed TLS; the curve groups
+    # are populated by hand instead. See docs/platform.md.
+    fap_libs=["mbedtls"],
+    # Sources are gathered recursively, so the host test suite, the copy of
+    # mbed TLS it builds against and the simulated chip it drives have to be
+    # excluded explicitly. Nothing in the package talks to anything but the
+    # radio.
+    sources=["*.c*", "!tests", "!sim"],
+)
