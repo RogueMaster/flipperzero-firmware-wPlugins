@@ -1,0 +1,15 @@
+App(
+    appid="clock_o_dial",
+    name="Clock'o'Dial",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="clock_main",
+    requires=["gui"],
+    stack_size=1 * 1024,
+    fap_icon="icons/app_10x10.png",
+    fap_icon_assets="images",
+    fap_category="Tools",
+    fap_author="Ilia Petrov-Komotskii (Mane Function)",
+    fap_weburl="https://github.com/ManeFunction/clock-o-dial--fz",
+    fap_version="1.1",
+    fap_description="A tiny app that helps you keep track of your workday and avoid overtime.",
+)
