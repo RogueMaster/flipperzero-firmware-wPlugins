@@ -12,6 +12,7 @@ typedef enum {
     ProtoPirateViewAbout,
     ProtoPirateViewFileBrowser,
     ProtoPirateViewTextInput,
+    ProtoPirateViewRemoteAnalyzer,
 } ProtoPirateView;
 
 typedef enum {
@@ -54,9 +55,13 @@ typedef enum {
     ProtoPirateCustomEventAboutToggleEmulate,
     //Plugin Scenes
     ProtoPirateCustomEventPluginNavigateBack,
+    ProtoPirateCustomEventPluginNavigateReceiver,
+    ProtoPirateCustomEventPluginNavigateSwitchToReceiver,
     ProtoPirateCustomEventPluginNavigateEmulate,
     ProtoPirateCustomEventPluginNavigateConfig,
     ProtoPirateCustomEventPluginNavigateStopApp,
+    //Frequency Analyzer
+
 } ProtoPirateCustomEvent;
 
 typedef enum {
@@ -73,9 +78,9 @@ typedef enum {
 
 typedef enum {
     ProtoPirateHopperStateOFF,
-    ProtoPirateHopperStateRunning,
     ProtoPirateHopperStatePause,
     ProtoPirateHopperStateRSSITimeOut,
+    ProtoPirateHopperStateRunning,
 } ProtoPirateHopperState;
 
 typedef enum {

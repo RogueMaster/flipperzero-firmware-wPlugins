@@ -98,7 +98,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - SubGHz: [Add Security+ 2.0 86-bit keypad frames and the Security+ PIN app (By zero-mega & xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/e6ded9b108454b30a3e710295e6d2b7fd146e188)
 - SubGHz: [Support new KeeLoq learning methods for JCM Gen2, Stagnoli, Telcoma, SEA and Wisniowski variants (By zero-mega & xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/e6ded9b108454b30a3e710295e6d2b7fd146e188)
 - Apps: [Fix OSM Logger GPS build with RM plugin menu API by using an app-specific menu enum type (By RogueMaster; original app by Simon Grossi)](https://github.com/simongrossi/flipperzero-osm-logger-gps)
-- Updated: [ProtoPirate v3.8 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
 - Added: [Nice O-Code v1.0 (By zero-mega & xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/e6ded9b108454b30a3e710295e6d2b7fd146e188)
 - Added: [Security+ PIN v1.0 (By zero-mega & xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/e6ded9b108454b30a3e710295e6d2b7fd146e188)
 - Build: [Fix embedded plugin asset dependencies on repeated builds, including ProtoPirate 3.8 (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins)
@@ -156,6 +155,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Prime Factors v1.0 (By gbritoda)](https://github.com/gbritoda/flipper0-prime_factors)
 - Added: [Alcohol Calc v1.0 (By vtlklr)](https://github.com/vtlklr/alcohol_calc)
 - Added: [Hanzi Cards v0.3 (By rseufert)](https://github.com/rseufert/hanzi_cards)
+- Updated: [ProtoPirate v4.0 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
 
 <a name="release"></a>
 
@@ -907,7 +907,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Postman v0.1 (By MassivDash)](https://github.com/MassivDash/flipper-postman) `Req: ESP32` with [Postman Firmware](https://github.com/MassivDash/flipper-postman-esp32s2)
 - [Prime Factors v1.0 (By gbritoda)](https://github.com/gbritoda/flipper0-prime_factors)
 - [Programmer Calculator v0.9.2 (By armixz)](https://github.com/armixz/Flipper-Zero-Programmer-Calculator)
-- [ProtoPirate v3.8 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
+- [ProtoPirate v4.0 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
 - [ProtoView v1.3 (By antirez)](https://github.com/antirez/protoview)
 - [QR Code v2.1.4 (By bmatcuk)](https://github.com/bmatcuk/flipperzero-qrcode)
 - [QRCode Generator v0.1 (By qw3rtty)](https://github.com/qw3rtty/flipperzero-qrcode-generator)

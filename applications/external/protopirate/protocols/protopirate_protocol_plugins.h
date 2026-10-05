@@ -4,7 +4,7 @@
 #include "protocol_items.h"
 
 #define PROTOPIRATE_PROTOCOL_PLUGIN_APP_ID      "protopirate_protocol_plugins"
-#define PROTOPIRATE_PROTOCOL_PLUGIN_API_VERSION 2U
+#define PROTOPIRATE_PROTOCOL_PLUGIN_API_VERSION ((uint32_t)sizeof(ProtoPirateProtocolPlugin))
 
 typedef enum {
     ProtoPirateProtocolPluginKindRx = 0,

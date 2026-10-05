@@ -36,9 +36,9 @@ static const char* const honda_static_button_names[9] = {
 };
 
 typedef struct {
-    uint8_t button;
     uint32_t serial;
     uint32_t counter;
+    uint8_t button;
     uint8_t checksum;
 } HondaStaticFields;
 
@@ -46,8 +46,8 @@ struct SubGhzProtocolDecoderHondaStatic {
     SubGhzProtocolDecoderBase base;
     SubGhzBlockGeneric generic;
 
-    uint8_t symbols[HONDA_STATIC_SYMBOL_BYTE_COUNT];
     uint16_t symbols_count;
+    uint8_t symbols[HONDA_STATIC_SYMBOL_BYTE_COUNT];
 };
 
 #if PROTOPIRATE_WITH_ENCODER

@@ -4,10 +4,15 @@
 #include <gui/view.h>
 #include "../helpers/protopirate_types.h"
 
+typedef void (*ProtoPirateReceiverCallback)(ProtoPirateCustomEvent event, void* context);
+struct ProtoPirateReceiver {
+    View* view;
+    ProtoPirateReceiverCallback callback;
+    void* context;
+};
+
 typedef struct ProtoPirateReceiver ProtoPirateReceiver;
 typedef struct ProtoPirateHistory ProtoPirateHistory;
-
-typedef void (*ProtoPirateReceiverCallback)(ProtoPirateCustomEvent event, void* context);
 
 void protopirate_view_receiver_set_callback(
     ProtoPirateReceiver* receiver,

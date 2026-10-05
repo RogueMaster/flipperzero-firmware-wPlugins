@@ -1,8 +1,7 @@
 #include "../../protopirate_app_i.h"
-//#include "protopirate_about_plugin.h"
 #include "pp_about_icons.h"
 
-static const ProtoPirateAboutSceneHostApi* g_about_scene_host_api = NULL;
+static const ProtoPirateSharedPluginHostApi* g_about_scene_host_api = NULL;
 
 #define TAG "PPAboutPlugin"
 
@@ -62,9 +61,9 @@ static const char* credits[] = {
 #define CREDITS_COUNT (sizeof(credits) / sizeof(credits[0]))
 
 typedef struct {
+    int16_t scroll_offset;
     uint8_t frame;
     uint8_t seed;
-    int16_t scroll_offset;
 #ifdef ENABLE_EMULATE_FEATURE
     uint8_t combo_progress;
 #endif
@@ -225,10 +224,7 @@ static void about_show_emulate_toggle_popup(ProtoPirateApp* app) {
 }
 #endif
 
-void plugin_protopirate_scene_about_on_enter(void* context) {
-    furi_check(context);
-    ProtoPirateApp* app = context;
-
+void plugin_protopirate_scene_about_on_enter(ProtoPirateApp* app) {
     if(!g_about_scene_host_api->ensure_view_about(app)) {
         notification_message(app->notifications, &sequence_error);
         scene_manager_previous_scene(app->scene_manager);
@@ -249,8 +245,7 @@ void plugin_protopirate_scene_about_on_enter(void* context) {
     view_dispatcher_switch_to_view(app->view_dispatcher, ProtoPirateViewAbout);
 }
 
-bool plugin_protopirate_scene_about_on_event(void* context, SceneManagerEvent event) {
-    ProtoPirateApp* app = context;
+bool plugin_protopirate_scene_about_on_event(ProtoPirateApp* app, SceneManagerEvent event) {
     bool consumed = false;
 
     if(event.type == SceneManagerEventTypeTick) {
@@ -291,20 +286,21 @@ bool plugin_protopirate_scene_about_on_event(void* context, SceneManagerEvent ev
     return consumed;
 }
 
-void plugin_protopirate_scene_about_on_exit(void* context) {
-    UNUSED(context);
+void plugin_protopirate_scene_about_on_exit(ProtoPirateApp* app) {
+    UNUSED(app);
 }
 
-void about_plugin_set_host_api(const ProtoPirateAboutSceneHostApi* host_api) {
+void about_plugin_set_host_api(const ProtoPirateSharedPluginHostApi* host_api) {
     g_about_scene_host_api = host_api;
 }
 
-static const ProtoPirateAboutPlugin protopirate_about_plugin = {
-    .plugin_name = "About",
+static const ProtoPirateSharedPlugin protopirate_about_plugin = {
+    .plugin_name = "",
     .on_enter = plugin_protopirate_scene_about_on_enter,
     .on_event = plugin_protopirate_scene_about_on_event,
     .on_exit = plugin_protopirate_scene_about_on_exit,
     .set_host_api = about_plugin_set_host_api,
+    .release = NULL,
 };
 
 static const FlipperAppPluginDescriptor protopirate_about_plugin_descriptor = {

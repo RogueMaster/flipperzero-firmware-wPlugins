@@ -1,12 +1,10 @@
-#include "protopirate_saved_info_plugin.h"
-#include "../../protocols/protocol_bf_probe.h"
 #include "../../protopirate_app_i.h"
 #include "../../helpers/protopirate_storage.h"
 #include "../../protocols/protocols_common.h"
 #include "../../protocols/protocol_items.h"
-#include "pp_saved_info_icons.h"
+#include "pp_saved_icons.h"
 
-static const ProtoPirateSavedInfoSceneHostApi* g_saved_info_scene_host_api = NULL;
+static const ProtoPirateSharedPluginHostApi* g_saved_info_scene_host_api = NULL;
 
 #define TAG "PPSavedInfoPlugin"
 
@@ -33,9 +31,7 @@ static void plugin_protopirate_scene_saved_info_widget_callback(
     }
 }
 
-void plugin_protopirate_scene_saved_info_on_enter(void* context) {
-    furi_check(context);
-    ProtoPirateApp* app = context;
+void plugin_protopirate_scene_saved_info_on_enter(ProtoPirateApp* app) {
     Storage* storage = NULL;
     FlipperFormat* ff = NULL;
     FuriString* info_str = NULL;
@@ -217,23 +213,34 @@ cleanup:
         FURI_LOG_I(TAG, "Adding scroll element");
         widget_add_text_scroll_element(app->widget, 0, 0, 128, 50, furi_string_get_cstr(info_str));
 
-        const bool bf_running = app->psa_bf_plugin && app->psa_bf_plugin->is_running(app);
-        const bool needs_bf = offers_bf && !bf_running &&
-                              protopirate_bf_probe_needs_bruteforce(ff);
+        bool needs_bf = false;
+        bool error = false;
+        if(offers_bf && g_saved_info_scene_host_api->bruteforce_plugin_ensure_loaded(app) &&
+           app->bruteforce_plugin) {
+            needs_bf = app->bruteforce_plugin->widget_left_should_bruteforce(app, ff);
+        } else if(offers_bf) {
+            //Show the user the error in the button.
+            widget_add_button_element(app->widget, GuiButtonTypeLeft, "(Error)", NULL, app);
+            needs_bf = false;
+            error = true;
+        }
 
+        g_saved_info_scene_host_api->bruteforce_plugin_unload_if_idle(app);
         if(needs_bf) {
             scene_manager_set_scene_state(app->scene_manager, ProtoPirateSceneSavedInfo, STATE_BF);
+            //Add BF button.
             widget_add_button_element(
                 app->widget,
                 GuiButtonTypeLeft,
                 "BF",
                 plugin_protopirate_scene_saved_info_widget_callback,
                 app);
-        } else {
+        } else if(!error) {
             scene_manager_set_scene_state(
                 app->scene_manager, ProtoPirateSceneSavedInfo, STATE_EMULATE);
 #ifdef ENABLE_EMULATE_FEATURE
             if(app->emulate_feature_enabled && !app->emulate_disabled_for_loaded) {
+                //Add Emulate Button.
                 widget_add_button_element(
                     app->widget,
                     GuiButtonTypeLeft,
@@ -244,6 +251,7 @@ cleanup:
 #endif
         }
 
+        //Add delete button
         widget_add_button_element(
             app->widget,
             GuiButtonTypeRight,
@@ -276,19 +284,21 @@ switch_view:
     FURI_LOG_I(TAG, "=== ENTER DONE ===");
 }
 
-bool plugin_protopirate_scene_saved_info_on_event(void* context, SceneManagerEvent event) {
+bool plugin_protopirate_scene_saved_info_on_event(ProtoPirateApp* context, SceneManagerEvent event) {
     ProtoPirateApp* app = context;
     bool consumed = false;
 
     //load_emu* = false;
     if(event.type == SceneManagerEventTypeTick) {
-        if(app->psa_bf_plugin && app->psa_bf_plugin->is_running(app)) {
-            app->psa_bf_plugin->on_scene_event(app, ProtoPiratePsaBfContextSavedInfo, event);
+        if(app->bruteforce_plugin && app->bruteforce_plugin->is_running(app)) {
+            app->bruteforce_plugin->on_scene_event(
+                app, ProtoPirateBruteForceContextSavedInfo, event);
             consumed = true;
         }
     } else if(event.type == SceneManagerEventTypeBack) {
-        if(app->psa_bf_plugin && app->psa_bf_plugin->is_running &&
-           app->psa_bf_plugin->on_scene_event(app, ProtoPiratePsaBfContextReceiverInfo, event)) {
+        if(app->bruteforce_plugin && app->bruteforce_plugin->is_running &&
+           app->bruteforce_plugin->on_scene_event(
+               app, ProtoPirateBruteForceContextReceiverInfo, event)) {
             consumed = true;
         } else {
             if(!scene_manager_has_previous_scene(app->scene_manager, ProtoPirateSceneStart)) {
@@ -334,11 +344,10 @@ bool plugin_protopirate_scene_saved_info_on_event(void* context, SceneManagerEve
         }
         if(event.event == ProtoPirateCustomEventBruteforceStart ||
            event.event == ProtoPirateCustomEventBruteforceComplete) {
-            if(!g_saved_info_scene_host_api->psa_bf_plugin_ensure_loaded(app)) {
-                FURI_LOG_E(TAG, "Failed to load PSA bruteforce plugin");
-            } else if(!app->psa_bf_plugin->on_scene_event(
-                          app, ProtoPiratePsaBfContextSavedInfo, event)) {
-                FURI_LOG_E(TAG, "Bruteforce did not start for the saved capture");
+            if(g_saved_info_scene_host_api->bruteforce_plugin_ensure_loaded(app) &&
+               app->bruteforce_plugin &&
+               app->bruteforce_plugin->on_scene_event(
+                   app, ProtoPirateBruteForceContextSavedInfo, event)) {
             }
             if(event.event == ProtoPirateCustomEventBruteforceComplete)
                 plugin_protopirate_scene_saved_info_on_enter(app);
@@ -362,15 +371,16 @@ bool plugin_protopirate_scene_saved_info_on_event(void* context, SceneManagerEve
     return consumed;
 }
 
-void saved_info_plugin_set_host_api(const ProtoPirateSavedInfoSceneHostApi* host_api) {
+void saved_info_plugin_set_host_api(const ProtoPirateSharedPluginHostApi* host_api) {
     g_saved_info_scene_host_api = host_api;
 }
 
-static const ProtoPirateSavedInfoPlugin protopirate_saved_info_plugin = {
-    .plugin_name = "Saved",
+static const ProtoPirateSharedPlugin protopirate_saved_info_plugin = {
+    .plugin_name = "",
     .on_enter = plugin_protopirate_scene_saved_info_on_enter,
     .on_event = plugin_protopirate_scene_saved_info_on_event,
     .set_host_api = saved_info_plugin_set_host_api,
+    .release = NULL,
 };
 
 static const FlipperAppPluginDescriptor protopirate_saved_info_plugin_descriptor = {

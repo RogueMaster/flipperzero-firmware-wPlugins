@@ -8,9 +8,9 @@
 #include <lib/subghz/subghz_setting.h>
 
 typedef struct ProtoPirateCarModel {
-    uint16_t index;
     char* name;
     SubGhzRadioPreset* preset;
+    uint16_t index;
     int16_t last_preset_index;
 } ProtoPirateCarModel;
 

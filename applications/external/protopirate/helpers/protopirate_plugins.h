@@ -5,50 +5,99 @@
 #include <gui/scene_manager.h>
 #include <gui/view_dispatcher.h>
 
-#ifdef ENABLE_EMULATE_FEATURE
-#include "scenes/plugins/protopirate_emulate_plugin.h"
-#endif
-#include "scenes/plugins/protopirate_config_plugin.h"
-#include "scenes/plugins/protopirate_saved_info_plugin.h"
-#include "scenes/plugins/protopirate_about_plugin.h"
-#include "scenes/plugins/protopirate_psa_bf_plugin.h"
-#include "scenes/plugins/protopirate_tool_scene_plugin.h"
+//Config Plugin Uses its own plugin type, has a header file.
+#define PROTOPIRATE_CONFIG_PLUGIN_PATH        "pp_config.fal"
+#define PROTOPIRATE_CONFIG_PLUGIN_APP_ID      "pp_config"
+#define PROTOPIRATE_CONFIG_PLUGIN_API_VERSION ((uint32_t)sizeof(ProtoPirateSharedPluginHostApi))
 
-#define CONFIG_PLUGIN_PATH     APP_ASSETS_PATH("plugins/pp_config.fal")
-#define SAVED_INFO_PLUGIN_PATH APP_ASSETS_PATH("plugins/pp_saved_info.fal")
-#define ABOUT_PLUGIN_PATH      APP_ASSETS_PATH("plugins/pp_about.fal")
+//Saved Info Plugin
+#define PROTOPIRATE_SAVED_INFO_PLUGIN_PATH   "pp_saved.fal"
+#define PROTOPIRATE_SAVED_INFO_PLUGIN_APP_ID "pp_saved"
+#define PROTOPIRATE_SAVED_INFO_PLUGIN_API_VERSION \
+    ((uint32_t)sizeof(ProtoPirateSharedPluginHostApi))
+
+//About Plugin
+#define PROTOPIRATE_ABOUT_PLUGIN_PATH        "pp_about.fal"
+#define PROTOPIRATE_ABOUT_PLUGIN_APP_ID      "pp_about"
+#define PROTOPIRATE_ABOUT_PLUGIN_API_VERSION ((uint32_t)sizeof(ProtoPirateSharedPluginHostApi))
+
+//Emulate Plugin
 #ifdef ENABLE_EMULATE_FEATURE
-#define EMULATE_PLUGIN_PATH APP_ASSETS_PATH("plugins/pp_emulate.fal")
+#define PROTOPIRATE_EMULATE_PLUGIN_PATH        "pp_emulate.fal"
+#define PROTOPIRATE_EMULATE_PLUGIN_APP_ID      "pp_emulate"
+#define PROTOPIRATE_EMULATE_PLUGIN_API_VERSION ((uint32_t)sizeof(ProtoPirateSharedPluginHostApi))
 #endif
-#define SUB_DECODE_PLUGIN_PATH APP_ASSETS_PATH("plugins/pp_sub_decode.fal")
+
+//Sub Decoder Plugin.
+#define PROTOPIRATE_SUB_DECODE_PLUGIN_PATH   "pp_sd.fal"
+#define PROTOPIRATE_SUB_DECODE_PLUGIN_APP_ID "pp_sd"
+#define PROTOPIRATE_SUB_DECODE_PLUGIN_API_VERSION \
+    ((uint32_t)sizeof(ProtoPirateSharedPluginHostApi))
+
+//Timing Tuner Plugin
 #ifdef ENABLE_TIMING_TUNER_SCENE
-#define TIMING_TUNER_PLUGIN_PATH APP_ASSETS_PATH("plugins/pp_timing_tuner.fal")
+#define PROTOPIRATE_TIMING_TUNER_PLUGIN_PATH   "pp_tt.fal"
+#define PROTOPIRATE_TIMING_TUNER_PLUGIN_APP_ID "pp_tt"
+#define PROTOPIRATE_TIMING_TUNER_PLUGIN_API_VERSION \
+    ((uint32_t)sizeof(ProtoPirateSharedPluginHostApi))
 #endif
-#define PSA_BF_PLUGIN_PATH APP_ASSETS_PATH("plugins/pp_bf.fal")
 
-typedef enum ProtoPirateSharedPlugin {
+//Brute Force Plugin
+#define PROTOPIRATE_BRUTEFORCE_PLUGIN_PATH   "pp_bf.fal"
+#define PROTOPIRATE_BRUTEFORCE_PLUGIN_APP_ID "pp_bf"
+#define PROTOPIRATE_BRUTEFORCE_PLUGIN_API_VERSION \
+    ((uint32_t)sizeof(ProtoPirateSharedPluginHostApi))
+
+//Welcome Plugin
+#define PROTOPIRATE_WELCOME_PLUGIN_PATH        "pp_welcome.fal"
+#define PROTOPIRATE_WELCOME_PLUGIN_APP_ID      "pp_welcome"
+#define PROTOPIRATE_WELCOME_PLUGIN_API_VERSION ((uint32_t)sizeof(ProtoPirateSharedPluginHostApi))
+
+//Remote Analyzer Plugin
+#define PROTOPIRATE_REMOTE_ANALYZER_PLUGIN_PATH   "pp_ra.fal"
+#define PROTOPIRATE_REMOTE_ANALYZER_PLUGIN_APP_ID "pp_ra"
+#define PROTOPIRATE_REMOTE_ANALYZER_PLUGIN_API_VERSION \
+    ((uint32_t)sizeof(ProtoPirateSharedPluginHostApi))
+
+typedef enum ProtoPirateSharedPluginIDs {
     ProtoPirateSharedPluginsConfig,
     ProtoPirateSharedPluginsSavedInfo,
     ProtoPirateSharedPluginsAbout,
+    ProtoPirateSharedPluginsWelcome,
 #ifdef ENABLE_EMULATE_FEATURE
     ProtoPirateSharedPluginsEmulate,
 #endif
-    ProtoPirateSharedPluginsToolScene,
     ProtoPirateSharedPluginsSubDecode,
 #ifdef ENABLE_TIMING_TUNER_SCENE
     ProtoPirateSharedPluginsTimingTuner,
 #endif
     ProtoPirateSharedPluginsPSABruteforce,
     ProtoPirateSharedPluginsTXRX,
-} ProtoPirateSharedPlugin;
+    ProtoPirateSharedPluginsRemoteAnalyzer,
+} ProtoPirateSharedPluginIDs;
 
 bool shared_plugin_load(
     void** flipper_application_pointer,
     const void** plugin_pointer,
-    ProtoPirateSharedPlugin plugin_type,
+    ProtoPirateSharedPluginIDs plugin_type,
     const char* txrx_path);
 void shared_plugin_unload(void** flipper_application_pointer, const void** plugin_pointer);
 bool shared_plugin_handle_navigation_events(
     SceneManager* scene_manager,
     ViewDispatcher* view_dispatcher,
     SceneManagerEvent event);
+
+#include "protopirate_types.h"
+#include "protopirate_plugins_host_api.h"
+#include "scenes/plugins/protopirate_config_plugin.h"
+#include "scenes/plugins/protopirate_bruteforce_plugin.h"
+#include "protocols/protopirate_protocol_plugins.h"
+
+typedef struct {
+    const char* plugin_name;
+    void (*set_host_api)(const ProtoPirateSharedPluginHostApi* host_api);
+    void (*on_enter)(ProtoPirateApp* app);
+    bool (*on_event)(ProtoPirateApp* app, SceneManagerEvent event);
+    void (*on_exit)(ProtoPirateApp* app);
+    void (*release)(ProtoPirateApp* app);
+} ProtoPirateSharedPlugin;

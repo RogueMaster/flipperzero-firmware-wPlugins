@@ -14,7 +14,7 @@ static const SubGhzProtocolRegistry protopirate_protocol_registry_am_vag = {
 };
 
 static const ProtoPirateProtocolPlugin protopirate_am_vag_plugin = {
-    .plugin_name = "AM VAG Registry",
+    .plugin_name = "",
     .kind = ProtoPirateProtocolPluginKindRx,
     .route = ProtoPirateProtocolRegistryRouteAMVag,
     .registry = &protopirate_protocol_registry_am_vag,

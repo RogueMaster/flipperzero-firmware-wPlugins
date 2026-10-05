@@ -1,7 +1,5 @@
 // scenes/plugins/protopirate_emulate_plugin.c
 
-#include "protopirate_emulate_plugin.h"
-
 #include "../../protopirate_app_i.h"
 #include "../../helpers/protopirate_storage.h"
 
@@ -76,7 +74,7 @@ typedef struct {
 } EmulateResolvedPreset;
 
 static EmulateContext* emulate_context = NULL;
-static const ProtoPirateEmulateHostApi* g_host_api = NULL;
+static const ProtoPirateSharedPluginHostApi* g_host_api = NULL;
 
 static bool emulate_hitag2_key_nonzero(const uint8_t key[6]) {
     for(size_t i = 0; i < 6U; i++) {
@@ -1063,8 +1061,7 @@ static bool
     return true;
 }
 
-static void plugin_on_enter(void* context) {
-    ProtoPirateApp* app = context;
+static void plugin_on_enter(ProtoPirateApp* app) {
     furi_check(g_host_api);
 
     if(!g_host_api->ensure_view_about || !g_host_api->ensure_view_about(app)) {
@@ -1080,7 +1077,7 @@ static void plugin_on_enter(void* context) {
     }
 
     if(app->txrx && app->txrx->history && g_host_api->history_release_scratch) {
-        g_host_api->history_release_scratch(app);
+        g_host_api->history_release_scratch(app->txrx->history);
     }
 
     if(g_host_api->rx_stack_suspend_for_tx) {
@@ -1320,9 +1317,8 @@ static void plugin_on_enter(void* context) {
     view_dispatcher_switch_to_view(app->view_dispatcher, ProtoPirateViewAbout);
 }
 
-static bool plugin_on_event(void* context, SceneManagerEvent event) {
+static bool plugin_on_event(ProtoPirateApp* app, SceneManagerEvent event) {
 #define INVALID_PRESET "Cannot set TX power on this preset."
-    ProtoPirateApp* app = context;
     bool consumed = false;
 
     EmulateContext* ctx = emulate_context;
@@ -1506,9 +1502,7 @@ static bool plugin_on_event(void* context, SceneManagerEvent event) {
     return consumed;
 }
 
-static void plugin_on_exit(void* context) {
-    ProtoPirateApp* app = context;
-
+static void plugin_on_exit(ProtoPirateApp* app) {
     if(!app) {
         emulate_context_free();
         return;
@@ -1566,22 +1560,22 @@ static void plugin_on_exit(void* context) {
     }
 }
 
-static void plugin_context_release(void* context) {
-    UNUSED(context);
+static void plugin_context_release(ProtoPirateApp* app) {
+    UNUSED(app);
     emulate_context_free();
 }
 
-static void plugin_set_host_api(const ProtoPirateEmulateHostApi* host_api) {
+static void plugin_set_host_api(const ProtoPirateSharedPluginHostApi* host_api) {
     g_host_api = host_api;
 }
 
-static const ProtoPirateEmulatePlugin protopirate_emulate_plugin = {
-    .plugin_name = "Emulate",
+static const ProtoPirateSharedPlugin protopirate_emulate_plugin = {
+    .plugin_name = "",
     .set_host_api = plugin_set_host_api,
     .on_enter = plugin_on_enter,
     .on_event = plugin_on_event,
     .on_exit = plugin_on_exit,
-    .context_release = plugin_context_release,
+    .release = plugin_context_release,
 };
 
 static const FlipperAppPluginDescriptor protopirate_emulate_plugin_descriptor = {

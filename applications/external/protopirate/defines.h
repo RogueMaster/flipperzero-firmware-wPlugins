@@ -2,10 +2,12 @@
 #include <furi.h>
 
 // **** User Adjustable ****
-//#define ENABLE_TIMING_TUNER_SCENE
+//#define ENABLE_WELCOME_SCREEN
+#define ENABLE_TIMING_TUNER_SCENE
 #define ENABLE_SUB_DECODE_SCENE
 #define ENABLE_EMULATE_FEATURE
 #define ENABLE_MODELS_DATABASE
+#define ENABLE_REMOTE_ANALYZER
 
 // **** DO NOT TOUCH! ****
 #if defined(ENABLE_EMULATE_FEATURE) && !defined(PROTOPIRATE_PROTOCOL_RX_ONLY)
@@ -25,6 +27,7 @@
 
 // **** DO NOT TOUCH! ****
 #ifdef REMOVE_LOGS
+
 // Undefine existing macros
 #undef FURI_LOG_E
 #undef FURI_LOG_W

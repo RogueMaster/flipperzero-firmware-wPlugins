@@ -5,6 +5,7 @@
 #include "helpers/protopirate_types.h"
 #include "scenes/protopirate_scene.h"
 #include "views/protopirate_receiver.h"
+#include "views/protopirate_remote_analyzer.h"
 #include "protopirate_history.h"
 #include "helpers/radio_device_loader.h"
 
@@ -26,19 +27,12 @@
 #include "defines.h"
 #include "protocols/protocols_common.h"
 #include "protocols/protocol_items.h"
-#include "protocols/protopirate_protocol_plugins.h"
-#ifdef ENABLE_EMULATE_FEATURE
-#include "scenes/plugins/protopirate_emulate_plugin.h"
-#endif
-#include "scenes/plugins/protopirate_config_plugin.h"
-#include "scenes/plugins/protopirate_saved_info_plugin.h"
-#include "scenes/plugins/protopirate_about_plugin.h"
-#include "scenes/plugins/protopirate_psa_bf_plugin.h"
-#include "scenes/plugins/protopirate_tool_scene_plugin.h"
 #include "helpers/protopirate_plugins.h"
 #include "helpers/protopirate_views.h"
 #include "helpers/protopirate_radio.h"
 #include "helpers/protopirate_protocol_plugin_host.h"
+#include "protocols/protopirate_protocol_plugins.h"
+#include "scenes/plugins/protopirate_bruteforce_plugin.h"
 #include "helpers/protopirate_txrx.h"
 #include "helpers/protopirate_models.h"
 #include "helpers/protopirate_settings.h"
@@ -65,12 +59,12 @@ typedef struct ProtoPirateTxRx {
     ProtoPirateTxRxState txrx_state;
     ProtoPirateHopperState hopper_state;
     ProtoPirateRxKeyState rx_key_state;
+    uint16_t idx_menu_chosen;
+    uint8_t hopper_rssi;
     uint8_t hopper_idx_frequency;
     uint8_t hopper_timeout;
-    uint16_t idx_menu_chosen;
 } ProtoPirateTxRx;
 
-typedef struct ProtoPirateConfigPlugin ProtoPirateConfigPlugin;
 struct ProtoPirateApp {
     Gui* gui;
     ViewDispatcher* view_dispatcher;
@@ -89,6 +83,18 @@ struct ProtoPirateApp {
     SubGhzSetting* setting;
     ProtoPirateLock lock;
     char* loaded_file_path;
+    char* save_filename;
+    const void* shared_plugin;
+    FlipperApplication* plugin_flipper_application;
+    FlipperApplication* bruteforce_plugin_flipper_application;
+    const ProtoPirateBruteForcePlugin* bruteforce_plugin;
+    uint32_t start_tx_time;
+#ifdef ENABLE_MODELS_DATABASE
+    ProtoPirateCarModel* selected_model;
+    uint16_t car_models_count;
+#endif
+    uint16_t save_history_idx;
+    uint8_t tx_power;
     /*****************/
     // Byte 1
     uint8_t deferred_storage_in_progress : 1;
@@ -103,42 +109,13 @@ struct ProtoPirateApp {
     uint8_t key_found                    : 1;
     uint8_t reserved                     : 7;
     /*****************/
-    uint32_t start_tx_time;
-    uint8_t tx_power;
-    char* save_filename;
-    FuriString* save_protocol;
-    uint16_t save_history_idx;
-    FlipperApplication* plugin_flipper_application;
-#ifdef ENABLE_EMULATE_FEATURE
-    const ProtoPirateEmulatePlugin* emulate_plugin;
-    uint8_t emulate_nav_pending;
-#endif
-    const ProtoPirateConfigPlugin* config_plugin;
-    const ProtoPirateSavedInfoPlugin* saved_info_plugin;
-    const ProtoPirateAboutPlugin* about_plugin;
-    FlipperApplication* psa_bf_plugin_flipper_application;
-    const ProtoPiratePsaBfPlugin* psa_bf_plugin;
-    FlipperApplication* tool_scene_plugin_flipper_application;
-    const ProtoPirateToolScenePlugin* tool_scene_plugin;
-#ifdef ENABLE_MODELS_DATABASE
-    ProtoPirateCarModel* selected_model;
-    uint16_t car_models_count;
-#endif
 };
-
-#ifdef ENABLE_EMULATE_FEATURE
-void protopirate_emulate_context_release(ProtoPirateApp* app);
-#endif
 
 typedef enum {
     ProtoPirateSetTypeFord_v0,
     ProtoPirateSetTypeMAX,
 } ProtoPirateSetType;
 
-bool protopirate_tool_scene_on_enter(void* app, ProtoPirateToolScenePluginKind kind);
-bool protopirate_tool_scene_on_event(void* app, SceneManagerEvent event);
-void protopirate_tool_scene_on_exit(void* app);
-void protopirate_tool_scene_plugin_release(ProtoPirateApp* app);
 void protopirate_app_free(ProtoPirateApp* app);
 
 static const NotificationSequence sequence_tx = {

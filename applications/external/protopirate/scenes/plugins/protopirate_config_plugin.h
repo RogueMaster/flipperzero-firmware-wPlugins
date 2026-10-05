@@ -1,12 +1,10 @@
 #pragma once
-#include "../../protopirate_app_i.h"
+//#include "../../protopirate_app_i.h"
 #include "helpers/protopirate_models.h"
 #include <lib/flipper_application/flipper_application.h>
+#include "../../helpers/protopirate_types.h"
 
 #include "helpers/variable_item_list.h"
-
-#define PROTOPIRATE_CONFIG_PLUGIN_APP_ID      "pp_config"
-#define PROTOPIRATE_CONFIG_PLUGIN_API_VERSION 2U
 
 enum ProtoPirateSettingIndex {
 #ifdef ENABLE_MODELS_DATABASE
@@ -26,16 +24,7 @@ enum ProtoPirateSettingIndex {
 };
 
 typedef struct ProtoPirateApp ProtoPirateApp;
-typedef struct ProtoPirateConfigSceneHostApi {
-    bool (*protopirate_refresh_protocol_registry)(ProtoPirateApp* app, bool ensure_receiver_ready);
-    void (*protopirate_preset_init)(
-        void* context,
-        const char* preset_name,
-        uint32_t frequency,
-        uint8_t* preset_data,
-        size_t preset_data_size);
-} ProtoPirateConfigSceneHostApi;
-
+typedef struct ProtoPirateSharedPluginHostApi ProtoPirateSharedPluginHostApi;
 typedef struct ProtoPirateConfigPlugin {
     const char* plugin_name;
 #ifdef ENABLE_MODELS_DATABASE
@@ -47,5 +36,5 @@ typedef struct ProtoPirateConfigPlugin {
     uint16_t (*car_model_get_count)(void);
 #endif
     void (*on_enter)(void* app, bool show_lock_keyboard);
-    void (*set_host_api)(const ProtoPirateConfigSceneHostApi* host_api);
+    void (*set_host_api)(const ProtoPirateSharedPluginHostApi* host_api);
 } ProtoPirateConfigPlugin;

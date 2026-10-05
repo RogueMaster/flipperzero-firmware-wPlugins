@@ -13,16 +13,16 @@
 static const char* protopirate_get_registry_plugin_path(ProtoPirateProtocolRegistryRoute route) {
     switch(route) {
     case ProtoPirateProtocolRegistryRouteAMVag:
-        return APP_ASSETS_PATH("plugins/pp_am_vag.fal");
+        return "am_vag.fal";
     case ProtoPirateProtocolRegistryRouteFMDefault:
-        return APP_ASSETS_PATH("plugins/pp_fm.fal");
+        return "fm_def.fal";
     case ProtoPirateProtocolRegistryRouteFMF4:
-        return APP_ASSETS_PATH("plugins/pp_fm_f4.fal");
+        return "fm_f4.fal";
     case ProtoPirateProtocolRegistryRouteFMHonda1:
-        return APP_ASSETS_PATH("plugins/pp_fm_honda1.fal");
+        return "fm_honda1.fal";
     case ProtoPirateProtocolRegistryRouteAMDefault:
     default:
-        return APP_ASSETS_PATH("plugins/pp_am.fal");
+        return "am_def.fal";
     }
 }
 
@@ -35,8 +35,7 @@ static bool protopirate_build_tx_protocol_plugin_path(
         return false;
     }
 
-    int written =
-        snprintf(plugin_path, plugin_path_size, APP_ASSETS_PATH("plugins/pp_tx_%s.fal"), tx_key);
+    int written = snprintf(plugin_path, plugin_path_size, "tx_%s.fal", tx_key);
     return (written > 0) && ((size_t)written < plugin_path_size);
 }
 #endif
@@ -47,8 +46,6 @@ static const SubGhzProtocolRegistry protopirate_empty_protocol_registry = {
 };
 
 void protopirate_unload_protocol_plugin(ProtoPirateApp* app) {
-    furi_check(app->txrx);
-
     if(app->txrx->environment) {
         subghz_environment_set_protocol_registry(
             app->txrx->environment, &protopirate_empty_protocol_registry);
@@ -69,10 +66,6 @@ static bool protopirate_ensure_protocol_registry_plugin(
     ProtoPirateApp* app,
     ProtoPirateProtocolRegistryRoute route,
     const SubGhzProtocolRegistry** registry) {
-    furi_check(app);
-    furi_check(app->txrx);
-    furi_check(registry);
-
     *registry = NULL;
 
     if(!app->txrx->environment) {
@@ -98,7 +91,7 @@ static bool protopirate_ensure_protocol_registry_plugin(
            ProtoPirateSharedPluginsTXRX,
            plugin_path)) {
         FURI_LOG_E(TAG, "Failed to load RX protocol plugin %s", plugin_path);
-        protopirate_unload_protocol_plugin(app);
+        //protopirate_unload_protocol_plugin(app);
         return false;
     }
 
@@ -128,10 +121,6 @@ static bool protopirate_ensure_tx_protocol_plugin(
     ProtoPirateApp* app,
     const char* protocol_name,
     const SubGhzProtocolRegistry** registry) {
-    furi_check(app);
-    furi_check(app->txrx);
-    furi_check(registry);
-
     *registry = NULL;
 
     if(!app->txrx->environment) {
@@ -172,7 +161,7 @@ static bool protopirate_ensure_tx_protocol_plugin(
            ProtoPirateSharedPluginsTXRX,
            plugin_path)) {
         FURI_LOG_E(TAG, "Failed to load TX protocol plugin %s", plugin_path);
-        protopirate_unload_protocol_plugin(app);
+        //protopirate_unload_protocol_plugin(app); // DEFINITELY NOT NEEDED.
         return false;
     }
 
@@ -190,9 +179,6 @@ static bool protopirate_ensure_tx_protocol_plugin(
 #endif
 
 bool protopirate_refresh_protocol_registry(ProtoPirateApp* app, bool ensure_receiver_ready) {
-    furi_check(app);
-    furi_check(app->txrx);
-
     if(!app->txrx->environment || !app->txrx->preset) {
         return true;
     }
@@ -258,9 +244,6 @@ bool protopirate_refresh_protocol_registry(ProtoPirateApp* app, bool ensure_rece
 }
 
 static bool protopirate_ensure_receiver_allocated(ProtoPirateApp* app) {
-    furi_check(app);
-    furi_check(app->txrx);
-
     if(app->txrx->receiver) {
         return true;
     }
@@ -285,9 +268,6 @@ bool protopirate_apply_protocol_registry_for_context(
     const uint8_t* preset_data,
     size_t preset_data_size,
     const char* protocol_name) {
-    furi_check(app);
-    furi_check(app->txrx);
-
     if(!app->txrx->environment) {
         return false;
     }

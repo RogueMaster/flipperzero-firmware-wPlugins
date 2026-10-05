@@ -5,7 +5,7 @@
 #include <lib/subghz/receiver.h>
 #include <lib/subghz/protocols/base.h>
 
-#define PROTOPIRATE_HISTORY_MAX 20
+#define PROTOPIRATE_HISTORY_MAX 100
 
 typedef struct SubGhzEnvironment SubGhzEnvironment;
 typedef struct ProtoPirateHistory ProtoPirateHistory;

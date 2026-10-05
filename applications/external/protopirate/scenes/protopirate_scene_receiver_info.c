@@ -1,9 +1,8 @@
 // scenes/protopirate_scene_receiver_info.c
 #include "../protopirate_app_i.h"
 #include "../helpers/protopirate_storage.h"
-#include "../helpers/protopirate_psa_bf_host.h"
+#include "../helpers/protopirate_bruteforce_host.h"
 #include "../protocols/protocol_items.h"
-#include "../protocols/protocol_bf_probe.h"
 #include "proto_pirate_icons.h"
 #include <storage/storage.h>
 
@@ -113,10 +112,18 @@ static void protopirate_receiver_info_build_normal_widget(ProtoPirateApp* app) {
             app->widget, 0, 11, AlignLeft, AlignTop, FontSecondary, text_str);
     }
 
-    // The predicate is host-resident, so asking it costs no .fal map. A load failure used to
-    // leave the button silently undrawn, which looked like "this protocol has no bruteforce".
-    const bool bf_running = app->psa_bf_plugin && app->psa_bf_plugin->is_running(app);
-    const bool needs_bf = offers_bf && !bf_running && protopirate_bf_probe_needs_bruteforce(ff);
+    bool needs_bf = false;
+    bool error = false;
+    if(offers_bf && protopirate_bruteforce_plugin_ensure_loaded(app) && app->bruteforce_plugin) {
+        needs_bf = app->bruteforce_plugin->widget_left_should_bruteforce(app, ff);
+    } else if(offers_bf) {
+        //Show the user the error in the button.
+        widget_add_button_element(app->widget, GuiButtonTypeLeft, "(Error)", NULL, app);
+        needs_bf = false;
+        error = true;
+    }
+
+    protopirate_bruteforce_plugin_unload_if_idle(app);
     if(needs_bf) {
         scene_manager_set_scene_state(app->scene_manager, ProtoPirateSceneReceiverInfo, STATE_BF);
         widget_add_button_element(
@@ -125,7 +132,7 @@ static void protopirate_receiver_info_build_normal_widget(ProtoPirateApp* app) {
             "BF",
             protopirate_scene_receiver_info_widget_callback,
             app);
-    } else {
+    } else if(!error) {
         scene_manager_set_scene_state(
             app->scene_manager, ProtoPirateSceneReceiverInfo, STATE_EMULATE);
 
@@ -153,8 +160,8 @@ static void protopirate_receiver_info_build_normal_widget(ProtoPirateApp* app) {
     furi_string_free(text);
 }
 
-void protopirate_receiver_info_rebuild_normal_widget(void* app) {
-    protopirate_receiver_info_build_normal_widget((ProtoPirateApp*)app);
+void protopirate_receiver_info_rebuild_normal_widget(ProtoPirateApp* app) {
+    protopirate_receiver_info_build_normal_widget(app);
 }
 
 void protopirate_saved_info_rebuild_normal_widget(void* app) {
@@ -206,9 +213,9 @@ void protopirate_scene_receiver_info_on_enter(void* context) {
 
     app->emulate_disabled_for_loaded = false;
 
-    if(app->psa_bf_plugin) {
-        if(app->psa_bf_plugin->is_running(app)) {
-            app->psa_bf_plugin->on_scene_enter(app, ProtoPiratePsaBfContextReceiverInfo);
+    if(app->bruteforce_plugin) {
+        if(app->bruteforce_plugin->is_running(app)) {
+            app->bruteforce_plugin->on_scene_enter(app, ProtoPirateBruteForceContextReceiverInfo);
             view_dispatcher_switch_to_view(app->view_dispatcher, ProtoPirateViewWidget);
             return;
         }
@@ -224,21 +231,22 @@ bool protopirate_scene_receiver_info_on_event(void* context, SceneManagerEvent e
 
     if((event.type == SceneManagerEventTypeCustom) &&
        (event.event == ProtoPirateCustomEventBruteforceStart) &&
-       !protopirate_psa_bf_plugin_ensure_loaded(app)) {
+       !protopirate_bruteforce_plugin_ensure_loaded(app)) {
         FURI_LOG_E(TAG, "Failed to load PSA bruteforce plugin");
         notification_message(app->notifications, &sequence_error);
         return true;
     }
 
-    if(app->psa_bf_plugin) {
-        if(app->psa_bf_plugin->is_running(app) ||
+    if(app->bruteforce_plugin) {
+        if(app->bruteforce_plugin->is_running(app) ||
            event.event == ProtoPirateCustomEventBruteforceStart) {
-            consumed = app->psa_bf_plugin->on_scene_event(
-                app, ProtoPiratePsaBfContextReceiverInfo, event);
+            consumed = app->bruteforce_plugin->on_scene_event(
+                app, ProtoPirateBruteForceContextReceiverInfo, event);
             if(consumed) return true;
         }
         if(event.type == SceneManagerEventTypeBack &&
-           app->psa_bf_plugin->on_scene_event(app, ProtoPiratePsaBfContextReceiverInfo, event)) {
+           app->bruteforce_plugin->on_scene_event(
+               app, ProtoPirateBruteForceContextReceiverInfo, event)) {
             return true;
         }
     }
@@ -332,8 +340,6 @@ bool protopirate_scene_receiver_info_on_event(void* context, SceneManagerEvent e
                 furi_string_free(auto_path);
 
                 // Store context for when text input confirms
-                if(app->save_protocol) furi_string_free(app->save_protocol);
-                app->save_protocol = protocol; // transfer ownership
                 app->save_history_idx = app->txrx->idx_menu_chosen;
 
                 // Configure and show text input
@@ -373,12 +379,6 @@ bool protopirate_scene_receiver_info_on_event(void* context, SceneManagerEvent e
                     FURI_LOG_E(TAG, "Save failed");
                 }
                 furi_string_free(save_path);
-            }
-
-            // Clean up save protocol string
-            if(app->save_protocol) {
-                furi_string_free(app->save_protocol);
-                app->save_protocol = NULL;
             }
 
             // Return to the receiver info widget
@@ -433,7 +433,7 @@ bool protopirate_scene_receiver_info_on_event(void* context, SceneManagerEvent e
 void protopirate_scene_receiver_info_on_exit(void* context) {
     furi_check(context);
     ProtoPirateApp* app = context;
-    protopirate_psa_bf_context_release(app);
+    protopirate_bruteforce_context_release(app);
     widget_reset(app->widget);
     if(app->txrx && app->txrx->history) {
         protopirate_history_release_scratch(app->txrx->history);

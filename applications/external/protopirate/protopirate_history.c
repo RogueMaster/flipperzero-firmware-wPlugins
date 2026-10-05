@@ -27,31 +27,30 @@ typedef enum {
 } ProtoPirateAutoSaveState;
 
 typedef struct {
+    FuriString* matched_saved_path;
+    FuriString* matched_name;
     uint32_t seq_id;
     uint16_t text_offset;
     uint16_t text_len;
     uint8_t type;
     uint8_t saved_match_state;
     uint8_t auto_save_state;
-    FuriString* matched_saved_path;
-    FuriString* matched_name;
 } ProtoPirateHistoryItem;
 
 ARRAY_DEF(ProtoPirateHistoryItemArray, ProtoPirateHistoryItem, M_POD_OPLIST)
 
 struct ProtoPirateHistory {
-    ProtoPirateHistoryItemArray_t data;
-    uint16_t last_index;
+    ProtoPirateHistoryItemArray_t data; // 4-byte aligned
     uint32_t last_update_timestamp;
-    uint8_t code_last_hash_data;
     uint32_t next_capture_seq;
     Storage* storage;
     FlipperFormat* loaded_ff;
-    int16_t loaded_idx;
-
     FuriString* scratch_text;
     FuriString* scratch_path;
     FuriString* text_arena;
+    uint16_t last_index;
+    int16_t loaded_idx;
+    uint8_t code_last_hash_data;
 };
 
 void protopirate_history_release_scratch(ProtoPirateHistory* instance) {

@@ -53,8 +53,6 @@ static void protopirate_scene_receiver_callback(
     SubGhzProtocolDecoderBase* decoder_base,
     void* context) {
     UNUSED(receiver);
-    furi_check(decoder_base);
-    furi_check(context);
     ProtoPirateApp* app = context;
 
     FURI_LOG_I(TAG, "=== SIGNAL DECODED (%s) ===", decoder_base->protocol->name);
@@ -71,8 +69,11 @@ static void protopirate_scene_receiver_callback(
         app->key_found = true;
         if(!(app->sound))
             notification_message(app->notifications, &sequence_semi_success);
-        else
+        else {
             notification_message(app->notifications, &sequence_single_vibro);
+            notification_message(app->notifications, &sequence_display_backlight_on);
+        }
+
         FURI_LOG_I(
             TAG,
             "Added to history, total items: %u",
@@ -112,6 +113,7 @@ static void protopirate_scene_receiver_callback(
         FURI_LOG_D(TAG, "Capture not admitted (full or duplicate)");
     }
 
+    //Pause the Hopper for a long time, we found a key!
     if(app->txrx->hopper_state == ProtoPirateHopperStateRunning) {
         app->txrx->hopper_state = ProtoPirateHopperStatePause;
         app->txrx->hopper_timeout = 50;
@@ -241,8 +243,6 @@ static void protopirate_scene_receiver_process_deferred_storage(ProtoPirateApp* 
 }
 
 static bool protopirate_scene_receiver_bind_rx_stack(ProtoPirateApp* app) {
-    furi_check(app);
-
     if(!app->txrx->receiver) {
         FURI_LOG_E(TAG, "SubGhz receiver unavailable — staying on receiver in degraded mode");
         notification_message(app->notifications, &sequence_error);
@@ -269,24 +269,23 @@ static bool protopirate_scene_receiver_bind_rx_stack(ProtoPirateApp* app) {
 }
 
 static void protopirate_scene_receiver_start_rx_stack(ProtoPirateApp* app) {
-    furi_check(app);
     if(!app->radio_initialized) {
         return;
     }
 
-    if(app->txrx->hopper_state != ProtoPirateHopperStateOFF) {
-        app->txrx->hopper_state = ProtoPirateHopperStateRunning;
-    }
-
     protopirate_begin(app, app->txrx->preset->data);
 
+    //Get preset frequency or next hop frequency.
     uint32_t frequency = app->txrx->preset->frequency;
-    if(app->txrx->hopper_state == ProtoPirateHopperStateRunning) {
+    if(app->txrx->hopper_state != ProtoPirateHopperStateOFF) {
         frequency = subghz_setting_get_hopper_frequency(app->setting, 0);
         app->txrx->hopper_idx_frequency = 0;
         app->txrx->preset->frequency = frequency;
+        //Restore the Hopper, it could be paused.
+        app->txrx->hopper_state = ProtoPirateHopperStateRunning;
     }
 
+    //Resume the RX Stack and start Receiving
     protopirate_rx_stack_resume_after_tx(app);
     if(!protopirate_scene_receiver_bind_rx_stack(app)) {
         return;
@@ -303,7 +302,6 @@ void deferred_storage_timer_callback(void* app) {
 }
 
 void protopirate_scene_receiver_on_enter(void* context) {
-    furi_check(context);
     ProtoPirateApp* app = context;
 
     if(!protopirate_ensure_receiver_view(app)) {
@@ -382,7 +380,6 @@ static void protopirate_scene_receiver_handle_back(ProtoPirateApp* app) {
 }
 
 bool protopirate_scene_receiver_on_event(void* context, SceneManagerEvent event) {
-    furi_check(context);
     ProtoPirateApp* app = context;
     bool consumed = false;
 
@@ -502,7 +499,6 @@ bool protopirate_scene_receiver_on_event(void* context, SceneManagerEvent event)
 }
 
 void protopirate_scene_receiver_on_exit(void* context) {
-    furi_check(context);
     ProtoPirateApp* app = context;
 
     FURI_LOG_I(TAG, "=== EXITING RECEIVER SCENE ===");
@@ -527,7 +523,6 @@ void protopirate_scene_receiver_on_exit(void* context) {
 }
 
 void protopirate_scene_receiver_view_callback(ProtoPirateCustomEvent event, void* context) {
-    furi_check(context);
     ProtoPirateApp* app = context;
     view_dispatcher_send_custom_event(app->view_dispatcher, event);
 }

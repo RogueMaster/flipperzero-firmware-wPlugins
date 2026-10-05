@@ -7,6 +7,9 @@ ADD_SCENE(protopirate, start, Start)
 ADD_SCENE(protopirate, sub_decode, SubDecode)
 #endif
 ADD_SCENE(protopirate, about, About)
+#ifdef ENABLE_WELCOME_SCREEN
+ADD_SCENE(protopirate, welcome, Welcome)
+#endif
 ADD_SCENE(protopirate, receiver, Receiver)
 ADD_SCENE(protopirate, receiver_config, ReceiverConfig)
 ADD_SCENE(protopirate, receiver_info, ReceiverInfo)
@@ -18,4 +21,7 @@ ADD_SCENE(protopirate, emulate, Emulate)
 #endif
 #ifdef ENABLE_TIMING_TUNER_SCENE
 ADD_SCENE(protopirate, timing_tuner, TimingTuner)
+#endif
+#ifdef ENABLE_REMOTE_ANALYZER
+ADD_SCENE(protopirate, remote_analyzer, RemoteAnalyzer)
 #endif

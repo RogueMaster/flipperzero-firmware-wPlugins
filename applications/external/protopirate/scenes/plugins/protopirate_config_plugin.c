@@ -1,14 +1,8 @@
-#include "protopirate_config_plugin.h"
+#include "../../protopirate_app_i.h"
 #include "../../helpers/protopirate_models.h"
+#include <gui/view_dispatcher.h>
 
-static const ProtoPirateConfigSceneHostApi* g_config_scene_host_api = NULL;
-
-#define protopirate_preset_init(app, preset_name, frequency, preset_data, preset_data_size) \
-    g_config_scene_host_api->protopirate_preset_init(                                       \
-        app, preset_name, frequency, preset_data, preset_data_size)
-
-#define protopirate_refresh_protocol_registry(app, ensure_receiver_ready) \
-    g_config_scene_host_api->protopirate_refresh_protocol_registry(app, ensure_receiver_ready)
+static const ProtoPirateSharedPluginHostApi* g_config_scene_host_api = NULL;
 
 #define ON_OFF_COUNT 2
 const char* const on_off_text[ON_OFF_COUNT] = {
@@ -16,9 +10,33 @@ const char* const on_off_text[ON_OFF_COUNT] = {
     "ON",
 };
 
-const uint32_t hopping_value[ON_OFF_COUNT] = {
+#define HOPPING_COUNT 11
+const uint32_t hopping_value[HOPPING_COUNT] = {
     ProtoPirateHopperStateOFF,
-    ProtoPirateHopperStateRunning,
+    85,
+    80,
+    75,
+    70,
+    65,
+    60,
+    55,
+    50,
+    45,
+    40,
+};
+
+const char* const hopping_text[HOPPING_COUNT] = {
+    "OFF",
+    "-85",
+    "-80",
+    "-75",
+    "-70",
+    "-65",
+    "-60",
+    "-55",
+    "-50",
+    "-45",
+    "-40",
 };
 
 const char* const sequence_time_text[ON_OFF_COUNT] = {
@@ -87,14 +105,14 @@ static void protopirate_scene_receiver_config_set_preset(VariableItem* item) {
     uint8_t index = variable_item_get_current_value_index(item);
     variable_item_set_current_value_text(
         item, subghz_setting_get_preset_name(app->setting, index));
-    protopirate_preset_init(
+    g_config_scene_host_api->preset_init(
         app,
         subghz_setting_get_preset_name(app->setting, index),
         app->txrx->preset->frequency,
         subghz_setting_get_preset_data(app->setting, index),
         subghz_setting_get_preset_data_size(app->setting, index));
 
-    if(!protopirate_refresh_protocol_registry(app, false)) {
+    if(!g_config_scene_host_api->refresh_protocol_registry(app, false)) {
         notification_message(app->notifications, &sequence_error);
     }
 }
@@ -103,7 +121,7 @@ static void protopirate_scene_receiver_config_set_hopping_running(VariableItem* 
     ProtoPirateApp* app = variable_item_get_context(item);
     uint8_t index = variable_item_get_current_value_index(item);
 
-    variable_item_set_current_value_text(item, on_off_text[index]);
+    variable_item_set_current_value_text(item, hopping_text[index]);
     if(hopping_value[index] == ProtoPirateHopperStateOFF) {
         char text_buf[10] = {0};
         snprintf(
@@ -131,7 +149,16 @@ static void protopirate_scene_receiver_config_set_hopping_running(VariableItem* 
                 app->scene_manager, ProtoPirateSceneReceiverConfig),
             subghz_setting_get_frequency_default_index(app->setting));
     }
-    app->txrx->hopper_state = hopping_value[index];
+
+    //Start the Hopper and set RSSI.
+    if(index) {
+        app->txrx->hopper_state = ProtoPirateHopperStateRunning;
+        variable_item_set_item_label(item, "Hop RSSI (dBm):");
+    } else {
+        app->txrx->hopper_state = ProtoPirateHopperStateOFF;
+        variable_item_set_item_label(item, "Hopping:");
+    }
+    app->txrx->hopper_rssi = hopping_value[index];
 }
 
 #ifdef ENABLE_MODELS_DATABASE
@@ -198,7 +225,7 @@ static void protopirate_scene_receiver_config_set_model(VariableItem* item) {
             }
         }
 
-        protopirate_preset_init(
+        g_config_scene_host_api->preset_init(
             app,
             furi_string_get_cstr(app->selected_model->preset->name),
             app->selected_model->preset->frequency,
@@ -214,7 +241,7 @@ static void protopirate_scene_receiver_config_set_model(VariableItem* item) {
         protopirate_scene_receiver_config_set_frequency(freq_menu);
         protopirate_scene_receiver_config_set_hopping_running(hop_menu);
 
-        protopirate_preset_init(
+        g_config_scene_host_api->preset_init(
             app,
             subghz_setting_get_preset_name(app->setting, app->selected_model->last_preset_index),
             app->txrx->preset->frequency,
@@ -228,7 +255,7 @@ static void protopirate_scene_receiver_config_set_model(VariableItem* item) {
     }
 
     //Refresh the protocol registry now that we have a new Modulation Type.
-    if(!protopirate_refresh_protocol_registry(app, false)) {
+    if(!g_config_scene_host_api->refresh_protocol_registry(app, false)) {
         notification_message(app->notifications, &sequence_error);
     }
 
@@ -280,13 +307,16 @@ static uint8_t protopirate_scene_receiver_config_hopper_value_index(
     ProtoPirateApp* app = context;
 
     if(value == values[0]) {
-        return false;
+        return 0;
     } else {
         variable_item_set_current_value_text(
             (VariableItem*)scene_manager_get_scene_state(
                 app->scene_manager, ProtoPirateSceneReceiverConfig),
             " -----");
-        return true;
+        for(uint8_t i = 1; i < HOPPING_COUNT; i++) {
+            if(value == values[i]) return i;
+        }
+        return 0;
     }
 }
 
@@ -402,17 +432,17 @@ static void plugin_on_enter(void* context, bool show_lock_keyboard) {
         app->selected_model && (app->selected_model->index),
         "Turn off\nCar Model\nto do that!");
 #endif
-
     item = variable_item_list_add(
         app->variable_item_list,
         "Hopping:",
-        ON_OFF_COUNT,
+        HOPPING_COUNT,
         protopirate_scene_receiver_config_set_hopping_running,
         app);
     value_index = protopirate_scene_receiver_config_hopper_value_index(
-        app->txrx->hopper_state, hopping_value, ON_OFF_COUNT, app);
+        app->txrx->hopper_rssi, hopping_value, HOPPING_COUNT, app);
     variable_item_set_current_value_index(item, value_index);
-    variable_item_set_current_value_text(item, on_off_text[value_index]);
+    variable_item_set_current_value_text(item, hopping_text[value_index]);
+    if(app->txrx->hopper_state) variable_item_set_item_label(item, "Hop RSSI (dBm):");
 #ifdef ENABLE_MODELS_DATABASE
     variable_item_set_locked(
         item,
@@ -500,12 +530,12 @@ static void plugin_on_enter(void* context, bool show_lock_keyboard) {
     view_dispatcher_switch_to_view(app->view_dispatcher, ProtoPirateViewVariableItemList);
 }
 
-void config_plugin_set_host_api(const ProtoPirateConfigSceneHostApi* host_api) {
+void config_plugin_set_host_api(const ProtoPirateSharedPluginHostApi* host_api) {
     g_config_scene_host_api = host_api;
 }
 
 static const ProtoPirateConfigPlugin protopirate_config_plugin = {
-    .plugin_name = "Config",
+    .plugin_name = "",
 #ifdef ENABLE_MODELS_DATABASE
     .car_model_get_by_index = car_model_get_by_index,
     .car_model_get_count = car_model_get_count,

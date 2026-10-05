@@ -1,6 +1,6 @@
 #pragma once
 
-#include "psa_bf_types.h"
+#include "bruteforce_types.h"
 #include "../defines.h"
 #include <stdint.h>
 
