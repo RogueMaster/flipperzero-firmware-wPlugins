@@ -13,7 +13,7 @@
 <p align="center">
   <a href="https://github.com/pingequalab/sigroam-wardriving/releases/latest"><b>Download the Flipper app</b></a>
   · <a href="https://flash.pingequa.com/devices/scout-lite"><b>Flash the Scout Lite scanner</b></a>
-  · <a href="https://www.pingequa.com/products/scout-lite"><b>Get Scout Lite</b></a>
+  · <a href="https://www.pingequa.com/products/scout-lite?utm_source=github&utm_medium=referral&utm_campaign=pq-scout-lite-c5&utm_content=sigroam-wardriving-readme"><b>Get Scout Lite</b></a>
 </p>
 
 <p align="center">
@@ -27,7 +27,7 @@ external board scans, receives GNSS data and stores the survey.** SigRoam also
 speaks the ESP32 Marauder serial protocol, so the app works as a dedicated
 dashboard with compatible Marauder scanners. The complete SigRoam workflow below
 uses the optional [SigRoam scanner firmware](https://github.com/pingequalab/sigroam-firmware)
-on the verified [Scout Lite](https://www.pingequa.com/products/scout-lite) board.
+on the verified [Scout Lite](https://www.pingequa.com/products/scout-lite?utm_source=github&utm_medium=referral&utm_campaign=pq-scout-lite-c5&utm_content=sigroam-wardriving-readme) board.
 
 ## Why use SigRoam in the field?
 
@@ -99,7 +99,7 @@ boards may run the FAP, but they have not all been bench-tested here.
    the page and does not stop scanning.
 
 For a first run, see the
-[Flipper Zero + Scout Lite field guide](https://www.pingequa.com/blogs/guides-tutorials/how-to-first-wardrive-flipper-zero-scout-lite).
+[Flipper Zero + Scout Lite field guide](https://www.pingequa.com/blogs/guides-tutorials/how-to-first-wardrive-flipper-zero-scout-lite?utm_source=github&utm_medium=referral&utm_campaign=blog-how-to-first-wardrive-flipper-zero-scout-lite&utm_content=sigroam-wardriving-readme).
 
 ## Set up automatic WiGLE upload
 
@@ -171,7 +171,7 @@ For board shoppers, the firmware boundary matters as much as the radio:
 
 | Board | Documented wardriving hardware | SigRoam scanner v0.6 |
 |---|---|---|
-| **[Scout Lite](https://www.pingequa.com/products/scout-lite)** | ESP32-C5 2.4/5 GHz, onboard GPS and microSD | Verified reference board for SigRoam 0.6; optional SigRoam or factory Marauder firmware |
+| **[Scout Lite](https://www.pingequa.com/products/scout-lite?utm_source=github&utm_medium=referral&utm_campaign=pq-scout-lite-c5&utm_content=sigroam-wardriving-readme)** | ESP32-C5 2.4/5 GHz, onboard GPS and microSD | Verified reference board for SigRoam 0.6; optional SigRoam or factory Marauder firmware |
 | **[Apex 5 V2](https://github.com/HoneyHoneyTeam/ESP32-Marauder-5G-Apex-5-Module---For-Flipper-Zero)** | ESP32-C5 2.4/5 GHz, onboard GPS and SD slot; also Sub-GHz and nRF24 | Not verified. Its maker documents Marauder Wardrive on **V2**; V1 has a different wiring limitation |
 
 Comparison sources: linked project documentation, checked 2026-09-26.
@@ -181,7 +181,7 @@ states 2025-06-05. The Apex 5 manual notes a 2026-07-08 update. The linked Ghost
 and ESP32GPS pages do not state an update date.
 For a broader hardware comparison including Biscuit, C5 wardrivers and
 multi-radio Flipper boards, see our
-[Flipper Zero wardriving comparison](https://www.pingequa.com/blogs/guides-tutorials/flipper-zero-esp32-gps-wardriver-sigroam-marauder).
+[Flipper Zero wardriving comparison](https://www.pingequa.com/blogs/guides-tutorials/flipper-zero-esp32-gps-wardriver-sigroam-marauder?utm_source=github&utm_medium=referral&utm_campaign=blog-flipper-zero-esp32-gps-wardriver-sigroam-marauder&utm_content=sigroam-wardriving-readme).
 
 ## Screens and controls
 
@@ -243,6 +243,6 @@ GPL-3.0. See [LICENSE](LICENSE). The separate
 [SigRoam scanner firmware repository](https://github.com/pingequalab/sigroam-firmware)
 documents its own distribution and hardware scope.
 
-**PINGEQUA Lab** · [Scout Lite hardware](https://www.pingequa.com/products/scout-lite)
+**PINGEQUA Lab** · [Scout Lite hardware](https://www.pingequa.com/products/scout-lite?utm_source=github&utm_medium=referral&utm_campaign=pq-scout-lite-c5&utm_content=sigroam-wardriving-readme)
 · [Scout Lite Web Flasher](https://flash.pingequa.com/devices/scout-lite)
-· [Field guide](https://www.pingequa.com/blogs/guides-tutorials/how-to-first-wardrive-flipper-zero-scout-lite)
+· [Field guide](https://www.pingequa.com/blogs/guides-tutorials/how-to-first-wardrive-flipper-zero-scout-lite?utm_source=github&utm_medium=referral&utm_campaign=blog-how-to-first-wardrive-flipper-zero-scout-lite&utm_content=sigroam-wardriving-readme)
