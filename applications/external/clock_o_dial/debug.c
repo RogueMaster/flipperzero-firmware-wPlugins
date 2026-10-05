@@ -42,7 +42,7 @@ bool debug_feed_combo_key(InputKey key) {
     return false;
 }
 
-#define DEBUG_TIME_TRAVEL_MINUTE_SECONDS 60
+#define DEBUG_TIME_TRAVEL_MINUTE_SECONDS   60
 // Never let the overall span from the shift's start to "now" grow past this when fast-forwarding
 // - stays comfortably clear of the 24h wrap boundary that wall-clock-of-day arithmetic wraps
 // around at.
@@ -80,10 +80,11 @@ void debug_time_travel(AppData* app, int32_t minutes) {
     // The anchor closest to "now" - the current live segment's own start - is what determines
     // how far we can rewind before crossing "now" itself; the shift's overall start is what
     // determines how far we can fast-forward before that overall span nears the wrap boundary.
-    uint32_t live_start = app->running ? (app->break_count > 0 ?
-                                               app->breaks[app->break_count - 1].end_wallclock_secs :
-                                               app->start_wallclock_secs) :
-                                          app->pause_start_wallclock;
+    uint32_t live_start = app->running ?
+                              (app->break_count > 0 ?
+                                   app->breaks[app->break_count - 1].end_wallclock_secs :
+                                   app->start_wallclock_secs) :
+                              app->pause_start_wallclock;
     if(delta > 0) {
         // Rewinding: don't push the most recent boundary past "now".
         uint32_t live_gap = forward_gap_seconds(live_start, now);
@@ -93,8 +94,8 @@ void debug_time_travel(AppData* app, int32_t minutes) {
         // 24h wrap boundary.
         uint32_t overall_gap = forward_gap_seconds(app->start_wallclock_secs, now);
         uint32_t max_growth = overall_gap < DEBUG_TIME_TRAVEL_MAX_SPAN_SECONDS ?
-                                   DEBUG_TIME_TRAVEL_MAX_SPAN_SECONDS - overall_gap :
-                                   0;
+                                  DEBUG_TIME_TRAVEL_MAX_SPAN_SECONDS - overall_gap :
+                                  0;
         if((uint32_t)(-delta) > max_growth) delta = -(int32_t)max_growth;
     }
 

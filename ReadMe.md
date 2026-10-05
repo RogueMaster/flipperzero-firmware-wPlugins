@@ -146,6 +146,16 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [DNDCharacter Sheet v4.20 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
 - Added: [DNDCombat v4.20 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
 - Added: [DNDGrants v4.20 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
+- Added: [Telemeter v1.1 (By alaviation)](https://github.com/alaviation/flipper-telemeter)
+- Added: [NW Crawl v0.2 (By rseufert)](https://github.com/rseufert/nw_crawl)
+- Added: [Step Seq v0.1 (By rseufert)](https://github.com/rseufert/step_seq)
+- Added: [K2 RFID v1.0 (By mitchsurp)](https://github.com/mitchsurp/K2-RFID-Flipper)
+- Added: [Roulette v1.0 (By thecoolguy2001)](https://github.com/thecoolguy2001/flipper-roulette)
+- Added: [Clock-o-Dial v1.1 (By ManeFunction)](https://github.com/ManeFunction/clock-o-dial--fz)
+- Added: [eMRTD Reader v1.0 (By filipsedivy)](https://github.com/filipsedivy/emrtd-flipperzero)
+- Added: [Prime Factors v1.0 (By gbritoda)](https://github.com/gbritoda/flipper0-prime_factors)
+- Added: [Alcohol Calc v1.0 (By vtlklr)](https://github.com/vtlklr/alcohol_calc)
+- Added: [Hanzi Cards v0.3 (By rseufert)](https://github.com/rseufert/hanzi_cards)
 
 <a name="release"></a>
 
@@ -371,6 +381,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Nah 2 da Nah Nah Nah v0.2 (By DigiMancer3D)](https://github.com/DigiMancer3D/nah2nah3)
 - [Network Defender v1.1 (By w84death)](https://github.com/w84death/flipper-zero-apps)
 - [Nu Pogodi! (Ну, погоди!) v1.3 (By sionyx)](https://github.com/sionyx/flipper_nupogodi)
+- [NW Crawl v0.2 (By rseufert)](https://github.com/rseufert/nw_crawl)
 - [Oregon Trail v0.1 (By jlaughter)](https://github.com/jlaughter/flipper_oregon_trail)
 - [P1X Adventure v0.1 (By w84death)](https://github.com/w84death/flipper-zero-apps)
 - [P1X Your Own Adventure v0.1 (By w84death)](https://github.com/w84death/flipper-zero-apps)
@@ -395,6 +406,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Rock Paper Scissors 2 v1.1 (By benwoo1110)](https://github.com/benwoo1110/rps-FlipperZero)
 - [Rock Paper Scissors 3 v1.0 (By xantopren)](https://github.com/xantopren/rock-paper-scissors)
 - [Root of Life v1.4 (By Xorboo)](https://github.com/Xorboo/root-of-life)
+- [Roulette v1.0 (By thecoolguy2001)](https://github.com/thecoolguy2001/flipper-roulette)
 - [Rubiks Cube Scrambler v1.4 (By RaZeSloth)](https://github.com/RaZeSloth/flipperzero-rubiks-cube-scrambler)
 - [Rush Hour v0.1.8 (By Endika)](https://github.com/Endika/flipper-tutu)
 - [Scorched Tanks v1.4 (By jasniec)](https://github.com/jasniec/flipper-scorched-tanks-game)
@@ -450,6 +462,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Agentic Remote USB/BT v0.28 (By Wet-wr-Labs)](https://github.com/Wet-wr-Labs/claupper)
 - [Air Level v1.0 (By jamisonderek)](https://github.com/jamisonderek/flipper-zero-tutorials/tree/main/vgm/air_level) `Req: Video Game Module By Flipper Devices`
 - [Air Stats v1.0 (By thevan4)](https://github.com/thevan4/flipper-air-stats) Req: [See App Readme For Supported Modules](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/applications/external/air_stats/README.md)
+- [Alcohol Calc v1.0 (By vtlklr)](https://github.com/vtlklr/alcohol_calc)
 - [Allstar Firefly v0.1 (By jlaughter)](https://github.com/jlaughter/flipper-allstar-firefly)
 - [AmiiTool v0.3 (By Firefox2100)](https://github.com/Firefox2100/ami_tool) `Req: key_retail.bin on SD card /nfc/assets`
 - [Amusement IC v0.1 (By object-Object)](https://github.com/object-Object/flip_aic)
@@ -530,6 +543,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Click Recorder v1.2 (By 0x78f1935)](https://github.com/0x78f1935/Click-Recorder)
 - [Clippy v0.1 (By mtormento)](https://github.com/mtormento/clippy)
 - [Clock v1.2 (By kowalski7cc)](https://github.com/kowalski7cc/flipperzero-firmware/tree/clock-v1)
+- [Clock-o-Dial v1.1 (By ManeFunction)](https://github.com/ManeFunction/clock-o-dial--fz)
 - [CO2 Logger v0.4 (By harryob2)](https://github.com/harryob2/co2_logger) `Req: MH-Z19`
 - [Cocktail Book v0.4 (By resu95)](https://github.com/resu95/flipper_cocktail_book)
 - [Coffee-EEPROM (By wh00hw)](https://github.com/wh00hw/Coffee-EEPROM-FAP) For ethical pentest only.
@@ -566,6 +580,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [E220 LoRa Configurator v0.1 (By crackerjacques)](https://github.com/crackerjacques/Flipper_E220_Lora_Module_Configurator) `Req: E220-900T22S(JP)`
 - [Ear Trainer v1.1 (By barismert98)](https://github.com/barismert98/flipper-ear-trainer)
 - [EM4100 Key Generator v1.1 (By Milk-Cool)](https://github.com/Milk-Cool/fz-em4100-generator)
+- [eMRTD Reader v1.0 (By filipsedivy)](https://github.com/filipsedivy/emrtd-flipperzero)
 - [EMV Reader v0.1 (By AmsaOne)](https://github.com/AmsaOne/Flipper-EMV-Reader)
 - [Encoder Reader v0.1 (By Engineegor)](https://github.com/Engineegor/Enc_reader)
 - [Enhanced Sub-Ghz Chat v1.3 (By twisted-pear)](https://github.com/twisted-pear/esubghz_chat)
@@ -687,6 +702,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Haier AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
 - [Ham Scanner v1.1 (By Clawzman)](https://github.com/Clawzman/Flipper-HAM-Scanner)
 - [Handpan Chords v1.0 (By KingBoa / NoodleNugget-com)](https://github.com/NoodleNugget-com/handpan_chords)
+- [Hanzi Cards v0.3 (By rseufert)](https://github.com/rseufert/hanzi_cards)
 - [Hard Hat Brigade IR v0.1 (By Anomalous68)](https://github.com/Anomalous68/HHB-Flipper-App) `Req: Hard Hat Brigade Hat`
 - [HC-11 Modem v1.3 (By Giraut)](https://github.com/Giraut/flipper_zero_hc11_wireless_modem) `Req: HC-11`
 - [Hermes v1.3 (By at0m-b0mb)](https://github.com/at0m-b0mb/Hermes-FlipperZero)
@@ -726,6 +742,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [J305 Geiger Counter v1.5 (By nmrr)](https://github.com/nmrr/flipperzero-geigercounter)
 - [JAYX PC Monitor v0.4 (By contactjayclatty)](https://github.com/contactjayclatty/JAYX)
 - [Joycon v1.0 (By ccyyturralde)](https://github.com/ccyyturralde/Flipper-Zero-Joycon)
+- [K2 RFID v1.0 (By mitchsurp)](https://github.com/mitchsurp/K2-RFID-Flipper)
 - [Karl Eido v0.1 (By fgreil)](https://github.com/fgreil/mitzi-karl-eido)
 - [Kelon AC v1.0 (By xMasterX)](https://github.com/xMasterX/all-the-plugins/tree/213baa6e872d1db597a25d2c16e81406e9634440/non_catalog_apps/kelon_ac_remote)
 - [Kelvinator AC v1.0 (By xMasterX)](https://github.com/xMasterX/all-the-plugins/tree/213baa6e872d1db597a25d2c16e81406e9634440/non_catalog_apps/kelvinator_ac_remote)
@@ -888,6 +905,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Pomodoro Timer v1.5 (By sbrin)](https://github.com/sbrin/flipperzero_pomodoro)
 - [Portal of Flipper v1.3 (By bettse)](https://gitlab.com/bettse/portal_of_flipper)
 - [Postman v0.1 (By MassivDash)](https://github.com/MassivDash/flipper-postman) `Req: ESP32` with [Postman Firmware](https://github.com/MassivDash/flipper-postman-esp32s2)
+- [Prime Factors v1.0 (By gbritoda)](https://github.com/gbritoda/flipper0-prime_factors)
 - [Programmer Calculator v0.9.2 (By armixz)](https://github.com/armixz/Flipper-Zero-Programmer-Calculator)
 - [ProtoPirate v3.8 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
 - [ProtoView v1.3 (By antirez)](https://github.com/antirez/protoview)
@@ -955,6 +973,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Spindle Calculator v1.0 (By Minto97)](https://github.com/Minto97/spindle-calc-flipper)
 - [SSD1306 Test v1.1 (By martinbogo)](https://github.com/martinbogo/ssd1306_test) `Req: SSD1306`
 - [Staff Time Clock v2.16 (By vladpereverzyev)](https://github.com/vladpereverzyev/flipper-staff-time-clock)
+- [Step Seq v0.1 (By rseufert)](https://github.com/rseufert/step_seq)
 - [Stopwatch v1.0 (By bergr22)](https://github.com/bergr22/Stopwatch-Flipper)
 - [StroboMeter v1.1 (By LeanderJDev)](https://github.com/LeanderJDev/FlipperStroboMeterApp)
 - [Sub Analyzer v1.0 (By RocketGod)](https://github.com/RocketGod-git/Flipper-Zero-SUB-Analyzer)
@@ -980,6 +999,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [TagTinker v2.1 (By i12bp8)](https://github.com/i12bp8/TagTinker)
 - [Tasks v1.3 (By MadLadSquad)](https://github.com/MadLadSquad/FlipperTasks)
 - [TCL AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
+- [Telemeter v1.1 (By alaviation)](https://github.com/alaviation/flipper-telemeter)
 - [Temp Sensors Reader 2.1 (By quen0n)](https://github.com/quen0n/Unitemp-Flipper-Zero-Plugin) Req: [See App Readme For Supported Modules](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/applications/external/unitemp/README.md)
 - [Tesla Mod v2.16b34 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 - [Text To SAM v1.5 (By RoundPi)](https://github.com/Round-Pi/flipperzero-text2sam)

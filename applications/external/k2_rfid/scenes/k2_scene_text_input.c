@@ -11,7 +11,8 @@ void k2_scene_text_input_on_enter(void* context) {
     TextInput* text_input = app->text_input;
 
     text_input_reset(text_input);
-    text_input_set_header_text(text_input, app->text_input_header ? app->text_input_header : "Enter text");
+    text_input_set_header_text(
+        text_input, app->text_input_header ? app->text_input_header : "Enter text");
     text_input_set_result_callback(
         text_input,
         k2_scene_text_input_callback,

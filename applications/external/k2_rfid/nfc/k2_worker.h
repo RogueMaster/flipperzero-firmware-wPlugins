@@ -46,10 +46,17 @@ Nfc* k2_worker_get_nfc(K2Worker* worker);
 const K2SpoolInfo* k2_worker_get_last_info(const K2Worker* worker);
 
 /* MIFARE Classic tag data builder */
-void k2_prepare_mf_classic_data(const K2SpoolConfig* config, const uint8_t* optional_uid, MfClassicData* data);
+void k2_prepare_mf_classic_data(
+    const K2SpoolConfig* config,
+    const uint8_t* optional_uid,
+    MfClassicData* data);
 
 /* Storage helpers for .nfc files */
-bool k2_worker_save_spool_to_nfc(const K2SpoolConfig* config, const uint8_t* optional_uid, char* out_filepath, size_t out_filepath_size);
+bool k2_worker_save_spool_to_nfc(
+    const K2SpoolConfig* config,
+    const uint8_t* optional_uid,
+    char* out_filepath,
+    size_t out_filepath_size);
 bool k2_worker_load_spool_from_nfc(const char* filepath, K2SpoolInfo* info_out);
 
 #ifdef __cplusplus

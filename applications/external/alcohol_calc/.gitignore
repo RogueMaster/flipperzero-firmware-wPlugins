@@ -1,6 +1,0 @@
-.ufbt/
-dist/
-*.elf
-*.fap
-__pycache__/
-.DS_Store

@@ -90,7 +90,7 @@ static TopRightIconSlot current_top_right_icon_slot(const AppData* app, uint32_t
     uint32_t vibro_elapsed = now - app->vibro_state_change_tick;
 
     bool sound_showing = app->has_been_started &&
-                          (!app->cfg.sound_enabled || sound_elapsed < ICON_FLASH_MS);
+                         (!app->cfg.sound_enabled || sound_elapsed < ICON_FLASH_MS);
     bool eco_showing = eco_elapsed < ICON_FLASH_MS;
     bool backlight_showing = backlight_elapsed < ICON_FLASH_MS;
     bool vibro_showing = vibro_elapsed < ICON_FLASH_MS;
@@ -272,7 +272,7 @@ static void app_draw_callback(Canvas* canvas, void* ctx) {
     // itself hasn't flipped there either - see ms_to_next_minute), so it's excluded here too.
     uint32_t shift_ms_into_minute = (elapsed_seconds * 1000 + ms) % 60000;
     bool blip_active = app->running ? (shift_ms_into_minute >= 1 && shift_ms_into_minute < 1000) :
-                                       (real_now_wallclock_secs % 60 == 0);
+                                      (real_now_wallclock_secs % 60 == 0);
 
     UiOverlay ui = {
         .sound_enabled = app->cfg.sound_enabled,
@@ -287,7 +287,7 @@ static void app_draw_callback(Canvas* canvas, void* ctx) {
         .hold_fraction = 0.0f,
         .hold_label = NULL,
         .break_limit_message = (current_tick - app->break_limit_message_tick) <
-                                BREAK_LIMIT_MESSAGE_MS,
+                               BREAK_LIMIT_MESSAGE_MS,
     };
     ui.hold_active = get_hold_overlay(app, current_tick, &ui.hold_label, &ui.hold_fraction);
 
@@ -295,8 +295,8 @@ static void app_draw_callback(Canvas* canvas, void* ctx) {
     // moment finish was detected, rather than letting it keep drifting with real time while the
     // user looks the completed shift over. Any button dismisses it back to Set mode. The mascot's
     // sleep animation still needs real time, though, so it's handed the live clock separately.
-    uint32_t now_wallclock_secs =
-        app->finish_sound_played ? app->finish_wallclock_secs : real_now_wallclock_secs;
+    uint32_t now_wallclock_secs = app->finish_sound_played ? app->finish_wallclock_secs :
+                                                             real_now_wallclock_secs;
 
     draw_timer(
         canvas,
@@ -449,7 +449,8 @@ static void
 // Two low notes: ascending for positive feel
 // The LED and vibro motor follow the same "tu-tum" rhythm independently of sound_enabled, so
 // hour milestones are still noticeable with sound, light, and/or vibro muted in any combination.
-static void play_hour_chime(NotificationApp* notification, bool sound_enabled, bool vibro_enabled) {
+static void
+    play_hour_chime(NotificationApp* notification, bool sound_enabled, bool vibro_enabled) {
     // Low satisfying notes - ascending "tu-tum" for positive feel
     // First note: A2 (110.00 Hz) - "tu"
     // Second note: C3 (130.81 Hz) - "tum" (higher, more positive)
@@ -704,7 +705,8 @@ int32_t clock_main(void* p) {
 
         if(furi_message_queue_get(event_queue, &event, queue_timeout) == FuriStatusOk) {
             app->last_activity_tick = furi_get_tick();
-            if(event.key == InputKeyBack && event.sequence_source == INPUT_SEQUENCE_SOURCE_SOFTWARE) {
+            if(event.key == InputKeyBack &&
+               event.sequence_source == INPUT_SEQUENCE_SOURCE_SOFTWARE) {
                 // A software/RPC-injected event (e.g. the Loader's "close app" request from
                 // `ufbt launch` or the app_close CLI command) - close immediately regardless
                 // of type, bypassing the hold-to-confirm meant for real button presses.
@@ -712,8 +714,8 @@ int32_t clock_main(void* p) {
             } else if(event.type == InputTypePress) {
                 // The combo's last key is also the debug-action key - don't let the press that
                 // unlocks debug mode also immediately trigger that action.
-                bool debug_just_unlocked =
-                    app->has_been_started && debug_feed_combo_key(event.key);
+                bool debug_just_unlocked = app->has_been_started &&
+                                           debug_feed_combo_key(event.key);
                 if(debug_just_unlocked) {
                     play_rick_roll_melody(
                         notification, app->cfg.sound_enabled, app->cfg.vibro_enabled);
@@ -753,8 +755,8 @@ int32_t clock_main(void* p) {
                             // showing, so a press then confirms (unmutes) immediately, same as
                             // any other press aimed at an icon that's already on screen.
                             uint32_t now = furi_get_tick();
-                            bool icon_visible =
-                                current_top_right_icon_slot(app, now) == TopRightIconSound;
+                            bool icon_visible = current_top_right_icon_slot(app, now) ==
+                                                TopRightIconSound;
                             if(icon_visible) {
                                 app->cfg.sound_enabled = !app->cfg.sound_enabled;
                                 cfg_save_internal(file, &app->cfg);
@@ -765,8 +767,8 @@ int32_t clock_main(void* p) {
                             // while its icon isn't showing just reveals the current state; press
                             // again while it's showing to actually change it.
                             uint32_t now = furi_get_tick();
-                            bool icon_visible =
-                                current_top_right_icon_slot(app, now) == TopRightIconBacklight;
+                            bool icon_visible = current_top_right_icon_slot(app, now) ==
+                                                TopRightIconBacklight;
                             if(icon_visible) {
                                 app->cfg.backlight_on = !app->cfg.backlight_on;
                                 set_backlight(notification, app->cfg.backlight_on);
@@ -809,8 +811,8 @@ int32_t clock_main(void* p) {
                                 // pattern as eco/backlight - first press just shows the
                                 // current state.
                                 uint32_t now = furi_get_tick();
-                                bool icon_visible =
-                                    current_top_right_icon_slot(app, now) == TopRightIconVibro;
+                                bool icon_visible = current_top_right_icon_slot(app, now) ==
+                                                    TopRightIconVibro;
                                 if(icon_visible) {
                                     app->cfg.vibro_enabled = !app->cfg.vibro_enabled;
                                     cfg_save_internal(file, &app->cfg);
@@ -826,8 +828,8 @@ int32_t clock_main(void* p) {
                                 // Working/Break mode: toggle eco mode. Same reveal-then-confirm
                                 // pattern as backlight - first press just shows the current state.
                                 uint32_t now = furi_get_tick();
-                                bool icon_visible =
-                                    current_top_right_icon_slot(app, now) == TopRightIconEco;
+                                bool icon_visible = current_top_right_icon_slot(app, now) ==
+                                                    TopRightIconEco;
                                 if(icon_visible) {
                                     app->cfg.eco_mode_enabled = !app->cfg.eco_mode_enabled;
                                     cfg_save_internal(file, &app->cfg);
@@ -847,7 +849,7 @@ int32_t clock_main(void* p) {
                     if(furi_mutex_acquire(app->mutex, 100) == FuriStatusOk) {
                         if(app->ok_press_tick != 0 && !app->ok_hold_triggered) {
                             uint32_t required = app->has_been_started ? HOLD_CONFIRM_MS :
-                                                                         INFO_HOLD_MS;
+                                                                        INFO_HOLD_MS;
                             if((furi_get_tick() - app->ok_press_tick) >= required) {
                                 if(app->has_been_started) {
                                     // Held long enough - reset back to Shift mode
@@ -866,7 +868,8 @@ int32_t clock_main(void* p) {
                 case InputKeyBack:
                     if(furi_mutex_acquire(app->mutex, 100) == FuriStatusOk) {
                         if(app->back_press_tick != 0 && !app->back_hold_triggered &&
-                           (furi_get_tick() - app->back_press_tick) >= back_hold_required_ms(app)) {
+                           (furi_get_tick() - app->back_press_tick) >=
+                               back_hold_required_ms(app)) {
                             app->back_hold_triggered = true;
                             terminate = true;
                         }
@@ -904,8 +907,7 @@ int32_t clock_main(void* p) {
                         // same as reaching HOLD_CONFIRM_MS already did via the repeat handler.
                         if(!app->ok_hold_triggered && app->ok_press_tick != 0 &&
                            hold_ms < HOLD_SHOW_MS) {
-                            uint32_t timer_duration_seconds =
-                                app->cfg.timer_duration_hours * 3600;
+                            uint32_t timer_duration_seconds = app->cfg.timer_duration_hours * 3600;
                             uint32_t now_tick = furi_get_tick();
                             uint32_t elapsed_seconds = app->elapsed_seconds;
                             if(app->running) {
@@ -963,8 +965,7 @@ int32_t clock_main(void* p) {
                                     uint32_t break_ms = now_tick - app->pause_start_tick;
                                     if(break_ms < BREAK_FOLD_MS) {
                                         uint32_t ms_total = app->ms_adjust + (break_ms % 1000);
-                                        app->elapsed_seconds +=
-                                            break_ms / 1000 + ms_total / 1000;
+                                        app->elapsed_seconds += break_ms / 1000 + ms_total / 1000;
                                         app->ms_adjust = ms_total % 1000;
                                     } else {
                                         app->breaks[app->break_count].start_wallclock_secs =

@@ -9,13 +9,13 @@
 
 #include <telemetro_icons.h>
 
-#define SOUND_SPEED_0C 331.3f
+#define SOUND_SPEED_0C    331.3f
 #define SOUND_SPEED_PER_C 0.606f
-#define SPLASH_MS 1800
-#define MIN_SAMPLE_MS 50
-#define MAX_SAMPLE_MS (120 * 1000)
-#define TEMP_MIN -10
-#define TEMP_MAX 40
+#define SPLASH_MS         1800
+#define MIN_SAMPLE_MS     50
+#define MAX_SAMPLE_MS     (120 * 1000)
+#define TEMP_MIN          -10
+#define TEMP_MAX          40
 
 typedef enum {
     StateSplash,
@@ -92,8 +92,7 @@ static void telemetro_draw_wait(Canvas* canvas, const Telemetro* app) {
     canvas_draw_str(canvas, 40, 20, app->mode == ModeStorm ? "Storm" : "Cannon");
 
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str(
-        canvas, 40, 34, app->mode == ModeStorm ? "OK on flash" : "OK on flame");
+    canvas_draw_str(canvas, 40, 34, app->mode == ModeStorm ? "OK on flash" : "OK on flame");
     canvas_draw_str(canvas, 40, 46, "Starts the timer");
 
     elements_button_left(canvas, "Back");
@@ -103,7 +102,8 @@ static void telemetro_draw_wait(Canvas* canvas, const Telemetro* app) {
 static void telemetro_draw_timing(Canvas* canvas, const Telemetro* app) {
     uint32_t ms = telemetro_elapsed_ms(app);
     char big[16];
-    snprintf(big, sizeof(big), "%lu.%lu", (unsigned long)(ms / 1000), (unsigned long)((ms / 100) % 10));
+    snprintf(
+        big, sizeof(big), "%lu.%lu", (unsigned long)(ms / 1000), (unsigned long)((ms / 100) % 10));
 
     canvas_set_font(canvas, FontSecondary);
     canvas_draw_str_aligned(canvas, 64, 2, AlignCenter, AlignTop, "Listening...");

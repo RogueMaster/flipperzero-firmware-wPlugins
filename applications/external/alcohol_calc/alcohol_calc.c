@@ -18,12 +18,12 @@ typedef enum {
 } AlcoholCalcView;
 
 #define DEGREE_COUNT 100 /* 1..100 */
-#define VOLUME_MAX 100.0f
-#define VOLUME_MIN 0.1f
+#define VOLUME_MAX   100.0f
+#define VOLUME_MIN   0.1f
 
 /* Holding Left/Right for longer than ACCEL_HOLD_MS speeds up the step size,
    so decimal-heavy fields like Volume don't take forever to scroll through. */
-#define ACCEL_HOLD_MS 1500
+#define ACCEL_HOLD_MS       1500
 #define ACCEL_REPEAT_GAP_MS 400
 
 typedef struct {
@@ -31,12 +31,18 @@ typedef struct {
     uint32_t hold_start_tick;
 } AccelState;
 
-static uint8_t
-    apply_accel(AccelState* accel, uint8_t old_idx, uint8_t raw_idx, uint8_t max_idx, uint8_t accel_step) {
+static uint8_t apply_accel(
+    AccelState* accel,
+    uint8_t old_idx,
+    uint8_t raw_idx,
+    uint8_t max_idx,
+    uint8_t accel_step) {
     uint32_t now = furi_get_tick();
     int32_t dir = 0;
-    if(raw_idx > old_idx) dir = 1;
-    else if(raw_idx < old_idx) dir = -1;
+    if(raw_idx > old_idx)
+        dir = 1;
+    else if(raw_idx < old_idx)
+        dir = -1;
 
     if(dir == 0) {
         accel->last_tick = now;
@@ -64,13 +70,15 @@ static uint8_t
    own float and immediately snaps the row back to the center index, so the
    next press is detectable again. This keeps the field a single visual row
    with unlimited underlying range/precision. */
-#define NUDGE_COUNT 3
+#define NUDGE_COUNT  3
 #define NUDGE_CENTER 1
 
 static float apply_volume_nudge(AccelState* accel, float old_value, uint8_t raw_idx) {
     int32_t dir = 0;
-    if(raw_idx > NUDGE_CENTER) dir = 1;
-    else if(raw_idx < NUDGE_CENTER) dir = -1;
+    if(raw_idx > NUDGE_CENTER)
+        dir = 1;
+    else if(raw_idx < NUDGE_CENTER)
+        dir = -1;
     if(dir == 0) return old_value;
 
     uint32_t now = furi_get_tick();
@@ -161,7 +169,8 @@ static void dilute_recalculate(AlcoholCalcApp* app) {
 static void dilute_before_changed(VariableItem* item) {
     AlcoholCalcApp* app = variable_item_get_context(item);
     uint8_t raw = variable_item_get_current_value_index(item);
-    app->d_before_idx = apply_accel(&app->d_before_accel, app->d_before_idx, raw, DEGREE_COUNT - 1, 5);
+    app->d_before_idx =
+        apply_accel(&app->d_before_accel, app->d_before_idx, raw, DEGREE_COUNT - 1, 5);
     variable_item_set_current_value_index(item, app->d_before_idx);
     char buf[8];
     snprintf(buf, sizeof(buf), "%u%%", degree_from_idx(app->d_before_idx));
@@ -172,7 +181,8 @@ static void dilute_before_changed(VariableItem* item) {
 static void dilute_after_changed(VariableItem* item) {
     AlcoholCalcApp* app = variable_item_get_context(item);
     uint8_t raw = variable_item_get_current_value_index(item);
-    app->d_after_idx = apply_accel(&app->d_after_accel, app->d_after_idx, raw, DEGREE_COUNT - 1, 5);
+    app->d_after_idx =
+        apply_accel(&app->d_after_accel, app->d_after_idx, raw, DEGREE_COUNT - 1, 5);
     variable_item_set_current_value_index(item, app->d_after_idx);
     char buf[8];
     snprintf(buf, sizeof(buf), "%u%%", degree_from_idx(app->d_after_idx));
@@ -367,7 +377,8 @@ static void target_volume_changed(VariableItem* item) {
 static void target_degree_changed(VariableItem* item) {
     AlcoholCalcApp* app = variable_item_get_context(item);
     uint8_t raw = variable_item_get_current_value_index(item);
-    app->t_degree_idx = apply_accel(&app->t_degree_accel, app->t_degree_idx, raw, DEGREE_COUNT - 1, 5);
+    app->t_degree_idx =
+        apply_accel(&app->t_degree_accel, app->t_degree_idx, raw, DEGREE_COUNT - 1, 5);
     variable_item_set_current_value_index(item, app->t_degree_idx);
     char buf[8];
     snprintf(buf, sizeof(buf), "%u%%", degree_from_idx(app->t_degree_idx));
@@ -378,7 +389,8 @@ static void target_degree_changed(VariableItem* item) {
 static void target_spirit_changed(VariableItem* item) {
     AlcoholCalcApp* app = variable_item_get_context(item);
     uint8_t raw = variable_item_get_current_value_index(item);
-    app->t_spirit_idx = apply_accel(&app->t_spirit_accel, app->t_spirit_idx, raw, DEGREE_COUNT - 1, 5);
+    app->t_spirit_idx =
+        apply_accel(&app->t_spirit_accel, app->t_spirit_idx, raw, DEGREE_COUNT - 1, 5);
     variable_item_set_current_value_index(item, app->t_spirit_idx);
     char buf[8];
     snprintf(buf, sizeof(buf), "%u%%", degree_from_idx(app->t_spirit_idx));
@@ -466,19 +478,18 @@ static AlcoholCalcApp* alcohol_calc_app_alloc(void) {
     submenu_add_item(
         app->submenu, "Mix two spirits", AlcoholCalcViewMix, alcohol_calc_submenu_callback, app);
     submenu_add_item(
-        app->submenu,
-        "Target volume",
-        AlcoholCalcViewTarget,
-        alcohol_calc_submenu_callback,
-        app);
+        app->submenu, "Target volume", AlcoholCalcViewTarget, alcohol_calc_submenu_callback, app);
     submenu_add_item(
         app->submenu, "About", AlcoholCalcViewAbout, alcohol_calc_submenu_callback, app);
-    view_dispatcher_add_view(app->view_dispatcher, AlcoholCalcViewMenu, submenu_get_view(app->submenu));
+    view_dispatcher_add_view(
+        app->view_dispatcher, AlcoholCalcViewMenu, submenu_get_view(app->submenu));
 
     app->dilute_list = variable_item_list_alloc();
     alcohol_calc_build_dilute_view(app);
     view_dispatcher_add_view(
-        app->view_dispatcher, AlcoholCalcViewDilute, variable_item_list_get_view(app->dilute_list));
+        app->view_dispatcher,
+        AlcoholCalcViewDilute,
+        variable_item_list_get_view(app->dilute_list));
 
     app->mix_list = variable_item_list_alloc();
     alcohol_calc_build_mix_view(app);
@@ -488,7 +499,9 @@ static AlcoholCalcApp* alcohol_calc_app_alloc(void) {
     app->target_list = variable_item_list_alloc();
     alcohol_calc_build_target_view(app);
     view_dispatcher_add_view(
-        app->view_dispatcher, AlcoholCalcViewTarget, variable_item_list_get_view(app->target_list));
+        app->view_dispatcher,
+        AlcoholCalcViewTarget,
+        variable_item_list_get_view(app->target_list));
 
     app->about_widget = widget_alloc();
     alcohol_calc_build_about_view(app);

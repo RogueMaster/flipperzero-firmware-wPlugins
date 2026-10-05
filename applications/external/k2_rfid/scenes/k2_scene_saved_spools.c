@@ -16,11 +16,13 @@ void k2_scene_saved_spools_on_enter(void* context) {
     FuriString* result_path = furi_string_alloc();
     FuriString* initial_path = furi_string_alloc_set_str(EXT_PATH("nfc/CFS"));
 
-    bool selected = dialog_file_browser_show(app->dialogs, result_path, initial_path, &browser_options);
+    bool selected =
+        dialog_file_browser_show(app->dialogs, result_path, initial_path, &browser_options);
 
-    if (selected) {
-        bool loaded = k2_worker_load_spool_from_nfc(furi_string_get_cstr(result_path), &app->last_spool);
-        if (loaded && app->last_spool.valid) {
+    if(selected) {
+        bool loaded =
+            k2_worker_load_spool_from_nfc(furi_string_get_cstr(result_path), &app->last_spool);
+        if(loaded && app->last_spool.valid) {
             notification_message(app->notifications, &sequence_success);
             scene_manager_next_scene(app->scene_manager, K2SceneTagInfo);
         } else {

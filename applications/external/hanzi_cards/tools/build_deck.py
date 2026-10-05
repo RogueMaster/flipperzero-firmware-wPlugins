@@ -50,7 +50,9 @@ def read_words(path):
             syllables = pinyin.split(" ")
             assert all(SYLLABLE.match(s) for s in syllables), f"{where}: bad pinyin"
             assert len(pinyin) < TEXT_LEN, f"{where}: pinyin too long"
-            assert len(english) <= MAX_ENGLISH and english.isascii(), f"{where}: english"
+            assert (
+                len(english) <= MAX_ENGLISH and english.isascii()
+            ), f"{where}: english"
             words.append((hanzi, trad, pinyin, english))
     return words
 
@@ -86,8 +88,14 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("tsv")
     ap.add_argument("deck")
-    ap.add_argument("--font", default=DEFAULT_FONT, help="font for simplified characters")
-    ap.add_argument("--trad-font", default=DEFAULT_TRAD_FONT, help="font for traditional-only characters")
+    ap.add_argument(
+        "--font", default=DEFAULT_FONT, help="font for simplified characters"
+    )
+    ap.add_argument(
+        "--trad-font",
+        default=DEFAULT_TRAD_FONT,
+        help="font for traditional-only characters",
+    )
     ap.add_argument("--preview", help="write a PNG sheet of all glyphs")
     args = ap.parse_args()
 
@@ -119,9 +127,15 @@ def main():
     with open(args.deck, "wb") as f:
         f.write(struct.pack("<4sHHB3x", b"HZD2", len(words), len(chars), GLYPH))
         for hanzi, trad, pinyin, english in words:
-            f.write(struct.pack(f"<{MAX_HANZI * 2}H{TEXT_LEN}s{TEXT_LEN}s",
-                                *indices(hanzi), *indices(trad),
-                                pinyin.encode(), english.encode()))
+            f.write(
+                struct.pack(
+                    f"<{MAX_HANZI * 2}H{TEXT_LEN}s{TEXT_LEN}s",
+                    *indices(hanzi),
+                    *indices(trad),
+                    pinyin.encode(),
+                    english.encode(),
+                )
+            )
         for img in images:
             f.write(pack(img))
 
@@ -130,10 +144,14 @@ def main():
         rows = (len(chars) + cols - 1) // cols
         sheet = Image.new("1", (cols * (GLYPH + 2), rows * (GLYPH + 2)), 0)
         for i, img in enumerate(images):
-            sheet.paste(img, ((i % cols) * (GLYPH + 2) + 1, (i // cols) * (GLYPH + 2) + 1))
+            sheet.paste(
+                img, ((i % cols) * (GLYPH + 2) + 1, (i // cols) * (GLYPH + 2) + 1)
+            )
         sheet.resize((sheet.width * 2, sheet.height * 2)).save(args.preview)
 
-    print(f"{len(words)} words, {len(chars)} characters, font size {size} -> {args.deck}")
+    print(
+        f"{len(words)} words, {len(chars)} characters, font size {size} -> {args.deck}"
+    )
 
 
 if __name__ == "__main__":

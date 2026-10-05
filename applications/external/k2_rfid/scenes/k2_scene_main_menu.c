@@ -25,17 +25,24 @@ void k2_scene_main_menu_on_enter(void* context) {
     submenu_reset(submenu);
     submenu_set_header(submenu, "Creality CFS RFID");
 
-    submenu_add_item(submenu, "Scan Spool Tag", SubmenuIndexScan, k2_scene_main_menu_callback, app);
-    submenu_add_item(submenu, "Write Spool Tag", SubmenuIndexWrite, k2_scene_main_menu_callback, app);
-    submenu_add_item(submenu, "Emulate Spool", SubmenuIndexEmulate, k2_scene_main_menu_callback, app);
-    submenu_add_item(submenu, "Spool Settings", SubmenuIndexConfig, k2_scene_main_menu_callback, app);
+    submenu_add_item(
+        submenu, "Scan Spool Tag", SubmenuIndexScan, k2_scene_main_menu_callback, app);
+    submenu_add_item(
+        submenu, "Write Spool Tag", SubmenuIndexWrite, k2_scene_main_menu_callback, app);
+    submenu_add_item(
+        submenu, "Emulate Spool", SubmenuIndexEmulate, k2_scene_main_menu_callback, app);
+    submenu_add_item(
+        submenu, "Spool Settings", SubmenuIndexConfig, k2_scene_main_menu_callback, app);
     submenu_add_item(submenu, "Save to .NFC", SubmenuIndexSave, k2_scene_main_menu_callback, app);
-    submenu_add_item(submenu, "Saved Spools (.nfc)", SubmenuIndexSavedSpools, k2_scene_main_menu_callback, app);
-    submenu_add_item(submenu, "Format / Erase Tag", SubmenuIndexFormat, k2_scene_main_menu_callback, app);
+    submenu_add_item(
+        submenu, "Saved Spools (.nfc)", SubmenuIndexSavedSpools, k2_scene_main_menu_callback, app);
+    submenu_add_item(
+        submenu, "Format / Erase Tag", SubmenuIndexFormat, k2_scene_main_menu_callback, app);
     submenu_add_item(submenu, "About", SubmenuIndexAbout, k2_scene_main_menu_callback, app);
     submenu_add_item(submenu, "Exit", SubmenuIndexExit, k2_scene_main_menu_callback, app);
 
-    submenu_set_selected_item(submenu, scene_manager_get_scene_state(app->scene_manager, K2SceneMainMenu));
+    submenu_set_selected_item(
+        submenu, scene_manager_get_scene_state(app->scene_manager, K2SceneMainMenu));
 
     view_dispatcher_switch_to_view(app->view_dispatcher, K2ViewSubmenu);
 }
@@ -44,14 +51,14 @@ bool k2_scene_main_menu_on_event(void* context, SceneManagerEvent event) {
     K2RfidApp* app = context;
     bool consumed = false;
 
-    if (event.type == SceneManagerEventTypeBack) {
+    if(event.type == SceneManagerEventTypeBack) {
         scene_manager_stop(app->scene_manager);
         view_dispatcher_stop(app->view_dispatcher);
         consumed = true;
-    } else if (event.type == SceneManagerEventTypeCustom) {
+    } else if(event.type == SceneManagerEventTypeCustom) {
         scene_manager_set_scene_state(app->scene_manager, K2SceneMainMenu, event.event);
         consumed = true;
-        switch (event.event) {
+        switch(event.event) {
         case SubmenuIndexScan:
             scene_manager_next_scene(app->scene_manager, K2SceneScan);
             break;

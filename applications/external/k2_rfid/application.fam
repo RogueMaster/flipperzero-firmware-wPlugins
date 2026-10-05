@@ -1,13 +1,14 @@
 App(
     appid="k2_rfid",
-    name="CFS RFID",
+    name="K2 RFID",
     apptype=FlipperAppType.EXTERNAL,
+    targets=["f7"],
     entry_point="k2_rfid_app",
     stack_size=4 * 1024,
-    fap_category="NFC",
     fap_icon="k2_rfid.png",
-    fap_description="Creality K2/K1/CFS RFID Spool Reader, Writer & Emulator",
+    fap_category="RFID",
     fap_author="mitchsurp",
     fap_weburl="https://github.com/mitchsurp/K2-RFID-Flipper",
     fap_version="1.0",
+    fap_description="Creality K2/K1/CFS RFID Spool Reader, Writer & Emulator",
 )

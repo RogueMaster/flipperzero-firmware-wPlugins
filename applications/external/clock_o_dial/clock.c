@@ -288,7 +288,7 @@ void draw_timer(
     // after a minute of inactivity, that 1Hz alternation stops - instead the frame blips to 2 for
     // one second right as each real-time minute ticks over, then holds frame 1 until the next.
     bool show_frame_2 = ui->animations_frozen ? ui->eco_blip_active :
-                                                 (animation_wallclock_secs % 2 != 0);
+                                                (animation_wallclock_secs % 2 != 0);
 
     // The croc's tail tip, flush against the face's own right edge with no gap - always visible.
     // Asleep whenever it isn't actively working (Set mode, on a break, or shift finished); awake
@@ -411,7 +411,8 @@ void draw_timer(
         canvas_set_color(canvas, ColorBlack);
 
         canvas_set_font(canvas, FontSecondary);
-        canvas_draw_str_aligned(canvas, OFS_RIGHT_X, line1_y, AlignCenter, AlignCenter, "Too many");
+        canvas_draw_str_aligned(
+            canvas, OFS_RIGHT_X, line1_y, AlignCenter, AlignCenter, "Too many");
         canvas_draw_str_aligned(canvas, OFS_RIGHT_X, line2_y, AlignCenter, AlignCenter, "breaks!");
     }
 }

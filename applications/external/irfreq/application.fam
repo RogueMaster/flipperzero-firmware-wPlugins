@@ -2,6 +2,7 @@ App(
     appid="flipirfreq",
     name="FlipIRFreq",
     apptype=FlipperAppType.EXTERNAL,
+    targets=["f7"],
     entry_point="flipirfreq_app",
     fap_icon="icon.png",
     stack_size=4 * 1024,

@@ -4,7 +4,7 @@
 static void k2_scene_scan_worker_callback(K2WorkerEvent event, void* context) {
     K2RfidApp* app = context;
     uint32_t custom_event = 0;
-    switch (event) {
+    switch(event) {
     case K2WorkerEventCardDetected:
         custom_event = K2CustomEventCardDetected;
         break;
@@ -40,20 +40,27 @@ bool k2_scene_scan_on_event(void* context, SceneManagerEvent event) {
     K2RfidApp* app = context;
     bool consumed = false;
 
-    if (event.type == SceneManagerEventTypeCustom) {
+    if(event.type == SceneManagerEventTypeCustom) {
         consumed = true;
-        if (event.event == K2CustomEventCardDetected) {
-            popup_set_text(app->popup, "Tag detected!\nDecrypting...", 64, 30, AlignCenter, AlignTop);
+        if(event.event == K2CustomEventCardDetected) {
+            popup_set_text(
+                app->popup, "Tag detected!\nDecrypting...", 64, 30, AlignCenter, AlignTop);
             notification_message(app->notifications, &sequence_blink_yellow_10);
-        } else if (event.event == K2CustomEventSuccess) {
+        } else if(event.event == K2CustomEventSuccess) {
             const K2SpoolInfo* info = k2_worker_get_last_info(app->worker);
-            if (info) {
+            if(info) {
                 app->last_spool = *info;
             }
             notification_message(app->notifications, &sequence_success);
             scene_manager_next_scene(app->scene_manager, K2SceneTagInfo);
-        } else if (event.event == K2CustomEventAuthFailed || event.event == K2CustomEventFailed) {
-            popup_set_text(app->popup, "Read Failed!\nNot a valid CFS tag\nor auth failed.", 64, 25, AlignCenter, AlignTop);
+        } else if(event.event == K2CustomEventAuthFailed || event.event == K2CustomEventFailed) {
+            popup_set_text(
+                app->popup,
+                "Read Failed!\nNot a valid CFS tag\nor auth failed.",
+                64,
+                25,
+                AlignCenter,
+                AlignTop);
             notification_message(app->notifications, &sequence_error);
         }
     }

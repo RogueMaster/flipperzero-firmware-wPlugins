@@ -54,13 +54,31 @@ WORDMARK = "eMRTD"
 TAGLINE = ("electronic document reader", "for Flipper Zero")
 
 ADVANCE_BOLD = {
-    "D": 0.7222, "M": 0.8330, "R": 0.7222, "T": 0.6108, "e": 0.5562,
+    "D": 0.7222,
+    "M": 0.8330,
+    "R": 0.7222,
+    "T": 0.6108,
+    "e": 0.5562,
 }
 ADVANCE_REGULAR = {
-    " ": 0.2778, "F": 0.6108, "Z": 0.6108, "a": 0.5562, "c": 0.5000,
-    "d": 0.5562, "e": 0.5562, "f": 0.2778, "i": 0.2222, "l": 0.2222,
-    "m": 0.8330, "n": 0.5562, "o": 0.5562, "p": 0.5562, "r": 0.3330,
-    "s": 0.5000, "t": 0.2778, "u": 0.5562,
+    " ": 0.2778,
+    "F": 0.6108,
+    "Z": 0.6108,
+    "a": 0.5562,
+    "c": 0.5000,
+    "d": 0.5562,
+    "e": 0.5562,
+    "f": 0.2778,
+    "i": 0.2222,
+    "l": 0.2222,
+    "m": 0.8330,
+    "n": 0.5562,
+    "o": 0.5562,
+    "p": 0.5562,
+    "r": 0.3330,
+    "s": 0.5000,
+    "t": 0.2778,
+    "u": 0.5562,
 }
 CAP_HEIGHT = 0.716  # em, the height of a capital, Arial and Helvetica alike
 DESCENDER = 0.212  # em, how far below the baseline a p reaches
@@ -82,11 +100,7 @@ INK_DARK = "#e6edf3"
 def mark_pixels():
     """The mark as a set of the grid cells that are inked."""
     left, top, right, bottom = PLATE
-    cells = {
-        (x, y)
-        for x in range(left, right + 1)
-        for y in range(top, bottom + 1)
-    }
+    cells = {(x, y) for x in range(left, right + 1) for y in range(top, bottom + 1)}
     for nx0, ny0, nx1, ny1 in NOTCHES:
         for x in range(nx0, nx1 + 1):
             for y in range(ny0, ny1 + 1):
@@ -199,9 +213,7 @@ def write_svg(path, unit=24, gap=18, pad=24):
     tracking = round(mark_size * 0.03)
 
     word_length = text_width(WORDMARK, ADVANCE_BOLD, word_size, tracking)
-    tag_lengths = [
-        text_width(line, ADVANCE_REGULAR, tag_size) for line in TAGLINE
-    ]
+    tag_lengths = [text_width(line, ADVANCE_REGULAR, tag_size) for line in TAGLINE]
     column = max([word_length] + tag_lengths)
     width = round(text_x + column + pad)
 
@@ -251,9 +263,9 @@ def write_svg(path, unit=24, gap=18, pad=24):
             f"{path}: {label!r} sets {length:.0f} units wide and runs past "
             f"the frame at {width - pad - text_x:.0f}"
         )
-    assert tag_ys[-1] + tag_size * DESCENDER <= height, (
-        f"{path}: the tagline drops below the frame"
-    )
+    assert (
+        tag_ys[-1] + tag_size * DESCENDER <= height
+    ), f"{path}: the tagline drops below the frame"
 
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(f"  {path.relative_to(ROOT)}  one path and three lines, {width}x{height}")
@@ -280,9 +292,7 @@ def write_ascii(path):
     cols = range(PLATE[0], PLATE[2] + 1)
 
     def render(on, off):
-        return [
-            "".join(on if (x, y) in cells else off for x in cols) for y in rows
-        ]
+        return ["".join(on if (x, y) in cells else off for x in cols) for y in rows]
 
     block = render("██", "  ")
     plain = render("##", "  ")

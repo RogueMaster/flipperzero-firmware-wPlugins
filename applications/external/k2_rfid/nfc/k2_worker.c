@@ -5,7 +5,7 @@
 #include <nfc/protocols/iso14443_3a/iso14443_3a_poller_sync.h>
 #include <nfc/protocols/mf_classic/mf_classic_poller_sync.h>
 
-#define TAG "K2Worker"
+#define TAG         "K2Worker"
 #define CFS_NFC_DIR EXT_PATH("nfc/CFS")
 
 struct K2Worker {
@@ -23,13 +23,16 @@ struct K2Worker {
 
 static uint64_t bytes_to_key_num(const uint8_t key[6]) {
     uint64_t val = 0;
-    for (int i = 0; i < 6; i++) {
+    for(int i = 0; i < 6; i++) {
         val = (val << 8) | key[i];
     }
     return val;
 }
 
-void k2_prepare_mf_classic_data(const K2SpoolConfig* config, const uint8_t* optional_uid, MfClassicData* data) {
+void k2_prepare_mf_classic_data(
+    const K2SpoolConfig* config,
+    const uint8_t* optional_uid,
+    MfClassicData* data) {
     furi_check(config);
     furi_check(data);
 
@@ -37,16 +40,16 @@ void k2_prepare_mf_classic_data(const K2SpoolConfig* config, const uint8_t* opti
     Iso14443_3aData* iso = data->iso14443_3a_data;
     memset(data, 0, sizeof(MfClassicData));
     data->iso14443_3a_data = iso;
-    if (iso) {
+    if(iso) {
         memset(iso, 0, sizeof(Iso14443_3aData));
     }
 
     uint8_t uid[4];
-    if (optional_uid) {
+    if(optional_uid) {
         memcpy(uid, optional_uid, 4);
     } else {
         furi_hal_random_fill_buf(uid, 4);
-        if (uid[0] == 0x88 || uid[0] == 0x00) uid[0] = 0x12;
+        if(uid[0] == 0x88 || uid[0] == 0x00) uid[0] = 0x12;
     }
 
     uint8_t enc_key[6];
@@ -62,7 +65,7 @@ void k2_prepare_mf_classic_data(const K2SpoolConfig* config, const uint8_t* opti
     data->type = MfClassicType1k;
     mf_classic_set_uid(data, uid, 4);
 
-    if (iso) {
+    if(iso) {
         iso->atqa[0] = 0x04;
         iso->atqa[1] = 0x00;
         iso->sak = 0x08;
@@ -142,7 +145,7 @@ void k2_prepare_mf_classic_data(const K2SpoolConfig* config, const uint8_t* opti
     mf_classic_set_key_found(data, 2, MfClassicKeyTypeB, def_key_num);
 
     /* Sectors 3 to 15: empty with default keys */
-    for (uint8_t s = 3; s < 16; s++) {
+    for(uint8_t s = 3; s < 16; s++) {
         uint8_t first_blk = s * 4;
         mf_classic_set_block_read(data, first_blk + 0, &zero_blk);
         mf_classic_set_block_read(data, first_blk + 1, &zero_blk);
@@ -153,8 +156,12 @@ void k2_prepare_mf_classic_data(const K2SpoolConfig* config, const uint8_t* opti
     }
 }
 
-bool k2_worker_save_spool_to_nfc(const K2SpoolConfig* config, const uint8_t* optional_uid, char* out_filepath, size_t out_filepath_size) {
-    if (!config) return false;
+bool k2_worker_save_spool_to_nfc(
+    const K2SpoolConfig* config,
+    const uint8_t* optional_uid,
+    char* out_filepath,
+    size_t out_filepath_size) {
+    if(!config) return false;
 
     Storage* storage = furi_record_open(RECORD_STORAGE);
     storage_common_mkdir(storage, CFS_NFC_DIR);
@@ -163,23 +170,29 @@ bool k2_worker_save_spool_to_nfc(const K2SpoolConfig* config, const uint8_t* opt
     const K2Material* mat = k2_db_find_material_by_id(config->material_id);
     const char* mat_name = (mat && mat->name) ? mat->name : "Hyper PLA";
     const char* col_name = k2_db_find_closest_color_name(config->color_hex);
-    if (!col_name || strlen(col_name) == 0) {
+    if(!col_name || strlen(col_name) == 0) {
         col_name = "White";
     }
 
     char clean_name[32] = {0};
-    for (size_t i = 0, j = 0; i < strlen(mat_name) && j < sizeof(clean_name) - 1; i++) {
+    for(size_t i = 0, j = 0; i < strlen(mat_name) && j < sizeof(clean_name) - 1; i++) {
         char c = mat_name[i];
-        if (isalnum((unsigned char)c)) {
+        if(isalnum((unsigned char)c)) {
             clean_name[j++] = c;
-        } else if (c == ' ' || c == '-') {
+        } else if(c == ' ' || c == '-') {
             clean_name[j++] = '_';
         }
     }
 
     char filename[64];
-    snprintf(filename, sizeof(filename), "%s_%s_%s.nfc", clean_name, col_name, config->serial[0] ? config->serial : "000001");
-    if (out_filepath) {
+    snprintf(
+        filename,
+        sizeof(filename),
+        "%s_%s_%s.nfc",
+        clean_name,
+        col_name,
+        config->serial[0] ? config->serial : "000001");
+    if(out_filepath) {
         snprintf(out_filepath, out_filepath_size, "%s/%s", CFS_NFC_DIR, filename);
     }
 
@@ -199,21 +212,22 @@ bool k2_worker_save_spool_to_nfc(const K2SpoolConfig* config, const uint8_t* opt
 }
 
 bool k2_worker_load_spool_from_nfc(const char* filepath, K2SpoolInfo* info_out) {
-    if (!filepath || !info_out) return false;
+    if(!filepath || !info_out) return false;
 
     NfcDevice* device = nfc_device_alloc();
-    if (!nfc_device_load(device, filepath)) {
+    if(!nfc_device_load(device, filepath)) {
         nfc_device_free(device);
         return false;
     }
 
-    if (nfc_device_get_protocol(device) != NfcProtocolMfClassic) {
+    if(nfc_device_get_protocol(device) != NfcProtocolMfClassic) {
         nfc_device_free(device);
         return false;
     }
 
-    const MfClassicData* mf_data = (const MfClassicData*)nfc_device_get_data(device, NfcProtocolMfClassic);
-    if (!mf_data) {
+    const MfClassicData* mf_data =
+        (const MfClassicData*)nfc_device_get_data(device, NfcProtocolMfClassic);
+    if(!mf_data) {
         nfc_device_free(device);
         return false;
     }
@@ -221,7 +235,7 @@ bool k2_worker_load_spool_from_nfc(const char* filepath, K2SpoolInfo* info_out) 
     /* Extract UID */
     size_t uid_len = 0;
     const uint8_t* uid_ptr = mf_classic_get_uid(mf_data, &uid_len);
-    if (uid_ptr && uid_len >= 4) {
+    if(uid_ptr && uid_len >= 4) {
         memcpy(info_out->uid, uid_ptr, 4);
     }
 
@@ -251,20 +265,21 @@ static int32_t k2_worker_thread_func(void* context) {
     Iso14443_3aData* iso3a = iso14443_3a_alloc();
     MfClassicKey default_key = {.data = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}};
 
-    while (true) {
+    while(true) {
         furi_mutex_acquire(worker->mutex, FuriWaitForever);
         K2WorkerMode mode = worker->mode;
         furi_mutex_release(worker->mutex);
 
-        if (mode == K2WorkerModeStop) {
+        if(mode == K2WorkerModeStop) {
             break;
         }
 
-        if (mode == K2WorkerModeScan) {
+        if(mode == K2WorkerModeScan) {
             worker->is_busy = true;
             Iso14443_3aError iso_err = iso14443_3a_poller_sync_read(worker->nfc, iso3a);
-            if (iso_err == Iso14443_3aErrorNone && iso3a->uid_len >= 4) {
-                if (worker->callback) worker->callback(K2WorkerEventCardDetected, worker->callback_context);
+            if(iso_err == Iso14443_3aErrorNone && iso3a->uid_len >= 4) {
+                if(worker->callback)
+                    worker->callback(K2WorkerEventCardDetected, worker->callback_context);
 
                 uint8_t derived_key_bytes[6];
                 k2_crypto_derive_key(iso3a->uid, derived_key_bytes);
@@ -275,18 +290,22 @@ static int32_t k2_worker_thread_func(void* context) {
                 MfClassicError err;
 
                 /* Try authenticating and reading block 4 with derived key */
-                err = mf_classic_poller_sync_read_block(worker->nfc, 4, &derived_key, MfClassicKeyTypeA, &b4);
+                err = mf_classic_poller_sync_read_block(
+                    worker->nfc, 4, &derived_key, MfClassicKeyTypeA, &b4);
                 bool encrypted = true;
-                if (err != MfClassicErrorNone) {
+                if(err != MfClassicErrorNone) {
                     /* Try default transport key */
-                    err = mf_classic_poller_sync_read_block(worker->nfc, 4, &default_key, MfClassicKeyTypeA, &b4);
+                    err = mf_classic_poller_sync_read_block(
+                        worker->nfc, 4, &default_key, MfClassicKeyTypeA, &b4);
                     encrypted = false;
                 }
 
-                if (err == MfClassicErrorNone) {
+                if(err == MfClassicErrorNone) {
                     MfClassicKey* s1_key = encrypted ? &derived_key : &default_key;
-                    mf_classic_poller_sync_read_block(worker->nfc, 5, s1_key, MfClassicKeyTypeA, &b5);
-                    mf_classic_poller_sync_read_block(worker->nfc, 6, s1_key, MfClassicKeyTypeA, &b6);
+                    mf_classic_poller_sync_read_block(
+                        worker->nfc, 5, s1_key, MfClassicKeyTypeA, &b5);
+                    mf_classic_poller_sync_read_block(
+                        worker->nfc, 6, s1_key, MfClassicKeyTypeA, &b6);
 
                     uint8_t s1_raw[48];
                     memcpy(s1_raw + 0, b4.data, 16);
@@ -294,7 +313,7 @@ static int32_t k2_worker_thread_func(void* context) {
                     memcpy(s1_raw + 32, b6.data, 16);
 
                     uint8_t s1_plain[48];
-                    if (encrypted) {
+                    if(encrypted) {
                         k2_crypto_decrypt_sector1(s1_raw, s1_plain);
                     } else {
                         memcpy(s1_plain, s1_raw, 48);
@@ -304,9 +323,12 @@ static int32_t k2_worker_thread_func(void* context) {
                     memset(b8.data, ' ', 16);
                     memset(b9.data, ' ', 16);
                     memset(b10.data, ' ', 16);
-                    mf_classic_poller_sync_read_block(worker->nfc, 8, &default_key, MfClassicKeyTypeA, &b8);
-                    mf_classic_poller_sync_read_block(worker->nfc, 9, &default_key, MfClassicKeyTypeA, &b9);
-                    mf_classic_poller_sync_read_block(worker->nfc, 10, &default_key, MfClassicKeyTypeA, &b10);
+                    mf_classic_poller_sync_read_block(
+                        worker->nfc, 8, &default_key, MfClassicKeyTypeA, &b8);
+                    mf_classic_poller_sync_read_block(
+                        worker->nfc, 9, &default_key, MfClassicKeyTypeA, &b9);
+                    mf_classic_poller_sync_read_block(
+                        worker->nfc, 10, &default_key, MfClassicKeyTypeA, &b10);
 
                     uint8_t s2_plain[48];
                     memcpy(s2_plain + 0, b8.data, 16);
@@ -320,21 +342,24 @@ static int32_t k2_worker_thread_func(void* context) {
                     furi_mutex_release(worker->mutex);
 
                     worker->is_busy = false;
-                    if (worker->callback) worker->callback(K2WorkerEventSuccess, worker->callback_context);
+                    if(worker->callback)
+                        worker->callback(K2WorkerEventSuccess, worker->callback_context);
                 } else {
                     worker->is_busy = false;
-                    if (worker->callback) worker->callback(K2WorkerEventAuthFailed, worker->callback_context);
+                    if(worker->callback)
+                        worker->callback(K2WorkerEventAuthFailed, worker->callback_context);
                     furi_delay_ms(500);
                 }
             } else {
                 worker->is_busy = false;
                 furi_delay_ms(100);
             }
-        } else if (mode == K2WorkerModeWrite) {
+        } else if(mode == K2WorkerModeWrite) {
             worker->is_busy = true;
             Iso14443_3aError iso_err = iso14443_3a_poller_sync_read(worker->nfc, iso3a);
-            if (iso_err == Iso14443_3aErrorNone && iso3a->uid_len >= 4) {
-                if (worker->callback) worker->callback(K2WorkerEventCardDetected, worker->callback_context);
+            if(iso_err == Iso14443_3aErrorNone && iso3a->uid_len >= 4) {
+                if(worker->callback)
+                    worker->callback(K2WorkerEventCardDetected, worker->callback_context);
 
                 uint8_t derived_key_bytes[6];
                 k2_crypto_derive_key(iso3a->uid, derived_key_bytes);
@@ -359,25 +384,30 @@ static int32_t k2_worker_thread_func(void* context) {
 
                 /* Determine current Sector 1 auth key: try derived key, then default key */
                 MfClassicBlock dummy;
-                MfClassicError test_err = mf_classic_poller_sync_read_block(worker->nfc, 4, &derived_key, MfClassicKeyTypeA, &dummy);
+                MfClassicError test_err = mf_classic_poller_sync_read_block(
+                    worker->nfc, 4, &derived_key, MfClassicKeyTypeA, &dummy);
                 bool already_encrypted = (test_err == MfClassicErrorNone);
                 MfClassicKey* current_key = already_encrypted ? &derived_key : &default_key;
 
                 /* Write blocks 4, 5, 6 */
-                MfClassicError w_err = mf_classic_poller_sync_write_block(worker->nfc, 4, current_key, MfClassicKeyTypeA, &b4);
-                if (w_err == MfClassicErrorNone) {
-                    mf_classic_poller_sync_write_block(worker->nfc, 5, current_key, MfClassicKeyTypeA, &b5);
-                    mf_classic_poller_sync_write_block(worker->nfc, 6, current_key, MfClassicKeyTypeA, &b6);
+                MfClassicError w_err = mf_classic_poller_sync_write_block(
+                    worker->nfc, 4, current_key, MfClassicKeyTypeA, &b4);
+                if(w_err == MfClassicErrorNone) {
+                    mf_classic_poller_sync_write_block(
+                        worker->nfc, 5, current_key, MfClassicKeyTypeA, &b5);
+                    mf_classic_poller_sync_write_block(
+                        worker->nfc, 6, current_key, MfClassicKeyTypeA, &b6);
 
                     /* If tag was fresh, update trailer block 7 with derived keys */
-                    if (!already_encrypted) {
+                    if(!already_encrypted) {
                         memcpy(&b7.data[0], derived_key.data, 6);
                         b7.data[6] = 0xFF;
                         b7.data[7] = 0x07;
                         b7.data[8] = 0x80;
                         b7.data[9] = 0x69;
                         memcpy(&b7.data[10], derived_key.data, 6);
-                        mf_classic_poller_sync_write_block(worker->nfc, 7, current_key, MfClassicKeyTypeA, &b7);
+                        mf_classic_poller_sync_write_block(
+                            worker->nfc, 7, current_key, MfClassicKeyTypeA, &b7);
                     }
 
                     /* Write Sector 2 (blocks 8, 9, 10) with printer model */
@@ -385,30 +415,36 @@ static int32_t k2_worker_thread_func(void* context) {
                     memcpy(b8.data, s2_plain + 0, 16);
                     memcpy(b9.data, s2_plain + 16, 16);
                     memcpy(b10.data, s2_plain + 32, 16);
-                    mf_classic_poller_sync_write_block(worker->nfc, 8, &default_key, MfClassicKeyTypeA, &b8);
-                    mf_classic_poller_sync_write_block(worker->nfc, 9, &default_key, MfClassicKeyTypeA, &b9);
-                    mf_classic_poller_sync_write_block(worker->nfc, 10, &default_key, MfClassicKeyTypeA, &b10);
+                    mf_classic_poller_sync_write_block(
+                        worker->nfc, 8, &default_key, MfClassicKeyTypeA, &b8);
+                    mf_classic_poller_sync_write_block(
+                        worker->nfc, 9, &default_key, MfClassicKeyTypeA, &b9);
+                    mf_classic_poller_sync_write_block(
+                        worker->nfc, 10, &default_key, MfClassicKeyTypeA, &b10);
 
                     furi_mutex_acquire(worker->mutex, FuriWaitForever);
                     worker->mode = K2WorkerModeIdle;
                     furi_mutex_release(worker->mutex);
 
                     worker->is_busy = false;
-                    if (worker->callback) worker->callback(K2WorkerEventSuccess, worker->callback_context);
+                    if(worker->callback)
+                        worker->callback(K2WorkerEventSuccess, worker->callback_context);
                 } else {
                     worker->is_busy = false;
-                    if (worker->callback) worker->callback(K2WorkerEventWriteFailed, worker->callback_context);
+                    if(worker->callback)
+                        worker->callback(K2WorkerEventWriteFailed, worker->callback_context);
                     furi_delay_ms(500);
                 }
             } else {
                 worker->is_busy = false;
                 furi_delay_ms(100);
             }
-        } else if (mode == K2WorkerModeFormat) {
+        } else if(mode == K2WorkerModeFormat) {
             worker->is_busy = true;
             Iso14443_3aError iso_err = iso14443_3a_poller_sync_read(worker->nfc, iso3a);
-            if (iso_err == Iso14443_3aErrorNone && iso3a->uid_len >= 4) {
-                if (worker->callback) worker->callback(K2WorkerEventCardDetected, worker->callback_context);
+            if(iso_err == Iso14443_3aErrorNone && iso3a->uid_len >= 4) {
+                if(worker->callback)
+                    worker->callback(K2WorkerEventCardDetected, worker->callback_context);
 
                 uint8_t derived_key_bytes[6];
                 k2_crypto_derive_key(iso3a->uid, derived_key_bytes);
@@ -416,20 +452,24 @@ static int32_t k2_worker_thread_func(void* context) {
                 memcpy(derived_key.data, derived_key_bytes, 6);
 
                 MfClassicBlock dummy;
-                MfClassicError test_err = mf_classic_poller_sync_read_block(worker->nfc, 4, &derived_key, MfClassicKeyTypeA, &dummy);
+                MfClassicError test_err = mf_classic_poller_sync_read_block(
+                    worker->nfc, 4, &derived_key, MfClassicKeyTypeA, &dummy);
                 bool was_encrypted = (test_err == MfClassicErrorNone);
                 MfClassicKey* auth_key = was_encrypted ? &derived_key : &default_key;
 
                 MfClassicBlock zero_blk;
                 memset(zero_blk.data, 0, 16);
 
-                MfClassicError err = mf_classic_poller_sync_write_block(worker->nfc, 4, auth_key, MfClassicKeyTypeA, &zero_blk);
-                if (err == MfClassicErrorNone) {
-                    mf_classic_poller_sync_write_block(worker->nfc, 5, auth_key, MfClassicKeyTypeA, &zero_blk);
-                    mf_classic_poller_sync_write_block(worker->nfc, 6, auth_key, MfClassicKeyTypeA, &zero_blk);
+                MfClassicError err = mf_classic_poller_sync_write_block(
+                    worker->nfc, 4, auth_key, MfClassicKeyTypeA, &zero_blk);
+                if(err == MfClassicErrorNone) {
+                    mf_classic_poller_sync_write_block(
+                        worker->nfc, 5, auth_key, MfClassicKeyTypeA, &zero_blk);
+                    mf_classic_poller_sync_write_block(
+                        worker->nfc, 6, auth_key, MfClassicKeyTypeA, &zero_blk);
 
                     /* Reset trailer 7 to default transport keys */
-                    if (was_encrypted) {
+                    if(was_encrypted) {
                         MfClassicBlock def_tr;
                         memset(&def_tr.data[0], 0xFF, 6);
                         def_tr.data[6] = 0xFF;
@@ -437,23 +477,29 @@ static int32_t k2_worker_thread_func(void* context) {
                         def_tr.data[8] = 0x80;
                         def_tr.data[9] = 0x69;
                         memset(&def_tr.data[10], 0xFF, 6);
-                        mf_classic_poller_sync_write_block(worker->nfc, 7, auth_key, MfClassicKeyTypeA, &def_tr);
+                        mf_classic_poller_sync_write_block(
+                            worker->nfc, 7, auth_key, MfClassicKeyTypeA, &def_tr);
                     }
 
                     /* Wipe Sector 2 */
-                    mf_classic_poller_sync_write_block(worker->nfc, 8, &default_key, MfClassicKeyTypeA, &zero_blk);
-                    mf_classic_poller_sync_write_block(worker->nfc, 9, &default_key, MfClassicKeyTypeA, &zero_blk);
-                    mf_classic_poller_sync_write_block(worker->nfc, 10, &default_key, MfClassicKeyTypeA, &zero_blk);
+                    mf_classic_poller_sync_write_block(
+                        worker->nfc, 8, &default_key, MfClassicKeyTypeA, &zero_blk);
+                    mf_classic_poller_sync_write_block(
+                        worker->nfc, 9, &default_key, MfClassicKeyTypeA, &zero_blk);
+                    mf_classic_poller_sync_write_block(
+                        worker->nfc, 10, &default_key, MfClassicKeyTypeA, &zero_blk);
 
                     furi_mutex_acquire(worker->mutex, FuriWaitForever);
                     worker->mode = K2WorkerModeIdle;
                     furi_mutex_release(worker->mutex);
 
                     worker->is_busy = false;
-                    if (worker->callback) worker->callback(K2WorkerEventSuccess, worker->callback_context);
+                    if(worker->callback)
+                        worker->callback(K2WorkerEventSuccess, worker->callback_context);
                 } else {
                     worker->is_busy = false;
-                    if (worker->callback) worker->callback(K2WorkerEventFormatFailed, worker->callback_context);
+                    if(worker->callback)
+                        worker->callback(K2WorkerEventFormatFailed, worker->callback_context);
                     furi_delay_ms(500);
                 }
             } else {
@@ -489,7 +535,7 @@ K2Worker* k2_worker_alloc(void) {
 }
 
 void k2_worker_free(K2Worker* worker) {
-    if (!worker) return;
+    if(!worker) return;
 
     k2_worker_stop(worker);
 
@@ -506,7 +552,7 @@ void k2_worker_free(K2Worker* worker) {
 }
 
 void k2_worker_set_callback(K2Worker* worker, K2WorkerCallback callback, void* context) {
-    if (!worker) return;
+    if(!worker) return;
     furi_mutex_acquire(worker->mutex, FuriWaitForever);
     worker->callback = callback;
     worker->callback_context = context;
@@ -514,44 +560,44 @@ void k2_worker_set_callback(K2Worker* worker, K2WorkerCallback callback, void* c
 }
 
 void k2_worker_start_scan(K2Worker* worker) {
-    if (!worker) return;
+    if(!worker) return;
     furi_mutex_acquire(worker->mutex, FuriWaitForever);
     worker->mode = K2WorkerModeScan;
     furi_mutex_release(worker->mutex);
 }
 
 void k2_worker_start_write(K2Worker* worker, const K2SpoolConfig* config) {
-    if (!worker) return;
+    if(!worker) return;
     furi_mutex_acquire(worker->mutex, FuriWaitForever);
-    if (config) worker->config = *config;
+    if(config) worker->config = *config;
     worker->mode = K2WorkerModeWrite;
     furi_mutex_release(worker->mutex);
 }
 
 void k2_worker_start_format(K2Worker* worker) {
-    if (!worker) return;
+    if(!worker) return;
     furi_mutex_acquire(worker->mutex, FuriWaitForever);
     worker->mode = K2WorkerModeFormat;
     furi_mutex_release(worker->mutex);
 }
 
 void k2_worker_stop(K2Worker* worker) {
-    if (!worker) return;
+    if(!worker) return;
     furi_mutex_acquire(worker->mutex, FuriWaitForever);
     worker->mode = K2WorkerModeIdle;
     furi_mutex_release(worker->mutex);
 
-    while (worker->is_busy) {
+    while(worker->is_busy) {
         furi_delay_ms(10);
     }
 }
 
 Nfc* k2_worker_get_nfc(K2Worker* worker) {
-    if (!worker) return NULL;
+    if(!worker) return NULL;
     return worker->nfc;
 }
 
 const K2SpoolInfo* k2_worker_get_last_info(const K2Worker* worker) {
-    if (!worker) return NULL;
+    if(!worker) return NULL;
     return &worker->last_info;
 }

@@ -4,7 +4,7 @@
 static void k2_scene_format_worker_callback(K2WorkerEvent event, void* context) {
     K2RfidApp* app = context;
     uint32_t custom_event = 0;
-    switch (event) {
+    switch(event) {
     case K2WorkerEventCardDetected:
         custom_event = K2CustomEventCardDetected;
         break;
@@ -25,7 +25,13 @@ void k2_scene_format_on_enter(void* context) {
 
     popup_reset(popup);
     popup_set_header(popup, "Format Tag", 64, 10, AlignCenter, AlignTop);
-    popup_set_text(popup, "Erase CFS Tag?\nResets to blank keys.\n\nHold tag to back...", 64, 25, AlignCenter, AlignTop);
+    popup_set_text(
+        popup,
+        "Erase CFS Tag?\nResets to blank keys.\n\nHold tag to back...",
+        64,
+        25,
+        AlignCenter,
+        AlignTop);
 
     k2_worker_set_callback(app->worker, k2_scene_format_worker_callback, app);
     k2_worker_start_format(app->worker);
@@ -37,18 +43,31 @@ bool k2_scene_format_on_event(void* context, SceneManagerEvent event) {
     K2RfidApp* app = context;
     bool consumed = false;
 
-    if (event.type == SceneManagerEventTypeCustom) {
+    if(event.type == SceneManagerEventTypeCustom) {
         consumed = true;
-        if (event.event == K2CustomEventCardDetected) {
-            popup_set_text(app->popup, "Tag detected!\nWiping sectors...", 64, 30, AlignCenter, AlignTop);
+        if(event.event == K2CustomEventCardDetected) {
+            popup_set_text(
+                app->popup, "Tag detected!\nWiping sectors...", 64, 30, AlignCenter, AlignTop);
             notification_message(app->notifications, &sequence_blink_yellow_10);
-        } else if (event.event == K2CustomEventSuccess) {
+        } else if(event.event == K2CustomEventSuccess) {
             popup_set_header(app->popup, "Success!", 64, 10, AlignCenter, AlignTop);
-            popup_set_text(app->popup, "Tag formatted!\nReset to factory keys.\nPress Back", 64, 25, AlignCenter, AlignTop);
+            popup_set_text(
+                app->popup,
+                "Tag formatted!\nReset to factory keys.\nPress Back",
+                64,
+                25,
+                AlignCenter,
+                AlignTop);
             notification_message(app->notifications, &sequence_success);
-        } else if (event.event == K2CustomEventFailed) {
+        } else if(event.event == K2CustomEventFailed) {
             popup_set_header(app->popup, "Format Failed!", 64, 10, AlignCenter, AlignTop);
-            popup_set_text(app->popup, "Could not format tag.\nEnsure tag is Mifare 1K\nand in range.", 64, 25, AlignCenter, AlignTop);
+            popup_set_text(
+                app->popup,
+                "Could not format tag.\nEnsure tag is Mifare 1K\nand in range.",
+                64,
+                25,
+                AlignCenter,
+                AlignTop);
             notification_message(app->notifications, &sequence_error);
         }
     }

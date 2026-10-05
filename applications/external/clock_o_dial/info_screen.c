@@ -69,8 +69,8 @@ static void draw_options_page(Canvas* canvas) {
 
     const int32_t cx = 64; // screen center
     const int32_t top = page_content_top(canvas);
-    const int32_t cy =
-        top + (64 - top) / 2 + whole_block_down; // sound/light are the same size, so this is symmetric
+    const int32_t cy = top + (64 - top) / 2 +
+                       whole_block_down; // sound/light are the same size, so this is symmetric
 
     canvas_draw_icon(
         canvas, cx - icon_get_width(&I_arrow_up) / 2, cy - arrow_d - arrow_size / 2, &I_arrow_up);
@@ -142,7 +142,8 @@ static void draw_about_page(Canvas* canvas) {
     draw_page_header(canvas, "DEVELOPED BY", "Ilia Petrov-Komotskii");
 
     const int32_t side_gap = 3; // gap from the left page-nav arrow, and from the QR code to text
-    const int32_t left_edge = 2 + icon_get_width(&I_arrow_left) + side_gap + 2; // whole block nudged right
+    const int32_t left_edge =
+        2 + icon_get_width(&I_arrow_left) + side_gap + 2; // whole block nudged right
 
     const int32_t qr_w = icon_get_width(&I_qrcode);
     const int32_t qr_h = icon_get_height(&I_qrcode);
@@ -161,9 +162,11 @@ static void draw_about_page(Canvas* canvas) {
     const int32_t top_lines_up = 1; // lines 1 and 2 nudged up
     const int32_t line3_down = 1; // line 3 nudged down
     const int32_t icon_up_from_line = 1; // icons stay put in world coords despite line3_down
-    int32_t line_y = top + (64 - top - text_h) / 2; // keep the whole block centered alongside the QR code
+    int32_t line_y =
+        top + (64 - top - text_h) / 2; // keep the whole block centered alongside the QR code
 
-    canvas_draw_str_aligned(canvas, text_x, line_y - top_lines_up, AlignLeft, AlignTop, "Thank you,");
+    canvas_draw_str_aligned(
+        canvas, text_x, line_y - top_lines_up, AlignLeft, AlignTop, "Thank you,");
     line_y += line_h + gap_1_2;
     canvas_draw_str_aligned(
         canvas, text_x, line_y - top_lines_up, AlignLeft, AlignTop, "please support");

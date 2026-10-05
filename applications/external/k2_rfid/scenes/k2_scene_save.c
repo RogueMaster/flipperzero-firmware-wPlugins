@@ -6,7 +6,7 @@ void k2_scene_save_on_enter(void* context) {
     Popup* popup = app->popup;
 
     /* Ensure valid spool configuration */
-    if (app->config.material_id[0] == '\0') {
+    if(app->config.material_id[0] == '\0') {
         k2_rfid_app_set_default_config(app);
     } else {
         k2_rfid_app_sync_config(app);
@@ -16,7 +16,7 @@ void k2_scene_save_on_enter(void* context) {
     bool ok = k2_worker_save_spool_to_nfc(&app->config, NULL, saved_path, sizeof(saved_path));
 
     popup_reset(popup);
-    if (ok) {
+    if(ok) {
         /* Extract file name from path */
         const char* fname = strrchr(saved_path, '/');
         fname = fname ? (fname + 1) : saved_path;
@@ -31,7 +31,13 @@ void k2_scene_save_on_enter(void* context) {
         notification_message(app->notifications, &sequence_success);
     } else {
         popup_set_header(popup, "Save Failed!", 64, 10, AlignCenter, AlignTop);
-        popup_set_text(popup, "Could not write to SD card.\nCheck SD card status.", 64, 25, AlignCenter, AlignTop);
+        popup_set_text(
+            popup,
+            "Could not write to SD card.\nCheck SD card status.",
+            64,
+            25,
+            AlignCenter,
+            AlignTop);
         notification_message(app->notifications, &sequence_error);
     }
 

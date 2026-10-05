@@ -14,6 +14,7 @@ from typing import Tuple
 # AES implementation using standard library or tiny cipher if PyCryptodome not installed
 try:
     from Crypto.Cipher import AES
+
     HAVE_CRYPTO = True
 except ImportError:
     HAVE_CRYPTO = False
@@ -63,17 +64,22 @@ MATERIALS = [
     ("P1003", "Polymaker", "Panchroma PLA Matte", "PLA"),
 ]
 
+
 def aes_ecb_encrypt(key: bytes, data: bytes) -> bytes:
     if HAVE_CRYPTO:
         cipher = AES.new(key, AES.MODE_ECB)
         return cipher.encrypt(data)
     else:
         import subprocess
+
         p = subprocess.run(
-            ['openssl', 'enc', '-aes-128-ecb', '-K', key.hex(), '-nosalt', '-nopad'],
-            input=data, stdout=subprocess.PIPE, check=True
+            ["openssl", "enc", "-aes-128-ecb", "-K", key.hex(), "-nosalt", "-nopad"],
+            input=data,
+            stdout=subprocess.PIPE,
+            check=True,
         )
         return p.stdout
+
 
 def aes_ecb_decrypt(key: bytes, data: bytes) -> bytes:
     if HAVE_CRYPTO:
@@ -81,47 +87,80 @@ def aes_ecb_decrypt(key: bytes, data: bytes) -> bytes:
         return cipher.decrypt(data)
     else:
         import subprocess
+
         p = subprocess.run(
-            ['openssl', 'enc', '-d', '-aes-128-ecb', '-K', key.hex(), '-nosalt', '-nopad'],
-            input=data, stdout=subprocess.PIPE, check=True
+            [
+                "openssl",
+                "enc",
+                "-d",
+                "-aes-128-ecb",
+                "-K",
+                key.hex(),
+                "-nosalt",
+                "-nopad",
+            ],
+            input=data,
+            stdout=subprocess.PIPE,
+            check=True,
         )
         return p.stdout
+
 
 def derive_sector1_key(uid: bytes) -> bytes:
     uid16 = uid * 4
     enc = aes_ecb_encrypt(U_KEY, uid16)
     return enc[:6]
 
-def build_spool_payload(material_id: str, color_hex: str, length_code: str,
-                        serial: str = "000001", printer: str = "K2",
-                        vendor: str = "0276", batch: str = "A2", date: str = "AB124") -> Tuple[bytes, bytes]:
+
+def build_spool_payload(
+    material_id: str,
+    color_hex: str,
+    length_code: str,
+    serial: str = "000001",
+    printer: str = "K2",
+    vendor: str = "0276",
+    batch: str = "A2",
+    date: str = "AB124",
+) -> Tuple[bytes, bytes]:
     s1_str = f"{date[:5]:<5}{vendor[:4]:<4}{batch[:2]:<2}1{material_id[:5]:<5}0{color_hex[:6]:<6}{length_code[:4]:<4}{serial[:6]:<6}00000000000000"
-    s1_bytes = s1_str.encode('ascii')[:48]
-    s2_bytes = printer.encode('ascii').ljust(48, b' ')[:48]
+    s1_bytes = s1_str.encode("ascii")[:48]
+    s2_bytes = printer.encode("ascii").ljust(48, b" ")[:48]
     return s1_bytes, s2_bytes
 
-def generate_nfc_file(output_path: str, material_id: str, color_hex: str,
-                      length_code: str = "0330", printer: str = "K2",
-                      serial: str = None, uid: bytes = None):
+
+def generate_nfc_file(
+    output_path: str,
+    material_id: str,
+    color_hex: str,
+    length_code: str = "0330",
+    printer: str = "K2",
+    serial: str = None,
+    uid: bytes = None,
+):
     if serial is None:
         serial = f"{random.randint(100000, 999999):06d}"
     if uid is None:
         uid = bytes([random.randint(1, 254) for _ in range(4)])
-        if uid[0] == 0x88: uid = b'\x12' + uid[1:]
+        if uid[0] == 0x88:
+            uid = b"\x12" + uid[1:]
 
     key_a = derive_sector1_key(uid)
-    s1_plain, s2_plain = build_spool_payload(material_id, color_hex, length_code, serial, printer)
+    s1_plain, s2_plain = build_spool_payload(
+        material_id, color_hex, length_code, serial, printer
+    )
     s1_enc = aes_ecb_encrypt(D_KEY, s1_plain)
 
     bcc = uid[0] ^ uid[1] ^ uid[2] ^ uid[3]
-    b0 = uid + bytes([bcc, 0x08, 0x04, 0x00, 0xE1, 0x10, 0x14, 0x00, 0x00, 0x00, 0x00, 0x00])
+    b0 = uid + bytes(
+        [bcc, 0x08, 0x04, 0x00, 0xE1, 0x10, 0x14, 0x00, 0x00, 0x00, 0x00, 0x00]
+    )
 
     blocks = {}
     blocks[0] = b0
     blocks[1] = bytes(16)
     blocks[2] = bytes(16)
     # Sector 0 trailer
-    blocks[3] = bytes([0xFF]*6 + [0xFF, 0x07, 0x80, 0x69] + [0xFF]*6)
+    blocks[3] = bytes([0xFF] * 6 + [0xFF, 0x07, 0x80, 0x69] + [0xFF] * 6)
 
     # Sector 1 (blocks 4, 5, 6 encrypted data)
     blocks[4] = s1_enc[0:16]
@@ -135,13 +174,13 @@ def generate_nfc_file(output_path: str, material_id: str, color_hex: str,
     blocks[9] = s2_plain[16:32]
     blocks[10] = s2_plain[32:48]
     # Sector 2 trailer
-    blocks[11] = bytes([0xFF]*6 + [0xFF, 0x07, 0x80, 0x69] + [0xFF]*6)
+    blocks[11] = bytes([0xFF] * 6 + [0xFF, 0x07, 0x80, 0x69] + [0xFF] * 6)
 
     # Sectors 3 to 15 (blank)
     for s in range(3, 16):
         for b in range(3):
             blocks[s * 4 + b] = bytes(16)
-        blocks[s * 4 + 3] = bytes([0xFF]*6 + [0xFF, 0x07, 0x80, 0x69] + [0xFF]*6)
+        blocks[s * 4 + 3] = bytes([0xFF] * 6 + [0xFF, 0x07, 0x80, 0x69] + [0xFF] * 6)
 
     with open(output_path, "w") as f:
         f.write("Filetype: Flipper NFC device\n")
@@ -157,6 +196,7 @@ def generate_nfc_file(output_path: str, material_id: str, color_hex: str,
             f.write(f"Block {i}: {' '.join(f'{b:02X}' for b in blocks[i])}\n")
 
     print(f"[+] Successfully generated Flipper NFC spool file: {output_path}")
+
 
 def decode_nfc_file(file_path: str):
     if not os.path.isfile(file_path):
@@ -182,11 +222,11 @@ def decode_nfc_file(file_path: str):
 
     cipher = blocks[4] + blocks[5] + blocks[6]
     plain_s1 = aes_ecb_decrypt(D_KEY, cipher)
-    plain_s2 = (blocks.get(8, b'') + blocks.get(9, b'') + blocks.get(10, b''))
+    plain_s2 = blocks.get(8, b"") + blocks.get(9, b"") + blocks.get(10, b"")
 
     try:
-        s1_str = plain_s1.decode('ascii', errors='replace')
-        s2_str = plain_s2.decode('ascii', errors='replace').strip()
+        s1_str = plain_s1.decode("ascii", errors="replace")
+        s2_str = plain_s2.decode("ascii", errors="replace").strip()
     except Exception:
         print("[-] Failed to decode ASCII string.")
         return
@@ -200,9 +240,15 @@ def decode_nfc_file(file_path: str):
     serial = s1_str[28:34]
 
     mat_match = next((m for m in MATERIALS if m[0] == mat_id), None)
-    mat_name = f"{mat_match[1]} {mat_match[2]} ({mat_match[3]})" if mat_match else f"ID {mat_id}"
+    mat_name = (
+        f"{mat_match[1]} {mat_match[2]} ({mat_match[3]})"
+        if mat_match
+        else f"ID {mat_id}"
+    )
 
-    weight_match = next((k for k, v in WEIGHT_MAP.items() if v[0] == length), f"{length}m")
+    weight_match = next(
+        (k for k, v in WEIGHT_MAP.items() if v[0] == length), f"{length}m"
+    )
 
     print("==========================================")
     print(" Creality CFS RFID Spool Tag Decoded")
@@ -219,19 +265,47 @@ def decode_nfc_file(file_path: str):
     print(f" Printer Model:  {s2_str}")
     print("==========================================")
 
+
 def main():
-    parser = argparse.ArgumentParser(description="Creality CFS RFID Spool Tool for Flipper Zero")
+    parser = argparse.ArgumentParser(
+        description="Creality CFS RFID Spool Tool for Flipper Zero"
+    )
     subparsers = parser.add_subparsers(dest="cmd")
 
-    gen_p = subparsers.add_parser("generate", help="Generate a Flipper Zero .nfc spool file")
-    gen_p.add_argument("-m", "--material", default="01001", help="Material ID (e.g. 01001 for Hyper PLA)")
-    gen_p.add_argument("-c", "--color", default="FFFFFF", help="RGB hex color (e.g. FFFFFF)")
-    gen_p.add_argument("-w", "--weight", default="1 KG", choices=list(WEIGHT_MAP.keys()), help="Spool size")
-    gen_p.add_argument("-p", "--printer", default="K2", choices=["K2", "K1", "HI"], help="Printer model")
+    gen_p = subparsers.add_parser(
+        "generate", help="Generate a Flipper Zero .nfc spool file"
+    )
+    gen_p.add_argument(
+        "-m",
+        "--material",
+        default="01001",
+        help="Material ID (e.g. 01001 for Hyper PLA)",
+    )
+    gen_p.add_argument(
+        "-c", "--color", default="FFFFFF", help="RGB hex color (e.g. FFFFFF)"
+    )
+    gen_p.add_argument(
+        "-w",
+        "--weight",
+        default="1 KG",
+        choices=list(WEIGHT_MAP.keys()),
+        help="Spool size",
+    )
+    gen_p.add_argument(
+        "-p",
+        "--printer",
+        default="K2",
+        choices=["K2", "K1", "HI"],
+        help="Printer model",
+    )
     gen_p.add_argument("-s", "--serial", default=None, help="6-digit serial number")
-    gen_p.add_argument("-o", "--output", default="spool.nfc", help="Output .nfc file path")
+    gen_p.add_argument(
+        "-o", "--output", default="spool.nfc", help="Output .nfc file path"
+    )
 
-    dec_p = subparsers.add_parser("decode", help="Decode a Flipper Zero .nfc spool file")
+    dec_p = subparsers.add_parser(
+        "decode", help="Decode a Flipper Zero .nfc spool file"
+    )
     dec_p.add_argument("file", help="Path to .nfc file")
 
     subparsers.add_parser("list", help="List supported materials")
@@ -240,7 +314,9 @@ def main():
 
     if args.cmd == "generate":
         len_code = WEIGHT_MAP.get(args.weight, ("0330", 330))[0]
-        generate_nfc_file(args.output, args.material, args.color, len_code, args.printer, args.serial)
+        generate_nfc_file(
+            args.output, args.material, args.color, len_code, args.printer, args.serial
+        )
     elif args.cmd == "decode":
         decode_nfc_file(args.file)
     elif args.cmd == "list":
@@ -250,6 +326,7 @@ def main():
             print(f"{m[0]:<8} {m[1]:<12} {m[2]:<24} {m[3]:<10}")
     else:
         parser.print_help()
+
 
 if __name__ == "__main__":
     main()

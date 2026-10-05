@@ -83,9 +83,9 @@ def write_code(path):
     assert reopened.mode == "1", f"{path}: mode is {reopened.mode}, not 1"
     assert reopened.size == (size, size), f"{path}: size is {reopened.size}"
     assert not reopened.info, f"{path}: carries metadata {sorted(reopened.info)}"
-    assert path.stem.endswith(f"_{size}x{size}"), (
-        f"{path}: the name does not say {size}x{size}"
-    )
+    assert path.stem.endswith(
+        f"_{size}x{size}"
+    ), f"{path}: the name does not say {size}x{size}"
 
     # Read the written file back inside no more paper than the screen gives
     # it. An encoder bug, a margin too thin to find the code in, or a code

@@ -113,15 +113,15 @@ size_t k2_db_get_material_count(void) {
 }
 
 const K2Material* k2_db_get_material(size_t index) {
-    if (index >= k2_db_get_material_count()) return NULL;
+    if(index >= k2_db_get_material_count()) return NULL;
     return &K2_MATERIALS[index];
 }
 
 const K2Material* k2_db_find_material_by_id(const char* id) {
-    if (!id) return NULL;
+    if(!id) return NULL;
     size_t count = k2_db_get_material_count();
-    for (size_t i = 0; i < count; i++) {
-        if (strcasecmp(K2_MATERIALS[i].id, id) == 0) {
+    for(size_t i = 0; i < count; i++) {
+        if(strcasecmp(K2_MATERIALS[i].id, id) == 0) {
             return &K2_MATERIALS[i];
         }
     }
@@ -133,24 +133,24 @@ size_t k2_db_get_color_count(void) {
 }
 
 const K2ColorPreset* k2_db_get_color(size_t index) {
-    if (index >= k2_db_get_color_count()) return NULL;
+    if(index >= k2_db_get_color_count()) return NULL;
     return &K2_COLORS[index];
 }
 
 static uint8_t hex_val(char c) {
-    if (c >= '0' && c <= '9') return c - '0';
-    if (c >= 'a' && c <= 'f') return 10 + (c - 'a');
-    if (c >= 'A' && c <= 'F') return 10 + (c - 'A');
+    if(c >= '0' && c <= '9') return c - '0';
+    if(c >= 'a' && c <= 'f') return 10 + (c - 'a');
+    if(c >= 'A' && c <= 'F') return 10 + (c - 'A');
     return 0;
 }
 
 const char* k2_db_find_closest_color_name(const char* hex_str) {
-    if (!hex_str || strlen(hex_str) < 6) return "White";
+    if(!hex_str || strlen(hex_str) < 6) return "White";
     /* Skip leading '#' or '0' if present */
     const char* p = hex_str;
-    if (*p == '#') p++;
-    if (strlen(p) == 7 && *p == '0') p++; /* handle "0FFFFFF" */
-    if (strlen(p) < 6) return "White";
+    if(*p == '#') p++;
+    if(strlen(p) == 7 && *p == '0') p++; /* handle "0FFFFFF" */
+    if(strlen(p) < 6) return "White";
 
     uint8_t r = (hex_val(p[0]) << 4) | hex_val(p[1]);
     uint8_t g = (hex_val(p[2]) << 4) | hex_val(p[3]);
@@ -160,12 +160,12 @@ const char* k2_db_find_closest_color_name(const char* hex_str) {
     const char* closest_name = "White";
     size_t count = k2_db_get_color_count();
 
-    for (size_t i = 0; i < count; i++) {
+    for(size_t i = 0; i < count; i++) {
         int32_t dr = (int32_t)r - (int32_t)K2_COLORS[i].r;
         int32_t dg = (int32_t)g - (int32_t)K2_COLORS[i].g;
         int32_t db = (int32_t)b - (int32_t)K2_COLORS[i].b;
         uint32_t dist_sq = (uint32_t)(dr * dr + dg * dg + db * db);
-        if (dist_sq < min_dist_sq) {
+        if(dist_sq < min_dist_sq) {
             min_dist_sq = dist_sq;
             closest_name = K2_COLORS[i].name;
         }
@@ -178,15 +178,15 @@ size_t k2_db_get_weight_count(void) {
 }
 
 const K2WeightOption* k2_db_get_weight(size_t index) {
-    if (index >= k2_db_get_weight_count()) return NULL;
+    if(index >= k2_db_get_weight_count()) return NULL;
     return &K2_WEIGHTS[index];
 }
 
 const char* k2_db_find_weight_label_by_code(const char* code) {
-    if (!code || strlen(code) < 4) return "1 KG";
+    if(!code || strlen(code) < 4) return "1 KG";
     size_t count = k2_db_get_weight_count();
-    for (size_t i = 0; i < count; i++) {
-        if (strncmp(K2_WEIGHTS[i].code, code, 4) == 0) {
+    for(size_t i = 0; i < count; i++) {
+        if(strncmp(K2_WEIGHTS[i].code, code, 4) == 0) {
             return K2_WEIGHTS[i].label;
         }
     }
@@ -198,12 +198,15 @@ size_t k2_db_get_printer_count(void) {
 }
 
 const char* k2_db_get_printer_name(size_t index) {
-    if (index >= k2_db_get_printer_count()) return NULL;
+    if(index >= k2_db_get_printer_count()) return NULL;
     return K2_PRINTERS[index];
 }
 
-bool k2_build_payload(const K2SpoolConfig* config, uint8_t sector1_out[48], uint8_t sector2_out[48]) {
-    if (!config || !sector1_out || !sector2_out) return false;
+bool k2_build_payload(
+    const K2SpoolConfig* config,
+    uint8_t sector1_out[48],
+    uint8_t sector2_out[48]) {
+    if(!config || !sector1_out || !sector2_out) return false;
 
     const char* date = config->date[0] ? config->date : "AB124";
     const char* vendor = config->vendor_id[0] ? config->vendor_id : "0276";
@@ -226,9 +229,17 @@ bool k2_build_payload(const K2SpoolConfig* config, uint8_t sector1_out[48], uint
      * Total = 48 chars
      */
     char s1_buf[64];
-    snprintf(s1_buf, sizeof(s1_buf),
-             "%-5.5s%-4.4s%-2.2s1%-5.5s0%-6.6s%-4.4s%-6.6s00000000000000",
-             date, vendor, batch, mat_id, color, weight, serial);
+    snprintf(
+        s1_buf,
+        sizeof(s1_buf),
+        "%-5.5s%-4.4s%-2.2s1%-5.5s0%-6.6s%-4.4s%-6.6s00000000000000",
+        date,
+        vendor,
+        batch,
+        mat_id,
+        color,
+        weight,
+        serial);
 
     memcpy(sector1_out, s1_buf, 48);
 
@@ -237,22 +248,22 @@ bool k2_build_payload(const K2SpoolConfig* config, uint8_t sector1_out[48], uint
      */
     memset(sector2_out, ' ', 48);
     size_t pr_len = strlen(printer);
-    if (pr_len > 48) pr_len = 48;
+    if(pr_len > 48) pr_len = 48;
     memcpy(sector2_out, printer, pr_len);
 
     return true;
 }
 
 bool k2_parse_payload(const uint8_t sector1[48], const uint8_t sector2[48], K2SpoolInfo* info_out) {
-    if (!sector1 || !sector2 || !info_out) return false;
+    if(!sector1 || !sector2 || !info_out) return false;
 
     memset(info_out, 0, sizeof(K2SpoolInfo));
     memcpy(info_out->raw_sector1, sector1, 48);
     memcpy(info_out->raw_sector2, sector2, 48);
 
     /* Verify basic ASCII validity */
-    for (size_t i = 0; i < 34; i++) {
-        if (sector1[i] < 0x20 || sector1[i] > 0x7E) {
+    for(size_t i = 0; i < 34; i++) {
+        if(sector1[i] < 0x20 || sector1[i] > 0x7E) {
             info_out->valid = false;
             return false;
         }
@@ -289,15 +300,15 @@ bool k2_parse_payload(const uint8_t sector1[48], const uint8_t sector2[48], K2Sp
     memcpy(pr_buf, sector2, 48);
     pr_buf[48] = '\0';
     /* Trim trailing spaces */
-    for (int i = 47; i >= 0; i--) {
-        if (pr_buf[i] == ' ' || pr_buf[i] == '\0') {
+    for(int i = 47; i >= 0; i--) {
+        if(pr_buf[i] == ' ' || pr_buf[i] == '\0') {
             pr_buf[i] = '\0';
         } else {
             break;
         }
     }
     strncpy(info_out->printer_model, pr_buf, sizeof(info_out->printer_model) - 1);
-    if (info_out->printer_model[0] == '\0') {
+    if(info_out->printer_model[0] == '\0') {
         strncpy(info_out->printer_model, "K2", sizeof(info_out->printer_model) - 1);
     }
 
@@ -309,7 +320,8 @@ bool k2_parse_payload(const uint8_t sector1[48], const uint8_t sector2[48], K2Sp
     snprintf(info_out->color_name, sizeof(info_out->color_name), "%s", c_name ? c_name : "White");
 
     const char* w_label = k2_db_find_weight_label_by_code(info_out->length_code);
-    snprintf(info_out->weight_label, sizeof(info_out->weight_label), "%s", w_label ? w_label : "1 KG");
+    snprintf(
+        info_out->weight_label, sizeof(info_out->weight_label), "%s", w_label ? w_label : "1 KG");
 
     info_out->valid = true;
     return true;

@@ -9,7 +9,7 @@ void k2_scene_emulate_on_enter(void* context) {
     k2_worker_stop(app->worker);
 
     /* Ensure valid spool configuration */
-    if (app->config.material_id[0] == '\0') {
+    if(app->config.material_id[0] == '\0') {
         k2_rfid_app_set_default_config(app);
     } else {
         k2_rfid_app_sync_config(app);
@@ -18,21 +18,17 @@ void k2_scene_emulate_on_enter(void* context) {
     const K2Material* mat = k2_db_find_material_by_id(app->config.material_id);
     const char* mat_name = (mat && mat->name) ? mat->name : "Hyper PLA";
     const char* col_name = k2_db_find_closest_color_name(app->config.color_hex);
-    if (!col_name || strlen(col_name) == 0) {
+    if(!col_name || strlen(col_name) == 0) {
         col_name = "White";
     }
     const char* weight = k2_db_find_weight_label_by_code(app->config.weight_code);
-    if (!weight || strlen(weight) == 0) {
+    if(!weight || strlen(weight) == 0) {
         weight = "1 KG";
     }
 
     FuriString* str = furi_string_alloc();
     furi_string_printf(
-        str,
-        "%s\n%s - %s\nHold against CFS slot\nPress Back to Exit",
-        mat_name,
-        col_name,
-        weight);
+        str, "%s\n%s - %s\nHold against CFS slot\nPress Back to Exit", mat_name, col_name, weight);
 
     popup_reset(popup);
     popup_set_header(popup, "Emulating Spool", 64, 5, AlignCenter, AlignTop);

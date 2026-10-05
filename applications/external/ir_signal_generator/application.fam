@@ -2,6 +2,7 @@ App(
     appid="ir_signal_generator",
     name="IR Signal Generator",
     apptype=FlipperAppType.EXTERNAL,
+    targets=["f7"],
     entry_point="ir_signal_generator_app",
     stack_size=2 * 1024,
     fap_icon="icon.png",
