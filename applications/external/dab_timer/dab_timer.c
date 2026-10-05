@@ -386,7 +386,25 @@ static void dab_timer_render_callback(Canvas* canvas, void* context) {
 
 static void dab_timer_rearm_alarm(DabTimerState* state) {
     state->alarm_phase = DabTimerAlarmWaiting;
-    state->last_continuous_second = UINT32_MAX;
+    state->last_continuous_minute = UINT32_MAX;
+    state->alarm_generation++;
+}
+
+static bool dab_timer_has_themed_lights(SoundAlert sound) {
+    return sound == SoundAlertMario || sound == SoundAlertGoGoPoRa;
+}
+
+static void dab_timer_adjust_preset(DabTimerState* state, uint32_t preset) {
+    const uint32_t previous = state->model.alert_time;
+    state->model.alert_time = preset;
+    if(state->model.elapsed_seconds < preset || state->model.elapsed_seconds < previous) {
+        dab_timer_rearm_alarm(state);
+    } else if(
+        state->model.sound_alert == SoundAlertCont &&
+        state->last_continuous_minute != UINT32_MAX) {
+        /* Keep an already delivered alert delivered when both presets are past. */
+        state->last_continuous_minute = (state->model.elapsed_seconds - preset) / 60;
+    }
 }
 
 static void dab_timer_reset_elapsed(DabTimerState* state) {
@@ -452,9 +470,10 @@ static DabTimerAction dab_timer_collect_alerts(DabTimerState* state) {
     }
     if(model->elapsed_seconds < model->alert_time) return actions;
     if(model->sound_alert == SoundAlertCont) {
-        if(state->last_continuous_second != model->elapsed_seconds) {
-            state->last_continuous_second = model->elapsed_seconds;
-            actions |= DabTimerActionMarioFirst;
+        const uint32_t continuous_minute = (model->elapsed_seconds - model->alert_time) / 60;
+        if(state->last_continuous_minute != continuous_minute) {
+            state->last_continuous_minute = continuous_minute;
+            actions |= DabTimerActionContinuous;
         }
         return actions;
     }
@@ -465,7 +484,6 @@ static DabTimerAction dab_timer_collect_alerts(DabTimerState* state) {
                    rangers ? DabTimerActionRangersFirst :
                              DabTimerActionSilent;
         state->alarm_phase = mario || rangers ? DabTimerAlarmFirstPlayed : DabTimerAlarmFinished;
-        if(!mario && !rangers) actions |= DabTimerActionRainbow;
         if(model->easter_egg &&
            (!state->xp_tick_valid ||
             (uint32_t)(state->last_tick - state->last_xp_tick) / state->tick_frequency >= 10)) {
@@ -509,8 +527,7 @@ static DabTimerInputResult
         else
             state->code_state = DabTimerCodeIdle;
         if(model->run_state == DabTimerRunning && model->alert_time <= UINT32_MAX - 5) {
-            model->alert_time += 5;
-            dab_timer_rearm_alarm(state);
+            dab_timer_adjust_preset(state, model->alert_time + 5);
         }
         break;
     case InputKeyDown:
@@ -521,8 +538,7 @@ static DabTimerInputResult
         else
             state->code_state = DabTimerCodeIdle;
         if(model->run_state == DabTimerRunning && model->alert_time >= 5) {
-            model->alert_time -= 5;
-            dab_timer_rearm_alarm(state);
+            dab_timer_adjust_preset(state, model->alert_time - 5);
         }
         break;
     case InputKeyLeft:
@@ -562,7 +578,9 @@ static DabTimerInputResult
             *actions |= DabTimerActionSaveGameMode;
 #endif
             if(model->sound_alert != SoundAlertOff) {
-                *actions |= DabTimerActionSuccess | DabTimerActionRainbow;
+                *actions |= DabTimerActionSuccess;
+                if(dab_timer_has_themed_lights(model->sound_alert))
+                    *actions |= DabTimerActionRainbow;
             }
             *actions |= DabTimerActionXp;
         } else {
@@ -652,23 +670,40 @@ static void dab_timer_refresh_display(DabTimerState* state) {
         model->alert_string, sizeof(model->alert_string), "%lu", (unsigned long)model->alert_time);
 }
 
-static bool dab_timer_apply_actions(
-    NotificationApp* notification,
-    const DabTimerState* state,
-    DabTimerAction actions) {
-#if __has_include(<cfw/cfw.h>)
-    if(actions & DabTimerActionSaveGameMode) {
-        cfw_settings.game_mode = state->model.game_mode;
-        cfw_settings_save();
+static bool dab_timer_feedback_current(DabTimerApp* app, uint32_t generation) {
+    furi_check(furi_mutex_acquire(app->mutex, FuriWaitForever) == FuriStatusOk);
+    const bool current = !app->feedback_stopping && app->feedback_generation == generation;
+    furi_mutex_release(app->mutex);
+    return current;
+}
+
+static void dab_timer_play_feedback(
+    DabTimerApp* app,
+    DabTimerAction actions,
+    SoundAlert sound,
+    uint32_t generation,
+    bool* restore_backlight) {
+    const bool themed = dab_timer_has_themed_lights(sound);
+    if(sound != SoundAlertMario)
+        actions &=
+            ~(DabTimerActionMarioFirst | DabTimerActionMarioSecond | DabTimerActionMarioThird);
+    if(sound != SoundAlertGoGoPoRa)
+        actions &= ~(
+            DabTimerActionRangersFirst | DabTimerActionRangersSecond | DabTimerActionRangersThird);
+    if(sound != SoundAlertCont) actions &= ~DabTimerActionContinuous;
+    if(sound == SoundAlertOff)
+        actions &= ~(DabTimerActionStartStop | DabTimerActionMinute | DabTimerActionSuccess);
+    const NotificationSequence* start_stop = &dab_timer_alert_startStop;
+    const NotificationSequence* success = &sequence_success;
+    if(!themed) {
+        start_stop = &dab_timer_alert_start_stop_no_lights;
+        success = &dab_timer_alert_success_no_lights;
     }
-#else
-    UNUSED(state);
-#endif
-    static const struct {
+    const struct {
         DabTimerAction action;
         const NotificationSequence* sequence;
     } sequences[] = {
-        {DabTimerActionStartStop, &dab_timer_alert_startStop},
+        {DabTimerActionStartStop, start_stop},
         {DabTimerActionMinute, &dab_timer_alert_perMin},
         {DabTimerActionMarioFirst, &dab_timer_alert_mario1},
         {DabTimerActionMarioSecond, &dab_timer_alert_mario2},
@@ -676,21 +711,57 @@ static bool dab_timer_apply_actions(
         {DabTimerActionRangersFirst, &dab_timer_alert_pr1},
         {DabTimerActionRangersSecond, &dab_timer_alert_pr2},
         {DabTimerActionRangersThird, &dab_timer_alert_pr3},
-        {DabTimerActionSilent, &dab_timer_alert_silent},
-        {DabTimerActionSuccess, &sequence_success},
+        {DabTimerActionContinuous, &dab_timer_alert_continuous},
+        {DabTimerActionSilent, &dab_timer_alert_silent_no_lights},
+        {DabTimerActionSuccess, success},
     };
-    bool queued_notifications = false;
     for(size_t i = 0; i < COUNT_OF(sequences); i++) {
         if(actions & sequences[i].action) {
-            notification_message(notification, sequences[i].sequence);
-            queued_notifications = true;
+            if(!dab_timer_feedback_current(app, generation)) return;
+            /* One in-flight sequence, with no app/model lock held during playback. */
+            notification_message_block(app->notification, sequences[i].sequence);
+            *restore_backlight |= themed;
         }
     }
-    if(actions & DabTimerActionRainbow) {
-        notification_message(notification, &sequence_rainbow);
-        queued_notifications = true;
-        notification_message(notification, &sequence_rainbow);
+    if(themed && (actions & DabTimerActionRainbow)) {
+        for(size_t pass = 0; pass < 2; pass++) {
+            if(!dab_timer_feedback_current(app, generation)) return;
+            notification_message_block(app->notification, &sequence_rainbow);
+            *restore_backlight = true;
+        }
     }
+}
+
+static int32_t dab_timer_feedback_worker(void* context) {
+    DabTimerApp* app = context;
+    bool restore_backlight = false;
+    while(true) {
+        const uint32_t flags =
+            furi_thread_flags_wait(DabTimerFeedbackFlagWake, FuriFlagWaitAny, FuriWaitForever);
+        if(flags & FuriFlagError) break;
+        furi_check(furi_mutex_acquire(app->mutex, FuriWaitForever) == FuriStatusOk);
+        const bool stopping = app->feedback_stopping;
+        const DabTimerAction actions = app->pending_feedback;
+        const SoundAlert sound = app->feedback_sound;
+        const uint32_t generation = app->feedback_generation;
+        app->pending_feedback = DabTimerActionNone;
+        furi_mutex_release(app->mutex);
+        if(stopping) break;
+        dab_timer_play_feedback(app, actions, sound, generation, &restore_backlight);
+    }
+    if(restore_backlight)
+        notification_message_block(app->notification, &sequence_display_backlight_on);
+    return 0;
+}
+
+static void
+    dab_timer_apply_actions(DabTimerApp* app, const DabTimerState* state, DabTimerAction actions) {
+#if __has_include(<cfw/cfw.h>)
+    if(actions & DabTimerActionSaveGameMode) {
+        cfw_settings.game_mode = state->model.game_mode;
+        cfw_settings_save();
+    }
+#endif
     if(actions & DabTimerActionXp) {
 #if __has_include(<cfw/cfw.h>)
         dolphin_deed(getRandomDeed());
@@ -698,7 +769,18 @@ static bool dab_timer_apply_actions(
         dolphin_deed(DolphinDeedBadUsbPlayScript);
 #endif
     }
-    return queued_notifications;
+    actions &= ~(DabTimerActionXp | DabTimerActionSaveGameMode);
+    furi_check(furi_mutex_acquire(app->mutex, FuriWaitForever) == FuriStatusOk);
+    if(app->feedback_generation != state->alarm_generation) {
+        app->pending_feedback = DabTimerActionNone;
+        app->feedback_generation = state->alarm_generation;
+    }
+    app->feedback_sound = state->model.sound_alert;
+    /* Coalesce repeated feedback instead of accumulating a playback backlog. */
+    app->pending_feedback |= actions;
+    furi_mutex_release(app->mutex);
+    if(actions)
+        furi_thread_flags_set(furi_thread_get_id(app->feedback_thread), DabTimerFeedbackFlagWake);
 }
 
 static void dab_timer_input_callback(InputEvent* input, void* context) {
@@ -743,18 +825,29 @@ int32_t dab_timer_app(void* context) {
         free(app);
         return 255;
     }
+    app->feedback_thread =
+        furi_thread_alloc_ex("DabFeedback", 1024, dab_timer_feedback_worker, app);
+    if(!app->feedback_thread) {
+        furi_timer_free(timer);
+        furi_mutex_free(app->mutex);
+        furi_message_queue_free(app->event_queue);
+        free(app);
+        return 255;
+    }
     DabTimerState state;
     dab_timer_state_init(&state, furi_get_tick(), furi_kernel_get_tick_frequency());
     dab_timer_refresh_display(&state);
     app->model = state.model;
+    app->feedback_sound = state.model.sound_alert;
+    app->feedback_generation = state.alarm_generation;
     ViewPort* view_port = view_port_alloc();
     view_port_draw_callback_set(view_port, dab_timer_render_callback, app);
     view_port_input_callback_set(view_port, dab_timer_input_callback, app);
-    NotificationApp* notification = furi_record_open(RECORD_NOTIFICATION);
+    app->notification = furi_record_open(RECORD_NOTIFICATION);
     Gui* gui = furi_record_open(RECORD_GUI);
     gui_add_view_port(gui, view_port, GuiLayerFullscreen);
+    furi_thread_start(app->feedback_thread);
     furi_timer_start(timer, state.tick_frequency);
-    bool notifications_sent = false;
     for(bool processing = true; processing;) {
         const uint32_t flags = furi_thread_flags_wait(
             DabTimerFlagInput | DabTimerFlagTick | DabTimerFlagRedraw | DabTimerFlagExit,
@@ -764,7 +857,6 @@ int32_t dab_timer_app(void* context) {
         if(flags & DabTimerFlagExit) break;
         const DabTimerModel before = state.model;
         dab_timer_advance_time(&state, furi_get_tick());
-        const DabTimerAction timer_actions = dab_timer_collect_alerts(&state);
         DabTimerAction actions = DabTimerActionNone;
         InputEvent input;
         if(furi_message_queue_get(app->event_queue, &input, 0) == FuriStatusOk) {
@@ -785,13 +877,17 @@ int32_t dab_timer_app(void* context) {
             furi_mutex_release(app->mutex);
         }
         if(changed || (flags & DabTimerFlagRedraw)) view_port_update(view_port);
-        notifications_sent |= dab_timer_apply_actions(notification, &state, timer_actions);
-        notifications_sent |= dab_timer_apply_actions(notification, &state, actions);
+        dab_timer_apply_actions(app, &state, actions);
     }
     furi_timer_free(timer);
-    /* The notification queue retains pointers into this FAP until playback finishes. */
-    if(notifications_sent)
-        notification_message_block(notification, &sequence_display_backlight_on);
+    furi_check(furi_mutex_acquire(app->mutex, FuriWaitForever) == FuriStatusOk);
+    app->feedback_stopping = true;
+    app->pending_feedback = DabTimerActionNone;
+    furi_mutex_release(app->mutex);
+    furi_thread_flags_set(furi_thread_get_id(app->feedback_thread), DabTimerFeedbackFlagWake);
+    /* Join after its current blocking sequence finishes, before unloading this FAP. */
+    furi_thread_join(app->feedback_thread);
+    furi_thread_free(app->feedback_thread);
     view_port_enabled_set(view_port, false);
     gui_remove_view_port(gui, view_port);
     view_port_free(view_port);

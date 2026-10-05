@@ -169,10 +169,10 @@ This software is for experimental purposes only and is not meant for any illegal
 - RFID: [Casi-Rusco offset follows the card field's top bit, not card 195538 (By srkz)](https://github.com/DarkFlippers/unleashed-firmware/pull/1163)
 - FBT: [Rebuild/update submodules only on head changes (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/13e608aa18772f0dc5a5e45dc6c8ce5399868e31)
 - Updated: [Dice (RM) Including SEX/WAR/8BALL/WEED/DRINK DICE v2.6 (By RogueMaster)](https://github.com/RogueMaster/flipperzero-dice) [Enum-based modes, event-driven rolling and drawing, immutable message tables, unbiased 32-bit random selection, safe WAR card draws and wider scores. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/5cc58292c43ddb9abc90887cc6bd29164ef2f6a6)
-- Updated: [Dab Timer v2.3 (By RogueMaster)](https://github.com/RogueMaster/flipperzero-dabtimer) [Enum-based timer and code states, integer analog-clock rendering, cached dates, monotonic stopwatch/alarm timing, event-driven updates and safe notification cleanup. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/5cc58292c43ddb9abc90887cc6bd29164ef2f6a6)
 - FBT: [Added some diagnostics for FAP build times (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/367d20e822a8d35d50e556e40ecbc858080404c1)
 - FBT: [Patterns with a literal, non-wildcard parent directory now go directly to that
 directory and glob only the final component. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/76f1297e102834239b19ea5924098cfaecfe4402)
+- Updated: [Dab Timer v2.4 (By RogueMaster)](https://github.com/RogueMaster/flipperzero-dabtimer) [Enum-based timer and code states, integer analog-clock rendering, cached dates, monotonic stopwatch/alarm timing, event-driven updates and safe notification cleanup. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/5cc58292c43ddb9abc90887cc6bd29164ef2f6a6)
 
 <a name="release"></a>
 

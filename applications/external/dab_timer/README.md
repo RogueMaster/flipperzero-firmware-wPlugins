@@ -19,7 +19,7 @@
 - - `S:ByMin` - Minute chime only.
 - - `S:OFF` - No chimes enabled.
 - - `S:PoRa` - Power Rangers Theme chime at timer preset and minute chime enabled.
-- - `S:Cont` - Repeat chime each second after the timer preset.
+- - `S:Cont` - Repeat chime each minute after the timer preset.
 - Uses system time format settings
 
 ## Controls

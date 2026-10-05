@@ -118,6 +118,7 @@ typedef enum {
     DabTimerActionSuccess = 1 << 10,
     DabTimerActionXp = 1 << 11,
     DabTimerActionSaveGameMode = 1 << 12,
+    DabTimerActionContinuous = 1 << 13,
 } DabTimerAction;
 
 typedef enum {
@@ -132,6 +133,10 @@ typedef enum {
     DabTimerFlagRedraw = 1 << 2,
     DabTimerFlagExit = 1 << 3,
 } DabTimerThreadFlag;
+
+typedef enum {
+    DabTimerFeedbackFlagWake = 1 << 0,
+} DabTimerFeedbackFlag;
 
 typedef struct {
     DateTime datetime;
@@ -158,11 +163,12 @@ typedef struct {
     DabTimerModel model;
     DabTimerCodeState code_state;
     DabTimerAlarmPhase alarm_phase;
+    uint32_t alarm_generation;
     uint32_t last_tick;
     uint32_t tick_frequency;
     uint32_t fractional_ticks;
     uint32_t last_minute;
-    uint32_t last_continuous_second;
+    uint32_t last_continuous_minute;
     uint32_t last_xp_tick;
     bool xp_tick_valid;
 } DabTimerState;
@@ -171,6 +177,12 @@ typedef struct {
     FuriMutex* mutex;
     FuriMessageQueue* event_queue;
     FuriThreadId thread_id;
+    FuriThread* feedback_thread;
+    NotificationApp* notification;
+    DabTimerAction pending_feedback;
+    SoundAlert feedback_sound;
+    uint32_t feedback_generation;
+    bool feedback_stopping;
     DabTimerModel model;
 } DabTimerApp;
 
@@ -373,4 +385,44 @@ const NotificationSequence sequence_rainbow = {
     &message_red_127,   &message_green_127, &message_blue_127,
     &message_delay_250, &message_red_255,   &message_green_255,
     &message_blue_255,  &message_delay_250, NULL,
+};
+
+/* Keep the original audio/vibration timing without RGB or backlight commands. */
+const NotificationSequence dab_timer_alert_continuous = {
+    &message_vibro_on,  &message_note_e5,   &message_delay_100, &message_delay_100,
+    &message_delay_50,  &message_sound_off, &message_note_e5,   &message_delay_100,
+    &message_delay_100, &message_delay_50,  &message_sound_off, &message_vibro_off,
+    &message_delay_100, &message_delay_100, &message_note_e5,   &message_delay_100,
+    &message_delay_100, &message_delay_50,  &message_sound_off, NULL,
+};
+
+const NotificationSequence dab_timer_alert_silent_no_lights = {
+    &message_vibro_on,
+    &message_vibro_off,
+    &message_delay_50,
+    NULL,
+};
+
+const NotificationSequence dab_timer_alert_start_stop_no_lights = {
+    &message_note_d6,
+    &message_delay_100,
+    &message_delay_10,
+    &message_delay_10,
+    &message_sound_off,
+    NULL,
+};
+
+const NotificationSequence dab_timer_alert_success_no_lights = {
+    &message_vibro_on,
+    &message_note_c5,
+    &message_delay_50,
+    &message_vibro_off,
+    &message_note_e5,
+    &message_delay_50,
+    &message_note_g5,
+    &message_delay_50,
+    &message_note_c6,
+    &message_delay_50,
+    &message_sound_off,
+    NULL,
 };
