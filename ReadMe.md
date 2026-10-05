@@ -154,7 +154,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Prime Factors v1.0 (By gbritoda)](https://github.com/gbritoda/flipper0-prime_factors)
 - Added: [Alcohol Calc v1.0 (By vtlklr)](https://github.com/vtlklr/alcohol_calc)
 - Added: [Hanzi Cards v0.3 (By rseufert)](https://github.com/rseufert/hanzi_cards)
-- Updated: [ProtoPirate v4.0 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
 - SubGHz: [New protocol KeyFinder2 - the colour-button key finder fobs the existing KeyFinder decoder could not read. Shows the button colour next to the code, unverified: the colour names come from a single four button fob, so another fob may name them differently (By xMasterX)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/fc859a4bc8970c29ae1b17e8348533f835d69d0d)
 - SubGHz: [New protocol Doorbell32 - unbranded 433MHz doorbells. KeyFinder, KeyFinder2 and Doorbell32 are all in the Sensors ignore group (By xMasterX)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/197ed204678523e0236d3ff4759b74d12e2cc6bd)
 - NFC: [MIFARE DESFire Light is now correctly detected instead of appearing as ISO14443-4A (Unknown), with automatic command-mode handling, support for hardware type 0x08, and graceful handling of unsupported PICC-level fields. Detection uses GetVersion to distinguish it from MIFARE Plus and NTAG 4xx, while incomplete or refused reads are no longer treated as successful; file-content reading is not included. (By mishamyte)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/5f8727ae0e1fea457416cc445d73906be9d9b276)
@@ -166,6 +165,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [NW Crawl v0.3 (By rseufert)](https://github.com/rseufert/nw_crawl)
 - Updated: [Step Seq v0.2 (By rseufert)](https://github.com/rseufert/step_seq)
 - [Lock Menu: Restore Lock + Off without PIN setup; keep three visible rows while scrolling through all four lock actions in both Grid and List styles. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/c737624725d6d749c37bc954ddc2e064b535292c)
+- Updated: [ProtoPirate v4.0 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
+- RFID: [Casi-Rusco offset follows the card field's top bit, not card 195538 (By srkz)](https://github.com/DarkFlippers/unleashed-firmware/pull/1163)
 
 <a name="release"></a>
 
