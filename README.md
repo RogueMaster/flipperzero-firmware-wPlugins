@@ -41,7 +41,7 @@ Almost every Flipper Wi-Fi add-on is built on an **ESP32**, and the common ESP32
 
 ## 🛒 Get the board
 
-The **[5Ghost WiFi Devboard →](https://www.pingequa.com/products/flipper-zero-5ghost-bw16-external-antenna)** is a dual-band RTL8720DN (BW16) board, **preloaded with 5Ghost firmware**. Dock it on the Flipper GPIO header — no wiring, no flashing. Two antenna options:
+The **[5Ghost WiFi Devboard →](https://www.pingequa.com/products/flipper-zero-5ghost-bw16-external-antenna?utm_source=github&utm_medium=referral&utm_campaign=fz-bw16&utm_content=5ghost-wifi-lab-readme)** is a dual-band RTL8720DN (BW16) board, **preloaded with 5Ghost firmware**. Dock it on the Flipper GPIO header — no wiring, no flashing. Two antenna options:
 
 | Variant | Best for |
 |---|---|
@@ -382,5 +382,5 @@ For **authorized testing and education only.** Only test networks and devices yo
 The Flipper app is distributed as a compiled `.fap` under the **MIT License** (see [LICENSE](LICENSE)). Third-party attributions are in [NOTICE.md](NOTICE.md).
 
 <p align="center">
-  <sub><strong>PINGEQUA</strong> · <a href="https://pingequa.com">pingequa.com</a></sub>
+  <sub><strong>PINGEQUA</strong> · <a href="https://www.pingequa.com/?utm_source=github&utm_medium=referral&utm_campaign=brand&utm_content=5ghost-wifi-lab-readme">pingequa.com</a></sub>
 </p>
