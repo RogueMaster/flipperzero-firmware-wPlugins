@@ -8,6 +8,8 @@ two cats: **Nugget**, an elderly tiger-striped gentleman with white socks, and
 
 ![Wardrobe](wardrobe.png)
 
+![Rugs](rugs.png)
+
 ![Vinyl reactions](vinyl.png)
 
 ![Hip hop](hiphop.png)
@@ -38,10 +40,13 @@ two cats: **Nugget**, an elderly tiger-striped gentleman with white socks, and
   portrait) or play her *Keyboard* through the speaker. A cat that is free
   comes to keep her company.
 - **Home**
-  - *Wardrobe* - hair style (bob, long, bun, buns), hair colour, glasses
-    frames and sweater.
-  - *Decor* - rug, shelf plant, a cat tree and fairy lights, chosen in the
-    room itself.
+  - *Wardrobe* - nine hair styles (bob, long, bun, buns, pixie, ponytail,
+    braids, curly, bangs) in three colours, nine choices of glasses (round,
+    square, kitty, bold, tiny, oval, heart, shades, or none) and nine
+    sweaters (cozy, stripes, heart, dark, dots, zigzag, cat, star, checks).
+  - *Decor* - one of seven rugs (dots, stripes, oval, zigzag, checks,
+    braided, tassel) or none, a shelf plant, a cat tree and fairy lights,
+    chosen in the room itself.
   - *Vinyl* - optional background music on the Flipper's speaker: on/off,
     volume, and a genre (lo-fi Chill, Hip hop, Pop, House, Party, Metal).
     Yulia and the cats react for a few seconds whenever a new record goes

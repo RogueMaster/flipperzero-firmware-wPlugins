@@ -27,10 +27,11 @@ YULIA_W, YULIA_H = 42, 54
 OFF = 8  # room above the head for buns
 CX, CY, CHIN = 20.5, 20.0 + OFF, 33 + OFF
 
-HAIR_STYLES = ["Bob", "Long", "Bun", "Buns"]
+# New entries go on the end of each list: saves store the position.
+HAIR_STYLES = ["Bob", "Long", "Bun", "Buns", "Pixie", "Pony", "Braids", "Curly", "Bangs"]
 HAIR_COLORS = ["Black", "Brown", "Blonde"]
-GLASSES = ["Round", "Square", "Kitty", "Bold"]
-SWEATERS = ["Cozy", "Stripes", "Heart", "Dark"]
+GLASSES = ["Round", "Square", "Kitty", "Bold", "None", "Tiny", "Oval", "Heart", "Shades"]
+SWEATERS = ["Cozy", "Stripes", "Heart", "Dark", "Dots", "Zigzag", "Cat", "Star", "Checks"]
 
 
 def blank():
@@ -68,11 +69,14 @@ BODY = {(x, y) for x, y in cells() if y >= OFF + 37 and abs(x - CX) <= sweater_h
 
 # Where each style's fringe is swept from: the hairline is a round arc that
 # is highest at this x and curves down towards the temples.
-HAIR_PARTS = {"Bob": CX, "Long": CX - 5, "Bun": CX + 5, "Buns": CX}
+HAIR_PARTS = {"Bob": CX, "Long": CX - 5, "Bun": CX + 5, "Buns": CX,
+              "Pixie": CX - 7, "Pony": CX + 5, "Braids": CX, "Curly": CX}
 
 
 def hairline(x, style):
     """A rounded hairline, biased to the centre, left or right by style."""
+    if style == "Bangs":  # a blunt fringe straight across the forehead
+        return OFF + 13.5
     u = min(1.0, abs(x - HAIR_PARTS[style]) / 16.0)
     return min(OFF + 14.5, OFF + 9.5 + 7.0 * (1 - math.sqrt(1 - u * u)))
 
@@ -84,11 +88,31 @@ def hair_shape(style):
             return True
         if style == "Buns" and math.hypot(dx - 13, yy - 1) <= 5.6:
             return True
+        if style == "Curly":
+            # A big cloud of curls: the same outline as a bob, with a wavy edge.
+            if yy <= 18:
+                wave = 1.5 * math.sin(math.atan2(yy - 18, x - CX) * 10)
+                return math.hypot(x - CX, yy - 18) <= 18.5 + wave
+            width = 18.6 + 1.5 * math.sin(yy * 1.25)
+            if yy > 25:
+                width -= ((yy - 25) / 7.0) ** 2 * 5.0
+            return yy <= 32 and dx <= width
+        if style == "Pony":
+            # The tail swings out to one side from a tie high on the head.
+            tail_x = CX + 16.5 + 1.5 * math.sin(yy / 5.0)
+            if 8 <= yy <= 32 and abs(x - tail_x) <= 2.6 - max(0, yy - 24) * 0.2:
+                return True
+        if style == "Braids":
+            # Two plaits in front of the shoulders, pinched in every few rows.
+            if 18 < yy and abs(dx - 15.0) <= 2.4 + 0.9 * abs(math.sin(yy * math.pi / 4)):
+                return True
         if yy < 0:
             return False
         if yy <= 18:
             return dx <= 18.5 * math.sqrt(max(0.0, 1 - ((yy - 18) / 18.5) ** 2))
-        if style == "Bob":
+        if style == "Pixie":
+            return yy <= 23 and dx <= 18.5 - ((yy - 18) / 5.0) ** 2 * 6.0
+        if style in ("Bob", "Bangs"):
             if yy <= 29:
                 return dx <= 18.5 + 0.7 * math.sin((yy - 18) / 2.5)
             return yy <= 37 and dx <= 18.5 - ((yy - 29) / 8.0) ** 2 * 5.5
@@ -108,7 +132,7 @@ def hair_shape(style):
             continue
         elif (x, y) in BODY or y >= OFF + 37:
             # Long hair falls in front of the shoulders, not the chest.
-            if not (style == "Long" and abs(x - CX) >= 11):
+            if not (style in ("Long", "Braids") and abs(x - CX) >= 11):
                 continue
         mask.add((x, y))
     return mask
@@ -131,7 +155,17 @@ def build_hair(style, color):
     shine += [(x, OFF + 4 + (x - 25) // 2) for x in range(25, 29)]
     clip = [(32, 9), (34, 9), (31, 10), (32, 10), (33, 10), (34, 10), (35, 10),
             (32, 11), (33, 11), (34, 11), (33, 12)]
-    for x, y in shine + [(x, y + OFF) for x, y in clip]:
+    extra = []
+    if style == "Pony":  # the hair tie
+        extra = [(x, OFF + 10) for x in range(34, YULIA_W)]
+    elif style == "Braids":  # one line across each plait where it is pinched in
+        extra = [(x, y) for x, y in mask
+                 if y - OFF > 20 and (y - OFF) % 4 == 0 and abs(x - CX) >= 12]
+    elif style == "Curly":  # a scatter of little curls
+        extra = [(x, y) for x, y in mask
+                 if (x * 7 + y * 13) % 29 == 0 and y > OFF + 6
+                 and all(n in mask for n in neighbours(x, y))]
+    for x, y in shine + [(x, y + OFF) for x, y in clip] + extra:
         if (x, y) in mask:
             g[y][x] = accent
     if color == "Blonde":  # a few strands so light hair still reads as hair
@@ -179,17 +213,53 @@ def build_sweater(kind):
             for x in range(YULIA_W):
                 if (x, y) in BODY and g[y][x] == W:
                     g[y][x] = B
-    if kind == "Heart":
-        for dy, row in enumerate((" # # ", "#####", " ### ", "  #  ")):
-            for dx, ch in enumerate(row):
-                if ch == "#":
-                    g[OFF + 42 + dy][18 + dx] = B
+    emblems = {
+        "Heart": (" # # ", "#####", " ### ", "  #  "),
+        "Cat": ("#   #", "#####", "# # #", " ### "),
+        "Star": ("  #  ", "#####", " ### ", " # # "),
+    }
+    for dy, row in enumerate(emblems.get(kind, ())):
+        for dx, ch in enumerate(row):
+            if ch == "#":
+                g[OFF + 42 + dy][18 + dx] = B
+    for x, y in BODY:
+        if g[y][x] != W or y < OFF + 42:
+            continue
+        if kind == "Dots" and (x % 4, y - OFF) in ((1, 42), (3, 44)):
+            g[y][x] = B
+        elif kind == "Zigzag" and y - OFF == 42 + (0, 1, 2, 1)[x % 4]:
+            g[y][x] = B
+        elif kind == "Checks" and (x // 2 + y // 2) % 2 == 0:
+            g[y][x] = B
     return g
+
+
+def lens_inside(kind, dx, dy):
+    """Whether a point is inside a lens of the newer frame shapes."""
+    if kind == "Oval":
+        return (dx / 5.9) ** 2 + (dy / 4.0) ** 2 <= 1
+    if kind == "Heart":
+        u, v = dx / 4.9, -(dy - 1) / 4.9
+        return (u * u + v * v - 1) ** 3 - u * u * v ** 3 <= 0
+    return math.hypot(dx, dy) < {"Tiny": 4.0, "Shades": 6.0}[kind]
 
 
 def build_glasses(kind):
     g = blank()
     cy = OFF + 20
+    if kind == "None":
+        return g
+    if kind in ("Tiny", "Oval", "Heart", "Shades"):
+        for cx in (14.5, 26.5):
+            lens = {(x, y) for x, y in cells() if lens_inside(kind, x - cx, y - cy)}
+            for x, y in lens:
+                if kind == "Shades" or any(n not in lens for n in neighbours(x, y)):
+                    g[y][x] = B
+            if kind == "Shades":  # a glint on each dark lens
+                g[cy - 3][int(cx - 2)] = g[cy - 2][int(cx - 3)] = W
+        for x in range(19, 23) if kind == "Tiny" else (20, 21):
+            g[cy - 1][x] = B
+        return g
     for cx in (14.5, 26.5):
         for x, y in cells():
             d = math.hypot(x - cx, y - cy)
@@ -627,9 +697,10 @@ def write_preview(sprites, path, scale=4):
     looks += [compose(sprites, 0, 0, gl, gl) for gl in range(len(GLASSES))]
     layer = ("yulia_", "hair_", "glasses_", "sweater_", "ru_")
     rest = [g for name, g in sprites.items() if not name.startswith(layer)]
-    pad, per_row = 4, 8
-    width = per_row * (YULIA_W + pad) + pad
-    height = 3 * (YULIA_H + pad) + pad
+    pad, per_row = 4, len(HAIR_STYLES)
+    look_rows = -(-len(looks) // per_row)
+    width = max(per_row * (YULIA_W + pad) + pad, sum(len(g[0]) + pad for g in rest) + pad)
+    height = (look_rows + 1) * (YULIA_H + pad) + pad
     img = Image.new("RGB", (width, height), (255, 140, 40))
     colours = {W: (255, 235, 200), B: (0, 0, 0)}
 
@@ -643,7 +714,7 @@ def write_preview(sprites, path, scale=4):
         blit(grid, pad + (i % per_row) * (YULIA_W + pad), pad + (i // per_row) * (YULIA_H + pad))
     x0 = pad
     for grid in rest:
-        blit(grid, x0, pad + 2 * (YULIA_H + pad))
+        blit(grid, x0, pad + look_rows * (YULIA_H + pad))
         x0 += len(grid[0]) + pad
     img.resize((width * scale, height * scale), Image.NEAREST).save(path)
 

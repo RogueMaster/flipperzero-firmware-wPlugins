@@ -132,7 +132,7 @@ typedef struct {
 } Decor;
 
 #define DECOR_ROWS  4
-#define RUG_COUNT   4
+#define RUG_COUNT   8
 #define PLANT_COUNT 4
 
 typedef enum {
@@ -360,7 +360,9 @@ static const char* const act_names[] = {
     [ActNap] = "Nap time",
 };
 
-static const char* const rug_names[RUG_COUNT] = {"Dots", "Stripes", "Oval", "None"};
+// New rugs go on the end: saves store the position.
+static const char* const rug_names[RUG_COUNT] =
+    {"Dots", "Stripes", "Oval", "None", "Zigzag", "Checks", "Braided", "Tassel"};
 static const char* const plant_names[PLANT_COUNT] = {"Sprout", "Cactus", "Flowers", "Fern"};
 static const char* const tree_names[2] = {"No", "Yes"};
 static const char* const lights_names[2] = {"None", "Fairy"};
@@ -1658,6 +1660,43 @@ static void draw_rug(Canvas* canvas, uint8_t rug) {
             int32_t dy = (int32_t)(3.0f * sqrtf(1.0f - u * u) + 0.5f);
             canvas_draw_dot(canvas, x, 50 - dy);
             canvas_draw_dot(canvas, x, 50 + dy);
+        }
+        break;
+    case 4: {
+        // Zigzag: a little wave three pixels tall.
+        static const int8_t wave[4] = {1, 0, -1, 0};
+        for(int32_t x = 58; x < 118; x++)
+            canvas_draw_dot(canvas, x, FLOOR_Y + wave[(x - 58) % 4]);
+        break;
+    }
+    case 5:
+        // Checks: two rows of two-pixel squares.
+        for(int32_t x = 58; x < 118; x++) {
+            canvas_draw_dot(canvas, x, FLOOR_Y + ((x - 58) / 2) % 2);
+        }
+        break;
+    case 6:
+        // Braided: an oval rug with a second ring inside it.
+        for(int32_t x = 60; x <= 116; x++) {
+            float u = ((float)x - 88.0f) / 28.0f;
+            int32_t dy = (int32_t)(3.0f * sqrtf(1.0f - u * u) + 0.5f);
+            canvas_draw_dot(canvas, x, 50 - dy);
+            canvas_draw_dot(canvas, x, 50 + dy);
+            if(x >= 68 && x <= 108 && x % 2 == 0) {
+                float v = ((float)x - 88.0f) / 20.0f;
+                int32_t inner = (int32_t)(1.5f * sqrtf(1.0f - v * v) + 0.5f);
+                canvas_draw_dot(canvas, x, 50 - inner);
+                canvas_draw_dot(canvas, x, 50 + inner);
+            }
+        }
+        break;
+    case 7:
+        // Tassel: a plain runner with a fringe at each end.
+        canvas_draw_line(canvas, 62, FLOOR_Y, 114, FLOOR_Y);
+        canvas_draw_line(canvas, 62, FLOOR_Y + 1, 114, FLOOR_Y + 1);
+        for(int32_t i = 0; i < 3; i++) {
+            canvas_draw_dot(canvas, 60 - i * 2, FLOOR_Y + i % 2);
+            canvas_draw_dot(canvas, 116 + i * 2, FLOOR_Y + i % 2);
         }
         break;
     default:
