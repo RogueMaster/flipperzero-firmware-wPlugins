@@ -4,8 +4,8 @@
 #include <storage/storage.h>
 #include <string.h>
 
-#define POD_DIR "/ext/apps_data/pod"
-#define POD_ENC_PATH POD_DIR "/encounters.bin"
+#define POD_DIR       "/ext/apps_data/pod"
+#define POD_ENC_PATH  POD_DIR "/encounters.bin"
 #define POD_ENC_MAGIC 0x32434E45UL // "ENC2" (bumped: record layout changed)
 
 void pod_encounters_load(PodEncounters* e) {

@@ -27,18 +27,18 @@
 #include "radio.h"
 #include "encounters.h"
 
-#define POD_BEACON_PERIOD_MS 3000
-#define POD_ANIM_PERIOD_MS   120
-#define POD_TICK_MS          100
-#define POD_COUNTDOWN_MS     3000
-#define POD_ACTIVE_MS        10000
-#define POD_CHAL_TIMEOUT_MS  8000
-#define POD_CHALD_TIMEOUT_MS 15000
+#define POD_BEACON_PERIOD_MS  3000
+#define POD_ANIM_PERIOD_MS    120
+#define POD_TICK_MS           100
+#define POD_COUNTDOWN_MS      3000
+#define POD_ACTIVE_MS         10000
+#define POD_CHAL_TIMEOUT_MS   8000
+#define POD_CHALD_TIMEOUT_MS  15000
 #define POD_RESULT_TIMEOUT_MS 6000
-#define POD_CHAL_RESEND_MS   500
-#define POD_TAPS_RESEND_MS   400
+#define POD_CHAL_RESEND_MS    500
+#define POD_TAPS_RESEND_MS    400
 
-#define POD_INRANGE_MAX 8
+#define POD_INRANGE_MAX    8
 #define POD_INRANGE_TTL_MS 12000
 
 // Countdown beep + go tone.
@@ -302,8 +302,8 @@ static void pod_handle_accept(Pod* app, const PodMsg* msg) {
         app->battle_view,
         PodBattleModel * m,
         {
-            if(app->in_battle && m->phase == BPhaseChallenging &&
-               m->battle_id == msg->battle_id && m->peer_id == msg->src_id) {
+            if(app->in_battle && m->phase == BPhaseChallenging && m->battle_id == msg->battle_id &&
+               m->peer_id == msg->src_id) {
                 m->phase = BPhaseCountdown;
                 m->elapsed_ms = 0;
             }
@@ -317,8 +317,8 @@ static void pod_handle_decline(Pod* app, const PodMsg* msg) {
         app->battle_view,
         PodBattleModel * m,
         {
-            if(app->in_battle && m->phase == BPhaseChallenging &&
-               m->battle_id == msg->battle_id && m->peer_id == msg->src_id) {
+            if(app->in_battle && m->phase == BPhaseChallenging && m->battle_id == msg->battle_id &&
+               m->peer_id == msg->src_id) {
                 m->phase = BPhaseCancelled;
                 snprintf(m->reason, sizeof(m->reason), "Declined");
                 cancelled = true;
@@ -752,7 +752,12 @@ static bool pod_battle_input(InputEvent* event, void* context) {
 
 static void pod_battle_timer_cb(void* context) {
     Pod* app = context;
-    enum { ActNone, ActChallenge, ActTaps, ActFinish } act = ActNone;
+    enum {
+        ActNone,
+        ActChallenge,
+        ActTaps,
+        ActFinish
+    } act = ActNone;
     uint32_t dst = 0;
     uint16_t bid = 0;
     uint16_t taps = 0;
@@ -923,7 +928,8 @@ static void pod_battle_finish(Pod* app) {
 static void pod_encounter_detail_populate(Pod* app) {
     PodEncounter* e = &app->encounters.items[app->selected_encounter];
     widget_reset(app->detail_widget);
-    widget_add_string_element(app->detail_widget, 64, 2, AlignCenter, AlignTop, FontPrimary, e->name);
+    widget_add_string_element(
+        app->detail_widget, 64, 2, AlignCenter, AlignTop, FontPrimary, e->name);
 
     char line[40];
     snprintf(line, sizeof(line), "Dolphin Lv %u", e->dolphin_level);
@@ -932,7 +938,8 @@ static void pod_encounter_detail_populate(Pod* app) {
         const char* r = (e->last_result > 0) ? "Last: You WON" :
                         (e->last_result < 0) ? "Last: You lost" :
                                                "Last: Draw";
-        widget_add_string_element(app->detail_widget, 4, 32, AlignLeft, AlignTop, FontSecondary, r);
+        widget_add_string_element(
+            app->detail_widget, 4, 32, AlignLeft, AlignTop, FontSecondary, r);
         snprintf(line, sizeof(line), "XP %u  Seen %ux", e->total_xp, e->times_seen);
     } else {
         widget_add_string_element(
@@ -980,11 +987,13 @@ static void pod_encounters_menu_populate(Pod* app) {
     }
     // newest-first: order indices by last_seen descending (selection sort, N<=64)
     uint16_t order[POD_MAX_ENCOUNTERS];
-    for(uint16_t i = 0; i < app->encounters.count; i++) order[i] = i;
+    for(uint16_t i = 0; i < app->encounters.count; i++)
+        order[i] = i;
     for(uint16_t i = 0; i < app->encounters.count; i++) {
         uint16_t best = i;
         for(uint16_t j = i + 1; j < app->encounters.count; j++) {
-            if(app->encounters.items[order[j]].last_seen > app->encounters.items[order[best]].last_seen)
+            if(app->encounters.items[order[j]].last_seen >
+               app->encounters.items[order[best]].last_seen)
                 best = j;
         }
         uint16_t t = order[i];
@@ -994,7 +1003,7 @@ static void pod_encounters_menu_populate(Pod* app) {
     for(uint16_t k = 0; k < app->encounters.count; k++) {
         PodEncounter* e = &app->encounters.items[order[k]];
         char label[40];
-        char mark = !e->battled       ? '.' :
+        char mark = !e->battled          ? '.' :
                     (e->last_result > 0) ? 'W' :
                     (e->last_result < 0) ? 'L' :
                                            '-';
@@ -1040,9 +1049,11 @@ static void pod_profile_widget_populate(Pod* app) {
         "Dolphin Lv %u   XP %lu",
         pod_profile_dolphin_level(),
         (unsigned long)app->profile.xp);
-    widget_add_string_element(app->profile_widget, 4, 20, AlignLeft, AlignTop, FontSecondary, line);
+    widget_add_string_element(
+        app->profile_widget, 4, 20, AlignLeft, AlignTop, FontSecondary, line);
     snprintf(line, sizeof(line), "Rank: %s", pod_rank(app->profile.xp));
-    widget_add_string_element(app->profile_widget, 4, 32, AlignLeft, AlignTop, FontSecondary, line);
+    widget_add_string_element(
+        app->profile_widget, 4, 32, AlignLeft, AlignTop, FontSecondary, line);
     snprintf(
         line,
         sizeof(line),
@@ -1050,7 +1061,8 @@ static void pod_profile_widget_populate(Pod* app) {
         (unsigned long)app->profile.wins,
         (unsigned long)app->profile.losses,
         (unsigned long)rate);
-    widget_add_string_element(app->profile_widget, 4, 44, AlignLeft, AlignTop, FontSecondary, line);
+    widget_add_string_element(
+        app->profile_widget, 4, 44, AlignLeft, AlignTop, FontSecondary, line);
     widget_add_button_element(
         app->profile_widget, GuiButtonTypeCenter, "Edit", pod_profile_edit_button_cb, app);
 }
@@ -1081,7 +1093,8 @@ static void pod_build_static_views(Pod* app) {
         app->clear_widget, 64, 16, AlignCenter, AlignTop, FontPrimary, "Clear log?");
     widget_add_string_element(
         app->clear_widget, 64, 34, AlignCenter, AlignTop, FontSecondary, "Deletes all encounters");
-    widget_add_button_element(app->clear_widget, GuiButtonTypeLeft, "No", pod_clear_button_cb, app);
+    widget_add_button_element(
+        app->clear_widget, GuiButtonTypeLeft, "No", pod_clear_button_cb, app);
     widget_add_button_element(
         app->clear_widget, GuiButtonTypeRight, "Yes", pod_clear_button_cb, app);
     view_set_previous_callback(widget_get_view(app->clear_widget), pod_prev_encounters);
@@ -1141,7 +1154,8 @@ static Pod* pod_alloc(void) {
     submenu_add_item(app->submenu, "Practice", PodMenuPractice, pod_submenu_callback, app);
     submenu_add_item(app->submenu, "Profile", PodMenuProfile, pod_submenu_callback, app);
     submenu_add_item(app->submenu, "About", PodMenuAbout, pod_submenu_callback, app);
-    view_dispatcher_add_view(app->view_dispatcher, PodViewMainMenu, submenu_get_view(app->submenu));
+    view_dispatcher_add_view(
+        app->view_dispatcher, PodViewMainMenu, submenu_get_view(app->submenu));
 
     app->walk_view = view_alloc();
     view_allocate_model(app->walk_view, ViewModelTypeLocking, sizeof(PodWalkModel));

@@ -1,0 +1,5 @@
+dist/
+.vscode/
+.DS_Store
+.clang-format
+test/test_wire

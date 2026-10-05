@@ -6,8 +6,8 @@
 #include <dolphin/dolphin.h>
 #include <string.h>
 
-#define POD_DIR "/ext/apps_data/pod"
-#define POD_PROFILE_PATH POD_DIR "/profile.bin"
+#define POD_DIR           "/ext/apps_data/pod"
+#define POD_PROFILE_PATH  POD_DIR "/profile.bin"
 #define POD_PROFILE_MAGIC 0x31444F50UL // "POD1" little-endian
 
 static void pod_profile_default(PodProfile* p) {
