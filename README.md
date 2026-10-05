@@ -106,10 +106,12 @@ The wire format is host-tested for round-tripping and CRC rejection.
 flipper-pod/
 ├── application.fam     # FAP manifest (appid "pod", Games)
 ├── pod.c               # app: view_dispatcher, menus, Walk Mode, battle state machine
-├── radio.c/.h          # sub-GHz client: beacon + battle messages, framing, dedup
+├── radio.c/.h          # sub-GHz client: starting the radio, sending, receiving
+├── pod_wire.c/.h       # the on-air format: framing, CRC, encode/decode, dedup
 ├── profile.c/.h        # identity persistence + reading the real dolphin level
 ├── encounters.c/.h     # encounter log load/save
-└── pod_10px.png        # app icon
+├── pod_10px.png        # app icon
+└── test/test_wire.c    # two simulated peers, run on a host
 ```
 
 The app is built on `view_dispatcher` + views (submenus, widgets, and custom
@@ -119,16 +121,36 @@ event.
 
 ---
 
+## Testing
+
+`pod_wire.c` holds the entire on-air format and has no Flipper dependency, so
+the code that runs on the device can be exercised on a computer:
+
+```bash
+cd test
+cc -Wall -Wextra -fsanitize=address -I.. -o test_wire test_wire.c ../pod_wire.c
+./test_wire
+```
+
+It runs two simulated peers against each other — one's encoder feeding the
+other's parser — over a channel that repeats, fragments, corrupts and
+interleaves frames, covering all five message types, the full
+challenge/accept/taps handshake, resynchronisation after noise, CRC rejection,
+name edges and the duplicate window.
+
 ## Status & notes
 
-- **Real two-device battles are implemented but need a second Flipper to verify
-  end to end.** The challenge/accept/tap-exchange handshake is coded to the
-  protocol and the wire format is host-tested, but the live round-trip (and its
-  timing/timeouts) is best shaken out with two units. Use **Practice** mode to
-  try the battle game with a single Flipper.
+- **Two-device battles have not been verified over the air.** The handshake is
+  implemented, the wire format is tested against a second peer on a host, and
+  the full challenge → accept → countdown → tap race → result sequence has been
+  run on real hardware by feeding simulated messages through the actual encoder,
+  parser and state machine. What remains unproven is the radio link itself:
+  whether two Flippers reach each other reliably, and how the timeouts behave at
+  real range. That needs a second unit.
+- Use **Practice** to play the tap race with a single Flipper.
 
 ---
 
 ## License
 
-Released under the MIT License.
+Released under the [MIT License](LICENSE).
