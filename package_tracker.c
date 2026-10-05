@@ -37,6 +37,7 @@ typedef enum {
 typedef enum {
     EventTypeInput,
     EventTypeRefreshDone,
+    EventTypeTick,
 } EventType;
 
 typedef struct {
@@ -51,6 +52,7 @@ typedef struct {
     bool refreshing;
     volatile bool cancel;
     char msg[40];
+    uint16_t ticker; // advances once per tick, scrolls over-long detail values
     FuriMutex* mutex;
     FuriThread* worker;
     ViewPort* view_port;
@@ -688,37 +690,67 @@ static void draw_list(Canvas* canvas, TrackerState* state) {
             canvas_invert_color(canvas);
         }
     }
+}
 
-    // Room to spare means room to say how to add one.
-    if(package_count < VISIBLE_ROWS) {
-        canvas_draw_str(canvas, 13, 13 + package_count * ROW_HEIGHT + 9, "LEFT: menu");
+// Draw text at x, scrolling it horizontally when it is wider than the space
+// available. The string is repeated after a gap so it wraps around cleanly.
+static void
+    draw_ticker(Canvas* canvas, int x, int y, int max_w, const char* text, uint16_t phase) {
+    if(canvas_string_width(canvas, text) <= max_w) {
+        canvas_draw_str(canvas, x, y, text);
+        return;
     }
+
+    char loop[80];
+    snprintf(loop, sizeof(loop), "%s   %s", text, text);
+
+    size_t period = strlen(text) + 3; // one full cycle, including the gap
+    size_t offset = phase % period;
+    const char* from = loop + offset;
+
+    // Take as many characters as fit, so nothing spills off the right edge.
+    char window[48];
+    size_t n = 0;
+    while(from[n] && n < sizeof(window) - 1) {
+        window[n] = from[n];
+        window[n + 1] = '\0';
+        if(canvas_string_width(canvas, window) > max_w) {
+            window[n] = '\0';
+            break;
+        }
+        n++;
+    }
+    canvas_draw_str(canvas, x, y, window);
 }
 
 static void draw_detail(Canvas* canvas, TrackerState* state) {
     const Package* p = &packages[state->selected];
 
     canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str(canvas, 2, 10, p->label);
+    draw_ticker(canvas, 2, 10, 124, p->label, state->ticker);
     canvas_draw_line(canvas, 0, 12, 127, 12);
 
     canvas_set_font(canvas, FontSecondary);
 
     char line[48];
     snprintf(line, sizeof(line), "%s  %s", p->carrier, status_full(p->status));
-    canvas_draw_str(canvas, 2, 22, line);
+    draw_ticker(canvas, 2, 22, 124, line, state->ticker);
 
-    canvas_draw_str(canvas, 2, 32, "Track:");
-    char trunc[20];
-    strncpy(trunc, p->tracking, sizeof(trunc) - 1);
-    trunc[sizeof(trunc) - 1] = '\0';
-    canvas_draw_str(canvas, 30, 32, trunc);
+    // Line the values up past the widest label, measured rather than assumed:
+    // "Where:" is wider than "Track:" and "When:", and a fixed column put the
+    // value on top of its own colon.
+    const int label_x = 2;
+    const int value_x = label_x + canvas_string_width(canvas, "Where:") + 4;
+    const int value_w = 126 - value_x;
 
-    canvas_draw_str(canvas, 2, 42, "Where:");
-    canvas_draw_str(canvas, 30, 42, p->location);
+    canvas_draw_str(canvas, label_x, 32, "Track:");
+    draw_ticker(canvas, value_x, 32, value_w, p->tracking, state->ticker);
 
-    canvas_draw_str(canvas, 2, 52, "When:");
-    canvas_draw_str(canvas, 30, 52, p->last_update);
+    canvas_draw_str(canvas, label_x, 42, "Where:");
+    draw_ticker(canvas, value_x, 42, value_w, p->location, state->ticker);
+
+    canvas_draw_str(canvas, label_x, 52, "When:");
+    draw_ticker(canvas, value_x, 52, value_w, p->last_update, state->ticker);
 
     canvas_draw_line(canvas, 0, 54, 127, 54);
     canvas_draw_str_aligned(canvas, 64, 62, AlignCenter, AlignBottom, "BACK: list  Hold OK: del");
@@ -755,6 +787,13 @@ static void render_callback(Canvas* canvas, void* ctx) {
     furi_mutex_release(state->mutex);
 }
 
+static void tick_callback(void* ctx) {
+    furi_assert(ctx);
+    FuriMessageQueue* queue = ctx;
+    TrackerEvent event = {.type = EventTypeTick};
+    furi_message_queue_put(queue, &event, 0);
+}
+
 static void input_callback(InputEvent* input_event, void* ctx) {
     furi_assert(ctx);
     FuriMessageQueue* queue = ctx;
@@ -788,6 +827,10 @@ int32_t package_tracker_app(void* p) {
     state->gui = gui;
     gui_add_view_port(gui, view_port, GuiLayerFullscreen);
 
+    // 2 Hz: one character of scroll per tick, slow enough to read comfortably.
+    FuriTimer* ticker = furi_timer_alloc(tick_callback, FuriTimerTypePeriodic, queue);
+    furi_timer_start(ticker, furi_kernel_get_tick_frequency() / 2);
+
     // Fetch on open: the point of live tracking is not having to ask for it.
     if(config.has_url && package_count > 0) start_refresh(state);
 
@@ -796,6 +839,15 @@ int32_t package_tracker_app(void* p) {
 
     while(running) {
         if(furi_message_queue_get(queue, &event, FuriWaitForever) != FuriStatusOk) continue;
+
+        if(event.type == EventTypeTick) {
+            furi_mutex_acquire(state->mutex, FuriWaitForever);
+            bool animating = (state->screen == ScreenDetail);
+            if(animating) state->ticker++;
+            furi_mutex_release(state->mutex);
+            if(animating) view_port_update(view_port);
+            continue;
+        }
 
         if(event.type == EventTypeRefreshDone) {
             if(state->worker) {
@@ -851,6 +903,7 @@ int32_t package_tracker_app(void* p) {
                 do_refresh = true;
             } else if(in->key == InputKeyOk && in->type == InputTypeShort) {
                 state->screen = ScreenDetail;
+                state->ticker = 0;
             } else if(in->key == InputKeyBack && in->type == InputTypeShort) {
                 running = false;
             }
@@ -867,8 +920,10 @@ int32_t package_tracker_app(void* p) {
                 state->screen = ScreenConfirmDelete;
             } else if(in->key == InputKeyLeft && in->type == InputTypeShort) {
                 if(state->selected > 0) state->selected--;
+                state->ticker = 0;
             } else if(in->key == InputKeyRight && in->type == InputTypeShort) {
                 if(state->selected < package_count - 1) state->selected++;
+                state->ticker = 0;
             }
         }
 
@@ -906,6 +961,8 @@ int32_t package_tracker_app(void* p) {
         furi_thread_join(state->worker);
         furi_thread_free(state->worker);
     }
+    furi_timer_stop(ticker);
+    furi_timer_free(ticker);
     view_port_enabled_set(view_port, false);
     gui_remove_view_port(gui, view_port);
     furi_record_close(RECORD_GUI);

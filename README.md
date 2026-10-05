@@ -5,6 +5,10 @@ and with a WiFi devboard attached the app fetches real status by itself — a
 glanceable list on a 128×64 monochrome display, and a detail view with carrier,
 tracking number, last known location and the time of the last scan.
 
+![The package list](screenshots/list.png)
+![Detail view](screenshots/detail.png)
+![Menu](screenshots/menu.png)
+
 Nothing is hosted by this app, and there is no account to create with anyone
 except the tracking service you choose. Your API key and your WiFi credentials
 stay with you.
