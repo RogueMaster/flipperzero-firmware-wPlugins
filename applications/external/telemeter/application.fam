@@ -1,0 +1,13 @@
+App(
+    appid="telemetro",
+    name="Telemeter",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="telemetro_app",
+    stack_size=2 * 1024,
+    fap_category="Tools",
+    fap_version="1.1",
+    fap_icon="telemetro.png",
+    fap_description="Measure distance from lightning-to-thunder or muzzle-flash-to-boom delay",
+    fap_author="iz1poz",
+    fap_icon_assets="images",
+)
