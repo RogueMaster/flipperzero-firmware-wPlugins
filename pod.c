@@ -27,9 +27,10 @@
 #include "radio.h"
 #include "encounters.h"
 
-#define POD_BEACON_PERIOD_MS  3000
-#define POD_ANIM_PERIOD_MS    120
-#define POD_TICK_MS           100
+#define POD_BEACON_PERIOD_MS 3000
+#define POD_ANIM_PERIOD_MS   120
+#define POD_TICK_MS          100
+
 #define POD_COUNTDOWN_MS      3000
 #define POD_ACTIVE_MS         10000
 #define POD_CHAL_TIMEOUT_MS   8000
@@ -651,11 +652,17 @@ static void pod_battle_draw(Canvas* canvas, void* model) {
         canvas_set_font(canvas, FontBigNumbers);
         snprintf(buf, sizeof(buf), "%lu", (unsigned long)m->my_taps);
         canvas_draw_str_aligned(canvas, 34, 28, AlignCenter, AlignCenter, buf);
-        if(show_opp)
+        if(show_opp) {
             snprintf(buf, sizeof(buf), "%lu", (unsigned long)m->opp_taps);
-        else
-            snprintf(buf, sizeof(buf), "?");
-        canvas_draw_str_aligned(canvas, 94, 28, AlignCenter, AlignCenter, buf);
+            canvas_draw_str_aligned(canvas, 94, 28, AlignCenter, AlignCenter, buf);
+        } else {
+            // FontBigNumbers carries digits only: a '?' drawn in it renders as
+            // nothing, leaving the rival's panel looking broken rather than
+            // unknown. Their count genuinely is unknown until the race ends,
+            // since tap counts are exchanged once, afterwards.
+            canvas_set_font(canvas, FontPrimary);
+            canvas_draw_str_aligned(canvas, 94, 26, AlignCenter, AlignCenter, "?");
+        }
         canvas_set_font(canvas, FontSecondary);
         canvas_draw_str_aligned(canvas, 34, 46, AlignCenter, AlignCenter, "YOU");
         canvas_draw_str_aligned(canvas, 94, 46, AlignCenter, AlignCenter, "RIVAL");
