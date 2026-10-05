@@ -6,7 +6,7 @@ App(
     requires=["gui"],
     stack_size=4 * 1024,
     fap_version="1.0",
-    fap_description="Track your shipments from a text file on the SD card, or live with a WiFi board.",
+    fap_description="Track shipments on the device, with live status over a WiFi devboard.",
     fap_icon="package_10px.png",
     fap_category="Tools",
     fap_author="thecoolguy2001",
