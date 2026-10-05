@@ -50,7 +50,7 @@ CFWSettings cfw_settings = {
     .rpc_color_bg = {{ScreenColorModeDefault, {.value = 0xFF8200}}}, // Default Orange
     .game_menu_style = MenuStyleWii,
     .game_start_point = 0,
-    .start_point = UINT32_MAX, // Apps Menu
+    .start_point = 0, // Apps Menu
     .lock_menu_type = true, // Grid
 };
 
