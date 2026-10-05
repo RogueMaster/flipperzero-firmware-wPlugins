@@ -3,6 +3,7 @@ import os
 import posixpath
 from pathlib import Path
 
+from flipper.assets.file_filter import filter_macos_metadata_names
 from flipper.utils import timestamp, file_md5
 from flipper.utils.fstree import FsNode, compare_fs_trees
 
@@ -135,6 +136,8 @@ class Manifest:
 
     def create(self, directory_path, ignore_files=["Manifest"]):
         for root, dirs, files in os.walk(directory_path):
+            dirs[:] = filter_macos_metadata_names(dirs)
+            files = filter_macos_metadata_names(files)
             dirs.sort()
             files.sort()
             relative_root = root.replace(directory_path, "", 1)
@@ -142,12 +145,10 @@ class Manifest:
                 relative_root = Path(relative_root).as_posix()
             if relative_root.startswith("/"):
                 relative_root = relative_root[1:]
-            # process directories
             for dirname in dirs:
                 relative_dir_path = posixpath.join(relative_root, dirname)
                 self.logger.debug(f'Adding directory: "{relative_dir_path}"')
                 self.addDirectory(relative_dir_path)
-            # Process files
             for file in files:
                 relative_file_path = posixpath.join(relative_root, file)
                 if file in ignore_files:

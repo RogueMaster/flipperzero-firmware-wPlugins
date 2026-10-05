@@ -10,26 +10,24 @@ import re
 import io
 import os
 
+from flipper.assets.file_filter import is_macos_metadata_name
+
 
 def convert_bm(img: "Image.Image | pathlib.Path") -> bytes:
     if not isinstance(img, Image.Image):
         img = Image.open(img)
-
     with io.BytesIO() as output:
         img = img.convert("1")
         img = ImageOps.invert(img)
         img.save(output, format="XBM")
         xbm = output.getvalue()
-
     f = io.StringIO(xbm.decode().strip())
     data = f.read().strip().replace("\n", "").replace(" ", "").split("=")[1][:-1]
     data_str = data[1:-1].replace(",", " ").replace("0x", "")
     data_bin = bytearray.fromhex(data_str)
-
     data_encoded_str = heatshrink2.compress(data_bin, window_sz2=8, lookahead_sz2=4)
     data_enc = bytearray(data_encoded_str)
     data_enc = bytearray([len(data_enc) & 0xFF, len(data_enc) >> 8]) + data_enc
-
     if len(data_enc) + 2 < len(data_bin) + 1:
         return b"\x01\x00" + data_enc
     else:
@@ -39,7 +37,6 @@ def convert_bm(img: "Image.Image | pathlib.Path") -> bytes:
 def convert_bmx(img: "Image.Image | pathlib.Path") -> bytes:
     if not isinstance(img, Image.Image):
         img = Image.open(img)
-
     data = struct.pack("<II", *img.size)
     data += convert_bm(img)
     return data
@@ -54,6 +51,8 @@ def pack_anim(src: pathlib.Path, dst: pathlib.Path):
         return
     dst.mkdir(parents=True, exist_ok=True)
     for frame in src.iterdir():
+        if is_macos_metadata_name(frame.name):
+            continue
         if not frame.is_file():
             continue
         if frame.name == "meta.txt":
@@ -73,10 +72,12 @@ def pack_icon_animated(src: pathlib.Path, dst: pathlib.Path):
     frame_count = 0
     frame_rate = None
     size = None
-    files = [file for file in src.iterdir() if file.is_file()]
+    files = [
+        file
+        for file in src.iterdir()
+        if file.is_file() and not is_macos_metadata_name(file.name)
+    ]
     for frame in sorted(files, key=lambda x: x.name):
-        if not frame.is_file():
-            continue
         if frame.name == "frame_rate":
             frame_rate = int(frame.read_text().strip())
         elif frame.name == "meta":
@@ -136,7 +137,6 @@ def pack(
             continue
         if not source.is_dir() or source.name.startswith("."):
             continue
-
         logger(f"Pack: custom user pack '{source.name}'")
         packed = output / source.name
         if packed.exists():
@@ -147,7 +147,6 @@ def pack(
                     packed.unlink()
             except Exception:
                 pass
-
         if (source / "Anims/manifest.txt").exists():
             (packed / "Anims").mkdir(parents=True, exist_ok=True)
             copy_file_as_lf(
@@ -165,7 +164,6 @@ def pack(
                 )
                 logger(f"Compile: anim for pack '{source.name}': {anim}")
                 pack_anim(source / "Anims" / anim, packed / "Anims" / anim)
-
         if (source / "Icons").is_dir():
             for icons in (source / "Icons").iterdir():
                 if not icons.is_dir() or icons.name.startswith("."):
@@ -187,7 +185,6 @@ def pack(
                         pack_icon_static(
                             icon, packed / "Icons" / icons.name / icon.name
                         )
-
         if (source / "Fonts").is_dir():
             for font in (source / "Fonts").iterdir():
                 if (
@@ -202,15 +199,11 @@ def pack(
 
 if __name__ == "__main__":
     input(
-        "This will look through all the subfolders next to this file and try to pack them\n"
-        "The resulting asset packs will be saved to 'asset_packs' in this folder\n"
-        "Press [Enter] if you wish to continue"
+        "This will look through all the subfolders next to this file and try to pack them\nThe resulting asset packs will be saved to 'asset_packs' in this folder\nPress [Enter] if you wish to continue"
     )
     print()
     here = pathlib.Path(__file__).absolute().parent
     start = time.perf_counter()
-
     pack(here, here / "asset_packs", logger=print)
-
     end = time.perf_counter()
     input(f"\nFinished in {round(end - start, 2)}s\n" "Press [Enter] to exit")

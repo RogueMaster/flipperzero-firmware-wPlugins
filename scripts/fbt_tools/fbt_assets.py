@@ -7,6 +7,14 @@ from SCons.Builder import Builder
 from SCons.Errors import StopError
 from SCons.Node.FS import File
 
+from flipper.assets.file_filter import is_macos_metadata_path
+
+
+def _without_macos_metadata(nodes):
+    return [
+        node for node in nodes if not is_macos_metadata_path(node.srcnode().abspath)
+    ]
+
 
 def _asset_compiler_dependencies(target, env):
     env.Depends(
@@ -19,8 +27,10 @@ def _asset_compiler_dependencies(target, env):
 
 
 def _icons_emitter(target, source, env):
-    icons_src = env.GlobRecursive("*.png", env["ICON_SRC_DIR"])
-    icons_src += env.GlobRecursive("**/frame_rate", env["ICON_SRC_DIR"])
+    icons_src = _without_macos_metadata(env.GlobRecursive("*.png", env["ICON_SRC_DIR"]))
+    icons_src += _without_macos_metadata(
+        env.GlobRecursive("**/frame_rate", env["ICON_SRC_DIR"])
+    )
 
     target = [
         target[0].File(env.subst("${ICON_FILE_NAME}.c")),
@@ -42,7 +52,9 @@ def _proto_emitter(target, source, env):
 def _dolphin_emitter(target, source, env):
     res_root_dir = source[0].Dir(env["DOLPHIN_RES_TYPE"])
     source = list()
-    source.extend(env.GlobRecursive("*.*", res_root_dir.srcnode()))
+    source.extend(
+        _without_macos_metadata(env.GlobRecursive("*.*", res_root_dir.srcnode()))
+    )
 
     target_base_dir = target[0]
     env.Replace(_DOLPHIN_OUT_DIR=target[0])
@@ -89,50 +101,72 @@ def _packs_emitter(target, source, env):
     # Animations
     target.update(
         source_dir.rel_path(node)
-        for node in env.GlobRecursive("*/Anims/manifest.txt", source_dir.srcnode())
+        for node in _without_macos_metadata(
+            env.GlobRecursive("*/Anims/manifest.txt", source_dir.srcnode())
+        )
     )
     target.update(
         source_dir.rel_path(node)
-        for node in env.GlobRecursive("*/Anims/**/*.bm", source_dir.srcnode())
+        for node in _without_macos_metadata(
+            env.GlobRecursive("*/Anims/**/*.bm", source_dir.srcnode())
+        )
     )
     target.update(
         source_dir.rel_path(node).removesuffix(".png") + ".bm"
-        for node in env.GlobRecursive("*/Anims/**/*.png", source_dir.srcnode())
+        for node in _without_macos_metadata(
+            env.GlobRecursive("*/Anims/**/*.png", source_dir.srcnode())
+        )
     )
     # Animated icons
     target.update(
         source_dir.rel_path(node)
-        for node in env.GlobRecursive("*/Icons/*/*/meta", source_dir.srcnode())
+        for node in _without_macos_metadata(
+            env.GlobRecursive("*/Icons/*/*/meta", source_dir.srcnode())
+        )
     )
     target.update(
         source_dir.rel_path(node).removesuffix("frame_rate") + "meta"
-        for node in env.GlobRecursive("*/Icons/*/*/frame_rate", source_dir.srcnode())
+        for node in _without_macos_metadata(
+            env.GlobRecursive("*/Icons/*/*/frame_rate", source_dir.srcnode())
+        )
     )
     target.update(
         source_dir.rel_path(node)
-        for node in env.GlobRecursive("*/Icons/*/*/*.bm", source_dir.srcnode())
+        for node in _without_macos_metadata(
+            env.GlobRecursive("*/Icons/*/*/*.bm", source_dir.srcnode())
+        )
     )
     target.update(
         source_dir.rel_path(node).removesuffix(".png") + ".bm"
-        for node in env.GlobRecursive("*/Icons/*/*/*.png", source_dir.srcnode())
+        for node in _without_macos_metadata(
+            env.GlobRecursive("*/Icons/*/*/*.png", source_dir.srcnode())
+        )
     )
     # Static icons
     target.update(
         source_dir.rel_path(node)
-        for node in env.GlobRecursive("*/Icons/*/*.bmx", source_dir.srcnode())
+        for node in _without_macos_metadata(
+            env.GlobRecursive("*/Icons/*/*.bmx", source_dir.srcnode())
+        )
     )
     target.update(
         source_dir.rel_path(node).removesuffix(".png") + ".bmx"
-        for node in env.GlobRecursive("*/Icons/*/*.png", source_dir.srcnode())
+        for node in _without_macos_metadata(
+            env.GlobRecursive("*/Icons/*/*.png", source_dir.srcnode())
+        )
     )
     # Fonts
     target.update(
         source_dir.rel_path(node)
-        for node in env.GlobRecursive("*/Fonts/*.u8f", source_dir.srcnode())
+        for node in _without_macos_metadata(
+            env.GlobRecursive("*/Fonts/*.u8f", source_dir.srcnode())
+        )
     )
     target.update(
         source_dir.rel_path(node).removesuffix(".c") + ".u8f"
-        for node in env.GlobRecursive("*/Fonts/*.c", source_dir.srcnode())
+        for node in _without_macos_metadata(
+            env.GlobRecursive("*/Fonts/*.c", source_dir.srcnode())
+        )
     )
 
     target = [target_dir.File(path) for path in target]

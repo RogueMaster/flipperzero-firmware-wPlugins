@@ -6,6 +6,10 @@ import pathlib
 
 from flipper.app import App
 from flipper.assets.icon import file2image
+from flipper.assets.file_filter import (
+    filter_macos_metadata_names,
+    is_macos_metadata_name,
+)
 
 ICONS_SUPPORTED_FORMATS = ["png"]
 
@@ -157,6 +161,8 @@ class Main(App):
         return image.width, image.height, image.data
 
     def _iconIsSupported(self, filename):
+        if is_macos_metadata_name(filename):
+            return False
         extension = filename.lower().split(".")[-1]
         return extension in ICONS_SUPPORTED_FORMATS
 
@@ -193,6 +199,8 @@ class Main(App):
         api_has_icon_disabled = lambda name: f"Variable,-,{name},const Icon," in symbols
         # Traverse icons tree, append image data to source file
         for dirpath, dirnames, filenames in os.walk(self.args.input_directory):
+            dirnames[:] = filter_macos_metadata_names(dirnames)
+            filenames = filter_macos_metadata_names(filenames)
             self.logger.debug(f"Processing directory {dirpath}")
             dirnames.sort()
             filenames.sort()

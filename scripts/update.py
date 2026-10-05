@@ -10,6 +10,7 @@ import pathlib
 
 from flipper.app import App
 from flipper.assets.coprobin import CoproBinary, get_stack_type
+from flipper.assets.file_filter import is_macos_metadata_path
 from flipper.assets.heatshrink_stream import HeatshrinkDataStreamHeader
 from flipper.assets.obdata import ObReferenceValues, OptionBytesData
 from flipper.assets.tarball import compress_tree_tarball, tar_sanitizer_filter
@@ -258,6 +259,8 @@ class Main(App):
         )
 
     def _tar_filter(self, tarinfo: tarfile.TarInfo):
+        if is_macos_metadata_path(tarinfo.name):
+            return None
         if len(tarinfo.name) > self.RESOURCE_ENTRY_NAME_MAX_LENGTH:
             self.logger.error(
                 f"Cannot package resource: name '{tarinfo.name}' too long"

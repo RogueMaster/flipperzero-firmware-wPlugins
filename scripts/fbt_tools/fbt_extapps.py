@@ -13,6 +13,7 @@ from fbt.elfmanifest import assemble_manifest_data
 from fbt.fapassets import FileBundler
 from fbt.sdk.cache import SdkCache
 from fbt.util import resolve_real_dir_node
+from flipper.assets.file_filter import filter_macos_metadata_names
 from SCons.Action import Action
 from SCons.Builder import Builder
 from SCons.Errors import UserError
@@ -41,9 +42,9 @@ def _print_fap_profile_summary():
         return
 
     print("[FAP-PROFILE] Slowest FAP/FAL graph-construction times:", flush=True)
-    for row in sorted(
-        _FAP_PROFILE_ROWS, key=lambda item: item["total"], reverse=True
-    )[:20]:
+    for row in sorted(_FAP_PROFILE_ROWS, key=lambda item: item["total"], reverse=True)[
+        :20
+    ]:
         print(
             "[FAP-PROFILE] "
             f"{row['appid']}: total={row['total']:.3f}s "
@@ -424,6 +425,8 @@ class AppBuilder:
             asset_entries = []
             asset_dirs = 0
             for directory, dirs, files in os.walk(asset_root):
+                dirs[:] = filter_macos_metadata_names(dirs)
+                files = filter_macos_metadata_names(files)
                 asset_dirs += len(dirs)
                 for name in dirs:
                     path = pathlib.Path(directory, name)

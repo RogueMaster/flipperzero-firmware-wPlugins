@@ -173,6 +173,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - FBT: [Patterns with a literal, non-wildcard parent directory now go directly to that
 directory and glob only the final component. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/76f1297e102834239b19ea5924098cfaecfe4402)
 - Updated: [Dab Timer v2.4 (By RogueMaster)](https://github.com/RogueMaster/flipperzero-dabtimer) [Enum-based timer and code states, integer analog-clock rendering, cached dates, monotonic stopwatch/alarm timing, event-driven updates and safe notification cleanup. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/5cc58292c43ddb9abc90887cc6bd29164ef2f6a6)
+- FBT: [macOS leaves `.DS_Store` and `._*` sidecars in any folder it touches, and they are skipped now instead of being embedded in a .fap, listed in the resources Manifest, packed into the update tarball or compiled in as an icon - an `._*.png` next to a real icon used to fail the build outright (original implementation By xMasterX)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/)
 
 <a name="release"></a>
 
