@@ -28,13 +28,12 @@ libenv.AppendUnique(
 
 sources = libenv.GlobRecursive("*.c*", exclude=["fal"])
 
-# Keep the complete native engine archive for the FAL and self-linked FAPs.
 lib = libenv.StaticLibrary("${FW_LIB_NAME}", sources)
 libenv.Install("${LIB_DIST_DIR}", lib)
 
 if env["IS_BASE_FIRMWARE"]:
-    # The firmware links only this compatibility bridge. The existing mjs LTO
-    # selection now applies to the bridge, never to the external native engine.
-    bridgeenv = libenv.Clone(FW_LIB_NAME="mjs_fal", FW_LIB_LTO_NAME="mjs")
-    bridgeenv.BuildFirmwareLibrary(Glob("fal/*.c"))
+    # Only the native compatibility bridge is linked into resident firmware.
+    bridgeenv = libenv.Clone(FW_LIB_NAME="mjs_fal")
+    bridge = bridgeenv.StaticLibrary("${FW_LIB_NAME}", Glob("fal/*.c"))
+    bridgeenv.Install("${LIB_DIST_DIR}", bridge)
 Return("lib")

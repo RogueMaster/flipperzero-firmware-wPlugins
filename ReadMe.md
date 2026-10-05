@@ -134,6 +134,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Firmware build: Track linked archives explicitly so incremental firmware builds include asset changes and library LTO selections. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/a492b0cb47e50742665748db81a52dec226e25e0)
 - Updated: [CFW Settings v2.2 (By WillyJL, ESurge & RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/1bb9a4c195cdf8687afa1006dd717488b9f42257) - restore the configurable Game Menu with its own menu style, starting game, add/remove/reorder controls, and reset to all installed games. [Now hides Main Menu and Game Menu options while Game Mode is enabled. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/a45d5eb73a5cd220a1e06880bb2038122c76aa0a)
 - [Firmware: Load the mJS interpreter on demand from `apps_data/js_app/plugins/mjs_engine.fal`. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/dac66c2c041f068537065e49525eb8200cdbd7de)
+- [Firmware: Disable selective resident mJS LTO while retaining native external-app archives and the existing updater/debug library flags. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/a492b0cb47e50742665748db81a52dec226e25e0)
 
 <a name="release"></a>
 

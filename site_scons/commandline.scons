@@ -84,8 +84,8 @@ vars.AddVariables(
     ListVariable(
         "FW_LIB_LTO",
         help="Libraries to optimize only in compact resident firmware (none to disable)",
-        default=["cfw", "flipperformat", "toolbox", "u8g2", "mjs"],
-        names=["cfw", "flipperformat", "toolbox", "u8g2", "mjs"],
+        default=["cfw", "flipperformat", "toolbox", "u8g2"],
+        names=["cfw", "flipperformat", "toolbox", "u8g2"],
     ),
     EnumVariable(
         "TARGET_HW",

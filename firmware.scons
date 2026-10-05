@@ -238,7 +238,7 @@ if env["IS_BASE_FIRMWARE"] and ENV["COMPACT"] and not ENV["DEBUG"] and not ENV["
     # Explicit nodes prevent stale LTO archives from affecting an unselected library.
     firmware_libraries = [
         env["FW_LTO_LIB_DIR"].Dir(name).File(f"lib{name}.a")
-        if ("mjs" if name == "mjs_fal" else name) in ENV["FW_LIB_LTO"]
+        if name in ENV["FW_LIB_LTO"]
         else name
         for name in firmware_libraries
     ]
