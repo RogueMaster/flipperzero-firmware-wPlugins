@@ -1,0 +1,15 @@
+# For details & more options, see documentation/AppManifests.md in firmware repo
+
+App(
+    appid="alcohol_calc",
+    name="Alcohol Calc",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="alcohol_calc_app",
+    stack_size=2 * 1024,
+    fap_category="Tools",
+    fap_version="1.0",
+    fap_icon="alcohol_calc.png",  # 10x10 1-bit PNG
+    fap_description="Spirit dilution and mixing calculator",
+    fap_author="vtlklr",
+    fap_icon_assets="images",  # Image assets to compile for this application
+)
