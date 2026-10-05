@@ -13,6 +13,7 @@ SCONS_EP="python3 -m SCons";
 
 # public variables
 FBT_NO_SYNC="${FBT_NO_SYNC:-""}";
+FBT_FORCE_SYNC="${FBT_FORCE_SYNC:-""}";
 FBT_TOOLCHAIN_PATH="${FBT_TOOLCHAIN_PATH:-$SCRIPT_PATH}";
 FBT_VERBOSE="${FBT_VERBOSE:-""}";
 FBT_GIT_SUBMODULE_SHALLOW="${FBT_GIT_SUBMODULE_SHALLOW:-""}";
@@ -23,18 +24,61 @@ if [ -z "$FBT_VERBOSE" ]; then
     SCONS_DEFAULT_FLAGS="$SCONS_DEFAULT_FLAGS -Q";
 fi
 
+sync_submodules_if_needed() {
+    _FBT_SYNC_STAMP="$SCRIPT_PATH/.git/fbt_submodule_sync_head";
+    _FBT_CURRENT_HEAD="$(git rev-parse HEAD)";
+    _FBT_NEEDS_SYNC="";
+
+    if [ -n "$FBT_FORCE_SYNC" ]; then
+        _FBT_NEEDS_SYNC=1;
+    elif [ ! -f "$_FBT_SYNC_STAMP" ]; then
+        _FBT_NEEDS_SYNC=1;
+    elif [ "$(cat "$_FBT_SYNC_STAMP")" != "$_FBT_CURRENT_HEAD" ]; then
+        _FBT_NEEDS_SYNC=1;
+    fi
+
+    # A locally changed .gitmodules can alter paths/URLs without changing HEAD.
+    if [ -z "$_FBT_NEEDS_SYNC" ] && [ -f "$SCRIPT_PATH/.gitmodules" ]; then
+        if ! git diff --quiet -- .gitmodules || ! git diff --cached --quiet -- .gitmodules; then
+            _FBT_NEEDS_SYNC=1;
+        fi
+    fi
+
+    # If a required submodule checkout disappeared, repair it even when HEAD
+    # itself did not change. This is much cheaper than a recursive update on
+    # every invocation.
+    if [ -z "$_FBT_NEEDS_SYNC" ] && [ -f "$SCRIPT_PATH/.gitmodules" ]; then
+        while IFS=' ' read -r _key _path; do
+            [ -z "${_path:-}" ] && continue;
+            if [ ! -e "$SCRIPT_PATH/$_path/.git" ]; then
+                _FBT_NEEDS_SYNC=1;
+                break;
+            fi
+        done <<EOF_SUBMODULES
+$(git config --file "$SCRIPT_PATH/.gitmodules" --get-regexp '^submodule\..*\.path$' 2>/dev/null || true)
+EOF_SUBMODULES
+    fi
+
+    if [ -z "$_FBT_NEEDS_SYNC" ]; then
+        return 0;
+    fi
+
+    _FBT_CLONE_FLAGS="--jobs $N_GIT_THREADS";
+    if [ -n "$FBT_GIT_SUBMODULE_SHALLOW" ]; then
+        _FBT_CLONE_FLAGS="$_FBT_CLONE_FLAGS --depth 1";
+    fi
+
+    git submodule --quiet sync --recursive;
+    git submodule update --init --recursive $_FBT_CLONE_FLAGS;
+    printf '%s\n' "$_FBT_CURRENT_HEAD" > "$_FBT_SYNC_STAMP";
+}
+
 if [ -z "$FBT_NO_SYNC" ]; then
     if [ ! -e "$SCRIPT_PATH/.git" ]; then
         echo "\".git\" directory not found, please clone repo via \"git clone\"";
         exit 1;
     fi
-    _FBT_CLONE_FLAGS="--jobs $N_GIT_THREADS";
-    if [ ! -z "$FBT_GIT_SUBMODULE_SHALLOW" ]; then
-        _FBT_CLONE_FLAGS="$_FBT_CLONE_FLAGS --depth 1";
-    fi
-
-    git submodule --quiet sync --recursive
-    git submodule update --init --recursive $_FBT_CLONE_FLAGS;
+    sync_submodules_if_needed;
 fi
 
 $SCONS_EP $SCONS_DEFAULT_FLAGS "$@"

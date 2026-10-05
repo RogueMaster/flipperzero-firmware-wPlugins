@@ -167,6 +167,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Lock Menu: Restore Lock + Off without PIN setup; keep three visible rows while scrolling through all four lock actions in both Grid and List styles. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/c737624725d6d749c37bc954ddc2e064b535292c)
 - Updated: [ProtoPirate v4.0 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
 - RFID: [Casi-Rusco offset follows the card field's top bit, not card 195538 (By srkz)](https://github.com/DarkFlippers/unleashed-firmware/pull/1163)
+- FBT: Rebuild/update submodules only on head changes (By RogueMaster)
 
 <a name="release"></a>
 
