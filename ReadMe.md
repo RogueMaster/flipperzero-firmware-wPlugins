@@ -165,7 +165,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Hanzi Cards v0.4 (By rseufert)](https://github.com/rseufert/hanzi_cards)
 - Updated: [NW Crawl v0.3 (By rseufert)](https://github.com/rseufert/nw_crawl)
 - Updated: [Step Seq v0.2 (By rseufert)](https://github.com/rseufert/step_seq)
-- [Lock Menu: Restore Lock + Off without PIN setup; keep three visible rows while scrolling through all four lock actions in both Grid and List styles. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/)
+- [Lock Menu: Restore Lock + Off without PIN setup; keep three visible rows while scrolling through all four lock actions in both Grid and List styles. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/c737624725d6d749c37bc954ddc2e064b535292c)
 
 <a name="release"></a>
 
