@@ -77,7 +77,6 @@ static void protopirate_radio_reset_state(ProtoPirateApp* app) {
     furi_check(app->txrx);
 
     app->txrx->protocol_registry = NULL;
-    app->txrx->protocol_plugin = NULL;
     app->txrx->protocol_registry_route = ProtoPirateProtocolRegistryRouteAMDefault;
     app->txrx->txrx_state = ProtoPirateTxRxStateIDLE;
     app->radio_initialized = false;
@@ -203,7 +202,7 @@ void protopirate_radio_deinit(ProtoPirateApp* app) {
     bool has_radio_resources = app->radio_initialized || app->txrx->worker ||
                                app->txrx->environment || app->txrx->receiver ||
                                app->txrx->history || app->txrx->radio_device ||
-                               app->txrx->protocol_plugin;
+                               app->txrx->running_plugin.protocol_plugin;
     if(!has_radio_resources) {
 #ifndef REMOVE_LOGS
         FURI_LOG_D(TAG, "Radio resources were not initialized, returning");

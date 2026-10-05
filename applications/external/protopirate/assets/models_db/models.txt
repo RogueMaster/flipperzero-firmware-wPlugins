@@ -27,12 +27,12 @@ ModelName6: Ford 433.92 Mhz FM
 Frequency6: 433920000
 PresetName6: FuriHalSubGhzPreset2FSKDev476Async
 
-ModelName7: Honda 433.92 Mhz
+ModelName7: Honda 433.92 Mhz FM
 Frequency7: 433920000
 PresetName7: FuriHalSubGhzPresetCustom
 CustomPresetData7: 02 0D 0B 06 08 32 07 04 14 00 13 02 12 07 11 36 10 E9 15 32 18 18 19 16 1D 92 1C 40 1B 03 20 FB 22 10 21 56 00 00 C0 00 00 00 00 00 00 00
 
-ModelName8: Honda 315 Mhz
+ModelName8: Honda 315 Mhz FM
 Frequency8: 315000000
 PresetName8: FuriHalSubGhzPresetCustom
 CustomPresetData8: 02 0D 0B 06 08 32 07 04 14 00 13 02 12 07 11 36 10 E9 15 32 18 18 19 16 1D 92 1C 40 1B 03 20 FB 22 10 21 56 00 00 C0 00 00 00 00 00 00 00
@@ -45,6 +45,6 @@ ModelName10: KIA 433.92 Mhz FM
 Frequency10: 433920000
 PresetName10: FuriHalSubGhzPreset2FSKDev476Async
 
-ModelName11: VAG 434.42 Mhz AM650
+ModelName11: VAG 434.42 Mhz AM
 Frequency11: 434420000
 PresetName11: FuriHalSubGhzPresetOok650Async

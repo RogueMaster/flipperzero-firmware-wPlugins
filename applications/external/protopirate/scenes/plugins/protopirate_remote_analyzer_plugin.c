@@ -67,15 +67,15 @@ bool plugin_protopirate_scene_remote_analyzer_on_event(
 #ifdef ENABLE_MODELS_DATABASE
             if(app->selected_model->index > 0) {
                 //Load the Plugin for the models.
-                FlipperApplication* config_fal = NULL;
-                ProtoPirateConfigPlugin* config_plugin = NULL;
+                FlipperApplication* running_config_fal = NULL;
+                ProtoPiratePlugin running_config_plugin;
                 if(g_remote_analyzer_scene_host_api->plugin_load(
-                       (void**)&config_fal,
-                       (const void**)&config_plugin,
+                       &running_config_fal,
+                       &running_config_plugin,
                        ProtoPirateSharedPluginsConfig,
                        NULL) &&
-                   config_plugin) {
-                    config_plugin->car_model_get_by_index(
+                   running_config_plugin.config_plugin) {
+                    running_config_plugin.config_plugin->car_model_get_by_index(
                         app->selected_model, 0, app->car_models_count, app->setting);
 
                     //Restore last preset before model was selected...
@@ -90,7 +90,7 @@ bool plugin_protopirate_scene_remote_analyzer_on_event(
                             app->setting, app->selected_model->last_preset_index));
 */
                     g_remote_analyzer_scene_host_api->plugin_unload(
-                        (void**)&config_fal, (const void**)config_plugin);
+                        &running_config_fal, &running_config_plugin);
                 } else {
                     notification_message(app->notifications, &sequence_error);
                 }

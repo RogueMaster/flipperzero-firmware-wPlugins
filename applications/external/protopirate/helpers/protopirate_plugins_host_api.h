@@ -10,17 +10,23 @@
 #include "../defines.h"
 #include "../protopirate_history.h"
 #include "../views/protopirate_receiver.h"
-#include "protopirate_plugins.h"
 
 #include "protopirate_settings.h"
 #include "../protocols/bruteforce_types.h"
 
 typedef struct ProtoPirateApp ProtoPirateApp;
 typedef struct Widget Widget;
+typedef union ProtoPiratePlugin ProtoPiratePlugin;
+typedef enum ProtoPirateSharedPluginIDs ProtoPirateSharedPluginIDs;
+
 typedef struct ProtoPirateSharedPluginHostApi {
+    const char* fap_version;
     bool (*ensure_receiver_view)(void* app);
     bool (*ensure_widget)(void* app);
+    Widget* (*get_widget)(ProtoPirateApp* app);
     bool (*ensure_view_about)(void* app);
+    bool (*ensure_text_input)(ProtoPirateApp* app);
+    void (*free_text_input)(ProtoPirateApp* app);
     bool (*radio_init)(void* app);
     void (*rx_stack_resume_after_tx)(void* app);
     void (*preset_init)(
@@ -73,26 +79,25 @@ typedef struct ProtoPirateSharedPluginHostApi {
         ProtoPirateReceiver* receiver,
         ProtoPirateHistory* history);
 
+    void (*settings_load)(ProtoPirateSettings* settings);
+    void (*settings_save)(ProtoPirateSettings* settings);
+    bool (*plugin_load)(
+        FlipperApplication** flipper_application_pointer,
+        ProtoPiratePlugin* plugin_pointer,
+        ProtoPirateSharedPluginIDs plugin_type,
+        const char* txrx_path);
+    void (*plugin_unload)(
+        FlipperApplication** flipper_application_pointer,
+        ProtoPiratePlugin* plugin_pointer);
     bool (*bruteforce_plugin_ensure_loaded)(ProtoPirateApp* app);
     void (*bruteforce_plugin_unload_if_idle)(ProtoPirateApp* app);
     void (*bruteforce_context_release)(ProtoPirateApp* app);
-    void (*settings_load)(ProtoPirateSettings* settings);
-    void (*settings_save)(ProtoPirateSettings* settings);
-    const char* fap_version;
-    bool (*plugin_load)(
-        void** flipper_application_pointer,
-        const void** plugin_pointer,
-        ProtoPirateSharedPluginIDs plugin_type,
-        const char* txrx_path);
-    void (*plugin_unload)(void** flipper_application_pointer, const void** plugin_pointer);
     bool (*protocol_catalog_can_tx)(const char* protocol_name);
     bool (*storage_delete_file)(const char* file_path);
     bool (*protocol_catalog_offers_bruteforce)(const char* protocol_name);
     void (*rx_stack_suspend_for_tx)(ProtoPirateApp* app);
-    bool (*ensure_text_input)(ProtoPirateApp* app);
     void (*idle)(ProtoPirateApp* app);
     void (*storage_delete_temp)(void);
-    Widget* (*get_widget)(ProtoPirateApp* app);
     FlipperFormat* (*get_history_flipper_format)(ProtoPirateApp* app);
     uint16_t (*get_history_index)(ProtoPirateApp* app);
     void (*set_history_index)(ProtoPirateApp* app, uint16_t idx);

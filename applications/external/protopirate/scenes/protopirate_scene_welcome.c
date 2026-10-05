@@ -18,8 +18,8 @@ void protopirate_scene_welcome_on_enter(void* context) {
     }
 
     if(!shared_plugin_load(
-           (void**)&app->plugin_flipper_application,
-           &app->shared_plugin,
+           &app->running_plugin_flipper_application,
+           &app->running_plugin,
            ProtoPirateSharedPluginsWelcome,
            NULL)) {
         notification_message(app->notifications, &sequence_error);
@@ -27,7 +27,7 @@ void protopirate_scene_welcome_on_enter(void* context) {
         return;
     }
 
-    ((ProtoPirateSharedPlugin*)app->shared_plugin)->on_enter(app);
+    app->running_plugin.shared_plugin->on_enter(app);
 }
 
 bool protopirate_scene_welcome_on_event(void* context, SceneManagerEvent event) {
@@ -40,16 +40,12 @@ bool protopirate_scene_welcome_on_event(void* context, SceneManagerEvent event) 
     }
 
     //Handle About event in plugin.
-    return ((ProtoPirateSharedPlugin*)app->shared_plugin)->on_event(app, event);
+    return app->running_plugin.shared_plugin->on_event(app, event);
 }
 
 void protopirate_scene_welcome_on_exit(void* context) {
-    furi_check(context);
     ProtoPirateApp* app = context;
-
-    shared_plugin_unload(
-        (void**)&app->plugin_flipper_application, (const void**)&app->shared_plugin);
-
+    shared_plugin_unload(&app->running_plugin_flipper_application, &app->running_plugin);
     widget_reset(app->widget);
 }
 #endif

@@ -212,7 +212,7 @@ static bool emulate_prompt_hitag2_key(ProtoPirateApp* app, EmulateContext* ctx) 
     furi_check(app);
     furi_check(ctx);
 
-    if(!g_host_api || !g_host_api->ensure_text_input || !g_host_api->ensure_text_input(app)) {
+    if(!g_host_api || !g_host_api->ensure_text_input(app)) {
         return false;
     }
 
@@ -1507,6 +1507,9 @@ static void plugin_on_exit(ProtoPirateApp* app) {
         emulate_context_free();
         return;
     }
+
+    //We allocated this when we came in, have to kill it too.
+    g_host_api->free_text_input(app);
 
     // Stop any active transmission before tearing down callbacks.
     if(app->txrx && app->txrx->txrx_state == ProtoPirateTxRxStateTx) {

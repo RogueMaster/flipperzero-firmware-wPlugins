@@ -150,7 +150,7 @@ bool protopirate_storage_get_next_filename(
     uint32_t index = 0;
     bool found = false;
 
-    char safe_name[64];
+    char safe_name[100];
     sanitize_filename(protocol_name, safe_name, sizeof(safe_name));
 
     while(!found && index <= 999) {

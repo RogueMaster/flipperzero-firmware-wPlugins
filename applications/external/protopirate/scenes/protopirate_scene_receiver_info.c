@@ -114,8 +114,10 @@ static void protopirate_receiver_info_build_normal_widget(ProtoPirateApp* app) {
 
     bool needs_bf = false;
     bool error = false;
-    if(offers_bf && protopirate_bruteforce_plugin_ensure_loaded(app) && app->bruteforce_plugin) {
-        needs_bf = app->bruteforce_plugin->widget_left_should_bruteforce(app, ff);
+    if(offers_bf && protopirate_bruteforce_plugin_ensure_loaded(app) &&
+       app->running_bruteforce_plugin.bruteforce_plugin) {
+        needs_bf = app->running_bruteforce_plugin.bruteforce_plugin->widget_left_should_bruteforce(
+            app, ff);
     } else if(offers_bf) {
         //Show the user the error in the button.
         widget_add_button_element(app->widget, GuiButtonTypeLeft, "(Error)", NULL, app);
@@ -205,7 +207,7 @@ void protopirate_scene_receiver_info_on_enter(void* context) {
     furi_check(context);
     ProtoPirateApp* app = context;
 
-    if(!protopirate_ensure_widget(app) || !protopirate_ensure_text_input(app)) {
+    if(!protopirate_ensure_widget(app)) {
         notification_message(app->notifications, &sequence_error);
         scene_manager_previous_scene(app->scene_manager);
         return;
@@ -213,9 +215,10 @@ void protopirate_scene_receiver_info_on_enter(void* context) {
 
     app->emulate_disabled_for_loaded = false;
 
-    if(app->bruteforce_plugin) {
-        if(app->bruteforce_plugin->is_running(app)) {
-            app->bruteforce_plugin->on_scene_enter(app, ProtoPirateBruteForceContextReceiverInfo);
+    if(app->running_bruteforce_plugin.bruteforce_plugin) {
+        if(app->running_bruteforce_plugin.bruteforce_plugin->is_running(app)) {
+            app->running_bruteforce_plugin.bruteforce_plugin->on_scene_enter(
+                app, ProtoPirateBruteForceContextReceiverInfo);
             view_dispatcher_switch_to_view(app->view_dispatcher, ProtoPirateViewWidget);
             return;
         }
@@ -237,15 +240,15 @@ bool protopirate_scene_receiver_info_on_event(void* context, SceneManagerEvent e
         return true;
     }
 
-    if(app->bruteforce_plugin) {
-        if(app->bruteforce_plugin->is_running(app) ||
+    if(app->running_bruteforce_plugin.bruteforce_plugin) {
+        if(app->running_bruteforce_plugin.bruteforce_plugin->is_running(app) ||
            event.event == ProtoPirateCustomEventBruteforceStart) {
-            consumed = app->bruteforce_plugin->on_scene_event(
+            consumed = app->running_bruteforce_plugin.bruteforce_plugin->on_scene_event(
                 app, ProtoPirateBruteForceContextReceiverInfo, event);
             if(consumed) return true;
         }
         if(event.type == SceneManagerEventTypeBack &&
-           app->bruteforce_plugin->on_scene_event(
+           app->running_bruteforce_plugin.bruteforce_plugin->on_scene_event(
                app, ProtoPirateBruteForceContextReceiverInfo, event)) {
             return true;
         }
@@ -280,15 +283,18 @@ bool protopirate_scene_receiver_info_on_event(void* context, SceneManagerEvent e
         if(event.event == ProtoPirateCustomEventReceiverInfoSave) {
             FlipperFormat* ff =
                 protopirate_history_get_raw_data(app->txrx->history, app->txrx->idx_menu_chosen);
-            FuriString* filename_str = furi_string_alloc();
-
             if(ff) {
+#define YMD_LENGTH 17
+                char* file_name_str = malloc(PROTOPIRATE_PROTOCOL_NAME_MAX + YMD_LENGTH);
+                FURI_LOG_D(TAG, "Save called:");
+
                 if(app->datetime_filenames) {
                     //Get the date and time to save.
                     DateTime date_time;
                     furi_hal_rtc_get_datetime(&date_time);
-                    furi_string_printf(
-                        filename_str,
+                    snprintf(
+                        file_name_str,
+                        50,
                         "%.2d%.2d%.2d_%.2d.%.2d.%.2d_",
                         date_time.year,
                         date_time.month,
@@ -299,26 +305,30 @@ bool protopirate_scene_receiver_info_on_event(void* context, SceneManagerEvent e
                 }
 
                 // Extract protocol name
-                FuriString* protocol = furi_string_alloc();
+                FuriString* buffer = furi_string_alloc();
                 flipper_format_rewind(ff);
-                if(!flipper_format_read_string(ff, "Protocol", protocol)) {
-                    furi_string_set_str(protocol, "Unknown");
+                if(!flipper_format_read_string(ff, "Protocol", buffer)) {
+                    furi_string_set_str(buffer, "Unknown");
                 }
-
                 //Add the protocol
-                furi_string_cat(filename_str, protocol);
-                //furi_string_free(protocol);
+                char* file_name_dup = strdup(file_name_str);
+                snprintf(file_name_str, 50, "%s%s", file_name_dup, furi_string_get_cstr(buffer));
+                free(file_name_dup);
+                furi_string_reset(buffer);
 
                 // Clean protocol name for filename
-                furi_string_replace_all(filename_str, "/", "_");
-                furi_string_replace_all(filename_str, " ", "_");
+                for(char* p = file_name_str; *p; p++) {
+                    if(*p == '/' || *p == ' ') *p = '_';
+                }
 
                 // Get the next auto-generated filename (just the name part)
-                FuriString* auto_path = furi_string_alloc();
+                protopirate_ensure_text_input(app);
                 if(protopirate_storage_get_next_filename(
-                       furi_string_get_cstr(filename_str), auto_path, (app->datetime_filenames))) {
+                       file_name_str, buffer, app->datetime_filenames)) {
                     // Extract just the filename without folder and extension
-                    const char* full = furi_string_get_cstr(auto_path);
+                    FURI_LOG_D(TAG, "Filename Made up: %s ", furi_string_get_cstr(buffer));
+
+                    const char* full = furi_string_get_cstr(buffer);
                     const char* slash = strrchr(full, '/');
                     const char* name_start = slash ? slash + 1 : full;
 
@@ -337,13 +347,11 @@ bool protopirate_scene_receiver_info_on_event(void* context, SceneManagerEvent e
                     app->save_filename = malloc(len);
                     snprintf(app->save_filename, len, "capture");
                 }
-                furi_string_free(auto_path);
 
                 // Store context for when text input confirms
                 app->save_history_idx = app->txrx->idx_menu_chosen;
 
                 // Configure and show text input
-                text_input_reset(app->text_input);
                 text_input_set_header_text(app->text_input, "Save filename:");
                 text_input_set_result_callback(
                     app->text_input,
@@ -354,8 +362,10 @@ bool protopirate_scene_receiver_info_on_event(void* context, SceneManagerEvent e
                     false); // don't clear default text
 
                 view_dispatcher_switch_to_view(app->view_dispatcher, ProtoPirateViewTextInput);
+
+                free(file_name_str);
+                furi_string_free(buffer);
             }
-            furi_string_free(filename_str);
             consumed = true;
         }
 
@@ -385,17 +395,7 @@ bool protopirate_scene_receiver_info_on_event(void* context, SceneManagerEvent e
             view_dispatcher_switch_to_view(app->view_dispatcher, ProtoPirateViewWidget);
 
             //Kill the text_input view.
-            if(app->text_input) {
-                FURI_LOG_D(TAG, "Removing text_input view");
-                view_dispatcher_remove_view(app->view_dispatcher, ProtoPirateViewTextInput);
-                text_input_free(app->text_input);
-                app->text_input = NULL;
-            }
-
-            if(app->save_filename) {
-                free(app->save_filename);
-                app->save_filename = NULL;
-            }
+            protopirate_free_text_input(app);
             consumed = true;
         }
 
@@ -435,6 +435,7 @@ void protopirate_scene_receiver_info_on_exit(void* context) {
     ProtoPirateApp* app = context;
     protopirate_bruteforce_context_release(app);
     widget_reset(app->widget);
+    protopirate_free_text_input(app);
     if(app->txrx && app->txrx->history) {
         protopirate_history_release_scratch(app->txrx->history);
     }

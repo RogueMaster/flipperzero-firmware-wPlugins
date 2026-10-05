@@ -1,8 +1,6 @@
 #pragma once
 //#include "../../protopirate_app_i.h"
 #include "helpers/protopirate_models.h"
-#include <lib/flipper_application/flipper_application.h>
-#include "../../helpers/protopirate_types.h"
 
 #include "helpers/variable_item_list.h"
 

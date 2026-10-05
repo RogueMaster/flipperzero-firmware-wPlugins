@@ -418,7 +418,7 @@ static void plugin_on_enter(void* context, bool show_lock_keyboard) {
     scene_manager_set_scene_state(
         app->scene_manager, ProtoPirateSceneReceiverConfig, (uint32_t)item);
     variable_item_set_current_value_index(item, value_index);
-    char text_buf[10] = {0};
+    char text_buf[8] = {0};
     snprintf(
         text_buf,
         sizeof(text_buf),

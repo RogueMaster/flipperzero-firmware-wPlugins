@@ -53,13 +53,13 @@ void protopirate_unload_protocol_plugin(ProtoPirateApp* app) {
 
     app->txrx->protocol_registry = NULL;
 
-    if(app->txrx->protocol_plugin && app->txrx->protocol_plugin->release) {
-        app->txrx->protocol_plugin->release();
+    if(app->txrx->running_plugin.protocol_plugin &&
+       app->txrx->running_plugin.protocol_plugin->release) {
+        app->txrx->running_plugin.protocol_plugin->release();
     }
 
     shared_plugin_unload(
-        (void**)&app->txrx->protocol_plugin_flipper_application,
-        (const void**)&app->txrx->protocol_plugin);
+        &app->txrx->protocol_plugin_flipper_application, &app->txrx->running_plugin);
 }
 
 static bool protopirate_ensure_protocol_registry_plugin(
@@ -73,21 +73,22 @@ static bool protopirate_ensure_protocol_registry_plugin(
         return false;
     }
 
-    if(app->txrx->protocol_plugin &&
-       app->txrx->protocol_plugin->kind == ProtoPirateProtocolPluginKindRx &&
-       app->txrx->protocol_plugin->registry && app->txrx->protocol_registry_route == route) {
-        *registry = app->txrx->protocol_plugin->registry;
+    if(app->txrx->running_plugin.protocol_plugin &&
+       app->txrx->running_plugin.protocol_plugin->kind == ProtoPirateProtocolPluginKindRx &&
+       app->txrx->running_plugin.protocol_plugin->registry &&
+       app->txrx->protocol_registry_route == route) {
+        *registry = app->txrx->running_plugin.protocol_plugin->registry;
         return true;
     }
 
-    if(app->txrx->protocol_plugin) {
+    if(app->txrx->running_plugin.protocol_plugin) {
         protopirate_unload_protocol_plugin(app);
     }
 
     const char* plugin_path = protopirate_get_registry_plugin_path(route);
     if(!shared_plugin_load(
-           (void**)&app->txrx->protocol_plugin_flipper_application,
-           (const void**)&app->txrx->protocol_plugin,
+           &app->txrx->protocol_plugin_flipper_application,
+           &app->txrx->running_plugin,
            ProtoPirateSharedPluginsTXRX,
            plugin_path)) {
         FURI_LOG_E(TAG, "Failed to load RX protocol plugin %s", plugin_path);
@@ -95,24 +96,24 @@ static bool protopirate_ensure_protocol_registry_plugin(
         return false;
     }
 
-    if(app->txrx->protocol_plugin->kind != ProtoPirateProtocolPluginKindRx) {
+    if(app->txrx->running_plugin.protocol_plugin->kind != ProtoPirateProtocolPluginKindRx) {
         FURI_LOG_E(TAG, "Protocol plugin kind mismatch for RX route");
         protopirate_unload_protocol_plugin(app);
         return false;
     }
 
-    if(app->txrx->protocol_plugin->route != route) {
+    if(app->txrx->running_plugin.protocol_plugin->route != route) {
         FURI_LOG_E(
             TAG,
             "Protocol plugin route mismatch (expected %d got %d)",
             route,
-            app->txrx->protocol_plugin->route);
+            app->txrx->running_plugin.protocol_plugin->route);
         protopirate_unload_protocol_plugin(app);
         return false;
     }
 
     app->txrx->protocol_registry_route = route;
-    *registry = app->txrx->protocol_plugin->registry;
+    *registry = app->txrx->running_plugin.protocol_plugin->registry;
     return true;
 }
 
@@ -143,21 +144,22 @@ static bool protopirate_ensure_tx_protocol_plugin(
         return false;
     }
 
-    if(app->txrx->protocol_plugin &&
-       app->txrx->protocol_plugin->kind == ProtoPirateProtocolPluginKindTx &&
-       app->txrx->protocol_plugin->registry && app->txrx->protocol_plugin->protocol_name &&
-       strcmp(app->txrx->protocol_plugin->protocol_name, registry_name) == 0) {
-        *registry = app->txrx->protocol_plugin->registry;
+    if(app->txrx->running_plugin.protocol_plugin &&
+       app->txrx->running_plugin.protocol_plugin->kind == ProtoPirateProtocolPluginKindTx &&
+       app->txrx->running_plugin.protocol_plugin->registry &&
+       app->txrx->running_plugin.protocol_plugin->protocol_name &&
+       strcmp(app->txrx->running_plugin.protocol_plugin->protocol_name, registry_name) == 0) {
+        *registry = app->txrx->running_plugin.protocol_plugin->registry;
         return true;
     }
 
-    if(app->txrx->protocol_plugin) {
+    if(app->txrx->running_plugin.protocol_plugin) {
         protopirate_unload_protocol_plugin(app);
     }
 
     if(!shared_plugin_load(
-           (void**)&app->txrx->protocol_plugin_flipper_application,
-           (const void**)&app->txrx->protocol_plugin,
+           &app->txrx->protocol_plugin_flipper_application,
+           &app->txrx->running_plugin,
            ProtoPirateSharedPluginsTXRX,
            plugin_path)) {
         FURI_LOG_E(TAG, "Failed to load TX protocol plugin %s", plugin_path);
@@ -165,7 +167,8 @@ static bool protopirate_ensure_tx_protocol_plugin(
         return false;
     }
 
-    const SubGhzProtocol* tx_protocol = app->txrx->protocol_plugin->registry->items[0];
+    const SubGhzProtocol* tx_protocol =
+        app->txrx->running_plugin.protocol_plugin->registry->items[0];
     if(!tx_protocol || !tx_protocol->encoder || !tx_protocol->encoder->alloc ||
        !tx_protocol->encoder->deserialize || !tx_protocol->encoder->yield) {
         FURI_LOG_E(TAG, "TX protocol plugin for %s has no encoder", registry_name);
@@ -173,7 +176,7 @@ static bool protopirate_ensure_tx_protocol_plugin(
         return false;
     }
 
-    *registry = app->txrx->protocol_plugin->registry;
+    *registry = app->txrx->running_plugin.protocol_plugin->registry;
     return true;
 }
 #endif
@@ -190,9 +193,10 @@ bool protopirate_refresh_protocol_registry(ProtoPirateApp* app, bool ensure_rece
         app->txrx->preset->data,
         app->txrx->preset->data_size,
         NULL);
-    bool route_changed = !app->txrx->protocol_plugin ||
-                         (app->txrx->protocol_plugin->kind != ProtoPirateProtocolPluginKindRx) ||
-                         (app->txrx->protocol_registry_route != route);
+    bool route_changed =
+        !app->txrx->running_plugin.protocol_plugin ||
+        (app->txrx->running_plugin.protocol_plugin->kind != ProtoPirateProtocolPluginKindRx) ||
+        (app->txrx->protocol_registry_route != route);
 
     if(route_changed) {
         protopirate_rx_stack_teardown_for_registry_switch(app);
@@ -290,10 +294,11 @@ bool protopirate_apply_protocol_registry_for_context(
             FURI_LOG_E(TAG, "No TX protocol plugin for %s", protocol_name);
             return false;
         }
-        bool tx_changed = !app->txrx->protocol_plugin ||
-                          (app->txrx->protocol_plugin->kind != ProtoPirateProtocolPluginKindTx) ||
-                          !app->txrx->protocol_plugin->protocol_name ||
-                          strcmp(app->txrx->protocol_plugin->protocol_name, registry_name) != 0;
+        bool tx_changed =
+            !app->txrx->running_plugin.protocol_plugin ||
+            (app->txrx->running_plugin.protocol_plugin->kind != ProtoPirateProtocolPluginKindTx) ||
+            !app->txrx->running_plugin.protocol_plugin->protocol_name ||
+            strcmp(app->txrx->running_plugin.protocol_plugin->protocol_name, registry_name) != 0;
 
         if(tx_changed) {
             protopirate_rx_stack_teardown_for_registry_switch(app);
@@ -325,9 +330,10 @@ bool protopirate_apply_protocol_registry_for_context(
     ProtoPirateProtocolRegistryRoute route = protopirate_get_protocol_registry_route(
         preset_name, frequency, preset_data, preset_data_size, NULL);
 
-    bool route_changed = !app->txrx->protocol_plugin ||
-                         (app->txrx->protocol_plugin->kind != ProtoPirateProtocolPluginKindRx) ||
-                         (app->txrx->protocol_registry_route != route);
+    bool route_changed =
+        !app->txrx->running_plugin.protocol_plugin ||
+        (app->txrx->running_plugin.protocol_plugin->kind != ProtoPirateProtocolPluginKindRx) ||
+        (app->txrx->protocol_registry_route != route);
 
     if(route_changed) {
         protopirate_rx_stack_teardown_for_registry_switch(app);

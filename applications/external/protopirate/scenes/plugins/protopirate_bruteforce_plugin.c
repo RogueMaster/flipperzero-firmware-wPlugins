@@ -6,6 +6,7 @@
 #include "../../protocols/renault_v1.h"
 #include "../../protocols/protocols_common.h"
 #include "../../helpers/protopirate_types.h"
+#include "../../helpers/protopirate_plugins.h"
 
 #include <gui/modules/widget.h>
 #include <gui/modules/widget_elements/widget_element.h>

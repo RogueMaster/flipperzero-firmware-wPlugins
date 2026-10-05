@@ -32,7 +32,6 @@
 #include "helpers/protopirate_radio.h"
 #include "helpers/protopirate_protocol_plugin_host.h"
 #include "protocols/protopirate_protocol_plugins.h"
-#include "scenes/plugins/protopirate_bruteforce_plugin.h"
 #include "helpers/protopirate_txrx.h"
 #include "helpers/protopirate_models.h"
 #include "helpers/protopirate_settings.h"
@@ -52,7 +51,7 @@ typedef struct ProtoPirateTxRx {
     SubGhzRadioPreset* preset;
     const SubGhzProtocolRegistry* protocol_registry;
     FlipperApplication* protocol_plugin_flipper_application;
-    const ProtoPirateProtocolPlugin* protocol_plugin;
+    ProtoPiratePlugin running_plugin;
     ProtoPirateProtocolRegistryRoute protocol_registry_route;
     ProtoPirateHistory* history;
     const SubGhzDevice* radio_device;
@@ -84,10 +83,10 @@ struct ProtoPirateApp {
     ProtoPirateLock lock;
     char* loaded_file_path;
     char* save_filename;
-    const void* shared_plugin;
-    FlipperApplication* plugin_flipper_application;
+    ProtoPiratePlugin running_plugin;
+    FlipperApplication* running_plugin_flipper_application;
     FlipperApplication* bruteforce_plugin_flipper_application;
-    const ProtoPirateBruteForcePlugin* bruteforce_plugin;
+    ProtoPiratePlugin running_bruteforce_plugin;
     uint32_t start_tx_time;
 #ifdef ENABLE_MODELS_DATABASE
     ProtoPirateCarModel* selected_model;

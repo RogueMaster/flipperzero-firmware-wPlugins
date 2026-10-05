@@ -8,8 +8,8 @@
 #include "../helpers/RemoteAnalyzer/protopirate_remote_analyzer_worker.h"
 #include "../helpers/protopirate_txrx.h"
 
-#include <assets_icons.h>
 #include <float_tools.h>
+#include "pp_ra_icons.h"
 
 #define TAG "PPRemoteAnalyzer"
 
@@ -275,7 +275,7 @@ bool protopirate_remote_analyzer_input(InputEvent* event, void* context) {
     } else if(event->key == InputKeyOk) {
         need_redraw = false;
         //bool updated = false;
-        uint32_t frequency_to_save;
+        uint32_t frequency_to_save = 0;
         //uint32_t is_am_to_save;
         with_view_model(
             instance->view,

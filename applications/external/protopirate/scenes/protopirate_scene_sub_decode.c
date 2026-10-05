@@ -6,8 +6,8 @@ void protopirate_scene_sub_decode_on_enter(void* context) {
     ProtoPirateApp* app = (ProtoPirateApp*)context;
 
     if(!shared_plugin_load(
-           (void**)&app->plugin_flipper_application,
-           &app->shared_plugin,
+           &app->running_plugin_flipper_application,
+           &app->running_plugin,
            ProtoPirateSharedPluginsSubDecode,
            NULL)) {
         notification_message(app->notifications, &sequence_error);
@@ -15,18 +15,18 @@ void protopirate_scene_sub_decode_on_enter(void* context) {
         return;
     }
 
-    ((ProtoPirateSharedPlugin*)app->shared_plugin)
-        ->set_host_api(&protopirate_shared_plugin_host_api);
-    ((ProtoPirateSharedPlugin*)app->shared_plugin)->on_enter(app);
+    app->running_plugin.shared_plugin->set_host_api(&protopirate_shared_plugin_host_api);
+    app->running_plugin.shared_plugin->on_enter(app);
 }
 
 bool protopirate_scene_sub_decode_on_event(void* context, SceneManagerEvent event) {
     ProtoPirateApp* app = context;
-    if(!app || !app->shared_plugin || !((ProtoPirateSharedPlugin*)app->shared_plugin)->on_event) {
+    if(!app || !app->running_plugin.shared_plugin ||
+       !app->running_plugin.shared_plugin->on_event) {
         return false;
     }
 
-    if(((ProtoPirateSharedPlugin*)app->shared_plugin)->on_event(app, event)) {
+    if(app->running_plugin.shared_plugin->on_event(app, event)) {
         return true;
     } else {
         return shared_plugin_handle_navigation_events(
@@ -38,15 +38,15 @@ void protopirate_scene_sub_decode_on_exit(void* context) {
     ProtoPirateApp* app = context;
     if(!app) return;
 
-    if(app->shared_plugin) {
-        if(((ProtoPirateSharedPlugin*)app->shared_plugin)->on_exit) {
-            ((ProtoPirateSharedPlugin*)app->shared_plugin)->on_exit(app);
+    if(app->running_plugin.shared_plugin) {
+        if(app->running_plugin.shared_plugin->on_exit) {
+            app->running_plugin.shared_plugin->on_exit(app);
         }
-        if(((ProtoPirateSharedPlugin*)app->shared_plugin)->release) {
-            ((ProtoPirateSharedPlugin*)app->shared_plugin)->release(app);
+        if(app->running_plugin.shared_plugin->release) {
+            app->running_plugin.shared_plugin->release(app);
         }
     }
 
-    shared_plugin_unload((void**)&app->plugin_flipper_application, &app->shared_plugin);
+    shared_plugin_unload(&app->running_plugin_flipper_application, &app->running_plugin);
 }
 #endif

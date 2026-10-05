@@ -1,9 +1,32 @@
 #pragma once
 #include "../defines.h"
+#include "protopirate_types.h"
+#include "helpers/protopirate_plugins_host_api.h"
+#include "../scenes/plugins/protopirate_config_plugin.h"
+#include "../scenes/plugins/protopirate_bruteforce_plugin.h"
+#include "protopirate_bruteforce_host.h"
+#include "protocols/protopirate_protocol_plugins.h"
 
 #include <lib/flipper_application/flipper_application.h>
 #include <gui/scene_manager.h>
+
 #include <gui/view_dispatcher.h>
+typedef enum ProtoPirateSharedPluginIDs {
+    ProtoPirateSharedPluginsConfig,
+    ProtoPirateSharedPluginsSavedInfo,
+    ProtoPirateSharedPluginsAbout,
+    ProtoPirateSharedPluginsWelcome,
+#ifdef ENABLE_EMULATE_FEATURE
+    ProtoPirateSharedPluginsEmulate,
+#endif
+    ProtoPirateSharedPluginsSubDecode,
+#ifdef ENABLE_TIMING_TUNER_SCENE
+    ProtoPirateSharedPluginsTimingTuner,
+#endif
+    ProtoPirateSharedPluginsPSABruteforce,
+    ProtoPirateSharedPluginsTXRX,
+    ProtoPirateSharedPluginsRemoteAnalyzer,
+} ProtoPirateSharedPluginIDs;
 
 //Config Plugin Uses its own plugin type, has a header file.
 #define PROTOPIRATE_CONFIG_PLUGIN_PATH        "pp_config.fal"
@@ -42,7 +65,7 @@
     ((uint32_t)sizeof(ProtoPirateSharedPluginHostApi))
 #endif
 
-//Brute Force Plugin
+//Brute Force Plugin Uses its own plugin type, has a header file.
 #define PROTOPIRATE_BRUTEFORCE_PLUGIN_PATH   "pp_bf.fal"
 #define PROTOPIRATE_BRUTEFORCE_PLUGIN_APP_ID "pp_bf"
 #define PROTOPIRATE_BRUTEFORCE_PLUGIN_API_VERSION \
@@ -59,40 +82,6 @@
 #define PROTOPIRATE_REMOTE_ANALYZER_PLUGIN_API_VERSION \
     ((uint32_t)sizeof(ProtoPirateSharedPluginHostApi))
 
-typedef enum ProtoPirateSharedPluginIDs {
-    ProtoPirateSharedPluginsConfig,
-    ProtoPirateSharedPluginsSavedInfo,
-    ProtoPirateSharedPluginsAbout,
-    ProtoPirateSharedPluginsWelcome,
-#ifdef ENABLE_EMULATE_FEATURE
-    ProtoPirateSharedPluginsEmulate,
-#endif
-    ProtoPirateSharedPluginsSubDecode,
-#ifdef ENABLE_TIMING_TUNER_SCENE
-    ProtoPirateSharedPluginsTimingTuner,
-#endif
-    ProtoPirateSharedPluginsPSABruteforce,
-    ProtoPirateSharedPluginsTXRX,
-    ProtoPirateSharedPluginsRemoteAnalyzer,
-} ProtoPirateSharedPluginIDs;
-
-bool shared_plugin_load(
-    void** flipper_application_pointer,
-    const void** plugin_pointer,
-    ProtoPirateSharedPluginIDs plugin_type,
-    const char* txrx_path);
-void shared_plugin_unload(void** flipper_application_pointer, const void** plugin_pointer);
-bool shared_plugin_handle_navigation_events(
-    SceneManager* scene_manager,
-    ViewDispatcher* view_dispatcher,
-    SceneManagerEvent event);
-
-#include "protopirate_types.h"
-#include "protopirate_plugins_host_api.h"
-#include "scenes/plugins/protopirate_config_plugin.h"
-#include "scenes/plugins/protopirate_bruteforce_plugin.h"
-#include "protocols/protopirate_protocol_plugins.h"
-
 typedef struct {
     const char* plugin_name;
     void (*set_host_api)(const ProtoPirateSharedPluginHostApi* host_api);
@@ -101,3 +90,24 @@ typedef struct {
     void (*on_exit)(ProtoPirateApp* app);
     void (*release)(ProtoPirateApp* app);
 } ProtoPirateSharedPlugin;
+
+bool shared_plugin_load(
+    FlipperApplication** flipper_application_pointer,
+    ProtoPiratePlugin* plugin_pointer,
+    ProtoPirateSharedPluginIDs plugin_type,
+    const char* txrx_path);
+void shared_plugin_unload(
+    FlipperApplication** flipper_application_pointer,
+    ProtoPiratePlugin* plugin_pointer);
+bool shared_plugin_handle_navigation_events(
+    SceneManager* scene_manager,
+    ViewDispatcher* view_dispatcher,
+    SceneManagerEvent event);
+
+typedef union ProtoPiratePlugin {
+    const ProtoPirateSharedPlugin* shared_plugin;
+    const ProtoPirateConfigPlugin* config_plugin;
+    const ProtoPirateBruteForcePlugin* bruteforce_plugin;
+    const ProtoPirateProtocolPlugin* protocol_plugin;
+    const void* plugin_pointer; //DONT USE. ONLY FOR LOADER AND UNLOADER
+} ProtoPiratePlugin;

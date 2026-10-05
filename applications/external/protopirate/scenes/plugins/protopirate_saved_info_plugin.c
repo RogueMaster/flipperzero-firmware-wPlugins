@@ -216,8 +216,10 @@ cleanup:
         bool needs_bf = false;
         bool error = false;
         if(offers_bf && g_saved_info_scene_host_api->bruteforce_plugin_ensure_loaded(app) &&
-           app->bruteforce_plugin) {
-            needs_bf = app->bruteforce_plugin->widget_left_should_bruteforce(app, ff);
+           app->running_bruteforce_plugin.bruteforce_plugin) {
+            needs_bf =
+                app->running_bruteforce_plugin.bruteforce_plugin->widget_left_should_bruteforce(
+                    app, ff);
         } else if(offers_bf) {
             //Show the user the error in the button.
             widget_add_button_element(app->widget, GuiButtonTypeLeft, "(Error)", NULL, app);
@@ -290,14 +292,16 @@ bool plugin_protopirate_scene_saved_info_on_event(ProtoPirateApp* context, Scene
 
     //load_emu* = false;
     if(event.type == SceneManagerEventTypeTick) {
-        if(app->bruteforce_plugin && app->bruteforce_plugin->is_running(app)) {
-            app->bruteforce_plugin->on_scene_event(
+        if(app->running_bruteforce_plugin.bruteforce_plugin &&
+           app->running_bruteforce_plugin.bruteforce_plugin->is_running(app)) {
+            app->running_bruteforce_plugin.bruteforce_plugin->on_scene_event(
                 app, ProtoPirateBruteForceContextSavedInfo, event);
             consumed = true;
         }
     } else if(event.type == SceneManagerEventTypeBack) {
-        if(app->bruteforce_plugin && app->bruteforce_plugin->is_running &&
-           app->bruteforce_plugin->on_scene_event(
+        if(app->running_bruteforce_plugin.bruteforce_plugin &&
+           app->running_bruteforce_plugin.bruteforce_plugin->is_running &&
+           app->running_bruteforce_plugin.bruteforce_plugin->on_scene_event(
                app, ProtoPirateBruteForceContextReceiverInfo, event)) {
             consumed = true;
         } else {
@@ -345,8 +349,8 @@ bool plugin_protopirate_scene_saved_info_on_event(ProtoPirateApp* context, Scene
         if(event.event == ProtoPirateCustomEventBruteforceStart ||
            event.event == ProtoPirateCustomEventBruteforceComplete) {
             if(g_saved_info_scene_host_api->bruteforce_plugin_ensure_loaded(app) &&
-               app->bruteforce_plugin &&
-               app->bruteforce_plugin->on_scene_event(
+               app->running_bruteforce_plugin.bruteforce_plugin &&
+               app->running_bruteforce_plugin.bruteforce_plugin->on_scene_event(
                    app, ProtoPirateBruteForceContextSavedInfo, event)) {
             }
             if(event.event == ProtoPirateCustomEventBruteforceComplete)

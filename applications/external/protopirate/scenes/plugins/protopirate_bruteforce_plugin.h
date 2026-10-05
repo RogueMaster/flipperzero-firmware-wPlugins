@@ -1,10 +1,11 @@
 #pragma once
-
-#include "../../helpers/protopirate_plugins_host_api.h"
+//#include "../../helpers/protopirate_plugins.h"
+#include <gui/scene_manager.h>
+#include <flipper_format/flipper_format.h>
+#include "helpers/protopirate_plugins_host_api.h"
 
 typedef struct ProtoPirateApp ProtoPirateApp;
 typedef struct ProtoPirateHistory ProtoPirateHistory;
-typedef struct Widget Widget;
 
 typedef enum {
     ProtoPirateBruteForceContextReceiverInfo,

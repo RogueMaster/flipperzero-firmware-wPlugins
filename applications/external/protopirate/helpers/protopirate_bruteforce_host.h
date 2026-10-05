@@ -11,5 +11,5 @@ void protopirate_bruteforce_context_release(ProtoPirateApp* app);
 void protopirate_receiver_info_rebuild_normal_widget(ProtoPirateApp* app);
 
 #ifdef ENABLE_SUB_DECODE_SCENE
-void protopirate_subdecode_bruteforce_complete_refresh(void* app);
+void protopirate_subdecode_bruteforce_complete_refresh(ProtoPirateApp* app);
 #endif

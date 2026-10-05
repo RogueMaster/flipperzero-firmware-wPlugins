@@ -72,7 +72,9 @@ const FlipperAppPluginDescriptor* load_plugin_fal(
     }
 }
 
-inline void shared_plugin_unload(void** flipper_application_pointer, const void** plugin_pointer) {
+inline void shared_plugin_unload(
+    FlipperApplication** flipper_application_pointer,
+    ProtoPiratePlugin* plugin_pointer) {
     //Free the flipper application.
     if(*flipper_application_pointer) {
         flipper_application_free(*flipper_application_pointer);
@@ -80,21 +82,22 @@ inline void shared_plugin_unload(void** flipper_application_pointer, const void*
     }
 
     //Free the pointer.
-    if(*plugin_pointer) {
-        *plugin_pointer = NULL;
+    if(plugin_pointer->plugin_pointer) {
+        //memset(plugin_pointer, 0, sizeof(*plugin_pointer));
+        plugin_pointer->plugin_pointer = NULL;
     }
 }
 
 bool shared_plugin_load(
-    void** flipper_application_pointer,
-    const void** plugin_pointer,
+    FlipperApplication** flipper_application_pointer,
+    ProtoPiratePlugin* plugin_pointer,
     ProtoPirateSharedPluginIDs plugin_type,
     const char* txrx_path) {
     const char* application_id = NULL;
     const char* plugin_path = NULL;
     uint32_t api_version = 0;
 
-    if(*plugin_pointer) return true;
+    if((*plugin_pointer).plugin_pointer) return true;
 
     switch(plugin_type) {
     case ProtoPirateSharedPluginsConfig: {
@@ -182,7 +185,7 @@ bool shared_plugin_load(
     const FlipperAppPluginDescriptor* app_descriptor =
         load_plugin_fal(&fal_app, buffer, application_id, api_version);
     if(app_descriptor) {
-        *plugin_pointer = app_descriptor->entry_point;
+        (*plugin_pointer).plugin_pointer = app_descriptor->entry_point;
         return_value = true;
     } else {
         return_value = false;
