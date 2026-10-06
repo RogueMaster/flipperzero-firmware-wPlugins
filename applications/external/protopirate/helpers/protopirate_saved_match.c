@@ -11,10 +11,6 @@ bool protopirate_saved_match_signal(
     FlipperFormat* received_ff,
     FuriString* out_matched_name,
     FuriString* out_matched_path) {
-    furi_check(received_ff);
-    furi_check(out_matched_name);
-    furi_check(out_matched_path);
-
     FuriString* rx_protocol = furi_string_alloc();
     FuriString* rx_key = furi_string_alloc();
     uint32_t rx_serial = 0;

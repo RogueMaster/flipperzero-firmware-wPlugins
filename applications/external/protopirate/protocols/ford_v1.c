@@ -464,14 +464,12 @@ static bool ford_v1_extract_plain_from_raw(
 void* subghz_protocol_decoder_ford_v1_alloc(SubGhzEnvironment* environment) {
     UNUSED(environment);
     SubGhzProtocolDecoderFordV1* instance = calloc(1, sizeof(SubGhzProtocolDecoderFordV1));
-    furi_check(instance);
     instance->base.protocol = &ford_protocol_v1;
     instance->generic.protocol_name = instance->base.protocol->name;
     return instance;
 }
 
 void subghz_protocol_decoder_ford_v1_reset(void* context) {
-    furi_check(context);
     SubGhzProtocolDecoderFordV1* instance = context;
 
     instance->decoder.parser_step = FordV1DecoderStepReset;
@@ -489,7 +487,6 @@ void subghz_protocol_decoder_ford_v1_reset(void* context) {
 }
 
 void subghz_protocol_decoder_ford_v1_feed(void* context, bool level, uint32_t duration) {
-    furi_check(context);
     SubGhzProtocolDecoderFordV1* instance = context;
 
     uint32_t te_short = subghz_protocol_ford_v1_const.te_short;
@@ -666,7 +663,6 @@ void subghz_protocol_decoder_ford_v1_feed(void* context, bool level, uint32_t du
 }
 
 uint8_t subghz_protocol_decoder_ford_v1_get_hash_data(void* context) {
-    furi_check(context);
     SubGhzProtocolDecoderFordV1* instance = context;
 
     uint32_t crc = instance->crc_calc;
@@ -753,7 +749,6 @@ SubGhzProtocolStatus subghz_protocol_decoder_ford_v1_serialize(
     void* context,
     FlipperFormat* flipper_format,
     SubGhzRadioPreset* preset) {
-    furi_check(context);
     SubGhzProtocolDecoderFordV1* instance = context;
 
     SubGhzProtocolStatus ret =
@@ -795,7 +790,6 @@ SubGhzProtocolStatus subghz_protocol_decoder_ford_v1_serialize(
 
 SubGhzProtocolStatus
     subghz_protocol_decoder_ford_v1_deserialize(void* context, FlipperFormat* flipper_format) {
-    furi_check(context);
     SubGhzProtocolDecoderFordV1* instance = context;
 
     SubGhzProtocolStatus ret = subghz_block_generic_deserialize_check_count_bit(
@@ -851,7 +845,6 @@ SubGhzProtocolStatus
 }
 
 void subghz_protocol_decoder_ford_v1_get_string(void* context, FuriString* output) {
-    furi_check(context);
     SubGhzProtocolDecoderFordV1* instance = context;
 
     uint64_t key1 = instance->generic.data;
@@ -1080,7 +1073,6 @@ static void ford_v1_encoder_build_burst(SubGhzProtocolEncoderFordV1* instance, u
 void* subghz_protocol_encoder_ford_v1_alloc(SubGhzEnvironment* environment) {
     UNUSED(environment);
     SubGhzProtocolEncoderFordV1* instance = calloc(1, sizeof(SubGhzProtocolEncoderFordV1));
-    furi_check(instance);
     instance->base.protocol = &ford_protocol_v1;
     instance->generic.protocol_name = instance->base.protocol->name;
     instance->encoder.repeat = 10;
@@ -1093,7 +1085,6 @@ void* subghz_protocol_encoder_ford_v1_alloc(SubGhzEnvironment* environment) {
 
 SubGhzProtocolStatus
     subghz_protocol_encoder_ford_v1_deserialize(void* context, FlipperFormat* flipper_format) {
-    furi_check(context);
     SubGhzProtocolEncoderFordV1* instance = context;
     SubGhzProtocolStatus ret = SubGhzProtocolStatusError;
 

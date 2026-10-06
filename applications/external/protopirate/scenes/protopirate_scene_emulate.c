@@ -43,6 +43,9 @@ bool protopirate_scene_emulate_on_event(void* context, SceneManagerEvent event) 
 void protopirate_scene_emulate_on_exit(void* context) {
     ProtoPirateApp* app = context;
 
+    /*if(app->running_plugin.shared_plugin && app->running_plugin.shared_plugin->release) {
+        app->running_plugin.shared_plugin->release(app);
+    }*/ //free calls it anyway
     if(app->running_plugin.shared_plugin && app->running_plugin.shared_plugin->on_exit) {
         app->running_plugin.shared_plugin->on_exit(app);
     }

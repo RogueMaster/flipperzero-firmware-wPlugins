@@ -249,7 +249,6 @@ size_t
 #if PROTOPIRATE_WITH_ENCODER
 
 void pp_encoder_free(void* context) {
-    furi_check(context);
     ProtoPirateEncoderHeader* hdr = context;
     hdr->encoder.upload = NULL;
     hdr->encoder.size_upload = 0;
@@ -257,14 +256,12 @@ void pp_encoder_free(void* context) {
 }
 
 void pp_encoder_stop(void* context) {
-    furi_check(context);
     ProtoPirateEncoderHeader* hdr = context;
     hdr->encoder.is_running = false;
     hdr->encoder.front = 0;
 }
 
 LevelDuration pp_encoder_yield(void* context) {
-    furi_check(context);
     ProtoPirateEncoderHeader* hdr = context;
     if(hdr->encoder.repeat == 0 || !hdr->encoder.is_running || hdr->encoder.size_upload == 0) {
         hdr->encoder.is_running = false;
@@ -283,7 +280,6 @@ static LevelDuration* pp_shared_upload_buf = NULL;
 LevelDuration* pp_shared_upload_buffer(void) {
     if(pp_shared_upload_buf == NULL) {
         pp_shared_upload_buf = malloc(PP_SHARED_UPLOAD_CAPACITY * sizeof(LevelDuration));
-        furi_check(pp_shared_upload_buf);
     }
     return pp_shared_upload_buf;
 }
@@ -298,9 +294,7 @@ void pp_shared_upload_release(void) {
 }
 
 void pp_encoder_buffer_ensure(void* context, size_t capacity) {
-    furi_check(context);
     ProtoPirateEncoderHeader* hdr = context;
-    furi_check(capacity <= PP_SHARED_UPLOAD_CAPACITY);
     hdr->encoder.upload = pp_shared_upload_buffer();
     hdr->encoder.size_upload = capacity;
 }
@@ -308,14 +302,12 @@ void pp_encoder_buffer_ensure(void* context, size_t capacity) {
 #endif
 
 uint8_t pp_decoder_hash_blocks(void* context) {
-    furi_check(context);
     ProtoPirateDecoderHeader* hdr = context;
     return subghz_protocol_blocks_get_hash_data(
         &hdr->decoder, (hdr->decoder.decode_count_bit / 8U) + 1U);
 }
 
 void pp_decoder_free_default(void* context) {
-    furi_check(context);
     free(context);
 }
 

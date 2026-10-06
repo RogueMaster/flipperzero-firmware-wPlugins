@@ -248,7 +248,6 @@ static void protopirate_sub_decode_receiver_callback(
     SubGhzProtocolDecoderBase* decoder_base,
     void* context) {
     UNUSED(receiver);
-    furi_check(context);
     ProtoPirateApp* app = context;
     SubDecodeContext* ctx = g_decode_ctx;
 
@@ -680,6 +679,7 @@ bool plugin_scene_sub_decode_on_event(ProtoPirateApp* app, SceneManagerEvent eve
                     strlen(app->save_filename),
                     false); // don't clear default text
 
+                app->dialog_showing = true;
                 view_dispatcher_switch_to_view(app->view_dispatcher, ProtoPirateViewTextInput);
                 free(file_name_str);
             } else {
@@ -711,6 +711,8 @@ bool plugin_scene_sub_decode_on_event(ProtoPirateApp* app, SceneManagerEvent eve
                 }
                 furi_string_free(save_path);
             }
+
+            app->dialog_showing = false;
 
             // Return to the receiver info widget
             view_dispatcher_switch_to_view(app->view_dispatcher, ProtoPirateViewWidget);
@@ -1368,6 +1370,11 @@ bool plugin_scene_sub_decode_on_event(ProtoPirateApp* app, SceneManagerEvent eve
         }
 
     } else if(event.type == SceneManagerEventTypeBack) {
+        if(app->dialog_showing) {
+            app->dialog_showing = false;
+            view_dispatcher_switch_to_view(app->view_dispatcher, ProtoPirateViewWidget);
+            return false;
+        }
         app->txrx->idx_menu_chosen = ctx->selected_history_index;
         if(protopirate_scene_sub_decode_cancel_active_decode(app, ctx)) {
             consumed = true;

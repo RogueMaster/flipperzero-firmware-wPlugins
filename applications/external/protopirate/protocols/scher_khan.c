@@ -90,13 +90,11 @@ void* subghz_protocol_decoder_scher_khan_alloc(SubGhzEnvironment* environment) {
 }
 
 void subghz_protocol_decoder_scher_khan_reset(void* context) {
-    furi_check(context);
     SubGhzProtocolDecoderScherKhan* instance = context;
     instance->decoder.parser_step = ScherKhanDecoderStepReset;
 }
 
 void subghz_protocol_decoder_scher_khan_feed(void* context, bool level, uint32_t duration) {
-    furi_check(context);
     SubGhzProtocolDecoderScherKhan* instance = context;
 
     switch(instance->decoder.parser_step) {
@@ -269,7 +267,6 @@ SubGhzProtocolStatus subghz_protocol_decoder_scher_khan_serialize(
     void* context,
     FlipperFormat* flipper_format,
     SubGhzRadioPreset* preset) {
-    furi_check(context);
     SubGhzProtocolDecoderScherKhan* instance = context;
     SubGhzProtocolStatus ret = SubGhzProtocolStatusError;
 
@@ -327,7 +324,6 @@ SubGhzProtocolStatus subghz_protocol_decoder_scher_khan_serialize(
 
 SubGhzProtocolStatus
     subghz_protocol_decoder_scher_khan_deserialize(void* context, FlipperFormat* flipper_format) {
-    furi_check(context);
     SubGhzProtocolDecoderScherKhan* instance = context;
     SubGhzProtocolStatus status =
         subghz_block_generic_deserialize(&instance->generic, flipper_format);
@@ -343,7 +339,6 @@ SubGhzProtocolStatus
 }
 
 void subghz_protocol_decoder_scher_khan_get_string(void* context, FuriString* output) {
-    furi_check(context);
     SubGhzProtocolDecoderScherKhan* instance = context;
 
     subghz_protocol_scher_khan_check_remote_controller(

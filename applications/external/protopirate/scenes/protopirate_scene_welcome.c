@@ -7,7 +7,6 @@
 #define TAG "PPSceneWelcome"
 
 void protopirate_scene_welcome_on_enter(void* context) {
-    furi_check(context);
     ProtoPirateApp* app = context;
 
     if(!protopirate_ensure_widget(app)) {

@@ -361,7 +361,6 @@ static bool hitag2_write_hex_be(
     uint64_t value,
     size_t nbytes) {
     uint8_t data[8] = {0};
-    furi_check(nbytes <= sizeof(data));
     hitag2_u64_to_bytes_be(value, data, nbytes);
     return flipper_format_insert_or_update_hex(flipper_format, name, data, nbytes);
 }
@@ -728,7 +727,6 @@ static void hitag2_read_recovered_and_seed(
 void* subghz_protocol_encoder_renault_v1_alloc(SubGhzEnvironment* environment) {
     UNUSED(environment);
     SubGhzProtocolEncoderRenaultV1* instance = calloc(1, sizeof(SubGhzProtocolEncoderRenaultV1));
-    furi_check(instance);
 
     instance->base.protocol = &renault_v1_protocol;
     instance->generic.protocol_name = instance->base.protocol->name;
@@ -766,8 +764,6 @@ static bool hitag2_encoder_add_bits(
 }
 
 static bool renault_v1_encoder_get_upload(SubGhzProtocolEncoderRenaultV1* instance) {
-    furi_check(instance);
-
     size_t index = 0;
     LevelDuration* upload = instance->encoder.upload;
     const uint64_t key = instance->generic.data;
@@ -802,7 +798,6 @@ static bool renault_v1_encoder_get_upload(SubGhzProtocolEncoderRenaultV1* instan
 
 SubGhzProtocolStatus
     subghz_protocol_encoder_renault_v1_deserialize(void* context, FlipperFormat* flipper_format) {
-    furi_check(context);
     SubGhzProtocolEncoderRenaultV1* instance = context;
     SubGhzProtocolStatus ret = SubGhzProtocolStatusError;
 
@@ -969,7 +964,6 @@ SubGhzProtocolStatus
 void* subghz_protocol_decoder_renault_v1_alloc(SubGhzEnvironment* environment) {
     UNUSED(environment);
     SubGhzProtocolDecoderRenaultV1* instance = calloc(1, sizeof(SubGhzProtocolDecoderRenaultV1));
-    furi_check(instance);
     instance->base.protocol = &renault_v1_protocol;
     instance->generic.protocol_name = instance->base.protocol->name;
 
@@ -977,7 +971,6 @@ void* subghz_protocol_decoder_renault_v1_alloc(SubGhzEnvironment* environment) {
 }
 
 void subghz_protocol_decoder_renault_v1_reset(void* context) {
-    furi_check(context);
     SubGhzProtocolDecoderRenaultV1* instance = context;
     instance->decoder.parser_step = RenaultV1DecoderStepReset;
     manchester_advance(
@@ -1047,7 +1040,6 @@ static bool hitag2_accept_frame(SubGhzProtocolDecoderRenaultV1* instance, uint64
 }
 
 void subghz_protocol_decoder_renault_v1_feed(void* context, bool level, uint32_t duration) {
-    furi_check(context);
     SubGhzProtocolDecoderRenaultV1* instance = context;
 
     while(true) {
@@ -1140,7 +1132,6 @@ void subghz_protocol_decoder_renault_v1_feed(void* context, bool level, uint32_t
 }
 
 uint8_t subghz_protocol_decoder_renault_v1_get_hash_data(void* context) {
-    furi_check(context);
     SubGhzProtocolDecoderRenaultV1* instance = context;
     return (uint8_t)instance->generic.serial ^ (uint8_t)(instance->generic.serial >> 8) ^
            (uint8_t)(instance->generic.serial >> 16) ^ (uint8_t)(instance->generic.serial >> 24) ^
@@ -1175,7 +1166,6 @@ SubGhzProtocolStatus subghz_protocol_decoder_renault_v1_serialize(
     void* context,
     FlipperFormat* flipper_format,
     SubGhzRadioPreset* preset) {
-    furi_check(context);
     SubGhzProtocolDecoderRenaultV1* instance = context;
     renault_v1_check_remote_controller(instance);
 
@@ -1217,7 +1207,6 @@ SubGhzProtocolStatus subghz_protocol_decoder_renault_v1_serialize(
 
 SubGhzProtocolStatus
     subghz_protocol_decoder_renault_v1_deserialize(void* context, FlipperFormat* flipper_format) {
-    furi_check(context);
     SubGhzProtocolDecoderRenaultV1* instance = context;
     SubGhzProtocolStatus ret = SubGhzProtocolStatusError;
 
@@ -1255,7 +1244,6 @@ SubGhzProtocolStatus
 }
 
 void subghz_protocol_decoder_renault_v1_get_string(void* context, FuriString* output) {
-    furi_check(context);
     SubGhzProtocolDecoderRenaultV1* instance = context;
 
     renault_v1_check_remote_controller(instance);
@@ -1383,8 +1371,6 @@ static bool hitag2_bf_hop_matches(
 }
 
 static void hitag2_brute_force_run(Hitag2BfState* state) {
-    furi_check(state);
-
     uint8_t serial_be[4];
     uint8_t perm[6];
     uint8_t hop_target[4];
@@ -1435,9 +1421,6 @@ int32_t hitag2_brute_force_thread_entry(void* arg) {
 }
 
 bool hitag2_bf_state_from_flipper_format(Hitag2BfState* state, FlipperFormat* ff) {
-    furi_check(state);
-    furi_check(ff);
-
     uint8_t key1[8] = {0};
     uint8_t key2[8] = {0};
     if(!hitag2_read_hex_be(ff, FF_KEY, key1, sizeof(key1))) {

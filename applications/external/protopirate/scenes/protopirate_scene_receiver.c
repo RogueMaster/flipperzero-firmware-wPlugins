@@ -17,7 +17,6 @@ static void protopirate_scene_receiver_start_rx_stack(ProtoPirateApp* app);
 static void protopirate_scene_receiver_process_deferred_storage(ProtoPirateApp* app);
 
 static void protopirate_scene_receiver_update_statusbar(void* context) {
-    furi_check(context);
     ProtoPirateApp* app = context;
 
     char frequency_str[16] = {0};
@@ -121,8 +120,6 @@ static void protopirate_scene_receiver_callback(
 }
 
 static bool protopirate_scene_receiver_process_auto_save(ProtoPirateApp* app) {
-    furi_check(app);
-
     if(!app->txrx || !app->txrx->history) {
         return false;
     }
@@ -194,8 +191,6 @@ static bool protopirate_scene_receiver_process_auto_save(ProtoPirateApp* app) {
 }
 
 static void protopirate_scene_receiver_process_saved_match(ProtoPirateApp* app) {
-    furi_check(app);
-
     if(!app->check_saved || !app->txrx || !app->txrx->history) {
         return;
     }

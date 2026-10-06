@@ -130,7 +130,6 @@ const SubGhzProtocol fiat_protocol_v0 = {
 void* subghz_protocol_encoder_fiat_v0_alloc(SubGhzEnvironment* environment) {
     UNUSED(environment);
     SubGhzProtocolEncoderFiatV0* instance = calloc(1, sizeof(SubGhzProtocolEncoderFiatV0));
-    furi_check(instance);
 
     instance->base.protocol = &fiat_protocol_v0;
     instance->generic.protocol_name = instance->base.protocol->name;
@@ -147,7 +146,6 @@ void* subghz_protocol_encoder_fiat_v0_alloc(SubGhzEnvironment* environment) {
 #if PROTOPIRATE_WITH_ENCODER
 
 static void subghz_protocol_encoder_fiat_v0_get_upload(SubGhzProtocolEncoderFiatV0* instance) {
-    furi_check(instance);
     LevelDuration* up = instance->encoder.upload;
     if(up == NULL) return;
 
@@ -170,7 +168,6 @@ static void subghz_protocol_encoder_fiat_v0_get_upload(SubGhzProtocolEncoderFiat
     for(uint8_t burst = 0; burst < FIAT_V0_TOTAL_BURSTS; burst++) {
         if(burst > 0) {
             index = pp_emit(up, index, cap, false, FIAT_V0_INTER_BURST_GAP);
-            furi_check(index <= cap);
         }
 
         for(int i = 0; i < FIAT_V0_PREAMBLE_PAIRS; i++) {
@@ -202,7 +199,6 @@ static void subghz_protocol_encoder_fiat_v0_get_upload(SubGhzProtocolEncoderFiat
                 index = pp_emit(up, index, cap, true, te_short);
             }
             prev_bit = curr_bit;
-            furi_check(index <= cap);
         }
 
         for(int bit = 5; bit >= 0; bit--) {
@@ -219,14 +215,12 @@ static void subghz_protocol_encoder_fiat_v0_get_upload(SubGhzProtocolEncoderFiat
                 index = pp_emit(up, index, cap, true, te_short);
             }
             prev_bit = curr_bit;
-            furi_check(index <= cap);
         }
 
         if(prev_bit) {
             index = pp_emit(up, index, cap, false, te_short);
         }
         index = pp_emit(up, index, cap, false, te_short * 8);
-        furi_check(index <= cap);
     }
 
     instance->encoder.size_upload = index;
@@ -240,7 +234,6 @@ static void subghz_protocol_encoder_fiat_v0_get_upload(SubGhzProtocolEncoderFiat
 
 SubGhzProtocolStatus
     subghz_protocol_encoder_fiat_v0_deserialize(void* context, FlipperFormat* flipper_format) {
-    furi_check(context);
     SubGhzProtocolEncoderFiatV0* instance = context;
 
     instance->encoder.is_running = false;
@@ -302,14 +295,12 @@ SubGhzProtocolStatus
 void* subghz_protocol_decoder_fiat_v0_alloc(SubGhzEnvironment* environment) {
     UNUSED(environment);
     SubGhzProtocolDecoderFiatV0* instance = calloc(1, sizeof(SubGhzProtocolDecoderFiatV0));
-    furi_check(instance);
     instance->base.protocol = &fiat_protocol_v0;
     instance->generic.protocol_name = instance->base.protocol->name;
     return instance;
 }
 
 void subghz_protocol_decoder_fiat_v0_reset(void* context) {
-    furi_check(context);
     SubGhzProtocolDecoderFiatV0* instance = context;
     instance->decoder.parser_step = FiatV0DecoderStepReset;
     instance->decoder.decode_data = 0;
@@ -325,7 +316,6 @@ void subghz_protocol_decoder_fiat_v0_reset(void* context) {
 }
 
 void subghz_protocol_decoder_fiat_v0_feed(void* context, bool level, uint32_t duration) {
-    furi_check(context);
     SubGhzProtocolDecoderFiatV0* instance = context;
 
     uint32_t te_short = (uint32_t)subghz_protocol_fiat_v0_const.te_short;
@@ -491,7 +481,6 @@ void subghz_protocol_decoder_fiat_v0_feed(void* context, bool level, uint32_t du
 }
 
 uint8_t subghz_protocol_decoder_fiat_v0_get_hash_data(void* context) {
-    furi_check(context);
     SubGhzProtocolDecoderFiatV0* instance = context;
     return subghz_protocol_blocks_get_hash_data(
         &instance->decoder, (instance->decoder.decode_count_bit / 8) + 1);
@@ -501,7 +490,6 @@ SubGhzProtocolStatus subghz_protocol_decoder_fiat_v0_serialize(
     void* context,
     FlipperFormat* flipper_format,
     SubGhzRadioPreset* preset) {
-    furi_check(context);
     SubGhzProtocolDecoderFiatV0* instance = context;
 
     SubGhzProtocolStatus ret =
@@ -534,7 +522,6 @@ SubGhzProtocolStatus subghz_protocol_decoder_fiat_v0_serialize(
 
 SubGhzProtocolStatus
     subghz_protocol_decoder_fiat_v0_deserialize(void* context, FlipperFormat* flipper_format) {
-    furi_check(context);
     SubGhzProtocolDecoderFiatV0* instance = context;
 
     SubGhzProtocolStatus status = subghz_block_generic_deserialize_check_count_bit(
@@ -565,7 +552,6 @@ SubGhzProtocolStatus
 }
 
 void subghz_protocol_decoder_fiat_v0_get_string(void* context, FuriString* output) {
-    furi_check(context);
     SubGhzProtocolDecoderFiatV0* instance = context;
 
     furi_string_cat_printf(

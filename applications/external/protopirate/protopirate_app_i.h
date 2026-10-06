@@ -106,7 +106,8 @@ struct ProtoPirateApp {
     uint8_t emulate_feature_enabled      : 1;
     // Byte 2
     uint8_t key_found                    : 1;
-    uint8_t reserved                     : 7;
+    uint8_t dialog_showing               : 1;
+    uint8_t reserved                     : 6;
     /*****************/
 };
 

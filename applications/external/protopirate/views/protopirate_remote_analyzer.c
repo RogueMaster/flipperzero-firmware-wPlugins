@@ -274,14 +274,10 @@ bool protopirate_remote_analyzer_input(InputEvent* event, void* context) {
         }
     } else if(event->key == InputKeyOk) {
         need_redraw = false;
-        //bool updated = false;
-        uint32_t frequency_to_save = 0;
-        //uint32_t is_am_to_save;
         with_view_model(
             instance->view,
             ProtoPirateRemoteAnalyzerModel * model,
             {
-                //       frequency_to_save = model->frequency_to_save;
                 uint32_t prev_freq_to_save = model->frequency_to_save;
                 uint32_t frequency_candidate = 0;
                 uint32_t is_am_candidate = 0;
@@ -307,13 +303,10 @@ bool protopirate_remote_analyzer_input(InputEvent* event, void* context) {
                     need_redraw = true;
                     model->frequency_to_save = frequency_candidate;
                     model->is_am = is_am_candidate;
-                    frequency_to_save = frequency_candidate;
-                    //is_am_to_save = is_am_candidate;
-                    //           updated = true;
                 }
             },
             false);
-        if((event->type == InputTypeLong) && (frequency_to_save > 0)) {
+        if((event->type == InputTypeLong)) {
             instance->callback(ProtoPirateCustomEventViewReceiverOK, instance->context);
         }
     }

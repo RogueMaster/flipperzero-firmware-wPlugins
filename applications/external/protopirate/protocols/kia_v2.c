@@ -111,7 +111,6 @@ static uint8_t kia_v2_calculate_crc(uint64_t data) {
 #if PROTOPIRATE_WITH_ENCODER
 
 static void kia_protocol_encoder_v2_get_upload(SubGhzProtocolEncoderKiaV2* instance) {
-    furi_check(instance);
     if(instance->encoder.upload == NULL) return;
     size_t index = 0;
     LevelDuration* up = instance->encoder.upload;
@@ -177,7 +176,6 @@ void* kia_protocol_encoder_v2_alloc(SubGhzEnvironment* environment) {
 
 SubGhzProtocolStatus
     kia_protocol_encoder_v2_deserialize(void* context, FlipperFormat* flipper_format) {
-    furi_check(context);
     SubGhzProtocolEncoderKiaV2* instance = context;
     SubGhzProtocolStatus ret = SubGhzProtocolStatusError;
 
@@ -269,7 +267,6 @@ void* kia_protocol_decoder_v2_alloc(SubGhzEnvironment* environment) {
 }
 
 void kia_protocol_decoder_v2_reset(void* context) {
-    furi_check(context);
     SubGhzProtocolDecoderKiaV2* instance = context;
     instance->decoder.parser_step = KiaV2DecoderStepReset;
     instance->header_count = 0;
@@ -279,7 +276,6 @@ void kia_protocol_decoder_v2_reset(void* context) {
 }
 
 void kia_protocol_decoder_v2_feed(void* context, bool level, uint32_t duration) {
-    furi_check(context);
     SubGhzProtocolDecoderKiaV2* instance = context;
 
     switch(instance->decoder.parser_step) {
@@ -375,7 +371,6 @@ SubGhzProtocolStatus kia_protocol_decoder_v2_serialize(
     void* context,
     FlipperFormat* flipper_format,
     SubGhzRadioPreset* preset) {
-    furi_check(context);
     SubGhzProtocolDecoderKiaV2* instance = context;
 
     SubGhzProtocolStatus ret =
@@ -404,14 +399,12 @@ SubGhzProtocolStatus kia_protocol_decoder_v2_serialize(
 
 SubGhzProtocolStatus
     kia_protocol_decoder_v2_deserialize(void* context, FlipperFormat* flipper_format) {
-    furi_check(context);
     SubGhzProtocolDecoderKiaV2* instance = context;
     return subghz_block_generic_deserialize_check_count_bit(
         &instance->generic, flipper_format, kia_protocol_v2_const.min_count_bit_for_found);
 }
 
 void kia_protocol_decoder_v2_get_string(void* context, FuriString* output) {
-    furi_check(context);
     SubGhzProtocolDecoderKiaV2* instance = context;
 
     uint8_t crc = instance->generic.data & 0x0F;

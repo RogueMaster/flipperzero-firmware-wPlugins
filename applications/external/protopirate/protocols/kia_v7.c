@@ -210,8 +210,6 @@ static bool kia_v7_encoder_append_frame(
 }
 
 static bool kia_v7_encoder_get_upload(SubGhzProtocolEncoderKiaV7* instance) {
-    furi_check(instance);
-
     const uint8_t bit_count = (instance->tx_bit_count > 0U && instance->tx_bit_count <= 64U) ?
                                   instance->tx_bit_count :
                                   64U;
@@ -294,7 +292,6 @@ void* kia_protocol_encoder_v7_alloc(SubGhzEnvironment* environment) {
     UNUSED(environment);
 
     SubGhzProtocolEncoderKiaV7* instance = calloc(1, sizeof(SubGhzProtocolEncoderKiaV7));
-    furi_check(instance);
 
     instance->base.protocol = &kia_protocol_v7;
     instance->generic.protocol_name = instance->base.protocol->name;
@@ -306,8 +303,6 @@ void* kia_protocol_encoder_v7_alloc(SubGhzEnvironment* environment) {
 
 SubGhzProtocolStatus
     kia_protocol_encoder_v7_deserialize(void* context, FlipperFormat* flipper_format) {
-    furi_check(context);
-
     SubGhzProtocolEncoderKiaV7* instance = context;
     SubGhzProtocolStatus ret = SubGhzProtocolStatusError;
 
@@ -384,7 +379,6 @@ void* kia_protocol_decoder_v7_alloc(SubGhzEnvironment* environment) {
     UNUSED(environment);
 
     SubGhzProtocolDecoderKiaV7* instance = calloc(1, sizeof(SubGhzProtocolDecoderKiaV7));
-    furi_check(instance);
 
     instance->base.protocol = &kia_protocol_v7;
     instance->generic.protocol_name = instance->base.protocol->name;
@@ -393,8 +387,6 @@ void* kia_protocol_decoder_v7_alloc(SubGhzEnvironment* environment) {
 }
 
 void kia_protocol_decoder_v7_reset(void* context) {
-    furi_check(context);
-
     SubGhzProtocolDecoderKiaV7* instance = context;
     instance->decoder.parser_step = KiaV7DecoderStepReset;
     instance->decoder.te_last = 0;
@@ -406,8 +398,6 @@ void kia_protocol_decoder_v7_reset(void* context) {
 }
 
 void kia_protocol_decoder_v7_feed(void* context, bool level, uint32_t duration) {
-    furi_check(context);
-
     SubGhzProtocolDecoderKiaV7* instance = context;
     ManchesterEvent event = ManchesterEventReset;
     bool data = false;
@@ -529,8 +519,6 @@ void kia_protocol_decoder_v7_feed(void* context, bool level, uint32_t duration) 
 }
 
 void kia_protocol_decoder_v7_get_string(void* context, FuriString* output) {
-    furi_check(context);
-
     SubGhzProtocolDecoderKiaV7* instance = context;
     kia_v7_decode_key_decoder(instance);
 
@@ -555,8 +543,6 @@ SubGhzProtocolStatus kia_protocol_decoder_v7_serialize(
     void* context,
     FlipperFormat* flipper_format,
     SubGhzRadioPreset* preset) {
-    furi_check(context);
-
     SubGhzProtocolDecoderKiaV7* instance = context;
     kia_v7_decode_key_decoder(instance);
 
@@ -586,8 +572,6 @@ SubGhzProtocolStatus kia_protocol_decoder_v7_serialize(
 
 SubGhzProtocolStatus
     kia_protocol_decoder_v7_deserialize(void* context, FlipperFormat* flipper_format) {
-    furi_check(context);
-
     SubGhzProtocolDecoderKiaV7* instance = context;
     SubGhzProtocolStatus status = subghz_block_generic_deserialize_check_count_bit(
         &instance->generic, flipper_format, KIA_V7_KEY_BITS);

@@ -7,7 +7,6 @@
 #define TAG "PPSceneSaved"
 
 void protopirate_scene_saved_on_enter(void* context) {
-    furi_check(context);
     ProtoPirateApp* app = context;
 
     Storage* storage = furi_record_open(RECORD_STORAGE);

@@ -130,8 +130,6 @@ bool radio_device_loader_is_external(const SubGhzDevice* radio_device) {
 }
 
 void radio_device_loader_end(const SubGhzDevice* radio_device) {
-    furi_check(radio_device);
-
     if(radio_device != subghz_devices_get_by_name(SUBGHZ_DEVICE_CC1101_INT_NAME)) {
         subghz_devices_end(radio_device);
         FURI_LOG_I(TAG, "External radio device ended");

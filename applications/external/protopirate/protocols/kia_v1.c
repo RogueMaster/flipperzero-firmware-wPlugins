@@ -179,7 +179,6 @@ void* kia_protocol_encoder_v1_alloc(SubGhzEnvironment* environment) {
 #if PROTOPIRATE_WITH_ENCODER
 
 static void kia_protocol_encoder_v1_get_upload(SubGhzProtocolEncoderKiaV1* instance) {
-    furi_check(instance);
     if(instance->encoder.upload == NULL) return; // lazy buffer not yet allocated
     size_t index = 0;
     LevelDuration* up = instance->encoder.upload;
@@ -240,7 +239,6 @@ static void kia_protocol_encoder_v1_get_upload(SubGhzProtocolEncoderKiaV1* insta
 
 SubGhzProtocolStatus
     kia_protocol_encoder_v1_deserialize(void* context, FlipperFormat* flipper_format) {
-    furi_check(context);
     SubGhzProtocolEncoderKiaV1* instance = context;
     SubGhzProtocolStatus ret = SubGhzProtocolStatusError;
 
@@ -298,7 +296,6 @@ SubGhzProtocolStatus
 #if PROTOPIRATE_WITH_ENCODER
 
 void kia_protocol_encoder_v1_set_button(void* context, uint8_t button) {
-    furi_check(context);
     SubGhzProtocolEncoderKiaV1* instance = context;
     instance->generic.btn = button & 0xFF;
     kia_protocol_encoder_v1_get_upload(instance);
@@ -309,7 +306,6 @@ void kia_protocol_encoder_v1_set_button(void* context, uint8_t button) {
 #if PROTOPIRATE_WITH_ENCODER
 
 void kia_protocol_encoder_v1_set_counter(void* context, uint16_t counter) {
-    furi_check(context);
     SubGhzProtocolEncoderKiaV1* instance = context;
     instance->generic.cnt = counter & 0xFFF;
     kia_protocol_encoder_v1_get_upload(instance);
@@ -323,7 +319,6 @@ void kia_protocol_encoder_v1_set_counter(void* context, uint16_t counter) {
 #if PROTOPIRATE_WITH_ENCODER
 
 void kia_protocol_encoder_v1_increment_counter(void* context) {
-    furi_check(context);
     SubGhzProtocolEncoderKiaV1* instance = context;
     instance->generic.cnt = (instance->generic.cnt + 1) & 0xFFF;
     kia_protocol_encoder_v1_get_upload(instance);
@@ -337,7 +332,6 @@ void kia_protocol_encoder_v1_increment_counter(void* context) {
 #if PROTOPIRATE_WITH_ENCODER
 
 uint16_t kia_protocol_encoder_v1_get_counter(void* context) {
-    furi_check(context);
     SubGhzProtocolEncoderKiaV1* instance = context;
     return instance->generic.cnt;
 }
@@ -346,7 +340,6 @@ uint16_t kia_protocol_encoder_v1_get_counter(void* context) {
 #if PROTOPIRATE_WITH_ENCODER
 
 uint8_t kia_protocol_encoder_v1_get_button(void* context) {
-    furi_check(context);
     SubGhzProtocolEncoderKiaV1* instance = context;
     return instance->generic.btn;
 }
@@ -365,13 +358,11 @@ void* kia_protocol_decoder_v1_alloc(SubGhzEnvironment* environment) {
 }
 
 void kia_protocol_decoder_v1_reset(void* context) {
-    furi_check(context);
     SubGhzProtocolDecoderKiaV1* instance = context;
     instance->decoder.parser_step = KiaV1DecoderStepReset;
 }
 
 void kia_protocol_decoder_v1_feed(void* context, bool level, uint32_t duration) {
-    furi_check(context);
     SubGhzProtocolDecoderKiaV1* instance = context;
 
     ManchesterEvent event = ManchesterEventReset;
@@ -450,7 +441,6 @@ SubGhzProtocolStatus kia_protocol_decoder_v1_serialize(
     void* context,
     FlipperFormat* flipper_format,
     SubGhzRadioPreset* preset) {
-    furi_check(context);
     SubGhzProtocolDecoderKiaV1* instance = context;
 
     kia_v1_check_remote_controller(instance);
@@ -470,7 +460,6 @@ SubGhzProtocolStatus kia_protocol_decoder_v1_serialize(
 
 SubGhzProtocolStatus
     kia_protocol_decoder_v1_deserialize(void* context, FlipperFormat* flipper_format) {
-    furi_check(context);
     SubGhzProtocolDecoderKiaV1* instance = context;
     flipper_format_rewind(flipper_format);
     return subghz_block_generic_deserialize_check_count_bit(
@@ -478,7 +467,6 @@ SubGhzProtocolStatus
 }
 
 void kia_protocol_decoder_v1_get_string(void* context, FuriString* output) {
-    furi_check(context);
     SubGhzProtocolDecoderKiaV1* instance = context;
 
     kia_v1_check_remote_controller(instance);

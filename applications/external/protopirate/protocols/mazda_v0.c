@@ -258,8 +258,6 @@ static bool
 }
 
 static bool mazda_v0_build_upload(SubGhzProtocolEncoderMazdaV0* instance) {
-    furi_check(instance);
-
     size_t index = 0;
     const uint64_t key64 = instance->generic.data;
 
@@ -318,7 +316,6 @@ void* subghz_protocol_encoder_mazda_v0_alloc(SubGhzEnvironment* environment) {
     UNUSED(environment);
 
     SubGhzProtocolEncoderMazdaV0* instance = calloc(1, sizeof(SubGhzProtocolEncoderMazdaV0));
-    furi_check(instance);
 
     instance->base.protocol = &mazda_v0_protocol;
     instance->generic.protocol_name = instance->base.protocol->name;
@@ -332,7 +329,6 @@ void* subghz_protocol_encoder_mazda_v0_alloc(SubGhzEnvironment* environment) {
 
 SubGhzProtocolStatus
     subghz_protocol_encoder_mazda_v0_deserialize(void* context, FlipperFormat* flipper_format) {
-    furi_check(context);
     SubGhzProtocolEncoderMazdaV0* instance = context;
     SubGhzProtocolStatus ret = SubGhzProtocolStatusError;
 
@@ -411,7 +407,6 @@ void* subghz_protocol_decoder_mazda_v0_alloc(SubGhzEnvironment* environment) {
     UNUSED(environment);
 
     SubGhzProtocolDecoderMazdaV0* instance = calloc(1, sizeof(SubGhzProtocolDecoderMazdaV0));
-    furi_check(instance);
 
     instance->base.protocol = &mazda_v0_protocol;
     instance->generic.protocol_name = instance->base.protocol->name;
@@ -420,7 +415,6 @@ void* subghz_protocol_decoder_mazda_v0_alloc(SubGhzEnvironment* environment) {
 }
 
 void subghz_protocol_decoder_mazda_v0_reset(void* context) {
-    furi_check(context);
     SubGhzProtocolDecoderMazdaV0* instance = context;
 
     instance->decoder.parser_step = MazdaV0DecoderStepReset;
@@ -433,8 +427,6 @@ void subghz_protocol_decoder_mazda_v0_reset(void* context) {
 }
 
 void subghz_protocol_decoder_mazda_v0_feed(void* context, bool level, uint32_t duration) {
-    furi_check(context);
-
     SubGhzProtocolDecoderMazdaV0* instance = context;
     ManchesterEvent event = ManchesterEventReset;
     bool data = false;
@@ -523,7 +515,6 @@ SubGhzProtocolStatus subghz_protocol_decoder_mazda_v0_serialize(
     void* context,
     FlipperFormat* flipper_format,
     SubGhzRadioPreset* preset) {
-    furi_check(context);
     SubGhzProtocolDecoderMazdaV0* instance = context;
 
     mazda_v0_decode_key(&instance->generic);
@@ -556,7 +547,6 @@ SubGhzProtocolStatus subghz_protocol_decoder_mazda_v0_serialize(
 
 SubGhzProtocolStatus
     subghz_protocol_decoder_mazda_v0_deserialize(void* context, FlipperFormat* flipper_format) {
-    furi_check(context);
     SubGhzProtocolDecoderMazdaV0* instance = context;
 
     SubGhzProtocolStatus ret = subghz_block_generic_deserialize_check_count_bit(
@@ -581,7 +571,6 @@ SubGhzProtocolStatus
 }
 
 void subghz_protocol_decoder_mazda_v0_get_string(void* context, FuriString* output) {
-    furi_check(context);
     SubGhzProtocolDecoderMazdaV0* instance = context;
 
     mazda_v0_decode_key(&instance->generic);

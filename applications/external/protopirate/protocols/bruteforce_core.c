@@ -2,8 +2,6 @@
 #include "protocols_common.h"
 
 bool bruteforce_state_from_flipper_format(BruteForceState* state, FlipperFormat* ff) {
-    furi_check(state);
-    furi_check(ff);
     bool ok = false;
     do {
         uint64_t key1 = 0;

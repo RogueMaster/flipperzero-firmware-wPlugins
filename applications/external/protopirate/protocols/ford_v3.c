@@ -356,7 +356,6 @@ void* subghz_protocol_decoder_ford_v3_alloc(SubGhzEnvironment* environment) {
     UNUSED(environment);
 
     SubGhzProtocolDecoderFordV3* instance = calloc(1, sizeof(SubGhzProtocolDecoderFordV3));
-    furi_check(instance);
 
     instance->base.protocol = &ford_protocol_v3;
     instance->generic.protocol_name = instance->base.protocol->name;
@@ -365,8 +364,6 @@ void* subghz_protocol_decoder_ford_v3_alloc(SubGhzEnvironment* environment) {
 }
 
 void subghz_protocol_decoder_ford_v3_reset(void* context) {
-    furi_check(context);
-
     SubGhzProtocolDecoderFordV3* instance = context;
     instance->decoder.parser_step = FordV3DecoderStepReset;
     ford_v3_reset_manchester(instance);
@@ -375,16 +372,12 @@ void subghz_protocol_decoder_ford_v3_reset(void* context) {
 }
 
 void subghz_protocol_decoder_ford_v3_feed(void* context, bool level, uint32_t duration) {
-    furi_check(context);
-
     SubGhzProtocolDecoderFordV3* instance = context;
     ford_v3_cell_feed(instance, level, duration);
     ford_v3_manchester_feed(instance, level, duration);
 }
 
 uint8_t subghz_protocol_decoder_ford_v3_get_hash_data(void* context) {
-    furi_check(context);
-
     SubGhzProtocolDecoderFordV3* instance = context;
     uint8_t hash = 0;
 
@@ -399,8 +392,6 @@ SubGhzProtocolStatus subghz_protocol_decoder_ford_v3_serialize(
     void* context,
     FlipperFormat* flipper_format,
     SubGhzRadioPreset* preset) {
-    furi_check(context);
-
     SubGhzProtocolDecoderFordV3* instance = context;
 
     instance->generic.data =
@@ -429,8 +420,6 @@ SubGhzProtocolStatus subghz_protocol_decoder_ford_v3_serialize(
 
 SubGhzProtocolStatus
     subghz_protocol_decoder_ford_v3_deserialize(void* context, FlipperFormat* flipper_format) {
-    furi_check(context);
-
     SubGhzProtocolDecoderFordV3* instance = context;
 
     SubGhzProtocolStatus ret = subghz_block_generic_deserialize_check_count_bit(
@@ -462,8 +451,6 @@ SubGhzProtocolStatus
 }
 
 void subghz_protocol_decoder_ford_v3_get_string(void* context, FuriString* output) {
-    furi_check(context);
-
     SubGhzProtocolDecoderFordV3* instance = context;
     const uint8_t* k = instance->raw_bytes;
 

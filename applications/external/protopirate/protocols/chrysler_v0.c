@@ -341,7 +341,6 @@ void* subghz_protocol_encoder_chrysler_v0_alloc(SubGhzEnvironment* environment) 
 
     SubGhzProtocolEncoderChrysler_V0* instance =
         calloc(1, sizeof(SubGhzProtocolEncoderChrysler_V0));
-    furi_check(instance);
 
     instance->base.protocol = &chrysler_protocol_v0;
     instance->generic.protocol_name = instance->base.protocol->name;
@@ -355,8 +354,6 @@ void* subghz_protocol_encoder_chrysler_v0_alloc(SubGhzEnvironment* environment) 
 
 SubGhzProtocolStatus
     subghz_protocol_encoder_chrysler_v0_deserialize(void* context, FlipperFormat* flipper_format) {
-    furi_check(context);
-
     SubGhzProtocolEncoderChrysler_V0* instance = context;
     if(pp_verify_protocol_name(flipper_format, instance->base.protocol->name) !=
        SubGhzProtocolStatusOk) {
@@ -491,7 +488,6 @@ void* subghz_protocol_decoder_chrysler_v0_alloc(SubGhzEnvironment* environment) 
 
     SubGhzProtocolDecoderChrysler_V0* instance =
         calloc(1, sizeof(SubGhzProtocolDecoderChrysler_V0));
-    furi_check(instance);
 
     instance->base.protocol = &chrysler_protocol_v0;
     instance->generic.protocol_name = instance->base.protocol->name;
@@ -500,8 +496,6 @@ void* subghz_protocol_decoder_chrysler_v0_alloc(SubGhzEnvironment* environment) 
 }
 
 void subghz_protocol_decoder_chrysler_v0_reset(void* context) {
-    furi_check(context);
-
     SubGhzProtocolDecoderChrysler_V0* instance = context;
     instance->decoder.decode_data = 0;
     instance->data_2 = 0;
@@ -516,8 +510,6 @@ void subghz_protocol_decoder_chrysler_v0_reset(void* context) {
 }
 
 void subghz_protocol_decoder_chrysler_v0_feed(void* context, bool level, uint32_t duration) {
-    furi_check(context);
-
     SubGhzProtocolDecoderChrysler_V0* instance = context;
 
     switch(instance->decoder.parser_step) {
@@ -641,8 +633,6 @@ SubGhzProtocolStatus subghz_protocol_decoder_chrysler_v0_serialize(
     void* context,
     FlipperFormat* flipper_format,
     SubGhzRadioPreset* preset) {
-    furi_check(context);
-
     SubGhzProtocolDecoderChrysler_V0* instance = context;
     SubGhzProtocolStatus status =
         subghz_block_generic_serialize(&instance->generic, flipper_format, preset);
@@ -689,8 +679,6 @@ SubGhzProtocolStatus subghz_protocol_decoder_chrysler_v0_serialize(
 
 SubGhzProtocolStatus
     subghz_protocol_decoder_chrysler_v0_deserialize(void* context, FlipperFormat* flipper_format) {
-    furi_check(context);
-
     SubGhzProtocolDecoderChrysler_V0* instance = context;
     SubGhzProtocolStatus status =
         subghz_block_generic_deserialize(&instance->generic, flipper_format);
@@ -738,8 +726,6 @@ SubGhzProtocolStatus
 }
 
 void subghz_protocol_decoder_chrysler_v0_get_string(void* context, FuriString* output) {
-    furi_check(context);
-
     SubGhzProtocolDecoderChrysler_V0* instance = context;
 
     furi_string_cat_printf(

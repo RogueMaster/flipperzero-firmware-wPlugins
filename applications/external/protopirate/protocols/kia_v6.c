@@ -468,7 +468,6 @@ static bool kia_v6_decrypt(SubGhzProtocolDecoderKiaV6* instance) {
 
 void* kia_protocol_decoder_v6_alloc(SubGhzEnvironment* environment) {
     SubGhzProtocolDecoderKiaV6* instance = malloc(sizeof(SubGhzProtocolDecoderKiaV6));
-    furi_check(instance);
     memset(instance, 0, sizeof(SubGhzProtocolDecoderKiaV6));
 
     if(environment) {
@@ -481,7 +480,6 @@ void* kia_protocol_decoder_v6_alloc(SubGhzEnvironment* environment) {
 }
 
 void kia_protocol_decoder_v6_reset(void* context) {
-    furi_check(context);
     SubGhzProtocolDecoderKiaV6* instance = context;
     instance->decoder.parser_step = KiaV6DecoderStepReset;
     manchester_advance(
@@ -489,7 +487,6 @@ void kia_protocol_decoder_v6_reset(void* context) {
 }
 
 void kia_protocol_decoder_v6_feed(void* context, bool level, uint32_t duration) {
-    furi_check(context);
     SubGhzProtocolDecoderKiaV6* instance = context;
 
     uint32_t uVar4, uVar5;
@@ -658,7 +655,6 @@ LAB_reset:
 }
 
 uint8_t kia_protocol_decoder_v6_get_hash_data(void* context) {
-    furi_check(context);
     SubGhzProtocolDecoderKiaV6* instance = context;
 
     uint8_t hash = 0;
@@ -680,7 +676,6 @@ SubGhzProtocolStatus kia_protocol_decoder_v6_serialize(
     void* context,
     FlipperFormat* flipper_format,
     SubGhzRadioPreset* preset) {
-    furi_check(context);
     SubGhzProtocolDecoderKiaV6* instance = context;
 
     SubGhzProtocolStatus ret = SubGhzProtocolStatusError;
@@ -734,7 +729,6 @@ SubGhzProtocolStatus kia_protocol_decoder_v6_serialize(
 
 SubGhzProtocolStatus
     kia_protocol_decoder_v6_deserialize(void* context, FlipperFormat* flipper_format) {
-    furi_check(context);
     SubGhzProtocolDecoderKiaV6* instance = context;
 
     SubGhzProtocolStatus ret = SubGhzProtocolStatusError;
@@ -778,7 +772,6 @@ SubGhzProtocolStatus
 }
 
 void kia_protocol_decoder_v6_get_string(void* context, FuriString* output) {
-    furi_check(context);
     SubGhzProtocolDecoderKiaV6* instance = context;
 
     kia_v6_decrypt(instance);
@@ -881,8 +874,6 @@ static void kia_v6_encode_message(
 }
 
 static void kia_protocol_encoder_v6_build_upload(SubGhzProtocolEncoderKiaV6* instance) {
-    furi_check(instance);
-
     kia_v6_encrypt_payload(
         instance->fx_field,
         instance->generic.serial,
@@ -959,7 +950,6 @@ void* kia_protocol_encoder_v6_alloc(SubGhzEnvironment* environment) {
 
 SubGhzProtocolStatus
     kia_protocol_encoder_v6_deserialize(void* context, FlipperFormat* flipper_format) {
-    furi_check(context);
     SubGhzProtocolEncoderKiaV6* instance = context;
 
     instance->encoder.is_running = false;

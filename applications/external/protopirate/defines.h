@@ -22,6 +22,9 @@
 #define PROTOPIRATE_WITH_DECODER 0
 #endif
 
+//Do we want the FALs packaged inside the app or not?
+#define EMBEDDED_FALS
+
 // ****Add logs back for debugging and reporting problems ****
 #define REMOVE_LOGS
 

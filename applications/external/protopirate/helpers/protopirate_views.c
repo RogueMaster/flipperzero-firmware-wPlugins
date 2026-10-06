@@ -6,7 +6,6 @@
 #define TAG "PPViews"
 
 bool protopirate_ensure_widget(ProtoPirateApp* app) {
-    furi_check(app);
     if(app->widget) {
         return true;
     }
@@ -53,7 +52,6 @@ void protopirate_free_text_input(ProtoPirateApp* app) {
 }
 
 bool protopirate_ensure_view_about(ProtoPirateApp* app) {
-    furi_check(app);
     if(app->view_about) {
         return true;
     }
@@ -68,7 +66,6 @@ bool protopirate_ensure_view_about(ProtoPirateApp* app) {
 }
 
 bool protopirate_ensure_receiver_view(ProtoPirateApp* app) {
-    furi_check(app);
     if(app->protopirate_receiver) {
         return true;
     }
@@ -86,8 +83,6 @@ bool protopirate_ensure_receiver_view(ProtoPirateApp* app) {
 }
 
 void protopirate_views_free(ProtoPirateApp* app) {
-    furi_check(app);
-
     if(app->submenu) {
         FURI_LOG_D(TAG, "Removing submenu view");
         view_dispatcher_remove_view(app->view_dispatcher, ProtoPirateViewSubmenu);

@@ -13,19 +13,16 @@
 #define TAG "PPApp"
 
 static bool protopirate_app_custom_event_callback(void* context, uint32_t event) {
-    furi_check(context);
     ProtoPirateApp* app = context;
     return scene_manager_handle_custom_event(app->scene_manager, event);
 }
 
 static bool protopirate_app_back_event_callback(void* context) {
-    furi_check(context);
     ProtoPirateApp* app = context;
     return scene_manager_handle_back_event(app->scene_manager);
 }
 
 static void protopirate_app_tick_event_callback(void* context) {
-    furi_check(context);
     ProtoPirateApp* app = context;
     scene_manager_handle_tick_event(app->scene_manager);
 }
@@ -226,8 +223,6 @@ ProtoPirateApp* protopirate_app_alloc() {
 }
 
 void protopirate_app_free(ProtoPirateApp* app) {
-    furi_check(app);
-
     FURI_LOG_I(TAG, "=== protopirate_app_free called ===");
     FURI_LOG_D(TAG, "State: radio_initialized=%d", app->radio_initialized);
 

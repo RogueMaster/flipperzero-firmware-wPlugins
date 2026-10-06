@@ -503,7 +503,6 @@ const SubGhzProtocol renault_v0_protocol = {
 void* subghz_protocol_encoder_renault_v0_alloc(SubGhzEnvironment* environment) {
     UNUSED(environment);
     SubGhzProtocolEncoderRenaultV0* instance = calloc(1, sizeof(SubGhzProtocolEncoderRenaultV0));
-    furi_check(instance);
     instance->base.protocol = &renault_v0_protocol;
     instance->generic.protocol_name = instance->base.protocol->name;
     instance->encoder.repeat = RENAULT_V0_REPEAT;
@@ -615,7 +614,6 @@ SubGhzProtocolStatus
 void* subghz_protocol_decoder_renault_v0_alloc(SubGhzEnvironment* environment) {
     UNUSED(environment);
     SubGhzProtocolDecoderRenaultV0* instance = calloc(1, sizeof(SubGhzProtocolDecoderRenaultV0));
-    furi_check(instance);
     instance->base.protocol = &renault_v0_protocol;
     instance->generic.protocol_name = instance->base.protocol->name;
     instance->manchester_state = 1U;
@@ -698,7 +696,6 @@ uint8_t subghz_protocol_decoder_renault_v0_get_hash_data(void* context) {
 }
 
 void subghz_protocol_decoder_renault_v0_get_string(void* context, FuriString* output) {
-    furi_check(context);
     SubGhzProtocolDecoderRenaultV0* instance = context;
     furi_string_printf(
         output, "%s %ubit\r\n", instance->generic.protocol_name, instance->packet_bit_count);

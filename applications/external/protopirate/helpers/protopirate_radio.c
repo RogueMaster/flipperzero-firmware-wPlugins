@@ -7,9 +7,6 @@
 #define TAG "PPRadio"
 
 static void protopirate_radio_free_receiver(ProtoPirateApp* app) {
-    furi_check(app);
-    furi_check(app->txrx);
-
     if(!app->txrx->receiver) {
 #ifndef REMOVE_LOGS
         FURI_LOG_D(TAG, "Receiver was NULL, skipping free");
@@ -25,9 +22,6 @@ static void protopirate_radio_free_receiver(ProtoPirateApp* app) {
 }
 
 static void protopirate_radio_free_environment(ProtoPirateApp* app) {
-    furi_check(app);
-    furi_check(app->txrx);
-
     if(!app->txrx->environment) {
 #ifndef REMOVE_LOGS
         FURI_LOG_D(TAG, "Environment was NULL, skipping free");
@@ -44,9 +38,6 @@ static void protopirate_radio_free_environment(ProtoPirateApp* app) {
 }
 
 static void protopirate_radio_end_device(ProtoPirateApp* app, bool sleep_before_end) {
-    furi_check(app);
-    furi_check(app->txrx);
-
     if(!app->txrx->radio_device) {
 #ifndef REMOVE_LOGS
         FURI_LOG_D(TAG, "Radio device was NULL, skipping sleep/end");
@@ -73,9 +64,6 @@ static void protopirate_radio_end_device(ProtoPirateApp* app, bool sleep_before_
 }
 
 static void protopirate_radio_reset_state(ProtoPirateApp* app) {
-    furi_check(app);
-    furi_check(app->txrx);
-
     app->txrx->protocol_registry = NULL;
     app->txrx->protocol_registry_route = ProtoPirateProtocolRegistryRouteAMDefault;
     app->txrx->txrx_state = ProtoPirateTxRxStateIDLE;
@@ -83,9 +71,6 @@ static void protopirate_radio_reset_state(ProtoPirateApp* app) {
 }
 
 static void protopirate_radio_init_cleanup(ProtoPirateApp* app, bool devices_initialized) {
-    furi_check(app);
-    furi_check(app->txrx);
-
     protopirate_radio_free_receiver(app);
     protopirate_radio_end_device(app, false);
     protopirate_radio_free_environment(app);
@@ -99,9 +84,6 @@ static void protopirate_radio_init_cleanup(ProtoPirateApp* app, bool devices_ini
 }
 
 bool protopirate_radio_init(ProtoPirateApp* app) {
-    furi_check(app);
-    furi_check(app->txrx);
-
     FURI_LOG_I(TAG, "=== protopirate_radio_init called ===");
 #ifndef REMOVE_LOGS
     FURI_LOG_D(TAG, "State: radio_initialized=%d", app->radio_initialized);
@@ -183,9 +165,6 @@ bool protopirate_radio_init(ProtoPirateApp* app) {
 }
 
 void protopirate_radio_deinit(ProtoPirateApp* app) {
-    furi_check(app);
-    furi_check(app->txrx);
-
     FURI_LOG_I(TAG, "=== protopirate_radio_deinit called ===");
 #ifndef REMOVE_LOGS
     FURI_LOG_D(TAG, "State: radio_initialized=%d", app->radio_initialized);

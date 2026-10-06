@@ -181,7 +181,12 @@ bool shared_plugin_load(
     //Load the FAP
 #define FILE_NAME_BUFFER_SIZE 128
     char buffer[FILE_NAME_BUFFER_SIZE] = {0};
+#ifdef EMBEDDED_FALS
     snprintf(buffer, FILE_NAME_BUFFER_SIZE, "%s%s", APP_ASSETS_PATH("plugins/"), plugin_path);
+#else
+    snprintf(buffer, FILE_NAME_BUFFER_SIZE, "%s%s", APP_DATA_PATH("plugins/"), plugin_path);
+#endif
+
     const FlipperAppPluginDescriptor* app_descriptor =
         load_plugin_fal(&fal_app, buffer, application_id, api_version);
     if(app_descriptor) {

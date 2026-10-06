@@ -8,7 +8,8 @@
 
 //This is the maximum length of all protocols. It is currently used so the Save Dialogs in Sub Decode
 // and receiver can allocate enough, but not too much memory to store a buffer with the protocol name included.
-#define PROTOPIRATE_PROTOCOL_NAME_MAX 12 //"Honda Static" is longest name at present.
+#define PROTOPIRATE_PROTOCOL_NAME_MAX \
+    15 //"Mitsubishi V0" is longest name at present, leave a couple extra bytes.
 typedef enum {
     ProtoPirateProtocolPluginKindRx = 0,
     ProtoPirateProtocolPluginKindTx,

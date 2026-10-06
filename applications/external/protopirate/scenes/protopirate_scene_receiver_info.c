@@ -204,7 +204,6 @@ static void protopirate_scene_receiver_info_widget_callback(
 }
 
 void protopirate_scene_receiver_info_on_enter(void* context) {
-    furi_check(context);
     ProtoPirateApp* app = context;
 
     if(!protopirate_ensure_widget(app)) {
@@ -232,26 +231,38 @@ bool protopirate_scene_receiver_info_on_event(void* context, SceneManagerEvent e
     ProtoPirateApp* app = context;
     bool consumed = false;
 
-    if((event.type == SceneManagerEventTypeCustom) &&
-       (event.event == ProtoPirateCustomEventBruteforceStart) &&
-       !protopirate_bruteforce_plugin_ensure_loaded(app)) {
-        FURI_LOG_E(TAG, "Failed to load PSA bruteforce plugin");
-        notification_message(app->notifications, &sequence_error);
-        return true;
-    }
+    if(event.type == SceneManagerEventTypeCustom) {
+        if(event.event == ProtoPirateCustomEventBruteforceStart) {
+            if(protopirate_bruteforce_plugin_ensure_loaded(app) &&
 
-    if(app->running_bruteforce_plugin.bruteforce_plugin) {
-        if(app->running_bruteforce_plugin.bruteforce_plugin->is_running(app) ||
-           event.event == ProtoPirateCustomEventBruteforceStart) {
-            consumed = app->running_bruteforce_plugin.bruteforce_plugin->on_scene_event(
-                app, ProtoPirateBruteForceContextReceiverInfo, event);
-            if(consumed) return true;
+               app->running_bruteforce_plugin.bruteforce_plugin) {
+                FURI_LOG_E(TAG, "Started Bruteforce");
+                consumed = app->running_bruteforce_plugin.bruteforce_plugin->on_scene_event(
+                    app, ProtoPirateBruteForceContextReceiverInfo, event);
+            } else {
+                FURI_LOG_E(TAG, "Failed to load PSA bruteforce plugin");
+                notification_message(app->notifications, &sequence_error);
+                consumed = true;
+            }
+            return consumed;
         }
-        if(event.type == SceneManagerEventTypeBack &&
+    } else if(event.type == SceneManagerEventTypeBack) {
+        if(app->running_bruteforce_plugin.bruteforce_plugin &&
            app->running_bruteforce_plugin.bruteforce_plugin->on_scene_event(
                app, ProtoPirateBruteForceContextReceiverInfo, event)) {
-            return true;
+            consumed = true;
+        } else if(app->dialog_showing) {
+            app->dialog_showing = false;
+            consumed = false;
+            view_dispatcher_switch_to_view(app->view_dispatcher, ProtoPirateViewWidget);
+        } else {
+            consumed = false;
         }
+        return consumed;
+    } else if(app->running_bruteforce_plugin.bruteforce_plugin) {
+        FURI_LOG_E(TAG, "Bruteforcing");
+        return app->running_bruteforce_plugin.bruteforce_plugin->on_scene_event(
+            app, ProtoPirateBruteForceContextReceiverInfo, event);
     }
 
     if(event.type == SceneManagerEventTypeCustom) {
@@ -362,7 +373,7 @@ bool protopirate_scene_receiver_info_on_event(void* context, SceneManagerEvent e
                     false); // don't clear default text
 
                 view_dispatcher_switch_to_view(app->view_dispatcher, ProtoPirateViewTextInput);
-
+                app->dialog_showing = true;
                 free(file_name_str);
                 furi_string_free(buffer);
             }
@@ -393,6 +404,7 @@ bool protopirate_scene_receiver_info_on_event(void* context, SceneManagerEvent e
 
             // Return to the receiver info widget
             view_dispatcher_switch_to_view(app->view_dispatcher, ProtoPirateViewWidget);
+            app->dialog_showing = false;
 
             //Kill the text_input view.
             protopirate_free_text_input(app);
@@ -431,7 +443,6 @@ bool protopirate_scene_receiver_info_on_event(void* context, SceneManagerEvent e
 }
 
 void protopirate_scene_receiver_info_on_exit(void* context) {
-    furi_check(context);
     ProtoPirateApp* app = context;
     protopirate_bruteforce_context_release(app);
     widget_reset(app->widget);

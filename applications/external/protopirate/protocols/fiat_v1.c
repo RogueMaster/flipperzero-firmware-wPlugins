@@ -635,7 +635,6 @@ static void fiat_v1_verify_hitag2_key(SubGhzProtocolDecoderFiatV1* instance) {
 
 #if PROTOPIRATE_WITH_ENCODER
 static bool fiat_v1_encoder_build_upload(SubGhzProtocolEncoderFiatV1* instance) {
-    furi_check(instance);
     LevelDuration* upload = instance->encoder.upload;
     if(!upload) {
         return false;
@@ -655,7 +654,6 @@ static bool fiat_v1_encoder_build_upload(SubGhzProtocolEncoderFiatV1* instance) 
     }
 
     index = pp_emit_merge(upload, index, cap, false, fiat_v1_enc_gap_us(variant));
-    furi_check(index <= cap);
     instance->encoder.size_upload = index;
     instance->encoder.front = 0U;
     return true;
@@ -664,7 +662,6 @@ static bool fiat_v1_encoder_build_upload(SubGhzProtocolEncoderFiatV1* instance) 
 void* subghz_protocol_encoder_fiat_v1_alloc(SubGhzEnvironment* environment) {
     UNUSED(environment);
     SubGhzProtocolEncoderFiatV1* instance = calloc(1, sizeof(SubGhzProtocolEncoderFiatV1));
-    furi_check(instance);
 
     instance->base.protocol = &fiat_v1_protocol;
     instance->generic.protocol_name = instance->base.protocol->name;
@@ -676,8 +673,6 @@ void* subghz_protocol_encoder_fiat_v1_alloc(SubGhzEnvironment* environment) {
 
 SubGhzProtocolStatus
     subghz_protocol_encoder_fiat_v1_deserialize(void* context, FlipperFormat* flipper_format) {
-    furi_check(context);
-    furi_check(flipper_format);
     SubGhzProtocolEncoderFiatV1* instance = context;
 
     instance->encoder.is_running = false;
@@ -817,7 +812,6 @@ SubGhzProtocolStatus
 void* subghz_protocol_decoder_fiat_v1_alloc(SubGhzEnvironment* environment) {
     UNUSED(environment);
     SubGhzProtocolDecoderFiatV1* instance = calloc(1, sizeof(SubGhzProtocolDecoderFiatV1));
-    furi_check(instance);
     instance->base.protocol = &fiat_v1_protocol;
     instance->generic.protocol_name = instance->base.protocol->name;
     subghz_protocol_decoder_fiat_v1_reset(instance);
@@ -825,7 +819,6 @@ void* subghz_protocol_decoder_fiat_v1_alloc(SubGhzEnvironment* environment) {
 }
 
 void subghz_protocol_decoder_fiat_v1_reset(void* context) {
-    furi_check(context);
     SubGhzProtocolDecoderFiatV1* instance = context;
 
     memset(instance->raw_data, 0, sizeof(instance->raw_data));
@@ -852,7 +845,6 @@ void subghz_protocol_decoder_fiat_v1_reset(void* context) {
 }
 
 void subghz_protocol_decoder_fiat_v1_feed(void* context, bool level, uint32_t duration) {
-    furi_check(context);
     SubGhzProtocolDecoderFiatV1* instance = context;
 
     switch(instance->decoder.parser_step) {
@@ -873,7 +865,6 @@ void subghz_protocol_decoder_fiat_v1_feed(void* context, bool level, uint32_t du
 }
 
 uint8_t subghz_protocol_decoder_fiat_v1_get_hash_data(void* context) {
-    furi_check(context);
     SubGhzProtocolDecoderFiatV1* instance = context;
     SubGhzBlockDecoder decoder = {
         .decode_data = instance->generic.data,
@@ -888,7 +879,6 @@ SubGhzProtocolStatus subghz_protocol_decoder_fiat_v1_serialize(
     void* context,
     FlipperFormat* flipper_format,
     SubGhzRadioPreset* preset) {
-    furi_check(context);
     SubGhzProtocolDecoderFiatV1* instance = context;
 
     SubGhzProtocolStatus ret =
@@ -942,7 +932,6 @@ static void
 
 SubGhzProtocolStatus
     subghz_protocol_decoder_fiat_v1_deserialize(void* context, FlipperFormat* flipper_format) {
-    furi_check(context);
     SubGhzProtocolDecoderFiatV1* instance = context;
 
     SubGhzProtocolStatus ret = subghz_block_generic_deserialize_check_count_bit(
@@ -1008,7 +997,6 @@ SubGhzProtocolStatus
 }
 
 void subghz_protocol_decoder_fiat_v1_get_string(void* context, FuriString* output) {
-    furi_check(context);
     SubGhzProtocolDecoderFiatV1* instance = context;
 
     furi_string_cat_printf(

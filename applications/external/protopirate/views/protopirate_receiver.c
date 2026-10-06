@@ -413,7 +413,6 @@ void protopirate_view_receiver_draw(Canvas* canvas, ProtoPirateReceiverModel* mo
 }
 
 bool protopirate_view_receiver_input(InputEvent* event, void* context) {
-    furi_check(context);
     ProtoPirateReceiver* receiver = context;
 
     bool consumed = false;
@@ -557,12 +556,10 @@ bool protopirate_view_receiver_input(InputEvent* event, void* context) {
 }
 
 void protopirate_view_receiver_enter(void* context) {
-    furi_check(context);
     UNUSED(context);
 }
 
 void protopirate_view_receiver_exit(void* context) {
-    furi_check(context);
     UNUSED(context);
 }
 
@@ -586,7 +583,6 @@ ProtoPirateReceiver* protopirate_view_receiver_alloc(bool auto_save) {
             model->preset_str = malloc(8);
             model->history_stat_str = malloc(16);
             model->draw_scratch = furi_string_alloc();
-            furi_check(model->draw_scratch);
             model->list_offset = 0;
             model->history_item = 0;
             model->rssi = -127.0f;
@@ -605,8 +601,6 @@ ProtoPirateReceiver* protopirate_view_receiver_alloc(bool auto_save) {
 }
 
 void protopirate_view_receiver_free(ProtoPirateReceiver* receiver) {
-    furi_check(receiver);
-
     with_view_model(
         receiver->view,
         ProtoPirateReceiverModel * model,
@@ -623,7 +617,6 @@ void protopirate_view_receiver_free(ProtoPirateReceiver* receiver) {
 }
 
 void protopirate_view_receiver_reset_menu(ProtoPirateReceiver* receiver) {
-    furi_check(receiver);
     with_view_model(
         receiver->view,
         ProtoPirateReceiverModel * model,
@@ -638,9 +631,6 @@ void protopirate_view_receiver_reset_menu(ProtoPirateReceiver* receiver) {
 void protopirate_view_receiver_sync_menu_from_history(
     ProtoPirateReceiver* receiver,
     ProtoPirateHistory* history) {
-    furi_check(receiver);
-    furi_check(history);
-
     with_view_model(
         receiver->view,
         ProtoPirateReceiverModel * model,
@@ -664,7 +654,6 @@ void protopirate_view_receiver_sync_menu_from_history(
 }
 
 void protopirate_view_receiver_pop_first_menu_item(ProtoPirateReceiver* receiver) {
-    furi_check(receiver);
     with_view_model(
         receiver->view,
         ProtoPirateReceiverModel * model,
@@ -684,8 +673,6 @@ void protopirate_view_receiver_pop_first_menu_item(ProtoPirateReceiver* receiver
 }
 
 void protopirate_view_receiver_delete_item(ProtoPirateReceiver* receiver, uint16_t idx) {
-    furi_check(receiver);
-
     with_view_model(
         receiver->view,
         ProtoPirateReceiverModel * model,
@@ -717,19 +704,15 @@ void protopirate_view_receiver_append_menu_row_from_history(
     ProtoPirateReceiver* receiver,
     ProtoPirateHistory* history,
     uint16_t idx) {
-    furi_check(receiver);
-    furi_check(history);
     UNUSED(idx);
     protopirate_view_receiver_sync_menu_from_history(receiver, history);
 }
 
 View* protopirate_view_receiver_get_view(ProtoPirateReceiver* receiver) {
-    furi_check(receiver);
     return receiver->view;
 }
 
 uint16_t protopirate_view_receiver_get_idx_menu(ProtoPirateReceiver* receiver) {
-    furi_check(receiver);
     uint16_t idx = 0;
     with_view_model(
         receiver->view, ProtoPirateReceiverModel * model, { idx = model->history_item; }, false);
@@ -737,7 +720,6 @@ uint16_t protopirate_view_receiver_get_idx_menu(ProtoPirateReceiver* receiver) {
 }
 
 void protopirate_view_receiver_set_idx_menu(ProtoPirateReceiver* receiver, uint16_t idx) {
-    furi_check(receiver);
     with_view_model(
         receiver->view,
         ProtoPirateReceiverModel * model,

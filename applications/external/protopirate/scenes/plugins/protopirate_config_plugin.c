@@ -60,8 +60,6 @@ const char* const tx_power_text[TX_POWER_COUNT] = {
 #endif
 
 bool protopirate_ensure_variable_item_list(ProtoPirateApp* app) {
-    furi_check(app);
-
     if(app->variable_item_list) {
         view_dispatcher_remove_view(app->view_dispatcher, ProtoPirateViewVariableItemList);
         variable_item_list_free(app->variable_item_list);
@@ -269,7 +267,6 @@ static void protopirate_scene_receiver_config_set_model(VariableItem* item) {
 
 static uint8_t
     protopirate_scene_receiver_config_next_frequency(const uint32_t value, void* context) {
-    furi_check(context);
     ProtoPirateApp* app = context;
     uint8_t index = 0;
     for(uint8_t i = 0; i < subghz_setting_get_frequency_count(app->setting); i++) {
@@ -285,7 +282,6 @@ static uint8_t
 
 static uint8_t
     protopirate_scene_receiver_config_next_preset(const char* preset_name, void* context) {
-    furi_check(context);
     ProtoPirateApp* app = context;
     uint8_t index = 0;
     for(uint8_t i = 0; i < subghz_setting_get_preset_count(app->setting); i++) {
@@ -302,7 +298,6 @@ static uint8_t protopirate_scene_receiver_config_hopper_value_index(
     const uint32_t values[],
     uint8_t values_count,
     void* context) {
-    furi_check(context);
     UNUSED(values_count);
     ProtoPirateApp* app = context;
 
@@ -364,7 +359,6 @@ static void protopirate_scene_receiver_config_set_tx_power(VariableItem* item) {
 
 static void
     protopirate_scene_receiver_config_var_list_enter_callback(void* context, uint32_t index) {
-    furi_check(context);
     ProtoPirateApp* app = context;
 
     FURI_LOG_D("TEST", "Index= %lu", index);
