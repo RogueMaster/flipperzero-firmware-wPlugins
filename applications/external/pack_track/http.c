@@ -1,0 +1,310 @@
+#include "http.h"
+
+#include <furi.h>
+#include <furi_hal_serial.h>
+#include <furi_hal_serial_control.h>
+#include <expansion/expansion.h>
+#include <string.h>
+
+#define FHTTP_BAUD    115200
+#define FHTTP_RX_SIZE 2048
+
+struct FhttpClient {
+    FuriHalSerialHandle* serial;
+    Expansion* expansion;
+    FuriStreamBuffer* rx;
+    bool open;
+};
+
+// Runs in interrupt context — just push bytes into the stream buffer.
+static void fhttp_rx_cb(FuriHalSerialHandle* handle, FuriHalSerialRxEvent event, void* context) {
+    FhttpClient* c = context;
+    if(event & FuriHalSerialRxEventData) {
+        while(furi_hal_serial_async_rx_available(handle)) {
+            uint8_t b = furi_hal_serial_async_rx(handle);
+            furi_stream_buffer_send(c->rx, &b, 1, 0);
+        }
+    }
+}
+
+FhttpClient* fhttp_alloc(void) {
+    FhttpClient* c = malloc(sizeof(FhttpClient));
+    c->serial = NULL;
+    c->expansion = NULL;
+    c->open = false;
+    c->rx = furi_stream_buffer_alloc(FHTTP_RX_SIZE, 1);
+    return c;
+}
+
+void fhttp_free(FhttpClient* c) {
+    if(c->open) fhttp_close(c);
+    furi_stream_buffer_free(c->rx);
+    free(c);
+}
+
+bool fhttp_open(FhttpClient* c) {
+    if(c->open) return true;
+    c->expansion = furi_record_open(RECORD_EXPANSION);
+    expansion_disable(c->expansion);
+    // The expansion service tears down asynchronously; give it a moment before
+    // taking the pins, or its teardown lands on top of our configuration.
+    furi_delay_ms(200);
+
+    c->serial = furi_hal_serial_control_acquire(FuriHalSerialIdUsart);
+    if(!c->serial) {
+        expansion_enable(c->expansion);
+        furi_record_close(RECORD_EXPANSION);
+        c->expansion = NULL;
+        return false;
+    }
+    furi_hal_serial_init(c->serial, FHTTP_BAUD);
+    // Without this the RX pin is never switched to its UART alternate function,
+    // so nothing the board sends ever reaches the callback.
+    furi_hal_serial_enable_direction(c->serial, FuriHalSerialDirectionTx);
+    furi_hal_serial_enable_direction(c->serial, FuriHalSerialDirectionRx);
+    furi_stream_buffer_reset(c->rx);
+    furi_hal_serial_async_rx_start(c->serial, fhttp_rx_cb, c, false);
+    c->open = true;
+    return true;
+}
+
+void fhttp_close(FhttpClient* c) {
+    if(!c->open) return;
+    furi_hal_serial_async_rx_stop(c->serial);
+    furi_hal_serial_disable_direction(c->serial, FuriHalSerialDirectionRx);
+    furi_hal_serial_disable_direction(c->serial, FuriHalSerialDirectionTx);
+    furi_hal_serial_deinit(c->serial);
+    furi_hal_serial_control_release(c->serial);
+    c->serial = NULL;
+    expansion_enable(c->expansion);
+    furi_record_close(RECORD_EXPANSION);
+    c->expansion = NULL;
+    c->open = false;
+}
+
+// --- low level ---
+
+static void fhttp_send_line(FhttpClient* c, const char* s) {
+    furi_hal_serial_tx(c->serial, (const uint8_t*)s, strlen(s));
+    furi_hal_serial_tx(c->serial, (const uint8_t*)"\n", 1);
+    furi_hal_serial_tx_wait_complete(c->serial);
+}
+
+static bool contains(const char* hay, const char* needle) {
+    size_t nl = strlen(needle);
+    for(const char* h = hay; *h; h++) {
+        size_t i = 0;
+        while(needle[i] && h[i] == needle[i])
+            i++;
+        if(i == nl) return true;
+    }
+    return false;
+}
+
+// Accumulate incoming bytes (rolling window) until any of a/b appears, or
+// [ERROR]/timeout. b may be NULL.
+static bool fhttp_wait_any(FhttpClient* c, const char* a, const char* b, uint32_t timeout_ms) {
+    char buf[256];
+    size_t len = 0;
+    buf[0] = '\0';
+    uint32_t start = furi_get_tick();
+    uint32_t to = furi_ms_to_ticks(timeout_ms);
+    while(furi_get_tick() - start < to) {
+        uint8_t ch;
+        if(furi_stream_buffer_receive(c->rx, &ch, 1, furi_ms_to_ticks(50)) == 0) continue;
+        if(len < sizeof(buf) - 1) {
+            buf[len++] = (char)ch;
+        } else {
+            memmove(buf, buf + 1, sizeof(buf) - 2);
+            buf[sizeof(buf) - 2] = (char)ch;
+            len = sizeof(buf) - 1;
+        }
+        buf[len] = '\0';
+        if(contains(buf, a)) return true;
+        if(b && contains(buf, b)) return true;
+        if(contains(buf, "[ERROR]")) return false;
+    }
+    return false;
+}
+
+// The board can be slow to answer: it may still be booting after power-up, or
+// busy finishing an earlier request. Give it several tries before giving up.
+bool fhttp_ping(FhttpClient* c) {
+    if(!c->open) return false;
+    for(int attempt = 0; attempt < 4; attempt++) {
+        furi_stream_buffer_reset(c->rx);
+        fhttp_send_line(c, "[PING]");
+        if(fhttp_wait_any(c, "[PONG]", NULL, 2000)) return true;
+    }
+    return false;
+}
+
+bool fhttp_wifi(FhttpClient* c, const char* ssid, const char* pass) {
+    if(!c->open) return false;
+    char cmd[256];
+    snprintf(cmd, sizeof(cmd), "[WIFI/SAVE]{\"ssid\":\"%s\",\"password\":\"%s\"}", ssid, pass);
+    furi_stream_buffer_reset(c->rx);
+    fhttp_send_line(c, cmd);
+
+    // [WIFI/SAVE] joins the network first and only stores the credentials once
+    // that works, so its own reply is authoritative. Joining can take a while,
+    // so wait properly rather than treating this as best-effort.
+    if(fhttp_wait_any(c, "[SUCCESS]", NULL, 20000)) return true;
+
+    // Otherwise ask explicitly. A board that is already joined answers
+    // "[INFO] Already connected to WiFi.", which is still success for us.
+    furi_stream_buffer_reset(c->rx);
+    fhttp_send_line(c, "[WIFI/CONNECT]");
+    return fhttp_wait_any(c, "[SUCCESS]", "Already connected", 20000);
+}
+
+// Serialise "Name: value" header strings into the JSON object already opened
+// in cmd. Returns the new length.
+// The board prefixes every response body with its own metadata line, for
+// example {"Status-Code":200,"Content-Length":424}, sometimes preceded on the
+// same line by a marker such as [POST/SUCCESS]. Drop that whole first line so
+// callers parse the response itself rather than the envelope around it.
+static void strip_meta_line(char* out) {
+    if(out[0] != '[' && strncmp(out, "{\"Status-Code\"", 14) != 0) return;
+    char* nl = out;
+    while(*nl && *nl != '\n')
+        nl++;
+    if(*nl == '\n') {
+        nl++;
+        memmove(out, nl, strlen(nl) + 1);
+    }
+}
+
+static int
+    append_headers(char* cmd, int n, size_t cap, const char* const* headers, int header_count) {
+    for(int i = 0; i < header_count && n < (int)cap - 8; i++) {
+        const char* h = headers[i];
+        const char* colon = h;
+        while(*colon && *colon != ':')
+            colon++;
+        if(!*colon) continue;
+        char name[64];
+        size_t nl = (size_t)(colon - h);
+        if(nl > sizeof(name) - 1) nl = sizeof(name) - 1;
+        memcpy(name, h, nl);
+        name[nl] = '\0';
+        const char* val = colon + 1;
+        while(*val == ' ')
+            val++;
+        n += snprintf(cmd + n, cap - (size_t)n, "%s\"%s\":\"%s\"", (i ? "," : ""), name, val);
+    }
+    return n;
+}
+
+// The POST payload is itself JSON, and it travels as a string inside the
+// command's JSON, so its quotes and backslashes have to be escaped.
+static void json_escape(const char* in, char* out, size_t cap) {
+    size_t n = 0;
+    for(const char* p = in; *p && n + 2 < cap; p++) {
+        if(*p == '"' || *p == '\\') {
+            out[n++] = '\\';
+            out[n++] = *p;
+        } else if(*p == '\n') {
+            out[n++] = '\\';
+            out[n++] = 'n';
+        } else if(*p == '\r') {
+            out[n++] = '\\';
+            out[n++] = 'r';
+        } else {
+            out[n++] = *p;
+        }
+    }
+    out[n] = '\0';
+}
+
+// Accumulate into out until the end marker arrives; the marker and any
+// trailing whitespace are trimmed off.
+static bool fhttp_collect_until(
+    FhttpClient* c,
+    const char* endm,
+    char* out,
+    size_t out_cap,
+    uint32_t timeout_ms) {
+    size_t el = strlen(endm);
+    size_t len = 0;
+    out[0] = '\0';
+    uint32_t start = furi_get_tick();
+    uint32_t to = furi_ms_to_ticks(timeout_ms);
+    while(furi_get_tick() - start < to) {
+        uint8_t ch;
+        if(furi_stream_buffer_receive(c->rx, &ch, 1, furi_ms_to_ticks(50)) == 0) continue;
+        if(len < out_cap - 1) {
+            out[len++] = (char)ch;
+            out[len] = '\0';
+        }
+        if(len >= el && memcmp(out + len - el, endm, el) == 0) {
+            len -= el;
+            while(len > 0 && (out[len - 1] == '\n' || out[len - 1] == '\r' || out[len - 1] == ' '))
+                len--;
+            out[len] = '\0';
+            return true;
+        }
+    }
+    return false;
+}
+
+bool fhttp_get(
+    FhttpClient* c,
+    const char* url,
+    const char* const* headers,
+    int header_count,
+    char* out,
+    size_t out_cap) {
+    if(!c->open) return false;
+
+    char cmd[768];
+    int n = snprintf(cmd, sizeof(cmd), "[GET/HTTP]{\"url\":\"%s\",\"headers\":{", url);
+    n = append_headers(cmd, n, sizeof(cmd), headers, header_count);
+    if(n < (int)sizeof(cmd) - 2) n += snprintf(cmd + n, sizeof(cmd) - n, "}}");
+
+    furi_stream_buffer_reset(c->rx);
+    fhttp_send_line(c, cmd);
+
+    if(!fhttp_wait_any(c, "[GET/SUCCESS]", NULL, 15000)) return false;
+    if(!fhttp_collect_until(c, "[GET/END]", out, out_cap, 15000)) return false;
+
+    strip_meta_line(out);
+    return true;
+}
+
+bool fhttp_post(
+    FhttpClient* c,
+    const char* url,
+    const char* const* headers,
+    int header_count,
+    const char* payload,
+    char* out,
+    size_t out_cap) {
+    if(!c->open) return false;
+
+    char esc[384];
+    json_escape(payload, esc, sizeof(esc));
+
+    char cmd[768];
+    int n = snprintf(
+        cmd, sizeof(cmd), "[POST/HTTP]{\"url\":\"%s\",\"payload\":\"%s\",\"headers\":{", url, esc);
+    n = append_headers(cmd, n, sizeof(cmd), headers, header_count);
+    if(n < (int)sizeof(cmd) - 2) n += snprintf(cmd + n, sizeof(cmd) - n, "}}");
+
+    furi_stream_buffer_reset(c->rx);
+    fhttp_send_line(c, cmd);
+
+    // The board answers [POST/SUCCESS], then the body, then [POST/END].
+    if(!fhttp_wait_any(c, "[POST/SUCCESS]", NULL, 20000)) return false;
+    if(!fhttp_collect_until(c, "[POST/END]", out, out_cap, 20000)) return false;
+    strip_meta_line(out);
+    return true;
+}
+
+bool fhttp_scan(FhttpClient* c, char* out, size_t out_cap) {
+    if(!c->open) return false;
+    furi_stream_buffer_reset(c->rx);
+    fhttp_send_line(c, "[WIFI/SCAN]");
+    if(!fhttp_wait_any(c, "[GET/SUCCESS]", NULL, 15000)) return false;
+    return fhttp_collect_until(c, "[GET/END]", out, out_cap, 15000);
+}

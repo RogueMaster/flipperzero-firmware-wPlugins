@@ -1,0 +1,407 @@
+#include <stdio.h>
+#include "tracker_util.h"
+
+#include <string.h>
+
+// --- small helpers -------------------------------------------------------
+
+static void trim_range(const char** ps, const char** pe) {
+    const char* s = *ps;
+    const char* e = *pe;
+    while(s < e && (*s == ' ' || *s == '\t'))
+        s++;
+    while(e > s && (e[-1] == ' ' || e[-1] == '\t' || e[-1] == '\r'))
+        e--;
+    *ps = s;
+    *pe = e;
+}
+
+static void copy_range(char* dst, size_t cap, const char* s, const char* e) {
+    size_t len = (size_t)(e - s);
+    if(len > cap - 1) len = cap - 1;
+    memcpy(dst, s, len);
+    dst[len] = '\0';
+}
+
+static bool key_is(const char* s, const char* e, const char* key) {
+    size_t klen = strlen(key);
+    if((size_t)(e - s) != klen) return false;
+    for(size_t i = 0; i < klen; i++)
+        if(s[i] != key[i]) return false;
+    return true;
+}
+
+static bool starts(const char* p, const char* lit) {
+    for(size_t i = 0; lit[i]; i++)
+        if(p[i] != lit[i]) return false;
+    return true;
+}
+
+// --- config --------------------------------------------------------------
+
+bool config_parse(const char* buf, TrackerConfig* cfg) {
+    memset(cfg, 0, sizeof(*cfg));
+    const char* p = buf;
+    while(*p) {
+        const char* ls = p;
+        while(*p && *p != '\n')
+            p++;
+        const char* le = p;
+        if(*p == '\n') p++;
+
+        const char* s = ls;
+        const char* e = le;
+        trim_range(&s, &e);
+        if(s == e || *s == '#') continue;
+
+        const char* eq = s;
+        while(eq < e && *eq != '=')
+            eq++;
+        if(eq == e) continue;
+
+        const char* ks = s;
+        const char* ke = eq;
+        const char* vs = eq + 1;
+        const char* ve = e;
+        trim_range(&ks, &ke);
+        trim_range(&vs, &ve);
+
+        if(key_is(ks, ke, "WIFI_SSID")) {
+            copy_range(cfg->wifi_ssid, sizeof(cfg->wifi_ssid), vs, ve);
+            cfg->has_wifi = cfg->wifi_ssid[0] != '\0';
+        } else if(key_is(ks, ke, "WIFI_PASS")) {
+            copy_range(cfg->wifi_pass, sizeof(cfg->wifi_pass), vs, ve);
+        } else if(key_is(ks, ke, "URL")) {
+            copy_range(cfg->url, sizeof(cfg->url), vs, ve);
+            cfg->has_url = cfg->url[0] != '\0';
+        } else if(key_is(ks, ke, "METHOD")) {
+            char m[8];
+            copy_range(m, sizeof(m), vs, ve);
+            cfg->is_post = (m[0] == 'P' || m[0] == 'p');
+        } else if(key_is(ks, ke, "BODY")) {
+            copy_range(cfg->body, sizeof(cfg->body), vs, ve);
+        } else if(key_is(ks, ke, "HEADER")) {
+            if(cfg->header_count < TU_HDR_MAX)
+                copy_range(cfg->headers[cfg->header_count++], TU_HDR_LEN, vs, ve);
+        } else if(key_is(ks, ke, "FIELD_STATUS")) {
+            copy_range(cfg->field_status, TU_PATH_MAX, vs, ve);
+        } else if(key_is(ks, ke, "FIELD_LOCATION")) {
+            copy_range(cfg->field_location, TU_PATH_MAX, vs, ve);
+        } else if(key_is(ks, ke, "FIELD_UPDATED")) {
+            copy_range(cfg->field_updated, TU_PATH_MAX, vs, ve);
+        }
+    }
+    return cfg->has_url;
+}
+
+// --- url templating ------------------------------------------------------
+
+size_t
+    url_build(const char* tmpl, const char* tracking, const char* carrier, char* out, size_t cap) {
+    size_t o = 0;
+    const char* p = tmpl;
+    while(*p && o < cap - 1) {
+        const char* rep = NULL;
+        size_t skip = 0;
+        if(*p == '{') {
+            if(starts(p, "{tracking}")) {
+                rep = tracking ? tracking : "";
+                skip = 10;
+            } else if(starts(p, "{carrier}")) {
+                rep = carrier ? carrier : "";
+                skip = 9;
+            }
+        }
+        if(rep) {
+            for(const char* r = rep; *r && o < cap - 1; r++)
+                out[o++] = *r;
+            p += skip;
+        } else {
+            out[o++] = *p++;
+        }
+    }
+    out[o] = '\0';
+    return o;
+}
+
+// --- json path extraction ------------------------------------------------
+
+static const char* skip_ws(const char* p) {
+    while(*p == ' ' || *p == '\t' || *p == '\n' || *p == '\r')
+        p++;
+    return p;
+}
+
+static const char* skip_string(const char* p) {
+    p++; // opening quote
+    while(*p) {
+        if(*p == '\\' && p[1]) {
+            p += 2;
+            continue;
+        }
+        if(*p == '"') return p + 1;
+        p++;
+    }
+    return p;
+}
+
+static const char* skip_value(const char* p) {
+    p = skip_ws(p);
+    if(*p == '"') return skip_string(p);
+    if(*p == '{' || *p == '[') {
+        char open = *p;
+        char close = (open == '{') ? '}' : ']';
+        int depth = 0;
+        while(*p) {
+            if(*p == '"') {
+                p = skip_string(p);
+                continue;
+            }
+            if(*p == open)
+                depth++;
+            else if(*p == close) {
+                depth--;
+                if(depth == 0) return p + 1;
+            }
+            p++;
+        }
+        return p;
+    }
+    while(*p && *p != ',' && *p != '}' && *p != ']' && *p != ' ' && *p != '\t' && *p != '\n' &&
+          *p != '\r')
+        p++;
+    return p;
+}
+
+static const char* obj_find(const char* p, const char* key, size_t keylen) {
+    p = skip_ws(p);
+    if(*p != '{') return NULL;
+    p++;
+    while(1) {
+        p = skip_ws(p);
+        if(*p == '}' || *p == '\0') return NULL;
+        if(*p != '"') return NULL;
+        const char* ks = p + 1;
+        const char* nextp = skip_string(p);
+        const char* ke = nextp - 1;
+        bool match = ((size_t)(ke - ks) == keylen);
+        if(match)
+            for(size_t i = 0; i < keylen; i++)
+                if(ks[i] != key[i]) {
+                    match = false;
+                    break;
+                }
+        p = skip_ws(nextp);
+        if(*p != ':') return NULL;
+        p++;
+        p = skip_ws(p);
+        if(match) return p;
+        p = skip_value(p);
+        p = skip_ws(p);
+        if(*p == ',') {
+            p++;
+            continue;
+        }
+        return NULL;
+    }
+}
+
+static const char* arr_nth(const char* p, int n) {
+    p = skip_ws(p);
+    if(*p != '[') return NULL;
+    p++;
+    p = skip_ws(p);
+    if(*p == ']') return NULL;
+    for(int i = 0; i < n; i++) {
+        p = skip_value(p);
+        p = skip_ws(p);
+        if(*p != ',') return NULL;
+        p++;
+        p = skip_ws(p);
+    }
+    return p;
+}
+
+static bool seg_is_num(const char* s, const char* e) {
+    if(s == e) return false;
+    for(const char* p = s; p < e; p++)
+        if(*p < '0' || *p > '9') return false;
+    return true;
+}
+
+static int seg_to_int(const char* s, const char* e) {
+    int v = 0;
+    for(const char* p = s; p < e; p++)
+        v = v * 10 + (*p - '0');
+    return v;
+}
+
+static void extract_leaf(const char* p, char* out, size_t cap) {
+    p = skip_ws(p);
+    size_t o = 0;
+    if(*p == '"') {
+        p++;
+        while(*p && *p != '"' && o < cap - 1) {
+            if(*p == '\\' && p[1]) {
+                char c = p[1];
+                out[o++] = (c == 'n' || c == 't' || c == 'r') ? ' ' : c;
+                p += 2;
+                continue;
+            }
+            out[o++] = *p++;
+        }
+    } else {
+        while(*p && *p != ',' && *p != '}' && *p != ']' && *p != ' ' && *p != '\n' && *p != '\t' &&
+              *p != '\r' && o < cap - 1)
+            out[o++] = *p++;
+    }
+    out[o] = '\0';
+}
+
+bool json_extract(const char* json, const char* path, char* out, size_t cap) {
+    out[0] = '\0';
+    if(!path || !*path) return false;
+    const char* p = json;
+    const char* seg = path;
+    while(*seg) {
+        const char* segend = seg;
+        while(*segend && *segend != '.')
+            segend++;
+        p = skip_ws(p);
+        size_t seglen = (size_t)(segend - seg);
+        if(seglen == 4 && seg[0] == 'l' && seg[1] == 'a' && seg[2] == 's' && seg[3] == 't' &&
+           *p == '[') {
+            // Walk to the final element; timelines put the newest event last.
+            const char* last = NULL;
+            for(int i = 0; i < 256; i++) {
+                const char* el = arr_nth(p, i);
+                if(!el) break;
+                last = el;
+            }
+            p = last;
+        } else if(seg_is_num(seg, segend) && *p == '[') {
+            p = arr_nth(p, seg_to_int(seg, segend));
+        } else if(*p == '{') {
+            p = obj_find(p, seg, (size_t)(segend - seg));
+        } else {
+            return false;
+        }
+        if(!p) return false;
+        seg = (*segend == '.') ? segend + 1 : segend;
+    }
+    extract_leaf(p, out, cap);
+    return true;
+}
+
+// --- status mapping ------------------------------------------------------
+
+static char lc(char c) {
+    return (c >= 'A' && c <= 'Z') ? (char)(c + 32) : c;
+}
+
+static bool contains_ci(const char* hay, const char* needle) {
+    for(const char* h = hay; *h; h++) {
+        const char* a = h;
+        const char* b = needle;
+        while(*a && *b && lc(*a) == lc(*b)) {
+            a++;
+            b++;
+        }
+        if(!*b) return true;
+    }
+    return false;
+}
+
+PackageStatus status_from_text(const char* s) {
+    // Exception keywords win first (e.g. "Delivery Exception" is an exception).
+    if(contains_ci(s, "except") || contains_ci(s, "fail") || contains_ci(s, "return"))
+        return StatusException;
+    // Normalized APIs use out_for_delivery; plain-English sources use "out for".
+    if(contains_ci(s, "out for") || contains_ci(s, "out_for")) return StatusOutForDelivery;
+    if(contains_ci(s, "deliver")) return StatusDelivered;
+    if(contains_ci(s, "transit")) return StatusInTransit;
+    return StatusPending;
+}
+
+// Local substring search: strstr is not part of the FAP API surface we rely on.
+static const char* tu_find(const char* hay, const char* needle) {
+    for(const char* h = hay; *h; h++) {
+        size_t i = 0;
+        while(needle[i] && h[i] == needle[i])
+            i++;
+        if(!needle[i]) return h;
+    }
+    return NULL;
+}
+
+int ssid_list_parse(const char* json, char out[][TU_SSID_LEN], int max) {
+    if(!json || max <= 0) return 0;
+    const char* p = tu_find(json, "\"networks\"");
+    if(!p) return 0;
+    while(*p && *p != '[')
+        p++;
+    if(*p != '[') return 0;
+    p++;
+
+    int n = 0;
+    while(*p && *p != ']' && n < max) {
+        if(*p != '"') {
+            p++;
+            continue;
+        }
+        p++; // opening quote
+        size_t len = 0;
+        while(*p && *p != '"') {
+            if(*p == '\\' && p[1]) p++; // keep the escaped character itself
+            if(len < TU_SSID_LEN - 1) out[n][len++] = *p;
+            p++;
+        }
+        out[n][len] = '\0';
+        if(len > 0) n++;
+        if(*p == '"') p++;
+    }
+    return n;
+}
+
+static bool all_digits(const char* p, int n) {
+    for(int i = 0; i < n; i++)
+        if(p[i] < '0' || p[i] > '9') return false;
+    return true;
+}
+
+void iso_to_short(const char* in, char* out, size_t cap) {
+    static const char* months[] = {
+        "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+    size_t len = 0;
+    while(in[len])
+        len++;
+
+    // Expect at least YYYY-MM-DDTHH:MM
+    bool iso = len >= 16 && all_digits(in, 4) && in[4] == '-' && all_digits(in + 5, 2) &&
+               in[7] == '-' && all_digits(in + 8, 2) && (in[10] == 'T' || in[10] == ' ') &&
+               all_digits(in + 11, 2) && in[13] == ':' && all_digits(in + 14, 2);
+    if(!iso) {
+        size_t n = 0;
+        while(in[n] && n < cap - 1) {
+            out[n] = in[n];
+            n++;
+        }
+        out[n] = '\0';
+        return;
+    }
+
+    int mon = (in[5] - '0') * 10 + (in[6] - '0');
+    if(mon < 1 || mon > 12) mon = 1;
+    int day = (in[8] - '0') * 10 + (in[9] - '0');
+
+    char buf[20];
+    int n = snprintf(
+        buf, sizeof(buf), "%s %d %c%c:%c%c", months[mon - 1], day, in[11], in[12], in[14], in[15]);
+    if(n < 0) n = 0;
+    size_t i = 0;
+    while(buf[i] && i < cap - 1) {
+        out[i] = buf[i];
+        i++;
+    }
+    out[i] = '\0';
+}
