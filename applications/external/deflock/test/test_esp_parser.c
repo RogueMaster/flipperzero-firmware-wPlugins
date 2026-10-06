@@ -99,6 +99,17 @@ void suite_esp_parser(void) {
     CHECK_INT_EQ(P("D,a1b2c3d4e5f6,-40,6,B,3,test_flck"), EspMsgFlock);
     CHECK_INT_EQ(m.u.flock.conf, FlockConfidenceConfirmed);
 
+    // A perfectly anchored name in a PROBE REQUEST names the network the sender
+    // wants, not the sender. A phone probing for a camera's provisioning AP must
+    // not become a Confirmed camera under the phone's own MAC. Beacon ('B') and
+    // probe response ('R') carry the transmitter's own name and still Confirm.
+    CHECK_INT_EQ(P("D,a1b2c3d4e5f6,-40,6,P,3,Flock-A1B2C3"), EspMsgFlock);
+    CHECK_INT_EQ(m.u.flock.conf, FlockConfidenceLikely);
+    CHECK_INT_EQ(P("D,a1b2c3d4e5f6,-40,6,P,3,test_flck"), EspMsgFlock);
+    CHECK_INT_EQ(m.u.flock.conf, FlockConfidenceLikely);
+    CHECK_INT_EQ(P("D,a1b2c3d4e5f6,-40,6,R,3,Flock-A1B2C3"), EspMsgFlock);
+    CHECK_INT_EQ(m.u.flock.conf, FlockConfidenceConfirmed);
+
     // The cap only ever lowers. A companion reporting a WEAKER rung than the
     // SSID would justify is left alone -- it knows things this line does not.
     CHECK_INT_EQ(P("D,a1b2c3d4e5f6,-40,6,B,1,Flock-A1B2C3"), EspMsgFlock);
@@ -380,6 +391,18 @@ void suite_esp_parser(void) {
     CHECK_INT_EQ(m.u.flock.hidden, true);
     CHECK_INT_EQ(P("D,d411d6010203,-40,6,B,1,,hid=1,cls=a,fp=deadbeef"), EspMsgFlock);
     CHECK_INT_EQ((long)m.u.flock.fp, (long)0xdeadbeefu);
+    CHECK_INT_EQ(m.u.flock.dev_class, FlockClassAcoustic);
+    CHECK_INT_EQ(m.u.flock.hidden, true);
+
+    // ALL FIVE trailers the companion can emit on one probe line, in wire order
+    // (fp, sg, pr, cls, hid). 7 + 5 = 12 fields; the array used to hold 10, so
+    // the last two tokens were glued into "pr=7,cls=a,hid=1" and cls/hid were
+    // lost -- silently, because the MAC-derived class fallback usually agreed.
+    // Written on a MAC in NO vendor table so only the wire token can produce
+    // the class, and with pr= present so the glue lands on cls=, not fp=.
+    CHECK_INT_EQ(P("D,a1b2c3d4e5f6,-40,6,P,2,,fp=deadbeef,sg=1,pr=7,cls=a,hid=1"), EspMsgFlock);
+    CHECK_INT_EQ((long)m.u.flock.fp, (long)0xdeadbeefu);
+    CHECK_INT_EQ(m.u.flock.probe_rate, 7);
     CHECK_INT_EQ(m.u.flock.dev_class, FlockClassAcoustic);
     CHECK_INT_EQ(m.u.flock.hidden, true);
 

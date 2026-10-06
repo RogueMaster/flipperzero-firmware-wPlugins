@@ -35,6 +35,11 @@ void suite_flock_ble(void) {
     // Names that merely CONTAIN a Flock-ish word are not a Flock-specific tell.
     CHECK_INT_EQ(flock_ble_confidence(0, "Flock of Seagulls", false), FlockConfidencePossible);
     CHECK_INT_EQ(flock_ble_confidence(0, "MyPenguinSpeaker", false), FlockConfidencePossible);
+    // The bare word, or the word run into something else, is not Flock's shape.
+    // Unit names are "Penguin-<digits>"; the dash is the anchor.
+    CHECK_INT_EQ(flock_ble_confidence(0, "Penguin", false), FlockConfidencePossible);
+    CHECK_INT_EQ(flock_ble_confidence(0, "PenguinSpeaker", false), FlockConfidencePossible);
+    CHECK_INT_EQ(flock_ble_confidence(0, "Penguin Audio", false), FlockConfidencePossible);
 
     // --- Flock-specific tells DO reach CONFIRMED ----------------------------
     // 0x09C8 is Flock's own manufacturer id in the advert.
@@ -157,6 +162,8 @@ void suite_flock_ble(void) {
     CHECK(flock_ble_name_is_flock("Unit 7 fs ext battery"));
     CHECK(!flock_ble_name_is_flock("ESP32")); // the name that caused all this
     CHECK(!flock_ble_name_is_flock("MyPenguinSpeaker")); // prefix test, not substring
+    CHECK(!flock_ble_name_is_flock("Penguin")); // the dash is the anchor
+    CHECK(!flock_ble_name_is_flock("PenguinSpeaker"));
     CHECK(!flock_ble_name_is_flock(""));
     CHECK(!flock_ble_name_is_flock(NULL));
 

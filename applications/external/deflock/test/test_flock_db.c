@@ -136,6 +136,10 @@ void suite_flock_db(void) {
     static const uint8_t demoted[][6] = {
         {0x48, 0x27, 0xea, 0x00, 0x00, 0x01}, // Samsung Electronics
         {0xa4, 0xcf, 0x12, 0x00, 0x00, 0x01}, // Espressif
+        // Removed 2026-10-05. Not demoted to the seed file like the two above:
+        // one is a chip vendor's block and the other is not a registered prefix.
+        {0x3c, 0x71, 0xbf, 0x00, 0x00, 0x01}, // Espressif
+        {0x82, 0x6b, 0xf2, 0x00, 0x00, 0x01}, // locally-administered, names nobody
     };
     for(size_t i = 0; i < sizeof(demoted) / sizeof(demoted[0]); i++) {
         CHECK(!flock_oui_match(demoted[i]));
@@ -194,7 +198,8 @@ void suite_flock_db(void) {
     // here as well as in the CI parity gate. If you intentionally change the
     // table, update this number AND both files' count comments in the same
     // commit -- that is the drift 93beede left behind for five releases.
-    CHECK_INT_EQ((int)flock_oui_count(), 32); // +14:b5:cd (Liteon), 2026-09-10
+    CHECK_INT_EQ(
+        (int)flock_oui_count(), 30); // -3c:71:bf (Espressif), -82:6b:f2 (LA bit), 2026-10-05
 
     // The 2026-09-07 community-table sweep, pinned both ways. Every prefix here
     // was resolved against the IEEE MA-L registry before the verdict; the

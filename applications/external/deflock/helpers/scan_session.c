@@ -10,6 +10,13 @@ bool scan_session_start(void* _app) {
     ReconApp* app = _app;
     if(app->esp) return false; // already live (a Back re-entry) -> keep it, don't leak
     app->esp = esp_link_alloc(app);
+    furi_mutex_acquire(app->mutex, FuriWaitForever);
+    // A fresh link has not gone silent, and has no scan mode to restore yet;
+    // the scene that opened it sends the kickoff right after this returns.
+    app->esp_lost = false;
+    app->esp_rx_tick = 0;
+    app->esp_kickoff[0] = '\0';
+    furi_mutex_release(app->mutex);
     esp_link_start(app->esp);
 
     // Configure the companion's GPS relay once, centrally, for every screen that

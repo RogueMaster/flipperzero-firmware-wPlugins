@@ -218,7 +218,7 @@ static inline const uint8_t* fble_addr_bytes(BLEAddress& a) {
 #endif
 #endif
 
-// ---- Flock-associated OUI prefixes (32) ----------------------------------
+// ---- Flock-associated OUI prefixes (30) ----------------------------------
 // MUST stay byte-identical to flock_ouis[] in helpers/flock_db.c. There is no
 // shared header (an Arduino sketch cannot include the app's), so editing one
 // side alone would silently desync ESP-side `conf` scoring from the Flipper's.
@@ -239,7 +239,11 @@ static inline const uint8_t* fble_addr_bytes(BLEAddress& a) {
 // because that commit drifted this table and flock_db.c identically. The gate
 // now also enforces the declared count and a retracted-prefix denylist.
 //
-// The last entry, b4:1e:52, is Flock Safety's own registered OUI (GainSec).
+// REMOVED 2026-10-05: 3c:71:bf (registered to Espressif, a chip vendor -- it
+// would score our own class of board) and 82:6b:f2 (locally-administered bit
+// set, so not a registered prefix at all). See flock_db.c.
+//
+// b4:1e:52 is Flock Safety's own registered OUI (GainSec).
 // Row layout matches flock_db.c line-for-line -- EXACTLY four entries per row --
 // so the two can be diffed by eye. The 5-on-one-row drift is what hid 93beede.
 static const uint8_t FLOCK_OUIS[][3] = {
@@ -248,9 +252,9 @@ static const uint8_t FLOCK_OUIS[][3] = {
     {0x9c, 0x2f, 0x9d}, {0xc0, 0x35, 0x32}, {0x94, 0x08, 0x53}, {0xe4, 0xaa, 0xea},
     {0xf4, 0x6a, 0xdd}, {0x24, 0xb2, 0xb9}, {0x00, 0xf4, 0x8d}, {0xd0, 0x39, 0x57},
     {0xe8, 0xd0, 0xfc}, {0xe0, 0x4f, 0x43}, {0xb8, 0x1e, 0xa4}, {0x70, 0x08, 0x94},
-    {0x58, 0x8e, 0x81}, {0xec, 0x1b, 0xbd}, {0x3c, 0x71, 0xbf}, {0x58, 0x00, 0xe3},
-    {0x90, 0x35, 0xea}, {0x5c, 0x93, 0xa2}, {0x64, 0x6e, 0x69}, {0x82, 0x6b, 0xf2},
-    {0xb4, 0x1e, 0x52}, {0xe0, 0x0a, 0xf6}, {0x38, 0x5b, 0x44}, {0x14, 0xb5, 0xcd},
+    {0x58, 0x8e, 0x81}, {0xec, 0x1b, 0xbd}, {0x58, 0x00, 0xe3}, {0x90, 0x35, 0xea},
+    {0x5c, 0x93, 0xa2}, {0x64, 0x6e, 0x69}, {0xb4, 0x1e, 0x52}, {0xe0, 0x0a, 0xf6},
+    {0x38, 0x5b, 0x44}, {0x14, 0xb5, 0xcd},
 };
 static const size_t FLOCK_OUI_COUNT = sizeof(FLOCK_OUIS) / sizeof(FLOCK_OUIS[0]);
 
@@ -1575,9 +1579,19 @@ static void promisc_cb(void* buf, wifi_promiscuous_pkt_type_t type) {
     uint8_t probe_rate = 0;
     if(is_probe) probe_rate = probe_rate_bump(p + 10); // addr2 = transmitter
 
+    // A NAME IN A PROBE REQUEST BELONGS TO THE NETWORK SOUGHT, NOT THE SENDER.
+    // Beacons and probe responses carry the transmitter's own SSID. A probe
+    // request carries the one the sender is LOOKING FOR, so a phone that once
+    // joined a camera's provisioning AP probes for "Flock-A1B2C3" from its own
+    // address and would have gone out as conf=3 under the phone's MAC. Same
+    // attribution error as the rx_side block above, from the other direction.
+    // The Flipper applies the same cap at its trust boundary; this keeps the
+    // wire honest for anything else that reads it.
+    if(is_probe && s_score == 3) s_score = 2;
+
     int conf = 0;
     if(s_score == 3)
-        conf = 3; // confirmed Flock SSID name
+        conf = 3; // confirmed Flock SSID name (beacon / probe response only)
     else if(oui_tx && wildcard)
         conf = 2; // OUI + wildcard probe -> "likely". FLOCK_OUIS is mostly shared
                   // silicon-vendor ranges, so reserve conf=3 for an SSID-name or
@@ -1585,12 +1599,21 @@ static void promisc_cb(void* buf, wifi_promiscuous_pkt_type_t type) {
                   // test measured at 11/12 cameras with 2 false positives.
     else if(oui_tx && is_probe)
         conf = 2; // same for a directed probe from the OUI device itself
-    else if(oui_rx && is_probe)
+    else if(oui_rx && (is_probe || ftype == 'R'))
         conf = 2; // OUI on the SILENT RECEIVER: a frame addressed to a Flock-OUI
                   // device by some other station. Deliberately NOT rate-gated --
                   // the rate would be the sender's, not this device's, and this is
                   // upstream's key technique for catching a dormant camera that is
                   // not transmitting at all. Narrower and rarer than the tx paths.
+                  //
+                  // 'R' (probe RESPONSE) added alongside the request case. An AP
+                  // only answers a station that probed it moments ago, so a
+                  // response addressed to a Flock-OUI address is a station that
+                  // is present and transmitting right now -- we simply missed
+                  // its own probe, typically because the hopper was elsewhere.
+                  // That is at least as strong as a directed request addressed
+                  // to the OUI, which a client can send for a BSSID it merely
+                  // remembers. Same rung, no new class of evidence.
     else if(s_score == 2)
         conf = 2;
     else if(ven_tx && wildcard && probe_rate >= VENDOR_PROBE_SUSTAINED)
@@ -1791,7 +1814,7 @@ static void start_promisc() {
  * precisely what this exists to expose. tools/check_oui_parity.py fails CI if
  * they drift.
  */
-#define FLOCK_COMPANION_VERSION "0.98"
+#define FLOCK_COMPANION_VERSION "0.99"
 // First eight hex digits of SHA-256 over the newline-joined PRODUCTION entries
 // in FLOCK_SIG_TABLE. tools/check_oui_parity.py derives and enforces it, and the
 // Flipper compares this advertised value with FDF_SIGNATURE_REVISION.
@@ -2037,7 +2060,10 @@ static void ble_do_scan(int seconds) {
             // Anything this side misses reaches the Flipper as cat=0 and is never
             // reconsidered, so a name only the app knows about is a name that
             // finds nothing.
-            if(nm.rfind("Penguin", 0) == 0 || nm.find("FS Ext") != std::string::npos ||
+            // "Penguin-" WITH the dash: unit names are "Penguin-<digits>", and
+            // the bare word is a product name other people use. Mirrors
+            // helpers/flock_ble.c, which stakes CONFIRMED on this.
+            if(nm.rfind("Penguin-", 0) == 0 || nm.find("FS Ext") != std::string::npos ||
                nm.rfind("Pigvision", 0) == 0 || nm.rfind("FlockCam", 0) == 0 ||
                nm.rfind("RWLS-", 0) == 0 || ble_name_is_fs_unit(nm))
                 cat = 1; // Flock Penguin battery / FS external battery / field-observed names
@@ -2106,7 +2132,12 @@ static void ble_do_scan(int seconds) {
             if(nm.find("BodyWorn Remote") != std::string::npos) cat = 7;
         }
 
-        if(cat == 0) {
+        if(cat == 0 && d.getAddressType() == BLE_ADDR_TYPE_PUBLIC) {
+            // PUBLIC addresses only. A random (static, RPA or NRPA) address has
+            // no registered OUI -- its first three bytes are whatever the stack
+            // rolled -- so a 3-byte match there is a coincidence, not a vendor.
+            // Phones rotate RPAs constantly, which made this fallback a steady
+            // source of Possible rows that named nothing.
             BLEAddress ba = d.getAddress();
             const uint8_t* nat = fble_addr_bytes(ba); // shape differs 2.x vs 3.x
             if(nat && oui_match(nat)) cat = 1; // Flock OUI on the BLE address

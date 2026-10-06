@@ -2,6 +2,8 @@
 // Copyright (c) 2026 ReconGrunt
 #include "preflight.h"
 
+#include <string.h>
+
 ReconPreflightState recon_preflight_evaluate(const ReconPreflightInput* input) {
     if(!input) return ReconPreflightFailed;
 
@@ -63,4 +65,28 @@ const char* recon_preflight_state_label(ReconPreflightState state) {
     default:
         return "CHECKING";
     }
+}
+
+/* ---- companion build pairing (discussion #26) ---------------------------- */
+
+/** Skip a leading 'v'/'V' so "v0.98" and "0.98" compare equal. */
+static const char* pf_ver_digits(const char* s) {
+    if(!s) return "";
+    if(*s == 'v' || *s == 'V') s++;
+    return s;
+}
+
+bool recon_companion_build_matches(const char* esp_build, const char* app_version) {
+    const char* a = pf_ver_digits(esp_build);
+    const char* b = pf_ver_digits(app_version);
+    // A build this app cannot name is not a mismatch to report. RECON_VERSION
+    // falls back to "v?.??" when the app is built outside application.fam, and
+    // screaming "reflash" at a developer's own tree would be noise about the
+    // tooling rather than about the board.
+    if(!*b || strchr(b, '?')) return true;
+    // Empty = a companion older than v0.88, which had no build field at all.
+    // That genuinely is not the paired half, so it is a mismatch rather than
+    // unknown -- the Firmware screen already names it "pre-0.88".
+    if(!*a) return false;
+    return strcmp(a, b) == 0;
 }

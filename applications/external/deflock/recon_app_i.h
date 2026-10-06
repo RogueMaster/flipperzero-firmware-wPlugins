@@ -23,6 +23,7 @@
 #include "helpers/flock_db.h"
 #include "helpers/flock_store.h"
 #include "helpers/flock_ble.h"
+#include "helpers/sig_db.h" // SIG_IGNORED_MAX_* for the in-memory exclusion lists
 #include "views/flock_view.h"
 #include "views/flock_detail_view.h"
 #include "views/flock_map_view.h"
@@ -30,8 +31,18 @@
 #include "views/locator_view.h"
 
 #define RECON_FLOCK_MAX  64
-#define RECON_WIFI_MAX   48
-#define RECON_BLE_MAX    48
+// 8 EACH, DOWN FROM 48, AND THE REASON IS RAM. Both tables are written by the
+// link and read by exactly one thing, the Locator picker, which lists only rows
+// with `marked` set -- and the Wi-Fi and BLE list screens that set it are gone,
+// so today nothing does. At 48 rows they cost 6.9 KB of the single tables block
+// (19.3 KB), which is more than the largest free block this app has left on a
+// loaded firmware (16.9 KB measured at the main menu, 24 KB free in total), and
+// the flasher screen has to free and re-allocate that block. When it could not
+// be placed again the firmware halted on out-of-memory and rebooted the
+// Flipper, seen on leaving the flasher after a successful flash. 8 keeps the
+// code paths alive for when a picker returns; raise it only with a measurement.
+#define RECON_WIFI_MAX   8
+#define RECON_BLE_MAX    8
 #define RECON_TEXT_STORE 160
 #define RECON_SSID_LEN   33
 /** Shown on the main menu and About, so a bug report can name the build.
@@ -67,6 +78,8 @@ typedef enum {
 #define RECON_REPORT_FOLDER RECON_APP_FOLDER "/reports"
 #define RECON_SETTINGS_PATH RECON_APP_FOLDER "/settings.txt"
 #define RECON_HITS_PATH     RECON_APP_FOLDER "/hits.csv"
+// Written in full first, then swapped in over hits.csv -- see recon_hits_save().
+#define RECON_HITS_TMP_PATH RECON_APP_FOLDER "/hits.tmp"
 // One appended row per scan session. Exists because a drive that finds nothing
 // is INDISTINGUISHABLE from a companion that never scanned, an app that rejected
 // everything, and a road with no cameras on it -- all four render as an empty
@@ -78,7 +91,7 @@ typedef enum {
 // diag.old.csv rather than appending rows of a new shape under an old header --
 // which is what produced a file nobody could parse correctly. See recon_diag_save().
 #define RECON_DIAG_HEADER_LINE \
-    "# FlipDeFlock session diagnostics v3 -- counts only, no MAC/SSID/position\n"
+    "# FlipDeFlock session diagnostics v4 -- counts only, no MAC/SSID/position\n"
 #define RECON_DIAG_OLD_PATH       RECON_APP_FOLDER "/diag.old.csv"
 // Every wildcard-probe transmitter seen during a session, MATCHED OR NOT.
 // Exists because "83,916 frames, zero candidates" is the one result the detector
@@ -505,6 +518,22 @@ typedef struct {
     GpsRpc* gps_rpc; /**< phone GPS over the Unleashed RPC service; NULL unless selected */
     SigDb* sig_db; /**< SD-loaded extra signatures (NULL = built-ins only) */
 
+    /* ---- operator exclusions (helpers/sig_db.h, ignored.txt) ------------
+     * Devices the operator told the app are THEIRS. Held in memory for the
+     * whole session because the gate runs on every companion detection line,
+     * and refreshed in place the moment one is added -- unlike a learned
+     * signature, which only takes effect next start.
+     *
+     * THAT ASYMMETRY IS DELIBERATE. Learning changes how a device is SCORED,
+     * and rebuilding the scoring tables under a live scan is the thing that
+     * restriction avoids. An exclusion only has to drop a line. The operator
+     * presses it because something is beeping at them right now, so "it will
+     * go quiet after you restart the app" is not an answer. */
+    uint32_t ignore_fps[SIG_IGNORED_MAX_FPS];
+    uint8_t ignore_macs[SIG_IGNORED_MAX_MACS][6];
+    size_t ignore_fp_count;
+    size_t ignore_mac_count;
+
     FuriMutex* mutex; /**< protects flock[] and gps_* snapshot */
     /* HEAP, NOT INLINE, so the ESP flasher can have the memory back.
      *
@@ -526,6 +555,9 @@ typedef struct {
      * wedged. One block frees one clean hole for the plugin and takes the same
      * hole back afterwards. */
     void* tables_block;
+    bool tables_split; /**< the one block did not fit, so each table is its own
+                         *   allocation and must be freed as such. See
+                         *   recon_tables_acquire(). */
     FlockEntry* flock;
     size_t flock_count;
     int selected; /**< selected flock index for the detail scene */
@@ -602,8 +634,23 @@ typedef struct {
     float gps_lon;
     float gps_course; /**< course over ground (deg), NAN if unknown */
     int gps_sats;
+    uint32_t gps_fix_tick; /**< tick of the last VALID fix; the GUI tick clears
+                             *   gps_valid once this is RECON_GPS_STALE_MS old,
+                             *   because a receiver that goes silent never sends
+                             *   the "lock lost" sentence that used to be the
+                             *   only way gps_valid could fall. */
 
     bool esp_connected;
+    bool esp_lost; /**< the link WAS up this session and then went silent for
+                     *   RECON_ESP_SILENT_MS. Distinct from !esp_connected so the
+                     *   header can say "ESP?" rather than the never-connected
+                     *   "...", and so the one-shot haptic fires once. */
+    uint32_t esp_rx_tick; /**< tick of the last line of any kind from the companion */
+    char esp_kickoff[12]; /**< the scan mode the current scene asked the board for
+                            *   ("flockcombo"); re-sent after a companion reboot
+                            *   because the board boots WiFi-only (g_combo=false)
+                            *   and the banner handler used to restore only band
+                            *   and GPS, leaving BLE detection silently off. */
     uint32_t esp_frames; /**< 802.11 frames this *session* (companion total minus base) */
     uint32_t esp_hits; /**< Flock hits this session (companion total minus base) */
     // The companion's frame/hit counters are lifetime totals (reset only on ESP
@@ -672,6 +719,7 @@ typedef struct {
     uint32_t diag_accepted; /**< of those, the ones that reached the table */
     uint32_t diag_rej_conf; /**< dropped: scored FlockConfidenceNone */
     uint32_t diag_rej_full; /**< dropped: table full and nothing evictable */
+    uint32_t diag_rej_ignored; /**< dropped: the operator excluded this device */
     uint32_t diag_start_epoch; /**< wall clock at scan_session_start */
 
     /* ---- probe survey (see RECON_SURVEY_PATH) --------------------------- */
@@ -744,6 +792,12 @@ typedef struct {
     FuriThread* fw_thread;
     volatile bool fw_running;
     volatile bool fw_ok;
+    bool fw_back_warned; /**< "Back locked until done." has been logged this run */
+    volatile bool fw_writing; /**< the worker is inside flash_file(): ERASE,
+                                *   write and verify. Not derived from fw_pct,
+                                *   because the erase runs before the first
+                                *   progress callback and a Back during it
+                                *   aborted a flash with the chip already wiped. */
     volatile bool fw_log_dirty; /**< log changed -> re-render */
     /**
      * Flash/backup progress, 0..100, or -1 when no transfer is running.
@@ -851,6 +905,22 @@ static inline bool recon_esp_chip_has_no_ble(const char* target) {
  */
 void recon_app_set_ble_tell(ReconApp* app, const uint8_t mac[6], uint8_t tell);
 
+/**
+ * Exclude a device the operator says is theirs, and make it effective NOW.
+ *
+ * Writes ignored.txt and reloads the in-memory tables the detection gate reads,
+ * so the device goes quiet on the next line rather than on the next app start.
+ * `out_by_fp` reports whether a probe fingerprint was stored as well as the
+ * address, which is what decides whether the exclusion survives the device
+ * randomising its MAC; pass NULL if you do not care.
+ *
+ * @return true if the device is now excluded, including when it already was.
+ */
+bool recon_app_exclude_device(ReconApp* app, const uint8_t* mac, uint32_t fp, bool* out_by_fp);
+
+/** Delete every exclusion, card and memory together (Reports > Forget Ignored). */
+void recon_app_clear_exclusions(ReconApp* app);
+
 /** Record one surveyed wildcard-probe transmitter (see RECON_SURVEY_PATH). */
 void recon_app_survey_add(
     ReconApp* app,
@@ -936,6 +1006,15 @@ void recon_app_request_gps_cfg(ReconApp* app);
 
 /** GUI-tick side: send the relay config if the worker asked for it. */
 void recon_app_gps_cfg_tick(ReconApp* app);
+
+/**
+ * GUI-tick watchdog for the two inputs that used to be "up until told
+ * otherwise": drops esp_connected (and raises esp_lost, with one vibro pulse)
+ * after RECON_ESP_SILENT_MS without a companion line, and drops gps_valid after
+ * RECON_GPS_STALE_MS without a fix. Both only ever fall here or on an explicit
+ * report; a silent device never reports.
+ */
+void recon_app_liveness_tick(ReconApp* app);
 
 /**
  * Opt-in "anomaly": an unnamed, unidentified (no mfg id / no recognized category),
@@ -1028,6 +1107,23 @@ void recon_app_esp_power_tick(ReconApp* app);
 void recon_app_esp_power_release(ReconApp* app);
 void recon_hits_save(ReconApp* app);
 void recon_hits_clear(ReconApp* app);
+
+/**
+ * Drop every detection row that matches the exclusion lists (by address, or by
+ * a non-zero fingerprint). Returns how many went. Called when an exclusion is
+ * added and after the lists are loaded, so "never alert" applies to what is
+ * already stored and not only to the next sighting.
+ */
+size_t recon_app_purge_excluded(ReconApp* app);
+
+/**
+ * Delete hits.csv AND empty the detection table, live rows included. Returns
+ * false, with the table untouched, if the card refused the delete. For the
+ * explicit "Clear Saved Hits" action, where rows left in RAM would be written
+ * back by the next save. recon_hits_clear() keeps live rows and is for turning
+ * the Save hits setting off, where what is on screen should stay on screen.
+ */
+bool recon_hits_clear_all(ReconApp* app);
 
 /**
  * Persist after the operator DELETED an entry. Writes the table, or removes

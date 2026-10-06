@@ -3,6 +3,7 @@
 #include "detect_rules.h"
 
 #include <math.h>
+#include <string.h>
 #include "fast_trig.h"
 
 // M_PI is a POSIX/GNU extension, not standard C -- define it if the host's
@@ -77,4 +78,28 @@ int32_t esp_frames_rate(uint32_t prev_frames, uint32_t now_frames, uint32_t elap
     uint64_t r = ((uint64_t)delta * 1000u) / elapsed_ms;
     if(r > 99999u) r = 99999u; // clamp so the header can never be blown open
     return (int32_t)r;
+}
+
+bool flock_is_excluded(
+    const uint8_t* mac,
+    uint32_t fp,
+    const uint8_t (*ex_macs)[6],
+    size_t ex_mac_count,
+    const uint32_t* ex_fps,
+    size_t ex_fp_count) {
+    if(mac && ex_macs) {
+        for(size_t i = 0; i < ex_mac_count; i++) {
+            if(memcmp(ex_macs[i], mac, 6) == 0) return true;
+        }
+    }
+    // 0 is the "no fingerprint captured" sentinel everywhere in this codebase.
+    // A stored 0 could only come from a corrupt file, but matching on it would
+    // suppress every BLE and beacon-only sighting at once, so it is gated here
+    // as well as at the write.
+    if(fp != 0 && ex_fps) {
+        for(size_t i = 0; i < ex_fp_count; i++) {
+            if(ex_fps[i] == fp) return true;
+        }
+    }
+    return false;
 }

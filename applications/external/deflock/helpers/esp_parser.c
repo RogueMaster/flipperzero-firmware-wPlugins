@@ -86,6 +86,17 @@ static EspMsgType parse_flock(char** f, int n, EspMsg* out) {
         FlockConfidence by_ssid = flock_ssid_confidence(ssid);
         if(by_ssid < conf) conf = by_ssid;
     }
+    // A NAME IN A PROBE REQUEST BELONGS TO THE NETWORK SOUGHT, NOT THE SENDER.
+    //
+    // Beacons and probe responses carry the transmitter's OWN SSID, so an
+    // anchored "Flock-XXXXXX" there names the device. A probe REQUEST carries
+    // the SSID the sender is LOOKING FOR: a phone that once joined a camera's
+    // provisioning AP, or an installer's laptop, probes for "Flock-A1B2C3" from
+    // its own address, and until this cap that phone was CONFIRMED as a camera.
+    // It is the same attribution error the companion fixed for its rx side,
+    // from the other direction. Likely keeps it on the list and alertable; it
+    // still says a Flock network is known to something nearby.
+    if(conf == FlockConfidenceConfirmed && ftype == 'P') conf = FlockConfidenceLikely;
 
     // Trailing key=value fields. Older firmware omits them and newer firmware may
     // add more, so unknown keys are skipped rather than treated as an error.
@@ -529,13 +540,16 @@ EspMsgType esp_parse_companion_line(char* line, EspMsg* out) {
         return out->type;
     }
     if(line[0] == 'D' && line[1] == ',') {
-        // D,<mac>,<rssi>,<ch>,<type>,<conf>,<ssid>[,fp=<hex32>][,cls=a|x][,hid=1]
-        // 10 slots = 7 base fields + ALL optional trailers. esp_split_fields
-        // stops splitting once it hits `max`, so a short array does not drop the
+        // D,<mac>,<rssi>,<ch>,<type>,<conf>,<ssid>[,fp=][,sg=][,pr=][,cls=][,hid=]
+        // 7 base fields + FIVE optional trailers = 12. esp_split_fields stops
+        // splitting once it hits `max`, so a short array does not drop the
         // extra token -- it silently glues it onto the previous one, where the
-        // key= prefix check then misses it. Grow this in step with the trailers.
-        char* f[10];
-        int n = esp_split_fields(line, f, 10);
+        // key= prefix check then misses it. At 10 slots a probe line carrying
+        // all five trailers lost whichever came last (cls= or hid=). Sized with
+        // headroom so the next trailer does not repeat that; the test suite
+        // pins the all-trailers line.
+        char* f[16];
+        int n = esp_split_fields(line, f, 16);
         return (out->type = parse_flock(f, n, out));
     }
     return out->type; // EspMsgIgnore

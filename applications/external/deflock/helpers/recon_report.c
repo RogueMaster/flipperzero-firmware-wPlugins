@@ -4,6 +4,8 @@
 #include "../recon_app_i.h"
 #include "report_escape.h" // csv/json/md/xml field escapers (pure, host-tested)
 #include "report_fmt.h" // fmt_mac / fmt_coord field emitters (pure, host-tested)
+#include "survey_rank.h" // survey_mac_is_local
+#include "preflight.h" // recon_companion_build_matches
 #include "open_drone_id.h" // odid_ua_type_str, for the aircraft section
 
 #include <math.h>
@@ -488,6 +490,215 @@ bool recon_report_save_flock(void* _app, char* out_path_md, size_t out_len, uint
         storage_simply_remove(app->storage, path_md);
         storage_simply_remove(app->storage, path_geo);
         storage_simply_remove(app->storage, path_kml);
+    } else if(out_path_md) {
+        snprintf(out_path_md, out_len, "%s", path_md);
+    }
+    return ok;
+}
+
+bool recon_report_save_missed(void* _app, char* out_path_md, size_t out_len) {
+    ReconApp* app = _app;
+
+    recon_report_ensure_dirs(app);
+
+    char ts[24];
+    recon_report_timestamp(ts, sizeof(ts));
+
+    char path_md[128];
+    snprintf(path_md, sizeof(path_md), "%s/missed_%s.md", RECON_REPORT_FOLDER, ts);
+
+    char* line = malloc(REPORT_LINE_MAX);
+    if(!line) return false;
+    RFile md;
+    rfile_open(&md, app->storage, path_md);
+
+    furi_mutex_acquire(app->mutex, FuriWaitForever);
+    bool have_fix = app->gps_valid;
+    float lat = app->gps_lat;
+    float lon = app->gps_lon;
+    uint32_t msgs = app->diag_flock_msgs;
+    uint32_t acc = app->diag_accepted;
+    uint32_t rej_c = app->diag_rej_conf;
+    uint32_t rej_f = app->diag_rej_full;
+    uint32_t rej_i = app->diag_rej_ignored;
+    uint32_t frames = app->esp_frames;
+    uint32_t ehits = app->esp_hits;
+    uint32_t elines = app->esp_lines;
+    uint16_t band_ch = app->esp_band_channels;
+    uint8_t band_act = app->esp_band_actual;
+    uint8_t proto = app->esp_proto_version;
+    bool sig_bad = app->esp_sig_mismatch;
+    size_t hits = app->flock_count;
+    size_t surveyed = app->survey_count;
+    char esp_build[12];
+    snprintf(esp_build, sizeof(esp_build), "%s", app->esp_build[0] ? app->esp_build : "-");
+    furi_mutex_release(app->mutex);
+
+    bool paired = recon_companion_build_matches(esp_build, RECON_VERSION);
+
+    char lat_s[16], lon_s[16];
+    fmt_coord(lat_s, sizeof(lat_s), lat, "-");
+    fmt_coord(lon_s, sizeof(lon_s), lon, "-");
+
+    // THE LABEL IS THE WHOLE POINT OF THIS FILE. Every field report this project
+    // has received arrived as an unlabelled table, and the one question that
+    // could not be answered from it was "which row was the camera you could
+    // physically see" -- asked verbatim, more than once, and unanswerable after
+    // the fact. A miss is only evidence if the ground truth is captured while
+    // the operator is still standing in front of the thing.
+    rfile_printf(
+        &md,
+        line,
+        "# FlipDeFlock - Missed Camera Report\n\n"
+        "App: %s   Companion: %s%s   Generated: %s (device RTC)\n\n"
+        "**The operator says there is an ALPR camera at this location and the\n"
+        "detector did not flag it.** That claim is the data; everything below is\n"
+        "the air picture and the detector's own state at the moment it was made.\n\n"
+        "Coordinates are KEPT, like the DeFlock export and unlike the false\n"
+        "positive report: this file is a claim about a camera's position, so\n"
+        "stripping the position would leave nothing to check it against.\n\n"
+        "## The claim\n\n"
+        "| | |\n|---|---|\n"
+        "| Camera position | %s, %s |\n"
+        "| GPS | %s |\n"
+        "| Detections in the table | %u |\n"
+        "| Transmitters in the survey | %u |\n\n",
+        RECON_VERSION,
+        esp_build,
+        paired ? "" : " (NOT the paired build)",
+        ts,
+        lat_s,
+        lon_s,
+        have_fix ? "fix" : "NO FIX - the position above is unusable",
+        (unsigned)hits,
+        (unsigned)surveyed);
+
+    // WHY IT DID NOT FIRE, as counters rather than prose. "Nothing showed up"
+    // has at least four distinct causes that look identical from the outside,
+    // and this is the only place they separate: a deaf radio (frames flat), a
+    // companion that heard plenty and binned it (hits climbing, accepted flat),
+    // a full table, or the operator's own exclusion list quietly eating it.
+    rfile_printf(
+        &md,
+        line,
+        "## Why nothing fired\n\n"
+        "| Stage | Count |\n|---|---|\n"
+        "| Companion Wi-Fi frames | %lu |\n"
+        "| Companion hits | %lu |\n"
+        "| Companion lines to the app | %lu |\n"
+        "| Reports handed to the app | %lu |\n"
+        "| Accepted into the table | %lu |\n"
+        "| Dropped, scored nothing | %lu |\n"
+        "| Dropped, table full | %lu |\n"
+        "| Dropped, operator excluded | %lu |\n\n"
+        "Frames at 0 means the radio heard nothing at all and no signature could\n"
+        "have helped. Frames climbing with reports at 0 means the companion heard\n"
+        "the street and recognised none of it, which is the case a new signature\n"
+        "fixes. A non-zero exclusion count means this card is suppressing\n"
+        "something on purpose: check Reports, Forget Ignored before concluding\n"
+        "anything from this file.\n\n"
+        "Band in force: %s (%u channels).  Protocol v%u.  Signature table: %s.\n\n",
+        (unsigned long)frames,
+        (unsigned long)ehits,
+        (unsigned long)elines,
+        (unsigned long)msgs,
+        (unsigned long)acc,
+        (unsigned long)rej_c,
+        (unsigned long)rej_f,
+        (unsigned long)rej_i,
+        band_act == ReconEspBand5 ? "5 GHz" : (band_act == ReconEspBandAll ? "both" : "2.4 GHz"),
+        (unsigned)band_ch,
+        (unsigned)proto,
+        sig_bad ? "STALE, reflash the companion" : "matches this app");
+
+    // A 2.4-only board parked under a camera uplinking on 5 GHz is a miss that
+    // no table can explain, so it is called out rather than left implicit.
+    if(band_ch > 0 && band_act == ReconEspBand24) {
+        rfile_puts(
+            &md,
+            "> This board swept 2.4 GHz only. A camera whose uplink is on 5 GHz\n"
+            "> cannot appear below, and that is a hardware limit rather than a\n"
+            "> missing signature.\n\n");
+    }
+
+    // The survey is the half that can still carry the camera. A randomising
+    // transmitter never becomes a detection, so for a modern camera this table
+    // is the only place it is recorded at all.
+    rfile_puts(
+        &md,
+        "## Everything probing at this spot\n\n"
+        "`~` marks a randomised (locally administered) address, which modern\n"
+        "cameras and modern phones both use. `IE sig` is the readable element\n"
+        "list -- that, not the hash, is what another capture can be compared\n"
+        "against by eye.\n\n"
+        "| # | Addr | ~ | Ch | RSSI | Probes | fp | fp2 | IE sig |\n"
+        "|---|------|---|----|------|--------|----|-----|--------|\n");
+
+    furi_mutex_acquire(app->mutex, FuriWaitForever);
+    int n = 0;
+    for(size_t i = 0; i < app->survey_count; i++) {
+        SurveyEntry* e = &app->survey[i];
+        n++;
+        bool local = survey_mac_is_local(e->mac);
+
+        // ADDRESS POLICY, and it differs from every other report here on purpose.
+        //
+        // A randomised address is invented by the device: no manufacturer stands
+        // behind it, it is in no registry, and it cannot be looked up as
+        // somebody's home network. It is also the ONE case where the full
+        // address is itself the signature -- a camera that randomises once at
+        // boot and then keeps that address is pinnable by address alone, which
+        // is exactly what Air Survey's Flag MAC does. Reducing it to an OUI
+        // would delete the only usable identifier for the device this file
+        // exists to find.
+        //
+        // A globally unique address is the opposite: it names a real
+        // manufacturer's unit and belongs to somebody, nearly always a resident
+        // rather than a camera, so it drops to its OUI like everywhere else.
+        char addr[20];
+        if(local) {
+            fmt_mac(addr, sizeof(addr), e->mac);
+        } else {
+            fmt_mac_oui(addr, sizeof(addr), e->mac);
+        }
+
+        char sig_raw[RECON_SURVEY_SIG_LEN + 8];
+        md_escape(e->sig[0] ? e->sig : "-", sig_raw, sizeof(sig_raw));
+
+        rfile_printf(
+            &md,
+            line,
+            "| %d | %s | %s | %u | %d | %u | %08lX | %08lX | `%s` |\n",
+            n,
+            addr,
+            local ? "~" : "-",
+            e->channel,
+            e->rssi,
+            (unsigned)e->count,
+            (unsigned long)e->fp,
+            (unsigned long)e->fp2,
+            sig_raw);
+    }
+    furi_mutex_release(app->mutex);
+
+    if(n == 0) {
+        rfile_puts(
+            &md,
+            "| - | (nothing) | - | - | - | - | - | - | - |\n\n"
+            "An EMPTY survey next to a camera the operator can see is the\n"
+            "strongest result in this file: the board heard no wildcard probes at\n"
+            "all, so the camera is either silent, on a band this board cannot\n"
+            "sweep, or the receive path is broken. Read the frame count above\n"
+            "before hunting for a signature.\n");
+    } else {
+        rfile_printf(&md, line, "\nTransmitters: %d\n", n);
+    }
+
+    bool ok = rfile_close(&md);
+    free(line);
+
+    if(!ok) {
+        storage_simply_remove(app->storage, path_md);
     } else if(out_path_md) {
         snprintf(out_path_md, out_len, "%s", path_md);
     }

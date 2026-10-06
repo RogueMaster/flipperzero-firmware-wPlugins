@@ -158,6 +158,7 @@ static void flock_view_draw_callback(Canvas* canvas, void* _model) {
 
     size_t count = app->flock_count;
     bool connected = app->esp_connected;
+    bool lost = app->esp_lost;
     uint32_t hits = app->esp_hits;
     uint8_t channel = app->esp_channel;
     uint32_t lines = app->esp_lines;
@@ -169,6 +170,15 @@ static void flock_view_draw_callback(Canvas* canvas, void* _model) {
     uint32_t reboots = app->esp_reboots;
     bool proto_mismatch = app->esp_proto_mismatch;
     uint8_t proto_version = app->esp_proto_version;
+    // The SIGNATURE-TABLE verdict, which until now only the health screen
+    // showed. It is the one companion-staleness signal worth interrupting a
+    // scan for: it moves only when the detection data itself changed, so a
+    // board that trips it is gating frames on a table this app has already
+    // revised -- new ALPR prefixes it will never match, retracted ones it
+    // still will. Discussion #26 asked to be told when a reflash is actually
+    // needed, and this is that moment, as opposed to the version string
+    // moving on every release.
+    bool sig_mismatch = app->esp_sig_mismatch;
     uint32_t dropped = app->esp_dropped_lines;
     bool port_busy = (app->esp_link_state == EspLinkPortBusy);
     bool generic = (app->settings.backend == EspBackendGeneric);
@@ -452,10 +462,24 @@ static void flock_view_draw_callback(Canvas* canvas, void* _model) {
     char tail_s[40] = ""; // a<n> + optional !r<n> + optional !d<n>
     if(proto_mismatch) {
         snprintf(hdr, sizeof(hdr), "! Companion FW proto v%u mismatch", proto_version);
+    } else if(sig_mismatch) {
+        // NAMES THE FIX, like every other fault string on this screen. "sig
+        // mismatch" is what the health screen says and it is fine there, next
+        // to both revisions; here there is no room for the evidence, so the
+        // line has to carry the action instead.
+        snprintf(hdr, sizeof(hdr), "! Companion sigs old: reflash");
     } else if(generic) {
         // Companion status counters stay 0 on a Marauder board, so the title bar
         // carries the RX heartbeat there and the detection count belongs here.
-        snprintf(hdr, sizeof(hdr), "%s  hits %zu%s", connected ? "ESP" : "...", count, drop);
+        snprintf(
+            hdr,
+            sizeof(hdr),
+            "%s  hits %zu%s",
+            connected ? "ESP" :
+            lost      ? "ESP?" :
+                        "...",
+            count,
+            drop);
     } else {
         // Live activity, not a lifetime total. "frames 319" only ever climbed, so
         // it told you the link was up and nothing about whether the radio was
@@ -590,7 +614,11 @@ static void flock_view_draw_callback(Canvas* canvas, void* _model) {
         // nothing is drawn past sub_limit, so the line can never grow into the
         // GPS badge however large the counters get.
         int sx = 0;
-        const char* conn = connected ? "ESP" : "...";
+        // "ESP?" is a board that WAS talking and stopped (see
+        // recon_app_liveness_tick); "..." is one that never has. Different
+        // faults: the first is a loose header or a brownout, the second a port
+        // or power setting.
+        const char* conn = connected ? "ESP" : lost ? "ESP?" : "...";
         canvas_draw_str(canvas, sx, 22, conn);
         sx += canvas_string_width(canvas, conn) + 3;
         if(sx + UI_RADIO_ICON_W < sub_limit) {
@@ -696,6 +724,7 @@ static void flock_view_draw_callback(Canvas* canvas, void* _model) {
             AlignCenter,
             AlignCenter,
             connected  ? "Scanning for ALPR..." :
+            lost       ? "ESP went silent - check" :
             port_busy  ? "UART busy - check port" :
             otg_failed ? "5V refused - use USB" :
             otg_ours   ? "5V on, waiting for ESP" :
@@ -875,15 +904,39 @@ static bool flock_view_input_callback(InputEvent* event, void* context) {
     // the display position back to a table index exactly as the short press does.
     if(event->key == InputKeyOk && event->type == InputTypeLong) {
         int hold_idx = -1;
+        int card_idx = -1;
+        ReconApp* app = NULL;
         with_view_model(
             fv->view,
             FlockViewModel * model,
             {
+                app = model->app;
+                card_idx = model->card_index;
                 if(model->selected >= 0 && model->selected < model->order_count) {
                     hold_idx = model->order[model->selected];
                 }
             },
             false);
+        // WHILE THE HIT CARD IS UP, THE HOLD MEANS THE DEVICE ON THE CARD.
+        //
+        // The card covers the list, so the highlighted row is invisible, and the
+        // natural reaction to your own phone beeping is to hold OK and pick
+        // "It's mine: never alert". That used to act on whatever row happened to
+        // be highlighted UNDERNEATH -- permanently excluding a device the
+        // operator never saw, which could be the one real camera on the list.
+        // card_index is already a table index, which is what hold_cb takes.
+        if(app && card_idx >= 0) {
+            furi_mutex_acquire(app->mutex, FuriWaitForever);
+            bool live = app->alert_card_tick != 0;
+            if(live) app->alert_card_tick = 0; // the hold dismisses it, like any key
+            bool valid = card_idx < (int)app->flock_count;
+            furi_mutex_release(app->mutex);
+            if(live) {
+                with_view_model(
+                    fv->view, FlockViewModel * model, { model->card_index = -1; }, true);
+                if(valid) hold_idx = card_idx;
+            }
+        }
         if(hold_idx >= 0 && fv->hold_cb) fv->hold_cb(fv->hold_ctx, hold_idx);
         return true;
     }

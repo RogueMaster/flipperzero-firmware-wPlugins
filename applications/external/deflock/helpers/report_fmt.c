@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (c) 2026 ReconGrunt
 #include "report_fmt.h"
+#include "flock_store.h" // FLOCK_FTYPE_SET
 
 #include <math.h>
 #include <stdio.h>
@@ -64,7 +65,7 @@ void fmt_ssid_shape(char* out, size_t out_len, const char* ssid) {
 char fmt_frame_char(char ftype) {
     // Same known set flock_store.c gates its column on, so what round-trips
     // through hits.csv and what a report prints cannot disagree.
-    if(ftype && strchr("PBROFL", ftype)) return ftype;
+    if(ftype && strchr(FLOCK_FTYPE_SET, ftype)) return ftype;
     return '?';
 }
 

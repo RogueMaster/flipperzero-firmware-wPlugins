@@ -1,5 +1,194 @@
 # Changelog
 
+## v0.99
+
+### Changed
+
+- **Two prefixes are out of the Flock table.** `3c:71:bf` is registered to
+  Espressif, a chip vendor, and every other Espressif prefix was already
+  rejected for that reason; this one predated the sweep. Any ESP32 gadget on
+  that block sending a wildcard probe scored `Likely`. `82:6b:f2` has the
+  locally-administered bit set, so it is not a registered prefix at all. A
+  camera that keeps one fixed randomised address is what the `macs` pin in
+  `signatures.json` is for. Both are blocked in CI so they cannot return. The
+  table is in the companion too, so this takes effect after a reflash.
+
+- **A Flock network name in a probe request no longer confirms the sender.**
+  Beacons and probe responses carry the transmitter's own SSID. A probe request
+  carries the one the sender is looking for, so a phone that once joined a
+  camera's provisioning AP probed for `Flock-A1B2C3` from its own address and
+  was listed as a CONFIRMED camera. Capped at `Likely` on the Flipper, at the
+  same trust boundary that already re-derives a claimed Confirmed, so it holds
+  with a companion that has not been reflashed. The companion applies the same
+  cap. The bench emitter gained identity 12 for exactly this case: on the
+  previous build it stored as Confirmed, on this one as Likely, and the same
+  name in a beacon still Confirms.
+
+- **The BLE `Penguin` name rule is anchored on `Penguin-`.** Unit names are
+  `Penguin-<digits>`; the bare word is a product name other vendors use, and
+  this rule stakes Confirmed.
+
+- **Companion: a probe response addressed to a tracked prefix scores like a
+  directed probe request addressed to one.** An access point only answers a
+  station that probed it moments ago, so the response is evidence the station
+  is present and transmitting. Same rung, no new class of evidence.
+  Compile-verified; not yet exercised on the air.
+
+- **Companion: the BLE address-prefix fallback applies to public addresses
+  only.** A random BLE address has no registered prefix, so a three-byte match
+  on one named nothing and produced a steady trickle of `Possible` rows from
+  phones. Compile-verified; not yet exercised on the air.
+
+### Fixed
+
+- **An interrupted save of `hits.csv` is recovered on the next start.** The new
+  file is written beside the old one and renamed into place; power lost between
+  removing the old file and the rename left a complete `hits.tmp` and no
+  `hits.csv`, and only `hits.csv` was read back. That combination is now
+  completed at load.
+
+- **"It's mine: never alert" removes what is already stored.** The exclusion
+  only stopped the next sighting. The device's existing row, and any other row
+  carrying the same fingerprint under another address, stayed in the list, in
+  `hits.csv` and in reports, and an excluded device came back from the saved
+  file on every launch because hits were restored before the exclusion lists
+  were read.
+
+- **A failed exclusion no longer looks like a successful one.** With the address
+  list full the row was deleted anyway and the device alerted again on its next
+  sighting, and a fingerprint could be written without its address. The row now
+  stays, with the error tone, unless the exclusion is actually on the card.
+
+- **Clear Saved Hits says so when the card refuses the delete,** instead of
+  emptying the screen over a file that would restore everything at the next
+  launch.
+
+- **The BLE table reuses its oldest row when full.** At eight rows,
+  first-come-first-served meant the first eight advertisers in range held it for
+  the whole session.
+
+- **Leaving the ESP32 flasher could reboot the Flipper.** The flasher frees the
+  detection tables to make room for itself and re-allocates them on the way
+  out, as one 19.3 KB block. On a loaded firmware the app has about 24 KB of
+  heap free and a largest block of about 17 KB, so after the flasher had
+  fragmented the heap the block could not be placed and the firmware halted on
+  out-of-memory. Seen once, on backing out after a successful flash. Two
+  changes: the Wi-Fi and BLE tables drop from 48 rows to 8, because the only
+  reader is the Locator picker and nothing marks rows in them any more, which
+  returns 5.6 KB and brings the block to 13.5 KB; and the re-allocation now
+  asks how large a block is available first and falls back to four smaller
+  ones rather than halting. Verified on hardware with a full 4 MB backup run
+  and exit; the heap fell to 10 KB during the run.
+
+- **Holding OK while the alert card is up acts on the device on the card.** The
+  card covers the list, so the highlighted row is invisible, and the hold used
+  to open the menu for whatever was highlighted underneath. Reaching for
+  `It's mine: never alert` when your own phone beeped could permanently
+  exclude a device you never saw. Verified on hardware.
+
+- **Clear Saved Hits clears the hits found in this run too.** It dropped only
+  the rows restored from disk, so anything found since the app was opened
+  stayed in memory and was written straight back by the next save. Verified on
+  hardware: scan, clear, scan again, and only the second scan's rows exist.
+
+- **A Mark set from the detail screen is saved.** It toggled the row without
+  flagging the table as changed, so it reached the card only if something else
+  happened to.
+
+- **A device heard once is no longer re-announced on every survey poll.** A
+  survey row matching a learned fingerprint or a flagged MAC was reported again
+  on each ten-second dump whether or not the device had been heard since, so
+  its sighting count climbed and its row stayed fresh long after it had gone.
+  It is now reported only when the companion's running count has moved.
+
+- **Signature-match detections print their frame type in reports.** The report
+  formatter kept its own copy of the known frame-type letters and missed `S`,
+  so those rows printed `?`. The store and the formatter now share one
+  definition.
+
+- **One visit to the Locator stopped the Air Survey for the rest of the run.**
+  The flag that tells the survey poll and the GPS-relay re-send to stay off the
+  radio while the Locator owns it was set on the way in and never cleared on the
+  way out. After any Lock-in, the survey was never asked for again and a
+  rebooted companion never got its GPS config back, until the app was
+  restarted. Cleared on exit; verified on hardware by watching `survey.csv`
+  resume after a Locator round trip.
+
+- **A companion that goes silent is now reported as silent.** `esp_connected`
+  only ever fell on entering a screen, so a board that browned out or a header
+  that worked loose mid-drive kept showing `ESP` and the last frame rate,
+  frozen. After five seconds without a line the header reads `ESP?`, the rate
+  shows `--/s`, the empty list says why, and the Flipper gives one short
+  vibration. A board that never answered still reads `...`, because that is a
+  different fault.
+
+- **A GPS fix now expires.** `gps_valid` fell only when a sentence explicitly
+  reported lost lock. A receiver that was unplugged, a companion that rebooted,
+  or a phone whose link dropped simply stops talking, and the last position
+  stayed "valid" and was written onto every later detection. Five seconds
+  without a fix now clears it.
+
+- **A companion reboot no longer turns BLE detection off.** The board boots
+  Wi-Fi-only; the banner handler restored band and GPS settings but not the
+  scan mode, so after a brownout BLE was silently off for the rest of the
+  session. The scan kickoff is remembered and re-sent with the rest.
+
+- **`hits.csv` is written beside and swapped in, not truncated in place.** The
+  autosave rewrote the file every 30 s, so a flat battery or a crash during the
+  write took the whole history with it, every earlier session included. The
+  new file is complete and closed before the old one is replaced, and any
+  failed write leaves the previous file untouched.
+
+- **A drone restored from `hits.csv` alerts again when it is actually heard.**
+  The Remote ID path passed a literal "not restored" to the alert rule, so a
+  stored row loaded as already-announced and never fired. Same fix the Wi-Fi
+  and BLE paths got for issue #5.
+
+- **A probe line carrying all five trailers no longer loses the last two.** The
+  parser split into ten fields; a line with `fp=`, `sg=`, `pr=`, `cls=` and
+  `hid=` has twelve, so `cls=` and `hid=` were glued onto `pr=` and dropped.
+  Harmless only when the MAC-derived class happened to agree. Pinned by a test
+  that goes red on the old size.
+
+- **Back is locked while the ESP32 flasher is erasing and writing.** It went
+  straight to the scene exit, which aborted the worker and could leave a wiped
+  or half-written board. The lock covers the whole flash operation, erase
+  included, and nothing else: connecting can still be cancelled, because that
+  is up to twenty sync attempts with nothing touched yet, and so can a backup,
+  which only reads. The log says `Back locked until done.` once.
+
+- **A Flock Raven is filed as an acoustic sensor, not an ALPR camera.** The BLE
+  path positively identifies a Raven by its own GATT services and then filed
+  it under the default class. It now carries the `ST:` row tag like the other
+  acoustic sensor, and the detail screen already named the model. Verified on
+  the bench emitter's Raven identity.
+
+### Verified
+
+- On hardware, against the bench emitter: the survey and hit files keep updating
+  after a Locator round trip; a silent companion reads `ESP?` and recovers; the
+  Raven shows as acoustic; a probe request for a Flock network name stores as
+  `Likely` where the previous build stored `CONFIRMED`; holding OK on the alert
+  card opens that device; Clear Saved Hits leaves only later rows; a full 4 MB
+  backup, exit and app exit complete without a reboot; and the reflashed
+  companion reaches `READY` with the signature self-test passing.
+- Compile-verified only: the companion's probe-response rung and its
+  public-address check for BLE prefixes (no bench identity exercises either
+  yet), the GPS expiry, the drone re-alert, the survey re-report gate, and the
+  recovery of an interrupted save.
+
+### Not fixed in this build
+
+- A camera on a randomised MAC with no usable fingerprint is still invisible to
+  the detection list. Nothing here changes that.
+- `ouis`, `ssid_confirmed` and `ssid_likely` in `signatures.json` cannot create
+  a detection on the Companion backend, only on Marauder, despite what
+  `docs/signatures.md` says.
+- BLE scanning is active, so the companion sends scan requests.
+- The flasher writes any `.bin` it is given at offset 0 without checking that it
+  is a merged image for the connected chip.
+- Free memory is still thin on firmware that loads a lot alongside the app.
+
 ## v0.98
 
 ### Added

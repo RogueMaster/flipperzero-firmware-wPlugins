@@ -9,9 +9,11 @@ typedef enum {
     ReportItemSaveAll,
     ReportItemSaveRaw,
     ReportItemFalsePos,
+    ReportItemMissed,
     ReportItemClear,
     ReportItemClearSaved,
     ReportItemForgetLearned,
+    ReportItemForgetIgnored,
 } ReportItem;
 
 static void recon_scene_reports_submenu_cb(void* context, uint32_t index) {
@@ -60,6 +62,14 @@ static void recon_scene_reports_build_menu(ReconApp* app) {
     // evidence about the detector and must not.
     submenu_add_item(
         submenu, "False Positive Report", ReportItemFalsePos, recon_scene_reports_submenu_cb, app);
+    // THE MISSING THIRD DIRECTION. The two items above cover "these are cameras"
+    // and "this row is wrong"; neither can say "there is a camera right here and
+    // you reported nothing", which is the complaint every field tester has
+    // eventually made and the only data that can measure recall. Pressed at the
+    // pole, so the claim is recorded while the operator is still looking at it
+    // rather than reconstructed from a CSV days later.
+    submenu_add_item(
+        submenu, "Missed Camera Report", ReportItemMissed, recon_scene_reports_submenu_cb, app);
     submenu_add_item(
         submenu, "Clear All Marks", ReportItemClear, recon_scene_reports_submenu_cb, app);
     // Erase the persisted hit log. Offered whenever the setting is on OR stored
@@ -76,6 +86,18 @@ static void recon_scene_reports_build_menu(ReconApp* app) {
         snprintf(app->text_store, RECON_TEXT_STORE, "Forget Learned (%u)", (unsigned)learned);
         submenu_add_item(
             submenu, app->text_store, ReportItemForgetLearned, recon_scene_reports_submenu_cb, app);
+    }
+    // Same reasoning as the line above, and the stakes are higher: an exclusion
+    // SUPPRESSES detections, and it does so from a file the operator cannot see
+    // from the device. Offering it only when there is something to forget keeps
+    // the menu short, while the count makes the suppression visible at all --
+    // somebody who excluded a device months ago and forgot has no other way to
+    // find out why a camera they expect never appears.
+    size_t ignored = sig_db_ignored_count(app->storage);
+    if(ignored > 0) {
+        snprintf(app->text_store, RECON_TEXT_STORE, "Forget Ignored (%u)", (unsigned)ignored);
+        submenu_add_item(
+            submenu, app->text_store, ReportItemForgetIgnored, recon_scene_reports_submenu_cb, app);
     }
 }
 
@@ -126,6 +148,21 @@ bool recon_scene_reports_on_event(void* context, SceneManagerEvent event) {
                                                     "Full MACs + SSIDs.\nDo not share.") :
                      fail_text);
             consumed = true;
+        } else if(event.event == ReportItemMissed) {
+            char path[128] = {0};
+            bool ok = recon_report_save_missed(app, path, sizeof(path));
+            if(app->settings.sound) {
+                notification_message(app->notifications, ok ? &sequence_success : &sequence_error);
+            }
+            // NO "nothing to save" PATH that depends on having detections. An
+            // empty table is the whole point of this report, and an empty survey
+            // beside a visible camera is its strongest single result, so only a
+            // card failure can make this fail.
+            recon_scene_reports_show_popup(
+                app,
+                ok ? "Missed Camera Saved" : "Write Failed",
+                ok ? "Air picture + why\nnothing fired" : "Check the SD card");
+            consumed = true;
         } else if(event.event == ReportItemFalsePos) {
             char path[128] = {0};
             bool ok = recon_report_save_fp(app, path, sizeof(path));
@@ -163,10 +200,28 @@ bool recon_scene_reports_on_event(void* context, SceneManagerEvent event) {
                 gone ? "Learned Cleared" : "Nothing Learned",
                 gone ? "Takes effect on\nnext app start" : "");
             consumed = true;
-        } else if(event.event == ReportItemClearSaved) {
-            recon_hits_clear(app); // deletes hits.csv AND drops the restored entries
+        } else if(event.event == ReportItemForgetIgnored) {
+            // Unlike the learned list this is live immediately, because the gate
+            // reads tables in RAM rather than scoring tables registered at
+            // start-up. The popup says so: "next app start" there and nothing
+            // here is the difference the operator actually experiences.
+            recon_app_clear_exclusions(app);
             recon_scene_reports_build_menu(app);
-            recon_scene_reports_show_popup(app, "Saved Hits Cleared", "hits.csv deleted");
+            recon_scene_reports_show_popup(app, "Exclusions Cleared", "Hearing them again");
+            consumed = true;
+        } else if(event.event == ReportItemClearSaved) {
+            // The WHOLE table, not just the rows restored from disk. Rows found
+            // earlier in this app run are saved hits too by the time this menu
+            // is reachable (the scan stopped and wrote them), and leaving them in
+            // RAM meant the next save wrote them straight back -- "hits.csv
+            // deleted" was true for about as long as it took to start a scan.
+            bool cleared = recon_hits_clear_all(app);
+            recon_scene_reports_build_menu(app);
+            if(cleared) {
+                recon_scene_reports_show_popup(app, "Saved Hits Cleared", "hits.csv deleted");
+            } else {
+                recon_scene_reports_show_popup(app, "Could Not Clear", "hits.csv not deleted");
+            }
             consumed = true;
         }
     }

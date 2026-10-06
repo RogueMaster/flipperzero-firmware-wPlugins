@@ -104,6 +104,7 @@ RETRACTED = {
     "f4:e2:c6": 'Removed upstream: "Nope - Ubiquiti" (misattributed)',
     "cc:cc:cc": 'Removed upstream: "No clue; no hits"',
     "00:0c:e7": 'Removed upstream: MediaTek, "possible false positive"',
+    "82:6b:f2": "Locally-administered bit set -- not a registered prefix; pin the whole address via `macs` instead",
 }
 
 # Where each file states how many prefixes its table holds. A count comment that
@@ -193,6 +194,7 @@ TOO_GENERIC = {
     "00:03:7f": "Atheros Communications -- Wi-Fi chip vendor (QCA9377); identifies silicon, not an operator",
     "48:27:ea": "Samsung Electronics -- phones and hotspots; the exact FP class already field-reported",
     "a4:cf:12": "Espressif -- chip vendor, incl. our own companion board",
+    "3c:71:bf": "Espressif -- chip vendor; carried in the Flock table from v0.8 until 2026-10-05",
     "24:0a:c4": "Espressif -- chip vendor, incl. our own companion board",
     "dc:54:75": "Espressif -- chip vendor",
     "e0:e2:e6": "Espressif -- chip vendor",

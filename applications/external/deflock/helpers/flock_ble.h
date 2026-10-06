@@ -193,7 +193,7 @@ FlockBleTell
 const char* flock_ble_tell_str(FlockBleTell tell);
 
 /**
- * True if @p name is Flock's OWN product naming -- a "Penguin*" prefix or an
+ * True if @p name is Flock's OWN product naming -- a "Penguin-" prefix or an
  * "FS Ext" substring, both case-insensitive. Same test flock_ble_confidence()
  * uses for its naming tell, exposed so callers can ask "is this name actually
  * informative?" without duplicating the patterns.

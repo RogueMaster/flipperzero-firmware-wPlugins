@@ -28,6 +28,15 @@ void esp_link_stop(EspLink* esp);
 void esp_link_send(EspLink* esp, const char* cmd);
 
 /**
+ * Send the scan-mode kickoff ("flockcombo") and REMEMBER it in app->esp_kickoff,
+ * so the on-banner re-send can restore the mode after a companion reboot. With
+ * cmd == NULL, re-sends whatever was remembered (no-op if nothing was). The
+ * board boots Wi-Fi-only; before this, a brownout mid-drive silently turned BLE
+ * detection off for the rest of the session.
+ */
+void esp_link_send_kickoff(EspLink* esp, const char* cmd);
+
+/**
  * (Re)send the companion's GPS-relay config from current settings, and start the
  * clock on its `GPSCFG` echo.
  *

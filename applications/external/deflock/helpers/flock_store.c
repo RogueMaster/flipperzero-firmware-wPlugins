@@ -179,7 +179,7 @@ size_t flock_store_fmt_line(char* out, size_t out_len, const FlockStoreRec* r) {
     // because nothing breaks loudly -- the row still loads, it just quietly
     // forgets what it was.
     char ft[2] = {0, 0};
-    if(r->ftype && strchr("PBROFLS", r->ftype)) ft[0] = r->ftype;
+    if(r->ftype && strchr(FLOCK_FTYPE_SET, r->ftype)) ft[0] = r->ftype;
 
     int n = snprintf(
         out,
@@ -273,7 +273,7 @@ bool flock_store_parse_line(const char* line, FlockStoreRec* out) {
         // for exactly one change ('S'), and the two whitelists fail in opposite
         // directions: the writer silently blanks an unknown letter, the reader
         // silently rejects the whole row. Neither says anything.
-        if(f[4][1] != '\0' || !strchr("PBROFLS", f[4][0])) return false;
+        if(f[4][1] != '\0' || !strchr(FLOCK_FTYPE_SET, f[4][0])) return false;
         r.ftype = f[4][0];
     }
 

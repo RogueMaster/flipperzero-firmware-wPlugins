@@ -2,6 +2,7 @@
 // Copyright (c) 2026 ReconGrunt
 #include "recon_app_i.h"
 #include <furi_hal_power.h>
+#include <furi/core/memmgr_heap.h>
 #include "helpers/esp_link.h"
 #include "helpers/esp_parser.h" // esp_hexval, for the guarded-BSSID setting
 #include "helpers/gps_link.h"
@@ -44,6 +45,26 @@ void recon_app_report_flock(
     app->diag_flock_msgs++;
     if(confidence == FlockConfidenceNone) {
         app->diag_rej_conf++;
+        furi_mutex_release(app->mutex);
+        return;
+    }
+
+    // THE OPERATOR'S OWN HARDWARE, dropped before it can reach the table, be
+    // geotagged, beep, or land in a report. Above every scoring tier on purpose:
+    // the ladder answers "does this look like a camera", and this answers "the
+    // person holding the Flipper went and looked, and it is their own router".
+    // No confidence rung outranks that, including Confirmed -- an SSID pattern
+    // is a guess about a stranger's device and this is a fact about the
+    // operator's own. Counted so diag.csv can still say the device was heard,
+    // which keeps an exclusion distinguishable from a radio that went deaf.
+    if(flock_is_excluded(
+           mac,
+           ie_fp,
+           app->ignore_macs,
+           app->ignore_mac_count,
+           app->ignore_fps,
+           app->ignore_fp_count)) {
+        app->diag_rej_ignored++;
         furi_mutex_release(app->mutex);
         return;
     }
@@ -371,6 +392,10 @@ void recon_app_set_esp_status(
     bool connected) {
     furi_mutex_acquire(app->mutex, FuriWaitForever);
     app->esp_connected = connected;
+    if(connected) {
+        app->esp_rx_tick = furi_get_tick();
+        app->esp_lost = false;
+    }
     // (0,0,0) is a keepalive/banner; don't clobber real counters with it.
     if(!(frames == 0 && hits == 0 && channel == 0)) {
         // The companion sends lifetime totals. Rebase per session so the count
@@ -422,13 +447,128 @@ void recon_app_set_esp_lines(ReconApp* app, uint32_t lines) {
     furi_mutex_acquire(app->mutex, FuriWaitForever);
     app->esp_lines = lines;
     app->esp_connected = true;
+    app->esp_rx_tick = furi_get_tick();
+    app->esp_lost = false;
     furi_mutex_release(app->mutex);
+}
+
+// How long the companion may go silent before the app stops claiming it is
+// connected. The board sends a status line about once a second and BLE/survey
+// traffic on top, so five seconds of nothing is a dead link, not a quiet one.
+#define RECON_ESP_SILENT_MS 5000u
+// A receiver reports at 1 Hz; five missed fixes is unplugged, not between
+// sentences.
+#define RECON_GPS_STALE_MS  5000u
+
+void recon_app_liveness_tick(ReconApp* app) {
+    uint32_t now = furi_get_tick();
+    bool lost_now = false;
+    furi_mutex_acquire(app->mutex, FuriWaitForever);
+    // Companion. esp_connected was only ever set back to false on scene entry,
+    // so a board that browned out or a header that worked loose mid-drive kept
+    // showing "ESP" and the last frame rate, frozen, for as long as the screen
+    // was up -- the detector reporting itself healthy while hearing nothing.
+    if(app->esp && app->esp_connected && app->esp_rx_tick &&
+       (now - app->esp_rx_tick) >= RECON_ESP_SILENT_MS) {
+        app->esp_connected = false;
+        app->esp_lost = true;
+        app->esp_frame_rate = -1; // no honest rate from a silent board
+        app->esp_rate_tick = 0;
+        lost_now = true;
+    }
+    // GPS. Same failure, same shape: see gps_publish_fix().
+    if(app->gps_valid && app->gps_fix_tick && (now - app->gps_fix_tick) >= RECON_GPS_STALE_MS) {
+        app->gps_valid = false;
+        app->gps_sats = 0;
+    }
+    furi_mutex_release(app->mutex);
+    // One pulse, outside the lock, on the transition only. Not the configured
+    // alert: that means "camera", and this means "your detector just stopped".
+    if(lost_now && app->notifications) {
+        notification_message(app->notifications, &sequence_single_vibro);
+    }
 }
 
 void recon_app_set_esp_proto(ReconApp* app, uint8_t version, bool mismatch) {
     furi_mutex_acquire(app->mutex, FuriWaitForever);
     app->esp_proto_version = version;
     app->esp_proto_mismatch = mismatch;
+    furi_mutex_release(app->mutex);
+}
+
+size_t recon_app_purge_excluded(ReconApp* app) {
+    if(!app) return 0;
+    size_t removed = 0;
+    furi_mutex_acquire(app->mutex, FuriWaitForever);
+    size_t w = 0;
+    for(size_t i = 0; i < app->flock_count; i++) {
+        const FlockEntry* e = &app->flock[i];
+        bool gone = false;
+        for(size_t k = 0; k < app->ignore_mac_count && !gone; k++) {
+            gone = memcmp(app->ignore_macs[k], e->mac, 6) == 0;
+        }
+        for(size_t k = 0; e->ie_fp != 0 && k < app->ignore_fp_count && !gone; k++) {
+            gone = app->ignore_fps[k] == e->ie_fp;
+        }
+        if(gone) {
+            removed++;
+            continue;
+        }
+        if(w != i) app->flock[w] = app->flock[i];
+        w++;
+    }
+    app->flock_count = w;
+    if(app->selected >= (int)w) app->selected = w ? (int)w - 1 : 0;
+    if(removed) app->hits_dirty = true;
+    furi_mutex_release(app->mutex);
+    return removed;
+}
+
+bool recon_app_exclude_device(ReconApp* app, const uint8_t* mac, uint32_t fp, bool* out_by_fp) {
+    if(out_by_fp) *out_by_fp = false;
+    if(!app || !mac) return false;
+
+    // CARD FIRST, THEN THE LOCK. The write reaches the storage service, and the
+    // ESP worker takes app->mutex on every companion line, so holding the mutex
+    // across a filesystem round-trip stalls the radio path behind the SD card --
+    // the same discipline the hit menu uses for a learned signature.
+    bool by_fp = false;
+    bool ok = sig_db_ignore_add(app->storage, mac, fp, &by_fp);
+    if(!ok) return false;
+
+    uint32_t fps[SIG_IGNORED_MAX_FPS];
+    uint8_t macs[SIG_IGNORED_MAX_MACS][6];
+    size_t nf = 0, nm = 0;
+    sig_db_ignored_read(
+        app->storage, fps, SIG_IGNORED_MAX_FPS, macs, SIG_IGNORED_MAX_MACS, &nf, &nm);
+
+    // RE-READ RATHER THAN APPEND IN PLACE, so memory and card cannot disagree.
+    // What the gate enforces is then exactly what survives a restart, and a
+    // write that was refused (a generic skeleton, a full table) cannot leave a
+    // phantom entry live for the rest of the session.
+    furi_mutex_acquire(app->mutex, FuriWaitForever);
+    memcpy(app->ignore_fps, fps, sizeof(uint32_t) * nf);
+    memcpy(app->ignore_macs, macs, sizeof(uint8_t[6]) * nm);
+    app->ignore_fp_count = nf;
+    app->ignore_mac_count = nm;
+    furi_mutex_release(app->mutex);
+
+    // AND TAKE IT OUT OF WHAT IS ALREADY ON THE LIST. The gate only stops the
+    // NEXT sighting; the device's existing row -- and any other row carrying
+    // the same fingerprint under a different address -- stayed in the table, in
+    // hits.csv and in every report written from them.
+    recon_app_purge_excluded(app);
+
+    if(out_by_fp) *out_by_fp = by_fp;
+    return true;
+}
+
+void recon_app_clear_exclusions(ReconApp* app) {
+    if(!app) return;
+    sig_db_forget_ignored(app->storage);
+    furi_mutex_acquire(app->mutex, FuriWaitForever);
+    app->ignore_fp_count = 0;
+    app->ignore_mac_count = 0;
     furi_mutex_release(app->mutex);
 }
 
@@ -529,6 +669,12 @@ void recon_app_report_remote_id(
 
     app->diag_accepted++;
     uint8_t prev_conf = (uint8_t)entry->confidence;
+    // Captured BEFORE the flag is cleared, same as recon_app_report_flock(): a
+    // row restored from hits.csv loads with alerted=true, so without this the
+    // alert rule saw "already announced" and a drone first heard today, after
+    // a restart, never alerted at all -- issue #5's bug on the one class whose
+    // detection is most time-critical.
+    bool was_archived = entry->archived;
     entry->count++;
     entry->last_tick = now;
     entry->archived = false;
@@ -580,7 +726,7 @@ void recon_app_report_remote_id(
            prev_conf,
            (uint8_t)entry->confidence,
            entry->alerted,
-           false,
+           was_archived,
            now,
            app->alert_last_tick,
            app->alert_have_fired,
@@ -608,9 +754,16 @@ void recon_app_survey_add(
     const char* sig) {
     furi_mutex_acquire(app->mutex, FuriWaitForever);
     SurveyEntry* e = NULL;
+    // The count this row had after the PREVIOUS dump (0 = first time seen).
+    // The companion sends running totals every poll, so "count went up" is the
+    // only thing that says the device was actually heard again since.
+    uint16_t prev_count = 0;
+    bool known = false;
     for(size_t i = 0; i < app->survey_count; i++) {
         if(memcmp(app->survey[i].mac, mac, 6) == 0) {
             e = &app->survey[i];
+            prev_count = e->count;
+            known = true;
             break;
         }
     }
@@ -683,6 +836,12 @@ void recon_app_survey_add(
     FlockConfidence fp_conf = flock_ie_fp_confidence(fp, mac);
     FlockConfidence pin_conf = flock_mac_pin_confidence(mac);
     if(pin_conf > fp_conf) fp_conf = pin_conf;
+    // ONLY WHEN IT WAS HEARD AGAIN. Every 10 s dump repeats every row, so
+    // reporting unconditionally re-announced a device that left minutes ago on
+    // each poll: its sighting count climbed, its "last seen" stayed fresh, and
+    // its row kept showing live bars for a transmitter that was long gone. A
+    // row whose running total has not moved has not been heard since last time.
+    if(known && count <= prev_count) return;
     if(fp_conf != FlockConfidenceNone) {
         // 'F' is the "probe-fp" source label, matching what the companion-line
         // parser stamps on a fingerprint match. No SSID, because a survey row has
@@ -939,6 +1098,11 @@ void recon_app_gps_cfg_tick(ReconApp* app) {
     if(want && app->esp) {
         esp_link_send_band(app->esp);
         esp_link_send_gps_cfg(app->esp);
+        // And the scan mode itself. The companion boots with g_scanning=true but
+        // g_combo=false, i.e. Wi-Fi only; a brownout mid-drive therefore came
+        // back up with BLE detection off and nothing on screen to say so. The
+        // kickoff is an idempotent mode-select, so re-sending it is free.
+        esp_link_send_kickoff(app->esp, NULL);
     }
 }
 
@@ -1015,8 +1179,28 @@ void recon_app_ble_add(
             break;
         }
     }
-    if(!e && app->ble_count < RECON_BLE_MAX) {
+    bool ble_new_row = false;
+    if(e) {
+        e->last_tick = now;
+    } else if(app->ble_count < RECON_BLE_MAX) {
         e = &app->ble[app->ble_count++];
+        ble_new_row = true;
+    } else {
+        // FULL: reuse the row heard longest ago, never a marked one. The table
+        // is small on purpose (see RECON_BLE_MAX), and first-come-first-served
+        // meant the first eight advertisers in range held it for the whole
+        // session and nothing heard later could ever get a row.
+        size_t v = RECON_BLE_MAX;
+        for(size_t i = 0; i < app->ble_count; i++) {
+            if(app->ble[i].marked) continue;
+            if(v == RECON_BLE_MAX || app->ble[i].last_tick < app->ble[v].last_tick) v = i;
+        }
+        if(v < RECON_BLE_MAX) {
+            e = &app->ble[v];
+            ble_new_row = true;
+        }
+    }
+    if(e && ble_new_row) {
         memset(e, 0, sizeof(BleDevice));
         memcpy(e->addr, addr, 6);
         e->first_lat = app->gps_valid ? app->gps_lat : NAN;
@@ -1089,7 +1273,13 @@ void recon_app_ble_add(
             'L',
             flock_ble_confidence(company, name, raven_gatt),
             0,
-            (cat == BleCatAxon) ? FlockClassBodycam : FlockClassAlpr,
+            // A Raven is Flock's ACOUSTIC gunshot sensor, positively identified
+            // by its own GATT services, and flock_model_name() already spells it
+            // "Flock Raven acoustic" for the acoustic class. Filing it as ALPR
+            // put a microphone on the list as a plate reader.
+            (cat == BleCatAxon) ? FlockClassBodycam :
+            raven_gatt          ? FlockClassAcoustic :
+                                  FlockClassAlpr,
             false,
             0); // BLE advert, not a probe request -- no probe rate exists
         // Record WHAT matched, alongside how sure we are. Two Confirmed rows can
@@ -1388,17 +1578,28 @@ void recon_hits_save(ReconApp* app) {
 
     recon_report_ensure_dirs(app);
 
+    // WRITE BESIDE, THEN REPLACE. This runs every 30 s during a scan, and it
+    // used to truncate hits.csv in place -- so a flat battery or a crash in the
+    // half-second the card was being written took the WHOLE history with it,
+    // every previous session included, which is the one loss the autosave was
+    // added to prevent. The temp file is complete and closed before the old
+    // file is touched, and any failed write abandons it, leaving the previous
+    // hits.csv exactly as it was.
     File* file = storage_file_alloc(app->storage);
-    if(storage_file_open(file, RECON_HITS_PATH, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
-        storage_file_write(file, FLOCK_STORE_SCHEMA "\n", strlen(FLOCK_STORE_SCHEMA) + 1);
-        storage_file_write(file, FLOCK_STORE_HEADER "\n", strlen(FLOCK_STORE_HEADER) + 1);
+    bool ok = false;
+    if(storage_file_open(file, RECON_HITS_TMP_PATH, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
+        ok = storage_file_write(file, FLOCK_STORE_SCHEMA "\n", strlen(FLOCK_STORE_SCHEMA) + 1) ==
+             strlen(FLOCK_STORE_SCHEMA) + 1;
+        ok = ok &&
+             storage_file_write(file, FLOCK_STORE_HEADER "\n", strlen(FLOCK_STORE_HEADER) + 1) ==
+                 strlen(FLOCK_STORE_HEADER) + 1;
 
         // One record at a time, straight to the card. Never assemble the file in
         // RAM -- same reason the report writers stream (see recon_report.c).
         // Snapshotting per entry also means the lock is never held across an SD
         // write, so a still-running ESP worker can't stall behind the filesystem.
         char line[FLOCK_STORE_LINE_MAX];
-        for(size_t i = 0; i < total; i++) {
+        for(size_t i = 0; ok && i < total; i++) {
             FlockStoreRec rec;
             bool have = false;
             furi_mutex_acquire(app->mutex, FuriWaitForever);
@@ -1410,11 +1611,20 @@ void recon_hits_save(ReconApp* app) {
             if(!have) continue;
 
             size_t n = flock_store_fmt_line(line, sizeof(line), &rec);
-            if(n) storage_file_write(file, line, n);
+            if(n && storage_file_write(file, line, n) != n) ok = false;
         }
     }
     storage_file_close(file);
     storage_file_free(file);
+    if(ok) {
+        // The firmware's rename refuses an existing destination, so the old file
+        // goes first. The gap between the two calls is microseconds, and the
+        // replacement is already complete on the card when it opens.
+        storage_common_remove(app->storage, RECON_HITS_PATH);
+        storage_common_rename(app->storage, RECON_HITS_TMP_PATH, RECON_HITS_PATH);
+    } else {
+        storage_common_remove(app->storage, RECON_HITS_TMP_PATH);
+    }
 }
 
 // How long a detection may sit in RAM before it reaches the card. The bound on
@@ -1497,6 +1707,7 @@ void recon_diag_begin(ReconApp* app) {
     app->diag_accepted = 0;
     app->diag_rej_conf = 0;
     app->diag_rej_full = 0;
+    app->diag_rej_ignored = 0;
     app->diag_start_epoch = furi_hal_rtc_get_timestamp();
     furi_mutex_release(app->mutex);
 }
@@ -1535,6 +1746,12 @@ void recon_diag_save(ReconApp* app) {
     uint32_t acc = app->diag_accepted;
     uint32_t rej_c = app->diag_rej_conf;
     uint32_t rej_f = app->diag_rej_full;
+    // SUPPRESSED BY THE OPERATOR'S OWN EXCLUSION LIST. In a field report this is
+    // the difference between "the radio heard nothing" and "it heard the thing
+    // you are asking about and you told it to stay quiet". Somebody who excluded
+    // a device weeks ago has no memory of doing it, and without this column a
+    // report from that card cannot be explained from the outside.
+    uint32_t rej_i = app->diag_rej_ignored;
     uint32_t lines = app->esp_lines;
     uint32_t dropped = app->esp_dropped_lines;
     uint32_t reboots = app->esp_reboots;
@@ -1595,12 +1812,12 @@ void recon_diag_save(ReconApp* app) {
                 "start,end,dur_s,ver,esp_ver,backend,band_req,band_act,band_ch,proto,"
                 "sig_expected,sig_actual,sig_match,sigtest,"
                 "esp_lines,esp_dropped,esp_reboots,esp_frames,esp_hits,"
-                "reports,accepted,rej_conf,rej_full,table\n");
+                "reports,accepted,rej_conf,rej_full,rej_ignored,table\n");
         }
         furi_string_cat_printf(
             s,
             "%lu,%lu,%lu,%s,%s,%u,%u,%u,%u,%u,%s,%s,%d,%d,"
-            "%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu\n",
+            "%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu\n",
             (unsigned long)start,
             (unsigned long)end,
             (unsigned long)(end - start),
@@ -1624,6 +1841,7 @@ void recon_diag_save(ReconApp* app) {
             (unsigned long)acc,
             (unsigned long)rej_c,
             (unsigned long)rej_f,
+            (unsigned long)rej_i,
             (unsigned long)table);
         storage_file_write(file, furi_string_get_cstr(s), furi_string_size(s));
         furi_string_free(s);
@@ -1700,6 +1918,18 @@ static void recon_hits_add(ReconApp* app, const FlockStoreRec* r) {
 void recon_hits_load(ReconApp* app) {
     if(!app->settings.save_hits) return;
 
+    // FINISH AN INTERRUPTED SWAP. recon_hits_save() removes hits.csv only after
+    // hits.tmp is complete and closed, then renames it into place. Power lost
+    // between those two calls leaves no hits.csv and a whole, valid hits.tmp --
+    // so that combination can only mean "the rename did not happen", and
+    // completing it here recovers every row. A hits.tmp NEXT TO a hits.csv is
+    // the opposite case, a write that died part-way, and is left to be
+    // overwritten by the next save.
+    if(!storage_file_exists(app->storage, RECON_HITS_PATH) &&
+       storage_file_exists(app->storage, RECON_HITS_TMP_PATH)) {
+        storage_common_rename(app->storage, RECON_HITS_TMP_PATH, RECON_HITS_PATH);
+    }
+
     File* file = storage_file_alloc(app->storage);
     if(storage_file_open(file, RECON_HITS_PATH, FSAM_READ, FSOM_OPEN_EXISTING)) {
         char chunk[HITS_CHUNK];
@@ -1767,6 +1997,7 @@ void recon_hits_load(ReconApp* app) {
 }
 
 void recon_hits_clear(ReconApp* app) {
+    storage_common_remove(app->storage, RECON_HITS_TMP_PATH);
     storage_common_remove(app->storage, RECON_HITS_PATH);
 
     // Drop the restored entries too. Leaving them on screen after "clear" would
@@ -1781,6 +2012,21 @@ void recon_hits_clear(ReconApp* app) {
     app->flock_count = w;
     if(app->selected >= (int)w) app->selected = w ? (int)w - 1 : 0;
     furi_mutex_release(app->mutex);
+}
+
+bool recon_hits_clear_all(ReconApp* app) {
+    // The file first, and only then the table. If the card refuses the delete,
+    // emptying the screen anyway would show "cleared" over hits that come back
+    // on the next launch.
+    storage_common_remove(app->storage, RECON_HITS_TMP_PATH);
+    FS_Error err = storage_common_remove(app->storage, RECON_HITS_PATH);
+    if(err != FSE_OK && err != FSE_NOT_EXIST) return false;
+    furi_mutex_acquire(app->mutex, FuriWaitForever);
+    app->flock_count = 0;
+    app->selected = 0;
+    app->hits_dirty = false; // nothing left to flush
+    furi_mutex_release(app->mutex);
+    return true;
 }
 
 // ---- view dispatcher glue ------------------------------------------------
@@ -1821,6 +2067,10 @@ static void recon_tick_event_callback(void* context) {
     // session sent). Doing that transmit on the worker thread would race this
     // thread's own commands on the same UART handle.
     recon_app_gps_cfg_tick(app);
+    // Notice when the companion or the GPS has gone silent. Both used to be
+    // "up until a scene said otherwise", which is how a loose header connector
+    // produced a drive's worth of confident-looking nothing.
+    recon_app_liveness_tick(app);
     // Phone GPS: re-ask for the location stream while it is not delivering. Same
     // hoisted-to-the-dispatcher reasoning as the two above -- the ordinary case is
     // that the operator opens a scan screen and connects the phone afterwards, and
@@ -1874,6 +2124,23 @@ static ReconApp* recon_app_alloc(void) {
     // Optional SD-loaded extra signatures, merged over the built-ins. Fail-safe:
     // a missing/malformed file leaves sig_db NULL and the built-ins intact.
     app->sig_db = sig_db_load(app->storage);
+
+    // Exclusions, read once into the fixed tables the detection gate reads. Same
+    // fail-safe posture as everything else here: an absent or corrupt file
+    // leaves both counts at 0, so a bad exclusions file can never suppress a
+    // detection -- only the operator's own entries can.
+    sig_db_ignored_read(
+        app->storage,
+        app->ignore_fps,
+        SIG_IGNORED_MAX_FPS,
+        app->ignore_macs,
+        SIG_IGNORED_MAX_MACS,
+        &app->ignore_fp_count,
+        &app->ignore_mac_count);
+    // The saved hits were restored a few lines up, before these lists existed,
+    // so reconcile now: a device excluded in an earlier session must not come
+    // back from hits.csv on every launch.
+    recon_app_purge_excluded(app);
 
     app->view_dispatcher = view_dispatcher_alloc();
     app->scene_manager = scene_manager_alloc(&recon_scene_handlers, app);
@@ -1936,14 +2203,28 @@ static ReconApp* recon_app_alloc(void) {
 #define TBL_SURVEY_SZ TBL_ALIGN(RECON_SURVEY_MAX * sizeof(SurveyEntry))
 #define TBL_TOTAL_SZ  (TBL_FLOCK_SZ + TBL_WIFI_SZ + TBL_BLE_SZ + TBL_SURVEY_SZ)
 
+/** Free whichever shape the tables were allocated in. Caller holds the mutex,
+ *  or is the teardown path where nothing else is running. */
+static void recon_tables_free_storage(ReconApp* app) {
+    if(app->tables_split) {
+        free(app->flock);
+        free(app->wifi);
+        free(app->ble);
+        free(app->survey);
+        app->tables_split = false;
+    } else {
+        free(app->tables_block);
+    }
+    app->tables_block = NULL;
+}
+
 void recon_tables_release(ReconApp* app) {
     // Persist before dropping, or a screen that merely wants memory becomes data
     // loss. A no-op when Save Hits is off, same contract as everywhere else.
     recon_hits_save(app);
 
     furi_mutex_acquire(app->mutex, FuriWaitForever);
-    free(app->tables_block);
-    app->tables_block = NULL;
+    recon_tables_free_storage(app);
     app->flock = NULL;
     app->wifi = NULL;
     app->ble = NULL;
@@ -1959,7 +2240,23 @@ void recon_tables_release(ReconApp* app) {
 
 void recon_tables_acquire(ReconApp* app) {
     furi_mutex_acquire(app->mutex, FuriWaitForever);
-    if(!app->tables_block) {
+    if(!app->tables_block && !app->flock) {
+        // malloc on this firmware does not return NULL: it halts the device on
+        // out-of-memory. So ASK FIRST. If one contiguous block is not available
+        // -- which is what a fragmented heap looks like after the flasher
+        // plugin, its thread stack and the file browser have come and gone --
+        // take four smaller ones instead. That costs the fragmentation the
+        // single block was introduced to avoid, and it is still strictly better
+        // than rebooting the Flipper on the way out of a successful flash.
+        if(memmgr_heap_get_max_free_block() < TBL_TOTAL_SZ + 512u) {
+            app->flock = calloc(1, TBL_FLOCK_SZ);
+            app->wifi = calloc(1, TBL_WIFI_SZ);
+            app->ble = calloc(1, TBL_BLE_SZ);
+            app->survey = calloc(1, TBL_SURVEY_SZ);
+            app->tables_split = true;
+        }
+    }
+    if(!app->tables_block && !app->flock) {
         // ONE BLOCK, carved. Four separate allocations left the heap a little
         // worse after every release/acquire round trip, because the plugin that
         // borrows the space in between is one big block and the four that come
@@ -2016,7 +2313,7 @@ static void recon_app_free(ReconApp* app) {
     furi_string_free(app->fw_log);
     // One block backing all four tables (see recon_tables_acquire). Freed before
     // the mutex, since release takes it.
-    free(app->tables_block);
+    recon_tables_free_storage(app);
 
     furi_mutex_free(app->mutex);
     free(app);

@@ -345,6 +345,18 @@ void esp_link_send(EspLink* esp, const char* cmd) {
     furi_hal_serial_tx(esp->serial, (const uint8_t*)"\n", 1);
 }
 
+void esp_link_send_kickoff(EspLink* esp, const char* cmd) {
+    ReconApp* app = esp->app;
+    if(app->settings.backend != EspBackendCompanion) return;
+    if(cmd) {
+        // Scenes call this from the GUI thread; the re-send below runs on the
+        // same thread (recon_app_gps_cfg_tick), so the string needs no lock.
+        strncpy(app->esp_kickoff, cmd, sizeof(app->esp_kickoff) - 1);
+        app->esp_kickoff[sizeof(app->esp_kickoff) - 1] = '\0';
+    }
+    if(app->esp_kickoff[0]) esp_link_send(esp, app->esp_kickoff);
+}
+
 // Index-aligned with ReconEspBand.
 static const char* const esp_band_cmd[] = {"band 2g", "band 5g", "band all"};
 

@@ -41,6 +41,8 @@
  *   9 Motorola Sol. 00:04:7d, beacon     p Possible, vendor "Motorola"
  *  10 Motorola MOBILITY 50:16:f4         NOTHING -- must never appear
  *  11 Motorola Solutions, wildcard probe L Likely, class Gear (v0.97 rung)
+ *  12 no-table MAC, probe-req SSID       L Likely, NEVER Confirmed (the name
+ *     "Flock-A1B2C3"                       is what the sender SEEKS, not is)
  *
  * Identities 8-10 cover the v0.77 vendor work, and 8 is the one that proves the
  * companion was reflashed: a bare named beacon from a vendor-exclusive OUI
@@ -262,6 +264,18 @@ static const WifiIdentity WIFI_IDS[] = {
      SsidZeroLen,
      EmitProbe,
      "L Likely, class Gear (vendor + sustained probe)"},
+    // A PHONE LOOKING FOR A CAMERA. The SSID in a probe REQUEST names the
+    // network the sender wants, not the sender: a phone that once joined a
+    // camera's provisioning AP probes for "Flock-A1B2C3" from its own address.
+    // Before the cap this came out CONFIRMED under the phone's MAC. The MAC is
+    // in no table on purpose, so the name is the only thing that can score;
+    // identity 2 is the same name in a BEACON and must still Confirm -- the
+    // pair is the test.
+    {{0x00, 0x11, 0x22, 0x00, 0x00, 0x0d},
+     "Flock-A1B2C3",
+     SsidNamed,
+     EmitProbe,
+     "L Likely -- name in a probe REQUEST must NOT Confirm"},
 };
 #define WIFI_ID_COUNT (sizeof(WIFI_IDS) / sizeof(WIFI_IDS[0]))
 
@@ -643,7 +657,10 @@ static void start_probe_burst(const WifiIdentity* id) {
     }
 
     wifi_scan_config_t cfg = {};
-    cfg.ssid = NULL; // wildcard probe: no SSID IE, the phone-home shape
+    // Wildcard probe (no SSID IE, the phone-home shape) unless the identity
+    // names a network, in which case it is a DIRECTED probe for that name --
+    // the shape a phone makes when it looks for a network it once joined.
+    cfg.ssid = (id->enc == SsidNamed && id->ssid) ? (uint8_t*)id->ssid : NULL;
     cfg.bssid = NULL;
     cfg.channel = EMIT_CHANNEL;
     cfg.show_hidden = true;

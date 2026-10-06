@@ -130,6 +130,63 @@ bool sig_db_forget_learned(Storage* storage);
 /** How many fingerprints learned.txt currently holds (0 if absent). */
 size_t sig_db_learned_count(Storage* storage);
 
+/* ---- operator exclusions (ignored.txt) ---------------------------------- */
+/** Caps on the loaded exclusion lists. Public because ReconApp holds the arrays
+ *  for the whole session: the gate runs on every single companion detection
+ *  line, so it reads a fixed in-memory table rather than touching the card. */
+#define SIG_IGNORED_MAX_FPS  32u
+#define SIG_IGNORED_MAX_MACS 32u
+
+/**
+ * A THIRD file, written only on an explicit "it's mine":
+ *
+ *     RECON_APP_FOLDER "/ignored.txt"       (apps_data/flipdeflock/ignored.txt)
+ *
+ * learned.txt says "this IS a camera"; this one says "this is MINE, never
+ * report it". Same line format, same parser, opposite polarity, and consulted
+ * before a sighting is allowed into the hit table at all.
+ *
+ * Asked for in discussion #27, where a field tester's own phone and household
+ * gear kept filling his list across a week of drives and there was no way to
+ * silence any of it. He stopped trusting the screen, which is the real cost of
+ * a false positive on a tool like this.
+ */
+
+/**
+ * Exclude a device the operator says is theirs.
+ *
+ * Always records the ADDRESS. Also records the probe fingerprint when one was
+ * captured AND it is not a commodity skeleton -- see the implementation for why
+ * refusing a generic hash here is the mirror image of refusing one in
+ * sig_db_learn_fp(). `out_fp_written` reports which of the two happened so the
+ * UI can tell the operator whether the exclusion survives the device changing
+ * its MAC; pass NULL if you do not care.
+ *
+ * @return true if the device is now excluded, INCLUDING when it already was.
+ */
+bool sig_db_ignore_add(Storage* storage, const uint8_t* mac, uint32_t fp, bool* out_fp_written);
+
+/**
+ * Read ignored.txt into caller-supplied arrays, either of which may be NULL.
+ * Absent file, unreadable file and garbage lines all yield 0, the same
+ * fail-safe posture as every other read in this module: a bad exclusions file
+ * must never be able to suppress a detection.
+ */
+void sig_db_ignored_read(
+    Storage* storage,
+    uint32_t* fps,
+    size_t fp_max,
+    uint8_t (*macs)[6],
+    size_t mac_max,
+    size_t* out_fps,
+    size_t* out_macs);
+
+/** How many exclusions ignored.txt holds, addresses and fingerprints together. */
+size_t sig_db_ignored_count(Storage* storage);
+
+/** Delete ignored.txt. Returns true if it existed and is gone. */
+bool sig_db_forget_ignored(Storage* storage);
+
 #ifdef __cplusplus
 }
 #endif

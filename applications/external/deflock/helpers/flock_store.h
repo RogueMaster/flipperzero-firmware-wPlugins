@@ -99,6 +99,16 @@ bool flock_store_schema_supported(const char* line);
  *  33-char SSID of nothing but quotes (each doubled, plus the wrapping pair). */
 #define FLOCK_STORE_LINE_MAX 256
 
+/**
+ * Every frame-type letter a detection can carry. ONE definition, because the
+ * store's writer, the store's reader and the report formatter each used to
+ * spell this out themselves, and when 'S' (community-signature match) was added
+ * the formatter was missed: signature detections round-tripped through hits.csv
+ * correctly and then printed as '?' in the false-positive report, the one
+ * column that report exists to show.
+ */
+#define FLOCK_FTYPE_SET "PBROFLS"
+
 /** POD mirror of the persisted subset of FlockEntry. Deliberately not FlockEntry
  *  itself: that type lives in the firmware-coupled recon_app_i.h, and copying
  *  through this struct is what keeps the format host-testable. */

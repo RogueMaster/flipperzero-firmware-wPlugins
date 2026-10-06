@@ -399,8 +399,9 @@ static int sig_learned_parse_line(const char* line, size_t len, uint64_t* out) {
  * Kept counts go to the out params. Absent file, unreadable file and garbage
  * lines all yield 0 -- the same fail-safe posture as the JSON path.
  */
-static void sig_learned_read(
+static void sig_lines_read(
     Storage* storage,
+    const char* path,
     uint32_t* fps,
     size_t fp_max,
     uint8_t (*macs)[6],
@@ -410,7 +411,7 @@ static void sig_learned_read(
     size_t nf = 0, nm = 0;
     if(storage) {
         File* file = storage_file_alloc(storage);
-        if(storage_file_open(file, SIG_LEARNED_PATH, FSAM_READ, FSOM_OPEN_EXISTING)) {
+        if(storage_file_open(file, path, FSAM_READ, FSOM_OPEN_EXISTING)) {
             uint64_t size = storage_file_size(file);
             if(size > 0 && size <= SIG_MAX_FILE) {
                 char* buf = malloc((size_t)size + 1);
@@ -461,6 +462,18 @@ static void sig_learned_read(
     if(out_macs) *out_macs = nm;
 }
 
+/** Thin wrapper so the learned callers below read unchanged. */
+static void sig_learned_read(
+    Storage* storage,
+    uint32_t* fps,
+    size_t fp_max,
+    uint8_t (*macs)[6],
+    size_t mac_max,
+    size_t* out_fps,
+    size_t* out_macs) {
+    sig_lines_read(storage, SIG_LEARNED_PATH, fps, fp_max, macs, mac_max, out_fps, out_macs);
+}
+
 size_t sig_db_learned_count(Storage* storage) {
     uint32_t fps[SIG_MAX_IE_FPS];
     uint8_t macs[SIG_MAX_MACS][6];
@@ -471,15 +484,15 @@ size_t sig_db_learned_count(Storage* storage) {
     return nf + nm;
 }
 
-/** Append one already-validated line to learned.txt, writing the header if new. */
-static bool sig_learned_append(Storage* storage, const char* line) {
+/** Append one already-validated line, writing `header` if the file is new. */
+static bool
+    sig_lines_append(Storage* storage, const char* path, const char* header, const char* line) {
     storage_common_mkdir(storage, RECON_APP_FOLDER);
     File* file = storage_file_alloc(storage);
     bool ok = false;
-    if(storage_file_open(file, SIG_LEARNED_PATH, FSAM_WRITE, FSOM_OPEN_APPEND)) {
+    if(storage_file_open(file, path, FSAM_WRITE, FSOM_OPEN_APPEND)) {
         if(storage_file_size(file) == 0) {
-            const char* h = SIG_LEARNED_HEADER;
-            storage_file_write(file, h, strlen(h));
+            storage_file_write(file, header, strlen(header));
         }
         uint16_t n = (uint16_t)strlen(line);
         ok = storage_file_write(file, line, n) == n;
@@ -487,6 +500,10 @@ static bool sig_learned_append(Storage* storage, const char* line) {
     storage_file_close(file);
     storage_file_free(file);
     return ok;
+}
+
+static bool sig_learned_append(Storage* storage, const char* line) {
+    return sig_lines_append(storage, SIG_LEARNED_PATH, SIG_LEARNED_HEADER, line);
 }
 
 bool sig_db_learn_fp(Storage* storage, uint32_t fp) {
@@ -546,6 +563,135 @@ bool sig_db_learn_mac(Storage* storage, const uint8_t* mac) {
         return false;
     return sig_learned_append(storage, line);
 }
+/* ---- operator exclusions (ignored.txt) ---------------------------------- */
+
+/**
+ * The same line format and the same parser as learned.txt, one tier below it in
+ * intent: learned.txt says "this IS a camera", ignored.txt says "this is MINE".
+ *
+ * A SEPARATE FILE rather than a flag inside learned.txt, because the two are
+ * forgotten for different reasons and on different schedules. An operator who
+ * decides their learned signatures have gone bad wants them all gone; the
+ * exclusion for the router in their own kitchen should survive that, and vice
+ * versa. One file with a polarity column would make "Forget Learned" either
+ * destroy exclusions or silently keep some lines, and both of those are
+ * surprises in a file the operator cannot see from the device.
+ */
+#define SIG_IGNORED_PATH RECON_APP_FOLDER "/ignored.txt"
+#define SIG_IGNORED_HEADER                                                       \
+    "# FlipDeFlock exclusions v1\n"                                              \
+    "# Devices you told the app are YOURS. Nothing listed here is reported as\n" \
+    "# a detection, whatever it scores:\n"                                       \
+    "#   12 hex digits = a whole MAC address\n"                                  \
+    "#   8 hex digits  = probe IE fingerprint (survives the MAC changing)\n"     \
+    "# Delete this file, or use Reports > Forget Ignored, to hear them again.\n"
+
+void sig_db_ignored_read(
+    Storage* storage,
+    uint32_t* fps,
+    size_t fp_max,
+    uint8_t (*macs)[6],
+    size_t mac_max,
+    size_t* out_fps,
+    size_t* out_macs) {
+    sig_lines_read(storage, SIG_IGNORED_PATH, fps, fp_max, macs, mac_max, out_fps, out_macs);
+}
+
+size_t sig_db_ignored_count(Storage* storage) {
+    uint32_t fps[SIG_IGNORED_MAX_FPS];
+    uint8_t macs[SIG_IGNORED_MAX_MACS][6];
+    size_t nf = 0, nm = 0;
+    sig_db_ignored_read(storage, fps, SIG_IGNORED_MAX_FPS, macs, SIG_IGNORED_MAX_MACS, &nf, &nm);
+    return nf + nm;
+}
+
+bool sig_db_forget_ignored(Storage* storage) {
+    if(!storage) return false;
+    return storage_simply_remove(storage, SIG_IGNORED_PATH);
+}
+
+bool sig_db_ignore_add(Storage* storage, const uint8_t* mac, uint32_t fp, bool* out_fp_written) {
+    if(out_fp_written) *out_fp_written = false;
+    if(!storage || !mac) return false;
+
+    bool all_zero = true, all_ff = true;
+    for(int i = 0; i < 6; i++) {
+        if(mac[i] != 0x00) all_zero = false;
+        if(mac[i] != 0xFF) all_ff = false;
+    }
+    if(all_zero || all_ff) return false;
+
+    uint32_t have_fps[SIG_IGNORED_MAX_FPS];
+    uint8_t have_macs[SIG_IGNORED_MAX_MACS][6];
+    size_t nf = 0, nm = 0;
+    sig_db_ignored_read(
+        storage, have_fps, SIG_IGNORED_MAX_FPS, have_macs, SIG_IGNORED_MAX_MACS, &nf, &nm);
+
+    bool wrote = false;
+    bool dup_mac = false;
+    for(size_t i = 0; i < nm; i++) {
+        if(memcmp(have_macs[i], mac, 6) == 0) {
+            dup_mac = true;
+            break;
+        }
+    }
+    // NO ROOM FOR THE ADDRESS MEANS NO EXCLUSION AT ALL. The contract is that
+    // the address is always recorded; writing only the fingerprint and calling
+    // that success left the device excluded on the sightings that carried the
+    // fingerprint and alerting again on the ones that did not.
+    if(!dup_mac && nm >= SIG_IGNORED_MAX_MACS) return false;
+    if(!dup_mac) {
+        char line[16];
+        if(snprintf(
+               line,
+               sizeof(line),
+               "%02x%02x%02x%02x%02x%02x\n",
+               mac[0],
+               mac[1],
+               mac[2],
+               mac[3],
+               mac[4],
+               mac[5]) > 0) {
+            wrote = sig_lines_append(storage, SIG_IGNORED_PATH, SIG_IGNORED_HEADER, line);
+        }
+    }
+
+    // THE FINGERPRINT IS THE HALF THAT CATCHES A ROTATING ADDRESS, and also the
+    // half that can blind the operator, so it is written only when the hash
+    // identifies a device family rather than a commodity scan pattern.
+    //
+    // A generic skeleton is shared with phones and consumer gear at large --
+    // that is what flock_ie_fp_is_generic() means -- so excluding one would
+    // suppress every device carrying it, a camera included. Refusing it costs
+    // the operator nothing they had: the MAC above still silences the device in
+    // front of them, and a commodity hash was never going to pick their phone
+    // out of the street anyway. sig_db_learn_fp() refuses the same hashes for
+    // the mirror-image reason.
+    if(fp != 0 && !flock_ie_fp_is_generic(fp)) {
+        bool dup_fp = false;
+        for(size_t i = 0; i < nf; i++) {
+            if(have_fps[i] == fp) {
+                dup_fp = true;
+                break;
+            }
+        }
+        if(!dup_fp && nf < SIG_IGNORED_MAX_FPS) {
+            char line[16];
+            if(snprintf(line, sizeof(line), "%08lx\n", (unsigned long)fp) > 0) {
+                if(sig_lines_append(storage, SIG_IGNORED_PATH, SIG_IGNORED_HEADER, line)) {
+                    wrote = true;
+                    if(out_fp_written) *out_fp_written = true;
+                }
+            }
+        }
+    }
+
+    // Already excluded counts as success: the operator asked for this device to
+    // go quiet and it is quiet. Reporting failure would send them looking for a
+    // problem that does not exist.
+    return wrote || dup_mac;
+}
+
 bool sig_db_forget_learned(Storage* storage) {
     if(!storage) return false;
     return storage_simply_remove(storage, SIG_LEARNED_PATH);

@@ -121,7 +121,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Sub-GHz WarDriving v0.1 (By xMasterX)](https://github.com/xMasterX/all-the-plugins/tree/213baa6e872d1db597a25d2c16e81406e9634440/base_pack/subghz_wardriving) - Include embedded UART GPS support for NMEA/Ubox.
 - Desktop: [Restore the custom Game Menu on short center press in Game Mode (By ESurge & RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/pull/756)
 - Updated: [Morse Flipper v0.3.0 (By yo3gnd)](https://github.com/yo3gnd/morse-flipper)
-- Updated: [FlipDeFlock v0.98 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
 - [Game Mode: Load game-menu discovery and configuration parsing from an on-demand FAL, then unload it before showing the menu; existing controls, styles and CFW Settings editing are preserved. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/d538092e5d474811d4b1f7530b9c2088a2d00f89)
 - [Archive: Move the browser UI to an SD-card FAP and unload it before launching a selected app; per-app file pickers, setting favorites and desktop file associations remain in firmware. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/d538092e5d474811d4b1f7530b9c2088a2d00f89)
 - [Archive: Join browser workers before freeing their callbacks' state, copy launch/info selections under the browser lock, release MD5 results and retain mounted images safely if unmount fails. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/d538092e5d474811d4b1f7530b9c2088a2d00f89)
@@ -180,6 +179,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [DNDGrants v4.20.4 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
 - GUI: [Speed Game Menu loading with bounded FAP metadata reads, amortized menu allocation, timer-free static icons and in-place heapsort in the Game Menu FAL. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/9288106029c69cdfb46e845717b5831d4f8da153)
 - Updated: [ProtoPirate v4.0 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
+- Updated: [FlipDeFlock v0.99 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
 
 <a name="release"></a>
 

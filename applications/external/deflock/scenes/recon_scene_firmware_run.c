@@ -61,7 +61,9 @@ static int32_t fw_worker(void* context) {
             if(app->fw_op == 0) {
                 ok = api->backup(fl, app->storage, app->fw_path);
             } else {
+                app->fw_writing = true;
                 ok = api->flash_file(fl, app->storage, app->fw_path, 0);
+                app->fw_writing = false;
             }
         }
         api->free(fl);
@@ -274,6 +276,8 @@ void recon_scene_firmware_run_on_enter(void* context) {
 
     app->fw_running = true;
     app->fw_ok = false;
+    app->fw_back_warned = false;
+    app->fw_writing = false;
     app->fw_log_dirty = false;
     app->fw_thread = furi_thread_alloc_ex("FlipDeFlockFlash", 4096, fw_worker, app);
     furi_thread_start(app->fw_thread);
@@ -291,6 +295,27 @@ bool recon_scene_firmware_run_on_event(void* context, SceneManagerEvent event) {
         app->fw_log_dirty = false;
         furi_mutex_release(app->mutex);
         if(dirty) fw_render(app);
+        return true;
+    }
+    if(event.type == SceneManagerEventTypeBack && app->fw_running && app->fw_writing) {
+        // Back is LOCKED while flash is actually being WRITTEN. Unconsumed, it
+        // went straight to on_exit, which aborts the worker -- so one bump of the
+        // key mid-write left a half-flashed ESP32. Recoverable (the ROM loader
+        // always allows a reflash), but in the field that is a dead companion.
+        // Say so once, then keep swallowing presses until the worker is done.
+        //
+        // ONLY THE FLASH OPERATION, and ALL of it. fw_writing brackets
+        // flash_file() in the worker, which covers the erase as well as the
+        // write: the erase runs before the first progress callback, so a lock
+        // keyed on progress left a window in which Back aborted with the chip
+        // already wiped. The connect phase stays cancellable -- up to twenty
+        // sync attempts, over two minutes with no way out when the board is
+        // simply not in its bootloader, and nothing has been touched yet. A
+        // backup only reads, so aborting it costs a partial file and no more.
+        if(!app->fw_back_warned) {
+            app->fw_back_warned = true;
+            fw_log_cb(app, "Back locked until done.");
+        }
         return true;
     }
     return false;
@@ -317,5 +342,6 @@ void recon_scene_firmware_run_on_exit(void* context) {
     // saved hits release() flushed on the way in.
     recon_tables_acquire(app);
     recon_hits_load(app);
+    recon_app_purge_excluded(app);
     widget_reset(app->widget);
 }

@@ -42,6 +42,11 @@ that is a real bug worth chasing.
 | 5 | SoundThinking OUI `d4:11:d6` | `ST` tag, acoustic class |
 | 6 | Flock OUI, beacon, **zero-length** SSID IE | `[hid]` tag, confidence rung unchanged |
 | 7 | Flock OUI, beacon, **all-NUL** SSID IE | `[hid]` tag, confidence rung unchanged |
+| 8 | Ubicquia OUI `94:7b:be`, beacon | `p` Possible, vendor Ubicquia — must not say Flock |
+| 9 | Motorola Solutions `00:04:7d`, beacon | `p` Possible, vendor Motorola — must not say ALPR |
+| 10 | Motorola **Mobility** `50:16:f4`, beacon | **nothing** — a phone prefix must never be listed |
+| 11 | Motorola Solutions, sustained wildcard probe | `L` Likely, class Gear |
+| 12 | No-table MAC, **probe request** for SSID `Flock-A1B2C3` | `L` Likely — **must never be CONFIRMED**; the name is what the sender seeks, not what it is |
 
 **Identity 4 is the one to watch, and it is not hypothetical.** Through v0.46 the
 companion substring-matched `flock-`, the Flipper took its score verbatim, and

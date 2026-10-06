@@ -44,6 +44,12 @@ void gps_publish_fix(void* _app, float lat, float lon, int sats, bool valid) {
         app->gps_lat = lat;
         app->gps_lon = lon;
         app->gps_valid = true;
+        // Stamped so the GUI tick can EXPIRE the fix. A lost lock is only ever
+        // announced by a receiver that is still talking; one that was unplugged,
+        // a companion that rebooted, or a phone whose link dropped simply goes
+        // quiet, and until this existed the last position stayed "valid" and was
+        // written onto every later detection. See recon_app_gps_expire_tick().
+        app->gps_fix_tick = furi_get_tick();
     } else if(!valid) {
         // Explicit lock loss (RMC 'V' / GGA fixq==0 / GLL 'V'): stop reporting the
         // last fix as current -- previously we kept it, so a lost lock still tagged

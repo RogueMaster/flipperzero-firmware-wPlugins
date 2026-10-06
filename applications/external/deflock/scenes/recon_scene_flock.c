@@ -65,7 +65,7 @@ void recon_scene_flock_on_enter(void* context) {
     // command is an idempotent mode-select, so re-sending it just re-arms.
     // Marauder can't do dual-band -> it stays WiFi-only via the generic backend.
     if(app->settings.backend == EspBackendCompanion) {
-        esp_link_send(app->esp, "flockcombo");
+        esp_link_send_kickoff(app->esp, "flockcombo");
     }
     scan_session_gps_start(app);
 

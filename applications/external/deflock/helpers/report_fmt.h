@@ -59,7 +59,7 @@ void fmt_ssid_shape(char* out, size_t out_len, const char* ssid);
 
 /**
  * Frame-type character, made safe to print with %c. Returns `ftype` when it is
- * one of the known set "PBROFL", otherwise '?'.
+ * one of the known set FLOCK_FTYPE_SET, otherwise '?'.
  *
  * NOT COSMETIC. A FlockEntry restored from hits.csv can carry ftype == 0:
  * flock_store writes an empty column for any type outside that set, reads it

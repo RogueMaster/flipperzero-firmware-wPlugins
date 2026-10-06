@@ -130,11 +130,21 @@ static const char* preflight_reason_short(
     const PreflightSnapshot* s,
     ReconPreflightState state,
     uint32_t elapsed_ms) {
-    if(state == ReconPreflightReady) return "capture OK";
+    // DISCUSSION #26: the operator updates the .fap often and the board
+    // rarely, and wanted to be told which case he is in. Ready-but-unpaired
+    // is the common and harmless one, so it reports the pairing instead of
+    // "capture OK" and explicitly says no reflash is needed -- the board is
+    // older, its detection data is not.
+    if(state == ReconPreflightReady) {
+        if(!recon_companion_build_matches(s->build, RECON_VERSION)) {
+            return "old FW, sigs OK";
+        }
+        return "capture OK";
+    }
     if(state == ReconPreflightLimited) return "generic UART";
     if(s->link_state == EspLinkPortBusy) return "UART busy";
     if(s->proto && s->proto_mismatch) return "proto mismatch";
-    if(s->sig_revision[0] && s->sig_mismatch) return "sig mismatch";
+    if(s->sig_revision[0] && s->sig_mismatch) return "sigs old: reflash";
     if(s->sigtest_seen && !s->sigtest_pass) return "sig test failed";
     if(state == ReconPreflightWaiting) return "collecting";
     if(!s->connected) return "no companion";
@@ -338,7 +348,7 @@ static void preflight_begin(ReconApp* app, bool restart) {
 
     scan_session_start(app);
     if(app->settings.backend == EspBackendCompanion) {
-        esp_link_send(app->esp, "flockcombo");
+        esp_link_send_kickoff(app->esp, "flockcombo");
         esp_link_send(app->esp, "sigtest");
     }
     scan_session_gps_start(app);

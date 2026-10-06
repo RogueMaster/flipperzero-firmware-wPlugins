@@ -128,7 +128,11 @@ bool flock_ble_name_is_flock(const char* name) {
     // which is precisely the v0.46 `Flock-Guest` over-claim. The Wi-Fi side gets
     // to score a loose "flock" substring as LIKELY; here there is no such landing
     // spot, so loose patterns are excluded rather than softened.
-    if(ci_prefix(name, "PENGUIN") || ci_contains(name, "FS EXT")) return true;
+    // "PENGUIN-", with the dash: every observed unit name is "Penguin-<digits>".
+    // The bare word is a product name other people use too (speakers, toys,
+    // a Linux mascot), and this predicate stakes CONFIRMED, so the shape that
+    // only Flock's firmware produces is the one that counts.
+    if(ci_prefix(name, "PENGUIN-") || ci_contains(name, "FS EXT")) return true;
     // Field-observed Flock BLE names, all long and vendor-specific enough to
     // stand alone (zmattmanz/plume, corroborated by the flock-you lineage):
     //   PIGVISION  -- Flock's Pigvision units

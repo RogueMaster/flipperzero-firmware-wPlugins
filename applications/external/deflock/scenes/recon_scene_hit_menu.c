@@ -21,6 +21,7 @@ typedef enum {
     HitMenuConfirm,
     HitMenuRename,
     HitMenuMark,
+    HitMenuIgnore,
     HitMenuDelete,
 } HitMenuItem;
 
@@ -71,6 +72,13 @@ void recon_scene_hit_menu_on_enter(void* context) {
         HitMenuMark,
         recon_scene_hit_menu_cb,
         app);
+    // ABOVE DELETE, because the two are easy to confuse and this is almost
+    // always the one the operator wanted: Delete drops the row and the device
+    // walks straight back in on the next sweep, this drops it for good. The
+    // label says whose it is rather than what it does ("Ignore") so it cannot
+    // be read as a one-off dismissal.
+    submenu_add_item(
+        submenu, "It's mine: never alert", HitMenuIgnore, recon_scene_hit_menu_cb, app);
     submenu_add_item(submenu, "Delete", HitMenuDelete, recon_scene_hit_menu_cb, app);
 
     view_dispatcher_switch_to_view(app->view_dispatcher, ReconViewSubmenu);
@@ -89,6 +97,9 @@ bool recon_scene_hit_menu_on_event(void* context, SceneManagerEvent event) {
     // Captured under the lock, acted on after it: writing to the SD card while
     // holding app->mutex would stall the ESP worker behind the filesystem.
     uint32_t learn_fp = 0;
+    bool exclude = false;
+    uint8_t exclude_mac[6] = {0};
+    uint32_t exclude_fp = 0;
     furi_mutex_acquire(app->mutex, FuriWaitForever);
     if(app->hit_menu_idx >= 0 && app->hit_menu_idx < (int)app->flock_count) {
         FlockEntry* e = &app->flock[app->hit_menu_idx];
@@ -110,7 +121,18 @@ bool recon_scene_hit_menu_on_event(void* context, SceneManagerEvent event) {
             if(e->confirmed) learn_fp = e->ie_fp;
         } else if(event.event == HitMenuMark) {
             e->marked = !e->marked;
-        } else if(event.event == HitMenuDelete) {
+        } else if(event.event == HitMenuIgnore) {
+            // Take the identifiers now, write the file after the lock, and drop
+            // the row either way: leaving it on screen after "never alert"
+            // would read as the press having failed.
+            memcpy(exclude_mac, e->mac, 6);
+            exclude_fp = e->ie_fp;
+            exclude = true;
+        }
+        // Delete removes the row here. "It's mine" does NOT: the row goes only
+        // once the exclusion is safely on the card (recon_app_exclude_device
+        // purges it), so a full list cannot make the press look like it worked.
+        if(event.event == HitMenuDelete) {
             size_t i = (size_t)app->hit_menu_idx;
             // Close the gap rather than leaving a hole: every other consumer
             // walks flock[0..flock_count) and a tombstone would render.
@@ -136,6 +158,17 @@ bool recon_scene_hit_menu_on_event(void* context, SceneManagerEvent event) {
     // is saved, and a full or unwritable card must not make "I saw it" look like
     // it did not register.
     if(learn_fp) sig_db_learn_fp(app->storage, learn_fp);
+    // After the hit table is saved, so a card that fails here cannot also lose
+    // the deletion the operator already saw happen on screen.
+    if(exclude) {
+        if(recon_app_exclude_device(app, exclude_mac, exclude_fp, NULL)) {
+            recon_hits_save_after_delete(app);
+        } else {
+            // Not saved (the list is full, or the card refused). The row is
+            // still there, and that is the message: the device is NOT excluded.
+            notification_message(app->notifications, &sequence_error);
+        }
+    }
     scene_manager_previous_scene(app->scene_manager);
     return true;
 }

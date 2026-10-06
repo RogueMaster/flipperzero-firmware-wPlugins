@@ -13,6 +13,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <stddef.h>
 
 // ---- geodesy -----------------------------------------------------------
 
@@ -151,3 +152,42 @@ static inline bool flock_alert_should_fire(
         have_alerted_before,
         min_conf);
 }
+
+// ---- operator exclusions ("it's mine") ---------------------------------
+//
+// WHY THIS EXISTS. A detector that cries wolf on the operator's own hardware
+// every drive teaches them to stop reading it, which is worse than a miss. In
+// discussion #27 a field tester asked, verbatim, "Am I missing a method/way to
+// exclude devices or signatures?" -- the answer was no, and after a week of
+// drives in which his own phone and household gear kept filling the list he
+// stopped trusting any row on the screen.
+//
+// Precision over recall is this project's stated position, and an exclusion is
+// the one precision control only the OPERATOR can supply: nothing on the wire
+// distinguishes a camera's probe from the inverter in their own garage, but they
+// know which one is bolted to their house.
+//
+// THE DANGEROUS DIRECTION IS BLINDING YOURSELF, so the rules are asymmetric
+// with learning. sig_db_learn_fp() refuses a commodity skeleton because it
+// would flag phones everywhere; sig_db_ignore_add() refuses the same hash for
+// the mirror-image reason -- suppressing a shared skeleton would hide every
+// device that carries it, cameras included. An excluded MAC hides one address.
+
+/**
+ * True if this sighting matches something the operator marked as their own.
+ *
+ * Checked on the ADDRESS first and the fingerprint second, because an address
+ * is exact and a fingerprint is a shape shared by a device family. `fp` of 0
+ * means "no fingerprint captured" and never matches, so a beacon-only sighting
+ * cannot be suppressed by a wildcard entry.
+ *
+ * Pure so the gate can be tested without a card or a radio: the counterpart
+ * test asserts that excluding one device does NOT suppress its neighbours.
+ */
+bool flock_is_excluded(
+    const uint8_t* mac,
+    uint32_t fp,
+    const uint8_t (*ex_macs)[6],
+    size_t ex_mac_count,
+    const uint32_t* ex_fps,
+    size_t ex_fp_count);

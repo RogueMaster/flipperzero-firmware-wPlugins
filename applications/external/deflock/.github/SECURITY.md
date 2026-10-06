@@ -36,8 +36,8 @@ Only the **latest release** receives fixes. There are no long-term support branc
 - **Missed detections and false positives.** These are correctness bugs, not
   vulnerabilities — please open a normal issue. Detections are indicators, not proof,
   by design.
-- **The absence of network features.** FlipDeFlock never transmits and never connects to
-  a network. That is intentional and is a core principle, not an oversight.
+- **The absence of network features.** FlipDeFlock never connects to a network, and personal
+  identifiers are never transmitted. That is intentional and is a core principle, not an oversight.
 - **Physical access to an unlocked Flipper.**
 - **Forks, clones, and repackaged builds we do not control.** See below.
 

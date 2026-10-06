@@ -18,6 +18,22 @@ who *does* have that board is often the only way a bug gets found at all.
   release downloads. Prompted the core-3.x compatibility work and the ESP32-C5
   dual-band target in v0.48.
 
+- **[@wiilover22](https://github.com/wiilover22)** drove the field tests that
+  retracted two probe fingerprints this project had recommended, `89c3debf` and
+  `ba9fafa0` ([#25](https://github.com/ReconGrunt/FlipDeFlock/issues/25),
+  [#27](https://github.com/ReconGrunt/FlipDeFlock/discussions/27)). He was told to
+  pin `89c3debf` in his own `signatures.json` as a candidate for the camera; his next drive found
+  it on ten devices over 7.9 km, and ten of the nineteen rows in the hits file he
+  sent back were phones. Both hashes are denylisted now, a regression fixture that
+  asserted the wrong answer was inverted, and the precision work in v0.97 and v0.98
+  came out of his logs. He also found that Share to DeFlock had been encoding
+  `deflock.org` rather than the map host for four releases, dropping every scanner
+  on a landing page with the coordinates discarded, and he reported the Wi-Fi
+  Module v1 as a working board. Proposed reading GPS from a phone over Unleashed's
+  RPC service ([#20](https://github.com/ReconGrunt/FlipDeFlock/discussions/20)),
+  which shipped as Settings, GPS From, Phone, and then verified it on his own
+  hardware, a path the maintainer has no way to test.
+
 ## Code
 
 - **[@nickk02](https://github.com/nickk02)** — release and build engineering across

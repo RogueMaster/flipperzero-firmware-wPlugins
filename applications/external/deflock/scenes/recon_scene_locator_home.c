@@ -113,5 +113,15 @@ void recon_scene_locator_home_on_exit(void* context) {
     // which is why every scan scene re-sends its kickoff on entry. The Main
     // Menu's on_enter owns the teardown (see helpers/scan_session.h).
     if(app->esp) esp_link_send(app->esp, "stop");
+    // The hunt is over, so say so. locate_kind is what recon_survey_tick() and
+    // recon_app_gps_cfg_tick() test to keep their hands off the radio while the
+    // Locator owns it, and until this line nothing ever cleared it: after one
+    // visit here the survey poll never fired again and the relay config was
+    // never re-sent after a companion reboot, for the rest of the app run. The
+    // target itself (locate_mac / locate_label) is left alone, because the
+    // picker re-sets locate_kind on the way back in.
+    furi_mutex_acquire(app->mutex, FuriWaitForever);
+    app->locate_kind = 0;
+    furi_mutex_release(app->mutex);
     widget_reset(app->widget);
 }

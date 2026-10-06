@@ -33,7 +33,7 @@ department actually buys from, only one holds an IEEE MAC block, so a prefix lis
 cannot see the rest.
 
 **Passive recon only.** Detection is listen-only — no deauth,
-injection, or jamming, ever, and nothing is transmitted at any point. Detections
+injection, or jamming, ever. Personal identifiers are never transmitted. Detections
 are indicators, not proof: OUI-only matches are possible, not confirmed, so verify
 by eye. Use it only where you are authorized to.
 
@@ -212,7 +212,7 @@ firmware; in Marauder mode they explain what's missing.
   | Row tag | Class | What it covers |
   |---|---|---|
   | *(none)* | ALPR camera | Flock Safety and other plate readers |
-  | `ST:` | Acoustic sensor | SoundThinking / ShotSpotter — listens, does not read plates |
+  | `ST:` | Acoustic sensor | SoundThinking / ShotSpotter, or a Flock Raven identified over BLE — listens, does not read plates |
   | `AX:` | Body-worn camera | Axon, Utility BodyWorn, Digital Ally — moves with a person, says nothing about a pole |
   | `VG:` | Vendor gear, kind unknown | Ubicquia, Motorola Solutions, Verkada, Genetec, Avigilon — one OUI carries plate readers *and* hand-held radios, so the vendor is stated and the product is not |
   | `DR:` | Unmanned aircraft | see **Drones** below |
@@ -390,9 +390,9 @@ instead of the detection table.
 
 CI enforces this on every push rather than trusting anyone to remember:
 
-- 6 prefixes that were published and later withdrawn cannot come back
+- 7 prefixes that were published and later withdrawn cannot come back
 - 15 look-alike registrations, right-sounding name and wrong company, are blocked
-- 26 chip-vendor and shared IEEE blocks are blocked, including the one above
+- 27 chip-vendor and shared IEEE blocks are blocked, including the one above
 - the Flipper and companion tables must agree, and the signature table carries a
   revision hash the app checks against the companion it is actually talking to
 
@@ -415,7 +415,8 @@ exact dB. `-33dB` closer to 0 means physically closer.
 - **ESP** (or `...`) — companion connected / still waiting
 - **ch / frames / hits** — channel · 802.11 frames captured · Flock detections, counted this session (reset each time you open the screen)
 - **row tag** — `!` CONFIRMED · `F` probe-fingerprint · `L` Likely · `p` Possible · `.` OUI-only · `*` marked
-- **`ST:` before the name** — a SoundThinking (ShotSpotter) acoustic sensor, not an ALPR camera. Untagged rows are cameras; the detail screen names the class in full
+- **`ST:` before the name** — an acoustic sensor (SoundThinking / ShotSpotter, or a Flock Raven identified over BLE), not an ALPR camera. Untagged rows are cameras; the detail screen names the class and model in full
+- **`ESP?` in the header** — the companion was talking and has gone silent for five seconds (loose header, brownout, or a reboot in progress). `...` means it never answered at all
 - **`AX:`** — a body-worn police camera (Axon, Utility BodyWorn, Digital Ally). Not fixed infrastructure: it moves with a person or a vehicle, so it says nothing about a camera on a pole
 - **`VG:`** — vendor gear of undetermined kind (Ubicquia, Motorola Solutions, Verkada, Genetec, Avigilon). The vendor is known, the product is not: one OUI carries plate readers and hand-held radios alike
 - **`DR:`** — an unmanned aircraft, detected by its Remote ID broadcast
@@ -457,6 +458,24 @@ indicators and verify by eye; if you rely on it for anything that matters, read
 the code and confirm the behavior yourself.
 
 ## What's new
+
+**v0.99** - **A stability and honesty release.** The app now notices when the
+companion or the GPS goes silent instead of showing the last good state forever
+(`ESP?` in the header, one vibration, and a fix that expires). One visit to the
+Locator no longer stops the Air Survey for the rest of the run, a companion
+reboot no longer leaves BLE detection off, `hits.csv` survives a crash during a
+save, and leaving the ESP32 flasher can no longer run the Flipper out of memory.
+
+Precision: a Flock network name in a probe **request** no longer confirms the
+device that sent it, because that name is what the sender is looking for, not
+what it is. Two prefixes left the table, one registered to a chip vendor and one
+that was never a registered prefix at all. "It's mine: never alert" now removes
+what is already stored and says so when it could not be saved.
+
+**Reflash the companion** for this release: the prefix table and the scoring
+changes live on the board as well as in the app. See
+[changelog.md](changelog.md) for what was verified on hardware and what this
+build deliberately leaves alone.
 
 **v0.98** - **A zero-hit session can now prove that the detector was actually
 working.** The new **Health / Preflight** screen checks the live UART, app and

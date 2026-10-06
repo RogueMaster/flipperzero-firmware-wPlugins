@@ -58,6 +58,9 @@ bool recon_scene_flock_detail_on_event(void* context, SceneManagerEvent event) {
         furi_mutex_acquire(app->mutex, FuriWaitForever);
         if(app->selected >= 0 && app->selected < (int)app->flock_count) {
             app->flock[app->selected].marked = !app->flock[app->selected].marked;
+            // Same as the hit menu's Mark: without this the toggle lived only in
+            // RAM until some OTHER change happened to dirty the table.
+            app->hits_dirty = true;
         }
         furi_mutex_release(app->mutex);
         flock_detail_view_refresh(app->flock_detail_view);

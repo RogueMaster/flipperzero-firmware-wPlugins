@@ -4,9 +4,22 @@
 #include <string.h>
 
 /**
- * 32 OUI prefixes observed in fielded Flock Safety deployments.
- * Mostly @NitekryDPaul research; 82:6b:f2 from DeFlockJoplin field testing;
- * the last entry b4:1e:52 is Flock Safety's own IEEE-registered OUI (GainSec).
+ * 30 OUI prefixes observed in fielded Flock Safety deployments.
+ * Mostly @NitekryDPaul research; b4:1e:52 is Flock Safety's own
+ * IEEE-registered OUI (GainSec).
+ *
+ * REMOVED 2026-10-05, both carried since v0.8 and both failing rules this file
+ * already states:
+ *   3c:71:bf  registered to ESPRESSIF. Every other Espressif prefix was
+ *             rejected as a chip vendor that would detect our own companion
+ *             board; this one predated that sweep and was never re-checked.
+ *             Any ESP32 gadget on the block sending a wildcard probe scored
+ *             Likely. Now in TOO_GENERIC.
+ *   82:6b:f2  has the locally-administered bit set (0x82 & 0x02), so it is not
+ *             a registered prefix at all: it is the first three bytes of an
+ *             address some device invented. A camera that keeps a fixed
+ *             randomised address is what the `macs` pin in signatures.json is
+ *             for, on the WHOLE address. Now in RETRACTED.
  * These are generic vendor prefixes (Liteon, Espressif, etc.), hence OUI-only
  * matches are scored "possible", never "confirmed".
  *
@@ -111,9 +124,9 @@ static const uint8_t flock_ouis[][3] = {
     {0x9c, 0x2f, 0x9d}, {0xc0, 0x35, 0x32}, {0x94, 0x08, 0x53}, {0xe4, 0xaa, 0xea},
     {0xf4, 0x6a, 0xdd}, {0x24, 0xb2, 0xb9}, {0x00, 0xf4, 0x8d}, {0xd0, 0x39, 0x57},
     {0xe8, 0xd0, 0xfc}, {0xe0, 0x4f, 0x43}, {0xb8, 0x1e, 0xa4}, {0x70, 0x08, 0x94},
-    {0x58, 0x8e, 0x81}, {0xec, 0x1b, 0xbd}, {0x3c, 0x71, 0xbf}, {0x58, 0x00, 0xe3},
-    {0x90, 0x35, 0xea}, {0x5c, 0x93, 0xa2}, {0x64, 0x6e, 0x69}, {0x82, 0x6b, 0xf2},
-    {0xb4, 0x1e, 0x52}, {0xe0, 0x0a, 0xf6}, {0x38, 0x5b, 0x44}, {0x14, 0xb5, 0xcd},
+    {0x58, 0x8e, 0x81}, {0xec, 0x1b, 0xbd}, {0x58, 0x00, 0xe3}, {0x90, 0x35, 0xea},
+    {0x5c, 0x93, 0xa2}, {0x64, 0x6e, 0x69}, {0xb4, 0x1e, 0x52}, {0xe0, 0x0a, 0xf6},
+    {0x38, 0x5b, 0x44}, {0x14, 0xb5, 0xcd},
 };
 
 #define FLOCK_OUI_COUNT (sizeof(flock_ouis) / sizeof(flock_ouis[0]))

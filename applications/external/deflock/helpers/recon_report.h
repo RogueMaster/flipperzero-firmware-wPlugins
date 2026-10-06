@@ -70,3 +70,26 @@ bool recon_report_save_flock(void* app, char* out_path_md, size_t out_len, uint8
  * for by the DeFlock report.
  */
 bool recon_report_save_fp(void* app, char* out_path_md, size_t out_len);
+
+/**
+ * Write a Markdown report for a camera the operator can SEE and the detector did
+ * not flag.
+ *
+ * The third kind of report, and the one that was missing. save_flock() is
+ * evidence about cameras the app found; save_fp() is evidence about rows it got
+ * wrong. Neither can express "there is a camera right here and you said
+ * nothing", which is the most common thing a field tester actually experiences
+ * and the only data that can ever measure RECALL. Every report this project has
+ * received arrived unlabelled, and the question that could not be answered from
+ * any of them was which row was the camera the reporter could physically see.
+ *
+ * Carries the operator's claim, the GPS position (KEPT - this is a claim about a
+ * camera, so it follows the DeFlock export rather than the false positive
+ * report), the per-stage drop counters that separate a deaf radio from a
+ * companion that heard the street and recognised none of it, and the full air
+ * survey, where a randomising camera is the only thing it ever appears in.
+ *
+ * Succeeds on an empty table and an empty survey: both are results, and the
+ * empty survey is the strongest single line in the file.
+ */
+bool recon_report_save_missed(void* app, char* out_path_md, size_t out_len);

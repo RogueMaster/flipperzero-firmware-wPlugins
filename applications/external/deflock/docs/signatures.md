@@ -206,7 +206,7 @@ behaviour or an SSID/IE match.
 | Grade | Prefixes | What is actually known |
 |---|---|---|
 | Flock's own registered OUI | `b4:1e:52` | IEEE-registered to Flock Safety (GainSec). The strongest entry in the table. |
-| Field-corroborated | the remainder | Curated upstream table, `Active` or `High confidence`. `e4:aa:ea` caught a Falcon V2 in the field; `82:6b:f2` is DeFlockJoplin field testing. |
+| Field-corroborated | the remainder | Curated upstream table, `Active` or `High confidence`. `e4:aa:ea` caught a Falcon V2 in the field. (`3c:71:bf`, registered to Espressif, and `82:6b:f2`, which has the locally-administered bit set and so is not a registered prefix, were removed in October 2026.) |
 | Contract manufacturer | `f4:6a:dd`, `00:f4:8d`, `d0:39:57`, `e8:d0:fc` | Liteon/USI. WatchFlock files these **separately** from direct-Flock prefixes and warns a MAC match alone may be a false positive — these OUIs also ship unrelated consumer hardware. |
 | Flat-list orphans | `70:08:94`, `58:00:e3`, `5c:93:a2`, `64:6e:69` | Inherited from the superseded flat list. Absent from the curated table in **every** section — not Active, not under test, not Removed. Kept because absence is not retraction, but their status is unverifiable upstream. |
 | Weak upstream confidence | `08:3a:88` | Upstream notes it as *"BLE Ring conflict - unsure"*. Does **not** meet the field-corroboration bar. (`48:27:ea` and `a4:cf:12` were in this tier and were demoted to the seed file in v0.73 — see above.) |

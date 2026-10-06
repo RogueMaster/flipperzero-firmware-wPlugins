@@ -99,5 +99,31 @@ void suite_preflight(void) {
     in.elapsed_ms = RECON_PREFLIGHT_GRACE_MS;
     CHECK_INT_EQ(recon_preflight_evaluate(&in), ReconPreflightFailed);
 
+    // ---- companion build pairing (discussion #26) ------------------------
+    //
+    // The POSITIVE cases are the point of this block. A warning that fires on a
+    // board which needs no reflash is the specific thing #26 asked us not to
+    // build, so each "these pair" case below is a case that must stay silent.
+    CHECK(recon_companion_build_matches("0.98", "v0.98"));
+    CHECK(recon_companion_build_matches("0.98", "0.98")); // either side may carry the 'v'
+    CHECK(recon_companion_build_matches("v0.98", "v0.98"));
+
+    // An un-stamped developer tree has nothing to compare against, so it must
+    // not be told to reflash. RECON_VERSION defaults to "v?.??" off-fam.
+    CHECK(recon_companion_build_matches("0.98", "v?.??"));
+    CHECK(recon_companion_build_matches("", "v?.??"));
+    CHECK(recon_companion_build_matches("0.90", "v?.??"));
+    CHECK(recon_companion_build_matches("0.98", ""));
+    CHECK(recon_companion_build_matches("0.98", NULL));
+
+    // The real mismatches: a board left over from another release, and the
+    // pre-v0.88 firmware that advertises no build at all.
+    CHECK(!recon_companion_build_matches("0.90", "v0.98"));
+    CHECK(!recon_companion_build_matches("", "v0.98"));
+    CHECK(!recon_companion_build_matches(NULL, "v0.98"));
+    CHECK(!recon_companion_build_matches("0.9", "v0.98")); // prefix is not a match
+    CHECK(!recon_companion_build_matches("0.980", "v0.98"));
+    CHECK(!recon_companion_build_matches("1.0", "v0.98"));
+
     CHECK_INT_EQ(recon_preflight_evaluate(NULL), ReconPreflightFailed);
 }
