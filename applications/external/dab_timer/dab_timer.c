@@ -847,7 +847,9 @@ int32_t dab_timer_app(void* context) {
     Gui* gui = furi_record_open(RECORD_GUI);
     gui_add_view_port(gui, view_port, GuiLayerFullscreen);
     furi_thread_start(app->feedback_thread);
-    furi_timer_start(timer, state.tick_frequency);
+    /* Sample elapsed/RTC seconds promptly even when Start falls between wakeups. */
+    const uint32_t refresh_ticks = state.tick_frequency / 4;
+    furi_timer_start(timer, refresh_ticks ? refresh_ticks : 1);
     for(bool processing = true; processing;) {
         const uint32_t flags = furi_thread_flags_wait(
             DabTimerFlagInput | DabTimerFlagTick | DabTimerFlagRedraw | DabTimerFlagExit,
