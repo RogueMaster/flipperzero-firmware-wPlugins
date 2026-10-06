@@ -1,0 +1,17 @@
+App(
+    appid="pod",
+    name="Pod",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="pod_app",
+    # Listed explicitly: the default glob is recursive and would sweep in
+    # test/, which has its own main().
+    sources=["pod.c", "profile.c", "radio.c", "encounters.c", "pod_wire.c"],
+    requires=["gui"],
+    stack_size=4 * 1024,
+    fap_version="1.0",
+    fap_description="Meet other Flippers over sub-GHz, log encounters and battle them.",
+    fap_category="Games",
+    fap_icon="pod_10px.png",
+    fap_author="thecoolguy2001",
+    fap_weburl="https://github.com/thecoolguy2001/flipper-pod",
+)
