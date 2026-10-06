@@ -2,7 +2,7 @@
 
 Your PC's temperatures and load on your Flipper Zero, with vibration, sound and LED alerts.
 
-**Needs the free PC backend:** download `pc-health-remote.exe` from
+**Needs the free PC backend:** download pc-health-remote.exe from
 https://github.com/vladatman/pc-health-remote/releases (Windows 11; Linux best-effort).
 
 ## Features
@@ -13,11 +13,11 @@ https://github.com/vladatman/pc-health-remote/releases (Windows 11; Linux best-e
 - **Transport:** Bluetooth LE (default) or USB. Settings are saved on the SD card.
 
 ## Setup
-1. Run `pc-health-remote.exe pair` on the PC while this app is open.
+1. Run pc-health-remote.exe pair on the PC while this app is open.
 2. When the Flipper shows **Verify code**, press **OK**. Windows shows nothing. This is needed only once.
 3. From then on the PC reconnects automatically whenever you open the app.
 
-Run `pc-health-remote.exe install` once from an elevated terminal to start the backend at logon.
+Run pc-health-remote.exe install once from an elevated terminal to start the backend at logon.
 CPU temperature is most accurate when LibreHardwareMonitor is running; GPU data needs an NVIDIA GPU.
 Full guide: https://github.com/vladatman/pc-health-remote/blob/main/docs/SETUP.md
 
