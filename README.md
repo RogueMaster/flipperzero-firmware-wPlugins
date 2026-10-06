@@ -30,11 +30,14 @@ MTools is a Flipper Zero NFC application for checking magic tags, changing UIDs,
 
 Run `ufbt` to build. With a connected Flipper, run `ufbt launch FLIP_PORT=<serial-port>` to install and start the FAP.
 
-GDM/USCUID UID writes use the card's GDM or Gen1a magic wakeup. The writer builds
-the public block 0, the hidden block needed for a seven-byte UID, and switches
-the personalization byte only after the UID blocks are ready. It verifies each
-write and the final UID. Cards with only the `0x80` encrypted magic-auth path
-enabled cannot currently be written by this path; they report a wakeup error.
+GDM/USCUID UID writes first try the card's GDM or Gen1a magic wakeup. If both
+are disabled, the writer tries the card's `0x80` Crypto1 magic authentication
+with the default zero key, temporarily enables its configured wakeup, and then
+writes the UID. It builds the public block 0 and the hidden block needed for a
+seven-byte UID, switches the personalization byte only after the UID blocks are
+ready, and restores the original wakeup setting. Each block and the final UID
+are verified. A failed write after the temporary configuration is enabled may
+leave `7A FF` enabled so the card can be recovered through its magic wakeup.
 
 ## Asset attribution
 

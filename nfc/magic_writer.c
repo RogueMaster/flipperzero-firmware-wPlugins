@@ -3,7 +3,10 @@
 #include <string.h>
 #include <stdio.h>
 #include <furi.h>
+#include <furi_hal_random.h>
+#include <bit_lib/bit_lib.h>
 #include <nfc/nfc_poller.h>
+#include <nfc/helpers/crypto1.h>
 #include <nfc/helpers/iso14443_crc.h>
 #include <nfc/protocols/iso14443_3a/iso14443_3a_poller.h>
 #include <nfc/protocols/iso14443_3a/iso14443_3a_poller_sync.h>
@@ -41,7 +44,122 @@ typedef struct {
     uint8_t gen4_failure;
     uint8_t gdm_failure;
     uint8_t gen4_config[30];
+    uint8_t gdm_original_config[16];
+    bool gdm_bridged;
 } MfcRawWrite;
+
+typedef struct {
+    FuriSemaphore* complete;
+    NfcPoller* poller;
+    uint8_t original_config[16];
+    bool success;
+} MfcGdmBridge;
+
+static bool mfc_gdm_crypto_ack(
+    Iso14443_3aPoller* poller, Crypto1* crypto,
+    BitBuffer* plain, BitBuffer* encrypted, BitBuffer* response, BitBuffer* decrypted,
+    const uint8_t* command, size_t length) {
+    bit_buffer_copy_bytes(plain, command, length);
+    iso14443_crc_append(Iso14443CrcTypeA, plain);
+    crypto1_encrypt(crypto, NULL, plain, encrypted);
+    bit_buffer_reset(response);
+    if(iso14443_3a_poller_txrx_custom_parity(poller, encrypted, response, 1356000U) !=
+           Iso14443_3aErrorNone || bit_buffer_get_size(response) != 4) return false;
+    crypto1_decrypt(crypto, response, decrypted);
+    return (bit_buffer_get_byte(decrypted, 0) & 0x0F) == 0x0A;
+}
+
+static bool mfc_gdm_crypto_read_config(
+    Iso14443_3aPoller* poller, Crypto1* crypto,
+    BitBuffer* plain, BitBuffer* encrypted, BitBuffer* response, BitBuffer* decrypted,
+    uint8_t config[16]) {
+    const uint8_t command[2] = {0xE0, 0x00};
+    bit_buffer_copy_bytes(plain, command, sizeof(command));
+    iso14443_crc_append(Iso14443CrcTypeA, plain);
+    crypto1_encrypt(crypto, NULL, plain, encrypted);
+    bit_buffer_reset(response);
+    if(iso14443_3a_poller_txrx_custom_parity(poller, encrypted, response, 1356000U) !=
+           Iso14443_3aErrorNone || bit_buffer_get_size_bytes(response) != 18) return false;
+    crypto1_decrypt(crypto, response, decrypted);
+    if(!iso14443_crc_check(Iso14443CrcTypeA, decrypted)) return false;
+    iso14443_crc_trim(decrypted);
+    bit_buffer_write_bytes(decrypted, config, 16);
+    return true;
+}
+
+static NfcCommand mfc_gdm_bridge_callback(NfcGenericEvent event, void* context) {
+    MfcGdmBridge* bridge = context;
+    if(event.protocol != NfcProtocolIso14443_3a) return NfcCommandContinue;
+    Iso14443_3aPollerEvent* poller_event = event.event_data;
+    if(poller_event->type != Iso14443_3aPollerEventTypeReady) return NfcCommandContinue;
+    Iso14443_3aPoller* poller = event.instance;
+    BitBuffer* plain = bit_buffer_alloc(32);
+    BitBuffer* encrypted = bit_buffer_alloc(32);
+    BitBuffer* response = bit_buffer_alloc(32);
+    BitBuffer* decrypted = bit_buffer_alloc(32);
+    Crypto1* crypto = crypto1_alloc();
+    do {
+        const uint8_t auth_command[2] = {0x80, 0x00};
+        bit_buffer_copy_bytes(plain, auth_command, sizeof(auth_command));
+        iso14443_crc_append(Iso14443CrcTypeA, plain);
+        bit_buffer_reset(response);
+        if(iso14443_3a_poller_txrx(poller, plain, response, 1356000U) !=
+               Iso14443_3aErrorNone || bit_buffer_get_size_bytes(response) != 4) break;
+        uint8_t nonce[4];
+        bit_buffer_write_bytes(response, nonce, sizeof(nonce));
+        uint8_t reader_nonce[4];
+        furi_hal_random_fill_buf(reader_nonce, sizeof(reader_nonce));
+        const Iso14443_3aData* card = nfc_poller_get_data(bridge->poller);
+        crypto1_encrypt_reader_nonce(
+            crypto, 0, iso14443_3a_get_cuid(card), nonce, reader_nonce, encrypted, false);
+        bit_buffer_reset(response);
+        if(iso14443_3a_poller_txrx_custom_parity(poller, encrypted, response, 1356000U) !=
+               Iso14443_3aErrorNone || bit_buffer_get_size_bytes(response) != 4) break;
+        crypto1_word(crypto, 0, 0);
+        if(!mfc_gdm_crypto_read_config(
+               poller, crypto, plain, encrypted, response, decrypted,
+               bridge->original_config)) break;
+        uint8_t temporary_config[16];
+        memcpy(temporary_config, bridge->original_config, 16);
+        temporary_config[0] = 0x7A;
+        temporary_config[1] = 0xFF;
+        if(memcmp(temporary_config, bridge->original_config, 16) != 0) {
+            const uint8_t write_config[2] = {0xE1, 0x00};
+            if(!mfc_gdm_crypto_ack(
+                   poller, crypto, plain, encrypted, response, decrypted,
+                   write_config, sizeof(write_config)) ||
+               !mfc_gdm_crypto_ack(
+                   poller, crypto, plain, encrypted, response, decrypted,
+                   temporary_config, sizeof(temporary_config))) break;
+            uint8_t observed[16];
+            if(!mfc_gdm_crypto_read_config(
+                   poller, crypto, plain, encrypted, response, decrypted, observed) ||
+               memcmp(observed, temporary_config, 16) != 0) break;
+        }
+        bridge->success = true;
+    } while(false);
+    crypto1_free(crypto);
+    bit_buffer_free(decrypted);
+    bit_buffer_free(response);
+    bit_buffer_free(encrypted);
+    bit_buffer_free(plain);
+    furi_semaphore_release(bridge->complete);
+    return NfcCommandStop;
+}
+
+static bool mfc_gdm_open_wakeup(Nfc* nfc, uint8_t original_config[16]) {
+    MfcGdmBridge bridge = {.complete = furi_semaphore_alloc(1, 0)};
+    NfcPoller* poller = nfc_poller_alloc(nfc, NfcProtocolIso14443_3a);
+    bridge.poller = poller;
+    nfc_poller_start(poller, mfc_gdm_bridge_callback, &bridge);
+    bool completed = furi_semaphore_acquire(
+        bridge.complete, furi_ms_to_ticks(2000)) == FuriStatusOk;
+    nfc_poller_stop(poller);
+    nfc_poller_free(poller);
+    furi_semaphore_free(bridge.complete);
+    if(completed && bridge.success) memcpy(original_config, bridge.original_config, 16);
+    return completed && bridge.success;
+}
 
 static bool mfc_raw_ack(
     Iso14443_3aPoller* poller, BitBuffer* tx, BitBuffer* rx,
@@ -257,7 +375,8 @@ static NfcCommand mfc_raw_write_callback(NfcGenericEvent event, void* context) {
         }
         if(success) {
             uint8_t final_config[16];
-            memcpy(final_config, config, 16);
+            memcpy(final_config,
+                   write->gdm_bridged ? write->gdm_original_config : config, 16);
             final_config[9] = write->uid_len == 4 ? 0x00 :
                 (config[9] == 0x5A || config[9] == 0xC3 || config[9] == 0xA5 ?
                      config[9] : 0x5A);
@@ -334,6 +453,24 @@ static bool write_mfc_raw(
         write.complete, furi_ms_to_ticks(gen == MagicGenMfcGen4 ? 8000 : 4000)) == FuriStatusOk;
     nfc_poller_stop(poller);
     nfc_poller_free(poller);
+    if(gen == MagicGenMfcGtu && completed && !write.success && write.gdm_failure == 1) {
+        uint8_t original_config[16];
+        if(mfc_gdm_open_wakeup(nfc, original_config)) {
+            memcpy(write.gdm_original_config, original_config, 16);
+            write.gdm_bridged = true;
+            write.gdm_failure = 0;
+            furi_delay_ms(80);
+            poller = nfc_poller_alloc(nfc, NfcProtocolIso14443_3a);
+            write.poller = poller;
+            nfc_poller_start(poller, mfc_raw_write_callback, &write);
+            completed = furi_semaphore_acquire(
+                write.complete, furi_ms_to_ticks(4000)) == FuriStatusOk;
+            nfc_poller_stop(poller);
+            nfc_poller_free(poller);
+        } else {
+            write.gdm_failure = 5;
+        }
+    }
     furi_semaphore_free(write.complete);
     if(!completed || !write.success) {
         snprintf(magic_write_error, sizeof(magic_write_error), "%s",
@@ -349,6 +486,7 @@ static bool write_mfc_raw(
                  gen == MagicGenMfcGtu && write.gdm_failure == 2 ? "GDM hidden B0" :
                  gen == MagicGenMfcGtu && write.gdm_failure == 3 ? "GDM public B0" :
                  gen == MagicGenMfcGtu && write.gdm_failure == 4 ? "GDM config" :
+                 gen == MagicGenMfcGtu && write.gdm_failure == 5 ? "GDM auth/bridge fail" :
                  "Write failed");
         return false;
     }
