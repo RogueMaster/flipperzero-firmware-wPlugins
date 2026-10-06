@@ -27,10 +27,10 @@ This software is for experimental purposes only and is not meant for any illegal
 
 <a name="latest"></a>
 
-## Latest Updates - [PATREON: Latest Release RM1005-0315-6945edae-Patreon](https://www.patreon.com/RogueMaster?filters[tag]=Latest%20Release)
+## Latest Updates - [PATREON: Latest Release RM1005-2236-50107313-Patreon](https://www.patreon.com/RogueMaster?filters[tag]=Latest%20Release)
 
-- Last Synced/Checked OFW, changes in [commits](https://github.com/flipperdevices/flipperzero-firmware/commits/dev): `2026-10-05 03:15 EST`
-- Last Synced/Checked CFW, changes in [changelog](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/CHANGELOG.md): `2026-10-05 03:15 EST`
+- Last Synced/Checked OFW, changes in [commits](https://github.com/flipperdevices/flipperzero-firmware/commits/dev): `2026-10-05 22:36 EST`
+- Last Synced/Checked CFW, changes in [changelog](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/CHANGELOG.md): `2026-10-05 22:36 EST`
 - Updated: [Maze 3D v7.2 (By k20120509)](https://github.com/k20120509/flipper-release)
 - Updated: [DFC v1.1.1 (By cindersocket)](https://github.com/cindersocket/dfc-flipper)
 - OFW: [Fixes of various valid issues found by code scan #4456 (By xMasterX)](https://github.com/flipperdevices/flipperzero-firmware/pull/4456)
@@ -133,13 +133,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Firmware build: Track linked archives explicitly so incremental firmware builds include asset changes and library LTO selections. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/a492b0cb47e50742665748db81a52dec226e25e0)
 - [Firmware: Load the mJS interpreter on demand from `apps_data/js_app/plugins/mjs_engine.fal`. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/dac66c2c041f068537065e49525eb8200cdbd7de)
 - [Firmware: Disable selective resident mJS LTO while retaining native external-app archives and the existing updater/debug library flags. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/a492b0cb47e50742665748db81a52dec226e25e0)
-- Updated: [DNDAdventure v4.20 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
-- Updated: [DNDBestiary v4.20 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
-- Updated: [DNDInitiative v4.20 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
-- Updated: [DNDInventory v4.20 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
-- Updated: [DNDJournal v4.20 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
-- Updated: [DNDolphins v4.20 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
-- Updated: [DNDSpellbook v4.20 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
 - Added: [DNDBackup & Restore v4.20 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
 - Added: [DNDCharacter Sheet v4.20 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
 - Added: [DNDCombat v4.20 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
@@ -170,12 +163,22 @@ This software is for experimental purposes only and is not meant for any illegal
 - FBT: [Rebuild/update submodules only on head changes (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/13e608aa18772f0dc5a5e45dc6c8ce5399868e31)
 - Updated: [Dice (RM) Including SEX/WAR/8BALL/WEED/DRINK DICE v2.6 (By RogueMaster)](https://github.com/RogueMaster/flipperzero-dice) [Enum-based modes, event-driven rolling and drawing, immutable message tables, unbiased 32-bit random selection, safe WAR card draws and wider scores. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/5cc58292c43ddb9abc90887cc6bd29164ef2f6a6)
 - FBT: [Added some diagnostics for FAP build times (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/367d20e822a8d35d50e556e40ecbc858080404c1)
-- FBT: [Patterns with a literal, non-wildcard parent directory now go directly to that
-directory and glob only the final component. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/76f1297e102834239b19ea5924098cfaecfe4402)
+- FBT: [Patterns with a literal, non-wildcard parent directory now go directly to that directory and glob only the final component. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/76f1297e102834239b19ea5924098cfaecfe4402)
 - FBT: [macOS leaves `.DS_Store` and `._*` sidecars in any folder it touches, and they are skipped now instead of being embedded in a .fap, listed in the resources Manifest, packed into the update tarball or compiled in as an icon - an `._*.png` next to a real icon used to fail the build outright (original implementation By xMasterX)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/3fb817d2d1f040fe3b4831da446b8266c1abe658)
 - Added: [Cribbage Calc v1.0 (By dchristiansen)](https://github.com/dchristiansen/cribCalc)
 - Added: [Pack Track v1.0 (By thecoolguy2001)](https://github.com/thecoolguy2001/flipper-pack-track) `Req: ESP32 / WiFi DevBoard`
 - Updated: [Dab Timer v2.5 (By RogueMaster)](https://github.com/RogueMaster/flipperzero-dabtimer) [Enum-based timer and code states, integer analog-clock rendering, cached dates, monotonic stopwatch/alarm timing, event-driven updates and safe notification cleanup. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/5cc58292c43ddb9abc90887cc6bd29164ef2f6a6) [Fixed refresh timing to be more frequent (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/ebffcfd88c494d6dc365505499f79379cc29c00d)
+- Updated: [DNDAdventure v4.20.1 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
+- Updated: [DNDBestiary v4.20.1 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
+- Updated: [DNDInitiative v4.20.1 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
+- Updated: [DNDInventory v4.20.1 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
+- Updated: [DNDJournal v4.20.1 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
+- Updated: [DNDolphins v4.20.1 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
+- Updated: [DNDSpellbook v4.20.1 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
+- Updated: [DNDBackup & Restore v4.20.1 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
+- Updated: [DNDCharacter Sheet v4.20.1 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
+- Updated: [DNDCombat v4.20.1 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
+- Updated: [DNDGrants v4.20.1 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
 
 <a name="release"></a>
 
@@ -326,17 +329,17 @@ directory and glob only the final component. (By RogueMaster)](https://github.co
 - [Dice (RM) Including SEX/WAR/8BALL/WEED/DRINK DICE v2.6 (By RogueMaster)](https://github.com/RogueMaster/flipperzero-dice)
 - [Digital Kaleidoscope v0.1 (By JamesR555)](https://github.com/JamesR555/digital_kaleidoscope)
 - [DnD Dice v1.3 (By Ka3u6y6a)](https://github.com/Ka3u6y6a/flipper-zero-dice)
-- [DNDAdventure v4.20 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
-- [DNDBackup & Restore v4.20 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
-- [DNDBestiary v4.20 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
-- [DNDCharacter Sheet v4.20 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
-- [DNDCombat v4.20 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
-- [DNDGrants v4.20 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
-- [DNDInitiative v4.20 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
-- [DNDInventory v4.20 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
-- [DNDJournal v4.20 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
-- [DNDolphins v4.20 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
-- [DNDSpellbook v4.20 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
+- [DNDAdventure v4.20.1 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
+- [DNDBackup & Restore v4.20.1 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
+- [DNDBestiary v4.20.1 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
+- [DNDCharacter Sheet v4.20.1 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
+- [DNDCombat v4.20.1 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
+- [DNDGrants v4.20.1 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
+- [DNDInitiative v4.20.1 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
+- [DNDInventory v4.20.1 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
+- [DNDJournal v4.20.1 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
+- [DNDolphins v4.20.1 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
+- [DNDSpellbook v4.20.1 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
 - [Doom v1.6 (By p4nic4ttack)](https://github.com/p4nic4ttack/doom-flipper-zero)
 - [DopeWars v0.7.9 (By lordbuffcloud)](https://github.com/lordbuffcloud/flipper-ck42x-dopeflipper)
 - [Dragotchi v0.4 (By Mohnki)](https://github.com/Mohnki/dragotchi-flipper) `Optional: ESP32`
