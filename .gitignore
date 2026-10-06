@@ -1,0 +1,15 @@
+# uFBT build output
+dist/
+.vscode/
+.ufbt/
+
+# Build/debug files
+*.elf
+*.map
+*.o
+
+# Local backups
+*.bak
+*.backup
+*.pre-github
+*~
