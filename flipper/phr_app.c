@@ -93,7 +93,7 @@ void phr_app_poll(PhrApp* app) {
             phr_signal_play(
                 app->notifications,
                 (AlertSignal)events[i].signal,
-                phr_signal_is_critical(events[i].rule));
+                events[i].rule);
         }
         pending_push(app, &events[i]);
     }

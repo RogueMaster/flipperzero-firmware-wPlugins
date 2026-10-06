@@ -38,7 +38,7 @@ static void signal_changed(VariableItem* item) {
     app->alerts.cfg[app->editing_rule].signal = idx;
     variable_item_set_current_value_text(item, signal_names[idx]);
     // Preview the selected signal.
-    phr_signal_play(app->notifications, (AlertSignal)idx, phr_signal_is_critical((AlertRuleId)app->editing_rule));
+    phr_signal_play(app->notifications, (AlertSignal)idx, (AlertRuleId)app->editing_rule);
 }
 
 static void rule_enter_noop(void* context, uint32_t index) {
