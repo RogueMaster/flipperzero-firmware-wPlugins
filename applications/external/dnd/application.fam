@@ -360,7 +360,11 @@ App(
     apptype=FlipperAppType.PLUGIN,
     entry_point="dnd_journal_ep",
     requires=["dndolphins", "dndjournal"],
-    sources=["dndjournal_fal.c", "dnd_profile_handoff.c", "dnd_inventory_transaction.c"],
+    sources=[
+        "dndjournal_fal.c",
+        "dnd_profile_handoff.c",
+        "dnd_inventory_transaction.c",
+    ],
     cdefines=DND_RELEASE_DEFINES,
     fap_category="Games",
     fap_author="RogueMaster",
