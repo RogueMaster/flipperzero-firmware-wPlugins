@@ -15,10 +15,13 @@
 #define CBOR_TYPE_FLOAT 7
 
 // CBOR additional info values
-#define CBOR_INFO_UINT8  24
-#define CBOR_INFO_UINT16 25
-#define CBOR_INFO_UINT32 26
-#define CBOR_INFO_UINT64 27
+#define CBOR_INFO_UINT8      24
+#define CBOR_INFO_UINT16     25
+#define CBOR_INFO_UINT32     26
+#define CBOR_INFO_UINT64     27
+// Indefinite-length maps/arrays, closed by a "break" byte
+#define CBOR_INFO_INDEFINITE 31
+#define CBOR_BREAK           0xFF
 
 typedef struct {
     const uint8_t* data;
@@ -33,14 +36,18 @@ typedef enum {
     CborValueTypeText,
     CborValueTypeMap,
     CborValueTypeArray,
+    CborValueTypeFloat,
+    CborValueTypeSimple, // false (20), true (21), null (22), undefined (23)
     CborValueTypeUnknown,
 } CborValueType;
 
 typedef struct {
     CborValueType type;
+    bool indefinite; // For maps and arrays: a break byte follows the last element
     union {
-        uint64_t u64;
+        uint64_t u64; // Also holds the simple value for CborValueTypeSimple
         int64_t i64;
+        float f32;
         struct {
             const uint8_t* data;
             size_t size;
@@ -64,6 +71,10 @@ bool cbor_parse_map(CborParser* parser, size_t* count);
 
 // Helper to skip a value
 bool cbor_skip_value(CborParser* parser);
+
+// Skip the elements of an already parsed map/array value (no-op for scalars).
+// Must be called for every container value whose elements the caller does not read.
+bool cbor_skip_contents(CborParser* parser, const CborValue* value);
 
 // Get remaining bytes
 size_t cbor_parser_remaining(const CborParser* parser);

@@ -7,6 +7,8 @@ void (*const openprinttag_scene_on_enter_handlers[])(void*) = {
     openprinttag_scene_read_success_on_enter,
     openprinttag_scene_read_error_on_enter,
     openprinttag_scene_display_on_enter,
+    openprinttag_scene_write_on_enter,
+    openprinttag_scene_create_on_enter,
 };
 
 // Scene on_event handlers
@@ -16,6 +18,8 @@ bool (*const openprinttag_scene_on_event_handlers[])(void*, SceneManagerEvent) =
     openprinttag_scene_read_success_on_event,
     openprinttag_scene_read_error_on_event,
     openprinttag_scene_display_on_event,
+    openprinttag_scene_write_on_event,
+    openprinttag_scene_create_on_event,
 };
 
 // Scene on_exit handlers
@@ -25,6 +29,8 @@ void (*const openprinttag_scene_on_exit_handlers[])(void*) = {
     openprinttag_scene_read_success_on_exit,
     openprinttag_scene_read_error_on_exit,
     openprinttag_scene_display_on_exit,
+    openprinttag_scene_write_on_exit,
+    openprinttag_scene_create_on_exit,
 };
 
 static const SceneManagerHandlers openprinttag_scene_handlers = {
@@ -113,6 +119,46 @@ static OpenPrintTag* openprinttag_alloc() {
     view_dispatcher_add_view(
         app->view_dispatcher, OpenPrintTagViewLoading, loading_get_view(app->loading));
 
+    app->variable_item_list = variable_item_list_alloc();
+    view_dispatcher_add_view(
+        app->view_dispatcher,
+        OpenPrintTagViewVariableItemList,
+        variable_item_list_get_view(app->variable_item_list));
+
+    app->tag_view = tag_view_alloc();
+    view_dispatcher_add_view(
+        app->view_dispatcher, OpenPrintTagViewTagView, tag_view_get_view(app->tag_view));
+    app->has_tag_uid = false;
+
+    app->numpad = numpad_alloc();
+    view_dispatcher_add_view(
+        app->view_dispatcher, OpenPrintTagViewNumberInput, numpad_get_view(app->numpad));
+    app->text_input = text_input_alloc();
+    view_dispatcher_add_view(
+        app->view_dispatcher, OpenPrintTagViewTextInput, text_input_get_view(app->text_input));
+    app->text_buffer[0] = '\0';
+
+    app->dialog_ex = dialog_ex_alloc();
+    view_dispatcher_add_view(
+        app->view_dispatcher, OpenPrintTagViewDialog, dialog_ex_get_view(app->dialog_ex));
+
+    app->write_remaining_item = NULL;
+    app->write_consumed_item = NULL;
+    app->write_number_input_active = false;
+    app->write_number_input_additive = false;
+
+    // Defaults for creating a new tag: a 1 kg PLA spool
+    memset(&app->create, 0, sizeof(app->create));
+    app->create.type_index = 0; // PLA
+    app->create.weight = 1000;
+    app->create.nozzle_min = 190;
+    app->create.nozzle_max = 230;
+    app->create.bed_min = 50;
+    app->create.bed_max = 60;
+    memset(app->create_items, 0, sizeof(app->create_items));
+    app->create_editing = 0;
+    app->create_phase = 0;
+
     // Initialize tag data
     app->tag_data.main.brand_name = furi_string_alloc();
     app->tag_data.main.material_name = furi_string_alloc();
@@ -146,10 +192,26 @@ static OpenPrintTag* openprinttag_alloc() {
 
     app->tag_data.raw_data = NULL;
     app->tag_data.raw_data_size = 0;
+    app->tag_data.ndef_payload_offset = 0;
+    memset(&app->tag_data.meta, 0, sizeof(app->tag_data.meta));
 
     // Initialize NFC scanner/poller to NULL
     app->nfc_scanner = NULL;
     app->nfc_poller = NULL;
+
+    // Initialize temp editing values
+    app->temp_consumed_weight = 0;
+
+    // Initialize write state
+    app->write_in_progress = false;
+    app->write_data = NULL;
+    app->write_data_size = 0;
+    app->write_start_block = 0;
+    app->write_block_count = 0;
+    app->write_current_block = 0;
+    memset(app->write_uid, 0, sizeof(app->write_uid));
+    app->write_attempts = 0;
+    app->read_retries = 0;
 
     // Start with main menu scene
     scene_manager_next_scene(app->scene_manager, OpenPrintTagSceneStart);
@@ -175,6 +237,21 @@ static void openprinttag_free(OpenPrintTag* app) {
 
     view_dispatcher_remove_view(app->view_dispatcher, OpenPrintTagViewLoading);
     loading_free(app->loading);
+
+    view_dispatcher_remove_view(app->view_dispatcher, OpenPrintTagViewVariableItemList);
+    variable_item_list_free(app->variable_item_list);
+
+    view_dispatcher_remove_view(app->view_dispatcher, OpenPrintTagViewNumberInput);
+    numpad_free(app->numpad);
+
+    view_dispatcher_remove_view(app->view_dispatcher, OpenPrintTagViewTagView);
+    tag_view_free(app->tag_view);
+
+    view_dispatcher_remove_view(app->view_dispatcher, OpenPrintTagViewTextInput);
+    text_input_free(app->text_input);
+
+    view_dispatcher_remove_view(app->view_dispatcher, OpenPrintTagViewDialog);
+    dialog_ex_free(app->dialog_ex);
 
     // Scene manager
     scene_manager_free(app->scene_manager);

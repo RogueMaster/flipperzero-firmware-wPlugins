@@ -181,6 +181,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [ProtoPirate v4.0 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
 - Updated: [FlipDeFlock v0.99 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
 - ESP Flasher: [Comes with Marauder v1.18.0 (By justcallmekoko)](https://github.com/justcallmekoko/ESP32Marauder/releases/tag/v1.18.0)
+- Updated: [OpenPrintTag v1.0 (By Houzvicka)](https://github.com/Houzvicka/FlipperPrintTag)
 
 <a name="release"></a>
 
