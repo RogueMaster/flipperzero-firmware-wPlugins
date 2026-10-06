@@ -6,8 +6,7 @@ The app uses Flipper Zero's built-in NFC hardware and needs no expansion module.
 
 ## Publishing to the Flipper Apps Catalog
 
-The official Catalog requires an unedited screenshot exported directly from qFlipper.
-Place it at `screenshots/mtools-home.png` before the first release.
+The `screenshots/` directory contains unedited qFlipper screenshots for the Catalog.
 
 To submit version 1.0 or a later version, update `fap_version` in `application.fam`,
 add a matching `vmajor.minor:` section to `CHANGELOG.md`, and push a commit whose
@@ -15,6 +14,10 @@ subject is exactly `release: major.minor` to `main`. The release workflow builds
 with the release SDK, validates the Catalog bundle, and opens a PR from the
 MTools Tec Catalog fork. Other commits do not publish. The repository must have
 the `FLIPPER_CATALOG_TOKEN` Actions secret with access to the Catalog fork.
+
+## License
+
+MTools is distributed under the [GNU General Public License v3.0](LICENSE).
 
 ## Source layout
 

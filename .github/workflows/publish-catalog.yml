@@ -33,7 +33,7 @@ jobs:
           fam_version="$(sed -n 's/.*fap_version="\([0-9][0-9]*\.[0-9][0-9]*\)".*/\1/p' application.fam)"
           test "$version" = "$fam_version"
           grep -Eq "^v${version}:$" CHANGELOG.md
-          test -f screenshots/mtools-home.png
+          test -f screenshots/1.png
           echo "publish=true" >> "$GITHUB_OUTPUT"
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
