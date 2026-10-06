@@ -84,8 +84,7 @@ static inline bool dnd_fs_recover_sort(Storage* storage, const char* live, bool*
     if(error != FSE_OK || file_info_is_dir(&info)) return false;
     if(recovered) *recovered = true;
     error = storage_common_stat(storage, live, &info);
-    if(error == FSE_NOT_EXIST)
-        return storage_common_rename_safe(storage, backup, live) == FSE_OK;
+    if(error == FSE_NOT_EXIST) return storage_common_rename_safe(storage, backup, live) == FSE_OK;
     if(error != FSE_OK || file_info_is_dir(&info)) return false;
     return storage_common_remove(storage, backup) == FSE_OK;
 }

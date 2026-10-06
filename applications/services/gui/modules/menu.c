@@ -237,9 +237,8 @@ static void menu_reserve_item(Menu* menu, MenuModel* model) {
 
     // Grow by 50% so large game lists do not copy the whole array for every FAP.
     // Keep this capacity private: menu style plugins still see exactly count items.
-    const size_t capacity = menu->item_capacity ?
-                                menu->item_capacity + menu->item_capacity / 2 :
-                                8;
+    const size_t capacity = menu->item_capacity ? menu->item_capacity + menu->item_capacity / 2 :
+                                                  8;
     furi_check(capacity > menu->item_capacity && capacity <= SIZE_MAX / sizeof(MenuItem));
     MenuItem* items = malloc(capacity * sizeof(MenuItem));
     furi_check(items);

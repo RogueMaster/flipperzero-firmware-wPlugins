@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define DND_SORT_BATCH 24U
+#define DND_SORT_BATCH  24U
 #define DND_SORT_BUFFER 256U
 #define DND_SORT_PREFIX 1280U
 
@@ -50,15 +50,16 @@ static bool dnd_sort_path(char* output, size_t size, const char* path, const cha
 static bool dnd_sort_remove(Storage* storage, const char* path) {
     FileInfo info;
     FS_Error error = storage_common_stat(storage, path, &info);
-    return error == FSE_NOT_EXIST ||
-           (error == FSE_OK && !file_info_is_dir(&info) &&
-            storage_common_remove(storage, path) == FSE_OK);
+    return error == FSE_NOT_EXIST || (error == FSE_OK && !file_info_is_dir(&info) &&
+                                      storage_common_remove(storage, path) == FSE_OK);
 }
 
 static File* dnd_sort_open(Storage* storage, const char* path, bool write) {
     File* file = storage_file_alloc(storage);
     if(file && !storage_file_open(
-                   file, path, write ? FSAM_WRITE : FSAM_READ,
+                   file,
+                   path,
+                   write ? FSAM_WRITE : FSAM_READ,
                    write ? FSOM_CREATE_ALWAYS : FSOM_OPEN_EXISTING)) {
         storage_file_close(file);
         storage_file_free(file);
@@ -97,8 +98,8 @@ static bool dnd_sort_line(DndSortWork* work) {
     work->prefix_truncated = false;
     for(;;) {
         if(reader->used == reader->available) {
-            reader->available = (uint16_t)storage_file_read(
-                reader->file, reader->bytes, sizeof(reader->bytes));
+            reader->available =
+                (uint16_t)storage_file_read(reader->file, reader->bytes, sizeof(reader->bytes));
             reader->used = 0U;
             if(!reader->available) {
                 if(storage_file_get_error(reader->file) != FSE_OK ||
@@ -166,7 +167,7 @@ static bool dnd_sort_number(const char* begin, const char* end, int32_t* result)
         value = value * 10U + digit;
     }
     *result = negative ? value == (uint32_t)INT32_MAX + 1U ? INT32_MIN : -(int32_t)value :
-                        (int32_t)value;
+                         (int32_t)value;
     return true;
 }
 
@@ -195,7 +196,8 @@ static bool dnd_sort_key(DndSortWork* work, DndSortKey* key) {
     int32_t first = 0;
     while(numbers < field_end && fields < 10U) {
         const char* end = numbers;
-        while(end < field_end && *end != ',') ++end;
+        while(end < field_end && *end != ',')
+            ++end;
         int32_t value = 0;
         if(!dnd_sort_number(numbers, end, &value)) return false;
         if(!fields) first = value;
@@ -230,8 +232,8 @@ static bool dnd_sort_key(DndSortWork* work, DndSortKey* key) {
     return true;
 }
 
-static bool dnd_sort_scan(
-    DndSortWork* work, File* source, const DndSortKey* ignored, bool* ordered) {
+static bool
+    dnd_sort_scan(DndSortWork* work, File* source, const DndSortKey* ignored, bool* ordered) {
     if(!dnd_sort_reader_begin(work, source)) return false;
     bool have_previous = false;
     uint32_t count = 0U;
@@ -279,8 +281,8 @@ static bool dnd_sort_flush_run(DndSortWork* work, File* output, uint8_t count) {
            count * sizeof(DndSortKey);
 }
 
-static bool dnd_sort_make_index(
-    DndSortWork* work, File* source, File* output, const DndSortKey* single) {
+static bool
+    dnd_sort_make_index(DndSortWork* work, File* source, File* output, const DndSortKey* single) {
     if(!dnd_sort_reader_begin(work, source)) return false;
     uint8_t count = 0U;
     bool inserted = false;
@@ -308,8 +310,8 @@ static bool dnd_sort_make_index(
     return storage_file_sync(output);
 }
 
-static bool dnd_sort_merge(
-    DndSortWork* work, File* left, File* right, File* output, uint32_t run) {
+static bool
+    dnd_sort_merge(DndSortWork* work, File* left, File* right, File* output, uint32_t run) {
     const uint32_t total = work->stats.records;
     for(uint32_t start = 0U; start < total;) {
         uint32_t remaining[2];
@@ -325,8 +327,10 @@ static bool dnd_sort_merge(
                 return false;
         uint32_t merged = remaining[0] + remaining[1];
         while(remaining[0] || remaining[1]) {
-            uint8_t side = !remaining[0] ? 1U : !remaining[1] ? 0U :
-                              dnd_sort_compare(&work->heads[0], &work->heads[1]) <= 0 ? 0U : 1U;
+            uint8_t side = !remaining[0]                                           ? 1U :
+                           !remaining[1]                                           ? 0U :
+                           dnd_sort_compare(&work->heads[0], &work->heads[1]) <= 0 ? 0U :
+                                                                                     1U;
             if(!dnd_sort_write_key(output, &work->heads[side])) return false;
             --remaining[side];
             if(remaining[side] && !dnd_sort_read_key(inputs[side], &work->heads[side]))
@@ -338,7 +342,11 @@ static bool dnd_sort_merge(
 }
 
 static bool dnd_sort_copy_span(
-    DndSortWork* work, File* input, File* output, uint32_t offset, uint32_t length) {
+    DndSortWork* work,
+    File* input,
+    File* output,
+    uint32_t offset,
+    uint32_t length) {
     if(!storage_file_seek(input, offset, true)) return false;
     while(length) {
         size_t bytes = length < sizeof(work->copy_buffer) ? length : sizeof(work->copy_buffer);
@@ -351,8 +359,7 @@ static bool dnd_sort_copy_span(
     return true;
 }
 
-static bool dnd_sort_emit(
-    DndSortWork* work, File* source, File* raw, File* index, File* output) {
+static bool dnd_sort_emit(DndSortWork* work, File* source, File* raw, File* index, File* output) {
     if(!dnd_sort_reader_begin(work, source)) return false;
     uint32_t records = 0U;
     while(dnd_sort_line(work)) {
@@ -364,7 +371,9 @@ static bool dnd_sort_emit(
                 return false;
             if(work->ending_length &&
                !dnd_sort_copy_span(
-                   work, raw, output,
+                   work,
+                   raw,
+                   output,
                    work->line_offset + work->line_length - work->ending_length,
                    work->ending_length))
                 return false;
@@ -396,7 +405,10 @@ static bool dnd_sort_publish(Storage* storage, const char* temp, const char* liv
 }
 
 static bool dnd_sort_snapshot(
-    DndSortWork* work, Storage* storage, const char* source, const char* snapshot) {
+    DndSortWork* work,
+    Storage* storage,
+    const char* source,
+    const char* snapshot) {
     char temp[DND_FS_LONG_PATH_LEN];
     if(!dnd_sort_path(temp, sizeof(temp), snapshot, ".sort.tmp")) return false;
     File* input = dnd_sort_open(storage, source, false);
@@ -412,7 +424,10 @@ static bool dnd_sort_snapshot(
 }
 
 bool dnd_spellbook_sort(
-    Storage* storage, const char* live, const char* snapshot, DndSpellbookSortStats* stats) {
+    Storage* storage,
+    const char* live,
+    const char* snapshot,
+    DndSpellbookSortStats* stats) {
     if(stats) memset(stats, 0, sizeof(*stats));
     if(!storage || !live || !live[0] || (snapshot && !strcmp(live, snapshot))) return false;
     char indices[2][DND_FS_LONG_PATH_LEN];

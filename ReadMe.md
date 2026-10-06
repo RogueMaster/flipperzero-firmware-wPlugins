@@ -158,7 +158,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [NW Crawl v0.3 (By rseufert)](https://github.com/rseufert/nw_crawl)
 - Updated: [Step Seq v0.2 (By rseufert)](https://github.com/rseufert/step_seq)
 - [Lock Menu: Restore Lock + Off without PIN setup; keep three visible rows while scrolling through all four lock actions in both Grid and List styles. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/c737624725d6d749c37bc954ddc2e064b535292c)
-- Updated: [ProtoPirate v4.0 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
 - RFID: [Casi-Rusco offset follows the card field's top bit, not card 195538 (By srkz)](https://github.com/DarkFlippers/unleashed-firmware/pull/1163)
 - FBT: [Rebuild/update submodules only on head changes (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/13e608aa18772f0dc5a5e45dc6c8ce5399868e31)
 - Updated: [Dice (RM) Including SEX/WAR/8BALL/WEED/DRINK DICE v2.6 (By RogueMaster)](https://github.com/RogueMaster/flipperzero-dice) [Enum-based modes, event-driven rolling and drawing, immutable message tables, unbiased 32-bit random selection, safe WAR card draws and wider scores. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/5cc58292c43ddb9abc90887cc6bd29164ef2f6a6)
@@ -180,6 +179,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [DNDCombat v4.20.4 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
 - Updated: [DNDGrants v4.20.4 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
 - GUI: [Speed Game Menu loading with bounded FAP metadata reads, amortized menu allocation, timer-free static icons and in-place heapsort in the Game Menu FAL. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/9288106029c69cdfb46e845717b5831d4f8da153)
+- Updated: [ProtoPirate v4.0 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
 
 <a name="release"></a>
 

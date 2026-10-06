@@ -257,13 +257,7 @@ static void loader_menu_add_app_entry(
     const char* path,
     bool icon_owned) {
     MenuAppList_push_back(app->apps_list, (MenuApp){name, icon, path, icon_owned});
-    menu_add_item(
-        app->primary_menu,
-        name,
-        icon,
-        app->app_count++,
-        loader_menu_apps_callback,
-        app);
+    menu_add_item(app->primary_menu, name, icon, app->app_count++, loader_menu_apps_callback, app);
 }
 
 static const Icon* loader_menu_get_ext_icon(Storage* storage, const char* path) {

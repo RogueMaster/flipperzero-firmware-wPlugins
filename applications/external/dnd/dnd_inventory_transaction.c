@@ -40,8 +40,8 @@ static uint32_t dnd_txn_crc(uint32_t crc, const void* data, size_t size) {
 }
 
 static bool dnd_txn_path(char* path, const char* name, const char* suffix) {
-    int length = snprintf(
-        path, DND_TXN_PATH_SIZE, "%s/%s%s", DND_CHARACTER_DATA_ROOT, name, suffix);
+    int length =
+        snprintf(path, DND_TXN_PATH_SIZE, "%s/%s%s", DND_CHARACTER_DATA_ROOT, name, suffix);
     return length > 0 && (size_t)length < DND_TXN_PATH_SIZE;
 }
 
@@ -82,8 +82,8 @@ static bool dnd_txn_name_valid(const char* name, uint32_t profile) {
     size_t bag_size = name_size - 3U - suffix_size;
     if(bag_size > 23U) return false;
     for(const char* p = name + 3U; p < end - suffix_size; ++p) {
-        if(!((*p >= 'a' && *p <= 'z') || (*p >= 'A' && *p <= 'Z') ||
-             (*p >= '0' && *p <= '9') || *p == '_' || *p == '-'))
+        if(!((*p >= 'a' && *p <= 'z') || (*p >= 'A' && *p <= 'Z') || (*p >= '0' && *p <= '9') ||
+             *p == '_' || *p == '-'))
             return false;
     }
     return true;
@@ -209,7 +209,8 @@ bool dnd_inventory_transaction_recover(Storage* storage, uint32_t profile, bool*
     if(!file) return false;
     bool opened = storage_file_open(file, journal, FSAM_READ, FSOM_OPEN_EXISTING);
     bool success = opened && storage_file_size(file) == sizeof(transaction) &&
-                   storage_file_read(file, &transaction, sizeof(transaction)) == sizeof(transaction);
+                   storage_file_read(file, &transaction, sizeof(transaction)) ==
+                       sizeof(transaction);
     if(opened && !storage_file_close(file)) success = false;
     storage_file_free(file);
     if(!success || transaction.magic != DND_TXN_MAGIC || transaction.version != DND_TXN_VERSION ||
@@ -308,8 +309,9 @@ DndStorageTransferResult dnd_inventory_transaction_publish(
     File* file = storage_file_alloc(storage);
     if(!file) return DndStorageTransferFailed;
     bool opened = storage_file_open(file, staged, FSAM_WRITE, FSOM_CREATE_ALWAYS);
-    bool success = opened && storage_file_write(file, &transaction, sizeof(transaction)) ==
-                                 sizeof(transaction) &&
+    bool success = opened &&
+                   storage_file_write(file, &transaction, sizeof(transaction)) ==
+                       sizeof(transaction) &&
                    storage_file_sync(file);
     if(opened && !storage_file_close(file)) success = false;
     storage_file_free(file);
@@ -320,7 +322,6 @@ DndStorageTransferResult dnd_inventory_transaction_publish(
     // must discard its old selection and reload before attempting another move.
     if(storage_common_rename_safe(storage, staged, path) != FSE_OK)
         return DndStorageTransferPending;
-    return dnd_inventory_transaction_recover(storage, profile, NULL) ?
-               DndStorageTransferComplete :
-               DndStorageTransferPending;
+    return dnd_inventory_transaction_recover(storage, profile, NULL) ? DndStorageTransferComplete :
+                                                                       DndStorageTransferPending;
 }

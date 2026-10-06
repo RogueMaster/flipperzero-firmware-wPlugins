@@ -425,8 +425,7 @@ typedef struct {
 
 static bool dndinventory_collection_load_page(DndInventoryCollectionApp* app, uint16_t start);
 static bool dndinventory_collection_save_page(DndInventoryCollectionApp* app);
-static bool
-    dndinventory_collection_load_profile(DndInventoryCollectionApp* app, const char* args);
+static bool dndinventory_collection_load_profile(DndInventoryCollectionApp* app, const char* args);
 static bool
     dndinventory_collection_prepare_record(DndInventoryCollectionApp* app, uint16_t logical);
 static bool
@@ -1824,17 +1823,16 @@ static bool dndinventory_collection_move_selected_to(
     if(!app || !destination || !app->mover_selected_count) return false;
     DndCharacter* owner = dndinventory_collection_io_character(&app->data.character, false);
     uint16_t moved = 0U;
-    DndStorageTransferResult result = owner ?
-                                         dnd_storage_move_items_bag_selected(
-                                             app->storage,
-                                             app->profile,
-                                             app->bag_name,
-                                             destination,
-                                             owner,
-                                             app->mover_selected,
-                                             app->total,
-                                             &moved) :
-                                         DndStorageTransferFailed;
+    DndStorageTransferResult result = owner ? dnd_storage_move_items_bag_selected(
+                                                  app->storage,
+                                                  app->profile,
+                                                  app->bag_name,
+                                                  destination,
+                                                  owner,
+                                                  app->mover_selected,
+                                                  app->total,
+                                                  &moved) :
+                                              DndStorageTransferFailed;
     dndinventory_collection_free_io_character(owner, false);
     if(result == DndStorageTransferFailed) {
         dndinventory_collection_set_status(app, "Move failed; bags unchanged");
@@ -2017,17 +2015,16 @@ static bool dndinventory_collection_move_item_bag(DndInventoryCollectionApp* app
     }
     DndCharacter* owner = dndinventory_collection_io_character(&app->data.character, false);
     uint16_t moved = 0;
-    DndStorageTransferResult result = owner ?
-                                         dnd_storage_move_items_bag_selected(
-                                             app->storage,
-                                             app->profile,
-                                             app->bag_name,
-                                             destination,
-                                             owner,
-                                             selected,
-                                             app->total,
-                                             &moved) :
-                                         DndStorageTransferFailed;
+    DndStorageTransferResult result = owner ? dnd_storage_move_items_bag_selected(
+                                                  app->storage,
+                                                  app->profile,
+                                                  app->bag_name,
+                                                  destination,
+                                                  owner,
+                                                  selected,
+                                                  app->total,
+                                                  &moved) :
+                                              DndStorageTransferFailed;
     dndinventory_collection_free_io_character(owner, false);
     free(selected);
     if(result == DndStorageTransferFailed) {
@@ -3723,7 +3720,8 @@ static DndInventoryCollectionApp* dndinventory_collection_alloc(const char* args
     view_set_input_callback(app->view, dndinventory_collection_input);
 
     app->have_profile = dndinventory_collection_load_profile(app, args) ? 1U : 0U;
-    if(app->profile_known && !dnd_inventory_transaction_recover(app->storage, app->profile, NULL)) {
+    if(app->profile_known &&
+       !dnd_inventory_transaction_recover(app->storage, app->profile, NULL)) {
         app->screen = DndInventoryCollectionScreenTransferPending;
         dndinventory_collection_set_status(app, "Move needs recovery");
     } else if(app->have_profile) {

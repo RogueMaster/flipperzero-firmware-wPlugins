@@ -2148,7 +2148,8 @@ DndStorageTransferResult dnd_storage_move_items_bag_selected(
     char source_live[DND_FS_PATH_LEN], destination_live[DND_FS_PATH_LEN];
     char source_snapshot[DND_FS_LONG_PATH_LEN], destination_snapshot[DND_FS_LONG_PATH_LEN];
     dnd_storage_items_bag_path(source_live, sizeof(source_live), profile, source_bag);
-    dnd_storage_items_bag_path(destination_live, sizeof(destination_live), profile, destination_bag);
+    dnd_storage_items_bag_path(
+        destination_live, sizeof(destination_live), profile, destination_bag);
     // FAT is case insensitive; different labels may also sanitize to one path.
     // Reject before a duplicate open can wait forever or an input is truncated.
     if(!strcasecmp(source_live, destination_live)) return DndStorageTransferFailed;
