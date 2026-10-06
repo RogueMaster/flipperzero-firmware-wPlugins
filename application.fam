@@ -22,5 +22,7 @@ App(
     fap_icon="mtools_icon.png",
     fap_icon_assets="images",
     fap_description="Magic tag tools for MIFARE Classic and ISO15693",
-    fap_version="0.1",
+    fap_version="1.0",
+    fap_author="MTools Tec",
+    fap_weburl="https://github.com/mtoolstec/flipper-mtools",
 )
