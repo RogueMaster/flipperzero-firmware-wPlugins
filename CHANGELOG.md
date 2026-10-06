@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+**Flipper app (v1.1)**
+- Every alert type has its own sound: hot CPU/GPU = fast high alarms, load = rising tones, RAM/VRAM = falling tones,
+  disk = low thuds, low battery = slow falling tones, lost link = drop to a low note. The Vibro+Sound signal uses the
+  same melodies; vibration patterns are unchanged.
+
 ## v1.0.0 - 2026-10-06
 
 Initial release.
