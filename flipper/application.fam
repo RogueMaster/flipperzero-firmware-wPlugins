@@ -1,0 +1,15 @@
+App(
+    appid="pc_health_remote",
+    name="PC Health Remote",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="pc_health_remote_app",
+    requires=["bt", "gui", "notification", "storage"],
+    stack_size=6 * 1024,
+    sources=["*.c", "!tests"],
+    fap_category="Bluetooth",
+    fap_version="1.0",
+    fap_icon="icon.png",
+    fap_author="vladatman",
+    fap_weburl="https://github.com/vladatman/pc-health-remote",
+    fap_description="PC temperatures & load on your Flipper, with vibro/sound alerts and tips",
+)
