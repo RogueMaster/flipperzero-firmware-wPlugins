@@ -40,7 +40,8 @@ static uint8_t score_pairs(const CribbageCard cards[5]) {
 
 static uint8_t score_runs(const CribbageCard cards[5]) {
     uint8_t counts[14] = {0};
-    for(uint8_t index = 0; index < 5; index++) counts[cards[index].rank]++;
+    for(uint8_t index = 0; index < 5; index++)
+        counts[cards[index].rank]++;
 
     for(int8_t length = 5; length >= 3; length--) {
         uint8_t score = 0;
@@ -75,10 +76,8 @@ static uint8_t score_nobs(const CribbageCard hand[4], CribbageCard starter) {
     return 0;
 }
 
-CribbageScoreBreakdown cribbage_score_hand(
-    const CribbageCard hand[4],
-    CribbageCard starter,
-    bool is_crib) {
+CribbageScoreBreakdown
+    cribbage_score_hand(const CribbageCard hand[4], CribbageCard starter, bool is_crib) {
     CribbageCard cards[5];
     memcpy(cards, hand, sizeof(CribbageCard) * 4);
     cards[4] = starter;

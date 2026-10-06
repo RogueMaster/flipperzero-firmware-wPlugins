@@ -32,10 +32,8 @@ typedef struct {
     uint8_t total;
 } CribbageScoreBreakdown;
 
-CribbageScoreBreakdown cribbage_score_hand(
-    const CribbageCard hand[4],
-    CribbageCard starter,
-    bool is_crib);
+CribbageScoreBreakdown
+    cribbage_score_hand(const CribbageCard hand[4], CribbageCard starter, bool is_crib);
 
 uint8_t cribbage_score_his_heels(CribbageCard starter);
 bool cribbage_cards_equal(CribbageCard left, CribbageCard right);

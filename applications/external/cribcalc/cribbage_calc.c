@@ -41,11 +41,7 @@ static void draw_slot_title(Canvas* canvas, const CribbageApp* app) {
     char buffer[32];
     if(app->slot < 4) {
         snprintf(
-            buffer,
-            sizeof(buffer),
-            "%s card %u/4",
-            app->is_crib ? "Crib" : "Hand",
-            app->slot + 1);
+            buffer, sizeof(buffer), "%s card %u/4", app->is_crib ? "Crib" : "Hand", app->slot + 1);
     } else {
         snprintf(buffer, sizeof(buffer), "Starter  5/5");
     }
@@ -63,16 +59,18 @@ static void draw_large_club_icon(Canvas* canvas, uint8_t x, uint8_t baseline) {
 }
 
 static void draw_large_diamond_icon(Canvas* canvas, uint8_t x, uint8_t baseline) {
-    static const uint8_t widths[] = {1, 3, 5, 7, 9, 11, 13, 15, 17, 17, 17, 15, 13, 11, 9, 7, 5, 3, 1};
+    static const uint8_t widths[] = {
+        1, 3, 5, 7, 9, 11, 13, 15, 17, 17, 17, 15, 13, 11, 9, 7, 5, 3, 1};
     uint8_t top = baseline - 19;
     for(uint8_t row = 0; row < 19; row++) {
         uint8_t width = widths[row];
-        canvas_draw_line(canvas, x + (17 - width) / 2, top + row, x + (17 + width) / 2 - 1, top + row);
+        canvas_draw_line(
+            canvas, x + (17 - width) / 2, top + row, x + (17 + width) / 2 - 1, top + row);
     }
 }
 
-static void draw_suit_icon(
-    Canvas* canvas, uint8_t x, uint8_t y, CribbageSuit suit, uint8_t scale) {
+static void
+    draw_suit_icon(Canvas* canvas, uint8_t x, uint8_t y, CribbageSuit suit, uint8_t scale) {
     static const uint8_t hearts[] = {0x36, 0x7F, 0x7F, 0x3E, 0x1C, 0x08, 0x00};
     static const uint8_t diamonds[] = {0x08, 0x1C, 0x3E, 0x7F, 0x3E, 0x1C, 0x08};
     static const uint8_t spades[] = {0x08, 0x1C, 0x3E, 0x7F, 0x7F, 0x1C, 0x3E};
@@ -160,7 +158,12 @@ static void cribbage_draw_callback(Canvas* canvas, void* context) {
         draw_card(canvas, 27, app->pending, FontPrimary);
         draw_text(canvas, 4, 40, "Already used in:", FontSecondary);
         if(app->duplicate_slot < 4) {
-            snprintf(buffer, sizeof(buffer), "%s card %u", app->is_crib ? "Crib" : "Hand", app->duplicate_slot + 1);
+            snprintf(
+                buffer,
+                sizeof(buffer),
+                "%s card %u",
+                app->is_crib ? "Crib" : "Hand",
+                app->duplicate_slot + 1);
         } else {
             snprintf(buffer, sizeof(buffer), "Starter");
         }
@@ -170,7 +173,13 @@ static void cribbage_draw_callback(Canvas* canvas, void* context) {
         CribbageScoreBreakdown score = app->score;
         snprintf(buffer, sizeof(buffer), "%s: %u", app->is_crib ? "Crib" : "Hand", score.total);
         draw_text(canvas, 4, 10, buffer, FontPrimary);
-        snprintf(buffer, sizeof(buffer), "15s %u  Pairs %u  Runs %u", score.fifteens, score.pairs, score.runs);
+        snprintf(
+            buffer,
+            sizeof(buffer),
+            "15s %u  Pairs %u  Runs %u",
+            score.fifteens,
+            score.pairs,
+            score.runs);
         draw_text(canvas, 4, 27, buffer, FontSecondary);
         snprintf(buffer, sizeof(buffer), "Flush %u  Nobs %u", score.flush, score.nobs);
         draw_text(canvas, 4, 39, buffer, FontSecondary);
@@ -243,16 +252,25 @@ static bool handle_event(CribbageApp* app, const InputEvent* event) {
             app->screen = CribbageScreenWelcome;
         }
     } else if(app->screen == CribbageScreenRank) {
-        if(event->key == InputKeyUp) advance_rank(app, 1);
-        else if(event->key == InputKeyDown) advance_rank(app, -1);
-        else if(event->key == InputKeyOk) app->screen = CribbageScreenSuit;
-        else if(event->key == InputKeyBack) begin_previous_slot(app);
+        if(event->key == InputKeyUp)
+            advance_rank(app, 1);
+        else if(event->key == InputKeyDown)
+            advance_rank(app, -1);
+        else if(event->key == InputKeyOk)
+            app->screen = CribbageScreenSuit;
+        else if(event->key == InputKeyBack)
+            begin_previous_slot(app);
     } else if(app->screen == CribbageScreenSuit) {
-        if(event->key == InputKeyUp) app->pending.suit = CribbageSuitHearts;
-        else if(event->key == InputKeyRight) app->pending.suit = CribbageSuitDiamonds;
-        else if(event->key == InputKeyDown) app->pending.suit = CribbageSuitClubs;
-        else if(event->key == InputKeyLeft) app->pending.suit = CribbageSuitSpades;
-        else if(event->key == InputKeyBack) app->screen = CribbageScreenRank;
+        if(event->key == InputKeyUp)
+            app->pending.suit = CribbageSuitHearts;
+        else if(event->key == InputKeyRight)
+            app->pending.suit = CribbageSuitDiamonds;
+        else if(event->key == InputKeyDown)
+            app->pending.suit = CribbageSuitClubs;
+        else if(event->key == InputKeyLeft)
+            app->pending.suit = CribbageSuitSpades;
+        else if(event->key == InputKeyBack)
+            app->screen = CribbageScreenRank;
         else if(event->key == InputKeyOk) {
             uint8_t duplicate_slot;
             if(find_duplicate(app, app->pending, &duplicate_slot)) {
@@ -266,16 +284,20 @@ static bool handle_event(CribbageApp* app, const InputEvent* event) {
                     app->screen = CribbageScreenResults;
                 } else {
                     app->slot++;
-                    app->pending = (CribbageCard){.rank = CribbageRankAce, .suit = CribbageSuitHearts};
+                    app->pending =
+                        (CribbageCard){.rank = CribbageRankAce, .suit = CribbageSuitHearts};
                     app->screen = CribbageScreenRank;
                 }
             }
         }
     } else if(app->screen == CribbageScreenDuplicate) {
-        if(event->key == InputKeyOk) app->screen = CribbageScreenSuit;
-        else if(event->key == InputKeyBack) app->screen = CribbageScreenRank;
+        if(event->key == InputKeyOk)
+            app->screen = CribbageScreenSuit;
+        else if(event->key == InputKeyBack)
+            app->screen = CribbageScreenRank;
     } else if(app->screen == CribbageScreenResults) {
-        if(event->key == InputKeyBack) begin_previous_slot(app);
+        if(event->key == InputKeyBack)
+            begin_previous_slot(app);
         else if(event->key == InputKeyOk) {
             app->is_crib = false;
             app->screen = CribbageScreenCountType;
