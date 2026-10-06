@@ -1,4 +1,4 @@
-# Dungeons & Dolphins 4.20.3 FAL integration
+# Dungeons & Dolphins 4.20.2 FAL integration
 
 This release retains eleven launchable FAPs and moves four approved feature implementations into versioned, non-embedded FALs. A fifth FAL draws one randomly selected DND splash from fifteen choices with an animated SDK hourglass. Build the whole suite together; older FAPs do not implement these contracts.
 
@@ -35,7 +35,7 @@ The Hub and loading FAL each bundle all fifteen raw bitmaps as file assets. Nati
 
 The Monster Turn FAL bundles its own monster TXT assets. Native preload unpacks them under `/ext/apps_assets/dnd_monster_turn/`, independently of whether the Bestiary FAP has run. Custom monsters, enabled packs and legacy migration remain under the existing `/ext/apps_data/dndbestiary/` contract. No character or collection schema migration is needed.
 
-All source changes are contained in `applications/external/dnd/`. Build and deploy the matching DND FAPs/FALs against the supplied stock firmware API; no firmware overlay, service modification, SDK patch or firmware flash is required by this release. The obsolete overlay source directory is removed. The loading descriptor is API version 2, so install the new loading FAL together with all eleven FAPs.
+DND runtime changes are contained in `applications/external/dnd/` and use the supplied firmware API. The cumulative delta also changes Game Menu firmware services and the FBT compatibility gate; build and deploy matching firmware/FAPs/FALs to use the complete delta. The obsolete overlay source directory is removed. The loading descriptor is API version 2, so install the new loading FAL together with all eleven FAPs.
 
 ## UI and ownership
 
@@ -63,7 +63,7 @@ Initial loading before DND code begins remains the stock firmware loading screen
 
 ## Validation and performance limits
 
-Twenty ASan/UBSan host regressions, sixteen strict source sets, eleven entry-point lifecycles and five real shared-module links pass. Native manifest parsing, public API source contracts and normalized import names match the supplied API 88.7. This is source/host evidence; no current ARM relocation, flashed-device timing, heap or cumulative stack high-water result is claimed. See [tests/host/VALIDATION.md](tests/host/VALIDATION.md) and [MEMORY_AUDIT.md](MEMORY_AUDIT.md).
+The earlier suite-wide regression and size claims are historical base-source evidence. Current checks for the 4.20.2 delta are recorded in [RELEASE_AUDIT_STATUS.md](RELEASE_AUDIT_STATUS.md). No current full ARM build, flashed-device timing, heap or cumulative stack high-water result is claimed.
 
 Thin Sheet/Journal wrappers and the lazy Combat table reduce those parent executable proxies. Running a FAL keeps its parent resident: integrated Hub UI and Bestiary tools can increase peak coexistence. The handoff also uses heap while the next app loads, and two independently mapped loading FAL images can briefly overlap when a standalone feature starts its local loading view. These choices prioritize continuity and avoiding a full Bestiary reload; they do not establish a universal RAM or latency improvement. Device acceptance remains in [DEVICE_TEST_MATRIX.md](DEVICE_TEST_MATRIX.md).
 

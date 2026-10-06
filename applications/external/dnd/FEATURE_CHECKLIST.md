@@ -1,6 +1,6 @@
 # Feature checklist
 
-4.20.3 source/host feature coverage for eleven FAPs plus five FALs. Checked features are implemented; physical-device acceptance is tracked separately in DEVICE_TEST_MATRIX.md.
+4.20.1 source/host feature coverage for eleven FAPs plus five FALs. Checked features are implemented; physical-device acceptance is tracked separately in DEVICE_TEST_MATRIX.md.
 
 ## DNDolphins
 
@@ -200,7 +200,7 @@
 - [x] Favorite Spells builds its bounded index on entry and returns through the casting workflow.
 - [x] Selected Hub Feats are saved before DNDGrants reviews dependent grants.
 
-## 4.20.3 FAL and loading integration
+## 4.20.1 FAL and loading integration
 
 - [x] Character Sheet and Journal UI FALs shared by the Hub and standalone wrappers.
 - [x] Journal return reloads the canonical character and invalidates stale collections, with failed-reload save protection.

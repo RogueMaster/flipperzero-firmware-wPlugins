@@ -1,6 +1,17 @@
 # Device test matrix
 
-## 4.20.3 FAL and loading acceptance — outstanding on hardware
+## 4.20.2 collection loading and reset recovery — outstanding on hardware
+
+- [ ] Build the cumulative firmware and matching SD resources. Install matching DND 4.20.2 FAPs/FALs; verify descriptor ID/version and exact runtime destinations. Also rebuild Game Menu and CFW Settings for the shared discovery helper.
+- [ ] Launch Spellbook directly and from Hub on a slow SD card. Confirm the loading view attaches before the collection scan and normal List/Magic entry follows initialization. Measure ordered startup separately from an unsorted import.
+- [ ] Exercise ordered, reverse-ordered and large imported spellbooks with duplicate keys, unknown rows, long rows, CRLF and a missing final newline. Verify level/name order, unchanged record fields, eight-record pages and correct search across pages. Measure peak heap/stack and free SD space during merge passes.
+- [ ] Add one spell and edit its name/level, then return to List or exit/reopen. Verify sorted order and refreshed page/search offsets. Use Grants, restore and same-size direct SD edits, then reopen Spellbook to confirm fresh validation.
+- [ ] Inject failed saves, reads and sort publication. Confirm editing stays blocked after an uncertain reload, Back retries, unsaved edits remain available, and safe Hold Back exits only when data is saved. Reset between `.sort.bak` publication renames, then open Spellbook, Grants or Hub; old records must recover before an empty file can be created.
+- [ ] Reset a multi-item and single-item bag move before the journal commit, between the two bag publications, during backup cleanup and before journal removal. Reopen Inventory and each shared-storage consumer, including Journal and Backup. Confirm both new bags eventually appear exactly once, fields/container links survive and stale selection/page offsets cannot be reapplied.
+- [ ] Repeat a pending recovery with SD absent/full, bad journal CRC, altered stage/live content and path/directory collisions. Confirm artifacts remain available and writes/profile deletion stay blocked. Restore the original artifacts and retry; only a fresh selection may start another move.
+- [ ] Exercise profile IDs 0/nonzero, Main/Group/custom bags, case aliases and sanitizer-colliding bag names on FAT. Confirm alias rejection happens before opening the same file twice, without a Loader/storage deadlock.
+
+## 4.20.1 FAL and loading acceptance — outstanding on hardware
 
 - [ ] Repeat startup and FAP/FAL transitions while the hourglass animates, including cancellation/failure/timeout; verify callbacks finish before their view/context or module is freed. Native timer scheduling still requires hardware acceptance.
 

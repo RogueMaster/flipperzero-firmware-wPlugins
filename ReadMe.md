@@ -174,12 +174,12 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [DNDInventory v4.20.4 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
 - Updated: [DNDJournal v4.20.4 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
 - Updated: [DNDolphins v4.20.4 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
-- Updated: [DNDSpellbook v4.20.4 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins) [Preserve paged Spellbook access with bounded sorting and early loading feedback; recover interrupted two-bag transfers. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/4403b3102e7761f90611e75646df27be9c9333cb)
+- Updated: [DNDSpellbook v4.20.4 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins) [Preserve paged Spellbook access with bounded sorting and early loading feedback; recover interrupted two-bag transfers. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/9288106029c69cdfb46e845717b5831d4f8da153)
 - Updated: [DNDBackup & Restore v4.20.4 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
 - Updated: [DNDCharacter Sheet v4.20.4 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
 - Updated: [DNDCombat v4.20.4 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
 - Updated: [DNDGrants v4.20.4 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
-- GUI: [Speed Game Menu loading with bounded FAP metadata reads, amortized menu allocation, timer-free static icons and in-place heapsort in the Game Menu FAL. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/4403b3102e7761f90611e75646df27be9c9333cb)
+- GUI: [Speed Game Menu loading with bounded FAP metadata reads, amortized menu allocation, timer-free static icons and in-place heapsort in the Game Menu FAL. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/9288106029c69cdfb46e845717b5831d4f8da153)
 
 <a name="release"></a>
 

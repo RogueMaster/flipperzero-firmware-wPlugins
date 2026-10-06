@@ -1,4 +1,4 @@
-# Randomized loading artwork — 4.20.3
+# Randomized loading artwork — 4.20.1
 
 The Hub startup splash, local loading views and DND app handoffs choose from the existing project splash plus fourteen supplied 128×64 monochrome images. They draw the existing animated SDK hourglass over the lower-right corner at `(100, 36)` in a 28×28 frame. Finished artwork is preserved; there is no resizing, dithering or redrawing.
 

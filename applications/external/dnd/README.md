@@ -6,7 +6,7 @@
 
 # DNDolphins
 
-**Release: 4.20.3**
+**Release: 4.20.2**
 
 This release randomizes loading artwork across the original splash and fourteen supplied images while keeping one selected bitmap in RAM. It retains four feature FALs, the DND-owned loading FAL, direct per-item bag moves and Hold OK in Bag Mover. Eleven FAPs, five real shared modules and twenty host regressions pass. All changes stay in the DND app family and use the supplied stock firmware API. Install the matching FAPs and FALs together. ARM/device verification remains outstanding. See [FAL_INTEGRATION.md](FAL_INTEGRATION.md) and [RELEASE_AUDIT_STATUS.md](RELEASE_AUDIT_STATUS.md).
 
@@ -301,7 +301,7 @@ DNDolphins does not contain a second backup/restore implementation. Its **Charac
 
 ## DNDInventory — inventory, equipment and currency
 
-DNDInventory opens the persisted active character directly to the Inventory list. Opening Inventory never writes starting equipment automatically. When an initial package is still available, **Grant Initial Inventory** opens the explicit review screen before anything is written.
+DNDInventory opens the persisted active character directly to the Inventory list. Two-bag moves stage both new files and publish a durable recovery journal before replacing either live bag. An interrupted committed move is completed before collection access resumes. If recovery cannot finish, the app blocks editing and offers a recovery retry; it discards old selections before reloading. Opening Inventory never writes starting equipment automatically. When an initial package is still available, **Grant Initial Inventory** opens the explicit review screen before anything is written.
 
 ### Inventory list
 
@@ -401,7 +401,7 @@ Choosing a recognized bundled weapon or armor also fills its useful mechanical p
 
 ## DNDSpellbook — spells, preparation and catalog
 
-DNDSpellbook normally opens the persisted active character directly to the Spellbook list. A launch from DNDolphins **Magic & Spells** opens the same app directly on its Magic view instead. Owned spells are stored in level-ascending, case-insensitive name order.
+DNDSpellbook attaches a loading view before validating the active character’s spell order, then opens the Spellbook list. A launch from DNDolphins **Magic & Spells** opens the same app directly on its Magic view instead. Owned spells are stored in level-ascending, case-insensitive name order. Normal edits use verified single-record reinsertion when applicable; bulk disorder uses bounded external merge sorting. Pagination and offset indexes remain in place. Order is checked from current file contents, with no persistent “already sorted” flag.
 
 ### Spellbook list
 
@@ -682,7 +682,7 @@ From a RogueMaster/Flipper firmware tree containing this directory:
 fbt fap_dndolphins fap_dndcharactersheet fap_dndcombat fap_dndgrants fap_dndinventory fap_dndspellbook fap_dndadventure fap_dndjournal fap_dndinitiative fap_dndbestiary fap_dndbackup fap_dnd_character_sheet fap_dnd_journal fap_dnd_monster_turn fap_dnd_spell_damage fap_dnd_loading
 ```
 
-The suite release label is kept separately from numeric `(4, 20)` FAP metadata. Build with the firmware tree/SDK matching your device and install all eight FAL destinations in [FAL_INTEGRATION.md](FAL_INTEGRATION.md), including loading API version 2 under DNDolphins. This release needs no firmware overlay or firmware flash. `tests/sdk/VALIDATION.md` retains historical official-SDK evidence; it is not a current 4.20.3 build certificate. Current host evidence is in `tests/host/VALIDATION.md`; device checks are in `DEVICE_TEST_MATRIX.md`.
+The suite release label is kept separately from numeric `(4, 20)` FAP metadata. Build with the firmware tree/SDK matching your device and install all eight FAL destinations in [FAL_INTEGRATION.md](FAL_INTEGRATION.md), including loading API version 2 under DNDolphins. The DND changes use existing firmware APIs. The cumulative Game Menu delta also changes firmware services and requires a matching firmware rebuild to use those improvements. Current validation and its limits are recorded in [RELEASE_AUDIT_STATUS.md](RELEASE_AUDIT_STATUS.md); device checks are in [DEVICE_TEST_MATRIX.md](DEVICE_TEST_MATRIX.md). Historical test claims elsewhere are not a current build certificate.
 
 ### Abilities & Saves Quick Rolls
 

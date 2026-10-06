@@ -1,6 +1,6 @@
 # Feature Evidence Audit
 
-Checkpoint: 4.20.3 source/host audit, including retained 4.19.1 corrections
+Checkpoint: 4.20.1 source/host audit, including retained 4.19.1 corrections
 Date: 2026-10-06 UTC
 
 This matrix records current-source evidence for the retained feature history from 4.19 onward. Historical changelog bullets are not treated as proof by themselves; each row points to present implementation and/or regression coverage.
@@ -41,7 +41,7 @@ This matrix records current-source evidence for the retained feature history fro
 
 The 2026-10-04 run validates `dnd_app_core.c` under each actual Hub/Combat/Grants build mode; it does not use the retired wrapper/`.inc` implementation. `tests/host/test_lifetimes.c` reproduces real input, first-use, profile, Catalog, Favorites, Feat handoff, Settings and editor transitions. It also injects optional allocation failures and measures draw calls for storage/allocation work. The common layout is regenerated at 3,416 B. See [INTEGRATION_AUDIT.md](INTEGRATION_AUDIT.md) for individual corrections and current target/device limits.
 
-## 4.20.3 evidence
+## 4.20.1 evidence
 
 The current retained `tests/host/validation_output.txt` passes eleven actual FAP entry lifecycles, five real dlopen/dlclose FALs and twenty ASan/UBSan executables. Plugin tests cover descriptor/load/size/version failures, allocation cleanup, callback-safe unload, Journal character refresh and failed-refresh save protection, Monster first-use custom data and exact parent return, and Combat resource preservation when its resolver is missing. Inventory tests cover Hold OK, cancel/rollback, immediate per-item Container moves and draw counters for the changed mover/detail paths. Handoff tests run the DND implementation and real loading FAL through a zero-view gap, destination readiness, native event models, timeout, bounded-cache recovery and simultaneous animation/deletion. Two independently mapped loading modules exercise local/handoff overlap while sharing a single bitmap. `test_splash_images.c` covers all fifteen artwork choices, rejection sampling, exact file reads, last-owner cleanup, survival after allocating-module unload, allocation faults and original/text fallback; captures show no reads or allocations during draws. The obsolete firmware-overlay test inputs are removed.
 

@@ -1,4 +1,4 @@
-Historical 4.19.1 integration audit, retained for the fixes carried into 4.20.3. Current FAL/loading evidence and target limits are in [RELEASE_AUDIT_STATUS.md](RELEASE_AUDIT_STATUS.md) and [FAL_INTEGRATION.md](FAL_INTEGRATION.md).
+Historical 4.19.1 integration audit, retained for the fixes carried into 4.20.1. Current FAL/loading evidence and target limits are in [RELEASE_AUDIT_STATUS.md](RELEASE_AUDIT_STATUS.md) and [FAL_INTEGRATION.md](FAL_INTEGRATION.md).
 
 # Dungeons & Dolphins 4.19.1 integration audit
 

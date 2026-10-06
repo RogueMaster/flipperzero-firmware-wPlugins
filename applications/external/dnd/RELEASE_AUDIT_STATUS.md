@@ -1,24 +1,73 @@
-# Dungeons & Dolphins 4.20.3 audit status
+# Dungeons & Dolphins 4.20.2 audit status
 
-Audit date: 2026-10-06 UTC. All sixteen manifests use release label `4.20.3` and numeric `(4, 20)` metadata: eleven FAPs and five versioned, non-embedded FALs. All authorized source changes are implemented within the DND app family. Current ARM and device acceptance remain outstanding.
+Audit date: 2026-10-06 UTC. All sixteen manifests use release label `4.20.2` and
+numeric `(4, 20)` metadata: eleven FAPs and five non-embedded FALs. Descriptor IDs
+and plugin API versions are unchanged. This release is part of the cumulative
+Game Menu loading and DND collection source delta.
 
-## Completed
+## Current changes
 
-- Preserved the corrected editor-release prototypes and actual-mode Hub/Combat/Grants ownership from 4.19.1.
-- Retained Character Sheet, Journal, Monster Turn and spell damage FALs with descriptor validation, borrowed-data ownership, explicit return/loading contracts and callback-safe cleanup.
-- Added unbiased random selection across fifteen preserved 128×64 images: the original plus fourteen supplied images, including Monk, Sorcerer, Warlock and Barbarian. Raw assets are packed as nonresident file data in both Hub and loading FAL. One shared heap object contains a 1,024-byte bitmap and four bytes of metadata; overlapping owners reuse it without another read or image allocation.
-- Verified all choices, exact PNG/bitmap hashes, draw paths without I/O/allocation, partial/corrupt/missing file fallbacks, allocation failures and shared lifetime across real FAL unloads. Native failed File opens are closed before retry. The supplied asset extractor streams files to SD with a 512-byte copy buffer. First extraction/update still writes all bundled files to SD.
-- Retained Hold OK Bag Mover and immediate per-item Container moves, preserving fields and transactional rollback.
-- Replaced the firmware-dependent loading implementation with DND-owned handoff records and loading API version 2. Public direct drawing keeps the splash/hourglass across outgoing teardown; the incoming app releases it after its view is ready and its destination path matches. No firmware overlay, private GUI API, service or SDK implementation change is included or required.
-- Native failure/cancellation/incoming-exit events and a ten-second timeout restore drawing. One inactive loading cache can remain until the next DND readiness/handoff safely unsubscribes, drains the timer and unmaps it. Callbacks never unload their own executing module.
-- Added public synchronous Loader barriers before DND app-side module map/free, separating those operations from Loader startup/unload work without SDK patches.
-- Passed strict `-Wall -Wextra -Werror -Wstrict-prototypes -Wredundant-decls` compilation under all sixteen actual manifest source sets at `-O1` and `-Os`, eleven entry-point lifecycle smokes, five shared-module links and twenty ASan/UBSan regression executables.
-- Verified zero-view handoffs, wrong-destination readiness, missing/version/allocation fallback, failure-cache recovery, overlapping independent loading modules sharing one bitmap and threaded animation cleanup. Native animation free deletes and flushes the timer queue before callback contexts/views are released.
-- Passed the supplied native manifest parser, public direct-draw/Loader/pubsub/timer source contracts and normalized host FAL import audit against API **88.7**, including native print wrappers. ARM import/relocation checking remains a separate gate.
-- Regenerated 32-bit layout and comparable host size/frame evidence. Common Hub state remains 3,416 B; Bestiary is 1,536 B; lazy Combat runtime is 256 B. Handoff context/transfer proxies are 36 B/148 B, local loading is 12 B and Hub splash is 24 B. The one shared bitmap object is 1,028 B. These exclude native framework/ELF allocations. Host figures are not ARM residency or peak-memory measurements.
+- Spellbook attaches an immutable loading view before deferred collection scanning
+  and sorting. Its existing eight-record page cache and offset indexes remain.
+- Every sort invocation validates the current file. Ordered data takes one scan
+  without rewriting. A single displaced record uses linear reinsertion; bulk
+  disorder uses 24-record runs and bounded merge passes over temporary indexes.
+- Name/level edits and additions request reordering before returning to the list or
+  leaving the app. Successful reordering invalidates pagination/search offsets.
+  Failed saves retain the in-memory edit; failed sort/read operations block editing
+  until recovery/reload, with a safe exit when no unsaved edit remains.
+- Spellbook consumers recover `.sort.bak` before reading or recreating a collection.
+  Other apps use the small recovery helper without linking the full sorter.
+- Inventory moves sync both private staged bag files before publishing a checked
+  per-profile transaction journal. Recovery completes both files and removes the
+  journal last. Shared storage and Journal guard collection access and profile
+  lifecycle operations. Pending/recovered transfers discard stale UI selections.
+- Eight shared-storage FAP source sets and the Journal FAL link the transaction
+  helper. Spellbook alone links the full sorter. The native manifest parser accepts
+  all sixteen source sets.
+
+## Current host verification
+
+Run these commands from the firmware root:
+
+```sh
+ASAN_OPTIONS=detect_leaks=0 python3 scripts/tests/dnd_inventory_transaction/run.py
+ASAN_OPTIONS=detect_leaks=0 python3 scripts/tests/dnd_inventory_ui/run.py
+ASAN_OPTIONS=detect_leaks=0 python3 scripts/tests/dnd_spellbook_sort/run.py
+python3 applications/external/dnd/tests/spellbook_sort/run.py
+```
+
+| Gate | Current result |
+| --- | --- |
+| Actual transaction helper with ASan/UBSan | 607 invariants passed, including reset/failure boundaries, journal truncation/corruption and FAT path aliases |
+| Extracted Inventory UI helpers | Both move callers handle all four results; stale-index preflight, failed reload, pending input and profile-zero startup cases passed |
+| Actual Spellbook sorter with ASan/UBSan | 444 byte-preservation checks passed; 768 records used five source scans and five merge passes; host workspace 3,000 B |
+| Sort fault injection | 121 reset boundaries, 121 mutation failures, 179 read failures, ten File allocation failures and workspace allocation failure passed |
+| Actual sorter with POSIX adapter and independent bounded oracle | 145 cases / 130 fault cases passed; 100, 300 and 1,000 records each used five source scans and at most four File handles |
+| Full shared-storage translation unit | Recovered indexed spell paging/append, paired item/container movement, corrupt-journal write/delete guards and pre-write aliases passed |
+| Extracted Spellbook UI helpers | Cross-page search lifetime, index invalidation, failed save/sort/read, retry/safe exit and deferred startup ordering passed |
+| Native manifest parser | All sixteen DND manifests accepted; eleven FAPs and five FALs at release 4.20.2 |
+
+C tests use host Storage/GUI stubs and warnings treated as errors. Reset injection
+occurs between completed storage API operations; it does not emulate torn FAT
+sectors, SD-controller caching, GUI scheduling or the ARM ABI. Explicit ownership
+counters supplement ASan/UBSan because LeakSanitizer is unavailable here.
+
+The 4.20.1 memory, complete-suite compilation and loading/handoff reports retained
+in this folder are historical. Their whole-suite results have not been recertified
+with the new helpers and UI changes. See the current combined report at
+[`documentation/cumulative_loading_validation.json`](../../../documentation/cumulative_loading_validation.json).
 
 ## Installation and remaining checks
 
-Build and install the eleven FAPs plus all eight FAL destinations in [FAL_INTEGRATION.md](FAL_INTEGRATION.md). Install the version-2 loading FAL at `/ext/apps_data/dndolphins/plugins/dnd_loading.fal` together with the matching FAPs. Source changes belong only under `applications/external/dnd/`; no firmware flash is required by this release.
+Build the matching firmware and SD resources for the cumulative Game Menu changes.
+Rebuild `game_menu.fal` and CFW Settings for the shared discovery-sort change. Build
+and install all eleven matching DND FAPs and the eight FAL destinations listed in
+[FAL_INTEGRATION.md](FAL_INTEGRATION.md). Loading API version 2 still belongs at
+`/ext/apps_data/dndolphins/plugins/dnd_loading.fal`.
 
-No current ARM compiler/complete matching SDK or connected Flipper is available here. Current ARM links/relocations, rendered startup/handoff timing, held-input routing, heap/stack high-water and device storage/power-loss behavior remain unverified. Loading before DND app entry remains controlled by stock firmware. The retained SDK logs are historical. Use [tests/host/VALIDATION.md](tests/host/VALIDATION.md) and [DEVICE_TEST_MATRIX.md](DEVICE_TEST_MATRIX.md) to distinguish passing source/host gates from required device acceptance. Source ZIPs contain no `dist/`, FAP/FAL binaries, firmware overlay or firmware image.
+No complete ARM toolchain/build or connected Flipper was available for this delta.
+Native links/relocations, actual FAL descriptor objects, flash headroom, startup
+timing, GUI scheduling, heap/stack high-water and real reset recovery remain device
+acceptance gates. Use [DEVICE_TEST_MATRIX.md](DEVICE_TEST_MATRIX.md). The source
+delta contains no newly compiled FAP/FAL binaries or firmware image.

@@ -52,7 +52,7 @@ The fixed app state has also been reduced rather than merely reorganized. The pr
 
 ## FAP list
 
-The 4.20.3 suite contains **eleven external FAPs** plus **five non-embedded FALs**:
+The 4.20.1 suite contains **eleven external FAPs** plus **five non-embedded FALs**:
 
 1. DNDolphins
 2. DNDCharacter Sheet

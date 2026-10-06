@@ -1,12 +1,14 @@
-# Memory and performance audit — 4.20.3
+# Historical memory and performance audit — 4.20.1
+
+**4.20.2 note:** The measurements below were supplied with the base source and were not reproduced for this delta. They do not include the new sorting/transaction helpers or current UI fields. Use [RELEASE_AUDIT_STATUS.md](RELEASE_AUDIT_STATUS.md) for current evidence; ARM size, peak heap and stack require a matching native build and device measurements.
 
 The loading pool now has fifteen images, but one loading sequence keeps only one selected 1,024-byte bitmap in RAM. A shared heap record avoids duplicate buffers when Hub startup and separately mapped local/handoff loading FAL instances overlap. This adds one 1,028-byte project image object plus native allocator/record overhead. The prior feature FAL ownership and Inventory behavior remain in place. Device peak heap, ARM size and loading latency have not been measured.
 
 ## Comparable host code and constants
 
-Both 4.20.2 and 4.20.3 were compiled with GCC 13.3.0, `-Os -fPIC`, entry-rooted section GC and the same current host shim. Totals sum `.text`, `.rodata` and `.data.rel.ro`. FAP totals include common shim code. FAL totals contain their own source, with a zero-data placeholder only for the old 4.20.2 generated splash icon. That placeholder does not measure native compressed graphics residency. Current raw file assets are excluded from resident section totals. These x86_64 figures are code-ownership proxies, not native FAP/FAL sizes.
+Both 4.20.1 checkpoints, before and after randomized artwork, were compiled with GCC 13.3.0, `-Os -fPIC`, entry-rooted section GC and the same current host shim. Totals sum `.text`, `.rodata` and `.data.rel.ro`. FAP totals include common shim code. FAL totals contain their own source, with a zero-data placeholder only for the earlier 4.20.1 generated splash icon. That placeholder does not measure native compressed graphics residency. Current raw file assets are excluded from resident section totals. These x86_64 figures are code-ownership proxies, not native FAP/FAL sizes.
 
-| Target | Type | 4.20.2 bytes | 4.20.3 bytes | Change |
+| Target | Type | 4.20.1 before artwork, bytes | 4.20.1 after artwork, bytes | Change |
 |---|---|---:|---:|---:|
 | `dndolphins` | FAP | 137,266 | 138,706 | +1,440 |
 | `dndcharactersheet` | FAP | 30,490 | 30,490 | +0 |
@@ -25,7 +27,7 @@ Both 4.20.2 and 4.20.3 were compiled with GCC 13.3.0, `-Os -fPIC`, entry-rooted 
 | `dnd_spell_damage` | FAL | 9,293 | 9,293 | +0 |
 | `dnd_loading` | FAL | 2,070 | 3,574 | +1,504 |
 
-The Hub adds 1,440 B and the loading FAL adds 1,504 B of host code/constants for selection, file reads and shared ownership. The other ten FAPs and four feature FALs are unchanged in this fresh comparison. Earlier feature conversion figures remain in `MEMORY_AUDIT_4.20.2.md`; its old totals use an earlier shim and should not be compared directly with these new totals.
+The Hub adds 1,440 B and the loading FAL adds 1,504 B of host code/constants for selection, file reads and shared ownership. The other ten FAPs and four feature FALs are unchanged in this fresh comparison. Earlier feature-conversion totals used a different host shim and should not be compared directly with this artwork checkpoint.
 
 ## Bitmap storage and lifetime
 
@@ -100,4 +102,4 @@ The loading FAL's largest surviving host frame increases from 32 to 192 B for th
 - Handoff retains a mapped loading FAL, the 36-byte context and 148-byte transfer plus one shared image and native framework objects. An independently mapped local loading module can briefly overlap; its code residency is separate, but its bitmap is shared. Loader barriers separate app-side map/free from native startup/unload work.
 - Measure first/repeat SD extraction and selected-file read time, contiguous/peak heap, cumulative stack, visible desktop/blank frames, held inputs and all missing/invalid/OOM paths on the intended firmware. Twenty host regressions and source-contract checks do not replace these device gates.
 
-Reproduce current sizes with `python3 tests/host/measure_host.py`. For the comparison use that script with `--source-root /path/to/4.20.2 --output-root /absolute/comparison/path`. Current evidence is in `tests/host/host_fap_fal_sizes.json`, `baseline_4202/host_fap_fal_sizes.json`, `stack_frames_host.json` and `layout32.json`. Historical audits are preserved as `MEMORY_AUDIT_4.20.2.md` and `MEMORY_AUDIT_4.19.1.md`.
+The earlier audit referenced `tests/host/measure_host.py` and host-size/frame/layout reports from the two 4.20.1 checkpoints. Those historical tools and reports are not included in this supplied firmware tree. Current reproducible checks and native-build limits are recorded in [RELEASE_AUDIT_STATUS.md](RELEASE_AUDIT_STATUS.md).
