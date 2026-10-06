@@ -426,7 +426,6 @@ static char __attribute__((unused)) music_visit_message2[] =
     "0000111000001000110111100101101000101001000001110000100010000000011111111000000100000011000000000000000000000000000000000000000000000000000000000000000000001001";
 
 
-
 static void tama_set_byte(char* packet, size_t byte_number, uint8_t value) {
     if(byte_number < 1 || byte_number > 20) return;
 
@@ -487,22 +486,8 @@ typedef enum {
 } TamaGameResult;
 
 typedef enum {
-    TamaGameBall = 0,
-    TamaGameUnknown = 1,
-    TamaGameBalloon = 2,
-    TamaGameRope = 3,
-    TamaGameTrumpet = 4,
-    TamaGameBuildingBlock = 5,
-    TamaGameRCCar = 6,
     TamaGamePoints = 7,
 } TamaGame;
-
-typedef enum {
-    TamaPositionLeft = 0,
-    TamaPositionMiddle = 1,
-    TamaPositionRight = 2,
-    TamaPositionRandom = 3,
-} TamaPosition;
 
 
 /* ---------- Gift test: Cone ---------- */
@@ -626,7 +611,6 @@ static bool tama_game(
     const char* name,
     TamaGame game,
     uint8_t amount,
-    TamaPosition position,
     TamaGameResult result) {
 
     unsigned char response2[160];
@@ -657,26 +641,8 @@ static bool tama_game(
     tama_set_byte(message1, 18, (uint8_t)game);
     tama_set_byte(message3, 18, (uint8_t)game);
 
-    if(game == TamaGamePoints) {
-        /* Byte 17 = Gotchi Points wager */
-        tama_set_byte(message3, 17, amount);
-    } else if(game == TamaGameBalloon) {
-        /*
-         * Balloon Byte 19:
-         * 0 = left
-         * 1 = middle
-         * 2 = right
-         */
-        uint8_t selected_position;
-
-        if(position == TamaPositionRandom) {
-            selected_position = furi_hal_random_get() % 3;
-        } else {
-            selected_position = (uint8_t)position;
-        }
-
-        tama_set_byte(message3, 19, selected_position);
-    }
+    /* Byte 17 = Gotchi Points wager */
+    tama_set_byte(message3, 17, amount);
 
     /*
      * Points game result:
@@ -791,7 +757,6 @@ static bool music_visit(
 }
 
 
-
 typedef enum {
     TamaActionNone,
     TamaActionSelect,
@@ -813,7 +778,6 @@ typedef struct {
     TamaProfile profile;
     TamaGame game;
     TamaGameResult game_result;
-    TamaPosition game_position;
     uint8_t game_amount;
 
     uint8_t gift_id;
@@ -1017,7 +981,6 @@ static TamaAction tama_choose_gender(
 
 
 /* ---------- Game result menu ---------- */
-
 
 
 /* =========================================================
@@ -1408,7 +1371,6 @@ static TamaAction tama_choose_game(
 }
 
 
-
 static void tama_game_amount_selected(void* context, uint32_t index) {
     TamaMenuState* state = context;
 
@@ -1416,48 +1378,6 @@ static void tama_game_amount_selected(void* context, uint32_t index) {
     state->action = TamaActionSelect;
 
     api_lock_unlock(state->lock);
-}
-
-
-static void tama_position_selected(void* context, uint32_t index) {
-    TamaMenuState* state = context;
-
-    state->game_position = (TamaPosition)index;
-    state->action = TamaActionSelect;
-
-    api_lock_unlock(state->lock);
-}
-
-static TamaAction tama_choose_position(
-    TamaMenuState* state,
-    ViewHolder* view_holder) {
-
-    Submenu* menu = submenu_alloc();
-
-    submenu_set_header(menu, "Choose position");
-
-    submenu_add_item(
-        menu, "Left", TamaPositionLeft,
-        tama_position_selected, state);
-
-    submenu_add_item(
-        menu, "Middle", TamaPositionMiddle,
-        tama_position_selected, state);
-
-    submenu_add_item(
-        menu, "Right", TamaPositionRight,
-        tama_position_selected, state);
-
-    submenu_add_item(
-        menu, "Random", TamaPositionRandom,
-        tama_position_selected, state);
-
-    TamaAction action =
-        tama_wait(state, view_holder, submenu_get_view(menu));
-
-    submenu_free(menu);
-
-    return action;
 }
 
 
@@ -1525,7 +1445,6 @@ static TamaAction tama_choose_game_result(
 
     return action;
 }
-
 
 
 /* ---------- Name editor ---------- */
@@ -1760,7 +1679,6 @@ static void tama_run_connection(
                 state->profile.name,
                 state->game,
                 state->game_amount,
-                state->game_position,
                 state->game_result);
     }
 
@@ -1805,7 +1723,6 @@ int32_t tama_connect(void* arg) {
         .mode = TamaModeVisit,
         .game = TamaGamePoints,
         .game_result = TamaGameRandom,
-        .game_position = TamaPositionMiddle,
         .game_amount = 30,
         .gift_id = 36,
     };
@@ -1968,28 +1885,6 @@ int32_t tama_connect(void* arg) {
                 continue;
             }
 
-            /*
-             * Points is currently the first fully implemented game.
-             * Other games are listed now and will get their own
-             * Byte 18/19 handling next.
-             */
-            if(state.game == TamaGameBalloon) {
-                action =
-                    tama_choose_position(
-                        &state,
-                        view_holder);
-
-                if(action == TamaActionBack) {
-                    continue;
-                }
-
-                tama_run_connection(&state, view_holder);
-                continue;
-            }
-
-            if(state.game != TamaGamePoints) {
-                continue;
-            }
 
             action =
                 tama_choose_game_amount(
