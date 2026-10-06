@@ -84,7 +84,6 @@ typedef enum {
 typedef struct {
     char name[POD_NAME_MAX + 1];
     uint8_t dolphin_level;
-    uint32_t beacons_sent;
     uint16_t frame;
     uint8_t in_range_count;
     bool radio_ok;
@@ -463,13 +462,19 @@ static void pod_walk_draw(Canvas* canvas, void* model) {
     canvas_draw_str(canvas, 4, 24, m->name);
     snprintf(line, sizeof(line), "Dolphin Lv %u", m->dolphin_level);
     canvas_draw_str(canvas, 4, 35, line);
+    // Always show who is around, including nobody: the point of this screen is
+    // knowing whether it is worth pressing OK.
     if(m->in_range_count > 0) {
         snprintf(line, sizeof(line), "In range: %u", m->in_range_count);
     } else {
-        snprintf(line, sizeof(line), "Beacons %lu", (unsigned long)m->beacons_sent);
+        snprintf(line, sizeof(line), "Nobody nearby");
     }
     canvas_draw_str(canvas, 4, 46, line);
-    canvas_draw_str(canvas, 4, 62, "OK: who's in range");
+    if(m->in_range_count > 0) {
+        canvas_draw_str(canvas, 4, 62, "OK: who's in range");
+    } else {
+        canvas_draw_str(canvas, 4, 62, "Listening...");
+    }
 }
 
 static bool pod_walk_input(InputEvent* event, void* context) {
@@ -511,7 +516,6 @@ static void pod_walk_enter(void* context) {
             strncpy(m->name, app->profile.name, sizeof(m->name) - 1);
             m->name[sizeof(m->name) - 1] = '\0';
             m->dolphin_level = level;
-            m->beacons_sent = 0;
             m->frame = 0;
             m->in_range_count = 0;
             m->radio_ok = ok;
@@ -533,10 +537,7 @@ static void pod_beacon_timer_cb(void* context) {
     Pod* app = context;
     uint8_t level = 0;
     with_view_model(app->walk_view, PodWalkModel * m, { level = m->dolphin_level; }, false);
-    bool sent = pod_radio_beacon(app->radio, &app->profile, level);
-    if(sent) {
-        with_view_model(app->walk_view, PodWalkModel * m, { m->beacons_sent++; }, false);
-    }
+    pod_radio_beacon(app->radio, &app->profile, level);
 }
 
 static void pod_anim_timer_cb(void* context) {
@@ -677,13 +678,20 @@ static void pod_battle_draw(Canvas* canvas, void* model) {
         break;
     case BPhaseResult: {
         const char* r = (m->result > 0) ? "YOU WIN!" : (m->result < 0) ? "YOU LOSE" : "DRAW";
+        canvas_set_font(canvas, FontPrimary);
         if(m->result > 0) {
-            // celebratory expanding rings (behind the text)
+            // Celebratory expanding rings. The canvas is 1-bit, so drawing the
+            // text afterwards does not hide them: clear a band behind the words
+            // first, leaving the rings visible around them.
             int rr = (m->anim % 14);
             canvas_draw_circle(canvas, 64, 23, rr + 2);
             canvas_draw_circle(canvas, 64, 23, ((rr + 7) % 14) + 2);
+
+            int w = canvas_string_width(canvas, r) + 8;
+            canvas_set_color(canvas, ColorWhite);
+            canvas_draw_box(canvas, 64 - w / 2, 16, w, 14);
+            canvas_set_color(canvas, ColorBlack);
         }
-        canvas_set_font(canvas, FontPrimary);
         canvas_draw_str_aligned(canvas, 64, 23, AlignCenter, AlignCenter, r);
         canvas_set_font(canvas, FontSecondary);
         snprintf(
