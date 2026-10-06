@@ -1396,30 +1396,6 @@ static TamaAction tama_choose_game(
     submenu_set_header(menu, "Choose game");
 
     submenu_add_item(
-        menu, "Ball", TamaGameBall,
-        tama_game_selected, state);
-
-    submenu_add_item(
-        menu, "Balloon", TamaGameBalloon,
-        tama_game_selected, state);
-
-    submenu_add_item(
-        menu, "Rope", TamaGameRope,
-        tama_game_selected, state);
-
-    submenu_add_item(
-        menu, "Trumpet", TamaGameTrumpet,
-        tama_game_selected, state);
-
-    submenu_add_item(
-        menu, "Bldg Block", TamaGameBuildingBlock,
-        tama_game_selected, state);
-
-    submenu_add_item(
-        menu, "RC Car", TamaGameRCCar,
-        tama_game_selected, state);
-
-    submenu_add_item(
         menu, "Points", TamaGamePoints,
         tama_game_selected, state);
 
@@ -1731,12 +1707,19 @@ static void tama_run_connection(
             "Connect > Visit\n"
             "Stand by\n\n"
             "Starting...");
+    } else if(state->mode == TamaModeGift) {
+        text_box_set_text(
+            text_box,
+            "TamaConnect\n\n"
+            "Connect > Present\n"
+            "Press B at STAND BY\n\n"
+            "Waiting...");
     } else {
         text_box_set_text(
             text_box,
             "TamaConnect\n\n"
             "Connect > Game\n"
-            "Stand by\n\n"
+            "Points\n\n"
             "Starting...");
     }
 
