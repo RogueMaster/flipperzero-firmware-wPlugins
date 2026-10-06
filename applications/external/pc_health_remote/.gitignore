@@ -1,0 +1,18 @@
+# Rust backend
+backend/target/
+/target/
+
+# Flipper app build output and tooling
+flipper/dist/
+dist/
+.ufbt/
+flipper/.ufbt/
+.vscode/
+flipper/tests/test_core
+compile_commands.json
+
+# Logs and misc
+*.log
+*.old.txt
+.DS_Store
+Thumbs.db

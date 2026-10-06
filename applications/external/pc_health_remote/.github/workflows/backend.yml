@@ -1,0 +1,104 @@
+name: backend
+
+on:
+  push:
+    branches: ["**"]
+    tags: ["v*"]
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend.yml"
+  pull_request:
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend.yml"
+
+concurrency:
+  group: backend-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: build + test (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: windows-x86_64
+            os: windows-latest
+            bin: pc-health-remote.exe
+            asset: pc-health-remote-windows-x86_64.exe
+          - name: linux-x86_64
+            os: ubuntu-latest
+            bin: pc-health-remote
+            asset: pc-health-remote-linux-x86_64
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Linux build dependencies
+        if: runner.os == 'Linux'
+        # btleplug -> libdbus, serialport -> libudev. The tray (tao/tray-icon) is Windows-only,
+        # so no GTK packages are needed.
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libdbus-1-dev libudev-dev pkg-config
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: backend
+
+      - name: Test
+        run: cargo test --locked
+
+      - name: Clippy (deny warnings)
+        if: runner.os == 'Linux'
+        run: cargo clippy --locked --all-targets -- -D warnings
+
+      - name: Clippy (report only)
+        if: runner.os == 'Windows'
+        continue-on-error: true
+        run: cargo clippy --locked --all-targets
+
+      - name: Build release
+        run: cargo build --release --locked
+
+      - name: Stage binary
+        shell: bash
+        run: |
+          mkdir -p dist
+          cp "target/release/${{ matrix.bin }}" "dist/${{ matrix.asset }}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset }}
+          path: backend/dist/${{ matrix.asset }}
+          if-no-files-found: error
+
+  release:
+    name: publish release assets
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: assets
+          merge-multiple: true
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            assets/pc-health-remote-windows-x86_64.exe
+            assets/pc-health-remote-linux-x86_64

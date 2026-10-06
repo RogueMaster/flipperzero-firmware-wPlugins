@@ -1,0 +1,61 @@
+[package]
+name = "pc-health-remote"
+version = "1.0.0"
+edition = "2021"
+rust-version = "1.90"
+description = "PC backend for the PC Health Remote Flipper Zero app (BLE + USB telemetry)"
+license = "MIT"
+publish = false
+
+[[bin]]
+name = "pc-health-remote"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1"
+clap = { version = "4", features = ["derive"] }
+ctrlc = "3"
+log = { version = "0.4", features = ["std"] }
+nvml-wrapper = "0.13"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serialport = "4"
+sysinfo = { version = "0.39", default-features = false, features = ["system", "disk"] }
+toml = "1"
+
+[target.'cfg(windows)'.dependencies]
+tao = "0.37"
+tray-icon = "0.26"
+wmi = "0.18"
+windows-future = "0.3"
+windows = { version = "0.62", features = [
+    "Devices_Bluetooth",
+    "Devices_Bluetooth_Advertisement",
+    "Devices_Bluetooth_GenericAttributeProfile",
+    "Devices_Enumeration",
+    "Foundation",
+    "Foundation_Collections",
+    "Storage_Streams",
+    "Win32_Foundation",
+    "Win32_Security",
+    "Win32_System_Com",
+    "Win32_System_Console",
+    "Win32_System_Power",
+    "Win32_System_Threading",
+] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+sysinfo = { version = "0.39", default-features = false, features = ["component"] }
+btleplug = "0.13"
+futures = "0.3"
+uuid = "1"
+tokio = { version = "1", features = ["rt", "time"] }
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(phr_check)'] }
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+strip = true
