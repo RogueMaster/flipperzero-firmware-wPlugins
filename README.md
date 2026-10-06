@@ -140,13 +140,13 @@ name edges and the duplicate window.
 
 ## Status & notes
 
-- **Two-device battles have not been verified over the air.** The handshake is
-  implemented, the wire format is tested against a second peer on a host, and
-  the full challenge → accept → countdown → tap race → result sequence has been
-  run on real hardware by feeding simulated messages through the actual encoder,
-  parser and state machine. What remains unproven is the radio link itself:
-  whether two Flippers reach each other reliably, and how the timeouts behave at
-  real range. That needs a second unit.
+- **Encounters and battles work between two Flippers running Pod.** The wire
+  format is additionally covered by host tests that run two peers against each
+  other over a lossy channel, and the challenge → accept → countdown → tap race
+  → result sequence has been exercised on hardware.
+- Range depends on surroundings: 433.92 MHz carries well in the open, less well
+  through walls and crowds. Both Flippers need Walk Mode open to find each
+  other.
 - Use **Practice** to play the tap race with a single Flipper.
 
 ---
