@@ -1,10 +1,13 @@
 # Device test matrix
 
-## 4.20.2 FAL and loading acceptance — outstanding on hardware
+## 4.20.3 FAL and loading acceptance — outstanding on hardware
 
 - [ ] Repeat startup and FAP/FAL transitions while the hourglass animates, including cancellation/failure/timeout; verify callbacks finish before their view/context or module is freed. Native timer scheduling still requires hardware acceptance.
 
 - [ ] Build with the intended stock RogueMaster API/toolchain: eleven FAPs and five FALs from `applications/external/dnd/` only. Verify ARM-specific imports/relocations, including the public direct-draw and Loader APIs. Install all eight destinations in FAL_INTEGRATION.md; loading API version 2 belongs under DNDolphins.
+- [ ] Exercise repeated loading sequences across all fifteen artwork choices, including Monk, Sorcerer, Warlock and Barbarian. Check pixel polarity, orientation and the animated hourglass overlay. Consecutive repeats are valid; overlapping startup/local/handoff owners must retain the same selection. Measure one shared bitmap object (1,028 B plus native allocator/record overhead), rather than fifteen resident images.
+- [ ] Start with empty `/ext/apps_assets/dndolphins/` and `/ext/apps_assets/dnd_loading/`: test Hub first use and a direct companion handoff before Hub has ever run. Verify both native file-asset extractions and cached repeat loads; measure SD extraction time separately from the selected-image read.
+- [ ] Hide/corrupt the selected bitmap in both asset copies, including short and oversized files. Verify fallback to the original in the same buffer; when original is unavailable, verify readable Loading text plus hourglass and no stale partial image. Restore assets and retry. Keep the failure cache active during a subsequent launch and confirm last-owner cleanup.
 - [ ] Launch Hub from Desktop with slow SD: after app entry, the DND splash plus animated hourglass must remain until Home is active, including the two-second introduction. Return/deep-link startup has no two-second minimum. Loading before app entry remains the stock firmware screen. Record a video to inspect for a desktop or blank frame.
 - [ ] Repeat all suite handoffs: Hub to each external companion and back, Combat → Initiative → Combat, Bestiary → Initiative, and Journal → Adventure continuation. Verify the splash/hourglass covers the entire old-app teardown/new-app map and disappears when the target's fullscreen view is active.
 - [ ] Hold OK/Back/direction through a handoff, release during loading, and confirm no freeze, wrong-target release, accidental action or callback into an unloaded FAL. Verify public Loader barriers finish startup/unload work before DND module map/free. Exercise standalone Sheet/Journal startup with separate local and handoff loading FAL images resident together. Measure GUI and Loader stack high-water; their supplied reservations remain 2 KiB.

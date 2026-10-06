@@ -1,5 +1,5 @@
 #include "dnd_loading_api.h"
-#include "dnd_loading_icons.h"
+#include "dnd_splash_image.h"
 #include <assets_icons.h>
 #include <flipper_application/flipper_application.h>
 #include <gui/icon_animation.h>
@@ -10,10 +10,12 @@
 typedef struct {
     View* view;
     IconAnimation* hourglass;
+    DndSplashImage* image;
 } DndLoading;
-static void dnd_loading_paint(Canvas* canvas, IconAnimation* hourglass) {
+static void
+    dnd_loading_paint(Canvas* canvas, IconAnimation* hourglass, const DndSplashImage* image) {
     canvas_clear(canvas);
-    canvas_draw_icon(canvas, 0, 0, &I_logo_128x64);
+    dnd_splash_image_draw(canvas, image);
     canvas_set_color(canvas, ColorWhite);
     canvas_draw_box(canvas, 100, 36, 28, 28);
     canvas_set_color(canvas, ColorBlack);
@@ -23,7 +25,7 @@ static void dnd_loading_paint(Canvas* canvas, IconAnimation* hourglass) {
 }
 static void dnd_loading_draw(Canvas* canvas, void* model) {
     DndLoading* loading = *(DndLoading**)model;
-    dnd_loading_paint(canvas, loading->hourglass);
+    dnd_loading_paint(canvas, loading->hourglass, loading->image);
 }
 static bool dnd_loading_input(InputEvent* event, void* context) {
     UNUSED(event);
@@ -48,6 +50,7 @@ static void dnd_loading_free(void* context) {
         icon_animation_free(loading->hourglass);
     }
     if(loading->view) view_free(loading->view);
+    dnd_splash_image_release(loading->image);
     free(loading);
 }
 static void* dnd_loading_alloc(void) {
@@ -61,6 +64,7 @@ static void* dnd_loading_alloc(void) {
     *model = loading;
     loading->hourglass = icon_animation_alloc(&A_Loading_24);
     if(!loading->hourglass) goto fail;
+    loading->image = dnd_splash_image_acquire(DND_SPLASH_IMAGE_FAL_ROOT);
     view_set_context(loading->view, loading);
     view_set_draw_callback(loading->view, dnd_loading_draw);
     view_set_input_callback(loading->view, dnd_loading_input);
@@ -81,6 +85,7 @@ typedef struct {
     Gui* gui;
     Canvas* canvas;
     IconAnimation* hourglass;
+    DndSplashImage* image;
     FuriMutex* mutex;
     FuriPubSub* events;
     FuriPubSubSubscription* subscription;
@@ -104,7 +109,7 @@ static void dnd_loading_handoff_update(IconAnimation* animation, void* context) 
         if(furi_get_tick() - handoff->started >= furi_ms_to_ticks(DND_HANDOFF_TIMEOUT_MS)) {
             dnd_loading_handoff_release(handoff);
         } else {
-            dnd_loading_paint(handoff->canvas, animation);
+            dnd_loading_paint(handoff->canvas, animation, handoff->image);
             canvas_commit(handoff->canvas);
         }
     }
@@ -139,6 +144,7 @@ static void dnd_loading_handoff_end(void* context) {
         furi_check(furi_mutex_release(handoff->mutex) == FuriStatusOk);
         furi_mutex_free(handoff->mutex);
     }
+    dnd_splash_image_release(handoff->image);
     if(handoff->gui) furi_record_close(RECORD_GUI);
     free(handoff);
 }
@@ -151,6 +157,7 @@ static void* dnd_loading_handoff_begin(Loader* loader) {
     if(!handoff->mutex) goto fail;
     handoff->hourglass = icon_animation_alloc(&A_Loading_24);
     if(!handoff->hourglass) goto fail;
+    handoff->image = dnd_splash_image_acquire(DND_SPLASH_IMAGE_FAL_ROOT);
     handoff->events = loader_get_pubsub(loader);
     handoff->subscription =
         furi_pubsub_subscribe(handoff->events, dnd_loading_handoff_event, handoff);
@@ -161,7 +168,7 @@ static void* dnd_loading_handoff_begin(Loader* loader) {
     handoff->canvas = gui_direct_draw_acquire(handoff->gui);
     handoff->started = furi_get_tick();
     handoff->active = true;
-    dnd_loading_paint(handoff->canvas, handoff->hourglass);
+    dnd_loading_paint(handoff->canvas, handoff->hourglass, handoff->image);
     canvas_commit(handoff->canvas);
     furi_check(furi_mutex_release(handoff->mutex) == FuriStatusOk);
     icon_animation_start(handoff->hourglass);

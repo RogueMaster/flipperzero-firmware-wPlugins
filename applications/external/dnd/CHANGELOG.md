@@ -1,5 +1,8 @@
-## 4.20.1 — 2026-10-05
+## 4.20.1 — 2026-10-06 UTC
 
+- Randomized startup, local loading and app-handoff artwork across fifteen choices: the existing splash plus all fourteen supplied images, including Monk, Sorcerer, Warlock and Barbarian. The existing animated hourglass remains over the selected image.
+- Replaced linked splash icons with raw 1,024-byte file assets. Hub and loading FAL each bundle all choices as nonresident `.fapassets` data; native preload streams them to SD. First extraction/update writes the whole bundle, but normal image acquisition reads only its selected file.
+- Added one shared, reference-counted bitmap across overlapping Hub and separately mapped loading FAL instances. Last-owner cleanup runs after callback/view teardown; the data survives the module that allocated it. Missing/corrupt image data retries the other SD copy and then the original in the same buffer, with text/hourglass fallback if no image can load.
 - Loading API version 2 lives at `/ext/apps_data/dndolphins/plugins/dnd_loading.fal`. Public direct drawing keeps splash/hourglass alive through outgoing teardown while the incoming app attaches its views. Readiness matches a copied destination FAP path, avoiding dependence on reusable thread IDs.
 - Cleanup runs from a DND app thread after unsubscribing and draining timer callbacks. Native load failure/cancellation/incoming exit and a ten-second guard restore drawing; one inactive cache is retained until the next DND readiness/handoff can safely unmap it.
 - Added Loader barriers before DND module map/free operations. Retained the four feature FALs, splash timer-lifetime fix, Hold OK Bag Mover and immediate per-item Container moves.

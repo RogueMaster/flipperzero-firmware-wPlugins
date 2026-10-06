@@ -1,0 +1,187 @@
+{
+  "format": "Raw row-major XBM, 128x64, 16 bytes per row, least-significant bit first, 1=black, no header.",
+  "choices": 15,
+  "resident_bitmap_bytes": 1024,
+  "images": [
+    {
+      "choice": 0,
+      "name": "original",
+      "source": "splash_sources/original_128x64.png",
+      "source_sha256": "5e5698c3c5d2352e89118740c69ecc647948897195e4e13475ecaec6db3b2a11",
+      "bitmap_bytes": 1024,
+      "bitmap_sha256": "d553d60fb65cc774ec4e2f50c8a23d0e8bf35a8d8a139d6796b5a24d27e3ad11",
+      "outputs": [
+        "character_assets/loading/original.bin",
+        "dnd_loading_assets/splashes/original.bin"
+      ]
+    },
+    {
+      "choice": 1,
+      "name": "gta",
+      "source": "splash_sources/dnd_gta_loading_128x64.png",
+      "source_sha256": "e30e9e50aa976e0b4a7c146344d261daabeb4e476eb9578c994166eb1f62bc01",
+      "bitmap_bytes": 1024,
+      "bitmap_sha256": "67642840971f04b1f682f584efdc058b0cb9b443562cdff04c124919cf1ef831",
+      "outputs": [
+        "character_assets/loading/gta.bin",
+        "dnd_loading_assets/splashes/gta.bin"
+      ]
+    },
+    {
+      "choice": 2,
+      "name": "gta_v2",
+      "source": "splash_sources/dnd_gta_loading_v2_128x64.png",
+      "source_sha256": "addaade74350976b3abbce15608aa358315f6f851532836541c89fe4880ee0dd",
+      "bitmap_bytes": 1024,
+      "bitmap_sha256": "4da5c43f7bdbe12cfd60f7716908640282b65ff120c22c059c5f812452526382",
+      "outputs": [
+        "character_assets/loading/gta_v2.bin",
+        "dnd_loading_assets/splashes/gta_v2.bin"
+      ]
+    },
+    {
+      "choice": 3,
+      "name": "rogue",
+      "source": "splash_sources/dnd_gta_loading_rogue_128x64.png",
+      "source_sha256": "3fccb01e1ed48a3a88d21bcdd99d98048cef788619cb86e287746da900b9079d",
+      "bitmap_bytes": 1024,
+      "bitmap_sha256": "05b267c5c476d16535be5fa4767102e9be6b7f631238800d5a7a0bd59fa5bf49",
+      "outputs": [
+        "character_assets/loading/rogue.bin",
+        "dnd_loading_assets/splashes/rogue.bin"
+      ]
+    },
+    {
+      "choice": 4,
+      "name": "wizard",
+      "source": "splash_sources/dnd_gta_loading_wizard_128x64.png",
+      "source_sha256": "06291d4b7a89ca30620accdb8ac27305d6171344efd5540d3a2d6fe859e6637f",
+      "bitmap_bytes": 1024,
+      "bitmap_sha256": "2a64cbfdb0629e57d93a99681280d4b6afccdd2528d4d2d51658bdf6fc60d4d7",
+      "outputs": [
+        "character_assets/loading/wizard.bin",
+        "dnd_loading_assets/splashes/wizard.bin"
+      ]
+    },
+    {
+      "choice": 5,
+      "name": "ranger",
+      "source": "splash_sources/dnd_gta_loading_ranger_128x64.png",
+      "source_sha256": "5dd2962f6730aa78a8ad5228f52bc3a77bb7fd01beba350f5241f366add0ff29",
+      "bitmap_bytes": 1024,
+      "bitmap_sha256": "79d2e6e48784182df162d9776974b6270599b1ad31ba6ca75737bd99a925cc36",
+      "outputs": [
+        "character_assets/loading/ranger.bin",
+        "dnd_loading_assets/splashes/ranger.bin"
+      ]
+    },
+    {
+      "choice": 6,
+      "name": "paladin",
+      "source": "splash_sources/dnd_gta_loading_paladin_128x64.png",
+      "source_sha256": "44fdc42e2b56ce821f7be5d5710bb0f66d659c4e0e03298bb1eca4193ae4993e",
+      "bitmap_bytes": 1024,
+      "bitmap_sha256": "4cf451a5cf322a27b3b44863bb117e3144c44ddfbd497539e1c51778caf73ef7",
+      "outputs": [
+        "character_assets/loading/paladin.bin",
+        "dnd_loading_assets/splashes/paladin.bin"
+      ]
+    },
+    {
+      "choice": 7,
+      "name": "cleric",
+      "source": "splash_sources/dnd_gta_loading_cleric_128x64.png",
+      "source_sha256": "0a6d1c44f353300318c971beb1d201ceeb6186079b89b541fe7b17473e8b0c30",
+      "bitmap_bytes": 1024,
+      "bitmap_sha256": "8fc958e86535a5e7463aafa457538f631726f9b4cea1f4c9cee1c8e9b8e454fb",
+      "outputs": [
+        "character_assets/loading/cleric.bin",
+        "dnd_loading_assets/splashes/cleric.bin"
+      ]
+    },
+    {
+      "choice": 8,
+      "name": "bard",
+      "source": "splash_sources/dnd_gta_loading_bard_128x64.png",
+      "source_sha256": "0f958eb9ae1c1ca70e5eb565bd42120d58803e8a58281152c5352259d2a352de",
+      "bitmap_bytes": 1024,
+      "bitmap_sha256": "0b5816b67b4b30b4cea44960fbe6a29220933bd47ee036fa3fcba0fe3d50028b",
+      "outputs": [
+        "character_assets/loading/bard.bin",
+        "dnd_loading_assets/splashes/bard.bin"
+      ]
+    },
+    {
+      "choice": 9,
+      "name": "artificer",
+      "source": "splash_sources/dnd_gta_loading_artificer_128x64.png",
+      "source_sha256": "0ed08e19c919acc89611c9a083a6b57d5796b80992f59050f16d9da750321b88",
+      "bitmap_bytes": 1024,
+      "bitmap_sha256": "d86e49eb93021ac7e13b630111fde6f0f8d9d494de4718d40f1e49c64c32819d",
+      "outputs": [
+        "character_assets/loading/artificer.bin",
+        "dnd_loading_assets/splashes/artificer.bin"
+      ]
+    },
+    {
+      "choice": 10,
+      "name": "druid",
+      "source": "splash_sources/dnd_gta_loading_druid_128x64.png",
+      "source_sha256": "38695e75b76fbd046475b7df10f0d76ab1ebf3b556e131815086adf1a53e2f25",
+      "bitmap_bytes": 1024,
+      "bitmap_sha256": "a5405ffe9966a342ecf5c8a658b60dab6d1e09458b9328d204c6777b72451832",
+      "outputs": [
+        "character_assets/loading/druid.bin",
+        "dnd_loading_assets/splashes/druid.bin"
+      ]
+    },
+    {
+      "choice": 11,
+      "name": "monk",
+      "source": "splash_sources/dnd_gta_loading_monk_128x64.png",
+      "source_sha256": "34ee68c89be576044889c78dfd64d5d11d58af968618a170c79657e96f83b4ad",
+      "bitmap_bytes": 1024,
+      "bitmap_sha256": "002b5fc9cf02d88be720742435330db4fc8edd1c3dbfe91de39dd9ec93e2b937",
+      "outputs": [
+        "character_assets/loading/monk.bin",
+        "dnd_loading_assets/splashes/monk.bin"
+      ]
+    },
+    {
+      "choice": 12,
+      "name": "sorcerer",
+      "source": "splash_sources/dnd_gta_loading_sorcerer_128x64.png",
+      "source_sha256": "eb38d22c93da0da08e6a1ff3aaf7b2b8248a84ca408e586533ddb143bc92c3c0",
+      "bitmap_bytes": 1024,
+      "bitmap_sha256": "29c79a73d238655cd80e101b5017e2101b01713b942a6c5c025aa6fe3c6a2372",
+      "outputs": [
+        "character_assets/loading/sorcerer.bin",
+        "dnd_loading_assets/splashes/sorcerer.bin"
+      ]
+    },
+    {
+      "choice": 13,
+      "name": "warlock",
+      "source": "splash_sources/dnd_gta_loading_warlock_128x64.png",
+      "source_sha256": "b1f00336ee65886b99cba0cb7a4c815004a90ae68d5bab4f74678cf4b6eb5889",
+      "bitmap_bytes": 1024,
+      "bitmap_sha256": "b386785a2184c7da7a8cf0bd2d523007bc23e2a75d97b88310dfd8bc33f0589c",
+      "outputs": [
+        "character_assets/loading/warlock.bin",
+        "dnd_loading_assets/splashes/warlock.bin"
+      ]
+    },
+    {
+      "choice": 14,
+      "name": "barbarian",
+      "source": "splash_sources/dnd_gta_loading_barbarian_128x64.png",
+      "source_sha256": "cc22ecbf8c6d99e34e3427554e6b1e586a9f0ed78d903823303838004e84acce",
+      "bitmap_bytes": 1024,
+      "bitmap_sha256": "8ac959d130e1b0835b3490433adba5957bd133bfa72fcc9d12812d5520e896d9",
+      "outputs": [
+        "character_assets/loading/barbarian.bin",
+        "dnd_loading_assets/splashes/barbarian.bin"
+      ]
+    }
+  ]
+}

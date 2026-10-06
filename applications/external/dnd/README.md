@@ -6,13 +6,13 @@
 
 # DNDolphins
 
-**Release: 4.20.2**
+**Release: 4.20.3**
 
-This release implements four feature FALs plus a DND-owned splash/hourglass FAL, direct per-item bag moves, and Hold OK in Bag Mover. Eleven FAPs, five real shared modules and nineteen host regressions pass. All changes stay in the DND app family and use the supplied stock firmware API. Install the matching FAPs and FALs together. ARM/device verification remains outstanding. See [FAL_INTEGRATION.md](FAL_INTEGRATION.md) and [RELEASE_AUDIT_STATUS.md](RELEASE_AUDIT_STATUS.md).
+This release randomizes loading artwork across the original splash and fourteen supplied images while keeping one selected bitmap in RAM. It retains four feature FALs, the DND-owned loading FAL, direct per-item bag moves and Hold OK in Bag Mover. Eleven FAPs, five real shared modules and twenty host regressions pass. All changes stay in the DND app family and use the supplied stock firmware API. Install the matching FAPs and FALs together. ARM/device verification remains outstanding. See [FAL_INTEGRATION.md](FAL_INTEGRATION.md) and [RELEASE_AUDIT_STATUS.md](RELEASE_AUDIT_STATUS.md).
 
 DNDolphins is an offline 5E-compatible character, combat, campaign and encounter suite for Flipper Zero. It is split into eleven FAPs so the DNDolphins character hub, DNDCharacter Sheet, Grants, Combat, Inventory, Spellbook, Adventure, Journal, Initiative, Bestiary, and DNDBackup & Restore can each keep their own working set small while sharing the same active character where appropriate.
 
-DNDolphins shows the native 128×64 project splash with an animated hourglass over it during startup. No-argument launch retains the two-second minimum; return/deep-link launches show loading without that minimum. Home becomes active before the startup splash is removed. The DND loading FAL retains the same artwork between suite FAPs using public direct drawing and destination readiness. The Hub privately owns its Graphical Home images; the loading FAL owns its own copy of the existing splash asset. Loading before DND code starts remains controlled by the stock firmware.
+Startup and app handoffs select from fifteen finished 128×64 images, including Monk, Sorcerer, Warlock and Barbarian, with the existing animated hourglass over the selected image. Overlapping Hub and loading FAL instances share one immutable 1,024-byte bitmap; draw callbacks do no file reads or allocations. A loading sequence keeps its selection until the last owner releases it, and consecutive sequences may repeat. No-argument Hub launch retains the two-second minimum; return/deep-link launches have no minimum. Home becomes active before the startup splash is removed. Raw file assets are automatically unpacked to SD by native preload; they are not fifteen resident icon arrays. The Hub privately owns its Graphical Home images. See [SPLASH_LOADING.md](SPLASH_LOADING.md) for formats, ownership and fallback behavior. Loading before DND code starts remains controlled by stock firmware.
 
 Use it as a pocket companion to your table, not as a replacement for the game itself. DNDolphins is not meant to replace the source material, the Player's Handbook, or a good Dungeon Master. Keep the books handy, respect the rulings at your table, and support your local Dungeon Masters.
 
@@ -682,7 +682,7 @@ From a RogueMaster/Flipper firmware tree containing this directory:
 fbt fap_dndolphins fap_dndcharactersheet fap_dndcombat fap_dndgrants fap_dndinventory fap_dndspellbook fap_dndadventure fap_dndjournal fap_dndinitiative fap_dndbestiary fap_dndbackup fap_dnd_character_sheet fap_dnd_journal fap_dnd_monster_turn fap_dnd_spell_damage fap_dnd_loading
 ```
 
-The suite release label is kept separately from numeric `(4, 20)` FAP metadata. Build with the firmware tree/SDK matching your device and install all eight FAL destinations in [FAL_INTEGRATION.md](FAL_INTEGRATION.md), including loading API version 2 under DNDolphins. This release needs no firmware overlay or firmware flash. `tests/sdk/VALIDATION.md` retains historical official-SDK evidence; it is not a current 4.20.2 build certificate. Current host evidence is in `tests/host/VALIDATION.md`; device checks are in `DEVICE_TEST_MATRIX.md`.
+The suite release label is kept separately from numeric `(4, 20)` FAP metadata. Build with the firmware tree/SDK matching your device and install all eight FAL destinations in [FAL_INTEGRATION.md](FAL_INTEGRATION.md), including loading API version 2 under DNDolphins. This release needs no firmware overlay or firmware flash. `tests/sdk/VALIDATION.md` retains historical official-SDK evidence; it is not a current 4.20.3 build certificate. Current host evidence is in `tests/host/VALIDATION.md`; device checks are in `DEVICE_TEST_MATRIX.md`.
 
 ### Abilities & Saves Quick Rolls
 

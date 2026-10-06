@@ -1,6 +1,6 @@
-# Dungeons & Dolphins 4.20.2 FAL integration
+# Dungeons & Dolphins 4.20.3 FAL integration
 
-This release retains eleven launchable FAPs and moves four approved feature implementations into versioned, non-embedded FALs. A fifth FAL draws the existing DND splash with an animated SDK hourglass. Build the whole suite together; older FAPs do not implement these contracts.
+This release retains eleven launchable FAPs and moves four approved feature implementations into versioned, non-embedded FALs. A fifth FAL draws one randomly selected DND splash from fifteen choices with an animated SDK hourglass. Build the whole suite together; older FAPs do not implement these contracts.
 
 | FAL | Used by | Lifetime and effect |
 |---|---|---|
@@ -31,6 +31,8 @@ FBT's `fap_` target prefix applies to plugins too; their generated files end in 
 | `dnd_spell_damage.fal` | `/ext/apps_data/dndcombat/plugins/dnd_spell_damage.fal` |
 | `dnd_loading.fal` | `/ext/apps_data/dndolphins/plugins/dnd_loading.fal` |
 
+The Hub and loading FAL each bundle all fifteen raw bitmaps as file assets. Native preload extracts them to `/ext/apps_assets/dndolphins/loading/` and `/ext/apps_assets/dnd_loading/splashes/`. Both copies permit first use independently of the other app. The `.fapassets` section is nonresident; the supplied unpacker streams files with a 512-byte copy buffer. First extraction/update writes all asset files to SD, while normal image acquisition reads only the selected 1,024-byte file. Do not copy the source PNGs onto the device manually.
+
 The Monster Turn FAL bundles its own monster TXT assets. Native preload unpacks them under `/ext/apps_assets/dnd_monster_turn/`, independently of whether the Bestiary FAP has run. Custom monsters, enabled packs and legacy migration remain under the existing `/ext/apps_data/dndbestiary/` contract. No character or collection schema migration is needed.
 
 All source changes are contained in `applications/external/dnd/`. Build and deploy the matching DND FAPs/FALs against the supplied stock firmware API; no firmware overlay, service modification, SDK patch or firmware flash is required by this release. The obsolete overlay source directory is removed. The loading descriptor is API version 2, so install the new loading FAL together with all eleven FAPs.
@@ -47,13 +49,13 @@ Combat loads and validates the resolver before classification/casting needs it. 
 
 ## Loading behavior
 
-All eleven FAPs prepare the shared loading FAL before queuing a destination and before detaching their GUI. `dnd_app_handoff.c` retains the mapped module, service references and a copied destination path in the DND-owned record `dnd_loading_handoff_v2`. All surviving animation/event callbacks and artwork belong to that FAL; none point into the outgoing FAP.
+All eleven FAPs prepare the shared loading FAL before queuing a destination and before detaching their GUI. `dnd_app_handoff.c` retains the mapped module, service references and a copied destination path in the DND-owned record `dnd_loading_handoff_v2`. All surviving animation/event callbacks belong to that FAL; the selected bitmap is immutable shared heap data. Neither surviving callbacks nor bitmap data point into the outgoing FAP.
 
 The FAL uses the stock public `gui_direct_draw_acquire()` API. In the supplied firmware it suppresses ordinary GUI drawing but leaves the GUI mutex unlocked, allowing the next app to attach its normal views while the splash/hourglass stays visible. After activating its view, the incoming DND app calls `dnd_handoff_ready()` with its own FAP path. Only a matching destination dismisses an active handoff; stale parent readiness cannot do so. Cleanup runs from the app thread: unsubscribe from Loader events, stop/free and drain the animation, release direct drawing, then unmap the FAL and destroy the retained record.
 
-The Hub attaches its own splash early and activates Home before removing it. Normal launch has the existing two-second minimum; return/deep-link launches use the same loading artwork without that minimum. Local Sheet/Journal/Monster UI loads and returns borrow the loading FAL on the same dispatcher. The hourglass uses SDK animation; the logo artwork is unchanged.
+The Hub attaches its own splash early and activates Home before removing it. Normal launch has the existing two-second minimum; return/deep-link launches use the same loading artwork without that minimum. Local Sheet/Journal/Monster UI loads and returns borrow the loading FAL on the same dispatcher. The hourglass uses SDK animation. Startup, local loading and handoff instances share one selected bitmap while their lifetimes overlap; only the last owner releases it. The original and fourteen supplied PNGs are preserved without editing. See [SPLASH_LOADING.md](SPLASH_LOADING.md).
 
-Loader load failure, an empty launch queue, incoming app exit before readiness and a ten-second animation timeout restore normal drawing. These callbacks retain one bounded inactive module/context until the next DND app reaches readiness or prepares another handoff; they never unmap their own executing code. Its timer callbacks then do no drawing. Normal readiness frees everything immediately. Missing/incompatible loading FAL or allocation failure leaves the ordinary stock loader behavior available; local bridges use a small text fallback.
+Loader load failure, an empty launch queue, incoming app exit before readiness and a ten-second animation timeout restore normal drawing. These callbacks retain one bounded inactive module/context until the next DND app reaches readiness or prepares another handoff; they never unmap their own executing code. Its timer callbacks then do no drawing. Normal readiness frees the handoff context/module immediately; another active loading owner can retain the same bitmap until its own cleanup. Missing/incompatible loading FAL or allocation failure leaves the ordinary stock loader behavior available; local bridges use a small text fallback.
 
 Public synchronous `loader_is_locked()` requests precede DND module map/free operations and readiness cleanup. They wait for Loader startup/unload work to finish before touching the supplied SDK's loaded-module list. This separates those DND startup operations without changing SDK synchronization. Direct drawing preserves the stock handling of held-key releases; held-input routing still needs device acceptance. All FAPs retain `UnloadAssetPacks`, and the loading animation owns the built-in SDK hourglass throughout its lifetime.
 
@@ -61,7 +63,7 @@ Initial loading before DND code begins remains the stock firmware loading screen
 
 ## Validation and performance limits
 
-Nineteen ASan/UBSan host regressions, sixteen strict source sets, eleven entry-point lifecycles and five real shared-module links pass. Native manifest parsing, public API source contracts and normalized import names match the supplied API 88.7. This is source/host evidence; no current ARM relocation, flashed-device timing, heap or cumulative stack high-water result is claimed. See [tests/host/VALIDATION.md](tests/host/VALIDATION.md) and [MEMORY_AUDIT.md](MEMORY_AUDIT.md).
+Twenty ASan/UBSan host regressions, sixteen strict source sets, eleven entry-point lifecycles and five real shared-module links pass. Native manifest parsing, public API source contracts and normalized import names match the supplied API 88.7. This is source/host evidence; no current ARM relocation, flashed-device timing, heap or cumulative stack high-water result is claimed. See [tests/host/VALIDATION.md](tests/host/VALIDATION.md) and [MEMORY_AUDIT.md](MEMORY_AUDIT.md).
 
 Thin Sheet/Journal wrappers and the lazy Combat table reduce those parent executable proxies. Running a FAL keeps its parent resident: integrated Hub UI and Bestiary tools can increase peak coexistence. The handoff also uses heap while the next app loads, and two independently mapped loading FAL images can briefly overlap when a standalone feature starts its local loading view. These choices prioritize continuity and avoiding a full Bestiary reload; they do not establish a universal RAM or latency improvement. Device acceptance remains in [DEVICE_TEST_MATRIX.md](DEVICE_TEST_MATRIX.md).
 

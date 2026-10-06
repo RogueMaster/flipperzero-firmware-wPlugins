@@ -1,10 +1,10 @@
 # Feature checklist
 
-4.20.2 source/host feature coverage for eleven FAPs plus five FALs. Checked features are implemented; physical-device acceptance is tracked separately in DEVICE_TEST_MATRIX.md.
+4.20.3 source/host feature coverage for eleven FAPs plus five FALs. Checked features are implemented; physical-device acceptance is tracked separately in DEVICE_TEST_MATRIX.md.
 
 ## DNDolphins
 
-- [x] DNDolphins startup shows the native 128×64 project logo with animated hourglass. No-argument launch retains a two-second minimum; argument/deep-link launches show loading without the minimum. DNDolphins privately owns the Graphical Home 25×25 icon assets while companion FAPs do not link them.
+- [x] DNDolphins startup shows one randomly selected 128×64 image from the original plus fourteen supplied splashes, with animated hourglass. No-argument launch retains a two-second minimum; argument/deep-link launches show loading without the minimum. DNDolphins privately owns the Graphical Home 25×25 icon assets while companion FAPs do not link them.
 - [x] Multiple character profiles with create, switch, rename, duplicate, archive, delete and save-check actions; user-facing backup/export/restore is owned by the standalone DNDBackup & Restore FAP.
 - [x] Character actions launch **DNDBackup & Restore** for user-facing SHD operations. Its native `.shd` browser restores the exact selected active-character snapshot plus the matching Inventory, Spellbook, Feature, applied-grant, Language, Proficiency and v3 bag companions transactionally.
 - [x] Character identity, species, background, alignment, multiclass levels/subclasses, XP/Milestone leveling, languages, proficiencies and Inspiration.
@@ -181,7 +181,7 @@
 - [x] Magic shows Known / knowable / free-granted spell totals; the aggregate is loaded outside Canvas draw callbacks.
 - [x] Item catalog displays compact Source tags and validates non-empty source attribution.
 - [x] Release compliance cross-checks **475 fixed SRD grant payloads** against SRD spell/feat/language/skill/save/proficiency/size/resistance/sense/speed vocabulary instead of trusting source labels alone.
-- [x] Every one of the **42 packed assets** is explicitly classified by the release audit; adding a new bundled file fails the gate until its SRD/Homebrew provenance is reviewed.
+- [x] Every one of the **72 packed source asset paths** is explicitly classified by the release audit; adding a new bundled file fails the gate until its catalog or UI-artwork provenance is reviewed.
 - [x] Compiled Class/Background/Species/Alignment/Feat fallback lists exactly mirror the SRD picker files.
 - [x] Spellbook SRD filter UI exposes only SRD-valid class and source selectors.
 - [x] Settings reads are buffered and best-effort per line, catalog availability is cached outside draw paths, and Spellbook status filtering uses a fixed 128-byte negative prefilter with exact-match fallback.
@@ -200,11 +200,12 @@
 - [x] Favorite Spells builds its bounded index on entry and returns through the casting workflow.
 - [x] Selected Hub Feats are saved before DNDGrants reviews dependent grants.
 
-## 4.20.2 FAL and loading integration
+## 4.20.3 FAL and loading integration
 
 - [x] Character Sheet and Journal UI FALs shared by the Hub and standalone wrappers.
 - [x] Journal return reloads the canonical character and invalidates stale collections, with failed-reload save protection.
 - [x] Focused Monster Turn FAL shared by Initiative/Bestiary, with first-use assets/custom-pack visibility and parent-state preservation.
 - [x] Combat spell damage FAL loads before casting resource consumption and unloads outside spell workflows.
 - [x] DND-owned splash/hourglass FAL, enqueue-before-teardown, destination-path readiness and callback-safe cleanup through public firmware APIs. Failure/cancellation/timeout restores drawing; one inactive cache is reclaimed on the next DND readiness/handoff. All changes stay within the app family.
-- [x] Nineteen host regressions, eleven entry lifecycles, five shared-module links and supplied API 88.7 source-contract audit pass.
+- [x] Fifteen lossless splash choices and two nonresident file-asset bundles; one 1,024-byte bitmap shared across Hub/local/handoff lifetimes; original/text fallback without extra image buffers; no draw I/O or allocations.
+- [x] Twenty host regressions, eleven entry lifecycles, five shared-module links and supplied API 88.7 source-contract audit pass.

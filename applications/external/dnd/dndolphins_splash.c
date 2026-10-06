@@ -1,5 +1,5 @@
 #include "dndolphins_splash.h"
-#include "dndolphins_icons.h"
+#include "dnd_splash_image.h"
 #include <assets_icons.h>
 #include <furi.h>
 #include <gui/gui.h>
@@ -11,13 +11,14 @@ struct DndSplash {
     Gui* gui;
     ViewPort* view_port;
     IconAnimation* hourglass;
+    DndSplashImage* image;
     uint32_t started;
     bool introduction;
 };
 static void dndolphins_splash_draw(Canvas* canvas, void* context) {
     DndSplash* splash = context;
     canvas_clear(canvas);
-    canvas_draw_icon(canvas, 0, 0, &I_logo_128x64);
+    dnd_splash_image_draw(canvas, splash->image);
     canvas_set_color(canvas, ColorWhite);
     canvas_draw_box(canvas, 100, 36, 28, 28);
     canvas_set_color(canvas, ColorBlack);
@@ -39,6 +40,7 @@ DndSplash* dndolphins_splash_begin(bool introduction) {
     if(!splash->view_port) goto fail;
     splash->hourglass = icon_animation_alloc(&A_Loading_24);
     if(!splash->hourglass) goto fail;
+    splash->image = dnd_splash_image_acquire(DND_SPLASH_IMAGE_HUB_ROOT);
     splash->started = furi_get_tick();
     splash->introduction = introduction;
     view_port_draw_callback_set(splash->view_port, dndolphins_splash_draw, splash);
@@ -66,6 +68,7 @@ void dndolphins_splash_end(DndSplash* splash) {
     /* Keep the callback and its context alive until native free drains the timer queue. */
     if(splash->hourglass) icon_animation_free(splash->hourglass);
     if(splash->view_port) view_port_free(splash->view_port);
+    dnd_splash_image_release(splash->image);
     if(splash->gui) furi_record_close(RECORD_GUI);
     free(splash);
 }

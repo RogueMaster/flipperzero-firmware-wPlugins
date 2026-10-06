@@ -26,6 +26,7 @@ The fixed app state has also been reduced rather than merely reorganized. The pr
 
 - `dnd_profile_handoff.*`: used by the suite for persisted `Active=<id>` resolution, exact profile references, common FAP paths and launch arguments. The header declares parent-return helpers implemented by the FAP-only `dnd_app_handoff.c`; Journal's FAL links only the profile helpers.
 - `dnd_app_handoff.c`: linked by all eleven FAPs; owns deferred launch, retained loading transfer records and destination readiness. It retains only heap data and FAL-owned callbacks across outgoing FAP teardown.
+- `dnd_splash_image.*`: linked by the Hub startup splash and loading FAL. Owns a private DND record containing only one immutable heap bitmap and a reference count; no persistent callback or pointer refers into an outgoing app/module. Acquire/release run on the serialized DND app thread, and draw callbacks borrow the data. Raw file assets are SD data, not resident generated icon arrays.
 - `dnd_profile_projection.*`: narrow canonical-field projections used by Inventory, Spellbook and Adventure.
 - `dnd_data.*`: character/record allocation, defaults and sanitize support.
 - `dnd_rules_core.c` / `dnd_rules.h`: shared rule math.
@@ -38,7 +39,7 @@ The fixed app state has also been reduced rather than merely reorganized. The pr
 
 ## App-owned behavior
 
-- **DNDolphins:** character/profile/home/vitals/abilities/skills/features/class progression/dice/settings workflows and companion launching. It owns its startup splash plus Graphical Home icon assets/renderer; the loading FAL separately owns a splash copy, and companion FAPs do not link `dndolphins_menu_graphics.c` or the DNDolphins private icon pack. Home **Magic & Spells** is only a launch bridge to DNDSpellbook. It does not own the runtime Combat workflow, Grant Review workflow or Magic management UI.
+- **DNDolphins:** character/profile/home/vitals/abilities/skills/features/class progression/dice/settings workflows and companion launching. It owns its startup splash and private Graphical Home icon assets/renderer; startup and loading FAL share one selected splash bitmap, and companion FAPs do not link `dndolphins_menu_graphics.c` or the DNDolphins private icon pack. Home **Magic & Spells** is only a launch bridge to DNDSpellbook. It does not own the runtime Combat workflow, Grant Review workflow or Magic management UI.
 - **DNDCombat:** standalone Combat menu, weapon attacks, spell attacks, rituals, attack templates, combat recovery/state controls and **Jump to Initiative**. Weapon implementation and casting/resource UI remain Combat-owned; the lazy spell damage resolver/table in `dndolphins_spell_combat.*` belongs to `dnd_spell_damage.fal`.
 - **DNDGrants:** grant review/application and read-only progression diagnostics; standalone **Grant Initial Traits** / **Apply Level Grants**, Grant Review/Edit and grant-choice catalog workflow. It returns to DNDolphins after completion/Short Back; Hold Back exits.
 - **DNDInventory:** Inventory, currency, item catalog/editing, starting-equipment review, bag selection/management and equipment/weight state. Only the selected bag page is resident; Inventory Resources streams all bags.
@@ -51,7 +52,7 @@ The fixed app state has also been reduced rather than merely reorganized. The pr
 
 ## FAP list
 
-The 4.20.2 suite contains **eleven external FAPs** plus **five non-embedded FALs**:
+The 4.20.3 suite contains **eleven external FAPs** plus **five non-embedded FALs**:
 
 1. DNDolphins
 2. DNDCharacter Sheet
