@@ -2,6 +2,7 @@
 #include "elf/elf_file.h"
 #include <notification/notification_messages.h>
 #include "application_assets.h"
+#include "application_metadata.h"
 #include <loader/firmware_api/firmware_api.h>
 #include <storage/storage_processing.h>
 #ifndef FURI_RAM_EXEC
@@ -414,26 +415,25 @@ bool flipper_application_load_name_and_icon(
     if(load_success) {
         load_success = false;
 
-        FlipperApplication* app = flipper_application_alloc(storage, firmware_api_interface);
-
-        FlipperApplicationPreloadStatus preload_res =
-            flipper_application_preload_manifest(app, furi_string_get_cstr(path));
-
-        if(preload_res == FlipperApplicationPreloadStatusSuccess ||
-           preload_res == FlipperApplicationPreloadStatusApiTooOld ||
-           preload_res == FlipperApplicationPreloadStatusApiTooNew) {
-            const FlipperApplicationManifest* manifest = flipper_application_get_manifest(app);
-            if(manifest->has_icon) {
-                memcpy(*icon_ptr, manifest->icon, FAP_MANIFEST_MAX_ICON_SIZE);
+        FlipperApplicationManifest manifest;
+        if(flipper_application_metadata_load(storage, furi_string_get_cstr(path), &manifest)) {
+            if(manifest.has_icon) {
+                memcpy(*icon_ptr, manifest.icon, FAP_MANIFEST_MAX_ICON_SIZE);
+            } else {
+                // Raw 10x10 file glyph, padded to the manifest icon buffer size.
+                // A valid icon-less FAP still keeps its manifest display name.
+                static const uint8_t fallback_icon[FAP_MANIFEST_MAX_ICON_SIZE] = {
+                    0x00, 0x7F, 0x00, 0xA1, 0x00, 0x2D, 0x01, 0xE1, 0x01, 0x0D, 0x01,
+                    0x01, 0x01, 0x7D, 0x01, 0x01, 0x01, 0x01, 0x01, 0xFF, 0x01,
+                };
+                memcpy(*icon_ptr, fallback_icon, sizeof(fallback_icon));
             }
-            furi_string_set(item_name, manifest->name);
+            furi_string_set(item_name, manifest.name);
             load_success = true;
         } else {
             FURI_LOG_E(TAG, "Failed to preload %s", furi_string_get_cstr(path));
             load_success = false;
         }
-
-        flipper_application_free(app);
     }
 
     if(!load_success) {

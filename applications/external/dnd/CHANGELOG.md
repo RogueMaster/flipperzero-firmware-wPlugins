@@ -1,3 +1,10 @@
+## 4.20.2 — 2026-10-06 UTC
+
+- Attach Spellbook loading UI before collection validation. Preserve paged record access and offset indexes; use bounded external merge sorting for imports and verified single-record reinsertion for ordinary ordering edits. Validate current contents instead of trusting a persistent sorted flag.
+- Journal two-bag inventory transfers with checksummed staged contents and deterministic recovery. Recover before shared collection access, block editing when recovery fails, and discard stale UI selections before retry. Journal-created inventory items also honor this guard.
+- Compile the transaction helper into all shared-storage users and the Journal FAL, and the sorting helper into Spellbook. FAL IDs and API versions remain unchanged.
+- See RELEASE_AUDIT_STATUS.md for new reproducible host checks and outstanding ARM/device acceptance. Earlier entries below are historical and are not re-certified by this delta.
+
 ## 4.20.1 — 2026-10-06 UTC
 
 - Randomized startup, local loading and app-handoff artwork across fifteen choices: the existing splash plus all fourteen supplied images, including Monk, Sorcerer, Warlock and Barbarian. The existing animated hourglass remains over the selected image.

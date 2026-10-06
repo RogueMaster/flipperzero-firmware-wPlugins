@@ -44,6 +44,43 @@ static void game_menu_paths_free(GameMenuPaths_t paths) {
     GameMenuPaths_clear(paths);
 }
 
+static int game_menu_path_compare(const char* left, const char* right) {
+    int order = strcasecmp(left, right);
+    /* FAT cannot contain two names differing only by case in one directory.
+       Keep a deterministic tie break for other sources and host fixtures. */
+    return order ? order : strcmp(left, right);
+}
+
+static void game_menu_paths_sift(GameMenuPaths_t paths, size_t root, size_t count) {
+    char* current = *GameMenuPaths_get(paths, root);
+    while(root < count / 2U) {
+        size_t child = root * 2U + 1U;
+        if(child + 1U < count &&
+           game_menu_path_compare(
+               *GameMenuPaths_get(paths, child), *GameMenuPaths_get(paths, child + 1U)) < 0)
+            ++child;
+        if(game_menu_path_compare(current, *GameMenuPaths_get(paths, child)) >= 0) break;
+        *GameMenuPaths_get(paths, root) = *GameMenuPaths_get(paths, child);
+        root = child;
+    }
+    *GameMenuPaths_get(paths, root) = current;
+}
+
+/* qsort is not exported to FALs. Heap sort keeps discovery O(n log n) with
+   constant scratch, without allocating another array or increasing call depth. */
+static void game_menu_paths_sort(GameMenuPaths_t paths) {
+    size_t count = GameMenuPaths_size(paths);
+    if(count < 2U) return;
+    for(size_t start = count / 2U; start; --start)
+        game_menu_paths_sift(paths, start - 1U, count);
+    for(size_t end = count - 1U; end; --end) {
+        char* last = *GameMenuPaths_get(paths, end);
+        *GameMenuPaths_get(paths, end) = *GameMenuPaths_get(paths, 0U);
+        *GameMenuPaths_get(paths, 0U) = last;
+        game_menu_paths_sift(paths, 0U, end);
+    }
+}
+
 static void
     game_menu_load_defaults(Storage* storage, GameMenuEntryCallback callback, void* context) {
     GameMenuPaths_t directories;
@@ -83,16 +120,7 @@ static void
     storage_file_free(folder);
     game_menu_paths_free(directories);
 
-    /* qsort is disabled in RM's external-app API; keep both users of this helper self-contained. */
-    for(size_t i = 1; i < GameMenuPaths_size(paths); i++) {
-        char* current = *GameMenuPaths_get(paths, i);
-        size_t j = i;
-        while(j && strcasecmp(*GameMenuPaths_get(paths, j - 1), current) > 0) {
-            *GameMenuPaths_get(paths, j) = *GameMenuPaths_get(paths, j - 1);
-            j--;
-        }
-        *GameMenuPaths_get(paths, j) = current;
-    }
+    game_menu_paths_sort(paths);
     for(size_t i = 0; i < GameMenuPaths_size(paths); i++) {
         callback(*GameMenuPaths_get(paths, i), context);
     }

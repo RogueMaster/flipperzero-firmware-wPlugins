@@ -1,6 +1,7 @@
 #pragma once
 
 #include "dnd_data.h"
+#include "dnd_inventory_transaction.h"
 
 #include <storage/storage.h>
 
@@ -110,7 +111,8 @@ bool dnd_storage_delete_item_bag(
     const char* bag,
     const DndCharacter* owner,
     uint16_t index);
-bool dnd_storage_move_items_bag_selected(
+/* Pending/Recovered require discarding cached rows and selections before retry. */
+DndStorageTransferResult dnd_storage_move_items_bag_selected(
     Storage* storage,
     uint32_t profile,
     const char* source_bag,

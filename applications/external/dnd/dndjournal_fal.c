@@ -1,4 +1,5 @@
 #include "dnd_fs.h"
+#include "dnd_inventory_transaction.h"
 #include "dnd_journal_api.h"
 #include "dnd_profile_handoff.h"
 
@@ -702,6 +703,7 @@ static bool dndjournal_write_collection_field(File* file, const char* value) {
 static bool dndjournal_create_inventory_item(JournalApp* app) {
     if(!app || !app->current_loaded || app->current_entry.category != JournalCategoryItem)
         return false;
+    if(!dnd_inventory_transaction_recover(app->storage, app->profile, NULL)) return false;
 
     char path[JOURNAL_PATH_LEN];
     int n = snprintf(path, sizeof(path), JOURNAL_ITEM_PATH, (unsigned long)app->profile);

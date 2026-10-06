@@ -49,6 +49,7 @@ typedef enum {
     DndInventoryCollectionScreenBags,
     DndInventoryCollectionScreenBagMover,
     DndInventoryCollectionScreenBagMoverDestination,
+    DndInventoryCollectionScreenTransferPending,
 } DndInventoryCollectionScreen;
 
 typedef enum {
@@ -370,6 +371,7 @@ typedef struct {
     DndInventoryCollectionEdit edit;
     uint32_t profile;
     uint8_t have_profile;
+    uint8_t profile_known;
     char bag_name[DND_INVENTORY_BAG_NAME_LEN];
     uint8_t bag_index;
     uint8_t bag_count;
@@ -423,6 +425,8 @@ typedef struct {
 
 static bool dndinventory_collection_load_page(DndInventoryCollectionApp* app, uint16_t start);
 static bool dndinventory_collection_save_page(DndInventoryCollectionApp* app);
+static bool
+    dndinventory_collection_load_profile(DndInventoryCollectionApp* app, const char* args);
 static bool
     dndinventory_collection_prepare_record(DndInventoryCollectionApp* app, uint16_t logical);
 static bool
@@ -1760,25 +1764,85 @@ static void dndinventory_collection_draw_bag_mover_destination(
     }
 }
 
+/* A committed/pending transfer invalidates every cached logical item index.
+ * Never reuse its selection bits: recovery can have already moved those rows. */
+static void dndinventory_collection_discard_transfer_cache(DndInventoryCollectionApp* app) {
+    free(app->mover_selected);
+    app->mover_selected = NULL;
+    app->mover_selected_bytes = app->mover_selected_count = 0U;
+    app->mover_selection = app->mover_scroll = 0U;
+    free(app->search_matches);
+    app->search_matches = NULL;
+    app->search_match_count = app->search_selection = app->search_scroll = 0U;
+    app->search_term[0] = '\0';
+    app->detail_return_search = 0U;
+    free(app->data.character.items);
+    app->data.character.items = NULL;
+    app->data.character.item_count = 0U;
+    app->record_offset_valid_pages = 0U;
+    memset(app->record_page_offsets, 0, sizeof(app->record_page_offsets));
+    app->item_aggregate_valid = 0U;
+    app->total = app->cache_start = app->selection = app->scroll = app->record_index = 0U;
+}
+
+static bool dndinventory_collection_resume_transfer(DndInventoryCollectionApp* app) {
+    dndinventory_collection_discard_transfer_cache(app);
+    app->screen = DndInventoryCollectionScreenTransferPending;
+    if(!dnd_inventory_transaction_recover(app->storage, app->profile, NULL)) {
+        dndinventory_collection_set_status(app, "Move needs recovery");
+        return false;
+    }
+    if(!app->have_profile)
+        app->have_profile = dndinventory_collection_load_profile(app, NULL) ? 1U : 0U;
+    if(!app->have_profile || !dndinventory_collection_load_currency(app) ||
+       !dndinventory_collection_load_page(app, 0U)) {
+        dndinventory_collection_set_status(app, "Recovery read failed");
+        return false;
+    }
+    app->bag_count = dnd_storage_inventory_bag_count(app->storage, app->profile);
+    dndinventory_collection_refresh_grant_state(app);
+    app->screen = DndInventoryCollectionScreenList;
+    dndinventory_collection_set_status(app, "Recovered; select items again");
+    return true;
+}
+
+static void dndinventory_collection_transfer_interrupted(
+    DndInventoryCollectionApp* app,
+    DndStorageTransferResult result) {
+    dndinventory_collection_discard_transfer_cache(app);
+    app->screen = DndInventoryCollectionScreenTransferPending;
+    if(result == DndStorageTransferRecovered) {
+        (void)dndinventory_collection_resume_transfer(app);
+    } else {
+        dndinventory_collection_set_status(app, "Move needs recovery");
+    }
+}
+
 static bool dndinventory_collection_move_selected_to(
     DndInventoryCollectionApp* app,
     const char* destination) {
     if(!app || !destination || !app->mover_selected_count) return false;
     DndCharacter* owner = dndinventory_collection_io_character(&app->data.character, false);
     uint16_t moved = 0U;
-    bool ok = owner && dnd_storage_move_items_bag_selected(
-                           app->storage,
-                           app->profile,
-                           app->bag_name,
-                           destination,
-                           owner,
-                           app->mover_selected,
-                           app->total,
-                           &moved);
+    DndStorageTransferResult result = owner ?
+                                         dnd_storage_move_items_bag_selected(
+                                             app->storage,
+                                             app->profile,
+                                             app->bag_name,
+                                             destination,
+                                             owner,
+                                             app->mover_selected,
+                                             app->total,
+                                             &moved) :
+                                         DndStorageTransferFailed;
     dndinventory_collection_free_io_character(owner, false);
-    if(!ok) {
+    if(result == DndStorageTransferFailed) {
         dndinventory_collection_set_status(app, "Move failed; bags unchanged");
         return false;
+    }
+    if(result != DndStorageTransferComplete) {
+        dndinventory_collection_transfer_interrupted(app, result);
+        return true;
     }
 
     free(app->mover_selected);
@@ -1819,6 +1883,7 @@ static bool
     uint32_t requested = 0U;
     if(!dnd_profile_ref_active_id(app->storage, &requested)) return false;
     app->profile = requested;
+    app->profile_known = 1U;
 
     DndInventoryProfileProjection projection;
     if(!dnd_profile_projection_load_inventory(app->storage, requested, &projection)) return false;
@@ -1915,6 +1980,15 @@ static DndItem*
 
 static bool dndinventory_collection_move_item_bag(DndInventoryCollectionApp* app, int8_t delta) {
     if(!app || !app->have_profile || !delta || app->record_index >= app->total) return false;
+    /* Recovery must precede bag enumeration and saving this cached page. Those
+       operations also guard storage, but cannot retain this UI's old indices. */
+    bool recovered = false;
+    bool ready = dnd_inventory_transaction_recover(app->storage, app->profile, &recovered);
+    if(!ready || recovered) {
+        dndinventory_collection_transfer_interrupted(
+            app, ready ? DndStorageTransferRecovered : DndStorageTransferPending);
+        return true;
+    }
     size_t bytes = ((uint32_t)app->total + 7U) / 8U;
     uint8_t* selected = calloc(bytes, 1);
     if(!selected) {
@@ -1943,20 +2017,26 @@ static bool dndinventory_collection_move_item_bag(DndInventoryCollectionApp* app
     }
     DndCharacter* owner = dndinventory_collection_io_character(&app->data.character, false);
     uint16_t moved = 0;
-    bool ok = owner && dnd_storage_move_items_bag_selected(
-                           app->storage,
-                           app->profile,
-                           app->bag_name,
-                           destination,
-                           owner,
-                           selected,
-                           app->total,
-                           &moved);
+    DndStorageTransferResult result = owner ?
+                                         dnd_storage_move_items_bag_selected(
+                                             app->storage,
+                                             app->profile,
+                                             app->bag_name,
+                                             destination,
+                                             owner,
+                                             selected,
+                                             app->total,
+                                             &moved) :
+                                         DndStorageTransferFailed;
     dndinventory_collection_free_io_character(owner, false);
     free(selected);
-    if(!ok) {
+    if(result == DndStorageTransferFailed) {
         dndinventory_collection_set_status(app, "Move failed; item kept here");
         return false;
+    }
+    if(result != DndStorageTransferComplete) {
+        dndinventory_collection_transfer_interrupted(app, result);
+        return true;
     }
     /* The paired transaction has committed. Drop the old page before any destination read. */
     free(app->data.character.items);
@@ -2618,6 +2698,12 @@ static void dndinventory_collection_draw(Canvas* canvas, void* model) {
     if(!app) return;
     canvas_clear(canvas);
     switch(app->screen) {
+    case DndInventoryCollectionScreenTransferPending:
+        dndinventory_collection_draw_header(canvas, app, "Inventory Move", app->status);
+        dndinventory_collection_draw_row(canvas, 0U, false, "Check the SD card");
+        dndinventory_collection_draw_row(canvas, 1U, true, "OK: Retry recovery");
+        dndinventory_collection_draw_row(canvas, 2U, false, "Back: Exit safely");
+        break;
     case DndInventoryCollectionScreenNoCharacter:
         dndinventory_collection_draw_header(canvas, app, "DNDInventory", NULL);
         dndinventory_collection_draw_row(canvas, 0U, false, "No character");
@@ -3188,6 +3274,7 @@ static bool dndinventory_collection_input(InputEvent* event, void* context) {
 
     if(event->key == InputKeyBack && event->type == InputTypeShort) {
         if(app->screen == DndInventoryCollectionScreenNoCharacter ||
+           app->screen == DndInventoryCollectionScreenTransferPending ||
            app->screen == DndInventoryCollectionScreenList) {
             app->return_to_dnd = 1U;
             view_dispatcher_stop(app->dispatcher);
@@ -3230,6 +3317,13 @@ static bool dndinventory_collection_input(InputEvent* event, void* context) {
             app->tool_scroll = 0U;
             app->grant_review_override = 0U;
         }
+        dndinventory_collection_redraw(app);
+        return true;
+    }
+
+    if(app->screen == DndInventoryCollectionScreenTransferPending) {
+        if(event->key == InputKeyOk && event->type == InputTypeShort)
+            (void)dndinventory_collection_resume_transfer(app);
         dndinventory_collection_redraw(app);
         return true;
     }
@@ -3629,7 +3723,10 @@ static DndInventoryCollectionApp* dndinventory_collection_alloc(const char* args
     view_set_input_callback(app->view, dndinventory_collection_input);
 
     app->have_profile = dndinventory_collection_load_profile(app, args) ? 1U : 0U;
-    if(app->have_profile) {
+    if(app->profile_known && !dnd_inventory_transaction_recover(app->storage, app->profile, NULL)) {
+        app->screen = DndInventoryCollectionScreenTransferPending;
+        dndinventory_collection_set_status(app, "Move needs recovery");
+    } else if(app->have_profile) {
         if(!dndinventory_collection_load_currency(app))
             dndinventory_collection_set_status(app, "Currency read failed");
         bool collection_loaded = dndinventory_collection_load_page(app, 0U);

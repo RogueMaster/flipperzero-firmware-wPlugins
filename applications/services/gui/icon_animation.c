@@ -8,9 +8,13 @@ IconAnimation* icon_animation_alloc(const Icon* icon) {
     furi_check(icon);
 
     IconAnimation* instance = malloc(sizeof(IconAnimation));
-    instance->icon = asset_packs_swap_icon(icon);
-    instance->timer =
-        furi_timer_alloc(icon_animation_timer_callback, FuriTimerTypePeriodic, instance);
+    *instance = (IconAnimation){.icon = asset_packs_swap_icon(icon)};
+    // FAP icons contain one frame. Avoid one timer allocation (and a blocking timer
+    // deletion) per menu entry. Decide after swapping so animated asset packs still work.
+    if(instance->icon->frame_count > 1) {
+        instance->timer =
+            furi_timer_alloc(icon_animation_timer_callback, FuriTimerTypePeriodic, instance);
+    }
 
     return instance;
 }
@@ -19,7 +23,7 @@ void icon_animation_free(IconAnimation* instance) {
     furi_check(instance);
 
     icon_animation_stop(instance);
-    furi_timer_free(instance->timer);
+    if(instance->timer) furi_timer_free(instance->timer);
 
     free(instance);
 }
@@ -73,11 +77,14 @@ void icon_animation_start(IconAnimation* instance) {
 
     if(!instance->animating) {
         instance->animating = true;
-        furi_assert(instance->icon->frame_rate);
-        furi_check(
-            furi_timer_start(
-                instance->timer,
-                (furi_kernel_get_tick_frequency() / instance->icon->frame_rate)) == FuriStatusOk);
+        if(instance->timer) {
+            furi_assert(instance->icon->frame_rate);
+            furi_check(
+                furi_timer_start(
+                    instance->timer,
+                    (furi_kernel_get_tick_frequency() / instance->icon->frame_rate)) ==
+                FuriStatusOk);
+        }
     }
 }
 
@@ -86,7 +93,7 @@ void icon_animation_stop(IconAnimation* instance) {
 
     if(instance->animating) {
         instance->animating = false;
-        furi_timer_stop(instance->timer);
+        if(instance->timer) furi_timer_stop(instance->timer);
         instance->frame = 0;
     }
 }

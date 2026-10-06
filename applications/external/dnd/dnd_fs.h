@@ -66,6 +66,30 @@ static inline bool dnd_fs_ensure_parent_dir(Storage* storage, const char* path) 
     return dnd_fs_ensure_directory(storage, directory);
 }
 
+/* All spellbook consumers must restore an interrupted sort before treating a
+   missing live file as an empty collection. No full sorter is linked into them.
+   Stat errors and directory collisions fail closed; renames never overwrite. */
+static inline bool dnd_fs_recover_sort(Storage* storage, const char* live, bool* recovered) {
+    if(recovered) *recovered = false;
+    if(!storage || !live || !live[0]) return false;
+    static const char suffix[] = ".sort.bak";
+    size_t length = strlen(live);
+    if(length + sizeof(suffix) > DND_FS_LONG_PATH_LEN) return false;
+    char backup[DND_FS_LONG_PATH_LEN];
+    memcpy(backup, live, length);
+    memcpy(backup + length, suffix, sizeof(suffix));
+    FileInfo info;
+    FS_Error error = storage_common_stat(storage, backup, &info);
+    if(error == FSE_NOT_EXIST) return true;
+    if(error != FSE_OK || file_info_is_dir(&info)) return false;
+    if(recovered) *recovered = true;
+    error = storage_common_stat(storage, live, &info);
+    if(error == FSE_NOT_EXIST)
+        return storage_common_rename_safe(storage, backup, live) == FSE_OK;
+    if(error != FSE_OK || file_info_is_dir(&info)) return false;
+    return storage_common_remove(storage, backup) == FSE_OK;
+}
+
 /* Publish a synced temporary file, retaining the old live file on rename failure.
    If rollback itself fails, the backup remains available for recovery. */
 static inline bool

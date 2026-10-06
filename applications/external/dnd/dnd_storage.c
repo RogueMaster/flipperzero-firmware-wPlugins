@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 
 #define DND_STORAGE_TEXT_VERSION        5U
 #define DND_STORAGE_VALUE_LINE_LEN      320U
@@ -339,6 +340,17 @@ static void dnd_storage_spellbook_path(char* output, size_t size, uint32_t profi
     snprintf(output, size, "%s/spellbook_%lu.txt", DND_STORAGE_DATA_DIR, (unsigned long)profile);
 }
 
+static bool dnd_storage_recover_spellbook(Storage* storage, uint32_t profile, bool* recovered) {
+    char path[DND_FS_PATH_LEN];
+    dnd_storage_spellbook_path(path, sizeof(path), profile);
+    return dnd_fs_recover_sort(storage, path, recovered);
+}
+
+static bool dnd_storage_recover_profile_collections(Storage* storage, uint32_t profile) {
+    return dnd_inventory_transaction_recover(storage, profile, NULL) &&
+           dnd_storage_recover_spellbook(storage, profile, NULL);
+}
+
 static bool dnd_storage_inventory_bag_is_main(const char* bag) {
     return !bag || !bag[0] || !strcmp(bag, "Main");
 }
@@ -460,12 +472,14 @@ static File* dnd_storage_open_collection_snapshot(
     size_t live_size);
 
 static bool dnd_storage_ensure_spellbook_sidecar(Storage* storage, uint32_t profile) {
+    if(!dnd_storage_recover_spellbook(storage, profile, NULL)) return false;
     char path[DND_FS_PATH_LEN];
     dnd_storage_spellbook_path(path, sizeof(path), profile);
     return dnd_storage_ensure_collection_sidecar(storage, path, "DNDSpellbook=1\n");
 }
 
 static bool dnd_storage_ensure_items_sidecar(Storage* storage, uint32_t profile) {
+    if(!dnd_inventory_transaction_recover(storage, profile, NULL)) return false;
     char path[DND_FS_PATH_LEN];
     dnd_storage_items_path(path, sizeof(path), profile);
     return dnd_storage_ensure_collection_sidecar(storage, path, "DNDItems=1\n");
@@ -473,6 +487,7 @@ static bool dnd_storage_ensure_items_sidecar(Storage* storage, uint32_t profile)
 
 static bool
     dnd_storage_ensure_items_bag_sidecar(Storage* storage, uint32_t profile, const char* bag) {
+    if(!dnd_inventory_transaction_recover(storage, profile, NULL)) return false;
     if(dnd_storage_inventory_bag_is_main(bag))
         return dnd_storage_ensure_items_sidecar(storage, profile);
     char path[DND_FS_PATH_LEN];
@@ -505,6 +520,7 @@ static File* dnd_storage_open_items_bag_snapshot(
     size_t snapshot_size,
     char* live,
     size_t live_size) {
+    if(!dnd_inventory_transaction_recover(storage, profile, NULL)) return NULL;
     if(dnd_storage_inventory_bag_is_main(bag))
         return dnd_storage_open_collection_snapshot(
             storage, profile, owner, "items", snapshot, snapshot_size, live, live_size);
@@ -593,7 +609,7 @@ static uint8_t dnd_storage_split_collection_line(char* line, char** fields, uint
 static bool dnd_storage_close_synced_file(File* file, bool success) {
     if(file) {
         if(success) success = storage_file_sync(file);
-        storage_file_close(file);
+        if(!storage_file_close(file)) success = false;
         storage_file_free(file);
     }
     return success;
@@ -635,11 +651,17 @@ static File* dnd_storage_open_collection_snapshot(
     char* live,
     size_t live_size) {
     if(!storage || !owner || !collection || !snapshot || !live) return NULL;
+    if(!strcmp(collection, "spellbook") ?
+           !dnd_storage_recover_spellbook(storage, profile, NULL) :
+           !dnd_inventory_transaction_recover(storage, profile, NULL))
+        return NULL;
     if(!strcmp(collection, "spellbook"))
         dnd_storage_spellbook_path(live, live_size, profile);
     else
         dnd_storage_items_path(live, live_size, profile);
     dnd_storage_collection_snapshot_path(snapshot, snapshot_size, profile, owner, collection);
+    if(!strcmp(collection, "spellbook") && !dnd_fs_recover_sort(storage, snapshot, NULL))
+        return NULL;
     /* The collection and its SHD snapshot both live directly in the canonical
        DNDolphins data directory. Use the same best-effort mkdir pattern as the
        working character save path instead of the recursive parent validator. */
@@ -870,6 +892,7 @@ bool dnd_storage_visit_spells(
     uint16_t* total_count) {
     if(!storage) return false;
     if(total_count) *total_count = 0U;
+    if(!dnd_storage_recover_spellbook(storage, profile, NULL)) return false;
     char path[DND_FS_PATH_LEN];
     dnd_storage_spellbook_path(path, sizeof(path), profile);
     if(!storage_file_exists(storage, path)) return true;
@@ -921,6 +944,14 @@ static bool dnd_storage_load_spellbook_window_internal(
     uint8_t* valid_pages) {
     if(!storage || !character || !total_count) return false;
     dnd_data_clear_spells(character);
+
+    bool recovered = false;
+    bool ready = dnd_storage_recover_spellbook(storage, profile, &recovered);
+    if(!ready || recovered) {
+        *total_count = 0U;
+        if(valid_pages) *valid_pages = 0U;
+    }
+    if(!ready) return false;
 
     const uint16_t page_index = start / DND_STORAGE_COLLECTION_CACHE_SIZE;
     const bool indexed = page_offsets && valid_pages;
@@ -1214,6 +1245,7 @@ static bool dnd_storage_rewrite_spellbook_maintenance(
     bool remap_classes,
     uint8_t removed_class) {
     if(!storage || !owner) return false;
+    if(!dnd_storage_recover_spellbook(storage, profile, NULL)) return false;
     char live[DND_FS_PATH_LEN];
     dnd_storage_spellbook_path(live, sizeof(live), profile);
     if(!storage_file_exists(storage, live)) return true;
@@ -1295,8 +1327,8 @@ bool dnd_storage_visit_items_bag(
     DndDolphinsItemRecordVisitor visitor,
     void* context,
     uint16_t* total_count) {
-    if(!storage) return false;
     if(total_count) *total_count = 0U;
+    if(!storage || !dnd_inventory_transaction_recover(storage, profile, NULL)) return false;
     char path[DND_FS_PATH_LEN];
     dnd_storage_items_bag_path(path, sizeof(path), profile, bag);
     if(!storage_file_exists(storage, path)) return true;
@@ -1343,7 +1375,7 @@ bool dnd_storage_visit_items(
 }
 
 bool dnd_storage_items_exist_bag(Storage* storage, uint32_t profile, const char* bag) {
-    if(!storage) return false;
+    if(!storage || !dnd_inventory_transaction_recover(storage, profile, NULL)) return false;
     char path[DND_FS_PATH_LEN];
     dnd_storage_items_bag_path(path, sizeof(path), profile, bag);
     return storage_file_exists(storage, path);
@@ -1354,7 +1386,7 @@ bool dnd_storage_items_exist(Storage* storage, uint32_t profile) {
 }
 
 bool dnd_storage_remove_live_items(Storage* storage, uint32_t profile) {
-    if(!storage) return false;
+    if(!storage || !dnd_inventory_transaction_recover(storage, profile, NULL)) return false;
     char path[DND_FS_PATH_LEN];
     dnd_storage_items_path(path, sizeof(path), profile);
     return !storage_file_exists(storage, path) || storage_common_remove(storage, path) == FSE_OK;
@@ -1380,6 +1412,7 @@ bool dnd_storage_load_inventory_currency(
     if(found) *found = false;
     if(currency) memset(currency, 0, 5U * sizeof(currency[0]));
     if(!storage || !currency) return false;
+    if(!dnd_inventory_transaction_recover(storage, profile, NULL)) return false;
     char path[DND_FS_PATH_LEN];
     dnd_storage_items_path(path, sizeof(path), profile);
     if(!storage_file_exists(storage, path)) return true;
@@ -1411,6 +1444,7 @@ bool dnd_storage_load_inventory_currency(
 bool dnd_storage_inventory_initial_grant_state(Storage* storage, uint32_t profile, uint8_t* state) {
     if(state) *state = 0U;
     if(!storage || !state) return false;
+    if(!dnd_inventory_transaction_recover(storage, profile, NULL)) return false;
     char path[DND_FS_PATH_LEN];
     dnd_storage_items_path(path, sizeof(path), profile);
     if(!storage_file_exists(storage, path)) return true;
@@ -1513,6 +1547,7 @@ bool dnd_storage_create_items_from_assets(
     bool* created) {
     if(created) *created = false;
     if(!storage || !owner || (!assets && asset_count) || !currency_total) return false;
+    if(!dnd_inventory_transaction_recover(storage, profile, NULL)) return false;
     if(dnd_storage_items_exist(storage, profile)) return true;
 
     char live[DND_FS_PATH_LEN];
@@ -1567,6 +1602,7 @@ bool dnd_storage_regrant_items_from_assets(
     if(currency_total) memset(currency_total, 0, 5U * sizeof(currency_total[0]));
     if(applied) *applied = false;
     if(!storage || !owner || (!assets && asset_count) || !currency_total || !applied) return false;
+    if(!dnd_inventory_transaction_recover(storage, profile, NULL)) return false;
 
     char live[DND_FS_PATH_LEN];
     dnd_storage_items_path(live, sizeof(live), profile);
@@ -1671,6 +1707,14 @@ static bool dnd_storage_load_items_window_internal(
     uint8_t* valid_pages) {
     if(!storage || !character || !total_count) return false;
     dnd_data_clear_items(character);
+
+    bool recovered = false;
+    bool ready = dnd_inventory_transaction_recover(storage, profile, &recovered);
+    if(!ready || recovered) {
+        *total_count = 0U;
+        if(valid_pages) *valid_pages = 0U;
+    }
+    if(!ready) return false;
 
     const uint16_t page_index = start / DND_STORAGE_COLLECTION_CACHE_SIZE;
     const bool indexed = page_offsets && valid_pages;
@@ -1796,6 +1840,7 @@ static bool dnd_storage_rewrite_items(
     int32_t delete_index,
     const DndItem* append_item) {
     if(!owner) return false;
+    if(!dnd_inventory_transaction_recover(storage, profile, NULL)) return false;
     int32_t currency[5] = {0, 0, 0, 0, 0};
     bool currency_found = false;
     if(dnd_storage_inventory_bag_is_main(bag) &&
@@ -2033,8 +2078,38 @@ static uint16_t dnd_storage_selected_rank_before(
     return count;
 }
 
-static bool dnd_storage_publish_two_item_snapshots(
+static File* dnd_storage_open_move_snapshot(Storage* storage, const char* path) {
+    File* file = storage_file_alloc(storage);
+    if(!file) return NULL;
+    if(!storage_file_open(file, path, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
+        storage_file_free(file);
+        return NULL;
+    }
+    return file;
+}
+
+static void dnd_storage_refresh_moved_bag_history(
     Storage* storage,
+    uint32_t profile,
+    const DndCharacter* owner,
+    const char* bag,
+    const char* live) {
+    char history[DND_FS_LONG_PATH_LEN];
+    char collection[40] = "items";
+    if(!dnd_storage_inventory_bag_is_main(bag)) {
+        char safe[DND_INVENTORY_BAG_NAME_LEN];
+        dnd_storage_filename_name(safe, sizeof(safe), bag);
+        snprintf(collection, sizeof(collection), "items_%s", safe);
+    }
+    dnd_storage_collection_snapshot_path(history, sizeof(history), profile, owner, collection);
+    // History remains best effort. A failure here cannot turn a committed move
+    // into a retryable failure or change either authoritative live inventory.
+    (void)dnd_storage_copy_file_direct(storage, live, history);
+}
+
+static DndStorageTransferResult dnd_storage_publish_two_item_snapshots(
+    Storage* storage,
+    uint32_t profile,
     File* source_output,
     const char* source_snapshot,
     const char* source_live,
@@ -2044,73 +2119,12 @@ static bool dnd_storage_publish_two_item_snapshots(
     bool success) {
     success = dnd_storage_close_synced_file(source_output, success);
     success = dnd_storage_close_synced_file(destination_output, success);
-    if(!success) return false;
-
-    char source_temp[DND_FS_LONG_PATH_LEN], destination_temp[DND_FS_LONG_PATH_LEN];
-    char source_backup[DND_FS_LONG_PATH_LEN], destination_backup[DND_FS_LONG_PATH_LEN];
-    snprintf(source_temp, sizeof(source_temp), "%s.move.tmp", source_live);
-    snprintf(destination_temp, sizeof(destination_temp), "%s.move.tmp", destination_live);
-    snprintf(source_backup, sizeof(source_backup), "%s.move.bak", source_live);
-    snprintf(destination_backup, sizeof(destination_backup), "%s.move.bak", destination_live);
-
-    (void)storage_common_remove(storage, source_temp);
-    (void)storage_common_remove(storage, destination_temp);
-    if(!dnd_storage_copy_file_direct(storage, source_snapshot, source_temp) ||
-       !dnd_storage_copy_file_direct(storage, destination_snapshot, destination_temp)) {
-        (void)storage_common_remove(storage, source_temp);
-        (void)storage_common_remove(storage, destination_temp);
-        return false;
-    }
-
-    /* Recover stale backups before beginning a new two-file transaction. */
-    if(storage_file_exists(storage, source_backup)) {
-        if(!storage_file_exists(storage, source_live))
-            (void)storage_common_rename(storage, source_backup, source_live);
-        else
-            (void)storage_common_remove(storage, source_backup);
-    }
-    if(storage_file_exists(storage, destination_backup)) {
-        if(!storage_file_exists(storage, destination_live))
-            (void)storage_common_rename(storage, destination_backup, destination_live);
-        else
-            (void)storage_common_remove(storage, destination_backup);
-    }
-
-    bool source_had_live = storage_file_exists(storage, source_live);
-    bool destination_had_live = storage_file_exists(storage, destination_live);
-    if(source_had_live && storage_common_rename(storage, source_live, source_backup) != FSE_OK)
-        return false;
-    if(destination_had_live &&
-       storage_common_rename(storage, destination_live, destination_backup) != FSE_OK) {
-        if(source_had_live) (void)storage_common_rename(storage, source_backup, source_live);
-        return false;
-    }
-
-    bool source_published = storage_common_rename(storage, source_temp, source_live) == FSE_OK;
-    bool destination_published = false;
-    if(source_published)
-        destination_published =
-            storage_common_rename(storage, destination_temp, destination_live) == FSE_OK;
-
-    if(!source_published || !destination_published) {
-        if(storage_file_exists(storage, source_live))
-            (void)storage_common_remove(storage, source_live);
-        if(storage_file_exists(storage, destination_live))
-            (void)storage_common_remove(storage, destination_live);
-        if(source_had_live) (void)storage_common_rename(storage, source_backup, source_live);
-        if(destination_had_live)
-            (void)storage_common_rename(storage, destination_backup, destination_live);
-        (void)storage_common_remove(storage, source_temp);
-        (void)storage_common_remove(storage, destination_temp);
-        return false;
-    }
-
-    if(source_had_live) (void)storage_common_remove(storage, source_backup);
-    if(destination_had_live) (void)storage_common_remove(storage, destination_backup);
-    return true;
+    if(!success) return DndStorageTransferFailed;
+    return dnd_inventory_transaction_publish(
+        storage, profile, source_snapshot, source_live, destination_snapshot, destination_live);
 }
 
-bool dnd_storage_move_items_bag_selected(
+DndStorageTransferResult dnd_storage_move_items_bag_selected(
     Storage* storage,
     uint32_t profile,
     const char* source_bag,
@@ -2122,45 +2136,52 @@ bool dnd_storage_move_items_bag_selected(
     if(moved_count) *moved_count = 0U;
     if(!storage || !owner || !selected_bits || !source_total || !source_bag || !destination_bag ||
        !strcmp(source_bag, destination_bag))
-        return false;
+        return DndStorageTransferFailed;
+
+    // Resolve older intent before reading totals, creating snapshots, or using
+    // the caller's logical selection. A recovered move invalidates those indices.
+    bool recovered = false;
+    if(!dnd_inventory_transaction_recover(storage, profile, &recovered))
+        return DndStorageTransferPending;
+    if(recovered) return DndStorageTransferRecovered;
+
+    char source_live[DND_FS_PATH_LEN], destination_live[DND_FS_PATH_LEN];
+    char source_snapshot[DND_FS_LONG_PATH_LEN], destination_snapshot[DND_FS_LONG_PATH_LEN];
+    dnd_storage_items_bag_path(source_live, sizeof(source_live), profile, source_bag);
+    dnd_storage_items_bag_path(destination_live, sizeof(destination_live), profile, destination_bag);
+    // FAT is case insensitive; different labels may also sanitize to one path.
+    // Reject before a duplicate open can wait forever or an input is truncated.
+    if(!strcasecmp(source_live, destination_live)) return DndStorageTransferFailed;
+    int source_length =
+        snprintf(source_snapshot, sizeof(source_snapshot), "%s.move.write", source_live);
+    int destination_length = snprintf(
+        destination_snapshot, sizeof(destination_snapshot), "%s.move.write", destination_live);
+    if(source_length <= 0 || (size_t)source_length >= sizeof(source_snapshot) ||
+       destination_length <= 0 || (size_t)destination_length >= sizeof(destination_snapshot) ||
+       !strcasecmp(source_snapshot, destination_snapshot))
+        return DndStorageTransferFailed;
 
     uint16_t selected_count =
         dnd_storage_selected_rank_before(selected_bits, source_total, source_total);
-    if(!selected_count) return false;
+    if(!selected_count) return DndStorageTransferFailed;
     if(!dnd_storage_ensure_items_bag_sidecar(storage, profile, source_bag) ||
        !dnd_storage_ensure_items_bag_sidecar(storage, profile, destination_bag))
-        return false;
+        return DndStorageTransferFailed;
 
     uint16_t destination_total = 0U;
     if(!dnd_storage_visit_items_bag(
            storage, profile, destination_bag, NULL, NULL, &destination_total))
-        return false;
-    if((uint32_t)destination_total + selected_count > UINT16_MAX) return false;
+        return DndStorageTransferFailed;
+    if((uint32_t)destination_total + selected_count > UINT16_MAX) return DndStorageTransferFailed;
 
-    char source_live[DND_FS_PATH_LEN], source_snapshot[DND_FS_PATH_LEN];
-    char destination_live[DND_FS_PATH_LEN], destination_snapshot[DND_FS_PATH_LEN];
-    File* source_output = dnd_storage_open_items_bag_snapshot(
-        storage,
-        profile,
-        owner,
-        source_bag,
-        source_snapshot,
-        sizeof(source_snapshot),
-        source_live,
-        sizeof(source_live));
-    if(!source_output) return false;
-    File* destination_output = dnd_storage_open_items_bag_snapshot(
-        storage,
-        profile,
-        owner,
-        destination_bag,
-        destination_snapshot,
-        sizeof(destination_snapshot),
-        destination_live,
-        sizeof(destination_live));
+    // Compose privately: an uncommitted transfer must not replace a usable SHD
+    // history snapshot, including when a destination bag did not previously exist.
+    File* source_output = dnd_storage_open_move_snapshot(storage, source_snapshot);
+    if(!source_output) return DndStorageTransferFailed;
+    File* destination_output = dnd_storage_open_move_snapshot(storage, destination_snapshot);
     if(!destination_output) {
         dnd_storage_close_synced_file(source_output, false);
-        return false;
+        return DndStorageTransferFailed;
     }
 
     uint64_t copied_size = 0U;
@@ -2273,8 +2294,9 @@ bool dnd_storage_move_items_bag_selected(
     }
     free(line);
 
-    success = dnd_storage_publish_two_item_snapshots(
+    DndStorageTransferResult result = dnd_storage_publish_two_item_snapshots(
         storage,
+        profile,
         source_output,
         source_snapshot,
         source_live,
@@ -2282,8 +2304,15 @@ bool dnd_storage_move_items_bag_selected(
         destination_snapshot,
         destination_live,
         success);
-    if(success && moved_count) *moved_count = selected_count;
-    return success;
+    if(result == DndStorageTransferComplete) {
+        if(moved_count) *moved_count = selected_count;
+        dnd_storage_refresh_moved_bag_history(storage, profile, owner, source_bag, source_live);
+        dnd_storage_refresh_moved_bag_history(
+            storage, profile, owner, destination_bag, destination_live);
+        (void)storage_common_remove(storage, source_snapshot);
+        (void)storage_common_remove(storage, destination_snapshot);
+    }
+    return result;
 }
 
 bool dnd_storage_delete_item(
@@ -2350,6 +2379,7 @@ static bool dnd_storage_inventory_read_bag_name(
 
 uint8_t dnd_storage_inventory_bag_count(Storage* storage, uint32_t profile) {
     if(!storage) return 2U;
+    if(!dnd_inventory_transaction_recover(storage, profile, NULL)) return 0U;
     uint8_t count = 2U;
     File* directory = storage_file_alloc(storage);
     if(!directory || !storage_dir_open(directory, DND_STORAGE_DATA_DIR)) {
@@ -2376,6 +2406,7 @@ bool dnd_storage_inventory_bag_at(
     char* name,
     size_t size) {
     if(!name || !size) return false;
+    if(!dnd_inventory_transaction_recover(storage, profile, NULL)) return false;
     if(index == 0U) {
         dnd_storage_copy(name, size, "Main");
         return true;
@@ -2412,6 +2443,7 @@ bool dnd_storage_inventory_bag_at(
 bool dnd_storage_inventory_bag_create(Storage* storage, uint32_t profile, const char* name) {
     if(!storage || !name || !name[0] || !strcmp(name, "Main") || !strcmp(name, "Group"))
         return false;
+    if(!dnd_inventory_transaction_recover(storage, profile, NULL)) return false;
     for(const char* p = name; *p; ++p)
         if(*p == '\n' || *p == '\r' || *p == '=') return false;
     char path[DND_FS_PATH_LEN];
@@ -2424,6 +2456,7 @@ bool dnd_storage_inventory_bag_delete(Storage* storage, uint32_t profile, const 
     if(!storage || !name || dnd_storage_inventory_bag_is_main(name) ||
        dnd_storage_inventory_bag_is_group(name))
         return false;
+    if(!dnd_inventory_transaction_recover(storage, profile, NULL)) return false;
     char path[DND_FS_PATH_LEN];
     dnd_storage_items_bag_path(path, sizeof(path), profile, name);
     return storage_file_exists(storage, path) && storage_common_remove(storage, path) == FSE_OK;
@@ -3279,6 +3312,7 @@ static bool dnd_storage_refresh_level_sidecars_fields(
     const char* character_name,
     uint8_t level) {
     if(!storage) return false;
+    if(!dnd_storage_recover_profile_collections(storage, profile)) return false;
     const char* live_kinds[] = {
         "spellbook", "items", "feats", "appliedgrants", "languages", "proficiencies"};
     const char* shd_suffixes[] = {
@@ -3320,6 +3354,7 @@ static bool dnd_storage_save_profile_internal(
     bool update_history) {
     furi_assert(storage);
     furi_assert(data);
+    if(!dnd_storage_recover_profile_collections(storage, profile)) return false;
     storage_common_mkdir(storage, DND_STORAGE_DATA_DIR);
     char old_path[DND_FS_PATH_LEN] = {0};
     char new_path[DND_FS_PATH_LEN];
@@ -3437,6 +3472,7 @@ bool dnd_storage_load_profile(
     furi_assert(storage);
     furi_assert(data);
     if(recovered_backup) *recovered_backup = false;
+    if(!dnd_storage_recover_profile_collections(storage, profile)) return false;
     char path[DND_FS_PATH_LEN];
     char backup_path[DND_FS_PATH_LEN];
     bool primary_found = dnd_storage_find_profile_path(storage, profile, path, sizeof(path));
@@ -3658,6 +3694,7 @@ static bool dnd_storage_restore_archived_inventory_bags(Storage* storage, uint32
 }
 
 bool dnd_storage_delete_profile(Storage* storage, uint32_t profile) {
+    if(!dnd_storage_recover_profile_collections(storage, profile)) return false;
     char path[DND_FS_PATH_LEN];
     char temp_path[DND_FS_PATH_LEN];
     char backup_path[DND_FS_PATH_LEN];
@@ -3732,6 +3769,9 @@ static bool dnd_storage_copy_file(
 }
 
 bool dnd_storage_duplicate_profile(Storage* storage, uint32_t source, uint32_t destination) {
+    if(!dnd_storage_recover_profile_collections(storage, source) ||
+       !dnd_storage_recover_profile_collections(storage, destination))
+        return false;
     char source_path[DND_FS_PATH_LEN];
     if(!dnd_storage_find_profile_path(storage, source, source_path, sizeof(source_path)))
         return false;
@@ -3774,6 +3814,7 @@ bool dnd_storage_duplicate_profile(Storage* storage, uint32_t source, uint32_t d
 }
 
 bool dnd_storage_archive_profile(Storage* storage, uint32_t profile) {
+    if(!dnd_storage_recover_profile_collections(storage, profile)) return false;
     char source_path[DND_FS_PATH_LEN];
     if(!dnd_storage_find_profile_path(storage, profile, source_path, sizeof(source_path)))
         return false;
@@ -3900,6 +3941,7 @@ bool dnd_storage_validate_profile_semantics(Storage* storage, uint32_t profile) 
 }
 
 bool dnd_storage_recover_profile_backup(Storage* storage, uint32_t profile, DndSaveData* data) {
+    if(!dnd_storage_recover_profile_collections(storage, profile)) return false;
     char backup_path[DND_FS_PATH_LEN];
     char primary_path[DND_FS_PATH_LEN];
     char rejected_path[DND_FS_PATH_LEN];
@@ -4150,6 +4192,7 @@ static bool dnd_storage_restore_shd_internal(
     const char* core_snapshot,
     DndSaveData* data) {
     if(!storage || !data || !core_snapshot || level < 1U || level > 20U) return false;
+    if(!dnd_storage_recover_profile_collections(storage, profile)) return false;
     DndShdRestoreContext* context = calloc(1U, sizeof(DndShdRestoreContext));
     if(!context) return false;
     bool success = false;
