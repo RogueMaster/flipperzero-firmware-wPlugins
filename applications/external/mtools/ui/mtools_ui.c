@@ -108,7 +108,11 @@ static void mtools_draw_detail(Canvas* canvas, MToolsApp* app) {
         const bool long_uid = app->magic_uid_len > 8;
         char line[32];
         if(app->magic_protocol == 1) {
-            snprintf(line, sizeof(line), "%s", mtools_iso15_chip_name(app->magic_uid, app->magic_uid_len));
+            snprintf(
+                line,
+                sizeof(line),
+                "%s",
+                mtools_iso15_chip_name(app->magic_uid, app->magic_uid_len));
         } else if(app->magic_type2) {
             snprintf(line, sizeof(line), "Ultralight / NTAG");
         } else if(app->magic_sak == 0x08) {
@@ -131,8 +135,13 @@ static void mtools_draw_detail(Canvas* canvas, MToolsApp* app) {
             canvas_draw_str(canvas, 3, 38, line);
         }
         if(app->magic_protocol != 1) {
-            snprintf(line, sizeof(line), "SAK: %02X ATQA: %02X%02X", app->magic_sak,
-                     app->magic_atqa[0], app->magic_atqa[1]);
+            snprintf(
+                line,
+                sizeof(line),
+                "SAK: %02X ATQA: %02X%02X",
+                app->magic_sak,
+                app->magic_atqa[0],
+                app->magic_atqa[1]);
             canvas_draw_str(canvas, 3, long_uid ? 46 : 44, line);
         } else {
             snprintf(
@@ -147,14 +156,30 @@ static void mtools_draw_detail(Canvas* canvas, MToolsApp* app) {
         canvas_set_font(canvas, FontSecondary);
         const char* magic_name = "Unconfirmed";
         switch(app->scan_status) {
-        case 3: magic_name = "ISO15 GEN2"; break;
-        case 4: magic_name = "ISO15 GEN1"; break;
-        case 5: magic_name = "ISO15 GEN3"; break;
-        case 7: magic_name = "MFC GEN1 - UID"; break;
-        case 8: magic_name = "MFC GEN2 - CUID"; break;
-        case 9: magic_name = "MFC GEN3 - APDU"; break;
-        case 10: magic_name = "MFC GEN4 - UMC"; break;
-        case 11: magic_name = "MFC GDM - USCUID"; break;
+        case 3:
+            magic_name = "ISO15 GEN2";
+            break;
+        case 4:
+            magic_name = "ISO15 GEN1";
+            break;
+        case 5:
+            magic_name = "ISO15 GEN3";
+            break;
+        case 7:
+            magic_name = "MFC GEN1 - UID";
+            break;
+        case 8:
+            magic_name = "MFC GEN2 - CUID";
+            break;
+        case 9:
+            magic_name = "MFC GEN3 - APDU";
+            break;
+        case 10:
+            magic_name = "MFC GEN4 - UMC";
+            break;
+        case 11:
+            magic_name = "MFC GDM - USCUID";
+            break;
         }
         if(app->magic_detecting) {
             canvas_draw_rframe(canvas, 2, 49, 124, 14, 3);

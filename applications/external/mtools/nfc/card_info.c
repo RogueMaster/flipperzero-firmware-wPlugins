@@ -26,10 +26,14 @@ const char* mtools_iso15_chip_name(const uint8_t* uid, size_t uid_len) {
     if(uid[1] == 0x04) {
         if(uid[2] == 0x01) {
             switch(uid[3] & 0x18) {
-            case 0x00: return "ICODE SLI";
-            case 0x10: return "ICODE SLIX";
-            case 0x08: return "ICODE SLIX2";
-            default: return "NXP ISO15";
+            case 0x00:
+                return "ICODE SLI";
+            case 0x10:
+                return "ICODE SLIX";
+            case 0x08:
+                return "ICODE SLIX2";
+            default:
+                return "NXP ISO15";
             }
         }
         if(uid[2] == 0x02) return (uid[3] & 0x10) ? "ICODE SLIX-S" : "ICODE SLI-S";
@@ -37,8 +41,7 @@ const char* mtools_iso15_chip_name(const uint8_t* uid, size_t uid_len) {
         return "NXP ISO15";
     }
     if(uid[1] == 0x07) {
-        if((uid[2] & 0xF0) == 0x00 || (uid[2] & 0xF0) == 0x10 ||
-           (uid[2] & 0xF8) == 0x80)
+        if((uid[2] & 0xF0) == 0x00 || (uid[2] & 0xF0) == 0x10 || (uid[2] & 0xF8) == 0x80)
             return "Tag-it HF-I PLUS";
         if((uid[2] & 0xFC) == 0xC4) return "Tag-it HF-I Pro";
         if((uid[2] & 0xF8) == 0xC0) return "Tag-it HF-I Std";

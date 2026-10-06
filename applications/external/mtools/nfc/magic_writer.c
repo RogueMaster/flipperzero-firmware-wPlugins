@@ -56,22 +56,33 @@ typedef struct {
 } MfcGdmBridge;
 
 static bool mfc_gdm_crypto_ack(
-    Iso14443_3aPoller* poller, Crypto1* crypto,
-    BitBuffer* plain, BitBuffer* encrypted, BitBuffer* response, BitBuffer* decrypted,
-    const uint8_t* command, size_t length) {
+    Iso14443_3aPoller* poller,
+    Crypto1* crypto,
+    BitBuffer* plain,
+    BitBuffer* encrypted,
+    BitBuffer* response,
+    BitBuffer* decrypted,
+    const uint8_t* command,
+    size_t length) {
     bit_buffer_copy_bytes(plain, command, length);
     iso14443_crc_append(Iso14443CrcTypeA, plain);
     crypto1_encrypt(crypto, NULL, plain, encrypted);
     bit_buffer_reset(response);
     if(iso14443_3a_poller_txrx_custom_parity(poller, encrypted, response, 1356000U) !=
-           Iso14443_3aErrorNone || bit_buffer_get_size(response) != 4) return false;
+           Iso14443_3aErrorNone ||
+       bit_buffer_get_size(response) != 4)
+        return false;
     crypto1_decrypt(crypto, response, decrypted);
     return (bit_buffer_get_byte(decrypted, 0) & 0x0F) == 0x0A;
 }
 
 static bool mfc_gdm_crypto_read_config(
-    Iso14443_3aPoller* poller, Crypto1* crypto,
-    BitBuffer* plain, BitBuffer* encrypted, BitBuffer* response, BitBuffer* decrypted,
+    Iso14443_3aPoller* poller,
+    Crypto1* crypto,
+    BitBuffer* plain,
+    BitBuffer* encrypted,
+    BitBuffer* response,
+    BitBuffer* decrypted,
     uint8_t config[16]) {
     const uint8_t command[2] = {0xE0, 0x00};
     bit_buffer_copy_bytes(plain, command, sizeof(command));
@@ -79,7 +90,9 @@ static bool mfc_gdm_crypto_read_config(
     crypto1_encrypt(crypto, NULL, plain, encrypted);
     bit_buffer_reset(response);
     if(iso14443_3a_poller_txrx_custom_parity(poller, encrypted, response, 1356000U) !=
-           Iso14443_3aErrorNone || bit_buffer_get_size_bytes(response) != 18) return false;
+           Iso14443_3aErrorNone ||
+       bit_buffer_get_size_bytes(response) != 18)
+        return false;
     crypto1_decrypt(crypto, response, decrypted);
     if(!iso14443_crc_check(Iso14443CrcTypeA, decrypted)) return false;
     iso14443_crc_trim(decrypted);
@@ -103,8 +116,9 @@ static NfcCommand mfc_gdm_bridge_callback(NfcGenericEvent event, void* context) 
         bit_buffer_copy_bytes(plain, auth_command, sizeof(auth_command));
         iso14443_crc_append(Iso14443CrcTypeA, plain);
         bit_buffer_reset(response);
-        if(iso14443_3a_poller_txrx(poller, plain, response, 1356000U) !=
-               Iso14443_3aErrorNone || bit_buffer_get_size_bytes(response) != 4) break;
+        if(iso14443_3a_poller_txrx(poller, plain, response, 1356000U) != Iso14443_3aErrorNone ||
+           bit_buffer_get_size_bytes(response) != 4)
+            break;
         uint8_t nonce[4];
         bit_buffer_write_bytes(response, nonce, sizeof(nonce));
         uint8_t reader_nonce[4];
@@ -114,11 +128,13 @@ static NfcCommand mfc_gdm_bridge_callback(NfcGenericEvent event, void* context) 
             crypto, 0, iso14443_3a_get_cuid(card), nonce, reader_nonce, encrypted, false);
         bit_buffer_reset(response);
         if(iso14443_3a_poller_txrx_custom_parity(poller, encrypted, response, 1356000U) !=
-               Iso14443_3aErrorNone || bit_buffer_get_size_bytes(response) != 4) break;
+               Iso14443_3aErrorNone ||
+           bit_buffer_get_size_bytes(response) != 4)
+            break;
         crypto1_word(crypto, 0, 0);
         if(!mfc_gdm_crypto_read_config(
-               poller, crypto, plain, encrypted, response, decrypted,
-               bridge->original_config)) break;
+               poller, crypto, plain, encrypted, response, decrypted, bridge->original_config))
+            break;
         uint8_t temporary_config[16];
         memcpy(temporary_config, bridge->original_config, 16);
         temporary_config[0] = 0x7A;
@@ -126,15 +142,29 @@ static NfcCommand mfc_gdm_bridge_callback(NfcGenericEvent event, void* context) 
         if(memcmp(temporary_config, bridge->original_config, 16) != 0) {
             const uint8_t write_config[2] = {0xE1, 0x00};
             if(!mfc_gdm_crypto_ack(
-                   poller, crypto, plain, encrypted, response, decrypted,
-                   write_config, sizeof(write_config)) ||
+                   poller,
+                   crypto,
+                   plain,
+                   encrypted,
+                   response,
+                   decrypted,
+                   write_config,
+                   sizeof(write_config)) ||
                !mfc_gdm_crypto_ack(
-                   poller, crypto, plain, encrypted, response, decrypted,
-                   temporary_config, sizeof(temporary_config))) break;
+                   poller,
+                   crypto,
+                   plain,
+                   encrypted,
+                   response,
+                   decrypted,
+                   temporary_config,
+                   sizeof(temporary_config)))
+                break;
             uint8_t observed[16];
             if(!mfc_gdm_crypto_read_config(
                    poller, crypto, plain, encrypted, response, decrypted, observed) ||
-               memcmp(observed, temporary_config, 16) != 0) break;
+               memcmp(observed, temporary_config, 16) != 0)
+                break;
         }
         bridge->success = true;
     } while(false);
@@ -152,8 +182,8 @@ static bool mfc_gdm_open_wakeup(Nfc* nfc, uint8_t original_config[16]) {
     NfcPoller* poller = nfc_poller_alloc(nfc, NfcProtocolIso14443_3a);
     bridge.poller = poller;
     nfc_poller_start(poller, mfc_gdm_bridge_callback, &bridge);
-    bool completed = furi_semaphore_acquire(
-        bridge.complete, furi_ms_to_ticks(2000)) == FuriStatusOk;
+    bool completed = furi_semaphore_acquire(bridge.complete, furi_ms_to_ticks(2000)) ==
+                     FuriStatusOk;
     nfc_poller_stop(poller);
     nfc_poller_free(poller);
     furi_semaphore_free(bridge.complete);
@@ -162,8 +192,13 @@ static bool mfc_gdm_open_wakeup(Nfc* nfc, uint8_t original_config[16]) {
 }
 
 static bool mfc_raw_ack(
-    Iso14443_3aPoller* poller, BitBuffer* tx, BitBuffer* rx,
-    const uint8_t* command, size_t length, bool append_crc, bool short_frame) {
+    Iso14443_3aPoller* poller,
+    BitBuffer* tx,
+    BitBuffer* rx,
+    const uint8_t* command,
+    size_t length,
+    bool append_crc,
+    bool short_frame) {
     bit_buffer_copy_bytes(tx, command, length);
     if(short_frame) bit_buffer_set_size(tx, 7);
     if(append_crc) iso14443_crc_append(Iso14443CrcTypeA, tx);
@@ -173,8 +208,12 @@ static bool mfc_raw_ack(
 }
 
 static bool mfc_gen3_command(
-    Iso14443_3aPoller* poller, BitBuffer* tx, BitBuffer* rx,
-    const uint8_t* command, size_t length, uint32_t timeout_cycles) {
+    Iso14443_3aPoller* poller,
+    BitBuffer* tx,
+    BitBuffer* rx,
+    const uint8_t* command,
+    size_t length,
+    uint32_t timeout_cycles) {
     bit_buffer_copy_bytes(tx, command, length);
     /* Gen3 status is a bare 90 00 response; it has no ISO14443-A CRC. */
     iso14443_crc_append(Iso14443CrcTypeA, tx);
@@ -184,8 +223,8 @@ static bool mfc_gen3_command(
            bit_buffer_get_byte(rx, 0) == 0x90 && bit_buffer_get_byte(rx, 1) == 0x00;
 }
 
-static bool mfc_gdm_wakeup(
-    Iso14443_3aPoller* poller, BitBuffer* tx, BitBuffer* rx, uint8_t first) {
+static bool
+    mfc_gdm_wakeup(Iso14443_3aPoller* poller, BitBuffer* tx, BitBuffer* rx, uint8_t first) {
     iso14443_3a_poller_halt(poller);
     const uint8_t second = first == 0x20 ? 0x23 : 0x43;
     return mfc_raw_ack(poller, tx, rx, &first, 1, false, true) &&
@@ -193,20 +232,29 @@ static bool mfc_gdm_wakeup(
 }
 
 static bool mfc_gdm_read_active(
-    Iso14443_3aPoller* poller, BitBuffer* tx, BitBuffer* rx,
-    uint8_t command, uint8_t block, uint8_t data[16]) {
+    Iso14443_3aPoller* poller,
+    BitBuffer* tx,
+    BitBuffer* rx,
+    uint8_t command,
+    uint8_t block,
+    uint8_t data[16]) {
     const uint8_t request[2] = {command, block};
     bit_buffer_copy_bytes(tx, request, sizeof(request));
     bit_buffer_reset(rx);
-    if(iso14443_3a_poller_send_standard_frame(poller, tx, rx, 1356000U) !=
-           Iso14443_3aErrorNone || bit_buffer_get_size_bytes(rx) != 16) return false;
+    if(iso14443_3a_poller_send_standard_frame(poller, tx, rx, 1356000U) != Iso14443_3aErrorNone ||
+       bit_buffer_get_size_bytes(rx) != 16)
+        return false;
     memcpy(data, bit_buffer_get_data(rx), 16);
     return true;
 }
 
 static bool mfc_gdm_write_active(
-    Iso14443_3aPoller* poller, BitBuffer* tx, BitBuffer* rx,
-    uint8_t command, const uint8_t data[16], uint8_t read_command) {
+    Iso14443_3aPoller* poller,
+    BitBuffer* tx,
+    BitBuffer* rx,
+    uint8_t command,
+    const uint8_t data[16],
+    uint8_t read_command) {
     const uint8_t request[2] = {command, 0};
     uint8_t observed[16];
     return mfc_raw_ack(poller, tx, rx, request, sizeof(request), true, false) &&
@@ -216,8 +264,11 @@ static bool mfc_gdm_write_active(
 }
 
 static bool mfc_gen4_command(
-    Iso14443_3aPoller* poller, BitBuffer* tx, BitBuffer* rx,
-    const uint8_t* command, size_t length) {
+    Iso14443_3aPoller* poller,
+    BitBuffer* tx,
+    BitBuffer* rx,
+    const uint8_t* command,
+    size_t length) {
     bit_buffer_copy_bytes(tx, command, length);
     iso14443_crc_append(Iso14443CrcTypeA, tx);
     bit_buffer_reset(rx);
@@ -245,7 +296,8 @@ static NfcCommand mfc_gen4_readback_callback(NfcGenericEvent event, void* contex
     const uint8_t read_block0[7] = {0xCF, 0, 0, 0, 0, 0xCE, 0x00};
     bit_buffer_copy_bytes(tx, read_block0, sizeof(read_block0));
     readback->success = iso14443_3a_poller_send_standard_frame(poller, tx, rx, 1356000U) ==
-                            Iso14443_3aErrorNone && bit_buffer_get_size_bytes(rx) == 16;
+                            Iso14443_3aErrorNone &&
+                        bit_buffer_get_size_bytes(rx) == 16;
     if(readback->success) memcpy(readback->block0, bit_buffer_get_data(rx), 16);
     bit_buffer_free(rx);
     bit_buffer_free(tx);
@@ -257,7 +309,8 @@ static bool mfc_gen4_read_block0(Nfc* nfc, uint8_t block0[16]) {
     MfcGen4Readback readback = {.complete = furi_semaphore_alloc(1, 0)};
     NfcPoller* poller = nfc_poller_alloc(nfc, NfcProtocolIso14443_3a);
     nfc_poller_start(poller, mfc_gen4_readback_callback, &readback);
-    bool completed = furi_semaphore_acquire(readback.complete, furi_ms_to_ticks(1500)) == FuriStatusOk;
+    bool completed = furi_semaphore_acquire(readback.complete, furi_ms_to_ticks(1500)) ==
+                     FuriStatusOk;
     nfc_poller_stop(poller);
     nfc_poller_free(poller);
     furi_semaphore_free(readback.complete);
@@ -316,24 +369,33 @@ static NfcCommand mfc_raw_write_callback(NfcGenericEvent event, void* context) {
         uint8_t set_mode[7] = {0xCF, 0, 0, 0, 0, 0x69, 0};
         uint8_t set_length[7] = {0xCF, 0, 0, 0, 0, 0x68, target_length};
         uint8_t set_identity[9] = {
-            0xCF, 0, 0, 0, 0, 0x35,
-            write->block0[sak_offset + 1], write->block0[sak_offset + 2], sak};
+            0xCF,
+            0,
+            0,
+            0,
+            0,
+            0x35,
+            write->block0[sak_offset + 1],
+            write->block0[sak_offset + 2],
+            sak};
         uint8_t set_capacity[7] = {0xCF, 0, 0, 0, 0, 0x6B, max_block};
         uint8_t set_block0[23] = {0xCF, 0, 0, 0, 0, 0xCD, 0x00};
         memcpy(set_block0 + 7, write->block0, 16);
-        if(config[0] != 0 && !(success = mfc_gen4_command(poller, tx, rx, set_mode, sizeof(set_mode))))
+        if(config[0] != 0 &&
+           !(success = mfc_gen4_command(poller, tx, rx, set_mode, sizeof(set_mode))))
             write->gen4_failure = 2;
         if(success && config[1] != target_length &&
            !(success = mfc_gen4_command(poller, tx, rx, set_length, sizeof(set_length))))
             write->gen4_failure = 3;
-        if(success && (config[24] != set_identity[6] || config[25] != set_identity[7] ||
-                       config[26] != sak) &&
+        if(success &&
+           (config[24] != set_identity[6] || config[25] != set_identity[7] || config[26] != sak) &&
            !(success = mfc_gen4_command(poller, tx, rx, set_identity, sizeof(set_identity))))
             write->gen4_failure = 4;
         if(success && config[28] != max_block &&
            !(success = mfc_gen4_command(poller, tx, rx, set_capacity, sizeof(set_capacity))))
             write->gen4_failure = 5;
-        if(success && !(success = mfc_gen4_command(poller, tx, rx, set_block0, sizeof(set_block0))))
+        if(success &&
+           !(success = mfc_gen4_command(poller, tx, rx, set_block0, sizeof(set_block0))))
             write->gen4_failure = 6;
     } else if(write->gen == MagicGenMfcGdm) {
         /* GDM/USCUID uses wakeup, public block 0, hidden block 0 and E1 config.
@@ -375,11 +437,12 @@ static NfcCommand mfc_raw_write_callback(NfcGenericEvent event, void* context) {
         }
         if(success) {
             uint8_t final_config[16];
-            memcpy(final_config,
-                   write->gdm_bridged ? write->gdm_original_config : config, 16);
-            final_config[9] = write->uid_len == 4 ? 0x00 :
-                (config[9] == 0x5A || config[9] == 0xC3 || config[9] == 0xA5 ?
-                     config[9] : 0x5A);
+            memcpy(final_config, write->gdm_bridged ? write->gdm_original_config : config, 16);
+            final_config[9] = write->uid_len == 4 ?
+                                  0x00 :
+                                  (config[9] == 0x5A || config[9] == 0xC3 || config[9] == 0xA5 ?
+                                       config[9] :
+                                       0x5A);
             if(memcmp(final_config, config, 16) != 0) {
                 success = mfc_gdm_wakeup(poller, tx, rx, first) &&
                           mfc_gdm_write_active(poller, tx, rx, 0xE1, final_config, 0xE0);
@@ -395,7 +458,10 @@ static NfcCommand mfc_raw_write_callback(NfcGenericEvent event, void* context) {
 }
 
 static bool write_mfc_raw(
-    Nfc* nfc, MagicGenType gen, const uint8_t* uid, size_t uid_len,
+    Nfc* nfc,
+    MagicGenType gen,
+    const uint8_t* uid,
+    size_t uid_len,
     const uint8_t* edited_block0) {
     if(uid_len != 4 && uid_len != 7) {
         snprintf(magic_write_error, sizeof(magic_write_error), "MFC 4/7B only");
@@ -406,20 +472,24 @@ static bool write_mfc_raw(
         return false;
     }
     uint8_t gen4_config[30] = {0};
-    bool detected = gen == MagicGenMfcGen4 ?
-        mtools_mfc_gen4_read_config(nfc, gen4_config) : mtools_detect_magic_tag(nfc, gen);
+    bool detected = gen == MagicGenMfcGen4 ? mtools_mfc_gen4_read_config(nfc, gen4_config) :
+                                             mtools_detect_magic_tag(nfc, gen);
     if(!detected) {
         snprintf(magic_write_error, sizeof(magic_write_error), "Wrong magic type");
         return false;
     }
     MfcRawWrite write = {
-        .complete = furi_semaphore_alloc(1, 0), .gen = gen, .uid_len = uid_len,
+        .complete = furi_semaphore_alloc(1, 0),
+        .gen = gen,
+        .uid_len = uid_len,
         .wakeup_first = 0x40};
     if(gen == MagicGenMfcGen4) memcpy(write.gen4_config, gen4_config, sizeof(gen4_config));
     memcpy(write.uid, uid, uid_len);
     if(edited_block0) memcpy(write.block0, edited_block0, 16);
-    if(uid_len == 4) mtools_mfc_prepare_block0(write.block0, uid);
-    else memcpy(write.block0, uid, uid_len);
+    if(uid_len == 4)
+        mtools_mfc_prepare_block0(write.block0, uid);
+    else
+        memcpy(write.block0, uid, uid_len);
     if(gen == MagicGenMfcGdm) {
         /* GDM's public block 0 has a different seven-byte layout from UMC. */
         memset(write.block0, 0, sizeof(write.block0));
@@ -443,14 +513,15 @@ static bool write_mfc_raw(
         }
         /* Keep the selected Classic profile consistent in both config and block 0. */
         write.block0[sak_offset + 1] = uid_len == 7 ? (sak == 0x18 ? 0x42 : 0x44) :
-                                                       (sak == 0x18 ? 0x02 : 0x04);
+                                                      (sak == 0x18 ? 0x02 : 0x04);
         write.block0[sak_offset + 2] = 0x00;
     }
     NfcPoller* poller = nfc_poller_alloc(nfc, NfcProtocolIso14443_3a);
     write.poller = poller;
     nfc_poller_start(poller, mfc_raw_write_callback, &write);
     bool completed = furi_semaphore_acquire(
-        write.complete, furi_ms_to_ticks(gen == MagicGenMfcGen4 ? 8000 : 4000)) == FuriStatusOk;
+                         write.complete, furi_ms_to_ticks(gen == MagicGenMfcGen4 ? 8000 : 4000)) ==
+                     FuriStatusOk;
     nfc_poller_stop(poller);
     nfc_poller_free(poller);
     if(gen == MagicGenMfcGdm && completed && !write.success && write.gdm_failure == 1) {
@@ -463,8 +534,8 @@ static bool write_mfc_raw(
             poller = nfc_poller_alloc(nfc, NfcProtocolIso14443_3a);
             write.poller = poller;
             nfc_poller_start(poller, mfc_raw_write_callback, &write);
-            completed = furi_semaphore_acquire(
-                write.complete, furi_ms_to_ticks(4000)) == FuriStatusOk;
+            completed = furi_semaphore_acquire(write.complete, furi_ms_to_ticks(4000)) ==
+                        FuriStatusOk;
             nfc_poller_stop(poller);
             nfc_poller_free(poller);
         } else {
@@ -473,21 +544,24 @@ static bool write_mfc_raw(
     }
     furi_semaphore_free(write.complete);
     if(!completed || !write.success) {
-        snprintf(magic_write_error, sizeof(magic_write_error), "%s",
-                 write.length_mismatch ? "UID length differs" :
-                 gen == MagicGenMfcGen3 && write.gen3_failure == 1 ? "Gen3 UID rejected" :
-                 gen == MagicGenMfcGen3 && write.gen3_failure == 2 ? "Gen3 B0 rejected" :
-                 gen == MagicGenMfcGen4 && write.gen4_failure == 2 ? "Gen4 MFC mode" :
-                 gen == MagicGenMfcGen4 && write.gen4_failure == 3 ? "Gen4 UID length" :
-                 gen == MagicGenMfcGen4 && write.gen4_failure == 4 ? "Gen4 ATQA/SAK" :
-                 gen == MagicGenMfcGen4 && write.gen4_failure == 5 ? "Gen4 capacity" :
-                 gen == MagicGenMfcGen4 && write.gen4_failure == 6 ? "Gen4 block0" :
-                 gen == MagicGenMfcGdm && write.gdm_failure == 1 ? "GDM wakeup unavailable" :
-                 gen == MagicGenMfcGdm && write.gdm_failure == 2 ? "GDM hidden B0" :
-                 gen == MagicGenMfcGdm && write.gdm_failure == 3 ? "GDM public B0" :
-                 gen == MagicGenMfcGdm && write.gdm_failure == 4 ? "GDM config" :
-                 gen == MagicGenMfcGdm && write.gdm_failure == 5 ? "GDM auth/bridge fail" :
-                 "Write failed");
+        snprintf(
+            magic_write_error,
+            sizeof(magic_write_error),
+            "%s",
+            write.length_mismatch                             ? "UID length differs" :
+            gen == MagicGenMfcGen3 && write.gen3_failure == 1 ? "Gen3 UID rejected" :
+            gen == MagicGenMfcGen3 && write.gen3_failure == 2 ? "Gen3 B0 rejected" :
+            gen == MagicGenMfcGen4 && write.gen4_failure == 2 ? "Gen4 MFC mode" :
+            gen == MagicGenMfcGen4 && write.gen4_failure == 3 ? "Gen4 UID length" :
+            gen == MagicGenMfcGen4 && write.gen4_failure == 4 ? "Gen4 ATQA/SAK" :
+            gen == MagicGenMfcGen4 && write.gen4_failure == 5 ? "Gen4 capacity" :
+            gen == MagicGenMfcGen4 && write.gen4_failure == 6 ? "Gen4 block0" :
+            gen == MagicGenMfcGdm && write.gdm_failure == 1   ? "GDM wakeup unavailable" :
+            gen == MagicGenMfcGdm && write.gdm_failure == 2   ? "GDM hidden B0" :
+            gen == MagicGenMfcGdm && write.gdm_failure == 3   ? "GDM public B0" :
+            gen == MagicGenMfcGdm && write.gdm_failure == 4   ? "GDM config" :
+            gen == MagicGenMfcGdm && write.gdm_failure == 5   ? "GDM auth/bridge fail" :
+                                                                "Write failed");
         return false;
     }
     furi_delay_ms(80);
@@ -515,13 +589,11 @@ static bool write_mfc_raw(
         uint8_t observed[16];
         const uint8_t expected_length = uid_len == 7 ? 1 : 0;
         const uint8_t expected_max = write.block0[sak_offset] == 0x18 ? 0xFF : 0x3F;
-        verified = mtools_mfc_gen4_read_config(nfc, config) &&
-                   config[0] == 0 && config[1] == expected_length &&
-                   config[24] == write.block0[sak_offset + 1] &&
+        verified = mtools_mfc_gen4_read_config(nfc, config) && config[0] == 0 &&
+                   config[1] == expected_length && config[24] == write.block0[sak_offset + 1] &&
                    config[25] == write.block0[sak_offset + 2] &&
                    config[26] == write.block0[sak_offset] && config[28] == expected_max &&
-                   mfc_gen4_read_block0(nfc, observed) &&
-                   memcmp(observed, write.block0, 16) == 0;
+                   mfc_gen4_read_block0(nfc, observed) && memcmp(observed, write.block0, 16) == 0;
         if(!verified) snprintf(magic_write_error, sizeof(magic_write_error), "Gen4 verify failed");
     }
     return verified;
@@ -539,8 +611,11 @@ static bool mfc_auth_error(MfClassicError error) {
 
 static void mfc_set_write_error(MfClassicError error_a, MfClassicError error_b) {
     FURI_LOG_W("MTools", "Gen2 write failed: A=%d B=%d", error_a, error_b);
-    snprintf(magic_write_error, sizeof(magic_write_error), "%s",
-             mfc_auth_error(error_a) && mfc_auth_error(error_b) ? "认证出错" : "Write failed");
+    snprintf(
+        magic_write_error,
+        sizeof(magic_write_error),
+        "%s",
+        mfc_auth_error(error_a) && mfc_auth_error(error_b) ? "认证出错" : "Write failed");
 }
 
 static bool mfc_read_block0(Nfc* nfc, uint8_t block0[16]) {
@@ -560,8 +635,11 @@ static bool mfc_read_block0(Nfc* nfc, uint8_t block0[16]) {
     }
     if(error != MfClassicErrorNone) {
         FURI_LOG_W("MTools", "Read block 0 failed: A=%d B=%d", error_a, error_b);
-        snprintf(magic_write_error, sizeof(magic_write_error), "%s",
-                 mfc_auth_error(error_a) && mfc_auth_error(error_b) ? "认证出错" : "Read failed");
+        snprintf(
+            magic_write_error,
+            sizeof(magic_write_error),
+            "%s",
+            mfc_auth_error(error_a) && mfc_auth_error(error_b) ? "认证出错" : "Read failed");
         return false;
     }
     memcpy(block0, block.data, 16);
@@ -569,11 +647,8 @@ static bool mfc_read_block0(Nfc* nfc, uint8_t block0[16]) {
     return true;
 }
 
-static bool write_mfc_gen2(
-    Nfc* nfc,
-    const uint8_t* uid,
-    size_t uid_len,
-    const uint8_t* edited_block0) {
+static bool
+    write_mfc_gen2(Nfc* nfc, const uint8_t* uid, size_t uid_len, const uint8_t* edited_block0) {
     if(uid_len != 4 && uid_len != 7) {
         snprintf(magic_write_error, sizeof(magic_write_error), "Gen2 UID length");
         return false;
@@ -628,8 +703,7 @@ static bool write_mfc_gen2(
         return true;
     }
     bool verified = memcmp(observed, block.data, 16) == 0;
-    if(!verified)
-        snprintf(magic_write_error, sizeof(magic_write_error), "Verify mismatch");
+    if(!verified) snprintf(magic_write_error, sizeof(magic_write_error), "Verify mismatch");
     FURI_LOG_I("MTools", "Gen2 block 0 verify: %s", verified ? "OK" : "mismatch");
     return verified;
 }
@@ -682,7 +756,8 @@ static NfcCommand iso_uid_write_callback(NfcGenericEvent event, void* context) {
             length = 8;
         }
         size_t offset = write->generation == 1 ? 3 : 4;
-        for(size_t i = 0; i < 4; i++) frame[offset + i] = write->uid[(part ? 0 : 4) + (3 - i)];
+        for(size_t i = 0; i < 4; i++)
+            frame[offset + i] = write->uid[(part ? 0 : 4) + (3 - i)];
         valid = iso_send_uid_frame(poller, frame, length);
     }
     write->success = valid;
@@ -716,7 +791,8 @@ static bool write_iso15693_uid(Nfc* nfc, const uint8_t uid[8], uint8_t generatio
     memcpy(write.uid, uid, sizeof(write.uid));
     NfcPoller* poller = nfc_poller_alloc(nfc, NfcProtocolIso15693_3);
     nfc_poller_start(poller, iso_uid_write_callback, &write);
-    bool completed = furi_semaphore_acquire(write.complete, furi_ms_to_ticks(4000)) == FuriStatusOk;
+    bool completed = furi_semaphore_acquire(write.complete, furi_ms_to_ticks(4000)) ==
+                     FuriStatusOk;
     nfc_poller_stop(poller);
     nfc_poller_free(poller);
     furi_semaphore_free(write.complete);
@@ -761,20 +837,23 @@ static NfcCommand iso_gen3_write_callback(NfcGenericEvent event, void* context) 
     Iso15693_3SystemInfo info = {0};
     uint8_t activation[8];
     static const uint8_t expected_activation[8] = {0xA5, 0x2B, 0x44, 0x2C, 0x21, 0xAE, 0x93, 0x00};
-    bool valid = iso15693_3_poller_get_system_info(poller, &info) == Iso15693_3ErrorNone &&
-                 info.block_count == 80 && info.block_size == 4 &&
-                 iso15693_3_poller_read_block(poller, activation, 0x14, 4) == Iso15693_3ErrorNone &&
-                 iso15693_3_poller_read_block(poller, activation + 4, 0x15, 4) == Iso15693_3ErrorNone &&
-                 memcmp(activation, expected_activation, sizeof(activation)) == 0;
+    bool valid =
+        iso15693_3_poller_get_system_info(poller, &info) == Iso15693_3ErrorNone &&
+        info.block_count == 80 && info.block_size == 4 &&
+        iso15693_3_poller_read_block(poller, activation, 0x14, 4) == Iso15693_3ErrorNone &&
+        iso15693_3_poller_read_block(poller, activation + 4, 0x15, 4) == Iso15693_3ErrorNone &&
+        memcmp(activation, expected_activation, sizeof(activation)) == 0;
     if(valid) {
         BitBuffer* tx = bit_buffer_alloc(8);
         BitBuffer* rx = bit_buffer_alloc(32);
         for(uint8_t part = 0; part < 2 && valid; part++) {
             uint8_t frame[7] = {0x02, 0x21, (uint8_t)(0x10 + part)};
-            for(size_t i = 0; i < 4; i++) frame[3 + i] = write->uid[(part ? 0 : 4) + (3 - i)];
+            for(size_t i = 0; i < 4; i++)
+                frame[3 + i] = write->uid[(part ? 0 : 4) + (3 - i)];
             bit_buffer_copy_bytes(tx, frame, sizeof(frame));
             bit_buffer_reset(rx);
-            valid = iso15693_3_poller_send_frame(poller, tx, rx, 1356000U) == Iso15693_3ErrorNone &&
+            valid = iso15693_3_poller_send_frame(poller, tx, rx, 1356000U) ==
+                        Iso15693_3ErrorNone &&
                     bit_buffer_get_size_bytes(rx) >= 1 && !(bit_buffer_get_byte(rx, 0) & 1U);
         }
         bit_buffer_free(rx);
@@ -796,7 +875,8 @@ static bool write_iso15693_gen3(Nfc* nfc, const uint8_t uid[8]) {
     memcpy(write.uid, uid, sizeof(write.uid));
     write.poller = nfc_poller_alloc(nfc, NfcProtocolIso15693_3);
     nfc_poller_start(write.poller, iso_gen3_write_callback, &write);
-    bool completed = furi_semaphore_acquire(write.complete, furi_ms_to_ticks(4000)) == FuriStatusOk;
+    bool completed = furi_semaphore_acquire(write.complete, furi_ms_to_ticks(4000)) ==
+                     FuriStatusOk;
     nfc_poller_stop(write.poller);
     nfc_poller_free(write.poller);
     furi_semaphore_free(write.complete);
@@ -806,14 +886,19 @@ static bool write_iso15693_gen3(Nfc* nfc, const uint8_t uid[8]) {
 bool mtools_magic_uid_length_supported(MagicGenType gen, size_t uid_len) {
     switch(gen) {
     case MagicGenMfcGen1a:
-    case MagicGenMfcGen3: return uid_len == 4 || uid_len == 7;
-    case MagicGenMfcGen2: return uid_len == 4 || uid_len == 7;
+    case MagicGenMfcGen3:
+        return uid_len == 4 || uid_len == 7;
+    case MagicGenMfcGen2:
+        return uid_len == 4 || uid_len == 7;
     case MagicGenMfcGen4:
-    case MagicGenMfcGdm: return uid_len == 4 || uid_len == 7;
+    case MagicGenMfcGdm:
+        return uid_len == 4 || uid_len == 7;
     case MagicGenIso15693Gen1:
     case MagicGenIso15693Gen2:
-    case MagicGenIso15693Gen3: return uid_len == 8;
-    default: return false;
+    case MagicGenIso15693Gen3:
+        return uid_len == 8;
+    default:
+        return false;
     }
 }
 
@@ -829,12 +914,18 @@ bool mtools_write_magic_uid_with_block0(
     case MagicGenMfcGen1a:
     case MagicGenMfcGen3:
     case MagicGenMfcGen4:
-    case MagicGenMfcGdm: return write_mfc_raw(nfc, gen, uid, uid_len, edited_block0);
-    case MagicGenMfcGen2: return write_mfc_gen2(nfc, uid, uid_len, edited_block0);
-    case MagicGenIso15693Gen1: return uid_len == 8 && write_iso15693_gen1(nfc, uid);
-    case MagicGenIso15693Gen2: return uid_len == 8 && write_iso15693_gen2(nfc, uid);
-    case MagicGenIso15693Gen3: return uid_len == 8 && write_iso15693_gen3(nfc, uid);
-    case MagicGenCount: break;
+    case MagicGenMfcGdm:
+        return write_mfc_raw(nfc, gen, uid, uid_len, edited_block0);
+    case MagicGenMfcGen2:
+        return write_mfc_gen2(nfc, uid, uid_len, edited_block0);
+    case MagicGenIso15693Gen1:
+        return uid_len == 8 && write_iso15693_gen1(nfc, uid);
+    case MagicGenIso15693Gen2:
+        return uid_len == 8 && write_iso15693_gen2(nfc, uid);
+    case MagicGenIso15693Gen3:
+        return uid_len == 8 && write_iso15693_gen3(nfc, uid);
+    case MagicGenCount:
+        break;
     }
     return false;
 }

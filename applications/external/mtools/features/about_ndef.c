@@ -8,7 +8,9 @@ bool mtools_about_ndef_start(MToolsApp* app) {
     static const uint8_t uid[7] = {0x04, 0xA1, 0xB2, 0xC3, 0xD4, 0xE5, 0xF6};
     static const uint8_t version[8] = {0x00, 0x04, 0x04, 0x02, 0x01, 0x00, 0x0F, 0x03};
     static const char domain[] = "shop.mtoolstec.com";
-    enum { NdefRecordLen = sizeof(domain) - 1 + 5 };
+    enum {
+        NdefRecordLen = sizeof(domain) - 1 + 5
+    };
 
     app->about_ndef_data = mf_ultralight_alloc();
     if(!app->about_ndef_data) return false;

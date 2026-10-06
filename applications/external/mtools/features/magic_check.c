@@ -11,8 +11,9 @@ static void mtools_scanner_callback(NfcScannerEvent event, void* context) {
     MToolsApp* app = context;
     if(event.type != NfcScannerEventTypeDetected || app->magic_scan_found) return;
     MToolsCardProtocols protocols = mtools_card_protocols(&event);
-    uint32_t result = protocols.iso15693 ? MTOOLS_EVENT_ISO :
-                      protocols.iso14443a ? MTOOLS_EVENT_MFC : MTOOLS_EVENT_OTHER;
+    uint32_t result = protocols.iso15693  ? MTOOLS_EVENT_ISO :
+                      protocols.iso14443a ? MTOOLS_EVENT_MFC :
+                                            MTOOLS_EVENT_OTHER;
     if(result == MTOOLS_EVENT_OTHER) return;
     app->magic_type2 = protocols.type2;
     app->magic_scan_found = true;
@@ -57,8 +58,7 @@ static NfcCommand mtools_magic_read_callback(NfcGenericEvent event, void* contex
         iso14443_3a_get_atqa(card, app->magic_atqa);
         /* Some Gen3 Classic cards also answer the Ultralight scanner probe.
          * The selected card's Classic SAK takes precedence over that hint. */
-        if(app->magic_sak == 0x08 || app->magic_sak == 0x18)
-            app->magic_type2 = false;
+        if(app->magic_sak == 0x08 || app->magic_sak == 0x18) app->magic_type2 = false;
     } else if(event.protocol == NfcProtocolIso15693_3) {
         Iso15693_3PollerEvent* poller_event = event.event_data;
         if(poller_event->type != Iso15693_3PollerEventTypeReady) return NfcCommandContinue;
@@ -82,7 +82,8 @@ static NfcCommand mtools_magic_read_callback(NfcGenericEvent event, void* contex
             mtools_detect_iso15693_ready(event.instance, &card->system_info, uid, uid_len);
         app->magic_iso_status = gen == MagicGenIso15693Gen1 ? 4 :
                                 gen == MagicGenIso15693Gen3 ? 5 :
-                                gen == MagicGenIso15693Gen2 ? 3 : 2;
+                                gen == MagicGenIso15693Gen2 ? 3 :
+                                                              2;
         app->magic_pending_status = app->magic_iso_status;
         app->magic_result_ready = true;
     }

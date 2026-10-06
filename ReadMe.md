@@ -182,6 +182,9 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [FlipDeFlock v0.99 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
 - ESP Flasher: [Comes with Marauder v1.18.0 (By justcallmekoko)](https://github.com/justcallmekoko/ESP32Marauder/releases/tag/v1.18.0)
 - Updated: [OpenPrintTag v1.0 (By Houzvicka)](https://github.com/Houzvicka/FlipperPrintTag)
+- Added: [MTools v1.0 (By mtoolstec)](https://github.com/mtoolstec/flipper-mtools)
+- Added: [PC Health Remote v1.1 (By vladatman)](https://github.com/vladatman/pc-health-remote)
+- Added: [Pod v1.0 (By thecoolguy2001)](https://github.com/thecoolguy2001/flipper-pod)
 
 <a name="release"></a>
 
@@ -419,6 +422,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Partition Panic v1.0 (By slavik0329)](https://github.com/slavik0329/partition-panic-flipper)
 - [Pinball0 v0.5.2 (By rdefeo)](https://github.com/rdefeo/pinball0)
 - [Pocket Battle+ v2.0 (By HermeticCode)](https://github.com/HermeticCode/showdown-current)
+- [Pod v1.0 (By thecoolguy2001)](https://github.com/thecoolguy2001/flipper-pod)
 - [Pong v1.4 (By nmrr)](https://github.com/nmrr/flipperzero-pong)
 - [Prince Of Arabia v1.0.12 (By apfxtech)](https://github.com/apfxtech/FlipperPrinceOfArabia)
 - [Puck Girl v0.3 (By fgreil)](https://github.com/fgreil/mitzi-puck)
@@ -850,6 +854,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [MP3 Player v3.5 (By coolshrimp)](https://github.com/coolshrimp/flipperzero-mp3-player)
 - [MQ-3 Alcometer v1.0 (By serjantlk)](https://github.com/serjantlk/MQ-3-Alcometer) `Req: MQ-3 Breathalyzer` [Sold Here](https://flipperaddons.com/product/mq-3-alkotester)
 - [MR60FDA1 Radar v0.1 (By adamaratski)](https://github.com/adamaratski/flipperzero-r60afd1) `Req: MR60FDA1/MR60FDA2`
+- [MTools v1.0 (By mtoolstec)](https://github.com/mtoolstec/flipper-mtools)
 - [Multi Converter v1.3 (By theisolinearchip)](https://github.com/theisolinearchip)
 - [Multi Tally v1.0 (By aseypalich1)](https://github.com/aseypalich1/flipper-multi-counter)
 - [MultiTimer v1.1 (By C0d3-5t3w)](https://github.com/C0d3-5t3w/flipper-multitimer)
@@ -913,6 +918,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Password Manager v1.2 (By Rrycbarm)](https://github.com/Rrycbarm/flipperZeroPasswordManager)
 - [Passy v1.6 (By bettse)](https://github.com/bettse/passy)
 - [Pause Timer v1.0 (By Matt-London)](https://github.com/Matt-London/pause_timer)
+- [PC Health Remote v1.1 (By vladatman)](https://github.com/vladatman/pc-health-remote) `Req: [Backend](https://github.com/vladatman/pc-health-remote/tree/main/backend)`
 - [PC Monitor USB v1.0 (By DonJulve & TheSainEyereg)](https://github.com/TheSainEyereg/flipper-pc-monitor) `Req: [Backend](https://github.com/DonJulve/Flipper-Zero-PC-Monitor-USB-Backend)`
 - [PC Monitor v1.1.3 (By TheSainEyereg)](https://github.com/TheSainEyereg/flipper-pc-monitor) `Req: [Backend](https://github.com/TheSainEyereg/flipper-pc-monitor-backend)`
 - [Period Tracker v1.0 (By gorshunovr)](https://github.com/gorshunovr/period_tracker)

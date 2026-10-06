@@ -44,8 +44,10 @@ static NfcCommand iso_magic_probe_callback(NfcGenericEvent event, void* context)
         if(info.block_count == 80 && info.block_size == 4) {
             uint8_t activation[8];
             static const uint8_t expected[8] = {0xA5, 0x2B, 0x44, 0x2C, 0x21, 0xAE, 0x93, 0x00};
-            probe->gen3 = iso15693_3_poller_read_block(poller, activation, 0x14, 4) == Iso15693_3ErrorNone &&
-                          iso15693_3_poller_read_block(poller, activation + 4, 0x15, 4) == Iso15693_3ErrorNone &&
+            probe->gen3 = iso15693_3_poller_read_block(poller, activation, 0x14, 4) ==
+                              Iso15693_3ErrorNone &&
+                          iso15693_3_poller_read_block(poller, activation + 4, 0x15, 4) ==
+                              Iso15693_3ErrorNone &&
                           memcmp(activation, expected, sizeof(expected)) == 0;
         }
     }
@@ -95,10 +97,8 @@ MagicGenType mtools_detect_iso15693_ready(
     if(info->block_count == 80 && info->block_size == 4) {
         uint8_t activation[8];
         static const uint8_t expected[8] = {0xA5, 0x2B, 0x44, 0x2C, 0x21, 0xAE, 0x93, 0x00};
-        if(iso15693_3_poller_read_block(poller, activation, 0x14, 4) ==
-               Iso15693_3ErrorNone &&
-           iso15693_3_poller_read_block(poller, activation + 4, 0x15, 4) ==
-               Iso15693_3ErrorNone &&
+        if(iso15693_3_poller_read_block(poller, activation, 0x14, 4) == Iso15693_3ErrorNone &&
+           iso15693_3_poller_read_block(poller, activation + 4, 0x15, 4) == Iso15693_3ErrorNone &&
            memcmp(activation, expected, sizeof(expected)) == 0)
             return MagicGenIso15693Gen3;
     }
@@ -152,8 +152,8 @@ static NfcCommand mfc_magic_probe_callback(NfcGenericEvent event, void* context)
                 const uint8_t config_command[2] = {0xE0, 0x00};
                 bit_buffer_copy_bytes(tx, config_command, sizeof(config_command));
                 bit_buffer_reset(rx);
-                bool gdm = iso14443_3a_poller_send_standard_frame(
-                               poller, tx, rx, 1356000U) == Iso14443_3aErrorNone &&
+                bool gdm = iso14443_3a_poller_send_standard_frame(poller, tx, rx, 1356000U) ==
+                               Iso14443_3aErrorNone &&
                            bit_buffer_get_size_bytes(rx) == 16;
                 probe->match = probe->gen == MagicGenMfcGdm ? gdm : !gdm;
             }
@@ -184,12 +184,28 @@ static NfcCommand mfc_magic_probe_callback(NfcGenericEvent event, void* context)
             error = iso14443_3a_poller_send_standard_frame(poller, tx, rx, 1356000U);
         }
         static const uint8_t ats_a[] = {0x09, 0x78, 0x00, 0x91, 0x02, 0xDA, 0xBC, 0x19, 0x10};
-        static const uint8_t ats_b[] = {0x0D, 0x78, 0x00, 0x71, 0x02, 0x88, 0x49, 0xA1,
-                                        0x30, 0x20, 0x15, 0x06, 0x08, 0x56, 0x3D};
+        static const uint8_t ats_b[] = {
+            0x0D,
+            0x78,
+            0x00,
+            0x71,
+            0x02,
+            0x88,
+            0x49,
+            0xA1,
+            0x30,
+            0x20,
+            0x15,
+            0x06,
+            0x08,
+            0x56,
+            0x3D};
         size_t size = bit_buffer_get_size_bytes(rx);
         probe->match = error == Iso14443_3aErrorNone &&
-                       ((size >= sizeof(ats_a) && memcmp(bit_buffer_get_data(rx), ats_a, sizeof(ats_a)) == 0) ||
-                        (size >= sizeof(ats_b) && memcmp(bit_buffer_get_data(rx), ats_b, sizeof(ats_b)) == 0));
+                       ((size >= sizeof(ats_a) &&
+                         memcmp(bit_buffer_get_data(rx), ats_a, sizeof(ats_a)) == 0) ||
+                        (size >= sizeof(ats_b) &&
+                         memcmp(bit_buffer_get_data(rx), ats_b, sizeof(ats_b)) == 0));
     }
 done:
     bit_buffer_free(rx);
@@ -199,7 +215,10 @@ done:
 }
 
 static bool detect_mfc_probe_with_config(
-    Nfc* nfc, MagicGenType gen, uint8_t wakeup_first, uint8_t config[30]) {
+    Nfc* nfc,
+    MagicGenType gen,
+    uint8_t wakeup_first,
+    uint8_t config[30]) {
     MfcMagicProbe probe = {
         .complete = furi_semaphore_alloc(1, 0), .gen = gen, .wakeup_first = wakeup_first};
     NfcPoller* poller = nfc_poller_alloc(nfc, NfcProtocolIso14443_3a);
@@ -218,11 +237,12 @@ static bool detect_mfc_probe(Nfc* nfc, MagicGenType gen, uint8_t wakeup_first) {
 }
 
 bool mtools_mfc_gen4_read_config(Nfc* nfc, uint8_t config[30]) {
-    return nfc && config &&
-           detect_mfc_probe_with_config(nfc, MagicGenMfcGen4, 0, config);
+    return nfc && config && detect_mfc_probe_with_config(nfc, MagicGenMfcGen4, 0, config);
 }
 
-static bool detect_mfc_gen1a(Nfc* nfc) { return detect_mfc_probe(nfc, MagicGenMfcGen1a, 0x40); }
+static bool detect_mfc_gen1a(Nfc* nfc) {
+    return detect_mfc_probe(nfc, MagicGenMfcGen1a, 0x40);
+}
 
 typedef struct {
     FuriSemaphore* complete;
@@ -268,7 +288,9 @@ static bool detect_mfc_gen2(Nfc* nfc) {
     furi_semaphore_free(probe.complete);
     return complete && probe.match;
 }
-static bool detect_mfc_gen3(Nfc* nfc) { return detect_mfc_probe(nfc, MagicGenMfcGen3, 0); }
+static bool detect_mfc_gen3(Nfc* nfc) {
+    return detect_mfc_probe(nfc, MagicGenMfcGen3, 0);
+}
 
 static bool detect_mfc_gen4(Nfc* nfc) {
     return detect_mfc_probe(nfc, MagicGenMfcGen4, 0);
@@ -291,15 +313,24 @@ static bool detect_iso15693_gen3(Nfc* nfc) {
 bool mtools_detect_magic_tag(Nfc* nfc, MagicGenType gen) {
     if(!nfc) return false;
     switch(gen) {
-    case MagicGenMfcGen1a: return detect_mfc_gen1a(nfc);
-    case MagicGenMfcGen2: return detect_mfc_gen2(nfc);
-    case MagicGenMfcGen3: return detect_mfc_gen3(nfc);
-    case MagicGenMfcGen4: return detect_mfc_gen4(nfc);
-    case MagicGenMfcGdm: return detect_mfc_gdm(nfc);
-    case MagicGenIso15693Gen1: return detect_iso15693_gen1(nfc);
-    case MagicGenIso15693Gen2: return false;
-    case MagicGenIso15693Gen3: return detect_iso15693_gen3(nfc);
-    case MagicGenCount: break;
+    case MagicGenMfcGen1a:
+        return detect_mfc_gen1a(nfc);
+    case MagicGenMfcGen2:
+        return detect_mfc_gen2(nfc);
+    case MagicGenMfcGen3:
+        return detect_mfc_gen3(nfc);
+    case MagicGenMfcGen4:
+        return detect_mfc_gen4(nfc);
+    case MagicGenMfcGdm:
+        return detect_mfc_gdm(nfc);
+    case MagicGenIso15693Gen1:
+        return detect_iso15693_gen1(nfc);
+    case MagicGenIso15693Gen2:
+        return false;
+    case MagicGenIso15693Gen3:
+        return detect_iso15693_gen3(nfc);
+    case MagicGenCount:
+        break;
     }
     return false;
 }

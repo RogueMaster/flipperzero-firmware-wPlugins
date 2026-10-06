@@ -22,7 +22,8 @@ static bool mtools_view_input(InputEvent* event, void* context) {
         } else if(event->key == InputKeyLeft && app->about_page == 1) {
             app->about_page = 0;
             mtools_about_ndef_stop(app);
-        } else return false;
+        } else
+            return false;
         view_commit_model(app->main_view, true);
         return true;
     }
@@ -32,8 +33,8 @@ static bool mtools_view_input(InputEvent* event, void* context) {
         return true;
     }
     if(app->active_scene != MToolsSceneHome) return false;
-    if(event->key == InputKeyLeft || event->key == InputKeyRight ||
-       event->key == InputKeyUp || event->key == InputKeyDown) {
+    if(event->key == InputKeyLeft || event->key == InputKeyRight || event->key == InputKeyUp ||
+       event->key == InputKeyDown) {
         if(event->key == InputKeyUp || event->key == InputKeyLeft)
             app->selected_tool = (app->selected_tool + 2) % 3;
         else
@@ -153,8 +154,8 @@ static bool mtools_custom_event_callback(void* context, uint32_t event) {
 
 static bool mtools_back_event_callback(void* context) {
     MToolsApp* app = context;
-    if(app->active_scene == MToolsSceneUidChange &&
-       mtools_uid_changer_back(app->uid_changer)) return true;
+    if(app->active_scene == MToolsSceneUidChange && mtools_uid_changer_back(app->uid_changer))
+        return true;
     if(app->active_scene == MToolsSceneAbout && app->about_page == 1) {
         app->about_page = 0;
         mtools_about_ndef_stop(app);
@@ -181,7 +182,8 @@ int32_t mtools_app(void* p) {
     app->notifications = furi_record_open(RECORD_NOTIFICATION);
     app->scene_manager = scene_manager_alloc(&scene_handlers, app);
     app->view_dispatcher = view_dispatcher_alloc();
-    app->magic_anim_timer = furi_timer_alloc(mtools_magic_check_timer_callback, FuriTimerTypePeriodic, app);
+    app->magic_anim_timer =
+        furi_timer_alloc(mtools_magic_check_timer_callback, FuriTimerTypePeriodic, app);
     app->uid_changer = mtools_uid_changer_alloc(app);
     app->main_view = view_alloc();
     view_allocate_model(app->main_view, ViewModelTypeLockFree, sizeof(MToolsApp*));
@@ -193,7 +195,8 @@ int32_t mtools_app(void* p) {
 
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
     view_dispatcher_set_custom_event_callback(app->view_dispatcher, mtools_custom_event_callback);
-    view_dispatcher_set_navigation_event_callback(app->view_dispatcher, mtools_back_event_callback);
+    view_dispatcher_set_navigation_event_callback(
+        app->view_dispatcher, mtools_back_event_callback);
     view_dispatcher_add_view(app->view_dispatcher, MTOOLS_VIEW_MAIN, app->main_view);
     view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
     scene_manager_next_scene(app->scene_manager, MToolsSceneHome);
