@@ -172,10 +172,10 @@ This software is for experimental purposes only and is not meant for any illegal
 - FBT: [Added some diagnostics for FAP build times (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/367d20e822a8d35d50e556e40ecbc858080404c1)
 - FBT: [Patterns with a literal, non-wildcard parent directory now go directly to that
 directory and glob only the final component. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/76f1297e102834239b19ea5924098cfaecfe4402)
-- Updated: [Dab Timer v2.4 (By RogueMaster)](https://github.com/RogueMaster/flipperzero-dabtimer) [Enum-based timer and code states, integer analog-clock rendering, cached dates, monotonic stopwatch/alarm timing, event-driven updates and safe notification cleanup. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/5cc58292c43ddb9abc90887cc6bd29164ef2f6a6)
 - FBT: [macOS leaves `.DS_Store` and `._*` sidecars in any folder it touches, and they are skipped now instead of being embedded in a .fap, listed in the resources Manifest, packed into the update tarball or compiled in as an icon - an `._*.png` next to a real icon used to fail the build outright (original implementation By xMasterX)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/3fb817d2d1f040fe3b4831da446b8266c1abe658)
 - Added: [Cribbage Calc v1.0 (By dchristiansen)](https://github.com/dchristiansen/cribCalc)
 - Added: [Pack Track v1.0 (By thecoolguy2001)](https://github.com/thecoolguy2001/flipper-pack-track) `Req: ESP32 / WiFi DevBoard`
+- Updated: [Dab Timer v2.5 (By RogueMaster)](https://github.com/RogueMaster/flipperzero-dabtimer) [Enum-based timer and code states, integer analog-clock rendering, cached dates, monotonic stopwatch/alarm timing, event-driven updates and safe notification cleanup. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/5cc58292c43ddb9abc90887cc6bd29164ef2f6a6) [Fixed refresh timing to be more frequent (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/ebffcfd88c494d6dc365505499f79379cc29c00d)
 
 <a name="release"></a>
 
@@ -578,7 +578,7 @@ directory and glob only the final component. (By RogueMaster)](https://github.co
 - [Cross Remote v3.5 (By leedave)](https://github.com/leedave/flipper-zero-cross-remote)
 - [Crypto Dictionary v0.1 (By armixz)](https://github.com/armixz/Flipper-Zero-Crypto-Dictionary)
 - [Cyborg Detector v1.1 (By RocketGod-Git)](https://github.com/RocketGod-Git/Flipper-Zero-Cyborg-Detector)
-- [Dab Timer v2.3 (By RogueMaster)](https://github.com/RogueMaster/flipperzero-dabtimer)
+- [Dab Timer v2.5 (By RogueMaster)](https://github.com/RogueMaster/flipperzero-dabtimer)
 - [Daikin AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
 - [Daikin64 AC Remote v0.1 (By mrcalifornium)](https://github.com/mrcalifornium/flipperzero-daikin64-ac-remote)
 - [Dallas Tester v0.1 (By mishamyte)](https://github.com/mishamyte/flipper-dallas-tester)
