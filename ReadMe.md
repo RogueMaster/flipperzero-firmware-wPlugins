@@ -180,6 +180,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - GUI: [Speed Game Menu loading with bounded FAP metadata reads, amortized menu allocation, timer-free static icons and in-place heapsort in the Game Menu FAL. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/9288106029c69cdfb46e845717b5831d4f8da153)
 - Updated: [ProtoPirate v4.0 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
 - Updated: [FlipDeFlock v0.99 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
+- ESP Flasher: [Comes with Marauder v1.18.0 (By justcallmekoko)](https://github.com/justcallmekoko/ESP32Marauder/releases/tag/v1.18.0)
 
 <a name="release"></a>
 
@@ -209,7 +210,7 @@ This software is for experimental purposes only and is not meant for any illegal
 ## New on MNTM RM Branch!
 
 - TLDR: More Assets, Game Mode, RM Passport & Many more apps! Extra NFC, RFID & SubGHz features!
-- ESP Flasher: [Comes with Marauder v1.17.0 (By justcallmekoko)](https://github.com/justcallmekoko/ESP32Marauder/releases/tag/v1.17.0)
+- ESP Flasher: [Comes with Marauder v1.18.0 (By justcallmekoko)](https://github.com/justcallmekoko/ESP32Marauder/releases/tag/v1.18.0)
 - Animations: [Asset Packs for RM HERE](https://github.com/RogueMaster/awesome-flipperzero-withModules/tree/rogue_main/RM_AssetPacks)
 - Animations: [PREVIEW "RM Minimal" animations (build default)](https://www.patreon.com/posts/animation-rm-77441581) or [OTHER SETS](https://www.patreon.com/RogueMaster?filters[tag]=Animations)
 - Archive: Open MP3 from File Browser, thanks to [MP3 Player v3.5 (By coolshrimp)](https://github.com/coolshrimp/flipperzero-mp3-player)
