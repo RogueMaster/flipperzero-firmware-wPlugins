@@ -129,7 +129,7 @@ static NfcCommand mfc_magic_probe_callback(NfcGenericEvent event, void* context)
     BitBuffer* tx = bit_buffer_alloc(32);
     BitBuffer* rx = bit_buffer_alloc(64);
     Iso14443_3aError error = Iso14443_3aErrorNotPresent;
-    if(probe->gen == MagicGenMfcGtu && probe->wakeup_first == 0x80) {
+    if(probe->gen == MagicGenMfcGdm && probe->wakeup_first == 0x80) {
         /* A GDM card with wakeup disabled still returns a four-byte nonce
          * for its proprietary 0x80 authentication command. No key is sent. */
         const uint8_t auth_command[2] = {0x80, 0x00};
@@ -137,7 +137,7 @@ static NfcCommand mfc_magic_probe_callback(NfcGenericEvent event, void* context)
         iso14443_crc_append(Iso14443CrcTypeA, tx);
         error = iso14443_3a_poller_txrx(poller, tx, rx, 1356000U);
         probe->match = error == Iso14443_3aErrorNone && bit_buffer_get_size(rx) == 32;
-    } else if(probe->gen == MagicGenMfcGen1a || probe->gen == MagicGenMfcGtu) {
+    } else if(probe->gen == MagicGenMfcGen1a || probe->gen == MagicGenMfcGdm) {
         iso14443_3a_poller_halt(poller);
         uint8_t wakeup = probe->wakeup_first;
         bit_buffer_copy_bytes(tx, &wakeup, 1);
@@ -155,7 +155,7 @@ static NfcCommand mfc_magic_probe_callback(NfcGenericEvent event, void* context)
                 bool gdm = iso14443_3a_poller_send_standard_frame(
                                poller, tx, rx, 1356000U) == Iso14443_3aErrorNone &&
                            bit_buffer_get_size_bytes(rx) == 16;
-                probe->match = probe->gen == MagicGenMfcGtu ? gdm : !gdm;
+                probe->match = probe->gen == MagicGenMfcGdm ? gdm : !gdm;
             }
         }
     } else if(probe->gen == MagicGenMfcGen3) {
@@ -274,20 +274,14 @@ static bool detect_mfc_gen4(Nfc* nfc) {
     return detect_mfc_probe(nfc, MagicGenMfcGen4, 0);
 }
 
-static bool detect_mfc_gtu(Nfc* nfc) {
-    return detect_mfc_probe(nfc, MagicGenMfcGtu, 0x80) ||
-           detect_mfc_probe(nfc, MagicGenMfcGtu, 0x20) ||
-           detect_mfc_probe(nfc, MagicGenMfcGtu, 0x40);
+static bool detect_mfc_gdm(Nfc* nfc) {
+    return detect_mfc_probe(nfc, MagicGenMfcGdm, 0x80) ||
+           detect_mfc_probe(nfc, MagicGenMfcGdm, 0x20) ||
+           detect_mfc_probe(nfc, MagicGenMfcGdm, 0x40);
 }
 
 static bool detect_iso15693_gen1(Nfc* nfc) {
     return detect_iso15693_fingerprint(nfc, false);
-}
-
-static bool detect_iso15693_gen2(Nfc* nfc) {
-    (void)nfc;
-    /* TODO: Report Gen2 only after excluding Gen1/Gen3; no positive read-only signature. */
-    return false;
 }
 
 static bool detect_iso15693_gen3(Nfc* nfc) {
@@ -301,9 +295,9 @@ bool mtools_detect_magic_tag(Nfc* nfc, MagicGenType gen) {
     case MagicGenMfcGen2: return detect_mfc_gen2(nfc);
     case MagicGenMfcGen3: return detect_mfc_gen3(nfc);
     case MagicGenMfcGen4: return detect_mfc_gen4(nfc);
-    case MagicGenMfcGtu: return detect_mfc_gtu(nfc);
+    case MagicGenMfcGdm: return detect_mfc_gdm(nfc);
     case MagicGenIso15693Gen1: return detect_iso15693_gen1(nfc);
-    case MagicGenIso15693Gen2: return detect_iso15693_gen2(nfc);
+    case MagicGenIso15693Gen2: return false;
     case MagicGenIso15693Gen3: return detect_iso15693_gen3(nfc);
     case MagicGenCount: break;
     }

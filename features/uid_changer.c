@@ -189,7 +189,7 @@ static void uid_select_valid_gen(MToolsUidChanger* instance) {
 
 static void uid_detect_gen(MToolsUidChanger* instance) {
     static const MagicGenType mfc_order[] = {
-        MagicGenMfcGen4, MagicGenMfcGtu, MagicGenMfcGen3,
+        MagicGenMfcGen4, MagicGenMfcGdm, MagicGenMfcGen3,
         MagicGenMfcGen1a, MagicGenMfcGen2};
     static const MagicGenType iso_order[] = {
         MagicGenIso15693Gen3, MagicGenIso15693Gen1};
@@ -271,7 +271,7 @@ static void uid_show(MToolsUidChanger* instance) {
                          "SAK: %02X ATQA: %02X%02X", instance->sak,
                          instance->atqa[0], instance->atqa[1]);
                 snprintf(model->info_lines[model->info_count++], sizeof(model->info_lines[0]),
-                         "%s", instance->gen == MagicGenMfcGtu ?
+                         "%s", instance->gen == MagicGenMfcGdm ?
                              "GDM Block0 auto-built" : "OK: Edit Block0");
             }
         }
@@ -288,7 +288,7 @@ static void uid_show(MToolsUidChanger* instance) {
                 mtools_uid_format_hex(hex, sizeof(hex), instance->uid + 8, instance->uid_len - 8);
                 snprintf(model->info_lines[model->info_count++], sizeof(model->info_lines[0]), "     %s", hex);
             }
-            if(instance->gen == MagicGenMfcGtu)
+            if(instance->gen == MagicGenMfcGdm)
                 snprintf(model->info_lines[model->info_count++], sizeof(model->info_lines[0]),
                          "GDM Block0 auto-built");
             else if(instance->card_type != 2)
@@ -592,7 +592,7 @@ bool mtools_uid_changer_event(MToolsUidChanger* instance, uint32_t event) {
         return true;
     case UidPageReadResult:
         if(key == InputKeyOk && instance->card_type != 2) {
-            if(instance->gen == MagicGenMfcGtu) {
+            if(instance->gen == MagicGenMfcGdm) {
                 uid_popup(instance, "GDM Block0 auto-built");
                 return true;
             }
@@ -613,15 +613,13 @@ bool mtools_uid_changer_event(MToolsUidChanger* instance, uint32_t event) {
         if(key == InputKeyOk) {
             notification_message(instance->app->notifications, &sequence_blink_start_blue);
             furi_delay_ms(200);
-            bool available = mtools_magic_uid_write_implemented(instance->gen);
-            bool success = available && mtools_write_magic_uid_with_block0(
+            bool success = mtools_write_magic_uid_with_block0(
                 instance->app->nfc, instance->gen, instance->uid, instance->uid_len,
                 instance->block0_edited ? instance->block0 : NULL);
             notification_message(instance->app->notifications, &sequence_blink_stop);
             notification_message(instance->app->notifications,
                                  success ? &sequence_success : &sequence_error);
             uid_popup(instance, success ? "Write success" :
-                                !available ? "Writer unavailable" :
                                 mtools_magic_write_error()[0] ? mtools_magic_write_error() : "Write failed");
             return true;
         }

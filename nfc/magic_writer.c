@@ -274,7 +274,7 @@ static NfcCommand mfc_raw_write_callback(NfcGenericEvent event, void* context) {
     size_t current_uid_len = 0;
     iso14443_3a_get_uid(card, &current_uid_len);
     if(current_uid_len != write->uid_len && write->gen != MagicGenMfcGen4 &&
-       write->gen != MagicGenMfcGtu) {
+       write->gen != MagicGenMfcGdm) {
         write->length_mismatch = true;
         furi_semaphore_release(write->complete);
         return NfcCommandStop;
@@ -335,7 +335,7 @@ static NfcCommand mfc_raw_write_callback(NfcGenericEvent event, void* context) {
             write->gen4_failure = 5;
         if(success && !(success = mfc_gen4_command(poller, tx, rx, set_block0, sizeof(set_block0))))
             write->gen4_failure = 6;
-    } else if(write->gen == MagicGenMfcGtu) {
+    } else if(write->gen == MagicGenMfcGdm) {
         /* GDM/USCUID uses wakeup, public block 0, hidden block 0 and E1 config.
          * Keep the old personalization until both UID blocks are ready. */
         uint8_t first = 0x20;
@@ -401,7 +401,7 @@ static bool write_mfc_raw(
         snprintf(magic_write_error, sizeof(magic_write_error), "MFC 4/7B only");
         return false;
     }
-    if(!edited_block0 && gen != MagicGenMfcGtu) {
+    if(!edited_block0 && gen != MagicGenMfcGdm) {
         snprintf(magic_write_error, sizeof(magic_write_error), "Edit Block0 first");
         return false;
     }
@@ -420,7 +420,7 @@ static bool write_mfc_raw(
     if(edited_block0) memcpy(write.block0, edited_block0, 16);
     if(uid_len == 4) mtools_mfc_prepare_block0(write.block0, uid);
     else memcpy(write.block0, uid, uid_len);
-    if(gen == MagicGenMfcGtu) {
+    if(gen == MagicGenMfcGdm) {
         /* GDM's public block 0 has a different seven-byte layout from UMC. */
         memset(write.block0, 0, sizeof(write.block0));
         memcpy(write.block0, uid, uid_len);
@@ -453,7 +453,7 @@ static bool write_mfc_raw(
         write.complete, furi_ms_to_ticks(gen == MagicGenMfcGen4 ? 8000 : 4000)) == FuriStatusOk;
     nfc_poller_stop(poller);
     nfc_poller_free(poller);
-    if(gen == MagicGenMfcGtu && completed && !write.success && write.gdm_failure == 1) {
+    if(gen == MagicGenMfcGdm && completed && !write.success && write.gdm_failure == 1) {
         uint8_t original_config[16];
         if(mfc_gdm_open_wakeup(nfc, original_config)) {
             memcpy(write.gdm_original_config, original_config, 16);
@@ -482,11 +482,11 @@ static bool write_mfc_raw(
                  gen == MagicGenMfcGen4 && write.gen4_failure == 4 ? "Gen4 ATQA/SAK" :
                  gen == MagicGenMfcGen4 && write.gen4_failure == 5 ? "Gen4 capacity" :
                  gen == MagicGenMfcGen4 && write.gen4_failure == 6 ? "Gen4 block0" :
-                 gen == MagicGenMfcGtu && write.gdm_failure == 1 ? "GDM wakeup unavailable" :
-                 gen == MagicGenMfcGtu && write.gdm_failure == 2 ? "GDM hidden B0" :
-                 gen == MagicGenMfcGtu && write.gdm_failure == 3 ? "GDM public B0" :
-                 gen == MagicGenMfcGtu && write.gdm_failure == 4 ? "GDM config" :
-                 gen == MagicGenMfcGtu && write.gdm_failure == 5 ? "GDM auth/bridge fail" :
+                 gen == MagicGenMfcGdm && write.gdm_failure == 1 ? "GDM wakeup unavailable" :
+                 gen == MagicGenMfcGdm && write.gdm_failure == 2 ? "GDM hidden B0" :
+                 gen == MagicGenMfcGdm && write.gdm_failure == 3 ? "GDM public B0" :
+                 gen == MagicGenMfcGdm && write.gdm_failure == 4 ? "GDM config" :
+                 gen == MagicGenMfcGdm && write.gdm_failure == 5 ? "GDM auth/bridge fail" :
                  "Write failed");
         return false;
     }
@@ -506,7 +506,7 @@ static bool write_mfc_raw(
     const uint8_t* selected_uid = iso14443_3a_get_uid(&selected, &selected_len);
     const size_t sak_offset = uid_len == 4 ? 5 : 7;
     bool verified = selected_len == uid_len && memcmp(selected_uid, uid, uid_len) == 0;
-    if(gen != MagicGenMfcGtu)
+    if(gen != MagicGenMfcGdm)
         verified = verified && selected.sak == write.block0[sak_offset] &&
                    memcmp(selected.atqa, write.block0 + sak_offset + 1, 2) == 0;
     if(!verified) snprintf(magic_write_error, sizeof(magic_write_error), "Verify mismatch");
@@ -527,11 +527,6 @@ static bool write_mfc_raw(
     return verified;
 }
 
-static bool write_mfc_gen1a(
-    Nfc* nfc, const uint8_t* uid, size_t uid_len, const uint8_t* edited_block0) {
-    return write_mfc_raw(nfc, MagicGenMfcGen1a, uid, uid_len, edited_block0);
-}
-
 static MfClassicKey mfc_default_key(void) {
     MfClassicKey key;
     memset(key.data, 0xFF, sizeof(key.data));
@@ -548,7 +543,7 @@ static void mfc_set_write_error(MfClassicError error_a, MfClassicError error_b) 
              mfc_auth_error(error_a) && mfc_auth_error(error_b) ? "认证出错" : "Write failed");
 }
 
-bool mtools_mfc_read_block0(Nfc* nfc, uint8_t block0[16]) {
+static bool mfc_read_block0(Nfc* nfc, uint8_t block0[16]) {
     MfClassicKey key = mfc_default_key();
     MfClassicBlock block = {0};
     MfClassicError error = MfClassicErrorNotPresent;
@@ -587,7 +582,7 @@ static bool write_mfc_gen2(
     if(edited_block0) {
         memcpy(block.data, edited_block0, 16);
     } else {
-        if(!mtools_mfc_read_block0(nfc, block.data)) return false;
+        if(!mfc_read_block0(nfc, block.data)) return false;
     }
     if(uid_len == 4)
         mtools_mfc_prepare_block0(block.data, uid);
@@ -627,7 +622,7 @@ static bool write_mfc_gen2(
     }
     /* Compare all 16 bytes when authentication still works after changing UID. */
     uint8_t observed[16];
-    if(!mtools_mfc_read_block0(nfc, observed)) {
+    if(!mfc_read_block0(nfc, observed)) {
         FURI_LOG_W("MTools", "UID verified; full block 0 readback unavailable");
         magic_write_error[0] = 0;
         return true;
@@ -637,21 +632,6 @@ static bool write_mfc_gen2(
         snprintf(magic_write_error, sizeof(magic_write_error), "Verify mismatch");
     FURI_LOG_I("MTools", "Gen2 block 0 verify: %s", verified ? "OK" : "mismatch");
     return verified;
-}
-
-static bool write_mfc_gen3(
-    Nfc* nfc, const uint8_t* uid, size_t uid_len, const uint8_t* edited_block0) {
-    return write_mfc_raw(nfc, MagicGenMfcGen3, uid, uid_len, edited_block0);
-}
-
-static bool write_mfc_gen4(
-    Nfc* nfc, const uint8_t* uid, size_t uid_len, const uint8_t* edited_block0) {
-    return write_mfc_raw(nfc, MagicGenMfcGen4, uid, uid_len, edited_block0);
-}
-
-static bool write_mfc_gtu(
-    Nfc* nfc, const uint8_t* uid, size_t uid_len, const uint8_t* edited_block0) {
-    return write_mfc_raw(nfc, MagicGenMfcGtu, uid, uid_len, edited_block0);
 }
 
 typedef struct {
@@ -823,29 +803,18 @@ static bool write_iso15693_gen3(Nfc* nfc, const uint8_t uid[8]) {
     return completed && write.success;
 }
 
-bool mtools_magic_uid_write_implemented(MagicGenType gen) {
-    return gen == MagicGenMfcGen1a || gen == MagicGenMfcGen2 ||
-           gen == MagicGenMfcGen3 || gen == MagicGenMfcGen4 || gen == MagicGenMfcGtu ||
-           gen == MagicGenIso15693Gen1 ||
-           gen == MagicGenIso15693Gen2 || gen == MagicGenIso15693Gen3;
-}
-
 bool mtools_magic_uid_length_supported(MagicGenType gen, size_t uid_len) {
     switch(gen) {
     case MagicGenMfcGen1a:
     case MagicGenMfcGen3: return uid_len == 4 || uid_len == 7;
     case MagicGenMfcGen2: return uid_len == 4 || uid_len == 7;
     case MagicGenMfcGen4:
-    case MagicGenMfcGtu: return uid_len == 4 || uid_len == 7;
+    case MagicGenMfcGdm: return uid_len == 4 || uid_len == 7;
     case MagicGenIso15693Gen1:
     case MagicGenIso15693Gen2:
     case MagicGenIso15693Gen3: return uid_len == 8;
     default: return false;
     }
-}
-
-bool mtools_write_magic_uid(Nfc* nfc, MagicGenType gen, const uint8_t* uid, size_t uid_len) {
-    return mtools_write_magic_uid_with_block0(nfc, gen, uid, uid_len, NULL);
 }
 
 bool mtools_write_magic_uid_with_block0(
@@ -857,11 +826,11 @@ bool mtools_write_magic_uid_with_block0(
     magic_write_error[0] = 0;
     if(!nfc || !uid || !mtools_magic_uid_length_supported(gen, uid_len)) return false;
     switch(gen) {
-    case MagicGenMfcGen1a: return write_mfc_gen1a(nfc, uid, uid_len, edited_block0);
+    case MagicGenMfcGen1a:
+    case MagicGenMfcGen3:
+    case MagicGenMfcGen4:
+    case MagicGenMfcGdm: return write_mfc_raw(nfc, gen, uid, uid_len, edited_block0);
     case MagicGenMfcGen2: return write_mfc_gen2(nfc, uid, uid_len, edited_block0);
-    case MagicGenMfcGen3: return write_mfc_gen3(nfc, uid, uid_len, edited_block0);
-    case MagicGenMfcGen4: return write_mfc_gen4(nfc, uid, uid_len, edited_block0);
-    case MagicGenMfcGtu: return write_mfc_gtu(nfc, uid, uid_len, edited_block0);
     case MagicGenIso15693Gen1: return uid_len == 8 && write_iso15693_gen1(nfc, uid);
     case MagicGenIso15693Gen2: return uid_len == 8 && write_iso15693_gen2(nfc, uid);
     case MagicGenIso15693Gen3: return uid_len == 8 && write_iso15693_gen3(nfc, uid);
