@@ -19,12 +19,12 @@
 # What gates loading is the API *major*, compared exactly; the minor is not
 # compared at all -- upstream has that half of the condition commented out in all
 # three firmwares (V-074). One 87.1 file therefore covers every firmware whose
-# API major is 87. Unleashed sits at 88.x and stays out of scope, as it already
-# was before this workflow collapsed to a single target.
+# API major is 87. Unleashed is API 88, so it stays out of this release. The
+# same ufbt action compiles it in fap-build.yml; this job does not upload that file.
 #
-# fap-build.yml still builds both targets on every push. That matrix is the
-# compile-time guard against firmware-specific APIs (C4); dropping it would let a
-# Momentum-only symbol reach this workflow undetected.
+# fap-build.yml builds Official, Momentum, and Unleashed on every push. Official
+# and Momentum are the compile-time guard against firmware-specific APIs (C4);
+# dropping either would let a Momentum-only symbol reach this workflow undetected.
 #
 # Why this is a third workflow rather than a job inside fap-build.yml:
 # fap-build runs on every push and pull request and must stay read-only

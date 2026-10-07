@@ -1,7 +1,9 @@
 # T1.3c stage two: the ADR-007 Official + Momentum dual-target ufbt build.
+# Unleashed is a third row on this same action. API 88 needs its own SDK index.
+# That row does not replace Official or Momentum.
 #
 # Why this is split from host-test.yml: the two have completely different failure modes --
-# host_test depends only on a compiler, while this one pulls two SDKs and toolchains over the
+# host_test depends only on a compiler, while this one pulls SDK indexes and toolchains over the
 # network, which is slower and more brittle.
 # Splitting the files keeps a red on one side from polluting the other's green baseline, and makes
 # it obvious on a PR which layer broke.
@@ -19,7 +21,7 @@
 # Both sides use the release channel, and channels float (today Official 1.4.3 / Momentum
 # mntm-012, both at API 87.1, see V-030 / V-048). Hard-asserting a version number would turn an
 # upstream release into a red unrelated to any commit in this repository. The only hard gate is
-# "both targets build successfully and really produce a .fap";
+# "every matrix target builds successfully and really produces a .fap";
 # the version numbers are recorded in the step summary and artifact names as evidence.
 
 name: fap_build
@@ -49,6 +51,12 @@ jobs:
           # local .ufbt-momentum has exactly this shape, proving ufbt accepts it (V-048)
           - name: momentum
             sdk-index-url: 'https://up.momentum-fw.dev/firmware/'
+          # Same action, channel, and f7 target. Unleashed documents this index
+          # for ufbt: https://up.unleashedflip.com/directory.json
+          # The bare host 404s; the file is the index. API 88, not a substitute
+          # for the Official build.
+          - name: unleashed
+            sdk-index-url: 'https://up.unleashedflip.com/directory.json'
 
     steps:
       - uses: actions/checkout@v7
