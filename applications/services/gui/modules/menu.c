@@ -27,7 +27,6 @@ static_assert(
 struct Menu {
     View* view;
     FuriTimer* scroll_timer;
-    size_t item_capacity; // Private: MenuModel/MenuItem remain compatible with style plugins.
     bool active; // Guarded by the view model mutex
 };
 
@@ -200,7 +199,6 @@ static void menu_exit(void* context) {
 Menu* menu_alloc(void) {
     Menu* menu = malloc(sizeof(Menu));
     menu->active = false;
-    menu->item_capacity = 0;
     menu->view = view_alloc();
     view_set_context(menu->view, menu);
     view_allocate_model(menu->view, ViewModelTypeLocking, sizeof(MenuModel));
@@ -232,23 +230,6 @@ View* menu_get_view(Menu* menu) {
     return menu->view;
 }
 
-static void menu_reserve_item(Menu* menu, MenuModel* model) {
-    if(model->count < menu->item_capacity) return;
-
-    // Grow by 50% so large game lists do not copy the whole array for every FAP.
-    // Keep this capacity private: menu style plugins still see exactly count items.
-    const size_t capacity = menu->item_capacity ? menu->item_capacity + menu->item_capacity / 2 :
-                                                  8;
-    furi_check(capacity > menu->item_capacity && capacity <= SIZE_MAX / sizeof(MenuItem));
-    MenuItem* items = malloc(capacity * sizeof(MenuItem));
-    furi_check(items);
-    // RM's realloc copies the requested new size; copy only the initialized old items.
-    if(model->count) memcpy(items, model->items, model->count * sizeof(MenuItem));
-    free(model->items);
-    model->items = items;
-    menu->item_capacity = capacity;
-}
-
 void menu_add_item(
     Menu* menu,
     const char* label,
@@ -263,7 +244,7 @@ void menu_add_item(
         menu->view,
         MenuModel * model,
         {
-            menu_reserve_item(menu, model);
+            model->items = realloc(model->items, (model->count + 1) * sizeof(MenuItem));
             MenuItem* item = &model->items[model->count++];
             item->label = label;
             item->icon = icon_animation_alloc(icon ? icon : &A_Plugins_14);
@@ -289,7 +270,6 @@ void menu_reset(Menu* menu) {
             count = model->count;
             model->items = NULL;
             model->count = 0;
-            menu->item_capacity = 0;
             model->position = 0;
             model->scroll_counter = 0;
             model->offset = 0;

@@ -125,7 +125,6 @@ typedef struct {
     PluginManager* style_manager;
     Submenu* settings_menu;
     MenuAppList_t apps_list;
-    size_t app_count;
 } LoaderMenuApp;
 
 static void loader_menu_load_style(LoaderMenuApp* app) {
@@ -257,7 +256,13 @@ static void loader_menu_add_app_entry(
     const char* path,
     bool icon_owned) {
     MenuAppList_push_back(app->apps_list, (MenuApp){name, icon, path, icon_owned});
-    menu_add_item(app->primary_menu, name, icon, app->app_count++, loader_menu_apps_callback, app);
+    menu_add_item(
+        app->primary_menu,
+        name,
+        icon,
+        MenuAppList_size(app->apps_list) - 1,
+        loader_menu_apps_callback,
+        app);
 }
 
 static const Icon* loader_menu_get_ext_icon(Storage* storage, const char* path) {
@@ -396,20 +401,13 @@ static void loader_menu_build_menu(LoaderMenuApp* app, LoaderMenu* menu) {
 typedef struct {
     LoaderMenuApp* app;
     Storage* storage;
-    uint32_t entry_ticks;
 } LoaderGameMenuBuildContext;
 
 static void loader_menu_add_game(const char* path, void* context) {
     LoaderGameMenuBuildContext* build = context;
-    const uint32_t start = furi_get_tick();
     FuriString* line = furi_string_alloc_set_str(path);
     loader_menu_find_add_app(build->app, build->storage, line);
     furi_string_free(line);
-    build->entry_ticks += furi_get_tick() - start;
-}
-
-static uint32_t loader_menu_ticks_to_ms(uint32_t ticks) {
-    return (uint64_t)ticks * 1000 / furi_kernel_get_tick_frequency();
 }
 
 static void loader_menu_build_games(LoaderMenuApp* app, LoaderMenu* menu) {
@@ -417,33 +415,22 @@ static void loader_menu_build_games(LoaderMenuApp* app, LoaderMenu* menu) {
     Storage* storage = furi_record_open(RECORD_STORAGE);
     PluginManager* manager = plugin_manager_alloc(
         GAME_MENU_PLUGIN_APP_ID, GAME_MENU_PLUGIN_API_VERSION, firmware_api_interface);
-    const uint32_t plugin_start = furi_get_tick();
     PluginManagerError error = plugin_manager_load_single(manager, GAME_MENU_PLUGIN_PATH);
-    const uint32_t plugin_ticks = furi_get_tick() - plugin_start;
     const GameMenuPlugin* plugin =
         error == PluginManagerErrorNone ? plugin_manager_get_ep(manager, 0) : NULL;
     const bool loaded = plugin && plugin->load;
-    LoaderGameMenuBuildContext build = {.app = app, .storage = storage, .entry_ticks = 0};
-    const uint32_t entries_start = furi_get_tick();
     if(loaded) {
+        LoaderGameMenuBuildContext build = {.app = app, .storage = storage};
         plugin->load(storage, loader_menu_add_game, &build);
     } else {
         FURI_LOG_W(TAG, "Game menu plugin unavailable or invalid (%u)", error);
     }
-    const uint32_t entries_ticks = furi_get_tick() - entries_start;
     // All entries were copied by the callback; no plugin pointers enter the menu model.
     // Unload before styles are loaded, the menu is shown, or any game can be launched.
     plugin_manager_free(manager);
     furi_record_close(RECORD_STORAGE);
 
-    size_t count = app->app_count;
-    FURI_LOG_I(
-        TAG,
-        "Games: %zu entries; plugin %lums, discovery %lums, metadata/menu %lums",
-        count,
-        (unsigned long)loader_menu_ticks_to_ms(plugin_ticks),
-        (unsigned long)loader_menu_ticks_to_ms(entries_ticks - build.entry_ticks),
-        (unsigned long)loader_menu_ticks_to_ms(build.entry_ticks));
+    size_t count = MenuAppList_size(app->apps_list);
     if(!count) {
         menu_add_item(
             app->primary_menu,
@@ -470,14 +457,11 @@ static void loader_menu_build_submenu(LoaderMenuApp* app, LoaderMenu* loader_men
 }
 
 static LoaderMenuApp* loader_menu_app_alloc(LoaderMenu* loader_menu) {
-    const uint32_t start = furi_get_tick();
     LoaderMenuApp* app = malloc(sizeof(LoaderMenuApp));
     app->loader_menu = loader_menu;
     app->primary_menu = NULL;
     app->settings_menu = NULL;
     app->style_manager = NULL;
-    app->app_count = 0;
-    uint32_t style_ticks = 0;
 
     // Primary menu
     if(!app->loader_menu->settings_only) {
@@ -487,9 +471,7 @@ static LoaderMenuApp* loader_menu_app_alloc(LoaderMenu* loader_menu) {
         } else {
             loader_menu_build_menu(app, loader_menu);
         }
-        const uint32_t style_start = furi_get_tick();
         loader_menu_load_style(app);
-        style_ticks = furi_get_tick() - style_start;
     }
 
     // Settings menu
@@ -503,14 +485,6 @@ static LoaderMenuApp* loader_menu_app_alloc(LoaderMenu* loader_menu) {
                      menu_get_view(app->primary_menu);
     view_holder_set_view(app->loader_menu->loader->view_holder, view);
     view_holder_set_back_callback(app->loader_menu->loader->view_holder, loader_menu_back, app);
-
-    if(loader_menu->games_only) {
-        FURI_LOG_I(
-            TAG,
-            "Games: menu attached in %lums (style %lums)",
-            (unsigned long)loader_menu_ticks_to_ms(furi_get_tick() - start),
-            (unsigned long)loader_menu_ticks_to_ms(style_ticks));
-    }
 
     return app;
 }
