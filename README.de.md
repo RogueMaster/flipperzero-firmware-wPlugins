@@ -3,6 +3,7 @@
 [![Build & Release](https://github.com/vladpereverzyev/flipper-staff-time-clock/actions/workflows/build.yml/badge.svg)](https://github.com/vladpereverzyev/flipper-staff-time-clock/actions/workflows/build.yml)
 [![Latest release](https://img.shields.io/github/v/release/vladpereverzyev/flipper-staff-time-clock?cacheSeconds=300)](https://github.com/vladpereverzyev/flipper-staff-time-clock/releases)
 [![Downloads](https://img.shields.io/github/downloads/vladpereverzyev/flipper-staff-time-clock/total?cacheSeconds=300)](https://github.com/vladpereverzyev/flipper-staff-time-clock/releases)
+[![Flipper Lab](https://img.shields.io/badge/Flipper%20Lab-timeclock-orange?logo=flipper)](https://lab.flipper.net/apps/timeclock)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 
 [![en](https://img.shields.io/badge/lang-en-red.svg)](./README.md)
@@ -17,6 +18,11 @@ einen Ausweis zu - **NFC**, **RFID** oder **iButton** - halte ihn an das Geraet,
 und jede Stempelung wird mit Datum und Uhrzeit auf der microSD als CSV
 gespeichert, das du in Excel oeffnen kannst. Laeuft eigenstaendig, ohne Telefon
 oder PC.
+
+**Download**: Die App ist auf [Flipper Lab](https://lab.flipper.net/apps/timeclock) veroeffentlicht und laesst
+sich dort mit einem Klick auf den Flipper installieren (per Browser oder
+Mobile-App). Alternativ lade die `.fap` fuer deine Firmware aus dem
+[neuesten Release](https://github.com/vladpereverzyev/flipper-staff-time-clock/releases/latest) herunter.
 
 Der Leser liest **NFC**, **RFID** und **iButton**: waehle mit Links/Rechts auf
 dem Lesebildschirm, welche aktiv ist (die App merkt sich die letzte Wahl). Im
