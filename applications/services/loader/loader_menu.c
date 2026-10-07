@@ -10,7 +10,6 @@
 #include "loader_i.h"
 #include "loader_menu.h"
 #include "loader_menu_storage_i.h"
-#include "game_menu_plugin.h"
 
 #include <flipper_application/flipper_application.h>
 #include <flipper_application/plugins/plugin_manager.h>
@@ -19,6 +18,7 @@
 #include <gui/modules/file_browser.h>
 #include <core/dangerous_defines.h>
 #include <cfw/cfw.h>
+#include <cfw/game_menu.h>
 #include <gui/icon_i.h>
 #include <m-list.h>
 
@@ -413,28 +413,15 @@ static void loader_menu_add_game(const char* path, void* context) {
 static void loader_menu_build_games(LoaderMenuApp* app, LoaderMenu* menu) {
     MenuAppList_init(app->apps_list);
     Storage* storage = furi_record_open(RECORD_STORAGE);
-    PluginManager* manager = plugin_manager_alloc(
-        GAME_MENU_PLUGIN_APP_ID, GAME_MENU_PLUGIN_API_VERSION, firmware_api_interface);
-    PluginManagerError error = plugin_manager_load_single(manager, GAME_MENU_PLUGIN_PATH);
-    const GameMenuPlugin* plugin =
-        error == PluginManagerErrorNone ? plugin_manager_get_ep(manager, 0) : NULL;
-    const bool loaded = plugin && plugin->load;
-    if(loaded) {
-        LoaderGameMenuBuildContext build = {.app = app, .storage = storage};
-        plugin->load(storage, loader_menu_add_game, &build);
-    } else {
-        FURI_LOG_W(TAG, "Game menu plugin unavailable or invalid (%u)", error);
-    }
-    // All entries were copied by the callback; no plugin pointers enter the menu model.
-    // Unload before styles are loaded, the menu is shown, or any game can be launched.
-    plugin_manager_free(manager);
+    LoaderGameMenuBuildContext build = {.app = app, .storage = storage};
+    game_menu_load(storage, loader_menu_add_game, &build);
     furi_record_close(RECORD_STORAGE);
 
     size_t count = MenuAppList_size(app->apps_list);
     if(!count) {
         menu_add_item(
             app->primary_menu,
-            loaded ? "No games found" : "Update SD resources",
+            "No games found",
             &A_Plugins_14,
             0,
             NULL,
