@@ -3,6 +3,7 @@
 [![Build & Release](https://github.com/vladpereverzyev/flipper-staff-time-clock/actions/workflows/build.yml/badge.svg)](https://github.com/vladpereverzyev/flipper-staff-time-clock/actions/workflows/build.yml)
 [![Latest release](https://img.shields.io/github/v/release/vladpereverzyev/flipper-staff-time-clock?cacheSeconds=300)](https://github.com/vladpereverzyev/flipper-staff-time-clock/releases)
 [![Downloads](https://img.shields.io/github/downloads/vladpereverzyev/flipper-staff-time-clock/total?cacheSeconds=300)](https://github.com/vladpereverzyev/flipper-staff-time-clock/releases)
+[![Flipper Lab](https://img.shields.io/badge/Flipper%20Lab-timeclock-orange?logo=flipper)](https://lab.flipper.net/apps/timeclock)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 
 [![en](https://img.shields.io/badge/lang-en-red.svg)](./README.md)
@@ -17,7 +18,9 @@ person a badge - **NFC**, **RFID** or **iButton** - tap it, and every punch is
 timestamped and stored on the microSD card as a CSV timesheet you can open in
 Excel. It works fully standalone - no phone or PC required.
 
-**Download**: grab the ready-to-flash `.fap` for your firmware from the
+**Download**: the app is published on [Flipper Lab](https://lab.flipper.net/apps/timeclock),
+where you can install it on your Flipper in one click (from the browser or the
+mobile app). Or grab the ready-to-flash `.fap` for your firmware from the
 [latest release](https://github.com/vladpereverzyev/flipper-staff-time-clock/releases/latest)
 (see [Compatibility](#compatibility) for which file to pick).
 

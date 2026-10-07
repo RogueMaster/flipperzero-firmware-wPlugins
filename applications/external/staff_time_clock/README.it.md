@@ -3,6 +3,7 @@
 [![Build & Release](https://github.com/vladpereverzyev/flipper-staff-time-clock/actions/workflows/build.yml/badge.svg)](https://github.com/vladpereverzyev/flipper-staff-time-clock/actions/workflows/build.yml)
 [![Latest release](https://img.shields.io/github/v/release/vladpereverzyev/flipper-staff-time-clock?cacheSeconds=300)](https://github.com/vladpereverzyev/flipper-staff-time-clock/releases)
 [![Downloads](https://img.shields.io/github/downloads/vladpereverzyev/flipper-staff-time-clock/total?cacheSeconds=300)](https://github.com/vladpereverzyev/flipper-staff-time-clock/releases)
+[![Flipper Lab](https://img.shields.io/badge/Flipper%20Lab-timeclock-orange?logo=flipper)](https://lab.flipper.net/apps/timeclock)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 
 [![en](https://img.shields.io/badge/lang-en-red.svg)](./README.md)
@@ -16,6 +17,10 @@ Serve a registrare i tuoi collaboratori e le loro entrate/uscite: assegna a ogni
 persona un badge - **NFC**, **RFID** o **iButton** - lo avvicini, e ogni
 timbratura viene salvata con data e ora sulla microSD come foglio CSV apribile in
 Excel. Funziona in totale autonomia, senza telefono ne PC.
+
+**Download**: l'app e pubblicata su [Flipper Lab](https://lab.flipper.net/apps/timeclock), da dove si installa
+con un clic sul Flipper (via browser o app mobile). In alternativa scarica il
+`.fap` per il tuo firmware dall'[ultima release](https://github.com/vladpereverzyev/flipper-staff-time-clock/releases/latest).
 
 Il lettore legge **NFC**, **RFID** e **iButton**: scegli quale usare con
 Sinistra/Destra nella schermata di lettura (l'app ricorda l'ultima scelta).
