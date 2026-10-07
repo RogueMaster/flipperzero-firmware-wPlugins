@@ -40,7 +40,9 @@ typedef struct {
     uint8_t startup_app;
     uint8_t epc_display;
     uint8_t action_confirm;
-    uint8_t reserved[3];
+    uint8_t reader_buzzer_enabled;
+    uint8_t reader_buzzer_marker;
+    uint8_t reserved;
 } UhfSettingsData;
 
 typedef struct {

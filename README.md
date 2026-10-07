@@ -14,14 +14,14 @@ UHF RFID Reader/Writer expansion for Flipper Zero, communicating over UART bridg
 - **TID Decoder** — Automatically pauses on one tag and shows scrollable MDID/model details
 - **EPC Fuzzing** — Generates incremental EPC variants with explicit verified writes
 - **EPC ASCII** — Captures one tag, edits up to 12 printable ASCII characters, and writes a 96-bit EPC
-- **Persistent Settings** — Configure sound, 0–20 dBm RF power, EPC display, and a startup tool
+- **Persistent Settings** — Separate app settings from reader indicator and 0–20 dBm RF power settings
 - **Paged EPC List** — Browse scanned tags page by page, with truncated preview
 - **Tag Details** — View full EPC, RSSI, and PC (Protocol Control) bits for each tag
 - **Tag Memory Actions** — Read and write EPC, TID, and User Data on compatible tags
 - **Tag Protection Actions** — Erase writable banks and reversibly lock or unlock EPC, TID, and User memory
 - **Access Keys** — Keep four reusable 32-bit access-password slots in the app data directory
 - **Save CSV Records** — Export scanned tags to CSV file on SD card
-- **About Page** — Version info and project links
+- **About Page** — Project details and a second page with reader firmware, temperature, power, and UUID
 
 ## Screenshots
 
@@ -106,7 +106,7 @@ Catalog bundle, updates the Catalog fork, and opens the upstream pull request.
 
 1. Connect your UHF module as described in [Hardware Setup](#hardware-setup)
 2. Open **Apps → GPIO → UHF Expansion**
-3. Choose **UHF Radar**, **Inventory**, **Tag Tools**, **EPC Tools**, **Saved Tags**, or **Settings**. Tag Tools groups TID Decoder, Tag Control and Access Keys; EPC Tools groups EPC ASCII and EPC Fuzzing; Settings groups App Settings, Reader Info and About.
+3. Choose **UHF Radar**, **Inventory**, **Tag Tools**, **EPC Tools**, **Saved Tags**, or **Settings**. Tag Tools groups TID Decoder, Tag Control and Access Keys; EPC Tools groups EPC ASCII and EPC Fuzzing; Settings groups App Settings, Reader Settings and About.
 4. In UHF Radar or Tag Inventory, press **OK** to start/stop inventory scanning
 5. Navigate the tag list with **Up/Down**
 6. Press **OK** on a tag to view details
@@ -179,8 +179,11 @@ Tag Operation and Tag Control use the selected EPC without scanning for another 
   require a separate short-OK confirmation; BACK cancels. Results use a timed popup
   over the previous menu. Tag Control wraps UP/DOWN selection and shows a right scrollbar.
 
-**Save Tag** creates `tags/tag_001.uhf` through `tag_999.uhf` in the app data
-folder without replacing existing records. Records contain EPC, captured PC,
+**Save Tag** opens the keyboard with `Tag X` as the default name, where X is
+the current number of saved tags plus one. Confirming creates `tags/tag_001.uhf`
+through `tag_999.uhf` in the app data folder without replacing existing records.
+The chosen name appears in Saved Tags; older records retain their numbered labels.
+Records contain the name, EPC, captured PC,
 RSSI, the Flipper RTC timestamp, and any cached TID/USER data. Saved TID/USER
 values are the contiguous prefix actually read, capped at 32/64 bytes; they
 are not a claim that the complete bank was dumped. Reserved passwords are not
@@ -221,6 +224,11 @@ including existing settings files: Clear Inventory, Erase, Lock/Unlock and Saved
 Delete show a confirmation page and execute on short OK. With **No**, those actions
 execute immediately and show a timed result popup. LEFT/RIGHT toggles the setting;
 Save persists it.
+
+Reader Settings includes **Indicator**, **RF Power**, and **Reset**. Save applies
+the indicator and power settings and sends the reader's save-parameters command.
+Selecting Reset and pressing OK sends the reader reset command. In About, press
+RIGHT to view reader details and LEFT to return to the project page.
 
 Radar LEFT/Clear always clears immediately, regardless of Action Confirm, and
 keeps the radar page and scan state. Inventory clearing follows Action Confirm

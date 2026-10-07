@@ -7,6 +7,7 @@
 #define UHF_SAVED_TAG_TEXT_MAX 512U
 
 typedef struct {
+    char name[32];
     char epc[UHF_EPC_HEX_MAX + 1U];
     char tid[UHF_TID_HEX_MAX + 1U];
     char user[UHF_USER_HEX_MAX + 1U];
