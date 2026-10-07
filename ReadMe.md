@@ -186,6 +186,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Pod v1.0 (By thecoolguy2001)](https://github.com/thecoolguy2001/flipper-pod)
 - Revert: [Speed Game Menu loading with bounded FAP metadata reads, amortized menu allocation, timer-free static icons and in-place heapsort in the Game Menu FAL. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/439d5e28124582dfbd74b4c0505f5ec323d66959) (this did not improve much)
 - [Game Mode: Load game-menu discovery and configuration parsing from internal instead of an on-demand FAL. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/b52ad0ff3b50f46270f0de4459cd1ed5a6656857)
+- OFW: [appmanifest: reject float fap_version with a clear error (refs ufbt#52) #4375 (By hypery11)](https://github.com/flipperdevices/flipperzero-firmware/pull/4375)
+- OFW: RFID: [feat: add Indala 224-bit (long format) RFID protocol support #4343 — fix decoding of phase runs spanning all 224 bits (By kuzaxak)](https://github.com/flipperdevices/flipperzero-firmware/pull/4343)
 
 <a name="release"></a>
 
