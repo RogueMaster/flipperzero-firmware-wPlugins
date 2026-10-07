@@ -184,6 +184,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [MTools v1.0 (By mtoolstec)](https://github.com/mtoolstec/flipper-mtools)
 - Added: [PC Health Remote v1.1 (By vladatman)](https://github.com/vladatman/pc-health-remote)
 - Added: [Pod v1.0 (By thecoolguy2001)](https://github.com/thecoolguy2001/flipper-pod)
+- Revert: [Speed Game Menu loading with bounded FAP metadata reads, amortized menu allocation, timer-free static icons and in-place heapsort in the Game Menu FAL. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/439d5e28124582dfbd74b4c0505f5ec323d66959) (this did not improve much)
+- [Game Mode: Load game-menu discovery and configuration parsing from internal instead of an on-demand FAL. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/b52ad0ff3b50f46270f0de4459cd1ed5a6656857)
 
 <a name="release"></a>
 

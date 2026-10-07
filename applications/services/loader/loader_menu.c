@@ -20,9 +20,21 @@
 #include <cfw/cfw.h>
 #include <cfw/game_menu.h>
 #include <gui/icon_i.h>
+#include <m-array.h>
 #include <m-list.h>
 
 #define TAG "LoaderMenu"
+#define LOADER_GAME_MENU_PAGE_SIZE 18
+
+enum {
+    LoaderMenuFlagClose = (1U << 0),
+    LoaderMenuFlagGamePage = (1U << 1),
+};
+
+enum {
+    LoaderMenuIndexGamePrevious = (uint32_t)-4,
+    LoaderMenuIndexGameNext = (uint32_t)-5,
+};
 
 typedef enum {
     LoaderMenuViewPrimary,
@@ -52,7 +64,8 @@ static void loader_pubsub_callback(const void* message, void* context) {
 
     if(event->type == LoaderEventTypeApplicationBeforeLoad) {
         if(loader_menu->thread) {
-            furi_thread_flags_set(furi_thread_get_id(loader_menu->thread), 0);
+            furi_thread_flags_set(
+                furi_thread_get_id(loader_menu->thread), LoaderMenuFlagClose);
             furi_thread_join(loader_menu->thread);
             furi_thread_free(loader_menu->thread);
             loader_menu->thread = NULL;
@@ -118,6 +131,7 @@ typedef struct {
 
 LIST_DEF(MenuAppList, MenuApp, M_POD_OPLIST)
 #define M_OPL_MenuAppList_t() LIST_OPLIST(MenuAppList)
+ARRAY_DEF(LoaderGamePaths, char*)
 
 typedef struct {
     LoaderMenu* loader_menu;
@@ -125,6 +139,11 @@ typedef struct {
     PluginManager* style_manager;
     Submenu* settings_menu;
     MenuAppList_t apps_list;
+    LoaderGamePaths_t game_paths;
+    size_t game_page_start;
+    FuriMessageQueue* game_page_queue;
+    char game_previous_label[48];
+    char game_next_label[48];
 } LoaderMenuApp;
 
 static void loader_menu_load_style(LoaderMenuApp* app) {
@@ -161,6 +180,11 @@ static void loader_menu_start(const char* name) {
 
 static void loader_menu_apps_callback(void* context, uint32_t index) {
     LoaderMenuApp* app = context;
+    if(app->loader_menu->games_only) {
+        if(index < app->game_page_start) return;
+        index -= app->game_page_start;
+    }
+    if(index >= MenuAppList_size(app->apps_list)) return;
     const MenuApp* menu_app = MenuAppList_get(app->apps_list, index);
     const char* name = menu_app->path ? menu_app->path : menu_app->name;
 
@@ -242,7 +266,8 @@ static void loader_menu_back(void* context) {
             loader_menu_set_view_pending, app, (uint32_t)menu_get_view(app->primary_menu));
         app->loader_menu->current_view = LoaderMenuViewPrimary;
     } else {
-        furi_thread_flags_set(furi_thread_get_id(app->loader_menu->thread), 0);
+        furi_thread_flags_set(
+            furi_thread_get_id(app->loader_menu->thread), LoaderMenuFlagClose);
         if(app->loader_menu->closed_cb) {
             app->loader_menu->closed_cb(app->loader_menu->context);
         }
@@ -256,11 +281,13 @@ static void loader_menu_add_app_entry(
     const char* path,
     bool icon_owned) {
     MenuAppList_push_back(app->apps_list, (MenuApp){name, icon, path, icon_owned});
+    size_t index = MenuAppList_size(app->apps_list) - 1;
+    if(app->loader_menu->games_only) index += app->game_page_start;
     menu_add_item(
         app->primary_menu,
         name,
         icon,
-        MenuAppList_size(app->apps_list) - 1,
+        index,
         loader_menu_apps_callback,
         app);
 }
@@ -398,26 +425,91 @@ static void loader_menu_build_menu(LoaderMenuApp* app, LoaderMenu* menu) {
     menu_set_selected_item(app->primary_menu, selected);
 }
 
-typedef struct {
-    LoaderMenuApp* app;
-    Storage* storage;
-} LoaderGameMenuBuildContext;
-
-static void loader_menu_add_game(const char* path, void* context) {
-    LoaderGameMenuBuildContext* build = context;
-    FuriString* line = furi_string_alloc_set_str(path);
-    loader_menu_find_add_app(build->app, build->storage, line);
-    furi_string_free(line);
+static void loader_menu_clear_apps(LoaderMenuApp* app) {
+    for
+        M_EACH(menu_app, app->apps_list, MenuAppList_t) {
+            // The menu must release its icon animations before these borrowed assets.
+            if(menu_app->path) {
+                free((void*)menu_app->name);
+                if(menu_app->icon_owned) {
+                    free((void*)menu_app->icon->frames[0]);
+                    free((void*)menu_app->icon->frames);
+                    free((void*)menu_app->icon);
+                }
+                free((void*)menu_app->path);
+            }
+        }
+    MenuAppList_clear(app->apps_list);
 }
 
-static void loader_menu_build_games(LoaderMenuApp* app, LoaderMenu* menu) {
+static void loader_menu_game_page_callback(void* context, uint32_t index) {
+    LoaderMenuApp* app = context;
+    size_t count = LoaderGamePaths_size(app->game_paths);
+    size_t selected;
+    if(index == LoaderMenuIndexGamePrevious && app->game_page_start) {
+        selected = app->game_page_start - 1;
+    } else if(
+        index == LoaderMenuIndexGameNext &&
+        app->game_page_start + LOADER_GAME_MENU_PAGE_SIZE < count) {
+        selected = app->game_page_start + LOADER_GAME_MENU_PAGE_SIZE;
+    } else {
+        return;
+    }
+    // GUI callbacks only enqueue work. Storage and menu resets run on the loader thread.
+    uint32_t requested = selected;
+    if(furi_message_queue_put(app->game_page_queue, &requested, 0) == FuriStatusOk) {
+        furi_thread_flags_set(
+            furi_thread_get_id(app->loader_menu->thread), LoaderMenuFlagGamePage);
+    }
+}
+
+static void loader_menu_build_game_page(LoaderMenuApp* app, uint32_t selected) {
     MenuAppList_init(app->apps_list);
+    size_t count = LoaderGamePaths_size(app->game_paths);
+    if(selected >= count) selected = 0;
+    app->game_page_start = (selected / LOADER_GAME_MENU_PAGE_SIZE) * LOADER_GAME_MENU_PAGE_SIZE;
+    size_t end = MIN(app->game_page_start + LOADER_GAME_MENU_PAGE_SIZE, count);
+
+    if(app->game_page_start) {
+        snprintf(
+            app->game_previous_label,
+            sizeof(app->game_previous_label),
+            "Previous %zu-%zu",
+            app->game_page_start - LOADER_GAME_MENU_PAGE_SIZE + 1,
+            app->game_page_start);
+        menu_add_item(
+            app->primary_menu,
+            app->game_previous_label,
+            &A_Plugins_14,
+            LoaderMenuIndexGamePrevious,
+            loader_menu_game_page_callback,
+            app);
+    }
+
     Storage* storage = furi_record_open(RECORD_STORAGE);
-    LoaderGameMenuBuildContext build = {.app = app, .storage = storage};
-    game_menu_load(storage, loader_menu_add_game, &build);
+    for(size_t i = app->game_page_start; i < end; i++) {
+        FuriString* line = furi_string_alloc_set_str(*LoaderGamePaths_get(app->game_paths, i));
+        loader_menu_find_add_app(app, storage, line);
+        furi_string_free(line);
+    }
     furi_record_close(RECORD_STORAGE);
 
-    size_t count = MenuAppList_size(app->apps_list);
+    if(end < count) {
+        snprintf(
+            app->game_next_label,
+            sizeof(app->game_next_label),
+            "Next %zu-%zu",
+            end + 1,
+            MIN(end + LOADER_GAME_MENU_PAGE_SIZE, count));
+        menu_add_item(
+            app->primary_menu,
+            app->game_next_label,
+            &A_Plugins_14,
+            LoaderMenuIndexGameNext,
+            loader_menu_game_page_callback,
+            app);
+    }
+
     if(!count) {
         menu_add_item(
             app->primary_menu,
@@ -427,8 +519,47 @@ static void loader_menu_build_games(LoaderMenuApp* app, LoaderMenu* menu) {
             NULL,
             NULL);
     }
-    menu_set_selected_item(
-        app->primary_menu, menu->selected_primary < count ? menu->selected_primary : 0);
+    menu_set_selected_item(app->primary_menu, selected);
+}
+
+static void loader_menu_add_game(const char* path, void* context) {
+    LoaderMenuApp* app = context;
+    // Keep callback indices below the reserved page-control values.
+    if(LoaderGamePaths_size(app->game_paths) < LoaderMenuIndexGameNext) {
+        LoaderGamePaths_push_back(app->game_paths, strdup(path));
+    }
+}
+
+static void loader_menu_build_games(LoaderMenuApp* app, LoaderMenu* menu) {
+    app->game_page_queue = furi_message_queue_alloc(1, sizeof(uint32_t));
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    // Discover paths once; read FAP metadata only for the requested 18-game page.
+    game_menu_load(storage, loader_menu_add_game, app);
+    furi_record_close(RECORD_STORAGE);
+    loader_menu_build_game_page(app, menu->selected_primary);
+}
+
+static void loader_menu_process_game_page(LoaderMenuApp* app) {
+    uint32_t requested;
+    if(furi_message_queue_get(app->game_page_queue, &requested, 0) != FuriStatusOk) return;
+
+    view_holder_set_view(
+        app->loader_menu->loader->view_holder,
+        loading_get_view(app->loader_menu->loader->loading));
+    // Detaching the old view waits for its input release; coalesce rapid repeated OKs.
+    uint32_t latest;
+    while(furi_message_queue_get(app->game_page_queue, &latest, 0) == FuriStatusOk) {
+        requested = latest;
+    }
+    if(furi_thread_flags_get() & LoaderMenuFlagClose) return;
+
+    menu_reset(app->primary_menu);
+    loader_menu_clear_apps(app);
+    loader_menu_build_game_page(app, requested);
+    if(!(furi_thread_flags_get() & LoaderMenuFlagClose)) {
+        view_holder_set_view(
+            app->loader_menu->loader->view_holder, menu_get_view(app->primary_menu));
+    }
 }
 
 static void loader_menu_build_submenu(LoaderMenuApp* app, LoaderMenu* loader_menu) {
@@ -449,6 +580,9 @@ static LoaderMenuApp* loader_menu_app_alloc(LoaderMenu* loader_menu) {
     app->primary_menu = NULL;
     app->settings_menu = NULL;
     app->style_manager = NULL;
+    LoaderGamePaths_init(app->game_paths);
+    app->game_page_start = 0;
+    app->game_page_queue = NULL;
 
     // Primary menu
     if(!app->loader_menu->settings_only) {
@@ -483,27 +617,22 @@ static void loader_menu_app_free(LoaderMenuApp* app) {
         loading_get_view(app->loader_menu->loader->loading));
 
     if(!app->loader_menu->settings_only) {
-        app->loader_menu->selected_primary = menu_get_selected_item(app->primary_menu);
+        uint32_t selected = menu_get_selected_item(app->primary_menu);
+        if(app->loader_menu->games_only && selected >= LoaderGamePaths_size(app->game_paths)) {
+            selected = app->game_page_start;
+        }
+        app->loader_menu->selected_primary = selected;
         // Detach the plugin vtable under the model mutex before its image can be unmapped.
         menu_set_style(app->primary_menu, NULL);
         menu_free(app->primary_menu);
         if(app->style_manager) plugin_manager_free(app->style_manager);
-        for
-            M_EACH(menu_app, app->apps_list, MenuAppList_t) {
-                // Path only set for FAPs, if unset then name and
-                // icon point to flash and must not be freed
-                if(menu_app->path) {
-                    free((void*)menu_app->name);
-                    if(menu_app->icon_owned) {
-                        free((void*)menu_app->icon->frames[0]);
-                        free((void*)menu_app->icon->frames);
-                        free((void*)menu_app->icon);
-                    }
-                    free((void*)menu_app->path);
-                }
-            }
-        MenuAppList_clear(app->apps_list);
+        loader_menu_clear_apps(app);
     }
+    for(size_t i = 0; i < LoaderGamePaths_size(app->game_paths); i++) {
+        free(*LoaderGamePaths_get(app->game_paths, i));
+    }
+    LoaderGamePaths_clear(app->game_paths);
+    if(app->game_page_queue) furi_message_queue_free(app->game_page_queue);
     app->loader_menu->selected_setting = app->loader_menu->current_view == LoaderMenuViewSettings ?
                                              submenu_get_selected_item(app->settings_menu) :
                                              0;
@@ -518,7 +647,14 @@ static int32_t loader_menu_thread(void* p) {
 
     LoaderMenuApp* app = loader_menu_app_alloc(loader_menu);
 
-    furi_thread_flags_wait(0, FuriFlagWaitAll, FuriWaitForever);
+    while(true) {
+        uint32_t flags = furi_thread_flags_wait(
+            LoaderMenuFlagClose | LoaderMenuFlagGamePage, FuriFlagWaitAny, FuriWaitForever);
+        if(flags & (LoaderMenuFlagClose | FuriFlagError)) break;
+        if((flags & LoaderMenuFlagGamePage) && loader_menu->games_only) {
+            loader_menu_process_game_page(app);
+        }
+    }
 
     loader_menu_app_free(app);
 
