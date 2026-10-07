@@ -4,7 +4,7 @@
 
 Initial public release.
 
-### Added
+## Added
 
 - Tamagotchi Connection 2024 infrared communication
 - Visit mode
@@ -24,12 +24,12 @@ Initial public release.
 - Random Item
 - Random Special
 
-### Tested
+## Tested
 
 Visit, Points Game and Gift communication have been physically tested with
 a Tamagotchi Connection 2024 re-release.
 
-### Planned
+## Planned
 
 - Additional game modes
 - Marriage support
