@@ -1,0 +1,18 @@
+# Version updates for GitHub Actions only.
+# flipperdevices/flipperzero-ufbt-action stays on the commit pin in the workflows.
+# Docs: https://docs.github.com/en/code-security/how-tos/secure-your-supply-chain/secure-your-dependencies/auto-update-actions
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+    ignore:
+      - dependency-name: flipperdevices/flipperzero-ufbt-action
+      - dependency-name: flipperdevices/flipperzero-ufbt-action/*
