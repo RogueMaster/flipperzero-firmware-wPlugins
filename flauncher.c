@@ -10,6 +10,7 @@
 #define ICONS_CFG  "/ext/apps_data/flauncher/icons.txt"
 #define ICONS_TMP  "/ext/apps_data/flauncher/icons.tmp"
 #define ICONS_DIR  "/ext/apps_data/flauncher/icons"
+#define STATE_PATH "/ext/apps_data/flauncher/state.txt"
 
 #define MAX_ENTRIES 40
 #define MAX_ICONS   64
@@ -182,6 +183,46 @@ static void load_icons(App* app) {
         app->entries[i].icon_ok = read_icon(storage, app->entries[i].icon_name, app->entries[i].icon);
     }
     furi_record_close(RECORD_STORAGE);
+}
+
+// remember the selected favorite across relaunches (store its path, not index,
+// so it survives favorites.txt reordering)
+static void save_state(App* app) {
+    if(app->count == 0) return;
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    File* f = storage_file_alloc(storage);
+    if(storage_file_open(f, STATE_PATH, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
+        const char* path = app->entries[app->index].path;
+        storage_file_write(f, path, strlen(path));
+    }
+    storage_file_close(f);
+    storage_file_free(f);
+    furi_record_close(RECORD_STORAGE);
+}
+
+static void load_state(App* app) {
+    if(app->count == 0) return;
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    Stream* s = file_stream_alloc(storage);
+    FuriString* line = furi_string_alloc();
+    if(file_stream_open(s, STATE_PATH, FSAM_READ, FSOM_OPEN_EXISTING)) {
+        if(stream_read_line(s, line)) {
+            furi_string_trim(line);
+            for(uint8_t i = 0; i < app->count; i++) {
+                if(!strcmp(app->entries[i].path, furi_string_get_cstr(line))) {
+                    app->index = i;
+                    break;
+                }
+            }
+        }
+    }
+    furi_string_free(line);
+    file_stream_close(s);
+    stream_free(s);
+    furi_record_close(RECORD_STORAGE);
+    // keep the restored selection within the viewport
+    uint8_t srow = app->index / COLS;
+    app->row_offset = (srow >= VIS_ROWS) ? (srow - (VIS_ROWS - 1)) : 0;
 }
 
 // scan the icons dir for *.bm names (called lazily when the picker opens)
@@ -359,6 +400,7 @@ int32_t flauncher_app(void* p) {
 
     load_favorites(app);
     load_icons(app);
+    load_state(app); // restore last-selected favorite
 
     ViewPort* vp = view_port_alloc();
     view_port_draw_callback_set(vp, draw_cb, app);
@@ -454,6 +496,8 @@ int32_t flauncher_app(void* p) {
     gui_remove_view_port(gui, vp);
     furi_record_close(RECORD_GUI);
     view_port_free(vp);
+
+    save_state(app); // remember where we were, for the next open / post-launch return
 
     if(app->do_launch && app->count) {
         Entry* e = &app->entries[app->index];
