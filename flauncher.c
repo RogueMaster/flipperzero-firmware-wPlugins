@@ -418,6 +418,7 @@ static uint8_t grid_nav(uint8_t index, uint8_t count, uint16_t key) {
 int32_t flauncher_app(void* p) {
     UNUSED(p);
     App* app = malloc(sizeof(App));
+    if(!app) return -1;
     memset(app, 0, sizeof(App));
     app->mode = ModeGrid;
     app->input_queue = furi_message_queue_alloc(8, sizeof(InputEvent));
