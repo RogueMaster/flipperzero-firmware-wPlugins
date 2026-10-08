@@ -12,7 +12,8 @@ A cozy virtual pet. Yulia shares a little room with her two cats: Nugget, an eld
 - **Vinyl:** optional background music in six genres, with a reaction from everyone when a new record goes on
 - **Day and night:** the room follows the Flipper's clock, from sun through the window to a lamp-lit evening
 - **Art:** when Yulia finishes a piece she holds it up full screen: portraits of the cats, abstract jokes after Malevich, Kandinsky and Mondrian, and studies that come out different every time, all kept in her sketchbook
-- **Album:** fourteen photos to unlock, including ones for reading every book and filling the sketchbook
+- **Dreams:** at nap time Yulia drifts off and dreams, a little moving picture each time: her cats, travels with her tall curly-haired fellow, fantasy, space, surreal visions and the occasional nightmare, all written up in her dream journal
+- **Album:** fifteen photos to unlock, including ones for reading every book, filling the sketchbook and filling the dream journal
 - **Gentle:** time passes while the app is closed, but nothing bad ever happens to the cats
 
 ## Controls

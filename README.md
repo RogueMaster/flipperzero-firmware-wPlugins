@@ -63,12 +63,38 @@ two cats: **Nugget**, an elderly tiger-striped gentleman with white socks, and
     Yulia and the cats react for a few seconds whenever a new record goes
     on, differently for each genre. The music rests during naps and stays
     silent in stealth mode.
-  - *Album* - fourteen photos, each unlocked by a little milestone. One
-    is for reading every book on the shelf and one for filling the
-    sketchbook; Yulia reads and draws the ones she has not done first.
+  - *Album* - fifteen photos, each unlocked by a little milestone. One
+    is for reading every book on the shelf, one for filling the sketchbook
+    and one for filling the dream journal; Yulia reads, draws and dreams
+    the ones she has not done first.
   - *Sketchbook* - everything Yulia has drawn, seventeen pages in all. Left
     and Right turn the pages.
+  - *Journal* - her dream journal, a page for every dream she has had.
+    Left and Right turn the pages; OK on a written page plays the dream
+    again.
 - **Nap time** - lights off, everyone sleeps. Choose it again to wake up.
+  A moment after the lights go out Yulia drifts off and dreams, and the
+  dream plays out on the screen (any button cuts it short).
+
+### Yulia's dreams
+
+Fourteen dreams, each a little moving picture, written up in her journal
+afterwards. She has the ones she has not had before first:
+
+![Her dreams, and a page of the journal](dreams.png)
+
+- **The cats:** Nugget the size of a hill, a rain of fish for Baby, and a
+  parade of cats in party hats
+- **Away with him:** a night train through the mountains, a balloon over
+  the hills (he waves at every cow), and a gondola in Venice
+- **Fantasy:** a dragon ride over a castle (the dragon is Nugget with
+  wings) and a forest of giant mushrooms lit by fireflies
+- **Space:** the cats on the moon, and a rocket past the stars with the
+  cats at the portholes
+- **Surreal:** teacups circling a staircase to nowhere while a clock runs
+  backwards, and a tunnel of rings with a great cat's eye at the end
+- **Nightmares, now and then:** a vacuum cleaner the size of a bus, and
+  the dark with eyes in it
 
 ### Yulia's art
 

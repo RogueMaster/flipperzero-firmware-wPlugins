@@ -177,6 +177,7 @@ typedef enum {
     PhotoBumped,
     PhotoBookworm,
     PhotoGallery,
+    PhotoDreamer,
     PhotoCount,
 } Photo;
 
@@ -213,6 +214,30 @@ typedef enum {
 // How long a finished piece is held up before the room comes back
 #define REVEAL_TICKS  60
 
+// Her dreams. A moment after the lights go out Yulia drifts off, the dream
+// plays on the screen, and then it goes in her journal. The last few are
+// nightmares, which only come now and then.
+typedef enum {
+    DreamGiant,
+    DreamFishRain,
+    DreamParade,
+    DreamTrain,
+    DreamBalloon,
+    DreamGondola,
+    DreamDragon,
+    DreamForest,
+    DreamMoon,
+    DreamRocket,
+    DreamTeacups,
+    DreamTunnel,
+    DreamVacuum, // the nightmares start here
+    DreamDark,
+    DreamCount,
+} Dream;
+#define DREAM_ALL   ((1u << DreamCount) - 1)
+#define DREAM_TICKS 80 // how long a dream plays
+#define DOZE_TICKS  25 // lights out, and then she drifts off
+
 typedef struct {
     uint32_t magic;
     uint32_t first_ts;
@@ -229,6 +254,7 @@ typedef struct {
     uint32_t books; // added later still: one bit per excerpt Yulia has read
     uint32_t sketches; // and one per piece of art she has made
     uint8_t sketch_count[ART_GENERATED];
+    uint32_t dreams; // and one per dream in her journal
 } SaveData;
 
 typedef struct {
@@ -254,6 +280,7 @@ typedef enum {
     ActVinyl,
     ActAlbum,
     ActSketchbook,
+    ActJournal,
     ActNap,
 } Act;
 
@@ -268,7 +295,7 @@ static const Group groups[] = {
     {"Play", ActYarn, 2},
     {"Pet", ActPetNugget, 2},
     {"Yulia", ActTea, 4},
-    {"Home", ActWardrobe, 5},
+    {"Home", ActWardrobe, 6},
     {"Nap time", ActNap, 1},
 };
 #define GROUP_COUNT COUNT_OF(groups)
@@ -281,6 +308,8 @@ typedef enum {
     ScreenDecor,
     ScreenAlbum,
     ScreenView,
+    ScreenDream,
+    ScreenJournal,
 } Screen;
 
 typedef enum {
@@ -364,6 +393,11 @@ typedef struct {
     uint8_t reveal_timer; // a finished piece is on show; the room returns when it runs out
     uint32_t sketches; // one bit per piece she has made
     uint8_t sketch_count[ART_GENERATED]; // how many of each generated piece so far
+    uint32_t dreams; // one bit per dream in her journal
+    uint8_t dream; // the dream playing, or the journal's open page
+    uint8_t dream_timer; // frames of the dream still to come
+    uint8_t doze_timer; // ticks until she drifts off once the lights are out
+    bool dream_replay; // playing from the journal, which comes back after
     uint8_t speech_timer;
     uint8_t speech;
     uint8_t happy_timer;
@@ -399,6 +433,7 @@ static const char* const act_names[] = {
     [ActVinyl] = "Vinyl",
     [ActAlbum] = "Album",
     [ActSketchbook] = "Sketchbook",
+    [ActJournal] = "Journal",
     [ActNap] = "Nap time",
 };
 
@@ -424,6 +459,7 @@ static const PhotoInfo photo_info[PhotoCount] = {
     [PhotoBumped] = {"Bumped", "It's Baby's spot now", "Watch the food dish"},
     [PhotoBookworm] = {"Bookworm", "Every book on the shelf", "Read every book"},
     [PhotoGallery] = {"Gallery", "A full sketchbook", "Fill the sketchbook"},
+    [PhotoDreamer] = {"Sweet dreams", "Every dream written down", "Fill the dream journal"},
 };
 
 // Short original loops for the piezo speaker, one per genre.
@@ -581,6 +617,7 @@ static void game_load(App* app) {
         app->books = save.books;
         app->sketches = save.sketches & ART_ALL;
         memcpy(app->sketch_count, save.sketch_count, sizeof(app->sketch_count));
+        app->dreams = save.dreams & DREAM_ALL;
         app->cozy = clamp_stat(save.cozy);
         uint32_t away = now > save.last_ts ? now - save.last_ts : 0;
         if(away > AWAY_CAP) away = AWAY_CAP;
@@ -616,6 +653,7 @@ static void game_save(App* app) {
         .arts = app->arts,
         .books = app->books,
         .sketches = app->sketches,
+        .dreams = app->dreams,
     };
     memcpy(save.sketch_count, app->sketch_count, sizeof(save.sketch_count));
     for(int i = 0; i < CAT_COUNT; i++)
@@ -919,6 +957,7 @@ static bool busy(const App* app) {
 static void lights_on(App* app) {
     if(!app->lights_off) return;
     app->lights_off = false;
+    app->doze_timer = 0;
     for(int i = 0; i < CAT_COUNT; i++) {
         Cat* cat = &app->cats[i];
         if(cat->s.energy >= SLEEPY_BELOW) cat_rest(cat);
@@ -1143,6 +1182,103 @@ static void art_finish(App* app) {
     app->reveal_timer = REVEAL_TICKS;
 }
 
+typedef struct {
+    const char* title;
+    const char* lines[3]; // what she writes in the journal
+} DreamInfo;
+
+static const DreamInfo dream_info[DreamCount] = {
+    [DreamGiant] =
+        {"Giant Nugget",
+         {"Nugget was the size of a", "hill. I slept in the warm", "fur on his back all day."}},
+    [DreamFishRain] =
+        {"Fish Rain",
+         {"It rained fish. Baby sat", "with her mouth open and", "caught them. No sharing."}},
+    [DreamParade] =
+        {"Cat Parade",
+         {"A parade of cats down our", "street, all in tiny hats.", "Nugget led the band."}},
+    [DreamTrain] =
+        {"Night Train",
+         {"A sleeper train with him,", "mountains going by. He", "dozed off on my shoulder."}},
+    [DreamBalloon] =
+        {"Balloon",
+         {"We flew a balloon over", "green hills. He waved at", "every cow. All of them."}},
+    [DreamGondola] =
+        {"Gondola",
+         {"Venice at dusk. He rowed", "badly and sang worse. We", "laughed the whole way."}},
+    [DreamDragon] =
+        {"Dragon", {"I rode a dragon over a", "castle. It purred. It was", "Nugget with wings."}},
+    [DreamForest] =
+        {"Mushroom Forest",
+         {"A forest of giant mush-", "rooms, lit by fireflies.", "I was very, very small."}},
+    [DreamMoon] =
+        {"Moon Cats",
+         {"Moon walk with the cats.", "Baby bounced too high and", "I had to go fetch her."}},
+    [DreamRocket] =
+        {"Rocket",
+         {"We took a rocket out past", "the stars. Nugget kept", "asking if we were there."}},
+    [DreamTeacups] =
+        {"Teacups",
+         {"Teacups circling a stair-", "case that went nowhere. I", "kept pouring and pouring."}},
+    [DreamTunnel] =
+        {"The Tunnel",
+         {"A tunnel of rings, ever", "inward, and at the end a", "huge cat's eye, watching."}},
+    [DreamVacuum] =
+        {"The Vacuum",
+         {"A vacuum cleaner the size", "of a bus chased us all", "down the hall. Horrible."}},
+    [DreamDark] =
+        {"The Dark",
+         {"Lights out. I couldn't", "find the cats. Only eyes,", "blinking in the dark."}},
+};
+
+static bool dream_is_nightmare(uint8_t dream) {
+    return dream >= DreamVacuum;
+}
+
+static void dream_play(App* app, uint8_t dream, bool replay) {
+    app->dream = dream;
+    app->dream_replay = replay;
+    app->dream_timer = DREAM_TICKS;
+    app->screen = ScreenDream;
+}
+
+// The night's dream: one she has not had before while any are left, with a
+// nightmare now and then (more often once the nice ones are all in the book).
+static void dream_start(App* app) {
+    const uint32_t pleasant = (1u << DreamVacuum) - 1;
+    const bool nightmare = chance((app->dreams & pleasant) == pleasant ? 35 : 15);
+    uint8_t fresh[DreamCount];
+    size_t count = 0;
+    for(size_t i = 0; i < DreamCount; i++) {
+        if(dream_is_nightmare(i) != nightmare) continue;
+        if(!(app->dreams & (1u << i))) fresh[count++] = (uint8_t)i;
+    }
+    uint8_t pick;
+    if(count) {
+        pick = fresh[furi_hal_random_get() % count];
+    } else if(nightmare) {
+        pick = DreamVacuum + furi_hal_random_get() % (DreamCount - DreamVacuum);
+    } else {
+        pick = (app->dream + 1 + furi_hal_random_get() % (DreamVacuum - 1)) % DreamVacuum;
+    }
+    app->dreams |= 1u << pick;
+    if(app->dreams == DREAM_ALL) unlock(app, PhotoDreamer);
+    dream_play(app, pick, false);
+}
+
+static void dream_end(App* app) {
+    if(app->dream_replay) {
+        app->screen = ScreenJournal;
+        return;
+    }
+    app->screen = ScreenRoom;
+    if(dream_is_nightmare(app->dream)) {
+        toast(app, "A bad dream...");
+    } else {
+        toast(app, dream_info[app->dream].title);
+    }
+}
+
 static void activity_done(App* app) {
     switch(app->doing) {
     case DoRead:
@@ -1183,6 +1319,7 @@ static void do_nap(App* app) {
         return;
     }
     app->lights_off = true;
+    app->doze_timer = DOZE_TICKS;
     for(int i = 0; i < CAT_COUNT; i++) {
         Cat* cat = &app->cats[i];
         cat->mode = CatSleep;
@@ -1216,6 +1353,9 @@ static void do_action(App* app, Act act) {
     case ActSketchbook:
         open_screen(app, ScreenView);
         app->reveal_timer = 0;
+        return;
+    case ActJournal:
+        open_screen(app, ScreenJournal);
         return;
     default:
         break;
@@ -1497,6 +1637,14 @@ static void game_tick(App* app) {
     if(app->reveal_timer && --app->reveal_timer == 0 && app->screen == ScreenView) {
         app->screen = ScreenRoom;
     }
+    // She drifts off a little while after the lights go out, while the room
+    // is on the screen, and the dream runs its course
+    if(app->doze_timer && app->lights_off && app->screen == ScreenRoom) {
+        if(--app->doze_timer == 0) dream_start(app);
+    }
+    if(app->dream_timer && --app->dream_timer == 0 && app->screen == ScreenDream) {
+        dream_end(app);
+    }
     if(app->speech_timer) app->speech_timer--;
     if(app->happy_timer) app->happy_timer--;
     if(app->toast_timer) app->toast_timer--;
@@ -1521,10 +1669,11 @@ static int16_t mood(const App* app) {
 
 // canvas_draw_xbm paints the whole rectangle, so sprites with transparent
 // pixels are plotted dot by dot instead.
-static void draw_bits(Canvas* canvas, int32_t x, int32_t y, const Sprite* sprite, bool white) {
+static void
+    draw_layer(Canvas* canvas, int32_t x, int32_t y, const Sprite* sprite, bool white, Color color) {
     const uint8_t* data = white ? sprite->white : sprite->black;
     const size_t stride = (sprite->w + 7) / 8;
-    canvas_set_color(canvas, white ? ColorWhite : ColorBlack);
+    canvas_set_color(canvas, color);
     for(size_t row = 0; row < sprite->h; row++) {
         for(size_t col = 0; col < stride; col++) {
             uint8_t bits = data[row * stride + col];
@@ -1533,6 +1682,10 @@ static void draw_bits(Canvas* canvas, int32_t x, int32_t y, const Sprite* sprite
             }
         }
     }
+}
+
+static void draw_bits(Canvas* canvas, int32_t x, int32_t y, const Sprite* sprite, bool white) {
+    draw_layer(canvas, x, y, sprite, white, white ? ColorWhite : ColorBlack);
 }
 
 static void draw_sprite(Canvas* canvas, int32_t x, int32_t y, const Sprite* sprite) {
@@ -2476,6 +2629,22 @@ static void draw_photo(Canvas* canvas, const App* app, Photo photo, int32_t fx, 
         canvas_draw_line(canvas, fx + 39, fy + 7, fx + 47, fy + 14);
         draw_standing(canvas, fx + 27, ground, nugget);
         break;
+    case PhotoDreamer:
+        // Yulia's pillow, a moon, and a dream of fish in a bubble
+        canvas_draw_rbox(canvas, fx + 4, fy + 27, 24, 7, 2);
+        canvas_draw_disc(canvas, fx + 44, fy + 9, 5);
+        canvas_set_color(canvas, ColorWhite);
+        canvas_draw_disc(canvas, fx + 47, fy + 7, 4);
+        canvas_set_color(canvas, ColorBlack);
+        draw_sprite(canvas, fx + 8, fy + 28, &spr_nugget_sleep);
+        canvas_draw_circle(canvas, fx + 20, fy + 23, 1);
+        canvas_draw_circle(canvas, fx + 24, fy + 19, 2);
+        canvas_draw_circle(canvas, fx + 32, fy + 11, 7);
+        canvas_draw_line(canvas, fx + 29, fy + 11, fx + 34, fy + 11);
+        canvas_draw_line(canvas, fx + 34, fy + 11, fx + 36, fy + 9);
+        canvas_draw_line(canvas, fx + 34, fy + 11, fx + 36, fy + 13);
+        canvas_draw_dot(canvas, fx + 30, fy + 10);
+        break;
     case PhotoBumped:
         draw_standing(canvas, fx + 13, ground, baby);
         draw_standing(canvas, fx + 30, ground, &spr_bowl);
@@ -2543,6 +2712,14 @@ static void draw_album(Canvas* canvas, const App* app) {
             "Fill the sketchbook: %d/%d",
             __builtin_popcount(app->sketches),
             (int)ArtCount);
+        canvas_draw_str(canvas, 2, 61, buf);
+    } else if(!have && photo == PhotoDreamer) {
+        snprintf(
+            buf,
+            sizeof(buf),
+            "Fill the journal: %d/%d",
+            __builtin_popcount(app->dreams),
+            (int)DreamCount);
         canvas_draw_str(canvas, 2, 61, buf);
     } else {
         canvas_draw_str(canvas, 2, 61, have ? info->caption : info->hint);
@@ -2970,6 +3147,908 @@ static void draw_view(Canvas* canvas, const App* app) {
     canvas_draw_str_aligned(canvas, 64, 63, AlignCenter, AlignBottom, buf);
 }
 
+// ---------------------------------------------------------------- dreams
+
+// A dream is drawn afresh every tick, so the pictures move. Three of them
+// happen at night, in white on black: everything below draws in "ink" on
+// "paper", whichever way round those are.
+static Color dream_ink = ColorBlack;
+static Color dream_paper = ColorWhite;
+
+// A filled box, clipped to the screen (the canvas's own wraps round)
+static void dream_box(Canvas* canvas, int32_t x, int32_t y, int32_t w, int32_t h, Color color) {
+    int32_t x1 = MIN(x + w, 128), y1 = MIN(y + h, 64);
+    x = MAX(x, 0);
+    y = MAX(y, 0);
+    if(x >= x1 || y >= y1) return;
+    canvas_set_color(canvas, color);
+    canvas_draw_box(canvas, x, y, x1 - x, y1 - y);
+}
+
+static void
+    dream_ellipse_fill(Canvas* canvas, int32_t cx, int32_t cy, int32_t rx, int32_t ry, Color color) {
+    canvas_set_color(canvas, color);
+    for(int32_t dy = -ry; dy <= ry; dy++) {
+        int32_t w = (int32_t)((float)rx * sqrtf(1.0f - (float)(dy * dy) / (float)(ry * ry)));
+        art_line(canvas, cx - w, cy + dy, cx + w, cy + dy);
+    }
+}
+
+// Drawn in whatever colour is set
+static void dream_ellipse_outline(Canvas* canvas, int32_t cx, int32_t cy, int32_t rx, int32_t ry) {
+    int32_t px = cx + rx, py = cy;
+    for(int i = 1; i <= 36; i++) {
+        float a = (float)i * 6.28318f / 36.0f;
+        int32_t x = cx + (int32_t)lroundf((float)rx * cosf(a));
+        int32_t y = cy + (int32_t)lroundf((float)ry * sinf(a));
+        art_line(canvas, px, py, x, y);
+        px = x;
+        py = y;
+    }
+}
+
+static void dream_sprite(Canvas* canvas, int32_t x, int32_t y, const Sprite* sprite) {
+    draw_layer(canvas, x, y, sprite, true, dream_paper);
+    draw_layer(canvas, x, y, sprite, false, dream_ink);
+}
+
+static void dream_cloud(Canvas* canvas, int32_t x, int32_t y) {
+    canvas_set_color(canvas, dream_paper);
+    art_disc(canvas, x - 5, y + 1, 3);
+    art_disc(canvas, x, y, 4);
+    art_disc(canvas, x + 5, y + 1, 3);
+    canvas_set_color(canvas, dream_ink);
+    art_circle(canvas, x - 5, y + 1, 3);
+    art_circle(canvas, x, y, 4);
+    art_circle(canvas, x + 5, y + 1, 3);
+    canvas_set_color(canvas, dream_paper);
+    for(int32_t dy = 2; dy <= 5; dy++)
+        art_line(canvas, x - 9, y + dy, x + 9, y + dy);
+    canvas_set_color(canvas, dream_ink);
+    art_line(canvas, x - 7, y + 3, x + 7, y + 3);
+}
+
+// A little fish, facing left or right
+static void dream_fish(Canvas* canvas, int32_t x, int32_t y, bool left) {
+    const int32_t d = left ? 1 : -1; // which side the tail is on
+    canvas_set_color(canvas, dream_ink);
+    art_line(canvas, x - 3, y, x + 3, y);
+    art_line(canvas, x - 2, y - 1, x + 2, y - 1);
+    art_line(canvas, x - 2, y + 1, x + 2, y + 1);
+    art_line(canvas, x + 3 * d, y, x + 6 * d, y - 2);
+    art_line(canvas, x + 3 * d, y, x + 6 * d, y + 2);
+    art_line(canvas, x + 6 * d, y - 2, x + 6 * d, y + 2);
+    canvas_set_color(canvas, dream_paper);
+    art_dot(canvas, x - 2 * d, y);
+    canvas_set_color(canvas, dream_ink);
+}
+
+// Yulia, small enough to fit in a basket, standing on `g`
+static void dream_her(Canvas* canvas, int32_t x, int32_t g) {
+    canvas_set_color(canvas, dream_ink);
+    art_disc(canvas, x, g - 10, 3); // hair
+    canvas_set_color(canvas, dream_paper);
+    art_disc(canvas, x, g - 9, 2); // face
+    canvas_set_color(canvas, dream_ink);
+    art_line(canvas, x, g - 7, x, g - 4);
+    art_line(canvas, x, g - 6, x - 3, g - 3); // arms
+    art_line(canvas, x, g - 6, x + 3, g - 3);
+    art_line(canvas, x, g - 4, x - 2, g - 1); // a skirt
+    art_line(canvas, x, g - 4, x + 2, g - 1);
+    art_line(canvas, x - 2, g - 1, x + 2, g - 1);
+    art_dot(canvas, x - 1, g);
+    art_dot(canvas, x + 1, g);
+}
+
+// Her tall fellow: bushy curls, a big nose, broad shoulders and long arms
+static void dream_him(Canvas* canvas, int32_t x, int32_t g, bool wave) {
+    canvas_set_color(canvas, dream_ink);
+    art_disc(canvas, x, g - 15, 4); // hair
+    art_dot(canvas, x - 5, g - 17);
+    art_dot(canvas, x + 5, g - 17);
+    art_dot(canvas, x - 4, g - 19);
+    art_dot(canvas, x + 3, g - 20);
+    art_dot(canvas, x, g - 20);
+    canvas_set_color(canvas, dream_paper);
+    art_disc(canvas, x, g - 13, 2); // face
+    canvas_set_color(canvas, dream_ink);
+    art_dot(canvas, x + 2, g - 13); // the nose
+    art_dot(canvas, x + 3, g - 13);
+    art_line(canvas, x, g - 11, x, g - 10); // neck
+    art_line(canvas, x - 5, g - 10, x + 5, g - 10); // shoulders
+    dream_box(canvas, x - 2, g - 10, 5, 7, dream_ink);
+    art_line(canvas, x - 1, g - 4, x - 1, g); // legs
+    art_line(canvas, x + 1, g - 4, x + 1, g);
+    art_line(canvas, x - 5, g - 10, x - 6, g - 2); // arms, long
+    if(wave) {
+        art_line(canvas, x + 5, g - 10, x + 9, g - 17);
+    } else {
+        art_line(canvas, x + 5, g - 10, x + 6, g - 2);
+    }
+}
+
+// Nugget the size of a hill, Yulia asleep on his back
+static void dream_giant(Canvas* canvas, int32_t t) {
+    canvas_set_color(canvas, dream_ink);
+    canvas_draw_circle(canvas, 112, 9, 5);
+    for(int i = 0; i < 2; i++) {
+        dream_cloud(canvas, ((i * 75 + 170 - t / 2) % 170) - 20, 8 + i * 5);
+    }
+    // The loaf, as wide as the field
+    dream_ellipse_fill(canvas, 74, 52, 52, 22, dream_paper);
+    canvas_set_color(canvas, dream_ink);
+    dream_ellipse_outline(canvas, 74, 52, 52, 22);
+    for(int i = 0; i < 5; i++) {
+        int32_t x = 54 + i * 13;
+        art_line(canvas, x, 33 + (i & 1), x - 3, 42);
+        art_line(canvas, x + 4, 33 + (i & 1), x + 2, 42);
+    }
+    // His head, chin on his paws, at the left end
+    canvas_set_color(canvas, dream_paper);
+    art_disc(canvas, 15, 32, 4); // ears, filled first so the sky stays out
+    art_disc(canvas, 37, 32, 4);
+    canvas_set_color(canvas, dream_ink);
+    art_line(canvas, 15, 37, 12, 27);
+    art_line(canvas, 12, 27, 21, 35);
+    art_line(canvas, 31, 35, 40, 27);
+    art_line(canvas, 40, 27, 37, 37);
+    dream_ellipse_fill(canvas, 26, 46, 15, 12, dream_paper);
+    canvas_set_color(canvas, dream_ink);
+    dream_ellipse_outline(canvas, 26, 46, 15, 12);
+    art_line(canvas, 17, 44, 21, 44); // eyes shut
+    art_line(canvas, 30, 44, 34, 44);
+    art_dot(canvas, 25, 49);
+    art_dot(canvas, 26, 49);
+    art_line(canvas, 23, 51, 25, 50);
+    art_line(canvas, 26, 50, 28, 51);
+    art_line(canvas, 12, 48, 3, 46); // whiskers
+    art_line(canvas, 12, 51, 3, 53);
+    dream_ellipse_fill(canvas, 19, 58, 6, 3, dream_paper);
+    dream_ellipse_fill(canvas, 33, 58, 6, 3, dream_paper);
+    canvas_set_color(canvas, dream_ink);
+    dream_ellipse_outline(canvas, 19, 58, 6, 3);
+    dream_ellipse_outline(canvas, 33, 58, 6, 3);
+    // The tail, flicking at the far end
+    int32_t flick = ((t / 5) & 1) ? 6 : 0;
+    art_line(canvas, 122, 46, 127, 36 + flick);
+    art_line(canvas, 123, 47, 128, 37 + flick);
+    // Yulia stretched out on top, with her zzz
+    canvas_set_color(canvas, dream_ink);
+    art_disc(canvas, 70, 27, 3);
+    canvas_set_color(canvas, dream_paper);
+    art_disc(canvas, 71, 28, 2);
+    canvas_set_color(canvas, dream_ink);
+    art_line(canvas, 73, 29, 85, 29);
+    art_line(canvas, 73, 30, 85, 30);
+    art_dot(canvas, 86, 28);
+    canvas_set_font(canvas, FontSecondary);
+    for(int k = 0; k < 2; k++) {
+        int32_t ph = (t / 2 + k * 5) % 10;
+        canvas_draw_str(canvas, 66 - ph, 22 - ph * 2 + k * 4, "z");
+    }
+}
+
+// Fish falling from the sky, and Baby underneath
+static void dream_fishrain(Canvas* canvas, int32_t t) {
+    for(int i = 0; i < 5; i++)
+        dream_cloud(canvas, 8 + i * 28, 3 + (i & 1) * 2);
+    art_seed = 0xF15Fu;
+    art_rand(1);
+    for(int i = 0; i < 10; i++) {
+        int32_t x = 6 + art_rand(116), phase = art_rand(60), speed = 2 + art_rand(2);
+        bool left = art_rand(2);
+        dream_fish(canvas, x, ((t * speed + phase) % 60) + 6, left);
+    }
+    canvas_set_color(canvas, dream_ink);
+    canvas_draw_line(canvas, 0, 61, 127, 61);
+    dream_sprite(canvas, 54, 46, &spr_baby_sit);
+    dream_fish(canvas, 84, 58, true);
+    dream_fish(canvas, 94, 59, false);
+    dream_fish(canvas, 89, 55, true);
+    if((t / 6) & 1) dream_sprite(canvas, 66, 38 - (t % 6), &spr_heart_small);
+}
+
+// A parade of cats in party hats
+static void dream_parade(Canvas* canvas, int32_t t) {
+    canvas_set_color(canvas, dream_ink);
+    for(int32_t x = 0; x < 128; x += 10) {
+        art_line(canvas, x, 3, x + 5, 6);
+        art_line(canvas, x + 5, 6, x + 10, 3);
+        art_line(canvas, x + 2, 4, x + 5, 11);
+        art_line(canvas, x + 5, 11, x + 8, 4);
+    }
+    art_seed = 0xC0FEu;
+    art_rand(1);
+    for(int i = 0; i < 18; i++) {
+        int32_t x = art_rand(128), ph = art_rand(40), sway = art_rand(3);
+        int32_t y = 12 + ((ph + t) % 40), wob = (t / 3 + sway) & 1;
+        art_line(canvas, x + wob, y, x + 1 + wob, y);
+    }
+    canvas_draw_line(canvas, 0, 57, 127, 57);
+    for(int32_t x = (t * 2) % 8; x < 128; x += 8)
+        art_dot(canvas, x, 60);
+    for(int i = 0; i < 7; i++) {
+        int32_t x = ((i * 27 + t * 2) % 189) - 30;
+        if(x < -26 || x > 130) continue;
+        const Sprite* s = cat_walk[i & 1][0][(t / 3 + i) & 1];
+        dream_sprite(canvas, x, 57 - s->h, s);
+        int32_t hx = x + s->w - 4, hy = 57 - s->h;
+        canvas_set_color(canvas, dream_ink);
+        art_line(canvas, hx - 3, hy, hx, hy - 6);
+        art_line(canvas, hx + 3, hy, hx, hy - 6);
+        art_line(canvas, hx - 3, hy, hx + 3, hy);
+        art_dot(canvas, hx, hy - 7);
+        if(i == 6) dream_sprite(canvas, hx + 4, hy - 14 - ((t / 4) & 1), &spr_note);
+    }
+}
+
+// A night train through the mountains, the two of them in the last window
+static void dream_train(Canvas* canvas, int32_t t) {
+    canvas_set_color(canvas, dream_ink);
+    canvas_draw_disc(canvas, 106, 10, 6);
+    canvas_set_color(canvas, dream_paper);
+    canvas_draw_disc(canvas, 109, 8, 5);
+    canvas_set_color(canvas, dream_ink);
+    art_seed = 0x7A1Eu;
+    art_rand(1);
+    for(int i = 0; i < 16; i++) {
+        int32_t x = art_rand(128), y = art_rand(26);
+        if((t / 4 + i) % 9) art_dot(canvas, x, y);
+    }
+    for(int i = 0; i < 5; i++) {
+        int32_t cx = ((i * 36 + 300 - t / 3) % 180) - 26, top = 22 + (i & 1) * 4;
+        art_line(canvas, cx - 22, 42, cx, top);
+        art_line(canvas, cx, top, cx + 22, 42);
+        art_line(canvas, cx - 3, top + 4, cx + 3, top + 4);
+    }
+    canvas_draw_line(canvas, 0, 42, 127, 42);
+    canvas_draw_line(canvas, 0, 60, 127, 60);
+    for(int32_t x = (t * 2) % 7; x < 128; x += 7)
+        art_line(canvas, x, 61, x, 62);
+
+    const int32_t x0 = -78 + t;
+    for(int c = 0; c < 2; c++) {
+        int32_t cx = x0 + c * 36;
+        dream_box(canvas, cx, 45, 34, 12, dream_ink);
+        for(int w = 0; w < 4; w++)
+            dream_box(canvas, cx + 3 + w * 8, 47, 5, 5, dream_paper);
+    }
+    // Her and him, in the last window
+    dream_box(canvas, x0 + 64, 49, 2, 3, dream_ink);
+    dream_box(canvas, x0 + 66, 47, 2, 2, dream_ink);
+    dream_box(canvas, x0 + 66, 50, 2, 2, dream_ink);
+    // The engine
+    dream_box(canvas, x0 + 72, 43, 26, 14, dream_ink);
+    dream_box(canvas, x0 + 74, 45, 6, 5, dream_paper);
+    dream_box(canvas, x0 + 92, 36, 4, 8, dream_ink);
+    canvas_set_color(canvas, dream_ink);
+    art_line(canvas, x0 + 98, 52, x0 + 103, 60);
+    art_line(canvas, x0 + 98, 56, x0 + 101, 60);
+    static const int32_t wheels[6] = {6, 28, 42, 64, 78, 92};
+    for(int k = 0; k < 6; k++) {
+        int32_t wx = x0 + wheels[k];
+        canvas_set_color(canvas, dream_ink);
+        art_disc(canvas, wx, 59, 3);
+        canvas_set_color(canvas, dream_paper);
+        float a = (float)t * 0.6f;
+        art_line(
+            canvas,
+            wx,
+            59,
+            wx + (int32_t)lroundf(2.0f * cosf(a)),
+            59 + (int32_t)lroundf(2.0f * sinf(a)));
+    }
+    canvas_set_color(canvas, dream_ink);
+    for(int i = 0; i < 4; i++) {
+        int32_t age = (t * 2 + i * 7) % 28;
+        art_circle(canvas, x0 + 94 - age, 34 - age / 3, 1 + age / 9);
+    }
+}
+
+// A balloon over the hills, him waving at the cows
+static void dream_balloon(Canvas* canvas, int32_t t) {
+    canvas_set_color(canvas, dream_ink);
+    canvas_draw_circle(canvas, 14, 10, 5);
+    for(int i = 0; i < 3; i++) {
+        int32_t bx = ((i * 50 + t * 2) % 150) - 10, by = 16 + i * 6 + ((t / 4 + i) & 1);
+        art_line(canvas, bx - 3, by + 1, bx, by - 1);
+        art_line(canvas, bx, by - 1, bx + 3, by + 1);
+    }
+    for(int i = 0; i < 4; i++) {
+        int32_t cx = ((i * 50 + 400 - t) % 200) - 36;
+        dream_ellipse_fill(canvas, cx, 74, 36, 24, dream_paper);
+        canvas_set_color(canvas, dream_ink);
+        dream_ellipse_outline(canvas, cx, 74, 36, 24);
+    }
+    for(int i = 0; i < 4; i++) {
+        int32_t cx = ((i * 50 + 400 - t) % 200) - 36;
+        dream_box(canvas, cx - 3, 46, 6, 3, dream_ink);
+        canvas_set_color(canvas, dream_ink);
+        art_dot(canvas, cx + 3, 45);
+        art_dot(canvas, cx - 2, 49);
+        art_dot(canvas, cx + 2, 49);
+    }
+    const int32_t bx = 50 + t / 3, by = 15 + ((t / 6) & 1);
+    dream_ellipse_fill(canvas, bx, by, 13, 14, dream_paper);
+    canvas_set_color(canvas, dream_ink);
+    dream_ellipse_outline(canvas, bx, by, 13, 14);
+    dream_ellipse_outline(canvas, bx, by, 8, 14);
+    dream_ellipse_outline(canvas, bx, by, 3, 14);
+    art_line(canvas, bx - 4, by + 13, bx - 5, by + 24);
+    art_line(canvas, bx + 4, by + 13, bx + 5, by + 24);
+    // The passengers, then the basket over their legs
+    dream_her(canvas, bx - 3, by + 32);
+    dream_him(canvas, bx + 3, by + 32, (t / 5) & 1);
+    dream_box(canvas, bx - 6, by + 24, 13, 7, dream_ink);
+    canvas_set_color(canvas, dream_paper);
+    for(int32_t dy = 1; dy < 7; dy += 2)
+        for(int32_t dx = 1; dx < 13; dx += 2)
+            art_dot(canvas, bx - 6 + dx, by + 24 + dy);
+    canvas_set_color(canvas, dream_ink);
+}
+
+// Venice at dusk, him on the oar
+static void dream_gondola(Canvas* canvas, int32_t t) {
+    canvas_set_color(canvas, dream_ink);
+    canvas_draw_disc(canvas, 100, 9, 5);
+    canvas_set_color(canvas, dream_paper);
+    canvas_draw_disc(canvas, 103, 7, 4);
+    art_seed = 0x6E1Cu;
+    art_rand(1);
+    for(int32_t x = 0; x < 128;) {
+        int32_t w = 10 + art_rand(12), h = 10 + art_rand(14);
+        bool dome = art_rand(3) == 0;
+        dream_box(canvas, x, 34 - h, w, h, dream_ink);
+        for(int32_t wy = 37 - h; wy < 31; wy += 5)
+            for(int32_t wx = x + 2; wx + 4 <= x + w; wx += 4)
+                dream_box(canvas, wx, wy, 2, 3, dream_paper);
+        if(dome) {
+            canvas_set_color(canvas, dream_ink);
+            art_disc(canvas, x + w / 2, 34 - h, MIN(w / 2, 5));
+        }
+        x += w + 2;
+    }
+    canvas_set_color(canvas, dream_ink);
+    canvas_draw_line(canvas, 0, 34, 127, 34);
+    for(int row = 0; row < 5; row++) {
+        int32_t y = 40 + row * 5;
+        for(int32_t x = ((t + row * 4) % 10) - 10; x < 128; x += 10) {
+            art_line(canvas, x, y, x + 3, y - 1);
+            art_line(canvas, x + 3, y - 1, x + 6, y);
+        }
+    }
+    for(int k = 0; k < 4; k++) {
+        int32_t y = 37 + k * 6 - ((t / 3) & 1);
+        art_line(canvas, 98 + (k & 1) * 2, y, 104 - (k & 1) * 2, y);
+    }
+    const int32_t gx = 34 + t / 2, gy = 46 + ((t / 6) & 1);
+    dream_box(canvas, gx - 10, gy - 18, 28, 18, dream_paper);
+    dream_box(canvas, gx - 22, gy, 44, 4, dream_ink);
+    canvas_set_color(canvas, dream_ink);
+    art_line(canvas, gx - 22, gy, gx - 29, gy - 7);
+    art_line(canvas, gx - 22, gy + 3, gx - 29, gy - 5);
+    art_line(canvas, gx + 22, gy, gx + 27, gy - 5);
+    art_line(canvas, gx + 22, gy + 3, gx + 27, gy - 3);
+    dream_her(canvas, gx - 4, gy);
+    dream_him(canvas, gx + 12, gy, false);
+    int32_t rock = ((t / 5) & 1) ? 3 : 0;
+    art_line(canvas, gx + 15, gy - 10, gx + 22 + rock, gy + 6);
+}
+
+// Over a castle on a dragon that is really Nugget with wings
+static void dream_dragon(Canvas* canvas, int32_t t) {
+    static const int32_t towers[4] = {12, 44, 88, 118};
+    canvas_set_color(canvas, dream_ink);
+    canvas_draw_box(canvas, 0, 52, 128, 12);
+    for(int32_t x = 2; x < 128; x += 10)
+        dream_box(canvas, x, 52, 5, 3, dream_paper);
+    for(int i = 0; i < 4; i++) {
+        int32_t x = towers[i], h = 20 + (i & 1) * 6;
+        dream_box(canvas, x - 5, 64 - h, 11, h, dream_ink);
+        for(int k = -5; k <= 5; k += 4)
+            dream_box(canvas, x + k, 62 - h, 2, 2, dream_ink);
+        dream_box(canvas, x - 1, 70 - h, 3, 4, dream_paper);
+        canvas_set_color(canvas, dream_ink);
+        art_line(canvas, x, 62 - h, x, 54 - h);
+        int32_t fl = (t / 4) & 1;
+        art_line(canvas, x + 1, 55 - h, x + 6, 56 - h + fl);
+        art_line(canvas, x + 1, 58 - h, x + 6, 56 - h + fl);
+    }
+    dream_cloud(canvas, ((200 - t) % 150) - 10, 12);
+
+    // The body: a long tapering band that ripples along behind the head
+    const int32_t hx = 20 + t;
+#define DRAGON_Y(x) \
+    (26 + (int32_t)lroundf(4.0f * sinf(((float)t - (float)(hx - (x)) / 3.0f) * 0.25f)))
+    for(int32_t x = hx - 46; x <= hx - 4; x++) {
+        int32_t yc = DRAGON_Y(x), th = 3 - (hx - x) / 16;
+        canvas_set_color(canvas, dream_paper);
+        art_line(canvas, x, yc - th, x, yc + th);
+        canvas_set_color(canvas, dream_ink);
+        art_dot(canvas, x, yc - th - 1);
+        art_dot(canvas, x, yc + th + 1);
+        if((hx - x) % 7 == 0 && th > 1) art_line(canvas, x, yc - th, x, yc - th + 2);
+    }
+    // Wings, flapping, on the shoulders
+    {
+        int32_t wx = hx - 16, top = DRAGON_Y(wx) - 3;
+        int32_t tip = ((t / 3) & 1) ? top - 14 : top - 6;
+        for(int w = 0; w < 2; w++) {
+            int32_t ox = w * 5, oy = w * 2;
+            canvas_set_color(canvas, dream_paper);
+            for(int32_t y = tip + oy; y < top; y++) {
+                int32_t f = (top - y) * 7 / (top - tip - oy + 1);
+                art_line(canvas, wx - 7 + f + ox, y, wx + 5 - f / 2 + ox, y);
+            }
+            canvas_set_color(canvas, dream_ink);
+            art_line(canvas, wx - 7 + ox, top, wx + ox, tip + oy);
+            art_line(canvas, wx + ox, tip + oy, wx + 5 + ox, top);
+        }
+    }
+    // Yulia riding, just behind the head
+    dream_her(canvas, hx - 9, DRAGON_Y(hx - 9) - 2);
+    // The head, Nugget's own
+    const int32_t hy = DRAGON_Y(hx - 2);
+    canvas_set_color(canvas, dream_paper);
+    art_disc(canvas, hx, hy, 5);
+    canvas_set_color(canvas, dream_ink);
+    art_circle(canvas, hx, hy, 5);
+    art_line(canvas, hx - 4, hy - 3, hx - 5, hy - 9);
+    art_line(canvas, hx - 5, hy - 9, hx - 1, hy - 5);
+    art_line(canvas, hx + 1, hy - 5, hx + 4, hy - 9);
+    art_line(canvas, hx + 4, hy - 9, hx + 4, hy - 3);
+    art_dot(canvas, hx + 2, hy - 1);
+    art_line(canvas, hx + 3, hy + 2, hx + 5, hy + 2);
+    if((t / 8) & 1) {
+        art_line(canvas, hx + 7, hy + 1, hx + 9, hy);
+        art_line(canvas, hx + 9, hy, hx + 11, hy + 1);
+    }
+#undef DRAGON_Y
+}
+
+// The top of a mushroom, in a dark tone, with a rim
+static void dream_cap(Canvas* canvas, int32_t cx, int32_t cy, int32_t rx, int32_t ry) {
+    for(int32_t dy = -ry; dy <= 0; dy++) {
+        int32_t w = (int32_t)((float)rx * sqrtf(1.0f - (float)(dy * dy) / (float)(ry * ry)));
+        canvas_set_color(canvas, dream_paper);
+        art_line(canvas, cx - w, cy + dy, cx + w, cy + dy);
+        canvas_set_color(canvas, dream_ink);
+        for(int32_t x = cx - w + ((cx - w + cy + dy) & 1); x <= cx + w; x += 2)
+            art_dot(canvas, x, cy + dy);
+    }
+    int32_t px = cx - rx, py = cy;
+    for(int i = 1; i <= 18; i++) {
+        float a = 3.14159f + (float)i * 3.14159f / 18.0f;
+        int32_t x = cx + (int32_t)lroundf((float)rx * cosf(a));
+        int32_t y = cy + (int32_t)lroundf((float)ry * sinf(a));
+        art_line(canvas, px, py, x, y);
+        px = x;
+        py = y;
+    }
+    art_line(canvas, cx - rx, cy, cx + rx, cy);
+    canvas_set_color(canvas, dream_paper);
+    art_disc(canvas, cx - rx / 2, cy - ry / 2, 2);
+    art_disc(canvas, cx + rx / 3, cy - ry * 2 / 3, 2);
+    art_disc(canvas, cx + rx * 2 / 3, cy - ry / 4, 1);
+    canvas_set_color(canvas, dream_ink);
+}
+
+// Giant mushrooms, fireflies, and Yulia very small
+static void dream_forest(Canvas* canvas, int32_t t) {
+    static const int32_t shrooms[3][5] = {
+        {22, 26, 20, 12, 7}, {70, 16, 26, 14, 9}, {110, 34, 16, 10, 6}};
+    canvas_set_color(canvas, dream_ink);
+    canvas_draw_line(canvas, 0, 63, 127, 63);
+    for(int i = 0; i < 3; i++) {
+        int32_t cx = shrooms[i][0], cy = shrooms[i][1], rx = shrooms[i][2], ry = shrooms[i][3];
+        int32_t sw = shrooms[i][4];
+        dream_box(canvas, cx - sw / 2, cy, sw, 64 - cy, dream_paper);
+        canvas_set_color(canvas, dream_ink);
+        art_line(canvas, cx - sw / 2, cy, cx - sw / 2, 63);
+        art_line(canvas, cx + sw / 2, cy, cx + sw / 2, 63);
+        dream_cap(canvas, cx, cy, rx, ry);
+    }
+    art_seed = 0xF1F1u;
+    art_rand(1);
+    for(int i = 0; i < 12; i++) {
+        int32_t x = art_rand(128), y = art_rand(58), ph = art_rand(14);
+        int32_t life = (t + ph) % 14;
+        if(life >= 8) continue;
+        canvas_set_color(canvas, dream_paper);
+        art_disc(canvas, x, y, 1);
+        canvas_set_color(canvas, dream_ink);
+        art_dot(canvas, x, y);
+        if(life < 3) art_circle(canvas, x, y, 2);
+    }
+    dream_her(canvas, 6 + t * 3 / 2, 63);
+}
+
+// The cats on the moon, Baby bouncing too high
+static void dream_moon(Canvas* canvas, int32_t t) {
+    canvas_set_color(canvas, dream_ink);
+    art_seed = 0x3A5Eu;
+    art_rand(1);
+    for(int i = 0; i < 26; i++) {
+        int32_t x = art_rand(128), y = art_rand(40);
+        if((t / 3 + i) % 8) art_dot(canvas, x, y);
+    }
+    art_disc(canvas, 104, 12, 8); // the Earth
+    canvas_set_color(canvas, dream_paper);
+    art_disc(canvas, 101, 9, 3);
+    art_disc(canvas, 107, 14, 2);
+    art_dot(canvas, 103, 16);
+    art_line(canvas, 99, 14, 101, 15);
+    dream_ellipse_fill(canvas, 64, 76, 84, 30, dream_ink);
+    canvas_set_color(canvas, dream_paper);
+    dream_ellipse_outline(canvas, 24, 54, 8, 3);
+    dream_ellipse_outline(canvas, 96, 58, 11, 3);
+    dream_ellipse_outline(canvas, 60, 61, 5, 2);
+    canvas_set_color(canvas, dream_ink);
+    art_line(canvas, 112, 50, 112, 38); // a flag
+    art_line(canvas, 112, 38, 119, 40);
+    art_line(canvas, 112, 42, 119, 40);
+    const float ph = (float)t * 0.2f;
+    int32_t bb = (int32_t)(fabsf(sinf(ph)) * 26.0f);
+    dream_sprite(canvas, 70, 33 - bb, &spr_baby_sit);
+    dream_sprite(canvas, 28, 36, &spr_nugget_sit);
+    int32_t hb = (int32_t)(fabsf(sinf(ph + 1.0f)) * 8.0f);
+    dream_her(canvas, 50, 48 - hb);
+    canvas_set_color(canvas, dream_ink);
+    art_circle(canvas, 50, 38 - hb, 5); // her helmet
+}
+
+// A rocket past the stars, the cats at the portholes
+static void dream_rocket(Canvas* canvas, int32_t t) {
+    canvas_set_color(canvas, dream_ink);
+    art_seed = 0x5A7Eu;
+    art_rand(1);
+    for(int i = 0; i < 30; i++) {
+        int32_t x0 = art_rand(128), y = art_rand(64), sp = 1 + i % 3;
+        int32_t x = (x0 + 640 - t * sp * 2) % 128;
+        art_line(canvas, x, y, x + sp * 2, y);
+    }
+    const int32_t px = 150 - t * 3 / 2, py = 14;
+    dream_ellipse_outline(canvas, px, py, 15, 4);
+    canvas_set_color(canvas, dream_paper);
+    art_disc(canvas, px, py, 8);
+    canvas_set_color(canvas, dream_ink);
+    art_circle(canvas, px, py, 8);
+    for(int i = 0; i < 12; i++) {
+        float a0 = (float)i * 3.14159f / 12.0f, a1 = a0 + 3.14159f / 12.0f;
+        art_line(
+            canvas,
+            px + (int32_t)lroundf(15.0f * cosf(a0)),
+            py + (int32_t)lroundf(4.0f * sinf(a0)),
+            px + (int32_t)lroundf(15.0f * cosf(a1)),
+            py + (int32_t)lroundf(4.0f * sinf(a1)));
+    }
+    const int32_t rx = 40, ry = 36 + ((t / 7) & 1);
+    dream_box(canvas, rx, ry - 6, 38, 13, dream_paper);
+    canvas_set_color(canvas, dream_paper);
+    for(int32_t i = 0; i < 12; i++)
+        art_line(canvas, rx + 38 + i, ry - 6 + i / 2, rx + 38 + i, ry + 6 - i / 2);
+    canvas_set_color(canvas, dream_ink);
+    art_line(canvas, rx, ry - 6, rx + 38, ry - 6);
+    art_line(canvas, rx, ry + 6, rx + 38, ry + 6);
+    art_line(canvas, rx + 38, ry - 6, rx + 50, ry);
+    art_line(canvas, rx + 38, ry + 6, rx + 50, ry);
+    art_line(canvas, rx, ry - 6, rx, ry + 6);
+    art_line(canvas, rx + 8, ry - 6, rx - 6, ry - 14);
+    art_line(canvas, rx - 6, ry - 14, rx - 4, ry - 6);
+    art_line(canvas, rx + 8, ry + 6, rx - 6, ry + 14);
+    art_line(canvas, rx - 6, ry + 14, rx - 4, ry + 6);
+    for(int k = 0; k < 2; k++) {
+        int32_t cx = rx + 12 + k * 15;
+        art_circle(canvas, cx, ry, 4);
+        art_line(canvas, cx - 3, ry - 1, cx - 2, ry - 3);
+        art_line(canvas, cx + 3, ry - 1, cx + 2, ry - 3);
+        art_dot(canvas, cx - 1, ry);
+        art_dot(canvas, cx + 1, ry);
+    }
+    int32_t len = 8 + (t & 1) * 5;
+    art_line(canvas, rx, ry - 4, rx - len, ry);
+    art_line(canvas, rx, ry + 4, rx - len, ry);
+    art_line(canvas, rx, ry - 2, rx - len / 2, ry);
+    art_line(canvas, rx, ry + 2, rx - len / 2, ry);
+}
+
+// Teacups circling a staircase to nowhere, and a clock running backwards
+static void dream_teacups(Canvas* canvas, int32_t t) {
+    canvas_set_color(canvas, dream_ink);
+    int32_t x = 4, y = 62;
+    for(int i = 0; i < 8; i++) {
+        art_line(canvas, x, y, x + 9, y);
+        art_line(canvas, x + 9, y, x + 9, y - 5);
+        x += 9;
+        y -= 5;
+    }
+    for(int i = 0; i < 5; i++) {
+        art_line(canvas, x, y, x - 5, y);
+        art_line(canvas, x - 5, y, x - 5, y - 3);
+        x -= 5;
+        y -= 3;
+    }
+    int32_t bob = (t / 8) & 1;
+    art_line(canvas, x - 11, y - 3 + bob, x - 4, y - 3 + bob);
+
+    canvas_draw_circle(canvas, 108, 14, 9);
+    const float a = -(float)t * 0.35f;
+    art_line(
+        canvas,
+        108,
+        14,
+        108 + (int32_t)lroundf(7.0f * sinf(a)),
+        14 - (int32_t)lroundf(7.0f * cosf(a)));
+    art_line(
+        canvas,
+        108,
+        14,
+        108 + (int32_t)lroundf(4.0f * sinf(a / 12.0f)),
+        14 - (int32_t)lroundf(4.0f * cosf(a / 12.0f)));
+    art_dot(canvas, 108, 7);
+    art_dot(canvas, 115, 14);
+    art_dot(canvas, 108, 21);
+    art_dot(canvas, 101, 14);
+
+    const int32_t px = 70, py = 38, tilt = (int32_t)(3.0f * sinf((float)t * 0.15f));
+    canvas_set_color(canvas, dream_paper);
+    art_disc(canvas, px, py, 7);
+    canvas_set_color(canvas, dream_ink);
+    art_circle(canvas, px, py, 7);
+    art_line(canvas, px + 5, py - 3, px + 12, py - 8 + tilt);
+    art_line(canvas, px + 6, py, px + 13, py - 6 + tilt);
+    art_circle(canvas, px - 9, py - 1, 3);
+    art_line(canvas, px - 3, py - 7, px + 3, py - 7);
+    art_dot(canvas, px, py - 8);
+    for(int k = 0; k < 4; k++)
+        art_dot(canvas, px + 13, py - 6 + tilt + ((t * 2 + k * 5) % 20));
+
+    for(int i = 0; i < 5; i++) {
+        float ang = (float)t * 0.09f + (float)i * 1.2566f;
+        int32_t mx = 60 + (int32_t)lroundf(44.0f * cosf(ang));
+        int32_t my = 31 + (int32_t)lroundf(14.0f * sinf(ang));
+        dream_sprite(canvas, mx, my, &spr_mug);
+        canvas_set_color(canvas, dream_ink);
+        for(int k = 0; k < 3; k++)
+            art_dot(canvas, mx + 3 + (((t + k * 2) / 3) & 1), my - 2 - k * 2);
+    }
+}
+
+// Rings rushing out of the dark, and a great cat's eye at the centre
+static void dream_tunnel(Canvas* canvas, int32_t t) {
+    canvas_set_color(canvas, dream_ink);
+    for(int i = 0; i < 7; i++) {
+        int32_t r = (i * 11 + t * 2) % 77;
+        if(r > 2) art_circle(canvas, 64, 32, r);
+    }
+    canvas_set_color(canvas, dream_paper);
+    for(int32_t x = 40; x <= 88; x++) {
+        float u = (float)(x - 64) / 24.0f;
+        int32_t h = (int32_t)(12.0f * (1.0f - u * u));
+        art_line(canvas, x, 32 - h, x, 32 + h);
+    }
+    canvas_set_color(canvas, dream_ink);
+    int32_t px = 40, ptop = 32, pbot = 32;
+    for(int32_t x = 44; x <= 88; x += 4) {
+        float u = (float)(x - 64) / 24.0f;
+        int32_t h = (int32_t)(12.0f * (1.0f - u * u));
+        art_line(canvas, px, ptop, x, 32 - h);
+        art_line(canvas, px, pbot, x, 32 + h);
+        px = x;
+        ptop = 32 - h;
+        pbot = 32 + h;
+    }
+    art_circle(canvas, 64, 32, 9);
+    int32_t pw = 1 + (int32_t)(3.0f * fabsf(sinf((float)t * 0.12f)));
+    dream_ellipse_fill(canvas, 64, 32, pw, 8, dream_ink);
+    canvas_set_color(canvas, dream_paper);
+    art_disc(canvas, 61, 29, 1);
+    canvas_set_color(canvas, dream_ink);
+}
+
+// The nightmare: a vacuum cleaner the size of a bus, and everyone running
+static void dream_vacuum(Canvas* canvas, int32_t t) {
+    const int32_t sx = (t & 1) ? 1 : -1, sy = (t / 2) & 1;
+    canvas_set_color(canvas, dream_ink);
+    art_line(canvas, 0, 56 + sy, 127, 56 + sy);
+    for(int32_t x = (t * 3) % 12; x < 140; x += 12)
+        art_line(canvas, x, 57 + sy, x - 8, 63);
+    dream_box(canvas, 112 + sx, 20 + sy, 14, 36, dream_ink);
+    dream_box(canvas, 114 + sx, 22 + sy, 10, 32, dream_paper);
+    canvas_set_color(canvas, dream_ink);
+    art_dot(canvas, 122 + sx, 38 + sy);
+    for(int i = 0; i < 2; i++) {
+        const Sprite* s = cat_walk[i][0][(t / 2 + i) & 1];
+        dream_sprite(canvas, 56 + i * 24 + sx, 56 + sy - s->h, s);
+    }
+    dream_her(canvas, 104 + sx, 56 + sy);
+
+    const int32_t vx = -4 + t / 4 + sx, vy = 14 + sy;
+    dream_box(canvas, vx, vy, 24, 36, dream_paper);
+    canvas_set_color(canvas, dream_ink);
+    art_line(canvas, vx, vy, vx + 24, vy);
+    art_line(canvas, vx, vy, vx, vy + 36);
+    art_line(canvas, vx + 24, vy, vx + 24, vy + 36);
+    for(int k = 0; k < 3; k++)
+        art_line(canvas, vx + 4, vy + 6 + k * 9, vx + 20, vy + 6 + k * 9);
+    dream_ellipse_fill(canvas, vx + 12, vy + 40, 18, 6, dream_paper);
+    canvas_set_color(canvas, dream_ink);
+    dream_ellipse_outline(canvas, vx + 12, vy + 40, 18, 6);
+    art_line(canvas, vx + 12, vy, vx + 4, vy - 12);
+    art_line(canvas, vx + 4, vy - 12, vx + 14, vy - 12);
+    for(int k = 0; k < 3; k++)
+        art_circle(canvas, vx - 4 - k * 5, 48 - ((t + k * 4) % 12), 1 + k);
+    int32_t hx = vx + 24, hy = vy + 16;
+    for(int k = 1; k <= 6; k++) {
+        int32_t nx = vx + 24 + k * 5;
+        int32_t ny = vy + 16 + k * 4 + (int32_t)(3.0f * sinf((float)(t + k * 3) * 0.6f));
+        art_line(canvas, hx, hy, nx, ny);
+        art_line(canvas, hx, hy + 1, nx, ny + 1);
+        hx = nx;
+        hy = ny;
+    }
+    dream_box(canvas, hx, hy - 2, 7, 5, dream_ink);
+    canvas_set_color(canvas, dream_ink);
+    canvas_set_font(canvas, FontSecondary);
+    canvas_draw_str(canvas, vx + 30, 10 + sy + ((t / 3) & 1), "VRRRRR");
+    if(t % 16 < 2) {
+        canvas_set_color(canvas, ColorXOR);
+        canvas_draw_box(canvas, 0, 0, 128, 64);
+    }
+}
+
+// The other nightmare: the dark, and eyes in it
+static void dream_dark(Canvas* canvas, int32_t t) {
+    const int32_t lx = 64 + (int32_t)(26.0f * sinf((float)t * 0.11f));
+    dream_ellipse_fill(canvas, lx, 56, 16, 6, ColorWhite);
+    dream_ink = ColorBlack;
+    dream_paper = ColorWhite;
+    dream_her(canvas, lx, 58);
+    dream_ink = ColorWhite;
+    dream_paper = ColorBlack;
+
+    art_seed = 0xDA12u;
+    art_rand(1);
+    for(int i = 0; i < 5; i++) {
+        int32_t ex = 12 + art_rand(104), ey = 6 + art_rand(34), ph = art_rand(40);
+        int32_t life = (t + ph) % 40;
+        if(life >= 22 || (life >= 12 && life < 14)) continue;
+        int32_t s = 2 + t / 30;
+        for(int k = -1; k <= 1; k += 2) {
+            dream_ellipse_fill(canvas, ex + k * s * 2, ey, s, s / 2 + 1, ColorWhite);
+            canvas_set_color(canvas, ColorBlack);
+            art_line(canvas, ex + k * s * 2, ey - s / 2, ex + k * s * 2, ey + s / 2);
+        }
+    }
+    canvas_set_color(canvas, ColorWhite);
+    canvas_set_font(canvas, FontSecondary);
+    if(t > 12 && t < 30) canvas_draw_str(canvas, 14, 18, "Nugget?");
+    if(t > 36 && t < 54) canvas_draw_str(canvas, 82, 30, "Baby?");
+    if(t > 62) {
+        int32_t s = 5 + (t - 62) / 3;
+        for(int k = -1; k <= 1; k += 2) {
+            dream_ellipse_fill(canvas, 64 + k * 16, 30, s, s / 2 + 1, ColorWhite);
+            dream_box(canvas, 64 + k * 16 - 1, 30 - s / 2, 2, s + 1, ColorBlack);
+        }
+    }
+}
+
+static void draw_dream(Canvas* canvas, const App* app) {
+    const int32_t t = DREAM_TICKS - app->dream_timer;
+    const bool night = app->dream == DreamMoon || app->dream == DreamRocket ||
+                       app->dream == DreamDark;
+    dream_ink = night ? ColorWhite : ColorBlack;
+    dream_paper = night ? ColorBlack : ColorWhite;
+    if(night) {
+        canvas_set_color(canvas, ColorBlack);
+        canvas_draw_box(canvas, 0, 0, 128, 64);
+    }
+    canvas_set_color(canvas, dream_ink);
+    switch(app->dream) {
+    case DreamGiant:
+        dream_giant(canvas, t);
+        break;
+    case DreamFishRain:
+        dream_fishrain(canvas, t);
+        break;
+    case DreamParade:
+        dream_parade(canvas, t);
+        break;
+    case DreamTrain:
+        dream_train(canvas, t);
+        break;
+    case DreamBalloon:
+        dream_balloon(canvas, t);
+        break;
+    case DreamGondola:
+        dream_gondola(canvas, t);
+        break;
+    case DreamDragon:
+        dream_dragon(canvas, t);
+        break;
+    case DreamForest:
+        dream_forest(canvas, t);
+        break;
+    case DreamMoon:
+        dream_moon(canvas, t);
+        break;
+    case DreamRocket:
+        dream_rocket(canvas, t);
+        break;
+    case DreamTeacups:
+        dream_teacups(canvas, t);
+        break;
+    case DreamTunnel:
+        dream_tunnel(canvas, t);
+        break;
+    case DreamVacuum:
+        dream_vacuum(canvas, t);
+        break;
+    default:
+        dream_dark(canvas, t);
+        break;
+    }
+    // Soft corners, like a thought bubble
+    canvas_set_color(canvas, dream_paper);
+    for(int32_t dy = 0; dy < 10; dy++) {
+        for(int32_t dx = 0; dx < 10; dx++) {
+            if((9 - dx) * (9 - dx) + (9 - dy) * (9 - dy) <= 81) continue;
+            canvas_draw_dot(canvas, dx, dy);
+            canvas_draw_dot(canvas, 127 - dx, dy);
+            canvas_draw_dot(canvas, dx, 63 - dy);
+            canvas_draw_dot(canvas, 127 - dx, 63 - dy);
+        }
+    }
+    // Her eyes open on it at the start and close on it at the end
+    int32_t lid = 0;
+    if(t < 6) {
+        lid = (6 - t) * 6;
+    } else if(app->dream_timer < 6) {
+        lid = (6 - app->dream_timer) * 6;
+    }
+    if(lid) {
+        canvas_set_color(canvas, ColorBlack);
+        canvas_draw_box(canvas, 0, 0, 128, lid);
+        canvas_draw_box(canvas, 0, 64 - lid, 128, lid);
+    }
+    dream_ink = ColorBlack;
+    dream_paper = ColorWhite;
+}
+
+// Her dream journal: a page for every dream, written up once she has had it
+static void draw_journal(Canvas* canvas, const App* app) {
+    const uint8_t page = app->dream;
+    const bool have = app->dreams & (1u << page);
+    const DreamInfo* info = &dream_info[page];
+    char buf[32];
+
+    canvas_set_color(canvas, ColorBlack);
+    canvas_set_font(canvas, FontPrimary);
+    canvas_draw_str(canvas, 2, 10, "Dream journal");
+    canvas_set_font(canvas, FontSecondary);
+    snprintf(buf, sizeof(buf), "%u/%u", (unsigned)page + 1, (unsigned)DreamCount);
+    canvas_draw_str_aligned(canvas, 126, 10, AlignRight, AlignBottom, buf);
+    canvas_draw_line(canvas, 0, 12, 127, 12);
+
+    canvas_set_font(canvas, FontPrimary);
+    canvas_draw_str(canvas, 2, 23, have ? info->title : "...");
+    canvas_set_font(canvas, FontSecondary);
+    if(have) {
+        for(int i = 0; i < 3; i++)
+            canvas_draw_str(canvas, 2, 33 + i * 10, info->lines[i]);
+        snprintf(buf, sizeof(buf), "< OK: dream it again >");
+    } else {
+        canvas_draw_str(canvas, 2, 33, "Nothing written here yet.");
+        snprintf(
+            buf,
+            sizeof(buf),
+            "< %d of %d. Take a nap. >",
+            __builtin_popcount(app->dreams),
+            (int)DreamCount);
+    }
+    canvas_draw_str_aligned(canvas, 64, 63, AlignCenter, AlignBottom, buf);
+}
+
 static void draw_callback(Canvas* canvas, void* ctx) {
     App* app = ctx;
     furi_mutex_acquire(app->mutex, FuriWaitForever);
@@ -2992,6 +4071,12 @@ static void draw_callback(Canvas* canvas, void* ctx) {
         break;
     case ScreenView:
         draw_view(canvas, app);
+        break;
+    case ScreenDream:
+        draw_dream(canvas, app);
+        break;
+    case ScreenJournal:
+        draw_journal(canvas, app);
         break;
     default:
         draw_scene(canvas, app);
@@ -3153,6 +4238,20 @@ static bool handle_input(App* app, const InputEvent* event) {
             if(event->type == InputTypeShort) app->reveal_timer = 1;
         } else if(event->key == InputKeyLeft || event->key == InputKeyRight) {
             cycle(&app->view, ArtCount, event->key);
+        } else if(event->type == InputTypeShort) {
+            app->screen = ScreenRoom;
+        }
+        break;
+    case ScreenDream:
+        // Any button and the dream is over
+        if(event->type == InputTypeShort) app->dream_timer = 1;
+        break;
+    case ScreenJournal:
+        if(event->key == InputKeyLeft || event->key == InputKeyRight) {
+            cycle(&app->dream, DreamCount, event->key);
+        } else if(event->key == InputKeyOk && event->type == InputTypeShort) {
+            // Reading an entry back brings the dream round again
+            if(app->dreams & (1u << app->dream)) dream_play(app, app->dream, true);
         } else if(event->type == InputTypeShort) {
             app->screen = ScreenRoom;
         }
