@@ -22,8 +22,8 @@
 #define MAX_REMOTES 16
 #define MAX_BUTTONS 64
 #define MAX_ICONS   64
-#define ICON_W 14
-#define ICON_H 14
+#define ICON_W 16
+#define ICON_H 16
 #define ICON_BYTES (((ICON_W + 7) / 8) * ICON_H) // 54
 #define ICON_FILE  (1 + ICON_BYTES)              // 55
 
@@ -392,10 +392,7 @@ static uint8_t row_of(App* app, uint8_t index) {
 }
 
 static void draw_button(Canvas* c, int x, int y, int w, const Button* b, bool sel) {
-    if(sel)
-        canvas_draw_rbox(c, x, y, w, ROW_H - 2, 3);
-    else
-        canvas_draw_rframe(c, x, y, w, ROW_H - 2, 3);
+    if(sel) canvas_draw_rbox(c, x, y, w, ROW_H - 2, 3); // only the selected one is boxed
     if(sel) canvas_set_color(c, ColorWhite);
     if(b->icon_ok) {
         canvas_draw_xbm(c, x + (w - ICON_W) / 2, y + (ROW_H - 2 - ICON_H) / 2, ICON_W, ICON_H,

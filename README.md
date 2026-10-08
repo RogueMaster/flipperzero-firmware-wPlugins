@@ -58,6 +58,5 @@ Signal: Power         # signal name inside that .ir
 Buttons flow top-to-bottom; a `long` takes a full row, two `short`s share a row.
 6 rows per page.
 
-## Credits
-Icons: [Pixelarticons](https://github.com/halfmage/pixelarticons) (MIT) +
-some [Font Awesome Free](https://fontawesome.com) (CC BY 4.0).
+## Icons
+The icon set is original, hand-drawn at 16x16 for this project (MIT, same as the code) — no third-party icon license.
