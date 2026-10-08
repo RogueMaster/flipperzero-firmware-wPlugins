@@ -45,7 +45,7 @@ If `IR Pad` (irpad.fap) is installed at `/ext/apps/Infrared/irpad.fap`, IR favor
 ## Config
 `icons.txt` maps a favorite path to an icon name (file in `icons/`, no extension):
 ```
-/ext/subghz/Kabel_car_door-btn1.sub=square-parking
+/ext/subghz/Garage.sub=square-parking
 /ext/infrared/Samsung_QN43Q60AAF.ir=tv
 ```
 Unmapped favorites fall back to a per-type default. Add a new favorite in the
