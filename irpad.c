@@ -234,10 +234,14 @@ static void auto_label(const char* sig, char* text, size_t tn, char* icon, size_
     strlcpy(tmp, sig, sizeof(tmp));
     char* words[5];
     int wc = 0;
-    char* tok = strtok(tmp, " _");
-    while(tok && wc < 5) {
-        words[wc++] = tok;
-        tok = strtok(NULL, " _");
+    // manual tokenizer on ' '/'_' (strtok is not exported to faps on OFW)
+    char* p = tmp;
+    while(*p && wc < 5) {
+        while(*p == ' ' || *p == '_') p++;
+        if(!*p) break;
+        words[wc++] = p;
+        while(*p && *p != ' ' && *p != '_') p++;
+        if(*p) *p++ = '\0';
     }
     size_t j = 0;
     if(wc >= 2) {
@@ -348,13 +352,17 @@ static void transmit(App* app, Button* b) {
                 float duty = 0.33f;
                 flipper_format_read_uint32(ff, "frequency", &freq, 1);
                 flipper_format_read_float(ff, "duty_cycle", &duty, 1);
-                if(flipper_format_get_value_count(ff, "data", &count) && count > 0) {
+                // cap guards against a corrupt/crafted .ir with a huge data line
+                if(flipper_format_get_value_count(ff, "data", &count) && count > 0 &&
+                   count <= 2048) {
                     uint32_t* timings = malloc(sizeof(uint32_t) * count);
-                    if(flipper_format_read_uint32(ff, "data", timings, count)) {
-                        infrared_send_raw_ext(timings, count, true, freq, duty);
-                        sent = true;
+                    if(timings) { // malloc can fail on the MCU
+                        if(flipper_format_read_uint32(ff, "data", timings, count)) {
+                            infrared_send_raw_ext(timings, count, true, freq, duty);
+                            sent = true;
+                        }
+                        free(timings);
                     }
-                    free(timings);
                 }
             } else { // parsed
                 uint8_t addr[4] = {0}, cmd[4] = {0};
