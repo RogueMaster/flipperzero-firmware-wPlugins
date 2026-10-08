@@ -7,12 +7,16 @@ assignable icon; select with the D-pad and launch it in its native app
 
 ![preview](docs/preview.png)
 
+![icon picker](docs/picker.png)
+
 ## Features
 - Imports the existing favorites directly from `/ext/favorites.txt` (no re-entry)
 - 2 rows × 5 columns matrix, D-pad navigation (not page-by-page)
 - Filled rounded selection box with inverted icon
 - Per-favorite icons via a simple config file
 - Launches the target in its own app using the loader deferred-launch queue
+- **On-device icon picker**: long-press OK on a favorite to choose its icon from a grid; saved to `icons.txt`
+- Returns to the grid after the launched app exits
 - Pixelart icon set (with a few FontAwesome fallbacks)
 
 ## Build
@@ -49,8 +53,9 @@ Monochrome `.bm` (1-byte flag + 18×18 XBM). Add your own with `tools/pxrender.p
 
 ## Controls
 - **◄ ► ▲ ▼** — move selection
-- **OK** — launch
-- **Back** — exit
+- **OK** (short) — launch the selected favorite
+- **OK** (long) — open the icon picker for the selected favorite
+- **Back** — exit (in the picker: cancel)
 
 ## Credits
 - Icons: [Pixelarticons](https://github.com/halfmage/pixelarticons) (MIT),
