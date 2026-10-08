@@ -7,7 +7,7 @@ Text: Power
 File: /ext/infrared/Samsung_QN43Q60AAF.ir
 Signal: Power
 Size: short
-Icon: volume-high
+Icon: volume-up
 Text: Vol+
 File: /ext/infrared/Samsung_QN43Q60AAF.ir
 Signal: Vol_up
@@ -17,7 +17,7 @@ Text: CH+
 File: /ext/infrared/Samsung_QN43Q60AAF.ir
 Signal: Ch_next
 Size: short
-Icon: volume-low
+Icon: volume-down
 Text: Vol-
 File: /ext/infrared/Samsung_QN43Q60AAF.ir
 Signal: Vol_dn
