@@ -35,6 +35,14 @@ typedef struct Menu Menu;
 /** Menu Item Callback */
 typedef void (*MenuItemCallback)(void* context, uint32_t index);
 
+/** Optional firmware-internal input observer.
+ *
+ * Called outside the model mutex after directional short/repeat navigation, or on a
+ * long press. The index is the selected item's callback index. Return true to consume
+ * the event. The observer must not wait for storage or other services.
+ */
+typedef bool (*MenuInputObserver)(void* context, const InputEvent* event, uint32_t index);
+
 /** One menu entry, as added by menu_add_item()
  *
  * @warning    This name is generic and lives in the public SDK namespace: an application that
@@ -133,6 +141,9 @@ void menu_free(Menu* menu);
  * @return     View instance
  */
 View* menu_get_view(Menu* menu);
+
+/** Set an input observer while the menu is detached. Not exported in the FAP SDK. */
+void menu_set_input_observer(Menu* menu, MenuInputObserver observer, void* context);
 
 /** Add item to menu
  *

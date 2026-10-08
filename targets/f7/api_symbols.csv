@@ -1259,8 +1259,8 @@ Function,+,file_browser_worker_is_in_start_folder,_Bool,BrowserWorker*
 Function,+,file_browser_worker_load,void,"BrowserWorker*, uint32_t, uint32_t"
 Function,+,file_browser_worker_set_callback_context,void,"BrowserWorker*, void*"
 Function,+,file_browser_worker_set_config,void,"BrowserWorker*, FuriString*, const char*, _Bool, _Bool"
-Function,+,file_browser_worker_set_folder_callback,void,"BrowserWorker*, BrowserWorkerFolderOpenCallback"
 Function,+,file_browser_worker_set_filter_ext,void,"BrowserWorker*, FuriString*, const char*"
+Function,+,file_browser_worker_set_folder_callback,void,"BrowserWorker*, BrowserWorkerFolderOpenCallback"
 Function,+,file_browser_worker_set_item_callback,void,"BrowserWorker*, BrowserWorkerListItemCallback"
 Function,+,file_browser_worker_set_list_callback,void,"BrowserWorker*, BrowserWorkerListLoadCallback"
 Function,+,file_browser_worker_set_long_load_callback,void,"BrowserWorker*, BrowserWorkerLongLoadCallback"
@@ -2825,6 +2825,7 @@ Function,+,menu_free,void,Menu*
 Function,+,menu_get_selected_item,uint32_t,Menu*
 Function,+,menu_get_view,View*,Menu*
 Function,+,menu_reset,void,Menu*
+Function,-,menu_set_input_observer,void,"Menu*, MenuInputObserver, void*"
 Function,+,menu_set_selected_item,void,"Menu*, uint32_t"
 Function,+,menu_set_style,void,"Menu*, const MenuStylePlugin*"
 Function,+,mf_classic_alloc,MfClassicData*,
@@ -4181,8 +4182,8 @@ Function,+,widget_add_string_multiline_element,void,"Widget*, uint8_t, uint8_t, 
 Function,+,widget_add_text_box_element,WidgetElement*,"Widget*, uint8_t, uint8_t, uint8_t, uint8_t, Align, Align, const char*, _Bool"
 Function,+,widget_add_text_scroll_element,void,"Widget*, uint8_t, uint8_t, uint8_t, uint8_t, const char*"
 Function,+,widget_alloc,Widget*,
-Function,+,widget_free,void,Widget*
 Function,+,widget_element_text_box_set_text,void,"WidgetElement*, const char*"
+Function,+,widget_free,void,Widget*
 Function,+,widget_get_view,View*,Widget*
 Function,+,widget_reset,void,Widget*
 Function,-,y0,double,double

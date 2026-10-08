@@ -28,6 +28,8 @@ struct Menu {
     View* view;
     FuriTimer* scroll_timer;
     bool active; // Guarded by the view model mutex
+    MenuInputObserver input_observer;
+    void* input_observer_context;
 };
 
 static void menu_draw_callback(Canvas* canvas, void* _model) {
@@ -137,6 +139,10 @@ static void menu_process_ok(Menu* menu) {
 static bool menu_input_callback(InputEvent* event, void* context) {
     Menu* menu = context;
 
+    if(event->type == InputTypeLong && menu->input_observer) {
+        return menu->input_observer(
+            menu->input_observer_context, event, menu_get_selected_item(menu));
+    }
     if(event->type != InputTypeShort && event->type != InputTypeRepeat) return false;
 
     switch(event->key) {
@@ -147,8 +153,14 @@ static bool menu_input_callback(InputEvent* event, void* context) {
     case InputKeyUp:
     case InputKeyDown:
     case InputKeyLeft:
-    case InputKeyRight:
-        return menu_process_move(menu, event->key);
+    case InputKeyRight: {
+        bool consumed = menu_process_move(menu, event->key);
+        if(menu->input_observer) {
+            consumed |= menu->input_observer(
+                menu->input_observer_context, event, menu_get_selected_item(menu));
+        }
+        return consumed;
+    }
     default:
         return false;
     }
@@ -199,6 +211,8 @@ static void menu_exit(void* context) {
 Menu* menu_alloc(void) {
     Menu* menu = malloc(sizeof(Menu));
     menu->active = false;
+    menu->input_observer = NULL;
+    menu->input_observer_context = NULL;
     menu->view = view_alloc();
     view_set_context(menu->view, menu);
     view_allocate_model(menu->view, ViewModelTypeLocking, sizeof(MenuModel));
@@ -228,6 +242,12 @@ void menu_free(Menu* menu) {
 View* menu_get_view(Menu* menu) {
     furi_check(menu);
     return menu->view;
+}
+
+void menu_set_input_observer(Menu* menu, MenuInputObserver observer, void* context) {
+    furi_check(menu);
+    menu->input_observer = observer;
+    menu->input_observer_context = context;
 }
 
 void menu_add_item(
