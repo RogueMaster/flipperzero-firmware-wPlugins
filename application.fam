@@ -8,5 +8,5 @@ App(
     fap_version="0.1",
     fap_author="tbelbek",
     fap_description="Customizable IR remote: vertical long/short buttons, icon-or-text, multi-remote, on-device editor",
-    requires=["gui", "storage", "dialogs"],
+    requires=["gui", "storage", "dialogs", "notification"],
 )

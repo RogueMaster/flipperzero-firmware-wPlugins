@@ -17,8 +17,10 @@ if no icon). Buttons transmit IR signals loaded from your saved `.ir` files.
   `infrared_signal` API is disabled for faps, so IR Pad uses the low-level
   `infrared_send` / `infrared_send_raw_ext`)
 - **Launch argument**: open a `.irr` layout or a raw `.ir` (auto-built remote)
-  directly — integrates with [Fav Launcher](../flipper-fav-launcher), which
-  routes IR favorites here when installed
+  directly — integrates with [Fav Launcher](../flipper-fav-launcher), which routes IR
+  favorites here when installed. **Exact match**: opening `/ext/infrared/Foo.ir`
+  uses `apps_data/irpad/Foo.irr` if it exists (same basename, 1:1, no mixing),
+  otherwise an auto-built remote. LED blinks on each transmit.
 
 ## Controls
 - **OK** — transmit the focused button

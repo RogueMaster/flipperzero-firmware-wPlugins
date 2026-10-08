@@ -8,6 +8,8 @@
 #include <flipper_format/flipper_format.h>
 #include <infrared.h>
 #include <infrared_transmit.h>
+#include <notification/notification.h>
+#include <notification/notification_messages.h>
 
 #define APP_DIR    "/ext/apps_data/irpad"
 #define ICONS_DIR  "/ext/apps_data/irpad/icons"
@@ -57,6 +59,7 @@ typedef struct {
 typedef struct App {
     Gui* gui;
     Storage* storage;
+    NotificationApp* notif;
     ViewDispatcher* vd;
     Submenu* remotes_menu;
     View* layout_view;
@@ -199,6 +202,19 @@ static void scan_remotes(App* app) {
             snprintf(r->path, sizeof(r->path), "%s/%s", APP_DIR, name);
             *dot = '\0';
             strlcpy(r->name, name, sizeof(r->name)); // fallback = filename
+            // prefer the human "Name" field for the list
+            FlipperFormat* ff = flipper_format_file_alloc(app->storage);
+            FuriString* v = furi_string_alloc();
+            FuriString* ft = furi_string_alloc();
+            uint32_t ver = 0;
+            if(flipper_format_file_open_existing(ff, r->path) &&
+               flipper_format_read_header(ff, ft, &ver) &&
+               flipper_format_read_string(ff, "Name", v)) {
+                strlcpy(r->name, furi_string_get_cstr(v), sizeof(r->name));
+            }
+            furi_string_free(v);
+            furi_string_free(ft);
+            flipper_format_free(ff);
             app->remote_count++;
         }
     }
@@ -218,6 +234,7 @@ static void transmit(App* app, Button* b) {
     FuriString* ftype = furi_string_alloc();
     FuriString* proto = furi_string_alloc();
     uint32_t ver = 0;
+    bool sent = false;
     if(flipper_format_file_open_existing(ff, b->file) &&
        flipper_format_read_header(ff, ftype, &ver)) {
         while(flipper_format_read_string(ff, "name", nm)) {
@@ -230,8 +247,10 @@ static void transmit(App* app, Button* b) {
                 flipper_format_read_float(ff, "duty_cycle", &duty, 1);
                 if(flipper_format_get_value_count(ff, "data", &count) && count > 0) {
                     uint32_t* timings = malloc(sizeof(uint32_t) * count);
-                    if(flipper_format_read_uint32(ff, "data", timings, count))
+                    if(flipper_format_read_uint32(ff, "data", timings, count)) {
                         infrared_send_raw_ext(timings, count, true, freq, duty);
+                        sent = true;
+                    }
                     free(timings);
                 }
             } else { // parsed
@@ -244,11 +263,15 @@ static void transmit(App* app, Button* b) {
                 msg.address = addr[0] | (addr[1] << 8) | (addr[2] << 16) | ((uint32_t)addr[3] << 24);
                 msg.command = cmd[0] | (cmd[1] << 8) | (cmd[2] << 16) | ((uint32_t)cmd[3] << 24);
                 msg.repeat = false;
-                if(msg.protocol != InfraredProtocolUnknown) infrared_send(&msg, 1);
+                if(msg.protocol != InfraredProtocolUnknown) {
+                    infrared_send(&msg, 1);
+                    sent = true;
+                }
             }
             break;
         }
     }
+    if(sent) notification_message(app->notif, &sequence_blink_blue_100);
     furi_string_free(nm);
     furi_string_free(ty);
     furi_string_free(ftype);
@@ -414,6 +437,7 @@ int32_t irpad_app(void* p) {
     memset(app, 0, sizeof(App));
     app->gui = furi_record_open(RECORD_GUI);
     app->storage = furi_record_open(RECORD_STORAGE);
+    app->notif = furi_record_open(RECORD_NOTIFICATION);
     storage_common_mkdir(app->storage, APP_DIR);
 
     app->vd = view_dispatcher_alloc();
@@ -438,10 +462,23 @@ int32_t irpad_app(void* p) {
         // launched with a file argument: open it directly (skip the remote list)
         app->direct = true;
         size_t len = strlen(arg);
-        if(len > 4 && strcmp(arg + len - 4, REMOTE_EXT) == 0)
+        if(len > 4 && strcmp(arg + len - 4, REMOTE_EXT) == 0) {
             load_remote(app, arg); // a .irr layout
-        else
-            load_ir_as_remote(app, arg); // a raw .ir -> auto remote
+        } else {
+            // exact 1:1 name match: /ext/infrared/Foo.ir -> apps_data/irpad/Foo.irr
+            const char* base = strrchr(arg, '/');
+            base = base ? base + 1 : arg;
+            char stem[128];
+            strlcpy(stem, base, sizeof(stem));
+            char* d = strrchr(stem, '.');
+            if(d) *d = '\0';
+            char cand[220];
+            snprintf(cand, sizeof(cand), "%s/%s%s", APP_DIR, stem, REMOTE_EXT);
+            if(storage_file_exists(app->storage, cand))
+                load_remote(app, cand); // the dedicated layout for exactly this .ir
+            else
+                load_ir_as_remote(app, arg); // fallback: auto remote
+        }
         with_view_model(app->layout_view, LayoutModel * m, { m->app = app; }, true);
         view_dispatcher_switch_to_view(app->vd, ViewIdLayout);
     } else {
@@ -457,6 +494,7 @@ int32_t irpad_app(void* p) {
     view_dispatcher_free(app->vd);
     furi_record_close(RECORD_GUI);
     furi_record_close(RECORD_STORAGE);
+    furi_record_close(RECORD_NOTIFICATION);
     free(app);
     return 0;
 }
