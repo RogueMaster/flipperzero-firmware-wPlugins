@@ -3,6 +3,8 @@
 #include <gui/view_dispatcher.h>
 #include <gui/view.h>
 #include <gui/modules/submenu.h>
+#include <gui/modules/text_input.h>
+#include <dialogs/dialogs.h>
 #include <input/input.h>
 #include <storage/storage.h>
 #include <flipper_format/flipper_format.h>
@@ -19,6 +21,7 @@
 
 #define MAX_REMOTES 16
 #define MAX_BUTTONS 64
+#define MAX_ICONS   64
 #define ICON_W 14
 #define ICON_H 14
 #define ICON_BYTES (((ICON_W + 7) / 8) * ICON_H) // 54
@@ -30,6 +33,10 @@
 typedef enum {
     ViewIdRemotes,
     ViewIdLayout,
+    ViewIdEdit,
+    ViewIdSignals,
+    ViewIdIcons,
+    ViewIdText,
 } ViewId;
 
 typedef enum {
@@ -64,6 +71,11 @@ typedef struct App {
     ViewDispatcher* vd;
     Submenu* remotes_menu;
     View* layout_view;
+    Submenu* edit_menu;
+    Submenu* signals_menu;
+    Submenu* icons_menu;
+    TextInput* text_input;
+    DialogsApp* dialogs;
 
     RemoteRef remotes[MAX_REMOTES];
     uint8_t remote_count;
@@ -76,13 +88,25 @@ typedef struct App {
     uint8_t page;
     uint8_t page_count;
     bool direct; // opened via launch argument (Back exits instead of showing the list)
+    bool move_mode; // rearranging the focused button with the d-pad
     char remote_name[32];
+    char remote_path[160]; // .irr to save edits to
+    char text_buf[24];     // text_input buffer
+    char pending_file[160]; // .ir chosen in the browser, awaiting signal pick
+    char icon_list[MAX_ICONS][24];
+    uint8_t icon_list_count;
+    char sig_names[64][32];
+    uint8_t sig_count;
 } App;
 
 // layout view model just references the App
 typedef struct {
     App* app;
 } LayoutModel;
+
+static void open_edit(App* app); // defined in the editor section
+static void save_remote(App* app);
+static void swap_buttons(App* app, uint8_t a, uint8_t b);
 
 // ---- icons ---------------------------------------------------------------
 
@@ -127,6 +151,7 @@ static void load_remote(App* app, const char* path) {
     app->index = 0;
     app->page = 0;
     strlcpy(app->remote_name, "", sizeof(app->remote_name));
+    strlcpy(app->remote_path, path, sizeof(app->remote_path));
 
     FlipperFormat* ff = flipper_format_file_alloc(app->storage);
     FuriString* tmp = furi_string_alloc();
@@ -236,6 +261,9 @@ static void load_ir_as_remote(App* app, const char* path) {
     strlcpy(app->remote_name, base, sizeof(app->remote_name));
     char* dot = strrchr(app->remote_name, '.');
     if(dot) *dot = '\0';
+    // edits to an auto remote persist as a same-named .irr next to the .ir mapping
+    snprintf(app->remote_path, sizeof(app->remote_path), "%s/%s%s", APP_DIR, app->remote_name,
+             REMOTE_EXT);
 
     FlipperFormat* ff = flipper_format_file_alloc(app->storage);
     FuriString* nm = furi_string_alloc();
@@ -407,8 +435,11 @@ static void layout_draw(Canvas* c, void* model) {
                 draw_button(c, 4 + sw, y, sw, &app->buttons[row->b[1]], row->b[1] == app->index);
         }
     }
-    // page indicator footer: dots (filled = current page)
-    if(app->page_count > 1) {
+    // footer: move-mode hint, else page dots
+    if(app->move_mode) {
+        canvas_set_font(c, FontSecondary);
+        canvas_draw_str_aligned(c, W / 2, H - 2, AlignCenter, AlignBottom, "MOVE");
+    } else if(app->page_count > 1) {
         int gap = 7;
         int x0 = W / 2 - (app->page_count - 1) * gap / 2;
         int y = H - 4;
@@ -431,6 +462,32 @@ static void goto_page(App* app, uint8_t page) {
 static bool layout_input(InputEvent* e, void* ctx) {
     App* app = ctx;
     bool handled = false;
+
+    if(e->type == InputTypeLong && e->key == InputKeyOk && app->button_count) {
+        open_edit(app); // long-press OK -> edit the focused button
+        return true;
+    }
+
+    // move mode: rearrange the focused button through the whole sequence (crosses pages)
+    if(app->move_mode && (e->type == InputTypeShort || e->type == InputTypeRepeat)) {
+        if((e->key == InputKeyUp || e->key == InputKeyLeft) && app->index > 0) {
+            swap_buttons(app, app->index, app->index - 1);
+            app->index--;
+            compute_rows(app);
+        } else if(
+            (e->key == InputKeyDown || e->key == InputKeyRight) &&
+            app->index + 1 < app->button_count) {
+            swap_buttons(app, app->index, app->index + 1);
+            app->index++;
+            compute_rows(app);
+        } else if(e->key == InputKeyOk || e->key == InputKeyBack) {
+            app->move_mode = false;
+            save_remote(app);
+        }
+        if(app->button_count) app->page = row_of(app, app->index) / ROWS_PER_PAGE;
+        with_view_model(app->layout_view, LayoutModel * m, { m->app = app; }, true);
+        return true;
+    }
 
     if((e->type == InputTypeShort || e->type == InputTypeRepeat) && app->button_count) {
         uint8_t base = app->page * ROWS_PER_PAGE;
@@ -500,6 +557,223 @@ static uint32_t exit_cb(void* ctx) {
     return VIEW_NONE;
 }
 
+static uint32_t ret_layout(void* ctx) {
+    UNUSED(ctx);
+    return ViewIdLayout;
+}
+static uint32_t ret_edit(void* ctx) {
+    UNUSED(ctx);
+    return ViewIdEdit;
+}
+
+// ---- editor --------------------------------------------------------------
+
+static void save_remote(App* app) {
+    if(app->remote_path[0] == '\0') return;
+    FlipperFormat* ff = flipper_format_file_alloc(app->storage);
+    FuriString* v = furi_string_alloc();
+    if(flipper_format_file_open_always(ff, app->remote_path)) {
+        flipper_format_write_header_cstr(ff, LAYOUT_FILETYPE, 1);
+        furi_string_set(v, app->remote_name[0] ? app->remote_name : "Remote");
+        flipper_format_write_string(ff, "Name", v);
+        for(uint8_t i = 0; i < app->button_count; i++) {
+            Button* b = &app->buttons[i];
+            furi_string_set(v, b->size == SizeLong ? "long" : "short");
+            flipper_format_write_string(ff, "Size", v);
+            furi_string_set(v, b->icon[0] ? b->icon : "-");
+            flipper_format_write_string(ff, "Icon", v);
+            furi_string_set(v, b->text[0] ? b->text : "-");
+            flipper_format_write_string(ff, "Text", v);
+            furi_string_set(v, b->file[0] ? b->file : "-");
+            flipper_format_write_string(ff, "File", v);
+            furi_string_set(v, b->signal[0] ? b->signal : "-");
+            flipper_format_write_string(ff, "Signal", v);
+        }
+    }
+    furi_string_free(v);
+    flipper_format_free(ff);
+}
+
+static void back_to_layout(App* app) {
+    if(app->page_count == 0 || app->button_count == 0)
+        app->page = 0;
+    else
+        app->page = row_of(app, app->index) / ROWS_PER_PAGE;
+    with_view_model(app->layout_view, LayoutModel * m, { m->app = app; }, true);
+    view_dispatcher_switch_to_view(app->vd, ViewIdLayout);
+}
+
+static void signals_cb(void* ctx, uint32_t idx) {
+    App* app = ctx;
+    if(idx < app->sig_count) {
+        Button* b = &app->buttons[app->index];
+        strlcpy(b->file, app->pending_file, sizeof(b->file));
+        strlcpy(b->signal, app->sig_names[idx], sizeof(b->signal));
+        save_remote(app);
+    }
+    back_to_layout(app);
+}
+
+static void build_signals_menu(App* app) {
+    app->sig_count = 0;
+    submenu_reset(app->signals_menu);
+    submenu_set_header(app->signals_menu, "Pick signal");
+    FlipperFormat* ff = flipper_format_file_alloc(app->storage);
+    FuriString* nm = furi_string_alloc();
+    FuriString* ft = furi_string_alloc();
+    uint32_t ver = 0;
+    if(flipper_format_file_open_existing(ff, app->pending_file) &&
+       flipper_format_read_header(ff, ft, &ver)) {
+        while(app->sig_count < 64 && flipper_format_read_string(ff, "name", nm)) {
+            strlcpy(app->sig_names[app->sig_count], furi_string_get_cstr(nm), 32);
+            submenu_add_item(
+                app->signals_menu, app->sig_names[app->sig_count], app->sig_count, signals_cb, app);
+            app->sig_count++;
+        }
+    }
+    furi_string_free(nm);
+    furi_string_free(ft);
+    flipper_format_free(ff);
+}
+
+static void icons_cb(void* ctx, uint32_t idx) {
+    App* app = ctx;
+    Button* b = &app->buttons[app->index];
+    if(idx == 255)
+        b->icon[0] = '\0';
+    else if(idx < app->icon_list_count)
+        strlcpy(b->icon, app->icon_list[idx], sizeof(b->icon));
+    load_icon(app, b->icon, b->icon_bm, &b->icon_ok);
+    save_remote(app);
+    back_to_layout(app);
+}
+
+static void build_icons_menu(App* app) {
+    app->icon_list_count = 0;
+    File* dir = storage_file_alloc(app->storage);
+    char name[64];
+    if(storage_dir_open(dir, ICONS_DIR)) {
+        FileInfo info;
+        while(app->icon_list_count < MAX_ICONS && storage_dir_read(dir, &info, name, sizeof(name))) {
+            if(info.flags & FSF_DIRECTORY) continue;
+            char* dot = strrchr(name, '.');
+            if(!dot || strcasecmp(dot, ".bm")) continue;
+            *dot = '\0';
+            strlcpy(app->icon_list[app->icon_list_count++], name, 24);
+        }
+    }
+    storage_dir_close(dir);
+    storage_file_free(dir);
+    submenu_reset(app->icons_menu);
+    submenu_set_header(app->icons_menu, "Pick icon");
+    submenu_add_item(app->icons_menu, "(none)", 255, icons_cb, app);
+    for(uint8_t i = 0; i < app->icon_list_count; i++)
+        submenu_add_item(app->icons_menu, app->icon_list[i], i, icons_cb, app);
+}
+
+static void text_done_cb(void* ctx) {
+    App* app = ctx;
+    strlcpy(app->buttons[app->index].text, app->text_buf, sizeof(app->buttons[app->index].text));
+    save_remote(app);
+    back_to_layout(app);
+}
+
+static void swap_buttons(App* app, uint8_t a, uint8_t b) {
+    Button t = app->buttons[a];
+    app->buttons[a] = app->buttons[b];
+    app->buttons[b] = t;
+}
+
+static void edit_cb(void* ctx, uint32_t idx) {
+    App* app = ctx;
+    Button* b = &app->buttons[app->index];
+    switch(idx) {
+    case 0: { // assign IR via file browser, then pick a signal
+        FuriString* res = furi_string_alloc();
+        FuriString* start = furi_string_alloc_set("/ext/infrared");
+        DialogsFileBrowserOptions opt;
+        memset(&opt, 0, sizeof(opt));
+        opt.extension = ".ir";
+        opt.base_path = "/ext/infrared";
+        opt.hide_dot_files = true;
+        opt.skip_assets = true;
+        bool picked = dialog_file_browser_show(app->dialogs, res, start, &opt);
+        if(picked) {
+            strlcpy(app->pending_file, furi_string_get_cstr(res), sizeof(app->pending_file));
+            build_signals_menu(app);
+            view_dispatcher_switch_to_view(app->vd, ViewIdSignals);
+        } else {
+            view_dispatcher_switch_to_view(app->vd, ViewIdEdit);
+        }
+        furi_string_free(res);
+        furi_string_free(start);
+        break;
+    }
+    case 1: // set text
+        text_input_reset(app->text_input);
+        text_input_set_header_text(app->text_input, "Button text");
+        strlcpy(app->text_buf, b->text, sizeof(app->text_buf));
+        text_input_set_result_callback(
+            app->text_input, text_done_cb, app, app->text_buf, sizeof(app->text_buf), true);
+        view_dispatcher_switch_to_view(app->vd, ViewIdText);
+        break;
+    case 2: // set icon
+        build_icons_menu(app);
+        view_dispatcher_switch_to_view(app->vd, ViewIdIcons);
+        break;
+    case 3: // toggle size
+        b->size = (b->size == SizeLong) ? SizeShort : SizeLong;
+        compute_rows(app);
+        save_remote(app);
+        back_to_layout(app);
+        break;
+    case 4: // enter move mode (rearrange with the d-pad on the layout)
+        app->move_mode = true;
+        back_to_layout(app);
+        break;
+    case 5: // add a blank button after current
+        if(app->button_count < MAX_BUTTONS) {
+            uint8_t at = app->index + 1;
+            for(int i = app->button_count; i > at; i--) app->buttons[i] = app->buttons[i - 1];
+            memset(&app->buttons[at], 0, sizeof(Button));
+            app->buttons[at].size = SizeShort;
+            strlcpy(app->buttons[at].text, "New", sizeof(app->buttons[at].text));
+            app->button_count++;
+            app->index = at;
+            compute_rows(app);
+            save_remote(app);
+        }
+        back_to_layout(app);
+        break;
+    case 6: // delete
+        if(app->button_count > 0) {
+            for(int i = app->index; i + 1 < app->button_count; i++)
+                app->buttons[i] = app->buttons[i + 1];
+            app->button_count--;
+            if(app->index >= app->button_count && app->index > 0) app->index--;
+            compute_rows(app);
+            save_remote(app);
+        }
+        back_to_layout(app);
+        break;
+    }
+}
+
+static void open_edit(App* app) {
+    if(app->button_count == 0) return;
+    Button* b = &app->buttons[app->index];
+    submenu_reset(app->edit_menu);
+    submenu_set_header(app->edit_menu, "Edit button");
+    submenu_add_item(app->edit_menu, "Assign IR", 0, edit_cb, app);
+    submenu_add_item(app->edit_menu, "Set text", 1, edit_cb, app);
+    submenu_add_item(app->edit_menu, "Set icon", 2, edit_cb, app);
+    submenu_add_item(app->edit_menu, b->size == SizeLong ? "Size: Long" : "Size: Short", 3, edit_cb, app);
+    submenu_add_item(app->edit_menu, "Move (d-pad)", 4, edit_cb, app);
+    submenu_add_item(app->edit_menu, "Add button", 5, edit_cb, app);
+    submenu_add_item(app->edit_menu, "Delete button", 6, edit_cb, app);
+    view_dispatcher_switch_to_view(app->vd, ViewIdEdit);
+}
+
 // ---- entry ---------------------------------------------------------------
 
 int32_t irpad_app(void* p) {
@@ -526,6 +800,28 @@ int32_t irpad_app(void* p) {
     view_set_draw_callback(app->layout_view, layout_draw);
     view_set_input_callback(app->layout_view, layout_input);
     view_dispatcher_add_view(app->vd, ViewIdLayout, app->layout_view);
+
+    app->edit_menu = submenu_alloc();
+    view_set_orientation(submenu_get_view(app->edit_menu), ViewOrientationVertical);
+    view_set_previous_callback(submenu_get_view(app->edit_menu), ret_layout);
+    view_dispatcher_add_view(app->vd, ViewIdEdit, submenu_get_view(app->edit_menu));
+
+    app->signals_menu = submenu_alloc();
+    view_set_orientation(submenu_get_view(app->signals_menu), ViewOrientationVertical);
+    view_set_previous_callback(submenu_get_view(app->signals_menu), ret_edit);
+    view_dispatcher_add_view(app->vd, ViewIdSignals, submenu_get_view(app->signals_menu));
+
+    app->icons_menu = submenu_alloc();
+    view_set_orientation(submenu_get_view(app->icons_menu), ViewOrientationVertical);
+    view_set_previous_callback(submenu_get_view(app->icons_menu), ret_edit);
+    view_dispatcher_add_view(app->vd, ViewIdIcons, submenu_get_view(app->icons_menu));
+
+    app->text_input = text_input_alloc();
+    view_set_orientation(text_input_get_view(app->text_input), ViewOrientationVertical);
+    view_set_previous_callback(text_input_get_view(app->text_input), ret_edit);
+    view_dispatcher_add_view(app->vd, ViewIdText, text_input_get_view(app->text_input));
+
+    app->dialogs = furi_record_open(RECORD_DIALOGS);
 
     const char* arg = (const char*)p;
     if(arg && arg[0]) {
@@ -559,9 +855,18 @@ int32_t irpad_app(void* p) {
 
     view_dispatcher_remove_view(app->vd, ViewIdRemotes);
     view_dispatcher_remove_view(app->vd, ViewIdLayout);
+    view_dispatcher_remove_view(app->vd, ViewIdEdit);
+    view_dispatcher_remove_view(app->vd, ViewIdSignals);
+    view_dispatcher_remove_view(app->vd, ViewIdIcons);
+    view_dispatcher_remove_view(app->vd, ViewIdText);
     submenu_free(app->remotes_menu);
+    submenu_free(app->edit_menu);
+    submenu_free(app->signals_menu);
+    submenu_free(app->icons_menu);
+    text_input_free(app->text_input);
     view_free(app->layout_view);
     view_dispatcher_free(app->vd);
+    furi_record_close(RECORD_DIALOGS);
     furi_record_close(RECORD_GUI);
     furi_record_close(RECORD_STORAGE);
     furi_record_close(RECORD_NOTIFICATION);
