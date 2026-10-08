@@ -191,7 +191,7 @@ static void load_remote(App* app, const char* path) {
 static void auto_label(const char* sig, char* text, size_t tn, char* icon, size_t in, BtnSize* size) {
     char lo[48];
     size_t i = 0;
-    for(; sig[i] && i < sizeof(lo) - 1; i++) lo[i] = (char)tolower((unsigned char)sig[i]);
+    for(; i < sizeof(lo) - 1 && sig[i]; i++) lo[i] = (char)tolower((unsigned char)sig[i]);
     lo[i] = '\0';
     icon[0] = '\0';
     *size = SizeShort;
@@ -696,8 +696,10 @@ static void icon_draw(Canvas* c, void* model) {
             int x = 2 + col * IPICK_CW;
             int y = vr * IPICK_CH + 1;
             bool sel = (k == app->icon_sel);
-            if(sel) canvas_draw_rbox(c, x, y, IPICK_CW - 2, IPICK_CH - 2, 3);
-            if(sel) canvas_set_color(c, ColorWhite);
+            if(sel) {
+                canvas_draw_rbox(c, x, y, IPICK_CW - 2, IPICK_CH - 2, 3);
+                canvas_set_color(c, ColorWhite);
+            }
             if(k < app->icon_list_count && app->icon_bm_ok[k]) {
                 canvas_draw_xbm(c, x + (IPICK_CW - 2 - ICON_W) / 2, y + (IPICK_CH - 2 - ICON_H) / 2,
                                 ICON_W, ICON_H, app->icon_bms[k] + 1);
