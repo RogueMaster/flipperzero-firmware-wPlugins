@@ -1,0 +1,6 @@
+# Favori yolu = ikon adı  (icons/ klasöründeki .bm, uzantısız)
+/ext/lfrfid/Arlegatan-doortag_3.rfid=building
+/ext/infrared/Samsung_QN43Q60AAF.ir=tv
+/ext/infrared/Sylvania_24_Button_LED.ir=lightbulb
+/ext/subghz/Kabel_car_door-btn1.sub=square-parking
+/ext/nfc/Kabel_pedestrian_door.nfc=door-open

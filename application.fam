@@ -1,0 +1,12 @@
+App(
+    appid="flauncher",
+    name="Fav Launcher",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="flauncher_app",
+    stack_size=4 * 1024,
+    fap_category="Tools",
+    fap_version="0.1",
+    fap_author="tbelbek",
+    fap_description="Vertical card launcher for Flipper favorites with FontAwesome icons",
+    requires=["gui", "storage", "loader"],
+)
