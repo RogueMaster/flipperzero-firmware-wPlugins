@@ -199,12 +199,31 @@ static void auto_label(const char* sig, char* text, size_t tn, char* icon, size_
     if(strstr(lo, "play")) SET("play", "Play");
 #undef SET
 
-    // fallback: clean the raw name (underscores -> spaces)
+    // fallback: abbreviate to fit a short button (e.g. "Dark Orange" -> "DaOr",
+    // "Light Green" -> "LiGr"); single words are kept (draw trims if needed)
+    char tmp[48];
+    strlcpy(tmp, sig, sizeof(tmp));
+    char* words[5];
+    int wc = 0;
+    char* tok = strtok(tmp, " _");
+    while(tok && wc < 5) {
+        words[wc++] = tok;
+        tok = strtok(NULL, " _");
+    }
     size_t j = 0;
-    for(size_t k = 0; sig[k] && j < tn - 1; k++) text[j++] = (sig[k] == '_') ? ' ' : sig[k];
-    text[j] = '\0';
-    // a long label won't fit a half-width button legibly -> give it a full row
-    if(j > 5) *size = SizeLong;
+    if(wc >= 2) {
+        int take = (wc == 2) ? 2 : 1; // 2 chars per word for two words, else initials
+        for(int w = 0; w < wc && j < tn - 1; w++) {
+            for(int k = 0; k < take && words[w][k] && j < tn - 1; k++) {
+                char c = words[w][k];
+                text[j++] = (k == 0) ? (char)toupper((unsigned char)c) :
+                                       (char)tolower((unsigned char)c);
+            }
+        }
+        text[j] = '\0';
+    } else {
+        strlcpy(text, wc ? words[0] : sig, tn);
+    }
 }
 
 // build an ad-hoc remote from a raw .ir file: smart label/icon per signal
