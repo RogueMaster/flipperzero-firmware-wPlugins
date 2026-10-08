@@ -1,0 +1,10 @@
+sourcecode:
+  type: git
+  location:
+    origin: https://github.com/tbelbek/flipper-fav-launcher.git
+    commit_sha: d07b312c3f202a7cb65c13470e0dfad921af7128
+short_description: Icon-grid launcher for your Flipper favorites.
+description: "@README.md"
+changelog: "@./docs/changelog.md"
+screenshots:
+  - screenshots/ss0.png
