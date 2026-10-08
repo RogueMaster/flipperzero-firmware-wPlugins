@@ -3,7 +3,7 @@
 <table>
   <tr>
     <td align="center" width="50%">
-      <a href="https://www.pingequa.com/products/flipper-zero-nrf24-cc1101-2-in-1-rf-devboard?utm_source=github&utm_medium=readme&utm_campaign=rflab&utm_content=banner">
+      <a href="https://www.pingequa.com/products/flipper-zero-2-in-1-rf-module?utm_source=github&utm_medium=referral&utm_campaign=fz-rflab-2in1&utm_content=banner">
         <img src="images/hardware_devboard.jpg" alt="PINGEQUA 2-in-1 RF Devboard hardware" width="100%" />
       </a>
       <br><sub><b>The Hardware</b> · 2-in-1 NRF24 + CC1101</sub>
@@ -19,16 +19,16 @@
 
 ### Plug-and-play across every firmware.
 
-**2.4 GHz spectrum analyzer + NRF24 jammer for Flipper Zero, designed for the [PINGEQUA 2-in-1 RF Devboard](https://www.pingequa.com/products/flipper-zero-nrf24-cc1101-2-in-1-rf-devboard?utm_source=github&utm_medium=readme&utm_campaign=rflab&utm_content=hero).**
+**2.4 GHz spectrum analyzer + NRF24 jammer for Flipper Zero, designed for the [PINGEQUA 2-in-1 RF Devboard](https://www.pingequa.com/products/flipper-zero-2-in-1-rf-module?utm_source=github&utm_medium=referral&utm_campaign=fz-rflab-2in1&utm_content=hero).**
 
 [![Platform](https://img.shields.io/badge/platform-Flipper%20Zero-FF8200?style=flat-square)](https://flipperzero.one/)
 [![Release](https://img.shields.io/github/v/release/pingequalab/rf-lab?style=flat-square&color=success&label=release)](https://github.com/pingequalab/rf-lab/releases/latest)
 [![Firmware](https://img.shields.io/badge/firmware-OFW%20%7C%20Momentum%20%7C%20Unleashed%20%7C%20RogueMaster-blue?style=flat-square)](#firmware-compatibility)
 [![FAP size](https://img.shields.io/badge/FAP-44%20KB-success?style=flat-square)](dist/)
 [![License](https://img.shields.io/badge/license-MIT-yellow?style=flat-square)](LICENSE)
-[![Hardware](https://img.shields.io/badge/hardware-PINGEQUA%202--in--1-000000?style=flat-square)](https://www.pingequa.com/products/flipper-zero-nrf24-cc1101-2-in-1-rf-devboard?utm_source=github&utm_medium=readme&utm_campaign=rflab&utm_content=badge)
+[![Hardware](https://img.shields.io/badge/hardware-PINGEQUA%202--in--1-000000?style=flat-square)](https://www.pingequa.com/products/flipper-zero-2-in-1-rf-module?utm_source=github&utm_medium=referral&utm_campaign=fz-rflab-2in1&utm_content=badge)
 
-[**🛒 Get the Hardware**](https://www.pingequa.com/products/flipper-zero-nrf24-cc1101-2-in-1-rf-devboard?utm_source=github&utm_medium=readme&utm_campaign=rflab&utm_content=cta_top) · [**📦 Download FAP**](../../releases) · [**📖 Quickstart**](docs/QUICKSTART.md) · [**❓ FAQ**](docs/FAQ.md)
+[**🛒 Get the Hardware**](https://www.pingequa.com/products/flipper-zero-2-in-1-rf-module?utm_source=github&utm_medium=referral&utm_campaign=fz-rflab-2in1&utm_content=cta-top) · [**📦 Download FAP**](../../releases) · [**📖 Quickstart**](docs/QUICKSTART.md) · [**❓ FAQ**](docs/FAQ.md)
 
 </div>
 
@@ -221,7 +221,7 @@ If you don't see `External`, see [docs/HARDWARE.md](docs/HARDWARE.md) for firmwa
 
 ## Hardware
 
-> ### 🛒 [PINGEQUA Flipper Zero NRF24+CC1101 2-in-1 RF Devboard](https://www.pingequa.com/products/flipper-zero-nrf24-cc1101-2-in-1-rf-devboard?utm_source=github&utm_medium=readme&utm_campaign=rflab&utm_content=hardware_block)
+> ### 🛒 [PINGEQUA Flipper Zero NRF24+CC1101 2-in-1 RF Devboard](https://www.pingequa.com/products/flipper-zero-2-in-1-rf-module?utm_source=github&utm_medium=referral&utm_campaign=fz-rflab-2in1&utm_content=hardware-block)
 >
 > The only officially supported hardware. One module gives your Flipper both 2.4 GHz (nRF24L01+) and Sub-GHz (CC1101) chips, software-switched. No jumpers, no rewiring.
 
@@ -294,7 +294,7 @@ Full disclosure: [SECURITY.md](SECURITY.md).
 
 - **Issues**: [GitHub Issues](../../issues)
 - **Email**: [support@pingequa.com](mailto:support@pingequa.com)
-- **Hardware**: [pingequa.com](https://www.pingequa.com/?utm_source=github&utm_medium=readme&utm_campaign=rflab&utm_content=footer_store)
+- **Hardware**: [pingequa.com](https://www.pingequa.com/?utm_source=github&utm_medium=referral&utm_campaign=brand&utm_content=footer-store)
 - **YouTube**: [@PINGEQUA](https://www.youtube.com/@PINGEQUA)
 
 ---
@@ -309,7 +309,7 @@ Full disclosure: [SECURITY.md](SECURITY.md).
 
 <sub><b>Precision Gear for Hackers.</b></sub><br>
 <sub>Made for the PINGEQUA 2-in-1 RF Devboard ·
-<a href="https://www.pingequa.com/?utm_source=github&utm_medium=readme&utm_campaign=rflab&utm_content=footer_brand">PINGEQUA</a></sub>
+<a href="https://www.pingequa.com/?utm_source=github&utm_medium=referral&utm_campaign=brand&utm_content=footer-brand">PINGEQUA</a></sub>
 
 ⭐ **Star the repo if PINGEQUA RF Lab saves you time.**
 
