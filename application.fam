@@ -6,7 +6,7 @@ App(
     stack_size=4 * 1024,
     fap_category="Infrared",
     fap_icon="irpad.png",
-    fap_version="0.2",
+    fap_version="0.3",
     fap_author="tbelbek",
     fap_description="Customizable IR remote: vertical long/short buttons, icon-or-text, multi-remote, on-device editor",
     requires=["gui", "storage", "dialogs", "notification"],

@@ -10,6 +10,7 @@
 #include <infrared_transmit.h>
 #include <notification/notification.h>
 #include <notification/notification_messages.h>
+#include <ctype.h>
 
 #define APP_DIR    "/ext/apps_data/irpad"
 #define ICONS_DIR  "/ext/apps_data/irpad/icons"
@@ -156,7 +157,55 @@ static void load_remote(App* app, const char* path) {
     compute_rows(app);
 }
 
-// build an ad-hoc remote from a raw .ir file: every signal becomes a short button
+// derive a short label (+ optional icon, size) for a raw signal name, so the
+// auto-built remote looks tidy when there is no dedicated .irr layout
+static void auto_label(const char* sig, char* text, size_t tn, char* icon, size_t in, BtnSize* size) {
+    char lo[48];
+    size_t i = 0;
+    for(; sig[i] && i < sizeof(lo) - 1; i++) lo[i] = (char)tolower((unsigned char)sig[i]);
+    lo[i] = '\0';
+    icon[0] = '\0';
+    *size = SizeShort;
+    bool up = strstr(lo, "up") || strstr(lo, "next") || strstr(lo, "inc") || strchr(sig, '+');
+    bool dn = strstr(lo, "down") || strstr(lo, "dwn") || strstr(lo, "prev") ||
+              strstr(lo, "dec") || strchr(sig, '-');
+
+#define SET(ic, tx)                   \
+    do {                              \
+        strlcpy(icon, ic, in);        \
+        strlcpy(text, tx, tn);        \
+        return;                       \
+    } while(0)
+
+    if(!strcmp(lo, "off")) SET("power-off", "Off");
+    if(strstr(lo, "power") || !strcmp(lo, "on")) {
+        *size = SizeLong;
+        SET("power-off", "Power");
+    }
+    if(strstr(lo, "vol") && up) SET("volume-up", "Vol+");
+    if(strstr(lo, "vol") && dn) SET("volume-down", "Vol-");
+    if(strstr(lo, "ch") && up) SET("", "CH+");
+    if(strstr(lo, "ch") && dn) SET("", "CH-");
+    if(strstr(lo, "bright") && up) SET("", "Br+");
+    if(strstr(lo, "bright") && dn) SET("", "Br-");
+    if(strstr(lo, "mute")) SET("", "Mute");
+    if(!strcmp(lo, "up")) SET("arrow-up", "Up");
+    if(!strcmp(lo, "down") || !strcmp(lo, "dwn")) SET("arrow-down", "Down");
+    if(!strcmp(lo, "left")) SET("arrow-left", "Left");
+    if(!strcmp(lo, "right")) SET("arrow-right", "Right");
+    if(!strcmp(lo, "ok") || strstr(lo, "select") || strstr(lo, "enter")) SET("", "OK");
+    if(strstr(lo, "back")) SET("backward", "Back");
+    if(strstr(lo, "home") || strstr(lo, "menu")) SET("house", "Home");
+    if(strstr(lo, "play")) SET("play", "Play");
+#undef SET
+
+    // fallback: clean the raw name (underscores -> spaces); the renderer trims to width
+    size_t j = 0;
+    for(size_t k = 0; sig[k] && j < tn - 1; k++) text[j++] = (sig[k] == '_') ? ' ' : sig[k];
+    text[j] = '\0';
+}
+
+// build an ad-hoc remote from a raw .ir file: smart label/icon per signal
 static void load_ir_as_remote(App* app, const char* path) {
     app->button_count = 0;
     app->index = 0;
@@ -175,10 +224,11 @@ static void load_ir_as_remote(App* app, const char* path) {
         while(app->button_count < MAX_BUTTONS && flipper_format_read_string(ff, "name", nm)) {
             Button* b = &app->buttons[app->button_count];
             memset(b, 0, sizeof(Button));
-            b->size = SizeShort;
-            strlcpy(b->text, furi_string_get_cstr(nm), sizeof(b->text));
+            const char* sig = furi_string_get_cstr(nm);
             strlcpy(b->file, path, sizeof(b->file));
-            strlcpy(b->signal, furi_string_get_cstr(nm), sizeof(b->signal));
+            strlcpy(b->signal, sig, sizeof(b->signal));
+            auto_label(sig, b->text, sizeof(b->text), b->icon, sizeof(b->icon), &b->size);
+            load_icon(app, b->icon, b->icon_bm, &b->icon_ok);
             app->button_count++;
         }
     }
