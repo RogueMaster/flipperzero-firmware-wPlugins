@@ -46,7 +46,7 @@
  *
  *   x: 0                        90 91              127
  *      ┌────────────────────────────────────────────┐
- *  b10 │ SigRoam Wardriving v0.6                    │  full 128, 105 px
+ *  b10 │ SigRoam Wardriving v0.6.1                  │  full 128; v0.6 was 105 px
  *      ├─────────────────────────┬──────────────────┤
  *  b20 │ by PINGEQUA Lab         │ I_sr1g_qr        │  74 px
  *  b30 │ Receive-only.           │ 37x37 (x=91,     │
@@ -58,7 +58,7 @@
  *
  * Three INDEPENDENT clearances -- do not conflate them:
  *    (1) Row 1 is full width. One string, normal FontSecondary advance:
- *        "SigRoam Wardriving v" SR_FAP_VERSION = 105 px (fits 128).
+ *        "SigRoam Wardriving v" SR_FAP_VERSION. v0.6 measured 105 px and fit in 128.
  *    (2) Rows 2-5 overlap the code in y, so width must be <= 91 px.
  *        Longest remaining body line is still inside 91 px. Maker 74 px.
  *        "passive 2.4/5G + GNSS" as one row 5 string does not fit the QR

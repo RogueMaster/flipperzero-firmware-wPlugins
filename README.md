@@ -200,10 +200,10 @@ GPS-fix changes; Stealth suppresses the LED. `New net tick` is sound only.
 
 ## Compatibility and limits
 
-- **Flipper firmware:** the v0.6 release provides `sigroam-0.6.fap`, an
-  Official-SDK API-87 build for Official and compatible Momentum firmware, and
-  `sigroam-0.6-unleashed.fap` for Unleashed API 88. Unleashed-board testing is
-  not claimed. Check the [release files and notes](https://github.com/pingequalab/sigroam-wardriving/releases/latest)
+- **Flipper firmware:** the v0.6.1 release provides `sigroam-0.6.1.fap`, an
+  Official-SDK API-87 build for Official and compatible Momentum firmware.
+  Unleashed is API 88 and is not in this release. Check the
+  [release files and notes](https://github.com/pingequalab/sigroam-wardriving/releases/latest)
   for your installed firmware; do not bypass an API-mismatch warning.
 - **Scanner hardware:** Scout Lite is the verified reference for the dedicated
   SigRoam scanner firmware. The FAP speaks the Marauder serial protocol and may

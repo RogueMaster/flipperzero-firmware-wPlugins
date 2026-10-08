@@ -29,7 +29,7 @@
 #include "views/sr_view_dash.h"
 
 #define SR_TAG         "SigRoam"
-#define SR_FAP_VERSION "0.6"
+#define SR_FAP_VERSION "0.6.1"
 /* Display-only scanner product number on Probe (ADR-027). Not UART kVersion. */
 #define SR_SCANNER_VERSION "0.6"
 
