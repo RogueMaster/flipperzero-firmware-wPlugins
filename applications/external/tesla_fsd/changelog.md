@@ -1,3 +1,8 @@
+## 2.16-beta.35 — HW3 keeps the car's own FSD speed offset
+
+- **HW3: the car's own FSD speed offset and profile are no longer overwritten (#209).** With FSD Unlock on, the HW3 path rewrote two 0x3FD fields on every frame. The FSD max-speed offset (mux2 bits 6-13) got the Autopilot speed-limit offset x5, and the driving profile (mux0 bits 49-50) was forced from follow distance. So the car's FSD offset was replaced a few ms after it was set, and the scroll wheel and follow distance did nothing. HW3 now passes both fields through and only sets the FSD-enable bit, on the Flipper and the ESP32. The old behaviour is kept behind a new ESP32 toggle, **HW3 Speed Override (legacy)**, off by default. HW4 and Legacy are unchanged. Thanks @danpadure for the report. (PR #212)
+- **ESP32 dashboard: HW3 speed read-out.** The FSD Status card shows the profile and FSD offset the car sends next to what goes out, plus follow distance. (PR #212)
+
 ## 2.16-beta.34 — ESP32 Summon-bit parity + motion-based Summon safety
 
 - **ESP32: the nag killer no longer sets 0x3FD bit47 on HW4.** bit47 is the Summon-enable bit (confirmed on-car in #163), not part of nag suppression — the nag killer works through the bit19 clear and the 0x370 EPAS echo. It was being set whenever the nag killer ran on HW4; now, like the HW3 path and the Flipper, it's set only when Summon EU Unlock is on. The misnamed constant is renamed to SIG_AP_SUMMON_ENABLE_BIT. No change to nag behaviour. (PR #207)

@@ -58,9 +58,13 @@ static void fsd_update_display(TeslaFSDApp* app, uint32_t uptime_ms) {
     widget_add_string_element(
         app->widget, 64, 2, AlignCenter, AlignTop, FontPrimary, "Tesla FSD Active");
 
+    // HW3 pass-through (#209): the car's own profile is what goes out.
+    int profile = state.speed_profile;
+    if(hw == TeslaHW_HW3 && !state.hw3_speed_override && state.hw3_profile_seen)
+        profile = state.hw3_car_profile;
+
     char line1[40];
-    snprintf(
-        line1, sizeof(line1), "HW: %s    Profile: %d/%d", hw_str, state.speed_profile, max_profile);
+    snprintf(line1, sizeof(line1), "HW: %s    Profile: %d/%d", hw_str, profile, max_profile);
     widget_add_string_element(app->widget, 2, 16, AlignLeft, AlignTop, FontSecondary, line1);
 
     const char* mode_str = "ACT";

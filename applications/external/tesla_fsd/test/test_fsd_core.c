@@ -139,6 +139,10 @@ static void test_follow_distance(void) {
     f.buffer[5] = (uint8_t)(1u << 5);
     fsd_handle_follow_distance(&s, &f);
     CHECK(s.speed_profile == 2, "HW3 fd1 -> profile2 got %d", s.speed_profile);
+    CHECK(
+        s.follow_distance_seen && s.follow_distance == 1,
+        "fd read-out 1 got %u",
+        s.follow_distance);
     f.buffer[5] = (uint8_t)(3u << 5);
     fsd_handle_follow_distance(&s, &f);
     CHECK(s.speed_profile == 0, "HW3 fd3 -> profile0 got %d", s.speed_profile);
@@ -150,6 +154,12 @@ static void test_follow_distance(void) {
     f.buffer[5] = (uint8_t)(1u << 5);
     fsd_handle_follow_distance(&s, &f);
     CHECK(s.speed_profile == 3, "HW4 fd1 -> profile3 got %d", s.speed_profile);
+
+    // speed_profile_locked keeps the profile but the read-out still follows the stalk.
+    s.speed_profile_locked = true;
+    f.buffer[5] = (uint8_t)(4u << 5);
+    fsd_handle_follow_distance(&s, &f);
+    CHECK(s.speed_profile == 3 && s.follow_distance == 4, "locked: profile 3 kept, fd read 4");
 }
 
 // ── 0x3FD autopilot frame, HW4 ────────────────────────────────────────────────
@@ -247,24 +257,161 @@ static void test_hw4_mux2_profile_layout(void) {
         f.buffer[7]);
 }
 
-// ── 0x3FD autopilot frame, HW3 ────────────────────────────────────────────────
+// ── 0x3FD autopilot frame, HW3 (#209) ─────────────────────────────────────────
+// Default is pass-through: mux0 gets bit46 only, the car's own FSD profile (mux0
+// bits 49-50) and the whole mux2 frame (FSD max-speed offset, bits 6-13) are left
+// as received and mux2 is not re-sent. hw3_speed_override restores the legacy
+// write byte-for-byte: follow-distance profile into bits 49-50 and the Autopilot
+// offset (mux0 bits 25-30, (raw-30)*5, clamped 0-100) into mux2 bits 6-13.
+//
+// Car frames: mux0 AP offset raw 35 (byte3 0x46 -> 25), profile 1 (byte6 0x83,
+// other byte6 bits set to prove they survive), byte7 0x80 valid flag; mux2 FSD
+// offset raw 46 (byte0 bits 6-7 = 2, byte1 low6 = 11), byte1 top bits set.
+static const uint8_t k_hw3_mux0[8] = {0x00, 0x11, 0x22, 0x46, 0x00, 0x00, 0x83, 0x80};
+static const uint8_t k_hw3_mux2[8] = {0x82, 0xCB, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80};
+
+static void hw3_frame(CANFRAME* f, const uint8_t b[8]) {
+    zero(f);
+    f->canId = CAN_ID_AP_CONTROL;
+    f->data_lenght = 8;
+    memcpy(f->buffer, b, 8);
+}
+
 static void test_autopilot_hw3(void) {
     FSDState s;
+    CANFRAME f;
+
+    // ── default: pass-through ──
     memset(&s, 0, sizeof(s));
     s.hw_version = TeslaHW_HW3;
     s.force_fsd = true;
     s.speed_profile = 2;
 
-    CANFRAME f;
-    zero(&f);
-    f.data_lenght = 8;
-    f.buffer[0] = 0; // mux0
-    CHECK(fsd_handle_autopilot_frame(&s, &f, 0), "HW3 mux0 reports modified");
+    hw3_frame(&f, k_hw3_mux0);
+    CHECK(fsd_handle_autopilot_frame(&s, &f, 0), "HW3 mux0 reports modified (bit46)");
     CHECK((f.buffer[5] & 0x40) != 0, "HW3 mux0 bit46 set");
     CHECK(
-        ((f.buffer[6] >> 1) & 0x03) == 2,
-        "HW3 mux0 speed_profile bits got %u",
-        (f.buffer[6] >> 1) & 0x03);
+        f.buffer[6] == 0x83,
+        "HW3 default: byte6 (profile bits 49-50) untouched, got 0x%02X",
+        f.buffer[6]);
+    static const uint8_t k_mux0_bit46[8] = {0x00, 0x11, 0x22, 0x46, 0x00, 0x40, 0x83, 0x80};
+    CHECK(memcmp(f.buffer, k_mux0_bit46, 8) == 0, "HW3 default: mux0 = car frame + bit46 only");
+    CHECK(
+        s.speed_offset == 25, "HW3 AP offset still read: speed_offset=%d exp 25", s.speed_offset);
+    CHECK(
+        s.hw3_profile_seen && s.hw3_car_profile == 1 && s.hw3_sent_profile == 1,
+        "HW3 default read-out: car profile 1 -> sent 1 (got %u -> %u)",
+        s.hw3_car_profile,
+        s.hw3_sent_profile);
+
+    hw3_frame(&f, k_hw3_mux2);
+    CHECK(!fsd_handle_autopilot_frame(&s, &f, 0), "HW3 default: mux2 NOT modified");
+    CHECK(memcmp(f.buffer, k_hw3_mux2, 8) == 0, "HW3 default: mux2 payload untouched");
+    CHECK(
+        s.hw3_offset_seen && s.hw3_car_offset == 46 && s.hw3_sent_offset == 46,
+        "HW3 default read-out: car offset 46 -> sent 46 (got %u -> %u)",
+        s.hw3_car_offset,
+        s.hw3_sent_offset);
+
+    // Old test inputs (zero frame, profile 2): bit46 only, no profile written.
+    zero(&f);
+    f.data_lenght = 8;
+    CHECK(fsd_handle_autopilot_frame(&s, &f, 0), "HW3 default zero mux0 modified");
+    CHECK(f.buffer[5] == 0x40 && f.buffer[6] == 0x00, "HW3 default zero mux0: bit46 only");
+
+    // ── hw3_speed_override: legacy bytes ──
+    memset(&s, 0, sizeof(s));
+    s.hw_version = TeslaHW_HW3;
+    s.force_fsd = true;
+    s.speed_profile = 2;
+    s.hw3_speed_override = true;
+
+    // Old test inputs: zero mux0, profile 2 -> byte5 0x40, byte6 0x04.
+    zero(&f);
+    f.data_lenght = 8;
+    CHECK(fsd_handle_autopilot_frame(&s, &f, 0), "HW3 override zero mux0 modified");
+    static const uint8_t k_zero_legacy[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x04, 0x00};
+    CHECK(memcmp(f.buffer, k_zero_legacy, 8) == 0, "HW3 override zero mux0 = legacy bytes");
+
+    hw3_frame(&f, k_hw3_mux0);
+    CHECK(fsd_handle_autopilot_frame(&s, &f, 0), "HW3 override mux0 modified");
+    static const uint8_t k_mux0_legacy[8] = {0x00, 0x11, 0x22, 0x46, 0x00, 0x40, 0x85, 0x80};
+    CHECK(
+        memcmp(f.buffer, k_mux0_legacy, 8) == 0,
+        "HW3 override mux0 = legacy bytes (byte6 0x%02X exp 0x85)",
+        f.buffer[6]);
+    CHECK(
+        s.hw3_car_profile == 1 && s.hw3_sent_profile == 2,
+        "HW3 override read-out: profile 1 -> 2 (got %u -> %u)",
+        s.hw3_car_profile,
+        s.hw3_sent_profile);
+
+    hw3_frame(&f, k_hw3_mux2);
+    CHECK(fsd_handle_autopilot_frame(&s, &f, 0), "HW3 override mux2 modified");
+    // speed_offset 25: byte0 bits 6-7 = 25&3 = 1, byte1 low6 = 25>>2 = 6.
+    static const uint8_t k_mux2_legacy[8] = {0x42, 0xC6, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80};
+    CHECK(
+        memcmp(f.buffer, k_mux2_legacy, 8) == 0,
+        "HW3 override mux2 = legacy bytes (got %02X %02X)",
+        f.buffer[0],
+        f.buffer[1]);
+    CHECK(
+        s.hw3_car_offset == 46 && s.hw3_sent_offset == 25,
+        "HW3 override read-out: offset 46 -> 25 (got %u -> %u)",
+        s.hw3_car_offset,
+        s.hw3_sent_offset);
+
+    // Follow distance -> profile -> mux0 bits 49-50, override only.
+    CANFRAME fd;
+    zero(&fd);
+    fd.data_lenght = 6;
+    fd.buffer[5] = (uint8_t)(3u << 5); // fd3 -> profile 0
+    fsd_handle_follow_distance(&s, &fd);
+    hw3_frame(&f, k_hw3_mux0);
+    fsd_handle_autopilot_frame(&s, &f, 0);
+    CHECK(((f.buffer[6] >> 1) & 0x03) == 0, "HW3 override: fd3 -> profile 0 written");
+    s.hw3_speed_override = false;
+    hw3_frame(&f, k_hw3_mux0);
+    fsd_handle_autopilot_frame(&s, &f, 0);
+    CHECK(((f.buffer[6] >> 1) & 0x03) == 1, "HW3 default: fd3 ignored, car profile 1 kept");
+
+    // Held by a gate (AP-First, AP not engaged): nothing written, read-out still tracks.
+    memset(&s, 0, sizeof(s));
+    s.hw_version = TeslaHW_HW3;
+    s.force_fsd = true;
+    s.ap_first = true;
+    hw3_frame(&f, k_hw3_mux2);
+    CHECK(!fsd_handle_autopilot_frame(&s, &f, 0), "HW3 ap_first hold: not modified");
+    CHECK(
+        s.hw3_offset_seen && s.hw3_car_offset == 46 && s.hw3_sent_offset == 46,
+        "HW3 ap_first hold: read-out still updated");
+}
+
+// ── #209 regression guard: hw3_speed_override never touches HW4 ──────────────
+static void test_hw4_ignores_hw3_override(void) {
+    static const uint8_t k_hw4_mux0[8] = {0x00, 0x00, 0x00, 0x46, 0x00, 0x00, 0x83, 0x80};
+    static const uint8_t k_hw4_mux2[8] = {0x02, 0x28, 0x00, 0x00, 0x00, 0x00, 0x00, 0x90};
+    static const uint8_t k_hw4_mux0_out[8] = {0x00, 0x00, 0x00, 0x46, 0x00, 0x40, 0x83, 0x90};
+    static const uint8_t k_hw4_mux2_out[8] = {0x02, 0x28, 0x00, 0x00, 0x00, 0x00, 0x00, 0xC0};
+    for(int ov = 0; ov <= 1; ov++) {
+        FSDState s;
+        memset(&s, 0, sizeof(s));
+        s.hw_version = TeslaHW_HW4;
+        s.force_fsd = true;
+        s.speed_profile = 4;
+        s.hw3_speed_override = (ov == 1);
+        CANFRAME f;
+        hw3_frame(&f, k_hw4_mux0);
+        CHECK(fsd_handle_autopilot_frame(&s, &f, 0), "HW4 ov%d mux0 modified", ov);
+        CHECK(memcmp(f.buffer, k_hw4_mux0_out, 8) == 0, "HW4 ov%d mux0 = bit46+bit60 only", ov);
+        hw3_frame(&f, k_hw4_mux2);
+        CHECK(fsd_handle_autopilot_frame(&s, &f, 0), "HW4 ov%d mux2 modified", ov);
+        CHECK(
+            memcmp(f.buffer, k_hw4_mux2_out, 8) == 0,
+            "HW4 ov%d mux2 = profile 4 in bits 60-62",
+            ov);
+        CHECK(!s.hw3_profile_seen && !s.hw3_offset_seen, "HW4 ov%d: HW3 read-out untouched", ov);
+    }
 }
 
 // ── Summon EU Unlock (0x3FD mux1 bit47) — opt-in, HW3 + HW4 ───────────────────
@@ -2968,6 +3115,7 @@ static void test_state_init(void) {
     FSDState s;
     fsd_state_init(&s, TeslaHW_HW4);
     CHECK(s.hw_version == TeslaHW_HW4, "init applies HW4");
+    CHECK(!s.hw3_speed_override, "init: hw3_speed_override default OFF (#209)");
 }
 
 // ── black-box capture ID filter (#124) ───────────────────────────────────────
@@ -3010,6 +3158,7 @@ int main(void) {
     test_autopilot_hw4();
     test_hw4_mux2_profile_layout();
     test_autopilot_hw3();
+    test_hw4_ignores_hw3_override();
     test_summon_unlock();
     test_continue_on_green();
     test_tlssc_bit38();

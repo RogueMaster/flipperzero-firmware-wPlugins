@@ -32,7 +32,7 @@ Most CAN protocol handling from hypery11's Flipper Zero implementation (`fsd_han
 - FSD activation bit manipulation (bit46 on `0x3FD`)
 - HW3/HW4/Legacy auto-detection via `0x398` GTW_carConfig
 - NAG Killer (EPAS `0x370` counter+1 echo with handsOnLevel spoofing)
-- Speed profile mapping from follow-distance stalk
+- Speed profile mapping from follow-distance stalk (on HW3 only with HW3 Speed Override)
 - OTA update detection with automatic TX suspension by default, plus an explicit Ignore OTA override
 - In-car Autopark pause: all TX stops while the car runs Autopark and resumes when it ends (#180)
 - HW-based AP/DAS mapping for Legacy/HW3 vs HW4 signal layouts
@@ -51,7 +51,7 @@ Most CAN protocol handling from hypery11's Flipper Zero implementation (`fsd_han
   - Dark background (#0a0a1a) with accent gradients, inspired by Tesla's in-car UI
   - All HTML/CSS/JS embedded in firmware (no external CDN dependencies)
 - **Real-time WebSocket push** — 1 Hz state updates via WebSocket on port 81
-- **FSD Status Panel** — FSD active/waiting, Listen-Only/Active mode, HW version, NAG Killer state
+- **FSD Status Panel** — FSD active/waiting, Listen-Only/Active mode, HW version, NAG Killer state, HW3 speed read-out (car → sent profile and FSD offset, follow distance)
 - **Battery SOC Ring** — animated circular progress bar with color coding (green >60%, yellow >30%, red ≤30%)
 - **BMS Live Data UI hooks** — fields exist in UI/API; Model 3/Y frames only (wrong on S/X), not yet confirmed on the ESP32
 - **CAN Bus Stats** — RX frame count, TX modified count, CAN errors, frames/second
@@ -59,6 +59,7 @@ Most CAN protocol handling from hypery11's Flipper Zero implementation (`fsd_han
 - **Web Controls** — toggle buttons and selectors for:
   - Activate / Stop (Listen-Only ↔ Active; TX on or off)
   - FSD Unlock on/off (the `0x3FD` FSD bits; off by default, so Active alone doesn't inject FSD)
+  - HW3 Speed Override (legacy follow-distance profile + Autopilot offset write; off = the car's own FSD offset and profile pass through)
   - Ignore OTA on/off (allows Active mode TX during a detected Tesla OTA)
   - NAG Killer on/off
   - BMS serial output on/off
@@ -111,7 +112,8 @@ Auto-detect picks the source. If it's wrong, pin the car with the Hardware selec
 |---------|--------|-------------|
 | **FSD Unlock** | `0x3FD` mux0 | bit46 = 1 activates FSD (HW3/HW4/Legacy) |
 | **NAG Killer** | `0x370` | Suppresses hands-on-wheel reminder |
-| **Speed Profile** | `0x3FD` mux0 (HW3/Legacy) / mux2 (HW4) | Follow-distance stalk selects the speed profile (HW4: mux2 bits 60-62; bit 63, the mux valid flag, is left alone) |
+| **Speed Profile** | `0x3EE` mux0 (Legacy) / `0x3FD` mux2 (HW4) | Follow-distance stalk selects the speed profile (HW4: mux2 bits 60-62; bit 63, the mux valid flag, is left alone) |
+| **HW3 Speed Override** | `0x3FD` mux0 / mux2 | Off by default: the car's own FSD profile (mux0 bits 49-50) and FSD max-speed offset (mux2 bits 6-13) pass through. On = the old write of the follow-distance profile and the Autopilot offset ×5 ([#209](https://github.com/hypery11/flipper-tesla-fsd/issues/209)) |
 | **DAS Status** | `0x399` or `0x39B` | Runtime HW version selects status source |
 | **ISA Chime Suppress** | `0x399` | HW4 only; disabled for Legacy/HW3 because `0x399` is DAS status |
 | **Summon EU Unlock** | `0x3FD` mux1 | Clears EU AP restriction (bit19) + enables summon (bit47) |
@@ -274,7 +276,7 @@ Bus speed: **500 kbps**
 | Tesla HW | Bits Modified | Speed Profile |
 |----------|---------------|---------------|
 | Legacy (HW1/HW2) | bit46 | 3 levels (0-2) |
-| HW3 | bit46 | 3 levels (0-2) |
+| HW3 | bit46 | car's own (3 levels with HW3 Speed Override) |
 | HW4 (FSD V14+) | bit46 + bit60, bit47 | 5 levels (0-4) |
 
 ---
@@ -383,25 +385,34 @@ Full-rate vs. decimated:
   rising `rx_missed`.
 - **Single-ID capture** (`/stream?ids=<one id>`) — installs a **hardware
   acceptance filter** for that id, so the controller only queues matching
-  frames = **full-rate** for that id. `?ids=` also accepts a comma list, and
-  `?bus=can0|can1` scopes to one controller. (Listen-Only only. In Active
-  mode a single-ID capture falls back to software filtering, so injection
-  keeps its RX path.)
+  standard IDs. Check both drop counters before treating the capture as complete.
+- **Multi-ID capture** (`/stream?ids=399,3FD`) — up to six IDs use exact
+  MCP2515 filters and a TWAI common-bit hardware prefilter, with software
+  filtering enforcing the requested list. The TWAI prefilter can also admit
+  unrelated IDs, so its reduction in traffic depends on the IDs selected.
+  `?bus=can0|can1` scopes hardware filtering to one controller.
+- Hardware capture filters apply only in **Listen-Only**. Active mode and
+  lists exceeding six IDs use software filtering and keep hardware accept-all.
 
 Self-labeling captures (`?meta=1`):
 
-Add `?meta=1` (e.g. `/stream?ids=39B&meta=1`) to bracket the capture with two
+Add `?meta=1` (e.g. `/stream?ids=39B&meta=1`) to label the capture with
 `#`-prefixed comment lines that candump/SavvyCAN importers ignore:
 
 ```
-# capture ids=39B bus=all mode=single-id-hwfilter rx_missed_at_start=0
+# capture ids=39B bus=all mode=pending rx_missed_at_start=0
+# filters elapsed_ms=0 can0=exact can1=exact mode=single-id-hwfilter
 (0.001234) can0 39B#DEADBEEF...
 # end sent=1024 dropped=0 filtered=0 rx_missed_delta=0
 ```
 
-`mode` is `single-id-hwfilter` when exactly one id filter is active, otherwise
-`all-id-decimated`. Without `?meta=1` the stream body is byte-for-byte identical
-to before, so existing tooling is unaffected.
+The initial header uses `pending`; a `# filters` line reports the actual driver
+state after synchronization and whenever it changes during the capture.
+`mode` distinguishes `single-id-hwfilter`, `multi-id-hwfilter` (MCP2515 exact),
+`multi-id-hwprefilter` (TWAI common bits), `software-filter`, and
+`all-id-decimated`. Missing controllers or failed filter changes report
+`unavailable` or `unknown`. The per-controller fields remain visible even when
+`?bus=` selects just one bus. Without `?meta=1`, no metadata comments are added.
 
 ---
 

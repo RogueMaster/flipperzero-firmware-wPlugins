@@ -72,10 +72,11 @@ project's TX path can write to:
 - `0x3FD` `UI_autopilotControl` — sets or clears bits 19, 38, 39, 40-42,
   45, 46, 47, 48, 50, 59, 60 (bit38 TLSSC, bit39 Continue on Green, bits
   40-42 apmv3 branch/tier, bit45 lane graph, bits 48/50 cleared for
-  Telemetry Off), and writes the speed-profile field (mux0 bits 49-50 on
-  HW3; mux2 bits 60-62 on HW4, leaving the bit-63 valid flag alone) and
-  the HW3 speed-offset field (mux2 bits 6-13); retransmits otherwise
-  unchanged
+  Telemetry Off), and writes the HW4 speed-profile field (mux2 bits 60-62,
+  leaving the bit-63 valid flag alone). On HW3 the speed-profile field
+  (mux0 bits 49-50) and speed-offset field (mux2 bits 6-13) are written
+  only with the ESP32 HW3 Speed Override setting on; by default the car's
+  own values pass through. Retransmits otherwise unchanged
 - `0x3EE` `UI_autopilotControl` (Legacy HW1/HW2) — bit 46 and the
   speed-profile field (bits 49-50) on mux0, bit 19 cleared on mux1;
   retransmits otherwise unchanged

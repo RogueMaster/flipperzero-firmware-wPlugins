@@ -225,6 +225,22 @@ typedef struct FSDState {
     bool speed_profile_locked; // when true, follow distance won't override profile
     uint8_t hw4_offset; // HW4 mux=2 speed offset override (0 = no override)
 
+    // --- HW3 0x3FD speed fields (#209) ---
+    // Default is pass-through: with FSD unlock only bit46 is set on mux0; the
+    // car's own FSD profile (mux0 bits 49-50) and FSD max-speed offset (mux2
+    // bits 6-13) go out as received. hw3_speed_override restores the legacy
+    // write (follow-distance profile + Autopilot offset x5), which pinned the
+    // FSD offset to the Autopilot one and ignored the follow-distance stalk.
+    bool hw3_speed_override; // opt-in, default OFF
+    uint8_t hw3_car_profile; // read-only: mux0 bits 49-50 as received
+    uint8_t hw3_sent_profile; // same field after the handler (== car unless written)
+    uint8_t hw3_car_offset; // read-only: mux2 bits 6-13 raw as received
+    uint8_t hw3_sent_offset; // same field after the handler (== car unless written)
+    bool hw3_profile_seen; // a HW3 mux0 has been read
+    bool hw3_offset_seen; // a HW3 mux2 has been read
+    uint8_t follow_distance; // 0x3F8 follow-distance raw (byte5 bits 7:5)
+    bool follow_distance_seen;
+
     // --- DAS_control (0x2B9) — ACC / longitudinal state ---
     uint8_t das_acc_state; // 0-15 (0=cancel, 3=hold, 4=ACC_ON, 9=pause)
     float das_set_speed_kph; // set cruise speed (0.1 kph resolution)

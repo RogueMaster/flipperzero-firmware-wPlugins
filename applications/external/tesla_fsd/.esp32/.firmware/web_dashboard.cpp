@@ -374,6 +374,10 @@ input:checked+.sl2:before{transform:translateX(20px);background:#fff}
     <span class="lbl">Hardware</span>
     <span class="pill off" id="hwVer"><span class="pd"></span>--</span>
   </div>
+  <div class="row" id="rowHw3Spd" style="display:none">
+    <span class="lbl">HW3 Speed<span class="hint">car &rarr; sent</span></span>
+    <span id="hw3Spd" style="font-size:.8em;color:var(--text2)">--</span>
+  </div>
   <div class="row">
     <span class="lbl">NAG Killer</span>
     <span class="pill off" id="nagSt"><span class="pd"></span>--</span>
@@ -449,6 +453,10 @@ input:checked+.sl2:before{transform:translateX(20px);background:#fff}
   <div class="row">
     <span class="lbl">FSD Unlock</span>
     <label class="sw"><input type="checkbox" id="swFsdUnlock" onchange="cmd('fsd_unlock',this.checked)"><span class="sl2"></span></label>
+  </div>
+  <div class="row">
+    <span class="lbl">HW3 Speed Override (legacy)<br><small style="color:var(--muted)">Writes the follow-distance profile and Autopilot offset into the FSD speed fields. Off = the car's own FSD offset and profile are left alone.</small></span>
+    <label class="sw"><input type="checkbox" id="swHw3Spd" onchange="cmd('hw3_speed_override',this.checked)"><span class="sl2"></span></label>
   </div>
   <div class="row">
     <span class="lbl">NAG Killer</span>
@@ -845,6 +853,7 @@ function updateControlsSummary(d){
   if(d.op_mode===1)items.push('Active');
   if(d.ignore_ota)items.push('Ignore OTA');
   if(d.fsd_unlock)items.push('FSD Unlock');
+  if(d.hw3_speed_override)items.push('HW3 Speed Override');
   if(d.nag_killer)items.push('NAG Killer');
   if(d.continuous_ap)items.push('Continuous AP');
   if(d.ap_first)items.push('AP-First');
@@ -980,6 +989,15 @@ function upd(d){
     hwEl.innerHTML='<span class="pd"></span>'+(HW[d.hw_version]||'?');
   }
 
+  // HW3 speed read-out (#209): car value -> value forwarded on 0x3FD; -1 = not seen
+  var h3r=document.getElementById('rowHw3Spd');
+  if(h3r){
+    h3r.style.display=d.hw_version===2?'flex':'none';
+    var h3v=function(c,o){return (c===undefined||c<0)?'--':c+'\u2192'+o;};
+    var h3t=document.getElementById('hw3Spd');
+    if(h3t)h3t.textContent='Profile '+h3v(d.hw3_car_profile,d.hw3_sent_profile)+' \u00b7 Offset '+h3v(d.hw3_car_offset,d.hw3_sent_offset)+' \u00b7 Follow '+((d.follow_distance===undefined||d.follow_distance<0)?'--':d.follow_distance);
+  }
+
   pill('nagSt', d.nag_killer, d.nag_killer?'ON':'OFF');
   pill('canVeh', d.can_vehicle_detected, d.can_vehicle_detected?'Detected':'No CAN Traffic');
   pill('bmsSt', d.bms && d.bms.seen, (d.bms && d.bms.seen)?'Live':'Waiting Frames');
@@ -1019,6 +1037,7 @@ function upd(d){
   var hwSel=document.getElementById('selHwOverride');
   if(hwSel && d.hw_override!==undefined && document.activeElement!==hwSel) hwSel.value=String(d.hw_override);
   if(document.getElementById('swFsdUnlock')) document.getElementById('swFsdUnlock').checked=d.fsd_unlock;
+  if(document.getElementById('swHw3Spd')) document.getElementById('swHw3Spd').checked=d.hw3_speed_override;
   if(document.getElementById('swNag')) document.getElementById('swNag').checked=d.nag_killer;
   if(document.getElementById('swContinuousAp')) document.getElementById('swContinuousAp').checked=d.continuous_ap;
   if(document.getElementById('swApFirst')) document.getElementById('swApFirst').checked=d.ap_first;
@@ -1618,6 +1637,13 @@ static String build_json() {
     j += "\"isa_speed_enabled\":"; j += isa_speed_enabled              ? "true" : "false"; j += ',';
     j += "\"ignore_ota\":";    j += state.ignore_ota                   ? "true" : "false"; j += ',';
     j += "\"fsd_unlock\":";    j += state.fsd_unlock                   ? "true" : "false"; j += ',';
+    j += "\"hw3_speed_override\":"; j += state.hw3_speed_override       ? "true" : "false"; j += ',';
+    // HW3 0x3FD speed read-out (#209): car value vs value forwarded, -1 = not seen yet
+    j += "\"hw3_car_profile\":";  j += state.hw3_profile_seen ? (int)state.hw3_car_profile  : -1; j += ',';
+    j += "\"hw3_sent_profile\":"; j += state.hw3_profile_seen ? (int)state.hw3_sent_profile : -1; j += ',';
+    j += "\"hw3_car_offset\":";   j += state.hw3_offset_seen  ? (int)state.hw3_car_offset   : -1; j += ',';
+    j += "\"hw3_sent_offset\":";  j += state.hw3_offset_seen  ? (int)state.hw3_sent_offset  : -1; j += ',';
+    j += "\"follow_distance\":";  j += state.follow_distance_seen ? (int)state.follow_distance : -1; j += ',';
     j += "\"nag_killer\":";    j += state.nag_killer                   ? "true" : "false"; j += ',';
     j += "\"continuous_ap\":"; j += state.continuous_ap                 ? "true" : "false"; j += ',';
     j += "\"ap_first\":";      j += state.ap_first                      ? "true" : "false"; j += ',';
@@ -1802,6 +1828,18 @@ static void ws_event(uint8_t num, WStype_t type,
             saved = *g_state;
             state_exit();
             Serial.printf("[Web] FSD Unlock: %s\n", enabled ? "ON" : "OFF");
+            prefs_save(&saved);
+        }
+    } else if (strstr(buf, "\"hw3_speed_override\"")) {
+        if (vptr) {
+            while (*vptr == ' ' || *vptr == ':') vptr++;
+            bool enabled = (strncmp(vptr, "true", 4) == 0);
+            FSDState saved;
+            state_enter();
+            g_state->hw3_speed_override = enabled;
+            saved = *g_state;
+            state_exit();
+            Serial.printf("[Web] HW3 Speed Override: %s\n", enabled ? "ON" : "OFF");
             prefs_save(&saved);
         }
     } else if (strstr(buf, "\"nag\"")) {

@@ -21,6 +21,7 @@ void fsd_state_init(FSDState* state, TeslaHWVersion hw) {
     state->summon_unlock = false; // opt-in Summon EU Unlock, default OFF
     state->apmv3_branch = 0xFF; // opt-in AP branch/tier selector, default OFF (0xFF sentinel)
     state->continue_on_green = false; // opt-in Continue on Green, default OFF
+    state->hw3_speed_override = false; // opt-in legacy HW3 speed write, default OFF (#209)
     state->assist_rhd_override = false; // opt-in RHD driving-side override, default OFF
     state->speed_profile_locked = false;
     state->hw4_offset = 0;
@@ -129,9 +130,12 @@ TeslaHWVersion fsd_detect_hw_version(const CANFRAME* frame) {
 
 void fsd_handle_follow_distance(FSDState* state, const CANFRAME* frame) {
     if(frame->data_lenght < 6) return;
-    if(state->speed_profile_locked) return; // upstream: speedProfileLocked
     uint8_t fd = (frame->buffer[5] & 0xE0) >> 5;
+    state->follow_distance = fd; // read-out (#209)
+    state->follow_distance_seen = true;
+    if(state->speed_profile_locked) return; // upstream: speedProfileLocked
 
+    // HW3: the profile only reaches the car with hw3_speed_override on (#209).
     if(state->hw_version == TeslaHW_HW3) {
         switch(fd) {
         case 1:
@@ -211,8 +215,32 @@ bool fsd_abort_guard_allows(const FSDState* state) {
     return !(state->abort_guard && state->abort_guard_latched);
 }
 
+// HW3 speed read-out (#209): car = field as received, sent = field after the
+// handler (equal to car unless something wrote it). Read-only.
+static void hw3_speed_note(FSDState* state, const CANFRAME* frame, bool sent) {
+    uint8_t mux = fsd_read_mux_id(frame);
+    if(mux == 0) {
+        uint8_t p = tesla_hw3_read_profile(frame->buffer);
+        if(!sent) {
+            state->hw3_car_profile = p;
+            state->hw3_profile_seen = true;
+        }
+        state->hw3_sent_profile = p;
+    } else if(mux == 2) {
+        uint8_t o = tesla_hw3_read_fsd_offset(frame->buffer);
+        if(!sent) {
+            state->hw3_car_offset = o;
+            state->hw3_offset_seen = true;
+        }
+        state->hw3_sent_offset = o;
+    }
+}
+
 bool fsd_handle_autopilot_frame(FSDState* state, CANFRAME* frame, uint32_t now_ms) {
     if(frame->data_lenght < 8) return false;
+
+    // Before the gates below, so the read-out tracks the car while injection is held.
+    if(state->hw_version == TeslaHW_HW3) hw3_speed_note(state, frame, false);
 
     // AP-first (2026.14.x): don't modify 0x3FD until AP is engaged AND has been
     // stable for AP_FIRST_STABLE_MS — injecting on the activation edge is linked
@@ -248,6 +276,10 @@ bool fsd_handle_autopilot_frame(FSDState* state, CANFRAME* frame, uint32_t now_m
     }
 
     if(state->hw_version == TeslaHW_HW3) {
+        // Default is pass-through (#209): bit46 only; the car's own FSD profile
+        // (mux0 bits 49-50) and FSD max-speed offset (mux2 bits 6-13) go out as
+        // received. hw3_speed_override restores the legacy write, which put the
+        // follow-distance profile and the Autopilot offset x5 into those fields.
         if(mux == 0 && state->fsd_enabled) {
             int raw = (int)((frame->buffer[3] >> 1) & 0x3F) - 30;
             int offset = raw * 5;
@@ -256,8 +288,10 @@ bool fsd_handle_autopilot_frame(FSDState* state, CANFRAME* frame, uint32_t now_m
             state->speed_offset = offset;
 
             fsd_set_bit(frame, 46, true);
-            frame->buffer[6] &= ~0x06;
-            frame->buffer[6] |= (uint8_t)((state->speed_profile & 0x03) << 1);
+            if(state->hw3_speed_override) {
+                frame->buffer[6] &= ~0x06;
+                frame->buffer[6] |= (uint8_t)((state->speed_profile & 0x03) << 1);
+            }
             modified = true;
         }
         if(mux == 1) {
@@ -288,13 +322,14 @@ bool fsd_handle_autopilot_frame(FSDState* state, CANFRAME* frame, uint32_t now_m
             state->nag_suppressed = true;
             modified = true;
         }
-        if(mux == 2 && state->fsd_enabled) {
+        if(mux == 2 && state->fsd_enabled && state->hw3_speed_override) {
             frame->buffer[0] &= ~0xC0;
             frame->buffer[1] &= ~0x3F;
             frame->buffer[0] |= (uint8_t)((state->speed_offset & 0x03) << 6);
             frame->buffer[1] |= (uint8_t)(state->speed_offset >> 2);
             modified = true;
         }
+        hw3_speed_note(state, frame, true);
     } else {
         // HW4
         if(mux == 0 && state->fsd_enabled) {

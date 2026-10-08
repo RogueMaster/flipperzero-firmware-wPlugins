@@ -54,7 +54,7 @@
 - **Legacy→HW3 自动升级**（Palladium Model S/X）— 先检测到 `das_hw=0`，之后当 `0x3FD` 出现在总线上时升级
 - 通过修改 `UI_autopilotControl`（`0x3FD` / `0x3EE`）的 bit 来解锁 FSD
 - **Legacy 模式**，支持 HW1/HW2（Model S/X 2016-2019）
-- 速度档位默认最快，并从跟车距离拨杆同步
+- 速度档位默认最快，并从跟车距离拨杆同步（HW4 / Legacy）。HW3 上保留车辆自己的 FSD 速度偏移和档位；ESP32 的 **HW3 Speed Override** 开关可恢复旧的跟车距离 / Autopilot 偏移写入（[#209](https://github.com/hypery11/flipper-tesla-fsd/issues/209)）
 
 ### TLSSC Restore（v2.10+）
 - 在 **VIN 被封禁** 的车辆上恢复交通信号灯与停车标志控制
@@ -112,7 +112,7 @@
 
 ### 设置（运行时开关）
 
-大多数开关两个版本都有。仅 Flipper：GTW Config Replay、Emerg. Vehicle、ScrollPress AP、Nav FSD Route、Lane Graph、Tier Override、Dev Mode、Hands-Off、Force LHD、MCP Crystal。仅 ESP32：FSD Unlock（`0x3FD` FSD bit 的总开关，默认关闭）、Ignore OTA、Abort Guard、Continuous AP、China Mode、右舵（RHD）、上面的额外解锁，以及 Hardware 选择器（Flipper 则在主菜单用 Force HW3/HW4/Legacy）。
+大多数开关两个版本都有。仅 Flipper：GTW Config Replay、Emerg. Vehicle、ScrollPress AP、Nav FSD Route、Lane Graph、Tier Override、Dev Mode、Hands-Off、Force LHD、MCP Crystal。仅 ESP32：FSD Unlock（`0x3FD` FSD bit 的总开关，默认关闭）、HW3 Speed Override、Ignore OTA、Abort Guard、Continuous AP、China Mode、右舵（RHD）、上面的额外解锁，以及 Hardware 选择器（Flipper 则在主菜单用 Force HW3/HW4/Legacy）。
 
 **稳定（已上车测试）：**
 
@@ -169,7 +169,7 @@
 | Tesla HW | 修改的 Bits | 速度档位 |
 |----------|------------|----------|
 | Legacy（HW1/HW2） | bit46 | 3 段（0-2） |
-| HW3 | bit46 | 3 段（0-2） |
+| HW3 | bit46 | 车辆自己的（开启 HW3 Speed Override 时 3 段） |
 | HW4（FSD V14+） | bit46 + bit60 | 5 段（0-4） |
 
 ---
@@ -372,7 +372,7 @@ ESP32 更便宜（$14 vs $200+），有 WiFi 仪表板、NVS 保存与深度睡�
 - [ElectronicCats/flipper-MCP2515-CANBUS](https://github.com/ElectronicCats/flipper-MCP2515-CANBUS) — Flipper 用 MCP2515 驱动
 - 社区贡献者 — 本项目赖以运作的实车测试、抓包与研究：
   - **协议、nag killer 与 2026.14.x：** @jewelrylin（T-2CAN 双总线抓包、frame-content preflight 测试、X179 Service Mode 针脚图）、@DrStrangeglovebox（`0x370` 参考抓包 + HW4 双 CAN 数据 + 安全发现）、@ssw0209-sys（Mode-C 转向扭力参考 + HW4 14.x 测试）、@0xAccretion（HW4 Highland 中规 MIC DAS 布局发现，#116/#117）、@dunckencn（国行 HW3 start-after-AP 验证、steer-jerk 与 bus-off 报告）、@kristopf007（HW4 14.x 实车测试）、@anoblekman（Highland HW4 DAS 解码 + 车内自动泊车安全发现，#177/#180）、@SkyRaax（在 Party CAN 2/3 上跑 nag killer，HW4 2026.20，#100）、@LonelyCheese09（有标注的 HW3 2026.14.6 nag 抓包，促成 EPAS-faithful 修正，#122）、@jim608（有标注的 HW3 2026.14.6 nag 抓包，促成 EPAS-faithful 修正，#121/#122）、@weigibbor（2026.20 中规 MIC 抓包 + 区域锁层级 TX 测试，#117）、@7hf6cfqzkb-png（激活延迟报告，促成 Instant Engage，#129）、@cquanu（第一个 2026.14.2 不兼容报告，#52）、@deftdawg（按需握力脉冲的测试与集成，#70；TTGO T-Display 测试报告）、@zdenekbouresh（DAS 感知 nag 门控，移植自 ev-open-can-tools PR #5）
-  - **功能、抓包与 PR：** @JakNo（ScrollPress AP / `0x3C2`）、@vrs11（Continuous AP）、@sqladm1n（RTC 抓包日志 PR + 总线/接线排查）、@DmitroPanteliuk（全速率 `0x229` 抓包）、@se7en7777777（`0x485` / Highland / 校验和分析）、@RoyRakete（TLSSC 封禁车组合）、@mamixsystem（post-SOP10 连接器参考;frame 级 14.x FSD-engage 决定性调查，#163）、@p0sixturtle（Summon / tier-selector 线索，#139）、@dahua910（RHD 需求，#66）、@HamzaObaidat（剧院模式 `0x118` 研究，#149）、@fboulegue（EU / 新线束 Juniper 报告，#143/#109/#110）、@densen2014（ESP32 HW 选择器建议 #110、TLSSC bit38 开关 PR #159、Summon 行驶中安全防护建议 #160）、@Tesla234987234sdf（Palladium OTA 误锁报告 + 抓包，#183/#175）、@tommybsb-lab（ATOM Lite / Juniper 实测报告，促成 Signal Map 修正，#100）、@sb1089（HW3 2026.26 nag 抓包，#122）、@ukinora（独立的 `0x318` 循环计数器分析）、@adrianpadure99（网页烧录器“can't fetch”报告，#176）、@danpadure（市区 Autopark 暂停误触报告，#176）、@Jclevy-CN（HW4 speed profile 清掉 bit 63 的 bug + 实车 A/B，#59；ESP32 加固思路来自其 fork）、@siksndavis（ESP32 缺少 Precondition 开关的报告，#192）、@maslyankov（M5Stack ATOM Matrix + GPIO 39 按键，PR #46）、@BenjaminFaal（Juniper 上的 `0x485` 换挡 frame，#43）、@jangshik（ESP32 Wi-Fi AP+STA 需求 #101、T-2CAN 配置 #96）、@TzCoMe（Telemetry Off 背后的遥测关闭研究）、@0n3-70uch（用示波器测出 2024 年 4 月后 26-pin 接头的引脚，#52）、@TianzeWang（Tesla SOP8/SOP9 电路参考资料，#52）、@Tikernel（Model Y Juniper HW4 2026.2.11 中国正向兼容性数据）、@LeeSSXX（Momentum / Xtreme 编译错误报告，#17）
+  - **功能、抓包与 PR：** @JakNo（ScrollPress AP / `0x3C2`）、@vrs11（Continuous AP）、@sqladm1n（RTC 抓包日志 PR + 总线/接线排查）、@DmitroPanteliuk（全速率 `0x229` 抓包）、@se7en7777777（`0x485` / Highland / 校验和分析）、@RoyRakete（TLSSC 封禁车组合）、@mamixsystem（post-SOP10 连接器参考;frame 级 14.x FSD-engage 决定性调查，#163）、@p0sixturtle（Summon / tier-selector 线索，#139）、@dahua910（RHD 需求，#66）、@HamzaObaidat（剧院模式 `0x118` 研究，#149）、@fboulegue（EU / 新线束 Juniper 报告，#143/#109/#110）、@densen2014（ESP32 HW 选择器建议 #110、TLSSC bit38 开关 PR #159、Summon 行驶中安全防护建议 #160）、@Tesla234987234sdf（Palladium OTA 误锁报告 + 抓包，#183/#175）、@tommybsb-lab（ATOM Lite / Juniper 实测报告，促成 Signal Map 修正，#100）、@sb1089（HW3 2026.26 nag 抓包，#122）、@ukinora（独立的 `0x318` 循环计数器分析）、@adrianpadure99（网页烧录器“can't fetch”报告，#176）、@danpadure（市区 Autopark 暂停误触报告，#176；HW3 FSD 速度偏移报告，#209）、@Jclevy-CN（HW4 speed profile 清掉 bit 63 的 bug + 实车 A/B，#59；ESP32 加固思路来自其 fork）、@siksndavis（ESP32 缺少 Precondition 开关的报告，#192）、@maslyankov（M5Stack ATOM Matrix + GPIO 39 按键，PR #46）、@BenjaminFaal（Juniper 上的 `0x485` 换挡 frame，#43）、@jangshik（ESP32 Wi-Fi AP+STA 需求 #101、T-2CAN 配置 #96）、@TzCoMe（Telemetry Off 背后的遥测关闭研究）、@0n3-70uch（用示波器测出 2024 年 4 月后 26-pin 接头的引脚，#52）、@TianzeWang（Tesla SOP8/SOP9 电路参考资料，#52）、@Tikernel（Model Y Juniper HW4 2026.2.11 中国正向兼容性数据）、@LeeSSXX（Momentum / Xtreme 编译错误报告，#17）
   - **封禁研究、平台测试、ESP32、bug 修复：** @THER4iN、@MiniCS、@kp43h8、@gauner1986、@dmagyar、@ViPiMP、@marcobellinoroci-source、@danpadure、@bruvv、@Symness、@hkloudou、@nagotti、@patatman、@JordanzhaoD
 - `Starmixcraft/tesla-fsd-can-mod` — 原始 CanFeather FSD 研究（GitLab repo 已被移除；镜像在 [Karolynaz/waymo-fsd-can-mod](https://github.com/Karolynaz/waymo-fsd-can-mod)）
 

@@ -22,6 +22,7 @@
 #include "can_signals.h"
 #include "fsd_handler.h"
 #include "can_driver.h"
+#include "can_capture_filter.h"
 #include "led.h"
 #include "wifi_manager.h"
 #include "web_dashboard.h"
@@ -372,6 +373,23 @@ static const char *hw_to_str(TeslaHWVersion hw) {
         case TeslaHW_Legacy: return "Legacy";
         default:             return "?";
     }
+}
+
+static void sync_http_can_stream_filter_if_needed() {
+    static CanCaptureFilterSync sync;
+    uint32_t ids[CAN_CAPTURE_MAX_IDS] = {};
+    uint8_t count = 0;
+    bool active = http_can_stream_filter_snapshot(ids, CAN_CAPTURE_MAX_IDS, &count);
+    CanBusId bus = CAN_BUS_PRIMARY;
+    bool scoped = http_can_stream_bus_filter(&bus);
+    sync.update(g_can, g_can_ok, CAN_ACTIVE_BUS_COUNT, state_snapshot().op_mode,
+                active, ids, count, scoped, bus);
+    // Report actual driver state after programming, including failed changes.
+    const char *modes[CAN_BUS_COUNT] = {"down", "down"};
+    for (uint8_t i = 0; i < CAN_ACTIVE_BUS_COUNT; i++) {
+        if (g_can_ok[i] && g_can[i]) modes[i] = g_can[i]->acceptanceFilterMode();
+    }
+    http_can_stream_note_filters(CAN_ACTIVE_BUS_COUNT, modes);
 }
 
 static uint8_t epas_hands_on_level(const CanFrame &frame) {
@@ -1721,6 +1739,15 @@ void setup() {
     }
 }
 
+static void drain_can_bus_index(uint8_t index) {
+    if (index >= CAN_ACTIVE_BUS_COUNT || !g_can_ok[index] || !g_can[index]) return;
+    CanBusId bus = bus_id_from_index(index);
+    CanFrame frame;
+    while (g_can[index]->receive(frame)) {
+        process_frame(bus, frame);
+    }
+}
+
 // ── loop ──────────────────────────────────────────────────────────────────────
 void loop() {
     uint32_t now = millis();
@@ -1734,20 +1761,20 @@ void loop() {
     serial_command_tick();
     ota_verify_tick(now);
 
-    // Drain all available CAN frames in one shot
+    // Drain all available CAN frames in one shot. On LilyGO T-2CAN, can1 is the
+    // MCP2515 side with only two RX buffers, so poll it before and after can0.
+#if defined(CAN_DRIVER_T2CAN_DUAL) && defined(BOARD_LILYGO_T2CAN)
+    drain_can_bus_index(1);
+    drain_can_bus_index(0);
+    drain_can_bus_index(1);
+#else
+    for (uint8_t i = 0; i < CAN_ACTIVE_BUS_COUNT; i++) drain_can_bus_index(i);
+#endif
     uint32_t rx_missed_total = 0;
     for (uint8_t i = 0; i < CAN_ACTIVE_BUS_COUNT; i++) {
         if (!g_can_ok[i] || !g_can[i]) continue;
-        CanBusId bus = bus_id_from_index(i);
-        CanFrame frame;
-        while (g_can[i]->receive(frame)) {
-            process_frame(bus, frame);
-        }
-        // Recover a bus-off controller so RX resumes without a manual toggle (#108).
         g_can[i]->serviceHealth();
-        // Bus-off just fired → arm a black-box capture via the event-core (#124).
         if (g_can[i]->busOffEvent()) blackbox_busoff(now);
-        // Controller-level silent-decimation counter for capture-fidelity labels.
         rx_missed_total += g_can[i]->rxMissedCount();
     }
     // Feed the summed controller RX-missed total to the web stream so a capture
@@ -1805,6 +1832,10 @@ void loop() {
         // CANErr is the combined count; mostly controller RX-queue drops on a
         // busy bus, so print the per-cause split beside it.
         CanErrorSplit err = can_error_split(g_can, CAN_ACTIVE_BUS_COUNT);
+        // HW3 pass-through (#209): the car's own profile is what goes out.
+        int profile = s.speed_profile;
+        if (s.hw_version == TeslaHW_HW3 && !s.hw3_speed_override && s.hw3_profile_seen)
+            profile = s.hw3_car_profile;
         Serial.printf(
             "[STA] HW:%-6s AP:%-4s FSD_UI:%-4s Unlock:%-3s NAG:%-3s Echo:%lu OTA:%-3s "
             "Profile:%d  RX:%lu TX:%lu Mod:%lu CANErr:%lu (RXmissed:%lu Bus:%lu TXfail:%lu)\n",
@@ -1815,7 +1846,7 @@ void loop() {
             s.nag_killer      ? "ON"         : "off",
             (unsigned long)s.nag_echo_count,
             s.tesla_ota_in_progress ? "YES"  : "no",
-            s.speed_profile,
+            profile,
             (unsigned long)s.rx_count,
             (unsigned long)s.tx_count,
             (unsigned long)s.frames_modified,
@@ -1896,48 +1927,7 @@ void loop() {
     // ── Web dashboard (after CAN to preserve CAN frame latency) ──────────────
     web_dashboard_update();
 
-    // ── Full-rate single-ID capture: drive the hardware acceptance filter ─────
-    // When a /stream is opened with exactly one ?ids= value, restrict the CAN
-    // controller to that id so its RX queue never overflows and every frame is
-    // captured at true full rate. If ?bus=can0/can1 is present, scope the
-    // hardware filter to that controller only. Restore accept-all when the
-    // stream ends. Only ever single in Listen-Only (stream is disabled in Active).
-    {
-        static bool     s_hw_filter_single[CAN_ACTIVE_BUS_COUNT] = {};
-        static uint32_t s_hw_filter_id[CAN_ACTIVE_BUS_COUNT] = {};
-        static bool     s_hw_filter_initialized = false;
-        if (!s_hw_filter_initialized) {
-            for (uint8_t i = 0; i < CAN_ACTIVE_BUS_COUNT; i++) {
-                s_hw_filter_id[i] = 0xFFFFFFFFu;
-            }
-            s_hw_filter_initialized = true;
-        }
-
-        uint32_t want_id = 0;
-        bool want_single = http_can_stream_single_filter(&want_id);
-        CanBusId want_bus = CAN_BUS_PRIMARY;
-        bool want_bus_filter = http_can_stream_bus_filter(&want_bus);
-
-        // Never install the single-ID hardware filter in Active mode — it would
-        // restrict the controller to one id and starve injection's RX path. A
-        // single-ID capture during Active silently falls back to software
-        // filtering (lower rate, but injection stays intact). Multi-ID captures
-        // are software-filtered anyway and run at full effect in both modes.
-        bool allow_hw_filter = (state_snapshot().op_mode == OpMode_ListenOnly);
-        for (uint8_t i = 0; i < CAN_ACTIVE_BUS_COUNT; i++) {
-            CanBusId bus = bus_id_from_index(i);
-            bool bus_want_single = want_single && allow_hw_filter && (!want_bus_filter || bus == want_bus);
-            uint32_t bus_want_id = bus_want_single ? want_id : 0u;
-            if (bus_want_single != s_hw_filter_single[i] ||
-                (bus_want_single && bus_want_id != s_hw_filter_id[i])) {
-                if (g_can_ok[i] && g_can[i]) {
-                    g_can[i]->setAcceptanceFilter(bus_want_single, bus_want_id);
-                    s_hw_filter_single[i] = bus_want_single;
-                    s_hw_filter_id[i] = bus_want_id;
-                }
-            }
-        }
-    }
+    sync_http_can_stream_filter_if_needed();
 
 #if defined(BOARD_TTGO_DISPLAY)
     s = state_snapshot();

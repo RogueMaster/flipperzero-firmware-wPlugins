@@ -51,6 +51,7 @@ void fsd_state_init(FSDState *state, TeslaHWVersion hw) {
     state->apmv3_branch         = 0xFF;      // opt-in AP branch/tier selector, default OFF (0xFF sentinel)
     state->assist_tlssc_bit38   = false;    // opt-in TLSSC bit38 explicit enable, default OFF
     state->continue_on_green    = false;    // opt-in Continue on Green, default OFF
+    state->hw3_speed_override   = false;    // opt-in legacy HW3 speed write, default OFF (#209)
     state->assist_rhd_override  = false;    // opt-in RHD driving-side override, default OFF
     state->track_mode_inject    = false;    // Track Mode inject master opt-in, default OFF
     state->track_rotation_pct   = 100;      // full rotation = rear-biased / RWD-like
@@ -166,9 +167,12 @@ void fsd_handle_follow_distance(FSDState *state, const CanFrame *frame) {
     // Follow distance stalk position: bits 7:5 of byte 5
     uint8_t fd = (frame->data[SIG_FOLLOW_DIST_BYTE] & SIG_FOLLOW_DIST_MASK) >>
                  SIG_FOLLOW_DIST_SHIFT;
+    state->follow_distance      = fd;   // read-out (#209)
+    state->follow_distance_seen = true;
 
     if (state->hw_version == TeslaHW_HW3) {
-        // HW3: 3 levels  (fd 1→profile 2, 2→1, 3→0)
+        // HW3: 3 levels  (fd 1→profile 2, 2→1, 3→0). Only reaches the car with
+        // hw3_speed_override on (#209).
         switch (fd) {
             case 1: state->speed_profile = 2; break;
             case 2: state->speed_profile = 1; break;
@@ -262,6 +266,26 @@ bool fsd_handle_track_mode_inject(FSDState *state, CanFrame *frame) {
 
 // ── HW3/HW4 autopilot control (DAS_autopilotControl 0x3FD) ───────────────────
 
+// HW3 speed read-out (#209): car = field as received, sent = field after the
+// handler (equal to car unless something wrote it). Read-only.
+static void hw3_speed_note(FSDState *state, const CanFrame *frame, uint8_t mux, bool sent) {
+    if (mux == CAN_MUX_0) {
+        uint8_t p = tesla_hw3_read_profile(frame->data);
+        if (!sent) {
+            state->hw3_car_profile  = p;
+            state->hw3_profile_seen = true;
+        }
+        state->hw3_sent_profile = p;
+    } else if (mux == CAN_MUX_2) {
+        uint8_t o = tesla_hw3_read_fsd_offset(frame->data);
+        if (!sent) {
+            state->hw3_car_offset  = o;
+            state->hw3_offset_seen = true;
+        }
+        state->hw3_sent_offset = o;
+    }
+}
+
 bool fsd_handle_autopilot_frame(FSDState *state, CanFrame *frame) {
     if (frame->dlc < 8) return false;
     // Only process known HW versions to avoid corrupting frames for HW_Unknown
@@ -274,6 +298,8 @@ bool fsd_handle_autopilot_frame(FSDState *state, CanFrame *frame) {
 
     // mux 0 is the authoritative "is FSD requested" mux
     if (mux == CAN_MUX_0) state->fsd_enabled = fsd_ui;
+
+    if (state->hw_version == TeslaHW_HW3) hw3_speed_note(state, frame, mux, false);
 
     // bit38 explicit TLSSC enable on mux0 (complementary to 0x331 TLSSC Restore)
     if (mux == CAN_MUX_0 && state->assist_tlssc_bit38 && state->fsd_enabled) {
@@ -290,6 +316,10 @@ bool fsd_handle_autopilot_frame(FSDState *state, CanFrame *frame) {
 
     if (state->hw_version == TeslaHW_HW3) {
         // ── HW3 ──────────────────────────────────────────────────────────────
+        // Default is pass-through (#209): bit46 only; the car's own FSD profile
+        // (mux0 bits 49-50) and FSD max-speed offset (mux2 bits 6-13) go out as
+        // received. hw3_speed_override restores the legacy write, which put the
+        // follow-distance profile and the Autopilot offset x5 into those fields.
         if (mux == CAN_MUX_0 && state->fsd_unlock && state->fsd_enabled) {
             // Compute speed offset from current speed signal (bits 6:1 of byte 3)
             int raw = (int)((frame->data[SIG_AP_HW3_SPEED_RAW_BYTE] >>
@@ -303,11 +333,13 @@ bool fsd_handle_autopilot_frame(FSDState *state, CanFrame *frame) {
             // Activate FSD: set bit 46
             set_bit(frame, SIG_AP_FSD_ENABLE_BIT, true);
 
-            // Write speed profile into bits 2:1 of byte 6
-            frame->data[SIG_AP_SPEED_PROFILE_BYTE] &= (uint8_t)(~SIG_AP_SPEED_PROFILE_MASK);
-            frame->data[SIG_AP_SPEED_PROFILE_BYTE] |=
-                (uint8_t)((state->speed_profile & SIG_AP_SPEED_PROFILE_VALUE_MASK) <<
-                          SIG_AP_SPEED_PROFILE_SHIFT);
+            if (state->hw3_speed_override) {
+                // Write speed profile into bits 2:1 of byte 6
+                frame->data[SIG_AP_SPEED_PROFILE_BYTE] &= (uint8_t)(~SIG_AP_SPEED_PROFILE_MASK);
+                frame->data[SIG_AP_SPEED_PROFILE_BYTE] |=
+                    (uint8_t)((state->speed_profile & SIG_AP_SPEED_PROFILE_VALUE_MASK) <<
+                              SIG_AP_SPEED_PROFILE_SHIFT);
+            }
             modified = true;
         }
         if (mux == CAN_MUX_1 &&
@@ -339,7 +371,8 @@ bool fsd_handle_autopilot_frame(FSDState *state, CanFrame *frame) {
                 modified = true;
             }
         }
-        if (mux == CAN_MUX_2 && state->fsd_unlock && state->fsd_enabled) {
+        if (mux == CAN_MUX_2 && state->fsd_unlock && state->fsd_enabled &&
+            state->hw3_speed_override) {
             // Write speed offset into bits 7:6 of byte 0 and bits 5:0 of byte 1
             frame->data[SIG_AP_HW3_SPEED_OFFSET_LOW_BYTE] &=
                 (uint8_t)(~SIG_AP_HW3_SPEED_OFFSET_LOW_MASK);
@@ -352,6 +385,7 @@ bool fsd_handle_autopilot_frame(FSDState *state, CanFrame *frame) {
                 (uint8_t)(state->speed_offset >> SIG_AP_HW3_SPEED_OFFSET_HIGH_SHIFT);
             modified = true;
         }
+        hw3_speed_note(state, frame, mux, true);
     } else {
         // ── HW4 ──────────────────────────────────────────────────────────────
         if (mux == CAN_MUX_0 && state->fsd_unlock && state->fsd_enabled) {

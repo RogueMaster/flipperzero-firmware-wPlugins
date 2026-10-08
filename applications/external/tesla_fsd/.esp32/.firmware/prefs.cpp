@@ -24,6 +24,7 @@ void prefs_load(FSDState *state) {
     state->suppress_speed_chime     = g_prefs.getBool("chime",  true);
     state->ignore_ota               = g_prefs.getBool("ignota", false);
     state->fsd_unlock               = g_prefs.getBool("unlock", false);
+    state->hw3_speed_override       = g_prefs.getBool("hw3spd", false);  // legacy HW3 speed write (#209)
     state->force_fsd                = g_prefs.getBool("force",  false);
     state->china_mode               = g_prefs.getBool("china",  false);
     state->tlssc_restore            = g_prefs.getBool("tlssc",  false);
@@ -73,8 +74,8 @@ void prefs_load(FSDState *state) {
     state->cfg_steer_hi      = g_prefs.getUChar("cshi",   1);
     state->cfg_steer_lo      = g_prefs.getUChar("cslo",   0);
 
-    Serial.printf("[NVS] Loaded: FSDUnlock=%d NAG=%d ContinuousAP=%d IgnoreOTA=%d China=%d Chime=%d Summon=%d COG=%d TLSSC38=%d RHD=%d TelOff=%d APMv3=%d TrkMode=%d/%u/%u/%d/%d Sleep=%u AP=\"%s\" STA=\"%s\" HIDDEN=%d\n",
-                  state->fsd_unlock, state->nag_killer, state->continuous_ap, state->ignore_ota,
+    Serial.printf("[NVS] Loaded: FSDUnlock=%d HW3Spd=%d NAG=%d ContinuousAP=%d IgnoreOTA=%d China=%d Chime=%d Summon=%d COG=%d TLSSC38=%d RHD=%d TelOff=%d APMv3=%d TrkMode=%d/%u/%u/%d/%d Sleep=%u AP=\"%s\" STA=\"%s\" HIDDEN=%d\n",
+                  state->fsd_unlock, state->hw3_speed_override, state->nag_killer, state->continuous_ap, state->ignore_ota,
                   state->china_mode, state->suppress_speed_chime, state->summon_unlock,
                   state->continue_on_green, state->assist_tlssc_bit38, state->assist_rhd_override, state->assist_telemetry_off,
                   state->apmv3_branch, state->track_mode_inject, state->track_rotation_pct,
@@ -106,6 +107,7 @@ void prefs_save(const FSDState *state) {
     g_prefs.putBool("chime",  state->suppress_speed_chime);
     g_prefs.putBool("ignota", state->ignore_ota);
     g_prefs.putBool("unlock", state->fsd_unlock);
+    g_prefs.putBool("hw3spd", state->hw3_speed_override);
     g_prefs.putBool("force",  state->force_fsd);
     g_prefs.putBool("china",  state->china_mode);
     g_prefs.putBool("tlssc",  state->tlssc_restore);
@@ -154,8 +156,8 @@ void prefs_save(const FSDState *state) {
     g_prefs.putUChar("cshi",  state->cfg_steer_hi);
     g_prefs.putUChar("cslo",  state->cfg_steer_lo);
 
-    Serial.printf("[NVS] Saved: FSDUnlock=%d NAG=%d ContinuousAP=%d IgnoreOTA=%d China=%d Chime=%d Summon=%d COG=%d TLSSC38=%d RHD=%d TelOff=%d APMv3=%d TrkMode=%d/%u/%u/%d/%d Sleep=%u AP=\"%s\" STA=\"%s\" HIDDEN=%d\n",
-                  state->fsd_unlock, state->nag_killer, state->continuous_ap, state->ignore_ota,
+    Serial.printf("[NVS] Saved: FSDUnlock=%d HW3Spd=%d NAG=%d ContinuousAP=%d IgnoreOTA=%d China=%d Chime=%d Summon=%d COG=%d TLSSC38=%d RHD=%d TelOff=%d APMv3=%d TrkMode=%d/%u/%u/%d/%d Sleep=%u AP=\"%s\" STA=\"%s\" HIDDEN=%d\n",
+                  state->fsd_unlock, state->hw3_speed_override, state->nag_killer, state->continuous_ap, state->ignore_ota,
                   state->china_mode, state->suppress_speed_chime, state->summon_unlock,
                   state->continue_on_green, state->assist_tlssc_bit38, state->assist_rhd_override, state->assist_telemetry_off,
                   state->apmv3_branch, state->track_mode_inject, state->track_rotation_pct,

@@ -52,6 +52,17 @@ static inline bool tesla_can_tx_valid(uint32_t id, uint8_t dlc) {
     return id <= TESLA_CAN_SFF_MAX && dlc <= TESLA_CAN_MAX_DLC;
 }
 
+// HW3 0x3FD speed fields (#209), read-only:
+//   FSD driving profile        = mux0 bits 49-50 (byte6 bits 1-2)
+//   FSD max-speed offset (raw) = mux2 bits 6-13  (byte0 bits 6-7 + byte1 bits 0-5)
+static inline uint8_t tesla_hw3_read_profile(const uint8_t* data) {
+    return (uint8_t)((data[6] >> 1) & 0x03u);
+}
+
+static inline uint8_t tesla_hw3_read_fsd_offset(const uint8_t* data) {
+    return (uint8_t)((data[0] >> 6) | ((data[1] & 0x3Fu) << 2));
+}
+
 // UI "FSD selected" flag from DAS_autopilotControl byte 4 bit 6.
 // force_fsd / china_mode bypass the UI check (china_mode is ESP32-only today;
 // Flipper passes false).

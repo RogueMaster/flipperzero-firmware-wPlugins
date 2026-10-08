@@ -1,4 +1,5 @@
 #include "http_can_stream.h"
+#include "can_capture_filter.h"
 #include <WiFi.h>
 #include <ctype.h>
 #include <stdlib.h>
@@ -34,6 +35,8 @@ static CanBusId   g_bus_filter = CAN_BUS_PRIMARY;
 static bool       g_meta_enabled = false;
 static uint32_t   g_rx_missed_now = 0;   // latest fed-in controller total
 static uint32_t   g_rx_missed_base = 0;  // snapshot at capture start
+static bool       g_filter_meta_sent = false;
+static char       g_filter_modes[CAN_BUS_COUNT][12] = {};
 
 static uint16_t ring_next(uint16_t index) {
     return (uint16_t)((index + 1u) % HTTP_CAN_STREAM_RING_SIZE);
@@ -251,6 +254,7 @@ static void begin_stream(WiFiClient &client) {
     g_client.print("Connection: close\r\n\r\n");
     g_active = true;
     g_rx_missed_base = g_rx_missed_now;
+    g_filter_meta_sent = false;
 
     // Opt-in (?meta=1) self-labeling header. Emitted as a #-prefixed comment so
     // candump/SavvyCAN importers skip it; the default path stays byte-identical.
@@ -266,7 +270,7 @@ static void begin_stream(WiFiClient &client) {
         }
         g_client.printf(" bus=%s mode=%s rx_missed_at_start=%lu\r\n",
                         g_bus_filter_enabled ? can_bus_name(g_bus_filter) : "all",
-                        g_filter_count == 1 ? "single-id-hwfilter" : "all-id-decimated",
+                        "pending",
                         (unsigned long)g_rx_missed_now);
     }
 
@@ -473,6 +477,36 @@ bool http_can_stream_single_filter(uint32_t *id_out) {
     if (g_filter_count != 1) return false;
     if (id_out) *id_out = g_filter_ids[0];
     return true;
+}
+
+bool http_can_stream_filter_snapshot(uint32_t *ids_out,
+                                     uint8_t ids_max,
+                                     uint8_t *count_out) {
+    if (!g_enabled || !g_active || !g_client.connected()) return false;
+    if (count_out) *count_out = g_filter_count;
+    if (ids_out && ids_max > 0) {
+        uint8_t n = g_filter_count < ids_max ? g_filter_count : ids_max;
+        for (uint8_t i = 0; i < n; i++) ids_out[i] = g_filter_ids[i];
+    }
+    return true;
+}
+
+void http_can_stream_note_filters(uint8_t buses, const char *const *modes) {
+    if (!g_active || !g_meta_enabled || !g_client.connected()) return;
+    bool changed = !g_filter_meta_sent;
+    for (uint8_t i = 0; i < CAN_BUS_COUNT; i++) {
+        changed |= strcmp(g_filter_modes[i], modes[i]) != 0;
+    }
+    if (!changed) return;
+    size_t written = g_client.printf(
+        "# filters elapsed_ms=%lu can0=%s can1=%s mode=%s\r\n",
+        (unsigned long)(millis() - g_start_ms), modes[0], modes[1],
+        can_capture_mode_label(g_filter_count, buses, g_bus_filter_enabled, g_bus_filter, modes));
+    if (written == 0) return;
+    for (uint8_t i = 0; i < CAN_BUS_COUNT; i++) {
+        snprintf(g_filter_modes[i], sizeof(g_filter_modes[i]), "%s", modes[i]);
+    }
+    g_filter_meta_sent = true;
 }
 
 bool http_can_stream_bus_filter(CanBusId *bus_out) {

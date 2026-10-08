@@ -669,6 +669,7 @@ static void test_state_init(void) {
         "init clears OTA detection state");
     CHECK(
         s.op_mode == OpMode_ListenOnly && !fsd_can_transmit(&s), "init: listen-only, TX blocked");
+    CHECK(!s.hw3_speed_override, "init: hw3_speed_override default OFF (#209)");
 }
 
 // ── 0x3FD mux2 HW4 speed profile layout (#59), parity with the Flipper core ───
@@ -702,6 +703,139 @@ static void test_hw4_mux2_profile_layout(void) {
     }
 }
 
+// ── 0x3FD HW3 speed fields (#209), parity with the Flipper core ───────────────
+// Default is pass-through: with FSD unlock, mux0 gets bit46 only; the car's own
+// FSD profile (mux0 bits 49-50) and the whole mux2 frame (FSD max-speed offset,
+// bits 6-13) are left as received, and mux2 is not re-sent. hw3_speed_override
+// restores the legacy write byte-for-byte.
+static const uint8_t k_hw3_mux0[8] = {0x00, 0x11, 0x22, 0x46, 0x00, 0x00, 0x83, 0x80};
+static const uint8_t k_hw3_mux2[8] = {0x82, 0xCB, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80};
+
+static void ap3fd(CanFrame* f, const uint8_t b[8]) {
+    memset(f, 0, sizeof(*f));
+    f->id = CAN_ID_AP_CONTROL;
+    f->dlc = 8;
+    memcpy(f->data, b, 8);
+}
+
+static void hw3_state(FSDState* s, bool override_on) {
+    memset(s, 0, sizeof(*s));
+    s->hw_version = TeslaHW_HW3;
+    s->fsd_unlock = true;
+    s->force_fsd = true;
+    s->nag_killer = true; // mux1 path on, must not leak into mux2
+    s->speed_profile = 2;
+    s->hw3_speed_override = override_on;
+}
+
+static void test_hw3_speed_passthrough(void) {
+    FSDState s;
+    CanFrame f;
+
+    // ── default: pass-through ──
+    hw3_state(&s, false);
+    ap3fd(&f, k_hw3_mux0);
+    CHECK(fsd_handle_autopilot_frame(&s, &f), "HW3 mux0 modified (bit46)");
+    static const uint8_t k_mux0_bit46[8] = {0x00, 0x11, 0x22, 0x46, 0x00, 0x40, 0x83, 0x80};
+    CHECK(
+        memcmp(f.data, k_mux0_bit46, 8) == 0,
+        "HW3 default: mux0 = car frame + bit46 only (byte6 0x%02X)",
+        f.data[6]);
+    CHECK(s.speed_offset == 25, "HW3 AP offset still read: %d exp 25", s.speed_offset);
+    CHECK(
+        s.hw3_profile_seen && s.hw3_car_profile == 1 && s.hw3_sent_profile == 1,
+        "HW3 default read-out: profile 1 -> 1");
+
+    ap3fd(&f, k_hw3_mux2);
+    CHECK(!fsd_handle_autopilot_frame(&s, &f), "HW3 default: mux2 NOT modified");
+    CHECK(memcmp(f.data, k_hw3_mux2, 8) == 0, "HW3 default: mux2 payload untouched");
+    CHECK(
+        s.hw3_offset_seen && s.hw3_car_offset == 46 && s.hw3_sent_offset == 46,
+        "HW3 default read-out: offset 46 -> 46 (got %u -> %u)",
+        s.hw3_car_offset,
+        s.hw3_sent_offset);
+
+    // FSD unlock off: nothing on mux0/mux2, read-out still tracks the car.
+    hw3_state(&s, true);
+    s.fsd_unlock = false;
+    ap3fd(&f, k_hw3_mux0);
+    CHECK(!fsd_handle_autopilot_frame(&s, &f), "HW3 unlock off: mux0 not modified");
+    CHECK(s.hw3_profile_seen && s.hw3_sent_profile == 1, "HW3 unlock off: read-out tracks");
+
+    // ── hw3_speed_override: legacy bytes ──
+    hw3_state(&s, true);
+    CanFrame z;
+    memset(&z, 0, sizeof(z));
+    z.dlc = 8; // old test inputs: zero mux0, profile 2
+    CHECK(fsd_handle_autopilot_frame(&s, &z), "HW3 override zero mux0 modified");
+    static const uint8_t k_zero_legacy[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x04, 0x00};
+    CHECK(memcmp(z.data, k_zero_legacy, 8) == 0, "HW3 override zero mux0 = legacy bytes");
+
+    ap3fd(&f, k_hw3_mux0);
+    CHECK(fsd_handle_autopilot_frame(&s, &f), "HW3 override mux0 modified");
+    static const uint8_t k_mux0_legacy[8] = {0x00, 0x11, 0x22, 0x46, 0x00, 0x40, 0x85, 0x80};
+    CHECK(
+        memcmp(f.data, k_mux0_legacy, 8) == 0,
+        "HW3 override mux0 = legacy bytes (byte6 0x%02X exp 0x85)",
+        f.data[6]);
+    CHECK(s.hw3_car_profile == 1 && s.hw3_sent_profile == 2, "HW3 override read-out: 1 -> 2");
+
+    ap3fd(&f, k_hw3_mux2);
+    CHECK(fsd_handle_autopilot_frame(&s, &f), "HW3 override mux2 modified");
+    static const uint8_t k_mux2_legacy[8] = {0x42, 0xC6, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80};
+    CHECK(
+        memcmp(f.data, k_mux2_legacy, 8) == 0,
+        "HW3 override mux2 = legacy bytes (got %02X %02X)",
+        f.data[0],
+        f.data[1]);
+    CHECK(s.hw3_car_offset == 46 && s.hw3_sent_offset == 25, "HW3 override read-out: 46 -> 25");
+
+    // Follow distance: read-out always, profile write only with the override.
+    CanFrame fd;
+    memset(&fd, 0, sizeof(fd));
+    fd.id = CAN_ID_FOLLOW_DIST;
+    fd.dlc = 8;
+    fd.data[5] = (uint8_t)(3u << 5); // fd3 -> profile 0
+    fsd_handle_follow_distance(&s, &fd);
+    CHECK(
+        s.follow_distance_seen && s.follow_distance == 3,
+        "fd read-out 3 got %u",
+        s.follow_distance);
+    ap3fd(&f, k_hw3_mux0);
+    fsd_handle_autopilot_frame(&s, &f);
+    CHECK(((f.data[6] >> 1) & 0x03) == 0, "HW3 override: fd3 -> profile 0 written");
+    s.hw3_speed_override = false;
+    ap3fd(&f, k_hw3_mux0);
+    fsd_handle_autopilot_frame(&s, &f);
+    CHECK(((f.data[6] >> 1) & 0x03) == 1, "HW3 default: fd3 ignored, car profile 1 kept");
+}
+
+// ── #209 regression guard: hw3_speed_override never touches HW4 ──────────────
+static void test_hw4_ignores_hw3_override(void) {
+    static const uint8_t k_hw4_mux0[8] = {0x00, 0x00, 0x00, 0x46, 0x00, 0x00, 0x83, 0x80};
+    static const uint8_t k_hw4_mux2[8] = {0x02, 0x28, 0x00, 0x00, 0x00, 0x00, 0x00, 0x90};
+    static const uint8_t k_hw4_mux0_out[8] = {0x00, 0x00, 0x00, 0x46, 0x00, 0x40, 0x83, 0x90};
+    static const uint8_t k_hw4_mux2_out[8] = {0x02, 0x28, 0x00, 0x00, 0x00, 0x00, 0x00, 0xC0};
+    for(int ov = 0; ov <= 1; ov++) {
+        FSDState s;
+        memset(&s, 0, sizeof(s));
+        s.hw_version = TeslaHW_HW4;
+        s.fsd_unlock = true;
+        s.force_fsd = true;
+        s.speed_profile = 4;
+        s.hw3_speed_override = (ov == 1);
+        CanFrame f;
+        ap3fd(&f, k_hw4_mux0);
+        CHECK(fsd_handle_autopilot_frame(&s, &f), "HW4 ov%d mux0 modified", ov);
+        CHECK(memcmp(f.data, k_hw4_mux0_out, 8) == 0, "HW4 ov%d mux0 = bit46+bit60 only", ov);
+        ap3fd(&f, k_hw4_mux2);
+        CHECK(fsd_handle_autopilot_frame(&s, &f), "HW4 ov%d mux2 modified", ov);
+        CHECK(
+            memcmp(f.data, k_hw4_mux2_out, 8) == 0, "HW4 ov%d mux2 = profile 4 in bits 60-62", ov);
+        CHECK(!s.hw3_profile_seen && !s.hw3_offset_seen, "HW4 ov%d: HW3 read-out untouched", ov);
+    }
+}
+
 // ── driver RX/TX frame filter ─────────────────────────────────────────────────
 // The TWAI driver hands up DLC 9..15 unchanged (twai_message_t.data is 8 bytes)
 // plus extended and remote frames. receive() drops DLC > 8; process_frame()
@@ -731,6 +865,8 @@ static void test_can_frame_filter(void) {
 int main() {
     printf("test_esp32_core: ESP32 firmware handler host tests\n");
     test_hw4_mux2_profile_layout();
+    test_hw3_speed_passthrough();
+    test_hw4_ignores_hw3_override();
     test_gtw_car_state();
     test_ota_parity();
     test_ota_tx_gate();
