@@ -191,6 +191,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Game Mode: Load game-menu safely and quickly. Automatically doubles held scrolling speed after four consecutive pages. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/e4cb0791152123c5a3499e083d94ea4406d968b3)
 - SubGHz: [KeeLoq Erreka programming mode - the 0xF button now sends the seed in the clear like the original remote, same as BFT, and the seed is saved with the signal so the hops can be rebuilt (By xMasterX)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/1139732616045a15b9efc59790cc83e3a8ad292a)
 - Updated: [Tesla Mod v2.16b35 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
+- Added: [TamaConnect v1.0 (By s2013p)](https://github.com/s2013p/TamaConnect)
 
 <a name="release"></a>
 
@@ -1037,6 +1038,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [T5577 Multiwriter v0.2 (By Leptopt1los)](https://github.com/Leptopt1los/t5577_multiwriter)
 - [T5577 Raw Writer v1.1 (By zinongli)](https://github.com/zinongli/T5577_Raw_Writer)
 - [TagTinker v2.1 (By i12bp8)](https://github.com/i12bp8/TagTinker)
+- [TamaConnect v1.0 (By s2013p)](https://github.com/s2013p/TamaConnect)
 - [Tasks v1.3 (By MadLadSquad)](https://github.com/MadLadSquad/FlipperTasks)
 - [TCL AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
 - [Telemeter v1.1 (By alaviation)](https://github.com/alaviation/flipper-telemeter)

@@ -48,18 +48,10 @@ static bool tama_profile_save(const TamaProfile* profile) {
 
     File* file = storage_file_alloc(storage);
 
-    bool ok = storage_file_open(
-        file,
-        TAMA_SETTINGS_PATH,
-        FSAM_WRITE,
-        FSOM_CREATE_ALWAYS);
+    bool ok = storage_file_open(file, TAMA_SETTINGS_PATH, FSAM_WRITE, FSOM_CREATE_ALWAYS);
 
     if(ok) {
-        ok =
-            storage_file_write(
-                file,
-                profile,
-                sizeof(TamaProfile)) == sizeof(TamaProfile);
+        ok = storage_file_write(file, profile, sizeof(TamaProfile)) == sizeof(TamaProfile);
     }
 
     storage_file_close(file);
@@ -76,20 +68,12 @@ static bool tama_profile_load(TamaProfile* profile) {
     Storage* storage = furi_record_open(RECORD_STORAGE);
     File* file = storage_file_alloc(storage);
 
-    bool ok = storage_file_open(
-        file,
-        TAMA_SETTINGS_PATH,
-        FSAM_READ,
-        FSOM_OPEN_EXISTING);
+    bool ok = storage_file_open(file, TAMA_SETTINGS_PATH, FSAM_READ, FSOM_OPEN_EXISTING);
 
     if(ok) {
         TamaProfile loaded;
 
-        ok =
-            storage_file_read(
-                file,
-                &loaded,
-                sizeof(TamaProfile)) == sizeof(TamaProfile);
+        ok = storage_file_read(file, &loaded, sizeof(TamaProfile)) == sizeof(TamaProfile);
 
         if(ok) {
             loaded.name[5] = '\0';
@@ -150,7 +134,6 @@ static void tama_set_name(char* packet, const char* name) {
     }
 }
 
-
 // borrowed from infrared_common_i.h
 #define MATCH_TIMING(x, v, delta) (((x) < ((v) + (delta))) && ((x) > ((v) - (delta))))
 
@@ -192,7 +175,6 @@ DecoderStates decoder_states = {
 };
 
 // This function will be called when the user presses the Back button.
-
 
 // take in a signal from the IR worker, and decode it into a 160 bit tamagotchi
 // bit-string and store that in the provided buffer. Return true if success,
@@ -286,7 +268,9 @@ static void listen(void* context) {
         decoder_states.header_space + decoder_states.header_space_tolerance);
 
     // printf("Receiving %s INFRARED...\r\nPress Ctrl+C to abort\r\n", "RAW");
-    while(!(app_state.command_decoded || app_state.timed_out || cli_is_pipe_broken_or_is_etx_next_char(context))) {
+    while(
+        !(app_state.command_decoded || app_state.timed_out ||
+          cli_is_pipe_broken_or_is_etx_next_char(context))) {
         furi_delay_ms(1);
     }
 
@@ -309,7 +293,6 @@ static void listen(void* context) {
     furi_timer_free(timer);
 }
 
-
 typedef struct {
     volatile bool received;
     unsigned char bits[160];
@@ -331,16 +314,12 @@ static bool tama_receive(unsigned char* output, uint32_t timeout_ms) {
 
     InfraredWorker* worker = infrared_worker_alloc();
 
-    infrared_worker_rx_set_received_signal_callback(
-        worker,
-        tama_rx_callback,
-        &state);
+    infrared_worker_rx_set_received_signal_callback(worker, tama_rx_callback, &state);
 
     infrared_worker_rx_start(worker);
 
     furi_hal_infrared_async_rx_set_timeout(
-        decoder_states.header_space +
-        decoder_states.header_space_tolerance);
+        decoder_states.header_space + decoder_states.header_space_tolerance);
 
     uint32_t waited = 0;
 
@@ -391,7 +370,8 @@ static void send(char* bitstring) {
     }
 }
 
-static void __attribute__((unused)) tamagometer_start_cli(PipeSide* pipe, FuriString* args, void* context) {
+static void __attribute__((unused))
+tamagometer_start_cli(PipeSide* pipe, FuriString* args, void* context) {
     UNUSED(context);
     // Acquire the cli_lock so that the GUI part of the app will wait to exit
     // if the CLI is still running something. This should hopefully reduce the
@@ -418,13 +398,11 @@ static void __attribute__((unused)) tamagometer_start_cli(PipeSide* pipe, FuriSt
     return;
 }
 
-
 static char __attribute__((unused)) music_visit_message1[] =
     "0000111000000000110111100101101000101001000001110000100010000000011111111000000100000010000000000010001100000000000001100000000000000000000000000000101000110011";
 
 static char __attribute__((unused)) music_visit_message2[] =
     "0000111000001000110111100101101000101001000001110000100010000000011111111000000100000011000000000000000000000000000000000000000000000000000000000000000000001001";
-
 
 static void tama_set_byte(char* packet, size_t byte_number, uint8_t value) {
     if(byte_number < 1 || byte_number > 20) return;
@@ -432,18 +410,11 @@ static void tama_set_byte(char* packet, size_t byte_number, uint8_t value) {
     size_t start = (byte_number - 1) * 8;
 
     for(size_t bit = 0; bit < 8; bit++) {
-        packet[start + bit] =
-            (value & (1U << (7 - bit))) ? '1' : '0';
+        packet[start + bit] = (value & (1U << (7 - bit))) ? '1' : '0';
     }
 }
 
-
-static void tama_set_bit(
-    char* packet,
-    size_t byte_number,
-    size_t bit_number,
-    bool value) {
-
+static void tama_set_bit(char* packet, size_t byte_number, size_t bit_number, bool value) {
     if(byte_number < 1 || byte_number > 20) return;
     if(bit_number < 1 || bit_number > 8) return;
 
@@ -472,7 +443,6 @@ static void tama_update_checksum(char* packet) {
     tama_set_byte(packet, 20, (uint8_t)sum);
 }
 
-
 static char points_game_message1[] =
     "0000111000000000100011001111011000101000000000000000101100001000000000100000010000000011000000000010000100000000000000000000000000000000000001110000000011111100";
 
@@ -489,13 +459,10 @@ typedef enum {
     TamaGamePoints = 7,
 } TamaGame;
 
-
 /* ---------- Gift test: Cone ---------- */
 
-static uint8_t __attribute__((unused)) tama_received_byte(
-    const unsigned char* bits,
-    size_t byte_number) {
-
+static uint8_t __attribute__((unused))
+tama_received_byte(const unsigned char* bits, size_t byte_number) {
     uint8_t value = 0;
     size_t start = (byte_number - 1) * 8;
 
@@ -519,13 +486,7 @@ static void tama_log_packet(const char* label, const unsigned char* bits) {
     FURI_LOG_I("TamaConnect", "%s=%s", label, packet);
 }
 
-
-static bool tama_send_gift(
-    uint8_t character,
-    bool girl,
-    const char* name,
-    uint8_t gift_id) {
-
+static bool tama_send_gift(uint8_t character, bool girl, const char* name, uint8_t gift_id) {
     unsigned char response1[160];
     unsigned char response3[160];
 
@@ -568,10 +529,7 @@ static bool tama_send_gift(
     tama_update_checksum(message2);
     tama_update_checksum(message4);
 
-    FURI_LOG_I(
-        "TamaConnect",
-        "Gift responder: gift ID=%u",
-        gift_id);
+    FURI_LOG_I("TamaConnect", "Gift responder: gift ID=%u", gift_id);
 
     FURI_LOG_I("TamaConnect", "Gift RX M1");
 
@@ -594,16 +552,12 @@ static bool tama_send_gift(
 
     tama_log_packet("M3", response3);
 
-    FURI_LOG_I(
-        "TamaConnect",
-        "Gift TX M4: B2=7 B15=%u",
-        gift_id);
+    FURI_LOG_I("TamaConnect", "Gift TX M4: B2=7 B15=%u", gift_id);
 
     send(message4);
 
     return true;
 }
-
 
 static bool tama_game(
     uint8_t character,
@@ -612,7 +566,6 @@ static bool tama_game(
     TamaGame game,
     uint8_t amount,
     TamaGameResult result) {
-
     unsigned char response2[160];
     unsigned char response4[160];
 
@@ -679,10 +632,7 @@ static bool tama_game(
     tama_update_checksum(message1);
     tama_update_checksum(message3);
 
-    FURI_LOG_I(
-        "TamaConnect",
-        "Points Game: Tama %s",
-        tama_wins ? "WIN" : "LOSE");
+    FURI_LOG_I("TamaConnect", "Points Game: Tama %s", tama_wins ? "WIN" : "LOSE");
 
     send(message1);
 
@@ -701,10 +651,7 @@ static bool tama_game(
     return true;
 }
 
-static bool music_visit(
-    uint8_t character,
-    bool girl,
-    const char* name) {
+static bool music_visit(uint8_t character, bool girl, const char* name) {
     unsigned char response1[160];
     unsigned char response2[160];
 
@@ -756,7 +703,6 @@ static bool music_visit(
     return true;
 }
 
-
 typedef enum {
     TamaActionNone,
     TamaActionSelect,
@@ -785,7 +731,6 @@ typedef struct {
     char name_edit[6];
 } TamaMenuState;
 
-
 /* ---------- generic Back ---------- */
 
 static void tama_menu_back(void* context) {
@@ -796,7 +741,6 @@ static void tama_menu_back(void* context) {
         api_lock_unlock(state->lock);
     }
 }
-
 
 /* ---------- Main menu ---------- */
 
@@ -809,7 +753,6 @@ static void tama_main_selected(void* context, uint32_t index) {
     api_lock_unlock(state->lock);
 }
 
-
 /* ---------- Character ---------- */
 
 static void tama_character_selected(void* context, uint32_t index) {
@@ -820,7 +763,6 @@ static void tama_character_selected(void* context, uint32_t index) {
 
     api_lock_unlock(state->lock);
 }
-
 
 /* ---------- Gender ---------- */
 
@@ -833,7 +775,6 @@ static void tama_gender_selected(void* context, uint32_t index) {
     api_lock_unlock(state->lock);
 }
 
-
 /* ---------- Game result ---------- */
 
 static void tama_game_result_selected(void* context, uint32_t index) {
@@ -845,22 +786,14 @@ static void tama_game_result_selected(void* context, uint32_t index) {
     api_lock_unlock(state->lock);
 }
 
-
 /*
  * Wait for one menu action.
  */
-static TamaAction tama_wait(
-    TamaMenuState* state,
-    ViewHolder* view_holder,
-    View* view) {
-
+static TamaAction tama_wait(TamaMenuState* state, ViewHolder* view_holder, View* view) {
     state->action = TamaActionNone;
     state->lock = api_lock_alloc_locked();
 
-    view_holder_set_back_callback(
-        view_holder,
-        tama_menu_back,
-        state);
+    view_holder_set_back_callback(view_holder, tama_menu_back, state);
 
     view_holder_set_view(view_holder, view);
 
@@ -871,13 +804,9 @@ static TamaAction tama_wait(
     return state->action;
 }
 
-
 /* ---------- Character menu ---------- */
 
-static TamaAction tama_choose_character(
-    TamaMenuState* state,
-    ViewHolder* view_holder) {
-
+static TamaAction tama_choose_character(TamaMenuState* state, ViewHolder* view_holder) {
     Submenu* menu = submenu_alloc();
 
     submenu_set_header(menu, "Choose character");
@@ -944,44 +873,32 @@ static TamaAction tama_choose_character(
     submenu_add_item(menu, "Mailman [0]", 0, tama_character_selected, state);
     submenu_add_item(menu, "Mailman [33]", 33, tama_character_selected, state);
 
-    TamaAction action =
-        tama_wait(state, view_holder, submenu_get_view(menu));
+    TamaAction action = tama_wait(state, view_holder, submenu_get_view(menu));
 
     submenu_free(menu);
 
     return action;
 }
 
-
 /* ---------- Gender menu ---------- */
 
-static TamaAction tama_choose_gender(
-    TamaMenuState* state,
-    ViewHolder* view_holder) {
-
+static TamaAction tama_choose_gender(TamaMenuState* state, ViewHolder* view_holder) {
     Submenu* menu = submenu_alloc();
 
     submenu_set_header(menu, "Choose gender");
 
-    submenu_add_item(
-        menu, "Boy", 0,
-        tama_gender_selected, state);
+    submenu_add_item(menu, "Boy", 0, tama_gender_selected, state);
 
-    submenu_add_item(
-        menu, "Girl", 1,
-        tama_gender_selected, state);
+    submenu_add_item(menu, "Girl", 1, tama_gender_selected, state);
 
-    TamaAction action =
-        tama_wait(state, view_holder, submenu_get_view(menu));
+    TamaAction action = tama_wait(state, view_holder, submenu_get_view(menu));
 
     submenu_free(menu);
 
     return action;
 }
 
-
 /* ---------- Game result menu ---------- */
-
 
 /* =========================================================
  * Gift menus
@@ -993,159 +910,158 @@ typedef struct {
 } TamaGiftEntry;
 
 static const TamaGiftEntry tama_gift_food[] = {
-    {"Scone",0},
-    {"Sushi",1},
-    {"Bread",2},
-    {"Cereal",3},
-    {"Omelet",4},
-    {"Milk",5},
-    {"Hamburger",6},
-    {"BBQ",7},
-    {"Sandwich",8},
-    {"Beef Bowl",9},
-    {"Cheese",10},
-    {"Pizza",11},
-    {"Steak",12},
-    {"Taco",13},
-    {"Sausage Stick",14},
-    {"Hot Dog",15},
-    {"Pasta",16},
-    {"Corn",17},
-    {"Turkey",18},
-    {"Noodle",19},
-    {"Fried Chicken",20},
-    {"Waffle",21},
-    {"Choco Bar",22},
-    {"Escargot",23},
-    {"Octopus Sausage",24},
-    {"Chikuwa",25},
-    {"Rice Ball",26},
-    {"Curry",27},
-    {"Kobu Maki",28},
-    {"Umeboshi",29},
-    {"Natto",30},
-    {"Fried Shrimp",31},
-    {"Takoyaki",32},
-    {"Oyster",33},
-    {"Naruto",34},
-    {"Pigs Feet",35},
+    {"Scone", 0},
+    {"Sushi", 1},
+    {"Bread", 2},
+    {"Cereal", 3},
+    {"Omelet", 4},
+    {"Milk", 5},
+    {"Hamburger", 6},
+    {"BBQ", 7},
+    {"Sandwich", 8},
+    {"Beef Bowl", 9},
+    {"Cheese", 10},
+    {"Pizza", 11},
+    {"Steak", 12},
+    {"Taco", 13},
+    {"Sausage Stick", 14},
+    {"Hot Dog", 15},
+    {"Pasta", 16},
+    {"Corn", 17},
+    {"Turkey", 18},
+    {"Noodle", 19},
+    {"Fried Chicken", 20},
+    {"Waffle", 21},
+    {"Choco Bar", 22},
+    {"Escargot", 23},
+    {"Octopus Sausage", 24},
+    {"Chikuwa", 25},
+    {"Rice Ball", 26},
+    {"Curry", 27},
+    {"Kobu Maki", 28},
+    {"Umeboshi", 29},
+    {"Natto", 30},
+    {"Fried Shrimp", 31},
+    {"Takoyaki", 32},
+    {"Oyster", 33},
+    {"Naruto", 34},
+    {"Pigs Feet", 35},
 };
 
 static const TamaGiftEntry tama_gift_snacks[] = {
-    {"Cone",36},
-    {"Pudding",37},
-    {"Cake",38},
-    {"Apple",39},
-    {"Sundae",40},
-    {"Banana",41},
-    {"Fries",42},
-    {"Roll Cake",43},
-    {"Cupcake",44},
-    {"Fruit Juice",45},
-    {"Ice Cream",46},
-    {"Cheese Cake",47},
-    {"Apple Pie",48},
-    {"Energy Drink",49},
-    {"Corn Dog",50},
-    {"Donut",51},
-    {"Soda",52},
-    {"Popcorn",53},
-    {"Pear",54},
-    {"Pineapple",55},
-    {"Melon",56},
-    {"Grapes",57},
-    {"Heart Chocolate",58},
-    {"Cookie",59},
-    {"Whole Cake",60},
-    {"Yogurt",61},
-    {"Lollipop",62},
-    {"Candy",63},
-    {"Crepe Suzette",64},
-    {"Cherry",65},
-    {"Biscuit",66},
-    {"Marron Cake",67},
-    {"Cream Puff",68},
-    {"Gum",69},
-    {"Dango",70},
-    {"Shaved Ice",71},
-    {"Sweet Potato",72},
-    {"Mochi",73},
-    {"Peanuts",74},
-    {"Toast",75},
-    {"Crackers",76},
-    {"Water",77},
+    {"Cone", 36},
+    {"Pudding", 37},
+    {"Cake", 38},
+    {"Apple", 39},
+    {"Sundae", 40},
+    {"Banana", 41},
+    {"Fries", 42},
+    {"Roll Cake", 43},
+    {"Cupcake", 44},
+    {"Fruit Juice", 45},
+    {"Ice Cream", 46},
+    {"Cheese Cake", 47},
+    {"Apple Pie", 48},
+    {"Energy Drink", 49},
+    {"Corn Dog", 50},
+    {"Donut", 51},
+    {"Soda", 52},
+    {"Popcorn", 53},
+    {"Pear", 54},
+    {"Pineapple", 55},
+    {"Melon", 56},
+    {"Grapes", 57},
+    {"Heart Chocolate", 58},
+    {"Cookie", 59},
+    {"Whole Cake", 60},
+    {"Yogurt", 61},
+    {"Lollipop", 62},
+    {"Candy", 63},
+    {"Crepe Suzette", 64},
+    {"Cherry", 65},
+    {"Biscuit", 66},
+    {"Marron Cake", 67},
+    {"Cream Puff", 68},
+    {"Gum", 69},
+    {"Dango", 70},
+    {"Shaved Ice", 71},
+    {"Sweet Potato", 72},
+    {"Mochi", 73},
+    {"Peanuts", 74},
+    {"Toast", 75},
+    {"Crackers", 76},
+    {"Water", 77},
 };
 
 static const TamaGiftEntry tama_gift_items[] = {
-    {"Ball",78},
-    {"Pencil",79},
-    {"Wig",80},
-    {"Sunglasses",81},
-    {"RC Car 1",82},
-    {"Pen",83},
-    {"Weights",84},
-    {"RC Car 2",85},
-    {"RC Car 3",86},
-    {"Bow",87},
-    {"Darts",88},
-    {"Bldg Block",89},
-    {"Cap",90},
-    {"Bow Tie",91},
-    {"Wings",92},
-    {"Hair Gel",93},
-    {"Clock",94},
-    {"Chest",95},
-    {"Phonograph",96},
-    {"Fishing Pole",97},
-    {"Mirror",98},
-    {"Make Up",99},
-    {"Boom Box",100},
-    {"Music Disc",101},
-    {"Shirt",102},
-    {"Shoes",103},
-    {"Ticket 1",104},
-    {"Ticket 2",105},
-    {"Ticket 3",106},
-    {"Ticket 4",107},
-    {"Ticket 5",108},
-    {"Doll 1",109},
-    {"Umbrella",110},
-    {"Lamp",111},
-    {"Roller Blades",112},
-    {"Action Figure",113},
-    {"Stuffed Tama 1",114},
-    {"Stuffed Tama 2",115},
-    {"Trumpet",116},
-    {"Drum",117},
-    {"Throne",118},
-    {"Music",119},
-    {"Plant",120},
-    {"Shovel",121},
-    {"TV",122},
-    {"Honey",123},
-    {"Royal Costume",124},
-    {"Clone !!",125},
-    {"Balloon",126},
-    {"Rope",127},
-    {"Doll 2",128},
-    {"Tama Drink",129},
-    {"Castle",130},
-    {"Shaver",131},
+    {"Ball", 78},
+    {"Pencil", 79},
+    {"Wig", 80},
+    {"Sunglasses", 81},
+    {"RC Car 1", 82},
+    {"Pen", 83},
+    {"Weights", 84},
+    {"RC Car 2", 85},
+    {"RC Car 3", 86},
+    {"Bow", 87},
+    {"Darts", 88},
+    {"Bldg Block", 89},
+    {"Cap", 90},
+    {"Bow Tie", 91},
+    {"Wings", 92},
+    {"Hair Gel", 93},
+    {"Clock", 94},
+    {"Chest", 95},
+    {"Phonograph", 96},
+    {"Fishing Pole", 97},
+    {"Mirror", 98},
+    {"Make Up", 99},
+    {"Boom Box", 100},
+    {"Music Disc", 101},
+    {"Shirt", 102},
+    {"Shoes", 103},
+    {"Ticket 1", 104},
+    {"Ticket 2", 105},
+    {"Ticket 3", 106},
+    {"Ticket 4", 107},
+    {"Ticket 5", 108},
+    {"Doll 1", 109},
+    {"Umbrella", 110},
+    {"Lamp", 111},
+    {"Roller Blades", 112},
+    {"Action Figure", 113},
+    {"Stuffed Tama 1", 114},
+    {"Stuffed Tama 2", 115},
+    {"Trumpet", 116},
+    {"Drum", 117},
+    {"Throne", 118},
+    {"Music", 119},
+    {"Plant", 120},
+    {"Shovel", 121},
+    {"TV", 122},
+    {"Honey", 123},
+    {"Royal Costume", 124},
+    {"Clone !!", 125},
+    {"Balloon", 126},
+    {"Rope", 127},
+    {"Doll 2", 128},
+    {"Tama Drink", 129},
+    {"Castle", 130},
+    {"Shaver", 131},
 };
 
 static const TamaGiftEntry tama_gift_special[] = {
-    {"Cone [effect]",132},
-    {"Flower [effect]",133},
-    {"Poop [effect]",134},
-    {"Jack in Box",135},
-    {"Cake [effect]",136},
-    {"Heart [effect]",137},
-    {"Snake [effect]",138},
-    {"Blank / Nothing",139},
-    {"Ghost [effect]",140},
-    {"Sickness [effect]",141},
+    {"Cone [effect]", 132},
+    {"Flower [effect]", 133},
+    {"Poop [effect]", 134},
+    {"Jack in Box", 135},
+    {"Cake [effect]", 136},
+    {"Heart [effect]", 137},
+    {"Snake [effect]", 138},
+    {"Blank / Nothing", 139},
+    {"Ghost [effect]", 140},
+    {"Sickness [effect]", 141},
 };
-
 
 typedef enum {
     TamaGiftCategoryFood,
@@ -1154,11 +1070,7 @@ typedef enum {
     TamaGiftCategorySpecial,
 } TamaGiftCategory;
 
-
-static void tama_gift_category_selected(
-    void* context,
-    uint32_t index) {
-
+static void tama_gift_category_selected(void* context, uint32_t index) {
     TamaMenuState* state = context;
 
     state->gift_id = (uint8_t)index;
@@ -1167,33 +1079,24 @@ static void tama_gift_category_selected(
     api_lock_unlock(state->lock);
 }
 
-
-static void tama_gift_selected(
-    void* context,
-    uint32_t index) {
-
+static void tama_gift_selected(void* context, uint32_t index) {
     TamaMenuState* state = context;
 
     if(index == 256) {
         /* Special: 132-141 */
-        state->gift_id =
-            (uint8_t)(132 + (furi_hal_random_get() % 10));
+        state->gift_id = (uint8_t)(132 + (furi_hal_random_get() % 10));
     } else if(index == 257) {
         /* Any normal gift: 0-131 */
-        state->gift_id =
-            (uint8_t)(furi_hal_random_get() % 132);
+        state->gift_id = (uint8_t)(furi_hal_random_get() % 132);
     } else if(index == 258) {
         /* Food: 0-35 */
-        state->gift_id =
-            (uint8_t)(furi_hal_random_get() % 36);
+        state->gift_id = (uint8_t)(furi_hal_random_get() % 36);
     } else if(index == 259) {
         /* Snacks: 36-77 */
-        state->gift_id =
-            (uint8_t)(36 + (furi_hal_random_get() % 42));
+        state->gift_id = (uint8_t)(36 + (furi_hal_random_get() % 42));
     } else if(index == 260) {
         /* Items: 78-131 */
-        state->gift_id =
-            (uint8_t)(78 + (furi_hal_random_get() % 54));
+        state->gift_id = (uint8_t)(78 + (furi_hal_random_get() % 54));
     } else {
         state->gift_id = (uint8_t)index;
     }
@@ -1203,53 +1106,27 @@ static void tama_gift_selected(
     api_lock_unlock(state->lock);
 }
 
-
-static TamaAction tama_choose_gift_category(
-    TamaMenuState* state,
-    ViewHolder* view_holder) {
-
+static TamaAction tama_choose_gift_category(TamaMenuState* state, ViewHolder* view_holder) {
     Submenu* menu = submenu_alloc();
 
     submenu_set_header(menu, "Gift");
 
-    submenu_add_item(
-        menu, "Random Gift",
-        257,
-        tama_gift_selected,
-        state);
+    submenu_add_item(menu, "Random Gift", 257, tama_gift_selected, state);
 
-    submenu_add_item(
-        menu, "Food",
-        TamaGiftCategoryFood,
-        tama_gift_category_selected,
-        state);
+    submenu_add_item(menu, "Food", TamaGiftCategoryFood, tama_gift_category_selected, state);
 
-    submenu_add_item(
-        menu, "Snacks",
-        TamaGiftCategorySnacks,
-        tama_gift_category_selected,
-        state);
+    submenu_add_item(menu, "Snacks", TamaGiftCategorySnacks, tama_gift_category_selected, state);
 
-    submenu_add_item(
-        menu, "Items",
-        TamaGiftCategoryItems,
-        tama_gift_category_selected,
-        state);
+    submenu_add_item(menu, "Items", TamaGiftCategoryItems, tama_gift_category_selected, state);
 
-    submenu_add_item(
-        menu, "Special",
-        TamaGiftCategorySpecial,
-        tama_gift_category_selected,
-        state);
+    submenu_add_item(menu, "Special", TamaGiftCategorySpecial, tama_gift_category_selected, state);
 
-    TamaAction action =
-        tama_wait(state, view_holder, submenu_get_view(menu));
+    TamaAction action = tama_wait(state, view_holder, submenu_get_view(menu));
 
     submenu_free(menu);
 
     return action;
 }
-
 
 static TamaAction tama_choose_gift_from_table(
     TamaMenuState* state,
@@ -1258,7 +1135,6 @@ static TamaAction tama_choose_gift_from_table(
     const TamaGiftEntry* entries,
     size_t count,
     uint32_t random_command) {
-
     Submenu* menu = submenu_alloc();
 
     submenu_set_header(menu, title);
@@ -1274,36 +1150,21 @@ static TamaAction tama_choose_gift_from_table(
             random_name = "Random Item";
         }
 
-        submenu_add_item(
-            menu,
-            random_name,
-            random_command,
-            tama_gift_selected,
-            state);
+        submenu_add_item(menu, random_name, random_command, tama_gift_selected, state);
     }
 
     for(size_t i = 0; i < count; i++) {
-        submenu_add_item(
-            menu,
-            entries[i].name,
-            entries[i].id,
-            tama_gift_selected,
-            state);
+        submenu_add_item(menu, entries[i].name, entries[i].id, tama_gift_selected, state);
     }
 
-    TamaAction action =
-        tama_wait(state, view_holder, submenu_get_view(menu));
+    TamaAction action = tama_wait(state, view_holder, submenu_get_view(menu));
 
     submenu_free(menu);
 
     return action;
 }
 
-
-static TamaAction tama_choose_special(
-    TamaMenuState* state,
-    ViewHolder* view_holder) {
-
+static TamaAction tama_choose_special(TamaMenuState* state, ViewHolder* view_holder) {
     Submenu* menu = submenu_alloc();
 
     submenu_set_header(menu, "Special");
@@ -1312,34 +1173,19 @@ static TamaAction tama_choose_special(
      * 256 is outside uint8_t Gift IDs and therefore
      * safely acts as the Random menu command.
      */
-    submenu_add_item(
-        menu,
-        "Random Special",
-        256,
-        tama_gift_selected,
-        state);
+    submenu_add_item(menu, "Random Special", 256, tama_gift_selected, state);
 
-    for(size_t i = 0;
-        i < sizeof(tama_gift_special) /
-            sizeof(tama_gift_special[0]);
-        i++) {
-
+    for(size_t i = 0; i < sizeof(tama_gift_special) / sizeof(tama_gift_special[0]); i++) {
         submenu_add_item(
-            menu,
-            tama_gift_special[i].name,
-            tama_gift_special[i].id,
-            tama_gift_selected,
-            state);
+            menu, tama_gift_special[i].name, tama_gift_special[i].id, tama_gift_selected, state);
     }
 
-    TamaAction action =
-        tama_wait(state, view_holder, submenu_get_view(menu));
+    TamaAction action = tama_wait(state, view_holder, submenu_get_view(menu));
 
     submenu_free(menu);
 
     return action;
 }
-
 
 static void tama_game_selected(void* context, uint32_t index) {
     TamaMenuState* state = context;
@@ -1350,26 +1196,19 @@ static void tama_game_selected(void* context, uint32_t index) {
     api_lock_unlock(state->lock);
 }
 
-static TamaAction tama_choose_game(
-    TamaMenuState* state,
-    ViewHolder* view_holder) {
-
+static TamaAction tama_choose_game(TamaMenuState* state, ViewHolder* view_holder) {
     Submenu* menu = submenu_alloc();
 
     submenu_set_header(menu, "Choose game");
 
-    submenu_add_item(
-        menu, "Points", TamaGamePoints,
-        tama_game_selected, state);
+    submenu_add_item(menu, "Points", TamaGamePoints, tama_game_selected, state);
 
-    TamaAction action =
-        tama_wait(state, view_holder, submenu_get_view(menu));
+    TamaAction action = tama_wait(state, view_holder, submenu_get_view(menu));
 
     submenu_free(menu);
 
     return action;
 }
-
 
 static void tama_game_amount_selected(void* context, uint32_t index) {
     TamaMenuState* state = context;
@@ -1380,72 +1219,45 @@ static void tama_game_amount_selected(void* context, uint32_t index) {
     api_lock_unlock(state->lock);
 }
 
-
-static TamaAction tama_choose_game_amount(
-    TamaMenuState* state,
-    ViewHolder* view_holder) {
-
+static TamaAction tama_choose_game_amount(TamaMenuState* state, ViewHolder* view_holder) {
     Submenu* menu = submenu_alloc();
 
     submenu_set_header(menu, "Points wager");
 
-    submenu_add_item(
-        menu, "10 GP", 10,
-        tama_game_amount_selected, state);
+    submenu_add_item(menu, "10 GP", 10, tama_game_amount_selected, state);
 
-    submenu_add_item(
-        menu, "30 GP", 30,
-        tama_game_amount_selected, state);
+    submenu_add_item(menu, "30 GP", 30, tama_game_amount_selected, state);
 
-    submenu_add_item(
-        menu, "50 GP", 50,
-        tama_game_amount_selected, state);
+    submenu_add_item(menu, "50 GP", 50, tama_game_amount_selected, state);
 
-    submenu_add_item(
-        menu, "99 GP", 99,
-        tama_game_amount_selected, state);
+    submenu_add_item(menu, "99 GP", 99, tama_game_amount_selected, state);
 
-    submenu_add_item(
-        menu, "255 GP", 255,
-        tama_game_amount_selected, state);
+    submenu_add_item(menu, "255 GP", 255, tama_game_amount_selected, state);
 
-    TamaAction action =
-        tama_wait(state, view_holder, submenu_get_view(menu));
+    TamaAction action = tama_wait(state, view_holder, submenu_get_view(menu));
 
     submenu_free(menu);
 
     return action;
 }
 
-
-static TamaAction tama_choose_game_result(
-    TamaMenuState* state,
-    ViewHolder* view_holder) {
-
+static TamaAction tama_choose_game_result(TamaMenuState* state, ViewHolder* view_holder) {
     Submenu* menu = submenu_alloc();
 
     submenu_set_header(menu, "Game result");
 
-    submenu_add_item(
-        menu, "Win", TamaGameWin,
-        tama_game_result_selected, state);
+    submenu_add_item(menu, "Win", TamaGameWin, tama_game_result_selected, state);
 
-    submenu_add_item(
-        menu, "Lose", TamaGameLose,
-        tama_game_result_selected, state);
+    submenu_add_item(menu, "Lose", TamaGameLose, tama_game_result_selected, state);
 
-    submenu_add_item(
-        menu, "Random", TamaGameRandom,
-        tama_game_result_selected, state);
+    submenu_add_item(menu, "Random", TamaGameRandom, tama_game_result_selected, state);
 
-    TamaAction action =
-        tama_wait(state, view_holder, submenu_get_view(menu));
+    TamaAction action = tama_wait(state, view_holder, submenu_get_view(menu));
 
     submenu_free(menu);
 
     return action;
 }
-
 
 /* ---------- Name editor ---------- */
 
@@ -1465,10 +1277,7 @@ static void tama_name_saved(void* context) {
     api_lock_unlock(state->lock);
 }
 
-static TamaAction tama_edit_name(
-    TamaMenuState* state,
-    ViewHolder* view_holder) {
-
+static TamaAction tama_edit_name(TamaMenuState* state, ViewHolder* view_holder) {
     strncpy(state->name_edit, state->profile.name, 5);
     state->name_edit[5] = '\0';
 
@@ -1477,24 +1286,14 @@ static TamaAction tama_edit_name(
     text_input_set_header_text(input, "Tamagotchi name");
 
     text_input_set_result_callback(
-        input,
-        tama_name_saved,
-        state,
-        state->name_edit,
-        sizeof(state->name_edit),
-        false);
+        input, tama_name_saved, state, state->name_edit, sizeof(state->name_edit), false);
 
-    TamaAction action =
-        tama_wait(
-            state,
-            view_holder,
-            text_input_get_view(input));
+    TamaAction action = tama_wait(state, view_holder, text_input_get_view(input));
 
     text_input_free(input);
 
     return action;
 }
-
 
 /* ---------- Settings menu ---------- */
 
@@ -1517,41 +1316,19 @@ static void tama_setting_selected(void* context, uint32_t index) {
     api_lock_unlock(state->lock);
 }
 
-static TamaAction tama_settings_menu(
-    TamaMenuState* state,
-    ViewHolder* view_holder,
-    TamaSetting* selected) {
-
+static TamaAction
+    tama_settings_menu(TamaMenuState* state, ViewHolder* view_holder, TamaSetting* selected) {
     Submenu* menu = submenu_alloc();
 
     submenu_set_header(menu, "Settings");
 
-    submenu_add_item(
-        menu,
-        "Name",
-        TamaSettingName,
-        tama_setting_selected,
-        state);
+    submenu_add_item(menu, "Name", TamaSettingName, tama_setting_selected, state);
 
-    submenu_add_item(
-        menu,
-        "Character",
-        TamaSettingCharacter,
-        tama_setting_selected,
-        state);
+    submenu_add_item(menu, "Character", TamaSettingCharacter, tama_setting_selected, state);
 
-    submenu_add_item(
-        menu,
-        "Gender",
-        TamaSettingGender,
-        tama_setting_selected,
-        state);
+    submenu_add_item(menu, "Gender", TamaSettingGender, tama_setting_selected, state);
 
-    TamaAction action =
-        tama_wait(
-            state,
-            view_holder,
-            submenu_get_view(menu));
+    TamaAction action = tama_wait(state, view_holder, submenu_get_view(menu));
 
     if(action == TamaActionSelect) {
         *selected = (TamaSetting)((uint32_t)state->mode - 100);
@@ -1562,23 +1339,15 @@ static TamaAction tama_settings_menu(
     return action;
 }
 
-
 /* ---------- Complete Settings screen ---------- */
 
-static void tama_run_settings(
-    TamaMenuState* state,
-    ViewHolder* view_holder) {
-
+static void tama_run_settings(TamaMenuState* state, ViewHolder* view_holder) {
     bool settings_open = true;
 
     while(settings_open) {
         TamaSetting selected = TamaSettingName;
 
-        TamaAction action =
-            tama_settings_menu(
-                state,
-                view_holder,
-                &selected);
+        TamaAction action = tama_settings_menu(state, view_holder, &selected);
 
         if(action == TamaActionBack) {
             settings_open = false;
@@ -1586,22 +1355,17 @@ static void tama_run_settings(
         }
 
         if(selected == TamaSettingName) {
-
             tama_edit_name(state, view_holder);
 
         } else if(selected == TamaSettingCharacter) {
-
-            action =
-                tama_choose_character(state, view_holder);
+            action = tama_choose_character(state, view_holder);
 
             if(action == TamaActionSelect) {
                 tama_profile_save(&state->profile);
             }
 
         } else if(selected == TamaSettingGender) {
-
-            action =
-                tama_choose_gender(state, view_holder);
+            action = tama_choose_gender(state, view_holder);
 
             if(action == TamaActionSelect) {
                 tama_profile_save(&state->profile);
@@ -1610,13 +1374,9 @@ static void tama_run_settings(
     }
 }
 
-
 /* ---------- Run connection ---------- */
 
-static void tama_run_connection(
-    TamaMenuState* state,
-    ViewHolder* view_holder) {
-
+static void tama_run_connection(TamaMenuState* state, ViewHolder* view_holder) {
     TextBox* text_box = text_box_alloc();
 
     if(state->mode == TamaModeVisit) {
@@ -1645,41 +1405,27 @@ static void tama_run_connection(
     /*
      * Disable Back while IR transaction is running.
      */
-    view_holder_set_back_callback(
-        view_holder,
-        NULL,
-        NULL);
+    view_holder_set_back_callback(view_holder, NULL, NULL);
 
-    view_holder_set_view(
-        view_holder,
-        text_box_get_view(text_box));
+    view_holder_set_view(view_holder, text_box_get_view(text_box));
 
     furi_delay_ms(1000);
 
     bool success;
 
     if(state->mode == TamaModeVisit) {
-        success =
-            music_visit(
-                state->profile.character,
-                state->profile.girl,
-                state->profile.name);
+        success = music_visit(state->profile.character, state->profile.girl, state->profile.name);
     } else if(state->mode == TamaModeGift) {
-        success =
-            tama_send_gift(
-                state->profile.character,
-                state->profile.girl,
-                state->profile.name,
-                state->gift_id);
+        success = tama_send_gift(
+            state->profile.character, state->profile.girl, state->profile.name, state->gift_id);
     } else {
-        success =
-            tama_game(
-                state->profile.character,
-                state->profile.girl,
-                state->profile.name,
-                state->game,
-                state->game_amount,
-                state->game_result);
+        success = tama_game(
+            state->profile.character,
+            state->profile.girl,
+            state->profile.name,
+            state->game,
+            state->game_amount,
+            state->game_result);
     }
 
     if(success) {
@@ -1705,7 +1451,6 @@ static void tama_run_connection(
     view_holder_set_view(view_holder, NULL);
     text_box_free(text_box);
 }
-
 
 /* =========================================================
  * Main application
@@ -1741,44 +1486,19 @@ int32_t tama_connect(void* arg) {
     bool running = true;
 
     while(running) {
-
         Submenu* main_menu = submenu_alloc();
 
         submenu_set_header(main_menu, "TamaConnect");
 
-        submenu_add_item(
-            main_menu,
-            "Visit",
-            TamaModeVisit,
-            tama_main_selected,
-            &state);
+        submenu_add_item(main_menu, "Visit", TamaModeVisit, tama_main_selected, &state);
 
-        submenu_add_item(
-            main_menu,
-            "Game",
-            TamaModeGame,
-            tama_main_selected,
-            &state);
+        submenu_add_item(main_menu, "Game", TamaModeGame, tama_main_selected, &state);
 
-        submenu_add_item(
-            main_menu,
-            "Gift",
-            TamaModeGift,
-            tama_main_selected,
-            &state);
+        submenu_add_item(main_menu, "Gift", TamaModeGift, tama_main_selected, &state);
 
-        submenu_add_item(
-            main_menu,
-            "Settings",
-            TamaModeSettings,
-            tama_main_selected,
-            &state);
+        submenu_add_item(main_menu, "Settings", TamaModeSettings, tama_main_selected, &state);
 
-        TamaAction action =
-            tama_wait(
-                &state,
-                view_holder,
-                submenu_get_view(main_menu));
+        TamaAction action = tama_wait(&state, view_holder, submenu_get_view(main_menu));
 
         submenu_free(main_menu);
 
@@ -1810,95 +1530,68 @@ int32_t tama_connect(void* arg) {
          * GIFT
          */
         if(state.mode == TamaModeGift) {
-
-            action =
-                tama_choose_gift_category(
-                    &state,
-                    view_holder);
+            action = tama_choose_gift_category(&state, view_holder);
 
             if(action == TamaActionBack) {
                 continue;
             }
 
-            TamaGiftCategory category =
-                (TamaGiftCategory)state.gift_id;
+            TamaGiftCategory category = (TamaGiftCategory)state.gift_id;
 
             if(category == TamaGiftCategoryFood) {
-                action =
-                    tama_choose_gift_from_table(
-                        &state,
-                        view_holder,
-                        "Food",
-                        tama_gift_food,
-                        sizeof(tama_gift_food) /
-                            sizeof(tama_gift_food[0]),
-                        258);
+                action = tama_choose_gift_from_table(
+                    &state,
+                    view_holder,
+                    "Food",
+                    tama_gift_food,
+                    sizeof(tama_gift_food) / sizeof(tama_gift_food[0]),
+                    258);
             } else if(category == TamaGiftCategorySnacks) {
-                action =
-                    tama_choose_gift_from_table(
-                        &state,
-                        view_holder,
-                        "Snacks",
-                        tama_gift_snacks,
-                        sizeof(tama_gift_snacks) /
-                            sizeof(tama_gift_snacks[0]),
-                        259);
+                action = tama_choose_gift_from_table(
+                    &state,
+                    view_holder,
+                    "Snacks",
+                    tama_gift_snacks,
+                    sizeof(tama_gift_snacks) / sizeof(tama_gift_snacks[0]),
+                    259);
             } else if(category == TamaGiftCategoryItems) {
-                action =
-                    tama_choose_gift_from_table(
-                        &state,
-                        view_holder,
-                        "Items",
-                        tama_gift_items,
-                        sizeof(tama_gift_items) /
-                            sizeof(tama_gift_items[0]),
-                        260);
+                action = tama_choose_gift_from_table(
+                    &state,
+                    view_holder,
+                    "Items",
+                    tama_gift_items,
+                    sizeof(tama_gift_items) / sizeof(tama_gift_items[0]),
+                    260);
             } else {
-                action =
-                    tama_choose_special(
-                        &state,
-                        view_holder);
+                action = tama_choose_special(&state, view_holder);
             }
 
             if(action == TamaActionBack) {
                 continue;
             }
 
-            tama_run_connection(
-                &state,
-                view_holder);
+            tama_run_connection(&state, view_holder);
 
             continue;
         }
-
 
         /*
          * GAME
          */
         if(state.mode == TamaModeGame) {
-            action =
-                tama_choose_game(
-                    &state,
-                    view_holder);
+            action = tama_choose_game(&state, view_holder);
 
             if(action == TamaActionBack) {
                 continue;
             }
 
-
-            action =
-                tama_choose_game_amount(
-                    &state,
-                    view_holder);
+            action = tama_choose_game_amount(&state, view_holder);
 
             if(action == TamaActionBack) {
                 continue;
             }
 
-            action =
-                tama_choose_game_result(
-                    &state,
-                    view_holder);
+            action = tama_choose_game_result(&state, view_holder);
 
             if(action == TamaActionBack) {
                 continue;
