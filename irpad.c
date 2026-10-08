@@ -199,10 +199,12 @@ static void auto_label(const char* sig, char* text, size_t tn, char* icon, size_
     if(strstr(lo, "play")) SET("play", "Play");
 #undef SET
 
-    // fallback: clean the raw name (underscores -> spaces); the renderer trims to width
+    // fallback: clean the raw name (underscores -> spaces)
     size_t j = 0;
     for(size_t k = 0; sig[k] && j < tn - 1; k++) text[j++] = (sig[k] == '_') ? ' ' : sig[k];
     text[j] = '\0';
+    // a long label won't fit a half-width button legibly -> give it a full row
+    if(j > 5) *size = SizeLong;
 }
 
 // build an ad-hoc remote from a raw .ir file: smart label/icon per signal
