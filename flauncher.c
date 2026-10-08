@@ -389,6 +389,29 @@ static void input_cb(InputEvent* event, void* ctx) {
     furi_message_queue_put(app->input_queue, event, FuriWaitForever);
 }
 
+// grid navigation with wrap-around; handles a partial last row by skipping to
+// the next/prev row that actually has the current column populated
+static uint8_t grid_nav(uint8_t index, uint8_t count, uint16_t key) {
+    if(count == 0) return 0;
+    uint8_t col = index % COLS;
+    uint8_t row = index / COLS;
+    uint8_t rows = (count + COLS - 1) / COLS;
+    if(key == InputKeyLeft) return (index + count - 1) % count;
+    if(key == InputKeyRight) return (index + 1) % count;
+    if(key == InputKeyDown) {
+        for(uint8_t k = 1; k <= rows; k++) {
+            uint8_t ni = ((row + k) % rows) * COLS + col;
+            if(ni < count) return ni;
+        }
+    } else if(key == InputKeyUp) {
+        for(uint8_t k = 1; k <= rows; k++) {
+            uint8_t ni = ((row + rows - k) % rows) * COLS + col;
+            if(ni < count) return ni;
+        }
+    }
+    return index;
+}
+
 // ---- entry ---------------------------------------------------------------
 
 int32_t flauncher_app(void* p) {
@@ -417,15 +440,7 @@ int32_t flauncher_app(void* p) {
 
         if(app->mode == ModePicker) {
             if(move && app->icon_count) {
-                uint8_t i = app->pick_index;
-                if(event.key == InputKeyLeft && i > 0)
-                    app->pick_index = i - 1;
-                else if(event.key == InputKeyRight && i + 1 < app->icon_count)
-                    app->pick_index = i + 1;
-                else if(event.key == InputKeyUp && i >= COLS)
-                    app->pick_index = i - COLS;
-                else if(event.key == InputKeyDown && i + COLS < app->icon_count)
-                    app->pick_index = i + COLS;
+                app->pick_index = grid_nav(app->pick_index, app->icon_count, event.key);
                 uint8_t prow = app->pick_index / COLS;
                 if(prow < app->pick_row_offset) app->pick_row_offset = prow;
                 if(prow > app->pick_row_offset + (VIS_ROWS - 1))
@@ -454,15 +469,7 @@ int32_t flauncher_app(void* p) {
 
         // ModeGrid
         if(move && app->count) {
-            uint8_t i = app->index;
-            if(event.key == InputKeyLeft && i > 0)
-                app->index = i - 1;
-            else if(event.key == InputKeyRight && i + 1 < app->count)
-                app->index = i + 1;
-            else if(event.key == InputKeyUp && i >= COLS)
-                app->index = i - COLS;
-            else if(event.key == InputKeyDown && i + COLS < app->count)
-                app->index = i + COLS;
+            app->index = grid_nav(app->index, app->count, event.key);
             uint8_t srow = app->index / COLS;
             if(srow < app->row_offset) app->row_offset = srow;
             if(srow > app->row_offset + (VIS_ROWS - 1)) app->row_offset = srow - (VIS_ROWS - 1);
