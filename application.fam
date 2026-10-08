@@ -1,0 +1,12 @@
+App(
+    appid="irpad",
+    name="IR Pad",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="irpad_app",
+    stack_size=4 * 1024,
+    fap_category="Infrared",
+    fap_version="0.1",
+    fap_author="tbelbek",
+    fap_description="Customizable IR remote: vertical long/short buttons, icon-or-text, multi-remote, on-device editor",
+    requires=["gui", "storage", "dialogs"],
+)
