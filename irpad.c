@@ -73,7 +73,7 @@ typedef struct App {
     View* layout_view;
     Submenu* edit_menu;
     Submenu* signals_menu;
-    Submenu* icons_menu;
+    View* icon_view;
     TextInput* text_input;
     DialogsApp* dialogs;
 
@@ -95,6 +95,10 @@ typedef struct App {
     char pending_file[160]; // .ir chosen in the browser, awaiting signal pick
     char icon_list[MAX_ICONS][24];
     uint8_t icon_list_count;
+    uint8_t icon_bms[MAX_ICONS][ICON_FILE]; // preloaded for the grid
+    bool icon_bm_ok[MAX_ICONS];
+    uint8_t icon_sel;
+    uint8_t icon_off; // grid scroll (row)
     char sig_names[64][32];
     uint8_t sig_count;
 } App;
@@ -438,7 +442,7 @@ static void layout_draw(Canvas* c, void* model) {
     // footer: move-mode hint, else page dots
     if(app->move_mode) {
         canvas_set_font(c, FontSecondary);
-        canvas_draw_str_aligned(c, W / 2, H - 2, AlignCenter, AlignBottom, "MOVE");
+        canvas_draw_str_aligned(c, W / 2, H - 2, AlignCenter, AlignBottom, "OK=done");
     } else if(app->page_count > 1) {
         int gap = 7;
         int x0 = W / 2 - (app->page_count - 1) * gap / 2;
@@ -636,19 +640,13 @@ static void build_signals_menu(App* app) {
     flipper_format_free(ff);
 }
 
-static void icons_cb(void* ctx, uint32_t idx) {
-    App* app = ctx;
-    Button* b = &app->buttons[app->index];
-    if(idx == 255)
-        b->icon[0] = '\0';
-    else if(idx < app->icon_list_count)
-        strlcpy(b->icon, app->icon_list[idx], sizeof(b->icon));
-    load_icon(app, b->icon, b->icon_bm, &b->icon_ok);
-    save_remote(app);
-    back_to_layout(app);
-}
+// ---- icon picker grid ----
+#define IPICK_COLS 2
+#define IPICK_CW   31
+#define IPICK_CH   30
+#define IPICK_ROWS 4
 
-static void build_icons_menu(App* app) {
+static void build_icons(App* app) {
     app->icon_list_count = 0;
     File* dir = storage_file_alloc(app->storage);
     char name[64];
@@ -659,16 +657,86 @@ static void build_icons_menu(App* app) {
             char* dot = strrchr(name, '.');
             if(!dot || strcasecmp(dot, ".bm")) continue;
             *dot = '\0';
-            strlcpy(app->icon_list[app->icon_list_count++], name, 24);
+            uint8_t n = app->icon_list_count;
+            strlcpy(app->icon_list[n], name, 24);
+            load_icon(app, app->icon_list[n], app->icon_bms[n], &app->icon_bm_ok[n]);
+            app->icon_list_count++;
         }
     }
     storage_dir_close(dir);
     storage_file_free(dir);
-    submenu_reset(app->icons_menu);
-    submenu_set_header(app->icons_menu, "Pick icon");
-    submenu_add_item(app->icons_menu, "(none)", 255, icons_cb, app);
+    // start on the button's current icon, else the trailing "none" cell
+    app->icon_sel = app->icon_list_count;
     for(uint8_t i = 0; i < app->icon_list_count; i++)
-        submenu_add_item(app->icons_menu, app->icon_list[i], i, icons_cb, app);
+        if(!strcmp(app->icon_list[i], app->buttons[app->index].icon)) {
+            app->icon_sel = i;
+            break;
+        }
+    uint8_t row = app->icon_sel / IPICK_COLS;
+    app->icon_off = (row >= IPICK_ROWS) ? row - (IPICK_ROWS - 1) : 0;
+}
+
+static void icon_draw(Canvas* c, void* model) {
+    LayoutModel* m = model;
+    App* app = m->app;
+    canvas_clear(c);
+    uint8_t total = app->icon_list_count + 1; // trailing cell = "none"
+    for(uint8_t vr = 0; vr < IPICK_ROWS; vr++) {
+        for(uint8_t col = 0; col < IPICK_COLS; col++) {
+            uint8_t k = (app->icon_off + vr) * IPICK_COLS + col;
+            if(k >= total) continue;
+            int x = 2 + col * IPICK_CW;
+            int y = vr * IPICK_CH + 1;
+            bool sel = (k == app->icon_sel);
+            if(sel) canvas_draw_rbox(c, x, y, IPICK_CW - 2, IPICK_CH - 2, 3);
+            if(sel) canvas_set_color(c, ColorWhite);
+            if(k < app->icon_list_count && app->icon_bm_ok[k]) {
+                canvas_draw_xbm(c, x + (IPICK_CW - 2 - ICON_W) / 2, y + (IPICK_CH - 2 - ICON_H) / 2,
+                                ICON_W, ICON_H, app->icon_bms[k] + 1);
+            } else {
+                canvas_set_font(c, FontSecondary);
+                canvas_draw_str_aligned(c, x + IPICK_CW / 2, y + IPICK_CH / 2, AlignCenter,
+                                        AlignCenter, (k < app->icon_list_count) ? "?" : "none");
+            }
+            if(sel) canvas_set_color(c, ColorBlack);
+        }
+    }
+}
+
+static bool icon_input(InputEvent* e, void* ctx) {
+    App* app = ctx;
+    if(e->type != InputTypeShort && e->type != InputTypeRepeat) return false;
+    uint8_t total = app->icon_list_count + 1;
+    uint8_t s = app->icon_sel;
+    if(e->key == InputKeyOk) {
+        Button* b = &app->buttons[app->index];
+        if(app->icon_sel >= app->icon_list_count)
+            b->icon[0] = '\0';
+        else
+            strlcpy(b->icon, app->icon_list[app->icon_sel], sizeof(b->icon));
+        load_icon(app, b->icon, b->icon_bm, &b->icon_ok);
+        save_remote(app);
+        back_to_layout(app);
+        return true;
+    }
+    if(e->key == InputKeyBack) {
+        view_dispatcher_switch_to_view(app->vd, ViewIdEdit);
+        return true;
+    }
+    if(e->key == InputKeyUp && s >= IPICK_COLS)
+        s -= IPICK_COLS;
+    else if(e->key == InputKeyDown && s + IPICK_COLS < total)
+        s += IPICK_COLS;
+    else if(e->key == InputKeyLeft && (s % IPICK_COLS))
+        s--;
+    else if(e->key == InputKeyRight && (s % IPICK_COLS) == 0 && s + 1 < total)
+        s++;
+    app->icon_sel = s;
+    uint8_t row = s / IPICK_COLS;
+    if(row < app->icon_off) app->icon_off = row;
+    if(row > app->icon_off + (IPICK_ROWS - 1)) app->icon_off = row - (IPICK_ROWS - 1);
+    with_view_model(app->icon_view, LayoutModel * mm, { mm->app = app; }, true);
+    return true;
 }
 
 static void text_done_cb(void* ctx) {
@@ -717,8 +785,9 @@ static void edit_cb(void* ctx, uint32_t idx) {
             app->text_input, text_done_cb, app, app->text_buf, sizeof(app->text_buf), true);
         view_dispatcher_switch_to_view(app->vd, ViewIdText);
         break;
-    case 2: // set icon
-        build_icons_menu(app);
+    case 2: // set icon (grid picker)
+        build_icons(app);
+        with_view_model(app->icon_view, LayoutModel * m, { m->app = app; }, true);
         view_dispatcher_switch_to_view(app->vd, ViewIdIcons);
         break;
     case 3: // toggle size
@@ -745,17 +814,25 @@ static void edit_cb(void* ctx, uint32_t idx) {
         }
         back_to_layout(app);
         break;
-    case 6: // delete
-        if(app->button_count > 0) {
+    case 6: { // delete (with confirmation)
+        DialogMessage* m = dialog_message_alloc();
+        dialog_message_set_text(m, "Delete this button?", 64, 28, AlignCenter, AlignCenter);
+        dialog_message_set_buttons(m, "Cancel", NULL, "Delete");
+        DialogMessageButton res = dialog_message_show(app->dialogs, m);
+        dialog_message_free(m);
+        if(res == DialogMessageButtonRight && app->button_count > 0) {
             for(int i = app->index; i + 1 < app->button_count; i++)
                 app->buttons[i] = app->buttons[i + 1];
             app->button_count--;
             if(app->index >= app->button_count && app->index > 0) app->index--;
             compute_rows(app);
             save_remote(app);
+            back_to_layout(app);
+        } else {
+            view_dispatcher_switch_to_view(app->vd, ViewIdEdit);
         }
-        back_to_layout(app);
         break;
+    }
     }
 }
 
@@ -811,13 +888,17 @@ int32_t irpad_app(void* p) {
     view_set_previous_callback(submenu_get_view(app->signals_menu), ret_edit);
     view_dispatcher_add_view(app->vd, ViewIdSignals, submenu_get_view(app->signals_menu));
 
-    app->icons_menu = submenu_alloc();
-    view_set_orientation(submenu_get_view(app->icons_menu), ViewOrientationVertical);
-    view_set_previous_callback(submenu_get_view(app->icons_menu), ret_edit);
-    view_dispatcher_add_view(app->vd, ViewIdIcons, submenu_get_view(app->icons_menu));
+    app->icon_view = view_alloc();
+    view_set_orientation(app->icon_view, ViewOrientationVertical);
+    view_allocate_model(app->icon_view, ViewModelTypeLocking, sizeof(LayoutModel));
+    with_view_model(app->icon_view, LayoutModel * m, { m->app = app; }, false);
+    view_set_context(app->icon_view, app);
+    view_set_draw_callback(app->icon_view, icon_draw);
+    view_set_input_callback(app->icon_view, icon_input);
+    view_dispatcher_add_view(app->vd, ViewIdIcons, app->icon_view);
 
     app->text_input = text_input_alloc();
-    view_set_orientation(text_input_get_view(app->text_input), ViewOrientationVertical);
+    // keyboard stays landscape (it needs the full 128px width); user rotates to type
     view_set_previous_callback(text_input_get_view(app->text_input), ret_edit);
     view_dispatcher_add_view(app->vd, ViewIdText, text_input_get_view(app->text_input));
 
@@ -862,8 +943,8 @@ int32_t irpad_app(void* p) {
     submenu_free(app->remotes_menu);
     submenu_free(app->edit_menu);
     submenu_free(app->signals_menu);
-    submenu_free(app->icons_menu);
     text_input_free(app->text_input);
+    view_free(app->icon_view);
     view_free(app->layout_view);
     view_dispatcher_free(app->vd);
     furi_record_close(RECORD_DIALOGS);
