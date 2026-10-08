@@ -18,8 +18,8 @@
 
 #define MAX_REMOTES 16
 #define MAX_BUTTONS 64
-#define ICON_W 18
-#define ICON_H 18
+#define ICON_W 14
+#define ICON_H 14
 #define ICON_BYTES (((ICON_W + 7) / 8) * ICON_H) // 54
 #define ICON_FILE  (1 + ICON_BYTES)              // 55
 
@@ -299,7 +299,10 @@ static void draw_button(Canvas* c, int x, int y, int w, const Button* b, bool se
                         b->icon_bm + 1);
     } else {
         canvas_set_font(c, FontSecondary);
-        const char* t = b->text[0] ? b->text : "?";
+        char t[24];
+        strlcpy(t, b->text[0] ? b->text : "?", sizeof(t));
+        size_t n = strlen(t); // trim to fit the button width
+        while(n > 1 && (int)canvas_string_width(c, t) > w - 4) t[--n] = '\0';
         canvas_draw_str_aligned(c, x + w / 2, y + (ROW_H - 2) / 2, AlignCenter, AlignCenter, t);
     }
     if(sel) canvas_set_color(c, ColorBlack);
@@ -358,19 +361,7 @@ static bool layout_input(InputEvent* e, void* ctx) {
     App* app = ctx;
     bool handled = false;
 
-    // long-press Left/Right flips pages
-    if(e->type == InputTypeLong && app->page_count > 1) {
-        if(e->key == InputKeyLeft) {
-            goto_page(app, app->page + app->page_count - 1);
-            handled = true;
-        } else if(e->key == InputKeyRight) {
-            goto_page(app, app->page + 1);
-            handled = true;
-        }
-    }
-
-    if(!handled && (e->type == InputTypeShort || e->type == InputTypeRepeat) &&
-       app->button_count) {
+    if((e->type == InputTypeShort || e->type == InputTypeRepeat) && app->button_count) {
         uint8_t base = app->page * ROWS_PER_PAGE;
         uint8_t last = base + ROWS_PER_PAGE - 1;
         if(last >= app->row_count) last = app->row_count - 1;
@@ -383,11 +374,19 @@ static bool layout_input(InputEvent* e, void* ctx) {
             Row* nr = &app->rows[r];
             app->index = (right && nr->n == 2) ? nr->b[1] : nr->b[0];
             handled = true;
-        } else if(e->key == InputKeyLeft && row->n == 2 && row->b[1] == app->index) {
-            app->index = row->b[0];
+        } else if(e->key == InputKeyLeft) {
+            if(row->n == 2 && row->b[1] == app->index) {
+                app->index = row->b[0]; // move within the row
+            } else if(app->page_count > 1) {
+                goto_page(app, app->page + app->page_count - 1); // edge -> prev page
+            }
             handled = true;
-        } else if(e->key == InputKeyRight && row->n == 2 && row->b[0] == app->index) {
-            app->index = row->b[1];
+        } else if(e->key == InputKeyRight) {
+            if(row->n == 2 && row->b[0] == app->index) {
+                app->index = row->b[1]; // move within the row
+            } else if(app->page_count > 1) {
+                goto_page(app, app->page + 1); // edge -> next page
+            }
             handled = true;
         } else if(e->key == InputKeyOk && e->type == InputTypeShort) {
             transmit(app, &app->buttons[app->index]);
