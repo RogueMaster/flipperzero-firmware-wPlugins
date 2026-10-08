@@ -200,7 +200,8 @@ static bool read_fap_name(Storage* storage, const char* path, char* out, size_t 
             if(read_at(f, moff, meta, rdn) && rd32(meta + 0) == FAP_MAGIC) {
                 char nm[33];
                 size_t n = 0;
-                for(; n < 32 && (20 + n) < rdn && meta[20 + n]; n++) nm[n] = (char)meta[20 + n];
+                for(; n < 32 && (20 + n) < rdn && meta[20 + n]; n++)
+                    nm[n] = (char)meta[20 + n];
                 nm[n] = '\0';
                 if(n > 0) {
                     strlcpy(out, nm, out_sz);
@@ -303,7 +304,8 @@ static void load_cache(ScanCtx* ctx, Storage* storage) {
                     if(!t2) continue;
                     *t2 = '\0';
                     uint32_t v = 0;
-                    for(const char* c = line; *c >= '0' && *c <= '9'; c++) v = v * 10 + (uint32_t)(*c - '0');
+                    for(const char* c = line; *c >= '0' && *c <= '9'; c++)
+                        v = v * 10 + (uint32_t)(*c - '0');
                     ctx->csize[ctx->cn] = v;
                     ctx->cpath[ctx->cn] = t1 + 1;
                     ctx->cname[ctx->cn] = t2 + 1;
@@ -325,8 +327,8 @@ static const char* cache_lookup(const ScanCtx* ctx, const char* path, uint32_t s
     return NULL;
 }
 
-#define DIR_LEN   160
-#define MAX_DIRS  64
+#define DIR_LEN  160
+#define MAX_DIRS 64
 
 // Walk /ext/apps/** iteratively (NOT recursively: deep recursion + vsnprintf
 // blew the fap stack -> MPU fault). A heap work-list of directory paths keeps
@@ -378,9 +380,10 @@ static void scan_all(App* app, Storage* storage, ScanCtx* ctx) {
             add_entry(app, disp, full);
             if(ctx->wf) {
                 char line[DIR_LEN + 140];
-                int n = snprintf(
-                    line, sizeof(line), "%lu\t%s\t%s\n", (unsigned long)size, full, disp);
-                if(n > (int)sizeof(line) - 1) n = (int)sizeof(line) - 1; // snprintf returns intended len
+                int n =
+                    snprintf(line, sizeof(line), "%lu\t%s\t%s\n", (unsigned long)size, full, disp);
+                if(n > (int)sizeof(line) - 1)
+                    n = (int)sizeof(line) - 1; // snprintf returns intended len
                 if(n > 0) storage_file_write(ctx->wf, line, (size_t)n);
             }
         }
@@ -445,7 +448,8 @@ static void load_usage(App* app) {
             furi_string_trim(line); // drop trailing newline / CR
             const char* c = furi_string_get_cstr(line);
             uint32_t v = 0;
-            while(*c >= '0' && *c <= '9') v = v * 10 + (uint32_t)(*c++ - '0');
+            while(*c >= '0' && *c <= '9')
+                v = v * 10 + (uint32_t)(*c++ - '0');
             if(*c != '\t') continue;
             const char* target = c + 1;
             for(uint16_t i = 0; i < app->count; i++) {
@@ -511,7 +515,8 @@ static void list_scroll_fix(App* app) {
         app->top = 0;
         return;
     }
-    if(app->sel < app->top) app->top = app->sel;
+    if(app->sel < app->top)
+        app->top = app->sel;
     else if(app->sel >= app->top + VIS)
         app->top = app->sel - VIS + 1;
     if(app->top > app->result_count - VIS) app->top = app->result_count - VIS;
