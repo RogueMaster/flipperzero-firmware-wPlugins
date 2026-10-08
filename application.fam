@@ -5,8 +5,9 @@ App(
     entry_point="flauncher_app",
     stack_size=4 * 1024,
     fap_category="Tools",
-    fap_version="0.1",
+    fap_icon="flauncher.png",
+    fap_version="0.2",
     fap_author="tbelbek",
-    fap_description="Vertical card launcher for Flipper favorites with FontAwesome icons",
+    fap_description="2x5 icon-grid launcher for Flipper favorites; returns to the grid after use",
     requires=["gui", "storage", "loader"],
 )

@@ -310,11 +310,20 @@ int32_t flauncher_app(void* p) {
     if(app->do_launch && app->count) {
         Entry* e = &app->entries[app->index];
         Loader* loader = furi_record_open(RECORD_LOADER);
+        // 1) launch the selected target after we exit
         if(e->is_file) {
             loader_enqueue_launch(loader, e->app, e->path, LoaderDeferredLaunchFlagNone);
         } else {
             loader_enqueue_launch(loader, e->path, NULL, LoaderDeferredLaunchFlagNone);
         }
+        // 2) re-open this launcher after the target app exits (queue is FIFO),
+        //    so the user comes back to the grid instead of the desktop
+        FuriString* self = furi_string_alloc();
+        if(loader_get_application_launch_path(loader, self)) {
+            loader_enqueue_launch(
+                loader, furi_string_get_cstr(self), NULL, LoaderDeferredLaunchFlagNone);
+        }
+        furi_string_free(self);
         furi_record_close(RECORD_LOADER);
     }
 
