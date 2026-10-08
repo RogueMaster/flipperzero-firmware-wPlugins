@@ -863,6 +863,7 @@ static void open_edit(App* app) {
 
 int32_t irpad_app(void* p) {
     App* app = malloc(sizeof(App));
+    if(!app) return -1;
     memset(app, 0, sizeof(App));
     app->gui = furi_record_open(RECORD_GUI);
     app->storage = furi_record_open(RECORD_STORAGE);
