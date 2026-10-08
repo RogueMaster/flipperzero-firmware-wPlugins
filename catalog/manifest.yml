@@ -8,3 +8,4 @@ description: "@./docs/description.md"
 changelog: "@./docs/changelog.md"
 screenshots:
   - screenshots/ss0.png
+  - screenshots/ss1.png
