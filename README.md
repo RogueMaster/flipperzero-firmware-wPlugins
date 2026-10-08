@@ -38,6 +38,10 @@ Rebuild against your own firmware's SDK if your API version differs.
 3. Copy `assets/icons.txt` → SD `apps_data/flauncher/icons.txt`
 4. On the Flipper: `Apps → Tools → Fav Launcher`
 
+## IR Pad integration
+
+If `IR Pad` (irpad.fap) is installed at `/ext/apps/Infrared/irpad.fap`, IR favorites open in it; otherwise they open in the stock Infrared app.
+
 ## Config
 `icons.txt` maps a favorite path to an icon name (file in `icons/`, no extension):
 ```

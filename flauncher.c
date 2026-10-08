@@ -10,6 +10,7 @@
 #define ICONS_CFG  "/ext/apps_data/flauncher/icons.txt"
 #define ICONS_TMP  "/ext/apps_data/flauncher/icons.tmp"
 #define ICONS_DIR  "/ext/apps_data/flauncher/icons"
+#define IRPAD_FAP  "/ext/apps/Infrared/irpad.fap" // IR favorites open here if present
 #define STATE_PATH "/ext/apps_data/flauncher/state.txt"
 
 #define MAX_ENTRIES 40
@@ -510,7 +511,14 @@ int32_t flauncher_app(void* p) {
         Entry* e = &app->entries[app->index];
         Loader* loader = furi_record_open(RECORD_LOADER);
         if(e->is_file) {
-            loader_enqueue_launch(loader, e->app, e->path, LoaderDeferredLaunchFlagNone);
+            // IR remotes open in the IR Pad app (if installed), else the stock Infrared app
+            const char* name = e->app;
+            if(!strcmp(e->type, "IR")) {
+                Storage* st = furi_record_open(RECORD_STORAGE);
+                if(storage_file_exists(st, IRPAD_FAP)) name = IRPAD_FAP;
+                furi_record_close(RECORD_STORAGE);
+            }
+            loader_enqueue_launch(loader, name, e->path, LoaderDeferredLaunchFlagNone);
         } else {
             loader_enqueue_launch(loader, e->path, NULL, LoaderDeferredLaunchFlagNone);
         }
