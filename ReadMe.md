@@ -188,6 +188,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Game Mode: Load game-menu discovery and configuration parsing from internal instead of an on-demand FAL. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/b52ad0ff3b50f46270f0de4459cd1ed5a6656857)
 - OFW: [appmanifest: reject float fap_version with a clear error (refs ufbt#52) #4375 (By hypery11)](https://github.com/flipperdevices/flipperzero-firmware/pull/4375)
 - OFW: RFID: [feat: add Indala 224-bit (long format) RFID protocol support #4343 — fix decoding of phase runs spanning all 224 bits (By kuzaxak)](https://github.com/flipperdevices/flipperzero-firmware/pull/4343)
+- [Game Mode: Load game-menu safely and quickly. Automatically doubles held scrolling speed after four consecutive pages. (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/e4cb0791152123c5a3499e083d94ea4406d968b3)
+- SubGHz: [KeeLoq Erreka programming mode - the 0xF button now sends the seed in the clear like the original remote, same as BFT, and the seed is saved with the signal so the hops can be rebuilt (By xMasterX)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/1139732616045a15b9efc59790cc83e3a8ad292a)
 
 <a name="release"></a>
 
