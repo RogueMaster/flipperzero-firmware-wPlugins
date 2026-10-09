@@ -104,7 +104,7 @@ void fsd_abort_guard_update(FSDState *state);
  *  on AND an abort was latched this engagement. */
 bool fsd_abort_guard_allows(const FSDState *state);
 
-/** Parse DI_speed (0x257) -> vehicle_speed_kph / ui_speed / speed_seen (#180). */
+/** Parse DI_speed (0x257) -> vehicle_speed_kph / di_speed_raw / ui_speed / speed_seen (#180). */
 void fsd_handle_di_speed(FSDState *state, const CanFrame *frame);
 
 /** Parse SCCM_steeringAngleSensor (0x129) -> steering_angle_deg. */
@@ -129,6 +129,32 @@ bool fsd_handle_driver_assist_override(FSDState *state, CanFrame *frame);
  *  additive checksum. Master opt-in (state->track_mode_inject). The byte6 counter
  *  is left untouched. Returns true if the frame was modified and should be re-sent. */
 bool fsd_handle_track_mode_inject(FSDState *state, CanFrame *frame);
+
+// Acceleration Mode override (#211): standstill = |DI_vehicleSpeed| at or under
+// ACCEL_STANDSTILL_KPH from a 0x257 no older than ACCEL_CTX_FRESH_MS; with no
+// usable speed, a fresh 0x118 DI_gear = P. Nothing fresh = not stopped.
+#define ACCEL_STANDSTILL_KPH 1.0f
+#define ACCEL_CTX_FRESH_MS   1000u
+
+/** Parse DI_systemStatus (0x118) DI_gear for the Acceleration Mode standstill
+ *  gate. Frames with a wrong DLC or bad checksum are ignored. Stamps
+ *  last_gear_tick_ms = now_ms on a valid frame. Returns true if parsed. */
+bool fsd_handle_di_gear(FSDState *state, const CanFrame *frame, uint32_t now_ms);
+
+/** True when the car is known to be stopped (see ACCEL_STANDSTILL_KPH). Pure. */
+bool fsd_accel_standstill(const FSDState *state, uint32_t now_ms);
+
+/** Acceleration Mode override on UI_powertrainControl (0x334). Validates the
+ *  frame (DLC 8, checksum, pedal map 0..2), records the car's own pedal map,
+ *  updates the standstill latch and rewrites UI_pedalMap + checksum (counter
+ *  kept) when the latched mode differs from the car's. Off, a blocked TX gate
+ *  or a touchscreen change while moving drop to pass-through immediately.
+ *  Returns true if the frame was modified and should be re-sent. */
+bool fsd_handle_accel_mode(FSDState *state, CanFrame *frame, uint32_t now_ms);
+
+/** Pedal map going out on 0x334 for the dashboard read-out: -1 before a valid
+ *  0x334, the car's own map when passing through or TX is blocked. */
+int fsd_accel_sent_map(const FSDState *state);
 
 /** Modify DAS_autopilotControl (0x3FD) for HW3/HW4.
  *  Returns true if frame was modified and should be re-sent. */
@@ -164,6 +190,10 @@ void fsd_handle_bms_soc(FSDState *state, const CanFrame *frame);
 
 /** Parse BMS_thermalStatus (0x312) — updates batt_temp_min/max_c. */
 void fsd_handle_bms_thermal(FSDState *state, const CanFrame *frame);
+
+/** Parse ESP_wheelSpeeds (0x175, Party CAN) — updates the four wheel_speed_*_kph
+ *  (read-only, feeds the dashboard wheel-slip read-out). */
+void fsd_handle_wheel_speeds(FSDState *state, const CanFrame *frame);
 
 /** Build a UI_tripPlanning (0x082) frame to trigger active battery heating. */
 void fsd_build_precondition_frame(CanFrame *frame);

@@ -419,6 +419,41 @@ input:checked+.sl2:before{transform:translateX(20px);background:#fff}
   </div>
 </div>
 
+<!-- Performance (read-only, opt-in) -->
+<div class="card">
+  <div class="card-head"><div class="icon ic-b">P</div><h2>Performance</h2>
+    <label class="sw" style="margin-left:auto"><input type="checkbox" id="swPerf" onchange="perfToggle(this.checked)"><span class="sl2"></span></label>
+  </div>
+  <div id="perfOff" class="log-info" style="margin-bottom:0">
+    Read-only read-out derived from frames already on the bus &mdash; it transmits
+    nothing. Enable to show acceleration / braking timers, an estimated G (no IMU),
+    wheel slip and pack temperature / power. Speed &amp; est. G need any tap
+    carrying 0x257; wheel slip needs Party CAN (0x175); temp &amp; power need a
+    Vehicle-CAN tap (BMS).
+  </div>
+  <div id="perfBody" style="display:none">
+    <div class="row"><span class="lbl">Vehicle speed</span><span id="pfSpeed" style="color:var(--text2)">--</span></div>
+    <div class="sg">
+      <div class="sb"><div class="sv" id="pf050">--</div><div class="sl">0-50 km/h</div><div class="sl" id="pf050b">best --</div></div>
+      <div class="sb"><div class="sv" id="pf060mph">--</div><div class="sl">0-60 mph</div><div class="sl" id="pf060mphb">best --</div></div>
+      <div class="sb"><div class="sv" id="pf0100">--</div><div class="sl">0-100 km/h</div><div class="sl" id="pf0100b">best --</div></div>
+      <div class="sb"><div class="sv" id="pf1000">--</div><div class="sl">100-0 km/h brake</div><div class="sl" id="pf1000b">best --</div></div>
+    </div>
+    <div class="sg">
+      <div class="sb"><div class="sv" id="pfG">--</div><div class="sl">Est. long. G</div><div class="sl" id="pfGpk">peak --</div></div>
+      <div class="sb"><div class="sv" id="pfSlip">--</div><div class="sl">Wheel slip</div></div>
+      <div class="sb"><div class="sv" id="pfPow">--</div><div class="sl">Power</div></div>
+      <div class="sb"><div class="sv" id="pfTemp">--</div><div class="sl">Pack temp</div></div>
+    </div>
+    <div class="row"><span class="lbl">Battery advisory</span><span id="pfAdv" style="font-size:.8em;color:var(--text2)">--</span></div>
+    <div class="log-info" style="margin-top:8px;font-size:.76em">
+      G is estimated from dv/dt of vehicle speed (no IMU). Timers auto-arm leaving a
+      standstill, lock at the target, and reset at the next standstill; best time is
+      kept per session. Temp / power need a Vehicle-CAN tap; wheel slip needs 0x175.
+    </div>
+  </div>
+</div>
+
 <!-- CAN Stats -->
 <div class="card">
   <div class="card-head"><div class="icon ic-d">C</div><h2>CAN Bus</h2></div>
@@ -549,6 +584,18 @@ input:checked+.sl2:before{transform:translateX(20px);background:#fff}
       <option value="4">EAP</option>
       <option value="5">Demo</option>
     </select>
+  </div>
+  <div class="row" style="display:block">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <span class="lbl">Acceleration Mode (experimental)<br><small style="color:var(--muted)">Rewrites the pedal map on 0x334. The touchscreen keeps showing your own setting; a new mode only switches at standstill.</small></span>
+      <select id="selAccel" onchange="cmd('accel_mode',parseInt(this.value,10))">
+        <option value="0">Off</option>
+        <option value="1">Chill</option>
+        <option value="2">Sport</option>
+        <option value="3">Performance</option>
+      </select>
+    </div>
+    <div id="accelSt" style="font-size:12px;color:var(--muted);margin-top:4px">--</div>
   </div>
   <div class="row" style="display:block">
     <div style="display:flex;align-items:center;justify-content:space-between">
@@ -832,6 +879,69 @@ function fmt(s){
   return h+':'+(m<10?'0':'')+m+':'+(sc<10?'0':'')+sc;
 }
 function socCol(p){return p>60?'var(--accent)':p>30?'var(--yellow)':'var(--red)';}
+// Performance card (read-only, opt-in). Shown state persists per browser.
+var perfShow=false;
+try{perfShow=localStorage.getItem('perfShow')==='1'}catch(e){}
+function perfToggle(on){
+  perfShow=!!on;
+  try{localStorage.setItem('perfShow',perfShow?'1':'0')}catch(e){}
+  var b=document.getElementById('perfBody'),o=document.getElementById('perfOff');
+  if(b)b.style.display=perfShow?'':'none';
+  if(o)o.style.display=perfShow?'none':'';
+}
+function perfInit(){
+  var sw=document.getElementById('swPerf');
+  if(sw)sw.checked=perfShow;
+  perfToggle(perfShow);
+}
+function pfT(ms){return ms>0?(ms/1000).toFixed(2)+'s':'--';}
+function setTxt(id,t){var e=document.getElementById(id);if(e)e.textContent=t;}
+function renderPerf(d){
+  if(!perfShow||!d.perf)return;
+  var p=d.perf;
+  setTxt('pfSpeed',(p.speed||0).toFixed(1)+' km/h');
+  // Timers: locked result if present, else the live run time while armed.
+  function cell(id,bid,t,best){
+    var e=document.getElementById(id);
+    if(t>0){e.textContent=pfT(t);e.style.color='var(--accent)';}
+    else if(p.armed&&p.run_ms>0){e.textContent=pfT(p.run_ms);e.style.color='var(--yellow)';}
+    else{e.textContent='--';e.style.color='';}
+    setTxt(bid,'best '+pfT(best));
+  }
+  cell('pf050','pf050b',p.t50,p.best50);
+  cell('pf060mph','pf060mphb',p.t60mph,p.best60mph);
+  cell('pf0100','pf0100b',p.t100,p.best100);
+  var e1=document.getElementById('pf1000');
+  if(e1){
+    if(p.t1000>0){e1.textContent=pfT(p.t1000);e1.style.color='var(--accent)';}
+    else if(p.brake_armed){e1.textContent='braking';e1.style.color='var(--yellow)';}
+    else{e1.textContent='--';e1.style.color='';}
+  }
+  setTxt('pf1000b','best '+pfT(p.best1000));
+  // Estimated longitudinal G (no IMU).
+  setTxt('pfG',(p.g>=0?'+':'')+(p.g||0).toFixed(2)+'g');
+  setTxt('pfGpk','peak +'+(p.gpk||0).toFixed(2)+' / '+(p.gpkb||0).toFixed(2));
+  // Wheel slip (0x175, Party CAN).
+  var se=document.getElementById('pfSlip');
+  if(se){
+    if(p.slip_ok){se.textContent=(p.slip>=0?'+':'')+p.slip.toFixed(1)+'%';se.style.color=Math.abs(p.slip)>5?'var(--red)':'var(--accent)';}
+    else if(!p.wheel_seen){se.textContent='n/a';se.style.color='var(--text3)';}
+    else{se.textContent='--';se.style.color='';}
+  }
+  // Power + pack temp (BMS, Vehicle-CAN tap).
+  if(d.bms&&d.bms.seen){
+    setTxt('pfPow',(d.bms.voltage*d.bms.current/1000).toFixed(1)+' kW');
+    var tmax=d.bms.temp_max,tmin=d.bms.temp_min;
+    var te=document.getElementById('pfTemp');
+    if(te){
+      te.textContent=tmin+'~'+tmax+'°C';
+      te.style.color=tmax>=45?'var(--red)':tmax>=35?'var(--yellow)':tmin<=5?'var(--yellow)':'var(--accent)';
+    }
+    setTxt('pfAdv',tmin<=5?'Cold pack — reduced regen and power until warmed':tmax>=45?'Hot pack — power may be limited':'Normal');
+  }else{
+    setTxt('pfPow','--');setTxt('pfTemp','--');setTxt('pfAdv','No BMS frames (needs Vehicle-CAN tap)');
+  }
+}
 function pill(id,on,txt,warnClass){
   var e=document.getElementById(id);
   e.className='pill '+(warnClass||''+(on?'on':'off'));
@@ -864,6 +974,7 @@ function updateControlsSummary(d){
   if(d.tlssc_restore)items.push('TLSSC');
   if(d.precondition)items.push('Precond');
   if(d.assist_tlssc_bit38)items.push('TLSSC bit38');
+  if(d.accel_mode>0)items.push('Accel '+(['','Chill','Sport','Performance'][d.accel_mode]||'?'));
   if(d.display_enabled)items.push('Display');
   if(d.can_dump)items.push('CAN Dump');
   e.textContent=items.length?items.join(', '):'Expand to setup';
@@ -1062,6 +1173,19 @@ function upd(d){
   if(document.getElementById('swTelOff')) document.getElementById('swTelOff').checked=d.assist_telemetry_off;
   var apmv3Sel=document.getElementById('selApmv3');
   if(apmv3Sel && d.apmv3_branch!==undefined && document.activeElement!==apmv3Sel) apmv3Sel.value=String(d.apmv3_branch);
+  // Acceleration Mode (#211): setting + car map -> map going out
+  var acSel=document.getElementById('selAccel');
+  if(acSel && d.accel_mode!==undefined && document.activeElement!==acSel) acSel.value=String(d.accel_mode);
+  var acSt=document.getElementById('accelSt');
+  if(acSt && d.accel_car_map!==undefined){
+    var ACM=['CHILL','SPORT','PERFORMANCE'], at;
+    if(d.accel_car_map<0) at=d.accel_bad>0?'0x334 not recognised ('+d.accel_bad+' rejected)':'no 0x334 on this bus yet';
+    else if(d.accel_sent_map===d.accel_car_map) at='Car '+ACM[d.accel_car_map]+' \u00b7 pass-through';
+    else at='Car '+ACM[d.accel_car_map]+' \u2192 sent '+ACM[d.accel_sent_map];
+    if(d.accel_pending) at+=' \u00b7 waiting for standstill';
+    else if(d.accel_mode>0 && !d.tx_allowed) at+=' \u00b7 TX off';
+    acSt.textContent=at;
+  }
   if(document.getElementById('swTrkMode')) document.getElementById('swTrkMode').checked=d.track_mode_inject;
   if(document.getElementById('trkRot')&&document.activeElement.id!=='trkRot'&&d.track_rotation_pct!==undefined){document.getElementById('trkRot').value=d.track_rotation_pct;var _tr=document.getElementById('trkRotV');if(_tr)_tr.textContent=d.track_rotation_pct;}
   if(document.getElementById('trkStab')&&document.activeElement.id!=='trkStab'&&d.track_stability_pct!==undefined){document.getElementById('trkStab').value=d.track_stability_pct;var _ts=document.getElementById('trkStabV');if(_ts)_ts.textContent=d.track_stability_pct;}
@@ -1121,6 +1245,9 @@ function upd(d){
     }
     if(document.getElementById('bTemp')) document.getElementById('bTemp').textContent=d.bms.temp_min+'~'+d.bms.temp_max+'\u00b0C';
   }
+
+  // Performance (read-only, opt-in)
+  renderPerf(d);
 
   // Device
   if(document.getElementById('fwBuild')) document.getElementById('fwBuild').textContent=d.fw_build;
@@ -1545,6 +1672,7 @@ function conn(){
   };
   ws.onerror=function(){ ws.close(); };
 }
+perfInit();
 conn();
 </script>
 </body>
@@ -1588,6 +1716,34 @@ static String build_json() {
         strcpy(bms, "{\"seen\":false}");
     }
 
+    // Performance read-out sub-object (read-only; see fsd_logic/fsd_perf.h).
+    // Times in ms (0 = not captured this run / no best yet). Everything here is
+    // derived from frames already received (0x257 speed, 0x175 wheels, 0x312
+    // batt temp) — nothing is transmitted.
+    char perf[384];
+    {
+        const FSDPerf *p = &state.perf;
+        uint32_t run_ms = fsd_perf_accel_running_ms(p, millis());
+        float slip = 0.0f;
+        bool slip_ok = state.wheel_speed_seen &&
+            fsd_perf_wheel_slip_pct(state.wheel_speed_fl_kph, state.wheel_speed_fr_kph,
+                                    state.wheel_speed_rl_kph, state.wheel_speed_rr_kph, &slip);
+        snprintf(perf, sizeof(perf),
+            "{\"speed\":%.1f,\"armed\":%s,\"run_ms\":%lu,"
+            "\"t50\":%lu,\"t60mph\":%lu,\"t100\":%lu,"
+            "\"best50\":%lu,\"best60mph\":%lu,\"best100\":%lu,"
+            "\"brake_armed\":%s,\"t1000\":%lu,\"best1000\":%lu,"
+            "\"g\":%.2f,\"gpk\":%.2f,\"gpkb\":%.2f,"
+            "\"wheel_seen\":%s,\"slip_ok\":%s,\"slip\":%.1f}",
+            state.vehicle_speed_kph,
+            p->accel_armed ? "true" : "false", (unsigned long)run_ms,
+            (unsigned long)p->t_0_50_ms, (unsigned long)p->t_0_60mph_ms, (unsigned long)p->t_0_100_ms,
+            (unsigned long)p->best_0_50_ms, (unsigned long)p->best_0_60mph_ms, (unsigned long)p->best_0_100_ms,
+            p->brake_armed ? "true" : "false", (unsigned long)p->t_100_0_ms, (unsigned long)p->best_100_0_ms,
+            (double)p->g_est, (double)p->g_peak, (double)p->g_peak_brake,
+            state.wheel_speed_seen ? "true" : "false", slip_ok ? "true" : "false", (double)slip);
+    }
+
     char ota_part[128] = {};
     {
         const esp_partition_t *running = esp_ota_get_running_partition();
@@ -1623,7 +1779,7 @@ static String build_json() {
     // http_can_stream objects — back near the beta.11 shape now that the heavy
     // blackbox/capability/profile blocks fetch from /api/aux (#124). 1.5 KB
     // avoids per-call String reallocs; build_json() runs on every WS push.
-    j.reserve(1536);
+    j.reserve(2048);
     j  = "{";
     j += "\"fsd_enabled\":";   j += state.fsd_enabled                 ? "true" : "false"; j += ',';
     j += "\"ap_active\":";     j += state.ap_active                   ? "true" : "false"; j += ',';
@@ -1680,6 +1836,14 @@ static String build_json() {
     j += "\"track_stability_pct\":"; j += (int)state.track_stability_pct;  j += ',';
     j += "\"track_post_cooling\":"; j += state.track_post_cooling        ? "true" : "false"; j += ',';
     j += "\"track_cmp_overclock\":"; j += state.track_cmp_overclock       ? "true" : "false"; j += ',';
+    // Acceleration Mode (#211): setting, car's own 0x334 pedal map and the map
+    // going out (-1 = no valid 0x334 yet), pending = waiting for standstill.
+    j += "\"accel_mode\":";     j += (int)state.accel_mode;               j += ',';
+    j += "\"accel_car_map\":";  j += state.accel_car_seen ? (int)state.accel_car_map : -1; j += ',';
+    j += "\"accel_sent_map\":"; j += fsd_accel_sent_map(&state);           j += ',';
+    j += "\"accel_pending\":";  j += state.accel_mode_pending            ? "true" : "false"; j += ',';
+    j += "\"accel_bad\":";      j += state.accel_bad_frames;              j += ',';
+    j += "\"tx_allowed\":";     j += fsd_can_transmit(&state)            ? "true" : "false"; j += ',';
     j += "\"firmware_14x_warning\":"; j += state.firmware_14x_warning  ? "true" : "false"; j += ',';
 #if defined(BOARD_TTGO_DISPLAY)
     j += "\"display_enabled\":"; j += state.display_enabled             ? "true" : "false"; j += ',';
@@ -1699,6 +1863,7 @@ static String build_json() {
     j += "\"tx_failed_count\":"; j += err.tx_failed_count;             j += ',';
     j += "\"fps\":";           j += fps_s;                             j += ',';
     j += "\"bms\":";           j += bms;                               j += ',';
+    j += "\"perf\":";          j += perf;                              j += ',';
     j += "\"uptime_s\":";      j += uptime_s;                          j += ',';
     j += "\"fw_build\":\"";    j += __DATE__;  j += ' '; j += __TIME__; j += "\",";
     j += "\"can_dump\":";      j += can_dump_active()                 ? "true" : "false"; j += ',';
@@ -2214,6 +2379,23 @@ static void ws_event(uint8_t num, WStype_t type,
             saved = *g_state;
             state_exit();
             Serial.printf("[Web] AP Branch/Tier: %d\n", want);
+            prefs_save(&saved);
+        }
+    } else if (strstr(buf, "\"accel_mode\"")) {
+        // Acceleration Mode override (#211): 1 Chill / 2 Sport / 3 Performance,
+        // anything else = Off (pass-through). The handler latches a new value
+        // only at standstill; Off applies on the next 0x334.
+        if (vptr) {
+            while (*vptr == ' ' || *vptr == ':') vptr++;
+            int sel = atoi(vptr);
+            uint8_t want = (sel >= (int)ACCEL_MODE_CHILL && sel <= (int)ACCEL_MODE_PERFORMANCE)
+                               ? (uint8_t)sel : (uint8_t)ACCEL_MODE_OFF;
+            FSDState saved;
+            state_enter();
+            g_state->accel_mode = want;
+            saved = *g_state;
+            state_exit();
+            Serial.printf("[Web] Acceleration Mode: %u\n", (unsigned)want);
             prefs_save(&saved);
         }
     } else if (strstr(buf, "\"track_mode_inject\"")) {

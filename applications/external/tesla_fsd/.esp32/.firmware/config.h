@@ -4,6 +4,7 @@
 #define CAN_ID_STW_ACTN_RQ    0x045u  // 69   - STW_ACTN_RQ:  steering stalk (Legacy follow distance)
 #define CAN_ID_TRIP_PLANNING  0x082u  // 130  - UI_tripPlanning: precondition trigger
 #define CAN_ID_ESP_STATUS     0x145u  // 325  - ESP_status: driver brake pedal state
+#define CAN_ID_ESP_WHEELSPD   0x175u  // 373  - ESP_wheelSpeeds: 4 wheel speeds (Party CAN, read-only)
 #define CAN_ID_STEER_ANGLE    0x129u  // 297  - SCCM_steeringAngleSensor (Soft Engage gate, #108)
 #define CAN_ID_BMS_HV_BUS     0x132u  // 306  - BMS_hvBusStatus: pack voltage / current
 #define CAN_ID_BMS_SOC        0x292u  // 658  - BMS_socStatus:   state of charge
@@ -27,6 +28,9 @@
 #define CAN_ID_ISA_SPEED      0x399u  // 921  - ISA speed limit on HW4 only
 #define CAN_ID_DAS_STATUS_HW4 0x39Bu  // 923  - DAS_status on HW4 AP/DAS
 #define CAN_ID_TRACK_MODE_SET 0x313u  // 787  - UI_trackModeSettings: track mode request (checksummed)
+#define CAN_ID_UI_POWERTRAIN  0x334u  // 820  - UI_powertrainControl: pedal map (Acceleration Mode override, #211)
+// Same replacement list as fsd_logic/fsd_handler.h, so main.cpp seeing both is not a redefinition.
+#define CAN_ID_DI_SYS_STATUS  0x118  // 280  - DI_systemStatus: DI_gear (Acceleration Mode standstill gate)
 // Vehicle/body bus reachability probes (#128) — RX presence only, never actuated.
 #define CAN_ID_UI_VEHICLE_CTRL 0x273u // 627  - UI_vehicleControl: mirror fold/lock/wiper/horn/seat heat
 #define CAN_ID_VCLEFT_DOOR     0x102u // 258  - VCLEFT_doorStatus: mirror state/tilt read-back

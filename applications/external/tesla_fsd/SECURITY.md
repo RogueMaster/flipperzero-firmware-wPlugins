@@ -100,6 +100,14 @@ project's TX path can write to:
   requests Track Mode ON and writes the handling-balance / stability-assist
   / cooling fields, then recomputes the additive checksum; the car's own
   broadcast frame is modified in place
+- `0x334` `UI_powertrainControl` — ESP32 only, when the Acceleration Mode
+  setting is not Off: rewrites `UI_pedalMap` (byte 0 bits 5-6) in the car's
+  own frame, keeps the counter and recomputes the additive checksum. A new
+  mode is only applied at standstill (fresh `0x257` at or under 1 km/h, or
+  `0x118` gear P); Off, a paused TX gate or a touchscreen mode change while
+  driving go back to pass-through at once. Frames with a wrong DLC or bad
+  checksum are never touched. The touchscreen keeps showing the driver's own
+  mode. Idea from [ColinM-sys/tesla-can-boost](https://github.com/ColinM-sys/tesla-can-boost) ([#211](https://github.com/hypery11/flipper-tesla-fsd/issues/211))
 - `0x7FF` `GTW_carConfig` — replays the learned-healthy snapshot when
   GTW Config Replay (formerly "Ban Shield") detects the gateway has
   modified a frame; only when the feature is armed. Or, with Tier
@@ -125,7 +133,9 @@ It does NOT write to:
 
 - Brake controllers (`0x244` `IBST_status` and friends)
 - Steering controllers (`0x129` `SteeringAngle*`)
-- Powertrain (`0x118` `DI_systemStatus`, `0x132` BMS, `0x108` `DI_torque`)
+- Powertrain (`0x118` `DI_systemStatus`, `0x132` BMS, `0x108` `DI_torque`).
+  `0x334` above is the touchscreen's request frame, not a drive-unit frame;
+  `0x118` and `0x257` are only read
 - ESP / stability control (`0x145` `ESP_status`)
 - Door / window / lock actuators (`0x102`, `0x3E3`)
 - Chassis-only control frames. Note the device transmits on whatever bus

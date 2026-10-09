@@ -44,6 +44,8 @@ void prefs_load(FSDState *state) {
     state->track_stability_pct      = g_prefs.getUChar("tmStab", 30);
     state->track_post_cooling       = g_prefs.getBool("tmPC",   false);
     state->track_cmp_overclock      = g_prefs.getBool("tmCO",   false);
+    state->accel_mode               = g_prefs.getUChar("accel", ACCEL_MODE_OFF);  // Acceleration Mode (#211)
+    if (state->accel_mode > ACCEL_MODE_PERFORMANCE) state->accel_mode = ACCEL_MODE_OFF;
 #if defined(BOARD_TTGO_DISPLAY)
     state->display_enabled          = g_prefs.getBool("disp",   true);
     state->display_brightness       = g_prefs.getUChar("disp_br", 50);
@@ -74,13 +76,13 @@ void prefs_load(FSDState *state) {
     state->cfg_steer_hi      = g_prefs.getUChar("cshi",   1);
     state->cfg_steer_lo      = g_prefs.getUChar("cslo",   0);
 
-    Serial.printf("[NVS] Loaded: FSDUnlock=%d HW3Spd=%d NAG=%d ContinuousAP=%d IgnoreOTA=%d China=%d Chime=%d Summon=%d COG=%d TLSSC38=%d RHD=%d TelOff=%d APMv3=%d TrkMode=%d/%u/%u/%d/%d Sleep=%u AP=\"%s\" STA=\"%s\" HIDDEN=%d\n",
+    Serial.printf("[NVS] Loaded: FSDUnlock=%d HW3Spd=%d NAG=%d ContinuousAP=%d IgnoreOTA=%d China=%d Chime=%d Summon=%d COG=%d TLSSC38=%d RHD=%d TelOff=%d APMv3=%d TrkMode=%d/%u/%u/%d/%d Accel=%u Sleep=%u AP=\"%s\" STA=\"%s\" HIDDEN=%d\n",
                   state->fsd_unlock, state->hw3_speed_override, state->nag_killer, state->continuous_ap, state->ignore_ota,
                   state->china_mode, state->suppress_speed_chime, state->summon_unlock,
                   state->continue_on_green, state->assist_tlssc_bit38, state->assist_rhd_override, state->assist_telemetry_off,
                   state->apmv3_branch, state->track_mode_inject, state->track_rotation_pct,
                   state->track_stability_pct, state->track_post_cooling, state->track_cmp_overclock,
-                  state->sleep_idle_ms, state->wifi_ssid, state->wifi_sta_ssid,
+                  state->accel_mode, state->sleep_idle_ms, state->wifi_ssid, state->wifi_sta_ssid,
                   state->wifi_hidden);
     g_prefs.end();
 }
@@ -127,6 +129,7 @@ void prefs_save(const FSDState *state) {
     g_prefs.putUChar("tmStab",state->track_stability_pct);
     g_prefs.putBool("tmPC",   state->track_post_cooling);
     g_prefs.putBool("tmCO",   state->track_cmp_overclock);
+    g_prefs.putUChar("accel", state->accel_mode);   // Acceleration Mode (#211), 0 = Off
 #if defined(BOARD_TTGO_DISPLAY)
     g_prefs.putBool("disp",   state->display_enabled);
     g_prefs.putUChar("disp_br", state->display_brightness);
@@ -156,13 +159,13 @@ void prefs_save(const FSDState *state) {
     g_prefs.putUChar("cshi",  state->cfg_steer_hi);
     g_prefs.putUChar("cslo",  state->cfg_steer_lo);
 
-    Serial.printf("[NVS] Saved: FSDUnlock=%d HW3Spd=%d NAG=%d ContinuousAP=%d IgnoreOTA=%d China=%d Chime=%d Summon=%d COG=%d TLSSC38=%d RHD=%d TelOff=%d APMv3=%d TrkMode=%d/%u/%u/%d/%d Sleep=%u AP=\"%s\" STA=\"%s\" HIDDEN=%d\n",
+    Serial.printf("[NVS] Saved: FSDUnlock=%d HW3Spd=%d NAG=%d ContinuousAP=%d IgnoreOTA=%d China=%d Chime=%d Summon=%d COG=%d TLSSC38=%d RHD=%d TelOff=%d APMv3=%d TrkMode=%d/%u/%u/%d/%d Accel=%u Sleep=%u AP=\"%s\" STA=\"%s\" HIDDEN=%d\n",
                   state->fsd_unlock, state->hw3_speed_override, state->nag_killer, state->continuous_ap, state->ignore_ota,
                   state->china_mode, state->suppress_speed_chime, state->summon_unlock,
                   state->continue_on_green, state->assist_tlssc_bit38, state->assist_rhd_override, state->assist_telemetry_off,
                   state->apmv3_branch, state->track_mode_inject, state->track_rotation_pct,
                   state->track_stability_pct, state->track_post_cooling, state->track_cmp_overclock,
-                  state->sleep_idle_ms, state->wifi_ssid, state->wifi_sta_ssid,
+                  state->accel_mode, state->sleep_idle_ms, state->wifi_ssid, state->wifi_sta_ssid,
                   state->wifi_hidden);
     g_prefs.end();
 }

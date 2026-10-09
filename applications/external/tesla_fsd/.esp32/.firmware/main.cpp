@@ -1322,6 +1322,9 @@ static void process_frame(CanBusId bus, const CanFrame &frame) {
         state_enter();
         fsd_handle_di_speed(&g_state, &frame);
         g_state.last_speed_tick_ms = now_ms;   // freshness for fsd_autopark_update
+        // Read-only performance read-out: accel/brake timers + est. G from the
+        // speed we just parsed (transmits nothing; dashboard "Performance" card).
+        fsd_perf_update(&g_state.perf, g_state.vehicle_speed_kph, now_ms);
         // Safety guard (#193): Palladium S/X don't broadcast 0x229 on Party, so
         // the gear-lever Summon disable can't fire there. Auto-disable Summon EU
         // Unlock on clear vehicle motion instead — platform-independent. Fresh,
@@ -1347,6 +1350,14 @@ static void process_frame(CanBusId bus, const CanFrame &frame) {
         }
         return;
     }
+    // DI_systemStatus (0x118) — read-only DI_gear, standstill fallback for the
+    // Acceleration Mode override when 0x257 isn't usable (#211).
+    if (frame.id == CAN_ID_DI_SYS_STATUS) {
+        state_enter();
+        fsd_handle_di_gear(&g_state, &frame, millis());
+        state_exit();
+        return;
+    }
     if (frame.id == CAN_ID_VCFRONT_LIGHT) {
         state_enter();
         fsd_handle_vcfront_lighting(&g_state, &frame);
@@ -1358,6 +1369,13 @@ static void process_frame(CanBusId bus, const CanFrame &frame) {
         state_enter();
         fsd_handle_esp_status(&g_state, &frame);
         if (g_state.driver_brake_applied) g_cont_ap_last_brake_ms = now_ms;
+        state_exit();
+        return;
+    }
+    // Wheel speeds (0x175) — read-only, feeds the dashboard wheel-slip read-out.
+    if (frame.id == CAN_ID_ESP_WHEELSPD) {
+        state_enter();
+        fsd_handle_wheel_speeds(&g_state, &frame);
         state_exit();
         return;
     }
@@ -1499,6 +1517,25 @@ static void process_frame(CanBusId bus, const CanFrame &frame) {
         state_enter();
         bool modified = fsd_handle_track_mode_inject(&g_state, &f);
         state_exit();
+        if (modified && tx) send_on_bus(bus, f);
+        return;
+    }
+
+    // Acceleration Mode override (0x334) — pedal map on the car's own
+    // UI_powertrainControl, re-sent on the bus it arrived on (#211). The handler
+    // also runs when Off, so the dashboard shows the car's own map.
+    if (frame.id == CAN_ID_UI_POWERTRAIN) {
+        CanFrame f = frame;
+        state_enter();
+        uint8_t before = g_state.accel_mode_applied;
+        bool modified = fsd_handle_accel_mode(&g_state, &f, millis());
+        uint8_t after = g_state.accel_mode_applied;
+        state_exit();
+        if (before != after) {
+            Serial.printf("[ACCEL] 0x334 override %u -> %u (0=pass-through 1=CHILL 2=SPORT 3=PERFORMANCE)\n",
+                          (unsigned)before, (unsigned)after);
+            can_dump_log("ACCEL 0x334 override %u -> %u", (unsigned)before, (unsigned)after);
+        }
         if (modified && tx) send_on_bus(bus, f);
         return;
     }

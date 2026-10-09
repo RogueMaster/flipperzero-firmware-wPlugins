@@ -16,6 +16,7 @@
 #include "fsd_handler.h" // esp32/.firmware/fsd_handler.h (first on the include path)
 #include "fsd_ota.h" // shared reference: fsd_ota_update()
 #include "fsd_can_ops.h" // tesla_can_rx_accept / tesla_can_tx_valid (driver RX/TX filter)
+#include "fsd_checksum.h" // tesla_additive_checksum (0x334 / 0x118 vectors)
 
 static int g_pass = 0;
 static int g_fail = 0;
@@ -670,6 +671,10 @@ static void test_state_init(void) {
     CHECK(
         s.op_mode == OpMode_ListenOnly && !fsd_can_transmit(&s), "init: listen-only, TX blocked");
     CHECK(!s.hw3_speed_override, "init: hw3_speed_override default OFF (#209)");
+    CHECK(
+        s.accel_mode == ACCEL_MODE_OFF && s.accel_mode_applied == ACCEL_MODE_OFF &&
+            !s.accel_car_seen,
+        "init: Acceleration Mode default Off (#211)");
 }
 
 // ── 0x3FD mux2 HW4 speed profile layout (#59), parity with the Flipper core ───
@@ -862,8 +867,570 @@ static void test_can_frame_filter(void) {
     CHECK(!tesla_can_tx_valid(0x800u, 8), "tx id 0x800 invalid");
 }
 
+// ── Acceleration Mode override: 0x334 UI_powertrainControl (#211) ─────────────
+// Real 0x334 frames (pedal map 1 = SPORT/Standard), ban-analysis captures:
+//   HW3 Model 3, hw3_unbanned_D-light-off.csv @820512
+//   HW4 Model 3, hw4_unbanned_d-off.csv @1012328 and hw4_unbanned_p-on.csv @260483
+static const uint8_t k_334_hw3[8] = {0x3F, 0x3F, 0x14, 0x80, 0xFC, 0x07, 0xE0, 0x2C};
+static const uint8_t k_334_hw4[8] = {0x3F, 0x3F, 0x14, 0x80, 0xDC, 0x15, 0x24, 0x5E};
+static const uint8_t k_334_hw4p[8] = {0x3F, 0x3F, 0x14, 0x80, 0xFC, 0x87, 0xE2, 0xAE};
+// Payload from the tesla-can-boost README (byte0 0xBF: bit7 set), counter and
+// checksum filled in here — checks that bit7 survives the rewrite.
+static const uint8_t k_334_bit7[8] = {0xBF, 0x3F, 0x14, 0x80, 0xFC, 0x07, 0xE0, 0xAC};
+// Real 0x257 DI_speed / 0x118 DI_systemStatus, hw4_unbanned_d-on.csv.
+static const uint8_t k_257_stop[8] =
+    {0x74, 0x4A, 0x1F, 0x00, 0x02, 0xA0, 0x0F, 0x01}; // raw 500 =  0.00 kph
+static const uint8_t k_257_0p72[8] =
+    {0xB5, 0xDF, 0x1F, 0x00, 0x66, 0xE8, 0x0F, 0x01}; // raw 509 =  0.72 kph
+static const uint8_t k_257_1p60[8] =
+    {0x27, 0x8E, 0x20, 0x01, 0xD6, 0x38, 0x10, 0x01}; // raw 520 =  1.60 kph
+static const uint8_t k_257_rev[8] =
+    {0xAF, 0x84, 0x1C, 0x03, 0x5E, 0x46, 0x0E, 0x01}; // raw 456 = -3.52 kph
+static const uint8_t k_257_31[8] =
+    {0xC3, 0x4B, 0x37, 0x1F, 0xFE, 0xAF, 0x1B, 0x01}; // raw 884 = 30.72 kph
+static const uint8_t k_257_sna[8] =
+    {0x00, 0xF0, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00}; // raw 4095 = SNA
+static const uint8_t k_118_p[8] = {0x30, 0x6D, 0x32, 0x30, 0x00, 0x48, 0x00, 0x00}; // DI_gear 1 P
+static const uint8_t k_118_d[8] = {0xF9, 0x6B, 0x95, 0x70, 0x00, 0x68, 0x08, 0x00}; // DI_gear 4 D
+
+static void accel_state(FSDState* s, uint8_t mode) {
+    memset(s, 0, sizeof(*s));
+    s->op_mode = OpMode_Active;
+    s->accel_mode = mode;
+}
+
+// main.cpp stamps last_speed_tick_ms after the 0x257 parse; mirror that here.
+static void accel_speed(FSDState* s, const uint8_t* d, uint32_t now) {
+    CanFrame f;
+    memset(&f, 0, sizeof(f));
+    f.id = 0x257u;
+    f.dlc = 8;
+    memcpy(f.data, d, 8);
+    fsd_handle_di_speed(s, &f);
+    s->last_speed_tick_ms = now;
+}
+
+static bool accel_gear(FSDState* s, const uint8_t* d, uint32_t now) {
+    CanFrame f;
+    memset(&f, 0, sizeof(f));
+    f.id = CAN_ID_DI_SYS_STATUS;
+    f.dlc = 8;
+    memcpy(f.data, d, 8);
+    return fsd_handle_di_gear(s, &f, now);
+}
+
+static bool accel_334(FSDState* s, CanFrame* f, const uint8_t* d, uint32_t now) {
+    memset(f, 0, sizeof(*f));
+    f->id = CAN_ID_UI_POWERTRAIN;
+    f->dlc = 8;
+    memcpy(f->data, d, 8);
+    return fsd_handle_accel_mode(s, f, now);
+}
+
+static uint8_t pedal_map(const CanFrame* f) {
+    return (f->data[0] >> 5) & 0x03;
+}
+
+// Same frame with another car-side pedal map, checksum valid (touchscreen change).
+static void accel_with_map(uint8_t out[8], const uint8_t in[8], uint8_t map) {
+    memcpy(out, in, 8);
+    out[0] = (uint8_t)((out[0] & 0x9F) | (map << 5));
+    out[7] = tesla_additive_checksum(0x334u, out, 7);
+}
+
+static void test_accel_real_frames(void) {
+    const uint8_t* real[] = {k_334_hw3, k_334_hw4, k_334_hw4p};
+    for(int i = 0; i < 3; i++) {
+        CHECK(
+            tesla_additive_checksum(0x334u, real[i], 7) == real[i][7],
+            "real 0x334 #%d: additive checksum matches byte7",
+            i);
+        CHECK(((real[i][0] >> 5) & 0x03) == 1, "real 0x334 #%d: UI_pedalMap = SPORT", i);
+    }
+    // Real 0x118 frames: checksum byte0 over bytes 1..7, DI_gear bits 21-23.
+    FSDState s;
+    memset(&s, 0, sizeof(s));
+    CHECK(
+        accel_gear(&s, k_118_p, 10) && s.di_gear == 1 && s.last_gear_tick_ms == 10,
+        "real 0x118 P parsed, gear %u",
+        s.di_gear);
+    CHECK(
+        accel_gear(&s, k_118_d, 20) && s.di_gear == 4, "real 0x118 D parsed, gear %u", s.di_gear);
+    uint8_t bad[8];
+    memcpy(bad, k_118_p, 8);
+    bad[0] ^= 0x01;
+    CHECK(
+        !accel_gear(&s, bad, 30) && s.di_gear == 4 && s.last_gear_tick_ms == 20,
+        "0x118 bad checksum ignored");
+    CanFrame f;
+    memset(&f, 0, sizeof(f));
+    f.dlc = 7;
+    memcpy(f.data, k_118_p, 8);
+    CHECK(!fsd_handle_di_gear(&s, &f, 40), "0x118 dlc7 ignored");
+    // Signed raw speed is kept: reverse decodes negative, the clamped kph is 0.
+    accel_speed(&s, k_257_rev, 50);
+    CHECK(
+        s.di_speed_raw == 456 && s.vehicle_speed_kph == 0.0f,
+        "0x257 reverse raw %u",
+        s.di_speed_raw);
+}
+
+static void test_accel_encode(void) {
+    // Expected rewrites of the real HW3 frame: only byte0 bits 5-6 and byte7 move.
+    static const uint8_t exp_chill[8] = {0x1F, 0x3F, 0x14, 0x80, 0xFC, 0x07, 0xE0, 0x0C};
+    static const uint8_t exp_perf[8] = {0x5F, 0x3F, 0x14, 0x80, 0xFC, 0x07, 0xE0, 0x4C};
+    FSDState s;
+    CanFrame f;
+    accel_state(&s, ACCEL_MODE_CHILL);
+    accel_speed(&s, k_257_stop, 1000);
+    CHECK(accel_334(&s, &f, k_334_hw3, 1000), "CHILL at standstill -> modified");
+    CHECK(memcmp(f.data, exp_chill, 8) == 0 && pedal_map(&f) == 0, "CHILL encode");
+    accel_state(&s, ACCEL_MODE_PERFORMANCE);
+    accel_speed(&s, k_257_stop, 1000);
+    CHECK(accel_334(&s, &f, k_334_hw3, 1000), "PERFORMANCE at standstill -> modified");
+    CHECK(memcmp(f.data, exp_perf, 8) == 0 && pedal_map(&f) == 2, "PERFORMANCE encode");
+    CHECK(
+        s.accel_mode_applied == ACCEL_MODE_PERFORMANCE && !s.accel_mode_pending &&
+            s.accel_frames_modified == 1,
+        "PERFORMANCE latched");
+    // SPORT on a car already in SPORT: latched, but the frame needs no rewrite.
+    accel_state(&s, ACCEL_MODE_SPORT);
+    accel_speed(&s, k_257_stop, 1000);
+    CHECK(
+        !accel_334(&s, &f, k_334_hw4, 1000) && memcmp(f.data, k_334_hw4, 8) == 0,
+        "SPORT on a SPORT car -> untouched, not re-sent");
+    CHECK(s.accel_mode_applied == ACCEL_MODE_SPORT && s.accel_car_map == 1, "SPORT latched");
+    // Every mode on every real frame: map set, other bits / counter kept, checksum valid.
+    const uint8_t* real[] = {k_334_hw3, k_334_hw4, k_334_hw4p, k_334_bit7};
+    for(int i = 0; i < 4; i++) {
+        for(uint8_t mode = ACCEL_MODE_CHILL; mode <= ACCEL_MODE_PERFORMANCE; mode++) {
+            uint8_t car_map = (real[i][0] >> 5) & 0x03;
+            accel_state(&s, mode);
+            accel_speed(&s, k_257_stop, 1000);
+            bool mod = accel_334(&s, &f, real[i], 1000);
+            CHECK(
+                mod == (mode - 1u != car_map),
+                "frame %d mode %u: modified iff map differs",
+                i,
+                mode);
+            CHECK(pedal_map(&f) == mode - 1u, "frame %d mode %u: pedal map", i, mode);
+            CHECK(
+                (f.data[0] & 0x9F) == (real[i][0] & 0x9F) &&
+                    memcmp(&f.data[1], &real[i][1], 6) == 0,
+                "frame %d mode %u: other bits + counter kept",
+                i,
+                mode);
+            CHECK(
+                f.data[7] == tesla_additive_checksum(0x334u, f.data, 7),
+                "frame %d mode %u: checksum recomputed",
+                i,
+                mode);
+        }
+    }
+    // tesla-can-boost README: Standard 0xBF -> Performance 0xDF, Chill 0x9F.
+    accel_state(&s, ACCEL_MODE_PERFORMANCE);
+    accel_speed(&s, k_257_stop, 1000);
+    accel_334(&s, &f, k_334_bit7, 1000);
+    CHECK(f.data[0] == 0xDF && f.data[7] == 0xCC, "bit7 frame -> PERFORMANCE 0xDF");
+    accel_state(&s, ACCEL_MODE_CHILL);
+    accel_speed(&s, k_257_stop, 1000);
+    accel_334(&s, &f, k_334_bit7, 1000);
+    CHECK(f.data[0] == 0x9F && f.data[7] == 0x8C, "bit7 frame -> CHILL 0x9F");
+}
+
+static void test_accel_off_passthrough(void) {
+    FSDState s;
+    CanFrame f;
+    accel_state(&s, ACCEL_MODE_OFF);
+    accel_speed(&s, k_257_stop, 1000);
+    for(uint32_t t = 1000; t < 3000; t += 500) {
+        CHECK(!accel_334(&s, &f, k_334_hw3, t), "Off -> not re-sent");
+        CHECK(memcmp(f.data, k_334_hw3, 8) == 0, "Off -> frame untouched");
+    }
+    CHECK(
+        s.accel_mode_applied == ACCEL_MODE_OFF && !s.accel_mode_pending &&
+            s.accel_frames_modified == 0 && s.accel_car_seen && s.accel_car_map == 1,
+        "Off: pass-through, car map still read");
+    CHECK(fsd_accel_sent_map(&s) == 1, "Off: sent map = car map");
+    // Out-of-range setting (corrupt NVS) behaves as Off.
+    s.accel_mode = 7;
+    CHECK(
+        !accel_334(&s, &f, k_334_hw3, 3000) && memcmp(f.data, k_334_hw3, 8) == 0,
+        "setting 7 -> pass-through");
+}
+
+static void test_accel_standstill_latch(void) {
+    FSDState s;
+    CanFrame f;
+    accel_state(&s, ACCEL_MODE_PERFORMANCE);
+    CHECK(fsd_accel_sent_map(&s) == -1, "no 0x334 yet -> sent map -1");
+    // Moving: pending, nothing sent.
+    accel_speed(&s, k_257_31, 1000);
+    CHECK(
+        !accel_334(&s, &f, k_334_hw3, 1000) && memcmp(f.data, k_334_hw3, 8) == 0,
+        "moving -> untouched");
+    CHECK(
+        s.accel_mode_applied == ACCEL_MODE_OFF && s.accel_mode_pending,
+        "moving -> pending, not applied");
+    CHECK(fsd_accel_sent_map(&s) == 1, "pending -> sent map = car map");
+    // Stop: applied.
+    accel_speed(&s, k_257_stop, 1500);
+    CHECK(accel_334(&s, &f, k_334_hw3, 1500) && pedal_map(&f) == 2, "stopped -> PERFORMANCE");
+    CHECK(
+        s.accel_mode_applied == ACCEL_MODE_PERFORMANCE && !s.accel_mode_pending,
+        "stopped -> applied");
+    CHECK(fsd_accel_sent_map(&s) == 2, "applied -> sent map 2");
+    // Drive off: stays latched.
+    accel_speed(&s, k_257_31, 2000);
+    CHECK(accel_334(&s, &f, k_334_hw3, 2000) && pedal_map(&f) == 2, "moving -> still latched");
+    // New setting while moving: old value keeps going out until the next stop.
+    s.accel_mode = ACCEL_MODE_CHILL;
+    CHECK(
+        accel_334(&s, &f, k_334_hw3, 2000) && pedal_map(&f) == 2,
+        "change while moving -> old value kept");
+    CHECK(s.accel_mode_pending, "change while moving -> pending");
+    accel_speed(&s, k_257_0p72, 2500);
+    CHECK(accel_334(&s, &f, k_334_hw3, 2500) && pedal_map(&f) == 0, "0.72 km/h -> CHILL applied");
+    CHECK(!s.accel_mode_pending, "applied -> not pending");
+}
+
+static void test_accel_off_immediate(void) {
+    FSDState s;
+    CanFrame f;
+    accel_state(&s, ACCEL_MODE_PERFORMANCE);
+    accel_speed(&s, k_257_stop, 1000);
+    CHECK(accel_334(&s, &f, k_334_hw4, 1000), "latched at standstill");
+    accel_speed(&s, k_257_31, 1500);
+    s.accel_mode = ACCEL_MODE_OFF;
+    CHECK(
+        !accel_334(&s, &f, k_334_hw4, 1500) && memcmp(f.data, k_334_hw4, 8) == 0,
+        "Off while moving -> pass-through at once");
+    CHECK(s.accel_mode_applied == ACCEL_MODE_OFF && !s.accel_mode_pending, "Off clears latch");
+    // Back on while still moving: waits for the next stop.
+    s.accel_mode = ACCEL_MODE_PERFORMANCE;
+    CHECK(
+        !accel_334(&s, &f, k_334_hw4, 1600) && s.accel_mode_pending,
+        "re-enabled while moving -> pending");
+}
+
+static void test_accel_speed_gate(void) {
+    FSDState s;
+    CanFrame f;
+    // No speed, no gear: never engages.
+    accel_state(&s, ACCEL_MODE_PERFORMANCE);
+    CHECK(!accel_334(&s, &f, k_334_hw3, 5000) && s.accel_mode_pending, "no speed -> no engage");
+    // SNA speed (fresh) is unknown, not stopped.
+    accel_speed(&s, k_257_sna, 5000);
+    CHECK(
+        !fsd_accel_standstill(&s, 5000) && !accel_334(&s, &f, k_334_hw3, 5000),
+        "SNA speed -> no engage");
+    // Stale standstill reading: no engage.
+    accel_speed(&s, k_257_stop, 5000);
+    CHECK(fsd_accel_standstill(&s, 6000), "stop 1000 ms old -> still fresh");
+    CHECK(
+        !fsd_accel_standstill(&s, 6001) && !accel_334(&s, &f, k_334_hw3, 6001),
+        "stop 1001 ms old -> stale, no engage");
+    // Reversing at 3.5 km/h is not standstill (the clamped kph would read 0).
+    accel_speed(&s, k_257_rev, 7000);
+    CHECK(
+        !fsd_accel_standstill(&s, 7000) && !accel_334(&s, &f, k_334_hw3, 7000),
+        "reverse -3.52 km/h -> no engage");
+    accel_speed(&s, k_257_1p60, 7500);
+    CHECK(!fsd_accel_standstill(&s, 7500), "1.60 km/h -> not standstill");
+    accel_speed(&s, k_257_0p72, 8000);
+    CHECK(fsd_accel_standstill(&s, 8000), "0.72 km/h -> standstill");
+}
+
+static void test_accel_gear_gate(void) {
+    FSDState s;
+    CanFrame f;
+    // No 0x257 on the tap: a fresh DI_gear = P counts.
+    accel_state(&s, ACCEL_MODE_PERFORMANCE);
+    accel_gear(&s, k_118_d, 1000);
+    CHECK(
+        !fsd_accel_standstill(&s, 1000) && !accel_334(&s, &f, k_334_hw3, 1000),
+        "gear D, no speed -> no engage");
+    accel_gear(&s, k_118_p, 2000);
+    CHECK(accel_334(&s, &f, k_334_hw3, 2000) && pedal_map(&f) == 2, "gear P, no speed -> engage");
+    CHECK(!fsd_accel_standstill(&s, 3001), "gear P 1001 ms old -> stale");
+    // Fresh valid speed wins over gear: P with 30 km/h is not stopped.
+    accel_speed(&s, k_257_31, 3000);
+    accel_gear(&s, k_118_p, 3000);
+    CHECK(!fsd_accel_standstill(&s, 3000), "moving speed overrides gear P");
+    // SNA speed falls back to the gear.
+    accel_speed(&s, k_257_sna, 3100);
+    CHECK(fsd_accel_standstill(&s, 3100), "SNA speed + fresh P -> standstill");
+}
+
+static void test_accel_bad_frames(void) {
+    FSDState s;
+    CanFrame f;
+    accel_state(&s, ACCEL_MODE_PERFORMANCE);
+    accel_speed(&s, k_257_stop, 1000);
+    // Wrong DLC.
+    memset(&f, 0, sizeof(f));
+    f.id = CAN_ID_UI_POWERTRAIN;
+    f.dlc = 7;
+    memcpy(f.data, k_334_hw3, 8);
+    CHECK(
+        !fsd_handle_accel_mode(&s, &f, 1000) && memcmp(f.data, k_334_hw3, 8) == 0,
+        "dlc7 -> untouched");
+    // Bad checksum.
+    uint8_t bad[8];
+    memcpy(bad, k_334_hw3, 8);
+    bad[7] ^= 0x10;
+    CHECK(
+        !accel_334(&s, &f, bad, 1000) && memcmp(f.data, bad, 8) == 0, "bad checksum -> untouched");
+    // Pedal map 3 is undefined.
+    uint8_t m3[8];
+    accel_with_map(m3, k_334_hw3, 3);
+    CHECK(!accel_334(&s, &f, m3, 1000) && memcmp(f.data, m3, 8) == 0, "pedal map 3 -> untouched");
+    CHECK(
+        s.accel_bad_frames == 3 && !s.accel_car_seen && s.accel_mode_applied == ACCEL_MODE_OFF,
+        "rejected frames counted, state untouched (bad=%u)",
+        s.accel_bad_frames);
+}
+
+static void test_accel_tx_gate(void) {
+    FSDState s;
+    CanFrame f;
+    accel_state(&s, ACCEL_MODE_PERFORMANCE);
+    s.op_mode = OpMode_ListenOnly;
+    accel_speed(&s, k_257_stop, 1000);
+    CHECK(
+        !accel_334(&s, &f, k_334_hw3, 1000) && memcmp(f.data, k_334_hw3, 8) == 0,
+        "Listen-Only -> untouched");
+    CHECK(
+        s.accel_mode_applied == ACCEL_MODE_OFF && !s.accel_mode_pending,
+        "Listen-Only -> no latch");
+    // Activated while moving: must not start rewriting until the next stop.
+    s.op_mode = OpMode_Active;
+    accel_speed(&s, k_257_31, 1500);
+    CHECK(
+        !accel_334(&s, &f, k_334_hw3, 1500) && s.accel_mode_pending,
+        "activated while moving -> pending");
+    accel_speed(&s, k_257_stop, 2000);
+    CHECK(accel_334(&s, &f, k_334_hw3, 2000), "stop -> applied");
+    // Autopark / OTA pause drop the latch.
+    s.autopark_tx_block = true;
+    CHECK(fsd_accel_sent_map(&s) == 1, "Autopark block -> sent map = car map");
+    CHECK(
+        !accel_334(&s, &f, k_334_hw3, 2500) && s.accel_mode_applied == ACCEL_MODE_OFF,
+        "Autopark block -> pass-through");
+    s.autopark_tx_block = false;
+    s.tesla_ota_in_progress = true;
+    accel_speed(&s, k_257_stop, 3000);
+    CHECK(!accel_334(&s, &f, k_334_hw3, 3000), "OTA -> pass-through");
+}
+
+static void test_accel_touchscreen_change(void) {
+    FSDState s;
+    CanFrame f;
+    uint8_t chill[8];
+    accel_with_map(chill, k_334_hw3, 0);
+    accel_state(&s, ACCEL_MODE_PERFORMANCE);
+    accel_speed(&s, k_257_stop, 1000);
+    CHECK(accel_334(&s, &f, k_334_hw3, 1000), "latched PERFORMANCE");
+    accel_speed(&s, k_257_31, 1500);
+    CHECK(accel_334(&s, &f, k_334_hw3, 1500), "moving, car unchanged -> still rewritten");
+    // Driver picks Chill on the touchscreen while moving: their choice goes through.
+    CHECK(
+        !accel_334(&s, &f, chill, 2000) && memcmp(f.data, chill, 8) == 0,
+        "touchscreen change while moving -> pass-through");
+    CHECK(
+        s.accel_mode_applied == ACCEL_MODE_OFF && s.accel_mode_pending && s.accel_car_map == 0,
+        "touchscreen change -> latch dropped, pending");
+    accel_speed(&s, k_257_31, 2500);
+    CHECK(!accel_334(&s, &f, chill, 2500), "still moving -> pass-through");
+    accel_speed(&s, k_257_stop, 3000);
+    CHECK(accel_334(&s, &f, chill, 3000) && pedal_map(&f) == 2, "next stop -> re-applied");
+}
+
+// ── Performance read-out (fsd_perf.h) ──────────────────────────────────────────
+
+// Acceleration-timer state machine: arm leaving standstill, lock at the target,
+// keep the best across runs, reset at the next standstill, and never lock on a
+// run that doesn't reach the target.
+static void test_perf_accel_timer(void) {
+    FSDPerf p;
+    fsd_perf_reset(&p);
+    // Standstill baseline, then launch at t=100ms (clock starts at the standstill
+    // sample's timestamp).
+    fsd_perf_update(&p, 0.0f, 0);
+    fsd_perf_update(&p, 0.5f, 100);
+    fsd_perf_update(&p, 5.0f, 200); // leaves standstill -> armed, start=100
+    CHECK(p.accel_armed, "accel armed after launch");
+    CHECK(!p.lock_0_50 && p.t_0_50_ms == 0, "no 0-50 lock below target");
+    fsd_perf_update(&p, 55.0f, 4000); // >= 50 km/h -> lock, 4000-100=3900ms
+    CHECK(
+        p.lock_0_50 && p.t_0_50_ms == 3900,
+        "0-50 locked at 3900ms got %lu",
+        (unsigned long)p.t_0_50_ms);
+    CHECK(p.best_0_50_ms == 3900, "best 0-50 seeded");
+    CHECK(!p.lock_0_60mph, "0-60mph not yet (55<96.56)");
+    fsd_perf_update(&p, 100.0f, 7000); // >= 96.56 and >= 100 -> both lock, 6900ms
+    CHECK(
+        p.lock_0_60mph && p.t_0_60mph_ms == 6900,
+        "0-60mph locked 6900ms got %lu",
+        (unsigned long)p.t_0_60mph_ms);
+    CHECK(p.lock_0_100 && p.t_0_100_ms == 6900, "0-100 locked 6900ms");
+
+    // Reset at the next standstill, then a quicker run improves the best.
+    fsd_perf_update(&p, 0.0f, 20000);
+    CHECK(!p.accel_armed, "disarmed at standstill");
+    fsd_perf_update(&p, 60.0f, 21000); // relaunch start=20000, 60>=50 -> 1000ms
+    CHECK(
+        p.t_0_50_ms == 1000 && p.best_0_50_ms == 1000,
+        "0-50 improved to 1000ms (best %lu)",
+        (unsigned long)p.best_0_50_ms);
+
+    // A run that never reaches a target leaves the locks clear.
+    FSDPerf q;
+    fsd_perf_reset(&q);
+    fsd_perf_update(&q, 0.0f, 0);
+    fsd_perf_update(&q, 30.0f, 1000);
+    fsd_perf_update(&q, 0.0f, 2000);
+    CHECK(!q.lock_0_50 && q.best_0_50_ms == 0, "no lock/best when target never reached");
+}
+
+// Braking 100->0 run times from crossing down through 100 km/h to standstill.
+static void test_perf_brake_timer(void) {
+    FSDPerf p;
+    fsd_perf_reset(&p);
+    fsd_perf_update(&p, 110.0f, 0); // above 100
+    fsd_perf_update(&p, 95.0f, 500); // crossed down through 100 -> brake start=500
+    CHECK(p.brake_armed, "brake armed crossing 100");
+    fsd_perf_update(&p, 40.0f, 2000);
+    CHECK(!p.lock_100_0, "brake not locked until standstill");
+    fsd_perf_update(&p, 0.0f, 3500); // standstill -> lock 3500-500=3000ms
+    CHECK(
+        p.lock_100_0 && p.t_100_0_ms == 3000 && p.best_100_0_ms == 3000,
+        "100-0 locked 3000ms got %lu",
+        (unsigned long)p.t_100_0_ms);
+}
+
+// Estimated longitudinal G: sign and magnitude on a synthetic ramp, and the
+// dt guard rejects implausibly short sample gaps.
+static void test_perf_g_estimate(void) {
+    FSDPerf p;
+    fsd_perf_reset(&p);
+    fsd_perf_update(&p, 0.0f, 0);
+    fsd_perf_update(&p, 36.0f, 1000); // +10 m/s in 1s = +1.0197 g
+    CHECK(p.g_est > 1.0f && p.g_est < 1.04f, "accel g ~1.02 got %.3f", p.g_est);
+    CHECK(p.g_peak > 1.0f && p.g_peak < 1.04f, "g peak captured");
+    fsd_perf_update(&p, 0.0f, 2000); // -10 m/s in 1s = -1.0197 g
+    CHECK(p.g_est < -1.0f && p.g_est > -1.04f, "brake g ~-1.02 got %.3f", p.g_est);
+    CHECK(p.g_peak_brake < -1.0f, "brake peak captured");
+    float before = p.g_est;
+    fsd_perf_update(&p, 20.0f, 2005); // dt=5ms < PERF_DT_MIN_MS -> ignored
+    CHECK(p.g_est == before, "sub-20ms sample gap ignored for G");
+}
+
+static void test_perf_wheel_slip(void) {
+    float out = -1.0f;
+    CHECK(
+        fsd_perf_wheel_slip_pct(50.0f, 50.0f, 55.0f, 55.0f, &out) && out > 9.99f && out < 10.01f,
+        "slip 10%% got %.3f",
+        out);
+    CHECK(
+        fsd_perf_wheel_slip_pct(50.0f, 50.0f, 45.0f, 45.0f, &out) && out < -9.99f && out > -10.01f,
+        "front faster -> negative slip got %.3f",
+        out);
+    out = 123.0f;
+    CHECK(
+        !fsd_perf_wheel_slip_pct(1.0f, 1.0f, 1.0f, 1.0f, &out) && out == 123.0f,
+        "slip undefined near standstill (out untouched)");
+}
+
+static void test_perf_temp_band(void) {
+    CHECK(
+        fsd_perf_temp_band(-5, PERF_BATT_COLD_C, PERF_BATT_WARM_C, PERF_BATT_HOT_C) ==
+            PERF_TEMP_COLD,
+        "cold");
+    CHECK(
+        fsd_perf_temp_band(5, PERF_BATT_COLD_C, PERF_BATT_WARM_C, PERF_BATT_HOT_C) ==
+            PERF_TEMP_COLD,
+        "cold boundary");
+    CHECK(
+        fsd_perf_temp_band(20, PERF_BATT_COLD_C, PERF_BATT_WARM_C, PERF_BATT_HOT_C) ==
+            PERF_TEMP_NORMAL,
+        "normal");
+    CHECK(
+        fsd_perf_temp_band(40, PERF_BATT_COLD_C, PERF_BATT_WARM_C, PERF_BATT_HOT_C) ==
+            PERF_TEMP_WARM,
+        "warm");
+    CHECK(
+        fsd_perf_temp_band(45, PERF_BATT_COLD_C, PERF_BATT_WARM_C, PERF_BATT_HOT_C) ==
+            PERF_TEMP_HOT,
+        "hot boundary");
+    CHECK(
+        fsd_perf_temp_band(60, PERF_BATT_COLD_C, PERF_BATT_WARM_C, PERF_BATT_HOT_C) ==
+            PERF_TEMP_HOT,
+        "hot");
+}
+
+// 0x175 ESP_wheelSpeeds parser: four 13-bit LE fields, factor 0.04 km/h.
+static void test_perf_wheel_speeds_parse(void) {
+    FSDState s;
+    memset(&s, 0, sizeof(s));
+    CanFrame f;
+    memset(&f, 0, sizeof(f));
+    f.id = CAN_ID_ESP_WHEELSPD;
+    f.dlc = 8;
+    uint16_t fl = 1250, fr = 1250, rl = 1375, rr = 1375; // 50,50,55,55 km/h
+    uint64_t w = (uint64_t)fl | ((uint64_t)fr << 13) | ((uint64_t)rl << 26) | ((uint64_t)rr << 39);
+    for(int i = 0; i < 8; i++)
+        f.data[i] = (uint8_t)((w >> (8 * i)) & 0xFF);
+    fsd_handle_wheel_speeds(&s, &f);
+    CHECK(s.wheel_speed_seen, "wheel speeds seen");
+    CHECK(
+        s.wheel_speed_fl_kph > 49.9f && s.wheel_speed_fl_kph < 50.1f,
+        "FL 50 got %.2f",
+        s.wheel_speed_fl_kph);
+    CHECK(
+        s.wheel_speed_rr_kph > 54.9f && s.wheel_speed_rr_kph < 55.1f,
+        "RR 55 got %.2f",
+        s.wheel_speed_rr_kph);
+    float slip = 0.0f;
+    CHECK(
+        fsd_perf_wheel_slip_pct(
+            s.wheel_speed_fl_kph,
+            s.wheel_speed_fr_kph,
+            s.wheel_speed_rl_kph,
+            s.wheel_speed_rr_kph,
+            &slip) &&
+            slip > 9.9f && slip < 10.1f,
+        "state slip ~10%% got %.2f",
+        slip);
+    // SNA/full-scale field is rejected (plausibility gate, no checksum modeled).
+    FSDState s2;
+    memset(&s2, 0, sizeof(s2));
+    uint64_t bad = (uint64_t)0x1FFF | ((uint64_t)fr << 13) | ((uint64_t)rl << 26) |
+                   ((uint64_t)rr << 39);
+    for(int i = 0; i < 8; i++)
+        f.data[i] = (uint8_t)((bad >> (8 * i)) & 0xFF);
+    fsd_handle_wheel_speeds(&s2, &f);
+    CHECK(!s2.wheel_speed_seen, "full-scale SNA field rejected");
+}
+
 int main() {
     printf("test_esp32_core: ESP32 firmware handler host tests\n");
+    test_perf_accel_timer();
+    test_perf_brake_timer();
+    test_perf_g_estimate();
+    test_perf_wheel_slip();
+    test_perf_temp_band();
+    test_perf_wheel_speeds_parse();
+    test_accel_real_frames();
+    test_accel_encode();
+    test_accel_off_passthrough();
+    test_accel_standstill_latch();
+    test_accel_off_immediate();
+    test_accel_speed_gate();
+    test_accel_gear_gate();
+    test_accel_bad_frames();
+    test_accel_tx_gate();
+    test_accel_touchscreen_change();
     test_hw4_mux2_profile_layout();
     test_hw3_speed_passthrough();
     test_hw4_ignores_hw3_override();

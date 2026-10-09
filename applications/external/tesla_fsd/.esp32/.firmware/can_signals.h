@@ -123,6 +123,18 @@
 #define SIG_BMS_TEMP_MAX_BYTE               5
 #define SIG_BMS_TEMP_OFFSET                40
 
+// ESP_wheelSpeeds (0x175) — four 13-bit LE wheel speeds, factor 0.04 km/h,
+// offset 0 (opendbc tesla_model3_party BO_373). Bit positions in the 64-bit LE
+// data word: FrL 0, FrR 13, ReL 26, ReR 39. Checksum byte7 / counter byte6
+// use a CRC we don't model, so the parser gates on a plausibility range only.
+#define SIG_ESP_WHEELSPD_SCALE           0.04f
+#define SIG_ESP_WHEELSPD_MASK           0x1FFFu   // 13 bits
+#define SIG_ESP_WHEELSPD_FL_SHIFT           0
+#define SIG_ESP_WHEELSPD_FR_SHIFT          13
+#define SIG_ESP_WHEELSPD_RL_SHIFT          26
+#define SIG_ESP_WHEELSPD_RR_SHIFT          39
+#define SIG_ESP_WHEELSPD_MAX_KPH        327.0f    // 13-bit*0.04 full-scale 327.64 = SNA/invalid
+
 // Trip planning / precondition (0x082)
 #define SIG_TRIP_PLANNING_FLAGS_BYTE        0
 #define SIG_TRIP_PLANNING_PRECONDITION   0x05u
@@ -223,3 +235,29 @@
 #define SIG_DAS_CONTROL_COUNTER_MASK     0x07u
 #define SIG_DAS_CONTROL_COUNTER_KEEP_MASK 0x1Fu
 #define SIG_DAS_CONTROL_CHECKSUM_BYTE       7
+
+// ── Acceleration Mode override (#211) ───────────────────────────────────────
+// UI_powertrainControl (0x334), little-endian, GTW-forwarded UI frame, 500 ms:
+//   UI_pedalMap: bit5|2 (0 CHILL, 1 SPORT, 2 PERFORMANCE); bit7 is a separate
+//   signal (UI_enableRegenBackfill on newer firmware) and is kept.
+//   UI_powertrainControlCounter: bit52|4 (byte6 high nibble), kept as received.
+//   UI_powertrainControlChecksum: byte7, additive over byte0..6 + id low/high
+//   (matches all 219 0x334 frames in the HW3 + HW4 Model 3 captures).
+#define SIG_UI_PEDAL_MAP_BYTE               0
+#define SIG_UI_PEDAL_MAP_SHIFT              5
+#define SIG_UI_PEDAL_MAP_MASK            0x03u
+#define SIG_UI_PEDAL_MAP_MAX                2u   // PERFORMANCE; 3 is undefined
+#define SIG_UI_POWERTRAIN_CHECKSUM_BYTE     7
+
+// DI_speed (0x257): DI_vehicleSpeed bit12|12, factor 0.08, offset -40 kph.
+// Raw 4062 = 284.96 kph is the max valid value; 4095 is SNA.
+#define SIG_DI_SPEED_RAW_MAX_VALID       4062u
+
+// DI_systemStatus (0x118), little-endian:
+//   DI_systemStatusChecksum: byte0, additive over byte1..7 + id low/high.
+//   DI_gear: bit21|3 (0 INVALID, 1 P, 2 R, 3 N, 4 D, 7 SNA).
+#define SIG_DI_STATUS_CHECKSUM_BYTE         0
+#define SIG_DI_GEAR_BYTE                    2
+#define SIG_DI_GEAR_SHIFT                   5
+#define SIG_DI_GEAR_MASK                 0x07u
+#define SIG_DI_GEAR_P                       1u
