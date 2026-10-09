@@ -1,3 +1,5 @@
+## 0.8
+- Bundle the picker icons (fap_file_assets); seed them on first run so icons show on a fresh install.
 ## 0.7
 - Hardening: null-check the app allocation and cppcheck-clean; catalog release.
 ## 0.6

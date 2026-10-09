@@ -427,6 +427,42 @@ static uint8_t grid_nav(uint8_t index, uint8_t count, uint16_t key) {
 
 // ---- entry ---------------------------------------------------------------
 
+#define FL_DIR "/ext/apps_data/flauncher"
+
+// copy every file from a bundled assets subfolder into a writable apps_data folder
+static void seed_copy_dir(Storage* s, const char* src, const char* dst) {
+    storage_common_mkdir(s, dst);
+    File* dir = storage_file_alloc(s);
+    FileInfo fi;
+    char name[96], sp[224], dp[224];
+    if(storage_dir_open(dir, src)) {
+        while(storage_dir_read(dir, &fi, name, sizeof(name))) {
+            if(file_info_is_dir(&fi)) continue;
+            snprintf(sp, sizeof(sp), "%s/%s", src, name);
+            snprintf(dp, sizeof(dp), "%s/%s", dst, name);
+            storage_common_copy(s, sp, dp);
+        }
+    }
+    storage_dir_close(dir);
+    storage_file_free(dir);
+}
+
+// On first run, seed the picker icon set (and a default icons.txt) from the bundled assets
+// (fap_file_assets) into the writable apps_data workspace. One-shot via a marker.
+static void seed_assets(void) {
+    Storage* s = furi_record_open(RECORD_STORAGE);
+    if(!storage_file_exists(s, FL_DIR "/.seeded")) {
+        storage_common_mkdir(s, FL_DIR);
+        seed_copy_dir(s, APP_ASSETS_PATH("icons"), ICONS_DIR);
+        storage_common_copy(s, APP_ASSETS_PATH("icons.txt"), ICONS_CFG);
+        File* m = storage_file_alloc(s);
+        if(storage_file_open(m, FL_DIR "/.seeded", FSAM_WRITE, FSOM_CREATE_ALWAYS))
+            storage_file_close(m);
+        storage_file_free(m);
+    }
+    furi_record_close(RECORD_STORAGE);
+}
+
 int32_t flauncher_app(void* p) {
     UNUSED(p);
     App* app = malloc(sizeof(App));
@@ -435,6 +471,7 @@ int32_t flauncher_app(void* p) {
     app->mode = ModeGrid;
     app->input_queue = furi_message_queue_alloc(8, sizeof(InputEvent));
 
+    seed_assets(); // ship the picker icons + default mapping on first run
     load_favorites(app);
     load_icons(app);
     load_state(app); // restore last-selected favorite
