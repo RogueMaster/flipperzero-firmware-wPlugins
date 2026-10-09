@@ -1,3 +1,5 @@
+## 0.9
+- Hardening: null-check the app allocation and cppcheck-clean; catalog release.
 ## 0.8
 - Original 16px hand-drawn icon set (crisp, MIT); frames on layout, frameless picker.
 ## 0.6
