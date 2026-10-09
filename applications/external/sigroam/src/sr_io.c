@@ -11,11 +11,15 @@
 #define SR_IO_RX_CAP     2048u
 #define SR_IO_RX_TRIGGER 1u
 
-/* These three numbers come from the neighboring project's on-device values (otg_gate.h:6-7 /
- * scout_drive.c:33); they are not measured optima for this project. B1 must record which sample
- * index actually turned physical=true. */
-#define SR_IO_OTG_SAMPLES    6u
-#define SR_IO_OTG_SAMPLE_MS  20u
+/* Direct charger writes used only when live VBUS is below SR_IO_VBUS_PRESENT_V.
+ * The power service postpones on a 1 s VBUS cache and never touches the charger; the old
+ * 100 ms poll then called power_enable_otg(false) and cancelled that later tick.
+ * Bound matches the WiFi Marauder companion (wifi_marauder_app.c, 0xchocolate
+ * flipperzero-wifi-marauder b39a2cb, 2026-09-15): 5 calls, 10 ms apart.
+ * furi_hal_power_enable_otg() already waits 30 ms inside each call.
+ * Settle is the post-success delay from scout_drive.c:33. */
+#define SR_IO_OTG_HAL_TRIES  5u
+#define SR_IO_OTG_HAL_GAP_MS 10u
 #define SR_IO_OTG_SETTLE_MS  200u
 /* Must stay equal to the upstream threshold in
  * applications/services/power/power_service/power.c ("voltage_vbus < 4.5f", read 2026-09-02).
@@ -174,7 +178,7 @@ SrIoStatus sr_io_open(SrIo* io, uint32_t baud) {
     bool usb_5v;
     float vbus;
     uint32_t vbus_cv; /* VBUS in centivolts, rounded -- see the note at the log line */
-    uint32_t sample;
+    uint32_t hal_tries;
 
     /* 1 */ if(io == NULL) {
         return SrIoErrState;
@@ -209,6 +213,13 @@ SrIoStatus sr_io_open(SrIo* io, uint32_t baud) {
      * power)"). Withdrawing it here -- which the old rollback path did -- is exactly why
      * unplugging USB used to require leaving and re-entering the app (V-053 note 8). Keeping it
      * standing gives a seamless car-charger -> battery handover.
+     *
+     * On battery the service may still postpone, because it compares a VBUS value cached on its
+     * 1 s tick, not the live reading below. Waiting 100 ms and then withdrawing the request
+     * left pin 1 off. The WiFi Marauder companion raises the same pin by calling
+     * furi_hal_power_enable_otg() directly. Do that only when live VBUS is below 4.5 V.
+     * This runs during app startup, not from a GUI tick. Withdraw the request only after those
+     * direct tries have also failed.
      */
     io->power = furi_record_open(RECORD_POWER);
     requested = power_is_otg_enabled(io->power);
@@ -221,14 +232,14 @@ SrIoStatus sr_io_open(SrIo* io, uint32_t baud) {
     vbus = furi_hal_power_get_usb_voltage();
     usb_5v = (vbus >= SR_IO_VBUS_PRESENT_V);
 
-    /* One immediate read for the log in either case; only wait for the boost to rise when it is
-     * the source we actually depend on. Polling under USB would burn SAMPLES*SAMPLE_MS waiting
-     * for a state the charger has already refused to enter. */
+    /* USB already feeds pin 1, so do not write the charger. On battery, the service request
+     * above may have been postponed; write the OTG bit directly until it reads back. */
     physical = furi_hal_power_is_otg_enabled();
-    sample = 0;
-    if(!usb_5v) {
-        for(; !physical && sample < SR_IO_OTG_SAMPLES - 1u; sample++) {
-            furi_delay_ms(SR_IO_OTG_SAMPLE_MS);
+    hal_tries = 0;
+    if(!usb_5v && !physical) {
+        for(; !physical && hal_tries < SR_IO_OTG_HAL_TRIES; hal_tries++) {
+            (void)furi_hal_power_enable_otg();
+            furi_delay_ms(SR_IO_OTG_HAL_GAP_MS);
             physical = furi_hal_power_is_otg_enabled();
         }
     }
@@ -242,14 +253,14 @@ SrIoStatus sr_io_open(SrIo* io, uint32_t baud) {
 
     FURI_LOG_I(
         SR_IO_TAG,
-        "pwr: vbus=%lu.%02lu usb_5v=%d requested=%d physical=%d otg_by_us=%d sample=%lu",
+        "pwr: vbus=%lu.%02lu usb_5v=%d requested=%d physical=%d otg_by_us=%d hal=%lu",
         (unsigned long)(vbus_cv / 100u),
         (unsigned long)(vbus_cv % 100u),
         usb_5v ? 1 : 0,
         requested ? 1 : 0,
         physical ? 1 : 0,
         io->otg_by_us ? 1 : 0,
-        (unsigned long)(physical ? (sample + 1u) : 0u));
+        (unsigned long)hal_tries);
 
     if(!usb_5v && !physical) {
         if(io->otg_by_us) {

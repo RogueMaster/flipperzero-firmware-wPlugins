@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.1] — 2026-10-08
+
+### Fixed
+
+- On battery, opening SigRoam sometimes left the scanner unpowered. Pin 1's 5 V now comes on when the app opens. USB power is unchanged.
+
 ## [0.6] — 2026-09-24
 
 For Scout Lite running SigRoam 0.6.
