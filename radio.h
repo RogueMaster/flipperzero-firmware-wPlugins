@@ -13,6 +13,10 @@ PodRadio* pod_radio_alloc(void);
 void pod_radio_free(PodRadio* radio);
 void pod_radio_set_rx_callback(PodRadio* radio, PodMsgCallback cb, void* context);
 
+// False when the region does not permit 433.92 MHz; pod_radio_start() gates on
+// this, so the UI can tell a regional block apart from a hardware failure.
+bool pod_radio_frequency_allowed(void);
+
 bool pod_radio_start(PodRadio* radio);
 void pod_radio_stop(PodRadio* radio);
 bool pod_radio_is_running(PodRadio* radio);

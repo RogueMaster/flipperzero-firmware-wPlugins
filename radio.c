@@ -2,6 +2,8 @@
 
 #include <furi.h>
 #include <furi_hal_random.h>
+#include <furi_hal_region.h>
+#include <furi_hal_subghz.h>
 #include <lib/subghz/subghz_tx_rx_worker.h>
 #include <lib/subghz/devices/devices.h>
 #include <lib/subghz/devices/cc1101_int/cc1101_int_interconnect.h>
@@ -57,8 +59,16 @@ static void pod_radio_have_read(void* context) {
     }
 }
 
+bool pod_radio_frequency_allowed(void) {
+    // The worker both receives and transmits, so respect the regional limits
+    // before it ever keys up.
+    return furi_hal_subghz_is_frequency_valid(POD_FREQUENCY) &&
+           furi_hal_region_is_frequency_allowed(POD_FREQUENCY);
+}
+
 bool pod_radio_start(PodRadio* radio) {
     if(radio->running) return true;
+    if(!pod_radio_frequency_allowed()) return false;
     subghz_devices_init();
     radio->device = subghz_devices_get_by_name(SUBGHZ_DEVICE_CC1101_INT_NAME);
     if(!radio->device) {

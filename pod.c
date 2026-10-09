@@ -87,6 +87,7 @@ typedef struct {
     uint16_t frame;
     uint8_t in_range_count;
     bool radio_ok;
+    bool region_blocked;
 } PodWalkModel;
 
 typedef enum {
@@ -445,7 +446,14 @@ static void pod_walk_draw(Canvas* canvas, void* model) {
 
     if(!m->radio_ok) {
         canvas_set_font(canvas, FontSecondary);
-        canvas_draw_str_aligned(canvas, 64, 40, AlignCenter, AlignCenter, "Radio failed to start");
+        if(m->region_blocked) {
+            canvas_draw_str_aligned(
+                canvas, 64, 34, AlignCenter, AlignCenter, "433.92 MHz not allowed");
+            canvas_draw_str_aligned(canvas, 64, 45, AlignCenter, AlignCenter, "in your region");
+        } else {
+            canvas_draw_str_aligned(
+                canvas, 64, 40, AlignCenter, AlignCenter, "Radio failed to start");
+        }
         return;
     }
 
@@ -519,6 +527,7 @@ static void pod_walk_enter(void* context) {
             m->frame = 0;
             m->in_range_count = 0;
             m->radio_ok = ok;
+            m->region_blocked = !ok && !pod_radio_frequency_allowed();
         },
         true);
     if(ok) {
