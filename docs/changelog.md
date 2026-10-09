@@ -1,3 +1,5 @@
+## 0.2
+- Right opens the selected app (the Right hint is labelled Open).
 ## 0.1
 - Launch any installed app or built-in tool from one list, most-used first.
 - Fuzzy search by name (Left opens the keyboard).

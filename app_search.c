@@ -585,6 +585,7 @@ static bool list_input(InputEvent* event, void* context) {
         text_input_set_header_text(app->input, "Search apps");
         view_dispatcher_switch_to_view(app->vd, ViewIdSearch);
         return true;
+    case InputKeyRight: // the hint labels Right "Open"; launch like OK
     case InputKeyOk:
         if(app->result_count) {
             app->launch_index = app->order[app->sel];
