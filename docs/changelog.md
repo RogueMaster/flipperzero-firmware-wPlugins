@@ -1,3 +1,5 @@
+## 1.0
+- Bundle example remotes and button icons (fap_file_assets); seed the workspace on first run so a fresh install is not empty.
 ## 0.9
 - Hardening: null-check the app allocation and cppcheck-clean; catalog release.
 ## 0.8

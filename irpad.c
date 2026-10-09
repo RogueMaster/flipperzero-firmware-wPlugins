@@ -892,6 +892,38 @@ static void open_edit(App* app) {
 
 // ---- entry ---------------------------------------------------------------
 
+// copy every file from a bundled assets subfolder into a writable apps_data folder
+static void seed_copy_dir(Storage* s, const char* src, const char* dst) {
+    storage_common_mkdir(s, dst);
+    File* dir = storage_file_alloc(s);
+    FileInfo fi;
+    char name[96], sp[224], dp[224];
+    if(storage_dir_open(dir, src)) {
+        while(storage_dir_read(dir, &fi, name, sizeof(name))) {
+            if(file_info_is_dir(&fi)) continue;
+            snprintf(sp, sizeof(sp), "%s/%s", src, name);
+            snprintf(dp, sizeof(dp), "%s/%s", dst, name);
+            storage_common_copy(s, sp, dp); // ignore errors (already present, etc.)
+        }
+    }
+    storage_dir_close(dir);
+    storage_file_free(dir);
+}
+
+// On first run, seed the writable workspace from the bundled assets (fap_file_assets):
+// example remotes into apps_data/irpad and the button icons into apps_data/irpad/icons.
+// A marker makes this one-shot so later user edits/deletions are respected.
+static void seed_assets(Storage* s) {
+    if(storage_file_exists(s, APP_DIR "/.seeded")) return;
+    storage_common_mkdir(s, APP_DIR);
+    seed_copy_dir(s, APP_ASSETS_PATH("remotes"), APP_DIR);
+    seed_copy_dir(s, APP_ASSETS_PATH("icons"), ICONS_DIR);
+    File* m = storage_file_alloc(s);
+    if(storage_file_open(m, APP_DIR "/.seeded", FSAM_WRITE, FSOM_CREATE_ALWAYS))
+        storage_file_close(m);
+    storage_file_free(m);
+}
+
 int32_t irpad_app(void* p) {
     App* app = malloc(sizeof(App));
     if(!app) return -1;
@@ -900,6 +932,7 @@ int32_t irpad_app(void* p) {
     app->storage = furi_record_open(RECORD_STORAGE);
     app->notif = furi_record_open(RECORD_NOTIFICATION);
     storage_common_mkdir(app->storage, APP_DIR);
+    seed_assets(app->storage); // ship example remotes + icons on first run
 
     app->vd = view_dispatcher_alloc();
     view_dispatcher_attach_to_gui(app->vd, app->gui, ViewDispatcherTypeFullscreen);
