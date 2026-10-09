@@ -59,7 +59,7 @@ static void pod_radio_have_read(void* context) {
     }
 }
 
-bool pod_radio_frequency_allowed(void) {
+static bool pod_radio_frequency_allowed(void) {
     // The worker both receives and transmits, so respect the regional limits
     // before it ever keys up.
     return furi_hal_subghz_is_frequency_valid(POD_FREQUENCY) &&
