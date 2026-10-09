@@ -1,3 +1,5 @@
+## 0.7
+- Hardening: null-check the app allocation and cppcheck-clean; catalog release.
 ## 0.6
 - IR favorites open in IR Pad when installed, else the stock Infrared app.
 ## 0.5
