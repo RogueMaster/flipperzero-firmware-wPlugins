@@ -4,6 +4,7 @@
 #include <string.h>
 #include "../helpers/flipbip_string.h"
 #include "../helpers/flipbip_file.h"
+#include "../helpers/flipbip_xmr_words.h"
 // From: /lib/crypto
 #include <memzero.h>
 #include <curves.h>
@@ -40,6 +41,8 @@
 #define TEXT_RECEIVE_ADDRESS "receive address:"
 #define TEXT_XMR_SPEND_KEY   "Private spend key:"
 #define TEXT_XMR_VIEW_KEY    "Private view key:"
+#define TEXT_XMR_SEED_1      "Monero seed, words 1-12:"
+#define TEXT_XMR_SEED_2      "Monero seed, words 13-25:"
 #define TEXT_QRFILE_EXT      ".qrcode"
 #define WARN_INSECURE_TEXT_1 "Recommendation:"
 #define WARN_INSECURE_TEXT_2 "Set BIP39 Passphrase"
@@ -50,11 +53,11 @@ static const char TEXT_INFO[] = "-Scroll pages with up/down-"
                                 "p4,5)  Prv/Pub Account Keys"
                                 "p6,7)  Prv/Pub BIP32 Keys  "
                                 "p8+)    Receive Addresses  ";
-// Same layout, Monero shows its own spend/view keys instead of BIP32 keys
+// Same layout, Monero shows its own 25 word seed and spend/view keys
 static const char TEXT_INFO_XMR[] = "-Scroll pages with up/down-"
                                     "p1,2)   BIP39 Mnemonic/Seed"
                                     "p3)       BIP32 Root Key   "
-                                    "p4,5)  Prv/Pub Account Keys"
+                                    "p4,5)  Monero 25-word Seed "
                                     "p6,7)  Prv Spend/View Keys "
                                     "p8+)  Address/Subaddresses ";
 
@@ -70,8 +73,15 @@ typedef struct {
     CONFIDENTIAL char mnemonic[TEXT_BUFFER_SIZE];
     CONFIDENTIAL uint8_t seed[64];
     CONFIDENTIAL char xprv_root[XKEY_BUF];
-    CONFIDENTIAL char xprv_account[XKEY_BUF];
-    char xpub_account[XKEY_BUF];
+    union {
+        // m/44'/coin'/0' xprv and xpub
+        struct {
+            CONFIDENTIAL char xprv_account[XKEY_BUF];
+            char xpub_account[XKEY_BUF];
+        };
+        // XMR only: the private spend key as Monero's 25 word mnemonic
+        CONFIDENTIAL char xmr_mnemonic[FLIPBIP_XMR_MNEMONIC_BUF];
+    };
     // m/44'/coin'/0'/0 xprv and xpub; for XMR the private spend and view keys (hex)
     CONFIDENTIAL char xprv_extended[XKEY_BUF];
     CONFIDENTIAL char xpub_extended[XKEY_BUF];
@@ -149,26 +159,86 @@ static void flipbip_scene_1_draw_lines(Canvas* canvas, const char* text, size_t 
     memzero(line, sizeof(line));
 }
 
-static void flipbip_scene_1_draw_mnemonic(Canvas* canvas, const char* mnemonic) {
-    // 4 words per line
-    char line[LINE_BUF];
-    canvas_set_font(canvas, FontSecondary);
-    const char* p = mnemonic;
-    for(size_t i = 0; i < NUM_LINES && *p; i++) {
-        size_t o = 0;
-        int words = 0;
-        while(*p) {
-            if(*p == ' ' && ++words == 4) {
-                p++;
-                break;
+// Greedy-wrap words [w0, w0 + n) of the space separated `text` to the screen
+// width (by real pixel width of the current font). If `draw`, lines are drawn
+// from y0 at a 9px pitch. If `prefix` > 0 only that many letters of each word
+// are used. Returns the number of lines needed.
+static int flipbip_scene_1_wrap(
+    Canvas* canvas,
+    const char* text,
+    int w0,
+    int n,
+    int32_t y0,
+    size_t prefix,
+    bool draw) {
+    char line[64];
+    size_t len = 0;
+    int lines = 0;
+    const char* p = text;
+    for(int w = 0; *p && w < w0 + n; w++) {
+        const char* end = strchr(p, ' ');
+        size_t wlen = end ? (size_t)(end - p) : strlen(p);
+        const char* word = p;
+        p += wlen + (end ? 1 : 0);
+        if(w < w0) continue;
+        if(prefix && wlen > prefix) wlen = prefix;
+        if(wlen > sizeof(line) - 2) wlen = sizeof(line) - 2;
+
+        // try appending the word to the current line
+        if(len > 0 && len + 1 + wlen < sizeof(line)) {
+            line[len] = ' ';
+            memcpy(line + len + 1, word, wlen);
+            line[len + 1 + wlen] = '\0';
+            if(canvas_string_width(canvas, line) <= 127) {
+                len += 1 + wlen;
+                continue;
             }
-            if(o < LINE_BUF - 2) line[o++] = *p;
-            p++;
+            line[len] = '\0';
         }
-        line[o] = '\0';
-        canvas_draw_str_aligned(canvas, 1, 2 + i * 10, AlignLeft, AlignTop, line);
+        // line full (or first word): emit it, start a new one
+        if(len > 0) {
+            if(draw) canvas_draw_str_aligned(canvas, 1, y0 + lines * 9, AlignLeft, AlignTop, line);
+            lines++;
+        }
+        memcpy(line, word, wlen);
+        line[wlen] = '\0';
+        len = wlen;
+    }
+    if(len > 0) {
+        if(draw) canvas_draw_str_aligned(canvas, 1, y0 + lines * 9, AlignLeft, AlignTop, line);
+        lines++;
     }
     memzero(line, sizeof(line));
+    return lines;
+}
+
+static void flipbip_scene_1_draw_mnemonic(Canvas* canvas, const char* mnemonic) {
+    // Up to 24 words fit in 7 lines for any realistic phrase. If not, fall back
+    // to the first 4 letters of each word, which identify a BIP39 word uniquely
+    // (at most 28px each, so 4 per line: 24 words in 6 lines).
+    canvas_set_font(canvas, FontSecondary);
+    if(flipbip_scene_1_wrap(canvas, mnemonic, 0, 24, 0, 0, false) <= 7) {
+        flipbip_scene_1_wrap(canvas, mnemonic, 0, 24, 1, 0, true);
+    } else {
+        canvas_draw_str_aligned(canvas, 1, 0, AlignLeft, AlignTop, "First 4 letters of each word:");
+        flipbip_scene_1_wrap(canvas, mnemonic, 0, 24, 10, 4, true);
+    }
+}
+
+// Monero 25 word seed over two pages: words 1-12, then 13-25. Two words always
+// fit on a line (the widest is 53px), so that is at most 6 and 7 lines.
+static void flipbip_scene_1_draw_xmr_mnemonic(Canvas* canvas, const char* words, bool second) {
+    canvas_set_font(canvas, FontSecondary);
+    const int w0 = second ? 12 : 0;
+    const int n = second ? 13 : 12;
+    if(flipbip_scene_1_wrap(canvas, words, w0, n, 0, 0, false) <= 6) {
+        canvas_draw_str_aligned(
+            canvas, 1, 2, AlignLeft, AlignTop, second ? TEXT_XMR_SEED_2 : TEXT_XMR_SEED_1);
+        flipbip_scene_1_wrap(canvas, words, w0, n, 12, 0, true);
+    } else {
+        // only for a run of very long words: use all 7 lines, no header
+        flipbip_scene_1_wrap(canvas, words, w0, n, 2, 0, true);
+    }
 }
 
 static void flipbip_scene_1_draw_seed(Canvas* canvas, const uint8_t* seed) {
@@ -285,10 +355,18 @@ static void flipbip_scene_1_draw(Canvas* canvas, void* _model) {
         flipbip_scene_1_draw_lines(canvas, w->xprv_root, 20);
         break;
     case PAGE_XPRV_ACCT:
-        flipbip_scene_1_draw_lines(canvas, w->xprv_account, 20);
+        if(xmr) {
+            flipbip_scene_1_draw_xmr_mnemonic(canvas, w->xmr_mnemonic, false);
+        } else {
+            flipbip_scene_1_draw_lines(canvas, w->xprv_account, 20);
+        }
         break;
     case PAGE_XPUB_ACCT:
-        flipbip_scene_1_draw_lines(canvas, w->xpub_account, 20);
+        if(xmr) {
+            flipbip_scene_1_draw_xmr_mnemonic(canvas, w->xmr_mnemonic, true);
+        } else {
+            flipbip_scene_1_draw_lines(canvas, w->xpub_account, 20);
+        }
         break;
     case PAGE_XPRV_EXTD:
         if(xmr) {
@@ -358,7 +436,7 @@ static void flipbip_scene_1_init_address(
 // Address 0 is the primary address, 1..N-1 are subaddresses (account 0).
 typedef struct {
     bignum256modm spend, view, m;
-    ge25519 B, A, D, P;
+    ge25519 G, B, A, D, P;
     uint8_t buf[64];
 } FlipBipXmrScratch;
 
@@ -376,14 +454,18 @@ static void flipbip_scene_1_init_xmr(
     contract256_modm(x->buf, x->spend);
     xmr_hash_to_scalar(x->view, x->buf, 32);
 
-    // Private keys, shown on the spend/view key pages
+    // Private keys, shown as the 25 word seed and on the spend/view key pages
+    flipbip_xmr_mnemonic(x->buf, w->xmr_mnemonic);
     flipbip_btox(x->buf, 32, w->xprv_extended);
     contract256_modm(x->buf, x->view);
     flipbip_btox(x->buf, 32, w->xpub_extended);
 
-    // Public spend key B and view key A
-    ge25519_scalarmult_base_wrapper(&x->B, x->spend);
-    ge25519_scalarmult_base_wrapper(&x->A, x->view);
+    // Public spend key B and view key A. Uses the constant time windowed
+    // ge25519_scalarmult on the base point G rather than the base point
+    // routines: those need a 24KB precomputed table, this needs ~2KB of stack.
+    ge25519_set_base(&x->G);
+    ge25519_scalarmult(&x->B, &x->G, x->spend);
+    ge25519_scalarmult(&x->A, &x->G, x->view);
 
     for(uint32_t i = 0; i < NUM_ADDRS; i++) {
         uint64_t tag = COIN_INFO_ARRAY[coin_type][COIN_INFO_ADDR_VERS];
@@ -393,14 +475,12 @@ static void flipbip_scene_1_init_xmr(
         } else {
             // m = Hs("SubAddr" || view || 0 || i)
             // D = B + mG = (spend + m)G,  C = view * D = (view * (spend + m))G
-            // Base point multiplies only: the variable base ge25519_scalarmult
-            // needs ~2KB of stack, too much for the 3KB app stack.
             tag = 42;
             xmr_get_subaddress_secret_key(x->m, 0, i, x->view);
             add256_modm(x->m, x->m, x->spend);
-            ge25519_scalarmult_base_wrapper(&x->D, x->m);
+            ge25519_scalarmult(&x->D, &x->G, x->m);
             mul256_modm(x->m, x->m, x->view);
-            ge25519_scalarmult_base_wrapper(&x->P, x->m);
+            ge25519_scalarmult(&x->P, &x->G, x->m);
             ge25519_pack(x->buf, &x->D);
             ge25519_pack(x->buf + 32, &x->P);
         }
@@ -462,15 +542,18 @@ static FlipBipStatus flipbip_wallet_init(
     // m/purpose'/coin'/0'
     fingerprint = hdnode_fingerprint(node);
     hdnode_private_ckd_prime(node, DERIV_ACCOUNT);
-    hdnode_serialize_private(node, fingerprint, xprv_vers, w->xprv_account, XKEY_BUF);
-    // private_ckd leaves public_key stale: recompute before serializing the xpub
-    hdnode_fill_public_key(node);
-    hdnode_serialize_public(node, fingerprint, xpub_vers, w->xpub_account, XKEY_BUF);
+    const bool xmr = flipbip_coin_fmt(coin_type) == CoinTypeXMR128;
+    if(!xmr) {
+        // (for XMR this space holds the 25 word seed instead)
+        hdnode_serialize_private(node, fingerprint, xprv_vers, w->xprv_account, XKEY_BUF);
+        // private_ckd leaves public_key stale: recompute before serializing the xpub
+        hdnode_fill_public_key(node);
+        hdnode_serialize_public(node, fingerprint, xpub_vers, w->xpub_account, XKEY_BUF);
+    }
 
     // m/purpose'/coin'/0'/0
     fingerprint = hdnode_fingerprint(node);
     hdnode_private_ckd(node, DERIV_CHANGE);
-    const bool xmr = flipbip_coin_fmt(coin_type) == CoinTypeXMR128;
     if(xmr) {
         flipbip_scene_1_init_xmr(w, addr_node, node, coin_type);
     } else {

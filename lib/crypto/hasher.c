@@ -54,6 +54,7 @@ void hasher_InitParam(Hasher* hasher, HasherType type, const void* param, uint32
 #endif
         sha3_256_Init(&hasher->ctx.sha3);
         break;
+#if USE_EXTRA_HASHERS
     case HASHER_BLAKE:
     case HASHER_BLAKED:
     case HASHER_BLAKE_RIPEMD:
@@ -68,6 +69,7 @@ void hasher_InitParam(Hasher* hasher, HasherType type, const void* param, uint32
     case HASHER_BLAKE2B_PERSONAL:
         blake2b_InitPersonal(&hasher->ctx.blake2b, 32, hasher->param, hasher->param_size);
         break;
+#endif
     }
 }
 
@@ -93,6 +95,7 @@ void hasher_Update(Hasher* hasher, const uint8_t* data, size_t length) {
 #endif
         sha3_Update(&hasher->ctx.sha3, data, length);
         break;
+#if USE_EXTRA_HASHERS
     case HASHER_BLAKE:
     case HASHER_BLAKED:
     case HASHER_BLAKE_RIPEMD:
@@ -105,6 +108,7 @@ void hasher_Update(Hasher* hasher, const uint8_t* data, size_t length) {
     case HASHER_BLAKE2B_PERSONAL:
         blake2b_Update(&hasher->ctx.blake2b, data, length);
         break;
+#endif
     }
 }
 
@@ -130,6 +134,7 @@ void hasher_Final(Hasher* hasher, uint8_t hash[HASHER_DIGEST_LENGTH]) {
         keccak_Final(&hasher->ctx.sha3, hash);
         break;
 #endif
+#if USE_EXTRA_HASHERS
     case HASHER_BLAKE:
         blake256_Final(&hasher->ctx.blake, hash);
         break;
@@ -148,6 +153,7 @@ void hasher_Final(Hasher* hasher, uint8_t hash[HASHER_DIGEST_LENGTH]) {
     case HASHER_BLAKE2B_PERSONAL:
         blake2b_Final(&hasher->ctx.blake2b, hash, 32);
         break;
+#endif
     }
 }
 

@@ -71,6 +71,13 @@
 #define USE_NEM 0
 #endif
 
+// support the BLAKE-256, BLAKE2b and Groestl hashers (Decred, Groestlcoin,
+// Zcash/Cardano style hashing). FlipBIP needs none of them, and with them on
+// hasher.c links ~30KB of code that is never used.
+#ifndef USE_EXTRA_HASHERS
+#define USE_EXTRA_HASHERS 0
+#endif
+
 // support MONERO operations
 #ifndef USE_MONERO
 #define USE_MONERO 1

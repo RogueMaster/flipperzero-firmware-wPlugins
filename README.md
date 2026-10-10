@@ -49,8 +49,9 @@ The application will be compiled and copied onto your device
   - Generation of offline `m/44'/133'/0'/0` ZEC transparent address wallet (by @wh00hw)
   - Generation of offline `m/44'/128'/0'/0` XMR wallet, Ledger compatible
     - Private spend key = `sc_reduce(keccak256(k))` where `k` is the BIP32 private key at `m/44'/128'/0'/0/0`, private view key = `sc_reduce(keccak256(spend))`
-    - Shows the primary address and subaddresses 1-5 of account 0, plus the private spend/view keys
-    - Restore in any Monero wallet with "restore from keys" (address + spend key + view key), or as watch-only with the view key
+    - Shows the Monero 25-word seed (English), the primary address and subaddresses 1-5 of account 0, plus the private spend/view keys
+    - Restore in any Monero wallet (Feather, Cake, Monero GUI/CLI) from the 25-word seed, or as watch-only with the address and private view key
+    - The 25 words are the private spend key in Monero's own mnemonic format, not a separate secret: the BIP39 words still back up every coin, the 25 words only this XMR wallet
     - NOTE: Trezor derives Monero keys differently (SLIP-10 ed25519), so a Trezor with the same seed shows a different XMR wallet
   - Similar features to: https://iancoleman.io/bip39/
 - Saving wallets to SD card
