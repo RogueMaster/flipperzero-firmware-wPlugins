@@ -159,6 +159,49 @@ static void flipbip_scene_1_draw_lines(Canvas* canvas, const char* text, size_t 
     memzero(line, sizeof(line));
 }
 
+// Wrap `text` at any character so that no line passes the right screen edge
+// (by real pixel width of the current font). If `draw`, lines are drawn from
+// (x, y0) at `pitch`. Returns the number of lines needed.
+// Worst cases in the small font, from x = 1: 16 base58 or 21 hex characters
+// per line, so a 111 char xprv or a 128 char hex seed never needs more than 7.
+static int flipbip_scene_1_wrap_chars(
+    Canvas* canvas,
+    const char* text,
+    int32_t x,
+    int32_t y0,
+    int32_t pitch,
+    bool draw) {
+    char line[64]; // narrowest glyphs are 3px, so at most ~42 per line
+    size_t len = 0;
+    int lines = 0;
+    for(const char* p = text; *p; p++) {
+        line[len] = *p;
+        line[len + 1] = '\0';
+        if(len > 0 && (x + canvas_string_width(canvas, line) > 128 || len + 2 >= sizeof(line))) {
+            line[len] = '\0';
+            if(draw) canvas_draw_str_aligned(canvas, x, y0 + lines * pitch, AlignLeft, AlignTop, line);
+            lines++;
+            line[0] = *p;
+            line[1] = '\0';
+            len = 1;
+        } else {
+            len++;
+        }
+    }
+    if(len > 0) {
+        if(draw) canvas_draw_str_aligned(canvas, x, y0 + lines * pitch, AlignLeft, AlignTop, line);
+        lines++;
+    }
+    memzero(line, sizeof(line));
+    return lines;
+}
+
+// xprv / xpub (111 chars): up to 7 lines at a 9px pitch
+static void flipbip_scene_1_draw_key(Canvas* canvas, const char* key) {
+    canvas_set_font(canvas, FontSecondary);
+    flipbip_scene_1_wrap_chars(canvas, key, 1, 1, 9, true);
+}
+
 // Greedy-wrap words [w0, w0 + n) of the space separated `text` to the screen
 // width (by real pixel width of the current font). If `draw`, lines are drawn
 // from y0 at a 9px pitch. If `prefix` > 0 only that many letters of each word
@@ -242,28 +285,19 @@ static void flipbip_scene_1_draw_xmr_mnemonic(Canvas* canvas, const char* words,
 }
 
 static void flipbip_scene_1_draw_seed(Canvas* canvas, const uint8_t* seed) {
-    // 11 bytes = 22 hex chars per line
-    char line[LINE_BUF];
+    // 128 hex chars: up to 7 lines at a 9px pitch
+    char hex[64 * 2 + 1];
+    flipbip_btox(seed, 64, hex);
     canvas_set_font(canvas, FontSecondary);
-    for(size_t i = 0; i < NUM_LINES; i++) {
-        size_t start = i * 11;
-        size_t n = 64 - start < 11 ? 64 - start : 11;
-        flipbip_btox(seed + start, n, line);
-        canvas_draw_str_aligned(canvas, 1, 2 + i * 10, AlignLeft, AlignTop, line);
-    }
-    memzero(line, sizeof(line));
+    flipbip_scene_1_wrap_chars(canvas, hex, 1, 1, 9, true);
+    memzero(hex, sizeof(hex));
 }
 
 static void flipbip_scene_1_draw_xmr_key(Canvas* canvas, const char* title, const char* hex) {
-    char line[LINE_BUF];
-    const size_t len = strlen(hex);
+    // 64 hex chars: 3-4 lines under the title
     canvas_set_font(canvas, FontSecondary);
     canvas_draw_str_aligned(canvas, 1, 2, AlignLeft, AlignTop, title);
-    for(size_t i = 0; i < 3; i++) {
-        flipbip_scene_1_line(line, hex, len, 22, i, false);
-        canvas_draw_str_aligned(canvas, 1, 14 + i * 10, AlignLeft, AlignTop, line);
-    }
-    memzero(line, sizeof(line));
+    flipbip_scene_1_wrap_chars(canvas, hex, 1, 14, 10, true);
 }
 
 static void flipbip_scene_1_draw_address(Canvas* canvas, const FlipBipScene1Model* model) {
@@ -288,26 +322,38 @@ static void flipbip_scene_1_draw_address(Canvas* canvas, const FlipBipScene1Mode
 
     // footer: QR code file name
     snprintf(line, sizeof(line), "%s%02x%s", file, index, TEXT_QRFILE_EXT);
-    canvas_draw_str_aligned(canvas, 125, xmr ? 56 : 53, AlignRight, AlignTop, line);
 
     if(xmr) {
-        // 95 chars: 5 lines of 19 in the small font, no grouping
-        const size_t len = strlen(addr);
-        for(size_t i = 0; i < 5; i++) {
-            flipbip_scene_1_line(line, addr, len, 19, i, false);
-            canvas_draw_str_aligned(canvas, 2, 11 + i * 9, AlignLeft, AlignTop, line);
+        // 95 chars wrapped in the small font: 5 lines, or 6 (at most, 16 per
+        // line worst case) in which case the file name gives way. Small font
+        // text at top y covers rows y..y+8, so the last line starts at <= 55.
+        if(flipbip_scene_1_wrap_chars(canvas, addr, 1, 10, 9, false) <= 5) {
+            canvas_draw_str_aligned(canvas, 125, 55, AlignRight, AlignTop, line);
         }
+        flipbip_scene_1_wrap_chars(canvas, addr, 1, 10, 9, true);
         return;
     }
+    canvas_draw_str_aligned(canvas, 125, 53, AlignRight, AlignTop, line);
 
-    // address, in groups of 4 characters: 3-4 lines of 12 for base58
+    // address in groups of 4 characters, bold: 3 lines of 12 for base58
     // (34-35 chars), 3 lines of 14 for ETH and bech32 (42 chars)
     const size_t len = strlen(addr);
     const size_t line_len = len > 36 ? 14 : 12;
+    bool fits = true;
     canvas_set_font(canvas, FontPrimary);
-    for(size_t i = 0; i < 4; i++) {
+    for(size_t i = 0; i < 4 && fits; i++) {
         flipbip_scene_1_line(line, addr, len, line_len, i, true);
-        canvas_draw_str(canvas, 7, 22 + i * 12, line);
+        fits = 7 + canvas_string_width(canvas, line) <= 128;
+    }
+    if(fits) {
+        for(size_t i = 0; i < 4; i++) {
+            flipbip_scene_1_line(line, addr, len, line_len, i, true);
+            canvas_draw_str(canvas, 7, 22 + i * 12, line);
+        }
+    } else {
+        // only for a run of wide glyphs: small font, wrapped (always <= 3 lines)
+        canvas_set_font(canvas, FontSecondary);
+        flipbip_scene_1_wrap_chars(canvas, addr, 7, 16, 10, true);
     }
 }
 
@@ -352,34 +398,34 @@ static void flipbip_scene_1_draw(Canvas* canvas, void* _model) {
         flipbip_scene_1_draw_seed(canvas, w->seed);
         break;
     case PAGE_XPRV_ROOT:
-        flipbip_scene_1_draw_lines(canvas, w->xprv_root, 20);
+        flipbip_scene_1_draw_key(canvas, w->xprv_root);
         break;
     case PAGE_XPRV_ACCT:
         if(xmr) {
             flipbip_scene_1_draw_xmr_mnemonic(canvas, w->xmr_mnemonic, false);
         } else {
-            flipbip_scene_1_draw_lines(canvas, w->xprv_account, 20);
+            flipbip_scene_1_draw_key(canvas, w->xprv_account);
         }
         break;
     case PAGE_XPUB_ACCT:
         if(xmr) {
             flipbip_scene_1_draw_xmr_mnemonic(canvas, w->xmr_mnemonic, true);
         } else {
-            flipbip_scene_1_draw_lines(canvas, w->xpub_account, 20);
+            flipbip_scene_1_draw_key(canvas, w->xpub_account);
         }
         break;
     case PAGE_XPRV_EXTD:
         if(xmr) {
             flipbip_scene_1_draw_xmr_key(canvas, TEXT_XMR_SPEND_KEY, w->xprv_extended);
         } else {
-            flipbip_scene_1_draw_lines(canvas, w->xprv_extended, 20);
+            flipbip_scene_1_draw_key(canvas, w->xprv_extended);
         }
         break;
     case PAGE_XPUB_EXTD:
         if(xmr) {
             flipbip_scene_1_draw_xmr_key(canvas, TEXT_XMR_VIEW_KEY, w->xpub_extended);
         } else {
-            flipbip_scene_1_draw_lines(canvas, w->xpub_extended, 20);
+            flipbip_scene_1_draw_key(canvas, w->xpub_extended);
         }
         break;
     default:
