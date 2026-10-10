@@ -26,40 +26,11 @@ static void hazard_changed(VariableItem* item) {
     app->extra_hazard_lights = (idx == 1);
 }
 
-static void rear_heat_changed(VariableItem* item) {
-    TeslaFSDApp* app = variable_item_get_context(item);
-    uint8_t idx = variable_item_get_current_value_index(item);
-    variable_item_set_current_value_text(item, toggle_text[idx]);
-    app->extra_rear_window_heat = (idx == 1);
-}
-
 static void wipers_off_changed(VariableItem* item) {
     TeslaFSDApp* app = variable_item_get_context(item);
     uint8_t idx = variable_item_get_current_value_index(item);
     variable_item_set_current_value_text(item, toggle_text[idx]);
     app->extra_auto_wipers_off = (idx == 1);
-}
-
-static void fold_mirrors_changed(VariableItem* item) {
-    TeslaFSDApp* app = variable_item_get_context(item);
-    uint8_t idx = variable_item_get_current_value_index(item);
-    variable_item_set_current_value_text(item, toggle_text[idx]);
-    app->extra_fold_mirrors = (idx == 1);
-}
-
-static void rear_fog_changed(VariableItem* item) {
-    TeslaFSDApp* app = variable_item_get_context(item);
-    uint8_t idx = variable_item_get_current_value_index(item);
-    variable_item_set_current_value_text(item, toggle_text[idx]);
-    app->extra_rear_fog = (idx == 1);
-}
-
-static const char* const steering_text[] = {"--", "Comfort", "Standard", "Sport"};
-static void steering_changed(VariableItem* item) {
-    TeslaFSDApp* app = variable_item_get_context(item);
-    uint8_t idx = variable_item_get_current_value_index(item);
-    variable_item_set_current_value_text(item, steering_text[idx]);
-    app->extra_steering_mode = idx;
 }
 
 static void strobe_changed(VariableItem* item) {
@@ -94,26 +65,9 @@ void tesla_fsd_scene_extras_on_enter(void* context) {
     variable_item_set_current_value_index(item, app->extra_hazard_lights ? 1 : 0);
     variable_item_set_current_value_text(item, toggle_text[app->extra_hazard_lights ? 1 : 0]);
 
-    item = variable_item_list_add(list, "Rear Window Heat", 2, rear_heat_changed, app);
-    variable_item_set_current_value_index(item, app->extra_rear_window_heat ? 1 : 0);
-    variable_item_set_current_value_text(item, toggle_text[app->extra_rear_window_heat ? 1 : 0]);
-
     item = variable_item_list_add(list, "Auto Wipers Off", 2, wipers_off_changed, app);
     variable_item_set_current_value_index(item, app->extra_auto_wipers_off ? 1 : 0);
     variable_item_set_current_value_text(item, toggle_text[app->extra_auto_wipers_off ? 1 : 0]);
-
-    item = variable_item_list_add(list, "Fold Mirrors", 2, fold_mirrors_changed, app);
-    variable_item_set_current_value_index(item, app->extra_fold_mirrors ? 1 : 0);
-    variable_item_set_current_value_text(item, toggle_text[app->extra_fold_mirrors ? 1 : 0]);
-
-    item = variable_item_list_add(list, "Rear Fog Light", 2, rear_fog_changed, app);
-    variable_item_set_current_value_index(item, app->extra_rear_fog ? 1 : 0);
-    variable_item_set_current_value_text(item, toggle_text[app->extra_rear_fog ? 1 : 0]);
-
-    // Steering tune — requires Chassis CAN tap (not OBD-II Party CAN)
-    item = variable_item_list_add(list, "Steering [ChassisCAN]", 4, steering_changed, app);
-    variable_item_set_current_value_index(item, app->extra_steering_mode);
-    variable_item_set_current_value_text(item, steering_text[app->extra_steering_mode]);
 
     // High beam strobe — Party CAN (SCCM_leftStalk 0x249)
     item = variable_item_list_add(list, "High Beam Strobe", 2, strobe_changed, app);

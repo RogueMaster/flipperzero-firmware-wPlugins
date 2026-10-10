@@ -16,6 +16,7 @@
 #include "capability.h"
 #include "profile_match.h"
 #include "prefs.h"
+#include "ota_verify.h"
 #include <WebServer.h>
 #include <WebSocketsServer.h>
 #include <WiFi.h>
@@ -26,7 +27,7 @@
 
 // ── Module state ──────────────────────────────────────────────────────────────
 static FSDState  *g_state = nullptr;   // shared with main
-static CanDriver **g_can_buses = nullptr; // for setListenOnly()
+static CanDriver **g_can_buses = nullptr; // mode switch, error split, pre-reboot quiesce
 static uint8_t g_can_count = 0;
 static portMUX_TYPE *g_state_mux = nullptr;
 
@@ -193,6 +194,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
 .row{display:flex;justify-content:space-between;align-items:center;padding:9px 0}
 .row+.row{border-top:1px solid rgba(255,255,255,.04)}
 .lbl{color:var(--text2);font-size:.85em}
+.hint{display:block;color:var(--text2);opacity:.62;font-size:.82em;line-height:1.35;margin-top:2px;max-width:20em}
+details select{background:var(--card2);border:1px solid var(--border);color:var(--text);padding:4px 6px;border-radius:4px;font-size:.85em;flex:none}
 details input{background:var(--card2);border:1px solid var(--border);color:var(--text);padding:4px;border-radius:4px;text-align:right;width:60px}
 details input.cgn{width:38px;margin-left:4px}
 
@@ -328,6 +331,16 @@ input:checked+.sl2:before{transform:translateX(20px);background:#fff}
 <!-- OTA Warning -->
 <div id="otaBanner" class="ota">&#9888;&#xFE0F; OTA UPDATE IN PROGRESS &mdash; CAN TX SUSPENDED</div>
 
+<!-- Autopark Warning (#180) -->
+<div id="autoparkBanner" class="ota">&#9888;&#xFE0F; IN-CAR AUTOPARK &mdash; CAN TX PAUSED</div>
+
+<!-- Signal Map watchdog (#100) -->
+<div id="sigmapWarn" class="warn14x"><div class="w-row"><div class="w-msg">
+  <strong>&#9888;&#xFE0F; Signal Map DAS id not seen on this bus.</strong>
+  The configured DAS id isn't arriving, so AP-state can't be read and the nag
+  killer is paused. Set <b>DAS id 0</b> for auto, or fix the mapping / tap.
+</div></div></div>
+
 <!-- 2026.14.x Firmware Warning -->
 <div id="warn14x" class="warn14x">
   <div class="w-row">
@@ -408,7 +421,7 @@ input:checked+.sl2:before{transform:translateX(20px);background:#fff}
   <div class="sg">
     <div class="sb"><div class="sv" id="rxCnt">0</div><div class="sl">RX Frames</div></div>
     <div class="sb"><div class="sv" id="txCnt">0</div><div class="sl">TX Frames</div></div>
-    <div class="sb"><div class="sv" id="crcErr">0</div><div class="sl">TX Errors</div></div>
+    <div class="sb"><div class="sv" id="crcErr">0</div><div class="sl">CAN Errors</div><div class="sl" id="crcSplit">RX&nbsp;missed&nbsp;0 &middot; bus&nbsp;0 &middot; TX&nbsp;fail&nbsp;0</div></div>
     <div class="sb"><div class="sv" id="fps">0.0</div><div class="sl">Frames/s</div></div>
   </div>
 </div>
@@ -420,6 +433,15 @@ input:checked+.sl2:before{transform:translateX(20px);background:#fff}
 <details class="controls-fold">
   <summary><span id="controlsSummary" class="control-summary">...</span></summary>
   <div class="controls-body">
+  <div class="row">
+    <span class="lbl">Hardware<br><span class="hint">Auto-detect needs 0x398 &mdash; many Model 3/Y never send it. Pick your car if detection is wrong.</span></span>
+    <select id="selHwOverride" onchange="cmd('hw_override',parseInt(this.value,10))">
+      <option value="0">Auto-detect</option>
+      <option value="3">Force HW4</option>
+      <option value="2">Force HW3</option>
+      <option value="1">Force Legacy</option>
+    </select>
+  </div>
   <div class="row">
     <span class="lbl">Ignore OTA</span>
     <label class="sw"><input type="checkbox" id="swIgnoreOta" onchange="cmd('ignore_ota',this.checked)"><span class="sl2"></span></label>
@@ -481,8 +503,66 @@ input:checked+.sl2:before{transform:translateX(20px);background:#fff}
     <label class="sw"><input type="checkbox" id="swChime" onchange="cmd('suppress_speed_chime',this.checked)"><span class="sl2"></span></label>
   </div>
   <div class="row">
+    <span class="lbl">Precondition<br><small style="color:var(--muted)">battery preheat trigger (0x082)</small></span>
+    <label class="sw"><input type="checkbox" id="swPrecond" onchange="cmd('precondition',this.checked)"><span class="sl2"></span></label>
+  </div>
+  <div class="row">
     <span class="lbl">TLSSC Restore</span>
     <label class="sw"><input type="checkbox" id="swTlssc" onchange="cmd('tlssc_restore',this.checked)"><span class="sl2"></span></label>
+  </div>
+  <div class="row">
+    <span class="lbl">Summon EU Unlock</span>
+    <label class="sw"><input type="checkbox" id="swSummon" onchange="cmd('summon_unlock',this.checked)"><span class="sl2"></span></label>
+  </div>
+  <div class="row">
+    <span class="lbl">Continue on Green<br><small style="color:var(--muted)">pairs with TLSSC</small></span>
+    <label class="sw"><input type="checkbox" id="swCog" onchange="cmd('continue_on_green',this.checked)"><span class="sl2"></span></label>
+  </div>
+  <div class="row">
+    <span class="lbl">TLSSC bit38</span>
+    <label class="sw"><input type="checkbox" id="swTlssc38" onchange="cmd('assist_tlssc_bit38',this.checked)"><span class="sl2"></span></label>
+  </div>
+  <div class="row">
+    <span class="lbl">Right-Hand Drive (RHD)<br><small style="color:var(--red)">RHD markets only — do NOT enable while driving on the right.</small></span>
+    <label class="sw"><input type="checkbox" id="swRhd" onchange="cmd('assist_rhd_override',this.checked)"><span class="sl2"></span></label>
+  </div>
+  <div class="row">
+    <span class="lbl">Telemetry Off (experimental)<br><small style="color:var(--muted)">Experimental &amp; unverified — clears reachable telemetry flags only (not the Vehicle-bus ECU log-upload). Does NOT guarantee reduced detection.</small></span>
+    <label class="sw"><input type="checkbox" id="swTelOff" onchange="cmd('assist_telemetry_off',this.checked)"><span class="sl2"></span></label>
+  </div>
+  <div class="row">
+    <span class="lbl">AP Branch/Tier (experimental)<br><small style="color:var(--muted)">Experimental &amp; non-persistent — injects a UI branch/tier hint only, reverts when injection stops; unverified and may be a ban signal. Off by default.</small></span>
+    <select id="selApmv3" onchange="cmd('apmv3_branch',parseInt(this.value,10))">
+      <option value="255">Off</option>
+      <option value="0">Live</option>
+      <option value="1">Stage</option>
+      <option value="2">Dev</option>
+      <option value="3">Stage2</option>
+      <option value="4">EAP</option>
+      <option value="5">Demo</option>
+    </select>
+  </div>
+  <div class="row" style="display:block">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <span class="lbl">Track Mode (experimental)<br><small style="color:var(--muted)">Experimental &mdash; Vehicle-bus; not car-validated. Defaults to rear-biased (rotation 100) + 30% stability &mdash; fun with a safety margin. Raise stability for stock feel.</small></span>
+      <label class="sw"><input type="checkbox" id="swTrkMode" onchange="cmd('track_mode_inject',this.checked)"><span class="sl2"></span></label>
+    </div>
+    <div style="margin-top:8px">
+      <label style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted)"><span>Handling Balance <small>(stable &rarr; rotation)</small></span><span id="trkRotV">100</span></label>
+      <input type="range" id="trkRot" min="0" max="100" style="width:100%" oninput="document.getElementById('trkRotV').textContent=this.value" onchange="cmd('track_rotation_pct',parseInt(this.value,10))">
+    </div>
+    <div style="margin-top:6px">
+      <label style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted)"><span>Stability Assist</span><span id="trkStabV">30</span></label>
+      <input type="range" id="trkStab" min="0" max="100" style="width:100%" oninput="document.getElementById('trkStabV').textContent=this.value" onchange="cmd('track_stability_pct',parseInt(this.value,10))">
+    </div>
+    <div class="row" style="padding:6px 0 0">
+      <span class="lbl">Post-drive Cooling</span>
+      <label class="sw"><input type="checkbox" id="swTrkPC" onchange="cmd('track_post_cooling',this.checked)"><span class="sl2"></span></label>
+    </div>
+    <div class="row" style="padding:0">
+      <span class="lbl">Compressor Overclock<br><small style="color:var(--muted)">max cooling</small></span>
+      <label class="sw"><input type="checkbox" id="swTrkCO" onchange="cmd('track_cmp_overclock',this.checked)"><span class="sl2"></span></label>
+    </div>
   </div>
   <div class="row" style="display:block">
     <div id="pmSuggest" style="display:none;margin:0 0 8px;padding:8px 10px;border:1px solid var(--accent);border-radius:6px;background:var(--card2)">
@@ -669,7 +749,7 @@ R"rawliteral(
   </div>
   <div id="otaRollbackInfo" class="ota-info">
     <b style="color:var(--blue)">Partition Safety</b><br>
-    OTA writes to the next app partition when available. Keep USB reflashing available as a recovery path.
+    OTA writes to the next app partition when available. The new image is kept only after 15 s of runtime; a crash or power cut before that restores the previous firmware. Keep USB reflashing available as a recovery path.
   </div>
 </div>
 
@@ -717,6 +797,7 @@ R"rawliteral( TTGO T-Display + MCP2515)rawliteral"
 R"rawliteral( M5Stack ATOM Lite + ATOMIC CAN Base)rawliteral"
 #endif
 R"rawliteral(</div>
+<div class="foot">Free &amp; open source &middot; <a href="https://fsd.fkey.id/" target="_blank" rel="noopener">support the research</a></div>
 </div><!-- /wrap -->
 
 <script>
@@ -772,6 +853,8 @@ function updateControlsSummary(d){
   if(d.china_mode)items.push('China');
   if(d.isa_speed_enabled&&d.suppress_speed_chime)items.push('Chime');
   if(d.tlssc_restore)items.push('TLSSC');
+  if(d.precondition)items.push('Precond');
+  if(d.assist_tlssc_bit38)items.push('TLSSC bit38');
   if(d.display_enabled)items.push('Display');
   if(d.can_dump)items.push('CAN Dump');
   e.textContent=items.length?items.join(', '):'Expand to setup';
@@ -910,6 +993,14 @@ function upd(d){
     if(d.ota) otaB.innerHTML=d.ignore_ota?'&#9888;&#xFE0F; OTA UPDATE IN PROGRESS &mdash; TX ALLOWED BY IGNORE OTA':'&#9888;&#xFE0F; OTA UPDATE IN PROGRESS &mdash; CAN TX SUSPENDED';
   }
 
+  // Autopark banner (#180) — TX paused during an in-car Autopark episode
+  var apB=document.getElementById('autoparkBanner');
+  if(apB) apB.style.display=d.autopark_block?'block':'none';
+
+  // Signal Map watchdog banner (#100)
+  var smW=document.getElementById('sigmapWarn');
+  if(smW) smW.style.display=d.signal_map_das_missing?'block':'none';
+
   // 14.x firmware warning banner
   var w14x=document.getElementById('warn14x');
   if(w14x) w14x.style.display=d.firmware_14x_warning?'block':'none';
@@ -924,6 +1015,9 @@ function upd(d){
 
   // Switches sync
   if(document.getElementById('swIgnoreOta')) document.getElementById('swIgnoreOta').checked=d.ignore_ota;
+  // Manual HW selection (#110) — don't fight the user while the menu is open.
+  var hwSel=document.getElementById('selHwOverride');
+  if(hwSel && d.hw_override!==undefined && document.activeElement!==hwSel) hwSel.value=String(d.hw_override);
   if(document.getElementById('swFsdUnlock')) document.getElementById('swFsdUnlock').checked=d.fsd_unlock;
   if(document.getElementById('swNag')) document.getElementById('swNag').checked=d.nag_killer;
   if(document.getElementById('swContinuousAp')) document.getElementById('swContinuousAp').checked=d.continuous_ap;
@@ -939,8 +1033,21 @@ function upd(d){
   if(document.getElementById('swFsd')) document.getElementById('swFsd').checked=d.force_fsd;
   if(document.getElementById('swChina')) document.getElementById('swChina').checked=d.china_mode;
   if(document.getElementById('swChime')) document.getElementById('swChime').checked=d.suppress_speed_chime;
+  if(document.getElementById('swPrecond')) document.getElementById('swPrecond').checked=d.precondition;
   if(document.getElementById('rowChime')) document.getElementById('rowChime').style.display=d.isa_speed_enabled?'flex':'none';
   if(document.getElementById('swTlssc')) document.getElementById('swTlssc').checked=d.tlssc_restore;
+  if(document.getElementById('swSummon')) document.getElementById('swSummon').checked=d.summon_unlock;
+  if(document.getElementById('swCog')) document.getElementById('swCog').checked=d.continue_on_green;
+  if(document.getElementById('swTlssc38')) document.getElementById('swTlssc38').checked=d.assist_tlssc_bit38;
+  if(document.getElementById('swRhd')) document.getElementById('swRhd').checked=d.assist_rhd_override;
+  if(document.getElementById('swTelOff')) document.getElementById('swTelOff').checked=d.assist_telemetry_off;
+  var apmv3Sel=document.getElementById('selApmv3');
+  if(apmv3Sel && d.apmv3_branch!==undefined && document.activeElement!==apmv3Sel) apmv3Sel.value=String(d.apmv3_branch);
+  if(document.getElementById('swTrkMode')) document.getElementById('swTrkMode').checked=d.track_mode_inject;
+  if(document.getElementById('trkRot')&&document.activeElement.id!=='trkRot'&&d.track_rotation_pct!==undefined){document.getElementById('trkRot').value=d.track_rotation_pct;var _tr=document.getElementById('trkRotV');if(_tr)_tr.textContent=d.track_rotation_pct;}
+  if(document.getElementById('trkStab')&&document.activeElement.id!=='trkStab'&&d.track_stability_pct!==undefined){document.getElementById('trkStab').value=d.track_stability_pct;var _ts=document.getElementById('trkStabV');if(_ts)_ts.textContent=d.track_stability_pct;}
+  if(document.getElementById('swTrkPC')) document.getElementById('swTrkPC').checked=d.track_post_cooling;
+  if(document.getElementById('swTrkCO')) document.getElementById('swTrkCO').checked=d.track_cmp_overclock;
   if(document.getElementById('swDisp')) document.getElementById('swDisp').checked=!!d.display_enabled;
   if(document.activeElement.id!=='dispBr' && document.getElementById('dispBr'))
     document.getElementById('dispBr').value=d.display_brightness||50;
@@ -958,6 +1065,7 @@ function upd(d){
   if(document.getElementById('rxCnt')) document.getElementById('rxCnt').textContent=(d.rx_count||0).toLocaleString();
   if(document.getElementById('txCnt')) document.getElementById('txCnt').textContent=(d.tx_count||0).toLocaleString();
   if(document.getElementById('crcErr')) document.getElementById('crcErr').textContent=d.crc_errors||0;
+  if(document.getElementById('crcSplit')) document.getElementById('crcSplit').textContent='RX\u00a0missed\u00a0'+(d.rx_missed_count||0)+' · bus\u00a0'+(d.bus_error_count||0)+' · TX\u00a0fail\u00a0'+(d.tx_failed_count||0);
   if(document.getElementById('fps')) document.getElementById('fps').textContent=(d.fps||0.0).toFixed(1);
   httpLogAllowed=true; // capture works in both modes — needed to log through an Activate (#108)
   if(!httpLogRunning)setHttpLogUi(false);
@@ -974,7 +1082,7 @@ function upd(d){
   if(document.getElementById('httpLogBuf'))
     document.getElementById('httpLogBuf').textContent=((d.http_can_stream&&d.http_can_stream.buffered)||0)+' frames';
   if(document.getElementById('httpLogDrop'))
-    document.getElementById('httpLogDrop').textContent=((d.http_can_stream&&d.http_can_stream.dropped)||0)+' frames';
+    document.getElementById('httpLogDrop').textContent=((d.http_can_stream&&d.http_can_stream.dropped)||0)+' frames / rx-missed '+((d.http_can_stream&&d.http_can_stream.rx_missed)||0);
   if(document.getElementById('httpLogFiltered'))
     document.getElementById('httpLogFiltered').textContent=((d.http_can_stream&&d.http_can_stream.filtered)||0)+' frames';
 
@@ -1479,6 +1587,12 @@ static String build_json() {
     char fps_s[12];
     snprintf(fps_s, sizeof(fps_s), "%.1f", g_fps);
 
+    // Combined CAN error count (legacy crc_errors key) and its per-cause split,
+    // taken from one read so the dashboard tile always equals its breakdown.
+    // On a busy bus it is mostly rx_missed (controller RX-queue drops).
+    CanErrorSplit err = can_error_split(g_can_buses, g_can_count);
+    uint32_t err_total = err.rx_missed_count + err.bus_error_count + err.tx_failed_count;
+
     String j;
     bool isa_speed_enabled = state.hw_version == TeslaHW_HW4;
     const char *ap_das_profile =
@@ -1495,8 +1609,11 @@ static String build_json() {
     j += "\"fsd_enabled\":";   j += state.fsd_enabled                 ? "true" : "false"; j += ',';
     j += "\"ap_active\":";     j += state.ap_active                   ? "true" : "false"; j += ',';
     j += "\"op_mode\":";       j += (int)state.op_mode;                j += ',';
+    j += "\"hw_override\":";   j += (int)state.hw_override;            j += ',';
     j += "\"hw_version\":";    j += (int)state.hw_version;             j += ',';
     j += "\"ota\":";           j += state.tesla_ota_in_progress        ? "true" : "false"; j += ',';
+    j += "\"autopark_block\":"; j += state.autopark_tx_block            ? "true" : "false"; j += ',';
+    j += "\"signal_map_das_missing\":"; j += state.signal_map_das_missing ? "true" : "false"; j += ',';
     j += "\"ap_das_profile\":\""; j += ap_das_profile;                 j += "\",";
     j += "\"isa_speed_enabled\":"; j += isa_speed_enabled              ? "true" : "false"; j += ',';
     j += "\"ignore_ota\":";    j += state.ignore_ota                   ? "true" : "false"; j += ',';
@@ -1524,7 +1641,19 @@ static String build_json() {
     j += "\"force_fsd\":";     j += state.force_fsd                    ? "true" : "false"; j += ',';
     j += "\"china_mode\":";    j += state.china_mode                   ? "true" : "false"; j += ',';
     j += "\"suppress_speed_chime\":"; j += state.suppress_speed_chime  ? "true" : "false"; j += ',';
+    j += "\"precondition\":";  j += state.precondition                ? "true" : "false"; j += ',';
     j += "\"tlssc_restore\":"; j += state.tlssc_restore                ? "true" : "false"; j += ',';
+    j += "\"summon_unlock\":"; j += state.summon_unlock                ? "true" : "false"; j += ',';
+    j += "\"continue_on_green\":"; j += state.continue_on_green         ? "true" : "false"; j += ',';
+    j += "\"assist_tlssc_bit38\":"; j += state.assist_tlssc_bit38       ? "true" : "false"; j += ',';
+    j += "\"assist_rhd_override\":"; j += state.assist_rhd_override      ? "true" : "false"; j += ',';
+    j += "\"assist_telemetry_off\":"; j += state.assist_telemetry_off    ? "true" : "false"; j += ',';
+    j += "\"apmv3_branch\":";  j += (int)state.apmv3_branch;             j += ',';
+    j += "\"track_mode_inject\":"; j += state.track_mode_inject         ? "true" : "false"; j += ',';
+    j += "\"track_rotation_pct\":";  j += (int)state.track_rotation_pct;   j += ',';
+    j += "\"track_stability_pct\":"; j += (int)state.track_stability_pct;  j += ',';
+    j += "\"track_post_cooling\":"; j += state.track_post_cooling        ? "true" : "false"; j += ',';
+    j += "\"track_cmp_overclock\":"; j += state.track_cmp_overclock       ? "true" : "false"; j += ',';
     j += "\"firmware_14x_warning\":"; j += state.firmware_14x_warning  ? "true" : "false"; j += ',';
 #if defined(BOARD_TTGO_DISPLAY)
     j += "\"display_enabled\":"; j += state.display_enabled             ? "true" : "false"; j += ',';
@@ -1538,7 +1667,10 @@ static String build_json() {
     j += "\"rx_count\":";      j += state.rx_count;                    j += ',';
     j += "\"tx_count\":";      j += state.tx_count;                    j += ',';
     j += "\"tx_modified\":";   j += state.frames_modified;             j += ',';
-    j += "\"crc_errors\":";    j += state.crc_err_count;               j += ',';
+    j += "\"crc_errors\":";    j += err_total;                         j += ',';
+    j += "\"rx_missed_count\":"; j += err.rx_missed_count;             j += ',';
+    j += "\"bus_error_count\":"; j += err.bus_error_count;             j += ',';
+    j += "\"tx_failed_count\":"; j += err.tx_failed_count;             j += ',';
     j += "\"fps\":";           j += fps_s;                             j += ',';
     j += "\"bms\":";           j += bms;                               j += ',';
     j += "\"uptime_s\":";      j += uptime_s;                          j += ',';
@@ -1558,6 +1690,7 @@ static String build_json() {
     j += "\"active\":";       j += http_can_stream_active()           ? "true" : "false"; j += ',';
     j += "\"sent\":";         j += http_can_stream_frames_sent();      j += ',';
     j += "\"dropped\":";      j += http_can_stream_frames_dropped();   j += ',';
+    j += "\"rx_missed\":";    j += http_can_stream_rx_missed();        j += ',';
     j += "\"filtered\":";     j += http_can_stream_frames_filtered();  j += ',';
     j += "\"buffered\":";     j += http_can_stream_buffered_frames();  j += "},";
     j += "\"ota_partition\":"; j += ota_part;
@@ -1624,6 +1757,29 @@ static void ws_event(uint8_t num, WStype_t type,
         http_can_stream_set_enabled(true);  // capture works in both modes now (#108)
         Serial.println(active ? "[Web] → Active mode" : "[Web] → Listen-Only mode");
         prefs_save(&saved);
+    } else if (strstr(buf, "\"hw_override\"")) {
+        // Manual HW selection (#110): 0 = auto-detect, else pin the version.
+        if (vptr) {
+            while (*vptr == ' ' || *vptr == ':') vptr++;
+            int sel = atoi(vptr);
+            if (sel >= (int)TeslaHW_Unknown && sel <= (int)TeslaHW_HW4) {
+                TeslaHWVersion want = (TeslaHWVersion)sel;
+                FSDState saved;
+                state_enter();
+                g_state->hw_override = want;
+                // Apply at once so the right handlers are live immediately; on
+                // "auto" leave the current detection in place and let the normal
+                // detectors take over again from the next frames.
+                if (want != TeslaHW_Unknown) fsd_apply_hw_version(g_state, want);
+                saved = *g_state;
+                state_exit();
+                Serial.printf("[Web] HW override: %s\n",
+                              (want == TeslaHW_HW4)    ? "HW4" :
+                              (want == TeslaHW_HW3)    ? "HW3" :
+                              (want == TeslaHW_Legacy) ? "Legacy" : "Auto");
+                prefs_save(&saved);
+            }
+        }
     } else if (strstr(buf, "\"ignore_ota\"")) {
         if (vptr) {
             while (*vptr == ' ' || *vptr == ':') vptr++;
@@ -1934,6 +2090,156 @@ static void ws_event(uint8_t num, WStype_t type,
             Serial.printf("[Web] Suppress Speed Chime: %s\n", enabled ? "ON" : "OFF");
             prefs_save(&saved);
         }
+    } else if (strstr(buf, "\"precondition\"")) {
+        if (vptr) {
+            while (*vptr == ' ' || *vptr == ':') vptr++;
+            bool enabled = (strncmp(vptr, "true", 4) == 0);
+            FSDState saved;
+            state_enter();
+            g_state->precondition = enabled;
+            saved = *g_state;
+            state_exit();
+            Serial.printf("[Web] Precondition: %s\n", enabled ? "ON" : "OFF");
+            prefs_save(&saved);
+        }
+    } else if (strstr(buf, "\"summon_unlock\"")) {
+        if (vptr) {
+            while (*vptr == ' ' || *vptr == ':') vptr++;
+            bool enabled = (strncmp(vptr, "true", 4) == 0);
+            FSDState saved;
+            state_enter();
+            g_state->summon_unlock = enabled;
+            saved = *g_state;
+            state_exit();
+            Serial.printf("[Web] Summon EU Unlock: %s\n", enabled ? "ON" : "OFF");
+            prefs_save(&saved);
+        }
+    } else if (strstr(buf, "\"continue_on_green\"")) {
+        if (vptr) {
+            while (*vptr == ' ' || *vptr == ':') vptr++;
+            bool enabled = (strncmp(vptr, "true", 4) == 0);
+            FSDState saved;
+            state_enter();
+            g_state->continue_on_green = enabled;
+            saved = *g_state;
+            state_exit();
+            Serial.printf("[Web] Continue on Green: %s\n", enabled ? "ON" : "OFF");
+            prefs_save(&saved);
+        }
+    } else if (strstr(buf, "\"assist_tlssc_bit38\"")) {
+        if (vptr) {
+            while (*vptr == ' ' || *vptr == ':') vptr++;
+            bool enabled = (strncmp(vptr, "true", 4) == 0);
+            FSDState saved;
+            state_enter();
+            g_state->assist_tlssc_bit38 = enabled;
+            saved = *g_state;
+            state_exit();
+            Serial.printf("[Web] TLSSC bit38: %s\n", enabled ? "ON" : "OFF");
+            prefs_save(&saved);
+        }
+    } else if (strstr(buf, "\"assist_rhd_override\"")) {
+        if (vptr) {
+            while (*vptr == ' ' || *vptr == ':') vptr++;
+            bool enabled = (strncmp(vptr, "true", 4) == 0);
+            FSDState saved;
+            state_enter();
+            g_state->assist_rhd_override = enabled;
+            saved = *g_state;
+            state_exit();
+            Serial.printf("[Web] RHD Override: %s\n", enabled ? "ON" : "OFF");
+            prefs_save(&saved);
+        }
+    } else if (strstr(buf, "\"assist_telemetry_off\"")) {
+        if (vptr) {
+            while (*vptr == ' ' || *vptr == ':') vptr++;
+            bool enabled = (strncmp(vptr, "true", 4) == 0);
+            FSDState saved;
+            state_enter();
+            g_state->assist_telemetry_off = enabled;
+            saved = *g_state;
+            state_exit();
+            Serial.printf("[Web] Telemetry Off: %s\n", enabled ? "ON" : "OFF");
+            prefs_save(&saved);
+        }
+    } else if (strstr(buf, "\"apmv3_branch\"")) {
+        // AP branch/tier selector (experimental, non-persistent): 0-5 select a
+        // UI_apmv3Branch value, any other value (255 = Off) stores the 0xFF
+        // sentinel so the handler leaves the frame untouched.
+        if (vptr) {
+            while (*vptr == ' ' || *vptr == ':') vptr++;
+            int sel = atoi(vptr);
+            uint8_t want = (sel >= 0 && sel <= 5) ? (uint8_t)sel : 0xFF;
+            FSDState saved;
+            state_enter();
+            g_state->apmv3_branch = want;
+            saved = *g_state;
+            state_exit();
+            Serial.printf("[Web] AP Branch/Tier: %d\n", want);
+            prefs_save(&saved);
+        }
+    } else if (strstr(buf, "\"track_mode_inject\"")) {
+        if (vptr) {
+            while (*vptr == ' ' || *vptr == ':') vptr++;
+            bool enabled = (strncmp(vptr, "true", 4) == 0);
+            FSDState saved;
+            state_enter();
+            g_state->track_mode_inject = enabled;
+            saved = *g_state;
+            state_exit();
+            Serial.printf("[Web] Track Mode inject: %s\n", enabled ? "ON" : "OFF");
+            prefs_save(&saved);
+        }
+    } else if (strstr(buf, "\"track_rotation_pct\"")) {
+        if (vptr) {
+            while (*vptr == ' ' || *vptr == ':') vptr++;
+            uint8_t val = (uint8_t)atoi(vptr);
+            if (val > 100) val = 100;
+            FSDState saved;
+            state_enter();
+            g_state->track_rotation_pct = val;
+            saved = *g_state;
+            state_exit();
+            Serial.printf("[Web] Track Handling Balance: %u\n", val);
+            prefs_save(&saved);
+        }
+    } else if (strstr(buf, "\"track_stability_pct\"")) {
+        if (vptr) {
+            while (*vptr == ' ' || *vptr == ':') vptr++;
+            uint8_t val = (uint8_t)atoi(vptr);
+            if (val > 100) val = 100;
+            FSDState saved;
+            state_enter();
+            g_state->track_stability_pct = val;
+            saved = *g_state;
+            state_exit();
+            Serial.printf("[Web] Track Stability Assist: %u\n", val);
+            prefs_save(&saved);
+        }
+    } else if (strstr(buf, "\"track_post_cooling\"")) {
+        if (vptr) {
+            while (*vptr == ' ' || *vptr == ':') vptr++;
+            bool enabled = (strncmp(vptr, "true", 4) == 0);
+            FSDState saved;
+            state_enter();
+            g_state->track_post_cooling = enabled;
+            saved = *g_state;
+            state_exit();
+            Serial.printf("[Web] Track Post-drive Cooling: %s\n", enabled ? "ON" : "OFF");
+            prefs_save(&saved);
+        }
+    } else if (strstr(buf, "\"track_cmp_overclock\"")) {
+        if (vptr) {
+            while (*vptr == ' ' || *vptr == ':') vptr++;
+            bool enabled = (strncmp(vptr, "true", 4) == 0);
+            FSDState saved;
+            state_enter();
+            g_state->track_cmp_overclock = enabled;
+            saved = *g_state;
+            state_exit();
+            Serial.printf("[Web] Track Compressor Overclock: %s\n", enabled ? "ON" : "OFF");
+            prefs_save(&saved);
+        }
     } else if (strstr(buf, "\"dump\"")) {
         if (vptr) {
             while (*vptr == ' ' || *vptr == ':') vptr++;
@@ -2028,6 +2334,8 @@ static void ws_event(uint8_t num, WStype_t type,
             Serial.printf("[Web] WiFi config: AP=\"%s\" STA=\"%s\" PASS=*** HIDDEN=%d\n",
                 saved.wifi_ssid, saved.wifi_sta_ssid, saved.wifi_hidden);
             prefs_save(&saved);
+            ota_verify_confirm("WiFi config restart");
+            can_shutdown_all(g_can_buses, g_can_count);
             delay(500);
             ESP.restart();
         }
@@ -2115,6 +2423,8 @@ static void handle_blackbox_get() {
 static void handle_restart() {
     if (!require_admin_auth()) return;
     g_http.send(200, "text/plain", "OK");
+    ota_verify_confirm("web restart");
+    can_shutdown_all(g_can_buses, g_can_count);
     delay(500);
     ESP.restart();
 }
@@ -2163,6 +2473,8 @@ static void handle_ota_upload() {
             return;
         }
 
+        // esp_ota_begin() refuses while the running image is still unconfirmed.
+        ota_verify_confirm("next web OTA");
         if (!Update.begin(max_size, U_FLASH)) {
             Update.printError(Serial);
             Serial.println("[OTA] ERROR: Update.begin() failed");
@@ -2257,6 +2569,7 @@ static void handle_ota_done() {
     Serial.println("[OTA] Firmware update successful!");
     Serial.println("[OTA] Rebooting in 2 seconds...");
 
+    can_shutdown_all(g_can_buses, g_can_count);
     delay(2000);
     ESP.restart();
 }

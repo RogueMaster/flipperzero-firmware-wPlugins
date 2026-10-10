@@ -30,3 +30,15 @@ uint32_t http_can_stream_frames_sent();
 uint32_t http_can_stream_frames_dropped();
 uint32_t http_can_stream_frames_filtered();
 uint16_t http_can_stream_buffered_frames();
+
+/** Feed the module the running SUM of every installed controller's
+ *  rxMissedCount() (frames the CAN controller silently dropped on a full RX
+ *  queue). Call once per main-loop iteration; the stream snapshots this at
+ *  capture start so it can report a per-capture delta without holding driver
+ *  pointers. */
+void     http_can_stream_note_rx_missed(uint32_t total_rx_missed);
+
+/** Controller-level frames missed since the current capture began (delta of the
+ *  fed-in total against the value snapshotted at stream start). Returns 0 when a
+ *  counter reset would otherwise underflow the unsigned subtraction. */
+uint32_t http_can_stream_rx_missed(void);

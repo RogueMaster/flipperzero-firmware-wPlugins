@@ -170,24 +170,81 @@ static void test_autopilot_hw4(void) {
     CHECK((f.buffer[7] & 0x10) != 0, "HW4 mux0 bit60 set");
     CHECK(s.fsd_enabled, "HW4 mux0 sets fsd_enabled");
 
-    // mux1 -> nag bit19 cleared, bit47 set
+    // mux1 -> nag bit19 cleared; bit47 left alone (summon_unlock off)
     zero(&f);
     f.data_lenght = 8;
     f.buffer[0] = 1;
     f.buffer[2] = 0x08; // pre-set bit19 so we prove it is cleared
     CHECK(fsd_handle_autopilot_frame(&s, &f, 0), "HW4 mux1 reports modified");
     CHECK((f.buffer[2] & 0x08) == 0, "HW4 mux1 bit19 cleared");
-    CHECK((f.buffer[5] & 0x80) != 0, "HW4 mux1 bit47 set");
+    CHECK((f.buffer[5] & 0x80) == 0, "HW4 mux1 bit47 not set without summon_unlock");
 
-    // mux2 -> speed profile written to byte7 bits7:5
+    // mux2 -> speed profile written to byte7 bits 6:4 (frame bits 60-62)
     zero(&f);
     f.data_lenght = 8;
     f.buffer[0] = 2;
     CHECK(fsd_handle_autopilot_frame(&s, &f, 0), "HW4 mux2 reports modified");
     CHECK(
-        ((f.buffer[7] >> 5) & 0x07) == 4,
+        ((f.buffer[7] >> 4) & 0x07) == 4,
         "HW4 mux2 speed_profile=4 got %u",
-        (f.buffer[7] >> 5) & 0x07);
+        (f.buffer[7] >> 4) & 0x07);
+}
+
+// ── 0x3FD mux2 HW4 speed profile layout (#59) ────────────────────────────────
+// Real 0x3FD mux2 payload from HW4 cars (hw4_unbanned_* dumps and the Palladium
+// Plaid captures in #18): byte7 is 0x90 on every frame. Bit 63 is set on every
+// mux of 0x3FD (mux0 0x80/0x88, mux1 0x80, mux2 0x90) — it is the per-mux valid
+// flag, not part of the profile. The profile is bits 60-62. Writing it at <<5
+// cleared bit 63 for profiles 0-3 and voided the whole mux2 frame, including
+// the speed offset carried in byte1.
+static void test_hw4_mux2_profile_layout(void) {
+    static const uint8_t k_hw4_mux2[8] = {0x02, 0x28, 0x00, 0x00, 0x00, 0x00, 0x00, 0x90};
+    FSDState s;
+    CANFRAME f;
+
+    for(int p = 0; p <= 4; p++) {
+        memset(&s, 0, sizeof(s));
+        s.hw_version = TeslaHW_HW4;
+        s.speed_profile = p;
+        zero(&f);
+        f.data_lenght = 8;
+        memcpy(f.buffer, k_hw4_mux2, 8);
+        CHECK(fsd_handle_autopilot_frame(&s, &f, 0), "#59 p%d: HW4 mux2 modified", p);
+        CHECK(
+            ((f.buffer[7] >> 4) & 0x07) == p,
+            "#59 p%d: profile in bits 60-62, got %u",
+            p,
+            (f.buffer[7] >> 4) & 0x07);
+        CHECK(
+            (f.buffer[7] & 0x80) != 0,
+            "#59 p%d: bit63 (mux2 valid) kept, byte7=0x%02X",
+            p,
+            f.buffer[7]);
+        CHECK(
+            (f.buffer[7] & 0x0F) == 0x00,
+            "#59 p%d: byte7 low nibble untouched, byte7=0x%02X",
+            p,
+            f.buffer[7]);
+        CHECK(memcmp(f.buffer, k_hw4_mux2, 7) == 0, "#59 p%d: bytes 0-6 untouched (no offset)", p);
+    }
+
+    // Offset override rides in the same frame: byte1 bits 5:0, top bits and byte0 kept.
+    memset(&s, 0, sizeof(s));
+    s.hw_version = TeslaHW_HW4;
+    s.speed_profile = 1;
+    s.hw4_offset = 10;
+    zero(&f);
+    f.data_lenght = 8;
+    memcpy(f.buffer, k_hw4_mux2, 8);
+    f.buffer[1] |= 0xC0; // prove bits 7:6 of byte1 survive
+    CHECK(fsd_handle_autopilot_frame(&s, &f, 0), "#59 offset: HW4 mux2 modified");
+    CHECK((f.buffer[1] & 0x3F) == 10, "#59 offset: byte1[5:0]=10 got %u", f.buffer[1] & 0x3F);
+    CHECK((f.buffer[1] & 0xC0) == 0xC0, "#59 offset: byte1[7:6] kept");
+    CHECK(f.buffer[0] == 0x02, "#59 offset: byte0 untouched got 0x%02X", f.buffer[0]);
+    CHECK(
+        f.buffer[7] == 0x90,
+        "#59 offset: byte7 = 0x90 (valid + profile 1) got 0x%02X",
+        f.buffer[7]);
 }
 
 // ── 0x3FD autopilot frame, HW3 ────────────────────────────────────────────────
@@ -208,6 +265,170 @@ static void test_autopilot_hw3(void) {
         ((f.buffer[6] >> 1) & 0x03) == 2,
         "HW3 mux0 speed_profile bits got %u",
         (f.buffer[6] >> 1) & 0x03);
+}
+
+// ── Summon EU Unlock (0x3FD mux1 bit47) — opt-in, HW3 + HW4 ───────────────────
+// ev-open-can-tools summon-eu-unlock: clear bit19, set bit47 on mux1. This test
+// locks that summon_unlock gates bit47 on both HW3 and HW4, and that mux1 with
+// the toggle OFF still clears bit19 and never touches bit47.
+static void test_summon_unlock(void) {
+    CANFRAME f;
+
+    // ── HW3: bit47 is gated by summon_unlock ──
+    FSDState h3;
+    memset(&h3, 0, sizeof(h3));
+    h3.hw_version = TeslaHW_HW3;
+
+    // summon OFF: mux1 clears bit19, does NOT set bit47 (prior HW3 behavior).
+    h3.summon_unlock = false;
+    zero(&f);
+    f.data_lenght = 8;
+    f.buffer[0] = 1; // mux1
+    f.buffer[2] = 0x08; // pre-set bit19 to prove it is cleared
+    CHECK(fsd_handle_autopilot_frame(&h3, &f, 0), "HW3 mux1 summon-off reports modified");
+    CHECK((f.buffer[2] & 0x08) == 0, "HW3 mux1 summon-off bit19 cleared");
+    CHECK((f.buffer[5] & 0x80) == 0, "HW3 mux1 summon-off bit47 NOT set");
+    CHECK(h3.nag_suppressed, "HW3 mux1 summon-off still sets nag_suppressed");
+
+    // summon ON: mux1 now also sets bit47.
+    h3.summon_unlock = true;
+    zero(&f);
+    f.data_lenght = 8;
+    f.buffer[0] = 1;
+    CHECK(fsd_handle_autopilot_frame(&h3, &f, 0), "HW3 mux1 summon-on reports modified");
+    CHECK((f.buffer[5] & 0x80) != 0, "HW3 mux1 summon-on bit47 set");
+
+    // ── HW4: bit47 is gated by summon_unlock too ──
+    FSDState h4;
+    memset(&h4, 0, sizeof(h4));
+    h4.hw_version = TeslaHW_HW4;
+
+    h4.summon_unlock = true;
+    zero(&f);
+    f.data_lenght = 8;
+    f.buffer[0] = 1;
+    CHECK(fsd_handle_autopilot_frame(&h4, &f, 0), "HW4 mux1 summon-on reports modified");
+    CHECK((f.buffer[5] & 0x80) != 0, "HW4 mux1 summon-on bit47 set");
+
+    // summon OFF: mux1 still clears bit19 but leaves bit47 alone.
+    h4.summon_unlock = false;
+    zero(&f);
+    f.data_lenght = 8;
+    f.buffer[0] = 1;
+    f.buffer[2] = 0x08;
+    CHECK(fsd_handle_autopilot_frame(&h4, &f, 0), "HW4 mux1 summon-off reports modified");
+    CHECK((f.buffer[2] & 0x08) == 0, "HW4 mux1 summon-off bit19 cleared");
+    CHECK((f.buffer[5] & 0x80) == 0, "HW4 mux1 summon-off bit47 NOT set");
+    CHECK(h4.nag_suppressed, "HW4 mux1 summon-off still sets nag_suppressed");
+}
+
+// ── Continue on Green (0x3FD mux0 bit39) — opt-in, HW3 + HW4 ──────────────────
+// ev-open-can-tools TSLLC plugin sets UI_fsdContinueOnGreenWithCIPV (bit39) on
+// mux0. It is gated by continue_on_green + fsd_enabled and applies before the
+// HW3/HW4 split, so bit39 must appear for both hardware versions when ON, and
+// never when the toggle is OFF. bit39 -> byte 4 bit 7 -> mask 0x80.
+static void test_continue_on_green(void) {
+    CANFRAME f;
+
+    // ── HW3 ──
+    FSDState h3;
+    memset(&h3, 0, sizeof(h3));
+    h3.hw_version = TeslaHW_HW3;
+    h3.force_fsd = true; // makes mux0 select FSD -> fsd_enabled = true
+
+    // ON: bit39 set on mux0.
+    h3.continue_on_green = true;
+    zero(&f);
+    f.data_lenght = 8;
+    f.buffer[0] = 0; // mux0
+    CHECK(fsd_handle_autopilot_frame(&h3, &f, 0), "HW3 mux0 cog-on reports modified");
+    CHECK(h3.fsd_enabled, "HW3 mux0 sets fsd_enabled");
+    CHECK((f.buffer[4] & 0x80) != 0, "HW3 mux0 cog-on bit39 set");
+
+    // OFF: bit39 NOT set.
+    h3.continue_on_green = false;
+    zero(&f);
+    f.data_lenght = 8;
+    f.buffer[0] = 0;
+    fsd_handle_autopilot_frame(&h3, &f, 0);
+    CHECK((f.buffer[4] & 0x80) == 0, "HW3 mux0 cog-off bit39 NOT set");
+
+    // ── HW4 ──
+    FSDState h4;
+    memset(&h4, 0, sizeof(h4));
+    h4.hw_version = TeslaHW_HW4;
+    h4.force_fsd = true;
+
+    // ON: bit39 set on mux0.
+    h4.continue_on_green = true;
+    zero(&f);
+    f.data_lenght = 8;
+    f.buffer[0] = 0;
+    CHECK(fsd_handle_autopilot_frame(&h4, &f, 0), "HW4 mux0 cog-on reports modified");
+    CHECK(h4.fsd_enabled, "HW4 mux0 sets fsd_enabled");
+    CHECK((f.buffer[4] & 0x80) != 0, "HW4 mux0 cog-on bit39 set");
+
+    // OFF: bit39 NOT set.
+    h4.continue_on_green = false;
+    zero(&f);
+    f.data_lenght = 8;
+    f.buffer[0] = 0;
+    fsd_handle_autopilot_frame(&h4, &f, 0);
+    CHECK((f.buffer[4] & 0x80) == 0, "HW4 mux0 cog-off bit39 NOT set");
+}
+
+// ── TLSSC bit38 (0x3FD mux0) — opt-in, HW3 + HW4 ─────────────────────────────
+// Explicit TLSSC enable on mux0. Gated by assist_tlssc_bit38 + fsd_enabled,
+// applies before the HW split so behavior must match on HW3/HW4.
+// bit38 -> byte4 bit6 -> mask 0x40.
+static void test_tlssc_bit38(void) {
+    CANFRAME f;
+
+    // ── HW3 ──
+    FSDState h3;
+    memset(&h3, 0, sizeof(h3));
+    h3.hw_version = TeslaHW_HW3;
+    h3.force_fsd = true; // makes mux0 select FSD -> fsd_enabled = true
+
+    // ON: bit38 set on mux0.
+    h3.assist_tlssc_bit38 = true;
+    zero(&f);
+    f.data_lenght = 8;
+    f.buffer[0] = 0; // mux0
+    CHECK(fsd_handle_autopilot_frame(&h3, &f, 0), "HW3 mux0 tlssc38-on reports modified");
+    CHECK(h3.fsd_enabled, "HW3 mux0 sets fsd_enabled");
+    CHECK((f.buffer[4] & 0x40) != 0, "HW3 mux0 tlssc38-on bit38 set");
+
+    // OFF: bit38 NOT set.
+    h3.assist_tlssc_bit38 = false;
+    zero(&f);
+    f.data_lenght = 8;
+    f.buffer[0] = 0;
+    fsd_handle_autopilot_frame(&h3, &f, 0);
+    CHECK((f.buffer[4] & 0x40) == 0, "HW3 mux0 tlssc38-off bit38 NOT set");
+
+    // ── HW4 ──
+    FSDState h4;
+    memset(&h4, 0, sizeof(h4));
+    h4.hw_version = TeslaHW_HW4;
+    h4.force_fsd = true;
+
+    // ON: bit38 set on mux0.
+    h4.assist_tlssc_bit38 = true;
+    zero(&f);
+    f.data_lenght = 8;
+    f.buffer[0] = 0;
+    CHECK(fsd_handle_autopilot_frame(&h4, &f, 0), "HW4 mux0 tlssc38-on reports modified");
+    CHECK(h4.fsd_enabled, "HW4 mux0 sets fsd_enabled");
+    CHECK((f.buffer[4] & 0x40) != 0, "HW4 mux0 tlssc38-on bit38 set");
+
+    // OFF: bit38 NOT set.
+    h4.assist_tlssc_bit38 = false;
+    zero(&f);
+    f.data_lenght = 8;
+    f.buffer[0] = 0;
+    fsd_handle_autopilot_frame(&h4, &f, 0);
+    CHECK((f.buffer[4] & 0x40) == 0, "HW4 mux0 tlssc38-off bit38 NOT set");
 }
 
 // ── 0x399 ISA speed chime: bit + Tesla additive checksum ──────────────────────
@@ -283,8 +504,7 @@ static void test_tlssc_restore(void) {
 static void test_track_mode_crc(void) {
     FSDState s;
     memset(&s, 0, sizeof(s));
-    s.op_mode = OpMode_Service; // gated behind Service mode
-    s.track_mode_state = 2; // user toggled
+    s.track_mode_inject = true; // master opt-in
     CANFRAME f;
     zero(&f);
     f.data_lenght = 8;
@@ -304,12 +524,52 @@ static void test_track_mode_crc(void) {
         f.buffer[7],
         (uint8_t)(sum & 0xFF));
 
-    // Service-mode gate: not in Service -> no-op
-    s.op_mode = OpMode_Active;
+    // Master-toggle gate: inject off -> no-op
+    s.track_mode_inject = false;
     CANFRAME g;
     zero(&g);
     g.data_lenght = 8;
-    CHECK(fsd_handle_track_mode_inject(&s, &g) == false, "track-mode gated outside Service");
+    CHECK(fsd_handle_track_mode_inject(&s, &g) == false, "track-mode gated when inject off");
+}
+
+// ── 0x313 adjustable balance / stability / cooling ────────────────────────────
+static void test_track_mode_adjust(void) {
+    FSDState s;
+    memset(&s, 0, sizeof(s));
+    s.track_mode_inject = true;
+    s.track_rotation_pct = 40; // -> raw 80
+    s.track_stability_pct = 80; // -> raw 160
+    s.track_post_cooling = true; // byte3 bit0 set
+    s.track_cmp_overclock = false; // byte3 bit1 clear
+
+    CANFRAME f;
+    zero(&f);
+    f.data_lenght = 8;
+    f.buffer[3] = 0xF0; // upper nibble must survive the bit0/bit1 write
+
+    CHECK(fsd_handle_track_mode_inject(&s, &f), "track-adjust reports modified");
+    CHECK((f.buffer[0] & 0x03) == 0x01, "track-adjust request ON");
+    CHECK(f.buffer[1] == 80, "track-adjust rotation raw got %u exp 80", f.buffer[1]);
+    CHECK(f.buffer[2] == 160, "track-adjust stability raw got %u exp 160", f.buffer[2]);
+    CHECK((f.buffer[3] & 0x01) == 0x01, "track-adjust post-cooling bit set");
+    CHECK((f.buffer[3] & 0x02) == 0x00, "track-adjust overclock bit clear");
+    CHECK((f.buffer[3] & 0xF0) == 0xF0, "track-adjust preserves byte3 upper bits");
+    CHECK(
+        f.buffer[7] == tesla_additive_checksum(0x313, f.buffer, 7),
+        "track-adjust checksum got 0x%02X",
+        f.buffer[7]);
+
+    // inject off -> false, frame unchanged
+    FSDState s2;
+    memset(&s2, 0, sizeof(s2));
+    s2.track_mode_inject = false;
+    CANFRAME g;
+    zero(&g);
+    g.data_lenght = 8;
+    g.buffer[0] = 0xAA;
+    g.buffer[1] = 0xBB;
+    CHECK(fsd_handle_track_mode_inject(&s2, &g) == false, "track-adjust off -> no-op");
+    CHECK(g.buffer[0] == 0xAA && g.buffer[1] == 0xBB, "track-adjust off leaves frame unchanged");
 }
 
 // ── 0x249 SCCM_leftStalk builders + CRC ───────────────────────────────────────
@@ -587,6 +847,38 @@ static void test_signal_config(void) {
     in.buffer[4] = 0x00;
     CHECK(fsd_handle_nag_killer(&n, &in, &out, 1500u) != false, "cfg fresh -> nag echoes");
     CHECK(fsd_handle_nag_killer(&n, &in, &out, 3000u) == false, "cfg stale -> nag no-ops");
+
+    // Mask 0 means "not mapped": the field must be IGNORED (keep the prior value),
+    // not forced to 0. A tester who set the DAS id but left the hands-on mask 0
+    // zeroed hands-on so the nag killer never fired (#100).
+    FSDState m;
+    memset(&m, 0, sizeof(m));
+    m.das_ap_state = 5;
+    m.das_hands_on_state = 3;
+    m.cfg_das_id = 0x39B;
+    m.cfg_apstate_byte = 0;
+    m.cfg_apstate_shift = 0;
+    m.cfg_apstate_mask = 0x00; // unmapped
+    m.cfg_handson_byte = 5;
+    m.cfg_handson_shift = 2;
+    m.cfg_handson_mask = 0x00; // unmapped
+    CANFRAME mf;
+    zero(&mf);
+    mf.canId = 0x39B;
+    mf.data_lenght = 8;
+    mf.buffer[0] = 0x02; // would decode to ap_state 2 if the mask weren't 0
+    mf.buffer[5] = (1u << 2); // would decode to hands-on 1 if the mask weren't 0
+    fsd_apply_signal_config(&m, &mf, 5000u);
+    CHECK(m.das_ap_state == 5, "mask-0 apstate ignored (kept 5, got %u)", m.das_ap_state);
+    CHECK(
+        m.das_hands_on_state == 3,
+        "mask-0 hands-on ignored (kept 3, got %u)",
+        m.das_hands_on_state);
+    CHECK(m.das_ctx_seen_ms == 5000u, "mask-0 still stamps freshness (id matched)");
+    // A real mask still maps normally.
+    m.cfg_apstate_mask = 0x0F;
+    fsd_apply_signal_config(&m, &mf, 5100u);
+    CHECK(m.das_ap_state == 2, "mapped mask reads byte0 (got %u)", m.das_ap_state);
 }
 
 // ── Abort Guard (steer-jerk, #108) ───────────────────────────────────────────
@@ -931,19 +1223,30 @@ static FSDProfileFrame
 }
 
 static void test_profile_db(void) {
-    // Look up the seed rows by identity so the test survives table re-ordering.
-    int i_hw3 = -1, i_hw4 = -1, i_ssw = -1, i_high = -1;
+    // Both seed rows now read AP-state from byte0 low nibble (0x399 HW3/Legacy and
+    // 0x39B HW4). The now-identical "Highland (byte0 lo)" row was dropped (#177).
+    int i_hw3 = -1, i_hw4 = -1;
     for(int i = 0; i < FSD_PROFILE_DB_COUNT; i++) {
         const FSDProfile* p = &FSD_PROFILE_DB[i];
         if(p->das_id == 0x399 && p->apstate.byte == 0 && p->apstate.shift == 0) i_hw3 = i;
-        if(p->das_id == 0x39B && p->apstate.byte == 1 && p->apstate.shift == 4) i_hw4 = i;
-        if(p->das_id == 0x39B && p->apstate.byte == 0 && p->apstate.shift == 4) i_ssw = i;
-        if(p->das_id == 0x39B && p->apstate.byte == 0 && p->apstate.shift == 0) i_high = i;
+        if(p->das_id == 0x39B && p->apstate.byte == 0 && p->apstate.shift == 0) i_hw4 = i;
     }
-    CHECK(i_hw3 >= 0 && i_hw4 >= 0 && i_ssw >= 0 && i_high >= 0, "all 4 seed profiles present");
-    CHECK(FSD_PROFILE_DB[i_ssw].needs_override, "ssw0209 flagged needs_override");
-    CHECK(!FSD_PROFILE_DB[i_hw4].needs_override, "std HW4 not needs_override");
-    CHECK(!FSD_PROFILE_DB[i_high].needs_override, "Highland auto-handled, not needs_override");
+    CHECK(FSD_PROFILE_DB_COUNT == 2, "two seed profiles after dropping Highland row");
+    CHECK(i_hw3 >= 0 && i_hw4 >= 0, "both byte0 seed profiles present");
+    CHECK(
+        FSD_PROFILE_DB[i_hw4].apstate.byte == 0 && FSD_PROFILE_DB[i_hw4].apstate.shift == 0 &&
+            FSD_PROFILE_DB[i_hw4].apstate.mask == 0x0F,
+        "std HW4 is byte0/shift0/mask0x0F");
+    // Exactly one candidate per DAS id now.
+    int n399 = 0, n39b = 0;
+    for(int i = 0; i < FSD_PROFILE_DB_COUNT; i++) {
+        if(FSD_PROFILE_DB[i].das_id == 0x399) n399++;
+        if(FSD_PROFILE_DB[i].das_id == 0x39B) n39b++;
+    }
+    CHECK(n399 == 1 && n39b == 1, "one candidate per DAS id (0x399:%d 0x39B:%d)", n399, n39b);
+    // needs_override is false for all rows -> the matcher never suggests.
+    for(int i = 0; i < FSD_PROFILE_DB_COUNT; i++)
+        CHECK(!FSD_PROFILE_DB[i].needs_override, "%s not needs_override", FSD_PROFILE_DB[i].name);
     // handson is byte5/shift2/mask0xF throughout.
     for(int i = 0; i < FSD_PROFILE_DB_COUNT; i++) {
         CHECK(
@@ -953,9 +1256,8 @@ static void test_profile_db(void) {
             FSD_PROFILE_DB[i].name);
     }
 
-    // ── Standard HW3 (0x399): AP-state in byte0 low nibble sweeps 2->3->4. ──
-    // Only one candidate for 0x399, so a live sweep -> unique match, but it is
-    // auto-handled -> no suggestion.
+    // ── Standard HW3 (0x399): AP-state in byte0 low nibble sweeps 2->3->4 -> unique
+    // match, auto-handled -> no suggestion. ──
     FSDProfileFrame hw3[] = {
         pf(0x02, 0, 0, 0, 0, 0x00, 0, 0),
         pf(0x03, 0, 0, 0, 0, 0x04, 0, 0),
@@ -966,77 +1268,58 @@ static void test_profile_db(void) {
     CHECK(r.status == FSD_MATCH_ONE && r.index == i_hw3, "std HW3: unique match");
     CHECK(!fsd_profile_should_suggest(r), "std HW3: no suggestion (auto-handled)");
 
-    // ── Standard HW4 (0x39B): AP-state in byte1 hi nibble sweeps 1->2->3. ──
-    // byte0 is constant 0x00 so neither byte0-hi (ssw0209) nor byte0-lo
-    // (Highland) qualifies -> unique std HW4, auto-handled -> no suggestion.
+    // ── Standard HW4 (0x39B): real byte0-low sweep 2->3->6 (byte1 = 0x0A noise) ->
+    // unique byte0 match, no suggestion. ──
     FSDProfileFrame hw4[] = {
+        pf(0x02, 0x0A, 0, 0, 0, 0x00, 0, 0),
+        pf(0x03, 0x0A, 0, 0, 0, 0x04, 0, 0),
+        pf(0x06, 0x0A, 0, 0, 0, 0x08, 0, 0),
+        pf(0x03, 0x0A, 0, 0, 0, 0x04, 0, 0),
+    };
+    r = fsd_profile_match(0x39B, hw4, 4);
+    CHECK(r.status == FSD_MATCH_ONE && r.index == i_hw4, "std HW4 byte0: unique match");
+    CHECK(FSD_PROFILE_DB[r.index].apstate.shift == 0, "byte0-lo match is shift0");
+    CHECK(!fsd_profile_should_suggest(r), "std HW4: no suggestion (parser is fine)");
+
+    // ── The OLD byte1-hi layout is no longer matched: byte0 constant 0 fails the
+    // "not stuck" test, so a byte1-only sweep -> NONE. ──
+    FSDProfileFrame b1only[] = {
         pf(0x00, 0x10, 0, 0, 0, 0x00, 0, 0),
         pf(0x00, 0x20, 0, 0, 0, 0x04, 0, 0),
         pf(0x00, 0x30, 0, 0, 0, 0x08, 0, 0),
         pf(0x00, 0x20, 0, 0, 0, 0x04, 0, 0),
     };
-    r = fsd_profile_match(0x39B, hw4, 4);
-    CHECK(r.status == FSD_MATCH_ONE && r.index == i_hw4, "std HW4: unique match");
-    CHECK(!fsd_profile_should_suggest(r), "std HW4: no suggestion (parser is fine)");
+    r = fsd_profile_match(0x39B, b1only, 4);
+    CHECK(r.status == FSD_MATCH_NONE, "byte1-only sweep (byte0 const) -> no match");
 
-    // ── THE REAL GAP: ssw0209 byte0 HI-nibble (0x39B, shift4). ──
-    // AP-state sweeps 1->2->3 in byte0[7:4]. byte1[7:4] is pinned at 1 (the
-    // Highland/ssw signature) so std HW4 reads a constant -> disqualified.
-    // byte0[3:0] is pinned at 1 so Highland's byte0-lo reads a constant ->
-    // disqualified. Only ssw0209 qualifies, and it needs_override -> SUGGEST.
-    FSDProfileFrame ssw[] = {
-        pf(0x11, 0x10, 0, 0, 0, 0x00, 0, 0), // hi=1 avail, lo=1, byte1 hi=1
-        pf(0x21, 0x10, 0, 0, 0, 0x04, 0, 0), // hi=2 active
-        pf(0x31, 0x10, 0, 0, 0, 0x08, 0, 0), // hi=3
-        pf(0x21, 0x10, 0, 0, 0, 0x04, 0, 0), // hi=2
-    };
-    r = fsd_profile_match(0x39B, ssw, 4);
-    CHECK(r.status == FSD_MATCH_ONE && r.index == i_ssw, "ssw0209 hi-nibble: unique match");
-    CHECK(fsd_profile_should_suggest(r), "ssw0209 hi-nibble: SUGGEST (the real gap)");
-    CHECK(FSD_PROFILE_DB[r.index].apstate.shift == 4, "ssw0209 suggests shift4");
-
-    // ── Ambiguous: byte0 sweeps sensibly in BOTH nibbles -> ssw0209 AND
-    // Highland both qualify -> AMBIGUOUS -> no suggestion (fall back to manual). ──
-    FSDProfileFrame amb[] = {
-        pf(0x12, 0x10, 0, 0, 0, 0x00, 0, 0), // hi=1,lo=2
-        pf(0x23, 0x10, 0, 0, 0, 0x04, 0, 0), // hi=2,lo=3
-        pf(0x34, 0x10, 0, 0, 0, 0x08, 0, 0), // hi=3,lo=4
-        pf(0x23, 0x10, 0, 0, 0, 0x04, 0, 0),
-    };
-    r = fsd_profile_match(0x39B, amb, 4);
-    CHECK(r.status == FSD_MATCH_AMBIGUOUS, "two nibbles live -> ambiguous");
-    CHECK(!fsd_profile_should_suggest(r), "ambiguous -> no suggestion");
-
-    // ── No match: nothing reaches active (parked car), all fields constant 0. ──
+    // ── No match: parked car, byte0 nibble constant. ──
     FSDProfileFrame parked[] = {
-        pf(0x11, 0x11, 0, 0, 0, 0x00, 0, 0), // every candidate nibble constant 1
-        pf(0x11, 0x11, 0, 0, 0, 0x00, 0, 0),
-        pf(0x11, 0x11, 0, 0, 0, 0x00, 0, 0),
-        pf(0x11, 0x11, 0, 0, 0, 0x00, 0, 0),
+        pf(0x01, 0x11, 0, 0, 0, 0x00, 0, 0),
+        pf(0x01, 0x11, 0, 0, 0, 0x00, 0, 0),
+        pf(0x01, 0x11, 0, 0, 0, 0x00, 0, 0),
+        pf(0x01, 0x11, 0, 0, 0, 0x00, 0, 0),
     };
     r = fsd_profile_match(0x39B, parked, 4);
     CHECK(r.status == FSD_MATCH_NONE, "constant/never-active -> no match");
     CHECK(!fsd_profile_should_suggest(r), "no match -> no suggestion");
 
     // ── No match: unknown DAS id has no candidates. ──
-    r = fsd_profile_match(0x123, ssw, 4);
+    r = fsd_profile_match(0x123, hw4, 4);
     CHECK(r.status == FSD_MATCH_NONE, "unknown das_id -> no candidates -> no match");
 
     // ── Too few frames: below FSD_PROFILE_MIN_FRAMES -> no decision. ──
-    r = fsd_profile_match(0x39B, ssw, 2);
+    r = fsd_profile_match(0x39B, hw4, 2);
     CHECK(r.status == FSD_MATCH_NONE, "too few frames -> no match");
 
-    // ── Out-of-range guard: a nibble that decodes >9 disqualifies that profile.
-    // byte0 hi = 0xA (10) is out of range -> ssw0209 disqualified; std HW4 sweeps
-    // fine -> unique std HW4, no suggestion. Proves the out-of-range rejection. ──
+    // ── Out-of-range guard: byte0 lo = 0xA (10) disqualifies the only candidate. ──
     FSDProfileFrame oor[] = {
-        pf(0xA1, 0x10, 0, 0, 0, 0x00, 0, 0), // byte0 hi=0xA (10) invalid
-        pf(0xA1, 0x20, 0, 0, 0, 0x04, 0, 0),
-        pf(0xA1, 0x30, 0, 0, 0, 0x08, 0, 0),
-        pf(0xA1, 0x20, 0, 0, 0, 0x04, 0, 0),
+        pf(0x0A, 0x0A, 0, 0, 0, 0x00, 0, 0),
+        pf(0x0A, 0x0A, 0, 0, 0, 0x04, 0, 0),
+        pf(0x0A, 0x0A, 0, 0, 0, 0x08, 0, 0),
+        pf(0x0A, 0x0A, 0, 0, 0, 0x04, 0, 0),
     };
     r = fsd_profile_match(0x39B, oor, 4);
-    CHECK(r.status == FSD_MATCH_ONE && r.index == i_hw4, "out-of-range nibble rejected");
+    CHECK(r.status == FSD_MATCH_NONE, "out-of-range nibble rejected -> no match");
 }
 
 // ── black-box .json summary formatter (#124) ─────────────────────────────────
@@ -1197,21 +1480,163 @@ static void test_candump_format(void) {
 }
 
 // ── 0x318 GTW_carState OTA detection (gates TX) ───────────────────────────────
+static void gtw_feed(FSDState* s, uint8_t b6) {
+    CANFRAME f;
+    zero(&f);
+    f.canId = CAN_ID_GTW_CAR_STATE;
+    f.data_lenght = 8;
+    f.buffer[6] = b6;
+    fsd_handle_gtw_car_state(s, &f);
+}
+
+// Feed a byte6 sequence; true if the OTA pause latched at any point.
+static bool gtw_feed_seq(FSDState* s, const uint8_t* b6, int n) {
+    bool latched = false;
+    for(int i = 0; i < n; i++) {
+        gtw_feed(s, b6[i]);
+        if(s->tesla_ota_in_progress) latched = true;
+    }
+    return latched;
+}
+
 static void test_gtw_car_state(void) {
     FSDState s;
     memset(&s, 0, sizeof(s));
     CANFRAME f;
     zero(&f);
-    f.data_lenght = 7;
-    f.buffer[6] = 2; // installing
+    f.data_lenght = 6; // short frame: ignored, not even the reference byte
+    f.buffer[6] = 0x42;
     fsd_handle_gtw_car_state(&s, &f);
-    CHECK(s.tesla_ota_in_progress, "OTA installing(2) -> in_progress");
-    f.buffer[6] = 1; // available — must NOT pause TX (issue #19 false positive)
-    fsd_handle_gtw_car_state(&s, &f);
-    CHECK(!s.tesla_ota_in_progress, "OTA available(1) -> not in_progress");
-    f.buffer[6] = 0;
-    fsd_handle_gtw_car_state(&s, &f);
-    CHECK(!s.tesla_ota_in_progress, "OTA none(0) -> not in_progress");
+    CHECK(!s.ota_last_valid && s.ota_clear_count == 0, "OTA dlc<7 frame ignored");
+
+    // One raw-2 frame no longer pauses TX: it only seeds the reference byte.
+    gtw_feed(&s, 0x02);
+    CHECK(s.ota_raw_state == 2, "OTA raw_state 2 got %u", s.ota_raw_state);
+    CHECK(!s.tesla_ota_in_progress, "OTA single raw-2 frame -> not in_progress");
+
+    // Stable raw 0/1/3 never latch (raw 1 false-positived in #19).
+    static const uint8_t other[] = {0x01, 0x00, 0x03};
+    for(size_t k = 0; k < sizeof(other); k++) {
+        uint8_t seq[10];
+        memset(seq, other[k], sizeof(seq));
+        memset(&s, 0, sizeof(s));
+        CHECK(
+            !gtw_feed_seq(&s, seq, (int)sizeof(seq)), "OTA stable raw %u never latches", other[k]);
+    }
+
+    // Stable flag 0x42: frame 1 seeds the reference, each repeat is an asserting
+    // sample -> latches on the 3rd repeat (4th frame), not the 2nd.
+    memset(&s, 0, sizeof(s));
+    s.op_mode = OpMode_Active;
+    for(int i = 1; i <= 3; i++) {
+        gtw_feed(&s, 0x42);
+        CHECK(!s.tesla_ota_in_progress, "OTA stable 0x42 frame %d -> not yet", i);
+    }
+    CHECK(s.ota_assert_count == 2, "OTA 2 repeats -> assert_count 2 got %u", s.ota_assert_count);
+    gtw_feed(&s, 0x42);
+    CHECK(s.tesla_ota_in_progress, "OTA stable 0x42 latches on 3rd repeat (frame 4)");
+    CHECK(!fsd_can_transmit(&s), "OTA latched -> TX blocked");
+
+    // Latched: a stable non-2 byte releases on exactly the 6th frame.
+    for(int i = 1; i <= 5; i++) {
+        gtw_feed(&s, 0x41);
+        CHECK(s.tesla_ota_in_progress, "OTA clear frame %d -> still latched", i);
+    }
+    gtw_feed(&s, 0x41);
+    CHECK(!s.tesla_ota_in_progress, "OTA releases on 6th non-asserting frame");
+    CHECK(fsd_can_transmit(&s), "OTA released -> TX allowed");
+
+    // A raw-2 frame whose byte6 differs from the previous one resets the count.
+    memset(&s, 0, sizeof(s));
+    gtw_feed(&s, 0x42);
+    gtw_feed(&s, 0x42);
+    gtw_feed(&s, 0x42);
+    CHECK(s.ota_assert_count == 2, "OTA pre-reset assert_count 2 got %u", s.ota_assert_count);
+    gtw_feed(&s, 0x46); // raw 2, byte6 changed
+    CHECK(
+        s.ota_assert_count == 0,
+        "OTA changed raw-2 byte6 resets assert_count got %u",
+        s.ota_assert_count);
+    gtw_feed(&s, 0x46);
+    gtw_feed(&s, 0x46);
+    CHECK(!s.tesla_ota_in_progress, "OTA 2 repeats after reset -> not yet");
+    gtw_feed(&s, 0x46);
+    CHECK(s.tesla_ota_in_progress, "OTA 3 repeats after reset -> latched");
+}
+
+// 0x318 byte6 on current cars is a rolling counter (+2, always odd), so
+// bits[1:0] alternate 1/3 and RX drops can alias it; none of it may latch (#183).
+// Real capture, Model S Palladium 2022, consecutive received frames (decimated):
+static const uint8_t k_palladium_318_b6[] = {
+    0x47, 0x4B, 0x4D, 0x53, 0x45, 0x4F, 0x5D, 0x4B, 0x5F, 0x49, 0x53, 0x5B, 0x43, 0x4B, 0x5B,
+    0x43, 0x5F, 0x53, 0x4F, 0x4D, 0x57, 0x41, 0x5F, 0x5B, 0x4D, 0x5D, 0x49, 0x53, 0x4F,
+};
+
+static uint32_t xorshift32(uint32_t* x) {
+    *x ^= *x << 13;
+    *x ^= *x >> 17;
+    *x ^= *x << 5;
+    return *x;
+}
+
+static void test_gtw_car_state_counter(void) {
+    FSDState s;
+    memset(&s, 0, sizeof(s));
+    CHECK(
+        !gtw_feed_seq(&s, k_palladium_318_b6, (int)sizeof(k_palladium_318_b6)),
+        "OTA Palladium byte6 capture never latches");
+
+    // +2 counter 0x21..0x3F (16 steps), keeping every k-th frame: k=2 pins
+    // bits[1:0] at 1, k=16 aliases to a constant 0x21.
+    static const int keep_every[] = {1, 2, 3, 16};
+    for(size_t k = 0; k < sizeof(keep_every) / sizeof(keep_every[0]); k++) {
+        uint8_t seq[128];
+        for(int i = 0; i < (int)sizeof(seq); i++)
+            seq[i] = (uint8_t)(0x21 + 2 * ((i * keep_every[k]) % 16));
+        memset(&s, 0, sizeof(s));
+        CHECK(
+            !gtw_feed_seq(&s, seq, (int)sizeof(seq)),
+            "OTA +2 counter keep 1/%d never latches",
+            keep_every[k]);
+    }
+
+    // +2 counter under pseudo-random RX drops (fixed seed), keeping ~1/4..3/4.
+    for(int keep_q = 1; keep_q <= 3; keep_q++) {
+        uint32_t rng = 0x31800u + (uint32_t)keep_q;
+        uint8_t seq[256];
+        int n = 0;
+        for(int i = 0; n < (int)sizeof(seq); i++)
+            if((int)(xorshift32(&rng) & 3u) < keep_q) seq[n++] = (uint8_t)(0x21 + 2 * (i % 16));
+        memset(&s, 0, sizeof(s));
+        CHECK(
+            !gtw_feed_seq(&s, seq, n),
+            "OTA +2 counter random drops keep %d/4 never latches",
+            keep_q);
+    }
+
+    // +1 counter 0x00..0xFF kept every 4th frame: phase 2 reads a constant raw 2,
+    // but byte6 changes every frame, so it is never an asserting sample.
+    for(int phase = 0; phase < 4; phase++) {
+        uint8_t seq[128];
+        for(int i = 0; i < (int)sizeof(seq); i++)
+            seq[i] = (uint8_t)(phase + 4 * i);
+        memset(&s, 0, sizeof(s));
+        CHECK(
+            !gtw_feed_seq(&s, seq, (int)sizeof(seq)),
+            "OTA +1 counter every 4th (phase %d) never latches",
+            phase);
+    }
+
+    // Nor can that aliased raw-2 counter hold a latch: it releases on frame 6.
+    memset(&s, 0, sizeof(s));
+    for(int i = 0; i < 4; i++)
+        gtw_feed(&s, 0x42);
+    CHECK(s.tesla_ota_in_progress, "OTA latched before counter");
+    for(int i = 1; i <= 5; i++)
+        gtw_feed(&s, (uint8_t)(0x02 + 4 * i));
+    CHECK(s.tesla_ota_in_progress, "OTA raw-2 counter frame 5 -> still latched");
+    gtw_feed(&s, (uint8_t)(0x02 + 4 * 6));
+    CHECK(!s.tesla_ota_in_progress, "OTA raw-2 counter releases on frame 6");
 }
 
 // ── 0x045 Legacy stalk + 0x3EE Legacy autopilot ───────────────────────────────
@@ -1428,7 +1853,8 @@ static void test_das_status(void) {
     memset(&s, 0, sizeof(s));
     zero(&f);
     f.data_lenght = 7;
-    f.buffer[1] = (uint8_t)(0x02 << 4); // ap_state = 2 (bits[7:4])
+    f.buffer[0] = 0x02; // ap_state = 2 (byte0 low nibble)
+    f.buffer[1] = 0x6A; // byte1 noise (fusedSpeedLimit etc) — must NOT be read
     f.buffer[5] = (uint8_t)(0x03 << 2); // hands_on = 3
     f.buffer[4] = 0x02; // side_coll_warn = 2 (bits[1:0])
     f.buffer[2] = 0xC0 | 0x05; // fcw = 3 (bits[7:6]), vision = 5 (bits[4:0])
@@ -1478,125 +1904,465 @@ static void test_das_status(void) {
     CHECK(s.das_hands_on_state == 0xFF, "399 fallback ignores short frame");
 }
 
-// #116: HW4 Highland (China MIC, fw 2026.20) ships an 8-byte HW4 0x39B but carries
-// DAS_autopilotState in byte0 low nibble while byte1[7:4] is pinned at 1. The
-// auto-fallback must latch to byte0 once byte0 reaches an active state (>=2) while
-// byte1[7:4] stays 1 across 3 frames, then track byte0; the latch is one-way.
-static void test_das_status_highland_byte0(void) {
+// HW4/Highland 0x39B DAS_autopilotState = byte0 low nibble (opendbc party BO_923),
+// on real frames. byte1 (DAS_fusedSpeedLimit etc) must never move das_ap_state.
+static void test_das_status_hw4_byte0(void) {
     FSDState s;
-    memset(&s, 0, sizeof(s));
     CANFRAME f;
-    int i;
 
-    // OFF: real reporter bytes 01 10 DF 80 B0 44 A0 A2. byte1=0x10 (hi nibble 1),
-    // byte0 low nibble 1 (not active) -> nothing counts yet, reads byte1 == 1.
+    // anoblekman Highland HW4, parked (byte1 = 0x0A constant, #177):
+    //   01 0A DF E0 B0 08 71 91 -> ap_state 1, no autopark bits (byte3 0xE0)
+    memset(&s, 0, sizeof(s));
     zero(&f);
     f.data_lenght = 8;
     f.buffer[0] = 0x01;
-    f.buffer[1] = 0x10;
+    f.buffer[1] = 0x0A;
     f.buffer[2] = 0xDF;
-    f.buffer[3] = 0x80;
+    f.buffer[3] = 0xE0;
     f.buffer[4] = 0xB0;
-    f.buffer[5] = 0x44;
-    f.buffer[6] = 0xA0;
-    f.buffer[7] = 0xA2;
+    f.buffer[5] = 0x08;
+    f.buffer[6] = 0x71;
+    f.buffer[7] = 0x91;
     fsd_handle_das_status_hw4(&s, &f);
-    CHECK(s.das_ap_state == 1, "highland OFF pre-latch reads byte1=1 got %u", s.das_ap_state);
-    CHECK(!s.das_hw4_use_byte0, "highland OFF must not latch yet");
+    CHECK(s.das_ap_state == 1, "anoblekman parked ap_state=1 got %u", s.das_ap_state);
+    CHECK(
+        !s.autopark_ready && !s.autopark_parked && !s.autopark_waiting_brake,
+        "parked byte3 0xE0 -> no autopark bits");
 
-    // READY x3: 02 10 DF 80 B0 44 50 53. byte0 low nibble 2 (active), byte1 still
-    // 0x10. Three frames cross the N=3 latch threshold.
-    for(i = 0; i < 3; i++) {
-        zero(&f);
-        f.data_lenght = 8;
-        f.buffer[0] = 0x02;
-        f.buffer[1] = 0x10;
-        f.buffer[2] = 0xDF;
-        f.buffer[3] = 0x80;
-        f.buffer[4] = 0xB0;
-        f.buffer[5] = 0x44;
-        f.buffer[6] = 0x50;
-        f.buffer[7] = 0x53;
-        fsd_handle_das_status_hw4(&s, &f);
-    }
-    CHECK(s.das_hw4_use_byte0, "highland latched to byte0 after 3 active frames");
-    CHECK(s.das_ap_state == 2, "highland READY tracks byte0=2 got %u", s.das_ap_state);
-
-    // ENGAGED: 03 10 DF 80 B0 44 50 54.
+    //   01 0A DF E0 B0 08 81 A1 -> ap_state 1 (identical-bytes 0x399 copy decodes same)
     zero(&f);
     f.data_lenght = 8;
-    f.buffer[0] = 0x03;
+    f.buffer[0] = 0x01;
+    f.buffer[1] = 0x0A;
+    f.buffer[2] = 0xDF;
+    f.buffer[3] = 0xE0;
+    f.buffer[4] = 0xB0;
+    f.buffer[5] = 0x08;
+    f.buffer[6] = 0x81;
+    f.buffer[7] = 0xA1;
+    fsd_handle_das_status_hw3(&s, &f);
+    CHECK(s.das_ap_state == 1, "anoblekman parked 0x399 copy ap_state=1 got %u", s.das_ap_state);
+
+    // Autopark frame: 06 0A DF E5 B0 08 21 4B -> ap_state 6, byte3 0xE5 (bit0+bit2).
+    memset(&s, 0, sizeof(s));
+    zero(&f);
+    f.data_lenght = 8;
+    f.buffer[0] = 0x06;
+    f.buffer[1] = 0x0A;
+    f.buffer[2] = 0xDF;
+    f.buffer[3] = 0xE5;
+    f.buffer[4] = 0xB0;
+    f.buffer[5] = 0x08;
+    f.buffer[6] = 0x21;
+    f.buffer[7] = 0x4B;
+    fsd_handle_das_status_hw4(&s, &f);
+    CHECK(s.das_ap_state == 6, "autopark frame ap_state=6 got %u", s.das_ap_state);
+    CHECK(
+        s.autopark_ready && !s.autopark_parked && s.autopark_waiting_brake,
+        "autopark byte3 0xE5 -> ready + waitingForBrake");
+
+    // #116 fixtures (0xAccretion Highland, byte1 = 0x10 constant): must decode to
+    // their byte0 states, and byte1 noise never changes das_ap_state.
+    memset(&s, 0, sizeof(s));
+    zero(&f);
+    f.data_lenght = 8;
+    f.buffer[0] = 0x02;
     f.buffer[1] = 0x10;
     f.buffer[2] = 0xDF;
     f.buffer[3] = 0x80;
     f.buffer[4] = 0xB0;
     f.buffer[5] = 0x44;
     f.buffer[6] = 0x50;
-    f.buffer[7] = 0x54;
+    f.buffer[7] = 0x53;
     fsd_handle_das_status_hw4(&s, &f);
-    CHECK(s.das_ap_state == 3, "highland ENGAGED tracks byte0=3 got %u", s.das_ap_state);
-    CHECK(!s.das_hw4_byte1_moved, "highland byte1 never left 1");
-
-    // Back to OFF (byte0=1): one-way latch stays on byte0, reads 1.
-    zero(&f);
-    f.data_lenght = 8;
-    f.buffer[0] = 0x01;
+    CHECK(s.das_ap_state == 2, "#116 READY byte0=2 got %u", s.das_ap_state);
+    f.buffer[0] = 0x03;
     f.buffer[1] = 0x10;
-    f.buffer[2] = 0xDF;
-    f.buffer[3] = 0x80;
-    f.buffer[4] = 0xB0;
-    f.buffer[5] = 0x44;
-    f.buffer[6] = 0xA0;
-    f.buffer[7] = 0xA2;
     fsd_handle_das_status_hw4(&s, &f);
-    CHECK(s.das_hw4_use_byte0, "highland latch is one-way (stays on byte0)");
-    CHECK(s.das_ap_state == 1, "highland OFF-after-latch reads byte0=1 got %u", s.das_ap_state);
-}
+    CHECK(s.das_ap_state == 3, "#116 ENGAGED byte0=3 got %u", s.das_ap_state);
 
-// #116: a standard HW4 car carries DAS_autopilotState in byte1[7:4]; byte0 low
-// nibble is unrelated. The auto-fallback must NEVER latch there, even when byte1
-// momentarily sits at the idle AVAIL value (0x10) with active-looking byte0 noise.
-static void test_das_status_hw4_no_fallback(void) {
-    FSDState s;
-    memset(&s, 0, sizeof(s));
-    CANFRAME f;
-    int i;
-
-    // READY: byte1 = 0x20 (state 2). byte1 != 1 disqualifies the fallback for good.
-    zero(&f);
-    f.data_lenght = 8;
-    f.buffer[1] = 0x20;
-    fsd_handle_das_status_hw4(&s, &f);
-    CHECK(s.das_ap_state == 2, "std-hw4 READY reads byte1 got %u", s.das_ap_state);
-    CHECK(s.das_hw4_byte1_moved, "std-hw4 byte1 != 1 disqualifies fallback");
-    CHECK(!s.das_hw4_use_byte0, "std-hw4 must not latch");
-
-    // ENGAGED: byte1 = 0x30 (state 3).
-    zero(&f);
-    f.data_lenght = 8;
-    f.buffer[1] = 0x30;
-    fsd_handle_das_status_hw4(&s, &f);
-    CHECK(s.das_ap_state == 3, "std-hw4 ENGAGED reads byte1 got %u", s.das_ap_state);
-
-    // Transient: byte1 dips to idle 0x10 with byte0 noise low-nibble 3 for 2 frames.
-    // byte1_moved already latched -> must NOT switch to byte0; reads byte1 == 1.
-    for(i = 0; i < 2; i++) {
+    // byte1 noise sweep (0x6A, 0x10, 0x0A) with byte0 held at 3 must never move it.
+    static const uint8_t noise[] = {0x6A, 0x10, 0x0A, 0xF0, 0x00};
+    for(unsigned i = 0; i < sizeof(noise); i++) {
         zero(&f);
         f.data_lenght = 8;
         f.buffer[0] = 0x03;
-        f.buffer[1] = 0x10;
+        f.buffer[1] = noise[i];
         fsd_handle_das_status_hw4(&s, &f);
+        CHECK(
+            s.das_ap_state == 3,
+            "byte1=0x%02X noise keeps ap_state=3 got %u",
+            noise[i],
+            s.das_ap_state);
     }
-    CHECK(!s.das_hw4_use_byte0, "std-hw4 transient byte1==1 must not latch");
-    CHECK(s.das_ap_state == 1, "std-hw4 transient reads byte1=1 got %u", s.das_ap_state);
+}
 
-    // Re-engage cleanly from byte1.
+// Engaged helper (shared fsd_autopark.h): 3..6 engaged; 0/1/2/8/9/14/15 not.
+static void test_das_state_engaged(void) {
+    CHECK(!fsd_das_state_engaged(0), "0 DISABLED not engaged");
+    CHECK(!fsd_das_state_engaged(1), "1 UNAVAILABLE not engaged");
+    CHECK(!fsd_das_state_engaged(2), "2 AVAILABLE not engaged");
+    CHECK(fsd_das_state_engaged(3), "3 ACTIVE_NOMINAL engaged");
+    CHECK(fsd_das_state_engaged(4), "4 ACTIVE_RESTRICTED engaged");
+    CHECK(fsd_das_state_engaged(5), "5 ACTIVE_NAV engaged");
+    CHECK(fsd_das_state_engaged(6), "6 ACTIVE_FSD engaged");
+    CHECK(!fsd_das_state_engaged(8), "8 ABORTING not engaged");
+    CHECK(!fsd_das_state_engaged(9), "9 ABORTED not engaged");
+    CHECK(!fsd_das_state_engaged(14), "14 FAULT not engaged");
+    CHECK(!fsd_das_state_engaged(15), "15 SNA not engaged");
+}
+
+// In-car Autopark TX pause (#180). Drives fsd_autopark_update() + fsd_can_transmit().
+static void ap_update(FSDState* s, uint8_t state6, uint32_t now) {
+    s->das_ap_state = state6;
+    fsd_autopark_update(s, now);
+}
+// Feed one 0x257 DI_speed frame through the real parser, stamp freshness the way
+// the RX loop does, then run the Autopark update at the same instant.
+static void ap_speed(FSDState* s, uint8_t b1, uint8_t b2, uint32_t now) {
+    CANFRAME f;
     zero(&f);
+    f.canId = CAN_ID_DI_SPEED;
     f.data_lenght = 8;
-    f.buffer[1] = 0x30;
-    fsd_handle_das_status_hw4(&s, &f);
-    CHECK(s.das_ap_state == 3, "std-hw4 re-engage reads byte1 got %u", s.das_ap_state);
-    CHECK(!s.das_hw4_use_byte0, "std-hw4 never latches");
+    f.buffer[1] = b1;
+    f.buffer[2] = b2;
+    fsd_handle_di_speed(s, &f);
+    s->last_speed_tick_ms = now;
+    fsd_autopark_update(s, now);
+}
+static void test_autopark(void) {
+    FSDState s;
+
+    // ── Autopark sequence: parked -> autoparkReady -> state 6 held -> back to 1.
+    // Blocks exactly during the episode, releases after.
+    memset(&s, 0, sizeof(s));
+    s.op_mode = OpMode_Active;
+    ap_update(&s, 1, 100); // parked, no bits
+    CHECK(!s.autopark_tx_block && fsd_can_transmit(&s), "parked: no block");
+    s.autopark_ready = true; // autoparkReady 0->1 (still state 1)
+    ap_update(&s, 1, 1000);
+    CHECK(!s.autopark_tx_block, "autoparkReady set but not state 6 yet: no episode");
+    s.autopark_ready = true;
+    s.autopark_waiting_brake = true;
+    ap_update(&s, 6, 1200); // 1->6 with bits (byte3 0xE5)
+    CHECK(s.autopark_episode && s.autopark_tx_block, "state 6 autopark: blocked");
+    CHECK(!fsd_can_transmit(&s), "autopark episode blocks fsd_can_transmit");
+    ap_update(&s, 6, 8000); // held ~7 s
+    CHECK(s.autopark_tx_block, "held at 6: still blocked");
+    s.autopark_ready = false;
+    s.autopark_waiting_brake = false;
+    ap_update(&s, 1, 22000); // completes, 6->1
+    CHECK(!s.autopark_episode && !s.autopark_tx_block, "back to 1: episode ended, released");
+    CHECK(fsd_can_transmit(&s), "released: TX allowed again");
+
+    // ── maneuver_recent path: a maneuver bit seen ~1.1 s before the 6, the
+    // 6-frame's byte3 carries no bit, episode still opens (reporter's trace).
+    // Entering from an already-engaged state so prev<=2 can't open it instead.
+    memset(&s, 0, sizeof(s));
+    s.op_mode = OpMode_Active;
+    ap_update(&s, 3, 100);
+    s.autopark_waiting_brake = true;
+    ap_update(&s, 3, 1000); // maneuver bit seen at t=1000
+    s.autopark_waiting_brake = false;
+    ap_update(&s, 6, 2100); // 3->6, no bit now, recent (1.1 s)
+    CHECK(s.autopark_episode && s.autopark_tx_block, "maneuver_recent opens episode on 3->6");
+
+    // ── autoparkReady recency does NOT open an episode entering from an engaged
+    // state (AP re-engaging near parked cars, not Autopark) (#176).
+    memset(&s, 0, sizeof(s));
+    s.op_mode = OpMode_Active;
+    ap_update(&s, 3, 100);
+    s.autopark_ready = true;
+    ap_update(&s, 3, 1000); // spot found while engaged
+    s.autopark_ready = false;
+    ap_update(&s, 6, 2100); // 3->6, ready was recent
+    CHECK(
+        !s.autopark_episode && !s.autopark_tx_block, "autoparkReady recency on 3->6: no episode");
+
+    // ── FSD sequence 2->3->6 with autopark bits clear NEVER blocks.
+    memset(&s, 0, sizeof(s));
+    s.op_mode = OpMode_Active;
+    ap_update(&s, 2, 100);
+    ap_update(&s, 3, 200);
+    ap_update(&s, 6, 300);
+    CHECK(!s.autopark_episode && !s.autopark_tx_block, "FSD 2->3->6 no bits: never blocks");
+    CHECK(fsd_can_transmit(&s), "FSD engaged at 6: TX allowed");
+
+    // ── 2->6 with a MISSED 3 at 0 km/h: blocks, then fresh speed > 20 ENDS the
+    // episode; slowing back down in the same state 6 does not re-block (#176).
+    memset(&s, 0, sizeof(s));
+    s.op_mode = OpMode_Active;
+    s.speed_seen = true;
+    s.last_speed_tick_ms = 100;
+    s.vehicle_speed_kph = 0.0f;
+    ap_update(&s, 2, 100);
+    ap_update(&s, 6, 200); // prev 2 (<=2) -> episode
+    CHECK(s.autopark_tx_block, "2->6 missed-3 at 0 km/h: blocked");
+
+    // Stale speed keeps the block (fail safe).
+    ap_update(&s, 6, 1500); // last speed 1.4 s ago -> stale
+    CHECK(s.autopark_tx_block, "stale speed keeps block (fail safe)");
+
+    s.vehicle_speed_kph = 25.0f;
+    s.last_speed_tick_ms = 1900;
+    ap_update(&s, 6, 2000); // fresh speed 25 > 20
+    CHECK(!s.autopark_episode && !s.autopark_tx_block, "fresh speed >20 ends the false episode");
+    CHECK(fsd_can_transmit(&s), "released by speed: TX allowed");
+    s.vehicle_speed_kph = 5.0f;
+    s.last_speed_tick_ms = 2900;
+    ap_update(&s, 6, 3000); // back to 5 km/h, still in 6
+    CHECK(!s.autopark_tx_block && fsd_can_transmit(&s), "5 km/h after release, same 6: no block");
+    ap_update(&s, 6, 5000); // speed stale again
+    CHECK(!s.autopark_tx_block, "stale speed after release: episode stays ended");
+
+    // ── SNA speed must NOT release. DI_vehicleSpeed raw 0xFFF (4095) is SNA and
+    // decodes to 287.6 kph; only a fresh VALID reading > 20 releases (ending the
+    // episode, so a later SNA reading cannot re-open it, #176).
+    memset(&s, 0, sizeof(s));
+    s.op_mode = OpMode_Active;
+    s.autopark_ready = true;
+    ap_update(&s, 1, 100);
+    ap_update(&s, 6, 200); // autopark episode
+    CHECK(s.autopark_tx_block, "SNA test: episode blocked before any speed");
+    ap_speed(&s, 0xF0, 0xFF, 300); // raw 0xFFF = SNA, fresh
+    CHECK(
+        s.vehicle_speed_kph > 287.5f && s.vehicle_speed_kph < 287.7f,
+        "SNA raw 0xFFF decodes to %.2f kph (287.6)",
+        (double)s.vehicle_speed_kph);
+    CHECK(s.autopark_tx_block && !fsd_can_transmit(&s), "fresh SNA speed keeps the block");
+    ap_speed(&s, 0xF0, 0xFD, 400); // raw 4063 = 285.04, invalid
+    CHECK(s.autopark_tx_block, "raw 4063 (above max valid) keeps the block");
+    ap_speed(&s, 0xD0, 0x32, 500); // raw 813 = 25.04 kph, fresh
+    CHECK(!s.autopark_tx_block && fsd_can_transmit(&s), "fresh valid 25 kph releases");
+    ap_speed(&s, 0xF0, 0xFF, 600); // back to SNA
+    CHECK(!s.autopark_episode && !s.autopark_tx_block, "SNA after release: episode stays ended");
+    memset(&s, 0, sizeof(s));
+    s.op_mode = OpMode_Active;
+    s.autopark_ready = true;
+    ap_update(&s, 1, 100);
+    ap_update(&s, 6, 200);
+    ap_speed(&s, 0xE0, 0xFD, 300); // raw 4062 = 284.96, max valid
+    CHECK(!s.autopark_tx_block, "raw 4062 (max valid 284.96 kph) releases");
+    // No speed at all keeps the block.
+    memset(&s, 0, sizeof(s));
+    s.op_mode = OpMode_Active;
+    ap_update(&s, 2, 100);
+    ap_update(&s, 6, 200);
+    CHECK(!s.speed_seen && s.autopark_tx_block, "no speed keeps block (fail safe)");
+
+    // ── maneuver bit rising mid-6 at low speed blocks (episode from FSD-6);
+    // autoparkReady alone (spot found) does not (#176).
+    memset(&s, 0, sizeof(s));
+    s.op_mode = OpMode_Active;
+    ap_update(&s, 3, 100);
+    ap_update(&s, 6, 200); // FSD 3->6, no bits -> no episode
+    CHECK(!s.autopark_tx_block, "FSD 3->6 no bits: no block");
+    s.autopark_ready = true; // spot found mid-6
+    ap_update(&s, 6, 250);
+    CHECK(!s.autopark_episode && !s.autopark_tx_block, "autoparkReady alone mid-6: no block");
+    s.autopark_parked = true; // a maneuver bit rises mid-6
+    ap_update(&s, 6, 300);
+    CHECK(
+        s.autopark_episode && s.autopark_tx_block,
+        "maneuver bit rising mid-6 at low speed: blocks");
+
+    // ── ignore_ota does NOT override the autopark block.
+    memset(&s, 0, sizeof(s));
+    s.op_mode = OpMode_Active;
+    s.ignore_ota = true;
+    s.autopark_ready = true;
+    ap_update(&s, 6, 200);
+    CHECK(
+        s.autopark_tx_block && !fsd_can_transmit(&s),
+        "ignore_ota does not override autopark block");
+
+    // ── listen-only still blocks (fsd_can_transmit false regardless).
+    s.op_mode = OpMode_ListenOnly;
+    CHECK(!fsd_can_transmit(&s), "listen-only blocks TX (autopark or not)");
+}
+
+// #176: state 6 is the NORMAL engaged state on many cars and DAS_autoparkReady
+// (spot found) toggles in ordinary city driving. Real 0x39B frames + 0x257 frames
+// through the parsers, then fsd_autopark_update() + fsd_can_transmit().
+static const uint8_t k_das_parked[8] = {0x01, 0x0A, 0xDF, 0xE0, 0xB0, 0x08, 0x71, 0x91};
+static const uint8_t k_das_autopark[8] = {0x06, 0x0A, 0xDF, 0xE5, 0xB0, 0x08, 0x21, 0x4B};
+static void ap_frame(FSDState* s, const uint8_t b[8], uint32_t now) {
+    CANFRAME f;
+    zero(&f);
+    f.canId = CAN_ID_DAS_STATUS;
+    f.data_lenght = 8;
+    memcpy(f.buffer, b, 8);
+    fsd_handle_das_status_hw4(s, &f);
+    fsd_autopark_update(s, now);
+}
+// byte0 = DAS_autopilotState, byte3 = autopark bits (0xE0 none, 0xE1 ready).
+static void ap_das(FSDState* s, uint8_t b0, uint8_t b3, uint32_t now) {
+    const uint8_t b[8] = {b0, 0x0A, 0xDF, b3, 0xB0, 0x08, 0x00, 0x00};
+    ap_frame(s, b, now);
+}
+// DI_vehicleSpeed raw = (kph + 40) / 0.08 -> byte1[7:4] + byte2.
+static void ap_kph(FSDState* s, float kph, uint32_t now) {
+    uint16_t raw = (uint16_t)((kph + 40.0f) / 0.08f + 0.5f);
+    ap_speed(s, (uint8_t)((raw & 0x0Fu) << 4), (uint8_t)(raw >> 4), now);
+}
+static void test_autopark_176(void) {
+    FSDState s;
+    int blocked;
+
+    // ── AP engaged 3->6 at 30 km/h, then city traffic: speed wandering 0..30
+    // km/h, autoparkReady on/off repeatedly while in 6. Never blocks.
+    memset(&s, 0, sizeof(s));
+    s.op_mode = OpMode_Active;
+    ap_kph(&s, 30.0f, 0);
+    ap_das(&s, 0x02, 0xE0, 50);
+    ap_das(&s, 0x03, 0xE0, 100);
+    ap_das(&s, 0x06, 0xE0, 200);
+    CHECK(!s.autopark_tx_block, "#176 AP 3->6 at 30 km/h: no block");
+    blocked = 0;
+    for(uint32_t i = 0; i < 600; i++) { // 60 s in 100 ms steps
+        uint32_t t = 300 + i * 100;
+        uint32_t ph = i % 60; // 0 -> 30 -> 0 km/h
+        ap_kph(&s, (float)(ph < 30 ? ph : 60 - ph), t);
+        ap_das(&s, 0x06, ((i / 7) & 1u) ? 0xE1 : 0xE0, t + 10);
+        if(s.autopark_tx_block || !fsd_can_transmit(&s)) blocked++;
+    }
+    CHECK(
+        blocked == 0,
+        "#176 city traffic in 6, autoparkReady toggling: %d blocked frames",
+        blocked);
+
+    // ── 2->6 (missed 3) at 40 km/h fresh: moving at entry -> no episode, and a
+    // stop with autoparkReady set later in the same 6 still does not block.
+    memset(&s, 0, sizeof(s));
+    s.op_mode = OpMode_Active;
+    ap_kph(&s, 40.0f, 100);
+    ap_das(&s, 0x02, 0xE0, 150);
+    ap_das(&s, 0x06, 0xE1, 200);
+    CHECK(!s.autopark_episode && !s.autopark_tx_block, "2->6 at 40 km/h: no episode");
+    ap_kph(&s, 0.0f, 300);
+    ap_das(&s, 0x06, 0xE1, 350);
+    CHECK(!s.autopark_tx_block && fsd_can_transmit(&s), "2->6 at 40, then stop + ready: no block");
+
+    // ── AP re-engaging from a standstill: 2->3->6 at 0..5 km/h with autoparkReady
+    // set (byte3 bit0 only, no maneuver bit), never exceeding 20 km/h. Entering 6
+    // from an engaged state (prev 3), so only autoparkReady is set -> NOT Autopark,
+    // never blocks even at a crawl near parked cars (#176).
+    memset(&s, 0, sizeof(s));
+    s.op_mode = OpMode_Active;
+    ap_kph(&s, 0.0f, 100);
+    ap_das(&s, 0x02, 0xE1, 150); // AVAILABLE, spot found
+    ap_das(&s, 0x03, 0xE1, 200); // engages -> ACTIVE_NOMINAL
+    ap_das(&s, 0x06, 0xE1, 300); // 3->6 with only autoparkReady
+    CHECK(!s.autopark_episode && !s.autopark_tx_block, "2->3->6 at 0 km/h + ready: no episode");
+    blocked = 0;
+    for(uint32_t i = 0; i < 300; i++) { // 30 s crawling 0..5 km/h
+        uint32_t t = 400 + i * 100;
+        ap_kph(&s, (float)(i % 6), t);
+        ap_das(&s, 0x06, ((i / 5) & 1u) ? 0xE1 : 0xE0, t + 10);
+        if(s.autopark_tx_block || !fsd_can_transmit(&s)) blocked++;
+    }
+    CHECK(
+        blocked == 0, "re-engage crawl in 6, autoparkReady toggling: %d blocked frames", blocked);
+
+    // Entry speed boundary: 8.0 km/h is still a standstill start, 8.08 is moving.
+    memset(&s, 0, sizeof(s));
+    s.op_mode = OpMode_Active;
+    ap_kph(&s, 8.0f, 100);
+    ap_das(&s, 0x02, 0xE0, 150);
+    ap_das(&s, 0x06, 0xE0, 200);
+    CHECK(s.autopark_tx_block, "2->6 at 8.0 km/h (<= ENTRY_MAX): blocked");
+    memset(&s, 0, sizeof(s));
+    s.op_mode = OpMode_Active;
+    ap_kph(&s, 8.08f, 100);
+    ap_das(&s, 0x02, 0xE0, 150);
+    ap_das(&s, 0x06, 0xE0, 200);
+    CHECK(!s.autopark_tx_block, "2->6 at 8.08 km/h (> ENTRY_MAX): no episode");
+
+    // ── 2->6 at 0 km/h: blocked; > 20 km/h ends the episode; back to 5 km/h in
+    // the same 6 is NOT blocked again. A maneuver bit re-opens it.
+    memset(&s, 0, sizeof(s));
+    s.op_mode = OpMode_Active;
+    ap_kph(&s, 0.0f, 100);
+    ap_das(&s, 0x02, 0xE0, 150);
+    ap_das(&s, 0x06, 0xE0, 200);
+    CHECK(s.autopark_episode && s.autopark_tx_block, "2->6 at 0 km/h: blocked");
+    ap_kph(&s, 12.0f, 300);
+    CHECK(s.autopark_tx_block, "12 km/h (<= 20) keeps the block");
+    ap_kph(&s, 25.0f, 400);
+    CHECK(!s.autopark_episode && !s.autopark_tx_block, "> 20 km/h ends the episode");
+    ap_kph(&s, 5.0f, 500);
+    ap_das(&s, 0x06, 0xE1, 550);
+    CHECK(
+        !s.autopark_tx_block && fsd_can_transmit(&s),
+        "back to 5 km/h + autoparkReady in the same 6: not re-blocked");
+    ap_das(&s, 0x06, 0xE5, 600); // waitingForBrake rises
+    CHECK(
+        s.autopark_episode && s.autopark_tx_block, "waitingForBrake mid-6 after release: blocked");
+    ap_das(&s, 0x06, 0xE0, 700);
+    CHECK(s.autopark_tx_block, "maneuver episode holds after the bit clears (still slow)");
+    ap_kph(&s, 25.0f, 800);
+    CHECK(!s.autopark_tx_block, "> 20 km/h ends the maneuver episode too");
+    ap_kph(&s, 3.0f, 900);
+    ap_das(&s, 0x06, 0xE2, 950); // autoParked rises
+    CHECK(s.autopark_tx_block, "autoParked mid-6 after release: blocked");
+    ap_das(&s, 0x02, 0xE0, 1000); // leaves 6
+    CHECK(!s.autopark_episode && !s.autopark_tx_block, "leaving 6 ends the episode");
+    ap_kph(&s, 0.0f, 1100);
+    ap_das(&s, 0x06, 0xE0, 1150);
+    CHECK(s.autopark_tx_block, "new 2->6 at a standstill: blocked (fresh state-6 period)");
+
+    // ── Unknown / stale / SNA speed at a 1->6 entry: fail safe, blocked.
+    memset(&s, 0, sizeof(s));
+    s.op_mode = OpMode_Active;
+    ap_das(&s, 0x01, 0xE0, 100);
+    ap_das(&s, 0x06, 0xE0, 200);
+    CHECK(!s.speed_seen && s.autopark_tx_block, "1->6, speed never seen: blocked");
+    memset(&s, 0, sizeof(s));
+    s.op_mode = OpMode_Active;
+    ap_kph(&s, 30.0f, 100);
+    ap_das(&s, 0x01, 0xE0, 1500);
+    ap_das(&s, 0x06, 0xE0, 2000); // 30 km/h reading is 1.9 s old
+    CHECK(s.autopark_tx_block, "1->6, stale 30 km/h: blocked");
+    memset(&s, 0, sizeof(s));
+    s.op_mode = OpMode_Active;
+    ap_speed(&s, 0xF0, 0xFF, 100); // SNA, fresh
+    ap_das(&s, 0x01, 0xE0, 150);
+    ap_das(&s, 0x06, 0xE0, 200);
+    CHECK(s.autopark_tx_block, "1->6, SNA speed: blocked");
+
+    // ── Real in-car Autopark (#180 trace): parked, autoparkReady rises (byte3
+    // 0xE1), ~1.1 s later 1->6 on 06 0A DF E5 B0 08 21 4B at 0..5 km/h, held
+    // 20 s, then 6->1. Blocked the whole time in 6, released after.
+    memset(&s, 0, sizeof(s));
+    s.op_mode = OpMode_Active;
+    uint8_t ready[8];
+    memcpy(ready, k_das_parked, 8);
+    ready[3] = 0xE1;
+    uint32_t t = 0;
+    for(int i = 0; i < 10; i++, t += 100) {
+        ap_kph(&s, 0.0f, t);
+        ap_frame(&s, k_das_parked, t + 10);
+    }
+    CHECK(!s.autopark_tx_block && fsd_can_transmit(&s), "real trace parked: no block");
+    for(int i = 0; i < 11; i++, t += 100) {
+        ap_kph(&s, 0.0f, t);
+        ap_frame(&s, ready, t + 10);
+    }
+    CHECK(
+        s.das_ap_state == 1 && s.autopark_ready && !s.autopark_tx_block,
+        "real trace autoparkReady at state 1: no episode yet");
+    blocked = 0;
+    for(int i = 0; i < 200; i++, t += 100) {
+        ap_kph(&s, (float)(i % 6), t);
+        ap_frame(&s, k_das_autopark, t + 10);
+        if(s.autopark_tx_block && !fsd_can_transmit(&s)) blocked++;
+    }
+    CHECK(blocked == 200, "real Autopark held 20 s at 0..5 km/h: blocked %d/200", blocked);
+    ap_kph(&s, 0.0f, t);
+    ap_frame(&s, k_das_parked, t + 10);
+    CHECK(
+        !s.autopark_episode && !s.autopark_tx_block && fsd_can_transmit(&s),
+        "real trace 6->1: released");
 }
 
 // ── 0x7FF tier parse + active override ────────────────────────────────────────
@@ -1670,6 +2436,144 @@ static void test_driver_assist(void) {
     zero(&f);
     f.data_lenght = 8;
     CHECK(fsd_handle_driver_assist_override(&s, &f) == false, "assist no flags -> noop");
+}
+
+// ── 0x3F8 RHD driving-side override (#66) ─────────────────────────────────────
+static void test_rhd_override(void) {
+    FSDState s;
+    CANFRAME f;
+
+    // RHD on: bit41 set, bit40 clear
+    memset(&s, 0, sizeof(s));
+    zero(&f);
+    f.data_lenght = 8;
+    s.assist_rhd_override = true;
+    CHECK(fsd_handle_driver_assist_override(&s, &f), "rhd modifies");
+    CHECK((f.buffer[5] & 0x02) != 0, "rhd bit41 set");
+    CHECK((f.buffer[5] & 0x01) == 0, "rhd bit40 clear");
+
+    // RHD off: bit41 not set, no modification
+    memset(&s, 0, sizeof(s));
+    zero(&f);
+    f.data_lenght = 8;
+    s.assist_rhd_override = false;
+    CHECK(fsd_handle_driver_assist_override(&s, &f) == false, "rhd off -> noop");
+    CHECK((f.buffer[5] & 0x02) == 0, "rhd off bit41 clear");
+}
+
+// ── Telemetry Off (experimental): reachable 0x3F8 + 0x3FD mux1 flag clears ─────
+// 0x3F8 UI_driverAssistControl clears bits 19/42/43/44/55; 0x3FD mux1 clears
+// bits 48/50. Plain bit-clears, no checksum. With the toggle off, none move.
+static void test_telemetry_off(void) {
+    FSDState s;
+    CANFRAME f;
+
+    // 0x3F8: with telemetry-off ON, bits 19/42/43/44/55 are cleared.
+    memset(&s, 0, sizeof(s));
+    zero(&f);
+    f.data_lenght = 8;
+    f.buffer[2] = 0x08; // bit19 preset
+    f.buffer[5] = 0x04 | 0x08 | 0x10; // bits 42/43/44 preset
+    f.buffer[6] = 0x80; // bit55 preset
+    s.assist_telemetry_off = true;
+    CHECK(fsd_handle_driver_assist_override(&s, &f), "0x3F8 telemetry-off modifies");
+    CHECK((f.buffer[2] & 0x08) == 0, "0x3F8 bit19 cleared");
+    CHECK((f.buffer[5] & 0x04) == 0, "0x3F8 bit42 cleared");
+    CHECK((f.buffer[5] & 0x08) == 0, "0x3F8 bit43 cleared");
+    CHECK((f.buffer[5] & 0x10) == 0, "0x3F8 bit44 cleared");
+    CHECK((f.buffer[6] & 0x80) == 0, "0x3F8 bit55 cleared");
+
+    // 0x3F8: with telemetry-off OFF, those bits are untouched.
+    memset(&s, 0, sizeof(s));
+    zero(&f);
+    f.data_lenght = 8;
+    f.buffer[2] = 0x08;
+    f.buffer[5] = 0x04 | 0x08 | 0x10;
+    f.buffer[6] = 0x80;
+    s.assist_telemetry_off = false;
+    fsd_handle_driver_assist_override(&s, &f);
+    CHECK((f.buffer[2] & 0x08) != 0, "0x3F8 bit19 untouched when off");
+    CHECK((f.buffer[5] & 0x1C) == 0x1C, "0x3F8 bits42/43/44 untouched when off");
+    CHECK((f.buffer[6] & 0x80) != 0, "0x3F8 bit55 untouched when off");
+
+    // 0x3FD mux1: with telemetry-off ON, bits 48/50 are cleared.
+    memset(&s, 0, sizeof(s));
+    s.hw_version = TeslaHW_HW3;
+    zero(&f);
+    f.data_lenght = 8;
+    f.buffer[0] = 1; // mux1
+    f.buffer[6] = 0x01 | 0x04; // bits 48/50 preset
+    s.assist_telemetry_off = true;
+    CHECK(fsd_handle_autopilot_frame(&s, &f, 0), "0x3FD mux1 telemetry-off modifies");
+    CHECK((f.buffer[6] & 0x01) == 0, "0x3FD bit48 cleared");
+    CHECK((f.buffer[6] & 0x04) == 0, "0x3FD bit50 cleared");
+
+    // 0x3FD mux1: with telemetry-off OFF, bits 48/50 are untouched.
+    memset(&s, 0, sizeof(s));
+    s.hw_version = TeslaHW_HW3;
+    zero(&f);
+    f.data_lenght = 8;
+    f.buffer[0] = 1;
+    f.buffer[6] = 0x01 | 0x04;
+    s.assist_telemetry_off = false;
+    fsd_handle_autopilot_frame(&s, &f, 0);
+    CHECK((f.buffer[6] & 0x01) != 0, "0x3FD bit48 untouched when off");
+    CHECK((f.buffer[6] & 0x04) != 0, "0x3FD bit50 untouched when off");
+}
+
+// ── AP branch/tier selector (0x3FD mux1 UI_apmv3Branch, bits 40-42) ──────────
+// Experimental, opt-in, non-persistent. 0xFF sentinel = OFF (frame untouched);
+// 0-5 write the branch/tier into byte5 bits 0-2.
+static void test_apmv3_branch(void) {
+    FSDState s;
+    CANFRAME f;
+
+    // HW4 mux1: apmv3_branch=4 (EAP) -> byte5 bits0-2 == 4.
+    memset(&s, 0, sizeof(s));
+    s.hw_version = TeslaHW_HW4;
+    s.apmv3_branch = 4;
+    zero(&f);
+    f.data_lenght = 8;
+    f.buffer[0] = 1; // mux1
+    CHECK(fsd_handle_autopilot_frame(&s, &f, 0), "HW4 mux1 apmv3 modifies");
+    CHECK((f.buffer[5] & 0x07) == 4, "HW4 mux1 apmv3=EAP byte5[0:2]=%u exp 4", f.buffer[5] & 0x07);
+
+    // HW3 mux1: apmv3_branch=4 (EAP) -> byte5 bits0-2 == 4.
+    memset(&s, 0, sizeof(s));
+    s.hw_version = TeslaHW_HW3;
+    s.apmv3_branch = 4;
+    zero(&f);
+    f.data_lenght = 8;
+    f.buffer[0] = 1; // mux1
+    CHECK(fsd_handle_autopilot_frame(&s, &f, 0), "HW3 mux1 apmv3 modifies");
+    CHECK((f.buffer[5] & 0x07) == 4, "HW3 mux1 apmv3=EAP byte5[0:2]=%u exp 4", f.buffer[5] & 0x07);
+
+    // OFF (0xFF sentinel): byte5 bits0-2 left untouched (preset 0x05 preserved).
+    memset(&s, 0, sizeof(s));
+    s.hw_version = TeslaHW_HW4;
+    s.apmv3_branch = 0xFF;
+    zero(&f);
+    f.data_lenght = 8;
+    f.buffer[0] = 1; // mux1
+    f.buffer[5] = 0x05; // preset low 3 bits to prove they survive
+    fsd_handle_autopilot_frame(&s, &f, 0);
+    CHECK(
+        (f.buffer[5] & 0x07) == 0x05,
+        "HW4 mux1 apmv3 OFF leaves byte5[0:2]=%u exp 5",
+        f.buffer[5] & 0x07);
+
+    memset(&s, 0, sizeof(s));
+    s.hw_version = TeslaHW_HW3;
+    s.apmv3_branch = 0xFF;
+    zero(&f);
+    f.data_lenght = 8;
+    f.buffer[0] = 1; // mux1
+    f.buffer[5] = 0x05;
+    fsd_handle_autopilot_frame(&s, &f, 0);
+    CHECK(
+        (f.buffer[5] & 0x07) == 0x05,
+        "HW3 mux1 apmv3 OFF leaves byte5[0:2]=%u exp 5",
+        f.buffer[5] & 0x07);
 }
 
 // ── 0x7FF GTW Config Replay: learn -> arm -> replay ───────────────────────────
@@ -1964,12 +2868,6 @@ static void test_extras_and_builders(void) {
     CHECK(f.data_lenght == 3, "park dlc 3");
     CHECK(f.buffer[2] == 0x01, "park button pressed byte2");
 
-    // Steering tune frame builder (0x101).
-    zero(&f);
-    fsd_build_steering_tune_frame(&f, 3);
-    CHECK(f.canId == CAN_ID_GTW_EPAS_CTRL, "tune id 0x101");
-    CHECK(f.buffer[0] == (3 << 2), "tune byte0 got 0x%02X exp 0x0C", f.buffer[0]);
-
     // Precondition frame builder (0x082).
     zero(&f);
     fsd_build_precondition_frame(&f);
@@ -2110,11 +3008,16 @@ int main(void) {
     test_detect_hw();
     test_follow_distance();
     test_autopilot_hw4();
+    test_hw4_mux2_profile_layout();
     test_autopilot_hw3();
+    test_summon_unlock();
+    test_continue_on_green();
+    test_tlssc_bit38();
     test_isa_checksum();
     test_di_speed();
     test_tlssc_restore();
     test_track_mode_crc();
+    test_track_mode_adjust();
     test_sccm_crc();
     test_nag_killer();
     test_nag_killer_faithful();
@@ -2129,13 +3032,19 @@ int main(void) {
     test_additive_checksum();
     test_candump_format();
     test_gtw_car_state();
+    test_gtw_car_state_counter();
     test_legacy();
     test_esp_status();
     test_das_status();
-    test_das_status_highland_byte0();
-    test_das_status_hw4_no_fallback();
+    test_das_status_hw4_byte0();
+    test_das_state_engaged();
+    test_autopark();
+    test_autopark_176();
     test_gtw_tier();
     test_driver_assist();
+    test_rhd_override();
+    test_telemetry_off();
+    test_apmv3_branch();
     test_gtw_shield();
     test_scroll_press();
     test_misc_parsers();

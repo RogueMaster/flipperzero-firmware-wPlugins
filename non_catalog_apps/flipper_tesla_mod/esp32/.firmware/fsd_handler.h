@@ -22,6 +22,8 @@ typedef CANFRAME CanFrame;
 
 // ── Full FSD state (shared with the Flipper build) ────────────────────────────
 #include "../../fsd_logic/fsd_state.h"
+// DAS engaged helper + in-car Autopark TX pause (#180), shared header-only.
+#include "../../fsd_logic/fsd_autopark.h"
 
 // ── API ───────────────────────────────────────────────────────────────────────
 
@@ -63,18 +65,32 @@ bool fsd_ap_first_allows(const FSDState *state, uint32_t now_ms);
 // Configurable signal-mapping context freshness window (#122).
 #define NAG_CTX_FRESH_MS 1000u
 
+// Signal Map watchdog (#100): when a DAS id is configured but the standard
+// parsers are skipped, an id that never appears on the tapped bus silently
+// pauses the nag killer (fsd_das_ctx_fresh fails closed). Surface it after this
+// long without that id. Also the boot grace before the check can fire.
+#define SIGNAL_MAP_DAS_MISS_MS 3000u
+
 /** Apply configurable signal mapping (#122): extract DAS/steering from the
  *  user-configured positions when cfg_*_id is set, and stamp the freshness clock. */
 void fsd_apply_signal_config(FSDState *state, const CanFrame *frame, uint32_t now_ms);
 /** True if the DAS context is fresh (auto mode always true; configured requires
  *  a cfg-DAS frame within NAG_CTX_FRESH_MS). */
 bool fsd_das_ctx_fresh(const FSDState *state, uint32_t now_ms);
+/** True when a Signal Map DAS id is configured but hasn't been seen within
+ *  SIGNAL_MAP_DAS_MISS_MS (auto mode / boot grace return false). Pure — the
+ *  caller owns the one-shot log + status flag (#100). */
+bool fsd_signal_map_das_missing(const FSDState *state, uint32_t now_ms);
 
 /** Soft-Engage gate (steer-jerk mitigation, #108). Returns true if injection may
  *  proceed: soft_engage off, already latched, or wheel within SOFT_ENGAGE_ANGLE_DEG
  *  of centre (latches it on). Mutates soft_engage_latched; reset it when AP drops. */
 bool fsd_soft_engage_allows(FSDState *state);
 
+// DAS_autopilotState: 2 = AVAILABLE (offered, not engaged), 3 = first genuinely
+// engaged state. AP-First gates injection at >= ENGAGED so it never fires while
+// AP is merely available (#108).
+#define DAS_APSTATE_ENGAGED  3u
 // Abort Guard (#108): DAS_autopilotState values meaning the car is aborting.
 #define DAS_APSTATE_ABORTING 8u
 #define DAS_APSTATE_ABORTED  9u
@@ -88,6 +104,9 @@ void fsd_abort_guard_update(FSDState *state);
  *  on AND an abort was latched this engagement. */
 bool fsd_abort_guard_allows(const FSDState *state);
 
+/** Parse DI_speed (0x257) -> vehicle_speed_kph / ui_speed / speed_seen (#180). */
+void fsd_handle_di_speed(FSDState *state, const CanFrame *frame);
+
 /** Parse SCCM_steeringAngleSensor (0x129) -> steering_angle_deg. */
 void fsd_handle_steering_angle(FSDState *state, const CanFrame *frame);
 
@@ -100,6 +119,16 @@ void fsd_handle_gtw_car_state(FSDState *state, const CanFrame *frame);
 
 /** Parse DAS_followDistance (0x3F8) — updates speed_profile from stalk. */
 void fsd_handle_follow_distance(FSDState *state, const CanFrame *frame);
+
+/** Modify UI_driverAssistControl (0x3F8) — opt-in RHD driving-side override (#66).
+ *  Returns true if frame was modified and should be re-sent. */
+bool fsd_handle_driver_assist_override(FSDState *state, CanFrame *frame);
+
+/** Modify UI_trackModeSettings (0x313) — adjustable Track Mode inject. Sets the
+ *  request ON plus handling balance / stability / cooling and recomputes the
+ *  additive checksum. Master opt-in (state->track_mode_inject). The byte6 counter
+ *  is left untouched. Returns true if the frame was modified and should be re-sent. */
+bool fsd_handle_track_mode_inject(FSDState *state, CanFrame *frame);
 
 /** Modify DAS_autopilotControl (0x3FD) for HW3/HW4.
  *  Returns true if frame was modified and should be re-sent. */

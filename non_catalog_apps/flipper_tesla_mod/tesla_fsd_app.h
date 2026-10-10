@@ -84,6 +84,7 @@ typedef struct {
     bool precondition; // periodic 0x082 inject for battery preheat
     OpMode op_mode; // Active / ListenOnly / Service
     uint8_t mcp_clock; // 0 = 16MHz (default), 1 = 8MHz
+    uint8_t signal_map; // DAS AP/hands-on read location preset (see signal_map_apply)
     bool gtw_shield; // 0x7FF GTW Config Replay — replay learned-healthy frames
     bool tlssc_restore; // 0x331 DAS config spoof to restore TLSSC
     bool ap_first; // 2026.14.x: delay injection until AP is engaged
@@ -106,15 +107,11 @@ typedef struct {
     bool assist_lhd_override; // force left-hand drive
     bool assist_show_lane_graph; // lane visualization
     bool assist_tlssc_bit38; // explicit TLSSC enable on 0x3FD mux0
-    bool assist_telemetry_off; // force trip telemetry off (0x3F8 bit43)
+    bool assist_telemetry_off; // experimental: clear reachable telemetry flags (0x3F8 19/42/43/44/55 + 0x3FD mux1 48/50)
 
     // extras toggles (BETA — need on-vehicle verification per CAN ID)
     bool extra_hazard_lights;
-    bool extra_rear_window_heat;
     bool extra_auto_wipers_off;
-    bool extra_fold_mirrors;
-    bool extra_rear_fog;
-    uint8_t extra_steering_mode; // 0=no change, 1=comfort, 2=standard, 3=sport (Chassis CAN)
     bool extra_highbeam_strobe; // rapid high beam flash (Party CAN 0x249)
     bool extra_turn_left; // inject left turn signal
     bool extra_turn_right; // inject right turn signal
@@ -123,3 +120,56 @@ typedef struct {
 TeslaFSDApp* tesla_fsd_app_alloc(void);
 void tesla_fsd_app_free(TeslaFSDApp* app);
 int32_t tesla_fsd_main(void* p);
+
+// Signal Map presets — where the nag/AP logic reads DAS_autopilotState and
+// DAS_handsOnState. Some cars carry the live state in a non-standard byte of
+// 0x39B/0x399, so let the owner relocate the read without a firmware fallback.
+// The configurable-mapping mechanism itself lives in the shared core
+// (cfg_das_id + fsd_apply_signal_config); this only picks a position.
+//   0 Auto           — cfg_das_id = 0, use the standard parsers (default). These
+//                      now read DAS_autopilotState from 0x39B/0x399 byte0 low
+//                      nibble (opendbc party BO_923), which is correct for every
+//                      car we have data for (#177) — leave this on unless a tap is
+//                      genuinely non-standard.
+//   1 0x39B b0 (HW4) — DAS state pinned to byte0 low nibble (same as Auto's HW4 read)
+//   2 0x39B b1 (old) — legacy byte1 high-nibble decode; manual fallback only, wrong
+//                      on the real cars (byte1 is DAS_fusedSpeedLimit)
+//   3 0x399 b0 (HW3) — HW3 / Legacy byte0 low nibble
+#define SIGNAL_MAP_COUNT 4
+
+static inline void signal_map_apply(FSDState* state, uint8_t idx) {
+    // handsOnState is byte5[5:2] low nibble on both 0x39B and 0x399.
+    state->cfg_handson_byte = 5;
+    state->cfg_handson_shift = 2;
+    state->cfg_handson_mask = 0x0F;
+    switch(idx) {
+    case 1: // 0x39B byte0 low nibble (live state on some HW4 cars)
+        state->cfg_das_id = 0x39B;
+        state->cfg_apstate_byte = 0;
+        state->cfg_apstate_shift = 0;
+        state->cfg_apstate_mask = 0x0F;
+        break;
+    case 2: // 0x39B byte1 high nibble — OLD decode, manual fallback only (#177)
+        state->cfg_das_id = 0x39B;
+        state->cfg_apstate_byte = 1;
+        state->cfg_apstate_shift = 4;
+        state->cfg_apstate_mask = 0x0F;
+        break;
+    case 3: // 0x399 byte0 low nibble (HW3 / Legacy)
+        state->cfg_das_id = 0x399;
+        state->cfg_apstate_byte = 0;
+        state->cfg_apstate_shift = 0;
+        state->cfg_apstate_mask = 0x0F;
+        break;
+    default: // 0 = Auto: cfg_das_id == 0 disables the override
+        state->cfg_das_id = 0;
+        state->cfg_apstate_byte = 0;
+        state->cfg_apstate_shift = 0;
+        state->cfg_apstate_mask = 0x0F;
+        state->cfg_handson_byte = 0;
+        state->cfg_handson_shift = 0;
+        state->cfg_handson_mask = 0x0F;
+        break;
+    }
+    // cfg_steer_* stay on auto (untouched) for every preset.
+}

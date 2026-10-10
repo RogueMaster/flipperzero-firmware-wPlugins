@@ -1,6 +1,7 @@
 #include "fsd_handler.h"
 #include "fsd_checksum.h"
 #include "fsd_can_ops.h"
+#include "fsd_ota.h"
 #include <string.h>
 
 void fsd_state_init(FSDState* state, TeslaHWVersion hw) {
@@ -17,27 +18,31 @@ void fsd_state_init(FSDState* state, TeslaHWVersion hw) {
     state->das_hands_on_state = 0xFF; // unseen — nag killer echoes conservatively
     state->das_prev_hands_on_state = 0xFF; // escalation-edge baseline (#100)
     state->enhanced_autopilot = false;
+    state->summon_unlock = false; // opt-in Summon EU Unlock, default OFF
+    state->apmv3_branch = 0xFF; // opt-in AP branch/tier selector, default OFF (0xFF sentinel)
+    state->continue_on_green = false; // opt-in Continue on Green, default OFF
+    state->assist_rhd_override = false; // opt-in RHD driving-side override, default OFF
     state->speed_profile_locked = false;
     state->hw4_offset = 0;
+    state->track_mode_inject = false; // Track Mode inject master opt-in, default OFF
+    state->track_rotation_pct = 100; // full rotation = rear-biased / RWD-like
+    state->track_stability_pct = 30; // 30% keeps a safety margin but lets it move
+    state->track_post_cooling = false;
+    state->track_cmp_overclock = false;
 }
 
 void fsd_handle_gtw_car_state(FSDState* state, const CANFRAME* frame) {
     if(frame->data_lenght < 7) return;
-    // GTW_updateInProgress: bits 1:0 of byte 6.
-    // 0=No update, 1=Update available, 2=Installing, 3=Scheduled.
-    // Only value 2 (installing) should suspend TX. Value 1 (available) caused
-    // false positives on some firmware builds (issue #19).
-    uint8_t raw = (frame->buffer[6] >> 0) & 0x03;
-    bool in_progress = (raw == 2);
-    if(in_progress) {
-        state->tesla_ota_in_progress = true;
-    } else {
-        state->tesla_ota_in_progress = false;
-    }
+    // GTW_updateInProgress: bits 1:0 of byte 6. Only a stable raw 2 (installing)
+    // pauses TX; on newer cars byte6 is a rolling counter (#183). See fsd_ota.h.
+    fsd_ota_update(state, frame->buffer[6]);
 }
 
 bool fsd_can_transmit(const FSDState* state) {
     if(state->op_mode == OpMode_ListenOnly) return false;
+    // In-car Autopark (#180): pause every TX path for the episode. Not
+    // overridable by ignore_ota — Autopark injection throws AEB/traction warnings.
+    if(state->autopark_tx_block) return false;
     if(state->tesla_ota_in_progress) return false;
     return true;
 }
@@ -169,7 +174,10 @@ bool fsd_ap_first_allows(const FSDState* state, uint32_t now_ms) {
     // 2 = AVAILABLE (AP offered, NOT engaged); 3 = ACTIVE_NOMINAL is the first
     // genuinely-engaged state. Injecting at 2 fired 0x3EE while AP was off (#108).
     if(state->das_ap_state < DAS_APSTATE_ENGAGED) return false; // AP not engaged yet
-    if(state->ap_first_edge) return true; // experimental: inject at engage onset, no debounce
+    // Instant Engage and Minimal Inject both inject at engage onset, so neither
+    // may be delayed by the debounce — a burst meant for the onset that lands 1 s
+    // late arrives in the car's abort window instead of ahead of it (#108).
+    if(state->ap_first_edge || state->ap_first_minimal) return true;
     // AP engaged: require it to have held stable for the debounce window.
     return (now_ms - state->ap_unstable_tick_ms) >= AP_FIRST_STABLE_MS;
 }
@@ -233,6 +241,12 @@ bool fsd_handle_autopilot_frame(FSDState* state, CANFRAME* frame, uint32_t now_m
         modified = true;
     }
 
+    // bit39 continue-on-green with lead car (ev-open-can-tools TSLLC plugin); pairs with TLSSC/bit38
+    if(mux == 0 && state->continue_on_green && state->fsd_enabled) {
+        fsd_set_bit(frame, 39, true);
+        modified = true;
+    }
+
     if(state->hw_version == TeslaHW_HW3) {
         if(mux == 0 && state->fsd_enabled) {
             int raw = (int)((frame->buffer[3] >> 1) & 0x3F) - 30;
@@ -248,11 +262,28 @@ bool fsd_handle_autopilot_frame(FSDState* state, CANFRAME* frame, uint32_t now_m
         }
         if(mux == 1) {
             fsd_set_bit(frame, 19, false);
+            // Telemetry Off (experimental): clear reachable DAS_autopilotControl
+            // mux1 telemetry flags — bit48 UI_enableCabinCameraTelemetry,
+            // bit50 UI_autopilotTelemetryInChina. Plain bit-clears, no checksum.
+            // Source: ev-open-can-tools disable-telemetry.json (GPL-3.0).
+            if(state->assist_telemetry_off) {
+                fsd_set_bit(frame, 48, false);
+                fsd_set_bit(frame, 50, false);
+            }
+            if(state->summon_unlock) {
+                fsd_set_bit(frame, 47, true); // summon enable (ev-open-can-tools summon-eu-unlock)
+            }
             if(state->enhanced_autopilot) {
                 fsd_set_bit(frame, 46, true);
             }
             if(state->assist_show_lane_graph) {
                 fsd_set_bit(frame, 45, true);
+            }
+            // AP branch/tier selector (experimental, non-persistent): UI_apmv3Branch
+            // bits 40-42 = byte5 bits 0-2. 0xFF sentinel = OFF (leave untouched).
+            if(state->apmv3_branch <= 5) {
+                frame->buffer[5] =
+                    (uint8_t)((frame->buffer[5] & ~0x07) | (state->apmv3_branch & 0x07));
             }
             state->nag_suppressed = true;
             modified = true;
@@ -276,19 +307,37 @@ bool fsd_handle_autopilot_frame(FSDState* state, CANFRAME* frame, uint32_t now_m
         }
         if(mux == 1) {
             fsd_set_bit(frame, 19, false);
-            fsd_set_bit(frame, 47, true);
+            // Telemetry Off (experimental): clear reachable DAS_autopilotControl
+            // mux1 telemetry flags — bit48 UI_enableCabinCameraTelemetry,
+            // bit50 UI_autopilotTelemetryInChina. Plain bit-clears, no checksum.
+            if(state->assist_telemetry_off) {
+                fsd_set_bit(frame, 48, false);
+                fsd_set_bit(frame, 50, false);
+            }
+            if(state->summon_unlock) {
+                fsd_set_bit(frame, 47, true); // summon enable (ev-open-can-tools summon-eu-unlock)
+            }
             if(state->enhanced_autopilot) {
                 fsd_set_bit(frame, 46, true);
             }
             if(state->assist_show_lane_graph) {
                 fsd_set_bit(frame, 45, true);
             }
+            // AP branch/tier selector (experimental, non-persistent): UI_apmv3Branch
+            // bits 40-42 = byte5 bits 0-2. 0xFF sentinel = OFF (leave untouched).
+            if(state->apmv3_branch <= 5) {
+                frame->buffer[5] =
+                    (uint8_t)((frame->buffer[5] & ~0x07) | (state->apmv3_branch & 0x07));
+            }
             state->nag_suppressed = true;
             modified = true;
         }
         if(mux == 2) {
-            frame->buffer[7] &= ~(0x07 << 5);
-            frame->buffer[7] |= (uint8_t)((state->speed_profile & 0x07) << 5);
+            // Speed profile = bits 60-62 (byte7 bits 6:4). Bit 63 is the mux2
+            // valid flag the car always sets; the old <<5 write cleared it and
+            // the speed offset in this same frame stopped taking effect (#59).
+            frame->buffer[7] &= (uint8_t) ~(0x07 << 4);
+            frame->buffer[7] |= (uint8_t)((state->speed_profile & 0x07) << 4);
             // HW4 speed offset runtime override
             // Source: ev-open-can-tools hw4OffsetRuntime
             if(state->hw4_offset > 0) {
@@ -472,19 +521,6 @@ void fsd_handle_esp_status(FSDState* state, const CANFRAME* frame) {
     state->driver_brake_applied = (brake >= 2);
 }
 
-// --- GTW_epasControl (0x101) steering tune WRITE ---
-// tuncasoftbildik: GTW_epasTuneRequest startBit=2, 3 bits, little-endian
-// Values: 1=COMFORT, 2=STANDARD, 3=SPORT
-// NOTE: Chassis CAN only — not on OBD-II Party CAN
-
-void fsd_build_steering_tune_frame(CANFRAME* frame, uint8_t mode) {
-    memset(frame, 0, sizeof(CANFRAME));
-    frame->canId = CAN_ID_GTW_EPAS_CTRL;
-    frame->data_lenght = 8;
-    // GTW_epasTuneRequest: startBit 2, 3 bits LE → byte0 bits [4:2]
-    frame->buffer[0] = (mode & 0x07) << 2;
-}
-
 // --- DAS_status parser: AP state, blind spot, FCW, speed limit ---
 //
 // HW-dependent CAN ID + byte layout:
@@ -503,30 +539,24 @@ void fsd_build_steering_tune_frame(CANFRAME* frame, uint8_t mode) {
 void fsd_handle_das_status_hw3(FSDState* state, const CANFRAME* frame) {
     if(frame->data_lenght < 6) return;
     state->das_ap_state = frame->buffer[0] & 0x0Fu;
+    // DAS_autopark bits: byte3 bits0-2 (same positions as 0x39B) (#180).
+    fsd_autopark_parse(state, frame->buffer[3]);
     state->das_hands_on_state = (frame->buffer[5] >> 2) & 0x0Fu;
     state->das_seen = true;
 }
 
 void fsd_handle_das_status_hw4(FSDState* state, const CANFRAME* frame) {
     if(frame->data_lenght < 7) return;
-    // DAS_autopilotState: bit12|4 → byte1 bits[7:4]
-    // 0=UNAVAIL 1=UNAVAILABLE/AVAIL-flicker 2=AVAILABLE (offered, not engaged)
-    // 3=ACTIVE_NOMINAL (first engaged) 4=ACTIVE_MIN_DRIVER 6=active 8/9=aborting/aborted
-    uint8_t hw4_state = (frame->buffer[1] >> 4) & 0x0F;
-    // HW4 Highland (China MIC, fw 2026.20) carries DAS_autopilotState in byte0 low
-    // nibble (HW3 position: 1=avail 2=ready 3=engaged) while byte1[7:4] is pinned at
-    // 1 the whole drive (#116). Latch to byte0 only on the unique signature — byte0
-    // active (>=2) while byte1[7:4] stays exactly 1 across 3 frames — and never once
-    // byte1[7:4] is seen != 1 (that proves a standard HW4 car, byte0 left untouched).
-    uint8_t b0_state = frame->buffer[0] & 0x0F;
-    if(hw4_state != 1u) {
-        state->das_hw4_byte1_moved = true;
-        state->das_hw4_byte0_pin_count = 0;
-    } else if(!state->das_hw4_use_byte0 && !state->das_hw4_byte1_moved && b0_state >= 2u) {
-        if(state->das_hw4_byte0_pin_count < 3u) state->das_hw4_byte0_pin_count++;
-        if(state->das_hw4_byte0_pin_count >= 3u) state->das_hw4_use_byte0 = true;
-    }
-    state->das_ap_state = state->das_hw4_use_byte0 ? b0_state : hw4_state;
+    // DAS_autopilotState = byte0 low nibble on Highland HW3/HW4 (opendbc party
+    // tesla_model3_party.dbc BO_923: DAS_autopilotState = bit 0|4). byte1 is
+    // DAS_fusedSpeedLimit etc, NOT AP state (the old byte1[7:4] decode read the
+    // fusedSpeedLimit MSB — wrong on every real car we have, #163/#116/#177).
+    // 0=DISABLED 1=UNAVAILABLE 2=AVAILABLE (offered, not engaged) 3=ACTIVE_NOMINAL
+    // (first engaged) 4=ACTIVE_RESTRICTED 5=ACTIVE_NAV 6=ACTIVE_FSD (steady engaged
+    // on newer fw) 8/9=ABORTING/ABORTED 14=FAULT 15=SNA.
+    state->das_ap_state = frame->buffer[0] & 0x0Fu;
+    // DAS_autopark bits: byte3 bits0-2 (#180).
+    fsd_autopark_parse(state, frame->buffer[3]);
     // DAS_autopilotHandsOnState: bit42|4 → byte5 bits[5:2]
     state->das_hands_on_state = (frame->buffer[5] >> 2) & 0x0F;
     // DAS_autoLaneChangeState: bit46|5 → byte5 bits[7:6] + byte6 bits[2:0]
@@ -706,9 +736,37 @@ bool fsd_handle_driver_assist_override(FSDState* state, CANFRAME* frame) {
         fsd_set_bit(frame, 41, false);
         modified = true;
     }
-    // bit43: UI_enableTripTelemetry = 0 (disable trip data collection)
+    // bit40-41: UI_drivingSide = 2 (RHD) — mutually exclusive with LHD above
+    if(state->assist_rhd_override) {
+        fsd_set_bit(frame, 40, false);
+        fsd_set_bit(frame, 41, true);
+        modified = true;
+    }
+    // Telemetry Off (experimental) — clear the reachable UI_driverAssistControl
+    // telemetry-enable flags on 0x3F8. Plain bit-clears, no checksum on this frame.
+    //   bit19 UI_enableClipParkedTelemetry
+    //   bit42 UI_enableClipTelemetry
+    //   bit43 UI_enableTripTelemetry
+    //   bit44 UI_enableRoadSegmentTelemetry
+    //   bit55 UI_enableClipStartStopTelemetry
+    // Source: ev-open-can-tools disable-telemetry.json (GPL-3.0).
+    //
+    // DELIBERATELY OUT OF SCOPE (documented so coverage is honest, not silently
+    // truncated):
+    //   * 0x389 DAS_status2 bits 13/34/35 — clearing these requires recomputing the
+    //     frame counter (byte6 mask 0xF0) + Tesla checksum; deferred to avoid emitting
+    //     invalid frames.
+    //   * 0x3B3 VCSEC and the ~11 *_alertMatrix *_a030_ECULogUploadRequest frames
+    //     (0x340/341/342/360/3BA/3C0/3C8/3CD/3CE/3CF) — these live on the Vehicle CAN
+    //     bus, which this tool does not reliably tap; injecting them on a Chassis/Party
+    //     tap does nothing. Reaching them needs Vehicle-bus access first.
+    // This is a REACHABLE SUBSET only and does NOT guarantee reduced detection.
     if(state->assist_telemetry_off) {
+        fsd_set_bit(frame, 19, false);
+        fsd_set_bit(frame, 42, false);
         fsd_set_bit(frame, 43, false);
+        fsd_set_bit(frame, 44, false);
+        fsd_set_bit(frame, 55, false);
         modified = true;
     }
 
@@ -743,18 +801,34 @@ bool fsd_handle_tlssc_restore(FSDState* state, CANFRAME* frame) {
     return true;
 }
 
-// --- Track Mode inject (0x313 / 787) ---
-// Source: ev-open-can-tools HW3Handler frame.id == 787
-// byte[0] bits 1:0 = 0x01 (kTrackModeRequestOn)
-// checksum in byte[7] = computeVehicleChecksum
+// --- Track Mode inject (0x313 / 787 UI_trackModeSettings) ---
+// Adjustable Track Mode via the car's own broadcast: set the request ON and write
+// handling balance / stability assist / cooling, then recompute the additive
+// checksum. We modify the car's existing 0x313 in place so the byte6 counter
+// stays valid — DO NOT touch byte6.
+// Source: joshwardell/model3dbc UI_trackModeSettings (frame 787).
+//   byte0 bits1:0 = UI_trackModeRequest (0 IDLE / 1 ON / 2 OFF)
+//   byte1 = UI_trackRotationTendency, factor 0.5 (raw = pct*2, range 0..200)
+//   byte2 = UI_trackStabilityAssist,  factor 0.5 (raw = pct*2, range 0..200)
+//   byte3 bit0 = UI_trackPostCooling, bit1 = UI_trackCmpOverclock (max cooling)
+//   byte7 = UI_trackModeSettingsChecksum = additive checksum over bytes 0..6
+// Master opt-in only; not gated on trim or the read-back 0x118 state, because the
+// enable request works on non-Performance trims too.
+static uint8_t track_pct_to_raw(uint8_t pct) {
+    if(pct > 100) pct = 100; // clamp 0..100 (no <algorithm> in C)
+    return (uint8_t)(pct * 2); // factor 0.5 -> raw 0..200
+}
 
 bool fsd_handle_track_mode_inject(FSDState* state, CANFRAME* frame) {
+    if(!state->track_mode_inject) return false;
     if(frame->data_lenght < 8) return false;
-    if(state->op_mode != OpMode_Service) return false;
-    if(state->track_mode_state == 0) return false; // require explicit user toggle
-    // set track mode request ON
-    frame->buffer[0] = (frame->buffer[0] & 0xFC) | 0x01;
-    // recalculate Tesla vehicle checksum
+
+    frame->buffer[0] = (frame->buffer[0] & 0xFC) | 0x01; // request ON
+    frame->buffer[1] = track_pct_to_raw(state->track_rotation_pct); // handling balance
+    frame->buffer[2] = track_pct_to_raw(state->track_stability_pct); // stability assist
+    frame->buffer[3] = (frame->buffer[3] & ~0x03) // cooling bits only
+                       | (state->track_post_cooling ? 0x01 : 0) |
+                       (state->track_cmp_overclock ? 0x02 : 0);
     frame->buffer[7] = tesla_additive_checksum(CAN_ID_TRACK_MODE_SET, frame->buffer, 7);
     return true;
 }
@@ -1173,11 +1247,17 @@ static bool
 
 void fsd_apply_signal_config(FSDState* state, const CANFRAME* frame, uint32_t now_ms) {
     if(state->cfg_das_id != 0 && frame->canId == state->cfg_das_id) {
-        if(state->cfg_apstate_byte < 8 && frame->data_lenght > state->cfg_apstate_byte)
+        // A mask of 0 means "not mapped" — ignore the field and keep the prior
+        // value instead of forcing it to 0 forever (#100: a tester who set only
+        // the DAS id left the masks at 0, which zeroed hands-on so the nag killer
+        // never fired).
+        if(state->cfg_apstate_mask != 0 && state->cfg_apstate_byte < 8 &&
+           frame->data_lenght > state->cfg_apstate_byte)
             state->das_ap_state =
                 (frame->buffer[state->cfg_apstate_byte] >> state->cfg_apstate_shift) &
                 state->cfg_apstate_mask;
-        if(state->cfg_handson_byte < 8 && frame->data_lenght > state->cfg_handson_byte)
+        if(state->cfg_handson_mask != 0 && state->cfg_handson_byte < 8 &&
+           frame->data_lenght > state->cfg_handson_byte)
             state->das_hands_on_state =
                 (frame->buffer[state->cfg_handson_byte] >> state->cfg_handson_shift) &
                 state->cfg_handson_mask;

@@ -11,8 +11,12 @@
 
 #include "can_driver.h"
 #include "config.h"
+#include "../../fsd_logic/fsd_can_ops.h"  // TESLA_CAN_MAX_DLC / tesla_can_tx_valid
 #include <Arduino.h>
 #include <string.h>
+
+// DLC>8 frames one receive() call may drop before it reports "queue empty".
+#define CAN_RX_REJECT_BURST_MAX 8u
 
 // ── TWAI driver ───────────────────────────────────────────────────────────────
 #if defined(CAN_DRIVER_TWAI) || defined(CAN_DRIVER_T2CAN_DUAL)
@@ -31,8 +35,15 @@ class TwaiDriver : public CanDriver {
     uint32_t filter_id_     = 0;      // standard 11-bit id for single-id capture
     bool     recovering_    = false;  // true while a bus-off recovery is in flight
     bool     busoff_event_  = false;  // consume-on-read edge: recovery just started
+    uint32_t rx_rejected_   = 0;      // DLC>8 frames dropped
 
     bool install_and_start(bool listen_only) {
+#ifdef SNIFFER_ONLY
+        // Research sniffer build: hardware-forced Listen-Only. TWAI_MODE_LISTEN_ONLY
+        // never emits dominant bits (not even ACKs), so the node is physically
+        // incapable of transmitting — zero ban risk from injected frames.
+        listen_only = true;
+#endif
         twai_general_config_t g = TWAI_GENERAL_CONFIG_DEFAULT(
             (gpio_num_t)tx_pin_,
             (gpio_num_t)rx_pin_,
@@ -88,6 +99,7 @@ public:
 
     bool send(const CanFrame &frame) override {
         if (listen_only_) return false;
+        if (!tesla_can_tx_valid(frame.id, frame.dlc)) return false;
         twai_message_t msg;
         memset(&msg, 0, sizeof(msg));
         msg.identifier       = frame.id;
@@ -100,14 +112,26 @@ public:
     }
 
     bool receive(CanFrame &frame) override {
-        twai_message_t msg;
-        // Non-blocking receive (timeout = 0)
-        if (twai_receive(&msg, 0) != ESP_OK) return false;
-        frame.id  = msg.identifier;
-        frame.dlc = msg.data_length_code;
-        memcpy(frame.data, msg.data, frame.dlc);
-        rx_count_++;
-        return true;
+        for (uint8_t i = 0; i < CAN_RX_REJECT_BURST_MAX; i++) {
+            twai_message_t msg;
+            // Non-blocking receive (timeout = 0)
+            if (twai_receive(&msg, 0) != ESP_OK) return false;
+            // TWAI hands DLC 9..15 up as-is while msg.data stays 8 bytes; a
+            // plain memcpy of dlc bytes overran both buffers. Drop those.
+            if (msg.data_length_code > TESLA_CAN_MAX_DLC) {
+                rx_rejected_++;
+                continue;
+            }
+            memset(&frame, 0, sizeof(frame));
+            frame.id  = msg.identifier;
+            frame.ext = msg.extd ? 1u : 0u;   // process_frame() records these
+            frame.req = msg.rtr  ? 1u : 0u;   // but never hands them to a handler
+            frame.dlc = msg.data_length_code;
+            memcpy(frame.data, msg.data, frame.dlc);
+            rx_count_++;
+            return true;
+        }
+        return false;
     }
 
     uint32_t errorCount() override {
@@ -153,7 +177,31 @@ public:
 
     uint32_t rxCount() override { return rx_count_; }
 
+    uint32_t rxRejectedCount() override { return rx_rejected_; }
+
+    uint32_t rxMissedCount() override {
+        twai_status_info_t info;
+        if (twai_get_status_info(&info) != ESP_OK) return 0;
+        return info.rx_missed_count;
+    }
+
+    uint32_t busErrorCount() override {
+        twai_status_info_t info;
+        if (twai_get_status_info(&info) != ESP_OK) return 0;
+        return info.bus_error_count;
+    }
+
+    uint32_t txFailedCount() override {
+        twai_status_info_t info;
+        if (twai_get_status_info(&info) != ESP_OK) return 0;
+        return info.tx_failed_count;
+    }
+
     void setListenOnly(bool enable) override {
+#ifdef SNIFFER_ONLY
+        (void)enable;   // sniffer build is permanently Listen-Only; ignore mode switches
+        return;
+#endif
         if (listen_only_ == enable) return;
         stop_and_uninstall();
         if (!install_and_start(enable)) {
@@ -175,6 +223,19 @@ public:
                           label_, (unsigned long)(id & 0x7FFu));
         } else {
             Serial.printf("[CAN] %s TWAI hardware filter -> accept all\n", label_);
+        }
+    }
+
+    // Pre-reboot quiesce: stop the controller (no TX, no ACK), then take the TX
+    // pad back from the TWAI peripheral and drive it recessive until the chip
+    // resets. The level is latched high before the pad becomes an output (and
+    // set again after) so the handover itself can't blip dominant on the bus.
+    void shutdown() override {
+        stop_and_uninstall();
+        if (tx_pin_ >= 0) {
+            digitalWrite((uint8_t)tx_pin_, HIGH);
+            pinMode((uint8_t)tx_pin_, OUTPUT);
+            digitalWrite((uint8_t)tx_pin_, HIGH);
         }
     }
 };
@@ -213,6 +274,7 @@ class Mcp2515Driver : public CanDriver {
     uint32_t err_count_    = 0;
     uint32_t tx_count_     = 0;
     uint32_t rx_count_     = 0;
+    uint32_t rx_rejected_  = 0;   // DLC>8 frames dropped (readMessage FAIL)
 
 public:
 #if defined(BOARD_TTGO_DISPLAY)
@@ -306,6 +368,7 @@ public:
 
     bool send(const CanFrame &frame) override {
         if (!installed_ || listen_only_) return false;
+        if (!tesla_can_tx_valid(frame.id, frame.dlc)) return false;
         struct can_frame f;
         f.can_id  = frame.id;
         f.can_dlc = frame.dlc;
@@ -321,10 +384,26 @@ public:
     bool receive(CanFrame &frame) override {
         if (!installed_) return false;
         struct can_frame f;
-        if (mcp_.readMessage(&f) != MCP2515::ERROR_OK) return false;
-        frame.id  = f.can_id & CAN_EFF_MASK;
-        frame.dlc = f.can_dlc;
-        memcpy(frame.data, f.data, f.can_dlc);
+        MCP2515::ERROR err = mcp_.readMessage(&f);
+        if (err == MCP2515::ERROR_FAIL) {
+            // autowp returns FAIL for a DLC 9..15 frame WITHOUT clearing its
+            // RXnIF flag, and readMessage() always re-reads RXB0 first, so that
+            // one frame would wedge RX for good. Drop it (and whatever sits in
+            // the other buffer) by clearing the RX interrupt flags.
+            mcp_.clearInterrupts();
+            rx_rejected_++;
+            return false;
+        }
+        if (err != MCP2515::ERROR_OK) return false;
+        // autowp flags extended / remote frames in can_id (a remote frame's
+        // data bytes are whatever the previous frame left in the buffer).
+        bool extended = (f.can_id & CAN_EFF_FLAG) != 0u;
+        memset(&frame, 0, sizeof(frame));
+        frame.id  = f.can_id & (extended ? CAN_EFF_MASK : CAN_SFF_MASK);
+        frame.ext = extended ? 1u : 0u;
+        frame.req = (f.can_id & CAN_RTR_FLAG) != 0u ? 1u : 0u;
+        frame.dlc = f.can_dlc;   // readMessage() already refused DLC > 8
+        memcpy(frame.data, f.data, frame.dlc);
         rx_count_++;
         return true;
     }
@@ -336,6 +415,16 @@ public:
     uint32_t txCount() override { return tx_count_; }
 
     uint32_t rxCount() override { return rx_count_; }
+
+    uint32_t rxRejectedCount() override { return rx_rejected_; }
+
+    // rxMissedCount(): use the CanDriver default (0). The MCP2515 overflow flag
+    // would need an extra SPI read on the hot path, so it is not surfaced here.
+    // busErrorCount(): default 0 too; the chip only exposes live TEC/REC levels,
+    // not a cumulative bus-error count.
+
+    // Every errorCount() event is a sendMessage() failure.
+    uint32_t txFailedCount() override { return err_count_; }
 
     void setListenOnly(bool enable) override {
         if (!installed_ || listen_only_ == enable) return;
@@ -376,6 +465,16 @@ public:
             Serial.printf("[CAN] %s MCP2515 hardware filter -> accept all\n", label_);
         }
     }
+
+    // Pre-reboot quiesce: CONFIG mode takes the MCP2515 off the bus (no TX, no
+    // ACK), and it stays there across the ESP32 reset until begin() runs again.
+    // If the mode request doesn't take (e.g. a frame stuck pending TX), the SPI
+    // RESET instruction forces the chip into CONFIG mode.
+    void shutdown() override {
+        if (!chip_detected_) return;  // nothing answering on SPI
+        if (mcp_.setConfigMode() != MCP2515::ERROR_OK) mcp_.reset();
+        installed_ = false;
+    }
 };
 #endif
 
@@ -403,6 +502,24 @@ CanDriver *can_driver_create(CanBusId bus) {
     (void)bus;
     return can_driver_create();
 #endif
+}
+
+CanErrorSplit can_error_split(CanDriver **buses, uint8_t count) {
+    CanErrorSplit s = {};
+    for (uint8_t i = 0; i < count; i++) {
+        if (!buses[i]) continue;
+        s.rx_missed_count += buses[i]->rxMissedCount();
+        s.bus_error_count += buses[i]->busErrorCount();
+        s.tx_failed_count += buses[i]->txFailedCount();
+    }
+    return s;
+}
+
+void can_shutdown_all(CanDriver **buses, uint8_t count) {
+    for (uint8_t i = 0; i < count; i++) {
+        if (buses[i]) buses[i]->shutdown();
+    }
+    Serial.println("[CAN] Controllers stopped — bus released");
 }
 
 #if !defined(CAN_DRIVER_TWAI) && !defined(CAN_DRIVER_MCP2515) && !defined(CAN_DRIVER_T2CAN_DUAL)

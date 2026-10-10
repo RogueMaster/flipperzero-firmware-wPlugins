@@ -24,7 +24,6 @@
 #define CAN_ID_VCRIGHT_STATUS 0x343 // 835  - VCRIGHT_status (rear defrost state)
 #define CAN_ID_DI_SPEED       0x257 // 599  - DI_speed (vehicle speed, checksummed)
 #define CAN_ID_ESP_STATUS     0x145 // 325  - ESP_status (brake, stability)
-#define CAN_ID_GTW_EPAS_CTRL  0x101 // 257  - GTW_epasControl (steering tune WRITE, Chassis CAN)
 #define CAN_ID_DAS_STATUS \
     0x39B // 923  - DAS_status (HW4 + Highland HW3; AP state, nag, lane change, blind spot)
 #define CAN_ID_DAS_STATUS_HW3 \
@@ -55,6 +54,8 @@
 // TeslaHWVersion, OpMode, and FSDState are defined in the shared headers
 // (fsd_types.h / fsd_state.h) so both the Flipper and ESP32 builds use one copy.
 #include "fsd_state.h"
+// DAS engaged helper + in-car Autopark TX pause (#180), shared header-only.
+#include "fsd_autopark.h"
 
 void fsd_state_init(FSDState* state, TeslaHWVersion hw);
 void fsd_set_bit(CANFRAME* frame, int bit, bool value);
@@ -214,12 +215,6 @@ void fsd_handle_epas_steering_mode(FSDState* state, const CANFRAME* frame);
  *  ESP_driverBrakeApply: bit29|2.
  *  Source: opendbc tesla_model3_party.dbc. */
 void fsd_handle_esp_status(FSDState* state, const CANFRAME* frame);
-
-/** Build a GTW_epasControl (0x101) frame to set steering tune mode.
- *  GTW_epasTuneRequest: startBit 2, 3 bits (1=comfort 2=standard 3=sport).
- *  Source: tuncasoftbildik TESLA_CAN_STEERING_REFERENCE.md.
- *  NOTE: This is on CHASSIS CAN, not Party CAN — requires different tap. */
-void fsd_build_steering_tune_frame(CANFRAME* frame, uint8_t mode);
 
 /** Parse DAS_status (0x39B) — AP hands-on state, lane change, blind spot,
  *  FCW, vision speed limit. All Party CAN, read-only.

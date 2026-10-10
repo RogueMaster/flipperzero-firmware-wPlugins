@@ -36,10 +36,12 @@
 #define SIG_AP_UI_FSD_SELECTED_MASK      0x01u
 
 #define SIG_AP_FSD_ENABLE_BIT              46
+#define SIG_AP_TLSSC_BIT38                 38
+#define SIG_AP_CONTINUE_ON_GREEN_BIT       39
 #define SIG_AP_NAG_CLEAR_BIT               19
 #define SIG_AP_HW4_FSD_ENABLE_BIT          60
 #define SIG_AP_HW4_EMERGENCY_VEHICLE_BIT   59
-#define SIG_AP_HW4_NAG_CONFIRM_BIT         47
+#define SIG_AP_SUMMON_ENABLE_BIT           47   // bit47 UI_summonEnable (EU Summon unlock)
 
 #define SIG_AP_HW3_SPEED_RAW_BYTE           3
 #define SIG_AP_HW3_SPEED_RAW_SHIFT          1
@@ -62,8 +64,9 @@
 #define SIG_AP_HW3_SPEED_OFFSET_LOW_SHIFT   6
 #define SIG_AP_HW3_SPEED_OFFSET_HIGH_SHIFT  2
 
+// HW4 speed profile: bits 60-62. Bit 63 is the mux2 valid flag, keep it (#59).
 #define SIG_AP_HW4_SPEED_PROFILE_BYTE       7
-#define SIG_AP_HW4_SPEED_PROFILE_SHIFT      5
+#define SIG_AP_HW4_SPEED_PROFILE_SHIFT      4
 #define SIG_AP_HW4_SPEED_PROFILE_MASK    0x07u
 
 // Follow distance / legacy stalk
@@ -136,16 +139,13 @@
 // bytes 1-2: speed limit / speed warning state
 // bytes 5-6: hands-on / lane-change state
 // bytes 6-7: counter / checksum
+// DAS_autopilotState = byte0 low nibble on BOTH 0x399 (Legacy/HW3) and 0x39B
+// (HW4/Highland), per opendbc (tesla_can BO_921 / tesla_model3_party BO_923).
 #define SIG_DAS_HW3_AP_STATE_BYTE           0
 #define SIG_DAS_HW3_AP_STATE_MASK        0x0Fu
-#define SIG_DAS_HW3_AP_ACTIVE_STATE         3u
-#define SIG_DAS_HW4_AP_STATE_BYTE           1
-#define SIG_DAS_HW4_AP_STATE_SHIFT          4
-#define SIG_DAS_HW4_AP_STATE_MASK        0x0Fu
-#define SIG_DAS_HW4_AP_ACTIVE_MIN           2u
-#define SIG_DAS_HW4_BYTE0_PIN_LATCH         3u   // #116: consecutive (byte1[7:4]==1 &&
-                                                 // byte0 low nibble >= ACTIVE_MIN) frames
-                                                 // before latching to the byte0 reading
+#define SIG_DAS_HW3_AP_ACTIVE_STATE         3u   // HW-detect heuristic threshold only
+// DAS_autopark bits: byte3 bit0 autoparkReady, bit1 autoParked, bit2 waitingForBrake (#180)
+#define SIG_DAS_AUTOPARK_BYTE               3
 #define SIG_DAS_SPEED_LIMIT_BYTE_1          1
 #define SIG_DAS_SPEED_LIMIT_BYTE_2          2
 #define SIG_DAS_HANDS_ON_STATE_BYTE         5
