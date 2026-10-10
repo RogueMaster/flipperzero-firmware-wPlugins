@@ -26,7 +26,7 @@ The goal of this project is to see how much crypto functionality can be brought 
 
 Then run the command: 
  ```
-./fbt COMPACT=1 DEBUG=0 launch_app APPSRC=applications_user/FlipBIP
+./fbt COMPACT=1 DEBUG=0 launch APPSRC=applications_user/FlipBIP
  ```
 The application will be compiled and copied onto your device
 
@@ -43,9 +43,16 @@ The application will be compiled and copied onto your device
 - BIP39 mnemonic to BIP39 seed generation
 - Hierarchical Deterministic (HD) wallet generation from seed
   - Generation of offline `m/44'/0'/0'/0` BTC wallet
+  - Generation of offline `m/84'/0'/0'/0` BTC native SegWit (BIP84, `bc1q...`) wallet, with `zprv`/`zpub` keys
   - Generation of offline `m/44'/60'/0'/0` ETH wallet (coded from the $SPORK Castle of ETHDenver 2023!)
   - Generation of offline `m/44'/3'/0'/0` DOGE wallet
   - Generation of offline `m/44'/133'/0'/0` ZEC transparent address wallet (by @wh00hw)
+  - Generation of offline `m/44'/128'/0'/0` XMR wallet, Ledger compatible
+    - Private spend key = `sc_reduce(keccak256(k))` where `k` is the BIP32 private key at `m/44'/128'/0'/0/0`, private view key = `sc_reduce(keccak256(spend))`
+    - Shows the Monero 25-word seed (English), the primary address and subaddresses 1-5 of account 0, plus the private spend/view keys
+    - Restore in any Monero wallet (Feather, Cake, Monero GUI/CLI) from the 25-word seed, or as watch-only with the address and private view key
+    - The 25 words are the private spend key in Monero's own mnemonic format, not a separate secret: the BIP39 words still back up every coin, the 25 words only this XMR wallet
+    - NOTE: Trezor derives Monero keys differently (SLIP-10 ed25519), so a Trezor with the same seed shows a different XMR wallet
   - Similar features to: https://iancoleman.io/bip39/
 - Saving wallets to SD card
   - Wallets are saved to SD card upon creation in `apps_data/flipbip`
