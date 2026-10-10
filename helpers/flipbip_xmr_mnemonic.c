@@ -59,7 +59,11 @@ void flipbip_xmr_mnemonic(const uint8_t spend_key[32], char* out) {
     uint32_t crc = 0;
     for(int i = 0; i < 24; i++) {
         flipbip_xmr_word(idx[i], word);
-        crc = flipbip_crc32(crc, word, strnlen(word, FLIPBIP_XMR_WORDS_PREFIX_LEN));
+        size_t prefix = strlen(word);
+        if(prefix > FLIPBIP_XMR_WORDS_PREFIX_LEN) {
+            prefix = FLIPBIP_XMR_WORDS_PREFIX_LEN;
+        }
+        crc = flipbip_crc32(crc, word, prefix);
     }
     idx[24] = idx[crc % 24];
 
