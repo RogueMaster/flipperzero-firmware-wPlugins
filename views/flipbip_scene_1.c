@@ -204,15 +204,19 @@ static void flipbip_scene_1_draw_address(Canvas* canvas, const FlipBipScene1Mode
     char line[LINE_BUF];
 
     // header: "<coin> receive address:"            "/N"
+    int extra_space = 1;
+    const bool xmr = flipbip_coin_fmt(model->coin_type) == CoinTypeXMR128;
+    if (xmr) {
+        extra_space = 3;
+    }
     canvas_set_font(canvas, FontSecondary);
     canvas_draw_str_aligned(canvas, 2, 2, AlignLeft, AlignTop, label);
     canvas_draw_str_aligned(
-        canvas, strlen(label) * 7 + 1, 2, AlignLeft, AlignTop, TEXT_RECEIVE_ADDRESS);
+        canvas, strlen(label) * 7 + extra_space, 2, AlignLeft, AlignTop, TEXT_RECEIVE_ADDRESS);
     snprintf(line, sizeof(line), "/%d", index);
     canvas_draw_str_aligned(canvas, 125, 2, AlignRight, AlignTop, line);
 
     // footer: QR code file name
-    const bool xmr = flipbip_coin_fmt(model->coin_type) == CoinTypeXMR128;
     snprintf(line, sizeof(line), "%s%02x%s", file, index, TEXT_QRFILE_EXT);
     canvas_draw_str_aligned(canvas, 125, xmr ? 56 : 53, AlignRight, AlignTop, line);
 
