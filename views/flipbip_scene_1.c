@@ -9,9 +9,10 @@
 #include <curves.h>
 #include <bip32.h>
 #include <bip39.h>
+#include <segwit_addr.h>
 #include <monero/monero.h>
 
-#define DERIV_PURPOSE 44
+#define SEGWIT_HRP    "bc"
 #define DERIV_ACCOUNT 0
 #define DERIV_CHANGE  0
 
@@ -87,6 +88,10 @@ typedef struct {
     const char* error; // set when page == PAGE_ERROR
     FlipBipWallet* wallet; // NULL unless fully derived
 } FlipBipScene1Model;
+
+static uint32_t flipbip_coin_fmt(uint32_t coin_type) {
+    return COIN_INFO_ARRAY[coin_type][COIN_INFO_ADDR_FMT];
+}
 
 void flipbip_scene_1_set_callback(
     FlipBipScene1* instance,
@@ -194,6 +199,7 @@ static void flipbip_scene_1_draw_xmr_key(Canvas* canvas, const char* title, cons
 static void flipbip_scene_1_draw_address(Canvas* canvas, const FlipBipScene1Model* model) {
     const int index = model->page - PAGE_ADDR_BEGIN;
     const char* label = COIN_TEXT_ARRAY[model->coin_type][COIN_TEXT_LABEL];
+    const char* file = COIN_TEXT_ARRAY[model->coin_type][COIN_TEXT_FILE];
     const char* addr = model->wallet->recv_addresses[index];
     char line[LINE_BUF];
 
@@ -206,8 +212,8 @@ static void flipbip_scene_1_draw_address(Canvas* canvas, const FlipBipScene1Mode
     canvas_draw_str_aligned(canvas, 125, 2, AlignRight, AlignTop, line);
 
     // footer: QR code file name
-    const bool xmr = model->coin_type == CoinTypeXMR128;
-    snprintf(line, sizeof(line), "%s%02x%s", label, index, TEXT_QRFILE_EXT);
+    const bool xmr = flipbip_coin_fmt(model->coin_type) == CoinTypeXMR128;
+    snprintf(line, sizeof(line), "%s%02x%s", file, index, TEXT_QRFILE_EXT);
     canvas_draw_str_aligned(canvas, 125, xmr ? 56 : 53, AlignRight, AlignTop, line);
 
     if(xmr) {
@@ -220,9 +226,10 @@ static void flipbip_scene_1_draw_address(Canvas* canvas, const FlipBipScene1Mode
         return;
     }
 
-    // address, in groups of 4 characters
-    const size_t line_len = model->coin_type == CoinTypeETH60 ? 14 : 12;
+    // address, in groups of 4 characters: 3-4 lines of 12 for base58
+    // (34-35 chars), 3 lines of 14 for ETH and bech32 (42 chars)
     const size_t len = strlen(addr);
+    const size_t line_len = len > 36 ? 14 : 12;
     canvas_set_font(canvas, FontPrimary);
     for(size_t i = 0; i < 4; i++) {
         flipbip_scene_1_line(line, addr, len, line_len, i, true);
@@ -259,7 +266,7 @@ static void flipbip_scene_1_draw(Canvas* canvas, void* _model) {
         return;
     }
 
-    const bool xmr = model->coin_type == CoinTypeXMR128;
+    const bool xmr = flipbip_coin_fmt(model->coin_type) == CoinTypeXMR128;
     switch(model->page) {
     case PAGE_INFO:
         flipbip_scene_1_draw_lines(canvas, xmr ? TEXT_INFO_XMR : TEXT_INFO, 27);
@@ -314,7 +321,13 @@ static void flipbip_scene_1_init_address(
     hdnode_private_ckd(addr_node, addr_index);
     hdnode_fill_public_key(addr_node);
 
-    if(COIN_INFO_ARRAY[coin_type][COIN_INFO_ADDR_FMT] == CoinTypeETH60) {
+    const uint32_t fmt = flipbip_coin_fmt(coin_type);
+    if(fmt == CoinTypeBTC84) {
+        // Native SegWit P2WPKH: bech32(hrp, v0, hash160(pubkey))
+        uint8_t hash[20];
+        ecdsa_get_pubkeyhash(addr_node->public_key, HASHER_SHA2_RIPEMD, hash);
+        segwit_addr_encode(addr_text, SEGWIT_HRP, 0, hash, sizeof(hash));
+    } else if(fmt == CoinTypeETH60) {
         // ETH style address: "0x" + hex(keccak(pubkey)[12:])
         uint8_t hash[20];
         hdnode_get_ethereum_pubkeyhash(addr_node, hash);
@@ -345,7 +358,11 @@ typedef struct {
     uint8_t buf[64];
 } FlipBipXmrScratch;
 
-static void flipbip_scene_1_init_xmr(FlipBipWallet* w, HDNode* addr_node, const HDNode* node) {
+static void flipbip_scene_1_init_xmr(
+    FlipBipWallet* w,
+    HDNode* addr_node,
+    const HDNode* node,
+    uint32_t coin_type) {
     FlipBipXmrScratch* x = malloc(sizeof(FlipBipXmrScratch));
 
     memcpy(addr_node, node, sizeof(HDNode));
@@ -365,7 +382,7 @@ static void flipbip_scene_1_init_xmr(FlipBipWallet* w, HDNode* addr_node, const 
     ge25519_scalarmult_base_wrapper(&x->A, x->view);
 
     for(uint32_t i = 0; i < NUM_ADDRS; i++) {
-        uint64_t tag = COIN_INFO_ARRAY[CoinTypeXMR128][COIN_INFO_ADDR_VERS];
+        uint64_t tag = COIN_INFO_ARRAY[coin_type][COIN_INFO_ADDR_VERS];
         if(i == 0) {
             ge25519_pack(x->buf, &x->B);
             ge25519_pack(x->buf + 32, &x->A);
@@ -434,11 +451,11 @@ static FlipBipStatus flipbip_wallet_init(
     hdnode_from_seed(w->seed, 64, SECP256K1_NAME, node);
     hdnode_serialize_private(node, fingerprint, xprv_vers, w->xprv_root, XKEY_BUF);
 
-    // m/44'
-    hdnode_private_ckd_prime(node, DERIV_PURPOSE);
-    // m/44'/coin'
+    // m/purpose' (44, or 84 for native SegWit)
+    hdnode_private_ckd_prime(node, COIN_INFO_ARRAY[coin_type][COIN_INFO_PURPOSE]);
+    // m/purpose'/coin'
     hdnode_private_ckd_prime(node, COIN_INFO_ARRAY[coin_type][COIN_INFO_BIP44_COIN]);
-    // m/44'/coin'/0'
+    // m/purpose'/coin'/0'
     fingerprint = hdnode_fingerprint(node);
     hdnode_private_ckd_prime(node, DERIV_ACCOUNT);
     hdnode_serialize_private(node, fingerprint, xprv_vers, w->xprv_account, XKEY_BUF);
@@ -446,19 +463,19 @@ static FlipBipStatus flipbip_wallet_init(
     hdnode_fill_public_key(node);
     hdnode_serialize_public(node, fingerprint, xpub_vers, w->xpub_account, XKEY_BUF);
 
-    // m/44'/coin'/0'/0
+    // m/purpose'/coin'/0'/0
     fingerprint = hdnode_fingerprint(node);
     hdnode_private_ckd(node, DERIV_CHANGE);
-    const bool xmr = COIN_INFO_ARRAY[coin_type][COIN_INFO_ADDR_FMT] == CoinTypeXMR128;
+    const bool xmr = flipbip_coin_fmt(coin_type) == CoinTypeXMR128;
     if(xmr) {
-        flipbip_scene_1_init_xmr(w, addr_node, node);
+        flipbip_scene_1_init_xmr(w, addr_node, node, coin_type);
     } else {
         hdnode_serialize_private(node, fingerprint, xprv_vers, w->xprv_extended, XKEY_BUF);
         hdnode_fill_public_key(node);
         hdnode_serialize_public(node, fingerprint, xpub_vers, w->xpub_extended, XKEY_BUF);
     }
 
-    // Receive addresses m/44'/coin'/0'/0/i, each also saved as a QR code file
+    // Receive addresses m/purpose'/coin'/0'/0/i, each also saved as a QR code file
     char file_name[LINE_BUF];
     for(uint32_t a = 0; a < NUM_ADDRS; a++) {
         if(!xmr) {
@@ -468,7 +485,7 @@ static FlipBipStatus flipbip_wallet_init(
             file_name,
             sizeof(file_name),
             "%s%02lx%s",
-            COIN_TEXT_ARRAY[coin_type][COIN_TEXT_LABEL],
+            COIN_TEXT_ARRAY[coin_type][COIN_TEXT_FILE],
             (unsigned long)a,
             TEXT_QRFILE_EXT);
         flipbip_save_qrfile(

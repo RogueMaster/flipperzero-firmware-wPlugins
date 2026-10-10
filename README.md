@@ -43,6 +43,7 @@ The application will be compiled and copied onto your device
 - BIP39 mnemonic to BIP39 seed generation
 - Hierarchical Deterministic (HD) wallet generation from seed
   - Generation of offline `m/44'/0'/0'/0` BTC wallet
+  - Generation of offline `m/84'/0'/0'/0` BTC native SegWit (BIP84, `bc1q...`) wallet, with `zprv`/`zpub` keys
   - Generation of offline `m/44'/60'/0'/0` ETH wallet (coded from the $SPORK Castle of ETHDenver 2023!)
   - Generation of offline `m/44'/3'/0'/0` DOGE wallet
   - Generation of offline `m/44'/133'/0'/0` ZEC transparent address wallet (by @wh00hw)
