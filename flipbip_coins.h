@@ -10,8 +10,8 @@ typedef enum {
     CoinTypeBTC84, // native SegWit P2WPKH, bech32
     CoinTypeETH60,
     CoinTypeDOGE3,
-    CoinTypeZEC133,
     CoinTypeXMR128,
+    CoinTypeZEC133
 } CoinType;
 
 #define COIN_INFO_SIZE       7
