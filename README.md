@@ -46,6 +46,11 @@ The application will be compiled and copied onto your device
   - Generation of offline `m/44'/60'/0'/0` ETH wallet (coded from the $SPORK Castle of ETHDenver 2023!)
   - Generation of offline `m/44'/3'/0'/0` DOGE wallet
   - Generation of offline `m/44'/133'/0'/0` ZEC transparent address wallet (by @wh00hw)
+  - Generation of offline `m/44'/128'/0'/0` XMR wallet, Ledger compatible
+    - Private spend key = `sc_reduce(keccak256(k))` where `k` is the BIP32 private key at `m/44'/128'/0'/0/0`, private view key = `sc_reduce(keccak256(spend))`
+    - Shows the primary address and subaddresses 1-5 of account 0, plus the private spend/view keys
+    - Restore in any Monero wallet with "restore from keys" (address + spend key + view key), or as watch-only with the view key
+    - NOTE: Trezor derives Monero keys differently (SLIP-10 ed25519), so a Trezor with the same seed shows a different XMR wallet
   - Similar features to: https://iancoleman.io/bip39/
 - Saving wallets to SD card
   - Wallets are saved to SD card upon creation in `apps_data/flipbip`

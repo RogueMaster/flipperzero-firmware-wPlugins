@@ -9,6 +9,7 @@
 #include <curves.h>
 #include <bip32.h>
 #include <bip39.h>
+#include <monero/monero.h>
 
 #define DERIV_PURPOSE 44
 #define DERIV_ACCOUNT 0
@@ -17,7 +18,7 @@
 #define LINE_BUF     32 // longest rendered line (30) + null, rounded up
 #define NUM_LINES    6 // text lines that fit on screen
 #define XKEY_BUF     (111 + 1) // base58check of a 78 byte BIP32 key is 111 chars
-#define MAX_ADDR_BUF (42 + 1) // "0x" + 40 hex chars (ETH) + null
+#define MAX_ADDR_BUF (95 + 1) // XMR standard address/subaddress is 95 chars
 #define NUM_ADDRS    6
 
 #define PAGE_LOADING    0
@@ -36,6 +37,8 @@
 #define TEXT_LOADING         "Loading..."
 #define TEXT_NEW_WALLET      "New wallet"
 #define TEXT_RECEIVE_ADDRESS "receive address:"
+#define TEXT_XMR_SPEND_KEY   "Private spend key:"
+#define TEXT_XMR_VIEW_KEY    "Private view key:"
 #define TEXT_QRFILE_EXT      ".qrcode"
 #define WARN_INSECURE_TEXT_1 "Recommendation:"
 #define WARN_INSECURE_TEXT_2 "Set BIP39 Passphrase"
@@ -46,6 +49,13 @@ static const char TEXT_INFO[] = "-Scroll pages with up/down-"
                                 "p4,5)  Prv/Pub Account Keys"
                                 "p6,7)  Prv/Pub BIP32 Keys  "
                                 "p8+)    Receive Addresses  ";
+// Same layout, Monero shows its own spend/view keys instead of BIP32 keys
+static const char TEXT_INFO_XMR[] = "-Scroll pages with up/down-"
+                                    "p1,2)   BIP39 Mnemonic/Seed"
+                                    "p3)       BIP32 Root Key   "
+                                    "p4,5)  Prv/Pub Account Keys"
+                                    "p6,7)  Prv Spend/View Keys "
+                                    "p8+)  Address/Subaddresses ";
 
 struct FlipBipScene1 {
     View* view;
@@ -61,8 +71,9 @@ typedef struct {
     CONFIDENTIAL char xprv_root[XKEY_BUF];
     CONFIDENTIAL char xprv_account[XKEY_BUF];
     char xpub_account[XKEY_BUF];
+    // m/44'/coin'/0'/0 xprv and xpub; for XMR the private spend and view keys (hex)
     CONFIDENTIAL char xprv_extended[XKEY_BUF];
-    char xpub_extended[XKEY_BUF];
+    CONFIDENTIAL char xpub_extended[XKEY_BUF];
     char recv_addresses[NUM_ADDRS][MAX_ADDR_BUF];
 } FlipBipWallet;
 
@@ -168,6 +179,18 @@ static void flipbip_scene_1_draw_seed(Canvas* canvas, const uint8_t* seed) {
     memzero(line, sizeof(line));
 }
 
+static void flipbip_scene_1_draw_xmr_key(Canvas* canvas, const char* title, const char* hex) {
+    char line[LINE_BUF];
+    const size_t len = strlen(hex);
+    canvas_set_font(canvas, FontSecondary);
+    canvas_draw_str_aligned(canvas, 1, 2, AlignLeft, AlignTop, title);
+    for(size_t i = 0; i < 3; i++) {
+        flipbip_scene_1_line(line, hex, len, 22, i, false);
+        canvas_draw_str_aligned(canvas, 1, 14 + i * 10, AlignLeft, AlignTop, line);
+    }
+    memzero(line, sizeof(line));
+}
+
 static void flipbip_scene_1_draw_address(Canvas* canvas, const FlipBipScene1Model* model) {
     const int index = model->page - PAGE_ADDR_BEGIN;
     const char* label = COIN_TEXT_ARRAY[model->coin_type][COIN_TEXT_LABEL];
@@ -183,8 +206,19 @@ static void flipbip_scene_1_draw_address(Canvas* canvas, const FlipBipScene1Mode
     canvas_draw_str_aligned(canvas, 125, 2, AlignRight, AlignTop, line);
 
     // footer: QR code file name
+    const bool xmr = model->coin_type == CoinTypeXMR128;
     snprintf(line, sizeof(line), "%s%02x%s", label, index, TEXT_QRFILE_EXT);
-    canvas_draw_str_aligned(canvas, 125, 53, AlignRight, AlignTop, line);
+    canvas_draw_str_aligned(canvas, 125, xmr ? 56 : 53, AlignRight, AlignTop, line);
+
+    if(xmr) {
+        // 95 chars: 5 lines of 19 in the small font, no grouping
+        const size_t len = strlen(addr);
+        for(size_t i = 0; i < 5; i++) {
+            flipbip_scene_1_line(line, addr, len, 19, i, false);
+            canvas_draw_str_aligned(canvas, 2, 11 + i * 9, AlignLeft, AlignTop, line);
+        }
+        return;
+    }
 
     // address, in groups of 4 characters
     const size_t line_len = model->coin_type == CoinTypeETH60 ? 14 : 12;
@@ -225,9 +259,10 @@ static void flipbip_scene_1_draw(Canvas* canvas, void* _model) {
         return;
     }
 
+    const bool xmr = model->coin_type == CoinTypeXMR128;
     switch(model->page) {
     case PAGE_INFO:
-        flipbip_scene_1_draw_lines(canvas, TEXT_INFO, 27);
+        flipbip_scene_1_draw_lines(canvas, xmr ? TEXT_INFO_XMR : TEXT_INFO, 27);
         break;
     case PAGE_MNEMONIC:
         flipbip_scene_1_draw_mnemonic(canvas, w->mnemonic);
@@ -245,10 +280,18 @@ static void flipbip_scene_1_draw(Canvas* canvas, void* _model) {
         flipbip_scene_1_draw_lines(canvas, w->xpub_account, 20);
         break;
     case PAGE_XPRV_EXTD:
-        flipbip_scene_1_draw_lines(canvas, w->xprv_extended, 20);
+        if(xmr) {
+            flipbip_scene_1_draw_xmr_key(canvas, TEXT_XMR_SPEND_KEY, w->xprv_extended);
+        } else {
+            flipbip_scene_1_draw_lines(canvas, w->xprv_extended, 20);
+        }
         break;
     case PAGE_XPUB_EXTD:
-        flipbip_scene_1_draw_lines(canvas, w->xpub_extended, 20);
+        if(xmr) {
+            flipbip_scene_1_draw_xmr_key(canvas, TEXT_XMR_VIEW_KEY, w->xpub_extended);
+        } else {
+            flipbip_scene_1_draw_lines(canvas, w->xpub_extended, 20);
+        }
         break;
     default:
         flipbip_scene_1_draw_address(canvas, model);
@@ -290,6 +333,61 @@ static void flipbip_scene_1_init_address(
     }
 
     memzero(addr_node, sizeof(HDNode));
+}
+
+// Monero, Ledger compatible (same keys as a Ledger with the same BIP39 seed):
+//   k     = BIP32 secp256k1 private key at m/44'/128'/0'/0/0
+//   spend = sc_reduce(keccak256(k)), view = sc_reduce(keccak256(spend))
+// Address 0 is the primary address, 1..N-1 are subaddresses (account 0).
+typedef struct {
+    bignum256modm spend, view, m;
+    ge25519 B, A, D, P;
+    uint8_t buf[64];
+} FlipBipXmrScratch;
+
+static void flipbip_scene_1_init_xmr(FlipBipWallet* w, HDNode* addr_node, const HDNode* node) {
+    FlipBipXmrScratch* x = malloc(sizeof(FlipBipXmrScratch));
+
+    memcpy(addr_node, node, sizeof(HDNode));
+    hdnode_private_ckd(addr_node, 0);
+    xmr_hash_to_scalar(x->spend, addr_node->private_key, 32);
+    memzero(addr_node, sizeof(HDNode));
+    contract256_modm(x->buf, x->spend);
+    xmr_hash_to_scalar(x->view, x->buf, 32);
+
+    // Private keys, shown on the spend/view key pages
+    flipbip_btox(x->buf, 32, w->xprv_extended);
+    contract256_modm(x->buf, x->view);
+    flipbip_btox(x->buf, 32, w->xpub_extended);
+
+    // Public spend key B and view key A
+    ge25519_scalarmult_base_wrapper(&x->B, x->spend);
+    ge25519_scalarmult_base_wrapper(&x->A, x->view);
+
+    for(uint32_t i = 0; i < NUM_ADDRS; i++) {
+        uint64_t tag = COIN_INFO_ARRAY[CoinTypeXMR128][COIN_INFO_ADDR_VERS];
+        if(i == 0) {
+            ge25519_pack(x->buf, &x->B);
+            ge25519_pack(x->buf + 32, &x->A);
+        } else {
+            // m = Hs("SubAddr" || view || 0 || i)
+            // D = B + mG = (spend + m)G,  C = view * D = (view * (spend + m))G
+            // Base point multiplies only: the variable base ge25519_scalarmult
+            // needs ~2KB of stack, too much for the 3KB app stack.
+            tag = 42;
+            xmr_get_subaddress_secret_key(x->m, 0, i, x->view);
+            add256_modm(x->m, x->m, x->spend);
+            ge25519_scalarmult_base_wrapper(&x->D, x->m);
+            mul256_modm(x->m, x->m, x->view);
+            ge25519_scalarmult_base_wrapper(&x->P, x->m);
+            ge25519_pack(x->buf, &x->D);
+            ge25519_pack(x->buf + 32, &x->P);
+        }
+        xmr_base58_addr_encode_check(tag, x->buf, 64, w->recv_addresses[i], MAX_ADDR_BUF);
+    }
+
+    memzero(x, sizeof(FlipBipXmrScratch));
+    free(x);
 }
 
 static FlipBipStatus flipbip_wallet_init(
@@ -344,18 +442,28 @@ static FlipBipStatus flipbip_wallet_init(
     fingerprint = hdnode_fingerprint(node);
     hdnode_private_ckd_prime(node, DERIV_ACCOUNT);
     hdnode_serialize_private(node, fingerprint, xprv_vers, w->xprv_account, XKEY_BUF);
+    // private_ckd leaves public_key stale: recompute before serializing the xpub
+    hdnode_fill_public_key(node);
     hdnode_serialize_public(node, fingerprint, xpub_vers, w->xpub_account, XKEY_BUF);
 
     // m/44'/coin'/0'/0
     fingerprint = hdnode_fingerprint(node);
     hdnode_private_ckd(node, DERIV_CHANGE);
-    hdnode_serialize_private(node, fingerprint, xprv_vers, w->xprv_extended, XKEY_BUF);
-    hdnode_serialize_public(node, fingerprint, xpub_vers, w->xpub_extended, XKEY_BUF);
+    const bool xmr = COIN_INFO_ARRAY[coin_type][COIN_INFO_ADDR_FMT] == CoinTypeXMR128;
+    if(xmr) {
+        flipbip_scene_1_init_xmr(w, addr_node, node);
+    } else {
+        hdnode_serialize_private(node, fingerprint, xprv_vers, w->xprv_extended, XKEY_BUF);
+        hdnode_fill_public_key(node);
+        hdnode_serialize_public(node, fingerprint, xpub_vers, w->xpub_extended, XKEY_BUF);
+    }
 
     // Receive addresses m/44'/coin'/0'/0/i, each also saved as a QR code file
     char file_name[LINE_BUF];
     for(uint32_t a = 0; a < NUM_ADDRS; a++) {
-        flipbip_scene_1_init_address(w->recv_addresses[a], addr_node, node, coin_type, a);
+        if(!xmr) {
+            flipbip_scene_1_init_address(w->recv_addresses[a], addr_node, node, coin_type, a);
+        }
         snprintf(
             file_name,
             sizeof(file_name),

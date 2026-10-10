@@ -28,7 +28,7 @@ const char* TEXT_QRFILE = "Filetype: QRCode\n"
 #define FILE_KLEN               256
 #define FILE_SLEN               512
 #define FILE_MAX_PATH_LEN       48
-#define FILE_MAX_QRFILE_CONTENT 90
+#define FILE_MAX_QRFILE_CONTENT 160 // header 37 + "monero:" 7 + XMR address 95 + null
 const char* FILE_HSTR = "fb01";
 const char* FILE_K1 = "fb0131d5cf688221c109163908ebe51debb46227c6cc8b37641910833222772a"
                       "baefe6d9ceb651842260e0d1e05e3b90d15e7d5ffaaabc0207bf200a117793a2";
@@ -185,10 +185,8 @@ bool flipbip_save_qrfile(
     const char* qr_msg_prefix,
     const char* qr_msg_content,
     const char* file_name) {
-    char qr_buf[FILE_MAX_QRFILE_CONTENT] = {0};
-    strcpy(qr_buf, TEXT_QRFILE);
-    strcpy(qr_buf + strlen(qr_buf), qr_msg_prefix);
-    strcpy(qr_buf + strlen(qr_buf), qr_msg_content);
+    char qr_buf[FILE_MAX_QRFILE_CONTENT];
+    snprintf(qr_buf, sizeof(qr_buf), "%s%s%s", TEXT_QRFILE, qr_msg_prefix, qr_msg_content);
     return flipbip_save_file(qr_buf, FlipBipFileOther, file_name, false);
 }
 

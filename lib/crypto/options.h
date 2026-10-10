@@ -73,7 +73,7 @@
 
 // support MONERO operations
 #ifndef USE_MONERO
-#define USE_MONERO 0
+#define USE_MONERO 1
 #endif
 
 // support CARDANO operations

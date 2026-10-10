@@ -1,13 +1,14 @@
 #pragma once
 #include <stdint.h>
 
-#define NUM_COINS 4
+#define NUM_COINS 5
 
 typedef enum {
     CoinTypeBTC0,
     CoinTypeETH60,
     CoinTypeDOGE3,
     CoinTypeZEC133,
+    CoinTypeXMR128,
 } CoinType;
 
 #define COIN_INFO_SIZE       6
