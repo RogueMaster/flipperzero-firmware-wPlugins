@@ -615,7 +615,7 @@ static void mfc_set_write_error(MfClassicError error_a, MfClassicError error_b) 
         magic_write_error,
         sizeof(magic_write_error),
         "%s",
-        mfc_auth_error(error_a) && mfc_auth_error(error_b) ? "认证出错" : "Write failed");
+        mfc_auth_error(error_a) && mfc_auth_error(error_b) ? "Auth failed" : "Write failed");
 }
 
 static bool mfc_read_block0(Nfc* nfc, uint8_t block0[16]) {
@@ -639,7 +639,7 @@ static bool mfc_read_block0(Nfc* nfc, uint8_t block0[16]) {
             magic_write_error,
             sizeof(magic_write_error),
             "%s",
-            mfc_auth_error(error_a) && mfc_auth_error(error_b) ? "认证出错" : "Read failed");
+            mfc_auth_error(error_a) && mfc_auth_error(error_b) ? "Auth failed" : "Read failed");
         return false;
     }
     memcpy(block0, block.data, 16);

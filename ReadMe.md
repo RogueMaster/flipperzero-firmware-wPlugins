@@ -193,6 +193,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [TamaConnect v1.0 (By s2013p)](https://github.com/s2013p/TamaConnect)
 - Updated: [Tesla Mod v2.16b37 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 - Updated: [SigRoam Wardriving v0.6.1 (By pingequalab)](https://github.com/pingequalab/sigroam-wardriving) `Req: ESP32`
+- Updated: [MTools v1.0 (By mtoolstec)](https://github.com/mtoolstec/flipper-mtools)
 
 <a name="release"></a>
 
