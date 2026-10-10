@@ -26,7 +26,7 @@ The goal of this project is to see how much crypto functionality can be brought 
 
 Then run the command: 
  ```
-./fbt COMPACT=1 DEBUG=0 launch_app APPSRC=applications_user/FlipBIP
+./fbt COMPACT=1 DEBUG=0 launch APPSRC=applications_user/FlipBIP
  ```
 The application will be compiled and copied onto your device
 
