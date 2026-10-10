@@ -276,8 +276,8 @@ static void flipbip_scene_1_draw_xmr_mnemonic(Canvas* canvas, const char* words,
     const int n = second ? 13 : 12;
     if(flipbip_scene_1_wrap(canvas, words, w0, n, 0, 0, false) <= 6) {
         canvas_draw_str_aligned(
-            canvas, 1, 2, AlignLeft, AlignTop, second ? TEXT_XMR_SEED_2 : TEXT_XMR_SEED_1);
-        flipbip_scene_1_wrap(canvas, words, w0, n, 12, 0, true);
+            canvas, 1, 0, AlignLeft, AlignTop, second ? TEXT_XMR_SEED_2 : TEXT_XMR_SEED_1);
+        flipbip_scene_1_wrap(canvas, words, w0, n, 10, 0, true);
     } else {
         // only for a run of very long words: use all 7 lines, no header
         flipbip_scene_1_wrap(canvas, words, w0, n, 2, 0, true);
