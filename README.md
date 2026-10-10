@@ -14,6 +14,7 @@ UHF RFID Reader/Writer expansion for Flipper Zero, communicating over UART bridg
 - **TID Decoder** — Automatically pauses on one tag and shows scrollable MDID/model details
 - **EPC Fuzzing** — Generates incremental EPC variants with explicit verified writes
 - **EPC ASCII** — Captures one tag, edits up to 12 printable ASCII characters, and writes a 96-bit EPC
+- **EPC Filter** — Enter an ASCII substring to show and beep only for matching inventory tags (case insensitive); Back edits the filter and Right toggles a list-only view
 - **Persistent Settings** — Separate app settings from reader indicator and 0–20 dBm RF power settings
 - **Paged EPC List** — Browse scanned tags page by page, with truncated preview
 - **Tag Details** — View full EPC, RSSI, and PC (Protocol Control) bits for each tag
@@ -106,7 +107,7 @@ Catalog bundle, updates the Catalog fork, and opens the upstream pull request.
 
 1. Connect your UHF module as described in [Hardware Setup](#hardware-setup)
 2. Open **Apps → GPIO → UHF Expansion**
-3. Choose **UHF Radar**, **Inventory**, **Tag Tools**, **EPC Tools**, **Saved Tags**, or **Settings**. Tag Tools groups TID Decoder, Tag Control and Access Keys; EPC Tools groups EPC ASCII and EPC Fuzzing; Settings groups App Settings, Reader Settings and About.
+3. Choose **UHF Radar**, **Inventory**, **Tag Tools**, **EPC Tools**, **Saved Tags**, or **Settings**. Tag Tools groups TID Decoder, Tag Control and Access Keys; EPC Tools groups EPC ASCII, EPC Filter and EPC Fuzzing; Settings groups App Settings, Reader Settings and About.
 4. In UHF Radar or Tag Inventory, press **OK** to start/stop inventory scanning
 5. Navigate the tag list with **Up/Down**
 6. Press **OK** on a tag to view details
@@ -232,4 +233,5 @@ RIGHT to view reader details and LEFT to return to the project page.
 
 Radar LEFT/Clear always clears immediately, regardless of Action Confirm, and
 keeps the radar page and scan state. Inventory clearing follows Action Confirm
-but uses the empty list itself as feedback, with no result popup.
+but keeps the current scan state and uses the empty list itself as feedback,
+with no result popup.

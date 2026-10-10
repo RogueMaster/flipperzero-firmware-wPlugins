@@ -59,6 +59,8 @@ typedef struct {
     uint16_t pc;
     uint32_t last_seen;
     uint32_t rssi;
+    uint32_t signal_lower_since;
     uint32_t frequency;
     uint8_t antenna;
+    uint8_t signal_bars;
 } UhfTagEntry;

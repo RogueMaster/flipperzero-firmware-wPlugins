@@ -30,7 +30,7 @@ void uhf_view_draw_fixed_side_button(Canvas* canvas, const char* text, bool righ
     if(!canvas || !text) return;
     const int button_x = right ? 92 : 0;
     const int text_width = canvas_string_width(canvas, text);
-    const int text_x = right ? 120 - text_width : 8;
+    const int text_x = right ? 95 + (25 - text_width) / 2 : 8;
     canvas_set_color(canvas, ColorBlack);
     canvas_draw_rbox(canvas, button_x, 52, 36, 12, 3);
     canvas_draw_box(canvas, button_x, 61, 36, 3);
