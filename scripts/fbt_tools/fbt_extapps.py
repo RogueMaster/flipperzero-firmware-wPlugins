@@ -32,6 +32,10 @@ def _get_fap_profile_level():
     return 1
 
 
+def _plugin_fal_name(app):
+    return f"{app.appid}.fal"
+
+
 _FAP_PROFILE_LEVEL = _get_fap_profile_level()
 _FAP_PROFILE_EPOCH = time.perf_counter()
 _FAP_PROFILE_ROWS = []
@@ -404,12 +408,14 @@ class AppBuilder:
         # where those files do not exist, especially on a second build.
         plugin_assets_dir = self.app_work_dir.Dir("assets")
         if self.app.embeds_plugins:
+            hw_target = self.app_env.subst("f${TARGET_HW}")
             self.app_env.Depends(
                 app_artifacts.compact,
                 [
-                    plugin_assets_dir.Dir("plugins").File(f"{plugin.appid}.fal")
+                    plugin_assets_dir.Dir("plugins").File(_plugin_fal_name(plugin))
                     for plugin in self.app._plugins
                     if plugin.fal_embedded
+                    and plugin.supports_hardware_target(hw_target)
                 ],
             )
 
@@ -673,7 +679,7 @@ def _embed_app_metadata_emitter(target, source, env):
 
     # Hack: change extension for fap libs
     if app.apptype == FlipperAppType.PLUGIN:
-        target[0].name = target[0].name.replace(".fap", ".fal")
+        target[0].name = _plugin_fal_name(app)
 
     app_work_dir = AppBuilder.get_app_work_dir(env, app)
     app._section_fapmeta = app_work_dir.File(_FAP_META_SECTION)

@@ -1,6 +1,8 @@
 import os
 import shutil
 
+from flipper.assets.file_filter import is_macos_metadata_name
+
 from SCons.Action import Action
 from SCons.Builder import Builder
 from SCons.Errors import StopError
@@ -72,7 +74,11 @@ def _resources_dist_action(target, source, env):
             os.makedirs(os.path.dirname(target.path), exist_ok=True)
             shutil.copy(src.path, target.path)
         elif isinstance(src, Dir):
-            shutil.copytree(src.path, target.path)
+            shutil.copytree(
+                src.path,
+                target.path,
+                ignore=lambda _, names: [name for name in names if is_macos_metadata_name(name)],
+            )
         else:
             raise StopError(f"Unsupported dist entry type: {type(src)}")
 

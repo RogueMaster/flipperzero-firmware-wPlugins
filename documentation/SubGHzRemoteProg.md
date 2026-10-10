@@ -57,9 +57,10 @@ Which arrow is which depends on the protocol. Where a receiver wants a *hidden* 
 | [DoorHan](#doorhan) | [Erreka IRIS](#erreka-iris-new) | [FAAC RC, XT](#faac-rc-xt) |
 | [FAAC SLH](#faac-slh) | [Genius (SLH)](#genius-slh) | [Genius TX4RC](#genius-tx4rc-bravo--echo) |
 | [Hormann EcoStar](#hormann-ecostar) | [Jarolift](#jarolift) | [KingGates Stylo 4k](#kinggates-stylo-4k) |
-| [Mhouse](#mhouse) | [Nice Flor S](#nice-flor-s) | [Nice One](#nice-one) |
-| [Nice Smilo](#nice-smilo) | [Security+ 1.0 / 2.0](#security-10--20-chamberlain-liftmaster-craftsman) | [Somfy Keytis](#somfy-keytis) |
-| [Somfy Telis](#somfy-telis) | [Sommer](#sommer) | [V2 Phoenix (Phox)](#v2-phoenix-phox) |
+| [Mhouse](#mhouse) | [Nice Flor S](#nice-flor-s) | [Nice O-Code](#nice-o-code) |
+| [Nice One](#nice-one) | [Nice Smilo](#nice-smilo) | [Security+ 1.0 / 2.0](#security-10--20-chamberlain-liftmaster-craftsman) |
+| [Somfy Keytis](#somfy-keytis) | [Somfy Telis](#somfy-telis) | [Sommer](#sommer) |
+| [V2 Phoenix (Phox)](#v2-phoenix-phox) | | |
 
 Not listed? See [Programming / hidden button reference](#programming--hidden-button-reference) - it covers every other entry in the `Add Manually` menu.
 
@@ -67,7 +68,7 @@ Not listed? See [Programming / hidden button reference](#programming--hidden-but
 
 ## Alutech AT4N (AN-Motors)
 
-**Create it:** `SubGHz` -> `Add Manually` -> `Alutech AT4N 433MHz`
+- **Create it:** `SubGHz` -> `Add Manually` -> `Alutech AT4N 433MHz`
 
 This is for boards with a display and `F`, `CL`, `+`, `-` buttons. If your board has a `Learn` button instead, use [AN-Motors AT4](#an-motors-at4).
 
@@ -85,7 +86,7 @@ This is for boards with a display and `F`, `CL`, `+`, `-` buttons. If your board
 
 ## AN-Motors AT4
 
-**Create it:** `SubGHz` -> `Add Manually` -> `AN-Motors AT4 433MHz`
+- **Create it:** `SubGHz` -> `Add Manually` -> `AN-Motors AT4 433MHz`
 
 This is for older boards with a `Learn` button. If your board has no `Learn` button but has `F`, `CL`, `+`, `-`, use [Alutech AT4N](#alutech-at4n-an-motors) instead.
 
@@ -101,8 +102,8 @@ This is for older boards with a `Learn` button. If your board has no `Learn` but
 
 ## Aprimatic TR
 
-**Create it:** `SubGHz` -> `Add Manually` -> `KL: Aprimatic 433MHz`
-**Programming key:** Right Arrow = `0xF` (on the original remote this is all 4 buttons held together)
+- **Create it:** `SubGHz` -> `Add Manually` -> `KL: Aprimatic 433MHz`
+- **Programming key:** Right Arrow = `0xF` (on the original remote this is all 4 buttons held together)
 
 1. Open your new remote file
 2. On your existing remote that already works with the receiver, push all 4 buttons at the same time
@@ -115,9 +116,9 @@ This is for older boards with a `Learn` button. If your board has no `Learn` but
 
 ## Beninca ARC (TO.GO)
 
-**Also sold as:** TO.GO 2VA / TO.GO 4VA (previously TO.GO 2WV / 4WV) - receivers WB, WI, and receivers built into the control panel
-**Create it:** `SubGHz` -> `Add Manually` -> `Beninca ARC 433MHz`
-**Programming key:** **Down Arrow** = `0x0`, the hidden button
+- **Also sold as:** TO.GO 2VA / TO.GO 4VA (previously TO.GO 2WV / 4WV) - receivers WB, WI, and receivers built into the control panel
+- **Create it:** `SubGHz` -> `Add Manually` -> `Beninca ARC 433MHz`
+- **Programming key:** **Down Arrow** = `0x0`, the hidden button
 
 On a 2 button original remote the hidden button means holding both buttons at once, which is awkward or impossible to do reliably. On the Flipper it is just the Down Arrow.
 
@@ -145,8 +146,8 @@ Here the hidden button has to be sent from **both** remotes:
 
 ## BFT Mitto
 
-**Create it:** `SubGHz` -> `Add Manually` -> `BFT Mitto 433MHz`
-**Programming key:** Right Arrow = `0xF` (on the original this is the pin hole on the back, or buttons 1+2 held together)
+- **Create it:** `SubGHz` -> `Add Manually` -> `BFT Mitto 433MHz`
+- **Programming key:** Right Arrow = `0xF` (on the original this is the pin hole on the back, or buttons 1+2 held together)
 
 ### With a remote that already works
 
@@ -201,8 +202,8 @@ Replace the `X`s with the digits of the Seed from step 4, save, and copy the fil
 
 ## CAME Atomo
 
-**Also sold as:** TOP42R / TOP44R / TOP44RGR (806TS-0130)
-**Create it:** `SubGHz` -> `Add Manually` -> `CAME Atomo 433MHz` or `CAME Atomo 868MHz`
+- **Also sold as:** TOP42R / TOP44R / TOP44RGR (806TS-0130)
+- **Create it:** `SubGHz` -> `Add Manually` -> `CAME Atomo 433MHz` or `CAME Atomo 868MHz`
 
 > [!IMPORTANT]
 > When using CAME Atomo from the Flipper, always hold `Send` for at least 2 seconds. The Flipper transmits only while the key is held, and this protocol needs the time to get the whole code out.
@@ -234,10 +235,10 @@ Replace the `X`s with the digits of the Seed from step 4, save, and copy the fil
 
 ## Cardin S449
 
-**Also sold as:** S449 QZ1 / QZ2 / QZ4, TXQ449100 / TXQ449200 - receivers RCQ449
-**Read with:** modulation `FM12K`, **not** AM650
-**Create it:** `SubGHz` -> `Add Manually` -> `KL: Cardin S449 433MHz`
-**Programming key:** Right Arrow = `0xD` (on the original this is the button in the small hole under the keys)
+- **Also sold as:** S449 QZ1 / QZ2 / QZ4, TXQ449100 / TXQ449200 - receivers RCQ449
+- **Read with:** modulation `FM12K`, **not** AM650
+- **Create it:** `SubGHz` -> `Add Manually` -> `KL: Cardin S449 433MHz`
+- **Programming key:** Right Arrow = `0xD` (on the original this is the button in the small hole under the keys)
 
 1. Open your new remote file
 2. Stand 1-2 meters from the receiver
@@ -254,8 +255,8 @@ Replace the `X`s with the digits of the Seed from step 4, save, and copy the fil
 
 ## DEA Mio
 
-**Create it:** `SubGHz` -> `Add Manually` -> `KL: DEA Mio 433MHz`
-**Programming key:** Right Arrow = `0xF`, the hidden button on the original remote
+- **Create it:** `SubGHz` -> `Add Manually` -> `KL: DEA Mio 433MHz`
+- **Programming key:** Right Arrow = `0xF`, the hidden button on the original remote
 
 1. Open your new remote file
 2. `Send` acts as one of the normal buttons of the remote - this is the one you register into the receiver
@@ -266,9 +267,9 @@ Replace the `X`s with the digits of the Seed from step 4, save, and copy the fil
 
 ## Ditec GOL4
 
-**Also sold as:** GOL4 / GOL4C - receivers BIXLG4, BIXLP2, BIXLS2, BIXR2
-**Create it:** `SubGHz` -> `Add Manually` -> `Ditec GOL4 433MHz`
-**Programming key:** Right Arrow = `0x0`, the hidden button on the original remote
+- **Also sold as:** GOL4 / GOL4C - receivers BIXLG4, BIXLP2, BIXLS2, BIXR2
+- **Create it:** `SubGHz` -> `Add Manually` -> `Ditec GOL4 433MHz`
+- **Programming key:** Right Arrow = `0x0`, the hidden button on the original remote
 
 1. Open your new remote file
 2. Open the receiver box, press and release the `PRG` button - the `SIG` led lights up and stays on
@@ -284,7 +285,7 @@ Replace the `X`s with the digits of the Seed from step 4, save, and copy the fil
 
 ## DoorHan
 
-**Create it:** `SubGHz` -> `Add Manually` -> `KL: DoorHan 433MHz` or `KL: DoorHan 315MHz`
+- **Create it:** `SubGHz` -> `Add Manually` -> `KL: DoorHan 433MHz` or `KL: DoorHan 315MHz`
 
 ### Finding your frequency first
 
@@ -331,14 +332,14 @@ In all cases, wait until the receiver returns to normal mode before testing.
 
 ## Erreka IRIS (NEW!)
 
-**Also sold as:** IRIS IR02 / IR04 on 433.92 MHz, IR02/868 / IR04/868 on 868.35 MHz
-**Create it:** `SubGHz` -> `Add Manually` -> `Erreka 433MHz`
-**Programming key:** Right Arrow = `0xF` (on the original this means bridging pins `1` and `5` of the 5 way connector inside the remote)
+- **Also sold as:** IRIS IR02 / IR04 on 433.92 MHz, IR02/868 / IR04/868 on 868.35 MHz
+- **Create it:** `SubGHz` -> `Add Manually` -> `Erreka 433MHz` or `Erreka 868MHz`
+- **Programming key:** Right Arrow = `0xF` (on the original this means bridging pins `1` and `5` of the 5 way connector, which sits exposed on the side of the remote - no need to open the case)
 
 Erreka IRIS is a Roller Code remote - KeeLoq with a secret Seed. The manufacturer gives two ways to register a new remote, and both work from the Flipper.
 
 > [!NOTE]
-> `Add Manually` creates a 433.92 MHz remote. For an IR02/868 or IR04/868 remote, change the frequency of the created signal to 868.35 MHz before you use it.
+> Pick the entry that matches your receiver: `Erreka 433MHz` for IR02 / IR04, `Erreka 868MHz` for IR02/868 / IR04/868.
 
 ### With access to the receiver box
 
@@ -351,7 +352,7 @@ Erreka IRIS is a Roller Code remote - KeeLoq with a secret Seed. The manufacture
 
 ### With a remote that already works
 
-The original IRIS opens the programming window by bridging pins `1` and `5` of the 5 way connector inside its case - that makes it transmit its Seed in the clear, and the receiver answers with a single beep. On the Flipper the same thing is just the Right Arrow, no wires needed.
+The original IRIS opens the programming window by bridging pins `1` and `5` of the 5 way connector exposed on the side of the case - that makes it transmit its Seed in the clear, and the receiver answers with a single beep. On the Flipper the same thing is just the Right Arrow, no wires needed.
 
 The remote that opens the window has to be one the receiver already knows. That means either the first Flipper remote you registered with the receiver button above, or your original remote with its Seed recovered (see below).
 
@@ -362,34 +363,57 @@ The remote that opens the window has to be one the receiver already knows. That 
 5. If 10 seconds pass with nothing stored, the receiver leaves programming mode. Start again from step 2
 6. Done?
 
+### If the new remote will not register
+
+Some installations give **every remote the same Seed** - the installer programmed them as a set. On those, a remote with a freshly generated random Seed is never accepted, no matter how exactly you follow the procedure above.
+
+The fix is to keep the existing Seed and change only the serial, so you get a genuinely new remote that still belongs to the installation:
+
+1. Get the Seed off a remote that already works - either way below
+2. Create the remote with `SubGHz` -> `Add Manually [Advanced]` -> `Erreka 433MHz` (or `Erreka 868MHz`) and enter:
+   - `SERIAL` - `0X XX XX XX`, any value that is not one of your existing remotes. **Keep the leading `0`** - that nibble is the button, which the Advanced screen asks for separately
+   - `BUTTON` - `02`
+   - `COUNTER` - `00 02`
+   - `SEED` - the Seed from step 1
+3. Run the registration procedure again, either one
+
+> [!TIP]
+> **Keep the leading zeros in the serial.** Some systems have turned up using only the bottom 3 or 4 digits of the serial, so their remotes look like `00 00 0A BC` rather than a full length number. If your installation is one of those, a long random serial may simply be refused.
+>
+> Read one of your working remotes first and copy the shape of its serial - same number of significant digits, leading zeros kept - and only change the last digits to make it unique.
+
+> [!TIP]
+> If two of your original remotes read with the same `Seed` once you have recovered it, that is this kind of installation, and reusing the Seed is the right move rather than a workaround.
+
 ### Getting the Seed off your original IRIS remote
 
-Erreka cannot be decoded without the Seed - a normal button press from an original remote shows up as `KL: Unknown` until you know it. There are two ways to get it.
+Erreka cannot be decoded without the Seed - a normal button press from an original remote reads as `KL: Unknown` until you know it. There are two ways to get it.
 
-**By opening the remote:**
+**Option 1 - by shorting the pins and reading it.** This is the quick one, the remote transmits the Seed in the clear, and the pins are on the outside of the case so nothing has to be taken apart:
 
 1. Open `SubGHz` -> `Read`, set the frequency to 433.92 or 868.35 and the modulation to `AM650`
-2. Open your original IRIS remote and bridge pins `1` and `5` of the 5 way connector
-3. You receive a signal. Open it and look at `Fix:` - it starts with `F`, the button code meaning "programming button pressed"
-4. The `Hop:` value of that signal is your Seed
-5. Save the signal (it will be listed as `KL: Unknown`), copy the file to a PC and add these two lines after the `Key: ...` line:
+2. Bridge pins `1` and `5` of the 5 way connector on the side of your original IRIS remote
+3. You receive a signal. The manufacturer will show as **`Unknown`** - that is expected, not an error. The Flipper cannot name the manufacturer yet precisely because it does not know the Seed
+4. Open the signal and look at `Fix:` - it starts with `F`, the button code meaning "programming button pressed"
+5. **The `Hop:` value of that signal is your Seed**, in the clear
+6. From here you can either type it into `Add Manually [Advanced]` as above, or turn the captured signal into a working file: save it, copy it to a PC and add these two lines after the `Key: ...` line:
 
 ```
 Seed: 0X XX XX XX
 Manufacture: Erreka
 ```
 
-Replace the `X`s with the digits of the Seed from step 4, save, and copy the file back to the Flipper. It decodes now, and you can use it to open the programming window for new remotes.
+Replace the `X`s with the digits of the Seed from step 5, save, and copy the file back to the Flipper. It decodes now, and you can use it to open the programming window for new remotes.
 
-**Without opening the remote:** use the **Seed Capturer** app (`Apps` -> `Sub-GHz`). Pick `Erreka` and your frequency, then press the same button on your remote over and over. It locks onto the first `Fix` it hears and keeps every different `Hop` under it, up to 10. Two hops are enough to save, more narrow the search down. Captures land in `/ext/apps_data/subghz_seed_captures` for the qUnleashed app to recover the Seed from.
+**Option 2 - with the Seed Capturer app**, when you cannot bridge the pins or the remote has no connector. Pick `Erreka` and your frequency and press one button repeatedly - see [Recovering a Seed with the Seed Capturer app](#recovering-a-seed-with-the-seed-capturer-app) for the whole procedure. This one needs a recovery step in qUnleashed afterwards, so option 1 is faster whenever you can reach the pins.
 
 ---
 
 ## FAAC RC, XT
 
-**Also sold as:** XT2 / XT4 433 RC / 868 RC, and the older RC coding
-**Create it:** `SubGHz` -> `Add Manually` -> `KL: FAAC RC,XT 433MHz` or `KL: FAAC RC,XT 868MHz`
-**Programming key:** Right Arrow = `0xB` (on the original this is buttons 1+2 held together, the "master" press)
+- **Also sold as:** XT2 / XT4 433 RC / 868 RC, and the older RC coding
+- **Create it:** `SubGHz` -> `Add Manually` -> `KL: FAAC RC,XT 433MHz` or `KL: FAAC RC,XT 868MHz`
+- **Programming key:** Right Arrow = `0xB` (on the original this is buttons 1+2 held together, the "master" press)
 
 > [!IMPORTANT]
 > These are KeeLoq, not SLH. Read your remote first: if the Flipper calls it `KL: FAAC_RC,XT` you are in the right place. If it says `FAAC SLH`, use [FAAC SLH](#faac-slh) instead.
@@ -409,8 +433,8 @@ Replace the `X`s with the digits of the Seed from step 4, save, and copy the fil
 
 ## FAAC SLH
 
-**Create it:** `SubGHz` -> `Add Manually` -> `FAAC SLH 433MHz` or `FAAC SLH 868MHz`
-**Programming key:** **Up Arrow** sends the programming signal
+- **Create it:** `SubGHz` -> `Add Manually` -> `FAAC SLH 433MHz` or `FAAC SLH 868MHz`
+- **Programming key:** **Up Arrow** sends the programming signal
 
 ### With access to the receiver box
 
@@ -435,10 +459,19 @@ FAAC has a procedure for registering new remotes from an existing master remote,
 5. Create the remote: `SubGHz` -> `Add Manually [Advanced]` -> `FAAC SLH 433MHz` (or 868), then enter:
    - `SERIAL` - `0A 0R RR RR`, replacing each `R` with any digit you like
    - `BUTTON` - `06`
-   - `COUNTER` - `00 00 02`
+   - `COUNTER` - `00 00 00 02`
    - `SEED` - the Seed you read in step 4
 6. The Flipper now acts as a new remote. Press `Send` a couple of times near the receiver to register it
 7. Done!
+
+### If neither of those is possible
+
+Two situations leave you stuck:
+
+- **The receiver's remote programming is disabled.** Some installers switch it off, and then nothing you send will register a new remote
+- **Your remote is a slave, not a master.** Only a master can transmit the programming code. On an original remote, press any button and watch the led - a short blink before it goes steady means master, steady straight away means slave
+
+In both cases the only remaining route is a **clone** of a remote the receiver already knows, and that needs the Seed. Get it with the [Seed Capturer app](#recovering-a-seed-with-the-seed-capturer-app), then build the clone with the **original remote's** `SERIAL` and `BUTTON` instead of your own.
 
 > [!TIP]
 > `SERIAL` and `BUTTON` together make up the `Fix` value you see when reading a signal, and where the button sits inside `Fix` depends on the protocol:
@@ -449,14 +482,16 @@ FAAC has a procedure for registering new remotes from an existing master remote,
 
 ## Genius (SLH)
 
-**Also sold as:** Echo TX2 433 SLH / Echo TX4 433 SLH / KILO TX2 / TX4 / JLC / Amigo
-**Create it:** `SubGHz` -> `Add Manually` -> `Genius 433MHz` or `Genius 868MHz`
-**Programming key:** **Up Arrow** sends the programming signal
+- **Also sold as:** Echo TX2 433 SLH / Echo TX4 433 SLH / KILO TX2 / TX4 / JLC / Amigo
+- **Create it:** `SubGHz` -> `Add Manually` -> `Genius 433MHz` or `Genius 868MHz`
+- **Programming key:** **Up Arrow** sends the programming signal
 
 Genius SLH is the same frame as FAAC SLH with its own manufacturer key, so **[the FAAC SLH procedures](#faac-slh) apply exactly as written** - both the receiver button one and the master remote one.
 
 1. Create the remote from the `Genius` entry for your frequency
 2. Follow the [FAAC SLH](#faac-slh) steps
+
+If the receiver's remote programming is disabled, or your remote is a slave and cannot send the programming code, the Seed route applies here too - capture it with the [Seed Capturer app](#recovering-a-seed-with-the-seed-capturer-app) (pick `Genius`) and follow [If neither of those is possible](#if-neither-of-those-is-possible) under FAAC SLH.
 
 > [!IMPORTANT]
 > Do not confuse this with `KL: Genius TX4RC 433M.`. The RC models are KeeLoq, not SLH, and they have [their own section](#genius-tx4rc-bravo--echo). If you are not sure which you have, read the remote first and see what the Flipper calls it.
@@ -465,9 +500,9 @@ Genius SLH is the same frame as FAAC SLH with its own manufacturer key, so **[th
 
 ## Genius TX4RC (Bravo / Echo)
 
-**Also sold as:** Echo TX2 433 RC / Echo TX4 433 RC / TE443H Bravo
-**Create it:** `SubGHz` -> `Add Manually` -> `KL: Genius TX4RC 433M.`
-**Programming key:** Right Arrow = `0xB`, the programming mode button of the original remote
+- **Also sold as:** Echo TX2 433 RC / Echo TX4 433 RC / TE443H Bravo
+- **Create it:** `SubGHz` -> `Add Manually` -> `KL: Genius TX4RC 433M.`
+- **Programming key:** Right Arrow = `0xB`, the programming mode button of the original remote
 
 1. Open your new remote file
 2. Open the receiver box and press `SW1` for channel 1 or `SW2` for channel 2 - `LED1` / `LED2` lights up and stays on, that is learning mode
@@ -480,9 +515,9 @@ Genius SLH is the same frame as FAAC SLH with its own manufacturer key, so **[th
 
 ## Hormann EcoStar
 
-**Also sold as:** RSC2 / RSE2 / RSZ1 on 433.92 MHz - EcoStar Liftronic / Portronic drives
-**Create it:** `SubGHz` -> `Add Manually` -> `KL: Hor. EcoStar 433MHz`
-**Programming key:** **Down Arrow** = `0x6` - note this one is on Down, not Right
+- **Also sold as:** RSC2 / RSE2 / RSZ1 on 433.92 MHz - EcoStar Liftronic / Portronic drives
+- **Create it:** `SubGHz` -> `Add Manually` -> `KL: Hor. EcoStar 433MHz`
+- **Programming key:** **Down Arrow** = `0x6` - note this one is on Down, not Right
 
 1. Open your new remote file
 2. Find the clear programming button on the drive, usually underneath the motor, and hold it for ~1 sec - the indicator led on the motor starts flashing slowly
@@ -497,8 +532,8 @@ Genius SLH is the same frame as FAAC SLH with its own manufacturer key, so **[th
 
 ## Jarolift
 
-**Also sold as:** TDEF radio tube motors - TDRC / TDRCE remotes
-**Create it:** `SubGHz` -> `Add Manually` -> `Jarolift 433MHz`
+- **Also sold as:** TDEF radio tube motors - TDRC / TDRCE remotes
+- **Create it:** `SubGHz` -> `Add Manually` -> `Jarolift 433MHz`
 
 The keys are already mapped to the original remote's buttons:
 
@@ -535,8 +570,8 @@ The keys are already mapped to the original remote's buttons:
 
 ## KingGates Stylo 4k
 
-**Also sold as:** Stylo 2K / Stylo 4K (10S001) - receivers Fred, Myo
-**Create it:** `SubGHz` -> `Add Manually` -> `KingGates Stylo4k 433M.`
+- **Also sold as:** Stylo 2K / Stylo 4K (10S001) - receivers Fred, Myo
+- **Create it:** `SubGHz` -> `Add Manually` -> `KingGates Stylo4k 433M.`
 
 There is no separate programming button on this one. The four keys are simply the four channels of the original remote:
 
@@ -559,9 +594,9 @@ There is no separate programming button on this one. The four keys are simply th
 
 ## Mhouse
 
-**Also sold as:** GTX4 / GTX4C / TX3 / TX4 - also Moovo and Nice Home ECCO
-**Create it:** `SubGHz` -> `Add Manually` -> `KL: Mhouse 433MHz`
-**Programming key:** Right Arrow = `0xF`, the extra (hidden) button of the original remote
+- **Also sold as:** GTX4 / GTX4C / TX3 / TX4 - also Moovo and Nice Home ECCO
+- **Create it:** `SubGHz` -> `Add Manually` -> `KL: Mhouse 433MHz`
+- **Programming key:** Right Arrow = `0xF`, the extra (hidden) button of the original remote
 
 ### With access to the receiver box
 
@@ -587,7 +622,7 @@ Mhouse is the same Nice receiver family as [Nice Smilo](#nice-smilo), so the pro
 
 ## Nice Flor S
 
-**Create it:** `SubGHz` -> `Add Manually` -> `Nice FloR-S 433MHz`
+- **Create it:** `SubGHz` -> `Add Manually` -> `Nice FloR-S 433MHz`
 
 ### With a remote that already works
 
@@ -614,7 +649,7 @@ Your new remote registers exactly as your original remote's instructions describ
 
 ## Nice One
 
-**Create it:** `SubGHz` -> `Add Manually` -> `Nice One 433MHz`
+- **Create it:** `SubGHz` -> `Add Manually` -> `Nice One 433MHz`
 
 Nice One is the Nice FloR-S family with different keying, and the receiver side is identical - **[both Nice Flor S procedures](#nice-flor-s) apply exactly as written**.
 
@@ -622,15 +657,32 @@ Nice One is the Nice FloR-S family with different keying, and the receiver side 
 2. Follow the [Nice Flor S](#nice-flor-s) steps
 
 > [!TIP]
-> If your remote reads as FloR-S but the counter looks wrong, it may be **Nice O-Code** instead - that is FloR-S keyed with a 16 bit installer code. Use the `Nice O-Code` app (`Apps` -> `Sub-GHz`), it recovers the key from 4 or more captures.
+> If your remote reads as FloR-S but the counter looks wrong, it may be **Nice O-Code** instead - see below.
+
+---
+
+## Nice O-Code
+
+- **Create it:** `SubGHz` -> `Add Manually` -> `Nice O-Code 433MHz`
+- **Create it on an installed system:** `SubGHz` -> `Add Manually` -> `Advanced` -> `Nice O-Code 433MHz`, which asks for the installer code as well
+
+O-Code is Nice FloR-S keyed with a 16 bit **installer code (IC)**, one value shared by every remote of an installation. The receiver side is identical to FloR-S, so **[both Nice Flor S procedures](#nice-flor-s) apply exactly as written** - but a remote only reaches a receiver that was set up with the same installer code.
+
+That leaves two ways round:
+
+- **For a system of your own**, the plain `Nice O-Code 433MHz` entry makes up an installer code along with the serial, and you register the remote with the receiver button like any other first remote.
+- **For a system that is already installed**, the remote has to carry that installation's installer code. Recover it from a remote that already works with the **`Nice O-Code` app** (`Apps` -> `Sub-GHz`): press the remote's button 4 or more times, do not hold it, and the app brute forces the code out of the captures. Then either
+  - press **Right (`New`)** on the app's result screen, which writes a remote with that same installer code and button but a serial and counter of its own - the one to register with the receiver, and
+  - press `Save` for a plain clone of the remote you captured, useful for testing but it fights your original over the counter, or
+  - enter the code by hand under `Add Manually` -> `Advanced` if you already know it.
 
 ---
 
 ## Nice Smilo
 
-**Also sold as:** SM2 / SM4 - receivers SMXI, SMXIS, OXI set to Smilo coding
-**Create it:** `SubGHz` -> `Add Manually` -> `KL: Nice Smilo 433MHz`
-**Programming key:** Right Arrow = `0xB`, the extra (hidden) button of the original remote
+- **Also sold as:** SM2 / SM4 - receivers SMXI, SMXIS, OXI set to Smilo coding
+- **Create it:** `SubGHz` -> `Add Manually` -> `KL: Nice Smilo 433MHz`
+- **Programming key:** Right Arrow = `0xB`, the extra (hidden) button of the original remote
 
 Nice receivers can store a remote in one of two modes. **Mode I** gives each remote button the matching receiver output - button 1 works output 1, button 2 works output 2. **Mode II** lets you pick which output a single button controls.
 
@@ -670,7 +722,7 @@ You do not need the receiver box, but the first remote always has to be register
 
 ## Security+ 1.0 / 2.0 (Chamberlain, LiftMaster, Craftsman)
 
-**Create it:** `SubGHz` -> `Add Manually` -> `Security+2.0` or `Security+1.0` with your frequency
+- **Create it:** `SubGHz` -> `Add Manually` -> `Security+2.0` or `Security+1.0` with your frequency
 
 **Which one do you have?** The colour of the `Learn` button on the motor head tells you:
 
@@ -697,9 +749,9 @@ You do not need the receiver box, but the first remote always has to be register
 
 ## Somfy Keytis
 
-**Also sold as:** Keytis NS 2 RTS / KeyGo 4 RTS
-**Create it:** `SubGHz` -> `Add Manually` -> `Somfy Keytis 433MHz` (this is **433.42 MHz**, not 433.92)
-**Programming key:** **Up Arrow** = `0x3` - `Prog` (`Send` is `Key_1`)
+- **Also sold as:** Keytis NS 2 RTS / KeyGo 4 RTS
+- **Create it:** `SubGHz` -> `Add Manually` -> `Somfy Keytis 433MHz` (this is **433.42 MHz**, not 433.92)
+- **Programming key:** **Up Arrow** = `0x3` - `Prog` (`Send` is `Key_1`)
 
 On an original Keytis there is no `Prog` key on the front - you have to bridge the two pads marked `PROG` on the back of the board with a screwdriver. The Flipper just needs the Up Arrow.
 
@@ -728,8 +780,8 @@ On an original Keytis there is no `Prog` key on the front - you have to bridge t
 
 ## Somfy Telis
 
-**Create it:** `SubGHz` -> `Add Manually` -> `Somfy Telis 433MHz` (this is **433.42 MHz**, not 433.92)
-**Programming key:** **Left Arrow** = `0x8` - `Prog`
+- **Create it:** `SubGHz` -> `Add Manually` -> `Somfy Telis 433MHz` (this is **433.42 MHz**, not 433.92)
+- **Programming key:** **Left Arrow** = `0x8` - `Prog`
 
 1. Open your new remote file
 2. Long press the `Prog` button on a remote that is already registered to the device, until the blinds move briefly up and down
@@ -740,13 +792,12 @@ On an original Keytis there is no `Prog` key on the front - you have to bridge t
 
 ## Sommer
 
-**Also sold as:** TX03-868-4 / TX03-868-2 (SOMloq) - Pearl, Duo, Sprint, Marathon drives
-**Read with:** modulation `FM12K` or `FM476`, whichever one decodes your remote
-**Create it:** the `fm2` entries in the menu are the `FM12K` ones, the plain `KL: Sommer` entries are `FM476`. Pick the one that matches how your remote read:
-- `KL: Sommer fm2 868Mhz` / `KL: Sommer fm2 434Mhz` for FM12K
-- `KL: Sommer 868MHz` / `KL: Sommer 434MHz` for FM476
-
-**Programming key:** Right Arrow = `0x6`
+- **Also sold as:** TX03-868-4 / TX03-868-2 (SOMloq) - Pearl, Duo, Sprint, Marathon drives
+- **Read with:** modulation `FM12K` or `FM476`, whichever one decodes your remote
+- **Create it:** pick the entry that matches how your remote read - the `fm2` entries are the `FM12K` ones, the plain `KL: Sommer` entries are `FM476`:
+  - `KL: Sommer fm2 868Mhz` / `KL: Sommer fm2 434Mhz` for FM12K
+  - `KL: Sommer 868MHz` / `KL: Sommer 434MHz` for FM476
+- **Programming key:** Right Arrow = `0x6`
 
 ### With access to the receiver
 
@@ -765,9 +816,9 @@ Press the `Radio` button on the control unit instead - a red led confirms progra
 
 ## V2 Phoenix (Phox)
 
-**Also sold as:** Phoenix 2/4, Phox 2/4, Handy 2/4, TXC2-4, TRC2-4, TSC2-4 - receivers RXP, MR2
-**Create it:** `SubGHz` -> `Add Manually` -> `V2 Phoenix 433MHz`
-**Programming key:** Right Arrow = `0x3` - on the original remote this is buttons 1+2 (or 1+3) held together
+- **Also sold as:** Phoenix 2/4, Phox 2/4, Handy 2/4, TXC2-4, TRC2-4, TSC2-4 - receivers RXP, MR2
+- **Create it:** `SubGHz` -> `Add Manually` -> `V2 Phoenix 433MHz`
+- **Programming key:** Right Arrow = `0x3` - on the original remote this is buttons 1+2 (or 1+3) held together
 
 > [!IMPORTANT]
 > This mapping has **not been confirmed by anyone yet**. If it does not work, register the remote at the receiver button instead and let us know in the issues tab.
@@ -787,6 +838,82 @@ The remote that starts this has to be stored in the receiver already. Everything
 
 ---
 
+## Recovering a Seed with the Seed Capturer app
+
+**FAAC SLH**, **Genius** and **Erreka** all build their rolling code from a secret per-installation **Seed**. Without it the Flipper cannot decode those remotes at all - a normal button press reads as `KL: Unknown` or will not decode - and it cannot build a remote the receiver will accept.
+
+The **Seed Capturer** app collects the raw material a Seed recovery needs. It does not recover the Seed itself and it **never transmits anything** - it only listens and writes a file.
+
+### Why you would want it
+
+- **The receiver's remote programming is switched off.** Some installers disable radio programming on the receiver. Then no amount of button pressing registers a new remote, and a clone of a remote the receiver already knows is the only way in. A clone needs the Seed
+- **Your remote is a slave, not a master.** On FAAC and Genius only a master remote can transmit the programming code that opens the window for new remotes. A slave cannot, so the master-remote procedure is simply unavailable to you. Again, a clone is the way, and a clone needs the Seed
+- **You cannot get at the receiver.** It is walled in, in a locked box, or not yours to open
+- **Erreka with a shared Seed.** See [Erreka IRIS](#erreka-iris-new) - some installations give every remote the same Seed, and a new remote has to reuse it
+
+### How to use it
+
+1. Open `Apps` -> `Sub-GHz` -> `Seed Capturer`
+2. Pick `New capture`
+3. Pick your remote type - `FAAC SLH`, `Genius` or `Erreka`
+4. Pick your frequency - `433.92 MHz  AM650` or `868.35 MHz  AM650`
+5. Press **the same button on the same remote**, over and over. Roughly once a second is fine
+6. Watch the screen fill in:
+   - `Fix` - the remote's fixed part. The app locks onto the first one it hears and ignores everything else
+   - `Hops n/10` - how many **different** rolling parts it has collected, and the raw packet count next to it
+   - the status line shows `Hop n: XXXXXXXX` each time a new one lands
+7. Once you have at least 2 hops, `Save` appears on the centre key. Press it
+8. The app tells you the file name it wrote
+9. **The Flipper's part is done here - it does not recover the Seed itself.** Connect the Flipper to the [qUnleashed](https://github.com/DarkFlippers/qUnleashed) companion app and run its Seed recovery tool: it reads the captures straight off the Flipper and does the actual search. Nothing has to be copied anywhere
+10. Enter that Seed back on the Flipper, see [Once you have the Seed](#once-you-have-the-seed) below
+
+### Reading the screen
+
+| What you see | What it means |
+|---|---|
+| `Hop n: XXXXXXXX` | a new rolling part was stored, keep pressing |
+| `Other remote XXXXXXXX` | that press came from a different remote or a different button, and was ignored |
+| `Have 10, enough` | the app is full, press `Save` |
+| `Press remote 2+ times` | nothing collected yet |
+
+Press **Left** (`Reset`) to throw the capture away and lock onto a different remote or button.
+
+### How many presses
+
+**Two hops is the minimum to save. More is better** - every extra hop narrows the search down and makes it finish faster. Collect 5-10 if the remote is in your hand.
+
+What matters as much as the count is that they are **consecutive presses with nothing missed**. The recovery works on an unbroken run of the counter, so a press that never reached the Flipper leaves a gap and the search will find nothing. Keep the remote next to the Flipper and watch that the `Hops` counter moves on every single press.
+
+### Where the file goes
+
+`/ext/apps_data/subghz_seed_captures/`, named `<Type>_<Fix>_<date-time>.txt`, for example `Erreka_F00F1C9B_261008-142233.txt`. It is a plain text file holding the manufacturer, protocol, frequency, preset, the `Fix` and every `Hop` in the order they arrived.
+
+### Recovering the Seed in qUnleashed
+
+The capture file is only the input. The Seed itself is found by the recovery tool inside [qUnleashed](https://github.com/DarkFlippers/qUnleashed), the companion app for phone and PC. **You do not copy, move, rename or edit any files** - qUnleashed fetches the captures from the Flipper's `subghz_seed_captures` folder by itself:
+
+1. Connect the Flipper to **qUnleashed** and go to its Seed recovery tool
+2. Pick your capture from the list it shows - the manufacturer, frequency, `Fix` and `Hop` list are all already in the file, so there is nothing to fill in
+3. Start the search and wait. It is a brute force search, which is exactly why it runs there and not on the Flipper
+4. **If it finds the Seed, it can save the whole clone remote for you.** The search hands back the Seed and the counter, and the `Fix` from the capture already carries the serial and the button - that is everything a `.sub` file needs, so qUnleashed composes the finished clone file itself and you put it back on the Flipper and send it. No `Add Manually` typing, no values to copy down
+5. If it does not find one, it says so - the Seed was not found. See the TIP below
+
+> [!TIP]
+> If it finds nothing, the capture most likely had a gap in it. The search needs an unbroken run of presses, so capture again and be precise about it: hold the remote right next to the Flipper, press the **same button** and nothing else, one steady press at a time, and check the `Hops` counter moves on **every** press. If a press does not register, hit `Reset` (Left) and start the capture over instead of carrying on.
+
+> [!IMPORTANT]
+> The Seed belongs to the installation, not to one button. **On FAAC SLH and Genius the Seed is different for every button** on the original remote, so capture the button you actually intend to use. On Erreka the Seed is per remote, and sometimes per whole installation.
+
+### Once you have the Seed
+
+- **To make a new remote** (needs the receiver to accept new remotes): `SubGHz` -> `Add Manually [Advanced]`, pick your type, and enter your own `SERIAL` with the recovered `SEED`
+- **To make a clone** (works without any programming, because the receiver already knows that serial): let qUnleashed save the clone file for you at the end of the recovery, as above - it already has the serial, button, counter and Seed. By hand instead: enter the **original remote's** `SERIAL` and `BUTTON`, the recovered `SEED`, and a `COUNTER` a little above the original's current value
+
+> [!CAUTION]
+> A clone shares the counter with the original remote, so the two fight over it - whichever you pressed last works and the other needs several presses to catch up. Only clone when making a new remote is not possible.
+
+---
+
 ## Programming / hidden button reference
 
 Lots of receivers are programmed by pressing a button the original remote does not show you - a recessed pin hole, two buttons held together, pads you bridge inside the case. The Flipper sends those codes as one single key press.
@@ -800,7 +927,7 @@ Lots of receivers are programmed by pressing a button the original remote does n
 |---|---|---|---|
 | `FAAC SLH 433/868MHz`, `Genius 433/868MHz` | - | **Up Arrow** | the programming signal |
 | `BFT Mitto 433MHz` | `0xF` | Right Arrow | pin hole on the back, or buttons 1+2 held |
-| `Erreka 433MHz` | `0xF` | Right Arrow | pins 1 and 5 of the 5 way connector bridged |
+| `Erreka 433MHz`, `Erreka 868MHz` | `0xF` | Right Arrow | pins 1 and 5 of the 5 way connector bridged (exposed on the side of the case) |
 | `KL: DEA Mio 433MHz` | `0xF` | Right Arrow | hidden button |
 | `KL: Aprimatic 433MHz` | `0xF` | Right Arrow | all 4 buttons held together |
 | `KL: Mhouse 433MHz` | `0xF` | Right Arrow | extra / hidden button |
@@ -820,7 +947,7 @@ Lots of receivers are programmed by pressing a button the original remote does n
 | `Somfy Telis 433MHz` | `0x8` | **Left Arrow** | `Prog` button |
 | `Somfy Keytis 433MHz` | `0x3` | **Up Arrow** | `Prog` pads on the back of the board |
 | `V2 Phoenix 433MHz` | `0x3` | Right Arrow | buttons 1+2 or 1+3 held *(unconfirmed)* |
-| `Nice FloR-S` / `Nice One 433MHz` | `0x3` | Right Arrow | button 3 *(unconfirmed as a programming button)* |
+| `Nice FloR-S` / `Nice One` / `Nice O-Code 433MHz` | `0x3` | Right Arrow | button 3 *(unconfirmed as a programming button)* |
 
 ### Everything else in the menu
 

@@ -5,6 +5,7 @@ import tarfile
 import heatshrink2
 
 from .heatshrink_stream import HeatshrinkDataStreamHeader
+from .file_filter import is_macos_metadata_path
 
 FLIPPER_TAR_FORMAT = tarfile.USTAR_FORMAT
 
@@ -13,6 +14,8 @@ TAR_GZIP_EXTENSION = ".tar.gz"
 
 
 def tar_sanitizer_filter(tarinfo: tarfile.TarInfo):
+    if is_macos_metadata_path(tarinfo.name):
+        return None
     tarinfo.gid = tarinfo.uid = 0
     tarinfo.mtime = 0
     tarinfo.uname = tarinfo.gname = "furippa"

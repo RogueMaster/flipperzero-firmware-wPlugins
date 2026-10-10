@@ -199,6 +199,10 @@ This software is for experimental purposes only and is not meant for any illegal
 - OFW: [BadUSB: Full USB/BLE parameter customization, UI improvements, and more #4136 (By WillyJL)](https://github.com/flipperdevices/flipperzero-firmware/pull/4136) (Already in RM)
 - OFW: [Various UI/UX fixes #4331 (By xMasterX)](https://github.com/flipperdevices/flipperzero-firmware/pull/4331) (Already in RM)
 - OFW: [NFC: Fix handling of FeliCa system key version #4462 (By kormax)](https://github.com/flipperdevices/flipperzero-firmware/pull/4462)
+- SubGHz: [Add KeyFinder2 read/send support and button-colour display; colour names remain based on one fob (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/fc859a4bc8970c29ae1b17e8348533f835d69d0d)
+- SubGHz: [Add Doorbell32 read/send support and include KeyFinder, KeyFinder2 and Doorbell32 in the Sensors ignore group (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/197ed204678523e0236d3ff4759b74d12e2cc6bd)
+- NFC: [Detect MIFARE DESFire Light, select its command mode and handle unsupported fields gracefully; file-content reading is not included (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/commit/5f8727ae0e1fea457416cc445d73906be9d9b276)
+- SubGHz: [Support Erreka programming mode on button 0xF and retain its seed when saving a signal (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/1139732616045a15b9efc59790cc83e3a8ad292a)
 
 <a name="release"></a>
 

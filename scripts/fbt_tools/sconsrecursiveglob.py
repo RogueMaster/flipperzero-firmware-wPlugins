@@ -7,6 +7,30 @@ from SCons.Node.FS import has_glob_magic
 from SCons.Script import Flatten
 
 
+_DIR_CACHE = {}
+
+
+def _dirs_postorder(node, exclude):
+    """Cache directory walks per root/exclusions for this SCons invocation."""
+    key = (node, tuple(sorted(map(str, exclude))))
+    if (cached := _DIR_CACHE.get(key)) is not None:
+        return cached
+    dirs = []
+    for child in node.glob("*", source=True, exclude=exclude):
+        if isinstance(child, SCons.Node.FS.Dir):
+            dirs.extend(_dirs_postorder(child, exclude))
+    dirs.append(node)
+    _DIR_CACHE[key] = dirs
+    return dirs
+
+
+def _cached_glob_recursive(pattern, node, exclude):
+    results = []
+    for directory in _dirs_postorder(node, exclude):
+        results.extend(directory.glob(pattern, source=True, exclude=exclude))
+    return results
+
+
 def _env_flag(name):
     return os.environ.get(name, "").lower() in ("1", "true", "yes", "on")
 
@@ -82,10 +106,10 @@ def GlobRecursive(env, pattern, node=".", exclude=[]):
         else:
             results = _literal_parent_glob(pattern, node, exclude)
             if results is None:
-                # Root-level masks such as "*.c" intentionally keep the
-                # original recursive behavior.
-                results = _legacy_glob_recursive(env, pattern, node, exclude)
-            elif _env_flag("FBT_GLOB_VALIDATE"):
+                # Root-level masks reuse their directory walk. Matching and
+                # result order remain the same as the original recursive glob.
+                results = _cached_glob_recursive(pattern, node, exclude)
+            if _env_flag("FBT_GLOB_VALIDATE"):
                 legacy_results = _legacy_glob_recursive(env, pattern, node, exclude)
                 if _node_paths(results) != _node_paths(legacy_results):
                     raise RuntimeError(
