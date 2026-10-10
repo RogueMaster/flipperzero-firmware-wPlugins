@@ -18,5 +18,5 @@ const char* COIN_TEXT_ARRAY[NUM_COINS][COIN_TEXT_SIZE] = {
     {"BTC", "m/84'/0'/0'/0", "bitcoin:", "BTCSW", "BTC SegWit"},
     {"ETH", "m/44'/60'/0'/0", "ethereum:", "ETH", "ETH"},
     {"DOGE", "m/44'/3'/0'/0", "dogecoin:", "DOGE", "DOGE"},
-    {"ZEC", "m/44'/133'/0'/0", "zcash:", "ZEC", "ZEC"},
-    {"XMR", "m/44'/128'/0'/0", "monero:", "XMR", "XMR"}};
+    {"XMR", "m/44'/128'/0'/0", "monero:", "XMR", "XMR"},
+    {"ZEC", "m/44'/133'/0'/0", "zcash:", "ZEC", "ZEC"}};
