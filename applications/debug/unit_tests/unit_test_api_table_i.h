@@ -41,6 +41,8 @@ static constexpr auto unit_tests_api_table = sort(create_array_t<sym_entry>(
         xQueueGenericSend,
         BaseType_t,
         (QueueHandle_t, const void* const, TickType_t, const BaseType_t)),
+// These functions belong to the JS Runner FAP, not the resident test firmware.
+#ifndef JS_RUNNER_FAP
     API_METHOD(
         js_thread_run,
         JsThread*,
@@ -58,4 +60,5 @@ static constexpr auto unit_tests_api_table = sort(create_array_t<sym_entry>(
          mjs_val_t* source,
          size_t n_c_vals,
          ...)),
+#endif
     API_VARIABLE(PB_Main_msg, PB_Main_msg_t)));

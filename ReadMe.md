@@ -194,6 +194,11 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Tesla Mod v2.16b37 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 - Updated: [SigRoam Wardriving v0.6.1 (By pingequalab)](https://github.com/pingequalab/sigroam-wardriving) `Req: ESP32`
 - Updated: [MTools v1.0 (By mtoolstec)](https://github.com/mtoolstec/flipper-mtools)
+- OFW: [Enforce new build flags #4461 (By xMasterX)](https://github.com/flipperdevices/flipperzero-firmware/pull/4461)
+- OFW: [NFC: Type 4 Support (NTAG4xx/DESFire) + Many Improvements #4242 (By WillyJL)](https://github.com/flipperdevices/flipperzero-firmware/pull/4242) (Already in RM)
+- OFW: [BadUSB: Full USB/BLE parameter customization, UI improvements, and more #4136 (By WillyJL)](https://github.com/flipperdevices/flipperzero-firmware/pull/4136) (Already in RM)
+- OFW: [Various UI/UX fixes #4331 (By xMasterX)](https://github.com/flipperdevices/flipperzero-firmware/pull/4331) (Already in RM)
+- OFW: [NFC: Fix handling of FeliCa system key version #4462 (By kormax)](https://github.com/flipperdevices/flipperzero-firmware/pull/4462)
 
 <a name="release"></a>
 

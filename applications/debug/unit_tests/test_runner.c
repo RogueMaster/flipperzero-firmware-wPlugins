@@ -154,7 +154,7 @@ static void test_runner_run_internal(TestRunner* instance) {
         }
 
         while(true) {
-            if(instance->cli && cli_is_pipe_broken_or_is_etx_next_char(instance->pipe)) {
+            if(instance->pipe && cli_is_pipe_broken_or_is_etx_next_char(instance->pipe)) {
                 break;
             }
 
@@ -186,7 +186,7 @@ static void test_runner_run_internal(TestRunner* instance) {
             if(!result) {
                 printf("Failed to execute test: %s\r\n", file_basename_cstr);
 
-                if(!instance->cli) {
+                if(!instance->pipe) {
                     notification_message(instance->notification, &sequence_error);
 
                     DialogsApp* dialogs = furi_record_open(RECORD_DIALOGS);
@@ -248,7 +248,7 @@ void test_runner_run(TestRunner* instance) {
                 printf("Status: FAILED\r\n");
             }
 
-            if(!instance->cli) {
+            if(!instance->pipe) {
                 char text[70];
                 snprintf(
                     text,
