@@ -1,4 +1,5 @@
 #include "flipbip_file.h"
+#include <string.h>
 #include <storage/storage.h>
 #include <loader/loader.h>
 #include "../helpers/flipbip_string.h"
@@ -191,71 +192,53 @@ bool flipbip_save_qrfile(
     return flipbip_save_file(qr_buf, FlipBipFileOther, file_name, false);
 }
 
+static bool flipbip_has_header(const char* data) {
+    return strncmp(data, FILE_HSTR, FILE_HLEN) == 0;
+}
+
 bool flipbip_load_file_secure(char* settings) {
     const size_t dlen = FILE_HLEN + FILE_SLEN + 1;
+    bool ret = false;
 
-    // allocate memory for key/data
+    // allocate memory for key/data (zeroed, so always null terminated)
     char* data = malloc(dlen);
     memzero(data, dlen);
-
-    // load k2 from file
-    if(!flipbip_load_file(data, dlen, FlipBipFileKey, NULL)) return false;
-
-    // check header
-    if(data[0] != FILE_HSTR[0] || data[1] != FILE_HSTR[1] || data[2] != FILE_HSTR[2] ||
-       data[3] != FILE_HSTR[3]) {
-        memzero(data, dlen);
-        free(data);
-        return false;
-    }
-    // seek --> header
-    data += FILE_HLEN;
-
-    // prepare k1
     uint8_t k1[64];
-    flipbip_xtob(FILE_K1, k1, strlen(FILE_K1) / 2);
-
-    // load k2 from file buffer (secured by k1)
-    flipbip_cipher(k1, strlen(FILE_K1) / 2, data, data, FILE_KLEN);
     uint8_t k2[128];
-    flipbip_xtob(data, k2, FILE_KLEN / 2);
-    // zero k2 buffer
-    memzero(data, FILE_KLEN);
-    // seek <-- header
-    data -= FILE_HLEN;
 
-    // load data from file
-    if(!flipbip_load_file(data, dlen, FlipBipFileDat, NULL)) return false;
+    do {
+        // load k2 from file
+        if(!flipbip_load_file(data, dlen - 1, FlipBipFileKey, NULL)) break;
+        if(!flipbip_has_header(data)) break;
 
-    // check header
-    if(data[0] != FILE_HSTR[0] || data[1] != FILE_HSTR[1] || data[2] != FILE_HSTR[2] ||
-       data[3] != FILE_HSTR[3]) {
+        // decrypt k2 (secured by k1)
+        flipbip_xtob(FILE_K1, k1, sizeof(k1));
+        flipbip_cipher(k1, sizeof(k1), data + FILE_HLEN, data + FILE_HLEN, FILE_KLEN);
+        flipbip_xtob(data + FILE_HLEN, k2, sizeof(k2));
         memzero(data, dlen);
-        free(data);
-        memzero(k1, strlen(FILE_K1) / 2);
-        memzero(k2, FILE_KLEN / 2);
-        return false;
-    }
-    // seek --> header
-    data += FILE_HLEN;
 
-    // load settings from file buffer (secured by k2)
-    flipbip_cipher(k2, FILE_KLEN / 2, data, data, FILE_SLEN);
-    flipbip_xtob(data, (unsigned char*)data, FILE_SLEN / 2);
+        // load data from file
+        if(!flipbip_load_file(data, dlen - 1, FlipBipFileDat, NULL)) break;
+        if(!flipbip_has_header(data)) break;
 
-    // copy to output
-    strcpy(settings, data);
+        // decrypt settings (secured by k2)
+        char* payload = data + FILE_HLEN;
+        flipbip_cipher(k2, sizeof(k2), payload, payload, FILE_SLEN);
+        flipbip_xtob(payload, (unsigned char*)payload, FILE_SLEN / 2);
+        payload[FILE_SLEN / 2] = '\0';
 
-    // seek <-- header
-    data -= FILE_HLEN;
+        // copy to output
+        strcpy(settings, payload);
+        ret = true;
+    } while(false);
 
-    // clear memory
+    // clear memory on every path
     memzero(data, dlen);
     free(data);
-    memzero(k1, strlen(FILE_K1) / 2);
-    memzero(k2, FILE_KLEN / 2);
+    memzero(k1, sizeof(k1));
+    memzero(k2, sizeof(k2));
 
-    return true;
+    return ret;
 }
 
 bool flipbip_save_file_secure(const char* settings) {
