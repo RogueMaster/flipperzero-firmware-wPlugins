@@ -1,3 +1,11 @@
+v1.6:
+
+- Added EPC Filter with case-insensitive ASCII matching and sound feedback only for matching tags.
+- Added a fullscreen filter list and signal-strength bars to Inventory and EPC Filter.
+- Improved signal display with smoothing, stale-signal clearing, and more stable list ordering.
+- Refined EPC ASCII capture and display, the filter keyboard, and Saved Tags navigation.
+- Added reader controls and paged reader details.
+
 v1.5:
 
 - Reorganized the home screen into Inventory, Tag Tools, EPC Tools, Saved Tags, and Settings.
