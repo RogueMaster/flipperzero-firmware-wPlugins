@@ -7,7 +7,7 @@
 #ifndef TREZOR_CRYPTO_MONERO_H
 #define TREZOR_CRYPTO_MONERO_H
 
-#ifdef !USE_MONERO
+#if !USE_MONERO
 #error "Compile with -DUSE_MONERO=1"
 #endif
 
