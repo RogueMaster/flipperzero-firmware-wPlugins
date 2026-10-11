@@ -1,0 +1,31 @@
+name: build
+on: [push, pull_request]
+jobs:
+  cppcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y cppcheck
+      - run: cppcheck --enable=warning,performance,portability --suppress=nullPointerOutOfMemory --error-exitcode=1 *.c
+  build-ofw:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11' }
+      - run: pip install ufbt
+      - run: ufbt update            # Official Firmware (catalog target)
+      - run: ufbt
+      - uses: actions/upload-artifact@v4
+        with: { name: fap-ofw, path: dist/*.fap }
+  build-unleashed:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11' }
+      - run: pip install ufbt
+      - run: ufbt update --index-url=https://up.unleashedflip.com/directory.json --channel=release
+      - run: ufbt
+      - uses: actions/upload-artifact@v4
+        with: { name: fap-unleashed, path: dist/*.fap }
