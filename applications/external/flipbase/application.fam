@@ -1,0 +1,14 @@
+App(
+    appid="flipbase",
+    name="FlipBase",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="flipbase_app",
+    stack_size=6 * 1024,
+    fap_category="USB",
+    requires=["gui", "storage", "dialogs", "notification"],
+    sources=["*.c"],
+    order=61,
+    fap_version="0.1",
+    fap_icon="flipbase.png",
+    fap_description="USB toy-to-life base emulator (Disney Infinity portal)",
+)
