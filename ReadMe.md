@@ -210,6 +210,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Yulias Cats v0.7 (By rseufert)](https://github.com/rseufert/yulia_cats)
 - Updated: [UHF Expansion v1.6 (By mtoolstec)](https://github.com/mtoolstec/fz-uhf-expansion)
 - Updated: [FlipBIP Crypto Wallet v2.0 (By xtruan)](https://github.com/xtruan/FlipBIP)
+- Updated: [Pod v1.0 (By thecoolguy2001)](https://github.com/thecoolguy2001/flipper-pod)
 
 <a name="release"></a>
 
