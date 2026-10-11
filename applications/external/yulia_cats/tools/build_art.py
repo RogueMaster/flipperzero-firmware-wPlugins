@@ -41,19 +41,31 @@ def spline(points, closed=True, steps=10):
         for s in range(steps):
             t = s / steps
             t2, t3 = t * t, t * t * t
-            out.append(tuple(
-                0.5 * ((2 * p1[k]) + (-p0[k] + p2[k]) * t
-                       + (2 * p0[k] - 5 * p1[k] + 4 * p2[k] - p3[k]) * t2
-                       + (-p0[k] + 3 * p1[k] - 3 * p2[k] + p3[k]) * t3)
-                for k in (0, 1)))
+            out.append(
+                tuple(
+                    0.5
+                    * (
+                        (2 * p1[k])
+                        + (-p0[k] + p2[k]) * t
+                        + (2 * p0[k] - 5 * p1[k] + 4 * p2[k] - p3[k]) * t2
+                        + (-p0[k] + 3 * p1[k] - 3 * p2[k] + p3[k]) * t3
+                    )
+                    for k in (0, 1)
+                )
+            )
     if not closed:
         out.append(pts[-1])
     return out
 
 
 def oval(cx, cy, rx, ry, steps=48):
-    return [(cx + rx * math.cos(a * 2 * math.pi / steps), cy + ry * math.sin(a * 2 * math.pi / steps))
-            for a in range(steps)]
+    return [
+        (
+            cx + rx * math.cos(a * 2 * math.pi / steps),
+            cy + ry * math.sin(a * 2 * math.pi / steps),
+        )
+        for a in range(steps)
+    ]
 
 
 class Picture:
@@ -64,7 +76,10 @@ class Picture:
     def _mask(self, points):
         img = Image.new("1", (W, H), 0)
         ImageDraw.Draw(img).polygon(
-            [(round(x + self.ox), round(y + self.oy)) for x, y in points], fill=1, outline=1)
+            [(round(x + self.ox), round(y + self.oy)) for x, y in points],
+            fill=1,
+            outline=1,
+        )
         return img.load()
 
     def fill(self, points, tone, clip=None):
@@ -145,16 +160,34 @@ def nugget():
     tail = [(66, 55), (78, 50), (91, 51), (98, 57), (92, 62), (76, 62), (66, 61)]
     p.blob(tail, "paper")
     for x in (73, 79, 85, 91):
-        p.fill([(x, 49), (x + 3, 49), (x + 2, 63), (x - 1, 63)], "ink", clip=spline(tail))
+        p.fill(
+            [(x, 49), (x + 3, 49), (x + 2, 63), (x - 1, 63)], "ink", clip=spline(tail)
+        )
     p.stroke(spline(tail), closed=True)
 
     # Body
-    body = [(27, 62), (21, 52), (24, 40), (33, 31), (46, 28), (59, 31), (68, 40), (71, 52),
-            (65, 62)]
+    body = [
+        (27, 62),
+        (21, 52),
+        (24, 40),
+        (33, 31),
+        (46, 28),
+        (59, 31),
+        (68, 40),
+        (71, 52),
+        (65, 62),
+    ]
     p.blob(body, "paper")
     # Tiger stripes down each flank, shaded on the far side
     for y in (38, 44, 50, 56):
-        stripe = [(20, y + 1), (27, y - 2), (34, y), (34, y + 2), (27, y + 1), (20, y + 4)]
+        stripe = [
+            (20, y + 1),
+            (27, y - 2),
+            (34, y),
+            (34, y + 2),
+            (27, y + 1),
+            (20, y + 4),
+        ]
         p.fill(stripe, "ink", clip=spline(body))
         p.fill(mirror(stripe, cx), "ink", clip=spline(body))
     p.stroke(spline(body), closed=True)
@@ -168,8 +201,11 @@ def nugget():
         for toe in (3, 6):
             p.line(x0 + toe, 60, x0 + toe, 62)
     # White bib between them
-    p.blob([(39, 34), (46, 32), (53, 34), (56, 40), (52, 45), (40, 45), (36, 40)], "paper",
-           outline=False)
+    p.blob(
+        [(39, 34), (46, 32), (53, 34), (56, 40), (52, 45), (40, 45), (36, 40)],
+        "paper",
+        outline=False,
+    )
     for x in (39, 43, 47, 51):  # ruffled lower edge
         p.line(x, 44, x + 1, 46)
 
@@ -180,8 +216,18 @@ def nugget():
     p.shape([(54, 9), (61, 5), (60, 12)], "dark", outline=False)
 
     # Head, broad in the cheeks
-    head = [(46, 5), (57, 7), (63, 14), (65, 22), (60, 30), (46, 34), (32, 30), (27, 22),
-            (29, 14), (35, 7)]
+    head = [
+        (46, 5),
+        (57, 7),
+        (63, 14),
+        (65, 22),
+        (60, 30),
+        (46, 34),
+        (32, 30),
+        (27, 22),
+        (29, 14),
+        (35, 7),
+    ]
     p.blob(head, "paper")
 
     # The tabby M on his brow, and cheek stripes
@@ -195,12 +241,25 @@ def nugget():
 
     # Eyes: half closed, content
     for ex in (39, 53):
-        eye = [(ex - 5, 18), (ex - 2, 15), (ex + 2, 15), (ex + 5, 18), (ex + 2, 21), (ex - 2, 21)]
+        eye = [
+            (ex - 5, 18),
+            (ex - 2, 15),
+            (ex + 2, 15),
+            (ex + 5, 18),
+            (ex + 2, 21),
+            (ex - 2, 21),
+        ]
         p.shape(spline(eye, steps=4), "paper")
-        p.fill([(ex - 5, 14), (ex + 5, 14), (ex + 5, 17), (ex - 5, 17)], "ink",
-               clip=spline(eye, steps=4))  # heavy lid
-        p.fill([(ex - 1, 17), (ex + 1, 17), (ex + 1, 21), (ex - 1, 21)], "ink",
-               clip=spline(eye, steps=4))
+        p.fill(
+            [(ex - 5, 14), (ex + 5, 14), (ex + 5, 17), (ex - 5, 17)],
+            "ink",
+            clip=spline(eye, steps=4),
+        )  # heavy lid
+        p.fill(
+            [(ex - 1, 17), (ex + 1, 17), (ex + 1, 21), (ex - 1, 21)],
+            "ink",
+            clip=spline(eye, steps=4),
+        )
 
     # Nose and mouth
     p.rows(44, 24, ["#####", " ### ", "  #  "])
@@ -238,8 +297,18 @@ def baby():
     p.blob([(82, 55), (92, 49), (100, 52), (99, 59), (90, 61), (82, 61)], "mid")
 
     # The loaf: wider than it is tall
-    body = [(6, 60), (5, 46), (13, 34), (30, 27), (62, 27), (79, 34), (87, 46), (86, 60),
-            (72, 63), (20, 63)]
+    body = [
+        (6, 60),
+        (5, 46),
+        (13, 34),
+        (30, 27),
+        (62, 27),
+        (79, 34),
+        (87, 46),
+        (86, 60),
+        (72, 63),
+        (20, 63),
+    ]
     p.blob(body, "mid")
     # Rolls of chub
     p.curve([(13, 44), (17, 52), (14, 60)], width=2)
@@ -258,8 +327,18 @@ def baby():
     p.shape([(53, 11), (59, 7), (58, 13)], "paper", outline=False)
 
     # A round head with full cheeks, and all the features bunched in the middle
-    head = [(46, 8), (56, 10), (63, 17), (65, 25), (59, 33), (46, 36), (33, 33), (27, 25),
-            (29, 17), (36, 10)]
+    head = [
+        (46, 8),
+        (56, 10),
+        (63, 17),
+        (65, 25),
+        (59, 33),
+        (46, 36),
+        (33, 33),
+        (27, 25),
+        (29, 17),
+        (36, 10),
+    ]
     p.blob(head, "mid")
 
     # Big bright eyes, set wide
@@ -271,7 +350,11 @@ def baby():
         p.dot(ex + (2 if ex < 46 else 0), 24, False)
 
     # A pale muzzle with a tiny nose and mouth
-    p.blob([(46, 25), (51, 27), (51, 31), (46, 33), (41, 31), (41, 27)], "paper", outline=False)
+    p.blob(
+        [(46, 25), (51, 27), (51, 31), (46, 33), (41, 31), (41, 27)],
+        "paper",
+        outline=False,
+    )
     p.rows(44, 27, ["#####", " ### ", "  #  ", " # # ", "#   #"])
 
     # Whiskers
@@ -298,8 +381,19 @@ def yulia(colour):
     tone = {"black": "ink", "brown": "dark", "blonde": "paper"}[colour]
 
     # Him first, standing behind: broad shoulders that run off the page
-    p.blob([(60, 68), (63, 52), (74, 44), (90, 41), (104, 41), (121, 45), (131, 54), (134, 68)],
-           "paper")
+    p.blob(
+        [
+            (60, 68),
+            (63, 52),
+            (74, 44),
+            (90, 41),
+            (104, 41),
+            (121, 45),
+            (131, 54),
+            (134, 68),
+        ],
+        "paper",
+    )
     p.shape([(91, 33), (103, 33), (103, 43), (91, 43)], "paper", outline=False)
     p.line(91, 36, 91, 42)
     p.line(103, 36, 103, 42)
@@ -308,22 +402,45 @@ def yulia(colour):
     for y in (53, 58):
         p.dot(99, y)
     # His long arm, round behind her and out the other side
-    p.shape(spline([(74, 45), (52, 52), (30, 54), (2, 55)], closed=False)
-            + spline([(2, 68), (30, 68), (52, 66), (74, 62)], closed=False), "paper")
+    p.shape(
+        spline([(74, 45), (52, 52), (30, 54), (2, 55)], closed=False)
+        + spline([(2, 68), (30, 68), (52, 66), (74, 62)], closed=False),
+        "paper",
+    )
 
     # Her, in front of him
     p.ox, p.oy = -8, 10
 
     # Hair behind the face
-    hair = [(42, 1), (56, 4), (65, 13), (67, 27), (67, 41), (61, 48), (23, 48), (17, 41),
-            (17, 27), (19, 13), (28, 4)]
+    hair = [
+        (42, 1),
+        (56, 4),
+        (65, 13),
+        (67, 27),
+        (67, 41),
+        (61, 48),
+        (23, 48),
+        (17, 41),
+        (17, 27),
+        (19, 13),
+        (28, 4),
+    ]
     p.blob(hair, tone)
 
     # Neck and sweater
     p.shape([(36, 42), (48, 42), (48, 52), (36, 52)], "paper", outline=False)
     p.line(36, 44, 36, 51)
     p.line(48, 44, 48, 51)
-    sweater = [(6, 66), (9, 57), (22, 51), (36, 50), (48, 50), (62, 51), (75, 57), (78, 66)]
+    sweater = [
+        (6, 66),
+        (9, 57),
+        (22, 51),
+        (36, 50),
+        (48, 50),
+        (62, 51),
+        (75, 57),
+        (78, 66),
+    ]
     p.blob(sweater, "paper")
     for x in range(34, 51):  # ribbed collar
         p.dot(x, 51)
@@ -335,13 +452,34 @@ def yulia(colour):
         p.curve([(x, 58), (x + (2 if x < cx else -2), 61), (x, 64)])
 
     # Face: full cheeks, little chin
-    face = [(42, 9), (52, 11), (57, 19), (57, 30), (52, 39), (42, 45), (32, 39), (27, 30),
-            (27, 19), (32, 11)]
+    face = [
+        (42, 9),
+        (52, 11),
+        (57, 19),
+        (57, 30),
+        (52, 39),
+        (42, 45),
+        (32, 39),
+        (27, 30),
+        (27, 19),
+        (32, 11),
+    ]
     p.blob(face, "paper")
 
     # Fringe, swept from a rounded hairline
-    fringe = [(27, 24), (27, 15), (33, 9), (42, 7), (52, 9), (57, 15), (57, 24), (53, 17),
-              (45, 13), (37, 14), (31, 18)]
+    fringe = [
+        (27, 24),
+        (27, 15),
+        (33, 9),
+        (42, 7),
+        (52, 9),
+        (57, 15),
+        (57, 24),
+        (53, 17),
+        (45, 13),
+        (37, 14),
+        (31, 18),
+    ]
     p.blob(fringe, tone)
     if colour == "black":
         p.curve([(28, 12), (34, 6), (43, 4)], ink=False)
@@ -384,12 +522,41 @@ def yulia(colour):
         r = 1 + 0.09 * math.sin(t * 9) + 0.05 * math.sin(t * 15 + 1)
         curls.append((97 + 21 * r * math.cos(t), 14 + 17 * r * math.sin(t)))
     p.shape(curls, "ink")
-    p.blob([(97, 9), (105, 11), (109, 19), (108, 28), (103, 36), (97, 39), (91, 36), (86, 28),
-            (85, 19), (89, 11)], "paper")
-    for x, y in ((88, 11), (92, 9), (97, 8), (102, 9), (106, 11)):  # curls over his brow
+    p.blob(
+        [
+            (97, 9),
+            (105, 11),
+            (109, 19),
+            (108, 28),
+            (103, 36),
+            (97, 39),
+            (91, 36),
+            (86, 28),
+            (85, 19),
+            (89, 11),
+        ],
+        "paper",
+    )
+    for x, y in (
+        (88, 11),
+        (92, 9),
+        (97, 8),
+        (102, 9),
+        (106, 11),
+    ):  # curls over his brow
         p.oval(x, y, 3.4, 3.2, "ink")
-    for x, y in ((80, 8), (86, 3), (95, 1), (104, 3), (112, 7), (115, 15), (79, 16), (90, 6),
-                 (108, 2), (100, 5)):
+    for x, y in (
+        (80, 8),
+        (86, 3),
+        (95, 1),
+        (104, 3),
+        (112, 7),
+        (115, 15),
+        (79, 16),
+        (90, 6),
+        (108, 2),
+        (100, 5),
+    ):
         p.rows(x, y, [" oo", "o  ", " oo"])  # the shine on each curl
     p.oval(84, 23, 2, 3, "paper")
     p.oval(110, 23, 2, 3, "paper")
@@ -399,8 +566,19 @@ def yulia(colour):
     p.rows(90, 20, ["##", "##"])
     p.rows(102, 20, ["##", "##"])
     # The nose
-    p.curve([(95, 19), (94, 25), (92, 29), (93, 32), (97, 33), (101, 32), (103, 29), (101, 25),
-             (100, 19)])
+    p.curve(
+        [
+            (95, 19),
+            (94, 25),
+            (92, 29),
+            (93, 32),
+            (97, 33),
+            (101, 32),
+            (103, 29),
+            (101, 25),
+            (100, 19),
+        ]
+    )
     p.curve([(93, 30), (95, 31)])
     p.curve([(102, 30), (100, 31)])
     # And a lopsided smile
@@ -418,8 +596,20 @@ def window(night):
 
     if night:
         p.shape([(0, 0), (127, 0), (127, 63), (0, 63)], "ink", outline=False)
-        for x, y in ((12, 8), (25, 17), (36, 6), (50, 12), (74, 7), (84, 9), (112, 7), (118, 15),
-                     (30, 9), (110, 24), (72, 22), (20, 8)):
+        for x, y in (
+            (12, 8),
+            (25, 17),
+            (36, 6),
+            (50, 12),
+            (74, 7),
+            (84, 9),
+            (112, 7),
+            (118, 15),
+            (30, 9),
+            (110, 24),
+            (72, 22),
+            (20, 8),
+        ):
             p.dot(x, y, False)
         # Crescent moon
         p.oval(46, 14, 7, 7, "paper", outline=False)
@@ -431,7 +621,16 @@ def window(night):
             ca, sa = math.cos(a * math.pi / 4), math.sin(a * math.pi / 4)
             p.line(46 + ca * 8, 13 + sa * 8, 46 + ca * 10, 13 + sa * 10)
         # A cloud
-        cloud = [(72, 12), (74, 9), (78, 8), (81, 6), (86, 6), (89, 9), (93, 10), (94, 12)]
+        cloud = [
+            (72, 12),
+            (74, 9),
+            (78, 8),
+            (81, 6),
+            (86, 6),
+            (89, 9),
+            (93, 10),
+            (94, 12),
+        ]
         p.curve(cloud)
         p.line(72, 12, 94, 12)
         # Birds on the wing
@@ -442,15 +641,34 @@ def window(night):
     peak = [(68, 46), (94, 15), (99, 21), (103, 18), (126, 46)]
     p.shape(peak, "light" if not night else "mid", outline=False)
     p.stroke(peak, ink=land)
-    snow = [(94, 15), (87, 24), (91, 22), (94, 26), (98, 23), (102, 27), (107, 23), (103, 18),
-            (99, 21)]
+    snow = [
+        (94, 15),
+        (87, 24),
+        (91, 22),
+        (94, 26),
+        (98, 23),
+        (102, 27),
+        (107, 23),
+        (103, 18),
+        (99, 21),
+    ]
     p.shape(snow, "paper", outline=False)
     p.stroke([(87, 24), (91, 22), (94, 26), (98, 23), (102, 27), (107, 23)], ink=True)
     p.stroke([(87, 24), (94, 15), (99, 21), (103, 18), (107, 23)], ink=True)
 
     # Rolling hills
-    hills = [(0, 46), (14, 41), (30, 44), (48, 40), (70, 45), (92, 40), (112, 44), (127, 41),
-             (127, 63), (0, 63)]
+    hills = [
+        (0, 46),
+        (14, 41),
+        (30, 44),
+        (48, 40),
+        (70, 45),
+        (92, 40),
+        (112, 44),
+        (127, 41),
+        (127, 63),
+        (0, 63),
+    ]
     p.fill(spline(hills[:8], closed=False) + [(127, 63), (0, 63)], "dark")
     p.stroke(spline(hills[:8], closed=False), ink=land)
 
@@ -459,17 +677,36 @@ def window(night):
         for k in range(3):
             w = 2 + k * 2
             y = 52 - th + k * (th // 3)
-            p.shape([(tx, y), (tx - w, y + th // 3 + 1), (tx + w, y + th // 3 + 1)], "ink",
-                    outline=False)
+            p.shape(
+                [(tx, y), (tx - w, y + th // 3 + 1), (tx + w, y + th // 3 + 1)],
+                "ink",
+                outline=False,
+            )
         p.line(tx, 52, tx, 54)
     for hx, hw, hh in ((24, 14, 9), (44, 18, 12), (66, 12, 8), (90, 20, 11)):
         top = 56 - hh
-        p.shape([(hx, top), (hx + hw, top), (hx + hw, 56), (hx, 56)], "ink", outline=False)
-        p.shape([(hx - 2, top), (hx + hw // 2, top - 6), (hx + hw + 2, top)], "ink", outline=False)
-        p.shape([(hx + hw - 5, top - 6), (hx + hw - 3, top - 6), (hx + hw - 3, top - 1),
-                 (hx + hw - 5, top - 1)], "ink", outline=False)
+        p.shape(
+            [(hx, top), (hx + hw, top), (hx + hw, 56), (hx, 56)], "ink", outline=False
+        )
+        p.shape(
+            [(hx - 2, top), (hx + hw // 2, top - 6), (hx + hw + 2, top)],
+            "ink",
+            outline=False,
+        )
+        p.shape(
+            [
+                (hx + hw - 5, top - 6),
+                (hx + hw - 3, top - 6),
+                (hx + hw - 3, top - 1),
+                (hx + hw - 5, top - 1),
+            ],
+            "ink",
+            outline=False,
+        )
         if night:
-            p.stroke([(hx - 2, top), (hx + hw // 2, top - 6), (hx + hw + 2, top)], ink=False)
+            p.stroke(
+                [(hx - 2, top), (hx + hw // 2, top - 6), (hx + hw + 2, top)], ink=False
+            )
         for wx in range(hx + 3, hx + hw - 3, 5):  # windows
             p.rows(wx, top + 3, ["##", "##"], ink=False)
             if not night:
@@ -490,11 +727,24 @@ def window(night):
             p.rows(bx + 7, by + 2, ["#"], ink=True)
 
     # Nugget on the sill, seen from behind
-    cat = [(22, 63), (20, 54), (22, 46), (28, 42), (36, 42), (42, 46), (44, 54), (42, 63)]
+    cat = [
+        (22, 63),
+        (20, 54),
+        (22, 46),
+        (28, 42),
+        (36, 42),
+        (42, 46),
+        (44, 54),
+        (42, 63),
+    ]
     p.blob(cat, "ink", outline=False)
     p.shape([(22, 47), (22, 37), (30, 43)], "ink", outline=False)
     p.shape([(34, 43), (42, 37), (42, 47)], "ink", outline=False)
-    p.blob([(40, 60), (52, 56), (62, 58), (64, 62), (52, 63), (40, 63)], "ink", outline=False)
+    p.blob(
+        [(40, 60), (52, 56), (62, 58), (64, 62), (52, 63), (40, 63)],
+        "ink",
+        outline=False,
+    )
     # A pale edge so he stands out against the dark
     p.stroke(spline(cat, closed=True)[8:62], ink=False)
     p.stroke([(22, 47), (22, 37), (30, 43)], ink=False)
@@ -505,8 +755,15 @@ def window(night):
 
     # The window itself: frame, glazing bars and sill
     for inset in range(3):
-        p.stroke([(inset, inset), (W - 1 - inset, inset), (W - 1 - inset, H - 1 - inset),
-                  (inset, H - 1 - inset)], closed=True)
+        p.stroke(
+            [
+                (inset, inset),
+                (W - 1 - inset, inset),
+                (W - 1 - inset, H - 1 - inset),
+                (inset, H - 1 - inset),
+            ],
+            closed=True,
+        )
     p.stroke([(3, 3), (W - 4, 3), (W - 4, H - 4), (3, H - 4)], closed=True, ink=False)
     for x in (62, 63, 64, 65):
         p.line(x, 3, x, 60, ink=x in (63, 64))
@@ -521,8 +778,10 @@ def window(night):
 def rect(cx, cy, w, h, angle):
     """A rectangle about its centre, turned by `angle` degrees."""
     ca, sa = math.cos(math.radians(angle)), math.sin(math.radians(angle))
-    return [(cx + x * ca - y * sa, cy + x * sa + y * ca)
-            for x, y in ((-w / 2, -h / 2), (w / 2, -h / 2), (w / 2, h / 2), (-w / 2, h / 2))]
+    return [
+        (cx + x * ca - y * sa, cy + x * sa + y * ca)
+        for x, y in ((-w / 2, -h / 2), (w / 2, -h / 2), (w / 2, h / 2), (-w / 2, h / 2))
+    ]
 
 
 def black_cat():
@@ -563,7 +822,11 @@ def composition_yarn():
     for i in range(5):
         for j in range(3):
             if (i + j) % 2 == 0:
-                p.shape(rect(100 + i * 4 - j * 2, 40 + j * 4 + i, 4, 4, 20), "ink", outline=False)
+                p.shape(
+                    rect(100 + i * 4 - j * 2, 40 + j * 4 + i, 4, 4, 20),
+                    "ink",
+                    outline=False,
+                )
     p.shape([(78, 30), (90, 34), (80, 42)], "paper")
     p.shape([(8, 38), (20, 44), (6, 52)], "dark")
     # Arcs
@@ -595,7 +858,10 @@ def suprematist_dinner():
     p.oval(40, 36, 9, 9, "paper")
     for a in range(0, 360, 40):  # kibble
         r = 4 if a % 80 else 1
-        p.dot(round(40 + r * math.cos(math.radians(a))), round(36 + r * math.sin(math.radians(a))))
+        p.dot(
+            round(40 + r * math.cos(math.radians(a))),
+            round(36 + r * math.sin(math.radians(a))),
+        )
     # The fish
     p.shape(spline([(60, 32), (70, 24), (82, 26), (72, 36)], steps=6), "paper")
     p.shape([(81, 26), (90, 18), (90, 30)], "paper")
@@ -661,21 +927,43 @@ def broadway_zoomies():
         p.line(x - 1, 0, x - 1, 63)
         p.line(x + 1, 0, x + 1, 63)
         for y in range(1, 63, 6):
-            p.shape([(x - 1, y), (x + 1, y), (x + 1, y + 2), (x - 1, y + 2)], "ink", outline=False)
+            p.shape(
+                [(x - 1, y), (x + 1, y), (x + 1, y + 2), (x - 1, y + 2)],
+                "ink",
+                outline=False,
+            )
     for y in ys:
         p.line(0, y - 1, 127, y - 1)
         p.line(0, y + 1, 127, y + 1)
         for x in range(2, 127, 7):
-            p.shape([(x, y - 1), (x + 2, y - 1), (x + 2, y + 1), (x, y + 1)], "ink", outline=False)
+            p.shape(
+                [(x, y - 1), (x + 2, y - 1), (x + 2, y + 1), (x, y + 1)],
+                "ink",
+                outline=False,
+            )
     # A paw print in one block
     p.oval(75, 38, 3.5, 3, "ink")
     for dx, dy in ((-5, -3), (-2, -6), (2, -6), (5, -3)):
         p.oval(75 + dx, 38 + dy, 1.2, 1.2, "ink")
     # The zoomies: a dashed dash round the blocks
-    route = spline([(4, 58), (22, 36), (30, 18), (48, 6), (50, 36), (70, 56), (84, 34), (102, 18),
-                    (122, 36), (104, 40)], closed=False, steps=12)
+    route = spline(
+        [
+            (4, 58),
+            (22, 36),
+            (30, 18),
+            (48, 6),
+            (50, 36),
+            (70, 56),
+            (84, 34),
+            (102, 18),
+            (122, 36),
+            (104, 40),
+        ],
+        closed=False,
+        steps=12,
+    )
     for i in range(0, len(route) - 2, 4):
-        p.stroke(route[i:i + 3], ink=True, width=2)
+        p.stroke(route[i : i + 3], ink=True, width=2)
     return p
 
 
@@ -684,6 +972,7 @@ def broadway_zoomies():
 
 def giraffe(p, ox, ground, k, flip):
     """One giraffe, feet on the ground at ox, facing right unless flipped."""
+
     def t(pt):
         x, y = pt
         return (ox + (x - 45) * k * (-1 if flip else 1), ground + (y - 62) * k)
@@ -696,25 +985,65 @@ def giraffe(p, ox, ground, k, flip):
     p.shape(tt([(26, 51), (28, 51), (27, 56)]), "ink")
     # Legs, far pair then near pair
     for x0, bend in ((37, 1), (55, -1), (33, 0), (51, 0)):
-        leg = [(x0, 45), (x0 + 3, 45), (x0 + 3 + bend, 54), (x0 + 3, 62), (x0, 62), (x0 + bend, 54)]
+        leg = [
+            (x0, 45),
+            (x0 + 3, 45),
+            (x0 + 3 + bend, 54),
+            (x0 + 3, 62),
+            (x0, 62),
+            (x0 + bend, 54),
+        ]
         p.shape(tt(leg), "paper")
         p.shape(tt([(x0, 60), (x0 + 3, 60), (x0 + 3, 62), (x0, 62)]), "ink")
     # Body, neck and head in one outline
-    body = [(30, 37), (38, 33), (50, 33), (57, 36), (60, 42), (57, 48), (42, 49), (31, 46)]
+    body = [
+        (30, 37),
+        (38, 33),
+        (50, 33),
+        (57, 36),
+        (60, 42),
+        (57, 48),
+        (42, 49),
+        (31, 46),
+    ]
     neck = [(51, 35), (59, 39), (71, 12), (66, 9)]
     head = [(66, 9), (67, 5), (71, 3), (77, 5), (82, 8), (81, 11), (74, 12), (69, 12)]
     p.shape(tt(neck), "paper")
     p.blob(tt(body), "paper")
-    p.shape(tt([(52, 35), (58, 38), (60, 34)]), "paper", outline=False)  # blend the shoulder
+    p.shape(
+        tt([(52, 35), (58, 38), (60, 34)]), "paper", outline=False
+    )  # blend the shoulder
     p.blob(tt(head), "paper")
     # Patches
-    spots = [(35, 38), (41, 36), (47, 37), (53, 39), (37, 43), (44, 42), (50, 44), (56, 44),
-             (40, 47), (55, 37), (58, 33), (60, 28), (62, 23), (65, 18), (67, 13), (61, 34),
-             (64, 26), (66, 21)]
+    spots = [
+        (35, 38),
+        (41, 36),
+        (47, 37),
+        (53, 39),
+        (37, 43),
+        (44, 42),
+        (50, 44),
+        (56, 44),
+        (40, 47),
+        (55, 37),
+        (58, 33),
+        (60, 28),
+        (62, 23),
+        (65, 18),
+        (67, 13),
+        (61, 34),
+        (64, 26),
+        (66, 21),
+    ]
     for i, (sx, sy) in enumerate(spots):
         r = 2.2 if sy > 34 else 1.5
-        patch = [(sx - r, sy - r * 0.6), (sx, sy - r), (sx + r, sy - r * 0.4), (sx + r * 0.7, sy + r),
-                 (sx - r * 0.6, sy + r * 0.8)]
+        patch = [
+            (sx - r, sy - r * 0.6),
+            (sx, sy - r),
+            (sx + r, sy - r * 0.4),
+            (sx + r * 0.7, sy + r),
+            (sx - r * 0.6, sy + r * 0.8),
+        ]
         p.fill(tt(patch), "ink", clip=spline(tt(body)) if sy > 34 else tt(neck))
     p.stroke(spline(tt(body)), closed=True)
     p.stroke(tt([(51, 35), (66, 9)]))
@@ -725,7 +1054,9 @@ def giraffe(p, ox, ground, k, flip):
         p.stroke(tt([(mx, my), (mx - 1.5, my - 1.5)]))
     for hx in (69, 72):
         p.stroke(tt([(hx, 4), (hx - 0.5, 0)]))
-        p.shape(tt([(hx - 1.5, -1), (hx + 0.5, -1), (hx + 0.5, 1), (hx - 1.5, 1)]), "ink")
+        p.shape(
+            tt([(hx - 1.5, -1), (hx + 0.5, -1), (hx + 0.5, 1), (hx - 1.5, 1)]), "ink"
+        )
     p.shape(tt([(66, 7), (62, 5), (65, 9)]), "paper")
     ex, ey = t((73, 7))
     p.dot(round(ex), round(ey))
@@ -740,10 +1071,31 @@ def giraffes():
     # Sun, low and large
     p.oval(84, 14, 9, 9, "light")
     # Flat-topped acacia, off to one side
-    p.shape([(119, 62), (120, 36), (116, 27), (119, 27), (122, 34), (125, 26), (127, 27),
-             (124, 36), (125, 62)], "ink", outline=False)
-    canopy = [(102, 25), (106, 19), (116, 16), (127, 16), (134, 19), (136, 25), (126, 27),
-              (112, 27)]
+    p.shape(
+        [
+            (119, 62),
+            (120, 36),
+            (116, 27),
+            (119, 27),
+            (122, 34),
+            (125, 26),
+            (127, 27),
+            (124, 36),
+            (125, 62),
+        ],
+        "ink",
+        outline=False,
+    )
+    canopy = [
+        (102, 25),
+        (106, 19),
+        (116, 16),
+        (127, 16),
+        (134, 19),
+        (136, 25),
+        (126, 27),
+        (112, 27),
+    ]
     p.blob(canopy, "dark")
     # Far hills and the ground
     p.curve([(0, 50), (20, 46), (44, 49), (70, 45), (96, 48), (127, 44)])
@@ -794,14 +1146,18 @@ def xbm(picture):
 
 
 def write_header(pics, path):
-    out = ["// Generated by tools/build_art.py - do not edit by hand.\n",
-           "#pragma once\n\n#include <stdint.h>\n\n",
-           f"#define ART_W {W}\n#define ART_H {H}\n\n"]
+    out = [
+        "// Generated by tools/build_art.py - do not edit by hand.\n",
+        "#pragma once\n\n#include <stdint.h>\n\n",
+        f"#define ART_W {W}\n#define ART_H {H}\n\n",
+    ]
     for name, pic in pics.items():
         data = xbm(pic)
         out.append(f"static const uint8_t art_{name}[] = {{\n")
         for i in range(0, len(data), 16):
-            out.append("    " + ", ".join(f"0x{b:02X}" for b in data[i:i + 16]) + ",\n")
+            out.append(
+                "    " + ", ".join(f"0x{b:02X}" for b in data[i : i + 16]) + ",\n"
+            )
         out.append("};\n\n")
     path.write_text("".join(out))
 
@@ -814,7 +1170,9 @@ def write_preview(pics, path, scale=4):
         ox, oy = (i % cols) * (W + 2), (i // cols) * (H + 2)
         for y in range(H):
             for x in range(W):
-                sheet.putpixel((ox + x, oy + y), (0, 0, 0) if pic.px[y][x] else (255, 130, 0))
+                sheet.putpixel(
+                    (ox + x, oy + y), (0, 0, 0) if pic.px[y][x] else (255, 130, 0)
+                )
     sheet.resize((sheet.width * scale, sheet.height * scale), Image.NEAREST).save(path)
 
 

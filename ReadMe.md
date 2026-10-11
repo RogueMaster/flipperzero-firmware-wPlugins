@@ -208,6 +208,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [App Search v0.2 (By tbelbek)](https://github.com/tbelbek/flipper-app-search)
 - Added: [FlipBase v0.1 (By Space-Raler)](https://github.com/Space-Raler/FlipBase)
 - Added: [Pulse BPM v1.0 (By alaviation)](https://github.com/alaviation/flipper-pulse)
+- Added: [Yulias Cats v0.7 (By rseufert)](https://github.com/rseufert/yulia_cats)
 
 <a name="release"></a>
 
@@ -503,6 +504,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Wolfenduino v1.0 (By apfxtech)](https://github.com/apfxtech/FlipperWolfenstein)
 - [Yappy Invaders (By dagnazty)](https://github.com/dagnazty/Yappy_Invaders)
 - [Yatzee v1.2 (By emfleak)](https://github.com/emfleak/flipperzero-yatzee)
+- [Yulias Cats v0.7 (By rseufert)](https://github.com/rseufert/yulia_cats)
 - [Zero v1.4 (By Racso)](https://github.com/Racso/fzero-apps)
 - [Zombiez v1.3 (Reworked By DevMilanIan)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/pull/240)
 
