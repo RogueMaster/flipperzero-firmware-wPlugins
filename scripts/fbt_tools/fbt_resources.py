@@ -77,7 +77,9 @@ def _resources_dist_action(target, source, env):
             shutil.copytree(
                 src.path,
                 target.path,
-                ignore=lambda _, names: [name for name in names if is_macos_metadata_name(name)],
+                ignore=lambda _, names: [
+                    name for name in names if is_macos_metadata_name(name)
+                ],
             )
         else:
             raise StopError(f"Unsupported dist entry type: {type(src)}")

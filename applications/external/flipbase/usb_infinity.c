@@ -26,17 +26,16 @@ UsbInfStats usb_inf_stats;
 InfBase usb_inf_base;
 
 /* Vendor-defined, 32 bytes in and 32 bytes out (29 bytes long, 0x1D as the base reports). */
-static const uint8_t report_desc[] = {
-    0x06, 0x00, 0xFF, /* Usage Page (Vendor Defined) */
-    0x09, 0x01, /* Usage (1) */
-    0xA1, 0x01, /* Collection (Application) */
-    0x19, 0x01, 0x29, 0x20, /* Usage Min/Max 1..32 */
-    0x15, 0x00, 0x26, 0xFF, 0x00, /* Logical 0..255 */
-    0x75, 0x08, 0x95, 0x20, /* 32 x 8 bits */
-    0x81, 0x00, /* Input */
-    0x19, 0x01, 0x29, 0x20, /* Usage Min/Max 1..32 */
-    0x91, 0x00, /* Output */
-    0xC0};
+static const uint8_t report_desc[] = {0x06, 0x00, 0xFF, /* Usage Page (Vendor Defined) */
+                                      0x09, 0x01, /* Usage (1) */
+                                      0xA1, 0x01, /* Collection (Application) */
+                                      0x19, 0x01, 0x29, 0x20, /* Usage Min/Max 1..32 */
+                                      0x15, 0x00, 0x26, 0xFF, 0x00, /* Logical 0..255 */
+                                      0x75, 0x08, 0x95, 0x20, /* 32 x 8 bits */
+                                      0x81, 0x00, /* Input */
+                                      0x19, 0x01, 0x29, 0x20, /* Usage Min/Max 1..32 */
+                                      0x91, 0x00, /* Output */
+                                      0xC0};
 
 struct InfIntfDescriptor {
     struct usb_interface_descriptor intf;
@@ -193,7 +192,8 @@ static usbd_respond ep_config(usbd_device* dev, uint8_t cfg) {
     }
 }
 
-static usbd_respond control_request(usbd_device* dev, usbd_ctlreq* req, usbd_rqc_callback* callback) {
+static usbd_respond
+    control_request(usbd_device* dev, usbd_ctlreq* req, usbd_rqc_callback* callback) {
     UNUSED(callback);
     usb_inf_stats.ctrl_requests++;
 

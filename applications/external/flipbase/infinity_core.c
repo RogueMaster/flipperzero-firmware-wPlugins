@@ -7,7 +7,8 @@
 
 static uint8_t checksum(const uint8_t* data, int count) {
     unsigned sum = 0;
-    for(int i = 0; i < count; i++) sum += data[i];
+    for(int i = 0; i < count; i++)
+        sum += data[i];
     return (uint8_t)(sum & 0xFF);
 }
 
@@ -74,7 +75,8 @@ static void generate_seed(InfBase* base, uint32_t seed) {
     base->rand_b = seed;
     base->rand_c = seed;
     base->rand_d = seed;
-    for(int i = 0; i < 23; i++) get_next(base);
+    for(int i = 0; i < 23; i++)
+        get_next(base);
 }
 
 /* ------------------------------------------------------------ queues */
@@ -119,7 +121,8 @@ static void blank_response(uint8_t sequence, uint8_t reply[INF_PACKET_SIZE]) {
     reply[3] = checksum(reply, 3);
 }
 
-static void present_figures(const InfBase* base, uint8_t sequence, uint8_t reply[INF_PACKET_SIZE]) {
+static void
+    present_figures(const InfBase* base, uint8_t sequence, uint8_t reply[INF_PACKET_SIZE]) {
     int x = 3;
     for(uint8_t i = 0; i < INF_SLOT_COUNT; i++) {
         const uint8_t slot = (i == 0) ? 0x10 : (i < 4) ? 0x20 : 0x30;
@@ -215,7 +218,11 @@ static void next_and_scramble(InfBase* base, uint8_t sequence, uint8_t reply[INF
     reply[11] = checksum(reply, 11);
 }
 
-static void descramble_and_seed(InfBase* base, const uint8_t* buf, uint8_t sequence, uint8_t reply[INF_PACKET_SIZE]) {
+static void descramble_and_seed(
+    InfBase* base,
+    const uint8_t* buf,
+    uint8_t sequence,
+    uint8_t reply[INF_PACKET_SIZE]) {
     uint64_t value = 0;
     for(int i = 0; i < 8; i++) {
         value = (value << 8) | buf[4 + i];
@@ -298,7 +305,12 @@ void inf_base_handle_out(InfBase* base, const uint8_t buf[INF_PACKET_SIZE]) {
     }
 
     push_packet(
-        base->replies, &base->reply_head, &base->reply_count, INF_REPLY_QUEUE, reply, &base->dropped_packets);
+        base->replies,
+        &base->reply_head,
+        &base->reply_count,
+        INF_REPLY_QUEUE,
+        reply,
+        &base->dropped_packets);
 }
 
 bool inf_base_peek_in(const InfBase* base, uint8_t out[INF_PACKET_SIZE]) {
@@ -345,7 +357,12 @@ static void queue_event(InfBase* base, uint8_t position, uint8_t order_added, ui
     event[5] = status;
     event[6] = checksum(event, 6);
     push_packet(
-        base->events, &base->event_head, &base->event_count, INF_EVENT_QUEUE, event, &base->dropped_packets);
+        base->events,
+        &base->event_head,
+        &base->event_count,
+        INF_EVENT_QUEUE,
+        event,
+        &base->dropped_packets);
 }
 
 bool inf_base_load_figure(InfBase* base, uint8_t slot, const uint8_t data[INF_FIGURE_SIZE]) {

@@ -63,8 +63,16 @@ typedef struct {
 #define ROWS_VISIBLE 4
 /* All nine base slots: characters first, then the play set, then every disc slot. */
 static const uint8_t ROW_SLOT[ROWS] = {3, 6, 0, 1, 2, 4, 5, 7, 8};
-static const char* const ROW_LABEL[ROWS] =
-    {"Player 1", "Player 2", "Play set", "Disc 2", "Disc 3", "P1 disc 1", "P1 disc 2", "P2 disc 1", "P2 disc 2"};
+static const char* const ROW_LABEL[ROWS] = {
+    "Player 1",
+    "Player 2",
+    "Play set",
+    "Disc 2",
+    "Disc 3",
+    "P1 disc 1",
+    "P1 disc 2",
+    "P2 disc 1",
+    "P2 disc 2"};
 
 /* ------------------------------------------------------------ helpers */
 
@@ -165,7 +173,6 @@ static void remove_slot(App* app, uint8_t slot) {
         app->slot_path[slot][0] = '\0';
     }
 }
-
 
 /* ------------------------------------------------------------ favorites */
 
@@ -305,7 +312,8 @@ static void create_figure(App* app) {
 
     uint8_t uid[7];
     furi_hal_random_fill_buf(uid, sizeof(uid));
-    for(size_t i = 0; i < sizeof(uid); i++) uid[i] = (uint8_t)(uid[i] % 255);
+    for(size_t i = 0; i < sizeof(uid); i++)
+        uid[i] = (uint8_t)(uid[i] % 255);
 
     uint8_t data[INF_FIGURE_SIZE];
     if(!inf_figure_create_blank(data, info->id, info->series, uid)) {
@@ -374,7 +382,13 @@ static void save_debug(App* app) {
     for(uint32_t i = 0; i < count; i++) {
         const InfLogEntry* e = &log[(start + i) % INF_LOG_ENTRIES];
         len = snprintf(
-            line, sizeof(line), "cmd %02X seq %02X a %02X b %02X\n", e->command, e->sequence, e->arg0, e->arg1);
+            line,
+            sizeof(line),
+            "cmd %02X seq %02X a %02X b %02X\n",
+            e->command,
+            e->sequence,
+            e->arg0,
+            e->arg1);
         storage_file_write(file, line, (uint16_t)len);
     }
     storage_file_close(file);
@@ -418,7 +432,6 @@ static const char* link_text(LinkState state) {
     }
 }
 
-
 static void draw_callback(Canvas* canvas, void* ctx) {
     App* app = ctx;
     char line[48];
@@ -460,7 +473,8 @@ static void draw_callback(Canvas* canvas, void* ctx) {
         for(uint8_t row = 0; row < 3 && (uint8_t)(first + row) < app->fav_count; row++) {
             char label[PATH_LEN];
             fav_label(app->fav_path[first + row], label, sizeof(label));
-            snprintf(line, sizeof(line), "%c%.20s", (first + row) == app->fav_sel ? '>' : ' ', label);
+            snprintf(
+                line, sizeof(line), "%c%.20s", (first + row) == app->fav_sel ? '>' : ' ', label);
             canvas_draw_str(canvas, 0, (uint8_t)(21 + row * 10), line);
         }
         canvas_draw_str(canvas, 0, 62, "OK load  hold OK remove");
@@ -547,7 +561,8 @@ static void handle_input(App* app, const InputEvent* event) {
             /* Empty: ask New or File. */
             DialogMessage* m = dialog_message_alloc();
             dialog_message_set_header(m, ROW_LABEL[app->sel], 64, 0, AlignCenter, AlignTop);
-            dialog_message_set_text(m, "File, Favorite or\nNew figure?", 64, 24, AlignCenter, AlignTop);
+            dialog_message_set_text(
+                m, "File, Favorite or\nNew figure?", 64, 24, AlignCenter, AlignTop);
             dialog_message_set_buttons(m, "File", "Fav", "New");
             const DialogMessageButton r = dialog_message_show(app->dialogs, m);
             dialog_message_free(m);
@@ -616,8 +631,9 @@ int32_t flipbase_app(void* p) {
                last_link == LinkConnected) {
                 notification_message(notifications, &sequence_single_vibro);
                 set_message(app, "Console disconnected");
-            } else if(now_link == LinkConnected && last_link != LinkWaiting &&
-                      last_link != LinkStarting) {
+            } else if(
+                now_link == LinkConnected && last_link != LinkWaiting &&
+                last_link != LinkStarting) {
                 set_message(app, "Console reconnected");
             }
             last_link = now_link;

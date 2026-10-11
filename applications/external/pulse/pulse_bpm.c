@@ -9,10 +9,10 @@
 
 #include <pulse_bpm_icons.h>
 
-#define SPLASH_MS 1800
-#define WINDOW_MS 20000
+#define SPLASH_MS       1800
+#define WINDOW_MS       20000
 #define MIN_INTERVAL_MS 250
-#define MAX_BEATS 96
+#define MAX_BEATS       96
 
 typedef enum {
     StateSplash,
@@ -166,11 +166,7 @@ static void pulse_draw_result(Canvas* canvas, const PulseBpm* app) {
     if(app->locked_bpm == 0) {
         snprintf(info, sizeof(info), "Need 2+ beats");
     } else {
-        snprintf(
-            info,
-            sizeof(info),
-            "%u beats  20.0 s",
-            (unsigned)app->beat_count);
+        snprintf(info, sizeof(info), "%u beats  20.0 s", (unsigned)app->beat_count);
     }
 
     canvas_set_font(canvas, FontSecondary);

@@ -25,14 +25,18 @@ def between(text, start, end):
     return text[a:b]
 
 
-class_text = between(header, "struct infinity_figure", "extern infinity_base g_infinitybase;")
+class_text = between(
+    header, "struct infinity_figure", "extern infinity_base g_infinitybase;"
+)
 methods_text = between(
     source,
     "static constexpr std::array<u8, 32> SHA1_CONSTANT",
     "usb_device_infinity::usb_device_infinity(",
 )
 switch_text = between(source, "switch (command)", "m_queries.push(q_result);")
-crc_text = between(dialog, "u32 infinity_crc32(", "figure_creator_dialog::figure_creator_dialog(")
+crc_text = between(
+    dialog, "u32 infinity_crc32(", "figure_creator_dialog::figure_creator_dialog("
+)
 blank_decl = re.search(
     r"static constexpr std::array<u8, 16> BLANK_BLOCK = \{.*?\};", dialog, re.S
 ).group(0)
@@ -63,4 +67,11 @@ with open(out_path, "w", encoding="utf-8") as out:
         + create_text.replace("return false;", "return false;")
         + "\n\tout = file_data;\n\treturn true;\n}\n"
     )
-print("extracted:", len(class_text), len(methods_text), len(switch_text), len(crc_text), len(create_text))
+print(
+    "extracted:",
+    len(class_text),
+    len(methods_text),
+    len(switch_text),
+    len(crc_text),
+    len(create_text),
+)

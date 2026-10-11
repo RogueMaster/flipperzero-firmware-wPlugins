@@ -1,6 +1,0 @@
-dist/
-.vscode/
-.ufbt/
-.env
-*.fap
-*_d.elf

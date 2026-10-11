@@ -203,6 +203,11 @@ This software is for experimental purposes only and is not meant for any illegal
 - SubGHz: [Add Doorbell32 read/send support and include KeyFinder, KeyFinder2 and Doorbell32 in the Sensors ignore group (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/197ed204678523e0236d3ff4759b74d12e2cc6bd)
 - NFC: [Detect MIFARE DESFire Light, select its command mode and handle unsupported fields gracefully; file-content reading is not included (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/commit/5f8727ae0e1fea457416cc445d73906be9d9b276)
 - SubGHz: [Support Erreka programming mode on button 0xF and retain its seed when saving a signal (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/1139732616045a15b9efc59790cc83e3a8ad292a)
+- Added: [IR Pad v1.0 (By tbelbek)](https://github.com/tbelbek/flipper-ir-pad)
+- Added: [Fav Launcher v0.8 (By tbelbek)](https://github.com/tbelbek/flipper-fav-launcher)
+- Added: [App Search v0.2 (By tbelbek)](https://github.com/tbelbek/flipper-app-search)
+- Added: [FlipBase v0.1 (By Space-Raler)](https://github.com/Space-Raler/FlipBase)
+- Added: [Pulse BPM v1.0 (By alaviation)](https://github.com/alaviation/flipper-pulse)
 
 <a name="release"></a>
 
@@ -523,6 +528,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Anki Remote v1.3 (By Blue5GD)](https://github.com/Blue5GD/Anki-Remote)
 - [Answer Book v0.1 (By redbson)](https://github.com/redbson/The-Book-of-Answers)
 - [API Caller v0.1.4 (By todotge)](https://github.com/todotge/Flipper-api-caller)
+- [App Search v0.2 (By tbelbek)](https://github.com/tbelbek/flipper-app-search)
 - [APRS TX v1.3.24 (By yo3gnd)](https://github.com/yo3gnd/flipper-zero-aprs-tx)
 - [Argus v1.0 (By at0m-b0mb)](https://github.com/at0m-b0mb/Argus-FlipperZero) `Req: ESP32`
 - [ASCII Table v1.0 (By x10102)](https://github.com/x10102/flipper_ascii)
@@ -654,6 +660,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Fake Chip Detector v0.13 (By hleserg)](https://github.com/hleserg/flipper-fake-chip-detector)
 - [FAP Boilerplate v1.3 (By leedave)](https://github.com/leedave/flipper-zero-fap-boilerplate)
 - [Faraday v1.3 (By at0m-b0mb)](https://github.com/at0m-b0mb/Faraday-FlipperZero)
+- [Fav Launcher v0.8 (By tbelbek)](https://github.com/tbelbek/flipper-fav-launcher)
 - [FCC ID Lookup v0.1 (By lrehmann)](https://github.com/lrehmann/fcc-id-lookup-flipper)
 - [FDX-B Maker v1.0 (By snowsign)](https://github.com/snowsign/fdxb-maker)
 - [Fencing Test Box v0.1 (By aarjaneiro)](https://www.github.com/aarjaneiro/fencing_testbox)
@@ -664,6 +671,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Flashlight v1.3 (By xMasterX)](https://github.com/xMasterX/flipper-flashlight)
 - [Flight Monitor v1.0 (By kamylwnb)](https://github.com/kamylwnb/flight_monitor)
 - [Flipagotchi v2.1.1 (By Matt-London)](https://github.com/Matt-London/pwnagotchi-flipper)
+- [FlipBase v0.1 (By Space-Raler)](https://github.com/Space-Raler/FlipBase)
 - [FlipBIP Crypto Wallet v1.18 (By xtruan)](https://github.com/xtruan/FlipBIP)
 - [FlipBoard Blinky v3.6 (By jamisonderek)](https://github.com/jamisonderek/flipboard)
 - [FlipBoard Keyboard v3.9 (By jamisonderek)](https://github.com/jamisonderek/flipboard)
@@ -782,6 +790,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [IR Builder v3.2 (By sanoobis)](https://github.com/sanoobis/IR-Builder)
 - [IR Decoder v1.0 (By prplecake)](https://github.com/prplecake/f0/tree/master/infrared/apps/ir_decoder)
 - [IR Intervalometer v2.2 (By Nitepone)](https://github.com/Nitepone/flipper-intervalometer)
+- [IR Pad v1.0 (By tbelbek)](https://github.com/tbelbek/flipper-ir-pad)
 - [IR Remote v1.1 (By Hong5489)](https://github.com/Hong5489/ir_remote)
 - [IR Scope v1.4 (By kallanreed)](https://github.com/kallanreed/unleashed-firmware/tree/dev/applications/external/ir_scope)
 - [IR Signal Generator v1.0 (By temboohms68)](https://github.com/temboohms68/Flipper-Zero-IR-Signal-Generator)
@@ -961,6 +970,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Programmer Calculator v0.9.2 (By armixz)](https://github.com/armixz/Flipper-Zero-Programmer-Calculator)
 - [ProtoPirate v4.0 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
 - [ProtoView v1.3 (By antirez)](https://github.com/antirez/protoview)
+- [Pulse BPM v1.0 (By alaviation)](https://github.com/alaviation/flipper-pulse)
 - [QR Code v2.1.4 (By bmatcuk)](https://github.com/bmatcuk/flipperzero-qrcode)
 - [QRCode Generator v0.1 (By qw3rtty)](https://github.com/qw3rtty/flipperzero-qrcode-generator)
 - [Quac! v0.10.0 (By rdefeo)](https://github.com/rdefeo/quac)

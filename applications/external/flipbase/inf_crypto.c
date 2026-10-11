@@ -166,15 +166,18 @@ void inf_aes128_set_key(InfAes128* ctx, const uint8_t key[16]) {
 }
 
 static void add_round_key(uint8_t s[16], const uint8_t* rk) {
-    for(int i = 0; i < 16; i++) s[i] ^= rk[i];
+    for(int i = 0; i < 16; i++)
+        s[i] ^= rk[i];
 }
 
 static void sub_bytes(uint8_t s[16]) {
-    for(int i = 0; i < 16; i++) s[i] = g_sbox[s[i]];
+    for(int i = 0; i < 16; i++)
+        s[i] = g_sbox[s[i]];
 }
 
 static void inv_sub_bytes(uint8_t s[16]) {
-    for(int i = 0; i < 16; i++) s[i] = g_inv_sbox[s[i]];
+    for(int i = 0; i < 16; i++)
+        s[i] = g_inv_sbox[s[i]];
 }
 
 /* State layout is column-major: s[row + 4 * column]. */
