@@ -36,6 +36,7 @@ void uhf_settings_load(UhfSettingsData* data) {
         .startup_app = UhfStartupDefault,
         .epc_display = UhfEpcDisplayHex,
         .action_confirm = 1U,
+        .reader_buzzer_enabled = 1U,
     };
     if(!valid) return;
     data->sound_enabled = record.sound_enabled != 0U;
@@ -43,6 +44,8 @@ void uhf_settings_load(UhfSettingsData* data) {
     if(record.rf_power_dbm <= 20U) data->rf_power_dbm = record.rf_power_dbm;
     if(record.startup_app < UhfStartupCount) data->startup_app = record.startup_app;
     if(record.epc_display < UhfEpcDisplayCount) data->epc_display = record.epc_display;
+    if(record.reader_buzzer_marker == 0xA5U)
+        data->reader_buzzer_enabled = record.reader_buzzer_enabled != 0U;
 }
 
 bool uhf_key_vault_save(const UhfKeyVaultData* data) {

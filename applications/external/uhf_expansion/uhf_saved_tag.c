@@ -36,10 +36,8 @@ static bool uhf_saved_timestamp(const char* value) {
     if(!value[0]) return true;
     if(strlen(value) != 19U) return false;
     for(size_t i = 0; i < 19U; i++) {
-        const char separator = i == 4U || i == 7U   ? '-' :
-                               i == 10U             ? ' ' :
-                               i == 13U || i == 16U ? ':' :
-                                                      '\0';
+        const char separator = i == 4U || i == 7U ? '-' : i == 10U ? ' ' :
+                               i == 13U || i == 16U ? ':' : '\0';
         if(separator ? value[i] != separator : value[i] < '0' || value[i] > '9') return false;
     }
     return true;
@@ -58,53 +56,40 @@ bool uhf_saved_tag_parse(const char* text, UhfSavedTag* out) {
         const size_t length = strlen(line);
         if(length && line[length - 1U] == '\r') line[length - 1U] = '\0';
         char* colon = strchr(line, ':');
-        if(!colon) {
-            if(*line) return false;
-            line = next;
-            continue;
-        }
+        if(!colon) {if(*line) return false; line = next; continue;}
         *colon++ = '\0';
         if(*colon == ' ') colon++;
-        static const char* const keys[] = {
-            "Filetype", "Version", "EPC", "PC", "RSSI", "TID", "USER", "Timestamp"};
+        static const char* const keys[] = {"Filetype", "Version", "EPC", "PC", "RSSI", "TID", "USER", "Timestamp", "Name"};
         unsigned field = 0U;
-        while(field < 8U && strcmp(line, keys[field]))
-            field++;
-        if(field == 8U) return false;
+        while(field < 9U && strcmp(line, keys[field])) field++;
+        if(field == 9U) return false;
         if(seen & (1U << field)) return false;
         seen |= 1U << field;
         uint32_t number;
         switch(field) {
-        case 0:
-            if(strcmp(colon, "UHF Tag")) return false;
-            break;
-        case 1:
-            if(strcmp(colon, "1")) return false;
-            break;
+        case 0: if(strcmp(colon, "UHF Tag")) return false; break;
+        case 1: if(strcmp(colon, "1")) return false; break;
         case 2:
             if(!uhf_saved_hex(colon, UHF_EPC_HEX_MAX, true)) return false;
-            strcpy(tag.epc, colon);
-            break;
+            strcpy(tag.epc, colon); break;
         case 3:
-            if(strlen(colon) != 4U || !uhf_saved_number(colon, 16, UINT16_MAX, &number))
-                return false;
-            tag.pc = (uint16_t)number;
-            break;
+            if(strlen(colon) != 4U || !uhf_saved_number(colon, 16, UINT16_MAX, &number)) return false;
+            tag.pc = (uint16_t)number; break;
         case 4:
             if(!uhf_saved_number(colon, 10, UINT32_MAX, &tag.rssi)) return false;
             break;
         case 5:
             if(!uhf_saved_hex(colon, UHF_TID_HEX_MAX, false)) return false;
-            strcpy(tag.tid, colon);
-            break;
+            strcpy(tag.tid, colon); break;
         case 6:
             if(!uhf_saved_hex(colon, UHF_USER_HEX_MAX, false)) return false;
-            strcpy(tag.user, colon);
-            break;
+            strcpy(tag.user, colon); break;
         case 7:
             if(!uhf_saved_timestamp(colon)) return false;
-            strcpy(tag.timestamp, colon);
-            break;
+            strcpy(tag.timestamp, colon); break;
+        case 8:
+            if(!*colon || strlen(colon) >= sizeof(tag.name)) return false;
+            strcpy(tag.name, colon); break;
         }
         line = next;
     }
@@ -116,18 +101,12 @@ bool uhf_saved_tag_parse(const char* text, UhfSavedTag* out) {
 bool uhf_saved_tag_format(const UhfSavedTag* tag, char* out, size_t size) {
     if(!tag || !out || !uhf_saved_hex(tag->epc, UHF_EPC_HEX_MAX, true) ||
        !uhf_saved_hex(tag->tid, UHF_TID_HEX_MAX, false) ||
-       !uhf_saved_hex(tag->user, UHF_USER_HEX_MAX, false) || !uhf_saved_timestamp(tag->timestamp))
-        return false;
-    const int len = snprintf(
-        out,
-        size,
+       !uhf_saved_hex(tag->user, UHF_USER_HEX_MAX, false) ||
+       !uhf_saved_timestamp(tag->timestamp) || strlen(tag->name) >= sizeof(tag->name) ||
+       strchr(tag->name, '\n') || strchr(tag->name, '\r')) return false;
+    const int len = snprintf(out, size,
         "Filetype: UHF Tag\nVersion: 1\nEPC: %s\nPC: %04X\nRSSI: %lu\n"
-        "TID: %s\nUSER: %s\nTimestamp: %s\n",
-        tag->epc,
-        tag->pc,
-        (unsigned long)tag->rssi,
-        tag->tid,
-        tag->user,
-        tag->timestamp);
+        "TID: %s\nUSER: %s\nTimestamp: %s\nName: %s\n", tag->epc, tag->pc,
+        (unsigned long)tag->rssi, tag->tid, tag->user, tag->timestamp, tag->name);
     return len > 0 && (size_t)len < size;
 }

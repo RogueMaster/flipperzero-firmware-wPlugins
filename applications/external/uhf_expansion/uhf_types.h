@@ -40,7 +40,9 @@ typedef struct {
     uint8_t startup_app;
     uint8_t epc_display;
     uint8_t action_confirm;
-    uint8_t reserved[3];
+    uint8_t reader_buzzer_enabled;
+    uint8_t reader_buzzer_marker;
+    uint8_t reserved;
 } UhfSettingsData;
 
 typedef struct {
@@ -57,6 +59,8 @@ typedef struct {
     uint16_t pc;
     uint32_t last_seen;
     uint32_t rssi;
+    uint32_t signal_lower_since;
     uint32_t frequency;
     uint8_t antenna;
+    uint8_t signal_bars;
 } UhfTagEntry;

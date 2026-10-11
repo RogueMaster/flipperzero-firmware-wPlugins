@@ -101,7 +101,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Nice O-Code v1.0 (By zero-mega & xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/e6ded9b108454b30a3e710295e6d2b7fd146e188)
 - Added: [Security+ PIN v1.0 (By zero-mega & xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/e6ded9b108454b30a3e710295e6d2b7fd146e188)
 - Build: [Fix embedded plugin asset dependencies on repeated builds, including ProtoPirate 3.8 (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins)
-- Updated: [UHF Expansion v1.5 (By mtoolstec)](https://github.com/mtoolstec/fz-uhf-expansion)
 - Updated: [NFC Magic v2.2 (By gornekich)](https://github.com/flipperdevices/flipperzero-firmware/pull/1966) - Use per-UID cached keys before dictionary attacks and for Gen2 probing; retain RM ISO15693 support.
 - Updated: [Video Game Module Tool v1.4 (By gsurkov)](https://github.com/flipperdevices/flipperzero-good-faps/pull/127) - Make both SWDIO direction changes atomic.
 - Updated: [Daikin AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac) - Add seven additional AC protocol formats and model names.
@@ -209,6 +208,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [FlipBase v0.1 (By Space-Raler)](https://github.com/Space-Raler/FlipBase)
 - Added: [Pulse BPM v1.0 (By alaviation)](https://github.com/alaviation/flipper-pulse)
 - Added: [Yulias Cats v0.7 (By rseufert)](https://github.com/rseufert/yulia_cats)
+- Updated: [UHF Expansion v1.6 (By mtoolstec)](https://github.com/mtoolstec/fz-uhf-expansion)
 
 <a name="release"></a>
 
@@ -1090,7 +1090,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [UART Sniff v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
 - [UART Terminal v1.7 (By cool4uma)](https://github.com/cool4uma/UART_Terminal)
 - [UDECard v1.0.4 (By hahnworks](https://github.com/hahnworks/UDECard)
-- [UHF Expansion v1.5 (By mtoolstec)](https://github.com/mtoolstec/fz-uhf-expansion)
+- [UHF Expansion v1.6 (By mtoolstec)](https://github.com/mtoolstec/fz-uhf-expansion)
 - [UHF RFID WIP v1.0 (By frux-c)](https://github.com/frux-c/uhf_rfid) `Req: M100 or QM100`
 - [UID Brute Smarter v1.1 (By fbettag)](https://github.com/fbettag/uid_brute_smarter)
 - [UL-C Bruteforce Optimized v1.0 (By noproto)](https://github.com/zc-public/breakme-resources/tree/main/flipper_apps)
