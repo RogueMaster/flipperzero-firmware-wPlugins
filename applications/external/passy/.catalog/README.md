@@ -33,7 +33,8 @@
 🇹🇭
 🇫🇮
 🇻🇪
-IN
+🇮🇳
+🇳🇿
 
 (If it works for yours, submit a PR to add your country flag)
 
