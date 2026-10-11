@@ -1,0 +1,7 @@
+# favorite path = icon name  (a .bm in icons/, without extension)
+# This is a sample; it is regenerated on-device by the icon picker.
+/ext/lfrfid/FrontDoor.rfid=building
+/ext/infrared/TV.ir=tv
+/ext/infrared/Lamp.ir=lightbulb
+/ext/subghz/Garage.sub=square-parking
+/ext/nfc/Gate.nfc=door-open
