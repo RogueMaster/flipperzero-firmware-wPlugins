@@ -1,0 +1,13 @@
+App(
+    appid="appsearch",
+    name="App Search",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="app_search_app",
+    stack_size=6 * 1024,
+    fap_category="Tools",
+    fap_icon="appsearch.png",
+    fap_version="0.2",
+    fap_author="tbelbek",
+    fap_description="Launch any installed app or built-in tool from one list, most-used first. Pick Search to fuzzy-filter by name.",
+    requires=["gui", "storage", "loader"],
+)
