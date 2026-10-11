@@ -16,7 +16,7 @@
 #include "views/flipbip_scene_1.h"
 #include "flipbip_coins.h"
 
-#define FLIPBIP_VERSION  FAP_VERSION
+#define FLIPBIP_VERSION  "v2.0"
 #define TEXT_BUFFER_SIZE 256
 
 typedef struct {
@@ -29,7 +29,7 @@ typedef struct {
     TextInput* text_input;
     DialogEx* renew_dialog;
     FlipBipScene1* flipbip_scene_1;
-    char* mnemonic_menu_text;
+    const char* mnemonic_menu_text;
     // Settings options
     int bip39_strength;
     int passphrase;
@@ -40,14 +40,12 @@ typedef struct {
     // Text input
     int input_state;
     char passphrase_text[TEXT_BUFFER_SIZE];
-    char import_mnemonic_text[TEXT_BUFFER_SIZE];
     char input_text[TEXT_BUFFER_SIZE];
 
     void (*wallet_create)(void* context);
 } FlipBip;
 
 typedef enum {
-    FlipBipViewIdStartscreen,
     FlipBipViewIdMenu,
     FlipBipViewIdScene1,
     FlipBipViewIdSettings,

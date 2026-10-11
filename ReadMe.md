@@ -209,6 +209,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Pulse BPM v1.0 (By alaviation)](https://github.com/alaviation/flipper-pulse)
 - Added: [Yulias Cats v0.7 (By rseufert)](https://github.com/rseufert/yulia_cats)
 - Updated: [UHF Expansion v1.6 (By mtoolstec)](https://github.com/mtoolstec/fz-uhf-expansion)
+- Updated: [FlipBIP Crypto Wallet v2.0 (By xtruan)](https://github.com/xtruan/FlipBIP)
 
 <a name="release"></a>
 
@@ -674,7 +675,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Flight Monitor v1.0 (By kamylwnb)](https://github.com/kamylwnb/flight_monitor)
 - [Flipagotchi v2.1.1 (By Matt-London)](https://github.com/Matt-London/pwnagotchi-flipper)
 - [FlipBase v0.1 (By Space-Raler)](https://github.com/Space-Raler/FlipBase)
-- [FlipBIP Crypto Wallet v1.18 (By xtruan)](https://github.com/xtruan/FlipBIP)
+- [FlipBIP Crypto Wallet v2.0 (By xtruan)](https://github.com/xtruan/FlipBIP)
 - [FlipBoard Blinky v3.6 (By jamisonderek)](https://github.com/jamisonderek/flipboard)
 - [FlipBoard Keyboard v3.9 (By jamisonderek)](https://github.com/jamisonderek/flipboard)
 - [FlipBoard Signal v3.12 (By jamisonderek)](https://github.com/jamisonderek/flipboard)
