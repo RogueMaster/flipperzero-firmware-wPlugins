@@ -9,12 +9,13 @@
 #include <notification/notification_messages.h>
 #include <input/input.h>
 #include <storage/storage.h>
+#include <cli/cli_vcp.h>
 
 #include "views/bars_view.h"
 #include "views/connect_view.h"
 #include "views/status_view.h"
 
-#define TAG "PCMonitorUSB"
+#define TAG                   "PCMonitorUSB"
 
 #define SCREEN_HEIGHT 64
 #define LINE_HEIGHT   11
@@ -39,6 +40,8 @@ typedef struct {
     uint16_t vram_max;
     uint8_t vram_usage;
     char vram_unit[4];
+    uint8_t cpu_temp;   // degrees C, 255 = N/A
+    uint8_t gpu_temp;   // degrees C, 255 = N/A
 } DataStruct;
 #pragma pack(pop)
 
@@ -48,6 +51,7 @@ typedef struct {
     FuriMutex* app_mutex;
     FuriMessageQueue* event_queue;
     NotificationApp* notification;
+    CliVcp* cli_vcp;
 
     UsbState usb_state;
     DataStruct data;
