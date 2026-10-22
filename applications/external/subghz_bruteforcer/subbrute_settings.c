@@ -9,6 +9,9 @@
 
 #define SUBBRUTE_FIELD_LAST_INDEX    "LastIndex"
 #define SUBBRUTE_FIELD_REPEAT_VALUES "RepeatValue"
+#define SUBBRUTE_FIELD_TIME_DELAY    "TimeDelay"
+#define SUBBRUTE_FIELD_TE            "Te"
+#define SUBBRUTE_FIELD_OPENCODE      "OpenCode"
 
 SubBruteSettings* subbrute_settings_alloc(void) {
     SubBruteSettings* instance = malloc(sizeof(SubBruteSettings));
@@ -28,21 +31,44 @@ void subbrute_settings_load(SubBruteSettings* instance) {
 
     uint32_t temp_last_index = 0;
     uint8_t temp_repeat_values[SubBruteAttackTotalCount] = {0};
+    uint8_t temp_time_delay[SubBruteAttackTotalCount] = {0};
+    uint32_t temp_te[SubBruteAttackTotalCount] = {0};
+    uint8_t temp_opencode[SubBruteAttackTotalCount] = {0};
     bool was_read_last_index = false;
     bool was_read_repeat_values = false;
+    bool was_read_time_delay = false;
+    bool was_read_te = false;
+    bool was_read_opencode = false;
 
     storage_common_migrate(
         storage, EXT_PATH("subghz-bruteforcer.settings"), SUBBRUTE_SETTINGS_PATH);
 
-    if(FSE_OK == storage_sd_status(storage) && SUBBRUTE_SETTINGS_PATH &&
+    if(FSE_OK == storage_sd_status(storage) &&
        flipper_format_file_open_existing(fff_data_file, SUBBRUTE_SETTINGS_PATH)) {
-        was_read_last_index = flipper_format_read_uint32(
-            fff_data_file, SUBBRUTE_FIELD_LAST_INDEX, (uint32_t*)&temp_last_index, 1);
-        was_read_repeat_values = flipper_format_read_hex(
-            fff_data_file,
-            SUBBRUTE_FIELD_REPEAT_VALUES,
-            temp_repeat_values,
-            SubBruteAttackTotalCount);
+        // Rewind before every read: key search goes only forward,
+        // so one missing (optional) field would break all following reads
+        was_read_last_index = flipper_format_rewind(fff_data_file) &&
+                              flipper_format_read_uint32(
+                                  fff_data_file, SUBBRUTE_FIELD_LAST_INDEX, &temp_last_index, 1);
+        was_read_repeat_values = flipper_format_rewind(fff_data_file) &&
+                                 flipper_format_read_hex(
+                                     fff_data_file,
+                                     SUBBRUTE_FIELD_REPEAT_VALUES,
+                                     temp_repeat_values,
+                                     SubBruteAttackTotalCount);
+        was_read_time_delay = flipper_format_rewind(fff_data_file) &&
+                              flipper_format_read_hex(
+                                  fff_data_file,
+                                  SUBBRUTE_FIELD_TIME_DELAY,
+                                  temp_time_delay,
+                                  SubBruteAttackTotalCount);
+        was_read_te = flipper_format_rewind(fff_data_file) &&
+                      flipper_format_read_uint32(
+                          fff_data_file, SUBBRUTE_FIELD_TE, temp_te, SubBruteAttackTotalCount);
+        was_read_opencode =
+            flipper_format_rewind(fff_data_file) &&
+            flipper_format_read_hex(
+                fff_data_file, SUBBRUTE_FIELD_OPENCODE, temp_opencode, SubBruteAttackTotalCount);
     } else {
         FURI_LOG_E(TAG, "Error open file %s", SUBBRUTE_SETTINGS_PATH);
     }
@@ -53,23 +79,20 @@ void subbrute_settings_load(SubBruteSettings* instance) {
         FURI_LOG_W(TAG, "Last used index not found or can't be used!");
         instance->last_index = (uint32_t)SubBruteAttackCAME12bit433;
     }
-    if(was_read_repeat_values) {
-        for(size_t i = 0; i < SubBruteAttackTotalCount; i++) {
-            uint8_t protocol_count = subbrute_protocol_repeats_count(i);
-            uint8_t max_protocol_count = protocol_count * 3;
-            if(temp_repeat_values[i] < protocol_count) {
-                instance->repeat_values[i] = protocol_count;
-            } else if(temp_repeat_values[i] > max_protocol_count) {
-                instance->repeat_values[i] = max_protocol_count;
-            } else {
-                instance->repeat_values[i] = temp_repeat_values[i];
-            }
-        }
-    } else {
-        FURI_LOG_W(TAG, "Last used repeat values can't be used!");
-        for(size_t i = 0; i < SubBruteAttackTotalCount; i++) {
+
+    for(size_t i = 0; i < SubBruteAttackTotalCount; i++) {
+        if(was_read_repeat_values && temp_repeat_values[i] >= SUBBRUTE_MIN_REPEATS &&
+           temp_repeat_values[i] <= SUBBRUTE_MAX_REPEATS) {
+            instance->repeat_values[i] = temp_repeat_values[i];
+        } else {
             instance->repeat_values[i] = subbrute_protocol_repeats_count(i);
         }
+
+        // uint8_t can't exceed SUBBRUTE_MAX_TIME_DELAY
+        instance->time_delay[i] = was_read_time_delay ? temp_time_delay[i] :
+                                                        SUBBRUTE_DEFAULT_TIME_DELAY;
+        instance->te[i] = was_read_te ? temp_te[i] : 0;
+        instance->opencode[i] = was_read_opencode ? temp_opencode[i] : 0;
     }
 
     flipper_format_file_close(fff_data_file);
@@ -109,9 +132,20 @@ bool subbrute_settings_save(SubBruteSettings* instance) {
                SubBruteAttackTotalCount)) {
             break;
         }
+        if(!flipper_format_insert_or_update_hex(
+               file, SUBBRUTE_FIELD_TIME_DELAY, instance->time_delay, SubBruteAttackTotalCount)) {
+            break;
+        }
+        if(!flipper_format_insert_or_update_uint32(
+               file, SUBBRUTE_FIELD_TE, instance->te, SubBruteAttackTotalCount)) {
+            break;
+        }
+        if(!flipper_format_insert_or_update_hex(
+               file, SUBBRUTE_FIELD_OPENCODE, instance->opencode, SubBruteAttackTotalCount)) {
+            break;
+        }
         saved = true;
-        break;
-    } while(true);
+    } while(false);
 
     if(!saved) {
         FURI_LOG_E(TAG, "Error save file %s", SUBBRUTE_SETTINGS_PATH);

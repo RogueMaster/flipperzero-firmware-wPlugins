@@ -7,6 +7,7 @@
 #include "sr_types.h"
 #include "sr_bloom.h"
 #include "sr_rawlog.h"
+#include "sr_dialect.h"
 
 /*
  * ★ Session state machine + statistics + ring buffer. Must not include any furi header (ADR-003).
@@ -92,6 +93,12 @@ typedef struct {
      * Paired with SR_QUAL_STALE_MS (src/sr_view_fmt.h) by the Dash render gate to degrade
      * a superannuated Qual: to the unknown state instead of freezing the old verdict. */
     uint32_t qual_tick_ms;
+    /* Previous Qual gga/ggafix. False until a second sample arrives.
+     * Lite Dash and identity compare with unsigned !=. Old firmware
+     * does not read these. Same family as qual: reset_session keeps them. */
+    uint32_t qual_prev_gga;
+    uint32_t qual_prev_ggafix;
+    bool qual_prev_seen;
     SrRadioInfo radio; /* Last strict Radio: snapshot; permission bits, not Sess: counts */
     uint32_t radio_rev; /* Incremented on each SrEventRadio; 0 = never seen (unknown, not 0) */
     uint32_t
@@ -180,6 +187,21 @@ bool sr_model_seed_from_sess(SrModel* m, uint32_t tick_ms);
 /* idx 0 = newest. Returns NULL when idx >= count or m is NULL. */
 const SrApBrief* sr_model_recent(const SrModel* m, size_t idx);
 size_t sr_model_recent_count(const SrModel* m);
+
+/* -1 unknown, 0 stalled, 1 moved. No Qual yet is unknown. */
+static inline int sr_model_lite_gps_face(const SrModel* m) {
+    if(m == NULL || m->qual_rev == 0u) {
+        return -1;
+    }
+    return sr_lite_counter_live(m->qual_prev_seen, m->qual_prev_gga, m->qual.gga);
+}
+
+static inline int sr_model_lite_fix_face(const SrModel* m) {
+    if(m == NULL || m->qual_rev == 0u) {
+        return -1;
+    }
+    return sr_lite_counter_live(m->qual_prev_seen, m->qual_prev_ggafix, m->qual.ggafix);
+}
 
 /*
  * Accepts only XX:XX:XX:XX:XX:XX (exactly 17 chars + NUL, case insensitive).

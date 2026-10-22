@@ -1,7 +1,7 @@
 #include "../subbrute_i.h"
 #include "subbrute_scene.h"
 
-#define TAG "SubBruteSceneStart"
+#define TAG "SubBruteSceneLoadSelect"
 
 void subbrute_scene_load_select_callback(SubBruteCustomEvent event, void* context) {
     furi_assert(context);
@@ -44,10 +44,6 @@ bool subbrute_scene_load_select_on_event(void* context, SceneManagerEvent event)
 
     if(event.type == SceneManagerEventTypeCustom) {
         if(event.event == SubBruteCustomEventTypeIndexSelected) {
-            /*#ifdef FURI_DEBUG && !SUBBRUTE_FAST_TRACK
-            view_dispatcher_stop(instance->view_dispatcher);
-            consumed = true;
-#else*/
             instance->device->current_step = 0;
             instance->device->bit_index = subbrute_main_view_get_index(instance->view_main);
             instance->device->two_bytes = subbrute_main_view_get_two_bytes(instance->view_main);
@@ -72,15 +68,11 @@ bool subbrute_scene_load_select_on_event(void* context, SceneManagerEvent event)
                    instance->device->two_bytes)) {
                 furi_crash("Invalid attack set!");
             }
+            subbrute_apply_extra_settings(instance);
             subbrute_settings_save(instance->settings);
             scene_manager_next_scene(instance->scene_manager, SubBruteSceneSetupAttack);
-            /*#endif*/
             consumed = true;
-        } /* else if(event.event == SubBruteCustomEventTypeChangeStepUp) {
-            instance->device->two_bytes = true;
-        } else if(event.event == SubBruteCustomEventTypeChangeStepDown) {
-            instance->device->two_bytes = false;
-        }*/
+        }
     } else if(event.type == SceneManagerEventTypeBack) {
         if(!scene_manager_search_and_switch_to_previous_scene(
                instance->scene_manager, SubBruteSceneStart)) {

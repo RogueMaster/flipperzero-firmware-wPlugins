@@ -11,8 +11,10 @@
 /*
  * ★ Probe Ok-page copy. Zero furi (ADR-003).
  *
- * Product identity for SigRoam dialect; UART Version: / ESP-IDF: stay off
- * the screen (ADR-027). Generic Marauder keeps the firmware name, not v1.14.1.
+ * SigRoam dialect draws SR_SCANNER_VERSION. The UART Version string stays
+ * off that page (ADR-027). Generic Marauder draws fw->version as stored
+ * (the parser already kept the leading v). An empty version draws ?.
+ * ESP-IDF, MAC, and WSL Bypass stay off. No SD-card line here.
  */
 
 static inline void sr_probe_fmt_board(const SrFirmwareInfo* fw, char* out, size_t cap) {
@@ -126,13 +128,17 @@ static inline size_t sr_probe_fmt_ok(
             brand,
             diag);
     } else {
+        const char* uart_ver = (fw->version[0] != '\0') ? fw->version : "?";
+
         n = snprintf(
             out,
             cap,
             "\e#%s\n"
             "%s\n"
+            "%s\n"
             "%s",
             title,
+            uart_ver,
             board,
             diag);
     }

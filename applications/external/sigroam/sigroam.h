@@ -8,6 +8,7 @@
 #include <gui/modules/submenu.h>
 #include <gui/modules/widget.h>
 #include <gui/modules/text_box.h>
+#include <gui/modules/text_input.h>
 #include <gui/modules/variable_item_list.h>
 #include <notification/notification.h>
 
@@ -29,7 +30,7 @@
 #include "views/sr_view_dash.h"
 
 #define SR_TAG             "SigRoam"
-#define SR_FAP_VERSION     "0.6.1"
+#define SR_FAP_VERSION     "0.7"
 /* Display-only scanner product number on Probe (ADR-027). Not UART kVersion. */
 #define SR_SCANNER_VERSION "0.6"
 
@@ -99,7 +100,7 @@
  * have silently truncated the diagnostic, which is the one line that matters when
  * nothing else is answering. */
 #define SR_PROBE_TEXT_MAX  448
-#define SR_UPLOAD_TEXT_MAX 192
+#define SR_UPLOAD_TEXT_MAX 448
 #define SR_RAW_TEXT_MAX    (SR_RAWLOG_LINES * (SR_RAWLOG_LINE_MAX + 2) + 1)
 #define SR_TICK_PERIOD_MS  100
 
@@ -107,6 +108,7 @@ typedef enum {
     SigRoamViewSubmenu,
     SigRoamViewWidget,
     SigRoamViewTextBox,
+    SigRoamViewTextInput,
     SigRoamViewDash,
     SigRoamViewVarList,
 } SigRoamView;
@@ -120,6 +122,7 @@ typedef struct {
     Submenu* submenu;
     Widget* widget;
     TextBox* text_box;
+    TextInput* text_input;
     VariableItemList* var_list;
     VariableItem* var_item_apply;
     SrViewDash* dash;
@@ -190,6 +193,13 @@ typedef struct {
      * clear_stop_rev: wifi_stop_rev snapshot taken **before** that stopscan.
      * Compare with != . */
     bool probe_stop_sent;
+    /* Generic peer: one `sigroam` after SHOW_INFO clear, so Probe can show
+     * GPS/SD from Diag/Qual. Not sent to -sigroam- firmware. */
+    bool probe_sigroam_sent;
+    uint32_t hs_qual_rev_shown;
+    /* Dash: one capability probe per visit while sigroam_cap is not YES.
+     * Distinct from the periodic refresh, which starts only after YES. */
+    bool dash_sigroam_probed;
     bool dash_prestart;
     uint32_t clear_stop_rev;
     uint32_t dash_prestart_tick_ms;

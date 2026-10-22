@@ -1,0 +1,13 @@
+// Source-derived from printSigRoamStatus (WiFiScan.cpp) and the Marauder
+// echo Serial.println("#" + input) (CommandLine.cpp runCommand). Not a
+// hardware dump. Values are the P5 step1 examples. Lines starting with
+// "//" are comments and are not fed to the parser.
+#sigroam
+Diag: st=1 seal=00 hb=7/1/1/0/1/1
+Busy: st=1 seal=00
+Sess: ap=123 ble=45 ms=60000 ih=0 ihmin=0 ps=0 psmin=0
+Qual: gga=60 ggafix=55 drop=0 net=123 sd=1 sats=7 topd=0
+Radio: wifi=1 ble=1
+Up: up_q=2 up_last_trans=- up_disc_gps=0 up_reason=-
+Rank: rank=0 month=0 wifi_gps=0
+Cfg: key=1 home=1 ssid=OP-5G

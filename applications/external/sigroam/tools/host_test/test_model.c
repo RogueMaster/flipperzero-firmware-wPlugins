@@ -1401,8 +1401,9 @@ static void test_session_rev(void) {
      * 2026-09-21 H2: +SrUpInfo + up_rev → 3520.
      * 2026-09-24 Rank: +SrRankInfo(12) + rank_rev(4) = +16 → 3536.
      * 2026-09-24 bands + last_elapsed + Cfg: ap_24/ap_5 (8) + last_elapsed_ms (4)
-     * + SrCfgInfo/cfg_rev, padding absorbed 4 → 3584. */
-    CHECK(sizeof(SrModel) == 3584);
+     * + SrCfgInfo/cfg_rev, padding absorbed 4 → 3584.
+     * 2026-10-20 qual_prev_gga/ggafix/seen: radio pad absorbs 0, tail +8 → 3592. */
+    CHECK(sizeof(SrModel) == 3592);
     CHECK(sizeof(SrModel) <= 4096);
 }
 

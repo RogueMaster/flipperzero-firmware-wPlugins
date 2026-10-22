@@ -39,6 +39,7 @@ typedef struct {
     const char* key_missing;
     const char* channel_missing;
     const char* bridge_failed;
+    const char* wifi_config_invalid;
     const char* edit_config;
 
     /* Info sheet */
@@ -53,6 +54,11 @@ typedef struct {
     const char* paused;
     const char* connection_offline;
     const char* sheet_refresh;
+    const char* transport_bridge;
+    const char* transport_wifi;
+    const char* wifi_no_board;
+    const char* wifi_failed;
+    const char* wifi_busy;
 
     /* Settings */
     const char* settings;
@@ -62,6 +68,7 @@ typedef struct {
     const char* backlight;
     const char* interval;
     const char* language;
+    const char* font;
     const char* test;
     const char* minutes; /* %lu */
     const char* hours; /* %lu */
@@ -93,6 +100,7 @@ static const YtStrings yt_strings[YtLangCount] = {
             .key_missing = "API key missing",
             .channel_missing = "Channel missing",
             .bridge_failed = "Bridge error",
+            .wifi_config_invalid = "Wi-Fi: no \" or \\",
             .edit_config = "Edit config.txt",
             .sheet_last = "Updated",
             .sheet_next = "Next",
@@ -105,6 +113,11 @@ static const YtStrings yt_strings[YtLangCount] = {
             .paused = "paused",
             .connection_offline = "offline",
             .sheet_refresh = "OK  Refresh",
+            .transport_bridge = "Bridge",
+            .transport_wifi = "Wi-Fi",
+            .wifi_no_board = "Wi-Fi board not found",
+            .wifi_failed = "Wi-Fi connection failed",
+            .wifi_busy = "GPIO UART is busy",
             .settings = "Settings",
             .sound = "Sound",
             .vibration = "Vibration",
@@ -112,6 +125,7 @@ static const YtStrings yt_strings[YtLangCount] = {
             .backlight = "Backlight",
             .interval = "Interval",
             .language = "Language",
+            .font = "Font",
             .test = "Test alert",
             .minutes = "%lu min",
             .hours = "%lu h",
@@ -141,6 +155,7 @@ static const YtStrings yt_strings[YtLangCount] = {
             .key_missing = "API-Key fehlt",
             .channel_missing = "Kanal fehlt",
             .bridge_failed = "Bridge-Fehler",
+            .wifi_config_invalid = "WLAN: kein \" oder \\",
             .edit_config = "config.txt bearbeiten",
             .sheet_last = "Zuletzt",
             .sheet_next = "Update",
@@ -153,6 +168,11 @@ static const YtStrings yt_strings[YtLangCount] = {
             .paused = "pausiert",
             .connection_offline = "offline",
             .sheet_refresh = "OK  Laden",
+            .transport_bridge = "Bridge",
+            .transport_wifi = "WLAN",
+            .wifi_no_board = "WLAN-Board nicht gefunden",
+            .wifi_failed = "WLAN-Verbindung fehlgeschlagen",
+            .wifi_busy = "GPIO-UART ist belegt",
             .settings = "Einstellungen",
             .sound = "Ton",
             .vibration = "Vibration",
@@ -160,6 +180,7 @@ static const YtStrings yt_strings[YtLangCount] = {
             .backlight = "Display an",
             .interval = "Intervall",
             .language = "Sprache",
+            .font = "Schrift",
             .test = "Testen",
             .minutes = "%lu Min",
             .hours = "%lu Std",

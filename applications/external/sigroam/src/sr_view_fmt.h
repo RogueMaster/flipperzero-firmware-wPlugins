@@ -3,9 +3,11 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 
 #include "sr_capture_health.h"
+#include "sr_dialect.h"
 
 /*
  * ★ Pure formatting for hand-drawn views. Must not include any furi header (ADR-003 / ADR-019 decision 4).
@@ -1163,4 +1165,289 @@ static inline size_t sr_fmt_cfg_line(
     }
     tmp[n] = '\0';
     return sr_fmt_fit(tmp, n, max_cols, out, cap);
+}
+
+/* Running lite data row: FAP clock on the right of the text.
+ * Full keeps the row. DropUp reprints it without the "  Up <q>" segment.
+ * None draws no clock. Screen is 128 px. The 4 px gap is not an argument.
+ *   full + 4 + clock <= 128 -> Full
+ *   else noup + 4 + clock <= 128 -> DropUp
+ *   else None
+ * 128 still fits. The sum is 32-bit so a large width cannot wrap into a fit. */
+typedef enum {
+    SrLiteRowClockFull = 0,
+    SrLiteRowClockDropUp,
+    SrLiteRowClockNone,
+} SrLiteRowClockFit;
+
+enum {
+    SR_LITE_ROW_SCREEN_PX = 128,
+    SR_LITE_ROW_CLOCK_GAP_PX = 4
+};
+
+static inline SrLiteRowClockFit
+    sr_lite_row_clock_fit(uint16_t full_w, uint16_t noup_w, uint16_t clock_w) {
+    uint32_t full;
+    uint32_t bare;
+
+    full = (uint32_t)full_w + (uint32_t)SR_LITE_ROW_CLOCK_GAP_PX + (uint32_t)clock_w;
+    if(full <= (uint32_t)SR_LITE_ROW_SCREEN_PX) {
+        return SrLiteRowClockFull;
+    }
+    bare = (uint32_t)noup_w + (uint32_t)SR_LITE_ROW_CLOCK_GAP_PX + (uint32_t)clock_w;
+    if(bare <= (uint32_t)SR_LITE_ROW_SCREEN_PX) {
+        return SrLiteRowClockDropUp;
+    }
+    return SrLiteRowClockNone;
+}
+
+/* Scout Lite Running rows between the big-number baseline and the status
+ * bar. Status is the lite data row (the right-aligned clock sits on it).
+ * spread true: even integer gaps. Division truncates toward zero.
+ *   has_band: ap = B + (62-B)/3, band = B + (2*(62-B))/3, status = 62
+ *   no band:  ap = B + (62-B)/2, status = 62
+ * Adjacent baselines must differ by at least SR_LITE_ROW_MIN_GAP.
+ * Otherwise spread is false and the old stack is used:
+ *   ap = B+10
+ *   band at B+20 and status at B+30 only when has_band and B+30 <= 61
+ *   else no band and status = B+20
+ * band_y is 0 when draw_band is false. The 61 clip is the old stack's
+ * gate, not the pinned status baseline. */
+enum {
+    SR_LITE_STATUS_Y = 62,
+    SR_LITE_ROW_MIN_GAP = 9
+};
+
+typedef struct {
+    int32_t ap_y;
+    int32_t band_y;
+    int32_t status_y;
+    bool draw_band;
+    bool spread;
+} SrLiteStatusRows;
+
+static inline SrLiteStatusRows sr_lite_status_rows(int32_t big_baseline, bool has_band) {
+    SrLiteStatusRows rows;
+    const int32_t status = (int32_t)SR_LITE_STATUS_Y;
+    const int32_t gap = status - big_baseline;
+    int32_t ap;
+    int32_t band;
+    int32_t y_after_ap;
+
+    if(has_band) {
+        ap = big_baseline + gap / 3;
+        band = big_baseline + (gap * 2) / 3;
+        if((ap - big_baseline) >= (int32_t)SR_LITE_ROW_MIN_GAP &&
+           (band - ap) >= (int32_t)SR_LITE_ROW_MIN_GAP &&
+           (status - band) >= (int32_t)SR_LITE_ROW_MIN_GAP) {
+            rows.ap_y = ap;
+            rows.band_y = band;
+            rows.status_y = status;
+            rows.draw_band = true;
+            rows.spread = true;
+            return rows;
+        }
+    } else {
+        ap = big_baseline + gap / 2;
+        if((ap - big_baseline) >= (int32_t)SR_LITE_ROW_MIN_GAP &&
+           (status - ap) >= (int32_t)SR_LITE_ROW_MIN_GAP) {
+            rows.ap_y = ap;
+            rows.band_y = 0;
+            rows.status_y = status;
+            rows.draw_band = false;
+            rows.spread = true;
+            return rows;
+        }
+    }
+
+    rows.ap_y = big_baseline + 10;
+    y_after_ap = rows.ap_y + 10;
+    rows.band_y = 0;
+    rows.draw_band = false;
+    rows.status_y = y_after_ap;
+    rows.spread = false;
+    if(has_band && (y_after_ap + 10) <= 61) {
+        rows.band_y = y_after_ap;
+        rows.draw_band = true;
+        rows.status_y = y_after_ap + 10;
+    }
+    return rows;
+}
+
+/*
+ * Scout Lite Dash row, at most SR_VIEW_COLS. The string has no clock.
+ * Running draws the FAP clock to the right of this row in the view.
+ * <g> is sr_lite_counter_live on ggafix (the boot counter). 1 -> "Fix <n>sat",
+ * 0 -> "NoFix <n>sat", -1 -> "? <n>sat". The raw counter is never copied.
+ *
+ * Stale when qual_rev == 0 or (now_ms - qual_tick_ms) > SR_QUAL_STALE_MS.
+ * The subtract is unsigned, so a short tick wrap stays fresh. Do not use
+ * sr_fmt_qual_fresh: that treats sess_ms == 0 as stale, and Idle's board
+ * session is always 0. Stale writes "GPS ?" and keeps Up.
+ *
+ * Wider than 20 columns: drop the whole "  Up <q>" segment. No sr_fmt_fit.
+ * keep_up false drops that segment even when the row fits in 20 columns,
+ * so the view can reprint it beside the clock. Fields are not cut.
+ * with_dur and elapsed_ms are ignored so Idle and Running share the text.
+ */
+static inline size_t sr_fmt_lite_dash_row_ex(
+    uint32_t qual_rev,
+    uint32_t qual_tick_ms,
+    uint32_t now_ms,
+    uint8_t sats,
+    bool qual_prev_seen,
+    uint32_t prev_ggafix,
+    uint32_t ggafix,
+    bool up_known,
+    uint32_t up_q,
+    bool with_dur,
+    uint32_t elapsed_ms,
+    bool keep_up,
+    char* out,
+    size_t cap) {
+    char nbuf[4];
+    char qbuf[12];
+    char prefix[24];
+    char tmp[40];
+    size_t nn;
+    size_t nq;
+    size_t np;
+    size_t n;
+    bool fresh;
+    bool show_up;
+    int face;
+
+    (void)with_dur;
+    (void)elapsed_ms;
+    if(out == NULL || cap == 0u) {
+        return 0u;
+    }
+    out[0] = '\0';
+
+    fresh = qual_rev != 0u && (now_ms - qual_tick_ms) <= (uint32_t)SR_QUAL_STALE_MS;
+    if(!fresh) {
+        np = sr_fmt__cpy("GPS ?", 5u, prefix, sizeof(prefix));
+    } else {
+        nn = sr_fmt__udec((uint32_t)sats, nbuf, sizeof(nbuf));
+        face = sr_lite_counter_live(qual_prev_seen, prev_ggafix, ggafix);
+        if(face > 0) {
+            np = sr_fmt__cpy("Fix ", 4u, prefix, sizeof(prefix));
+        } else if(face == 0) {
+            np = sr_fmt__cpy("NoFix ", 6u, prefix, sizeof(prefix));
+        } else {
+            np = sr_fmt__cpy("? ", 2u, prefix, sizeof(prefix));
+        }
+        np += sr_fmt__cpy(nbuf, nn, prefix + np, sizeof(prefix) - np);
+        np += sr_fmt__cpy("sat", 3u, prefix + np, sizeof(prefix) - np);
+    }
+    if(!up_known) {
+        qbuf[0] = '?';
+        qbuf[1] = '\0';
+        nq = 1u;
+    } else {
+        nq = sr_fmt__udec(up_q, qbuf, sizeof(qbuf));
+    }
+
+    show_up = keep_up;
+    for(;;) {
+        n = np;
+        if(show_up) {
+            n += 5u + nq; /* "  Up " + value */
+        }
+        if(n <= (size_t)SR_VIEW_COLS) {
+            break;
+        }
+        if(show_up) {
+            show_up = false;
+            continue;
+        }
+        break;
+    }
+
+    n = sr_fmt__cpy(prefix, np, tmp, sizeof(tmp));
+    if(show_up) {
+        n += sr_fmt__cpy("  Up ", 5u, tmp + n, sizeof(tmp) - n);
+        n += sr_fmt__cpy(qbuf, nq, tmp + n, sizeof(tmp) - n);
+    }
+    return sr_fmt__cpy(tmp, n, out, cap);
+}
+
+/* Same row, keeping Up unless the 20-column rule drops that whole segment. */
+static inline size_t sr_fmt_lite_dash_row(
+    uint32_t qual_rev,
+    uint32_t qual_tick_ms,
+    uint32_t now_ms,
+    uint8_t sats,
+    bool qual_prev_seen,
+    uint32_t prev_ggafix,
+    uint32_t ggafix,
+    bool up_known,
+    uint32_t up_q,
+    bool with_dur,
+    uint32_t elapsed_ms,
+    char* out,
+    size_t cap) {
+    return sr_fmt_lite_dash_row_ex(
+        qual_rev,
+        qual_tick_ms,
+        now_ms,
+        sats,
+        qual_prev_seen,
+        prev_ggafix,
+        ggafix,
+        up_known,
+        up_q,
+        with_dur,
+        elapsed_ms,
+        true,
+        out,
+        cap);
+}
+
+/* Sess tab, lite peer, y51. Brand plus the product word. */
+static inline size_t sr_fmt_lite_sess_brand(const char* brand, char* out, size_t cap) {
+    int n;
+
+    if(out == NULL || cap == 0u) {
+        return 0u;
+    }
+    out[0] = '\0';
+    if(brand == NULL || brand[0] == '\0') {
+        brand = "?";
+    }
+    n = snprintf(out, cap, "%s Scout Lite", brand);
+    if(n < 0) {
+        out[0] = '\0';
+        return 0u;
+    }
+    if((size_t)n >= cap) {
+        return cap - 1u;
+    }
+    return (size_t)n;
+}
+
+/* Sess tab, lite peer, y61. Firmware name and Version, no labels. */
+static inline size_t
+    sr_fmt_lite_sess_fw(const char* firmware, const char* version, char* out, size_t cap) {
+    int n;
+
+    if(out == NULL || cap == 0u) {
+        return 0u;
+    }
+    out[0] = '\0';
+    if(firmware == NULL || firmware[0] == '\0') {
+        firmware = "?";
+    }
+    if(version == NULL || version[0] == '\0') {
+        version = "?";
+    }
+    n = snprintf(out, cap, "%s %s", firmware, version);
+    if(n < 0) {
+        out[0] = '\0';
+        return 0u;
+    }
+    if((size_t)n >= cap) {
+        return cap - 1u;
+    }
+    return (size_t)n;
 }

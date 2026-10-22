@@ -6,4 +6,4 @@ typedef struct SubGhz SubGhz;
 
 SubGhz* subghz_alloc();
 void subghz_free(SubGhz* subghz);
-void subghz_send(void* context);
+bool subghz_send(void* context);

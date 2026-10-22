@@ -334,3 +334,16 @@ const char* subghz_txrx_radio_device_get_name(SubGhzTxRx* instance);
 * @return bool True if the frequency is valid
 */
 bool subghz_txrx_radio_device_is_frequecy_valid(SubGhzTxRx* instance, uint32_t frequency);
+
+/* Check if TX is done: all data is sent or TX is not running
+*
+* @param instance Pointer to a SubGhzTxRx
+* @return bool True if TX is complete
+*/
+bool subghz_txrx_tx_is_complete(SubGhzTxRx* instance);
+
+/* Reset dynamic protocols state (KeeLoq, FAAC SLH) and custom buttons, like Sub-GHz app does
+*
+* @param instance Pointer to a SubGhzTxRx
+*/
+void subghz_txrx_reset_dynamic_and_custom_btns(SubGhzTxRx* instance);

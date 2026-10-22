@@ -1,5 +1,6 @@
 #include "sr_test.h"
 
+#include "sr_dialect.h"
 #include "sr_scan_ctl.h"
 #include "sr_types.h"
 
@@ -369,6 +370,48 @@ int test_scan_ctl_run(void) {
     CHECK(sr_scan_ctl_should_latch_stop(false, true) == true);
     CHECK(sr_scan_ctl_should_latch_stop(false, false) == false);
 
+    /* P5 step1c. dash_prestart stopscan only clears SHOW_INFO. Do not
+     * latch and do not refresh. A user stop keeps the old pair: latch
+     * when should_latch_stop, lite sends sigroam, -sigroam- sends info. */
+    CHECK(sr_scan_ctl_post_stop_refresh(true, true) == false);
+    CHECK(sr_scan_ctl_post_stop_refresh(false, true) == false);
+    {
+        SrFirmwareInfo fw;
+        bool latch;
+        const char* cmd;
+
+        memset(&fw, 0, sizeof(fw));
+        sr_strlcpy(fw.version, sizeof(fw.version), "v1.18.0");
+        fw.sigroam_cap = (uint8_t)SR_SIGROAM_CAP_YES;
+        fw.diag_seen = true;
+        latch = sr_scan_ctl_should_latch_stop(sr_dialect_is_sigroam(&fw), fw.diag_seen);
+        CHECK(latch == true);
+        CHECK(sr_dialect_lite_status(&fw) == true);
+        CHECK(sr_scan_ctl_post_stop_refresh(latch, false) == true);
+        CHECK(sr_scan_ctl_post_stop_refresh(latch, true) == false);
+        cmd = sr_dialect_dash_refresh_cmd(&fw);
+        CHECK(cmd != NULL && strcmp(cmd, "sigroam\n") == 0);
+
+        sr_strlcpy(fw.version, sizeof(fw.version), "v1.14.1-sigroam-0");
+        fw.sigroam_cap = (uint8_t)SR_SIGROAM_CAP_YES;
+        fw.diag_seen = false;
+        latch = sr_scan_ctl_should_latch_stop(sr_dialect_is_sigroam(&fw), fw.diag_seen);
+        CHECK(latch == true);
+        CHECK(sr_dialect_lite_status(&fw) == false);
+        CHECK(sr_scan_ctl_post_stop_refresh(latch, false) == true);
+        cmd = sr_dialect_dash_refresh_cmd(&fw);
+        CHECK(cmd != NULL && strcmp(cmd, "info\n") == 0);
+
+        memset(&fw, 0, sizeof(fw));
+        sr_strlcpy(fw.version, sizeof(fw.version), "v1.18.0");
+        latch = sr_scan_ctl_should_latch_stop(sr_dialect_is_sigroam(&fw), fw.diag_seen);
+        CHECK(latch == false);
+        CHECK(sr_scan_ctl_post_stop_refresh(latch, false) == false);
+        CHECK(sr_scan_ctl_post_stop_refresh(latch, true) == false);
+        CHECK(sr_dialect_dash_refresh_cmd(&fw) == NULL);
+        CHECK(sr_dialect_lite_status(&fw) == false);
+    }
+
     /* Ident hold: pending + empty Version blocks START until Version.
      * 1500 ms is retry spacing, not the end of the hold. */
     CHECK(sr_scan_ctl_ident_hold(true, false, 0u, 0u, 1500u) == true);
@@ -435,8 +478,9 @@ int test_scan_ctl_run(void) {
      * full alignment argument). SrEvent untouched, still 240.
      * 2026-09-16 T6.5 half B: +SrRadioInfo(2)+pad(2)+radio_rev(4) = +8 → 3416.
      * 2026-09-18 SHOW_INFO clear: +wifi_stop_rev(4)+pad(4) = +8 → 3424.
-     * SrEvent still 240 (radio arm is 2 B). */
-    CHECK(sizeof(SrModel) == 3584);
+     * SrEvent still 240 (radio arm is 2 B).
+     * 2026-10-20 lite Qual previous sample: +8 → 3592. SrEvent stays 240. */
+    CHECK(sizeof(SrModel) == 3592);
     CHECK(sizeof(SrModel) <= 4096);
     CHECK(sizeof(SrParser) == 452);
     CHECK(sizeof(SrEvent) == 240);

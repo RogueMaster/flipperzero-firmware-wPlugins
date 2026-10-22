@@ -1,5 +1,4 @@
 #include "subbrute_protocols.h"
-#include "math.h"
 
 #define TAG "SubBruteProtocols"
 
@@ -637,6 +636,19 @@ const uint64_t gate_smsc = 0x01D5; // 111010101
 //const uint8_t gate2 = 0x0175; // 101110101
 
 const uint64_t gate_pt2260 = 0x03; // 11
+
+// Common PT2262 "open" button codes, index is opencode selected in extra settings
+static const uint8_t gates_pt2262[] = {
+    0x03, // 0001
+    0x0C, // 0010
+    0x30, // 0100
+    0xC0, // 1000
+    0xF0, // 1100
+    0x10, // 0F00
+    0x04, // 00F0
+    0x40, // F000
+    0xC3, // 1001
+};
 //const uint8_t button_lock = 0x0C; // 1100
 //const uint8_t button_stop = 0x30; // 110000
 //const uint8_t button_close = 0xC0; // 11000000
@@ -731,8 +743,7 @@ void subbrute_protocol_create_candidate_for_default(
     if(file == SMC5326FileProtocol) {
         for(size_t j = 0; j < 8; j++) {
             total |= lut_uni_alarm_smsc[step % 3] << (2 * j);
-            double sub_step = (double)step / 3;
-            step = (uint64_t)floor(sub_step);
+            step /= 3;
         }
         total <<= 9;
         total |= gate_smsc;
@@ -743,8 +754,7 @@ void subbrute_protocol_create_candidate_for_default(
     } else if(file == UNILARMFileProtocol) {
         for(size_t j = 0; j < 8; j++) {
             total |= lut_uni_alarm_smsc[step % 3] << (2 * j);
-            double sub_step = (double)step / 3;
-            step = (uint64_t)floor(sub_step);
+            step /= 3;
         }
         total <<= 9;
         total |= gate_uni_alarm;
@@ -755,8 +765,7 @@ void subbrute_protocol_create_candidate_for_default(
     } else if(file == PT2260FileProtocol) {
         for(size_t j = 0; j < 8; j++) {
             total |= lut_pt2260[step % 3] << (2 * j);
-            double sub_step = (double)step / 3;
-            step = (uint64_t)floor(sub_step);
+            step /= 3;
         }
         total <<= 8;
         total |= gate_pt2260;
@@ -765,39 +774,11 @@ void subbrute_protocol_create_candidate_for_default(
             p[i] = (uint8_t)(total >> 8 * (7 - i)) & 0xFF;
         }
     } else if(file == PT2262FileProtocol) {
-        uint64_t gate_pt2262 = 0x03; // 11
-        uint8_t opencode_var = opencode;
-        if(opencode_var == 0) {
-            gate_pt2262 = 0x03; // 0001 PT2262常见抬杆码3
-        }
-        if(opencode_var == 1) {
-            gate_pt2262 = 0x0C; // 0010 PT2262常见抬杆码12
-        }
-        if(opencode_var == 2) {
-            gate_pt2262 = 0x30; // 0100 PT2262常见抬杆码48
-        }
-        if(opencode_var == 3) {
-            gate_pt2262 = 0xC0; // 1000 PT2262常见抬杆码192
-        }
-        if(opencode_var == 4) {
-            gate_pt2262 = 0xF0; // 1100 PT2262常见抬杆码240
-        }
-        if(opencode_var == 5) {
-            gate_pt2262 = 0x10; // 0F00 PT2262常见抬杆码16
-        }
-        if(opencode_var == 6) {
-            gate_pt2262 = 0x04; // 00F0 PT2262常见抬杆码4
-        }
-        if(opencode_var == 7) {
-            gate_pt2262 = 0x40; // F000 PT2262常见抬杆码64
-        }
-        if(opencode_var == 8) {
-            gate_pt2262 = 0xC3; // 1001 PT2262常见抬杆码195
-        }
+        const uint64_t gate_pt2262 = opencode < COUNT_OF(gates_pt2262) ? gates_pt2262[opencode] :
+                                                                         gates_pt2262[0];
         for(size_t j = 0; j < 8; j++) {
             total |= lut_pt2262[step % 3] << (2 * j);
-            double sub_step = (double)step / 3;
-            step = (uint64_t)floor(sub_step);
+            step /= 3;
         }
         total <<= 8;
         total |= gate_pt2262;
@@ -1007,15 +988,11 @@ uint64_t
         attack_type == SubBruteAttackPT226224bit430 ||
         attack_type == SubBruteAttackPT226224bit4305 ||
         attack_type == SubBruteAttackPT226224bit433) {
-        max_value = 6561;
+        // 8 trinary digits: 3^8 combinations, steps 0..6560
+        max_value = 6560;
     } else {
-        FuriString* max_value_s;
-        max_value_s = furi_string_alloc();
-        for(uint8_t i = 0; i < bits; i++) {
-            furi_string_cat_printf(max_value_s, "1");
-        }
-        max_value = (uint64_t)strtol(furi_string_get_cstr(max_value_s), NULL, 2);
-        furi_string_free(max_value_s);
+        // All bits set
+        max_value = bits >= 64 ? UINT64_MAX : ((uint64_t)1 << bits) - 1;
     }
 
     return max_value;

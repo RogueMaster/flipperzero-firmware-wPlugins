@@ -17,7 +17,7 @@ App(
     fap_category="Sub-GHz",
     fap_author="xMasterX",
     fap_weburl="https://github.com/xMasterX/all-the-plugins/tree/213baa6e872d1db597a25d2c16e81406e9634440/base_pack/subghz_wardriving",
-    fap_version="0.1",
+    fap_version="0.2",
     fap_description="Record received Sub-GHz signals with GPS coordinates over UART.",
 )
 

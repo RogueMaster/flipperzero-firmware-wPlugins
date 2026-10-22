@@ -52,6 +52,8 @@ typedef struct {
     uint32_t sg_timing;
     char* sg_timing_char;
     bool transmitting;
+    bool subghz_tx_running; // Sub-GHz TX started, waiting for it to finish
+    uint32_t subghz_tx_start; // kernel tick when Sub-GHz TX started
     bool stop_transmit;
     size_t transmit_item;
     bool pause_active; // a non-blocking pause is currently counting down

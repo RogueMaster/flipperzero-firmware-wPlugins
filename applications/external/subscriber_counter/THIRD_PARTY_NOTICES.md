@@ -10,6 +10,16 @@ Flipper Zero `.clang-format` so the project passes the catalog's lint check.
 - Copyright (c) 2026 mete888
 - MIT License – see [`licenses/flipper-internet-bridge-MIT.txt`](licenses/flipper-internet-bridge-MIT.txt)
 
+## FlipperHTTP
+
+`vendor/flipper_http/` contains `flipper_http.c` and `flipper_http.h` from
+[FlipperHTTP](https://github.com/jblanked/FlipperHTTP) (commit `d46118c`). Changes: the include of its
+own header points to the local file, and the sources were reformatted with the Flipper Zero
+`.clang-format`.
+
+- Copyright (c) 2024 JBlanked
+- MIT License – see [`licenses/FlipperHTTP-MIT.txt`](licenses/FlipperHTTP-MIT.txt)
+
 ## Inter typeface
 
 `yt_fonts.c` contains glyphs of [Inter and Inter Display](https://rsms.me/inter/) (v4.1),

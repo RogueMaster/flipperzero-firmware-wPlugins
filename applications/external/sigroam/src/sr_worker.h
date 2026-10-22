@@ -27,14 +27,19 @@ void sr_worker_request_stop(SrWorker* w); /* Atomically sets the exit flag; NULL
 /* join + furi_thread_free, then thread is set to NULL. No-op if never started. */
 void sr_worker_join(SrWorker* w);
 
+/* Heap slot. join -a N -p <63> plus newline is 79 bytes; 32 cannot hold a WPA password.
+ * Scene stacks keep SR_WORKER_CMD_STACK for the short commands. */
 enum {
-    SR_WORKER_CMD_MAX = 32
+    SR_WORKER_CMD_STACK = 32
+};
+enum {
+    SR_WORKER_CMD_MAX = 96
 };
 
 /* Queue one command, to be sent by the worker thread while it does not hold the app mutex.
  * cmd must carry its own line terminator (for example "info\n").
  * Returns false on an invalid argument, on exceeding SR_WORKER_CMD_MAX-1, or when the slot
- * still holds an unsent command.
+ * still holds an unsent command. The worker wipes the heap slot before releasing it.
  *
  * Single writer: only the GUI thread may call this (from scene callbacks). Calling it from the
  * worker thread or a second thread is forbidden. */

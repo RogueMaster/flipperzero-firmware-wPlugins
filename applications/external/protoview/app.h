@@ -46,6 +46,13 @@ typedef enum {
     TxRxStateSleep,
 } TxRxState;
 
+typedef enum {
+    ProtoViewTxIdle,
+    ProtoViewTxPending,
+    ProtoViewTxComplete,
+    ProtoViewTxTimeout,
+} ProtoViewTxResult;
+
 /* Currently active view. */
 typedef enum {
     ViewRawPulses,
@@ -86,6 +93,9 @@ struct ProtoViewTxRx {
                                    from the interface. There is to restart the
                                    radio with the right parameters. */
     TxRxState txrx_state; /* Receiving, idle or sleeping? */
+    TxRxState tx_previous_state;
+    void* tx_context; /* Owned until asynchronous TX has been stopped. */
+    uint32_t tx_deadline;
 
     /* Timer sampling mode state. */
     bool debug_timer_sampling; /* Read data from GDO0 in a busy loop. Only
@@ -267,7 +277,14 @@ void radio_rx_end(ProtoViewApp* app);
 void radio_sleep(ProtoViewApp* app);
 void raw_sampling_worker_start(ProtoViewApp* app);
 void raw_sampling_worker_stop(ProtoViewApp* app);
-void radio_tx_signal(ProtoViewApp* app, FuriHalSubGhzAsyncTxCallback data_feeder, void* ctx);
+/* Takes ownership of ctx only on success. timeout_ticks must be <= INT32_MAX. */
+bool radio_tx_signal(
+    ProtoViewApp* app,
+    FuriHalSubGhzAsyncTxCallback data_feeder,
+    void* ctx,
+    uint32_t timeout_ticks);
+ProtoViewTxResult radio_tx_poll(ProtoViewApp* app);
+void radio_tx_stop(ProtoViewApp* app, bool restore_rx);
 void protoview_rx_callback(bool level, uint32_t duration, void* context);
 
 /* signal.c */
@@ -331,6 +348,7 @@ void process_input_settings(ProtoViewApp* app, InputEvent input);
 void render_view_info(Canvas* const canvas, ProtoViewApp* app);
 void render_list_view_info(Canvas* const canvas, ProtoViewApp* app);
 void process_input_info(ProtoViewApp* app, InputEvent input);
+void notify_signal_sent(ProtoViewApp* app);
 void tyre_list_process_input(ProtoViewApp* app, InputEvent input);
 void render_view_direct_sampling(Canvas* const canvas, ProtoViewApp* app);
 void process_input_direct_sampling(ProtoViewApp* app, InputEvent input);

@@ -5,6 +5,7 @@
 #include "../src/sr_capture_health.h"
 #include "../src/sr_scan_ctl.h"
 #include "../src/sr_dialect.h"
+#include "../src/sr_start_recover.h"
 
 #include <gui/elements.h>
 #include <stdio.h>
@@ -296,18 +297,29 @@ static void sr_view_dash_draw_pending(Canvas* canvas, const SrDashModel* m) {
  *      subsequent tabs. A static guard cannot prove this; the real criterion is the B-stage
  *      observation B4.
  *
- * The baseline is computed from the font height (tab_h + h) rather than supplied by the
+ * The baseline is computed from the font height (tab_h + h - lift) rather than supplied by the
  * caller: the big font is far taller than the small one, and reusing the small font's 20 would
  * push the cap height over the tab bar or even off the top of the screen.
- * max_baseline is the caller's budget defense (D19 / ADR-025): the SigRoam running path
- * passes 41, so the AP row it reports (baseline + 10) lands at or under y51, clear of the
- * y61 status bar; the generic path passes 61 (the pre-D19 behavior). A baseline beyond it
- * restores FontSecondary and returns -1 without drawing.
+ * lift is 0 for every peer except Scout Lite, which moves the row up 3 px.
+ * profont22's box is 16 px above the baseline and 4 px below (u8g2 font header,
+ * max height 20, y offset -4). The clamp keeps that estimated ink top at or below
+ * the tab strip (y = 0..10). max_baseline is the caller's budget defense (D19 / ADR-025):
+ * the SigRoam running path passes 41, so the AP row it reports (baseline + 10) lands at or
+ * under y51, clear of the y61 status bar; the generic path passes 61 (the pre-D19 behavior).
+ * A baseline beyond it restores FontSecondary and returns -1 without drawing.
+ * dur_right, when non-NULL, is FontSecondary text right-aligned on this baseline.
+ * It is skipped when the big-number width plus that width exceeds 128 px, and the
+ * digits are not squeezed. Pass NULL to leave the row unchanged.
  * Returns the next usable baseline; returns -1 when an abnormal font height leaves no room, and
  * the caller falls back to the small-font path.
  */
-static int32_t
-    sr_view_dash_put_big(Canvas* canvas, uint32_t v, const char* label, int32_t max_baseline) {
+static int32_t sr_view_dash_put_big(
+    Canvas* canvas,
+    uint32_t v,
+    const char* label,
+    int32_t max_baseline,
+    int32_t lift,
+    const char* dur_right) {
     char num[12];
     size_t h;
     uint16_t wnum;
@@ -318,7 +330,19 @@ static int32_t
 
     canvas_set_font(canvas, FontBigNumbers);
     h = canvas_current_font_height(canvas);
-    baseline = (int32_t)SR_VIEW_TAB_H + (int32_t)h;
+    if(lift < 0) {
+        lift = 0;
+    }
+    baseline = (int32_t)SR_VIEW_TAB_H + (int32_t)h - lift;
+    if(baseline < (int32_t)SR_VIEW_TAB_H) {
+        baseline = (int32_t)SR_VIEW_TAB_H;
+    }
+    if(h >= 4u) {
+        int32_t top = baseline - ((int32_t)h - 4);
+        if(top < (int32_t)SR_VIEW_TAB_H) {
+            baseline += (int32_t)SR_VIEW_TAB_H - top;
+        }
+    }
     if(baseline > max_baseline) {
         /* Font height beyond expectations (no authoritative source, so defend): give up on the
          * big font and let the caller take the small-font path. */
@@ -330,11 +354,110 @@ static int32_t
 
     /* The restore must happen before drawing labels: labels are letters, which BigNumbers cannot draw. */
     canvas_set_font(canvas, FontSecondary);
+    if(dur_right != NULL && dur_right[0] != '\0') {
+        uint16_t wdur = canvas_string_width(canvas, dur_right);
+        if((int32_t)wnum + (int32_t)wdur <= (int32_t)SR_CANVAS_W) {
+            canvas_draw_str(canvas, (int32_t)SR_CANVAS_W - (int32_t)wdur, baseline, dur_right);
+        }
+    }
     wlab = canvas_string_width(canvas, label);
     if((int32_t)wnum + 3 + (int32_t)wlab <= (int32_t)SR_CANVAS_W) {
         canvas_draw_str(canvas, (int32_t)wnum + 3, baseline, label);
     }
     return baseline + 10;
+}
+
+/* Width of the string put_line will draw. The lite clock uses this, not
+ * the unfitted source, so the gap is against the ink. */
+static uint16_t sr_view_dash_fitted_px(Canvas* canvas, const char* raw, size_t n) {
+    char line[SR_VIEW_COLS + 1];
+
+    sr_fmt_fit(raw, n, (size_t)SR_VIEW_COLS, line, sizeof(line));
+    return canvas_string_width(canvas, line);
+}
+
+/* Scout Lite data row. Idle (with_dur false) draws the text only.
+ * Running draws sr_fmt_duration in FontSecondary, right aligned, on this
+ * same baseline. full + 4 + clock > 128 reprints the row without
+ * "  Up <q>"; if that still does not fit, the clock is skipped. */
+static void
+    sr_view_dash_put_lite_row(Canvas* canvas, int32_t y, const SrDashModel* m, bool with_dur) {
+    char raw[40];
+    char bare[40];
+    char dur[16];
+    size_t n;
+    size_t nbare;
+    const char* left;
+    size_t nleft;
+    size_t left_cap;
+    uint16_t wclock;
+    uint32_t now_ms;
+    SrLiteRowClockFit fit;
+
+    /* 62 is the pinned lite status baseline. The old clip of 61 would
+     * skip that row. FontSecondary p/g is expected to end by y63; that
+     * has not been measured on a device. */
+    if(y > (int32_t)SR_LITE_STATUS_Y) {
+        return;
+    }
+    now_ms = furi_get_tick();
+    n = sr_fmt_lite_dash_row(
+        m->qual_rev,
+        m->qual_tick_ms,
+        now_ms,
+        m->qual.sats,
+        m->qual_prev_seen,
+        m->qual_prev_ggafix,
+        m->qual.ggafix,
+        m->up_known,
+        m->up_q,
+        with_dur,
+        m->elapsed_ms,
+        raw,
+        sizeof(raw));
+    if(!with_dur) {
+        sr_view_dash_put_line(canvas, y, raw, (int)n, sizeof(raw));
+        return;
+    }
+
+    nbare = sr_fmt_lite_dash_row_ex(
+        m->qual_rev,
+        m->qual_tick_ms,
+        now_ms,
+        m->qual.sats,
+        m->qual_prev_seen,
+        m->qual_prev_ggafix,
+        m->qual.ggafix,
+        m->up_known,
+        m->up_q,
+        with_dur,
+        m->elapsed_ms,
+        false,
+        bare,
+        sizeof(bare));
+    canvas_set_font(canvas, FontSecondary);
+    if(sr_fmt_duration(m->elapsed_ms, dur, sizeof(dur)) == 0u || dur[0] == '\0') {
+        sr_view_dash_put_line(canvas, y, raw, (int)n, sizeof(raw));
+        return;
+    }
+    wclock = canvas_string_width(canvas, dur);
+    fit = sr_lite_row_clock_fit(
+        sr_view_dash_fitted_px(canvas, raw, n),
+        sr_view_dash_fitted_px(canvas, bare, nbare),
+        wclock);
+    if(fit == SrLiteRowClockDropUp) {
+        left = bare;
+        nleft = nbare;
+        left_cap = sizeof(bare);
+    } else {
+        left = raw;
+        nleft = n;
+        left_cap = sizeof(raw);
+    }
+    sr_view_dash_put_line(canvas, y, left, (int)nleft, left_cap);
+    if(fit != SrLiteRowClockNone) {
+        canvas_draw_str(canvas, (int32_t)SR_CANVAS_W - (int32_t)wclock, y, dur);
+    }
 }
 
 static void sr_view_dash_draw_dash(Canvas* canvas, const SrDashModel* m) {
@@ -522,6 +645,27 @@ static void sr_view_dash_draw_dash(Canvas* canvas, const SrDashModel* m) {
         return;
     }
 
+    /* Scout Lite only. recover_ui stays 0 for every other peer. */
+    if(sr_dialect_lite_status(&m->firmware) && m->recover_ui != 0u) {
+        const char* l1 = sr_start_recover_line(m->recover_ui, 0u);
+        const char* l2 = sr_start_recover_line(m->recover_ui, 1u);
+        const char* l3 = sr_start_recover_line(m->recover_ui, 2u);
+
+        if(l1 != NULL) {
+            n = snprintf(raw, sizeof(raw), "%s", l1);
+            sr_view_dash_put_line(canvas, 21, raw, n, sizeof(raw));
+        }
+        if(l2 != NULL) {
+            n = snprintf(raw, sizeof(raw), "%s", l2);
+            sr_view_dash_put_line(canvas, 31, raw, n, sizeof(raw));
+        }
+        if(l3 != NULL) {
+            n = snprintf(raw, sizeof(raw), "%s", l3);
+            sr_view_dash_put_line(canvas, 41, raw, n, sizeof(raw));
+        }
+        return;
+    }
+
     if(m->wait_stage != (uint8_t)SrWaitStageNone &&
        !sr_scan_ctl_ident_yields_state4(
            m->wait_stage == (uint8_t)SrWaitStageLink,
@@ -592,9 +736,11 @@ static void sr_view_dash_draw_dash(Canvas* canvas, const SrDashModel* m) {
          * y61. rx= leaves this path: Qual freshness (stale / sess_ms==0) covers the
          * D10/D11 link-liveness detection within 15 s, stronger than watching a number.
          * The generic Marauder path (qual_rev==0) and the debug_rows path below are
-         * unchanged. */
-        if(m->qual_rev != 0u && !m->debug_rows) {
-            int32_t next = sr_view_dash_put_big(canvas, m->unique_est, "uniq", 41);
+         * unchanged. Scout Lite also stays on that generic path: it has Qual, so
+         * qual_rev != 0, but it does not use sr_fmt_ap_row or the health bar.
+         * Its last row is the lite data line, drawn where rx= sat. */
+        if(m->qual_rev != 0u && !m->debug_rows && !sr_dialect_lite_status(&m->firmware)) {
+            int32_t next = sr_view_dash_put_big(canvas, m->unique_est, "uniq", 41, 0, NULL);
             if((m->scan_ui == (uint8_t)SrScanUiStopping ||
                 m->scan_ui == (uint8_t)SrScanUiStopFailed) &&
                next >= 0) {
@@ -657,7 +803,13 @@ static void sr_view_dash_draw_dash(Canvas* canvas, const SrDashModel* m) {
          */
         big = m->serial_open && !m->debug_rows;
         if(big) {
-            int32_t next = sr_view_dash_put_big(canvas, m->unique_est, "uniq", 61);
+            int32_t next;
+            if(sr_dialect_lite_status(&m->firmware)) {
+                /* Lift stays 3. The FAP clock is not on this row. */
+                next = sr_view_dash_put_big(canvas, m->unique_est, "uniq", 61, 3, NULL);
+            } else {
+                next = sr_view_dash_put_big(canvas, m->unique_est, "uniq", 61, 0, NULL);
+            }
             if(next < 0) {
                 big = false; /* Abnormal font height; defensively fall back to the small font */
             } else {
@@ -688,6 +840,41 @@ static void sr_view_dash_draw_dash(Canvas* canvas, const SrDashModel* m) {
             }
             sr_view_dash_put_line(canvas, y, raw, n, sizeof(raw));
             y += 10;
+        } else if(sr_dialect_lite_status(&m->firmware)) {
+            /* put_big returns the big baseline plus 10. Spread the AP row
+             * and, when present, the band row between that baseline and
+             * the pinned status row. A gap under 9 px keeps the old
+             * y += 10 stack, including its y>61 stops. */
+            const SrLiteStatusRows rows =
+                sr_lite_status_rows(y - 10, m->ap_24 != 0u || m->ap_5 != 0u);
+
+            if(rows.ap_y > 61) {
+                return;
+            }
+            if(m->ap_wifi == 0u && m->ap_ble == 0u) {
+                n = snprintf(raw, sizeof(raw), "Waiting for first AP");
+            } else {
+                sr_fmt__udec(m->ap_wifi, a, sizeof(a));
+                sr_fmt_ble_field(m->radio_rev, m->radio.ble, m->ap_ble, b, sizeof(b));
+                sr_fmt__udec(m->with_gps_fix, c, sizeof(c));
+                n = snprintf(raw, sizeof(raw), "AP=%s BLE=%s fix=%s", a, b, c);
+            }
+            sr_view_dash_put_line(canvas, rows.ap_y, raw, n, sizeof(raw));
+            if(rows.spread) {
+                if(rows.draw_band) {
+                    sr_view_dash_put_band(canvas, rows.band_y, m);
+                }
+                sr_view_dash_put_lite_row(canvas, rows.status_y, m, true);
+                return;
+            }
+            if((rows.ap_y + 10) > 61) {
+                return;
+            }
+            if(rows.draw_band) {
+                sr_view_dash_put_band(canvas, rows.band_y, m);
+            }
+            sr_view_dash_put_lite_row(canvas, rows.status_y, m, true);
+            return;
         } else {
             /* Big-font mode: AP / BLE / fix share one row (measured: "AP=99 BLE=99 fix=99" = 19 <= 20). */
             if(y > 61) {
@@ -709,15 +896,27 @@ static void sr_view_dash_draw_dash(Canvas* canvas, const SrDashModel* m) {
          * The rx row. NOTE: rx= is not a debug row: it is the only user-visible reading that tells
          * whether the link is still alive, and the entire on-device observation of defect D10 relied
          * on it (docs/HANDOFF.md:1131). Demoting it would invalidate existing SOPs.
+         * Scout Lite keeps this slot. Running draws the FAP clock on the
+         * right of that row. Idle passes with_dur false and does not.
+         * The band row is inserted only when the data row still lands at y<=61.
          */
         if(y > 61) {
             return;
         }
-        sr_fmt_bytes(m->rx_bytes, a, sizeof(a));
-        sr_fmt_duration(m->elapsed_ms, b, sizeof(b));
-        n = snprintf(raw, sizeof(raw), "rx=%s %s", a, b);
-        sr_view_dash_put_line(canvas, y, raw, n, sizeof(raw));
-        y += 10;
+        if(sr_dialect_lite_status(&m->firmware)) {
+            if((m->ap_24 != 0u || m->ap_5 != 0u) && (y + 10) <= 61) {
+                sr_view_dash_put_band(canvas, y, m);
+                y += 10;
+            }
+            sr_view_dash_put_lite_row(canvas, y, m, true);
+            y += 10;
+        } else {
+            sr_fmt_bytes(m->rx_bytes, a, sizeof(a));
+            sr_fmt_duration(m->elapsed_ms, b, sizeof(b));
+            n = snprintf(raw, sizeof(raw), "rx=%s %s", a, b);
+            sr_view_dash_put_line(canvas, y, raw, n, sizeof(raw));
+            y += 10;
+        }
 
         if(!m->debug_rows) {
             return;
@@ -818,7 +1017,9 @@ static void sr_view_dash_draw_dash(Canvas* canvas, const SrDashModel* m) {
      * D19 / ADR-025: on the SigRoam path (Qual seen, debug rows off) the Board/OK rows
      * sit at y21/y31 and the status bar sinks to y61 (same copy table as State 3; Idle
      * always has sess_ms==0, so it shows the stale copy by design). rx= leaves this
-     * path. The generic/debug path below is unchanged (rx kept). */
+     * path. Scout Lite keeps this copy and draws its data row at
+     * SR_LITE_STATUS_Y with no duration.
+     * No SD / Saving... keep the health bar. The generic/debug path below is unchanged. */
     if(m->qual_rev != 0u && !m->debug_rows) {
         if(sr_scan_ctl_sd_dead(m->qual_rev, m->qual.sd, m->qual_tick_ms, furi_get_tick())) {
             n = snprintf(raw, sizeof(raw), "No SD");
@@ -863,7 +1064,11 @@ static void sr_view_dash_draw_dash(Canvas* canvas, const SrDashModel* m) {
                 raw,
                 sizeof(raw));
             sr_view_dash_put_line(canvas, 51, raw, n, sizeof(raw));
-            sr_view_dash_put_health(canvas, 61, m);
+            if(sr_dialect_lite_status(&m->firmware)) {
+                sr_view_dash_put_lite_row(canvas, (int32_t)SR_LITE_STATUS_Y, m, false);
+            } else {
+                sr_view_dash_put_health(canvas, 61, m);
+            }
             return;
         }
         sr_view_dash_put_line(canvas, 21, raw, n, sizeof(raw));
@@ -871,7 +1076,11 @@ static void sr_view_dash_draw_dash(Canvas* canvas, const SrDashModel* m) {
         n = snprintf(raw, sizeof(raw), "OK: Start scan");
         sr_view_dash_put_line(canvas, 31, raw, n, sizeof(raw));
 
-        sr_view_dash_put_health(canvas, 61, m);
+        if(sr_dialect_lite_status(&m->firmware)) {
+            sr_view_dash_put_lite_row(canvas, (int32_t)SR_LITE_STATUS_Y, m, false);
+        } else {
+            sr_view_dash_put_health(canvas, 61, m);
+        }
         return;
     }
     if(y > 61) {
@@ -1108,7 +1317,12 @@ static void sr_view_dash_draw_session(Canvas* canvas, const SrDashModel* m) {
     n = snprintf(raw, sizeof(raw), "Unknown %s Bad %s", a, b);
     sr_view_dash_put_line(canvas, 41, raw, n, sizeof(raw));
 
-    if(m->firmware_rev == 0) {
+    if(sr_dialect_lite_status(&m->firmware)) {
+        n = (int)sr_fmt_lite_sess_brand(SR_BRAND_NAME, raw, sizeof(raw));
+        sr_view_dash_put_line(canvas, 51, raw, n, sizeof(raw));
+        n = (int)sr_fmt_lite_sess_fw(m->firmware.firmware, m->firmware.version, raw, sizeof(raw));
+        sr_view_dash_put_line(canvas, 61, raw, n, sizeof(raw));
+    } else if(m->firmware_rev == 0) {
         n = snprintf(raw, sizeof(raw), "Firmware unknown");
         sr_view_dash_put_line(canvas, 51, raw, n, sizeof(raw));
         n = snprintf(raw, sizeof(raw), "Use Probe firmware");

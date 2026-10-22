@@ -16,6 +16,14 @@
 
 typedef struct SubGhzSignal SubGhzSignal;
 
+typedef enum {
+    SubGhzSignalError,
+    SubGhzSignalComplete,
+    SubGhzSignalCancelled,
+    SubGhzSignalTimeout,
+    SubGhzSignalSaveError,
+} SubGhzSignalResult;
+
 /**
  * @brief Loads a SubGhzSignal from a file (supports RAW and Protocol .SUB files)
  * @param file_path The path to the file to load.
@@ -35,4 +43,9 @@ void subghz_signal_free(SubGhzSignal* signal);
  * @param use_external_radio Currently only the internal radio is supported (please use 'false').  Whether or not to use the external radio.
  * @param resources Resources to use for sending the signal.
 */
-void subghz_signal_send(SubGhzSignal* signal, bool use_external_radio, Resources* resources);
+/* Runs on the caller's worker. cancel_flag is a thread flag, or zero to disable. */
+SubGhzSignalResult subghz_signal_send(
+    SubGhzSignal* signal,
+    bool use_external_radio,
+    Resources* resources,
+    uint32_t cancel_flag);

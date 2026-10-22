@@ -4,6 +4,7 @@
 
 #include "helpers/subghz_txrx.h"
 #include <lib/subghz/blocks/custom_btn.h>
+#include <lib/subghz/blocks/generic.h>
 
 #include "action_i.h"
 #include "quac.h"
@@ -41,14 +42,6 @@ void action_subghz_need_save_callback(void* context) {
             break;
         }
     } while(0);
-}
-
-static void action_subghz_raw_end_callback(void* context) {
-    FURI_LOG_I(TAG, "Stopping TX on RAW");
-    furi_assert(context);
-    FuriThread* thread = context;
-
-    furi_thread_flags_set(furi_thread_get_id(thread), 0);
 }
 
 void action_subghz_tx(void* context, const FuriString* action_path, FuriString* error) {
@@ -177,8 +170,11 @@ void action_subghz_tx(void* context, const FuriString* action_path, FuriString* 
     flipper_format_file_close(fff_data_file);
     flipper_format_free(fff_data_file);
 
+    // Protocols behave like a held button; RAW plays once to completion.
     bool tx_started = false;
+    subghz_block_generic_global.endless_tx = false;
     if(furi_string_empty(error)) {
+        subghz_block_generic_global.endless_tx = !is_raw;
         tx_started = subghz_txrx_tx_start(txrx, subghz_txrx_get_fff_data(txrx)) ==
                      SubGhzTxRxStartTxStateOk;
         if(!tx_started) {
@@ -188,21 +184,24 @@ void action_subghz_tx(void* context, const FuriString* action_path, FuriString* 
     }
 
     if(tx_started) {
-        if(is_raw) {
-            subghz_txrx_set_raw_file_encoder_worker_callback_end(
-                txrx, action_subghz_raw_end_callback, furi_thread_get_current());
-            furi_thread_flags_wait(0, FuriFlagWaitAll, FuriWaitForever);
-        } else {
-            furi_delay_ms(app->settings.subghz_duration);
+        const uint32_t hold_start = furi_get_tick();
+        while(!subghz_txrx_tx_is_complete(txrx)) {
+            if(subghz_block_generic_global.endless_tx &&
+               furi_get_tick() - hold_start >= furi_ms_to_ticks(app->settings.subghz_duration)) {
+                // "Release" the button
+                subghz_block_generic_global.endless_tx = false;
+            }
+            furi_delay_ms(5);
         }
     }
+    subghz_block_generic_global.endless_tx = false;
 
     FURI_LOG_I(TAG, "SUBGHZ: Action complete.");
 
     // This will call need_save_callback, if necessary
     subghz_txrx_stop(txrx);
 
-    subghz_custom_btns_reset();
+    subghz_txrx_reset_dynamic_and_custom_btns(txrx);
 
     subghz_txrx_free(txrx);
     furi_string_free(preset_name);

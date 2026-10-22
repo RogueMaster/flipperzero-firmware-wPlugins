@@ -1,4 +1,5 @@
 #include "sr_parse_marauder.h"
+#include "sr_dialect.h"
 
 #include <limits.h>
 #include <string.h>
@@ -848,7 +849,8 @@ static bool probe_n(const char* line, size_t len, SrFirmwareInfo* out) {
         /* Firmware: starts a new #info identity block. Drop the previous
          * block's Diag: so a later firmware_rev bump cannot adopt with a
          * stale diag_state (C1/C2). Version:/Hardware:/ESP-IDF: must not
-         * do this — Diag: follows them in the same reply. */
+         * do this — Diag: follows them in the same reply.
+         * sigroam_cap is not cleared: it is a peer capability, not this block. */
         out->diag_seen = false;
         out->diag_state = 0;
         out->diag_seal = 0;
@@ -1045,6 +1047,9 @@ static SrParseResult marauder_feed(SrParser* parser, const char* line, size_t le
 
     parser->lines_seen++;
     memset(out, 0, sizeof(*out));
+    /* Before dispatch, so a Diag:/Sess: in this line sees the #sigroam arm
+     * from a previous line, and the Firmware event copies the latch. */
+    sr_sigroam_cap_observe(&parser->fw_partial.sigroam_cap, line, len);
 
     /* D3 dispatch order; first match returns. */
     if(len == 0) {

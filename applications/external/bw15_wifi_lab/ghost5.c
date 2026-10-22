@@ -9,6 +9,7 @@
 #include "evidence_pack.h"
 #include "guided_audit.h"
 #include "config_ap_layout.h"
+#include "oui_lookup.h"
 #include <gui/view_dispatcher.h>
 #include <gui/scene_manager.h>
 #include <gui/modules/submenu.h>
@@ -282,70 +283,57 @@ typedef struct {
 char credentials[1000];
 char message[128];
 char ev_last[96]; // 5Ghost: latest captured credential, handed worker -> main thread
-#define GHOST_EVT_EV_CRED               0x204u
-// EV: a credential was captured; defer SD write + GUI to main thread
-#define GHOST_EVT_LOAD_PORTAL           0x205u
-// task10: open the SD file browser from the dispatcher loop, not the input callback
-#define GHOST_EVT_SPLASH_TICK           0x206u
-// startup splash timer tick: drive the progress bar / HELLO probe
-#define GHOST_EVT_CONFIG_AP_REBUILD     0x20Au
-// rebuild Create AP after a dynamic item callback has returned
-#define GHOST_EVT_CONFIG_ATTACK_REBUILD 0x20Bu
-// rebuild attack config after a dynamic item callback has returned
-#define GHOST_EVT_CONFIG_AP_START       0x20Cu
-// send AP commands after the VariableItemList input callback has returned
-#define GHOST_EVT_GATT_PROBE            0x20Du
-// 5Ghost ②: BLE detail card OK -> gattProbeScene (input callback
-// only posts the event; the scene's on_event does the next_scene)
-#define GHOST_EVT_BLE_RAW               0x20Eu
+#define GHOST_EVT_EV_CRED \
+    0x204u // EV: a credential was captured; defer SD write + GUI to main thread
+#define GHOST_EVT_LOAD_PORTAL \
+    0x205u // task10: open the SD file browser from the dispatcher loop, not the input callback
+#define GHOST_EVT_SPLASH_TICK \
+    0x206u // startup splash timer tick: drive the progress bar / HELLO probe
+#define GHOST_EVT_CONFIG_AP_REBUILD \
+    0x20Au // rebuild Create AP after a dynamic item callback has returned
+#define GHOST_EVT_CONFIG_ATTACK_REBUILD \
+    0x20Bu // rebuild attack config after a dynamic item callback has returned
+#define GHOST_EVT_CONFIG_AP_START \
+    0x20Cu // send AP commands after the VariableItemList input callback has returned
+#define GHOST_EVT_GATT_PROBE 0x20Du
+    // 5Ghost ②: BLE detail card OK -> gattProbeScene (input callback
+    // only posts the event; the scene's on_event does the next_scene)
+#define GHOST_EVT_BLE_RAW    0x20Eu
 // 5Ghost ③: BLE detail card Right -> bleRawScene (posted from the
 // input callback; the scene's on_event does the next_scene)
-#define GHOST_EVT_BADBLE_LOAD_FILE      0x20Fu
-// 5Ghost ⑧b: open the SD .txt browser from the dispatcher loop, not the input callback
-#define GHOST_EVT_BADBLE_LOAD_PRESET    0x210u
-// 5Ghost ⑧b: upload the selected built-in preset (paced UART)
-#define GHOST_EVT_BADBLE_START          0x211u
-// 5Ghost ⑧b: send BADBLE after the input callback returns
-#define GHOST_EVT_BADBLE_UPDATE         0x212u
-// 5Ghost ⑧b: a BADBLE:START/INJECT/heartbeat line arrived
-#define GHOST_EVT_BADBLE_DONE           0x213u
-// 5Ghost ⑧b: BADBLE:OK — injection window finished
-#define GHOST_EVT_BADBLE_STOP           0x214u
-// 5Ghost ⑧b: run scene OK pressed while running -> send STOP (abort the fw inject window)
-#define GHOST_EVT_MULTI_DEAUTH_START    0x215u
+#define GHOST_EVT_BADBLE_LOAD_FILE \
+    0x20Fu // 5Ghost ⑧b: open the SD .txt browser from the dispatcher loop, not the input callback
+#define GHOST_EVT_BADBLE_LOAD_PRESET \
+    0x210u // 5Ghost ⑧b: upload the selected built-in preset (paced UART)
+#define GHOST_EVT_BADBLE_START  0x211u // 5Ghost ⑧b: send BADBLE after the input callback returns
+#define GHOST_EVT_BADBLE_UPDATE 0x212u // 5Ghost ⑧b: a BADBLE:START/INJECT/heartbeat line arrived
+#define GHOST_EVT_BADBLE_DONE   0x213u // 5Ghost ⑧b: BADBLE:OK — injection window finished
+#define GHOST_EVT_BADBLE_STOP \
+    0x214u // 5Ghost ⑧b: run scene OK pressed while running -> send STOP (abort the fw inject window)
+#define GHOST_EVT_MULTI_DEAUTH_START 0x215u
 // 5Ghost MULTI-AP C2: scan-list Left-long -> send the paced STOP/DEAUTHADD×N/DEAUTHRUN
 // sequence from the dispatcher loop, not the ViewPort input callback (ViewPort lock)
-#define GHOST_EVT_AUDIT_TICK            0x216u
-// P1 A2: 500ms wait tick for LISTAP/STASCAN/CAPTURE dwell (no dispatcher-blocking while)
-#define GHOST_EVT_BLEADV_SAVE           0x217u
-// issue #7: raw view OK -> append this advert to SD
-#define GHOST_EVT_BLEADV_OPEN           0x218u
-// issue #7: raw view Left -> saved-advert library
-#define GHOST_EVT_BLEADV_HEX            0x219u
-// issue #7: custom-hex text input committed
-#define GHOST_EVT_BLEADV_DONE           0x21Au
-// issue #7: BLEADVTX:OK
-#define GHOST_EVT_BLEADV_FAIL           0x21Bu
-// issue #7: firmware replied ERR:UNKNOWN to BLEADV
-#define GHOST_EVT_BLEADV_DEL            0x21Cu
-// issue #7: confirm-delete OK -> rewrite bleadv.txt
-#define GHOST_EVT_SSID_TICK             0x21Du
-// scan-list / AP-detail SSID marquee. Timer callback only posts this.
-#define GHOST_SSID_TICK_MS              160
-// UI cadence, not a radio timing. Tune on device.
-#define GHOST_SSID_SCROLL_STEP          1
-// 1px/160ms (~6px/s); was 2px/100ms (~20px/s)
-#define GHOST_SSID_SCROLL_GAP           24
-// px-times held at the start and at the end before moving
-#define AUDIT_TICK_MS                   500
-#define AUDIT_LISTAP_TICKS              50
-#define AUDIT_STASCAN_TICKS             24
-#define AUDIT_CAPTURE_TICKS             30
-// 15s dwell then CAPSTOP; firmware has no host timeout
-#define AUDIT_WAIT_NONE                 0
-#define AUDIT_WAIT_LISTAP               1
-#define AUDIT_WAIT_STASCAN              2
-#define AUDIT_WAIT_CAPTURE              3
+#define GHOST_EVT_AUDIT_TICK \
+    0x216u // P1 A2: 500ms wait tick for LISTAP/STASCAN/CAPTURE dwell (no dispatcher-blocking while)
+#define GHOST_EVT_BLEADV_SAVE 0x217u // issue #7: raw view OK -> append this advert to SD
+#define GHOST_EVT_BLEADV_OPEN 0x218u // issue #7: raw view Left -> saved-advert library
+#define GHOST_EVT_BLEADV_HEX  0x219u // issue #7: custom-hex text input committed
+#define GHOST_EVT_BLEADV_DONE 0x21Au // issue #7: BLEADVTX:OK
+#define GHOST_EVT_BLEADV_FAIL 0x21Bu // issue #7: firmware replied ERR:UNKNOWN to BLEADV
+#define GHOST_EVT_BLEADV_DEL  0x21Cu // issue #7: confirm-delete OK -> rewrite bleadv.txt
+#define GHOST_EVT_SSID_TICK \
+    0x21Du // scan-list / AP-detail SSID marquee. Timer callback only posts this.
+#define GHOST_SSID_TICK_MS     160 // UI cadence, not a radio timing. Tune on device.
+#define GHOST_SSID_SCROLL_STEP 1 // 1px/160ms (~6px/s); was 2px/100ms (~20px/s)
+#define GHOST_SSID_SCROLL_GAP  24 // px-times held at the start and at the end before moving
+#define AUDIT_TICK_MS          500
+#define AUDIT_LISTAP_TICKS     50
+#define AUDIT_STASCAN_TICKS    24
+#define AUDIT_CAPTURE_TICKS    30 // 15s dwell then CAPSTOP; firmware has no host timeout
+#define AUDIT_WAIT_NONE        0
+#define AUDIT_WAIT_LISTAP      1
+#define AUDIT_WAIT_STASCAN     2
+#define AUDIT_WAIT_CAPTURE     3
 
 // 5Ghost firmware handshake status (L1 text handshake)
 typedef enum {
@@ -870,6 +858,82 @@ static void ghost_seed_portals(void) {
     storage_dir_close(dir);
     storage_file_free(dir);
     furi_record_close(RECORD_STORAGE);
+}
+
+// Copy the bundled starter table into apps_data once. storage_common_copy
+// returns FSE_EXIST when the SD file is already there, so a user edit stays.
+// A missing asset is ignored; lookup then shows no vendor.
+#define GHOST_OUI_ASSET    "/ext/apps_assets/5ghost_wifi_lab/oui.txt"
+#define GHOST_OUI_PATH     GHOST_DATA_DIR "/oui.txt"
+#define GHOST_OUI_READ_MAX 32768u
+
+static void ghost_seed_oui(void) {
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    storage_simply_mkdir(storage, GHOST_DATA_DIR);
+    storage_common_copy(storage, GHOST_OUI_ASSET, GHOST_OUI_PATH);
+    furi_record_close(RECORD_STORAGE);
+}
+
+// Once per launch, not from a draw callback. A missing or unreadable file
+// leaves the table empty. Reads stop at 32KB or G5_OUI_MAX records.
+static void ghost_oui_load(void) {
+    g5_oui_reset();
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    File* file = storage_file_alloc(storage);
+    if(!storage_file_open(file, GHOST_OUI_PATH, FSAM_READ, FSOM_OPEN_EXISTING)) {
+        storage_file_free(file);
+        furi_record_close(RECORD_STORAGE);
+        FURI_LOG_I(TAG, "oui: no table");
+        return;
+    }
+
+    char buf[128];
+    char line[160];
+    size_t ln = 0;
+    bool skip = false;
+    bool capped = false;
+    size_t seen = 0;
+    while(!capped && seen < GHOST_OUI_READ_MAX) {
+        size_t want = sizeof(buf);
+        if(GHOST_OUI_READ_MAX - seen < want) want = GHOST_OUI_READ_MAX - seen;
+        size_t nread = storage_file_read(file, buf, want);
+        if(nread == 0) break;
+        for(size_t i = 0; i < nread; i++) {
+            char c = buf[i];
+            seen++;
+            if(c == '\n' || c == '\r') {
+                if(!skip && ln > 0) {
+                    line[ln] = '\0';
+                    if(g5_oui_add_line(line) == G5OuiFull) capped = true;
+                }
+                ln = 0;
+                skip = false;
+                if(capped || seen >= GHOST_OUI_READ_MAX) break;
+                continue;
+            }
+            if(skip || capped) continue;
+            if(ln + 1 >= sizeof(line)) {
+                skip = true;
+                ln = 0;
+                continue;
+            }
+            line[ln++] = c;
+            if(seen >= GHOST_OUI_READ_MAX) break;
+        }
+        if(seen >= GHOST_OUI_READ_MAX) capped = true;
+    }
+    if(!capped && !skip && ln > 0) {
+        line[ln] = '\0';
+        g5_oui_add_line(line);
+    }
+    storage_file_close(file);
+    storage_file_free(file);
+    furi_record_close(RECORD_STORAGE);
+    FURI_LOG_I(TAG, "oui: %u", (unsigned)g5_oui_count());
+}
+
+static const char* wifi_oui_vendor(const char* mac) {
+    return g5_oui_lookup(mac);
 }
 
 static void ghost_portal_copy_basename(char* out, size_t out_size, const char* path) {
@@ -2106,8 +2170,24 @@ static void ghost_list_draw_callback(Canvas* canvas, void* model) {
             }
             if(same > 1) snprintf(tag, sizeof(tag), " (%d)", idx);
         }
-        int namew = 110 - rw - 13 - (tag[0] ? canvas_string_width(canvas, tag) : 0);
+        int tag_w = tag[0] ? canvas_string_width(canvas, tag) : 0;
         int full_w = canvas_string_width(canvas, name);
+        // Vendor before the RSSI. No vendor keeps the old name width (ends at 110-rw).
+        // Drop it when the SSID would have under 24px, so a long name still reads.
+        const char* vend = wifi_oui_vendor(ap->APbssid);
+        int vend_w = (vend && vend[0]) ? canvas_string_width(canvas, vend) : 0;
+        int avail = 110 - rw - 13;
+        int namew;
+        if(avail < 0) avail = 0;
+        if(vend_w > 0 && full_w + tag_w + 4 + vend_w <= avail) {
+            namew = full_w;
+        } else if(vend_w > 0 && avail - tag_w - 4 - vend_w >= 24) {
+            namew = avail - tag_w - 4 - vend_w;
+        } else {
+            vend_w = 0;
+            namew = avail - tag_w;
+        }
+        if(namew < 0) namew = 0;
         // Focus row scrolls the full sanitized name. Other rows keep the old clip,
         // but a clipped name now ends with "...". Short names and "<hidden>" are unchanged.
         // `name` stays intact — the dots go in `fitted`, never strcat'd onto name[34].
@@ -2125,6 +2205,7 @@ static void ghost_list_draw_callback(Canvas* canvas, void* model) {
             canvas_draw_str(canvas, 13, yb, fitted);
             if(tag[0]) canvas_draw_str(canvas, 13 + canvas_string_width(canvas, fitted), yb, tag);
         }
+        if(vend_w > 0) canvas_draw_str(canvas, 13 + namew + tag_w + 4, yb, vend);
 
         // MULTI-AP C2: a filled square at the right edge marks a ticked (selected) AP. Colour
         // follows the row (White on the inverted focus row, Black otherwise) so it reads on both;
@@ -2561,10 +2642,6 @@ void info_wifi_button_press(GuiButtonType result, InputType type, void* context)
 // 5Ghost P8 UI redesign: AP detail card. Big SSID + band chip, lock + full security
 // + inverted PMF! chip (deauth-immune warning), channel + signal bars + RSSI, MAC, and
 // an Edit / Deauth / Evil button row. Own Canvas View (no longer shares app->widget).
-// FUNC-D: defined later alongside ble_vendor_name (with the OUI table); forward-
-// declared here because this AP detail card draws the vendor before that point.
-static const char* wifi_oui_vendor(const char* bssid);
-
 static void ghost_info_draw_callback(Canvas* canvas, void* model) {
     InfoModel* m = model;
     Ghost5App* app = m->app;
@@ -4903,58 +4980,8 @@ static const char* ble_vendor_name(unsigned mfg) {
     }
 }
 
-// 5Ghost FUNC-D: WiFi AP vendor from the BSSID's OUI (first 3 MAC bytes = the
-// 24-bit IEEE Organizationally Unique Identifier). This is a DIFFERENT namespace
-// from ble_vendor_name()'s 16-bit Bluetooth SIG company id — a MAC OUI and a SIG
-// company id never coincide, so the two tables share nothing but the lookup shape.
-// Curated top-N of common home/SOHO router makers, NOT the full registry (Flipper
-// flash is finite — TP-Link alone holds 261 OUIs). Every prefix below is a real
-// IEEE-registered assignment (source: Netify MAC vendor DB / IEEE OUI registry,
-// fetched 2026-07). A BSSID whose OUI isn't listed shows no vendor — the full MAC
-// is already on the card and carries the OUI for anyone who wants to look it up.
-// APbssid is always upper-hex "AA:BB:CC:.." (firmware prints %02X, recon.cpp), so
-// a plain strncmp on the 8-char "AA:BB:CC" prefix suffices — no case folding.
-static const struct {
-    const char* oui;
-    const char* vendor;
-} g5_wifi_oui[] = {
-    {"00:14:78", "TP-Link"},  {"00:1D:0F", "TP-Link"},  {"14:CC:20", "TP-Link"},
-    {"14:CF:92", "TP-Link"},  {"50:C7:BF", "TP-Link"},  {"60:3A:7C", "TP-Link"},
-    {"00:09:5B", "Netgear"},  {"00:14:6C", "Netgear"},  {"00:1B:2F", "Netgear"},
-    {"20:0C:C8", "Netgear"},  {"2C:30:33", "Netgear"},  {"A0:40:A0", "Netgear"},
-    {"00:0D:88", "D-Link"},   {"00:0F:3D", "D-Link"},   {"00:11:95", "D-Link"},
-    {"00:17:9A", "D-Link"},   {"00:1B:11", "D-Link"},   {"1C:7E:E5", "D-Link"},
-    {"00:1B:FC", "ASUS"},     {"00:1E:8C", "ASUS"},     {"00:22:15", "ASUS"},
-    {"00:24:8C", "ASUS"},     {"04:D9:F5", "ASUS"},     {"2C:4D:54", "ASUS"},
-    {"50:4F:3B", "Xiaomi"},   {"5C:40:71", "Xiaomi"},   {"A4:C3:BE", "Xiaomi"},
-    {"FC:43:45", "Xiaomi"},   {"00:18:82", "Huawei"},   {"00:25:68", "Huawei"},
-    {"10:86:F4", "Huawei"},   {"28:45:AC", "Huawei"},   {"4C:2B:3B", "Huawei"},
-    {"58:B1:8F", "Huawei"},   {"08:40:F3", "Tenda"},    {"50:0F:F5", "Tenda"},
-    {"50:2B:73", "Tenda"},    {"B0:DF:C1", "Tenda"},    {"C8:3A:35", "Tenda"},
-    {"D8:32:14", "Tenda"},    {"00:15:6D", "Ubiquiti"}, {"00:27:22", "Ubiquiti"},
-    {"04:18:D6", "Ubiquiti"}, {"24:A4:3C", "Ubiquiti"}, {"44:D9:E7", "Ubiquiti"},
-    {"F0:9F:C2", "Ubiquiti"}, {"00:0C:41", "Linksys"},  {"00:14:BF", "Linksys"},
-    {"00:18:39", "Linksys"},  {"00:1A:70", "Linksys"},  {"00:21:29", "Linksys"},
-    {"00:23:69", "Linksys"},  {"00:0C:42", "MikroTik"}, {"08:55:31", "MikroTik"},
-    {"2C:C8:1B", "MikroTik"}, {"48:8F:5A", "MikroTik"}, {"6C:3B:6B", "MikroTik"},
-    {"74:4D:28", "MikroTik"}, {"00:1A:11", "Google"},   {"3C:5A:B4", "Google"},
-    {"54:60:09", "Google"},   {"94:95:A0", "Google"},   {"D8:6C:63", "Google"},
-    {"F4:F5:E8", "Google"},   {"00:71:47", "Amazon"},   {"34:D2:70", "Amazon"},
-    {"44:65:0D", "Amazon"},   {"68:37:E9", "Amazon"},   {"74:75:48", "Amazon"},
-    {"FC:65:DE", "Amazon"},
-};
-
-// Return the vendor for a BSSID whose OUI is in the curated table, else NULL.
-// strncmp (not strncasecmp) — APbssid is canonical upper hex; also dodges the
-// str*casecmp functions some official firmware builds strip. bssid shorter than
-// the prefix is safe: strncmp stops at the embedded NUL and reports a mismatch.
-static const char* wifi_oui_vendor(const char* bssid) {
-    if(!bssid) return NULL;
-    for(size_t i = 0; i < sizeof(g5_wifi_oui) / sizeof(g5_wifi_oui[0]); i++) {
-        if(strncmp(bssid, g5_wifi_oui[i].oui, 8) == 0) return g5_wifi_oui[i].vendor;
-    }
-    return NULL;
-}
+// WiFi vendor lookup is g5_oui_lookup(), loaded once from the SD table.
+// BLE company ids above are a different namespace.
 
 static void ghost_export_ble_csv(Ghost5App* app) {
     if(app->bleCount <= 0) return;
@@ -6396,8 +6423,8 @@ static void sta_list_draw_callback(Canvas* canvas, void* model) {
         int rw = canvas_string_width(canvas, rs);
         canvas_draw_str(canvas, 116 - rw, yb, rs);
 
-        // MAC "AA:BB:CC:DD:EE:FF" from the colon-less 12hex, left; truncate only if
-        // it would collide with the RSSI (hex MACs are narrow, so it rarely does).
+        // MAC from the colon-less 12hex. Vendor after it when both fit; otherwise
+        // the colon MAC alone, same as before.
         char mac[18];
         snprintf(
             mac,
@@ -6415,10 +6442,32 @@ static void sta_list_draw_callback(Canvas* canvas, void* model) {
             st->mac[9],
             st->mac[10],
             st->mac[11]);
-        int macw = 112 - rw;
-        while(mac[0] && canvas_string_width(canvas, mac) > macw)
-            mac[strlen(mac) - 1] = '\0';
-        canvas_draw_str(canvas, 4, yb, mac);
+        const char* vend = wifi_oui_vendor(st->mac);
+        int limit = 112 - rw;
+        if(limit < 0) limit = 0;
+        int mac_px = canvas_string_width(canvas, mac);
+        int vend_w = (vend && vend[0]) ? canvas_string_width(canvas, vend) : 0;
+        if(vend_w > 0 && mac_px + 4 + vend_w <= limit) {
+            canvas_draw_str(canvas, 4, yb, mac);
+            canvas_draw_str(canvas, 4 + mac_px + 4, yb, vend);
+        } else if(vend_w > 0) {
+            char compact[13];
+            memcpy(compact, st->mac, 12);
+            compact[12] = '\0';
+            int cw = canvas_string_width(canvas, compact);
+            if(cw + 4 + vend_w <= limit) {
+                canvas_draw_str(canvas, 4, yb, compact);
+                canvas_draw_str(canvas, 4 + cw + 4, yb, vend);
+            } else {
+                while(mac[0] && canvas_string_width(canvas, mac) > limit)
+                    mac[strlen(mac) - 1] = '\0';
+                canvas_draw_str(canvas, 4, yb, mac);
+            }
+        } else {
+            while(mac[0] && canvas_string_width(canvas, mac) > limit)
+                mac[strlen(mac) - 1] = '\0';
+            canvas_draw_str(canvas, 4, yb, mac);
+        }
     }
 
     canvas_set_color(canvas, ColorBlack);
@@ -8172,6 +8221,8 @@ int32_t ghost5_app(void* p) {
     Ghost5App* app = app_alloc();
     ghost_migrate_legacy_data();
     ghost_seed_portals(); // unpack bundled example portals after legacy migrate
+    ghost_seed_oui();
+    ghost_oui_load();
     Gui* gui = furi_record_open(RECORD_GUI);
     view_dispatcher_attach_to_gui(app->view_dispatcher, gui, ViewDispatcherTypeFullscreen);
 

@@ -1,8 +1,3 @@
-/*
- * @LastEditors: SpenserCai
- * @LastEditTime: 2025-03-04 14:21:29
- * @Description: file content
- */
 #pragma once
 
 #include "subbrute_worker.h"
@@ -31,7 +26,6 @@ struct SubBruteWorker {
 
     /** @see @c SubGhz service for more info */
     SubGhzEnvironment* environment; /**< Environment */
-    SubGhzProtocolDecoderBase* decoder_result;
     SubGhzTransmitter* transmitter; /**< Transmitter */
     const char* protocol_name; /**< Name of the protocol */
     uint8_t tx_timeout_ms; /**< Timeout for transmit */
@@ -75,7 +69,7 @@ int32_t subbrute_worker_thread(void* context);
  * @brief Transmits FlipperFormat using subGHz.
  *
  * This function transmits the specified FlipperFormat using the subGHz
- * protocol.
+ * protocol. Transmitter and radio preset must be prepared beforehand.
  *
  * @param instance The SubBruteWorker instance.
  * @param flipper_format Pointer to the FlipperFormat to be transmitted.

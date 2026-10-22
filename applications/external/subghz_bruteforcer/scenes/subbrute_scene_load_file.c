@@ -17,14 +17,8 @@ void subbrute_scene_load_file_on_enter(void* context) {
     dialog_file_browser_set_basic_options(&browser_options, SUBBRUTE_FILE_EXT, &I_sub1_10px);
 
     SubBruteFileResult load_result;
-    // TODO: DELETE IT
-#ifdef SUBBRUTE_FAST_TRACK
-    bool res = true;
-    furi_string_printf(load_path, "%s", "/ext/subghz/princeton.sub");
-#else
     bool res =
         dialog_file_browser_show(instance->dialogs, load_path, app_folder, &browser_options);
-#endif
 #ifdef FURI_DEBUG
     FURI_LOG_D(
         TAG,
@@ -54,9 +48,9 @@ void subbrute_scene_load_file_on_enter(void* context) {
                        instance->device->two_bytes)) {
                     furi_crash("Invalid attack set!");
                 }
+                subbrute_apply_extra_settings(instance);
                 // Ready to run!
                 FURI_LOG_I(TAG, "Ready to run");
-                load_result = true;
             }
         }
 

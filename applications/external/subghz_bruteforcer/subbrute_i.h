@@ -9,12 +9,9 @@
 
 #include <gui/gui.h>
 #include <gui/view_dispatcher.h>
-#include <gui/view_stack.h>
 #include <gui/scene_manager.h>
 #include <gui/modules/text_input.h>
 #include <gui/modules/popup.h>
-#include <gui/modules/widget.h>
-#include <gui/modules/loading.h>
 #include <gui/modules/variable_item_list.h>
 
 #include <subghz_bruteforcer_icons.h>
@@ -23,9 +20,6 @@
 
 #include <dialogs/dialogs.h>
 
-#include <notification/notification.h>
-#include <notification/notification_messages.h>
-
 #include "subbrute.h"
 #include "subbrute_device.h"
 #include "subbrute_settings.h"
@@ -33,11 +27,7 @@
 #include "views/subbrute_attack_view.h"
 #include "views/subbrute_main_view.h"
 
-#define SUB_BRUTE_FORCER_VERSION "Sub-GHz BruteForcer 4.0"
-
-#ifdef FURI_DEBUG
-//#define SUBBRUTE_FAST_TRACK false
-#endif
+#define SUB_BRUTE_FORCER_VERSION "Sub-GHz BruteForcer 4.3"
 
 /**
  * @enum SubBruteView
@@ -51,10 +41,7 @@ typedef enum {
     SubBruteViewMain,
     SubBruteViewAttack,
     SubBruteViewTextInput,
-    SubBruteViewDialogEx, /**< Not used */
     SubBruteViewPopup,
-    SubBruteViewWidget,
-    SubBruteViewStack,
     SubBruteViewVarList,
 } SubBruteView;
 
@@ -69,10 +56,8 @@ struct SubBruteState {
     NotificationApp* notifications;
     Gui* gui;
     ViewDispatcher* view_dispatcher;
-    ViewStack* view_stack;
     TextInput* text_input;
     Popup* popup;
-    Widget* widget;
     VariableItemList* var_list;
     DialogsApp* dialogs;
 
@@ -92,17 +77,6 @@ struct SubBruteState {
     SubBruteWorker* worker; /**< SubBruteWorker worker for background job */
     SubBruteSettings* settings; /**< Last used settings */
 };
-
-/**
- * @brief Function to show or hide a loading popup.
- *
- * This function is used to display or hide a loading popup in a user interface.
- * The loading popup appears when an action is being performed that may take some time to complete.
- *
- * @param context A pointer to the context object associated with the loading popup.
- * @param show A boolean value indicating whether to display or hide the loading popup.
- */
-void subbrute_show_loading_popup(void* context, bool show);
 
 /**
  * @brief Callback function for text input in the sub-brute module.
@@ -128,3 +102,19 @@ void subbrute_text_input_callback(void* context);
  * @return void
  */
 void subbrute_popup_closed_callback(void* context);
+
+/**
+ * @brief Apply saved per-protocol extra settings (time delay, TE, PT2262 code) to worker.
+ *
+ * Must be called after worker was initialised for current attack.
+ *
+ * @param instance SubBruteState instance
+ */
+void subbrute_apply_extra_settings(SubBruteState* instance);
+
+/**
+ * @brief Store current worker extra settings for current attack and save settings file.
+ *
+ * @param instance SubBruteState instance
+ */
+void subbrute_store_extra_settings(SubBruteState* instance);

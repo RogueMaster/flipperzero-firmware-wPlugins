@@ -186,9 +186,12 @@ typedef enum {
 typedef struct {
     SendSignalState state; // Current state.
     uint32_t curpos; // Current bit position of data to send.
-    ProtoViewApp* app; // App reference.
+    uint32_t pulses_count;
+    uint32_t short_pulse_dur;
+    uint32_t bits_bytes;
     uint32_t start_gap_dur; // Gap to send at the start.
     uint32_t end_gap_dur; // Gap to send at the end.
+    uint8_t bits[]; // Snapshot: the receive scanner may replace app->msg_info.
 } SendSignalCtx;
 
 /* Setup the state context for the callback responsible to feed data
@@ -196,7 +199,10 @@ typedef struct {
 static void send_signal_init(SendSignalCtx* ss, ProtoViewApp* app) {
     ss->state = SendSignalSendStartGap;
     ss->curpos = 0;
-    ss->app = app;
+    ss->pulses_count = app->msg_info->pulses_count;
+    ss->short_pulse_dur = app->msg_info->short_pulse_dur;
+    ss->bits_bytes = app->msg_info->bits_bytes;
+    memcpy(ss->bits, app->msg_info->bits, ss->bits_bytes);
     ss->start_gap_dur = PROTOVIEW_SENDSIGNAL_START_GAP;
     ss->end_gap_dur = PROTOVIEW_SENDSIGNAL_END_GAP;
 }
@@ -230,27 +236,26 @@ LevelDuration radio_tx_feed_data(void* ctx) {
 
         /* Let's see how many consecutive bits we have with the same
          * level. */
-        for(j = 0; ss->curpos + j < ss->app->msg_info->pulses_count; j++) {
-            uint32_t l =
-                bitmap_get(ss->app->msg_info->bits, ss->app->msg_info->bits_bytes, ss->curpos + j);
+        for(j = 0; ss->curpos + j < ss->pulses_count; j++) {
+            uint32_t l = bitmap_get(ss->bits, ss->bits_bytes, ss->curpos + j);
             if(j == 0) {
                 /* At the first bit of this sequence, we store the
                  * level of the sequence. */
                 level = l;
-                dur += ss->app->msg_info->short_pulse_dur;
+                dur += ss->short_pulse_dur;
                 continue;
             }
 
             /* As long as the level is the same, we update the duration.
              * Otherwise stop the loop and return this sample. */
             if(l != level) break;
-            dur += ss->app->msg_info->short_pulse_dur;
+            dur += ss->short_pulse_dur;
         }
         ss->curpos += j;
 
         /* If this was the last set of bits, change the state to
          * send the final gap. */
-        if(ss->curpos >= ss->app->msg_info->pulses_count) ss->state = SendSignalSendEndGap;
+        if(ss->curpos >= ss->pulses_count) ss->state = SendSignalSendEndGap;
         return level_duration_make(level, dur);
     }
 
@@ -310,10 +315,32 @@ void process_input_info(ProtoViewApp* app, InputEvent input) {
             set_signal_random_filename(app, privdata->filename, SAVE_FILENAME_LEN);
             ui_show_keyboard(app, privdata->filename, SAVE_FILENAME_LEN, text_input_done_callback);
         } else if(input.type == InputTypeShort && input.key == InputKeyOk) {
-            SendSignalCtx send_state;
-            send_signal_init(&send_state, app);
-            radio_tx_signal(app, radio_tx_feed_data, &send_state);
-            notify_signal_sent(app);
+            /* Snapshot under the same mutex used by the receive scanner. */
+            SendSignalCtx* send_state = NULL;
+            uint32_t timeout_ticks = 0;
+            furi_mutex_acquire(app->view_updating_mutex, FuriWaitForever);
+            if(app->msg_info && app->msg_info->bits && app->msg_info->pulses_count &&
+               app->msg_info->short_pulse_dur &&
+               app->msg_info->bits_bytes <= SIZE_MAX - sizeof(SendSignalCtx) &&
+               (uint64_t)app->msg_info->pulses_count <= (uint64_t)app->msg_info->bits_bytes * 8) {
+                uint64_t duration_us =
+                    (uint64_t)app->msg_info->pulses_count * app->msg_info->short_pulse_dur +
+                    PROTOVIEW_SENDSIGNAL_START_GAP + PROTOVIEW_SENDSIGNAL_END_GAP;
+                /* Derive the limit from the waveform, with one second for DMA drain. */
+                uint32_t tick_hz = furi_kernel_get_tick_frequency();
+                if(duration_us <= ((uint64_t)INT32_MAX - tick_hz) * 1000000 / tick_hz) {
+                    timeout_ticks = (duration_us * tick_hz + 999999) / 1000000 + tick_hz;
+                    send_state = malloc(sizeof(SendSignalCtx) + app->msg_info->bits_bytes);
+                    if(send_state) send_signal_init(send_state, app);
+                }
+            }
+            furi_mutex_release(app->view_updating_mutex);
+            if(send_state && radio_tx_signal(app, radio_tx_feed_data, send_state, timeout_ticks)) {
+                ui_show_alert(app, "Sending; Back to cancel", 2000);
+            } else {
+                free(send_state);
+                ui_show_alert(app, "Unable to send signal", 2000);
+            }
         }
     }
 }

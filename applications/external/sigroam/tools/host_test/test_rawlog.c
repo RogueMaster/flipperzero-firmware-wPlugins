@@ -376,8 +376,9 @@ int test_rawlog_run(void) {
      * before char last_unknown[512] -- stays 3408 (see test_model.c for the
      * full alignment argument).
      * 2026-09-16 T6.5 half B: +SrRadioInfo(2)+pad(2)+radio_rev(4) = +8 → 3416.
-     * 2026-09-18 SHOW_INFO clear: +wifi_stop_rev(4)+pad(4) = +8 → 3424. */
-    CHECK(sizeof(SrModel) == 3584);
+     * 2026-09-18 SHOW_INFO clear: +wifi_stop_rev(4)+pad(4) = +8 → 3424.
+     * 2026-10-20 lite Qual previous sample: +8 → 3592. */
+    CHECK(sizeof(SrModel) == 3592);
 
     empty = test_empty_render();
     lens = test_lens();

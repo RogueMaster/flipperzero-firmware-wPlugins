@@ -223,7 +223,8 @@ int test_dialect_run(void) {
     CHECK(g_model.wifi_stop_rev == 0u);
     CHECK(g_model.illegal_trans == illegal0);
 
-    CHECK(sizeof(SrModel) == 3584);
+    /* 2026-10-20 lite Qual previous sample: +8 → 3592. */
+    CHECK(sizeof(SrModel) == 3592);
 
     return sr_test_failures;
 }

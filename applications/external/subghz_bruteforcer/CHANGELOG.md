@@ -1,5 +1,48 @@
 # Changelog
 
+## v4.3 (2026-10-22)
+
+**Improvements:**
+
+- Extra settings (TimeDelay, Repeats, Te, PT2262 code) are now saved per protocol to `/ext/apps_data/subghz_bruteforcer/bruteforcer.settings` and loaded back when that protocol is selected (Te and PT2262 code are not stored for "BF existing dump", they come from the loaded file)
+- Repeats range is the same everywhere (1..100): main menu Left/Right can now go below protocol default too, `xN` is shown in menu when value differs from default
+
+**Fixed bugs:**
+
+- Fix v4.2 regression: Princeton based attacks (PT2260 / PT2262) sent only the first key, the rest were silent. Transmitter is created per key again, radio setup still happens once per attack
+- Settings file: missing optional field no longer breaks reading of the following fields
+
+## v4.2 (2026-10-22)
+
+**Improvements:**
+
+- Faster bruteforce: radio preset is now set up once per attack instead of for every key (no more full radio reset per key), and end of transmission is polled every 1 ms, so `TimeDelay` is now the real gap between keys
+
+## v4.1 (2026-10-22)
+
+**Fixed bugs:**
+
+- Fix possible crash on app exit: `decoder_result` was left pointing into an already freed receiver and then `free()`'d again in `subbrute_device_free` (double free)
+- Fix possible crash (`furi_check`) when restarting an attack right after it finished, or when exiting the app: worker thread is now always joined before start/free
+- Fix scene stack growing on every "Back from attack -> menu" and "attack finished" cycle (scenes were pushed instead of returning to the existing ones)
+- Fix last (duplicate) key being sent for SMC5326 / UNILARM / PT2260 / PT2262 attacks: step range is now 0..6560 (3^8 combinations), was 0..6561
+- Fix saved `.sub` file using a stale PT2262 open code from a previously selected attack
+- Fix cursor jumping to the top when pressing OK on "Repeats" in extra settings
+- Fix crash if transmitter for a protocol can't be created
+- Fix possible division by zero in attack progress bar
+- Loading a file without `TE` now explicitly uses TE = 0
+
+**Cleanup:**
+
+- Remove unused Widget and ViewStack views (less RAM used)
+- Replace float math (`floor`/`double`) with integer division in key generation
+- Replace string-based max value calculation (`strtol` on "111...") with a bit shift
+- PT2262 open codes moved into a lookup table
+- Remove debug-only fast track hack, dead commented-out code, duplicate includes and undeclared function prototypes
+- Attack view callbacks made `static` (were declared in the wrong header)
+- Fix wrong log tags in a few scenes
+- Version bumped to 4.1 (UI title and `fap_version`)
+
 ## [v3.10.1](https://github.com/DarkFlippers/flipperzero-subbrute/tree/v3.10.1) (2023-12-19)
 
 [Full Changelog](https://github.com/DarkFlippers/flipperzero-subbrute/compare/v3.9.5...v3.10.1)

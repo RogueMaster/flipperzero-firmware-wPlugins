@@ -1,8 +1,6 @@
 #include "src/scheduler_app_i.h"
 #include "src/scheduler_run.h"
 
-#include <lib/subghz/devices/devices.h>
-
 void scheduler_scene_run_on_enter(void* context) {
     SchedulerApp* app = context;
     scheduler_start(app->scheduler);
@@ -12,7 +10,6 @@ void scheduler_scene_run_on_enter(void* context) {
     scheduler_run_view_update(
         app->run_view, app->scheduler, false, scheduler_get_countdown_seconds(app->scheduler));
 
-    subghz_devices_init();
     view_dispatcher_switch_to_view(app->view_dispatcher, SchedulerAppViewRunSchedule);
 }
 
@@ -23,7 +20,6 @@ void scheduler_scene_run_on_exit(void* context) {
     scheduler_stop_tx(app);
 
     scheduler_time_reset(app->scheduler);
-    subghz_devices_deinit();
 }
 
 bool scheduler_scene_run_on_event(void* context, SceneManagerEvent event) {

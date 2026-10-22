@@ -49,8 +49,8 @@ SubBruteState* subbrute_alloc() {
     subghz_devices_init();
 
     // init radio device
-    instance->radio_device = subbrute_radio_device_loader_set(
-        instance->radio_device, SubGhzRadioDeviceTypeExternalCC1101);
+    instance->radio_device =
+        subbrute_radio_device_loader_set(NULL, SubGhzRadioDeviceTypeExternalCC1101);
 
     subghz_devices_reset(instance->radio_device);
     subghz_devices_idle(instance->radio_device);
@@ -68,11 +68,6 @@ SubBruteState* subbrute_alloc() {
         SubBruteViewTextInput,
         text_input_get_view(instance->text_input));
 
-    // Custom Widget
-    instance->widget = widget_alloc();
-    view_dispatcher_add_view(
-        instance->view_dispatcher, SubBruteViewWidget, widget_get_view(instance->widget));
-
     // VarList
     instance->var_list = variable_item_list_alloc();
     view_dispatcher_add_view(
@@ -84,11 +79,6 @@ SubBruteState* subbrute_alloc() {
     instance->popup = popup_alloc();
     view_dispatcher_add_view(
         instance->view_dispatcher, SubBruteViewPopup, popup_get_view(instance->popup));
-
-    // ViewStack
-    instance->view_stack = view_stack_alloc();
-    view_dispatcher_add_view(
-        instance->view_dispatcher, SubBruteViewStack, view_stack_get_view(instance->view_stack));
 
     // SubBruteMainView
     instance->view_main = subbrute_main_view_alloc();
@@ -119,15 +109,13 @@ void subbrute_free(SubBruteState* instance) {
     // Uncomment to enable Debug pin output on PIN 17(1W)
     // subghz_devices_set_async_mirror_pin(instance->radio_device, NULL);
 
-    // SubBruteWorker
-    subbrute_worker_stop(instance->worker);
+    // SubBruteWorker (stops and joins thread, ends radio device)
     subbrute_worker_free(instance->worker);
 
     // SubBruteDevice
     subbrute_device_free(instance->device);
     subghz_devices_deinit();
 
-    //subbrute_settings_save(instance->settings);
     subbrute_settings_free(instance->settings);
 
     // Notifications
@@ -147,10 +135,6 @@ void subbrute_free(SubBruteState* instance) {
     view_dispatcher_remove_view(instance->view_dispatcher, SubBruteViewTextInput);
     text_input_free(instance->text_input);
 
-    // Custom Widget
-    view_dispatcher_remove_view(instance->view_dispatcher, SubBruteViewWidget);
-    widget_free(instance->widget);
-
     // VarList
     view_dispatcher_remove_view(instance->view_dispatcher, SubBruteViewVarList);
     variable_item_list_free(instance->var_list);
@@ -158,10 +142,6 @@ void subbrute_free(SubBruteState* instance) {
     // Popup
     view_dispatcher_remove_view(instance->view_dispatcher, SubBruteViewPopup);
     popup_free(instance->popup);
-
-    // ViewStack
-    view_dispatcher_remove_view(instance->view_dispatcher, SubBruteViewStack);
-    view_stack_free(instance->view_stack);
 
     // Dialog
     furi_record_close(RECORD_DIALOGS);
@@ -195,6 +175,51 @@ void subbrute_popup_closed_callback(void* context) {
     SubBruteState* instance = context;
     view_dispatcher_send_custom_event(
         instance->view_dispatcher, SubBruteCustomEventTypePopupClosed);
+}
+
+void subbrute_apply_extra_settings(SubBruteState* instance) {
+    furi_assert(instance);
+    const SubBruteAttacks attack = instance->device->attack;
+    SubBruteSettings* settings = instance->settings;
+
+    subbrute_worker_set_timeout(instance->worker, settings->time_delay[attack]);
+
+    // TE and open code of a loaded file belong to that file, not to the protocol slot
+    if(attack == SubBruteAttackLoadFile) {
+        return;
+    }
+
+    if(settings->te[attack] != 0 && subbrute_worker_get_te(instance->worker) != 0) {
+        subbrute_worker_set_te(instance->worker, settings->te[attack]);
+    }
+
+    if(subbrute_worker_get_is_pt2262(instance->worker)) {
+        subbrute_worker_set_opencode(instance->worker, settings->opencode[attack]);
+        instance->device->opencode = settings->opencode[attack];
+    }
+}
+
+void subbrute_store_extra_settings(SubBruteState* instance) {
+    furi_assert(instance);
+    const SubBruteAttacks attack = instance->device->attack;
+    SubBruteSettings* settings = instance->settings;
+    const uint8_t repeats = subbrute_worker_get_repeats(instance->worker);
+
+    settings->time_delay[attack] = subbrute_worker_get_timeout(instance->worker);
+    settings->repeat_values[attack] = repeats;
+    instance->device->extra_repeats = repeats;
+
+    if(attack != SubBruteAttackLoadFile) {
+        const uint32_t te = subbrute_worker_get_te(instance->worker);
+        // Keep 0 when TE equals protocol default, so default changes still apply
+        settings->te[attack] = te == subbrute_protocol(attack)->te ? 0 : te;
+
+        if(subbrute_worker_get_is_pt2262(instance->worker)) {
+            settings->opencode[attack] = subbrute_worker_get_opencode(instance->worker);
+        }
+    }
+
+    subbrute_settings_save(settings);
 }
 
 // ENTRYPOINT

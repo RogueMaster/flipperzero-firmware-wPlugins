@@ -758,9 +758,11 @@ int test_gps_sample_run(void) {
      * 2026-09-20 board_sealing bool sits in the 3-byte pad after scan_ui
      * (before ap_wifi); sizeof stays 712.
      * 2026-09-24 band counts + last session + pending popup fields:
-     * SrModel 3536 → 3584, SrDashModel 712 → 736. */
-    CHECK(sizeof(SrModel) == 3584);
-    CHECK(sizeof(SrDashModel) == 736);
+     * SrModel 3536 → 3584, SrDashModel 712 → 736.
+     * 2026-10-20 lite Qual previous sample: SrModel +8 → 3592.
+     * SrDashModel qual_prev_gga/ggafix/seen after sess_seen: +12 → 748. */
+    CHECK(sizeof(SrModel) == 3592);
+    CHECK(sizeof(SrDashModel) == 748);
     CHECK(sizeof(SrDashModel) <= 768);
     CHECK(sizeof(SrGpsSampleCtx) == 20);
 

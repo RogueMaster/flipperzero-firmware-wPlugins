@@ -60,9 +60,36 @@ static void sigroam_scene_probe_fill(SigRoamApp* app, SrHandshakeState st) {
         }
         break;
     case SrHandshakeOk:
-        /* ADR-027: product identity, not UART Version: / ESP-IDF:. Diag stays. */
-        (void)sr_probe_fmt_ok(
-            fw, SR_SCANNER_VERSION, SR_BRAND_LINE, app->probe_text, sizeof(app->probe_text));
+        /* -sigroam- firmware keeps the existing Ok page. A generic peer
+         * (Scout Lite C5 included) shows the FAP brand plus Firmware/Version
+         * from this one info, and GPS/SD from Diag/Qual once sigroam replies.
+         * About stays the static compliance card; it has no UART. */
+        if(sr_dialect_is_sigroam(fw)) {
+            (void)sr_probe_fmt_ok(
+                fw, SR_SCANNER_VERSION, SR_BRAND_LINE, app->probe_text, sizeof(app->probe_text));
+        } else if(sr_dialect_lite_status(fw)) {
+            (void)sr_ident_fmt_lite(
+                fw,
+                app->model.qual_rev != 0u,
+                &app->model.qual,
+                app->model.qual_prev_seen,
+                app->model.qual_prev_ggafix,
+                app->model.qual_tick_ms,
+                furi_get_tick(),
+                SR_BRAND_NAME,
+                "Scout Lite",
+                app->probe_text,
+                sizeof(app->probe_text));
+        } else {
+            (void)sr_ident_fmt(
+                fw,
+                app->model.qual_rev != 0u,
+                &app->model.qual,
+                SR_BRAND_NAME,
+                "Scout Lite",
+                app->probe_text,
+                sizeof(app->probe_text));
+        }
         break;
     case SrHandshakeUnknownFw:
         snprintf(
@@ -108,6 +135,7 @@ static void sigroam_scene_probe_draw(SigRoamApp* app, SrHandshakeState st) {
     widget_add_text_scroll_element(app->widget, 0, 0, SR_CANVAS_W, SR_CANVAS_H, app->probe_text);
     app->hs_shown = st;
     app->hs_rev_shown = app->model.firmware_rev;
+    app->hs_qual_rev_shown = app->model.qual_rev;
 }
 
 /* Queue `info\n` and start a new 1.5s window. On failure leave ctx untouched
@@ -138,7 +166,7 @@ static bool probe_queue_info(SigRoamApp* app) {
 /* Generic Marauder only. Does not touch handshake ctx. Single worker slot. */
 static bool probe_queue_stopscan(SigRoamApp* app) {
     const SrSourceCodec* codec;
-    char cmd[SR_WORKER_CMD_MAX];
+    char cmd[SR_WORKER_CMD_STACK];
     size_t n;
 
     if(app == NULL || app->io == NULL || !sr_io_is_open(app->io) || app->worker == NULL) {
@@ -155,6 +183,14 @@ static bool probe_queue_stopscan(SigRoamApp* app) {
     return sr_worker_send_cmd(app->worker, cmd);
 }
 
+/* Read-only status. Does not touch the handshake window or scan mode. */
+static bool probe_queue_sigroam(SigRoamApp* app) {
+    if(app == NULL || app->io == NULL || !sr_io_is_open(app->io) || app->worker == NULL) {
+        return false;
+    }
+    return sr_worker_send_cmd(app->worker, "sigroam\n");
+}
+
 void sigroam_scene_probe_on_enter(void* context) {
     SigRoamApp* app = context;
     SrHandshakeState st;
@@ -163,6 +199,7 @@ void sigroam_scene_probe_on_enter(void* context) {
     app->hs.timeout_ms = SR_HANDSHAKE_TIMEOUT_MS;
     app->probe_send_busy = false;
     app->probe_stop_sent = false;
+    app->probe_sigroam_sent = false;
 
     if(app->io && sr_io_is_open(app->io) && app->worker) {
         app->probe_send_busy = !probe_queue_info(app);
@@ -217,8 +254,20 @@ bool sigroam_scene_probe_on_event(void* context, SceneManagerEvent event) {
                 app->clear_stop_rev = snap;
             }
         }
+        /* After the SHOW_INFO clear is queued. sigroam does not change
+         * scan mode; info is not sent again. */
+        if(st == SrHandshakeOk && !app->probe_sigroam_sent &&
+           sr_dialect_should_probe_sigroam(&app->model.firmware)) {
+            bool stop_done = !sr_dialect_probe_should_clear_show_info(&app->model.firmware) ||
+                             app->probe_stop_sent;
+
+            if(stop_done && probe_queue_sigroam(app)) {
+                app->probe_sigroam_sent = true;
+            }
+        }
         /* Retry keeps Waiting, so state equality would skip "Retrying info". */
-        if(retried || st != app->hs_shown || app->model.firmware_rev != app->hs_rev_shown) {
+        if(retried || st != app->hs_shown || app->model.firmware_rev != app->hs_rev_shown ||
+           app->model.qual_rev != app->hs_qual_rev_shown) {
             sigroam_scene_probe_draw(app, st);
         }
         return true;

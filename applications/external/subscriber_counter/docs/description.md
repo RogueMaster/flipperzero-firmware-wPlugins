@@ -5,8 +5,9 @@ Shows the live subscriber count of a YouTube channel on your Flipper Zero and re
 ## Requirements
 
 - A computer running the **Flipper Internet Bridge** desktop helper: https://github.com/mete888/flipper_internet_bridge
+- Or, in beta, a Wi-Fi board with **FlipperHTTP**: https://github.com/jblanked/FlipperHTTP
 - A free **YouTube Data API v3** key: https://github.com/TheProductAgency/flipper-subscriber-counter/blob/main/docs/api-key.md
-- Connection over **USB or Bluetooth**
+- Connection over **USB, Bluetooth or Wi-Fi**
 
 ## Setup
 
@@ -28,6 +29,8 @@ Shows the live subscriber count of a YouTube channel on your Flipper Zero and re
 - Keep the backlight on
 - Update interval from 1 minute to 1 hour
 - Language: English or German
+- Font style: Inter, the Flipper's built-in fonts or a mix
+- Connection: desktop helper or Wi-Fi board
 
 ## Notes
 

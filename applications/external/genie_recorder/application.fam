@@ -10,6 +10,6 @@ App(
     fap_icon_assets="assets",
     fap_author="jamisonderek",
     fap_weburl="https://github.com/jamisonderek/flipper-zero-tutorials",
-    fap_version="3.1",
+    fap_version="3.2",
     fap_description="This application extracts the codes from a Genie garage door remote into a .GNE file.  It also plays back a .GNE file to a Genie garage door opener.",
 )

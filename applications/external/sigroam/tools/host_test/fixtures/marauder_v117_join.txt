@@ -1,0 +1,34 @@
+## Source transcript for Marauder v1.17.0. Not a lab capture.
+## This machine had no Scout UART (only a Flipper USB port). Lines below are the
+## Serial prints at the cited tag, with the password replaced by ***.
+##
+## scanall is the AP-table scan. CommandLine.cpp:980-983 starts WIFI_SCAN_AP_STA.
+## RunAPScan (WiFiScan.cpp:4169) installs apSnifferCallbackFull, which
+## access_points->add at WiFiScan.cpp:7346. sniffbeacon only prints beacons
+## (WiFiScan.cpp:8702) and does not add to access_points, so join -a cannot use it.
+## list and join are outside if (!scanning()) (CommandLine.cpp:1603 and :1722).
+## StopScan (WiFiScan.cpp:2986) does not clear access_points.
+## list -a format is CommandLine.cpp:1626 and :1630.
+## showCounts ends the list (CommandLine.cpp:172-178).
+## join prints "Using SSID: " (CommandLine.cpp:1731) then "Connecting to WiFi"
+## and dots (WiFiScan.cpp:2334-2337). The only fail sentence is
+## "Could not connect to WiFi network" (WiFiScan.cpp:2346), after 20 x delay(500).
+## save_credential defaults true (WiFiScan.h joinWiFi). No success sentence.
+## CLI gui=false does not print "IP address:". The command prompt is "> " with
+## no newline (CommandLine.cpp:87), so a successful Connecting line is not a
+## complete line until the next println. FAP sends `channel` as a serial
+## barrier; its echo may have the Connecting text glued in front.
+## Historical join -s lines in other fixture records are not the current flow.
+## Count 0: "There are no saved WiFi credentials" (CommandLine.cpp:1749).
+## Probe connect: "Connected to saved WiFi: " plus the same essid.
+## Missing args: "You did not provide the proper args" (CommandLine.cpp:1753).
+##
+#list -a
+[0][CH:6] HomeNet -42
+[1][CH:44] Cafe Guest -70 (selected)
+1 selected
+Scanning for APs and Stations. Stop with stopscan
+#join -a 0 -p ***
+Using SSID: HomeNet
+Could not connect to WiFi network
+You did not provide the proper args

@@ -3,6 +3,38 @@
 
 #include <devices/devices.h>
 
+#define SIGNAL_CANCEL 1U
+
+static struct {
+    FuriThread* thread;
+    FuriMutex* mutex;
+    FlipboardModel* model;
+    uint8_t action;
+    bool active; // GUI thread only.
+    const char* status; // Protected by mutex.
+} signal_job;
+
+static bool signal_cancelled(void) {
+    return (furi_thread_flags_get() & SIGNAL_CANCEL) != 0;
+}
+
+static void signal_set_status(const char* status) {
+    furi_mutex_acquire(signal_job.mutex, FuriWaitForever);
+    signal_job.status = status;
+    furi_mutex_release(signal_job.mutex);
+    flipboard_model_update_gui(signal_job.model);
+}
+
+static void signal_stop(void) {
+    if(!signal_job.thread) return;
+    if(furi_thread_get_state(signal_job.thread) != FuriThreadStateStopped) {
+        furi_thread_flags_set(furi_thread_get_id(signal_job.thread), SIGNAL_CANCEL);
+    }
+    furi_thread_join(signal_job.thread);
+    furi_thread_free(signal_job.thread);
+    signal_job.thread = NULL;
+}
+
 /**
  * @brief This method handles Flipper D-Pad input when in the FlipboardSignal mode.
  * @param event The InputEvent* to handle.
@@ -47,6 +79,15 @@ static void flipboard_view_flip_signal_draw(Canvas* canvas, void* model) {
     canvas_set_font(canvas, FontPrimary);
     canvas_draw_str(canvas, 84, 60, furi_string_get_cstr(action_text));
 
+    furi_mutex_acquire(signal_job.mutex, FuriWaitForever);
+    if(signal_job.status) {
+        canvas_set_color(canvas, ColorWhite);
+        canvas_draw_box(canvas, 0, 50, 128, 14);
+        canvas_set_color(canvas, ColorBlack);
+        canvas_set_font(canvas, FontSecondary);
+        canvas_draw_str(canvas, 1, 62, signal_job.status);
+    }
+    furi_mutex_release(signal_job.mutex);
     furi_string_free(action_text);
 }
 
@@ -58,12 +99,30 @@ static void flipboard_view_flip_signal_draw(Canvas* canvas, void* model) {
  * @param filename The filename of the signal to send.
  */
 static void send_subghz(FlipboardModel* model, char* filename) {
-    // TODO: Add cancel API for subghz RAW by using ButtonMonitor.
     FlipboardLeds* leds = flipboard_model_get_leds(model);
     Resources* resources = flipboard_model_get_resources(model);
     SubGhzSignal* signal = subghz_signal_load_file(filename);
+    if(!signal) {
+        Storage* storage = furi_record_open(RECORD_STORAGE);
+        FuriString* pending = furi_string_alloc_printf("%s.flip.pending", filename);
+        FuriString* backup = furi_string_alloc_printf("%s.flip.bak", filename);
+        if(storage_file_exists(storage, filename) ||
+           storage_file_exists(storage, furi_string_get_cstr(pending)) ||
+           storage_file_exists(storage, furi_string_get_cstr(backup))) {
+            signal_set_status("Sub-GHz file load failed");
+        }
+        furi_string_free(backup);
+        furi_string_free(pending);
+        furi_record_close(RECORD_STORAGE);
+    }
     flipboard_status_led(leds, true);
-    subghz_signal_send(signal, false, resources);
+    SubGhzSignalResult result = subghz_signal_send(signal, false, resources, SIGNAL_CANCEL);
+    if(signal && result != SubGhzSignalComplete && result != SubGhzSignalCancelled) {
+        signal_set_status(
+            result == SubGhzSignalSaveError ? "Counter save failed" :
+            result == SubGhzSignalTimeout   ? "Sub-GHz TX timed out" :
+                                              "Sub-GHz send failed");
+    }
     flipboard_status_led(leds, false);
     subghz_signal_free(signal);
 }
@@ -83,10 +142,11 @@ static bool send_ir(FlipboardModel* model, char* filename, char* action_name) {
     FlipboardLeds* leds = flipboard_model_get_leds(model);
     InfraredSignal* ir_signal = infrared_signal_load_file(filename, action_name, resources);
     do {
+        if(signal_cancelled()) break;
         flipboard_status_led(leds, true);
         sent_signal |= infrared_signal_send(ir_signal);
         flipboard_status_led(leds, false);
-    } while(infrared_signal_load_next(ir_signal) &&
+    } while(!signal_cancelled() && infrared_signal_load_next(ir_signal) &&
             button_monitor_get_last_status(button_monitor));
     infrared_signal_free(ir_signal);
     return sent_signal;
@@ -138,6 +198,7 @@ static void flipboard_debounced_switch(void* context, uint8_t old_button, uint8_
  */
 static void flipboard_enter_callback(void* context) {
     FlipboardModel* fm = flipboard_get_model((Flipboard*)context);
+    signal_job.active = true;
     flipboard_model_set_button_monitor(fm, flipboard_debounced_switch, (Flipboard*)context);
     flipboard_model_set_colors(fm, NULL, 0x0);
 }
@@ -147,6 +208,8 @@ static void flipboard_enter_callback(void* context) {
  * @param context The Flipboard* context.
  */
 static void flipboard_exit_callback(void* context) {
+    signal_job.active = false;
+    signal_stop(); // Join before the button monitor or model can be freed.
     FlipboardModel* fm = flipboard_get_model((Flipboard*)context);
     flipboard_model_set_colors(fm, NULL, 0x0);
     flipboard_model_set_button_monitor(fm, NULL, NULL);
@@ -223,77 +286,52 @@ static void loaded_app_menu(FlipboardModel* model) {
  * @param event The event to handle.
  * @return true if the event was handled, false otherwise.
  */
-static bool custom_event_handler(void* context, uint32_t event) {
-    FlipboardModel* model = flipboard_get_model((Flipboard*)context);
-
-    if(event == CustomEventAppMenuEnter) {
-        loaded_app_menu(model);
-    } else if(event == CustomEventFlipboardButtonPress + (1 | 0 | 0 | 0)) {
-        send_subghz(model, "/ext/subghz/flip1.sub");
-        if(!send_ir(model, "/ext/infrared/flipboard.ir", "Flip1")) {
+static int32_t signal_worker(void* context) {
+    UNUSED(context);
+    FlipboardModel* model = signal_job.model;
+    uint8_t action = signal_job.action;
+    char sub_path[32];
+    char ir_action[8];
+    snprintf(sub_path, sizeof(sub_path), "/ext/subghz/flip%u.sub", action);
+    snprintf(ir_action, sizeof(ir_action), "Flip%u", action);
+    if(!signal_cancelled()) send_subghz(model, sub_path);
+    if(!signal_cancelled() && !send_ir(model, "/ext/infrared/flipboard.ir", ir_action) &&
+       !signal_cancelled()) {
+        /* Preserve the four built-in TV fallbacks. Chords have no fallback. */
+        switch(action) {
+        case 1:
             send_ir(model, "/ext/infrared/assets/tv.ir", "Power");
-        }
-    } else if(event == CustomEventFlipboardButtonPress + (0 | 2 | 0 | 0)) {
-        send_subghz(model, "/ext/subghz/flip2.sub");
-        if(!send_ir(model, "/ext/infrared/flipboard.ir", "Flip2")) {
+            break;
+        case 2:
             send_ir(model, "/ext/infrared/assets/tv.ir", "Mute");
-        }
-    } else if(event == CustomEventFlipboardButtonPress + (1 | 2 | 0 | 0)) {
-        send_subghz(model, "/ext/subghz/flip3.sub");
-        if(!send_ir(model, "/ext/infrared/flipboard.ir", "Flip3")) {
-        }
-    } else if(event == CustomEventFlipboardButtonPress + (0 | 0 | 4 | 0)) {
-        send_subghz(model, "/ext/subghz/flip4.sub");
-        if(!send_ir(model, "/ext/infrared/flipboard.ir", "Flip4")) {
+            break;
+        case 4:
             send_ir(model, "/ext/infrared/assets/tv.ir", "Ch_prev");
-        }
-    } else if(event == CustomEventFlipboardButtonPress + (1 | 0 | 4 | 0)) {
-        send_subghz(model, "/ext/subghz/flip5.sub");
-        if(!send_ir(model, "/ext/infrared/flipboard.ir", "Flip5")) {
-        }
-    } else if(event == CustomEventFlipboardButtonPress + (0 | 2 | 4 | 0)) {
-        send_subghz(model, "/ext/subghz/flip6.sub");
-        if(!send_ir(model, "/ext/infrared/flipboard.ir", "Flip6")) {
-        }
-    } else if(event == CustomEventFlipboardButtonPress + (1 | 2 | 4 | 0)) {
-        send_subghz(model, "/ext/subghz/flip7.sub");
-        if(!send_ir(model, "/ext/infrared/flipboard.ir", "Flip7")) {
-        }
-    } else if(event == CustomEventFlipboardButtonPress + (0 | 0 | 0 | 8)) {
-        send_subghz(model, "/ext/subghz/flip8.sub");
-        if(!send_ir(model, "/ext/infrared/flipboard.ir", "Flip8")) {
+            break;
+        case 8:
             send_ir(model, "/ext/infrared/assets/tv.ir", "Ch_next");
-        }
-    } else if(event == CustomEventFlipboardButtonPress + (1 | 0 | 0 | 8)) {
-        send_subghz(model, "/ext/subghz/flip9.sub");
-        if(!send_ir(model, "/ext/infrared/flipboard.ir", "Flip9")) {
-        }
-    } else if(event == CustomEventFlipboardButtonPress + (0 | 2 | 0 | 8)) {
-        send_subghz(model, "/ext/subghz/flip10.sub");
-        if(!send_ir(model, "/ext/infrared/flipboard.ir", "Flip10")) {
-        }
-    } else if(event == CustomEventFlipboardButtonPress + (1 | 2 | 0 | 8)) {
-        send_subghz(model, "/ext/subghz/flip11.sub");
-        if(!send_ir(model, "/ext/infrared/flipboard.ir", "Flip11")) {
-        }
-    } else if(event == CustomEventFlipboardButtonPress + (0 | 0 | 4 | 8)) {
-        send_subghz(model, "/ext/subghz/flip12.sub");
-        if(!send_ir(model, "/ext/infrared/flipboard.ir", "Flip12")) {
-        }
-    } else if(event == CustomEventFlipboardButtonPress + (1 | 0 | 4 | 8)) {
-        send_subghz(model, "/ext/subghz/flip13.sub");
-        if(!send_ir(model, "/ext/infrared/flipboard.ir", "Flip13")) {
-        }
-    } else if(event == CustomEventFlipboardButtonPress + (0 | 2 | 4 | 8)) {
-        send_subghz(model, "/ext/subghz/flip14.sub");
-        if(!send_ir(model, "/ext/infrared/flipboard.ir", "Flip14")) {
-        }
-    } else if(event == CustomEventFlipboardButtonPress + (1 | 2 | 4 | 8)) {
-        send_subghz(model, "/ext/subghz/flip15.sub");
-        if(!send_ir(model, "/ext/infrared/flipboard.ir", "Flip15")) {
+            break;
+        default:
+            break;
         }
     }
+    return 0;
+}
 
+static bool custom_event_handler(void* context, uint32_t event) {
+    FlipboardModel* model = flipboard_get_model((Flipboard*)context);
+    if(event == CustomEventAppMenuEnter) {
+        loaded_app_menu(model);
+    } else if(
+        signal_job.active && event > CustomEventFlipboardButtonPress &&
+        event <= CustomEventFlipboardButtonPress + 15) {
+        signal_stop();
+        signal_job.model = model;
+        signal_job.action = event - CustomEventFlipboardButtonPress;
+        signal_set_status(NULL);
+        signal_job.thread = furi_thread_alloc_ex("FlipSignalSend", 4096, signal_worker, NULL);
+        furi_thread_start(signal_job.thread);
+    }
     return true;
 }
 
@@ -337,6 +375,10 @@ int32_t flipboard_signal_app(void* p) {
                                ActionModelFieldFrequency;
     bool single_mode_button = false;
 
+    signal_job.mutex = furi_mutex_alloc(FuriMutexTypeNormal);
+    signal_job.thread = NULL;
+    signal_job.status = NULL;
+    signal_job.active = false;
     Flipboard* app = flipboard_alloc(
         FLIPBOARD_APP_NAME,
         &I_qr_github,
@@ -353,7 +395,9 @@ int32_t flipboard_signal_app(void* p) {
     view_dispatcher_set_custom_event_callback(
         flipboard_get_view_dispatcher(app), custom_event_handler);
     view_dispatcher_run(flipboard_get_view_dispatcher(app));
+    signal_stop();
     flipboard_free(app);
+    furi_mutex_free(signal_job.mutex);
 
     return 0;
 }

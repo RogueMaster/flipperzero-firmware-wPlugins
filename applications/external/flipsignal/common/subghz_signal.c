@@ -9,8 +9,10 @@
 struct SubGhzSignal {
     FuriString* sub_file_contents;
     FuriString* protocol;
+    FuriString* file_path;
     uint32_t frequency;
     FuriHalSubGhzPreset preset;
+    uint8_t* preset_data;
 };
 
 #ifdef FIRMWARE_SUPPORTS_SUBGHZ
@@ -60,72 +62,207 @@ static void __flipper_format_populate(FlipperFormat* flipper_format, FuriString*
     stream_seek(stream, 0, StreamOffsetFromStart);
 }
 
-/**
- * @brief Sends a signal using the SubGhz module.
- * @param sub_file_contents The contents of the signal file (can be RAW or Protocol).
- * @param protocol The protocol to use.
- * @param frequency The frequency to use.
- * @param preset The preset to use.
- * @param use_external_radio Currently only the internal radio is supported (please use 'false').  Whether or not to use the external radio.  
-*/
-static void send_signal(
-    FuriString* sub_file_contents,
-    const char* protocol,
-    uint32_t frequency,
-    FuriHalSubGhzPreset preset,
-    bool use_external_radio) {
-    bool enable_5v = use_external_radio;
-    const SubGhzDevice* device;
-
-    subghz_devices_init();
-    if(use_external_radio) {
-        if(enable_5v) {
-            subghz_radio_device_power_on();
+/* Only .pending files contain fully written, synced state. A .tmp file is never
+ * recovered. Keep the old file as .bak until the replacement has been installed. */
+static bool subghz_signal_recover(Storage* storage, const char* path) {
+    FuriString* pending = furi_string_alloc_printf("%s.flip.pending", path);
+    FuriString* backup = furi_string_alloc_printf("%s.flip.bak", path);
+    const char* p = furi_string_get_cstr(pending);
+    const char* b = furi_string_get_cstr(backup);
+    bool ok = false;
+    do {
+        if(storage_file_exists(storage, p)) {
+            if(storage_file_exists(storage, path)) {
+                if(storage_file_exists(storage, b)) break; // Ambiguous; preserve all copies.
+                if(storage_common_rename_safe(storage, path, b) != FSE_OK) break;
+            }
+            if(storage_common_rename_safe(storage, p, path) != FSE_OK) break;
+        } else if(!storage_file_exists(storage, path) && storage_file_exists(storage, b)) {
+            if(storage_common_rename_safe(storage, b, path) != FSE_OK) break;
         }
-        // TODO: I haven't tested EXT, so not sure if there is additional setup required.
-        device = subghz_devices_get_by_name(SUBGHZ_DEVICE_CC1101_EXT_NAME);
-    } else {
-        device = subghz_devices_get_by_name(SUBGHZ_DEVICE_CC1101_INT_NAME);
-    }
+        if(storage_file_exists(storage, b) && storage_common_remove(storage, b) != FSE_OK) break;
+        ok = true;
+    } while(false);
+    furi_string_free(backup);
+    furi_string_free(pending);
+    return ok;
+}
 
+static bool subghz_signal_stage(FlipperFormat* format, Storage* storage, const char* path) {
+    FuriString* temporary = furi_string_alloc_printf("%s.flip.tmp", path);
+    FuriString* pending = furi_string_alloc_printf("%s.flip.pending", path);
+    File* file = storage_file_alloc(storage);
+    Stream* stream = flipper_format_get_raw_stream(format);
+    bool ok = false;
+    if(storage_file_open(file, furi_string_get_cstr(temporary), FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
+        size_t remaining = stream_size(stream);
+        ok = remaining && stream_seek(stream, 0, StreamOffsetFromStart);
+        uint8_t buffer[256];
+        while(ok && remaining) {
+            size_t count = MIN(remaining, sizeof(buffer));
+            ok = stream_read(stream, buffer, count) == count &&
+                 storage_file_write(file, buffer, count) == count;
+            remaining -= count;
+        }
+        if(ok) ok = storage_file_sync(file);
+        if(!storage_file_close(file)) ok = false;
+        if(ok)
+            ok = storage_common_rename_safe(
+                     storage, furi_string_get_cstr(temporary), furi_string_get_cstr(pending)) ==
+                 FSE_OK;
+    }
+    storage_file_free(file);
+    furi_string_free(pending);
+    furi_string_free(temporary);
+    return ok;
+}
+
+typedef struct {
+    SubGhzTransmitter* transmitter;
+    uint32_t queued_until; // Written only by the DMA feeder.
+    uint32_t tick_fraction;
+    volatile uint32_t deadline; // One aligned word shared with the worker.
+} SubGhzSignalFeed;
+
+static LevelDuration subghz_signal_yield(void* context) {
+    SubGhzSignalFeed* feed = context;
+    LevelDuration sample = subghz_transmitter_yield(feed->transmitter);
+    if(!level_duration_is_reset(sample) && !level_duration_is_wait(sample)) {
+        uint32_t now = furi_get_tick();
+        if((int32_t)(now - feed->queued_until) > 0) {
+            feed->queued_until = now;
+            feed->tick_fraction = 0;
+        }
+        uint64_t ticks =
+            (uint64_t)level_duration_get_duration(sample) * furi_kernel_get_tick_frequency() +
+            feed->tick_fraction;
+        feed->queued_until += ticks / 1000000;
+        feed->tick_fraction = ticks % 1000000;
+        feed->deadline = feed->queued_until + furi_ms_to_ticks(5000) + 1;
+    }
+    return sample;
+}
+
+static bool subghz_signal_cancelled(uint32_t cancel_flag) {
+    return cancel_flag && (furi_thread_flags_get() & cancel_flag);
+}
+
+static SubGhzSignalResult
+    send_signal(SubGhzSignal* signal, bool use_external_radio, uint32_t cancel_flag) {
+    SubGhzSignalResult result = SubGhzSignalError;
+    bool enable_5v = use_external_radio && !furi_hal_power_is_otg_enabled();
+    bool device_started = false;
+    bool charge_suppressed = false;
+    bool staged = false;
+    bool started = false;
+    const char* path = furi_string_get_cstr(signal->file_path);
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    subghz_devices_init();
+    if(enable_5v) subghz_radio_device_power_on();
+    const SubGhzDevice* device = subghz_devices_get_by_name(
+        use_external_radio ? SUBGHZ_DEVICE_CC1101_EXT_NAME : SUBGHZ_DEVICE_CC1101_INT_NAME);
     SubGhzEnvironment* environment = subghz_environment_alloc();
 #ifdef APP_USES_SUBGHZ_PROTOCOL_ITEMS
     subghz_environment_set_protocol_registry(environment, (void*)&subghz_protocol_registry);
 #endif
-    SubGhzTransmitter* transmitter = subghz_transmitter_alloc_init(environment, protocol);
-    FlipperFormat* flipper_format = flipper_format_string_alloc();
-    __flipper_format_populate(flipper_format, sub_file_contents);
-    subghz_transmitter_deserialize(transmitter, flipper_format);
-    subghz_devices_begin(device);
-    subghz_devices_reset(device);
-    // TODO: I haven't testing Custom preset, so not sure if there is additional setup required.
-    subghz_devices_load_preset(device, preset, NULL);
-    frequency = subghz_devices_set_frequency(device, frequency);
-
-    // subghz_devices_set_async_mirror_pin -- blink the board status LED with the signal data?
-
-    // Send
-    furi_hal_power_suppress_charge_enter();
-    if(subghz_devices_start_async_tx(device, subghz_transmitter_yield, transmitter)) {
-        // TODO: Allow cancelling the transmission when button is no longer pressed.
-        while(!(subghz_devices_is_async_complete_tx(device))) {
-            furi_delay_ms(100);
+    SubGhzTransmitter* transmitter =
+        subghz_transmitter_alloc_init(environment, furi_string_get_cstr(signal->protocol));
+    FlipperFormat* format = flipper_format_string_alloc();
+    do {
+        if(subghz_signal_cancelled(cancel_flag)) {
+            result = SubGhzSignalCancelled;
+            break;
         }
-        subghz_devices_stop_async_tx(device);
+        if(!device || !transmitter ||
+           !subghz_devices_is_frequency_valid(device, signal->frequency))
+            break;
+        bool dynamic = subghz_transmitter_get_protocol_instance(transmitter)->protocol->type ==
+                       SubGhzProtocolTypeDynamic;
+        if(dynamic) {
+            subghz_environment_load_keystore(environment, SUBGHZ_KEYSTORE_DIR_NAME);
+            subghz_environment_load_keystore(environment, SUBGHZ_KEYSTORE_DIR_USER_NAME);
+            subghz_environment_set_came_atomo_rainbow_table_file_name(
+                environment, SUBGHZ_CAME_ATOMO_DIR_NAME);
+            subghz_environment_set_alutech_at_4n_rainbow_table_file_name(
+                environment, SUBGHZ_ALUTECH_AT_4N_DIR_NAME);
+            subghz_environment_set_nice_flor_s_rainbow_table_file_name(
+                environment, SUBGHZ_NICE_FLOR_S_DIR_NAME);
+        }
+        __flipper_format_populate(format, signal->sub_file_contents);
+        if(furi_string_equal(signal->protocol, "RAW")) {
+            flipper_format_update_string_cstr(
+                format, "Radio_device_name", subghz_devices_get_name(device));
+        }
+        if(subghz_transmitter_deserialize(transmitter, format) != SubGhzProtocolStatusOk) break;
+        subghz_devices_begin(device);
+        device_started = true;
+        subghz_devices_reset(device);
+        subghz_devices_load_preset(device, signal->preset, signal->preset_data);
+        subghz_devices_set_frequency(device, signal->frequency);
+        if(dynamic) {
+            if(!subghz_signal_stage(format, storage, path)) {
+                result = SubGhzSignalSaveError;
+                break;
+            }
+            staged = true;
+        }
+        if(subghz_signal_cancelled(cancel_flag)) {
+            result = SubGhzSignalCancelled;
+            break;
+        }
+        furi_hal_power_suppress_charge_enter();
+        charge_suppressed = true;
+        SubGhzSignalFeed feed = {.transmitter = transmitter, .queued_until = furi_get_tick()};
+        feed.deadline = feed.queued_until + furi_ms_to_ticks(5000);
+        if(!subghz_devices_start_async_tx(device, subghz_signal_yield, &feed)) break;
+        started = true;
+        for(;;) {
+            if(subghz_devices_is_async_complete_tx(device)) {
+                result = SubGhzSignalComplete;
+                break;
+            }
+            if(subghz_signal_cancelled(cancel_flag)) {
+                result = SubGhzSignalCancelled;
+                break;
+            }
+            if((int32_t)(furi_get_tick() - feed.deadline) >= 0) {
+                result = SubGhzSignalTimeout;
+                break;
+            }
+            if(cancel_flag)
+                furi_thread_flags_wait(
+                    cancel_flag, FuriFlagWaitAny | FuriFlagNoClear, furi_ms_to_ticks(20));
+            else
+                furi_delay_ms(20);
+        }
+        subghz_devices_stop_async_tx(device); // Stop before the stack feeder goes out of scope.
+    } while(false);
+    if(transmitter) {
+        subghz_transmitter_stop(transmitter);
+        subghz_transmitter_free(transmitter);
     }
-
-    // Cleanup
-    subghz_devices_sleep(device);
-    subghz_devices_end(device);
+    if(device_started) {
+        subghz_devices_sleep(device);
+        subghz_devices_end(device);
+    }
     subghz_devices_deinit();
-
-    if(enable_5v) {
-        subghz_radio_device_power_off();
+    if(enable_5v) subghz_radio_device_power_off();
+    if(charge_suppressed) furi_hal_power_suppress_charge_exit();
+    if(staged) {
+        if(started) {
+            // A cancelled TX may already have emitted a valid frame. Keep the advanced state.
+            if(!subghz_signal_recover(storage, path)) result = SubGhzSignalSaveError;
+        } else {
+            FuriString* pending = furi_string_alloc_printf("%s.flip.pending", path);
+            if(storage_common_remove(storage, furi_string_get_cstr(pending)) != FSE_OK)
+                result = SubGhzSignalSaveError;
+            furi_string_free(pending);
+        }
     }
-    furi_hal_power_suppress_charge_exit();
-    flipper_format_free(flipper_format);
-    subghz_transmitter_free(transmitter);
+    flipper_format_free(format);
     subghz_environment_free(environment);
+    furi_record_close(RECORD_STORAGE);
+    return result;
 }
 
 /**
@@ -155,19 +292,6 @@ static FuriHalSubGhzPreset signal_get_preset(FuriString* preset_str) {
     }
     return preset;
 }
-#else
-void send_signal(
-    FuriString* sub_file_contents,
-    const char* protocol,
-    uint32_t frequency,
-    FuriHalSubGhzPreset preset,
-    bool use_external_radio) {
-    FURI_LOG_D("FlipSignal", "TODO: Send %s signal", protocol);
-    UNUSED(sub_file_contents);
-    UNUSED(frequency);
-    UNUSED(preset);
-    UNUSED(use_external_radio);
-}
 #endif
 
 /**
@@ -180,8 +304,10 @@ SubGhzSignal* subghz_signal_load_file(char* file_path) {
     SubGhzSignal* signal = (SubGhzSignal*)malloc(sizeof(SubGhzSignal));
     signal->sub_file_contents = furi_string_alloc();
     signal->protocol = furi_string_alloc();
+    signal->file_path = furi_string_alloc_set(file_path);
     signal->frequency = 0;
     signal->preset = FuriHalSubGhzPresetIDLE;
+    signal->preset_data = NULL;
 
     Storage* storage = furi_record_open(RECORD_STORAGE);
     FlipperFormat* fff_data_file = flipper_format_file_alloc(storage);
@@ -190,7 +316,8 @@ SubGhzSignal* subghz_signal_load_file(char* file_path) {
     FileType file_type = Unknown;
     bool parsed = false;
 
-    if(flipper_format_file_open_existing(fff_data_file, file_path)) {
+    if(subghz_signal_recover(storage, file_path) &&
+       flipper_format_file_open_existing(fff_data_file, file_path)) {
         do {
             if(!flipper_format_read_header(fff_data_file, temp_str, &temp_data32)) {
                 FURI_LOG_E(TAG, "Error reading header");
@@ -222,6 +349,24 @@ SubGhzSignal* subghz_signal_load_file(char* file_path) {
                 break;
             }
 
+            if(signal->preset == FuriHalSubGhzPresetCustom) {
+                uint32_t count = 0;
+                if(!flipper_format_get_value_count(fff_data_file, "Custom_preset_data", &count) ||
+                   count < 10 || count > 512 || (count & 1))
+                    break;
+                signal->preset_data = malloc(count);
+                if(!signal->preset_data ||
+                   !flipper_format_read_hex(
+                       fff_data_file, "Custom_preset_data", signal->preset_data, count))
+                    break;
+                bool valid = signal->preset_data[count - 10] == 0 &&
+                             signal->preset_data[count - 9] == 0;
+                for(uint32_t i = 0; valid && i < count - 10; i += 2) {
+                    valid = signal->preset_data[i] != 0 && signal->preset_data[i] <= 0x2E;
+                }
+                if(!valid) break;
+            }
+
             if(!flipper_format_read_string(fff_data_file, "Protocol", temp_str)) {
                 FURI_LOG_E(TAG, "Missing Protocol");
                 break;
@@ -251,8 +396,9 @@ SubGhzSignal* subghz_signal_load_file(char* file_path) {
         File* file = storage_file_alloc(storage);
         if(storage_file_open(file, file_path, FSAM_READ, FSOM_OPEN_EXISTING)) {
             uint64_t file_size = storage_file_size(file);
-            char* file_contents = (char*)malloc(file_size + 1);
-            if(storage_file_read(file, file_contents, file_size) == file_size) {
+            // Protocol key files are small. RAW data is streamed by its encoder instead.
+            char* file_contents = file_size && file_size <= 16384 ? malloc(file_size + 1) : NULL;
+            if(file_contents && storage_file_read(file, file_contents, file_size) == file_size) {
                 file_contents[file_size] = '\0';
                 furi_string_set(signal->sub_file_contents, file_contents);
             } else {
@@ -265,6 +411,7 @@ SubGhzSignal* subghz_signal_load_file(char* file_path) {
             FURI_LOG_E(TAG, "Error open file %s", file_path);
             parsed = false;
         }
+        storage_file_free(file);
     }
 
     furi_string_free(temp_str);
@@ -298,6 +445,8 @@ void subghz_signal_free(SubGhzSignal* signal) {
             furi_string_free(signal->protocol);
             signal->protocol = NULL;
         }
+        free(signal->preset_data);
+        furi_string_free(signal->file_path);
         free(signal);
     }
 }
@@ -308,15 +457,26 @@ void subghz_signal_free(SubGhzSignal* signal) {
  * @param use_external_radio Currently only the internal radio is supported (please use 'false').  Whether or not to use the external radio.
  * @param resources Resources used for sending the signal.
 */
-void subghz_signal_send(SubGhzSignal* signal, bool use_external_radio, Resources* resources) {
-    if(signal) {
-        resources_acquire(resources, ResourceIdSubGhzSignal, FuriWaitForever);
-        send_signal(
-            signal->sub_file_contents,
-            furi_string_get_cstr(signal->protocol),
-            signal->frequency,
-            signal->preset,
-            use_external_radio);
-        resources_release(resources, ResourceIdSubGhzSignal);
+SubGhzSignalResult subghz_signal_send(
+    SubGhzSignal* signal,
+    bool use_external_radio,
+    Resources* resources,
+    uint32_t cancel_flag) {
+#ifdef FIRMWARE_SUPPORTS_SUBGHZ
+    if(!signal) return SubGhzSignalError;
+    uint32_t start = furi_get_tick();
+    while(!resources_acquire(resources, ResourceIdSubGhzSignal, furi_ms_to_ticks(20))) {
+        if(subghz_signal_cancelled(cancel_flag)) return SubGhzSignalCancelled;
+        if(furi_get_tick() - start >= furi_ms_to_ticks(5000)) return SubGhzSignalTimeout;
     }
+    SubGhzSignalResult result = send_signal(signal, use_external_radio, cancel_flag);
+    resources_release(resources, ResourceIdSubGhzSignal);
+    return result;
+#else
+    UNUSED(signal);
+    UNUSED(use_external_radio);
+    UNUSED(resources);
+    UNUSED(cancel_flag);
+    return SubGhzSignalError;
+#endif
 }

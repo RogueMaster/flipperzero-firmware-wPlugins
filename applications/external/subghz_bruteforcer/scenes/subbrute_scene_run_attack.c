@@ -71,7 +71,8 @@ bool subbrute_scene_run_attack_on_event(void* context, SceneManagerEvent event) 
             notification_message(instance->notifications, &sequence_display_backlight_on);
             notification_message(instance->notifications, &sequence_double_vibro);
 
-            scene_manager_next_scene(instance->scene_manager, SubBruteSceneSetupAttack);
+            scene_manager_search_and_switch_to_previous_scene(
+                instance->scene_manager, SubBruteSceneSetupAttack);
         } else if(
             event.event == SubBruteCustomEventTypeTransmitNotStarted ||
             event.event == SubBruteCustomEventTypeBackPressed) {

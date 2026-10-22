@@ -14,3 +14,10 @@ vibro=1
 led=1
 # en or de
 language=en
+# inter, flipper or mix
+font=flipper
+# bridge (desktop helper) or wifi (FlipperHTTP board)
+transport=bridge
+# Optional Wi-Fi network for the board
+wifi_ssid=
+wifi_password=

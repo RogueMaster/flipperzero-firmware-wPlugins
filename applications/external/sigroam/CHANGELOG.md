@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7] — 2026-10-21
+
+For Scout Lite running [Scout Lite Firmware v1.0.0](https://github.com/pingequalab/ESP32Marauder/releases/tag/scout-lite-v1.0.0). Other Marauder builds keep the generic pages.
+
+### Added
+
+- Scout Lite Dash and Probe read the board with the `sigroam` command: session and time, GPS satellites and fix, AP and BLE counts, SD and BLE state, and the upload queue.
+- Board tools (Scout Lite): Ignore list (add a typed SSID or the home Wi-Fi, remove one, clear all), Logs on card (delete one, or delete all after two confirmations), and Split size. Split size lasts until the board restarts.
+- Start recovery (Scout Lite): if a scan has not started 5 seconds after Start, SigRoam checks the board, retries once, then offers a board reboot.
+- Upload (Scout Lite) shows how many logs are not uploaded yet and the last upload result. The last result is kept after you close the app.
+- Upload on Marauder boards uses Marauder's own WiGLE upload and saved Wi-Fi, and explains each result.
+- Probe shows the Marauder version on stock Marauder boards.
+
+### Changed
+
+- Join shows Saved only after the board confirms the saved network.
+
 ## [0.6.1] — 2026-10-08
 
 ### Fixed

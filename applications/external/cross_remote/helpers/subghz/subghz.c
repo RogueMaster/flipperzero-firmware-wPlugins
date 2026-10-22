@@ -4,6 +4,8 @@
 #include "../../helpers/xremote_custom_event.h"
 #include "../../helpers/xremote_led.h"
 
+#include <lib/subghz/blocks/generic.h>
+
 SubGhz* subghz_alloc() {
     SubGhz* subghz = malloc(sizeof(SubGhz));
 
@@ -24,13 +26,6 @@ void subghz_free(SubGhz* subghz) {
     free(subghz);
 }
 
-void subghz_scene_transmit_callback_end_tx(void* context) {
-    furi_assert(context);
-    FURI_LOG_D(TAG, "callback end");
-    XRemote* app = context;
-    xremote_cross_remote_set_transmitting(app->cross_remote, XRemoteTransmittingStopSubghz);
-}
-
 void subghz_send(void* context, const char* path) {
     XRemote* app = context;
 
@@ -40,26 +35,42 @@ void subghz_send(void* context, const char* path) {
         return;
     }
 
-    if(subghz_get_load_type_file(app->subghz) == SubGhzLoadTypeFileRaw) {
-        FURI_LOG_D(TAG, "Starting Transmission");
-        subghz_txrx_tx_start(
-            app->subghz->txrx,
-            subghz_txrx_get_fff_data(app->subghz->txrx)); //Seems like it must be done this way
-
-        FURI_LOG_D(TAG, "setting sugbhz raw file encoder worker callback");
-        subghz_txrx_set_raw_file_encoder_worker_callback_end(
-            app->subghz->txrx, subghz_scene_transmit_callback_end_tx, app);
-        app->state_notifications = SubGhzNotificationStateTx;
-
-        FURI_LOG_D(TAG, "Finished Transmitting");
-    } else {
-        subghz_tx_start(app->subghz, subghz_txrx_get_fff_data(app->subghz->txrx));
-        app->state_notifications = SubGhzNotificationStateTx;
-        furi_thread_flags_wait(0, FuriFlagWaitAny, app->sg_timing);
-        app->state_notifications = SubGhzNotificationStateIDLE;
-        subghz_txrx_stop(app->subghz->txrx);
-
+    // Send like a single button press in Sub-GHz app: protocols TX as if the button
+    // was held for sg_timing and then finish with their own repeats,
+    // RAW is sent once to the end of file. subghz_send_tick() catches the end of TX
+    subghz_block_generic_global.endless_tx = subghz_get_load_type_file(app->subghz) !=
+                                             SubGhzLoadTypeFileRaw;
+    if(!subghz_tx_start(app->subghz, subghz_txrx_get_fff_data(app->subghz->txrx))) {
+        subghz_block_generic_global.endless_tx = false;
         xremote_cross_remote_set_transmitting(app->cross_remote, XRemoteTransmittingStop);
         app->transmitting = false;
+        return;
     }
+    app->subghz_tx_running = true;
+    app->subghz_tx_start = furi_get_tick();
+    app->state_notifications = SubGhzNotificationStateTx;
+}
+
+void subghz_send_tick(void* context) {
+    XRemote* app = context;
+    if(!app->subghz_tx_running) return;
+
+    if(subghz_block_generic_global.endless_tx &&
+       furi_get_tick() - app->subghz_tx_start >= furi_ms_to_ticks(app->sg_timing)) {
+        // "Release" the button
+        subghz_block_generic_global.endless_tx = false;
+    }
+    if(subghz_txrx_tx_is_complete(app->subghz->txrx)) {
+        app->subghz_tx_running = false;
+        xremote_cross_remote_set_transmitting(app->cross_remote, XRemoteTransmittingStopSubghz);
+    }
+}
+
+void subghz_send_stop(void* context) {
+    XRemote* app = context;
+    subghz_block_generic_global.endless_tx = false;
+    app->subghz_tx_running = false;
+    // This will call need_save_callback, if necessary
+    subghz_txrx_stop(app->subghz->txrx);
+    subghz_txrx_reset_dynamic_and_custom_btns(app->subghz->txrx);
 }

@@ -137,7 +137,12 @@ void radio_sleep(ProtoViewApp* app) {
 /* This function suspends the current RX state, switches to TX mode,
  * transmits the signal provided by the callback data_feeder, and later
  * restores the RX state if there was one. */
-void radio_tx_signal(ProtoViewApp* app, FuriHalSubGhzAsyncTxCallback data_feeder, void* ctx) {
+bool radio_tx_signal(
+    ProtoViewApp* app,
+    FuriHalSubGhzAsyncTxCallback data_feeder,
+    void* ctx,
+    uint32_t timeout_ticks) {
+    if(app->txrx->txrx_state == TxRxStateTx) return false;
     TxRxState oldstate = app->txrx->txrx_state;
 
     if(oldstate == TxRxStateRx) radio_rx_end(app);
@@ -147,14 +152,41 @@ void radio_tx_signal(ProtoViewApp* app, FuriHalSubGhzAsyncTxCallback data_feeder
     uint32_t value = subghz_devices_set_frequency(app->radio_device, app->frequency);
     FURI_LOG_E(TAG, "Switched to frequency: %lu", value);
 
-    subghz_devices_start_async_tx(app->radio_device, data_feeder, ctx);
-    while(!subghz_devices_is_async_complete_tx(app->radio_device))
-        furi_delay_ms(10);
+    if(!subghz_devices_start_async_tx(app->radio_device, data_feeder, ctx)) {
+        radio_begin(app);
+        if(oldstate == TxRxStateRx) radio_rx(app);
+        if(oldstate == TxRxStateSleep) radio_sleep(app);
+        return false;
+    }
+    app->txrx->tx_previous_state = oldstate;
+    app->txrx->tx_context = ctx;
+    app->txrx->tx_deadline = furi_get_tick() + timeout_ticks;
+    app->txrx->txrx_state = TxRxStateTx;
+    return true;
+}
+
+void radio_tx_stop(ProtoViewApp* app, bool restore_rx) {
+    if(app->txrx->txrx_state != TxRxStateTx) return;
     subghz_devices_stop_async_tx(app->radio_device);
     subghz_devices_idle(app->radio_device);
+    free(app->txrx->tx_context);
+    app->txrx->tx_context = NULL;
 
     radio_begin(app);
-    if(oldstate == TxRxStateRx) radio_rx(app);
+    if(restore_rx && app->txrx->tx_previous_state == TxRxStateRx) radio_rx(app);
+    if(restore_rx && app->txrx->tx_previous_state == TxRxStateSleep) radio_sleep(app);
+}
+
+ProtoViewTxResult radio_tx_poll(ProtoViewApp* app) {
+    if(app->txrx->txrx_state != TxRxStateTx) return ProtoViewTxIdle;
+    ProtoViewTxResult result = ProtoViewTxPending;
+    if(subghz_devices_is_async_complete_tx(app->radio_device)) {
+        result = ProtoViewTxComplete;
+    } else if((int32_t)(furi_get_tick() - app->txrx->tx_deadline) >= 0) {
+        result = ProtoViewTxTimeout;
+    }
+    if(result != ProtoViewTxPending) radio_tx_stop(app, true);
+    return result;
 }
 
 /* ============================= Raw sampling mode =============================

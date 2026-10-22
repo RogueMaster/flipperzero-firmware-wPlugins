@@ -167,6 +167,7 @@ ProtoViewApp* protoview_app_alloc() {
     app->txrx = malloc(sizeof(ProtoViewTxRx));
 
     /* Setup rx state. */
+    app->txrx->tx_context = NULL;
     app->txrx->freq_mod_changed = false;
     app->txrx->debug_timer_sampling = false;
     app->txrx->last_g0_change_time = DWT->CYCCNT;
@@ -242,8 +243,11 @@ static void timer_callback(void* ctx) {
         delta = RawSamples->total - lastidx + RawSamples->idx;
     }
     if(delta < RawSamples->total / 2) return;
-    app->signal_last_scan_idx = RawSamples->idx;
-    scan_for_signal(app, RawSamples, ProtoViewModulations[app->modulation].duration_filter);
+    if(furi_mutex_acquire(app->view_updating_mutex, 0) == FuriStatusOk) {
+        app->signal_last_scan_idx = RawSamples->idx;
+        scan_for_signal(app, RawSamples, ProtoViewModulations[app->modulation].duration_filter);
+        furi_mutex_release(app->view_updating_mutex);
+    }
 }
 
 /* This is the navigation callback we use in the view dispatcher used
@@ -282,6 +286,24 @@ int32_t protoview_app_entry(void* p) {
     InputEvent input;
     while(app->running) {
         FuriStatus qstat = furi_message_queue_get(app->event_queue, &input, 100);
+        ProtoViewTxResult tx_result = radio_tx_poll(app);
+        if(tx_result == ProtoViewTxComplete) {
+            notify_signal_sent(app);
+            ui_show_alert(app, "Signal sent", 1000);
+        } else if(tx_result == ProtoViewTxTimeout) {
+            ui_show_alert(app, "Transmit timed out", 2000);
+        }
+        if(qstat == FuriStatusOk && app->txrx->txrx_state == TxRxStateTx) {
+            /* Keep the radio configuration stable, but service Back immediately. */
+            if(input.key == InputKeyBack &&
+               (input.type == InputTypeShort || input.type == InputTypeLong)) {
+                radio_tx_stop(app, true);
+                ui_show_alert(app, "Transmission cancelled", 1000);
+                if(input.type == InputTypeLong) app->running = 0;
+            }
+            view_port_update(app->view_port);
+            continue;
+        }
         if(qstat == FuriStatusOk) {
             if(DEBUG_MSG)
                 FURI_LOG_E(TAG, "Main Loop - Input: type %d key %u", input.type, input.key);
@@ -397,6 +419,7 @@ int32_t protoview_app_entry(void* p) {
     }
 
     /* App no longer running. Shut down and free. */
+    radio_tx_stop(app, false);
     if(app->txrx->txrx_state == TxRxStateRx) {
         FURI_LOG_E(TAG, "Putting CC1101 to sleep before exiting.");
         radio_rx_end(app);

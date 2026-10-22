@@ -29,6 +29,7 @@ static void subghz_txrx_radio_device_power_off(SubGhzTxRx* instance) {
 
 SubGhzTxRx* subghz_txrx_alloc() {
     SubGhzTxRx* instance = malloc(sizeof(SubGhzTxRx));
+    instance->transmitter = NULL;
     instance->setting = subghz_setting_alloc();
     subghz_setting_load(instance->setting, EXT_PATH("subghz/assets/setting_user.txt"));
 
@@ -79,6 +80,7 @@ SubGhzTxRx* subghz_txrx_alloc() {
 void subghz_txrx_free(SubGhzTxRx* instance) {
     furi_assert(instance);
     FURI_LOG_D(TAG, "freeing TXRX");
+    subghz_txrx_stop(instance);
 
     if(instance->radio_device_type != SubGhzRadioDeviceTypeInternal) {
         subghz_txrx_radio_device_power_off(instance);
@@ -272,12 +274,10 @@ SubGhzTxRxStartTxState subghz_txrx_tx_start(SubGhzTxRx* instance, FlipperFormat*
                SubGhzProtocolStatusOk) {
                 //if (false) {
                 FURI_LOG_D(TAG, "deserialization");
-                if(strcmp(furi_string_get_cstr(preset->name), "") != 0) {
-                    FURI_LOG_D(TAG, "got preset name");
-                    subghz_txrx_begin(
-                        instance,
-                        subghz_setting_get_preset_data_by_name(
-                            instance->setting, furi_string_get_cstr(preset->name)));
+                uint8_t* preset_data = subghz_setting_get_preset_data_by_name(
+                    instance->setting, furi_string_get_cstr(preset->name));
+                if(preset_data) {
+                    subghz_txrx_begin(instance, preset_data);
                     FURI_LOG_D(TAG, "loaded preset by name");
                     if(preset->frequency) {
                         if(!subghz_txrx_tx(instance, preset->frequency)) {
@@ -298,8 +298,13 @@ SubGhzTxRxStartTxState subghz_txrx_tx_start(SubGhzTxRx* instance, FlipperFormat*
                 if(ret == SubGhzTxRxStartTxStateOk) {
                     //Start TX
                     FURI_LOG_D(TAG, "starting Async TX");
-                    subghz_devices_start_async_tx(
-                        instance->radio_device, subghz_transmitter_yield, instance->transmitter);
+                    if(!subghz_devices_start_async_tx(
+                           instance->radio_device,
+                           subghz_transmitter_yield,
+                           instance->transmitter)) {
+                        FURI_LOG_E(TAG, "Failed to start async TX");
+                        ret = SubGhzTxRxStartTxStateErrorParserOthers;
+                    }
                 }
             } else {
                 FURI_LOG_D(TAG, "no deserialization");
@@ -310,7 +315,10 @@ SubGhzTxRxStartTxState subghz_txrx_tx_start(SubGhzTxRx* instance, FlipperFormat*
         }
         if(ret != SubGhzTxRxStartTxStateOk) {
             FURI_LOG_D(TAG, "state not ok");
-            subghz_transmitter_free(instance->transmitter); // Crashes here
+            if(instance->transmitter) {
+                subghz_transmitter_free(instance->transmitter);
+                instance->transmitter = NULL;
+            }
             if(instance->txrx_state != SubGhzTxRxStateIDLE) {
                 subghz_txrx_idle(instance);
             }
@@ -346,6 +354,7 @@ static void subghz_txrx_tx_stop(SubGhzTxRx* instance) {
     subghz_devices_stop_async_tx(instance->radio_device);
     subghz_transmitter_stop(instance->transmitter);
     subghz_transmitter_free(instance->transmitter);
+    instance->transmitter = NULL;
 
     //if protocol dynamic then we save the last upload
     /*if(instance->decoder_result->protocol->type == SubGhzProtocolTypeDynamic) {
@@ -383,6 +392,12 @@ void subghz_txrx_stop(SubGhzTxRx* instance) {
     default:
         break;
     }
+}
+
+bool subghz_txrx_is_tx_complete(SubGhzTxRx* instance) {
+    furi_assert(instance);
+    return instance->txrx_state == SubGhzTxRxStateTx &&
+           subghz_devices_is_async_complete_tx(instance->radio_device);
 }
 
 /*void subghz_txrx_hopper_update(SubGhzTxRx* instance) {

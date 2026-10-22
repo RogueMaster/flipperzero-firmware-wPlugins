@@ -229,7 +229,8 @@ uint16_t genie_file_get_last_sent(GenieFile* file) {
     return file ? file->last_sent : 0;
 }
 
-void genie_file_set_last_sent(const char* genie_path, uint16_t last_sent) {
+bool genie_file_set_last_sent(const char* genie_path, uint16_t last_sent) {
+    bool saved = false;
     if(genie_path) {
         Storage* storage = furi_record_open(RECORD_STORAGE);
 
@@ -256,7 +257,13 @@ void genie_file_set_last_sent(const char* genie_path, uint16_t last_sent) {
                     FURI_LOG_E(TAG, "Failed to seek to GENIE_VERSION @ %d", GENIE_VERSION);
                     break;
                 }
-                uint16_t version = storage_file_read16(file);
+                uint8_t version_bytes[2];
+                if(storage_file_read(file, version_bytes, sizeof(version_bytes)) !=
+                   sizeof(version_bytes)) {
+                    FURI_LOG_E(TAG, "Failed to read file version");
+                    break;
+                }
+                uint16_t version = ((uint16_t)version_bytes[0] << 8) | version_bytes[1];
                 if((version >> 8) > GENIE_MAJOR_VERSION) {
                     FURI_LOG_E(TAG, "Unsupported version: %04X", version);
                     break;
@@ -271,6 +278,7 @@ void genie_file_set_last_sent(const char* genie_path, uint16_t last_sent) {
                     FURI_LOG_E(TAG, "Failed to set last sent count to %d.", last_sent);
                     break;
                 }
+                saved = storage_file_sync(file);
             } else {
                 FURI_LOG_E(TAG, "Failed to open file");
                 break;
@@ -278,12 +286,13 @@ void genie_file_set_last_sent(const char* genie_path, uint16_t last_sent) {
         } while(false);
 
         if(file) {
-            storage_file_close(file);
+            if(!storage_file_close(file)) saved = false;
             storage_file_free(file);
         }
 
         furi_record_close(RECORD_STORAGE);
     }
+    return saved;
 }
 
 uint16_t genie_file_get_rec_count(GenieFile* file) {

@@ -12,6 +12,7 @@
  */
 #define SR_SETTINGS_PATH     APP_DATA_PATH("settings.txt")
 #define SR_SETTINGS_TMP_PATH APP_DATA_PATH("settings.tmp")
+#define SR_UART_CAP_PATH     APP_DATA_PATH("uart_join.txt")
 
 /*
  * The longest file save can produce must still fall within load's read limit, or save would
@@ -163,4 +164,30 @@ bool sr_settings_store_save(const SrSettings* s) {
     furi_record_close(RECORD_STORAGE);
     free(buf);
     return ok;
+}
+
+bool sr_settings_store_uart_cap(const char* bytes, size_t n, bool reset) {
+    Storage* storage;
+    File* file;
+    bool opened;
+    bool wrote;
+
+    if(n == 0u && !reset) {
+        return true;
+    }
+    if(bytes == NULL && n != 0u) {
+        return false;
+    }
+    storage = furi_record_open(RECORD_STORAGE);
+    file = storage_file_alloc(storage);
+    opened = storage_file_open(
+        file, SR_UART_CAP_PATH, FSAM_WRITE, reset ? FSOM_CREATE_ALWAYS : FSOM_OPEN_APPEND);
+    wrote = false;
+    if(opened && (n == 0u || storage_file_write(file, bytes, n) == n) && storage_file_sync(file)) {
+        wrote = true;
+    }
+    storage_file_close(file);
+    storage_file_free(file);
+    furi_record_close(RECORD_STORAGE);
+    return wrote;
 }

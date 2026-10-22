@@ -17,6 +17,8 @@ int test_probe_fmt_run(void) {
     unsigned sigroam_hw = 0;
     unsigned generic_ok = 0;
     unsigned scout_generic = 0;
+    unsigned generic_ver = 0;
+    unsigned generic_empty = 0;
     unsigned no_uart = 0;
     unsigned brand = 0;
     unsigned diag = 0;
@@ -61,14 +63,19 @@ int test_probe_fmt_run(void) {
     sr_strlcpy(fw.firmware, sizeof(fw.firmware), "Marauder");
     sr_strlcpy(fw.version, sizeof(fw.version), "v1.14.1");
     sr_strlcpy(fw.hardware, sizeof(fw.hardware), "ESP32-C5 DevKit");
+    sr_strlcpy(fw.esp_idf, sizeof(fw.esp_idf), "v5.5.1");
     n = sr_probe_fmt_ok(&fw, "0.4", "by PINGEQUA Lab", out, sizeof(out));
     CHECK(strstr(out, "\e#Marauder") != NULL);
+    CHECK(strstr(out, "\nv1.14.1\n") != NULL);
+    CHECK(strstr(out, "vv1.14.1") == NULL);
     CHECK(strstr(out, "ESP32-C5 DevKit") != NULL);
     CHECK(strstr(out, "\e#SigRoam") == NULL);
     CHECK(strstr(out, "v0.4") == NULL);
-    CHECK(strstr(out, "v1.14.1") == NULL);
     CHECK(strstr(out, "Version:") == NULL);
     CHECK(strstr(out, "ESP-IDF") == NULL);
+    CHECK(strstr(out, "v5.5.1") == NULL);
+    CHECK(strstr(out, "MAC") == NULL);
+    CHECK(strstr(out, "WSL Bypass") == NULL);
     generic_ok++;
 
     fw_clear(&fw);
@@ -78,9 +85,37 @@ int test_probe_fmt_run(void) {
     n = sr_probe_fmt_ok(&fw, "0.4", "by PINGEQUA Lab", out, sizeof(out));
     CHECK(strstr(out, "\e#SigRoam") == NULL);
     CHECK(strstr(out, "Scout Lite") != NULL);
-    CHECK(strstr(out, "v1.14.1") == NULL);
+    CHECK(strstr(out, "(ESP32-C5)") == NULL);
+    CHECK(strstr(out, "\nv1.14.1\n") != NULL);
+    CHECK(strstr(out, "vv1.14.1") == NULL);
     CHECK(strstr(out, "v0.4") == NULL);
     scout_generic++;
+
+    fw_clear(&fw);
+    sr_strlcpy(fw.firmware, sizeof(fw.firmware), "Marauder");
+    sr_strlcpy(fw.version, sizeof(fw.version), "v1.17.0");
+    sr_strlcpy(fw.hardware, sizeof(fw.hardware), "Scout Lite (ESP32-C5)");
+    sr_strlcpy(fw.esp_idf, sizeof(fw.esp_idf), "v5.5.1");
+    n = sr_probe_fmt_ok(&fw, "0.6", "by PINGEQUA Lab", out, sizeof(out));
+    CHECK(strstr(out, "\e#Marauder\nv1.17.0\nScout Lite\n") != NULL);
+    CHECK(strstr(out, "vv1.17.0") == NULL);
+    CHECK(strstr(out, "v0.6") == NULL);
+    CHECK(strstr(out, "v5.5.1") == NULL);
+    CHECK(strstr(out, "ESP-IDF") == NULL);
+    CHECK(strstr(out, "MAC") == NULL);
+    CHECK(strstr(out, "WSL Bypass") == NULL);
+    generic_ver++;
+
+    fw_clear(&fw);
+    sr_strlcpy(fw.firmware, sizeof(fw.firmware), "Marauder");
+    sr_strlcpy(fw.hardware, sizeof(fw.hardware), "ESP32-C5 DevKit");
+    sr_strlcpy(fw.esp_idf, sizeof(fw.esp_idf), "v5.5.1");
+    n = sr_probe_fmt_ok(&fw, "0.6", "by PINGEQUA Lab", out, sizeof(out));
+    CHECK(strstr(out, "\e#Marauder\n?\nESP32-C5 DevKit\n") != NULL);
+    CHECK(strstr(out, "v0.6") == NULL);
+    CHECK(strstr(out, "v5.5.1") == NULL);
+    CHECK(strstr(out, "ESP-IDF") == NULL);
+    generic_empty++;
 
     fw_clear(&fw);
     sr_strlcpy(fw.firmware, sizeof(fw.firmware), "Marauder");
@@ -107,11 +142,14 @@ int test_probe_fmt_run(void) {
 
     printf(
         "probe_fmt cover: sigroam_ok=%u sigroam_hw=%u generic_ok=%u "
-        "scout_generic=%u no_uart=%u brand=%u diag=%u\n",
+        "scout_generic=%u generic_ver=%u generic_empty=%u no_uart=%u "
+        "brand=%u diag=%u\n",
         sigroam_ok,
         sigroam_hw,
         generic_ok,
         scout_generic,
+        generic_ver,
+        generic_empty,
         no_uart,
         brand,
         diag);
@@ -120,6 +158,8 @@ int test_probe_fmt_run(void) {
     CHECK(sigroam_hw == 1);
     CHECK(generic_ok == 1);
     CHECK(scout_generic == 1);
+    CHECK(generic_ver == 1);
+    CHECK(generic_empty == 1);
     CHECK(no_uart == 1);
     CHECK(brand == 1);
     CHECK(diag == 1);

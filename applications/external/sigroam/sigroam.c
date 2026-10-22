@@ -10,19 +10,23 @@
 #include "src/sr_parse_marauder.h"
 #include "src/sr_peer_watch.h"
 #include "src/sr_resync.h"
+#include "src/sr_uart_cap.h"
 
 #include <string.h>
 
 /* File-static: sigroam.h is not on the D11-RESYNC whitelist. GUI-thread only. */
 static SrResyncCtx s_resync;
-/* R1 reconcile, same ownership as s_resync. The event is static because the app
- * stack is 2 KiB (application.fam) and SrEvent is ~240 B (ADR-016). */
+/* R1 reconcile, same ownership as s_resync. The event is static because SrEvent
+ * is ~240 B (ADR-016) and does not belong on the app thread. */
 static SrPeerWatchCtx s_peer_watch;
 static SrEvent s_peer_watch_stop_ev;
+static char s_uart_cap_flush[768];
+static size_t s_uart_cap_flush_n;
+static bool s_uart_cap_flush_reset;
 
 static bool sigroam_resync_queue(SigRoamApp* app, bool is_start) {
     const SrSourceCodec* codec;
-    char cmd[SR_WORKER_CMD_MAX];
+    char cmd[SR_WORKER_CMD_STACK];
     size_t n;
 
     if(app->io == NULL || !sr_io_is_open(app->io) || app->worker == NULL) {
@@ -293,7 +297,23 @@ static void sigroam_tick_event_callback(void* context) {
     if(scene_manager_get_current_scene(app->scene_manager) == SigRoamSceneDash) {
         sigroam_resync_paint_hint(app);
     }
+    if(s_uart_cap_flush_n == 0u && !s_uart_cap_flush_reset) {
+        (void)sr_uart_cap_pull(
+            s_uart_cap_flush,
+            sizeof(s_uart_cap_flush),
+            &s_uart_cap_flush_n,
+            &s_uart_cap_flush_reset);
+    }
     furi_mutex_release(app->mtx);
+
+    if(s_uart_cap_flush_n > 0u || s_uart_cap_flush_reset) {
+        if(sr_settings_store_uart_cap(
+               s_uart_cap_flush, s_uart_cap_flush_n, s_uart_cap_flush_reset)) {
+            memset(s_uart_cap_flush, 0, s_uart_cap_flush_n);
+            s_uart_cap_flush_n = 0u;
+            s_uart_cap_flush_reset = false;
+        }
+    }
 
     if(log_io) {
         FURI_LOG_I(
@@ -370,6 +390,11 @@ static SigRoamApp* sigroam_app_alloc(void) {
     app->text_box = text_box_alloc();
     view_dispatcher_add_view(
         app->view_dispatcher, SigRoamViewTextBox, text_box_get_view(app->text_box));
+
+    app->text_input = text_input_alloc();
+    furi_check(app->text_input);
+    view_dispatcher_add_view(
+        app->view_dispatcher, SigRoamViewTextInput, text_input_get_view(app->text_input));
 
     app->dash = sr_view_dash_alloc();
     view_dispatcher_add_view(
@@ -502,12 +527,15 @@ static void sigroam_app_free(SigRoamApp* app) {
     view_dispatcher_remove_view(app->view_dispatcher, SigRoamViewSubmenu);
     view_dispatcher_remove_view(app->view_dispatcher, SigRoamViewWidget);
     view_dispatcher_remove_view(app->view_dispatcher, SigRoamViewTextBox);
+    view_dispatcher_remove_view(app->view_dispatcher, SigRoamViewTextInput);
     view_dispatcher_remove_view(app->view_dispatcher, SigRoamViewDash);
     view_dispatcher_remove_view(app->view_dispatcher, SigRoamViewVarList);
 
     submenu_free(app->submenu);
     widget_free(app->widget);
     text_box_free(app->text_box);
+    text_input_free(app->text_input);
+    app->text_input = NULL;
     sr_view_dash_free(app->dash);
     app->dash = NULL;
     variable_item_list_free(app->var_list);

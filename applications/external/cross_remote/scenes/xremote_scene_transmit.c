@@ -155,6 +155,10 @@ static void xremote_scene_transmit_run_single_transmit(XRemote* app) {
         xremote_scene_transmit_handle_pause_tick(app);
         return;
     }
+    if(app->subghz_tx_running) {
+        subghz_send_tick(app);
+        return;
+    }
     if(xremote_cross_remote_get_transmitting(remote) == XRemoteTransmittingIdle) {
         xremote_cross_remote_set_transmitting(remote, XRemoteTransmittingStart);
         CrossRemoteItem* item = xremote_cross_remote_get_item(remote, app->transmit_item);
@@ -163,7 +167,7 @@ static void xremote_scene_transmit_run_single_transmit(XRemote* app) {
         app->transmit_item++;
         app->state_notifications = SubGhzNotificationStateIDLE;
         app->transmitting = false;
-        subghz_txrx_stop(app->subghz->txrx);
+        subghz_send_stop(app);
         xremote_scene_ir_notification_message(app, SubGhzNotificationMessageBlinkStop);
         xremote_cross_remote_set_transmitting(remote, XRemoteTransmittingIdle);
     } else if(xremote_cross_remote_get_transmitting(remote) == XRemoteTransmittingStop) {
@@ -193,6 +197,7 @@ void xremote_scene_transmit_on_enter(void* context) {
     app->pause_active = false;
     app->stop_transmit = false;
     app->transmitting = false;
+    app->subghz_tx_running = false;
     xremote_cross_remote_set_transmitting(app->cross_remote, XRemoteTransmittingIdle);
     xremote_transmit_model_set_type(app->xremote_transmit, XRemoteRemoteItemTypeInfrared);
     xremote_transmit_model_set_name(app->xremote_transmit, "");
@@ -240,6 +245,8 @@ bool xremote_scene_transmit_on_event(void* context, SceneManagerEvent event) {
 
 void xremote_scene_transmit_on_exit(void* context) {
     XRemote* app = context;
+    // Back stops Sub-GHz TX right away
+    subghz_send_stop(app);
     app->transmitting = false;
     app->pause_active = false;
     app->state_notifications = SubGhzNotificationStateIDLE;

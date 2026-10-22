@@ -1,0 +1,435 @@
+# 5Ghost WiFi Lab OUI table
+# SD path: /ext/apps_data/5ghost_wifi_lab/oui.txt
+# Copied here from the FAP asset on launch when this file is absent.
+# Edit this file, then restart the app. Display only; no radio change.
+#
+# Format: OUI vendor
+#   14:CC:20 TP-Link
+#   14CC20 TP-Link
+# A full MAC is accepted; only the first 3 octets are used.
+# Lines starting with # and blank lines are ignored.
+# Vendor is printable ASCII. 12 characters are kept.
+# The app reads at most 32KB and keeps the first 384 records.
+# A later line with the same OUI replaces the name.
+# Unknown OUI: no vendor text. Missing or bad file: SSID and MAC still show.
+#
+# Starter prefixes are 24-bit blocks from Wireshark manuf
+# https://www.wireshark.org/download/automated/data/manuf
+# fetched 2026-10-21 (TShark 5.1.0rc0-112-g8594a9a0). Not the full IEEE list.
+
+# Meraki
+00:18:0A Meraki
+0C:8D:DB Meraki
+14:9F:43 Meraki
+1C:E5:87 Meraki
+
+# Linksys
+00:0C:41 Linksys
+00:14:BF Linksys
+00:18:39 Linksys
+00:1A:70 Linksys
+00:21:29 Linksys
+00:23:69 Linksys
+
+# Mercusys
+08:8A:F1 Mercusys
+0C:1C:31 Mercusys
+
+# TP-Link
+00:0A:EB TP-Link
+00:14:78 TP-Link
+00:19:E0 TP-Link
+00:1D:0F TP-Link
+00:21:27 TP-Link
+00:23:CD TP-Link
+00:25:86 TP-Link
+00:27:19 TP-Link
+14:CC:20 TP-Link
+14:CF:92 TP-Link
+28:2C:B2 TP-Link
+28:87:BA TP-Link
+28:91:04 TP-Link
+28:EE:52 TP-Link
+
+# eero
+24:F3:E3 eero
+28:EC:22 eero
+
+# Ring
+18:7F:88 Ring
+24:2B:D6 Ring
+
+# MikroTik
+00:0C:42 MikroTik
+04:F4:1C MikroTik
+08:55:31 MikroTik
+18:FD:74 MikroTik
+
+# RPi
+28:CD:C1 RPi
+
+# Nest
+18:B4:30 Nest
+
+# AVM
+00:04:0E AVM
+08:96:D7 AVM
+24:65:11 AVM
+
+# DrayTek
+00:1D:AA DrayTek
+00:50:7F DrayTek
+14:49:BC DrayTek
+
+# Ubiquiti
+00:15:6D Ubiquiti
+00:27:22 Ubiquiti
+04:18:D6 Ubiquiti
+1C:0B:8B Ubiquiti
+1C:6A:1B Ubiquiti
+24:5A:4C Ubiquiti
+24:A4:3C Ubiquiti
+28:70:4E Ubiquiti
+
+# Tenda
+08:40:F3 Tenda
+0C:85:09 Tenda
+18:6F:A7 Tenda
+
+# ASUS
+00:0C:6E ASUS
+00:1B:FC ASUS
+00:1E:8C ASUS
+00:22:15 ASUS
+00:24:8C ASUS
+04:D9:F5 ASUS
+08:60:6E ASUS
+1C:87:2C ASUS
+1C:B7:2C ASUS
+20:CF:30 ASUS
+24:4B:FE ASUS
+
+# Netgear
+00:09:5B Netgear
+00:0F:B5 Netgear
+00:14:6C Netgear
+00:1B:2F Netgear
+00:1E:2A Netgear
+00:1F:33 Netgear
+20:0C:C8 Netgear
+28:80:88 Netgear
+28:94:01 Netgear
+28:C6:8E Netgear
+
+# D-Link
+00:05:5D D-Link
+00:0D:88 D-Link
+00:0F:3D D-Link
+00:11:95 D-Link
+00:17:9A D-Link
+00:1B:11 D-Link
+1C:7E:E5 D-Link
+1C:BD:B9 D-Link
+28:10:7B D-Link
+28:3B:82 D-Link
+
+# Xiaomi
+00:9E:C8 Xiaomi
+28:16:7F Xiaomi
+28:59:23 Xiaomi
+28:6C:07 Xiaomi
+28:D1:27 Xiaomi
+28:E3:1F Xiaomi
+
+# Huawei
+00:18:82 Huawei
+00:25:68 Huawei
+00:E0:FC Huawei
+10:86:F4 Huawei
+28:45:AC Huawei
+28:DE:E5 Huawei
+28:E3:4E Huawei
+28:E5:B0 Huawei
+28:FB:AE Huawei
+
+# Honor
+28:12:93 Honor
+28:44:F4 Honor
+
+# H3C
+28:C9:7A H3C
+28:E4:24 H3C
+
+# Ruijie
+14:14:4B Ruijie
+28:D0:F5 Ruijie
+
+# Fiberhome
+28:BF:89 Fiberhome
+28:F7:D6 Fiberhome
+
+# Zyxel
+00:13:49 Zyxel
+00:19:CB Zyxel
+00:A0:C5 Zyxel
+28:28:5D Zyxel
+
+# Belkin
+00:11:50 Belkin
+00:17:3F Belkin
+08:86:3B Belkin
+24:F5:A2 Belkin
+
+# Sagemcom
+24:7F:20 Sagemcom
+28:9E:FC Sagemcom
+
+# Technicolor
+1C:E4:DD Technicolor
+
+# ZTE
+28:DB:02 ZTE
+28:DE:A8 ZTE
+
+# Nokia
+28:74:F5 Nokia
+28:D1:AF Nokia
+
+# Espressif
+24:0A:C4 Espressif
+24:6F:28 Espressif
+28:05:A5 Espressif
+28:37:2F Espressif
+28:56:2F Espressif
+28:84:85 Espressif
+
+# Realtek
+00:E0:4C Realtek
+
+# MediaTek
+00:0C:E7 MediaTek
+00:17:A5 MediaTek
+
+# Qualcomm
+00:03:7F Qualcomm
+00:13:74 Qualcomm
+00:A0:C6 Qualcomm
+00:B0:52 Qualcomm
+
+# Broadcom
+14:23:F3 Broadcom
+18:C0:86 Broadcom
+
+# Murata
+20:02:AF Murata
+24:CD:8D Murata
+
+# Intel
+00:02:B3 Intel
+00:03:47 Intel
+00:0C:F1 Intel
+00:13:02 Intel
+00:13:E8 Intel
+00:15:00 Intel
+00:16:6F Intel
+00:16:EA Intel
+00:1B:21 Intel
+00:1E:64 Intel
+00:1E:65 Intel
+28:D0:EA Intel
+28:DF:EB Intel
+
+# Apple
+00:03:93 Apple
+00:0A:27 Apple
+00:0A:95 Apple
+00:0D:93 Apple
+00:11:24 Apple
+00:17:F2 Apple
+00:1C:B3 Apple
+00:1E:C2 Apple
+00:1F:F3 Apple
+00:26:BB Apple
+28:F0:33 Apple
+28:F0:76 Apple
+
+# Samsung
+00:07:AB Samsung
+00:12:47 Samsung
+00:15:99 Samsung
+00:16:32 Samsung
+00:16:6B Samsung
+00:17:D5 Samsung
+00:1A:8A Samsung
+00:21:19 Samsung
+00:26:37 Samsung
+28:DE:1C Samsung
+28:E6:A9 Samsung
+
+# Sony
+00:01:4A Sony
+00:13:A9 Sony
+28:3F:69 Sony
+28:40:DD Sony
+
+# Microsoft
+00:0D:3A Microsoft
+00:12:5A Microsoft
+00:15:5D Microsoft
+00:17:FA Microsoft
+00:50:F2 Microsoft
+
+# Motorola
+24:DA:9B Motorola
+28:12:D0 Motorola
+
+# LG
+28:0F:EB LG
+28:87:61 LG
+
+# Oppo
+24:75:B3 Oppo
+24:79:F3 Oppo
+
+# vivo
+28:D5:55 vivo
+28:FA:A0 vivo
+
+# Synology
+00:11:32 Synology
+
+# QNAP
+24:5E:BE QNAP
+
+# Ruckus
+00:13:92 Ruckus
+24:C9:A1 Ruckus
+28:B3:71 Ruckus
+
+# Fortinet
+00:09:0F Fortinet
+08:5B:0E Fortinet
+1C:C2:12 Fortinet
+1C:D1:1A Fortinet
+
+# Edimax
+00:0E:2E Edimax
+00:50:FC Edimax
+08:BE:AC Edimax
+
+# Buffalo
+00:07:40 Buffalo
+18:C2:BF Buffalo
+18:EC:E7 Buffalo
+
+# Sercomm
+00:0E:8F Sercomm
+14:7D:05 Sercomm
+18:EF:C0 Sercomm
+
+# Arcadyan
+1C:F4:3F Arcadyan
+20:37:F0 Arcadyan
+
+# Actiontec
+00:0F:B3 Actiontec
+18:1B:EB Actiontec
+20:76:00 Actiontec
+
+# Comtrend
+00:30:DA Comtrend
+1C:64:99 Comtrend
+
+# Cambium
+00:04:56 Cambium
+
+# Juniper
+00:05:85 Juniper
+28:B8:29 Juniper
+28:C0:DA Juniper
+
+# AzureWave
+28:C2:DD AzureWave
+28:D0:43 AzureWave
+
+# Hikvision
+24:B1:05 Hikvision
+28:57:BE Hikvision
+
+# Sonos
+00:0E:58 Sonos
+
+# Logitech
+08:81:B2 Logitech
+10:94:97 Logitech
+
+# Roku
+00:0D:4B Roku
+10:59:32 Roku
+20:EF:BD Roku
+
+# Nintendo
+00:09:BF Nintendo
+00:16:56 Nintendo
+00:17:AB Nintendo
+00:1B:7A Nintendo
+
+# Dell
+28:00:AF Dell
+28:F1:0E Dell
+
+# HP
+# 00:0B:86, 00:1A:1E, and 24:DE:C6 are Hewlett Packard Enterprise in the
+# 2026-10-21 manuf (often seen on Aruba APs). Label follows that listing.
+00:0B:86 HP
+00:1A:1E HP
+24:DE:C6 HP
+28:C5:C8 HP
+28:DE:65 HP
+
+# Lenovo
+14:9F:E8 Lenovo
+20:76:93 Lenovo
+
+# Google
+00:1A:11 Google
+24:29:34 Google
+24:95:2F Google
+24:E5:0F Google
+28:BD:89 Google
+
+# Amazon
+00:71:47 Amazon
+24:CE:33 Amazon
+28:24:C9 Amazon
+28:73:F6 Amazon
+28:EF:01 Amazon
+
+# Cisco
+00:00:0C Cisco
+00:01:42 Cisco
+00:01:43 Cisco
+00:0A:41 Cisco
+00:0E:38 Cisco
+00:11:20 Cisco
+00:17:0E Cisco
+00:18:73 Cisco
+00:1A:2F Cisco
+00:1A:A1 Cisco
+00:1B:0D Cisco
+00:23:04 Cisco
+00:25:84 Cisco
+28:B5:91 Cisco
+28:C7:CE Cisco
+
+# Philips
+00:17:88 Philips
+24:C4:2F Philips
+24:E5:AA Philips
+
+# Sitecom
+00:0C:F6 Sitecom
+
+# Mercury
+1C:60:DE Mercury
+24:69:8E Mercury

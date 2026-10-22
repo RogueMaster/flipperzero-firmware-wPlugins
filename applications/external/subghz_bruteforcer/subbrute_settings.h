@@ -6,15 +6,23 @@
 #include <storage/storage.h>
 #include "subbrute_protocols.h"
 
+#define SUBBRUTE_MIN_REPEATS        1
+#define SUBBRUTE_MAX_REPEATS        100
+#define SUBBRUTE_MIN_TIME_DELAY     0
+#define SUBBRUTE_MAX_TIME_DELAY     255
+#define SUBBRUTE_DEFAULT_TIME_DELAY 6
+
 /**
  * @struct SubBruteSettings
  * @brief Structure to store settings for a sub-brute attack.
  *
- * This structure stores the settings for a sub-brute attack, such as an array of repeat values and
- * the last index used.
+ * All arrays are indexed by SubBruteAttacks, so every protocol keeps its own values.
  */
 typedef struct {
     uint8_t repeat_values[SubBruteAttackTotalCount]; /**< Array of repeat values */
+    uint8_t time_delay[SubBruteAttackTotalCount]; /**< Gap between keys, ms */
+    uint32_t te[SubBruteAttackTotalCount]; /**< TE override, 0 = protocol default */
+    uint8_t opencode[SubBruteAttackTotalCount]; /**< PT2262 open code index */
     uint32_t last_index; /**< Last index used */
 } SubBruteSettings;
 

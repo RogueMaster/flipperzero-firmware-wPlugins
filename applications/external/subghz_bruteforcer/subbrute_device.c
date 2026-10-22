@@ -29,12 +29,8 @@ SubBruteDevice* subbrute_device_alloc(const SubGhzDevice* radio_device) {
 void subbrute_device_free(SubBruteDevice* instance) {
     furi_assert(instance);
 
-    // I don't know how to free this
-    // instance->decoder_result = NULL;
-    if(instance->decoder_result != NULL) {
-        free(instance->decoder_result);
-        instance->decoder_result = NULL;
-    }
+    // decoder_result is owned by receiver, never free it directly
+    instance->decoder_result = NULL;
 
     if(instance->receiver != NULL) {
         subghz_receiver_free(instance->receiver);
@@ -203,6 +199,8 @@ SubBruteFileResult subbrute_device_attack_set(
 
     subghz_receiver_free(instance->receiver);
     instance->receiver = NULL;
+    // decoder_result pointed into receiver, it's invalid now
+    instance->decoder_result = NULL;
 
     if(protocol_check_result != SubBruteFileResultOk) {
         return SubBruteFileResultProtocolNotFound;
@@ -346,13 +344,12 @@ uint8_t subbrute_device_load_from_file(SubBruteDevice* instance, const char* fil
 #endif
         instance->key_from_file = data;
 
-        // TE
-        if(!flipper_format_read_uint32(fff_data_file, "TE", &temp_data32, 1)) {
-            FURI_LOG_E(TAG, error_device_missing_te);
-            //result = SubBruteFileResultMissingOrIncorrectTe;
-            //break;
+        // TE is optional
+        if(flipper_format_read_uint32(fff_data_file, "TE", &temp_data32, 1)) {
+            instance->file_protocol_info->te = temp_data32;
         } else {
-            instance->file_protocol_info->te = temp_data32 != 0 ? temp_data32 : 0;
+            FURI_LOG_W(TAG, error_device_missing_te);
+            instance->file_protocol_info->te = 0;
         }
 
         // Repeat
@@ -405,6 +402,7 @@ void subbrute_device_attack_set_default_values(
     instance->bit_index = 0x00;
     instance->extra_repeats = 0;
     instance->two_bytes = false;
+    instance->opencode = 0;
 
     if(default_attack != SubBruteAttackLoadFile) {
         instance->max_value = subbrute_protocol_calc_max_value(

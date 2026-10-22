@@ -52,6 +52,9 @@ void meal_pager_transmit_draw(Canvas* canvas, Meal_PagerTransmitModel* model) {
         canvas_draw_str_aligned(canvas, 0, 22, AlignLeft, AlignTop, "Generating Data");
         canvas_draw_str_aligned(canvas, 0, 32, AlignLeft, AlignTop, stationText);
         canvas_draw_str_aligned(canvas, 0, 42, AlignLeft, AlignTop, pagerText);
+    } else if(model->sending == 2) {
+        canvas_draw_str_aligned(canvas, 0, 22, AlignLeft, AlignTop, "Unable to send");
+        canvas_draw_str_aligned(canvas, 0, 42, AlignLeft, AlignTop, "Back to return");
     } else {
         canvas_draw_str_aligned(canvas, 0, 22, AlignLeft, AlignTop, "Sending Data");
     }

@@ -109,6 +109,9 @@ SubGhzTxRxStartTxState subghz_txrx_tx_start(SubGhzTxRx* instance, FlipperFormat*
  */
 void subghz_txrx_stop(SubGhzTxRx* instance);
 
+/** Poll hardware completion after a successful start; no RAW worker callback needed. */
+bool subghz_txrx_is_tx_complete(SubGhzTxRx* instance);
+
 /**
  * Set sleep mode CC1101
  * 

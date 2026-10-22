@@ -170,6 +170,9 @@ typedef struct {
     bool diag_seen;
     uint8_t diag_state; /* sr_session_state_t on the board */
     uint8_t diag_seal; /* SR_SEAL_* bitmap on the board   */
+    /* Occupies the pad byte before diag_hb. 0/1/2 = none/armed/yes.
+     * Not a Version check. sizeof(SrFirmwareInfo) stays 192. */
+    uint8_t sigroam_cap;
     uint32_t diag_hb[SR_DIAG_HB_COUNT]; /* gps, link, scan, fuse, store, ble */
 } SrFirmwareInfo;
 

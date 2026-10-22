@@ -91,7 +91,10 @@ bool subbrute_scene_setup_attack_on_event(void* context, SceneManagerEvent event
                 instance->device->current_step,
                 false,
                 instance->device->extra_repeats);
-            scene_manager_next_scene(instance->scene_manager, SubBruteSceneStart);
+            if(!scene_manager_search_and_switch_to_previous_scene(
+                   instance->scene_manager, SubBruteSceneStart)) {
+                scene_manager_next_scene(instance->scene_manager, SubBruteSceneStart);
+            }
         } else if(event.event == SubBruteCustomEventTypeError) {
             notification_message(instance->notifications, &sequence_error);
         } else if(event.event == SubBruteCustomEventTypeTransmitCustom) {

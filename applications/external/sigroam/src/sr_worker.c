@@ -2,6 +2,7 @@
 
 #include "sr_line.h"
 #include "sr_parse_marauder.h"
+#include "sr_uart_cap.h"
 
 #include <furi_hal.h>
 #include <string.h>
@@ -73,11 +74,14 @@ static void sr_worker_handle_ready(SrWorker* w) {
         }
     }
 
-    if(apply) {
+    if(apply || sr_uart_cap_armed()) {
         furi_mutex_acquire(w->mtx, FuriWaitForever);
-        sr_model_apply(w->model, w->ev, furi_get_tick());
+        sr_uart_cap_note(text, len);
+        if(apply) {
+            sr_model_apply(w->model, w->ev, furi_get_tick());
+            __atomic_add_fetch(&w->stats.lines_applied, 1u, __ATOMIC_RELAXED);
+        }
         furi_mutex_release(w->mtx);
-        __atomic_add_fetch(&w->stats.lines_applied, 1u, __ATOMIC_RELAXED);
     }
 
     sr_line_consume(w->line);
@@ -117,8 +121,24 @@ static int32_t sr_worker_thread(void* context) {
     while(!__atomic_load_n(&w->exit, __ATOMIC_ACQUIRE)) {
         sr_worker_sample_stack(w);
 
-        if(__atomic_exchange_n(&w->cmd_ready, false, __ATOMIC_ACQ_REL)) {
-            (void)sr_io_write(w->io, w->cmd_buf, w->cmd_len);
+        if(__atomic_load_n(&w->cmd_ready, __ATOMIC_ACQUIRE)) {
+            size_t n = w->cmd_len;
+            char local[SR_WORKER_CMD_MAX];
+
+            if(n > sizeof(local)) {
+                n = sizeof(local);
+            }
+            if(n > 0u) {
+                memcpy(local, w->cmd_buf, n);
+            }
+            memset(w->cmd_buf, 0, sizeof(w->cmd_buf));
+            w->cmd_len = 0u;
+            /* Release only after the wipe, so a GUI send cannot land in the secret. */
+            __atomic_store_n(&w->cmd_ready, false, __ATOMIC_RELEASE);
+            if(n > 0u) {
+                (void)sr_io_write(w->io, local, n);
+                memset(local, 0, sizeof(local));
+            }
         }
 
         {

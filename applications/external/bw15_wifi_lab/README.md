@@ -56,12 +56,12 @@ The **[5Ghost WiFi Devboard →](https://www.pingequa.com/products/flipper-zero-
 
 | | Feature | What it does |
 |---|---|---|
-| 📡 | **Dual-band scan** | Lists 2.4 **and 5 GHz** APs with signal, encryption, **precise PMF** (capable / required), **WPA3 detection**, and same-SSID mesh markers. |
+| 📡 | **Dual-band scan** | Lists 2.4 **and 5 GHz** APs with signal, encryption, **precise PMF** (capable / required), **WPA3 detection**, same-SSID mesh markers, and the hardware vendor when the SD OUI table knows it. |
 | 📊 | **Channel Map** | Congestion view across both bands with the least-busy channel highlighted — pick a clear channel, or find where the targets are. |
 | 🧭 | **Guided Audit** | Pick an AP; the app chooses handshake or clientless PMKID from PMF and whether stations are present, then shows a short result. Complete only if a quality-gated PCAP or `.22000` file was written. DFS is receive-only (Unsupported). |
 | 🤝 | **Capture Handshake** | Forces a reconnect and grabs the WPA/WPA2 4-way handshake, routed over **5 GHz** where it lands, written as a standard PCAP to the SD card. Drop it into hashcat (22000) or aircrack-ng. |
 | 🎯 | **Clientless PMKID** *(beta)* | Captures a WPA/WPA2 **PMKID** via AUTHPROBE association — no client needed. On-device target picker across 2.4 + 5 GHz, a capture-quality gate, and export to `.22000` (hashcat mode 22000) + a `.json` record. |
-| 👥 | **Station recon** | Lists clients associated to a chosen AP, then targeted **deauth** and focused handshake capture on that client (2.4 + 5 GHz). |
+| 👥 | **Station recon** | Lists clients associated to a chosen AP, with the vendor next to the MAC when it fits, then targeted **deauth** and focused handshake capture on that client (2.4 + 5 GHz). |
 | 📻 | **BLE** | Passive BLE sweep with multi-round accumulation and cross-scan de-dup — lists advertisers with RSSI + **vendor**, flags **trackers across all four big ecosystems** (Apple AirTag, Tile, Samsung SmartTag, Google Find My) and **nearby Flipper Zeros**, per-device detail, CSV export, and save of one scanned advertisement. |
 | 🔎 | **GATT Recon** | Actively connects to a chosen BLE device, enumerates its **GATT services**, and reads the **Device Information** profile (manufacturer / model / firmware) — detail passive scanning can't reach. |
 | 🔵 | **iBeacon Spoof** | Broadcasts a spec-compliant Apple **iBeacon** with a UUID / major / minor you set (or a built-in demo identity), for a 30 / 60 / 120 s window — proximity-beacon and detector testing. |
@@ -322,13 +322,21 @@ PMKID does **not** write a PCAP. If you want EAPOL frames in Wireshark, use **Ca
 
 ## How to scan, deauth, and list stations
 
-1. Open **Scan Wi-Fi**. This menu does not scan. **Scan now** runs a passive dual-band sweep, then the list. After that scan, **AP list N** reopens the same list and does not scan. The selected row scrolls a long name. Any other row that does not fit ends with `...`. Short names and `<hidden>` stay as they are.
+1. Open **Scan Wi-Fi**. This menu does not scan. **Scan now** runs a passive dual-band sweep, then the list. After that scan, **AP list N** reopens the same list and does not scan. The selected row scrolls a long name. Any other row that does not fit ends with `...`. Short names and `<hidden>` stay as they are. A known vendor is drawn in front of the signal when the row has room.
 2. **OK** opens AP detail (encryption, channel, band, MAC, vendor when known). The detail title scrolls when the name does not fit.
 3. On the detail page: **Left** = Edit attack options · **OK** = Deauth / Stop (every same-SSID mesh node) or **RX only** on DFS · **Right** = Evil Portal on that AP · **Down** = station list (`STASCAN`).
-4. On the station list, **OK** deauths **that one client** (not a broadcast). DFS is still receive-only.
+4. On the station list, the row is the client MAC plus the vendor when both fit. **OK** deauths **that one client** (not a broadcast). DFS is still receive-only.
 5. Back on the scan list: **Left** ticks APs across SSIDs · **Left-long** deauths every ticked AP together · **Right** re-scans in place · **Back** while a multi-deauth is running stops it.
 
 PMF-required / WPA3 APs ignore deauth. The app flags them instead of failing silently.
+
+### OUI vendor names
+
+Scan rows, the station list, and the AP detail card look up the first three MAC octets in `/ext/apps_data/5ghost_wifi_lab/oui.txt`. The repo copy is `fap/files/oui.txt`. On launch the app copies that asset onto the SD path when the file is not already there. Edit the SD file, then restart the app. The table is display-only.
+
+One record per line: `OUI vendor`. The OUI is six hex digits, with or without colons (`14:CC:20` or `14CC20`). A full MAC is accepted and only the first three octets are used. `#` starts a comment. The vendor is printable ASCII; 12 characters are kept. The loader reads at most 32KB and keeps the first 384 records. A later line with the same OUI replaces the name. An unknown prefix shows nothing. If the file is missing or unreadable, the lists still show the SSID and MAC.
+
+The starter file is a curated 24-bit subset, not the full IEEE registry. Source: Wireshark `manuf`, fetched 2026-10-21 from <https://www.wireshark.org/download/automated/data/manuf> (file header: TShark 5.1.0rc0-112-g8594a9a0).
 
 ## How to read Channel Map
 

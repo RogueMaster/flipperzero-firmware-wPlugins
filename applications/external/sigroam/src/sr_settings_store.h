@@ -27,4 +27,7 @@ SrSettingsLoadStatus sr_settings_store_load(SrSettings* out, SrSettingsParseStat
 /* Atomic replacement. true = the settings file now holds the contents of *s. false = the old file was left untouched. */
 bool sr_settings_store_save(const SrSettings* s);
 
+/* Append one redacted join/upload tape. reset truncates uart_join.txt first. */
+bool sr_settings_store_uart_cap(const char* bytes, size_t n, bool reset);
+
 const char* sr_settings_store_status_str(SrSettingsLoadStatus st);

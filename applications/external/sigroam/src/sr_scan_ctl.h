@@ -128,6 +128,17 @@ static inline bool sr_scan_ctl_should_latch_stop(bool is_sigroam, bool diag_seen
     return is_sigroam || diag_seen;
 }
 
+/* True when a confirmed stopscan is a session stop: latch and refresh.
+ * dash_prestart is the SHOW_INFO-clear stopscan. That stop is not a
+ * session stop: do not latch and do not send the post-stop status
+ * command. The worker has one slot; a refresh here collides with the
+ * wardrive that dash_prestart_tick queues in the same tick.
+ * User stop (dash_prestart false) keeps latch_ok: lite sends sigroam,
+ * -sigroam- sends info, a generic peer with no Diag does not latch. */
+static inline bool sr_scan_ctl_post_stop_refresh(bool latch_ok, bool dash_prestart) {
+    return latch_ok && !dash_prestart;
+}
+
 /*
  * Sealing for OK / Saving... :
  *   1. Fresh Diag or a Busy: received after this stop (busy_rev != at_stop)

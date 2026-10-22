@@ -70,6 +70,14 @@ typedef struct {
     bool up_known;
     bool cfg_known;
     bool pending_prompt; /* Idle pending-survey popup; computed in dash_fill */
+    /* sess_rev != 0. The pad after pending_prompt. */
+    bool sess_seen;
+    /* Previous Qual counters for the lite SAT/fix row. Old Dash does not read them. */
+    uint32_t qual_prev_gga;
+    uint32_t qual_prev_ggafix;
+    bool qual_prev_seen;
+    /* Lite start-recovery screen. 0 draws the old Dash. Sits in the pad. */
+    uint8_t recover_ui;
 } SrDashModel;
 
 _Static_assert(sizeof(SrDashModel) <= 768, "SrDashModel over 768 B (T4.1 / ADR-019)");

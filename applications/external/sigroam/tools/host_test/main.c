@@ -31,6 +31,13 @@ int test_newnet_run(void);
 int test_idle_summary_run(void);
 int test_cfg_parse_run(void);
 int test_peer_watch_run(void);
+int test_marauder_upload_run(void);
+int test_marauder_join_run(void);
+int test_mau_logs_run(void);
+int test_sigroam_cap_run(void);
+int test_board_tools_run(void);
+int test_start_recover_run(void);
+int test_last_upload_run(void);
 
 int main(void) {
     int fails = 0;
@@ -66,6 +73,13 @@ int main(void) {
     fails += test_idle_summary_run();
     fails += test_cfg_parse_run();
     fails += test_peer_watch_run();
+    fails += test_marauder_upload_run();
+    fails += test_marauder_join_run();
+    fails += test_mau_logs_run();
+    fails += test_sigroam_cap_run();
+    fails += test_board_tools_run();
+    fails += test_start_recover_run();
+    fails += test_last_upload_run();
 
     if(fails != 0) {
         printf("FAILED: %d assertion(s)\n", fails);

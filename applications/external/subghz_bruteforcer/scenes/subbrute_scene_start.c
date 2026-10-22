@@ -68,14 +68,12 @@ bool subbrute_scene_start_on_event(void* context, SceneManagerEvent event) {
                    instance->device->extra_repeats))) {
                 furi_crash("Invalid attack set!");
             }
+            subbrute_apply_extra_settings(instance);
             subbrute_settings_save(instance->settings);
             scene_manager_next_scene(instance->scene_manager, SubBruteSceneSetupAttack);
 
             consumed = true;
         } else if(event.event == SubBruteCustomEventTypeLoadFile) {
-            //uint8_t extra_repeats = subbrute_main_view_get_extra_repeats(instance->view_main);
-
-            //instance->device->extra_repeats = extra_repeats;
             scene_manager_next_scene(instance->scene_manager, SubBruteSceneLoadFile);
             consumed = true;
         }

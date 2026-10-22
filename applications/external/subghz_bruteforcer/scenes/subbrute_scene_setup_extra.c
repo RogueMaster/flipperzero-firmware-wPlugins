@@ -1,12 +1,12 @@
 #include "../subbrute_i.h"
 #include "subbrute_scene.h"
 
-#define TAG "SubBruteSceneLoadFile"
+#define TAG "SubBruteSceneSetupExtra"
 
-#define MIN_TD  0
-#define MAX_TD  255
-#define MIN_REP 1
-#define MAX_REP 100
+#define MIN_TD  SUBBRUTE_MIN_TIME_DELAY
+#define MAX_TD  SUBBRUTE_MAX_TIME_DELAY
+#define MIN_REP SUBBRUTE_MIN_REPEATS
+#define MAX_REP SUBBRUTE_MAX_REPEATS
 #define MIN_TE  100
 #define MAX_TE  600
 
@@ -16,6 +16,9 @@ enum SubBruteVarListIndex {
     SubBruteVarListIndexTe,
     SubBruteVarListIndexOpenCode,
 };
+
+// Once "Show Extra" is pressed, full list is kept for the rest of the session
+static bool show_extra = false;
 
 static void setup_extra_enter_callback(void* context, uint32_t index);
 
@@ -181,9 +184,9 @@ static void setup_extra_te_callback(VariableItem* item) {
     }
 }
 
-const char* const opencode_names[] =
+static const char* const opencode_names[] =
     {"0001", "0010", "0100", "1000", "1100", "0F00", "00F0", "F000", "1001"};
-const uint8_t opencode_values[COUNT_OF(opencode_names)] = {0, 1, 2, 3, 4, 5, 6, 7, 8};
+static const uint8_t opencode_values[COUNT_OF(opencode_names)] = {0, 1, 2, 3, 4, 5, 6, 7, 8};
 
 static void setup_extra_opencode_callback(VariableItem* item) {
     furi_assert(item);
@@ -199,9 +202,8 @@ static void subbrute_scene_setup_extra_init_var_list(SubBruteState* instance, bo
     furi_assert(instance);
     char str[6] = {0};
     VariableItem* item;
-    static bool extra = false;
     if(on_extra) {
-        extra = true;
+        show_extra = true;
     }
 
     VariableItemList* var_list = instance->var_list;
@@ -224,7 +226,7 @@ static void subbrute_scene_setup_extra_init_var_list(SubBruteState* instance, bo
         break;
     }
 
-    if(extra) {
+    if(show_extra) {
         item = variable_item_list_add(var_list, "Repeats", 3, setup_extra_rep_callback, instance);
         snprintf(&str[0], 5, "%d", subbrute_worker_get_repeats(instance->worker));
         variable_item_set_current_value_text(item, &str[0]);
@@ -264,6 +266,9 @@ static void subbrute_scene_setup_extra_init_var_list(SubBruteState* instance, bo
             item = variable_item_list_add(
                 var_list, "PT2262Code", 9, setup_extra_opencode_callback, instance);
             value_index = subbrute_worker_get_opencode(instance->worker);
+            if(value_index >= COUNT_OF(opencode_names)) {
+                value_index = 0;
+            }
             variable_item_set_current_value_index(item, value_index);
             variable_item_set_current_value_text(item, opencode_names[value_index]);
         }
@@ -282,7 +287,8 @@ static void setup_extra_enter_callback(void* context, uint32_t index) {
     furi_assert(context);
     SubBruteState* instance = (SubBruteState*)context;
 
-    if(index == SubBruteVarListIndexRepeatOrOnExtra) {
+    // Only "Show Extra" item reacts on OK, other items are changed with left/right
+    if(!show_extra && index == SubBruteVarListIndexRepeatOrOnExtra) {
         subbrute_scene_setup_extra_init_var_list(instance, true);
     }
 }
@@ -297,6 +303,9 @@ void subbrute_scene_setup_extra_on_enter(void* context) {
 void subbrute_scene_setup_extra_on_exit(void* context) {
     furi_assert(context);
     SubBruteState* instance = (SubBruteState*)context;
+
+    // Remember values for this protocol
+    subbrute_store_extra_settings(instance);
 
     variable_item_list_reset(instance->var_list);
 }

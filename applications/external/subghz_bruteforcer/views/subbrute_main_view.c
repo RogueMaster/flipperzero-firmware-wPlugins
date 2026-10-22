@@ -174,9 +174,10 @@ void subbrute_main_view_draw_is_ordinary_selected(Canvas* canvas, SubBruteMainVi
             }
 
             uint8_t current_repeat_count = model->repeat_values[position];
-            uint8_t min_repeat_count = subbrute_protocol_repeats_count(position);
+            uint8_t default_repeat_count = subbrute_protocol_repeats_count(position);
 
-            if(current_repeat_count > min_repeat_count) {
+            // Show only when changed from protocol default
+            if(current_repeat_count != default_repeat_count) {
 #ifdef FW_ORIGIN_Official
                 canvas_set_font(canvas, FontSecondary);
 #else
@@ -184,8 +185,9 @@ void subbrute_main_view_draw_is_ordinary_selected(Canvas* canvas, SubBruteMainVi
 #endif
                 char buffer[10] = {0};
                 snprintf(buffer, sizeof(buffer), "x%d", current_repeat_count);
-                uint8_t temp_x_offset_repeats =
-                    current_repeat_count <= SUBBRUTE_PROTOCOL_MAX_REPEATS ? 15 : 18;
+                uint8_t temp_x_offset_repeats = current_repeat_count < 10  ? 15 :
+                                                current_repeat_count < 100 ? 18 :
+                                                                             22;
 
                 canvas_draw_str_aligned(
                     canvas,
@@ -254,8 +256,9 @@ bool subbrute_main_view_input_ordinary_protocol(
     const uint8_t min_value = 0;
     const uint8_t correct_total = SubBruteAttackTotalCount - 1;
     uint8_t index = instance->index;
-    uint8_t min_repeats = subbrute_protocol_repeats_count(index);
-    uint8_t max_repeats = min_repeats * 3;
+    // Same limits as in extra settings, values are shared via settings file
+    const uint8_t min_repeats = SUBBRUTE_MIN_REPEATS;
+    const uint8_t max_repeats = SUBBRUTE_MAX_REPEATS;
     uint8_t current_repeats = instance->repeat_values[index];
 
     bool updated = false;

@@ -13,6 +13,7 @@
 
 #include "helpers/subghz_txrx.h"
 #include <lib/subghz/blocks/custom_btn.h>
+#include <lib/subghz/blocks/generic.h>
 #include <lib/subghz/protocols/raw.h>
 
 #include "flipper_format_stream.h"
@@ -23,6 +24,9 @@
 
 #define PLAYLIST_EXT ".txt"
 #define TAG          "Playlist"
+
+// Protocols are sent like a button held for this long, then they finish with their own repeats
+#define PLAYLIST_TX_HOLD_MS 2000
 
 #define STATE_NONE     0
 #define STATE_OVERVIEW 1
@@ -68,7 +72,6 @@ typedef struct {
 
     bool is_running; // indicates if the worker is running
 
-    bool raw_file_is_tx;
 } PlaylistWorker;
 
 typedef struct {
@@ -120,14 +123,6 @@ static void playlist_subghz_need_save_callback(void* context) {
     } while(0);
 }
 
-void playlist_subghz_raw_end_callback(void* context) {
-    FURI_LOG_I(TAG, "Stopping TX on RAW");
-    furi_assert(context);
-    PlaylistWorker* worker = context;
-
-    worker->raw_file_is_tx = false;
-}
-
 // -4: missing protocol
 // -3: missing or wrong preset
 // -2: transmit error
@@ -158,8 +153,6 @@ static int playlist_worker_process(PlaylistWorker* worker, const char* file_name
         furi_string_reset(temp_str);
         furi_string_reset(preset_name);
         furi_string_reset(protocol_name);
-
-        worker->raw_file_is_tx = false;
 
         subghz_custom_btns_reset();
 
@@ -295,12 +288,6 @@ static int playlist_worker_process(PlaylistWorker* worker, const char* file_name
                 flipper_format_get_raw_stream(fff_data));
         }
 
-        uint32_t repeat = 200;
-        if(!flipper_format_insert_or_update_uint32(fff_data, "Repeat", &repeat, 1)) {
-            FURI_LOG_E(TAG, "Unable Repeat");
-            //
-        }
-
         if(subghz_txrx_load_decoder_by_name_protocol(
                worker->txrx, furi_string_get_cstr(protocol_name))) {
             SubGhzProtocolStatus status = subghz_protocol_decoder_base_deserialize(
@@ -332,23 +319,21 @@ static int playlist_worker_process(PlaylistWorker* worker, const char* file_name
 
         FURI_LOG_I(TAG, "Starting TX");
 
+        // Send like a single button press in Sub-GHz app: protocols TX as if the button
+        // was held for PLAYLIST_TX_HOLD_MS and then finish with their own repeats,
+        // RAW is sent once to the end of file
+        subghz_block_generic_global.endless_tx =
+            strcmp(furi_string_get_cstr(protocol_name), "RAW") != 0;
         if(subghz_txrx_tx_start(worker->txrx, subghz_txrx_get_fff_data(worker->txrx)) !=
            SubGhzTxRxStartTxStateOk) {
+            subghz_block_generic_global.endless_tx = false;
             FURI_LOG_E(TAG, "Failed to start TX");
             status = -5;
             break;
         }
 
-        bool skip_extra_stop = false;
-        FURI_LOG_D(TAG, "Checking if file is RAW...");
-        if(!strcmp(furi_string_get_cstr(protocol_name), "RAW")) {
-            subghz_txrx_set_raw_file_encoder_worker_callback_end(
-                worker->txrx, playlist_subghz_raw_end_callback, worker);
-            worker->raw_file_is_tx = true;
-            skip_extra_stop = true;
-        }
-
-        do {
+        const uint32_t hold_start = furi_get_tick();
+        while(!subghz_txrx_tx_is_complete(worker->txrx)) {
             if(worker->ctl_request_exit) {
                 FURI_LOG_D(TAG, "    (TX) Requested to exit. Cancelling sending...");
                 status = 2;
@@ -370,36 +355,20 @@ static int playlist_worker_process(PlaylistWorker* worker, const char* file_name
                 FURI_LOG_D(TAG, "    (TX) Requested to prev. Cancelling and resending...");
                 status = 3;
                 break;
+            }
+            if(subghz_block_generic_global.endless_tx &&
+               furi_get_tick() - hold_start >= furi_ms_to_ticks(PLAYLIST_TX_HOLD_MS)) {
+                // "Release" the button
+                subghz_block_generic_global.endless_tx = false;
             }
             furi_delay_ms(1);
-        } while(worker->raw_file_is_tx);
-
-        if(!worker->raw_file_is_tx && !skip_extra_stop) {
-            if(worker->ctl_request_exit) {
-                FURI_LOG_D(TAG, "    (TX) Requested to exit. Cancelling sending...");
-                status = 2;
-            }
-            if(worker->ctl_pause) {
-                FURI_LOG_D(TAG, "    (TX) Requested to pause. Cancelling...");
-                status = 1;
-            }
-            if(worker->ctl_request_skip) {
-                worker->ctl_request_skip = false;
-                FURI_LOG_D(TAG, "    (TX) Requested to skip. Cancelling and skipping...");
-                status = 0;
-            }
-            if(worker->ctl_request_prev) {
-                worker->ctl_request_prev = false;
-                FURI_LOG_D(TAG, "    (TX) Requested to prev. Cancelling and resending...");
-                status = 3;
-            }
-            furi_delay_ms(1600);
-            subghz_txrx_stop(worker->txrx);
-        } else {
-            furi_delay_ms(20);
-            subghz_txrx_stop(worker->txrx);
         }
-        skip_extra_stop = false;
+        subghz_block_generic_global.endless_tx = false;
+
+        // This will call need_save_callback, if necessary
+        subghz_txrx_stop(worker->txrx);
+        // Next file may be another remote, reset rolling code state like Sub-GHz app does
+        subghz_txrx_reset_dynamic_and_custom_btns(worker->txrx);
 
     } while(false);
 

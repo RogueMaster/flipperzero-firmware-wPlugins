@@ -57,7 +57,33 @@ Der Key liegt im Klartext auf der SD-Karte. Falls er doch einmal öffentlich wir
 | Zurück | Sheet bzw. Einstellungen schließen, dann beenden |
 
 In den **Einstellungen** wählst du mit ▲ ▼ eine Zeile, änderst sie mit OK oder ◀ ▶ und speicherst mit Zurück:
-Ton, Vibration, LED, Display an, Intervall (1 Min – 1 Std), Sprache und *Testen*.
+Ton, Vibration, LED, Display an, Intervall (1 Min – 1 Std), Sprache, Schrift und *Testen*.
+
+### WLAN-Board (Beta)
+
+Statt über den Desktop-Helper kann die App auch über ein WLAN-Board am GPIO-Anschluss online gehen,
+auf dem die Firmware [FlipperHTTP](https://github.com/jblanked/FlipperHTTP) läuft, z. B. das offizielle
+Wi-Fi Developer Board. Dann wird kein Computer gebraucht:
+
+1. FlipperHTTP nach der Anleitung des Projekts auf das Board flashen und das Board aufstecken.
+2. WLAN eintragen – mit einer FlipperHTTP-App aus dem Katalog wie *FlipWiFi* oder in der `config.txt`
+   (`wifi_ssid=` und `wifi_password=`).
+3. In der App **Einstellungen → Verbindung → WLAN** wählen.
+
+Dieser Modus ist mit einem simulierten Board und auf einem Flipper ohne Board getestet, aber noch nicht
+mit echter WLAN-Hardware. Details und Hinweise zur Sicherheit: [Wi-Fi board](wifi.md) (englisch).
+
+### Schriftstile
+
+Unter **Einstellungen → Schrift** wählst du zwischen drei Stilen, die Anzeige wechselt sofort:
+
+- **Flipper** (Standard): nur die eingebauten Flipper-Schriften, auf jedem Display gestochen scharf
+- **Inter**: Inter Display für die Zahl, Inter für Texte
+- **Mix**: Inter-Zahl mit den eingebauten Schriften für Texte
+
+<p align="center">
+  <img src="images/fonts.png" alt="Schriftstile Inter, Flipper und Mix" width="840">
+</p>
 
 ## Gut zu wissen
 

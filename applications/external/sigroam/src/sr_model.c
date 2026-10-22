@@ -1,5 +1,10 @@
 #include "sr_model.h"
 #include "sr_dialect.h"
+#include "sr_marauder_join.h"
+#include "sr_marauder_upload.h"
+#include "sr_board_tools.h"
+#include "sr_start_recover.h"
+#include "sr_mau_logs.h"
 
 #include <string.h>
 
@@ -134,8 +139,9 @@ void sr_model_reset_session(SrModel* m, bool also_reset_bloom) {
      * firmware is device identity, not session data (ADR-016 decision 5).
      * sess / sess_rev are the peer's last reported snapshot, same family as firmware /
      * busy_rev, not this model's session data — reset must not clear them (N6).
-     * qual / qual_rev / qual_tick_ms are the same family (F2 board snapshot, not this
-     * model's counts) — F2 rev2 adds qual_tick_ms alongside them for the same reason.
+     * qual / qual_rev / qual_tick_ms / qual_prev_* are the same family (F2 board
+     * snapshot, not this model's counts) — F2 rev2 adds qual_tick_ms alongside them
+     * for the same reason. qual_prev_* is the sample before the latest Qual.
      * radio / radio_rev are the same family (T6.5 Radio: permission bits). radio_rev==0
      * is unknown, not "both radios off".
      * session_rev is a cumulative transition count and reset must not clear it (ADR-017 decision 3).
@@ -151,6 +157,7 @@ void sr_model_reset_session(SrModel* m, bool also_reset_bloom) {
 }
 
 static bool apply_started(SrModel* m, uint32_t tick_ms) {
+    sr_mau_logs_invalidate();
     if(m->session == SrSessionIdle) {
         m->session = SrSessionRunning;
         m->started_tick_ms = tick_ms;
@@ -318,12 +325,21 @@ static bool apply_unknown(SrModel* m, const SrRawView* v) {
         memcpy(m->last_unknown, v->text, n);
     }
     m->last_unknown[n] = '\0';
+    (void)sr_join_redact_echo(m->last_unknown, &n, sizeof(m->last_unknown));
+    (void)sr_join_redact_key(m->last_unknown, &n, sizeof(m->last_unknown));
     m->last_unknown_len = n;
     m->unknown_lines++;
-    /* Pass v->len rather than n: the ring truncates to 80 itself and sets cut. n is the 511 cap
-     * of last_unknown, not the rawlog contract. */
-    if(m->rawlog != NULL && !sr_rawlog_is_wire_version_line(v->text, v->len)) {
-        sr_rawlog_push(m->rawlog, v->text, v->len);
+    /* Redacted copy only. The borrowed view still holds the secret for this call. */
+    sr_mau_up_feed(m->last_unknown, m->last_unknown_len);
+    sr_mau_logs_feed(m->last_unknown, m->last_unknown_len);
+    /* No-op unless the Board tools scene armed a Scout Lite query. */
+    sr_bt_feed(m->last_unknown, m->last_unknown_len);
+    sr_start_recover_note_line(m->last_unknown, m->last_unknown_len);
+    sr_join_observe(m->last_unknown, m->last_unknown_len);
+    /* Pass the redacted length. The ring truncates to 80 itself and sets cut. */
+    if(m->rawlog != NULL &&
+       !sr_rawlog_is_wire_version_line(m->last_unknown, m->last_unknown_len)) {
+        sr_rawlog_push(m->rawlog, m->last_unknown, m->last_unknown_len);
     }
     return true;
 }
@@ -355,6 +371,11 @@ bool sr_model_apply(SrModel* m, const SrEvent* ev, uint32_t tick_ms) {
         m->firmware_rev++;
         return true;
     case SrEventBusy:
+        /* Lite status replies always include Busy:. That is not a refusal,
+         * so busy_rev / busy stay put and a pending start/stop is not cleared. */
+        if(!sr_dialect_busy_is_refusal(&m->firmware)) {
+            return false;
+        }
         m->busy = ev->u.busy;
         m->busy_rev++;
         return true;
@@ -363,6 +384,11 @@ bool sr_model_apply(SrModel* m, const SrEvent* ev, uint32_t tick_ms) {
         m->sess_rev++;
         return true;
     case SrEventQual:
+        if(m->qual_rev != 0u) {
+            m->qual_prev_gga = m->qual.gga;
+            m->qual_prev_ggafix = m->qual.ggafix;
+            m->qual_prev_seen = true;
+        }
         m->qual = ev->u.qual;
         m->qual_rev++;
         m->qual_tick_ms = tick_ms; /* F2 rev2 §1B staleness anchor */
