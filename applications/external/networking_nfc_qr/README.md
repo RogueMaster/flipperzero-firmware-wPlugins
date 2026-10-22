@@ -4,10 +4,10 @@
 # Networking NFC + QR para Flipper Zero
 
 Esta aplicación para Flipper Zero permite emular una tarjeta NFC y mostrar un código QR simultáneamente en la pantalla. Es ideal para situaciones de networking, permitiendo compartir tu contacto o información de dos formas distintas al mismo tiempo.
-**Esta rama está pensada para ser usada con el firmware de RogueMaster.**
 
 ## Características
 
+*   **Creación Rápida (QR + NFC)**: Genera a la vez un archivo `.qrcode` y un archivo `.nfc` (NTAG215 con NDEF URI) introduciendo el nombre y la URL directamente en el Flipper.
 *   **Emulación NFC**: Carga y emula archivos `.nfc` estándar.
 *   **Visualización QR**: Genera y muestra códigos QR a partir de archivos `.qrcode`.
 *   **Interfaz Dual**: Muestra el QR en la pantalla mientras el chip NFC está activo siendo emulado.
@@ -17,33 +17,37 @@ Esta aplicación para Flipper Zero permite emular una tarjeta NFC y mostrar un c
 ## Requisitos
 
 *   **Flipper Zero** (obviamente).
-*   **Firmware**: Necesitas el código fuente del firmware para compilar la aplicación.
-    *   Puedes usar el [Firmware Oficial](https://github.com/flipperdevices/flipperzero-firmware).
-    *   También es compatible con **Custom Firmwares (CFW)** como Unleashed, RogueMaster o Xtreme.
+*   **Firmware**: Puedes compilar con **uFBT** (recomendado y más rápido) o con el código fuente del firmware oficial o Custom Firmwares (CFW) como Unleashed, RogueMaster o Xtreme.
 
 ## Compilación e Instalación
 
-Se ha incluido un script automatizado para facilitar la compilación.
+### Opción 1: Con uFBT (Recomendado)
+Si tienes `ufbt` instalado:
+```bash
+ufbt
+```
+El archivo `.fap` compilado se generará en la carpeta `dist/`.
 
-1.  Clona este repositorio.
-2.  Asegúrate de tener descargado el repositorio del firmware (oficial o CFW) en una carpeta cercana (por defecto busca en `../flipperzero-firmware`).
-3.  Ejecuta el script de compilación:
+### Opción 2: Con firmware local mediante script
+1.  Asegúrate de tener descargado el repositorio del firmware en `../flipperzero-firmware`.
+2.  Ejecuta el script de compilación:
 
 ```bash
 ./compile.sh
 ```
 
-4.  El script te preguntará la ruta de tu firmware. Si está en la ruta por defecto, simplemente pulsa `Enter`.
-5.  El script compilará la aplicación y guardará el archivo resultante `.fap` en la carpeta `build/` dentro del proyecto.
-6.  Copia el archivo `build/networking_nfc_qr_app.fap` a tu Flipper Zero (usando qFlipper o la tarjeta SD) en la carpeta `/ext/apps/NFC/` (o donde prefieras).
+El script compilará la aplicación y guardará el archivo resultante en `build/networking_nfc_qr_app.fap`.
+
+Copia el archivo `.fap` a tu Flipper Zero (usando qFlipper o la tarjeta SD) en la carpeta `/ext/apps/NFC/`.
 
 ## Uso
 
 1.  Abre la aplicación **Networking NFC + QR** en tu Flipper Zero.
-2.  **Select QR Code**: Selecciona el archivo con el contenido del QR (debe ser un archivo de texto plano o `.qrcode` con el mensaje).
-3.  **Select NFC File**: Selecciona el archivo `.nfc` que quieres emular.
-4.  **Start Emulation**: Comienza la magia. El Flipper empezará a emular la tarjeta NFC y mostrará el código QR en la pantalla.
-5.  Pulsa **Back** para detener la emulación y volver al menú.
+2.  **Create QR + NFC**: Introduce el nombre para tus archivos y la URL deseada. La app creará automáticamente el `.qrcode` en `/ext/apps_data/qrcodes/` y el `.nfc` en `/ext/nfc/`, y los dejará seleccionados listos para emular.
+3.  **Select QR Code**: Selecciona manualmente un archivo `.qrcode` existente si prefieres otro.
+4.  **Select NFC File**: Selecciona manualmente un archivo `.nfc` existente si prefieres otro.
+5.  **Start Emulation**: Comienza la magia. El Flipper empezará a emular la tarjeta NFC y mostrará el código QR en la pantalla.
+6.  Pulsa **Back** para detener la emulación y volver al menú.
 
 ## Créditos
 
