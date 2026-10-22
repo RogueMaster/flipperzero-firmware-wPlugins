@@ -1,6 +1,7 @@
 #pragma once
 
 #include <furi.h>
+#include <furi_hal_random.h>
 #include <gui/gui.h>
 #include <gui/view.h>
 #include <gui/view_dispatcher.h>
@@ -21,6 +22,11 @@
 #include "qrcode.h"
 
 #define TAG "NfcQrApp"
+
+typedef enum {
+    NfcQrTextInputModeName,
+    NfcQrTextInputModeUrl,
+} NfcQrTextInputMode;
 
 typedef struct {
     Gui* gui;
@@ -48,6 +54,15 @@ typedef struct {
     Widget* widget;
     Popup* popup;
     Loading* loading;
+    TextInput* text_input;
+
+    // Text Input buffers
+    char name_store[64];
+    char text_store[128];
+    NfcQrTextInputMode text_input_mode;
+
+    // Timer
+    FuriTimer* popup_timer;
 
     // Debug
     uint32_t current_view;
@@ -56,18 +71,23 @@ typedef struct {
 typedef enum {
     NfcQrAppViewSubmenu,
     NfcQrAppViewEmulate,
-    NfcQrAppViewCredits,
+    NfcQrAppViewWidget,
+    NfcQrAppViewTextInput,
 } NfcQrAppView;
 
 typedef enum {
     NfcQrCustomEventMenuSelectQr,
     NfcQrCustomEventMenuSelectNfc,
+    NfcQrCustomEventMenuCreate,
     NfcQrCustomEventMenuStart,
     NfcQrCustomEventMenuCredits,
     NfcQrCustomEventEmulateBack,
     NfcQrCustomEventLoadFile,
     NfcQrCustomEventAllocNfc,
     NfcQrCustomEventStartNfc,
+    NfcQrCustomEventNameDone,
+    NfcQrCustomEventUrlDone,
+    NfcQrCustomEventDismissResult,
 } NfcQrCustomEvent;
 
 typedef struct {
