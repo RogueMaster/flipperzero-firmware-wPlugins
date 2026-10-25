@@ -99,9 +99,11 @@ Magic Check does not identify Gen1 from IC reference, UID manufacturer, or
 28/56-block capacity alone. It checks the UID at fixed blocks `0x38`/`0x39`
 using unaddressed reads, only when these addresses are outside the advertised
 user memory. Matching hidden UID bytes are a fingerprint, not a guarantee that
-the UID can be changed. Gen1 variants rejecting hidden reads remain
-unconfirmed; this does not rule out Gen1 compatibility. UID Changer can use
-the manually selected ISO15693 Gen1 method on a known compatible tag.
+the UID can be changed. If no fingerprint matches, tags with 28 or 56
+four-byte blocks show `Possible ISO15 GEN1`, regardless of IC reference.
+This is a layout hint and does not confirm write capability; other unmatched
+layouts remain unconfirmed. UID Changer can use the manually selected
+ISO15693 Gen1 method on a known compatible tag.
 
 The Gen1 writer sends the optional unlock writes to `0x3E`/`0x3F`, then writes
 the UID in little-endian order to `0x38`/`0x39`. Some variants return `01 10`

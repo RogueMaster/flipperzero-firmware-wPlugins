@@ -86,6 +86,11 @@ static NfcCommand mtools_magic_read_callback(NfcGenericEvent event, void* contex
         app->magic_iso_status = gen == MagicGenIso15693Gen1 ? 4 :
                                 gen == MagicGenIso15693Gen3 ? 5 :
                                 gen == MagicGenIso15693Gen2 ? 3 : 2;
+        /* Known Gen1 layouts are useful hints even when hidden reads fail.
+         * Do not use IC reference or promote a layout hint to confirmed Gen1. */
+        if(gen == MagicGenCount && card->system_info.block_size == 4 &&
+           (card->system_info.block_count == 28 || card->system_info.block_count == 56))
+            app->magic_iso_status = 14;
         app->magic_pending_status = app->magic_iso_status;
         app->magic_result_ready = true;
     }
