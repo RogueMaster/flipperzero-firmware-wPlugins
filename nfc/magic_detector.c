@@ -23,31 +23,12 @@ static NfcCommand iso_magic_probe_callback(NfcGenericEvent event, void* context)
     Iso15693_3Poller* poller = event.instance;
     Iso15693_3SystemInfo info = {0};
     if(iso15693_3_poller_get_system_info(poller, &info) == Iso15693_3ErrorNone) {
-        probe->gen1 = info.block_count == 28 && info.ic_ref == 0x01;
-        if(!probe->gen1 && info.block_size == 4 && info.block_count < 254) {
-            uint8_t hidden[8];
-            if(iso15693_3_poller_read_block(poller, hidden, info.block_count, 4) ==
-                   Iso15693_3ErrorNone &&
-               iso15693_3_poller_read_block(poller, hidden + 4, info.block_count + 1, 4) ==
-                   Iso15693_3ErrorNone) {
-                const Iso15693_3Data* card = nfc_poller_get_data(probe->poller);
-                size_t uid_len = 0;
-                const uint8_t* uid = iso15693_3_get_uid(card, &uid_len);
-                uint8_t reconstructed[8];
-                for(size_t i = 0; i < 4; i++) {
-                    reconstructed[i] = hidden[7 - i];
-                    reconstructed[4 + i] = hidden[3 - i];
-                }
-                probe->gen1 = uid_len == 8 && memcmp(reconstructed, uid, 8) == 0;
-            }
-        }
-        if(info.block_count == 80 && info.block_size == 4) {
-            uint8_t activation[8];
-            static const uint8_t expected[8] = {0xA5, 0x2B, 0x44, 0x2C, 0x21, 0xAE, 0x93, 0x00};
-            probe->gen3 = iso15693_3_poller_read_block(poller, activation, 0x14, 4) == Iso15693_3ErrorNone &&
-                          iso15693_3_poller_read_block(poller, activation + 4, 0x15, 4) == Iso15693_3ErrorNone &&
-                          memcmp(activation, expected, sizeof(expected)) == 0;
-        }
+        const Iso15693_3Data* card = nfc_poller_get_data(probe->poller);
+        size_t uid_len = 0;
+        const uint8_t* uid = iso15693_3_get_uid(card, &uid_len);
+        MagicGenType gen = mtools_detect_iso15693_ready(poller, &info, uid, uid_len);
+        probe->gen1 = gen == MagicGenIso15693Gen1;
+        probe->gen3 = gen == MagicGenIso15693Gen3;
     }
     furi_semaphore_release(probe->complete);
     return NfcCommandStop;
@@ -65,6 +46,36 @@ static bool detect_iso15693_fingerprint(Nfc* nfc, bool gen3) {
     return complete && (gen3 ? probe.gen3 : probe.gen1);
 }
 
+/* Gen1 UID storage uses fixed addresses 0x38/0x39, even on variants
+ * advertising fewer user blocks. Use unaddressed reads for clone firmware. */
+static bool iso_gen1_hidden_uid_matches(
+    Iso15693_3Poller* poller, const uint8_t uid[8]) {
+    BitBuffer* tx = bit_buffer_alloc(3);
+    BitBuffer* rx = bit_buffer_alloc(8);
+    bool matches = true;
+    for(uint8_t part = 0; part < 2 && matches; part++) {
+        const uint8_t command[] = {0x02, 0x20, (uint8_t)(0x38 + part)};
+        bit_buffer_copy_bytes(tx, command, sizeof(command));
+        bit_buffer_reset(rx);
+        Iso15693_3Error error = iso15693_3_poller_send_frame(poller, tx, rx, 1356000U);
+        FURI_LOG_D(
+            "MTools", "ISO15 hidden %02X: err=%u len=%u data=%02X %02X %02X %02X %02X",
+            command[2], error, (unsigned)bit_buffer_get_size_bytes(rx),
+            bit_buffer_get_size_bytes(rx) > 0 ? bit_buffer_get_byte(rx, 0) : 0,
+            bit_buffer_get_size_bytes(rx) > 1 ? bit_buffer_get_byte(rx, 1) : 0,
+            bit_buffer_get_size_bytes(rx) > 2 ? bit_buffer_get_byte(rx, 2) : 0,
+            bit_buffer_get_size_bytes(rx) > 3 ? bit_buffer_get_byte(rx, 3) : 0,
+            bit_buffer_get_size_bytes(rx) > 4 ? bit_buffer_get_byte(rx, 4) : 0);
+        matches = error == Iso15693_3ErrorNone && bit_buffer_get_size_bytes(rx) == 5 &&
+                  !(bit_buffer_get_byte(rx, 0) & 1U);
+        for(size_t i = 0; i < 4 && matches; i++)
+            matches = bit_buffer_get_byte(rx, 1 + i) == uid[7 - part * 4 - i];
+    }
+    bit_buffer_free(rx);
+    bit_buffer_free(tx);
+    return matches;
+}
+
 MagicGenType mtools_detect_iso15693_ready(
     Iso15693_3Poller* poller,
     const Iso15693_3SystemInfo* info,
@@ -77,21 +88,13 @@ MagicGenType mtools_detect_iso15693_ready(
         info->block_count,
         info->block_size,
         info->ic_ref);
-    if(info->block_count == 28 && info->ic_ref == 0x01) return MagicGenIso15693Gen1;
-    if(uid && uid_len == 8 && info->block_size == 4 && info->block_count < 254) {
-        uint8_t hidden[8];
-        if(iso15693_3_poller_read_block(poller, hidden, info->block_count, 4) ==
-               Iso15693_3ErrorNone &&
-           iso15693_3_poller_read_block(poller, hidden + 4, info->block_count + 1, 4) ==
-               Iso15693_3ErrorNone) {
-            uint8_t reconstructed[8];
-            for(size_t i = 0; i < 4; i++) {
-                reconstructed[i] = hidden[7 - i];
-                reconstructed[4 + i] = hidden[3 - i];
-            }
-            if(memcmp(reconstructed, uid, 8) == 0) return MagicGenIso15693Gen1;
-        }
-    }
+    /* IC reference and capacity are not magic fingerprints. Only probe the
+     * fixed UID addresses when they lie beyond the advertised user memory;
+     * matching bytes in ordinary user blocks are not proof of a backdoor.
+     * Gen1 variants rejecting hidden reads remain unconfirmed. */
+    if(uid && uid_len == 8 && info->block_size == 4 && info->block_count > 0 &&
+       info->block_count <= 0x38 && iso_gen1_hidden_uid_matches(poller, uid))
+        return MagicGenIso15693Gen1;
     if(info->block_count == 80 && info->block_size == 4) {
         uint8_t activation[8];
         static const uint8_t expected[8] = {0xA5, 0x2B, 0x44, 0x2C, 0x21, 0xAE, 0x93, 0x00};

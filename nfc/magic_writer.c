@@ -641,7 +641,8 @@ typedef struct {
     bool success;
 } IsoUidWrite;
 
-static bool iso_send_uid_frame(Iso15693_3Poller* poller, const uint8_t* frame, size_t length, bool allow_timeout) {
+static bool iso_send_uid_frame(
+    Iso15693_3Poller* poller, const uint8_t* frame, size_t length, bool unlock) {
     BitBuffer* tx = bit_buffer_alloc(16);
     BitBuffer* rx = bit_buffer_alloc(16);
     bit_buffer_copy_bytes(tx, frame, length);
@@ -651,7 +652,13 @@ static bool iso_send_uid_frame(Iso15693_3Poller* poller, const uint8_t* frame, s
                bit_buffer_get_size_bytes(rx) ? bit_buffer_get_byte(rx, 0) : 0);
     bool result = error == Iso15693_3ErrorNone &&
                   bit_buffer_get_size_bytes(rx) >= 1 && !(bit_buffer_get_byte(rx, 0) & 1U);
-    if(allow_timeout && error == Iso15693_3ErrorTimeout) result = true;
+    /* The captured Gen1 variant rejects the optional unlock addresses with
+     * 01 10 (block unavailable), yet accepts writes to 0x38/0x39. Only ignore
+     * that exact tag response for unlock commands, never for UID data writes. */
+    if(unlock && error == Iso15693_3ErrorNone && bit_buffer_get_size_bytes(rx) == 2 &&
+       bit_buffer_get_byte(rx, 0) == 0x01 && bit_buffer_get_byte(rx, 1) == 0x10)
+        result = true;
+    if(unlock && error == Iso15693_3ErrorTimeout) result = true;
     bit_buffer_free(rx);
     bit_buffer_free(tx);
     return result;
@@ -691,7 +698,9 @@ static NfcCommand iso_uid_write_callback(NfcGenericEvent event, void* context) {
         }
         size_t offset = write->generation == 1 ? 3 : 4;
         for(size_t i = 0; i < 4; i++) frame[offset + i] = write->uid[(part ? 0 : 4) + (3 - i)];
-        valid = iso_send_uid_frame(poller, frame, length, write->generation == 1);
+        /* Require an explicit success response for UID blocks: a timeout
+         * plus an unchanged inventory UID cannot prove a same-UID write. */
+        valid = iso_send_uid_frame(poller, frame, length, false);
     }
     write->success = valid;
     furi_semaphore_release(write->complete);

@@ -92,3 +92,28 @@ then starts a fresh RF session to check the anticollision UID. If a later page
 write fails, it attempts to restore the original UID pages in the same session.
 An interrupted RF field or unsuccessful restoration can still require UID/BCC
 recovery with a separate recovery tool.
+
+## ISO15693 Gen1 variants
+
+Magic Check does not identify Gen1 from IC reference, UID manufacturer, or
+28/56-block capacity alone. It checks the UID at fixed blocks `0x38`/`0x39`
+using unaddressed reads, only when these addresses are outside the advertised
+user memory. Matching hidden UID bytes are a fingerprint, not a guarantee that
+the UID can be changed. Gen1 variants rejecting hidden reads remain
+unconfirmed; this does not rule out Gen1 compatibility. UID Changer can use
+the manually selected ISO15693 Gen1 method on a known compatible tag.
+
+The Gen1 writer sends the optional unlock writes to `0x3E`/`0x3F`, then writes
+the UID in little-endian order to `0x38`/`0x39`. Some variants return `01 10`
+(block unavailable) for both unlock writes; the writer continues for that
+specific response. Other explicit errors, including `01 10` on a UID block,
+fail the write. Unlock timeouts are tolerated, but both UID block writes
+require explicit success responses. Success also requires the inventory UID
+to match after restarting the RF session. The same fixed addresses and UID
+byte order apply to both 28-block and 56-block variants.
+
+Writing the original UID back can test command compatibility, but unchanged
+inventory alone cannot prove the tag stored the bytes or can change its UID.
+This is an explicit write through UID Changer, not an automatic Magic Check
+probe. A full UID-change test requires a different UID and restoration of the
+original; the app does not perform that test automatically.
