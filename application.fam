@@ -6,7 +6,7 @@ App(
     sources=["*.c*", "!plugins"],  # Plugins are built as separate .fal files
     stack_size=4 * 1024,
     fap_category="NFC",
-    fap_version="2.0",
+    fap_version="2.1",
     fap_icon="icon.png",
     fap_description="Read public transport cards from around the world",
     fap_author="luu176",

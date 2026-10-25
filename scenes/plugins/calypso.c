@@ -309,14 +309,16 @@ static void calypso_display_card_view(Metroflip* app) {
                 event->date.hour,
                 event->date.minute);
             metroflip_card_view_add_field(view, p, "Date", val, true);
+            // An event can reference a contract that has since been replaced
+            snprintf(val, sizeof(val), "Unknown");
             for(int c = 0; c < GTT_CONTRACT_COUNT; c++) {
                 if(card->gtt->contracts[c].present &&
                    card->gtt->contracts[c].id == event->contract_id) {
                     snprintf(val, sizeof(val), "Contract %d", c + 1);
-                    metroflip_card_view_add_field(view, p, "Used", val, false);
                     break;
                 }
             }
+            metroflip_card_view_add_field(view, p, "Used", val, false);
             snprintf(val, sizeof(val), "%02X", event->code);
             metroflip_card_view_add_field(view, p, "Code", val, false);
         }
@@ -926,7 +928,13 @@ static bool calypso_read_card(Metroflip* app, Iso14443_4bPoller* iso14443_4b_pol
                     bit_slice_to_dec(environment_bit_representation, start + 8, end + 8);
                 card->card_type = guess_card_type(card->country_num, card->network_num);
                 bool gtt_personalised = false;
-                if(icc_italy) {
+                /* The ICC country code says Italy, not GTT specifically, and
+                 * BIP's environment does not follow the Intercode layout. Only
+                 * claim Turin's layout when the standard parse came up blank,
+                 * so another Italian Calypso network is never decoded with the
+                 * wrong byte offsets.
+                 */
+                if(icc_italy && card->card_type == CALYPSO_CARD_UNKNOWN) {
                     card->card_type = CALYPSO_CARD_GTT;
                     card->country_num = 380;
                     // Personalised cards hold the codice fiscale (16 ASCII

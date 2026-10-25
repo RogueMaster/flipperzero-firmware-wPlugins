@@ -1,3 +1,24 @@
+## v2.1-beta
+
+## BIP Piemonte (GTT) Parser
+
+- Added BIP GTT parser (Turin / Piedmont, Italy) - contributed by @filippo-ferrando
+  - Reads up to 4 contracts and 3 recent trips, with load/travel timestamps
+  - Handles the card's CET-without-DST clock, converting to local Italian time
+  - Contract type and code are shown as raw values - the layout is reverse
+    engineered from a single card and only the timestamps are confirmed
+  - Trips are matched back to the contract that paid for them
+- Unknown Calypso networks now dump the standard ticketing files (contracts,
+  events, special events, counters) into the saved file, so a parser can be
+  written from a capture without owning the card
+
+## Memory
+
+- Suica icons (~150 images) moved out of the main app into the Suica plugin's
+  own asset bundle: 142 fewer entries in the plugin API table, and the image
+  data is only resident when a Suica card is actually being read
+- Main app no longer compiles plugin sources into the FAP
+
 ## v2
 
 ## UI Overhaul
