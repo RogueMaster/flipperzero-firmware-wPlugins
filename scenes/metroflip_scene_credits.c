@@ -19,6 +19,7 @@ void metroflip_scene_credits_on_enter(void* context) {
     furi_string_cat_printf(str, "Special Thanks:\nWillyJL\n\n");
     furi_string_cat_printf(str, "Info Slaves:\nequipter, TheDingo8MyBaby\nry4000, WillyJL\n\n");
     furi_string_cat_printf(str, "\e#Parser Credits:\n\n");
+    furi_string_cat_printf(str, "BIP GTT Parser:\nfilippo-ferrando\n\n");
     furi_string_cat_printf(str, "Bip! Parser:\nrbasoalto, gornekich\n\n");
     furi_string_cat_printf(str, "CharlieCard Parser:\nzacharyweiss\n\n");
     furi_string_cat_printf(str, "Clipper Parser:\nke6jjj\n\n");

@@ -3,6 +3,7 @@ App(
     name="Metroflip",
     apptype=FlipperAppType.EXTERNAL,
     entry_point="metroflip",
+    sources=["*.c*", "!plugins"],  # Plugins are built as separate .fal files
     stack_size=4 * 1024,
     fap_category="NFC",
     fap_version="2.0",
@@ -118,6 +119,7 @@ App(
     entry_point="suica_plugin_ep",
     requires=["metroflip"],
     sources=["scenes/plugins/suica.c"],
+    fap_icon_assets="images_suica",  # Only the Suica plugin draws these
     fal_embedded=True,
 )
 

@@ -262,6 +262,66 @@ static void calypso_display_card_view(Metroflip* app) {
     char header[METROFLIP_CARD_VIEW_HEADER_LEN];
 
     switch(card->card_type) {
+    case CALYPSO_CARD_GTT: {
+        if(!card->gtt) break;
+        metroflip_card_view_set_title(view, "BIP GTT");
+
+        uint8_t p = metroflip_card_view_add_page(view, "Card Info");
+        snprintf(val, sizeof(val), "%u", card->card_number);
+        metroflip_card_view_add_field(view, p, "Number", val, false);
+        metroflip_card_view_add_field(view, p, "Network", "BIP Piemonte", false);
+        metroflip_card_view_add_field(
+            view, p, "Holder", card->gtt->personalised ? "Personalised" : "Anonymous", false);
+
+        for(int i = 0; i < GTT_CONTRACT_COUNT; i++) {
+            const GttCardContract* contract = &card->gtt->contracts[i];
+            if(!contract->present) continue;
+            snprintf(header, sizeof(header), "Contract %d", i + 1);
+            p = metroflip_card_view_add_page(view, header);
+            snprintf(
+                val,
+                sizeof(val),
+                "%02u/%02u/%04u %02u:%02u",
+                contract->date.day,
+                contract->date.month,
+                contract->date.year,
+                contract->date.hour,
+                contract->date.minute);
+            metroflip_card_view_add_field(view, p, "Loaded", val, true);
+            snprintf(val, sizeof(val), "%02X", contract->type);
+            metroflip_card_view_add_field(view, p, "Type", val, false);
+            snprintf(val, sizeof(val), "%04X", contract->code);
+            metroflip_card_view_add_field(view, p, "Code", val, false);
+        }
+
+        for(int i = 0; i < GTT_EVENT_COUNT; i++) {
+            const GttCardEvent* event = &card->gtt->events[i];
+            if(!event->present) continue;
+            snprintf(header, sizeof(header), "Trip %d", i + 1);
+            p = metroflip_card_view_add_page(view, header);
+            snprintf(
+                val,
+                sizeof(val),
+                "%02u/%02u/%04u %02u:%02u",
+                event->date.day,
+                event->date.month,
+                event->date.year,
+                event->date.hour,
+                event->date.minute);
+            metroflip_card_view_add_field(view, p, "Date", val, true);
+            for(int c = 0; c < GTT_CONTRACT_COUNT; c++) {
+                if(card->gtt->contracts[c].present &&
+                   card->gtt->contracts[c].id == event->contract_id) {
+                    snprintf(val, sizeof(val), "Contract %d", c + 1);
+                    metroflip_card_view_add_field(view, p, "Used", val, false);
+                    break;
+                }
+            }
+            snprintf(val, sizeof(val), "%02X", event->code);
+            metroflip_card_view_add_field(view, p, "Code", val, false);
+        }
+        break;
+    }
     case CALYPSO_CARD_NAVIGO: {
         if(!card->navigo) break;
         metroflip_card_view_set_title(view, "Navigo");
@@ -439,6 +499,181 @@ static void calypso_display_card_view(Metroflip* app) {
     metroflip_card_view_show(app);
 }
 
+static bool calypso_sw_ok(BitBuffer* rx_buffer) {
+    size_t length = bit_buffer_get_size_bytes(rx_buffer);
+    return length >= 2 && bit_buffer_get_byte(rx_buffer, length - 2) == apdu_success[0] &&
+           bit_buffer_get_byte(rx_buffer, length - 1) == apdu_success[1];
+}
+
+/* Select EF 20xx of the ticketing DF. Returns 1 when selected, 0 when the
+ * file is absent, -1 on a transport error (stage/event already set). */
+static int calypso_select_ticketing_ef(
+    Metroflip* app,
+    Iso14443_4bPoller* iso14443_4b_poller,
+    BitBuffer* tx_buffer,
+    BitBuffer* rx_buffer,
+    MetroflipPollerEventType* stage,
+    uint8_t fid) {
+    if(select_new_app(0x20, fid, tx_buffer, rx_buffer, iso14443_4b_poller, app, stage) != 0) {
+        return -1;
+    }
+    // File replay sends nothing, so there is no status word to check
+    return (app->data_loaded || calypso_sw_ok(rx_buffer)) ? 1 : 0;
+}
+
+/* Read one record of the selected EF into out (29 bytes, zero padded).
+ * Live reads are saved to the file by read_new_file(). Returns 1 when read,
+ * 0 when the record is absent, -1 on a transport error. */
+static int calypso_read_ticketing_record(
+    Metroflip* app,
+    Iso14443_4bPoller* iso14443_4b_poller,
+    BitBuffer* tx_buffer,
+    BitBuffer* rx_buffer,
+    MetroflipPollerEventType* stage,
+    const char* app_id,
+    uint8_t record,
+    uint8_t out[29]) {
+    char record_id[4];
+    snprintf(record_id, sizeof(record_id), "%02u", record);
+    if(read_new_file(
+           app_id, record_id, record, tx_buffer, rx_buffer, iso14443_4b_poller, app, stage) !=
+       0) {
+        // File replay: a non-zero result only means the record isn't saved
+        return app->data_loaded ? 0 : -1;
+    }
+
+    size_t length = bit_buffer_get_size_bytes(rx_buffer);
+    if(!app->data_loaded) {
+        if(!calypso_sw_ok(rx_buffer)) return 0;
+        length -= 2;
+    }
+    if(out) {
+        memset(out, 0, 29);
+        // Copy only the record data: a live response also ends with the SW
+        bit_buffer_write_bytes_mid(rx_buffer, out, 0, length > 29 ? 29 : length);
+    }
+    return 1;
+}
+
+/* Unrecognised network: read the standard ticketing files without decoding
+ * them, so a saved file holds everything needed to write a parser later.
+ * Missing files/records are skipped; only a transport error stops the dump. */
+static void calypso_dump_ticketing_files(
+    Metroflip* app,
+    Iso14443_4bPoller* iso14443_4b_poller,
+    BitBuffer* tx_buffer,
+    BitBuffer* rx_buffer,
+    MetroflipPollerEventType* stage) {
+    static const struct {
+        uint8_t fid;
+        const char* app_id;
+        uint8_t records;
+    } files[] = {
+        {0x20, "2020", 4}, // Contracts
+        {0x10, "2010", 3}, // Events
+        {0x40, "2040", 3}, // Special events
+        {0x2A, "202A", 1}, // Counters
+        {0x2B, "202B", 1},
+        {0x2C, "202C", 1},
+        {0x2D, "202D", 1},
+        {0x69, "2069", 1},
+    };
+
+    // Replay has nothing to decode yet: the records only matter in the file
+    if(app->data_loaded) return;
+
+    for(size_t f = 0; f < COUNT_OF(files); f++) {
+        int selected = calypso_select_ticketing_ef(
+            app, iso14443_4b_poller, tx_buffer, rx_buffer, stage, files[f].fid);
+        if(selected < 0) return;
+        if(selected == 0) {
+            FURI_LOG_I(TAG, "File %s not present", files[f].app_id);
+            continue;
+        }
+
+        for(uint8_t r = 1; r <= files[f].records; r++) {
+            int read = calypso_read_ticketing_record(
+                app, iso14443_4b_poller, tx_buffer, rx_buffer, stage, files[f].app_id, r, NULL);
+            if(read < 0) return;
+            if(read == 0) break;
+        }
+    }
+}
+
+/* Unix time of 01:00 UTC on the last Sunday of a 31-day month, when EU
+ * summer time starts (March) or ends (October) */
+static uint32_t gtt_eu_dst_switch(uint16_t year, uint8_t month) {
+    DateTime last_day = {.hour = 1, .day = 31, .month = month, .year = year};
+    uint32_t timestamp = datetime_datetime_to_timestamp(&last_day);
+    uint32_t weekday = (timestamp / 86400 + 4) % 7; // 1970-01-01 was a Thursday, 0 = Sunday
+    return timestamp - weekday * 86400;
+}
+
+/* The card counts in Italian standard time (CET, UTC+1) all year round, so
+ * add an hour while EU summer time is in effect to get the local time */
+static void gtt_minutes_to_datetime(uint32_t minutes, DateTime* dt) {
+    uint32_t local = GTT_EPOCH + minutes * 60;
+    uint32_t utc = local - 3600;
+    datetime_timestamp_to_datetime(local, dt);
+    if(utc >= gtt_eu_dst_switch(dt->year, 3) && utc < gtt_eu_dst_switch(dt->year, 10)) {
+        local += 3600;
+    }
+    datetime_timestamp_to_datetime(local, dt);
+}
+
+static uint32_t gtt_get_u24(const uint8_t* data) {
+    return (data[0] << 16) | (data[1] << 8) | data[2];
+}
+
+/* BIP Piemonte (GTT): read contracts and events. Only the timestamps are
+ * confirmed; see api/calypso/transit/gtt_i.h. */
+static void gtt_read_card(
+    Metroflip* app,
+    Iso14443_4bPoller* iso14443_4b_poller,
+    BitBuffer* tx_buffer,
+    BitBuffer* rx_buffer,
+    MetroflipPollerEventType* stage,
+    GttCardData* gtt) {
+    uint8_t record[29];
+
+    int selected =
+        calypso_select_ticketing_ef(app, iso14443_4b_poller, tx_buffer, rx_buffer, stage, 0x20);
+    if(selected < 0) return;
+    for(uint8_t i = 0; selected && i < GTT_CONTRACT_COUNT; i++) {
+        int read = calypso_read_ticketing_record(
+            app, iso14443_4b_poller, tx_buffer, rx_buffer, stage, "2020", i + 1, record);
+        if(read < 0) return;
+        if(read == 0) break;
+
+        uint32_t minutes = gtt_get_u24(&record[16]);
+        if(minutes == 0) continue; // empty slot
+        GttCardContract* contract = &gtt->contracts[i];
+        contract->present = true;
+        contract->type = record[0];
+        contract->code = (record[4] << 8) | record[5];
+        contract->id = gtt_get_u24(&record[6]);
+        gtt_minutes_to_datetime(minutes, &contract->date);
+    }
+
+    selected =
+        calypso_select_ticketing_ef(app, iso14443_4b_poller, tx_buffer, rx_buffer, stage, 0x10);
+    if(selected < 0) return;
+    for(uint8_t i = 0; selected && i < GTT_EVENT_COUNT; i++) {
+        int read = calypso_read_ticketing_record(
+            app, iso14443_4b_poller, tx_buffer, rx_buffer, stage, "2010", i + 1, record);
+        if(read < 0) return;
+        if(read == 0) break;
+
+        uint32_t minutes = gtt_get_u24(&record[6]);
+        if(minutes == 0) continue; // empty slot
+        GttCardEvent* event = &gtt->events[i];
+        event->present = true;
+        event->contract_id = gtt_get_u24(&record[2]);
+        event->code = record[11];
+        gtt_minutes_to_datetime(minutes, &event->date);
+    }
+}
+
 /* Run the full Calypso read/parse flow. In live mode (iso14443_4b_poller
  * != NULL) APDUs are exchanged with the card; in file-replay mode
  * (app->data_loaded, poller == NULL) every send is skipped and records are
@@ -477,6 +712,7 @@ static bool calypso_read_card(Metroflip* app, Iso14443_4bPoller* iso14443_4b_pol
                 card->navigo = NULL;
                 card->opus = NULL;
                 card->ravkav = NULL;
+                card->gtt = NULL;
 
                 // Try selecting Calypso application by AID first (must be first command
                 // sent to card - a prior failed command can corrupt card session state)
@@ -547,6 +783,9 @@ static bool calypso_read_card(Metroflip* app, Iso14443_4bPoller* iso14443_4b_pol
                  * ICC file does not post a spurious "wrong card" failure event.
                  */
                 card->card_number = 0;
+                // BIP Piemonte stores the country (0x0380, Italy) in ICC bytes
+                // 20-21; its environment does not follow the Intercode layout
+                bool icc_italy = false;
                 error = select_new_app(
                     0x00, 0x02, tx_buffer, rx_buffer, iso14443_4b_poller, app, &stage);
                 if(error != 0) {
@@ -600,6 +839,9 @@ static bool calypso_read_card(Metroflip* app, Iso14443_4bPoller* iso14443_4b_pol
                             end = 159;
                             card->card_number =
                                 bit_slice_to_dec(icc_bit_representation, start, end);
+                            icc_italy = icc_copy_length > 21 &&
+                                        bit_buffer_get_byte(rx_buffer, 20) == 0x03 &&
+                                        bit_buffer_get_byte(rx_buffer, 21) == 0x80;
                         }
                     }
                 } else {
@@ -683,7 +925,32 @@ static bool calypso_read_card(Metroflip* app, Iso14443_4bPoller* iso14443_4b_pol
                     bit_slice_to_dec(environment_bit_representation, start + 4, end + 4) * 10 +
                     bit_slice_to_dec(environment_bit_representation, start + 8, end + 8);
                 card->card_type = guess_card_type(card->country_num, card->network_num);
+                bool gtt_personalised = false;
+                if(icc_italy) {
+                    card->card_type = CALYPSO_CARD_GTT;
+                    card->country_num = 380;
+                    // Personalised cards hold the codice fiscale (16 ASCII
+                    // characters) in bytes 12-27. It is never displayed.
+                    gtt_personalised = env_copy_length >= 28;
+                    for(size_t i = 12; gtt_personalised && i < 28; i++) {
+                        uint8_t c = bit_buffer_get_byte(rx_buffer, i);
+                        gtt_personalised = (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z');
+                    }
+                }
                 switch(card->card_type) {
+                case CALYPSO_CARD_GTT: {
+                    card->gtt = malloc(sizeof(GttCardData));
+                    if(!card->gtt) {
+                        stage = MetroflipPollerEventTypeFail;
+                        view_dispatcher_send_custom_event(
+                            app->view_dispatcher, MetroflipCustomEventPollerFail);
+                        break;
+                    }
+                    memset(card->gtt, 0, sizeof(GttCardData));
+                    card->gtt->personalised = gtt_personalised;
+                    gtt_read_card(app, iso14443_4b_poller, tx_buffer, rx_buffer, &stage, card->gtt);
+                    break;
+                }
                 case CALYPSO_CARD_NAVIGO: {
                     card->navigo = malloc(sizeof(NavigoCardData));
                     if(!card->navigo) {
@@ -2704,7 +2971,11 @@ static bool calypso_read_card(Metroflip* app, Iso14443_4bPoller* iso14443_4b_pol
                         free_calypso_structure(RavKavEventStructure);
 
                         break;
+                    } else {
+                        calypso_dump_ticketing_files(
+                            app, iso14443_4b_poller, tx_buffer, rx_buffer, &stage);
                     }
+                    break;
                 }
                 default:
                     break;
@@ -2731,6 +3002,7 @@ static bool calypso_read_card(Metroflip* app, Iso14443_4bPoller* iso14443_4b_pol
             free(card->navigo);
             free(card->opus);
             free(card->ravkav);
+            free(card->gtt);
             free(card);
         }
     }
@@ -2855,6 +3127,7 @@ static void calypso_on_exit(Metroflip* app) {
             free(ctx->card->navigo);
             free(ctx->card->opus);
             free(ctx->card->ravkav);
+            free(ctx->card->gtt);
             free(ctx->card);
         }
         free(ctx);

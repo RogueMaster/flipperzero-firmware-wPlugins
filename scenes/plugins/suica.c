@@ -15,6 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "suica_plugin_icons.h"
 #include "../../api/suica/suica_drawings.h"
 #include "../../metroflip_plugins.h"
 
