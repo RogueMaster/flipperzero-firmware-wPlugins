@@ -13,6 +13,12 @@ FAP_PATH = "/ext/apps/NFC/dfc.fap"
 MEMORY_PATTERN = re.compile(
     rb"DfcMemory.*?free=(\d+) minimum=(\d+) largest=(\d+)", re.IGNORECASE
 )
+HEAP_PATTERN = re.compile(
+    rb"Free heap size: (\d+).*?Total heap size: (\d+).*?"
+    rb"Minimum heap size: (\d+).*?Maximum heap block: (\d+).*?"
+    rb"Pool free: (\d+).*?Maximum pool block: (\d+)",
+    re.DOTALL,
+)
 
 
 def _storage_type():
@@ -108,6 +114,22 @@ class Flipper:
             {"free": int(free), "minimum": int(minimum), "largest": int(largest)}
             for free, minimum, largest in MEMORY_PATTERN.findall(data)
         ]
+
+    def heap_snapshot(self) -> dict[str, int]:
+        self.storage.send_and_wait_eol("free\r")
+        output = bytes(self.storage.read.until(self.storage.CLI_PROMPT))
+        match = HEAP_PATTERN.search(output)
+        if not match:
+            raise RuntimeError(f"cannot parse Flipper heap output: {output!r}")
+        names = (
+            "free",
+            "total",
+            "minimum",
+            "largest",
+            "pool_free",
+            "pool_largest",
+        )
+        return dict(zip(names, (int(value) for value in match.groups())))
 
     def remove_fixture(self, remote: str) -> None:
         if self.storage.exist_file(remote):

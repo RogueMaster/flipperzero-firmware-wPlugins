@@ -113,6 +113,7 @@ def main() -> int:
                             }
                             started = time.perf_counter()
                             remote = ""
+                            memory = {"before": flipper.heap_snapshot()}
                             try:
                                 binary = compiled / f"{case.name}-{cycle}.dfcb"
                                 compile_fixture(case.fixture, binary)
@@ -120,6 +121,7 @@ def main() -> int:
                                 launch_output = flipper.launch_fixture(remote)
                                 result = execute_probe(case, args.reader)
                                 logs = launch_output + flipper.drain_logs()
+                                memory["during"] = flipper.heap_snapshot()
                                 record.update(
                                     status="passed",
                                     fixture_sha256=hashlib.sha256(
@@ -128,7 +130,8 @@ def main() -> int:
                                     bytes_read=result.bytes_read,
                                     frames=result.frames,
                                     timings_ms=result.timings_ms,
-                                    memory=flipper.memory_samples(logs),
+                                    memory=memory,
+                                    memory_log=flipper.memory_samples(logs),
                                 )
                             except Exception as error:
                                 failure = True
@@ -140,6 +143,8 @@ def main() -> int:
                                 run["cases"].append(record)
                                 print_case(record)
                                 flipper.close_app()
+                                memory["after"] = flipper.heap_snapshot()
+                                record["memory"] = memory
                                 if remote:
                                     flipper.remove_fixture(remote)
                 finally:

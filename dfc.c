@@ -6,7 +6,7 @@
 
 #define TAG                         "Dfc"
 #define DFC_HARDWARE_TEST_ARGUMENT  "--hardware-test "
-#define DFC_HARDWARE_TEST_DIRECTORY APP_DATA_PATH(".hardware-test/")
+#define DFC_HARDWARE_TEST_DIRECTORY "/ext/apps_data/dfc/.hardware-test/"
 
 void dfc_log_memory(const char* stage) {
     size_t free_heap = memmgr_get_free_heap();
