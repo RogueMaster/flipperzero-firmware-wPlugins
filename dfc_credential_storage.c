@@ -42,11 +42,23 @@ static const DfcTextHostApi text_host_api = {
     .dfc_credential_key_in_set = dfc_credential_key_in_set,
     .dfc_credential_key_in_set_const = dfc_credential_key_in_set_const,
     .dfc_credential_key_length = dfc_credential_key_length,
+    .dfc_credential_stored_key_length = dfc_credential_stored_key_length,
     .dfc_credential_key_sets_resize = dfc_credential_key_sets_resize,
     .dfc_credential_key_version_in_set = dfc_credential_key_version_in_set,
+    .dfc_credential_key_version_in_set_const = dfc_credential_key_version_in_set_const,
+    .dfc_credential_key_set_version = dfc_credential_key_set_version,
+    .dfc_credential_key_set_version_const = dfc_credential_key_set_version_const,
+    .dfc_credential_key_set_type = dfc_credential_key_set_type,
+    .dfc_credential_key_set_type_const = dfc_credential_key_set_type_const,
+    .dfc_credential_key_set_is_initialized = dfc_credential_key_set_is_initialized,
+    .dfc_credential_key_set_set_initialized = dfc_credential_key_set_set_initialized,
     .dfc_credential_keys_resize = dfc_credential_keys_resize,
     .dfc_credential_picc_auth_commands = dfc_credential_picc_auth_commands,
     .dfc_credential_reset_application = dfc_credential_reset_application,
+    .dfc_credential_validate_model = dfc_credential_validate_model,
+    .dfc_uid_length_is_valid = dfc_uid_length_is_valid,
+    .dfc_iso_file_id_is_reserved = dfc_iso_file_id_is_reserved,
+    .dfc_key_set_type_length = dfc_key_set_type_length,
     .dfc_der_decode = dfc_der_decode,
     .dfc_der_status_name = dfc_der_status_name,
     .dfc_der_validate_model = dfc_der_validate_model,
@@ -306,7 +318,6 @@ static uint8_t* dfc_credential_read_whole_file(
 static bool dfc_credential_file_load(
     DfcCredential* credential,
     FuriString* path,
-    const char* selected_name,
     DfcCredentialLoadStatus* status) {
     bool parsed = false;
     size_t raw_len = 0;
@@ -396,10 +407,6 @@ static bool dfc_credential_file_load(
         if(status) *status = DfcCredentialLoadStatusOk;
     } while(false);
 
-    if(parsed) {
-        snprintf(credential->name, sizeof(credential->name), "%s", selected_name);
-    }
-
     if(octets && octets != raw) free(octets);
     free(raw);
     dfc_text_codec_close(&codec);
@@ -417,24 +424,15 @@ bool dfc_credential_load_selected_file(DfcCredential* credential, DfcCredentialL
         return false;
     }
 
-    char selected_name[DFC_FILE_NAME_MAX_LENGTH + 1];
-    snprintf(selected_name, sizeof(selected_name), "%s", credential->name);
-    if(selected_name[0] == '\0') {
-        FuriString* filename = furi_string_alloc();
-        path_extract_filename(store.load_path, filename, true);
-        snprintf(selected_name, sizeof(selected_name), "%s", furi_string_get_cstr(filename));
-        furi_string_free(filename);
-    }
-
-    bool loaded = dfc_credential_file_load(credential, store.load_path, selected_name, status);
+    bool loaded = dfc_credential_file_load(credential, store.load_path, status);
     if(!loaded) {
         dfc_credential_clear(credential);
     }
     return loaded;
 }
 
-bool dfc_credential_delete(DfcCredential* credential, bool use_load_path) {
-    furi_assert(credential);
+bool dfc_credential_delete(const char* name, bool use_load_path) {
+    furi_assert(name);
     bool deleted = false;
     FuriString* file_path = furi_string_alloc();
 
@@ -442,8 +440,7 @@ bool dfc_credential_delete(DfcCredential* credential, bool use_load_path) {
         if(use_load_path && !furi_string_empty(store.load_path)) {
             furi_string_set(file_path, store.load_path);
         } else {
-            furi_string_printf(
-                file_path, APP_DATA_PATH("%s%s"), credential->name, DFC_APP_EXTENSION);
+            furi_string_printf(file_path, APP_DATA_PATH("%s%s"), name, DFC_APP_EXTENSION);
         }
         if(!storage_simply_remove(store.storage, furi_string_get_cstr(file_path))) break;
         deleted = true;

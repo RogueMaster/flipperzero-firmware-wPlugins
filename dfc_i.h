@@ -59,6 +59,7 @@ struct Dfc {
     SceneManager* scene_manager;
 
     char text_store[DFC_FILE_NAME_MAX_LENGTH + 1];
+    char credential_name[DFC_FILE_NAME_MAX_LENGTH + 1];
     FuriString* text_box_store;
 
     // Common Views

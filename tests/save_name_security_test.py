@@ -23,7 +23,7 @@ class SaveNameSecurityTests(unittest.TestCase):
 
     def test_save_uses_destination_capacity(self):
         source = (ROOT / "scenes" / "dfc_scene_save_name.c").read_text()
-        self.assertIn("sizeof(dfc->credential->name)", source)
+        self.assertIn("sizeof(dfc->credential_name)", source)
         self.assertNotIn("strlen(dfc->text_store) + 1", source)
 
     def test_reader_allocation_failures_stop_cleanly(self):

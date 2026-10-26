@@ -44,7 +44,13 @@ App(
         Lib(
             name="core",
             fap_include_paths=["src", "port"],
-            sources=["src/aes_cmac.c", "src/des_cmac.c", "src/dfc_[!t]*.c"],
+            cflags=["-Wno-redundant-decls", "-Wno-sign-compare"],
+            sources=[
+                "src/aes_cmac.c",
+                "src/des_cmac.c",
+                "src/dfc_[!t]*.c",
+                "src/dfc_transaction_mac.c",
+            ],
             cincludes=["lib/tiny-crypto-c/src"],
         ),
         Lib(
