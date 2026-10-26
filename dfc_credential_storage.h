@@ -38,4 +38,8 @@ void dfc_credential_storage_deinit(void);
 bool dfc_credential_save(DfcCredential* credential, const char* dev_name);
 bool dfc_credential_save_loaded(DfcCredential* credential);
 bool dfc_credential_load_selected_file(DfcCredential* credential, DfcCredentialLoadStatus* status);
+bool dfc_credential_load_path(
+    DfcCredential* credential,
+    const char* path,
+    DfcCredentialLoadStatus* status);
 bool dfc_credential_delete(const char* name, bool use_load_path);

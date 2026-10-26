@@ -399,6 +399,16 @@ bool dfc_credential_load_selected_file(DfcCredential* credential, DfcCredentialL
     return loaded;
 }
 
+bool dfc_credential_load_path(
+    DfcCredential* credential,
+    const char* path,
+    DfcCredentialLoadStatus* status) {
+    furi_assert(credential);
+    furi_assert(path);
+    furi_string_set_str(store.load_path, path);
+    return dfc_credential_load_selected_file(credential, status);
+}
+
 bool dfc_credential_delete(const char* name, bool use_load_path) {
     furi_assert(name);
     bool deleted = false;

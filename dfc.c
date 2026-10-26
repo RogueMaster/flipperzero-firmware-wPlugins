@@ -4,7 +4,9 @@
 #include <storage/storage.h>
 #endif
 
-#define TAG "Dfc"
+#define TAG                         "Dfc"
+#define DFC_HARDWARE_TEST_ARGUMENT  "--hardware-test "
+#define DFC_HARDWARE_TEST_DIRECTORY APP_DATA_PATH(".hardware-test/")
 
 void dfc_log_memory(const char* stage) {
     size_t free_heap = memmgr_get_free_heap();
@@ -241,13 +243,42 @@ void dfc_show_loading_popup(void* context, bool show) {
     }
 }
 
+static const char* dfc_hardware_test_path(const char* args) {
+    if(!args) return NULL;
+    const size_t argument_length = strlen(DFC_HARDWARE_TEST_ARGUMENT);
+    if(strncmp(args, DFC_HARDWARE_TEST_ARGUMENT, argument_length) != 0) return NULL;
+
+    const char* path = args + argument_length;
+    const size_t directory_length = strlen(DFC_HARDWARE_TEST_DIRECTORY);
+    const size_t path_length = strlen(path);
+    const size_t extension_length = strlen(DFC_BINARY_EXTENSION);
+    if(strncmp(path, DFC_HARDWARE_TEST_DIRECTORY, directory_length) != 0 ||
+       path_length <= directory_length + extension_length || strstr(path, "..") ||
+       strcmp(path + path_length - extension_length, DFC_BINARY_EXTENSION) != 0) {
+        return NULL;
+    }
+    return path;
+}
+
 int32_t dfc_app(void* p) {
-    UNUSED(p);
+    const char* args = p;
     dfc_log_memory("before app alloc");
     Dfc* dfc = dfc_alloc();
     dfc_log_memory("after app alloc");
 
-    scene_manager_next_scene(dfc->scene_manager, DfcSceneMainMenu);
+    if(args && args[0]) {
+        const char* fixture_path = dfc_hardware_test_path(args);
+        DfcCredentialLoadStatus status = DfcCredentialLoadStatusOpenFailed;
+        if(!fixture_path || !dfc_credential_load_path(dfc->credential, fixture_path, &status)) {
+            FURI_LOG_E(TAG, "hardware test fixture rejected: %u", (unsigned)status);
+            dfc_free(dfc);
+            return 1;
+        }
+        dfc->hardware_test_mode = true;
+        scene_manager_next_scene(dfc->scene_manager, DfcSceneEmulate);
+    } else {
+        scene_manager_next_scene(dfc->scene_manager, DfcSceneMainMenu);
+    }
 
     view_dispatcher_run(dfc->view_dispatcher);
 

@@ -97,6 +97,10 @@ struct Dfc {
     // to SavedMenu, so a card built up live during emulation (via WriteData from a real
     // reader) can be saved afterward.
     bool emulate_from_blank;
+
+    // A host-driven hardware test owns the fixture lifecycle. Mutations must
+    // remain in memory so a test can never overwrite its source fixture.
+    bool hardware_test_mode;
 };
 
 typedef enum {

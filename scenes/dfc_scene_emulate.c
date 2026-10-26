@@ -154,7 +154,11 @@ bool dfc_scene_emulate_on_event(void* context, SceneManagerEvent event) {
             consumed = true;
         }
     } else if(event.type == SceneManagerEventTypeBack) {
-        if(dfc->credential->dirty) {
+        if(dfc->hardware_test_mode) {
+            // The host uploads a fresh fixture for every case. Never offer to
+            // persist commands issued by the reader into that fixture.
+            dfc_credential_clear_dirty(dfc->credential);
+        } else if(dfc->credential->dirty) {
             scene_manager_next_scene(dfc->scene_manager, DfcSceneMutationSave);
             consumed = true;
         } else if(dfc->emulate_from_blank) {
