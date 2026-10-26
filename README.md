@@ -37,11 +37,11 @@ encoding when it is loaded; a pre-compiled `.dfcb` file is also accepted.
 The Flipper build uses the full EV3 core profile, including EV1 and EV2
 commands. It includes D40 DES, ISO 3DES, AES and EV2 authentication, ISO 7816
 commands, and standard, backup, value, and record files. A credential can hold
-at most 4 applications, 16 files across the
-card, 3 KiB of file payload in total, 2 KiB in one file, and 512 bytes of key
-material. `.dfc` and `.dfcb` files are limited to 16 KiB on the Flipper. Large
-text credentials can exceed the available heap during on-device compilation;
-compile them to `.dfcb` on the host with `tests/compile_dfcb.py`.
+at most 2 applications, 8 files across the card, 8 keys per application or at
+the PICC level, 2 KiB of file payload in total, 1 KiB in one file, and 384 bytes
+of key material. `.dfc` and `.dfcb` files are limited to 16 KiB on the Flipper.
+Large text credentials can exceed the available heap during on-device
+compilation; compile them to `.dfcb` on the host with `tests/compile_dfcb.py`.
 
 The NFC listener supports a 64 byte ISO-DEP frame, 106 kbit/s, FWI 8 or
 greater, CID, and no NAD. The app rejects an ATS that advertises more than the
@@ -132,10 +132,11 @@ loaded apps; its heap is smaller after the firmware starts. The emulator
 allocates transaction snapshots and chained-command storage only when needed.
 Text loading releases the parser plugin and source before allocating its binary
 round-trip copy.
-With qFlipper screen streaming active, a four-application EV3 credential with
-3 KiB of file data loaded and answered a CCID reader; 4 KiB binary credentials
-could not be loaded reliably. Larger capacities need device measurements before
-enabling them.
+An earlier higher-capacity build loaded and answered a four-application EV3
+credential with 3 KiB of file data while qFlipper screen streaming was active;
+4 KiB binary credentials could not be loaded reliably. The reduced limits above
+preserve more heap for emulation. Larger capacities need device measurements
+before enabling them.
 
 
 ## License boundary

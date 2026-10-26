@@ -17,11 +17,12 @@ DFC_CDEFINES = [
     ("DFC_ENABLE_TEXT_CODEC", "1"),
     ("DFC_BUILD_PROFILE", "DFC_PROFILE_FULL_EV3"),
     ("DFC_ENABLE_STORAGE_8K", "0"),
-    ("DFC_MAX_APPS", "4"),
-    ("DFC_MAX_FILES", "16"),
-    ("DFC_FILE_POOL_SIZE", "3072"),
-    ("DFC_KEY_POOL_SIZE", "512"),
-    ("DFC_MAX_FILE_DATA", "2048"),
+    ("DFC_MAX_APPS", "2"),
+    ("DFC_MAX_FILES", "8"),
+    ("DFC_MAX_KEYS", "8"),
+    ("DFC_FILE_POOL_SIZE", "2048"),
+    ("DFC_KEY_POOL_SIZE", "384"),
+    ("DFC_MAX_FILE_DATA", "1024"),
 ]
 
 App(
