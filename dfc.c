@@ -228,6 +228,9 @@ void dfc_free(Dfc* dfc) {
     furi_record_close(RECORD_GUI);
     dfc->gui = NULL;
 
+    // A loader-forced shutdown can bypass the active scene's exit handler.
+    dfc_blink_stop(dfc);
+
     // Notifications
     furi_record_close(RECORD_NOTIFICATION);
     dfc->notifications = NULL;
