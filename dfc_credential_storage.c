@@ -321,7 +321,6 @@ static bool dfc_credential_file_load(
     DfcCredentialLoadStatus* status) {
     bool parsed = false;
     size_t raw_len = 0;
-    uint8_t* octets = NULL;
     DfcTextCodec codec = {0};
 
     if(status) *status = DfcCredentialLoadStatusMalformedFile;
@@ -332,11 +331,13 @@ static bool dfc_credential_file_load(
     dfc_log_memory("after credential read");
 
     do {
-        size_t octets_len = 0;
         if(raw[0] == DFC_BINARY_FIRST_OCTET) {
-            // Already the emulator's native input.
-            octets = raw;
-            octets_len = raw_len;
+            DfcDerStatus decoded = dfc_der_decode(credential, raw, raw_len);
+            if(decoded != DfcDerOk) {
+                FURI_LOG_E(TAG, "binary rejected: %s", dfc_der_status_name(decoded));
+                if(status) *status = dfc_credential_status_for(decoded);
+                break;
+            }
         } else {
             if(!dfc_text_codec_open(&codec, false)) {
                 if(status) *status = DfcCredentialLoadStatusCodecUnavailable;
@@ -356,38 +357,6 @@ static bool dfc_credential_file_load(
                 break;
             }
             dfc_text_codec_close(&codec);
-            size_t needed = 0;
-            DfcTextStatus size_status = dfc_der_encoded_size(credential, &needed);
-            if(size_status != DfcDerOk) {
-                if(status) *status = dfc_credential_status_for(size_status);
-                break;
-            }
-            // Parsing is finished. Keep the model, then release the source
-            // before allocating its binary round-trip copy.
-            free(raw);
-            raw = NULL;
-            dfc_log_memory("before encoded copy");
-            if(!dfc_credential_has_heap_for(needed, DFC_BINARY_LOAD_HEAP_RESERVE)) {
-                if(status) *status = DfcCredentialLoadStatusCapacity;
-                break;
-            }
-            octets = malloc(needed);
-            if(!octets) {
-                if(status) *status = DfcCredentialLoadStatusCapacity;
-                break;
-            }
-            DfcDerStatus encoded = dfc_der_encode(credential, octets, needed, &octets_len);
-            if(encoded != DfcDerOk) {
-                if(status) *status = dfc_credential_status_for(encoded);
-                break;
-            }
-        }
-
-        DfcDerStatus decoded = dfc_der_decode(credential, octets, octets_len);
-        if(decoded != DfcDerOk) {
-            FURI_LOG_E(TAG, "binary rejected: %s", dfc_der_status_name(decoded));
-            if(status) *status = dfc_credential_status_for(decoded);
-            break;
         }
         if(!dfc_desfire_uid_is_detectable(credential->uid, credential->uid_len)) break;
         if(!dfc_credential_picc_ats_is_consistent(credential)) {
@@ -407,7 +376,6 @@ static bool dfc_credential_file_load(
         if(status) *status = DfcCredentialLoadStatusOk;
     } while(false);
 
-    if(octets && octets != raw) free(octets);
     free(raw);
     dfc_text_codec_close(&codec);
     if(!parsed) dfc_credential_clear(credential);
