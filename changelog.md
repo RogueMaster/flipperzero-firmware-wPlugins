@@ -1,3 +1,7 @@
+## v1.8
+
+- Loading a non-RAW signal now offers a button picker for protocols that support custom buttons.
+
 ## v1.7
 
 - Add option to configure merge gap in range 1ms-1s.

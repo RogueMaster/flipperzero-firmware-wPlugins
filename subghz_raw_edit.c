@@ -1,5 +1,5 @@
 /*
- * Sub-GHz RAW Edit — a tiny waveform editor for Flipper Zero RAW .sub captures.
+ * Sub-GHz RAW Edit - a tiny waveform editor for Flipper Zero RAW .sub captures.
  * https://github.com/Lechnio/SubGHz-RAW-Edit
  */
 
@@ -16,10 +16,15 @@
 #include <gui/modules/variable_item_list.h>
 
 #include <lib/toolbox/level_duration.h>
+#include <lib/toolbox/stream/stream.h>
+#include <lib/toolbox/stream/file_stream.h>
 #include <lib/flipper_format/flipper_format.h>
+#include <lib/flipper_format/flipper_format_i.h>
 #include <lib/subghz/environment.h>
 #include <lib/subghz/transmitter.h>
+#include <lib/subghz/receiver.h>
 #include <lib/subghz/subghz_protocol_registry.h>
+#include <lib/subghz/blocks/custom_btn.h>
 
 #include "subghz_raw_edit_icons.h"
 
@@ -585,6 +590,172 @@ static size_t duration_samples(int32_t mag)
     return (mag > DUR_CLAMP) ? (size_t)((mag + DUR_CLAMP - 1) / DUR_CLAMP) : 1;
 }
 
+static FlipperFormat *fff_load_copy(Storage *storage, const char *path)
+{
+    FlipperFormat *fff = flipper_format_string_alloc();
+    if (!fff)
+        return NULL;
+
+    Stream *src = file_stream_alloc(storage);
+    bool ok = false;
+
+    if (file_stream_open(src, path, FSAM_READ, FSOM_OPEN_EXISTING))
+    {
+        Stream *dst = flipper_format_get_raw_stream(fff);
+        ok = stream_copy_full(src, dst) > 0;
+        stream_rewind(dst);
+    }
+
+    stream_free(src);
+
+    if (!ok)
+    {
+        flipper_format_free(fff);
+        return NULL;
+    }
+
+    return fff;
+}
+
+/* ---- Custom buttons ---------------------------------------------------- */
+
+#define BTN_SLOTS 5
+#define BTN_LABEL_LEN 20
+
+typedef struct
+{
+    bool available;
+    char protocol[32];
+    char label[BTN_SLOTS][BTN_LABEL_LEN];
+} BtnPick;
+
+static uint8_t g_custom_btn_id = SUBGHZ_CUSTOM_BTN_OK;
+
+static void btn_extract_label(const char *info, char *out, size_t outlen)
+{
+    out[0] = '\0';
+
+    const char *p = strstr(info, "Btn");
+    if (!p)
+        return;
+
+    const char *eol = p;
+    while (*eol && *eol != '\r' && *eol != '\n')
+        eol++;
+
+    const char *dash = strstr(p, " - ");
+    const char *start;
+
+    if (dash && dash < eol)
+    {
+        start = dash + 3;
+    }
+    else
+    {
+        start = strchr(p, ':');
+        if (!start || start > eol)
+            return;
+
+        start++;
+        while (*start == ' ')
+            start++;
+    }
+
+    size_t n = 0;
+
+    if (dash && dash < eol)
+    {
+        while (start[n] && start[n] != '\r' && start[n] != '\n' && n < outlen - 1)
+            n++;
+
+        memcpy(out, start, n);
+        out[n] = '\0';
+        return;
+    }
+
+    while (start[n] && start[n] != ' ' && start[n] != '\t' && start[n] != '\r' &&
+           start[n] != '\n' && n < outlen - 1)
+        n++;
+
+    if (n == 0)
+        return;
+
+    if (n >= 2 && start[0] == '0' && (start[1] == 'x' || start[1] == 'X'))
+        snprintf(out, outlen, "%.*s", (int)n, start);
+    else
+        snprintf(out, outlen, "0x%.*s", (int)n, start);
+}
+
+static void btn_probe(Storage *storage, const char *path, const char *protocol, BtnPick *out)
+{
+    memset(out, 0, sizeof(*out));
+    strncpy(out->protocol, protocol, sizeof(out->protocol) - 1);
+
+    SubGhzEnvironment *env = subghz_env_setup();
+    if (!env)
+        return;
+
+    if (strstr(protocol, "KeeLoq"))
+    {
+        subghz_environment_load_keystore(env, "/ext/subghz/assets/keeloq_mfcodes");
+        subghz_environment_load_keystore(env, "/ext/subghz/assets/keeloq_mfcodes_user");
+    }
+
+    SubGhzReceiver *rx = subghz_receiver_alloc_init(env);
+    SubGhzProtocolDecoderBase *dec =
+        rx ? subghz_receiver_search_decoder_base_by_name(rx, protocol) : NULL;
+
+    subghz_custom_btns_reset();
+
+    FuriString *info = furi_string_alloc();
+    int named = 0;
+
+    for (uint8_t slot = 0; slot < BTN_SLOTS; slot++)
+    {
+        if (slot > 0 && !subghz_custom_btn_set(slot))
+            continue;
+
+        FlipperFormat *fff = fff_load_copy(storage, path);
+        if (!fff)
+            break;
+
+        SubGhzTransmitter *tx = subghz_transmitter_alloc_init(env, protocol);
+        bool encoded = tx && subghz_transmitter_deserialize(tx, fff) == SubGhzProtocolStatusOk;
+
+        if (tx)
+            subghz_transmitter_free(tx);
+
+        if (slot == 0 && (!encoded || !subghz_custom_btn_is_allowed()))
+        {
+            flipper_format_free(fff);
+            break;
+        }
+
+        if (encoded && dec && flipper_format_rewind(fff) &&
+            subghz_protocol_decoder_base_deserialize(dec, fff) == SubGhzProtocolStatusOk)
+        {
+            furi_string_reset(info);
+            subghz_protocol_decoder_base_get_string(dec, info);
+            btn_extract_label(furi_string_get_cstr(info), out->label[slot], BTN_LABEL_LEN);
+        }
+
+        flipper_format_free(fff);
+
+        if (out->label[slot][0])
+            named++;
+    }
+
+    furi_string_free(info);
+
+    if (rx)
+        subghz_receiver_free(rx);
+
+    subghz_environment_free(env);
+
+    out->available = named > 1;
+    subghz_custom_btn_set(SUBGHZ_CUSTOM_BTN_OK);
+}
+
 static bool synthesize_via_transmitter(
     Storage *storage, const char *path, const char *protocol, SubData *sd)
 {
@@ -601,13 +772,33 @@ static bool synthesize_via_transmitter(
         subghz_environment_load_keystore(env, "/ext/subghz/assets/keeloq_mfcodes_user");
     }
 
-    FlipperFormat *fff = flipper_format_file_alloc(storage);
+    if (g_custom_btn_id != SUBGHZ_CUSTOM_BTN_OK)
+    {
+        subghz_custom_btns_reset();
+
+        FlipperFormat *prime = fff_load_copy(storage, path);
+        if (prime)
+        {
+            SubGhzTransmitter *ptx = subghz_transmitter_alloc_init(env, protocol);
+            if (ptx)
+            {
+                subghz_transmitter_deserialize(ptx, prime);
+                subghz_transmitter_free(ptx);
+            }
+
+            flipper_format_free(prime);
+        }
+
+        subghz_custom_btn_set(g_custom_btn_id);
+    }
+
+    FlipperFormat *fff = fff_load_copy(storage, path);
     SubGhzTransmitter *tx = NULL;
     bool ok = false;
 
     do
     {
-        if (!flipper_format_file_open_existing(fff, path))
+        if (!fff)
             break;
 
         tx = subghz_transmitter_alloc_init(env, protocol);
@@ -672,8 +863,9 @@ static bool synthesize_via_transmitter(
     if (tx)
         subghz_transmitter_free(tx);
 
-    flipper_format_file_close(fff);
-    flipper_format_free(fff);
+    if (fff)
+        flipper_format_free(fff);
+
     subghz_environment_free(env);
     return ok;
 }
@@ -1619,6 +1811,204 @@ static void input_cb(InputEvent *e, void *ctx)
     furi_message_queue_put(q, e, FuriWaitForever);
 }
 
+/* ---- Custom button picker UI ------------------------------------------- */
+
+static void btn_pick_fit(Canvas *c, const char *s, int maxw, char *out, size_t outlen)
+{
+    strncpy(out, s, outlen - 1);
+    out[outlen - 1] = '\0';
+
+    if (canvas_string_width(c, out) <= (size_t)maxw)
+        return;
+
+    size_t n = strlen(out);
+    while (n > 1)
+    {
+        out[--n] = '\0';
+
+        char tmp[BTN_LABEL_LEN + 8];
+        snprintf(tmp, sizeof(tmp), "%s..", out);
+        if (canvas_string_width(c, tmp) <= (size_t)maxw)
+        {
+            strncpy(out, tmp, outlen - 1);
+            out[outlen - 1] = '\0';
+            return;
+        }
+    }
+}
+
+static void btn_pick_draw_cb(Canvas *c, void *ctx)
+{
+    const BtnPick *bp = ctx;
+
+    canvas_clear(c);
+    canvas_set_font(c, FontSecondary);
+    canvas_draw_str(c, 0, 7, bp->protocol);
+    canvas_draw_str_aligned(c, 127, 7, AlignRight, AlignBottom, "Back: cancel");
+    canvas_draw_line(c, 0, 9, 127, 9);
+
+    const int cx = 21, cy = 38;
+
+    if (bp->label[SUBGHZ_CUSTOM_BTN_OK][0])
+        canvas_draw_circle(c, cx, cy, 5);
+
+    if (bp->label[SUBGHZ_CUSTOM_BTN_UP][0])
+        canvas_draw_triangle(c, cx, cy - 8, 9, 6, CanvasDirectionBottomToTop);
+
+    if (bp->label[SUBGHZ_CUSTOM_BTN_DOWN][0])
+        canvas_draw_triangle(c, cx, cy + 8, 9, 6, CanvasDirectionTopToBottom);
+
+    if (bp->label[SUBGHZ_CUSTOM_BTN_LEFT][0])
+        canvas_draw_triangle(c, cx - 8, cy, 9, 6, CanvasDirectionRightToLeft);
+
+    if (bp->label[SUBGHZ_CUSTOM_BTN_RIGHT][0])
+        canvas_draw_triangle(c, cx + 8, cy, 9, 6, CanvasDirectionLeftToRight);
+
+    static const uint8_t order[BTN_SLOTS] = {
+        SUBGHZ_CUSTOM_BTN_OK,
+        SUBGHZ_CUSTOM_BTN_UP,
+        SUBGHZ_CUSTOM_BTN_DOWN,
+        SUBGHZ_CUSTOM_BTN_LEFT,
+        SUBGHZ_CUSTOM_BTN_RIGHT,
+    };
+
+    for (int row = 0; row < BTN_SLOTS; row++)
+    {
+        uint8_t slot = order[row];
+        int y = 19 + row * 9;
+        int gx = 49, gy = y - 2;
+
+        switch (slot)
+        {
+        case SUBGHZ_CUSTOM_BTN_UP:
+            canvas_draw_triangle(c, gx, gy + 2, 5, 4, CanvasDirectionBottomToTop);
+            break;
+        case SUBGHZ_CUSTOM_BTN_DOWN:
+            canvas_draw_triangle(c, gx, gy - 2, 5, 4, CanvasDirectionTopToBottom);
+            break;
+        case SUBGHZ_CUSTOM_BTN_LEFT:
+            canvas_draw_triangle(c, gx + 2, gy, 5, 4, CanvasDirectionRightToLeft);
+            break;
+        case SUBGHZ_CUSTOM_BTN_RIGHT:
+            canvas_draw_triangle(c, gx - 2, gy, 5, 4, CanvasDirectionLeftToRight);
+            break;
+        default:
+            canvas_draw_disc(c, gx, gy, 2);
+            break;
+        }
+
+        char buf[BTN_LABEL_LEN + 4];
+        btn_pick_fit(c, bp->label[slot][0] ? bp->label[slot] : "-", 127 - 56, buf, sizeof(buf));
+        canvas_draw_str(c, 56, y, buf);
+    }
+}
+
+static int btn_pick_dialog(Gui *gui, const BtnPick *bp)
+{
+    ViewPort *vp = view_port_alloc();
+    FuriMessageQueue *q = furi_message_queue_alloc(8, sizeof(InputEvent));
+
+    view_port_draw_callback_set(vp, btn_pick_draw_cb, (void *)bp);
+    view_port_input_callback_set(vp, input_cb, q);
+    gui_add_view_port(gui, vp, GuiLayerFullscreen);
+    view_port_update(vp);
+
+    int sel = -1;
+    InputEvent e;
+
+    while (true)
+    {
+        if (furi_message_queue_get(q, &e, FuriWaitForever) != FuriStatusOk)
+            continue;
+
+        if (e.type != InputTypeShort && e.type != InputTypeLong)
+            continue;
+
+        if (e.key == InputKeyBack)
+            break;
+
+        uint8_t slot;
+        if (e.key == InputKeyOk)
+            slot = SUBGHZ_CUSTOM_BTN_OK;
+        else if (e.key == InputKeyUp)
+            slot = SUBGHZ_CUSTOM_BTN_UP;
+        else if (e.key == InputKeyDown)
+            slot = SUBGHZ_CUSTOM_BTN_DOWN;
+        else if (e.key == InputKeyLeft)
+            slot = SUBGHZ_CUSTOM_BTN_LEFT;
+        else if (e.key == InputKeyRight)
+            slot = SUBGHZ_CUSTOM_BTN_RIGHT;
+        else
+            continue;
+
+        if (!bp->label[slot][0])
+            continue;
+
+        sel = (int)slot;
+        break;
+    }
+
+    gui_remove_view_port(gui, vp);
+    view_port_free(vp);
+    furi_message_queue_free(q);
+    return sel;
+}
+
+static bool read_protocol(Storage *storage, const char *path, char *out, size_t outlen)
+{
+    File *f = storage_file_alloc(storage);
+    if (!storage_file_open(f, path, FSAM_READ, FSOM_OPEN_EXISTING))
+    {
+        storage_file_free(f);
+        return false;
+    }
+
+    LineReader lr = {.file = f, .len = 0, .pos = 0, .eof = false};
+    FuriString *line = furi_string_alloc();
+    uint32_t freq = 0;
+    char preset[48] = {0};
+
+    out[0] = '\0';
+    while (lr_read_line(&lr, line))
+    {
+        const char *s = furi_string_get_cstr(line);
+        if (strncmp(s, "RAW_Data:", 9) == 0)
+            break;
+
+        parse_sub_meta(s, &freq, preset, sizeof(preset), out, outlen);
+    }
+
+    furi_string_free(line);
+    storage_file_close(f);
+    storage_file_free(f);
+    return true;
+}
+
+static bool btn_select_for_file(Gui *gui, Storage *storage, const char *path)
+{
+    g_custom_btn_id = SUBGHZ_CUSTOM_BTN_OK;
+    subghz_custom_btns_reset();
+
+    char protocol[32] = {0};
+    if (!read_protocol(storage, path, protocol, sizeof(protocol)))
+        return true;
+
+    if (!protocol[0] || strcmp(protocol, "RAW") == 0)
+        return true;
+
+    BtnPick bp;
+    btn_probe(storage, path, protocol, &bp);
+    if (!bp.available)
+        return true;
+
+    int sel = btn_pick_dialog(gui, &bp);
+    if (sel < 0)
+        return false;
+
+    g_custom_btn_id = (uint8_t)sel;
+    return true;
+}
+
 static void zoom(App *a, bool in)
 {
     int32_t m = a->active ? a->marker_b : a->marker_a;
@@ -1985,6 +2375,13 @@ static void run_editor(Storage *storage, DialogsApp *dialogs)
     }
 
     Gui *gui = furi_record_open(RECORD_GUI);
+
+    if (!btn_select_for_file(gui, storage, furi_string_get_cstr(path)))
+    {
+        furi_record_close(RECORD_GUI);
+        goto cleanup;
+    }
+
     ViewPort *vp = view_port_alloc();
     FuriMessageQueue *queue = furi_message_queue_alloc(8, sizeof(InputEvent));
     view_port_draw_callback_set(vp, draw_cb, app);
@@ -2134,6 +2531,9 @@ static void run_merge(Storage *storage, DialogsApp *dialogs)
             continue;
         }
 
+        if (!btn_select_for_file(gui, storage, furi_string_get_cstr(path)))
+            continue;
+
         gui_add_view_port(gui, load_vp, GuiLayerFullscreen);
         view_port_update(load_vp);
         uint32_t f = freq;
@@ -2206,9 +2606,10 @@ static void run_merge(Storage *storage, DialogsApp *dialogs)
         if (plen > MERGE_PATH_LEN - 1)
             plen = MERGE_PATH_LEN - 1;
 
-        // Append <len_byte><path> to the packed buffer, growing if needed.
-        // +2 keeps room for this entry's len byte plus the final terminator.
-        size_t need = pused + 1 + plen + 1;
+        // Append <len_byte><path><btn_byte> to the packed buffer, growing if
+        // needed. +3 keeps room for this entry's len byte, the chosen custom
+        // button and the final terminator.
+        size_t need = pused + 1 + plen + 1 + 1;
         if (need > pcap)
         {
             size_t newcap = pcap;
@@ -2236,6 +2637,7 @@ static void run_merge(Storage *storage, DialogsApp *dialogs)
         pbuf[pused++] = (uint8_t)plen;
         memcpy(pbuf + pused, cstr, plen);
         pused += plen;
+        pbuf[pused++] = g_custom_btn_id;
         pbuf[pused] = 0;
 
         if (n == 0)
@@ -2292,6 +2694,7 @@ static void run_merge(Storage *storage, DialogsApp *dialogs)
         memcpy(pathbuf, pbuf + off, plen);
         pathbuf[plen] = '\0';
         off += plen;
+        g_custom_btn_id = pbuf[off++];
 
         SubData sig = {0};
         if (load_signal(storage, pathbuf, &sig) && sig.data)

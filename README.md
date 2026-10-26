@@ -53,6 +53,7 @@ visually, on the device.
 - **Load any .sub file.** Load any type of signal in .sub format.
 While RAW files are read directly in 1:1 mode, other signals first pass
 through an internal decoder, as the corresponding RAW data must be generated beforehand.
+The app lets you choose which custom button to use, if its protocol supports them.
 - **Auto-locates the signal.** On open it scans the whole capture, finds the
   longest clean burst (the most complete frame copy) and jumps the view there
   with the A/B markers already placed around it - no scrolling through empty
@@ -94,6 +95,11 @@ through an internal decoder, as the corresponding RAW data must be generated bef
 | Main menu | Config menu | Action menu |
 |:---:|:---:|:---:|
 | ![Main menu](docs/images/08-main-menu.png) | ![Config menu](docs/images/09-config-menu.png) | ![Action menu](docs/images/10-action-menu.png) |
+
+When loading any signal other than RAW, the app lets you choose which custom button to use, if its protocol supports them:
+| Full | Partial | Without defined names (raw hex) |
+|:---:|:---:|:---:|
+| ![Full](docs/images/11-cbtn-full.png) | ![Partial](docs/images/12-cbtn-partial.png) | ![Without defined names (raw hex)](docs/images/13-cbtn-hex.png) |
 
 ## Controls
 
