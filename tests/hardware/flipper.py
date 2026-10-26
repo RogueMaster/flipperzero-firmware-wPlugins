@@ -1,0 +1,118 @@
+"""Flipper deployment and CLI control using uFBT's storage transport."""
+
+import hashlib
+import importlib
+import re
+import sys
+import time
+from pathlib import Path
+
+
+TEST_DIRECTORY = "/ext/apps_data/dfc/.hardware-test"
+FAP_PATH = "/ext/apps/NFC/dfc.fap"
+MEMORY_PATTERN = re.compile(
+    rb"DfcMemory.*?free=(\d+) minimum=(\d+) largest=(\d+)", re.IGNORECASE
+)
+
+
+def _storage_type():
+    scripts = Path.home() / ".ufbt/current/scripts"
+    if not scripts.is_dir():
+        raise RuntimeError("uFBT SDK scripts were not found; run ufbt update")
+    for packages in (Path.home() / ".ufbt/toolchain").glob(
+        "*/lib/python*/site-packages"
+    ):
+        sys.path.insert(0, str(packages))
+    sys.path.insert(0, str(scripts))
+    return importlib.import_module("flipper.storage").FlipperStorage
+
+
+def detect_port(requested: str) -> str:
+    if requested != "auto":
+        return requested
+    from serial.tools import list_ports
+
+    matches = [
+        port.device
+        for port in list_ports.comports()
+        if port.vid == 0x0483 or "Flipper" in (port.description or "")
+    ]
+    if len(matches) != 1:
+        raise RuntimeError(f"expected one Flipper serial port, found {matches}")
+    return matches[0]
+
+
+class Flipper:
+    def __init__(self, port: str):
+        self.storage = _storage_type()(detect_port(port))
+        self.app_running = None
+
+    def __enter__(self):
+        self.storage.start()
+        return self
+
+    def __exit__(self, *_):
+        try:
+            self.close_app()
+        finally:
+            self.storage.stop()
+
+    def close_app(self) -> bytes:
+        if self.app_running is False:
+            return b""
+        for _ in range(10):
+            self.storage.send_and_wait_eol("loader close\r")
+            result = self.storage.read.until(self.storage.CLI_EOL)
+            if b"was closed" in result:
+                self.storage.read.until(self.storage.CLI_EOL)
+                time.sleep(0.2)
+                self.app_running = False
+                return result
+            if result.startswith(b"No application"):
+                self.storage.read.until(self.storage.CLI_EOL)
+                self.app_running = False
+                return result
+        raise RuntimeError(f"could not close app: {result.decode(errors='replace')}")
+
+    def prepare_directory(self) -> None:
+        if not self.storage.exist_dir(TEST_DIRECTORY):
+            self.storage.mkdir(TEST_DIRECTORY)
+
+    def upload_verified(self, local: Path, remote_name: str) -> str:
+        remote = f"{TEST_DIRECTORY}/{remote_name}"
+        self.storage.send_file(str(local), remote)
+        uploaded = bytes(self.storage.read_file(remote))
+        local_hash = hashlib.sha256(local.read_bytes()).hexdigest()
+        if hashlib.sha256(uploaded).hexdigest() != local_hash:
+            raise RuntimeError(f"upload verification failed for {remote}")
+        return remote
+
+    def launch_fixture(self, remote: str) -> bytes:
+        self.storage.send_and_wait_eol(
+            f'loader open "{FAP_PATH}" --hardware-test {remote}\r'
+        )
+        output = self.storage.read.until(self.storage.CLI_EOL)
+        if b"error" in output.lower() or b"failed" in output.lower():
+            raise RuntimeError(output.decode(errors="replace"))
+        self.app_running = True
+        return output
+
+    def drain_logs(self) -> bytes:
+        buffered = bytes(self.storage.read.buffer)
+        self.storage.read.buffer.clear()
+        waiting = self.storage.port.in_waiting
+        return buffered + (self.storage.port.read(waiting) if waiting else b"")
+
+    def memory_samples(self, data: bytes) -> list[dict[str, int]]:
+        return [
+            {"free": int(free), "minimum": int(minimum), "largest": int(largest)}
+            for free, minimum, largest in MEMORY_PATTERN.findall(data)
+        ]
+
+    def remove_fixture(self, remote: str) -> None:
+        if self.storage.exist_file(remote):
+            self.storage.remove(remote)
+
+    def cleanup(self) -> None:
+        if self.storage.exist_dir(TEST_DIRECTORY):
+            self.storage.remove(TEST_DIRECTORY)

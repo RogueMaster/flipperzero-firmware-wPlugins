@@ -1,3 +1,26 @@
+# Closed-loop hardware tests
+
+On macOS, connect the Flipper over USB and place it on an ACR1552. Quit
+qFlipper so the test can own the serial port, then run:
+
+```sh
+python3 tests/hardware/run_closed_loop.py --suite smoke
+```
+
+The command builds and installs the FAP, compiles and verifies each fixture,
+uploads it below `/ext/apps_data/dfc/.hardware-test/`, launches directly into
+emulation, exercises it through PC/SC, writes console, JSON, and JUnit results,
+then removes only that test directory. Use `--suite matrix` for the 1 KiB
+authenticated/MACed read plus the full 2 KiB plain-read capacity case.
+
+The default is 10 smoke cycles or 3 matrix cycles. `--cycles N` overrides the
+count. Timing data is recorded but is not gated until a physical baseline has
+been accepted. Output defaults to `artifacts/hardware/`.
+
+Prerequisites are uFBT, cryptography, an SD card, and a reader whose
+PC/SC name contains `ACR1552`. Use `--reader` and `--port` to override device
+selection. `--skip-deploy` reuses an already installed FAP.
+
 # Manual hardware test matrix
 
 ## Memory limit run

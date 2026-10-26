@@ -1,4 +1,5 @@
 dist
+artifacts/
 *.fap
 .vscode
 keys.txt
