@@ -143,6 +143,10 @@ def main() -> int:
                                 run["cases"].append(record)
                                 print_case(record)
                                 flipper.close_app()
+                                if remote and record["status"] == "passed":
+                                    record["hardware_profile"] = (
+                                        flipper.read_hardware_profile()
+                                    )
                                 memory["after"] = flipper.heap_snapshot()
                                 record["memory"] = memory
                                 if remote:

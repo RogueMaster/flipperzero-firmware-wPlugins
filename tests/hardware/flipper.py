@@ -10,6 +10,7 @@ from pathlib import Path
 
 TEST_DIRECTORY = "/ext/apps_data/dfc/.hardware-test"
 FAP_PATH = "/ext/apps/NFC/dfc.fap"
+PROFILE_PATH = f"{TEST_DIRECTORY}/profile.csv"
 MEMORY_PATTERN = re.compile(
     rb"DfcMemory.*?free=(\d+) minimum=(\d+) largest=(\d+)", re.IGNORECASE
 )
@@ -131,10 +132,38 @@ class Flipper:
         )
         return dict(zip(names, (int(value) for value in match.groups())))
 
+    def read_hardware_profile(self) -> dict[str, float]:
+        if not self.storage.exist_file(PROFILE_PATH):
+            raise RuntimeError("hardware timing profile was not written")
+        lines = bytes(self.storage.read_file(PROFILE_PATH)).decode().splitlines()
+        if len(lines) != 2:
+            raise RuntimeError("hardware timing profile is malformed")
+        names = lines[0].split(",")
+        values = [int(value) for value in lines[1].split(",")]
+        profile = dict(zip(names, values))
+        cycles_per_us = profile.pop("cycles_per_us")
+        result = {"cycles_per_us": cycles_per_us}
+        for prefix in (
+            "read_prepare",
+            "read_send",
+            "continuation_prepare",
+            "continuation_send",
+        ):
+            count = profile[f"{prefix}_count"]
+            result[f"{prefix}_count"] = count
+            result[f"{prefix}_mean_us"] = (
+                profile[f"{prefix}_total"] / count / cycles_per_us if count else 0.0
+            )
+            result[f"{prefix}_max_us"] = profile[f"{prefix}_max"] / cycles_per_us
+        return result
+
     def remove_fixture(self, remote: str) -> None:
         if self.storage.exist_file(remote):
             self.storage.remove(remote)
 
     def cleanup(self) -> None:
         if self.storage.exist_dir(TEST_DIRECTORY):
+            _, _, files = next(self.storage.walk(TEST_DIRECTORY))
+            for name in files:
+                self.storage.remove(f"{TEST_DIRECTORY}/{name}")
             self.storage.remove(TEST_DIRECTORY)

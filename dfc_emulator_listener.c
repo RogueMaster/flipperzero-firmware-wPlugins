@@ -16,6 +16,23 @@
 #define ISO14443_4A_NAD_MASK DFC_ISO14443_4A_NAD_MASK
 #define ISO_DEP_FRAME_MAX    62U // 64-byte FSC minus CRC_A
 
+static void dfc_hardware_timing_add(DfcHardwareTiming* timing, uint32_t cycles) {
+    timing->count++;
+    timing->total_cycles += cycles;
+    if(cycles > timing->max_cycles) timing->max_cycles = cycles;
+}
+
+static DfcHardwareTiming*
+    dfc_hardware_timing_for(Dfc* dfc, uint8_t command, bool read_continuation, bool send) {
+    if(command == DFC_CMD_READ_DATA) {
+        return send ? &dfc->hardware_read_send : &dfc->hardware_read_prepare;
+    }
+    if(read_continuation) {
+        return send ? &dfc->hardware_continuation_send : &dfc->hardware_continuation_prepare;
+    }
+    return NULL;
+}
+
 static void send_frame(
     Dfc* dfc,
     Iso14443_4aListener* iso14443_4a_listener,
@@ -25,11 +42,12 @@ static void send_frame(
         FURI_LOG_W(TAG, "Refusing invalid Tx frame length %u", (unsigned)length);
         return;
     }
-    BitBuffer* radio_buffer = bit_buffer_alloc(DFC_BYTEBUF_MAX);
+    BitBuffer* radio_buffer = dfc->radio_tx_buffer;
     if(!radio_buffer) {
         FURI_LOG_W(TAG, "Tx buffer allocation failed");
         return;
     }
+    bit_buffer_reset(radio_buffer);
     bit_buffer_append_bytes(radio_buffer, data, length);
 #if __has_include(<lib/nfc/protocols/type_4_tag/type_4_tag.h>)
     UNUSED(dfc);
@@ -45,7 +63,6 @@ static void send_frame(
         FURI_LOG_W(TAG, "Tx error: %d", error);
     }
 #endif
-    bit_buffer_free(radio_buffer);
 }
 
 #if __has_include(<lib/nfc/protocols/type_4_tag/type_4_tag.h>)
@@ -288,8 +305,19 @@ NfcCommand dfc_worker_listener_callback(NfcGenericEvent event, void* context) {
             native_apdu_len = scratch_len;
         }
 
+        const uint8_t hardware_command = native_apdu[0];
+        const bool hardware_read_continuation = hardware_command == DFC_CMD_ADDITIONAL_FRAME &&
+                                                dfc->hardware_read_chain_active;
+        const uint32_t hardware_prepare_start = DWT->CYCCNT;
         if(!dfc_emulator_handle_command(emulator, native_apdu, native_apdu_len, tx_buffer, dfc)) {
             view_dispatcher_send_custom_event(dfc->view_dispatcher, DfcCustomEventEmulate);
+        }
+        if(hardware_command == DFC_CMD_READ_DATA) {
+            dfc->hardware_read_chain_active = emulator->pending_chain_offset <
+                                              emulator->pending_chain_len;
+        } else if(hardware_read_continuation) {
+            dfc->hardware_read_chain_active = emulator->pending_chain_offset <
+                                              emulator->pending_chain_len;
         }
 
         if(iso_wrapped) {
@@ -310,7 +338,18 @@ NfcCommand dfc_worker_listener_callback(NfcGenericEvent event, void* context) {
             }
         }
 
+        if(dfc->hardware_test_mode) {
+            DfcHardwareTiming* timing =
+                dfc_hardware_timing_for(dfc, hardware_command, hardware_read_continuation, false);
+            if(timing) dfc_hardware_timing_add(timing, DWT->CYCCNT - hardware_prepare_start);
+        }
+        const uint32_t hardware_send_start = DWT->CYCCNT;
         send_i_response(dfc, iso14443_4a_listener, tx_buffer);
+        if(dfc->hardware_test_mode) {
+            DfcHardwareTiming* timing =
+                dfc_hardware_timing_for(dfc, hardware_command, hardware_read_continuation, true);
+            if(timing) dfc_hardware_timing_add(timing, DWT->CYCCNT - hardware_send_start);
+        }
         break;
     }
     case Iso14443_4aListenerEventTypeHalted:
@@ -322,6 +361,7 @@ NfcCommand dfc_worker_listener_callback(NfcGenericEvent event, void* context) {
         dfc->iso_dep_command_len = 0;
         dfc->iso_dep_response_offset = 0;
         dfc->iso_dep_cid_valid = false;
+        dfc->hardware_read_chain_active = false;
         view_dispatcher_send_custom_event(dfc->view_dispatcher, DfcCustomEventEmulate);
         FURI_LOG_I(TAG, "Halted");
         break;
@@ -334,6 +374,7 @@ NfcCommand dfc_worker_listener_callback(NfcGenericEvent event, void* context) {
         dfc->iso_dep_command_len = 0;
         dfc->iso_dep_response_offset = 0;
         dfc->iso_dep_cid_valid = false;
+        dfc->hardware_read_chain_active = false;
         view_dispatcher_send_custom_event(dfc->view_dispatcher, DfcCustomEventEmulate);
         FURI_LOG_I(TAG, "Field Off");
         break;

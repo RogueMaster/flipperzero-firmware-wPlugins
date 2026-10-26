@@ -1,12 +1,47 @@
 #include "dfc_i.h"
 #include <furi/core/memmgr.h>
-#ifdef DFC_MEMORY_PROBE
 #include <storage/storage.h>
-#endif
 
 #define TAG                         "Dfc"
 #define DFC_HARDWARE_TEST_ARGUMENT  "--hardware-test "
 #define DFC_HARDWARE_TEST_DIRECTORY "/ext/apps_data/dfc/.hardware-test/"
+#define DFC_HARDWARE_PROFILE_PATH   DFC_HARDWARE_TEST_DIRECTORY "profile.csv"
+
+static void dfc_hardware_profile_write(const Dfc* dfc) {
+    if(!dfc->hardware_test_mode) return;
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    File* file = storage_file_alloc(storage);
+    if(storage_file_open(file, DFC_HARDWARE_PROFILE_PATH, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
+        char row[512];
+        int length = snprintf(
+            row,
+            sizeof(row),
+            "cycles_per_us,read_prepare_count,read_prepare_total,read_prepare_max,"
+            "read_send_count,read_send_total,read_send_max,continuation_prepare_count,"
+            "continuation_prepare_total,continuation_prepare_max,continuation_send_count,"
+            "continuation_send_total,continuation_send_max\n"
+            "%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu\n",
+            (unsigned long)furi_hal_cortex_instructions_per_microsecond(),
+            (unsigned long)dfc->hardware_read_prepare.count,
+            (unsigned long)dfc->hardware_read_prepare.total_cycles,
+            (unsigned long)dfc->hardware_read_prepare.max_cycles,
+            (unsigned long)dfc->hardware_read_send.count,
+            (unsigned long)dfc->hardware_read_send.total_cycles,
+            (unsigned long)dfc->hardware_read_send.max_cycles,
+            (unsigned long)dfc->hardware_continuation_prepare.count,
+            (unsigned long)dfc->hardware_continuation_prepare.total_cycles,
+            (unsigned long)dfc->hardware_continuation_prepare.max_cycles,
+            (unsigned long)dfc->hardware_continuation_send.count,
+            (unsigned long)dfc->hardware_continuation_send.total_cycles,
+            (unsigned long)dfc->hardware_continuation_send.max_cycles);
+        if(length > 0 && (size_t)length < sizeof(row)) {
+            storage_file_write(file, row, (size_t)length);
+        }
+    }
+    storage_file_close(file);
+    storage_file_free(file);
+    furi_record_close(RECORD_STORAGE);
+}
 
 void dfc_log_memory(const char* stage) {
     size_t free_heap = memmgr_get_free_heap();
@@ -141,6 +176,13 @@ void dfc_free(Dfc* dfc) {
         nfc_poller_free(dfc->poller);
         dfc->poller = NULL;
     }
+
+    if(dfc->radio_tx_buffer) {
+        bit_buffer_free(dfc->radio_tx_buffer);
+        dfc->radio_tx_buffer = NULL;
+    }
+
+    dfc_hardware_profile_write(dfc);
 
     nfc_free(dfc->nfc);
 

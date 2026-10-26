@@ -15,7 +15,10 @@ authenticated/MACed read plus the full 2 KiB plain-read capacity case.
 
 The default is 10 smoke cycles or 3 matrix cycles. `--cycles N` overrides the
 count. Timing data is recorded but is not gated until a physical baseline has
-been accepted. Output defaults to `artifacts/hardware/`.
+been accepted. In hardware-test mode the JSON report also separates the
+initial ReadData preparation and transmission time from the preparation and
+transmission time of each ReadData continuation. Output defaults to
+`artifacts/hardware/`.
 
 Prerequisites are uFBT, cryptography, an SD card, and a reader whose
 PC/SC name contains `ACR1552`. Use `--reader` and `--port` to override device

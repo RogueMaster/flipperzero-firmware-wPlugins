@@ -51,6 +51,12 @@ enum DfcCustomEvent {
     DfcCustomEventFileRequested,
 };
 
+typedef struct {
+    uint32_t count;
+    uint32_t total_cycles;
+    uint32_t max_cycles;
+} DfcHardwareTiming;
+
 struct Dfc {
     bool is_debug_enabled;
     ViewDispatcher* view_dispatcher;
@@ -81,6 +87,7 @@ struct Dfc {
     // NFC
     DfcEmulator* dfc_emulator;
     DfcReader* dfc_reader;
+    BitBuffer* radio_tx_buffer;
     bool iso_dep_last_response_valid;
     uint8_t iso_dep_expected_pcd_block;
     uint8_t iso_dep_picc_block;
@@ -101,6 +108,11 @@ struct Dfc {
     // A host-driven hardware test owns the fixture lifecycle. Mutations must
     // remain in memory so a test can never overwrite its source fixture.
     bool hardware_test_mode;
+    DfcHardwareTiming hardware_read_prepare;
+    DfcHardwareTiming hardware_read_send;
+    DfcHardwareTiming hardware_continuation_prepare;
+    DfcHardwareTiming hardware_continuation_send;
+    bool hardware_read_chain_active;
 };
 
 typedef enum {
