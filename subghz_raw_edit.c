@@ -2699,6 +2699,8 @@ static void run_merge(Storage *storage, DialogsApp *dialogs)
         SubData sig = {0};
         if (load_signal(storage, pathbuf, &sig) && sig.data)
         {
+            app->sd.synthesized |= sig.synthesized;
+
             for (int r = 0; r < g_merge_repeat; r++)
             {
                 MergeJoin join = (i == 0 && r == 0) ? MergeJoinNone
