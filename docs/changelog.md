@@ -1,3 +1,6 @@
+v0.8:
+- New catalog screenshots, saved straight from qFlipper
+
 v0.7:
 - Dreams at nap time: fourteen little animations, from her cats to the occasional nightmare
 - A dream journal under Home, with every dream written up and replayable
