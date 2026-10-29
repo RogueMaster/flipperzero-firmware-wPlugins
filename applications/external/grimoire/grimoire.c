@@ -579,8 +579,20 @@ static void wand_stop(App* app) {
     sound_quiet(app);
 }
 
-// Sends the hour, blocking for about a third of a second. False where the region forbids it.
+// True when the user's region allows transmitting on the selected frequency.
+static const char* wand_region_name(void) {
+    const char* name = furi_hal_region_get_name();
+    return (name && name[0]) ? name : "??";
+}
+
+static bool wand_tx_allowed(const App* app) {
+    return furi_hal_region_is_frequency_allowed(wand_freqs[app->wand_freq]);
+}
+
+// Sends the hour, blocking for about a third of a second. False, without transmitting,
+// where the user's region does not allow the selected frequency.
 static bool wand_send(App* app, bool answer) {
+    if(!wand_tx_allowed(app)) return false;
     WandMessage m = {
         .answer = answer,
         .planet = app->hour_known ? app->hour.planet : PlanetSun,
@@ -594,6 +606,7 @@ static bool wand_send(App* app, bool answer) {
     furi_hal_subghz_set_frequency_and_path(wand_freqs[app->wand_freq]);
     bool ok = furi_hal_subghz_start_async_tx(wand_tx_yield, app);
     if(ok) {
+        // start_async_tx refuses on its own too; this is only reached when allowed
         // a sweep up for a blessing, down for an answer, while the frames go out
         for(int i = 0; i < 80 && !furi_hal_subghz_is_async_tx_complete(); i++) {
             sound_tone(app, answer ? 1500.0f - i * 12.0f : 400.0f + i * 14.0f, 0.3f);
@@ -659,7 +672,11 @@ static void wand_step(App* app) {
     }
     if(app->wand_answer_due && app->wand_state == WandReceived && app->wand_left <= 20) {
         app->wand_answer_due = false;
-        wand_send(app, true);
+        if(!wand_send(app, true)) {
+            // the region does not allow answering here: say so instead
+            app->wand_state = WandRefused;
+            app->wand_left = 60;
+        }
     }
     if(app->wand_left && --app->wand_left == 0) {
         if(app->wand_state == WandWaiting) {
@@ -1056,8 +1073,16 @@ static void draw_wand(Canvas* canvas, App* app) {
         canvas_draw_str(canvas, 2, 48, "answering it");
         break;
     case WandRefused:
-        canvas_draw_str(canvas, 2, 24, "the region forbids");
-        canvas_draw_str(canvas, 2, 36, "sending here");
+        snprintf(
+            buf,
+            sizeof(buf),
+            "%lu.%02lu MHz not allowed",
+            wand_freqs[app->wand_freq] / 1000000,
+            (wand_freqs[app->wand_freq] / 10000) % 100);
+        canvas_draw_str(canvas, 2, 24, buf);
+        snprintf(buf, sizeof(buf), "in region %s", wand_region_name());
+        canvas_draw_str(canvas, 2, 36, buf);
+        canvas_draw_str(canvas, 2, 48, "nothing was sent");
         break;
     default:
         snprintf(
@@ -1071,7 +1096,12 @@ static void draw_wand(Canvas* canvas, App* app) {
             canvas_draw_str(canvas, 2, 36, "last:");
             canvas_draw_str(canvas, 26, 36, who);
         }
-        canvas_draw_str(canvas, 2, 48, "OK: cast a blessing");
+        if(wand_tx_allowed(app)) {
+            canvas_draw_str(canvas, 2, 48, "OK: cast a blessing");
+        } else {
+            snprintf(buf, sizeof(buf), "receive only in %s", wand_region_name());
+            canvas_draw_str(canvas, 2, 48, buf);
+        }
         break;
     }
 }

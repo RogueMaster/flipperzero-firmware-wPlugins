@@ -102,6 +102,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [WiFi Marauder v0.8.0 (By 0xchocolate & tcpassos)](https://github.com/0xchocolate/flipperzero-wifi-marauder)
 - Added: [SSH Runner v0.2 (By SeanChangX)](https://github.com/SeanChangX/flipper-ssh-runner) `Req: ESP32-S3 + W5500 with SSH Runner firmware`
 - Updated: [RF Survey v1.3 - optional lab source maintenance; RX build unchanged (By tbelbek)](https://github.com/tbelbek/flipper-rf-survey)
+- Updated: [Grimoire v0.1 - region-aware wand refusal feedback (By rseufert)](https://github.com/rseufert/grimoire)
+- Updated: [T5577 v1.1 - Sniff Password, user dictionary and read/restore fixes (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/commit/2cbad71c92e7482e7752f5ecb570c18b2d1a2c75)
 
 <a name="release"></a>
 
@@ -1009,7 +1011,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Survival Manual v1.0 (By Radiomanrf)](https://github.com/Radiomanrf/Survival_manual)
 - [SWD Probe v1.4 (By g3gg0)](https://github.com/g3gg0/flipper-swd_probe)
 - [T-Union Master (China) v0.1 (By SocialSisterYi)](https://github.com/SocialSisterYi/T-Union_Master)
-- [T5577 v1.0 (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/commit/1672f7c54d146114d7ecdb57043661f9456dd292) (.t5577 ext incompatible to T5577 Raw Writer)
+- [T5577 v1.1 (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/commit/1672f7c54d146114d7ecdb57043661f9456dd292) (.t5577 ext incompatible to T5577 Raw Writer)
 - [T5577 Multiwriter v0.3 (By Leptopt1los)](https://github.com/Leptopt1los/t5577_multiwriter)
 - [T5577 Raw Writer v1.1 (By zinongli)](https://github.com/zinongli/T5577_Raw_Writer) (.t5577 ext incompatible to T5577)
 - [TagTinker v2.1 (By i12bp8)](https://github.com/i12bp8/TagTinker)
