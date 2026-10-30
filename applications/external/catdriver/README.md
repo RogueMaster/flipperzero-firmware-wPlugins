@@ -13,6 +13,7 @@
   <a href="https://github.com/EVL87/catwardrive/releases/tag/v1.0"><img src="https://img.shields.io/badge/Release-v1.0-orange.svg" alt="Release v1.0"></a>
   <a href="https://github.com/EVL87/catwardrive/blob/FlipperZeroApps/LICENSE"><img src="https://img.shields.io/badge/License-GPL--3.0-blue.svg" alt="License"></a>
   <a href="https://github.com/flipperdevices/flipper-application-catalog/pull/1362"><img src="https://img.shields.io/badge/Flipper%20Lab-PR%20%231362-yellow.svg" alt="Flipper Lab PR"></a>
+  <a href="https://github.com/Next-Flip/Momentum-Apps/pull/89"><img src="https://img.shields.io/badge/Momentum%20Apps-PR%20%2389-purple.svg" alt="Momentum Apps PR"></a>
 </p>
 
 ---
