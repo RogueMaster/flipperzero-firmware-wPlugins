@@ -1,3 +1,6 @@
+v0.4:
+- New catalog screenshots, saved straight from qFlipper
+
 v0.3:
 - Umbrella: Back then a direction shoves a neighbouring enemy back and stuns it
 - Slingshot: won from Sasquatch, fires pebbles in a straight line
