@@ -89,7 +89,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Nyx v1.2 (By at0m-b0mb)](https://github.com/at0m-b0mb/Nyx-FlipperZero)
 - Updated: [Dooya custom buttons (By Lechnio; ported by xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/5178d39cf0413443d4834557277ec5c3bf2f954d)
 - Added: [Telecrane Control v1.1 (By nmatt0)](https://github.com/nmatt0/telecrane-contol)
-- Updated: [WiFi Marauder v0.7.12 - Marauder v1.20 CLI sync (By justcallmekoko)](https://github.com/0xchocolate/flipperzero-wifi-marauder)
 - Updated: [Archive and file-browser icon copy, sorting, and selection fixes (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/a23fea8740ed8bcfc6fe31feee5451340fefacba)
 - Updated: [Delete-dialog layout and text-box line spacing (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/33514cb3ce1b5ba47dc4d2821c1b2f7e7e8fe415)
 - ESP Flasher: [Comes with Marauder v1.20.0 (By justcallmekoko)](https://github.com/justcallmekoko/ESP32Marauder/releases/tag/v1.20.0)
