@@ -13,6 +13,32 @@ After the download copy the `.fap` file onto your flipper in the folder
 `apps/Tools`. Then create in the `apps_data` folder the subfolder 
 `qrcode_generator` to open existing QRCodes or to save it on the sdcard.
 
+## Firmware Compatibility
+
+This application supports building against the official Flipper Zero
+firmware SDK and Momentum Firmware.
+
+### Official Firmware
+
+Build normally using the official SDK:
+
+```sh
+ufbt
+```
+
+### Momentum Firmware
+
+When building against the Momentum SDK, enable extended keyboard symbols with:
+
+```sh
+ufbt --extra-define=QRCODE_MOMENTUM_BUILD
+```
+This enables additional characters such as `:`, `/`, `\`, and `?`, allowing URLs to be entered directly into the QR code generator.
+
+The `QRCODE_MOMENTUM_BUILD` flag must be explicitly enabled when building against the Momentum SDK. Without it, the original keyboard behavior is preserved.
+
+This feature relies on a Momentum-specific API that is not available in the official Flipper firmware SDK.
+
 ## Features
 - Generating QRCodes based on the entered input
 - Open QRCodes which are saved on the sdcard

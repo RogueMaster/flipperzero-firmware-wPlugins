@@ -257,6 +257,9 @@ void qrcode_input_scene_on_enter(void* context) {
     App* app = context;
     bool clear_text = true;
     text_input_reset(app->text_input);
+
+    text_input_show_illegal_symbols(app->text_input, true);
+
     text_input_set_header_text(app->text_input, "Enter text");
     text_input_set_result_callback(
         app->text_input,
