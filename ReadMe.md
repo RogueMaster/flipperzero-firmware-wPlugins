@@ -104,6 +104,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [RF Survey v1.3 - optional lab source maintenance; RX build unchanged (By tbelbek)](https://github.com/tbelbek/flipper-rf-survey)
 - Updated: [Grimoire v0.1 - region-aware wand refusal feedback (By rseufert)](https://github.com/rseufert/grimoire)
 - Updated: [T5577 v1.1 - Sniff Password, user dictionary and read/restore fixes (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/commit/2cbad71c92e7482e7752f5ecb570c18b2d1a2c75)
+- Updated: [Yulias Cats v0.8 (By rseufert)](https://github.com/rseufert/yulia_cats)
 
 <a name="release"></a>
 
@@ -407,7 +408,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Wolfenduino v1.0 (By apfxtech)](https://github.com/apfxtech/FlipperWolfenstein)
 - [Yappy Invaders (By dagnazty)](https://github.com/dagnazty/Yappy_Invaders)
 - [Yatzee v1.2 (By emfleak)](https://github.com/emfleak/flipperzero-yatzee)
-- [Yulias Cats v0.7 (By rseufert)](https://github.com/rseufert/yulia_cats)
+- [Yulias Cats v0.8 (By rseufert)](https://github.com/rseufert/yulia_cats)
 - [Zero v1.4 (By Racso)](https://github.com/Racso/fzero-apps)
 - [Zombiez v1.3 (Reworked By DevMilanIan)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/pull/240)
 
