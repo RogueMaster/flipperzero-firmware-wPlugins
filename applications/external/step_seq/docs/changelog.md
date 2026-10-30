@@ -1,3 +1,6 @@
+v0.3:
+- New catalog screenshots, saved straight from qFlipper
+
 v0.2:
 - Song mode: chain patterns into a song of up to 16 places
 - Note lengths: short, or held for 2 to 8 steps

@@ -104,7 +104,9 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [RF Survey v1.3 - optional lab source maintenance; RX build unchanged (By tbelbek)](https://github.com/tbelbek/flipper-rf-survey)
 - Updated: [Grimoire v0.1 - region-aware wand refusal feedback (By rseufert)](https://github.com/rseufert/grimoire)
 - Updated: [T5577 v1.1 - Sniff Password, user dictionary and read/restore fixes (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/commit/2cbad71c92e7482e7752f5ecb570c18b2d1a2c75)
-- Updated: [Yulias Cats v0.8 (By rseufert)](https://github.com/rseufert/yulia_cats)
+- Updated: [Yulias Cats v0.8 - version and catalog documentation refresh (By rseufert)](https://github.com/rseufert/yulia_cats)
+- Updated: [NW Crawl v0.4 - version and catalog documentation refresh (By rseufert)](https://github.com/rseufert/nw_crawl)
+- Updated: [Step Seq v0.3 - version and catalog documentation refresh (By rseufert)](https://github.com/rseufert/step_seq)
 
 <a name="release"></a>
 
@@ -336,7 +338,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Nah 2 da Nah Nah Nah v0.2 (By DigiMancer3D)](https://github.com/DigiMancer3D/nah2nah3)
 - [Network Defender v1.1 (By w84death)](https://github.com/w84death/flipper-zero-apps)
 - [Nu Pogodi! (Ну, погоди!) v1.3 (By sionyx)](https://github.com/sionyx/flipper_nupogodi)
-- [NW Crawl v0.3 (By rseufert)](https://github.com/rseufert/nw_crawl)
+- [NW Crawl v0.4 (By rseufert)](https://github.com/rseufert/nw_crawl)
 - [Oregon Trail v0.1 (By jlaughter)](https://github.com/jlaughter/flipper_oregon_trail)
 - [P1X Adventure v0.1 (By w84death)](https://github.com/w84death/flipper-zero-apps)
 - [P1X Your Own Adventure v0.1 (By w84death)](https://github.com/w84death/flipper-zero-apps)
@@ -990,7 +992,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [SSD1306 Test v1.1 (By martinbogo)](https://github.com/martinbogo/ssd1306_test) `Req: SSD1306`
 - [SSH Runner v0.2 (By SeanChangX)](https://github.com/SeanChangX/flipper-ssh-runner) `Req: ESP32-S3 + W5500 with SSH Runner firmware`
 - [Staff Time Clock v2.16 (By vladpereverzyev)](https://github.com/vladpereverzyev/flipper-staff-time-clock)
-- [Step Seq v0.2 (By rseufert)](https://github.com/rseufert/step_seq)
+- [Step Seq v0.3 (By rseufert)](https://github.com/rseufert/step_seq)
 - [Stopwatch v1.0 (By bergr22)](https://github.com/bergr22/Stopwatch-Flipper)
 - [StroboMeter v1.1 (By LeanderJDev)](https://github.com/LeanderJDev/FlipperStroboMeterApp)
 - [Sub Analyzer v1.0 (By RocketGod)](https://github.com/RocketGod-git/Flipper-Zero-SUB-Analyzer)
