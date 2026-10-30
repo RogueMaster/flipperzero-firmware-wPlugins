@@ -1,0 +1,13 @@
+{
+  "name": "CatDriver ESP32-S3 Firmware",
+  "version": "1.0",
+  "new_install_prompt_erase": false,
+  "builds": [
+    {
+      "chipFamily": "ESP32-S3",
+      "parts": [
+        { "path": "firmware/catdriver_esp32_merged.bin", "offset": 0 }
+      ]
+    }
+  ]
+}

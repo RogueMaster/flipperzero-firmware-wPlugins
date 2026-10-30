@@ -99,14 +99,15 @@ Si utilizas la aplicación **ESP Flasher** de Flipper Zero ([0xchocolate/flipper
 
 ---
 
-### Opción 2: Flasheo desde el Navegador (Marauder Web Flasher)
-Puedes flashear la tarjeta directamente desde tu PC usando el instalador web oficial:
+### Opción 2: Flasheo en 1 Clic desde el Navegador (CatDriver Web Flasher)
+Puedes flashear tu módulo ESP32-S3 directamente desde Google Chrome o Microsoft Edge usando nuestro instalador oficial hosteado en GitHub Pages:
 
-1. Ingresa a: [**Marauder Web Installer**](https://justcallmekoko.github.io/MarauderInstaller/)
-2. Conecta la placa ESP32-S3 a tu PC mediante USB-C en modo Bootloader.
-3. Elige la opción **Custom** para cargar un binario personalizado.
-4. Selecciona el archivo binario compilado [`firmware/build/sketch.ino.bin`](firmware/build/sketch.ino.bin) o la imagen fusionada [`firmware/build/sketch.ino.merged.bin`](firmware/build/sketch.ino.merged.bin).
-5. Haz clic en **Program** y espera a que termine.
+👉 **[Abrir CatDriver Web Installer](https://evl87.github.io/catwardrive/)**
+
+1. Conecta la placa ESP32-S3 a tu PC mediante USB-C (con los 5V activos en el Flipper si tu placa no se autoalimenta).
+2. Haz clic en **Flashear CatDriver ESP32-S3**.
+3. Selecciona el puerto serie COM de la placa y listo: el instalador flasheará automáticamente el binario más reciente del repositorio en offset `0x0`.
+4. *(Opcional)* Incluye monitor serial integrado en el navegador para verificar la respuesta inmediatamente.
 
 ---
 

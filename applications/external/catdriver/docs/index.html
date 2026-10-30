@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CatDriver ESP32-S3 Web Flasher | Flipper Zero Wardriving</title>
+  <link rel="icon" href="https://raw.githubusercontent.com/EVL87/catwardrive/FlipperZeroApps/fap/lookingglass.png">
+  <style>
+    :root {
+      --bg-dark: #0f1115;
+      --card-bg: #181b21;
+      --border: #282c34;
+      --flipper-orange: #ff8200;
+      --flipper-orange-hover: #e67500;
+      --text-main: #f0f3f6;
+      --text-muted: #8b949e;
+      --success: #2ea043;
+      --danger: #da3633;
+      --info: #58a6ff;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      padding: 24px;
+      line-height: 1.5;
+    }
+
+    .container {
+      max-width: 860px;
+      margin: 0 auto;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo-badge {
+      background: var(--flipper-orange);
+      color: #000;
+      font-weight: 900;
+      font-size: 20px;
+      padding: 8px 16px;
+      border-radius: 8px;
+      letter-spacing: 1px;
+    }
+
+    h1 {
+      font-size: 24px;
+      font-weight: 700;
+    }
+
+    p.subtitle {
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    .alert {
+      background: rgba(255, 130, 0, 0.1);
+      border-left: 4px solid var(--flipper-orange);
+      padding: 14px 18px;
+      border-radius: 6px;
+      margin-bottom: 20px;
+      font-size: 14px;
+    }
+
+    .alert strong {
+      color: var(--flipper-orange);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 24px;
+    }
+
+    .card h2 {
+      font-size: 18px;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--flipper-orange);
+    }
+
+    ol.steps {
+      padding-left: 22px;
+      font-size: 14px;
+      color: var(--text-main);
+    }
+
+    ol.steps li {
+      margin-bottom: 8px;
+    }
+
+    .flasher-box {
+      background: #111418;
+      border: 2px dashed var(--border);
+      border-radius: 12px;
+      padding: 30px;
+      text-align: center;
+      margin: 20px 0;
+    }
+
+    .flasher-box h3 {
+      font-size: 18px;
+      margin-bottom: 8px;
+    }
+
+    .flasher-box p {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+    }
+
+    /* Style the ESP Web Tools button */
+    esp-web-install-button {
+      display: inline-block;
+    }
+
+    esp-web-install-button::part(button),
+    .btn-custom-action {
+      background: var(--flipper-orange);
+      color: #000;
+      font-weight: 700;
+      font-size: 16px;
+      padding: 14px 28px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      transition: all 0.2s;
+    }
+
+    esp-web-install-button::part(button):hover,
+    .btn-custom-action:hover {
+      background: var(--flipper-orange-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 15px rgba(255, 130, 0, 0.4);
+    }
+
+    .source-options {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .radio-card {
+      flex: 1;
+      background: #111418;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      transition: border-color 0.2s;
+    }
+
+    .radio-card.active {
+      border-color: var(--flipper-orange);
+      background: rgba(255, 130, 0, 0.05);
+    }
+
+    .radio-card input[type="radio"] {
+      margin-top: 3px;
+      accent-color: var(--flipper-orange);
+    }
+
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 14px;
+      text-align: left;
+    }
+
+    label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    input[type="text"], input[type="file"] {
+      background: #181b21;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text-main);
+      padding: 10px 12px;
+      font-size: 14px;
+      outline: none;
+      width: 100%;
+    }
+
+    input[type="text"]:focus {
+      border-color: var(--flipper-orange);
+    }
+
+    .status-msg {
+      margin-top: 15px;
+      font-size: 13px;
+      color: var(--info);
+      font-weight: 500;
+    }
+
+    #serialMonitorBox {
+      margin-top: 24px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+    }
+
+    #terminal {
+      background: #090a0d;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+      font-family: "Consolas", "Courier New", monospace;
+      font-size: 13px;
+      color: #5af78e;
+      height: 220px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+      margin-top: 12px;
+    }
+
+    .btn-secondary {
+      background: #2b303c;
+      color: var(--text-main);
+      font-weight: 600;
+      border: none;
+      padding: 9px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    .btn-secondary:hover {
+      background: #393f4e;
+    }
+  </style>
+
+  <!-- Official ESP Web Tools library used by Marauder Installer -->
+  <script
+    type="module"
+    src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"
+  ></script>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="logo-badge">🐾 CATDRIVER</div>
+      <div>
+        <h1>CatDriver ESP32-S3 Web Installer</h1>
+        <p class="subtitle">Flasheador oficial en el navegador para Flipper Zero Wardriving Add-On (ESP32-S3 + GPS)</p>
+      </div>
+    </header>
+
+    <div class="alert">
+      <strong>⚠️ REQUISITO ELÉCTRICO DE TU SETUP:</strong><br>
+      La placa <em>Marauder Add-On V1.1 de Electronic Cats</em> <strong>no se energiza sola por su conector USB-C</strong>.<br>
+      Debe estar conectada físicamente al Flipper Zero con los 5V activos (<code>Settings &gt; GPIO &gt; 5V on GPIO &gt; ON</code>).<br>
+      El cable USB-C debe ir conectado <strong>directamente a la placa ESP32-S3 add-on</strong> (no al puerto del Flipper).
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h2>🛠️ Selección de Firmware</h2>
+
+        <div class="source-options">
+          <label class="radio-card active" id="cardPreset">
+            <input type="radio" name="firmwareSource" value="preset" checked>
+            <div>
+              <strong>Firmware Oficial CatDriver v1.0</strong>
+              <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+                Binario completo más reciente del repositorio (Wi-Fi + BLE + comando info).
+              </div>
+            </div>
+          </label>
+
+          <label class="radio-card" id="cardCustom">
+            <input type="radio" name="firmwareSource" value="custom">
+            <div>
+              <strong>Firmware Personalizado (.bin)</strong>
+              <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+                Cargar tu propio binario compilado desde Arduino IDE.
+              </div>
+            </div>
+          </label>
+        </div>
+
+        <div id="customFileSection" style="display: none; margin-bottom: 16px;">
+          <div class="field-group">
+            <label>Seleccionar archivo binario (.bin)</label>
+            <input type="file" id="customFile" accept=".bin">
+          </div>
+          <div class="field-group">
+            <label>Offset de memoria flash</label>
+            <input type="text" id="customOffset" value="0x0" placeholder="0x0 para binario completo, o 0x10000 para app">
+          </div>
+        </div>
+
+        <div class="flasher-box">
+          <h3>⚡ Instalación en 1 Clic</h3>
+          <p id="flasherDesc">Haz clic abajo, selecciona el puerto COM de tu ESP32-S3 y se flasheará automáticamente.</p>
+
+          <esp-web-install-button id="installerBtn" manifest="manifest.json">
+            <button slot="activate" class="btn-custom-action">🔥 Flashear CatDriver ESP32-S3</button>
+            <span slot="unsupported">⚠️ Tu navegador no soporta Web Serial. Usa Google Chrome o Microsoft Edge.</span>
+            <span slot="not-allowed">⚠️ Permiso para puerto serial cancelado o no otorgado.</span>
+          </esp-web-install-button>
+
+          <div class="status-msg" id="statusMsg">Listo para flashear el firmware oficial de CatDriver.</div>
+        </div>
+      </div>
+
+      <div class="card" id="serialMonitorBox">
+        <h2>📡 Monitor Serial (Prueba post-flasheo)</h2>
+        <p style="font-size: 13px; color: var(--text-muted);">
+          Una vez terminado el flasheo, puedes abrir el monitor serial a 115200 bps o enviar el comando <code>info</code> para verificar la respuesta del microcontrolador.
+        </p>
+
+        <div style="margin-top: 14px; display: flex; gap: 10px;">
+          <button id="btnOpenMonitor" class="btn-secondary">🔌 Abrir Monitor Serial (115200)</button>
+          <button id="btnCloseMonitor" class="btn-secondary" style="display: none;">⏹️ Cerrar Monitor</button>
+          <button id="btnClearTerminal" class="btn-secondary" style="margin-left: auto;">Limpiar</button>
+        </div>
+
+        <div id="terminal">Presiona "Abrir Monitor Serial" tras flashear para inspeccionar los paquetes...</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const installerBtn = document.getElementById("installerBtn");
+    const cardPreset = document.getElementById("cardPreset");
+    const cardCustom = document.getElementById("cardCustom");
+    const customFileSection = document.getElementById("customFileSection");
+    const customFileInput = document.getElementById("customFile");
+    const customOffsetInput = document.getElementById("customOffset");
+    const statusMsg = document.getElementById("statusMsg");
+    const flasherDesc = document.getElementById("flasherDesc");
+
+    // Toggle between preset and custom binary
+    document.querySelectorAll("input[name='firmwareSource']").forEach(radio => {
+      radio.addEventListener("change", (e) => {
+        if (e.target.value === "preset") {
+          cardPreset.classList.add("active");
+          cardCustom.classList.remove("active");
+          customFileSection.style.display = "none";
+          installerBtn.manifest = "manifest.json";
+          flasherDesc.innerText = "Flasheará el binario oficial optimizado de CatDriver para tu ESP32-S3.";
+          statusMsg.innerText = "Listo con firmware pre-empaquetado oficial.";
+        } else {
+          cardPreset.classList.remove("active");
+          cardCustom.classList.add("active");
+          customFileSection.style.display = "block";
+          flasherDesc.innerText = "Selecciona tu archivo .bin compilado para generar el manifiesto.";
+          updateCustomManifest();
+        }
+      });
+    });
+
+    customFileInput.addEventListener("change", updateCustomManifest);
+    customOffsetInput.addEventListener("input", updateCustomManifest);
+
+    function updateCustomManifest() {
+      if (!customFileInput.files.length) {
+        statusMsg.innerText = "Selecciona un archivo .bin para habilitar el flasheo.";
+        return;
+      }
+
+      const file = customFileInput.files[0];
+      const offsetVal = parseInt(customOffsetInput.value.trim(), 16) || 0;
+      const blobUrl = URL.createObjectURL(file);
+
+      const dynamicManifest = {
+        name: "CatDriver ESP32 Custom",
+        version: "Custom",
+        new_install_prompt_erase: false,
+        builds: [
+          {
+            chipFamily: "ESP32-S3",
+            parts: [{ path: blobUrl, offset: offsetVal }]
+          },
+          {
+            chipFamily: "ESP32-S2",
+            parts: [{ path: blobUrl, offset: offsetVal }]
+          },
+          {
+            chipFamily: "ESP32",
+            parts: [{ path: blobUrl, offset: offsetVal }]
+          }
+        ]
+      };
+
+      const manifestBlob = new Blob([JSON.stringify(dynamicManifest)], { type: "application/json" });
+      const manifestUrl = URL.createObjectURL(manifestBlob);
+      installerBtn.manifest = manifestUrl;
+
+      statusMsg.innerText = `Listo para flashear "${file.name}" (${file.size} bytes) en offset 0x${offsetVal.toString(16)}.`;
+    }
+
+    // Serial Monitor implementation
+    let monitorPort = null;
+    let monitorReader = null;
+    let isMonitoring = false;
+    const btnOpen = document.getElementById("btnOpenMonitor");
+    const btnClose = document.getElementById("btnCloseMonitor");
+    const btnClear = document.getElementById("btnClearTerminal");
+    const terminal = document.getElementById("terminal");
+
+    btnClear.addEventListener("click", () => {
+      terminal.innerText = "";
+    });
+
+    btnOpen.addEventListener("click", async () => {
+      if (!navigator.serial) {
+        alert("Web Serial no es soportado en este navegador.");
+        return;
+      }
+
+      try {
+        monitorPort = await navigator.serial.requestPort();
+        await monitorPort.open({ baudRate: 115200 });
+
+        isMonitoring = true;
+        btnOpen.style.display = "none";
+        btnClose.style.display = "inline-block";
+        terminal.innerText += "\n--- Puerto Serial Conectado a 115200 bps ---\n";
+
+        readSerialLoop();
+      } catch (err) {
+        alert("Error al abrir puerto serial: " + err.message);
+      }
+    });
+
+    btnClose.addEventListener("click", async () => {
+      if (monitorReader) {
+        await monitorReader.cancel();
+      }
+      if (monitorPort) {
+        await monitorPort.close();
+      }
+      isMonitoring = false;
+      btnOpen.style.display = "inline-block";
+      btnClose.style.display = "none";
+      terminal.innerText += "\n--- Puerto Serial Desconectado ---\n";
+    });
+
+    async function readSerialLoop() {
+      const textDecoder = new TextDecoderStream();
+      const readableStreamClosed = monitorPort.readable.pipeTo(textDecoder.writable);
+      monitorReader = textDecoder.readable.getReader();
+
+      try {
+        while (isMonitoring) {
+          const { value, done } = await monitorReader.read();
+          if (done) break;
+          if (value) {
+            terminal.innerText += value;
+            terminal.scrollTop = terminal.scrollHeight;
+          }
+        }
+      } catch (err) {
+        console.warn("Lectura finalizada:", err);
+      } finally {
+        monitorReader.releaseLock();
+      }
+    }
+  </script>
+</body>
+</html>
