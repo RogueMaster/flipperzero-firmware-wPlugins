@@ -258,6 +258,8 @@ void checkSerialCommands() {
     } else if (cmd == "MODE,STOP" || cmd == "MODE,IDLE") {
       currentMode = MODE_IDLE;
       esp_wifi_set_promiscuous(false);
+    } else if (cmd == "info" || cmd == "INFO" || cmd == "MODE,INFO") {
+      Serial.println("INFO,CatDriver ESP32-S3 FW v1.0,WiFi+BLE");
     }
   }
 }
