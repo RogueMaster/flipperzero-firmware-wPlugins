@@ -4,9 +4,7 @@
 #include <gui/gui.h>
 #include <gui/elements.h>
 #include <notification/notification_messages.h>
-#include <assets_icons.h>
 #include <toolbox/stream/file_stream.h>
-#include <cfw/cfw.h>
 
 #include "helpers/minmea.h"
 #include "catdriver_icons.h"
@@ -50,6 +48,7 @@ typedef enum {
     VIEW_SETTINGS,
     VIEW_ABOUT,
     VIEW_GPS,
+    VIEW_ESP_INFO,
 } ViewState;
 
 typedef struct {
@@ -119,7 +118,16 @@ typedef struct {
     ViewState view_state;
     uint8_t about_page; // 0, 1, 2
     GpsData gps_data;
+
+    uint8_t settings_selected_index; // 0: Language, 1: ESP Info, 2: GPS Info
+    ViewState return_from_gps_view;
+    char esp_version_info[64];
+    bool esp_info_received;
+    uint32_t esp_query_tick;
+    uint8_t esp_scroll_offset;
 } Context;
+
+void catdriver_query_esp_info(Context* ctx);
 
 void save_batch_file(Context* ctx);
 void catdriver_set_scan_mode(Context* ctx, ScanMode mode);

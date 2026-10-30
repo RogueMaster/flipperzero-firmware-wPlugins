@@ -107,6 +107,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Yulias Cats v0.8 - version and catalog documentation refresh (By rseufert)](https://github.com/rseufert/yulia_cats)
 - Updated: [NW Crawl v0.4 - version and catalog documentation refresh (By rseufert)](https://github.com/rseufert/nw_crawl)
 - Updated: [Step Seq v0.3 - version and catalog documentation refresh (By rseufert)](https://github.com/rseufert/step_seq)
+- Updated: [CatDriver v1.0 - author settings, ESP32 info and GPS status updates (By EVL87)](https://github.com/EVL87/catwardrive)
 
 <a name="release"></a>
 

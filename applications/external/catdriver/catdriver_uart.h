@@ -1,5 +1,6 @@
 #pragma once
 #include "catdriver.h"
+#include <cfw/cfw.h>
 
 #define UART_CH_ESP (cfw_settings.uart_esp_channel)
 #define UART_CH_GPS (cfw_settings.uart_nmea_channel)

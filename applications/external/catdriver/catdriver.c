@@ -33,7 +33,7 @@ void save_batch_file(Context* ctx) {
         FuriString* hdr = furi_string_alloc();
         furi_string_printf(
             hdr,
-            "WigleWifi-1.4,appRelease=v2.1,model=CatDriver,release=RMFW,Flipper Zero,,CatDriver,ElectronicCats\r\n"
+            "WigleWifi-1.4,appRelease=v1.0,model=CatDriver,release=1.0,Flipper Zero,,CatDriver,ElectronicCats\r\n"
             "MAC,SSID,AuthMode,FirstSeen,Channel,RSSI,CurrentLatitude,CurrentLongitude,AltitudeMeters,AccuracyMeters,Type\r\n");
         storage_file_write(file, furi_string_get_cstr(hdr), furi_string_size(hdr));
         furi_string_free(hdr);
@@ -306,42 +306,127 @@ static void draw_menu_screen(Canvas* canvas, Context* ctx) {
 
 static void draw_settings_screen(Canvas* canvas, Context* ctx) {
     canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str(canvas, 0, 10, (ctx->language == LangES) ? "Ajustes" : "Settings");
+    canvas_draw_str(canvas, 2, 10, (ctx->language == LangES) ? "Ajustes" : "Settings");
+    canvas_draw_line(canvas, 0, 12, 127, 12);
 
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str(canvas, 0, 21, (ctx->language == LangES) ? "Idioma:" : "Language:");
 
-    // Two buttons: [English] [Espanol] - taller (h=20) with perfectly centered text
-    uint8_t en_x = 8, en_y = 25, en_w = 52, en_h = 20;
-    uint8_t es_x = 68, es_y = 25, es_w = 52, es_h = 20;
+    const char* items_en[3] = {"Language", "ESP32 Info", "GPS Info"};
+    const char* items_es[3] = {"Idioma", "Info de ESP32", "Info de GPS"};
 
-    canvas_set_font(canvas, FontPrimary);
+    uint8_t y_start = 15;
+    uint8_t row_h = 14;
 
-    if(ctx->language == LangEN) {
-        canvas_set_color(canvas, ColorBlack);
-        canvas_draw_rbox(canvas, en_x, en_y, en_w, en_h, 3);
-        canvas_set_color(canvas, ColorWhite);
-        canvas_draw_str_aligned(
-            canvas, en_x + en_w / 2, en_y + en_h / 2, AlignCenter, AlignCenter, "English");
+    for(uint8_t i = 0; i < 3; i++) {
+        uint8_t y = y_start + i * (row_h + 2);
+        bool selected = (ctx->settings_selected_index == i);
 
-        canvas_set_color(canvas, ColorBlack);
-        canvas_draw_rframe(canvas, es_x, es_y, es_w, es_h, 3);
-        canvas_draw_str_aligned(
-            canvas, es_x + es_w / 2, es_y + es_h / 2, AlignCenter, AlignCenter, "Espanol");
-    } else {
-        canvas_set_color(canvas, ColorBlack);
-        canvas_draw_rframe(canvas, en_x, en_y, en_w, en_h, 3);
-        canvas_draw_str_aligned(
-            canvas, en_x + en_w / 2, en_y + en_h / 2, AlignCenter, AlignCenter, "English");
+        if(selected) {
+            canvas_set_color(canvas, ColorBlack);
+            canvas_draw_rbox(canvas, 1, y, 126, row_h, 2);
+            canvas_set_color(canvas, ColorWhite);
+        } else {
+            canvas_set_color(canvas, ColorBlack);
+        }
 
-        canvas_draw_rbox(canvas, es_x, es_y, es_w, es_h, 3);
-        canvas_set_color(canvas, ColorWhite);
-        canvas_draw_str_aligned(
-            canvas, es_x + es_w / 2, es_y + es_h / 2, AlignCenter, AlignCenter, "Espanol");
-        canvas_set_color(canvas, ColorBlack);
+        const char* label = (ctx->language == LangES) ? items_es[i] : items_en[i];
+        canvas_draw_str(canvas, 6, y + 10, label);
+
+        if(i == 0) {
+            const char* val = (ctx->language == LangES) ? "< Espanol >" : "< English >";
+            canvas_draw_str_aligned(canvas, 122, y + 10, AlignRight, AlignBottom, val);
+        } else {
+            canvas_draw_str_aligned(canvas, 122, y + 10, AlignRight, AlignBottom, ">");
+        }
     }
 
-    elements_button_left(canvas, (ctx->language == LangES) ? "Volver" : "Back");
+    canvas_set_color(canvas, ColorBlack);
+}
+
+static void draw_esp_info_screen(Canvas* canvas, Context* ctx) {
+    canvas_set_font(canvas, FontPrimary);
+    canvas_draw_str(canvas, 2, 10, "ESP32 Info");
+    canvas_set_font(canvas, FontSecondary);
+    canvas_draw_str_aligned(canvas, 126, 10, AlignRight, AlignBottom, "[OK: Retry]");
+    canvas_draw_line(canvas, 0, 12, 127, 12);
+
+    if(ctx->esp_info_received && strlen(ctx->esp_version_info) > 0) {
+        char all_lines[6][64];
+        const char* info = ctx->esp_version_info;
+        const char* comma = strchr(info, ',');
+
+        if(comma) {
+            size_t l1 = comma - info;
+            if(l1 > 24) l1 = 24;
+            snprintf(all_lines[0], sizeof(all_lines[0]), "FW: %.*s", (int)l1, info);
+            while(*comma == ',' || *comma == ' ')
+                comma++;
+            snprintf(all_lines[1], sizeof(all_lines[1]), "   %.24s", comma);
+        } else {
+            snprintf(all_lines[0], sizeof(all_lines[0]), "FW: %.24s", info);
+            all_lines[1][0] = '\0';
+        }
+
+        if(all_lines[1][0] == '\0') {
+            snprintf(all_lines[1], sizeof(all_lines[1]), "   WiFi 2.4GHz + BLE");
+        }
+        snprintf(all_lines[2], sizeof(all_lines[2]), "Port: USART");
+        snprintf(all_lines[3], sizeof(all_lines[3]), "Pins: 13 (TX), 14 (RX)");
+        snprintf(all_lines[4], sizeof(all_lines[4]), "Speed: 115200 baud");
+        snprintf(all_lines[5], sizeof(all_lines[5]), "Status: Connected [OK]");
+
+        uint8_t total_items = 6;
+        uint8_t visible_items = 4;
+        uint8_t max_scroll = (total_items > visible_items) ? (total_items - visible_items) : 0;
+        if(ctx->esp_scroll_offset > max_scroll) ctx->esp_scroll_offset = max_scroll;
+
+        uint8_t y_start = 24;
+        uint8_t row_h = 11;
+
+        for(uint8_t i = 0; i < visible_items; i++) {
+            uint8_t idx = ctx->esp_scroll_offset + i;
+            if(idx < total_items) {
+                uint8_t y = y_start + i * row_h;
+                canvas_draw_str(canvas, 2, y, all_lines[idx]);
+            }
+        }
+
+        if(ctx->esp_scroll_offset > 0) {
+            canvas_draw_str(canvas, 122, 22, "^");
+        }
+        if(ctx->esp_scroll_offset < max_scroll) {
+            canvas_draw_str(canvas, 122, 58, "v");
+        }
+    } else {
+        uint32_t elapsed = furi_get_tick() - ctx->esp_query_tick;
+        if(elapsed < 2500) {
+            canvas_draw_str(
+                canvas,
+                2,
+                28,
+                (ctx->language == LangES) ? "Consultando modulo ESP32..." :
+                                            "Querying ESP32 module...");
+            canvas_draw_str(
+                canvas,
+                2,
+                42,
+                (ctx->language == LangES) ? "Esperando respuesta serial..." :
+                                            "Waiting for serial reply...");
+        } else {
+            canvas_draw_str(
+                canvas,
+                2,
+                24,
+                (ctx->language == LangES) ? "Sin respuesta del ESP32!" : "No reply from ESP32!");
+            canvas_draw_str(canvas, 2, 36, "Check Pins 13(TX)/14(RX)");
+            canvas_draw_str(
+                canvas,
+                2,
+                48,
+                (ctx->language == LangES) ? "Pulsa OK para reintentar" :
+                                            "Press OK to retry query");
+        }
+    }
 }
 
 static void draw_about_screen(Canvas* canvas, Context* ctx) {
@@ -497,19 +582,19 @@ static void draw_gps_screen(Canvas* canvas, Context* ctx) {
 
     if(UART_CH_ESP == UART_CH_GPS) {
         canvas_draw_str(canvas, 0, 10, "GPS channel invalid!");
-        canvas_draw_str(canvas, 0, 20, "Change UART channel");
-        canvas_draw_str(canvas, 0, 30, "in CFW app");
+        canvas_draw_str(canvas, 0, 20, "UART conflict detected");
     } else {
+        // Left side telemetry
         furi_string_printf(
             string, "%f", isnan(ctx->gps_data.latitude) ? 0 : (double)ctx->gps_data.latitude);
         canvas_draw_str(canvas, 0, 10, furi_string_get_cstr(string));
 
         furi_string_printf(
             string, "%f", isnan(ctx->gps_data.longitude) ? 0 : (double)ctx->gps_data.longitude);
-        canvas_draw_str(canvas, 0, 20, furi_string_get_cstr(string));
+        canvas_draw_str(canvas, 0, 21, furi_string_get_cstr(string));
 
         furi_string_printf(string, "%d sats", ctx->gps_data.satelites);
-        canvas_draw_str(canvas, 0, 30, furi_string_get_cstr(string));
+        canvas_draw_str(canvas, 0, 32, furi_string_get_cstr(string));
 
         furi_string_printf(
             string,
@@ -517,12 +602,29 @@ static void draw_gps_screen(Canvas* canvas, Context* ctx) {
             ctx->gps_data.hour,
             ctx->gps_data.minute,
             ctx->gps_data.second);
-        canvas_draw_str(canvas, 0, 40, furi_string_get_cstr(string));
-        canvas_draw_str(canvas, 70, 10, "GPS DATA");
-    }
+        canvas_draw_str(canvas, 0, 43, furi_string_get_cstr(string));
 
-    elements_button_left(canvas, (ctx->language == LangES) ? "Volver" : "Back");
-    canvas_draw_icon(canvas, 82, 20, &I_WarningDolphinFlip_45x42);
+        // Right side: Header and Status badge underneath it
+        canvas_draw_str_aligned(canvas, 98, 11, AlignCenter, AlignBottom, "GPS DATA");
+
+        canvas_set_font(canvas, FontSecondary);
+        bool has_fix =
+            (ctx->gps_data.satelites >= 3 && !isnan(ctx->gps_data.latitude) &&
+             ctx->gps_data.latitude != 0.0f);
+        if(has_fix) {
+            canvas_set_color(canvas, ColorBlack);
+            canvas_draw_rbox(canvas, 72, 15, 52, 14, 2);
+            canvas_set_color(canvas, ColorWhite);
+            canvas_draw_str_aligned(canvas, 98, 22, AlignCenter, AlignCenter, "FIX READY");
+            canvas_set_color(canvas, ColorBlack);
+        } else {
+            canvas_draw_rframe(canvas, 72, 15, 52, 14, 2);
+            canvas_draw_str_aligned(canvas, 98, 22, AlignCenter, AlignCenter, "NO FIX");
+        }
+
+        canvas_draw_str_aligned(canvas, 98, 41, AlignCenter, AlignBottom, "Pins: 15, 16");
+        canvas_draw_str_aligned(canvas, 98, 52, AlignCenter, AlignBottom, "9600 baud");
+    }
 
     furi_string_free(string);
 }
@@ -546,6 +648,9 @@ static void render_callback(Canvas* canvas, void* context) {
         break;
     case VIEW_GPS:
         draw_gps_screen(canvas, ctx);
+        break;
+    case VIEW_ESP_INFO:
+        draw_esp_info_screen(canvas, ctx);
         break;
     }
 
@@ -622,7 +727,10 @@ int32_t catdriver_app() {
                     } else if(ctx->view_state == VIEW_ABOUT) {
                         ctx->view_state = VIEW_MENU;
                     } else if(ctx->view_state == VIEW_GPS) {
-                        ctx->view_state = VIEW_SCAN;
+                        ctx->view_state = ctx->return_from_gps_view ? ctx->return_from_gps_view :
+                                                                      VIEW_SCAN;
+                    } else if(ctx->view_state == VIEW_ESP_INFO) {
+                        ctx->view_state = VIEW_SETTINGS;
                     }
                 } else if(event.input.type == InputTypeLong && event.input.key == InputKeyBack) {
                     if(ctx->view_state == VIEW_MENU) {
@@ -697,10 +805,61 @@ int32_t catdriver_app() {
                             }
                         }
                     } else if(ctx->view_state == VIEW_SETTINGS) {
-                        if(event.input.key == InputKeyLeft) {
-                            ctx->language = LangEN;
-                        } else if(event.input.key == InputKeyRight) {
-                            ctx->language = LangES;
+                        if(event.input.key == InputKeyUp) {
+                            if(ctx->settings_selected_index > 0) {
+                                ctx->settings_selected_index--;
+                            } else {
+                                ctx->settings_selected_index = 2;
+                            }
+                        } else if(event.input.key == InputKeyDown) {
+                            if(ctx->settings_selected_index < 2) {
+                                ctx->settings_selected_index++;
+                            } else {
+                                ctx->settings_selected_index = 0;
+                            }
+                        } else if(event.input.key == InputKeyLeft || event.input.key == InputKeyRight) {
+                            if(ctx->settings_selected_index == 0) {
+                                ctx->language = (ctx->language == LangEN) ? LangES : LangEN;
+                            } else if(event.input.key == InputKeyRight) {
+                                if(ctx->settings_selected_index == 1) {
+                                    ctx->esp_scroll_offset = 0;
+                                    catdriver_query_esp_info(ctx);
+                                    ctx->view_state = VIEW_ESP_INFO;
+                                } else if(ctx->settings_selected_index == 2) {
+                                    ctx->return_from_gps_view = VIEW_SETTINGS;
+                                    ctx->view_state = VIEW_GPS;
+                                }
+                            }
+                        } else if(event.input.key == InputKeyOk) {
+                            if(ctx->settings_selected_index == 0) {
+                                ctx->language = (ctx->language == LangEN) ? LangES : LangEN;
+                            } else if(ctx->settings_selected_index == 1) {
+                                catdriver_query_esp_info(ctx);
+                                ctx->view_state = VIEW_ESP_INFO;
+                            } else if(ctx->settings_selected_index == 2) {
+                                ctx->return_from_gps_view = VIEW_SETTINGS;
+                                ctx->view_state = VIEW_GPS;
+                            }
+                        }
+                    } else if(ctx->view_state == VIEW_ESP_INFO) {
+                        if(event.input.key == InputKeyDown) {
+                            if(ctx->esp_scroll_offset < 2) {
+                                ctx->esp_scroll_offset++;
+                            }
+                        } else if(event.input.key == InputKeyUp) {
+                            if(ctx->esp_scroll_offset > 0) {
+                                ctx->esp_scroll_offset--;
+                            }
+                        } else if(event.input.key == InputKeyOk || event.input.key == InputKeyRight) {
+                            ctx->esp_scroll_offset = 0;
+                            catdriver_query_esp_info(ctx);
+                        } else if(event.input.key == InputKeyLeft) {
+                            ctx->view_state = VIEW_SETTINGS;
+                        }
+                    } else if(ctx->view_state == VIEW_GPS) {
+                        if(event.input.key == InputKeyLeft || event.input.key == InputKeyOk) {
+                            ctx->view_state =
+                                ctx->return_from_gps_view ? ctx->return_from_gps_view : VIEW_SCAN;
                         }
                     } else if(ctx->view_state == VIEW_ABOUT) {
                         if(event.input.key == InputKeyRight) {
@@ -742,6 +901,7 @@ int32_t catdriver_app() {
                                 ctx->pressedButton = true;
                             }
                         } else if(event.input.key == InputKeyLeft) {
+                            ctx->return_from_gps_view = VIEW_SCAN;
                             ctx->view_state = VIEW_GPS;
                         } else if(event.input.key == InputKeyOk) {
                             // Mode is NOT switched here! Reset manual scroll lock to track latest live AP

@@ -39,8 +39,45 @@ void catdriver_stop_scan(Context* ctx) {
     }
 }
 
+void catdriver_query_esp_info(Context* ctx) {
+    ctx->esp_info_received = false;
+    ctx->esp_version_info[0] = '\0';
+    ctx->esp_query_tick = furi_get_tick();
+    const char* cmd = "info\n";
+    if(ctx->serial_handle_esp) {
+        furi_hal_serial_tx(ctx->serial_handle_esp, (const uint8_t*)cmd, strlen(cmd));
+    }
+}
+
+static char* split_csv_token(char** cursor) {
+    if(!cursor || !*cursor) return NULL;
+    char* token = *cursor;
+    char* delim = strchr(token, ',');
+    if(delim) {
+        *delim = '\0';
+        *cursor = delim + 1;
+    } else {
+        *cursor = NULL;
+    }
+    return token;
+}
+
 static void uart_parse_esp(void* context, char* line) {
     Context* ctx = context;
+
+    if(!line || strlen(line) == 0) return;
+
+    if(strncmp(line, "INFO,", 5) == 0) {
+        strncpy(ctx->esp_version_info, line + 5, sizeof(ctx->esp_version_info) - 1);
+        ctx->esp_version_info[sizeof(ctx->esp_version_info) - 1] = '\0';
+        ctx->esp_info_received = true;
+        return;
+    } else if(strstr(line, "Marauder") != NULL || strstr(line, "CatDriver") != NULL) {
+        strncpy(ctx->esp_version_info, line, sizeof(ctx->esp_version_info) - 1);
+        ctx->esp_version_info[sizeof(ctx->esp_version_info) - 1] = '\0';
+        ctx->esp_info_received = true;
+        return;
+    }
 
     AccessPoint ap;
     memset(&ap, 0, sizeof(AccessPoint));
@@ -50,7 +87,8 @@ static void uart_parse_esp(void* context, char* line) {
     Packet pkt;
     memset(&pkt, 0, sizeof(Packet));
 
-    char* token = strtok(line, ",");
+    char* cursor = line;
+    char* token = split_csv_token(&cursor);
     int i = 0;
     bool isAp = false;
     bool isBle = false;
@@ -113,7 +151,7 @@ static void uart_parse_esp(void* context, char* line) {
             break;
         }
 
-        token = strtok(NULL, ",");
+        token = split_csv_token(&cursor);
         i++;
     }
 
