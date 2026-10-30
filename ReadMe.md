@@ -108,6 +108,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [NW Crawl v0.4 - version and catalog documentation refresh (By rseufert)](https://github.com/rseufert/nw_crawl)
 - Updated: [Step Seq v0.3 - version and catalog documentation refresh (By rseufert)](https://github.com/rseufert/step_seq)
 - Updated: [CatDriver v1.0 - author settings, ESP32 info and GPS status updates (By EVL87)](https://github.com/EVL87/catwardrive)
+- OFW: NFC: [Fixed: Ultralight READ/WRITE now reject a starting page equal to the page count (By Kostya4ki)](https://github.com/flipperdevices/flipperzero-firmware/pull/4483)
 
 <a name="release"></a>
 
