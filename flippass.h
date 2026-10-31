@@ -12,6 +12,7 @@
 #include "scenes/flippass_scene.h"
 #include <flipper_format/flipper_format.h>
 #include <flipper_application/flipper_application.h>
+#include <flipper_application/plugins/composite_resolver.h>
 #include <furi.h>
 #include <furi_hal.h>
 #include <gui/gui.h>
@@ -37,64 +38,68 @@
 #define FLIPPASS_ENABLE_SYSTEM_TRACE_CAPTURE_EFFECTIVE \
     (FLIPPASS_ENABLE_LOGS && FLIPPASS_ENABLE_SYSTEM_TRACE_CAPTURE)
 
-#define FLIPPASS_CONFIG_FILE_PATH EXT_PATH("apps_data/flippass/flippass.conf")
-#define FLIPPASS_LOG_FILE_PATH    EXT_PATH("apps_data/flippass/flippass.log")
-#define FLIPPASS_DEBUG_UNLOCK_FILE_PATH EXT_PATH("apps_data/flippass/debug_unlock.txt")
-#define FLIPPASS_DEBUG_CREATE_FILE_PATH EXT_PATH("apps_data/flippass/debug_empty_create.kdbx")
-#define FLIPPASS_DEBUG_SAVE_TRIGGER_FILE_PATH EXT_PATH("apps_data/flippass/debug_save.txt")
-#define FLIPPASS_SYSTEM_LOG_FILE_PATH EXT_PATH("apps_data/flippass/system_trace.log")
-#define FLIPPASS_SYSTEM_LOG_ENABLE_FILE_PATH EXT_PATH("apps_data/flippass/system_trace.enable")
-#define FLIPPASS_BADUSB_LAYOUT_DIR     EXT_PATH("badusb/assets/layouts")
-#define FLIPPASS_BADUSB_LAYOUT_EXT     ".kl"
-#define FLIPPASS_BADUSB_SETTINGS_FILE_PATH EXT_PATH("badusb/.badusb.settings")
+#define FLIPPASS_CONFIG_FILE_PATH               EXT_PATH("apps_data/flippass/flippass.conf")
+#define FLIPPASS_LOG_FILE_PATH                  EXT_PATH("apps_data/flippass/flippass.log")
+#define FLIPPASS_DEBUG_UNLOCK_FILE_PATH         EXT_PATH("apps_data/flippass/debug_unlock.txt")
+#define FLIPPASS_DEBUG_CREATE_FILE_PATH         EXT_PATH("apps_data/flippass/debug_empty_create.kdbx")
+#define FLIPPASS_DEBUG_SAVE_TRIGGER_FILE_PATH   EXT_PATH("apps_data/flippass/debug_save.txt")
+#define FLIPPASS_SYSTEM_LOG_FILE_PATH           EXT_PATH("apps_data/flippass/system_trace.log")
+#define FLIPPASS_SYSTEM_LOG_ENABLE_FILE_PATH    EXT_PATH("apps_data/flippass/system_trace.enable")
+#define FLIPPASS_BADUSB_LAYOUT_DIR              EXT_PATH("badusb/assets/layouts")
+#define FLIPPASS_BADUSB_LAYOUT_EXT              ".kl"
+#define FLIPPASS_BADUSB_SETTINGS_FILE_PATH      EXT_PATH("badusb/.badusb.settings")
 #define FLIPPASS_BADUSB_SETTINGS_DEFAULT_LAYOUT FLIPPASS_BADUSB_LAYOUT_DIR "/en-US.kl"
-#define FLIPPASS_KEYBOARD_LAYOUT_ALT   "alt-numpad"
-#define FLIPPASS_KEYBOARD_LAYOUT_PATH_SIZE 96U
-#define FLIPPASS_DEFAULT_IDLE_LOCK_MINUTES 3U
-#define FLIPPASS_DEFAULT_IDLE_EXIT_MINUTES 15U
-#define FLIPPASS_DEFAULT_IDLE_UNLOCK_ATTEMPTS 5U
-#define FLIPPASS_OTP_TIME_ZONE_MIN_MINUTES (-12 * 60)
-#define FLIPPASS_OTP_TIME_ZONE_MAX_MINUTES (14 * 60)
-#define FLIPPASS_OTP_TIME_ZONE_STEP_MINUTES 30
-#define FLIPPASS_OTP_TIME_ZONE_COUNT \
+#define FLIPPASS_KEYBOARD_LAYOUT_ALT            "alt-numpad"
+#define FLIPPASS_KEYBOARD_LAYOUT_PATH_SIZE      96U
+#define FLIPPASS_DEFAULT_IDLE_LOCK_MINUTES      3U
+#define FLIPPASS_DEFAULT_IDLE_EXIT_MINUTES      15U
+#define FLIPPASS_DEFAULT_IDLE_UNLOCK_ATTEMPTS   5U
+#define FLIPPASS_OTP_TIME_ZONE_MIN_MINUTES      (-12 * 60)
+#define FLIPPASS_OTP_TIME_ZONE_MAX_MINUTES      (14 * 60)
+#define FLIPPASS_OTP_TIME_ZONE_STEP_MINUTES     30
+#define FLIPPASS_OTP_TIME_ZONE_COUNT                                              \
     (((FLIPPASS_OTP_TIME_ZONE_MAX_MINUTES - FLIPPASS_OTP_TIME_ZONE_MIN_MINUTES) / \
-      FLIPPASS_OTP_TIME_ZONE_STEP_MINUTES) + \
+      FLIPPASS_OTP_TIME_ZONE_STEP_MINUTES) +                                      \
      1)
-#define FLIPPASS_USB_ENUMERATION_TIMEOUT_MS 15000U
-#define FLIPPASS_USB_ENUMERATION_GRACE_MS   5000U
-#define FLIPPASS_USB_PREPARE_RETRY_COUNT    3U
-#define FLIPPASS_USB_POLL_DELAY_MS          100U
-#define FLIPPASS_USB_PRESS_DELAY_MS         12U
-#define FLIPPASS_USB_RELEASE_DELAY_MS       18U
-#define FLIPPASS_USB_STEP_DELAY_MS          45U
-#define FLIPPASS_USB_SETTLE_DELAY_MS        300U
-#define FLIPPASS_USB_SWITCH_DELAY_MS        150U
-#define FLIPPASS_OUTPUT_PRE_PRESS_DELAY_MS      10U
+#define FLIPPASS_USB_ENUMERATION_TIMEOUT_MS    15000U
+#define FLIPPASS_USB_ENUMERATION_GRACE_MS      5000U
+#define FLIPPASS_USB_PREPARE_RETRY_COUNT       3U
+#define FLIPPASS_USB_POLL_DELAY_MS             100U
+#define FLIPPASS_USB_PRESS_DELAY_MS            12U
+#define FLIPPASS_USB_RELEASE_DELAY_MS          18U
+#define FLIPPASS_USB_STEP_DELAY_MS             45U
+#define FLIPPASS_USB_SETTLE_DELAY_MS           300U
+#define FLIPPASS_USB_SWITCH_DELAY_MS           150U
+#define FLIPPASS_OUTPUT_PRE_PRESS_DELAY_MS     10U
 #define FLIPPASS_OUTPUT_ALT_PRE_PRESS_DELAY_MS 30U
 
-#define TEXT_BUFFER_SIZE 256
-#define STATUS_TITLE_SIZE 64
-#define STATUS_MESSAGE_SIZE 256
-#define FLIPPASS_RPC_BUFFER_SIZE 512
-#define FLIPPASS_PASSWORD_HEADER_SIZE 96
-#define FLIPPASS_SYSTEM_LOG_LINE_SIZE 384
-#define FLIPPASS_SYSTEM_LOG_RING_LINES 8
-#define FLIPPASS_SYSTEM_LOG_RING_LINE_SIZE 128
-#define FLIPPASS_SECURE_VALUE_NONCE_SIZE 16U
-#define FLIPPASS_SECURE_VALUE_MAC_SIZE   32U
-#define FLIPPASS_SESSION_SECRET_SIZE     32U
-#define FLIPPASS_SESSION_WRAP_IV_SIZE    16U
-#define FLIPPASS_FORM_VALUE_SIZE         256U
-#define FLIPPASS_FILE_NAME_SIZE          64U
+#define TEXT_BUFFER_SIZE                     256
+#define STATUS_TITLE_SIZE                    64
+#define STATUS_MESSAGE_SIZE                  256
+#define FLIPPASS_RPC_BUFFER_SIZE             512
+#define FLIPPASS_PASSWORD_HEADER_SIZE        96
+#define FLIPPASS_SYSTEM_LOG_LINE_SIZE        384
+#define FLIPPASS_SYSTEM_LOG_RING_LINES       8
+#define FLIPPASS_SYSTEM_LOG_RING_LINE_SIZE   128
+#define FLIPPASS_SECURE_VALUE_NONCE_SIZE     16U
+#define FLIPPASS_SECURE_VALUE_MAC_SIZE       32U
+#define FLIPPASS_SESSION_SECRET_SIZE         32U
+#define FLIPPASS_SESSION_WRAP_IV_SIZE        16U
+#define FLIPPASS_FORM_VALUE_SIZE             256U
+#define FLIPPASS_FILE_NAME_SIZE              64U
 #define FLIPPASS_KDBX_DEFAULT_AES_KDF_ROUNDS 600000ULL
 #define FLIPPASS_KDBX_AES_KDF_ROUND_STEP     10000ULL
 #define FLIPPASS_KDBX_MIN_AES_KDF_ROUNDS     10000ULL
 #define FLIPPASS_KDBX_AES_KDF_UI_VALUES      255U
 
+#define FLIPPASS_EVENT_LOG_ENABLED (FLIPPASS_ENABLE_LOGS || FLIPPASS_ENABLE_PROBE_LOGS)
+#define FLIPPASS_PERSISTED_LOG_ENABLED \
+    (FLIPPASS_EVENT_LOG_ENABLED || FLIPPASS_ENABLE_PROBE_TERMINAL_LOGS)
+
 #if FLIPPASS_ENABLE_LOGS
 #define FLIPPASS_LOG_EVENT(app, ...) flippass_log_event((app), __VA_ARGS__)
-#define FLIPPASS_FURI_LOG_E(...) FURI_LOG_E(__VA_ARGS__)
-#define FLIPPASS_FURI_LOG_T(...) FURI_LOG_T(__VA_ARGS__)
+#define FLIPPASS_FURI_LOG_E(...)     FURI_LOG_E(__VA_ARGS__)
+#define FLIPPASS_FURI_LOG_T(...)     FURI_LOG_T(__VA_ARGS__)
 #else
 #define FLIPPASS_LOG_EVENT(app, ...) \
     do {                             \
@@ -105,6 +110,24 @@
     } while(0)
 #define FLIPPASS_FURI_LOG_T(...) \
     do {                         \
+    } while(0)
+#endif
+
+#if FLIPPASS_EVENT_LOG_ENABLED
+#define FLIPPASS_PROBE_LOG_EVENT(app, ...) flippass_log_event((app), __VA_ARGS__)
+#else
+#define FLIPPASS_PROBE_LOG_EVENT(app, ...) \
+    do {                                   \
+        UNUSED(app);                       \
+    } while(0)
+#endif
+
+#if FLIPPASS_PERSISTED_LOG_ENABLED
+#define FLIPPASS_PROBE_TERMINAL_LOG_EVENT(app, ...) flippass_log_event((app), __VA_ARGS__)
+#else
+#define FLIPPASS_PROBE_TERMINAL_LOG_EVENT(app, ...) \
+    do {                                            \
+        UNUSED(app);                                \
     } while(0)
 #endif
 
@@ -136,6 +159,8 @@ typedef enum {
     FlipPassModuleSlotOutputUsb = 0,
     FlipPassModuleSlotOutputBle,
     FlipPassModuleSlotOutputAction,
+    FlipPassModuleSlotEntryAction,
+    FlipPassModuleSlotTextInput,
     FlipPassModuleSlotOtherFields,
     FlipPassModuleSlotFileOps,
     FlipPassModuleSlotEditorCrud,
@@ -146,10 +171,17 @@ typedef enum {
     FlipPassModuleSlotOpenInflatePaged,
     FlipPassModuleSlotOpenModel,
     FlipPassModuleSlotSaveHeader,
+    FlipPassModuleSlotSaveSerial,
     FlipPassModuleSlotSaveWriter,
     FlipPassModuleSlotKeyboardLayout,
     FlipPassModuleSlotOtp,
     FlipPassModuleSlotPasswordGen,
+    FlipPassModuleSlotCrypto,
+    FlipPassModuleSlotOpenHost,
+    FlipPassModuleSlotEditor,
+    FlipPassModuleSlotSaveHost,
+    FlipPassModuleSlotFileBrowser,
+    FlipPassModuleSlotLaunch,
     FlipPassModuleSlotCount,
 } FlipPassModuleSlot;
 
@@ -163,6 +195,8 @@ typedef enum {
 
 typedef struct FlipPassDbBrowserView FlipPassDbBrowserView;
 typedef struct FlipPassProgressView FlipPassProgressView;
+typedef struct FlipPassLaunchRequest FlipPassLaunchRequest;
+typedef struct FlipPassDeferredLaunch FlipPassDeferredLaunch;
 typedef struct FlipPassEditorCustomFieldDraft FlipPassEditorCustomFieldDraft;
 
 struct FlipPassEditorCustomFieldDraft {
@@ -208,11 +242,16 @@ typedef enum {
 typedef struct {
     FlipperApplication* application;
     const FlipperAppPluginDescriptor* descriptor;
+    uint8_t
+        pin_count; /**< Nonzero while the slot's code is on the call stack; never unloaded then. */
+    bool sticky; /**< Skipped by the unload-all trim; the out-of-memory retry may still evict it. */
 } FlipPassModuleInstance;
 
 typedef struct {
     Storage* storage; /**< Shared storage record used to late-load embedded plugins. */
-    FlipPassModuleInstance slot[FlipPassModuleSlotCount]; /**< One direct load slot per feature island. */
+    CompositeApiResolver* api_resolver; /**< Firmware API first, then the FlipPass host API. */
+    FlipPassModuleInstance
+        slot[FlipPassModuleSlotCount]; /**< One direct load slot per feature island. */
 } FlipPassModuleLoader;
 
 /**
@@ -228,28 +267,39 @@ typedef struct {
     FlipPassModuleLoader module_loader; /**< Direct late-loaded embedded plugin ownership. */
     bool usb_expect_rpc_session_close; /**< True when a USB HID takeover may drop the active RPC session. */
     bool rpc_mode; /**< True when the app was launched through the RPC app subsystem. */
+    FlipPassLaunchRequest* launch_request; /**< Password-free one-shot launch continuation. */
+    FlipPassDeferredLaunch*
+        deferred_launch; /**< Owned CMD handoff; committed only after output succeeds. */
+    bool phantom_open; /**< Argument-supplied DB must not replace remembered DB/cache state. */
     bool debug_auto_continue_vault_fallback; /**< Bench-only hook that auto-accepts the /ext continuation prompt for the current unlock. */
-    volatile bool typing_active; /**< True while the shared typing progress screen owns Back as a cancel action. */
+    volatile bool
+        typing_active; /**< True while the shared typing progress screen owns Back as a cancel action. */
     volatile bool typing_cancel_requested; /**< Raised by Back while a typing run is active. */
-    volatile uint32_t typing_cancel_back_tick; /**< Tick when Back canceled typing so one immediate navigation Back can be suppressed. */
-    DateTime last_interaction_datetime; /**< Most recent wall-clock user interaction captured by the app. */
-    uint32_t last_interaction_tick; /**< Monotonic tick captured alongside the last interaction wall clock. */
+    volatile uint32_t
+        typing_cancel_back_tick; /**< Tick when Back canceled typing so one immediate navigation Back can be suppressed. */
+    DateTime
+        last_interaction_datetime; /**< Most recent wall-clock user interaction captured by the app. */
+    uint32_t
+        last_interaction_tick; /**< Monotonic tick captured alongside the last interaction wall clock. */
     bool idle_lock_active; /**< True while an idle re-auth prompt is blocking the unlocked session. */
     uint8_t idle_lock_failed_attempts; /**< Failed password attempts during the current idle lock. */
     uint16_t idle_lock_minutes; /**< Inactivity minutes before Unlock Session, or 0 to disable. */
     uint8_t idle_unlock_attempts; /**< Failed Unlock Session attempts before closing the session. */
     uint16_t idle_exit_minutes; /**< Inactivity minutes before app exit, or 0 to disable. */
 #if FLIPPASS_ENABLE_SYSTEM_TRACE_CAPTURE_EFFECTIVE
-    FuriLogHandler system_log_handler; /**< Optional filtered system-log capture for debug sessions. */
+    FuriLogHandler
+        system_log_handler; /**< Optional filtered system-log capture for debug sessions. */
     bool system_log_capture_enabled; /**< True while the filtered system-log handler is registered. */
     bool system_log_capture_busy; /**< Reentrancy guard for the filtered system-log handler. */
     size_t system_log_capture_bytes; /**< Total bytes written to the filtered system-log file. */
     size_t system_log_line_len; /**< Pending bytes in the filtered system-log line buffer. */
-    char system_log_line[FLIPPASS_SYSTEM_LOG_LINE_SIZE]; /**< Pending filtered system-log line assembly buffer. */
+    char system_log_line
+        [FLIPPASS_SYSTEM_LOG_LINE_SIZE]; /**< Pending filtered system-log line assembly buffer. */
     char* system_log_ring; /**< Optional RAM-backed ring of filtered system-log lines. */
     size_t system_log_ring_count; /**< Number of valid lines currently stored in the ring. */
     size_t system_log_ring_next; /**< Next line slot to overwrite in the RAM-backed ring. */
-    size_t system_log_ring_dropped; /**< Number of filtered lines dropped because they exceeded the ring slot size. */
+    size_t
+        system_log_ring_dropped; /**< Number of filtered lines dropped because they exceeded the ring slot size. */
     bool system_log_capture_buffered; /**< True when filtered system-log capture uses RAM buffering instead of live file writes. */
 #endif
 } FlipPassHostRuntime;
@@ -262,44 +312,60 @@ typedef struct {
     KDBXVault* vault; /**< Active encrypted session vault. */
     KDBXVaultBackend active_vault_backend; /**< Actual backend selected for the active vault. */
     KDBXVaultBackend requested_vault_backend; /**< Backend requested by the current unlock flow. */
-    KDBXVault* pending_gzip_scratch_vault; /**< Preflight-staged GZip XML scratch kept across /ext approval. */
-    KDBXFieldRef pending_gzip_scratch_ref; /**< Record range for the staged GZip XML scratch. */
-    size_t pending_gzip_plain_size; /**< Expected plaintext XML size for the staged GZip scratch. */
+    size_t
+        model_budget_committed; /**< App-owned arena/vault growth budget counter for unlocked model mutations. */
+    size_t model_budget_limit; /**< Current heap-safe commit limit for app-owned model mutations. */
     KDBXGroup* root_group; /**< Root group of the parsed KDBX model. */
     KDBXGroup* current_group; /**< Current browsing group. */
     KDBXEntry* current_entry; /**< Current entry selected through RPC or browser flows. */
     KDBXGroup* active_group; /**< Group currently shown in the browser scene. */
     KDBXEntry* active_entry; /**< Entry currently shown in detail or action scenes. */
+    KDBXGroup*
+        title_cache_previous; /**< Last group still kept in the title cache window after a navigation, or NULL. */
     FlipPassKdbxCipher database_cipher; /**< Outer cipher used for the next save. */
     uint32_t database_compression; /**< Compression policy used for the next save. */
     uint64_t database_kdf_rounds; /**< AES-KDF rounds used for the next save. */
-    uint8_t session_key_iv[FLIPPASS_SESSION_WRAP_IV_SIZE]; /**< IV for the enclave-wrapped ephemeral session key. */
-    uint8_t session_key_cipher[FLIPPASS_SESSION_SECRET_SIZE]; /**< Ephemeral session key encrypted with enclave slot 11. */
-    uint8_t database_save_key_nonce[FLIPPASS_SECURE_VALUE_NONCE_SIZE]; /**< Nonce for the session-sealed KDBX credential. */
-    uint8_t database_save_key_cipher[FLIPPASS_SESSION_SECRET_SIZE]; /**< Composite KDBX credential sealed by the session key. */
-    uint8_t database_save_key_mac[FLIPPASS_SECURE_VALUE_MAC_SIZE]; /**< MAC for the sealed KDBX credential. */
-    uint8_t database_save_transformed_key_nonce[FLIPPASS_SECURE_VALUE_NONCE_SIZE]; /**< Nonce for the session-sealed AES-KDF transformed key. */
-    uint8_t database_save_transformed_key_cipher[FLIPPASS_SESSION_SECRET_SIZE]; /**< AES-KDF transformed key sealed by the session key. */
-    uint8_t database_save_transformed_key_mac[FLIPPASS_SECURE_VALUE_MAC_SIZE]; /**< MAC for the sealed AES-KDF transformed key. */
+    uint8_t session_key_iv
+        [FLIPPASS_SESSION_WRAP_IV_SIZE]; /**< IV for the enclave-wrapped ephemeral session key. */
+    uint8_t session_key_cipher
+        [FLIPPASS_SESSION_SECRET_SIZE]; /**< Ephemeral session key encrypted with enclave slot 11. */
+    uint8_t database_save_key_nonce
+        [FLIPPASS_SECURE_VALUE_NONCE_SIZE]; /**< Nonce for the session-sealed KDBX credential. */
+    uint8_t database_save_key_cipher
+        [FLIPPASS_SESSION_SECRET_SIZE]; /**< Composite KDBX credential sealed by the session key. */
+    uint8_t database_save_key_mac
+        [FLIPPASS_SECURE_VALUE_MAC_SIZE]; /**< MAC for the sealed KDBX credential. */
+    uint8_t database_save_transformed_key_nonce
+        [FLIPPASS_SECURE_VALUE_NONCE_SIZE]; /**< Nonce for the session-sealed AES-KDF transformed key. */
+    uint8_t database_save_transformed_key_cipher
+        [FLIPPASS_SESSION_SECRET_SIZE]; /**< AES-KDF transformed key sealed by the session key. */
+    uint8_t database_save_transformed_key_mac
+        [FLIPPASS_SECURE_VALUE_MAC_SIZE]; /**< MAC for the sealed AES-KDF transformed key. */
     uint8_t database_save_kdf_salt[32]; /**< AES-KDF salt paired with the sealed transformed key. */
     uint64_t database_save_kdf_rounds; /**< AES-KDF rounds paired with the sealed transformed key. */
-    uint8_t derivation_cache_nonce[FLIPPASS_SECURE_VALUE_NONCE_SIZE]; /**< Nonce for the persistent transformed-key cache. */
-    uint8_t derivation_cache_cipher[FLIPPASS_SESSION_SECRET_SIZE]; /**< Persistent AES-KDF transformed key cache ciphertext. */
-    uint8_t derivation_cache_mac[FLIPPASS_SECURE_VALUE_MAC_SIZE]; /**< MAC for the persistent transformed-key cache. */
-    uint8_t derivation_cache_kdf_salt[32]; /**< AES-KDF salt paired with the persistent transformed-key cache. */
-    uint64_t derivation_cache_kdf_rounds; /**< AES-KDF rounds paired with the persistent transformed-key cache. */
+    uint8_t derivation_cache_nonce
+        [FLIPPASS_SECURE_VALUE_NONCE_SIZE]; /**< Nonce for the persisted transformed-key cache. */
+    uint8_t derivation_cache_cipher
+        [FLIPPASS_SESSION_SECRET_SIZE]; /**< Persisted transformed key encrypted with password and device material. */
+    uint8_t derivation_cache_mac
+        [FLIPPASS_SECURE_VALUE_MAC_SIZE]; /**< MAC for the persisted transformed-key cache. */
+    uint8_t derivation_cache_kdf_salt
+        [32]; /**< AES-KDF salt paired with the persisted transformed-key cache. */
+    uint64_t
+        derivation_cache_kdf_rounds; /**< AES-KDF rounds paired with the persisted transformed-key cache. */
     bool database_save_key_ready; /**< True when the sealed database credential can be unwrapped. */
     bool database_save_transformed_key_ready; /**< True when a normal save can skip AES-KDF derivation. */
-    bool derivation_cache_ready; /**< True when a persistent transformed-key cache is available. */
-    bool derivation_cache_save_requested; /**< True when the user opted into saving the next successful derivation. */
-    bool derivation_cache_used; /**< True when the current open used the persistent transformed-key cache. */
-    bool derivation_cache_failed; /**< True when a stored cache entry was stale or failed validation. */
+    bool derivation_cache_ready; /**< True when flippass.conf contains a persisted transformed-key cache. */
+    bool derivation_cache_save_requested; /**< True when the user approved saving the current open derivation. */
+    bool derivation_cache_used; /**< True when the current open used the persisted transformed-key cache. */
+    bool derivation_cache_failed; /**< True when a persisted cache was present but failed validation. */
     bool parse_failed; /**< True once XML or data-model parsing hits a handled failure. */
     bool database_loaded; /**< True if the current database was parsed successfully. */
     bool database_dirty; /**< True once the unlocked session diverges from disk. */
     bool database_new; /**< True when the current session has not been saved yet. */
     bool pending_vault_fallback; /**< True when RAM-backed unlock needs explicit /ext continuation approval. */
     bool allow_ext_vault_promotion; /**< True when the current RAM-first unlock may promote its session vault to /ext. */
+    bool resuming_after_fallback; /**< True for one open attempt right after the /ext fallback dialog was confirmed; UI shows "Continuing on /ext". */
 } FlipPassSessionState;
 
 /**
@@ -311,7 +377,8 @@ typedef struct {
     FuriString* browser_directory; /**< Active directory shown by the custom file browser. */
     FuriString* pending_path; /**< Temporary path used by browser and save flows. */
     FuriString* keyboard_layout_path; /**< Effective BadUSB layout path, or empty for Alt+NumPad. */
-    FuriString* last_open_file_path; /**< Last successfully opened database path persisted in settings. */
+    FuriString*
+        last_open_file_path; /**< Last successfully opened database path persisted in settings. */
     uint32_t last_open_count; /**< Successful open count for the persisted last-open path. */
     bool keyboard_layout_configured; /**< True once FlipPass owns a persisted layout choice. */
     int16_t otp_time_zone_minutes; /**< Global UTC correction, in minutes, applied to TIMEOTP. */
@@ -319,6 +386,8 @@ typedef struct {
     TextInput* text_input; /**< Pointer to the TextInput instance. */
     char text_buffer[TEXT_BUFFER_SIZE]; /**< Buffer for text input. */
     char password_header[FLIPPASS_PASSWORD_HEADER_SIZE]; /**< Persistent password-entry header text. */
+    bool open_header_gzip; /**< Validated header offers conversion before password input. */
+    bool save_uncompressed_requested; /**< Save without compression after unlock, then browse. */
     char master_password[TEXT_BUFFER_SIZE]; /**< Buffer holding the active password input. */
     FlipPassProgressView* progress_view; /**< Shared progress view for unlock and typing work. */
     FlipPassDbBrowserView* db_browser; /**< Custom browser view for database groups and entries. */
@@ -332,13 +401,25 @@ typedef struct {
     uint32_t browser_selected_index; /**< Last selected browser item. */
     uint32_t action_selected_index; /**< Last selected action item. */
     uint32_t other_field_selected_index; /**< Last selected item in the other-fields list. */
-    uint32_t other_field_action_selected_index; /**< Last selected action for the current other field. */
-    FlipPassEntryAction pending_entry_action; /**< Entry action awaiting confirmation or execution. */
-    uint32_t pending_other_field_mask; /**< Standard entry field selected from the other-fields flow. */
-    KDBXCustomField* pending_other_custom_field; /**< Custom entry field selected from the other-fields flow. */
-    FlipPassOtpKind pending_other_otp_kind; /**< Synthetic OTP field selected from the other-fields flow. */
-    char pending_other_field_name[STATUS_TITLE_SIZE]; /**< Current other-field label for prompts and status. */
+    uint32_t
+        other_field_action_selected_index; /**< Last selected action for the current other field. */
+    FlipPassEntryAction
+        pending_entry_action; /**< Entry action awaiting confirmation or execution. */
+    uint32_t
+        pending_other_field_mask; /**< Standard entry field selected from the other-fields flow. */
+    KDBXCustomField*
+        pending_other_custom_field; /**< Custom entry field selected from the other-fields flow. */
+    FlipPassOtpKind
+        pending_other_otp_kind; /**< Synthetic OTP field selected from the other-fields flow. */
+    char pending_other_field_name
+        [STATUS_TITLE_SIZE]; /**< Current other-field label for prompts and status. */
     uint32_t keyboard_layout_return_scene; /**< Scene to restore if layout-assisted typing fails. */
+    bool entry_action_keep_type_menu_prewarm; /**< Preserve Type drawer output warm-up while intermediary scenes are open. */
+    bool entry_action_restore_type_drawer; /**< Reopen the Type drawer when returning from an intermediary scene. */
+    bool other_field_show_active; /**< True while Status/TextView displays an alternate field value. */
+    bool other_field_show_totp_refresh; /**< True when the visible alternate field is a TIMEOTP code. */
+    uint32_t
+        other_field_show_refresh_tick; /**< Next monotonic tick for refreshing the visible TIMEOTP code. */
     bool close_db_dialog_open; /**< True while the close-database confirmation dialog is visible. */
     bool close_test_logged; /**< True after the first password scene entry is logged. */
     FuriString* text_view_body; /**< Scrollable text-view payload for long notes and fields. */
@@ -348,7 +429,8 @@ typedef struct {
     uint8_t progress_percent; /**< Last rendered progress percentage. */
     char progress_title[STATUS_TITLE_SIZE]; /**< Persistent progress-screen title. */
     FlipPassEditorMode editor_mode; /**< Active editor intent for the shared form scene. */
-    FlipPassEditorMode editor_parent_mode; /**< Parent entry editor restored after custom-field forms. */
+    FlipPassEditorMode
+        editor_parent_mode; /**< Parent entry editor restored after custom-field forms. */
     FlipPassEditorTextTarget editor_text_target; /**< Field currently edited through text input. */
     KDBXGroup* editor_group; /**< Group currently edited or used as creation parent. */
     KDBXEntry* editor_entry; /**< Entry currently edited. */
@@ -356,8 +438,10 @@ typedef struct {
     uint32_t editor_return_scene; /**< Scene restored when the shared editor is canceled. */
     uint16_t editor_idle_lock_minutes; /**< Draft global inactivity-lock timeout. */
     uint8_t editor_idle_unlock_attempts; /**< Draft Unlock Session attempt limit. */
+    uint8_t editor_icon_id; /**< Draft entry/group IconID; occupies existing padding. */
     uint16_t editor_idle_exit_minutes; /**< Draft global inactivity-exit timeout. */
     bool editor_always_allow_ext; /**< Draft global /ext promotion approval. */
+    bool editor_icon_picker_pinned; /**< Borrowed-browser callback owner; uses padding. */
     uint32_t editor_keyboard_layout_index; /**< Draft keyboard-layout item index. */
     bool editor_keyboard_layout_use_alt; /**< Draft keyboard layout uses Alt+NumPad. */
     bool editor_keyboard_layout_available; /**< True when config loaded layout choices. */
@@ -365,8 +449,10 @@ typedef struct {
     uint32_t browser_directory_selected_index; /**< Last selected row in the custom file browser. */
     uint32_t browser_menu_selected_index; /**< Last selected database file menu action. */
     bool editor_close_after_commit; /**< True when a successful editor commit should close the current database. */
-    char editor_file_name[FLIPPASS_FILE_NAME_SIZE]; /**< File name buffer for create and rename flows. */
-    char editor_database_password[FLIPPASS_FORM_VALUE_SIZE]; /**< Save password buffer for create and modify flows. */
+    char editor_file_name
+        [FLIPPASS_FILE_NAME_SIZE]; /**< File name buffer for create and rename flows. */
+    char editor_database_password
+        [FLIPPASS_FORM_VALUE_SIZE]; /**< Save password buffer for create and modify flows. */
     char editor_group_name[FLIPPASS_FORM_VALUE_SIZE]; /**< Shared group-name editor buffer. */
     char editor_entry_title[FLIPPASS_FORM_VALUE_SIZE]; /**< Entry title editor buffer. */
     char editor_entry_username[FLIPPASS_FORM_VALUE_SIZE]; /**< Entry username editor buffer. */
@@ -374,8 +460,10 @@ typedef struct {
     char editor_entry_url[FLIPPASS_FORM_VALUE_SIZE]; /**< Entry URL editor buffer. */
     char editor_entry_notes[FLIPPASS_FORM_VALUE_SIZE]; /**< Entry notes editor buffer. */
     char editor_entry_autotype[FLIPPASS_FORM_VALUE_SIZE]; /**< Entry AutoType editor buffer. */
-    FlipPassEditorCustomFieldDraft* editor_custom_fields; /**< Draft custom fields for an unsaved new entry. */
-    FlipPassEditorCustomFieldDraft* editor_custom_field_draft; /**< Draft field currently being edited. */
+    FlipPassEditorCustomFieldDraft*
+        editor_custom_fields; /**< Draft custom fields for an unsaved new entry. */
+    FlipPassEditorCustomFieldDraft*
+        editor_custom_field_draft; /**< Draft field currently being edited. */
     KDBXCustomField* editor_custom_field; /**< Existing custom field currently being edited. */
     bool editor_custom_field_protected; /**< Current custom-field Protected form value. */
     char editor_custom_field_name[FLIPPASS_FORM_VALUE_SIZE]; /**< Custom-field name editor buffer. */
@@ -389,13 +477,12 @@ typedef struct {
     bool editor_otp_settled; /**< True when the edited entry already has an OTP cluster. */
     char editor_otp_secret[FLIPPASS_FORM_VALUE_SIZE]; /**< OTP secret editor buffer. */
     char editor_otp_counter[FLIPPASS_OTP_COUNTER_TEXT_SIZE]; /**< HMACOTP counter editor buffer. */
-    FlipPassPasswordGenTarget password_gen_target; /**< Secret field receiving a generated password. */
-    FlipPassPasswordGenCharset password_gen_charset; /**< Current password generator character set. */
+    FlipPassPasswordGenTarget
+        password_gen_target; /**< Secret field receiving a generated password. */
+    FlipPassPasswordGenCharset
+        password_gen_charset; /**< Current password generator character set. */
     uint16_t password_gen_length; /**< Requested generated password length. */
-    uint16_t password_gen_harvest_seconds; /**< Requested entropy harvest duration. */
     uint32_t password_gen_selected_index; /**< Last selected row in the generator form. */
-    uint32_t password_gen_started_tick; /**< Tick when timed entropy capture began. */
-    bool password_gen_capture_active; /**< True while the entropy harvest screen records input. */
     bool password_gen_auto_open_field_name; /**< True when a new custom field should edit Name first. */
 } FlipPassUiState;
 
@@ -432,6 +519,9 @@ typedef struct App {
             FlipPassModuleLoader module_loader;
             bool usb_expect_rpc_session_close;
             bool rpc_mode;
+            FlipPassLaunchRequest* launch_request;
+            FlipPassDeferredLaunch* deferred_launch;
+            bool phantom_open;
             bool debug_auto_continue_vault_fallback;
             volatile bool typing_active;
             volatile bool typing_cancel_requested;
@@ -465,14 +555,14 @@ typedef struct App {
             KDBXVault* vault;
             KDBXVaultBackend active_vault_backend;
             KDBXVaultBackend requested_vault_backend;
-            KDBXVault* pending_gzip_scratch_vault; /**< Host-owned staged open scratch kept across /ext approval. */
-            KDBXFieldRef pending_gzip_scratch_ref; /**< Record range for the staged open scratch. */
-            size_t pending_gzip_plain_size; /**< Plaintext byte count for the staged open scratch. */
+            size_t model_budget_committed;
+            size_t model_budget_limit;
             KDBXGroup* root_group;
             KDBXGroup* current_group;
             KDBXEntry* current_entry;
             KDBXGroup* active_group;
             KDBXEntry* active_entry;
+            KDBXGroup* title_cache_previous;
             FlipPassKdbxCipher database_cipher;
             uint32_t database_compression;
             uint64_t database_kdf_rounds;
@@ -503,6 +593,7 @@ typedef struct App {
             bool database_new;
             bool pending_vault_fallback;
             bool allow_ext_vault_promotion;
+            bool resuming_after_fallback;
         };
     };
     union {
@@ -521,6 +612,8 @@ typedef struct App {
             TextInput* text_input;
             char text_buffer[TEXT_BUFFER_SIZE];
             char password_header[FLIPPASS_PASSWORD_HEADER_SIZE];
+            bool open_header_gzip;
+            bool save_uncompressed_requested;
             char master_password[TEXT_BUFFER_SIZE];
             FlipPassProgressView* progress_view;
             FlipPassDbBrowserView* db_browser;
@@ -541,6 +634,11 @@ typedef struct App {
             FlipPassOtpKind pending_other_otp_kind;
             char pending_other_field_name[STATUS_TITLE_SIZE];
             uint32_t keyboard_layout_return_scene;
+            bool entry_action_keep_type_menu_prewarm;
+            bool entry_action_restore_type_drawer;
+            bool other_field_show_active;
+            bool other_field_show_totp_refresh;
+            uint32_t other_field_show_refresh_tick;
             bool close_db_dialog_open;
             bool close_test_logged;
             FuriString* text_view_body;
@@ -558,8 +656,10 @@ typedef struct App {
             uint32_t editor_return_scene;
             uint16_t editor_idle_lock_minutes;
             uint8_t editor_idle_unlock_attempts;
+            uint8_t editor_icon_id;
             uint16_t editor_idle_exit_minutes;
             bool editor_always_allow_ext;
+            bool editor_icon_picker_pinned;
             uint32_t editor_keyboard_layout_index;
             bool editor_keyboard_layout_use_alt;
             bool editor_keyboard_layout_available;
@@ -594,10 +694,7 @@ typedef struct App {
             FlipPassPasswordGenTarget password_gen_target;
             FlipPassPasswordGenCharset password_gen_charset;
             uint16_t password_gen_length;
-            uint16_t password_gen_harvest_seconds;
             uint32_t password_gen_selected_index;
-            uint32_t password_gen_started_tick;
-            bool password_gen_capture_active;
             bool password_gen_auto_open_field_name;
         };
     };
@@ -652,11 +749,11 @@ typedef enum {
         UNUSED(theoretical_bytes);                         \
     } while(0)
 #define FLIPPASS_MEMORY_LOG_MODULE(app, stage, slot, theoretical_bytes) \
-    do {                                                               \
-        UNUSED(app);                                                   \
-        UNUSED(stage);                                                 \
-        UNUSED(slot);                                                  \
-        UNUSED(theoretical_bytes);                                     \
+    do {                                                                \
+        UNUSED(app);                                                    \
+        UNUSED(stage);                                                  \
+        UNUSED(slot);                                                   \
+        UNUSED(theoretical_bytes);                                      \
     } while(0)
 #endif
 
@@ -696,12 +793,25 @@ void flippass_set_status(App* app, const char* title, const char* message);
 void flippass_progress_reset(App* app);
 void flippass_progress_begin(App* app, const char* title, const char* stage, uint8_t percent);
 void flippass_progress_update(App* app, const char* stage, const char* detail, uint8_t percent);
+void flippass_ui_ensure_text_input(App* app);
+void flippass_text_input_set_app(App* app);
+void flippass_text_input_clear_app(App* app);
+void flippass_ui_ensure_db_browser(App* app);
+void flippass_ui_ensure_variable_item_list(App* app);
+void flippass_ui_ensure_submenu(App* app);
+void flippass_ui_ensure_widget(App* app);
+void flippass_ui_ensure_dialog_ex(App* app);
+void flippass_save_unload_idle_views(App* app);
+void flippass_save_restore_idle_views(App* app);
 void flippass_typing_begin(App* app);
+void flippass_update_last_interaction(App* app);
+void flippass_lock_session(App* app);
 void flippass_typing_end(App* app);
 bool flippass_typing_should_cancel(const App* app);
 bool flippass_typing_consume_pending_back(App* app);
 void flippass_record_successful_open(App* app);
 void flippass_request_exit(App* app);
+void flippass_stop_scenes(App* app);
 void flippass_log_reset(App* app);
 void flippass_log_event(App* app, const char* format, ...);
 void flippass_memory_log(App* app, const char* stage, size_t theoretical_bytes);
@@ -734,6 +844,10 @@ const FlipperAppPluginDescriptor* flippass_module_ensure(
     uint32_t expected_api_version,
     FuriString* error);
 void flippass_module_unload(App* app, FlipPassModuleSlot slot);
+void flippass_module_unload_all_runtime(App* app);
+void flippass_module_pin(App* app, FlipPassModuleSlot slot);
+void flippass_module_unpin(App* app, FlipPassModuleSlot slot);
+void flippass_module_set_sticky(App* app, FlipPassModuleSlot slot, bool sticky);
 bool flippass_open_execute(App* app, FuriString* error);
 bool flippass_save_execute(
     App* app,
@@ -765,11 +879,7 @@ bool flippass_db_create_group(
     const char* name,
     KDBXGroup** out_group,
     FuriString* error);
-bool flippass_db_update_group(
-    App* app,
-    KDBXGroup* group,
-    const char* name,
-    FuriString* error);
+bool flippass_db_update_group(App* app, KDBXGroup* group, const char* name, FuriString* error);
 bool flippass_db_create_entry(
     App* app,
     KDBXGroup* parent,

@@ -42,3 +42,17 @@ bool flippass_scene_file_browser_on_event(void* context, SceneManagerEvent event
  * @param context The application context.
  */
 void flippass_scene_file_browser_on_exit(void* context);
+
+void flippass_file_browser_shutdown(struct App* app);
+
+/**
+ * @brief Check a database's plaintext header before asking for its password.
+ *
+ * Loads the file_ops plugin only for the check and unloads it afterwards. On a
+ * rejection it switches to FlipPassScene_Status (Back returns to the file browser)
+ * and the caller must not open FlipPassScene_PasswordEntry. If the plugin cannot be
+ * loaded the check passes: the unlock pipeline checks the header again.
+ *
+ * @return False when the file cannot be opened by FlipPass.
+ */
+bool flippass_file_browser_check_database(struct App* app, const char* path);

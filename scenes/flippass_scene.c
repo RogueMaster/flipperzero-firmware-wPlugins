@@ -32,7 +32,6 @@ void (*const flippass_scene_on_enter_handlers[])(void*) = {
     flippass_scene_keyboard_layout_on_enter,
     flippass_scene_text_view_on_enter,
     flippass_scene_password_generator_on_enter,
-    flippass_scene_password_generator_harvest_on_enter,
     flippass_scene_status_on_enter,
 };
 
@@ -49,7 +48,6 @@ bool (*const flippass_scene_on_event_handlers[])(void*, SceneManagerEvent) = {
     flippass_scene_keyboard_layout_on_event,
     flippass_scene_text_view_on_event,
     flippass_scene_password_generator_on_event,
-    flippass_scene_password_generator_harvest_on_event,
     flippass_scene_status_on_event,
 };
 
@@ -66,7 +64,6 @@ void (*const flippass_scene_on_exit_handlers[])(void*) = {
     flippass_scene_keyboard_layout_on_exit,
     flippass_scene_text_view_on_exit,
     flippass_scene_password_generator_on_exit,
-    flippass_scene_password_generator_harvest_on_exit,
     flippass_scene_status_on_exit,
 };
 

@@ -5,6 +5,7 @@
 
 #include "flippass_open_inflate_plugin.h"
 
+#include "../flippass_crypto.h"
 #include "../kdbx/kdbx_gzip.h"
 #include "../kdbx/kdbx_open_profile.h"
 #include "../kdbx/kdbx_vault.h"
@@ -13,9 +14,9 @@
 extern "C" {
 #endif
 
-#define FLIPPASS_OPEN_STREAM_PLUGIN_APP_ID "flippass_open_stream"
-#define FLIPPASS_OPEN_STREAM_PLUGIN_API_VERSION 2u
-#define FLIPPASS_OPEN_STREAM_HOST_API_VERSION 2u
+#define FLIPPASS_OPEN_STREAM_PLUGIN_APP_ID      "flippass_open_stream"
+#define FLIPPASS_OPEN_STREAM_PLUGIN_API_VERSION 4u
+#define FLIPPASS_OPEN_STREAM_HOST_API_VERSION   4u
 
 typedef struct {
     uint32_t api_version;
@@ -43,6 +44,10 @@ typedef struct {
     void* context;
     void (*progress)(void* context, const char* stage, const char* detail, uint8_t percent);
     void (*log)(void* context, const char* message);
+    const FlipPassCryptoApiV1* crypto;
+    /* Points into the pinned open coordinator. Keep the full validation at
+     * each boundary without mapping a second copy of its code and messages. */
+    bool (*validate_profile)(const KDBXOpenProfile* profile, char* error, size_t error_size);
     bool (*begin_staged_payload)(
         void* context,
         KDBXVaultBackend preferred_backend,
@@ -61,10 +66,7 @@ typedef struct {
         size_t capacity,
         size_t* out_size);
     void (*end_staged_payload_stream)(void* context);
-    bool (*begin_staged_xml)(
-        void* context,
-        KDBXVaultBackend preferred_backend,
-        FuriString* error);
+    bool (*begin_staged_xml)(void* context, KDBXVaultBackend preferred_backend, FuriString* error);
     bool (*append_staged_xml)(
         void* context,
         const uint8_t* data,

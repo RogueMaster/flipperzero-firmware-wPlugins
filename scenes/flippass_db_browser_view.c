@@ -3,6 +3,7 @@
 
 #include <furi.h>
 #include <gui/elements.h>
+#include <storage/storage.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -14,10 +15,22 @@
 #define FLIPPASS_DB_BROWSER_ICON_X             4U
 #define FLIPPASS_DB_BROWSER_TEXT_X             17U
 
+/* KeePass icons live on the SD card (fap_file_assets), never in FAP RAM: 69
+ * fixed 20-byte XBM records indexed by IconID (KDBX_ICON_ID_COUNT). */
+#define FLIPPASS_DB_BROWSER_ICON_FILE  APP_ASSETS_PATH("keepass_icons_10x10.bin")
+#define FLIPPASS_DB_BROWSER_ICON_COUNT 69U
+#define FLIPPASS_DB_BROWSER_ICON_SIZE  10U
+#define FLIPPASS_DB_BROWSER_ICON_BYTES 20U
+
 typedef struct {
     char label[FLIPPASS_DB_BROWSER_LABEL_SIZE];
-    FlipPassDbBrowserItemType type;
+    /* The public enum has seven values. Keep byte storage explicit even for
+     * host compilers without the firmware's -fshort-enums setting. */
+    uint8_t type;
+    uint8_t icon_id;
 } FlipPassDbBrowserItem;
+
+_Static_assert(FlipPassDbBrowserItemTypeInfo <= UINT8_MAX, "Browser item type must fit in a byte");
 
 typedef struct {
     char header[FLIPPASS_DB_BROWSER_HEADER_SIZE];
@@ -32,6 +45,9 @@ typedef struct {
     FlipPassDbBrowserMode mode;
     FlipPassDbBrowserAddMenuKind add_menu_kind;
     FuriString* draw_string;
+    /* One slot per visible row; kept across list rebuilds, keyed by IconID. */
+    uint8_t icon_ids[FLIPPASS_DB_BROWSER_VISIBLE_ROWS];
+    uint8_t icon_xbm[FLIPPASS_DB_BROWSER_VISIBLE_ROWS][FLIPPASS_DB_BROWSER_ICON_BYTES];
 } FlipPassDbBrowserViewModel;
 
 struct FlipPassDbBrowserView {
@@ -40,6 +56,7 @@ struct FlipPassDbBrowserView {
     FlipPassDbBrowserViewCallback callback;
     FlipPassDbBrowserViewBackFilter back_filter;
     void* callback_context;
+    bool icon_file_unavailable;
 };
 
 static const char* flippass_db_browser_action_labels[FlipPassDbBrowserActionCount] = {
@@ -77,8 +94,9 @@ static uint32_t flippass_db_browser_create_action_count(void) {
     return COUNT_OF(flippass_db_browser_create_action_labels);
 }
 
-static const char*
-    flippass_db_browser_create_action_label(const FlipPassDbBrowserViewModel* model, uint32_t index) {
+static const char* flippass_db_browser_create_action_label(
+    const FlipPassDbBrowserViewModel* model,
+    uint32_t index) {
     if(model != NULL && model->add_menu_kind == FlipPassDbBrowserAddMenuKindItem) {
         return flippass_db_browser_create_item_labels[index];
     }
@@ -99,10 +117,9 @@ static uint32_t flippass_db_browser_action_count(const FlipPassDbBrowserViewMode
                                                           FlipPassDbBrowserActionCount;
 }
 
-static uint32_t
-    flippass_db_browser_clamp_action_index_for_model(
-        const FlipPassDbBrowserViewModel* model,
-        uint32_t index) {
+static uint32_t flippass_db_browser_clamp_action_index_for_model(
+    const FlipPassDbBrowserViewModel* model,
+    uint32_t index) {
     const uint32_t action_count = flippass_db_browser_action_count(model);
     return (action_count > 0U && index < action_count) ? index : 0U;
 }
@@ -143,12 +160,51 @@ static bool flippass_db_browser_selected_is_actionable(const FlipPassDbBrowserVi
            model->items[model->selected_index].type != FlipPassDbBrowserItemTypeInfo;
 }
 
+static uint32_t flippass_db_browser_window_offset(const FlipPassDbBrowserViewModel* model) {
+    if(model->item_count <= FLIPPASS_DB_BROWSER_VISIBLE_ROWS ||
+       model->selected_index < FLIPPASS_DB_BROWSER_VISIBLE_ROWS) {
+        return 0U;
+    }
+
+    const uint32_t max_offset = model->item_count - FLIPPASS_DB_BROWSER_VISIBLE_ROWS;
+    const uint32_t offset = model->selected_index - (FLIPPASS_DB_BROWSER_VISIBLE_ROWS - 1U);
+    return (offset > max_offset) ? max_offset : offset;
+}
+
+/* Entry IconID 0 is the compiled I_C00_Password, pixel-identical to the
+ * library's C00, so only the other KeePass ids read the SD asset. */
+static bool flippass_db_browser_icon_needs_file(const FlipPassDbBrowserItem* item) {
+    return item->icon_id < FLIPPASS_DB_BROWSER_ICON_COUNT &&
+           (item->type == FlipPassDbBrowserItemTypeGroup ||
+            (item->type == FlipPassDbBrowserItemTypeEntry && item->icon_id != 0U));
+}
+
+static const uint8_t*
+    flippass_db_browser_cached_icon(const FlipPassDbBrowserViewModel* model, uint8_t icon_id) {
+    for(uint32_t slot = 0U; slot < FLIPPASS_DB_BROWSER_VISIBLE_ROWS; slot++) {
+        if(model->icon_ids[slot] == icon_id) {
+            return model->icon_xbm[slot];
+        }
+    }
+    return NULL;
+}
+
 static void flippass_db_browser_view_draw_item_icon(
     Canvas* canvas,
-    FlipPassDbBrowserItemType type,
+    const FlipPassDbBrowserViewModel* model,
+    const FlipPassDbBrowserItem* item,
     uint8_t x,
     uint8_t y) {
-    switch(type) {
+    const uint8_t* xbm = flippass_db_browser_icon_needs_file(item) ?
+                             flippass_db_browser_cached_icon(model, item->icon_id) :
+                             NULL;
+    if(xbm != NULL) {
+        canvas_draw_xbm(
+            canvas, x, y, FLIPPASS_DB_BROWSER_ICON_SIZE, FLIPPASS_DB_BROWSER_ICON_SIZE, xbm);
+        return;
+    }
+
+    switch(item->type) {
     case FlipPassDbBrowserItemTypeGroup:
         canvas_draw_icon(canvas, x, y, &I_dir_10px);
         break;
@@ -174,17 +230,7 @@ static void flippass_db_browser_view_draw_item_icon(
 static void flippass_db_browser_view_draw_list(Canvas* canvas, FlipPassDbBrowserViewModel* model) {
     const bool show_scrollbar = model->item_count > FLIPPASS_DB_BROWSER_VISIBLE_ROWS;
     const uint32_t selected = (model->item_count > 0U) ? model->selected_index : 0U;
-    uint32_t window_offset = 0U;
-
-    if(model->item_count > FLIPPASS_DB_BROWSER_VISIBLE_ROWS) {
-        const uint32_t max_offset = model->item_count - FLIPPASS_DB_BROWSER_VISIBLE_ROWS;
-        if(selected >= FLIPPASS_DB_BROWSER_VISIBLE_ROWS) {
-            window_offset = selected - (FLIPPASS_DB_BROWSER_VISIBLE_ROWS - 1U);
-            if(window_offset > max_offset) {
-                window_offset = max_offset;
-            }
-        }
-    }
+    const uint32_t window_offset = flippass_db_browser_window_offset(model);
 
     canvas_set_font(canvas, FontSecondary);
 
@@ -215,7 +261,12 @@ static void flippass_db_browser_view_draw_list(Canvas* canvas, FlipPassDbBrowser
            type == FlipPassDbBrowserItemTypeFile || type == FlipPassDbBrowserItemTypeUp ||
            type == FlipPassDbBrowserItemTypeAdd) {
             flippass_db_browser_view_draw_item_icon(
-                canvas, type, FLIPPASS_DB_BROWSER_ICON_X, (uint8_t)(y + 1U));
+                canvas,
+                model,
+                &model->items[item_index],
+                FLIPPASS_DB_BROWSER_ICON_X,
+                /* Keep the last icon above the stock buttons' top edge. */
+                (uint8_t)y);
             label_x = FLIPPASS_DB_BROWSER_TEXT_X;
             label_width = show_scrollbar ? 103U : 108U;
         }
@@ -275,7 +326,7 @@ static void flippass_db_browser_view_draw_action_menu(
     for(uint32_t index = 0U; index < flippass_db_browser_action_count(model); index++) {
         const uint8_t row_y = (uint8_t)(15U + index * 9U);
         const bool selected = model->action_selected_index == index;
-        const char* label = file_menu ? flippass_db_browser_file_action_labels[index] :
+        const char* label = file_menu   ? flippass_db_browser_file_action_labels[index] :
                             create_menu ? flippass_db_browser_create_action_label(model, index) :
                                           flippass_db_browser_action_labels[index];
 
@@ -366,6 +417,91 @@ static void
     }
 }
 
+/* Load the visible rows' missing KeePass icons with one open-read-close batch.
+ * Call only from the app thread: /assets resolves by the calling thread's
+ * appid, so draw callbacks (GUI thread) and the scroll timer must not do I/O. */
+static void flippass_db_browser_view_sync_icons(FlipPassDbBrowserView* browser) {
+    uint8_t wanted[FLIPPASS_DB_BROWSER_VISIBLE_ROWS];
+    uint8_t missing[FLIPPASS_DB_BROWSER_VISIBLE_ROWS];
+    uint8_t loaded[FLIPPASS_DB_BROWSER_VISIBLE_ROWS][FLIPPASS_DB_BROWSER_ICON_BYTES];
+    uint8_t wanted_count = 0U;
+    uint8_t missing_count = 0U;
+    uint8_t loaded_count = 0U;
+
+    if(browser->icon_file_unavailable) {
+        return;
+    }
+
+    const FlipPassDbBrowserViewModel* model = view_get_model(browser->view);
+    const uint32_t offset = flippass_db_browser_window_offset(model);
+    for(uint32_t row = 0U;
+        row < FLIPPASS_DB_BROWSER_VISIBLE_ROWS && offset + row < model->item_count;
+        row++) {
+        const FlipPassDbBrowserItem* item = &model->items[offset + row];
+        if(!flippass_db_browser_icon_needs_file(item) ||
+           memchr(wanted, item->icon_id, wanted_count) != NULL) {
+            continue;
+        }
+        wanted[wanted_count++] = item->icon_id;
+        if(flippass_db_browser_cached_icon(model, item->icon_id) == NULL) {
+            missing[missing_count++] = item->icon_id;
+        }
+    }
+    view_commit_model(browser->view, false);
+
+    if(missing_count == 0U) {
+        return;
+    }
+
+    /* Read without the model lock; the 600-byte FatFs FIL lives only here. */
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    File* file = storage_file_alloc(storage);
+    if(storage_file_open(file, FLIPPASS_DB_BROWSER_ICON_FILE, FSAM_READ, FSOM_OPEN_EXISTING) &&
+       storage_file_size(file) ==
+           (uint64_t)FLIPPASS_DB_BROWSER_ICON_COUNT * FLIPPASS_DB_BROWSER_ICON_BYTES) {
+        while(loaded_count < missing_count &&
+              storage_file_seek(
+                  file, (uint32_t)missing[loaded_count] * FLIPPASS_DB_BROWSER_ICON_BYTES, true) &&
+              storage_file_read(file, loaded[loaded_count], FLIPPASS_DB_BROWSER_ICON_BYTES) ==
+                  FLIPPASS_DB_BROWSER_ICON_BYTES) {
+            loaded_count++;
+        }
+        if(loaded_count != missing_count) {
+            browser->icon_file_unavailable = true;
+        }
+    } else {
+        /* Missing or foreign asset: keep the built-in icons for this view's life. */
+        browser->icon_file_unavailable = true;
+    }
+    storage_file_free(file);
+    furi_record_close(RECORD_STORAGE);
+
+    if(loaded_count == 0U) {
+        return;
+    }
+
+    with_view_model(
+        browser->view,
+        FlipPassDbBrowserViewModel * mutable_model,
+        {
+            /* A slot is free when it holds no icon that is still visible. */
+            uint32_t slot = 0U;
+            for(uint8_t index = 0U; index < loaded_count; index++) {
+                while(slot < FLIPPASS_DB_BROWSER_VISIBLE_ROWS &&
+                      memchr(wanted, mutable_model->icon_ids[slot], wanted_count) != NULL) {
+                    slot++;
+                }
+                if(slot == FLIPPASS_DB_BROWSER_VISIBLE_ROWS) {
+                    break;
+                }
+                mutable_model->icon_ids[slot] = missing[index];
+                memcpy(
+                    mutable_model->icon_xbm[slot], loaded[index], FLIPPASS_DB_BROWSER_ICON_BYTES);
+            }
+        },
+        true);
+}
+
 static void flippass_db_browser_view_move_selection(FlipPassDbBrowserView* browser, int8_t delta) {
     with_view_model(
         browser->view,
@@ -373,9 +509,8 @@ static void flippass_db_browser_view_move_selection(FlipPassDbBrowserView* brows
         {
             if(model->action_menu_open) {
                 const uint32_t action_count = flippass_db_browser_action_count(model);
-                const uint32_t current =
-                    flippass_db_browser_clamp_action_index_for_model(
-                        model, model->action_selected_index);
+                const uint32_t current = flippass_db_browser_clamp_action_index_for_model(
+                    model, model->action_selected_index);
                 model->action_selected_index = (delta > 0) ?
                                                    ((current + 1U) % action_count) :
                                                    ((current + action_count - 1U) % action_count);
@@ -389,6 +524,7 @@ static void flippass_db_browser_view_move_selection(FlipPassDbBrowserView* brows
             model->scroll_counter = 0U;
         },
         true);
+    flippass_db_browser_view_sync_icons(browser);
 }
 
 static bool flippass_db_browser_view_input_callback(InputEvent* event, void* context) {
@@ -621,6 +757,7 @@ FlipPassDbBrowserView* flippass_db_browser_view_alloc(void) {
     browser->callback = NULL;
     browser->back_filter = NULL;
     browser->callback_context = NULL;
+    browser->icon_file_unavailable = false;
 
     view_set_context(browser->view, browser);
     view_allocate_model(browser->view, ViewModelTypeLocking, sizeof(FlipPassDbBrowserViewModel));
@@ -631,7 +768,10 @@ FlipPassDbBrowserView* flippass_db_browser_view_alloc(void) {
     with_view_model(
         browser->view,
         FlipPassDbBrowserViewModel * model,
-        { model->draw_string = furi_string_alloc(); },
+        {
+            model->draw_string = furi_string_alloc();
+            memset(model->icon_ids, FLIPPASS_DB_BROWSER_ICON_NONE, sizeof(model->icon_ids));
+        },
         false);
 
     flippass_db_browser_view_reset(browser);
@@ -719,9 +859,7 @@ void flippass_db_browser_view_set_has_parent(FlipPassDbBrowserView* browser, boo
         true);
 }
 
-void flippass_db_browser_view_set_mode(
-    FlipPassDbBrowserView* browser,
-    FlipPassDbBrowserMode mode) {
+void flippass_db_browser_view_set_mode(FlipPassDbBrowserView* browser, FlipPassDbBrowserMode mode) {
     furi_check(browser);
     with_view_model(
         browser->view,
@@ -739,16 +877,14 @@ void flippass_db_browser_view_set_add_menu_kind(
     FlipPassDbBrowserAddMenuKind kind) {
     furi_check(browser);
     with_view_model(
-        browser->view,
-        FlipPassDbBrowserViewModel * model,
-        { model->add_menu_kind = kind; },
-        true);
+        browser->view, FlipPassDbBrowserViewModel * model, { model->add_menu_kind = kind; }, true);
 }
 
 void flippass_db_browser_view_add_item(
     FlipPassDbBrowserView* browser,
     FlipPassDbBrowserItemType type,
-    const char* label) {
+    const char* label,
+    uint8_t icon_id) {
     furi_check(browser);
 
     with_view_model(
@@ -758,6 +894,7 @@ void flippass_db_browser_view_add_item(
             if(model->item_count < FLIPPASS_DB_BROWSER_MAX_ITEMS) {
                 FlipPassDbBrowserItem* item = &model->items[model->item_count++];
                 item->type = type;
+                item->icon_id = icon_id;
                 snprintf(item->label, sizeof(item->label), "%s", label != NULL ? label : "");
             }
         },
@@ -776,6 +913,8 @@ void flippass_db_browser_view_set_selected_item(FlipPassDbBrowserView* browser, 
             model->scroll_counter = 0U;
         },
         true);
+    /* Every list rebuild ends here, so the first frame already has its icons. */
+    flippass_db_browser_view_sync_icons(browser);
 }
 
 uint32_t flippass_db_browser_view_get_selected_item(const FlipPassDbBrowserView* browser) {
@@ -827,9 +966,8 @@ void flippass_db_browser_view_set_show_other_action(
         FlipPassDbBrowserViewModel * model,
         {
             model->show_other_action = show_other_action;
-            model->action_selected_index =
-                flippass_db_browser_clamp_action_index_for_model(
-                    model, model->action_selected_index);
+            model->action_selected_index = flippass_db_browser_clamp_action_index_for_model(
+                model, model->action_selected_index);
         },
         true);
 }

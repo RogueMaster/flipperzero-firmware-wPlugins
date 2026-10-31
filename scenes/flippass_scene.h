@@ -27,7 +27,6 @@ typedef enum {
     FlipPassScene_KeyboardLayout, /**< Select the typing layout before continuing a send. */
     FlipPassScene_TextView, /**< Shared long-text viewer for notes and fields. */
     FlipPassScene_PasswordGenerator, /**< Configure generated password options. */
-    FlipPassScene_PasswordGeneratorHarvest, /**< Timed entropy harvest for password generation. */
     FlipPassScene_Status, /**< The status and error scene. */
 } FlipPassScene;
 

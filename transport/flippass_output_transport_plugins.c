@@ -1,6 +1,7 @@
 #include "flippass_output_transport.h"
 
 #include "../plugins/flippass_output_plugin.h"
+#include "../plugins/flippass_launch_auto.h"
 
 #include <stdio.h>
 
@@ -21,8 +22,7 @@ static FlipPassOutputPluginTransport
                FlipPassOutputPluginTransportUsb;
 }
 
-static FlipPassOutputTransport
-    flippass_output_transport_other(FlipPassOutputTransport transport) {
+static FlipPassOutputTransport flippass_output_transport_other(FlipPassOutputTransport transport) {
     return (transport == FlipPassOutputTransportBluetooth) ? FlipPassOutputTransportUsb :
                                                              FlipPassOutputTransportBluetooth;
 }
@@ -38,10 +38,7 @@ static void flippass_output_plugin_progress(
     }
 
     flippass_progress_update(
-        app,
-        (stage != NULL) ? stage : "Typing",
-        (detail != NULL) ? detail : "",
-        percent);
+        app, (stage != NULL) ? stage : "Typing", (detail != NULL) ? detail : "", percent);
 }
 
 static void
@@ -80,7 +77,7 @@ static const FlipPassOutputPluginV1*
     return (instance->descriptor != NULL) ? instance->descriptor->entry_point : NULL;
 }
 
-static const FlipPassOutputPluginV1*
+const FlipPassOutputPluginV1*
     flippass_output_transport_plugin_ensure(App* app, FlipPassOutputTransport transport) {
     FuriString* error = furi_string_alloc();
     const FlipperAppPluginDescriptor* descriptor = flippass_module_ensure(
@@ -121,9 +118,7 @@ static const FlipPassOutputPluginV1*
     return plugin;
 }
 
-static void flippass_output_transport_cleanup_loaded(
-    App* app,
-    FlipPassOutputTransport transport) {
+static void flippass_output_transport_cleanup_loaded(App* app, FlipPassOutputTransport transport) {
     const FlipPassOutputPluginV1* plugin = flippass_output_transport_plugin_loaded(app, transport);
     if(plugin != NULL && plugin->cleanup != NULL) {
         const FlipPassOutputPluginHostApiV1 host_api = flippass_output_transport_host_api(app);
@@ -137,9 +132,7 @@ static void flippass_output_transport_cleanup_loaded(
     flippass_module_unload(app, flippass_output_transport_slot(transport));
 }
 
-static void flippass_output_transport_cleanup_other(
-    App* app,
-    FlipPassOutputTransport transport) {
+static void flippass_output_transport_cleanup_other(App* app, FlipPassOutputTransport transport) {
     if(app == NULL) {
         return;
     }
@@ -166,9 +159,7 @@ static void flippass_output_transport_trim_idle(App* app, FlipPassOutputTranspor
     }
 }
 
-static void flippass_output_transport_finish_loaded(
-    App* app,
-    FlipPassOutputTransport transport) {
+static void flippass_output_transport_finish_loaded(App* app, FlipPassOutputTransport transport) {
     flippass_output_transport_cleanup_loaded(app, transport);
 }
 
@@ -253,12 +244,11 @@ bool flippass_output_transport_is_connected(const App* app, FlipPassOutputTransp
         return false;
     }
 
-    const FlipPassOutputPluginHostApiV1 host_api =
-        flippass_output_transport_host_api((App*)app);
+    const FlipPassOutputPluginHostApiV1 host_api = flippass_output_transport_host_api((App*)app);
     const bool connected = plugin->is_connected(&host_api);
     if(transport == FlipPassOutputTransportBluetooth) {
-        const bool advertising =
-            (plugin->is_advertising != NULL) && plugin->is_advertising(&host_api);
+        const bool advertising = (plugin->is_advertising != NULL) &&
+                                 plugin->is_advertising(&host_api);
         if(!connected && !advertising) {
             flippass_output_transport_trim_idle((App*)app, transport);
         }
@@ -273,12 +263,10 @@ bool flippass_output_transport_is_advertising(const App* app, FlipPassOutputTran
         return false;
     }
 
-    const FlipPassOutputPluginHostApiV1 host_api =
-        flippass_output_transport_host_api((App*)app);
+    const FlipPassOutputPluginHostApiV1 host_api = flippass_output_transport_host_api((App*)app);
     const bool advertising = plugin->is_advertising(&host_api);
     if(transport == FlipPassOutputTransportBluetooth) {
-        const bool connected =
-            (plugin->is_connected != NULL) && plugin->is_connected(&host_api);
+        const bool connected = (plugin->is_connected != NULL) && plugin->is_connected(&host_api);
         if(!connected && !advertising) {
             flippass_output_transport_trim_idle((App*)app, transport);
         }

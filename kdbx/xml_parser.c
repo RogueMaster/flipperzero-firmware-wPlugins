@@ -5,7 +5,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define XML_TAG_BUFFER_SIZE    1024U
+/* KDBX tags carry short names and small attributes such as Protected="True";
+ * field payloads are emitted as text, not held in this tag buffer. */
+#define XML_TAG_BUFFER_SIZE    384U
 #define XML_TEXT_BUFFER_SIZE   256U
 #define XML_ENTITY_BUFFER_SIZE 16U
 #define XML_MAX_ATTRIBUTES     16U

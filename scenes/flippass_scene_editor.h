@@ -9,6 +9,7 @@ struct FlipPassEditorCustomFieldDraft;
 
 typedef enum {
     FlipPassEditorEntryRowTitle = 0U,
+    FlipPassEditorEntryRowIcon,
     FlipPassEditorEntryRowUsername,
     FlipPassEditorEntryRowPassword,
     FlipPassEditorEntryRowUrl,
@@ -21,6 +22,12 @@ typedef enum {
 } FlipPassEditorEntryRow;
 
 void flippass_editor_clear_custom_field_drafts(struct App* app);
+void flippass_editor_free_custom_field_draft(struct FlipPassEditorCustomFieldDraft* draft);
+void flippass_editor_config_layout_unload_plugin(struct App* app);
+void flippass_editor_begin_database_session(struct App* app);
+bool flippass_editor_in_use(struct App* app);
+void flippass_editor_release_if_idle(struct App* app);
+void flippass_editor_end_database_session(struct App* app);
 size_t flippass_editor_custom_field_count(const struct App* app);
 void flippass_editor_prepare_new_custom_field(struct App* app);
 void flippass_editor_prepare_edit_custom_field(

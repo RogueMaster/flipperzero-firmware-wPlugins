@@ -11,14 +11,16 @@ extern "C" {
 #endif
 
 #define FLIPPASS_OPEN_INFLATE_NONPAGED_PLUGIN_APP_ID "flippass_open_inflate_nonpaged"
-#define FLIPPASS_OPEN_INFLATE_PAGED_PLUGIN_APP_ID "flippass_open_inflate_paged"
-#define FLIPPASS_OPEN_INFLATE_PLUGIN_API_VERSION 1u
-#define FLIPPASS_OPEN_INFLATE_HOST_API_VERSION 2u
+#define FLIPPASS_OPEN_INFLATE_PAGED_PLUGIN_APP_ID    "flippass_open_inflate_paged"
+#define FLIPPASS_OPEN_INFLATE_PLUGIN_API_VERSION     1u
+#define FLIPPASS_OPEN_INFLATE_HOST_API_VERSION       3u
 
 typedef enum {
     FlipPassOpenInflateKindNone = 0,
     FlipPassOpenInflateKindNonPaged,
     FlipPassOpenInflateKindPaged,
+    /* Advisory format hint only; dispatched through the nonpaged module. */
+    FlipPassOpenInflateKindStoredCandidate,
 } FlipPassOpenInflateKind;
 
 typedef struct {
@@ -44,10 +46,7 @@ typedef struct {
         size_t capacity,
         size_t* out_size);
     void (*end_staged_payload_stream)(void* context);
-    bool (*begin_staged_xml)(
-        void* context,
-        KDBXVaultBackend preferred_backend,
-        FuriString* error);
+    bool (*begin_staged_xml)(void* context, KDBXVaultBackend preferred_backend, FuriString* error);
     bool (*append_staged_xml)(
         void* context,
         const uint8_t* data,
@@ -65,6 +64,7 @@ typedef struct {
         uint8_t* out_mac,
         size_t mac_size);
     void (*clear_paged_window_crypto)(void* context);
+    bool (*backend_supported)(KDBXVaultBackend backend);
 } FlipPassOpenInflateHostApiV1;
 
 typedef struct {

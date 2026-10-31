@@ -1,5 +1,7 @@
 #include "../flippass.h"
 #include "../flippass_db.h"
+#include "../flippass_deferred_launch.h"
+#include "../flippass_launch.h"
 #include "../kdbx/memzero.h"
 #include "../plugins/flippass_output_action_plugin.h"
 #include "flippass_output_transport.h"
@@ -104,6 +106,9 @@ static void flippass_output_action_strings_free(FlipPassOutputActionStrings* str
         furi_string_free(strings->entry_uuid);
     }
     if(strings->resolved_autotype != NULL) {
+        memzero(
+            (void*)furi_string_get_cstr(strings->resolved_autotype),
+            furi_string_size(strings->resolved_autotype));
         furi_string_free(strings->resolved_autotype);
     }
     memset(strings, 0, sizeof(*strings));
@@ -174,7 +179,11 @@ static bool flippass_output_prepare_autotype_request(
         return false;
     }
 
-    if(flippass_db_entry_has_field(entry, KDBXEntryFieldUsername) && entry->username == NULL) {
+    if(flippass_db_entry_has_field(entry, KDBXEntryFieldTitle) && entry->title == NULL) {
+        ok = flippass_db_ensure_entry_title(app, entry, error);
+    }
+    if(ok && flippass_db_entry_has_field(entry, KDBXEntryFieldUsername) &&
+       entry->username == NULL) {
         ok = flippass_db_ensure_entry_field(app, entry, KDBXEntryFieldUsername, error);
     }
     if(ok && flippass_db_entry_has_field(entry, KDBXEntryFieldPassword) &&
@@ -204,7 +213,8 @@ static bool flippass_output_prepare_autotype_request(
         if(app->file_path != NULL) {
             path_extract_dirname(furi_string_get_cstr(app->file_path), strings->db_dir);
             path_extract_basename(furi_string_get_cstr(app->file_path), strings->db_name);
-            path_extract_filename_no_ext(furi_string_get_cstr(app->file_path), strings->db_basename);
+            path_extract_filename_no_ext(
+                furi_string_get_cstr(app->file_path), strings->db_basename);
             flippass_output_set_db_ext(strings->db_ext, app->file_path);
         }
 
@@ -213,10 +223,9 @@ static bool flippass_output_prepare_autotype_request(
                 app, entry, entry->autotype_sequence, strings->resolved_autotype, error);
         }
 
-        request->autotype_sequence =
-            (ok && !furi_string_empty(strings->resolved_autotype)) ?
-                furi_string_get_cstr(strings->resolved_autotype) :
-                entry->autotype_sequence;
+        request->autotype_sequence = (ok && !furi_string_empty(strings->resolved_autotype)) ?
+                                         furi_string_get_cstr(strings->resolved_autotype) :
+                                         entry->autotype_sequence;
         request->entry_title = entry->title;
         request->entry_username = entry->username;
         request->entry_password = entry->password;
@@ -231,7 +240,8 @@ static bool flippass_output_prepare_autotype_request(
         request->db_basename = furi_string_get_cstr(strings->db_basename);
         request->db_ext = furi_string_get_cstr(strings->db_ext);
     } else {
-        FLIPPASS_LOG_EVENT(app, "OUTPUT_AUTOTYPE_PREP_FAIL reason=%s", furi_string_get_cstr(error));
+        FLIPPASS_LOG_EVENT(
+            app, "OUTPUT_AUTOTYPE_PREP_FAIL reason=%s", furi_string_get_cstr(error));
     }
 
     furi_string_free(error);
@@ -272,10 +282,7 @@ static void flippass_output_action_progress(
     }
 
     flippass_progress_update(
-        host->app,
-        (stage != NULL) ? stage : "Typing",
-        (detail != NULL) ? detail : "",
-        percent);
+        host->app, (stage != NULL) ? stage : "Typing", (detail != NULL) ? detail : "", percent);
 }
 
 static bool flippass_output_action_should_cancel(void* context) {
@@ -288,7 +295,8 @@ static bool flippass_output_action_begin_transport(
     FlipPassOutputActionPluginTransport transport) {
     FlipPassOutputActionHostContext* host = context;
     return host != NULL && host->app != NULL &&
-           flippass_output_transport_begin(host->app, flippass_output_action_host_transport(transport));
+           flippass_output_transport_begin(
+               host->app, flippass_output_action_host_transport(transport));
 }
 
 static void flippass_output_action_end_transport(
@@ -335,8 +343,9 @@ static bool flippass_output_action_usb_numlock_on(void* context) {
     return (furi_hal_hid_get_led_state() & HID_KB_LED_NUM) != 0U;
 }
 
-static const KDBXFieldRef*
-    flippass_output_action_select_ref(const FlipPassOutputRequest* request, FlipPassOutputActionPluginRef ref) {
+static const KDBXFieldRef* flippass_output_action_select_ref(
+    const FlipPassOutputRequest* request,
+    FlipPassOutputActionPluginRef ref) {
     if(request == NULL) {
         return NULL;
     }
@@ -424,7 +433,18 @@ static const FlipPassOutputActionPluginV1*
         return NULL;
     }
 
+    flippass_module_pin(app, FlipPassModuleSlotOutputAction);
     return plugin;
+}
+
+static bool flippass_output_action_prepare_launch(
+    void* context,
+    const char* application,
+    const char* arguments,
+    bool self) {
+    FlipPassOutputActionHostContext* host = context;
+    return host != NULL && host->app != NULL &&
+           flippass_deferred_launch_prepare(host->app, application, arguments, self);
 }
 
 bool flippass_output_execute_request(App* app, const FlipPassOutputRequest* source) {
@@ -445,9 +465,11 @@ bool flippass_output_execute_request(App* app, const FlipPassOutputRequest* sour
         .text = source->text,
         .username = source->username,
         .password = source->password,
-        .keyboard_layout_path = (app->keyboard_layout_path != NULL) ?
-                                    furi_string_get_cstr(app->keyboard_layout_path) :
-                                    NULL,
+        .keyboard_layout_path =
+            (app->launch_request != NULL && app->launch_request->keyboard_layout_path != NULL) ?
+                app->launch_request->keyboard_layout_path :
+            (app->keyboard_layout_path != NULL) ? furi_string_get_cstr(app->keyboard_layout_path) :
+                                                  NULL,
         .primary_ref_plain_len = (source->ref != NULL) ? source->ref->plain_len : 0U,
         .username_ref_plain_len =
             (source->username_ref != NULL) ? source->username_ref->plain_len : 0U,
@@ -486,7 +508,8 @@ bool flippass_output_execute_request(App* app, const FlipPassOutputRequest* sour
     FuriString* error = furi_string_alloc();
     const FlipPassOutputActionPluginV1* plugin = flippass_output_action_plugin_get(app, error);
     if(plugin == NULL) {
-        FLIPPASS_LOG_EVENT(app, "OUTPUT_ACTION_PLUGIN_LOAD_FAIL reason=%s", furi_string_get_cstr(error));
+        FLIPPASS_LOG_EVENT(
+            app, "OUTPUT_ACTION_PLUGIN_LOAD_FAIL reason=%s", furi_string_get_cstr(error));
         furi_string_free(error);
         flippass_output_cleanup_after_request(app);
         flippass_output_action_strings_free(&strings);
@@ -509,9 +532,11 @@ bool flippass_output_execute_request(App* app, const FlipPassOutputRequest* sour
         .release_all = flippass_output_action_release_all,
         .usb_numlock_on = flippass_output_action_usb_numlock_on,
         .stream_ref = flippass_output_action_stream_ref,
+        .prepare_launch = flippass_output_action_prepare_launch,
     };
 
     ok = plugin->run(&request, &host_api, error);
+    flippass_module_unpin(app, FlipPassModuleSlotOutputAction);
     if(!ok && !furi_string_empty(error)) {
         FLIPPASS_LOG_EVENT(app, "OUTPUT_ACTION_FAIL reason=%s", furi_string_get_cstr(error));
     }
@@ -519,6 +544,7 @@ bool flippass_output_execute_request(App* app, const FlipPassOutputRequest* sour
     flippass_output_cleanup_after_request(app);
     furi_string_free(error);
     flippass_output_action_strings_free(&strings);
+    flippass_deferred_launch_finish_output(app, ok);
     return ok;
 }
 

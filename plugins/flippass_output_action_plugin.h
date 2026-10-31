@@ -11,9 +11,9 @@
 extern "C" {
 #endif
 
-#define FLIPPASS_OUTPUT_ACTION_PLUGIN_APP_ID "flippass_output_action"
-#define FLIPPASS_OUTPUT_ACTION_PLUGIN_API_VERSION 1u
-#define FLIPPASS_OUTPUT_ACTION_HOST_API_VERSION 1u
+#define FLIPPASS_OUTPUT_ACTION_PLUGIN_APP_ID      "flippass_output_action"
+#define FLIPPASS_OUTPUT_ACTION_PLUGIN_API_VERSION 2u
+#define FLIPPASS_OUTPUT_ACTION_HOST_API_VERSION   2u
 
 typedef enum {
     FlipPassOutputActionPluginTransportUsb = 0,
@@ -34,10 +34,8 @@ typedef enum {
     FlipPassOutputActionPluginRefPassword,
 } FlipPassOutputActionPluginRef;
 
-typedef bool (*FlipPassOutputActionChunkCallback)(
-    const uint8_t* data,
-    size_t data_size,
-    void* context);
+typedef bool (
+    *FlipPassOutputActionChunkCallback)(const uint8_t* data, size_t data_size, void* context);
 
 typedef struct {
     uint32_t api_version;
@@ -73,7 +71,10 @@ typedef struct {
     bool (*should_cancel)(void* context);
     bool (*begin_transport)(void* context, FlipPassOutputActionPluginTransport transport);
     void (*end_transport)(void* context, FlipPassOutputActionPluginTransport transport);
-    bool (*press_key)(void* context, FlipPassOutputActionPluginTransport transport, uint16_t hid_key);
+    bool (*press_key)(
+        void* context,
+        FlipPassOutputActionPluginTransport transport,
+        uint16_t hid_key);
     bool (*release_key)(
         void* context,
         FlipPassOutputActionPluginTransport transport,
@@ -85,6 +86,10 @@ typedef struct {
         FlipPassOutputActionPluginRef ref,
         FlipPassOutputActionChunkCallback callback,
         void* callback_context);
+    /* Copy a validated CMD destination into host ownership before any HID.
+     * This stages a request; the host commits it only after run succeeds. */
+    bool (
+        *prepare_launch)(void* context, const char* application, const char* arguments, bool self);
 } FlipPassOutputActionHostApiV1;
 
 typedef struct {

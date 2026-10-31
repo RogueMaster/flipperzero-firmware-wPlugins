@@ -15,6 +15,8 @@ extern "C" {
 #define FLIPPASS_DB_BROWSER_MAX_ITEMS   48U
 #define FLIPPASS_DB_BROWSER_LABEL_SIZE  64U
 #define FLIPPASS_DB_BROWSER_HEADER_SIZE 96U
+/* Row without a KeePass IconID: draw the built-in icon for its item type. */
+#define FLIPPASS_DB_BROWSER_ICON_NONE   0xFFU
 
 typedef enum {
     FlipPassDbBrowserItemTypeGroup = 0,
@@ -77,31 +79,28 @@ void flippass_db_browser_view_set_back_filter(
 void flippass_db_browser_view_reset(FlipPassDbBrowserView* browser);
 void flippass_db_browser_view_set_header(FlipPassDbBrowserView* browser, const char* header);
 void flippass_db_browser_view_set_has_parent(FlipPassDbBrowserView* browser, bool has_parent);
-void flippass_db_browser_view_set_mode(
-    FlipPassDbBrowserView* browser,
-    FlipPassDbBrowserMode mode);
+void flippass_db_browser_view_set_mode(FlipPassDbBrowserView* browser, FlipPassDbBrowserMode mode);
 void flippass_db_browser_view_set_add_menu_kind(
     FlipPassDbBrowserView* browser,
     FlipPassDbBrowserAddMenuKind kind);
+/** Group and entry rows pass their KeePass IconID; other rows pass
+ * FLIPPASS_DB_BROWSER_ICON_NONE. */
 void flippass_db_browser_view_add_item(
     FlipPassDbBrowserView* browser,
     FlipPassDbBrowserItemType type,
-    const char* label);
+    const char* label,
+    uint8_t icon_id);
 void flippass_db_browser_view_set_selected_item(FlipPassDbBrowserView* browser, uint32_t index);
 uint32_t flippass_db_browser_view_get_selected_item(const FlipPassDbBrowserView* browser);
-void flippass_db_browser_view_set_action_selected(
-    FlipPassDbBrowserView* browser,
-    uint32_t index);
+void flippass_db_browser_view_set_action_selected(FlipPassDbBrowserView* browser, uint32_t index);
 uint32_t flippass_db_browser_view_get_action_selected(const FlipPassDbBrowserView* browser);
 void flippass_db_browser_view_set_show_other_action(
     FlipPassDbBrowserView* browser,
     bool show_other_action);
-void flippass_db_browser_view_set_action_menu_open(
-    FlipPassDbBrowserView* browser,
-    bool open);
+void flippass_db_browser_view_set_action_menu_open(FlipPassDbBrowserView* browser, bool open);
 bool flippass_db_browser_view_is_action_menu_open(const FlipPassDbBrowserView* browser);
-FlipPassDbBrowserItemType flippass_db_browser_view_get_selected_type(
-    const FlipPassDbBrowserView* browser);
+FlipPassDbBrowserItemType
+    flippass_db_browser_view_get_selected_type(const FlipPassDbBrowserView* browser);
 
 #ifdef __cplusplus
 }

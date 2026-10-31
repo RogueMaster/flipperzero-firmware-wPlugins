@@ -14,17 +14,17 @@
 #include <stdio.h>
 #include <string.h>
 
-#define FLIPPASS_BT_KEYS_STORAGE_DIR    EXT_PATH("apps_data/bad_usb")
-#define FLIPPASS_BT_KEYS_STORAGE_PATH   EXT_PATH("apps_data/bad_usb/.bt_hid.keys")
-#define FLIPPASS_BLE_SETUP_DELAY_MS     200U
-#define FLIPPASS_BLE_WAIT_STEP_MS       100U
-#define FLIPPASS_BLE_CONNECT_TIMEOUT_MS 15000U
-#define FLIPPASS_BLE_CONNECT_SETTLE_MS  300U
-#define FLIPPASS_BLE_DISCONNECT_STEP_MS 50U
+#define FLIPPASS_BT_KEYS_STORAGE_DIR       EXT_PATH("apps_data/bad_usb")
+#define FLIPPASS_BT_KEYS_STORAGE_PATH      EXT_PATH("apps_data/bad_usb/.bt_hid.keys")
+#define FLIPPASS_BLE_SETUP_DELAY_MS        200U
+#define FLIPPASS_BLE_WAIT_STEP_MS          100U
+#define FLIPPASS_BLE_CONNECT_TIMEOUT_MS    15000U
+#define FLIPPASS_BLE_CONNECT_SETTLE_MS     300U
+#define FLIPPASS_BLE_DISCONNECT_STEP_MS    50U
 #define FLIPPASS_BLE_DISCONNECT_TIMEOUT_MS 1000U
-#define FLIPPASS_BLE_NAME_PREFIX        "BadUSB"
-#define FLIPPASS_BLE_NAME_BUFFER_SIZE   21U
-#define FLIPPASS_BLE_MAC_XOR            0x0002U
+#define FLIPPASS_BLE_NAME_PREFIX           "BadUSB"
+#define FLIPPASS_BLE_NAME_BUFFER_SIZE      21U
+#define FLIPPASS_BLE_MAC_XOR               0x0002U
 
 typedef struct {
     char name[FLIPPASS_BLE_NAME_BUFFER_SIZE];
@@ -41,6 +41,16 @@ typedef struct {
 } FlipPassBlePluginSession;
 
 static FlipPassBlePluginSession* flippass_output_ble_session = NULL;
+static FlipPassOutputConnectionCallback flippass_output_ble_connection_callback = NULL;
+static void* flippass_output_ble_connection_context = NULL;
+
+static void
+    flippass_output_ble_watch_connection(FlipPassOutputConnectionCallback callback, void* context) {
+    FURI_CRITICAL_ENTER();
+    flippass_output_ble_connection_callback = callback;
+    flippass_output_ble_connection_context = callback != NULL ? context : NULL;
+    FURI_CRITICAL_EXIT();
+}
 
 static void flippass_output_ble_progress(
     const FlipPassOutputPluginHostApiV1* host_api,
@@ -52,9 +62,8 @@ static void flippass_output_ble_progress(
     }
 }
 
-static void flippass_output_ble_log(
-    const FlipPassOutputPluginHostApiV1* host_api,
-    const char* message) {
+static void
+    flippass_output_ble_log(const FlipPassOutputPluginHostApiV1* host_api, const char* message) {
     if(host_api != NULL && host_api->log != NULL && message != NULL) {
         host_api->log(host_api->host_context, "flippass_output_ble", message);
     }
@@ -123,8 +132,14 @@ static const FuriHalBleProfileTemplate flippass_ble_profile_template = {
 static void flippass_ble_status_changed(BtStatus status, void* context) {
     FlipPassBlePluginSession* session = context;
     furi_assert(session);
+    FURI_CRITICAL_ENTER();
     session->status = status;
     session->connected = (status == BtStatusConnected);
+    if(flippass_output_ble_connection_callback != NULL) {
+        flippass_output_ble_connection_callback(
+            session->connected, flippass_output_ble_connection_context);
+    }
+    FURI_CRITICAL_EXIT();
 }
 
 static bool flippass_ble_prepare_storage(void) {
@@ -175,8 +190,8 @@ static bool flippass_ble_session_start(const FlipPassOutputPluginHostApiV1* host
     FlipPassBleProfileParams profile_params;
     flippass_ble_prepare_profile_params(&profile_params);
 
-    session->profile = bt_profile_start(
-        session->bt, &flippass_ble_profile_template, (void*)&profile_params);
+    session->profile =
+        bt_profile_start(session->bt, &flippass_ble_profile_template, (void*)&profile_params);
     if(session->profile == NULL) {
         bt_keys_storage_set_default_path(session->bt);
         furi_record_close(RECORD_BT);
@@ -227,9 +242,9 @@ static bool flippass_ble_wait_connected(const FlipPassOutputPluginHostApiV1* hos
     }
 
     uint32_t waited_ms = 0U;
-    while(
-        flippass_output_ble_session != NULL && !flippass_output_ble_session->connected &&
-        waited_ms < FLIPPASS_BLE_CONNECT_TIMEOUT_MS && !flippass_output_ble_should_cancel(host_api)) {
+    while(flippass_output_ble_session != NULL && !flippass_output_ble_session->connected &&
+          waited_ms < FLIPPASS_BLE_CONNECT_TIMEOUT_MS &&
+          !flippass_output_ble_should_cancel(host_api)) {
         if(!flippass_output_ble_delay_or_cancel(host_api, FLIPPASS_BLE_WAIT_STEP_MS)) {
             return false;
         }
@@ -259,9 +274,8 @@ static bool flippass_output_ble_begin(const FlipPassOutputPluginHostApiV1* host_
     return true;
 }
 
-static bool flippass_output_ble_press_key(
-    const FlipPassOutputPluginHostApiV1* host_api,
-    uint16_t hid_key) {
+static bool
+    flippass_output_ble_press_key(const FlipPassOutputPluginHostApiV1* host_api, uint16_t hid_key) {
     UNUSED(host_api);
 
     if(hid_key == HID_KEYBOARD_NONE || flippass_output_ble_session == NULL ||
@@ -321,6 +335,7 @@ static void flippass_ble_wait_disconnected(const FlipPassOutputPluginHostApiV1* 
 }
 
 static void flippass_output_ble_cleanup(const FlipPassOutputPluginHostApiV1* host_api) {
+    flippass_output_ble_watch_connection(NULL, NULL);
     if(flippass_output_ble_session == NULL) {
         return;
     }
@@ -357,6 +372,7 @@ static const FlipPassOutputPluginV1 flippass_output_ble_plugin = {
     .advertise = flippass_output_ble_advertise,
     .get_name = flippass_output_ble_get_name_impl,
     .cleanup = flippass_output_ble_cleanup,
+    .watch_connection = flippass_output_ble_watch_connection,
 };
 
 static const FlipperAppPluginDescriptor flippass_output_ble_descriptor = {

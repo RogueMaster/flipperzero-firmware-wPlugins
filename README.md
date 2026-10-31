@@ -9,10 +9,11 @@ FlipPass is the Flipper Zero implementation of the KeePass password manager; it 
 - Modify the password, encryption type, and KDF derivation effort of an existing KDBX.
 - Show username, password, URL, notes, AutoType sequences, OTP, and custom fields on-device.
 - Type username, password, AutoType sequences, OTP values, or custom fields over USB HID or Bluetooth HID.
-- Generates passwords based on SubGhz noise and user inputs entropy (Trying to be "True Random")
+- Generates passwords directly from the TRNG via hardware.
 - Create and calculate HMAC-OTP and TIME-OTP configurations as KeePass. (In the editing/creation of an entry, in the OTP field)
 - Reuse the default KeePass AutoType sequence when an entry does not define a custom one.
 - It locks and eventually closes itself, at configurable intervals.
+- It stores the AES-KDF result in a lightly encrypted form (Password + Device Key) for frequent, quick reopenings. (Will be asked after several reopenings of the same KDBX; This can lead to greater vulnerability to brute-force attacks if the device is stolen.)
 
 ## Requirements
 

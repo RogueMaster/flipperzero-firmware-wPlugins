@@ -4,14 +4,15 @@
 #include <flipper_application/flipper_application.h>
 
 #include "../flippass.h"
+#include "flippass_editor_icons.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#define FLIPPASS_EDITOR_CRUD_PLUGIN_APP_ID "flippass_editor_crud"
-#define FLIPPASS_EDITOR_CRUD_PLUGIN_API_VERSION 2u
-#define FLIPPASS_EDITOR_CRUD_HOST_API_VERSION 2u
+#define FLIPPASS_EDITOR_CRUD_PLUGIN_APP_ID      "flippass_editor_crud"
+#define FLIPPASS_EDITOR_CRUD_PLUGIN_API_VERSION 3u
+#define FLIPPASS_EDITOR_CRUD_HOST_API_VERSION   2u
 
 typedef enum {
     FlipPassEditorCrudDeleteNone = 0,
@@ -75,7 +76,8 @@ typedef struct {
         KDBXCustomField* field,
         FuriString* error);
     void (*save_settings)(void* context);
-    void (*show_status)(void* context, const char* title, const char* message, uint32_t return_scene);
+    void (
+        *show_status)(void* context, const char* title, const char* message, uint32_t return_scene);
 } FlipPassEditorCrudHostApiV1;
 
 typedef struct {
@@ -85,6 +87,9 @@ typedef struct {
         App* app,
         FlipPassEditorCrudDeleteTarget target,
         const FlipPassEditorCrudHostApiV1* host_api);
+    void (*icons_open)(App* app);
+    FlipPassEditorIconsEventResult (*icons_on_event)(App* app, SceneManagerEvent event);
+    void (*icons_reset)(App* app);
 } FlipPassEditorCrudPluginV1;
 
 const FlipperAppPluginDescriptor* flippass_editor_crud_plugin_ep(void);
