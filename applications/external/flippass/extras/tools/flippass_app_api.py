@@ -45,11 +45,16 @@ def ufbt_home() -> Path:
 
 def find_nm(home: Path) -> Path:
     names = ("arm-none-eabi-nm.exe", "arm-none-eabi-nm")
-    for base in [home / "toolchain" / "current" / "bin", *sorted((home / "toolchain").glob("*/bin"))]:
+    for base in [
+        home / "toolchain" / "current" / "bin",
+        *sorted((home / "toolchain").glob("*/bin")),
+    ]:
         for name in names:
             if (base / name).exists():
                 return base / name
-    sys.exit(f"arm-none-eabi-nm not found under {home / 'toolchain'}; run `ufbt update` first.")
+    sys.exit(
+        f"arm-none-eabi-nm not found under {home / 'toolchain'}; run `ufbt update` first."
+    )
 
 
 def elf_gnu_hash(name: str) -> int:
@@ -69,29 +74,53 @@ def firmware_symbols(api_csv: Path) -> set[str]:
 
 
 def nm_names(nm: Path, elf: Path, *flags: str) -> set[str]:
-    out = subprocess.run([str(nm), *flags, str(elf)], check=True, capture_output=True, text=True)
+    out = subprocess.run(
+        [str(nm), *flags, str(elf)], check=True, capture_output=True, text=True
+    )
     return {line.split()[-1] for line in out.stdout.splitlines() if line.strip()}
 
 
 def render(names: set[str]) -> str:
-    return "\n".join(HEADER + [f"FLIPPASS_APP_API({name})" for name in sorted(names)]) + "\n"
+    return (
+        "\n".join(HEADER + [f"FLIPPASS_APP_API({name})" for name in sorted(names)])
+        + "\n"
+    )
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     parser.add_argument("action", choices=("write", "check"))
-    parser.add_argument("--build-dir", type=Path, help="uFBT build directory (default: $UFBT_HOME/build)")
-    parser.add_argument("--api-csv", type=Path, help="firmware api_symbols.csv of the SDK in use")
+    parser.add_argument(
+        "--build-dir",
+        type=Path,
+        help="uFBT build directory (default: $UFBT_HOME/build)",
+    )
+    parser.add_argument(
+        "--api-csv", type=Path, help="firmware api_symbols.csv of the SDK in use"
+    )
     args = parser.parse_args()
 
     home = ufbt_home()
     build = args.build_dir or home / "build"
-    api_csv = args.api_csv or home / "current" / "sdk_headers" / "f7_sdk" / "targets" / "f7" / "api_symbols.csv"
+    api_csv = (
+        args.api_csv
+        or home
+        / "current"
+        / "sdk_headers"
+        / "f7_sdk"
+        / "targets"
+        / "f7"
+        / "api_symbols.csv"
+    )
     nm = find_nm(home)
     plugins = sorted(build.glob("flippass_*.fal"))
     host_elf = build / "flippass_d.elf"
     if not plugins or not api_csv.exists():
-        sys.exit(f"No built plugins in {build} or no {api_csv}; run `ufbt build` first.")
+        sys.exit(
+            f"No built plugins in {build} or no {api_csv}; run `ufbt build` first."
+        )
 
     firmware = firmware_symbols(api_csv)
     needed: dict[str, list[str]] = {}
@@ -106,38 +135,61 @@ def main() -> int:
         for fal in plugins:
             for name in sorted((nm_names(nm, fal, "-u") & firmware & host_globals)):
                 if not name.startswith("__aeabi_"):
-                    problems.append(f"{fal.stem} imports {name}, which the host redefines; "
-                                    "it would bind to the firmware's version")
+                    problems.append(
+                        f"{fal.stem} imports {name}, which the host redefines; "
+                        "it would bind to the firmware's version"
+                    )
     fw_hashes = {elf_gnu_hash(name): name for name in firmware}
     for name in sorted(names):
         clash = fw_hashes.get(elf_gnu_hash(name))
         if clash is not None:
-            problems.append(f"hash of host symbol {name} equals firmware symbol {clash}")
+            problems.append(
+                f"hash of host symbol {name} equals firmware symbol {clash}"
+            )
     if host_elf.exists():
         host_defined = nm_names(nm, host_elf, "-g", "--defined-only")
         missing = sorted(names - host_defined)
         if missing and args.action == "check":
-            problems += [f"{n} (imported by {', '.join(needed[n])}) is not defined by the host" for n in missing]
+            problems += [
+                f"{n} (imported by {', '.join(needed[n])}) is not defined by the host"
+                for n in missing
+            ]
         elif missing:
-            print(f"note: {len(missing)} symbols are not in the host yet; rebuild to link them in")
+            print(
+                f"note: {len(missing)} symbols are not in the host yet; rebuild to link them in"
+            )
 
     text = render(names)
     if args.action == "write":
         OUT.write_text(text, encoding="utf-8", newline="\n")
         print(f"{OUT.name}: {len(names)} host symbols for {len(plugins)} plugins")
     else:
-        current = OUT.read_text(encoding="utf-8").replace("\r\n", "\n") if OUT.exists() else ""
+        current = (
+            OUT.read_text(encoding="utf-8").replace("\r\n", "\n")
+            if OUT.exists()
+            else ""
+        )
         if current != text:
-            listed = {line[len("FLIPPASS_APP_API("):-1] for line in current.splitlines()
-                      if line.startswith("FLIPPASS_APP_API(")}
-            problems += [f"missing from {OUT.name}: {n}" for n in sorted(names - listed)]
-            problems += [f"no longer imported, remove from {OUT.name}: {n}" for n in sorted(listed - names)]
+            listed = {
+                line[len("FLIPPASS_APP_API(") : -1]
+                for line in current.splitlines()
+                if line.startswith("FLIPPASS_APP_API(")
+            }
+            problems += [
+                f"missing from {OUT.name}: {n}" for n in sorted(names - listed)
+            ]
+            problems += [
+                f"no longer imported, remove from {OUT.name}: {n}"
+                for n in sorted(listed - names)
+            ]
             if not (names ^ listed):
                 problems.append(f"{OUT.name} is not in canonical form; run `write`")
     for problem in problems:
         print(f"error: {problem}", file=sys.stderr)
     if not problems and args.action == "check":
-        print(f"{OUT.name} is current: {len(names)} host symbols for {len(plugins)} plugins")
+        print(
+            f"{OUT.name} is current: {len(names)} host symbols for {len(plugins)} plugins"
+        )
     return 1 if problems else 0
 
 

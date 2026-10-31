@@ -23,31 +23,55 @@ def flippass_build_int(name, default):
 otp_sequential_window = flippass_build_flag("FLIPPASS_BUILD_OTP_SEQUENTIAL_WINDOW", 0)
 module_direct_load = flippass_build_flag("FLIPPASS_BUILD_MODULE_DIRECT_LOAD", 1)
 enable_logs = flippass_build_flag("FLIPPASS_BUILD_ENABLE_LOGS", 0)
-enable_system_trace_capture = flippass_build_flag("FLIPPASS_BUILD_ENABLE_SYSTEM_TRACE_CAPTURE", 0)
-enable_gzip_paged_trace = flippass_build_flag("FLIPPASS_BUILD_ENABLE_GZIP_PAGED_TRACE", 0)
-enable_parser_furi_trace = flippass_build_flag("FLIPPASS_BUILD_ENABLE_PARSER_FURI_TRACE", 0)
-enable_verbose_unlock_log = flippass_build_flag("FLIPPASS_BUILD_ENABLE_VERBOSE_UNLOCK_LOG", 0)
-enable_deep_diagnostics = flippass_build_flag("FLIPPASS_BUILD_ENABLE_DEEP_DIAGNOSTICS", 0)
-enable_memory_diagnostics = flippass_build_flag("FLIPPASS_BUILD_ENABLE_MEMORY_DIAGNOSTICS", 0)
+enable_system_trace_capture = flippass_build_flag(
+    "FLIPPASS_BUILD_ENABLE_SYSTEM_TRACE_CAPTURE", 0
+)
+enable_gzip_paged_trace = flippass_build_flag(
+    "FLIPPASS_BUILD_ENABLE_GZIP_PAGED_TRACE", 0
+)
+enable_parser_furi_trace = flippass_build_flag(
+    "FLIPPASS_BUILD_ENABLE_PARSER_FURI_TRACE", 0
+)
+enable_verbose_unlock_log = flippass_build_flag(
+    "FLIPPASS_BUILD_ENABLE_VERBOSE_UNLOCK_LOG", 0
+)
+enable_deep_diagnostics = flippass_build_flag(
+    "FLIPPASS_BUILD_ENABLE_DEEP_DIAGNOSTICS", 0
+)
+enable_memory_diagnostics = flippass_build_flag(
+    "FLIPPASS_BUILD_ENABLE_MEMORY_DIAGNOSTICS", 0
+)
 enable_probe_logs = flippass_build_flag("FLIPPASS_BUILD_ENABLE_PROBE_LOGS", 0)
-enable_probe_terminal_logs = flippass_build_flag("FLIPPASS_BUILD_ENABLE_PROBE_TERMINAL_LOGS", 0)
+enable_probe_terminal_logs = flippass_build_flag(
+    "FLIPPASS_BUILD_ENABLE_PROBE_TERMINAL_LOGS", 0
+)
 enable_xml_preflight = flippass_build_flag("FLIPPASS_BUILD_ENABLE_XML_PREFLIGHT", 0)
 enable_gzip_paged_ram = flippass_build_flag("FLIPPASS_BUILD_ENABLE_GZIP_PAGED_RAM", 0)
-gzip_paged_fast_lookup_bits = flippass_build_int("FLIPPASS_BUILD_GZIP_PAGED_FAST_LOOKUP_BITS", 6)
+gzip_paged_fast_lookup_bits = flippass_build_int(
+    "FLIPPASS_BUILD_GZIP_PAGED_FAST_LOOKUP_BITS", 6
+)
 gzip_paged_page_size = flippass_build_int("FLIPPASS_BUILD_GZIP_PAGED_PAGE_SIZE", 256)
 open_model_low_heap_abort_bytes = flippass_build_int(
     "FLIPPASS_BUILD_OPEN_MODEL_LOW_HEAP_ABORT_BYTES", 1280
 )
 enable_typing_actions = flippass_build_flag("FLIPPASS_BUILD_ENABLE_TYPING_ACTIONS", 1)
-enable_bluetooth_output = flippass_build_flag("FLIPPASS_BUILD_ENABLE_BLUETOOTH_OUTPUT", 1)
+enable_bluetooth_output = flippass_build_flag(
+    "FLIPPASS_BUILD_ENABLE_BLUETOOTH_OUTPUT", 1
+)
 enable_keyboard_layout = flippass_build_flag("FLIPPASS_BUILD_ENABLE_KEYBOARD_LAYOUT", 1)
-enable_debug_unlock_hook = flippass_build_flag("FLIPPASS_BUILD_ENABLE_DEBUG_UNLOCK_HOOK", 0)
-enable_debug_create_hook = flippass_build_flag("FLIPPASS_BUILD_ENABLE_DEBUG_CREATE_HOOK", 0)
+enable_debug_unlock_hook = flippass_build_flag(
+    "FLIPPASS_BUILD_ENABLE_DEBUG_UNLOCK_HOOK", 0
+)
+enable_debug_create_hook = flippass_build_flag(
+    "FLIPPASS_BUILD_ENABLE_DEBUG_CREATE_HOOK", 0
+)
 enable_debug_save_hook = flippass_build_flag("FLIPPASS_BUILD_ENABLE_DEBUG_SAVE_HOOK", 0)
 save_writer_aes_nocomp_only = flippass_build_flag(
     "FLIPPASS_BUILD_SAVE_WRITER_AES_NOCOMP_ONLY", 0
 )
-save_writer_host_payload = flippass_build_flag("FLIPPASS_BUILD_SAVE_WRITER_HOST_PAYLOAD", 0)
+save_writer_host_payload = flippass_build_flag(
+    "FLIPPASS_BUILD_SAVE_WRITER_HOST_PAYLOAD", 0
+)
 if flippass_build_flag("FLIPPASS_BUILD_SAVE_WRITER_HOST_INNER", 0):
     raise ValueError(
         "FLIPPASS_BUILD_SAVE_WRITER_HOST_INNER is retired: save_serial uses the central crypto API. "
@@ -137,8 +161,16 @@ App(
         "kdbx/memzero.c",
         "mntminput/text_input.c",
     ]
-    + (["scenes/flippass_scene_keyboard_layout.c"] if enable_keyboard_layout else ["scenes/flippass_scene_keyboard_layout_stub.c"])
-    + (["scenes/flippass_scene_send_confirm.c"] if enable_typing_actions else ["scenes/flippass_scene_send_confirm_stub.c"])
+    + (
+        ["scenes/flippass_scene_keyboard_layout.c"]
+        if enable_keyboard_layout
+        else ["scenes/flippass_scene_keyboard_layout_stub.c"]
+    )
+    + (
+        ["scenes/flippass_scene_send_confirm.c"]
+        if enable_typing_actions
+        else ["scenes/flippass_scene_send_confirm_stub.c"]
+    )
     + (
         ["transport/flippass_output.c", "transport/flippass_output_transport_plugins.c"]
         if enable_typing_actions
@@ -197,7 +229,11 @@ App(
     requires=["flippass"],
     fal_embedded=True,
     cdefines=common_cdefines,
-    sources=["plugins/flippass_launch_plugin.c", "flippass_launch_args.c", "flippass_launch_layout.c"]
+    sources=[
+        "plugins/flippass_launch_plugin.c",
+        "flippass_launch_args.c",
+        "flippass_launch_layout.c",
+    ]
     + (["plugins/flippass_launch_auto.c"] if enable_typing_actions else []),
 )
 
@@ -208,7 +244,10 @@ App(
     requires=["flippass"],
     fal_embedded=True,
     cdefines=common_cdefines,
-    sources=["plugins/flippass_file_browser_plugin.c", "scenes/flippass_scene_file_browser.c"],
+    sources=[
+        "plugins/flippass_file_browser_plugin.c",
+        "scenes/flippass_scene_file_browser.c",
+    ],
 )
 
 App(
@@ -320,7 +359,7 @@ App(
         "kdbx/aestab.c",
         "kdbx/aes_modes.c",
         "kdbx/memzero.c",
-    ]
+    ],
 )
 
 App(
@@ -382,9 +421,11 @@ App(
     requires=["flippass"],
     fal_embedded=True,
     cdefines=common_cdefines,
-    sources=["plugins/flippass_save_host_plugin.c", "flippass_save.c"] + (
+    sources=["plugins/flippass_save_host_plugin.c", "flippass_save.c"]
+    + (
         ["kdbx/aescrypt.c", "kdbx/aeskey.c", "kdbx/aestab.c", "kdbx/aes_modes.c"]
-        if save_writer_host_payload else []
+        if save_writer_host_payload
+        else []
     ),
 )
 

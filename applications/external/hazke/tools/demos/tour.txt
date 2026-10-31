@@ -1,0 +1,106 @@
+# Title, controls, autodock to TRIX II, market, jobs, equipment,
+# take-off, a fight with the job's pirates, then the map and the chart.
+# Starts on the title screen with a save present (CONTINUE first).
+wait 4
+tap down 2            # CONTROLS
+wait 0.5
+tap ok
+wait 2.5
+tap down 4
+wait 2
+tap back
+wait 0.8
+tap down              # NEW GAME (the title cursor is back on CONTINUE)
+wait 0.6
+tap ok
+wait 5
+hold back 0.7         # flight menu
+wait 1
+tap down 2            # TARGET
+wait 0.6
+tap right             # TRIX II
+wait 1.2
+tap down              # AUTODOCK
+wait 0.8
+tap ok
+wait 20               # warp, approach, landing
+tap ok                # MARKET
+wait 1.5
+tap down 3
+wait 0.5
+tap right 2
+wait 2
+tap back
+wait 0.8
+tap down              # JOBS
+tap ok
+wait 1.2
+tap down 2            # HUNT 2 RAIDERS
+wait 2
+tap ok
+wait 1.5
+tap back
+wait 0.6
+tap down              # EQUIP
+tap ok
+wait 1
+tap down 2            # MISSILE
+wait 0.5
+tap ok 2
+wait 1.5
+tap back
+wait 0.6
+tap down              # STATUS
+tap ok
+wait 2
+tap down 3
+wait 1.5
+tap back
+wait 0.6
+tap back              # take off
+wait 3
+hold back 0.7
+wait 1
+tap down              # ATTACK NEAREST
+wait 1.2
+tap ok
+wait 8
+hold ok 2.5
+wait 2
+tap ok 2              # missile
+wait 4
+hold ok 3
+wait 3
+hold back 0.7
+wait 0.8
+tap ok                # ATTACK NEAREST again (cursor stays)
+wait 6
+hold ok 3
+wait 2
+tap ok 2
+wait 4
+hold ok 3
+wait 3
+hold ok 3
+wait 3
+hold back 0.7         # system map
+wait 0.8
+tap down 4
+wait 0.4
+tap ok
+wait 3
+tap down 2
+wait 2
+tap back
+wait 0.6
+tap down              # GALAXY CHART
+tap ok
+wait 2.5
+tap right
+wait 2
+tap down
+wait 2
+tap back
+wait 0.6
+tap back
+wait 2

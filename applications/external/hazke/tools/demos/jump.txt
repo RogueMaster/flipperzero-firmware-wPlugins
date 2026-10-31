@@ -1,0 +1,28 @@
+# New game, the system map, AUTO GATE into the ring, jump to ALTAAR.
+# Starts on the title screen with a save present (CONTINUE first).
+wait 2
+tap down              # NEW GAME
+wait 0.4
+tap ok
+wait 3
+hold back 0.7
+wait 0.8
+tap down 5            # SYSTEM MAP
+wait 0.4
+tap ok
+wait 2.5
+tap down 3
+wait 2.5
+tap back              # back to the menu, cursor on SYSTEM MAP
+wait 0.6
+tap up 3              # TARGET
+wait 0.4
+tap right 3           # TRIX GATE
+wait 1.2
+tap down              # AUTO GATE
+wait 0.6
+tap ok
+wait 12               # turn round and fly into the ring; the chart opens
+wait 3
+tap ok                # jump to ALTAAR
+wait 7

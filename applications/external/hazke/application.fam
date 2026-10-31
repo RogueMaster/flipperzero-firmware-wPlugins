@@ -1,0 +1,14 @@
+App(
+    appid="hazke",
+    name="Hazke",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="hazke_app",
+    stack_size=8 * 1024,
+    sources=["hazke.cpp"],
+    fap_icon="hazke.png",
+    fap_category="Games",
+    fap_author="REZOR",
+    fap_weburl="https://github.com/therezor/hazke",
+    fap_version="1.0",
+    fap_description="Wireframe 3D space trading and combat across 16 star systems",
+)

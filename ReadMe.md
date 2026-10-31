@@ -110,6 +110,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - OFW: NFC: [Fixed: Ultralight READ/WRITE now reject a starting page equal to the page count (By Kostya4ki)](https://github.com/flipperdevices/flipperzero-firmware/pull/4483)
 - Updated: [PicoPass (iClass) v1.23 (By Bettse)](https://gitlab.com/bettse/picopass)
 - Updated: [FlipPass v3.0 - memory optimizations, KeePass icons and launch arguments (By Arckanos)](https://github.com/Arckanos/FlipPass)
+- Added: [Hazke v1.0 - wireframe space trading and combat (By REZOR)](https://github.com/therezor/hazke-flipper)
 
 <a name="release"></a>
 
@@ -307,6 +308,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Gurpil v0.1.10 (By Endika)](https://github.com/Endika/flipper-gurpil)
 - [Hangman v1.5 (By Evgeny Stepanischev & Eva Stepanischeva)](https://github.com/bolknote/Flipper-Zero-Hangman-Game)
 - [Hanoi Towers v1.0 (By AlexTaran)](https://github.com/AlexTaran/flipperzero)
+- [Hazke v1.0 (By REZOR)](https://github.com/therezor/hazke-flipper)
 - [Heap Defence v1.4 (By xMasterX)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/fc776446de9fdd553b221c02668b925b689378d8)
 - [Hirn - Crack Color Codes v0.2 (By fgreil)](https://github.com/fgreil/mitzi-hirn)
 - [Hold em v1.1 (By code-phreak)](https://github.com/code-phreak/flipper-holdem)
