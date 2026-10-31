@@ -1,0 +1,224 @@
+body {
+  font-family: "Courier New", Courier, monospace;
+  margin: 0;
+  background: #000;
+  color: #00ff00;
+  font-size: 18px;
+  letter-spacing: 0.03em;
+  line-height: 1.6;
+  text-shadow: 0 0 2px #00ff00, 0 0 10px #008800;
+  cursor: crosshair;
+}
+
+nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #111;
+  border-bottom: 2px solid #00ff00;
+  padding: 0.7rem 2rem;
+  font-size: 1.25rem;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+}
+.logo img {
+  width: 32px;
+  height: 32px;
+  margin-right: 10px;
+  border: 1px solid #ff00ff;
+  box-shadow: 0 0 8px #ff00ff;
+  image-rendering: pixelated;
+  filter: invert(0.8);
+}
+.logo span {
+  color: #00ff00;
+  font-weight: bold;
+  letter-spacing: 2px;
+  font-size: 1.4rem;
+  text-transform: uppercase;
+}
+
+.download-btn {
+  background: #000;
+  color: #00ff00;
+  border: 2px solid #00ff00;
+  border-radius: 0;
+  padding: 0.3rem 2rem;
+  font-family: inherit;
+  font-size: 1rem;
+  text-decoration: none;
+  font-weight: bold;
+  box-shadow: 0 0 10px #00ff00;
+  transition: background 0.2s, color 0.2s;
+}
+.download-btn:hover, .cta-btn:hover {
+  background: #00ff00;
+  color: #000;
+  text-shadow: none;
+}
+
+header {
+  border: 2px solid #00ff00;
+  margin: 32px auto 24px auto;
+  max-width: 850px;
+  background: #111;
+  box-shadow: 0 0 24px #00ff00;
+  padding: 2rem 1rem 2rem 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+.header-content {
+  max-width: 520px;
+}
+header h1 {
+  font-size: 2.2rem;
+  margin: 0 0 1.3rem 0;
+  color: #00ff00;
+  font-family: "Courier New", Courier, monospace;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  border-bottom: 1px dashed #00ff00;
+  padding-bottom: 0.4rem;
+}
+header p {
+  color: #0f0;
+  margin-bottom: 1.5rem;
+  font-size: 1.15rem;
+}
+
+.cta-btn {
+  background: #000;
+  color: #00ff00;
+  border: 2px solid #00ff00;
+  border-radius: 0;
+  padding: 0.5rem 2.2rem;
+  font-size: 1.1rem;
+  font-family: inherit;
+  font-weight: bold;
+  text-decoration: none;
+  box-shadow: 0 0 10px #00ff00;
+}
+
+.device-img {
+  width: 240px;
+  max-width: 90vw;
+  margin-left: 2.2rem;
+  margin-top: 1rem;
+  border: 1px solid #00ff00;
+  background: #000;
+  box-shadow: 0 0 20px #00ff00;
+  image-rendering: pixelated;
+}
+
+section {
+  border: 2px dashed #00ff00;
+  padding: 1.5rem 1.4rem 0.6rem 1.4rem;
+  margin: 1rem auto 1.5rem auto;
+  max-width: 800px;
+  background: #111;
+  box-shadow: 0 0 12px #00ff00;
+  position: relative;
+}
+
+section h2 {
+  color: #00ff00;
+  font-size: 1.5rem;
+  font-family: "Courier New", Courier, monospace;
+  text-transform: uppercase;
+  border-bottom: 1px solid #00ff00;
+  padding-bottom: 0.2rem;
+  margin-top: 0;
+  margin-bottom: 1rem;
+  letter-spacing: 2px;
+}
+
+ul, ol {
+  margin-left: 1.2rem;
+  font-size: 1.09rem;
+  background: #000;
+  border: 1px dashed #00ff00;
+  padding: 0.6rem 1.2rem;
+  color: #00ff00;
+}
+
+li {
+  margin-bottom: 0.7rem;
+}
+
+a {
+  color: #00ff00;
+  text-decoration: underline;
+  font-weight: bold;
+}
+a:hover {
+  color: #000;
+  background: #00ff00;
+  text-shadow: none;
+}
+
+.download-link, .source-link {
+  color: #00ff00;
+  border-bottom: 1px dashed #00ff00;
+  background: #000;
+  display: inline-block;
+  margin: 0.5rem 0;
+  font-family: inherit;
+  font-size: 1rem;
+  padding: 0.1rem 0.5rem;
+  transition: background 0.2s, color 0.2s;
+}
+.download-link:hover, .source-link:hover {
+  color: #000;
+  background: #00ff00;
+  border-bottom: 1px solid #00ff00;
+}
+
+footer {
+  text-align: center;
+  padding: 1.4rem 1rem;
+  color: #00ff00;
+  background: #000;
+  font-size: 1.1rem;
+  border-top: 2px solid #00ff00;
+  letter-spacing: 2px;
+  font-family: "Courier New", Courier, monospace;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  background: #111;
+}
+::-webkit-scrollbar-thumb {
+  background: #00ff00;
+  border-radius: 0;
+}
+
+@media (max-width: 900px) {
+  header, section {
+    max-width: 99vw;
+    margin-left: 0.5vw;
+    margin-right: 0.5vw;
+  }
+  .device-img {
+    margin-left: 0;
+    margin-top: 2.2rem;
+    width: 90vw;
+  }
+}
+@media (max-width: 700px) {
+  header {
+    flex-direction: column;
+    text-align: center;
+    padding: 1rem 0.3rem;
+  }
+  .device-img {
+    margin: 2rem 0 0 0;
+    width: 80vw;
+  }
+}

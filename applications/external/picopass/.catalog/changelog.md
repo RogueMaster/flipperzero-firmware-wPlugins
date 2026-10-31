@@ -1,3 +1,8 @@
+## 1.23
+ - Add Clean MKF feature to wipe iCLASS MKF tags
+ - Capture multiple NR/MAC pairs
+ - Fold the elite LCG keygen into the read after the dictionaries
+ - Fix C1k35s facility code cap to allow full 12-bit range
 ## 1.22
  - Create credential flow
  - Improve the look of the info screen, more like the read screen

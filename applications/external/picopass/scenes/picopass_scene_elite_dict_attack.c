@@ -1,8 +1,15 @@
 #include "../picopass_i.h"
 #include <dolphin/dolphin.h>
 #include "../picopass_keys.h"
+#include "../picopass_elite_keygen.h"
 
 #define PICOPASS_SCENE_DICT_ATTACK_KEYS_BATCH_UPDATE (10)
+
+// The elite system dictionary is just the first 699 keys of the VB6 LCG
+// keystream (offsets 0..698). Running the keygen for exactly this many
+// iterations reproduces every one of them, so those keys have been removed
+// from the dictionary file and are now covered by this stage instead.
+#define PICOPASS_ELITE_LCG_LIMIT (699)
 
 #define TAG "PicopassSceneEliteDictAttack"
 
@@ -10,12 +17,14 @@ enum {
     PicopassSceneEliteDictAttackDictEliteUser,
     PicopassSceneEliteDictAttackDictStandard,
     PicopassSceneEliteDictAttackDictElite,
+    PicopassSceneEliteDictAttackLcgKeygen,
 };
 
 const char* picopass_dict_name[] = {
     [PicopassSceneEliteDictAttackDictEliteUser] = "Elite User Dictionary",
     [PicopassSceneEliteDictAttackDictStandard] = "Standard System Dictionary",
     [PicopassSceneEliteDictAttackDictElite] = "Elite System Dictionary",
+    [PicopassSceneEliteDictAttackLcgKeygen] = "Elite Keygen",
 };
 
 static bool picopass_elite_dict_attack_change_dict(Picopass* picopass) {
@@ -26,7 +35,7 @@ static bool picopass_elite_dict_attack_change_dict(Picopass* picopass) {
             scene_manager_get_scene_state(picopass->scene_manager, PicopassSceneEliteDictAttack);
         keys_dict_free(picopass->dict);
         picopass->dict = NULL;
-        if(scene_state == PicopassSceneEliteDictAttackDictElite) break;
+        if(scene_state == PicopassSceneEliteDictAttackLcgKeygen) break;
         if(scene_state == PicopassSceneEliteDictAttackDictEliteUser) {
             if(!keys_dict_check_presence(PICOPASS_ICLASS_STANDARD_DICT_FLIPPER_NAME)) break;
             picopass->dict = keys_dict_alloc(
@@ -41,6 +50,18 @@ static bool picopass_elite_dict_attack_change_dict(Picopass* picopass) {
                 KeysDictModeOpenExisting,
                 PICOPASS_KEY_LEN);
             scene_state = PicopassSceneEliteDictAttackDictElite;
+        } else if(scene_state == PicopassSceneEliteDictAttackDictElite) {
+            // Dictionaries exhausted: continue into the LCG keygen stage, which
+            // has no dict file of its own and generates keys on the fly.
+            picopass_elite_reset();
+            scene_state = PicopassSceneEliteDictAttackLcgKeygen;
+            picopass->dict_attack_ctx.total_keys = PICOPASS_ELITE_LCG_LIMIT;
+            picopass->dict_attack_ctx.current_key = 0;
+            picopass->dict_attack_ctx.name = picopass_dict_name[scene_state];
+            scene_manager_set_scene_state(
+                picopass->scene_manager, PicopassSceneEliteDictAttack, scene_state);
+            success = true;
+            break;
         }
         picopass->dict_attack_ctx.total_keys = keys_dict_get_total_keys(picopass->dict);
         picopass->dict_attack_ctx.current_key = 0;
@@ -51,6 +72,19 @@ static bool picopass_elite_dict_attack_change_dict(Picopass* picopass) {
     } while(false);
 
     return success;
+}
+
+// Fetch the next key for the current stage. In the LCG keygen stage the key is
+// generated on the fly; otherwise it comes from the active dictionary file.
+static bool picopass_elite_dict_attack_get_next_key(Picopass* picopass, uint8_t* key) {
+    uint32_t scene_state =
+        scene_manager_get_scene_state(picopass->scene_manager, PicopassSceneEliteDictAttack);
+    if(scene_state == PicopassSceneEliteDictAttackLcgKeygen) {
+        if(picopass->dict_attack_ctx.current_key >= PICOPASS_ELITE_LCG_LIMIT) return false;
+        picopass_elite_nextKey(key);
+        return true;
+    }
+    return keys_dict_get_next_key(picopass->dict, key, PICOPASS_KEY_LEN);
 }
 
 NfcCommand picopass_elite_dict_attack_worker_callback(PicopassPollerEvent event, void* context) {
@@ -64,9 +98,9 @@ NfcCommand picopass_elite_dict_attack_worker_callback(PicopassPollerEvent event,
     } else if(event.type == PicopassPollerEventTypeRequestKey) {
         uint8_t key[PICOPASS_KEY_LEN] = {};
         bool is_key_provided = true;
-        if(!keys_dict_get_next_key(picopass->dict, key, PICOPASS_KEY_LEN)) {
+        if(!picopass_elite_dict_attack_get_next_key(picopass, key)) {
             if(picopass_elite_dict_attack_change_dict(picopass)) {
-                is_key_provided = keys_dict_get_next_key(picopass->dict, key, PICOPASS_KEY_LEN);
+                is_key_provided = picopass_elite_dict_attack_get_next_key(picopass, key);
                 view_dispatcher_send_custom_event(
                     picopass->view_dispatcher, PicopassCustomEventDictAttackUpdateView);
             } else {
@@ -229,7 +263,7 @@ bool picopass_scene_elite_dict_attack_on_event(void* context, SceneManagerEvent 
         } else if(event.event == PicopassCustomEventDictAttackSkip) {
             uint32_t scene_state = scene_manager_get_scene_state(
                 picopass->scene_manager, PicopassSceneEliteDictAttack);
-            if(scene_state != PicopassSceneEliteDictAttackDictElite) {
+            if(scene_state != PicopassSceneEliteDictAttackLcgKeygen) {
                 picopass_elite_dict_attack_change_dict(picopass);
                 picopass_scene_elite_dict_attack_update_view(picopass);
             } else {
@@ -259,6 +293,7 @@ void picopass_scene_elite_dict_attack_on_exit(void* context) {
     }
     picopass->dict_attack_ctx.current_key = 0;
     picopass->dict_attack_ctx.total_keys = 0;
+    picopass_elite_reset();
 
     picopass_poller_stop(picopass->poller);
     picopass_poller_free(picopass->poller);

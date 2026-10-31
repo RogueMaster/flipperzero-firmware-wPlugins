@@ -61,8 +61,8 @@ Due to the nature of how secure mode picopass works, it is possible to emulate s
 2. Select the file name you saved in last step of Card Part 1
 3. Select _Emulate_
 4. Expose Flipper Zero to reader (It may work better a few inches from the reader, as opposed to physically touching)
-5. Flipper will buzz and screen will say "NR-MAC Saved!" (may be very brief)
-6. *Immediately* proceed to Card Part 2
+5. Flipper will buzz and screen will say "NR-MAC Saved!"
+6. Press Back and *immediately* proceed to Card Part 2
 
 ## Third: Card Part 2
 
@@ -70,6 +70,28 @@ Due to the nature of how secure mode picopass works, it is possible to emulate s
 2. Run _Read_ from the picopass main menu
 3. Card will authenticate and read
 4. Suggested to do both "Save" and "Save as Seader"
+
+
+# NR-MAC Legrec Attack
+
+The captured NR-MACs can also be used to recover the card's key with Proxmark3's _legrec_ and _legbrute_ commands.  legbrute needs two different captures.  You can obtain the two captures in one session with a reader by following these steps.
+
+## Capture
+
+1. Do "Card Part 1" and "Reader Part" of the NR-MAC Attack above
+2. On the "NR-MAC Saved!" screen, select _Another_
+3. Present the Flipper Zero to the reader again
+4. Repeat until "Captured" shows at least 2
+5. Press Back when done
+
+## Offline part
+
+1. Download the {csn}\_{epurse}.mac file from _sdcard/apps_data/picopass/ on your Flipper Zero
+2. The file name has the card's CSN and ePurse.  Each line in the file is one capture: NR (4 bytes) then MAC (4 bytes)
+3. On your Proxmark3:
+    * _hf iclass legrec --macs {NR+MAC from one line}_
+    * _hf iclass legbrute --epurse {ePurse from file name} --macs1 {NR+MAC from first line} --macs2 {NR+MAC from second line} --pk {partial key from legrec}_
+4. _legbrute_ returns the card's key
 
 
 # Elite Keygen Attack

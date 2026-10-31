@@ -336,7 +336,7 @@ PicopassListenerCommand
         temp_str, "%s/%s%s", STORAGE_APP_DATA_PATH_PREFIX, furi_string_get_cstr(filename), ".mac");
     do {
         // Open file
-        if(!flipper_format_file_open_always(file, furi_string_get_cstr(temp_str))) break;
+        if(!flipper_format_file_open_append(file, furi_string_get_cstr(temp_str))) break;
 
         if(!flipper_format_write_hex(file, "NR-MAC", rx_data + 1, PICOPASS_BLOCK_LEN)) break;
 

@@ -108,6 +108,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Step Seq v0.3 - version and catalog documentation refresh (By rseufert)](https://github.com/rseufert/step_seq)
 - Updated: [CatDriver v1.0 - author settings, ESP32 info and GPS status updates (By EVL87)](https://github.com/EVL87/catwardrive)
 - OFW: NFC: [Fixed: Ultralight READ/WRITE now reject a starting page equal to the page count (By Kostya4ki)](https://github.com/flipperdevices/flipperzero-firmware/pull/4483)
+- Updated: [PicoPass (iClass) v1.23 (By Bettse)](https://gitlab.com/bettse/picopass)
 
 <a name="release"></a>
 
@@ -899,7 +900,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Pet Your Dolphin v1.1 (By David White)](https://github.com/dwight9339/pet_your_dolphin)
 - [Pi Terminal v1.0 (By dagnazty & InfoSecREDD)](https://github.com/InfoSecREDD/Flip-pi)
 - [Piano v1.0 (By bergr22)](https://github.com/bergr22/FlipPiano)
-- [PicoPass (iClass) v1.22 (By Bettse)](https://gitlab.com/bettse/picopass)
+- [PicoPass (iClass) v1.23 (By Bettse)](https://gitlab.com/bettse/picopass)
 - [PINGEQUA RF Lab v0.5.4 (By pingequalab)](https://github.com/pingequalab/rf-lab)
 - [PIR HC-SR501 Alarm v1.0 (By ku6a-cj)](https://github.com/ku6a-cj/-PIR-HC-SR501-Proximity-alarm-Flipper-zero) `Req: PIR HC-SR501`
 - [Plantower PMSx003 sensor reader v1.4 (By 3cky)](https://github.com/3cky/flipperzero-airmon) `Req: Plantower PMS5003/PMS7003/PMS9003`
