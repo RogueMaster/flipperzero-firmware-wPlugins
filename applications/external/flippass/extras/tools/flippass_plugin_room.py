@@ -59,10 +59,7 @@ def ufbt_home() -> Path:
 
 
 def find_tool(home: Path, name: str) -> Path:
-    for base in [
-        home / "toolchain" / "current" / "bin",
-        *sorted((home / "toolchain").glob("*/bin")),
-    ]:
+    for base in [home / "toolchain" / "current" / "bin", *sorted((home / "toolchain").glob("*/bin"))]:
         for candidate in (base / f"{name}.exe", base / name):
             if candidate.exists():
                 return candidate
@@ -70,27 +67,16 @@ def find_tool(home: Path, name: str) -> Path:
 
 
 def sections(readelf: Path, fal: Path) -> list[dict]:
-    out = subprocess.run(
-        [str(readelf), "-S", "-W", str(fal)], check=True, capture_output=True, text=True
-    ).stdout
+    out = subprocess.run([str(readelf), "-S", "-W", str(fal)], check=True,
+                         capture_output=True, text=True).stdout
     rows = []
-    pattern = re.compile(
-        r"\s*\[\s*(\d+)\]\s+(\S+)\s+(\S+)\s+\w+\s+\w+\s+(\w+)\s+\w+\s+(\S*)\s+\d+\s+\d+\s+(\d+)"
-    )
+    pattern = re.compile(r"\s*\[\s*(\d+)\]\s+(\S+)\s+(\S+)\s+\w+\s+\w+\s+(\w+)\s+\w+\s+(\S*)\s+\d+\s+\d+\s+(\d+)")
     for line in out.splitlines():
         match = pattern.match(line)
         if match:
             index, name, kind, size, flags, align = match.groups()
-            rows.append(
-                {
-                    "index": int(index),
-                    "name": name,
-                    "type": kind,
-                    "size": int(size, 16),
-                    "flags": flags,
-                    "align": max(int(align), 1),
-                }
-            )
+            rows.append({"index": int(index), "name": name, "type": kind, "size": int(size, 16),
+                         "flags": flags, "align": max(int(align), 1)})
     return rows
 
 
@@ -122,24 +108,14 @@ def guaranteed_block(nbytes: int) -> int:
 
 
 def editor_needs(seq: list[dict]) -> tuple[int, int]:
-    if (
-        not seq
-        or seq[0]["name"] != ".text"
-        or any(r["size"] > seq[0]["size"] for r in seq)
-    ):
+    if not seq or seq[0]["name"] != ".text" or any(r["size"] > seq[0]["size"] for r in seq):
         sys.exit("the editor's .text must be its first and largest loaded section")
     first = seq[0]
-    text_need = SMALL_MARGIN + max(
-        first["size"] + LOADER_CHECK_SLACK, block(request(first))
-    )
+    text_need = SMALL_MARGIN + max(first["size"] + LOADER_CHECK_SLACK, block(request(first)))
     rest_need, used = SMALL_MARGIN, 0
     for row in seq[1:]:
-        rest_need = max(
-            rest_need,
-            SMALL_MARGIN
-            + used
-            + max(row["size"] + LOADER_CHECK_SLACK, block(request(row))),
-        )
+        rest_need = max(rest_need, SMALL_MARGIN + used + max(row["size"] + LOADER_CHECK_SLACK,
+                                                            block(request(row))))
         used += block(request(row))
     return text_need, rest_need
 
@@ -158,29 +134,24 @@ def successor_load_proof(seq: list[dict], text_bytes: int, rodata_bytes: int) ->
     merged = max(0, text_bytes + rodata_bytes - 2 * SMALL_MARGIN)
     steps = []
     for row in seq:
-        guard = row["size"] + LOADER_CHECK_SLACK
+        guard = row['size'] + LOADER_CHECK_SLACK
         minimum = min(max(state) for state in states)
         charge = block(request(row))
         required = max(guard, charge)
-        step = {
-            "section": row["name"],
-            "guard": guard,
-            "worst_physical_charge": charge,
-            "required": required,
-            "minimum_known_largest": minimum,
-            "merged_lower_bound": merged,
-            "placement_states": len(states),
-        }
+        step = {'section': row['name'], 'guard': guard, 'worst_physical_charge': charge,
+                'required': required,
+                'minimum_known_largest': minimum, 'merged_lower_bound': merged,
+                'placement_states': len(states)}
         steps.append(step)
         if minimum < required or merged < required:
-            return {"valid": False, "steps": steps}
+            return {'valid': False, 'steps': steps}
         following = set(states)  # A preceding external hole takes this section.
         for left, right in states:
             following.add((max(0, left - charge), right))
             following.add((left, max(0, right - charge)))
         states = following
         merged = max(0, merged - charge)
-    return {"valid": True, "steps": steps}
+    return {'valid': True, 'steps': steps}
 
 
 def rodata_room_for(seq: list[dict], text_bytes: int, base: dict, old_room: int) -> int:
@@ -188,12 +159,10 @@ def rodata_room_for(seq: list[dict], text_bytes: int, base: dict, old_room: int)
     # The proof admits every placement and keeps the original two 1 KiB margins.
     _, independent_need = editor_needs(seq)
     for padding in range(ROOM_GRANULE, independent_need + ROOM_GRANULE, ROOM_GRANULE):
-        projected = dict(base, size=base["size"] - old_room + padding)
-        if successor_load_proof(seq, text_bytes, guaranteed_block(request(projected)))[
-            "valid"
-        ]:
+        projected = dict(base, size=base['size'] - old_room + padding)
+        if successor_load_proof(seq, text_bytes, guaranteed_block(request(projected)))['valid']:
             return padding + 4 * ROOM_GRANULE  # Link-order/alignment settling slack.
-    sys.exit("no successor rodata room satisfies the complete editor load proof")
+    sys.exit('no successor rodata room satisfies the complete editor load proof')
 
 
 def current_room() -> tuple[int, int, int]:
@@ -218,11 +187,8 @@ def reclaimable_footprint(seq: list[dict]) -> int:
     Omit loader bookkeeping and no-split slack, both of which can only add to
     the reclaimed bytes. Geometry is checked separately by editor_needs().
     """
-    return sum(
-        guaranteed_block(request(row))
-        for row in seq
-        if not row["name"].startswith(".fast.rel")
-    )
+    return sum(guaranteed_block(request(row)) for row in seq
+               if not row["name"].startswith(".fast.rel"))
 
 
 def successor_reserve(footprint: int, reclaimed: int) -> int:
@@ -244,28 +210,17 @@ def room_for(need: int, have: int, old_room: int, base_size: int, align: int) ->
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(
-        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
-    )
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("action", choices=("write", "check"))
-    parser.add_argument(
-        "--build-dir",
-        type=Path,
-        help="uFBT build directory (default: $UFBT_HOME/build)",
-    )
+    parser.add_argument("--build-dir", type=Path, help="uFBT build directory (default: $UFBT_HOME/build)")
     args = parser.parse_args()
 
     home = ufbt_home()
     build = args.build_dir or home / "build"
     readelf = find_tool(home, "arm-none-eabi-readelf")
-    editor_fal, host_fal = (
-        build / "flippass_editor.fal",
-        build / "flippass_open_host.fal",
-    )
+    editor_fal, host_fal = build / "flippass_editor.fal", build / "flippass_open_host.fal"
     if not editor_fal.exists() or not host_fal.exists():
-        sys.exit(
-            f"flippass_editor.fal / flippass_open_host.fal missing in {build}; run `ufbt build`."
-        )
+        sys.exit(f"flippass_editor.fal / flippass_open_host.fal missing in {build}; run `ufbt build`.")
 
     editor_seq = loaded(sections(readelf, editor_fal))
     text_need, rest_need = editor_needs(editor_seq)
@@ -277,31 +232,18 @@ def main() -> int:
     old_text_room, old_rodata_room, old_reserve = current_room()
     peak = sum(block(request(r)) for r in host.values())
 
-    print(
-        f"independent editor lanes need {text_need} B (.text) and {rest_need} B (rest); "
-        f"it keeps about {footprint} B once loaded"
-    )
-    print(
-        f"open_host frees {text_block} B (.text {text['size']} B, room {old_text_room}) and "
-        f"{rodata_block} B (.rodata {rodata['size']} B, room {old_rodata_room}); "
-        f"its own load peaks at about {peak} B"
-    )
+    print(f"independent editor lanes need {text_need} B (.text) and {rest_need} B (rest); "
+          f"it keeps about {footprint} B once loaded")
+    print(f"open_host frees {text_block} B (.text {text['size']} B, room {old_text_room}) and "
+          f"{rodata_block} B (.rodata {rodata['size']} B, room {old_rodata_room}); "
+          f"its own load peaks at about {peak} B")
 
     if args.action == "write":
-        new_text = room_for(
-            text_need,
-            text_block,
-            old_text_room,
-            text["size"] - old_text_room,
-            text["align"],
-        )
-        projected_text = dict(text, size=text["size"] + new_text - old_text_room)
-        new_rodata = rodata_room_for(
-            editor_seq,
-            guaranteed_block(request(projected_text)),
-            rodata,
-            old_rodata_room,
-        )
+        new_text = room_for(text_need, text_block, old_text_room, text["size"] - old_text_room,
+                            text["align"])
+        projected_text = dict(text, size=text['size'] + new_text - old_text_room)
+        new_rodata = rodata_room_for(editor_seq, guaranteed_block(request(projected_text)),
+                                    rodata, old_rodata_room)
         projected = [dict(row) for row in host.values()]
         for row in projected:
             if row["name"] == ".text":
@@ -310,60 +252,38 @@ def main() -> int:
                 row["size"] += new_rodata - old_rodata_room
         reclaimed = reclaimable_footprint(projected)
         new_reserve = successor_reserve(footprint, reclaimed)
-        macros = {
-            "FLIPPASS_OPEN_HOST_TEXT_ROOM_BYTES": new_text,
-            "FLIPPASS_OPEN_HOST_RODATA_ROOM_BYTES": new_rodata,
-            "FLIPPASS_OPEN_SUCCESSOR_RESERVE_BYTES": new_reserve,
-        }
-        width = max(
-            map(len, macros)
-        )  # aligned the way clang-format (setup.sh) leaves them
+        macros = {"FLIPPASS_OPEN_HOST_TEXT_ROOM_BYTES": new_text,
+                  "FLIPPASS_OPEN_HOST_RODATA_ROOM_BYTES": new_rodata,
+                  "FLIPPASS_OPEN_SUCCESSOR_RESERVE_BYTES": new_reserve}
+        width = max(map(len, macros))  # aligned the way clang-format (setup.sh) leaves them
         HEADER.write_text(
             "// Generated by extras/tools/flippass_plugin_room.py from the built plugins. Do not edit by hand.\n"
             "// Complete editor load checked over both freed blocks, arbitrary placement,\n"
             "// 1024 B bookkeeping per block and the unchanged 1024 B firmware guard.\n"
             f"// Resident editor bound {footprint} B; open_host returns at least {reclaimed} B; reserve only a positive delta.\n"
             "#pragma once\n"
-            + "".join(
-                f"#define {name:<{width}} {value}\n" for name, value in macros.items()
-            ),
-            encoding="utf-8",
-            newline="\n",
-        )
-        print(
-            f"{HEADER.name}: text room {new_text} B, rodata room {new_rodata} B, "
-            f"successor reserve {new_reserve} B (rebuild to apply)"
-        )
+            + "".join(f"#define {name:<{width}} {value}\n" for name, value in macros.items()),
+            encoding="utf-8", newline="\n")
+        print(f"{HEADER.name}: text room {new_text} B, rodata room {new_rodata} B, "
+              f"successor reserve {new_reserve} B (rebuild to apply)")
         return 0
 
     problems = []
     if text_block < text_need:
-        problems.append(
-            f".text block {text_block} B < {text_need} B: run `write` and rebuild"
-        )
+        problems.append(f".text block {text_block} B < {text_need} B: run `write` and rebuild")
     proof = successor_load_proof(editor_seq, text_block, rodata_block)
-    if not proof["valid"]:
-        problems.append(
-            f"complete two-block editor load fails at {proof['steps'][-1]['section']}: run `write` and rebuild"
-        )
-    expected_reserve = successor_reserve(
-        footprint, reclaimable_footprint(list(host.values()))
-    )
+    if not proof['valid']:
+        problems.append(f"complete two-block editor load fails at {proof['steps'][-1]['section']}: run `write` and rebuild")
+    expected_reserve = successor_reserve(footprint, reclaimable_footprint(list(host.values())))
     if old_reserve != expected_reserve:
-        problems.append(
-            f"successor reserve {old_reserve} B != {expected_reserve} B: run `write` and rebuild"
-        )
+        problems.append(f"successor reserve {old_reserve} B != {expected_reserve} B: run `write` and rebuild")
     for problem in problems:
         print(f"error: {problem}", file=sys.stderr)
     if not problems:
-        print(
-            "complete editor load holds under arbitrary two-block placement and merged-block bounds"
-        )
-        for step in proof["steps"]:
-            print(
-                f"  {step['section']}: guard {step['guard']}, worst largest "
-                f"{step['minimum_known_largest']}, merged floor {step['merged_lower_bound']}"
-            )
+        print('complete editor load holds under arbitrary two-block placement and merged-block bounds')
+        for step in proof['steps']:
+            print(f"  {step['section']}: guard {step['guard']}, worst largest "
+                  f"{step['minimum_known_largest']}, merged floor {step['merged_lower_bound']}")
     return 1 if problems else 0
 
 
