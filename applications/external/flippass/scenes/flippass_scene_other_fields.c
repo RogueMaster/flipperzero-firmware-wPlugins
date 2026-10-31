@@ -27,12 +27,20 @@ static void
                                                  FlipPassOutputTransportUsb :
                                                  FlipPassOutputTransportBluetooth;
 
-    flippass_output_release_all(app);
     flippass_output_cleanup_transport(app, opposite);
+}
+
+static void flippass_other_fields_trim_active_entry_for_plugin(KDBXEntry* entry) {
+    if(entry != NULL) {
+        kdbx_entry_clear_loaded_fields(entry);
+    }
 }
 
 static void flippass_other_fields_sync_selection_from_view(App* app) {
     furi_assert(app);
+    if(app->db_browser == NULL) {
+        return;
+    }
     app->other_field_selected_index = flippass_db_browser_view_get_selected_item(app->db_browser);
 }
 
@@ -80,7 +88,8 @@ static void flippass_other_fields_add_view_item(
         break;
     }
 
-    flippass_db_browser_view_add_item(app->db_browser, view_type, label != NULL ? label : "");
+    flippass_db_browser_view_add_item(
+        app->db_browser, view_type, label != NULL ? label : "", FLIPPASS_DB_BROWSER_ICON_NONE);
 }
 
 static bool flippass_other_fields_select_current_item(App* app) {
@@ -103,6 +112,11 @@ static bool flippass_other_fields_select_current_item(App* app) {
             sizeof(app->pending_other_field_name),
             "%s",
             selection.label);
+    }
+
+    if(plugin != NULL && plugin->release != NULL) {
+        plugin->release();
+        flippass_module_unload(app, FlipPassModuleSlotOtherFields);
     }
 
     furi_string_free(error);
@@ -271,10 +285,11 @@ static void flippass_other_fields_view_callback(FlipPassDbBrowserEvent event, vo
 
 void flippass_scene_other_fields_on_enter(void* context) {
     App* app = context;
-    const KDBXEntry* entry = app->active_entry;
+    KDBXEntry* entry = app->active_entry;
     const FlipPassOtherFieldsMode mode =
         scene_manager_get_scene_state(app->scene_manager, FlipPassScene_OtherFields);
 
+    flippass_ui_ensure_db_browser(app);
     flippass_db_browser_view_set_callback(
         app->db_browser, flippass_other_fields_view_callback, app);
 
@@ -303,6 +318,7 @@ void flippass_scene_other_fields_on_enter(void* context) {
         return;
     }
 
+    flippass_other_fields_trim_active_entry_for_plugin(entry);
     if(flippass_other_fields_render(app, entry)) {
         view_dispatcher_switch_to_view(app->view_dispatcher, AppViewDbBrowser);
     }
@@ -318,6 +334,11 @@ bool flippass_scene_other_fields_on_event(void* context, SceneManagerEvent event
             if(event.event == FlipPassSceneOtherFieldsEventEditSelected) {
                 return flippass_other_fields_open_editor_item(app);
             }
+            return true;
+        }
+
+        if(event.event == FlipPassSceneOtherFieldsEventRunPendingAction) {
+            flippass_other_field_run_pending_type_action(app, FlipPassScene_OtherFields);
             return true;
         }
 
@@ -347,6 +368,8 @@ bool flippass_scene_other_fields_on_event(void* context, SceneManagerEvent event
             app->other_field_action_selected_index = 2U;
             app->pending_entry_action = FlipPassEntryActionTypeOtherUsb;
             app->keyboard_layout_return_scene = FlipPassScene_OtherFields;
+            app->entry_action_keep_type_menu_prewarm = true;
+            app->entry_action_restore_type_drawer = true;
             flippass_other_fields_trim_for_layout_selection(app, FlipPassOutputTransportUsb);
             scene_manager_next_scene(app->scene_manager, FlipPassScene_KeyboardLayout);
             return true;
@@ -356,13 +379,10 @@ bool flippass_scene_other_fields_on_event(void* context, SceneManagerEvent event
             app->other_field_action_selected_index = 0U;
             app->pending_entry_action = FlipPassEntryActionTypeOtherBluetooth;
             app->keyboard_layout_return_scene = FlipPassScene_OtherFields;
+            app->entry_action_keep_type_menu_prewarm = true;
+            app->entry_action_restore_type_drawer = true;
             flippass_other_fields_trim_for_layout_selection(app, FlipPassOutputTransportBluetooth);
             scene_manager_next_scene(app->scene_manager, FlipPassScene_KeyboardLayout);
-            return true;
-        }
-
-        if(event.event == FlipPassSceneOtherFieldsEventRunPendingAction) {
-            flippass_other_field_run_pending_type_action(app, FlipPassScene_OtherFields);
             return true;
         }
     }
@@ -386,9 +406,9 @@ void flippass_scene_other_fields_on_exit(void* context) {
         app->module_loader.slot[FlipPassModuleSlotOtherFields].descriptor;
 
     flippass_other_fields_sync_selection_from_view(app);
-    flippass_db_browser_view_set_action_menu_open(app->db_browser, false);
-    flippass_output_release_all(app);
-    flippass_output_cleanup(app);
+    if(app->db_browser != NULL) {
+        flippass_db_browser_view_set_action_menu_open(app->db_browser, false);
+    }
     if(descriptor != NULL && descriptor->entry_point != NULL) {
         const FlipPassOtherFieldsPluginV1* plugin = descriptor->entry_point;
         plugin->release();

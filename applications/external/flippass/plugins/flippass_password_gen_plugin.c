@@ -1,44 +1,19 @@
 #include "flippass_password_gen_plugin.h"
 
-#include "../kdbx/hmac.h"
 #include "../kdbx/memzero.h"
 
 #include <furi_hal_random.h>
-#include <input/input.h>
-
-#if __has_include(<furi_hal_subghz.h>)
-#include <furi_hal_subghz.h>
-#include <lib/subghz/devices/cc1101_configs.h>
-#define FLIPPASS_PASSWORD_GEN_HAVE_SUBGHZ 1
-#else
-#define FLIPPASS_PASSWORD_GEN_HAVE_SUBGHZ 0
-#endif
+#include <storage/storage.h>
 
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
-#define FLIPPASS_PASSWORD_GEN_DOMAIN "FlipPass password generator v1"
-
 typedef struct {
     bool active;
-    bool subghz_async_started;
-    bool subghz_available;
     FlipPassPasswordGenPluginRequestV1 request;
-    FuriMutex* mutex;
-    SHA256_CTX digest;
-    uint8_t hw_seed[SHA256_DIGEST_LENGTH];
-    uint32_t input_events;
-    uint32_t subghz_samples;
-    volatile uint32_t subghz_edges;
-    volatile uint32_t subghz_edge_mix;
-    volatile uint32_t subghz_edge_last_duration;
-    uint32_t last_input_tick[InputKeyMAX];
-    uint32_t stream_counter;
-    uint8_t stream[SHA256_DIGEST_LENGTH];
+    uint8_t stream[32];
     size_t stream_offset;
-    uint8_t seed[SHA256_DIGEST_LENGTH];
-    bool seed_ready;
 } FlipPassPasswordGenState;
 
 static FlipPassPasswordGenState flippass_password_gen_state = {0};
@@ -48,152 +23,85 @@ static const char flippass_password_gen_upper[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 static const char flippass_password_gen_digits[] = "0123456789";
 static const char flippass_password_gen_symbols[] = "!@#$%^&*()-_=+[]{};:,.?/";
 static const char flippass_password_gen_hex[] = "0123456789ABCDEF";
+static const char flippass_password_gen_octal[] = "01234567";
+static const char flippass_password_gen_binary[] = "01";
 
-static uint32_t flippass_password_gen_rotl32(uint32_t value, uint8_t shift) {
-    return (value << shift) | (value >> (32U - shift));
-}
+typedef struct {
+    const char* const* tokens;
+    size_t count;
+} FlipPassPasswordGenUtf8Class;
 
-static void flippass_password_gen_update_bytes(const uint8_t* data, size_t size) {
-    sha256_Update(&flippass_password_gen_state.digest, data, size);
-}
+typedef enum {
+    FlipPassPasswordGenUtf8ClassLower = 0,
+    FlipPassPasswordGenUtf8ClassUpper,
+    FlipPassPasswordGenUtf8ClassDigits,
+    FlipPassPasswordGenUtf8ClassSymbols,
+    FlipPassPasswordGenUtf8ClassExtended,
+    FlipPassPasswordGenUtf8ClassCount,
+} FlipPassPasswordGenUtf8ClassId;
 
-static void flippass_password_gen_update_u32(uint32_t value) {
-    flippass_password_gen_update_bytes((const uint8_t*)&value, sizeof(value));
-}
+static const char* const flippass_password_gen_utf8_lower[] = {
+    "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m",
+    "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z",
+};
 
-static void flippass_password_gen_update_tag(const char* tag) {
-    flippass_password_gen_update_bytes((const uint8_t*)tag, strlen(tag));
-}
+static const char* const flippass_password_gen_utf8_upper[] = {
+    "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M",
+    "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z",
+};
 
-static void flippass_password_gen_mix_record(const char* tag, const void* data, size_t size) {
-    flippass_password_gen_update_tag(tag);
-    flippass_password_gen_update_u32((uint32_t)size);
-    if(data != NULL && size > 0U) {
-        flippass_password_gen_update_bytes(data, size);
-    }
-}
+static const char* const flippass_password_gen_utf8_digits[] = {
+    "0",
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
+};
 
-static void flippass_password_gen_lock(void) {
-    if(flippass_password_gen_state.mutex != NULL) {
-        furi_mutex_acquire(flippass_password_gen_state.mutex, FuriWaitForever);
-    }
-}
+static const char* const flippass_password_gen_utf8_symbols[] = {
+    "!", "@", "#", "$", "%", "^", "&", "*", "(", ")", "-", "_",
+    "=", "+", "[", "]", "{", "}", ";", ":", ",", ".", "?", "/",
+};
 
-static void flippass_password_gen_unlock(void) {
-    if(flippass_password_gen_state.mutex != NULL) {
-        furi_mutex_release(flippass_password_gen_state.mutex);
-    }
-}
+static const char* const flippass_password_gen_utf8_extended[] = {
+    "\xC2\xA1", "\xC2\xA3", "\xC2\xA5", "\xC2\xA7", "\xC2\xB0", "\xC2\xB5", "\xC2\xBF", "\xC3\x80",
+    "\xC3\x81", "\xC3\x86", "\xC3\x87", "\xC3\x89", "\xC3\x8D", "\xC3\x91", "\xC3\x93", "\xC3\x98",
+    "\xC3\x9A", "\xC3\x9C", "\xC3\x9F", "\xC3\xA0", "\xC3\xA1", "\xC3\xA6", "\xC3\xA7", "\xC3\xA9",
+    "\xC3\xAD", "\xC3\xB1", "\xC3\xB3", "\xC3\xB8", "\xC3\xBA", "\xC3\xBC",
+};
 
-#if FLIPPASS_PASSWORD_GEN_HAVE_SUBGHZ
-static void
-    flippass_password_gen_subghz_capture_callback(bool level, uint32_t duration, void* context) {
-    UNUSED(context);
-
-    FlipPassPasswordGenState* state = &flippass_password_gen_state;
-    const uint32_t count = state->subghz_edges + 1U;
-    uint32_t mix = state->subghz_edge_mix ^ duration ^ (level ? 0x9E3779B9U : 0x7F4A7C15U);
-    mix ^= count * 0x85EBCA6BU;
-    state->subghz_edge_mix = flippass_password_gen_rotl32(mix, 7U);
-    state->subghz_edge_last_duration = duration;
-    state->subghz_edges = count;
-}
-
-static bool flippass_password_gen_start_subghz(void) {
-    static const uint32_t frequencies[] = {
-        315000000UL,
-        433920000UL,
-        868350000UL,
-        915000000UL,
-    };
-
-    uint32_t chosen_frequency = 0U;
-    for(size_t index = 0U; index < COUNT_OF(frequencies); index++) {
-        if(furi_hal_subghz_is_frequency_valid(frequencies[index])) {
-            chosen_frequency = frequencies[index];
-            break;
-        }
-    }
-
-    if(chosen_frequency == 0U) {
-        return false;
-    }
-
-    furi_hal_subghz_load_custom_preset(subghz_device_cc1101_preset_ook_650khz_async_regs);
-    const uint32_t real_frequency = furi_hal_subghz_set_frequency_and_path(chosen_frequency);
-    furi_hal_subghz_flush_rx();
-    furi_hal_subghz_start_async_rx(flippass_password_gen_subghz_capture_callback, NULL);
-
-    flippass_password_gen_state.subghz_async_started = true;
-    flippass_password_gen_state.subghz_available = true;
-    flippass_password_gen_mix_record("subghz-start", &real_frequency, sizeof(real_frequency));
-    return true;
-}
-
-static void flippass_password_gen_stop_subghz(void) {
-    if(flippass_password_gen_state.subghz_async_started) {
-        furi_hal_subghz_stop_async_rx();
-        furi_hal_subghz_sleep();
-        flippass_password_gen_state.subghz_async_started = false;
-    }
-}
-
-static void flippass_password_gen_poll_subghz(uint32_t now_tick) {
-    if(!flippass_password_gen_state.subghz_async_started) {
-        return;
-    }
-
-    const float rssi = furi_hal_subghz_get_rssi();
-    const int32_t rssi_q8 = (int32_t)(rssi * 8.0f);
-    const uint8_t lqi = furi_hal_subghz_get_lqi();
-    const bool pipe_not_empty = furi_hal_subghz_rx_pipe_not_empty();
-    const bool crc_valid = pipe_not_empty && furi_hal_subghz_is_rx_data_crc_valid();
-    const uint32_t sample[] = {
-        now_tick,
-        (uint32_t)rssi_q8,
-        (uint32_t)lqi,
-        pipe_not_empty ? 1U : 0U,
-        crc_valid ? 1U : 0U,
-        flippass_password_gen_state.subghz_edges,
-        flippass_password_gen_state.subghz_edge_mix,
-        flippass_password_gen_state.subghz_edge_last_duration,
-    };
-
-    flippass_password_gen_mix_record("subghz-sample", sample, sizeof(sample));
-    flippass_password_gen_state.subghz_samples++;
-
-    if(pipe_not_empty) {
-        furi_hal_subghz_flush_rx();
-    }
-}
-#else
-static bool flippass_password_gen_start_subghz(void) {
-    return false;
-}
-
-static void flippass_password_gen_stop_subghz(void) {
-}
-
-static void flippass_password_gen_poll_subghz(uint32_t now_tick) {
-    UNUSED(now_tick);
-}
-#endif
-
-static void flippass_password_gen_reset_sensitive(void) {
-    memzero(flippass_password_gen_state.hw_seed, sizeof(flippass_password_gen_state.hw_seed));
-    memzero(flippass_password_gen_state.stream, sizeof(flippass_password_gen_state.stream));
-    memzero(flippass_password_gen_state.seed, sizeof(flippass_password_gen_state.seed));
-    memzero(&flippass_password_gen_state.digest, sizeof(flippass_password_gen_state.digest));
-}
-
-static void flippass_password_gen_reset_state(void) {
-    FuriMutex* mutex = flippass_password_gen_state.mutex;
-
-    flippass_password_gen_reset_sensitive();
-    memset(&flippass_password_gen_state, 0, sizeof(flippass_password_gen_state));
-    flippass_password_gen_state.mutex = mutex;
-    flippass_password_gen_state.stream_offset = sizeof(flippass_password_gen_state.stream);
-}
+static const FlipPassPasswordGenUtf8Class flippass_password_gen_utf8_classes[] = {
+    [FlipPassPasswordGenUtf8ClassLower] =
+        {
+            flippass_password_gen_utf8_lower,
+            COUNT_OF(flippass_password_gen_utf8_lower),
+        },
+    [FlipPassPasswordGenUtf8ClassUpper] =
+        {
+            flippass_password_gen_utf8_upper,
+            COUNT_OF(flippass_password_gen_utf8_upper),
+        },
+    [FlipPassPasswordGenUtf8ClassDigits] =
+        {
+            flippass_password_gen_utf8_digits,
+            COUNT_OF(flippass_password_gen_utf8_digits),
+        },
+    [FlipPassPasswordGenUtf8ClassSymbols] =
+        {
+            flippass_password_gen_utf8_symbols,
+            COUNT_OF(flippass_password_gen_utf8_symbols),
+        },
+    [FlipPassPasswordGenUtf8ClassExtended] =
+        {
+            flippass_password_gen_utf8_extended,
+            COUNT_OF(flippass_password_gen_utf8_extended),
+        },
+};
 
 static bool flippass_password_gen_request_valid(
     const FlipPassPasswordGenPluginRequestV1* request,
@@ -219,7 +127,7 @@ static bool flippass_password_gen_request_valid(
         return false;
     }
 
-    if(request->charset > FlipPassPasswordGenCharsetHex) {
+    if(request->charset > FLIPPASS_PASSWORD_GEN_CHARSET_MAX) {
         if(error != NULL) {
             furi_string_set_str(error, "Password complexity is unsupported.");
         }
@@ -229,6 +137,11 @@ static bool flippass_password_gen_request_valid(
     return true;
 }
 
+static void flippass_password_gen_reset_state(void) {
+    memzero(&flippass_password_gen_state, sizeof(flippass_password_gen_state));
+    flippass_password_gen_state.stream_offset = sizeof(flippass_password_gen_state.stream);
+}
+
 static bool flippass_password_gen_begin(
     const FlipPassPasswordGenPluginRequestV1* request,
     FuriString* error) {
@@ -236,97 +149,60 @@ static bool flippass_password_gen_begin(
         return false;
     }
 
-    if(flippass_password_gen_state.mutex == NULL) {
-        flippass_password_gen_state.mutex = furi_mutex_alloc(FuriMutexTypeNormal);
-        if(flippass_password_gen_state.mutex == NULL) {
-            if(error != NULL) {
-                furi_string_set_str(error, "Not enough RAM to start the password generator.");
-            }
-            return false;
-        }
-    }
-
-    flippass_password_gen_lock();
-    flippass_password_gen_stop_subghz();
     flippass_password_gen_reset_state();
     flippass_password_gen_state.request = *request;
     flippass_password_gen_state.active = true;
-
-    sha256_Init(&flippass_password_gen_state.digest);
-    furi_hal_random_fill_buf(
-        flippass_password_gen_state.hw_seed, sizeof(flippass_password_gen_state.hw_seed));
-    flippass_password_gen_mix_record(
-        "domain", FLIPPASS_PASSWORD_GEN_DOMAIN, strlen(FLIPPASS_PASSWORD_GEN_DOMAIN));
-    flippass_password_gen_mix_record("request", request, sizeof(*request));
-
-    const uint32_t start_tick = furi_get_tick();
-    const uint32_t random_word = furi_hal_random_get();
-    flippass_password_gen_mix_record("start-tick", &start_tick, sizeof(start_tick));
-    flippass_password_gen_mix_record("random-word", &random_word, sizeof(random_word));
-
-    if(request->harvest_seconds > 0U) {
-        const bool subghz_ok = flippass_password_gen_start_subghz();
-        flippass_password_gen_mix_record("subghz-ok", &subghz_ok, sizeof(subghz_ok));
-    }
-
-    flippass_password_gen_unlock();
     return true;
 }
 
-static bool
-    flippass_password_gen_record_input(const FlipPassPasswordGenPluginInputRecordV1* record) {
-    if(record == NULL || !flippass_password_gen_state.active) {
-        return false;
+static uint8_t flippass_password_gen_next_byte(void) {
+    if(flippass_password_gen_state.stream_offset >= sizeof(flippass_password_gen_state.stream)) {
+        furi_hal_random_fill_buf(
+            flippass_password_gen_state.stream, sizeof(flippass_password_gen_state.stream));
+        flippass_password_gen_state.stream_offset = 0U;
     }
 
-    flippass_password_gen_lock();
-    if(!flippass_password_gen_state.active) {
-        flippass_password_gen_unlock();
-        return false;
-    }
-
-    uint32_t press_duration = 0U;
-    if(record->key < InputKeyMAX) {
-        if(record->type == InputTypePress) {
-            flippass_password_gen_state.last_input_tick[record->key] = record->tick;
-        } else if(
-            record->type == InputTypeRelease &&
-            flippass_password_gen_state.last_input_tick[record->key] != 0U) {
-            press_duration =
-                record->tick - flippass_password_gen_state.last_input_tick[record->key];
-        }
-    }
-
-    flippass_password_gen_mix_record("input", record, sizeof(*record));
-    flippass_password_gen_mix_record("input-duration", &press_duration, sizeof(press_duration));
-    flippass_password_gen_state.input_events++;
-    flippass_password_gen_unlock();
-    return true;
+    return flippass_password_gen_state.stream[flippass_password_gen_state.stream_offset++];
 }
 
-static bool
-    flippass_password_gen_poll(uint32_t now_tick, FlipPassPasswordGenPluginStatusV1* status) {
-    if(!flippass_password_gen_state.active) {
-        return false;
+static size_t flippass_password_gen_uniform(size_t count) {
+    if(count <= 1U) {
+        return 0U;
     }
 
-    flippass_password_gen_lock();
-    if(!flippass_password_gen_state.active) {
-        flippass_password_gen_unlock();
-        return false;
+    const uint16_t limit = (uint16_t)(256U - (256U % count));
+    uint8_t byte = 0U;
+    do {
+        byte = flippass_password_gen_next_byte();
+    } while(byte >= limit);
+
+    return byte % count;
+}
+
+static void flippass_password_gen_shuffle(char* text, size_t length) {
+    if(length <= 1U) {
+        return;
     }
 
-    flippass_password_gen_poll_subghz(now_tick);
+    for(size_t index = length - 1U; index > 0U; index--) {
+        const size_t swap_index = flippass_password_gen_uniform(index + 1U);
+        const char tmp = text[index];
+        text[index] = text[swap_index];
+        text[swap_index] = tmp;
+    }
+}
 
-    if(status != NULL) {
-        status->input_events = flippass_password_gen_state.input_events;
-        status->subghz_samples = flippass_password_gen_state.subghz_samples;
-        status->subghz_edges = flippass_password_gen_state.subghz_edges;
-        status->subghz_active = flippass_password_gen_state.subghz_async_started;
+static void flippass_password_gen_shuffle_u8(uint8_t* values, size_t length) {
+    if(values == NULL || length <= 1U) {
+        return;
     }
 
-    flippass_password_gen_unlock();
-    return true;
+    for(size_t index = length - 1U; index > 0U; index--) {
+        const size_t swap_index = flippass_password_gen_uniform(index + 1U);
+        const uint8_t tmp = values[index];
+        values[index] = values[swap_index];
+        values[swap_index] = tmp;
+    }
 }
 
 static size_t flippass_password_gen_append_chars(char* out, size_t out_size, const char* chars) {
@@ -368,6 +244,12 @@ static size_t flippass_password_gen_build_classes(
     case FlipPassPasswordGenCharsetHex:
         classes[class_count++] = flippass_password_gen_hex;
         break;
+    case FlipPassPasswordGenCharsetOctal:
+        classes[class_count++] = flippass_password_gen_octal;
+        break;
+    case FlipPassPasswordGenCharsetBinary:
+        classes[class_count++] = flippass_password_gen_binary;
+        break;
     case FlipPassPasswordGenCharsetFull:
     default:
         classes[class_count++] = flippass_password_gen_lower;
@@ -388,127 +270,216 @@ static size_t flippass_password_gen_build_classes(
     return class_count;
 }
 
-static void flippass_password_gen_derive_seed(void) {
-    uint8_t digest[SHA256_DIGEST_LENGTH];
-    uint8_t message[160];
-    size_t offset = 0U;
-
-    sha256_Final(&flippass_password_gen_state.digest, digest);
-
-#define APPEND_FIELD(ptr, size)                          \
-    do {                                                 \
-        const size_t field_size = (size);                \
-        if(offset + field_size <= sizeof(message)) {     \
-            memcpy(message + offset, (ptr), field_size); \
-            offset += field_size;                        \
-        }                                                \
-    } while(0)
-
-    APPEND_FIELD(FLIPPASS_PASSWORD_GEN_DOMAIN, strlen(FLIPPASS_PASSWORD_GEN_DOMAIN));
-    APPEND_FIELD(
-        &flippass_password_gen_state.request, sizeof(flippass_password_gen_state.request));
-    APPEND_FIELD(digest, sizeof(digest));
-    APPEND_FIELD(
-        &flippass_password_gen_state.input_events,
-        sizeof(flippass_password_gen_state.input_events));
-    APPEND_FIELD(
-        &flippass_password_gen_state.subghz_samples,
-        sizeof(flippass_password_gen_state.subghz_samples));
-    APPEND_FIELD(
-        (const void*)&flippass_password_gen_state.subghz_edges,
-        sizeof(flippass_password_gen_state.subghz_edges));
-    APPEND_FIELD(
-        (const void*)&flippass_password_gen_state.subghz_edge_mix,
-        sizeof(flippass_password_gen_state.subghz_edge_mix));
-
-#undef APPEND_FIELD
-
-    hmac_sha256(
-        flippass_password_gen_state.hw_seed,
-        sizeof(flippass_password_gen_state.hw_seed),
-        message,
-        (uint32_t)offset,
-        flippass_password_gen_state.seed);
-    flippass_password_gen_state.seed_ready = true;
-    flippass_password_gen_state.stream_counter = 0U;
-    flippass_password_gen_state.stream_offset = sizeof(flippass_password_gen_state.stream);
-
-    memzero(digest, sizeof(digest));
-    memzero(message, sizeof(message));
-}
-
-static void flippass_password_gen_refill_stream(void) {
-    uint8_t message[sizeof(flippass_password_gen_state.stream_counter) + 8U];
-
-    memset(message, 0, sizeof(message));
-    memcpy(message, "stream", 6U);
-    memcpy(message + 8U, &flippass_password_gen_state.stream_counter, sizeof(uint32_t));
-    hmac_sha256(
-        flippass_password_gen_state.seed,
-        sizeof(flippass_password_gen_state.seed),
-        message,
-        sizeof(message),
-        flippass_password_gen_state.stream);
-    flippass_password_gen_state.stream_counter++;
-    flippass_password_gen_state.stream_offset = 0U;
-    memzero(message, sizeof(message));
-}
-
-static uint8_t flippass_password_gen_next_byte(void) {
-    if(flippass_password_gen_state.stream_offset >= sizeof(flippass_password_gen_state.stream)) {
-        flippass_password_gen_refill_stream();
+static bool flippass_password_gen_load_layout_file(const char* path, uint16_t layout[128]) {
+    if(path == NULL || path[0] == '\0' || layout == NULL) {
+        return false;
     }
 
-    return flippass_password_gen_state.stream[flippass_password_gen_state.stream_offset++];
-}
+    bool loaded = false;
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    File* layout_file = storage_file_alloc(storage);
 
-static size_t flippass_password_gen_uniform(size_t count) {
-    if(count <= 1U) {
-        return 0U;
+    if(storage_file_open(layout_file, path, FSAM_READ, FSOM_OPEN_EXISTING) &&
+       storage_file_read(layout_file, layout, 128U * sizeof(uint16_t)) ==
+           128U * sizeof(uint16_t)) {
+        loaded = true;
     }
 
-    const uint16_t limit = (uint16_t)(256U - (256U % count));
-    uint8_t byte = 0U;
-    do {
-        byte = flippass_password_gen_next_byte();
-    } while(byte >= limit);
-
-    return byte % count;
+    storage_file_close(layout_file);
+    storage_file_free(layout_file);
+    furi_record_close(RECORD_STORAGE);
+    return loaded;
 }
 
-static void flippass_password_gen_shuffle(char* text, size_t length) {
-    if(length <= 1U) {
+static void flippass_password_gen_filter_layout_chars(
+    const char* source,
+    const uint16_t layout[128],
+    char* out,
+    size_t out_size) {
+    size_t out_len = 0U;
+
+    if(source == NULL || layout == NULL || out == NULL || out_size == 0U) {
         return;
     }
 
-    for(size_t index = length - 1U; index > 0U; index--) {
-        const size_t swap_index = flippass_password_gen_uniform(index + 1U);
-        const char tmp = text[index];
-        text[index] = text[swap_index];
-        text[swap_index] = tmp;
+    for(const char* cursor = source; *cursor != '\0' && out_len + 1U < out_size; cursor++) {
+        const uint8_t index = (uint8_t)*cursor;
+        if(index < 128U && layout[index] != 0U) {
+            out[out_len++] = *cursor;
+        }
     }
+    out[out_len] = '\0';
 }
 
-static bool flippass_password_gen_generate_password(
+static size_t flippass_password_gen_build_layout_classes(
+    const FlipPassPasswordGenPluginRequestV1* request,
+    const char** classes,
+    size_t max_classes,
+    char* lower,
+    size_t lower_size,
+    char* upper,
+    size_t upper_size,
+    char* digits,
+    size_t digits_size,
+    char* symbols,
+    size_t symbols_size,
+    char* combined,
+    size_t combined_size,
+    FuriString* error) {
+    uint16_t layout[128];
+    size_t class_count = 0U;
+
+    if(combined != NULL && combined_size > 0U) {
+        combined[0] = '\0';
+    }
+
+    if(!flippass_password_gen_load_layout_file(request->keyboard_layout_path, layout)) {
+        if(error != NULL) {
+            furi_string_set_str(error, "The selected keyboard layout could not be loaded.");
+        }
+        return 0U;
+    }
+
+    flippass_password_gen_filter_layout_chars(
+        flippass_password_gen_lower, layout, lower, lower_size);
+    flippass_password_gen_filter_layout_chars(
+        flippass_password_gen_upper, layout, upper, upper_size);
+    flippass_password_gen_filter_layout_chars(
+        flippass_password_gen_digits, layout, digits, digits_size);
+    flippass_password_gen_filter_layout_chars(
+        flippass_password_gen_symbols, layout, symbols, symbols_size);
+
+    if(lower[0] != '\0' && class_count < max_classes) {
+        classes[class_count++] = lower;
+    }
+    if(upper[0] != '\0' && class_count < max_classes) {
+        classes[class_count++] = upper;
+    }
+    if(digits[0] != '\0' && class_count < max_classes) {
+        classes[class_count++] = digits;
+    }
+    if(symbols[0] != '\0' && class_count < max_classes) {
+        classes[class_count++] = symbols;
+    }
+
+    for(size_t index = 0U; index < class_count; index++) {
+        flippass_password_gen_append_chars(combined, combined_size, classes[index]);
+    }
+
+    memzero(layout, sizeof(layout));
+    return class_count;
+}
+
+static const char* flippass_password_gen_utf8_pick_token(FlipPassPasswordGenUtf8ClassId class_id) {
+    if(class_id >= COUNT_OF(flippass_password_gen_utf8_classes)) {
+        class_id = FlipPassPasswordGenUtf8ClassLower;
+    }
+
+    const FlipPassPasswordGenUtf8Class* cls = &flippass_password_gen_utf8_classes[class_id];
+    if(cls->count == 0U || cls->tokens == NULL) {
+        return "a";
+    }
+
+    return cls->tokens[flippass_password_gen_uniform(cls->count)];
+}
+
+static const char* flippass_password_gen_utf8_pick_ascii_token(void) {
+    static const FlipPassPasswordGenUtf8ClassId ascii_classes[] = {
+        FlipPassPasswordGenUtf8ClassLower,
+        FlipPassPasswordGenUtf8ClassUpper,
+        FlipPassPasswordGenUtf8ClassDigits,
+        FlipPassPasswordGenUtf8ClassSymbols,
+    };
+
+    const FlipPassPasswordGenUtf8ClassId class_id =
+        ascii_classes[flippass_password_gen_uniform(COUNT_OF(ascii_classes))];
+    return flippass_password_gen_utf8_pick_token(class_id);
+}
+
+static bool flippass_password_gen_append_token_reserved(
+    char* out,
+    size_t* out_index,
+    const char* token,
+    size_t remaining_codepoints) {
+    if(out == NULL || out_index == NULL || token == NULL) {
+        return false;
+    }
+
+    const size_t token_len = strlen(token);
+    if(token_len == 0U ||
+       *out_index + token_len + remaining_codepoints > FLIPPASS_PASSWORD_GEN_MAX_LENGTH) {
+        return false;
+    }
+
+    memcpy(out + *out_index, token, token_len);
+    *out_index += token_len;
+    out[*out_index] = '\0';
+    return true;
+}
+
+static bool flippass_password_gen_generate_utf8_password(
     const FlipPassPasswordGenPluginRequestV1* request,
     char out[FLIPPASS_PASSWORD_GEN_MAX_LENGTH + 1U],
     FuriString* error) {
-    const char* classes[4] = {0};
-    char combined[128];
+    uint8_t classes[FLIPPASS_PASSWORD_GEN_MAX_LENGTH];
     size_t out_index = 0U;
+    const size_t class_count = COUNT_OF(flippass_password_gen_utf8_classes);
 
-    const size_t class_count = flippass_password_gen_build_classes(
-        request, classes, COUNT_OF(classes), combined, sizeof(combined));
+    if(request->length == 0U || request->length > COUNT_OF(classes)) {
+        if(error != NULL) {
+            furi_string_set_str(error, "Password length is out of range.");
+        }
+        return false;
+    }
+
+    memset(out, 0, FLIPPASS_PASSWORD_GEN_MAX_LENGTH + 1U);
+    memset(classes, 0, sizeof(classes));
+
+    for(size_t index = 0U; index < request->length; index++) {
+        if(request->length >= class_count && index < class_count) {
+            classes[index] = (uint8_t)index;
+        } else {
+            classes[index] = (uint8_t)flippass_password_gen_uniform(class_count);
+        }
+    }
+    flippass_password_gen_shuffle_u8(classes, request->length);
+
+    for(size_t index = 0U; index < request->length; index++) {
+        const size_t remaining_codepoints = request->length - index - 1U;
+        const char* token =
+            flippass_password_gen_utf8_pick_token((FlipPassPasswordGenUtf8ClassId)classes[index]);
+        if(!flippass_password_gen_append_token_reserved(
+               out, &out_index, token, remaining_codepoints)) {
+            token = flippass_password_gen_utf8_pick_ascii_token();
+            if(!flippass_password_gen_append_token_reserved(
+                   out, &out_index, token, remaining_codepoints)) {
+                if(error != NULL) {
+                    furi_string_set_str(error, "Password complexity exceeded the output buffer.");
+                }
+                memzero(classes, sizeof(classes));
+                return false;
+            }
+        }
+    }
+
+    memzero(classes, sizeof(classes));
+    return true;
+}
+
+static bool flippass_password_gen_generate_password_from_classes(
+    const FlipPassPasswordGenPluginRequestV1* request,
+    const char** classes,
+    size_t class_count,
+    const char* combined,
+    char out[FLIPPASS_PASSWORD_GEN_MAX_LENGTH + 1U],
+    FuriString* error) {
+    size_t out_index = 0U;
     const size_t combined_len = strlen(combined);
     if(class_count == 0U || combined_len == 0U) {
         if(error != NULL) {
             furi_string_set_str(error, "Password complexity produced an empty character set.");
         }
         return false;
-    }
-
-    if(!flippass_password_gen_state.seed_ready) {
-        flippass_password_gen_derive_seed();
     }
 
     memset(out, 0, FLIPPASS_PASSWORD_GEN_MAX_LENGTH + 1U);
@@ -529,6 +500,60 @@ static bool flippass_password_gen_generate_password(
     return true;
 }
 
+static bool flippass_password_gen_generate_layout_password(
+    const FlipPassPasswordGenPluginRequestV1* request,
+    char out[FLIPPASS_PASSWORD_GEN_MAX_LENGTH + 1U],
+    FuriString* error) {
+    if(request->keyboard_layout_path == NULL || request->keyboard_layout_path[0] == '\0') {
+        return flippass_password_gen_generate_utf8_password(request, out, error);
+    }
+
+    const char* classes[4] = {0};
+    char lower[sizeof(flippass_password_gen_lower)];
+    char upper[sizeof(flippass_password_gen_upper)];
+    char digits[sizeof(flippass_password_gen_digits)];
+    char symbols[sizeof(flippass_password_gen_symbols)];
+    char combined[128];
+    const size_t class_count = flippass_password_gen_build_layout_classes(
+        request,
+        classes,
+        COUNT_OF(classes),
+        lower,
+        sizeof(lower),
+        upper,
+        sizeof(upper),
+        digits,
+        sizeof(digits),
+        symbols,
+        sizeof(symbols),
+        combined,
+        sizeof(combined),
+        error);
+
+    return flippass_password_gen_generate_password_from_classes(
+        request, classes, class_count, combined, out, error);
+}
+
+static bool flippass_password_gen_generate_password(
+    const FlipPassPasswordGenPluginRequestV1* request,
+    char out[FLIPPASS_PASSWORD_GEN_MAX_LENGTH + 1U],
+    FuriString* error) {
+    const char* classes[4] = {0};
+    char combined[128];
+
+    if(request->charset == FlipPassPasswordGenCharsetUtf8) {
+        return flippass_password_gen_generate_utf8_password(request, out, error);
+    }
+    if(request->charset == FlipPassPasswordGenCharsetLayout) {
+        return flippass_password_gen_generate_layout_password(request, out, error);
+    }
+
+    const size_t class_count = flippass_password_gen_build_classes(
+        request, classes, COUNT_OF(classes), combined, sizeof(combined));
+    return flippass_password_gen_generate_password_from_classes(
+        request, classes, class_count, combined, out, error);
+}
+
 static bool
     flippass_password_gen_finish(FlipPassPasswordGenPluginResultV1* result, FuriString* error) {
     if(result == NULL || !flippass_password_gen_state.active) {
@@ -538,58 +563,23 @@ static bool
         return false;
     }
 
-    flippass_password_gen_lock();
-    if(!flippass_password_gen_state.active) {
-        flippass_password_gen_unlock();
-        if(error != NULL) {
-            furi_string_set_str(error, "Password generation already finished.");
-        }
-        return false;
-    }
-
     memset(result, 0, sizeof(*result));
-    const uint32_t finish_tick = furi_get_tick();
-    flippass_password_gen_poll_subghz(finish_tick);
-    flippass_password_gen_mix_record("finish-tick", &finish_tick, sizeof(finish_tick));
-    flippass_password_gen_stop_subghz();
-
     const bool ok = flippass_password_gen_generate_password(
         &flippass_password_gen_state.request, result->password, error);
-    result->status.input_events = flippass_password_gen_state.input_events;
-    result->status.subghz_samples = flippass_password_gen_state.subghz_samples;
-    result->status.subghz_edges = flippass_password_gen_state.subghz_edges;
-    result->status.subghz_active = false;
 
     flippass_password_gen_state.active = false;
     flippass_password_gen_reset_state();
-    flippass_password_gen_unlock();
     return ok;
 }
 
 static void flippass_password_gen_abort(void) {
-    FuriMutex* mutex = flippass_password_gen_state.mutex;
-
-    if(flippass_password_gen_state.mutex != NULL) {
-        flippass_password_gen_lock();
-    }
-    flippass_password_gen_stop_subghz();
     flippass_password_gen_state.active = false;
     flippass_password_gen_reset_state();
-    if(flippass_password_gen_state.mutex != NULL) {
-        flippass_password_gen_unlock();
-    }
-
-    if(mutex != NULL) {
-        flippass_password_gen_state.mutex = NULL;
-        furi_mutex_free(mutex);
-    }
 }
 
 static const FlipPassPasswordGenPluginV1 flippass_password_gen_plugin = {
     .api_version = FLIPPASS_PASSWORD_GEN_PLUGIN_API_VERSION,
     .begin = flippass_password_gen_begin,
-    .record_input = flippass_password_gen_record_input,
-    .poll = flippass_password_gen_poll,
     .finish = flippass_password_gen_finish,
     .abort = flippass_password_gen_abort,
 };

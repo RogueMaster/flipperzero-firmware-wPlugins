@@ -17,7 +17,8 @@ typedef struct {
 
 typedef struct KDBXParser KDBXParser;
 typedef bool (*KDBXParserOutputCallback)(const uint8_t* data, size_t data_size, void* context);
-typedef void (
+/* Return false to cancel; called at most every 1024 AES rounds. */
+typedef bool (
     *KDBXParserKdfProgressCallback)(uint64_t current_round, uint64_t total_rounds, void* context);
 
 KDBXParser* kdbx_parser_alloc(void);
@@ -60,6 +61,14 @@ bool kdbx_parser_derive_key_with_transformed(
     size_t hmac_key_size,
     uint8_t* transformed_key,
     size_t transformed_key_size);
+bool kdbx_parser_derive_key_from_transformed(
+    const KDBXParser* parser,
+    const uint8_t* transformed_key,
+    size_t transformed_key_size,
+    uint8_t* cipher_key,
+    size_t cipher_key_size,
+    uint8_t* hmac_key,
+    size_t hmac_key_size);
 
 bool kdbx_parser_stream_payload(
     KDBXParser* parser,

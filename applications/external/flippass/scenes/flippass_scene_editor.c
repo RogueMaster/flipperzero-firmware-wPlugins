@@ -5,6 +5,7 @@
 #include "../kdbx/kdbx_constants.h"
 #include "../kdbx/memzero.h"
 #include "../plugins/flippass_editor_crud_plugin.h"
+#include "../plugins/flippass_file_plugin.h"
 #include "../plugins/flippass_keyboard_layout_plugin.h"
 #include "flippass_scene.h"
 #include "flippass_scene_other_fields.h"
@@ -48,6 +49,12 @@ typedef enum {
     FlipPassEditorDialogDeleteField,
 } FlipPassEditorDialogState;
 
+/* FlipPassScene_EditorTextInput scene state. */
+enum {
+    FlipPassEditorTextInputDefault = 0U,
+    FlipPassEditorTextInputOtpQuickSet,
+};
+
 enum {
     FlipPassEditorOtpRowType = 0U,
     FlipPassEditorOtpRowSecret,
@@ -57,68 +64,8 @@ enum {
 
 static void flippass_editor_enter_callback(void* context, uint32_t index);
 static void flippass_editor_open_text_target(App* app, FlipPassEditorTextTarget target);
-
-static void flippass_editor_free_custom_field_draft(FlipPassEditorCustomFieldDraft* draft) {
-    if(draft == NULL) {
-        return;
-    }
-
-    if(draft->name != NULL) {
-        memzero(draft->name, strlen(draft->name));
-        free(draft->name);
-    }
-    if(draft->value != NULL) {
-        memzero(draft->value, strlen(draft->value));
-        free(draft->value);
-    }
-    memzero(draft, sizeof(*draft));
-    free(draft);
-}
-
-void flippass_editor_clear_custom_field_drafts(App* app) {
-    furi_assert(app);
-
-    FlipPassEditorCustomFieldDraft* draft = app->editor_custom_fields;
-    while(draft != NULL) {
-        FlipPassEditorCustomFieldDraft* next = draft->next;
-        flippass_editor_free_custom_field_draft(draft);
-        draft = next;
-    }
-
-    app->editor_custom_fields = NULL;
-    app->editor_custom_field_draft = NULL;
-}
-
-size_t flippass_editor_custom_field_count(const App* app) {
-    size_t count = 0U;
-
-    if(app == NULL) {
-        return 0U;
-    }
-
-    if(app->editor_mode == FlipPassEditorModeAddEntry ||
-       (app->editor_mode == FlipPassEditorModeAddCustomField && app->editor_entry == NULL) ||
-       (app->editor_mode == FlipPassEditorModeEditCustomField &&
-        app->editor_custom_field_draft != NULL)) {
-        for(const FlipPassEditorCustomFieldDraft* draft = app->editor_custom_fields; draft != NULL;
-            draft = draft->next) {
-            if(!flippass_otp_draft_is_reserved(draft)) {
-                count++;
-            }
-        }
-        return count;
-    }
-
-    const KDBXEntry* entry = app->editor_entry != NULL ? app->editor_entry : app->active_entry;
-    for(const KDBXCustomField* field = entry != NULL ? entry->custom_fields : NULL; field != NULL;
-        field = field->next) {
-        if(!flippass_otp_custom_field_is_reserved(field->key)) {
-            count++;
-        }
-    }
-
-    return count;
-}
+static void flippass_editor_open_icon_picker(App* app);
+static void flippass_editor_build_form(App* app);
 
 static void flippass_editor_clear_context(App* app) {
     furi_assert(app);
@@ -129,6 +76,7 @@ static void flippass_editor_clear_context(App* app) {
     app->editor_text_target = FlipPassEditorTextTargetNone;
     app->editor_group = NULL;
     app->editor_entry = NULL;
+    app->editor_icon_id = KDBX_ICON_ID_ENTRY_DEFAULT;
     app->editor_custom_field = NULL;
     app->editor_custom_field_draft = NULL;
     app->editor_custom_field_protected = false;
@@ -148,7 +96,6 @@ static void flippass_editor_clear_context(App* app) {
         "%llu",
         (unsigned long long)FLIPPASS_OTP_DEFAULT_COUNTER);
     app->password_gen_target = FlipPassPasswordGenTargetNone;
-    app->password_gen_capture_active = false;
     app->password_gen_auto_open_field_name = false;
     app->editor_selected_index = 0U;
     app->editor_return_scene = FlipPassScene_FileBrowser;
@@ -223,6 +170,49 @@ static VariableItem* flippass_editor_add_commit_item(App* app) {
     return flippass_editor_add_text_item(app, flippass_editor_commit_label(app), " ", false);
 }
 
+static uint8_t flippass_editor_original_icon(const App* app) {
+    if(app->editor_mode == FlipPassEditorModeEditGroup && app->editor_group != NULL) {
+        return app->editor_group->icon_id;
+    }
+    if(app->editor_mode == FlipPassEditorModeEditEntry && app->editor_entry != NULL) {
+        return app->editor_entry->icon_id;
+    }
+    return app->editor_mode == FlipPassEditorModeAddGroup ? KDBX_ICON_ID_GROUP_DEFAULT :
+                                                            KDBX_ICON_ID_ENTRY_DEFAULT;
+}
+
+static void flippass_editor_icon_value_text(VariableItem* item, uint8_t icon_id) {
+    char text[8];
+    snprintf(
+        text,
+        sizeof(text),
+        "%u%s",
+        (unsigned int)icon_id,
+        icon_id < KDBX_ICON_ID_COUNT ? "" : " ?");
+    variable_item_set_current_value_text(item, text);
+}
+
+static void flippass_editor_icon_change_callback(VariableItem* item) {
+    App* app = variable_item_get_context(item);
+    const uint8_t index = variable_item_get_current_value_index(item);
+    app->editor_icon_id = index < KDBX_ICON_ID_COUNT ? index : flippass_editor_original_icon(app);
+    flippass_editor_icon_value_text(item, app->editor_icon_id);
+}
+
+static void flippass_editor_add_icon_item(App* app) {
+    /* Keep an imported unknown byte ID until the user explicitly replaces it. */
+    const bool unknown = flippass_editor_original_icon(app) >= KDBX_ICON_ID_COUNT;
+    VariableItem* item = variable_item_list_add(
+        app->variable_item_list,
+        "Icon",
+        KDBX_ICON_ID_COUNT + (unknown ? 1U : 0U),
+        flippass_editor_icon_change_callback,
+        app);
+    variable_item_set_current_value_index(
+        item, app->editor_icon_id < KDBX_ICON_ID_COUNT ? app->editor_icon_id : KDBX_ICON_ID_COUNT);
+    flippass_editor_icon_value_text(item, app->editor_icon_id);
+}
+
 static bool flippass_editor_modify_database_uses_password(const App* app) {
     return app->editor_mode == FlipPassEditorModeModifyDatabase &&
            app->editor_return_scene == FlipPassScene_FileBrowser;
@@ -284,9 +274,10 @@ static uint32_t flippass_editor_commit_index(const App* app) {
         return 5U;
     case FlipPassEditorModeModifyDatabase:
         return flippass_editor_modify_database_uses_password(app) ? 4U : 3U;
-    case FlipPassEditorModeNewDirectory:
     case FlipPassEditorModeAddGroup:
     case FlipPassEditorModeEditGroup:
+        return 2U;
+    case FlipPassEditorModeNewDirectory:
     case FlipPassEditorModeRenameFile:
         return 1U;
     case FlipPassEditorModeAddEntry:
@@ -308,7 +299,7 @@ static uint32_t flippass_editor_commit_index(const App* app) {
 static uint32_t flippass_editor_last_index(const App* app) {
     switch(app->editor_mode) {
     case FlipPassEditorModeEditGroup:
-        return 2U;
+        return 3U;
     case FlipPassEditorModeEditEntry:
         return FlipPassEditorEntryRowDelete;
     case FlipPassEditorModeEditOtp:
@@ -798,16 +789,6 @@ static const FlipPassKeyboardLayoutPluginV1*
     return plugin;
 }
 
-static void flippass_editor_config_layout_unload_plugin(App* app) {
-    const FlipPassKeyboardLayoutPluginV1* plugin =
-        flippass_editor_config_layout_plugin_loaded(app);
-
-    if(plugin != NULL && plugin->reset != NULL) {
-        plugin->reset();
-    }
-    flippass_module_unload(app, FlipPassModuleSlotKeyboardLayout);
-}
-
 static void flippass_editor_config_layout_change_callback(VariableItem* item) {
     App* app = variable_item_get_context(item);
     const FlipPassKeyboardLayoutPluginV1* plugin =
@@ -966,6 +947,9 @@ static void flippass_editor_build_form(App* app) {
     case FlipPassEditorModeAddGroup:
     case FlipPassEditorModeEditGroup:
         flippass_editor_add_text_item(app, "Name", app->editor_group_name, false);
+        if(app->editor_mode != FlipPassEditorModeNewDirectory) {
+            flippass_editor_add_icon_item(app);
+        }
         flippass_editor_add_commit_item(app);
         if(app->editor_mode == FlipPassEditorModeEditGroup) {
             flippass_editor_add_delete_item(app);
@@ -974,6 +958,7 @@ static void flippass_editor_build_form(App* app) {
     case FlipPassEditorModeAddEntry:
     case FlipPassEditorModeEditEntry:
         flippass_editor_add_text_item(app, "Title", app->editor_entry_title, false);
+        flippass_editor_add_icon_item(app);
         flippass_editor_add_text_item(app, "Username", app->editor_entry_username, false);
         flippass_editor_add_text_item(app, "Password", app->editor_entry_password, true);
         flippass_editor_add_text_item(app, "URL", app->editor_entry_url, false);
@@ -1451,7 +1436,16 @@ static void flippass_editor_prepare_otp_form(App* app) {
     app->editor_selected_index = app->editor_otp_settled ? FlipPassEditorOtpRowType :
                                                            FlipPassEditorOtpRowSecret;
     app->editor_return_scene = FlipPassScene_Editor;
-    scene_manager_next_scene(app->scene_manager, FlipPassScene_Editor);
+    if(app->editor_otp_settled) {
+        scene_manager_next_scene(app->scene_manager, FlipPassScene_Editor);
+    } else {
+        /* An unset OTP goes straight to the secret over the entry form: Back drops the
+         * OTP draft, accepting the secret swaps in the OTP form. */
+        app->editor_text_target = FlipPassEditorTextTargetOtpSecret;
+        scene_manager_set_scene_state(
+            app->scene_manager, FlipPassScene_EditorTextInput, FlipPassEditorTextInputOtpQuickSet);
+        scene_manager_next_scene(app->scene_manager, FlipPassScene_EditorTextInput);
+    }
     furi_string_free(error);
 }
 
@@ -1839,8 +1833,51 @@ static const FlipPassEditorCrudPluginV1*
 
     const FlipPassEditorCrudPluginV1* plugin = descriptor->entry_point;
     if(plugin->api_version != FLIPPASS_EDITOR_CRUD_PLUGIN_API_VERSION ||
-       plugin->execute_commit == NULL || plugin->execute_delete == NULL) {
+       plugin->execute_commit == NULL || plugin->execute_delete == NULL ||
+       plugin->icons_open == NULL || plugin->icons_on_event == NULL ||
+       plugin->icons_reset == NULL) {
         furi_string_set_str(error, "FlipPass editor CRUD plugin has an incompatible API.");
+        return NULL;
+    }
+
+    return plugin;
+}
+
+static void flippass_editor_open_icon_picker(App* app) {
+    app->editor_selected_index = FlipPassEditorEntryRowIcon;
+    variable_item_list_reset(app->variable_item_list);
+    FuriString* error = furi_string_alloc();
+    const FlipPassEditorCrudPluginV1* plugin = flippass_editor_crud_plugin_load(app, error);
+    furi_string_free(error);
+    if(plugin != NULL) {
+        flippass_module_pin(app, FlipPassModuleSlotEditorCrud);
+        app->editor_icon_picker_pinned = true;
+        plugin->icons_open(app);
+    } else {
+        flippass_module_unload(app, FlipPassModuleSlotEditorCrud);
+        flippass_editor_build_form(app);
+        flippass_scene_status_show(
+            app, "Icons Unavailable", "Use Left/Right in the Icon row.", FlipPassScene_Editor);
+        scene_manager_next_scene(app->scene_manager, FlipPassScene_Status);
+    }
+}
+
+static const FlipPassFilePluginV1* flippass_editor_file_plugin_load(App* app, FuriString* error) {
+    const FlipperAppPluginDescriptor* descriptor = flippass_module_ensure(
+        app,
+        FlipPassModuleSlotFileOps,
+        NULL,
+        FLIPPASS_FILE_PLUGIN_APP_ID,
+        FLIPPASS_FILE_PLUGIN_API_VERSION,
+        error);
+    if(descriptor == NULL || descriptor->entry_point == NULL) {
+        return NULL;
+    }
+
+    const FlipPassFilePluginV1* plugin = descriptor->entry_point;
+    if(plugin->api_version != FLIPPASS_FILE_PLUGIN_API_VERSION || plugin->make_directory == NULL ||
+       plugin->rename_database == NULL) {
+        furi_string_set_str(error, "FlipPass file plugin has an incompatible API.");
         return NULL;
     }
 
@@ -1969,6 +2006,107 @@ static FlipPassEditorCrudHostApiV1 flippass_editor_make_crud_host_api(App* app) 
     return host_api;
 }
 
+static void flippass_editor_trim_for_crud_commit(App* app) {
+    furi_assert(app);
+
+    if(app->variable_item_list != NULL) {
+        app->editor_selected_index =
+            variable_item_list_get_selected_item_index(app->variable_item_list);
+        variable_item_list_reset(app->variable_item_list);
+    }
+    flippass_editor_config_layout_unload_plugin(app);
+    if(app->dialog_ex != NULL) {
+        dialog_ex_reset(app->dialog_ex);
+    }
+    /* Save is dispatched after the GUI input callback returns. Drop the idle
+     * views and text-input payload before promotion/Crypto and CRUD overlap. */
+    view_dispatcher_switch_to_view(app->view_dispatcher, AppViewLoading);
+    flippass_save_unload_idle_views(app);
+    flippass_db_deactivate_entry(app);
+    flippass_db_browser_clear_title_cache(app);
+
+    /* Promote the RAM vault to /ext before the CRUD plugin loads.  This is the
+     * primary fragmentation-prevention call: vault pages are freed while the heap
+     * is at its cleanest (UI state just released, CRUD FAP not yet loaded), so
+     * the freed pages coalesce into the largest possible contiguous region that
+     * subsequent arena chunks and the save plugins can use. */
+    flippass_db_proactive_promote_if_needed(app);
+}
+
+static bool flippass_editor_execute_new_directory_commit(App* app) {
+    FuriString* error = furi_string_alloc();
+    FuriString* target_path = furi_string_alloc();
+    bool ok = false;
+
+    flippass_editor_config_layout_unload_plugin(app);
+    const FlipPassFilePluginV1* plugin = flippass_editor_file_plugin_load(app, error);
+    if(plugin != NULL) {
+        ok = plugin->make_directory(
+            furi_string_get_cstr(app->browser_directory),
+            app->editor_group_name,
+            target_path,
+            error);
+    }
+
+    if(ok) {
+        furi_string_set(app->browser_directory, target_path);
+        app->browser_directory_selected_index = 0U;
+        flippass_editor_clear_context(app);
+        scene_manager_search_and_switch_to_previous_scene(
+            app->scene_manager, FlipPassScene_FileBrowser);
+    } else if(!furi_string_empty(error)) {
+        flippass_scene_status_show(
+            app, "Create Failed", furi_string_get_cstr(error), FlipPassScene_Editor);
+        scene_manager_next_scene(app->scene_manager, FlipPassScene_Status);
+    }
+
+    flippass_module_unload(app, FlipPassModuleSlotFileOps);
+    furi_string_free(target_path);
+    furi_string_free(error);
+    return ok;
+}
+
+static bool flippass_editor_execute_rename_file_commit(App* app) {
+    FuriString* error = furi_string_alloc();
+    FuriString* target_path = furi_string_alloc();
+    bool ok = false;
+
+    flippass_editor_config_layout_unload_plugin(app);
+    const FlipPassFilePluginV1* plugin = flippass_editor_file_plugin_load(app, error);
+    if(plugin != NULL) {
+        ok = plugin->rename_database(
+            furi_string_get_cstr(app->pending_path), app->editor_file_name, target_path, error);
+    }
+
+    if(ok) {
+        const char* source_path = furi_string_get_cstr(app->pending_path);
+        const char* renamed_path = furi_string_get_cstr(target_path);
+
+        if(app->last_open_file_path != NULL &&
+           strcmp(furi_string_get_cstr(app->last_open_file_path), source_path) == 0) {
+            furi_string_set(app->last_open_file_path, target_path);
+            flippass_save_settings(app);
+        }
+        if(app->file_path != NULL &&
+           strcmp(furi_string_get_cstr(app->file_path), source_path) == 0) {
+            furi_string_set(app->file_path, target_path);
+        }
+        furi_string_set_str(app->pending_path, renamed_path);
+        flippass_editor_clear_context(app);
+        scene_manager_search_and_switch_to_previous_scene(
+            app->scene_manager, FlipPassScene_FileBrowser);
+    } else if(!furi_string_empty(error)) {
+        flippass_scene_status_show(
+            app, "Rename Failed", furi_string_get_cstr(error), FlipPassScene_Editor);
+        scene_manager_next_scene(app->scene_manager, FlipPassScene_Status);
+    }
+
+    flippass_module_unload(app, FlipPassModuleSlotFileOps);
+    furi_string_free(target_path);
+    furi_string_free(error);
+    return ok;
+}
+
 static bool flippass_editor_execute_commit(App* app) {
     const FlipPassEditorCrudPluginV1* plugin = NULL;
     bool ok = false;
@@ -1980,15 +2118,22 @@ static bool flippass_editor_execute_commit(App* app) {
         return flippass_editor_execute_modify_database_commit(app);
     case FlipPassEditorModeGlobalConfig:
         return flippass_editor_execute_global_config_commit(app);
+    case FlipPassEditorModeNewDirectory:
+        return flippass_editor_execute_new_directory_commit(app);
+    case FlipPassEditorModeRenameFile:
+        return flippass_editor_execute_rename_file_commit(app);
     default:
         break;
     }
 
     FuriString* load_error = furi_string_alloc();
+    flippass_editor_trim_for_crud_commit(app);
     plugin = flippass_editor_crud_plugin_load(app, load_error);
     if(plugin != NULL) {
         FlipPassEditorCrudHostApiV1 host_api = flippass_editor_make_crud_host_api(app);
+        flippass_module_pin(app, FlipPassModuleSlotEditorCrud);
         ok = plugin->execute_commit(app, &host_api);
+        flippass_module_unpin(app, FlipPassModuleSlotEditorCrud);
     } else {
         flippass_scene_status_show(
             app, "Edit Failed", furi_string_get_cstr(load_error), FlipPassScene_Editor);
@@ -1997,11 +2142,17 @@ static bool flippass_editor_execute_commit(App* app) {
 
     flippass_module_unload(app, FlipPassModuleSlotEditorCrud);
     furi_string_free(load_error);
+    if(!ok && scene_manager_get_current_scene(app->scene_manager) == FlipPassScene_Editor) {
+        flippass_editor_build_form(app);
+        view_dispatcher_switch_to_view(app->view_dispatcher, AppViewVariableItemList);
+    }
     return ok;
 }
 
 static void flippass_editor_open_text_target(App* app, FlipPassEditorTextTarget target) {
     app->editor_text_target = target;
+    scene_manager_set_scene_state(
+        app->scene_manager, FlipPassScene_EditorTextInput, FlipPassEditorTextInputDefault);
     scene_manager_next_scene(app->scene_manager, FlipPassScene_EditorTextInput);
 }
 
@@ -2015,6 +2166,7 @@ static void flippass_editor_show_delete_dialog(
     FlipPassEditorDialogState state,
     const char* header,
     const char* text) {
+    flippass_ui_ensure_dialog_ex(app);
     scene_manager_set_scene_state(app->scene_manager, FlipPassScene_Editor, state);
     dialog_ex_reset(app->dialog_ex);
     dialog_ex_set_header(app->dialog_ex, header, 64, 4, AlignCenter, AlignTop);
@@ -2040,6 +2192,7 @@ static void flippass_editor_open_other_fields(App* app) {
 
 static bool flippass_editor_execute_delete(App* app, FlipPassEditorDialogState state) {
     FuriString* load_error = furi_string_alloc();
+    flippass_editor_trim_for_crud_commit(app);
     const FlipPassEditorCrudPluginV1* plugin = flippass_editor_crud_plugin_load(app, load_error);
     FlipPassEditorCrudDeleteTarget target = FlipPassEditorCrudDeleteNone;
     bool ok = false;
@@ -2061,7 +2214,9 @@ static bool flippass_editor_execute_delete(App* app, FlipPassEditorDialogState s
 
     if(plugin != NULL && target != FlipPassEditorCrudDeleteNone) {
         FlipPassEditorCrudHostApiV1 host_api = flippass_editor_make_crud_host_api(app);
+        flippass_module_pin(app, FlipPassModuleSlotEditorCrud);
         ok = plugin->execute_delete(app, target, &host_api);
+        flippass_module_unpin(app, FlipPassModuleSlotEditorCrud);
     } else if(plugin == NULL) {
         flippass_scene_status_show(
             app, "Delete Failed", furi_string_get_cstr(load_error), FlipPassScene_Editor);
@@ -2104,9 +2259,11 @@ static void flippass_editor_handle_enter(App* app, uint32_t index) {
     case FlipPassEditorModeEditGroup:
         if(flippass_editor_is_commit_index(app, index)) {
             flippass_editor_execute_commit(app);
-        } else if(app->editor_mode == FlipPassEditorModeEditGroup && index == 2U) {
+        } else if(app->editor_mode == FlipPassEditorModeEditGroup && index == 3U) {
             flippass_editor_show_delete_dialog(
                 app, FlipPassEditorDialogDeleteGroup, "Delete Group?", app->editor_group_name);
+        } else if(app->editor_mode != FlipPassEditorModeNewDirectory && index == 1U) {
+            flippass_editor_open_icon_picker(app);
         } else if(index == FlipPassEditorItemPrimaryText) {
             flippass_editor_open_text_target(app, FlipPassEditorTextTargetGroupName);
         }
@@ -2115,6 +2272,8 @@ static void flippass_editor_handle_enter(App* app, uint32_t index) {
     case FlipPassEditorModeEditEntry:
         if(flippass_editor_is_commit_index(app, index)) {
             flippass_editor_execute_commit(app);
+        } else if(index == FlipPassEditorEntryRowIcon) {
+            flippass_editor_open_icon_picker(app);
         } else if(index == FlipPassEditorEntryRowTitle) {
             flippass_editor_open_text_target(app, FlipPassEditorTextTargetEntryTitle);
         } else if(index == FlipPassEditorEntryRowUsername) {
@@ -2354,12 +2513,23 @@ static void flippass_editor_text_input_done(void* context) {
         app->editor_selected_index = 1U;
     }
 
+    if(scene_manager_get_scene_state(app->scene_manager, FlipPassScene_EditorTextInput) ==
+       FlipPassEditorTextInputOtpQuickSet) {
+        scene_manager_set_scene_state(
+            app->scene_manager, FlipPassScene_EditorTextInput, FlipPassEditorTextInputDefault);
+        app->editor_selected_index = FlipPassEditorOtpRowSecret;
+        scene_manager_previous_scene(app->scene_manager);
+        scene_manager_next_scene(app->scene_manager, FlipPassScene_Editor);
+        return;
+    }
+
     scene_manager_previous_scene(app->scene_manager);
 }
 
 void flippass_scene_editor_on_enter(void* context) {
     App* app = context;
 
+    flippass_ui_ensure_variable_item_list(app);
     scene_manager_set_scene_state(
         app->scene_manager, FlipPassScene_Editor, FlipPassEditorDialogNone);
     flippass_editor_build_form(app);
@@ -2380,10 +2550,27 @@ void flippass_scene_editor_on_enter(void* context) {
     view_dispatcher_switch_to_view(app->view_dispatcher, AppViewVariableItemList);
 }
 
-bool flippass_scene_editor_on_event(void* context, SceneManagerEvent event) {
+/* The SDK merges .text* into one allocation. Keep the event handler in a
+ * separate allocable ELF section so a late editor load can use smaller holes.
+ * It remains part of the same pinned module, including all GUI callbacks. */
+__attribute__((noinline, section(".editor_events"))) bool
+    flippass_scene_editor_on_event(void* context, SceneManagerEvent event) {
     App* app = context;
     const FlipPassEditorDialogState dialog_state =
         scene_manager_get_scene_state(app->scene_manager, FlipPassScene_Editor);
+
+    if(app->editor_icon_picker_pinned) {
+        const FlipPassEditorCrudPluginV1* plugin = flippass_editor_crud_plugin_load(app, NULL);
+        const FlipPassEditorIconsEventResult result = plugin->icons_on_event(app, event);
+        if(result == FlipPassEditorIconsClosed) {
+            flippass_module_unpin(app, FlipPassModuleSlotEditorCrud);
+            app->editor_icon_picker_pinned = false;
+            flippass_module_unload(app, FlipPassModuleSlotEditorCrud);
+            flippass_editor_build_form(app);
+            view_dispatcher_switch_to_view(app->view_dispatcher, AppViewVariableItemList);
+        }
+        if(result != FlipPassEditorIconsUnhandled) return true;
+    }
 
     if(dialog_state != FlipPassEditorDialogNone) {
         if(event.type == SceneManagerEventTypeBack ||
@@ -2391,7 +2578,9 @@ bool flippass_scene_editor_on_event(void* context, SceneManagerEvent event) {
             event.event == (0x100U + DialogExResultLeft))) {
             scene_manager_set_scene_state(
                 app->scene_manager, FlipPassScene_Editor, FlipPassEditorDialogNone);
-            dialog_ex_reset(app->dialog_ex);
+            if(app->dialog_ex != NULL) {
+                dialog_ex_reset(app->dialog_ex);
+            }
             view_dispatcher_switch_to_view(app->view_dispatcher, AppViewVariableItemList);
             return true;
         }
@@ -2400,7 +2589,9 @@ bool flippass_scene_editor_on_event(void* context, SceneManagerEvent event) {
            event.event == (0x100U + DialogExResultRight)) {
             scene_manager_set_scene_state(
                 app->scene_manager, FlipPassScene_Editor, FlipPassEditorDialogNone);
-            dialog_ex_reset(app->dialog_ex);
+            if(app->dialog_ex != NULL) {
+                dialog_ex_reset(app->dialog_ex);
+            }
             flippass_editor_execute_delete(app, dialog_state);
             return true;
         }
@@ -2428,21 +2619,22 @@ bool flippass_scene_editor_on_event(void* context, SceneManagerEvent event) {
 
 void flippass_scene_editor_on_exit(void* context) {
     App* app = context;
-    app->editor_selected_index =
-        variable_item_list_get_selected_item_index(app->variable_item_list);
-    variable_item_list_reset(app->variable_item_list);
+    if(app->editor_icon_picker_pinned) {
+        const FlipPassEditorCrudPluginV1* plugin = flippass_editor_crud_plugin_load(app, NULL);
+        plugin->icons_reset(app);
+        flippass_module_unpin(app, FlipPassModuleSlotEditorCrud);
+        app->editor_icon_picker_pinned = false;
+        flippass_module_unload(app, FlipPassModuleSlotEditorCrud);
+    }
+    if(app->variable_item_list != NULL) {
+        app->editor_selected_index =
+            variable_item_list_get_selected_item_index(app->variable_item_list);
+        variable_item_list_reset(app->variable_item_list);
+    }
     flippass_editor_config_layout_unload_plugin(app);
-    dialog_ex_reset(app->dialog_ex);
-}
-
-void flippass_scene_editor_trim_for_save(struct App* app) {
-    furi_assert(app);
-
-    app->editor_selected_index =
-        variable_item_list_get_selected_item_index(app->variable_item_list);
-    variable_item_list_reset(app->variable_item_list);
-    flippass_editor_config_layout_unload_plugin(app);
-    dialog_ex_reset(app->dialog_ex);
+    if(app->dialog_ex != NULL) {
+        dialog_ex_reset(app->dialog_ex);
+    }
 }
 
 void flippass_scene_editor_text_input_on_enter(void* context) {
@@ -2455,6 +2647,7 @@ void flippass_scene_editor_text_input_on_enter(void* context) {
         return;
     }
 
+    flippass_ui_ensure_text_input(app);
     text_input_reset(app->text_input);
     text_input_set_header_text(
         app->text_input, flippass_editor_text_header(app, app->editor_text_target));
@@ -2501,6 +2694,13 @@ bool flippass_scene_editor_text_input_on_event(void* context, SceneManagerEvent 
 
     if(event.type == SceneManagerEventTypeBack) {
         app->editor_text_target = FlipPassEditorTextTargetNone;
+        if(scene_manager_get_scene_state(app->scene_manager, FlipPassScene_EditorTextInput) ==
+           FlipPassEditorTextInputOtpQuickSet) {
+            scene_manager_set_scene_state(
+                app->scene_manager, FlipPassScene_EditorTextInput, FlipPassEditorTextInputDefault);
+            memzero(app->editor_otp_secret, sizeof(app->editor_otp_secret));
+            flippass_editor_restore_after_otp(app);
+        }
         scene_manager_previous_scene(app->scene_manager);
         return true;
     }
@@ -2510,6 +2710,9 @@ bool flippass_scene_editor_text_input_on_event(void* context, SceneManagerEvent 
 
 void flippass_scene_editor_text_input_on_exit(void* context) {
     App* app = context;
+    if(app->text_input == NULL) {
+        return;
+    }
     text_input_reset(app->text_input);
     text_input_set_validator(app->text_input, NULL, NULL);
     text_input_set_is_password(app->text_input, false);

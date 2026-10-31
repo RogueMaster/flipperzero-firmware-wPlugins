@@ -1,6 +1,9 @@
 #include "flippass_output_action_plugin.h"
+#include "flippass_cmd.h"
 
 #include "../hid_keys.h"
+#include "../kdbx/memzero.h"
+#include <core/kernel.h>
 
 #include <furi_hal.h>
 #include <storage/storage.h>
@@ -37,7 +40,12 @@ typedef struct {
     const char* progress_detail;
     FuriString* placeholder_buffer;
     uint8_t progress_percent;
+    uint32_t utf8_codepoint;
+    uint8_t utf8_pending[4];
+    uint8_t utf8_pending_len;
+    uint8_t utf8_expected_len;
     bool use_alt_numpad;
+    bool alt_numpad_prepared;
     bool pending_cr;
 } FlipPassOutputSession;
 
@@ -62,9 +70,11 @@ static const uint8_t flippass_output_numpad_keys[10] = {
 static bool flippass_output_session_prepare_alt_numpad(FlipPassOutputSession* session);
 static bool flippass_output_session_cancel_requested(const FlipPassOutputSession* session);
 static bool flippass_output_session_delay(FlipPassOutputSession* session, uint32_t delay_ms);
+static bool flippass_output_session_type_alt_code(FlipPassOutputSession* session, uint32_t value);
 static bool
     flippass_output_session_type_alt_code_byte(FlipPassOutputSession* session, uint8_t value);
 static bool flippass_output_session_type_text_byte(FlipPassOutputSession* session, uint8_t value);
+static bool flippass_output_session_flush_pending_utf8(FlipPassOutputSession* session);
 static bool flippass_output_session_flush_pending_cr(FlipPassOutputSession* session);
 static bool flippass_output_session_stream_text_chunk(
     FlipPassOutputSession* session,
@@ -354,7 +364,12 @@ static bool flippass_output_session_begin(FlipPassOutputSession* session) {
 
     session->sticky_modifiers = 0U;
     session->current_modifiers = 0U;
+    session->utf8_codepoint = 0U;
+    session->utf8_pending_len = 0U;
+    session->utf8_expected_len = 0U;
+    memset(session->utf8_pending, 0, sizeof(session->utf8_pending));
     session->pending_cr = false;
+    session->alt_numpad_prepared = false;
     session->use_alt_numpad = session->request == NULL ||
                               session->request->keyboard_layout_path == NULL ||
                               session->request->keyboard_layout_path[0] == '\0';
@@ -372,8 +387,11 @@ static bool flippass_output_session_begin(FlipPassOutputSession* session) {
         return false;
     }
 
-    if(session->use_alt_numpad && !flippass_output_session_prepare_alt_numpad(session)) {
-        return false;
+    if(session->use_alt_numpad) {
+        if(!flippass_output_session_prepare_alt_numpad(session)) {
+            return false;
+        }
+        session->alt_numpad_prepared = true;
     }
 
     return true;
@@ -392,6 +410,11 @@ static void flippass_output_session_end(FlipPassOutputSession* session) {
     flippass_output_session_release_all_prepared(session);
     session->sticky_modifiers = 0U;
     session->current_modifiers = 0U;
+    session->utf8_codepoint = 0U;
+    session->utf8_pending_len = 0U;
+    session->utf8_expected_len = 0U;
+    memset(session->utf8_pending, 0, sizeof(session->utf8_pending));
+    session->alt_numpad_prepared = false;
     session->pending_cr = false;
     if(session->host_api != NULL && session->host_api->end_transport != NULL) {
         session->host_api->end_transport(session->host_api->context, session->transport);
@@ -576,6 +599,124 @@ static bool flippass_output_session_tap_key(FlipPassOutputSession* session, uint
     return flippass_output_session_tap_raw_key(session, hid_key & 0xFFU, hid_key & 0xFF00U);
 }
 
+static bool flippass_output_session_can_alt_code(const FlipPassOutputSession* session) {
+    return session != NULL &&
+           (session->current_modifiers & ~(KEY_MOD_LEFT_ALT | KEY_MOD_RIGHT_ALT)) == 0U;
+}
+
+static bool
+    flippass_output_session_type_alt_code_fallback(FlipPassOutputSession* session, uint32_t value) {
+    if(!flippass_output_session_can_alt_code(session)) {
+        return false;
+    }
+
+    if(!session->alt_numpad_prepared) {
+        if(!flippass_output_session_prepare_alt_numpad(session)) {
+            return false;
+        }
+        session->alt_numpad_prepared = true;
+    }
+
+    return flippass_output_session_type_alt_code(session, value);
+}
+
+static uint8_t flippass_output_utf8_start_len(uint8_t value) {
+    if(value >= 0xC2U && value <= 0xDFU) {
+        return 2U;
+    }
+    if(value >= 0xE0U && value <= 0xEFU) {
+        return 3U;
+    }
+    if(value >= 0xF0U && value <= 0xF4U) {
+        return 4U;
+    }
+    return 0U;
+}
+
+static bool flippass_output_utf8_is_continuation(uint8_t value) {
+    return (value & 0xC0U) == 0x80U;
+}
+
+static bool flippass_output_utf8_codepoint_valid(uint32_t codepoint, uint8_t expected_len) {
+    if(expected_len == 2U) {
+        return codepoint >= 0x80U && codepoint <= 0x7FFU;
+    }
+    if(expected_len == 3U) {
+        return codepoint >= 0x800U && codepoint <= 0xFFFFU &&
+               !(codepoint >= 0xD800U && codepoint <= 0xDFFFU);
+    }
+    if(expected_len == 4U) {
+        return codepoint >= 0x10000U && codepoint <= 0x10FFFFU;
+    }
+    return false;
+}
+
+static bool flippass_output_session_flush_pending_utf8(FlipPassOutputSession* session) {
+    if(session == NULL || session->utf8_pending_len == 0U) {
+        return true;
+    }
+
+    const uint8_t pending_len = session->utf8_pending_len;
+    uint8_t pending[sizeof(session->utf8_pending)];
+    memcpy(pending, session->utf8_pending, sizeof(pending));
+    session->utf8_codepoint = 0U;
+    session->utf8_pending_len = 0U;
+    session->utf8_expected_len = 0U;
+    memset(session->utf8_pending, 0, sizeof(session->utf8_pending));
+
+    for(uint8_t index = 0U; index < pending_len; index++) {
+        if(!flippass_output_session_type_alt_code_fallback(session, pending[index])) {
+            return false;
+        }
+    }
+    return true;
+}
+
+static bool
+    flippass_output_session_type_utf8_layout_byte(FlipPassOutputSession* session, uint8_t value) {
+    if(session->utf8_pending_len > 0U) {
+        if(flippass_output_utf8_is_continuation(value) &&
+           session->utf8_pending_len < sizeof(session->utf8_pending)) {
+            session->utf8_pending[session->utf8_pending_len++] = value;
+            session->utf8_codepoint = (session->utf8_codepoint << 6U) | (uint32_t)(value & 0x3FU);
+            if(session->utf8_pending_len == session->utf8_expected_len) {
+                const uint32_t codepoint = session->utf8_codepoint;
+                const uint8_t expected_len = session->utf8_expected_len;
+                if(flippass_output_utf8_codepoint_valid(codepoint, expected_len)) {
+                    session->utf8_codepoint = 0U;
+                    session->utf8_pending_len = 0U;
+                    session->utf8_expected_len = 0U;
+                    memset(session->utf8_pending, 0, sizeof(session->utf8_pending));
+                    return flippass_output_session_type_alt_code_fallback(session, codepoint);
+                }
+                return flippass_output_session_flush_pending_utf8(session);
+            }
+            return true;
+        }
+
+        if(!flippass_output_session_flush_pending_utf8(session)) {
+            return false;
+        }
+    }
+
+    const uint8_t expected_len = flippass_output_utf8_start_len(value);
+    if(expected_len == 0U) {
+        return flippass_output_session_type_alt_code_fallback(session, value);
+    }
+
+    session->utf8_pending[0] = value;
+    session->utf8_pending_len = 1U;
+    session->utf8_expected_len = expected_len;
+    if(expected_len == 2U) {
+        session->utf8_codepoint = value & 0x1FU;
+    } else if(expected_len == 3U) {
+        session->utf8_codepoint = value & 0x0FU;
+    } else {
+        session->utf8_codepoint = value & 0x07U;
+    }
+    return true;
+}
+
 static bool flippass_output_session_tap_char(FlipPassOutputSession* session, char ch) {
     uint16_t hid_key = HID_KEYBOARD_NONE;
 
@@ -587,7 +728,7 @@ static bool flippass_output_session_tap_char(FlipPassOutputSession* session, cha
     if(!session->use_alt_numpad) {
         const uint8_t index = (uint8_t)ch;
         if(index >= COUNT_OF(session->layout)) {
-            return false;
+            return flippass_output_session_type_alt_code_fallback(session, index);
         }
         hid_key = session->layout[index];
     } else {
@@ -595,7 +736,7 @@ static bool flippass_output_session_tap_char(FlipPassOutputSession* session, cha
     }
 
     if(hid_key == HID_KEYBOARD_NONE) {
-        return false;
+        return flippass_output_session_type_alt_code_fallback(session, (uint8_t)ch);
     }
 
     return flippass_output_session_tap_key(session, hid_key);
@@ -603,9 +744,12 @@ static bool flippass_output_session_tap_char(FlipPassOutputSession* session, cha
 
 static bool flippass_output_session_flush_pending_cr(FlipPassOutputSession* session) {
     if(session == NULL || !session->pending_cr) {
-        return true;
+        return flippass_output_session_flush_pending_utf8(session);
     }
 
+    if(!flippass_output_session_flush_pending_utf8(session)) {
+        return false;
+    }
     session->pending_cr = false;
     return flippass_output_session_tap_key(session, HID_KEYBOARD_RETURN);
 }
@@ -624,6 +768,10 @@ static bool flippass_output_session_type_text_byte(FlipPassOutputSession* sessio
         if(!flippass_output_session_flush_pending_cr(session)) {
             return false;
         }
+    }
+
+    if(session->utf8_pending_len > 0U || value >= 0x80U) {
+        return flippass_output_session_type_utf8_layout_byte(session, value);
     }
 
     switch(value) {
@@ -752,12 +900,11 @@ static bool flippass_output_session_prepare_alt_numpad(FlipPassOutputSession* se
     return flippass_output_session_tap_raw_key(session, HID_KEYBOARD_LOCK_NUM_LOCK, 0U);
 }
 
-static bool
-    flippass_output_session_type_alt_code_byte(FlipPassOutputSession* session, uint8_t value) {
-    char ascii_code[4];
+static bool flippass_output_session_type_alt_code(FlipPassOutputSession* session, uint32_t value) {
+    char ascii_code[11];
     const bool alt_already_pressed = (session->current_modifiers & KEY_MOD_LEFT_ALT) != 0U;
 
-    snprintf(ascii_code, sizeof(ascii_code), "%u", (unsigned int)value);
+    snprintf(ascii_code, sizeof(ascii_code), "%lu", (unsigned long)value);
 
     if(!alt_already_pressed &&
        !flippass_output_session_press_modifier_mask(session, KEY_MOD_LEFT_ALT)) {
@@ -781,6 +928,11 @@ static bool
     }
 
     return true;
+}
+
+static bool
+    flippass_output_session_type_alt_code_byte(FlipPassOutputSession* session, uint8_t value) {
+    return flippass_output_session_type_alt_code(session, (uint32_t)value);
 }
 
 static bool flippass_output_session_tap_modifier_only(
@@ -1346,6 +1498,14 @@ static bool flippass_output_execute_braced_token(
     size_t params_start = 0U;
     bool ok = false;
 
+    FlipPassCmd command;
+    const FlipPassCmdParseResult cmd_result = flippass_cmd_parse(sequence + *index, &command);
+    if(cmd_result != FlipPassCmdNotCommand) {
+        if(cmd_result != FlipPassCmdValid) return false;
+        *index += command.consumed;
+        return true; /* Already staged before HID; CMD itself emits no keys. */
+    }
+
     while(sequence[token_start] == ' ' || sequence[token_start] == '\t') {
         token_start++;
     }
@@ -1700,13 +1860,62 @@ static bool flippass_output_execute_login_refs_request(
     return ok;
 }
 
+static bool flippass_output_stage_cmd(
+    const char* sequence,
+    const FlipPassOutputActionHostApiV1* host_api,
+    FuriString* error) {
+    if(!flippass_cmd_preflight(sequence)) {
+        if(error != NULL)
+            furi_string_set_str(error, "Unsupported or malformed CMD launch request.");
+        return false;
+    }
+    for(size_t i = 0U; sequence[i] != '\0';) {
+        if(sequence[i] != '{') {
+            ++i;
+            continue;
+        }
+        if((sequence[i + 1U] == '{' || sequence[i + 1U] == '}') && sequence[i + 2U] == '}') {
+            i += 3U;
+            continue;
+        }
+        FlipPassCmd command;
+        if(flippass_cmd_parse(sequence + i, &command) != FlipPassCmdValid) {
+            ++i;
+            continue;
+        }
+        const size_t bytes = command.length + FLIPPASS_CMD_SCRATCH_EXTRA;
+        const int32_t lock = furi_kernel_lock();
+        char* scratch = memmgr_heap_get_max_free_block() >= bytes + 16U ? malloc(bytes) : NULL;
+        furi_kernel_restore_lock(lock);
+        if(scratch == NULL) {
+            if(error != NULL)
+                furi_string_set_str(error, "Not enough RAM to prepare the CMD request.");
+            return false;
+        }
+        FlipPassCmdLaunch launch;
+        const bool ok = flippass_cmd_decode(&command, scratch, bytes, &launch) &&
+                        host_api->prepare_launch != NULL &&
+                        host_api->prepare_launch(
+                            host_api->context, launch.application, launch.arguments, launch.self);
+        memzero(scratch, bytes);
+        free(scratch);
+        if(!ok && error != NULL)
+            furi_string_set_str(
+                error, "Cannot prepare CMD. Save pending changes and check available RAM.");
+        return ok;
+    }
+    return true;
+}
+
 static bool flippass_output_execute_autotype_request(
     const FlipPassOutputActionRequestV1* request,
-    const FlipPassOutputActionHostApiV1* host_api) {
+    const FlipPassOutputActionHostApiV1* host_api,
+    FuriString* error) {
     const char* sequence =
         (request->autotype_sequence != NULL && request->autotype_sequence[0] != '\0') ?
             request->autotype_sequence :
             FLIPPASS_OUTPUT_KEEPASS_DEFAULT_SEQUENCE;
+    if(!flippass_output_stage_cmd(sequence, host_api, error)) return false;
     FlipPassOutputSession session = flippass_output_session_make(request, host_api);
     size_t index = 0U;
 
@@ -1734,8 +1943,6 @@ static bool flippass_output_action_run(
     const FlipPassOutputActionRequestV1* request,
     const FlipPassOutputActionHostApiV1* host_api,
     FuriString* error) {
-    UNUSED(error);
-
     if(request == NULL || host_api == NULL ||
        request->api_version != FLIPPASS_OUTPUT_ACTION_PLUGIN_API_VERSION ||
        host_api->api_version != FLIPPASS_OUTPUT_ACTION_HOST_API_VERSION) {
@@ -1756,7 +1963,7 @@ static bool flippass_output_action_run(
     case FlipPassOutputActionPluginKindLoginRefs:
         return flippass_output_execute_login_refs_request(request, host_api);
     case FlipPassOutputActionPluginKindAutotype:
-        return flippass_output_execute_autotype_request(request, host_api);
+        return flippass_output_execute_autotype_request(request, host_api, error);
     default:
         return false;
     }

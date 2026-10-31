@@ -1,3 +1,13 @@
+v3.0:
+
+- Several memory usage optimizations. (Some of which were thanks to chaffed)
+- A possible error in the capitalization of the first character was corrected. (Thanks to TheEgghead27)
+- The ability to save the KDF derivation was added. (At the user's risk)
+- The unnecessary collection of entropy was eliminated. (Sad, but true)
+- CLI parameters for the entire (remote?) execution cycle (The nightmare of the cybersecurity guys)
+- Ability to open external applications using the CMD tag in AutoType (What could go wrong?)
+- And the favorite most requested by the public: Icons! (No, no one has asked for any of this.)
+
 v2.0:
 
 - Have it all!: KDBX modification/creation, high-entropy password generation, OTP calculation, what more could you want?!

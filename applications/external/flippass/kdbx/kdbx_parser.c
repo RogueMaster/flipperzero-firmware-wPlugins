@@ -1,5 +1,7 @@
 #include "kdbx_parser.h"
 #include "kdbx_gzip.h"
+#include "kdbx_kdf_params.h"
+#include "kdbx_hash.h"
 #include "kdbx_protected.h"
 #include <furi.h>
 #include <stdarg.h>
@@ -44,8 +46,6 @@ struct KDBXParser {
 #define KDBX_MAX_STREAM_OUTPUT_SIZE    (2U * 1024U * 1024U)
 #define KDBX_PARSER_LOG_PATH           EXT_PATH("apps_data/flippass/flippass.log")
 #define KDBX_PARSER_TRACE_TAG          "FlipPassParser"
-#define KDBX_ARGON2_UNSUPPORTED_MESSAGE \
-    "Argon2 KDF is not viable on this device. This database cannot be opened."
 
 static bool kdbx_parser_read_header(KDBXParser* parser);
 static void kdbx_parser_clear_header(KDBXParser* parser);
@@ -59,7 +59,6 @@ static void kdbx_parser_trace(const KDBXParser* parser, const char* format, ...)
     do {                       \
     } while(0)
 #endif
-static bool kdbx_parser_has_bytes(const uint8_t* p, const uint8_t* end, size_t needed);
 static bool kdbx_parser_derive_transformed_key(
     const KDBXParser* parser,
     const char* password,
@@ -82,15 +81,6 @@ static bool kdbx_parser_stream_payload_internal(
     bool inflate_gzip);
 static void kdbx_parser_trace_fail(KDBXParser* parser, const char* stage);
 static void kdbx_parser_set_gzip_error(KDBXParser* parser, const KDBXGzipTelemetry* telemetry);
-static inline uint32_t read_uint32_le(const uint8_t* p);
-static inline uint64_t read_uint64_le(const uint8_t* p);
-static bool
-    kdbx_parser_variant_name_equals(const char* name, uint32_t name_size, const char* expected);
-static bool kdbx_parser_variant_read_uint(
-    uint8_t value_type,
-    const uint8_t* value,
-    uint32_t value_size,
-    uint64_t* out_value);
 
 typedef enum {
     KDBXParserKdfTypeInvalid = 0,
@@ -1364,186 +1354,30 @@ uint8_t* kdbx_parser_decrypt_payload(
     return collect.data;
 }
 
-static inline uint32_t read_uint32_le(const uint8_t* p) {
-    return ((uint32_t)p[0]) | ((uint32_t)p[1] << 8) | ((uint32_t)p[2] << 16) |
-           ((uint32_t)p[3] << 24);
-}
-
-static inline uint64_t read_uint64_le(const uint8_t* p) {
-    return ((uint64_t)read_uint32_le(p)) | ((uint64_t)read_uint32_le(p + 4) << 32);
-}
-
-static bool
-    kdbx_parser_variant_name_equals(const char* name, uint32_t name_size, const char* expected) {
-    const size_t expected_len = strlen(expected);
-    return expected_len == name_size && memcmp(name, expected, name_size) == 0;
-}
-
-static bool kdbx_parser_variant_read_uint(
-    uint8_t value_type,
-    const uint8_t* value,
-    uint32_t value_size,
-    uint64_t* out_value) {
-    if(value == NULL || out_value == NULL) {
-        return false;
-    }
-
-    if(value_type == 0x04U && value_size == 4U) {
-        *out_value = read_uint32_le(value);
-        return true;
-    }
-
-    if(value_type == 0x05U && value_size == 8U) {
-        *out_value = read_uint64_le(value);
-        return true;
-    }
-
-    return false;
-}
-
-static bool kdbx_parser_has_bytes(const uint8_t* p, const uint8_t* end, size_t needed) {
-    return (p <= end) && ((size_t)(end - p) >= needed);
-}
-
-// AES-KDF UUID: C9D9F39A628A4460BF740D08C18A4FEA
-static const uint8_t KDBX_KDF_UUID_AES[16] =
-    {0xC9, 0xD9, 0xF3, 0x9A, 0x62, 0x8A, 0x44, 0x60, 0xBF, 0x74, 0x0D, 0x08, 0xC1, 0x8A, 0x4F, 0xEA};
-// Argon2d UUID: EF636DDF8C29444B91F7A9A403E30A0C
-static const uint8_t KDBX_KDF_UUID_ARGON2D[16] =
-    {0xEF, 0x63, 0x6D, 0xDF, 0x8C, 0x29, 0x44, 0x4B, 0x91, 0xF7, 0xA9, 0xA4, 0x03, 0xE3, 0x0A, 0x0C};
-// Argon2id UUID: 9E298B1956DB4773B23DFC3EC6F0A1E6
-static const uint8_t KDBX_KDF_UUID_ARGON2ID[16] =
-    {0x9E, 0x29, 0x8B, 0x19, 0x56, 0xDB, 0x47, 0x73, 0xB2, 0x3D, 0xFC, 0x3E, 0xC6, 0xF0, 0xA1, 0xE6};
-
+/* The dictionary walk is shared with the pre-password header check. */
 static bool
     kdbx_parser_parse_kdf_parameters(const KDBXParser* parser, KDBXParserKdfParameters* params) {
-    const uint8_t* p = NULL;
-    const uint8_t* end = NULL;
-    uint16_t version = 0U;
-    uint8_t kdf_uuid[16] = {0};
+    KDBXKdfParameters parsed;
 
     furi_assert(parser);
     furi_assert(params);
 
     memset(params, 0, sizeof(*params));
-
-    if(!parser->header.kdf_parameters || parser->header.kdf_parameters_size < 2U) {
-        kdbx_parser_set_error((KDBXParser*)parser, "Missing KDF parameters.");
+    const KDBXKdfParseResult result = kdbx_kdf_parameters_parse(
+        parser->header.kdf_parameters, parser->header.kdf_parameters_size, &parsed);
+    if(result == KDBXKdfParseUnsupportedVersion) {
+        kdbx_parser_set_error((KDBXParser*)parser, kdbx_kdf_parse_message(result), parsed.version);
+        return false;
+    }
+    if(result != KDBXKdfParseOk) {
+        kdbx_parser_set_error((KDBXParser*)parser, "%s", kdbx_kdf_parse_message(result));
         return false;
     }
 
-    p = parser->header.kdf_parameters;
-    end = p + parser->header.kdf_parameters_size;
-    if(!kdbx_parser_has_bytes(p, end, 2U)) {
-        kdbx_parser_set_error((KDBXParser*)parser, "The KDF parameter block is truncated.");
-        return false;
-    }
-
-    version = (uint16_t)((p[1] << 8) | p[0]);
-    p += 2;
-    if(version != 0x0100U) {
-        kdbx_parser_set_error(
-            (KDBXParser*)parser,
-            "This database uses an unsupported KDF dictionary version (%04X).",
-            version);
-        return false;
-    }
-
-    while(p < end && *p != 0x00U) {
-        uint8_t value_type = 0U;
-        uint32_t name_size = 0U;
-        uint32_t value_size = 0U;
-        const char* name = NULL;
-        const uint8_t* value = NULL;
-        uint64_t parsed_uint = 0U;
-
-        if(!kdbx_parser_has_bytes(p, end, 1U + 4U)) {
-            kdbx_parser_set_error((KDBXParser*)parser, "A KDF parameter header is truncated.");
-            return false;
-        }
-
-        value_type = *p++;
-        name_size = read_uint32_le(p);
-        p += 4;
-        if(!kdbx_parser_has_bytes(p, end, name_size + 4U)) {
-            kdbx_parser_set_error((KDBXParser*)parser, "A KDF parameter name is truncated.");
-            return false;
-        }
-
-        name = (const char*)p;
-        p += name_size;
-        value_size = read_uint32_le(p);
-        p += 4;
-        if(!kdbx_parser_has_bytes(p, end, value_size)) {
-            kdbx_parser_set_error((KDBXParser*)parser, "A KDF parameter value is truncated.");
-            return false;
-        }
-
-        value = p;
-        p += value_size;
-
-        if(kdbx_parser_variant_name_equals(name, name_size, "$UUID")) {
-            if(value_type != 0x42U || value_size != sizeof(kdf_uuid)) {
-                kdbx_parser_set_error((KDBXParser*)parser, "The KDF UUID parameter is invalid.");
-                return false;
-            }
-            memcpy(kdf_uuid, value, sizeof(kdf_uuid));
-            continue;
-        }
-
-        if(kdbx_parser_variant_name_equals(name, name_size, "S")) {
-            if(value_type != 0x42U || value_size == 0U) {
-                kdbx_parser_set_error((KDBXParser*)parser, "The KDF salt parameter is invalid.");
-                return false;
-            }
-            params->salt = value;
-            params->salt_size = value_size;
-            continue;
-        }
-
-        if(kdbx_parser_variant_name_equals(name, name_size, "R")) {
-            if(!kdbx_parser_variant_read_uint(value_type, value, value_size, &parsed_uint)) {
-                kdbx_parser_set_error(
-                    (KDBXParser*)parser, "The AES-KDF rounds parameter is invalid.");
-                return false;
-            }
-            params->rounds = parsed_uint;
-            continue;
-        }
-
-        (void)value_type;
-        (void)value;
-        (void)value_size;
-        (void)parsed_uint;
-    }
-
-    if(memcmp(kdf_uuid, KDBX_KDF_UUID_AES, sizeof(kdf_uuid)) == 0) {
-        params->type = KDBXParserKdfTypeAes;
-    } else if(memcmp(kdf_uuid, KDBX_KDF_UUID_ARGON2D, sizeof(kdf_uuid)) == 0) {
-        params->type = KDBXParserKdfTypeArgon2Unsupported;
-    } else if(memcmp(kdf_uuid, KDBX_KDF_UUID_ARGON2ID, sizeof(kdf_uuid)) == 0) {
-        params->type = KDBXParserKdfTypeArgon2Unsupported;
-    } else {
-        kdbx_parser_set_error((KDBXParser*)parser, "This database uses an unsupported KDF.");
-        return false;
-    }
-
-    if(params->type == KDBXParserKdfTypeArgon2Unsupported) {
-        kdbx_parser_set_error((KDBXParser*)parser, KDBX_ARGON2_UNSUPPORTED_MESSAGE);
-        return false;
-    }
-
-    if(params->salt == NULL) {
-        kdbx_parser_set_error((KDBXParser*)parser, "The KDF salt parameter is missing.");
-        return false;
-    }
-
-    if(params->salt_size != 32U || params->rounds == 0U) {
-        kdbx_parser_set_error(
-            (KDBXParser*)parser, "The AES-KDF parameters are incomplete or invalid.");
-        return false;
-    }
-
+    params->type = KDBXParserKdfTypeAes;
+    params->salt = parsed.salt;
+    params->salt_size = parsed.salt_size;
+    params->rounds = parsed.rounds;
     return true;
 }
 
@@ -1561,8 +1395,14 @@ static bool kdbx_parser_derive_transformed_key_aes(
     furi_assert(params);
     furi_assert(transformed_key);
 
-    sha256_Raw((const uint8_t*)password, strlen(password), password_hash);
-    sha256_Raw(password_hash, sizeof(password_hash), composite_key);
+    if(!kdbx_hash_sha256((const uint8_t*)password, strlen(password), password_hash) ||
+       !kdbx_hash_sha256(password_hash, sizeof(password_hash), composite_key)) {
+        memzero(password_hash, sizeof(password_hash));
+        memzero(composite_key, sizeof(composite_key));
+        memzero(transformed_key, 32U);
+        kdbx_parser_set_error((KDBXParser*)parser, "Hash provider is unavailable.");
+        return false;
+    }
 
     aes_ctx = malloc(sizeof(*aes_ctx));
     if(aes_ctx == NULL) {
@@ -1574,8 +1414,11 @@ static bool kdbx_parser_derive_transformed_key_aes(
 
     aes_encrypt_key256(params->salt, aes_ctx);
 
-    if(parser->kdf_progress_callback != NULL) {
-        parser->kdf_progress_callback(0U, params->rounds, parser->kdf_progress_context);
+    bool ok = false;
+    bool hash_failed = false;
+    if(parser->kdf_progress_callback != NULL &&
+       !parser->kdf_progress_callback(0U, params->rounds, parser->kdf_progress_context)) {
+        goto cleanup;
     }
 
     uint64_t progress_step = params->rounds / 48U;
@@ -1583,23 +1426,38 @@ static bool kdbx_parser_derive_transformed_key_aes(
         progress_step = 1U;
     }
 
+    if(progress_step > 1024U) progress_step = 1024U;
     uint64_t next_progress = progress_step;
     for(uint64_t i = 0; i < params->rounds; ++i) {
         aes_encrypt(composite_key, composite_key, aes_ctx);
         aes_encrypt(composite_key + 16, composite_key + 16, aes_ctx);
         if(parser->kdf_progress_callback != NULL &&
            ((i + 1U) >= next_progress || (i + 1U) == params->rounds)) {
-            parser->kdf_progress_callback(i + 1U, params->rounds, parser->kdf_progress_context);
+            if(!parser->kdf_progress_callback(
+                   i + 1U, params->rounds, parser->kdf_progress_context)) {
+                goto cleanup;
+            }
             next_progress += progress_step;
         }
     }
 
-    sha256_Raw(composite_key, sizeof(composite_key), transformed_key);
+    if(!kdbx_hash_sha256(composite_key, sizeof(composite_key), transformed_key)) {
+        hash_failed = true;
+        goto cleanup;
+    }
+    ok = true;
+cleanup:
     memzero(password_hash, sizeof(password_hash));
     memzero(composite_key, sizeof(composite_key));
     memzero(aes_ctx, sizeof(*aes_ctx));
     free(aes_ctx);
-    return true;
+    if(!ok) {
+        memzero(transformed_key, 32U);
+        kdbx_parser_set_error(
+            (KDBXParser*)parser,
+            hash_failed ? "Hash provider is unavailable." : "Unlock canceled.");
+    }
+    return ok;
 }
 
 static bool kdbx_parser_derive_transformed_key(
@@ -1627,11 +1485,13 @@ static bool kdbx_parser_derive_transformed_key(
     case KDBXParserKdfTypeAes:
         return kdbx_parser_derive_transformed_key_aes(parser, password, &params, transformed_key);
     case KDBXParserKdfTypeArgon2Unsupported:
-        kdbx_parser_set_error((KDBXParser*)parser, KDBX_ARGON2_UNSUPPORTED_MESSAGE);
+        kdbx_parser_set_error(
+            (KDBXParser*)parser, "%s", kdbx_kdf_parse_message(KDBXKdfParseArgon2));
         return false;
     case KDBXParserKdfTypeInvalid:
     default:
-        kdbx_parser_set_error((KDBXParser*)parser, "This database uses an unsupported KDF.");
+        kdbx_parser_set_error(
+            (KDBXParser*)parser, "%s", kdbx_kdf_parse_message(KDBXKdfParseUnknownKdf));
         return false;
     }
 }
@@ -1654,12 +1514,14 @@ bool kdbx_parser_get_aes_kdf_rounds(const KDBXParser* parser, uint64_t* out_roun
     }
 
     if(params.type == KDBXParserKdfTypeArgon2Unsupported) {
-        kdbx_parser_set_error((KDBXParser*)parser, KDBX_ARGON2_UNSUPPORTED_MESSAGE);
+        kdbx_parser_set_error(
+            (KDBXParser*)parser, "%s", kdbx_kdf_parse_message(KDBXKdfParseArgon2));
         return false;
     }
 
     if(params.type != KDBXParserKdfTypeAes || params.rounds == 0U) {
-        kdbx_parser_set_error((KDBXParser*)parser, "This database uses an unsupported KDF.");
+        kdbx_parser_set_error(
+            (KDBXParser*)parser, "%s", kdbx_kdf_parse_message(KDBXKdfParseUnknownKdf));
         return false;
     }
 
@@ -1695,17 +1557,64 @@ bool kdbx_parser_get_aes_kdf_salt(
     }
 
     if(params.type == KDBXParserKdfTypeArgon2Unsupported) {
-        kdbx_parser_set_error((KDBXParser*)parser, KDBX_ARGON2_UNSUPPORTED_MESSAGE);
+        kdbx_parser_set_error(
+            (KDBXParser*)parser, "%s", kdbx_kdf_parse_message(KDBXKdfParseArgon2));
         return false;
     }
 
     if(params.type != KDBXParserKdfTypeAes || params.salt == NULL || params.salt_size != 32U) {
-        kdbx_parser_set_error((KDBXParser*)parser, "This database uses an unsupported KDF.");
+        kdbx_parser_set_error(
+            (KDBXParser*)parser, "%s", kdbx_kdf_parse_message(KDBXKdfParseUnknownKdf));
         return false;
     }
 
     memcpy(out_salt, params.salt, params.salt_size);
     *out_size = params.salt_size;
+    return true;
+}
+
+bool kdbx_parser_derive_key_from_transformed(
+    const KDBXParser* parser,
+    const uint8_t* transformed_key,
+    size_t transformed_key_size,
+    uint8_t* cipher_key,
+    size_t cipher_key_size,
+    uint8_t* hmac_key,
+    size_t hmac_key_size) {
+    furi_assert(parser);
+    furi_assert(transformed_key);
+    furi_assert(cipher_key);
+    furi_assert(hmac_key);
+
+    if(transformed_key_size != 32U || cipher_key_size != 32U || hmac_key_size != 64U) {
+        FURI_LOG_E("KDBXParser", "Invalid requested cipher or HMAC key size");
+        kdbx_parser_set_error(
+            (KDBXParser*)parser, "FlipPass received invalid derived key buffer sizes.");
+        return false;
+    }
+
+    uint8_t key_material[65];
+
+    if(!parser->header_parsed) {
+        kdbx_parser_set_error(
+            (KDBXParser*)parser, "The database header is not ready for key derivation.");
+        return false;
+    }
+
+    memcpy(key_material, parser->header.master_seed, 32);
+    memcpy(key_material + 32, transformed_key, 32);
+    key_material[64] = 1;
+    if(!kdbx_hash_sha256(key_material, 64, cipher_key) ||
+       !kdbx_hash_sha512(key_material, sizeof(key_material), hmac_key)) {
+        memzero(key_material, sizeof(key_material));
+        memzero(cipher_key, cipher_key_size);
+        memzero(hmac_key, hmac_key_size);
+        kdbx_parser_set_error((KDBXParser*)parser, "Hash provider is unavailable.");
+        return false;
+    }
+    kdbx_parser_release_kdf_parameters((KDBXParser*)parser);
+
+    memzero(key_material, sizeof(key_material));
     return true;
 }
 
@@ -1732,28 +1641,26 @@ bool kdbx_parser_derive_key_with_transformed(
     }
 
     uint8_t transformed_key[32];
-    uint8_t key_material[65];
+    bool ok = false;
 
     if(!kdbx_parser_derive_transformed_key(parser, password, transformed_key)) {
         memzero(transformed_key, sizeof(transformed_key));
         return false;
     }
 
-    memcpy(key_material, parser->header.master_seed, 32);
-    memcpy(key_material + 32, transformed_key, 32);
-    sha256_Raw(key_material, 64, cipher_key);
-
-    if(transformed_key_out != NULL) {
+    ok = kdbx_parser_derive_key_from_transformed(
+        parser,
+        transformed_key,
+        sizeof(transformed_key),
+        cipher_key,
+        cipher_key_size,
+        hmac_key,
+        hmac_key_size);
+    if(ok && transformed_key_out != NULL) {
         memcpy(transformed_key_out, transformed_key, 32U);
     }
-
-    key_material[64] = 1;
-    sha512_Raw(key_material, sizeof(key_material), hmac_key);
-    kdbx_parser_release_kdf_parameters((KDBXParser*)parser);
-
-    memzero(key_material, sizeof(key_material));
     memzero(transformed_key, sizeof(transformed_key));
-    return true;
+    return ok;
 }
 
 bool kdbx_parser_derive_key(

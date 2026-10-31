@@ -1,4 +1,5 @@
 #include "flippass_open_acquire_plugin.h"
+#include "../kdbx/kdbx_hash.h"
 
 #include "../kdbx/kdbx_parser.h"
 #include "../kdbx/memzero.h"
@@ -33,15 +34,23 @@ static void fp_open_acquire_log(FlipPassOpenAcquireContext* ctx, const char* mes
     }
 }
 
-static void
+static bool
     fp_open_acquire_kdf_progress(uint64_t current_round, uint64_t total_rounds, void* context) {
     FlipPassOpenAcquireContext* ctx = context;
+    /* The AES loop is compute bound at normal priority and otherwise starves the
+     * timer daemon, the thread scrubber and the idle task for the whole KDF. Sleeping
+     * one tick per call lets firmware long-press timers fire and finished CLI/RPC
+     * threads be reaped, for about 1% of the KDF time. */
+    furi_delay_tick(1U);
+    if(ctx != NULL && ctx->host_api->should_cancel != NULL &&
+       ctx->host_api->should_cancel(ctx->host_api->context))
+        return false;
     char detail[64];
     uint8_t percent = 10U;
     uint32_t round_percent = 0U;
 
     if(ctx == NULL || total_rounds == 0U) {
-        return;
+        return true;
     }
 
     if(current_round > total_rounds) {
@@ -53,7 +62,7 @@ static void
         percent = 35U;
     }
     if(percent <= ctx->progress_percent && current_round != total_rounds) {
-        return;
+        return true;
     }
 
     round_percent = (uint32_t)((current_round * 100U) / total_rounds);
@@ -63,6 +72,7 @@ static void
 
     snprintf(detail, sizeof(detail), "Rounds %lu%%", (unsigned long)round_percent);
     fp_open_acquire_progress(ctx, "Key Derivation", detail, percent);
+    return true;
 }
 
 static bool fp_open_acquire_run(
@@ -149,33 +159,70 @@ static bool fp_open_acquire_run(
     }
 
     fp_open_acquire_log(&ctx, "HEADER_OK");
-    fp_open_acquire_progress(&ctx, "Key Derivation", "", 10U);
-    kdbx_parser_set_kdf_progress_callback(ctx.parser, fp_open_acquire_kdf_progress, &ctx);
-    if(!kdbx_parser_derive_key_with_transformed(
-           ctx.parser,
+    if(host_api->read_cached_transformed_key != NULL &&
+       host_api->read_cached_transformed_key(
+           host_api->context,
            request->password,
-           out_profile->cipher_key,
-           sizeof(out_profile->cipher_key),
-           out_profile->hmac_key,
-           sizeof(out_profile->hmac_key),
+           request->file_path,
+           out_profile->kdf_salt,
+           out_profile->kdf_salt_size,
+           out_profile->kdf_rounds,
            out_profile->transformed_key,
            sizeof(out_profile->transformed_key))) {
-        const char* kdf_error = kdbx_parser_get_last_error(ctx.parser);
-        furi_string_set_str(
-            error,
-            (kdf_error != NULL && kdf_error[0] != '\0') ?
-                kdf_error :
-                "This database uses an unsupported or invalid KDF.");
-        fp_open_acquire_log(&ctx, "KEY_DERIVE_FAIL");
-        goto cleanup;
+        fp_open_acquire_progress(&ctx, "Key Derivation", "Using cache", 35U);
+        if(!kdbx_parser_derive_key_from_transformed(
+               ctx.parser,
+               out_profile->transformed_key,
+               sizeof(out_profile->transformed_key),
+               out_profile->cipher_key,
+               sizeof(out_profile->cipher_key),
+               out_profile->hmac_key,
+               sizeof(out_profile->hmac_key))) {
+            const char* kdf_error = kdbx_parser_get_last_error(ctx.parser);
+            furi_string_set_str(
+                error,
+                (kdf_error != NULL && kdf_error[0] != '\0') ?
+                    kdf_error :
+                    "This database uses an unsupported or invalid KDF.");
+            fp_open_acquire_log(&ctx, "KEY_DERIVE_FAIL");
+            goto cleanup;
+        }
+        out_profile->transformed_key_ready = true;
+        fp_open_acquire_log(&ctx, "KEY_DERIVE_CACHE_OK");
+    } else {
+        fp_open_acquire_progress(&ctx, "Key Derivation", "", 10U);
+        kdbx_parser_set_kdf_progress_callback(ctx.parser, fp_open_acquire_kdf_progress, &ctx);
+        if(!kdbx_parser_derive_key_with_transformed(
+               ctx.parser,
+               request->password,
+               out_profile->cipher_key,
+               sizeof(out_profile->cipher_key),
+               out_profile->hmac_key,
+               sizeof(out_profile->hmac_key),
+               out_profile->transformed_key,
+               sizeof(out_profile->transformed_key))) {
+            const char* kdf_error = kdbx_parser_get_last_error(ctx.parser);
+            furi_string_set_str(
+                error,
+                (kdf_error != NULL && kdf_error[0] != '\0') ?
+                    kdf_error :
+                    "This database uses an unsupported or invalid KDF.");
+            fp_open_acquire_log(&ctx, "KEY_DERIVE_FAIL");
+            goto cleanup;
+        }
+        out_profile->transformed_key_ready = true;
+        kdbx_parser_set_kdf_progress_callback(ctx.parser, NULL, NULL);
     }
-    out_profile->transformed_key_ready = true;
 
-    kdbx_parser_set_kdf_progress_callback(ctx.parser, NULL, NULL);
     {
         uint8_t password_hash[32];
-        sha256_Raw((const uint8_t*)request->password, strlen(request->password), password_hash);
-        sha256_Raw(password_hash, sizeof(password_hash), out_profile->composite_key);
+        if(!kdbx_hash_sha256(
+               (const uint8_t*)request->password, strlen(request->password), password_hash) ||
+           !kdbx_hash_sha256(password_hash, sizeof(password_hash), out_profile->composite_key)) {
+            memzero(password_hash, sizeof(password_hash));
+            furi_string_set_str(error, "Hash provider is unavailable.");
+            goto cleanup;
+        }
         out_profile->composite_key_ready = true;
         memzero(password_hash, sizeof(password_hash));
     }

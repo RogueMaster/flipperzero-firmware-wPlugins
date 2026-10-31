@@ -16,7 +16,10 @@
 #define FLIPPASS_USB_PRESS_DELAY_MS         12U
 #define FLIPPASS_USB_RELEASE_DELAY_MS       18U
 #define FLIPPASS_USB_SWITCH_DELAY_MS        150U
-#define FLIPPASS_USB_SETTLE_DELAY_MS        300U
+#define FLIPPASS_USB_SETTLE_DELAY_MS        750U
+#define FLIPPASS_USB_READY_TIMEOUT_MS       5000U
+#define FLIPPASS_USB_NEUTRAL_DELAY_MS       100U
+#define FLIPPASS_USB_FIRST_REPORT_DELAY_MS  75U
 
 enum {
     FlipPassUsbPrepareFlagConnected = 1U << 0,
@@ -30,9 +33,49 @@ typedef struct {
 typedef struct {
     FuriHalUsbInterface* previous_interface;
     bool was_locked;
+    bool first_report_pending;
+    bool preparing;
+    FlipPassOutputConnectionCallback connection_callback;
+    void* connection_context;
 } FlipPassUsbPluginState;
 
 static FlipPassUsbPluginState flippass_output_usb_state = {0};
+
+static void flippass_output_usb_connection_changed(bool connected, void* context) {
+    UNUSED(context);
+    FURI_CRITICAL_ENTER();
+    if(flippass_output_usb_state.connection_callback != NULL) {
+        flippass_output_usb_state.connection_callback(
+            connected, flippass_output_usb_state.connection_context);
+    }
+    FURI_CRITICAL_EXIT();
+}
+
+static void
+    flippass_output_usb_watch_connection(FlipPassOutputConnectionCallback callback, void* context) {
+    FURI_CRITICAL_ENTER();
+    flippass_output_usb_state.connection_callback = callback;
+    flippass_output_usb_state.connection_context = callback != NULL ? context : NULL;
+    if(!flippass_output_usb_state.preparing) {
+        furi_hal_hid_set_state_callback(
+            callback != NULL ? flippass_output_usb_connection_changed : NULL, NULL);
+    }
+    FURI_CRITICAL_EXIT();
+}
+
+static void flippass_usb_prepare_end_callbacks(void) {
+    /* The USB service setter waits for a message; never call it with the
+     * scheduler/interrupts masked. HID's setter is synchronous and bounded. */
+    furi_hal_usb_set_state_callback(NULL, NULL);
+    FURI_CRITICAL_ENTER();
+    flippass_output_usb_state.preparing = false;
+    furi_hal_hid_set_state_callback(
+        flippass_output_usb_state.connection_callback != NULL ?
+            flippass_output_usb_connection_changed :
+            NULL,
+        NULL);
+    FURI_CRITICAL_EXIT();
+}
 
 static void flippass_output_usb_progress(
     const FlipPassOutputPluginHostApiV1* host_api,
@@ -107,6 +150,7 @@ static void flippass_usb_prepare_state_callback(bool state, void* context) {
     } else {
         prepare_state->flags &= (uint8_t)~FlipPassUsbPrepareFlagConnected;
     }
+    flippass_output_usb_connection_changed(state, NULL);
 }
 
 static uint8_t flippass_usb_prepare_progress_percent(
@@ -241,10 +285,46 @@ static bool flippass_usb_prepare_wait_connected(
            furi_hal_hid_is_connected();
 }
 
+static bool flippass_usb_prepare_keyboard_ready(
+    const FlipPassOutputPluginHostApiV1* host_api,
+    const FlipPassUsbPrepareState* prepare_state) {
+    /* HID "connected" follows bus wakeup, before enumeration finishes, and the
+     * firmware reports success for a report its IN endpoint rejected while the
+     * configuration ZLP was still pending. Wait for a quiet bus, then require
+     * two accepted neutral reports: the second can be queued only after the
+     * host polled the endpoint, so the first key or modifier is not dropped.
+     * A reset or re-enumeration queues a new ZLP and restarts the proof. */
+    flippass_output_usb_progress(host_api, "Connecting", "Synchronizing keyboard.", 38U);
+    uint8_t observed_activity_serial = prepare_state->activity_serial;
+    uint32_t quiet_ms = 0U;
+    uint8_t accepted_neutral = 0U;
+    for(uint32_t waited = 0U; accepted_neutral < 2U; waited += 25U) {
+        if(waited >= FLIPPASS_USB_READY_TIMEOUT_MS || !furi_hal_hid_is_connected() ||
+           !flippass_output_usb_delay_or_cancel(host_api, 25U)) {
+            return false;
+        }
+        if(observed_activity_serial != prepare_state->activity_serial) {
+            observed_activity_serial = prepare_state->activity_serial;
+            quiet_ms = 0U;
+            accepted_neutral = 0U;
+            continue;
+        }
+        quiet_ms += 25U;
+        if(quiet_ms >= FLIPPASS_USB_SETTLE_DELAY_MS &&
+           ((quiet_ms - FLIPPASS_USB_SETTLE_DELAY_MS) % FLIPPASS_USB_NEUTRAL_DELAY_MS) == 0U &&
+           furi_hal_hid_kb_release_all()) {
+            accepted_neutral++;
+        }
+    }
+    return flippass_output_usb_delay_or_cancel(host_api, FLIPPASS_USB_NEUTRAL_DELAY_MS) &&
+           furi_hal_hid_is_connected();
+}
+
 static bool flippass_output_usb_begin(const FlipPassOutputPluginHostApiV1* host_api) {
     const bool was_locked = furi_hal_usb_is_locked();
     const uint32_t attempt_timeout_ms =
         FLIPPASS_USB_ENUMERATION_TIMEOUT_MS + FLIPPASS_USB_ENUMERATION_GRACE_MS;
+    flippass_output_usb_state.first_report_pending = false;
 
     if(was_locked) {
         furi_hal_usb_unlock();
@@ -263,25 +343,25 @@ static bool flippass_output_usb_begin(const FlipPassOutputPluginHostApiV1* host_
             return false;
         }
 
+        flippass_output_usb_state.preparing = true;
         furi_hal_usb_set_state_callback(flippass_usb_prepare_usb_state_callback, &prepare_state);
         furi_hal_hid_set_state_callback(flippass_usb_prepare_state_callback, &prepare_state);
         if(!flippass_usb_prepare_attach_hid(host_api, attempt)) {
-            furi_hal_hid_set_state_callback(NULL, NULL);
-            furi_hal_usb_set_state_callback(NULL, NULL);
+            flippass_usb_prepare_end_callbacks();
             continue;
         }
 
         if(flippass_usb_prepare_wait_connected(
-               host_api, &prepare_state, attempt, attempt_timeout_ms, &waited_ms)) {
-            furi_hal_hid_set_state_callback(NULL, NULL);
-            furi_hal_usb_set_state_callback(NULL, NULL);
+               host_api, &prepare_state, attempt, attempt_timeout_ms, &waited_ms) &&
+           flippass_usb_prepare_keyboard_ready(host_api, &prepare_state)) {
+            flippass_usb_prepare_end_callbacks();
+            flippass_output_usb_state.first_report_pending = true;
             flippass_output_usb_progress(host_api, "Typing", "USB HID connected.", 40U);
-            return flippass_output_usb_delay_or_cancel(host_api, FLIPPASS_USB_SETTLE_DELAY_MS);
+            return true;
         }
 
         UNUSED(waited_ms);
-        furi_hal_hid_set_state_callback(NULL, NULL);
-        furi_hal_usb_set_state_callback(NULL, NULL);
+        flippass_usb_prepare_end_callbacks();
         furi_hal_hid_kb_release_all();
         furi_hal_usb_set_config(NULL, NULL);
         furi_delay_ms(FLIPPASS_USB_SWITCH_DELAY_MS);
@@ -292,8 +372,18 @@ static bool flippass_output_usb_begin(const FlipPassOutputPluginHostApiV1* host_
 
 static bool
     flippass_output_usb_press_key(const FlipPassOutputPluginHostApiV1* host_api, uint16_t hid_key) {
-    UNUSED(host_api);
-    return (hid_key != HID_KEYBOARD_NONE) && furi_hal_hid_kb_press(hid_key);
+    if(hid_key == HID_KEYBOARD_NONE || !furi_hal_hid_is_connected() ||
+       flippass_output_usb_should_cancel(host_api) || !furi_hal_hid_kb_press(hid_key)) {
+        return false;
+    }
+    if(flippass_output_usb_state.first_report_pending) {
+        flippass_output_usb_state.first_report_pending = false;
+        if(!flippass_output_usb_delay_or_cancel(host_api, FLIPPASS_USB_FIRST_REPORT_DELAY_MS)) {
+            furi_hal_hid_kb_release_all();
+            return false;
+        }
+    }
+    return true;
 }
 
 static bool flippass_output_usb_release_key(
@@ -311,6 +401,7 @@ static void flippass_output_usb_release_all(const FlipPassOutputPluginHostApiV1*
 static void flippass_output_usb_end(const FlipPassOutputPluginHostApiV1* host_api) {
     UNUSED(host_api);
 
+    flippass_output_usb_state.first_report_pending = false;
     furi_hal_hid_kb_release_all();
     furi_delay_ms(FLIPPASS_USB_RELEASE_DELAY_MS);
     if(flippass_output_usb_state.previous_interface != NULL) {
@@ -360,6 +451,7 @@ static void flippass_output_usb_get_name(char* buffer, size_t size) {
 }
 
 static void flippass_output_usb_cleanup(const FlipPassOutputPluginHostApiV1* host_api) {
+    flippass_output_usb_watch_connection(NULL, NULL);
     flippass_output_usb_end(host_api);
 }
 
@@ -377,6 +469,7 @@ static const FlipPassOutputPluginV1 flippass_output_usb_plugin = {
     .advertise = flippass_output_usb_advertise,
     .get_name = flippass_output_usb_get_name,
     .cleanup = flippass_output_usb_cleanup,
+    .watch_connection = flippass_output_usb_watch_connection,
 };
 
 static const FlipperAppPluginDescriptor flippass_output_usb_descriptor = {

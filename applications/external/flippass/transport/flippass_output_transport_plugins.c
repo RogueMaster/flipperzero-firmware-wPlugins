@@ -1,6 +1,7 @@
 #include "flippass_output_transport.h"
 
 #include "../plugins/flippass_output_plugin.h"
+#include "../plugins/flippass_launch_auto.h"
 
 #include <stdio.h>
 
@@ -76,7 +77,7 @@ static const FlipPassOutputPluginV1*
     return (instance->descriptor != NULL) ? instance->descriptor->entry_point : NULL;
 }
 
-static const FlipPassOutputPluginV1*
+const FlipPassOutputPluginV1*
     flippass_output_transport_plugin_ensure(App* app, FlipPassOutputTransport transport) {
     FuriString* error = furi_string_alloc();
     const FlipperAppPluginDescriptor* descriptor = flippass_module_ensure(

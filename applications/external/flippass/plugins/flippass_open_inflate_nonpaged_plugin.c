@@ -1,4 +1,6 @@
 #include "flippass_open_inflate_plugin.h"
+#include "flippass_open_inflate_reader.h"
+#include "../flippass_build_config.h"
 
 #include "../kdbx/miniz_tinfl.h"
 #include "../kdbx/memzero.h"
@@ -47,11 +49,15 @@ static void fp_open_progress(
     ctx->host_api->progress(ctx->host_api->context, stage, detail, percent);
 }
 
+#if FLIPPASS_ENABLE_LOGS || FLIPPASS_ENABLE_PROBE_LOGS
 static void fp_open_log(FlipPassOpenInflateContext* ctx, const char* message) {
     if(ctx != NULL && ctx->host_api != NULL && ctx->host_api->log != NULL && message != NULL) {
         ctx->host_api->log(ctx->host_api->context, message);
     }
 }
+#else
+#define fp_open_log(ctx, message) ((void)(ctx))
+#endif
 
 static void fp_open_memory_log(
     FlipPassOpenInflateContext* ctx,
@@ -157,6 +163,8 @@ static bool fp_open_stage_xml_output(const uint8_t* data, size_t data_size, void
 
     return true;
 }
+
+#include "flippass_open_inflate_stored.h"
 
 static bool fp_open_load_payload_to_heap(
     FlipPassOpenInflateContext* ctx,
@@ -391,11 +399,12 @@ static bool fp_open_inflate_nonpaged_run(
         &ctx,
         "open_inflate_nonpaged_entry",
         fp_open_nonpaged_theoretical_bytes(request != NULL ? &request->member_info : NULL));
-    if(request->member_info.member_size <
-           (request->member_info.body_offset + FLIPPASS_OPEN_GZIP_TRAILER_SIZE) ||
-       request->member_info.body_offset + request->member_info.compressed_size +
-               FLIPPASS_OPEN_GZIP_TRAILER_SIZE !=
-           request->member_info.member_size ||
+    if(request->member_info.body_offset > request->member_info.member_size ||
+       request->member_info.member_size - request->member_info.body_offset <
+           FLIPPASS_OPEN_GZIP_TRAILER_SIZE ||
+       request->member_info.compressed_size != request->member_info.member_size -
+                                                   request->member_info.body_offset -
+                                                   FLIPPASS_OPEN_GZIP_TRAILER_SIZE ||
        request->member_info.expected_output_size == 0U ||
        request->member_info.expected_output_size > FLIPPASS_OPEN_MAX_XML_STREAM_BYTES) {
         furi_string_set_str(error, "The staged GZip member metadata is invalid.");
@@ -403,6 +412,29 @@ static bool fp_open_inflate_nonpaged_run(
     }
 
     fp_open_log(&ctx, "OPEN_STAGE inflate_nonpaged");
+    /* Stored DEFLATE needs neither a resident compressed member nor a 32 KiB
+     * dictionary. Mixed block types rewind through the ordinary fallback. */
+    stage.expected_plain_size = request->member_info.expected_output_size;
+    if(!host_api->begin_staged_payload_stream(host_api->context, error)) return false;
+    if(!host_api->begin_staged_xml(host_api->context, request->preferred_backend, error)) {
+        host_api->end_staged_payload_stream(host_api->context);
+        return false;
+    }
+    bool stored_supported = false;
+    const bool stored_ok = fp_open_emit_stored_deflate(
+        host_api, &request->member_info, &stage, error, &stored_supported);
+    host_api->end_staged_payload_stream(host_api->context);
+    if(stored_ok) {
+        const bool finished =
+            host_api->finish_staged_xml(host_api->context, stage.plain_size, error);
+        if(!finished) host_api->clear_staged_xml(host_api->context);
+        return finished;
+    }
+    host_api->clear_staged_xml(host_api->context);
+    if(stored_supported) return false;
+    stage.plain_size = stage.last_progress_size = 0U;
+    furi_string_reset(error);
+
     if(request->member_info.expected_output_size > FLIPPASS_OPEN_GZIP_NONPAGED_PLAIN_LIMIT) {
         result->retry_with_paged = true;
         if(furi_string_empty(error)) {
@@ -459,6 +491,7 @@ static bool fp_open_inflate_nonpaged_run(
     }
 
     stage.expected_plain_size = request->member_info.expected_output_size;
+#if FLIPPASS_ENABLE_LOGS || FLIPPASS_ENABLE_PROBE_LOGS
     {
         char log_line[160];
         snprintf(
@@ -469,6 +502,7 @@ static bool fp_open_inflate_nonpaged_run(
             (unsigned long)memmgr_heap_get_max_free_block());
         fp_open_log(&ctx, log_line);
     }
+#endif
     fp_open_progress(&ctx, "Uncompressing", "", 58U);
     fp_open_memory_log(
         &ctx,
@@ -501,6 +535,7 @@ static bool fp_open_inflate_nonpaged_run(
         goto cleanup;
     }
 
+#if FLIPPASS_ENABLE_LOGS || FLIPPASS_ENABLE_PROBE_LOGS
     {
         char log_line[160];
         snprintf(
@@ -512,6 +547,7 @@ static bool fp_open_inflate_nonpaged_run(
             (unsigned long)memmgr_heap_get_max_free_block());
         fp_open_log(&ctx, log_line);
     }
+#endif
 
 cleanup:
     if(member_data != NULL) {

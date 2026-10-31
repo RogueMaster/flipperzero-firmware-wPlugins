@@ -20,6 +20,8 @@ def flippass_build_int(name, default):
     return int(value, 0)
 
 
+otp_sequential_window = flippass_build_flag("FLIPPASS_BUILD_OTP_SEQUENTIAL_WINDOW", 0)
+module_direct_load = flippass_build_flag("FLIPPASS_BUILD_MODULE_DIRECT_LOAD", 1)
 enable_logs = flippass_build_flag("FLIPPASS_BUILD_ENABLE_LOGS", 0)
 enable_system_trace_capture = flippass_build_flag(
     "FLIPPASS_BUILD_ENABLE_SYSTEM_TRACE_CAPTURE", 1
@@ -39,10 +41,18 @@ enable_deep_diagnostics = flippass_build_flag(
 enable_memory_diagnostics = flippass_build_flag(
     "FLIPPASS_BUILD_ENABLE_MEMORY_DIAGNOSTICS", 0
 )
+enable_probe_logs = flippass_build_flag("FLIPPASS_BUILD_ENABLE_PROBE_LOGS", 0)
+enable_probe_terminal_logs = flippass_build_flag(
+    "FLIPPASS_BUILD_ENABLE_PROBE_TERMINAL_LOGS", 0
+)
 enable_xml_preflight = flippass_build_flag("FLIPPASS_BUILD_ENABLE_XML_PREFLIGHT", 0)
 enable_gzip_paged_ram = flippass_build_flag("FLIPPASS_BUILD_ENABLE_GZIP_PAGED_RAM", 0)
 gzip_paged_fast_lookup_bits = flippass_build_int(
-    "FLIPPASS_BUILD_GZIP_PAGED_FAST_LOOKUP_BITS", 8
+    "FLIPPASS_BUILD_GZIP_PAGED_FAST_LOOKUP_BITS", 6
+)
+gzip_paged_page_size = flippass_build_int("FLIPPASS_BUILD_GZIP_PAGED_PAGE_SIZE", 256)
+open_model_low_heap_abort_bytes = flippass_build_int(
+    "FLIPPASS_BUILD_OPEN_MODEL_LOW_HEAP_ABORT_BYTES", 1280
 )
 enable_typing_actions = flippass_build_flag("FLIPPASS_BUILD_ENABLE_TYPING_ACTIONS", 1)
 enable_bluetooth_output = flippass_build_flag(
@@ -56,10 +66,26 @@ enable_debug_create_hook = flippass_build_flag(
     "FLIPPASS_BUILD_ENABLE_DEBUG_CREATE_HOOK", 0
 )
 enable_debug_save_hook = flippass_build_flag("FLIPPASS_BUILD_ENABLE_DEBUG_SAVE_HOOK", 0)
+save_writer_aes_nocomp_only = flippass_build_flag(
+    "FLIPPASS_BUILD_SAVE_WRITER_AES_NOCOMP_ONLY", 0
+)
+save_writer_host_payload = flippass_build_flag(
+    "FLIPPASS_BUILD_SAVE_WRITER_HOST_PAYLOAD", 0
+)
+if flippass_build_flag("FLIPPASS_BUILD_SAVE_WRITER_HOST_INNER", 0):
+    raise ValueError(
+        "FLIPPASS_BUILD_SAVE_WRITER_HOST_INNER is retired: save_serial uses the central crypto API. "
+        "Use FLIPPASS_BUILD_SAVE_WRITER_HOST_PAYLOAD only for the outer AES payload experiment."
+    )
+save_unload_idle_views = flippass_build_flag("FLIPPASS_BUILD_SAVE_UNLOAD_IDLE_VIEWS", 1)
+save_allow_low_kdf = flippass_build_flag("FLIPPASS_BUILD_SAVE_ALLOW_LOW_KDF", 0)
+save_verbose_probe = flippass_build_flag("FLIPPASS_BUILD_SAVE_VERBOSE_PROBE", 0)
 enable_app_rpc = flippass_build_flag("FLIPPASS_BUILD_ENABLE_APP_RPC", 0)
-stack_size_kib = flippass_build_int("FLIPPASS_BUILD_STACK_SIZE_KIB", 8)
+stack_size_kib = flippass_build_int("FLIPPASS_BUILD_STACK_SIZE_KIB", 6)
 
 common_cdefines = [
+    f"FLIPPASS_OTP_SEQUENTIAL_WINDOW={otp_sequential_window}",
+    f"FLIPPASS_MODULE_DIRECT_LOAD={module_direct_load}",
     "APP_FlipPass",
     f"FLIPPASS_ENABLE_LOGS={enable_logs}",
     f"FLIPPASS_ENABLE_SYSTEM_TRACE_CAPTURE={enable_system_trace_capture}",
@@ -68,6 +94,8 @@ common_cdefines = [
     f"FLIPPASS_ENABLE_VERBOSE_UNLOCK_LOG={enable_verbose_unlock_log}",
     f"FLIPPASS_ENABLE_DEEP_DIAGNOSTICS={enable_deep_diagnostics}",
     f"FLIPPASS_ENABLE_MEMORY_DIAGNOSTICS={enable_memory_diagnostics}",
+    f"FLIPPASS_ENABLE_PROBE_LOGS={enable_probe_logs}",
+    f"FLIPPASS_ENABLE_PROBE_TERMINAL_LOGS={enable_probe_terminal_logs}",
     f"FLIPPASS_ENABLE_XML_PREFLIGHT={enable_xml_preflight}",
     f"FLIPPASS_ENABLE_GZIP_PAGED_RAM={enable_gzip_paged_ram}",
     f"FLIPPASS_ENABLE_TYPING_ACTIONS={enable_typing_actions}",
@@ -76,7 +104,13 @@ common_cdefines = [
     f"FLIPPASS_ENABLE_DEBUG_UNLOCK_HOOK={enable_debug_unlock_hook}",
     f"FLIPPASS_ENABLE_DEBUG_CREATE_HOOK={enable_debug_create_hook}",
     f"FLIPPASS_ENABLE_DEBUG_SAVE_HOOK={enable_debug_save_hook}",
+    f"FLIPPASS_SAVE_WRITER_AES_NOCOMP_ONLY={save_writer_aes_nocomp_only}",
+    f"FLIPPASS_SAVE_WRITER_HOST_PAYLOAD={save_writer_host_payload}",
+    f"FLIPPASS_SAVE_UNLOAD_IDLE_VIEWS={save_unload_idle_views}",
+    f"FLIPPASS_SAVE_ALLOW_LOW_KDF={save_allow_low_kdf}",
+    f"FLIPPASS_SAVE_VERBOSE_PROBE={save_verbose_probe}",
     f"FLIPPASS_ENABLE_APP_RPC={enable_app_rpc}",
+    f"FLIPPASS_OPEN_MODEL_LOW_HEAP_ABORT_BYTES={open_model_low_heap_abort_bytes}",
 ]
 
 App(
@@ -84,24 +118,36 @@ App(
     name="FlipPass",
     apptype=FlipperAppType.EXTERNAL,
     entry_point="flippass_app",
-    cdefines=common_cdefines + ["KDBX_PROTECTED_ENABLE_SALSA20=0"],
+    cdefines=common_cdefines
+    + [
+        "KDBX_PROTECTED_ENABLE_KEY_DERIVE=0",
+        "KDBX_PROTECTED_ENABLE_SALSA20=0",
+        "KDBX_PROTECTED_ENABLE_DECODE=0",
+    ],
     fap_icon="icons/icon.png",
     fap_icon_assets="icons",
+    # Packed into .fapassets and unpacked to SD by the firmware loader before the
+    # app is mapped: KeePass icons are read on demand, never held in FAP RAM.
+    fap_file_assets="files",
     stack_size=stack_size_kib * 1024,
     sources=[
         "FlipPass.c",
+        "flippass_app_api.cpp",
+        "flippass_crypto.c",
+        "flippass_deferred_launch.c",
         "flippass_db_host.c",
         "flippass_modules.c",
-        "flippass_open.c",
+        "flippass_launch_proxy.c",
+        "flippass_open_proxy.c",
         "flippass_otp.c",
         "flippass_rpc.c",
-        "flippass_save.c",
+        "flippass_save_proxy.c",
         "scenes/flippass_scene.c",
         "scenes/flippass_db_browser_view.c",
         "scenes/flippass_progress_view.c",
         "scenes/flippass_scene_db_entries.c",
-        "scenes/flippass_scene_editor.c",
-        "scenes/flippass_scene_file_browser.c",
+        "scenes/flippass_scene_editor_host.c",
+        "scenes/flippass_scene_file_browser_host.c",
         "scenes/flippass_scene_other_field_actions.c",
         "scenes/flippass_scene_other_fields.c",
         "scenes/flippass_scene_password_entry.c",
@@ -109,16 +155,11 @@ App(
         "scenes/flippass_scene_status.c",
         "scenes/flippass_scene_text_view.c",
         "scenes/flippass_scene_vault_fallback.c",
-        "kdbx/hmac.c",
         "kdbx/kdbx_arena.c",
         "kdbx/kdbx_data.c",
-        "kdbx/kdbx_open_profile.c",
-        "kdbx/kdbx_protected.c",
         "kdbx/kdbx_vault.c",
         "kdbx/memzero.c",
-        "kdbx/sha2.c",
         "mntminput/text_input.c",
-        "mntminput/validators.c",
     ]
     + (
         ["scenes/flippass_scene_keyboard_layout.c"]
@@ -138,7 +179,7 @@ App(
     fap_category="USB",
     fap_author="Arckanos",
     fap_weburl="https://github.com/Arckanos/FlipPass",
-    fap_version="2.0",
+    fap_version="3.0",
     fap_description="KeePass KDBX 4 vault browser with USB and Bluetooth HID typing.",
 )
 
@@ -150,17 +191,28 @@ if enable_typing_actions:
         requires=["flippass"],
         fal_embedded=True,
         sources=["plugins/flippass_output_usb_plugin.c"],
+        fap_category="USB",
+        fap_author="Arckanos",
+        fap_weburl="https://github.com/Arckanos/FlipPass",
+        fap_version=(0, 1),
+        fap_description="FlipPass embedded output usb module.",
     )
 
-    App(
-        appid="flippass_output_ble",
-        apptype=FlipperAppType.PLUGIN,
-        entry_point="flippass_output_ble_plugin_ep",
-        requires=["flippass"],
-        fal_embedded=True,
-        fap_libs=(["ble_profile"] if enable_bluetooth_output else []),
-        sources=["plugins/flippass_output_ble_plugin.c"],
-    )
+    if enable_bluetooth_output:
+        App(
+            appid="flippass_output_ble",
+            apptype=FlipperAppType.PLUGIN,
+            entry_point="flippass_output_ble_plugin_ep",
+            requires=["flippass"],
+            fal_embedded=True,
+            fap_libs=["ble_profile"],
+            sources=["plugins/flippass_output_ble_plugin.c"],
+            fap_category="USB",
+            fap_author="Arckanos",
+            fap_weburl="https://github.com/Arckanos/FlipPass",
+            fap_version=(0, 1),
+            fap_description="FlipPass embedded output ble module.",
+        )
 
     App(
         appid="flippass_output_action",
@@ -168,8 +220,79 @@ if enable_typing_actions:
         entry_point="flippass_output_action_plugin_ep",
         requires=["flippass"],
         fal_embedded=True,
-        sources=["plugins/flippass_output_action_plugin.c"],
+        sources=["plugins/flippass_output_action_plugin.c", "plugins/flippass_cmd.c"],
+        fap_category="USB",
+        fap_author="Arckanos",
+        fap_weburl="https://github.com/Arckanos/FlipPass",
+        fap_version=(0, 1),
+        fap_description="FlipPass embedded output action module.",
     )
+
+    App(
+        appid="flippass_entry_action",
+        apptype=FlipperAppType.PLUGIN,
+        entry_point="flippass_entry_action_plugin_ep",
+        requires=["flippass"],
+        fal_embedded=True,
+        sources=["plugins/flippass_entry_action_plugin.c"],
+        fap_category="USB",
+        fap_author="Arckanos",
+        fap_weburl="https://github.com/Arckanos/FlipPass",
+        fap_version=(0, 1),
+        fap_description="FlipPass embedded entry action module.",
+    )
+
+App(
+    appid="flippass_launch",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="flippass_launch_plugin_ep",
+    requires=["flippass"],
+    fal_embedded=True,
+    cdefines=common_cdefines,
+    sources=[
+        "plugins/flippass_launch_plugin.c",
+        "flippass_launch_args.c",
+        "flippass_launch_layout.c",
+    ]
+    + (["plugins/flippass_launch_auto.c"] if enable_typing_actions else []),
+    fap_category="USB",
+    fap_author="Arckanos",
+    fap_weburl="https://github.com/Arckanos/FlipPass",
+    fap_version=(0, 1),
+    fap_description="FlipPass embedded launch module.",
+)
+
+App(
+    appid="flippass_file_browser",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="flippass_file_browser_plugin_ep",
+    requires=["flippass"],
+    fal_embedded=True,
+    cdefines=common_cdefines,
+    sources=[
+        "plugins/flippass_file_browser_plugin.c",
+        "scenes/flippass_scene_file_browser.c",
+    ],
+    fap_category="USB",
+    fap_author="Arckanos",
+    fap_weburl="https://github.com/Arckanos/FlipPass",
+    fap_version=(0, 1),
+    fap_description="FlipPass embedded file browser module.",
+)
+
+App(
+    appid="flippass_text_input",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="flippass_text_input_plugin_ep",
+    requires=["flippass"],
+    fal_embedded=True,
+    sources=["plugins/flippass_text_input_plugin.c"],
+    fap_category="USB",
+    fap_author="Arckanos",
+    fap_weburl="https://github.com/Arckanos/FlipPass",
+    fap_version=(0, 1),
+    fap_description="FlipPass embedded text input module.",
+)
 
 if enable_app_rpc:
     App(
@@ -179,7 +302,82 @@ if enable_app_rpc:
         requires=["flippass"],
         fal_embedded=True,
         sources=["plugins/flippass_rpc_commands_plugin.c"],
+        fap_category="USB",
+        fap_author="Arckanos",
+        fap_weburl="https://github.com/Arckanos/FlipPass",
+        fap_version=(0, 1),
+        fap_description="FlipPass embedded rpc commands module.",
     )
+
+App(
+    appid="flippass_crypto",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="flippass_crypto_plugin_ep",
+    requires=["flippass"],
+    fal_embedded=True,
+    sources=[
+        "plugins/flippass_crypto_plugin.c",
+        "kdbx/hmac.c",
+        "kdbx/kdbx_protected.c",
+        "kdbx/memzero.c",
+        "kdbx/sha2.c",
+    ],
+    fap_category="USB",
+    fap_author="Arckanos",
+    fap_weburl="https://github.com/Arckanos/FlipPass",
+    fap_version=(0, 1),
+    fap_description="FlipPass embedded crypto module.",
+)
+
+# The unlock pipeline only occupies RAM while a database is being opened.
+App(
+    appid="flippass_open_host",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="flippass_open_host_plugin_ep",
+    requires=["flippass"],
+    fal_embedded=True,
+    cdefines=common_cdefines,
+    sources=[
+        "plugins/flippass_open_host_plugin.c",
+        "plugins/flippass_crypto_plugin.c",
+        "kdbx/hmac.c",
+        "kdbx/kdbx_protected.c",
+        "kdbx/memzero.c",
+        "kdbx/sha2.c",
+        "flippass_open.c",
+        "kdbx/kdbx_open_profile.c",
+        "kdbx/xml_parser.c",
+    ],
+    fap_category="USB",
+    fap_author="Arckanos",
+    fap_weburl="https://github.com/Arckanos/FlipPass",
+    fap_version=(0, 1),
+    fap_description="FlipPass embedded open host module.",
+)
+
+# The editor scenes only occupy RAM while an editor scene is on the stack.
+App(
+    appid="flippass_editor",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="flippass_editor_plugin_ep",
+    requires=["flippass"],
+    fal_embedded=True,
+    cdefines=common_cdefines
+    + [
+        "KDBX_PROTECTED_ENABLE_KEY_DERIVE=0",
+        "KDBX_PROTECTED_ENABLE_SALSA20=0",
+        "KDBX_PROTECTED_ENABLE_DECODE=0",
+    ],
+    sources=[
+        "plugins/flippass_editor_plugin.c",
+        "scenes/flippass_scene_editor.c",
+    ],
+    fap_category="USB",
+    fap_author="Arckanos",
+    fap_weburl="https://github.com/Arckanos/FlipPass",
+    fap_version=(0, 1),
+    fap_description="FlipPass embedded editor module.",
+)
 
 App(
     appid="flippass_open_acquire",
@@ -187,17 +385,22 @@ App(
     entry_point="flippass_open_acquire_plugin_ep",
     requires=["flippass"],
     fal_embedded=True,
-    cdefines=common_cdefines,
+    cdefines=common_cdefines + ["KDBX_PARSER_USE_HOST_HASH=1"],
     sources=[
         "plugins/flippass_open_acquire_plugin.c",
         "kdbx/aescrypt.c",
         "kdbx/aeskey.c",
         "kdbx/aestab.c",
+        "kdbx/kdbx_kdf_params.c",
         "kdbx/kdbx_open_profile.c",
         "kdbx/kdbx_parser.c",
         "kdbx/memzero.c",
-        "kdbx/sha2.c",
     ],
+    fap_category="USB",
+    fap_author="Arckanos",
+    fap_weburl="https://github.com/Arckanos/FlipPass",
+    fap_version=(0, 1),
+    fap_description="FlipPass embedded open acquire module.",
 )
 
 App(
@@ -210,17 +413,18 @@ App(
     + ["KDBX_PROTECTED_ENABLE_KEY_DERIVE=0", "KDBX_PROTECTED_ENABLE_SALSA20=0"],
     sources=[
         "plugins/flippass_open_stream_plugin.c",
-        "kdbx/kdbx_open_profile.c",
         "kdbx/kdbx_open_outer_payload.c",
-        "kdbx/kdbx_protected.c",
-        "kdbx/sha2.c",
-        "kdbx/hmac.c",
         "kdbx/aescrypt.c",
         "kdbx/aeskey.c",
         "kdbx/aestab.c",
         "kdbx/aes_modes.c",
         "kdbx/memzero.c",
     ],
+    fap_category="USB",
+    fap_author="Arckanos",
+    fap_weburl="https://github.com/Arckanos/FlipPass",
+    fap_version=(0, 1),
+    fap_description="FlipPass embedded open stream module.",
 )
 
 App(
@@ -235,6 +439,11 @@ App(
         "kdbx/miniz_tinfl.c",
         "kdbx/memzero.c",
     ],
+    fap_category="USB",
+    fap_author="Arckanos",
+    fap_weburl="https://github.com/Arckanos/FlipPass",
+    fap_version=(0, 1),
+    fap_description="FlipPass embedded open inflate nonpaged module.",
 )
 
 App(
@@ -251,12 +460,18 @@ App(
         "TINFL_PAGED_ENABLE_FILE=1",
         "TINFL_FILE_PAGED_ENABLE_LOCAL_CRYPTO=0",
         f"TINFL_FAST_LOOKUP_BITS={gzip_paged_fast_lookup_bits}",
+        f"TINFL_PAGED_LZ_DICT_PAGE_SIZE={gzip_paged_page_size}",
     ],
     sources=[
         "plugins/flippass_open_inflate_paged_plugin.c",
         "kdbx/miniz_tinfl_paged.c",
         "kdbx/memzero.c",
     ],
+    fap_category="USB",
+    fap_author="Arckanos",
+    fap_weburl="https://github.com/Arckanos/FlipPass",
+    fap_version=(0, 1),
+    fap_description="FlipPass embedded open inflate paged module.",
 )
 
 App(
@@ -265,13 +480,38 @@ App(
     entry_point="flippass_open_model_plugin_ep",
     requires=["flippass"],
     fal_embedded=True,
-    cdefines=common_cdefines + ["KDBX_PROTECTED_ENABLE_KEY_DERIVE=0"],
+    cdefines=common_cdefines
+    + ["KDBX_PROTECTED_ENABLE_KEY_DERIVE=0", "KDBX_PROTECTED_ENABLE_SALSA20=0"],
     sources=[
         "plugins/flippass_open_model_plugin.c",
         "kdbx/kdbx_protected.c",
         "kdbx/memzero.c",
-        "kdbx/xml_parser.c",
     ],
+    fap_category="USB",
+    fap_author="Arckanos",
+    fap_weburl="https://github.com/Arckanos/FlipPass",
+    fap_version=(0, 1),
+    fap_description="FlipPass embedded open model module.",
+)
+
+App(
+    appid="flippass_save_host",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="flippass_save_host_plugin_ep",
+    requires=["flippass"],
+    fal_embedded=True,
+    cdefines=common_cdefines,
+    sources=["plugins/flippass_save_host_plugin.c", "flippass_save.c"]
+    + (
+        ["kdbx/aescrypt.c", "kdbx/aeskey.c", "kdbx/aestab.c", "kdbx/aes_modes.c"]
+        if save_writer_host_payload
+        else []
+    ),
+    fap_category="USB",
+    fap_author="Arckanos",
+    fap_weburl="https://github.com/Arckanos/FlipPass",
+    fap_version=(0, 1),
+    fap_description="FlipPass embedded save host module.",
 )
 
 App(
@@ -290,6 +530,34 @@ App(
         "kdbx/aestab.c",
         "kdbx/memzero.c",
     ],
+    fap_category="USB",
+    fap_author="Arckanos",
+    fap_weburl="https://github.com/Arckanos/FlipPass",
+    fap_version=(0, 1),
+    fap_description="FlipPass embedded save header module.",
+)
+
+App(
+    appid="flippass_save_serial",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="flippass_save_serial_plugin_ep",
+    requires=["flippass"],
+    fal_embedded=True,
+    cdefines=common_cdefines
+    + [
+        "KDBX_PROTECTED_ENABLE_KEY_DERIVE=0",
+        "KDBX_PROTECTED_ENABLE_SALSA20=0",
+        "KDBX_PROTECTED_ENABLE_DECODE=0",
+    ],
+    sources=[
+        "plugins/flippass_save_serial_plugin.c",
+        "kdbx/memzero.c",
+    ],
+    fap_category="USB",
+    fap_author="Arckanos",
+    fap_weburl="https://github.com/Arckanos/FlipPass",
+    fap_version=(0, 1),
+    fap_description="FlipPass embedded save serial module.",
 )
 
 App(
@@ -299,18 +567,33 @@ App(
     requires=["flippass"],
     fal_embedded=True,
     cdefines=common_cdefines
-    + ["KDBX_PROTECTED_ENABLE_KEY_DERIVE=0", "KDBX_PROTECTED_ENABLE_SALSA20=0"],
+    + [
+        "KDBX_PROTECTED_ENABLE_KEY_DERIVE=0",
+        "KDBX_PROTECTED_ENABLE_SALSA20=0",
+        "KDBX_PROTECTED_ENABLE_DECODE=0",
+        f"FLIPPASS_SAVE_WRITER_ENABLE_OUTER_CHACHA={0 if save_writer_aes_nocomp_only else 1}",
+        f"FLIPPASS_SAVE_WRITER_ENABLE_GZIP={0 if save_writer_aes_nocomp_only else 1}",
+        f"FLIPPASS_SAVE_WRITER_HOST_PAYLOAD={save_writer_host_payload}",
+    ],
     sources=[
         "plugins/flippass_save_plugin.c",
-        "kdbx/kdbx_protected.c",
-        "kdbx/hmac.c",
-        "kdbx/sha2.c",
-        "kdbx/aescrypt.c",
-        "kdbx/aeskey.c",
-        "kdbx/aestab.c",
-        "kdbx/aes_modes.c",
         "kdbx/memzero.c",
-    ],
+    ]
+    + (
+        []
+        if save_writer_host_payload
+        else [
+            "kdbx/aescrypt.c",
+            "kdbx/aeskey.c",
+            "kdbx/aestab.c",
+            "kdbx/aes_modes.c",
+        ]
+    ),
+    fap_category="USB",
+    fap_author="Arckanos",
+    fap_weburl="https://github.com/Arckanos/FlipPass",
+    fap_version=(0, 1),
+    fap_description="FlipPass embedded save writer module.",
 )
 
 App(
@@ -320,6 +603,11 @@ App(
     requires=["flippass"],
     fal_embedded=True,
     sources=["plugins/flippass_other_fields_plugin.c"],
+    fap_category="USB",
+    fap_author="Arckanos",
+    fap_weburl="https://github.com/Arckanos/FlipPass",
+    fap_version=(0, 1),
+    fap_description="FlipPass embedded other fields module.",
 )
 
 App(
@@ -328,7 +616,18 @@ App(
     entry_point="flippass_file_plugin_ep",
     requires=["flippass"],
     fal_embedded=True,
-    sources=["plugins/flippass_file_plugin.c"],
+    cdefines=common_cdefines,
+    sources=[
+        "plugins/flippass_file_plugin.c",
+        "kdbx/kdbx_header_scan.c",
+        "kdbx/kdbx_kdf_params.c",
+        "kdbx/sha2.c",
+    ],
+    fap_category="USB",
+    fap_author="Arckanos",
+    fap_weburl="https://github.com/Arckanos/FlipPass",
+    fap_version=(0, 1),
+    fap_description="FlipPass embedded file ops module.",
 )
 
 App(
@@ -340,8 +639,14 @@ App(
     cdefines=common_cdefines,
     sources=[
         "plugins/flippass_editor_crud_plugin.c",
+        "plugins/flippass_editor_icons.c",
         "kdbx/memzero.c",
     ],
+    fap_category="USB",
+    fap_author="Arckanos",
+    fap_weburl="https://github.com/Arckanos/FlipPass",
+    fap_version=(0, 1),
+    fap_description="FlipPass embedded editor crud module.",
 )
 
 if enable_typing_actions and enable_keyboard_layout:
@@ -352,6 +657,11 @@ if enable_typing_actions and enable_keyboard_layout:
         requires=["flippass"],
         fal_embedded=True,
         sources=["plugins/flippass_keyboard_layout_plugin.c"],
+        fap_category="USB",
+        fap_author="Arckanos",
+        fap_weburl="https://github.com/Arckanos/FlipPass",
+        fap_version=(0, 1),
+        fap_description="FlipPass embedded keyboard layout module.",
     )
 
 App(
@@ -366,6 +676,11 @@ App(
         "kdbx/sha2.c",
         "kdbx/memzero.c",
     ],
+    fap_category="USB",
+    fap_author="Arckanos",
+    fap_weburl="https://github.com/Arckanos/FlipPass",
+    fap_version=(0, 1),
+    fap_description="FlipPass embedded otp module.",
 )
 
 App(
@@ -376,8 +691,11 @@ App(
     fal_embedded=True,
     sources=[
         "plugins/flippass_password_gen_plugin.c",
-        "kdbx/hmac.c",
-        "kdbx/sha2.c",
         "kdbx/memzero.c",
     ],
+    fap_category="USB",
+    fap_author="Arckanos",
+    fap_weburl="https://github.com/Arckanos/FlipPass",
+    fap_version=(0, 1),
+    fap_description="FlipPass embedded password gen module.",
 )

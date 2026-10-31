@@ -101,8 +101,14 @@ MINIZ_EXPORT void tinfl_decompressor_free(tinfl_decompressor* pDecomp);
 #endif
 
 /* Max size of LZ dictionary. */
-#define TINFL_LZ_DICT_SIZE             32768
-#define TINFL_PAGED_LZ_DICT_PAGE_SIZE  1024
+#define TINFL_LZ_DICT_SIZE 32768
+#ifndef TINFL_PAGED_LZ_DICT_PAGE_SIZE
+#define TINFL_PAGED_LZ_DICT_PAGE_SIZE 1024
+#endif
+#if TINFL_PAGED_LZ_DICT_PAGE_SIZE < 256 || TINFL_PAGED_LZ_DICT_PAGE_SIZE > 1024 || \
+    (TINFL_PAGED_LZ_DICT_PAGE_SIZE & (TINFL_PAGED_LZ_DICT_PAGE_SIZE - 1))
+#error "Paged dictionary pages must be 256, 512 or 1024 bytes."
+#endif
 #define TINFL_PAGED_LZ_DICT_PAGE_COUNT (TINFL_LZ_DICT_SIZE / TINFL_PAGED_LZ_DICT_PAGE_SIZE)
 
 typedef struct {
@@ -223,8 +229,8 @@ MINIZ_EXPORT int tinfl_file_paged_probe(
 #define TINFL_FAST_LOOKUP_BITS 10
 #endif
 
-#if TINFL_FAST_LOOKUP_BITS < 8 || TINFL_FAST_LOOKUP_BITS > 10
-#error "TINFL_FAST_LOOKUP_BITS must stay between 8 and 10 for FlipPass tinfl builds."
+#if TINFL_FAST_LOOKUP_BITS < 6 || TINFL_FAST_LOOKUP_BITS > 10
+#error "TINFL_FAST_LOOKUP_BITS must stay between 6 and 10 for FlipPass tinfl builds."
 #endif
 
 enum {

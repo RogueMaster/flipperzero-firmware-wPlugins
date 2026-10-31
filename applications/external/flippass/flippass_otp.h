@@ -75,6 +75,14 @@ bool flippass_otp_generate_code(
     bool advance_hotp,
     char out_code[FLIPPASS_OTP_CODE_MAX_CHARS + 1U],
     FuriString* error);
+bool flippass_otp_generate_code_with_refresh(
+    App* app,
+    KDBXEntry* entry,
+    FlipPassOtpKind kind,
+    bool advance_hotp,
+    char out_code[FLIPPASS_OTP_CODE_MAX_CHARS + 1U],
+    uint32_t* out_refresh_ms,
+    FuriString* error);
 bool flippass_otp_resolve_autotype_sequence(
     App* app,
     KDBXEntry* entry,

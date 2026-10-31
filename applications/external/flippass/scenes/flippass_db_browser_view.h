@@ -15,6 +15,8 @@ extern "C" {
 #define FLIPPASS_DB_BROWSER_MAX_ITEMS   48U
 #define FLIPPASS_DB_BROWSER_LABEL_SIZE  64U
 #define FLIPPASS_DB_BROWSER_HEADER_SIZE 96U
+/* Row without a KeePass IconID: draw the built-in icon for its item type. */
+#define FLIPPASS_DB_BROWSER_ICON_NONE   0xFFU
 
 typedef enum {
     FlipPassDbBrowserItemTypeGroup = 0,
@@ -81,10 +83,13 @@ void flippass_db_browser_view_set_mode(FlipPassDbBrowserView* browser, FlipPassD
 void flippass_db_browser_view_set_add_menu_kind(
     FlipPassDbBrowserView* browser,
     FlipPassDbBrowserAddMenuKind kind);
+/** Group and entry rows pass their KeePass IconID; other rows pass
+ * FLIPPASS_DB_BROWSER_ICON_NONE. */
 void flippass_db_browser_view_add_item(
     FlipPassDbBrowserView* browser,
     FlipPassDbBrowserItemType type,
-    const char* label);
+    const char* label,
+    uint8_t icon_id);
 void flippass_db_browser_view_set_selected_item(FlipPassDbBrowserView* browser, uint32_t index);
 uint32_t flippass_db_browser_view_get_selected_item(const FlipPassDbBrowserView* browser);
 void flippass_db_browser_view_set_action_selected(FlipPassDbBrowserView* browser, uint32_t index);

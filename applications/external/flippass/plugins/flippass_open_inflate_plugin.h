@@ -13,12 +13,14 @@ extern "C" {
 #define FLIPPASS_OPEN_INFLATE_NONPAGED_PLUGIN_APP_ID "flippass_open_inflate_nonpaged"
 #define FLIPPASS_OPEN_INFLATE_PAGED_PLUGIN_APP_ID    "flippass_open_inflate_paged"
 #define FLIPPASS_OPEN_INFLATE_PLUGIN_API_VERSION     1u
-#define FLIPPASS_OPEN_INFLATE_HOST_API_VERSION       2u
+#define FLIPPASS_OPEN_INFLATE_HOST_API_VERSION       3u
 
 typedef enum {
     FlipPassOpenInflateKindNone = 0,
     FlipPassOpenInflateKindNonPaged,
     FlipPassOpenInflateKindPaged,
+    /* Advisory format hint only; dispatched through the nonpaged module. */
+    FlipPassOpenInflateKindStoredCandidate,
 } FlipPassOpenInflateKind;
 
 typedef struct {
@@ -62,6 +64,7 @@ typedef struct {
         uint8_t* out_mac,
         size_t mac_size);
     void (*clear_paged_window_crypto)(void* context);
+    bool (*backend_supported)(KDBXVaultBackend backend);
 } FlipPassOpenInflateHostApiV1;
 
 typedef struct {

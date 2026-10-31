@@ -8,7 +8,7 @@ extern "C" {
 #endif
 
 #define FLIPPASS_FILE_PLUGIN_APP_ID      "flippass_file_ops"
-#define FLIPPASS_FILE_PLUGIN_API_VERSION 1u
+#define FLIPPASS_FILE_PLUGIN_API_VERSION 4u
 #define FLIPPASS_FILE_HOST_API_VERSION   1u
 
 typedef enum {
@@ -46,6 +46,18 @@ typedef struct {
         const FlipPassFileHostApiV1* host_api,
         FuriString* error);
     bool (*delete_path)(const char* path, FuriString* error);
+    bool (*make_directory)(
+        const char* parent_directory,
+        const char* directory_name,
+        FuriString* out_path,
+        FuriString* error);
+    bool (*rename_database)(
+        const char* source_path,
+        const char* requested_name,
+        FuriString* out_path,
+        FuriString* error);
+    /** Pre-password check of the file's plaintext KDBX header (kdbx/kdbx_header_scan.h). */
+    bool (*check_database)(const char* path, uint32_t* compression, FuriString* error);
 } FlipPassFilePluginV1;
 
 const FlipperAppPluginDescriptor* flippass_file_plugin_ep(void);

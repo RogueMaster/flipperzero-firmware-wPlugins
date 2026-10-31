@@ -13,6 +13,10 @@
 #define KDBX_PROTECTED_ENABLE_SALSA20 1
 #endif
 
+#ifndef KDBX_PROTECTED_ENABLE_DECODE
+#define KDBX_PROTECTED_ENABLE_DECODE 1
+#endif
+
 #define KDBX_PROTECTED_CHACHA_BLOCK_SIZE 64U
 #define KDBX_PROTECTED_SALSA_BLOCK_SIZE  64U
 
@@ -59,6 +63,7 @@ static bool kdbx_chacha20_init_state(
     return true;
 }
 
+#if KDBX_PROTECTED_ENABLE_DECODE
 static inline uint8_t kdbx_base64_value(char c) {
     if(c >= 'A' && c <= 'Z') return (uint8_t)(c - 'A');
     if(c >= 'a' && c <= 'z') return (uint8_t)(c - 'a' + 26);
@@ -401,6 +406,7 @@ bool kdbx_protected_discard_state_finalize(
     KDBXProtectedDiscardState* state) {
     return kdbx_protected_decode_state_finalize(stream, state, NULL, NULL);
 }
+#endif
 
 static void kdbx_chacha20_generate_block(KDBXProtectedStream* stream) {
     static const uint32_t sigma[4] = {0x61707865U, 0x3320646EU, 0x79622D32U, 0x6B206574U};
@@ -640,6 +646,7 @@ bool kdbx_protected_stream_apply(KDBXProtectedStream* stream, uint8_t* data, siz
     return true;
 }
 
+#if KDBX_PROTECTED_ENABLE_DECODE
 bool kdbx_protected_value_decode(
     KDBXProtectedStream* stream,
     const char* encoded,
@@ -662,6 +669,7 @@ bool kdbx_protected_value_decode(
     *decoded_size = size;
     return true;
 }
+#endif
 
 bool kdbx_chacha20_stream_init(
     KDBXProtectedStream* stream,

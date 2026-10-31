@@ -11,7 +11,7 @@ extern "C" {
 
 #define FLIPPASS_OPEN_ACQUIRE_PLUGIN_APP_ID      "flippass_open_acquire"
 #define FLIPPASS_OPEN_ACQUIRE_PLUGIN_API_VERSION 1u
-#define FLIPPASS_OPEN_ACQUIRE_HOST_API_VERSION   1u
+#define FLIPPASS_OPEN_ACQUIRE_HOST_API_VERSION   3u
 
 typedef struct {
     uint32_t api_version;
@@ -24,6 +24,16 @@ typedef struct {
     void* context;
     void (*progress)(void* context, const char* stage, const char* detail, uint8_t percent);
     void (*log)(void* context, const char* message);
+    bool (*read_cached_transformed_key)(
+        void* context,
+        const char* password,
+        const char* file_path,
+        const uint8_t* kdf_salt,
+        size_t kdf_salt_size,
+        uint64_t kdf_rounds,
+        uint8_t* out_transformed_key,
+        size_t out_transformed_key_size);
+    bool (*should_cancel)(void* context);
 } FlipPassOpenAcquireHostApiV1;
 
 typedef struct {

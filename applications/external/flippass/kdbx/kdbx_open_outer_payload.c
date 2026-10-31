@@ -1,6 +1,5 @@
 #include "kdbx_open_stream.h"
 
-#include "kdbx_protected.h"
 #include "memzero.h"
 
 #include <stdarg.h>
@@ -67,14 +66,12 @@ static bool kdbx_open_outer_emit(
         return true;
     }
     if(*emitted_bytes > (KDBX_OPEN_MAX_STREAM_OUTPUT_SIZE - data_size)) {
-        kdbx_open_outer_set_error(
-            error, error_size, "This database exceeds FlipPass's streaming output limit.");
+        kdbx_open_outer_set_error(error, error_size, "Streaming output limit exceeded.");
         return false;
     }
     if(!callback(data, data_size, context)) {
         if(error != NULL && error[0] == '\0') {
-            kdbx_open_outer_set_error(
-                error, error_size, "The payload consumer rejected the database stream.");
+            kdbx_open_outer_set_error(error, error_size, "Payload consumer rejected data.");
         }
         return false;
     }
@@ -84,10 +81,13 @@ static bool kdbx_open_outer_emit(
 }
 
 static void kdbx_open_outer_compute_block_key(
+    const FlipPassCryptoApiV1* crypto,
     const uint8_t* hmac_key,
     size_t hmac_key_size,
     uint64_t block_index,
-    uint8_t block_key[64]) {
+    uint8_t block_key[64],
+    char* error,
+    size_t error_size) {
     uint8_t block_index_bytes[8];
     uint8_t block_key_input[72];
 
@@ -97,12 +97,17 @@ static void kdbx_open_outer_compute_block_key(
 
     memcpy(block_key_input, block_index_bytes, sizeof(block_index_bytes));
     memcpy(block_key_input + sizeof(block_index_bytes), hmac_key, hmac_key_size);
-    sha512_Raw(block_key_input, sizeof(block_key_input), block_key);
+    const FlipPassCryptoChunk chunk = {.data = block_key_input, .size = sizeof(block_key_input)};
+    if(crypto == NULL || crypto->sha512_chunks == NULL ||
+       !crypto->sha512_chunks(&chunk, 1U, block_key)) {
+        kdbx_open_outer_set_error(error, error_size, "Payload block-key derivation failed.");
+    }
     memzero(block_key_input, sizeof(block_key_input));
 }
 
 static bool kdbx_open_outer_verify_block_hmac(
     Stream* stream,
+    const FlipPassCryptoApiV1* crypto,
     const uint8_t* hmac_key,
     size_t hmac_key_size,
     uint64_t block_index,
@@ -116,7 +121,7 @@ static bool kdbx_open_outer_verify_block_hmac(
     uint8_t block_hmac[32];
     uint8_t block_index_bytes[8];
     size_t block_remaining = block_size;
-    HMAC_SHA256_CTX hmac_ctx;
+    FlipPassCryptoHmacSha256State hmac_ctx;
 
     furi_assert(stream);
     furi_assert(hmac_key);
@@ -127,25 +132,52 @@ static bool kdbx_open_outer_verify_block_hmac(
         block_index_bytes[i] = (uint8_t)((block_index >> (i * 8U)) & 0xFFU);
     }
 
-    kdbx_open_outer_compute_block_key(hmac_key, hmac_key_size, block_index, block_key);
-    hmac_sha256_Init(&hmac_ctx, block_key, sizeof(block_key));
-    hmac_sha256_Update(&hmac_ctx, block_index_bytes, sizeof(block_index_bytes));
-    hmac_sha256_Update(&hmac_ctx, (const uint8_t*)&block_size, sizeof(block_size));
+    kdbx_open_outer_compute_block_key(
+        crypto, hmac_key, hmac_key_size, block_index, block_key, error, error_size);
+    if(error != NULL && error[0] != '\0') {
+        memzero(block_key, sizeof(block_key));
+        memzero(block_hmac, sizeof(block_hmac));
+        memzero(block_index_bytes, sizeof(block_index_bytes));
+        return false;
+    }
+    if(!crypto->hmac_sha256_init(&hmac_ctx, block_key, sizeof(block_key)) ||
+       !crypto->hmac_sha256_update(&hmac_ctx, block_index_bytes, sizeof(block_index_bytes)) ||
+       !crypto->hmac_sha256_update(&hmac_ctx, (const uint8_t*)&block_size, sizeof(block_size))) {
+        kdbx_open_outer_set_error(error, error_size, "Payload verification failed.");
+        memzero(block_key, sizeof(block_key));
+        memzero(block_hmac, sizeof(block_hmac));
+        memzero(block_index_bytes, sizeof(block_index_bytes));
+        crypto->hmac_sha256_clear(&hmac_ctx);
+        return false;
+    }
     while(block_remaining > 0U) {
         const size_t chunk_size = (block_remaining > io_buffer_size) ? io_buffer_size :
                                                                        block_remaining;
         if(stream_read(stream, io_buffer, chunk_size) != chunk_size) {
-            kdbx_open_outer_set_error(
-                error, error_size, "Unable to read the encrypted database payload.");
+            kdbx_open_outer_set_error(error, error_size, "Encrypted payload read failed.");
             memzero(block_key, sizeof(block_key));
             memzero(block_hmac, sizeof(block_hmac));
             memzero(block_index_bytes, sizeof(block_index_bytes));
             return false;
         }
-        hmac_sha256_Update(&hmac_ctx, io_buffer, chunk_size);
+        if(!crypto->hmac_sha256_update(&hmac_ctx, io_buffer, chunk_size)) {
+            kdbx_open_outer_set_error(error, error_size, "Payload verification failed.");
+            memzero(block_key, sizeof(block_key));
+            memzero(block_hmac, sizeof(block_hmac));
+            memzero(block_index_bytes, sizeof(block_index_bytes));
+            crypto->hmac_sha256_clear(&hmac_ctx);
+            return false;
+        }
         block_remaining -= chunk_size;
     }
-    hmac_sha256_Final(&hmac_ctx, block_hmac);
+    if(!crypto->hmac_sha256_final(&hmac_ctx, block_hmac)) {
+        kdbx_open_outer_set_error(error, error_size, "Payload verification failed.");
+        memzero(block_key, sizeof(block_key));
+        memzero(block_hmac, sizeof(block_hmac));
+        memzero(block_index_bytes, sizeof(block_index_bytes));
+        crypto->hmac_sha256_clear(&hmac_ctx);
+        return false;
+    }
     if(memcmp(block_hmac, expected_hmac, sizeof(block_hmac)) != 0) {
         kdbx_open_outer_set_error(
             error, error_size, "Wrong password or damaged database payload.");
@@ -156,8 +188,7 @@ static bool kdbx_open_outer_verify_block_hmac(
     }
 
     if(!stream_seek(stream, -(int32_t)block_size, StreamOffsetFromCurrent)) {
-        kdbx_open_outer_set_error(
-            error, error_size, "Unable to rewind the encrypted database payload.");
+        kdbx_open_outer_set_error(error, error_size, "Payload rewind failed.");
         memzero(block_key, sizeof(block_key));
         memzero(block_hmac, sizeof(block_hmac));
         memzero(block_index_bytes, sizeof(block_index_bytes));
@@ -275,7 +306,7 @@ static bool kdbx_open_outer_aes_state_finish(
     furi_assert(state);
 
     if(state->partial_len != 0U || !state->has_pending_block) {
-        kdbx_open_outer_set_error(error, error_size, "The AES payload blocks are malformed.");
+        kdbx_open_outer_set_error(error, error_size, "Malformed AES payload blocks.");
         return false;
     }
 
@@ -283,13 +314,13 @@ static bool kdbx_open_outer_aes_state_finish(
     const uint8_t padding = plaintext[15];
     if(padding == 0U || padding > sizeof(plaintext)) {
         memzero(plaintext, sizeof(plaintext));
-        kdbx_open_outer_set_error(error, error_size, "The AES payload padding is invalid.");
+        kdbx_open_outer_set_error(error, error_size, "Invalid AES payload padding.");
         return false;
     }
     for(size_t i = sizeof(plaintext) - padding; i < sizeof(plaintext); ++i) {
         if(plaintext[i] != padding) {
             memzero(plaintext, sizeof(plaintext));
-            kdbx_open_outer_set_error(error, error_size, "The AES payload padding is invalid.");
+            kdbx_open_outer_set_error(error, error_size, "Invalid AES payload padding.");
             return false;
         }
     }
@@ -309,6 +340,8 @@ static bool kdbx_open_outer_aes_state_finish(
 bool kdbx_open_stream_outer_payload(
     const char* file_path,
     const KDBXOpenProfile* profile,
+    const FlipPassCryptoApiV1* crypto,
+    bool (*validate_profile)(const KDBXOpenProfile* profile, char* error, size_t error_size),
     KDBXOpenStreamCallback callback,
     void* context,
     char* error,
@@ -318,7 +351,7 @@ bool kdbx_open_stream_outer_payload(
     uint8_t* io_buffer = NULL;
     KDBXOpenOuterAesState* aes_state = NULL;
     void* aes_state_raw = NULL;
-    KDBXProtectedStream* chacha_stream = NULL;
+    FlipPassCryptoProtectedState* chacha_stream = NULL;
     const bool use_aes =
         profile != NULL &&
         memcmp(profile->encryption_algorithm_uuid, KDBX_UUID_AES256, sizeof(KDBX_UUID_AES256)) ==
@@ -331,24 +364,28 @@ bool kdbx_open_stream_outer_payload(
     uint64_t block_index = 0U;
     bool ok = false;
 
-    if(file_path == NULL || file_path[0] == '\0' || profile == NULL || callback == NULL) {
+    if(file_path == NULL || file_path[0] == '\0' || profile == NULL || crypto == NULL ||
+       crypto->sha512_chunks == NULL || crypto->hmac_sha256_init == NULL ||
+       crypto->hmac_sha256_update == NULL || crypto->hmac_sha256_final == NULL ||
+       crypto->hmac_sha256_clear == NULL || crypto->chacha20_stream_init == NULL ||
+       crypto->protected_stream_apply == NULL || crypto->protected_stream_clear == NULL ||
+       callback == NULL || validate_profile == NULL) {
         kdbx_open_outer_set_error(error, error_size, "Open stream input is invalid.");
         return false;
     }
 
-    if(!kdbx_open_profile_validate_for_stream(profile, error, error_size)) {
+    if(!validate_profile(profile, error, error_size)) {
         return false;
     }
     if(!use_aes && !use_chacha20) {
-        kdbx_open_outer_set_error(
-            error, error_size, "This database uses an unsupported payload cipher.");
+        kdbx_open_outer_set_error(error, error_size, "Unsupported payload cipher.");
         return false;
     }
 
     storage = furi_record_open(RECORD_STORAGE);
     stream = file_stream_alloc(storage);
     if(stream == NULL) {
-        kdbx_open_outer_set_error(error, error_size, "Unable to allocate the payload stream.");
+        kdbx_open_outer_set_error(error, error_size, "Payload stream allocation failed.");
         goto cleanup;
     }
     if(!file_stream_open(stream, file_path, FSAM_READ, FSOM_OPEN_EXISTING)) {
@@ -356,55 +393,48 @@ bool kdbx_open_stream_outer_payload(
         goto cleanup;
     }
     if(!stream_seek(stream, profile->payload_data_offset, StreamOffsetFromStart)) {
-        kdbx_open_outer_set_error(error, error_size, "Unable to seek to the encrypted payload.");
+        kdbx_open_outer_set_error(error, error_size, "Payload seek failed.");
         goto cleanup;
     }
 
     const size_t stream_remaining = stream_size(stream) - stream_tell(stream);
     if(stream_remaining < KDBX_OPEN_HEADER_VERIFICATION_BYTES) {
-        kdbx_open_outer_set_error(
-            error, error_size, "The KDBX4 header verification bytes are truncated.");
+        kdbx_open_outer_set_error(error, error_size, "Truncated KDBX4 verification bytes.");
         goto cleanup;
     }
     if(!stream_seek(stream, KDBX_OPEN_HEADER_VERIFICATION_BYTES, StreamOffsetFromCurrent)) {
-        kdbx_open_outer_set_error(
-            error, error_size, "Unable to skip the KDBX4 header verification bytes.");
+        kdbx_open_outer_set_error(error, error_size, "KDBX4 verification seek failed.");
         goto cleanup;
     }
 
     io_buffer = malloc(KDBX_OPEN_STREAM_IO_CHUNK_SIZE);
     if(io_buffer == NULL) {
-        kdbx_open_outer_set_error(
-            error, error_size, "Not enough RAM is available for the payload stream.");
+        kdbx_open_outer_set_error(error, error_size, "Payload buffer needs more RAM.");
         goto cleanup;
     }
 
     if(use_aes) {
         aes_state = kdbx_open_outer_alloc_aligned(sizeof(*aes_state), 16U, &aes_state_raw);
         if(aes_state == NULL) {
-            kdbx_open_outer_set_error(
-                error, error_size, "Not enough RAM is available for AES payload state.");
+            kdbx_open_outer_set_error(error, error_size, "AES state needs more RAM.");
             goto cleanup;
         }
         kdbx_open_outer_aes_state_init(aes_state, profile->cipher_key, profile->encryption_iv);
     } else {
         chacha_stream = malloc(sizeof(*chacha_stream));
         if(chacha_stream == NULL) {
-            kdbx_open_outer_set_error(
-                error, error_size, "Not enough RAM is available for ChaCha20 payload state.");
+            kdbx_open_outer_set_error(error, error_size, "ChaCha20 state needs more RAM.");
             goto cleanup;
         }
         memset(chacha_stream, 0, sizeof(*chacha_stream));
-        kdbx_protected_stream_reset(chacha_stream);
-        if(!kdbx_chacha20_stream_init(
+        if(!crypto->chacha20_stream_init(
                chacha_stream,
                profile->cipher_key,
                sizeof(profile->cipher_key),
                profile->encryption_iv,
                profile->encryption_iv_size,
                0U)) {
-            kdbx_open_outer_set_error(
-                error, error_size, "Unable to initialize the ChaCha20 payload stream.");
+            kdbx_open_outer_set_error(error, error_size, "ChaCha20 initialization failed.");
             goto cleanup;
         }
     }
@@ -414,29 +444,26 @@ bool kdbx_open_stream_outer_payload(
         uint32_t block_size = 0U;
 
         if(stream_read(stream, hmac, sizeof(hmac)) != sizeof(hmac)) {
-            kdbx_open_outer_set_error(
-                error, error_size, "Unable to read the encrypted database payload.");
+            kdbx_open_outer_set_error(error, error_size, "Encrypted payload read failed.");
             goto cleanup;
         }
         if(stream_read(stream, (uint8_t*)&block_size, sizeof(block_size)) != sizeof(block_size)) {
-            kdbx_open_outer_set_error(
-                error, error_size, "Unable to read the encrypted database payload.");
+            kdbx_open_outer_set_error(error, error_size, "Encrypted payload read failed.");
             goto cleanup;
         }
         if(block_size > KDBX_OPEN_MAX_STREAM_OUTPUT_SIZE) {
-            kdbx_open_outer_set_error(
-                error, error_size, "A database payload block exceeds FlipPass's stream limit.");
+            kdbx_open_outer_set_error(error, error_size, "Payload block exceeds safe limit.");
             goto cleanup;
         }
 
         const size_t remaining_after_size = stream_size(stream) - stream_tell(stream);
         if(block_size > remaining_after_size) {
-            kdbx_open_outer_set_error(
-                error, error_size, "The encrypted database payload is truncated.");
+            kdbx_open_outer_set_error(error, error_size, "Truncated encrypted payload.");
             goto cleanup;
         }
         if(!kdbx_open_outer_verify_block_hmac(
                stream,
+               crypto,
                profile->hmac_key,
                sizeof(profile->hmac_key),
                block_index,
@@ -459,8 +486,7 @@ bool kdbx_open_stream_outer_payload(
                                           KDBX_OPEN_STREAM_IO_CHUNK_SIZE :
                                           block_remaining;
             if(stream_read(stream, io_buffer, chunk_size) != chunk_size) {
-                kdbx_open_outer_set_error(
-                    error, error_size, "Unable to read the encrypted database payload.");
+                kdbx_open_outer_set_error(error, error_size, "Encrypted payload read failed.");
                 goto cleanup;
             }
 
@@ -477,9 +503,8 @@ bool kdbx_open_stream_outer_payload(
                     goto cleanup;
                 }
             } else {
-                if(!kdbx_protected_stream_apply(chacha_stream, io_buffer, chunk_size)) {
-                    kdbx_open_outer_set_error(
-                        error, error_size, "Unable to decrypt the database payload.");
+                if(!crypto->protected_stream_apply(chacha_stream, io_buffer, chunk_size)) {
+                    kdbx_open_outer_set_error(error, error_size, "Payload decryption failed.");
                     goto cleanup;
                 }
                 if(!kdbx_open_outer_emit(
@@ -521,7 +546,9 @@ cleanup:
         furi_record_close(RECORD_STORAGE);
     }
     if(chacha_stream != NULL) {
-        kdbx_protected_stream_reset(chacha_stream);
+        if(crypto != NULL && crypto->protected_stream_clear != NULL) {
+            crypto->protected_stream_clear(chacha_stream);
+        }
         memzero(chacha_stream, sizeof(*chacha_stream));
         free(chacha_stream);
     }

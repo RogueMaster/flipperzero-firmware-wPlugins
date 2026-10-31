@@ -63,6 +63,17 @@ bool flippass_scene_db_entries_on_event(void* context, SceneManagerEvent event);
 void flippass_scene_db_entries_trim_for_save(struct App* app);
 
 /**
+ * @brief Release rebuildable database-browser UI state before intermediary plugins.
+ *
+ * This preserves Type drawer output pre-warm. It only drops the heap item map,
+ * visible browser rows, and pageable title cache; the browser rebuilds them on
+ * return.
+ *
+ * @param app Application context.
+ */
+void flippass_scene_db_entries_trim_for_intermediary_plugin(struct App* app);
+
+/**
  * @brief Handler for the on_exit event of the database entries scene.
  *
  * This function is called when the scene is exited. It clears the shared

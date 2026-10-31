@@ -2,6 +2,7 @@
 #include "memzero.h"
 
 #include <furi.h>
+#include <core/kernel.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
@@ -43,6 +44,18 @@ extern "C" {
 #if !TINFL_PAGED_ENABLE_RAM && !TINFL_PAGED_ENABLE_FILE
 #error "At least one paged tinfl backend must be enabled."
 #endif
+
+/* Firmware malloc aborts on exhaustion. Its largest-block statistic includes
+ * the header and alignment. Hold the scheduler over check/allocation and leave
+ * 16 bytes for the ARM heap's 8-byte header plus at most 7 bytes of alignment. */
+static void* tinfl_try_alloc(size_t size) {
+    void* result = NULL;
+    if(size == 0U || size > SIZE_MAX - 16U) return NULL;
+    const int32_t lock = furi_kernel_lock();
+    if(memmgr_heap_get_max_free_block() >= size + 16U) result = malloc(size);
+    furi_kernel_restore_lock(lock);
+    return result;
+}
 
 #define TINFL_CR_BEGIN   \
     switch(r->m_state) { \
@@ -186,11 +199,13 @@ struct tinfl_paged_runtime_tag {
     uint32_t deadline_tick;
 };
 
-#define TINFL_PAGED_YIELD_OUTPUT_BYTES  8192U
-#define TINFL_PAGED_HEARTBEAT_STEPS     131072U
-#define TINFL_PAGED_IO_TOUCH_STEPS      64U
-#define TINFL_PAGED_TIMEOUT_MS          300000U
-#define TINFL_PAGED_INPUT_CHUNK_BYTES   512U
+#define TINFL_PAGED_YIELD_OUTPUT_BYTES 8192U
+#define TINFL_PAGED_HEARTBEAT_STEPS    131072U
+#define TINFL_PAGED_IO_TOUCH_STEPS     64U
+#define TINFL_PAGED_TIMEOUT_MS         300000U
+#ifndef TINFL_PAGED_INPUT_CHUNK_BYTES
+#define TINFL_PAGED_INPUT_CHUNK_BYTES 128U
+#endif
 #define TINFL_FILE_DICT_MAC_SIZE        32U
 #define TINFL_FILE_DICT_MAX_CACHE_PAGES 1U
 #define TINFL_FILE_DICT_MIN_CACHE_PAGES 1U
@@ -1239,7 +1254,7 @@ static bool tinfl_paged_dict_alloc(tinfl_paged_dict* dict, tinfl_paged_telemetry
     memset(dict, 0, sizeof(*dict));
 
     for(size_t index = 0; index < TINFL_PAGED_LZ_DICT_PAGE_COUNT; index++) {
-        dict->pages[index] = malloc(TINFL_PAGED_LZ_DICT_PAGE_SIZE);
+        dict->pages[index] = tinfl_try_alloc(TINFL_PAGED_LZ_DICT_PAGE_SIZE);
         if(dict->pages[index] == NULL) {
             if(telemetry != NULL) {
                 telemetry->failed_page_index = index;
@@ -1282,7 +1297,7 @@ static tinfl_paged_dict* tinfl_paged_dict_alloc_heap(void) {
         return NULL;
     }
 
-    dict = malloc(sizeof(*dict));
+    dict = tinfl_try_alloc(sizeof(*dict));
     if(dict != NULL) {
         memset(dict, 0, sizeof(*dict));
     }
@@ -1298,7 +1313,7 @@ static tinfl_file_dict* tinfl_file_dict_alloc_heap(void) {
         return NULL;
     }
 
-    dict = malloc(sizeof(*dict));
+    dict = tinfl_try_alloc(sizeof(*dict));
     if(dict != NULL) {
         memset(dict, 0, sizeof(*dict));
     }
@@ -1313,7 +1328,7 @@ static tinfl_decompressor* tinfl_decompressor_alloc_heap(void) {
         return NULL;
     }
 
-    decomp = malloc(sizeof(*decomp));
+    decomp = tinfl_try_alloc(sizeof(*decomp));
     if(decomp != NULL) {
         memset(decomp, 0, sizeof(*decomp));
     }
@@ -1328,7 +1343,7 @@ static uint8_t* tinfl_input_buf_alloc_heap(void) {
         return NULL;
     }
 
-    input_buf = malloc(TINFL_PAGED_INPUT_CHUNK_BYTES);
+    input_buf = tinfl_try_alloc(TINFL_PAGED_INPUT_CHUNK_BYTES);
     if(input_buf != NULL) {
         memset(input_buf, 0, TINFL_PAGED_INPUT_CHUNK_BYTES);
     }
@@ -1339,7 +1354,8 @@ static uint8_t* tinfl_input_buf_alloc_heap(void) {
 static bool tinfl_file_dict_alloc(
     tinfl_file_dict* dict,
     const tinfl_paged_file_config* config,
-    tinfl_paged_telemetry* telemetry) {
+    tinfl_paged_telemetry* telemetry,
+    uint8_t* io_workspace) {
     const char* file_path = (config != NULL) ? config->file_path : NULL;
     size_t preferred_cache_pages = (config != NULL && config->preferred_cache_pages > 0U) ?
                                        config->preferred_cache_pages :
@@ -1377,7 +1393,8 @@ static bool tinfl_file_dict_alloc(
         tinfl_file_dict_trace_step(dict, telemetry, "window_storage_open");
     }
 
-    dict->io_page = malloc(TINFL_PAGED_LZ_DICT_PAGE_SIZE);
+    dict->io_page = io_workspace != NULL ? io_workspace :
+                                           tinfl_try_alloc(TINFL_PAGED_LZ_DICT_PAGE_SIZE);
     if(dict->io_page == NULL) {
         tinfl_file_dict_note_budget_issue(dict, telemetry, "window_io_page_alloc");
         return false;
@@ -1390,7 +1407,7 @@ static bool tinfl_file_dict_alloc(
         bool cache_ok = true;
         tinfl_file_dict_trace_step(dict, telemetry, "window_cache_attempt");
         for(size_t index = 0; index < target; index++) {
-            dict->cache[index].data = malloc(TINFL_PAGED_LZ_DICT_PAGE_SIZE);
+            dict->cache[index].data = tinfl_try_alloc(TINFL_PAGED_LZ_DICT_PAGE_SIZE);
             if(dict->cache[index].data == NULL) {
                 cache_ok = false;
                 for(size_t rollback = 0; rollback < index; rollback++) {
@@ -1466,7 +1483,7 @@ static bool tinfl_file_dict_alloc(
     return true;
 }
 
-static void tinfl_file_dict_free(tinfl_file_dict* dict) {
+static void tinfl_file_dict_free(tinfl_file_dict* dict, const uint8_t* io_workspace) {
     if(dict == NULL) {
         return;
     }
@@ -1506,7 +1523,7 @@ static void tinfl_file_dict_free(tinfl_file_dict* dict) {
 #endif
     if(dict->io_page != NULL) {
         memzero(dict->io_page, TINFL_PAGED_LZ_DICT_PAGE_SIZE);
-        free(dict->io_page);
+        if(io_workspace == NULL) free(dict->io_page);
         dict->io_page = NULL;
     }
     dict->io_page_index = 0U;
@@ -2374,7 +2391,7 @@ int tinfl_decompress_reader_to_callback_paged_ex(
 }
 #endif
 
-int tinfl_decompress_reader_to_callback_file_paged_ex(
+static int tinfl_decompress_reader_to_callback_file_paged_common(
     tinfl_get_buf_func_ptr pGet_buf_func,
     void* pGet_buf_user,
     size_t* pIn_buf_size,
@@ -2383,14 +2400,17 @@ int tinfl_decompress_reader_to_callback_file_paged_ex(
     int flags,
     const tinfl_paged_file_config* pFile_config,
     tinfl_decompressor* pDecomp_workspace,
-    tinfl_paged_telemetry* pTelemetry) {
+    tinfl_paged_telemetry* pTelemetry,
+    tinfl_file_dict* pDict_workspace,
+    uint8_t* pInput_workspace,
+    uint8_t* pIo_workspace) {
     int result = 0;
     tinfl_decompressor* decomp = pDecomp_workspace;
     bool decomp_external = pDecomp_workspace != NULL;
-    tinfl_file_dict* dict = NULL;
+    tinfl_file_dict* dict = pDict_workspace;
     tinfl_dict_view dict_view;
     tinfl_paged_runtime runtime;
-    uint8_t* input_buf = NULL;
+    uint8_t* input_buf = pInput_workspace;
     size_t input_len = 0U;
     size_t input_ofs = 0U;
     size_t total_input = 0U;
@@ -2445,7 +2465,7 @@ int tinfl_decompress_reader_to_callback_file_paged_ex(
         (unsigned long)memmgr_heap_get_max_free_block());
     tinfl_paged_trace(&runtime, decomp_external ? "file_decomp_external" : "file_decomp_heap");
 
-    input_buf = tinfl_input_buf_alloc_heap();
+    if(input_buf == NULL) input_buf = tinfl_input_buf_alloc_heap();
     if(input_buf == NULL) {
         tinfl_file_dict_note_budget_issue(NULL, pTelemetry, "window_input_alloc");
         memzero(decomp, sizeof(*decomp));
@@ -2467,12 +2487,12 @@ int tinfl_decompress_reader_to_callback_file_paged_ex(
         (unsigned long)memmgr_heap_get_max_free_block());
 
     tinfl_paged_trace(&runtime, "file_dict_attempt");
-    dict = tinfl_file_dict_alloc_heap();
+    if(dict == NULL) dict = tinfl_file_dict_alloc_heap();
     if(dict == NULL) {
         tinfl_paged_trace(&runtime, "file_dict_alloc_fail");
         tinfl_file_dict_note_budget_issue(NULL, pTelemetry, "window_dict_alloc");
         memzero(input_buf, TINFL_PAGED_INPUT_CHUNK_BYTES);
-        free(input_buf);
+        if(pInput_workspace == NULL) free(input_buf);
         memzero(decomp, sizeof(*decomp));
         if(!decomp_external) {
             free(decomp);
@@ -2491,7 +2511,7 @@ int tinfl_decompress_reader_to_callback_file_paged_ex(
         (unsigned long)memmgr_heap_get_max_free_block());
     tinfl_paged_trace(&runtime, "file_dict_heap");
     tinfl_paged_trace(&runtime, "file_dict_config_begin");
-    if(!tinfl_file_dict_alloc(dict, pFile_config, pTelemetry)) {
+    if(!tinfl_file_dict_alloc(dict, pFile_config, pTelemetry, pIo_workspace)) {
         tinfl_paged_trace(&runtime, "file_alloc_failed");
         tinfl_debug_trace_telemetry(pTelemetry, "debug_file_paged_window_fail");
         TINFL_DEBUG_LOG(
@@ -2500,10 +2520,10 @@ int tinfl_decompress_reader_to_callback_file_paged_ex(
                                                                         "-",
             (unsigned long)memmgr_get_free_heap(),
             (unsigned long)memmgr_heap_get_max_free_block());
-        tinfl_file_dict_free(dict);
-        free(dict);
+        tinfl_file_dict_free(dict, pIo_workspace);
+        if(pDict_workspace == NULL) free(dict);
         memzero(input_buf, TINFL_PAGED_INPUT_CHUNK_BYTES);
-        free(input_buf);
+        if(pInput_workspace == NULL) free(input_buf);
         memzero(decomp, sizeof(*decomp));
         if(!decomp_external) {
             free(decomp);
@@ -2676,14 +2696,84 @@ int tinfl_decompress_reader_to_callback_file_paged_ex(
 
     *pIn_buf_size = total_input;
     memzero(input_buf, TINFL_PAGED_INPUT_CHUNK_BYTES);
-    free(input_buf);
-    tinfl_file_dict_free(dict);
-    free(dict);
+    if(pInput_workspace == NULL) free(input_buf);
+    tinfl_file_dict_free(dict, pIo_workspace);
+    if(pDict_workspace == NULL) free(dict);
     memzero(decomp, sizeof(*decomp));
     if(!decomp_external) {
         free(decomp);
     }
     return result;
+}
+
+int tinfl_decompress_reader_to_callback_file_paged_ex(
+    tinfl_get_buf_func_ptr pGet_buf_func,
+    void* pGet_buf_user,
+    size_t* pIn_buf_size,
+    tinfl_put_buf_func_ptr pPut_buf_func,
+    void* pPut_buf_user,
+    int flags,
+    const tinfl_paged_file_config* pFile_config,
+    tinfl_decompressor* pDecomp_workspace,
+    tinfl_paged_telemetry* pTelemetry) {
+    /* Prefer the larger I/O page when it fits with the control object in the
+     * same bounded stack workspace; otherwise try the smaller input buffer.
+     * The 2604-byte decompressor, cache pages and Crypto remain separate. Both
+     * buffers live through all synchronous callbacks and are wiped on return.
+     * Larger configurations retain the original heap ownership. */
+    if(sizeof(tinfl_file_dict) + TINFL_PAGED_LZ_DICT_PAGE_SIZE <= 512U) {
+        tinfl_file_dict dict_workspace = {0};
+        uint8_t io_workspace[TINFL_PAGED_LZ_DICT_PAGE_SIZE];
+        int result = tinfl_decompress_reader_to_callback_file_paged_common(
+            pGet_buf_func,
+            pGet_buf_user,
+            pIn_buf_size,
+            pPut_buf_func,
+            pPut_buf_user,
+            flags,
+            pFile_config,
+            pDecomp_workspace,
+            pTelemetry,
+            &dict_workspace,
+            NULL,
+            io_workspace);
+        memzero(io_workspace, sizeof(io_workspace));
+        memzero(&dict_workspace, sizeof(dict_workspace));
+        return result;
+    }
+    if(sizeof(tinfl_file_dict) + TINFL_PAGED_INPUT_CHUNK_BYTES <= 512U) {
+        tinfl_file_dict dict_workspace = {0};
+        uint8_t input_workspace[TINFL_PAGED_INPUT_CHUNK_BYTES];
+        int result = tinfl_decompress_reader_to_callback_file_paged_common(
+            pGet_buf_func,
+            pGet_buf_user,
+            pIn_buf_size,
+            pPut_buf_func,
+            pPut_buf_user,
+            flags,
+            pFile_config,
+            pDecomp_workspace,
+            pTelemetry,
+            &dict_workspace,
+            input_workspace,
+            NULL);
+        memzero(input_workspace, sizeof(input_workspace));
+        memzero(&dict_workspace, sizeof(dict_workspace));
+        return result;
+    }
+    return tinfl_decompress_reader_to_callback_file_paged_common(
+        pGet_buf_func,
+        pGet_buf_user,
+        pIn_buf_size,
+        pPut_buf_func,
+        pPut_buf_user,
+        flags,
+        pFile_config,
+        pDecomp_workspace,
+        pTelemetry,
+        NULL,
+        NULL,
+        NULL);
 }
 
 int tinfl_decompress_mem_to_callback_file_paged_ex(
@@ -2743,9 +2833,9 @@ int tinfl_decompress_mem_to_callback_file_paged_ex(
     }
     tinfl_paged_trace(&runtime, "file_dict_heap");
     tinfl_paged_trace(&runtime, "file_dict_config_begin");
-    if(!tinfl_file_dict_alloc(dict, pFile_config, pTelemetry)) {
+    if(!tinfl_file_dict_alloc(dict, pFile_config, pTelemetry, NULL)) {
         tinfl_paged_trace(&runtime, "file_alloc_failed");
-        tinfl_file_dict_free(dict);
+        tinfl_file_dict_free(dict, NULL);
         free(dict);
         memzero(decomp, sizeof(*decomp));
         if(!decomp_external) {
@@ -2839,7 +2929,7 @@ int tinfl_decompress_mem_to_callback_file_paged_ex(
     }
 
     *pIn_buf_size = in_buf_ofs;
-    tinfl_file_dict_free(dict);
+    tinfl_file_dict_free(dict, NULL);
     free(dict);
     memzero(decomp, sizeof(*decomp));
     if(!decomp_external) {
@@ -2888,7 +2978,7 @@ int tinfl_file_paged_probe(
     tinfl_paged_trace_telemetry(pTelemetry, "file_probe_dict_ok");
 
     tinfl_paged_trace_telemetry(pTelemetry, "file_probe_window_begin");
-    if(!tinfl_file_dict_alloc(dict, pFile_config, pTelemetry)) {
+    if(!tinfl_file_dict_alloc(dict, pFile_config, pTelemetry, NULL)) {
         tinfl_paged_trace_telemetry(pTelemetry, "file_probe_window_fail");
         goto cleanup;
     }
@@ -2898,7 +2988,7 @@ int tinfl_file_paged_probe(
 
 cleanup:
     if(dict != NULL) {
-        tinfl_file_dict_free(dict);
+        tinfl_file_dict_free(dict, NULL);
         free(dict);
     }
     if(input_buf != NULL) {

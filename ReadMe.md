@@ -109,6 +109,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [CatDriver v1.0 - author settings, ESP32 info and GPS status updates (By EVL87)](https://github.com/EVL87/catwardrive)
 - OFW: NFC: [Fixed: Ultralight READ/WRITE now reject a starting page equal to the page count (By Kostya4ki)](https://github.com/flipperdevices/flipperzero-firmware/pull/4483)
 - Updated: [PicoPass (iClass) v1.23 (By Bettse)](https://gitlab.com/bettse/picopass)
+- Updated: [FlipPass v3.0 - memory optimizations, KeePass icons and launch arguments (By Arckanos)](https://github.com/Arckanos/FlipPass)
 
 <a name="release"></a>
 
@@ -614,7 +615,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [FlipNote v1.0 (By morty517)](https://github.com/morty517/flipnote)
 - [FliPort v0.3 (By FliPort)](https://github.com/TheRealLuro/Flipper-zero-drop-detector.-) `Req: ICM42688P IMU`
 - [FlipPar v0.1 (By jsammarco)](https://github.com/jsammarco/FlipPar)
-- [FlipPass v2.0 (By Arckanos)](https://github.com/Arckanos/FlipPass)
+- [FlipPass v3.0 (By Arckanos)](https://github.com/Arckanos/FlipPass)
 - [Flipper Aid v1.0 (By spaghety)](https://github.com/spaghety/flipper-aid)
 - [Flipper Blackhat v0.4.1 (By o7-machinehum)](https://github.com/o7-machinehum/flipper-blackhat-app) `Req: Blackhat Board` with [Blackhat OS](https://github.com/o7-machinehum/flipper-blackhat-os)
 - [Flipper Elements v2.0 (By steanlab)](https://github.com/steanlab/flipper-elements)

@@ -6,7 +6,159 @@
 #include <string.h>
 #include <stdlib.h>
 
-#define FLIPPASS_DB_MUTABLE_ARENA_CHUNK_SIZE 256U
+/* Larger than the open-builder default (256 B) to halve the number of heap
+ * calls when building a new-database arena from scratch. Each malloc is a
+ * potential fragmentation interleave point; fewer calls means less scattered layout. */
+#define FLIPPASS_DB_MUTABLE_ARENA_CHUNK_SIZE 512U
+
+/* Total free-heap headroom kept for ephemeral allocations during mutation
+ * (FuriStrings, format buffers, CRUD plugin workspace, etc.). */
+#define FLIPPASS_DB_MUTATION_EPHEMERAL_RESERVE_BYTES (4U * 1024U)
+
+/* When max_free_block drops below this threshold at the start of a mutation,
+ * proactively promote the RAM vault to the /ext session file.  Promotion frees
+ * all vault RAM pages (typically 8-15 KiB) and creates a contiguous free region
+ * that the mutation can then use for arena chunks without fragmenting the save
+ * block.  Must be > FLIPPASS_DB_SAVE_MIN_MAX_FREE_BYTES + expected per-mutation
+ * arena growth so the promotion fires before the budget guard blocks writes. */
+#define FLIPPASS_DB_PROACTIVE_PROMOTE_THRESHOLD_BYTES (20U * 1024U)
+
+static bool flippass_db_load_entry_title_into_cache(App* app, KDBXEntry* entry, FuriString* error);
+
+static size_t flippass_db_model_committed_bytes(const App* app) {
+    size_t committed = 0U;
+
+    furi_assert(app);
+
+    if(app->db_arena != NULL) {
+        committed += kdbx_arena_bytes(app->db_arena);
+    }
+    if(app->vault != NULL) {
+        committed += kdbx_vault_index_bytes(app->vault);
+        committed += kdbx_vault_page_bytes(app->vault);
+    }
+
+    return committed;
+}
+
+void flippass_db_refresh_model_budget(App* app) {
+    furi_assert(app);
+
+    app->model_budget_committed = flippass_db_model_committed_bytes(app);
+    const size_t free_heap = memmgr_get_free_heap();
+    const size_t max_free = memmgr_heap_get_max_free_block();
+
+    /* Guard 1: keep total free headroom for ephemeral allocations. */
+    const size_t free_room = (free_heap > FLIPPASS_DB_MUTATION_EPHEMERAL_RESERVE_BYTES) ?
+                                 (free_heap - FLIPPASS_DB_MUTATION_EPHEMERAL_RESERVE_BYTES) :
+                                 0U;
+
+    /* Guard 2: keep the largest contiguous block above the save minimum so
+     * that loading the save stages or the editor (each section is one large
+     * contiguous malloc) can succeed regardless of heap fragmentation state. */
+    const size_t block_room = (max_free > FLIPPASS_DB_SAVE_MIN_MAX_FREE_BYTES) ?
+                                  (max_free - FLIPPASS_DB_SAVE_MIN_MAX_FREE_BYTES) :
+                                  0U;
+
+    const size_t growth = (free_room < block_room) ? free_room : block_room;
+    app->model_budget_limit = app->model_budget_committed + growth;
+
+    if(app->db_arena != NULL) {
+        kdbx_arena_set_budget(
+            app->db_arena, &app->model_budget_committed, app->model_budget_limit);
+    }
+    if(app->vault != NULL) {
+        kdbx_vault_set_budget(app->vault, &app->model_budget_committed, app->model_budget_limit);
+    }
+}
+
+static void flippass_db_trim_for_model_mutation(App* app) {
+    furi_assert(app);
+
+    flippass_db_deactivate_entry(app);
+    flippass_db_browser_clear_title_cache(app);
+}
+
+static bool flippass_db_can_promote_vault_for_mutation(const App* app) {
+    if(app == NULL || app->vault == NULL ||
+       kdbx_vault_get_backend(app->vault) != KDBXVaultBackendRam ||
+       !kdbx_vault_backend_supported(KDBXVaultBackendFileExt)) {
+        return false;
+    }
+
+    return app->allow_ext_vault_promotion || app->always_allow_ext;
+}
+
+static bool flippass_db_promote_vault_for_mutation(App* app, FuriString* error) {
+    KDBXVault* target = NULL;
+
+    furi_assert(app);
+
+    if(!flippass_db_can_promote_vault_for_mutation(app)) {
+        return false;
+    }
+
+    FLIPPASS_PROBE_LOG_EVENT(
+        app,
+        "MUTATION_VAULT_PROMOTE_START committed=%lu limit=%lu free=%lu max=%lu",
+        (unsigned long)app->model_budget_committed,
+        (unsigned long)app->model_budget_limit,
+        (unsigned long)memmgr_get_free_heap(),
+        (unsigned long)memmgr_heap_get_max_free_block());
+
+    target = kdbx_vault_alloc(KDBXVaultBackendFileExt, NULL, 0U);
+    if(target == NULL || kdbx_vault_storage_failed(target)) {
+        if(target != NULL) {
+            kdbx_vault_free(target);
+        }
+        if(error != NULL) {
+            furi_string_set_str(
+                error, "The encrypted RAM vault could not continue on the SD-card session file.");
+        }
+        return false;
+    }
+
+    if(!kdbx_vault_promote_ram_to_file(app->vault, target)) {
+        const char* reason = kdbx_vault_failure_reason(target);
+        kdbx_vault_free(target);
+        if(error != NULL) {
+            furi_string_set_str(
+                error,
+                (reason != NULL && strcmp(reason, "none") != 0) ?
+                    reason :
+                    "The encrypted RAM vault could not continue on the SD-card session file.");
+        }
+        return false;
+    }
+
+    kdbx_vault_free(app->vault);
+    app->vault = target;
+    app->active_vault_backend = KDBXVaultBackendFileExt;
+    app->allow_ext_vault_promotion = true;
+    flippass_db_refresh_model_budget(app);
+
+    FLIPPASS_PROBE_LOG_EVENT(
+        app,
+        "MUTATION_VAULT_PROMOTE_OK committed=%lu limit=%lu free=%lu max=%lu",
+        (unsigned long)app->model_budget_committed,
+        (unsigned long)app->model_budget_limit,
+        (unsigned long)memmgr_get_free_heap(),
+        (unsigned long)memmgr_heap_get_max_free_block());
+    return true;
+}
+
+/* Proactively promote the session vault from RAM to the /ext file when heap
+ * pressure is detected.  Moving vault pages off-heap frees a contiguous region
+ * that future arena chunks can occupy without fragmenting the save block.
+ * Best-effort: silently skips if the vault is already file-backed, if /ext is
+ * unavailable, or if promotion is not approved for this session. */
+void flippass_db_proactive_promote_if_needed(App* app) {
+    furi_assert(app);
+
+    if(memmgr_heap_get_max_free_block() < FLIPPASS_DB_PROACTIVE_PROMOTE_THRESHOLD_BYTES) {
+        flippass_db_promote_vault_for_mutation(app, NULL);
+    }
+}
 
 static bool flippass_db_load_entry_field(
     App* app,
@@ -185,6 +337,9 @@ static bool flippass_db_write_secret_field(
     KDBXFieldRef* out_ref,
     FuriString* error) {
     KDBXFieldRef ref = {0};
+    uint8_t pending[KDBX_VAULT_RECORD_PLAIN_MAX];
+    KDBXVaultWriter writer;
+    bool retried_after_promotion = false;
 
     furi_assert(app);
     furi_assert(out_ref);
@@ -201,12 +356,16 @@ static bool flippass_db_write_secret_field(
         return false;
     }
 
-    uint8_t pending[KDBX_VAULT_RECORD_PLAIN_MAX];
-    KDBXVaultWriter writer;
+retry:
     kdbx_vault_writer_reset_with_pending(&writer, app->vault, pending, sizeof(pending));
     if(!kdbx_vault_writer_write(&writer, (const uint8_t*)value, strlen(value)) ||
        !kdbx_vault_writer_finish(&writer, &ref)) {
         kdbx_vault_writer_abort(&writer);
+        if(!retried_after_promotion && flippass_db_promote_vault_for_mutation(app, NULL)) {
+            retried_after_promotion = true;
+            memset(&ref, 0, sizeof(ref));
+            goto retry;
+        }
         if(error != NULL) {
             furi_string_set_str(
                 error,
@@ -219,6 +378,116 @@ static bool flippass_db_write_secret_field(
 
     *out_ref = ref;
     return true;
+}
+
+static bool flippass_db_uses_deferred_uuid_refs(const App* app) {
+    return app != NULL && app->vault != NULL &&
+           kdbx_vault_get_backend(app->vault) != KDBXVaultBackendRam;
+}
+
+static bool flippass_db_set_group_uuid_model(
+    App* app,
+    KDBXGroup* group,
+    const char* uuid,
+    FuriString* error) {
+    KDBXFieldRef ref = {0};
+
+    furi_assert(app);
+    furi_assert(group);
+
+    if(flippass_db_uses_deferred_uuid_refs(app)) {
+        if(!flippass_db_write_secret_field(app, uuid, &ref, error) ||
+           !kdbx_group_set_uuid_ref(group, &ref)) {
+            if(error != NULL && furi_string_empty(error)) {
+                furi_string_set_str(error, "FlipPass could not initialize the group UUID.");
+            }
+            return false;
+        }
+        group->uuid = NULL;
+        return true;
+    }
+
+    if(kdbx_group_set_uuid(group, app->db_arena, uuid)) {
+        return true;
+    }
+
+    if(flippass_db_promote_vault_for_mutation(app, NULL) &&
+       flippass_db_uses_deferred_uuid_refs(app)) {
+        if(flippass_db_write_secret_field(app, uuid, &ref, error) &&
+           kdbx_group_set_uuid_ref(group, &ref)) {
+            group->uuid = NULL;
+            return true;
+        }
+    }
+
+    if(error != NULL && furi_string_empty(error)) {
+        furi_string_set_str(error, "FlipPass could not initialize the group UUID.");
+    }
+    return false;
+}
+
+static bool flippass_db_set_entry_uuid_model(
+    App* app,
+    KDBXEntry* entry,
+    const char* uuid,
+    FuriString* error) {
+    KDBXFieldRef ref = {0};
+
+    furi_assert(app);
+    furi_assert(entry);
+
+    if(flippass_db_uses_deferred_uuid_refs(app)) {
+        if(!flippass_db_write_secret_field(app, uuid, &ref, error) ||
+           !kdbx_entry_set_uuid_ref(entry, &ref)) {
+            if(error != NULL && furi_string_empty(error)) {
+                furi_string_set_str(error, "FlipPass could not initialize the entry UUID.");
+            }
+            return false;
+        }
+        entry->uuid = NULL;
+        return true;
+    }
+
+    if(kdbx_entry_set_uuid(entry, app->db_arena, uuid)) {
+        return true;
+    }
+
+    if(flippass_db_promote_vault_for_mutation(app, NULL) &&
+       flippass_db_uses_deferred_uuid_refs(app)) {
+        if(flippass_db_write_secret_field(app, uuid, &ref, error) &&
+           kdbx_entry_set_uuid_ref(entry, &ref)) {
+            entry->uuid = NULL;
+            return true;
+        }
+    }
+
+    if(error != NULL && furi_string_empty(error)) {
+        furi_string_set_str(error, "FlipPass could not initialize the entry UUID.");
+    }
+    return false;
+}
+
+static bool flippass_db_set_group_name_model(
+    App* app,
+    KDBXGroup* group,
+    const char* name,
+    FuriString* error) {
+    furi_assert(app);
+    furi_assert(group);
+
+    if(kdbx_group_set_name(group, app->db_arena, name != NULL ? name : "")) {
+        return true;
+    }
+
+    if(flippass_db_promote_vault_for_mutation(app, NULL) &&
+       kdbx_group_set_name(group, app->db_arena, name != NULL ? name : "")) {
+        return true;
+    }
+
+    if(error != NULL && furi_string_empty(error)) {
+        furi_string_set_str(error, "FlipPass could not allocate the group name.");
+    }
+    return false;
 }
 
 static void flippass_db_append_group(KDBXGroup* parent, KDBXGroup* group) {
@@ -355,6 +624,14 @@ static bool flippass_db_validate_custom_field_value(const char* value, FuriStrin
 static bool flippass_db_prepare_editable_session(App* app, FuriString* error) {
     furi_assert(app);
 
+    flippass_db_trim_for_model_mutation(app);
+
+    /* Safety-net promotion: if the call site did not already promote (e.g. the
+     * mutation was triggered outside the normal editor commit path), try here.
+     * With the CRUD plugin already in memory the window is smaller, but vault
+     * page freeing still provides meaningful headroom for this mutation. */
+    flippass_db_proactive_promote_if_needed(app);
+
     if(app->db_arena == NULL) {
         app->db_arena = kdbx_arena_alloc(FLIPPASS_DB_MUTABLE_ARENA_CHUNK_SIZE, NULL, 0U);
         if(app->db_arena == NULL) {
@@ -376,6 +653,7 @@ static bool flippass_db_prepare_editable_session(App* app, FuriString* error) {
         app->active_vault_backend = KDBXVaultBackendRam;
     }
 
+    flippass_db_refresh_model_budget(app);
     return true;
 }
 
@@ -427,6 +705,11 @@ bool flippass_db_activate_entry(App* app, KDBXEntry* entry, bool load_notes, Fur
     if(entry->uuid == NULL && !kdbx_vault_ref_is_empty(kdbx_entry_get_uuid_ref(entry)) &&
        !kdbx_entry_is_loaded(entry, KDBXEntryFieldUuid) &&
        !flippass_db_load_entry_uuid(app, entry, error)) {
+        return false;
+    }
+
+    if(entry->title == NULL && kdbx_entry_has_field(entry, KDBXEntryFieldTitle) &&
+       !flippass_db_load_entry_title_into_cache(app, entry, error)) {
         return false;
     }
 
@@ -612,18 +895,194 @@ bool flippass_db_copy_entry_uuid(
     return flippass_db_copy_ref_text(app, kdbx_entry_get_uuid_ref(entry), out, error);
 }
 
+/* Heap headroom kept free before admitting an extra group's titles into the
+ * cache window. Tuned to the 8 KiB stack reserve baseline; falls in line with
+ * the open-path field allocator that already keeps 8 KiB headroom. */
+#define FLIPPASS_TITLE_CACHE_HEADROOM_BYTES (8U * 1024U)
+
+static bool
+    flippass_db_load_entry_title_into_cache(App* app, KDBXEntry* entry, FuriString* error) {
+    const KDBXFieldRef* ref = kdbx_entry_get_field_ref(entry, KDBXEntryFieldTitle);
+    char* plain = NULL;
+    size_t plain_size = 0U;
+
+    if(ref == NULL || kdbx_vault_ref_is_empty(ref)) {
+        return true;
+    }
+
+    if(app->vault == NULL) {
+        if(error != NULL) {
+            furi_string_set_str(error, "The encrypted session vault is not available.");
+        }
+        return false;
+    }
+
+    if(!kdbx_vault_load_text(app->vault, ref, &plain, &plain_size)) {
+        if(error != NULL) {
+            furi_string_set_str(error, "The encrypted session vault could not be read.");
+        }
+        return false;
+    }
+
+    if(!kdbx_entry_take_loaded_text(entry, KDBXEntryFieldTitle, plain, plain_size)) {
+        if(error != NULL) {
+            furi_string_set_str(error, "Not enough RAM is available to materialize this title.");
+        }
+        memzero(plain, plain_size + 1U);
+        free(plain);
+        return false;
+    }
+
+    return true;
+}
+
+bool flippass_db_ensure_entry_title(App* app, KDBXEntry* entry, FuriString* error) {
+    furi_assert(app);
+    furi_assert(entry);
+
+    if(entry->title != NULL) {
+        return true;
+    }
+
+    return flippass_db_load_entry_title_into_cache(app, entry, error);
+}
+
+void flippass_db_clear_entry_title_cached(KDBXEntry* entry) {
+    if(entry == NULL) {
+        return;
+    }
+    kdbx_entry_clear_loaded_field_mask(entry, KDBXEntryFieldTitle);
+}
+
 bool flippass_db_copy_entry_title(
     App* app,
     const KDBXEntry* entry,
     FuriString* out,
     FuriString* error) {
-    UNUSED(app);
-    UNUSED(error);
     furi_assert(entry);
     furi_assert(out);
 
+    if(entry->title != NULL) {
+        furi_string_set_str(out, entry->title);
+        return true;
+    }
+
+    /* Lazy materialize: the entry may be in a group outside the title cache
+     * window. Borrow the entry's title cache for this one read; the caller
+     * keeps the FuriString copy after we return. */
+    if(!flippass_db_ensure_entry_title(app, (KDBXEntry*)entry, error)) {
+        furi_string_reset(out);
+        return false;
+    }
+
     furi_string_set_str(out, entry->title != NULL ? entry->title : "");
     return true;
+}
+
+static bool flippass_db_title_cache_keep_group(
+    KDBXGroup* group,
+    KDBXGroup* keep_current,
+    KDBXGroup* keep_previous,
+    KDBXGroup* keep_children_of) {
+    if(group == NULL) {
+        return false;
+    }
+    if(group == keep_current || group == keep_previous) {
+        return true;
+    }
+    if(keep_children_of != NULL) {
+        for(KDBXGroup* child = keep_children_of->children; child != NULL; child = child->next) {
+            if(child == group) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+static bool flippass_db_title_cache_walk_evict(
+    KDBXGroup* group,
+    KDBXGroup* keep_current,
+    KDBXGroup* keep_previous,
+    KDBXGroup* keep_children_of) {
+    if(group == NULL) {
+        return false;
+    }
+
+    bool released = false;
+    for(KDBXGroup* node = group; node != NULL; node = kdbx_group_next_in_subtree(node, group)) {
+        const bool keep_titles = flippass_db_title_cache_keep_group(
+            node, keep_current, keep_previous, keep_children_of);
+        if(!keep_titles) {
+            for(KDBXEntry* entry = node->entries; entry != NULL; entry = entry->next) {
+                const bool was_loaded = entry->title != NULL;
+                kdbx_entry_clear_loaded_field_mask(entry, KDBXEntryFieldTitle);
+                released |= was_loaded && entry->title == NULL;
+            }
+        }
+    }
+    return released;
+}
+
+static void flippass_db_title_cache_load_group(App* app, KDBXGroup* group, bool gate_on_heap) {
+    if(group == NULL) {
+        return;
+    }
+
+    for(KDBXEntry* entry = group->entries; entry != NULL; entry = entry->next) {
+        if(gate_on_heap &&
+           memmgr_heap_get_max_free_block() < FLIPPASS_TITLE_CACHE_HEADROOM_BYTES) {
+            return;
+        }
+        if(entry->title != NULL) {
+            continue;
+        }
+        if(!flippass_db_load_entry_title_into_cache(app, entry, NULL)) {
+            /* Best-effort prefetch; if a single title can't fit, stop trying
+             * to admit more from this group instead of thrashing the vault. */
+            return;
+        }
+    }
+}
+
+void flippass_db_browser_enter_group(App* app, KDBXGroup* new_current, KDBXGroup* old_current) {
+    furi_assert(app);
+
+    /* The new "previous" is whatever group we just left, unless the navigation
+     * was a no-op or a tree reset. */
+    KDBXGroup* new_previous = (old_current != new_current) ? old_current : NULL;
+
+    if(app->root_group != NULL) {
+        flippass_db_title_cache_walk_evict(
+            app->root_group, new_current, new_previous, new_current);
+    }
+
+    /* Mandatory: the current group must be browsable. If even this fails,
+     * fall through silently; the browser falls back to "Title unavailable"
+     * for the offending entry on its own. */
+    flippass_db_title_cache_load_group(app, new_current, false);
+
+    /* Best-effort window: previous group, then children of the new current. */
+    if(new_previous != NULL && new_previous != new_current) {
+        flippass_db_title_cache_load_group(app, new_previous, true);
+    }
+    if(new_current != NULL) {
+        for(KDBXGroup* child = new_current->children; child != NULL; child = child->next) {
+            if(memmgr_heap_get_max_free_block() < FLIPPASS_TITLE_CACHE_HEADROOM_BYTES) {
+                break;
+            }
+            flippass_db_title_cache_load_group(app, child, true);
+        }
+    }
+
+    app->title_cache_previous = new_previous;
+}
+
+bool flippass_db_browser_clear_title_cache(App* app) {
+    furi_assert(app);
+    const bool released = flippass_db_title_cache_walk_evict(app->root_group, NULL, NULL, NULL);
+    app->title_cache_previous = NULL;
+    return released;
 }
 
 KDBXVaultBackend flippass_db_parse_backend_hint(const char* text) {
@@ -670,6 +1129,9 @@ bool flippass_db_create_new_database(
     }
 
     app->root_group = kdbx_group_alloc(app->db_arena);
+    if(app->root_group == NULL && flippass_db_promote_vault_for_mutation(app, NULL)) {
+        app->root_group = kdbx_group_alloc(app->db_arena);
+    }
     if(app->root_group == NULL) {
         if(error != NULL) {
             furi_string_set_str(error, "Not enough RAM is available for the root group.");
@@ -679,13 +1141,16 @@ bool flippass_db_create_new_database(
 
     kdbx_group_reset(app->root_group);
     if(!flippass_db_generate_uuid_base64(uuid_base64) ||
-       !kdbx_group_set_uuid(app->root_group, app->db_arena, uuid_base64) ||
-       !kdbx_group_set_name(
+       !flippass_db_set_group_uuid_model(app, app->root_group, uuid_base64, error) ||
+       !flippass_db_set_group_name_model(
+           app,
            app->root_group,
-           app->db_arena,
-           (root_name != NULL && root_name[0] != '\0') ? root_name : "Root")) {
+           (root_name != NULL && root_name[0] != '\0') ? root_name : "Root",
+           error)) {
         if(error != NULL) {
-            furi_string_set_str(error, "FlipPass could not initialize the new database root.");
+            if(furi_string_empty(error)) {
+                furi_string_set_str(error, "FlipPass could not initialize the new database root.");
+            }
         }
         return false;
     }
@@ -722,6 +1187,9 @@ bool flippass_db_create_group(
     }
 
     group = kdbx_group_alloc(app->db_arena);
+    if(group == NULL && flippass_db_promote_vault_for_mutation(app, NULL)) {
+        group = kdbx_group_alloc(app->db_arena);
+    }
     if(group == NULL) {
         if(error != NULL) {
             furi_string_set_str(error, "Not enough RAM is available for the new group.");
@@ -731,10 +1199,12 @@ bool flippass_db_create_group(
 
     kdbx_group_reset(group);
     if(!flippass_db_generate_uuid_base64(uuid_base64) ||
-       !kdbx_group_set_uuid(group, app->db_arena, uuid_base64) ||
-       !kdbx_group_set_name(group, app->db_arena, name != NULL ? name : "")) {
+       !flippass_db_set_group_uuid_model(app, group, uuid_base64, error) ||
+       !flippass_db_set_group_name_model(app, group, name != NULL ? name : "", error)) {
         if(error != NULL) {
-            furi_string_set_str(error, "FlipPass could not allocate the new group.");
+            if(furi_string_empty(error)) {
+                furi_string_set_str(error, "FlipPass could not allocate the new group.");
+            }
         }
         return false;
     }
@@ -755,9 +1225,11 @@ bool flippass_db_update_group(App* app, KDBXGroup* group, const char* name, Furi
         return false;
     }
 
-    if(!kdbx_group_set_name(group, app->db_arena, name != NULL ? name : "")) {
+    if(!flippass_db_set_group_name_model(app, group, name != NULL ? name : "", error)) {
         if(error != NULL) {
-            furi_string_set_str(error, "FlipPass could not update the selected group.");
+            if(furi_string_empty(error)) {
+                furi_string_set_str(error, "FlipPass could not update the selected group.");
+            }
         }
         return false;
     }
@@ -792,6 +1264,9 @@ bool flippass_db_create_entry(
     }
 
     entry = kdbx_entry_alloc(app->db_arena);
+    if(entry == NULL && flippass_db_promote_vault_for_mutation(app, NULL)) {
+        entry = kdbx_entry_alloc(app->db_arena);
+    }
     if(entry == NULL) {
         if(error != NULL) {
             furi_string_set_str(error, "Not enough RAM is available for the new entry.");
@@ -801,15 +1276,17 @@ bool flippass_db_create_entry(
 
     kdbx_entry_reset(entry);
     if(!flippass_db_generate_uuid_base64(uuid_base64) ||
-       !kdbx_entry_set_uuid(entry, app->db_arena, uuid_base64) ||
-       !kdbx_entry_set_title(entry, app->db_arena, title != NULL ? title : "")) {
+       !flippass_db_set_entry_uuid_model(app, entry, uuid_base64, error)) {
         if(error != NULL) {
-            furi_string_set_str(error, "FlipPass could not initialize the new entry.");
+            if(furi_string_empty(error)) {
+                furi_string_set_str(error, "FlipPass could not initialize the new entry.");
+            }
         }
         return false;
     }
 
-    if(!flippass_db_set_entry_field(app, entry, KDBXEntryFieldUsername, username, error) ||
+    if(!flippass_db_set_entry_field(app, entry, KDBXEntryFieldTitle, title, error) ||
+       !flippass_db_set_entry_field(app, entry, KDBXEntryFieldUsername, username, error) ||
        !flippass_db_set_entry_field(app, entry, KDBXEntryFieldPassword, password, error) ||
        !flippass_db_set_entry_field(app, entry, KDBXEntryFieldUrl, url, error) ||
        !flippass_db_set_entry_field(app, entry, KDBXEntryFieldNotes, notes, error) ||
@@ -842,7 +1319,7 @@ bool flippass_db_update_entry(
         return false;
     }
 
-    if(!kdbx_entry_set_title(entry, app->db_arena, title != NULL ? title : "") ||
+    if(!flippass_db_set_entry_field(app, entry, KDBXEntryFieldTitle, title, error) ||
        !flippass_db_set_entry_field(app, entry, KDBXEntryFieldUsername, username, error) ||
        !flippass_db_set_entry_field(app, entry, KDBXEntryFieldPassword, password, error) ||
        !flippass_db_set_entry_field(app, entry, KDBXEntryFieldUrl, url, error) ||
@@ -958,6 +1435,9 @@ bool flippass_db_create_custom_field(
     }
 
     field = kdbx_entry_add_custom_field_ex(entry, app->db_arena, name, &ref, protected_value);
+    if(field == NULL && flippass_db_promote_vault_for_mutation(app, NULL)) {
+        field = kdbx_entry_add_custom_field_ex(entry, app->db_arena, name, &ref, protected_value);
+    }
     if(field == NULL) {
         if(error != NULL) {
             furi_string_set_str(error, "FlipPass could not allocate the custom field.");
@@ -993,8 +1473,13 @@ bool flippass_db_update_custom_field(
         return false;
     }
 
-    if(!kdbx_custom_field_set_key(field, app->db_arena, name) ||
-       !kdbx_custom_field_set_ref(field, &ref)) {
+    bool updated = kdbx_custom_field_set_key(field, app->db_arena, name) &&
+                   kdbx_custom_field_set_ref(field, &ref);
+    if(!updated && flippass_db_promote_vault_for_mutation(app, NULL)) {
+        updated = kdbx_custom_field_set_key(field, app->db_arena, name) &&
+                  kdbx_custom_field_set_ref(field, &ref);
+    }
+    if(!updated) {
         if(error != NULL) {
             furi_string_set_str(error, "FlipPass could not update the custom field.");
         }

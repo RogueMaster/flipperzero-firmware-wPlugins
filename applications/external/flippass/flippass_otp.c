@@ -225,10 +225,37 @@ static const FlipPassOtpPluginV1* flippass_otp_plugin_load(App* app, FuriString*
     return plugin;
 }
 
+static void flippass_otp_prepare_plugin_window(App* app) {
+    furi_assert(app);
+
+    FLIPPASS_MEMORY_LOG(app, "otp_plugin_window_begin", 0U);
+    flippass_db_browser_clear_title_cache(app);
+    FLIPPASS_MEMORY_LOG(app, "otp_plugin_window_end", 0U);
+}
+
 static uint64_t flippass_otp_unix_time_now(void) {
     DateTime now;
     furi_hal_rtc_get_datetime(&now);
     return (uint64_t)datetime_datetime_to_timestamp(&now);
+}
+
+static uint32_t flippass_otp_totp_refresh_ms(
+    uint64_t unix_time,
+    int32_t time_zone_offset_seconds,
+    uint32_t period) {
+    if(period == 0U) {
+        period = FLIPPASS_OTP_DEFAULT_PERIOD;
+    }
+
+    int64_t corrected_time = (int64_t)unix_time - time_zone_offset_seconds;
+    if(corrected_time < 0) {
+        corrected_time = 0;
+    }
+
+    const uint32_t elapsed = (uint32_t)(((uint64_t)corrected_time) % period);
+    const uint32_t remaining_seconds = period - elapsed;
+    const uint64_t refresh_ms = (uint64_t)remaining_seconds * 1000ULL;
+    return refresh_ms > UINT32_MAX ? UINT32_MAX : (uint32_t)refresh_ms;
 }
 
 const char* flippass_otp_kind_label(FlipPassOtpKind kind) {
@@ -448,35 +475,55 @@ bool flippass_otp_generate_code(
     bool advance_hotp,
     char out_code[FLIPPASS_OTP_CODE_MAX_CHARS + 1U],
     FuriString* error) {
+    return flippass_otp_generate_code_with_refresh(
+        app, entry, kind, advance_hotp, out_code, NULL, error);
+}
+
+bool flippass_otp_generate_code_with_refresh(
+    App* app,
+    KDBXEntry* entry,
+    FlipPassOtpKind kind,
+    bool advance_hotp,
+    char out_code[FLIPPASS_OTP_CODE_MAX_CHARS + 1U],
+    uint32_t* out_refresh_ms,
+    FuriString* error) {
     FlipPassOtpConfig config;
     FlipPassOtpPluginRequestV1 request = {0};
     FlipPassOtpPluginResultV1 result = {0};
+    uint64_t unix_time = 0ULL;
     bool ok = false;
 
+    if(out_refresh_ms != NULL) {
+        *out_refresh_ms = 0U;
+    }
     if(out_code == NULL) {
         return false;
     }
     out_code[0] = '\0';
 
-    if(!flippass_otp_load_config(app, entry, kind, &config, error)) {
-        return false;
-    }
+    flippass_otp_prepare_plugin_window(app);
+    FLIPPASS_MEMORY_LOG(app, "otp_config_begin", 0U);
+    const FlipPassOtpPluginV1* plugin = NULL;
+#if FLIPPASS_OTP_SEQUENTIAL_WINDOW
+    /* Finish deferred vault reads before mapping OTP's own SHA implementation.
+     * No crypto function or borrowed crypto API is executing at this boundary. */
+    if(!flippass_otp_load_config(app, entry, kind, &config, error)) goto cleanup;
+    FLIPPASS_MEMORY_LOG(app, "otp_config_ready", 0U);
+    flippass_module_unload(app, FlipPassModuleSlotCrypto);
+#endif
+    plugin = flippass_otp_plugin_load(app, error);
+    if(plugin == NULL) goto cleanup;
+    FLIPPASS_MEMORY_LOG(app, "otp_module_ready", 0U);
+#if !FLIPPASS_OTP_SEQUENTIAL_WINDOW
+    if(!flippass_otp_load_config(app, entry, kind, &config, error)) goto cleanup;
+    FLIPPASS_MEMORY_LOG(app, "otp_config_ready", 0U);
+#endif
 
     if(kind == FlipPassOtpKindHmac && advance_hotp && config.counter == UINT64_MAX) {
         if(error != NULL) {
             furi_string_set_str(error, "HmacOtp-Counter cannot be incremented further.");
         }
-        return false;
-    }
-
-    FuriString* load_error = furi_string_alloc();
-    const FlipPassOtpPluginV1* plugin = flippass_otp_plugin_load(app, load_error);
-    if(plugin == NULL) {
-        if(error != NULL) {
-            furi_string_set(error, load_error);
-        }
-        furi_string_free(load_error);
-        return false;
+        goto cleanup;
     }
 
     request.api_version = FLIPPASS_OTP_PLUGIN_API_VERSION;
@@ -488,24 +535,52 @@ bool flippass_otp_generate_code(
     request.digits = (kind == FlipPassOtpKindHmac) ? FLIPPASS_OTP_DEFAULT_DIGITS : config.digits;
     request.period = config.period;
     request.counter = config.counter;
-    request.unix_time = flippass_otp_unix_time_now();
+    unix_time = flippass_otp_unix_time_now();
+    request.unix_time = unix_time;
     request.time_zone_offset_seconds = (int32_t)app->otp_time_zone_minutes * 60;
+    if(kind == FlipPassOtpKindTime && out_refresh_ms != NULL) {
+        *out_refresh_ms = flippass_otp_totp_refresh_ms(
+            unix_time, request.time_zone_offset_seconds, config.period);
+    }
 
     ok = plugin->generate(&request, &result, error);
+    FLIPPASS_MEMORY_LOG(app, "otp_generated", 0U);
     flippass_module_unload(app, FlipPassModuleSlotOtp);
-    furi_string_free(load_error);
+    plugin = NULL;
 
     if(!ok) {
-        return false;
+        goto cleanup;
     }
 
     snprintf(out_code, FLIPPASS_OTP_CODE_MAX_CHARS + 1U, "%s", result.code);
 
     if(kind == FlipPassOtpKindHmac && advance_hotp) {
         ok = flippass_otp_update_counter_field(app, entry, result.next_counter, error);
+        if(!ok) {
+            goto cleanup;
+        }
     }
 
+cleanup:
+    if(plugin != NULL) {
+        flippass_module_unload(app, FlipPassModuleSlotOtp);
+    }
+#if FLIPPASS_OTP_SEQUENTIAL_WINDOW
+    /* Re-read reserved metadata when needed instead of retaining plaintext.
+     * Never drop a draft that has no durable vault reference. */
+    for(KDBXCustomField* field = entry != NULL ? entry->custom_fields : NULL; field != NULL;
+        field = field->next) {
+        if(flippass_otp_custom_field_is_reserved(field->key) &&
+           !kdbx_vault_ref_is_empty(&field->value_ref)) {
+            kdbx_custom_field_take_loaded_text(field, NULL, 0U);
+        }
+    }
+#endif
     memzero(&result, sizeof(result));
+    FLIPPASS_MEMORY_LOG(app, "otp_cleanup_done", 0U);
+    if(!ok) {
+        out_code[0] = '\0';
+    }
     return ok;
 }
 
@@ -524,6 +599,27 @@ bool flippass_otp_resolve_autotype_sequence(
     }
 
     furi_string_reset(out_sequence);
+    /* CMD is a separately validated launcher request. Do not expand or advance any
+     * OTP before its cold preflight; mixed CMD/OTP sequences are refused there. */
+    for(size_t scan = 0U; sequence[scan] != '\0'; ++scan) {
+        if(sequence[scan] != '{') continue;
+        if((sequence[scan + 1U] == '{' || sequence[scan + 1U] == '}') &&
+           sequence[scan + 2U] == '}') {
+            scan += 2U;
+            continue;
+        }
+        size_t name = scan + 1U;
+        while(sequence[name] == ' ' || sequence[name] == '\t')
+            ++name;
+        size_t end = name;
+        while(sequence[end] != '\0' && sequence[end] != ':' && sequence[end] != '}' &&
+              sequence[end] != ' ' && sequence[end] != '\t')
+            ++end;
+        if(flippass_otp_token_n_equals(sequence + name, end - name, "CMD")) {
+            furi_string_set_str(out_sequence, sequence);
+            return true;
+        }
+    }
     while(sequence[index] != '\0') {
         if(sequence[index] != '{') {
             index++;

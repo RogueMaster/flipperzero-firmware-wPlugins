@@ -167,6 +167,8 @@ static void flippass_keyboard_layout_execute_pending(App* app) {
     bool typed = false;
     bool canceled = false;
 
+    app->entry_action_keep_type_menu_prewarm = false;
+    app->entry_action_restore_type_drawer = false;
     flippass_typing_begin(app);
     flippass_entry_action_prepare_pending(app);
     flippass_progress_begin(
@@ -206,6 +208,7 @@ void flippass_scene_keyboard_layout_on_enter(void* context) {
         flippass_keyboard_layout_plugin_ensure(app, error);
     const FlipPassKeyboardLayoutHostApiV1 host_api = flippass_keyboard_layout_host_api(app);
 
+    flippass_ui_ensure_submenu(app);
     if(plugin == NULL || plugin->load_items == NULL || !plugin->load_items(&host_api)) {
         flippass_scene_status_show(
             app,
@@ -270,8 +273,8 @@ bool flippass_scene_keyboard_layout_on_event(void* context, SceneManagerEvent ev
 void flippass_scene_keyboard_layout_on_exit(void* context) {
     App* app = context;
 
-    submenu_reset(app->submenu);
+    if(app->submenu != NULL) {
+        submenu_reset(app->submenu);
+    }
     flippass_keyboard_layout_unload_plugin(app);
-    flippass_output_release_all(app);
-    flippass_output_cleanup(app);
 }

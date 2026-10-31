@@ -1,8 +1,10 @@
 #include "flippass_open_model_plugin.h"
+#include "../flippass_build_config.h"
 
 #include "../kdbx/kdbx_protected.h"
 #include "../kdbx/xml_parser.h"
 #include "../kdbx/memzero.h"
+#include <core/kernel.h>
 
 #include <stdlib.h>
 #include <string.h>
@@ -21,6 +23,9 @@ typedef enum {
     FlipPassOpenTextStateStringKey,
     FlipPassOpenTextStateStringValue,
     FlipPassOpenTextStateAutoTypeSequence,
+    FlipPassOpenTextStateAutoTypeWindow,
+    FlipPassOpenTextStateAutoTypeAssociationSequence,
+    FlipPassOpenTextStateIconId,
 } FlipPassOpenTextState;
 
 typedef struct {
@@ -37,8 +42,8 @@ typedef struct {
     KDBXProtectedStream protected_stream;
     FlipPassOpenByteBuffer protected_stream_key;
     FlipPassOpenByteBuffer protected_value_buffer;
-    FuriString* text_value;
-    FuriString* string_key;
+    FlipPassOpenByteBuffer text_value;
+    FlipPassOpenByteBuffer string_key;
     KDBXProtectedDiscardState protected_discard_state;
     FlipPassOpenTextState text_state;
     uint8_t progress_percent;
@@ -61,6 +66,12 @@ typedef struct {
     bool in_entry;
     bool in_string;
     bool in_autotype;
+    bool in_autotype_association;
+    bool autotype_flipper_selected;
+    bool autotype_window_seen;
+    bool autotype_window_matches;
+    bool autotype_association_has_sequence;
+    uint8_t autotype_window_matched;
     bool skipping_history;
     bool history_in_string;
     bool history_collect_protected_value;
@@ -97,11 +108,15 @@ static void fp_open_progress(
     ctx->host_api->progress(ctx->host_api->context, stage, detail, percent);
 }
 
+#if FLIPPASS_ENABLE_LOGS || FLIPPASS_ENABLE_PROBE_LOGS
 static void fp_open_log(FlipPassOpenContext* ctx, const char* message) {
     if(ctx != NULL && ctx->host_api != NULL && ctx->host_api->log != NULL && message != NULL) {
         ctx->host_api->log(ctx->host_api->context, message);
     }
 }
+#else
+#define fp_open_log(ctx, message) ((void)(ctx))
+#endif
 
 static void fp_open_set_error(FlipPassOpenContext* ctx, const char* format, ...) {
     va_list args;
@@ -114,6 +129,43 @@ static void fp_open_set_error(FlipPassOpenContext* ctx, const char* format, ...)
     va_start(args, format);
     vsnprintf(ctx->parse_error, sizeof(ctx->parse_error), format, args);
     va_end(args);
+
+#if FLIPPASS_ENABLE_LOGS || FLIPPASS_ENABLE_PROBE_LOGS
+    char message[160];
+    snprintf(
+        message,
+        sizeof(message),
+        "MODEL_FAIL state=%u groups=%lu entries=%lu xml=%lu chunk=%lu msg=%.72s",
+        (unsigned)ctx->text_state,
+        (unsigned long)ctx->group_count,
+        (unsigned long)ctx->entry_count,
+        (unsigned long)ctx->xml_bytes,
+        (unsigned long)ctx->stream_chunk_count,
+        ctx->parse_error);
+    fp_open_log(ctx, message);
+#endif
+}
+
+static void fp_open_set_builder_error(FlipPassOpenContext* ctx, const char* fallback) {
+    if(ctx == NULL || ctx->parse_failed) {
+        return;
+    }
+
+    fp_open_set_error(
+        ctx,
+        "%s",
+        (ctx->error != NULL && !furi_string_empty(ctx->error)) ? furi_string_get_cstr(ctx->error) :
+                                                                 fallback);
+}
+
+/* Largest-block values include allocator headers. Prevent firmware's aborting
+ * malloc from being called without its ARM32 header/alignment room. */
+static void* fp_open_try_alloc(size_t size) {
+    if(size == 0U || size > SIZE_MAX - 16U) return NULL;
+    const int32_t lock = furi_kernel_lock();
+    void* result = memmgr_heap_get_max_free_block() >= size + 16U ? malloc(size) : NULL;
+    furi_kernel_restore_lock(lock);
+    return result;
 }
 
 static bool fp_open_byte_buffer_reserve(FlipPassOpenByteBuffer* buffer, size_t capacity) {
@@ -124,7 +176,7 @@ static bool fp_open_byte_buffer_reserve(FlipPassOpenByteBuffer* buffer, size_t c
         return true;
     }
 
-    size_t next_capacity = buffer->capacity > 0U ? buffer->capacity : 512U;
+    size_t next_capacity = buffer->capacity > 0U ? buffer->capacity : 32U;
     while(next_capacity < capacity) {
         if(next_capacity > (SIZE_MAX / 2U)) {
             next_capacity = capacity;
@@ -133,7 +185,11 @@ static bool fp_open_byte_buffer_reserve(FlipPassOpenByteBuffer* buffer, size_t c
         next_capacity *= 2U;
     }
 
-    next = malloc(next_capacity);
+    next = fp_open_try_alloc(next_capacity);
+    if(next == NULL && next_capacity > capacity) {
+        next_capacity = capacity;
+        next = fp_open_try_alloc(next_capacity);
+    }
     if(next == NULL) {
         return false;
     }
@@ -181,6 +237,33 @@ static void fp_open_byte_buffer_free(FlipPassOpenByteBuffer* buffer) {
     memset(buffer, 0, sizeof(*buffer));
 }
 
+static const char* fp_open_text_cstr(const FlipPassOpenByteBuffer* text) {
+    return text->data != NULL ? (const char*)text->data : "";
+}
+
+static void fp_open_text_reset(FlipPassOpenByteBuffer* text) {
+    /* Keep reusable short text; release a large field as soon as its lifetime
+     * ends, including when the buffered prefix has drained into the vault. */
+    if(text->capacity > 256U) {
+        fp_open_byte_buffer_free(text);
+    } else {
+        if(text->data != NULL) memzero(text->data, text->capacity);
+        text->size = 0U;
+    }
+}
+
+static bool fp_open_text_append(FlipPassOpenByteBuffer* text, const char* data, size_t size) {
+    if(size == 0U) return true;
+    if(data == NULL || text->size == SIZE_MAX || size > SIZE_MAX - text->size - 1U ||
+       memchr(data, '\0', size) != NULL)
+        return false;
+    if(!fp_open_byte_buffer_reserve(text, text->size + size + 1U)) return false;
+    memcpy(text->data + text->size, data, size);
+    text->size += size;
+    text->data[text->size] = '\0';
+    return true;
+}
+
 static const char* fp_open_find_attribute(const char** attributes, const char* name) {
     if(attributes == NULL || name == NULL) {
         return NULL;
@@ -199,9 +282,9 @@ static const char* fp_open_find_attribute(const char** attributes, const char* n
 static void fp_open_begin_text(FlipPassOpenContext* ctx, FlipPassOpenTextState state) {
     furi_assert(ctx);
     ctx->text_state = state;
-    furi_string_reset(ctx->text_value);
+    fp_open_text_reset(&ctx->text_value);
     if(state != FlipPassOpenTextStateStringValue) {
-        furi_string_reset(ctx->string_key);
+        fp_open_text_reset(&ctx->string_key);
     }
 }
 
@@ -209,7 +292,7 @@ static bool fp_open_append_text_segment(FlipPassOpenContext* ctx, const char* da
     furi_assert(ctx);
     furi_assert(data);
 
-    if(!furi_string_cat_printf(ctx->text_value, "%.*s", len, data)) {
+    if(len < 0 || !fp_open_text_append(&ctx->text_value, data, (size_t)len)) {
         fp_open_set_error(ctx, "Not enough RAM is available to parse the XML payload.");
         return false;
     }
@@ -224,7 +307,7 @@ static bool fp_open_should_stream_string_value(FlipPassOpenContext* ctx) {
     }
 
     return ctx->builder_api->should_stream_string_value(
-        ctx->builder_api->context, furi_string_get_cstr(ctx->string_key));
+        ctx->builder_api->context, fp_open_text_cstr(&ctx->string_key));
 }
 
 static bool fp_open_begin_streamed_value(FlipPassOpenContext* ctx) {
@@ -234,12 +317,10 @@ static bool fp_open_begin_streamed_value(FlipPassOpenContext* ctx) {
 
     if(!ctx->builder_api->begin_streamed_value(
            ctx->builder_api->context,
-           furi_string_get_cstr(ctx->string_key),
+           fp_open_text_cstr(&ctx->string_key),
            ctx->value_protected,
            ctx->error)) {
-        if(!ctx->parse_failed && ctx->error != NULL && !furi_string_empty(ctx->error)) {
-            fp_open_set_error(ctx, "%s", furi_string_get_cstr(ctx->error));
-        }
+        fp_open_set_builder_error(ctx, "Unable to begin a streamed XML field.");
         return false;
     }
 
@@ -249,13 +330,13 @@ static bool fp_open_begin_streamed_value(FlipPassOpenContext* ctx) {
 
 static bool fp_open_drain_buffered_value_into_stream(FlipPassOpenContext* ctx) {
     const char* buffered = NULL;
-    const size_t buffered_size = (ctx != NULL) ? furi_string_size(ctx->text_value) : 0U;
+    const size_t buffered_size = (ctx != NULL) ? ctx->text_value.size : 0U;
 
     if(ctx == NULL || !ctx->deferred_stream_active || buffered_size == 0U) {
         return true;
     }
 
-    buffered = furi_string_get_cstr(ctx->text_value);
+    buffered = fp_open_text_cstr(&ctx->text_value);
     if(ctx->value_protected) {
         kdbx_protected_discard_state_init(&ctx->protected_discard_state);
         if(!kdbx_protected_decode_state_update(
@@ -274,13 +355,13 @@ static bool fp_open_drain_buffered_value_into_stream(FlipPassOpenContext* ctx) {
         return false;
     }
 
-    furi_string_reset(ctx->text_value);
+    fp_open_text_reset(&ctx->text_value);
     return true;
 }
 
 static bool fp_open_maybe_spill_buffered_value(FlipPassOpenContext* ctx) {
     const char* key = NULL;
-    const size_t buffered_size = (ctx != NULL) ? furi_string_size(ctx->text_value) : 0U;
+    const size_t buffered_size = (ctx != NULL) ? ctx->text_value.size : 0U;
 
     if(ctx == NULL || ctx->deferred_stream_active ||
        ctx->text_state != FlipPassOpenTextStateStringValue ||
@@ -289,16 +370,14 @@ static bool fp_open_maybe_spill_buffered_value(FlipPassOpenContext* ctx) {
         return true;
     }
 
-    key = furi_string_get_cstr(ctx->string_key);
+    key = fp_open_text_cstr(&ctx->string_key);
     if(key == NULL || key[0] == '\0') {
         return true;
     }
 
     if(!ctx->builder_api->prepare_string_value_stream(
            ctx->builder_api->context, key, buffered_size, ctx->error)) {
-        if(!ctx->parse_failed && ctx->error != NULL && !furi_string_empty(ctx->error)) {
-            fp_open_set_error(ctx, "%s", furi_string_get_cstr(ctx->error));
-        }
+        fp_open_set_builder_error(ctx, "Unable to prepare a streamed XML field.");
         return false;
     }
 
@@ -324,13 +403,11 @@ static bool fp_open_write_streamed_value_chunk(
 
     if(!ctx->builder_api->write_streamed_value_chunk(
            ctx->builder_api->context,
-           furi_string_get_cstr(ctx->string_key),
+           fp_open_text_cstr(&ctx->string_key),
            data,
            data_size,
            ctx->error)) {
-        if(!ctx->parse_failed && ctx->error != NULL && !furi_string_empty(ctx->error)) {
-            fp_open_set_error(ctx, "%s", furi_string_get_cstr(ctx->error));
-        }
+        fp_open_set_builder_error(ctx, "Unable to write a streamed XML field.");
         return false;
     }
 
@@ -362,10 +439,8 @@ static bool fp_open_commit_streamed_value(FlipPassOpenContext* ctx) {
     }
 
     if(!ctx->builder_api->commit_streamed_value(
-           ctx->builder_api->context, furi_string_get_cstr(ctx->string_key), ctx->error)) {
-        if(!ctx->parse_failed && ctx->error != NULL && !furi_string_empty(ctx->error)) {
-            fp_open_set_error(ctx, "%s", furi_string_get_cstr(ctx->error));
-        }
+           ctx->builder_api->context, fp_open_text_cstr(&ctx->string_key), ctx->error)) {
+        fp_open_set_builder_error(ctx, "Unable to commit a streamed XML field.");
         return false;
     }
 
@@ -437,9 +512,34 @@ static bool fp_open_commit_text_value(
         ok = ctx->builder_api->set_entry_standard_field(
             ctx->builder_api->context, KDBXEntryFieldAutotype, value, value_len, ctx->error);
         break;
+    case FlipPassOpenTextStateIconId: {
+        /* Preserve byte-sized IDs, including unknown future icons. Unsupported
+         * IDs use the browser fallback; malformed values leave the model alone. */
+        uint32_t icon_id = 0U;
+        bool valid = value_len > 0U;
+        for(size_t index = 0U; valid && index < value_len; index++) {
+            if(value[index] < '0' || value[index] > '9') {
+                valid = false;
+                break;
+            }
+            icon_id = icon_id * 10U + (uint32_t)(value[index] - '0');
+            valid = valid && icon_id <= UINT8_MAX;
+        }
+        if(valid) {
+            ctx->builder_api->set_icon_id(ctx->builder_api->context, (uint8_t)icon_id);
+        }
+        break;
+    }
     case FlipPassOpenTextStateStringValue: {
-        const char* key = furi_string_get_cstr(ctx->string_key);
+        const char* key = fp_open_text_cstr(&ctx->string_key);
         if(ctx->value_protected) {
+            /* Reserve a safe Base64 upper bound through the checked allocator
+             * so the reusable decoder never needs its aborting malloc path. */
+            if(!fp_open_byte_buffer_reserve(
+                   &ctx->protected_value_buffer, (value_len / 4U) * 3U + 1U)) {
+                fp_open_set_error(ctx, "Not enough RAM is available to decode the XML field.");
+                return false;
+            }
             if(!ctx->protected_stream.ready || !kdbx_protected_value_decode_reuse(
                                                    &ctx->protected_stream,
                                                    value,
@@ -469,21 +569,20 @@ static bool fp_open_commit_text_value(
         ctx->protected_value_buffer.size = 0U;
     }
 
-    if(!ok && !ctx->parse_failed && ctx->error != NULL && !furi_string_empty(ctx->error)) {
-        fp_open_set_error(ctx, "%s", furi_string_get_cstr(ctx->error));
+    if(!ok) {
+        fp_open_set_builder_error(ctx, "Unable to commit the XML value to the database model.");
     }
 
     return ok;
 }
 
 static bool fp_open_consume_history_protected_value(FlipPassOpenContext* ctx) {
-    if(!ctx->history_value_protected || furi_string_size(ctx->text_value) == 0U) {
+    if(!ctx->history_value_protected || ctx->text_value.size == 0U) {
         return true;
     }
 
     if(!ctx->protected_stream.ready ||
-       !kdbx_protected_value_discard(
-           &ctx->protected_stream, furi_string_get_cstr(ctx->text_value))) {
+       !kdbx_protected_value_discard(&ctx->protected_stream, fp_open_text_cstr(&ctx->text_value))) {
         fp_open_set_error(ctx, "A protected entry field could not be decoded.");
         return false;
     }
@@ -493,7 +592,9 @@ static bool fp_open_consume_history_protected_value(FlipPassOpenContext* ctx) {
 
 static void fp_open_start_element(void* context, const char* name, const char** attributes) {
     FlipPassOpenContext* ctx = context;
-    char message[32];
+#if FLIPPASS_ENABLE_LOGS || FLIPPASS_ENABLE_PROBE_LOGS
+    char message[64];
+#endif
     furi_assert(ctx);
 
     if(ctx->parse_failed) {
@@ -507,7 +608,7 @@ static void fp_open_start_element(void* context, const char* name, const char** 
             ctx->history_collect_protected_value = false;
             ctx->history_value_protected = false;
             ctx->protected_discard_active = false;
-            furi_string_reset(ctx->text_value);
+            fp_open_text_reset(&ctx->text_value);
         } else if(strcmp(name, "Value") == 0 && ctx->history_in_string) {
             const char* protected_value = fp_open_find_attribute(attributes, "Protected");
             ctx->history_value_protected =
@@ -518,7 +619,7 @@ static void fp_open_start_element(void* context, const char* name, const char** 
             if(ctx->protected_discard_active) {
                 kdbx_protected_discard_state_init(&ctx->protected_discard_state);
             }
-            furi_string_reset(ctx->text_value);
+            fp_open_text_reset(&ctx->text_value);
         }
         return;
     }
@@ -530,7 +631,7 @@ static void fp_open_start_element(void* context, const char* name, const char** 
         ctx->history_collect_protected_value = false;
         ctx->history_value_protected = false;
         ctx->protected_discard_active = false;
-        furi_string_reset(ctx->text_value);
+        fp_open_text_reset(&ctx->text_value);
         return;
     }
 
@@ -548,11 +649,13 @@ static void fp_open_start_element(void* context, const char* name, const char** 
             return;
         }
         ctx->group_count++;
-        if(ctx->group_count <= 4U) {
+#if FLIPPASS_ENABLE_LOGS || FLIPPASS_ENABLE_PROBE_LOGS
+        if(ctx->group_count <= 4U || (ctx->group_count % 8U) == 0U) {
             snprintf(
                 message, sizeof(message), "XML_GROUP count=%lu", (unsigned long)ctx->group_count);
             fp_open_log(ctx, message);
         }
+#endif
         ctx->in_group = true;
         ctx->parsing_depth++;
         if((size_t)ctx->parsing_depth > FLIPPASS_OPEN_MAX_XML_DEPTH) {
@@ -579,12 +682,15 @@ static void fp_open_start_element(void* context, const char* name, const char** 
             return;
         }
         ctx->entry_count++;
-        if(ctx->entry_count <= 4U) {
+#if FLIPPASS_ENABLE_LOGS || FLIPPASS_ENABLE_PROBE_LOGS
+        if(ctx->entry_count <= 4U || (ctx->entry_count % 16U) == 0U) {
             snprintf(
                 message, sizeof(message), "XML_ENTRY count=%lu", (unsigned long)ctx->entry_count);
             fp_open_log(ctx, message);
         }
+#endif
         ctx->in_entry = true;
+        ctx->autotype_flipper_selected = false;
         ctx->parsing_depth++;
         if((size_t)ctx->parsing_depth > FLIPPASS_OPEN_MAX_XML_DEPTH) {
             fp_open_set_error(ctx, "The XML nesting depth exceeds FlipPass's safe limit.");
@@ -594,6 +700,33 @@ static void fp_open_start_element(void* context, const char* name, const char** 
 
     if(strcmp(name, "AutoType") == 0 && ctx->in_entry) {
         ctx->in_autotype = true;
+        return;
+    }
+
+    if(strcmp(name, "Association") == 0 && ctx->in_entry && ctx->in_autotype) {
+        ctx->in_autotype_association = true;
+        ctx->autotype_window_seen = false;
+        ctx->autotype_window_matches = false;
+        ctx->autotype_association_has_sequence = false;
+        fp_open_text_reset(&ctx->text_value);
+        return;
+    }
+
+    if(strcmp(name, "Window") == 0 && ctx->in_autotype_association) {
+        /* Match the small name incrementally, leaving a preceding sequence in
+         * the existing text buffer. Neither XML child order needs a second
+         * sequence allocation. */
+        ctx->autotype_window_matches = true;
+        ctx->autotype_window_matched = 0U;
+        ctx->text_state = FlipPassOpenTextStateAutoTypeWindow;
+        return;
+    }
+
+    if(strcmp(name, "KeystrokeSequence") == 0 && ctx->in_autotype_association) {
+        if(!ctx->autotype_flipper_selected &&
+           (!ctx->autotype_window_seen || ctx->autotype_window_matches)) {
+            fp_open_begin_text(ctx, FlipPassOpenTextStateAutoTypeAssociationSequence);
+        }
         return;
     }
 
@@ -612,14 +745,23 @@ static void fp_open_start_element(void* context, const char* name, const char** 
         return;
     }
 
-    if(strcmp(name, "DefaultSequence") == 0 && ctx->in_entry && ctx->in_autotype) {
-        fp_open_begin_text(ctx, FlipPassOpenTextStateAutoTypeSequence);
+    /* History copies were skipped above, so this is the live entry or group icon. */
+    if(strcmp(name, "IconID") == 0 && ctx->in_group) {
+        fp_open_begin_text(ctx, FlipPassOpenTextStateIconId);
+        return;
+    }
+
+    if(strcmp(name, "DefaultSequence") == 0 && ctx->in_entry && ctx->in_autotype &&
+       !ctx->in_autotype_association) {
+        if(!ctx->autotype_flipper_selected) {
+            fp_open_begin_text(ctx, FlipPassOpenTextStateAutoTypeSequence);
+        }
         return;
     }
 
     if(strcmp(name, "String") == 0) {
         ctx->in_string = true;
-        furi_string_reset(ctx->string_key);
+        fp_open_text_reset(&ctx->string_key);
         return;
     }
 
@@ -634,14 +776,9 @@ static void fp_open_start_element(void* context, const char* name, const char** 
                                                            strcmp(protected_value, "true") == 0);
         ctx->protected_discard_active = false;
         fp_open_begin_text(ctx, FlipPassOpenTextStateStringValue);
-        if(fp_open_should_stream_string_value(ctx)) {
-            if(!fp_open_begin_streamed_value(ctx)) {
-                return;
-            }
-            if(ctx->value_protected) {
-                kdbx_protected_discard_state_init(&ctx->protected_discard_state);
-            }
-        }
+        /* Delay file-backed streaming until the value actually reaches one
+         * vault record. Common short fields then use a small writer buffer,
+         * while long fields still spill before the text buffer grows large. */
     }
 }
 
@@ -664,7 +801,7 @@ static void fp_open_end_element(void* context, const char* name) {
             } else {
                 fp_open_consume_history_protected_value(ctx);
             }
-            furi_string_reset(ctx->text_value);
+            fp_open_text_reset(&ctx->text_value);
             ctx->history_collect_protected_value = false;
             ctx->history_value_protected = false;
         } else if(strcmp(name, "String") == 0) {
@@ -672,7 +809,7 @@ static void fp_open_end_element(void* context, const char* name) {
             ctx->history_collect_protected_value = false;
             ctx->history_value_protected = false;
             ctx->protected_discard_active = false;
-            furi_string_reset(ctx->text_value);
+            fp_open_text_reset(&ctx->text_value);
         }
 
         if(ctx->history_skip_depth > 0U) {
@@ -684,14 +821,55 @@ static void fp_open_end_element(void* context, const char* name) {
             ctx->history_collect_protected_value = false;
             ctx->history_value_protected = false;
             ctx->protected_discard_active = false;
-            furi_string_reset(ctx->text_value);
+            fp_open_text_reset(&ctx->text_value);
         }
         return;
     }
 
+    if(strcmp(name, "Window") == 0 && ctx->text_state == FlipPassOpenTextStateAutoTypeWindow) {
+        ctx->autotype_window_matches = ctx->autotype_window_matches &&
+                                       ctx->autotype_window_matched == sizeof("Flipper") - 1U;
+        ctx->autotype_window_seen = true;
+        ctx->text_state = FlipPassOpenTextStateNone;
+        return;
+    }
+
+    if(strcmp(name, "KeystrokeSequence") == 0 &&
+       ctx->text_state == FlipPassOpenTextStateAutoTypeAssociationSequence) {
+        ctx->autotype_association_has_sequence = true;
+        ctx->text_state = FlipPassOpenTextStateNone;
+        return;
+    }
+
+    if(strcmp(name, "Association") == 0 && ctx->in_autotype_association) {
+        /* KeePass's empty association sequence inherits the generic default.
+         * The first nonempty exact Flipper association wins, even if the
+         * generic DefaultSequence appears later in the XML. */
+        if(!ctx->autotype_flipper_selected && ctx->autotype_window_seen &&
+           ctx->autotype_window_matches && ctx->autotype_association_has_sequence &&
+           ctx->text_value.size > 0U) {
+            if(fp_open_commit_text_value(
+                   ctx,
+                   FlipPassOpenTextStateAutoTypeSequence,
+                   fp_open_text_cstr(&ctx->text_value),
+                   ctx->text_value.size)) {
+                ctx->autotype_flipper_selected = true;
+            }
+        }
+        fp_open_text_reset(&ctx->text_value);
+        ctx->text_state = FlipPassOpenTextStateNone;
+        ctx->in_autotype_association = false;
+        return;
+    }
+
     if(strcmp(name, "Key") == 0 && ctx->text_state == FlipPassOpenTextStateStringKey) {
-        furi_string_set(ctx->string_key, ctx->text_value);
-        furi_string_reset(ctx->text_value);
+        fp_open_text_reset(&ctx->string_key);
+        if(!fp_open_text_append(
+               &ctx->string_key, fp_open_text_cstr(&ctx->text_value), ctx->text_value.size)) {
+            fp_open_set_error(ctx, "Not enough RAM is available to parse the XML field name.");
+            return;
+        }
+        fp_open_text_reset(&ctx->text_value);
         ctx->text_state = FlipPassOpenTextStateNone;
         return;
     }
@@ -715,12 +893,9 @@ static void fp_open_end_element(void* context, const char* name) {
             }
         } else {
             fp_open_commit_text_value(
-                ctx,
-                ctx->text_state,
-                furi_string_get_cstr(ctx->text_value),
-                furi_string_size(ctx->text_value));
+                ctx, ctx->text_state, fp_open_text_cstr(&ctx->text_value), ctx->text_value.size);
         }
-        furi_string_reset(ctx->text_value);
+        fp_open_text_reset(&ctx->text_value);
         ctx->value_protected = false;
         ctx->protected_discard_active = false;
         ctx->text_state = FlipPassOpenTextStateNone;
@@ -730,14 +905,12 @@ static void fp_open_end_element(void* context, const char* name) {
     if(((strcmp(name, "Name") == 0) && ctx->text_state == FlipPassOpenTextStateGroupName) ||
        ((strcmp(name, "UUID") == 0) && ctx->text_state == FlipPassOpenTextStateGroupUuid) ||
        ((strcmp(name, "UUID") == 0) && ctx->text_state == FlipPassOpenTextStateEntryUuid) ||
+       ((strcmp(name, "IconID") == 0) && ctx->text_state == FlipPassOpenTextStateIconId) ||
        ((strcmp(name, "DefaultSequence") == 0) &&
         ctx->text_state == FlipPassOpenTextStateAutoTypeSequence)) {
         fp_open_commit_text_value(
-            ctx,
-            ctx->text_state,
-            furi_string_get_cstr(ctx->text_value),
-            furi_string_size(ctx->text_value));
-        furi_string_reset(ctx->text_value);
+            ctx, ctx->text_state, fp_open_text_cstr(&ctx->text_value), ctx->text_value.size);
+        fp_open_text_reset(&ctx->text_value);
         ctx->text_state = FlipPassOpenTextStateNone;
     }
 
@@ -810,6 +983,19 @@ static void fp_open_character_data(void* context, const char* data, int len) {
         return;
     }
 
+    if(ctx->text_state == FlipPassOpenTextStateAutoTypeWindow) {
+        static const char window[] = "Flipper";
+        for(int index = 0; index < len && ctx->autotype_window_matches; index++) {
+            if(ctx->autotype_window_matched >= sizeof(window) - 1U ||
+               data[index] != window[ctx->autotype_window_matched]) {
+                ctx->autotype_window_matches = false;
+            } else {
+                ctx->autotype_window_matched++;
+            }
+        }
+        return;
+    }
+
     if(ctx->text_state == FlipPassOpenTextStateStringValue && ctx->deferred_stream_active) {
         if(ctx->value_protected) {
             if(!kdbx_protected_decode_state_update(
@@ -864,8 +1050,13 @@ static bool fp_open_finish_inner_header(FlipPassOpenContext* ctx) {
                material,
                sizeof(material),
                &material_size,
-               ctx->error) ||
-           !kdbx_protected_stream_init_prederived(
+               ctx->error)) {
+            memzero(material, sizeof(material));
+            fp_open_set_error(ctx, "The KDBX protected-value key could not be derived.");
+            return false;
+        }
+
+        if(!kdbx_protected_stream_init_prederived(
                &ctx->protected_stream,
                (KDBXProtectedStreamAlgorithm)ctx->protected_stream_id,
                material,
@@ -959,7 +1150,9 @@ static bool fp_open_consume_inner_header(
 static bool fp_open_payload_chunk_callback(const uint8_t* data, size_t data_size, void* context) {
     FlipPassOpenContext* ctx = context;
     size_t consumed = 0U;
-    char message[80];
+#if FLIPPASS_ENABLE_LOGS || FLIPPASS_ENABLE_PROBE_LOGS
+    char message[112];
+#endif
 
     furi_assert(ctx);
 
@@ -968,17 +1161,21 @@ static bool fp_open_payload_chunk_callback(const uint8_t* data, size_t data_size
     }
 
     ctx->stream_chunk_count++;
-    if(ctx->stream_chunk_count <= 8U) {
+#if FLIPPASS_ENABLE_LOGS || FLIPPASS_ENABLE_PROBE_LOGS
+    if(ctx->stream_chunk_count <= 8U || (ctx->stream_chunk_count % 8U) == 0U) {
         snprintf(
             message,
             sizeof(message),
-            "STAGED_XML_CHUNK idx=%lu size=%lu inner=%u xml=%lu",
+            "STAGED_XML_CHUNK idx=%lu size=%lu inner=%u xml=%lu groups=%lu entries=%lu",
             (unsigned long)ctx->stream_chunk_count,
             (unsigned long)data_size,
             ctx->inner_header_done ? 1U : 0U,
-            (unsigned long)ctx->xml_bytes);
+            (unsigned long)ctx->xml_bytes,
+            (unsigned long)ctx->group_count,
+            (unsigned long)ctx->entry_count);
         fp_open_log(ctx, message);
     }
+#endif
 
     while(consumed < data_size) {
         if(!ctx->inner_header_done) {
@@ -1023,12 +1220,13 @@ static bool fp_open_payload_chunk_callback(const uint8_t* data, size_t data_size
             }
         }
 
-        if(!xml_parser_feed(ctx->xml_parser, (const char*)(data + consumed), xml_chunk, false)) {
+        if(!ctx->host_api->xml_feed(
+               ctx->xml_parser, (const char*)(data + consumed), xml_chunk, false)) {
             fp_open_set_error(
                 ctx,
                 "%s",
-                xml_parser_get_last_error(ctx->xml_parser) != NULL ?
-                    xml_parser_get_last_error(ctx->xml_parser) :
+                ctx->host_api->xml_error(ctx->xml_parser) != NULL ?
+                    ctx->host_api->xml_error(ctx->xml_parser) :
                     "The XML payload could not be parsed.");
             return false;
         }
@@ -1048,14 +1246,10 @@ static void fp_open_context_reset(FlipPassOpenContext* ctx) {
         fp_open_abort_streamed_value(ctx);
     }
     if(ctx->xml_parser != NULL) {
-        xml_parser_free(ctx->xml_parser);
+        ctx->host_api->xml_free(ctx->xml_parser);
     }
-    if(ctx->text_value != NULL) {
-        furi_string_free(ctx->text_value);
-    }
-    if(ctx->string_key != NULL) {
-        furi_string_free(ctx->string_key);
-    }
+    fp_open_byte_buffer_free(&ctx->text_value);
+    fp_open_byte_buffer_free(&ctx->string_key);
     fp_open_byte_buffer_free(&ctx->protected_stream_key);
     fp_open_byte_buffer_free(&ctx->protected_value_buffer);
     kdbx_protected_stream_reset(&ctx->protected_stream);
@@ -1063,7 +1257,7 @@ static void fp_open_context_reset(FlipPassOpenContext* ctx) {
 }
 
 static FlipPassOpenModelState* fp_open_model_state_alloc(void) {
-    FlipPassOpenModelState* state = malloc(sizeof(*state));
+    FlipPassOpenModelState* state = fp_open_try_alloc(sizeof(*state));
     if(state == NULL) {
         return NULL;
     }
@@ -1093,11 +1287,11 @@ static bool
     }
 
     fp_open_progress(ctx, "Finalizing", "", 99U);
-    if(!xml_parser_feed(ctx->xml_parser, NULL, 0U, true)) {
+    if(!ctx->host_api->xml_feed(ctx->xml_parser, NULL, 0U, true)) {
         furi_string_set_str(
             ctx->error,
-            xml_parser_get_last_error(ctx->xml_parser) != NULL ?
-                xml_parser_get_last_error(ctx->xml_parser) :
+            ctx->host_api->xml_error(ctx->xml_parser) != NULL ?
+                ctx->host_api->xml_error(ctx->xml_parser) :
                 "The XML payload could not be parsed.");
         return false;
     }
@@ -1137,13 +1331,16 @@ static bool fp_open_model_run(
        host_api->api_version != FLIPPASS_OPEN_MODEL_HOST_API_VERSION ||
        builder_api->api_version != FLIPPASS_OPEN_MODEL_BUILDER_API_VERSION ||
        host_api->stream_staged_xml == NULL || host_api->derive_protected_stream_material == NULL ||
+       host_api->xml_alloc == NULL || host_api->xml_free == NULL || host_api->xml_feed == NULL ||
+       host_api->xml_error == NULL || host_api->xml_set_context == NULL ||
+       host_api->xml_set_elements == NULL || host_api->xml_set_text == NULL ||
        builder_api->begin_session == NULL || builder_api->cancel_session == NULL ||
        builder_api->begin_group == NULL || builder_api->end_group == NULL ||
        builder_api->begin_entry == NULL || builder_api->end_entry == NULL ||
        builder_api->set_group_name == NULL || builder_api->set_group_uuid == NULL ||
        builder_api->set_entry_title == NULL || builder_api->set_entry_uuid == NULL ||
-       builder_api->set_entry_standard_field == NULL || builder_api->add_custom_field == NULL ||
-       builder_api->should_stream_string_value == NULL ||
+       builder_api->set_icon_id == NULL || builder_api->set_entry_standard_field == NULL ||
+       builder_api->add_custom_field == NULL || builder_api->should_stream_string_value == NULL ||
        builder_api->prepare_string_value_stream == NULL ||
        builder_api->begin_streamed_value == NULL ||
        builder_api->write_streamed_value_chunk == NULL ||
@@ -1165,17 +1362,8 @@ static bool fp_open_model_run(
     ctx->builder_api = builder_api;
     ctx->error = error;
     ctx->xml_total_bytes_hint = request->staged_payload_plain_size;
-    ctx->xml_parser = xml_parser_alloc();
-    ctx->text_value = furi_string_alloc();
-    ctx->string_key = furi_string_alloc();
-    if(ctx->text_value != NULL) {
-        furi_string_reserve(ctx->text_value, 128U);
-    }
-    if(ctx->string_key != NULL) {
-        furi_string_reserve(ctx->string_key, 32U);
-    }
-
-    if(ctx->xml_parser == NULL || ctx->text_value == NULL || ctx->string_key == NULL) {
+    ctx->xml_parser = host_api->xml_alloc();
+    if(ctx->xml_parser == NULL) {
         furi_string_set_str(
             error, "Not enough RAM is available to start unlocking this database.");
         goto cleanup;
@@ -1193,9 +1381,9 @@ static bool fp_open_model_run(
         goto cleanup;
     }
 
-    xml_parser_set_callback_context(ctx->xml_parser, ctx);
-    xml_parser_set_element_handlers(ctx->xml_parser, fp_open_start_element, fp_open_end_element);
-    xml_parser_set_character_data_handler(ctx->xml_parser, fp_open_character_data);
+    host_api->xml_set_context(ctx->xml_parser, ctx);
+    host_api->xml_set_elements(ctx->xml_parser, fp_open_start_element, fp_open_end_element);
+    host_api->xml_set_text(ctx->xml_parser, fp_open_character_data);
 
     fp_open_log(ctx, "OPEN_STAGE model");
     if(!host_api->stream_staged_xml(

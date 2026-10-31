@@ -111,7 +111,8 @@ static void flippass_file_browser_add_item(
     item = &flippass_file_browser_items[flippass_file_browser_item_count++];
     item->type = type;
     snprintf(item->name, sizeof(item->name), "%s", name != NULL ? name : "");
-    flippass_db_browser_view_add_item(app->db_browser, view_type, label);
+    flippass_db_browser_view_add_item(
+        app->db_browser, view_type, label, FLIPPASS_DB_BROWSER_ICON_NONE);
 }
 
 static const FlipPassFilePluginV1* flippass_file_browser_plugin_load(App* app, FuriString* error) {
@@ -128,12 +129,32 @@ static const FlipPassFilePluginV1* flippass_file_browser_plugin_load(App* app, F
 
     const FlipPassFilePluginV1* plugin = descriptor->entry_point;
     if(plugin->api_version != FLIPPASS_FILE_PLUGIN_API_VERSION || plugin->list_directory == NULL ||
-       plugin->delete_path == NULL) {
+       plugin->delete_path == NULL || plugin->make_directory == NULL ||
+       plugin->rename_database == NULL || plugin->check_database == NULL) {
         furi_string_set_str(error, "FlipPass file plugin has an incompatible API.");
         return NULL;
     }
 
     return plugin;
+}
+
+bool flippass_file_browser_check_database(App* app, const char* path) {
+    app->open_header_gzip = false;
+    app->save_uncompressed_requested = false;
+    uint32_t compression = KDBX_COMPRESSION_NONE;
+    FuriString* error = furi_string_alloc();
+    const FlipPassFilePluginV1* plugin = flippass_file_browser_plugin_load(app, error);
+    const bool ok = plugin != NULL && plugin->check_database(path, &compression, error);
+    app->open_header_gzip = ok && plugin != NULL && compression == KDBX_COMPRESSION_GZIP;
+
+    flippass_module_unload(app, FlipPassModuleSlotFileOps);
+    if(!ok) {
+        flippass_scene_status_show(
+            app, "Cannot Open", furi_string_get_cstr(error), FlipPassScene_FileBrowser);
+        scene_manager_next_scene(app->scene_manager, FlipPassScene_Status);
+    }
+    furi_string_free(error);
+    return ok;
 }
 
 static void flippass_file_browser_add_plugin_item(
@@ -262,6 +283,9 @@ static void flippass_file_browser_open_selected_file(App* app) {
         break;
     case FlipPassFileBrowserItemFile:
         flippass_file_browser_build_selected_path(app, item->name);
+        if(!flippass_file_browser_check_database(app, furi_string_get_cstr(app->pending_path))) {
+            break;
+        }
         furi_string_set(app->file_path, app->pending_path);
         flippass_reset_database(app);
         flippass_clear_text_buffer(app);
@@ -371,6 +395,9 @@ static void flippass_file_browser_modify_selected(App* app) {
 
     if(item->type == FlipPassFileBrowserItemFile) {
         flippass_file_browser_build_selected_path(app, item->name);
+        if(!flippass_file_browser_check_database(app, furi_string_get_cstr(app->pending_path))) {
+            return;
+        }
         flippass_file_browser_prepare_modify(app);
         scene_manager_next_scene(app->scene_manager, FlipPassScene_PasswordEntry);
     } else if(item->type == FlipPassFileBrowserItemNewDatabase) {
@@ -383,6 +410,7 @@ static void flippass_file_browser_clear_last_open_if_matches(App* app, const cha
        strcmp(furi_string_get_cstr(app->last_open_file_path), path) == 0) {
         furi_string_reset(app->last_open_file_path);
         app->last_open_count = 0U;
+        flippass_derivation_cache_clear(app);
         flippass_save_settings(app);
     }
 
@@ -416,6 +444,7 @@ static void flippass_file_browser_delete_dialog_callback(DialogExResult result, 
 static void flippass_file_browser_show_delete_confirm(App* app) {
     FuriString* file_name = furi_string_alloc();
 
+    flippass_ui_ensure_dialog_ex(app);
     path_extract_filename(app->pending_path, file_name, false);
     dialog_ex_reset(app->dialog_ex);
     dialog_ex_set_header(app->dialog_ex, "Delete Database?", 64, 4, AlignCenter, AlignTop);
@@ -462,6 +491,9 @@ static void flippass_file_browser_handle_menu_action(App* app) {
     }
 
     if(app->browser_menu_selected_index == FlipPassFileBrowserMenuActionModify) {
+        if(!flippass_file_browser_check_database(app, furi_string_get_cstr(app->pending_path))) {
+            return;
+        }
         flippass_file_browser_prepare_modify(app);
         scene_manager_next_scene(app->scene_manager, FlipPassScene_PasswordEntry);
         return;
@@ -543,11 +575,12 @@ static void flippass_file_browser_view_callback(FlipPassDbBrowserEvent event, vo
     }
 }
 
-static void flippass_file_browser_render(App* app) {
+static bool flippass_file_browser_render(App* app) {
     FuriString* error = furi_string_alloc();
     FuriString* resolved_directory = furi_string_alloc();
     const FlipPassFilePluginV1* plugin = NULL;
     bool has_parent = false;
+    bool rendered = false;
     const FlipPassFileHostApiV1 host_api = {
         .api_version = FLIPPASS_FILE_HOST_API_VERSION,
         .context = app,
@@ -611,21 +644,26 @@ static void flippass_file_browser_render(App* app) {
     flippass_db_browser_view_set_action_menu_open(app->db_browser, false);
     scene_manager_set_scene_state(
         app->scene_manager, FlipPassScene_FileBrowser, FlipPassFileBrowserStateBrowse);
+    rendered = true;
 
 cleanup:
     flippass_module_unload(app, FlipPassModuleSlotFileOps);
     furi_string_free(resolved_directory);
     furi_string_free(error);
+    return rendered;
 }
 
 void flippass_scene_file_browser_on_enter(void* context) {
     App* app = context;
+    app->phantom_open = false;
 
+    flippass_ui_ensure_db_browser(app);
     flippass_db_browser_view_set_callback(
         app->db_browser, flippass_file_browser_view_callback, app);
     flippass_db_browser_view_set_back_filter(app->db_browser, flippass_file_browser_back_filter);
-    flippass_file_browser_render(app);
-    view_dispatcher_switch_to_view(app->view_dispatcher, AppViewDbBrowser);
+    if(flippass_file_browser_render(app)) {
+        view_dispatcher_switch_to_view(app->view_dispatcher, AppViewDbBrowser);
+    }
 }
 
 bool flippass_scene_file_browser_on_event(void* context, SceneManagerEvent event) {
@@ -661,8 +699,9 @@ bool flippass_scene_file_browser_on_event(void* context, SceneManagerEvent event
             scene_manager_set_scene_state(
                 app->scene_manager, FlipPassScene_FileBrowser, FlipPassFileBrowserStateBrowse);
             if(flippass_file_browser_delete_selected(app)) {
-                flippass_file_browser_render(app);
-                view_dispatcher_switch_to_view(app->view_dispatcher, AppViewDbBrowser);
+                if(flippass_file_browser_render(app)) {
+                    view_dispatcher_switch_to_view(app->view_dispatcher, AppViewDbBrowser);
+                }
             } else {
                 flippass_scene_status_show(
                     app,
@@ -703,10 +742,15 @@ bool flippass_scene_file_browser_on_event(void* context, SceneManagerEvent event
 void flippass_scene_file_browser_on_exit(void* context) {
     App* app = context;
 
-    app->browser_directory_selected_index =
-        flippass_db_browser_view_get_selected_item(app->db_browser);
-    flippass_db_browser_view_set_action_menu_open(app->db_browser, false);
-    flippass_db_browser_view_set_back_filter(app->db_browser, NULL);
+    if(app->db_browser != NULL) {
+        app->browser_directory_selected_index =
+            flippass_db_browser_view_get_selected_item(app->db_browser);
+        flippass_db_browser_view_set_action_menu_open(app->db_browser, false);
+        flippass_db_browser_view_set_back_filter(app->db_browser, NULL);
+        flippass_db_browser_view_set_callback(app->db_browser, NULL, NULL);
+    }
     flippass_file_browser_items_free();
-    dialog_ex_reset(app->dialog_ex);
+    if(app->dialog_ex != NULL) {
+        dialog_ex_reset(app->dialog_ex);
+    }
 }

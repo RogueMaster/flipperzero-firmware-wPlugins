@@ -29,6 +29,7 @@ static bool flippass_scene_vault_fallback_continue(App* app) {
     app->pending_vault_fallback = false;
     app->requested_vault_backend = KDBXVaultBackendFileExt;
     app->allow_ext_vault_promotion = true;
+    app->resuming_after_fallback = true;
     app->debug_auto_continue_vault_fallback = false;
     scene_manager_previous_scene(app->scene_manager);
     return true;
@@ -38,6 +39,7 @@ void flippass_scene_vault_fallback_on_enter(void* context) {
     App* app = context;
     char compact_message[192];
 
+    flippass_ui_ensure_widget(app);
     snprintf(
         compact_message,
         sizeof(compact_message),
@@ -90,5 +92,7 @@ bool flippass_scene_vault_fallback_on_event(void* context, SceneManagerEvent eve
 
 void flippass_scene_vault_fallback_on_exit(void* context) {
     App* app = context;
-    widget_reset(app->widget);
+    if(app->widget != NULL) {
+        widget_reset(app->widget);
+    }
 }

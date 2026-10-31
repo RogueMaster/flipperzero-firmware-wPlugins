@@ -370,6 +370,12 @@ static bool fp_rpc_host_show_field(void* context, const char* field, FuriString*
     }
 
     if(fp_rpc_eq(field, "title")) {
+        if(!flippass_db_ensure_entry_title(app, entry, response)) {
+            if(furi_string_empty(response)) {
+                furi_string_set_str(response, "The title could not be read.");
+            }
+            return false;
+        }
         value = entry->title;
     } else if(fp_rpc_eq(field, "username")) {
         if(!flippass_db_ensure_entry_field(app, entry, KDBXEntryFieldUsername, response)) {
@@ -579,7 +585,7 @@ static void fp_rpc_callback(const RpcAppSystemEvent* event, void* context) {
             furi_string_free(response);
             return;
         }
-        scene_manager_stop(app->scene_manager);
+        flippass_stop_scenes(app);
         view_dispatcher_stop(app->view_dispatcher);
         furi_string_free(response);
         return;
@@ -589,7 +595,7 @@ static void fp_rpc_callback(const RpcAppSystemEvent* event, void* context) {
     case RpcAppEventTypeAppExit:
         flippass_module_unload(app, FlipPassModuleSlotRpcCommands);
         rpc_system_app_confirm(app->rpc, true);
-        scene_manager_stop(app->scene_manager);
+        flippass_stop_scenes(app);
         view_dispatcher_stop(app->view_dispatcher);
         break;
     case RpcAppEventTypeLoadFile:

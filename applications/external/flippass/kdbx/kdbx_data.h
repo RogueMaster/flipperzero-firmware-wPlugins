@@ -15,6 +15,12 @@ typedef enum {
     KDBXEntryFieldTitle = (1U << 6),
 } KDBXEntryFieldMask;
 
+/* KeePass standard icons (PwIcon): 0..KDBX_ICON_ID_COUNT-1. Absent <IconID>
+ * means the KeePass default: Key for entries, Folder for groups. */
+#define KDBX_ICON_ID_COUNT         69U
+#define KDBX_ICON_ID_ENTRY_DEFAULT 0U
+#define KDBX_ICON_ID_GROUP_DEFAULT 48U
+
 typedef struct KDBXCustomField {
     char* key;
     char* value;
@@ -33,7 +39,9 @@ typedef struct KDBXEntry {
     char* autotype_sequence;
     uint8_t field_mask;
     uint8_t loaded_mask;
+    uint8_t icon_id; /* KeePass IconID; fills existing padding, sizeof stays 68 on ARM */
     KDBXFieldRef uuid_ref;
+    KDBXFieldRef title_ref;
     KDBXFieldRef username_ref;
     KDBXFieldRef password_ref;
     KDBXFieldRef url_ref;
@@ -51,7 +59,23 @@ typedef struct KDBXGroup {
     struct KDBXGroup* children;
     struct KDBXGroup* next;
     KDBXEntry* entries;
+    uint8_t icon_id; /* KeePass IconID, KDBX_ICON_ID_GROUP_DEFAULT when absent */
 } KDBXGroup;
+
+/* Preorder traversal of one subtree, using existing parent links. The root's
+ * siblings are outside the boundary. Nodes and links must remain live. */
+static inline KDBXGroup* kdbx_group_next_in_subtree(KDBXGroup* group, const KDBXGroup* root) {
+    if(group->children != NULL) return group->children;
+    while(group != root) {
+        if(group->next != NULL) return group->next;
+        group = group->parent;
+        if(group == NULL) return NULL;
+    }
+    return NULL;
+}
+
+/* Reverse the open builder's prepended entry lists to recover XML source order. */
+void kdbx_group_restore_source_entry_order(KDBXGroup* root);
 
 KDBXGroup* kdbx_group_alloc(KDBXArena* arena);
 void kdbx_group_free(KDBXGroup* group);
@@ -106,3 +130,5 @@ bool kdbx_entry_take_loaded_text(
     char* value,
     size_t value_len);
 void kdbx_entry_clear_loaded_fields(KDBXEntry* entry);
+/** Clear only the loaded fields whose mask bits are set in `field_mask`. */
+void kdbx_entry_clear_loaded_field_mask(KDBXEntry* entry, uint32_t field_mask);

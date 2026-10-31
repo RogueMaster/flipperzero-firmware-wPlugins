@@ -51,7 +51,7 @@ static void flippass_save_header_progress(
     }
 }
 
-#if FLIPPASS_ENABLE_LOGS
+#if FLIPPASS_ENABLE_LOGS || FLIPPASS_ENABLE_PROBE_LOGS
 static void flippass_save_header_log_heap_raw(
     const FlipPassSaveStageHostApiV1* host_api,
     const char* stage) {

@@ -23,6 +23,26 @@ typedef bool (*TextInputValidatorCallback)(const char* text, FuriString* error, 
  *
  * @return     TextInput instance
  */
+#ifndef FLIPPASS_TEXT_INPUT_PLUGIN_IMPLEMENTATION
+/* This facade reuses the firmware TextInput function names. Plugins resolve imports
+ * against the firmware API before the FlipPass host table, so with the plain names a
+ * plugin would bind to the firmware's text input and hand it FlipPass's TextInput.
+ * Every FlipPass translation unit therefore calls the facade by these unique names. */
+#define text_input_alloc                  flippass_text_input_alloc
+#define text_input_free                   flippass_text_input_free
+#define text_input_reset                  flippass_text_input_reset
+#define text_input_get_view               flippass_text_input_get_view
+#define text_input_set_result_callback    flippass_text_input_set_result_callback
+#define text_input_set_minimum_length     flippass_text_input_set_minimum_length
+#define text_input_set_validator          flippass_text_input_set_validator
+#define text_input_show_illegal_symbols   flippass_text_input_show_illegal_symbols
+#define text_input_set_is_password        flippass_text_input_set_is_password
+#define text_input_set_for_open           flippass_text_input_set_for_open
+#define text_input_get_validator_callback flippass_text_input_get_validator_callback
+#define text_input_get_validator_callback_context \
+    flippass_text_input_get_validator_callback_context
+#define text_input_set_header_text flippass_text_input_set_header_text
+
 TextInput* text_input_alloc(void);
 
 /** Deinitialize and free text input
@@ -98,6 +118,7 @@ void* text_input_get_validator_callback_context(TextInput* text_input);
  * @param      text        text to be shown
  */
 void text_input_set_header_text(TextInput* text_input, const char* text);
+#endif
 
 #ifdef __cplusplus
 }

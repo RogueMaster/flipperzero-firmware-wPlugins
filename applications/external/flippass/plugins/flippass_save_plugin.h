@@ -3,6 +3,7 @@
 #include <furi.h>
 #include <flipper_application/flipper_application.h>
 
+#include "../flippass_crypto.h"
 #include "../kdbx/kdbx_data.h"
 
 #ifdef __cplusplus
@@ -12,9 +13,9 @@ extern "C" {
 #define FLIPPASS_SAVE_HEADER_PLUGIN_APP_ID      "flippass_save_header"
 #define FLIPPASS_SAVE_HEADER_PLUGIN_API_VERSION 2u
 #define FLIPPASS_SAVE_PLUGIN_APP_ID             "flippass_save_writer"
-#define FLIPPASS_SAVE_PLUGIN_API_VERSION        4u
+#define FLIPPASS_SAVE_PLUGIN_API_VERSION        9u
 #define FLIPPASS_SAVE_STAGE_HOST_API_VERSION    1u
-#define FLIPPASS_SAVE_HOST_API_VERSION          4u
+#define FLIPPASS_SAVE_HOST_API_VERSION          9u
 
 typedef enum {
     FlipPassSaveCipherAes256 = 0,
@@ -63,6 +64,8 @@ typedef struct {
         FuriString* error);
 } FlipPassSaveHeaderPluginV1;
 
+/* Request for the payload writer — XML traversal moved to the serial plugin.
+ * root_group and database_name are no longer needed here. */
 typedef struct {
     uint32_t api_version;
     const char* file_path;
@@ -72,8 +75,6 @@ typedef struct {
     size_t hmac_base_size;
     const uint8_t* iv;
     size_t iv_size;
-    KDBXGroup* root_group;
-    const char* database_name;
     FlipPassSaveCipher cipher;
     uint32_t compression;
 } FlipPassSaveRequestV1;
@@ -83,23 +84,30 @@ typedef struct {
     void* context;
     void (*progress)(void* context, const char* stage, const char* detail, uint8_t percent);
     void (*log)(void* context, const char* message);
-    bool (*copy_group_uuid)(
+    const FlipPassCryptoApiV1* crypto;
+    /* Stream the serialized XML from the host's encrypted vault scratch.
+     * The host calls callback(data, size, cb_context) for each decrypted chunk. */
+    bool (*stream_xml)(
         void* context,
-        const KDBXGroup* group,
-        FuriString* out,
-        FuriString* error);
-    bool (*copy_entry_uuid)(
-        void* context,
-        const KDBXEntry* entry,
-        FuriString* out,
-        FuriString* error);
-    bool (*entry_has_field)(void* context, const KDBXEntry* entry, uint32_t field_mask);
-    bool (*stream_ref)(
-        void* context,
-        const KDBXFieldRef* ref,
-        KDBXVaultChunkCallback callback,
+        FlipPassSaveChunkCallback callback,
         void* callback_context,
         FuriString* error);
+    bool (*compute_block_hmac)(
+        void* context,
+        const uint8_t* hmac_base,
+        size_t hmac_base_size,
+        uint64_t block_index,
+        const uint8_t* data,
+        size_t data_size,
+        uint8_t out[32]);
+    /* HOST_PAYLOAD experimental path — default-off. */
+    bool (*begin_payload)(void* context, const FlipPassSaveRequestV1* request, FuriString* error);
+    bool (*write_payload_plain)(
+        void* context,
+        const uint8_t* data,
+        size_t data_size,
+        FuriString* error);
+    bool (*finish_payload)(void* context, FuriString* error);
 } FlipPassSaveHostApiV1;
 
 typedef struct {

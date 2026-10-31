@@ -8,6 +8,7 @@
 #include "flippass_scene_other_fields.h"
 #include "flippass_scene_send_confirm.h"
 #include "flippass_scene_status.h"
+#include "flippass_progress_view.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -26,6 +27,42 @@ typedef enum {
 
 static FlipPassBrowserItem* flippass_browser_items = NULL;
 static size_t flippass_browser_item_count = 0U;
+static FuriString* flippass_pending_open_error = NULL;
+static bool flippass_pending_opened = false;
+static bool flippass_open_waiting_to_start = false;
+/* Once the writer starts, Back must not relabel a completed replacement as an
+ * unlock cancellation. Long Back still exits after the writer returns. */
+static bool flippass_uncompressed_save_attempted = false;
+static bool flippass_uncompressed_save_failed = false;
+
+static bool
+    flippass_browser_save_uncompressed_after_open(App* app, FuriString* error, bool opened) {
+    if(!opened || !app->save_uncompressed_requested ||
+       flippass_progress_guard_canceled(app->progress_view) ||
+       flippass_progress_guard_exit_requested(app->progress_view)) {
+        return opened;
+    }
+
+    app->save_uncompressed_requested = false;
+    flippass_uncompressed_save_attempted = true;
+    app->database_compression = KDBX_COMPRESSION_NONE;
+    FLIPPASS_BENCH_LOG(app, "UNCOMPRESSED_SAVE_BEGIN");
+    /* Reuse the authenticated model and sealed session keys. The normal writer
+     * replaces the file via its scratch path; a second KDF/model load would duplicate work
+     * and require retaining the plaintext password beyond the unlock. */
+    if(!flippass_save_current_database(app, furi_string_get_cstr(app->file_path), NULL, error)) {
+        flippass_uncompressed_save_failed = true;
+        flippass_reset_database(app);
+        flippass_clear_master_password(app);
+        FLIPPASS_BENCH_LOG(app, "UNCOMPRESSED_SAVE_FAIL");
+        return false;
+    }
+    FLIPPASS_BENCH_LOG(app, "UNCOMPRESSED_SAVE_OK");
+    /* SaveHost has returned and unmapped before the optional editing successor. */
+    flippass_editor_begin_database_session(app);
+    flippass_db_refresh_model_budget(app);
+    return true;
+}
 
 static bool flippass_browser_back_filter(void* context) {
     return flippass_typing_consume_pending_back(context);
@@ -120,13 +157,22 @@ static void flippass_browser_add_item(
 
     flippass_browser_items[flippass_browser_item_count] =
         (FlipPassBrowserItem){.type = type, .group = group, .entry = entry};
-    flippass_db_browser_view_add_item(app->db_browser, type, label);
+    flippass_db_browser_view_add_item(
+        app->db_browser,
+        type,
+        label,
+        type == FlipPassDbBrowserItemTypeGroup && group != NULL ? group->icon_id :
+        type == FlipPassDbBrowserItemTypeEntry && entry != NULL ? entry->icon_id :
+                                                                  FLIPPASS_DB_BROWSER_ICON_NONE);
     flippass_browser_item_count++;
 }
 
 static void flippass_browser_sync_selection_from_view(App* app) {
     furi_assert(app);
 
+    if(app->db_browser == NULL) {
+        return;
+    }
     app->browser_selected_index = flippass_db_browser_view_get_selected_item(app->db_browser);
     app->action_selected_index = flippass_db_browser_view_get_action_selected(app->db_browser);
 }
@@ -182,7 +228,6 @@ static FlipPassOutputTransport
 
 static void
     flippass_browser_trim_for_layout_selection(App* app, FlipPassOutputTransport transport) {
-    flippass_output_release_all(app);
     flippass_output_cleanup_transport(app, flippass_browser_opposite_transport(transport));
 }
 
@@ -198,6 +243,7 @@ static bool flippass_browser_at_root(const App* app) {
 static void flippass_browser_show_close_dialog(App* app) {
     furi_assert(app);
 
+    flippass_ui_ensure_dialog_ex(app);
     flippass_browser_sync_selection_from_view(app);
     app->close_db_dialog_open = true;
     scene_manager_set_scene_state(
@@ -239,8 +285,12 @@ static void flippass_browser_hide_dialog(App* app, bool restore_browser) {
     app->close_db_dialog_open = false;
     scene_manager_set_scene_state(
         app->scene_manager, FlipPassScene_DbEntries, FlipPassBrowserDialogNone);
-    dialog_ex_reset(app->dialog_ex);
-    submenu_reset(app->submenu);
+    if(app->dialog_ex != NULL) {
+        dialog_ex_reset(app->dialog_ex);
+    }
+    if(app->submenu != NULL) {
+        submenu_reset(app->submenu);
+    }
     if(restore_browser) {
         view_dispatcher_switch_to_view(app->view_dispatcher, AppViewDbBrowser);
     }
@@ -301,6 +351,9 @@ static void flippass_browser_prepare_group_editor(
                                   FlipPassEditorTextTargetNone;
     app->editor_group = group;
     app->editor_entry = NULL;
+    app->editor_icon_id = (mode == FlipPassEditorModeEditGroup && group != NULL) ?
+                              group->icon_id :
+                              KDBX_ICON_ID_GROUP_DEFAULT;
     app->editor_selected_index = 0U;
     app->editor_return_scene = FlipPassScene_DbEntries;
     app->editor_close_after_commit = false;
@@ -325,6 +378,7 @@ static bool flippass_browser_prepare_entry_editor(
                                   FlipPassEditorTextTargetNone;
     app->editor_group = app->current_group;
     app->editor_entry = entry;
+    app->editor_icon_id = source != NULL ? source->icon_id : KDBX_ICON_ID_ENTRY_DEFAULT;
     app->editor_selected_index =
         (mode == FlipPassEditorModeEditEntry) ? FlipPassEditorEntryRowCommit : 0U;
     app->editor_return_scene = FlipPassScene_DbEntries;
@@ -334,6 +388,10 @@ static bool flippass_browser_prepare_entry_editor(
     }
 
     if(source != NULL && !flippass_db_activate_entry(app, entry, true, error)) {
+        return false;
+    }
+
+    if(source != NULL && !flippass_db_ensure_entry_title(app, (KDBXEntry*)source, error)) {
         return false;
     }
 
@@ -549,6 +607,27 @@ static void flippass_browser_render(App* app) {
     furi_string_free(scratch);
 }
 
+static void flippass_browser_restore_type_drawer_if_needed(App* app) {
+    if(!app->entry_action_restore_type_drawer) {
+        return;
+    }
+
+    app->entry_action_restore_type_drawer = false;
+    FlipPassBrowserItem* item = flippass_browser_get_selected_item(app);
+    if(item == NULL || item->type != FlipPassDbBrowserItemTypeEntry || item->entry == NULL) {
+        flippass_entry_action_cleanup_type_menu(app);
+        return;
+    }
+
+    app->current_entry = item->entry;
+    app->active_entry = item->entry;
+    app->active_group = app->current_group;
+    flippass_db_browser_view_set_show_other_action(
+        app->db_browser, flippass_browser_entry_has_other_fields(item->entry));
+    flippass_db_browser_view_set_action_selected(app->db_browser, app->action_selected_index);
+    flippass_db_browser_view_set_action_menu_open(app->db_browser, true);
+}
+
 static void flippass_browser_view_callback(FlipPassDbBrowserEvent event, void* context) {
     App* app = context;
     uint32_t custom_event = 0U;
@@ -612,8 +691,11 @@ static void flippass_browser_open_action_menu(App* app) {
     app->current_entry = item->entry;
     app->active_entry = item->entry;
     app->active_group = app->current_group;
+    app->entry_action_keep_type_menu_prewarm = false;
+    app->entry_action_restore_type_drawer = false;
     flippass_db_browser_view_set_show_other_action(
         app->db_browser, flippass_browser_entry_has_other_fields(item->entry));
+    flippass_db_browser_view_set_action_menu_open(app->db_browser, true);
     flippass_entry_action_prepare_type_menu(app);
 }
 
@@ -634,11 +716,13 @@ static void flippass_browser_enter_selected_group(App* app) {
     }
 
     flippass_db_deactivate_entry(app);
+    KDBXGroup* old_current = app->current_group;
     app->current_group = item->group;
     app->current_entry = NULL;
     app->active_group = app->current_group;
     app->active_entry = NULL;
     app->browser_selected_index = 0U;
+    flippass_db_browser_enter_group(app, app->current_group, old_current);
     flippass_browser_render(app);
     view_dispatcher_switch_to_view(app->view_dispatcher, AppViewDbBrowser);
 }
@@ -656,6 +740,7 @@ static void flippass_browser_leave_current_group(App* app) {
     app->active_entry = NULL;
     app->browser_selected_index =
         flippass_browser_find_group_index(app->current_group, child_group);
+    flippass_db_browser_enter_group(app, app->current_group, child_group);
     flippass_browser_render(app);
     view_dispatcher_switch_to_view(app->view_dispatcher, AppViewDbBrowser);
 }
@@ -670,6 +755,8 @@ static void flippass_browser_begin_execute_action(App* app, FlipPassOutputTransp
     app->current_entry = item->entry;
     app->active_entry = item->entry;
     app->active_group = app->current_group;
+    app->entry_action_keep_type_menu_prewarm = false;
+    app->entry_action_restore_type_drawer = false;
     app->pending_entry_action =
         flippass_browser_map_pending_action(app->action_selected_index, transport);
 
@@ -694,6 +781,8 @@ static void flippass_browser_begin_layout_selection(App* app, FlipPassOutputTran
     app->pending_entry_action =
         flippass_browser_map_pending_action(app->action_selected_index, transport);
     app->keyboard_layout_return_scene = FlipPassScene_DbEntries;
+    app->entry_action_keep_type_menu_prewarm = true;
+    app->entry_action_restore_type_drawer = true;
     flippass_browser_trim_for_layout_selection(app, transport);
     scene_manager_next_scene(app->scene_manager, FlipPassScene_KeyboardLayout);
 }
@@ -712,6 +801,9 @@ static void flippass_browser_open_other_fields(App* app) {
     app->pending_other_custom_field = NULL;
     app->pending_other_otp_kind = FlipPassOtpKindNone;
     app->pending_other_field_name[0] = '\0';
+    app->entry_action_keep_type_menu_prewarm = true;
+    app->entry_action_restore_type_drawer = true;
+    flippass_scene_db_entries_trim_for_intermediary_plugin(app);
     scene_manager_set_scene_state(
         app->scene_manager, FlipPassScene_OtherFields, FlipPassOtherFieldsModeType);
     scene_manager_next_scene(app->scene_manager, FlipPassScene_OtherFields);
@@ -754,18 +846,9 @@ static bool flippass_browser_edit_selected(App* app) {
 
 void flippass_scene_db_entries_on_enter(void* context) {
     App* app = context;
+    flippass_uncompressed_save_attempted = false;
+    flippass_uncompressed_save_failed = false;
     FLIPPASS_BENCH_LOG(app, "SCENE db_entries");
-    flippass_db_browser_view_set_callback(app->db_browser, flippass_browser_view_callback, app);
-    flippass_db_browser_view_set_back_filter(app->db_browser, flippass_browser_back_filter);
-    if(!flippass_browser_items_ensure()) {
-        flippass_scene_status_show(
-            app,
-            "Open Failed",
-            "Not enough RAM is available to list entries.",
-            FlipPassScene_FileBrowser);
-        scene_manager_next_scene(app->scene_manager, FlipPassScene_Status);
-        return;
-    }
     scene_manager_set_scene_state(
         app->scene_manager, FlipPassScene_DbEntries, FlipPassBrowserDialogNone);
 
@@ -775,28 +858,178 @@ void flippass_scene_db_entries_on_enter(void* context) {
         }
         if(app->editor_mode == FlipPassEditorModeModifyDatabase &&
            app->editor_return_scene == FlipPassScene_FileBrowser) {
+            flippass_ui_ensure_variable_item_list(app);
             scene_manager_next_scene(app->scene_manager, FlipPassScene_Editor);
             return;
         }
+        flippass_ui_ensure_db_browser(app);
+        flippass_db_browser_view_set_callback(
+            app->db_browser, flippass_browser_view_callback, app);
+        flippass_db_browser_view_set_back_filter(app->db_browser, flippass_browser_back_filter);
+        if(!flippass_browser_items_ensure()) {
+            flippass_scene_status_show(
+                app,
+                "Open Failed",
+                "Not enough RAM is available to list entries.",
+                FlipPassScene_FileBrowser);
+            scene_manager_next_scene(app->scene_manager, FlipPassScene_Status);
+            return;
+        }
+        flippass_db_browser_enter_group(app, app->current_group, app->title_cache_previous);
         flippass_browser_render(app);
+        flippass_browser_restore_type_drawer_if_needed(app);
         view_dispatcher_switch_to_view(app->view_dispatcher, AppViewDbBrowser);
         return;
     }
 
-    const bool resuming_ext_continuation = app->pending_gzip_scratch_vault != NULL &&
-                                           app->allow_ext_vault_promotion;
+    const bool resuming_ext_continuation = app->resuming_after_fallback;
     flippass_progress_begin(
         app,
         "Opening Database",
         resuming_ext_continuation ? "Continuing on /ext" : "Preparing",
         resuming_ext_continuation ? 80U : 0U);
     view_dispatcher_switch_to_view(app->view_dispatcher, AppViewLoading);
-    view_dispatcher_send_custom_event(
-        app->view_dispatcher, FlipPassSceneDbEntriesEventLoadDatabase);
+    flippass_progress_guard_begin(app->progress_view);
+    flippass_open_waiting_to_start = true;
+}
+
+static bool flippass_browser_finish_open(App* app, FuriString* error, bool opened) {
+    if(opened) {
+        flippass_progress_update(app, "Ready", "", 100U);
+        FLIPPASS_BENCH_LOG(app, "LOAD_EVENT_OK");
+        if(app->current_group == NULL) {
+            app->current_group = app->root_group;
+        }
+        const bool open_to_modify = app->editor_mode == FlipPassEditorModeModifyDatabase &&
+                                    app->editor_return_scene == FlipPassScene_FileBrowser;
+#if FLIPPASS_ENABLE_DEBUG_SAVE_HOOK
+        if(!flippass_debug_save_after_open(app, error)) {
+            flippass_ui_ensure_widget(app);
+            flippass_progress_reset(app);
+            flippass_scene_status_show(
+                app, "Debug Save Failed", furi_string_get_cstr(error), FlipPassScene_FileBrowser);
+            scene_manager_next_scene(app->scene_manager, FlipPassScene_Status);
+            furi_string_free(error);
+            return true;
+        }
+        if(!flippass_browser_items_ensure()) {
+            flippass_ui_ensure_widget(app);
+            flippass_progress_reset(app);
+            flippass_scene_status_show(
+                app,
+                "Open Failed",
+                "Not enough RAM is available to list entries after saving.",
+                FlipPassScene_FileBrowser);
+            scene_manager_next_scene(app->scene_manager, FlipPassScene_Status);
+            furi_string_free(error);
+            return true;
+        }
+#endif
+        flippass_progress_reset(app);
+        if(open_to_modify) {
+            flippass_ui_ensure_variable_item_list(app);
+            scene_manager_next_scene(app->scene_manager, FlipPassScene_Editor);
+        } else {
+            flippass_ui_ensure_db_browser(app);
+            flippass_db_browser_view_set_callback(
+                app->db_browser, flippass_browser_view_callback, app);
+            flippass_db_browser_view_set_back_filter(
+                app->db_browser, flippass_browser_back_filter);
+            if(!flippass_browser_items_ensure()) {
+                flippass_ui_ensure_widget(app);
+                flippass_scene_status_show(
+                    app,
+                    "Open Failed",
+                    "Not enough RAM is available to list entries.",
+                    FlipPassScene_FileBrowser);
+                scene_manager_next_scene(app->scene_manager, FlipPassScene_Status);
+                furi_string_free(error);
+                return true;
+            }
+            flippass_db_browser_enter_group(app, app->current_group, NULL);
+            FLIPPASS_BENCH_LOG(app, "BROWSER_RENDER_BEGIN");
+            flippass_browser_render(app);
+            flippass_browser_restore_type_drawer_if_needed(app);
+            FLIPPASS_BENCH_LOG(app, "BROWSER_RENDER_OK");
+            view_dispatcher_switch_to_view(app->view_dispatcher, AppViewDbBrowser);
+            FLIPPASS_BENCH_LOG(app, "DB_VIEW_READY");
+        }
+    } else if(flippass_uncompressed_save_failed) {
+        flippass_ui_ensure_widget(app);
+        flippass_progress_reset(app);
+        flippass_scene_status_show(
+            app,
+            "Save Uncompressed Failed",
+            furi_string_get_cstr(error),
+            FlipPassScene_FileBrowser);
+        scene_manager_next_scene(app->scene_manager, FlipPassScene_Status);
+    } else if(strcmp(furi_string_get_cstr(error), "Unlock canceled.") == 0) {
+        flippass_ui_ensure_text_input(app);
+        flippass_progress_reset(app);
+        FLIPPASS_BENCH_LOG(app, "LOAD_EVENT_CANCEL");
+        scene_manager_search_and_switch_to_previous_scene(
+            app->scene_manager, FlipPassScene_PasswordEntry);
+    } else if(app->pending_vault_fallback && !app->rpc_mode) {
+        flippass_ui_ensure_widget(app);
+        flippass_progress_reset(app);
+        FLIPPASS_BENCH_LOG(app, "LOAD_EVENT_FALLBACK");
+        scene_manager_next_scene(app->scene_manager, FlipPassScene_VaultFallback);
+    } else {
+        flippass_ui_ensure_widget(app);
+        flippass_progress_reset(app);
+        FLIPPASS_BENCH_LOG(app, "LOAD_EVENT_FAIL");
+        flippass_scene_status_show(
+            app, "Unlock Failed", furi_string_get_cstr(error), FlipPassScene_PasswordEntry);
+        scene_manager_next_scene(app->scene_manager, FlipPassScene_Status);
+    }
+
+    furi_string_free(error);
+    return true;
 }
 
 bool flippass_scene_db_entries_on_event(void* context, SceneManagerEvent event) {
     App* app = context;
+    if(flippass_progress_guard_active(app->progress_view)) {
+        if(event.type == SceneManagerEventTypeTick && flippass_open_waiting_to_start &&
+           flippass_progress_guard_drained(app->progress_view)) {
+            flippass_open_waiting_to_start = false;
+            if(flippass_progress_guard_canceled(app->progress_view)) {
+                flippass_pending_open_error = furi_string_alloc();
+                flippass_pending_opened = false;
+                flippass_progress_guard_finish(app->progress_view);
+            } else {
+                view_dispatcher_send_custom_event(
+                    app->view_dispatcher, FlipPassSceneDbEntriesEventLoadDatabase);
+            }
+            return true;
+        }
+        if(event.type == SceneManagerEventTypeTick && flippass_pending_open_error != NULL &&
+           flippass_progress_guard_drained(app->progress_view)) {
+            FuriString* error = flippass_pending_open_error;
+            flippass_pending_open_error = NULL;
+            bool opened = flippass_pending_opened;
+            const bool canceled = flippass_progress_guard_canceled(app->progress_view);
+            const bool exiting = flippass_progress_guard_exit_requested(app->progress_view);
+            flippass_progress_guard_end(app->progress_view);
+            if(canceled && !flippass_uncompressed_save_attempted) {
+                app->pending_vault_fallback = false;
+                flippass_reset_database(app);
+                flippass_clear_master_password(app);
+                opened = false;
+                furi_string_set_str(error, "Unlock canceled.");
+            }
+            if(exiting) {
+                furi_string_free(error);
+                flippass_request_exit(app);
+                return true;
+            }
+            return flippass_browser_finish_open(app, error, opened);
+        }
+        if(event.type != SceneManagerEventTypeCustom ||
+           event.event != FlipPassSceneDbEntriesEventLoadDatabase ||
+           flippass_pending_open_error != NULL || flippass_open_waiting_to_start)
+            return true;
+    }
     const uint32_t dialog_state =
         scene_manager_get_scene_state(app->scene_manager, FlipPassScene_DbEntries);
 
@@ -833,66 +1066,24 @@ bool flippass_scene_db_entries_on_event(void* context, SceneManagerEvent event) 
     if(event.type == SceneManagerEventTypeCustom) {
         if(event.event == FlipPassSceneDbEntriesEventLoadDatabase) {
             FuriString* error = furi_string_alloc();
+            FLIPPASS_PROBE_TERMINAL_LOG_EVENT(
+                app,
+                "OPEN_BEFORE_VIEW_UNLOAD free=%lu max=%lu",
+                (unsigned long)memmgr_get_free_heap(),
+                (unsigned long)memmgr_heap_get_max_free_block());
+            flippass_save_unload_idle_views(app);
+            FLIPPASS_PROBE_TERMINAL_LOG_EVENT(
+                app,
+                "OPEN_AFTER_VIEW_UNLOAD free=%lu max=%lu",
+                (unsigned long)memmgr_get_free_heap(),
+                (unsigned long)memmgr_heap_get_max_free_block());
 
-            if(flippass_open_execute(app, error)) {
-                flippass_progress_update(app, "Ready", "", 100U);
-                FLIPPASS_BENCH_LOG(app, "LOAD_EVENT_OK");
-                if(app->current_group == NULL) {
-                    app->current_group = app->root_group;
-                }
-#if FLIPPASS_ENABLE_DEBUG_SAVE_HOOK
-                if(!flippass_debug_save_after_open(app, error)) {
-                    flippass_progress_reset(app);
-                    flippass_scene_status_show(
-                        app,
-                        "Debug Save Failed",
-                        furi_string_get_cstr(error),
-                        FlipPassScene_FileBrowser);
-                    scene_manager_next_scene(app->scene_manager, FlipPassScene_Status);
-                    furi_string_free(error);
-                    return true;
-                }
-                if(!flippass_browser_items_ensure()) {
-                    flippass_progress_reset(app);
-                    flippass_scene_status_show(
-                        app,
-                        "Open Failed",
-                        "Not enough RAM is available to list entries after saving.",
-                        FlipPassScene_FileBrowser);
-                    scene_manager_next_scene(app->scene_manager, FlipPassScene_Status);
-                    furi_string_free(error);
-                    return true;
-                }
-#endif
-                flippass_progress_reset(app);
-                if(app->editor_mode == FlipPassEditorModeModifyDatabase &&
-                   app->editor_return_scene == FlipPassScene_FileBrowser) {
-                    scene_manager_next_scene(app->scene_manager, FlipPassScene_Editor);
-                } else {
-                    FLIPPASS_BENCH_LOG(app, "BROWSER_RENDER_BEGIN");
-                    flippass_browser_render(app);
-                    FLIPPASS_BENCH_LOG(app, "BROWSER_RENDER_OK");
-                    view_dispatcher_switch_to_view(app->view_dispatcher, AppViewDbBrowser);
-                    FLIPPASS_BENCH_LOG(app, "DB_VIEW_READY");
-                }
-            } else if(strcmp(furi_string_get_cstr(error), "Unlock canceled.") == 0) {
-                flippass_progress_reset(app);
-                FLIPPASS_BENCH_LOG(app, "LOAD_EVENT_CANCEL");
-                scene_manager_search_and_switch_to_previous_scene(
-                    app->scene_manager, FlipPassScene_PasswordEntry);
-            } else if(app->pending_vault_fallback && !app->rpc_mode) {
-                flippass_progress_reset(app);
-                FLIPPASS_BENCH_LOG(app, "LOAD_EVENT_FALLBACK");
-                scene_manager_next_scene(app->scene_manager, FlipPassScene_VaultFallback);
-            } else {
-                flippass_progress_reset(app);
-                FLIPPASS_BENCH_LOG(app, "LOAD_EVENT_FAIL");
-                flippass_scene_status_show(
-                    app, "Unlock Failed", furi_string_get_cstr(error), FlipPassScene_PasswordEntry);
-                scene_manager_next_scene(app->scene_manager, FlipPassScene_Status);
-            }
+            const bool opened = flippass_browser_save_uncompressed_after_open(
+                app, error, flippass_open_execute(app, error));
 
-            furi_string_free(error);
+            flippass_pending_open_error = error;
+            flippass_pending_opened = opened;
+            flippass_progress_guard_finish(app->progress_view);
             return true;
         }
 
@@ -912,6 +1103,8 @@ bool flippass_scene_db_entries_on_event(void* context, SceneManagerEvent event) 
         }
 
         if(event.event == FlipPassSceneDbEntriesEventCloseActionMenu) {
+            app->entry_action_keep_type_menu_prewarm = false;
+            app->entry_action_restore_type_drawer = false;
             flippass_entry_action_cleanup_type_menu(app);
             return true;
         }
@@ -980,15 +1173,21 @@ bool flippass_scene_db_entries_on_event(void* context, SceneManagerEvent event) 
             flippass_typing_end(app);
 
             if(ok) {
+                app->entry_action_keep_type_menu_prewarm = false;
+                app->entry_action_restore_type_drawer = false;
                 flippass_progress_update(app, "Done", "Field sent.", 100U);
                 flippass_browser_render(app);
                 flippass_progress_reset(app);
                 view_dispatcher_switch_to_view(app->view_dispatcher, AppViewDbBrowser);
             } else if(canceled) {
+                app->entry_action_keep_type_menu_prewarm = false;
+                app->entry_action_restore_type_drawer = false;
                 flippass_browser_render(app);
                 flippass_progress_reset(app);
                 view_dispatcher_switch_to_view(app->view_dispatcher, AppViewDbBrowser);
             } else {
+                app->entry_action_keep_type_menu_prewarm = false;
+                app->entry_action_restore_type_drawer = false;
                 flippass_progress_reset(app);
                 flippass_scene_status_show(
                     app,
@@ -1028,22 +1227,56 @@ void flippass_scene_db_entries_trim_for_save(struct App* app) {
     furi_assert(app);
 
     flippass_browser_sync_selection_from_view(app);
-    flippass_db_browser_view_set_action_menu_open(app->db_browser, false);
-    flippass_db_browser_view_set_back_filter(app->db_browser, NULL);
+    app->entry_action_keep_type_menu_prewarm = false;
+    app->entry_action_restore_type_drawer = false;
+    if(app->db_browser != NULL) {
+        flippass_db_browser_view_set_action_menu_open(app->db_browser, false);
+        flippass_db_browser_view_set_back_filter(app->db_browser, NULL);
+    }
     flippass_entry_action_cleanup_type_menu(app);
     flippass_browser_items_free();
-    flippass_db_browser_view_reset(app->db_browser);
+    if(app->db_browser != NULL) {
+        flippass_db_browser_view_reset(app->db_browser);
+    }
     flippass_browser_hide_dialog(app, false);
+    /* Save streams every entry's title from the vault, so any cached titles
+     * are dead weight while the writer runs. Drop them all here. */
+    flippass_db_browser_clear_title_cache(app);
+}
+
+void flippass_scene_db_entries_trim_for_intermediary_plugin(struct App* app) {
+    furi_assert(app);
+
+    if(flippass_browser_items != NULL) {
+        flippass_browser_sync_selection_from_view(app);
+    }
+    flippass_browser_items_free();
+    if(app->db_browser != NULL) {
+        flippass_db_browser_view_reset(app->db_browser);
+    }
+    flippass_db_browser_clear_title_cache(app);
 }
 
 void flippass_scene_db_entries_on_exit(void* context) {
     App* app = context;
+    const bool keep_type_prewarm = app->entry_action_keep_type_menu_prewarm;
+    flippass_open_waiting_to_start = false;
+    flippass_progress_guard_end(app->progress_view);
+    if(flippass_pending_open_error != NULL) {
+        furi_string_free(flippass_pending_open_error);
+        flippass_pending_open_error = NULL;
+    }
+
     if(flippass_browser_items != NULL) {
         flippass_browser_sync_selection_from_view(app);
     }
-    flippass_db_browser_view_set_action_menu_open(app->db_browser, false);
-    flippass_db_browser_view_set_back_filter(app->db_browser, NULL);
-    flippass_entry_action_cleanup_type_menu(app);
+    if(app->db_browser != NULL) {
+        flippass_db_browser_view_set_action_menu_open(app->db_browser, false);
+        flippass_db_browser_view_set_back_filter(app->db_browser, NULL);
+    }
+    if(!keep_type_prewarm) {
+        flippass_entry_action_cleanup_type_menu(app);
+    }
     flippass_browser_items_free();
     flippass_browser_hide_dialog(app, false);
 }

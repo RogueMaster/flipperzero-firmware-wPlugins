@@ -41,6 +41,16 @@ typedef struct {
 } FlipPassBlePluginSession;
 
 static FlipPassBlePluginSession* flippass_output_ble_session = NULL;
+static FlipPassOutputConnectionCallback flippass_output_ble_connection_callback = NULL;
+static void* flippass_output_ble_connection_context = NULL;
+
+static void
+    flippass_output_ble_watch_connection(FlipPassOutputConnectionCallback callback, void* context) {
+    FURI_CRITICAL_ENTER();
+    flippass_output_ble_connection_callback = callback;
+    flippass_output_ble_connection_context = callback != NULL ? context : NULL;
+    FURI_CRITICAL_EXIT();
+}
 
 static void flippass_output_ble_progress(
     const FlipPassOutputPluginHostApiV1* host_api,
@@ -122,8 +132,14 @@ static const FuriHalBleProfileTemplate flippass_ble_profile_template = {
 static void flippass_ble_status_changed(BtStatus status, void* context) {
     FlipPassBlePluginSession* session = context;
     furi_assert(session);
+    FURI_CRITICAL_ENTER();
     session->status = status;
     session->connected = (status == BtStatusConnected);
+    if(flippass_output_ble_connection_callback != NULL) {
+        flippass_output_ble_connection_callback(
+            session->connected, flippass_output_ble_connection_context);
+    }
+    FURI_CRITICAL_EXIT();
 }
 
 static bool flippass_ble_prepare_storage(void) {
@@ -319,6 +335,7 @@ static void flippass_ble_wait_disconnected(const FlipPassOutputPluginHostApiV1* 
 }
 
 static void flippass_output_ble_cleanup(const FlipPassOutputPluginHostApiV1* host_api) {
+    flippass_output_ble_watch_connection(NULL, NULL);
     if(flippass_output_ble_session == NULL) {
         return;
     }
@@ -355,6 +372,7 @@ static const FlipPassOutputPluginV1 flippass_output_ble_plugin = {
     .advertise = flippass_output_ble_advertise,
     .get_name = flippass_output_ble_get_name_impl,
     .cleanup = flippass_output_ble_cleanup,
+    .watch_connection = flippass_output_ble_watch_connection,
 };
 
 static const FlipperAppPluginDescriptor flippass_output_ble_descriptor = {

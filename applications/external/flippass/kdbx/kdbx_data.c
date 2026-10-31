@@ -14,12 +14,27 @@ static void kdbx_secure_free_string(char* value) {
     free(value);
 }
 
-static bool kdbx_group_set_arena_string(char** target, KDBXArena* arena, const char* value) {
+static bool kdbx_group_set_arena_string(
+    char** target,
+    KDBXArena* arena,
+    const char* value,
+    bool reuse_arena_slot) {
     if(target == NULL || arena == NULL) {
         return false;
     }
 
     const char* text = value != NULL ? value : "";
+    const size_t len = strlen(text);
+    if(reuse_arena_slot && *target != NULL) {
+        const size_t old_len = strlen(*target);
+        if(len <= old_len) {
+            /* Arena strings are individually owned. Equal/shorter edits can
+             * reuse their slot instead of retaining an unreachable old copy. */
+            memmove(*target, text, len + 1U);
+            memzero(*target + len + 1U, old_len - len);
+            return true;
+        }
+    }
     char* copy = kdbx_arena_strdup(arena, text);
     if(copy == NULL) {
         return false;
@@ -71,6 +86,8 @@ static KDBXFieldRef* kdbx_entry_field_ref_ptr(KDBXEntry* entry, uint32_t field_m
     switch(field_mask) {
     case KDBXEntryFieldUuid:
         return &entry->uuid_ref;
+    case KDBXEntryFieldTitle:
+        return &entry->title_ref;
     case KDBXEntryFieldUsername:
         return &entry->username_ref;
     case KDBXEntryFieldPassword:
@@ -91,7 +108,12 @@ KDBXGroup* kdbx_group_alloc(KDBXArena* arena) {
         return NULL;
     }
 
-    return kdbx_arena_alloc_block(arena, sizeof(KDBXGroup), sizeof(void*));
+    /* Arena chunks are zeroed; only the group's non-zero default needs a store. */
+    KDBXGroup* group = kdbx_arena_alloc_block(arena, sizeof(KDBXGroup), sizeof(void*));
+    if(group != NULL) {
+        group->icon_id = KDBX_ICON_ID_GROUP_DEFAULT;
+    }
+    return group;
 }
 
 KDBXEntry* kdbx_entry_alloc(KDBXArena* arena) {
@@ -114,6 +136,46 @@ void kdbx_group_reset(KDBXGroup* group) {
     group->children = NULL;
     group->next = NULL;
     group->entries = NULL;
+    group->icon_id = KDBX_ICON_ID_GROUP_DEFAULT;
+}
+
+void kdbx_entry_clear_loaded_field_mask(KDBXEntry* entry, uint32_t field_mask) {
+    if(entry == NULL || field_mask == 0U) {
+        return;
+    }
+
+    const uint32_t to_clear = entry->loaded_mask & field_mask;
+
+    if((to_clear & KDBXEntryFieldUuid) != 0U) {
+        kdbx_secure_free_string(entry->uuid);
+        entry->uuid = NULL;
+    }
+    if((to_clear & KDBXEntryFieldTitle) != 0U) {
+        kdbx_secure_free_string(entry->title);
+        entry->title = NULL;
+    }
+    if((to_clear & KDBXEntryFieldUsername) != 0U) {
+        kdbx_secure_free_string(entry->username);
+        entry->username = NULL;
+    }
+    if((to_clear & KDBXEntryFieldPassword) != 0U) {
+        kdbx_secure_free_string(entry->password);
+        entry->password = NULL;
+    }
+    if((to_clear & KDBXEntryFieldUrl) != 0U) {
+        kdbx_secure_free_string(entry->url);
+        entry->url = NULL;
+    }
+    if((to_clear & KDBXEntryFieldNotes) != 0U) {
+        kdbx_secure_free_string(entry->notes);
+        entry->notes = NULL;
+    }
+    if((to_clear & KDBXEntryFieldAutotype) != 0U) {
+        kdbx_secure_free_string(entry->autotype_sequence);
+        entry->autotype_sequence = NULL;
+    }
+
+    entry->loaded_mask &= ~to_clear;
 }
 
 void kdbx_entry_clear_loaded_fields(KDBXEntry* entry) {
@@ -121,34 +183,12 @@ void kdbx_entry_clear_loaded_fields(KDBXEntry* entry) {
         return;
     }
 
-    if((entry->loaded_mask & KDBXEntryFieldUuid) != 0U) {
-        kdbx_secure_free_string(entry->uuid);
-        entry->uuid = NULL;
-    }
-    if((entry->loaded_mask & KDBXEntryFieldTitle) != 0U) {
-        kdbx_secure_free_string(entry->title);
-        entry->title = NULL;
-    }
-    if((entry->loaded_mask & KDBXEntryFieldUsername) != 0U) {
-        kdbx_secure_free_string(entry->username);
-        entry->username = NULL;
-    }
-    if((entry->loaded_mask & KDBXEntryFieldPassword) != 0U) {
-        kdbx_secure_free_string(entry->password);
-        entry->password = NULL;
-    }
-    if((entry->loaded_mask & KDBXEntryFieldUrl) != 0U) {
-        kdbx_secure_free_string(entry->url);
-        entry->url = NULL;
-    }
-    if((entry->loaded_mask & KDBXEntryFieldNotes) != 0U) {
-        kdbx_secure_free_string(entry->notes);
-        entry->notes = NULL;
-    }
-    if((entry->loaded_mask & KDBXEntryFieldAutotype) != 0U) {
-        kdbx_secure_free_string(entry->autotype_sequence);
-        entry->autotype_sequence = NULL;
-    }
+    kdbx_entry_clear_loaded_field_mask(
+        entry,
+        KDBXEntryFieldUuid | KDBXEntryFieldTitle | KDBXEntryFieldUsername |
+            KDBXEntryFieldPassword | KDBXEntryFieldUrl | KDBXEntryFieldNotes |
+            KDBXEntryFieldAutotype);
+
     for(KDBXCustomField* field = entry->custom_fields; field != NULL; field = field->next) {
         kdbx_custom_field_clear_loaded_value(field);
     }
@@ -164,7 +204,9 @@ void kdbx_entry_reset(KDBXEntry* entry) {
     entry->uuid = NULL;
     entry->title = NULL;
     entry->field_mask = 0U;
+    entry->icon_id = KDBX_ICON_ID_ENTRY_DEFAULT;
     memset(&entry->uuid_ref, 0, sizeof(entry->uuid_ref));
+    memset(&entry->title_ref, 0, sizeof(entry->title_ref));
     memset(&entry->username_ref, 0, sizeof(entry->username_ref));
     memset(&entry->password_ref, 0, sizeof(entry->password_ref));
     memset(&entry->url_ref, 0, sizeof(entry->url_ref));
@@ -175,30 +217,43 @@ void kdbx_entry_reset(KDBXEntry* entry) {
 }
 
 void kdbx_group_free(KDBXGroup* group) {
-    if(group == NULL) {
-        return;
+    /* Nodes belong to the arena, so clearing fields leaves traversal links live.
+     * Preserve the historical forest (root plus its siblings) cleanup contract. */
+    for(KDBXGroup* root = group; root != NULL; root = root->next) {
+        for(KDBXGroup* node = root; node != NULL; node = kdbx_group_next_in_subtree(node, root)) {
+            kdbx_entry_free(node->entries);
+        }
     }
+}
 
-    kdbx_group_free(group->children);
-    kdbx_group_free(group->next);
-    kdbx_entry_free(group->entries);
+void kdbx_group_restore_source_entry_order(KDBXGroup* root) {
+    if(root == NULL) return;
+
+    for(KDBXGroup* group = root; group != NULL; group = kdbx_group_next_in_subtree(group, root)) {
+        KDBXEntry* reversed = NULL;
+        KDBXEntry* entry = group->entries;
+        while(entry != NULL) {
+            KDBXEntry* next = entry->next;
+            entry->next = reversed;
+            reversed = entry;
+            entry = next;
+        }
+        group->entries = reversed;
+    }
 }
 
 void kdbx_entry_free(KDBXEntry* entry) {
-    if(entry == NULL) {
-        return;
+    for(; entry != NULL; entry = entry->next) {
+        kdbx_entry_clear_loaded_fields(entry);
     }
-
-    kdbx_entry_free(entry->next);
-    kdbx_entry_clear_loaded_fields(entry);
 }
 
 bool kdbx_group_set_name(KDBXGroup* group, KDBXArena* arena, const char* name) {
-    return group != NULL && kdbx_group_set_arena_string(&group->name, arena, name);
+    return group != NULL && kdbx_group_set_arena_string(&group->name, arena, name, true);
 }
 
 bool kdbx_group_set_uuid(KDBXGroup* group, KDBXArena* arena, const char* uuid) {
-    return group != NULL && kdbx_group_set_arena_string(&group->uuid, arena, uuid);
+    return group != NULL && kdbx_group_set_arena_string(&group->uuid, arena, uuid, true);
 }
 
 bool kdbx_group_set_uuid_ref(KDBXGroup* group, const KDBXFieldRef* ref) {
@@ -220,11 +275,11 @@ const KDBXFieldRef* kdbx_group_get_uuid_ref(const KDBXGroup* group) {
 }
 
 bool kdbx_entry_set_uuid(KDBXEntry* entry, KDBXArena* arena, const char* uuid) {
-    return entry != NULL && kdbx_group_set_arena_string(&entry->uuid, arena, uuid);
+    return entry != NULL && kdbx_group_set_arena_string(&entry->uuid, arena, uuid, false);
 }
 
 bool kdbx_entry_set_title(KDBXEntry* entry, KDBXArena* arena, const char* title) {
-    return entry != NULL && kdbx_group_set_arena_string(&entry->title, arena, title);
+    return entry != NULL && kdbx_group_set_arena_string(&entry->title, arena, title, false);
 }
 
 bool kdbx_entry_set_uuid_ref(KDBXEntry* entry, const KDBXFieldRef* ref) {
@@ -284,7 +339,12 @@ bool kdbx_entry_take_loaded_text(
         value = NULL;
     }
 
-    kdbx_secure_free_string(*target);
+    /* Only secure-free the previous slot when it was a loaded (malloc'd)
+     * value. Arena-backed strings (e.g. legacy `kdbx_entry_set_title`) must
+     * not be passed to free(); just overwrite the slot. */
+    if((entry->loaded_mask & field_mask) != 0U) {
+        kdbx_secure_free_string(*target);
+    }
     *target = value;
     if(value != NULL) {
         entry->loaded_mask |= field_mask;
@@ -366,7 +426,7 @@ KDBXCustomField* kdbx_entry_add_custom_field_ex(
     }
 
     memset(field, 0, sizeof(*field));
-    if(!kdbx_group_set_arena_string(&field->key, arena, key)) {
+    if(!kdbx_group_set_arena_string(&field->key, arena, key, true)) {
         return NULL;
     }
 
@@ -399,7 +459,7 @@ bool kdbx_custom_field_set_key(KDBXCustomField* field, KDBXArena* arena, const c
         return false;
     }
 
-    return kdbx_group_set_arena_string(&field->key, arena, key);
+    return kdbx_group_set_arena_string(&field->key, arena, key, true);
 }
 
 bool kdbx_custom_field_set_ref(KDBXCustomField* field, const KDBXFieldRef* ref) {

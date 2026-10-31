@@ -1,4 +1,14 @@
 #include "../flippass.h"
+#include "flippass_output_transport.h"
+#include "../plugins/flippass_launch_auto.h"
+
+/* Bootstrap a product-generated provider export before the no-typing API check. */
+const FlipPassOutputPluginV1*
+    flippass_output_transport_plugin_ensure(App* app, FlipPassOutputTransport transport) {
+    UNUSED(app);
+    UNUSED(transport);
+    return NULL;
+}
 
 const char* flippass_output_transport_name(FlipPassOutputTransport transport) {
     return transport == FlipPassOutputTransportBluetooth ? "Bluetooth" : "USB";

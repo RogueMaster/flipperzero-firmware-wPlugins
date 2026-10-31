@@ -5,15 +5,16 @@
 
 #include "../kdbx/kdbx_data.h"
 #include "../kdbx/kdbx_vault.h"
+#include "../kdbx/xml_parser.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 #define FLIPPASS_OPEN_MODEL_PLUGIN_APP_ID       "flippass_open_model"
-#define FLIPPASS_OPEN_MODEL_PLUGIN_API_VERSION  1u
-#define FLIPPASS_OPEN_MODEL_HOST_API_VERSION    2u
-#define FLIPPASS_OPEN_MODEL_BUILDER_API_VERSION 5u
+#define FLIPPASS_OPEN_MODEL_PLUGIN_API_VERSION  3u
+#define FLIPPASS_OPEN_MODEL_HOST_API_VERSION    4u
+#define FLIPPASS_OPEN_MODEL_BUILDER_API_VERSION 6u
 
 typedef bool (*FlipPassOpenChunkCallback)(const uint8_t* data, size_t data_size, void* context);
 
@@ -43,6 +44,16 @@ typedef struct {
         size_t material_capacity,
         size_t* material_size,
         FuriString* error);
+    XmlParser* (*xml_alloc)(void);
+    void (*xml_free)(XmlParser* parser);
+    bool (*xml_feed)(XmlParser* parser, const char* xml, size_t size, bool final);
+    const char* (*xml_error)(const XmlParser* parser);
+    void (*xml_set_context)(XmlParser* parser, void* context);
+    void (*xml_set_elements)(
+        XmlParser* parser,
+        XmlParserStartElementCallback start,
+        XmlParserEndElementCallback end);
+    void (*xml_set_text)(XmlParser* parser, XmlParserCharacterDataCallback text);
 } FlipPassOpenModelHostApiV1;
 
 typedef struct {
@@ -62,6 +73,8 @@ typedef struct {
     bool (*set_group_uuid)(void* context, const char* value, size_t value_len, FuriString* error);
     bool (*set_entry_title)(void* context, const char* value, size_t value_len, FuriString* error);
     bool (*set_entry_uuid)(void* context, const char* value, size_t value_len, FuriString* error);
+    /* Valid KeePass <IconID> (0..255) of the open entry, else of the open group. */
+    void (*set_icon_id)(void* context, uint8_t icon_id);
     bool (*set_entry_standard_field)(
         void* context,
         uint32_t field_mask,

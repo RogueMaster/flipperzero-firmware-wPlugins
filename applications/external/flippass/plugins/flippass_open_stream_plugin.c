@@ -1,4 +1,5 @@
 #include "flippass_open_stream_plugin.h"
+#include "../flippass_build_config.h"
 
 #include "../kdbx/kdbx_open_stream.h"
 #include "../kdbx/memzero.h"
@@ -12,10 +13,6 @@
 #define FLIPPASS_OPEN_GZIP_TRAILER_SIZE          8U
 #define FLIPPASS_OPEN_GZIP_MEMBER_PREFIX_BYTES   512U
 #define FLIPPASS_OPEN_GZIP_EXPANDED_PREFIX_BYTES (16U * 1024U)
-#define FLIPPASS_OPEN_GZIP_NONPAGED_LIMIT        (16U * 1024U)
-#define FLIPPASS_OPEN_GZIP_NONPAGED_PLAIN_LIMIT  (16U * 1024U)
-#define FLIPPASS_OPEN_GZIP_NONPAGED_DICT_BYTES   (32U * 1024U)
-#define FLIPPASS_OPEN_GZIP_NONPAGED_MARGIN_BYTES (2U * 1024U)
 #define FLIPPASS_OPEN_GZIP_ID1                   0x1FU
 #define FLIPPASS_OPEN_GZIP_ID2                   0x8BU
 #define FLIPPASS_OPEN_GZIP_CM_DEFLATE            8U
@@ -71,11 +68,15 @@ static void fp_open_progress(
     ctx->host_api->progress(ctx->host_api->context, stage, detail, percent);
 }
 
+#if FLIPPASS_ENABLE_LOGS || FLIPPASS_ENABLE_PROBE_LOGS
 static void fp_open_log(FlipPassOpenStreamContext* ctx, const char* message) {
     if(ctx != NULL && ctx->host_api != NULL && ctx->host_api->log != NULL && message != NULL) {
         ctx->host_api->log(ctx->host_api->context, message);
     }
 }
+#else
+#define fp_open_log(ctx, message) ((void)(ctx))
+#endif
 
 static uint16_t fp_open_gzip_read_u16_le(const uint8_t* data) {
     return ((uint16_t)data[0]) | ((uint16_t)data[1] << 8);
@@ -97,6 +98,16 @@ static bool
     }
 
     return false;
+}
+
+static FlipPassOpenInflateKind fp_open_gzip_inflate_hint(
+    const uint8_t* prefix,
+    size_t prefix_size,
+    const KDBXGzipMemberInfo* info) {
+    return prefix != NULL && info != NULL && info->compressed_size > 0U &&
+                   info->body_offset < prefix_size && (prefix[info->body_offset] & 0x06U) == 0U ?
+               FlipPassOpenInflateKindStoredCandidate :
+               FlipPassOpenInflateKindNone;
 }
 
 static FlipPassOpenGzipParseStatus fp_open_gzip_parse_member_info(
@@ -192,7 +203,7 @@ static bool fp_open_gzip_parse_can_retry_with_expanded_prefix(FlipPassOpenGzipPa
 static const char* fp_open_gzip_parse_error_message(FlipPassOpenGzipParseStatus status) {
     switch(status) {
     case FlipPassOpenGzipParseStatusOutputTooLarge:
-        return "The decompressed XML payload exceeds FlipPass's safe limit.";
+        return "Inflated XML exceeds safe limit.";
     case FlipPassOpenGzipParseStatusInvalidHeader:
     case FlipPassOpenGzipParseStatusReservedFlags:
     case FlipPassOpenGzipParseStatusInvalidExtraField:
@@ -202,24 +213,8 @@ static const char* fp_open_gzip_parse_error_message(FlipPassOpenGzipParseStatus 
     case FlipPassOpenGzipParseStatusInvalidBodyOffset:
     case FlipPassOpenGzipParseStatusTruncatedInput:
     default:
-        return "The GZip member could not be analyzed safely.";
+        return "Invalid GZip member.";
     }
-}
-
-static FlipPassOpenInflateKind
-    fp_open_select_inflate_kind(size_t member_size, uint32_t expected_output_size) {
-    const size_t max_free_block = memmgr_heap_get_max_free_block();
-    const size_t nonpaged_required_max = member_size + FLIPPASS_OPEN_GZIP_NONPAGED_DICT_BYTES +
-                                         FLIPPASS_OPEN_GZIP_NONPAGED_MARGIN_BYTES;
-
-    if(member_size == 0U || expected_output_size == 0U ||
-       member_size > FLIPPASS_OPEN_GZIP_NONPAGED_LIMIT ||
-       expected_output_size > FLIPPASS_OPEN_GZIP_NONPAGED_PLAIN_LIMIT) {
-        return FlipPassOpenInflateKindPaged;
-    }
-
-    return (max_free_block >= nonpaged_required_max) ? FlipPassOpenInflateKindNonPaged :
-                                                       FlipPassOpenInflateKindPaged;
 }
 
 static bool fp_open_stage_xml_output(const uint8_t* data, size_t data_size, void* context) {
@@ -309,8 +304,7 @@ static bool fp_open_read_staged_payload_prefix(
         if(!ctx->host_api->read_staged_payload_stream(
                ctx->host_api->context, prefix + total, prefix_capacity - total, &chunk_size)) {
             if(furi_string_empty(ctx->error)) {
-                furi_string_set_str(
-                    ctx->error, "The staged payload scratch could not be read safely.");
+                furi_string_set_str(ctx->error, "Staged payload read failed.");
             }
             goto cleanup;
         }
@@ -342,14 +336,19 @@ static bool fp_open_stage_plain_payload(
 
     furi_assert(ctx);
 
+    fp_open_log(ctx, "STREAM_PLAIN_BEGIN_XML");
     if(!ctx->host_api->begin_staged_xml(ctx->host_api->context, preferred_backend, ctx->error)) {
+        fp_open_log(ctx, "STREAM_PLAIN_BEGIN_XML_FAIL");
         return false;
     }
 
     fp_open_progress(ctx, "Decrypting", "", 50U);
+    fp_open_log(ctx, "STREAM_PLAIN_OUTER_BEGIN");
     if(!kdbx_open_stream_outer_payload(
            file_path,
            open_profile,
+           ctx->host_api->crypto,
+           ctx->host_api->validate_profile,
            fp_open_stage_xml_output,
            &stage,
            stream_error,
@@ -357,18 +356,21 @@ static bool fp_open_stage_plain_payload(
         if(furi_string_empty(ctx->error)) {
             furi_string_set_str(
                 ctx->error,
-                (stream_error != NULL && stream_error[0] != '\0') ?
-                    stream_error :
-                    "Unable to stage the decrypted XML payload.");
+                (stream_error != NULL && stream_error[0] != '\0') ? stream_error :
+                                                                    "Cannot stage decrypted XML.");
         }
         ctx->host_api->clear_staged_xml(ctx->host_api->context);
+        fp_open_log(ctx, "STREAM_PLAIN_OUTER_FAIL");
         return false;
     }
+    fp_open_log(ctx, "STREAM_PLAIN_OUTER_OK");
 
     if(!ctx->host_api->finish_staged_xml(ctx->host_api->context, stage.plain_size, ctx->error)) {
         ctx->host_api->clear_staged_xml(ctx->host_api->context);
+        fp_open_log(ctx, "STREAM_PLAIN_FINISH_XML_FAIL");
         return false;
     }
+    fp_open_log(ctx, "STREAM_PLAIN_FINISH_XML_OK");
 
     return true;
 }
@@ -404,6 +406,8 @@ static bool fp_open_stage_gzip_member(
     if(!kdbx_open_stream_outer_payload(
            file_path,
            open_profile,
+           ctx->host_api->crypto,
+           ctx->host_api->validate_profile,
            fp_open_gzip_member_collect,
            &stage,
            stream_error,
@@ -413,7 +417,7 @@ static bool fp_open_stage_gzip_member(
                 ctx->error,
                 (stream_error != NULL && stream_error[0] != '\0') ?
                     stream_error :
-                    "Unable to stage the decrypted GZip member.");
+                    "Cannot stage decrypted GZip.");
         }
         ctx->host_api->clear_staged_payload(ctx->host_api->context);
         return false;
@@ -426,7 +430,7 @@ static bool fp_open_stage_gzip_member(
     }
 
     if(stage.trailer_len < sizeof(stage.trailer)) {
-        furi_string_set_str(ctx->error, "The GZip member could not be analyzed safely.");
+        furi_string_set_str(ctx->error, "Invalid GZip member.");
         ctx->host_api->clear_staged_payload(ctx->host_api->context);
         return false;
     }
@@ -466,18 +470,19 @@ static bool fp_open_stage_gzip_member(
     result->output_kind = FlipPassOpenStreamOutputKindGzipMember;
     result->staged_payload_size = stage.total_bytes;
     result->gzip_member_info = member_info;
+    /* This is a byte-format hint, not a heap recommendation. A later mixed
+     * block or a long header still uses the complete paged decoder fallback. */
     result->suggested_inflate_kind =
-        fp_open_select_inflate_kind(stage.total_bytes, member_info.expected_output_size);
+        fp_open_gzip_inflate_hint(stage.prefix, stage.prefix_len, &member_info);
 
+#if FLIPPASS_ENABLE_LOGS || FLIPPASS_ENABLE_PROBE_LOGS
     {
         char log_line[192];
         snprintf(
             log_line,
             sizeof(log_line),
-            "STREAM_GZIP_OUTER_OK bytes=%lu inflate=%s free=%lu max=%lu",
+            "STREAM_GZIP_OUTER_OK bytes=%lu inflate=deferred free=%lu max=%lu",
             (unsigned long)stage.total_bytes,
-            result->suggested_inflate_kind == FlipPassOpenInflateKindNonPaged ? "nonpaged" :
-                                                                                "paged",
             (unsigned long)memmgr_get_free_heap(),
             (unsigned long)memmgr_heap_get_max_free_block());
         fp_open_log(ctx, log_line);
@@ -495,6 +500,7 @@ static bool fp_open_stage_gzip_member(
         fp_open_log(ctx, log_line);
     }
 
+#endif
     return true;
 }
 
@@ -515,14 +521,24 @@ static bool fp_open_stream_run(
        host_api->api_version != FLIPPASS_OPEN_STREAM_HOST_API_VERSION ||
        result->api_version != FLIPPASS_OPEN_STREAM_PLUGIN_API_VERSION ||
        request->file_path == NULL || request->file_path[0] == '\0' ||
-       request->open_profile == NULL || host_api->begin_staged_payload == NULL ||
-       host_api->append_staged_payload == NULL || host_api->finish_staged_payload == NULL ||
-       host_api->clear_staged_payload == NULL || host_api->begin_staged_payload_stream == NULL ||
+       request->open_profile == NULL || host_api->crypto == NULL ||
+       host_api->validate_profile == NULL ||
+       host_api->crypto->api_version != FLIPPASS_CRYPTO_API_VERSION ||
+       host_api->crypto->sha512_chunks == NULL || host_api->crypto->hmac_sha256_init == NULL ||
+       host_api->crypto->hmac_sha256_update == NULL ||
+       host_api->crypto->hmac_sha256_final == NULL ||
+       host_api->crypto->hmac_sha256_clear == NULL ||
+       host_api->crypto->chacha20_stream_init == NULL ||
+       host_api->crypto->protected_stream_apply == NULL ||
+       host_api->crypto->protected_stream_clear == NULL ||
+       host_api->begin_staged_payload == NULL || host_api->append_staged_payload == NULL ||
+       host_api->finish_staged_payload == NULL || host_api->clear_staged_payload == NULL ||
+       host_api->begin_staged_payload_stream == NULL ||
        host_api->read_staged_payload_stream == NULL ||
        host_api->end_staged_payload_stream == NULL || host_api->begin_staged_xml == NULL ||
        host_api->append_staged_xml == NULL || host_api->finish_staged_xml == NULL ||
        host_api->clear_staged_xml == NULL) {
-        furi_string_set_str(error, "Open stream ABI is unavailable or incompatible.");
+        furi_string_set_str(error, "Incompatible stream API.");
         return false;
     }
 
@@ -531,8 +547,7 @@ static bool fp_open_stream_run(
     memset(&result->gzip_member_info, 0, sizeof(result->gzip_member_info));
     result->suggested_inflate_kind = FlipPassOpenInflateKindNone;
 
-    if(!kdbx_open_profile_validate_for_stream(
-           request->open_profile, stream_error, sizeof(stream_error))) {
+    if(!host_api->validate_profile(request->open_profile, stream_error, sizeof(stream_error))) {
         furi_string_set_str(error, stream_error);
         return false;
     }
