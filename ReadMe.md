@@ -112,6 +112,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [FlipPass v3.0 - memory optimizations, KeePass icons and launch arguments (By Arckanos)](https://github.com/Arckanos/FlipPass)
 - Added: [Hazke v1.0 - wireframe space trading and combat (By REZOR)](https://github.com/therezor/hazke-flipper)
 - Updated: [Taiko Player v0.5.1 (By ZeroNinx)](https://github.com/ZeroNinx/flipper-zero-taiko-player)
+- Added: [Pet Thermometer v0.3 - NTAG5/BeUno and FDX-B temperature reader (By Manawyrm)](https://github.com/Manawyrm/ntag5_thermometer) `Req: TI TMP117`
+- Updated: [Ansonic Nice FLO false-positive rejection and CAME TWEE parcel-counter bounds check (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/f5e39f9115f18ded8a41c5316b15c83124307346)
 
 <a name="release"></a>
 
@@ -901,6 +903,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [PC Monitor v1.1.3 (By TheSainEyereg)](https://github.com/TheSainEyereg/flipper-pc-monitor) `Req: [Backend](https://github.com/TheSainEyereg/flipper-pc-monitor-backend)`
 - [Period Tracker v1.0 (By gorshunovr)](https://github.com/gorshunovr/period_tracker)
 - [Persian Calendar v1.1 (By amir)](https://github.com/AmirNcode/flipper-persian-calendar)
+- [Pet Thermometer v0.3 (By Manawyrm)](https://github.com/Manawyrm/ntag5_thermometer) `Req: TI TMP117`
 - [Pet Your Dolphin v1.1 (By David White)](https://github.com/dwight9339/pet_your_dolphin)
 - [Pi Terminal v1.0 (By dagnazty & InfoSecREDD)](https://github.com/InfoSecREDD/Flip-pi)
 - [Piano v1.0 (By bergr22)](https://github.com/bergr22/FlipPiano)

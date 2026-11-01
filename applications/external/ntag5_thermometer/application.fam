@@ -1,0 +1,14 @@
+App(
+    appid="pet_thermometer",
+    name="Pet Thermometer",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="pet_thermometer_app",
+    stack_size=2 * 1024,
+    fap_icon="paw_10px.png",
+    targets=["f7"],
+    fap_category="GPIO",
+    fap_author="Manawyrm",
+    fap_weburl="https://github.com/Manawyrm/ntag5_thermometer",
+    fap_version="0.3",
+    fap_description="Reads temperature patches (NTAG 5 link + TMP117) and FDX-B animal chips with temperature",
+)
