@@ -1,6 +1,7 @@
 ## Volor Savanna is a text adventure game
 
 #### COMPLETE:
+* AppleScript
 * Bash
 * C
 * Flipper Zero
@@ -8,7 +9,6 @@
 * Web https://invizabel.github.io/VolorSavanna
 
 #### TODO:
-* AppleScript
 * Go
 * TI 84
 
