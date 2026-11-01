@@ -114,6 +114,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Taiko Player v0.5.1 (By ZeroNinx)](https://github.com/ZeroNinx/flipper-zero-taiko-player)
 - Added: [Pet Thermometer v0.3 - NTAG5/BeUno and FDX-B temperature reader (By Manawyrm)](https://github.com/Manawyrm/ntag5_thermometer) `Req: TI TMP117`
 - Updated: [Ansonic Nice FLO false-positive rejection and CAME TWEE parcel-counter bounds check (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/f5e39f9115f18ded8a41c5316b15c83124307346)
+- Updated: [FlipFlash v1.0 - Fix path to lowercase (By Mushi0)](https://github.com/Mushi0/FlippFlash)
+- Added: [Lettercade v1.0 - Letters Rain, Snake Letters and Tennis Letters (By andreimagic)](https://github.com/andreimagic/flipper-lettercade)
 
 <a name="release"></a>
 
@@ -325,6 +327,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Jumping Pawns v0.1 (By Tyl3rA)](https://github.com/Tyl3rA/Jumping-Pawns)
 - [KC Line v1.2 (By HappyAmos)](https://github.com/HappyAmos/Flipper_FAPS/tree/master/kcline)
 - [Laser Tag v2.3 (By RocketGod & jamisonderek)](https://github.com/RocketGod-git/Flipper-Zero-Laser-Tag)
+- [Lettercade v1.0 (By andreimagic)](https://github.com/andreimagic/flipper-lettercade)
 - [Lifecounter v1.0 (By antsy)](https://github.com/antsy/Lifecounter) (Multi Counter remake)
 - [Lights Out Flipper Zero v1.1 (By DigiMancer3D)](https://github.com/user/DigiMancer3D)
 - [Magic 8-ball v0.1 (By stevenquinn)](https://github.com/stevenquinn/flipper-8-ball)

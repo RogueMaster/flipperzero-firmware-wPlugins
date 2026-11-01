@@ -13,8 +13,8 @@
 
 #define TAG             "FlipFlash"
 #define APP_DATA_DIR    "/ext/apps_data/flipflash"
-#define DECK_FILE_PATH  "/ext/apps_data/FlipFlash/spanish_words.txt"
-#define STATE_FILE_PATH "/ext/apps_data/FlipFlash/flash_state.txt"
+#define DECK_FILE_PATH  "/ext/apps_data/flipflash/spanish_words.txt"
+#define STATE_FILE_PATH "/ext/apps_data/flipflash/flash_state.txt"
 
 #define MAX_CARDS       128
 #define MAX_TEXT_LENGTH 128

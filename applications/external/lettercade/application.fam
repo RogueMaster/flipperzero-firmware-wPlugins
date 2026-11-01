@@ -1,0 +1,14 @@
+App(
+    appid="lettercade",
+    name="Lettercade",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="lettercade_app",
+    stack_size=4 * 1024,
+    fap_icon="lettercade_10px.png",
+    fap_icon_assets="images",
+    fap_category="Games",
+    fap_author="andreimagic",
+    fap_weburl="https://github.com/andreimagic/flipper-lettercade",
+    fap_version="1.0",
+    fap_description="ASCII Arcade: Letters Rain, Snake Letters and Tennis Letters.",
+)
