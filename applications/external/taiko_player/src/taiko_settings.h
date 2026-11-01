@@ -13,6 +13,9 @@ typedef struct {
     uint32_t ka_volume;
     uint32_t backward_ms;
     uint32_t forward_ms;
+    uint32_t seek_mode;
+    uint32_t backward_bars;
+    uint32_t forward_bars;
     uint32_t playback_tenths;
     uint32_t scroll_tenths;
     uint32_t frame_rate;

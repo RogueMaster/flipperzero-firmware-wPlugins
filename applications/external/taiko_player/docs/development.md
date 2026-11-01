@@ -42,10 +42,10 @@ make build FIRMWARE=momentum-012
 三套 SDK 初始化后，可生成不含本地曲目和设置的发布包：
 
 ```sh
-make release VERSION=0.5
+make release VERSION=0.5.1
 ```
 
-此命令运行测试、依次编译三个版本，并输出 `dist/releases/v0.5/` 下的三个 ZIP 和 SHA-256 校验文件。每个包记录源码提交、固件 SDK 版本及 FAP API，并包含中英文 README 与 `docs/` 下的 Markdown 文档。GitHub Release 工作流使用固定版本的 SDK；准备好对应的 `docs/releases/v<版本>.md` 并推送 `v<版本>` 标签后，会自动构建并发布。
+此命令运行测试、依次编译三个版本，并输出 `dist/releases/v0.5.1/` 下的三个 ZIP 和 SHA-256 校验文件。每个包记录源码提交、固件 SDK 版本及 FAP API，并包含中英文 README 与 `docs/` 下的 Markdown 文档。发布版本支持 `major.minor` 和 `major.minor.patch`。SDK 的 FAP 头只存主／次版本，因此 v0.5.1 的 FAP 头仍为 0.5；安装包的 `BUILD.json` 分别记录 `version`（0.5.1）与 `fap_version`（0.5），并保留源码提交与文件校验和。GitHub Release 工作流使用固定版本的 SDK；准备好对应的 `docs/releases/v<版本>.md` 并推送 `v<版本>` 标签后，会自动构建并发布。
 
 ## 打包与 USB 上传
 

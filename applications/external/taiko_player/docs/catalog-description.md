@@ -6,7 +6,8 @@ A lightweight TJA chart player for Flipper Zero. Play backing music through the 
 
 - Normal and big Don/Ka notes, drumrolls, balloons, and GOGO TIME effects.
 - Automatic drum-sound mixing with alternating left/right drum indicators; Don/Ka pitch stays fixed across playback speeds and same-sound hits replace old tails.
-- Difficulty selection, pause, restart, song selection, and adjustable seeking intervals.
+- Difficulty selection, pause, restart, song selection, and adjustable time-based or bar-based seeking; bar seeking is the default.
+- Scrolling measure lines with support for hidden and empty measures.
 - Independent playback speed, scroll speed, and volume controls, including 0-200% app master volume.
 - Target display refresh rate from 15 to 60 FPS, with 50 FPS as the default.
 - Per-note scroll speed changes, including reverse scrolling.

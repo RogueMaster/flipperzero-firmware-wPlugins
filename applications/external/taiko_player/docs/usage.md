@@ -4,7 +4,7 @@
 
 ## 安装与升级
 
-从 [GitHub Releases](https://github.com/ZeroNinx/flipper-zero-taiko-player/releases) 下载与设备固件 API 兼容的安装包。v0.5 提供以下三个安装包：
+从 [GitHub Releases](https://github.com/ZeroNinx/flipper-zero-taiko-player/releases) 下载与设备固件 API 兼容的安装包。v0.5.1 提供以下三个安装包：
 
 | 安装包后缀 | 固件 SDK | API |
 | --- | --- | --- |
@@ -71,7 +71,7 @@ python3 scripts/prepare_songs.py songs --output sdcard/apps_data/taiko_player/so
 | 浏览、选择曲目 | 方向键、OK |
 | 文件浏览器返回上级目录 | 短按返回 |
 | 播放 / 暂停 | OK |
-| 后退 / 前进（默认 5 秒） | 左 / 右 |
+| 后退 / 前进（默认 1 小节） | 左 / 右 |
 | 增加 / 减少应用总音量 | 上 / 下（可按住连续调整） |
 | 打开 / 关闭播放菜单 | 短按返回 |
 | 菜单中选择项目 | 上 / 下 |
@@ -82,11 +82,22 @@ python3 scripts/prepare_songs.py songs --output sdcard/apps_data/taiko_player/so
 
 暂停时，音频、谱面与鼓点指示一起停止，并清空 GPIO 输出。暂停期间也可前后跳转，按 OK 后从当前位置继续播放。跳转会限制在曲目起止范围内，不补发跳过的鼓点；左右手交替仍按谱面中的原始音符顺序计算。恢复和跳转时需要重新读取音频缓冲，可能有短暂延迟。
 
-播放菜单从上到下为 **Return（返回）、Restart（重新播放）、Play New Song（播放新曲）、Difficulty（难度）、Playback Speed（播放速度）、Scroll Speed（谱面流速）、Frame Rate（刷新率）、Backward Interval（后退间隔）、Forward Interval（前进间隔）、Dong Volume（咚音量）、Ka Volume（咔音量）、GPIO Output（GPIO 输出开关）、GPIO Setting（GPIO 引脚设置）、Restore Defaults（恢复默认设置）、Exit（退出应用）**。菜单每屏显示五行，上下选择时自动滚动。前后间隔分别支持 **1 / 3 / 5 / 10 秒**，默认均为 5 秒；音量默认各为 70%。音量、跳转间隔、播放速度、流速、刷新率和 GPIO 引脚映射自动保存，下次启动恢复。打开菜单会暂停音频并清空 GPIO，选择 Return 或短按返回时恢复进入菜单前的播放或暂停状态；Restart 从头开始播放；Play New Song 停止当前曲目并回到 `taiko_player/songs/` 目录重新选曲，保留本次运行中的音量和跳转间隔设置，选定后从头播放。取消选曲会退出应用。播放结束时进入菜单再返回，仍保留结束状态。
+播放菜单从上到下为 **Return（返回）、Restart（重新播放）、Play New Song（播放新曲）、Difficulty（难度）、Playback Speed（播放速度）、Scroll Speed（谱面流速）、Frame Rate（刷新率）、Seek Mode（跳转方式）、Backward Interval（后退间隔）、Forward Interval（前进间隔）、Dong Volume（咚音量）、Ka Volume（咔音量）、GPIO Output（GPIO 输出开关）、GPIO Setting（GPIO 引脚设置）、Restore Defaults（恢复默认设置）、Exit（退出应用）**。菜单每屏显示五行，上下选择时自动滚动。默认按小节跳转，前后各 1 小节；按小节和按时间的间隔设置见下节。音量默认各为 70%。音量、跳转间隔、播放速度、流速、刷新率和 GPIO 引脚映射自动保存，下次启动恢复。打开菜单会暂停音频并清空 GPIO，选择 Return 或短按返回时恢复进入菜单前的播放或暂停状态；Restart 从头开始播放；Play New Song 停止当前曲目并回到 `taiko_player/songs/` 目录重新选曲，保留本次运行中的音量和跳转间隔设置，选定后从头播放。取消选曲会退出应用。播放结束时进入菜单再返回，仍保留结束状态。
 
 难度选项只列出当前 TJA 中存在的 COURSE，支持名称、数字编号和 Ura（Edit）别名；优先 Oni，否则按 COURSE 顺序选最高难度。返回播放或选择 Restart 时应用难度变更，并从头开始；原本暂停时返回仍保持暂停。文件中尚未选择的难度不会同时载入音符数组。
 
 暂停会停止音频线程和 DMA，取消 GPIO 脉冲并拉低已启用的输出。暂停时应用等待按键，不再周期计算和刷新静止谱面，谱面时间与 GOGO 动画保持不变；继续播放时从保存的位置重新启动音频。
+
+## 跳转方式与小节线
+
+**Seek Mode** 位于 Frame Rate 下方，左右键或 OK 在 **By Time / By Bars** 之间切换，默认 By Bars。
+
+- **By Time**：左右键按秒后退／前进，Backward Interval 和 Forward Interval 分别支持 **1 / 3 / 5 / 10 秒**，默认 5 秒。
+- **By Bars**：左右键跳到真实的小节起点，间隔选项改为 Backward Bars 和 Forward Bars，分别支持 **1 / 3 / 5 / 10 小节**，默认 1 小节。位于小节中间时，后退一次先返回当前小节开头；恰好在小节线上时，后退到上一小节，前进到下一小节。
+
+新安装、旧配置缺少 `SeekMode` 或恢复默认设置时使用 By Bars；配置中已明确保存的 By Time / By Bars 选择继续保留。两种模式分别保留各自的前后间隔，切换不会覆盖另一种模式的设置；跳转方式与间隔跨曲目、跨重启保存。暂停时也可按小节跳转，之后继续保持暂停。超出范围时停在音频开头或结尾。
+
+小节按 TJA 的逗号分隔统计，使用所选难度的实际时间，支持 BPM 变化、`#MEASURE`、`OFFSET`、非负 `#DELAY` 和空小节，不按固定 BPM 估算。轨道以一像素宽的白线标记小节起点，移动倍率取该起点的 BPM 和 `#SCROLL`，绘制在音符后方。`#BARLINEOFF` 只隐藏小节线，被隐藏的小节仍可跳转；`#BARLINEON` 恢复后续小节线。
 
 ## 播放速度与流速
 
@@ -139,7 +150,7 @@ HS 的计算方式见[谱面支持](chart-support.md)。
 
 保存时先完整写入临时文件，再替换正式文件。文件缺失或版本不支持时采用默认配置；无效或缺失字段回退到对应默认值，重复或无效的 GPIO 引脚映射整体恢复为默认四路。保存失败会显示提示，当前设置仍可继续使用。
 
-示例配置中，间隔与 GPIO 脉冲时长的单位为毫秒，速度为倍率的十倍（`10` 表示 `1.0x`），音量为百分比：
+示例配置中，`SeekMode` 的 `0` 表示 By Time、`1` 表示 By Bars；`BackwardBars` / `ForwardBars` 单位为小节，时间间隔与 GPIO 脉冲时长的单位为毫秒，速度为倍率的十倍（`10` 表示 `1.0x`），音量为百分比：
 
 ```text
 Filetype: Taiko Player Settings
@@ -149,6 +160,9 @@ DongVolume: 70
 KaVolume: 70
 BackwardInterval: 5000
 ForwardInterval: 5000
+SeekMode: 1
+BackwardBars: 1
+ForwardBars: 1
 PlaybackSpeed: 10
 ScrollSpeed: 10
 FrameRate: 50
@@ -159,4 +173,4 @@ RightDongPin: A4
 RightKaPin: B3
 ```
 
-旧版配置缺少 `FrameRate` 时采用 50 FPS，缺少 `GpioPulseMs` 时采用 70 ms，其余有效设置继续保留；后续保存时补上缺少的字段，配置版本仍为 1。
+旧版配置缺少 `SeekMode` 时采用 By Bars，缺少 `BackwardBars` / `ForwardBars` 时各采用 1 小节；缺少 `FrameRate` 时采用 50 FPS，缺少 `GpioPulseMs` 时采用 70 ms，其余有效设置继续保留；后续保存时补上缺少的字段，配置版本仍为 1。

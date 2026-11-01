@@ -5,6 +5,39 @@
 #include "taiko_hits.h"
 
 #include <math.h>
+#include <string.h>
+
+void taiko_lane_collect_bars(
+    const TjaChart* chart,
+    uint32_t position_ms,
+    uint8_t scroll_tenths,
+    uint8_t columns[TAIKO_LANE_BAR_BYTES]) {
+    memset(columns, 0, TAIKO_LANE_BAR_BYTES);
+    if(!scroll_tenths || !isfinite(chart->min_bar_speed) || chart->min_bar_speed <= 0) return;
+    float window = (128 - TAIKO_LANE_HIT_X) * 10000.0f /
+                   (TAIKO_LANE_PIXELS_PER_SECOND * scroll_tenths * chart->min_bar_speed);
+    int64_t span = window < UINT32_MAX ? (int64_t)window + 1 : (int64_t)UINT32_MAX;
+    int64_t latest = (int64_t)position_ms + span;
+    size_t low = 0, high = chart->bar_count;
+    while(low < high) {
+        size_t mid = low + (high - low) / 2;
+        if(chart->bars[mid].time_ms < (int64_t)position_ms)
+            low = mid + 1;
+        else
+            high = mid;
+    }
+    for(size_t i = low; i < chart->bar_count && chart->bars[i].time_ms <= latest; i++) {
+        const TjaBar* bar = &chart->bars[i];
+        if(!bar->scroll_speed) continue;
+        float offset = ((int64_t)bar->time_ms - position_ms) * bar->scroll_speed * scroll_tenths *
+                       (TAIKO_LANE_PIXELS_PER_SECOND / 10000.0f);
+        if(!isfinite(offset) || offset <= -TAIKO_LANE_HIT_X - 1 ||
+           offset >= 128 - TAIKO_LANE_HIT_X)
+            continue;
+        int x = TAIKO_LANE_HIT_X + (int)offset;
+        if(x >= 0 && x < 128) columns[x / 8] |= 1U << (x % 8);
+    }
+}
 
 size_t taiko_lane_collect(
     const TjaNote* notes,

@@ -41,6 +41,13 @@ typedef struct {
     bool active;
 } TjaGogoChange;
 
+/* Every comma-delimited measure, including empty and hidden measures.
+ * Zero speed hides the line without removing its seek destination. */
+typedef struct {
+    int32_t time_ms;
+    float scroll_speed;
+} TjaBar;
+
 typedef struct {
     int32_t time_ms;
     int32_t end_ms; /* Note 8, exclusive. */
@@ -76,6 +83,9 @@ typedef struct {
     size_t hit_run_count;
     TjaGogoChange* gogo_changes;
     size_t gogo_change_count;
+    TjaBar* bars;
+    size_t bar_count;
+    float min_bar_speed;
     uint8_t roll_speed_tenths;
     int32_t end_ms;
 } TjaChart;
@@ -101,6 +111,14 @@ TjaCourse tja_default_course(uint8_t courses);
 float tja_chart_bpm_at(const TjaChart* chart, uint32_t position_ms);
 /* GOGO is initially off and always ends at #END, including after a seek. */
 bool tja_chart_gogo_at(const TjaChart* chart, uint32_t position_ms);
+/* Strictly previous/next measure start, repeated count times. Clamp to audio
+ * bounds; backward from inside a measure first returns to that measure's start. */
+uint32_t tja_chart_seek_bars(
+    const TjaChart* chart,
+    uint32_t position_ms,
+    uint32_t duration_ms,
+    bool forward,
+    uint32_t count);
 /* Rebuild automatic hits for the playback speed, preserving a 32 Hz real-time
  * cap. Audio must be stopped/finished. Failure leaves the chart unchanged. */
 bool tja_chart_set_roll_speed(TjaChart* chart, uint8_t speed_tenths, const char** error);

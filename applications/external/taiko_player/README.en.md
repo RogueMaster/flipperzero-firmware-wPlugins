@@ -20,7 +20,7 @@ This is a chart player; hit judgment is not implemented. Convert OGG audio to PC
 
 ## Quick start
 
-1. Download the package matching your firmware from [GitHub Releases](https://github.com/ZeroNinx/flipper-zero-taiko-player/releases). See the [v0.5 release notes](docs/releases/v0.5.md) for the SDK and API of each package.
+1. Download the package matching your firmware from [GitHub Releases](https://github.com/ZeroNinx/flipper-zero-taiko-player/releases). See the [v0.5.1 release notes](docs/releases/v0.5.1.md) for the SDK and API of each package.
 2. Extract the archive and copy the contents of `sdcard/` to the root of your SD card. Packages include the app, drum sounds, and conversion scripts, but no songs or personal settings.
 3. Install Python 3 and FFmpeg on your computer. Place your TJA files and matching audio in the extracted `songs/` folder, keeping the audio paths specified by each chart's `WAVE:` field. For example:
 
@@ -58,10 +58,12 @@ Copy the generated sdcard/apps_data/taiko_player/sfx/ folder, including its lice
 | Button | Action |
 | --- | --- |
 | OK | Play / pause; replay after the song ends |
-| Left / Right | Seek backward / forward; 5 seconds by default |
+| Left / Right | Seek backward / forward; 1 bar by default |
 | Up / Down | Adjust app volume; hold to repeat |
 | Short Back | Open the menu / return |
 | Hold Back during playback | Exit the app |
+
+**Seek Mode** switches between **By Time** and **By Bars** (default). Each direction has its own interval: **1 / 3 / 5 / 10 seconds** (default: 5), or **1 / 3 / 5 / 10 bars** (default: 1). Both sets of intervals and the mode are saved separately. New installations, settings without a saved mode, and Restore Defaults use By Bars; an explicitly saved By Time preference is preserved. In bar mode, Backward first returns to the current bar's start when between boundaries; at a boundary it goes to the previous bar. Forward goes to the next bar. Seeking also works while paused and stays within the audio bounds. Bar starts follow the selected TJA course's actual timing, including tempo, measure and delay changes and empty bars. One-pixel barlines scroll behind the notes; `#BARLINEOFF` hides lines without removing seek destinations.
 
 App master volume ranges from **0 to 200%**, with **70%** as the default. Above 100%, software gain boosts both music and drum sounds; peaks are clipped to the PCM range and may distort. The volume bar is full at 200%. Individual Don/Ka volume remains 0–100%.
 

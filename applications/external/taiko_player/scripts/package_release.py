@@ -5,6 +5,7 @@
 """Package official and both Momentum builds without local songs or settings."""
 
 import argparse
+import ast
 import hashlib
 import json
 import os
@@ -84,6 +85,18 @@ python3 scripts/prepare_songs.py songs --output sdcard/apps_data/taiko_player/so
 
 
 def package(version, output):
+    manifest = ast.parse((ROOT / "application.fam").read_text())
+    source_version = next(
+        ast.literal_eval(keyword.value)
+        for keyword in manifest.body[0].value.keywords
+        if keyword.arg == "fap_version"
+    )
+    if source_version != version:
+        raise ValueError(
+            f"application.fam version {source_version} does not match release {version}"
+        )
+    # The SDK accepts a patch component, but the FAP header stores only major/minor.
+    expected_fap_version = ".".join(version.split(".")[:2])
     commit = subprocess.check_output(
         ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True
     ).strip()
@@ -104,8 +117,10 @@ def package(version, output):
         for firmware, sdk_home in sdk_homes.items():
             fap = ROOT / "dist" / firmware / "taiko_player.fap"
             metadata = fap_metadata(fap)
-            if metadata["version"] != version:
+            if metadata["version"] != expected_fap_version:
                 raise ValueError(f"{fap}: FAP version does not match release {version}")
+            metadata["fap_version"] = metadata["version"]
+            metadata["version"] = version
             sdk = json.loads((sdk_home / "current/components.json").read_text())["meta"]
             if sdk["hw_target"] != metadata["hardware_target"]:
                 raise ValueError(f"{firmware}: SDK hardware target mismatch")
@@ -171,11 +186,13 @@ def package(version, output):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--version", default="0.5")
+    parser.add_argument("--version", default="0.5.1")
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
-    if not re.fullmatch(r"\d+\.\d+", args.version):
-        parser.error("Version must be major.minor, matching application.fam")
+    if not re.fullmatch(r"\d+\.\d+(?:\.\d+)?", args.version):
+        parser.error(
+            "Version must be major.minor or major.minor.patch, matching application.fam"
+        )
     package(args.version, args.output or ROOT / "dist/releases" / f"v{args.version}")
 
 

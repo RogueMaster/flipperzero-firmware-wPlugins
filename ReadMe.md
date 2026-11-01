@@ -111,6 +111,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [PicoPass (iClass) v1.23 (By Bettse)](https://gitlab.com/bettse/picopass)
 - Updated: [FlipPass v3.0 - memory optimizations, KeePass icons and launch arguments (By Arckanos)](https://github.com/Arckanos/FlipPass)
 - Added: [Hazke v1.0 - wireframe space trading and combat (By REZOR)](https://github.com/therezor/hazke-flipper)
+- Updated: [Taiko Player v0.5.1 (By ZeroNinx)](https://github.com/ZeroNinx/flipper-zero-taiko-player)
 
 <a name="release"></a>
 
@@ -1023,7 +1024,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [T5577 Multiwriter v0.3 (By Leptopt1los)](https://github.com/Leptopt1los/t5577_multiwriter)
 - [T5577 Raw Writer v1.1 (By zinongli)](https://github.com/zinongli/T5577_Raw_Writer) (.t5577 ext incompatible to T5577)
 - [TagTinker v2.1 (By i12bp8)](https://github.com/i12bp8/TagTinker)
-- [Taiko Player v0.5 (By ZeroNinx)](https://github.com/ZeroNinx/flipper-zero-taiko-player)
+- [Taiko Player v0.5.1 (By ZeroNinx)](https://github.com/ZeroNinx/flipper-zero-taiko-player)
 - [Talk Timer v1.0 (By Manoah Ruiz Rodriguez)](https://github.com/Mableton/talk_timer)
 - [TamaConnect v1.0 (By s2013p)](https://github.com/s2013p/TamaConnect)
 - [Tasks v1.3 (By MadLadSquad)](https://github.com/MadLadSquad/FlipperTasks)

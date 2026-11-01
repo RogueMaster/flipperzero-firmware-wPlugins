@@ -11,6 +11,8 @@ int main(void) {
     taiko_settings_defaults(&defaults);
     assert(defaults.volume == 70 && defaults.don_volume == 70 && defaults.ka_volume == 70);
     assert(defaults.backward_ms == 5000 && defaults.forward_ms == 5000);
+    assert(defaults.seek_mode == TaikoSeekByBars);
+    assert(defaults.backward_bars == 1 && defaults.forward_bars == 1);
     assert(defaults.playback_tenths == 10 && defaults.scroll_tenths == 10);
     assert(defaults.frame_rate == 50);
     assert(defaults.gpio_pulse_ms == 70);
@@ -22,6 +24,9 @@ int main(void) {
     settings.ka_volume = 100;
     settings.backward_ms = 1000;
     settings.forward_ms = 10000;
+    settings.seek_mode = TaikoSeekByTime;
+    settings.backward_bars = 3;
+    settings.forward_bars = 10;
     settings.playback_tenths = 7;
     settings.scroll_tenths = 30;
     settings.frame_rate = 37;
@@ -43,6 +48,8 @@ int main(void) {
         menu.course == TjaCourseHard &&
         menu.courses == ((1U << TjaCourseHard) | (1U << TjaCourseOni)));
     assert(taiko_menu_backward_ms(&menu) == 1000 && taiko_menu_forward_ms(&menu) == 10000);
+    assert(menu.seek_mode == TaikoSeekByTime);
+    assert(taiko_menu_bar_count(&menu, false) == 3 && taiko_menu_bar_count(&menu, true) == 10);
     assert(taiko_menu_playback_tenths(&menu) == 7 && taiko_menu_scroll_tenths(&menu) == 30);
     assert(menu.frame_rate == 37);
     assert(menu.gpio.pulse_ms == 85);
@@ -59,6 +66,8 @@ int main(void) {
     assert(taiko_settings_equal(&defaults, &captured));
     assert(menu.open && menu.course == TjaCourseEasy && menu.selected == TaikoMenuNewSong);
     assert(!menu.gpio.enabled);
+    assert(menu.seek_mode == TaikoSeekByBars);
+    assert(taiko_menu_bar_count(&menu, false) == 1 && taiko_menu_bar_count(&menu, true) == 1);
     assert(menu.frame_rate == 50);
     assert(menu.gpio.pulse_ms == 70);
 
@@ -128,6 +137,24 @@ int main(void) {
     }
 
     /* Bad values default independently, leaving valid custom settings intact. */
+    settings = defaults;
+    settings.seek_mode = UINT32_MAX;
+    settings.backward_bars = 0;
+    settings.forward_bars = 2;
+    settings.volume = 40;
+    assert(!taiko_settings_validate(&settings));
+    assert(settings.seek_mode == TaikoSeekByBars);
+    assert(settings.backward_bars == 1 && settings.forward_bars == 1 && settings.volume == 40);
+    const unsigned bar_counts[] = {1, 3, 5, 10};
+    for(unsigned i = 0; i < sizeof(bar_counts) / sizeof(bar_counts[0]); i++) {
+        settings = defaults;
+        settings.seek_mode = TaikoSeekByBars;
+        settings.backward_bars = bar_counts[i];
+        settings.forward_bars = bar_counts[3 - i];
+        taiko_settings_apply(&settings, &menu, &volume);
+        taiko_settings_capture(&captured, &menu, volume);
+        assert(taiko_settings_equal(&settings, &captured));
+    }
     settings = defaults;
     settings.volume = UINT32_MAX;
     settings.don_volume = 75;

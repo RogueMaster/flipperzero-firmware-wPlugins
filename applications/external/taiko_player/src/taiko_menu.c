@@ -16,6 +16,7 @@ void taiko_menu_init(TaikoMenu* menu) {
     *menu = (TaikoMenu){
         .backward_index = 2,
         .forward_index = 2,
+        .seek_mode = TaikoSeekByBars,
         .don_volume = 70,
         .ka_volume = 70,
         .courses = 1U << TjaCourseOni,
@@ -63,6 +64,10 @@ void taiko_menu_adjust(TaikoMenu* menu, bool forward) {
         menu->gpio.enabled = !menu->gpio.enabled;
         return;
     }
+    if(menu->selected == TaikoMenuSeekMode) {
+        menu->seek_mode = menu->seek_mode == TaikoSeekByTime ? TaikoSeekByBars : TaikoSeekByTime;
+        return;
+    }
     if(menu->selected == TaikoMenuDifficulty) {
         for(int i = 1; i <= TjaCourseCount; i++) {
             TjaCourse next = (menu->course + (forward ? i : TjaCourseCount - i)) % TjaCourseCount;
@@ -99,9 +104,11 @@ void taiko_menu_adjust(TaikoMenu* menu, bool forward) {
     }
     uint8_t* index;
     if(menu->selected == TaikoMenuBackward)
-        index = &menu->backward_index;
+        index = menu->seek_mode == TaikoSeekByBars ? &menu->backward_bar_index :
+                                                     &menu->backward_index;
     else if(menu->selected == TaikoMenuForward)
-        index = &menu->forward_index;
+        index = menu->seek_mode == TaikoSeekByBars ? &menu->forward_bar_index :
+                                                     &menu->forward_index;
     else
         return;
     *index = (*index + (forward ? 1 : INTERVAL_COUNT - 1)) % INTERVAL_COUNT;
@@ -162,6 +169,22 @@ uint32_t taiko_menu_forward_ms(const TaikoMenu* menu) {
     return intervals[menu->forward_index];
 }
 
+uint32_t taiko_menu_bar_count(const TaikoMenu* menu, bool forward) {
+    return intervals[forward ? menu->forward_bar_index : menu->backward_bar_index] / 1000;
+}
+
+bool taiko_menu_set_bar_count(TaikoMenu* menu, bool forward, uint32_t value) {
+    for(size_t i = 0; i < INTERVAL_COUNT; i++) {
+        if(intervals[i] / 1000 != value) continue;
+        if(forward)
+            menu->forward_bar_index = i;
+        else
+            menu->backward_bar_index = i;
+        return true;
+    }
+    return false;
+}
+
 uint8_t taiko_menu_playback_tenths(const TaikoMenu* menu) {
     return playback_speeds[menu->playback_index];
 }
@@ -171,6 +194,11 @@ uint8_t taiko_menu_scroll_tenths(const TaikoMenu* menu) {
 }
 
 bool taiko_menu_set_value(TaikoMenu* menu, TaikoMenuItem item, uint32_t value) {
+    if(item == TaikoMenuSeekMode) {
+        if(value > TaikoSeekByBars) return false;
+        menu->seek_mode = value;
+        return true;
+    }
     if(item == TaikoMenuFrameRate) {
         if(value < TAIKO_MIN_FRAME_RATE || value > TAIKO_MAX_FRAME_RATE) return false;
         menu->frame_rate = value;

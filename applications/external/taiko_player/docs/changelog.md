@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.5.1
+
+- Add one-pixel measure lines behind the notes, honoring `#BARLINEON` and `#BARLINEOFF`.
+- Add By Time / By Bars seeking; bar mode follows actual TJA measure starts, including tempo, time-signature and delay changes, empty measures, and hidden barlines.
+- Default to By Bars with one bar per direction; allow independent 1 / 3 / 5 / 10 bar intervals and retain the existing time-based option.
+- Save both sets of intervals and preserve explicitly saved seek-mode preferences when upgrading.
+- Add patch-version release packaging and builds for official firmware and both Momentum variants.
+
+Thanks to the suggestion in [#1](https://github.com/ZeroNinx/flipper-zero-taiko-player/issues/1).
+
 ## v0.5
 
 - Raise app master volume to 200%, retaining the 70% default and independent system volume; boosted peaks are clipped to the PCM range.
