@@ -35,7 +35,8 @@ typedef struct {
         CommandMeasure,
         CommandScroll,
         CommandDelay,
-        CommandGogo
+        CommandGogo,
+        CommandBarline
     } kind;
 } MeasureCommand;
 
@@ -48,6 +49,8 @@ typedef struct {
     size_t bpm_capacity;
     size_t gogo_capacity;
     size_t roll_capacity;
+    size_t bar_capacity;
+    bool barline;
     size_t active_roll; /* index + 1, zero when inactive */
     char balloons[2048];
     char* next_balloon;
@@ -288,7 +291,9 @@ static bool
             chart->gogo_changes[chart->gogo_change_count++] =
                 (TjaGogoChange){.time_ms = (int32_t)lroundf(p->time_ms), .active = active};
         }
-    } else if(c->kind == CommandMeasure)
+    } else if(c->kind == CommandBarline)
+        p->barline = c->value != 0;
+    else if(c->kind == CommandMeasure)
         p->beats = c->value;
     else if(c->kind == CommandScroll)
         p->scroll = c->value;
@@ -313,6 +318,32 @@ static bool finish_measure(Parser* p, TjaChart* chart, const char** error) {
             return false;
         }
         if(i == slots) break;
+        if(i == 0) {
+            if(chart->bar_count == MAX_NOTES) {
+                *error = "Chart exceeds 8192 measures";
+                return false;
+            }
+            if(chart->bar_count == p->bar_capacity) {
+                size_t capacity = p->bar_capacity ? p->bar_capacity * 2 : 32;
+                TjaBar* bars = chart_resize(
+                    chart->bars, chart->bar_count * sizeof(TjaBar), capacity * sizeof(TjaBar));
+                if(!bars) {
+                    *error = "Not enough memory";
+                    return false;
+                }
+                chart->bars = bars;
+                p->bar_capacity = capacity;
+            }
+            float speed = p->bpm / TAIKO_SCROLL_REFERENCE_BPM * p->scroll;
+            if(!isfinite(speed) || speed == 0) {
+                *error = "Scroll speed out of range";
+                return false;
+            }
+            chart->bars[chart->bar_count++] = (TjaBar){
+                .time_ms = (int32_t)lroundf(p->time_ms), .scroll_speed = p->barline ? speed : 0};
+            if(p->barline && fabsf(speed) < chart->min_bar_speed)
+                chart->min_bar_speed = fabsf(speed);
+        }
         if(p->slot_count && !add_note(p, chart, p->slots[i], error)) return false;
         p->time_ms += 60000.0f / p->bpm * p->beats / slots;
     }
@@ -355,11 +386,14 @@ static bool command(Parser* p, char* line, const char** error) {
     } else if(strcmp(line, "#GOGOSTART") == 0 || strcmp(line, "#GOGOEND") == 0) {
         c.kind = CommandGogo;
         c.value = strcmp(line, "#GOGOSTART") == 0 ? 1 : 0;
+    } else if(strcmp(line, "#BARLINEON") == 0 || strcmp(line, "#BARLINEOFF") == 0) {
+        c.kind = CommandBarline;
+        c.value = strcmp(line, "#BARLINEON") == 0 ? 1 : 0;
     } else if(strcmp(line, "#BRANCHSTART") == 0 || strcmp(line, "#NEXTSONG") == 0) {
         *error = "Branches / medleys unsupported";
         return false;
     } else {
-        /* BARLINE and other unsupported visual commands do not affect timing. */
+        /* Other unsupported visual commands do not affect timing. */
         return true;
     }
     if(p->command_count == MAX_COMMANDS) {
@@ -491,7 +525,9 @@ static bool parse_selected(
     p->bpm = 120;
     chart->roll_speed_tenths = 10;
     p->scroll = 1;
+    p->barline = true;
     chart->min_note_speed = 1;
+    chart->min_bar_speed = 1;
     p->beats = 4;
     chart->course_id = TjaCourseOni;
     snprintf(chart->course, sizeof(chart->course), "%s", tja_course_name(chart->course_id));
@@ -633,6 +669,7 @@ void tja_chart_free(TjaChart* chart) {
     free(chart->rolls);
     free(chart->hit_runs);
     free(chart->gogo_changes);
+    free(chart->bars);
     memset(chart, 0, sizeof(*chart));
 }
 
@@ -659,4 +696,36 @@ bool tja_chart_gogo_at(const TjaChart* chart, uint32_t position_ms) {
             high = mid;
     }
     return low && chart->gogo_changes[low - 1].active;
+}
+
+uint32_t tja_chart_seek_bars(
+    const TjaChart* chart,
+    uint32_t position_ms,
+    uint32_t duration_ms,
+    bool forward,
+    uint32_t count) {
+    int64_t target = position_ms;
+    /* Binary search each step also skips starts rounded to the same millisecond.
+     * The menu limits count to ten; no per-frame or audio-worker work is added. */
+    for(uint32_t step = 0; step < count; step++) {
+        size_t low = 0, high = chart->bar_count;
+        while(low < high) {
+            size_t mid = low + (high - low) / 2;
+            if(chart->bars[mid].time_ms < target ||
+               (forward && chart->bars[mid].time_ms == target))
+                low = mid + 1;
+            else
+                high = mid;
+        }
+        if(forward) {
+            if(low == chart->bar_count) return duration_ms;
+            target = chart->bars[low].time_ms;
+        } else {
+            if(!low) return 0;
+            target = chart->bars[low - 1].time_ms;
+        }
+        if(target < 0) return 0;
+        if(target >= duration_ms) return duration_ms;
+    }
+    return target > duration_ms ? duration_ms : (uint32_t)target;
 }

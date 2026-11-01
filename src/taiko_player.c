@@ -309,6 +309,8 @@ static bool play_song(TaikoPlayer* app, const char* path) {
                 app->view.lane_rolls,
                 TAIKO_LANE_MAX_ROLLS,
                 &app->view.balloon);
+            taiko_lane_collect_bars(
+                &chart, position, taiko_menu_scroll_tenths(&app->menu), app->view.bar_columns);
             furi_mutex_release(app->mutex);
             view_port_update(app->viewport);
             /* Carry fractional ticks: 30 FPS at 1 kHz alternates 33/34 ticks. */
@@ -456,10 +458,17 @@ static bool play_song(TaikoPlayer* app, const char* path) {
                     paused = true;
                 }
             } else {
-                int64_t step = event.key == InputKeyLeft ?
-                                   -(int64_t)taiko_menu_backward_ms(&app->menu) :
-                                   taiko_menu_forward_ms(&app->menu);
-                int64_t target = (int64_t)position + step;
+                bool forward = event.key == InputKeyRight;
+                int64_t step = !forward ? -(int64_t)taiko_menu_backward_ms(&app->menu) :
+                                          taiko_menu_forward_ms(&app->menu);
+                int64_t target = app->menu.seek_mode == TaikoSeekByBars ?
+                                     tja_chart_seek_bars(
+                                         &chart,
+                                         position,
+                                         duration,
+                                         forward,
+                                         taiko_menu_bar_count(&app->menu, forward)) :
+                                     (int64_t)position + step;
                 if(target < 0) target = 0;
                 if(target > duration) target = duration;
                 stop_audio(&audio);

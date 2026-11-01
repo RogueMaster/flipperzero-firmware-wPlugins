@@ -40,6 +40,15 @@ def main():
         "src/taiko_lane.c", "src/taiko_hits.c", "tests/test_lane.c", "-lm", "-o", str(lane_test),
     ], cwd=root, check=True)
     subprocess.run([str(lane_test)], cwd=root, check=True)
+    bars_test = build / "test_bars"
+    subprocess.run([
+        *shlex.split(os.environ.get("CC", "cc")),
+        "-std=c11", "-Wall", "-Wextra", "-Werror", "-g",
+        "-fsanitize=address,undefined", "-Isrc",
+        "src/tja_parser.c", "src/taiko_lane.c", "src/taiko_hits.c", "tests/test_bars.c",
+        "-lm", "-o", str(bars_test),
+    ], cwd=root, check=True)
+    subprocess.run([str(bars_test)], cwd=root, check=True)
     menu_test = build / "test_menu"
     subprocess.run([
         *shlex.split(os.environ.get("CC", "cc")),

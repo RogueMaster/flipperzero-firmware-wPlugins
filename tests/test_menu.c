@@ -91,6 +91,32 @@ int main(void) {
     assert(menu.frame_rate == 37);
     assert(taiko_menu_playback_tenths(&menu) == 20 && taiko_menu_scroll_tenths(&menu) == 40);
     taiko_menu_move(&menu, true);
+    assert(menu.selected == TaikoMenuSeekMode && menu.seek_mode == TaikoSeekByTime);
+    assert(taiko_menu_activate(&menu) == TaikoMenuActionNone);
+    assert(menu.open && menu.seek_mode == TaikoSeekByBars);
+    assert(taiko_menu_bar_count(&menu, false) == 1 && taiko_menu_bar_count(&menu, true) == 1);
+    menu.selected = TaikoMenuBackward;
+    taiko_menu_adjust(&menu, false);
+    assert(taiko_menu_bar_count(&menu, false) == 10);
+    taiko_menu_adjust(&menu, true);
+    assert(taiko_menu_bar_count(&menu, false) == 1);
+    const unsigned bars[] = {1, 3, 5, 10};
+    for(size_t i = 0; i < sizeof(bars) / sizeof(bars[0]); i++) {
+        assert(taiko_menu_bar_count(&menu, false) == bars[i]);
+        assert(taiko_menu_bar_count(&menu, true) == 1);
+        taiko_menu_adjust(&menu, true);
+    }
+    menu.selected = TaikoMenuForward;
+    taiko_menu_adjust(&menu, true);
+    assert(taiko_menu_bar_count(&menu, true) == 3);
+    assert(taiko_menu_backward_ms(&menu) == 5000 && taiko_menu_forward_ms(&menu) == 5000);
+    menu.selected = TaikoMenuSeekMode;
+    taiko_menu_adjust(&menu, false);
+    assert(menu.seek_mode == TaikoSeekByTime);
+    assert(!taiko_menu_set_value(&menu, TaikoMenuSeekMode, 2));
+    assert(!taiko_menu_set_bar_count(&menu, true, UINT32_MAX));
+    assert(taiko_menu_bar_count(&menu, true) == 3);
+    taiko_menu_move(&menu, true);
     assert(menu.selected == TaikoMenuBackward);
     taiko_menu_adjust(&menu, false);
     assert(taiko_menu_backward_ms(&menu) == 3000);

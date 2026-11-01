@@ -24,6 +24,7 @@ typedef struct {
     uint8_t volume;
     size_t lane_count;
     TaikoLaneNote lane_notes[TAIKO_LANE_MAX_NOTES];
+    uint8_t bar_columns[TAIKO_LANE_BAR_BYTES];
     size_t roll_count;
     TaikoLaneRoll lane_rolls[TAIKO_LANE_MAX_ROLLS];
     TaikoLaneBalloon balloon;

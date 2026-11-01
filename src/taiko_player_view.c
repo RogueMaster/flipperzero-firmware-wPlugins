@@ -26,6 +26,7 @@ static void draw_menu(Canvas* canvas, const TaikoMenu* menu) {
         "Playback Speed",
         "Scroll Speed",
         "Frame Rate",
+        "Seek Mode",
         "Backward Interval",
         "Forward Interval",
         "Dong Volume",
@@ -49,7 +50,12 @@ static void draw_menu(Canvas* canvas, const TaikoMenu* menu) {
             canvas_draw_rbox(canvas, 1, y - 9, 122, 12, 2);
             canvas_set_color(canvas, ColorWhite);
         }
-        canvas_draw_str(canvas, 6, y, labels[i]);
+        const char* label = labels[i];
+        if(!menu->gpio_settings && menu->seek_mode == TaikoSeekByBars) {
+            if(i == TaikoMenuBackward) label = "Backward Bars";
+            if(i == TaikoMenuForward) label = "Forward Bars";
+        }
+        canvas_draw_str(canvas, 6, y, label);
         char value[16] = "";
         if(menu->gpio_settings) {
             if(i == TaikoGpioMenuPulseWidth)
@@ -70,10 +76,22 @@ static void draw_menu(Canvas* canvas, const TaikoMenu* menu) {
                 snprintf(value, sizeof(value), "< %u.%ux >", speed / 10, speed % 10);
             } else if(i == TaikoMenuFrameRate) {
                 snprintf(value, sizeof(value), "< %u FPS >", (unsigned)menu->frame_rate);
+            } else if(i == TaikoMenuSeekMode) {
+                snprintf(
+                    value,
+                    sizeof(value),
+                    "< %s >",
+                    menu->seek_mode == TaikoSeekByBars ? "By Bars" : "By Time");
             } else if(i == TaikoMenuBackward || i == TaikoMenuForward) {
-                const uint32_t interval = i == TaikoMenuBackward ? taiko_menu_backward_ms(menu) :
-                                                                   taiko_menu_forward_ms(menu);
-                snprintf(value, sizeof(value), "< %lus >", interval / 1000);
+                if(menu->seek_mode == TaikoSeekByBars) {
+                    uint32_t bars = taiko_menu_bar_count(menu, i == TaikoMenuForward);
+                    snprintf(value, sizeof(value), "< %lu >", bars);
+                } else {
+                    const uint32_t interval = i == TaikoMenuBackward ?
+                                                  taiko_menu_backward_ms(menu) :
+                                                  taiko_menu_forward_ms(menu);
+                    snprintf(value, sizeof(value), "< %lus >", interval / 1000);
+                }
             } else {
                 unsigned volume = i == TaikoMenuDonVolume ? menu->don_volume : menu->ka_volume;
                 snprintf(value, sizeof(value), "< %u%% >", volume);
@@ -383,8 +401,13 @@ static void draw_target_flash(Canvas* canvas) {
 static void draw_lane(Canvas* canvas, const TaikoPlayerView* view) {
     canvas_draw_box(canvas, 0, LANE_TOP, 128, LANE_BOTTOM - LANE_TOP + 1);
     draw_gogo_background(canvas, view);
-    /* Keep the white target readable against the bright GOGO band. */
-    if(view->gogo) lane_disc(canvas, TAIKO_LANE_HIT_X, 8, ColorBlack);
+    canvas_set_color(canvas, ColorWhite);
+    for(unsigned x = 0; x < 128; x++) {
+        if(view->bar_columns[x / 8] & (1U << (x % 8)))
+            canvas_draw_line(canvas, x, LANE_TOP, x, LANE_BOTTOM);
+    }
+    /* Keep the hollow target clear of barlines and the bright GOGO band. */
+    lane_disc(canvas, TAIKO_LANE_HIT_X, view->gogo ? 8 : 7, ColorBlack);
     canvas_set_color(canvas, ColorWhite);
     canvas_draw_circle(canvas, TAIKO_LANE_HIT_X, LANE_Y, 7);
     canvas_draw_circle(canvas, TAIKO_LANE_HIT_X, LANE_Y, 5);

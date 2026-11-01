@@ -9,6 +9,7 @@
 #include <string.h>
 
 static size_t free_heap, largest_block;
+static unsigned fail_bar_at;
 
 size_t memmgr_get_free_heap(void) {
     return free_heap;
@@ -19,7 +20,9 @@ size_t memmgr_heap_get_max_free_block(void) {
 }
 
 static int read_line(void* context, char* line, size_t capacity) {
-    return fgets(line, capacity, context) != NULL;
+    if(!fgets(line, capacity, context)) return 0;
+    if(fail_bar_at && strcmp(line, ",\n") == 0 && !--fail_bar_at) largest_block = 32;
+    return 1;
 }
 
 static FILE* large_chart(void) {
@@ -100,6 +103,34 @@ int main(void) {
             assert(chart.notes[i].kind == 1 + i % 4);
         tja_chart_free(&chart);
     }
+    fclose(file);
+
+    /* Fail the initial bar allocation and both growth steps after consuming
+     * parser scratch space. Old bar records remain owned and safe to free. */
+    file = tmpfile();
+    assert(file);
+    fputs("BPM:120\nWAVE:a.wav\n#START\n", file);
+    for(unsigned i = 0; i < 65; i++)
+        fputs(",\n", file);
+    fputs("#END\n", file);
+    const unsigned failures[] = {1, 33, 65};
+    for(unsigned i = 0; i < sizeof(failures) / sizeof(failures[0]); i++) {
+        rewind(file);
+        free_heap = largest_block = 100000;
+        fail_bar_at = failures[i];
+        assert(!tja_parse(read_line, file, &chart, &error));
+        assert(strcmp(error, "Not enough memory") == 0);
+        assert(chart.bar_count == failures[i] - 1);
+        for(size_t j = 0; j < chart.bar_count; j++)
+            assert(chart.bars[j].time_ms == (int32_t)j * 2000);
+        tja_chart_free(&chart);
+        assert(!chart.bars && !chart.bar_count);
+    }
+    rewind(file);
+    free_heap = largest_block = 100000;
+    assert(tja_parse(read_line, file, &chart, &error));
+    assert(chart.bar_count == 65);
+    tja_chart_free(&chart);
     fclose(file);
 
     file = tmpfile();

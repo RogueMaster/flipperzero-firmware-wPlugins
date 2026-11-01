@@ -63,6 +63,8 @@ Copy the generated sdcard/apps_data/taiko_player/sfx/ folder, including its lice
 | Short Back | Open the menu / return |
 | Hold Back during playback | Exit the app |
 
+**Seek Mode** switches between **By Time** (default) and **By Bars**. Each direction has its own interval: **1 / 3 / 5 / 10 seconds** (default: 5), or **1 / 3 / 5 / 10 bars** (default: 1). Both sets of intervals and the mode are saved separately. In bar mode, Backward first returns to the current bar's start when between boundaries; at a boundary it goes to the previous bar. Forward goes to the next bar. Seeking also works while paused and stays within the audio bounds. Bar starts follow the selected TJA course's actual timing, including tempo, measure and delay changes and empty bars. One-pixel barlines scroll behind the notes; `#BARLINEOFF` hides lines without removing seek destinations.
+
 App master volume ranges from **0 to 200%**, with **70%** as the default. Above 100%, software gain boosts both music and drum sounds; peaks are clipped to the PCM range and may distort. The volume bar is full at 200%. Individual Don/Ka volume remains 0–100%.
 
 In the menu, use Up/Down to select, Left/Right to adjust, and OK to activate. Opening the menu pauses playback. **Return** resumes the previous state; **Restart** starts over; **Play New Song** opens the song browser.

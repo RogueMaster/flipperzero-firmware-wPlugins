@@ -11,6 +11,7 @@
 #define TAIKO_LANE_PIXELS_PER_SECOND 128
 #define TAIKO_LANE_SMALL_RADIUS      4
 #define TAIKO_LANE_BIG_RADIUS        6
+#define TAIKO_LANE_BAR_BYTES         16U
 
 typedef struct {
     int16_t x;
@@ -48,3 +49,10 @@ size_t taiko_lane_collect_rolls(
     TaikoLaneRoll* visible,
     size_t capacity,
     TaikoLaneBalloon* balloon);
+
+/* One bit per screen column; coincident barlines cost no extra view memory. */
+void taiko_lane_collect_bars(
+    const TjaChart* chart,
+    uint32_t position_ms,
+    uint8_t scroll_tenths,
+    uint8_t columns[TAIKO_LANE_BAR_BYTES]);
