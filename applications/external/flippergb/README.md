@@ -50,7 +50,11 @@ Navigate with **Up/Down**, activate with **OK**, close with **Back**.
 | **Press START** | Sends a Start press to the game (pause menus, "PRESS START" screens) and resumes |
 | **Press SELECT** | Sends a Select press to the game and resumes |
 | **Frameskip** | Change with **Left/Right**: `auto` (recommended), or fixed `0–4`. `auto` shows the skip level currently in use |
-| **Sound** | Toggle piezo sound on/off (`n/a` if the speaker is in use by another app) |
+| **Sound** | Volume: cycle off/25/50/75/100% with **Left/Right**; **OK** toggles mute/full (`n/a` if the speaker is in use by another app) |
+| **Scale** | `fit` (whole screen, squashed) or `1:1 crop` (pixel-perfect center crop) |
+| **Dither** | `std` (2x2 ordered), `temporal` (alternating pattern: the LCD's slow pixels average it into perceived grayscale), `hi-con` (grays snap to black/white: crisper text) |
+| **OK hold** | `A+Start`: holding OK ~0.7 s also sends Start (off by default: interferes with games that hold A) |
+| **Save/Load state** | Instant save states (`.ss1` file next to the ROM) |
 | **Save SRAM** | Writes the cartridge battery save (`.sav`) to the SD card immediately |
 | **Exit** | Saves SRAM (if the cartridge has a battery) and quits the app |
 
@@ -95,8 +99,9 @@ piezo:
 3. otherwise the noise channel, mapped to a short low buzz (percussion).
 
 The result is a monophonic ringtone-style rendition of the game's music
-and sound effects (sweeps like Mario's jump work). It can be toggled in
-the emulator menu. Since no waveforms are synthesized, the CPU cost is
+and sound effects (sweeps like Mario's jump work). Volume is adjustable in
+the emulator menu (off/25/50/75/100%, perceptually spaced for the piezo's
+nonlinear loudness). Since no waveforms are synthesized, the CPU cost is
 negligible (one counter per emulated instruction) and RAM cost is ~120
 bytes.
 
@@ -108,8 +113,31 @@ bytes.
   (70224 M-cycles instead of 17556). Unnoticeable on a desktop, a slideshow
   on a 64 MHz Cortex-M4. Fixed — this alone made everything ~4.5x faster.
 - While halted (games spend most of each frame in HALT waiting for vblank),
-  the CPU steps 4 M-cycles at a time instead of 1, making the idle part of
+  the CPU steps 8 M-cycles at a time instead of 1, making the idle part of
   the frame cheap.
+- PPU/timer/APU use catch-up batching: instead of stepping their state
+  machines after every CPU instruction, cycles accumulate and are flushed
+  every 32 M-cycles - or immediately before any IO register access, so
+  LY/STAT/DIV/TIMA/IF always read exact. This removes the single biggest
+  per-instruction cost of the interpreter loop (~2.8x faster emulation).
+- Undefined opcodes cost 1 cycle instead of 0: with 0-cycle entries,
+  executing garbage could advance the PC without advancing the PPU clock
+  and spin run_to_vblank() forever, freezing the whole device.
+- EI enables interrupts only after the following instruction (hardware
+  behaviour). Without the delay, the classic `EI / HALT` pause idiom
+  consumed its wake interrupt before HALT and games froze waiting for a
+  button press that had already been eaten (input dead, music playing).
+- STOP freezes the CPU until joypad activity, independent of IE/IF/IME
+  (hardware behaviour), and skips its padding byte.
+- ROM streaming: bank switches to the already-mapped bank skip the cache;
+  the upper 8 KB half of a bank streams in lazily on first read; the LRU
+  never evicts the most-recently-used page and protects the single hottest
+  page (the music-driver bank) from map-streaming evictions; the Gameboy
+  core block is pre-allocated during ROM load so the page cache can size
+  itself against real free heap (Pokemon: ~2x more cache slots).
+- The auto-frameskip EMA uses signed arithmetic (an unsigned underflow
+  could pin it at maximum), and the menu shows the measured cost of one
+  emulated frame in ms next to the free heap (16.7ms = full speed).
 - **Frameskip `auto`** (default) measures the real cost of each emulated frame
   and skips *rendering* (never emulation) to keep the game running at correct
   speed. Games stay full-speed logically; visible FPS drops instead.
@@ -117,8 +145,32 @@ bytes.
 - The PPU only renders the 64 scanlines (out of 144) that survive the
   downscale to the Flipper LCD — ~55% of the per-frame rendering work is
   skipped with zero visual difference.
-- Bank-switch heavy games may micro-stutter when a 16 KB bank has to be
-  streamed from the SD card (only happens when the ROM doesn't fit in RAM).
+- ROM streaming works on lazily-mapped 4 KB units (quarter banks): bank
+  switching itself is free, and data is only fetched when actually read.
+  Measured on Pokemon Red: the game rewrites its bank register ~200x per
+  frame while reading from ~17 units — eager fetching caused ~86 phantom
+  cache misses per frame; the lazy design reduces that to ~1.
+- Input is read by polling the button GPIOs directly each frame: the OS
+  input-event service can be starved by a CPU-heavy game (a firmware
+  timer-daemon priority quirk) and used to wedge all input until reboot.
+- Frame pacing runs on an absolute 59.73 Hz tick grid with auto-frameskip
+  hysteresis: constant-velocity motion stays judder-free.
+- The emulator core is compiled `-O2` (the rest of the app stays `-Os`) and
+  the per-instruction hot path (opcode fetch, PPU/timer/APU ticks) is
+  manually inlined across the core, cutting per-instruction call overhead.
+- The CPU interpreter is a unity build: the 500 opcode bodies compile in
+  the same translation unit as the dispatch switch, so the compiler inlines
+  them directly into the jump table (two cross-TU calls per instruction
+  eliminated) - and the deduplication actually made the binary smaller.
+- The PPU renders tiles byte-wise, not pixel-wise: tile bitplanes are
+  decoded 8 pixels at once through a 256-entry spread LUT and written as
+  whole palette-mapped bytes (4 px per store) - ~7x fewer operations per
+  scanline. Sprites skip fully-transparent rows and use the same LUTs.
+- The 160x144 -> 128x64 downscale/dither also works one packed byte
+  (4 pixels) per lookup instead of per-pixel shade extraction.
+- In `auto` mode the frameskip may go up to 8 (fixed settings stay 0-4):
+  for heavy streamed games, correct game speed at a lower visible fps beats
+  slow motion.
 - The emulator menu shows the free heap (`NNk free`) so you can see the
   memory headroom of the current game at a glance.
 
@@ -149,8 +201,8 @@ ufbt launch   # builds, installs and runs on a connected Flipper
 The exact core that ships in the FAP can be compiled and tested on a desktop:
 
 ```sh
-g++ -std=c++17 -O2 -fno-exceptions -fno-rtti -I gb \
-    -o hosttest/hosttest hosttest/main.cpp gb/*.cc
+g++ -std=c++17 -O2 -fno-exceptions -fno-rtti -I lib/gbcore \
+    -o hosttest/hosttest hosttest/main.cpp lib/gbcore/*.cc
 
 # Blargg CPU tests (print Passed/Failed via the serial port):
 ./hosttest/hosttest path/to/01-special.gb 4000
@@ -170,8 +222,8 @@ Current status: **Blargg `cpu_instrs` 11/11 PASS**.
 
 | Upstream (PC) | This port (Flipper) |
 |---|---|
-| Whole ROM in RAM (with several transient copies) | 16 KB bank streaming from SD with an adaptive LRU cache; bank 0 resident; when every bank fits, the whole ROM is preloaded into individual 16 KB slots (O(1) switching, SD file closed) |
-| — | All ROM-dependent allocations are 16 KB or smaller and are checked against the largest free heap block first: heap fragmentation can never crash the firmware, the app degrades to streaming or shows "Not enough RAM" instead |
+| Whole ROM in RAM (with several transient copies) | 8 KB page streaming from SD with an adaptive LRU cache; bank 0 resident; when every page fits, the whole ROM is preloaded into individual 8 KB slots (O(1) switching, SD file closed) |
+| — | All ROM-dependent allocations are 8 KB or smaller and are checked against the largest free heap block first: heap fragmentation can never crash the firmware, the app degrades to streaming or shows "Not enough RAM" instead |
 | Renders all 144 scanlines | Renders only the 64 scanlines that are actually displayed after the 144→64 downscale (row mask, ~2x faster rendering) |
 | PPU counts M-cycles against T-cycle constants (4x too much CPU emulation per frame) | Hardware-correct M-cycle constants (114 per scanline): ~4.5x faster overall |
 | DIV register incremented every M-cycle (64x too fast) | Correct 16384 Hz rate (games use DIV for delays and randomness) |
@@ -187,14 +239,14 @@ Current status: **Blargg `cpu_instrs` 11/11 PASS**.
 | No APU at all | Register-level APU (sweep/envelope/length/NR52, proper read-back masks) driving the piezo with the dominant voice |
 
 RAM budget on device (256 KB total, ~140 KB heap; the app binary itself
-loads into ~32 KB of that heap): ~19.5 KB emulation state, 16 KB bank 0,
-adaptive bank cache (10 KB heap kept in reserve for the system), 0–32 KB
-cartridge RAM per game, 4 KB stack. The bank cache is allocated greedily in
-independent 16 KB blocks until the reserve would be touched, so any `.gb`
+loads into ~37 KB of that heap): ~19.5 KB emulation state, 16 KB bank 0,
+adaptive page cache (10 KB heap kept in reserve for the system), 0–32 KB
+cartridge RAM per game, 4 KB stack. The page cache is allocated greedily in
+independent 8 KB blocks until the reserve would be touched, so any `.gb`
 ROM size works: small ROMs end up fully resident, large ones stream through
 however many slots fit. Worst case (1 MB ROM + 32 KB battery RAM, e.g.
 Pokémon Red/Blue) needs ~78 KB before the first cache slot, which fits the
-post-launch heap with room for 1–2 streaming slots.
+post-launch heap with room for a few streaming pages.
 
 ## License
 

@@ -116,7 +116,9 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Ansonic Nice FLO false-positive rejection and CAME TWEE parcel-counter bounds check (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/f5e39f9115f18ded8a41c5316b15c83124307346)
 - Updated: [FlipFlash v1.0 - Fix path to lowercase (By Mushi0)](https://github.com/Mushi0/FlippFlash)
 - Added: [Lettercade v1.0 - Letters Rain, Snake Letters and Tennis Letters (By andreimagic)](https://github.com/andreimagic/flipper-lettercade)
-- Updated: [CFS Tag Writer+ v1.5 - distinct plus-marked app icon (By BaniMun)](https://github.com/BaniMun/cfs-tag-writer)
+- Updated: [GameBoy Emu / FlipGB v5.1 - author emulator core, save states, RTC and display/input improvements (By D4C1-Labs & jgilchrist)](https://github.com/D4C1-Labs/Flipper-ARF)
+- Updated: [ESP32 Gravity v1.0.1 - author scene-based companion, settings and synchronization (By chris-bc)](https://github.com/chris-bc/Flipper-Gravity)
+- Updated: [CFS Tag Writer+ v1.5 - reusable spool templates, save-type chooser and template deletion (By BaniMun)](https://github.com/BaniMun/cfs-tag-writer)
 
 <a name="release"></a>
 
@@ -304,7 +306,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Free Roam v0.6 (By jblanked)](https://github.com/jblanked/Free-Roam) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
 - [Furious Birds v1.1 (By bmstr-ru)](https://github.com/bmstr-ru/furious-birds)
 - [Game of Life v1.3 (By Mad-MO)](https://github.com/Mad-MO/FlipperGoL)
-- [GameBoy Emu v1.0 (By D4C1-Labs & jgilchrist)](https://github.com/D4C1-Labs/Flipper-ARF/tree/0d598b854c868067bf39111ae14bc8c2e195c26c/applications/system/FlipperGB)
+- [GameBoy Emu / FlipGB v5.1 (By D4C1-Labs & jgilchrist)](https://github.com/D4C1-Labs/Flipper-ARF)
 - [Gauntlet v1.0 (By at0m-b0mb)](https://github.com/at0m-b0mb/Gauntlet-FlipperZero)
 - [Geometry Dash v0.1 (By goosedev72-projects)](https://github.com/goosedev72-projects/flipperzero-geometryflip)
 - [Ghouls v0.6 (By jblanked)](https://github.com/jblanked/Ghouls-Flipper) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
@@ -576,7 +578,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [ESP Flasher v1.9 (By 0xchocolate)](https://github.com/0xchocolate/flipperzero-esp-flasher)
 - [ESP WiFi Scanner v1.1 (By SequoiaSan)](https://github.com/SequoiaSan/FlipperZero-WiFi-Scanner_Module-ESP8266) `Req: ESP8266 or ESP32`
 - [ESP32 Camera Suite v1.9 (By CodyTolene)](https://github.com/CodyTolene/Flipper-Zero-Camera-Suite)
-- [ESP32 Gravity v0.6.0 (By chris-bc)](https://github.com/chris-bc/Flipper-Gravity) `Req: ESP32`
+- [ESP32 Gravity v1.0.1 (By chris-bc)](https://github.com/chris-bc/Flipper-Gravity) `Req: ESP32`
 - [ESP32 WIFI Mapping v0.2 (By carvilsi)](https://github.com/carvilsi/flipper0-wifi-map) `Req: ESP32` & [ESP32 FW](https://github.com/carvilsi/esp32-wifi-map)
 - [ESP32CAM Camera v1.0.0 (By Z4urce & eried)](https://github.com/eried/flipperzero-mayhem) `Req: ESP32-CAM (Mayhem)`
 - [ESP32CAM Marauder v0.7.5 (By 0xchocolate & eried)](https://github.com/eried/flipperzero-mayhem) `Req: ESP32-CAM (Mayhem)`

@@ -64,8 +64,8 @@ void cfs_storage_import_original(Storage* storage) {
 
 // Build the on-disk path for a saved dump from its base name (adds the dir and
 // extension). Shared by save and the exists-check so the layout lives in one place.
-static void cfs_storage_record_path(const char* name, char* out, size_t out_size) {
-    snprintf(out, out_size, "%s/%s%s", CFS_STORAGE_DIR, name, CFS_STORAGE_EXTENSION);
+void cfs_storage_path_in(const char* dir, const char* name, char* out, size_t out_size) {
+    snprintf(out, out_size, "%s/%s%s", dir, name, CFS_STORAGE_EXTENSION);
 }
 
 // ---- Save ----
@@ -121,10 +121,20 @@ bool cfs_storage_save(
     const uint8_t* uid,
     size_t uid_len,
     const char* name) {
+    return cfs_storage_save_in(storage, CFS_STORAGE_DIR, plaintext, uid, uid_len, name);
+}
+
+bool cfs_storage_save_in(
+    Storage* storage,
+    const char* dir,
+    const uint8_t plaintext[CFS_PLAINTEXT_SIZE],
+    const uint8_t* uid,
+    size_t uid_len,
+    const char* name) {
     furi_assert(storage);
     furi_assert(plaintext);
 
-    cfs_storage_ensure_dir(storage);
+    storage_simply_mkdir(storage, dir);
 
     uint8_t cipher[CFS_PLAINTEXT_SIZE];
     cfs_crypto_encrypt(plaintext, cipher);
@@ -162,7 +172,7 @@ bool cfs_storage_save(
     }
 
     char path[CFS_STORAGE_PATH_BUF_SIZE];
-    cfs_storage_record_path((name && name[0]) ? name : "tag", path, sizeof(path));
+    cfs_storage_path_in(dir, (name && name[0]) ? name : "tag", path, sizeof(path));
 
     NfcDevice* dev = nfc_device_alloc();
     nfc_device_set_data(dev, NfcProtocolMfClassic, data); // copies data
@@ -175,11 +185,55 @@ bool cfs_storage_save(
 }
 
 bool cfs_storage_exists(Storage* storage, const char* name) {
+    return cfs_storage_exists_in(storage, CFS_STORAGE_DIR, name);
+}
+
+bool cfs_storage_exists_in(Storage* storage, const char* dir, const char* name) {
     furi_assert(storage);
     if(!name || !name[0]) return false;
     char path[CFS_STORAGE_PATH_BUF_SIZE];
-    cfs_storage_record_path(name, path, sizeof(path));
+    cfs_storage_path_in(dir, name, path, sizeof(path));
     return storage_file_exists(storage, path);
+}
+
+size_t cfs_storage_list(
+    Storage* storage,
+    const char* dir,
+    char (*names)[CFS_STORAGE_NAME_MAX],
+    size_t max) {
+    furi_assert(storage);
+    size_t count = 0;
+    const size_t ext_len = strlen(CFS_STORAGE_EXTENSION);
+    File* file = storage_file_alloc(storage);
+    if(storage_dir_open(file, dir)) {
+        FileInfo info;
+        char name[CFS_STORAGE_NAME_MAX + 8];
+        while(count < max && storage_dir_read(file, &info, name, sizeof(name))) {
+            if(file_info_is_dir(&info)) continue;
+            size_t len = strlen(name);
+            if(len <= ext_len || strcmp(name + len - ext_len, CFS_STORAGE_EXTENSION) != 0)
+                continue;
+            len -= ext_len;
+            if(len >= CFS_STORAGE_NAME_MAX) continue; // longer than we ever save
+            memcpy(names[count], name, len);
+            names[count][len] = '\0';
+            count++;
+        }
+    }
+    storage_dir_close(file);
+    storage_file_free(file);
+    // Insertion sort, A-Z (qsort isn't exported to apps; lists are short).
+    char tmp[CFS_STORAGE_NAME_MAX];
+    for(size_t i = 1; i < count; i++) {
+        memcpy(tmp, names[i], CFS_STORAGE_NAME_MAX);
+        size_t j = i;
+        while(j > 0 && strcmp(names[j - 1], tmp) > 0) {
+            memcpy(names[j], names[j - 1], CFS_STORAGE_NAME_MAX);
+            j--;
+        }
+        memcpy(names[j], tmp, CFS_STORAGE_NAME_MAX);
+    }
+    return count;
 }
 
 // ---- Load ----

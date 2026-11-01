@@ -1,7 +1,7 @@
 #include "uart_text_input.h"
 #include <gui/elements.h>
-#include "uart_terminal_icons.h"
-#include "uart_terminal_app_i.h"
+#include "gravity_icons.h"
+#include "gravity_app_i.h"
 #include <furi.h>
 
 struct UART_TextInput {
@@ -356,7 +356,7 @@ static void uart_text_input_view_draw_callback(Canvas* canvas, void* _model) {
         canvas_set_color(canvas, ColorWhite);
         canvas_draw_box(canvas, 8, 10, 110, 48);
         canvas_set_color(canvas, ColorBlack);
-        canvas_draw_icon(canvas, 10, 14, &I_WarningDolphin_45x42);
+        canvas_draw_icon(canvas, 10, 14, &I_GravityWarningDolphin_45x42);
         canvas_draw_rframe(canvas, 8, 8, 112, 50, 3);
         canvas_draw_rframe(canvas, 9, 9, 110, 48, 2);
         elements_multiline_text(canvas, 62, 20, furi_string_get_cstr(model->validator_text));

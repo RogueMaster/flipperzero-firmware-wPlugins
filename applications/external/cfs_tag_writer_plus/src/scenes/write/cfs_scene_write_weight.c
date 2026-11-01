@@ -20,32 +20,11 @@ bool cfs_scene_write_weight_on_event(void* context, SceneManagerEvent event) {
     app->pending.length_m = app->settings.weight_len[event.event];
 
     // Finalize the serial per the configured mode (applies to new AND clone
-    // writes). Keep uses the source serial when one is available (clone/edit),
-    // otherwise falls back to random. Generated once here, so a 2x dual write
-    // puts the SAME serial on both tags.
-    switch(app->settings.serial_mode) {
-    case CfsSerialPrompt:
+    // writes); the prompt mode asks for it first.
+    if(!cfs_app_assign_serial(app)) {
         scene_manager_next_scene(app->scene_manager, CfsSceneWriteSerial);
         return true;
-    case CfsSerialSequential:
-        snprintf(
-            app->pending.serial,
-            sizeof(app->pending.serial),
-            "%06lu",
-            (unsigned long)(app->settings.serial_counter % 1000000UL));
-        break;
-    case CfsSerialRandom:
-        cfs_serial_random(app->pending.serial);
-        break;
-    case CfsSerialKeepSource:
-    default:
-        // Keep the source serial on clone/edit; random when writing from scratch.
-        if(!app->has_source_serial) {
-            cfs_serial_random(app->pending.serial);
-        }
-        break;
     }
-
     scene_manager_next_scene(app->scene_manager, CfsSceneWriteConfirm);
     return true;
 }

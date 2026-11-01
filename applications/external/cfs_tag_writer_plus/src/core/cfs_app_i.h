@@ -108,6 +108,11 @@ typedef struct {
     // Save-name flow.
     char save_name[CFS_STORAGE_NAME_MAX];
     bool save_from_write; // true: save app->pending (no uid); false: save tag_data + uid
+    bool save_as_template; // save into CFS_TEMPLATE_DIR instead of the saved-tags folder
+
+    // Templates scene: names listed from CFS_TEMPLATE_DIR.
+    char template_names[CFS_TEMPLATES_MAX][CFS_STORAGE_NAME_MAX];
+    size_t template_count;
 
     // Scratch buffers for input views.
     uint8_t color_bytes[3];
@@ -143,6 +148,43 @@ static inline void cfs_app_stage_write_from_loaded(CfsApp* app, bool write_exact
         cfs_nearest_weight_index(app->settings.weight_len, app->pending.length_m);
 }
 
+// Folder the save flow writes to: templates or saved tags.
+static inline const char* cfs_app_save_dir(const CfsApp* app) {
+    return app->save_as_template ? CFS_TEMPLATE_DIR : CFS_STORAGE_DIR;
+}
+
+// The scene the save flow returns to once the record is saved.
+static inline CfsScene cfs_app_save_invoker(const CfsApp* app) {
+    return app->save_from_write ? CfsSceneWriteConfirm : CfsSceneReadResult;
+}
+
+// Set app->pending.serial for a new write per the configured serial mode.
+// Returns false when the mode asks the user (CfsSerialPrompt): the caller then
+// opens the serial input scene. Generated once per write, so a 2x write puts
+// the same serial on both tags.
+static inline bool cfs_app_assign_serial(CfsApp* app) {
+    switch(app->settings.serial_mode) {
+    case CfsSerialPrompt:
+        return false;
+    case CfsSerialSequential:
+        snprintf(
+            app->pending.serial,
+            sizeof(app->pending.serial),
+            "%06lu",
+            (unsigned long)(app->settings.serial_counter % 1000000UL));
+        break;
+    case CfsSerialRandom:
+        cfs_serial_random(app->pending.serial);
+        break;
+    case CfsSerialKeepSource:
+    default:
+        // Keep the source serial on clone/edit; random when writing from scratch.
+        if(!app->has_source_serial) cfs_serial_random(app->pending.serial);
+        break;
+    }
+    return true;
+}
+
 // Persist the staged record under app->save_name and buzz the result. Shared by
 // the save-name scene and the overwrite-confirm scene.
 static inline bool cfs_app_save_pending(CfsApp* app) {
@@ -151,7 +193,8 @@ static inline bool cfs_app_save_pending(CfsApp* app) {
     if(app->save_from_write) {
         // Staged write: no physical tag, so no UID. Encode the pending fields.
         cfs_data_encode(&app->pending, plain);
-        ok = cfs_storage_save(app->storage, plain, NULL, 0, app->save_name);
+        ok = cfs_storage_save_in(
+            app->storage, cfs_app_save_dir(app), plain, NULL, 0, app->save_name);
     } else {
         // Read result / loaded record: save the exact captured plaintext when we
         // have it (lossless), else re-encode the parsed fields.
@@ -160,7 +203,11 @@ static inline bool cfs_app_save_pending(CfsApp* app) {
         } else {
             cfs_data_encode(&app->tag_data, plain);
         }
-        ok = cfs_storage_save(app->storage, plain, app->uid, app->uid_len, app->save_name);
+        // A template has no tag of its own, so it keeps no UID.
+        ok = app->save_as_template ?
+                 cfs_storage_save_in(
+                     app->storage, CFS_TEMPLATE_DIR, plain, NULL, 0, app->save_name) :
+                 cfs_storage_save(app->storage, plain, app->uid, app->uid_len, app->save_name);
     }
     notification_message(app->notifications, ok ? &sequence_success : &sequence_error);
     return ok;

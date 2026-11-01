@@ -41,9 +41,9 @@ bool cfs_scene_save_overwrite_on_event(void* context, SceneManagerEvent event) {
     if(event.type != SceneManagerEventTypeCustom) return false;
     if(event.event == CfsCustomEventButtonOverwrite) {
         cfs_app_save_pending(app);
-        // Pop both this confirm and the save-name scene, back to the invoker.
-        CfsScene invoker = app->save_from_write ? CfsSceneWriteConfirm : CfsSceneReadResult;
-        scene_manager_search_and_switch_to_previous_scene(app->scene_manager, invoker);
+        // Pop this confirm, the save-name and save-kind scenes, back to the invoker.
+        scene_manager_search_and_switch_to_previous_scene(
+            app->scene_manager, cfs_app_save_invoker(app));
         return true;
     }
     return false;

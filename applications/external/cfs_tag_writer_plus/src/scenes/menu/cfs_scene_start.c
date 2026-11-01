@@ -7,6 +7,7 @@
 typedef enum {
     StartItemRead = CfsCustomEventMenuBase,
     StartItemWrite,
+    StartItemTemplates,
     StartItemErase,
     StartItemSaved,
     StartItemSettings,
@@ -17,6 +18,7 @@ typedef enum {
 static const CfsMenuItem start_items[] = {
     {&I_MenuRead_10x10, "Read Tag"},
     {&I_MenuWrite_10x10, "Write Tag"},
+    {&I_MenuTemplates_10x10, "Templates"},
     {&I_MenuErase_10x10, "Erase Tag"},
     {&I_MenuSaved_10x10, "Saved Tags"},
     {&I_MenuSettings_10x10, "Settings"},
@@ -27,6 +29,7 @@ static const CfsMenuItem start_items[] = {
 static const uint32_t start_events[] = {
     StartItemRead,
     StartItemWrite,
+    StartItemTemplates,
     StartItemErase,
     StartItemSaved,
     StartItemSettings,
@@ -63,6 +66,9 @@ bool cfs_scene_start_on_event(void* context, SceneManagerEvent event) {
             app->has_source_serial = false;
             app->pending_weight_index = 0;
             scene_manager_next_scene(app->scene_manager, CfsSceneWriteBrand);
+            return true;
+        case StartItemTemplates:
+            scene_manager_next_scene(app->scene_manager, CfsSceneTemplates);
             return true;
         case StartItemErase:
             scene_manager_next_scene(app->scene_manager, CfsSceneEraseConfirm);

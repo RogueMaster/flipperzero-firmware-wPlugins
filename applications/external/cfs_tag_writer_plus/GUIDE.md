@@ -87,10 +87,25 @@ confirm screen to write both:
 
 ![Dual-tag swap prompt](images/11_dual_pause.png)
 
+## Templates
+
+A template is a spool you write again and again, e.g. "Generic PLA, Black,
+1 kg". To make one, press **Save** on the write confirm screen (or on a read
+result) and choose **Template**; the name is filled in from brand, material,
+color and weight.
+
+Open **Templates** from the main menu and pick one: the confirm card opens
+with a new serial (following the serial setting), so **Write** or **x2** is one
+press away. After a successful write the app returns to the template list,
+ready for the next tag. **Delete a template...** at the end of the list removes
+one.
+
+Templates are standard .nfc files in the app's `templates` folder.
+
 ## Save and the Saved Tags library
 
-**Save** a tag (from a read result or the write-confirm screen) to name it and
-keep it. Pre-filled with a brand, material, color, and serial-number label;
+**Save** a tag (from a read result or the write-confirm screen), choose
+**Saved tag**, then name it to keep it. Pre-filled with a brand, material, color, and serial-number label;
 edit as you like. Tags are stored as standard Flipper MIFARE Classic **`.nfc`**
 files in the app's data folder.
 

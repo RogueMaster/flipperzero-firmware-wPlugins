@@ -1,5 +1,11 @@
 ## v1.5
 
+- Templates: save a spool you write again and again (Save, then Template, on
+  the write confirm screen or a read result). Templates in the main menu
+  lists them; picking one opens the confirm card with a new serial, and after
+  writing the app comes back to the list, ready for the next tag. Templates
+  are .nfc files in apps_data/cfs_tag_writer_plus/templates; delete them from
+  the list's last item.
 - New app icon: a spool with a plus, so CFS Tag Writer+ is easy to tell apart
   from the original CFS Tag Writer in the app list.
 
