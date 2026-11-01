@@ -16,6 +16,7 @@ void taiko_menu_init(TaikoMenu* menu) {
     *menu = (TaikoMenu){
         .backward_index = 2,
         .forward_index = 2,
+        .seek_mode = TaikoSeekByBars,
         .don_volume = 70,
         .ka_volume = 70,
         .courses = 1U << TjaCourseOni,

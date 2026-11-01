@@ -10,6 +10,7 @@ int main(void) {
     TaikoMenu menu;
     taiko_menu_init(&menu);
     assert(!menu.open);
+    assert(menu.seek_mode == TaikoSeekByBars);
     assert(taiko_menu_backward_ms(&menu) == 5000);
     assert(taiko_menu_forward_ms(&menu) == 5000);
     assert(menu.don_volume == 70 && menu.ka_volume == 70);
@@ -91,7 +92,9 @@ int main(void) {
     assert(menu.frame_rate == 37);
     assert(taiko_menu_playback_tenths(&menu) == 20 && taiko_menu_scroll_tenths(&menu) == 40);
     taiko_menu_move(&menu, true);
-    assert(menu.selected == TaikoMenuSeekMode && menu.seek_mode == TaikoSeekByTime);
+    assert(menu.selected == TaikoMenuSeekMode && menu.seek_mode == TaikoSeekByBars);
+    assert(taiko_menu_activate(&menu) == TaikoMenuActionNone);
+    assert(menu.open && menu.seek_mode == TaikoSeekByTime);
     assert(taiko_menu_activate(&menu) == TaikoMenuActionNone);
     assert(menu.open && menu.seek_mode == TaikoSeekByBars);
     assert(taiko_menu_bar_count(&menu, false) == 1 && taiko_menu_bar_count(&menu, true) == 1);
@@ -256,6 +259,7 @@ int main(void) {
     assert(taiko_menu_activate(&menu) == TaikoMenuActionExit);
     assert(!menu.open);
     taiko_menu_init(&menu);
+    assert(menu.seek_mode == TaikoSeekByBars);
     assert(menu.frame_rate == 50);
     assert(taiko_menu_backward_ms(&menu) == 5000);
     assert(taiko_menu_forward_ms(&menu) == 5000);

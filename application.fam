@@ -5,7 +5,7 @@ App(
     entry_point="taiko_player_app",
     stack_size=4 * 1024,
     fap_category="Media",
-    fap_version="0.5",
+    fap_version="0.5.1",
     fap_description="Play TJA charts with PCM audio from the SD card",
     fap_author="ZeroNinx",
     fap_weburl="https://github.com/ZeroNinx/flipper-zero-taiko-player",
