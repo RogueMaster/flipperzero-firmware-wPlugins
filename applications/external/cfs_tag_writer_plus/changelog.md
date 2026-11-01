@@ -1,3 +1,8 @@
+## v1.5
+
+- New app icon: a spool with a plus, so CFS Tag Writer+ is easy to tell apart
+  from the original CFS Tag Writer in the app list.
+
 ## v1.4
 
 - Published as its own app, CFS Tag Writer+ (app id cfs_tag_writer_plus), a

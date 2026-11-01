@@ -17,7 +17,7 @@ void cfs_scene_about_on_enter(void* context) {
                        "Clone only your own tags.\n"
                        "\n"
                        "MIT License\n"
-                       "by BaniMun, v1.4\n"
+                       "by BaniMun, v1.5\n"
                        "Based on CFS Tag Writer\n"
                        "by P. Schattenberg";
     widget_add_text_scroll_element(widget, 0, 16, 128, 48, text);

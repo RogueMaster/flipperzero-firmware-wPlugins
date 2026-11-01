@@ -116,6 +116,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Ansonic Nice FLO false-positive rejection and CAME TWEE parcel-counter bounds check (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/f5e39f9115f18ded8a41c5316b15c83124307346)
 - Updated: [FlipFlash v1.0 - Fix path to lowercase (By Mushi0)](https://github.com/Mushi0/FlippFlash)
 - Added: [Lettercade v1.0 - Letters Rain, Snake Letters and Tennis Letters (By andreimagic)](https://github.com/andreimagic/flipper-lettercade)
+- Updated: [CFS Tag Writer+ v1.5 - distinct plus-marked app icon (By BaniMun)](https://github.com/BaniMun/cfs-tag-writer)
 
 <a name="release"></a>
 
@@ -513,7 +514,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [CCID Emulator v1.1 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
 - [Cerberus v1.1 (By at0m-b0mb)](https://github.com/at0m-b0mb/flipper-cerberus)
 - [CFS Tag Writer v1.0 (By pwschattenberg)](https://github.com/pwschattenberg/cfs-tag-writer)
-- [CFS Tag Writer+ v1.4 (By BaniMun)](https://github.com/BaniMun/cfs-tag-writer)
+- [CFS Tag Writer+ v1.5 (By BaniMun)](https://github.com/BaniMun/cfs-tag-writer)
 - [CFW Settings v2.3 (By WillyJL)](https://github.com/Next-Flip/Momentum-Firmware/tree/dev/applications/main/momentum_app)
 - [Chameleon Ultra v1.0 (By muylder)](https://github.com/muylder/Chameleon_Flipper)
 - [ChaosID v0.6 (By cybersantana83)](https://github.com/cybersantana83/ChaosID)
