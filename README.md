@@ -8,6 +8,7 @@
 * Web https://invizabel.github.io/VolorSavanna
 
 #### TODO:
+* AppleScript
 * Go
 * TI 84
 
