@@ -13,7 +13,7 @@ ufbt
 
 ### To Build ASN1 (if you change sio.asn1)
 
- * Install git version of [asnc1](https://github.com/vlm/asn1c) (`brew install asn1c --head` on macos)
+ * Install git version of [asn1c](https://github.com/vlm/asn1c) (`brew install asn1c --head` on macos)
  * Run `asn1c -D ./lib/asn1 -no-gen-example -no-gen-OER -no-gen-PER -pdu=all sio.asn1` in in root to generate asn1c files
 
 
