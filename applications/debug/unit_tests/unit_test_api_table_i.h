@@ -10,8 +10,6 @@
 #include <lfrfid/tools/hitags.h>
 #include <rpc/rpc_i.h>
 #include <flipper.pb.h>
-#include <applications/system/js_app/js_thread.h>
-#include <applications/system/js_app/js_value.h>
 
 static constexpr auto unit_tests_api_table = sort(create_array_t<sym_entry>(
     API_METHOD(resource_manifest_reader_alloc, ResourceManifestReader*, (Storage*)),
