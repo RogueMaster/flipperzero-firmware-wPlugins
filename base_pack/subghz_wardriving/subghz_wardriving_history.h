@@ -140,7 +140,8 @@ bool subghz_wardriving_history_get_text_space_left(
     FuriString* output,
     bool ignore_full,
     bool show_sats,
-    uint8_t sats);
+    uint8_t sats,
+    uint8_t type);
 
 /** Return last index
  *
@@ -191,4 +192,30 @@ float subghz_wardriving_history_get_longitude(SubGhzHistory* instance, uint16_t 
 void subghz_wardriving_history_remove_duplicates(SubGhzHistory* instance);
 
 // Check if memory/history is full
-bool subghz_wardriving_history_full(SubGhzHistory* instance);
+bool subghz_wardriving_history_full(SubGhzHistory* instance, uint8_t type);
+
+// Is what the history is short of plain heap, which dropping a record always returns, or a
+// block wide enough for a big signal, which dropping small ones never gives?
+bool subghz_wardriving_history_needs_heap(SubGhzHistory* instance, uint8_t type);
+
+/** Extra room a full history has to get back before it counts as not full again. At the
+ * point it fills up the margin is a few hundred bytes, and anything else that runs - a
+ * signal opened and closed, a send - moves the heap by more than that, so a bare recheck
+ * flips the answer back and forth. Once it reads full it stays full until there is real
+ * room again, or until a record is deleted */
+#define SUBGHZ_HISTORY_FULL_CLEAR_SLACK 2048
+
+/** Mark history[idx] as written to disk, or as still waiting for it
+ *
+ * @param instance - SubGhzHistory instance
+ * @param idx      - record index
+ * @param saved    - false queues the record for the autosave handler
+ */
+void subghz_wardriving_history_set_saved(SubGhzHistory* instance, uint16_t idx, bool saved);
+
+/** Find the oldest record still waiting to be written to disk
+ *
+ * @param instance - SubGhzHistory instance
+ * @return index, or -1 when every record is written
+ */
+int32_t subghz_wardriving_history_get_unsaved(SubGhzHistory* instance);

@@ -5,9 +5,89 @@
 #include <lib/subghz/devices/cc1101_int/cc1101_int_interconnect.h>
 #include <lib/subghz/blocks/custom_btn.h>
 #include <lib/subghz/protocols/public_api.h>
+#include <lib/subghz/protocols/bin_raw.h>
+#include <lib/subghz/protocols/keeloq.h>
+#include <lib/subghz/protocols/hormann.h>
+#include <lib/subghz/protocols/came_twee.h>
+#include <lib/subghz/protocols/nice_flor_s.h>
 
 #include <power/power_service/power.h>
 #include <storage/storage.h>
+
+// An encoder reserves its whole upload buffer when it is allocated, and the five below are
+// the only ones that ask for more than the default
+static const struct {
+    const char* name;
+    uint16_t block;
+} subghz_wardriving_txrx_tx_block_table[] = {
+    {SUBGHZ_PROTOCOL_NICE_FLOR_S_NAME, 15360}, // 3648 timings, an O-Code cert press
+    {SUBGHZ_PROTOCOL_BIN_RAW_NAME, 10752},     // 2560 timings
+    {SUBGHZ_PROTOCOL_KEELOQ_NAME, 8192},       // 1872 timings in counter mode 7
+    {SUBGHZ_PROTOCOL_HORMANN_HSM_NAME, 8192},  // 1850 timings
+    {SUBGHZ_PROTOCOL_CAME_TWEE_NAME, 6656},    // 1536 timings
+};
+
+size_t subghz_wardriving_txrx_tx_block_need(const char* protocol) {
+    if(protocol != NULL) {
+        for(size_t i = 0; i < COUNT_OF(subghz_wardriving_txrx_tx_block_table); i++) {
+            if(strcmp(protocol, subghz_wardriving_txrx_tx_block_table[i].name) == 0) {
+                return subghz_wardriving_txrx_tx_block_table[i].block;
+            }
+        }
+    }
+    return SUBGHZ_TX_MIN_FREE_BLOCK_DEFAULT;
+}
+
+// An encoder wants its upload buffer in one piece, and a heap the history has cut into
+// small pieces has none to give. So one block is held, sized to the widest protocol the
+// history actually holds - a KeeLoq only session does not pay for Nice FloR-S - and handed
+// back at send time, the only moment it is needed
+static void* subghz_wardriving_txrx_tx_block = NULL;
+static size_t subghz_wardriving_txrx_tx_block_held = 0;
+static size_t subghz_wardriving_txrx_tx_block_wanted = 0;
+
+static void subghz_wardriving_txrx_tx_block_drop(void) {
+    free(subghz_wardriving_txrx_tx_block);
+    subghz_wardriving_txrx_tx_block = NULL;
+    subghz_wardriving_txrx_tx_block_held = 0;
+}
+
+static bool subghz_wardriving_txrx_tx_block_take(size_t need) {
+    if((need == 0) || (subghz_wardriving_txrx_tx_block != NULL)) return true;
+    // A failed malloc ends in furi_check, so the block has to be known to fit first. The
+    // largest free block is reported with the allocator header counted in, and a request
+    // spends that header too, so the slack has to be what the header actually costs and
+    // no more: asking for more than that fails to take back the very block just freed
+    if(memmgr_heap_get_max_free_block() < need + SUBGHZ_TX_BLOCK_OVERHEAD) return false;
+    subghz_wardriving_txrx_tx_block = malloc(need);
+    subghz_wardriving_txrx_tx_block_held = need;
+    return true;
+}
+
+size_t subghz_wardriving_txrx_tx_block_size(void) {
+    return subghz_wardriving_txrx_tx_block_held;
+}
+
+bool subghz_wardriving_txrx_tx_block_reserve(size_t need) {
+    if(subghz_wardriving_txrx_tx_block_held == need) {
+        subghz_wardriving_txrx_tx_block_wanted = need;
+        return true;
+    }
+    const size_t previous = subghz_wardriving_txrx_tx_block_held;
+    subghz_wardriving_txrx_tx_block_drop();
+    if(subghz_wardriving_txrx_tx_block_take(need)) {
+        subghz_wardriving_txrx_tx_block_wanted = need;
+        return true;
+    }
+    // Growing failed, so put back what was there rather than leave the history unguarded
+    subghz_wardriving_txrx_tx_block_take(previous);
+    return false;
+}
+
+static bool subghz_wardriving_txrx_tx_memory_available(const char* protocol) {
+    return memmgr_heap_get_max_free_block() >=
+           (subghz_wardriving_txrx_tx_block_need(protocol) + SUBGHZ_TX_BLOCK_OVERHEAD);
+}
 
 #define TAG "SubGhzWarDrivingTxRx"
 
@@ -79,6 +159,7 @@ void subghz_wardriving_txrx_rx_pipeline_release(SubGhzWarDrivingTxRx* instance) 
 
 SubGhzWarDrivingTxRx* subghz_wardriving_txrx_alloc(void) {
     SubGhzWarDrivingTxRx* instance = malloc(sizeof(SubGhzWarDrivingTxRx));
+    subghz_wardriving_txrx_tx_block_reserve(SUBGHZ_TX_MIN_FREE_BLOCK_DEFAULT);
     instance->setting = subghz_setting_alloc();
     subghz_setting_load(instance->setting, EXT_PATH("subghz/assets/setting_user"));
 
@@ -121,6 +202,9 @@ SubGhzWarDrivingTxRx* subghz_wardriving_txrx_alloc(void) {
 
 void subghz_wardriving_txrx_free(SubGhzWarDrivingTxRx* instance) {
     furi_assert(instance);
+
+    subghz_wardriving_txrx_tx_block_wanted = 0;
+    subghz_wardriving_txrx_tx_block_drop();
 
     if(instance->radio_device_type != SubGhzRadioDeviceTypeInternal) {
         subghz_wardriving_txrx_radio_device_power_off(instance);
@@ -382,6 +466,20 @@ SubGhzTxRxStartTxState
             FURI_LOG_E(TAG, "Missing Protocol");
             break;
         }
+        // Hand the held block back so the encoder can take it. What is held is sized with
+        // room to spare for the protocols it covers, so when it is wide enough for this one
+        // the encoder is certain to fit in it and there is nothing to measure. Only a wider
+        // protocol has to look at the heap, and it looks before letting go of anything: a
+        // block released on a measurement that then fails is a block that cannot be retaken
+        if(subghz_wardriving_txrx_tx_block_need(furi_string_get_cstr(temp_str)) >
+           subghz_wardriving_txrx_tx_block_size()) {
+            if(!subghz_wardriving_txrx_tx_memory_available(furi_string_get_cstr(temp_str))) {
+                FURI_LOG_E(TAG, "Not enough free heap for an encoder");
+                ret = SubGhzTxRxStartTxStateErrorNoMemory;
+                break;
+            }
+        }
+        subghz_wardriving_txrx_tx_block_drop();
         ret = SubGhzTxRxStartTxStateOk;
 
         SubGhzRadioPreset* preset = instance->preset;
@@ -430,6 +528,7 @@ SubGhzTxRxStartTxState
             if(instance->txrx_state != SubGhzTxRxStateIDLE) {
                 subghz_wardriving_txrx_idle(instance);
             }
+            subghz_wardriving_txrx_tx_block_take(subghz_wardriving_txrx_tx_block_wanted);
         }
 
     } while(false);
@@ -441,6 +540,9 @@ void subghz_wardriving_txrx_rx_start(SubGhzWarDrivingTxRx* instance) {
     furi_assert(instance);
     subghz_wardriving_txrx_rx_pipeline_alloc(instance);
     subghz_wardriving_txrx_stop(instance);
+    // A send that ended on a tight heap can leave the block untaken. Everything it used is
+    // back by now, so this is the moment to try again rather than go without it all session
+    subghz_wardriving_txrx_tx_block_take(subghz_wardriving_txrx_tx_block_wanted);
     subghz_wardriving_txrx_begin(
         instance,
         subghz_setting_get_preset_data_by_name(
@@ -466,6 +568,7 @@ static void subghz_wardriving_txrx_tx_stop(SubGhzWarDrivingTxRx* instance) {
     subghz_transmitter_stop(instance->transmitter);
     subghz_transmitter_free(instance->transmitter);
     instance->transmitter = NULL;
+    subghz_wardriving_txrx_tx_block_take(subghz_wardriving_txrx_tx_block_wanted);
 
     //if protocol dynamic then we save the last upload
     //but only when we transmitted our own fff_data (bound to file_path)

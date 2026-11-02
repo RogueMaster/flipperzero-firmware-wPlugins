@@ -51,12 +51,14 @@ static void subghz_scene_receiver_update_statusbar(void* context) {
     SubGhz* subghz = context;
     FuriString* history_stat_str = furi_string_alloc();
     bool show_sats = subghz->gps && furi_hal_rtc_get_timestamp() % 2;
-    if(!subghz_wardriving_history_get_text_space_left(
-           subghz->history,
-           history_stat_str,
-           subghz->last_settings->delete_old_signals,
-           show_sats,
-           show_sats ? subghz->gps->satellites : 0)) {
+    subghz->history_full = subghz_wardriving_history_get_text_space_left(
+        subghz->history,
+        history_stat_str,
+        subghz->last_settings->delete_old_signals,
+        show_sats,
+        show_sats ? subghz->gps->satellites : 0,
+        SubGhzProtocolTypeStatic);
+    if(!subghz->history_full) {
         FuriString* frequency_str = furi_string_alloc();
         FuriString* modulation_str = furi_string_alloc();
 
@@ -148,13 +150,28 @@ static void subghz_scene_add_to_history_callback(
             longitude = subghz->gps->longitude;
         }
 
+        const uint8_t type = decoder_base->protocol->type;
         if(subghz->last_settings->delete_old_signals &&
-           subghz_wardriving_history_full(subghz->history)) {
+           subghz_wardriving_history_full(subghz->history, type)) {
+            uint16_t deleted = 0;
+            size_t widest = 0;
+
             subghz_view_receiver_disable_draw_callback(subghz->subghz_receiver);
 
-            while(idx > 0 && subghz_wardriving_history_full(subghz->history)) {
+            // One at a time for as long as that gets closer to room. While plain heap is
+            // what is short it always does. Once a wide enough block is what is missing it
+            // only does when freed records merge, and a run of small ones never will, so
+            // the loop stops there rather than empty the list for nothing
+            while((idx > 0) && subghz_wardriving_history_full(subghz->history, type)) {
+                const size_t free_block = memmgr_heap_get_max_free_block();
+                if((deleted != 0) && (free_block <= widest) &&
+                   !subghz_wardriving_history_needs_heap(subghz->history, type)) {
+                    break;
+                }
+                widest = free_block;
                 subghz_wardriving_history_delete_item(subghz->history, 0);
                 subghz_view_receiver_delete_item(subghz->subghz_receiver, 0);
+                deleted++;
                 idx--;
             }
 
@@ -215,35 +232,15 @@ static void subghz_scene_add_to_history_callback(
 
                 if(decoder_base->protocol->flag & SubGhzProtocolFlag_Save &&
                    subghz->last_settings->autosave) {
-                    // File name
-                    char file[SUBGHZ_MAX_LEN_NAME] = {0};
-                    const char* suf = subghz->last_settings->protocol_file_names ?
-                                          decoder_base->protocol->name :
-                                          SUBGHZ_APP_FILENAME_PREFIX;
-                    DateTime time = subghz_wardriving_history_get_datetime(history, idx);
-                    name_generator_make_detailed_datetime(file, sizeof(file), suf, &time);
-                    // Dir name
-                    FuriString* path = furi_string_alloc_set(SUBGHZ_WARDR_APP_FOLDER "/autosaved");
-                    char* dir = strdup(furi_string_get_cstr(path));
-                    // Find non-existent path
-                    const char* ext = SUBGHZ_APP_FILENAME_EXTENSION;
-                    Storage* storage = furi_record_open(RECORD_STORAGE);
-                    storage_get_next_filename(storage, dir, file, ext, path, sizeof(file));
-                    strlcpy(file, furi_string_get_cstr(path), sizeof(file));
-                    furi_string_printf(path, "%s/%s%s", dir, file, ext);
-                    furi_record_close(RECORD_STORAGE);
-                    free(dir);
-                    // Save
-                    subghz_save_protocol_to_file(
-                        subghz,
-                        subghz_wardriving_history_get_raw_data(history, idx),
-                        furi_string_get_cstr(path));
-                    furi_string_free(path);
+                    // Queued, not written: the card would hold the decoder thread
+                    subghz_wardriving_history_set_saved(history, idx, false);
+                    view_dispatcher_send_custom_event(
+                        subghz->view_dispatcher, SubGhzCustomEventViewReceiverAutosave);
                 }
 
                 subghz_scene_receiver_update_statusbar(subghz);
                 if(!subghz->last_settings->delete_old_signals &&
-                   subghz_wardriving_history_full(subghz->history)) {
+                   subghz_wardriving_history_full(subghz->history, SubGhzProtocolTypeStatic)) {
                     subghz->state_notifications = SubGhzNotificationStateIDLE;
                     notification_message(subghz->notifications, &sequence_error);
                 } else {
@@ -251,6 +248,14 @@ static void subghz_scene_add_to_history_callback(
                 }
             }
             subghz_rx_key_state_set(subghz, SubGhzRxKeyStateAddKey);
+        } else if(
+            !subghz->last_settings->delete_old_signals &&
+            subghz_wardriving_history_full(history, type)) {
+            // The bar is only redrawn after a signal lands, so warn from here too. Every
+            // refused signal buzzes, not just the first, so a full history is felt
+            subghz->state_notifications = SubGhzNotificationStateIDLE;
+            subghz_scene_receiver_update_statusbar(subghz);
+            notification_message(subghz->notifications, &sequence_error);
         }
         subghz_receiver_reset(receiver);
         furi_string_free(item_name);
@@ -313,7 +318,8 @@ void subghz_scene_receiver_on_enter(void* context) {
     subghz_wardriving_txrx_set_rx_callback(
         subghz->txrx, subghz_scene_add_to_history_callback, subghz);
 
-    if(!subghz_wardriving_history_full(subghz->history)) {
+    // A full history is not receiving, so nothing should blink until it has room
+    if(!subghz->history_full) {
         subghz->state_notifications = SubGhzNotificationStateRx;
     } else {
         subghz->state_notifications = SubGhzNotificationStateIDLE;
@@ -366,6 +372,43 @@ void subghz_scene_receiver_on_enter(void* context) {
     view_dispatcher_switch_to_view(subghz->view_dispatcher, SubGhzViewIdReceiver);
 }
 
+// Runs on the view dispatcher thread. Each record is marked before the write is tried,
+// so a failing card cannot spin here
+static void subghz_scene_receiver_autosave(SubGhz* subghz) {
+    int32_t found;
+    while((found = subghz_wardriving_history_get_unsaved(subghz->history)) >= 0) {
+        const uint16_t idx = (uint16_t)found;
+        subghz_wardriving_history_set_saved(subghz->history, idx, true);
+
+        FlipperFormat* raw_data = subghz_wardriving_history_get_raw_data(subghz->history, idx);
+        const SubGhzProtocol* protocol =
+            subghz_wardriving_history_get_protocol(subghz->history, idx);
+        if(!raw_data || !protocol) continue;
+
+        // File name
+        char file[SUBGHZ_MAX_LEN_NAME] = {0};
+        const char* suf = subghz->last_settings->protocol_file_names ?
+                              protocol->name :
+                              SUBGHZ_APP_FILENAME_PREFIX;
+        DateTime time = subghz_wardriving_history_get_datetime(subghz->history, idx);
+        name_generator_make_detailed_datetime(file, sizeof(file), suf, &time);
+        // Dir name
+        FuriString* path = furi_string_alloc_set(SUBGHZ_WARDR_APP_FOLDER "/autosaved");
+        char* dir = strdup(furi_string_get_cstr(path));
+        // Find non-existent path
+        const char* ext = SUBGHZ_APP_FILENAME_EXTENSION;
+        Storage* storage = furi_record_open(RECORD_STORAGE);
+        storage_get_next_filename(storage, dir, file, ext, path, sizeof(file));
+        strlcpy(file, furi_string_get_cstr(path), sizeof(file));
+        furi_string_printf(path, "%s/%s%s", dir, file, ext);
+        furi_record_close(RECORD_STORAGE);
+        free(dir);
+        // Save
+        subghz_save_protocol_to_file(subghz, raw_data, furi_string_get_cstr(path));
+        furi_string_free(path);
+    }
+}
+
 bool subghz_scene_receiver_on_event(void* context, SceneManagerEvent event) {
     SubGhz* subghz = context;
     bool consumed = false;
@@ -397,6 +440,10 @@ bool subghz_scene_receiver_on_event(void* context, SceneManagerEvent event) {
             // Show file info, scene: receiver_info
             scene_manager_next_scene(subghz->scene_manager, SubGhzSceneReceiverInfo);
             dolphin_deed(DolphinDeedSubGhzReceiverInfo);
+            consumed = true;
+            break;
+        case SubGhzCustomEventViewReceiverAutosave:
+            subghz_scene_receiver_autosave(subghz);
             consumed = true;
             break;
         case SubGhzCustomEventViewReceiverDeleteItem:
@@ -530,9 +577,13 @@ bool subghz_scene_receiver_on_event(void* context, SceneManagerEvent event) {
             }
 
             subghz_receiver_rssi(subghz->subghz_receiver, ret_rssi.rssi);
-            subghz_protocol_decoder_bin_raw_data_input_rssi(
-                (SubGhzProtocolDecoderBinRAW*)subghz_wardriving_txrx_get_decoder(subghz->txrx),
-                ret_rssi.rssi);
+            // Feeding it is what makes it take its 10k of capture buffers
+            if(READ_BIT(subghz->filter, SubGhzProtocolFlag_BinRAW)) {
+                subghz_protocol_decoder_bin_raw_data_input_rssi(
+                    (SubGhzProtocolDecoderBinRAW*)subghz_wardriving_txrx_get_decoder(
+                        subghz->txrx),
+                    ret_rssi.rssi);
+            }
         }
 
         switch(subghz->state_notifications) {

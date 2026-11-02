@@ -35,6 +35,7 @@ typedef enum {
     SubGhzCustomEventViewReceiverOffDisplay,
     SubGhzCustomEventViewReceiverUnlock,
     SubGhzCustomEventViewReceiverDeleteItem,
+    SubGhzCustomEventViewReceiverAutosave,
 
     SubGhzCustomEventViewTransmitterBack,
     SubGhzCustomEventViewTransmitterSendStart,

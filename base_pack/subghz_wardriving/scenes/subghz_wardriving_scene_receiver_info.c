@@ -134,7 +134,8 @@ void subghz_scene_receiver_info_on_enter(void* context) {
 
     subghz_scene_receiver_info_draw_widget(subghz);
 
-    if(!subghz_wardriving_history_full(subghz->history)) {
+    // A full history is not receiving, so nothing should blink here until it has room
+    if(!subghz->history_full) {
         subghz->state_notifications = SubGhzNotificationStateRx;
     }
 }
@@ -169,7 +170,11 @@ bool subghz_scene_receiver_info_on_event(void* context, SceneManagerEvent event)
             // user release OK
             // we switch off endless_tx - that mean protocols yield finish endless transmission,
             // send upload "repeat=xx" times, and after will be stoped by the tick event down in this code
-            subghz->state_notifications = SubGhzNotificationStateTxWait;
+            // A send that never started leaves no hardware to wait for, and the wait
+            // state would keep the LED blinking as though it had
+            if(subghz->state_notifications == SubGhzNotificationStateTx) {
+                subghz->state_notifications = SubGhzNotificationStateTxWait;
+            }
             subghz_block_generic_global.endless_tx = false;
 
             return true;
@@ -239,7 +244,7 @@ bool subghz_scene_receiver_info_on_event(void* context, SceneManagerEvent event)
 
                 subghz_wardriving_txrx_rx_start(subghz->txrx);
                 subghz_wardriving_txrx_hopper_unpause(subghz->txrx);
-                if(!subghz_wardriving_history_full(subghz->history)) {
+                if(!subghz->history_full) {
                     subghz->state_notifications = SubGhzNotificationStateRx;
                 }
             }

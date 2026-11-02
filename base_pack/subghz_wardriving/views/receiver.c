@@ -295,7 +295,7 @@ void subghz_view_receiver_draw(Canvas* canvas, SubGhzViewReceiverModel* model) {
         SubGhzReceiverMenuItem* item_menu;
 
         for(size_t i = 0; i < MIN(model->history_item, MENU_ITEMS); ++i) {
-            size_t idx = CLAMP((uint16_t)(i + model->list_offset), model->history_item, 0);
+            size_t idx = CLAMP((uint16_t)(i + model->list_offset), (uint16_t)(model->history_item - 1), 0);
             item_menu = SubGhzReceiverMenuItemArray_get(model->history->data, idx);
             if(item_menu == NULL) {
                 break;
@@ -737,20 +737,33 @@ void subghz_view_receiver_delete_item(SubGhzViewReceiver* subghz_receiver, uint1
                 item->repeats = 0;
                 SubGhzReceiverMenuItemArray_remove_v(model->history->data, idx, idx + 1);
 
-                if(model->history_item == 5) {
-                    if(model->idx >= 2) {
-                        model->idx = model->history_item - 1;
-                    }
-                }
                 model->history_item--;
 
-                if(model->idx && (model->idx > idx || model->idx == model->history_item)) {
-                    model->idx--;
+                // Everything above the hole slid down by one, so the cursor follows it
+                if(model->idx > idx) model->idx--;
+                if(model->history_item == 0) {
+                    model->idx = 0;
+                } else if(model->idx >= model->history_item) {
+                    model->idx = model->history_item - 1;
+                }
+
+                // The incremental scroller steps the window by one and underflows on a
+                // cursor near the top, so the window is clamped here instead. A stale
+                // offset makes two rows resolve to the same item
+                if(model->history_item <= MENU_ITEMS) {
+                    model->list_offset = 0;
+                } else {
+                    const uint16_t max_offset = (uint16_t)(model->history_item - MENU_ITEMS);
+                    if(model->list_offset > max_offset) model->list_offset = max_offset;
+                    if(model->idx < model->list_offset) {
+                        model->list_offset = model->idx;
+                    } else if(model->idx >= model->list_offset + MENU_ITEMS) {
+                        model->list_offset = (uint16_t)(model->idx - (MENU_ITEMS - 1));
+                    }
                 }
             }
         },
         true);
-    subghz_view_receiver_update_offset(subghz_receiver);
 }
 
 void subghz_view_receiver_enable_draw_callback(SubGhzViewReceiver* subghz_receiver) {
