@@ -14,12 +14,20 @@ Keyboard and mouse modes are compatibility modes. They work with almost anything
 
 Open `Settings → USB`.
 
-- `Connection`: `None` leaves the computer alone. `Keyboard` sends HID key presses. `Mouse` sends mouse button presses. `MIDI` exposes Flipper as `Morse Flipper MIDI`. Changing this reconnects USB, so give the computer a moment to notice.
+- `Connection`: `None` leaves the computer alone. `Keyboard` sends HID key presses. `Mouse` sends mouse button presses. `MIDI` exposes Flipper as `Morse Flipper MIDI`. `Text kbd` decodes your Morse and types the resulting letters, digits, and punctuation as if you were typing on a real keyboard. Changing this reconnects USB, so give the computer a moment to notice.
 - `Paddle keys`: used only in `Keyboard` mode for dit and dah. Pick the pair the site expects. VBand uses `[ ]`; other tools may prefer `X Z`, `Ctrl-s`, `. /`, or another pair. On AZERTY or QWERTZ hosts, use the matching `X Z azerty (FR)` or `X Z qwertz (DE)` preset if the site expects X/Z. This setting does not change the real paddle wiring, only the fake keyboard output.
 - `Straight key`: used only in `Keyboard` mode when the app sends a straight-key note. Choose `Space`, `X`, `Z`, `C`, `Enter`, or `Num enter` to match the target app. On AZERTY or QWERTZ hosts, use `Z azerty (FR)` or `Z qwertz (DE)` if the site expects Z.
 - `Invert mouse`: used only in `Mouse` mode. It swaps left and right mouse buttons, because some tools make the obvious choice and some apparently had a longer lunch.
 
-## Vail MIDI
+## Text Keyboard
+
+The other modes hand raw key, mouse, or MIDI events to the computer and let the site do the decoding. `Text kbd` is different: the Flipper runs its own Morse decoder on your fist and types the decoded characters straight into whatever has keyboard focus - a text editor, a chat box, a search field, anything that accepts typing.
+
+Your selected input source and keyer mode still decide what counts as a dit, dah, or straight-key note, and the usual on-screen decoder still shows what it heard. The decoder tracks your speed the same way it does on the practice screens, so send clean, well-spaced characters for the best results. Letters are typed in lowercase (Morse has no case), digits and common punctuation (`. , ? / - = ; ' : + ( ) ! " & @ _`) are typed as decoded, and word gaps become spaces. Characters the decoder cannot resolve are dropped rather than typed as noise.
+
+`Paddle keys`, `Straight key`, and `Invert mouse` do nothing in this mode - they only matter for the raw `Keyboard` and `Mouse` adapters. As with the other modes, the host still needs focus on the right window, and the layout is assumed to be US QWERTY, so a couple of shifted symbols may differ on AZERTY or QWERTZ hosts.
+
+
 
 In `MIDI` mode, Flipper sends USB MIDI note events: note `0` for straight key, note `1` for dit, and note `2` for dah. Presses are note-on, releases are note-off. That gives the browser proper edge timing instead of asking it to infer Morse from keyboard text, which is how tiny timing sins become large ones.
 

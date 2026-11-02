@@ -285,7 +285,7 @@ int main(void) {
     }
     apply(&app, MfSettingsSetTone, 31U, false);
     apply(&app, MfSettingsSetP2Volume, 11U, false);
-    apply(&app, MfSettingsSetUsbMode, MorseFlipperPcModeMidi + 1U, false);
+    apply(&app, MfSettingsSetUsbMode, MorseFlipperPcModeText + 1U, false);
     apply(&app, MfSettingsSetInputSource, 3U, false);
     assert(saves == 14U && app.input_source == MorseFlipperInputSourcePaddle);
     apply(&app, MfSettingsSetListeningLesson, 7U, true);

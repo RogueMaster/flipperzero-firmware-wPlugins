@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+- Add SCD40/41 to the CO2 selector, saved settings, and sensor info screen.
+- Verify SCD41 periodic CO2, temperature, and humidity readings on Momentum mntm-009.
+- Check SCD4x data readiness and propagate I2C/CRC failures without partially updating readings.
+- Display SCD4x temperature/humidity when the separate climate sensor has no valid data.
+- Correct I2C wiring documentation and info screen: C1/15 is SDA, C0/16 is SCL.
+- Support mutable and const I2C SDK handles and remove machine-specific uFBT build paths.
+- Add host driver checks and an investigation/validation report.
+
 ## 1.0
 
 Initial release.

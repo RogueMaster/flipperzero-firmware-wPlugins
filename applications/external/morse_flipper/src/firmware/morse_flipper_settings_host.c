@@ -233,7 +233,7 @@ static bool mf_settings_apply(
         }
         break;
     case MfSettingsSetUsbMode:
-        if(request->value > MorseFlipperPcModeMidi) return true;
+        if(request->value > MorseFlipperPcModeText) return true;
         changed_u8 = &app->pc_mode_pref;
         break;
     case MfSettingsSetUsbPaddlePreset:

@@ -119,6 +119,13 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [GameBoy Emu / FlipGB v5.1 - author emulator core, save states, RTC and display/input improvements (By D4C1-Labs & jgilchrist)](https://github.com/D4C1-Labs/Flipper-ARF)
 - Updated: [ESP32 Gravity v1.0.1 - author scene-based companion, settings and synchronization (By chris-bc)](https://github.com/chris-bc/Flipper-Gravity)
 - Updated: [CFS Tag Writer+ v1.5 - reusable spool templates, save-type chooser and template deletion (By BaniMun)](https://github.com/BaniMun/cfs-tag-writer)
+- Updated: [TagTinker v2.1 (By i12bp8)](https://github.com/i12bp8/TagTinker) [Preserve saved target IDs (By bey0ne)](https://github.com/i12bp8/TagTinker/pull/65)
+- Updated: [Image Viewer v0.2 (By polioan)](https://github.com/polioan/flipper-zero-image-viewer) [Bounded bitmap reads and corrected rendering (By B0L1V3RS)](https://github.com/polioan/flipper-zero-image-viewer/pull/3)
+- Updated: [Sub Duplicate Finder v1.3 (By Endika)](https://github.com/Endika/flipper-sub-dup) [Verify duplicate contents and recheck before deletion (By squazaryu)](https://github.com/Endika/flipper-sub-dup/pull/22)
+- Updated: [Sub-GHz Scheduler v3.4 (By shalebridge)](https://github.com/shalebridge/flipper-subghz-scheduler) [Timed playlist files and on-device playlist management (By justinwlin)](https://github.com/shalebridge/flipper-subghz-scheduler/pull/13)
+- Updated: [Air Stats v1.0 (By thevan4)](https://github.com/thevan4/flipper-air-stats) [SCD40/41 CO2 selection, readiness checks and corrected I2C wiring (By ZeroNinx)](https://github.com/thevan4/flipper-air-stats/pull/1)
+- Updated: [Hermes v1.3 (By at0m-b0mb)](https://github.com/at0m-b0mb/Hermes-FlipperZero) [Release expansion UART ownership before baud detection (By jamisonderek)](https://github.com/at0m-b0mb/Hermes-FlipperZero/pull/1)
+- Updated: [Morse Flipper v0.3.0 (By yo3gnd)](https://github.com/yo3gnd/morse-flipper) [Type decoded Morse over USB HID (By SoTypicalNoob)](https://github.com/yo3gnd/morse-flipper/pull/4)
 
 <a name="release"></a>
 
@@ -724,7 +731,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [ID Card v3.0 (By evillero)](https://github.com/evillero/ID_card_v2)
 - [IFTTT Button (By Ferrazzi)](https://github.com/Ferrazzi/FlipperZero_IFTTT_Virtual_Button) `Req: ESP8266 w/ IFTTT FW Flashed`
 - [Image Scroller v0.1 (By fgreil)](https://github.com/fgreil/mitzi-scroller)
-- [Image Viewer v0.1 (By polioan)](https://github.com/polioan/flipper-zero-image-viewer)
+- [Image Viewer v0.2 (By polioan)](https://github.com/polioan/flipper-zero-image-viewer)
 - [INA Meter v0.8 (By cepetr)](https://github.com/cepetr/flipper-tina)
 - [InfraFi v2.0 (By amd989)](https://github.com/amd989/InfraFi)
 - [Infrared Playback v0.2 (By kdiller713)](https://github.com/kdiller713/public-FlipperApps)

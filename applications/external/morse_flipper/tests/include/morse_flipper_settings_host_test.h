@@ -99,6 +99,7 @@ enum {
     MorseFlipperPcModeKeyboard = 1,
     MorseFlipperPcModeMouse = 2,
     MorseFlipperPcModeMidi = 3,
+    MorseFlipperPcModeText = 4,
     MorseFlipperTxgDifficultyCount = 3,
     MorseFlipperSceneHome = 13,
     MorseFlipperSceneAudioCfg = 14,

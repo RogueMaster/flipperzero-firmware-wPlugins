@@ -287,7 +287,7 @@ static void morse_flipper_config_apply(MorseFlipperApp* app, const MorseFlipperC
 
     if(config->trainer_custom_set_idx <= MORSE_TRAINER_CUSTOM_SET_CAP)
         app->listening_settings.custom_set_idx = config->trainer_custom_set_idx;
-    if(config->usb_mode <= MorseFlipperPcModeMidi) app->pc_mode_pref = config->usb_mode;
+    if(config->usb_mode <= MorseFlipperPcModeText) app->pc_mode_pref = config->usb_mode;
     if(config->usb_paddle_preset < morse_pc_paddle_preset_count())
         app->pc_paddle_preset = config->usb_paddle_preset;
     if(config->usb_straight_preset < morse_pc_straight_preset_count())

@@ -32,9 +32,11 @@ static void draw_callback(Canvas* canvas, void* context) {
 
     /* Interface-specific info — mirrors unitemp _draw_carousel_info */
     canvas_set_font(canvas, FontSecondary);
+    const char* type_name = info_sensor->type->altname ?
+                                info_sensor->type->altname : info_sensor->type->typename;
 
     if(info_sensor->type->interface == &I2C) {
-        canvas_draw_str(canvas, 36, 24, info_sensor->type->typename);
+        canvas_draw_str(canvas, 36, 24, type_name);
 
         canvas_set_font(canvas, FontPrimary);
         canvas_draw_str(canvas, 0, 36, "I2C addr:");
@@ -48,11 +50,11 @@ static void draw_callback(Canvas* canvas, void* context) {
             "0x%02X",
             ((I2CSensor*)info_sensor->instance)->currentI2CAdr >> 1);
         canvas_draw_str(canvas, 60, 36, app->buff);
-        canvas_draw_str(canvas, 36, 47, "C1 (pin 15) -> SCL");
-        canvas_draw_str(canvas, 36, 58, "C0 (pin 16) -> SDA");
+        canvas_draw_str(canvas, 36, 47, "C0 (pin 16) -> SCL");
+        canvas_draw_str(canvas, 36, 58, "C1 (pin 15) -> SDA");
 
     } else if(info_sensor->type->interface == &SINGLE_WIRE) {
-        canvas_draw_str(canvas, 36, 24, info_sensor->type->typename);
+        canvas_draw_str(canvas, 36, 24, type_name);
 
         canvas_set_font(canvas, FontPrimary);
         canvas_draw_str(canvas, 0, 36, "GPIO:");

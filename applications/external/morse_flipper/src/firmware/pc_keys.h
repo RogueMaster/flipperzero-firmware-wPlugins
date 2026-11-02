@@ -48,6 +48,14 @@ const char* morse_pc_key_name(uint8_t key);
 
 uint8_t morse_pc_straight_preset_key(uint8_t idx);
 uint8_t morse_pc_paddle_preset_key(uint8_t idx, uint8_t note, bool swapped);
+
+/*
+ * Map a decoded ASCII character to a USB HID keyboard usage id (US layout).
+ * Returns 0 when the character cannot be typed (decoder tokens, control
+ * markers, unsupported punctuation). When non-NULL, *needs_shift reports
+ * whether the Left Shift modifier must be held to produce the character.
+ */
+uint8_t morse_pc_hid_usage_for_char(char c, bool* needs_shift);
 static inline uint8_t morse_pc_keyboard_key_for_note(
     uint8_t paddle_preset,
     uint8_t straight_preset,

@@ -85,6 +85,7 @@ SchedulerApp* scheduler_app_alloc(void) {
     app->tx_file_path = furi_string_alloc();
 
     app->save_dir = furi_string_alloc();
+    app->managed_playlist_path = furi_string_alloc();
 
     app->gui = furi_record_open(RECORD_GUI);
     app->dialogs = furi_record_open(RECORD_DIALOGS);
@@ -194,6 +195,11 @@ void scheduler_app_free(SchedulerApp* app) {
 
     scheduler_free(app->scheduler);
 
+    for(uint8_t i = 0; i < app->playlist_count; i++)
+        furi_string_free(app->playlist_items[i]);
+    for(uint8_t i = 0; i < app->managed_playlist_choice_count; i++)
+        furi_string_free(app->managed_playlist_choices[i]);
+    furi_string_free(app->managed_playlist_path);
     furi_string_free(app->save_dir);
     furi_string_free(app->tx_file_path);
 

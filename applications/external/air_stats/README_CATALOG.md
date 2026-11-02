@@ -9,6 +9,7 @@ CO2 + climate monitor for Flipper Zero. Reads CO2 (MH-Z19B/C) and temperature/hu
 | MH-Z19B | PWM / UART | CO2 |
 | MH-Z19C | PWM / UART | CO2 |
 | BME280 | I2C | Temperature, humidity, pressure |
+| SCD41 | I2C | CO2, temperature, humidity (SCD40/41 shared driver, periodic mode) |
 
 ## Supported (not tested)
 
@@ -35,7 +36,7 @@ Inherited from unitemp. Should work, report issues if not.
 | MAX31855 | SPI | Temperature (thermocouple) |
 | Dallas DS18x2x | 1-Wire | Temperature |
 | SCD30 | I2C | CO2, temperature, humidity |
-| SCD40 | I2C | CO2, temperature, humidity |
+| SCD40 | I2C | CO2, temperature, humidity (SCD40/41 shared driver) |
 
 # Wiring
 
@@ -60,12 +61,25 @@ Inherited from unitemp. Should work, report issues if not.
 
 | Flipper | Sensor |
 |---------|--------|
-| C1 (pin 15) | SCL |
-| C0 (pin 16) | SDA |
+| C1 (pin 15) | SDA |
+| C0 (pin 16) | SCL |
 | 3.3V (pin 9) | VCC |
 | GND (pin 8) | GND |
 
 PWM CO2 + I2C climate work together. UART CO2 and I2C share pins 15/16, so can not run at the same time. UART mode disables I2C automatically.
+
+## SCD40 / SCD41 (I2C, addr 0x62)
+
+| Flipper | Sensor |
+|---------|--------|
+| C1 (pin 15) | SDA |
+| C0 (pin 16) | SCL |
+| 3.3V (pin 9) | VCC / VIN (for a 3.3 V compatible breakout) |
+| GND (pin 8) | GND |
+
+Select **Menu → CO2 Sensor → Edit → CO2 Type → SCD40/41**, then press Back
+to apply. Periodic readings update about every 5 seconds. SCD41 has been
+tested on Momentum mntm-009 (API 79.2); SCD40 hardware testing is pending.
 
 # Settings
 

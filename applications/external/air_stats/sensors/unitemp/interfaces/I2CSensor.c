@@ -19,7 +19,7 @@
 
 static uint8_t sensors_count = 0;
 
-void unitemp_i2c_acquire(const FuriHalI2cBusHandle* handle) {
+void unitemp_i2c_acquire(UnitempI2cBusHandle handle) {
     furi_hal_i2c_acquire(handle);
     LL_GPIO_SetPinPull(gpio_ext_pc1.port, gpio_ext_pc1.pin, LL_GPIO_PULL_UP);
     LL_GPIO_SetPinPull(gpio_ext_pc0.port, gpio_ext_pc0.pin, LL_GPIO_PULL_UP);
@@ -90,11 +90,12 @@ bool unitemp_I2C_sensor_alloc(Sensor* sensor, char* args) {
         return false;
     }
     instance->i2c = &furi_hal_i2c_handle_external;
+    instance->sensorInstance = NULL;
     sensor->instance = instance;
 
     //Specifying the functions of initialization, deinitialization and data update, as well as the address on the I2C bus
     status = sensor->type->allocator(sensor, args);
-    int i2c_addr;
+    int i2c_addr = instance->minI2CAdr;
     sscanf(args, "%X", &i2c_addr);
 
     //Setting the I2C bus address
@@ -124,7 +125,7 @@ bool unitemp_I2C_sensor_free(Sensor* sensor) {
 }
 
 UnitempStatus unitemp_I2C_sensor_update(Sensor* sensor) {
-    if(sensor->status != UT_SENSORSTATUS_OK) {
+    if(sensor->status != UT_SENSORSTATUS_OK && sensor->status != UT_SENSORSTATUS_POLLING) {
         sensor->type->initializer(sensor);
     }
     return sensor->type->updater(sensor);

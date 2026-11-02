@@ -35,6 +35,7 @@ const SensorTypeWithCalibration SCD40 = {
     .super =
         {
             .typename = "SCD40",
+            .altname = "SCD40/41",
             .interface = &I2C,
             .datatype = UT_DATA_TYPE_TEMP_HUM_CO2 | UT_CALIBRATION,
             .pollingInterval = 1000,
@@ -51,6 +52,7 @@ const SensorTypeWithCalibration SCD40 = {
 #define COMMAND_START_PERIODIC_MEASUREMENT 0X21B1
 #define COMMAND_READ_MEASUREMENT           0XEC05
 #define COMMAND_STOP_PERIODIC_MEASUREMENT  0X3F86
+#define COMMAND_GET_DATA_READY_STATUS     0XE4B8
 
 #define COMMAND_PERSIST_SETTINGS      0X3615
 #define COMMAND_GET_SERIAL_NUMBER     0X3682
@@ -80,6 +82,7 @@ static bool setTemperatureOffset(Sensor* sensor, float tempOffset) __attribute__
 
 static bool beginMeasuring(Sensor* sensor) __attribute__((unused));
 static bool stopMeasurement(Sensor* sensor) __attribute__((unused));
+static bool getSettingValue(Sensor* sensor, uint16_t registerAddress, uint16_t* val);
 
 bool unitemp_SCD40_alloc(Sensor* sensor, char* args) {
     UNUSED(args);
@@ -97,7 +100,13 @@ bool unitemp_SCD40_free(Sensor* sensor) {
 }
 
 bool unitemp_SCD40_init(Sensor* sensor) {
-    return beginMeasuring(sensor);
+    // Recover a sensor left measuring after an interrupted app session.
+    if(!stopMeasurement(sensor)) return false;
+    furi_delay_ms(500);
+    if(!beginMeasuring(sensor)) return false;
+    sensor->status = UT_SENSORSTATUS_POLLING;
+    sensor->lastPollingTime = furi_get_tick();
+    return true;
 }
 
 bool unitemp_SCD40_deinit(Sensor* sensor) {
@@ -105,8 +114,12 @@ bool unitemp_SCD40_deinit(Sensor* sensor) {
 }
 
 UnitempStatus unitemp_SCD40_update(Sensor* sensor) {
-    readMeasurement(sensor);
-    return UT_SENSORSTATUS_OK;
+    uint16_t ready;
+    if(!getSettingValue(sensor, COMMAND_GET_DATA_READY_STATUS, &ready))
+        return UT_SENSORSTATUS_ERROR;
+    // SCD40 and SCD41 produce one sample every 5 seconds in periodic mode.
+    if((ready & 0x07FF) == 0) return UT_SENSORSTATUS_POLLING;
+    return readMeasurement(sensor) ? UT_SENSORSTATUS_OK : UT_SENSORSTATUS_ERROR;
 }
 
 #define CRC8_POLYNOMIAL 0x31
@@ -190,8 +203,7 @@ static bool getSettingValue(Sensor* sensor, uint16_t registerAddress, uint16_t* 
     return loadWord(bytes, val);
 }
 
-// Get 18 bytes from SCD30
-// Updates global variables with floats
+// Read the three CRC-protected words shared by SCD40 and SCD41.
 // Returns true if success
 static bool readMeasurement(Sensor* sensor) {
     if(!sendCommand(sensor, COMMAND_READ_MEASUREMENT)) {
@@ -210,33 +222,19 @@ static bool readMeasurement(Sensor* sensor) {
         return false;
     }
 
-    uint16_t tmpValue;
-
-    bool error = false;
-    if(loadWord(bytes, &tmpValue)) {
-        sensor->co2 = tmpValue;
-    } else {
-        FURI_LOG_E(APP_NAME, "Error while parsing CO2");
-        error = true;
+    uint16_t co2, temp, hum;
+    if(!loadWord(bytes, &co2) || !loadWord(bytes + 3, &temp) ||
+       !loadWord(bytes + 6, &hum)) {
+        FURI_LOG_E(APP_NAME, "SCD4x measurement CRC error");
+        return false;
     }
+    if(co2 == 0) return false;
 
-    bytes += 3;
-    if(loadWord(bytes, &tmpValue)) {
-        sensor->temp = (float)tmpValue * 175.0f / 65535.0f - 45.0f;
-    } else {
-        FURI_LOG_E(APP_NAME, "Error while parsing temp");
-        error = true;
-    }
-
-    bytes += 3;
-    if(loadWord(bytes, &tmpValue)) {
-        sensor->hum = (float)tmpValue * 100.0f / 65535.0f;
-    } else {
-        FURI_LOG_E(APP_NAME, "Error while parsing humidity");
-        error = true;
-    }
-
-    return !error;
+    sensor->co2 = co2;
+    sensor->temp = (float)temp * 175.0f / 65535.0f - 45.0f;
+    sensor->hum = (float)hum * 100.0f / 65535.0f;
+    sensor->last_valid_tick = furi_get_tick();
+    return true;
 }
 
 static void reset(Sensor* sensor) {

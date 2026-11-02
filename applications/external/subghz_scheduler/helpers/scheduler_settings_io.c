@@ -269,6 +269,7 @@ bool scheduler_settings_load_from_path(SchedulerApp* app, const char* full_path)
 
             if((FileTxType)file_type == SchedulerFileTypeSingle) {
                 scheduler_set_file(app->scheduler, furi_string_get_cstr(sched_file), 0);
+                scheduler_set_embedded_timing(app->scheduler, false);
             } else {
                 // If list_count missing, fallback to count 1
                 if(list_count == 0) {
@@ -283,6 +284,12 @@ bool scheduler_settings_load_from_path(SchedulerApp* app, const char* full_path)
                 }
                 scheduler_set_file(
                     app->scheduler, furi_string_get_cstr(sched_file), (int8_t)actual_count);
+                SchedulerPlaylistTiming playlist_timing;
+                scheduler_set_embedded_timing(
+                    app->scheduler,
+                    scheduler_playlist_read_timing(
+                        storage, furi_string_get_cstr(sched_file), &playlist_timing) &&
+                        playlist_timing.has_timing);
             }
 
             scheduler_set_step_mode(app->scheduler, SchedulerStepModeAll);

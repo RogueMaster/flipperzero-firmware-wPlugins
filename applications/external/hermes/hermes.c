@@ -1,5 +1,6 @@
 #include "hermes_i.h"
 #include <string.h>
+#include <expansion/expansion.h>
 
 /* ---------------------------------------------------------- feedback ------ */
 
@@ -235,9 +236,13 @@ static void hermes_app_free(HermesApp* app) {
 
 int32_t hermes_app(void* p) {
     UNUSED(p);
+    Expansion* expansion = furi_record_open(RECORD_EXPANSION);
+    expansion_disable(expansion);
     HermesApp* app = hermes_app_alloc();
     scene_manager_next_scene(app->scene_manager, HermesSceneStart);
     view_dispatcher_run(app->view_dispatcher);
     hermes_app_free(app);
+    expansion_enable(expansion);
+    furi_record_close(RECORD_EXPANSION);
     return 0;
 }

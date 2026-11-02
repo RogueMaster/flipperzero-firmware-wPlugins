@@ -35,7 +35,7 @@ static bool is_co2_frozen(void) {
     for(uint8_t i = 0; i < app->sensors_count; i++) {
         Sensor* s = app->sensors[i];
         if(!s || s->status == UT_SENSORSTATUS_INACTIVE) continue;
-        if((s->type->datatype & UT_CO2) && s->co2 > 0.0f && s->last_valid_tick > 0 &&
+        if(s->type == &MHZ19C && s->co2 > 0.0f && s->last_valid_tick > 0 &&
            (furi_get_tick() - s->last_valid_tick) > 5000) {
             return true;
         }
@@ -74,8 +74,14 @@ static void draw_callback(Canvas* canvas, void* context) {
         if(!(s->type->datatype & UT_CO2) && !clim_sensor) clim_sensor = s;
     }
 
+    if((!clim_sensor || clim_sensor->status != UT_SENSORSTATUS_OK) && co2_sensor &&
+       co2_sensor->type == &SCD40.super) {
+        clim_sensor = co2_sensor;
+    }
     bool co2_valid = co2_sensor && co2_sensor->co2 > 0.0f;
-    bool clim_ok = clim_sensor && clim_sensor->status == UT_SENSORSTATUS_OK;
+    bool clim_ok = clim_sensor &&
+                   (clim_sensor->status == UT_SENSORSTATUS_OK ||
+                    (clim_sensor->status == UT_SENSORSTATUS_POLLING && clim_sensor->co2 > 0.0f));
     bool has_th = clim_ok && (clim_sensor->type->datatype & (UT_TEMPERATURE | UT_HUMIDITY));
     bool has_press = clim_ok && (clim_sensor->type->datatype & UT_PRESSURE);
 
@@ -108,7 +114,7 @@ static void draw_callback(Canvas* canvas, void* context) {
         canvas_draw_str_aligned(canvas, 54, y + CO2_NUM_H, AlignCenter, AlignBottom, buf);
 
         /* Freeze indicator — left edge */
-        bool co2_frozen = co2_sensor->last_valid_tick > 0 &&
+        bool co2_frozen = co2_sensor->type == &MHZ19C && co2_sensor->last_valid_tick > 0 &&
                           (furi_get_tick() - co2_sensor->last_valid_tick) > 5000;
         if(co2_frozen) {
             canvas_set_font(canvas, FontSecondary);

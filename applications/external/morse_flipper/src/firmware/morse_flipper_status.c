@@ -220,6 +220,8 @@ const char* morse_flipper_run_usb_name(const MorseFlipperApp* app) {
         return "Kbd";
     case MorseFlipperPcModeMouse:
         return "Mouse";
+    case MorseFlipperPcModeText:
+        return "Txt";
     default:
         return "USB off";
     }

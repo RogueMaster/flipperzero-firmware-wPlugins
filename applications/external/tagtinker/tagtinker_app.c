@@ -541,9 +541,11 @@ void tagtinker_targets_load(TagTinkerApp* app) {
                     p = sep + 1;
                 }
 
-                if(tagtinker_barcode_to_plid(fields[0], app->targets[app->target_count].plid)) {
-                    TagTinkerTarget* target = &app->targets[app->target_count];
-                    memset(target, 0, sizeof(*target));
+                /* Clear the slot first: clearing it after computing the PLID
+                 * left every saved tag with PLID 00 00 00 00 (broadcast). */
+                TagTinkerTarget* target = &app->targets[app->target_count];
+                memset(target, 0, sizeof(*target));
+                if(tagtinker_barcode_to_plid(fields[0], target->plid)) {
                     strncpy(target->barcode, fields[0], TAGTINKER_BC_LEN);
                     target->barcode[TAGTINKER_BC_LEN] = '\0';
 

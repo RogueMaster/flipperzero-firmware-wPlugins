@@ -11,7 +11,7 @@ void morse_flipper_settings_usb_mode_changed(VariableItem* item) {
     MorseFlipperApp* app = variable_item_get_context(item);
     uint8_t idx = variable_item_get_current_value_index(item);
 
-    if(idx > MorseFlipperPcModeMidi) idx = MorseFlipperPcModeOff;
+    if(idx > MorseFlipperPcModeText) idx = MorseFlipperPcModeOff;
 
     variable_item_set_current_value_text(item, morse_flipper_usb_mode_names[idx]);
     app->pc_mode_pref = idx;

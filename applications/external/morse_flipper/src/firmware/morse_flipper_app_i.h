@@ -346,6 +346,7 @@ typedef enum {
     MorseFlipperPcModeKeyboard = 1,
     MorseFlipperPcModeMouse = 2,
     MorseFlipperPcModeMidi = 3,
+    MorseFlipperPcModeText = 4,
 } MorseFlipperPcMode;
 
 typedef enum {
@@ -615,7 +616,7 @@ typedef struct {
     bool left_hint;
 } MorseFlipperInputGate;
 
-extern const char* const morse_flipper_usb_mode_names[4];
+extern const char* const morse_flipper_usb_mode_names[5];
 extern const GpioPin* const morse_flipper_gpio_pins[MORSE_FLIPPER_GPIO_PIN_COUNT];
 extern const GpioPin* morse_flipper_straight_pin;
 extern const GpioPin* morse_flipper_dit_pin;
@@ -670,6 +671,7 @@ uint8_t morse_flipper_nearest_tone_idx_for_midi(uint8_t midi_note);
 bool morse_flipper_transport_connected(const MorseFlipperApp* app);
 void morse_flipper_release_mouse_buttons(void);
 void morse_flipper_send_transport_note(MorseFlipperApp* app, uint8_t note, bool active);
+void morse_flipper_type_text_to_pc(MorseFlipperApp* app, const char* text);
 void morse_flipper_resync_transport_notes(MorseFlipperApp* app);
 void morse_flipper_toggle_source(MorseFlipperApp* app);
 bool morse_flipper_training_playback_active(const MorseFlipperApp* app);

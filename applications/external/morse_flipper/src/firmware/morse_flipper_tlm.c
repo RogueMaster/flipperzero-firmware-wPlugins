@@ -37,6 +37,8 @@ static const char* mf_tlm_pc_mode(uint8_t mode) {
         return "mouse";
     case MorseFlipperPcModeMidi:
         return "midi";
+    case MorseFlipperPcModeText:
+        return "text";
     default:
         return "off";
     }

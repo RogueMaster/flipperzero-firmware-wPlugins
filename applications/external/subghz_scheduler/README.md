@@ -4,6 +4,8 @@ A Flipper Zero app to send SubGHz signals at a given interval. Individual `*.sub
 
 Playlists can also be stepped through one line at a time, with a separate wait or a time of day (HH:MM:SS) per line. See [Playlist Scheduling](#playlist-scheduling).
 
+You can build and manage playlists on the Flipper. **Build Playlist** lets you add each signal in order, insert waits, and save the result as a `.txt` playlist. **Manage Playlists** is beside it on the main menu for renaming or deleting saved playlists. See [Build a playlist on the Flipper](#build-a-playlist-on-the-flipper) and [Manage saved playlists](#manage-saved-playlists) for device screenshots. A playlist containing `time:` lines carries its waits with it; selecting that file automatically enables **Step: One** and **Schedule: Per Line**.
+
 
 <table style="border:0px">
   <tr style="border:0px">
@@ -87,6 +89,63 @@ Playlists can also be stepped through one line at a time, with a separate wait o
 
 ## Playlist Scheduling
 
+### Build a playlist on the Flipper
+
+Each signal is a separate entry, so select the same `.sub` file again whenever you want to repeat it. Add a wait before the signal it should delay. These screenshots show the steps on a Flipper Zero:
+
+| Step | Screen |
+|---|---|
+| 1. Open **Build Playlist** from the app's main menu. | <img src="screenshots/timed_playlists/main-menu.png" width="256" alt="Sub-GHz Scheduler main menu with Build Playlist"> |
+| 2. Choose **Add wait...** to start with a delay, or **Add signal...** to start immediately. | <img src="screenshots/timed_playlists/build-playlist.png" width="256" alt="Empty playlist builder with Add signal selected"> |
+| 3. For a wait, enter the number of seconds before the next signal. Add more waits later wherever needed. | <img src="screenshots/timed_playlists/add-wait.png" width="256" alt="Entering a wait in seconds"> |
+| 4. Choose **Add signal...** and select a `.sub` file. Repeat this for every transmission, including repeats of the same file. | <img src="screenshots/timed_playlists/select-signal.png" width="256" alt="File browser with Singlelight.sub selected"> |
+| 5. Review the numbered entries. **Remove last** undoes the most recent entry; **Clear list** starts over. | <img src="screenshots/timed_playlists/timed-builder.png" width="256" alt="Playlist builder showing Singlelight.sub as the second entry"> |
+| 6. Choose **Save playlist...**, enter a name, and select **save** on the keyboard. The app writes a `.txt` file to `/ext/subghz/playlist/`. | <img src="screenshots/timed_playlists/save-playlist.png" width="256" alt="Save playlist as name entry screen"> |
+
+To run it, choose **New Schedule → Select File**, select the saved `.txt` file, then **Start**. A playlist with waits shows the next signal and countdown on the run screen:
+
+<img src="screenshots/timed_playlists/timed-run.png" width="512" alt="Run screen showing the next timed playlist signal and countdown">
+
+### Timed playlist text files
+
+Create a playlist through **Build Playlist** or write a `.txt` file directly. Select `Add signal...` for every transmission, including repeats of the same signal. Select `Add wait...` to set the delay in seconds before the next signal. The builder saves these entries under `/ext/subghz/playlist/`.
+
+For example:
+
+```text
+time: 10
+sub: /ext/subghz/speed_up.sub
+sub: /ext/subghz/speed_up.sub
+sub: /ext/subghz/speed_up.sub
+time: 100
+sub: /ext/subghz/slow_down.sub
+sub: /ext/subghz/slow_down.sub
+time: 15
+sub: /ext/subghz/speed_up.sub
+```
+
+Each `time:` applies to the next `sub:` line. Consecutive `sub:` lines without another `time:` are sent back to back, with the configured TX Delay between them. A missing initial `time:` means the first signal starts immediately. After the final line, **Normal** mode repeats from the first line and applies its wait again. **1-Shot** mode runs through all lines once and stops. `time:` must contain a whole number from 0 to 359999 seconds and be followed by a `sub:` line; `.txt` playlists support up to 127 signals. Use paths that exist on your Flipper; the examples above use the stock SD card prefix `/ext`.
+
+To run a hand-written file, choose **New Schedule → Select File**, select the `.txt` file, then **Start**. The app reads waits from the file automatically. Plain `sub:` playlists still use the schedule options below.
+
+### Manage saved playlists
+
+Open **Manage Playlists** from the app's main menu to rename or delete `.txt` files saved in `/ext/subghz/playlist/`.
+
+| Step | Screen |
+|---|---|
+| 1. Select **Manage Playlists**. | <img src="screenshots/timed_playlists/manage-main-menu.png" width="256" alt="Manage Playlists selected on the main menu"> |
+| 2. Choose a saved playlist. | <img src="screenshots/timed_playlists/saved-playlists.png" width="256" alt="Saved Playlists list containing lights.txt"> |
+| 3. Choose **Rename** or **Delete**. | <img src="screenshots/timed_playlists/manage-actions.png" width="256" alt="Rename and Delete actions for lights.txt"> |
+
+**Delete** asks for confirmation before removing the playlist file:
+
+<img src="screenshots/timed_playlists/delete-confirmation.png" width="512" alt="Delete playlist confirmation for lights.txt">
+
+Renaming or deleting a playlist changes its `.txt` file, not the referenced `.sub` signals.
+
+### Schedule options
+
 When a playlist (`*.txt`) is selected, extra options appear in the schedule menu.
 
 **Step**
@@ -102,7 +161,7 @@ When a playlist (`*.txt`) is selected, extra options appear in the schedule menu
 * `Line 1`: start with line 1 and wait for its time, even if that is tomorrow (default).
 * `Nearest`: start with the line whose time comes up first, then continue in playlist order. Started at 19:00 in the example below, line 4 is sent at 23:00 and line 1 the next day at 17:30:00.
 
-Set the wait or time of each line under `Edit Lines...`. The same time editor is used: Left/Right select a block, Up/Down change it, OK saves and Back cancels. These settings are stored in the `*.sch` file; the playlist itself is not changed and still works with the stock `SubGHz Playlist` app.
+Set the wait or time of each line under `Edit Lines...`. The same time editor is used: Left/Right select a block, Up/Down change it, OK saves and Back cancels. Settings entered through `Edit Lines...` are stored in the `*.sch` file. Timed playlists built with `Add wait...` store their waits as `time:` lines in the `.txt` file. The stock `SubGHz Playlist` app can still read the `sub:` entries, but it does not apply these waits.
 
 Example: a playlist with 4 lines and Schedule `Time`:
 

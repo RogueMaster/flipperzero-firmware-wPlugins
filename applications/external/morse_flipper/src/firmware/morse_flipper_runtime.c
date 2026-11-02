@@ -105,6 +105,9 @@ static void morse_flipper_drain_tx_decoder(MorseFlipperApp* app) {
     out = morse_flipper_cw_decoder_output(&app->tx_decoder);
     if(out[0] == '\0') return;
 
+    /* Text keyboard mode types each decoded character to the PC over USB HID. */
+    morse_flipper_type_text_to_pc(app, out);
+
     if(app->screen == MorseFlipperScreenTxGroups && app->txg_wait_answer) {
         morse_flipper_tx_group_feed_text(&app->tx_group, out);
         app->txg_last_input_at = furi_get_tick();

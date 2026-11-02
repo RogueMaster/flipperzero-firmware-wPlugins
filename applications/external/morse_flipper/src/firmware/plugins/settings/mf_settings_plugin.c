@@ -345,9 +345,9 @@ static void mf_settings_refresh(MfSettingsState* state) {
         item = state->items[0];
         if(item != NULL) {
             variable_item_set_current_value_index(item, state->snapshot.usb_mode);
-            static const char* const modes[] = {"None", "Keyboard", "Mouse", "MIDI"};
+            static const char* const modes[] = {"None", "Keyboard", "Mouse", "MIDI", "Text kbd"};
             variable_item_set_current_value_text(
-                item, state->snapshot.usb_mode < 4U ? modes[state->snapshot.usb_mode] : modes[0]);
+                item, state->snapshot.usb_mode < 5U ? modes[state->snapshot.usb_mode] : modes[0]);
         }
         item = state->items[1];
         if(item != NULL) {
@@ -524,7 +524,7 @@ static void mf_settings_build_rows(MfSettingsState* state) {
         state->items[3] = variable_item_list_add(list, "PTT/TX", 2U, mf_settings_changed, state);
     } else if(state->args.entry == MfSettingsEntryUsb) {
         state->items[0] =
-            variable_item_list_add(list, "Connection", 4U, mf_settings_changed, state);
+            variable_item_list_add(list, "Connection", 5U, mf_settings_changed, state);
         state->items[1] = variable_item_list_add(
             list, "Paddle keys", morse_pc_paddle_preset_count(), mf_settings_changed, state);
         state->items[2] = variable_item_list_add(

@@ -17,10 +17,9 @@ static uint32_t _exit_callback(void* context) {
 static void _enter_callback(void* context, uint32_t index) {
     UNUSED(context);
     if(index == 0) {
-        /* CO2 Sensor: first MHZ19C or MHZ19C_UART */
+        /* CO2 Sensor: includes the shared SCD40/SCD41 driver. */
         for(uint8_t i = 0; i < app->sensors_count; i++) {
-            if(app->sensors[i] &&
-               (app->sensors[i]->type == &MHZ19C || app->sensors[i]->type == &MHZ19C_UART)) {
+            if(app->sensors[i] && (app->sensors[i]->type->datatype & UT_CO2)) {
                 view_sensor_actions_switch(app->sensors[i]);
                 return;
             }

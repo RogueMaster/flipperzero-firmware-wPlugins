@@ -19,6 +19,7 @@ bool scheduler_time_to_trigger(Scheduler* scheduler);
 int16_t scheduler_fire(Scheduler* scheduler);
 void scheduler_tx_done(Scheduler* scheduler);
 bool scheduler_one_shot_done(Scheduler* scheduler);
+void scheduler_set_embedded_timing(Scheduler* scheduler, bool enabled);
 bool scheduler_is_armed(Scheduler* scheduler);
 uint8_t scheduler_get_current_line(Scheduler* scheduler);
 

@@ -22,6 +22,10 @@
 #include <notification/notification_messages.h>
 #include <subghz_scheduler_icons.h>
 
+#define SCHEDULER_PLAYLIST_MAX_ITEMS         SCHEDULER_MAX_LINES
+#define SCHEDULER_MANAGED_PLAYLIST_MAX_ITEMS 64
+#define SCHEDULER_PLAYLIST_FOLDER            EXT_PATH("subghz/playlist")
+
 #define SCHEDULER_APP_NAME    "Sub-GHz Scheduler"
 #define SCHEDULER_APP_VERSION "3.4"
 #define SCHEDULER_APP_AUTHOR  "Patrick Edwards"
@@ -50,6 +54,11 @@ struct SchedulerApp {
     Scheduler* scheduler;
     FuriString* tx_file_path;
     FuriString* save_dir;
+    FuriString* managed_playlist_path;
+    FuriString* managed_playlist_choices[SCHEDULER_MANAGED_PLAYLIST_MAX_ITEMS];
+    uint8_t managed_playlist_choice_count;
+    FuriString* playlist_items[SCHEDULER_PLAYLIST_MAX_ITEMS];
+    uint8_t playlist_count;
     Popup* popup;
     TextInput* text_input;
     SchedulerRunView* run_view;
@@ -57,6 +66,9 @@ struct SchedulerApp {
 
     char popup_msg[80];
     char save_name_tmp[SCHEDULER_MAX_LEN_NAME];
+    char playlist_name_tmp[SCHEDULER_MAX_LEN_NAME];
+    char managed_name_tmp[SCHEDULER_MAX_LEN_NAME];
+    char playlist_wait_tmp[11];
     volatile bool is_transmitting;
     volatile bool tx_abort;
     uint32_t last_blink_countdown;

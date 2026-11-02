@@ -13,32 +13,37 @@ constexpr uint32_t timeout = 100UL;
 
 Stream* stream;
 
-uint8_t reverse_bits(uint8_t b) {
-    b = (b & 0xF0) >> 4 | (b & 0x0F) << 4;
-    b = (b & 0xCC) >> 2 | (b & 0x33) << 2;
-    b = (b & 0xAA) >> 1 | (b & 0x55) << 1;
-    return b;
-}
-
 static void draw_callback(Canvas* canvas, void* ctx) {
     UNUSED(ctx);
 
     const size_t width = canvas_width(canvas);
     const size_t height = canvas_height(canvas);
 
-    const size_t image_size = ((width * height) / 8) + 1;
+    const size_t image_size = ((width + 7) / 8) * height;
+    const size_t file_size = stream_size(stream);
+    canvas_clear(canvas);
 
-    uint8_t* image_data = new uint8_t[image_size];
-
-    stream_rewind(stream);
-    stream_read(stream, image_data, stream_size(stream));
-
-    for(size_t i = 1; i <= image_size; ++i) {
-        image_data[i] = reverse_bits(image_data[i]);
+    // Accept raw pixels and the uncompressed Flipper bitmap header used by
+    // the bundled .bm files. Never pass a raw buffer to the compressed API.
+    bool valid = (file_size == image_size || file_size == image_size + 1) &&
+                 stream_rewind(stream);
+    if(valid && file_size == image_size + 1) {
+        uint8_t header = 0;
+        valid = stream_read(stream, &header, 1) == 1 && header == 0;
+    }
+    if(!valid) {
+        canvas_set_font(canvas, FontSecondary);
+        canvas_draw_str(canvas, 2, 32, "Invalid image format");
+        return;
     }
 
-    canvas_clear(canvas);
-    canvas_draw_bitmap(canvas, 0, 0, width, height, image_data);
+    uint8_t* image_data = new uint8_t[image_size];
+    if(stream_read(stream, image_data, image_size) == image_size) {
+        canvas_draw_xbm(canvas, 0, 0, width, height, image_data);
+    } else {
+        canvas_set_font(canvas, FontSecondary);
+        canvas_draw_str(canvas, 2, 32, "Cannot read image");
+    }
 
     delete[] image_data;
 }

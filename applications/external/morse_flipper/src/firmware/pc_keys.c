@@ -142,3 +142,107 @@ uint8_t morse_pc_mouse_button(uint8_t note, bool inverted) {
 
     return btn;
 }
+
+/* USB HID keyboard usage ids (US layout). Low byte of the HID keycode. */
+#define MORSE_HID_USAGE_A      0x04U
+#define MORSE_HID_USAGE_1      0x1EU
+#define MORSE_HID_USAGE_0      0x27U
+#define MORSE_HID_USAGE_SPACE  0x2CU
+#define MORSE_HID_USAGE_MINUS  0x2DU
+#define MORSE_HID_USAGE_EQUAL  0x2EU
+#define MORSE_HID_USAGE_SEMI   0x33U
+#define MORSE_HID_USAGE_QUOTE  0x34U
+#define MORSE_HID_USAGE_COMMA  0x36U
+#define MORSE_HID_USAGE_DOT    0x37U
+#define MORSE_HID_USAGE_SLASH  0x38U
+
+uint8_t morse_pc_hid_usage_for_char(char c, bool* needs_shift) {
+    uint8_t usage = 0U;
+    bool shift = false;
+
+    if(c >= 'a' && c <= 'z') {
+        usage = (uint8_t)(MORSE_HID_USAGE_A + (uint8_t)(c - 'a'));
+    } else if(c >= 'A' && c <= 'Z') {
+        /* Morse is case-less; type lowercase (no shift) for readable text. */
+        usage = (uint8_t)(MORSE_HID_USAGE_A + (uint8_t)(c - 'A'));
+    } else if(c >= '1' && c <= '9') {
+        usage = (uint8_t)(MORSE_HID_USAGE_1 + (uint8_t)(c - '1'));
+    } else {
+        switch(c) {
+        case '0':
+            usage = MORSE_HID_USAGE_0;
+            break;
+        case ' ':
+            usage = MORSE_HID_USAGE_SPACE;
+            break;
+        case '-':
+            usage = MORSE_HID_USAGE_MINUS;
+            break;
+        case '=':
+            usage = MORSE_HID_USAGE_EQUAL;
+            break;
+        case ';':
+            usage = MORSE_HID_USAGE_SEMI;
+            break;
+        case '\'':
+            usage = MORSE_HID_USAGE_QUOTE;
+            break;
+        case ',':
+            usage = MORSE_HID_USAGE_COMMA;
+            break;
+        case '.':
+            usage = MORSE_HID_USAGE_DOT;
+            break;
+        case '/':
+            usage = MORSE_HID_USAGE_SLASH;
+            break;
+        /* Shifted symbols the CW decoder can emit. */
+        case '!':
+            usage = MORSE_HID_USAGE_1; /* shift + 1 */
+            shift = true;
+            break;
+        case '@':
+            usage = (uint8_t)(MORSE_HID_USAGE_1 + 1U); /* shift + 2 */
+            shift = true;
+            break;
+        case '&':
+            usage = (uint8_t)(MORSE_HID_USAGE_1 + 6U); /* shift + 7 */
+            shift = true;
+            break;
+        case '(':
+            usage = (uint8_t)(MORSE_HID_USAGE_1 + 8U); /* shift + 9 */
+            shift = true;
+            break;
+        case ')':
+            usage = MORSE_HID_USAGE_0; /* shift + 0 */
+            shift = true;
+            break;
+        case '+':
+            usage = MORSE_HID_USAGE_EQUAL; /* shift + = */
+            shift = true;
+            break;
+        case ':':
+            usage = MORSE_HID_USAGE_SEMI; /* shift + ; */
+            shift = true;
+            break;
+        case '"':
+            usage = MORSE_HID_USAGE_QUOTE; /* shift + ' */
+            shift = true;
+            break;
+        case '?':
+            usage = MORSE_HID_USAGE_SLASH; /* shift + / */
+            shift = true;
+            break;
+        case '_':
+            usage = MORSE_HID_USAGE_MINUS; /* shift + - */
+            shift = true;
+            break;
+        default:
+            usage = 0U;
+            break;
+        }
+    }
+
+    if(needs_shift != NULL) *needs_shift = (usage != 0U) && shift;
+    return usage;
+}

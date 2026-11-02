@@ -22,10 +22,13 @@
 
 #include <furi_hal_i2c.h>
 
+// Follow the SDK's bus handle qualifiers (older Momentum SDKs use mutable handles).
+typedef __typeof__(&furi_hal_i2c_handle_external) UnitempI2cBusHandle;
+
 //I2C sensor structure
 typedef struct I2CSensor {
     //Pointer to I2C interface
-    const FuriHalI2cBusHandle* i2c;
+    UnitempI2cBusHandle i2c;
     //Minimum device address on the I2C bus
     uint8_t minI2CAdr;
     //Maximum device address on the I2C bus
@@ -41,7 +44,7 @@ typedef struct I2CSensor {
  * 
  * @param handle Pointer to bus
  */
-void unitemp_i2c_acquire(const FuriHalI2cBusHandle* handle);
+void unitemp_i2c_acquire(UnitempI2cBusHandle handle);
 
 /**
  * @brief Check the presence of a sensor on the tire

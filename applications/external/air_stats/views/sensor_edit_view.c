@@ -19,7 +19,7 @@ static VariableItem* onewire_addr_item;
 /* CO2 */
 static VariableItem* co2_type_item;
 static VariableItem* co2_alert_edit_item;
-static const char co2_type_names[2][5] = {"PWM", "UART"};
+static const char* co2_type_names[] = {"PWM", "UART", "SCD40/41"};
 #define CO2_OFFSET_STEPS    41 /* -1000..+1000 ppm, step 50 */
 #define CO2_OFFSET_CENTER   20 /* index 20 = 0 ppm */
 #define CO2_OFFSET_STEP_PPM 50
@@ -118,7 +118,7 @@ static void _climate_hotswap(uint8_t new_idx, uint8_t old_idx);
 static void _co2_hotswap(Co2SensorType new_type) {
     for(uint8_t i = 0; i < app->sensors_count; i++) {
         Sensor* si = app->sensors[i];
-        if(si->type == &MHZ19C || si->type == &MHZ19C_UART) {
+        if(si->type->datatype & UT_CO2) {
             si->status = UT_SENSORSTATUS_INACTIVE;
         }
         /* UART uses pins 15/16 (same as I2C) — silently disable I2C climate sensors */
@@ -127,13 +127,15 @@ static void _co2_hotswap(Co2SensorType new_type) {
             si->status = UT_SENSORSTATUS_INACTIVE;
         }
     }
-    const SensorType* stype = (new_type == CO2_TYPE_UART) ? &MHZ19C_UART : &MHZ19C;
+    const SensorType* stype = new_type == CO2_TYPE_SCD40 ? &SCD40.super :
+                              new_type == CO2_TYPE_UART  ? &MHZ19C_UART :
+                                                           &MHZ19C;
     char sname[11];
-    snprintf(sname, sizeof(sname), "MH-Z19C");
+    snprintf(sname, sizeof(sname), "%s", new_type == CO2_TYPE_SCD40 ? "SCD40/41" : "MH-Z19C");
     Sensor* new_co2 = unitemp_sensor_alloc(sname, stype, "");
     if(new_co2) unitemp_sensors_add(new_co2);
 
-    if(new_type == CO2_TYPE_PWM) {
+    if(new_type != CO2_TYPE_UART) {
         /* Pins 15/16 now free — restore climate sensor */
         _climate_hotswap(app->settings.climate_type_idx, app->settings.climate_type_idx);
         return;
@@ -484,8 +486,9 @@ static uint32_t _exit_callback(void* context) {
     bool is_co2 = (editable_sensor->type->datatype & UT_CO2) != 0;
 
     if(is_co2) {
-        Co2SensorType actual_type = (editable_sensor->type == &MHZ19C_UART) ? CO2_TYPE_UART :
-                                                                              CO2_TYPE_PWM;
+        Co2SensorType actual_type = editable_sensor->type == &SCD40.super ? CO2_TYPE_SCD40 :
+                                    editable_sensor->type == &MHZ19C_UART ? CO2_TYPE_UART :
+                                                                            CO2_TYPE_PWM;
         Co2SensorType selected =
             (Co2SensorType)variable_item_get_current_value_index(co2_type_item);
         if(selected != actual_type) {
@@ -598,10 +601,11 @@ void view_sensor_edit_switch(Sensor* sensor) {
 
     if(is_co2) {
         /* CO2 Type selector — show actual running type, not settings */
-        Co2SensorType actual_co2_type = (sensor->type == &MHZ19C_UART) ? CO2_TYPE_UART :
-                                                                         CO2_TYPE_PWM;
-        co2_type_item =
-            variable_item_list_add(variable_item_list, "CO2 Type", 2, _co2_type_change, app);
+        Co2SensorType actual_co2_type = sensor->type == &SCD40.super ? CO2_TYPE_SCD40 :
+                                        sensor->type == &MHZ19C_UART ? CO2_TYPE_UART :
+                                                                       CO2_TYPE_PWM;
+        co2_type_item = variable_item_list_add(
+            variable_item_list, "CO2 Type", COUNT_OF(co2_type_names), _co2_type_change, app);
         variable_item_set_current_value_index(co2_type_item, (uint8_t)actual_co2_type);
         variable_item_set_current_value_text(co2_type_item, co2_type_names[actual_co2_type]);
         idx++;

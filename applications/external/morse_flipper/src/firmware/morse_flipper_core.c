@@ -24,6 +24,7 @@ const char* const morse_flipper_usb_mode_names[] = {
     "Keyboard",
     "Mouse",
     "MIDI",
+    "Text kbd",
 };
 
 const uint8_t morse_flipper_input_values[] = {

@@ -19,6 +19,11 @@ const char* morse_flipper_pc_state_name(const MorseFlipperApp* app) {
         return up ? "usb hid up" : "usb hid wait";
     }
 
+    if(app->pc_mode == MorseFlipperPcModeText) {
+        up = furi_hal_hid_is_connected();
+        return up ? "usb text up" : "usb text wait";
+    }
+
     if(app->pc_mode == MorseFlipperPcModeMouse) {
         up = furi_hal_hid_is_connected();
         return up ? "usb mouse up" : "usb mouse wait";
@@ -47,7 +52,8 @@ uint8_t morse_flipper_nearest_tone_idx_for_midi(uint8_t midi_note) {
 bool morse_flipper_transport_connected(const MorseFlipperApp* app) {
     if(app->pc_mode == MorseFlipperPcModeMidi) return morse_usb_midi_is_connected();
 
-    if(app->pc_mode == MorseFlipperPcModeKeyboard || app->pc_mode == MorseFlipperPcModeMouse)
+    if(app->pc_mode == MorseFlipperPcModeKeyboard || app->pc_mode == MorseFlipperPcModeMouse ||
+       app->pc_mode == MorseFlipperPcModeText)
         return furi_hal_hid_is_connected();
 
     return false;
@@ -163,7 +169,27 @@ void morse_flipper_send_transport_note(MorseFlipperApp* app, uint8_t note, bool 
         morse_flipper_send_mouse_note(app, note, active);
         break;
     default:
+        /* Text mode types decoded characters instead of raw contacts. */
         break;
+    }
+}
+
+void morse_flipper_type_text_to_pc(MorseFlipperApp* app, const char* text) {
+    if(app == NULL || text == NULL) return;
+    if(app->pc_mode != MorseFlipperPcModeText) return;
+    if(!furi_hal_hid_is_connected()) return;
+
+    for(const char* p = text; *p != '\0'; p++) {
+        bool needs_shift = false;
+        uint8_t usage = morse_pc_hid_usage_for_char(*p, &needs_shift);
+
+        /* Decoder tokens, control markers, and unsupported glyphs map to 0. */
+        if(usage == 0U) continue;
+
+        if(needs_shift) furi_hal_hid_kb_press(HID_KEYBOARD_L_SHIFT);
+        furi_hal_hid_kb_press(usage);
+        furi_hal_hid_kb_release(usage);
+        if(needs_shift) furi_hal_hid_kb_release(HID_KEYBOARD_L_SHIFT);
     }
 }
 
@@ -224,12 +250,12 @@ void morse_flipper_midi_rx_ready(void* context) {
 void morse_flipper_set_pc_mode(MorseFlipperApp* app, uint8_t mode) {
     const char* prod = "Morse Flipper Kbd";
 
-    if(mode > MorseFlipperPcModeMidi) mode = MorseFlipperPcModeOff;
+    if(mode > MorseFlipperPcModeText) mode = MorseFlipperPcModeOff;
     if(app->pc_mode == mode) return;
 
     morse_flipper_release_all_notes(app);
 
-    if(app->pc_mode == MorseFlipperPcModeKeyboard) {
+    if(app->pc_mode == MorseFlipperPcModeKeyboard || app->pc_mode == MorseFlipperPcModeText) {
         furi_hal_hid_kb_release_all();
     } else if(app->pc_mode == MorseFlipperPcModeMouse) {
         morse_flipper_release_mouse_buttons();

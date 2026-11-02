@@ -17,6 +17,7 @@ CO2 + climate monitor for Flipper Zero. Reads CO2 (MH-Z19B/C) and temperature/hu
 | MH-Z19B | PWM / UART | CO2 |
 | MH-Z19C | PWM / UART | CO2 |
 | BME280 | I2C | Temperature, humidity, pressure |
+| SCD41 | I2C | CO2, temperature, humidity (SCD40/41 shared driver, periodic mode) |
 
 ## Supported (not tested)
 
@@ -43,7 +44,7 @@ Inherited from [unitemp](https://github.com/quen0n/unitemp-flipperzero). Should 
 | MAX31855 | SPI | Temperature (thermocouple) |
 | Dallas DS18x2x | 1-Wire | Temperature |
 | SCD30 | I2C | CO2, temperature, humidity |
-| SCD40 | I2C | CO2, temperature, humidity |
+| SCD40 | I2C | CO2, temperature, humidity (SCD40/41 shared driver) |
 
 ## Based on
 
@@ -73,19 +74,57 @@ Flipper GND (pin 8)  → sensor GND (pin 5)
 ## BME280 (I2C, addr 0x76)
 
 ```
-Flipper C1  (pin 15) → sensor SCL
-Flipper C0  (pin 16) → sensor SDA
+Flipper C1  (pin 15) → sensor SDA
+Flipper C0  (pin 16) → sensor SCL
 Flipper 3.3V (pin 9) → sensor VCC
 Flipper GND (pin 8)  → sensor GND
 ```
 
 PWM CO2 + I2C climate work together. UART CO2 and I2C share pins 15/16, so can't run at the same time — UART mode disables I2C automatically.
 
+## SCD40 / SCD41 (I2C, addr 0x62)
+
+For a breakout that supports 3.3 V power and logic:
+
+```
+Flipper C1   (pin 15) → sensor SDA
+Flipper C0   (pin 16) → sensor SCL
+Flipper 3.3V  (pin 9) → sensor VCC / VIN
+Flipper GND   (pin 8) → sensor GND
+```
+
+Check the breakout's power requirements and keep SDA/SCL pull-ups at 3.3 V.
+Select **Menu → CO2 Sensor → Edit → CO2 Type → SCD40/41**, then press Back to apply.
+The existing SCD40 driver uses the periodic measurement commands shared by SCD41;
+it checks data readiness and produces a new reading about every 5 seconds.
+If the separate climate sensor has no valid data, temperature and humidity from
+the SCD4x are displayed instead. SCD41 periodic measurements were verified on
+Momentum mntm-009 (API 79.2); SCD40 hardware testing is still pending.
+
+Protocol reference: [Sensirion SCD4x datasheet](https://sensirion.com/media/documents/48C4B7FB/64C134E7/Sensirion_SCD4x_Datasheet.pdf).
+See [SCD40/41 investigation and validation](docs/scd4x-validation.md) for the wiring
+correction, implementation details, device screenshots, and reproduction steps.
+
+# Build
+
+Use uFBT with an SDK matching the firmware installed on your Flipper:
+
+```sh
+UFBT_HOME=/path/to/momentum-sdk-state FBT_TOOLCHAIN_PATH="$HOME/.ufbt" \
+  make build UFBT=/path/to/ufbt
+```
+
+The output is `dist/air_stats.fap`. Copy it to `apps/GPIO/air_stats.fap` on the
+SD card, or use `make install` with the same environment to upload and launch.
+The Momentum mntm-009 SDK builds this app for target f7, API 79.2.
+
+Run the driver checks on the host with `python3 tools/test_scd4x.py` (requires `cc`).
+
 # Settings
 
 ## CO2 sensor (Edit menu)
 
-- **CO2 Type** — PWM or UART
+- **CO2 Type** — PWM, UART, or SCD40/41 (I2C)
 - **CO2 offset** — manual correction ±1000 ppm, step 50
 - **CO2 Alert** — sound alert threshold, 800–5000 ppm
 - **Avg points** (PWM) — averaging window 1–30 readings (1 = raw, no smoothing)

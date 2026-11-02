@@ -33,12 +33,15 @@ static bool load_protocol_from_file(SchedulerApp* app) {
     if(ok) {
         const char* filestr = furi_string_get_cstr(path);
         const char* ext = strrchr(filestr, '.');
+        const bool is_playlist = ext && strcmp(ext, ".txt") == 0;
+        SchedulerPlaylistTiming timing = {0};
         int list_count = 0;
 
         // Only attempt count of TXT playlist files
-        if(ext && strcmp(ext, ".txt") == 0) {
+        if(is_playlist) {
             Storage* storage = furi_record_open(RECORD_STORAGE);
-            list_count = scheduler_playlist_count(storage, filestr);
+            const bool valid = scheduler_playlist_read_timing(storage, filestr, &timing);
+            list_count = valid ? timing.count : -1;
             furi_record_close(RECORD_STORAGE);
 
             if(list_count <= 0) {
@@ -55,6 +58,13 @@ static bool load_protocol_from_file(SchedulerApp* app) {
         if(ok) {
             furi_string_set(app->tx_file_path, path);
             scheduler_set_file(app->scheduler, filestr, (int8_t)list_count);
+            scheduler_set_embedded_timing(app->scheduler, is_playlist && timing.has_timing);
+            if(is_playlist && timing.has_timing) {
+                scheduler_set_step_mode(app->scheduler, SchedulerStepModeOne);
+                scheduler_set_schedule_type(app->scheduler, SchedulerSchedulePerLine);
+                for(uint8_t i = 0; i < timing.count; ++i)
+                    scheduler_set_line_interval(app->scheduler, i, timing.wait_seconds[i]);
+            }
         }
     }
 

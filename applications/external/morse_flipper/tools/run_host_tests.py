@@ -291,6 +291,7 @@ TESTS = (
         "pc-keyboard-routing",
         ("tests/test_pc_keyboard_routing.c", "src/firmware/pc_keys.c"),
     ),
+    CTest("pc-char-hid", ("tests/test_pc_char_hid.c", "src/firmware/pc_keys.c")),
     CTest(
         "settings-model",
         (

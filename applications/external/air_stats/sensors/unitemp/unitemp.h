@@ -55,7 +55,8 @@ typedef enum {
 
 typedef enum {
     CO2_TYPE_PWM = 0,
-    CO2_TYPE_UART = 1
+    CO2_TYPE_UART = 1,
+    CO2_TYPE_SCD40 = 2
 } Co2SensorType;
 
 typedef struct {

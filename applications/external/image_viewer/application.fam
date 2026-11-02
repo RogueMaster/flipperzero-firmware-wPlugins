@@ -10,6 +10,6 @@ App(
     fap_category="Media",
     fap_author="polioan",
     fap_weburl="https://github.com/polioan/flipper-zero-image-viewer",
-    fap_version="0.1",
+    fap_version="0.2",
     fap_description="Image viewer for flipper zero!",
 )
