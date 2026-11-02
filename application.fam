@@ -94,7 +94,7 @@ App(
     name="FlipPass",
     apptype=FlipperAppType.EXTERNAL,
     entry_point="flippass_app",
-    fap_version="3.0",
+    fap_version="3.1",
     fap_author="Arckanos",
     fap_description="KeePass-based password manager with HID writing via USB and Bluetooth.",
     fap_weburl="https://github.com/Arckanos/FlipPass",

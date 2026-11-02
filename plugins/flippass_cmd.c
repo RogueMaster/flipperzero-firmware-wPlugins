@@ -2,11 +2,15 @@
 
 #include <string.h>
 
-static unsigned char cmd_upper(unsigned char ch) {
+/* Preserve a separate allocable code section; the native loader also emits its
+ * own .fast.rel.cmd relocations. Keep the usual per-section admission margin. */
+#define FLIPPASS_CMD_SECTION __attribute__((section(".cmd")))
+
+static unsigned char FLIPPASS_CMD_SECTION cmd_upper(unsigned char ch) {
     return ch >= 'a' && ch <= 'z' ? (unsigned char)(ch - 'a' + 'A') : ch;
 }
 
-static bool cmd_equal(const char* text, size_t length, const char* expected) {
+static bool FLIPPASS_CMD_SECTION cmd_equal(const char* text, size_t length, const char* expected) {
     if(strlen(expected) != length) return false;
     for(size_t i = 0U; i < length; ++i) {
         if(cmd_upper((unsigned char)text[i]) != cmd_upper((unsigned char)expected[i]))
@@ -15,13 +19,13 @@ static bool cmd_equal(const char* text, size_t length, const char* expected) {
     return true;
 }
 
-static bool cmd_blank(char ch) {
+static bool FLIPPASS_CMD_SECTION cmd_blank(char ch) {
     return ch == ' ' || ch == '\t';
 }
 
 /* Whole-token double quotes, with only backslash and quote escapes inside.
  * NULL output validates/counts without allocating. */
-static bool
+static bool FLIPPASS_CMD_SECTION
     cmd_token(const char* text, size_t length, size_t* cursor, char* output, size_t* bytes) {
     while(*cursor < length && cmd_blank(text[*cursor]))
         ++*cursor;
@@ -60,7 +64,7 @@ typedef struct {
     bool literal_arguments;
 } FlipPassCmdLayout;
 
-static bool cmd_application(const char* text, size_t length, bool* self) {
+static bool FLIPPASS_CMD_SECTION cmd_application(const char* text, size_t length, bool* self) {
     *self = cmd_equal(text, length, "flippas") || cmd_equal(text, length, "flippass");
     if(length == 0U || length > FLIPPASS_CMD_MAX_APPLICATION_BYTES) return false;
     if(text[0] == '/') {
@@ -85,7 +89,7 @@ static bool cmd_application(const char* text, size_t length, bool* self) {
     return true;
 }
 
-static bool cmd_layout(const FlipPassCmd* command, FlipPassCmdLayout* layout) {
+static bool FLIPPASS_CMD_SECTION cmd_layout(const FlipPassCmd* command, FlipPassCmdLayout* layout) {
     size_t cursor = 0U, bytes = 0U;
     bool cli = false;
     while(cursor < command->length && cmd_blank(command->text[cursor]))
@@ -127,7 +131,7 @@ static bool cmd_layout(const FlipPassCmd* command, FlipPassCmdLayout* layout) {
     return true;
 }
 
-FlipPassCmdParseResult flippass_cmd_parse(const char* sequence, FlipPassCmd* command) {
+FlipPassCmdParseResult FLIPPASS_CMD_SECTION flippass_cmd_parse(const char* sequence, FlipPassCmd* command) {
     if(sequence == NULL || sequence[0] != '{') return FlipPassCmdNotCommand;
     size_t cursor = 1U;
     while(cmd_blank(sequence[cursor]))
@@ -147,12 +151,30 @@ FlipPassCmdParseResult flippass_cmd_parse(const char* sequence, FlipPassCmd* com
     if(separator < 33U || separator > 126U || separator == '{' || separator == '}')
         return FlipPassCmdInvalid;
     const size_t body = ++cursor;
+    unsigned nesting = 0U;
+    bool expressions = false;
     while(cursor < FLIPPASS_CMD_MAX_WRAPPER_BYTES && sequence[cursor] != '\0' &&
-          (unsigned char)sequence[cursor] != separator) {
-        const unsigned char ch = (unsigned char)sequence[cursor++];
-        if(ch < 32U || ch == 127U || ch == '{' || ch == '}') return FlipPassCmdInvalid;
+          ((unsigned char)sequence[cursor] != separator || nesting != 0U)) {
+        const unsigned char ch = (unsigned char)sequence[cursor];
+        if(ch < 32U || ch == 127U) return FlipPassCmdInvalid;
+        if(ch == '{' && cursor + 2U < FLIPPASS_CMD_MAX_WRAPPER_BYTES &&
+           (sequence[cursor + 1U] == '{' || sequence[cursor + 1U] == '}') &&
+           sequence[cursor + 2U] == '}') {
+            expressions = true;
+            cursor += 3U;
+            continue;
+        }
+        if(ch == '{') {
+            expressions = true;
+            if(++nesting > FLIPPASS_CMD_MAX_EXPANSION_DEPTH) return FlipPassCmdInvalid;
+        } else if(ch == '}') {
+            if(nesting == 0U) return FlipPassCmdInvalid;
+            --nesting;
+        }
+        ++cursor;
     }
-    if(cursor >= FLIPPASS_CMD_MAX_WRAPPER_BYTES || (unsigned char)sequence[cursor] != separator)
+    if(nesting || cursor >= FLIPPASS_CMD_MAX_WRAPPER_BYTES ||
+       (unsigned char)sequence[cursor] != separator)
         return FlipPassCmdInvalid;
     const size_t body_length = cursor - body;
     const size_t options = ++cursor;
@@ -170,11 +192,12 @@ FlipPassCmdParseResult flippass_cmd_parse(const char* sequence, FlipPassCmd* com
        !cmd_equal(sequence + options, options_length, "W=0,O=0"))
         return FlipPassCmdInvalid;
     *command = (FlipPassCmd){sequence + body, body_length, cursor + 2U};
+    if(expressions) return FlipPassCmdValid; /* Validate the expanded command before staging. */
     FlipPassCmdLayout layout;
     return cmd_layout(command, &layout) ? FlipPassCmdValid : FlipPassCmdInvalid;
 }
 
-bool flippass_cmd_decode(
+bool FLIPPASS_CMD_SECTION flippass_cmd_decode(
     const FlipPassCmd* command,
     char* scratch,
     size_t capacity,
@@ -203,25 +226,119 @@ bool flippass_cmd_decode(
             ++cursor;
         if(cursor == end) return false;
         bytes = cursor - layout.arguments_start - 1U;
-        memcpy(arguments, tail + 1U, bytes);
+        memmove(arguments, tail + 1U, bytes);
         ++cursor;
         while(cursor < end && cmd_blank(command->text[cursor]))
             ++cursor;
         if(cursor < end) {
             arguments[bytes++] = ' ';
-            memcpy(arguments + bytes, command->text + cursor, end - cursor);
+            memmove(arguments + bytes, command->text + cursor, end - cursor);
             bytes += end - cursor;
         }
         arguments[bytes] = '\0';
     } else {
-        memcpy(arguments, tail, tail_bytes);
+        memmove(arguments, tail, tail_bytes);
         arguments[tail_bytes] = '\0';
     }
     *launch = (FlipPassCmdLaunch){scratch, arguments, layout.self};
     return true;
 }
 
-bool flippass_cmd_preflight(const char* sequence) {
+typedef struct {
+    FlipPassCmdResolve resolve;
+    void* context;
+    char* output;
+    size_t capacity;
+    size_t bytes;
+} FlipPassCmdExpansion;
+
+static bool FLIPPASS_CMD_SECTION cmd_emit(FlipPassCmdExpansion* state, char ch, bool quoted_value) {
+    const unsigned char byte = (unsigned char)ch;
+    if(byte < 32U || byte == 127U) return false;
+    const bool escape = quoted_value && (ch == '"' || ch == '\\');
+    const size_t count = escape ? 2U : 1U;
+    if(state->bytes > FLIPPASS_CMD_MAX_WRAPPER_BYTES - count) return false;
+    if(state->output != NULL) {
+        if(state->bytes + count >= state->capacity) return false;
+        if(escape) state->output[state->bytes++] = '\\';
+        state->output[state->bytes] = ch;
+    } else if(escape) {
+        ++state->bytes;
+    }
+    ++state->bytes;
+    return true;
+}
+
+static bool FLIPPASS_CMD_SECTION cmd_expand_text(
+    FlipPassCmdExpansion* state,
+    const char* text,
+    size_t length,
+    unsigned depth,
+    bool field_value,
+    bool quoted) {
+    if(depth >= FLIPPASS_CMD_MAX_EXPANSION_DEPTH) return false;
+    for(size_t i = 0U; i < length;) {
+        const char ch = text[i];
+        if(ch == '{') {
+            if(i + 2U < length && (text[i + 1U] == '{' || text[i + 1U] == '}') &&
+               text[i + 2U] == '}') {
+                if(!cmd_emit(state, text[i + 1U], field_value && quoted)) return false;
+                i += 3U;
+                continue;
+            }
+            const char* end = memchr(text + i + 1U, '}', length - i - 1U);
+            if(end != NULL) {
+                const char* value = NULL;
+                size_t value_size = 0U;
+                if(state->resolve(
+                       state->context,
+                       text + i + 1U,
+                       (size_t)(end - text - i - 1U),
+                       &value,
+                       &value_size)) {
+                    if(value == NULL ||
+                       !cmd_expand_text(state, value, value_size, depth + 1U, true, quoted))
+                        return false;
+                    i = (size_t)(end - text) + 1U;
+                    continue;
+                }
+            }
+            if(!field_value) return false;
+        }
+        if(!field_value && quoted && ch == '\\' && i + 1U < length &&
+           (text[i + 1U] == '\\' || text[i + 1U] == '"')) {
+            if(!cmd_emit(state, ch, false) || !cmd_emit(state, text[i + 1U], false)) return false;
+            i += 2U;
+            continue;
+        }
+        if(!field_value && ch == '"') quoted = !quoted;
+        if(!cmd_emit(state, ch, field_value && quoted)) return false;
+        ++i;
+    }
+    return field_value || !quoted;
+}
+
+bool FLIPPASS_CMD_SECTION flippass_cmd_expand(
+    const FlipPassCmd* command,
+    FlipPassCmdResolve resolve,
+    void* context,
+    char* output,
+    size_t capacity,
+    size_t* bytes) {
+    if(bytes == NULL) return false;
+    *bytes = 0U;
+    if(command == NULL || resolve == NULL || command->length > FLIPPASS_CMD_MAX_WRAPPER_BYTES ||
+       (output != NULL && capacity == 0U))
+        return false;
+    FlipPassCmdExpansion state = {
+        .resolve = resolve, .context = context, .output = output, .capacity = capacity};
+    const bool ok = cmd_expand_text(&state, command->text, command->length, 0U, false, false);
+    if(output != NULL) output[ok ? state.bytes : 0U] = '\0';
+    if(ok) *bytes = state.bytes;
+    return ok;
+}
+
+bool FLIPPASS_CMD_SECTION flippass_cmd_preflight(const char* sequence) {
     if(sequence == NULL) return false;
     unsigned commands = 0U;
     bool otp = false;

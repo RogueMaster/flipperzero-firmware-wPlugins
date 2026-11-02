@@ -30,6 +30,8 @@ static void launch_error(App* app, const char* message, uint32_t return_scene) {
     scene_manager_next_scene(app->scene_manager, FlipPassScene_Status);
 }
 
+#include "flippass_launch_path.h"
+
 static bool launch_start(App* app, const char* arguments) {
     size_t length = 0U;
     while(length <= FLIPPASS_LAUNCH_ARGS_MAX_BYTES && arguments[length] != '\0')
@@ -48,8 +50,11 @@ static bool launch_start(App* app, const char* arguments) {
        storage_file_exists(app->module_loader.storage, arguments)) {
         scene_manager_next_scene(app->scene_manager, FlipPassScene_FileBrowser);
         app->phantom_open = true;
-        furi_string_set_str(app->file_path, arguments);
-        if(flippass_file_browser_check_database(app, arguments))
+        if(!launch_resolve_database_path(app->module_loader.storage, arguments, app->file_path)) {
+            launch_error(app, "Cannot resolve the database filename.", FlipPassScene_FileBrowser);
+            return true;
+        }
+        if(flippass_file_browser_check_database(app, furi_string_get_cstr(app->file_path)))
             scene_manager_next_scene(app->scene_manager, FlipPassScene_PasswordEntry);
         return true;
     }
@@ -74,7 +79,11 @@ static bool launch_start(App* app, const char* arguments) {
         goto finish;
     }
     app->phantom_open = true;
-    furi_string_set_str(app->file_path, parsed.database_path);
+    if(!launch_resolve_database_path(app->module_loader.storage, parsed.database_path, app->file_path)) {
+        launch_error(app, "Cannot resolve the database filename.", FlipPassScene_FileBrowser);
+        goto finish;
+    }
+    parsed.database_path = furi_string_get_cstr(app->file_path);
     if(!flippass_file_browser_check_database(app, parsed.database_path)) goto finish;
     if(parsed.password == NULL) {
         scene_manager_next_scene(app->scene_manager, FlipPassScene_PasswordEntry);

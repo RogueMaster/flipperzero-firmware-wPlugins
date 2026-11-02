@@ -1,3 +1,8 @@
+v3.1:
+
+- Parametric execution now uses the "KDF Cache" whenever possible.
+- The interpretation of nested tags in Auto-Type
+
 v3.0:
 
 - Several memory usage optimizations. (Some of which were thanks to chaffed)

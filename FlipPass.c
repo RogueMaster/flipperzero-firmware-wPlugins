@@ -967,7 +967,9 @@ bool flippass_derivation_cache_try_read(
 
     memzero(out_transformed_key, 32U);
     app->derivation_cache_used = false;
-    if(app->phantom_open || !app->derivation_cache_ready) {
+    /* Phantom opens may read an authenticated matching cache, but never write
+     * or invalidate it. Path, KDF parameters and password MAC still bind it. */
+    if(!app->derivation_cache_ready) {
         return false;
     }
 
@@ -1031,6 +1033,11 @@ bool flippass_derivation_cache_store_from_session(App* app, const char* password
     bool ok = false;
 
     furi_assert(app);
+
+    if(app->phantom_open) {
+        app->derivation_cache_save_requested = false;
+        return false;
+    }
 
     memzero(transformed_key, sizeof(transformed_key));
     memzero(kdf_salt, sizeof(kdf_salt));
