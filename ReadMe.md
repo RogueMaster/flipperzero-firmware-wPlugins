@@ -13,7 +13,7 @@ Apps contains changes needed to compile them on latest firmware, fixes has been 
 
 The Flipper and its community wouldn't be as rich as it is without your contributions and support. Thank you for all you have done.
 
-### Apps checked & updated at `1 Nov 14:46 GMT +3`
+### Apps checked & updated at `2 Nov 15:51 GMT +3`
 
 
 # Default pack
@@ -261,7 +261,7 @@ The Flipper and its community wouldn't be as rich as it is without your contribu
 | Video Game Module Console | ![GPIO Badge] | [by jblanked](https://github.com/jblanked/Video-Game-Module-Console) | Flash VGM with this firmware [Link](https://github.com/jblanked/Flipper-GameBoy) | [![Author Badge]](https://lab.flipper.net/apps/video_game_module_console) |
 | W5500 LAN Tester | ![GPIO Badge] | [by dok2d](https://github.com/dok2d/fz-W5500-lan-analyse) |  | [![Author Badge]](https://lab.flipper.net/apps/lan_tester) |
 | 24Cxx Programmer | ![GPIO Badge] | [by kamylwnb](https://github.com/kamylwnb/24cxxprog) |  | [![Author Badge]](https://lab.flipper.net/apps/24cxxprog) |
-| SSD1306 Test | ![GPIO Badge] | [by martinbogo](https://github.com/martinbogo/ssd1306_test) |  | ![None Badge] |
+| SSD1306 Test | ![GPIO Badge] | [by martinbogo](https://github.com/martinbogo/ssd1306_test) |  | [![Author Badge]](https://lab.flipper.net/apps/ssd1306_test) |
 | GPS Track | ![GPIO Badge] | [by xumbax](https://github.com/xumbax/GPS-Track) |  | ![None Badge] |
 | BME280 Vario | ![GPIO Badge] | [by xumbax](https://github.com/xumbax/flipper-vario) |  | ![None Badge] |
 | ESP32 Hotspot Arcade | ![GPIO Badge] | [by tarikbc](https://github.com/tarikbc/hotspot-arcade) |  | [![Author Badge]](https://lab.flipper.net/apps/hotspot_arcade) |
@@ -271,6 +271,7 @@ The Flipper and its community wouldn't be as rich as it is without your contribu
 | UHF Expansion | ![GPIO Badge] | [by MTools Tec](https://github.com/mtoolstec/fz-uhf-expansion) | UHF RFID inventory, tag memory read/write, EPC filtering and saved-tag library for the MTools UHF expansion board | [![Author Badge]](https://lab.flipper.net/apps/uhf_expansion) |
 | Telink SWS | ![GPIO Badge] | [by ngxson](https://github.com/ngxson/flipper-telink) | SWire (SWS) master for Telink TLSR chips - probe, read RAM/registers and dump SPI flash over bitbang, driven from the `sws` CLI command | [![Author Badge]](https://lab.flipper.net/apps/telink_sws) |
 | Pwnpal | ![GPIO Badge] | [by mrq1911](https://github.com/mrq1911/pwnpal) | A full pwnagotchi on Flipper + ESP32 - befriends other pwnagotchis over pwngrid, captures WPA/WPA2 handshakes & PMKIDs, de-cloaks hidden SSIDs and GPS wardrives | ![None Badge] |
+| SH1106 Test | ![GPIO Badge] | [by gbhobbytech](https://github.com/gbhobbytech/ssd1306_test/tree/sh1106-development) | SH1106 128x64 I2C OLED diagnostics - clock/status board, test patterns, I2C scanner, FPS benchmark and software scrolling (a port of SSD1306 Test by martin bogomolni) | [![Author Badge]](https://lab.flipper.net/apps/gbhobbytech_sh1106_test) |
 | IR Remote | ![IR Badge] | [by Hong5489](https://github.com/Hong5489/ir_remote) | improvements [by friebel](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/pull/535) - Hold Option, RAW support [by d4ve10](https://github.com/d4ve10/ir_remote/tree/infrared_hold_option) | ![None Badge] |
 | IR Intervalometer | ![IR Badge] | [by Nitepone](https://github.com/Nitepone/flipper-intervalometer) |  | [![UFW Badge]](https://lab.flipper.net/apps/sony_intervalometer) |
 | IR Xbox Controller | ![IR Badge] | [by gebeto](https://github.com/gebeto/flipper-xbox-controller) |  | [![Author Badge]](https://lab.flipper.net/apps/xbox_controller) |
@@ -350,7 +351,7 @@ The Flipper and its community wouldn't be as rich as it is without your contribu
 | Xiaomi Filter Reset | ![NFC Badge] | [by khmm12](https://github.com/khmm12/flipper-xiaomi-filter-reset) |  | [![Author Badge]](https://lab.flipper.net/apps/xiaomi_filter_reset) |
 | NFC Canary | ![NFC Badge] | [by antitree](https://github.com/antitree/nfc_canary) | Passive NFC skim detector - alarms when a reader interrogates the device | ![None Badge] |
 | Specter | ![NFC Badge] | [by at0m-b0mb](https://github.com/at0m-b0mb/Specter-FlipperZero) |  | [![Author Badge]](https://lab.flipper.net/apps/specter) |
-| CFS Tag Writer+ | ![NFC Badge] | [by BaniMun](https://github.com/BaniMun/cfs-tag-writer) | Read, write, clone and erase CFS filament spool NFC tags - brand/material/colour/weight picker and a saved-tag library | [![Author Badge]](https://lab.flipper.net/apps/cfs_tag_writer_plus) |
+| CFS Tag Writer+ | ![NFC Badge] | [by BaniMun](https://github.com/BaniMun/cfs-tag-writer) | Read, write, clone and erase CFS filament spool NFC tags - brand/material/colour/weight picker, saved-tag library and reusable spool templates | [![Author Badge]](https://lab.flipper.net/apps/cfs_tag_writer_plus) |
 | EM4100 universal keys generator (for RFID Fuzzer) | ![RFID Badge] | [by Milk-Cool](https://github.com/Milk-Cool/fz-em4100-generator) |  | [![Author Badge]](https://lab.flipper.net/apps/key_generator) |
 | (Q)M100 UHF RFID | ![RFID Badge] | [by frux-c](https://github.com/frux-c/uhf_rfid) | WIP -> (+Added icon by @xMasterX) | [![UFW Badge]](https://lab.flipper.net/apps/uhf_rfid) |
 | T5577 MultiWriter | ![RFID Badge] | [by Leptopt1los](https://github.com/Leptopt1los/t5577_multiwriter) | Verified writes, tag check, reader test & password [by mishamyte](https://github.com/mishamyte) | [![UFW Badge]](https://lab.flipper.net/apps/t5577_multiwriter) |

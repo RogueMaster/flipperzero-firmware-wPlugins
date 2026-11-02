@@ -85,7 +85,11 @@ bool cfs_scene_write_progress_on_event(void* context, SceneManagerEvent event) {
         cfs_progress_prompt(app);
         return true;
     case CfsCustomEventScreenDone:
-        scene_manager_search_and_switch_to_previous_scene(app->scene_manager, CfsSceneStart);
+        // From a template: back to the template list, ready for the next tag.
+        if(!scene_manager_search_and_switch_to_previous_scene(
+               app->scene_manager, CfsSceneTemplates)) {
+            scene_manager_search_and_switch_to_previous_scene(app->scene_manager, CfsSceneStart);
+        }
         return true;
     case CfsCustomEventWorkerNotPresent:
         cfs_ui_finish_op(app, false, "Write failed", "No tag found.\nHold it flat on\nthe back.");

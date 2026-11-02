@@ -28,8 +28,7 @@ bool cfs_scene_write_confirm_on_event(void* context, SceneManagerEvent event) {
         return true;
     case CfsCustomEventButtonSave:
         app->save_from_write = true;
-        cfs_build_save_name(&app->pending, app->save_name, sizeof(app->save_name));
-        scene_manager_next_scene(app->scene_manager, CfsSceneSaveName);
+        scene_manager_next_scene(app->scene_manager, CfsSceneSaveKind);
         return true;
     default:
         return false;

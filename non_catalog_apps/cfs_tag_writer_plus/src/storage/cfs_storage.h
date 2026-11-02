@@ -13,6 +13,9 @@ extern "C" {
 #endif
 
 #define CFS_STORAGE_DIR       APP_DATA_PATH("tags")
+// Templates are the same .nfc records, kept in their own folder.
+#define CFS_TEMPLATE_DIR      APP_DATA_PATH("templates")
+#define CFS_TEMPLATES_MAX     (32)
 #define CFS_STORAGE_EXTENSION ".nfc"
 #define CFS_STORAGE_NAME_MAX  (64)
 
@@ -39,6 +42,31 @@ bool cfs_storage_save(
     const uint8_t* uid,
     size_t uid_len,
     const char* name);
+
+/** Same as cfs_storage_save, into the given folder (created if missing). */
+bool cfs_storage_save_in(
+    Storage* storage,
+    const char* dir,
+    const uint8_t plaintext[CFS_PLAINTEXT_SIZE],
+    const uint8_t* uid,
+    size_t uid_len,
+    const char* name);
+
+/** Same as cfs_storage_exists, in the given folder. */
+bool cfs_storage_exists_in(Storage* storage, const char* dir, const char* name);
+
+/**
+ * Base names (no folder, no extension) of the .nfc records in dir, sorted
+ * A-Z, at most max of them. Returns how many were found.
+ */
+size_t cfs_storage_list(
+    Storage* storage,
+    const char* dir,
+    char (*names)[CFS_STORAGE_NAME_MAX],
+    size_t max);
+
+/** Full path of a record from its folder and base name. */
+void cfs_storage_path_in(const char* dir, const char* name, char* out, size_t out_size);
 
 /**
  * True if a saved record already exists for the given base name (no directory,

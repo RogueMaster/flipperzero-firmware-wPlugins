@@ -60,8 +60,7 @@ bool cfs_scene_read_result_on_event(void* context, SceneManagerEvent event) {
     switch(event.event) {
     case CfsCustomEventButtonSave:
         app->save_from_write = false;
-        cfs_build_save_name(&app->tag_data, app->save_name, sizeof(app->save_name));
-        scene_manager_next_scene(app->scene_manager, CfsSceneSaveName);
+        scene_manager_next_scene(app->scene_manager, CfsSceneSaveKind);
         return true;
     case CfsCustomEventButtonWrite:
         scene_manager_next_scene(app->scene_manager, CfsSceneTagActions);
