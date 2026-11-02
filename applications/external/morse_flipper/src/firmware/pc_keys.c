@@ -144,17 +144,17 @@ uint8_t morse_pc_mouse_button(uint8_t note, bool inverted) {
 }
 
 /* USB HID keyboard usage ids (US layout). Low byte of the HID keycode. */
-#define MORSE_HID_USAGE_A      0x04U
-#define MORSE_HID_USAGE_1      0x1EU
-#define MORSE_HID_USAGE_0      0x27U
-#define MORSE_HID_USAGE_SPACE  0x2CU
-#define MORSE_HID_USAGE_MINUS  0x2DU
-#define MORSE_HID_USAGE_EQUAL  0x2EU
-#define MORSE_HID_USAGE_SEMI   0x33U
-#define MORSE_HID_USAGE_QUOTE  0x34U
-#define MORSE_HID_USAGE_COMMA  0x36U
-#define MORSE_HID_USAGE_DOT    0x37U
-#define MORSE_HID_USAGE_SLASH  0x38U
+#define MORSE_HID_USAGE_A     0x04U
+#define MORSE_HID_USAGE_1     0x1EU
+#define MORSE_HID_USAGE_0     0x27U
+#define MORSE_HID_USAGE_SPACE 0x2CU
+#define MORSE_HID_USAGE_MINUS 0x2DU
+#define MORSE_HID_USAGE_EQUAL 0x2EU
+#define MORSE_HID_USAGE_SEMI  0x33U
+#define MORSE_HID_USAGE_QUOTE 0x34U
+#define MORSE_HID_USAGE_COMMA 0x36U
+#define MORSE_HID_USAGE_DOT   0x37U
+#define MORSE_HID_USAGE_SLASH 0x38U
 
 uint8_t morse_pc_hid_usage_for_char(char c, bool* needs_shift) {
     uint8_t usage = 0U;

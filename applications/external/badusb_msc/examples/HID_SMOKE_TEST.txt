@@ -1,0 +1,4 @@
+REM USB HID keyboard smoke test
+DELAY 1000
+STRING ABC123
+ENTER

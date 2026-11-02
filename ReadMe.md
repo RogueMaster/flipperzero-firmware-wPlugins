@@ -109,7 +109,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [CatDriver v1.0 - author settings, ESP32 info and GPS status updates (By EVL87)](https://github.com/EVL87/catwardrive)
 - OFW: NFC: [Fixed: Ultralight READ/WRITE now reject a starting page equal to the page count (By Kostya4ki)](https://github.com/flipperdevices/flipperzero-firmware/pull/4483)
 - Updated: [PicoPass (iClass) v1.23 (By Bettse)](https://gitlab.com/bettse/picopass)
-- Updated: [FlipPass v3.0 - memory optimizations, KeePass icons and launch arguments (By Arckanos)](https://github.com/Arckanos/FlipPass)
 - Added: [Hazke v1.0 - wireframe space trading and combat (By REZOR)](https://github.com/therezor/hazke-flipper)
 - Updated: [Taiko Player v0.5.1 (By ZeroNinx)](https://github.com/ZeroNinx/flipper-zero-taiko-player)
 - Added: [Pet Thermometer v0.3 - NTAG5/BeUno and FDX-B temperature reader (By Manawyrm)](https://github.com/Manawyrm/ntag5_thermometer) `Req: TI TMP117`
@@ -126,6 +125,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Air Stats v1.0 (By thevan4)](https://github.com/thevan4/flipper-air-stats) [SCD40/41 CO2 selection, readiness checks and corrected I2C wiring (By ZeroNinx)](https://github.com/thevan4/flipper-air-stats/pull/1)
 - Updated: [Hermes v1.3 (By at0m-b0mb)](https://github.com/at0m-b0mb/Hermes-FlipperZero) [Release expansion UART ownership before baud detection (By jamisonderek)](https://github.com/at0m-b0mb/Hermes-FlipperZero/pull/1)
 - Updated: [Morse Flipper v0.3.0 (By yo3gnd)](https://github.com/yo3gnd/morse-flipper) [Type decoded Morse over USB HID (By SoTypicalNoob)](https://github.com/yo3gnd/morse-flipper/pull/4)
+- Updated: [FlipPass v3.1 - cached KDF for launch arguments and nested Auto-Type tags (By Arckanos)](https://github.com/Arckanos/FlipPass/commit/773d61e6a6be1e27724418bf0906e8a6aadb0793)
+- Added: [BadUSB MSC v0.1 - BadUSB scripts with isolated USB mass storage (By ZombieDolphin)](https://github.com/ZombieDolphin/BadUSB_MSC)
 
 <a name="release"></a>
 
@@ -471,6 +472,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Bad Duck3 v1.1 (By dutchpatriot)](https://github.com/dutchpatriot/all-the-plugins/tree/833335354aa46fe605b494c1b3bf11afb5b362f9/non_catalog_apps/bad_duck3)
 - [Bad KB (By WillyJL)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/pull/739) (Part of BadUSB)
 - [Badge Audit v1.0 (By ViperDroid)](https://github.com/ViperDroid/flipper-badge-audit)
+- [BadUSB MSC v0.1 (By ZombieDolphin)](https://github.com/ZombieDolphin/BadUSB_MSC)
 - [BadUSB Pro v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
 - [BadUSB wPlaceholders v1.0 (By whitewhidow)](https://github.com/whitewhidow/flipper-badusb-ph)
 - [Ballu AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)

@@ -1,0 +1,15 @@
+App(
+    appid="badusb_msc",
+    name="BadUSB MSC",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="bad_usb_app",
+    stack_size=6 * 1024,
+    fap_icon="icon.png",
+    fap_icon_assets="icons",
+    fap_libs=["assets", "ble_profile"],
+    fap_category="USB",
+    fap_author="ZombieDolphin",
+    fap_weburl="https://github.com/ZombieDolphin/BadUSB_MSC",
+    fap_version="0.1",
+    fap_description="BadUSB scripts and isolated USB mass storage",
+)

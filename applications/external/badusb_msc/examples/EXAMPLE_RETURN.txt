@@ -1,0 +1,20 @@
+REM BadUSB MSC - Example: Flipper to Windows
+REM Copies BADUSBMSC\FLIPTEST.TXT to FLIPBACK.TXT on the Desktop.
+REM Run EXAMPLE_TRANSFER.txt first to create the source file.
+REM Use only on a PC you own or are allowed to test.
+DELAY 2000
+GUI r
+DELAY 700
+STRING powershell -NoProfile
+ENTER
+DELAY 1800
+REM Find the Windows Desktop and BADUSBMSC volume
+STRING $desk=[Environment]::GetFolderPath('Desktop')
+ENTER
+DELAY 300
+STRING $v=Get-Volume -FileSystemLabel BADUSBMSC -ErrorAction SilentlyContinue
+ENTER
+DELAY 700
+REM Copy the same test file back, leaving the original on BADUSBMSC
+STRING if($v -and $v.DriveLetter){$src=$v.DriveLetter+':\FLIPTEST.TXT';if(Test-Path -LiteralPath $src){Copy-Item -LiteralPath $src -Destination (Join-Path $desk 'FLIPBACK.TXT') -ErrorAction Stop;notepad (Join-Path $desk 'FLIPBACK.TXT')}else{Write-Host 'FLIPTEST.TXT not found'}}else{Write-Host 'BADUSBMSC not found'}
+ENTER

@@ -179,7 +179,7 @@ App(
     fap_category="USB",
     fap_author="Arckanos",
     fap_weburl="https://github.com/Arckanos/FlipPass",
-    fap_version="3.0",
+    fap_version="3.1",
     fap_description="KeePass KDBX 4 vault browser with USB and Bluetooth HID typing.",
 )
 

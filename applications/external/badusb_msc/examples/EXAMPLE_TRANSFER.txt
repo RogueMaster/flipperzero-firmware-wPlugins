@@ -1,0 +1,25 @@
+REM BadUSB MSC - Example: Windows to Flipper
+REM Creates FLIPTEST.TXT on the Desktop and moves it to BADUSBMSC.
+REM Use only on a PC you own or are allowed to test.
+REM Select the keyboard layout matching Windows first.
+DELAY 2000
+GUI r
+DELAY 700
+STRING powershell -NoProfile
+ENTER
+DELAY 1800
+REM Find the Windows Desktop
+STRING $desk=[Environment]::GetFolderPath('Desktop')
+ENTER
+DELAY 300
+REM Create a harmless test file
+STRING Set-Content -LiteralPath (Join-Path $desk 'FLIPTEST.TXT') -Value 'Hello from Windows! BadUSB MSC transfer test.' -Encoding ASCII
+ENTER
+DELAY 500
+REM Find the BADUSBMSC volume
+STRING $v=Get-Volume -FileSystemLabel BADUSBMSC -ErrorAction SilentlyContinue
+ENTER
+DELAY 700
+REM Move the file to BADUSBMSC only when the drive is available
+STRING if($v -and $v.DriveLetter){Move-Item -LiteralPath (Join-Path $desk 'FLIPTEST.TXT') -Destination ($v.DriveLetter+':\FLIPTEST.TXT') -ErrorAction Stop;Write-Host 'PC to Flipper OK'}else{Write-Host 'BADUSBMSC not found'}
+ENTER

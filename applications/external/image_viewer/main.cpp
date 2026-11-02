@@ -25,8 +25,7 @@ static void draw_callback(Canvas* canvas, void* ctx) {
 
     // Accept raw pixels and the uncompressed Flipper bitmap header used by
     // the bundled .bm files. Never pass a raw buffer to the compressed API.
-    bool valid = (file_size == image_size || file_size == image_size + 1) &&
-                 stream_rewind(stream);
+    bool valid = (file_size == image_size || file_size == image_size + 1) && stream_rewind(stream);
     if(valid && file_size == image_size + 1) {
         uint8_t header = 0;
         valid = stream_read(stream, &header, 1) == 1 && header == 0;

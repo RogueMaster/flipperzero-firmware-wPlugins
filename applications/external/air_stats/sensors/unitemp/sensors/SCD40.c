@@ -52,7 +52,7 @@ const SensorTypeWithCalibration SCD40 = {
 #define COMMAND_START_PERIODIC_MEASUREMENT 0X21B1
 #define COMMAND_READ_MEASUREMENT           0XEC05
 #define COMMAND_STOP_PERIODIC_MEASUREMENT  0X3F86
-#define COMMAND_GET_DATA_READY_STATUS     0XE4B8
+#define COMMAND_GET_DATA_READY_STATUS      0XE4B8
 
 #define COMMAND_PERSIST_SETTINGS      0X3615
 #define COMMAND_GET_SERIAL_NUMBER     0X3682
@@ -223,8 +223,7 @@ static bool readMeasurement(Sensor* sensor) {
     }
 
     uint16_t co2, temp, hum;
-    if(!loadWord(bytes, &co2) || !loadWord(bytes + 3, &temp) ||
-       !loadWord(bytes + 6, &hum)) {
+    if(!loadWord(bytes, &co2) || !loadWord(bytes + 3, &temp) || !loadWord(bytes + 6, &hum)) {
         FURI_LOG_E(APP_NAME, "SCD4x measurement CRC error");
         return false;
     }

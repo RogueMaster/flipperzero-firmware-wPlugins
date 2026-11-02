@@ -32,8 +32,8 @@ static void draw_callback(Canvas* canvas, void* context) {
 
     /* Interface-specific info — mirrors unitemp _draw_carousel_info */
     canvas_set_font(canvas, FontSecondary);
-    const char* type_name = info_sensor->type->altname ?
-                                info_sensor->type->altname : info_sensor->type->typename;
+    const char* type_name = info_sensor->type->altname ? info_sensor->type->altname :
+                                                         info_sensor->type->typename;
 
     if(info_sensor->type->interface == &I2C) {
         canvas_draw_str(canvas, 36, 24, type_name);

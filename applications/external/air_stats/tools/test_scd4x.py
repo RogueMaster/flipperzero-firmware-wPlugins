@@ -10,9 +10,13 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
 # Reuse the production sensor structures while replacing platform headers.
-types = (ROOT / "sensors/unitemp/Sensors.h").read_text().split("/* Interface constants */")[0]
+types = (
+    (ROOT / "sensors/unitemp/Sensors.h")
+    .read_text()
+    .split("/* Interface constants */")[0]
+)
 types = re.sub(r"^#include .*", "", types, flags=re.MULTILINE) + "\n#endif\n"
-source = r'''
+source = r"""
 #include <assert.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -114,12 +118,23 @@ int main(void) {
     assert(!unitemp_SCD40_init(&sensor));
     puts("SCD4x: startup, not-ready, datasheet sample, CRC failures, zero sample and I2C read/write failures passed");
 }
-'''
+"""
 source = source.replace("DRIVER_PATH", str(ROOT / "sensors/unitemp/sensors/SCD40.c"))
 with tempfile.TemporaryDirectory(prefix="air-stats-test-") as directory:
     work = Path(directory)
     (work / "sensor_types.h").write_text(types)
     (work / "test.c").write_text(source)
-    subprocess.run(["cc", "-std=c11", "-I", str(work), str(work / "test.c"),
-                    "-o", str(work / "test"), "-lm"], check=True)
+    subprocess.run(
+        [
+            "cc",
+            "-std=c11",
+            "-I",
+            str(work),
+            str(work / "test.c"),
+            "-o",
+            str(work / "test"),
+            "-lm",
+        ],
+        check=True,
+    )
     subprocess.run([str(work / "test")], check=True)

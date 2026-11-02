@@ -456,7 +456,9 @@ bool flippass_output_execute_request(App* app, const FlipPassOutputRequest* sour
     }
 
     FlipPassOutputActionStrings strings = {0};
-    flippass_output_action_strings_alloc(&strings);
+    if(source->action == FlipPassOutputActionAutotype) {
+        flippass_output_action_strings_alloc(&strings);
+    }
 
     FlipPassOutputActionRequestV1 request = {
         .api_version = FLIPPASS_OUTPUT_ACTION_PLUGIN_API_VERSION,
@@ -503,6 +505,14 @@ bool flippass_output_execute_request(App* app, const FlipPassOutputRequest* sour
         flippass_output_cleanup_after_request(app);
         flippass_output_action_strings_free(&strings);
         return false;
+    }
+
+    if(source->action == FlipPassOutputActionAutotype) {
+        /* All field/OTP reads have returned. This action now borrows owned
+         * plaintext, not provider code or an active vault stream. Release the
+         * idle standalone provider before mapping OutputAction. Reference
+         * streaming actions retain Crypto for their subsequent vault reads. */
+        flippass_module_unload(app, FlipPassModuleSlotCrypto);
     }
 
     FuriString* error = furi_string_alloc();

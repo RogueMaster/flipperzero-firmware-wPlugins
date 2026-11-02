@@ -943,11 +943,20 @@ static bool flippass_output_session_tap_modifier_only(
            flippass_output_session_release_modifier_mask(session, modifier_mask);
 }
 
-static void flippass_output_append_url_component(
-    FuriString* out,
+typedef struct {
+    const char* text;
+    size_t length;
+} FlipPassPlaceholderSpan;
+
+/* Keep the shared URL compiler with CMD code; its literals/relocations must
+ * not enlarge the main keyboard engine's contiguous load requirement. */
+__attribute__((section(".cmd"))) static void flippass_output_url_component(
+    FlipPassPlaceholderSpan* out,
     const char* url,
     const char* component,
     size_t component_len) {
+    if(out == NULL) return;
+    *out = (FlipPassPlaceholderSpan){"", 0U};
     const char* scheme_sep = NULL;
     const char* remainder = NULL;
     const char* authority = NULL;
@@ -1025,30 +1034,30 @@ static void flippass_output_append_url_component(
             if(stripped[0] == '/' && stripped[1] == '/') {
                 stripped += 2;
             }
-            furi_string_cat_str(out, stripped);
+            *out = (FlipPassPlaceholderSpan){stripped, strlen(stripped)};
         } else {
-            furi_string_cat_str(out, url);
+            *out = (FlipPassPlaceholderSpan){url, strlen(url)};
         }
         return;
     }
 
     if(flippass_output_token_n_equals(component, component_len, "SCM")) {
         if(scheme_sep != NULL) {
-            flippass_output_cat_strn(out, url, (size_t)(scheme_sep - url));
+            *out = (FlipPassPlaceholderSpan){url, (size_t)(scheme_sep - url)};
         }
         return;
     }
 
     if(flippass_output_token_n_equals(component, component_len, "HOST")) {
         if(host != NULL && host_end != NULL && host_end > host) {
-            flippass_output_cat_strn(out, host, (size_t)(host_end - host));
+            *out = (FlipPassPlaceholderSpan){host, (size_t)(host_end - host)};
         }
         return;
     }
 
     if(flippass_output_token_n_equals(component, component_len, "PORT")) {
         if(port != NULL && authority_end != NULL && authority_end > port) {
-            flippass_output_cat_strn(out, port, (size_t)(authority_end - port));
+            *out = (FlipPassPlaceholderSpan){port, (size_t)(authority_end - port)};
         }
         return;
     }
@@ -1060,7 +1069,7 @@ static void flippass_output_append_url_component(
                 path_end++;
             }
             if(path_end > path) {
-                flippass_output_cat_strn(out, path, (size_t)(path_end - path));
+                *out = (FlipPassPlaceholderSpan){path, (size_t)(path_end - path)};
             }
         }
         return;
@@ -1073,7 +1082,7 @@ static void flippass_output_append_url_component(
                 query_end++;
             }
             if(query_end > query) {
-                flippass_output_cat_strn(out, query, (size_t)(query_end - query));
+                *out = (FlipPassPlaceholderSpan){query, (size_t)(query_end - query)};
             }
         }
         return;
@@ -1081,7 +1090,7 @@ static void flippass_output_append_url_component(
 
     if(flippass_output_token_n_equals(component, component_len, "USERINFO")) {
         if(userinfo != NULL && at_sign != NULL && at_sign > userinfo) {
-            flippass_output_cat_strn(out, userinfo, (size_t)(at_sign - userinfo));
+            *out = (FlipPassPlaceholderSpan){userinfo, (size_t)(at_sign - userinfo)};
         }
         return;
     }
@@ -1091,7 +1100,7 @@ static void flippass_output_append_url_component(
             const char* colon = strchr(userinfo, ':');
             const char* end = (colon != NULL && colon < at_sign) ? colon : at_sign;
             if(end > userinfo) {
-                flippass_output_cat_strn(out, userinfo, (size_t)(end - userinfo));
+                *out = (FlipPassPlaceholderSpan){userinfo, (size_t)(end - userinfo)};
             }
         }
         return;
@@ -1101,10 +1110,82 @@ static void flippass_output_append_url_component(
         if(userinfo != NULL && at_sign != NULL && at_sign > userinfo) {
             const char* colon = strchr(userinfo, ':');
             if(colon != NULL && colon + 1 < at_sign) {
-                flippass_output_cat_strn(out, colon + 1, (size_t)(at_sign - colon - 1));
+                *out = (FlipPassPlaceholderSpan){colon + 1, (size_t)(at_sign - colon - 1)};
             }
         }
     }
+}
+
+static void flippass_output_append_url_component(
+    FuriString* out,
+    const char* url,
+    const char* component,
+    size_t component_len) {
+    FlipPassPlaceholderSpan span;
+    flippass_output_url_component(&span, url, component, component_len);
+    flippass_output_cat_strn(out, span.text, span.length);
+}
+
+static bool flippass_output_cmd_resolve(
+    void* context,
+    const char* token,
+    size_t size,
+    const char** text,
+    size_t* length) {
+    const FlipPassOutputActionRequestV1* request = context;
+    const char* value = NULL;
+    const bool string_alias = size > 2U && flippass_output_token_n_starts_with(token, size, "S:");
+    if(string_alias) {
+        token += 2U;
+        size -= 2U;
+    }
+    if(flippass_output_token_n_equals(token, size, "USERNAME"))
+        value = request->entry_username;
+    else if(flippass_output_token_n_equals(token, size, "PASSWORD"))
+        value = request->entry_password;
+    else if(flippass_output_token_n_equals(token, size, "URL"))
+        value = request->entry_url;
+    else if(flippass_output_token_n_equals(token, size, "TITLE"))
+        value = request->entry_title;
+    else if(flippass_output_token_n_equals(token, size, "NOTES"))
+        value = request->entry_notes;
+    else if(string_alias)
+        return false;
+    else if(flippass_output_token_n_equals(token, size, "UUID"))
+        value = request->entry_uuid;
+    else if(flippass_output_token_n_equals(token, size, "GROUP"))
+        value = request->group_name;
+    else if(
+        flippass_output_token_n_equals(token, size, "GROUP_PATH") ||
+        flippass_output_token_n_equals(token, size, "GROUPPATH"))
+        value = request->group_path;
+    else if(flippass_output_token_n_equals(token, size, "DB_PATH"))
+        value = request->db_path;
+    else if(
+        flippass_output_token_n_equals(token, size, "DB_DIR") ||
+        flippass_output_token_n_equals(token, size, "DOCDIR"))
+        value = request->db_dir;
+    else if(flippass_output_token_n_equals(token, size, "DB_NAME"))
+        value = request->db_name;
+    else if(flippass_output_token_n_equals(token, size, "DB_BASENAME"))
+        value = request->db_basename;
+    else if(flippass_output_token_n_equals(token, size, "DB_EXT"))
+        value = request->db_ext;
+    else if(flippass_output_token_n_equals(token, size, "ENV_DIRSEP"))
+        value = "/";
+    else if(flippass_output_token_n_starts_with(token, size, "C:"))
+        value = "";
+    else if(flippass_output_token_n_starts_with(token, size, "URL:")) {
+        FlipPassPlaceholderSpan span;
+        flippass_output_url_component(&span, request->entry_url, token + 4U, size - 4U);
+        *text = span.text;
+        *length = span.length;
+        return true;
+    } else
+        return false;
+    *text = value ? value : "";
+    *length = strlen(*text);
+    return true;
 }
 
 static bool flippass_output_append_placeholder_text(
@@ -1861,6 +1942,7 @@ static bool flippass_output_execute_login_refs_request(
 }
 
 static bool flippass_output_stage_cmd(
+    const FlipPassOutputActionRequestV1* request,
     const char* sequence,
     const FlipPassOutputActionHostApiV1* host_api,
     FuriString* error) {
@@ -1883,7 +1965,15 @@ static bool flippass_output_stage_cmd(
             ++i;
             continue;
         }
-        const size_t bytes = command.length + FLIPPASS_CMD_SCRATCH_EXTRA;
+        size_t expanded_bytes = 0U;
+        if(!flippass_cmd_expand(
+               &command, flippass_output_cmd_resolve, (void*)request, NULL, 0U, &expanded_bytes)) {
+            if(error != NULL)
+                furi_string_set_str(
+                    error, "Cannot expand CMD placeholders (unsupported, cyclic or too long).");
+            return false;
+        }
+        const size_t bytes = expanded_bytes + FLIPPASS_CMD_SCRATCH_EXTRA;
         const int32_t lock = furi_kernel_lock();
         char* scratch = memmgr_heap_get_max_free_block() >= bytes + 16U ? malloc(bytes) : NULL;
         furi_kernel_restore_lock(lock);
@@ -1893,7 +1983,15 @@ static bool flippass_output_stage_cmd(
             return false;
         }
         FlipPassCmdLaunch launch;
-        const bool ok = flippass_cmd_decode(&command, scratch, bytes, &launch) &&
+        FlipPassCmd expanded = {.text = scratch, .length = expanded_bytes};
+        const bool ok = flippass_cmd_expand(
+                            &command,
+                            flippass_output_cmd_resolve,
+                            (void*)request,
+                            scratch,
+                            bytes,
+                            &expanded_bytes) &&
+                        flippass_cmd_decode(&expanded, scratch, bytes, &launch) &&
                         host_api->prepare_launch != NULL &&
                         host_api->prepare_launch(
                             host_api->context, launch.application, launch.arguments, launch.self);
@@ -1915,7 +2013,7 @@ static bool flippass_output_execute_autotype_request(
         (request->autotype_sequence != NULL && request->autotype_sequence[0] != '\0') ?
             request->autotype_sequence :
             FLIPPASS_OUTPUT_KEEPASS_DEFAULT_SEQUENCE;
-    if(!flippass_output_stage_cmd(sequence, host_api, error)) return false;
+    if(!flippass_output_stage_cmd(request, sequence, host_api, error)) return false;
     FlipPassOutputSession session = flippass_output_session_make(request, host_api);
     size_t index = 0U;
 
