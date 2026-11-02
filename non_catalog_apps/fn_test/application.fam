@@ -1,0 +1,32 @@
+App(
+    appid="fn_test",
+    name="FN Tester",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="fn_test_app",
+    cdefines=["APP_FN_TEST"],
+    sources=[
+        "fn_test_app.c",
+        "ui/*.c",
+        "ui/views/*.c",
+        "ui/scenes/*.c",
+    ],
+    requires=[
+        "gui",
+        "expansion",
+    ],
+    stack_size=4 * 1024,
+    fap_icon="logo_fn.png",
+    fap_libs=["assets"],
+    fap_description="Tester for fiscal drives (FN/FN-M) of Russian cash registers",
+    fap_author="Igor Danilov",
+    fap_weburl="https://github.com/polarikus/flipper-zero_fn_tester",
+    fap_version=(0, 6, 2),
+    fap_category="GPIO",
+    fap_icon_assets="icons",
+    fap_private_libs=[
+        Lib(
+            name="fn",
+            fap_include_paths=[".", "core", "proto", "transport"],
+        )
+    ],
+)
