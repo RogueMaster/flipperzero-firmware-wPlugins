@@ -1,0 +1,15 @@
+App(
+    appid="sh1106_test",
+    name="SH1106 Test",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="sh1106_app_main",
+    stack_size=4 * 1024,
+    fap_icon="icon.png",
+    fap_icon_assets="icons",
+    fap_icon_assets_symbol="gbhobbytech_sh1106_test",
+    fap_category="GPIO",
+    fap_author="gbhobbytech",
+    fap_weburl="https://github.com/gbhobbytech/ssd1306_test",
+    fap_version="0.5",
+    fap_description="Diagnostic tool for SH1106 128x64 I2C OLED displays",
+)

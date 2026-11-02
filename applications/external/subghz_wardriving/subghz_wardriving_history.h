@@ -204,3 +204,26 @@ bool subghz_wardriving_history_needs_heap(SubGhzHistory* instance, uint8_t type)
  * flips the answer back and forth. Once it reads full it stays full until there is real
  * room again, or until a record is deleted */
 #define SUBGHZ_HISTORY_FULL_CLEAR_SLACK 2048
+
+/** Serialized payload retained while the dispatcher writes an autosave. */
+typedef struct SubGhzWarDrivingHistoryData SubGhzWarDrivingHistoryData;
+typedef struct {
+    SubGhzWarDrivingHistoryData* owner;
+    FlipperFormat* data;
+    const char* protocol_name; // immutable firmware protocol-registry string
+    DateTime datetime;
+} SubGhzWarDrivingHistorySnapshot;
+
+/** Pair a batch of history/index operations with its menu updates. Recursive. */
+void subghz_wardriving_history_lock(SubGhzHistory* instance);
+void subghz_wardriving_history_unlock(SubGhzHistory* instance);
+/** Queue a retained payload; the bounded backlog survives row deletion/reset. */
+bool subghz_wardriving_history_queue_autosave(SubGhzHistory* instance, uint16_t idx);
+bool subghz_wardriving_history_autosave_full(SubGhzHistory* instance);
+/** Claim one queued record; release its payload after the write, even on failure. */
+bool subghz_wardriving_history_take_autosave(
+    SubGhzHistory* instance,
+    SubGhzWarDrivingHistorySnapshot* snapshot);
+void subghz_wardriving_history_release_autosave(
+    SubGhzHistory* instance,
+    SubGhzWarDrivingHistorySnapshot* snapshot);

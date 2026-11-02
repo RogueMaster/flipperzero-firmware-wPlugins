@@ -67,6 +67,13 @@ bool subghz_scene_rpc_on_event(void* context, SceneManagerEvent event) {
                         subghz->rpc_ctx,
                         "Transmission on this frequency is restricted in your settings");
                     break;
+                case SubGhzTxRxStartTxStateErrorMemory:
+                    subghz_block_generic_global.endless_tx = false;
+                    rpc_system_app_set_error_code(
+                        subghz->rpc_ctx, RpcAppSystemErrorCodeInternalParse);
+                    rpc_system_app_set_error_text(
+                        subghz->rpc_ctx, "Not enough memory to start transmission");
+                    break;
                 case SubGhzTxRxStartTxStateErrorParserOthers:
                     subghz_block_generic_global.endless_tx = false;
                     rpc_system_app_set_error_code(

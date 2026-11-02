@@ -26,6 +26,9 @@ void subghz_tick_event_callback(void* context) {
     furi_assert(context);
     SubGhz* subghz = context;
     scene_manager_handle_tick_event(subghz->scene_manager);
+    // One deferred write per dispatcher tick works in every scene and cannot fill or
+    // block on the custom-event queue. The decoder continues while SD I/O runs.
+    subghz_wardriving_autosave_one(subghz);
 }
 
 SubGhz* subghz_alloc() {
@@ -186,6 +189,9 @@ void subghz_free(SubGhz* subghz) {
     subghz_wardriving_txrx_speaker_off(subghz->txrx);
     subghz_wardriving_txrx_stop(subghz->txrx);
     subghz_wardriving_txrx_sleep(subghz->txrx);
+    // The producer is stopped, so the final drain is finite and precedes history teardown.
+    while(subghz_wardriving_autosave_one(subghz)) {
+    }
 
     // Receiver
     view_dispatcher_remove_view(subghz->view_dispatcher, SubGhzViewIdReceiver);

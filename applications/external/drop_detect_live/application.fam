@@ -1,0 +1,56 @@
+# FliPort drop detector — on-device inference.
+#
+# This file declares the foreground FAP (built with `ufbt`). The headless
+# background SERVICE that reuses the same sources is provided as a copy-paste
+# block at the bottom (and in README.md) — it must be compiled into a firmware
+# image, which `ufbt` cannot do for a standalone app, so it is left commented
+# here to keep `ufbt` builds clean.
+
+App(
+    appid="drop_detect_live",
+    name="DropDetect Live",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="drop_dect_app",
+    stack_size=2 * 1024,
+    fap_file_assets="assets",
+    sources=[
+        "drop_dect_app.c",
+        "model.c",
+        "alarm.c",
+        "imu.c",
+        "monitor.c",
+        "driver/ICM42688P.c",
+    ],
+    fap_category="Tools",
+    fap_author="FliPort",
+    fap_weburl="https://github.com/TheRealLuro/Flipper-zero-drop-detector.-",
+    fap_version="0.1",
+    fap_description="Live on-device drop detector: runs the trained CNN on the IMU and sounds a siren when it detects a drop.",
+)
+
+# ---------------------------------------------------------------------------
+# Background SERVICE (compile into custom firmware — see README.md).
+# Copy this block into the app folder's application.fam inside a firmware tree
+# (e.g. applications/system/drop_dect/), make sure the firmware's
+# applications.fam aggregates it, deploy model.json to
+# /ext/apps_assets/drop_detect_svc/model.json, and rebuild the firmware.
+#
+# App(
+#     appid="drop_detect_svc",
+#     name="FliPort Drop Service",
+#     apptype=FlipperAppType.SERVICE,
+#     entry_point="drop_dect_svc",
+#     stack_size=2 * 1024,
+#     order=200,  # start after storage/notification; tune for your firmware
+#     requires=[
+#         "notification",
+#     ],
+#     sources=[
+#         "drop_dect_svc.c",
+#         "model.c",
+#         "alarm.c",
+#         "imu.c",
+#         "monitor.c",
+#         "driver/ICM42688P.c",
+#     ],
+# )

@@ -1,7 +1,6 @@
 #include "../subghz_wardriving_i.h"
 #include <dolphin/dolphin.h>
 #include <lib/subghz/protocols/bin_raw.h>
-#include <toolbox/name_generator.h>
 
 #define TAG "SubGhzWarDrivingSceneReceiver"
 
@@ -136,6 +135,8 @@ static void subghz_scene_add_to_history_callback(
     // The check can be moved to /lib/subghz/receiver.c, but may result in false positives
     if((decoder_base->protocol->filter & subghz->ignore_filter) == 0) {
         SubGhzHistory* history = subghz->history;
+        bool repeat_signal = false;
+        subghz_wardriving_history_lock(history);
         FuriString* item_name = furi_string_alloc();
         FuriString* item_time = furi_string_alloc();
         uint16_t idx = subghz_wardriving_history_get_item(history);
@@ -152,6 +153,7 @@ static void subghz_scene_add_to_history_callback(
 
         const uint8_t type = decoder_base->protocol->type;
         if(subghz->last_settings->delete_old_signals &&
+           !subghz_wardriving_history_autosave_full(history) &&
            subghz_wardriving_history_full(subghz->history, type)) {
             uint16_t deleted = 0;
             size_t widest = 0;
@@ -190,8 +192,7 @@ static void subghz_scene_add_to_history_callback(
 
             //If the repeater is on, dont add to the menu, just TX the signal.
             if(subghz->repeater != SubGhzRepeaterStateOff) {
-                view_dispatcher_send_custom_event(
-                    subghz->view_dispatcher, SubGhzCustomEventViewRepeaterStart);
+                repeat_signal = true;
             } else {
                 subghz->state_notifications = SubGhzNotificationStateRxDone;
 
@@ -232,30 +233,7 @@ static void subghz_scene_add_to_history_callback(
 
                 if(decoder_base->protocol->flag & SubGhzProtocolFlag_Save &&
                    subghz->last_settings->autosave) {
-                    // File name
-                    char file[SUBGHZ_MAX_LEN_NAME] = {0};
-                    const char* suf = subghz->last_settings->protocol_file_names ?
-                                          decoder_base->protocol->name :
-                                          SUBGHZ_APP_FILENAME_PREFIX;
-                    DateTime time = subghz_wardriving_history_get_datetime(history, idx);
-                    name_generator_make_detailed_datetime(file, sizeof(file), suf, &time, true);
-                    // Dir name
-                    FuriString* path = furi_string_alloc_set(SUBGHZ_WARDR_APP_FOLDER "/autosaved");
-                    char* dir = strdup(furi_string_get_cstr(path));
-                    // Find non-existent path
-                    const char* ext = SUBGHZ_APP_FILENAME_EXTENSION;
-                    Storage* storage = furi_record_open(RECORD_STORAGE);
-                    storage_get_next_filename(storage, dir, file, ext, path, sizeof(file));
-                    strlcpy(file, furi_string_get_cstr(path), sizeof(file));
-                    furi_string_printf(path, "%s/%s%s", dir, file, ext);
-                    furi_record_close(RECORD_STORAGE);
-                    free(dir);
-                    // Save
-                    subghz_save_protocol_to_file(
-                        subghz,
-                        subghz_wardriving_history_get_raw_data(history, idx),
-                        furi_string_get_cstr(path));
-                    furi_string_free(path);
+                    subghz_wardriving_history_queue_autosave(history, idx);
                 }
 
                 subghz_scene_receiver_update_statusbar(subghz);
@@ -269,8 +247,9 @@ static void subghz_scene_add_to_history_callback(
             }
             subghz_rx_key_state_set(subghz, SubGhzRxKeyStateAddKey);
         } else if(
-            !subghz->last_settings->delete_old_signals &&
-            subghz_wardriving_history_full(history, type)) {
+            subghz_wardriving_history_autosave_full(history) ||
+            (!subghz->last_settings->delete_old_signals &&
+             subghz_wardriving_history_full(history, type))) {
             // The bar is only redrawn after a signal lands, so warn from here too. Every
             // refused signal buzzes, not just the first, so a full history is felt
             subghz->state_notifications = SubGhzNotificationStateIDLE;
@@ -280,6 +259,11 @@ static void subghz_scene_add_to_history_callback(
         subghz_receiver_reset(receiver);
         furi_string_free(item_name);
         furi_string_free(item_time);
+        subghz_wardriving_history_unlock(history);
+        if(repeat_signal) {
+            view_dispatcher_send_custom_event(
+                subghz->view_dispatcher, SubGhzCustomEventViewRepeaterStart);
+        }
     } else {
         FURI_LOG_D(TAG, "%s protocol ignored", decoder_base->protocol->name);
     }

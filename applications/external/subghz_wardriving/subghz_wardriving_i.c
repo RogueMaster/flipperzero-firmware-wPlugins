@@ -6,6 +6,7 @@
 #include <notification/notification_messages.h>
 #include <flipper_format/flipper_format.h>
 #include <flipper_format/flipper_format_i.h>
+#include <toolbox/name_generator.h>
 
 #define TAG "SubGhzWarDriving_i"
 
@@ -518,4 +519,31 @@ void subghz_rx_key_state_set(SubGhz* subghz, SubGhzRxKeyState state) {
 SubGhzRxKeyState subghz_rx_key_state_get(SubGhz* subghz) {
     furi_assert(subghz);
     return subghz->rx_key_state;
+}
+
+bool subghz_wardriving_autosave_one(SubGhz* subghz) {
+    SubGhzWarDrivingHistorySnapshot snapshot;
+    if(!subghz_wardriving_history_take_autosave(subghz->history, &snapshot)) return false;
+
+    char file[SUBGHZ_MAX_LEN_NAME] = {0};
+    const char* prefix = subghz->last_settings->protocol_file_names ? snapshot.protocol_name :
+                                                                      SUBGHZ_APP_FILENAME_PREFIX;
+    name_generator_make_detailed_datetime(file, sizeof(file), prefix, &snapshot.datetime, true);
+    FuriString* path = furi_string_alloc_set(SUBGHZ_WARDR_APP_FOLDER "/autosaved");
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    storage_get_next_filename(
+        storage,
+        SUBGHZ_WARDR_APP_FOLDER "/autosaved",
+        file,
+        SUBGHZ_APP_FILENAME_EXTENSION,
+        path,
+        sizeof(file));
+    strlcpy(file, furi_string_get_cstr(path), sizeof(file));
+    furi_string_printf(
+        path, "%s/%s%s", SUBGHZ_WARDR_APP_FOLDER "/autosaved", file, SUBGHZ_APP_FILENAME_EXTENSION);
+    furi_record_close(RECORD_STORAGE);
+    subghz_save_protocol_to_file(subghz, snapshot.data, furi_string_get_cstr(path));
+    furi_string_free(path);
+    subghz_wardriving_history_release_autosave(subghz->history, &snapshot);
+    return true;
 }

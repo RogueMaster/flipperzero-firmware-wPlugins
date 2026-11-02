@@ -131,3 +131,6 @@ SubGhzRxKeyState subghz_rx_key_state_get(SubGhz* subghz);
 
 extern const NotificationSequence subghz_sequence_rx;
 extern const NotificationSequence subghz_sequence_rx_locked;
+
+/** Write one retained autosave payload on the dispatcher thread. */
+bool subghz_wardriving_autosave_one(SubGhz* subghz);

@@ -130,7 +130,14 @@ This software is for experimental purposes only and is not meant for any illegal
 - SubGHz: [KeeLoq mode 7 counter-pair pack and on-demand encoder buffer (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/06ff65aa410acca47dc44ef14dacac9af0d7e6ad)
 - SubGHz: [Encoder buffer bounds for CAME Atomo, Dooya, Power Smart and Somfy (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/6197941a067ff67864b521bcf33bae2d27bb64be)
 - SubGHz: [Allocate BinRAW capture buffers on demand and fix receiver deletion bounds (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/1804b3982b39d3d839b8dccce5959a46be736be5)
-- Updated: [Sub-GHz WarDriving v0.2 (By xMasterX)](https://github.com/xMasterX/all-the-plugins) [Heap reservations, history deduplication and menu bounds (By xMasterX)](https://github.com/xMasterX/all-the-plugins/commit/46b1fcad7cdeb9031b98912bfaeb080c6c61c270)
+- Added: [Clock LED v1.0 (RGB LED RTC Clock) (By TONYIVCZ1)](https://github.com/TONYIVCZ1/tiv_led_hodiny)
+- Added: [DropDetect Live v0.1 (By TheRealLuro)](https://github.com/TheRealLuro/Flipper-zero-drop-detector.-) `Req: ICM42688P IMU`
+- Added: [SH1106 Test v0.5 (By gbhobbytech & martinbogo)](https://github.com/gbhobbytech/ssd1306_test) `Req: SH1106 OLED`
+- SubGHz: [Receiver memory reservations and fragmentation-aware history/TX checks (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/1804b3982b39d3d839b8dccce5959a46be736be5) Adapted for extended history with live history/menu growth checks; GPS, repeater, long hashes and RAW safeguards retained.
+- Updated: [Sub-GHz WarDriving v0.2 - defer autosave SD writes off the decoder callback (By xMasterX)](https://github.com/xMasterX/all-the-plugins/commit/46b1fcad7cdeb9031b98912bfaeb080c6c61c270) [Heap reservations, history deduplication and menu bounds (By xMasterX)](https://github.com/xMasterX/all-the-plugins/commit/46b1fcad7cdeb9031b98912bfaeb080c6c61c270) Retains queued payloads across row deletion/reset, bounds the backlog and drains it before exit.
+- Added: [Flipper Blinker v1.0 (By T3chieJack)](https://github.com/T3chieJack/FlipperBlinker) `Req: external LED on PC3`
+- Added: [U2F over NFC v1.0 (By asalde_le1)](https://github.com/asaldele1/u2f_over_nfc)
+- Updated: [Apps list return (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1195) — retain the browser while an app runs and return without rebuilding the list; suppress covered-browser scroll redraws while preserving RM JS Runner routing.
 
 <a name="release"></a>
 
@@ -543,6 +550,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Click Recorder v1.2 (By 0x78f1935)](https://github.com/0x78f1935/Click-Recorder)
 - [Clippy v0.1 (By mtormento)](https://github.com/mtormento/clippy)
 - [Clock v1.2 (By kowalski7cc)](https://github.com/kowalski7cc/flipperzero-firmware/tree/clock-v1)
+- [Clock LED v1.0 (RGB LED RTC Clock) (By TONYIVCZ1)](https://github.com/TONYIVCZ1/tiv_led_hodiny)
 - [Clock-o-Dial v1.1 (By ManeFunction)](https://github.com/ManeFunction/clock-o-dial--fz)
 - [CO2 Logger v0.4 (By harryob2)](https://github.com/harryob2/co2_logger) `Req: MH-Z19`
 - [Coach Watch v1.0 (By alaviation)](https://github.com/alaviation/flipper-coach-watch)
@@ -577,6 +585,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Distance Sensor v1.2 (By privet971)](https://github.com/privet971/FlipperZeroApps/tree/main/usping) `Req: Parallax (3 wires) SKU 28015`
 - [Doc Viewer Lite v0.1 (By C0d3-5t3w)](https://github.com/C0d3-5t3w/docviewlite)
 - [DroidBeacon v0.1 (By spandox2)](https://github.com/spandox2/droidbeacon)
+- [DropDetect Live v0.1 (By TheRealLuro)](https://github.com/TheRealLuro/Flipper-zero-drop-detector.-) `Req: ICM42688P IMU`
 - [DSTIKE Deauther v1.1 (By SequoiaSan)](https://github.com/SequoiaSan/FlipperZero-Wifi-ESP8266-Deauther-Module/tree/FlipperZero-Module-v2/FlipperZeroModule/FlipperZero-ESP8266-Deauth-App) `Req: ESP8266`
 - [DTMF Dolphin v1.5 (By litui)](https://github.com/litui/dtmf_dolphin)
 - [E220 LoRa Configurator v0.1 (By crackerjacques)](https://github.com/crackerjacques/Flipper_E220_Lora_Module_Configurator) `Req: E220-900T22S(JP)`
@@ -642,6 +651,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [FlipPass v3.0 (By Arckanos)](https://github.com/Arckanos/FlipPass)
 - [Flipper Aid v1.0 (By spaghety)](https://github.com/spaghety/flipper-aid)
 - [Flipper Blackhat v0.4.1 (By o7-machinehum)](https://github.com/o7-machinehum/flipper-blackhat-app) `Req: Blackhat Board` with [Blackhat OS](https://github.com/o7-machinehum/flipper-blackhat-os)
+- [Flipper Blinker v1.0 (By T3chieJack)](https://github.com/T3chieJack/FlipperBlinker) `Req: external LED on PC3`
 - [Flipper Elements v2.0 (By steanlab)](https://github.com/steanlab/flipper-elements)
 - [Flipper Lotto v1.0 (By molykima)](https://github.com/molykima/Flipper-Lottery-Number-Generator)
 - [Flipper Printer v1.0 (By alxcrt)](https://github.com/alxcrt/flipper-zero-thermal-printer) `Req: T7-US thermal printer module`
@@ -993,6 +1003,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Servo Tester+ v0.5 (By Enlighten Tech)](https://github.com/gbhobbytech/flipper-servo-tester)
 - [ServoTester (2) v0.2 (By mhasbini)](https://github.com/mhasbini/ServoTesterApp)
 - [Servotester v1.2 (By spin7ion)](https://github.com/spin7ion/flipper-servotester)
+- [SH1106 Test v0.5 (By gbhobbytech & martinbogo)](https://github.com/gbhobbytech/ssd1306_test) `Req: SH1106 OLED`
 - [ShapShup v1.2 (By derskythe)](https://github.com/derskythe/flipperzero-shapshup)
 - [SI4713 Tuner v0.1 (By rullinoiz)](https://github.com/rullinoiz/flipper-si4713) `Req: SI4713`
 - [Sig Diary WIP v0.1 (By C0d3-5t3w)](https://github.com/C0d3-5t3w/flipper-sigdiary)
@@ -1078,6 +1089,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Tuning Fork v2.0 (By besya)](https://github.com/besya/flipperzero-tuning-fork)
 - [TV Remote v1.2 (By jmanion0139)](https://github.com/jmanion0139/flipper_tv_remote)
 - [u-blox GPS v0.5 (By liamhays)](https://github.com/liamhays/ublox)
+- [U2F over NFC v1.0 (By asaldele1)](https://github.com/asaldele1/u2f_over_nfc)
 - [UART Echo (By DrZlo13)-OFW](https://github.com/flipperdevices/flipperzero-firmware/pull/831)
 - [UART Sniff v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
 - [UART Terminal v1.7 (By cool4uma)](https://github.com/cool4uma/UART_Terminal)

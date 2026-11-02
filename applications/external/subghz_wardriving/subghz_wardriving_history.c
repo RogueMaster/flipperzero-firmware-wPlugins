@@ -33,9 +33,18 @@
 
 #define TAG "SubGhzWarDrivingHistory"
 
+struct SubGhzWarDrivingHistoryData {
+    FlipperFormat* format;
+    uint16_t references;
+    bool save_pending;
+    SubGhzWarDrivingHistoryData* next_save;
+    const char* protocol_name;
+    DateTime datetime;
+};
+
 typedef struct {
     FuriString* item_str;
-    FlipperFormat* flipper_string;
+    SubGhzWarDrivingHistoryData* payload;
     uint16_t tx_block;
     uint8_t type;
     SubGhzRadioPreset* preset;
@@ -58,6 +67,10 @@ typedef struct {
 static void subghz_wardriving_history_tx_block_refresh(SubGhzHistory* instance);
 
 struct SubGhzHistory {
+    FuriMutex* mutex;
+    SubGhzWarDrivingHistoryData* autosave_head;
+    SubGhzWarDrivingHistoryData* autosave_tail;
+    uint16_t autosave_pending; // includes the one payload currently being written
     uint32_t last_update_timestamp;
     uint16_t last_index_write;
     uint32_t code_last_hash_data;
@@ -66,8 +79,29 @@ struct SubGhzHistory {
     SubGhzHistoryStruct* history;
 };
 
+void subghz_wardriving_history_lock(SubGhzHistory* instance) {
+    furi_check(furi_mutex_acquire(instance->mutex, FuriWaitForever) == FuriStatusOk);
+}
+
+void subghz_wardriving_history_unlock(SubGhzHistory* instance) {
+    furi_check(furi_mutex_release(instance->mutex) == FuriStatusOk);
+}
+
+// Called with the history mutex held. The row and at most one save own references.
+static void subghz_wardriving_history_data_release(SubGhzWarDrivingHistoryData* data) {
+    furi_check(data && data->references > 0);
+    if(--data->references == 0) {
+        flipper_format_free(data->format);
+        free(data);
+    }
+}
+
 SubGhzHistory* subghz_wardriving_history_alloc(void) {
     SubGhzHistory* instance = malloc(sizeof(SubGhzHistory));
+    instance->mutex = furi_mutex_alloc(FuriMutexTypeRecursive);
+    instance->autosave_head = NULL;
+    instance->autosave_tail = NULL;
+    instance->autosave_pending = 0;
     instance->tmp_string = furi_string_alloc();
     instance->history = malloc(sizeof(SubGhzHistoryStruct));
     SubGhzHistoryItemArray_init(instance->history->data);
@@ -77,17 +111,27 @@ SubGhzHistory* subghz_wardriving_history_alloc(void) {
 
 void subghz_wardriving_history_free(SubGhzHistory* instance) {
     furi_assert(instance);
+    subghz_wardriving_history_lock(instance);
+    while(instance->autosave_head) {
+        SubGhzWarDrivingHistoryData* data = instance->autosave_head;
+        instance->autosave_head = data->next_save;
+        instance->autosave_pending--;
+        subghz_wardriving_history_data_release(data);
+    }
+    furi_check(instance->autosave_pending == 0); // dispatcher has released its active write
     furi_string_free(instance->tmp_string);
     for
         M_EACH(item, instance->history->data, SubGhzHistoryItemArray_t) {
             furi_string_free(item->item_str);
             furi_string_free(item->preset->name);
             free(item->preset);
-            flipper_format_free(item->flipper_string);
+            subghz_wardriving_history_data_release(item->payload);
             item->type = 0;
         }
     SubGhzHistoryItemArray_clear(instance->history->data);
     free(instance->history);
+    subghz_wardriving_history_unlock(instance);
+    furi_mutex_free(instance->mutex);
     free(instance);
 }
 
@@ -143,13 +187,14 @@ float subghz_wardriving_history_get_longitude(SubGhzHistory* instance, uint16_t 
 
 void subghz_wardriving_history_reset(SubGhzHistory* instance) {
     furi_assert(instance);
+    subghz_wardriving_history_lock(instance);
     furi_string_reset(instance->tmp_string);
     for
         M_EACH(item, instance->history->data, SubGhzHistoryItemArray_t) {
             furi_string_free(item->item_str);
             furi_string_free(item->preset->name);
             free(item->preset);
-            flipper_format_free(item->flipper_string);
+            subghz_wardriving_history_data_release(item->payload);
             item->type = 0;
         }
     SubGhzHistoryItemArray_reset(instance->history->data);
@@ -157,17 +202,19 @@ void subghz_wardriving_history_reset(SubGhzHistory* instance) {
     instance->full = false;
     instance->last_index_write = 0;
     instance->code_last_hash_data = 0;
+    subghz_wardriving_history_unlock(instance);
 }
 
 void subghz_wardriving_history_delete_item(SubGhzHistory* instance, uint16_t idx) {
     furi_assert(instance);
+    subghz_wardriving_history_lock(instance);
 
     if(idx < SubGhzHistoryItemArray_size(instance->history->data)) {
         SubGhzHistoryItem* item = SubGhzHistoryItemArray_get(instance->history->data, idx);
         furi_string_free(item->item_str);
         furi_string_free(item->preset->name);
         free(item->preset);
-        flipper_format_free(item->flipper_string);
+        subghz_wardriving_history_data_release(item->payload);
         item->type = 0;
         SubGhzHistoryItemArray_remove_v(instance->history->data, idx, idx + 1);
         instance->last_index_write--;
@@ -175,6 +222,7 @@ void subghz_wardriving_history_delete_item(SubGhzHistory* instance, uint16_t idx
         instance->full = false;
         subghz_wardriving_history_tx_block_refresh(instance);
     }
+    subghz_wardriving_history_unlock(instance);
 }
 
 uint16_t subghz_wardriving_history_get_item(SubGhzHistory* instance) {
@@ -191,13 +239,13 @@ uint8_t subghz_wardriving_history_get_type_protocol(SubGhzHistory* instance, uin
 const char* subghz_wardriving_history_get_protocol_name(SubGhzHistory* instance, uint16_t idx) {
     furi_assert(instance);
     SubGhzHistoryItem* item = SubGhzHistoryItemArray_get(instance->history->data, idx);
-    if(!item || !item->flipper_string) {
+    if(!item || !item->payload->format) {
         FURI_LOG_E(TAG, "Missing Item");
         furi_string_reset(instance->tmp_string);
         return furi_string_get_cstr(instance->tmp_string);
     }
-    flipper_format_rewind(item->flipper_string);
-    if(!flipper_format_read_string(item->flipper_string, "Protocol", instance->tmp_string)) {
+    flipper_format_rewind(item->payload->format);
+    if(!flipper_format_read_string(item->payload->format, "Protocol", instance->tmp_string)) {
         FURI_LOG_E(TAG, "Missing Protocol get_protocol_name");
         furi_string_reset(instance->tmp_string);
     }
@@ -217,8 +265,8 @@ DateTime subghz_wardriving_history_get_datetime(SubGhzHistory* instance, uint16_
 FlipperFormat* subghz_wardriving_history_get_raw_data(SubGhzHistory* instance, uint16_t idx) {
     furi_assert(instance);
     SubGhzHistoryItem* item = SubGhzHistoryItemArray_get(instance->history->data, idx);
-    if(item->flipper_string) {
-        return item->flipper_string;
+    if(item->payload->format) {
+        return item->payload->format;
     } else {
         return NULL;
     }
@@ -265,10 +313,16 @@ bool subghz_wardriving_history_needs_heap(SubGhzHistory* instance, uint8_t type)
 
 bool subghz_wardriving_history_full(SubGhzHistory* instance, uint8_t type) {
     furi_assert(instance);
-    if(instance->last_index_write >= SUBGHZ_HISTORY_MAX) return true;
-    instance->full = !subghz_wardriving_history_has_room_for(
-        type, instance->full ? SUBGHZ_HISTORY_FULL_CLEAR_SLACK : 0);
-    return instance->full;
+    subghz_wardriving_history_lock(instance);
+    bool full = (instance->autosave_pending >= SUBGHZ_HISTORY_MAX) ||
+                (instance->last_index_write >= SUBGHZ_HISTORY_MAX);
+    if(!full) {
+        instance->full = !subghz_wardriving_history_has_room_for(
+            type, instance->full ? SUBGHZ_HISTORY_FULL_CLEAR_SLACK : 0);
+        full = instance->full;
+    }
+    subghz_wardriving_history_unlock(instance);
+    return full;
 }
 
 bool subghz_wardriving_history_get_text_space_left(
@@ -279,13 +333,21 @@ bool subghz_wardriving_history_get_text_space_left(
     uint8_t sats,
     uint8_t type) {
     furi_assert(instance);
+    subghz_wardriving_history_lock(instance);
+    if(subghz_wardriving_history_autosave_full(instance)) {
+        if(output != NULL) furi_string_set(output, "Autosave busy");
+        subghz_wardriving_history_unlock(instance);
+        return true;
+    }
     if(!ignore_full) {
         if(instance->last_index_write >= SUBGHZ_HISTORY_MAX) {
             if(output != NULL) furi_string_set(output, "History is FULL");
+            subghz_wardriving_history_unlock(instance);
             return true;
         }
         if(subghz_wardriving_history_full(instance, type)) {
             if(output != NULL) furi_string_set(output, "Memory is FULL");
+            subghz_wardriving_history_unlock(instance);
             return true;
         }
     }
@@ -296,6 +358,7 @@ bool subghz_wardriving_history_get_text_space_left(
             furi_string_printf(output, "%02u", instance->last_index_write);
         }
     }
+    subghz_wardriving_history_unlock(instance);
     return false;
 }
 
@@ -327,14 +390,19 @@ bool subghz_wardriving_history_add_to_history(
     float longitude) {
     furi_assert(instance);
     furi_assert(context);
+    subghz_wardriving_history_lock(instance);
 
     SubGhzProtocolDecoderBase* decoder_base = context;
-    if(subghz_wardriving_history_full(instance, decoder_base->protocol->type)) return false;
+    if(subghz_wardriving_history_full(instance, decoder_base->protocol->type)) {
+        subghz_wardriving_history_unlock(instance);
+        return false;
+    }
 
     uint32_t hash_data = subghz_protocol_decoder_base_get_hash_data(decoder_base);
     if((instance->code_last_hash_data == hash_data) &&
        ((furi_get_tick() - instance->last_update_timestamp) < 600)) {
         instance->last_update_timestamp = furi_get_tick();
+        subghz_wardriving_history_unlock(instance);
         return false;
     }
 
@@ -385,21 +453,25 @@ bool subghz_wardriving_history_add_to_history(
     item->longitude = longitude;
 
     item->item_str = furi_string_alloc();
-    item->flipper_string = flipper_format_string_alloc();
-    subghz_protocol_decoder_base_serialize(decoder_base, item->flipper_string, preset);
+    item->payload = malloc(sizeof(SubGhzWarDrivingHistoryData));
+    item->payload->references = 1;
+    item->payload->format = flipper_format_string_alloc();
+    item->payload->save_pending = false;
+    item->payload->next_save = NULL;
+    subghz_protocol_decoder_base_serialize(decoder_base, item->payload->format, preset);
 
     do {
-        if(!flipper_format_rewind(item->flipper_string)) {
+        if(!flipper_format_rewind(item->payload->format)) {
             FURI_LOG_E(TAG, "Rewind error");
             break;
         }
-        if(!flipper_format_read_string(item->flipper_string, "Protocol", instance->tmp_string)) {
+        if(!flipper_format_read_string(item->payload->format, "Protocol", instance->tmp_string)) {
             FURI_LOG_E(TAG, "Missing Protocol add_to_history");
             break;
         }
 
         // Rewind to line before Protocol
-        Stream* stream = flipper_format_get_raw_stream(item->flipper_string);
+        Stream* stream = flipper_format_get_raw_stream(item->payload->format);
         if(!stream_seek_to_char(stream, '\n', StreamDirectionBackward)) {
             FURI_LOG_E(TAG, "Seek 1 failed");
             break;
@@ -424,11 +496,13 @@ bool subghz_wardriving_history_add_to_history(
         decoder_base->protocol->decoder->get_string);
     decoder_base->protocol->decoder->get_string(decoder_base, item->item_str);
     instance->last_index_write++;
+    subghz_wardriving_history_unlock(instance);
     return true;
 }
 
 void subghz_wardriving_history_remove_duplicates(SubGhzHistory* instance) {
     furi_assert(instance);
+    subghz_wardriving_history_lock(instance);
 
     // Keep the newest occurrence of every signal. m-lib shifts down only what sits above
     // the removed slot, so deleting below the cursor keeps the lower indexes valid - but
@@ -450,4 +524,76 @@ void subghz_wardriving_history_remove_duplicates(SubGhzHistory* instance) {
             }
         }
     }
+    subghz_wardriving_history_unlock(instance);
+}
+
+bool subghz_wardriving_history_queue_autosave(SubGhzHistory* instance, uint16_t idx) {
+    bool queued = false;
+    subghz_wardriving_history_lock(instance);
+    if(idx < SubGhzHistoryItemArray_size(instance->history->data)) {
+        SubGhzHistoryItem* item = SubGhzHistoryItemArray_get(instance->history->data, idx);
+        SubGhzWarDrivingHistoryData* data = item->payload;
+        if(data->save_pending) {
+            queued = true;
+        } else if(instance->autosave_pending < SUBGHZ_HISTORY_MAX) {
+            data->references++;
+            data->save_pending = true;
+            data->protocol_name = item->protocol->name;
+            data->datetime = item->datetime;
+            data->next_save = NULL;
+            if(instance->autosave_tail)
+                instance->autosave_tail->next_save = data;
+            else
+                instance->autosave_head = data;
+            instance->autosave_tail = data;
+            instance->autosave_pending++;
+            queued = true;
+        }
+    }
+    subghz_wardriving_history_unlock(instance);
+    return queued;
+}
+
+bool subghz_wardriving_history_autosave_full(SubGhzHistory* instance) {
+    subghz_wardriving_history_lock(instance);
+    const bool full = instance->autosave_pending >= SUBGHZ_HISTORY_MAX;
+    subghz_wardriving_history_unlock(instance);
+    return full;
+}
+
+bool subghz_wardriving_history_take_autosave(
+    SubGhzHistory* instance,
+    SubGhzWarDrivingHistorySnapshot* snapshot) {
+    furi_assert(snapshot);
+    memset(snapshot, 0, sizeof(*snapshot));
+    subghz_wardriving_history_lock(instance);
+    SubGhzWarDrivingHistoryData* data = instance->autosave_head;
+    if(data) {
+        instance->autosave_head = data->next_save;
+        if(!instance->autosave_head) instance->autosave_tail = NULL;
+        data->next_save = NULL;
+        // Transfer the queue's reference to the active write. It still counts against
+        // the backlog bound until release, and is independent of the history row.
+        snapshot->owner = data;
+        snapshot->data = data->format;
+        snapshot->protocol_name = data->protocol_name;
+        snapshot->datetime = data->datetime;
+    }
+    subghz_wardriving_history_unlock(instance);
+    return snapshot->owner != NULL;
+}
+
+void subghz_wardriving_history_release_autosave(
+    SubGhzHistory* instance,
+    SubGhzWarDrivingHistorySnapshot* snapshot) {
+    furi_assert(snapshot);
+    subghz_wardriving_history_lock(instance);
+    if(snapshot->owner) {
+        snapshot->owner->save_pending = false;
+        furi_check(instance->autosave_pending > 0);
+        instance->autosave_pending--;
+        subghz_wardriving_history_data_release(snapshot->owner);
+    }
+    memset(snapshot, 0, sizeof(*snapshot));
+    subghz_wardriving_history_unlock(instance);
 }

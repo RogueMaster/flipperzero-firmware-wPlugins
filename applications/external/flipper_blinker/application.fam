@@ -1,0 +1,12 @@
+App(
+    appid="flipper_blinker",
+    name="Flipper Blinker",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="flipper_blinker_app",
+    fap_icon="flipper_blinker_10px.png",
+    fap_category="GPIO",
+    fap_author="T3chieJack",
+    fap_weburl="https://github.com/T3chieJack/FlipperBlinker",
+    fap_version="1.0",
+    fap_description="Transmit Morse code with an external LED on GPIO PC3",
+)

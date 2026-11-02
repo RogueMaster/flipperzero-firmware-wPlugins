@@ -13,6 +13,9 @@ everything the original does and adds:
   Grays, Reds, ... Browns & Beiges, then Basic colors and Custom hex), Up/Down
   move through its shades from light to dark, OK picks. The spool fills with a
   dot pattern that shows how light or dark the shade is.
+- **Templates** — save a spool you write again and again (e.g. Generic PLA,
+  Black, 1 kg); pick it from Templates in the main menu and write it with a
+  fresh serial in a couple of presses, then go straight on to the next tag.
 - **Retry** after a failed read, write, or erase, without starting over.
 - **Your saved tags come along** — on first run, saved tags and settings from
   the original CFS Tag Writer are copied over (the original keeps working).
