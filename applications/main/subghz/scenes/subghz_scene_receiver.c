@@ -51,12 +51,16 @@ static void subghz_scene_receiver_update_statusbar(void* context) {
     SubGhz* subghz = context;
     FuriString* history_stat_str = furi_string_alloc();
     bool show_sats = subghz->gps && furi_hal_rtc_get_timestamp() % 2;
-    if(!subghz_history_get_text_space_left(
-           subghz->history,
-           history_stat_str,
-           subghz->last_settings->delete_old_signals,
-           show_sats,
-           show_sats ? subghz->gps->satellites : 0)) {
+    subghz_history_set_menu_growth(
+        subghz->history, subghz_view_receiver_get_menu_growth(subghz->subghz_receiver));
+    subghz->history_full = subghz_history_get_text_space_left(
+        subghz->history,
+        history_stat_str,
+        subghz->last_settings->delete_old_signals,
+        show_sats,
+        show_sats ? subghz->gps->satellites : 0,
+        SubGhzProtocolTypeStatic);
+    if(!subghz->history_full) {
         FuriString* frequency_str = furi_string_alloc();
         FuriString* modulation_str = furi_string_alloc();
 
@@ -122,12 +126,42 @@ void repeater_stop_callback(void* context) {
     scene_manager_handle_custom_event(subghz->scene_manager, SubGhzCustomEventViewRepeaterStop);
 }
 
+static uint16_t subghz_scene_receiver_delete_old_signals(SubGhz* subghz, uint8_t type) {
+    uint16_t deleted = 0;
+    size_t widest = 0;
+    while((subghz_history_get_last_index(subghz->history) > 0) &&
+          subghz_history_is_full(subghz->history, type)) {
+        const size_t free_block = memmgr_heap_get_max_free_block();
+        if((deleted != 0) && (free_block <= widest) &&
+           !subghz_history_needs_heap(subghz->history, type)) {
+            break;
+        }
+        widest = free_block;
+        if(deleted == 0) {
+            subghz_view_receiver_disable_draw_callback(subghz->subghz_receiver);
+        }
+        subghz_history_delete_item(subghz->history, 0);
+        subghz_view_receiver_delete_item(subghz->subghz_receiver, 0);
+        deleted++;
+        subghz_history_set_menu_growth(
+            subghz->history, subghz_view_receiver_get_menu_growth(subghz->subghz_receiver));
+    }
+    if(deleted != 0) {
+        subghz_view_receiver_enable_draw_callback(subghz->subghz_receiver);
+        subghz_scene_receiver_update_statusbar(subghz);
+        subghz->idx_menu_chosen = subghz_view_receiver_get_idx_menu(subghz->subghz_receiver);
+    }
+    return deleted;
+}
+
 static void subghz_scene_add_to_history_callback(
     SubGhzReceiver* receiver,
     SubGhzProtocolDecoderBase* decoder_base,
     void* context) {
     furi_assert(context);
     SubGhz* subghz = context;
+    subghz_history_set_menu_growth(
+        subghz->history, subghz_view_receiver_get_menu_growth(subghz->subghz_receiver));
 
     SubGhzHistory* history = subghz->history;
     FuriString* item_name = furi_string_alloc();
@@ -143,21 +177,11 @@ static void subghz_scene_add_to_history_callback(
         preset.longitude = 0;
     }
 
-    if(subghz->last_settings->delete_old_signals && subghz_history_full(subghz->history)) {
-        subghz_view_receiver_disable_draw_callback(subghz->subghz_receiver);
-
-        while(idx > 0 && subghz_history_full(subghz->history)) {
-            subghz_history_delete_item(subghz->history, 0);
-            subghz_view_receiver_delete_item(subghz->subghz_receiver, 0);
-            idx--;
-        }
-
-        subghz_view_receiver_enable_draw_callback(subghz->subghz_receiver);
-        if(idx == 0) {
-            subghz_rx_key_state_set(subghz, SubGhzRxKeyStateStart);
-        }
-        subghz_scene_receiver_update_statusbar(subghz);
-        subghz->idx_menu_chosen = subghz_view_receiver_get_idx_menu(subghz->subghz_receiver);
+    if(subghz->last_settings->delete_old_signals) {
+        const uint16_t deleted =
+            subghz_scene_receiver_delete_old_signals(subghz, decoder_base->protocol->type);
+        idx -= deleted;
+        if(idx == 0) subghz_rx_key_state_set(subghz, SubGhzRxKeyStateStart);
     }
 
     if(subghz_history_add_to_history(
@@ -232,8 +256,7 @@ static void subghz_scene_add_to_history_callback(
             }
 
             subghz_scene_receiver_update_statusbar(subghz);
-            if(!subghz->last_settings->delete_old_signals &&
-               subghz_history_full(subghz->history)) {
+            if(!subghz->last_settings->delete_old_signals && subghz->history_full) {
                 subghz->state_notifications = SubGhzNotificationStateIDLE;
                 notification_message(subghz->notifications, &sequence_error);
             } else {
@@ -241,6 +264,12 @@ static void subghz_scene_add_to_history_callback(
             }
         }
         subghz_rx_key_state_set(subghz, SubGhzRxKeyStateAddKey);
+    } else if(
+        !subghz->last_settings->delete_old_signals &&
+        subghz_history_is_full(history, decoder_base->protocol->type)) {
+        subghz->state_notifications = SubGhzNotificationStateIDLE;
+        subghz_scene_receiver_update_statusbar(subghz);
+        notification_message(subghz->notifications, &sequence_error);
     }
     subghz_receiver_reset(receiver);
     furi_string_free(item_name);
@@ -296,7 +325,8 @@ void subghz_scene_receiver_on_enter(void* context) {
         subghz->subghz_receiver, subghz_scene_receiver_callback, subghz);
     subghz_txrx_set_rx_callback(subghz->txrx, subghz_scene_add_to_history_callback, subghz);
 
-    if(!subghz_history_full(subghz->history)) {
+    subghz_scene_receiver_update_statusbar(subghz);
+    if(!subghz->history_full) {
         subghz->state_notifications = SubGhzNotificationStateRx;
     } else {
         subghz->state_notifications = SubGhzNotificationStateIDLE;

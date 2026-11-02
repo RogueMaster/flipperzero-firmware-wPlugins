@@ -574,21 +574,6 @@ static void test_keygen(void) {
     keyfmt_sniff(rig.blob, rig.blob_len, &ki, scratch, sizeof(scratch));
     TT_CHECK(ki.encrypted);
     TT_EQ_INT(ki.bits, 256);
-
-    /* migration: nothing to export, then a v0 key */
-    int errors = rig.errors;
-    TT_CHECK(rig.b.ops->key_legacy_export(rig.b.self));
-    run_for(100);
-    TT_EQ_INT(rig.errors, errors + 1);
-    mock_backend_set_legacy(&rig.b, true);
-    rig.blob_len = 0;
-    TT_CHECK(rig.b.ops->key_legacy_export(rig.b.self));
-    run_for(500);
-    TT_CHECK(rig.blob_len > 0);
-    TT_CHECK(rig.b.ops->key_legacy_delete(
-        rig.b.self, proto_crc32((const uint8_t*)rig.blob, rig.blob_len, 0)));
-    run_for(100);
-    TT_CHECK(!rig.b.ops->key_legacy_delete(rig.b.self, 0));
 }
 
 /* An encrypted key asks for its passphrase before the connection, re-asks after a

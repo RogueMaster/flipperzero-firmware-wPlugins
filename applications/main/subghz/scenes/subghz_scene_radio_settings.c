@@ -125,6 +125,15 @@ static void subghz_scene_receiver_config_set_debug_pin(VariableItem* item) {
     subghz_txrx_set_debug_pin_state(subghz->txrx, index == 1);
 }
 
+static void subghz_scene_receiver_config_set_ext_amp_leds_control(VariableItem* item) {
+    SubGhz* subghz = variable_item_get_context(item);
+    const uint8_t index = variable_item_get_current_value_index(item);
+    variable_item_set_current_value_text(item, on_off_text[index]);
+    subghz->last_settings->leds_and_amp = index == 1;
+    subghz_txrx_set_ext_leds_and_amp(subghz->txrx, subghz->last_settings->leds_and_amp);
+    subghz_last_settings_save(subghz->last_settings);
+}
+
 static void subghz_scene_receiver_config_set_debug_counter(VariableItem* item) {
     uint8_t index = variable_item_get_current_value_index(item);
 
@@ -253,6 +262,18 @@ void subghz_scene_radio_settings_on_enter(void* context) {
 
     variable_item_set_current_value_index(item, value_index);
     variable_item_set_current_value_text(item, debug_counter_text[value_index]);
+
+    if(furi_hal_rtc_is_flag_set(FuriHalRtcFlagDebug)) {
+        item = variable_item_list_add(
+            variable_item_list,
+            "Ext Amp & LEDs",
+            ON_OFF_COUNT,
+            subghz_scene_receiver_config_set_ext_amp_leds_control,
+            subghz);
+        value_index = subghz->last_settings->leds_and_amp ? 1 : 0;
+        variable_item_set_current_value_index(item, value_index);
+        variable_item_set_current_value_text(item, on_off_text[value_index]);
+    }
 
     item = variable_item_list_add(
         variable_item_list,

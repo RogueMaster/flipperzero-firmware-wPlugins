@@ -4,15 +4,12 @@
 
 #include <furi.h>
 
-#define SUBGHZ_HISTORY_MAX       65535 // uint16_t index max, ram limit below
-// #define SUBGHZ_HISTORY_FREE_HEAP (23624 * (1 - MIN(rpc_get_sessions_count(instance->rpc), 1U)))
-#define SUBGHZ_HISTORY_FREE_HEAP (8 * 1024)
-
 #define TAG "SubGhzHistory"
 
 typedef struct {
     FuriString* item_str;
     FlipperFormat* flipper_string;
+    uint16_t tx_block;
     uint8_t type;
     SubGhzRadioPreset* preset;
     DateTime datetime;
@@ -31,11 +28,15 @@ typedef struct {
     SubGhzHistoryItemArray_t data;
 } SubGhzHistoryStruct;
 
+static void subghz_history_tx_block_refresh(SubGhzHistory* instance);
+
 struct SubGhzHistory {
     uint32_t last_update_air_time;
     uint16_t last_index_write;
     uint32_t code_last_hash_data;
     bool code_last_hash_data_set;
+    bool full;
+    size_t menu_growth;
     FuriString* tmp_string;
     SubGhzHistoryStruct* history;
     Rpc* rpc;
@@ -47,6 +48,8 @@ SubGhzHistory* subghz_history_alloc(void) {
     instance->history = malloc(sizeof(SubGhzHistoryStruct));
     SubGhzHistoryItemArray_init(instance->history->data);
     instance->rpc = furi_record_open(RECORD_RPC);
+    instance->full = false;
+    instance->menu_growth = 0;
     return instance;
 }
 
@@ -127,6 +130,9 @@ void subghz_history_reset(SubGhzHistory* instance) {
             item->type = 0;
         }
     SubGhzHistoryItemArray_reset(instance->history->data);
+    subghz_txrx_tx_block_reserve(SUBGHZ_TX_MIN_FREE_BLOCK_DEFAULT);
+    instance->full = false;
+    instance->menu_growth = 0;
     instance->last_index_write = 0;
     instance->code_last_hash_data = 0;
     instance->code_last_hash_data_set = false;
@@ -145,6 +151,8 @@ void subghz_history_delete_item(SubGhzHistory* instance, uint16_t idx) {
         item->type = 0;
         SubGhzHistoryItemArray_remove_v(instance->history->data, idx, idx + 1);
         instance->last_index_write--;
+        instance->full = false;
+        subghz_history_tx_block_refresh(instance);
     }
 }
 
@@ -194,22 +202,71 @@ FlipperFormat* subghz_history_get_raw_data(SubGhzHistory* instance, uint16_t idx
         return NULL;
     }
 }
+static void subghz_history_tx_block_refresh(SubGhzHistory* instance) {
+    size_t need = 0;
+    for(size_t i = 0; i < SubGhzHistoryItemArray_size(instance->history->data); i++) {
+        const uint16_t item_need =
+            SubGhzHistoryItemArray_get(instance->history->data, i)->tx_block;
+        if(item_need > need) need = item_need;
+    }
+    subghz_txrx_tx_block_reserve((need != 0) ? need : SUBGHZ_TX_MIN_FREE_BLOCK_DEFAULT);
+}
+
+void subghz_history_set_menu_growth(SubGhzHistory* instance, size_t bytes) {
+    furi_assert(instance);
+    instance->menu_growth = bytes;
+}
+
+static size_t subghz_history_growth_bytes(SubGhzHistory* instance) {
+    const size_t size = SubGhzHistoryItemArray_size(instance->history->data);
+    const size_t capacity = SubGhzHistoryItemArray_capacity(instance->history->data);
+    return (size >= capacity) ? M_INC_ALLOC_DEFAULT(capacity) * sizeof(SubGhzHistoryItem) : 0;
+}
+
+static size_t subghz_history_heap_need(SubGhzHistory* instance, uint8_t type) {
+    const size_t reserve = (type == SubGhzProtocolTypeBinRAW) ? SUBGHZ_HISTORY_RESERVE_RAW :
+                                                                SUBGHZ_HISTORY_RESERVE_ITEM;
+    // m-lib realloc keeps the old array live while allocating the complete new array.
+    return reserve + subghz_history_growth_bytes(instance) + instance->menu_growth;
+}
+
+static bool subghz_history_has_room_for(SubGhzHistory* instance, uint8_t type, size_t slack) {
+    size_t block = (type == SubGhzProtocolTypeBinRAW) ? SUBGHZ_HISTORY_BLOCK_RAW :
+                                                        SUBGHZ_HISTORY_BLOCK_ITEM;
+    if(subghz_history_growth_bytes(instance) || instance->menu_growth) {
+        // Both arrays can grow on the same capture. Their replacement buffers and the
+        // new record must fit before either old array is released, even on a fragmented
+        // heap; checking only the largest individual allocation would miss that peak.
+        block = subghz_history_heap_need(instance, type);
+    }
+    return (memmgr_get_free_heap() >= subghz_history_heap_need(instance, type) + slack) &&
+           (memmgr_heap_get_max_free_block() >= block + slack + SUBGHZ_HISTORY_BLOCK_OVERHEAD);
+}
+
+bool subghz_history_is_full(SubGhzHistory* instance, uint8_t type) {
+    furi_assert(instance);
+    if(instance->last_index_write >= SUBGHZ_HISTORY_CAPACITY) return true;
+    instance->full = !subghz_history_has_room_for(
+        instance, type, instance->full ? SUBGHZ_HISTORY_FULL_CLEAR_SLACK : 0);
+    return instance->full;
+}
+
+bool subghz_history_needs_heap(SubGhzHistory* instance, uint8_t type) {
+    furi_assert(instance);
+    return memmgr_get_free_heap() < subghz_history_heap_need(instance, type);
+}
+
 bool subghz_history_get_text_space_left(
     SubGhzHistory* instance,
     FuriString* output,
     bool ignore_full,
     bool show_sats,
-    uint8_t sats) {
+    uint8_t sats,
+    uint8_t type) {
     furi_assert(instance);
-    if(!ignore_full) {
-        if(memmgr_get_free_heap() < SUBGHZ_HISTORY_FREE_HEAP) {
-            if(output != NULL) furi_string_set(output, "RAM almost FULL");
-            return true;
-        }
-        if(instance->last_index_write == SUBGHZ_HISTORY_MAX) {
-            if(output != NULL) furi_string_set(output, "History is FULL");
-            return true;
-        }
+    if(!ignore_full && subghz_history_is_full(instance, type)) {
+        if(output != NULL) furi_string_set(output, "Memory is FULL");
+        return true;
     }
     if(output != NULL) {
         if(show_sats) {
@@ -243,9 +300,8 @@ bool subghz_history_add_to_history(
     furi_assert(instance);
     furi_assert(context);
 
-    if(subghz_history_full(instance)) return false;
-
     SubGhzProtocolDecoderBase* decoder_base = context;
+    if(subghz_history_is_full(instance, decoder_base->protocol->type)) return false;
     uint32_t code_hash_data = subghz_protocol_decoder_base_get_hash_data_long(decoder_base);
     //the "have we seen anything at all" flag matters: without it a signal whose hash is
     //zero would match the value the filter starts out with and never reach the history
@@ -260,6 +316,16 @@ bool subghz_history_add_to_history(
        ((air_time - instance->last_update_air_time) < 500)) {
         instance->last_update_air_time = air_time;
         return false;
+    }
+
+    const size_t tx_block = subghz_txrx_tx_block_need(decoder_base->protocol->name);
+    const size_t held = subghz_txrx_tx_block_size();
+    // Growing a transmit reservation must not consume the incoming record's budget.
+    if((tx_block > held) &&
+       (memmgr_get_free_heap() + held >=
+        tx_block + subghz_history_heap_need(instance, decoder_base->protocol->type) +
+            SUBGHZ_TX_BLOCK_OVERHEAD)) {
+        subghz_txrx_tx_block_reserve(tx_block);
     }
 
     uint16_t repeats = 0;
@@ -281,6 +347,7 @@ bool subghz_history_add_to_history(
     SubGhzHistoryItem* item = SubGhzHistoryItemArray_push_raw(instance->history->data);
     item->preset = malloc(sizeof(SubGhzRadioPreset));
     item->type = decoder_base->protocol->type;
+    item->tx_block = (uint16_t)tx_block;
     // if(decoder_base->protocol->filter & SubGhzProtocolFilter_Weather) {
     //     // Other code uses protocol type to check if signal is usable
     //     // so we can't change the actual protocol type, we fake it here
@@ -390,7 +457,5 @@ void subghz_history_remove_duplicates(SubGhzHistory* instance) {
 }
 
 bool subghz_history_full(SubGhzHistory* instance) {
-    if(memmgr_get_free_heap() < SUBGHZ_HISTORY_FREE_HEAP) return true;
-    if(instance->last_index_write >= SUBGHZ_HISTORY_MAX) return true;
-    return false;
+    return subghz_history_is_full(instance, SubGhzProtocolTypeStatic);
 }

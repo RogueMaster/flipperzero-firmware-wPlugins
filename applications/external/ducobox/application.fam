@@ -1,0 +1,15 @@
+App(
+    appid="ducobox",
+    name="Ducobox Ventilation",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="ducobox_app",
+    stack_size=4 * 1024,
+    sources=["ducobox_app.c", "duco_radio.c"],
+    fap_icon="ducobox.png",
+    targets=["f7"],
+    fap_category="Sub-GHz",
+    fap_author="Martin Elsner",
+    fap_weburl="https://github.com/martinelsner/flipper-zero-ducobox",
+    fap_version="0.1",
+    fap_description="Control a Ducobox ventilation unit with your Flipper Zero.",
+)

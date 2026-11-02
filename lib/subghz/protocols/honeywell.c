@@ -60,7 +60,7 @@ const SubGhzProtocolDecoder subghz_protocol_honeywell_decoder = {
     .feed = subghz_protocol_decoder_honeywell_feed,
     .reset = subghz_protocol_decoder_honeywell_reset,
     .get_hash_data = NULL,
-    .get_hash_data_long = subghz_protocol_decoder_honeywell_get_hash_data,
+    .get_hash_data_long = subghz_protocol_decoder_common_get_hash_data,
     .serialize = subghz_protocol_decoder_common_serialize,
     .deserialize = subghz_protocol_decoder_honeywell_deserialize,
     .get_string = subghz_protocol_decoder_honeywell_get_string,
@@ -311,22 +311,6 @@ static void subghz_protocol_decoder_honeywell_addbit(void* context, bool data) {
         instance->decoder.decode_count_bit = 0;
         return;
     }
-}
-
-uint32_t subghz_protocol_decoder_honeywell_get_hash_data(void* context) {
-    furi_assert(context);
-    SubGhzProtocolDecoderHoneywell* instance = context;
-    return subghz_protocol_blocks_get_hash_data_long(
-        &instance->decoder, (instance->decoder.decode_count_bit / 8) + 1);
-}
-
-SubGhzProtocolStatus subghz_protocol_decoder_honeywell_serialize(
-    void* context,
-    FlipperFormat* flipper_format,
-    SubGhzRadioPreset* preset) {
-    furi_assert(context);
-    SubGhzProtocolDecoderHoneywell* instance = context;
-    return subghz_block_generic_serialize(&instance->generic, flipper_format, preset);
 }
 
 SubGhzProtocolStatus

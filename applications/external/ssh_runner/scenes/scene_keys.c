@@ -19,7 +19,7 @@ static void key_in_free(SshRunnerApp* app) {
 }
 
 void keys_on_blob(SshRunnerApp* app, const BackendKeyBlob* b) {
-    if(app->key_job != KeyJobGenerate && app->key_job != KeyJobMigrate) return;
+    if(app->key_job != KeyJobGenerate) return;
     key_in_free(app);
     app->key_in = malloc(b->len);
     memcpy(app->key_in, b->data, b->len);
@@ -60,7 +60,6 @@ static void key_pub_store(SshRunnerApp* app, const BackendKeyPub* k) {
     if(job == KeyJobNone) return;
     if(k->status) {
         job_fail(app, k->line && k->len ? k->line : "Key operation failed");
-        if(job == KeyJobMigrate) FURI_LOG_W(TAG, "migration: %s", app->key_job_msg);
         app->key_job = job == KeyJobConnectPub ? KeyJobNone : job;
         return;
     }
@@ -80,46 +79,11 @@ static void key_pub_store(SshRunnerApp* app, const BackendKeyPub* k) {
             app->settings.default_key, sizeof(app->settings.default_key), "%s", app->key_name);
         store_save_settings(app);
     }
-    if(job == KeyJobMigrate) {
-        /* the file is on the card and verified: only now may the ESP32 drop its copy */
-        app->backend.ops->key_legacy_delete(app->backend.self, app->key_blob_crc);
-        FURI_LOG_I(TAG, "ESP32 key moved to keys/%s", app->key_name);
-        app->key_job = KeyJobNone;
-    }
     keys_load(app);
-}
-
-void keys_on_link_up(SshRunnerApp* app) {
-    if(!app->migrate_asked) app->migrate_due = true;
-}
-
-/* A link that drops while the v0 key's export is still unanswered loses the request with it
- * (the backend empties its queue, e.g. when the first baud switch fails): ask again on the
- * next link-up. Not once the key file is on the card: that would make a second copy. */
-void keys_on_link_down(SshRunnerApp* app) {
-    if(app->key_job != KeyJobMigrate || app->key_blob_ok) return;
-    key_in_free(app);
-    app->key_job = KeyJobNone;
-    app->migrate_asked = false;
-}
-
-static void migrate_start(SshRunnerApp* app) {
-    app->migrate_due = false;
-    if(app->migrate_asked || app->key_job != KeyJobNone) return;
-    app->migrate_asked = true;
-    keys_load(app);
-    if(!app->keys ||
-       !key_name_next(app->keys, "flipper", '-', 1, app->key_name, sizeof(app->key_name)))
-        return;
-    app->key_job = KeyJobMigrate;
-    app->key_blob_ok = false;
-    app->key_job_failed = false;
-    if(!app->backend.ops->key_legacy_export(app->backend.self)) app->key_job = KeyJobNone;
 }
 
 uint32_t keys_process(SshRunnerApp* app) {
     uint32_t chg = 0;
-    if(app->migrate_due) migrate_start(app);
     if(app->key_in) key_blob_store(app);
     if(app->key_in_pub_due) {
         app->key_in_pub_due = false;

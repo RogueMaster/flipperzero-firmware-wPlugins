@@ -44,7 +44,6 @@ NB(nb_hk_list, const char*, p)
 NB(nb_link_test, uint32_t, f)
 NB(nb_key_gen, const ProtoKeyGen*, g)
 NB(nb_key_pp, const ProtoKeyPassphrase*, k)
-NB(nb_legacy_delete, uint32_t, crc)
 NB(nb_sec_enable, const char*, w)
 static bool
     nb_connect_key(void* s, const ProtoSshConnect* c, uint32_t t, BackendScriptRead r, void* x) {
@@ -96,8 +95,6 @@ static const BackendOps nb_ops = {
     .cancel = nb_false,
     .disconnect = nb_false,
     .key_gen = nb_key_gen,
-    .key_legacy_export = nb_false,
-    .key_legacy_delete = nb_legacy_delete,
     .hostkey_list = nb_hk_list,
     .hostkey_delete = nb_hk_delete,
     .secret_forget = nb_forget,

@@ -1075,28 +1075,6 @@ static void w_keys(void) {
     exit_app();
 }
 
-/* Key migration: the v0 ESP32 key lands in keys/ as "flipper" without a word. */
-static void w_migrate(void) {
-    wait_ms(1500);
-    press(DOWN, 4); /* Keys */
-    press(OK, 1);
-    wait_ms(300);
-    shot("k27-keys-migrated");
-    press(DOWN, 1);
-    press(OK, 1);
-    shot("k28-key-card-migrated");
-    exit_app();
-}
-
-/* The export goes down with the link (the first baud switch failed): the next link-up asks
- * again, so the key still lands in keys/. */
-static void w_migrate_relink(void) {
-    wait_ms(2500);
-    if(!fake_fs_exists("/ext/apps_data/ssh_runner/keys/flipper-1"))
-        FAIL("v0 key not migrated after the link came back");
-    exit_app();
-}
-
 /* The keyboard's Shift key (in place of '%'): once for the next key, twice for caps lock,
  * letters drawn in upper case while it is on. */
 static void w_kbd_shift(void) {
@@ -1524,11 +1502,6 @@ int main(void) {
     run("fleet", w_fleet);
     run("network", w_network);
     run("keys", w_keys);
-    mock_backend_legacy_next(true); /* the board still holds a v0 key */
-    run("migrate", w_migrate);
-    mock_backend_legacy_next(true); /* another v0 key: it becomes keys/flipper-1 */
-    mock_backend_export_lost_next(true);
-    run("migrate_relink", w_migrate_relink);
     mem_base = __sanitizer_get_current_allocated_bytes();
     run("memory", w_memory);
     run("failure", w_failure);

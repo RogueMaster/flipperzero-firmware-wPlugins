@@ -349,7 +349,7 @@ bool profile_from_text(char* text, HostProfile* p) {
     /* Unknown enum values fall back to safe defaults rather than rejecting the file. */
     (void)auth_parse(ffkv_get(&kv, "Auth"), &p->auth);
     if(p->auth == ProfileAuthKey) {
-        /* v0 "Auth: key" (the ESP32's one key) = the default key, which migration made it */
+        /* "Auth: key" without a valid Key: (as v0 wrote it) = the default key */
         const char* key = ffkv_get(&kv, "Key");
         if(key && strlen(key) <= KEY_NAME_MAX && key_name_valid(key))
             copy(p->key, sizeof(p->key), key);

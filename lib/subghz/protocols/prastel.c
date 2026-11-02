@@ -51,6 +51,7 @@ struct SubGhzProtocolDecoderPrastel {
     SubGhzBlockDecoder decoder;
     SubGhzBlockGeneric generic;
 };
+SUBGHZ_ASSERT_DECODER_COMMON_LAYOUT(SubGhzProtocolDecoderPrastel);
 
 struct SubGhzProtocolEncoderPrastel {
     SubGhzProtocolEncoderBase base;
@@ -58,6 +59,7 @@ struct SubGhzProtocolEncoderPrastel {
     SubGhzProtocolBlockEncoder encoder;
     SubGhzBlockGeneric generic;
 };
+SUBGHZ_ASSERT_ENCODER_GENERIC_LAYOUT(SubGhzProtocolEncoderPrastel);
 
 typedef enum {
     PrastelDecoderStepReset = 0,
@@ -380,14 +382,8 @@ static uint8_t subghz_protocol_prastel_get_btn_code(void) {
 
 void* subghz_protocol_encoder_prastel_alloc(SubGhzEnvironment* environment) {
     UNUSED(environment);
-    SubGhzProtocolEncoderPrastel* instance = malloc(sizeof(SubGhzProtocolEncoderPrastel));
-    instance->base.protocol = &subghz_protocol_prastel;
-    instance->generic.protocol_name = instance->base.protocol->name;
-    instance->encoder.repeat = 3;
-    instance->encoder.size_upload = 128;
-    instance->encoder.upload = malloc(instance->encoder.size_upload * sizeof(LevelDuration));
-    instance->encoder.is_running = false;
-    return instance;
+    return subghz_protocol_encoder_common_alloc(
+        sizeof(SubGhzProtocolEncoderPrastel), &subghz_protocol_prastel, 3, 128);
 }
 
 /**
@@ -499,10 +495,8 @@ SubGhzProtocolStatus
 
 void* subghz_protocol_decoder_prastel_alloc(SubGhzEnvironment* environment) {
     UNUSED(environment);
-    SubGhzProtocolDecoderPrastel* instance = malloc(sizeof(SubGhzProtocolDecoderPrastel));
-    instance->base.protocol = &subghz_protocol_prastel;
-    instance->generic.protocol_name = instance->base.protocol->name;
-    return instance;
+    return subghz_protocol_decoder_common_alloc(
+        sizeof(SubGhzProtocolDecoderPrastel), &subghz_protocol_prastel);
 }
 
 void subghz_protocol_decoder_prastel_feed(void* context, bool level, uint32_t duration) {

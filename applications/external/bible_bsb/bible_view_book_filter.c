@@ -11,7 +11,7 @@
 #define BOOK_FILTER_CELL_W           25
 #define BOOK_FILTER_CELL_H           14
 #define BOOK_FILTER_MAX_VISIBLE_ROWS 3
-#define BOOK_FILTER_OPTIONS          22
+#define BOOK_FILTER_OPTIONS          BIBLE_FILTER_COUNT
 
 /* ============================================================================
  * BookFilter view — draw callback
@@ -134,7 +134,9 @@ bool bible_bsb_view_book_filter_input(InputEvent* event, void* ctx) {
         consumed = true;
 
     } else if(event->key == InputKeyOk && event->type == InputTypeShort) {
-        /* OK Short: apply filter and return to BookList (directional confirm) */
+        /* OK Short: apply filter and return to flat BookList */
+        state->genre_mode_enabled = false;
+        state->browse_depth = 0;
         uint8_t filtered[BIBLE_BOOK_COUNT];
         uint8_t filtered_count = get_filtered_books(state->book_filter_idx, filtered);
         if(filtered_count > 0) {

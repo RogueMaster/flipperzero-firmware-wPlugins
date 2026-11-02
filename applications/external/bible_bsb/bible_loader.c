@@ -268,15 +268,20 @@ static BibleFileStatus bible_read_chapter_file(
  * Only ONE verse's text is in memory at a time.
  * ============================================================================ */
 
+typedef void (*BibleHeadingCallback)(uint16_t verse_num, const char* heading, void* ctx);
+
 static bool bible_scan_verses_from_json(
     const char* json,
     size_t json_len,
     uint16_t start_verse,
     uint16_t end_verse,
     BibleVerseCallback callback,
-    void* ctx) {
+    BibleHeadingCallback heading_cb,
+    void* ctx,
+    uint16_t* out_max_verse) {
     const char* p = json;
     uint16_t count = 0;
+    uint16_t max_verse = 0;
 
     while(*p != '\0') {
         /* Look for "n": */
@@ -293,11 +298,41 @@ static bool bible_scan_verses_from_json(
                 verse_num = verse_num * 10 + (*p - '0');
                 p++;
             }
+            if(verse_num > max_verse) {
+                max_verse = verse_num;
+            }
 
-            /* Look for "t":" */
+            static char heading_buf[128];
+            heading_buf[0] = '\0';
+
+            /* Look for optional "h":" and required "t":" */
             while(*p != '\0') {
                 offset = (size_t)(p - json);
                 if(offset + 5 > json_len) break;
+
+                if(*p == '"' && *(p + 1) == 'h' && *(p + 2) == '"' && *(p + 3) == ':' &&
+                   *(p + 4) == '"') {
+                    p += 5;
+                    size_t h_len = 0;
+                    bool h_esc = false;
+                    while(*p != '\0' && h_len < sizeof(heading_buf) - 1) {
+                        if(h_esc) {
+                            heading_buf[h_len++] = *p;
+                            h_esc = false;
+                        } else if(*p == '\\') {
+                            h_esc = true;
+                        } else if(*p == '"') {
+                            break;
+                        } else {
+                            heading_buf[h_len++] = *p;
+                        }
+                        p++;
+                    }
+                    heading_buf[h_len] = '\0';
+                    bible_sanitize_text(heading_buf, sizeof(heading_buf) - 1);
+                    if(*p == '"') p++;
+                    continue;
+                }
 
                 if(*p == '"' && *(p + 1) == 't' && *(p + 2) == '"' && *(p + 3) == ':' &&
                    *(p + 4) == '"') {
@@ -332,9 +367,13 @@ static bool bible_scan_verses_from_json(
                     text_buf[text_len] = '\0';
                     /* Apply verse range filter */
                     if(start_verse == 0 || (verse_num >= start_verse && verse_num <= end_verse)) {
+                        if(heading_cb && heading_buf[0] != '\0') {
+                            heading_cb(verse_num, heading_buf, ctx);
+                        }
                         bible_sanitize_text(text_buf, sizeof(text_buf) - 1);
                         count++;
                         if(!callback(verse_num, text_buf, ctx)) {
+                            if(out_max_verse) *out_max_verse = max_verse;
                             return true; /* caller requested early stop */
                         }
                     }
@@ -347,6 +386,7 @@ static bool bible_scan_verses_from_json(
         }
     }
 
+    if(out_max_verse) *out_max_verse = max_verse;
     return count > 0;
 }
 
@@ -359,6 +399,17 @@ typedef struct {
     bool oom;
 } WrapContext;
 
+static void bible_heading_callback(uint16_t verse_num, const char* heading, void* ctx) {
+    WrapContext* wctx = (WrapContext*)ctx;
+    BibleAppState* state = wctx->state;
+
+    if(state->passage.section_count < BIBLE_MAX_CHAPTER_SECTIONS) {
+        BibleSectionHeading* sec = &state->passage.sections[state->passage.section_count++];
+        sec->start_verse = verse_num;
+        strlcpy(sec->title, heading, sizeof(sec->title));
+    }
+}
+
 static bool bible_wrap_callback(uint16_t verse_num, const char* text, void* ctx) {
     WrapContext* wctx = (WrapContext*)ctx;
     BibleAppState* state = wctx->state;
@@ -368,6 +419,7 @@ static bool bible_wrap_callback(uint16_t verse_num, const char* text, void* ctx)
     if(!state->lines || state->line_count >= state->lines_capacity) {
         return false;
     }
+
     bible_word_wrap(
         text,
         verse_num,
@@ -422,12 +474,22 @@ bool bible_load_chapter(
      * so a retry does not need a fresh contiguous block. */
     state->line_count = 0;
     memset(&state->passage, 0, sizeof(BiblePassage));
+    state->header_scroll_ticks = 0;
+    state->header_scroll_key = NULL;
 
     WrapContext ctx = {.state = state, .oom = false};
+    uint16_t max_verse = 0;
 
     /* Scan verses and wrap each one into lines immediately */
     bool ok = bible_scan_verses_from_json(
-        (const char*)buf, total, start_verse, end_verse, bible_wrap_callback, &ctx);
+        (const char*)buf,
+        total,
+        start_verse,
+        end_verse,
+        bible_wrap_callback,
+        bible_heading_callback,
+        &ctx,
+        &max_verse);
 
     free(buf);
 
@@ -449,8 +511,7 @@ bool bible_load_chapter(
     state->passage.start_verse = start_verse;
     state->passage.end_verse = end_verse;
 
-    /* Derive verse_count from the highest verse_number seen in lines */
-    uint16_t max_verse = 0;
+    /* Derive verse_count from the highest verse_number in the chapter */
     for(uint16_t i = 0; i < state->line_count; i++) {
         if(state->lines[i].verse_number > max_verse) {
             max_verse = state->lines[i].verse_number;
@@ -479,7 +540,7 @@ bool bible_load_chapter_verse_scan(
     }
 
     bool ok = bible_scan_verses_from_json(
-        (const char*)buf, total, start_verse, end_verse, callback, ctx);
+        (const char*)buf, total, start_verse, end_verse, callback, NULL, ctx, NULL);
 
     free(buf);
     return ok;

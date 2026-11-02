@@ -9,15 +9,16 @@
 /* ============================================================================
  * Max values
  * ============================================================================ */
-#define BIBLE_MAX_BOOKS           66
-#define BIBLE_MAX_CHAPTERS        150
-#define BIBLE_MAX_FILTER_OPTIONS  22
-#define BIBLE_MAX_COLLECTION      100
-#define BIBLE_MAX_VERSES          176 /* Psalms 119 = 176 verses */
-#define BIBLE_MAX_LINES           800 /* Psalm 119 wraps to about 770 lines */
-#define BIBLE_MAX_FILE_SIZE       20000
-#define BIBLE_MAX_COLLECTION_SIZE 2048
-#define BIBLE_READ_CHUNK          1024
+#define BIBLE_MAX_BOOKS            66
+#define BIBLE_MAX_CHAPTERS         150
+#define BIBLE_MAX_FILTER_OPTIONS   22
+#define BIBLE_MAX_COLLECTION       100
+#define BIBLE_MAX_VERSES           176 /* Psalms 119 = 176 verses */
+#define BIBLE_MAX_LINES            800 /* Psalm 119 wraps to about 770 lines */
+#define BIBLE_MAX_CHAPTER_SECTIONS 24 /* Psalm 119 has 22 sections */
+#define BIBLE_MAX_FILE_SIZE        20000
+#define BIBLE_MAX_COLLECTION_SIZE  2048
+#define BIBLE_READ_CHUNK           1024
 
 /* ============================================================================
  * Toast system
@@ -58,10 +59,15 @@ static inline bool bible_toast_active(const BibleToast* toast) {
  * Line (rendered wrapped line)
  * ============================================================================ */
 typedef struct {
-    char text[64]; /* max chars per line + verse prefix + safety */
+    char text[28]; /* max 20 chars per line + null terminator + alignment */
     uint16_t verse_number; /* verse this line belongs to (0 = unassigned) */
     bool is_verse_number; /* true if first line of a verse (has number prefix) */
 } BibleLine;
+
+typedef struct {
+    uint16_t start_verse;
+    char title[56];
+} BibleSectionHeading;
 
 /* ============================================================================
  * Passage (currently loaded chapter metadata — verses live on SD, not RAM)
@@ -72,6 +78,8 @@ typedef struct {
     uint16_t start_verse;
     uint16_t end_verse;
     uint16_t verse_count;
+    uint8_t section_count;
+    BibleSectionHeading sections[BIBLE_MAX_CHAPTER_SECTIONS];
 } BiblePassage;
 
 /* ============================================================================
@@ -101,11 +109,18 @@ typedef struct BibleAppState {
     uint16_t selected_start_verse;
     uint16_t selected_end_verse;
     uint8_t verse_select_mode; /* 0=All, 1=Start, 2=End */
-    uint8_t book_filter_idx; /* 0-21 */
+    uint8_t book_filter_idx; /* 0-22 */
+    bool genre_mode_enabled; /* true = Testament -> Genre -> Book hierarchy */
+    uint8_t browse_depth; /* 0 = Testament, 1 = Genre, 2 = Book */
+    uint8_t selected_testament; /* 0 = OT, 1 = NT */
+    uint8_t selected_genre; /* 0-9 index into BIBLE_GENRES */
     uint16_t scroll_offset;
     uint16_t book_scroll;
     uint16_t collection_scroll;
+    uint8_t collection_selected;
     uint8_t action_menu_selection;
+    bool action_menu_from_collection;
+    uint16_t goto_verse;
 
     /* Data */
     BiblePassage passage;
@@ -121,11 +136,15 @@ typedef struct BibleAppState {
     uint16_t line_count;
     uint16_t lines_capacity;
     uint16_t current_page;
+    bool reader_on_chapter_page; /* true when showing the chapter boundary title page */
+    uint32_t header_scroll_ticks; /* tick counter for pause-then-scroll header marquee */
+    const void* header_scroll_key; /* tracks active header so scroll resets on change */
 
     /* Feedback */
     BibleToast toast;
 
     /* NFC / sharing */
+    bool verse_select_for_nfc;
     bool reader_came_from_collection;
     char nfc_url[128];
     bool nfc_emitting;
@@ -256,12 +275,22 @@ static inline void bible_app_state_init(BibleAppState* state) {
     state->selected_end_verse = 1;
     state->verse_select_mode = 0;
     state->book_filter_idx = 0;
+    state->genre_mode_enabled = false;
+    state->browse_depth = 0;
+    state->selected_testament = 0;
+    state->selected_genre = 0;
     state->action_menu_selection = 0;
+    state->action_menu_from_collection = false;
+    state->goto_verse = 1;
     state->collection_count = 0;
     state->collection_loaded = false;
     state->line_count = 0;
     state->lines_capacity = 0;
     state->current_page = 0;
+    state->reader_on_chapter_page = false;
+    state->header_scroll_ticks = 0;
+    state->header_scroll_key = NULL;
+    state->verse_select_for_nfc = false;
     state->reader_came_from_collection = false;
     state->nfc_emitting = false;
     state->nfc_is_export = false;

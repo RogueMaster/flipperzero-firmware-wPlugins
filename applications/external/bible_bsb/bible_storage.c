@@ -10,6 +10,8 @@
 #include <string.h>
 
 #define COLLECTION_PATH APP_DATA_PATH("collection.json")
+#define LAST_READ_PATH  APP_DATA_PATH("last_read.bin")
+#define LAST_READ_MAGIC 0xB5
 
 static void bible_stamp_now(char* out, size_t out_len) {
     DateTime dt = {0};
@@ -488,16 +490,11 @@ static void build_display_ref(const BiblePassage* passage, char* out, size_t out
     }
 }
 
-/* Reload display lines for the current passage metadata.
+/* Reload full chapter display lines for the current passage metadata.
  * Used after heap-defrag operations during save. */
 static bool bible_reload_passage_lines(BibleAppState* state) {
     state->line_count = 0;
-    return bible_load_chapter(
-        state->passage.book_index,
-        state->passage.chapter,
-        state->passage.start_verse,
-        state->passage.end_verse,
-        state);
+    return bible_load_chapter(state->passage.book_index, state->passage.chapter, 0, 0, state);
 }
 
 /* Restore the reader after a save-path detour.
@@ -609,9 +606,8 @@ bool bible_storage_load_verses_for_entry(BibleAppState* state, uint8_t entry_ind
     uint16_t saved_scroll = state->scroll_offset;
     state->line_count = 0;
 
-    /* 2. Load the chapter from SD (directly into lines, no verse array) */
-    bool loaded =
-        bible_load_chapter(e->book_index, e->chapter, e->start_verse, e->end_verse, state);
+    /* 2. Load the full chapter from SD and jump to the saved start_verse */
+    bool loaded = bible_load_chapter(e->book_index, e->chapter, 0, 0, state);
 
     if(!loaded) {
         /* Restore previous display state if possible */
@@ -619,12 +615,28 @@ bool bible_storage_load_verses_for_entry(BibleAppState* state, uint8_t entry_ind
         return false;
     }
 
-    /* 3. Set navigation state */
+    /* 3. Set navigation state and position scroll at e->start_verse */
     state->selected_book = e->book_index;
+    if(e->book_index < BIBLE_BOOK_COUNT && OSIS_BOOK_NAMES[e->book_index]) {
+        strlcpy(
+            state->selected_book_name,
+            OSIS_BOOK_NAMES[e->book_index],
+            sizeof(state->selected_book_name));
+    }
     state->selected_chapter = e->chapter;
-    state->selected_start_verse = e->start_verse;
-    state->selected_end_verse = e->end_verse;
+    state->selected_start_verse = (e->start_verse > 0) ? e->start_verse : 1;
+    state->selected_end_verse =
+        (e->end_verse >= state->selected_start_verse) ? e->end_verse : state->selected_start_verse;
     state->scroll_offset = 0;
+    if(e->start_verse > 1 && state->lines) {
+        for(uint16_t i = 0; i < state->line_count; i++) {
+            if(state->lines[i].verse_number >= e->start_verse && state->lines[i].is_verse_number) {
+                state->scroll_offset = i;
+                break;
+            }
+        }
+    }
+    state->reader_on_chapter_page = false;
     state->reader_came_from_collection = true;
 
     return true;
@@ -844,4 +856,91 @@ build_fail:
     /* Restore original passage metadata on failure too */
     state->passage = saved_passage;
     return false;
+}
+
+bool bible_storage_save_last_read(const BibleAppState* state) {
+    if(!state || state->passage.verse_count == 0 ||
+       state->passage.book_index >= BIBLE_BOOK_COUNT) {
+        return false;
+    }
+
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    if(!storage) return false;
+
+    File* file = storage_file_alloc(storage);
+    if(!file) {
+        furi_record_close(RECORD_STORAGE);
+        return false;
+    }
+
+    if(!storage_file_open(file, LAST_READ_PATH, FSAM_WRITE, FSOM_OPEN_ALWAYS)) {
+        bible_close_storage_file(file);
+        return false;
+    }
+
+    storage_file_truncate(file);
+
+    uint8_t buf[6];
+    buf[0] = LAST_READ_MAGIC;
+    buf[1] = state->passage.book_index;
+    buf[2] = (uint8_t)(state->passage.chapter & 0xFF);
+    buf[3] = (uint8_t)((state->passage.chapter >> 8) & 0xFF);
+    buf[4] = (uint8_t)(state->scroll_offset & 0xFF);
+    buf[5] = (uint8_t)((state->scroll_offset >> 8) & 0xFF);
+
+    size_t written = storage_file_write(file, buf, sizeof(buf));
+    bible_close_storage_file(file);
+    return written == sizeof(buf);
+}
+
+bool bible_storage_load_last_read(BibleAppState* state) {
+    if(!state) return false;
+
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    if(!storage) return false;
+
+    File* file = storage_file_alloc(storage);
+    if(!file) {
+        furi_record_close(RECORD_STORAGE);
+        return false;
+    }
+
+    if(!storage_file_open(file, LAST_READ_PATH, FSAM_READ, FSOM_OPEN_EXISTING)) {
+        bible_close_storage_file(file);
+        return false;
+    }
+
+    uint8_t buf[6];
+    size_t n = storage_file_read(file, buf, sizeof(buf));
+    bible_close_storage_file(file);
+
+    if(n != sizeof(buf) || buf[0] != LAST_READ_MAGIC) {
+        return false;
+    }
+
+    uint8_t book = buf[1];
+    uint16_t chapter = (uint16_t)buf[2] | ((uint16_t)buf[3] << 8);
+    uint16_t scroll = (uint16_t)buf[4] | ((uint16_t)buf[5] << 8);
+
+    if(book >= BIBLE_BOOK_COUNT || chapter == 0 || chapter > BOOK_CHAPTER_COUNTS[book]) {
+        return false;
+    }
+
+    if(!bible_load_chapter(book, chapter, 0, 0, state) || state->line_count == 0) {
+        return false;
+    }
+
+    state->selected_book = book;
+    if(OSIS_BOOK_NAMES[book]) {
+        strlcpy(
+            state->selected_book_name, OSIS_BOOK_NAMES[book], sizeof(state->selected_book_name));
+    }
+    state->selected_chapter = chapter;
+    state->selected_genre = get_genre_for_book(book);
+    state->selected_testament = BIBLE_GENRES[state->selected_genre].testament;
+    state->book_scroll = (book >= 5) ? (book - 4) : 0;
+    state->scroll_offset = (scroll < state->line_count) ? scroll : 0;
+    state->reader_on_chapter_page = false;
+    state->reader_came_from_collection = false;
+    return true;
 }

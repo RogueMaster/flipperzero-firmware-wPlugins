@@ -68,7 +68,7 @@ typedef struct {
     ProtoSshConnect connect_req; /* SSH_CONNECT after a staged key */
     bool connect_pending;
 
-    /* E->F key file (KEY_GEN, legacy export) and public key line, reassembled */
+    /* E->F key file (KEY_GEN) and public key line, reassembled */
     uint8_t* in_blob;
     uint32_t in_total, in_off, in_crc;
     char* in_pub;
@@ -483,7 +483,7 @@ static void on_reply(void* ctx, const ProtoFrame* f, uint8_t req) {
         return;
     case PROTO_T_ACK:
         if(req == PROTO_T_NET_SET_CFG || req == PROTO_T_HOSTKEY_DELETE ||
-           req == PROTO_T_SECRET_FORGET || req == PROTO_T_KEY_LEGACY_DELETE) {
+           req == PROTO_T_SECRET_FORGET) {
             e.type = BackendEvtOpDone;
             e.op_done = req;
             emit(u, &e);
@@ -742,15 +742,6 @@ static bool uart_key_gen(void* self, const ProtoKeyGen* g) {
     memset(buf, 0, sizeof(buf)); /* the passphrase */
     return ok;
 }
-static bool uart_key_legacy_export(void* self) {
-    UartBackend* u = self;
-    return enqueue(u, PROTO_T_KEY_LEGACY_EXPORT, NULL, 0);
-}
-static bool uart_key_legacy_delete(void* self, uint32_t crc32) {
-    UartBackend* u = self;
-    ProtoKeyLegacyDelete d = {.crc32 = crc32};
-    ENC_SEND(PROTO_T_KEY_LEGACY_DELETE, proto_enc_key_legacy_delete, &d);
-}
 static bool uart_hostkey_list(void* self, const char* profile) {
     UartBackend* u = self;
     ProtoProfileRef r;
@@ -816,8 +807,6 @@ static const BackendOps uart_ops = {
     .cancel = uart_cancel,
     .disconnect = uart_disconnect,
     .key_gen = uart_key_gen,
-    .key_legacy_export = uart_key_legacy_export,
-    .key_legacy_delete = uart_key_legacy_delete,
     .hostkey_list = uart_hostkey_list,
     .sec_get_status = uart_sec_get_status,
     .sec_enable = uart_sec_enable,

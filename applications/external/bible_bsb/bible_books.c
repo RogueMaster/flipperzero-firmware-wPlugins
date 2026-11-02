@@ -10,6 +10,26 @@ const char* BIBLE_FILTER_LABELS[BIBLE_FILTER_COUNT] = {
     "M",   "N", "O", "P", "R", "S", "T", "Z", "1", "2", "3",
 };
 
+const char* BIBLE_TESTAMENT_LABELS[BIBLE_TESTAMENT_COUNT] = {
+    "Old Testament (39)",
+    "New Testament (27)",
+};
+
+const BibleGenre BIBLE_GENRES[BIBLE_GENRE_COUNT] = {
+    /* Old Testament (0..38) */
+    {"Law (5)", "< Law >", 0, 0, 4},
+    {"History (12)", "< OT History >", 0, 5, 16},
+    {"Poetry (5)", "< Poetry >", 0, 17, 21},
+    {"Major Prophets (5)", "< Maj Prophets >", 0, 22, 26},
+    {"Minor Prophets (12)", "< Min Prophets >", 0, 27, 38},
+    /* New Testament (39..65) */
+    {"Gospels (4)", "< Gospels >", 1, 39, 42},
+    {"Acts / History (1)", "< Acts >", 1, 43, 43},
+    {"Paul's Epistles (13)", "< Paul >", 1, 44, 56},
+    {"Gen. Epistles (8)", "< Gen Epistles >", 1, 57, 64},
+    {"Prophecy / Rev (1)", "< Prophecy >", 1, 65, 65},
+};
+
 /* ============================================================================
  * OSIS book codes — 66 entries, index 0–65
  * ============================================================================ */
@@ -210,4 +230,91 @@ uint8_t get_filtered_books(uint8_t filter_idx, uint8_t* out_indices) {
     }
 
     return count;
+}
+
+uint8_t get_genres_for_testament(uint8_t testament, uint8_t* out_genre_indices) {
+    if(!out_genre_indices || testament >= BIBLE_TESTAMENT_COUNT) {
+        return 0;
+    }
+
+    uint8_t count = 0;
+    for(uint8_t i = 0; i < BIBLE_GENRE_COUNT; i++) {
+        if(BIBLE_GENRES[i].testament == testament) {
+            out_genre_indices[count++] = i;
+        }
+    }
+    return count;
+}
+
+uint8_t get_books_for_genre(uint8_t genre_idx, uint8_t* out_book_indices) {
+    if(!out_book_indices || genre_idx >= BIBLE_GENRE_COUNT) {
+        return 0;
+    }
+
+    uint8_t count = 0;
+    uint8_t start = BIBLE_GENRES[genre_idx].start_book;
+    uint8_t end = BIBLE_GENRES[genre_idx].end_book;
+    for(uint8_t b = start; b <= end && b < BIBLE_BOOK_COUNT; b++) {
+        out_book_indices[count++] = b;
+    }
+    return count;
+}
+
+uint8_t get_genre_for_book(uint8_t book_idx) {
+    for(uint8_t i = 0; i < BIBLE_GENRE_COUNT; i++) {
+        if(book_idx >= BIBLE_GENRES[i].start_book && book_idx <= BIBLE_GENRES[i].end_book) {
+            return i;
+        }
+    }
+    return 0;
+}
+
+bool bible_next_chapter(
+    uint8_t book_idx,
+    uint16_t chapter,
+    uint8_t* out_book_idx,
+    uint16_t* out_chapter) {
+    if(!out_book_idx || !out_chapter || book_idx >= BIBLE_BOOK_COUNT || chapter == 0) {
+        return false;
+    }
+
+    uint8_t max_chapter = BOOK_CHAPTER_COUNTS[book_idx];
+    if(chapter < max_chapter) {
+        *out_book_idx = book_idx;
+        *out_chapter = chapter + 1;
+        return true;
+    }
+
+    if(book_idx + 1 < BIBLE_BOOK_COUNT) {
+        *out_book_idx = book_idx + 1;
+        *out_chapter = 1;
+        return true;
+    }
+
+    return false;
+}
+
+bool bible_prev_chapter(
+    uint8_t book_idx,
+    uint16_t chapter,
+    uint8_t* out_book_idx,
+    uint16_t* out_chapter) {
+    if(!out_book_idx || !out_chapter || book_idx >= BIBLE_BOOK_COUNT || chapter == 0) {
+        return false;
+    }
+
+    if(chapter > 1) {
+        uint8_t max_chapter = BOOK_CHAPTER_COUNTS[book_idx];
+        *out_book_idx = book_idx;
+        *out_chapter = (chapter <= max_chapter) ? (chapter - 1) : max_chapter;
+        return true;
+    }
+
+    if(book_idx > 0) {
+        *out_book_idx = book_idx - 1;
+        *out_chapter = BOOK_CHAPTER_COUNTS[book_idx - 1];
+        return true;
+    }
+
+    return false;
 }

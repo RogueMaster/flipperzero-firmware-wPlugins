@@ -7,7 +7,68 @@
 #include <lib/flipper_format/flipper_format.h>
 #include <lib/subghz/types.h>
 
+#include "helpers/subghz_txrx.h"
+
+/** Preserve RM's extended history; growth is checked against the live allocator. */
+#define SUBGHZ_HISTORY_CAPACITY UINT16_MAX
+
+/** No slot limit below the capacity, the heap is the limit. The send block is held out of
+ * the heap, so this covers the record about to be stored plus the menu entry, the status
+ * bar strings and the scene work that follow it. With old signals being deleted to make
+ * room the list sits at this margin for as long as it keeps receiving, so every one of
+ * those allocations happens at the edge and the margin has to hold the largest of them */
+#define SUBGHZ_HISTORY_RESERVE_ITEM 6144
+
+/** A BinRAW capture prints up to 2048 bytes as hex text and grows by realloc, so the old
+ * and the new copy are live at once */
+#define SUBGHZ_HISTORY_RESERVE_RAW 14336
+
+/** Largest single allocation one record makes, which has to come out of one block. For a
+ * decoded signal that is the string the protocol serializes itself into, a few hundred
+ * bytes. Asking for more than it needs makes a delete free nothing until several freed
+ * records happen to merge, which is what made one signal drop a whole run of them. The
+ * string is grown by doubling, so the last step asks for as much again as it already holds */
+#define SUBGHZ_HISTORY_BLOCK_ITEM 1024
+#define SUBGHZ_HISTORY_BLOCK_RAW  6144
+
+/** What the allocator puts in front of a block, rounded up to its alignment. A free block
+ * of exactly N bytes cannot serve a request for N, so every size checked here carries this
+ * on top - and no more than this, or a block just freed reads as too small to take back */
+#define SUBGHZ_HISTORY_BLOCK_OVERHEAD 8
+
+/** Extra room a full history has to get back before it counts as not full again. At the
+ * point it fills up the margin is a few hundred bytes, and anything else that runs - a
+ * signal opened and closed, a send - moves the heap by more than that, so a bare recheck
+ * flips the answer back and forth. Once it reads full it stays full until there is real
+ * room again, or until a record is deleted */
+#define SUBGHZ_HISTORY_FULL_CLEAR_SLACK 2048
+
 typedef struct SubGhzHistory SubGhzHistory;
+
+/** Can the history take no more signals of this type? Either the heap says so, or the
+ * reserved capacity is used up - the latter is set past what the heap can hold, so it is
+ * a backstop against the array doubling rather than a limit anyone should meet
+ *
+ * @param   instance  SubGhzHistory instance
+ * @param   type      SubGhzProtocolType of the signal about to be stored
+ * @return  bool
+ */
+bool subghz_history_is_full(SubGhzHistory* instance, uint8_t type);
+
+/** Is what the history is short of plain heap? Dropping a record always returns some, so
+ * while this is true dropping another one gets closer to room. A block wide enough for a
+ * big signal is the other case: that only appears if freed records happen to sit next to
+ * each other, and a run of small ones never will, so whoever is making room has to stop
+ * there instead of emptying the list for a signal that gets turned away anyway
+ *
+ * @param   instance  SubGhzHistory instance
+ * @param   type      SubGhzProtocolType of the signal about to be stored
+ * @return  bool
+ */
+bool subghz_history_needs_heap(SubGhzHistory* instance, uint8_t type);
+
+/** Bytes the receiver menu must allocate before its next row can be added. */
+void subghz_history_set_menu_growth(SubGhzHistory* instance, size_t bytes);
 
 /** Allocate SubGhzHistory
  * 
@@ -132,7 +193,8 @@ bool subghz_history_get_text_space_left(
     FuriString* output,
     bool ignore_full,
     bool show_sats,
-    uint8_t sats);
+    uint8_t sats,
+    uint8_t type);
 
 /** Return last index
  *

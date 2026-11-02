@@ -63,3 +63,6 @@ void subghz_view_receiver_enable_draw_callback(SubGhzViewReceiver* subghz_receiv
 void subghz_view_receiver_disable_draw_callback(SubGhzViewReceiver* subghz_receiver);
 
 void subghz_view_receiver_exit(void* context);
+
+/** Allocation needed to append one menu row, including m-lib array growth. */
+size_t subghz_view_receiver_get_menu_growth(SubGhzViewReceiver* subghz_receiver);

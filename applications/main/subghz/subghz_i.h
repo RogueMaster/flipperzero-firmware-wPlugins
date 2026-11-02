@@ -95,6 +95,7 @@ struct SubGhz {
     SubGhzThresholdRssi* threshold_rssi;
     SubGhzRxKeyState rx_key_state;
     SubGhzHistory* history;
+    bool history_full;
     SubGhzGPS* gps;
     SubGhzRepeaterState repeater;
     bool repeater_bin_raw_was_off;

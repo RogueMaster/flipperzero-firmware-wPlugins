@@ -1,0 +1,198 @@
+#!/usr/bin/env nix-shell
+#! nix-shell -i python3 -p python3Packages.pyserial
+"""Capture the Flipper Zero screen over USB.
+
+This speaks the Flipper RPC protobuf protocol directly on the USB serial
+port, the same mechanism the web app uses for its screen view. It starts the
+screen stream, reads one ScreenFrame and writes a 1-bit PNG.
+
+Usage:
+    ./screen [port] [output.png]
+
+Defaults: port /dev/ttyACM0, output /tmp/ducobox-screen.png.
+
+The frame buffer is the u8g2 page-major layout: 8 pages of 128 bytes, one
+byte per column, bit 0 being the top pixel of the page.
+"""
+
+import struct
+import sys
+import time
+import zlib
+
+import serial
+
+DEFAULT_PORT = "/dev/ttyACM0"
+DEFAULT_OUTPUT = "/tmp/ducobox-screen.png"
+SCREEN_WIDTH = 128
+SCREEN_HEIGHT = 64
+PAGE_COUNT = SCREEN_HEIGHT // 8
+
+# Main protobuf fields used here.
+MAIN_COMMAND_ID = 1
+MAIN_COMMAND_STATUS = 2
+GUI_START_STREAM = 20
+GUI_SCREEN_FRAME = 22
+SCREEN_FRAME_DATA = 1
+
+
+def encode_varint(value):
+    out = bytearray()
+    while True:
+        byte = value & 0x7F
+        value >>= 7
+        if value:
+            out.append(byte | 0x80)
+        else:
+            out.append(byte)
+            return bytes(out)
+
+
+def decode_varint(data, offset):
+    result = 0
+    shift = 0
+    while True:
+        byte = data[offset]
+        offset += 1
+        result |= (byte & 0x7F) << shift
+        if not byte & 0x80:
+            return result, offset
+        shift += 7
+
+
+def read_varint(serial_port):
+    result = 0
+    shift = 0
+    while True:
+        byte = serial_port.read(1)
+        if not byte:
+            raise TimeoutError("timed out waiting for an RPC message")
+        byte = byte[0]
+        result |= (byte & 0x7F) << shift
+        if not byte & 0x80:
+            return result
+        shift += 7
+
+
+def field_varint(field, value):
+    return encode_varint((field << 3) | 0) + encode_varint(value)
+
+
+def field_bytes(field, data):
+    return encode_varint((field << 3) | 2) + encode_varint(len(data)) + data
+
+
+def start_stream_message(command_id):
+    message = field_varint(MAIN_COMMAND_ID, command_id) + field_varint(MAIN_COMMAND_STATUS, 0)
+    message += field_bytes(GUI_START_STREAM, b"")
+    return encode_varint(len(message)) + message
+
+
+def parse_fields(data):
+    fields = []
+    offset = 0
+    while offset < len(data):
+        tag, offset = decode_varint(data, offset)
+        field = tag >> 3
+        wire = tag & 7
+        if wire == 0:
+            value, offset = decode_varint(data, offset)
+            fields.append((field, wire, value))
+        elif wire == 2:
+            length, offset = decode_varint(data, offset)
+            fields.append((field, wire, data[offset : offset + length]))
+            offset += length
+        elif wire == 1:
+            offset += 8
+        elif wire == 5:
+            offset += 4
+        else:
+            raise ValueError(f"unsupported protobuf wire type {wire}")
+    return fields
+
+
+def read_message(serial_port):
+    length = read_varint(serial_port)
+    data = serial_port.read(length)
+    if len(data) != length:
+        raise TimeoutError("short RPC message")
+    return parse_fields(data)
+
+
+def read_screen_frame(serial_port, timeout_s=5.0):
+    deadline = time.monotonic() + timeout_s
+    while time.monotonic() < deadline:
+        for field, wire, value in read_message(serial_port):
+            if field != GUI_SCREEN_FRAME or wire != 2:
+                continue
+            for sub_field, sub_wire, sub_value in parse_fields(value):
+                if sub_field == SCREEN_FRAME_DATA and sub_wire == 2:
+                    return sub_value
+    raise TimeoutError("no screen frame received")
+
+
+def frame_to_png(frame):
+    rows = bytearray()
+    for y in range(SCREEN_HEIGHT):
+        page = y // 8
+        bit = y % 8
+        row = bytearray(SCREEN_WIDTH // 8)
+        for x in range(SCREEN_WIDTH):
+            pixel = (frame[page * SCREEN_WIDTH + x] >> bit) & 1
+            # PNG 1-bit grayscale: 1 is white, 0 is black. The framebuffer
+            # uses 1 for black.
+            if not pixel:
+                row[x // 8] |= 1 << (7 - (x % 8))
+        rows.append(0)  # filter type None
+        rows += row
+
+    def chunk(kind, data):
+        crc = zlib.crc32(kind + data) & 0xFFFFFFFF
+        return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", crc)
+
+    header = struct.pack(">IIBBBBB", SCREEN_WIDTH, SCREEN_HEIGHT, 1, 0, 0, 0, 0)
+    return (
+        b"\x89PNG\r\n\x1a\n"
+        + chunk(b"IHDR", header)
+        + chunk(b"IDAT", zlib.compress(bytes(rows)))
+        + chunk(b"IEND", b"")
+    )
+
+
+def capture(port, output):
+    serial_port = serial.Serial(port, 115200, timeout=2)
+    try:
+        serial_port.reset_input_buffer()
+        serial_port.write(b"\r")
+        serial_port.read_until(b">: ")
+        serial_port.write(b"start_rpc_session\r")
+        time.sleep(0.3)
+        serial_port.reset_input_buffer()
+
+        serial_port.write(start_stream_message(1))
+        frame = read_screen_frame(serial_port)
+
+        with open(output, "wb") as png:
+            png.write(frame_to_png(frame))
+        print(f"screen: {len(frame)} bytes -> {output}")
+    finally:
+        serial_port.close()
+
+
+def main():
+    port = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_PORT
+    output = sys.argv[2] if len(sys.argv) > 2 else DEFAULT_OUTPUT
+    try:
+        capture(port, output)
+    except serial.SerialException as error:
+        print(f"cannot open {port}: {error}", file=sys.stderr)
+        print("Close qFlipper or any other program using the serial port.", file=sys.stderr)
+        return 1
+    except (TimeoutError, ValueError) as error:
+        print(f"screen capture failed: {error}", file=sys.stderr)
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

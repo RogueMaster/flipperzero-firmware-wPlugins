@@ -138,7 +138,7 @@ static HostProfile host(const char* text) {
 }
 
 static void test_profile_auth(void) {
-    /* every legacy and new value */
+    /* every old and new value */
     TT_EQ_INT(host("Auth: password\n").auth, ProfileAuthPassword);
     TT_EQ_INT(host("").auth, ProfileAuthPassword);
     TT_EQ_INT(host("Auth: rubbish\n").auth, ProfileAuthPassword);

@@ -4,6 +4,11 @@
 #include <applications/drivers/subghz/cc1101_ext/cc1101_ext_interconnect.h>
 #include <lib/subghz/devices/cc1101_int/cc1101_int_interconnect.h>
 #include <lib/subghz/blocks/custom_btn.h>
+#include <lib/subghz/protocols/bin_raw.h>
+#include <lib/subghz/protocols/keeloq.h>
+#include <lib/subghz/protocols/hormann.h>
+#include <lib/subghz/protocols/came_twee.h>
+#include <lib/subghz/protocols/nice_flor_s.h>
 
 #include <power/power_service/power.h>
 
@@ -15,6 +20,82 @@
 // A missing-module search powers the OTG rail and runs the driver's self-test timeout.
 // Keep that slow path out of reception and bound it on the idle Sub-GHz menu.
 #define SUBGHZ_RADIO_DEVICE_PROBE_PERIOD_MS 5000UL
+
+// An encoder reserves its whole upload buffer when it is allocated, and the five below are
+// the only ones that ask for more than the default
+static const struct {
+    const char* name;
+    uint16_t block;
+} subghz_txrx_tx_block_table[] = {
+    {SUBGHZ_PROTOCOL_NICE_FLOR_S_NAME, 15360}, // 3648 timings, an O-Code cert press
+    {SUBGHZ_PROTOCOL_BIN_RAW_NAME, 10752}, // 2560 timings
+    {SUBGHZ_PROTOCOL_KEELOQ_NAME, 8192}, // 1872 timings in counter mode 7
+    {SUBGHZ_PROTOCOL_HORMANN_HSM_NAME, 8192}, // 1850 timings
+    {SUBGHZ_PROTOCOL_CAME_TWEE_NAME, 6656}, // 1536 timings
+    {"RAW", SUBGHZ_TX_MIN_BLOCK_RAW}, // preserve RM streaming-file requirements
+};
+
+size_t subghz_txrx_tx_block_need(const char* protocol) {
+    if(protocol != NULL) {
+        for(size_t i = 0; i < COUNT_OF(subghz_txrx_tx_block_table); i++) {
+            if(strcmp(protocol, subghz_txrx_tx_block_table[i].name) == 0) {
+                return subghz_txrx_tx_block_table[i].block;
+            }
+        }
+    }
+    return SUBGHZ_TX_MIN_FREE_BLOCK_DEFAULT;
+}
+
+// An encoder wants its upload buffer in one piece, and a heap the history has cut into
+// small pieces has none to give. So one block is held, sized to the widest protocol the
+// history actually holds - a KeeLoq only session does not pay for Nice FloR-S - and handed
+// back at send time, the only moment it is needed
+static void* subghz_txrx_tx_block = NULL;
+static size_t subghz_txrx_tx_block_held = 0;
+static size_t subghz_txrx_tx_block_wanted = 0;
+
+static void subghz_txrx_tx_block_drop(void) {
+    free(subghz_txrx_tx_block);
+    subghz_txrx_tx_block = NULL;
+    subghz_txrx_tx_block_held = 0;
+}
+
+static bool subghz_txrx_tx_block_take(size_t need) {
+    if((need == 0) || (subghz_txrx_tx_block != NULL)) return true;
+    // A failed malloc ends in furi_check, so the block has to be known to fit first. The
+    // largest free block is reported with the allocator header counted in, and a request
+    // spends that header too, so the slack has to be what the header actually costs and
+    // no more: asking for more than that fails to take back the very block just freed
+    if(memmgr_heap_get_max_free_block() < need + SUBGHZ_TX_BLOCK_OVERHEAD) return false;
+    subghz_txrx_tx_block = malloc(need);
+    subghz_txrx_tx_block_held = need;
+    return true;
+}
+
+size_t subghz_txrx_tx_block_size(void) {
+    return subghz_txrx_tx_block_held;
+}
+
+bool subghz_txrx_tx_block_reserve(size_t need) {
+    if(subghz_txrx_tx_block_held == need) {
+        subghz_txrx_tx_block_wanted = need;
+        return true;
+    }
+    const size_t previous = subghz_txrx_tx_block_held;
+    subghz_txrx_tx_block_drop();
+    if(subghz_txrx_tx_block_take(need)) {
+        subghz_txrx_tx_block_wanted = need;
+        return true;
+    }
+    // Growing failed, so put back what was there rather than leave the history unguarded
+    subghz_txrx_tx_block_take(previous);
+    return false;
+}
+
+static bool subghz_txrx_tx_memory_available(const char* protocol) {
+    return memmgr_heap_get_max_free_block() >=
+           (subghz_txrx_tx_block_need(protocol) + SUBGHZ_TX_BLOCK_OVERHEAD);
+}
 
 static void subghz_txrx_worker_pair_callback(void* context, bool level, uint32_t duration) {
     subghz_txrx_decode(context, level, duration);
@@ -46,6 +127,9 @@ static void subghz_txrx_radio_device_power_off(SubGhzTxRx* instance) {
 SubGhzTxRx* subghz_txrx_alloc(void) {
     SubGhzTxRx* instance = malloc(sizeof(SubGhzTxRx));
     instance->transmitter = NULL;
+    instance->tx_min_heap_required = SUBGHZ_TX_MIN_HEAP;
+    instance->radio_device_leds_and_amp = true;
+    subghz_txrx_tx_block_reserve(SUBGHZ_TX_MIN_FREE_BLOCK_DEFAULT);
     instance->setting = subghz_setting_alloc();
     subghz_setting_load(instance->setting, EXT_PATH("subghz/assets/setting_user.txt"));
 
@@ -99,6 +183,8 @@ SubGhzTxRx* subghz_txrx_alloc(void) {
 
 void subghz_txrx_free(SubGhzTxRx* instance) {
     furi_assert(instance);
+    subghz_txrx_tx_block_wanted = 0;
+    subghz_txrx_tx_block_drop();
 
 #ifndef SUBGHZ_ADD_MANUALLY
     if(instance->radio_device_type != SubGhzRadioDeviceTypeInternal) {
@@ -438,8 +524,20 @@ SubGhzTxRxStartTxState subghz_txrx_tx_start(SubGhzTxRx* instance, FlipperFormat*
                 break;
             }
         }
+        need_block = MAX(need_block, subghz_txrx_tx_block_need(furi_string_get_cstr(temp_str)));
+        need_heap = MAX(need_heap, need_block + 1024U);
         instance->tx_min_heap_required = need_heap;
-        if(memmgr_get_free_heap() < need_heap || memmgr_heap_get_max_free_block() < need_block) {
+        const size_t held = subghz_txrx_tx_block_size();
+        if((memmgr_get_free_heap() + held < need_heap) ||
+           ((held < need_block) &&
+            !subghz_txrx_tx_memory_available(furi_string_get_cstr(temp_str)))) {
+            ret = SubGhzTxRxStartTxStateErrorMemory;
+            break;
+        }
+        // Release the protected encoder block only after its size and total heap fit.
+        subghz_txrx_tx_block_drop();
+        if(memmgr_get_free_heap() < need_heap ||
+           memmgr_heap_get_max_free_block() < need_block + SUBGHZ_TX_BLOCK_OVERHEAD) {
             FURI_LOG_E(TAG, "Not enough memory to start TX");
             ret = SubGhzTxRxStartTxStateErrorMemory;
             break;
@@ -504,6 +602,9 @@ SubGhzTxRxStartTxState subghz_txrx_tx_start(SubGhzTxRx* instance, FlipperFormat*
         }
 
     } while(false);
+    if(ret != SubGhzTxRxStartTxStateOk) {
+        subghz_txrx_tx_block_take(subghz_txrx_tx_block_wanted);
+    }
     furi_string_free(temp_str);
     return ret;
 }
@@ -511,6 +612,7 @@ SubGhzTxRxStartTxState subghz_txrx_tx_start(SubGhzTxRx* instance, FlipperFormat*
 void subghz_txrx_rx_start(SubGhzTxRx* instance) {
     furi_assert(instance);
     subghz_txrx_stop(instance);
+    subghz_txrx_tx_block_take(subghz_txrx_tx_block_wanted);
     subghz_txrx_radio_device_poll(instance);
     uint8_t* preset_data = subghz_setting_get_preset_data_by_name(
         subghz_txrx_get_setting(instance), furi_string_get_cstr(instance->preset->name));
@@ -552,6 +654,7 @@ static void subghz_txrx_tx_stop(SubGhzTxRx* instance) {
     }
     subghz_txrx_idle(instance);
     subghz_txrx_speaker_off(instance);
+    subghz_txrx_tx_block_take(subghz_txrx_tx_block_wanted);
 }
 
 FlipperFormat* subghz_txrx_get_fff_data(SubGhzTxRx* instance) {
@@ -816,6 +919,29 @@ bool subghz_txrx_radio_device_is_external_connected(SubGhzTxRx* instance, const 
     return is_connect;
 }
 
+// Keep the per-app LED/amp setting in the existing driver configuration. This
+// preserves RM's region/range fields without adding HAL exports to API 88.23.
+static bool subghz_txrx_radio_device_begin(SubGhzTxRx* instance, const SubGhzDevice* device) {
+    furi_check(device);
+    if(!device->interconnect->begin) return false;
+    SubGhzDeviceConf conf = {
+        .ver = 1,
+        .extended_range = furi_hal_subghz_get_extended_range(),
+        .bypass_region = furi_hal_subghz_get_bypass_region(),
+        .amp_and_leds = instance->radio_device_leds_and_amp,
+    };
+    return device->interconnect->begin(&conf);
+}
+
+void subghz_txrx_set_ext_leds_and_amp(SubGhzTxRx* instance, bool enabled) {
+    furi_assert(instance);
+    if(instance->radio_device_leds_and_amp == enabled) return;
+    instance->radio_device_leds_and_amp = enabled;
+    if(instance->radio_device_type == SubGhzRadioDeviceTypeExternalCC1101) {
+        subghz_txrx_radio_device_set(instance, SubGhzRadioDeviceTypeExternalCC1101);
+    }
+}
+
 SubGhzRadioDeviceType
     subghz_txrx_radio_device_set(SubGhzTxRx* instance, SubGhzRadioDeviceType radio_device_type) {
     furi_assert(instance);
@@ -840,7 +966,7 @@ SubGhzRadioDeviceType
         const SubGhzDevice* device = subghz_devices_get_by_name(SUBGHZ_DEVICE_CC1101_EXT_NAME);
         if(device == NULL) {
             FURI_LOG_E(TAG, "No %s driver loaded", SUBGHZ_DEVICE_CC1101_EXT_NAME);
-        } else if(subghz_devices_begin(device)) {
+        } else if(subghz_txrx_radio_device_begin(instance, device)) {
             instance->radio_device = device;
             instance->radio_device_type = SubGhzRadioDeviceTypeExternalCC1101;
             return instance->radio_device_type;

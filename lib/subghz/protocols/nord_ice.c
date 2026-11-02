@@ -108,16 +108,8 @@ const SubGhzProtocol subghz_protocol_nord_ice = {
 
 void* subghz_protocol_encoder_nord_ice_alloc(SubGhzEnvironment* environment) {
     UNUSED(environment);
-    SubGhzProtocolEncoderNord_Ice* instance = malloc(sizeof(SubGhzProtocolEncoderNord_Ice));
-
-    instance->base.protocol = &subghz_protocol_nord_ice;
-    instance->generic.protocol_name = instance->base.protocol->name;
-
-    instance->encoder.repeat = 3;
-    instance->encoder.size_upload = NORD_ICE_UPLOAD_SIZE;
-    instance->encoder.upload = malloc(instance->encoder.size_upload * sizeof(LevelDuration));
-    instance->encoder.is_running = false;
-    return instance;
+    return subghz_protocol_encoder_common_alloc(
+        sizeof(SubGhzProtocolEncoderNord_Ice), &subghz_protocol_nord_ice, 3, NORD_ICE_UPLOAD_SIZE);
 }
 
 static void subghz_protocol_nord_ice_check_remote_controller(SubGhzBlockGeneric* instance);

@@ -30,6 +30,7 @@ struct SubGhzTxRx {
     uint32_t radio_device_probe_tick;
     // Do not disable a rail that was already enabled before this helper acquired it.
     bool radio_device_otg_owned;
+    bool radio_device_leds_and_amp;
 
     SubGhzTxRxNeedSaveCallback need_save_callback;
     void* need_save_context;

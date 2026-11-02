@@ -39,7 +39,7 @@ typedef enum {
     ActScan,
     ActJoinDone,
     ActPingDone,
-    ActKeyOut, /* generated (arg 0/1 = type) or legacy (arg -1) key: blob, then public key */
+    ActKeyOut, /* generated key (arg = ProtoKeyGenType): blob, then public key */
     ActHostkeyList,
     ActError,
     ActFail, /* arg = ProtoReason */
@@ -78,7 +78,6 @@ struct MockBackend {
 
     ProtoNetStatus net;
     uint32_t key_serial;
-    bool legacy; /* a v0 key waits in "NVS" (test hook) */
 
     /* the staged key file as the ESP32 would see it */
     bool key_staged;
@@ -674,7 +673,7 @@ static void key_out(MockBackend* m, int32_t kind) {
         pn += put_str(pub, "ssh-ed25519", 11);
         pn += put_str(pub + pn, pt + 1, 32);
     }
-    bool enc = kind >= 0 && m->keygen.passphrase[0];
+    bool enc = m->keygen.passphrase[0] != '\0';
     size_t n = 15;
     memcpy(bin, "openssh-key-v1", 15);
     n += put_str(bin + n, enc ? "aes256-ctr" : "none", enc ? 10 : 4);
@@ -712,21 +711,7 @@ static void key_out(MockBackend* m, int32_t kind) {
     free(line);
 }
 
-void mock_backend_set_legacy(const Backend* b, bool present) {
-    ((MockBackend*)b->self)->legacy = present;
-}
-
-static bool legacy_on_create;
-static bool export_lost_next;
 static bool sec_fail_next;
-void mock_backend_legacy_next(bool present) {
-    legacy_on_create = present;
-}
-
-void mock_backend_export_lost_next(bool lost) {
-    export_lost_next = lost;
-}
-
 void mock_backend_sec_fail_next(bool fail) {
     sec_fail_next = fail;
 }
@@ -1040,7 +1025,7 @@ static bool mock_ssh_connect_key(
         keyfmt_pub_line(ki.pub, ki.pub_len, NULL, m->key_line, sizeof(m->key_line));
         keyfmt_fingerprint(ki.pub, ki.pub_len, m->key_fp);
     } else if(!m->key_problem) {
-        /* a legacy PEM: the mock invents the public key the ESP32 would derive */
+        /* a PEM key file: the mock invents the public key the ESP32 would derive */
         make_fp(hash_str(head, 2166136261u), m->key_fp, sizeof(m->key_fp));
         snprintf(
             m->key_line,
@@ -1247,34 +1232,6 @@ static bool mock_sec_enable(void* self, const char* word) {
     return true;
 }
 
-static bool mock_key_legacy_export(void* self) {
-    MockBackend* m = self;
-    if(!m->legacy) {
-        send_error(m, PROTO_T_KEY_LEGACY_EXPORT, ProtoErrNotFound, "no legacy key");
-        return true;
-    }
-    if(export_lost_next) {
-        /* the request goes down with the link (a failed baud switch), then the link is back */
-        export_lost_next = false;
-        schedule(m, 100, ActLinkDown, 0);
-        schedule(m, 600, ActLinkUp, 0);
-        return true;
-    }
-    m->key_serial = 1000;
-    memset(&m->keygen, 0, sizeof(m->keygen));
-    schedule(m, 300, ActKeyOut, ProtoKeyGenEd25519);
-    return true;
-}
-
-static bool mock_key_legacy_delete(void* self, uint32_t crc32) {
-    MockBackend* m = self;
-    (void)crc32;
-    if(!m->legacy) return false;
-    m->legacy = false;
-    schedule(m, 50, ActOpDone, PROTO_T_KEY_LEGACY_DELETE);
-    return true;
-}
-
 static bool mock_hostkey_list(void* self, const char* profile) {
     MockBackend* m = self;
     snprintf(m->conn.profile, sizeof(m->conn.profile), "%s", profile);
@@ -1362,8 +1319,6 @@ static const BackendOps mock_ops = {
     .key_gen = mock_key_gen,
     .sec_get_status = mock_sec_get_status,
     .sec_enable = mock_sec_enable,
-    .key_legacy_export = mock_key_legacy_export,
-    .key_legacy_delete = mock_key_legacy_delete,
     .hostkey_list = mock_hostkey_list,
     .hostkey_delete = mock_hostkey_delete,
     .secret_forget = mock_secret_forget,
@@ -1377,8 +1332,6 @@ Backend mock_backend_create(BackendEventCallback cb, void* ctx) {
     if(!m) return b;
     m->cb = cb;
     m->ctx = ctx;
-    m->legacy = legacy_on_create;
-    legacy_on_create = false;
     m->net.lan.flags = PROTO_NET_PRESENT | PROTO_NET_LINK | PROTO_NET_IP;
     m->net.lan.mode = ProtoIpDhcp;
     m->net.lan.ip = 0xC0A80132; /* 192.168.1.50 */

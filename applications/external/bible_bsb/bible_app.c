@@ -67,15 +67,27 @@ static bool bible_bsb_scene_book_list_on_event(void* context, SceneManagerEvent 
         if(state->book_filter_idx != 0) {
             /* Reset filter to All, select first matching book */
             state->book_filter_idx = 0;
-            uint8_t all_filtered[BIBLE_BOOK_COUNT];
-            uint8_t all_count = get_filtered_books(0, all_filtered);
-            if(all_count > 0) {
-                state->selected_book = all_filtered[0];
+            if(state->genre_mode_enabled && state->selected_genre < BIBLE_GENRE_COUNT) {
+                state->selected_book = BIBLE_GENRES[state->selected_genre].start_book;
+            } else {
+                uint8_t all_filtered[BIBLE_BOOK_COUNT];
+                uint8_t all_count = get_filtered_books(0, all_filtered);
+                if(all_count > 0) {
+                    state->selected_book = all_filtered[0];
+                }
             }
             state->book_scroll = 0;
             return true; /* consumed — stay on BookList */
+        } else if(state->genre_mode_enabled && state->browse_depth > 0) {
+            /* Step back up the hierarchy: Book (2) -> Genre (1) -> Testament (0) */
+            state->browse_depth--;
+            return true; /* consumed — stay on BookList at parent level */
+        } else if(state->genre_mode_enabled) {
+            /* From < Testament > (depth 0), step back to < All > */
+            state->genre_mode_enabled = false;
+            return true; /* consumed — stay on < All > */
         } else {
-            /* Already "All" — quit the app */
+            /* Already at < All > — quit the app */
             view_dispatcher_stop(app->view_dispatcher);
             return true; /* consumed — app will exit */
         }
@@ -177,6 +189,8 @@ static void bible_bsb_scene_verse_select_on_exit(void* context) {
 static void bible_bsb_scene_reader_on_enter(void* context) {
     BibleApp* app = context;
     app->state->current_scene = BibleSceneReader;
+    app->state->header_scroll_ticks = 0;
+    app->state->header_scroll_key = NULL;
     view_dispatcher_switch_to_view(app->view_dispatcher, BibleViewReader);
 }
 
@@ -189,6 +203,7 @@ static bool bible_bsb_scene_reader_on_event(void* context, SceneManagerEvent eve
 static void bible_bsb_scene_reader_on_exit(void* context) {
     BibleApp* app = context;
     if(app && app->state) {
+        bible_storage_save_last_read(app->state);
         app->state->show_data_help = false;
     }
 }
@@ -264,9 +279,10 @@ static bool bible_bsb_scene_nfc_share_on_event(void* context, SceneManagerEvent 
     }
 
     if(event.type == SceneManagerEventTypeBack) {
-        bool export_mode = app->state->nfc_is_export;
+        bool return_to_collection = app->state->nfc_is_export ||
+                                    app->state->action_menu_from_collection;
         bible_nfc_stop(app->state);
-        if(export_mode) {
+        if(return_to_collection) {
             scene_manager_search_and_switch_to_another_scene(
                 app->scene_manager, BibleSceneCollection);
         } else {
@@ -370,6 +386,9 @@ static void bible_bsb_tick_callback(void* context) {
     BibleApp* app = context;
     if(app && app->state) {
         bible_toast_tick(&app->state->toast);
+        if(app->state->current_scene == BibleSceneReader) {
+            app->state->header_scroll_ticks++;
+        }
         /* Queue a redraw so toast timers and the NFC pulse stay current. */
         bible_app_request_redraw(app);
     }
@@ -573,8 +592,17 @@ int32_t bible_bsb_main(void* p) {
 
     furi_thread_set_signal_callback(furi_thread_get_current(), bible_boot_signal, app);
     scene_manager_next_scene(app->scene_manager, BibleSceneBookList);
+    if(app->state->bsb_data_present && bible_storage_load_last_read(app->state)) {
+        if(BOOK_CHAPTER_COUNTS[app->state->selected_book] > 1) {
+            scene_manager_next_scene(app->scene_manager, BibleSceneChapterList);
+        }
+        scene_manager_next_scene(app->scene_manager, BibleSceneReader);
+    }
     view_dispatcher_run(app->view_dispatcher);
 
+    if(app->state) {
+        bible_storage_save_last_read(app->state);
+    }
     bible_app_free(app);
     return 0;
 }

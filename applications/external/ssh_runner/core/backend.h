@@ -79,7 +79,7 @@ typedef struct {
     uint32_t crc32;
 } BackendKeyBlob;
 
-/* Largest key file the ESP32 sends back (generated Ed25519 / ECDSA, the v0 key). */
+/* Largest key file the ESP32 sends back (a generated Ed25519 / ECDSA key). */
 #define BACKEND_KEY_IN_MAX 4096u
 
 typedef enum {
@@ -164,9 +164,6 @@ typedef struct {
     bool (*cancel)(void* self);
     bool (*disconnect)(void* self);
     bool (*key_gen)(void* self, const ProtoKeyGen* req);
-    /* One-time migration of the v0 NVS key: an error event (not found) or KeyBlob + KeyPub. */
-    bool (*key_legacy_export)(void* self);
-    bool (*key_legacy_delete)(void* self, uint32_t crc32);
     bool (*hostkey_list)(void* self, const char* profile);
     bool (*hostkey_delete)(void* self, const char* profile, const char* fp);
     bool (*secret_forget)(void* self, uint8_t kind, const char* id); /* ProtoForgetKind */
@@ -195,11 +192,5 @@ typedef struct MockBackend MockBackend;
 Backend mock_backend_create(BackendEventCallback cb, void* ctx);
 /* Test hooks */
 uint32_t mock_backend_credit(const Backend* b);
-/* A v0 device key waits for migration (KEY_LEGACY_EXPORT). */
-void mock_backend_set_legacy(const Backend* b, bool present);
-/* The next mock_backend_create() starts with a v0 key (render test). */
-void mock_backend_legacy_next(bool present);
-/* The next KEY_LEGACY_EXPORT is lost with a link drop, and the link comes back (render test). */
-void mock_backend_export_lost_next(bool lost);
 /* Demo/tests: the next Protect secrets fails after the burn, as the ESP32 reports it. */
 void mock_backend_sec_fail_next(bool fail);

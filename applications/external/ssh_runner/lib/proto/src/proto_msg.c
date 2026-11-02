@@ -665,17 +665,6 @@ bool proto_dec_key_pub(const uint8_t* buf, size_t len, ProtoKeyPub* m) {
     DEC_END;
 }
 
-size_t proto_enc_key_legacy_delete(const ProtoKeyLegacyDelete* m, uint8_t* buf, size_t cap) {
-    ENC_BEGIN;
-    pw_u32(w, m->crc32);
-    ENC_END;
-}
-bool proto_dec_key_legacy_delete(const uint8_t* buf, size_t len, ProtoKeyLegacyDelete* m) {
-    DEC_BEGIN;
-    m->crc32 = pr_u32(r);
-    DEC_END;
-}
-
 size_t proto_enc_secret_forget(const ProtoSecretForget* m, uint8_t* buf, size_t cap) {
     ENC_BEGIN;
     pw_u8(w, m->kind);
@@ -849,10 +838,6 @@ const char* proto_type_name(uint8_t type) {
         return "KEY_PASSPHRASE";
     case PROTO_T_KEY_PUB_EVT:
         return "KEY_PUB_EVT";
-    case PROTO_T_KEY_LEGACY_EXPORT:
-        return "KEY_LEGACY_EXPORT";
-    case PROTO_T_KEY_LEGACY_DELETE:
-        return "KEY_LEGACY_DELETE";
     case PROTO_T_SEC_GET_STATUS:
         return "SEC_GET_STATUS";
     case PROTO_T_SEC_ENABLE:

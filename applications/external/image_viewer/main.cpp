@@ -13,6 +13,13 @@ constexpr uint32_t timeout = 100UL;
 
 Stream* stream;
 
+static uint8_t reverse_bits(uint8_t b) {
+    b = (b & 0xF0) >> 4 | (b & 0x0F) << 4;
+    b = (b & 0xCC) >> 2 | (b & 0x33) << 2;
+    b = (b & 0xAA) >> 1 | (b & 0x55) << 1;
+    return b;
+}
+
 static void draw_callback(Canvas* canvas, void* ctx) {
     UNUSED(ctx);
 
@@ -23,10 +30,11 @@ static void draw_callback(Canvas* canvas, void* ctx) {
     const size_t file_size = stream_size(stream);
     canvas_clear(canvas);
 
-    // Accept raw pixels and the uncompressed Flipper bitmap header used by
-    // the bundled .bm files. Never pass a raw buffer to the compressed API.
+    // The bundled legacy .bm files have a zero format byte and MSB-first
+    // pixels. New raw files use XBM bit order. Keep both layouts bounded.
+    const bool legacy_bitmap = file_size == image_size + 1;
     bool valid = (file_size == image_size || file_size == image_size + 1) && stream_rewind(stream);
-    if(valid && file_size == image_size + 1) {
+    if(valid && legacy_bitmap) {
         uint8_t header = 0;
         valid = stream_read(stream, &header, 1) == 1 && header == 0;
     }
@@ -38,6 +46,11 @@ static void draw_callback(Canvas* canvas, void* ctx) {
 
     uint8_t* image_data = new uint8_t[image_size];
     if(stream_read(stream, image_data, image_size) == image_size) {
+        if(legacy_bitmap) {
+            for(size_t i = 0; i < image_size; ++i) {
+                image_data[i] = reverse_bits(image_data[i]);
+            }
+        }
         canvas_draw_xbm(canvas, 0, 0, width, height, image_data);
     } else {
         canvas_set_font(canvas, FontSecondary);

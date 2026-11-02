@@ -1,0 +1,14 @@
+# Template for the Flipper Apps Catalog manifest.
+# Copy this file to manifest.yml (gitignored), replace the origin and
+# commit_sha with your public repository and its commit, then submit the
+# filled copy as applications/Sub-GHz/ducobox/manifest.yml in the
+# flipper-application-catalog repository.
+sourcecode:
+  type: git
+  location:
+    origin: https://github.com/YOUR_GITHUB_USER/flipper-zero-ducobox.git
+    commit_sha: YOUR_COMMIT_SHA
+description: "@CATALOG.md"
+changelog: "@changelog.md"
+screenshots:
+  - screenshots/ss0.png

@@ -147,7 +147,6 @@ typedef struct {
 typedef enum {
     KeyJobNone,
     KeyJobGenerate, /* Keys -> Generate key */
-    KeyJobMigrate, /* the v0 ESP32 key, exported once to keys/flipper */
     KeyJobConnectPub, /* a key without .pub: its public key after the first parse */
 } KeyJob;
 
@@ -261,8 +260,6 @@ typedef struct SshRunnerApp {
     bool key_job_failed;
     char key_job_msg[PROTO_STR_MSG + 1];
     char key_fp[PROTO_STR_FP + 1]; /* fingerprint of the job's key */
-    bool migrate_asked; /* KEY_LEGACY_EXPORT sent once per run */
-    bool migrate_due; /* the link came up: ask after this tick */
     /* key file / public key line from the ESP32, copied in the backend callback and
      * written to the card after the tick (shallow stack, no SD work inside the link) */
     uint8_t* key_in;
@@ -378,8 +375,6 @@ bool store_key_delete(SshRunnerApp* app, const char* name, unsigned* switched, u
  * happens in keys_process() after the backend tick */
 void keys_on_blob(SshRunnerApp* app, const BackendKeyBlob* b);
 void keys_on_pub(SshRunnerApp* app, const BackendKeyPub* k);
-void keys_on_link_up(SshRunnerApp* app);
-void keys_on_link_down(SshRunnerApp* app);
 /* Returns APP_CHG_KEY when a job step finished. */
 uint32_t keys_process(SshRunnerApp* app);
 /* The key entry a host connects with: scans keys/; NULL with `*missing` set if absent. */

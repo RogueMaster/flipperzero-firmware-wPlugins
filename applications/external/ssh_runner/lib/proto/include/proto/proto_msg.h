@@ -52,7 +52,7 @@ typedef enum {
     PROTO_T_SCRIPT_END = 0x35, /* F->E req, reply ACK/ERROR, then STREAM/EXEC_DONE */
 
     /* Keys and secrets. Key files live on the Flipper's SD card; the ESP32 only
-     * sees one while it authenticates, generates or exports it. 0x41 was KEY_GET_PUB (v0). */
+     * sees one while it authenticates or generates it. 0x41 was KEY_GET_PUB (v0). */
     PROTO_T_KEY_GEN = 0x40, /* F->E req, reply ACK, then KEY_BLOB_* evts and KEY_PUB_EVT */
     PROTO_T_SECRET_FORGET = 0x42, /* F->E req, reply ACK */
     PROTO_T_KEY_BLOB_BEGIN = 0x43, /* F->E req (stage a key file) or E->F evt (generated key) */
@@ -60,9 +60,7 @@ typedef enum {
     PROTO_T_KEY_BLOB_END = 0x45, /* same directions, payload like SCRIPT_END */
     PROTO_T_KEY_PASSPHRASE = 0x46, /* F->E req, reply ACK; answers state passphrase_wait */
     PROTO_T_KEY_PUB_EVT = 0x47, /* E->F evt: public key line and fingerprint, chunked */
-    PROTO_T_KEY_LEGACY_EXPORT =
-        0x48, /* F->E req, reply ACK (then blob + KEY_PUB_EVT) or ERROR not found */
-    PROTO_T_KEY_LEGACY_DELETE = 0x49, /* F->E req, reply ACK/ERROR */
+    /* 0x48 (was KEY_LEGACY_EXPORT) and 0x49 (was KEY_LEGACY_DELETE): retired, never reuse */
 
     /* Security: the eFuse opt-in */
     PROTO_T_SEC_GET_STATUS = 0x60, /* F->E req, reply SEC_STATUS */
@@ -479,10 +477,6 @@ typedef struct {
     const uint8_t* data; /* points into the payload */
 } ProtoKeyPub;
 
-typedef struct {
-    uint32_t crc32; /* CRC-32 of the exported file, proving the Flipper has it */
-} ProtoKeyLegacyDelete;
-
 /* ---- Low-level field writer / reader ---- */
 typedef struct {
     uint8_t* buf;
@@ -554,7 +548,6 @@ PROTO_CODEC(key_gen, ProtoKeyGen)
 PROTO_CODEC(key_blob_begin, ProtoKeyBlobBegin)
 PROTO_CODEC(key_passphrase, ProtoKeyPassphrase)
 PROTO_CODEC(key_pub, ProtoKeyPub)
-PROTO_CODEC(key_legacy_delete, ProtoKeyLegacyDelete)
 PROTO_CODEC(secret_forget, ProtoSecretForget)
 PROTO_CODEC(sec_status, ProtoSecStatus)
 PROTO_CODEC(sec_enable, ProtoSecEnable)

@@ -15,12 +15,16 @@ static void subghz_scene_receiver_update_statusbar(void* context) {
     SubGhz* subghz = context;
     FuriString* history_stat_str = furi_string_alloc();
     bool show_sats = subghz->gps && furi_hal_rtc_get_timestamp() % 2;
-    if(!subghz_history_get_text_space_left(
-           subghz->history,
-           history_stat_str,
-           subghz->last_settings->delete_old_signals,
-           show_sats,
-           show_sats ? subghz->gps->satellites : 0)) {
+    subghz_history_set_menu_growth(
+        subghz->history, subghz_view_receiver_get_menu_growth(subghz->subghz_receiver));
+    subghz->history_full = subghz_history_get_text_space_left(
+        subghz->history,
+        history_stat_str,
+        subghz->last_settings->delete_old_signals,
+        show_sats,
+        show_sats ? subghz->gps->satellites : 0,
+        SubGhzProtocolTypeBinRAW);
+    if(!subghz->history_full) {
         FuriString* frequency_str = furi_string_alloc();
         FuriString* modulation_str = furi_string_alloc();
 
@@ -65,6 +69,8 @@ static void subghz_scene_add_to_history_callback(
     void* context) {
     furi_assert(context);
     SubGhz* subghz = context;
+    subghz_history_set_menu_growth(
+        subghz->history, subghz_view_receiver_get_menu_growth(subghz->subghz_receiver));
     FuriString* item_name = furi_string_alloc();
     FuriString* item_time = furi_string_alloc();
     uint16_t idx = subghz_history_get_item(subghz->history);
@@ -77,13 +83,24 @@ static void subghz_scene_add_to_history_callback(
         preset.longitude = 0;
     }
 
-    if(subghz->last_settings->delete_old_signals && subghz_history_full(subghz->history)) {
+    if(subghz->last_settings->delete_old_signals &&
+       subghz_history_is_full(subghz->history, decoder_base->protocol->type)) {
         subghz_view_receiver_disable_draw_callback(subghz->subghz_receiver);
 
-        while(idx > 0 && subghz_history_full(subghz->history)) {
+        uint16_t deleted = 0;
+        size_t widest = 0;
+        while(idx > 0 && subghz_history_is_full(subghz->history, decoder_base->protocol->type)) {
+            const size_t block = memmgr_heap_get_max_free_block();
+            if(deleted && block <= widest &&
+               !subghz_history_needs_heap(subghz->history, decoder_base->protocol->type))
+                break;
+            widest = block;
             subghz_history_delete_item(subghz->history, 0);
             subghz_view_receiver_delete_item(subghz->subghz_receiver, 0);
             idx--;
+            deleted++;
+            subghz_history_set_menu_growth(
+                subghz->history, subghz_view_receiver_get_menu_growth(subghz->subghz_receiver));
         }
 
         subghz_view_receiver_enable_draw_callback(subghz->subghz_receiver);

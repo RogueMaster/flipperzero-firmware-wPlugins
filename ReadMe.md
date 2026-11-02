@@ -137,7 +137,18 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Sub-GHz WarDriving v0.2 - defer autosave SD writes off the decoder callback (By xMasterX)](https://github.com/xMasterX/all-the-plugins/commit/46b1fcad7cdeb9031b98912bfaeb080c6c61c270) [Heap reservations, history deduplication and menu bounds (By xMasterX)](https://github.com/xMasterX/all-the-plugins/commit/46b1fcad7cdeb9031b98912bfaeb080c6c61c270) Retains queued payloads across row deletion/reset, bounds the backlog and drains it before exit.
 - Added: [Flipper Blinker v1.0 (By T3chieJack)](https://github.com/T3chieJack/FlipperBlinker) `Req: external LED on PC3`
 - Added: [U2F over NFC v1.0 (By asalde_le1)](https://github.com/asaldele1/u2f_over_nfc)
-- Updated: [Apps list return (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1195) — retain the browser while an app runs and return without rebuilding the list; suppress covered-browser scroll redraws while preserving RM JS Runner routing.
+- Updated: [Apps list return (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1195) - retain the browser while an app runs and return without rebuilding the list; suppress covered-browser scroll redraws while preserving RM JS Runner routing.
+- Updated: [Covered-view redraw suppression (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1198) Stop covered viewports repainting the foreground, run settings/button-menu scroll timers only while entered, and explicitly refresh Bluetooth/SD icons; supersedes the local FileBrowser draw flag.
+- SubGHz: [Complete Prastel shared allocation and layout checks (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/7c1b4fff4ba9f5873c9c2cb75f76e080da699272) and [Nord Ice shared encoder allocation (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/5643ae0c42ff4e454fef28e332a4bfa34560507b)
+- SubGHz: [CLI chat initializes and validates the radio before rejection cleanup (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/ed50682677d93e5ef74675b9e3492ef9f4f189ed)
+- Storage: [Restore UL/OFW directory-name buffer sizes for recursive removal and CLI listings (By Flipper Devices)](https://github.com/DarkFlippers/unleashed-firmware/blob/01307e91008025b453800589d480c7e232a0dd59/applications/services/storage/storage_external_api.c) Preserves RM virtual mounts, fast rename and migration.
+- SubGHz: [External module LED/amp control (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/1ceb1eb256985e95a0c61d740f9c8677ea175e71) restored in Radio Settings
+- SubGHz: [Complete TX rejection feedback and keep a failed send out of TX-wait on button release (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/1804b3982b39d3d839b8dccce5959a46be736be5).
+- SubGHz: [Complete Honeywell shared hash/serialization handlers while retaining RM 32-bit hashes (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/commit/5629fc5e1758e58deb0a903c81d765a7d05e7fe8).
+- Updated: [Bible [BSB] v1.2 (By dpshde)](https://github.com/dpshde/bible-bsb) Author adds chapter/book continuation, genre filtering and section headers, and reduces reader buffer memory.
+- Updated: [SSH Runner v0.2 (By SeanChangX)](https://github.com/SeanChangX/flipper-ssh-runner) Author removes unused reserved legacy message labels from the Flipper private protocol; SD-card key workflows remain; removes the pre-release v0 ESP32 key-migration path; SD-card key storage, generation and authentication remain.
+- Added: [Ducobox v0.1 (By Martin Elsner)](https://github.com/martinelsner/flipper-zero-ducobox)
+- Updated: [Infrared projector database unit test (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/commit/6aa1e55dc0677536a41c8114dea60d702c77433c)
 
 <a name="release"></a>
 
@@ -588,6 +599,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [DropDetect Live v0.1 (By TheRealLuro)](https://github.com/TheRealLuro/Flipper-zero-drop-detector.-) `Req: ICM42688P IMU`
 - [DSTIKE Deauther v1.1 (By SequoiaSan)](https://github.com/SequoiaSan/FlipperZero-Wifi-ESP8266-Deauther-Module/tree/FlipperZero-Module-v2/FlipperZeroModule/FlipperZero-ESP8266-Deauth-App) `Req: ESP8266`
 - [DTMF Dolphin v1.5 (By litui)](https://github.com/litui/dtmf_dolphin)
+- [Ducobox v0.1 (By Martin Elsner)](https://github.com/martinelsner/flipper-zero-ducobox)
 - [E220 LoRa Configurator v0.1 (By crackerjacques)](https://github.com/crackerjacques/Flipper_E220_Lora_Module_Configurator) `Req: E220-900T22S(JP)`
 - [Ear Trainer v1.1 (By barismert98)](https://github.com/barismert98/flipper-ear-trainer)
 - [EM4100 Key Generator v1.1 (By Milk-Cool)](https://github.com/Milk-Cool/fz-em4100-generator)

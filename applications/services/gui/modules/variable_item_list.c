@@ -7,6 +7,8 @@
 #include <stdint.h>
 #include <cfw/settings.h>
 
+#define SCROLL_INTERVAL (333)
+
 struct VariableItem {
     FuriString* label;
     uint8_t current_value_index;
@@ -427,6 +429,21 @@ static void variable_item_list_scroll_timer_callback(void* context) {
         true);
 }
 
+static void variable_item_list_enter_callback(void* context) {
+    VariableItemList* variable_item_list = context;
+    with_view_model(
+        variable_item_list->view,
+        VariableItemListModel * model,
+        { model->scroll_counter = 0; },
+        false);
+    furi_timer_start(variable_item_list->scroll_timer, SCROLL_INTERVAL);
+}
+
+static void variable_item_list_exit_callback(void* context) {
+    VariableItemList* variable_item_list = context;
+    furi_timer_stop(variable_item_list->scroll_timer);
+}
+
 void variable_item_list_locked_timer_callback(void* context) {
     furi_assert(context);
     VariableItemList* variable_item_list = context;
@@ -446,6 +463,8 @@ VariableItemList* variable_item_list_alloc(void) {
         variable_item_list->view, ViewModelTypeLocking, sizeof(VariableItemListModel));
     view_set_draw_callback(variable_item_list->view, variable_item_list_draw_callback);
     view_set_input_callback(variable_item_list->view, variable_item_list_input_callback);
+    view_set_enter_callback(variable_item_list->view, variable_item_list_enter_callback);
+    view_set_exit_callback(variable_item_list->view, variable_item_list_exit_callback);
 
     variable_item_list->locked_timer = furi_timer_alloc(
         variable_item_list_locked_timer_callback, FuriTimerTypeOnce, variable_item_list);
@@ -461,9 +480,10 @@ VariableItemList* variable_item_list_alloc(void) {
             model->scroll_counter = 0;
         },
         true);
+    // Started on view enter, not here: a list that is allocated but not on screen asked the GUI
+    // to repaint whatever was, three times a second, for as long as its owner lived
     variable_item_list->scroll_timer = furi_timer_alloc(
         variable_item_list_scroll_timer_callback, FuriTimerTypePeriodic, variable_item_list);
-    furi_timer_start(variable_item_list->scroll_timer, 333);
 
     return variable_item_list;
 }

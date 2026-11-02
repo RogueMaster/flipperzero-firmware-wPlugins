@@ -2,6 +2,7 @@
 
 - Port PR #3 by B0L1V3RS with bounded reads and raw bitmap drawing.
 - Preserve the zero format byte used by the bundled uncompressed `.bm` files.
+- Preserve legacy MSB-first bit order while accepting new raw XBM bitmaps.
 - Reject invalid sizes and failed reads before drawing.
 
 ## v0.2 – 2025-09-23

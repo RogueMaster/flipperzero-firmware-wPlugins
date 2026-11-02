@@ -6,9 +6,11 @@ Read the Berean Standard Bible on Flipper Zero. The chapter text is bundled with
 
 Open the app from Apps, then Media.
 
-- Up and Down move through books, chapters, verses, and reader lines
-- Left and Right move across the chapter grid and turn reader pages
-- OK opens the next screen. In the reader, a short press opens the menu and a long press saves the passage
+- Browse all 66 books directly or switch to Testament and Genre browsing with Left and Right
+- In the reader, Up and Down jump between verses, and Left and Right scroll line by line
+- Continue past the end or start of a chapter to step seamlessly into the next or previous chapter and book
+- Sticky BSB section headings scroll in the top bar alongside the current OSIS verse badge
+- OK opens the next screen. In the reader, a short press opens the action menu (including Go-To-Verse, Save, and NFC Share) and a long press quick-saves the current verse
 - Back returns to the previous screen
 
 Saved passages are stored at /ext/apps_data/bible_bsb/collection.json.

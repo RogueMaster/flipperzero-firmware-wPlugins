@@ -49,14 +49,14 @@ void bible_word_wrap(
                 if(*out_count < max_lines) {
                     BibleLine* line = &out_lines[*out_count];
                     memset(line, 0, sizeof(*line));
+                    uint8_t room = (uint8_t)(sizeof(line->text) - 1);
                     uint8_t n = current_len;
-                    if(n > 59) n = 59;
+                    if(n > room) n = room;
                     if(first) {
-                        uint8_t room = 63;
                         uint8_t pl = prefix_len < room ? prefix_len : room;
                         memcpy(line->text, prefix, pl);
                         uint8_t copy = n;
-                        if(pl + copy > 63) copy = (uint8_t)(63 - pl);
+                        if(pl + copy > room) copy = (uint8_t)(room - pl);
                         memcpy(line->text + pl, current, copy);
                         line->text[pl + copy] = '\0';
                         first = false;
@@ -94,13 +94,14 @@ void bible_word_wrap(
     if(current_len > 0 && *out_count < max_lines) {
         BibleLine* line = &out_lines[*out_count];
         memset(line, 0, sizeof(*line));
+        uint8_t room = (uint8_t)(sizeof(line->text) - 1);
         uint8_t n = current_len;
-        if(n > 59) n = 59;
+        if(n > room) n = room;
         if(first) {
-            uint8_t pl = prefix_len < 63 ? prefix_len : 63;
+            uint8_t pl = prefix_len < room ? prefix_len : room;
             memcpy(line->text, prefix, pl);
             uint8_t copy = n;
-            if(pl + copy > 63) copy = (uint8_t)(63 - pl);
+            if(pl + copy > room) copy = (uint8_t)(room - pl);
             memcpy(line->text + pl, current, copy);
             line->text[pl + copy] = '\0';
             line->is_verse_number = true;
@@ -179,9 +180,9 @@ void bible_draw_toast(Canvas* canvas, const BibleToast* toast) {
  * ============================================================================ */
 
 uint16_t bible_max_visible_lines(int16_t y_offset) {
-    int16_t max_v = (BIBLE_SCREEN_HEIGHT - y_offset - BIBLE_MARGIN_Y) / BIBLE_LINE_HEIGHT;
-    if(max_v < 1) max_v = 1;
-    return (uint16_t)max_v;
+    int16_t avail = BIBLE_SCREEN_HEIGHT - y_offset - BIBLE_MARGIN_Y;
+    if(avail < BIBLE_CHAR_HEIGHT) return 1;
+    return (uint16_t)(1 + (avail - BIBLE_CHAR_HEIGHT) / BIBLE_LINE_HEIGHT);
 }
 
 void bible_render_page(
@@ -200,7 +201,7 @@ void bible_render_page(
         if(idx >= line_count) break;
 
         int16_t y = y_offset + ((int16_t)i * BIBLE_LINE_HEIGHT);
-        if(y + BIBLE_LINE_HEIGHT > BIBLE_SCREEN_HEIGHT - BIBLE_MARGIN_Y) break;
+        if(y + BIBLE_CHAR_HEIGHT > BIBLE_SCREEN_HEIGHT - BIBLE_MARGIN_Y) break;
 
         canvas_draw_str(canvas, BIBLE_MARGIN_X, y + BIBLE_CHAR_HEIGHT - 1, lines[idx].text);
     }

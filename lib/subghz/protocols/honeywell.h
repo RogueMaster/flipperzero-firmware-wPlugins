@@ -49,25 +49,6 @@ void subghz_protocol_decoder_honeywell_reset(void* context);
 void subghz_protocol_decoder_honeywell_feed(void* context, bool level, uint32_t duration);
 
 /**
- * Getting the hash sum of the last randomly received parcel.
- * @param context Pointer to a SubGhzProtocolDecoderHoneywell instance
- * @return hash Hash sum
- */
-uint32_t subghz_protocol_decoder_honeywell_get_hash_data(void* context);
-
-/**
- * Serialize data SubGhzProtocolDecoderHoneywell.
- * @param context Pointer to a SubGhzProtocolDecoderHoneywell instance
- * @param flipper_format Pointer to a FlipperFormat instance
- * @param preset The modulation on which the signal was received, SubGhzRadioPreset
- * @return status
- */
-SubGhzProtocolStatus subghz_protocol_decoder_honeywell_serialize(
-    void* context,
-    FlipperFormat* flipper_format,
-    SubGhzRadioPreset* preset);
-
-/**
  * Deserialize data SubGhzProtocolDecoderHoneywell.
  * @param context Pointer to a SubGhzProtocolDecoderHoneywell instance
  * @param flipper_format Pointer to a FlipperFormat instance

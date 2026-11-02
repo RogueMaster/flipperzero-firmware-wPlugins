@@ -39,11 +39,18 @@ void bible_bsb_view_collection_draw(Canvas* canvas, void* ctx) {
         return;
     }
 
-    /* List of saved passages */
-    uint8_t max_visible = (BIBLE_SCREEN_HEIGHT - COLLECTION_DIVIDER_Y - 4) / COLLECTION_LINE_H;
+    /* List of saved passages (3 rows above the bottom hint bar) */
+    uint8_t max_visible = (BIBLE_SCREEN_HEIGHT - COLLECTION_DIVIDER_Y - 14) / COLLECTION_LINE_H;
     if(max_visible == 0) max_visible = 1;
 
+    if(state->collection_selected >= state->collection_count) {
+        state->collection_selected = state->collection_count - 1;
+    }
     uint16_t start = state->collection_scroll;
+    if(start + max_visible > state->collection_count) {
+        start = (state->collection_count > max_visible) ? (state->collection_count - max_visible) :
+                                                          0;
+    }
 
     for(uint8_t i = 0; i < max_visible; i++) {
         uint16_t idx = start + i;
@@ -51,7 +58,7 @@ void bible_bsb_view_collection_draw(Canvas* canvas, void* ctx) {
 
         uint8_t y = COLLECTION_DIVIDER_Y + 4 + (i * COLLECTION_LINE_H) + BIBLE_CHAR_HEIGHT;
 
-        if(idx == state->collection_scroll) {
+        if(idx == state->collection_selected) {
             bible_draw_inverted_highlight(
                 canvas,
                 0,
@@ -69,15 +76,11 @@ void bible_bsb_view_collection_draw(Canvas* canvas, void* ctx) {
 
     /* Scroll indicator */
     bible_draw_scroll_indicator(
-        canvas,
-        state->collection_scroll,
-        state->collection_count,
-        max_visible,
-        COLLECTION_DIVIDER_Y);
+        canvas, start, state->collection_count, max_visible, COLLECTION_DIVIDER_Y);
 
     /* Bottom hint */
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str(canvas, BIBLE_MARGIN_X, 62, "L=export OK=read");
+    canvas_draw_str(canvas, BIBLE_MARGIN_X, 62, "L=export OK=menu");
 
     bible_draw_toast(canvas, &state->toast);
 }
@@ -102,18 +105,40 @@ bool bible_bsb_view_collection_input(InputEvent* event, void* ctx) {
 
     bool consumed = false;
 
-    /* Up/Down: scroll list */
+    uint8_t max_visible = (BIBLE_SCREEN_HEIGHT - COLLECTION_DIVIDER_Y - 14) / COLLECTION_LINE_H;
+    if(max_visible == 0) max_visible = 1;
+
+    /* Up/Down: move selection with smooth viewport scrolling */
     if(event->key == InputKeyUp &&
        (event->type == InputTypePress || event->type == InputTypeRepeat)) {
-        if(state->collection_scroll > 0) {
-            state->collection_scroll -= 1;
+        if(state->collection_count > 0) {
+            state->collection_selected = (state->collection_selected > 0) ?
+                                             (state->collection_selected - 1) :
+                                             (state->collection_count - 1);
+            if(state->collection_selected < state->collection_scroll) {
+                state->collection_scroll = state->collection_selected;
+            } else if(state->collection_selected >= state->collection_scroll + max_visible) {
+                state->collection_scroll = state->collection_selected >= max_visible ?
+                                               state->collection_selected - (max_visible - 1) :
+                                               0;
+            }
         }
         consumed = true;
     } else if(
         event->key == InputKeyDown &&
         (event->type == InputTypePress || event->type == InputTypeRepeat)) {
-        if(state->collection_scroll + 1 < state->collection_count) {
-            state->collection_scroll += 1;
+        if(state->collection_count > 0) {
+            state->collection_selected =
+                (state->collection_selected + 1 < state->collection_count) ?
+                    (state->collection_selected + 1) :
+                    0;
+            if(state->collection_selected >= state->collection_scroll + max_visible) {
+                state->collection_scroll = state->collection_selected >= max_visible ?
+                                               state->collection_selected - (max_visible - 1) :
+                                               0;
+            } else if(state->collection_selected < state->collection_scroll) {
+                state->collection_scroll = state->collection_selected;
+            }
         }
         consumed = true;
     }
@@ -152,38 +177,12 @@ bool bible_bsb_view_collection_input(InputEvent* event, void* ctx) {
         consumed = true;
     }
 
-    /* OK (Long): delete selected passage */
-    else if(event->key == InputKeyOk && event->type == InputTypeLong) {
-        if(state->collection != NULL && state->collection_scroll < state->collection_count) {
-            /* Shift remaining entries down */
-            for(uint8_t i = state->collection_scroll; i + 1 < state->collection_count; i++) {
-                state->collection[i] = state->collection[i + 1];
-            }
-            state->collection_count--;
-
-            if(state->collection_count > 0 &&
-               state->collection_scroll >= state->collection_count) {
-                state->collection_scroll = state->collection_count - 1;
-            }
-
-            /* Save updated collection */
-            bible_storage_save_collection(state);
-            bible_toast_set(&state->toast, "Deleted");
-        }
-        consumed = true;
-    }
-
-    /* OK (Short): load saved passage and go to Reader */
+    /* OK (Short): open intermediary action menu for selected passage */
     else if(event->key == InputKeyOk && event->type == InputTypeShort) {
-        if(state->collection_scroll < state->collection_count) {
-            bool loaded = bible_storage_load_verses_for_entry(state, state->collection_scroll);
-            if(loaded) {
-                scene_manager_next_scene(app->scene_manager, BibleSceneReader);
-            } else if(state->show_data_help) {
-                /* The missing-file screen replaces the toast. */
-            } else if(!bible_toast_active(&state->toast)) {
-                bible_toast_set(&state->toast, "Load failed");
-            }
+        if(state->collection != NULL && state->collection_selected < state->collection_count) {
+            state->action_menu_selection = 0;
+            state->action_menu_from_collection = true;
+            scene_manager_next_scene(app->scene_manager, BibleSceneActionMenu);
         }
         consumed = true;
     }

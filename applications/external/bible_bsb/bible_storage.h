@@ -72,3 +72,14 @@ bool bible_storage_load_verses_for_entry(BibleAppState* state, uint8_t entry_ind
  * @return true if JSON was fully written into buffer
  */
 bool bible_storage_build_kindled_json(BibleAppState* state, char* out_buf, size_t out_len);
+
+/**
+ * Persist the last-read book, chapter, and scroll_offset to APP_DATA_PATH("last_read.bin").
+ */
+bool bible_storage_save_last_read(const BibleAppState* state);
+
+/**
+ * Load the last-read passage on startup and populate state->lines and state->scroll_offset.
+ * Returns true if a valid last-read chapter was restored.
+ */
+bool bible_storage_load_last_read(BibleAppState* state);

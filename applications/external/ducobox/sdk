@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+# Fetch and install the Flipper SDK that matches FW_VERSION into the
+# project-local UFBT_HOME. Run from the repository root; the Makefile does.
+#
+# The SDK is placed in $UFBT_HOME/current, which ufbt uses as-is. The ARM
+# toolchain is shared with the global ~/.ufbt state so it is not downloaded
+# twice.
+
+set -euo pipefail
+
+version="${FW_VERSION:-1.4.3}"
+ufbt_home="${UFBT_HOME:-$PWD/.ufbt}"
+force="${1:-}"
+
+current="$ufbt_home/current"
+marker="$current/.firmware-version"
+
+if [[ "$force" != "--force" && -f "$marker" && "$(cat "$marker")" == "$version" &&
+      -f "$current/scripts/ufbt/SConstruct" ]]; then
+    exit 0
+fi
+
+url="https://update.flipperzero.one/builds/firmware/$version/flipper-z-f7-sdk-$version.zip"
+tmp="$(mktemp -d)"
+trap 'rm -rf "$tmp"' EXIT
+
+echo "Fetching Flipper SDK $version"
+curl -fsSL "$url" -o "$tmp/sdk.zip"
+
+mkdir -p "$ufbt_home"
+rm -rf "$current"
+mkdir -p "$current"
+unzip -q "$tmp/sdk.zip" -d "$current"
+
+cat >"$current/ufbt_state.json" <<EOF
+{
+    "hw_target": "f7",
+    "mode": "channel",
+    "channel": "release",
+    "json_index": "https://update.flipperzero.one/firmware/directory.json",
+    "version": "$version"
+}
+EOF
+printf '%s\n' "$version" >"$marker"
+
+# Share the downloaded toolchain with the global ufbt state. fbtenv.sh creates
+# the target directory on first use if it does not exist yet.
+if [[ ! -e "$ufbt_home/toolchain" ]]; then
+    ln -s "$HOME/.ufbt/toolchain" "$ufbt_home/toolchain"
+fi
+
+api="$(awk -F, '$1 == "Version" { print $3; exit }' \
+    "$current/sdk_headers/f7_sdk/targets/f7/api_symbols.csv")"
+echo "Using Flipper SDK $version (API $api)"

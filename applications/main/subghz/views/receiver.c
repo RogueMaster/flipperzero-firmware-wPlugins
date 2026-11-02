@@ -793,3 +793,19 @@ void subghz_view_receiver_set_idx_menu(SubGhzViewReceiver* subghz_receiver, uint
         true);
     subghz_view_receiver_update_offset(subghz_receiver);
 }
+
+size_t subghz_view_receiver_get_menu_growth(SubGhzViewReceiver* subghz_receiver) {
+    furi_assert(subghz_receiver);
+    size_t bytes = 0;
+    with_view_model(
+        subghz_receiver->view,
+        SubGhzViewReceiverModel * model,
+        {
+            const size_t capacity = SubGhzReceiverMenuItemArray_capacity(model->history->data);
+            if(SubGhzReceiverMenuItemArray_size(model->history->data) >= capacity) {
+                bytes = M_INC_ALLOC_DEFAULT(capacity) * sizeof(SubGhzReceiverMenuItem);
+            }
+        },
+        false);
+    return bytes;
+}

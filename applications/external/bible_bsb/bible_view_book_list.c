@@ -37,12 +37,81 @@ void bible_bsb_view_book_list_draw(Canvas* canvas, void* ctx) {
             sizeof(state->selected_book_name));
     }
 
-    /* Header: active filter in < > brackets */
-    char header[16];
-    if(state->book_filter_idx == 0) {
-        strlcpy(header, "< All >", sizeof(header));
-    } else {
+    uint8_t max_visible =
+        (BIBLE_SCREEN_HEIGHT - BOOK_LIST_HEADER_HEIGHT - 2) / BOOK_LIST_LINE_HEIGHT;
+    if(max_visible == 0) max_visible = 1;
+
+    /* Hierarchy mode: Testament -> Genre (when no A-Z filter overrides it) */
+    if(state->genre_mode_enabled && state->book_filter_idx == 0 && state->browse_depth < 2) {
+        if(state->browse_depth == 0) {
+            /* Step 1: Testament selection */
+            canvas_draw_str(canvas, BIBLE_MARGIN_X, 10, "< Testament >");
+            canvas_draw_line(
+                canvas, 0, BOOK_LIST_HEADER_HEIGHT, BIBLE_SCREEN_WIDTH, BOOK_LIST_HEADER_HEIGHT);
+
+            for(uint8_t i = 0; i < BIBLE_TESTAMENT_COUNT; i++) {
+                int16_t y =
+                    BOOK_LIST_HEADER_HEIGHT + 2 + (i * BOOK_LIST_LINE_HEIGHT) + BIBLE_CHAR_HEIGHT;
+                const char* label = BIBLE_TESTAMENT_LABELS[i];
+                if(i == state->selected_testament) {
+                    bible_draw_inverted_highlight(
+                        canvas,
+                        0,
+                        (uint8_t)(y - 9),
+                        BIBLE_SCREEN_WIDTH,
+                        BOOK_LIST_LINE_HEIGHT,
+                        label,
+                        BIBLE_MARGIN_X + 4,
+                        (uint8_t)y);
+                } else {
+                    canvas_draw_str(canvas, BIBLE_MARGIN_X + 4, y, label);
+                }
+            }
+        } else {
+            /* Step 2: Genre selection within selected Testament */
+            canvas_draw_str(
+                canvas,
+                BIBLE_MARGIN_X,
+                10,
+                state->selected_testament == 0 ? "< Old Testament >" : "< New Testament >");
+            canvas_draw_line(
+                canvas, 0, BOOK_LIST_HEADER_HEIGHT, BIBLE_SCREEN_WIDTH, BOOK_LIST_HEADER_HEIGHT);
+
+            uint8_t genres[BIBLE_GENRE_COUNT];
+            uint8_t genre_count = get_genres_for_testament(state->selected_testament, genres);
+            for(uint8_t i = 0; i < genre_count && i < max_visible; i++) {
+                uint8_t g_idx = genres[i];
+                int16_t y =
+                    BOOK_LIST_HEADER_HEIGHT + 2 + (i * BOOK_LIST_LINE_HEIGHT) + BIBLE_CHAR_HEIGHT;
+                const char* label = BIBLE_GENRES[g_idx].name;
+                if(g_idx == state->selected_genre) {
+                    bible_draw_inverted_highlight(
+                        canvas,
+                        0,
+                        (uint8_t)(y - 9),
+                        BIBLE_SCREEN_WIDTH,
+                        BOOK_LIST_LINE_HEIGHT,
+                        label,
+                        BIBLE_MARGIN_X + 4,
+                        (uint8_t)y);
+                } else {
+                    canvas_draw_str(canvas, BIBLE_MARGIN_X + 4, y, label);
+                }
+            }
+        }
+
+        bible_draw_toast(canvas, &state->toast);
+        return;
+    }
+
+    /* Step 3 (Genre Books) or Flat Book List */
+    char header[24];
+    if(state->book_filter_idx != 0 && state->book_filter_idx < BIBLE_FILTER_COUNT) {
         snprintf(header, sizeof(header), "< %s >", BIBLE_FILTER_LABELS[state->book_filter_idx]);
+    } else if(state->genre_mode_enabled && state->selected_genre < BIBLE_GENRE_COUNT) {
+        strlcpy(header, BIBLE_GENRES[state->selected_genre].header_name, sizeof(header));
+    } else {
+        strlcpy(header, "< All >", sizeof(header));
     }
     canvas_draw_str(canvas, BIBLE_MARGIN_X, 10, header);
 
@@ -50,17 +119,18 @@ void bible_bsb_view_book_list_draw(Canvas* canvas, void* ctx) {
     canvas_draw_line(
         canvas, 0, BOOK_LIST_HEADER_HEIGHT, BIBLE_SCREEN_WIDTH, BOOK_LIST_HEADER_HEIGHT);
 
-    /* Build filtered list */
+    /* Build filtered list (by Genre or by A-Z filter) */
     uint8_t filtered[BIBLE_BOOK_COUNT];
-    uint8_t filtered_count = get_filtered_books(state->book_filter_idx, filtered);
+    uint8_t filtered_count = 0;
+    if(state->genre_mode_enabled && state->book_filter_idx == 0) {
+        filtered_count = get_books_for_genre(state->selected_genre, filtered);
+    } else {
+        filtered_count = get_filtered_books(state->book_filter_idx, filtered);
+    }
     if(filtered_count == 0) {
+        bible_draw_toast(canvas, &state->toast);
         return;
     }
-
-    /* Visible range */
-    uint8_t max_visible =
-        (BIBLE_SCREEN_HEIGHT - BOOK_LIST_HEADER_HEIGHT - 2) / BOOK_LIST_LINE_HEIGHT;
-    if(max_visible == 0) max_visible = 1;
 
     uint8_t start_idx = state->book_scroll;
     if(start_idx + max_visible > filtered_count) {
@@ -94,6 +164,7 @@ void bible_bsb_view_book_list_draw(Canvas* canvas, void* ctx) {
 
     bible_draw_scroll_indicator(
         canvas, state->book_scroll, filtered_count, max_visible, BOOK_LIST_HEADER_HEIGHT);
+    bible_draw_toast(canvas, &state->toast);
 }
 
 /* ============================================================================
@@ -120,9 +191,111 @@ bool bible_bsb_view_book_list_input(InputEvent* event, void* ctx) {
         return true;
     }
 
-    /* Build filtered list */
+    uint8_t max_visible =
+        (BIBLE_SCREEN_HEIGHT - BOOK_LIST_HEADER_HEIGHT - 2) / BOOK_LIST_LINE_HEIGHT;
+    if(max_visible == 0) max_visible = 1;
+
+    /* Hierarchy Mode — Depth 0 (< Testament >) & Depth 1 (< Old/New Testament >) */
+    if(state->genre_mode_enabled && state->book_filter_idx == 0 && state->browse_depth < 2) {
+        bool consumed = false;
+
+        if(state->browse_depth == 0) {
+            /* Testament level: between < All > (Left) and < Select Filter (Right) */
+            if((event->key == InputKeyUp || event->key == InputKeyDown) &&
+               (event->type == InputTypePress || event->type == InputTypeRepeat)) {
+                state->selected_testament = (state->selected_testament == 0) ? 1 : 0;
+                consumed = true;
+            } else if(event->key == InputKeyOk && event->type == InputTypeShort) {
+                uint8_t genres[BIBLE_GENRE_COUNT];
+                uint8_t g_count = get_genres_for_testament(state->selected_testament, genres);
+                if(g_count > 0) {
+                    if(BIBLE_GENRES[state->selected_genre].testament !=
+                       state->selected_testament) {
+                        state->selected_genre = genres[0];
+                    }
+                    state->browse_depth = 1;
+                }
+                consumed = true;
+            } else if(event->key == InputKeyLeft && event->type == InputTypeShort) {
+                /* Slide Left back to < All > */
+                state->genre_mode_enabled = false;
+                state->browse_depth = 0;
+                state->book_scroll = (state->selected_book >= max_visible) ?
+                                         (state->selected_book - (max_visible - 1)) :
+                                         0;
+                consumed = true;
+            } else if(event->key == InputKeyRight && event->type == InputTypeShort) {
+                /* Slide Right to < Select Filter */
+                scene_manager_next_scene(app->scene_manager, BibleSceneBookFilter);
+                consumed = true;
+            }
+        } else {
+            /* Genre level (browse_depth == 1) */
+            uint8_t genres[BIBLE_GENRE_COUNT];
+            uint8_t g_count = get_genres_for_testament(state->selected_testament, genres);
+            uint8_t cur_g = 0;
+            for(uint8_t i = 0; i < g_count; i++) {
+                if(genres[i] == state->selected_genre) {
+                    cur_g = i;
+                    break;
+                }
+            }
+
+            if(event->key == InputKeyUp &&
+               (event->type == InputTypePress || event->type == InputTypeRepeat)) {
+                if(g_count > 0) {
+                    uint8_t next_g = (cur_g > 0) ? (cur_g - 1) : (g_count - 1);
+                    state->selected_genre = genres[next_g];
+                }
+                consumed = true;
+            } else if(
+                event->key == InputKeyDown &&
+                (event->type == InputTypePress || event->type == InputTypeRepeat)) {
+                if(g_count > 0) {
+                    uint8_t next_g = (cur_g + 1 < g_count) ? (cur_g + 1) : 0;
+                    state->selected_genre = genres[next_g];
+                }
+                consumed = true;
+            } else if(event->key == InputKeyOk && event->type == InputTypeShort) {
+                const BibleGenre* g = &BIBLE_GENRES[state->selected_genre];
+                state->selected_book = g->start_book;
+                state->book_scroll = 0;
+                if(g->start_book == g->end_book) {
+                    /* Single-book genre (Acts, Revelation): jump straight to ChapterList */
+                    if(state->selected_book < BIBLE_BOOK_COUNT &&
+                       OSIS_BOOK_NAMES[state->selected_book]) {
+                        strlcpy(
+                            state->selected_book_name,
+                            OSIS_BOOK_NAMES[state->selected_book],
+                            sizeof(state->selected_book_name));
+                    }
+                    state->selected_chapter = 1;
+                    scene_manager_next_scene(app->scene_manager, BibleSceneChapterList);
+                } else {
+                    state->browse_depth = 2;
+                }
+                consumed = true;
+            } else if(event->key == InputKeyLeft && event->type == InputTypeShort) {
+                state->browse_depth = 0;
+                consumed = true;
+            } else if(event->key == InputKeyRight && event->type == InputTypeShort) {
+                scene_manager_next_scene(app->scene_manager, BibleSceneBookFilter);
+                consumed = true;
+            }
+        }
+
+        bible_app_request_redraw(app);
+        return consumed;
+    }
+
+    /* Build filtered list (by Genre at browse_depth == 2, or by A-Z filter) */
     uint8_t filtered[BIBLE_BOOK_COUNT];
-    uint8_t filtered_count = get_filtered_books(state->book_filter_idx, filtered);
+    uint8_t filtered_count = 0;
+    if(state->genre_mode_enabled && state->book_filter_idx == 0) {
+        filtered_count = get_books_for_genre(state->selected_genre, filtered);
+    } else {
+        filtered_count = get_filtered_books(state->book_filter_idx, filtered);
+    }
     if(filtered_count == 0) {
         return false;
     }
@@ -135,10 +308,6 @@ bool bible_bsb_view_book_list_input(InputEvent* event, void* ctx) {
             break;
         }
     }
-
-    uint8_t max_visible =
-        (BIBLE_SCREEN_HEIGHT - BOOK_LIST_HEADER_HEIGHT - 2) / BOOK_LIST_LINE_HEIGHT;
-    if(max_visible == 0) max_visible = 1;
 
     bool consumed = false;
 
@@ -172,19 +341,51 @@ bool bible_bsb_view_book_list_input(InputEvent* event, void* ctx) {
         consumed = true;
 
     } else if(event->key == InputKeyLeft && event->type == InputTypeShort) {
-        /* Navigate to Collection scene */
-        scene_manager_next_scene(app->scene_manager, BibleSceneCollection);
+        if(state->genre_mode_enabled && state->book_filter_idx == 0) {
+            /* Step back up to Genre list */
+            state->browse_depth = 1;
+        } else {
+            /* From < All >, slide Left to Collection > */
+            scene_manager_next_scene(app->scene_manager, BibleSceneCollection);
+        }
         consumed = true;
 
     } else if(event->key == InputKeyRight && event->type == InputTypeShort) {
-        /* Navigate to BookFilter scene */
-        scene_manager_next_scene(app->scene_manager, BibleSceneBookFilter);
+        if(!state->genre_mode_enabled && state->book_filter_idx == 0) {
+            /* From < All >, slide Right to < Testament > */
+            state->genre_mode_enabled = true;
+            state->browse_depth = 0;
+            state->selected_genre = get_genre_for_book(state->selected_book);
+            state->selected_testament = BIBLE_GENRES[state->selected_genre].testament;
+        } else {
+            /* Slide Right to < Select Filter */
+            scene_manager_next_scene(app->scene_manager, BibleSceneBookFilter);
+        }
         consumed = true;
 
     } else if(event->key == InputKeyOk && event->type == InputTypeShort) {
-        /* Navigate to ChapterList for selected book */
+        /* Single-chapter books skip the 1-cell ChapterList and open Reader directly */
         state->selected_chapter = 1;
-        scene_manager_next_scene(app->scene_manager, BibleSceneChapterList);
+        if(state->selected_book < BIBLE_BOOK_COUNT && OSIS_BOOK_NAMES[state->selected_book]) {
+            strlcpy(
+                state->selected_book_name,
+                OSIS_BOOK_NAMES[state->selected_book],
+                sizeof(state->selected_book_name));
+        }
+        if(state->selected_book < BIBLE_BOOK_COUNT &&
+           BOOK_CHAPTER_COUNTS[state->selected_book] == 1) {
+            bool loaded = bible_load_chapter(state->selected_book, 1, 0, 0, state);
+            if(loaded || state->show_data_help) {
+                state->scroll_offset = 0;
+                state->reader_on_chapter_page = false;
+                state->reader_came_from_collection = false;
+                scene_manager_next_scene(app->scene_manager, BibleSceneReader);
+            } else if(!bible_toast_active(&state->toast)) {
+                bible_toast_set(&state->toast, "No BSB data");
+            }
+        } else {
+            scene_manager_next_scene(app->scene_manager, BibleSceneChapterList);
+        }
         consumed = true;
 
     } else if(event->key == InputKeyBack && event->type == InputTypeShort) {

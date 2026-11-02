@@ -22,8 +22,37 @@ void subghz_blink_stop(SubGhz* subghz) {
     notification_message(subghz->notifications, &sequence_blink_stop);
 }
 
+#ifndef SUBGHZ_ADD_MANUALLY
+static bool subghz_tx_make_room(SubGhz* subghz, FlipperFormat* flipper_format) {
+    if(!subghz->last_settings->delete_old_signals) return false;
+
+    FuriString* protocol = furi_string_alloc();
+    bool freed = false;
+    if(flipper_format_rewind(flipper_format) &&
+       flipper_format_read_string(flipper_format, "Protocol", protocol)) {
+        const size_t need = subghz_txrx_tx_block_need(furi_string_get_cstr(protocol));
+        // Every delete asks for the block again, so this stops as soon as one is held
+        while((subghz->idx_menu_chosen > 0) && (subghz_txrx_tx_block_size() < need)) {
+            subghz_history_delete_item(subghz->history, 0);
+            subghz_view_receiver_delete_item(subghz->subghz_receiver, 0);
+            subghz->idx_menu_chosen--;
+            freed = true;
+        }
+    }
+    furi_string_free(protocol);
+    return freed;
+}
+#endif
+
 bool subghz_tx_start(SubGhz* subghz, FlipperFormat* flipper_format) {
-    switch(subghz_txrx_tx_start(subghz->txrx, flipper_format)) {
+    SubGhzTxRxStartTxState state = subghz_txrx_tx_start(subghz->txrx, flipper_format);
+#ifndef SUBGHZ_ADD_MANUALLY
+    if((state == SubGhzTxRxStartTxStateErrorMemory) &&
+       subghz_tx_make_room(subghz, flipper_format)) {
+        state = subghz_txrx_tx_start(subghz->txrx, flipper_format);
+    }
+#endif
+    switch(state) {
     case SubGhzTxRxStartTxStateErrorParserOthers:
         dialog_message_show_storage_error(
             subghz->dialogs, "Error in protocol\nparameters\ndescription");
@@ -35,6 +64,7 @@ bool subghz_tx_start(SubGhz* subghz, FlipperFormat* flipper_format) {
         break;
 
     case SubGhzTxRxStartTxStateErrorMemory: {
+        notification_message(subghz->notifications, &sequence_error);
         FuriString* msg = furi_string_alloc();
         furi_string_printf(
             msg,

@@ -1,5 +1,6 @@
 #include "bible_app.h"
 #include "bible_books.h"
+#include "bible_loader.h"
 #include "bible_renderer.h"
 
 #include <string.h>
@@ -57,18 +58,14 @@ void bible_bsb_view_chapter_list_draw(Canvas* canvas, void* ctx) {
 
             char num[4];
             snprintf(num, sizeof(num), "%u", (unsigned int)chapter_num);
+            uint8_t cell_box_w = CHAPTER_LIST_CELL_W - 2;
+            uint8_t num_w = canvas_string_width(canvas, num);
+            uint8_t text_x = x + ((cell_box_w > num_w) ? ((cell_box_w - num_w) / 2) : 1);
             if(is_selected) {
                 bible_draw_inverted_highlight(
-                    canvas,
-                    x,
-                    y,
-                    CHAPTER_LIST_CELL_W - 2,
-                    CHAPTER_LIST_CELL_H - 2,
-                    num,
-                    x + 4,
-                    y + 10);
+                    canvas, x, y, cell_box_w, CHAPTER_LIST_CELL_H - 2, num, text_x, y + 10);
             } else {
-                canvas_draw_str(canvas, x + 4, y + 10, num);
+                canvas_draw_str(canvas, text_x, y + 10, num);
             }
         }
     }
@@ -137,11 +134,22 @@ bool bible_bsb_view_chapter_list_input(InputEvent* event, void* ctx) {
         consumed = true;
 
     } else if(event->key == InputKeyOk && event->type == InputTypeShort) {
-        /* Navigate to VerseSelect, reset verse mode to All */
-        state->verse_select_mode = 0; /* All */
+        /* Load full chapter directly and open Reader */
+        state->verse_select_mode = 0;
         state->selected_start_verse = 1;
         state->selected_end_verse = 1;
-        scene_manager_next_scene(app->scene_manager, BibleSceneVerseSelect);
+        bool loaded =
+            bible_load_chapter(state->selected_book, state->selected_chapter, 0, 0, state);
+        if(loaded && state->passage.verse_count > 0) {
+            state->scroll_offset = 0;
+            state->reader_on_chapter_page = false;
+            state->reader_came_from_collection = false;
+            scene_manager_next_scene(app->scene_manager, BibleSceneReader);
+        } else if(state->show_data_help) {
+            scene_manager_next_scene(app->scene_manager, BibleSceneReader);
+        } else if(!bible_toast_active(&state->toast)) {
+            bible_toast_set(&state->toast, "No BSB data");
+        }
         consumed = true;
 
     } else if(event->key == InputKeyBack && event->type == InputTypeShort) {

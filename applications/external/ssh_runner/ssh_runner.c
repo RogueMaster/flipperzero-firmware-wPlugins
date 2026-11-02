@@ -49,12 +49,7 @@ static void backend_event(void* ctx, const BackendEvent* e) {
         keys_on_pub(app, &e->key);
         break;
     case BackendEvtLink:
-        if(e->link.state == BackendLinkUp) {
-            keys_on_link_up(app);
-            app->sec_relinked = true;
-        } else if(e->link.state == BackendLinkDown) {
-            keys_on_link_down(app);
-        }
+        if(e->link.state == BackendLinkUp) app->sec_relinked = true;
         break;
     case BackendEvtSecStatus:
         app->sec = e->sec;
@@ -75,11 +70,6 @@ static void backend_event(void* ctx, const BackendEvent* e) {
         break;
     case BackendEvtError:
         app->last_error = e->error;
-        /* no v0 key on the board: nothing to migrate, nothing to say */
-        if(e->error.request == PROTO_T_KEY_LEGACY_EXPORT && app->key_job == KeyJobMigrate) {
-            app->key_job = KeyJobNone;
-            break;
-        }
         chg |= APP_CHG_ERROR;
         break;
     default:
@@ -145,7 +135,6 @@ uint32_t app_take_changes(SshRunnerApp* app) {
 void app_backend_restart(SshRunnerApp* app) {
     if(app->backend.self) backend_free(&app->backend);
     session_init(app->session);
-    app->migrate_asked = false;
     app->key_job = KeyJobNone;
 #if APP_HAS_MOCK
     app->backend = app->settings.mock ? mock_backend_create(backend_event, app) :
