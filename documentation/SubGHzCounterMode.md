@@ -130,9 +130,10 @@ CounterMode: 1
 - Counter freeze - do not increment
 
 **Mode 7:**
-- Incremental mode: `+0x3333` 5 times to current counter and return original value back adding +1 - 2 times - 7 signals in pack total
-- Might work with Doorhan, seen in some "universal remotes"
-- One click of Send button on flipper may bypass receiver counter, wait for full transmission
+- Forced resync pack: 6 pairs of consecutive counters `(X / X+1)`, 4 pair bases stepped `+0x3334` apart plus the base counter at the start and at the end - 12 signals in pack total
+- Counter is not incremented between transmissions, every press sends the same pack and pulls the receiver back to base + 1
+- Bypasses the receiver counter from any state, works with Doorhan
+- One click of Send button on flipper may bypass receiver counter, wait for full transmission (~1.3s), pressing Send again aborts the pack
 
 
 ---

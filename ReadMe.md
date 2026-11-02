@@ -127,6 +127,10 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Morse Flipper v0.3.0 (By yo3gnd)](https://github.com/yo3gnd/morse-flipper) [Type decoded Morse over USB HID (By SoTypicalNoob)](https://github.com/yo3gnd/morse-flipper/pull/4)
 - Updated: [FlipPass v3.1 - cached KDF for launch arguments and nested Auto-Type tags (By Arckanos)](https://github.com/Arckanos/FlipPass/commit/773d61e6a6be1e27724418bf0906e8a6aadb0793)
 - Added: [BadUSB MSC v0.1 - BadUSB scripts with isolated USB mass storage (By ZombieDolphin)](https://github.com/ZombieDolphin/BadUSB_MSC)
+- SubGHz: [KeeLoq mode 7 counter-pair pack and on-demand encoder buffer (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/06ff65aa410acca47dc44ef14dacac9af0d7e6ad)
+- SubGHz: [Encoder buffer bounds for CAME Atomo, Dooya, Power Smart and Somfy (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/6197941a067ff67864b521bcf33bae2d27bb64be)
+- SubGHz: [Allocate BinRAW capture buffers on demand and fix receiver deletion bounds (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/1804b3982b39d3d839b8dccce5959a46be736be5)
+- Updated: [Sub-GHz WarDriving v0.2 (By xMasterX)](https://github.com/xMasterX/all-the-plugins) [Heap reservations, history deduplication and menu bounds (By xMasterX)](https://github.com/xMasterX/all-the-plugins/commit/46b1fcad7cdeb9031b98912bfaeb080c6c61c270)
 
 <a name="release"></a>
 

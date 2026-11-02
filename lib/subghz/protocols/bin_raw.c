@@ -25,6 +25,11 @@
 #define BIN_RAW_BUF_MIN_DATA_COUNT 128
 #define BIN_RAW_MAX_MARKUP_COUNT   20
 
+// Allocate capture buffers only when BinRAW is used. RM keeps its existing
+// BIN_RAW_BUF_RAW_SIZE; allow for both buffers plus the upstream allocator slack.
+#define BIN_RAW_BUF_MIN_FREE_BLOCK \
+    (BIN_RAW_BUF_RAW_SIZE * (sizeof(int32_t) + sizeof(uint8_t)) + 256U)
+
 //#define BIN_RAW_DEBUG
 
 #ifdef BIN_RAW_DEBUG
@@ -336,8 +341,8 @@ void* subghz_protocol_decoder_bin_raw_alloc(SubGhzEnvironment* environment) {
     SubGhzProtocolDecoderBinRAW* instance = subghz_protocol_decoder_common_alloc(
         sizeof(SubGhzProtocolDecoderBinRAW), &subghz_protocol_bin_raw);
     instance->data_raw_ind = 0;
-    instance->data_raw = malloc(BIN_RAW_BUF_RAW_SIZE * sizeof(int32_t));
-    instance->data = malloc(BIN_RAW_BUF_RAW_SIZE * sizeof(uint8_t));
+    instance->data_raw = NULL;
+    instance->data = NULL;
     memset(instance->data_markup, 0x00, BIN_RAW_MAX_MARKUP_COUNT * sizeof(BinRAW_Markup));
     instance->adaptive_threshold_rssi = BIN_RAW_THRESHOLD_RSSI;
     return instance;
@@ -362,11 +367,22 @@ void subghz_protocol_decoder_bin_raw_reset(void* context) {
 #endif
 }
 
+static bool subghz_protocol_decoder_bin_raw_buffers(SubGhzProtocolDecoderBinRAW* instance) {
+    if(instance->data_raw != NULL) return true;
+    if(memmgr_heap_get_max_free_block() < BIN_RAW_BUF_MIN_FREE_BLOCK) {
+        FURI_LOG_W(TAG, "Not enough free heap for the capture buffers");
+        return false;
+    }
+    instance->data_raw = malloc(BIN_RAW_BUF_RAW_SIZE * sizeof(int32_t));
+    instance->data = malloc(BIN_RAW_BUF_RAW_SIZE * sizeof(uint8_t));
+    return true;
+}
+
 void subghz_protocol_decoder_bin_raw_feed(void* context, bool level, uint32_t duration) {
     furi_assert(context);
     SubGhzProtocolDecoderBinRAW* instance = context;
 
-    if(instance->decoder.parser_step == BinRAWDecoderStepWrite) {
+    if((instance->decoder.parser_step == BinRAWDecoderStepWrite) && (instance->data_raw != NULL)) {
         if(instance->data_raw_ind == BIN_RAW_BUF_RAW_SIZE) {
             instance->decoder.parser_step = BinRAWDecoderStepBufFull;
         } else {
@@ -871,6 +887,7 @@ void subghz_protocol_decoder_bin_raw_data_input_rssi(
 
         bin_raw_debug("%ld %ld :", (int32_t)rssi, (int32_t)instance->adaptive_threshold_rssi);
         if(rssi > (instance->adaptive_threshold_rssi + BIN_RAW_DELTA_RSSI)) {
+            if(!subghz_protocol_decoder_bin_raw_buffers(instance)) break;
             instance->data_raw_ind = 0;
             memset(instance->data_raw, 0x00, BIN_RAW_BUF_RAW_SIZE * sizeof(int32_t));
             memset(instance->data, 0x00, BIN_RAW_BUF_RAW_SIZE * sizeof(uint8_t));
@@ -946,6 +963,7 @@ void subghz_protocol_decoder_bin_raw_data_input_rssi(
 uint32_t subghz_protocol_decoder_bin_raw_get_hash_data(void* context) {
     furi_assert(context);
     SubGhzProtocolDecoderBinRAW* instance = context;
+    if(instance->data == NULL) return 0;
     union {
         uint32_t full;
         uint8_t split[4];
@@ -964,6 +982,7 @@ SubGhzProtocolStatus subghz_protocol_decoder_bin_raw_serialize(
     SubGhzRadioPreset* preset) {
     furi_assert(context);
     SubGhzProtocolDecoderBinRAW* instance = context;
+    if(instance->data == NULL) return SubGhzProtocolStatusErrorParserOthers;
 
     SubGhzProtocolStatus res = subghz_block_generic_serialize_common(
         instance->generic.protocol_name, flipper_format, preset);
@@ -1015,6 +1034,10 @@ SubGhzProtocolStatus
 
     SubGhzProtocolStatus res = SubGhzProtocolStatusError;
     uint32_t temp_data = 0;
+
+    if(!subghz_protocol_decoder_bin_raw_buffers(instance)) {
+        return SubGhzProtocolStatusErrorParserOthers;
+    }
 
     do {
         if(!flipper_format_rewind(flipper_format)) {
@@ -1080,6 +1103,7 @@ SubGhzProtocolStatus
 void subghz_protocol_decoder_bin_raw_get_string(void* context, FuriString* output) {
     furi_assert(context);
     SubGhzProtocolDecoderBinRAW* instance = context;
+    if(instance->data == NULL) return;
     furi_string_cat_printf(
         output,
         "%s %dbit\r\n"

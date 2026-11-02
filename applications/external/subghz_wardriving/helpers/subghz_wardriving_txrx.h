@@ -17,7 +17,34 @@ typedef enum {
     SubGhzTxRxStartTxStateOk,
     SubGhzTxRxStartTxStateErrorOnlyRx,
     SubGhzTxRxStartTxStateErrorParserOthers,
+    SubGhzTxRxStartTxStateErrorNoMemory,
 } SubGhzTxRxStartTxState;
+
+/** Free block a send needs. The BinRAW encoder is the largest: 10240 + 2560 bytes */
+// What one allocation costs on top of what it asks for: the allocator header, rounded up to
+// the alignment. The largest free block is reported with that header counted in, and a
+// request spends it out of the block it lands in, so a free block of exactly N bytes cannot
+// serve a request for N. It has to be this and not a byte more, or the block handed back
+// after a send reads as too small to take again - every size here is a multiple of the
+// alignment, so no rounding is left to do
+#define SUBGHZ_TX_BLOCK_OVERHEAD 8
+
+// Block a send of this protocol needs in one piece
+size_t subghz_wardriving_txrx_tx_block_need(const char* protocol);
+
+// Hold a send block of this size, growing or shrinking what is already held. The history
+// calls this with the widest need among the signals it keeps, so every one of them stays
+// sendable without reserving for protocols that are not there. False when no such block
+// exists, and the previous one is kept
+bool subghz_wardriving_txrx_tx_block_reserve(size_t need);
+
+// Size of the send block currently held, 0 when none is
+size_t subghz_wardriving_txrx_tx_block_size(void);
+
+// Free block a send needs when the protocol is not one of the few that reserve more.
+// The largest of the rest is Power Smart at 1040 timings of 4 bytes,
+// then CAME Atomo at 1024 and Beninca ARC at 800
+#define SUBGHZ_TX_MIN_FREE_BLOCK_DEFAULT 4608
 
 /**
  * Allocate SubGhzTxRx
