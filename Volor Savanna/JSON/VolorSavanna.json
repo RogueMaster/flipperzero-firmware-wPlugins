@@ -145,6 +145,12 @@
             "crafter_6",
             1
         ],
+        "crafter_run": [
+            [
+                "character",
+                3
+            ]
+        ],
         "farmer_1_death": [
             "farmer_1",
             2
@@ -192,6 +198,12 @@
         "farmer_6_victory": [
             "farmer_6",
             1
+        ],
+        "farmer_run": [
+            [
+                "character",
+                4
+            ]
         ],
         "hunter_10": [
             "hunter_6",
@@ -268,6 +280,12 @@
             1,
             "rand",
             2
+        ],
+        "hunter_run": [
+            [
+                "character",
+                1
+            ]
         ],
         "medicine_person_10": [
             "medicine_person_5",
@@ -361,6 +379,12 @@
             "medicine_person_9",
             5
         ],
+        "medicine_person_run": [
+            [
+                "character",
+                5
+            ]
+        ],
         "the_mighty_lion_1_death": [
             "the_mighty_lion_1",
             1
@@ -405,6 +429,24 @@
             "the_mighty_lion_6",
             2
         ],
+        "the_mighty_lion_run": [
+            [
+                "hunter_7",
+                1
+            ],
+            [
+                "hunter_8",
+                1
+            ],
+            [
+                "hunter_10",
+                1
+            ],
+            [
+                "warrior_1",
+                1
+            ]
+        ],
         "the_mighty_lion_terrain_1_death": [
             "the_mighty_lion_terrain_1",
             2
@@ -441,6 +483,16 @@
             "rand",
             2
         ],
+        "the_mighty_lion_terrain_run": [
+            [
+                "the_mighty_lion_3",
+                1
+            ],
+            [
+                "the_mighty_lion_6",
+                1
+            ]
+        ],
         "warrior_2": [
             "warrior_1",
             2
@@ -472,6 +524,12 @@
         "warrior_5_death": [
             "warrior_5",
             2
+        ],
+        "warrior_run": [
+            [
+                "character",
+                2
+            ]
         ]
     }
 }
