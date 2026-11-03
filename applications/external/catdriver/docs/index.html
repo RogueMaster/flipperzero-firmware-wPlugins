@@ -277,15 +277,21 @@
       <div class="logo-badge">🐾 CATDRIVER</div>
       <div>
         <h1>CatDriver ESP32-S3 Web Installer</h1>
-        <p class="subtitle">Flasheador oficial en el navegador para Flipper Zero Wardriving Add-On (ESP32-S3 + GPS)</p>
+        <p class="subtitle">Flasheador oficial en el navegador para Flipper Zero Wardriving (ESP32-S3-WROOM + GPS)</p>
       </div>
     </header>
 
     <div class="alert">
-      <strong>⚠️ REQUISITO ELÉCTRICO DE TU SETUP:</strong><br>
-      La placa <em>Marauder Add-On V1.1 de Electronic Cats</em> <strong>no se energiza sola por su conector USB-C</strong>.<br>
-      Debe estar conectada físicamente al Flipper Zero con los 5V activos (<code>Settings &gt; GPIO &gt; 5V on GPIO &gt; ON</code>).<br>
-      El cable USB-C debe ir conectado <strong>directamente a la placa ESP32-S3 add-on</strong> (no al puerto del Flipper).
+      <strong>⚠️ AVISO DE ALIMENTACIÓN ELÉCTRICA:</strong><br>
+      Algunas placas add-on para Flipper Zero no están diseñadas para alimentarse únicamente a través de su conector USB.<br>
+      Si tu placa no enciende o el puerto COM no responde al conectarla a la PC, debe permanecer conectada físicamente al Flipper Zero con los 5V del GPIO habilitados (<code>Settings &gt; GPIO &gt; 5V on GPIO &gt; ON</code>).<br>
+      Asegúrate de conectar el cable USB-C <strong>directamente al puerto de la placa add-on ESP32</strong> (no al puerto del Flipper).
+    </div>
+
+    <div class="alert" style="background: rgba(88, 166, 255, 0.1); border-left-color: var(--info);">
+      <strong>ℹ️ COMPATIBILIDAD DE HARDWARE:</strong><br>
+      El firmware pre-empaquetado actual está compilado específicamente para módulos <strong>ESP32-S3-WROOM</strong>.<br>
+      <em>Próximamente se estarán probando y publicando compilaciones dedicadas para variantes adicionales de placas.</em>
     </div>
 
     <div class="grid">
@@ -296,9 +302,9 @@
           <label class="radio-card active" id="cardPreset">
             <input type="radio" name="firmwareSource" value="preset" checked>
             <div>
-              <strong>Firmware Oficial CatDriver v1.0</strong>
+              <strong>Firmware Oficial CatDriver v1.0 (ESP32-S3-WROOM)</strong>
               <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
-                Binario completo más reciente del repositorio (Wi-Fi + BLE + comando info).
+                Binario completo oficial para ESP32-S3-WROOM (Wi-Fi + BLE + comando info).
               </div>
             </div>
           </label>
@@ -330,7 +336,7 @@
           <p id="flasherDesc">Haz clic abajo, selecciona el puerto COM de tu ESP32-S3 y se flasheará automáticamente.</p>
 
           <esp-web-install-button id="installerBtn" manifest="manifest.json">
-            <button slot="activate" class="btn-custom-action">🔥 Flashear CatDriver ESP32-S3</button>
+            <button slot="activate" class="btn-custom-action">🔥 Flashear CatDriver ESP32-S3-WROOM</button>
             <span slot="unsupported">⚠️ Tu navegador no soporta Web Serial. Usa Google Chrome o Microsoft Edge.</span>
             <span slot="not-allowed">⚠️ Permiso para puerto serial cancelado o no otorgado.</span>
           </esp-web-install-button>
@@ -374,7 +380,7 @@
           cardCustom.classList.remove("active");
           customFileSection.style.display = "none";
           installerBtn.manifest = "manifest.json";
-          flasherDesc.innerText = "Flasheará el binario oficial optimizado de CatDriver para tu ESP32-S3.";
+          flasherDesc.innerText = "Flasheará el binario oficial optimizado de CatDriver para tu ESP32-S3-WROOM.";
           statusMsg.innerText = "Listo con firmware pre-empaquetado oficial.";
         } else {
           cardPreset.classList.remove("active");
