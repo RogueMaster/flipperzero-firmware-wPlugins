@@ -11,3 +11,4 @@ hotspot_arcade
 wifi_map
 wifi_scanner
 pwnpal
+ssh_runner

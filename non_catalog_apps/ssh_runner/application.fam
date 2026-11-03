@@ -1,0 +1,34 @@
+# SSH Runner - Flipper UI for the SSH Runner ESP32-S3 + W5500 add-on board.
+# SPDX-License-Identifier: GPL-3.0-only
+#
+# Upstream builds two flavours from this tree; the pack carries the release one, so the
+# demo-only mock backend and the host unit tests are not vendored.
+App(
+    appid="ssh_runner",
+    name="SSH Runner",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="ssh_runner_app",
+    requires=["gui", "storage", "notification", "dialogs"],
+    # measured on the device (heap report "stack"): at most 3.2 KB used over the mock walks
+    # and the hardware walks (hwkeys, m4, m5); 4.5 KB leaves ~30 % headroom
+    stack_size=4 * 1024 + 512,
+    fap_category="GPIO",
+    fap_version="0.3",
+    fap_icon="icons/ssh_runner_10px.png",
+    fap_icon_assets="images",
+    # the built-in examples (files/examples/), copied to the data folder once, on first run
+    fap_file_assets="files",
+    fap_author="SeanChangX",
+    fap_weburl="https://scx.tw/links",
+    fap_description="Run SSH commands and SD-card scripts through an ESP32-S3 + W5500 (LAN/WiFi) add-on board.",
+    sources=["*.c", "!lib"],
+    cdefines=["SSH_RUNNER_NO_MOCK"],
+    fap_private_libs=[
+        Lib(
+            name="proto",
+            fap_include_paths=["include"],
+            sources=["*.c"],
+            cdefines=["KEYFMT_NO_DER"],
+        ),
+    ],
+)
