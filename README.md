@@ -75,6 +75,8 @@ Full walkthrough with screenshots: **[docs/SETUP.md](docs/SETUP.md)**.
 
 For the best CPU temperature (and fan speed), also run LibreHardwareMonitor - see [docs/SETUP.md](docs/SETUP.md).
 
+> **Note:** On some newer CPUs (for example Intel Core Ultra 200HX / Arrow Lake laptops) Windows exposes no ACPI thermal zone, so CPU temperature stays at `--` unless LibreHardwareMonitor is running as administrator. LibreHardwareMonitor **0.9.6** did not publish sensors to WMI (`root\LibreHardwareMonitor` was missing) in testing; **0.9.4** (`LibreHardwareMonitor-net472.zip`) worked. Run `pc-health-remote.exe status` / check the log if the temperature is missing.
+
 ## Alerts and defaults
 
 Press `OK` on the dashboard to open settings. Defaults:
