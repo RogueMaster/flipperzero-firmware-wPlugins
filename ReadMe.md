@@ -154,6 +154,14 @@ This software is for experimental purposes only and is not meant for any illegal
 - Sub-GHz: [Nero Radio dynamic fixed-trailer capture/replay (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/d3c03c16cc4b155b7ecb96f51f2e1db5c010ee1b)
 - Added: [Reaction Time Stats v1.0 (By luvrltop)](https://github.com/luvrltop/ReactionTime)
 - Added: [Dooya Remote v1.0 (By Lechnio)](https://github.com/Lechnio/Dooya-Remote)
+- Updated: [Flipper Suite shared UART driver, view teardown and common helpers across all 13 apps (By barkandbite)](https://github.com/barkandbite/flipper_suite/pull/154) [Additional runtime cleanup (By barkandbite)](https://github.com/barkandbite/flipper_suite/pull/155) Shit Show Fixes (By RogueMaster)
+- Updated: [BLE Scanner log lifetime, teardown ordering and refresh allocations (By barkandbite)](https://github.com/barkandbite/flipper_suite/pull/143)
+- Updated: [Evil BLE close-time cleanup and memory bounds (By barkandbite)](https://github.com/barkandbite/flipper_suite/pull/140).
+- Updated: [Rogue AP Detector close-time cleanup and SSID bounds (By barkandbite)](https://github.com/barkandbite/flipper_suite/pull/141).
+- Updated: [FlipperPwn WiFi status display ownership and synchronization (By barkandbite)](https://github.com/barkandbite/flipper_suite/pull/144).
+- Updated: [NFC Fuzzer reader-frame bounds and bit-buffer writes (By barkandbite)](https://github.com/barkandbite/flipper_suite/pull/145) [Preallocated anomaly buffers and listener reuse (By barkandbite)](https://github.com/barkandbite/flipper_suite/pull/151).
+- Updated: [Sub-GHz Jammer Detect hardware-error cleanup and removal of the inactive TX selector (By barkandbite)](https://github.com/barkandbite/flipper_suite/pull/142)
+- Updated: [CCID Emulator, Ray Hunter Client, SPI Flash Dump, Sub-GHz Spectrum, HID Exfil and UART Sniff runtime cleanup (By barkandbite)](https://github.com/barkandbite/flipper_suite/pull/152)
 
 <a name="release"></a>
 

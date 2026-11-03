@@ -11,7 +11,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-#include "../common/suite_helpers.h"
+#include "common/suite_helpers.h"
 
 /* ════════════════════════════════════════════════════════════════════════════
  *  Forward declarations

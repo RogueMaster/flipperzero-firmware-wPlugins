@@ -30,7 +30,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "../common/suite_helpers.h"
+#include "common/suite_helpers.h"
 
 #define TAG "EvilBLE"
 

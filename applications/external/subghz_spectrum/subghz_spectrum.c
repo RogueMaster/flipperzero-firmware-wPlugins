@@ -18,7 +18,7 @@
 
 #include "spectrum_types.h"
 #include "spectrum_worker.h"
-#include "../common/suite_helpers.h"
+#include "common/suite_helpers.h"
 
 const SpectrumBandConfig spectrum_band_configs[] = {
     [SpectrumBand315] = {310000000, 320000000, 100, "315 MHz"},

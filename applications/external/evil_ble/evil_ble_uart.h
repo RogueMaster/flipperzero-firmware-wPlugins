@@ -4,7 +4,7 @@
  * evil_ble_uart.h -- Thin shim over common/esp_serial for Evil BLE.
  */
 
-#include "../common/esp_serial.h"
+#include "common/esp_serial.h"
 
 typedef EspSerial EvilBleUart;
 typedef EspSerialRxCallback EvilBleUartRxCallback;

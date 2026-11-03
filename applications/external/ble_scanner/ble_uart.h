@@ -6,7 +6,7 @@
  * Preserves the app-specific type names and API so callers are unchanged.
  */
 
-#include "../common/esp_serial.h"
+#include "common/esp_serial.h"
 
 typedef EspSerial BleUart;
 typedef EspSerialRxCallback BleUartRxCallback;

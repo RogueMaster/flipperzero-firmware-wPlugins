@@ -6,7 +6,7 @@
  * FlipperPwn sends a probe newline on open to trigger the ESP32 prompt.
  */
 
-#include "../common/esp_serial.h"
+#include "common/esp_serial.h"
 
 typedef EspSerial FPwnWifiUart;
 typedef EspSerialRxCallback FPwnWifiRxCallback;

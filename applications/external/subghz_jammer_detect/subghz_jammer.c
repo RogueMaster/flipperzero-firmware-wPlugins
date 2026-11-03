@@ -20,7 +20,7 @@
 
 #include "subghz_jammer.h"
 #include "subghz_jammer_worker.h"
-#include "../common/suite_helpers.h"
+#include "common/suite_helpers.h"
 
 #define TAG "SubGhzJammer"
 

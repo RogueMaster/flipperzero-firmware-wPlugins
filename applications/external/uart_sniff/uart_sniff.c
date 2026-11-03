@@ -12,7 +12,7 @@
 #include "uart_sniff.h"
 
 #include <furi_hal.h>
-#include "../common/suite_helpers.h"
+#include "common/suite_helpers.h"
 
 #define TAG "UartSniff"
 

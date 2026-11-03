@@ -8,7 +8,7 @@
 
 #include <stdio.h>
 #include <datetime/datetime.h>
-#include "../common/suite_helpers.h"
+#include "common/suite_helpers.h"
 
 /* ================================================================== */
 /*  Helper – SPI speed enum → clock delay in microseconds             */

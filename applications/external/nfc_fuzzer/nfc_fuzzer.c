@@ -6,7 +6,7 @@
 #include "nfc_fuzzer_profiles.h"
 #include <gui/elements.h>
 #include <stdio.h>
-#include "../common/suite_helpers.h"
+#include "common/suite_helpers.h"
 
 #define APP_TAG NFC_FUZZER_LOG_TAG
 

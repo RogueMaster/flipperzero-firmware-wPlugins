@@ -22,7 +22,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-#include "../common/suite_helpers.h"
+#include "common/suite_helpers.h"
 
 /* ---------------------------------------------------------------------------
  * Extern preset table from ccid_handler.c

@@ -17,7 +17,7 @@
 
 #include <stdio.h>
 #include <string.h>
-#include "../common/suite_helpers.h"
+#include "common/suite_helpers.h"
 
 #define TAG "RogueAP"
 

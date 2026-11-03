@@ -6,7 +6,7 @@
 #include "hid_exfil_payloads.h"
 #include <furi_hal_usb_hid.h>
 #include <stdio.h>
-#include "../common/suite_helpers.h"
+#include "common/suite_helpers.h"
 
 #define TAG "HidExfil"
 

@@ -7,7 +7,7 @@
  * line contains a Ray Hunter protocol marker (RH:, analysis_state, rayhunter).
  */
 
-#include "../common/esp_serial.h"
+#include "common/esp_serial.h"
 #include <string.h>
 
 typedef EspSerial RhUart;

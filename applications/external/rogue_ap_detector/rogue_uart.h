@@ -4,7 +4,7 @@
  * rogue_uart.h -- Thin shim over common/esp_serial for Rogue AP Detector.
  */
 
-#include "../common/esp_serial.h"
+#include "common/esp_serial.h"
 
 typedef EspSerial RogueUart;
 typedef EspSerialRxCallback RogueUartRxCallback;
