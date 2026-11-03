@@ -25,7 +25,7 @@
         ],
         "6": [
             "character",
-            "\"e\""
+            "e"
         ],
         "7": [
             "hunter_1",
@@ -496,7 +496,7 @@
         ]
     },
     "z": {
-        "name": "What is your user_name?\\n",
+        "user_name": "What is your user_name?\\n",
         "character": "Welcome to Volor Savanna!\\nYou are a member of an African Tribe!\\nWho do you want to be?\\n\\n1- Hunter\\n2- Warrior\\n3- Crafter\\n4- Farmer\\n5- Medicine Person\\ne- exit\\n",
         "hunter_1": "You have chosen to be a hunter!\\nDo you want to go hunt or stay put?\\n\\n1- Hunt; 2- Stay put\\nMake your choice \" + user_name + \":\\n",
         "hunter_2": "You have chosen to go hunt!\\nYou have gone hunting.\\nYou didn't find any food.\\nYou return to your village.\\nLuckily, the farmer has enough crops to last your tribe a week.\\nDo you want to go hunt right away to make up lost time or do you choose to go eat?\\n\\n1- Hunt; 2- Eat\\nMake your choice \" + user_name + \":\\n",
@@ -509,13 +509,13 @@
         "hunter_7": "You have chosen to play a game with the rest of your tribe.\\nEveryone has a good time and you guys have an awesome feast.\\nThere is a hunting challenge that your tribe is having.\\nThe challenge is to go hunt The Mighty Lion!\\nDo you want to go hunt The Mighty Lion with your tribe to win the challenge?\\n\\n1- Yes; 2- No\\nMake your choice \" + user_name + \":\\n",
         "hunter_8": "You have chosen to trade.\\nThey trade you guns.\\nDo you want to go hunt The Mighty Lion?\\n\\n1- Yes; 2- No\\nMake your choice \" + user_name + \":\\n",
         "hunter_9": "You have chosen not to trade.\\nBecause of this they want to kill you.\\nDo you escape?\\n\\n1- Find out!\\nMake your choice \" + user_name + \":\\n",
-        "hunter_6_victory": "You have chosen to trade.\\nLuckily, these aren't the criminals that are wanted.\\nA couple months later the white men settle here.\\nPeople keep on flooding into the white men's settlement.\\nBecause of this your village becomes rich.\\n",
+        "hunter_6_victory": "\"You have chosen to trade.\\nLuckily, these aren't the criminals that are wanted.\\nA couple months later the white men settle here.\\nPeople keep on flooding into the white men's settlement.\\nBecause of this your village becomes rich.\\n\" + name + \", YOU WIN!\nTHE END!\"",
         "hunter_6_death": "You have chosen to decline the trade.\\nUnfortunately, these people have smallpox.\\nThey transmit it to your tribe.\\nBecause your tribe doesn't have any immunity against smallpox your whole tribe dies!\\n",
         "hunter_10": "You have chosen to report them to the authorities.\\nThese guys turn out to be the wanted criminals after all.\\nYour tribe gains importance in the African community because you turned these criminals into the authorities.\\nDo you want to go hunt The Mighty Lion?\\n\\n1- Yes; 2- No\\nMake your choice \" + user_name + \":\\n",
         "hunter_7_death": "You have chosen not to hunt The Mighty Lion.\\nUnfortunately, you die from malaria.\\n",
         "hunter_8_death": "You have chosen not to hunt The Mighty Lion.\\nUnfortunately, a random lightning bolt from out of nowhere, probably from Zeus, kills you.\\n",
         "hunter_9_death": "Unfortunately, you don't escape.\\nThey kill you on the spot with a feather.\\n",
-        "hunter_9_victory": "You manage to escape.\\nYou live a long and prosperous life!\\n",
+        "hunter_9_victory": "\"You manage to escape.\\nYou live a long and prosperous life!\\n\" + name + \", YOU WIN!\nTHE END!\"",
         "hunter_10_death": "You have chosen not to hunt The Mighty Lion.\\nUnfortunately, a Chandra Planeswalker burns you to death!\\n",
         "the_mighty_lion_1": "You have chosen to hunt The Mighty Lion.\\nYou have been on your journey for about a week now.\\nThe trail splits off into three sections.\\nDo you choose to go through the canyon?\\nHow about the prairie?\\nOr what about continuing on through the forest?\\n\\n1- Canyon; 2- Prairie; 3- Forest\\nMake your choice \" + user_name + \":\\n",
         "the_mighty_lion_1_death": "You have chosen to go through the canyon!\\nThe canyon is the quickest route to The Mighty Lion.\\nUnfortunately, you're almost out of the canyon when a flash flood occurs.\\nYou get wiped away instantly and you drown to death.\\n",
@@ -537,14 +537,14 @@
         "the_mighty_lion_terrain_4": "You have chosen to use your powerful spear to kill The Mighty Lion.\\nSo, \" + user_name + \" do you kill The Mighty Lion?\\n\\n1- Find out!\\n",
         "the_mighty_lion_terrain_3_death": "You have chosen to use your overpowered gun to kill The Mighty Lion.\\nUnfortunately, your gun explodes in your face.\\nYou die.\\n",
         "the_mighty_lion_terrain_4_death": "You do not kill The Mighty Lion.\\nUnfortunately, The Mighty Lion eats you!\\n",
-        "the_mighty_lion_terrain_4_victory": "You kill The Mighty Lion!\\nYour tribe celebrates!\\n",
+        "the_mighty_lion_terrain_4_victory": "\"You kill The Mighty Lion!\\nYour tribe celebrates!\\n\" + name + \", YOU WIN!\nTHE END!\"",
         "warrior_1": "You have chosen to be a warrior!\\nDo you want to go hunt The Mighty Lion or stay put?\\n\\n1- Hunt The Mighty Lion; 2- Stay put\\nMake your choice \" + user_name + \":\\n",
         "warrior_2": "You have chosen to stay put.\\nWithout warning a neighboring tribe attacks.\\nDo you choose to get your bow and arrows in your hut, or do you choose to fight them off with your knife on hand?\\n\\n1- Go get my bow and arrows; 2- Use my knife\\nMake your choice \" + user_name + \":\\n",
         "warrior_2_death": "You have chosen to go get your bow and arrows.\\nUnfortunately, the enemy beats you to it and shoots you on the spot.\\n",
         "warrior_3": "You have chosen to use your knife.\\nYou are very skilled with a knife.\\nEventually the enemy tribe retreats.\\nThe chief has told you to go take a weekend off at the Big Pond.\\nYou go to the Big Pond and enjoy it very much.\\nYou see a crying baby by the side of the Big Pond.\\nDo you pick up the baby and bring him home or just ignore him?\\n\\n1- Pick him up and bring him home; 2- Just ignore him\\nMake your choice \" + user_name + \":\\n",
         "warrior_4": "You have chosen to pick up the baby and bring him home.\\nThe baby turns out to be an orphan.\\nHis mother was killed by the enemy tribe and the baby was left by the Big Pond.\\nYou raise him as your own.\\nHe becomes a great warrior and you user_name him Bobert.\\nYou need to go hunt down the enemy that attacked your tribe years ago.\\nDo you take your son with you?\\n\\n1- Yes; 2- No\\nMake your choice \" + user_name + \":\\n",
         "warrior_5": "You have chosen to just ignore him.\\nDo you choose to go after the enemy tribe with the few warriors you have left?\\n\\n1- Yes; 2- No\\nMake your choice \" + user_name + \":\\n",
-        "warrior_4_victory": "You have chosen to take your son with you.\\nYour hunting party would have died if you didn't have your son.\\nSince your son is a great warrior the enemy tribe which you now know as Yosemite plans on never attacking your tribe again!\\nYou return home and find out your son has a brand-new kid.\\nBobert, your son, user_names him Mighty \" + user_name + \" Jr.\\nYou finally have a grandson.\\nYou die at a good old age.\\nYou pass away happily in your sleep.\\n",
+        "warrior_4_victory": "\"You have chosen to take your son with you.\\nYour hunting party would have died if you didn't have your son.\\nSince your son is a great warrior the enemy tribe which you now know as Yosemite plans on never attacking your tribe again!\\nYou return home and find out your son has a brand-new kid.\\nBobert, your son, user_names him Mighty \" + user_name + \" Jr.\\nYou finally have a grandson.\\nYou die at a good old age.\\nYou pass away happily in your sleep.\\n\" + name + \", YOU WIN!\nTHE END!\"",
         "warrior_4_death": "You have chosen not to take your son with you.\\nBecause you didn't take your son, the enemy tribe, Yosemite, kills your whole hunting party.\\nYou guys are no match for them!\\nUnfortunately, while running away from Yosemite you trip over a rock and die!\\n",
         "warrior_5_death": "You have chosen not to go after the enemy tribe.\\nUnfortunately, your village gets swept away by a flash flood!\\n",
         "crafter_1": "You have chosen to be a crafter!\\nYou need to craft some arrows.\\nHow do you want to craft them?\\n1- Put red dye on the feathers; 2- Just make them\\nMake your choice \" + user_name + \":\\n",
@@ -557,7 +557,7 @@
         "crafter_6": "You have chosen to buy a milling machine.\\nSome business men have come to your tribe and are asking you to build them some wooden toys with your milling machine.\\nDo you want to build them wooden toys with your milling machine?\\n1- Yes; 2- No\\nMake your choice \" + user_name + \":\\n",
         "crafter_4_death": "You have chosen not to buy a milling machine.\\nUnfortunately, your tribe dies from a famine.\\n",
         "crafter_5_death": "You don't escape.\\nThey kill you on the spot.\\n",
-        "crafter_6_victory": "You have chosen to use your milling machine to make them wooden toys.\\nYou have had a successful life!\\n",
+        "crafter_6_victory": "\"You have chosen to use your milling machine to make them wooden toys.\\nYou have had a successful life!\\n\" + name + \", YOU WIN!\nTHE END!\"",
         "crafter_6_death": "You have chosen not to make them wooden toys with your milling machine.\\nUnfortunately, your milling machine catches on fire and burns down your whole house.\\nWhat's even more unfortunate is that you get caught on fire and burn to death.\\n",
         "farmer_1": "You have chosen to be a farmer!\\nDo you want to go farm or sleep in?\\n1- Farm; 2- Sleep in\\nMake your choice \" + user_name + \":\\n",
         "farmer_2": "You have chosen to farm!\\nYou have had a successful season!\\nYour village has a feast.\\nDo you want to store the rest of the food for winter or distribute the food to the whole village?\\n1- Store the food for winter; 2- Distribute the food to the whole village\\nMake your choice \" + user_name + \":\\n",
@@ -570,7 +570,7 @@
         "farmer_4_death": "You have chosen to distribute the food to your whole village.\\nUnfortunately, because you have chosen to do this, your food rots.\\nYour whole village starves.\\n",
         "farmer_6": "You have chosen to sell your extra corn for oxen.\\nYou choose to grow cotton.\\nAt the end of the season you have surplus cotton.\\nDo you want to sell your surplus cotton?\\n1- Yes; 2- No\\nMake your choice \" + user_name + \":\\n",
         "farmer_5_death": "You have chosen not to sell your extra corn for oxen.\\nUnfortunately, Bob the Blobfish plops out from a nearby lake and you die because your eyes bleed to death.\\n",
-        "farmer_6_victory": "You have chosen to sell your surplus cotton.\\nYou are now rich!\\n",
+        "farmer_6_victory": "\"You have chosen to sell your surplus cotton.\\nYou are now rich!\\n\" + name + \", YOU WIN!\nTHE END!\"",
         "farmer_6_death": "You have chosen not to sell your surplus cotton.\\nUnfortunately, a wizard says some magic words that make you vanish.\\nYou are never seen again.\\n",
         "medicine_person_1": "You have chosen to be a medicine person!\\nA man is very sick with a fever.\\nWhat do you want to do?\\n1- Not do anything; 2- Wash him\\nMake your choice \" + user_name + \":\\n",
         "medicine_person_1_death": "You have chosen not to do anything.\\nUnfortunately, the man dies.\\nThe man's family is very angry at you.\\nYou are tried for murder.\\nYou have been found guilty.\\nSo you are put to death.\\n",
@@ -587,11 +587,11 @@
         "medicine_person_11": "You have chosen to tell someone about it.\\nApparently, some members in your tribe say a mother was kidnapped and that there is a $10,000 reward for the capture of the kidnapper!\\nDo you want to go hunt the kidnapper?\\n1- Yes; 2- No\\nMake your choice \" + user_name + \":\\n",
         "medicine_person_8_death": "You have chosen to die from Bob the Blobfish.\\nBob the Blobfish rockets out of his toilet and makes your eyes bleed to death!\\n",
         "medicine_person_9_death": "You are shot to death with a bebe gun.\\n",
-        "medicine_person_10_victory": "You have chosen to let them settle here.\\nThey build a hospital.\\nTheir settlement grows.\\nYour village thrives because of the new settlement.\\n",
+        "medicine_person_10_victory": "\"You have chosen to let them settle here.\\nThey build a hospital.\\nTheir settlement grows.\\nYour village thrives because of the new settlement.\\n\" + name + \", YOU WIN!\nTHE END!\"",
         "medicine_person_10_death": "You do not let them settle here.\\nUnfortunately, Cooper the Dog hears a doorbell on TV.\\nHe goes to bark at the door.\\n",
         "medicine_person_12": "You hunt the kidnapper.\\nDo you capture him?\\n1- Find out!\\nMake your choice \" + user_name + \":\\n",
         "medicine_person_11_death": "You don't hunt the kidnapper.\\nUnfortunately, Zeus comes out from the middle of nowhere and shocks you to death.\\nHow shocking!\\n",
         "medicine_person_12_death": "You don't capture the kidnapper.\\nUnfortunately, the kidnapper puts you guys in a trap and kills you.\\nYou die.\\n",
-        "medicine_person_12_victory": "You capture the kidnapper.\\nYou receive $10k from the local authorities.\\n"
+        "medicine_person_12_victory": "\"You capture the kidnapper.\\nYou receive $10k from the local authorities.\\n\" + name + \", YOU WIN!\nTHE END!\""
     }
 }
