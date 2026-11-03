@@ -162,22 +162,7 @@ StorageDeleteResult storage_delete_duplicate(SubDupFinderApp *app, const char *n
         return StorageDeleteChanged;
     Storage *storage = furi_record_open(RECORD_STORAGE);
     FileCompareContext compare = {storage, app->scanned_dir};
-    bool confirmed = false;
-    for (size_t g = 0; g < app->db.num_groups && !confirmed; g++) {
-        const DuplicateGroup *group = &app->db.groups[g];
-        if (group->count < 2 || group->start_index > selected ||
-            group->start_index > app->db.count ||
-            group->count > app->db.count - group->start_index ||
-            selected - group->start_index >= group->count)
-            continue;
-        for (size_t i = group->start_index; i < group->start_index + group->count; i++) {
-            if (i != selected &&
-                files_equal(&app->db.records[selected], &app->db.records[i], &compare)) {
-                confirmed = true;
-                break;
-            }
-        }
-    }
+    bool confirmed = db_has_identical_peer(&app->db, selected, files_equal, &compare);
     char path[FULL_PATH_LEN];
     StorageDeleteResult result = StorageDeleteChanged;
     if (confirmed && path_join(path, sizeof(path), app->scanned_dir, name))

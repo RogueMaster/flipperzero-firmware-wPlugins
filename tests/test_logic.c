@@ -355,6 +355,106 @@ static void test_browse_decide_entry_overflows_when_full() {
     printf("Test passed: a full listing overflows, one slot short still fits.\n");
 }
 
+// Fake content: records whose names start with the same letter hold the same bytes.
+static bool same_first_letter(const FileRecord *a, const FileRecord *b, void *context) {
+    int *calls = context;
+    if (calls)
+        (*calls)++;
+    return a->path[0] == b->path[0];
+}
+
+static size_t index_of(const HashDatabase *db, const char *name) {
+    for (size_t i = 0; i < db->count; i++)
+        if (!strcmp(db->records[i].path, name))
+            return i;
+    assert(0 && "record not found");
+    return db->count;
+}
+
+static void test_identical_peer_refused_on_crc_collision() {
+    HashDatabase db;
+    db.count = 2;
+    set_record(&db, 0, "a1.sub", 100, 10);
+    set_record(&db, 1, "b1.sub", 100, 10);
+    process_duplicates(&db);
+
+    // Same CRC32 and size, different bytes: a candidate group, but neither may be deleted.
+    assert(db.num_groups == 1);
+    assert(!db_has_identical_peer(&db, index_of(&db, "a1.sub"), same_first_letter, NULL));
+    assert(!db_has_identical_peer(&db, index_of(&db, "b1.sub"), same_first_letter, NULL));
+
+    printf("Test passed: A CRC collision never confirms a delete.\n");
+}
+
+static void test_identical_peer_found_inside_mixed_group() {
+    HashDatabase db;
+    db.count = 3;
+    set_record(&db, 0, "a1.sub", 100, 10);
+    set_record(&db, 1, "b1.sub", 100, 10);
+    set_record(&db, 2, "a2.sub", 100, 10);
+    process_duplicates(&db);
+
+    assert(db.num_groups == 1);
+    assert(db_has_identical_peer(&db, index_of(&db, "a1.sub"), same_first_letter, NULL));
+    assert(db_has_identical_peer(&db, index_of(&db, "a2.sub"), same_first_letter, NULL));
+    assert(!db_has_identical_peer(&db, index_of(&db, "b1.sub"), same_first_letter, NULL));
+
+    printf("Test passed: Only a file with an identical peer may be deleted.\n");
+}
+
+static void test_identical_peer_gone_after_its_copy_is_deleted() {
+    HashDatabase db;
+    db.count = 3;
+    set_record(&db, 0, "a1.sub", 100, 10);
+    set_record(&db, 1, "a2.sub", 100, 10);
+    set_record(&db, 2, "b1.sub", 100, 10);
+    process_duplicates(&db);
+
+    // Delete a2, regroup by CRC32+size only: a1 and b1 stay candidates,
+    // but a1 has no identical copy left, so it can't be deleted too.
+    db_remove_record(&db, "a2.sub");
+    process_duplicates(&db);
+    assert(db.num_groups == 1);
+    assert(!db_has_identical_peer(&db, index_of(&db, "a1.sub"), same_first_letter, NULL));
+
+    printf("Test passed: The last identical copy is never deleted.\n");
+}
+
+static void test_identical_peer_only_compares_within_the_group() {
+    HashDatabase db;
+    db.count = 4;
+    set_record(&db, 0, "a1.sub", 100, 10);
+    set_record(&db, 1, "a2.sub", 200, 10);
+    set_record(&db, 2, "b1.sub", 100, 10);
+    set_record(&db, 3, "c1.sub", 300, 10);
+    process_duplicates(&db);
+
+    // a2 has the same fake bytes as a1 but another CRC, so it is not in a1's group.
+    int calls = 0;
+    assert(!db_has_identical_peer(&db, index_of(&db, "a1.sub"), same_first_letter, &calls));
+    assert(calls == 1);
+    // c1 is in no group at all.
+    calls = 0;
+    assert(!db_has_identical_peer(&db, index_of(&db, "c1.sub"), same_first_letter, &calls));
+    assert(calls == 0);
+
+    printf("Test passed: The delete check only reads files of the same group.\n");
+}
+
+static void test_identical_peer_rejects_bad_input() {
+    HashDatabase db;
+    db.count = 2;
+    set_record(&db, 0, "a1.sub", 100, 10);
+    set_record(&db, 1, "a2.sub", 100, 10);
+    process_duplicates(&db);
+
+    assert(!db_has_identical_peer(&db, db.count, same_first_letter, NULL));
+    assert(!db_has_identical_peer(&db, 0, NULL, NULL));
+    assert(!db_has_identical_peer(NULL, 0, same_first_letter, NULL));
+
+    printf("Test passed: The delete check refuses invalid input.\n");
+}
+
 int main() {
     test_duplicate_detection();
     test_same_hash_different_size_not_grouped();
@@ -382,5 +482,10 @@ int main() {
     test_browse_decide_entry_accepts_boundary_name();
     test_browse_decide_entry_overflows_one_byte_over_boundary();
     test_browse_decide_entry_overflows_when_full();
+    test_identical_peer_refused_on_crc_collision();
+    test_identical_peer_found_inside_mixed_group();
+    test_identical_peer_gone_after_its_copy_is_deleted();
+    test_identical_peer_only_compares_within_the_group();
+    test_identical_peer_rejects_bad_input();
     return 0;
 }
