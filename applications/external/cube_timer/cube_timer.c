@@ -7,19 +7,19 @@
 
 #define TAG "CubeTimer"
 
-#define SCRAMBLE_LEN 20
-#define INSPECTION_MS 15000
+#define SCRAMBLE_LEN      20
+#define INSPECTION_MS     15000
 #define INSPECTION_DNF_MS 17000 /* WCA: 15-17s is +2, over 17s is DNF */
-#define WARN_1_MS 8000 /* "8 seconds" call */
-#define WARN_2_MS 12000 /* "12 seconds" call */
+#define WARN_1_MS         8000 /* "8 seconds" call */
+#define WARN_2_MS         12000 /* "12 seconds" call */
 
 #define HISTORY_MAX 12
 #define RESULT_NONE 0 /* not enough solves yet */
-#define RESULT_DNF UINT32_MAX
+#define RESULT_DNF  UINT32_MAX
 
 #define STATS_VISIBLE_ROWS 6
-#define STATS_ROW_HEIGHT 10
-#define STATS_MAX_ROWS (4 + HISTORY_MAX / 2)
+#define STATS_ROW_HEIGHT   10
+#define STATS_MAX_ROWS     (4 + HISTORY_MAX / 2)
 
 typedef enum {
     StateScramble,
@@ -226,7 +226,8 @@ static void draw_scramble(Canvas* canvas, const char* scramble, int32_t y) {
         size_t tok_len = end ? (size_t)(end - p) : strlen(p);
 
         char candidate[128];
-        snprintf(candidate, sizeof(candidate), "%s%s%.*s", line, line[0] ? " " : "", (int)tok_len, p);
+        snprintf(
+            candidate, sizeof(candidate), "%s%s%.*s", line, line[0] ? " " : "", (int)tok_len, p);
         if(line[0] && canvas_string_width(canvas, candidate) > 124) {
             canvas_draw_str_aligned(canvas, 64, y, AlignCenter, AlignTop, line);
             y += 10;
