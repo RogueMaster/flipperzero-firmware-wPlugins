@@ -229,6 +229,7 @@ typedef enum {
     ViewScriptInfo,
     ViewExecution,
     ViewSettings,
+    BadUsbViewCount,
 } BadUsbView;
 
 /* ────────────────────────────────────────────

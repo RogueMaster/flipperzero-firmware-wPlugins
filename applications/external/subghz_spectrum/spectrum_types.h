@@ -32,6 +32,20 @@ typedef struct {
 
 extern const SpectrumBandConfig spectrum_band_configs[];
 
+/* One sweep's worth of RSSI produced by the worker (~530 B).  The waterfall,
+ * peak-hold history and UI state live only in the view-model SpectrumData, so
+ * the worker never allocates them. */
+typedef struct {
+    float rssi[SPECTRUM_NUM_BINS];
+    uint32_t freq_start;
+    uint32_t freq_step;
+    uint8_t num_bins;
+    float max_rssi;
+    uint32_t max_rssi_freq;
+} SpectrumSweep;
+
+/* Full display state — the single source of truth, held only in the custom
+ * view's locking model. */
 typedef struct {
     float rssi[SPECTRUM_NUM_BINS];
     float peak_rssi[SPECTRUM_NUM_BINS];

@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include "../common/suite_helpers.h"
 
 /* ---------------------------------------------------------------------------
  * Extern preset table from ccid_handler.c
@@ -186,16 +187,24 @@ static bool apdu_monitor_input(InputEvent* event, void* context) {
 static bool ccid_emulator_export_log(CcidEmulatorApp* app) {
     furi_assert(app);
 
+    /* Snapshot the ring metadata under the lock, then release it immediately.
+       The USB APDU callback (ccid_xfr_datablock) acquires log_mutex with only a
+       5 ms timeout and drops the entry on timeout, so holding the lock across
+       the slow SD-card writes below would silently lose live exchanges.  Each
+       entry is instead copied out under a brief re-acquire just before it is
+       written, and the lock is never held across a stream write. */
     furi_mutex_acquire(app->log_mutex, FuriWaitForever);
-
     uint32_t total = app->log_count;
     uint16_t stored = (total > CCID_EMU_LOG_MAX_ENTRIES) ? CCID_EMU_LOG_MAX_ENTRIES :
                                                            (uint16_t)total;
+    /* Oldest entry: ring_start = total % MAX once the buffer has wrapped,
+       else 0 (not yet wrapped). */
+    uint16_t ring_start = (total > CCID_EMU_LOG_MAX_ENTRIES) ?
+                              (uint16_t)(total % (uint32_t)CCID_EMU_LOG_MAX_ENTRIES) :
+                              0;
+    furi_mutex_release(app->log_mutex);
 
-    if(stored == 0) {
-        furi_mutex_release(app->log_mutex);
-        return false;
-    }
+    if(stored == 0) return false;
 
     /* Ensure logs directory exists */
     storage_simply_mkdir(app->storage, CCID_EMU_LOGS_DIR);
@@ -221,7 +230,6 @@ static bool ccid_emulator_export_log(CcidEmulatorApp* app) {
     if(!ok) {
         FURI_LOG_E("CcidApp", "Cannot create log file: %s", path);
         stream_free(stream);
-        furi_mutex_release(app->log_mutex);
         return false;
     }
 
@@ -242,30 +250,28 @@ static bool ccid_emulator_export_log(CcidEmulatorApp* app) {
         stored == 1 ? "y" : "ies");
     stream_write_cstring(stream, header);
 
-    /* The ring buffer oldest entry when it has wrapped:
-       ring_start = log_count % LOG_MAX_ENTRIES           (wrapped case)
-       ring_start = 0                                     (not yet wrapped)  */
-    uint16_t ring_start = (app->log_count > CCID_EMU_LOG_MAX_ENTRIES) ?
-                              (uint16_t)(app->log_count % (uint32_t)CCID_EMU_LOG_MAX_ENTRIES) :
-                              0;
-
-    /* Write entries using fixed-size prefix + streamed hex strings to avoid
-       large stack allocations (CCID_EMU_MAX_HEX_STR can be ~1536 bytes). */
+    /* Write entries using a fixed-size prefix + streamed hex strings.  Each
+       entry is copied out of the ring under a brief lock (never held across the
+       stream writes); a slightly newer exchange may land in a slot mid-export,
+       which is harmless for a debug log and never reads out of bounds. */
     for(uint16_t i = 0; i < stored; i++) {
         uint16_t ring_idx = (ring_start + i) % CCID_EMU_LOG_MAX_ENTRIES;
-        const CcidApduLogEntry* e = &app->log_entries[ring_idx];
+
+        CcidApduLogEntry e;
+        furi_mutex_acquire(app->log_mutex, FuriWaitForever);
+        e = app->log_entries[ring_idx];
+        furi_mutex_release(app->log_mutex);
 
         char prefix[16];
         snprintf(prefix, sizeof(prefix), "[%03u] CMD: ", (unsigned)(i + 1));
         stream_write_cstring(stream, prefix);
-        stream_write_cstring(stream, e->command_hex);
+        stream_write_cstring(stream, e.command_hex);
         stream_write_cstring(stream, " -> RSP: ");
-        stream_write_cstring(stream, e->response_hex);
-        stream_write_cstring(stream, e->matched ? " (matched)\n" : " (default)\n");
+        stream_write_cstring(stream, e.response_hex);
+        stream_write_cstring(stream, e.matched ? " (matched)\n" : " (default)\n");
     }
 
     stream_free(stream);
-    furi_mutex_release(app->log_mutex);
 
     FURI_LOG_I("CcidApp", "APDU log exported to %s (%u entries)", path, stored);
     return true;
@@ -313,18 +319,24 @@ static void discover_card_files(CcidEmulatorApp* app) {
         return;
     }
 
+    /* malloc never returns NULL on this platform — the allocator reboots on
+       exhaustion — so the result is used directly rather than guarded by a
+       dead NULL branch. */
     app->card_paths = malloc(sizeof(char*) * count);
-    if(!app->card_paths) {
-        FURI_LOG_E("CcidApp", "OOM allocating card_paths");
-        storage_dir_close(dir);
+    app->card_path_count = 0;
+
+    /* Rewind the directory for the second pass.  This reopen was previously
+       unchecked: if it fails (e.g. the SD card was removed between passes) the
+       storage_dir_read loop below would run on a closed handle.  Bail out
+       cleanly instead, leaving a valid empty list. */
+    storage_dir_close(dir);
+    if(!storage_dir_open(dir, CCID_EMU_CARDS_DIR)) {
+        FURI_LOG_W("CcidApp", "Cards directory vanished during rescan");
+        free(app->card_paths);
+        app->card_paths = NULL;
         storage_file_free(dir);
         return;
     }
-    app->card_path_count = 0;
-
-    /* Rewind directory and collect paths */
-    storage_dir_close(dir);
-    storage_dir_open(dir, CCID_EMU_CARDS_DIR);
 
     while(storage_dir_read(dir, NULL, name_buf, sizeof(name_buf))) {
         size_t nlen = strlen(name_buf);
@@ -332,10 +344,6 @@ static void discover_card_files(CcidEmulatorApp* app) {
             /* Build full path */
             size_t path_len = strlen(CCID_EMU_CARDS_DIR) + 1 + nlen + 1;
             char* path = malloc(path_len);
-            if(!path) {
-                FURI_LOG_E("CcidApp", "OOM allocating card path");
-                break;
-            }
             snprintf(path, path_len, "%s/%s", CCID_EMU_CARDS_DIR, name_buf);
             app->card_paths[app->card_path_count++] = path;
             if(app->card_path_count >= count) break;
@@ -714,10 +722,7 @@ static void ccid_emulator_app_free(CcidEmulatorApp* app) {
     }
 
     /* Remove views before freeing modules */
-    view_dispatcher_remove_view(app->view_dispatcher, CcidEmulatorViewCardBrowser);
-    view_dispatcher_remove_view(app->view_dispatcher, CcidEmulatorViewCardInfo);
-    view_dispatcher_remove_view(app->view_dispatcher, CcidEmulatorViewApduMonitor);
-    view_dispatcher_remove_view(app->view_dispatcher, CcidEmulatorViewSettings);
+    view_dispatcher_remove_all(app->view_dispatcher, CcidEmulatorViewCount);
 
     /* Stop the refresh timer FIRST — it accesses apdu_monitor via
      * with_view_model, so it must be stopped before freeing views. */

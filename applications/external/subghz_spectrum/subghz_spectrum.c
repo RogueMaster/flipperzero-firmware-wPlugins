@@ -9,8 +9,6 @@
 #include <gui/modules/submenu.h>
 #include <gui/modules/variable_item_list.h>
 #include <input/input.h>
-#include <notification/notification.h>
-#include <notification/notification_messages.h>
 #include <storage/storage.h>
 #include <toolbox/stream/file_stream.h>
 #include <gui/elements.h>
@@ -20,6 +18,7 @@
 
 #include "spectrum_types.h"
 #include "spectrum_worker.h"
+#include "../common/suite_helpers.h"
 
 const SpectrumBandConfig spectrum_band_configs[] = {
     [SpectrumBand315] = {310000000, 320000000, 100, "315 MHz"},
@@ -36,6 +35,7 @@ typedef enum {
     SpectrumViewSpectrum,
     SpectrumViewBandSelect,
     SpectrumViewSettings,
+    SpectrumViewCount,
 } SpectrumViewId;
 
 /* Step size options in kHz */
@@ -49,8 +49,8 @@ typedef struct {
     View* spectrum_view;
     Submenu* band_submenu;
     VariableItemList* settings_list;
+    VariableItem* peak_item; /* Peak-hold settings item, synced to the live toggle */
     Gui* gui;
-    NotificationApp* notifications;
     SpectrumWorker* worker;
 
     /* Current configuration */
@@ -59,11 +59,10 @@ typedef struct {
     bool peak_hold;
     bool logging;
 
-    /* Spectrum data (shared with view model) */
-    SpectrumData spectrum_data;
-    FuriMutex* data_mutex;
-
-    /* Logging */
+    /* Logging — guarded by log_mutex.  The display state is held solely in the
+       custom view's locking model (single source of truth), so there is no
+       separate SpectrumData copy or data_mutex to keep in step. */
+    FuriMutex* log_mutex;
     Storage* storage;
     File* log_file;
 } SpectrumApp;
@@ -209,171 +208,167 @@ static bool spectrum_view_input_callback(InputEvent* event, void* context) {
     SpectrumApp* app = context;
     if(event->type != InputTypeShort && event->type != InputTypeRepeat) return false;
 
-    bool consumed = false;
-
-    if(furi_mutex_acquire(app->data_mutex, 100) == FuriStatusOk) {
-        SpectrumData* data = &app->spectrum_data;
-
-        if(data->num_bins == 0) {
-            furi_mutex_release(app->data_mutex);
-            return false;
-        }
-
-        switch(event->key) {
-        case InputKeyLeft:
-            if(data->cursor_pos > 0) data->cursor_pos--;
-            consumed = true;
-            break;
-        case InputKeyRight:
-            if(data->cursor_pos + 1 < data->num_bins) data->cursor_pos++;
-            consumed = true;
-            break;
-        case InputKeyUp:
-            /* Toggle view mode */
-            data->view_mode = (data->view_mode == SpectrumViewBar) ? SpectrumViewWaterfall :
-                                                                     SpectrumViewBar;
-            consumed = true;
-            break;
-        case InputKeyDown:
-            /* Toggle peak hold */
-            data->peak_hold = !data->peak_hold;
-            if(!data->peak_hold) {
-                for(uint8_t i = 0; i < SPECTRUM_NUM_BINS; i++) {
-                    data->peak_rssi[i] = -200.0f;
-                }
-            }
-            consumed = true;
-            break;
-        case InputKeyOk:
-            /* Toggle logging */
-            app->logging = !app->logging;
-            if(app->logging) {
-                /* Open log file */
-                FuriString* path = furi_string_alloc();
-                DateTime dt;
-                datetime_timestamp_to_datetime(furi_hal_rtc_get_timestamp(), &dt);
-                furi_string_printf(
-                    path,
-                    EXT_PATH("subghz_spectrum/scan_%04d%02d%02d_%02d%02d%02d.csv"),
-                    dt.year,
-                    dt.month,
-                    dt.day,
-                    dt.hour,
-                    dt.minute,
-                    dt.second);
-
-                /* Ensure directory exists */
-                storage_simply_mkdir(app->storage, EXT_PATH("subghz_spectrum"));
-
-                if(!storage_file_open(
-                       app->log_file, furi_string_get_cstr(path), FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
-                    app->logging = false;
-                    FURI_LOG_E(TAG, "Failed to open log file");
-                } else {
-                    const char* csv_header = "timestamp_ms,frequency_hz,rssi_dbm\n";
-                    storage_file_write(app->log_file, csv_header, strlen(csv_header));
-                }
-                furi_string_free(path);
+    /* OK toggles CSV logging.  This touches only app->logging / log_file, which
+       are guarded by log_mutex — never the display model — so an in-progress SD
+       write from the worker can't be torn out from under it, and the draw lock
+       is never held across file I/O. */
+    if(event->key == InputKeyOk) {
+        furi_mutex_acquire(app->log_mutex, FuriWaitForever);
+        app->logging = !app->logging;
+        if(app->logging) {
+            FuriString* path = furi_string_alloc();
+            DateTime dt;
+            datetime_timestamp_to_datetime(furi_hal_rtc_get_timestamp(), &dt);
+            furi_string_printf(
+                path,
+                EXT_PATH("subghz_spectrum/scan_%04d%02d%02d_%02d%02d%02d.csv"),
+                dt.year,
+                dt.month,
+                dt.day,
+                dt.hour,
+                dt.minute,
+                dt.second);
+            storage_simply_mkdir(app->storage, EXT_PATH("subghz_spectrum"));
+            if(!storage_file_open(
+                   app->log_file, furi_string_get_cstr(path), FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
+                app->logging = false;
+                FURI_LOG_E(TAG, "Failed to open log file");
             } else {
-                storage_file_close(app->log_file);
+                const char* csv_header = "timestamp_ms,frequency_hz,rssi_dbm\n";
+                storage_file_write(app->log_file, csv_header, strlen(csv_header));
             }
-            consumed = true;
-            break;
-        default:
-            break;
+            furi_string_free(path);
+        } else {
+            storage_file_close(app->log_file);
         }
-        furi_mutex_release(app->data_mutex);
+        furi_mutex_release(app->log_mutex);
+        return true;
     }
 
-    if(consumed) {
-        /* Copy updated data into the view model to trigger a redraw.
-         * Hold the mutex across with_view_model to avoid the 7 KB
-         * SpectrumData stack allocation that would overflow the FAP
-         * main-thread stack (~4 KB). with_view_model only holds the
-         * view lock briefly, so this is safe. */
-        if(furi_mutex_acquire(app->data_mutex, 50) == FuriStatusOk) {
-            with_view_model(
-                app->spectrum_view,
-                SpectrumData * model,
-                { memcpy(model, &app->spectrum_data, sizeof(SpectrumData)); },
-                true);
-            furi_mutex_release(app->data_mutex);
-        }
+    /* Left/Right/Up/Down mutate the display model in place.  The locking view
+       model serialises against the worker callback and the draw callback, so no
+       separate data copy/mutex is needed. */
+    bool consumed = false;
+    with_view_model(
+        app->spectrum_view,
+        SpectrumData * data,
+        {
+            if(data->num_bins != 0) {
+                switch(event->key) {
+                case InputKeyLeft:
+                    if(data->cursor_pos > 0) data->cursor_pos--;
+                    consumed = true;
+                    break;
+                case InputKeyRight:
+                    if(data->cursor_pos + 1 < data->num_bins) data->cursor_pos++;
+                    consumed = true;
+                    break;
+                case InputKeyUp:
+                    data->view_mode = (data->view_mode == SpectrumViewBar) ?
+                                          SpectrumViewWaterfall :
+                                          SpectrumViewBar;
+                    consumed = true;
+                    break;
+                case InputKeyDown:
+                    data->peak_hold = !data->peak_hold;
+                    if(!data->peak_hold) {
+                        for(uint8_t i = 0; i < SPECTRUM_NUM_BINS; i++) {
+                            data->peak_rssi[i] = -200.0f;
+                        }
+                    }
+                    app->peak_hold = data->peak_hold; /* keep stored value in sync */
+                    consumed = true;
+                    break;
+                default:
+                    break;
+                }
+            }
+        },
+        true);
+
+    /* Sync the Settings "Peak Hold" item with the live Down-key toggle so the
+       two no longer diverge. */
+    if(consumed && event->key == InputKeyDown && app->peak_item) {
+        variable_item_set_current_value_index(app->peak_item, app->peak_hold ? 1 : 0);
+        variable_item_set_current_value_text(app->peak_item, app->peak_hold ? "On" : "Off");
     }
+
     return consumed;
 }
 
 /* ─── Worker Callback ─── */
 
-static void spectrum_worker_callback(SpectrumData* sweep_data, void* context) {
+static void spectrum_worker_callback(const SpectrumSweep* sweep, void* context) {
     SpectrumApp* app = context;
 
-    if(furi_mutex_acquire(app->data_mutex, 50) != FuriStatusOk) return;
+    /* Fold the sweep into the display model in place.  The locking view model
+       serialises with the draw and input callbacks, so there is no second
+       SpectrumData copy and no 7 KB per-sweep memcpy. */
+    with_view_model(
+        app->spectrum_view,
+        SpectrumData * data,
+        {
+            /* Clamp the producer's bin count at the copy site (S4): never copy
+               more than the destination holds, whatever the worker reports. */
+            uint8_t n = sweep->num_bins;
+            if(n > SPECTRUM_NUM_BINS) n = SPECTRUM_NUM_BINS;
 
-    SpectrumData* data = &app->spectrum_data;
-    /* Copy sweep results */
-    memcpy(data->rssi, sweep_data->rssi, sizeof(float) * sweep_data->num_bins);
-    data->num_bins = sweep_data->num_bins;
-    data->freq_start = sweep_data->freq_start;
-    data->freq_step = sweep_data->freq_step;
-    data->max_rssi = sweep_data->max_rssi;
-    data->max_rssi_freq = sweep_data->max_rssi_freq;
+            memcpy(data->rssi, sweep->rssi, sizeof(float) * n);
+            data->num_bins = n;
+            data->freq_start = sweep->freq_start;
+            data->freq_step = sweep->freq_step;
+            data->max_rssi = sweep->max_rssi;
+            data->max_rssi_freq = sweep->max_rssi_freq;
 
-    /* Update peak hold */
-    if(data->peak_hold) {
-        for(uint8_t i = 0; i < data->num_bins; i++) {
-            if(data->rssi[i] > data->peak_rssi[i]) {
-                data->peak_rssi[i] = data->rssi[i];
-            } else {
-                /* Slow decay */
-                data->peak_rssi[i] -= 0.5f;
-                if(data->peak_rssi[i] < SPECTRUM_RSSI_MIN) {
-                    data->peak_rssi[i] = SPECTRUM_RSSI_MIN;
+            /* Peak hold */
+            if(data->peak_hold) {
+                for(uint8_t i = 0; i < n; i++) {
+                    if(data->rssi[i] > data->peak_rssi[i]) {
+                        data->peak_rssi[i] = data->rssi[i];
+                    } else {
+                        data->peak_rssi[i] -= 0.5f; /* slow decay */
+                        if(data->peak_rssi[i] < SPECTRUM_RSSI_MIN) {
+                            data->peak_rssi[i] = SPECTRUM_RSSI_MIN;
+                        }
+                    }
                 }
             }
-        }
-    }
 
-    /* Update waterfall */
-    data->waterfall_row = (data->waterfall_row + 1) % SPECTRUM_WATERFALL_ROWS;
-    for(uint8_t i = 0; i < data->num_bins; i++) {
-        float norm = (data->rssi[i] - SPECTRUM_RSSI_MIN) / (SPECTRUM_RSSI_MAX - SPECTRUM_RSSI_MIN);
-        if(norm < 0.0f) norm = 0.0f;
-        if(norm > 1.0f) norm = 1.0f;
-        data->waterfall[data->waterfall_row][i] = (uint8_t)(norm * 255.0f);
-    }
+            /* Waterfall */
+            data->waterfall_row = (data->waterfall_row + 1) % SPECTRUM_WATERFALL_ROWS;
+            for(uint8_t i = 0; i < n; i++) {
+                float norm =
+                    (data->rssi[i] - SPECTRUM_RSSI_MIN) / (SPECTRUM_RSSI_MAX - SPECTRUM_RSSI_MIN);
+                if(norm < 0.0f) norm = 0.0f;
+                if(norm > 1.0f) norm = 1.0f;
+                data->waterfall[data->waterfall_row][i] = (uint8_t)(norm * 255.0f);
+            }
+        },
+        true);
 
-    /* Log to CSV if enabled */
+    /* CSV logging runs outside the view lock, reading straight from the
+       worker-owned sweep, and emits a single batched write per sweep instead of
+       up to 128 tiny writes (which previously ran while holding the draw lock).
+       log_mutex is a dedicated lock, so the draw path is never blocked by it. */
+    furi_mutex_acquire(app->log_mutex, FuriWaitForever);
     if(app->logging && app->log_file) {
+        uint8_t n = sweep->num_bins;
+        if(n > SPECTRUM_NUM_BINS) n = SPECTRUM_NUM_BINS;
         uint32_t ts = furi_get_tick();
-        char line[64];
-        for(uint8_t i = 0; i < data->num_bins; i++) {
-            uint32_t freq = data->freq_start + (uint32_t)i * data->freq_step;
-            int32_t rssi_i = (int32_t)data->rssi[i];
-            int ret = snprintf(
-                line,
-                sizeof(line),
+        FuriString* csv = furi_string_alloc();
+        for(uint8_t i = 0; i < n; i++) {
+            uint32_t freq = sweep->freq_start + (uint32_t)i * sweep->freq_step;
+            furi_string_cat_printf(
+                csv,
                 "%lu,%lu,%ld\n",
                 (unsigned long)ts,
                 (unsigned long)freq,
-                (long)rssi_i);
-            if(ret > 0) {
-                size_t len = ((size_t)ret >= sizeof(line)) ? sizeof(line) - 1 : (size_t)ret;
-                storage_file_write(app->log_file, line, len);
-            }
+                (long)(int32_t)sweep->rssi[i]);
         }
+        storage_file_write(app->log_file, furi_string_get_cstr(csv), furi_string_size(csv));
+        furi_string_free(csv);
     }
-
-    /* Update view model while still holding data_mutex — same lock ordering
-     * as spectrum_view_input_callback, so no deadlock risk. Avoids a
-     * stack-local SpectrumData copy that would overflow the worker stack. */
-    with_view_model(
-        app->spectrum_view,
-        SpectrumData * model,
-        { memcpy(model, &app->spectrum_data, sizeof(SpectrumData)); },
-        true);
-
-    furi_mutex_release(app->data_mutex);
+    furi_mutex_release(app->log_mutex);
 }
 
 /* ─── View Exit ─── */
@@ -402,13 +397,17 @@ static void spectrum_band_select_callback(void* context, uint32_t index) {
         spectrum_worker_stop(app->worker);
     }
 
-    /* Reset spectrum data */
-    if(furi_mutex_acquire(app->data_mutex, FuriWaitForever) == FuriStatusOk) {
-        spectrum_data_reset(&app->spectrum_data);
-        app->spectrum_data.peak_hold = app->peak_hold;
-        app->spectrum_data.view_mode = SpectrumViewBar;
-        furi_mutex_release(app->data_mutex);
-    }
+    /* Reset the display model.  The worker is stopped (and joined) above, so
+       there is no concurrent access to serialise against here. */
+    with_view_model(
+        app->spectrum_view,
+        SpectrumData * data,
+        {
+            spectrum_data_reset(data);
+            data->peak_hold = app->peak_hold;
+            data->view_mode = SpectrumViewBar;
+        },
+        true);
 
     /* Start worker with new band */
     const SpectrumBandConfig* cfg = &spectrum_band_configs[app->current_band];
@@ -433,6 +432,18 @@ static void spectrum_peak_change_callback(VariableItem* item) {
     uint8_t idx = variable_item_get_current_value_index(item);
     app->peak_hold = (idx == 1);
     variable_item_set_current_value_text(item, idx ? "On" : "Off");
+    /* Apply to the live model too, so the Settings control and the Down-key
+       toggle stay in sync in both directions. */
+    with_view_model(
+        app->spectrum_view,
+        SpectrumData * data,
+        {
+            data->peak_hold = app->peak_hold;
+            if(!data->peak_hold) {
+                for(uint8_t i = 0; i < SPECTRUM_NUM_BINS; i++) data->peak_rssi[i] = -200.0f;
+            }
+        },
+        true);
 }
 
 static void spectrum_view_mode_change_callback(VariableItem* item) {
@@ -440,11 +451,7 @@ static void spectrum_view_mode_change_callback(VariableItem* item) {
     uint8_t idx = variable_item_get_current_value_index(item);
     SpectrumViewMode mode = (idx == 0) ? SpectrumViewBar : SpectrumViewWaterfall;
     variable_item_set_current_value_text(item, idx ? "Waterfall" : "Bar");
-    /* Acquire mutex before mutating shared spectrum_data */
-    if(furi_mutex_acquire(app->data_mutex, FuriWaitForever) == FuriStatusOk) {
-        app->spectrum_data.view_mode = mode;
-        furi_mutex_release(app->data_mutex);
-    }
+    with_view_model(app->spectrum_view, SpectrumData * data, { data->view_mode = mode; }, true);
 }
 
 /* ─── Navigation ─── */
@@ -478,13 +485,11 @@ static SpectrumApp* spectrum_app_alloc(void) {
     SpectrumApp* app = malloc(sizeof(SpectrumApp));
     furi_assert(app);
     memset(app, 0, sizeof(SpectrumApp));
-    spectrum_data_reset(&app->spectrum_data);
 
-    app->data_mutex = furi_mutex_alloc(FuriMutexTypeNormal);
+    app->log_mutex = furi_mutex_alloc(FuriMutexTypeNormal);
 
     /* GUI */
     app->gui = furi_record_open(RECORD_GUI);
-    app->notifications = furi_record_open(RECORD_NOTIFICATION);
     app->storage = furi_record_open(RECORD_STORAGE);
     app->log_file = storage_file_alloc(app->storage);
 
@@ -498,6 +503,10 @@ static SpectrumApp* spectrum_app_alloc(void) {
     /* Spectrum View (custom) */
     app->spectrum_view = view_alloc();
     view_allocate_model(app->spectrum_view, ViewModelTypeLocking, sizeof(SpectrumData));
+    /* Initialise the model (peak_rssi floor etc.) — this is now the single
+       source of truth for all spectrum state. */
+    with_view_model(
+        app->spectrum_view, SpectrumData * data, { spectrum_data_reset(data); }, false);
     view_set_draw_callback(app->spectrum_view, spectrum_view_draw_callback);
     view_set_input_callback(app->spectrum_view, spectrum_view_input_callback);
     view_set_context(app->spectrum_view, app);
@@ -548,6 +557,7 @@ static SpectrumApp* spectrum_app_alloc(void) {
 
     item = variable_item_list_add(
         app->settings_list, "Peak Hold", 2, spectrum_peak_change_callback, app);
+    app->peak_item = item; /* kept in sync with the live Down-key toggle */
     variable_item_set_current_value_index(item, 0);
     variable_item_set_current_value_text(item, "Off");
 
@@ -589,18 +599,15 @@ static void spectrum_app_free(SpectrumApp* app) {
     storage_file_free(app->log_file);
 
     /* Views */
-    view_dispatcher_remove_view(app->view_dispatcher, SpectrumViewSpectrum);
-    view_dispatcher_remove_view(app->view_dispatcher, SpectrumViewBandSelect);
-    view_dispatcher_remove_view(app->view_dispatcher, SpectrumViewSettings);
+    view_dispatcher_remove_all(app->view_dispatcher, SpectrumViewCount);
 
     view_free(app->spectrum_view);
     submenu_free(app->band_submenu);
     variable_item_list_free(app->settings_list);
     view_dispatcher_free(app->view_dispatcher);
 
-    furi_mutex_free(app->data_mutex);
+    furi_mutex_free(app->log_mutex);
 
-    furi_record_close(RECORD_NOTIFICATION);
     furi_record_close(RECORD_GUI);
     furi_record_close(RECORD_STORAGE);
 

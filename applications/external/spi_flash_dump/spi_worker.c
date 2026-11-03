@@ -324,7 +324,7 @@ bool chip_read(
         }
         spi_cs_high();
 
-        if(storage_file_write(file, buf, (uint16_t)chunk) != chunk) {
+        if(storage_file_write(file, buf, chunk) != chunk) {
             success = false;
             break;
         }
@@ -392,7 +392,7 @@ bool chip_verify(
         spi_cs_high();
 
         /* Read from file */
-        uint16_t read_cnt = storage_file_read(file, file_buf, (uint16_t)chunk);
+        size_t read_cnt = storage_file_read(file, file_buf, chunk);
         if(read_cnt != chunk) {
             /* File shorter than chip – count remaining as mismatches */
             mismatch += (total - address);
@@ -505,6 +505,7 @@ void spi_worker_start_read(
     w->op = WorkerOpRead;
     w->chip = chip;
     strncpy(w->path, path, sizeof(w->path) - 1);
+    w->path[sizeof(w->path) - 1] = '\0';
     w->read_cmd = read_cmd;
     w->delay_us = delay;
     w->cb = cb;
@@ -512,9 +513,11 @@ void spi_worker_start_read(
     w->result = false;
     w->crc32 = 0;
     w->crc32_valid = false;
-    w->running = true;
 
+    /* Join any prior (already-finished) thread instance before flipping the
+       running flag, so running only ever reflects the thread we start next. */
     furi_thread_join(w->thread);
+    w->running = true;
     furi_thread_start(w->thread);
 }
 
@@ -533,6 +536,7 @@ void spi_worker_start_verify(
     w->op = WorkerOpVerify;
     w->chip = chip;
     strncpy(w->path, path, sizeof(w->path) - 1);
+    w->path[sizeof(w->path) - 1] = '\0';
     w->read_cmd = read_cmd;
     w->delay_us = delay;
     w->cb = cb;
@@ -540,9 +544,11 @@ void spi_worker_start_verify(
     w->match_out = match_out;
     w->mismatch_out = mismatch_out;
     w->result = false;
-    w->running = true;
 
+    /* Join any prior (already-finished) thread instance before flipping the
+       running flag, so running only ever reflects the thread we start next. */
     furi_thread_join(w->thread);
+    w->running = true;
     furi_thread_start(w->thread);
 }
 

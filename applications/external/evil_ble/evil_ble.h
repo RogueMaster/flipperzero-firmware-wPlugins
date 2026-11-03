@@ -53,12 +53,9 @@ typedef struct EvilBleApp {
     uint32_t selected_device_idx;
     bool cloning;
 
-    /* Scratch buffer for clone status TextBox text */
+    /* Scratch buffer for clone status TextBox text.
+     * Must stay persistent: text_box_set_text() stores the raw pointer. */
     char status_buf[256];
-
-    /* Persistent label storage — submenu_add_item does NOT copy strings */
-    char clone_menu_label[48];
-    char device_labels[EVIL_BLE_MAX_DEVICES][64];
 } EvilBleApp;
 
 /* Entry point declared here so application.fam can resolve it. */

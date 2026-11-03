@@ -20,7 +20,10 @@
 /*  Model held inside the View                                        */
 /* ------------------------------------------------------------------ */
 typedef struct {
-    uint8_t data[HEX_PREVIEW_SIZE];
+    /* Lazily allocated HEX_PREVIEW_SIZE buffer.  NULL until a file is loaded
+       and freed again on view exit, so the 4 KB preview is not held for the
+       whole app lifetime (the viewer is only entered after a dump completes). */
+    uint8_t* data;
     uint32_t data_len;
     uint32_t scroll_offset; /* in rows */
 } HexViewerModel;
@@ -39,7 +42,7 @@ static void hex_viewer_draw_cb(Canvas* canvas, void* model_ptr) {
     canvas_set_font(canvas, FontKeyboard); /* small mono font */
 
     uint32_t total_rows = (m->data_len + BYTES_PER_ROW - 1) / BYTES_PER_ROW;
-    if(total_rows == 0) {
+    if(m->data == NULL || total_rows == 0) {
         canvas_draw_str(canvas, 2, 12, "No data loaded");
         return;
     }
@@ -133,6 +136,29 @@ static bool hex_viewer_input_cb(InputEvent* event, void* ctx) {
 }
 
 /* ------------------------------------------------------------------ */
+/*  View exit — release the preview buffer                            */
+/* ------------------------------------------------------------------ */
+
+/* Fires on the GUI thread when the hex preview is navigated away from.  The
+   4 KB buffer is freed here and re-allocated by the next hex_viewer_load_file,
+   so it is only resident while the preview is actually on screen. */
+static void hex_viewer_exit_cb(void* ctx) {
+    View* view = ctx;
+    with_view_model(
+        view,
+        HexViewerModel * m,
+        {
+            if(m->data) {
+                free(m->data);
+                m->data = NULL;
+            }
+            m->data_len = 0;
+            m->scroll_offset = 0;
+        },
+        false);
+}
+
+/* ------------------------------------------------------------------ */
 /*  Alloc / free                                                      */
 /* ------------------------------------------------------------------ */
 
@@ -143,14 +169,15 @@ HexViewer* hex_viewer_alloc(void) {
     view_allocate_model(hv->view, ViewModelTypeLocking, sizeof(HexViewerModel));
     view_set_draw_callback(hv->view, hex_viewer_draw_cb);
     view_set_input_callback(hv->view, hex_viewer_input_cb);
+    view_set_exit_callback(hv->view, hex_viewer_exit_cb);
     view_set_context(hv->view, hv->view);
 
-    /* Zero-init model */
+    /* Zero-init model — data buffer is allocated lazily on first load. */
     with_view_model(
         hv->view,
         HexViewerModel * m,
         {
-            memset(m->data, 0, sizeof(m->data));
+            m->data = NULL;
             m->data_len = 0;
             m->scroll_offset = 0;
         },
@@ -161,6 +188,18 @@ HexViewer* hex_viewer_alloc(void) {
 
 void hex_viewer_free(HexViewer* hv) {
     if(!hv) return;
+    /* Release the preview buffer if the view was torn down while still loaded
+       (the exit callback may not have fired on app shutdown). */
+    with_view_model(
+        hv->view,
+        HexViewerModel * m,
+        {
+            if(m->data) {
+                free(m->data);
+                m->data = NULL;
+            }
+        },
+        false);
     view_free(hv->view);
     free(hv);
 }
@@ -178,20 +217,30 @@ uint32_t hex_viewer_load_file(HexViewer* hv, const char* path) {
     File* file = storage_file_alloc(storage);
 
     uint32_t loaded = 0;
+    bool opened = storage_file_open(file, path, FSAM_READ, FSOM_OPEN_EXISTING);
 
-    if(storage_file_open(file, path, FSAM_READ, FSOM_OPEN_EXISTING)) {
-        with_view_model(
-            hv->view,
-            HexViewerModel * m,
-            {
-                uint16_t rd = storage_file_read(file, m->data, (uint16_t)HEX_PREVIEW_SIZE);
-                m->data_len = rd;
+    with_view_model(
+        hv->view,
+        HexViewerModel * m,
+        {
+            if(opened) {
+                /* Allocate the preview buffer on demand (malloc reboots on OOM
+                   on this platform, so no NULL check). */
+                if(m->data == NULL) m->data = malloc(HEX_PREVIEW_SIZE);
+                size_t rd = storage_file_read(file, m->data, HEX_PREVIEW_SIZE);
+                m->data_len = (uint32_t)rd;
                 m->scroll_offset = 0;
-                loaded = rd;
-            },
-            true);
-        storage_file_close(file);
-    }
+                loaded = (uint32_t)rd;
+            } else {
+                /* Open failed: clear any previously loaded file so the viewer
+                   shows "No data loaded" instead of a stale dump. */
+                m->data_len = 0;
+                m->scroll_offset = 0;
+            }
+        },
+        true);
+
+    if(opened) storage_file_close(file);
 
     storage_file_free(file);
     furi_record_close(RECORD_STORAGE);

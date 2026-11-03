@@ -55,6 +55,7 @@ typedef enum {
     FPwnViewCredentials,
     FPwnViewExfilResults,
     FPwnViewAbout,
+    FPwnViewCount,
 } FPwnView;
 
 typedef enum {
@@ -170,8 +171,13 @@ typedef struct {
     TextInput* wifi_text_input;
     char wifi_text_buf[128];
     TextBox* wifi_status;
-    FuriString* wifi_status_text;
+    FuriString* wifi_status_text; /* worker-thread writer; mutate only under wifi_status_mutex */
     FuriMutex* wifi_status_mutex; /* protects wifi_status_text from concurrent access */
+    /* GUI-thread-only backing string handed to the status TextBox. Copied from
+     * wifi_status_text in the WifiStatus custom-event handler; its capacity is
+     * reserved once at alloc so it never reallocates while the GUI service thread
+     * draws from it (text_box_set_text stores the raw pointer, no copy). */
+    FuriString* wifi_status_display;
     View* ping_scan_view;
     View* port_scan_view;
     View* station_scan_view;
@@ -241,6 +247,7 @@ FPwnOS fpwn_effective_os(const FPwnApp* app);
 /* Set the active view for navigation tracking.
  * Used by wifi_views.c to update g_current_view before switching views. */
 void fpwn_set_current_view(FPwnView view);
+FPwnView fpwn_get_current_view(void);
 
 /* =========================================================================
  * WiFi views (wifi_views.c)
@@ -261,6 +268,10 @@ void fpwn_wifi_menu_setup(FPwnApp* app);
  * ========================================================================= */
 #define FPWN_CUSTOM_EVENT_EXEC_DONE      1
 #define FPWN_CUSTOM_EVENT_WIFI_CONNECTED 2
+#define FPWN_CUSTOM_EVENT_WIFI_STATUS    3
+
+/* Max size of the WiFi status log before the oldest half is trimmed. */
+#define FPWN_WIFI_STATUS_CAP 4096
 
 /* =========================================================================
  * Entry point

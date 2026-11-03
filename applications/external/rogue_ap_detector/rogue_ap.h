@@ -22,6 +22,7 @@ typedef enum {
     RogueViewScan,
     RogueViewResults,
     RogueViewSettings,
+    RogueViewCount,
 } RogueView;
 
 /* =========================================================================

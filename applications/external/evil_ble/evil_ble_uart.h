@@ -1,32 +1,23 @@
 #pragma once
 
-#include <furi.h>
-#include <furi_hal.h>
+/**
+ * evil_ble_uart.h -- Thin shim over common/esp_serial for Evil BLE.
+ */
 
-/* Opaque UART context for ESP32 WiFi Dev Board (Marauder) communication. */
-typedef struct EvilBleUart EvilBleUart;
+#include "../common/esp_serial.h"
 
-/* Callback invoked on the worker thread for each complete line received.
- * `line` is null-terminated, stripped of CR/LF, and valid only for the
- * duration of the call — copy if needed. */
-typedef void (*EvilBleUartRxCallback)(const char* line, void* ctx);
+typedef EspSerial EvilBleUart;
+typedef EspSerialRxCallback EvilBleUartRxCallback;
 
-/* Allocate and initialise the UART layer.
- * Acquires USART, disables the expansion module, and starts the RX worker.
- * Always returns a valid pointer; check evil_ble_uart_is_connected() to
- * determine whether the serial port was successfully acquired. */
-EvilBleUart* evil_ble_uart_alloc(void);
+static inline EvilBleUart* evil_ble_uart_alloc(void) {
+    static const EspSerialConfig cfg = {
+        .tag = "EvilBLE",
+        .thread_name = "EvilBleUartRx",
+    };
+    return esp_serial_alloc(&cfg);
+}
 
-/* Stop the worker thread, release the serial port, re-enable the expansion
- * module, and free all resources. */
-void evil_ble_uart_free(EvilBleUart* uart);
-
-/* Transmit `cmd` followed by a newline.  No-op if serial was not acquired. */
-void evil_ble_uart_send(EvilBleUart* uart, const char* cmd);
-
-/* Register a callback that fires for every complete line received.
- * Pointer-sized assignment — atomic on Cortex-M4, no mutex needed. */
-void evil_ble_uart_set_rx_callback(EvilBleUart* uart, EvilBleUartRxCallback cb, void* ctx);
-
-/* Returns true once the first line of data has been received from the board. */
-bool evil_ble_uart_is_connected(EvilBleUart* uart);
+#define evil_ble_uart_free esp_serial_free
+#define evil_ble_uart_send esp_serial_send
+#define evil_ble_uart_set_rx_callback esp_serial_set_rx_callback
+#define evil_ble_uart_is_connected esp_serial_is_connected

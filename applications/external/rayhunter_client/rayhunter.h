@@ -55,12 +55,14 @@ typedef enum {
     RhViewMain = 0,
     RhViewSettings,
     RhViewAbout,
+    RhViewCount,
 } RhView;
 
 /** Custom events sent via view_dispatcher_send_custom_event(). */
 typedef enum {
     RhEventStatusUpdate = 0, /* Worker pushed a new RhStatus — redraw main view */
     RhEventHighThreat = 1, /* High severity detected — vibrate + blink        */
+    RhEventPoll = 2, /* Poll timer tick — run the poll on the app thread */
 } RhCustomEvent;
 
 /* =========================================================================

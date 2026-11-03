@@ -6,6 +6,16 @@
 /* USB CCID spec §6.1: maximum data block length is 261 bytes */
 #define CCID_MAX_DATA_BLOCK_LEN 261
 
+/* The xfr_datablock clamp below bounds every copy into the firmware-owned
+ * readerToPcDataBlock by CCID_MAX_DATA_BLOCK_LEN.  Our own response sources
+ * (rule->response / default_response) are capped at CCID_EMU_MAX_RESP_LEN, so
+ * statically assert they can never exceed the block limit — this keeps the
+ * clamp a documented upper bound rather than the thing preventing an overrun,
+ * and fails the build if CCID_EMU_MAX_RESP_LEN is ever raised past the spec. */
+_Static_assert(
+    CCID_EMU_MAX_RESP_LEN <= CCID_MAX_DATA_BLOCK_LEN,
+    "response buffer must fit within the CCID max data block");
+
 /* ---------------------------------------------------------------------------
  * USB VID/PID presets (keep in sync with the settings menu)
  * --------------------------------------------------------------------------- */

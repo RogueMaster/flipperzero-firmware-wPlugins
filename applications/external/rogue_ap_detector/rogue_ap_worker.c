@@ -268,20 +268,25 @@ static bool rogue_parse_marauder_ap(
     while(end > ssid_start && (end[-1] == '\r' || end[-1] == '\n' || end[-1] == ' '))
         end--;
 
-    /* Strip trailing beacon bytes: tokens of 1-3 decimal digits */
-    while(end > ssid_start) {
+    /* Strip AT MOST the two trailing decimal beacon bytes the Marauder format
+     * appends (see the format banner). An unbounded strip would eat legitimate
+     * numeric tail tokens: "iPhone 15 80 00" -> "iPhone", and a purely numeric
+     * SSID "123 80 00" -> "" (then rejected). Capping at two preserves such
+     * SSIDs, which are the detection grouping key. */
+    for(int stripped = 0; stripped < 2 && end > ssid_start; stripped++) {
         const char* tok = end;
         while(tok > ssid_start && tok[-1] != ' ')
             tok--;
-        /* Check if this token is all digits and at most 3 chars (0-255) */
-        const char* t = tok;
-        bool all_digits = (end - tok) >= 1 && (end - tok) <= 3;
-        while(t < end && all_digits) {
-            if(*t < '0' || *t > '9') all_digits = false;
-            t++;
+        size_t toklen = (size_t)(end - tok);
+        if(toklen < 1 || toklen > 3) break;
+        bool all_digits = true;
+        for(const char* t = tok; t < end; t++) {
+            if(*t < '0' || *t > '9') {
+                all_digits = false;
+                break;
+            }
         }
         if(!all_digits) break;
-        /* Strip the token and preceding space */
         end = tok;
         while(end > ssid_start && end[-1] == ' ')
             end--;
@@ -302,14 +307,19 @@ static void rogue_uart_line_cb(const char* line, void* ctx) {
 
     /* Skip Marauder status lines */
     if(line[0] == '\0') return;
+    /* Anchor every status-prefix check at column 0. Unanchored strstr() let an
+     * attacker-chosen SSID containing "Done"/"[APs]"/etc. evade detection, since
+     * those words can appear inside a real scanap line's ESSID field. Valid AP
+     * lines begin with a digit or '-', so none collide with these prefixes. */
     if(strncmp(line, "Scanning", 8) == 0 || strncmp(line, "Starting", 8) == 0 ||
-       strncmp(line, "Stopping", 8) == 0 || strncmp(line, ">", 1) == 0 ||
-       strstr(line, "Started") || strstr(line, "Done") || strstr(line, "[APs]") ||
-       strstr(line, "Scan complete") || strstr(line, "Stop with"))
+       strncmp(line, "Stopping", 8) == 0 || line[0] == '>' ||
+       strncmp(line, "Started", 7) == 0 || strncmp(line, "Done", 4) == 0 ||
+       strncmp(line, "[APs]", 5) == 0 || strncmp(line, "Scan complete", 13) == 0 ||
+       strncmp(line, "Stop with", 9) == 0)
         return;
 
-    /* Log every non-status line for debugging parser issues */
-    FURI_LOG_I(TAG, "RX line: %.80s", line);
+    /* Debug-only: compiled out of release builds, off the hot RX path. */
+    FURI_LOG_D(TAG, "RX line: %.80s", line);
 
     int rssi_raw = 0;
     char bssid[ROGUE_BSSID_LEN];

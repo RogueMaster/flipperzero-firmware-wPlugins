@@ -68,6 +68,7 @@ typedef enum {
     HidExfilViewConfig,
     HidExfilViewExecution,
     HidExfilViewDataViewer,
+    HidExfilViewCount,
 } HidExfilView;
 
 /* ---- Configuration ---- */

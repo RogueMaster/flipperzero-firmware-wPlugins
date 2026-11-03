@@ -70,6 +70,7 @@ typedef enum {
     NfcFuzzerViewResultsList,
     NfcFuzzerViewResultDetail,
     NfcFuzzerViewSettings,
+    NfcFuzzerViewCount,
 } NfcFuzzerViewId;
 
 /* ───────────────────── Result ───────────────────── */
@@ -167,8 +168,10 @@ typedef struct {
     /* Detail text buffer */
     char detail_text[NFC_FUZZER_RESULT_DETAIL_LEN];
 
-    /* Log file path */
+    /* Log file path + persistent handle (kept open during fuzz runs) */
     FuriString* log_path;
+    File* log_file;
+    char* log_scratch;
 } NfcFuzzerApp;
 
 /* ───────────────────── Helpers ───────────────────── */

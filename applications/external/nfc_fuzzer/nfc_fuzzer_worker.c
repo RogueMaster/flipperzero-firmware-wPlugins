@@ -54,10 +54,14 @@ static NfcCommand nfc_fuzzer_listener_callback(NfcGenericEvent event, void* cont
         ctx->response_received = true;
         ctx->response_tick = furi_get_tick();
         if(ctx->rx_buf && iso_event->data && iso_event->data->buffer) {
+            /* Clamp at the copy site: bit_buffer_copy_bytes furi_checks that the
+             * destination capacity (NFC_FUZZER_MAX_PAYLOAD_LEN) is >= the source
+             * size, so an oversized/malformed reader frame — expected input for a
+             * listener-mode fuzzer — would otherwise reboot the device. */
+            size_t copy_len = bit_buffer_get_size_bytes(iso_event->data->buffer);
+            if(copy_len > NFC_FUZZER_MAX_PAYLOAD_LEN) copy_len = NFC_FUZZER_MAX_PAYLOAD_LEN;
             bit_buffer_copy_bytes(
-                ctx->rx_buf,
-                bit_buffer_get_data(iso_event->data->buffer),
-                bit_buffer_get_size_bytes(iso_event->data->buffer));
+                ctx->rx_buf, bit_buffer_get_data(iso_event->data->buffer), copy_len);
         }
     }
     return NfcCommandContinue;
@@ -180,23 +184,16 @@ static void nfc_fuzzer_worker_run_listener(NfcFuzzerWorker* worker) {
         if(worker->profile == NfcFuzzerProfileUid) {
             nfc_listener_stop(listener);
             nfc_listener_free(listener);
-            iso14443_3a_free(nfc_data);
-            uint8_t atqa_default[] = {0x44, 0x00};
-            nfc_data = nfc_fuzzer_build_iso14443_3a_data(
-                test_case->data, test_case->data_len, atqa_default, 0x00);
+            nfc_data->uid_len = test_case->data_len;
+            memcpy(nfc_data->uid, test_case->data, test_case->data_len);
             listener = nfc_listener_alloc(nfc, NfcProtocolIso14443_3a, nfc_data);
             nfc_listener_start(listener, nfc_fuzzer_listener_callback, &listener_ctx);
         } else if(worker->profile == NfcFuzzerProfileAtqaSak) {
             nfc_listener_stop(listener);
             nfc_listener_free(listener);
-            iso14443_3a_free(nfc_data);
-            /* data[0..1] = ATQA, data[2] = SAK */
-            uint8_t uid7[] = {0x04, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06};
-            uint8_t atqa_buf[2];
-            atqa_buf[0] = test_case->data[0];
-            atqa_buf[1] = test_case->data[1];
-            uint8_t sak_val = test_case->data[2];
-            nfc_data = nfc_fuzzer_build_iso14443_3a_data(uid7, sizeof(uid7), atqa_buf, sak_val);
+            nfc_data->atqa[0] = test_case->data[0];
+            nfc_data->atqa[1] = test_case->data[1];
+            nfc_data->sak = test_case->data[2];
             listener = nfc_listener_alloc(nfc, NfcProtocolIso14443_3a, nfc_data);
             nfc_listener_start(listener, nfc_fuzzer_listener_callback, &listener_ctx);
         }
@@ -254,7 +251,10 @@ static void nfc_fuzzer_worker_run_listener(NfcFuzzerWorker* worker) {
         if(listener_ctx.response_received && bit_buffer_get_size_bytes(rx_buf) > 0) {
             size_t rx_len = bit_buffer_get_size_bytes(rx_buf);
             if(rx_len > NFC_FUZZER_MAX_PAYLOAD_LEN) rx_len = NFC_FUZZER_MAX_PAYLOAD_LEN;
-            bit_buffer_write_bytes(rx_buf, result->response, rx_len);
+            /* write_bytes_mid copies EXACTLY rx_len bytes (write_bytes' size arg is
+             * a capacity assertion, not a truncation length), so the clamp above
+             * actually bounds the copy. */
+            bit_buffer_write_bytes_mid(rx_buf, result->response, 0, rx_len);
             result->response_len = (uint8_t)rx_len;
         }
 
@@ -354,7 +354,8 @@ static NfcCommand nfc_fuzzer_poller_fuzz_cb(NfcGenericEvent event, void* context
     if(bit_buffer_get_size_bytes(ctx->rx_buf) > 0) {
         size_t rx_len = bit_buffer_get_size_bytes(ctx->rx_buf);
         if(rx_len > NFC_FUZZER_MAX_PAYLOAD_LEN) rx_len = NFC_FUZZER_MAX_PAYLOAD_LEN;
-        bit_buffer_write_bytes(ctx->rx_buf, ctx->result->response, rx_len);
+        /* write_bytes_mid copies EXACTLY rx_len bytes (see the listener site). */
+        bit_buffer_write_bytes_mid(ctx->rx_buf, ctx->result->response, 0, rx_len);
         ctx->result->response_len = (uint8_t)rx_len;
     }
 

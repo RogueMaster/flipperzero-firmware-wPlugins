@@ -59,7 +59,11 @@ static int32_t jammer_worker_thread(void* context) {
             worker->state->hw_error = true;
             furi_mutex_release(worker->mutex);
         }
-        worker->running = false;
+        /* Do NOT clear worker->running here: it is the owner's (main thread's)
+         * "keep looping" command, not a liveness flag. Clearing it would make
+         * jammer_app_free() skip jammer_worker_stop()/furi_thread_join(), and
+         * jammer_worker_free() -> furi_thread_free() would then assert on a
+         * non-joined thread. The owner always stops+joins before free. */
         subghz_devices_deinit();
         furi_record_close(RECORD_NOTIFICATION);
         return -1;
@@ -71,7 +75,8 @@ static int32_t jammer_worker_thread(void* context) {
             worker->state->hw_error = true;
             furi_mutex_release(worker->mutex);
         }
-        worker->running = false;
+        /* See the device-not-found branch: leave worker->running set so the
+         * owner stops+joins this thread before freeing it. */
         subghz_devices_deinit();
         furi_record_close(RECORD_NOTIFICATION);
         return -1;
@@ -86,6 +91,12 @@ static int32_t jammer_worker_thread(void* context) {
 
     while(worker->running) {
         for(uint8_t i = 0; i < MONITOR_FREQ_COUNT && worker->running; i++) {
+            /* Guard: subghz_devices_set_frequency() furi_crashes the firmware on
+             * an out-of-band value. MONITOR_FREQS are in-band, but validate
+             * defensively so a future table edit can't reboot the device. */
+            if(!subghz_devices_is_frequency_valid(device, MONITOR_FREQS[i])) {
+                continue;
+            }
             /* Tune and receive */
             subghz_devices_idle(device);
             subghz_devices_set_frequency(device, MONITOR_FREQS[i]);
@@ -224,7 +235,10 @@ void jammer_worker_start(JammerWorker* worker) {
 
 void jammer_worker_stop(JammerWorker* worker) {
     furi_assert(worker);
-    if(!worker->running) return;
+    /* Always join a started thread, even if it already returned (e.g. the
+     * hw-error path): furi_thread_join is safe on a finished thread and is the
+     * only call that advances it to FuriThreadStateStopped so furi_thread_free
+     * won't assert. The owner calls this exactly once, before free. */
     worker->running = false;
     furi_thread_join(worker->thread);
 }

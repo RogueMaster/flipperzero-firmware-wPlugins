@@ -1,32 +1,23 @@
 #pragma once
 
-#include <furi.h>
-#include <furi_hal.h>
+/**
+ * rogue_uart.h -- Thin shim over common/esp_serial for Rogue AP Detector.
+ */
 
-/* Opaque UART context for WiFi Dev Board (Marauder) communication. */
-typedef struct RogueUart RogueUart;
+#include "../common/esp_serial.h"
 
-/* Callback invoked on the worker thread for each complete line received.
- * `line` is null-terminated, stripped of CR/LF, and valid only for the
- * duration of the call — copy if you need to retain it. */
-typedef void (*RogueUartRxCallback)(const char* line, void* ctx);
+typedef EspSerial RogueUart;
+typedef EspSerialRxCallback RogueUartRxCallback;
 
-/* Allocate and initialise the UART layer.
- * Acquires USART, disables the expansion module, starts the RX worker.
- * Always returns a valid pointer; the serial handle may be NULL if no
- * ESP32 is present — callers should handle that gracefully. */
-RogueUart* rogue_uart_alloc(void);
+static inline RogueUart* rogue_uart_alloc(void) {
+    static const EspSerialConfig cfg = {
+        .tag = "RogueUart",
+        .thread_name = "RogueUartRx",
+    };
+    return esp_serial_alloc(&cfg);
+}
 
-/* Stop the worker thread, release the serial port, re-enable the expansion
- * module, and free all resources. */
-void rogue_uart_free(RogueUart* uart);
-
-/* Transmit `cmd` followed by a newline.  No-op if serial was not acquired. */
-void rogue_uart_send(RogueUart* uart, const char* cmd);
-
-/* Register a callback that fires for every complete line received.
- * Pointer-sized assignment — atomic on Cortex-M4, no mutex needed. */
-void rogue_uart_set_rx_callback(RogueUart* uart, RogueUartRxCallback cb, void* ctx);
-
-/* Returns true once the first line of data has been received from the board. */
-bool rogue_uart_is_connected(RogueUart* uart);
+#define rogue_uart_free esp_serial_free
+#define rogue_uart_send esp_serial_send
+#define rogue_uart_set_rx_callback esp_serial_set_rx_callback
+#define rogue_uart_is_connected esp_serial_is_connected

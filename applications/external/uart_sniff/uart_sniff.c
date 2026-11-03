@@ -12,6 +12,7 @@
 #include "uart_sniff.h"
 
 #include <furi_hal.h>
+#include "../common/suite_helpers.h"
 
 #define TAG "UartSniff"
 
@@ -59,12 +60,11 @@ static const char* const CHANNEL_LABELS[2] = {
  * "Hex" mode:  "XXXX: HH HH HH HH HH HH HH HH\n"
  * "ASCII" mode: printable chars + '.' for non-printable, 8 per line.
  */
-static void uart_sniff_format_display(UartSniffApp* app) {
+static void uart_sniff_format_display(UartSniffApp* app, char* dst, size_t dst_size) {
     /* Pull last DISPLAY_BYTES from ring */
     size_t got = uart_sniff_worker_read(app->worker, app->capture_buf, UART_SNIFF_DISPLAY_BYTES);
 
-    char* dst = app->display_buf;
-    size_t remaining = app->display_buf_size;
+    size_t remaining = dst_size;
     size_t written = 0;
 
     size_t lines = (got + UART_SNIFF_BYTES_PER_LINE - 1) / UART_SNIFF_BYTES_PER_LINE;
@@ -165,22 +165,23 @@ static void uart_sniff_refresh_cb(void* context) {
 static bool uart_sniff_custom_event_cb(void* context, uint32_t event) {
     UartSniffApp* app = (UartSniffApp*)context;
     switch((UartSniffEvent)event) {
-    case UartSniffEventRefresh:
-        if(!app->sniffing || !app->worker) return true;
-        uart_sniff_format_display(app);
-        text_box_set_text(app->text_box, app->display_buf);
+    case UartSniffEventRefresh: {
+        /* Skip work entirely when the sniff view is not on screen (e.g. the
+           user went Back to the menu with the worker still running). */
+        if(!app->sniffing || !app->worker || app->current_view != UartSniffViewSniff) return true;
+
+        /* Format into the buffer the TextBox is NOT currently showing, then
+           hand that one over — the live buffer is never mutated under the
+           GUI service thread's feet. */
+        uint8_t next = app->display_idx ^ 1u;
+        uart_sniff_format_display(app, app->display_buf[next], app->display_buf_size);
+        text_box_set_text(app->text_box, app->display_buf[next]);
         text_box_set_focus(app->text_box, TextBoxFocusEnd);
+        app->display_idx = next;
         return true;
     }
+    }
     return false;
-}
-
-/* -----------------------------------------------------------------------
- * Sniff view — back navigation
- * ----------------------------------------------------------------------- */
-static uint32_t sniff_view_back_cb(void* context) {
-    UNUSED(context);
-    return UartSniffViewMenu;
 }
 
 /* -----------------------------------------------------------------------
@@ -196,8 +197,8 @@ static void menu_cb(void* context, uint32_t index) {
             app->worker = uart_sniff_worker_alloc(baud, app->serial_id);
             if(app->worker) {
                 app->sniffing = true;
-                /* Clear display buffer before showing anything */
-                app->display_buf[0] = '\0';
+                /* Clear the active display buffer before showing anything */
+                app->display_buf[app->display_idx][0] = '\0';
                 text_box_set_text(app->text_box, "Waiting for data...");
                 text_box_set_focus(app->text_box, TextBoxFocusEnd);
             } else {
@@ -206,10 +207,12 @@ static void menu_cb(void* context, uint32_t index) {
                 text_box_set_focus(app->text_box, TextBoxFocusStart);
             }
         }
+        app->current_view = UartSniffViewSniff;
         view_dispatcher_switch_to_view(app->view_dispatcher, UartSniffViewSniff);
         break;
 
     case UartSniffMenuSettings:
+        app->current_view = UartSniffViewSettings;
         view_dispatcher_switch_to_view(app->view_dispatcher, UartSniffViewSettings);
         break;
 
@@ -217,7 +220,7 @@ static void menu_cb(void* context, uint32_t index) {
         if(app->worker) {
             uart_sniff_worker_clear(app->worker);
         }
-        app->display_buf[0] = '\0';
+        app->display_buf[app->display_idx][0] = '\0';
         text_box_set_text(app->text_box, "Cleared.");
         break;
     }
@@ -229,7 +232,17 @@ static void menu_cb(void* context, uint32_t index) {
 static bool app_navigation_cb(void* context) {
     UartSniffApp* app = (UartSniffApp*)context;
 
-    /* If we are in the sniff view, stop sniffing when navigating back. */
+    /* Back from the sniff or settings view returns to the menu.  Sniffing is
+       left running so viewing can resume without re-opening the port; the
+       refresh is gated on current_view, so nothing is formatted or drawn while
+       the menu is shown. */
+    if(app->current_view != UartSniffViewMenu) {
+        app->current_view = UartSniffViewMenu;
+        view_dispatcher_switch_to_view(app->view_dispatcher, UartSniffViewMenu);
+        return true;
+    }
+
+    /* Back from the menu: stop sniffing and exit the app. */
     if(app->sniffing) {
         app->sniffing = false;
         if(app->worker) {
@@ -237,8 +250,6 @@ static bool app_navigation_cb(void* context) {
             app->worker = NULL;
         }
     }
-
-    /* Exit app on any Back from the top-level navigation callback. */
     view_dispatcher_stop(app->view_dispatcher);
     return true;
 }
@@ -257,6 +268,7 @@ static void settings_baud_cb(VariableItem* item) {
 static void settings_channel_cb(VariableItem* item) {
     UartSniffApp* app = (UartSniffApp*)variable_item_get_context(item);
     uint8_t idx = variable_item_get_current_value_index(item);
+    if(idx > 1) idx = 0; /* clamp like the sibling callbacks (CHANNEL_LABELS has 2 entries) */
     app->serial_id = (idx == 0) ? FuriHalSerialIdUsart : FuriHalSerialIdLpuart;
     variable_item_set_current_value_text(item, CHANNEL_LABELS[idx]);
 }
@@ -267,11 +279,6 @@ static void settings_show_cb(VariableItem* item) {
     if(idx >= UartSniffShowCount) idx = 0;
     app->show_mode = (UartSniffShow)idx;
     variable_item_set_current_value_text(item, SHOW_LABELS[idx]);
-}
-
-static uint32_t settings_back_cb(void* context) {
-    UNUSED(context);
-    return UartSniffViewMenu;
 }
 
 static void settings_list_setup(UartSniffApp* app) {
@@ -306,11 +313,15 @@ static UartSniffApp* uart_sniff_app_alloc(void) {
     app->serial_id = FuriHalSerialIdUsart;
     app->show_mode = UartSniffShowBoth;
 
-    /* Heap buffers */
+    /* Heap buffers — two display buffers for lock-free double-buffering. */
     app->display_buf_size = UART_SNIFF_DISPLAY_BUF_SIZE;
-    app->display_buf = malloc(app->display_buf_size);
-    furi_assert(app->display_buf);
-    app->display_buf[0] = '\0';
+    app->display_idx = 0;
+    app->display_buf[0] = malloc(app->display_buf_size);
+    app->display_buf[1] = malloc(app->display_buf_size);
+    furi_assert(app->display_buf[0]);
+    furi_assert(app->display_buf[1]);
+    app->display_buf[0][0] = '\0';
+    app->display_buf[1][0] = '\0';
 
     app->capture_buf = malloc(UART_SNIFF_DISPLAY_BYTES);
     furi_assert(app->capture_buf);
@@ -338,14 +349,14 @@ static UartSniffApp* uart_sniff_app_alloc(void) {
     text_box_set_font(app->text_box, TextBoxFontHex);
     text_box_set_focus(app->text_box, TextBoxFocusEnd);
     text_box_set_text(app->text_box, "");
-    view_set_previous_callback(text_box_get_view(app->text_box), sniff_view_back_cb);
+    /* Back is handled by the global navigation callback (view-aware), not a
+       per-view previous callback, so the menu can keep the worker running. */
     view_dispatcher_add_view(
         app->view_dispatcher, UartSniffViewSniff, text_box_get_view(app->text_box));
 
     /* ---- Settings (VariableItemList) ---- */
     app->settings_list = variable_item_list_alloc();
     settings_list_setup(app);
-    view_set_previous_callback(variable_item_list_get_view(app->settings_list), settings_back_cb);
     view_dispatcher_add_view(
         app->view_dispatcher,
         UartSniffViewSettings,
@@ -363,9 +374,7 @@ static void uart_sniff_app_free(UartSniffApp* app) {
     }
 
     /* Remove views before freeing them — ViewDispatcher requirement */
-    view_dispatcher_remove_view(app->view_dispatcher, UartSniffViewMenu);
-    view_dispatcher_remove_view(app->view_dispatcher, UartSniffViewSniff);
-    view_dispatcher_remove_view(app->view_dispatcher, UartSniffViewSettings);
+    view_dispatcher_remove_all(app->view_dispatcher, UartSniffViewCount);
 
     submenu_free(app->menu);
     text_box_free(app->text_box);
@@ -373,7 +382,8 @@ static void uart_sniff_app_free(UartSniffApp* app) {
 
     view_dispatcher_free(app->view_dispatcher);
 
-    free(app->display_buf);
+    free(app->display_buf[0]);
+    free(app->display_buf[1]);
     free(app->capture_buf);
 
     furi_record_close(RECORD_GUI);

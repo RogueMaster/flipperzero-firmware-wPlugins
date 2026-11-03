@@ -19,6 +19,7 @@
 #include "flipperpwn.h"
 #include <string.h>
 #include <stdio.h>
+#include "../common/suite_helpers.h"
 
 #define TAG "FPwn"
 
@@ -29,6 +30,7 @@ typedef enum {
     FPwnCustomEventRunModule = 0, /* "Run" button pressed on module info widget */
     FPwnCustomEventExecDone = 1, /* execution thread signalled completion       */
     FPwnCustomEventWifiConnected = 2, /* ESP32 first UART line received          */
+    FPwnCustomEventWifiStatus = 3, /* worker appended to the status log          */
 } FPwnCustomEvent;
 /* NOTE: FPWN_CUSTOM_EVENT_* values in flipperpwn.h must stay aligned here. */
 
@@ -38,6 +40,10 @@ FPwnView g_current_view = FPwnViewMainMenu;
 
 void fpwn_set_current_view(FPwnView view) {
     g_current_view = view;
+}
+
+FPwnView fpwn_get_current_view(void) {
+    return g_current_view;
 }
 
 /* --------------------------------------------------------------------------
@@ -206,6 +212,9 @@ static bool fpwn_execute_input_callback(InputEvent* event, void* ctx) {
             (unsigned long)app->exfil_len);
         /* Append the buffer — cap at 2KB for display sanity */
         uint32_t show_len = app->exfil_len > 2048 ? 2048 : app->exfil_len;
+        /* Reserve up front so the per-byte push_back loop below doesn't
+         * realloc-grow the FuriString one byte at a time. */
+        furi_string_reserve(app->exfil_display_text, show_len + 64);
         for(uint32_t i = 0; i < show_len; i++) {
             furi_string_push_back(app->exfil_display_text, app->exfil_buffer[i]);
         }
@@ -427,6 +436,19 @@ static bool fpwn_custom_event_callback(void* ctx, uint32_t event) {
         /* ESP32 responded on UART — update the main menu label. */
         fpwn_rebuild_main_menu(app);
         return true;
+
+    case FPwnCustomEventWifiStatus:
+        /* Runs on the view-dispatcher thread. Copy the worker-updated status text
+         * into the GUI-owned display string (capacity reserved at alloc, so this
+         * is an in-place memcpy that never reallocates the buffer the GUI draw
+         * thread is reading), then hand that stable buffer to the TextBox. This
+         * replaces the previous cross-thread hazard where the UART worker both
+         * reallocated the buffer and called text_box_set_text on it. */
+        furi_mutex_acquire(app->wifi_status_mutex, FuriWaitForever);
+        furi_string_set(app->wifi_status_display, app->wifi_status_text);
+        furi_mutex_release(app->wifi_status_mutex);
+        text_box_set_text(app->wifi_status, furi_string_get_cstr(app->wifi_status_display));
+        return true;
     }
 
     return false;
@@ -444,31 +466,32 @@ typedef enum {
     FPwnMainMenuAbout = 5,
 } FPwnMainMenuItem;
 
-/* Static storage for main menu labels that need to survive submenu_add_item */
-static char s_browse_label[32];
-static char s_runlast_label[FPWN_NAME_LEN + 8]; /* "Run: " + name */
-
 static void fpwn_rebuild_main_menu(FPwnApp* app) {
+    /* Local label buffers: submenu_add_item copies the string
+     * (furi_string_set_str), so these need not be static/persistent. */
+    char browse_label[32];
+    char runlast_label[FPWN_NAME_LEN + 8]; /* "Run: " + name */
+
     submenu_reset(app->main_menu);
     submenu_set_header(app->main_menu, "FlipperPwn");
     snprintf(
-        s_browse_label,
-        sizeof(s_browse_label),
+        browse_label,
+        sizeof(browse_label),
         "Browse Modules (%lu)",
         (unsigned long)app->module_count);
     submenu_add_item(
-        app->main_menu, s_browse_label, FPwnMainMenuBrowse, fpwn_main_menu_callback, app);
+        app->main_menu, browse_label, FPwnMainMenuBrowse, fpwn_main_menu_callback, app);
 
     /* "Run Last" — quick re-run of the last selected module */
     if(app->selected_module_index >= 0 &&
        (uint32_t)app->selected_module_index < app->module_count) {
         snprintf(
-            s_runlast_label,
-            sizeof(s_runlast_label),
+            runlast_label,
+            sizeof(runlast_label),
             "Run: %s",
             app->modules[app->selected_module_index].name);
         submenu_add_item(
-            app->main_menu, s_runlast_label, FPwnMainMenuRunLast, fpwn_main_menu_callback, app);
+            app->main_menu, runlast_label, FPwnMainMenuRunLast, fpwn_main_menu_callback, app);
     }
 
     submenu_add_item(
@@ -1000,15 +1023,7 @@ static void flipperpwn_app_free(FPwnApp* app) {
 
     /* Remove views from dispatcher before freeing underlying objects.
      * Order does not matter for correctness, but mirror alloc order. */
-    view_dispatcher_remove_view(app->view_dispatcher, FPwnViewMainMenu);
-    view_dispatcher_remove_view(app->view_dispatcher, FPwnViewCategoryMenu);
-    view_dispatcher_remove_view(app->view_dispatcher, FPwnViewModuleList);
-    view_dispatcher_remove_view(app->view_dispatcher, FPwnViewModuleInfo);
-    view_dispatcher_remove_view(app->view_dispatcher, FPwnViewOptions);
-    view_dispatcher_remove_view(app->view_dispatcher, FPwnViewOptionEdit);
-    view_dispatcher_remove_view(app->view_dispatcher, FPwnViewExecute);
-    view_dispatcher_remove_view(app->view_dispatcher, FPwnViewExfilResults);
-    view_dispatcher_remove_view(app->view_dispatcher, FPwnViewAbout);
+    view_dispatcher_remove_all(app->view_dispatcher, FPwnViewCount);
 
     view_dispatcher_free(app->view_dispatcher);
 

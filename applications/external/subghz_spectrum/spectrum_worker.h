@@ -5,7 +5,7 @@
 
 typedef struct SpectrumWorker SpectrumWorker;
 
-typedef void (*SpectrumWorkerCallback)(SpectrumData* data, void* context);
+typedef void (*SpectrumWorkerCallback)(const SpectrumSweep* sweep, void* context);
 
 SpectrumWorker* spectrum_worker_alloc(void);
 void spectrum_worker_free(SpectrumWorker* worker);

@@ -20,6 +20,7 @@ typedef enum {
     BleScanViewMainMenu = 0,
     BleScanViewScan,
     BleScanViewSettings,
+    BleScanViewCount,
 } BleScanView;
 
 /* =========================================================================
@@ -50,10 +51,6 @@ typedef struct {
     VariableItemList* settings_list;
     BleScanView current_view;
 
-    /* Services */
-    Storage* storage;
-    NotificationApp* notifications;
-
     /* BLE layer */
     BleUart* uart;
     BleScanWorker* worker;
@@ -61,6 +58,9 @@ typedef struct {
 
     /* Refresh timer — fires every 500 ms to push results into the view model */
     FuriTimer* refresh_timer;
+    /* Work buffer for the refresh snapshot, allocated once and reused (never
+     * per-tick malloc'd). Lives on the shared heap; sized for the full device set. */
+    BleScanDevice* refresh_buf;
 
     /* Settings */
     BleScanSettings settings;

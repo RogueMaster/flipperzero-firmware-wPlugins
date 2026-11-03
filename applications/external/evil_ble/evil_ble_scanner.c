@@ -101,7 +101,7 @@ static bool parse_mac(const char* mac_str, EvilBleDevice* dev) {
  *   - 0x09 = Complete Local Name AD type
  *   - length = name_len + 1 (includes the type byte)
  */
-static uint8_t build_adv_from_name(const char* name, uint8_t adv[EXTRA_BEACON_MAX_DATA_SIZE]) {
+uint8_t evil_ble_build_adv_from_name(const char* name, uint8_t* adv) {
     uint8_t name_len = (uint8_t)strlen(name);
     /* Maximum name that fits: 31 - 2 header bytes = 29 bytes. */
     if(name_len > EXTRA_BEACON_MAX_DATA_SIZE - 2) {
@@ -195,7 +195,7 @@ static bool parse_scanbt_line(const char* line, EvilBleDevice* dev) {
 
     /* Build synthetic advertisement payload from the name when available. */
     if(dev->name[0] != '\0' && dev->name[0] != '(') {
-        dev->adv_data_len = build_adv_from_name(dev->name, dev->adv_data);
+        dev->adv_data_len = evil_ble_build_adv_from_name(dev->name, dev->adv_data);
     }
 
     return true;
@@ -227,12 +227,15 @@ static void evil_ble_scanner_rx_cb(const char* line, void* ctx) {
     for(uint32_t i = 0; i < scanner->device_count; i++) {
         if(strncmp(scanner->devices[i].mac, dev.mac, EVIL_BLE_MAC_LEN) == 0) {
             scanner->devices[i].rssi = dev.rssi;
-            /* Refresh name only if we got a real one this time. */
-            if(strncmp(dev.name, "(unknown)", 9) != 0) {
+            /* Refresh the name only if this sighting carried a REAL name.
+             * The parser emits a "(aa:bb:..)" placeholder (leading '(') for
+             * MAC-only sightings, so refreshing on those would overwrite a
+             * good name and rebuild adv-data from the placeholder. */
+            if(dev.name[0] != '\0' && dev.name[0] != '(') {
                 strncpy(scanner->devices[i].name, dev.name, EVIL_BLE_NAME_LEN - 1);
                 scanner->devices[i].name[EVIL_BLE_NAME_LEN - 1] = '\0';
-                scanner->devices[i].adv_data_len =
-                    build_adv_from_name(scanner->devices[i].name, scanner->devices[i].adv_data);
+                scanner->devices[i].adv_data_len = evil_ble_build_adv_from_name(
+                    scanner->devices[i].name, scanner->devices[i].adv_data);
             }
             found = true;
             break;
@@ -284,8 +287,10 @@ EvilBleScanner* evil_ble_scanner_alloc(EvilBleUart* uart, EvilBleScannerCallback
 
 void evil_ble_scanner_free(EvilBleScanner* scanner) {
     furi_assert(scanner);
-    /* Deregister so no stale callbacks fire after free. */
-    evil_ble_uart_set_rx_callback(scanner->uart, NULL, NULL);
+    /* The caller MUST have already detached the UART rx callback and joined the
+     * UART worker (see evil_ble_app_free) before calling this. We deliberately
+     * do NOT touch scanner->uart here: by this point it has been freed, and
+     * dereferencing it would be a use-after-free. */
     furi_mutex_free(scanner->mutex);
     free(scanner);
 }

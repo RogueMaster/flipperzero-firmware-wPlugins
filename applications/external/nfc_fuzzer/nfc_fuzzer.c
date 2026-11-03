@@ -6,6 +6,7 @@
 #include "nfc_fuzzer_profiles.h"
 #include <gui/elements.h>
 #include <stdio.h>
+#include "../common/suite_helpers.h"
 
 #define APP_TAG NFC_FUZZER_LOG_TAG
 
@@ -119,6 +120,18 @@ static void fuzz_run_view_draw_callback(Canvas* canvas, void* model) {
     canvas_draw_str(canvas, 2, 64, m->payload_hex);
 }
 
+static void nfc_fuzzer_close_log(NfcFuzzerApp* app) {
+    if(app->log_file) {
+        storage_file_close(app->log_file);
+        storage_file_free(app->log_file);
+        app->log_file = NULL;
+    }
+    if(app->log_scratch) {
+        free(app->log_scratch);
+        app->log_scratch = NULL;
+    }
+}
+
 static bool fuzz_run_view_input_callback(InputEvent* event, void* context) {
     NfcFuzzerApp* app = context;
     furi_assert(app);
@@ -128,6 +141,7 @@ static bool fuzz_run_view_input_callback(InputEvent* event, void* context) {
         if(nfc_fuzzer_worker_is_running(app->worker)) {
             nfc_fuzzer_worker_stop(app->worker);
         }
+        nfc_fuzzer_close_log(app);
         app->worker_running = false;
         view_dispatcher_switch_to_view(app->view_dispatcher, NfcFuzzerViewProfileSelect);
         return true;
@@ -169,45 +183,30 @@ static void nfc_fuzzer_worker_progress_cb(
             app->result_count++;
         }
 
-        /* Log to SD card */
-        if(app->log_path && app->storage) {
-            File* file = storage_file_alloc(app->storage);
-            if(storage_file_open(
-                   file, furi_string_get_cstr(app->log_path), FSAM_WRITE, FSOM_OPEN_APPEND)) {
-                /* Heap-allocate hex buffers to avoid 1532 bytes on the
-                 * worker thread stack (same fix as result detail view). */
-                char* payload_hex = malloc(NFC_FUZZER_HEX_STR_LEN);
-                char* response_hex = malloc(NFC_FUZZER_HEX_STR_LEN);
-                if(payload_hex && response_hex) {
-                    nfc_fuzzer_bytes_to_hex(result->payload, result->payload_len, payload_hex);
-                    nfc_fuzzer_bytes_to_hex(result->response, result->response_len, response_hex);
-                    /* Line can be up to ~1555 chars (two 765-char hex strings +
-                     * test number + anomaly name + delimiters). Heap-allocate
-                     * to avoid truncating log data (was a 256-byte stack buf). */
-                    size_t line_size = NFC_FUZZER_HEX_STR_LEN * 2 + 64;
-                    char* line = malloc(line_size);
-                    if(line) {
-                        size_t len = (size_t)snprintf(
-                            line,
-                            line_size,
-                            "%lu,%s,%s,%s\n",
-                            (unsigned long)result->test_num,
-                            nfc_fuzzer_anomaly_name(result->anomaly),
-                            payload_hex,
-                            response_hex);
-                        if(len >= line_size) len = line_size - 1;
-                        if(len > 0) {
-                            storage_file_write(
-                                file, line, (uint16_t)(len > 0xFFFF ? 0xFFFF : len));
-                        }
-                        free(line);
-                    }
-                }
-                free(payload_hex);
-                free(response_hex);
-                storage_file_close(file);
+        /* Log to SD card using persistent file handle + scratch buffer */
+        if(app->log_file && app->log_scratch) {
+            char* payload_hex = app->log_scratch;
+            char* response_hex = app->log_scratch + NFC_FUZZER_HEX_STR_LEN;
+            char* line = app->log_scratch + NFC_FUZZER_HEX_STR_LEN * 2;
+            size_t line_size = 64;
+
+            nfc_fuzzer_bytes_to_hex(result->payload, result->payload_len, payload_hex);
+            nfc_fuzzer_bytes_to_hex(result->response, result->response_len, response_hex);
+            size_t len = (size_t)snprintf(
+                line,
+                line_size,
+                "%lu,%s,",
+                (unsigned long)result->test_num,
+                nfc_fuzzer_anomaly_name(result->anomaly));
+            if(len > 0 && len < line_size) {
+                storage_file_write(app->log_file, line, (uint16_t)len);
             }
-            storage_file_free(file);
+            size_t plen = strlen(payload_hex);
+            if(plen > 0) storage_file_write(app->log_file, payload_hex, (uint16_t)plen);
+            storage_file_write(app->log_file, ",", 1);
+            size_t rlen = strlen(response_hex);
+            if(rlen > 0) storage_file_write(app->log_file, response_hex, (uint16_t)rlen);
+            storage_file_write(app->log_file, "\n", 1);
         }
 
         /* Blink LED blue on anomaly */
@@ -252,6 +251,8 @@ static void nfc_fuzzer_worker_done_cb(void* context) {
 
     with_view_model(
         app->view_fuzz_run, FuzzRunViewModel * model, { model->running = false; }, true);
+
+    nfc_fuzzer_close_log(app);
 
     FURI_LOG_I(APP_TAG, "Fuzzing complete. Anomalies: %lu", (unsigned long)app->anomaly_count);
 }
@@ -393,12 +394,14 @@ static void nfc_fuzzer_app_show_fuzz_run(NfcFuzzerApp* app) {
 
     FURI_LOG_I(APP_TAG, "Log file: %s", furi_string_get_cstr(app->log_path));
 
-    /* Write header to log file */
-    File* file = storage_file_alloc(app->storage);
+    /* Open log file for the entire run (closed in nfc_fuzzer_close_log) */
+    app->log_file = storage_file_alloc(app->storage);
     if(storage_file_open(
-           file, furi_string_get_cstr(app->log_path), FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
+           app->log_file,
+           furi_string_get_cstr(app->log_path),
+           FSAM_WRITE,
+           FSOM_CREATE_ALWAYS)) {
         char header[128];
-        /* Issue 7: Clamp snprintf return value to buffer size */
         size_t len = (size_t)snprintf(
             header,
             sizeof(header),
@@ -407,13 +410,14 @@ static void nfc_fuzzer_app_show_fuzz_run(NfcFuzzerApp* app) {
             nfc_fuzzer_strategy_name(app->selected_strategy));
         if(len >= sizeof(header)) len = sizeof(header) - 1;
         if(len > 0) {
-            storage_file_write(file, header, (uint16_t)len);
+            storage_file_write(app->log_file, header, (uint16_t)len);
         }
-        storage_file_close(file);
     } else {
         FURI_LOG_W(APP_TAG, "Failed to create log file");
+        storage_file_free(app->log_file);
+        app->log_file = NULL;
     }
-    storage_file_free(file);
+    app->log_scratch = malloc(NFC_FUZZER_HEX_STR_LEN * 2 + 64);
 
     /* Start worker */
     nfc_fuzzer_worker_set_callback(app->worker, nfc_fuzzer_worker_progress_cb, app);
@@ -637,6 +641,7 @@ static bool nfc_fuzzer_app_back_event_cb(void* context) {
     /* If worker is running, stop it first */
     if(app->worker_running) {
         nfc_fuzzer_worker_stop(app->worker);
+        nfc_fuzzer_close_log(app);
         app->worker_running = false;
         view_dispatcher_switch_to_view(app->view_dispatcher, NfcFuzzerViewProfileSelect);
         return true;
@@ -743,15 +748,11 @@ static void nfc_fuzzer_app_free(NfcFuzzerApp* app) {
         nfc_fuzzer_worker_stop(app->worker);
         app->worker_running = false;
     }
+    nfc_fuzzer_close_log(app);
     nfc_fuzzer_worker_free(app->worker);
 
     /* Remove views before freeing modules */
-    view_dispatcher_remove_view(app->view_dispatcher, NfcFuzzerViewProfileSelect);
-    view_dispatcher_remove_view(app->view_dispatcher, NfcFuzzerViewStrategySelect);
-    view_dispatcher_remove_view(app->view_dispatcher, NfcFuzzerViewFuzzRun);
-    view_dispatcher_remove_view(app->view_dispatcher, NfcFuzzerViewResultsList);
-    view_dispatcher_remove_view(app->view_dispatcher, NfcFuzzerViewResultDetail);
-    view_dispatcher_remove_view(app->view_dispatcher, NfcFuzzerViewSettings);
+    view_dispatcher_remove_all(app->view_dispatcher, NfcFuzzerViewCount);
 
     /* Free modules */
     submenu_free(app->submenu_profile);

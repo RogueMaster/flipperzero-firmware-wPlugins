@@ -1465,31 +1465,27 @@ static void fpwn_exec_command(const char* line, FPwnApp* app) {
         if(storage_file_open(sf, save_path, FSAM_WRITE, FSOM_CREATE_NEW)) {
             char buf[160];
             FPwnWifiAP* aps = malloc(FPWN_MAX_APS * sizeof(FPwnWifiAP));
-            if(aps) {
-                uint32_t ac = fpwn_marauder_copy_aps(app->marauder, aps, FPWN_MAX_APS);
-                for(uint32_t i = 0; i < ac; i++) {
-                    int n = snprintf(
-                        buf,
-                        sizeof(buf),
-                        "%s %s %ddBm CH%u\n",
-                        aps[i].ssid,
-                        aps[i].bssid,
-                        (int)aps[i].rssi,
-                        (unsigned)aps[i].channel);
-                    if(n > 0 && n < (int)sizeof(buf)) storage_file_write(sf, buf, (uint16_t)n);
-                }
-                free(aps);
+            uint32_t ac = fpwn_marauder_copy_aps(app->marauder, aps, FPWN_MAX_APS);
+            for(uint32_t i = 0; i < ac; i++) {
+                int n = snprintf(
+                    buf,
+                    sizeof(buf),
+                    "%s %s %ddBm CH%u\n",
+                    aps[i].ssid,
+                    aps[i].bssid,
+                    (int)aps[i].rssi,
+                    (unsigned)aps[i].channel);
+                if(n > 0 && n < (int)sizeof(buf)) storage_file_write(sf, buf, (uint16_t)n);
             }
+            free(aps);
             FPwnNetHost* hosts = malloc(FPWN_MAX_HOSTS * sizeof(FPwnNetHost));
-            if(hosts) {
-                uint32_t hc = fpwn_marauder_copy_hosts(app->marauder, hosts, FPWN_MAX_HOSTS);
-                for(uint32_t i = 0; i < hc; i++) {
-                    if(!hosts[i].alive) continue;
-                    int n = snprintf(buf, sizeof(buf), "%s alive\n", hosts[i].ip);
-                    if(n > 0 && n < (int)sizeof(buf)) storage_file_write(sf, buf, (uint16_t)n);
-                }
-                free(hosts);
+            uint32_t hc = fpwn_marauder_copy_hosts(app->marauder, hosts, FPWN_MAX_HOSTS);
+            for(uint32_t i = 0; i < hc; i++) {
+                if(!hosts[i].alive) continue;
+                int n = snprintf(buf, sizeof(buf), "%s alive\n", hosts[i].ip);
+                if(n > 0 && n < (int)sizeof(buf)) storage_file_write(sf, buf, (uint16_t)n);
             }
+            free(hosts);
             storage_file_close(sf);
             FURI_LOG_I(TAG, "SAVE_WIFI: saved to %s", save_path);
         }
@@ -1688,10 +1684,6 @@ static void fpwn_exec_command(const char* line, FPwnApp* app) {
         }
         /* Find matching AP index in scan results */
         FPwnWifiAP* aps = malloc(FPWN_MAX_APS * sizeof(FPwnWifiAP));
-        if(!aps) {
-            FURI_LOG_E(TAG, "WIFI_JOIN: malloc failed");
-            return;
-        }
         uint32_t ap_count = fpwn_marauder_copy_aps(app->marauder, aps, FPWN_MAX_APS);
         bool found = false;
         uint8_t ap_idx = 0;
@@ -1751,16 +1743,14 @@ static void fpwn_exec_command(const char* line, FPwnApp* app) {
         /* Find host index by IP; default to 0 if not found */
         uint8_t host_idx = 0;
         FPwnNetHost* hosts = malloc(FPWN_MAX_HOSTS * sizeof(FPwnNetHost));
-        if(hosts) {
-            uint32_t host_count = fpwn_marauder_copy_hosts(app->marauder, hosts, FPWN_MAX_HOSTS);
-            for(uint32_t i = 0; i < host_count; i++) {
-                if(strcmp(hosts[i].ip, target) == 0) {
-                    host_idx = (uint8_t)i;
-                    break;
-                }
+        uint32_t host_count = fpwn_marauder_copy_hosts(app->marauder, hosts, FPWN_MAX_HOSTS);
+        for(uint32_t i = 0; i < host_count; i++) {
+            if(strcmp(hosts[i].ip, target) == 0) {
+                host_idx = (uint8_t)i;
+                break;
             }
-            free(hosts);
         }
+        free(hosts);
         fpwn_marauder_port_scan(app->marauder, host_idx, false);
         /* Wait up to 60 seconds */
         for(int i = 0; i < 600; i++) {
@@ -1778,56 +1768,50 @@ static void fpwn_exec_command(const char* line, FPwnApp* app) {
         }
         /* Type AP results */
         FPwnWifiAP* aps = malloc(FPWN_MAX_APS * sizeof(FPwnWifiAP));
-        if(aps) {
-            uint32_t ap_count = fpwn_marauder_copy_aps(app->marauder, aps, FPWN_MAX_APS);
-            for(uint32_t i = 0; i < ap_count; i++) {
-                char buf[128];
-                snprintf(
-                    buf,
-                    sizeof(buf),
-                    "%s  %s  %ddBm  CH%u",
-                    aps[i].ssid,
-                    aps[i].bssid,
-                    (int)aps[i].rssi,
-                    (unsigned)aps[i].channel);
-                fpwn_type_string(buf);
-                furi_hal_hid_kb_press(HID_KEYBOARD_RETURN);
-                furi_hal_hid_kb_release(HID_KEYBOARD_RETURN);
-                furi_delay_ms(5);
-            }
-            free(aps);
+        uint32_t ap_count = fpwn_marauder_copy_aps(app->marauder, aps, FPWN_MAX_APS);
+        for(uint32_t i = 0; i < ap_count; i++) {
+            char buf[128];
+            snprintf(
+                buf,
+                sizeof(buf),
+                "%s  %s  %ddBm  CH%u",
+                aps[i].ssid,
+                aps[i].bssid,
+                (int)aps[i].rssi,
+                (unsigned)aps[i].channel);
+            fpwn_type_string(buf);
+            furi_hal_hid_kb_press(HID_KEYBOARD_RETURN);
+            furi_hal_hid_kb_release(HID_KEYBOARD_RETURN);
+            furi_delay_ms(5);
         }
+        free(aps);
         /* Type host results */
         FPwnNetHost* hosts = malloc(FPWN_MAX_HOSTS * sizeof(FPwnNetHost));
-        if(hosts) {
-            uint32_t host_count = fpwn_marauder_copy_hosts(app->marauder, hosts, FPWN_MAX_HOSTS);
-            for(uint32_t i = 0; i < host_count; i++) {
-                if(!hosts[i].alive) continue;
-                char buf[32];
-                snprintf(buf, sizeof(buf), "%s alive", hosts[i].ip);
-                fpwn_type_string(buf);
-                furi_hal_hid_kb_press(HID_KEYBOARD_RETURN);
-                furi_hal_hid_kb_release(HID_KEYBOARD_RETURN);
-                furi_delay_ms(5);
-            }
-            free(hosts);
+        uint32_t host_count = fpwn_marauder_copy_hosts(app->marauder, hosts, FPWN_MAX_HOSTS);
+        for(uint32_t i = 0; i < host_count; i++) {
+            if(!hosts[i].alive) continue;
+            char buf[32];
+            snprintf(buf, sizeof(buf), "%s alive", hosts[i].ip);
+            fpwn_type_string(buf);
+            furi_hal_hid_kb_press(HID_KEYBOARD_RETURN);
+            furi_hal_hid_kb_release(HID_KEYBOARD_RETURN);
+            furi_delay_ms(5);
         }
+        free(hosts);
         /* Type port results */
         FPwnPortResult* ports = malloc(FPWN_MAX_PORTS * sizeof(FPwnPortResult));
-        if(ports) {
-            uint32_t port_count = fpwn_marauder_copy_ports(app->marauder, ports, FPWN_MAX_PORTS);
-            for(uint32_t i = 0; i < port_count; i++) {
-                if(!ports[i].open) continue;
-                char buf[48];
-                snprintf(
-                    buf, sizeof(buf), "%u/tcp open %s", (unsigned)ports[i].port, ports[i].service);
-                fpwn_type_string(buf);
-                furi_hal_hid_kb_press(HID_KEYBOARD_RETURN);
-                furi_hal_hid_kb_release(HID_KEYBOARD_RETURN);
-                furi_delay_ms(5);
-            }
-            free(ports);
+        uint32_t port_count = fpwn_marauder_copy_ports(app->marauder, ports, FPWN_MAX_PORTS);
+        for(uint32_t i = 0; i < port_count; i++) {
+            if(!ports[i].open) continue;
+            char buf[48];
+            snprintf(
+                buf, sizeof(buf), "%u/tcp open %s", (unsigned)ports[i].port, ports[i].service);
+            fpwn_type_string(buf);
+            furi_hal_hid_kb_press(HID_KEYBOARD_RETURN);
+            furi_hal_hid_kb_release(HID_KEYBOARD_RETURN);
+            furi_delay_ms(5);
         }
+        free(ports);
         return;
     }
 
@@ -1853,18 +1837,16 @@ static void fpwn_exec_command(const char* line, FPwnApp* app) {
         }
         const char* target_ssid = line + 19;
         FPwnWifiAP* aps = malloc(FPWN_MAX_APS * sizeof(FPwnWifiAP));
-        if(aps) {
-            uint32_t ap_count = fpwn_marauder_copy_aps(app->marauder, aps, FPWN_MAX_APS);
-            for(uint32_t i = 0; i < ap_count; i++) {
-                if(strcmp(aps[i].ssid, target_ssid) == 0) {
-                    free(aps);
-                    fpwn_marauder_deauth_targeted(app->marauder, (uint8_t)i);
-                    FURI_LOG_I(TAG, "Deauth target: %s (idx %lu)", target_ssid, (unsigned long)i);
-                    return;
-                }
+        uint32_t ap_count = fpwn_marauder_copy_aps(app->marauder, aps, FPWN_MAX_APS);
+        for(uint32_t i = 0; i < ap_count; i++) {
+            if(strcmp(aps[i].ssid, target_ssid) == 0) {
+                free(aps);
+                fpwn_marauder_deauth_targeted(app->marauder, (uint8_t)i);
+                FURI_LOG_I(TAG, "Deauth target: %s (idx %lu)", target_ssid, (unsigned long)i);
+                return;
             }
-            free(aps);
         }
+        free(aps);
         FURI_LOG_W(TAG, "WIFI_DEAUTH_TARGET: SSID '%s' not found", target_ssid);
         return;
     }
@@ -1957,25 +1939,23 @@ static void fpwn_exec_command(const char* line, FPwnApp* app) {
             return;
         }
         FPwnStation* stas = malloc(FPWN_MAX_STATIONS * sizeof(FPwnStation));
-        if(stas) {
-            uint32_t sta_count =
-                fpwn_marauder_copy_stations(app->marauder, stas, FPWN_MAX_STATIONS);
-            for(uint32_t i = 0; i < sta_count; i++) {
-                char buf[96];
-                snprintf(
-                    buf,
-                    sizeof(buf),
-                    "%s  %ddBm  %s",
-                    stas[i].mac,
-                    (int)stas[i].rssi,
-                    stas[i].ap_ssid);
-                fpwn_type_string(buf);
-                furi_hal_hid_kb_press(HID_KEYBOARD_RETURN);
-                furi_hal_hid_kb_release(HID_KEYBOARD_RETURN);
-                furi_delay_ms(5);
-            }
-            free(stas);
+        uint32_t sta_count =
+            fpwn_marauder_copy_stations(app->marauder, stas, FPWN_MAX_STATIONS);
+        for(uint32_t i = 0; i < sta_count; i++) {
+            char buf[96];
+            snprintf(
+                buf,
+                sizeof(buf),
+                "%s  %ddBm  %s",
+                stas[i].mac,
+                (int)stas[i].rssi,
+                stas[i].ap_ssid);
+            fpwn_type_string(buf);
+            furi_hal_hid_kb_press(HID_KEYBOARD_RETURN);
+            furi_hal_hid_kb_release(HID_KEYBOARD_RETURN);
+            furi_delay_ms(5);
         }
+        free(stas);
         return;
     }
 

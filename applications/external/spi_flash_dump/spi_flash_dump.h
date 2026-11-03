@@ -57,6 +57,7 @@ typedef enum {
     SpiFlashDumpViewVerifyProgress,
     SpiFlashDumpViewHexPreview,
     SpiFlashDumpViewSettings,
+    SpiFlashDumpViewCount,
 } SpiFlashDumpView;
 
 /* ------------------------------------------------------------------ */
@@ -158,6 +159,11 @@ typedef struct {
     uint32_t verify_match;
     uint32_t verify_mismatch;
     SpiWorkerState worker_state;
+
+    /* Last whole-percent committed to a progress view, to throttle redraws to
+       ~100 per operation instead of one per 256-byte page.  0xFF = "not set",
+       forcing the first callback of a new operation to draw. */
+    uint8_t last_progress_pct;
 
     /* Guard flag: true while a worker thread is active (not yet joined) */
     volatile bool worker_running;

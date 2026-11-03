@@ -17,6 +17,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include "../common/suite_helpers.h"
 
 #define TAG "RogueAP"
 
@@ -237,6 +238,9 @@ static bool rogue_custom_event_callback(void* ctx, uint32_t event) {
  * ========================================================================= */
 static void rogue_rebuild_results(RogueApp* app) {
     furi_string_reset(app->results_text);
+    /* Pre-reserve so the repeated cat_printf below doesn't realloc-grow the
+     * backing buffer one chunk at a time. */
+    furi_string_reserve(app->results_text, 512);
 
     furi_mutex_acquire(app->ap_results->mutex, FuriWaitForever);
 
@@ -514,20 +518,21 @@ static void rogue_app_free(RogueApp* app) {
     furi_timer_free(app->refresh_timer);
     app->refresh_timer = NULL;
 
-    /* Stop scanning cleanly. */
+    /* Stop scanning: sends stopscan and detaches the rx callback. */
     if(rogue_ap_worker_is_scanning(app->worker)) {
         rogue_ap_worker_stop(app->worker);
     }
-    rogue_ap_worker_free(app->worker);
-    rogue_uart_free(app->uart);
-    app->worker = NULL;
+    /* Join the UART rx thread (rogue_uart_free) BEFORE freeing the worker it
+     * dispatches into. rogue_uart_line_cb dereferences worker->results; clearing
+     * the callback only blocks NEW dispatches, so the join is what guarantees any
+     * in-flight callback has returned before the worker is freed. */
+    rogue_uart_free(app->uart); /* joins the rx thread first */
+    rogue_ap_worker_free(app->worker); /* now safe to free */
     app->uart = NULL;
+    app->worker = NULL;
 
     /* Remove views before freeing underlying objects. */
-    view_dispatcher_remove_view(app->view_dispatcher, RogueViewMainMenu);
-    view_dispatcher_remove_view(app->view_dispatcher, RogueViewScan);
-    view_dispatcher_remove_view(app->view_dispatcher, RogueViewResults);
-    view_dispatcher_remove_view(app->view_dispatcher, RogueViewSettings);
+    view_dispatcher_remove_all(app->view_dispatcher, RogueViewCount);
 
     view_dispatcher_free(app->view_dispatcher);
 

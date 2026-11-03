@@ -3,6 +3,7 @@
  * Windows, macOS, and Linux targets. */
 
 #include "hid_exfil_payloads.h"
+#include <stdlib.h>
 #include <stdio.h>
 
 /*
@@ -403,10 +404,9 @@ static const char* mac_custom =
  * Script assembly - combines encoder function with payload
  * ======================================================================== */
 
-/* Static buffers for assembled scripts (encoder + payload) */
-static char assembled_script[8192];
+#define HID_EXFIL_SCRIPT_BUF_SIZE 8192
 
-const char* hid_exfil_get_payload_script(PayloadType type, TargetOS os) {
+char* hid_exfil_get_payload_script(PayloadType type, TargetOS os) {
     const char* encoder = NULL;
     const char* payload = NULL;
 
@@ -508,7 +508,8 @@ const char* hid_exfil_get_payload_script(PayloadType type, TargetOS os) {
     }
 
     /* Assemble: encoder function + payload invocation */
-    snprintf(assembled_script, sizeof(assembled_script), "%s%s", encoder, payload);
+    char* assembled_script = malloc(HID_EXFIL_SCRIPT_BUF_SIZE);
+    snprintf(assembled_script, HID_EXFIL_SCRIPT_BUF_SIZE, "%s%s", encoder, payload);
     return assembled_script;
 }
 

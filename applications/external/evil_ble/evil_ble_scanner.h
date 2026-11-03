@@ -20,7 +20,7 @@ typedef struct {
 /* Opaque scanner state. */
 typedef struct EvilBleScanner EvilBleScanner;
 
-typedef struct EvilBleUart EvilBleUart;
+#include "evil_ble_uart.h"
 
 /* Callback fired (on the UART worker thread) whenever a new device is parsed.
  * `ctx` is whatever was passed to evil_ble_scanner_alloc(). */
@@ -44,3 +44,9 @@ uint32_t evil_ble_scanner_get_count(EvilBleScanner* scanner);
 /* Thread-safe copy of device at `index` into `out`.
  * Returns false if index is out of range. */
 bool evil_ble_scanner_get_device(EvilBleScanner* scanner, uint32_t index, EvilBleDevice* out);
+
+/* Build a minimal BLE advertisement payload ([len][0x09][name]) into `adv`,
+ * which MUST be at least EXTRA_BEACON_MAX_DATA_SIZE bytes. The name is capped to
+ * fit. Returns the byte count written (0 if the name is empty). Shared by the
+ * scanner and the clone engine so the AD layout + cap live in one place. */
+uint8_t evil_ble_build_adv_from_name(const char* name, uint8_t* adv);

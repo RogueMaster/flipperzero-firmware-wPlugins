@@ -6,6 +6,7 @@
 #include "hid_exfil_payloads.h"
 #include <furi_hal_usb_hid.h>
 #include <stdio.h>
+#include "../common/suite_helpers.h"
 
 #define TAG "HidExfil"
 
@@ -452,11 +453,7 @@ static void hid_exfil_app_free(HidExfilApp* app) {
     }
 
     /* Remove views */
-    view_dispatcher_remove_view(app->view_dispatcher, HidExfilViewWarning);
-    view_dispatcher_remove_view(app->view_dispatcher, HidExfilViewPayloadSelect);
-    view_dispatcher_remove_view(app->view_dispatcher, HidExfilViewConfig);
-    view_dispatcher_remove_view(app->view_dispatcher, HidExfilViewExecution);
-    view_dispatcher_remove_view(app->view_dispatcher, HidExfilViewDataViewer);
+    view_dispatcher_remove_all(app->view_dispatcher, HidExfilViewCount);
 
     /* Free views */
     widget_free(app->warning);

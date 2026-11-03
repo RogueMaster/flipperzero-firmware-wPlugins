@@ -97,14 +97,17 @@ static void sort_devices(BleScanDevice* arr, uint32_t n, BleSortMode mode) {
  * ========================================================================= */
 static void ble_refresh_timer_cb(void* ctx) {
     BleScanApp* app = (BleScanApp*)ctx;
-    if(!app->results) return;
+    if(!app->results || !app->refresh_buf) return;
 
-    /* --- Snapshot under mutex --- */
-    /* Stack-allocate a work buffer — each BleScanDevice is ~56 bytes,
-   * 64 devices = 3584 bytes.  Worker stack is 4KB; this fires on the
-   * timer thread (default 1KB), so we heap-allocate the work buffer. */
-    BleScanDevice* buf = malloc(BLE_SCANNER_MAX_DEVICES * sizeof(BleScanDevice));
-    if(!buf) return;
+    /* Only do the snapshot/filter/sort work when the scan view is actually on
+     * screen. On the menu/settings screens this callback would otherwise churn
+     * the shared heap and contend results->mutex for a view nobody is viewing. */
+    if(app->current_view != BleScanViewScan) return;
+
+    /* Reuse a buffer allocated once at startup — never a per-tick malloc. The
+     * buffer is on the heap (each BleScanDevice is ~56 B, 64 devices ≈ 3.5 KB)
+     * because this runs on the ~1 KB timer-service thread. */
+    BleScanDevice* buf = app->refresh_buf;
 
     uint32_t count = 0;
 
@@ -154,8 +157,6 @@ static void ble_refresh_timer_cb(void* ctx) {
             }
         },
         true);
-
-    free(buf);
 }
 
 /* =========================================================================
@@ -334,13 +335,11 @@ static void ble_main_menu_callback(void* ctx, uint32_t index) {
         memset(app->results->devices, 0, sizeof(app->results->devices));
         furi_mutex_release(app->results->mutex);
 
-        /* Recreate worker with current settings (log_sd may have changed) */
-        if(app->worker) {
-            ble_scan_worker_free(app->worker);
-        }
-        app->worker = ble_scan_worker_alloc(app->uart, app->results, app->settings.log_sd);
-
-        ble_scan_worker_start(app->worker);
+        /* Worker is long-lived; just (re)start it with the current log setting.
+         * stop() first is a no-op if we weren't scanning, and avoids a double
+         * start if re-entering the scan view. */
+        ble_scan_worker_stop(app->worker);
+        ble_scan_worker_start(app->worker, app->settings.log_sd);
         app->scanning = true;
 
         app->current_view = BleScanViewScan;
@@ -438,9 +437,9 @@ static BleScanApp* ble_scanner_alloc(void) {
     app->settings.log_sd = false;
 
     /* ---- Service records ---- */
+    /* Only GUI is needed app-wide; the worker opens its own RECORD_STORAGE while
+     * logging, and no app-level notification is used. */
     app->gui = furi_record_open(RECORD_GUI);
-    app->storage = furi_record_open(RECORD_STORAGE);
-    app->notifications = furi_record_open(RECORD_NOTIFICATION);
 
     /* ---- Shared result set (heap) ---- */
     app->results = malloc(sizeof(BleScanResults));
@@ -449,8 +448,16 @@ static BleScanApp* ble_scanner_alloc(void) {
     app->results->mutex = furi_mutex_alloc(FuriMutexTypeNormal);
     furi_assert(app->results->mutex);
 
+    /* Reusable refresh work buffer (see ble_refresh_timer_cb). */
+    app->refresh_buf = malloc(BLE_SCANNER_MAX_DEVICES * sizeof(BleScanDevice));
+    furi_assert(app->refresh_buf);
+
     /* ---- UART layer ---- */
     app->uart = ble_uart_alloc();
+
+    /* ---- Worker (long-lived: allocated once, start/stop per scan) ---- */
+    app->worker = ble_scan_worker_alloc(app->uart, app->results, app->settings.log_sd);
+    furi_assert(app->worker);
 
     /* ---- View dispatcher ---- */
     app->view_dispatcher = view_dispatcher_alloc();
@@ -501,16 +508,25 @@ static void ble_scanner_free(BleScanApp* app) {
         app->refresh_timer = NULL;
     }
 
-    /* Stop worker (sends stopscan, closes log) */
+    /* Teardown order avoids a close-path use-after-free: the UART rx thread runs
+     * worker_rx_line(worker). We must guarantee no such callback is in flight
+     * before freeing the worker.
+     *   1. Stop the scan (sends stopscan, closes the log under log_mutex).
+     *   2. Detach the rx callback so no NEW dispatch reaches the worker.
+     *   3. Free the UART, which joins the rx thread — any in-flight worker_rx_line
+     *      completes against the still-valid worker before this returns.
+     *   4. Only now free the worker. */
+    if(app->worker) {
+        ble_scan_worker_stop(app->worker);
+    }
+    if(app->uart) {
+        ble_uart_set_rx_callback(app->uart, NULL, NULL);
+        ble_uart_free(app->uart); /* joins the rx thread */
+        app->uart = NULL;
+    }
     if(app->worker) {
         ble_scan_worker_free(app->worker);
         app->worker = NULL;
-    }
-
-    /* Release UART */
-    if(app->uart) {
-        ble_uart_free(app->uart);
-        app->uart = NULL;
     }
 
     /* Free result set */
@@ -519,6 +535,10 @@ static void ble_scanner_free(BleScanApp* app) {
         free(app->results);
         app->results = NULL;
     }
+
+    /* Free the reusable refresh buffer */
+    free(app->refresh_buf);
+    app->refresh_buf = NULL;
 
     /* Remove views before freeing their backing objects */
     view_dispatcher_remove_view(app->view_dispatcher, BleScanViewMainMenu);
@@ -531,8 +551,6 @@ static void ble_scanner_free(BleScanApp* app) {
     view_free(app->scan_view);
     variable_item_list_free(app->settings_list);
 
-    furi_record_close(RECORD_NOTIFICATION);
-    furi_record_close(RECORD_STORAGE);
     furi_record_close(RECORD_GUI);
 
     free(app);

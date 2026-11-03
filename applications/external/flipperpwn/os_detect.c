@@ -170,18 +170,13 @@ static void fpwn_detect_cdc_state_cb(void* context, CdcState state) {
     UNUSED(state);
 }
 
-/* HID key press + release helper */
+/* HID key press + release helper. `key` may carry modifier bits in its high
+ * byte (e.g. KEY_MOD_LEFT_CTRL | HID_KEYBOARD_C) — furi_hal_hid_kb_press handles
+ * the combined value, so this one helper covers both plain keys and combos. */
 static void press_release(uint16_t key) {
     furi_hal_hid_kb_press(key);
     furi_delay_ms(2);
     furi_hal_hid_kb_release(key);
-}
-
-/* HID modifier + key combo */
-static void press_release_mod(uint16_t mod_key) {
-    furi_hal_hid_kb_press(mod_key);
-    furi_delay_ms(2);
-    furi_hal_hid_kb_release(mod_key);
 }
 
 /**
@@ -223,7 +218,7 @@ static FPwnOS fpwn_cdc_detect_attempt(FPwnApp* app, FPwnOS candidate) {
         break;
     case FPwnOSLinux:
         /* CTRL+ALT+T → terminal */
-        press_release_mod(KEY_MOD_LEFT_CTRL | KEY_MOD_LEFT_ALT | HID_KEYBOARD_T);
+        press_release(KEY_MOD_LEFT_CTRL | KEY_MOD_LEFT_ALT | HID_KEYBOARD_T);
         furi_delay_ms(1400);
         break;
     case FPwnOSMac:
@@ -390,13 +385,13 @@ static FPwnOS fpwn_cdc_detect_attempt(FPwnApp* app, FPwnOS candidate) {
         /* CTRL+C to kill any hung command, then close the terminal.
          * Escape alone doesn't close PowerShell/Terminal — must type "exit"
          * and also send ALT+F4 to close the window. */
-        press_release_mod(KEY_MOD_LEFT_CTRL | HID_KEYBOARD_C);
+        press_release(KEY_MOD_LEFT_CTRL | HID_KEYBOARD_C);
         furi_delay_ms(300);
         fpwn_type_string("exit");
         press_release(HID_KEYBOARD_RETURN);
         furi_delay_ms(500);
         /* ALT+F4 as a fallback to close any remaining window */
-        press_release_mod(KEY_MOD_LEFT_ALT | HID_KEYBOARD_F4);
+        press_release(KEY_MOD_LEFT_ALT | HID_KEYBOARD_F4);
         furi_delay_ms(500);
     }
 

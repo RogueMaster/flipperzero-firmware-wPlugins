@@ -1,54 +1,33 @@
 #pragma once
 
 /**
- * rayhunter_uart.h — UART layer for Ray Hunter Client.
+ * rayhunter_uart.h -- Thin shim over common/esp_serial for Ray Hunter Client.
  *
- * Self-contained copy of the ISR/worker pattern from FlipperPwn, adapted
- * for this app's naming and thread-stack requirements.
- *
- * Architecture:
- *   ISR rx_callback → FuriStreamBuffer → rx_worker thread → RhUartRxCallback
+ * Uses a custom connected predicate: the board is "connected" only when a
+ * line contains a Ray Hunter protocol marker (RH:, analysis_state, rayhunter).
  */
 
-#include <furi.h>
-#include <furi_hal.h>
+#include "../common/esp_serial.h"
+#include <string.h>
 
-/** Opaque UART context. */
-typedef struct RhUart RhUart;
+typedef EspSerial RhUart;
+typedef EspSerialRxCallback RhUartRxCallback;
 
-/**
- * Callback invoked on the worker thread for each complete line received.
- * `line` is null-terminated, stripped of CR/LF, and valid only for the
- * duration of the call — copy if you need to retain it.
- */
-typedef void (*RhUartRxCallback)(const char* line, void* ctx);
+static inline bool rh_uart_connected_check(const char* line) {
+    return strstr(line, "RH:") || strstr(line, "analysis_state") ||
+           strstr(line, "rayhunter");
+}
 
-/**
- * Allocate and initialise the UART layer.
- * Acquires USART, disables the expansion module, and starts the RX worker.
- * Always returns a valid pointer — check rh_uart_is_connected() to determine
- * whether the serial port was successfully acquired.
- */
-RhUart* rh_uart_alloc(void);
+static inline RhUart* rh_uart_alloc(void) {
+    static const EspSerialConfig cfg = {
+        .tag = "RhUart",
+        .thread_name = "RhUartRx",
+        .connected_check = rh_uart_connected_check,
+    };
+    return esp_serial_alloc(&cfg);
+}
 
-/**
- * Stop the worker thread, release the serial port, re-enable the expansion
- * module, and free all resources.
- */
-void rh_uart_free(RhUart* uart);
-
-/**
- * Transmit `cmd` followed by a newline.
- * No-op if serial was not acquired.
- */
-void rh_uart_send(RhUart* uart, const char* cmd);
-
-/**
- * Register a callback that fires for every complete line received.
- * Thread-safe; may be called before or after alloc.
- */
-void rh_uart_set_rx_callback(RhUart* uart, RhUartRxCallback cb, void* ctx);
-
-/** Returns true once the first line of data has been received from the board.
- */
-bool rh_uart_is_connected(RhUart* uart);
+#define rh_uart_free esp_serial_free
+#define rh_uart_send esp_serial_send
+#define rh_uart_set_rx_callback esp_serial_set_rx_callback
+#define rh_uart_is_connected esp_serial_is_connected

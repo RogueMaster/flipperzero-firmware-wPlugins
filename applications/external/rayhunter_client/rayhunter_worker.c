@@ -158,10 +158,13 @@ static void rh_worker_rx_line(const char* line, void* ctx) {
             m->status.connected = rh_uart_is_connected(app->uart);
             m->status.last_update_tick = furi_get_tick();
         },
-        true /* update = true triggers canvas redraw */
+        false /* update=false: redraw is driven once on the GUI thread below */
     );
 
     /* --- 5. Post events to the GUI thread. --- */
+    /* RhEventStatusUpdate commits the model with update=true on the GUI thread,
+       so this is the single redraw per line (previously the with_view_model
+       above also requested one, redrawing twice off two threads). */
     view_dispatcher_send_custom_event(app->view_dispatcher, RhEventStatusUpdate);
 
     if(parsed_threat == RhThreatHigh && app->last_notified_threat != RhThreatHigh) {

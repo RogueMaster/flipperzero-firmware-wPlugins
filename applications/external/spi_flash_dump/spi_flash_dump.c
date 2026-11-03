@@ -8,6 +8,7 @@
 
 #include <stdio.h>
 #include <datetime/datetime.h>
+#include "../common/suite_helpers.h"
 
 /* ================================================================== */
 /*  Helper – SPI speed enum → clock delay in microseconds             */
@@ -246,10 +247,22 @@ static bool verify_progress_input_cb(InputEvent* event, void* ctx) {
 /*  Progress callbacks (called from worker thread)                    */
 /* ================================================================== */
 
+/* Return true at most once per whole-percent step (and always at completion),
+   so a multi-MB dump requests ~100 redraws rather than one per 256-byte page
+   from the worker thread. */
+static bool progress_should_redraw(SpiFlashDumpApp* app, uint32_t bytes_done, uint32_t total) {
+    uint8_t pct = total ? (uint8_t)((uint64_t)bytes_done * 100 / total) : 0;
+    if(pct == app->last_progress_pct && bytes_done < total) return false;
+    app->last_progress_pct = pct;
+    return true;
+}
+
 static void read_progress_cb(uint32_t bytes_done, uint32_t total, void* ctx) {
     SpiFlashDumpApp* app = ctx;
     app->progress_bytes = bytes_done;
     app->progress_total = total;
+
+    if(!progress_should_redraw(app, bytes_done, total)) return;
 
     /* Update the view model from the worker thread.  The locking model
        makes this safe. */
@@ -267,6 +280,8 @@ static void verify_progress_cb(uint32_t bytes_done, uint32_t total, void* ctx) {
     SpiFlashDumpApp* app = ctx;
     app->progress_bytes = bytes_done;
     app->progress_total = total;
+
+    if(!progress_should_redraw(app, bytes_done, total)) return;
 
     with_view_model(
         app->verify_progress_view,
@@ -305,6 +320,7 @@ static bool app_custom_event_cb(void* ctx, uint32_t event) {
         app->worker_running = true;
         app->verify_match = 0;
         app->verify_mismatch = 0;
+        app->last_progress_pct = 0xFF; /* force the first progress redraw */
 
         with_view_model(
             app->verify_progress_view,
@@ -521,6 +537,7 @@ static bool chip_info_input_cb(InputEvent* event, void* ctx) {
         /* Prepare progress view */
         app->progress_start_tick = furi_get_tick();
         app->worker_running = true;
+        app->last_progress_pct = 0xFF; /* force the first progress redraw */
 
         with_view_model(
             app->read_progress_view,
@@ -639,6 +656,12 @@ static void worker_poll_timer_cb(void* ctx) {
     if(!spi_worker_is_running(app->worker) && (app->worker_state == SpiWorkerStateReading ||
                                                app->worker_state == SpiWorkerStateVerifying)) {
         bool result = spi_worker_get_result(app->worker);
+        /* This join runs on the shared timer daemon, but it is bounded and
+           effectively instant: the worker clears `running` as its final
+           statement (spi_worker_thread), so by the time this branch observes
+           !is_running the thread body has already returned and the join only
+           reaps the finished FreeRTOS task. All heavy I/O (read/verify/CRC)
+           already ran on the worker thread, never here. */
         spi_worker_wait(app->worker);
         app->worker_running = false;
 
@@ -799,12 +822,7 @@ static void spi_flash_dump_app_free(SpiFlashDumpApp* app) {
     spi_worker_gpio_deinit();
 
     /* Remove views */
-    view_dispatcher_remove_view(app->view_dispatcher, SpiFlashDumpViewWiringGuide);
-    view_dispatcher_remove_view(app->view_dispatcher, SpiFlashDumpViewChipInfo);
-    view_dispatcher_remove_view(app->view_dispatcher, SpiFlashDumpViewReadProgress);
-    view_dispatcher_remove_view(app->view_dispatcher, SpiFlashDumpViewVerifyProgress);
-    view_dispatcher_remove_view(app->view_dispatcher, SpiFlashDumpViewHexPreview);
-    view_dispatcher_remove_view(app->view_dispatcher, SpiFlashDumpViewSettings);
+    view_dispatcher_remove_all(app->view_dispatcher, SpiFlashDumpViewCount);
 
     /* Free views */
     widget_free(app->wiring_guide);

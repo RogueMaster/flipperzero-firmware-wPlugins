@@ -159,31 +159,25 @@ static void parse_card_kv(CcidCard* card, const char* key, const char* value) {
     }
 }
 
-/** Parse a rule line:  COMMAND_HEX = RESPONSE_HEX */
-static void parse_rule_line(CcidCard* card, const char* line) {
+/** Parse a rule line:  COMMAND_HEX = RESPONSE_HEX
+ *
+ *  Parses in place.  `line` points into the caller's mutable line buffer, so
+ *  the command and response halves are split at '=' and whitespace-stripped
+ *  without copying each half into its own CCID_EMU_MAX_HEX_STR stack buffer.
+ *  That removes ~2×384 B of transient stack that previously piled on top of
+ *  the GUI/dispatcher frames on the single 4 KB app thread, and lets the
+ *  per-field parsers (parse_hex_pattern / parse_hex_string) enforce the real
+ *  byte limits directly instead of a prior 383-char truncation of each half. */
+static void parse_rule_line(CcidCard* card, char* line) {
     if(card->rule_count >= CCID_EMU_MAX_RULES) return;
 
-    /* Find the '=' separator.  We must be careful because hex strings also
-       contain letters, so we look for " = " (with surrounding spaces). */
-    const char* eq = strstr(line, "=");
+    /* Find the '=' separator and split the line in place. */
+    char* eq = strchr(line, '=');
     if(!eq) return;
+    *eq = '\0';
 
-    /* Copy left-hand side (command pattern) */
-    size_t cmd_part_len = (size_t)(eq - line);
-    char cmd_buf[CCID_EMU_MAX_HEX_STR];
-    if(cmd_part_len >= sizeof(cmd_buf)) cmd_part_len = sizeof(cmd_buf) - 1;
-    memcpy(cmd_buf, line, cmd_part_len);
-    cmd_buf[cmd_part_len] = '\0';
-
-    /* Right-hand side (response) */
-    const char* resp_part = eq + 1;
-
-    char* cmd_stripped = strip(cmd_buf);
-    /* resp_part may have leading spaces -- strip copies into itself */
-    char resp_buf[CCID_EMU_MAX_HEX_STR];
-    strncpy(resp_buf, resp_part, sizeof(resp_buf) - 1);
-    resp_buf[sizeof(resp_buf) - 1] = '\0';
-    char* resp_stripped = strip(resp_buf);
+    char* cmd_stripped = strip(line);
+    char* resp_stripped = strip(eq + 1);
 
     CcidRule* rule = &card->rules[card->rule_count];
 
@@ -243,6 +237,9 @@ CcidCard* ccid_card_load(Storage* storage, const char* path) {
     }
 
     FuriString* line_buf = furi_string_alloc();
+    /* Reserve the full rule-line width up front so stream_read_line does not
+       repeatedly grow (and reallocate) the buffer as it reads each line. */
+    furi_string_reserve(line_buf, CCID_EMU_MAX_HEX_STR * 2);
     Section section = SectionNone;
 
     while(stream_read_line(stream, line_buf)) {

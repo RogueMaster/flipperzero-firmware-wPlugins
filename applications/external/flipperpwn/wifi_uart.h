@@ -1,32 +1,26 @@
 #pragma once
 
-#include <furi.h>
-#include <furi_hal.h>
+/**
+ * wifi_uart.h -- Thin shim over common/esp_serial for FlipperPwn.
+ *
+ * FlipperPwn sends a probe newline on open to trigger the ESP32 prompt.
+ */
 
-/* Opaque UART context for WiFi Dev Board communication. */
-typedef struct FPwnWifiUart FPwnWifiUart;
+#include "../common/esp_serial.h"
 
-/* Callback invoked on the worker thread for each complete line received.
- * `line` is null-terminated, stripped of CR/LF, and valid only for the
- * duration of the call — copy if you need to retain it. */
-typedef void (*FPwnWifiRxCallback)(const char* line, void* ctx);
+typedef EspSerial FPwnWifiUart;
+typedef EspSerialRxCallback FPwnWifiRxCallback;
 
-/* Allocate and initialise the UART layer.
- * Acquires USART, disables the expansion module, and starts the RX worker.
- * Always returns a valid pointer; check fpwn_wifi_uart_is_connected() to
- * determine whether the serial port was successfully acquired. */
-FPwnWifiUart* fpwn_wifi_uart_alloc(void);
+static inline FPwnWifiUart* fpwn_wifi_uart_alloc(void) {
+    static const EspSerialConfig cfg = {
+        .tag = "FPwn",
+        .thread_name = "FPwnUartRx",
+        .probe_on_open = true,
+    };
+    return esp_serial_alloc(&cfg);
+}
 
-/* Stop the worker thread, release the serial port, re-enable the expansion
- * module, and free all resources. */
-void fpwn_wifi_uart_free(FPwnWifiUart* uart);
-
-/* Transmit `cmd` followed by a newline.  No-op if serial was not acquired. */
-void fpwn_wifi_uart_send(FPwnWifiUart* uart, const char* cmd);
-
-/* Register a callback that fires for every complete line received.
- * Thread-safe; may be called before or after alloc. */
-void fpwn_wifi_uart_set_rx_callback(FPwnWifiUart* uart, FPwnWifiRxCallback cb, void* ctx);
-
-/* Returns true once the first line of data has been received from the board. */
-bool fpwn_wifi_uart_is_connected(FPwnWifiUart* uart);
+#define fpwn_wifi_uart_free esp_serial_free
+#define fpwn_wifi_uart_send esp_serial_send
+#define fpwn_wifi_uart_set_rx_callback esp_serial_set_rx_callback
+#define fpwn_wifi_uart_is_connected esp_serial_is_connected

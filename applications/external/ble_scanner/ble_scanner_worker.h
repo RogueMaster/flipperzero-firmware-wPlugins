@@ -42,7 +42,8 @@ BleScanWorker* ble_scan_worker_alloc(BleUart* uart, BleScanResults* results, boo
 /* Stop the worker cleanly and free all resources. */
 void ble_scan_worker_free(BleScanWorker* worker);
 
-/* Send scanbt\n to start or stopscan\n to stop.  Safe to call from any thread.
- */
-void ble_scan_worker_start(BleScanWorker* worker);
+/* Start a scan with the given logging setting (applied per scan, since log_sd
+ * may change between scans), or stop the current scan. Safe to call from the
+ * GUI thread. The worker itself is long-lived: allocate once, start/stop many. */
+void ble_scan_worker_start(BleScanWorker* worker, bool log_sd);
 void ble_scan_worker_stop(BleScanWorker* worker);

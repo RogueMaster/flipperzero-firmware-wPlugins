@@ -24,6 +24,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include "../common/suite_helpers.h"
 
 #define TAG "RhApp"
 
@@ -71,6 +72,13 @@ static bool rh_custom_event_cb(void* ctx, uint32_t event) {
         /* Notify the user: single vibration + sustained red blink. */
         notification_message(app->notifications, &sequence_single_vibro);
         notification_message(app->notifications, &sequence_blink_red_100);
+        return true;
+
+    case RhEventPoll:
+        /* Poll tick: the blocking UART TX + model touch run here on the app's
+         * own thread, not on the shared timer-service thread (see
+         * rh_poll_timer_cb). */
+        rh_worker_poll(app);
         return true;
     }
 
@@ -157,10 +165,9 @@ static void rh_main_draw_cb(Canvas* canvas, void* model) {
 
     canvas_set_font(canvas, FontPrimary);
     const char* label = rh_threat_label(s->threat);
-    /* Center the label: FontPrimary chars are ~8px wide. */
-    int16_t lx = (int16_t)((128 - (int16_t)(strlen(label) * 7)) / 2);
-    if(lx < 2) lx = 2;
-    canvas_draw_str(canvas, lx, 37, label);
+    /* Center on the real (proportional) string width rather than a fixed
+       chars×7px estimate. */
+    canvas_draw_str_aligned(canvas, 64, 37, AlignCenter, AlignBottom, label);
 
     if(is_alert) {
         canvas_set_color(canvas, ColorBlack);
@@ -194,9 +201,9 @@ static void rh_main_draw_cb(Canvas* canvas, void* model) {
     /* ---- Footer: host:port ---- */
     char footer[48];
     snprintf(footer, sizeof(footer), "%s:%u", c->host, (unsigned)c->port);
-    int16_t fx = (int16_t)(128 - (int16_t)(strlen(footer) * 5));
-    if(fx < 2) fx = 2;
-    canvas_draw_str(canvas, fx, 63, footer);
+    /* Right-align on the real string width rather than a fixed chars×5px
+       estimate. */
+    canvas_draw_str_aligned(canvas, 126, 63, AlignRight, AlignBottom, footer);
 }
 
 /* --------------------------------------------------------------------------
@@ -227,13 +234,16 @@ static bool rh_main_input_cb(InputEvent* event, void* ctx) {
 }
 
 /* --------------------------------------------------------------------------
- * Poll timer callback — fires on the timer service thread.
+ * Poll timer callback — fires on the shared timer-service thread.
  *
- * Sends "rayhunter_poll\n" to ESP32 and reads config safely.
+ * The timer thread is shared by every app's timers, so it must not block.
+ * Instead of sending "rayhunter_poll\n" (a blocking UART TX + tx_wait_complete)
+ * and touching the locked view model here, it posts RhEventPoll and lets the
+ * app thread run rh_worker_poll() from rh_custom_event_cb.
  * -------------------------------------------------------------------------- */
 static void rh_poll_timer_cb(void* ctx) {
     RhApp* app = (RhApp*)ctx;
-    rh_worker_poll(app);
+    view_dispatcher_send_custom_event(app->view_dispatcher, RhEventPoll);
 }
 
 /* --------------------------------------------------------------------------
@@ -306,7 +316,10 @@ static void rh_settings_host_cb(VariableItem* item) {
     with_view_model(
         app->main_view,
         RhMainModel * m,
-        { strncpy(m->config.host, app->config.host, RH_HOST_LEN - 1); },
+        {
+            strncpy(m->config.host, app->config.host, RH_HOST_LEN - 1);
+            m->config.host[RH_HOST_LEN - 1] = '\0';
+        },
         true);
 }
 
@@ -339,9 +352,9 @@ static void rh_settings_interval_cb(VariableItem* item) {
     snprintf(secs_str, sizeof(secs_str), "%lus", (unsigned long)RH_POLL_INTERVALS[idx]);
     variable_item_set_current_value_text(item, secs_str);
 
-    /* Restart the timer with the new interval. */
-    furi_timer_stop(app->poll_timer);
-    furi_timer_start(app->poll_timer, furi_ms_to_ticks(RH_POLL_INTERVALS[idx] * 1000));
+    /* Restart the timer with the new interval (single call — restart handles
+       the stop+start atomically). */
+    furi_timer_restart(app->poll_timer, furi_ms_to_ticks(RH_POLL_INTERVALS[idx] * 1000));
 }
 
 static void rh_settings_setup(RhApp* app) {
@@ -494,9 +507,7 @@ static void rh_app_free(RhApp* app) {
     app->uart = NULL;
 
     /* Remove views (safe now: the UART worker is joined and dead). */
-    view_dispatcher_remove_view(app->view_dispatcher, RhViewMain);
-    view_dispatcher_remove_view(app->view_dispatcher, RhViewSettings);
-    view_dispatcher_remove_view(app->view_dispatcher, RhViewAbout);
+    view_dispatcher_remove_all(app->view_dispatcher, RhViewCount);
 
     view_dispatcher_free(app->view_dispatcher);
 

@@ -398,9 +398,12 @@ static void fpwn_marauder_rx_cb(const char* line, void* ctx) {
     /* Marauder prompt lines start with ">"; skip parsing but still forward
      * to the log callback so the wifi connected notification fires. */
     if(line[0] == '>') {
-        if(m->log_callback) {
-            m->log_callback(line, m->log_callback_ctx);
-        }
+        /* Snapshot the callback + ctx into locals: the field is non-volatile and
+         * the main thread may null it during teardown, so a re-read between the
+         * test and the call could invoke a NULL function pointer. */
+        FPwnWifiRxCallback cb = m->log_callback;
+        void* cb_ctx = m->log_callback_ctx;
+        if(cb) cb(line, cb_ctx);
         return;
     }
 
@@ -552,10 +555,12 @@ static void fpwn_marauder_rx_cb(const char* line, void* ctx) {
 
     furi_mutex_release(m->mutex);
 
-    /* Forward every line to the optional log callback (status TextBox). */
-    if(m->log_callback) {
-        m->log_callback(line, m->log_callback_ctx);
-    }
+    /* Forward every line to the optional log callback (status TextBox).
+     * Snapshot into locals so a concurrent set_log_callback(NULL) during teardown
+     * can't turn the passed null-check into a NULL-pointer call. */
+    FPwnWifiRxCallback cb = m->log_callback;
+    void* cb_ctx = m->log_callback_ctx;
+    if(cb) cb(line, cb_ctx);
 }
 
 /* --------------------------------------------------------------------------

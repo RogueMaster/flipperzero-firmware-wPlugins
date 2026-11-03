@@ -69,6 +69,10 @@ typedef struct {
     AlertMode alert_mode;
     /* Hardware error — set by worker if CC1101 init fails */
     bool hw_error;
+    /* Placebo TX-mode selector. When true the UI shows an inert disclaimer
+     * screen instead of the RSSI rows. There is intentionally NO transmit path:
+     * the worker ignores this flag and keeps doing RX/RSSI detection only. */
+    bool tx_mode;
 } JammerState;
 
 /* ── View model (copied into view for draw callback) ── */
@@ -80,4 +84,5 @@ typedef struct {
     float threshold_suspicious;
     float threshold_jammer;
     bool hw_error;
+    bool tx_mode; /* mirror of JammerState.tx_mode for the draw callback */
 } JammerViewModel;

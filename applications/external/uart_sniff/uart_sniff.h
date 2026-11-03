@@ -24,6 +24,7 @@ typedef enum {
     UartSniffViewMenu,
     UartSniffViewSniff,
     UartSniffViewSettings,
+    UartSniffViewCount,
 } UartSniffView;
 
 /* -----------------------------------------------------------------------
@@ -82,8 +83,13 @@ typedef struct {
     /* Refresh timer */
     FuriTimer* refresh_timer;
 
-    /* Display text buffer — heap-allocated */
-    char* display_buf;
+    /* Display text buffers — heap-allocated, double-buffered.  The TextBox
+     * stores the raw pointer and is drawn on the GUI service thread, so the
+     * buffer being (re)formatted must never be the one the TextBox currently
+     * points at.  Each refresh formats into display_buf[idx^1] then hands that
+     * to the TextBox, leaving the live buffer untouched. */
+    char* display_buf[2];
+    uint8_t display_idx;
     size_t display_buf_size;
 
     /* Capture buffer for reading from ring — heap-allocated */
@@ -93,6 +99,9 @@ typedef struct {
     UartSniffBaud baud_idx;
     FuriHalSerialId serial_id; /* USART or LPUART */
     UartSniffShow show_mode;
+
+    /* Which view is currently shown (for gating the refresh). */
+    UartSniffView current_view;
 
     /* State — volatile: GUI thread writes, timer daemon reads */
     volatile bool sniffing;
@@ -111,9 +120,11 @@ typedef struct {
 /* Total displayed bytes = 32 * 8 = 256 */
 #define UART_SNIFF_DISPLAY_BYTES (UART_SNIFF_DISPLAY_LINES * UART_SNIFF_BYTES_PER_LINE)
 
-/* Max chars per line in hex+ascii mode:
- * "XXXX: XX XX XX XX XX XX XX XX  ABCDEFGH\n"
- * addr(4)+": "(2) + 8*"XX "(3) + " "(1) + 8 ascii + "\n" = 4+2+24+1+8+1 = 40 */
+/* Upper bound on chars per display line.  Worst case is "Both" mode:
+ *   "XXXX: XX XX XX XX XX XX XX XX  ABCDEFGH\n"
+ *   addr(4) + ": "(2) + 8*"XX "(24) + " "(1) + 8 ascii(8) + "\n"(1) = 40
+ * The 48 here keeps ~8 chars of headroom so a format tweak cannot silently
+ * overflow the per-line budget (the formatter is also bounds-checked). */
 #define UART_SNIFF_LINE_MAX_CHARS 48u
 
 /* Total display buffer: lines * chars-per-line + NUL */

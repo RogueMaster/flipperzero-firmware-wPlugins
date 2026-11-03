@@ -696,7 +696,11 @@ void script_engine_resume(ScriptEngine* engine) {
 }
 
 void script_engine_stop(ScriptEngine* engine) {
-    if(engine->state == ScriptStateRunning || engine->state == ScriptStatePaused) {
+    /* Also accept Loaded so a stop during the pre-run USB-enumeration wait (which
+     * runs on the worker thread while the engine is still Loaded) transitions to
+     * Done and lets the worker exit promptly. */
+    if(engine->state == ScriptStateRunning || engine->state == ScriptStatePaused ||
+       engine->state == ScriptStateLoaded) {
         engine->state = ScriptStateDone;
         furi_hal_hid_kb_release_all();
         furi_hal_hid_consumer_key_release_all();
@@ -717,9 +721,13 @@ void script_engine_run(ScriptEngine* engine) {
     /* Skip past FUNCTION blocks at the top level — they are called, not fallen-into */
     bool in_func_def = false;
 
-    while(engine->pc < engine->token_count && engine->state == ScriptStateRunning) {
-        /* Handle pause: spin until resumed or stopped */
+    while(engine->pc < engine->token_count &&
+          (engine->state == ScriptStateRunning || engine->state == ScriptStatePaused)) {
+        /* Allow entering the loop while Paused so a pause requested mid-command
+         * parks the worker here instead of letting the loop exit (which ended the
+         * run, froze Resume, and dropped USB). Spin until resumed or stopped. */
         while(engine->state == ScriptStatePaused) {
+            notify_ui(engine);
             furi_delay_ms(100);
         }
         if(engine->state != ScriptStateRunning) break;
@@ -767,9 +775,19 @@ void script_engine_run(ScriptEngine* engine) {
             break;
         }
 
-        case TokenDelay:
-            furi_delay_ms(adjusted_delay(engine, (uint32_t)tok->int_value));
+        case TokenDelay: {
+            /* Chunk the delay into small slices that re-check state, so a mid-delay
+             * abort or app exit (script_engine_stop sets state) is observed within
+             * ~50 ms instead of blocking furi_thread_join for the whole delay —
+             * a long DELAY would otherwise hang the app on close. */
+            uint32_t remaining = adjusted_delay(engine, (uint32_t)tok->int_value);
+            while(remaining > 0 && engine->state == ScriptStateRunning) {
+                uint32_t chunk = remaining > 50 ? 50 : remaining;
+                furi_delay_ms(chunk);
+                remaining -= chunk;
+            }
             break;
+        }
 
         case TokenDefaultDelay:
             engine->default_delay = (uint16_t)tok->int_value;

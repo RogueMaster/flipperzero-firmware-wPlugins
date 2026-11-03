@@ -68,6 +68,10 @@ struct BleScanWorker {
     bool log_sd;
     File* log_file;
     Storage* storage;
+    /* Guards log_file (open/close + the SD writes to it). Kept separate from
+     * results->mutex so SD I/O does not block the GUI refresh timer, while still
+     * serializing the RX thread's writes against teardown (close on stop/free). */
+    FuriMutex* log_mutex;
     volatile bool scanning;
 };
 
@@ -134,7 +138,8 @@ static uint32_t find_or_insert(BleScanResults* res, const char* mac) {
     return BLE_SCANNER_MAX_DEVICES; /* full */
 }
 
-/* Write a single log line to the open SD file (if any). */
+/* Write a single log line to the open SD file (if any).
+ * Caller MUST hold w->log_mutex (serializes against worker_close_log). */
 static void worker_log(BleScanWorker* w, const BleScanDevice* dev) {
     if(!w->log_file) return;
     char line[96];
@@ -172,24 +177,36 @@ static void worker_open_log(BleScanWorker* w) {
         (unsigned)dt.minute,
         (unsigned)dt.second);
 
-    w->log_file = storage_file_alloc(w->storage);
-    if(!storage_file_open(w->log_file, path, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
+    File* file = storage_file_alloc(w->storage);
+    if(!storage_file_open(file, path, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
         FURI_LOG_W(TAG, "Failed to open log file: %s", path);
-        storage_file_free(w->log_file);
-        w->log_file = NULL;
+        storage_file_free(file);
+        file = NULL;
     } else {
         FURI_LOG_I(TAG, "Logging to %s", path);
-        /* Write CSV header */
+        /* Write CSV header before publishing the handle. */
         const char* hdr = "RSSI\tMAC\tName\n";
-        storage_file_write(w->log_file, hdr, strlen(hdr));
+        storage_file_write(file, hdr, strlen(hdr));
     }
+
+    /* Publish the handle under log_mutex so the RX thread (worker_log) and a
+     * concurrent worker_close_log see a consistent log_file. */
+    furi_mutex_acquire(w->log_mutex, FuriWaitForever);
+    w->log_file = file;
+    furi_mutex_release(w->log_mutex);
 }
 
 static void worker_close_log(BleScanWorker* w) {
-    if(w->log_file) {
-        storage_file_close(w->log_file);
-        storage_file_free(w->log_file);
-        w->log_file = NULL;
+    /* Detach the handle under the lock so no in-flight worker_log can touch it
+     * after we close it, then do the (blocking) close/free outside the lock. */
+    furi_mutex_acquire(w->log_mutex, FuriWaitForever);
+    File* file = w->log_file;
+    w->log_file = NULL;
+    furi_mutex_release(w->log_mutex);
+
+    if(file) {
+        storage_file_close(file);
+        storage_file_free(file);
     }
     if(w->storage) {
         furi_record_close(RECORD_STORAGE);
@@ -267,6 +284,9 @@ static void worker_rx_line(const char* line, void* ctx) {
         name_hash_mac(name, mac);
     }
 
+    BleScanDevice dev_copy;
+    bool have_dev = false;
+
     furi_mutex_acquire(w->results->mutex, FuriWaitForever);
     uint32_t idx = find_or_insert(w->results, mac);
     if(idx < BLE_SCANNER_MAX_DEVICES) {
@@ -285,9 +305,19 @@ static void worker_rx_line(const char* line, void* ctx) {
             dev->is_airtag = oui_is_apple(mac) || name_is_airtag(dev->name);
         }
 
-        worker_log(w, dev);
+        dev_copy = *dev; /* snapshot for logging outside the results lock */
+        have_dev = true;
     }
     furi_mutex_release(w->results->mutex);
+
+    /* Log outside results->mutex so a slow SD flush can't stall the GUI refresh
+     * timer (which only needs results->mutex); log_mutex serializes the write
+     * against worker_close_log on stop/teardown. */
+    if(have_dev) {
+        furi_mutex_acquire(w->log_mutex, FuriWaitForever);
+        worker_log(w, &dev_copy);
+        furi_mutex_release(w->log_mutex);
+    }
 }
 
 /* --------------------------------------------------------------------------
@@ -305,6 +335,8 @@ BleScanWorker* ble_scan_worker_alloc(BleUart* uart, BleScanResults* results, boo
     w->uart = uart;
     w->results = results;
     w->log_sd = log_sd;
+    w->log_mutex = furi_mutex_alloc(FuriMutexTypeNormal);
+    furi_assert(w->log_mutex);
 
     ble_uart_set_rx_callback(uart, worker_rx_line, w);
 
@@ -314,22 +346,20 @@ BleScanWorker* ble_scan_worker_alloc(BleUart* uart, BleScanResults* results, boo
 void ble_scan_worker_free(BleScanWorker* worker) {
     furi_assert(worker);
 
-    if(worker->scanning) {
-        ble_scan_worker_stop(worker);
-    }
-
-    worker_close_log(worker);
-
-    /* Detach callback before freeing */
-    ble_uart_set_rx_callback(worker->uart, NULL, NULL);
-
+    /* The caller (ble_scanner_free) must have already stopped the scan, detached
+     * the UART rx callback, and joined the UART rx thread before calling this —
+     * so no worker_rx_line can still be in flight against this worker. We do NOT
+     * touch worker->uart here (it has been freed by now). */
+    worker_close_log(worker); /* idempotent; also a safety net */
+    furi_mutex_free(worker->log_mutex);
     free(worker);
 }
 
-void ble_scan_worker_start(BleScanWorker* worker) {
+void ble_scan_worker_start(BleScanWorker* worker, bool log_sd) {
     furi_assert(worker);
     if(worker->scanning) return;
 
+    worker->log_sd = log_sd; /* applied per scan */
     worker->scanning = true;
     worker_open_log(worker);
 

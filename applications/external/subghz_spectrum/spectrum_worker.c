@@ -17,7 +17,7 @@ struct SpectrumWorker {
 };
 
 /** Perform one RSSI sweep across the configured frequency range */
-static void spectrum_worker_sweep(SpectrumWorker* worker, SpectrumData* data) {
+static void spectrum_worker_sweep(SpectrumWorker* worker, SpectrumSweep* data) {
     uint32_t freq = worker->freq_start;
     uint8_t bin = 0;
     data->max_rssi = SPECTRUM_RSSI_MIN;
@@ -51,15 +51,11 @@ static void spectrum_worker_sweep(SpectrumWorker* worker, SpectrumData* data) {
 
 static int32_t spectrum_worker_thread(void* context) {
     SpectrumWorker* worker = context;
-    SpectrumData* data = malloc(sizeof(SpectrumData));
-    if(!data) {
-        FURI_LOG_E(TAG, "Failed to allocate SpectrumData");
-        return -1;
-    }
-    memset(data, 0, sizeof(SpectrumData));
-    for(uint8_t i = 0; i < SPECTRUM_NUM_BINS; i++) {
-        data->peak_rssi[i] = -200.0f;
-    }
+    /* Producer struct is ~530 B, so it lives on the worker's own 4 KB stack —
+       no heap allocation (and no dead malloc-NULL branch) and no 7 KB
+       SpectrumData the worker would only partly fill. */
+    SpectrumSweep sweep;
+    memset(&sweep, 0, sizeof(sweep));
 
     FURI_LOG_I(
         TAG,
@@ -116,10 +112,10 @@ static int32_t spectrum_worker_thread(void* context) {
     furi_hal_subghz_load_custom_preset(spectrum_preset);
 
     while(worker->running) {
-        spectrum_worker_sweep(worker, data);
+        spectrum_worker_sweep(worker, &sweep);
 
         if(worker->callback && worker->running) {
-            worker->callback(data, worker->callback_context);
+            worker->callback(&sweep, worker->callback_context);
         }
 
         /* Yield to let the UI thread run */
@@ -129,7 +125,6 @@ static int32_t spectrum_worker_thread(void* context) {
     furi_hal_subghz_idle();
     furi_hal_subghz_sleep();
 
-    free(data);
     FURI_LOG_I(TAG, "Worker stopped");
     return 0;
 }

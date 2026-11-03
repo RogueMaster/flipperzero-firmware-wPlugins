@@ -30,6 +30,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "../common/suite_helpers.h"
 
 #define TAG "EvilBLE"
 
@@ -129,27 +130,18 @@ static void evil_ble_rebuild_main_menu(EvilBleApp* app) {
         app->main_menu, "Scan for Devices", EvilBleMainMenuScan, evil_ble_main_menu_callback, app);
 
     /* Label "Clone Selected" only if we have at least one scanned device.
-     * submenu_add_item does NOT copy the string, so use persistent storage. */
+     * submenu_add_item() copies the label (furi_string_set_str), so a local
+     * buffer is sufficient — no persistent storage needed. */
+    char label[48];
     uint32_t count = evil_ble_scanner_get_count(app->scanner);
     if(count > 0) {
-        snprintf(
-            app->clone_menu_label,
-            sizeof(app->clone_menu_label),
-            "Clone Selected (%lu found)",
-            (unsigned long)count);
+        snprintf(label, sizeof(label), "Clone Selected (%lu found)", (unsigned long)count);
     } else {
-        strncpy(
-            app->clone_menu_label,
-            "Clone Selected (scan first)",
-            sizeof(app->clone_menu_label) - 1);
-        app->clone_menu_label[sizeof(app->clone_menu_label) - 1] = '\0';
+        strncpy(label, "Clone Selected (scan first)", sizeof(label) - 1);
+        label[sizeof(label) - 1] = '\0';
     }
     submenu_add_item(
-        app->main_menu,
-        app->clone_menu_label,
-        EvilBleMainMenuClone,
-        evil_ble_main_menu_callback,
-        app);
+        app->main_menu, label, EvilBleMainMenuClone, evil_ble_main_menu_callback, app);
 
     /* "Stop Clone" always visible; shows beacon active state. */
     const char* stop_label = app->cloning ? "Stop Clone [ACTIVE]" : "Stop Clone";
@@ -204,15 +196,10 @@ static void evil_ble_rebuild_device_list(EvilBleApp* app) {
         if(!evil_ble_scanner_get_device(app->scanner, i, &dev)) continue;
 
         /* Format: "[name] (dBm)" — fits within the 128-px Flipper display.
-         * submenu_add_item does NOT copy the string, so use persistent storage. */
-        snprintf(
-            app->device_labels[i],
-            sizeof(app->device_labels[i]),
-            "%s (%d)",
-            dev.name,
-            (int)dev.rssi);
-        submenu_add_item(
-            app->device_list, app->device_labels[i], i, evil_ble_device_list_callback, app);
+         * submenu_add_item() copies the label, so a local buffer is sufficient. */
+        char label[64];
+        snprintf(label, sizeof(label), "%s (%d)", dev.name, (int)dev.rssi);
+        submenu_add_item(app->device_list, label, i, evil_ble_device_list_callback, app);
     }
 }
 
@@ -260,19 +247,17 @@ static void evil_ble_start_clone(EvilBleApp* app, uint32_t device_idx) {
     uint8_t adv_len;
 
     if(dev.adv_data_len > 0) {
-        /* Use the synthesised payload from the scanner. */
-        memcpy(adv, dev.adv_data, dev.adv_data_len);
-        adv_len = dev.adv_data_len;
+        /* Use the synthesised payload from the scanner. Clamp at the call site:
+         * sizeof(adv) == sizeof(dev.adv_data) == EXTRA_BEACON_MAX_DATA_SIZE, so
+         * this bounds both the read and the stack write regardless of producer. */
+        uint8_t copy_len = dev.adv_data_len;
+        if(copy_len > sizeof(adv)) copy_len = (uint8_t)sizeof(adv);
+        memcpy(adv, dev.adv_data, copy_len);
+        adv_len = copy_len;
     } else {
-        /* Fallback: bare Complete Local Name from raw name string. */
-        uint8_t name_len = (uint8_t)strlen(dev.name);
-        if(name_len > EXTRA_BEACON_MAX_DATA_SIZE - 2) {
-            name_len = EXTRA_BEACON_MAX_DATA_SIZE - 2;
-        }
-        adv[0] = name_len + 1; /* length: type byte + data */
-        adv[1] = 0x09; /* AD type: Complete Local Name */
-        memcpy(&adv[2], dev.name, name_len);
-        adv_len = (uint8_t)(2 + name_len);
+        /* Fallback: bare Complete Local Name, built by the same helper the
+         * scanner uses (single source of truth for the AD layout + cap). */
+        adv_len = evil_ble_build_adv_from_name(dev.name, adv);
     }
 
     if(!furi_hal_bt_extra_beacon_set_data(adv, adv_len)) {
@@ -395,22 +380,29 @@ static void evil_ble_app_free(EvilBleApp* app) {
         app->cloning = false;
     }
 
-    /* Scanner holds the UART RX callback; free it before freeing uart. */
+    /* Teardown order is critical to avoid a close-path use-after-free: the UART
+     * worker thread calls evil_ble_scanner_rx_cb(scanner). We must guarantee no
+     * such callback can still be running against the scanner before we free it.
+     *   1. Stop producing (sends "stopscan", clears scanning).
+     *   2. Detach the rx callback so no NEW dispatch can reach the scanner.
+     *   3. Free the UART, which joins the worker — any in-flight callback runs
+     *      to completion against the still-valid scanner before this returns.
+     *   4. Only now is it safe to free the scanner. */
     if(app->scanner) {
         evil_ble_scanner_stop(app->scanner);
+    }
+    if(app->uart) {
+        evil_ble_uart_set_rx_callback(app->uart, NULL, NULL);
+        evil_ble_uart_free(app->uart); /* joins the RX worker */
+        app->uart = NULL;
+    }
+    if(app->scanner) {
         evil_ble_scanner_free(app->scanner);
         app->scanner = NULL;
     }
 
-    if(app->uart) {
-        evil_ble_uart_free(app->uart);
-        app->uart = NULL;
-    }
-
     /* Remove views before freeing their underlying objects. */
-    view_dispatcher_remove_view(app->view_dispatcher, EvilBleViewMainMenu);
-    view_dispatcher_remove_view(app->view_dispatcher, EvilBleViewDeviceList);
-    view_dispatcher_remove_view(app->view_dispatcher, EvilBleViewCloneStatus);
+    view_dispatcher_remove_all(app->view_dispatcher, EvilBleViewCount);
 
     view_dispatcher_free(app->view_dispatcher);
 

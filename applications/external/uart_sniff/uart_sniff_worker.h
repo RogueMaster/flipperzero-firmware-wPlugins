@@ -51,9 +51,9 @@ size_t uart_sniff_worker_read(UartSniffWorker* worker, uint8_t* out, size_t len)
 
 /**
  * Total bytes received since the worker was started (or last cleared).
- * Atomic read — no mutex required for a display counter.
+ * Read under the ring mutex so it stays consistent with the ring contents.
  */
-uint32_t uart_sniff_worker_total(const UartSniffWorker* worker);
+uint32_t uart_sniff_worker_total(UartSniffWorker* worker);
 
 /**
  * Clear the ring buffer (reset head and count).

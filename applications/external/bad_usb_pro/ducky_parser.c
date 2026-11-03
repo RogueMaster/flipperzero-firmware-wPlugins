@@ -393,16 +393,29 @@ bool ducky_parser_parse_line(const char* raw_line, ScriptToken* token, char* err
     /* ── STRING / STRINGLN ───────────────────────────────── */
     if(strncmp(p, "STRINGLN ", 9) == 0 || strcmp(p, "STRINGLN") == 0) {
         token->type = TokenStringLn;
-        if(strlen(p) > 9) {
-            strncpy(token->str_value, p + 9, sizeof(token->str_value) - 1);
+        const char* payload = (strlen(p) > 9) ? p + 9 : "";
+        /* Fail loudly rather than silently truncating: lines can be up to 255
+         * chars but str_value is only BADUSB_PRO_TOKEN_STR_LEN. Truncated payloads
+         * are worse than an error — the operator believes the whole string typed. */
+        if(strlen(payload) >= sizeof(token->str_value)) {
+            snprintf(
+                err_msg, 128, "STRINGLN too long (max %u)",
+                (unsigned)(sizeof(token->str_value) - 1));
+            return false;
         }
+        strncpy(token->str_value, payload, sizeof(token->str_value) - 1);
         return true;
     }
     if(strncmp(p, "STRING ", 7) == 0 || strcmp(p, "STRING") == 0) {
         token->type = TokenString;
-        if(strlen(p) > 7) {
-            strncpy(token->str_value, p + 7, sizeof(token->str_value) - 1);
+        const char* payload = (strlen(p) > 7) ? p + 7 : "";
+        if(strlen(payload) >= sizeof(token->str_value)) {
+            snprintf(
+                err_msg, 128, "STRING too long (max %u)",
+                (unsigned)(sizeof(token->str_value) - 1));
+            return false;
         }
+        strncpy(token->str_value, payload, sizeof(token->str_value) - 1);
         return true;
     }
 
@@ -419,6 +432,7 @@ bool ducky_parser_parse_line(const char* raw_line, ScriptToken* token, char* err
         token->type = TokenDefaultDelay;
         const char* val = (p[7] == '_') ? p + 14 : p + 13;
         token->int_value = atoi(val);
+        if(token->int_value < 0) token->int_value = 0; /* negatives wrap to ~65 s as uint16 */
         return true;
     }
 
@@ -426,6 +440,7 @@ bool ducky_parser_parse_line(const char* raw_line, ScriptToken* token, char* err
     if(strncmp(p, "DEFAULT_STRING_DELAY ", 21) == 0) {
         token->type = TokenDefaultStringDelay;
         token->int_value = atoi(p + 21);
+        if(token->int_value < 0) token->int_value = 0; /* negatives wrap to ~65 s as uint16 */
         return true;
     }
 

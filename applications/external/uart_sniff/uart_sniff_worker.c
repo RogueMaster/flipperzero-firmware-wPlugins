@@ -85,9 +85,12 @@ static int32_t uart_sniff_worker_thread(void* context) {
             }
         }
 
-        furi_mutex_release(w->ring_mutex);
-
+        /* Update total_rx inside the ring lock so it stays consistent with
+           ring_fill (used together to compute display addresses) and cannot
+           lose a race with uart_sniff_worker_clear's reset. */
         w->total_rx += (uint32_t)got;
+
+        furi_mutex_release(w->ring_mutex);
     }
 
     FURI_LOG_I(TAG, "Worker stopped");
@@ -181,9 +184,14 @@ size_t uart_sniff_worker_read(UartSniffWorker* w, uint8_t* out, size_t len) {
     return len;
 }
 
-uint32_t uart_sniff_worker_total(const UartSniffWorker* w) {
+uint32_t uart_sniff_worker_total(UartSniffWorker* w) {
     furi_assert(w);
-    return w->total_rx;
+    /* Read under the ring lock so the display sees a total_rx that matches the
+       ring contents it reads in the same refresh (no skew, no torn read). */
+    furi_mutex_acquire(w->ring_mutex, FuriWaitForever);
+    uint32_t total = w->total_rx;
+    furi_mutex_release(w->ring_mutex);
+    return total;
 }
 
 void uart_sniff_worker_clear(UartSniffWorker* w) {

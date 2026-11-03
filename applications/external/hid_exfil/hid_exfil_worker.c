@@ -251,11 +251,12 @@ static bool phase_inject(HidExfilWorker* worker) {
     if(!worker->running || worker->state.abort_requested) return false;
 
     /* Get the payload script */
-    const char* script =
+    char* script =
         hid_exfil_get_payload_script(worker->payload_type, worker->config.target_os);
 
     /* Type the script */
     type_string(script, delay, worker);
+    free(script);
     if(worker->state.abort_requested) return false;
 
     /* Press Enter to execute */
@@ -688,7 +689,6 @@ static int32_t hid_exfil_worker_thread(void* context) {
 
 HidExfilWorker* hid_exfil_worker_alloc(void) {
     HidExfilWorker* worker = malloc(sizeof(HidExfilWorker));
-    if(!worker) return NULL;
     memset(worker, 0, sizeof(HidExfilWorker));
 
     /* recv_buffer is intentionally NOT allocated here.
@@ -749,10 +749,6 @@ bool hid_exfil_worker_start(HidExfilWorker* worker) {
      * If a previous run already allocated it, reuse it (no free/realloc). */
     if(!worker->recv_buffer) {
         worker->recv_buffer = malloc(HID_EXFIL_RECV_BUF_SIZE);
-        if(!worker->recv_buffer) {
-            FURI_LOG_E(TAG, "OOM: cannot allocate %u-byte recv buffer", HID_EXFIL_RECV_BUF_SIZE);
-            return false;
-        }
         worker->recv_buffer_size = HID_EXFIL_RECV_BUF_SIZE;
     }
 
