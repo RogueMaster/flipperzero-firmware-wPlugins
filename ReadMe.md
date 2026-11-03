@@ -175,6 +175,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Dev: [Add NFC supported-card parser load checks and synthetic Bambu Lab parser tests (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1204)
 - Sub-GHz: [Marantec24 gap timing, Linear Delta 3 repeat/reset handling, Holtek HT12X reset and radio-faithful unit tests (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1207)
 - Added: [BLE Clipboard v0.5.2 - authenticated BLE clipboard and macro transfer to USB keyboard/mouse, with SD snapshots (By otcan)](https://github.com/otcan/ble-clipboard)
+- OFW: PR: [BadUSB scroll-change wait and EXFIL LED debug flag (By josaum)](https://github.com/flipperdevices/flipperzero-firmware/pull/4507)
 
 <a name="release"></a>
 
