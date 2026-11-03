@@ -141,8 +141,7 @@ bool storage_scan_directory(SubDupFinderApp *app, const char *dir, ScanStats *st
                 break;
         }
         storage_dir_close(dir_file);
-        FileCompareContext compare = {storage, app->scanned_dir};
-        process_duplicates_verified(&app->db, files_equal, &compare);
+        process_duplicates(&app->db);
     }
 
     storage_file_free(dir_file);
