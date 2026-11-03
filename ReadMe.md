@@ -163,6 +163,12 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Sub-GHz Jammer Detect hardware-error cleanup and removal of the inactive TX selector (By barkandbite)](https://github.com/barkandbite/flipper_suite/pull/142)
 - Updated: [CCID Emulator, Ray Hunter Client, SPI Flash Dump, Sub-GHz Spectrum, HID Exfil and UART Sniff runtime cleanup (By barkandbite)](https://github.com/barkandbite/flipper_suite/pull/152)
 - Added: [Cube Timer v0.1 (By navarr393)](https://github.com/navarr393/CubeTimer)
+- OFW: PR: [BadUSB Ducky Script 3.0 core interpreter (By josaum)](https://github.com/flipperdevices/flipperzero-firmware/pull/4501)
+- OFW: PR: [BadUSB Ducky 3.0 functions and randomization (By josaum)](https://github.com/flipperdevices/flipperzero-firmware/pull/4502)
+- OFW: PR: [BadUSB Ducky 3.0 ELSE IF and DEFINE support (By josaum)](https://github.com/flipperdevices/flipperzero-firmware/pull/4503)
+- OFW: PR: [BadUSB Ducky 3.0 internal variables (By josaum)](https://github.com/flipperdevices/flipperzero-firmware/pull/4504)
+- OFW: PR: [BadUSB attack mode switching and restoration (By josaum)](https://github.com/flipperdevices/flipperzero-firmware/pull/4505)
+- OFW: PR: [BadUSB EXFIL and host keyboard lock-state support (By josaum)](https://github.com/flipperdevices/flipperzero-firmware/pull/4506)
 
 <a name="release"></a>
 
