@@ -1,0 +1,16 @@
+App(
+    appid="dooya_remote",
+    name="Dooya Remote",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="dooya_remote_app",
+    stack_size=4 * 1024,
+    fap_icon="icons/icon.png",
+    fap_icon_assets="icons",
+    fap_file_assets="files",
+    targets=["f7"],
+    fap_category="Sub-GHz",
+    fap_author="Lechnio",
+    fap_weburl="https://github.com/Lechnio/Dooya-Remote",
+    fap_version="1.0",
+    fap_description="Dooya shutter remote emulator for Flipper Zero. Store single remotes or whole groups of serials, pick a channel and send Up/Stop/Down over Sub-GHz.",
+)

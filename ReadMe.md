@@ -151,6 +151,9 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [FN Tester v0.6.2 (By Igor Danilov)](https://github.com/polarikus/flipper-zero_fn_tester) `Req: FN/FN-M fiscal drive over UART`
 - Dev: [Remove the unreachable native JavaScript test plugin and its test-only module/types; document release-mode unit-test builds (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1199) The previous test plugin required four private functions unavailable to the resident test runner.
 - Dev: [Add the two Telcoma/Cardin EDGE capture tests (By half2me / Benjamin Tamasi)](https://github.com/DarkFlippers/unleashed-firmware/commit/f222b00ac6801ce708507951037484c3f7f5a332) and align native Sub-GHz tests with its protocol registry; weather-station tests use their separate app.
+- Sub-GHz: [Nero Radio dynamic fixed-trailer capture/replay (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/d3c03c16cc4b155b7ecb96f51f2e1db5c010ee1b)
+- Added: [Reaction Time Stats v1.0 (By luvrltop)](https://github.com/luvrltop/ReactionTime)
+- Added: [Dooya Remote v1.0 (By Lechnio)](https://github.com/Lechnio/Dooya-Remote)
 
 <a name="release"></a>
 
@@ -408,6 +411,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Race v1.3 (By zyuhel)](https://github.com/zyuhel/flipperzero-racegame)
 - [Reaction Test v1.3 (By Milk-Cool)](https://github.com/Milk-Cool/fz-reaction-game)
 - [Reaction Time (By ihatecsv)](https://github.com/ihatecsv/flipper_reaction_time)
+- [Reaction Time Stats v1.0 (By luvrltop)](https://github.com/luvrltop/ReactionTime)
 - [Reversi v1.4 (By dimat)](https://github.com/dimat/flipperzero-reversi)
 - [Rock Paper Scissors v1.5 (By CodeAllNight/jamisonderek)](https://github.com/jamisonderek/flipper-zero-tutorials/tree/main/subghz/plugins/rock_paper_scissors)
 - [Rock Paper Scissors 2 v1.1 (By benwoo1110)](https://github.com/benwoo1110/rps-FlipperZero)
@@ -601,6 +605,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Distance Sensor v1.1 (By Sanqui)](https://github.com/Sanqui/flipperzero-firmware/tree/hc_sr04) `Req: HC-SR04`
 - [Distance Sensor v1.2 (By privet971)](https://github.com/privet971/FlipperZeroApps/tree/main/usping) `Req: Parallax (3 wires) SKU 28015`
 - [Doc Viewer Lite v0.1 (By C0d3-5t3w)](https://github.com/C0d3-5t3w/docviewlite)
+- [Dooya Remote v1.0 (By Lechnio)](https://github.com/Lechnio/Dooya-Remote)
 - [DroidBeacon v0.1 (By spandox2)](https://github.com/spandox2/droidbeacon)
 - [DropDetect Live v0.1 (By TheRealLuro)](https://github.com/TheRealLuro/Flipper-zero-drop-detector.-) `Req: ICM42688P IMU`
 - [DSTIKE Deauther v1.1 (By SequoiaSan)](https://github.com/SequoiaSan/FlipperZero-Wifi-ESP8266-Deauther-Module/tree/FlipperZero-Module-v2/FlipperZeroModule/FlipperZero-ESP8266-Deauth-App) `Req: ESP8266`
