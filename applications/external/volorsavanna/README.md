@@ -9,8 +9,12 @@
 
 #### TODO:
 * Go
-* TI 84
+* JSON
+* TI 84 EVO
 * Web https://invizabel.github.io/VolorSavanna
+
+#### MAYBE:
+* Alexa
 
 #### To play:
 * Python (Windows): pip install VolorSavanna && python3 -m VolorSavanna
