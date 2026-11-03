@@ -1,0 +1,14 @@
+App(
+    appid="cube_timer",
+    name="Cube Timer",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="cube_timer_app",
+    stack_size=2 * 1024,
+    fap_icon="cube_timer.png",
+    fap_icon_assets="images",
+    fap_category="Tools",
+    fap_author="navarr393",
+    fap_weburl="https://github.com/navarr393/CubeTimer",
+    fap_version="0.1",
+    fap_description="3x3 scrambler and speedcubing timer with WCA inspection",
+)

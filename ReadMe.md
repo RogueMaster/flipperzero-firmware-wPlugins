@@ -162,6 +162,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [NFC Fuzzer reader-frame bounds and bit-buffer writes (By barkandbite)](https://github.com/barkandbite/flipper_suite/pull/145) [Preallocated anomaly buffers and listener reuse (By barkandbite)](https://github.com/barkandbite/flipper_suite/pull/151)
 - Updated: [Sub-GHz Jammer Detect hardware-error cleanup and removal of the inactive TX selector (By barkandbite)](https://github.com/barkandbite/flipper_suite/pull/142)
 - Updated: [CCID Emulator, Ray Hunter Client, SPI Flash Dump, Sub-GHz Spectrum, HID Exfil and UART Sniff runtime cleanup (By barkandbite)](https://github.com/barkandbite/flipper_suite/pull/152)
+- Added: [Cube Timer v0.1 (By navarr393)](https://github.com/navarr393/CubeTimer)
 
 <a name="release"></a>
 
@@ -594,6 +595,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Counter v1.5 (By Krulknul & TEXploder)](https://github.com/TEXploder/TEX-Counter)
 - [Cross Remote v3.5 (By leedave)](https://github.com/leedave/flipper-zero-cross-remote)
 - [Crypto Dictionary v0.1 (By armixz)](https://github.com/armixz/Flipper-Zero-Crypto-Dictionary)
+- [Cube Timer v0.1 (By navarr393)](https://github.com/navarr393/CubeTimer)
 - [Cyborg Detector v1.1 (By RocketGod-Git)](https://github.com/RocketGod-Git/Flipper-Zero-Cyborg-Detector)
 - [Dab Timer v2.5 (By RogueMaster)](https://github.com/RogueMaster/flipperzero-dabtimer)
 - [Daikin AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
