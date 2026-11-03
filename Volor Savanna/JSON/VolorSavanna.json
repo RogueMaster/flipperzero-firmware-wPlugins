@@ -1,5 +1,248 @@
 {
     "request": {
+        "character": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            "\"e\""
+        ],
+        "hunter_list_1": [
+            1,
+            2
+        ],
+        "hunter_list_2": [
+            1,
+            2
+        ],
+        "hunter_list_3": [
+            1,
+            2
+        ],
+        "hunter_list_4": [
+            1,
+            2
+        ],
+        "hunter_list_5": [
+            1,
+            2
+        ],
+        "hunter_list_6": [
+            1,
+            2,
+            3
+        ],
+        "hunter_list_7": [
+            1,
+            2
+        ],
+        "hunter_list_8": [
+            1,
+            2,
+            "rand"
+        ],
+        "hunter_list_9": [
+            1,
+            "1",
+            "rand",
+            1,
+            "2"
+        ],
+        "hunter_list_10": [
+            1,
+            2
+        ],
+        "the_mighty_lion_list_1": [
+            1,
+            2,
+            3
+        ],
+        "the_mighty_lion_list_2": [
+            1,
+            2
+        ],
+        "the_mighty_lion_list_3": [
+            1,
+            2
+        ],
+        "the_mighty_lion_list_4": [
+            1,
+            2
+        ],
+        "the_mighty_lion_list_5": [
+            1,
+            2
+        ],
+        "the_mighty_lion_list_6": [
+            1,
+            2
+        ],
+        "the_mighty_lion_terrain_list_1": [
+            1,
+            2
+        ],
+        "the_mighty_lion_terrain_list_2": [
+            1,
+            2
+        ],
+        "the_mighty_lion_terrain_list_3": [
+            1,
+            2,
+            3,
+            4,
+            "rand"
+        ],
+        "the_mighty_lion_terrain_list_4": [
+            1,
+            "1",
+            "rand",
+            1,
+            "2"
+        ],
+        "warrior_list_1": [
+            1,
+            2
+        ],
+        "warrior_list_2": [
+            1,
+            2
+        ],
+        "warrior_list_3": [
+            1,
+            2
+        ],
+        "warrior_list_4": [
+            1,
+            2
+        ],
+        "warrior_list_5": [
+            1,
+            2
+        ],
+        "crafter_list_1": [
+            1,
+            2
+        ],
+        "crafter_list_2": [
+            1,
+            2
+        ],
+        "crafter_list_3": [
+            1,
+            2
+        ],
+        "crafter_list_4": [
+            1,
+            2,
+            "rand"
+        ],
+        "crafter_list_5": [
+            1,
+            "1",
+            "rand",
+            1,
+            "2"
+        ],
+        "crafter_list_6": [
+            1,
+            2
+        ],
+        "farmer_list_1": [
+            1,
+            2
+        ],
+        "farmer_list_2": [
+            1,
+            2
+        ],
+        "farmer_list_3": [
+            1,
+            2
+        ],
+        "farmer_list_4": [
+            1,
+            2
+        ],
+        "farmer_list_5": [
+            1,
+            2
+        ],
+        "farmer_list_6": [
+            1,
+            2
+        ],
+        "medicine_person_list_1": [
+            1,
+            2
+        ],
+        "medicine_person_list_2": [
+            1,
+            2
+        ],
+        "medicine_person_list_3": [
+            1,
+            2
+        ],
+        "medicine_person_list_4": [
+            1,
+            2,
+            "rand"
+        ],
+        "medicine_person_list_5": [
+            1,
+            "1",
+            "rand",
+            1,
+            "2"
+        ],
+        "medicine_person_list_6": [
+            1,
+            "\"",
+            "1",
+            "\"",
+            "rand",
+            2,
+            "\"",
+            "2",
+            "\"",
+            3,
+            "\"",
+            "3",
+            "\""
+        ],
+        "medicine_person_list_8": [
+            1,
+            2,
+            3,
+            4,
+            5
+        ],
+        "medicine_person_list_9": [
+            1,
+            2,
+            3,
+            4,
+            5
+        ],
+        "medicine_person_list_10": [
+            1,
+            2
+        ],
+        "medicine_person_list_11": [
+            1,
+            2,
+            "rand"
+        ],
+        "medicine_person_list_12": [
+            1,
+            "1",
+            "rand",
+            1,
+            "2"
+        ]
+    },
+    "response": {
         "name": "What is your name?\\n",
         "character": "Welcome to Volor Savanna!\\nYou are a member of an African Tribe!\\nWho do you want to be?\\n\\n1- Hunter\\n2- Warrior\\n3- Crafter\\n4- Farmer\\n5- Medicine Person\\ne- exit\\n",
         "hunter_1": "You have chosen to be a hunter!\\nDo you want to go hunt or stay put?\\n\\n1- Hunt; 2- Stay put\\nMake your choice \" + user_name + \":\\n",
