@@ -399,7 +399,9 @@ bool ducky_parser_parse_line(const char* raw_line, ScriptToken* token, char* err
          * are worse than an error — the operator believes the whole string typed. */
         if(strlen(payload) >= sizeof(token->str_value)) {
             snprintf(
-                err_msg, 128, "STRINGLN too long (max %u)",
+                err_msg,
+                128,
+                "STRINGLN too long (max %u)",
                 (unsigned)(sizeof(token->str_value) - 1));
             return false;
         }
@@ -411,8 +413,7 @@ bool ducky_parser_parse_line(const char* raw_line, ScriptToken* token, char* err
         const char* payload = (strlen(p) > 7) ? p + 7 : "";
         if(strlen(payload) >= sizeof(token->str_value)) {
             snprintf(
-                err_msg, 128, "STRING too long (max %u)",
-                (unsigned)(sizeof(token->str_value) - 1));
+                err_msg, 128, "STRING too long (max %u)", (unsigned)(sizeof(token->str_value) - 1));
             return false;
         }
         strncpy(token->str_value, payload, sizeof(token->str_value) - 1);

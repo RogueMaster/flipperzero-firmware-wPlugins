@@ -117,8 +117,7 @@ static void jammer_main_draw_callback(Canvas* canvas, void* model) {
     if(vm->tx_mode) {
         canvas_set_font(canvas, FontSecondary);
         canvas_draw_str_aligned(canvas, 64, 24, AlignCenter, AlignCenter, "TX / JAM: not enabled");
-        canvas_draw_str_aligned(
-            canvas, 64, 36, AlignCenter, AlignCenter, "RX detection only.");
+        canvas_draw_str_aligned(canvas, 64, 36, AlignCenter, AlignCenter, "RX detection only.");
         canvas_draw_str_aligned(
             canvas, 64, 46, AlignCenter, AlignCenter, "Transmitting/jamming is");
         canvas_draw_str_aligned(

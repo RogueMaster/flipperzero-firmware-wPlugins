@@ -19,7 +19,7 @@ static inline BleUart* ble_uart_alloc(void) {
     return esp_serial_alloc(&cfg);
 }
 
-#define ble_uart_free esp_serial_free
-#define ble_uart_send esp_serial_send
+#define ble_uart_free            esp_serial_free
+#define ble_uart_send            esp_serial_send
 #define ble_uart_set_rx_callback esp_serial_set_rx_callback
-#define ble_uart_is_connected esp_serial_is_connected
+#define ble_uart_is_connected    esp_serial_is_connected

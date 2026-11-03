@@ -397,10 +397,7 @@ static void nfc_fuzzer_app_show_fuzz_run(NfcFuzzerApp* app) {
     /* Open log file for the entire run (closed in nfc_fuzzer_close_log) */
     app->log_file = storage_file_alloc(app->storage);
     if(storage_file_open(
-           app->log_file,
-           furi_string_get_cstr(app->log_path),
-           FSAM_WRITE,
-           FSOM_CREATE_ALWAYS)) {
+           app->log_file, furi_string_get_cstr(app->log_path), FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
         char header[128];
         size_t len = (size_t)snprintf(
             header,

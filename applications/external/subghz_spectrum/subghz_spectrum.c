@@ -440,7 +440,8 @@ static void spectrum_peak_change_callback(VariableItem* item) {
         {
             data->peak_hold = app->peak_hold;
             if(!data->peak_hold) {
-                for(uint8_t i = 0; i < SPECTRUM_NUM_BINS; i++) data->peak_rssi[i] = -200.0f;
+                for(uint8_t i = 0; i < SPECTRUM_NUM_BINS; i++)
+                    data->peak_rssi[i] = -200.0f;
             }
         },
         true);

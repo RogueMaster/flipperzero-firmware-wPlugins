@@ -14,8 +14,7 @@ typedef EspSerial RhUart;
 typedef EspSerialRxCallback RhUartRxCallback;
 
 static inline bool rh_uart_connected_check(const char* line) {
-    return strstr(line, "RH:") || strstr(line, "analysis_state") ||
-           strstr(line, "rayhunter");
+    return strstr(line, "RH:") || strstr(line, "analysis_state") || strstr(line, "rayhunter");
 }
 
 static inline RhUart* rh_uart_alloc(void) {
@@ -27,7 +26,7 @@ static inline RhUart* rh_uart_alloc(void) {
     return esp_serial_alloc(&cfg);
 }
 
-#define rh_uart_free esp_serial_free
-#define rh_uart_send esp_serial_send
+#define rh_uart_free            esp_serial_free
+#define rh_uart_send            esp_serial_send
 #define rh_uart_set_rx_callback esp_serial_set_rx_callback
-#define rh_uart_is_connected esp_serial_is_connected
+#define rh_uart_is_connected    esp_serial_is_connected

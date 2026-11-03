@@ -57,8 +57,8 @@ static int32_t esp_serial_rx_worker(void* context) {
 
     while(uart->running) {
         uint8_t byte;
-        size_t received = furi_stream_buffer_receive(
-            uart->rx_stream, &byte, 1, furi_ms_to_ticks(100));
+        size_t received =
+            furi_stream_buffer_receive(uart->rx_stream, &byte, 1, furi_ms_to_ticks(100));
 
         if(received == 0) continue;
 

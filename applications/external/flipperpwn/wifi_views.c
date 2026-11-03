@@ -1049,11 +1049,7 @@ static void fpwn_wifi_save_results(FPwnApp* app) {
             storage_file_write(file, hdr, strlen(hdr));
             for(uint32_t i = 0; i < host_count; i++) {
                 int n = snprintf(
-                    line,
-                    sizeof(line),
-                    "%s  %s\n",
-                    hosts[i].ip,
-                    hosts[i].alive ? "UP" : "down");
+                    line, sizeof(line), "%s  %s\n", hosts[i].ip, hosts[i].alive ? "UP" : "down");
                 if(n > 0 && n < (int)sizeof(line)) storage_file_write(file, line, (uint16_t)n);
             }
             storage_file_write(file, "\n", 1);
@@ -1114,8 +1110,8 @@ static void fpwn_wifi_save_results(FPwnApp* app) {
             const char* hdr = "=== Captured Credentials ===\n";
             storage_file_write(file, hdr, strlen(hdr));
             for(uint32_t i = 0; i < cred_count; i++) {
-                int n = snprintf(
-                    line, sizeof(line), "[%lu] %s\n", (unsigned long)i, creds[i].data);
+                int n =
+                    snprintf(line, sizeof(line), "[%lu] %s\n", (unsigned long)i, creds[i].data);
                 if(n > 0 && n < (int)sizeof(line)) storage_file_write(file, line, (uint16_t)n);
             }
             storage_file_write(file, "\n", 1);

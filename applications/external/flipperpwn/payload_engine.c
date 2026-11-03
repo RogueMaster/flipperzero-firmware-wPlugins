@@ -1939,17 +1939,11 @@ static void fpwn_exec_command(const char* line, FPwnApp* app) {
             return;
         }
         FPwnStation* stas = malloc(FPWN_MAX_STATIONS * sizeof(FPwnStation));
-        uint32_t sta_count =
-            fpwn_marauder_copy_stations(app->marauder, stas, FPWN_MAX_STATIONS);
+        uint32_t sta_count = fpwn_marauder_copy_stations(app->marauder, stas, FPWN_MAX_STATIONS);
         for(uint32_t i = 0; i < sta_count; i++) {
             char buf[96];
             snprintf(
-                buf,
-                sizeof(buf),
-                "%s  %ddBm  %s",
-                stas[i].mac,
-                (int)stas[i].rssi,
-                stas[i].ap_ssid);
+                buf, sizeof(buf), "%s  %ddBm  %s", stas[i].mac, (int)stas[i].rssi, stas[i].ap_ssid);
             fpwn_type_string(buf);
             furi_hal_hid_kb_press(HID_KEYBOARD_RETURN);
             furi_hal_hid_kb_release(HID_KEYBOARD_RETURN);

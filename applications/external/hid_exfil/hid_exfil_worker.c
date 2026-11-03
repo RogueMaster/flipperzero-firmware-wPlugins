@@ -251,8 +251,7 @@ static bool phase_inject(HidExfilWorker* worker) {
     if(!worker->running || worker->state.abort_requested) return false;
 
     /* Get the payload script */
-    char* script =
-        hid_exfil_get_payload_script(worker->payload_type, worker->config.target_os);
+    char* script = hid_exfil_get_payload_script(worker->payload_type, worker->config.target_os);
 
     /* Type the script */
     type_string(script, delay, worker);

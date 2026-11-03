@@ -20,7 +20,7 @@ static inline FPwnWifiUart* fpwn_wifi_uart_alloc(void) {
     return esp_serial_alloc(&cfg);
 }
 
-#define fpwn_wifi_uart_free esp_serial_free
-#define fpwn_wifi_uart_send esp_serial_send
+#define fpwn_wifi_uart_free            esp_serial_free
+#define fpwn_wifi_uart_send            esp_serial_send
 #define fpwn_wifi_uart_set_rx_callback esp_serial_set_rx_callback
-#define fpwn_wifi_uart_is_connected esp_serial_is_connected
+#define fpwn_wifi_uart_is_connected    esp_serial_is_connected

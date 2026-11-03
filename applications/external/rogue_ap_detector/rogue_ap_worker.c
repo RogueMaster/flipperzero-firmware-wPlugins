@@ -312,10 +312,9 @@ static void rogue_uart_line_cb(const char* line, void* ctx) {
      * those words can appear inside a real scanap line's ESSID field. Valid AP
      * lines begin with a digit or '-', so none collide with these prefixes. */
     if(strncmp(line, "Scanning", 8) == 0 || strncmp(line, "Starting", 8) == 0 ||
-       strncmp(line, "Stopping", 8) == 0 || line[0] == '>' ||
-       strncmp(line, "Started", 7) == 0 || strncmp(line, "Done", 4) == 0 ||
-       strncmp(line, "[APs]", 5) == 0 || strncmp(line, "Scan complete", 13) == 0 ||
-       strncmp(line, "Stop with", 9) == 0)
+       strncmp(line, "Stopping", 8) == 0 || line[0] == '>' || strncmp(line, "Started", 7) == 0 ||
+       strncmp(line, "Done", 4) == 0 || strncmp(line, "[APs]", 5) == 0 ||
+       strncmp(line, "Scan complete", 13) == 0 || strncmp(line, "Stop with", 9) == 0)
         return;
 
     /* Debug-only: compiled out of release builds, off the hot RX path. */

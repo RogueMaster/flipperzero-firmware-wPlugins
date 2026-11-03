@@ -17,7 +17,7 @@ static inline RogueUart* rogue_uart_alloc(void) {
     return esp_serial_alloc(&cfg);
 }
 
-#define rogue_uart_free esp_serial_free
-#define rogue_uart_send esp_serial_send
+#define rogue_uart_free            esp_serial_free
+#define rogue_uart_send            esp_serial_send
 #define rogue_uart_set_rx_callback esp_serial_set_rx_callback
-#define rogue_uart_is_connected esp_serial_is_connected
+#define rogue_uart_is_connected    esp_serial_is_connected
