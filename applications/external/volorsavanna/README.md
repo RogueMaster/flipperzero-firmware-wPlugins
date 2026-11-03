@@ -1,15 +1,16 @@
 ## Volor Savanna is a text adventure game
 
 #### COMPLETE:
+* AppleScript
 * Bash
 * C
 * Flipper Zero
 * Python
-* Web https://invizabel.github.io/VolorSavanna
 
 #### TODO:
 * Go
 * TI 84
+* Web https://invizabel.github.io/VolorSavanna
 
 #### To play:
 * Python (Windows): pip install VolorSavanna && python3 -m VolorSavanna
