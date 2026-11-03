@@ -343,7 +343,7 @@ Make your choice " & user_name & ":
 The baby turns out to be an orphan.
 His mother was killed by the enemy tribe and the baby was left by the Big Pond.
 You raise him as your own.
-He becomes a great warrior and you user_name him Bobert.
+He becomes a great warrior and you name him Bobert.
 You need to go hunt down the enemy that attacked your tribe years ago.
 Do you take your son with you?
 
