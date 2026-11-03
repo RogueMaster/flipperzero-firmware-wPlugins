@@ -1,246 +1,57 @@
 {
-    "request": {
-        "character": [
-            1,
-            2,
-            3,
-            4,
-            5,
-            "\"e\""
-        ],
-        "hunter_list_1": [
-            1,
-            2
-        ],
-        "hunter_list_2": [
-            1,
-            2
-        ],
-        "hunter_list_3": [
-            1,
-            2
-        ],
-        "hunter_list_4": [
-            1,
-            2
-        ],
-        "hunter_list_5": [
-            1,
-            2
-        ],
-        "hunter_list_6": [
-            1,
-            2,
-            3
-        ],
-        "hunter_list_7": [
-            1,
-            2
-        ],
-        "hunter_list_8": [
-            1,
-            2,
-            "rand"
-        ],
-        "hunter_list_9": [
-            1,
-            "1",
-            "rand",
-            1,
-            "2"
-        ],
-        "hunter_list_10": [
-            1,
-            2
-        ],
-        "the_mighty_lion_list_1": [
-            1,
-            2,
-            3
-        ],
-        "the_mighty_lion_list_2": [
-            1,
-            2
-        ],
-        "the_mighty_lion_list_3": [
-            1,
-            2
-        ],
-        "the_mighty_lion_list_4": [
-            1,
-            2
-        ],
-        "the_mighty_lion_list_5": [
-            1,
-            2
-        ],
-        "the_mighty_lion_list_6": [
-            1,
-            2
-        ],
-        "the_mighty_lion_terrain_list_1": [
-            1,
-            2
-        ],
-        "the_mighty_lion_terrain_list_2": [
-            1,
-            2
-        ],
-        "the_mighty_lion_terrain_list_3": [
-            1,
-            2,
-            3,
-            4,
-            "rand"
-        ],
-        "the_mighty_lion_terrain_list_4": [
-            1,
-            "1",
-            "rand",
-            1,
-            "2"
-        ],
-        "warrior_list_1": [
-            1,
-            2
-        ],
-        "warrior_list_2": [
-            1,
-            2
-        ],
-        "warrior_list_3": [
-            1,
-            2
-        ],
-        "warrior_list_4": [
-            1,
-            2
-        ],
-        "warrior_list_5": [
-            1,
-            2
-        ],
-        "crafter_list_1": [
-            1,
-            2
-        ],
-        "crafter_list_2": [
-            1,
-            2
-        ],
-        "crafter_list_3": [
-            1,
-            2
-        ],
-        "crafter_list_4": [
-            1,
-            2,
-            "rand"
-        ],
-        "crafter_list_5": [
-            1,
-            "1",
-            "rand",
-            1,
-            "2"
-        ],
-        "crafter_list_6": [
-            1,
-            2
-        ],
-        "farmer_list_1": [
-            1,
-            2
-        ],
-        "farmer_list_2": [
-            1,
-            2
-        ],
-        "farmer_list_3": [
-            1,
-            2
-        ],
-        "farmer_list_4": [
-            1,
-            2
-        ],
-        "farmer_list_5": [
-            1,
-            2
-        ],
-        "farmer_list_6": [
-            1,
-            2
-        ],
-        "medicine_person_list_1": [
-            1,
-            2
-        ],
-        "medicine_person_list_2": [
-            1,
-            2
-        ],
-        "medicine_person_list_3": [
-            1,
-            2
-        ],
-        "medicine_person_list_4": [
-            1,
-            2,
-            "rand"
-        ],
-        "medicine_person_list_5": [
-            1,
-            "1",
-            "rand",
-            1,
-            "2"
-        ],
-        "medicine_person_list_6": [
-            1,
-            "\"",
-            "1",
-            "\"",
-            "rand",
-            2,
-            "\"",
-            "2",
-            "\"",
-            3,
-            "\"",
-            "3",
-            "\""
-        ],
-        "medicine_person_list_8": [
-            1,
-            2,
-            3,
-            4,
-            5
-        ],
-        "medicine_person_list_9": [
-            1,
-            2,
-            3,
-            4,
-            5
-        ],
-        "medicine_person_list_10": [
-            1,
-            2
-        ],
-        "medicine_person_list_11": [
-            1,
-            2,
-            "rand"
-        ],
-        "medicine_person_list_12": [
-            1,
-            "1",
-            "rand",
-            1,
-            "2"
-        ]
+    "index": {
+        "name": 0,
+        "character": 1,
+        "hunter_1": 2,
+        "hunter_2": 3,
+        "end": 4,
+        "hunter_3": 5,
+        "hunter_4": 6,
+        "hunter_5": 7,
+        "hunter_6": 8,
+        "hunter_7": 9,
+        "hunter_8": 10,
+        "hunter_9": 11,
+        "hunter_10": 12,
+        "the_mighty_lion_1": 13,
+        "the_mighty_lion_2": 14,
+        "the_mighty_lion_3": 15,
+        "the_mighty_lion_4": 16,
+        "the_mighty_lion_5": 17,
+        "the_mighty_lion_6": 18,
+        "the_mighty_lion_terrain_1": 19,
+        "the_mighty_lion_terrain_2": 20,
+        "the_mighty_lion_terrain_3": 21,
+        "the_mighty_lion_terrain_4": 22,
+        "warrior_1": 23,
+        "warrior_2": 24,
+        "warrior_3": 25,
+        "warrior_4": 26,
+        "warrior_5": 27,
+        "crafter_1": 28,
+        "crafter_2": 29,
+        "crafter_3": 30,
+        "crafter_4": 31,
+        "crafter_5": 32,
+        "crafter_6": 33,
+        "farmer_1": 34,
+        "farmer_2": 35,
+        "farmer_3": 36,
+        "farmer_4": 37,
+        "farmer_5": 38,
+        "farmer_6": 39,
+        "medicine_person_1": 40,
+        "medicine_person_2": 41,
+        "medicine_person_3": 42,
+        "medicine_person_4": 43,
+        "medicine_person_5": 44,
+        "medicine_person_6": 45,
+        "medicine_person_7": 46,
+        "medicine_person_8": 47,
+        "medicine_person_9": 48,
+        "medicine_person_10": 49,
+        "medicine_person_11": 50,
+        "medicine_person_12": 51
     },
     "response": {
         "name": "What is your name?\\n",
