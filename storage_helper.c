@@ -96,17 +96,6 @@ static bool files_equal(const FileRecord *a, const FileRecord *b, void *context)
     return equal;
 }
 
-void storage_refresh_duplicates(SubDupFinderApp *app) {
-    if (!scan_dir_is_valid(app->scanned_dir)) {
-        app->db.num_groups = 0;
-        return;
-    }
-    Storage *storage = furi_record_open(RECORD_STORAGE);
-    FileCompareContext compare = {storage, app->scanned_dir};
-    process_duplicates_verified(&app->db, files_equal, &compare);
-    furi_record_close(RECORD_STORAGE);
-}
-
 bool storage_scan_directory(SubDupFinderApp *app, const char *dir, ScanStats *stats) {
     memset(stats, 0, sizeof(*stats));
     app->db.count = 0;

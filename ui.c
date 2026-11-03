@@ -294,7 +294,7 @@ static void confirm_callback(DialogExResult result, void *context) {
         uint32_t current_size = app->db.groups[app->selected_group_index].size;
 
         db_remove_record(&app->db, app->selected_name);
-        storage_refresh_duplicates(app);
+        process_duplicates(&app->db);
         ui_render_groups(app);
 
         int new_index = -1;
