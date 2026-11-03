@@ -1,0 +1,26 @@
+BLE Clipboard is an independent, unofficial project for Flipper Zero.
+It is not affiliated with Flipper Devices, Apple, or Homebrew.
+
+The Flipper application uses the public Flipper Zero firmware SDK and its
+Bluetooth, GUI, storage, and USB HID APIs, maintained by Flipper Devices Inc.
+and contributors: https://github.com/flipperdevices/flipperzero-firmware
+
+Source code in this repository is licensed under GPL-3.0-only; see LICENSE.
+The SDK, firmware, Apple frameworks, and Homebrew retain their own licenses.
+
+Version 0.3.0 and later use this project's own BLE transport, typed binary macro format,
+program validator and USB execution state machine. It does not bundle another
+project's typing engine or a third-party script interpreter.
+
+The built-in macOS Turkish-Q mapping uses standard USB HID usages and was
+checked against Apple's installed keyboard translation through UCKeyTranslate.
+No Apple keyboard layout binary or private framework is redistributed.
+
+The macOS icon was generated using OpenAI image generation and adapted into
+Apple's ICNS sizes using sips and iconutil. See docs/ARTWORK.md.
+
+Catalog screenshots are unmodified qFlipper exports. The optional host preview
+adapter uses official firmware 1.5.1 u8g2/font/button resources. Firmware GUI
+behavior is GPL-3.0 licensed; u8g2 retains its upstream BSD license and font
+notices. No firmware library or font source is vendored by the adapter. See the
+provenance under BluetoothClipboard/screenshots and the firmware source above.

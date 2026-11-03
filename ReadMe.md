@@ -174,6 +174,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [SSH Runner v0.3 author version, changelog and status-text documentation (By SeanChangX)](https://github.com/SeanChangX/flipper-ssh-runner)
 - Dev: [Add NFC supported-card parser load checks and synthetic Bambu Lab parser tests (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1204)
 - Sub-GHz: [Marantec24 gap timing, Linear Delta 3 repeat/reset handling, Holtek HT12X reset and radio-faithful unit tests (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1207)
+- Added: [BLE Clipboard v0.5.2 - authenticated BLE clipboard and macro transfer to USB keyboard/mouse, with SD snapshots (By otcan)](https://github.com/otcan/ble-clipboard)
 
 <a name="release"></a>
 
@@ -539,6 +540,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [BlackJack Counter v1.0 (By grugnoymeme)](https://github.com/grugnoymeme/flipperzero-blackjack_counter-fap)
 - [BLE Beacon v1.1 (By steanlab)](https://github.com/steanlab/BLE-Beacon)
 - [BLE Clicker v1.0 (By random1st)](https://github.com/random1st/flipper-ble-clicker)
+- [BLE Clipboard v0.5.2 (By otcan)](https://github.com/otcan/ble-clipboard)
 - [BLE Killer v1.1 (By H4lo)](https://github.com/H4lo/flipper_zero_ble_killer) `Req: ESP32`
 - [BLE Scanner v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite) `Req: ESP32`
 - [BLE Spam v6.6 (By WillyJL & ECTO-1A & Spooks4576 with research from xMasterX; OFW API thanks to noproto)](https://github.com/Next-Flip/Momentum-Apps/tree/dev/ble_spam)
