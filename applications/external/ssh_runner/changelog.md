@@ -1,3 +1,6 @@
+v0.3:
+- The one-time move of a pre-release board key to the SD card is gone; the app no longer asks the board for it.
+
 v0.2:
 - First version in the Apps Catalog.
 - SSH from the Flipper over LAN or 2.4 GHz WiFi through the SSH Runner add-on board (ESP32-S3 with a W5500).

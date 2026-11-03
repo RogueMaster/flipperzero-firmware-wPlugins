@@ -7,6 +7,7 @@
 #include <toolbox/pipe.h>
 #include <loader/loader.h>
 #include <storage/storage.h>
+#include <dialogs/dialogs.h>
 #include <notification/notification_messages.h>
 
 #include <loader/firmware_api/firmware_api.h>
@@ -77,7 +78,7 @@ void test_runner_free(TestRunner* instance) {
 #define TEST_RUNNER_TMP_DIR            EXT_PATH(".tmp")
 #define TEST_RUNNER_TMP_UNIT_TESTS_DIR TEST_RUNNER_TMP_DIR "/unit_tests"
 
-static void test_runner_run_plugin(TestRunner* instance, const char* name, const char* path) {
+static bool test_runner_run_plugin(TestRunner* instance, const char* name, const char* path) {
     furi_assert(instance);
 
     FURI_LOG_D(TAG, "Loading %s", path);
@@ -91,6 +92,7 @@ static void test_runner_run_plugin(TestRunner* instance, const char* name, const
     // not ours, instead of calling whatever it exports as a TestApi
     PluginManagerError error = plugin_manager_load_single(manager, path);
 
+    bool result = false;
     const TestApi* test = NULL;
     if(error == PluginManagerErrorNone) {
         test = plugin_manager_get_ep(manager, 0);
@@ -98,6 +100,7 @@ static void test_runner_run_plugin(TestRunner* instance, const char* name, const
 
     if(test && test->run && test->get_minunit_run && test->get_minunit_assert) {
         int failed = test->run();
+        result = (failed == 0);
 
         instance->minunit_run += test->get_minunit_run();
         instance->minunit_assert += test->get_minunit_assert();
@@ -114,6 +117,7 @@ static void test_runner_run_plugin(TestRunner* instance, const char* name, const
     }
 
     plugin_manager_free(manager);
+    return result;
 }
 
 static bool test_runner_prepare(TestRunner* instance, File* directory) {
@@ -150,7 +154,7 @@ static void test_runner_run_internal(TestRunner* instance) {
 
         // Carry on after a failing suite: one broken suite once cost the run the other 28
         while(true) {
-            if(cli_is_pipe_broken_or_is_etx_next_char(instance->pipe)) {
+            if(instance->pipe && cli_is_pipe_broken_or_is_etx_next_char(instance->pipe)) {
                 printf("Interrupted\r\n");
                 instance->incomplete = true;
                 break;
@@ -177,7 +181,25 @@ static void test_runner_run_internal(TestRunner* instance) {
             }
 
             suites_started++;
-            test_runner_run_plugin(instance, file_basename_cstr, furi_string_get_cstr(file_name));
+            if(!test_runner_run_plugin(
+                   instance, file_basename_cstr, furi_string_get_cstr(file_name))) {
+                if(!instance->pipe) {
+                    notification_message(instance->notification, &sequence_error);
+
+                    DialogsApp* dialogs = furi_record_open(RECORD_DIALOGS);
+                    DialogMessage* message = dialog_message_alloc();
+                    dialog_message_set_header(
+                        message, "Failed Test:", 64, 30, AlignCenter, AlignBottom);
+                    dialog_message_set_text(
+                        message, file_basename_cstr, 64, 34, AlignCenter, AlignTop);
+                    dialog_message_show(dialogs, message);
+                    dialog_message_free(message);
+                    furi_record_close(RECORD_DIALOGS);
+
+                    notification_message_block(
+                        instance->notification, &sequence_set_only_blue_255);
+                }
+            }
         }
 
         // Naming a suite that is not there is a typo, not an empty pass
@@ -194,7 +216,11 @@ static void test_runner_run_internal(TestRunner* instance) {
 }
 
 /** Print the whole report on every path, and return whether the run may be called a pass. */
-static bool test_runner_print_report(TestRunner* instance, uint32_t heap_before, uint32_t start) {
+static bool test_runner_print_report(
+    TestRunner* instance,
+    uint32_t heap_before,
+    uint32_t start,
+    bool show_dialog) {
     printf("\r\nTests run: %d, asserts: %d\r\n", instance->minunit_run, instance->minunit_assert);
     printf("Failed tests: %d\r\n", instance->minunit_fail);
     if(instance->suites_not_run) {
@@ -220,6 +246,31 @@ static bool test_runner_print_report(TestRunner* instance, uint32_t heap_before,
     bool passed = (instance->minunit_fail == 0) && !instance->incomplete;
     printf("Status: %s\r\n", passed ? "PASSED" : "FAILED");
 
+    if(show_dialog) {
+        if(!instance->pipe) {
+            notification_message(
+                instance->notification, passed ? &sequence_success : &sequence_error);
+            char text[70];
+            snprintf(
+                text,
+                sizeof(text),
+                "Failed tests: %d\n"
+                "Consumed: %lu ms\n"
+                "Leaked: %ld",
+                instance->minunit_fail,
+                furi_get_tick() - start,
+                leaked);
+            DialogsApp* dialogs = furi_record_open(RECORD_DIALOGS);
+            DialogMessage* message = dialog_message_alloc();
+            dialog_message_set_header(
+                message, passed ? "PASSED" : "FAILED", 64, 8, AlignCenter, AlignTop);
+            dialog_message_set_text(message, text, 64, 38, AlignCenter, AlignCenter);
+            dialog_message_show(dialogs, message);
+            dialog_message_free(message);
+            furi_record_close(RECORD_DIALOGS);
+        }
+    }
+
     return passed;
 }
 
@@ -239,7 +290,7 @@ void test_runner_run(TestRunner* instance) {
         test_runner_run_internal(instance);
     }
 
-    bool passed = test_runner_print_report(instance, heap_before, start);
+    bool passed = test_runner_print_report(instance, heap_before, start, !locked);
 
     // Always ends on a sequence, so the blue "running" light cannot be left on
     const NotificationSequence* result = &sequence_error;
@@ -248,5 +299,7 @@ void test_runner_run(TestRunner* instance) {
     } else if(passed) {
         result = &sequence_success;
     }
-    notification_message(instance->notification, result);
+    if(instance->pipe || locked) {
+        notification_message(instance->notification, result);
+    }
 }

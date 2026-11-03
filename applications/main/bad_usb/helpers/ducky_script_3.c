@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <toolbox/stream/stream.h>
 
-#define DUCKY3_NO_LINE ((size_t)-1)
+#define DUCKY3_NO_LINE ((size_t) - 1)
 
 typedef struct {
     BadUsbScript* bad_usb;
@@ -15,7 +15,8 @@ typedef struct {
 } Ducky3ExpressionParser;
 
 static const char* ducky3_skip_spaces(const char* input) {
-    while(*input == ' ' || *input == '\t') input++;
+    while(*input == ' ' || *input == '\t')
+        input++;
     return input;
 }
 
@@ -66,7 +67,8 @@ static Ducky3Variable* ducky3_find_variable(BadUsbScript* bad_usb, const char* n
     return NULL;
 }
 
-static bool ducky3_set_variable(BadUsbScript* bad_usb, const char* name, const Ducky3Value* value) {
+static bool
+    ducky3_set_variable(BadUsbScript* bad_usb, const char* name, const Ducky3Value* value) {
     Ducky3Variable* variable = ducky3_find_variable(bad_usb, name);
     if(!variable) {
         if(bad_usb->ducky3.variable_count >= DUCKY3_MAX_VARIABLES) return false;
@@ -124,10 +126,8 @@ static Ducky3Function* ducky3_find_function(BadUsbScript* bad_usb, const char* n
     return NULL;
 }
 
-static bool ducky3_begin_call(
-    Ducky3ExpressionParser* parser,
-    Ducky3Function* function,
-    const char* name) {
+static bool
+    ducky3_begin_call(Ducky3ExpressionParser* parser, Ducky3Function* function, const char* name) {
     BadUsbScript* bad_usb = parser->bad_usb;
     if(bad_usb->ducky3.call_depth >= DUCKY3_MAX_CALL_DEPTH) {
         parser->error = true;
@@ -139,10 +139,8 @@ static bool ducky3_begin_call(
     frame->return_line = bad_usb->st.line_cur - 1;
     ducky3_copy_string(frame->expression, DUCKY3_MAX_EXPRESSION, parser->start);
 
-    ducky3_copy_string(
-        bad_usb->ducky3.deferred_function, DUCKY3_MAX_VAR_NAME, function->name);
-    ducky3_copy_string(
-        bad_usb->ducky3.deferred_expression, DUCKY3_MAX_EXPRESSION, parser->start);
+    ducky3_copy_string(bad_usb->ducky3.deferred_function, DUCKY3_MAX_VAR_NAME, function->name);
+    ducky3_copy_string(bad_usb->ducky3.deferred_expression, DUCKY3_MAX_EXPRESSION, parser->start);
     bad_usb->ducky3.has_deferred = true;
     bad_usb->ducky3.has_return_value = false;
     bad_usb->ducky3.jump_line = function->start_line + 1;
@@ -566,11 +564,8 @@ static int32_t ducky3_output_string(BadUsbScript* bad_usb, const char* expressio
     return SCRIPT_STATE_STRING_START;
 }
 
-static Ducky3Block* ducky3_find_block(
-    BadUsbScript* bad_usb,
-    Ducky3BlockType type,
-    size_t line,
-    bool else_block) {
+static Ducky3Block*
+    ducky3_find_block(BadUsbScript* bad_usb, Ducky3BlockType type, size_t line, bool else_block) {
     for(size_t i = 0; i < bad_usb->ducky3.block_count; i++) {
         Ducky3Block* block = &bad_usb->ducky3.blocks[i];
         if(block->type != type) continue;
@@ -583,10 +578,8 @@ static Ducky3Block* ducky3_find_block(
     return NULL;
 }
 
-static Ducky3Block* ducky3_find_end_block(
-    BadUsbScript* bad_usb,
-    Ducky3BlockType type,
-    size_t line) {
+static Ducky3Block*
+    ducky3_find_end_block(BadUsbScript* bad_usb, Ducky3BlockType type, size_t line) {
     for(size_t i = 0; i < bad_usb->ducky3.block_count; i++) {
         Ducky3Block* block = &bad_usb->ducky3.blocks[i];
         if(block->type == type && block->end_line == line) return block;
@@ -865,7 +858,8 @@ int32_t ducky3_parse_line(BadUsbScript* bad_usb, const char* line) {
         else if(strcmp(line, "RANDOM_SPECIAL") == 0)
             characters = "!@#$%^&*()";
         else if(strcmp(line, "RANDOM_CHAR") == 0)
-            characters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()";
+            characters =
+                "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()";
         if(!characters) return ducky_error(bad_usb, "Unknown random command %s", line);
         size_t count = strlen(characters);
         char output[2] = {characters[furi_hal_random_get() % count], '\0'};
@@ -882,8 +876,9 @@ int32_t ducky3_parse_line(BadUsbScript* bad_usb, const char* line) {
             if(!function) return ducky_error(bad_usb, "Unknown function %s", function_name);
             if(bad_usb->ducky3.has_return_value &&
                strcmp(bad_usb->ducky3.deferred_function, function_name) == 0 &&
-               strcmp(ducky3_skip_spaces(bad_usb->ducky3.deferred_expression),
-                      ducky3_skip_spaces(line)) == 0) {
+               strcmp(
+                   ducky3_skip_spaces(bad_usb->ducky3.deferred_expression),
+                   ducky3_skip_spaces(line)) == 0) {
                 bad_usb->ducky3.has_return_value = false;
                 bad_usb->ducky3.has_deferred = false;
                 bad_usb->ducky3.deferred_function[0] = '\0';
@@ -1014,7 +1009,8 @@ bool ducky3_preload(BadUsbScript* bad_usb, File* script_file) {
                     success = false;
                 } else {
                     parent->else_line = current_line;
-                    success = ducky3_push_block(bad_usb, stack, &depth, Ducky3BlockIf, current_line);
+                    success =
+                        ducky3_push_block(bad_usb, stack, &depth, Ducky3BlockIf, current_line);
                     if(success) {
                         Ducky3Block* block =
                             &bad_usb->ducky3.blocks[bad_usb->ducky3.block_count - 1];

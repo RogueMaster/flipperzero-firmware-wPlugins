@@ -11,7 +11,7 @@ typedef struct {
     bool demo; /* mock backend active */
     bool lan_up;
     bool wifi_up;
-    char text[32]; /* right side: IP, "No ESP32 board", ... */
+    char text[32]; /* right side: IP, "No board", "No network", ... */
 } HomeStatus;
 
 HomeView* home_view_alloc(void);

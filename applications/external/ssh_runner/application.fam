@@ -37,6 +37,6 @@ App(
     fap_author="SeanChangX",
     fap_weburl="https://github.com/SeanChangX/flipper-ssh-runner",
     # fap_weburl="https://scx.tw/links",
-    fap_version="0.2",
+    fap_version="0.3",
     fap_description="Run SSH commands and SD-card scripts through an ESP32-S3 + W5500 (LAN/WiFi) add-on board.",
 )

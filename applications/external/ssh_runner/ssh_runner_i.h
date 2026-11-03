@@ -28,7 +28,7 @@
 #include "views/wifi_list_view.h"
 #include "scenes/ssh_runner_scene.h"
 
-#define SSH_RUNNER_VERSION "0.2"
+#define SSH_RUNNER_VERSION "0.3"
 /* as fap_author and fap_weburl in application.fam */
 #define SSH_RUNNER_AUTHOR  "SeanChangX"
 #define SSH_RUNNER_WEB     "scx.tw/links"

@@ -89,17 +89,6 @@ static bool files_equal(const FileRecord* a, const FileRecord* b, void* context)
     return equal;
 }
 
-void storage_refresh_duplicates(SubDupFinderApp* app) {
-    if(!scan_dir_is_valid(app->scanned_dir)) {
-        app->db.num_groups = 0;
-        return;
-    }
-    Storage* storage = furi_record_open(RECORD_STORAGE);
-    FileCompareContext compare = {storage, app->scanned_dir};
-    process_duplicates_verified(&app->db, files_equal, &compare);
-    furi_record_close(RECORD_STORAGE);
-}
-
 bool storage_scan_directory(SubDupFinderApp* app, const char* dir, ScanStats* stats) {
     memset(stats, 0, sizeof(*stats));
     app->db.count = 0;
@@ -141,8 +130,7 @@ bool storage_scan_directory(SubDupFinderApp* app, const char* dir, ScanStats* st
             if(scan_add_file(&app->db, stats, filename, size, crc, read_ok) == ScanAddStop) break;
         }
         storage_dir_close(dir_file);
-        FileCompareContext compare = {storage, app->scanned_dir};
-        process_duplicates_verified(&app->db, files_equal, &compare);
+        process_duplicates(&app->db);
     }
 
     storage_file_free(dir_file);
@@ -162,22 +150,7 @@ StorageDeleteResult storage_delete_duplicate(SubDupFinderApp* app, const char* n
     if(selected == app->db.count) return StorageDeleteChanged;
     Storage* storage = furi_record_open(RECORD_STORAGE);
     FileCompareContext compare = {storage, app->scanned_dir};
-    bool confirmed = false;
-    for(size_t g = 0; g < app->db.num_groups && !confirmed; g++) {
-        const DuplicateGroup* group = &app->db.groups[g];
-        if(group->count < 2 || group->start_index > selected ||
-           group->start_index > app->db.count ||
-           group->count > app->db.count - group->start_index ||
-           selected - group->start_index >= group->count)
-            continue;
-        for(size_t i = group->start_index; i < group->start_index + group->count; i++) {
-            if(i != selected &&
-               files_equal(&app->db.records[selected], &app->db.records[i], &compare)) {
-                confirmed = true;
-                break;
-            }
-        }
-    }
+    bool confirmed = db_has_identical_peer(&app->db, selected, files_equal, &compare);
     char path[FULL_PATH_LEN];
     StorageDeleteResult result = StorageDeleteChanged;
     if(confirmed && path_join(path, sizeof(path), app->scanned_dir, name))

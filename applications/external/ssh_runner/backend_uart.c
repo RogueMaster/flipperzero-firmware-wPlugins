@@ -514,7 +514,7 @@ static void on_timeout(void* ctx, uint8_t req, uint16_t seq) {
         u->lt.done = true;
         lt_emit(u);
     }
-    /* A keepalive or link-test ECHO is internal: losing it is shown as "No ESP32 board",
+    /* A keepalive or link-test ECHO is internal: losing it is shown as "No board",
      * not as a failed user action. */
     if(req != PROTO_T_ECHO || was_test) {
         u->script = ScriptIdle;

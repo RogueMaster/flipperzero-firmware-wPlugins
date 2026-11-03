@@ -12,6 +12,7 @@
 #define MIN_DELAY_MS 1500
 #define MAX_DELAY_MS 5000
 #define STATS_PATH   APP_DATA_PATH("stats.txt")
+#define NICE_MS      130
 
 typedef enum {
     ScreenStartup,
@@ -82,7 +83,7 @@ static void draw_splash(Canvas* canvas, ReactionApp* app) {
     if(avg > 0) {
         snprintf(buf, sizeof(buf), "Average: %lu ms", avg);
         //canvas_draw_str(canvas, 64, 32, buf);
-        canvas_draw_str_aligned(canvas, 64, 40, AlignCenter, AlignBottom, buf);
+        canvas_draw_str_aligned(canvas, 64, 38, AlignCenter, AlignBottom, buf);
     }
     //canvas_set_font(canvas, FontSecondary);
     elements_button_left(canvas, "Reset");
@@ -107,6 +108,7 @@ static void draw_too_early(Canvas* canvas, ReactionApp* app) {
     canvas_draw_str_aligned(canvas, 64, 20, AlignCenter, AlignCenter, "Failed...");
     canvas_set_font(canvas, FontSecondary);
     canvas_draw_str_aligned(canvas, 64, 35, AlignCenter, AlignCenter, "You pressed too early");
+    elements_button_center(canvas, "Continue");
 }
 
 static void draw_back_icon(Canvas* canvas, int32_t x, int32_t y) {
@@ -124,11 +126,17 @@ static void draw_back_icon(Canvas* canvas, int32_t x, int32_t y) {
 static void draw_reaction_ms(Canvas* canvas, ReactionApp* app) {
     char buf[40];
     uint32_t reaction_time_ms = app->reaction_ms;
+
+    if(reaction_time_ms < NICE_MS) {
+        canvas_set_font(canvas, FontSecondary);
+        canvas_draw_str_aligned(canvas, 64, 45, AlignCenter, AlignCenter, "Nice!");
+    }
+
     canvas_set_font(canvas, FontSecondary);
     canvas_draw_str_aligned(canvas, 64, 20, AlignCenter, AlignCenter, "Your reaction time was:");
     snprintf(buf, sizeof(buf), "%lu ms", reaction_time_ms);
     canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str_aligned(canvas, 64, 32, AlignCenter, AlignTop, buf);
+    canvas_draw_str_aligned(canvas, 64, 30, AlignCenter, AlignTop, buf);
     elements_button_center(canvas, "Again");
     draw_back_icon(canvas, 2, 55);
     canvas_set_font(canvas, FontSecondary);

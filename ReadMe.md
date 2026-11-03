@@ -118,7 +118,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [CFS Tag Writer+ v1.5 - reusable spool templates, save-type chooser and template deletion (By BaniMun)](https://github.com/BaniMun/cfs-tag-writer)
 - Updated: [TagTinker v2.1 (By i12bp8)](https://github.com/i12bp8/TagTinker) [Preserve saved target IDs (By bey0ne)](https://github.com/i12bp8/TagTinker/pull/65)
 - Updated: [Image Viewer v0.2 (By polioan)](https://github.com/polioan/flipper-zero-image-viewer) [Bounded bitmap reads and corrected rendering (By B0L1V3RS)](https://github.com/polioan/flipper-zero-image-viewer/pull/3)
-- Updated: [Sub Duplicate Finder v1.3 (By Endika)](https://github.com/Endika/flipper-sub-dup) [Verify duplicate contents and recheck before deletion (By squazaryu)](https://github.com/Endika/flipper-sub-dup/pull/22)
 - Updated: [Sub-GHz Scheduler v3.4 (By shalebridge)](https://github.com/shalebridge/flipper-subghz-scheduler) [Timed playlist files and on-device playlist management (By justinwlin)](https://github.com/shalebridge/flipper-subghz-scheduler/pull/13)
 - Updated: [Air Stats v1.0 (By thevan4)](https://github.com/thevan4/flipper-air-stats) [SCD40/41 CO2 selection, readiness checks and corrected I2C wiring (By ZeroNinx)](https://github.com/thevan4/flipper-air-stats/pull/1)
 - Updated: [Hermes v1.3 (By at0m-b0mb)](https://github.com/at0m-b0mb/Hermes-FlipperZero) [Release expansion UART ownership before baud detection (By jamisonderek)](https://github.com/at0m-b0mb/Hermes-FlipperZero/pull/1)
@@ -145,7 +144,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - SubGHz: [Complete TX rejection feedback and keep a failed send out of TX-wait on button release (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/1804b3982b39d3d839b8dccce5959a46be736be5).
 - SubGHz: [Complete Honeywell shared hash/serialization handlers while retaining RM 32-bit hashes (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/commit/5629fc5e1758e58deb0a903c81d765a7d05e7fe8).
 - Updated: [Bible [BSB] v1.2 (By dpshde)](https://github.com/dpshde/bible-bsb) Author adds chapter/book continuation, genre filtering and section headers, and reduces reader buffer memory.
-- Updated: [SSH Runner v0.2 (By SeanChangX)](https://github.com/SeanChangX/flipper-ssh-runner) Author removes unused reserved legacy message labels from the Flipper private protocol; SD-card key workflows remain; removes the pre-release v0 ESP32 key-migration path; SD-card key storage, generation and authentication remain.
 - Updated: [Infrared projector database unit test (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/commit/6aa1e55dc0677536a41c8114dea60d702c77433c) Use the shipped projectors.ir filename and register its Play/Pause buttons. [UL #1199](https://github.com/DarkFlippers/unleashed-firmware/pull/1199).
 - Added: [FN Tester v0.6.2 (By Igor Danilov)](https://github.com/polarikus/flipper-zero_fn_tester) `Req: FN/FN-M fiscal drive over UART`
 - Dev: [Remove the unreachable native JavaScript test plugin and its test-only module/types; document release-mode unit-test builds (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1199) The previous test plugin required four private functions unavailable to the resident test runner.
@@ -168,9 +166,12 @@ This software is for experimental purposes only and is not meant for any illegal
 - OFW: PR: [BadUSB Ducky 3.0 internal variables (By josaum)](https://github.com/flipperdevices/flipperzero-firmware/pull/4504)
 - OFW: PR: [BadUSB attack mode switching and restoration (By josaum)](https://github.com/flipperdevices/flipperzero-firmware/pull/4505)
 - OFW: PR: [BadUSB EXFIL and host keyboard lock-state support (By josaum)](https://github.com/flipperdevices/flipperzero-firmware/pull/4506)
-- Updated: [T5577 v1.1 - Sniff Password, user dictionary and read/restore fixes (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/commit/2cbad71c92e7482e7752f5ecb570c18b2d1a2c75)
 - Sub-GHz: [Fix the 6 test_subghz failures (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1207)
 - [Unit Test Updates (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1204)
+- Updated: [T5577 v1.2 - preserve Sniff Password captures when a noisy coil never goes quiet and report excessive noise (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1202)
+- Updated: [Reaction Time Stats fast-result visual feedback, Continue label and text positioning (By luvrltop)](https://github.com/luvrltop/ReactionTime)
+- Updated: [Sub Duplicate Finder v1.3.1 duplicate candidates retain byte-for-byte verification at deletion, with comparator tests (By squazaryu)](https://github.com/Endika/flipper-sub-dup/pull/22)
+- Updated: [SSH Runner v0.3 author version, changelog and status-text documentation (By SeanChangX)](https://github.com/SeanChangX/flipper-ssh-runner)
 
 <a name="release"></a>
 
@@ -1071,13 +1072,13 @@ This software is for experimental purposes only and is not meant for any illegal
 - [SPI Terminal v0.4 (By janwiesemann)](https://github.com/janwiesemann/flipper-spi-terminal)
 - [Spindle Calculator v1.0 (By Minto97)](https://github.com/Minto97/spindle-calc-flipper)
 - [SSD1306 Test v1.1 (By martinbogo)](https://github.com/martinbogo/ssd1306_test) `Req: SSD1306`
-- [SSH Runner v0.2 (By SeanChangX)](https://github.com/SeanChangX/flipper-ssh-runner) `Req: ESP32-S3 + W5500 with SSH Runner firmware` - SSH keys stored on the Flipper SD card.
+- [SSH Runner v0.3 (By SeanChangX)](https://github.com/SeanChangX/flipper-ssh-runner) `Req: ESP32-S3 + W5500 with SSH Runner firmware` - SSH keys stored on the Flipper SD card.
 - [Staff Time Clock v2.16 (By vladpereverzyev)](https://github.com/vladpereverzyev/flipper-staff-time-clock)
 - [Step Seq v0.3 (By rseufert)](https://github.com/rseufert/step_seq)
 - [Stopwatch v1.0 (By bergr22)](https://github.com/bergr22/Stopwatch-Flipper)
 - [StroboMeter v1.1 (By LeanderJDev)](https://github.com/LeanderJDev/FlipperStroboMeterApp)
 - [Sub Analyzer v1.0 (By RocketGod)](https://github.com/RocketGod-git/Flipper-Zero-SUB-Analyzer)
-- [Sub Duplicate Finder v1.3 (By Endika)](https://github.com/Endika/flipper-sub-dup)
+- [Sub Duplicate Finder v1.3.1 (By Endika)](https://github.com/Endika/flipper-sub-dup)
 - [Sub-GHz Bruteforcer v4.3 (By Ganapati/xMasterX/derskythe)](https://github.com/derskythe/flipperzero-subbrute/tree/master)
 - [Sub-GHz Jammer Detect v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
 - [Sub-GHz Keystore Decryptor v1.1 (By Lechnio)](https://github.com/Lechnio/KeeLoq-Keystore-Decryptor)
@@ -1095,7 +1096,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Survival Manual v1.0 (By Radiomanrf)](https://github.com/Radiomanrf/Survival_manual)
 - [SWD Probe v1.4 (By g3gg0)](https://github.com/g3gg0/flipper-swd_probe)
 - [T-Union Master (China) v0.1 (By SocialSisterYi)](https://github.com/SocialSisterYi/T-Union_Master)
-- [T5577 v1.1 (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/commit/1672f7c54d146114d7ecdb57043661f9456dd292) (.t5577 ext incompatible to T5577 Raw Writer)
+- [T5577 v1.2 (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/commit/1672f7c54d146114d7ecdb57043661f9456dd292) (.t5577 ext incompatible to T5577 Raw Writer)
 - [T5577 Multiwriter v0.3 (By Leptopt1los)](https://github.com/Leptopt1los/t5577_multiwriter)
 - [T5577 Raw Writer v1.1 (By zinongli)](https://github.com/zinongli/T5577_Raw_Writer) (.t5577 ext incompatible to T5577)
 - [TagTinker v2.1 (By i12bp8)](https://github.com/i12bp8/TagTinker)
