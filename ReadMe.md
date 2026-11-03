@@ -172,6 +172,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Reaction Time Stats fast-result visual feedback, Continue label and text positioning (By luvrltop)](https://github.com/luvrltop/ReactionTime)
 - Updated: [Sub Duplicate Finder v1.3.1 duplicate candidates retain byte-for-byte verification at deletion, with comparator tests (By squazaryu)](https://github.com/Endika/flipper-sub-dup/pull/22)
 - Updated: [SSH Runner v0.3 author version, changelog and status-text documentation (By SeanChangX)](https://github.com/SeanChangX/flipper-ssh-runner)
+- Dev: [Add NFC supported-card parser load checks and synthetic Bambu Lab parser tests (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1204)
+- Sub-GHz: [Marantec24 gap timing, Linear Delta 3 repeat/reset handling, Holtek HT12X reset and radio-faithful unit tests (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1207)
 
 <a name="release"></a>
 
