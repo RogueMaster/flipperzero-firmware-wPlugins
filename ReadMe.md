@@ -101,7 +101,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [SSH Runner v0.2 (By SeanChangX)](https://github.com/SeanChangX/flipper-ssh-runner) `Req: ESP32-S3 + W5500 with SSH Runner firmware`
 - Updated: [RF Survey v1.3 - optional lab source maintenance; RX build unchanged (By tbelbek)](https://github.com/tbelbek/flipper-rf-survey)
 - Updated: [Grimoire v0.1 - region-aware wand refusal feedback (By rseufert)](https://github.com/rseufert/grimoire)
-- Updated: [T5577 v1.1 - Sniff Password, user dictionary and read/restore fixes (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/commit/2cbad71c92e7482e7752f5ecb570c18b2d1a2c75)
 - Updated: [Yulias Cats v0.8 - version and catalog documentation refresh (By rseufert)](https://github.com/rseufert/yulia_cats)
 - Updated: [NW Crawl v0.4 - version and catalog documentation refresh (By rseufert)](https://github.com/rseufert/nw_crawl)
 - Updated: [Step Seq v0.3 - version and catalog documentation refresh (By rseufert)](https://github.com/rseufert/step_seq)
@@ -169,6 +168,9 @@ This software is for experimental purposes only and is not meant for any illegal
 - OFW: PR: [BadUSB Ducky 3.0 internal variables (By josaum)](https://github.com/flipperdevices/flipperzero-firmware/pull/4504)
 - OFW: PR: [BadUSB attack mode switching and restoration (By josaum)](https://github.com/flipperdevices/flipperzero-firmware/pull/4505)
 - OFW: PR: [BadUSB EXFIL and host keyboard lock-state support (By josaum)](https://github.com/flipperdevices/flipperzero-firmware/pull/4506)
+- Updated: [T5577 v1.1 - Sniff Password, user dictionary and read/restore fixes (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/commit/2cbad71c92e7482e7752f5ecb570c18b2d1a2c75)
+- Sub-GHz: [Fix the 6 test_subghz failures (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1207)
+- [Unit Test Updates (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1204)
 
 <a name="release"></a>
 
