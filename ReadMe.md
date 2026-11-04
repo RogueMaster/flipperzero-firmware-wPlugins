@@ -184,6 +184,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [PayTo Wallets v0.1 (By Rastislav Core)](https://github.com/rastislavcore/flipper_payto)
 - Added: [Controller Ducky v1.0 (By eric-m-holub)](https://github.com/eric-m-holub/controller-ducky)
 - Added: [Super Sniffer Card v0.2 (By mishamyte)](https://github.com/mishamyte/super-sniffer-card)
+- Fixed: [Controller Ducky truncated USB subcommand handling](https://github.com/eric-m-holub/controller-ducky) and [Super Sniffer Card oversized debug responses and unsupported UID lengths](https://github.com/mishamyte/super-sniffer-card) (RM corrections)
 
 <a name="release"></a>
 

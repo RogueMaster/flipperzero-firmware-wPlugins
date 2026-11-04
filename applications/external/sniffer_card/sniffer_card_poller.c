@@ -216,15 +216,15 @@ static void sniffer_card_log_bytes(const char* label, const uint8_t* data, size_
 
     static const char digits[] = "0123456789ABCDEF";
     char hex[SNIFFER_CARD_TRACE_SIZE * 2 + 1];
+    const size_t shown_len = MIN(len, (size_t)SNIFFER_CARD_TRACE_SIZE);
 
-    furi_check(len <= SNIFFER_CARD_TRACE_SIZE);
-    for(size_t i = 0; i < len; i++) {
+    for(size_t i = 0; i < shown_len; i++) {
         hex[i * 2] = digits[data[i] >> 4];
         hex[i * 2 + 1] = digits[data[i] & 0x0F];
     }
-    hex[len * 2] = '\0';
+    hex[shown_len * 2] = '\0';
 
-    FURI_LOG_D(TAG, "%s %s", label, hex);
+    FURI_LOG_D(TAG, "%s %s%s", label, hex, shown_len < len ? "..." : "");
 }
 
 /** Send one `30 <arg>` and keep the answer.

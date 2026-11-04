@@ -1536,7 +1536,9 @@ static void send_subcmd_reply(
     usb_send(r, 64);
 }
 
-static void handle_subcommand(ControllerDucky* app, const uint8_t* rx) {
+static void handle_subcommand(ControllerDucky* app, const uint8_t* rx, uint8_t rx_len) {
+    if(rx_len < 11) return;
+
     uint8_t sub = rx[10];
     const uint8_t* arg = &rx[11];
 
@@ -1559,6 +1561,7 @@ static void handle_subcommand(ControllerDucky* app, const uint8_t* rx) {
         send_subcmd_reply(app, 0x83, sub, NULL, 0);
         break;
     case 0x10: { /* SPI flash read */
+        if(rx_len < 16) return; /* address (4 bytes) and requested length must all be present */
         uint32_t addr = arg[0] | ((uint32_t)arg[1] << 8) | ((uint32_t)arg[2] << 16) |
                         ((uint32_t)arg[3] << 24);
         uint8_t len = arg[4];
@@ -1616,7 +1619,7 @@ static void handle_usb_rx(ControllerDucky* app, const uint8_t* rx, uint8_t len) 
         break;
     }
     case 0x01: /* rumble + subcommand */
-        if(len >= 11) handle_subcommand(app, rx);
+        if(len >= 11) handle_subcommand(app, rx, len);
         break;
     default: /* 0x10 = rumble only, ignored */
         break;
