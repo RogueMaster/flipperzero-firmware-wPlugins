@@ -1,0 +1,15 @@
+App(
+    appid="sniffer_card",
+    name="Sniffer Card",
+    apptype=FlipperAppType.EXTERNAL,
+    targets=["f7"],
+    entry_point="sniffer_card_app",
+    stack_size=6 * 1024,
+    fap_icon="icon.png",
+    fap_icon_assets="images",
+    fap_category="NFC",
+    fap_author="mishamyte",
+    fap_weburl="https://github.com/mishamyte/super-sniffer-card",
+    fap_version="0.2",
+    fap_description="Reads the Mifare Classic authentication traces a Super Sniffer card collected from a reader, and writes them out as MFKey32 nonces for the MFKey app to recover the keys from",
+)

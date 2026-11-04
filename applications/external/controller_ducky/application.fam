@@ -1,0 +1,14 @@
+App(
+    appid="controller_ducky",
+    name="Controller Ducky",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="controller_ducky_main",
+    stack_size=4 * 1024,
+    fap_icon="images/icon.png",
+    fap_icon_assets="images",
+    fap_category="USB",
+    fap_author="eric-m-holub",
+    fap_weburl="https://github.com/eric-m-holub/controller-ducky",
+    fap_version="1.0",
+    fap_description="Controller Ducky turns your Flipper Zero into a USB game controller with live input and customizable gameplay automation.",
+)

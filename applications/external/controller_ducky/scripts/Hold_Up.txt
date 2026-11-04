@@ -1,0 +1,8 @@
+CONTROLLER SWITCH
+
+REM Useful for shiny hunting in Wild Zone 3 in Pokemon Legends Z-A
+
+REPEAT START
+PUSH LS_UP
+DELAY 5000
+REPEAT END

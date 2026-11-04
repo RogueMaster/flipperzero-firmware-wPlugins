@@ -1,0 +1,96 @@
+CONTROLLER SWITCH
+REM Farm Spirhalite Shards, Spirhalite Gems, Rare Items, and XP in Splatoon Raiders
+
+REM A certain build and setup is required for this farm to work. Please read the following instructions carefully.
+
+REM You need to equip an Ultra Speed Tank build with the following three gadgets equipped:
+REM L: Jump Bomb. Required Mods: Jump Power Up (Large), Double Trouble
+REM A: Torqscrew. Required Mods: Mega Power Egg Collection, Vortex Horizontal Area Up (+100%), Duration Up (+60%) Forbidden Mods: Delivery Distance
+REM R: Dash Bomb. Required Mods: Jump Bump (Small), Double Trouble
+
+The following Relic abilities are recommended as well: Lifesaver, Mega Power Egg Collector. DO NOT equip Speed Up
+
+REM Be sure to also disable motion controls in settings. I recommend you save all this to one of your presets.
+
+REM Go to the Treasure Map and select Awlmun Den on Oftu Island (east side of map near equator).
+REM Hover over your intended spice level (recommend Super Spicy), then start the script.
+
+REPEAT START
+
+DELAY 1000
+
+REM Start the level
+PRESS A
+DELAY 1000
+PRESS A
+DELAY 6400
+
+REM Approach the tower
+PUSH Y
+PUSH LS_UP
+DELAY 2500
+PUSH ZL
+DELAY 200
+PUSH LS_RIGHT
+DELAY 1200
+RELEASE LS_RIGHT
+DELAY 700
+PUSH LS_LEFT
+DELAY 1300
+RELEASE LS_LEFT
+DELAY 1500
+PUSH LS_RIGHT
+DELAY 1000
+RELEASE LS_RIGHT
+DELAY 1400
+RELEASE ZL
+RELEASE LS_UP
+PRESS X
+DELAY 1500
+
+REM Jump up to the top of the tower and kill the enemies
+PRESS B
+DELAY 200
+PRESS B
+DELAY 1000
+PRESS L
+DELAY 1000
+PRESS L
+DELAY 1000
+PRESS R
+DELAY 1000
+PRESS A
+PRESS R
+DELAY 7000
+
+REM Adjust to get the treasure
+PUSH LS_DOWN
+DELAY 150
+RELEASE LS_DOWN
+PUSH LS_LEFT
+DELAY 500
+RELEASE ALL
+DELAY 12500
+
+REM Collect treasure and return to base
+PRESS A
+DELAY 1500
+PRESS A
+DELAY 3000
+PRESS A
+DELAY 2000
+PRESS A
+DELAY 2000
+
+REM Select the level again
+PRESS X
+DELAY 1000
+PRESS A
+DELAY 1000
+PRESS A
+DELAY 1000
+PRESS A
+
+REM Repeat
+REPEAT END
+

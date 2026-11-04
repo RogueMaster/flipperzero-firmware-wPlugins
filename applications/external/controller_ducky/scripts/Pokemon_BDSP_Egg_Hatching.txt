@@ -1,0 +1,156 @@
+CONTROLLER SWITCH
+
+REM Take and hatch eggs from the daycare in Pokemon Brilliant Diamond or Shining Pearl.
+
+REM A certain setup is required to execute this script successfully. Please read the following instructions carefully.
+
+REM In the game options, set Text Speed to 'Fast' and Autosave to 'Off'.
+
+Have the step counter app loaded on your Poketch all zeroed out.
+
+REM Have the Oval Charm.
+
+REM Go to Solaceon Town and deposit the two Pokemon you want to breed into the daycare on the west side of town. Ensure they are compatible species for breeding.
+REM Here is a good guide on how to optimally breed pokemon: https://bulbapedia.bulbagarden.net/wiki/Pok%C3%A9mon_breeding
+REM If you are shiny hunting, it is beneficial to have the shiny charm and a foreign Pokemon to breed with. More info here: https://bulbapedia.bulbagarden.net/wiki/Shiny_Pok%C3%A9mon
+
+REM Empty your party except for 1 Pokemon with the Flame Body ability. Slugma or Magcargo are good candidates in this game.
+
+REM Assign the Bike to the left (western) key item slot. Ensure it is already in 'fast' mode by pressing B while riding it.
+
+REM Run around and wait for the old man outside the daycare to face east. This means an egg is ready.
+
+REM Face the old man from his right (east) side so that pressing A will talk to him.
+
+PRESS R
+
+REPEAT START
+
+REM Talk to the old man to receive an egg
+REPEAT START 6
+DELAY 1000
+PRESS A
+REPEAT END
+DELAY 3000
+PRESS A
+DELAY 500
+PRESS A
+REPEAT START 2
+DELAY 2000
+PRESS A
+PRESS A
+REPEAT END
+DELAY 200
+REM Have this bit for when the party gets full and you must replace a Pokemon
+PRESS UP
+REPEAT START 2
+DELAY 2000
+PRESS A
+REPEAT END
+DELAY 1000
+PRESS A
+DELAY 500
+PRESS A
+DELAY 500
+
+
+REM Fly to Pokecenter in Solaceon Town
+PRESS X
+DELAY 1000
+PRESS PLUS
+DELAY 1000
+PRESS A
+DELAY 1000
+PRESS A
+DELAY 6200
+
+REM Head north of Solaceon Town
+PUSH B
+PUSH LEFT
+DELAY 1340
+RELEASE LEFT
+PUSH UP
+DELAY 3000
+RELEASE ALL
+PUSH LEFT
+DELAY 200
+RELEASE LEFT
+PRESS RIGHT
+DELAY 500
+
+REM Get on bicycle
+PRESS PLUS
+DELAY 500
+PRESS LEFT
+DELAY 1000
+
+REM Ride in circles. Adjust the 'REPEAT START' value to increase/decrease duration. 1 loop = approx 50 in-game steps
+PUSH RIGHT
+DELAY 900
+REPEAT START 85
+RELEASE RIGHT
+PUSH DOWN
+DELAY 420
+RELEASE DOWN
+PUSH LEFT
+DELAY 420
+RELEASE LEFT
+PUSH UP
+DELAY 425
+RELEASE UP
+PUSH RIGHT
+DELAY 420
+RELEASE RIGHT
+PUSH DOWN
+DELAY 424
+RELEASE DOWN
+PUSH LEFT
+DELAY 420
+RELEASE LEFT
+PUSH UP
+DELAY 420
+RELEASE UP
+PUSH RIGHT
+DELAY 420
+REPEAT END
+
+RELEASE ALL
+
+REM Egg is hatching
+PRESS A
+DELAY 500
+PRESS A
+DELAY 22000
+PRESS A
+DELAY 2000
+PRESS B
+DELAY 4000
+
+REM Fly to Pokecenter in Solaceon Town
+PUSH DOWN
+DELAY 2000
+RELEASE ALL
+PRESS X
+DELAY 1000
+PRESS PLUS
+DELAY 1000
+PRESS A
+DELAY 1000
+PRESS A
+DELAY 6200
+
+REM Head north back to the old man
+PUSH B
+PUSH LEFT
+DELAY 1340
+RELEASE LEFT
+PUSH UP
+DELAY 1250
+RELEASE ALL
+PUSH LEFT
+DELAY 120
+RELEASE ALL
+
+REM Repeat the whole thing to hatch another egg
+REPEAT END
+

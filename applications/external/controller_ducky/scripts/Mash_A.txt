@@ -1,0 +1,8 @@
+CONTROLLER SWITCH
+
+REM Useful for shiny hunting in Lysandre Labs in Pokemon Legends Z-A
+
+REPEAT START
+PRESS A
+DELAY 500
+REPEAT END
