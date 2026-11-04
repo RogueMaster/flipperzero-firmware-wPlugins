@@ -74,11 +74,15 @@ bool unitemp_ds18x2x_sensor_alloc(Sensor* sensor, char* args) {
 
     instance->bus = unitemp_onewire_bus_alloc(unitemp_gpio_get_from_int(gpio_pin));
 
-    if(instance != NULL) {
+    // unitemp_gpio_get_from_int() returns NULL for a pin number that is not in
+    // gpio_list, and the bus allocator passes that NULL straight through, so an
+    // out-of-range pin in the config file must be rejected here.
+    if(instance->bus != NULL) {
         return true;
     }
-    FURI_LOG_E(APP_NAME, "Sensor %s bus allocation error", sensor->name);
+    FURI_LOG_E(APP_NAME, "Sensor %s bus allocation error (GPIO %d)", sensor->name, gpio_pin);
     free(instance);
+    sensor->instance = NULL;
     return false;
 }
 

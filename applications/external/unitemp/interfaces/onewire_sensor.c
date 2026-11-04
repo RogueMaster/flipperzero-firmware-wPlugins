@@ -35,10 +35,16 @@ UnitempOneWireBus* unitemp_onewire_bus_alloc(const SensorGpioPin* gpio_pin) {
 
     //Checking for bus presence on this port
     for(uint8_t i = 0; i < unitemp_sensors_get_count(); i++) {
-        if(unitemp_sensors_get(i)->model->interface == &unitemp_1w &&
-           ((OneWireSensor*)unitemp_sensors_get(i)->instance)->bus->bus_pin == gpio_pin) {
+        Sensor* other = unitemp_sensors_get(i);
+        if(other->model->interface != &unitemp_1w) continue;
+
+        OneWireSensor* other_instance = (OneWireSensor*)other->instance;
+        //A sensor whose bus could not be allocated must not be dereferenced here
+        if(other_instance == NULL || other_instance->bus == NULL) continue;
+
+        if(other_instance->bus->bus_pin == gpio_pin) {
             //If there is already a bus on this port, then return a pointer to the bus
-            return ((OneWireSensor*)unitemp_sensors_get(i)->instance)->bus;
+            return other_instance->bus;
         }
     }
 

@@ -19,12 +19,12 @@ No Ducker dependency or target-side agent is required.
 ## Requirements
 
 - Flipper Zero with official firmware 1.5.1 or a compatible API.
-- BLE Clipboard 0.5.2 on macOS 14 or later to create and send jobs.
+- BLE Clipboard 0.5.3 on macOS 14 or later to create and send jobs.
 - A USB cable to the intended keyboard/mouse target.
 - An SD card for saved jobs, programs larger than 4 KiB, and non-built-in layout assets.
   Layout files come from the official firmware resources.
 
-[Download the matching Mac app and release files](https://github.com/otcan/ble-clipboard/releases/tag/v0.5.2).
+[Download the matching Mac app and release files](https://github.com/otcan/ble-clipboard/releases/tag/v0.5.3).
 
 ## Use
 
@@ -48,6 +48,6 @@ undetectable. Saved snapshots are plaintext on SD; do not save secrets.
 The 0.5.1 button-release guard is retained. Automated tests are not a substitute
 for physical layout, focus, drag-lock or multi-hour checks on your target.
 
-[Source and setup guide](https://github.com/otcan/ble-clipboard/tree/v0.5.2)
+[Source and setup guide](https://github.com/otcan/ble-clipboard/tree/v0.5.3)
 
 GPL-3.0-only. Not affiliated with Flipper Devices.

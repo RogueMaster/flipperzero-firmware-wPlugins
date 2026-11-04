@@ -123,7 +123,7 @@ bool clipboard_library_save(
     const ClipboardReader* reader) {
     uint8_t header[CLIPBOARD_SAVED_HEADER];
     if(!clipboard_saved_encode(saved, header) || !clipboard_saved_verify(saved, reader) ||
-       !storage_simply_mkdir(library->storage, APP_DATA_PATH("")) ||
+       !storage_simply_mkdir(library->storage, STORAGE_APP_DATA_PATH_PREFIX) ||
        !storage_simply_mkdir(library->storage, LIBRARY_PATH))
         return false;
     clipboard_library_refresh(library);

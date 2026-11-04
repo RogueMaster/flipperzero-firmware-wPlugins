@@ -185,6 +185,9 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Controller Ducky v1.0 (By eric-m-holub)](https://github.com/eric-m-holub/controller-ducky)
 - Added: [Super Sniffer Card v0.2 (By mishamyte)](https://github.com/mishamyte/super-sniffer-card)
 - Fixed: [Controller Ducky truncated USB subcommand handling](https://github.com/eric-m-holub/controller-ducky) and [Super Sniffer Card oversized debug responses and unsupported UID lengths](https://github.com/mishamyte/super-sniffer-card) (RM corrections)
+- Updated: [GPIO Controller pin indexing and unused-slot crash checks (By Lokno; fixes by xMasterX)](https://github.com/xMasterX/all-the-plugins/commit/4b718695420ac9e9c4242eadf8308d9db6cd5949)
+- Updated: [Temp Sensors Reader one-wire allocation and invalid GPIO checks (By quen0n; fixes by xMasterX)](https://github.com/xMasterX/all-the-plugins/commit/4b718695420ac9e9c4242eadf8308d9db6cd5949)
+- Updated: [BLE Clipboard v0.5.3 SD initialization for saved snapshots and transfers larger than 4 KiB (By otcan)](https://github.com/otcan/ble-clipboard/commit/0810291361b1e2308291a29f88363c05c24e72cf)
 
 <a name="release"></a>
 
@@ -550,7 +553,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [BlackJack Counter v1.0 (By grugnoymeme)](https://github.com/grugnoymeme/flipperzero-blackjack_counter-fap)
 - [BLE Beacon v1.1 (By steanlab)](https://github.com/steanlab/BLE-Beacon)
 - [BLE Clicker v1.0 (By random1st)](https://github.com/random1st/flipper-ble-clicker)
-- [BLE Clipboard v0.5.2 (By otcan)](https://github.com/otcan/ble-clipboard)
+- [BLE Clipboard v0.5.3 (By otcan)](https://github.com/otcan/ble-clipboard)
 - [BLE Killer v1.1 (By H4lo)](https://github.com/H4lo/flipper_zero_ble_killer) `Req: ESP32`
 - [BLE Scanner v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite) `Req: ESP32`
 - [BLE Spam v6.6 (By WillyJL & ECTO-1A & Spooks4576 with research from xMasterX; OFW API thanks to noproto)](https://github.com/Next-Flip/Momentum-Apps/tree/dev/ble_spam)

@@ -1,3 +1,9 @@
+## 0.5.3
+
+- Fix SD initialization rejecting the app-data root's trailing slash, blocking
+  saved snapshots and transfers larger than 4 KiB.
+- Saved snapshots and the 20-entry limit are unchanged; no automatic execution.
+
 ## 0.5.2
 
 - First independent catalog submission, with matching Mac companion downloads.

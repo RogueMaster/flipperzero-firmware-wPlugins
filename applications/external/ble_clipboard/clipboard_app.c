@@ -168,7 +168,7 @@ static bool store_open(void* context, size_t size) {
     store_close(context);
     app->store_size = size;
     if(size <= sizeof(app->memory)) return true;
-    if(!storage_simply_mkdir(app->storage, APP_DATA_PATH(""))) return false;
+    if(!storage_simply_mkdir(app->storage, STORAGE_APP_DATA_PATH_PREFIX)) return false;
     app->on_sd = true;
     app->job_file = storage_file_alloc(app->storage);
     if(!storage_file_open(app->job_file, JOB_PATH, FSAM_READ_WRITE, FSOM_CREATE_ALWAYS)) {
