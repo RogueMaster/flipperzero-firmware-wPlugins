@@ -127,9 +127,18 @@ static void init_state() {
 
 static void init_gpio() {
     int count = 0;
-    for(size_t i = 0; i < gpio_pins_count; i++) {
+
+    // Mark every slot unused up front: a slot that is never filled in below must
+    // not be read by update_gpio(), as its pin pointer is NULL.
+    for(int i = 0; i < GPIO_PIN_COUNT; i++) {
+        gpio_pin_config[i].pin = NULL;
+        gpio_pin_config[i].unset = true;
+        gpio_pin_config[i].found = false;
+    }
+
+    for(size_t i = 0; i < gpio_pins_count && count < GPIO_PIN_COUNT; i++) {
         if(!gpio_pins[i].debug) {
-            for(int j = 0; j < element_count; j++) {
+            for(int j = 0; j < element_count && count < GPIO_PIN_COUNT; j++) {
                 if(strcmp(elements[j].name, gpio_pins[i].name) == 0) {
                     gpio_pin_config[count].element_idx = j;
                     gpio_pin_config[count].pin = gpio_pins[i].pin;
@@ -147,7 +156,10 @@ static void init_gpio() {
                     gpio_pin_config[count].user.gp_idx_input = -1;
                     gpio_pin_config[count].user.changed = false;
 
-                    elements[j].gp_idx = i;
+                    // gp_idx indexes gpio_pin_config[], NOT gpio_pins[]. The two
+                    // differ because the firmware's gpio_pins[] table interleaves
+                    // debug pins (PA14/PA13/PB6/PB7) between PC3 and PC1.
+                    elements[j].gp_idx = count;
                     elements[j].editable = true;
 
                     count++;
@@ -163,7 +175,7 @@ static void update_gpio() {
     // read from gpio pins
     for(int i = 0; i < GPIO_PIN_COUNT; i++) {
         GPIOPin* gpc = &gpio_pin_config[i];
-        if(!gpc->unset) {
+        if(!gpc->unset && gpc->pin != NULL) {
             if(gpc->mode == GpioModeInput) {
                 gpc->value = furi_hal_gpio_read(gpc->pin) ? 1 : 0;
             }
