@@ -10,3 +10,6 @@
 [submodule "base_pack/varta"]
 	path = base_pack/varta
 	url = https://github.com/mishamyte/varta.git
+[submodule "base_pack/super-sniffer-card"]
+	path = base_pack/super-sniffer-card
+	url = https://github.com/mishamyte/super-sniffer-card.git
