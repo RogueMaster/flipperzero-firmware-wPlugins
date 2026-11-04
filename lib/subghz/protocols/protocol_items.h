@@ -93,3 +93,4 @@
 #include "allstar_firefly.h"
 #include "telcoma_edge.h"
 #include "cardin_s508.h"
+#include "freezer.h"

@@ -176,6 +176,9 @@ This software is for experimental purposes only and is not meant for any illegal
 - Sub-GHz: [Marantec24 gap timing, Linear Delta 3 repeat/reset handling, Holtek HT12X reset and radio-faithful unit tests (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1207)
 - Added: [BLE Clipboard v0.5.2 - authenticated BLE clipboard and macro transfer to USB keyboard/mouse, with SD snapshots (By otcan)](https://github.com/otcan/ble-clipboard)
 - OFW: PR: [BadUSB scroll-change wait and EXFIL LED debug flag (By josaum)](https://github.com/flipperdevices/flipperzero-firmware/pull/4507)
+- Added: [Remote Analyzer v1.0 (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/2e9d147ef5c4f0840f97b2980768f216edcfb60c)
+- Sub-GHz: [Freezer protocol, CAME TWEE false-positive filtering, per-signal Nero Radio icons, frequency analyzer last-reading selection, and RAW capture validation in Nice O-Code/Seed Capturer (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/2e9d147ef5c4f0840f97b2980768f216edcfb60c)
+- API: [88.24 - export subghz_protocol_decoder_base_get_type (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/2e9d147ef5c4f0840f97b2980768f216edcfb60c)
 
 <a name="release"></a>
 
@@ -1082,6 +1085,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Step Seq v0.3 (By rseufert)](https://github.com/rseufert/step_seq)
 - [Stopwatch v1.0 (By bergr22)](https://github.com/bergr22/Stopwatch-Flipper)
 - [StroboMeter v1.1 (By LeanderJDev)](https://github.com/LeanderJDev/FlipperStroboMeterApp)
+- [Remote Analyzer v1.0 (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/2e9d147ef5c4f0840f97b2980768f216edcfb60c)
 - [Sub Analyzer v1.0 (By RocketGod)](https://github.com/RocketGod-git/Flipper-Zero-SUB-Analyzer)
 - [Sub Duplicate Finder v1.3.1 (By Endika)](https://github.com/Endika/flipper-sub-dup)
 - [Sub-GHz Bruteforcer v4.3 (By Ganapati/xMasterX/derskythe)](https://github.com/derskythe/flipperzero-subbrute/tree/master)

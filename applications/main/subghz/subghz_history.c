@@ -346,7 +346,8 @@ bool subghz_history_add_to_history(
 
     SubGhzHistoryItem* item = SubGhzHistoryItemArray_push_raw(instance->history->data);
     item->preset = malloc(sizeof(SubGhzRadioPreset));
-    item->type = decoder_base->protocol->type;
+    // Per-signal, so a protocol with more than one frame format gets the right icon
+    item->type = subghz_protocol_decoder_base_get_type(decoder_base);
     item->tx_block = (uint16_t)tx_block;
     // if(decoder_base->protocol->filter & SubGhzProtocolFilter_Weather) {
     //     // Other code uses protocol type to check if signal is usable
