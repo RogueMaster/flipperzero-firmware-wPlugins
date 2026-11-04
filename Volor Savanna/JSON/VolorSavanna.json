@@ -99,6 +99,9 @@
         "warrior_5_death": "You have chosen not to go after the enemy tribe.\\nUnfortunately, your village gets swept away by a flash flood!\\nuser_name + \", YOU LOSE!\nTHE END!"
     },
     "y": {
+        "crafter": [
+            "crafter_1"
+        ],
         "crafter_1_death": [
             "crafter_1",
             2
@@ -150,6 +153,9 @@
                 "character",
                 3
             ]
+        ],
+        "farmer": [
+            "farmer_1"
         ],
         "farmer_1_death": [
             "farmer_1",
@@ -204,6 +210,9 @@
                 "character",
                 4
             ]
+        ],
+        "hunter": [
+            "hunter_1"
         ],
         "hunter_10": [
             "hunter_6",
@@ -286,6 +295,9 @@
                 "character",
                 1
             ]
+        ],
+        "medicine_person": [
+            "medicine_person_1"
         ],
         "medicine_person_10": [
             "medicine_person_5",
@@ -385,6 +397,9 @@
                 5
             ]
         ],
+        "the_mighty_lion": [
+            "the_mighty_lion_1"
+        ],
         "the_mighty_lion_1_death": [
             "the_mighty_lion_1",
             1
@@ -447,6 +462,9 @@
                 1
             ]
         ],
+        "the_mighty_lion_terrain": [
+            "the_mighty_lion_terrain_1"
+        ],
         "the_mighty_lion_terrain_1_death": [
             "the_mighty_lion_terrain_1",
             2
@@ -492,6 +510,15 @@
                 "the_mighty_lion_6",
                 1
             ]
+        ],
+        "user_name": [
+            "user_name"
+        ],
+        "volor_savanna_original": [
+            "character"
+        ],
+        "warrior": [
+            "warrior_1"
         ],
         "warrior_2": [
             "warrior_1",
