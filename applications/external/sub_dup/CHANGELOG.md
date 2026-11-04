@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.3.1](https://github.com/Endika/flipper-sub-dup/compare/v1.3.0...v1.3.1) (2026-11-03)
+
+
+### Bug Fixes
+
+* regroup by CRC32 and size after a delete instead of rereading every duplicate ([b3bc578](https://github.com/Endika/flipper-sub-dup/commit/b3bc5786cf8566733a398fae3d7431a3db66bd4c))
+* scan groups by CRC32 and size and compare bytes only when deleting ([1fe4117](https://github.com/Endika/flipper-sub-dup/commit/1fe4117284646477666db4778d3307d071b3c446))
+* verify duplicate contents before grouping and deletion ([344006e](https://github.com/Endika/flipper-sub-dup/commit/344006e4b954d1fae29e532bd692be42c8f8fcc1))
+
 ## [1.3.0](https://github.com/Endika/flipper-sub-dup/compare/v1.2.2...v1.3.0) (2026-09-25)
 
 
