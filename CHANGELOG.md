@@ -5,6 +5,36 @@ All notable changes to PINGEQUA RF Lab.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versioning: [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.5] — 2026-11-04
+
+### Fixed
+- **Official firmware 1.5.1 rejected v0.5.4.** That FAP was linked against
+  Flipper API 87.1 (official 1.4.3 / Momentum mntm-012). Firmware 1.5.1
+  (released 2026-10-15) is API 88.2, and the app loader refuses a FAP whose
+  API major does not match. v0.5.5 is the same application rebuilt with the
+  official 1.5.1 SDK. No symbol this app calls was removed or had its
+  signature changed between 87.1 and 88.2. The only source edit is the About
+  screen version label, which still read `v0.5.3` (it was not updated in
+  v0.5.4). It now reads `v0.5.5`.
+
+### Changed
+- **Two firmware builds of one source tree.** One FAP cannot satisfy API 88
+  and API 87 at the same time.
+  - `rf_lab-official-api88.fap` — official firmware 1.5.1, API 88.2.
+    SDK: `ufbt update --channel=release`
+    (index `https://update.flipperzero.one/firmware/directory.json`).
+  - `rf_lab-momentum.fap` — Momentum release channel, mntm-012, API 87.1
+    (index checked 2026-11-04).
+    SDK: `ufbt update --index-url=https://up.momentum-fw.dev/firmware/directory.json --channel=release`.
+- CI builds that matrix instead of the unpinned `ufbt update --channel=dev`.
+  A release event uploads both named FAPs. This repo does not tag or publish
+  the release by itself.
+
+### Not verified here
+- On-device smoke test on firmware 1.5.1 (Scanner, Signal Generator, CSV
+  export, settings persistence). Compile against both SDKs is the check in
+  this version.
+
 ## [0.5.4] — 2026-06-12
 
 ### Fixed

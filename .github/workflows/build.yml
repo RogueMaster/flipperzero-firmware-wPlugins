@@ -10,8 +10,20 @@ on:
 
 jobs:
   build:
-    name: Build with ufbt
+    name: Build ${{ matrix.artifact }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Official release channel. Resolved to firmware 1.5.1 / API 88.2 on 2026-11-04.
+          - artifact: rf_lab-official-api88.fap
+            index_url: https://update.flipperzero.one/firmware/directory.json
+            channel: release
+          # Momentum release channel. Resolved to mntm-012 / API 87.1 on 2026-11-04.
+          - artifact: rf_lab-momentum.fap
+            index_url: https://up.momentum-fw.dev/firmware/directory.json
+            channel: release
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -19,26 +31,30 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Install ufbt
-        run: pip install --user ufbt
+        run: pip install --user "ufbt==0.2.6"
 
       - name: Bootstrap SDK
-        run: ~/.local/bin/ufbt update --channel=dev
+        run: ~/.local/bin/ufbt update --index-url="${{ matrix.index_url }}" --channel="${{ matrix.channel }}"
 
       - name: Build FAP
         run: ~/.local/bin/ufbt
 
+      - name: Name artifact
+        run: cp dist/pingequa_rf_toolkit.fap "dist/${{ matrix.artifact }}"
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: pingequa_rf_toolkit-fap
-          path: dist/pingequa_rf_toolkit.fap
+          name: ${{ matrix.artifact }}
+          path: dist/${{ matrix.artifact }}
           retention-days: 30
+          if-no-files-found: error
 
       - name: Attach to release
         if: github.event_name == 'release'
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/pingequa_rf_toolkit.fap
+          files: dist/${{ matrix.artifact }}
