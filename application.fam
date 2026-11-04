@@ -6,7 +6,7 @@ App(
     requires=["gui", "storage", "notification"],
     stack_size=4 * 1024,
     fap_category="GPIO",
-    fap_version=(0, 5, 4),
+    fap_version=(0, 5, 5),
     fap_icon="icon.png",
     fap_author="PINGEQUA RF Toolkit",
     fap_weburl="https://github.com/pingequalab/rf-lab",
@@ -23,6 +23,8 @@ App(
     #         代码标识符不动).数据路径 jammer→siggen,jammer.conf→siggen.conf.
     # v0.5.4 修复载波实际辐射(持有总线驱动 + 点火前 flush FIFO + 二次 set_tx_mode);
     #         撤掉 +20dBm/OFDM 过度宣称,功率框定为合规保守;加长发射偶发无响应的重启说明.
+    # v0.5.5 用官方 release SDK 1.5.1 (API 88.2) 重编,并另出 Momentum release
+    #         (mntm-012, API 87.1) 构建.源码无 API 适配改动;两份 FAP 主版本不同,不能互换.
     # 规范 §12 文件目录结构.
     sources=[
         "pingequa_app.c",

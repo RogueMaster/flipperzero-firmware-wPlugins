@@ -45,7 +45,7 @@ An open-source Flipper Application Package (FAP) that turns Flipper Zero plus th
   - **Auto session log** + **mode/channel persistence** (v0.5.0+)
 - **Human-readable export filenames** (v0.5.2+) — `scan_<date>_<time>_ch<peak>.csv` / `jam_<date>_<time>_<mode>_<dur>s.csv`. Sorting by name = sorting by time.
 - **On-device About screen** (v0.5.2+) — three pages, Up/Down to navigate, with scannable QR codes for the shop and GitHub repo so visitors can land on the right page with their phone.
-- **Plug-and-play across firmware** — Momentum, Unleashed, RogueMaster, Xtreme, and Official Flipper firmware. No firmware-specific patching.
+- **Two FAP builds, one source tree** (v0.5.5) — official firmware 1.5.1 (API 88.2) and Momentum mntm-012 (API 87.1). No firmware-specific source changes; install the FAP whose API major matches the device.
 - **Clean exit** — other Flipper apps (Sub-GHz Read, NFC, Bad-USB) keep working perfectly after you exit
 
 ---
@@ -111,18 +111,30 @@ An open-source Flipper Application Package (FAP) that turns Flipper Zero plus th
 ### 2. Install the app (software)
 
 **qFlipper drag-and-drop** (recommended):
-1. Download `pingequa_rf_toolkit.fap` from [Releases](../../releases) or [`dist/`](dist/)
+1. Download the FAP that matches the firmware on the Flipper (see [Firmware Compatibility](#firmware-compatibility)). From the v0.5.5 [Releases](../../releases) assets once that release is published:
+   - Official firmware **1.5.1** → `rf_lab-official-api88.fap`
+   - Momentum **mntm-012** → `rf_lab-momentum.fap`
 2. In qFlipper: drag into `/ext/apps/GPIO/`
 3. On Flipper: `Apps → GPIO → PINGEQUA RF Lab`
 
-Works on every modern firmware — **no additional setup required**.
+The file in [`dist/`](dist/) is the previous v0.5.4 build (API 87.1). It loads on Momentum mntm-012 and is rejected on official 1.5.1.
 
-**ufbt sideload** (build from source):
+**ufbt sideload** (build from source). Install one of the two release SDKs, then launch:
 ```bash
-pip install --user ufbt
-ufbt update --channel=dev
+pip install --user "ufbt==0.2.6"
 git clone https://github.com/pingequalab/rf-lab
 cd rf-lab
+```
+
+Official firmware 1.5.1 (API 88.2):
+```bash
+ufbt update --channel=release
+ufbt launch
+```
+
+Momentum mntm-012 (API 87.1):
+```bash
+ufbt update --index-url=https://up.momentum-fw.dev/firmware/directory.json --channel=release
 ufbt launch
 ```
 
@@ -231,13 +243,14 @@ Other NRF24 boards may partially work but are unsupported. See [docs/HARDWARE.md
 
 ## Firmware Compatibility
 
-| Firmware | Status |
-|---|:---:|
-| Momentum (mntm-dev) | ✅ Primary build target |
-| Unleashed | ✅ Compatible |
-| RogueMaster | ✅ Compatible |
-| Official Flipper firmware (API ≥ 87.1) | ✅ Compatible |
-| Xtreme | ✅ Compatible |
+A FAP loads only when its **API major version** matches the firmware. Official firmware [1.5.1](https://github.com/flipperdevices/flipperzero-firmware/releases/tag/1.5.1) (2026-10-15) is API **88.2**. v0.5.4 was built for API **87.1**, so official 1.5.1 rejects it. v0.5.5 is the same application built twice — install the file that matches the device. The two files are not interchangeable.
+
+| Artifact | Firmware | API | SDK |
+|---|---|---|---|
+| `rf_lab-official-api88.fap` | Official Flipper firmware 1.5.1 | 88.2 | `ufbt update --channel=release` against [update.flipperzero.one](https://update.flipperzero.one/firmware/directory.json) |
+| `rf_lab-momentum.fap` | Momentum mntm-012 | 87.1 | `ufbt update --index-url=https://up.momentum-fw.dev/firmware/directory.json --channel=release` |
+
+Checked 2026-11-04: the official release channel resolved to firmware 1.5.1 and `targets/f7/api_symbols.csv` version `88.2`; the Momentum release channel resolved to `mntm-012`. Unleashed, RogueMaster, and Xtreme are not separate build targets. Use the artifact whose API major matches that fork; this repo does not record those forks' current API versions.
 
 ---
 
@@ -252,7 +265,8 @@ Other NRF24 boards may partially work but are unsupported. See [docs/HARDWARE.md
 | v0.5.1 | ✅ | OFW compatibility — single-handle SPI arbiter, all firmwares |
 | v0.5.2 | ✅ | Readable export filenames, jammer log redesign, About screen + QR codes |
 | v0.5.3 | ✅ | In-app rename: transmit feature now displays as "Signal Generator" (neutral, instrument-grade naming) |
-| **v0.5.4** | ✅ | **Signal Generator now actually radiates (held-bus driver + FIFO-flush ignition); honest power wording; long-run reboot note** |
+| v0.5.4 | ✅ | Signal Generator now actually radiates (held-bus driver + FIFO-flush ignition); honest power wording; long-run reboot note |
+| **v0.5.5** | ✅ | **Loads on official firmware 1.5.1 (API 88.2); separate Momentum mntm-012 (API 87.1) build** |
 | v0.6.x | 🔜 next | **Shaped by community feedback** — candidates: cross-chip dual-band sweep (nRF24 2.4 GHz + CC1101 Sub-GHz in one view), spectrum CSV export, custom scan presets. [Tell us what you want](../../issues/new?template=feature.yml) |
 | v1.0.0 | planned | Polished release, full documentation set, Catalog submission |
 | v1.5.0 | concept | Companion mobile viewer over Bluetooth |
