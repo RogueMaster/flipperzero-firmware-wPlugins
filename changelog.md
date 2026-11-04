@@ -1,5 +1,6 @@
 ## v1.8
 
+- Fixed Cut collapsing every gap longer than 32 ms in the whole capture.
 - Loading a non-RAW signal now offers a button picker for protocols that support custom buttons.
 
 ## v1.7

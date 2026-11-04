@@ -1501,6 +1501,7 @@ static bool cut_compact(App *a)
     size_t n = a->sd.count;
     size_t w = 0;
     int32_t run = 0;
+    bool seam = false; // true once something was dropped before the current sample
     for (size_t i = 0; i < n; i++)
     {
         int32_t v = d[i];
@@ -1517,14 +1518,37 @@ static bool cut_compact(App *a)
         if (s1 > hi)
             keep += s1 - (s0 > hi ? s0 : hi);
 
+        if (keep < ad)
+            seam = true; // part (or all) of this sample falls inside A..B
+
         if (keep <= 0)
             continue;
 
         int32_t val = sign * keep;
-        if (w > 0 && ((d[w - 1] >= 0) == (val >= 0)))
-            d[w - 1] = (int16_t)clamp_dur((int32_t)d[w - 1] + val);
+        // Merge only across the cut seam. Consecutive same-sign samples elsewhere
+        // are long gaps split by push_duration() and must stay as they are.
+        if (seam && w > 0 && ((d[w - 1] >= 0) == (val >= 0)))
+        {
+            int32_t sum = (int32_t)d[w - 1] + val;
+            if (iabs32(sum) <= DUR_CLAMP)
+            {
+                d[w - 1] = (int16_t)sum;
+            }
+            else
+            {
+                // Keep the full duration: fill the previous sample, spill the rest.
+                // Safe in place: at most one extra sample, written at index <= i.
+                d[w - 1] = (int16_t)(sign * DUR_CLAMP);
+                d[w++] = (int16_t)(sum - sign * DUR_CLAMP);
+            }
+        }
         else
-            d[w++] = (int16_t)clamp_dur(val);
+        {
+            d[w++] = (int16_t)val;
+        }
+
+        if (keep == ad && s0 >= hi)
+            seam = false; // past the cut, back to verbatim copying
     }
 
     a->sd.count = w;
