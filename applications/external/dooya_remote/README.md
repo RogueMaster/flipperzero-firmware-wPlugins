@@ -62,9 +62,9 @@ Editing a serial, adding a wildcard, and a disabled (struck out) row:
 
 Sending commands from the keypad:
 
-| Key pressed while sending | Actions menu (hold OK) | Limit menu (hold Up / Down) |
+| Sending batch | Actions menu (hold OK) | Limit menu (hold Up / Down) |
 |:---:|:---:|:---:|
-| ![Key pressed](docs/images/10-key-pressed.png) | ![Actions menu](docs/images/11-action-menu.png) | ![Limit menu](docs/images/12-limit-menu.png) |
+| ![Key pressed](docs/images/10-sending-key.png) | ![Actions menu](docs/images/11-action-menu.png) | ![Limit menu](docs/images/12-limit-menu.png) |
 
 ## Controls
 

@@ -1741,8 +1741,7 @@ SubGhzProtocolStatus subghz_protocol_decoder_keeloq_serialize(
     // Written only for the half rate, so standard captures keep the exact file layout they
     // have always had and stay readable by older builds.
     uint32_t te_nominal = subghz_protocol_keeloq_te_nominal(instance->te);
-    if((res == SubGhzProtocolStatusOk) &&
-       (te_nominal != subghz_protocol_keeloq_const.te_short)) {
+    if((res == SubGhzProtocolStatusOk) && (te_nominal != subghz_protocol_keeloq_const.te_short)) {
         if(!flipper_format_write_uint32(flipper_format, "TE", &te_nominal, 1)) {
             FURI_LOG_E(TAG, "DECODER Serialize: Unable to add TE");
             res = SubGhzProtocolStatusError;

@@ -26,7 +26,7 @@
 #include "dooya_remote_icons.h"
 
 #define APP_NAME    "Dooya Remote"
-#define APP_VERSION "1.0"
+#define APP_VERSION "1.1"
 #define APP_REPO    "github.com/Lechnio"
 
 #define APP_FOLDER    EXT_PATH("dooya_remote")
@@ -40,6 +40,9 @@
 #define DEFAULTS_DST  APP_FOLDER "/" DEFAULTS_NAME
 
 #define SUBGHZ_FREQ 433920000UL
+
+#define DOOYA_FRAME_MS      50 // one Dooya frame on air
+#define PROGRESS_MIN_FRAMES 20 // show the group progress bar past this (~1s)
 
 #define MAX_SERIALS 32
 #define SERIAL_LEN  3
@@ -197,6 +200,11 @@ struct App {
     volatile bool tx_abort;
     volatile bool tx_cancel; // abort was a user Back-cancel (show "Canceled")
     volatile bool tx_busy;
+    volatile uint32_t tx_prog_done; // frames put on air so far
+    uint32_t tx_prog_total; // frames this send will put on air
+    uint32_t tx_combos_total; // wildcard-expanded serials in this send
+    uint32_t tx_rep_sum; // frames sent per expanded serial (sum of reps)
+    bool tx_show_progress; // this send is long enough for the progress panel
     uint8_t p_btns[3];
     uint16_t p_reps[3];
     uint8_t p_nbtn;
@@ -284,6 +292,41 @@ static uint32_t effective_count(App* app) {
         total = (total > 0xFFFFFFFFu - e) ? 0xFFFFFFFFu : total + e;
     }
     return total;
+}
+
+// Keeps huge wildcard totals (a ****** serial is 16777216) short enough to fit;
+// a leading '>' marks the value as rounded down.
+static void fmt_count(char* buf, size_t n, uint32_t v) {
+    if(v < 10000)
+        snprintf(buf, n, "%lu", (unsigned long)v);
+    else if(v < 1000000)
+        snprintf(buf, n, ">%luk", (unsigned long)(v / 1000));
+    else
+        snprintf(buf, n, ">%luM", (unsigned long)(v / 1000000));
+}
+
+static void fmt_eta(char* buf, size_t n, uint32_t s) {
+    uint32_t d = s / 86400;
+    s %= 86400;
+    uint32_t h = s / 3600;
+    s %= 3600;
+    uint32_t m = s / 60;
+    s %= 60;
+    if(d)
+        snprintf(
+            buf,
+            n,
+            "%lud %luh %lum %lus",
+            (unsigned long)d,
+            (unsigned long)h,
+            (unsigned long)m,
+            (unsigned long)s);
+    else if(h)
+        snprintf(buf, n, "%luh %lum %lus", (unsigned long)h, (unsigned long)m, (unsigned long)s);
+    else if(m)
+        snprintf(buf, n, "%lum %lus", (unsigned long)m, (unsigned long)s);
+    else
+        snprintf(buf, n, "%lus", (unsigned long)s);
 }
 
 // Draw a serial so digits line up regardless of their widths: each hex digit
@@ -458,6 +501,7 @@ static void tx_frame_once(App* app, const SubGhzDevice* dev, uint8_t idx, uint8_
         uint8_t bytes[SERIAL_LEN] = {
             (nib[0] << 4) | nib[1], (nib[2] << 4) | nib[3], (nib[4] << 4) | nib[5]};
         tx_emit(app, dev, bytes, app->serial_mode[idx], btn);
+        app->tx_prog_done++;
     }
 }
 
@@ -561,6 +605,16 @@ static void tx_start(
     app->tx_abort = false;
     app->tx_cancel = false;
     app->tx_busy = true;
+
+    uint32_t rep_sum = 0;
+    for(uint8_t i = 0; i < nbtn; i++)
+        rep_sum += reps[i];
+    uint64_t frames = (uint64_t)effective_count(app) * rep_sum;
+    app->tx_prog_total = frames > 0xFFFFFFFFu ? 0xFFFFFFFFu : (uint32_t)frames;
+    app->tx_prog_done = 0;
+    app->tx_combos_total = effective_count(app);
+    app->tx_rep_sum = rep_sum ? rep_sum : 1;
+    app->tx_show_progress = !jog && app->tx_prog_total >= PROGRESS_MIN_FRAMES;
 
     if(overlay) {
         with_view_model(
@@ -801,6 +855,43 @@ static void mk_items(uint8_t k, const char** out) {
     }
 }
 
+// Centered, titled panel, matching the limit/action menus. The counter shows
+// wildcard-expanded serials handled, so one two-star serial runs 0..256.
+static void draw_progress(Canvas* c, App* app, const char* act) {
+    canvas_set_font(c, FontSecondary);
+    char title[32];
+    if(act && act[0])
+        snprintf(title, sizeof(title), "Sending %s...", act);
+    else
+        snprintf(title, sizeof(title), "Sending...");
+    canvas_draw_str_aligned(c, 64, 9, AlignCenter, AlignBottom, title);
+
+    const int bx = 14, by = 12, bw = 100, bh = 44;
+    canvas_set_color(c, ColorWhite);
+    canvas_draw_box(c, bx, by, bw, bh);
+    canvas_set_color(c, ColorBlack);
+    canvas_draw_frame(c, bx, by, bw, bh);
+
+    uint32_t frames = app->tx_prog_total;
+    uint32_t fdone = app->tx_prog_done;
+    if(fdone > frames) fdone = frames;
+    elements_progress_bar(
+        c, bx + 5, by + 6, bw - 10, frames ? (float)fdone / (float)frames : 0.0f);
+
+    uint32_t total = app->tx_combos_total;
+    uint32_t done = app->tx_rep_sum ? app->tx_prog_done / app->tx_rep_sum : 0;
+    if(done > total) done = total;
+    char line[32];
+    snprintf(line, sizeof(line), "%lu/%lu", (unsigned long)done, (unsigned long)total);
+    canvas_draw_str_aligned(c, 64, by + 26, AlignCenter, AlignBottom, line);
+
+    uint64_t rem_ms = (uint64_t)(frames - fdone) * DOOYA_FRAME_MS;
+    char eta[24];
+    fmt_eta(eta, sizeof(eta), (uint32_t)((rem_ms + 999) / 1000));
+    snprintf(line, sizeof(line), "%s left", eta);
+    canvas_draw_str_aligned(c, 64, by + 38, AlignCenter, AlignBottom, line);
+}
+
 static void remote_draw(Canvas* c, void* ctx) {
     RemoteModel* m = ctx;
     App* app = m->app;
@@ -809,19 +900,19 @@ static void remote_draw(Canvas* c, void* ctx) {
     canvas_set_color(c, ColorBlack);
     canvas_set_font(c, FontSecondary);
 
-    char hdr[16];
-    strncpy(hdr, app->name[0] ? app->name : "<unsaved>", sizeof(hdr) - 1);
-    hdr[sizeof(hdr) - 1] = '\0';
-    canvas_draw_str(c, 0, 7, hdr);
+    // A titled overlay (menu / progress / sending box) sits where the file name
+    // and the right-hand column would be, so both are hidden while one is up.
+    bool overlay = (m->mode == RmMenu) || (m->mode == RmSending) ||
+                   (app->tx_busy && app->tx_show_progress);
 
-    char tag[24];
-    const char* rad = app->radio_ext ? "E" : "I";
-    const char* dsuf = all_disabled(app) ? " (D)" : "";
-    if(app->count == 1 && app->serial_wild[0] == 0)
-        snprintf(tag, sizeof(tag), "S%s %s", dsuf, rad);
-    else
-        snprintf(tag, sizeof(tag), "G:%lu%s %s", (unsigned long)effective_count(app), dsuf, rad);
-    canvas_draw_str_aligned(c, SCREEN_W - 1, 7, AlignRight, AlignBottom, tag);
+    if(!overlay) {
+        char hdr[16]; // caps the shown file name at 15 characters
+        strncpy(hdr, app->name[0] ? app->name : "<unsaved>", sizeof(hdr) - 1);
+        hdr[sizeof(hdr) - 1] = '\0';
+        canvas_draw_str(c, 0, 7, hdr);
+        canvas_draw_str_aligned(
+            c, SCREEN_W - 1, 7, AlignRight, AlignBottom, app->radio_ext ? "Ext" : "Int");
+    }
 
     // Keypad is always drawn; the action menu / sending box overlay on top of it.
     const int cx = 30, cy = 33, R = 22;
@@ -850,18 +941,24 @@ static void remote_draw(Canvas* c, void* ctx) {
         canvas_set_color(c, ColorBlack);
     }
 
-    const int px = 90;
-    canvas_draw_str_aligned(c, px, 17, AlignCenter, AlignBottom, "Channel");
-    char ch[4];
-    snprintf(ch, sizeof(ch), "%u", app->channel);
-    canvas_set_font(c, FontBigNumbers);
-    canvas_draw_str_aligned(c, px, 34, AlignCenter, AlignBottom, ch);
-    canvas_set_font(c, FontSecondary);
-    if(app->channel == 0) {
-        canvas_draw_str_aligned(c, px, 42, AlignCenter, AlignBottom, "(master)");
-    }
-    if(app->cmd_name[0]) {
-        canvas_draw_str_aligned(c, px, 50, AlignCenter, AlignBottom, app->cmd_name);
+    const int px = 90; // centre for the action name
+    const int lx = 60; // left column for the serials / channel lines
+    if(!overlay) {
+        char cnt[12];
+        fmt_count(cnt, sizeof(cnt), effective_count(app));
+        char line[28];
+        snprintf(line, sizeof(line), "Serials: %s%s", cnt, all_disabled(app) ? " (D)" : "");
+        canvas_draw_str(c, lx, 25, line);
+
+        char ch[20];
+        if(app->channel == 0)
+            snprintf(ch, sizeof(ch), "Channel: 0 (m)");
+        else
+            snprintf(ch, sizeof(ch), "Channel: %u", app->channel);
+        canvas_draw_str(c, lx, 35, ch);
+
+        if(app->cmd_name[0])
+            canvas_draw_str_aligned(c, px, 49, AlignCenter, AlignBottom, app->cmd_name);
     }
 
     canvas_draw_str(c, 1, 63, app->tilt ? "Tilt" : "Roller");
@@ -878,6 +975,8 @@ static void remote_draw(Canvas* c, void* ctx) {
         const char* items[4];
         mk_items(m->menu_kind, items);
         draw_box_menu(c, mk_title(m->menu_kind), items, mk_count(m->menu_kind), m->menu_sel);
+    } else if(app->tx_busy && app->tx_show_progress) {
+        draw_progress(c, app, m->mode == RmSending ? m->sending : app->cmd_name);
     } else if(m->mode == RmSending) {
         canvas_set_color(c, ColorWhite);
         canvas_draw_box(c, 8, 22, 112, 26);
@@ -1855,6 +1954,13 @@ static bool custom_event_cb(void* ctx, uint32_t event) {
     return false;
 }
 
+// Redraws the keypad while a long group send runs, on the GUI thread, so the
+// progress panel advances without the worker ever touching the display.
+static void tick_cb(void* ctx) {
+    App* app = ctx;
+    if(app->tx_busy && app->tx_show_progress) remote_commit(app);
+}
+
 static void exit_to_main(App* app) {
     if(!app->dirty) {
         view_dispatcher_switch_to_view(app->vd, ViewMain);
@@ -1991,6 +2097,7 @@ int32_t dooya_remote_app(void* p) {
     app->vd = view_dispatcher_alloc();
     view_dispatcher_set_event_callback_context(app->vd, app);
     view_dispatcher_set_custom_event_callback(app->vd, custom_event_cb);
+    view_dispatcher_set_tick_event_callback(app->vd, tick_cb, 250);
 
     app->main_menu = submenu_alloc();
     build_main_menu(app);

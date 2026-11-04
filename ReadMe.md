@@ -189,6 +189,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Temp Sensors Reader one-wire allocation and invalid GPIO checks (By quen0n; fixes by xMasterX)](https://github.com/xMasterX/all-the-plugins/commit/4b718695420ac9e9c4242eadf8308d9db6cd5949)
 - Updated: [BLE Clipboard v0.5.3 SD initialization for saved snapshots and transfers larger than 4 KiB (By otcan)](https://github.com/otcan/ble-clipboard/commit/0810291361b1e2308291a29f88363c05c24e72cf)
 - Sub-GHz: [KeeLoq remotes that send at half the usual rate (Te 200us) are now decoded, and sent back at the rate they were received at & Hormann HSM remotes whose frame starts with seven preamble ones instead of eight are now decoded (By xMasterX)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/2d89f1e1f420fc011b2019fd100fd3deed216e5f)
+- Updated: [Dooya Remote v1.1 batch progress, remaining time and keypad layout (By Lechnio)](https://github.com/Lechnio/Dooya-Remote/commit/47f178f7e5e33594833f26af1bd2162bc60cb72e)
 
 <a name="release"></a>
 
@@ -643,7 +644,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Distance Sensor v1.1 (By Sanqui)](https://github.com/Sanqui/flipperzero-firmware/tree/hc_sr04) `Req: HC-SR04`
 - [Distance Sensor v1.2 (By privet971)](https://github.com/privet971/FlipperZeroApps/tree/main/usping) `Req: Parallax (3 wires) SKU 28015`
 - [Doc Viewer Lite v0.1 (By C0d3-5t3w)](https://github.com/C0d3-5t3w/docviewlite)
-- [Dooya Remote v1.0 (By Lechnio)](https://github.com/Lechnio/Dooya-Remote)
+- [Dooya Remote v1.1 (By Lechnio)](https://github.com/Lechnio/Dooya-Remote)
 - [DroidBeacon v0.1 (By spandox2)](https://github.com/spandox2/droidbeacon)
 - [DropDetect Live v0.1 (By TheRealLuro)](https://github.com/TheRealLuro/Flipper-zero-drop-detector.-) `Req: ICM42688P IMU`
 - [DSTIKE Deauther v1.1 (By SequoiaSan)](https://github.com/SequoiaSan/FlipperZero-Wifi-ESP8266-Deauther-Module/tree/FlipperZero-Module-v2/FlipperZeroModule/FlipperZero-ESP8266-Deauth-App) `Req: ESP8266`
