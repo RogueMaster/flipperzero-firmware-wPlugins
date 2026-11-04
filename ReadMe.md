@@ -180,6 +180,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - Sub-GHz: [Freezer protocol, CAME TWEE false-positive filtering, per-signal Nero Radio icons, frequency analyzer last-reading selection, and RAW capture validation in Nice O-Code/Seed Capturer (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/2e9d147ef5c4f0840f97b2980768f216edcfb60c)
 - API: [88.24 - export subghz_protocol_decoder_base_get_type (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/2e9d147ef5c4f0840f97b2980768f216edcfb60c)
 - Updated: [PINGEQUA RF Lab v0.5.5 (By pingequalab)](https://github.com/pingequalab/rf-lab) (Version Only)
+- Updated: [Reaction Time Stats completed About screen and repeatable fast-result sound/LED feedback (By luvrltop)](https://github.com/luvrltop/ReactionTime)
+- Added: [PayTo Wallets v0.1 (By Rastislav Core)](https://github.com/rastislavcore/flipper_payto)
 
 <a name="release"></a>
 
@@ -979,6 +981,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Password Manager v1.2 (By Rrycbarm)](https://github.com/Rrycbarm/flipperZeroPasswordManager)
 - [Passy v1.6 (By bettse)](https://github.com/bettse/passy)
 - [Pause Timer v1.0 (By Matt-London)](https://github.com/Matt-London/pause_timer)
+- [PayTo Wallets v0.1 (By Rastislav Core)](https://github.com/rastislavcore/flipper_payto)
 - [PC Health Remote v1.1 (By vladatman)](https://github.com/vladatman/pc-health-remote) Req: [Backend](https://github.com/vladatman/pc-health-remote/tree/main/backend)
 - [PC Monitor USB v2.0 (By DonJulve & TheSainEyereg)](https://github.com/DonJulve/Flipper-Zero-PC-Monitor-USB) Req: [Backend](https://github.com/DonJulve/Flipper-Zero-PC-Monitor-USB-Backend)
 - [PC Monitor v1.1.3 (By TheSainEyereg)](https://github.com/TheSainEyereg/flipper-pc-monitor) Req: [Backend](https://github.com/TheSainEyereg/flipper-pc-monitor-backend)
@@ -1022,6 +1025,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [RC2014 ColecoVision (By ezod)](https://github.com/ezod/flipperzero-rc2014-coleco)
 - [RCWL-516 Motion Sensor (By ahmedafe1)](https://github.com/ahmedafe1/rcwl_0516-Flipperzero)
 - [Reality Clock v4.1 (By Eris-Margeta)](https://github.com/Eris-Margeta/flipper-apps)
+- [Remote Analyzer v1.0 (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware)
 - [Remote for CaiXianlin v1.0 (By anty-ce)](https://github.com/anty-ce/flipper_zero_caixianlin_remote)
 - [Remote Maker (By gid9798)](https://github.com/DarkFlippers/unleashed-firmware/pull/487)
 - [Resistance Calculator v1.4 (By instantiator)](https://github.com/instantiator/flipper-zero-experimental-apps)
@@ -1086,7 +1090,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Step Seq v0.3 (By rseufert)](https://github.com/rseufert/step_seq)
 - [Stopwatch v1.0 (By bergr22)](https://github.com/bergr22/Stopwatch-Flipper)
 - [StroboMeter v1.1 (By LeanderJDev)](https://github.com/LeanderJDev/FlipperStroboMeterApp)
-- [Remote Analyzer v1.0 (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/2e9d147ef5c4f0840f97b2980768f216edcfb60c)
 - [Sub Analyzer v1.0 (By RocketGod)](https://github.com/RocketGod-git/Flipper-Zero-SUB-Analyzer)
 - [Sub Duplicate Finder v1.3.1 (By Endika)](https://github.com/Endika/flipper-sub-dup)
 - [Sub-GHz Bruteforcer v4.3 (By Ganapati/xMasterX/derskythe)](https://github.com/derskythe/flipperzero-subbrute/tree/master)

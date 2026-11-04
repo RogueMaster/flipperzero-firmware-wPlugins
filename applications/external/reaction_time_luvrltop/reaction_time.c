@@ -13,6 +13,7 @@
 #define MAX_DELAY_MS 5000
 #define STATS_PATH   APP_DATA_PATH("stats.txt")
 #define NICE_MS      130
+#define VERSION      "v1.0.0"
 
 typedef enum {
     ScreenStartup,
@@ -20,6 +21,7 @@ typedef enum {
     ScreenGo,
     ScreenTooEarly,
     ScreenResult,
+    ScreenAbout,
 } Screen;
 
 typedef struct {
@@ -38,6 +40,44 @@ typedef struct {
     uint32_t count;
 
 } ReactionApp;
+static const NotificationSequence sequence_nice = {
+    &message_red_255,   &message_green_255,
+
+    &message_note_g5,   &message_delay_50,
+    &message_sound_off, &message_delay_25,
+    &message_note_g5,   &message_delay_50,
+    &message_sound_off, &message_delay_25,
+    &message_note_g5,   &message_delay_50,
+    &message_sound_off, &message_delay_25,
+    &message_note_c6,   &message_delay_250,
+    &message_delay_100, &message_sound_off,
+    &message_delay_100,
+
+    &message_note_c6,   &message_delay_50,
+    &message_sound_off, &message_delay_25,
+    &message_note_c6,   &message_delay_50,
+    &message_sound_off, &message_delay_25,
+    &message_note_c6,   &message_delay_50,
+    &message_sound_off, &message_delay_25,
+    &message_note_e6,   &message_delay_250,
+    &message_delay_100, &message_sound_off,
+    &message_delay_100,
+
+    &message_note_c6,   &message_delay_100,
+    &message_note_e6,   &message_delay_100,
+    &message_note_g6,   &message_delay_100,
+    &message_sound_off, &message_delay_25,
+    &message_note_g6,   &message_delay_50,
+    &message_sound_off, &message_delay_25,
+    &message_note_g6,   &message_delay_50,
+    &message_sound_off, &message_delay_25,
+
+    &message_note_c7,   &message_delay_500,
+    &message_delay_250, &message_sound_off,
+    &message_vibro_on,  &message_delay_100,
+    &message_vibro_off, &message_red_0,
+    &message_green_0,   NULL,
+};
 
 static void load_stats(ReactionApp* app) {
     Storage* storage = furi_record_open(RECORD_STORAGE);
@@ -88,6 +128,7 @@ static void draw_splash(Canvas* canvas, ReactionApp* app) {
     //canvas_set_font(canvas, FontSecondary);
     elements_button_left(canvas, "Reset");
     elements_button_center(canvas, "Start");
+    elements_button_right(canvas, "About");
 }
 
 static void draw_wait(Canvas* canvas, ReactionApp* app) {
@@ -144,6 +185,23 @@ static void draw_reaction_ms(Canvas* canvas, ReactionApp* app) {
     //canvas_draw_str(canvas, 64, 32, buf);
 }
 
+static void draw_about(Canvas* canvas, ReactionApp* app) {
+    UNUSED(app);
+    char buf[40];
+    canvas_set_font(canvas, FontPrimary);
+    snprintf(buf, sizeof(buf), "Reaction Time %s", VERSION);
+    canvas_draw_str_aligned(canvas, 64, 1, AlignCenter, AlignTop, buf);
+    canvas_set_font(canvas, FontSecondary);
+    canvas_draw_str_aligned(canvas, 64, 12, AlignCenter, AlignTop, "Developed by luvrltop");
+    canvas_draw_str_aligned(canvas, 64, 22, AlignCenter, AlignTop, "Github: luvrltop");
+    canvas_draw_str_aligned(canvas, 5, 32, AlignLeft, AlignTop, "Hint:");
+    canvas_draw_str_aligned(canvas, 64, 43, AlignCenter, AlignTop, "Try getting a score under");
+    canvas_set_font(canvas, FontPrimary);
+    canvas_draw_str_aligned(canvas, 64, 54, AlignCenter, AlignTop, "130ms!");
+
+    //scrollcanvas
+}
+
 static void draw_callback(Canvas* canvas, void* ctx) {
     ReactionApp* app = ctx;
 
@@ -170,6 +228,9 @@ static void draw_callback(Canvas* canvas, void* ctx) {
 
     case ScreenResult:
         draw_reaction_ms(canvas, app);
+        break;
+    case ScreenAbout:
+        draw_about(canvas, app);
         break;
     }
 
@@ -256,6 +317,12 @@ int32_t reaction_time_app(void* p) {
                     save_stats(app);
                 }
 
+            } else if(event.key == InputKeyRight && app->screen == ScreenStartup) {
+                app->screen = ScreenAbout;
+
+            } else if(event.key == InputKeyBack && app->screen == ScreenAbout) {
+                app->screen = ScreenStartup;
+
             } else if(event.key == InputKeyOk) {
                 //Ok button pressed: what happens
                 switch(app->screen) {
@@ -270,13 +337,20 @@ int32_t reaction_time_app(void* p) {
                     app->total_ms += app->reaction_ms;
                     app->count++;
                     save_stats(app);
+                    if(app->reaction_ms < NICE_MS) {
+                        notification_message(app->notifications, &sequence_nice);
+                    }
+
                     app->screen = ScreenResult;
                     break;
                 case ScreenTooEarly:
                     start_waiting(app);
                     break;
                 case ScreenResult:
+
                     start_waiting(app); //new cycle
+                    break;
+                case ScreenAbout:
                     break;
                 }
             }

@@ -1,0 +1,15 @@
+App(
+    appid="payto",
+    name="PayTo Wallets",
+    entry_point="flipper_payto_app",
+    apptype=FlipperAppType.EXTERNAL,
+    sources=["flipper_payto.c", "payto.c"],
+    stack_size=4 * 1024,
+    fap_icon="icon.png",
+    targets=["f7"],
+    fap_category="NFC",
+    fap_author="Rastislav Core",
+    fap_weburl="https://github.com/rastislavcore/flipper_payto",
+    fap_version="0.1",
+    fap_description="Scan, save and emulate PayTo wallet URIs over NFC",
+)

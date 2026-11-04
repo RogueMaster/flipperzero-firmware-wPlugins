@@ -1,6 +1,6 @@
 Run SSH commands and scripts on your servers from the Flipper Zero, over LAN or WiFi.
 
-**Requires the SSH Runner add-on board:** an ESP32-S3 with a W5500 Ethernet chip, today a Waveshare ESP32-S3-ETH running the SSH Runner firmware, wired to the Flipper's GPIO header (TX, RX and GND; optionally 3V3 to run it from the Flipper's battery). The app does nothing without it. Wiring and setup: [Quick Start](https://github.com/SeanChangX/flipper-ssh-runner/blob/main/docs/QUICKSTART.md) and [Hardware and Wiring](https://github.com/SeanChangX/flipper-ssh-runner/blob/main/docs/HARDWARE.md).
+**Requires an ESP32-S3 board with a W5500 Ethernet chip, running the SSH Runner firmware.** Two boards run it: the SSH Runner add-on board, which plugs straight onto the Flipper's GPIO header with no wiring (design files in the repository's [hardware folder](https://github.com/SeanChangX/flipper-ssh-runner/tree/main/hardware), CC BY-NC-SA 4.0), or a Waveshare ESP32-S3-ETH wired to the GPIO header (TX, RX and GND; optionally 3V3 to run it from the Flipper's battery). The app does nothing without one. Wiring and setup: [Quick Start](https://github.com/SeanChangX/flipper-ssh-runner/blob/main/docs/QUICKSTART.md) and [Hardware and Wiring](https://github.com/SeanChangX/flipper-ssh-runner/blob/main/docs/HARDWARE.md).
 
 ## What it does
 
