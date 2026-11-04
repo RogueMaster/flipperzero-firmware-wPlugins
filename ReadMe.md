@@ -179,6 +179,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Remote Analyzer v1.0 (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/2e9d147ef5c4f0840f97b2980768f216edcfb60c)
 - Sub-GHz: [Freezer protocol, CAME TWEE false-positive filtering, per-signal Nero Radio icons, frequency analyzer last-reading selection, and RAW capture validation in Nice O-Code/Seed Capturer (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/2e9d147ef5c4f0840f97b2980768f216edcfb60c)
 - API: [88.24 - export subghz_protocol_decoder_base_get_type (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/2e9d147ef5c4f0840f97b2980768f216edcfb60c)
+- Updated: [PINGEQUA RF Lab v0.5.5 (By pingequalab)](https://github.com/pingequalab/rf-lab) (Version Only)
 
 <a name="release"></a>
 
@@ -988,7 +989,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Pi Terminal v1.0 (By dagnazty & InfoSecREDD)](https://github.com/InfoSecREDD/Flip-pi)
 - [Piano v1.0 (By bergr22)](https://github.com/bergr22/FlipPiano)
 - [PicoPass (iClass) v1.23 (By Bettse)](https://gitlab.com/bettse/picopass)
-- [PINGEQUA RF Lab v0.5.4 (By pingequalab)](https://github.com/pingequalab/rf-lab)
+- [PINGEQUA RF Lab v0.5.5 (By pingequalab)](https://github.com/pingequalab/rf-lab)
 - [PIR HC-SR501 Alarm v1.0 (By ku6a-cj)](https://github.com/ku6a-cj/-PIR-HC-SR501-Proximity-alarm-Flipper-zero) `Req: PIR HC-SR501`
 - [Plantower PMSx003 sensor reader v1.4 (By 3cky)](https://github.com/3cky/flipperzero-airmon) `Req: Plantower PMS5003/PMS7003/PMS9003`
 - [Plugin Demo v1.0 (By csBlueChip)](https://github.com/csBlueChip/FlipperZero_plugin_howto)
