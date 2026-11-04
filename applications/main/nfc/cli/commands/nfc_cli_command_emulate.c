@@ -42,6 +42,7 @@ static const NfcProtocol supported_protocols[] = {
     NfcProtocolSlix,
     NfcProtocolFelica,
     NfcProtocolTexkom,
+    NfcProtocolLegicPrime,
 };
 
 static bool nfc_cli_emulate_protocol_supports_emulation(NfcProtocol protocol) {

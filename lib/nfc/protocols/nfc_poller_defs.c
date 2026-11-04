@@ -16,6 +16,7 @@
 #include <nfc/protocols/type_4_tag/type_4_tag_poller_defs.h>
 #include <nfc/protocols/emv/emv_poller_defs.h>
 #include <nfc/protocols/texkom/texkom_poller_defs.h>
+#include <nfc/protocols/legic_prime/legic_prime_poller_defs.h>
 
 const NfcPollerBase* const nfc_pollers_api[NfcProtocolNum] = {
     [NfcProtocolIso14443_3a] = &nfc_poller_iso14443_3a,
@@ -34,5 +35,6 @@ const NfcPollerBase* const nfc_pollers_api[NfcProtocolNum] = {
     [NfcProtocolType4Tag] = &type_4_tag_poller,
     [NfcProtocolEmv] = &emv_poller,
     [NfcProtocolTexkom] = &nfc_poller_texkom,
+    [NfcProtocolLegicPrime] = &nfc_poller_legic_prime,
     /* Add new pollers here */
 };

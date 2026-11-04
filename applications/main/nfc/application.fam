@@ -32,6 +32,17 @@ App(
 # Protocol support plugins
 
 App(
+    appid="nfc_legic_prime",
+    targets=["f7"],
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="nfc_legic_prime_ep",
+    requires=["nfc"],
+    sources=["helpers/protocol_support/legic_prime/*.c"],
+    fal_embedded=True,
+    fap_exclude_libs=["gcc"],
+)
+
+App(
     appid="nfc_iso14443_3a",
     targets=["f7"],
     apptype=FlipperAppType.PLUGIN,
@@ -773,10 +784,12 @@ App(
         "cli/commands/dump/protocols/st25tb/nfc_cli_dump_st25tb.c",
         "cli/commands/dump/protocols/ntag4xx/nfc_cli_dump_ntag4xx.c",
         "cli/commands/dump/protocols/type_4_tag/nfc_cli_dump_type_4_tag.c",
+        "cli/commands/dump/protocols/legic_prime/nfc_cli_dump_legic_prime.c",
         "cli/commands/mfu/nfc_cli_command_mfu.c",
         "cli/commands/mfu/nfc_cli_action_info.c",
         "cli/commands/mfu/nfc_cli_action_rdbl.c",
         "cli/commands/mfu/nfc_cli_action_wrbl.c",
+        "cli/commands/legic/nfc_cli_command_legic.c",
         "cli/commands/nfc_cli_command_emulate.c",
         "cli/commands/nfc_cli_command_scanner.c",
         "cli/commands/nfc_cli_command_field.c",
