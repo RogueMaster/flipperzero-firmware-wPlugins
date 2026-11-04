@@ -1,5 +1,7 @@
 ## Main changes
 - Current API: 88.24
+- SubGHz: **KeeLoq remotes that send at half the usual rate (Te 200us) are now decoded, and sent back at the rate they were received at**
+- SubGHz: **Hormann HSM remotes whose frame starts with seven preamble ones instead of eight are now decoded**
 - SubGHz: **Nice O-Code remotes that send the longer 72bit frame now work, as `Nice O-Code One 433MHz` in Add Manually**
 - SubGHz: **Nice O-Code 112bit frames carrying the receiver certificate are decoded and sent, as `Nice O-Code+Crt 433MHz`**
 - SubGHz: **Nice O-Code shows the certificate as the receiver's own value, masked with each remote's serial only on air**
@@ -51,7 +53,7 @@
 - RFID: **T5577 app - a Test Tag backup is deleted once the tag is proven restored, and warns before overwriting one that survives** (by @mishamyte | PR #1179)
 - SubGHz: **Fix Marantec24 and Linear Delta 3 not decoding a signal the Flipper itself sends** (by @mishamyte | PR #1207 | Closes #1205)
 - SubGHz: **Fix Holtek HT12X reporting a key off one frame when the receiver had just been reset** (by @mishamyte | PR #1207)
-- Apps: Build tag (**4nov2026**) - **Check out more Apps updates and fixes by following** [this link](https://github.com/xMasterX/all-the-plugins/commits/dev)
+- Apps: Build tag (**4nov2026p3**) - **Check out more Apps updates and fixes by following** [this link](https://github.com/xMasterX/all-the-plugins/commits/dev)
 ## Other changes
 - SubGHz: **CAME TWEE no longer reads past the end of its decode table on a parcel counter of F**
 - SubGHz: **Fix encoder buffers too small for the keys Came Atomo, Somfy Keytis, Somfy Telis, Power Smart and Dooya accept**
