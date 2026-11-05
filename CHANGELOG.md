@@ -27,6 +27,7 @@
 - SubGHz Remote: **Fix rolling code and custom button resets after TX, and the counter moving twice per press**
 - Apps: **`SubGHz WarDriving` - RX restarts after TX, and sending a received dynamic signal no longer overwrites a saved file**
 - SubGHz: **KeeLoq `CounterMode: 7` now opens a Doorhan on the first press**
+- SubGHz: **KeeLoq `CounterMode` 7, 8 and 9 each reproduce a DoorHan Smart clone resync pack, one per board family** (what `CounterMode: 7` used to send is now mode 8)
 - SubGHz: **The read list is no longer capped at 55 signals, and Hold Right deletes one**
 - SubGHz: **`Delete old signals` makes room by memory now, for a send as well as a read**
 - SubGHz: **Send no longer crashes on a full list**
@@ -50,6 +51,8 @@
 - RFID: **Fix the T5577 app sending a password to a tag that never asked for one** (by @mishamyte | PR #1192)
 - RFID: **Fix the T5577 app ignoring Back while it looks for a tag** (by @mishamyte | PR #1192)
 - RFID: **T5577 `Sniff Password` says `Too much noise` instead of reporting silence when the coil itself chatters** (by @mishamyte | PR #1202)
+- RFID: **T5577 `Clear Password` shows the password that opened the tag, and offers to keep one you typed** (by @mishamyte | PR #1208)
+- RFID: **Fix the T5577 app saying `Not cleared` about a tag it had opened, on one flaked read** (by @mishamyte | PR #1208)
 - RFID: **T5577 app - a Test Tag backup is deleted once the tag is proven restored, and warns before overwriting one that survives** (by @mishamyte | PR #1179)
 - SubGHz: **Fix Marantec24 and Linear Delta 3 not decoding a signal the Flipper itself sends** (by @mishamyte | PR #1207 | Closes #1205)
 - SubGHz: **Fix Holtek HT12X reporting a key off one frame when the receiver had just been reset** (by @mishamyte | PR #1207)

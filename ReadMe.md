@@ -168,7 +168,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - OFW: PR: [BadUSB EXFIL and host keyboard lock-state support (By josaum)](https://github.com/flipperdevices/flipperzero-firmware/pull/4506)
 - Sub-GHz: [Fix the 6 test_subghz failures (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1207)
 - [Unit Test Updates (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1204)
-- Updated: [T5577 v1.2 - preserve Sniff Password captures when a noisy coil never goes quiet and report excessive noise (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1202)
 - Updated: [Reaction Time Stats fast-result visual feedback, Continue label and text positioning (By luvrltop)](https://github.com/luvrltop/ReactionTime)
 - Updated: [Sub Duplicate Finder v1.3.1 duplicate candidates retain byte-for-byte verification at deletion, with comparator tests (By squazaryu)](https://github.com/Endika/flipper-sub-dup/pull/22)
 - Updated: [SSH Runner v0.3 author version, changelog and status-text documentation (By SeanChangX)](https://github.com/SeanChangX/flipper-ssh-runner)
@@ -192,6 +191,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Dooya Remote v1.1 batch progress, remaining time and keypad layout (By Lechnio)](https://github.com/Lechnio/Dooya-Remote/commit/47f178f7e5e33594833f26af1bd2162bc60cb72e)
 - Added: [IDentity v0.22 - NFC eID/ePassport reader with document authentication and photo display (By Dani)](https://github.com/daniqed/flipper-identity)
 - Updated: [NFC/RFID Detector v1.5 precise LF frequency measurement and crystal calibration (By mfcarroll)](https://github.com/flipperdevices/flipperzero-good-faps/pull/313)
+- Updated: [T5577 v1.3 (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1202)
+- SubGHz: [KeeLoq `CounterMode` 7, 8 and 9 each reproduce a DoorHan Smart clone resync pack, one per board family (what `CounterMode: 7` used to send is now mode 8) (By xMasterX)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/644cd8c5c2fdf20940d324387b844deb70dafc3b)
 
 <a name="release"></a>
 
@@ -1122,7 +1123,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Survival Manual v1.0 (By Radiomanrf)](https://github.com/Radiomanrf/Survival_manual)
 - [SWD Probe v1.4 (By g3gg0)](https://github.com/g3gg0/flipper-swd_probe)
 - [T-Union Master (China) v0.1 (By SocialSisterYi)](https://github.com/SocialSisterYi/T-Union_Master)
-- [T5577 v1.2 (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/commit/1672f7c54d146114d7ecdb57043661f9456dd292) (.t5577 ext incompatible to T5577 Raw Writer)
+- [T5577 v1.3 (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/commit/1672f7c54d146114d7ecdb57043661f9456dd292) (.t5577 ext incompatible to T5577 Raw Writer)
 - [T5577 Multiwriter v0.3 (By Leptopt1los)](https://github.com/Leptopt1los/t5577_multiwriter)
 - [T5577 Raw Writer v1.1 (By zinongli)](https://github.com/zinongli/T5577_Raw_Writer) (.t5577 ext incompatible to T5577)
 - [TagTinker v2.1 (By i12bp8)](https://github.com/i12bp8/TagTinker)
