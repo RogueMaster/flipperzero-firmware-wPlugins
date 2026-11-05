@@ -1,0 +1,25 @@
+App(
+    appid="identity",
+    name="IDentity",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="dnie_reader_app",
+    stack_size=6 * 1024,
+    targets=["f7"],
+    fap_icon="dnie_10px.png",
+    fap_file_assets="assets",
+    fap_icon_assets_symbol="dnie_reader",
+    fap_libs=["mbedtls"],
+    fap_private_libs=[
+        Lib(
+            name="mbedtls_ct",
+            sources=["constant_time.c"],
+            fap_include_paths=[".", "include"],
+            cflags=["-Wno-unused-parameter"],
+        ),
+    ],
+    fap_category="NFC",
+    fap_author="Dani",
+    fap_weburl="https://github.com/daniqed/flipper-identity",
+    fap_version="0.22",
+    fap_description="Read eIDs and ePassports and verify that they are genuine",
+)

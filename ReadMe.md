@@ -184,12 +184,13 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [PayTo Wallets v0.1 (By Rastislav Core)](https://github.com/rastislavcore/flipper_payto)
 - Added: [Controller Ducky v1.0 (By eric-m-holub)](https://github.com/eric-m-holub/controller-ducky)
 - Added: [Super Sniffer Card v0.2 (By mishamyte)](https://github.com/mishamyte/super-sniffer-card)
-- Fixed: [Controller Ducky truncated USB subcommand handling](https://github.com/eric-m-holub/controller-ducky) and [Super Sniffer Card oversized debug responses and unsupported UID lengths](https://github.com/mishamyte/super-sniffer-card) (RM corrections)
+- Fixed: [Controller Ducky truncated USB subcommand handling](https://github.com/eric-m-holub/controller-ducky) and [Super Sniffer Card oversized debug responses, logger signedness and unsupported UID lengths](https://github.com/mishamyte/super-sniffer-card) (RM corrections)
 - Updated: [GPIO Controller pin indexing and unused-slot crash checks (By Lokno; fixes by xMasterX)](https://github.com/xMasterX/all-the-plugins/commit/4b718695420ac9e9c4242eadf8308d9db6cd5949)
 - Updated: [Temp Sensors Reader one-wire allocation and invalid GPIO checks (By quen0n; fixes by xMasterX)](https://github.com/xMasterX/all-the-plugins/commit/4b718695420ac9e9c4242eadf8308d9db6cd5949)
 - Updated: [BLE Clipboard v0.5.3 SD initialization for saved snapshots and transfers larger than 4 KiB (By otcan)](https://github.com/otcan/ble-clipboard/commit/0810291361b1e2308291a29f88363c05c24e72cf)
 - Sub-GHz: [KeeLoq remotes that send at half the usual rate (Te 200us) are now decoded, and sent back at the rate they were received at & Hormann HSM remotes whose frame starts with seven preamble ones instead of eight are now decoded (By xMasterX)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/2d89f1e1f420fc011b2019fd100fd3deed216e5f)
 - Updated: [Dooya Remote v1.1 batch progress, remaining time and keypad layout (By Lechnio)](https://github.com/Lechnio/Dooya-Remote/commit/47f178f7e5e33594833f26af1bd2162bc60cb72e)
+- Added: [IDentity v0.22 - NFC eID/ePassport reader with document authentication and photo display (By Dani)](https://github.com/daniqed/flipper-identity)
 
 <a name="release"></a>
 
@@ -808,6 +809,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [iButton Fuzzer v1.8 (By gid9798)](https://github.com/DarkFlippers/unleashed-firmware/pull/507)
 - [IconEdit v0.7.1 (By rdefeo)](https://github.com/rdefeo/iconedit)
 - [ID Card v3.0 (By evillero)](https://github.com/evillero/ID_card_v2)
+- [IDentity v0.22 (By Dani)](https://github.com/daniqed/flipper-identity)
 - [IFTTT Button (By Ferrazzi)](https://github.com/Ferrazzi/FlipperZero_IFTTT_Virtual_Button) `Req: ESP8266 w/ IFTTT FW Flashed`
 - [Image Scroller v0.1 (By fgreil)](https://github.com/fgreil/mitzi-scroller)
 - [Image Viewer v0.2 (By polioan)](https://github.com/polioan/flipper-zero-image-viewer)
