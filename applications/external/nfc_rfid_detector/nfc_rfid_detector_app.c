@@ -2,6 +2,7 @@
 
 #include <furi.h>
 #include <furi_hal.h>
+#include <string.h>
 
 static bool nfc_rfid_detector_app_custom_event_callback(void* context, uint32_t event) {
     furi_assert(context);
@@ -61,6 +62,24 @@ NfcRfidDetectorApp* nfc_rfid_detector_app_alloc() {
         NfcRfidDetectorViewFieldPresence,
         nfc_rfid_detector_view_field_presence_get_view(app->nfc_rfid_detector_field_presence));
 
+    // Calibration
+    app->nfc_rfid_detector_cal = nfc_rfid_detector_view_cal_alloc();
+    view_dispatcher_add_view(
+        app->view_dispatcher,
+        NfcRfidDetectorViewCal,
+        nfc_rfid_detector_view_cal_get_view(app->nfc_rfid_detector_cal));
+    nfc_rfid_detector_app_lf_cal_load(app);
+
+    // Calibration status
+    app->nfc_rfid_detector_cal_status = nfc_rfid_detector_view_cal_status_alloc();
+    view_dispatcher_add_view(
+        app->view_dispatcher,
+        NfcRfidDetectorViewCalStatus,
+        nfc_rfid_detector_view_cal_status_get_view(app->nfc_rfid_detector_cal_status));
+    app->lf_count = nfc_rfid_detector_lf_count_alloc();
+    app->cal_cli = nfc_rfid_detector_cal_cli_alloc(app->view_dispatcher);
+    nfc_rfid_detector_cal_cli_set_calibration(app->cal_cli, app->lf_cal);
+
     scene_manager_next_scene(app->scene_manager, NfcRfidDetectorSceneFieldPresence);
 
     return app;
@@ -68,6 +87,9 @@ NfcRfidDetectorApp* nfc_rfid_detector_app_alloc() {
 
 void nfc_rfid_detector_app_free(NfcRfidDetectorApp* app) {
     furi_assert(app);
+
+    nfc_rfid_detector_cal_cli_free(app->cal_cli);
+    nfc_rfid_detector_lf_count_free(app->lf_count);
 
     // Submenu
     view_dispatcher_remove_view(app->view_dispatcher, NfcRfidDetectorViewSubmenu);
@@ -80,6 +102,14 @@ void nfc_rfid_detector_app_free(NfcRfidDetectorApp* app) {
     // Field Presence
     view_dispatcher_remove_view(app->view_dispatcher, NfcRfidDetectorViewFieldPresence);
     nfc_rfid_detector_view_field_presence_free(app->nfc_rfid_detector_field_presence);
+
+    // Calibration status
+    view_dispatcher_remove_view(app->view_dispatcher, NfcRfidDetectorViewCalStatus);
+    nfc_rfid_detector_view_cal_status_free(app->nfc_rfid_detector_cal_status);
+
+    // Calibration
+    view_dispatcher_remove_view(app->view_dispatcher, NfcRfidDetectorViewCal);
+    nfc_rfid_detector_view_cal_free(app->nfc_rfid_detector_cal);
 
     // View dispatcher
     view_dispatcher_free(app->view_dispatcher);
@@ -96,10 +126,21 @@ void nfc_rfid_detector_app_free(NfcRfidDetectorApp* app) {
 }
 
 int32_t nfc_rfid_detector_app(void* p) {
-    UNUSED(p);
     NfcRfidDetectorApp* nfc_rfid_detector_app = nfc_rfid_detector_app_alloc();
 
+    // `loader open <app> cal` opens Computer calibration directly, with Config and detection behind it
+    if(p && strcmp(p, "cal") == 0) {
+        scene_manager_next_scene(
+            nfc_rfid_detector_app->scene_manager, NfcRfidDetectorSceneCalMenu);
+        scene_manager_next_scene(
+            nfc_rfid_detector_app->scene_manager, NfcRfidDetectorSceneCalHelp);
+    }
+
     view_dispatcher_run(nfc_rfid_detector_app->view_dispatcher);
+    // Stop detection before freeing the app. Until then its DMA keeps copying the field count into the LF count's
+    // buffer. The detection scene's on_exit stops it. Back has already run on_exit, but `loader close` skips it.
+    // scene_manager_stop() runs on_exit for a scene that is still open, and does nothing after Back.
+    scene_manager_stop(nfc_rfid_detector_app->scene_manager);
 
     nfc_rfid_detector_app_free(nfc_rfid_detector_app);
 

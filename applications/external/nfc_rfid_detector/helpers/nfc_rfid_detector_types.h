@@ -12,4 +12,6 @@ typedef enum {
     NfcRfidDetectorViewSubmenu,
     NfcRfidDetectorViewFieldPresence,
     NfcRfidDetectorViewWidget,
+    NfcRfidDetectorViewCal,
+    NfcRfidDetectorViewCalStatus,
 } NfcRfidDetectorView;

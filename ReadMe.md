@@ -191,6 +191,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Sub-GHz: [KeeLoq remotes that send at half the usual rate (Te 200us) are now decoded, and sent back at the rate they were received at & Hormann HSM remotes whose frame starts with seven preamble ones instead of eight are now decoded (By xMasterX)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/2d89f1e1f420fc011b2019fd100fd3deed216e5f)
 - Updated: [Dooya Remote v1.1 batch progress, remaining time and keypad layout (By Lechnio)](https://github.com/Lechnio/Dooya-Remote/commit/47f178f7e5e33594833f26af1bd2162bc60cb72e)
 - Added: [IDentity v0.22 - NFC eID/ePassport reader with document authentication and photo display (By Dani)](https://github.com/daniqed/flipper-identity)
+- Updated: [NFC/RFID Detector v1.5 precise LF frequency measurement and crystal calibration (By mfcarroll)](https://github.com/flipperdevices/flipperzero-good-faps/pull/313)
 
 <a name="release"></a>
 
@@ -961,7 +962,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [NFC Tools v1.3 (By wakdev)](https://github.com/wakdev/nfctools-fz)
 - [NFC URL v1.0 (By y-dejong)](https://github.com/y-dejong/nfcurl)
 - [NFC USB Bridge v0.2 (By Space-Raler)](https://github.com/Space-Raler/nfc_bridge)
-- [NFC/RFID Detector v1.4 (By Skorpionm)](https://github.com/flipperdevices/flipperzero-firmware/pull/2795)
+- [NFC/RFID Detector v1.5 (By Skorpionm & mfcarroll)](https://github.com/flipperdevices/flipperzero-good-faps)
 - [Nice O-Code v2.0 (By zero-mega & xMasterX)](https://github.com/DarkFlippers/unleashed-firmware)
 - [Nickname Generator v0.2 (By disaxq)](https://github.com/disaxq/Nickname-Generator)
 - [Nightstand Clock v1.3 (By nymda)](https://github.com/nymda/FlipperNightStand)

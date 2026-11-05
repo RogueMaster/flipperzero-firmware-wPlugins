@@ -1,3 +1,6 @@
+## 1.5
+ - Hold the Flipper on an LF RFID reader to measure its exact frequency
+ - Calibrate the crystal oscillator for precise frequency measurements
 ## 1.4
  - Removed call to legacy SDK API
 ## 1.3

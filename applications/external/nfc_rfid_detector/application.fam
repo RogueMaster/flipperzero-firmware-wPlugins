@@ -8,9 +8,10 @@ App(
     fap_icon="nfc_rfid_detector_icon_10px.png",
     fap_icon_assets="images",
     fap_category="RFID",
-    fap_author="SkorP",
-    fap_version="1.4",
-    fap_description="Identify the reader type: NFC (13 MHz) and/or RFID (125 KHz).",
+    fap_author="SkorP, mfcarroll",
+    fap_weburl="https://github.com/flipperdevices/flipperzero-good-faps",
+    fap_version="1.5",
+    fap_description="Detect NFC/RFID fields, measure the exact LF frequency, and calibrate the crystal oscillator.",
 )
 
 App(
@@ -24,7 +25,8 @@ App(
     fap_icon_assets="images",
     fap_icon_assets_symbol="nfc_rfid_detector",
     fap_category="NFC",
-    fap_author="SkorP",
-    fap_version="1.4",
-    fap_description="Identify the reader type: NFC (13 MHz) and/or RFID (125 KHz).",
+    fap_author="SkorP, mfcarroll",
+    fap_weburl="https://github.com/flipperdevices/flipperzero-good-faps",
+    fap_version="1.5",
+    fap_description="Detect NFC/RFID fields, measure the exact LF frequency, and calibrate the crystal oscillator.",
 )

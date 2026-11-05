@@ -19,22 +19,34 @@ static void nfc_rfid_detector_scene_field_presence_update(void* context) {
     furi_assert(context);
     NfcRfidDetectorApp* app = context;
 
-    uint32_t frequency = 0;
+    NfcRfidDetectorLfMeterResult lf_result;
     bool nfc_field = nfc_rfid_detector_app_field_presence_is_nfc(app);
-    bool rfid_field = nfc_rfid_detector_app_field_presence_is_rfid(app, &frequency);
+    bool rfid_field = nfc_rfid_detector_app_field_presence_is_rfid(app, &lf_result);
+    if(nfc_rfid_detector_view_field_presence_take_restart(app->nfc_rfid_detector_field_presence)) {
+        nfc_rfid_detector_app_field_presence_rfid_restart(app);
+    }
 
     if(nfc_field || rfid_field)
         notification_message(app->notifications, &notification_app_display_on);
 
     nfc_rfid_detector_view_field_presence_update(
-        app->nfc_rfid_detector_field_presence, nfc_field, rfid_field, frequency);
+        app->nfc_rfid_detector_field_presence, nfc_field, &lf_result);
 }
 
 void nfc_rfid_detector_scene_field_presence_on_enter(void* context) {
     furi_assert(context);
     NfcRfidDetectorApp* app = context;
 
+    nfc_rfid_detector_view_field_presence_set_callback(
+        app->nfc_rfid_detector_field_presence,
+        nfc_rfid_detector_scene_field_presence_callback,
+        app);
+    nfc_rfid_detector_view_field_presence_set_cal(
+        app->nfc_rfid_detector_field_presence, app->lf_cal, app->lf_cal_sig);
+
     // Start detection of field presence
+    // End any calibration session first since it uses the same timer
+    nfc_rfid_detector_cal_cli_allow(app->cal_cli, false);
     nfc_rfid_detector_app_field_presence_start(app);
 
     view_dispatcher_switch_to_view(app->view_dispatcher, NfcRfidDetectorViewFieldPresence);
@@ -47,6 +59,18 @@ bool nfc_rfid_detector_scene_field_presence_on_event(void* context, SceneManager
 
     if(event.type == SceneManagerEventTypeTick) {
         nfc_rfid_detector_scene_field_presence_update(app);
+    } else if(
+        event.type == SceneManagerEventTypeCustom &&
+        event.event == NfcRfidDetectorCustomEventConfig) {
+        scene_manager_next_scene(app->scene_manager, NfcRfidDetectorSceneCalMenu);
+        consumed = true;
+    } else if(
+        event.type == SceneManagerEventTypeCustom &&
+        event.event == NfcRfidDetectorCustomEventCalOpen) {
+        // when a computer asks for calibration during detection, open Computer calibration with Config behind
+        scene_manager_next_scene(app->scene_manager, NfcRfidDetectorSceneCalMenu);
+        scene_manager_next_scene(app->scene_manager, NfcRfidDetectorSceneCalHelp);
+        consumed = true;
     }
 
     return consumed;
@@ -57,4 +81,6 @@ void nfc_rfid_detector_scene_field_presence_on_exit(void* context) {
     NfcRfidDetectorApp* app = context;
     // Stop detection of field presence
     nfc_rfid_detector_app_field_presence_stop(app);
+    // The Config screens use the field counter's timer for the calibration command.
+    nfc_rfid_detector_cal_cli_allow(app->cal_cli, true);
 }

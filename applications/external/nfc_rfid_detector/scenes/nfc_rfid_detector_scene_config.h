@@ -1,1 +1,5 @@
 ADD_SCENE(nfc_rfid_detector, field_presence, FieldPresence)
+ADD_SCENE(nfc_rfid_detector, cal_menu, CalMenu)
+ADD_SCENE(nfc_rfid_detector, cal, Cal)
+ADD_SCENE(nfc_rfid_detector, cal_help, CalHelp)
+ADD_SCENE(nfc_rfid_detector, cal_session, CalSession)
