@@ -51,18 +51,18 @@ pingequa_rf_toolkit/
 
 ## Editing for a different firmware target
 
+The source is the same. The SDK is not. Official 1.5.1 is API 88.2; Momentum mntm-012 is API 87.1. `ufbt update --channel=release` follows the index installed last.
+
 ```bash
-# Stable Momentum
+# Official 1.5.1 (API 88.2). Also the build for current Unleashed and RogueMaster.
 ufbt update --channel=release
 
-# Specific commit
-ufbt update --hw-target=7 --branch=mntm-012-3.4.5
+# Momentum mntm-012 (API 87.1)
+ufbt update --index-url=https://up.momentum-fw.dev/firmware/directory.json --channel=release
 
 # Custom SDK ZIP
 ufbt update --local=path/to/sdk.zip
 ```
-
-The build is firmware-agnostic — same source, different target SDKs.
 
 ## Static checks
 

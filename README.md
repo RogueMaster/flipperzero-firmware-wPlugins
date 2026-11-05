@@ -45,7 +45,7 @@ An open-source Flipper Application Package (FAP) that turns Flipper Zero plus th
   - **Auto session log** + **mode/channel persistence** (v0.5.0+)
 - **Human-readable export filenames** (v0.5.2+) — `scan_<date>_<time>_ch<peak>.csv` / `jam_<date>_<time>_<mode>_<dur>s.csv`. Sorting by name = sorting by time.
 - **On-device About screen** (v0.5.2+) — three pages, Up/Down to navigate, with scannable QR codes for the shop and GitHub repo so visitors can land on the right page with their phone.
-- **Two FAP builds, one source tree** (v0.5.5) — official firmware 1.5.1 (API 88.2) and Momentum mntm-012 (API 87.1). No firmware-specific source changes; install the FAP whose API major matches the device.
+- **Two FAP builds, one source tree** (v0.5.5) — API 88.2 for Official 1.5.1, Unleashed, and RogueMaster; API 87.1 for Momentum mntm-012. No firmware-specific source changes. Install the file whose API major matches the device.
 - **Clean exit** — other Flipper apps (Sub-GHz Read, NFC, Bad-USB) keep working perfectly after you exit
 
 ---
@@ -111,9 +111,9 @@ An open-source Flipper Application Package (FAP) that turns Flipper Zero plus th
 ### 2. Install the app (software)
 
 **qFlipper drag-and-drop** (recommended):
-1. Download the FAP that matches the firmware on the Flipper (see [Firmware Compatibility](#firmware-compatibility)). From the v0.5.5 [Releases](../../releases) assets once that release is published:
-   - Official firmware **1.5.1** → `rf_lab-official-api88.fap`
-   - Momentum **mntm-012** → `rf_lab-momentum.fap`
+1. Download the FAP that matches the firmware on the Flipper (see [Firmware Compatibility](#firmware-compatibility)). From the v0.5.5 [release](https://github.com/pingequalab/rf-lab/releases/tag/v0.5.5):
+   - Official **1.5.1**, Unleashed, RogueMaster (API 88) → `rf_lab-official-api88.2.fap`
+   - Momentum **mntm-012** (API 87) → `rf_lab-momentum-mntm-012.fap`
 2. In qFlipper: drag into `/ext/apps/GPIO/`
 3. On Flipper: `Apps → GPIO → PINGEQUA RF Lab`
 
@@ -243,14 +243,22 @@ Other NRF24 boards may partially work but are unsupported. See [docs/HARDWARE.md
 
 ## Firmware Compatibility
 
-A FAP loads only when its **API major version** matches the firmware. Official firmware [1.5.1](https://github.com/flipperdevices/flipperzero-firmware/releases/tag/1.5.1) (2026-10-15) is API **88.2**. v0.5.4 was built for API **87.1**, so official 1.5.1 rejects it. v0.5.5 is the same application built twice — install the file that matches the device. The two files are not interchangeable.
+A FAP loads when its **API major** matches the firmware. The minor compare in `flipper_application_manifest_is_too_new` is commented out on Official 1.5.1, Unleashed `unlshd-094`, Momentum `mntm-012`, and RogueMaster branch `420` (read 2026-11-05). The file is still linked against one SDK, so an API 88 file does not load on API 87. v0.5.4 was a single API 87.1 file, and official 1.5.1 rejects it. v0.5.5 is that same application built twice.
 
-| Artifact | Firmware | API | SDK |
+API numbers below are the `Version` row of `targets/f7/api_symbols.csv`, read 2026-11-05.
+
+| Firmware | Version checked | API | v0.5.5 asset |
 |---|---|---|---|
-| `rf_lab-official-api88.fap` | Official Flipper firmware 1.5.1 | 88.2 | `ufbt update --channel=release` against [update.flipperzero.one](https://update.flipperzero.one/firmware/directory.json) |
-| `rf_lab-momentum.fap` | Momentum mntm-012 | 87.1 | `ufbt update --index-url=https://up.momentum-fw.dev/firmware/directory.json --channel=release` |
+| [Official](https://github.com/flipperdevices/flipperzero-firmware/blob/1.5.1/targets/f7/api_symbols.csv) release | 1.5.1 | 88.2 | `rf_lab-official-api88.2.fap` |
+| [Official](https://github.com/flipperdevices/flipperzero-firmware/blob/dev/targets/f7/api_symbols.csv) dev | dev | 88.4 | same API 88.2 file |
+| [Unleashed](https://github.com/DarkFlippers/unleashed-firmware/blob/unlshd-094/targets/f7/api_symbols.csv) release | unlshd-094 | 88.19 | same API 88.2 file |
+| [Unleashed](https://github.com/DarkFlippers/unleashed-firmware/blob/dev/targets/f7/api_symbols.csv) dev | dev | 88.24 | same API 88.2 file |
+| [RogueMaster](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/RM1024-1347-392a65c3/targets/f7/api_symbols.csv) release | RM1024-1347-392a65c3 | 88.23 | same API 88.2 file |
+| [RogueMaster](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/targets/f7/api_symbols.csv) branch 420 | 420 @ 2026-11-05 | 88.24 | same API 88.2 file |
+| [Momentum](https://github.com/Next-Flip/Momentum-Firmware/blob/mntm-012/targets/f7/api_symbols.csv) release | mntm-012 | 87.1 | `rf_lab-momentum-mntm-012.fap` |
+| [Momentum](https://github.com/Next-Flip/Momentum-Firmware/blob/dev/targets/f7/api_symbols.csv) dev | dev | 87.1 | same API 87.1 file |
 
-Checked 2026-11-04: the official release channel resolved to firmware 1.5.1 and `targets/f7/api_symbols.csv` version `88.2`; the Momentum release channel resolved to `mntm-012`. Unleashed, RogueMaster, and Xtreme are not separate build targets. Use the artifact whose API major matches that fork; this repo does not record those forks' current API versions.
+Xtreme was not in this check. [flash.pingequa.com/devices/flipper-rf-lab](https://flash.pingequa.com/devices/flipper-rf-lab) reads `firmware_api_major` and `firmware_api_minor` and writes the matching file to `/ext/apps/GPIO/pingequa_rf_toolkit.fap`. Neither v0.5.5 file has been run on a device yet.
 
 ---
 
@@ -266,7 +274,7 @@ Checked 2026-11-04: the official release channel resolved to firmware 1.5.1 and 
 | v0.5.2 | ✅ | Readable export filenames, jammer log redesign, About screen + QR codes |
 | v0.5.3 | ✅ | In-app rename: transmit feature now displays as "Signal Generator" (neutral, instrument-grade naming) |
 | v0.5.4 | ✅ | Signal Generator now actually radiates (held-bus driver + FIFO-flush ignition); honest power wording; long-run reboot note |
-| **v0.5.5** | ✅ | **Loads on official firmware 1.5.1 (API 88.2); separate Momentum mntm-012 (API 87.1) build** |
+| **v0.5.5** | ✅ | **API 88.2 build (Official, Unleashed, RogueMaster) and API 87.1 build (Momentum mntm-012)** |
 | v0.6.x | 🔜 next | **Shaped by community feedback** — candidates: cross-chip dual-band sweep (nRF24 2.4 GHz + CC1101 Sub-GHz in one view), spectrum CSV export, custom scan presets. [Tell us what you want](../../issues/new?template=feature.yml) |
 | v1.0.0 | planned | Polished release, full documentation set, Catalog submission |
 | v1.5.0 | concept | Companion mobile viewer over Bluetooth |

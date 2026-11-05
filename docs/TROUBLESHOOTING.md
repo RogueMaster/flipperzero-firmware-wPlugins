@@ -123,16 +123,11 @@ If you see this:
 APPCHK error: API version 87.x doesn't match
 ```
 
-Update SDK: `ufbt update --channel=dev`. This pulls the latest mntm-dev SDK.
+The SDK index does not match the firmware on the Flipper. Official 1.5.1 is API 88.2. Momentum mntm-012 is API 87.1. Use the matching command in [Firmware Compatibility](../README.md#firmware-compatibility). `ufbt update --channel=dev` without an index URL follows whichever index was installed last.
 
-### Build succeeds but FAP crashes on Flipper
+### The app installs but the Flipper says the API does not match
 
-Make sure the SDK target matches the firmware on your Flipper. If your Flipper runs `mntm-012`, build with `--channel=release` or pin a specific branch.
-
-```bash
-ufbt update --channel=release   # for stable mntm
-ufbt update --channel=dev       # for latest dev
-```
+v0.5.4 and the `dist/pingequa_rf_toolkit.fap` in the tree are API 87.1. Official 1.5.1 (API 88.2) rejects that file. Install `rf_lab-official-api88.2.fap` from the v0.5.5 release for Official, Unleashed, and RogueMaster. Install `rf_lab-momentum-mntm-012.fap` for Momentum mntm-012. Delete the other copy from `/ext/apps/GPIO/` so the menu does not show two entries.
 
 ### "spi_config.c not found" / linker errors
 
