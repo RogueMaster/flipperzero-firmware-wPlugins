@@ -2,7 +2,7 @@
 
 ## What you need
 
-1. A Flipper Zero on any modern firmware (Momentum / Unleashed / RogueMaster / OFW)
+1. A Flipper Zero on Official, Unleashed, RogueMaster (API 88) or Momentum mntm-012 (API 87.1). See [Firmware Compatibility](../README.md#firmware-compatibility).
 2. The [PINGEQUA Flipper Zero NRF24+CC1101 2-in-1 RF Devboard](https://www.pingequa.com/products/flipper-zero-nrf24-cc1101-2-in-1-rf-devboard?utm_source=github&utm_medium=docs_quickstart&utm_campaign=rflab) — the only officially supported hardware
 3. A USB-C cable
 4. A computer with [qFlipper](https://flipperzero.one/downloads) (or `ufbt` for command-line install)
@@ -11,20 +11,29 @@
 
 ### Easiest: qFlipper drag-and-drop
 
-1. Download `pingequa_rf_toolkit.fap` from the [Releases page](../../../releases)
+1. From the [v0.5.5 release](https://github.com/pingequalab/rf-lab/releases/tag/v0.5.5), download `rf_lab-official-api88.2.fap` for Official / Unleashed / RogueMaster, or `rf_lab-momentum-mntm-012.fap` for Momentum mntm-012.
 2. Connect Flipper to your computer via USB
 3. Open qFlipper, click File Manager
 4. Navigate to `/ext/apps/GPIO/`
-5. Drag `pingequa_rf_toolkit.fap` into that folder
+5. Drag that file into the folder. You can rename it to `pingequa_rf_toolkit.fap`; do not keep an older copy next to it.
 
 ### Power-user: ufbt sideload
 
+Official 1.5.1 (API 88.2). The same source also loads on current Unleashed and RogueMaster, which are API 88 as well:
+
 ```bash
-pip install --user ufbt
-ufbt update --channel=dev
-git clone https://github.com/pingequa/pingequa_rf_toolkit
-cd pingequa_rf_toolkit
-ufbt launch                  # builds and launches automatically
+pip install --user "ufbt==0.2.6"
+git clone https://github.com/pingequalab/rf-lab
+cd rf-lab
+ufbt update --channel=release
+ufbt launch
+```
+
+Momentum mntm-012 (API 87.1):
+
+```bash
+ufbt update --index-url=https://up.momentum-fw.dev/firmware/directory.json --channel=release
+ufbt launch
 ```
 
 ## 2. Plug in the board

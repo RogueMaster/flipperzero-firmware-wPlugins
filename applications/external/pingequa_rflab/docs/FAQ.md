@@ -24,21 +24,22 @@ For real-world use, yes. The app is officially supported only on the [PINGEQUA 2
 
 ### Which Flipper firmwares are supported?
 
-| Firmware | Status |
-|---|---|
-| Momentum (mntm-dev) | ✅ Primary target |
-| Unleashed | ✅ Compatible |
-| RogueMaster | ✅ Compatible |
-| Official Flipper firmware | ✅ Compatible (API ≥ 87.1) |
-| Xtreme | ✅ Compatible |
+| Firmware | API checked 2026-11-05 | v0.5.5 file |
+|---|---|---|
+| Official 1.5.1 and current dev (88.4) | 88.2 / 88.4 | `rf_lab-official-api88.2.fap` |
+| Unleashed unlshd-094 and current dev | 88.19 / 88.24 | same API 88.2 file |
+| RogueMaster RM1024 and branch 420 | 88.23 / 88.24 | same API 88.2 file |
+| Momentum mntm-012 and current dev | 87.1 | `rf_lab-momentum-mntm-012.fap` |
+
+The loader compares API major only. v0.5.4 was API 87.1 and does not load on official 1.5.1. Xtreme was not rechecked. See [Firmware Compatibility](../README.md#firmware-compatibility).
 
 ### How do I install?
 
 Three options, easiest first:
 
-1. **qFlipper drag-and-drop**: Download the FAP from [Releases](../../../releases), drag into `/ext/apps/GPIO/` via qFlipper.
-2. **ufbt sideload**: `ufbt launch` from a clone of this repo.
-3. **Manual**: Copy `dist/pingequa_rf_toolkit.fap` to your microSD's `apps/GPIO/` folder.
+1. **qFlipper drag-and-drop**: Download the v0.5.5 asset that matches the table above from [Releases](https://github.com/pingequalab/rf-lab/releases/tag/v0.5.5), drag it into `/ext/apps/GPIO/` via qFlipper.
+2. **Browser**: [flash.pingequa.com/devices/flipper-rf-lab](https://flash.pingequa.com/devices/flipper-rf-lab) reads the Flipper's API and writes the matching file.
+3. **ufbt sideload**: install the SDK for that API major, then `ufbt launch`. See the README. The `dist/pingequa_rf_toolkit.fap` in the tree is still the v0.5.4 API 87.1 file.
 
 See [Quickstart](QUICKSTART.md) for step-by-step.
 

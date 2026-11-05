@@ -22,18 +22,14 @@ Worldwide shipping (195+ countries) via [pingequa.com](https://www.pingequa.com/
 
 ## Firmware compatibility
 
-The app uses only standard Flipper HAL APIs. Any firmware shipping these works.
+The source uses the public Flipper HAL. The installed file still has to match the firmware API major. Checked 2026-11-05 from `targets/f7/api_symbols.csv`:
 
-✅ **Tested**:
-- Momentum (mntm-dev) — primary target
-- Unleashed
-- RogueMaster
+| Firmware | API | v0.5.5 file |
+|---|---|---|
+| Official 1.5.1, Unleashed unlshd-094, RogueMaster RM1024 | 88.x | `rf_lab-official-api88.2.fap` |
+| Momentum mntm-012 | 87.1 | `rf_lab-momentum-mntm-012.fap` |
 
-✅ **Compatible by API surface**:
-- Official Flipper firmware (API ≥ 87.1)
-- Xtreme
-
-If you encounter firmware-specific issues, [file a bug](../../../issues/new?template=bug.yml) with the firmware version.
+v0.5.4 (API 87.1) does not load on official 1.5.1. These two v0.5.5 files have not been run on a device. Xtreme was not rechecked. Details: [Firmware Compatibility](../README.md#firmware-compatibility).
 
 ## Channel-to-frequency reference
 
