@@ -7,7 +7,6 @@ App(
     sources=["*.c"],
     stack_size=5 * 1024,
     fap_icon="125_10px.png",
-    fap_category="NFC",
     fap_libs=["mbedtls"],
     fap_private_libs=[
         Lib(
@@ -26,8 +25,9 @@ App(
     ],
     fap_icon_assets="icons",
     fap_file_assets="files",
+    fap_category="NFC",
     fap_author="bettse",
-    fap_weburl="https://github.com/bettse/flipperzero-good-faps/tree/dev/picopass",
+    fap_weburl="https://github.com/bettse/picopass",
     fap_version="1.23",
     fap_description="App to communicate with NFC tags using the PicoPass(iClass) format",
     #  [PicoPass Emulation (By nvx)](https://github.com/nvx/flipperzero-firmware/tree/picopass_emulation)

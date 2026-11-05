@@ -191,7 +191,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Dooya Remote v1.1 batch progress, remaining time and keypad layout (By Lechnio)](https://github.com/Lechnio/Dooya-Remote/commit/47f178f7e5e33594833f26af1bd2162bc60cb72e)
 - Added: [IDentity v0.22 - NFC eID/ePassport reader with document authentication and photo display (By Dani)](https://github.com/daniqed/flipper-identity)
 - Updated: [NFC/RFID Detector v1.5 precise LF frequency measurement and crystal calibration (By mfcarroll)](https://github.com/flipperdevices/flipperzero-good-faps/pull/313)
-- Updated: [T5577 v1.3 (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1202)
+- Updated: [T5577 v1.3 (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1208)
 - SubGHz: [KeeLoq `CounterMode` 7, 8 and 9 each reproduce a DoorHan Smart clone resync pack, one per board family (what `CounterMode: 7` used to send is now mode 8) (By xMasterX)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/644cd8c5c2fdf20940d324387b844deb70dafc3b)
 
 <a name="release"></a>
@@ -1004,7 +1004,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Pet Your Dolphin v1.1 (By David White)](https://github.com/dwight9339/pet_your_dolphin)
 - [Pi Terminal v1.0 (By dagnazty & InfoSecREDD)](https://github.com/InfoSecREDD/Flip-pi)
 - [Piano v1.0 (By bergr22)](https://github.com/bergr22/FlipPiano)
-- [PicoPass (iClass) v1.23 (By Bettse)](https://gitlab.com/bettse/picopass)
+- [PicoPass (iClass) v1.23 (By Bettse)](https://github.com/bettse/picopass)
 - [PINGEQUA RF Lab v0.5.5 (By pingequalab)](https://github.com/pingequalab/rf-lab)
 - [PIR HC-SR501 Alarm v1.0 (By ku6a-cj)](https://github.com/ku6a-cj/-PIR-HC-SR501-Proximity-alarm-Flipper-zero) `Req: PIR HC-SR501`
 - [Plantower PMSx003 sensor reader v1.4 (By 3cky)](https://github.com/3cky/flipperzero-airmon) `Req: Plantower PMS5003/PMS7003/PMS9003`
@@ -1018,7 +1018,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Polk MagnifiMini Remote v1.0 (By varunyellina)](https://github.com/varunyellina/flipper-ir-remote-polkmagnifi)
 - [Pomodoro 2 v2.4.1 (By Th3Un1q3)](https://github.com/Th3Un1q3/flipp_pomodoro)
 - [Pomodoro Timer v1.5 (By sbrin)](https://github.com/sbrin/flipperzero_pomodoro)
-- [Portal of Flipper v1.3 (By bettse)](https://gitlab.com/bettse/portal_of_flipper)
+- [Portal of Flipper v1.3 (By bettse & sanjay900)](https://github.com/sanjay900/portal_of_flipper)
 - [Postman v0.1 (By MassivDash)](https://github.com/MassivDash/flipper-postman) `Req: ESP32` with [Postman Firmware](https://github.com/MassivDash/flipper-postman-esp32s2)
 - [Prime Factors v1.0 (By gbritoda)](https://github.com/gbritoda/flipper0-prime_factors)
 - [Programmer Calculator v0.9.2 (By armixz)](https://github.com/armixz/Flipper-Zero-Programmer-Calculator)
@@ -1123,7 +1123,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Survival Manual v1.0 (By Radiomanrf)](https://github.com/Radiomanrf/Survival_manual)
 - [SWD Probe v1.4 (By g3gg0)](https://github.com/g3gg0/flipper-swd_probe)
 - [T-Union Master (China) v0.1 (By SocialSisterYi)](https://github.com/SocialSisterYi/T-Union_Master)
-- [T5577 v1.3 (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/commit/1672f7c54d146114d7ecdb57043661f9456dd292) (.t5577 ext incompatible to T5577 Raw Writer)
+- [T5577 v1.3 (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware) (.t5577 ext incompatible to T5577 Raw Writer)
 - [T5577 Multiwriter v0.3 (By Leptopt1los)](https://github.com/Leptopt1los/t5577_multiwriter)
 - [T5577 Raw Writer v1.1 (By zinongli)](https://github.com/zinongli/T5577_Raw_Writer) (.t5577 ext incompatible to T5577)
 - [TagTinker v2.1 (By i12bp8)](https://github.com/i12bp8/TagTinker)
