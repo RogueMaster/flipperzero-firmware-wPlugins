@@ -95,6 +95,22 @@ Press `OK` on the dashboard to open settings. Defaults:
 
 Limit and signal are adjustable per rule. Each rule can be switched on or off.
 
+## Telegram alerts (beta)
+
+Get the same alerts on your phone in Telegram, no Flipper needed. Bot: **@BOT_USERNAME**.
+
+1. Open the bot and send `/link`. You get a 6-character code (valid 10 minutes).
+2. On the PC run `pc-health-remote.exe --link-telegram <CODE>`.
+3. Restart the backend. Alerts arrive as messages like `🔥 GAMING-PC: CPU temp 92°C (limit 90°C)`.
+
+| | Free | Pro |
+|---|---|---|
+| PCs | 1 | 5 |
+| Alerts per day | 10 | unlimited |
+| Price | 0 | 99 Telegram Stars / 30 days (`/pro`) |
+
+Details and privacy: [docs/TELEGRAM.md](docs/TELEGRAM.md).
+
 ## Command-line reference
 
 ```

@@ -271,6 +271,12 @@ async function handleWebhook(req, env, f, now) {
 }
 
 async function handlePair(req, env, now) {
+  // Optional Cloudflare rate-limit binding (wrangler.toml [[ratelimits]] PAIR_LIMIT): stops code guessing.
+  if (env.PAIR_LIMIT) {
+    const ip = req.headers.get("CF-Connecting-IP") || "unknown";
+    const { success } = await env.PAIR_LIMIT.limit({ key: ip });
+    if (!success) return json({ error: "too many attempts" }, 429);
+  }
   let body;
   try {
     body = await req.json();
