@@ -26,7 +26,7 @@ daily counters and payment records. No temperatures history, no message text in 
 
 Everything ships from `.github/workflows/telegram.yml` on every push to `main` that touches `telegram/`.
 It runs the tests, finds or creates the KV namespace `phr-telegram-PHR`, runs `wrangler deploy`, copies the
-secrets into the Worker, sets the Telegram webhook and checks `GET /` (the run summary shows the bot and Worker URL).
+secrets into the Worker (the webhook secret is derived from `BOT_TOKEN`), sets the Telegram webhook and checks `GET /` (the run summary shows the bot and Worker URL).
 Without the secrets the deploy job is skipped with a notice.
 
 Repository secrets (Settings -> Secrets and variables -> Actions):
@@ -34,7 +34,6 @@ Repository secrets (Settings -> Secrets and variables -> Actions):
 | Secret | Where it comes from |
 |---|---|
 | `BOT_TOKEN` | @BotFather -> `/newbot` |
-| `WEBHOOK_SECRET` | any random string, 32+ characters (letters, digits, `_`, `-`) |
 | `ADMIN_CHAT_ID` | your numeric Telegram id (for example from @userinfobot); enables `/stats` and `/refund` |
 | `CLOUDFLARE_API_TOKEN` | dash.cloudflare.com -> My Profile -> API Tokens -> template "Edit Cloudflare Workers" |
 | `CLOUDFLARE_ACCOUNT_ID` | dash.cloudflare.com -> Workers & Pages, right column "Account ID" |
