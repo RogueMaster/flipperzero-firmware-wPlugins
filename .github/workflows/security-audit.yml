@@ -1,0 +1,99 @@
+# Security audit for pull requests from external authors (forks or non-collaborators).
+# Source of truth: ataman-lab/overclock-lab (.github/workflows/security-audit.yml + .github/scripts/security_audit.py),
+# copied verbatim to every child repo. Docs: docs/security-audit.md.
+#
+# Why pull_request_target is safe here: it runs THIS file from the default branch, so a fork cannot edit or
+# delete the audit. The PR's code is never checked out, built or run: the head is fetched as git objects and
+# only diffed by the default-branch script. No repository secrets are used, only the short-lived GITHUB_TOKEN.
+# PR title/body reach the script through env, never through ${{ }} inside shell.
+# Trusted PRs (same-repo branch, or OWNER/MEMBER/COLLABORATOR) skip the job before a runner starts.
+name: Security audit
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, edited, ready_for_review]
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: PR number to audit (posts or updates the verdict comment)
+        required: true
+        type: number
+
+concurrency:
+  group: security-audit-${{ github.event.pull_request.number || inputs.pr }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+  statuses: write
+
+jobs:
+  audit:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.pull_request.head.repo.full_name != github.repository ||
+      !contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.pull_request.author_association)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PR: ${{ github.event.pull_request.number || inputs.pr }}
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      NTFY_TOPIC: ${{ vars.NTFY_TOPIC }}
+      REPO_NAME: ${{ github.event.repository.name }}
+    steps:
+      - name: Checkout default branch (trusted code only)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 0
+      - name: Fetch PR head as data (never checked out)
+        id: pr
+        run: |
+          git fetch --no-tags origin "+refs/pull/$PR/head:refs/remotes/pr/head"
+          head=$(git rev-parse refs/remotes/pr/head)
+          base=$(git merge-base "origin/${{ github.event.repository.default_branch }}" "$head")
+          echo "head=$head" >> "$GITHUB_OUTPUT"
+          echo "base=$base" >> "$GITHUB_OUTPUT"
+          gh api "repos/$GITHUB_REPOSITORY/pulls/$PR" --jq '"author: \(.user.login) (\(.author_association)), from \(.head.repo.full_name // "deleted fork")"'
+      - name: Audit
+        id: audit
+        env:
+          BASE: ${{ steps.pr.outputs.base }}
+          HEAD: ${{ steps.pr.outputs.head }}
+        run: |
+          PR_TITLE=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR" --jq .title)
+          PR_BODY=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR" --jq '.body // ""')
+          export PR_TITLE PR_BODY
+          v=$(python3 -I .github/scripts/security_audit.py "$BASE" "$HEAD" "$RUNNER_TEMP/report.md")
+          echo "verdict=$v" >> "$GITHUB_OUTPUT"
+          printf '\n<!-- security-audit -->\n_Commit %s, [log](%s)._\n' "${HEAD:0:7}" "$RUN_URL" >> "$RUNNER_TEMP/report.md"
+          cat "$RUNNER_TEMP/report.md" >> "$GITHUB_STEP_SUMMARY"
+      - name: Post verdict
+        env:
+          HEAD: ${{ steps.pr.outputs.head }}
+          V: ${{ steps.audit.outputs.verdict }}
+        run: |
+          id=$(gh api --paginate "repos/$GITHUB_REPOSITORY/issues/$PR/comments" \
+            --jq '.[] | select(.user.login == "github-actions[bot]" and (.body | contains("<!-- security-audit -->"))) | .id' | tail -1)
+          if [ -n "$id" ]; then gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$id" -F body=@"$RUNNER_TEMP/report.md" >/dev/null
+          else gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" -F body=@"$RUNNER_TEMP/report.md" >/dev/null; fi
+          state=$([ "$V" = RISK ] && echo failure || echo success)
+          gh api "repos/$GITHUB_REPOSITORY/statuses/$HEAD" -f state="$state" -f context="security-audit" \
+            -f description="External PR audit: $V" -f target_url="$RUN_URL" >/dev/null
+      - name: Push to Vlad
+        if: env.NTFY_TOPIC != '' && (steps.audit.outputs.verdict == 'RISK' || github.event.action == 'opened' || github.event.action == 'reopened')
+        continue-on-error: true
+        env:
+          V: ${{ steps.audit.outputs.verdict }}
+        run: |
+          jq -n --arg topic "$NTFY_TOPIC" --arg t "$REPO_NAME: внешний PR #$PR, аудит $V" \
+            --arg c "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/pull/$PR" \
+            '{topic: $topic, title: $t, message: "Автопилот на нём не запускается. Нажми, чтобы открыть.", click: $c, tags: ["shield"]}' \
+            | curl -sf -X POST https://ntfy.sh/ -H "Content-Type: application/json" -d @- >/dev/null
+      - name: Fail on risk
+        if: steps.audit.outputs.verdict == 'RISK'
+        run: |
+          echo "::error::Security audit: RISK. Do not merge or hand this PR to the autopilot before reading every flagged line."
+          exit 1
