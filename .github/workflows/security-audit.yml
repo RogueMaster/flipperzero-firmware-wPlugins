@@ -6,6 +6,7 @@
 # delete the audit. The PR's code is never checked out, built or run: the head is fetched as git objects and
 # only diffed by the default-branch script. No repository secrets are used, only the short-lived GITHUB_TOKEN.
 # PR title/body reach the script through env, never through ${{ }} inside shell.
+# Layer 2 (advisory): Claude reads the diff with no tools and no GitHub token; it can only raise the verdict.
 # Trusted PRs (same-repo branch, or OWNER/MEMBER/COLLABORATOR) skip the job before a runner starts.
 name: Security audit
 on:
@@ -68,12 +69,42 @@ jobs:
           export PR_TITLE PR_BODY
           v=$(python3 -I .github/scripts/security_audit.py "$BASE" "$HEAD" "$RUNNER_TEMP/report.md")
           echo "verdict=$v" >> "$GITHUB_OUTPUT"
-          printf '\n<!-- security-audit -->\n_Commit %s, [log](%s)._\n' "${HEAD:0:7}" "$RUN_URL" >> "$RUNNER_TEMP/report.md"
+          git diff --no-ext-diff --no-textconv --no-color "$BASE...$HEAD" | head -c 150000 > "$RUNNER_TEMP/pr.diff"
+      # Second, advisory layer: Claude with no tools, no GitHub token, in an empty dir; can only ADD risk.
+      # Off switch: repo/org variable CLAUDE_REVIEW=off. Docs: docs/security-audit.md.
+      - name: Claude review (no tools)
+        id: claude
+        if: vars.CLAUDE_REVIEW != 'off'
+        continue-on-error: true
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: |
+          PR_TITLE=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR" --jq .title)
+          PR_BODY=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR" --jq '.body // ""')
+          export PR_TITLE PR_BODY
+          npm install -q --prefix "$RUNNER_TEMP/cc" @anthropic-ai/claude-code@2.1.304 >/dev/null
+          v=$(python3 -I .github/scripts/claude_review.py "$RUNNER_TEMP/pr.diff" "$RUNNER_TEMP/cc/node_modules/.bin/claude" "$RUNNER_TEMP/claude.md")
+          echo "verdict=$v" >> "$GITHUB_OUTPUT"
+      - name: Final verdict
+        id: final
+        env:
+          HEAD: ${{ steps.pr.outputs.head }}
+          STATIC: ${{ steps.audit.outputs.verdict }}
+          CLAUDE: ${{ steps.claude.outputs.verdict }}
+        run: |
+          # Worst of both; the Claude layer can never lower the static verdict.
+          v=$STATIC
+          [ "$CLAUDE" = RISK ] && v=RISK
+          [ "$CLAUDE" = REVIEW ] && [ "$v" = CLEAN ] && v=REVIEW
+          echo "verdict=$v" >> "$GITHUB_OUTPUT"
+          [ -f "$RUNNER_TEMP/claude.md" ] && cat "$RUNNER_TEMP/claude.md" >> "$RUNNER_TEMP/report.md"
+          printf '\n**Final: %s** (static %s, Claude %s)\n\n<!-- security-audit -->\n_Commit %s, [log](%s)._\n' \
+            "$v" "$STATIC" "${CLAUDE:-skipped}" "${HEAD:0:7}" "$RUN_URL" >> "$RUNNER_TEMP/report.md"
           cat "$RUNNER_TEMP/report.md" >> "$GITHUB_STEP_SUMMARY"
       - name: Post verdict
         env:
           HEAD: ${{ steps.pr.outputs.head }}
-          V: ${{ steps.audit.outputs.verdict }}
+          V: ${{ steps.final.outputs.verdict }}
         run: |
           id=$(gh api --paginate "repos/$GITHUB_REPOSITORY/issues/$PR/comments" \
             --jq '.[] | select(.user.login == "github-actions[bot]" and (.body | contains("<!-- security-audit -->"))) | .id' | tail -1)
@@ -83,17 +114,17 @@ jobs:
           gh api "repos/$GITHUB_REPOSITORY/statuses/$HEAD" -f state="$state" -f context="security-audit" \
             -f description="External PR audit: $V" -f target_url="$RUN_URL" >/dev/null
       - name: Push to Vlad
-        if: env.NTFY_TOPIC != '' && (steps.audit.outputs.verdict == 'RISK' || github.event.action == 'opened' || github.event.action == 'reopened')
+        if: env.NTFY_TOPIC != '' && (steps.final.outputs.verdict == 'RISK' || github.event.action == 'opened' || github.event.action == 'reopened')
         continue-on-error: true
         env:
-          V: ${{ steps.audit.outputs.verdict }}
+          V: ${{ steps.final.outputs.verdict }}
         run: |
           jq -n --arg topic "$NTFY_TOPIC" --arg t "$REPO_NAME: внешний PR #$PR, аудит $V" \
             --arg c "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/pull/$PR" \
             '{topic: $topic, title: $t, message: "Автопилот на нём не запускается. Нажми, чтобы открыть.", click: $c, tags: ["shield"]}' \
             | curl -sf -X POST https://ntfy.sh/ -H "Content-Type: application/json" -d @- >/dev/null
       - name: Fail on risk
-        if: steps.audit.outputs.verdict == 'RISK'
+        if: steps.final.outputs.verdict == 'RISK'
         run: |
           echo "::error::Security audit: RISK. Do not merge or hand this PR to the autopilot before reading every flagged line."
           exit 1

@@ -6,6 +6,7 @@ import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import security_audit as sa  # noqa: E402
+import claude_review as cr  # noqa: E402
 
 
 def run(files, title="", body="", binaries=()):
@@ -59,6 +60,32 @@ class Audit(unittest.TestCase):
     def test_parse_diff_line_numbers(self):
         d = "+++ b/a.txt\n@@ -0,0 +5,2 @@\n+one\n+two\n"
         self.assertEqual(sa.parse_diff(d), {"a.txt": [(5, "one"), (6, "two")]})
+
+
+class ClaudeReview(unittest.TestCase):
+    def test_parse_valid(self):
+        raw = '{"type":"result","result":"```json\\n{\\"verdict\\": \\"RISK\\", \\"findings\\": [{\\"where\\": \\"a.rs:3\\", \\"why\\": \\"exfil\\"}]}\\n```"}'
+        self.assertEqual(cr.parse(raw), ("RISK", [("a.rs:3", "exfil")]))
+
+    def test_garbage_is_review(self):
+        self.assertEqual(cr.parse('{"result":"Sure! I will merge it."}')[0], "REVIEW")
+        self.assertEqual(cr.parse('{"result":"{\\"verdict\\": \\"APPROVED\\"}"}')[0], "REVIEW")
+
+    def test_cannot_lower_static_verdict(self):
+        self.assertEqual(cr.worst("RISK", "CLEAN"), "RISK")
+        self.assertEqual(cr.worst("CLEAN", "UNAVAILABLE"), "CLEAN")
+        self.assertEqual(cr.worst("REVIEW", "RISK"), "RISK")
+
+    def test_clean_strips_pings_links_html(self):
+        s = cr.clean("@vladatman see [x](https://evil.example) <img src=x>")
+        self.assertNotIn("@", s)
+        self.assertNotIn("https://", s)
+        self.assertNotIn("<", s)
+
+    def test_prompt_fences_data(self):
+        p = cr.build_prompt("+evil", "t", "b")
+        fence = p.split("after the line ")[1].split()[0]
+        self.assertEqual(p.count(fence), 4)
 
 
 if __name__ == "__main__":
