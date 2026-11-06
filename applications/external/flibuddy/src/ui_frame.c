@@ -729,7 +729,8 @@ static const char* host_error_title(IntentAction action) {
 }
 
 /* The host's lines and error, one per line, or `fallback`. */
-static void put_host_text(Text* t, const ProtoLines* lines, const char* error, const char* fallback) {
+static void
+    put_host_text(Text* t, const ProtoLines* lines, const char* error, const char* fallback) {
     for(uint8_t i = 0; i < lines->count && i < PROTO_LINES_MAX; i++) {
         if(t->len > 0) put(t, "\n");
         put(t, lines->line[i]);
@@ -758,8 +759,7 @@ static void build_error(UiFrame* f, const AppState* s, const UiEnv* env) {
         return; /* no keys needed */
     case AppErrorLookup:
         SET(f->title, "Lookup failed");
-        put_host_text(
-            &t, &s->lookup.lines, s->lookup.error, "The app could not look the tag up.");
+        put_host_text(&t, &s->lookup.lines, s->lookup.error, "The app could not look the tag up.");
         break;
     case AppErrorHost:
         SET(f->title, host_error_title(s->held.action));
