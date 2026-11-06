@@ -105,7 +105,7 @@ void hal_pwm_stop();
 bool hal_pwm_is_running();
 
 int duty_cycle_function(int frequency){
-    return (int)ceil(0.4342944819f * logf(frequency) - 1);
+    return (int)ceil(0.24 * logf(frequency-1));
 }
 
 int changeFrequency(int frequency, int amount, int min, int max){
@@ -201,8 +201,8 @@ static StrobometerAppContext* strobometer_app_context_alloc(void) {
     gui_add_view_port(context->gui, context->view_port, GuiLayerFullscreen);
 
     context->num_digits = 6;
-    context->frequency = 1;
-    context->selected = 0;
+    context->frequency = 60;
+    context->selected = 1;
     context->max_frequency = (int)pow(10, context->num_digits)-1;
     context->output = false;
 
