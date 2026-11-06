@@ -25,7 +25,7 @@ env:
   RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
   REPO_NAME: ${{ github.event.repository.name }}
   # Per repo: the fast check Claude must run before pushing.
-  CHECK: "cd backend && cargo fmt --check && cargo clippy -- -D warnings && cargo test (Flipper app: rely on CI)"
+  CHECK: "cd backend && cargo fmt --check && cargo clippy -- -D warnings && cargo test; telegram/: node --test telegram/ (Flipper app: rely on CI)"
 
 jobs:
   # Hard guard: the autopilot (paid Claude, write token) runs only for trusted people. Refuses if the label
@@ -92,7 +92,7 @@ jobs:
             in the repo root (never commit it) as {"question": "<short, Russian>", "options": ["<2-3, Russian, recommended first>"]} and stop.
           claude_args: >-
             --model sonnet --max-turns 40
-            --allowedTools "Bash(cd:*),Bash(gh issue:*),Bash(gh pr:*),Bash(git:*),Bash(cargo fmt:*),Bash(cargo clippy:*),Bash(cargo test:*),Bash(cargo build:*),Read,Edit,Write,Glob,Grep"
+            --allowedTools "Bash(cd:*),Bash(gh issue:*),Bash(gh pr:*),Bash(git:*),Bash(cargo fmt:*),Bash(cargo clippy:*),Bash(cargo test:*),Bash(cargo build:*),Bash(node --test:*),Read,Edit,Write,Glob,Grep"
       - name: Ask Vlad
         if: hashFiles('.needs-vlad.json') != ''
         run: |
