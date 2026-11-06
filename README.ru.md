@@ -1,5 +1,7 @@
 # PC Health Remote
 
+<p align="center"><img src="docs/brand/banner.png" alt="PC Health Remote" width="100%"></p>
+
 **Температуры и нагрузка вашего ПК на Flipper Zero, с оповещениями вибро, звуком и светодиодом.**
 
 <p align="center">

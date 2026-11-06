@@ -1,5 +1,7 @@
 # PC Health Remote
 
+<p align="center"><img src="docs/brand/banner.png" alt="PC Health Remote" width="100%"></p>
+
 **Your PC's temperatures and load on a Flipper Zero, with vibration, sound and LED alerts when something goes wrong.**
 
 <p align="center">

@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 200 200"><defs>
+  <filter id="gpc-health-remote" x="-40%" y="-40%" width="180%" height="180%">
+    <feGaussianBlur stdDeviation="4" result="b"/>
+    <feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+  <radialGradient id="rpc-health-remote" cx="50%" cy="42%" r="62%">
+    <stop offset="0" stop-color="#0F2A1A"/><stop offset="1" stop-color="#07080F"/>
+  </radialGradient>
+</defs>
+  <rect width="200" height="200" fill="url(#rpc-health-remote)"/>
+  <g opacity="0.10" stroke="#B8FF4D" stroke-width="0.6"><path d="M40 0V200M0 40H200"/><path d="M80 0V200M0 80H200"/><path d="M120 0V200M0 120H200"/><path d="M160 0V200M0 160H200"/></g>
+  <circle cx="100" cy="100" r="92" fill="none" stroke="#B8FF4D" stroke-opacity="0.35" stroke-width="1.5"/>
+  <g filter="url(#gpc-health-remote)" transform="translate(10 10) scale(0.9)">
+  <g stroke="#B8FF4D" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="34" y="54" width="122" height="86" rx="12"/>
+    <path d="M78 162H112M95 140V162"/>
+  </g>
+  <path d="M46 100H70L80 78L94 122L106 88L113 100H144" stroke="#00E5FF" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <g stroke="#00E5FF" stroke-width="5" fill="none" stroke-linecap="round">
+    <path d="M146 42a12 12 0 0 1 12 12"/><path d="M146 28a26 26 0 0 1 26 26"/>
+  </g></g>
+</svg>
