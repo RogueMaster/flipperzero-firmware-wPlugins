@@ -50,6 +50,7 @@ automatically; in `cmd.exe` use `start /wait pc-health-remote.exe status` if the
 
 CPU temperature: LibreHardwareMonitor WMI (`root\LibreHardwareMonitor`, start LHM with its WMI
 provider / "Run on Windows startup") -> `ThermalZoneInformation` perf counter -> `MSAcpi_ThermalZoneTemperature`
-(admin). The first working source is cached and better ones are re-probed every minute. Fan RPM is only
-reported when LibreHardwareMonitor exposes a fan sensor. GPU via NVML (`nvml.dll`). Run
+(admin). The first working source is cached and better ones are re-probed every minute. On Windows fan RPM is only
+reported when LibreHardwareMonitor exposes a fan sensor; on Linux it comes from hwmon
+(`/sys/class/hwmon/*/fan*_input`, a CPU-labelled fan if any, else the fastest). GPU via NVML (`nvml.dll`). Run
 `pc-health-remote metrics` to see what was picked.

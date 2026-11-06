@@ -307,11 +307,12 @@ impl Collector {
         s.cpu_temp_c = r.cpu_temp.map(|v| v as f32);
         s.sources.insert("cpu_temp".into(), r.temp_source.map_or_else(|| "unavailable".to_string(), str::to_string));
         s.fan_rpm = r.fan_rpm.map(|v| v.round() as u32);
-        s.sources.insert(
-            "fan_rpm".into(),
-            r.fan_source
-                .map_or_else(|| "unavailable (needs a LibreHardwareMonitor fan sensor)".to_string(), str::to_string),
-        );
+        let no_fan = if cfg!(windows) {
+            "unavailable (needs a LibreHardwareMonitor fan sensor)"
+        } else {
+            "unavailable (no hwmon fan sensor)"
+        };
+        s.sources.insert("fan_rpm".into(), r.fan_source.unwrap_or(no_fan).to_string());
         for (i, d) in r.diagnostics.iter().enumerate() {
             s.sources.insert(format!("probe_{}", i + 1), d.clone());
         }
