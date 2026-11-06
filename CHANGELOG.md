@@ -13,3 +13,7 @@ added pin info
 added fractional frequencies
 added adaptive duty cycle
 fixed some bugs
+
+v2.0
+added a new duty cycle function that is more accurate and works better for low frequencies
+added a new GUI mode that shows the frequency in Hz instead of RPM
