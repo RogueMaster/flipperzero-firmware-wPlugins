@@ -36,16 +36,25 @@ jobs:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     env:
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-      WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
-      ADMIN_CHAT_ID: ${{ secrets.ADMIN_CHAT_ID }}
       KV_TITLE: phr-telegram-PHR
     steps:
+      # Secrets enter only here; cleaned values reach later steps through GITHUB_ENV (masked).
       - name: Secrets present?
         id: ready
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
+          ADMIN_CHAT_ID: ${{ secrets.ADMIN_CHAT_ID }}
         run: |
+          # Secrets piped in from PowerShell can carry a trailing CR/LF; strip whitespace for all later steps.
+          for n in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID BOT_TOKEN WEBHOOK_SECRET ADMIN_CHAT_ID; do
+            v=$(printf '%s' "${!n}" | tr -d '\r\n\t ')
+            [ -n "$v" ] && echo "::add-mask::$v"
+            { echo "$n<<__EOF__"; echo "$v"; echo "__EOF__"; } >> "$GITHUB_ENV"
+            printf -v "$n" '%s' "$v"
+          done
           missing=""
           for n in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID BOT_TOKEN WEBHOOK_SECRET; do
             [ -n "${!n}" ] || missing="$missing $n"
@@ -106,8 +115,9 @@ jobs:
           [ "$(curl -s "$url/")" = "phr-telegram up" ] || { echo "::error::$url/ is not up"; exit 1; }
           body=$(jq -n --arg u "$url/tg" --arg s "$WEBHOOK_SECRET" \
             '{url:$u, secret_token:$s, allowed_updates:["message","pre_checkout_query"], drop_pending_updates:true}')
-          curl -sSf -X POST -H "Content-Type: application/json" -d "$body" \
-            "https://api.telegram.org/bot$BOT_TOKEN/setWebhook" | jq -e '.ok' >/dev/null
+          res=$(curl -sS -X POST -H "Content-Type: application/json" -d "$body" \
+            "https://api.telegram.org/bot$BOT_TOKEN/setWebhook")
+          echo "$res" | jq -e '.ok' >/dev/null || { echo "::error::setWebhook: $(echo "$res" | jq -r '.description')"; exit 1; }
           bot=$(curl -sSf "https://api.telegram.org/bot$BOT_TOKEN/getMe" | jq -r '.result.username')
           pending=$(curl -sSf "https://api.telegram.org/bot$BOT_TOKEN/getWebhookInfo" | jq -r '.result.url')
           {
