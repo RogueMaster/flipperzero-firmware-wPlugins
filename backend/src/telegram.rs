@@ -100,11 +100,22 @@ pub fn link(server: &str, code: &str) -> Result<String> {
     let mut resp = agent()
         .post(&endpoint(server, "pair"))
         .send_json(json!({ "code": code, "pc_name": pc_name() }))
-        .context("pairing request failed")?;
+        .map_err(pair_error)?;
     let body: Value = resp.body_mut().read_json().context("unexpected reply from the server")?;
     match body.get("device_key").and_then(Value::as_str).filter(|k| !k.is_empty()) {
         Some(k) => Ok(k.to_string()),
         None => bail!("the server reply has no device_key"),
+    }
+}
+
+/// Turns HTTP errors from `/pair` into a hint the user can act on.
+fn pair_error(e: ureq::Error) -> anyhow::Error {
+    match e {
+        ureq::Error::StatusCode(400) => {
+            anyhow::anyhow!("the code is wrong or expired (codes live 10 minutes); send /link to the bot again")
+        }
+        ureq::Error::StatusCode(429) => anyhow::anyhow!("too many attempts; wait a minute and try again"),
+        e => anyhow::Error::new(e).context("pairing request failed"),
     }
 }
 
@@ -134,6 +145,12 @@ mod tests {
         assert!(Sender::start(&c).is_none());
         c.enabled = true;
         assert!(Sender::start(&c).is_none());
+    }
+
+    #[test]
+    fn pair_errors_are_actionable() {
+        assert!(pair_error(ureq::Error::StatusCode(400)).to_string().contains("/link"));
+        assert!(pair_error(ureq::Error::StatusCode(429)).to_string().contains("wait"));
     }
 
     #[test]

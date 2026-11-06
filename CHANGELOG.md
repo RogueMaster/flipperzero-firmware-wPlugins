@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v1.1.0 - 2026-11-06
 
 **Repository**
 - The repository moved from `vladatman/pc-health-remote` to `ataman-lab/pc-health-remote`; old links redirect.
@@ -9,6 +9,7 @@
 - New Telegram bot (`telegram/`, Cloudflare Worker): `/link` pairs a PC, alerts arrive as chat messages.
   Free: 1 PC, 10 alerts/day. Pro: 5 PCs, unlimited, 99 Telegram Stars per 30 days (`/pro`).
 - Backend: the Flipper alert rules now also run on the PC; `--link-telegram <CODE>` and a `[telegram]` config section.
+  The official bot server is the default; a wrong or expired code gets a clear hint.
 - `/pair` is rate limited per IP; the bot stores only chat id, language, source tag, device keys, PC names and counters.
 
 **Flipper app (v1.1)**
