@@ -24,13 +24,13 @@ export const RULES = {
 const isNum = (v) => typeof v === "number" && Number.isFinite(v);
 
 const GREETING = {
-  en: "Hi! I send PC Health Remote alerts to your phone.\n\n1. Send /link to get a 6-character code.\n2. Enter it in the PC tray app.\n\nCommands: /link, /pcs, /unlink <name>, /status, /pro",
-  ru: "Привет! Я присылаю уведомления PC Health Remote на телефон.\n\n1. Отправьте /link, чтобы получить 6-значный код.\n2. Введите его в трей-приложении на ПК.\n\nКоманды: /link, /pcs, /unlink <имя>, /status, /pro",
+  en: "Hi! I send PC Health Remote alerts to your phone.\n\n1. Send /link to get a 6-character code.\n2. On the PC run: pc-health-remote.exe --link-telegram CODE\n\nCommands: /link, /pcs, /unlink <name>, /status, /pro",
+  ru: "Привет! Я присылаю уведомления PC Health Remote на телефон.\n\n1. Отправьте /link, чтобы получить 6-значный код.\n2. На ПК выполните: pc-health-remote.exe --link-telegram КОД\n\nКоманды: /link, /pcs, /unlink <имя>, /status, /pro",
 };
 
 const T = {
   en: {
-    code: (c) => "Your code: " + c + "\nValid for 10 minutes. Enter it in the PC tray app.",
+    code: (c) => "Your code: " + c + "\nValid for 10 minutes. On the PC run:\npc-health-remote.exe --link-telegram " + c,
     nopcs: "No linked PCs. Send /link to add one.",
     pcs: "Linked PCs:",
     unlinkUsage: "Usage: /unlink <name>",
@@ -45,7 +45,7 @@ const T = {
     limit: "Daily free limit of " + FREE_DAILY_LIMIT + " alerts reached. More alerts will be dropped until tomorrow (UTC).",
   },
   ru: {
-    code: (c) => "Ваш код: " + c + "\nДействует 10 минут. Введите его в трей-приложении на ПК.",
+    code: (c) => "Ваш код: " + c + "\nДействует 10 минут. На ПК выполните:\npc-health-remote.exe --link-telegram " + c,
     nopcs: "Нет привязанных ПК. Отправьте /link, чтобы добавить.",
     pcs: "Привязанные ПК:",
     unlinkUsage: "Использование: /unlink <имя>",

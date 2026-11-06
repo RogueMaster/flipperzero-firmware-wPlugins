@@ -5,7 +5,7 @@ The PC backend runs the same alert rules as the Flipper app and sends fired aler
 
 ## For users
 
-1. Open **@BOT_USERNAME** in Telegram and send `/link`. You get a 6-character code, valid for 10 minutes.
+1. Open **@PCHealthRemoteBot** in Telegram and send `/link`. You get a 6-character code, valid for 10 minutes.
 2. Run `pc-health-remote.exe --link-telegram <CODE>`. The device key is saved to `config.toml`, section `[telegram]`.
 3. Restart the backend (tray icon -> Quit, then start it again, or reboot).
 
@@ -40,7 +40,7 @@ Repository secrets (Settings -> Secrets and variables -> Actions):
 
 Admin commands (only from `ADMIN_CHAT_ID`): `/stats` (users, Pro, payments, per source), `/refund <charge_id>`.
 
-Tracking links per traffic source: `https://t.me/BOT_USERNAME?start=src_<tag>` (tag: letters, digits, `_`, `-`).
+Tracking links per traffic source: `https://t.me/PCHealthRemoteBot?start=src_<tag>` (tag: letters, digits, `_`, `-`).
 
 Limits to watch (Cloudflare free plan): 100k Worker requests/day, KV 1,000 writes/day (each delivered alert writes
 one counter). `/pair` is limited to 5 attempts per IP per minute.

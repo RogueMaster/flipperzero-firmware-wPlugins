@@ -97,7 +97,7 @@ Limit and signal are adjustable per rule. Each rule can be switched on or off.
 
 ## Telegram alerts (beta)
 
-Get the same alerts on your phone in Telegram, no Flipper needed. Bot: **@BOT_USERNAME**.
+Get the same alerts on your phone in Telegram, no Flipper needed. Bot: **@PCHealthRemoteBot**.
 
 1. Open the bot and send `/link`. You get a 6-character code (valid 10 minutes).
 2. On the PC run `pc-health-remote.exe --link-telegram <CODE>`.

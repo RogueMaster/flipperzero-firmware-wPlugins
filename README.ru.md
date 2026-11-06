@@ -54,7 +54,7 @@ LibreHardwareMonitor.
 
 ## Уведомления в Telegram (бета)
 
-Те же алерты на телефон в Telegram, Flipper не нужен. Бот: **@BOT_USERNAME**.
+Те же алерты на телефон в Telegram, Flipper не нужен. Бот: **@PCHealthRemoteBot**.
 
 1. Откройте бота и отправьте `/link`. Придёт код из 6 символов (действует 10 минут).
 2. На ПК выполните `.\pc-health-remote.exe --link-telegram <КОД>`.
