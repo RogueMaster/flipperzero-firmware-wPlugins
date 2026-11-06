@@ -17,7 +17,7 @@ install it. It appears under *Apps -> Bluetooth*.
 
 **Option B - from a release file.**
 
-1. Download `pc_health_remote.fap` from the [releases page](https://github.com/vladatman/pc-health-remote/releases).
+1. Download `pc_health_remote.fap` from the [releases page](https://github.com/ataman-lab/pc-health-remote/releases).
 2. Open qFlipper, go to the file manager (or *Install from file*) and put the file into `/ext/apps/Bluetooth/`
    on the SD card.
 3. On the Flipper open *Apps -> Bluetooth -> PC Health Remote*.
@@ -30,7 +30,7 @@ When the app starts, you see the waiting screen until a PC connects.
 
 ## 2. Get the PC backend
 
-1. Download the Windows exe from the [releases page](https://github.com/vladatman/pc-health-remote/releases)
+1. Download the Windows exe from the [releases page](https://github.com/ataman-lab/pc-health-remote/releases)
    (`pc-health-remote-windows-x86_64.exe`).
 2. Put it in a permanent folder, for example `C:\Tools\pc-health-remote\`, and rename it to
    `pc-health-remote.exe` (the examples below use that name).
@@ -121,6 +121,25 @@ Default rules:
 
 To test alerts without stressing your PC, run the backend with `--simulate`, which sends synthetic changing values.
 
+### Telegram alerts (beta)
+
+The backend can also evaluate the same alert rules (same defaults; `link_lost` does not apply) and push fired
+alerts to a Telegram bot server, so you get a message even without the Flipper nearby. It is off by default.
+
+1. Set the bot server in `config.toml`:
+
+   ```toml
+   [telegram]
+   enabled = false
+   server = "https://<worker>.workers.dev"
+   device_key = ""
+   ```
+
+2. Get a pairing code from the bot chat, then run `pc-health-remote.exe --link-telegram <CODE>`. The returned
+   `device_key` is saved to the config and `enabled` is set to `true`.
+3. Restart the backend. Alerts repeat at most every 300 s while a condition persists. Network errors are logged
+   (one line each) and never affect the Flipper telemetry.
+
 ## 7. Optional: LibreHardwareMonitor (accurate CPU temperature and fan speed)
 
 Without extra software the CPU temperature comes from the Windows ACPI thermal zone, which is coarse or missing on
@@ -166,5 +185,5 @@ Instead of Bluetooth you can connect with a USB cable: change the transport to U
 **Logs and config:** `%APPDATA%\pc-health-remote\` contains `config.toml` and `log.txt` (rotated to `log.old.txt` at
 about 1 MB). Start the backend with `--console` (and `-v` for more detail) to watch the log live.
 
-Still stuck? [Open an issue](https://github.com/vladatman/pc-health-remote/issues) with your Windows version,
+Still stuck? [Open an issue](https://github.com/ataman-lab/pc-health-remote/issues) with your Windows version,
 Flipper firmware, the output of `pc-health-remote.exe status` and `metrics`, and the relevant part of `log.txt`.

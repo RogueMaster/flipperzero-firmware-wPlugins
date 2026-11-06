@@ -26,9 +26,9 @@ use windows::Devices::Enumeration::{
     DevicePairingRequestedEventArgs, DevicePairingResultStatus, DeviceUnpairingResultStatus,
 };
 use windows::Foundation::{IClosable, TypedEventHandler};
-use windows_future::{AsyncStatus, IAsyncOperation};
 use windows::Storage::Streams::{DataReader, DataWriter};
 use windows::Win32::System::Com::{CoInitializeEx, COINIT_MULTITHREADED};
+use windows_future::{AsyncStatus, IAsyncOperation};
 
 const HELLO_TIMEOUT: Duration = Duration::from_secs(10);
 /// A session that lasted at least this long counts as healthy and resets the failure count.
@@ -452,7 +452,9 @@ fn find_service(dev: &BluetoothLEDevice, limit: Duration, shared: &Shared) -> Re
             Awaited::Done(Err(e)) => last = format!("{mode:?}: {e}"),
             // The device is not answering: give up now; the OS cache would only hand back a
             // stale service that we cannot talk to.
-            Awaited::TimedOut => bail!("device not reachable (service discovery timed out after {} ms)", mode_limit.as_millis()),
+            Awaited::TimedOut => {
+                bail!("device not reachable (service discovery timed out after {} ms)", mode_limit.as_millis())
+            }
         }
     }
     bail!("Flipper serial service not found ({last})")
@@ -573,7 +575,10 @@ fn connect_and_run(
             log::info!(
                 "BLE: GATT ready {} ms after the attempt started{}",
                 attempt_started.elapsed().as_millis(),
-                lost_at.map_or(String::new(), |l| format!(", {} ms after the previous link was lost", l.elapsed().as_millis()))
+                lost_at.map_or(String::new(), |l| format!(
+                    ", {} ms after the previous link was lost",
+                    l.elapsed().as_millis()
+                ))
             );
             log::debug!("BLE ready: {cccd:?}, {write_option:?}, max write {max_chunk} bytes");
             let mut link = BleLink { events: ev_rx, rx_char: rx_char.clone(), write_option, max_chunk };

@@ -99,7 +99,16 @@ pub fn pair(address: Option<u64>, force: bool, scan_for: Duration) -> Result<Pai
                     log::info!(
                         "found {} device(s): {}",
                         found.len(),
-                        found.iter().map(|f| format!("{} {} ({} dBm)", f.name, crate::config::format_address(f.address), f.rssi)).collect::<Vec<_>>().join(", ")
+                        found
+                            .iter()
+                            .map(|f| format!(
+                                "{} {} ({} dBm)",
+                                f.name,
+                                crate::config::format_address(f.address),
+                                f.rssi
+                            ))
+                            .collect::<Vec<_>>()
+                            .join(", ")
                     );
                     (f.address, f.name.clone())
                 }

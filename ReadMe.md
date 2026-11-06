@@ -194,6 +194,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [T5577 v1.3 (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1208)
 - SubGHz: [KeeLoq `CounterMode` 7, 8 and 9 each reproduce a DoorHan Smart clone resync pack, one per board family (what `CounterMode: 7` used to send is now mode 8) (By xMasterX)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/644cd8c5c2fdf20940d324387b844deb70dafc3b)
 - Added: [FliBuddy v1.0 - Bambu Lab spool NFC reader with USB/Bluetooth sync to Bambuddy via the FliBuddy companion app (By Gennady Sokolachko)](https://github.com/sokogen/flipperzero-flibuddy)
+- Updated: [PC Health Remote v1.1 (By ataman-lab)](https://github.com/ataman-lab/pc-health-remote) Req: [Backend](https://github.com/ataman-lab/pc-health-remote/tree/main/backend)
 
 <a name="release"></a>
 
@@ -997,7 +998,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Passy v1.6 (By bettse)](https://github.com/bettse/passy)
 - [Pause Timer v1.0 (By Matt-London)](https://github.com/Matt-London/pause_timer)
 - [PayTo Wallets v0.1 (By Rastislav Core)](https://github.com/rastislavcore/flipper_payto)
-- [PC Health Remote v1.1 (By vladatman)](https://github.com/vladatman/pc-health-remote) Req: [Backend](https://github.com/vladatman/pc-health-remote/tree/main/backend)
+- [PC Health Remote v1.1 (By ataman-lab)](https://github.com/ataman-lab/pc-health-remote) Req: [Backend](https://github.com/ataman-lab/pc-health-remote/tree/main/backend)
 - [PC Monitor USB v2.0 (By DonJulve & TheSainEyereg)](https://github.com/DonJulve/Flipper-Zero-PC-Monitor-USB) Req: [Backend](https://github.com/DonJulve/Flipper-Zero-PC-Monitor-USB-Backend)
 - [PC Monitor v1.1.3 (By TheSainEyereg)](https://github.com/TheSainEyereg/flipper-pc-monitor) Req: [Backend](https://github.com/TheSainEyereg/flipper-pc-monitor-backend)
 - [Period Tracker v1.0 (By gorshunovr)](https://github.com/gorshunovr/period_tracker)

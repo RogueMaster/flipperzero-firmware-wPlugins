@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+**Repository**
+- The repository moved from `vladatman/pc-health-remote` to `ataman-lab/pc-health-remote`; old links redirect.
+
 **Flipper app (v1.1)**
 - Every alert type has its own sound: hot CPU/GPU = fast high alarms, load = rising tones, RAM/VRAM = falling tones,
   disk = low thuds, low battery = slow falling tones, lost link = drop to a low note. The Vibro+Sound signal uses the

@@ -38,9 +38,9 @@ LibreHardwareMonitor.
 Подробно: [docs/SETUP.md](docs/SETUP.md) (на английском).
 
 1. Установите приложение на Flipper: `pc_health_remote.fap` из
-   [релизов](https://github.com/vladatman/pc-health-remote/releases) в `/ext/apps/Bluetooth/` (например, через
+   [релизов](https://github.com/ataman-lab/pc-health-remote/releases) в `/ext/apps/Bluetooth/` (например, через
    qFlipper, "Install from file") или из каталога приложений.
-2. Скачайте exe для ПК со страницы [релизов](https://github.com/vladatman/pc-health-remote/releases)
+2. Скачайте exe для ПК со страницы [релизов](https://github.com/ataman-lab/pc-health-remote/releases)
    и положите в постоянную папку.
 3. Один раз выполните сопряжение: откройте приложение на Flipper и в PowerShell запустите
    `.\pc-health-remote.exe pair`. На Flipper появится "Verify code" - нажмите OK на Flipper.
