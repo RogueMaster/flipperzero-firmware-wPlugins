@@ -55,6 +55,10 @@ jobs:
             { echo "$n<<__EOF__"; echo "$v"; echo "__EOF__"; } >> "$GITHUB_ENV"
             printf -v "$n" '%s' "$v"
           done
+          # Telegram secret_token allows only A-Z a-z 0-9 _ -; PowerShell pipes can also add a UTF-8 BOM.
+          WEBHOOK_SECRET=$(printf '%s' "$WEBHOOK_SECRET" | LC_ALL=C tr -cd 'A-Za-z0-9_-')
+          { echo "WEBHOOK_SECRET<<__EOF__"; echo "$WEBHOOK_SECRET"; echo "__EOF__"; } >> "$GITHUB_ENV"
+          [ ${#WEBHOOK_SECRET} -ge 16 ] || { echo "::error::WEBHOOK_SECRET too short after cleaning (${#WEBHOOK_SECRET} chars)"; exit 1; }
           missing=""
           for n in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID BOT_TOKEN WEBHOOK_SECRET; do
             [ -n "${!n}" ] || missing="$missing $n"
