@@ -10,6 +10,6 @@ App(
     fap_version="1.1",
     fap_icon="icon.png",
     fap_author="vladatman",
-    fap_weburl="https://github.com/vladatman/pc-health-remote",
+    fap_weburl="https://github.com/ataman-lab/pc-health-remote",
     fap_description="PC temperatures & load on your Flipper, with vibro/sound alerts and tips",
 )

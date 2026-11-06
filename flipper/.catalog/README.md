@@ -3,7 +3,7 @@
 Your PC's temperatures and load on your Flipper Zero, with vibration, sound and LED alerts.
 
 **Needs the free PC backend:** download pc-health-remote.exe from
-https://github.com/vladatman/pc-health-remote/releases (Windows 11; Linux best-effort).
+https://github.com/ataman-lab/pc-health-remote/releases (Windows 11; Linux best-effort).
 
 ## Features
 - **Temps page:** CPU/GPU temperature and CPU, GPU, RAM and VRAM load bars.
@@ -19,7 +19,7 @@ https://github.com/vladatman/pc-health-remote/releases (Windows 11; Linux best-e
 
 Run pc-health-remote.exe install once from an elevated terminal to start the backend at logon.
 CPU temperature is most accurate when LibreHardwareMonitor is running; GPU data needs an NVIDIA GPU.
-Full guide: https://github.com/vladatman/pc-health-remote/blob/main/docs/SETUP.md
+Full guide: https://github.com/ataman-lab/pc-health-remote/blob/main/docs/SETUP.md
 
 ## Controls
 Left/Right: switch pages - OK: settings (or snooze an alert) - Back: exit.

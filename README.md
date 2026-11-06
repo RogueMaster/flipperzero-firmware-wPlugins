@@ -52,10 +52,10 @@ Sensor sources on Windows:
 Full walkthrough with screenshots: **[docs/SETUP.md](docs/SETUP.md)**.
 
 1. **Install the Flipper app.** Get `pc_health_remote.fap` from the
-   [latest release](https://github.com/vladatman/pc-health-remote/releases) and copy it to
+   [latest release](https://github.com/ataman-lab/pc-health-remote/releases) and copy it to
    `/ext/apps/Bluetooth/` (for example with qFlipper -> *Install from file*), or install it from the Flipper app catalog.
 2. **Download the backend.** Grab the Windows exe from the same
-   [releases page](https://github.com/vladatman/pc-health-remote/releases) and put it somewhere permanent, for example
+   [releases page](https://github.com/ataman-lab/pc-health-remote/releases) and put it somewhere permanent, for example
    `C:\Tools\pc-health-remote\pc-health-remote.exe` (the release asset is named
    `pc-health-remote-windows-x86_64.exe`; rename it if you like).
 3. **Pair once.** Open *PC Health Remote* on the Flipper, then in PowerShell run:
