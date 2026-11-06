@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { handle, FREE_DAILY_LIMIT } from "./worker.js";
+import { handle, FREE_DAILY_LIMIT, PRO_PRICE_STARS } from "./worker.js";
 
 function mkKv() {
   const m = new Map();
@@ -9,25 +9,44 @@ function mkKv() {
     get: async (k) => (m.has(k) ? m.get(k) : null),
     put: async (k, v) => void m.set(k, v),
     delete: async (k) => void m.delete(k),
+    list: async ({ prefix }) => ({ keys: [...m.keys()].filter((k) => k.startsWith(prefix)).map((name) => ({ name })), list_complete: true }),
   };
 }
 
 function setup(t0 = Date.UTC(2026, 0, 1, 12)) {
   const sent = [];
+  const calls = [];
   const clock = { t: t0 };
-  const env = { PHR: mkKv(), BOT_TOKEN: "tok", WEBHOOK_SECRET: "sec" };
+  const env = { PHR: mkKv(), BOT_TOKEN: "tok", WEBHOOK_SECRET: "sec", ADMIN_CHAT_ID: "999" };
   const opts = {
     now: () => clock.t,
     fetch: async (url, init) => {
       sent.push(JSON.parse(init.body));
-      return new Response("{}", { status: 200 });
+      calls.push({ method: url.split("/").pop(), body: sent.at(-1) });
+      return new Response('{"ok":true,"result":"https://t.me/$inv"}', { status: 200 });
     },
   };
   const call = (path, body, headers = {}, method = "POST") =>
     handle(new Request("https://x" + path, { method, headers, body: body && JSON.stringify(body) }), env, opts);
   const say = (text, from = {}, chat = 1) =>
     call("/tg", { message: { chat: { id: chat }, from, text } }, { "X-Telegram-Bot-Api-Secret-Token": "sec" });
-  return { env, sent, clock, call, say };
+  const hook = { "X-Telegram-Bot-Api-Secret-Token": "sec" };
+  const upd = (u) => call("/tg", u, hook);
+  const pay = (id, chat = 1, extra = {}) =>
+    upd({
+      message: {
+        chat: { id: chat },
+        successful_payment: {
+          currency: "XTR",
+          total_amount: PRO_PRICE_STARS,
+          invoice_payload: "pro30:" + chat,
+          telegram_payment_charge_id: id,
+          subscription_expiration_date: Math.floor(clock.t / 1000) + 2592000,
+          ...extra,
+        },
+      },
+    });
+  return { env, sent, calls, clock, call, say, upd, pay };
 }
 
 async function pair(s, name = "GAMING-PC") {
@@ -144,4 +163,91 @@ test("alert rejects unknown rule, non-numeric value and keeps the paired PC name
   const r = await s.call("/alert", { rule: "ram_load", value: 97, pc_name: "Spoofed text" }, h);
   assert.equal(r.status, 200);
   assert.equal(s.sent.at(-1).text, "🔥 GAMING-PC: RAM 97%");
+});
+
+test("/pro creates a Stars subscription invoice link", async () => {
+  const s = setup();
+  await s.say("/pro", {}, 5);
+  const c = s.calls.find((x) => x.method === "createInvoiceLink");
+  assert.equal(c.body.currency, "XTR");
+  assert.equal(c.body.subscription_period, 2592000);
+  assert.deepEqual(c.body.prices, [{ label: "Pro 30d", amount: PRO_PRICE_STARS }]);
+  assert.equal(c.body.payload, "pro30:5");
+  assert.match(s.sent.at(-1).text, /https:\/\/t\.me\/\$inv/);
+});
+
+test("pre_checkout_query: ok for valid payload, rejected otherwise", async () => {
+  const s = setup();
+  const q = (over) => ({
+    pre_checkout_query: { id: "q1", from: { id: 7 }, currency: "XTR", total_amount: PRO_PRICE_STARS, invoice_payload: "pro30:7", ...over },
+  });
+  await s.upd(q({}));
+  assert.equal(s.calls.at(-1).method, "answerPreCheckoutQuery");
+  assert.equal(s.calls.at(-1).body.ok, true);
+  await s.upd(q({ invoice_payload: "pro30:8" }));
+  assert.equal(s.calls.at(-1).body.ok, false);
+  await s.upd(q({ total_amount: 1 }));
+  assert.equal(s.calls.at(-1).body.ok, false);
+});
+
+test("successful_payment counted once; duplicate ignored; records source", async () => {
+  const s = setup();
+  await s.say("/start src_reddit", {}, 1);
+  await s.pay("ch1");
+  const n = s.env.PHR.m.size;
+  const sentN = s.sent.length;
+  await s.pay("ch1");
+  assert.equal(s.env.PHR.m.size, n);
+  assert.equal(s.sent.length, sentN);
+  const u = JSON.parse(s.env.PHR.m.get("user:1"));
+  assert.equal(u.pro.until, s.clock.t + 2592000 * 1000);
+  assert.equal(JSON.parse(s.env.PHR.m.get("pay:ch1")).src, "reddit");
+  await s.pay("bad", 1, { invoice_payload: "pro30:2" });
+  assert.equal(s.env.PHR.m.has("pay:bad"), false);
+});
+
+test("Pro expires; free vs Pro alert limits (fresh non-admin user)", async () => {
+  const s = setup();
+  const { body } = await pair(s);
+  await s.pay("ch1");
+  const h = { "X-Device-Key": body.device_key };
+  const a = { rule: "cpu_temp", value: 90 };
+  for (let i = 0; i < FREE_DAILY_LIMIT + 5; i++) assert.equal((await s.call("/alert", a, h)).status, 200);
+  await s.say("/status");
+  assert.match(s.sent.at(-1).text, /Plan: Pro/);
+  s.clock.t += 31 * 24 * 3600 * 1000;
+  await s.say("/status");
+  assert.match(s.sent.at(-1).text, /Plan: Free/);
+  for (let i = 0; i < FREE_DAILY_LIMIT; i++) assert.equal((await s.call("/alert", a, h)).status, 200);
+  assert.equal((await s.call("/alert", a, h)).status, 429);
+});
+
+test("PC limit: free 1, Pro 5", async () => {
+  const s = setup();
+  assert.equal((await pair(s, "A")).r.status, 200);
+  assert.equal((await pair(s, "B")).r.status, 403);
+  assert.equal((await pair(s, "A")).r.status, 200); // re-pair same name is fine
+  await s.pay("ch1");
+  for (const n of ["B", "C", "D", "E"]) assert.equal((await pair(s, n)).r.status, 200);
+  assert.equal((await pair(s, "F")).r.status, 403);
+});
+
+test("/stats and /refund are admin only", async () => {
+  const s = setup();
+  await s.say("/start src_x", {}, 1);
+  await s.pay("ch1");
+  const before = s.sent.length;
+  await s.say("/stats", {}, 1);
+  await s.say("/refund ch1", {}, 1);
+  assert.equal(s.sent.length, before);
+  assert.equal(s.calls.some((c) => c.method === "refundStarPayment"), false);
+  await s.say("/stats", {}, 999);
+  assert.match(s.sent.at(-1).text, /Users: 1[\s\S]*Pro: 1[\s\S]*Stars: 99[\s\S]*x: users 1, pro 1, stars 99/);
+  await s.say("/refund ch1", {}, 999);
+  const r = s.calls.find((c) => c.method === "refundStarPayment");
+  assert.deepEqual(r.body, { user_id: 1, telegram_payment_charge_id: "ch1" });
+  await s.say("/status", {}, 1);
+  assert.match(s.sent.at(-1).text, /Plan: Free/);
+  await s.say("/stats", {}, 999);
+  assert.match(s.sent.at(-1).text, /Stars: 0/);
 });

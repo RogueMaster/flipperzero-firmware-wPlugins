@@ -2,7 +2,11 @@
 // Stores only: chat id, language, source tag, device keys, pc names, counters.
 // Logs never contain keys or message text.
 
-export const FREE_DAILY_LIMIT = 10; // alerts per chat per UTC day (Pro comes later)
+export const FREE_DAILY_LIMIT = 10; // alerts per chat per UTC day (Pro: unlimited)
+export const PRO_PRICE_STARS = 99; // Telegram Stars per 30 days
+export const PRO_PERIOD_SEC = 2592000;
+export const FREE_MAX_PCS = 1;
+export const PRO_MAX_PCS = 5;
 export const CODE_TTL_SEC = 600;
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
@@ -20,8 +24,8 @@ export const RULES = {
 const isNum = (v) => typeof v === "number" && Number.isFinite(v);
 
 const GREETING = {
-  en: "Hi! I send PC Health Remote alerts to your phone.\n\n1. Send /link to get a 6-character code.\n2. Enter it in the PC tray app.\n\nCommands: /link, /pcs, /unlink <name>",
-  ru: "Привет! Я присылаю уведомления PC Health Remote на телефон.\n\n1. Отправьте /link, чтобы получить 6-значный код.\n2. Введите его в трей-приложении на ПК.\n\nКоманды: /link, /pcs, /unlink <имя>",
+  en: "Hi! I send PC Health Remote alerts to your phone.\n\n1. Send /link to get a 6-character code.\n2. Enter it in the PC tray app.\n\nCommands: /link, /pcs, /unlink <name>, /status, /pro",
+  ru: "Привет! Я присылаю уведомления PC Health Remote на телефон.\n\n1. Отправьте /link, чтобы получить 6-значный код.\n2. Введите его в трей-приложении на ПК.\n\nКоманды: /link, /pcs, /unlink <имя>, /status, /pro",
 };
 
 const T = {
@@ -32,6 +36,12 @@ const T = {
     unlinkUsage: "Usage: /unlink <name>",
     unlinked: (n) => "Unlinked: " + n,
     notFound: (n) => "No such PC: " + n,
+    proTitle: "PC Health Remote Pro",
+    proDesc: "No daily alert limit and up to " + PRO_MAX_PCS + " PCs (free: " + FREE_DAILY_LIMIT + " alerts/day, " + FREE_MAX_PCS + " PC). 30 days, renews automatically.",
+    pro: (url) => "Pro: unlimited alerts, up to " + PRO_MAX_PCS + " PCs, " + PRO_PRICE_STARS + " Stars / 30 days.\n" + url,
+    proFail: "Could not create the invoice, try again later.",
+    thanks: (d) => "Thank you! Pro is active until " + d + ".",
+    status: (plan, exp, pcs, n) => "Plan: " + plan + (exp ? "\nExpires: " + exp : "") + "\nPCs: " + pcs + "\nAlerts today: " + n,
     limit: "Daily free limit of " + FREE_DAILY_LIMIT + " alerts reached. More alerts will be dropped until tomorrow (UTC).",
   },
   ru: {
@@ -41,6 +51,12 @@ const T = {
     unlinkUsage: "Использование: /unlink <имя>",
     unlinked: (n) => "Отвязан: " + n,
     notFound: (n) => "Нет такого ПК: " + n,
+    proTitle: "PC Health Remote Pro",
+    proDesc: "Без лимита уведомлений и до " + PRO_MAX_PCS + " ПК (бесплатно: " + FREE_DAILY_LIMIT + " в сутки, " + FREE_MAX_PCS + " ПК). 30 дней, продлевается автоматически.",
+    pro: (url) => "Pro: без лимита уведомлений, до " + PRO_MAX_PCS + " ПК, " + PRO_PRICE_STARS + " Stars / 30 дней.\n" + url,
+    proFail: "Не удалось создать счёт, попробуйте позже.",
+    thanks: (d) => "Спасибо! Pro активен до " + d + ".",
+    status: (plan, exp, pcs, n) => "Тариф: " + plan + (exp ? "\nДо: " + exp : "") + "\nПК: " + pcs + "\nУведомлений сегодня: " + n,
     limit: "Достигнут бесплатный лимит: " + FREE_DAILY_LIMIT + " уведомлений в сутки. Остальные до завтра (UTC) не будут отправлены.",
   },
 };
@@ -83,13 +99,97 @@ async function send(env, f, chat, text) {
   return res.ok;
 }
 
+async function api(env, f, method, body) {
+  const res = await f("https://api.telegram.org/bot" + env.BOT_TOKEN + "/" + method, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  let j = null;
+  try {
+    j = await res.json();
+  } catch {}
+  return res.ok && j && j.ok !== false ? j : null;
+}
+
+const isPro = (user, now) => !!(user.pro && user.pro.until > now());
+const isAdmin = (env, chat) => !!env.ADMIN_CHAT_ID && String(chat) === String(env.ADMIN_CHAT_ID);
+const payloadOf = (chat) => "pro30:" + chat;
+const dayOf = (now) => new Date(now()).toISOString().slice(0, 10);
+
+async function handlePayment(msg, env, f, now) {
+  const p = msg.successful_payment;
+  const chat = msg.chat.id;
+  const id = p && p.telegram_payment_charge_id;
+  if (!id || p.currency !== "XTR" || p.invoice_payload !== payloadOf(chat)) return;
+  const kv = env.PHR;
+  if (await kv.get("pay:" + id)) return; // duplicate delivery: count once
+  const user = await getUser(kv, chat);
+  const exp = p.subscription_expiration_date ? p.subscription_expiration_date * 1000 : now() + PRO_PERIOD_SEC * 1000;
+  await kv.put("pay:" + id, JSON.stringify({ chat, stars: p.total_amount, src: user.src, t: now() }));
+  user.pro = { until: Math.max(exp, (user.pro && user.pro.until) || 0), charge: id };
+  await kv.put("user:" + chat, JSON.stringify(user));
+  await send(env, f, chat, T[user.lang].thanks(new Date(user.pro.until).toISOString().slice(0, 10)));
+}
+
+async function handlePreCheckout(q, env, f) {
+  const ok =
+    q.currency === "XTR" &&
+    q.total_amount === PRO_PRICE_STARS &&
+    !!q.from &&
+    q.invoice_payload === payloadOf(q.from.id);
+  await api(
+    env,
+    f,
+    "answerPreCheckoutQuery",
+    ok ? { pre_checkout_query_id: q.id, ok: true } : { pre_checkout_query_id: q.id, ok: false, error_message: "Invalid invoice" },
+  );
+}
+
+async function listAll(kv, prefix) {
+  const out = [];
+  let cursor;
+  do {
+    const r = await kv.list({ prefix, cursor });
+    for (const k of r.keys) out.push(await getJson(kv, k.name));
+    cursor = r.list_complete ? undefined : r.cursor;
+  } while (cursor);
+  return out.filter(Boolean);
+}
+
+async function stats(env, now) {
+  const users = await listAll(env.PHR, "user:");
+  const pays = (await listAll(env.PHR, "pay:")).filter((p) => !p.refunded);
+  const by = {};
+  const row = (src) => (by[src || "-"] ||= { users: 0, pro: 0, stars: 0 });
+  let pcs = 0;
+  let pro = 0;
+  for (const u of users) {
+    pcs += Object.keys(u.pcs || {}).length;
+    row(u.src).users++;
+    if (isPro(u, now)) {
+      pro++;
+      row(u.src).pro++;
+    }
+  }
+  let stars = 0;
+  for (const p of pays) {
+    stars += p.stars;
+    row(p.src).stars += p.stars;
+  }
+  const lines = Object.entries(by).map(([k, v]) => k + ": users " + v.users + ", pro " + v.pro + ", stars " + v.stars);
+  return ["Users: " + users.length, "PCs: " + pcs, "Pro: " + pro, "Stars: " + stars, ...lines].join("\n");
+}
+
 async function getUser(kv, chat) {
   return (await getJson(kv, "user:" + chat)) || { lang: "en", src: null, pcs: {} };
 }
 
 async function handleMessage(msg, env, f, now) {
   const chat = msg.chat && msg.chat.id;
-  if (chat === undefined || typeof msg.text !== "string") return;
+  if (chat === undefined) return;
+  if (msg.successful_payment) return handlePayment(msg, env, f, now);
+  if (typeof msg.text !== "string") return;
   const kv = env.PHR;
   const user = await getUser(kv, chat);
   user.lang = langOf(msg.from && msg.from.language_code);
@@ -109,6 +209,37 @@ async function handleMessage(msg, env, f, now) {
     });
     await kv.put("user:" + chat, JSON.stringify(user));
     await send(env, f, chat, t.code(code));
+  } else if (cmd === "/pro") {
+    const r = await api(env, f, "createInvoiceLink", {
+      title: t.proTitle,
+      description: t.proDesc,
+      payload: payloadOf(chat),
+      currency: "XTR",
+      prices: [{ label: "Pro 30d", amount: PRO_PRICE_STARS }],
+      subscription_period: PRO_PERIOD_SEC,
+    });
+    await send(env, f, chat, r && r.result ? t.pro(r.result) : t.proFail);
+  } else if (cmd === "/status") {
+    const c = await getJson(kv, "cnt:" + chat + ":" + dayOf(now));
+    const pro = isPro(user, now);
+    const exp = pro ? new Date(user.pro.until).toISOString().slice(0, 10) : null;
+    await send(env, f, chat, t.status(pro ? "Pro" : "Free", exp, Object.keys(user.pcs).length, c ? c.n : 0));
+  } else if (cmd === "/stats" && isAdmin(env, chat)) {
+    await send(env, f, chat, await stats(env, now));
+  } else if (cmd === "/refund" && isAdmin(env, chat)) {
+    const id = rest[0];
+    const pay = id ? await getJson(kv, "pay:" + id) : null;
+    if (!pay || pay.refunded) return void (await send(env, f, chat, "Unknown or already refunded charge"));
+    const r = await api(env, f, "refundStarPayment", { user_id: pay.chat, telegram_payment_charge_id: id });
+    if (!r) return void (await send(env, f, chat, "Refund failed"));
+    pay.refunded = true;
+    await kv.put("pay:" + id, JSON.stringify(pay));
+    const payer = await getUser(kv, pay.chat);
+    if (payer.pro && payer.pro.charge === id) {
+      delete payer.pro;
+      await kv.put("user:" + pay.chat, JSON.stringify(payer));
+    }
+    await send(env, f, chat, "Refunded " + id);
   } else if (cmd === "/pcs") {
     const names = Object.keys(user.pcs);
     await send(env, f, chat, names.length ? t.pcs + "\n" + names.join("\n") : t.nopcs);
@@ -135,6 +266,7 @@ async function handleWebhook(req, env, f, now) {
     return json({ error: "bad request" }, 400);
   }
   if (update && update.message) await handleMessage(update.message, env, f, now);
+  else if (update && update.pre_checkout_query) await handlePreCheckout(update.pre_checkout_query, env, f);
   return json({ ok: true });
 }
 
@@ -154,6 +286,9 @@ async function handlePair(req, env, now) {
   await kv.delete("code:" + code); // one-time use
   if (rec.exp <= now()) return json({ error: "invalid or expired code" }, 400);
   const user = await getUser(kv, rec.chat);
+  if (!user.pcs[pcName] && Object.keys(user.pcs).length >= (isPro(user, now) ? PRO_MAX_PCS : FREE_MAX_PCS)) {
+    return json({ error: "pc limit reached" }, 403);
+  }
   if (user.pcs[pcName]) await kv.delete("dev:" + user.pcs[pcName]);
   const key = randomHex(32);
   user.pcs[pcName] = key;
@@ -180,10 +315,10 @@ async function handleAlert(req, env, f, now) {
   const kv = env.PHR;
   const user = await getUser(kv, dev.chat);
   const t = T[user.lang];
-  const day = new Date(now()).toISOString().slice(0, 10);
-  const ckey = "cnt:" + dev.chat + ":" + day;
+  const ckey = "cnt:" + dev.chat + ":" + dayOf(now);
   const c = (await getJson(kv, ckey)) || { n: 0, noted: false };
-  if (c.n >= FREE_DAILY_LIMIT) {
+  const pro = isPro(user, now);
+  if (!pro && c.n >= FREE_DAILY_LIMIT) {
     if (!c.noted) {
       c.noted = true;
       await kv.put(ckey, JSON.stringify(c), { expirationTtl: 172800 });
@@ -192,7 +327,7 @@ async function handleAlert(req, env, f, now) {
     return json({ ok: false, limited: true }, 429);
   }
   c.n++;
-  await kv.put(ckey, JSON.stringify(c), { expirationTtl: 172800 });
+  if (!pro) await kv.put(ckey, JSON.stringify(c), { expirationTtl: 172800 }); // Pro: no counter writes
   const [label, unit] = rule;
   let text = "🔥 " + dev.pc_name + ": " + label + " " + b.value + unit;
   if (b.threshold != null) text += " (limit " + b.threshold + unit + ")";
