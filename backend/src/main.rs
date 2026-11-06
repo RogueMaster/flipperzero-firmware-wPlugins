@@ -4,6 +4,7 @@
 // Parts of the code (tray, Task Scheduler, WMI sensors) are only used on Windows.
 #![cfg_attr(not(windows), allow(dead_code))]
 
+mod alerts;
 mod app;
 mod ble;
 mod config;
@@ -15,6 +16,7 @@ mod protocol;
 mod session;
 mod shared;
 mod taskmgr;
+mod telegram;
 #[cfg(windows)]
 mod tray;
 mod usb;
@@ -59,6 +61,9 @@ struct Global {
     /// Run without a tray icon (headless; Ctrl-C to stop)
     #[arg(long, global = true)]
     no_tray: bool,
+    /// Link this PC to the Telegram bot with the code from the bot chat, then exit
+    #[arg(long, value_name = "CODE")]
+    link_telegram: Option<String>,
 }
 
 #[derive(Subcommand)]
@@ -119,6 +124,9 @@ fn main() {
 }
 
 fn dispatch(cli: Cli) -> Result<()> {
+    if let Some(code) = cli.global.link_telegram.as_deref() {
+        return cmd_link_telegram(code);
+    }
     match cli.command.unwrap_or(Cmd::Run) {
         Cmd::Run => app::run(app::RunOpts {
             simulate: cli.global.simulate,
@@ -161,6 +169,16 @@ fn cmd_pair(address: Option<String>, force: bool, scan_secs: u64) -> Result<()> 
         );
     }
     println!("Start the tray app with `pc-health-remote run` (or `install` to start it at logon).");
+    Ok(())
+}
+
+fn cmd_link_telegram(code: &str) -> Result<()> {
+    let mut cfg = Config::load();
+    let key = telegram::link(&cfg.telegram.server, code)?;
+    cfg.telegram.device_key = key;
+    cfg.telegram.enabled = true;
+    cfg.save()?;
+    println!("Linked to Telegram; device_key saved in {}", config::config_path().display());
     Ok(())
 }
 

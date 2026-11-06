@@ -1,9 +1,11 @@
 //! The `run` command: wires the collector, transports and the tray (or a headless loop).
 
+use crate::alerts::AlertEngine;
 use crate::ble;
 use crate::config::{format_address, Config, TransportMode};
 use crate::metrics::{simulate, Collector};
 use crate::shared::Shared;
+use crate::telegram;
 use crate::usb;
 use anyhow::Result;
 use std::sync::atomic::Ordering;
@@ -20,7 +22,8 @@ pub struct RunOpts {
 }
 
 /// Collect metrics and publish them for the transports.
-fn collector_thread(shared: Arc<Shared>) {
+fn collector_thread(shared: Arc<Shared>, telegram: Option<telegram::Sender>) {
+    let mut engine = AlertEngine::default();
     let mut collector = (!shared.simulate).then(Collector::new);
     let t0 = Instant::now();
     // CPU load needs two samples; give sysinfo its minimum interval before the first one.
@@ -31,17 +34,25 @@ fn collector_thread(shared: Arc<Shared>) {
             Some(c) => c.collect(),
             None => simulate::snapshot(t0.elapsed().as_secs_f64()),
         };
-        shared.publish(snap.to_telemetry(), snap.summary());
+        let telemetry = snap.to_telemetry();
+        if let Some(tg) = &telegram {
+            let now_s = u32::try_from(t0.elapsed().as_secs()).unwrap_or(u32::MAX);
+            for ev in engine.update(now_s, &telemetry) {
+                log::info!("alert {}: {}{} (threshold {})", ev.rule.key(), ev.value, ev.rule.unit(), ev.threshold);
+                tg.send(ev);
+            }
+        }
+        shared.publish(telemetry, snap.summary());
         // Idle (no Flipper) runs slowly: it only feeds the tooltip.
         let period = if shared.link().is_some() { shared.send_period() } else { Duration::from_secs(2) };
         shared.sleep(period.saturating_sub(started.elapsed()));
     }
 }
 
-fn spawn_collector(shared: Arc<Shared>) -> JoinHandle<()> {
+fn spawn_collector(shared: Arc<Shared>, telegram: Option<telegram::Sender>) -> JoinHandle<()> {
     std::thread::Builder::new()
         .name("metrics".into())
-        .spawn(move || collector_thread(shared))
+        .spawn(move || collector_thread(shared, telegram))
         .expect("spawn metrics thread")
 }
 
@@ -145,7 +156,8 @@ pub fn run(opts: RunOpts) -> Result<()> {
         let _ = ctrlc::set_handler(move || s.stop.store(true, Ordering::Relaxed));
     }
 
-    let mut handles = vec![spawn_collector(shared.clone()), usb::spawn(shared.clone())];
+    let mut handles =
+        vec![spawn_collector(shared.clone(), telegram::Sender::start(&cfg.telegram)), usb::spawn(shared.clone())];
     handles.extend(ble::spawn(shared.clone()));
 
     #[cfg(windows)]

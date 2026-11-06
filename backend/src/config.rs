@@ -23,6 +23,17 @@ impl TransportMode {
     }
 }
 
+/// `[telegram]` section: alerts pushed to the Telegram bot server.
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(default)]
+pub struct TelegramConfig {
+    pub enabled: bool,
+    /// Bot server URL, e.g. "https://<worker>.workers.dev".
+    pub server: String,
+    /// Written by `--link-telegram <CODE>`.
+    pub device_key: String,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(default)]
 pub struct Config {
@@ -33,11 +44,12 @@ pub struct Config {
     pub transport: TransportMode,
     /// Default telemetry interval in seconds (1..=10); the Flipper's HELLO overrides it.
     pub interval_s: u8,
+    pub telegram: TelegramConfig,
 }
 
 impl Default for Config {
     fn default() -> Self {
-        Config { last_device: None, transport: TransportMode::Auto, interval_s: 1 }
+        Config { last_device: None, transport: TransportMode::Auto, interval_s: 1, telegram: TelegramConfig::default() }
     }
 }
 
@@ -93,7 +105,8 @@ impl Config {
             "# PC Health Remote configuration\n\
              # transport = \"auto\" | \"ble\" | \"usb\"\n\
              # interval_s = default telemetry interval (the Flipper may request another one)\n\
-             # last_device is written by `pc-health-remote pair`\n\n{body}"
+             # last_device is written by `pc-health-remote pair`\n\
+             # [telegram]: enabled, server, device_key (written by `--link-telegram <CODE>`)\n\n{body}"
         );
         let path = config_path();
         let tmp = path.with_extension("toml.tmp");
@@ -137,7 +150,12 @@ mod tests {
 
     #[test]
     fn config_round_trip_and_clamp() {
-        let c = Config { last_device: Some("AA:BB:CC:01:02:03".into()), transport: TransportMode::Usb, interval_s: 3 };
+        let c = Config {
+            last_device: Some("AA:BB:CC:01:02:03".into()),
+            transport: TransportMode::Usb,
+            interval_s: 3,
+            telegram: TelegramConfig { enabled: true, server: "https://w.workers.dev".into(), device_key: "k".into() },
+        };
         let text = toml::to_string_pretty(&c).unwrap();
         assert_eq!(Config::parse(&text).unwrap(), c);
         let c = Config::parse("interval_s = 99\ntransport = \"ble\"").unwrap();

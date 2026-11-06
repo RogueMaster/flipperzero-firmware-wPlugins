@@ -22,6 +22,7 @@ serde_json = "1"
 serialport = "4"
 sysinfo = { version = "0.39", default-features = false, features = ["system", "disk"] }
 toml = "1"
+ureq = { version = "3", default-features = false, features = ["rustls", "json"] }
 
 [target.'cfg(windows)'.dependencies]
 tao = "0.37"
