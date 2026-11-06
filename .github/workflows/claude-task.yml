@@ -25,7 +25,7 @@ env:
   RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
   REPO_NAME: ${{ github.event.repository.name }}
   # Per repo: the fast check Claude must run before pushing.
-  CHECK: "cd backend && cargo fmt --check && cargo clippy -- -D warnings && cargo test; telegram/: node --test telegram/ (Flipper app: rely on CI)"
+  CHECK: "cd backend && cargo fmt --check && cargo clippy -- -D warnings && cargo test; telegram/: cd telegram && node --test (Flipper app: rely on CI)"
 
 jobs:
   # Hard guard: the autopilot (paid Claude, write token) runs only for trusted people. Refuses if the label
