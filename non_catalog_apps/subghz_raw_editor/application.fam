@@ -7,8 +7,8 @@ App(
     fap_category="Sub-GHz",
     fap_author="Lechnio",
     fap_weburl="https://github.com/Lechnio/SubGHz-RAW-Edit",
-    fap_version="1.7",
-    fap_icon="icon.png",
+    fap_version="1.8",
+    fap_icon="icons/icon.png",
     fap_icon_assets="icons",
     fap_description="Open a recorded RAW .sub capture, find the real signal in a sea of noice, pick start/end with the arrows and save just the trimmed burst.",
 )
