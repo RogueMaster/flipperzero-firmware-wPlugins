@@ -193,6 +193,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [NFC/RFID Detector v1.5 precise LF frequency measurement and crystal calibration (By mfcarroll)](https://github.com/flipperdevices/flipperzero-good-faps/pull/313)
 - Updated: [T5577 v1.3 (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1208)
 - SubGHz: [KeeLoq `CounterMode` 7, 8 and 9 each reproduce a DoorHan Smart clone resync pack, one per board family (what `CounterMode: 7` used to send is now mode 8) (By xMasterX)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/644cd8c5c2fdf20940d324387b844deb70dafc3b)
+- Added: [FliBuddy v1.0 - Bambu Lab spool NFC reader with USB/Bluetooth sync to Bambuddy via the FliBuddy companion app (By Gennady Sokolachko)](https://github.com/sokogen/flipperzero-flibuddy)
 
 <a name="release"></a>
 
@@ -692,6 +693,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Fire String v2.0 (By RyanAboueljoud)](https://github.com/RyanAboueljoud/Fire-String)
 - [Flame RNG v0.3 (By OrionW06)](https://github.com/OrionW06/Flame-RNG)
 - [Flashlight v1.3 (By xMasterX)](https://github.com/xMasterX/flipper-flashlight)
+- [FliBuddy v1.0 - Bambu Lab spool NFC reader and Bambuddy inventory companion (By Gennady Sokolachko)](https://github.com/sokogen/flipperzero-flibuddy)
 - [Flight Monitor v1.0 (By kamylwnb)](https://github.com/kamylwnb/flight_monitor)
 - [Flipagotchi v2.1.1 (By Matt-London)](https://github.com/Matt-London/pwnagotchi-flipper)
 - [FlipBase v0.1 (By Space-Raler)](https://github.com/Space-Raler/FlipBase)

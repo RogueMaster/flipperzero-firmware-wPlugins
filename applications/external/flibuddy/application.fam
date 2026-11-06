@@ -1,0 +1,15 @@
+App(
+    appid="flibuddy",
+    name="FliBuddy",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="flibuddy_app",
+    stack_size=4 * 1024,
+    fap_icon="icons/flibuddy_10px.png",
+    sources=["src/*.c", "src/crypto/*.c", "!tests", "!.ufbt", "!dist"],
+    targets=["f7"],
+    fap_category="NFC",
+    fap_author="Gennady Sokolachko",
+    fap_weburl="https://github.com/sokogen/flipperzero-flibuddy",
+    fap_version="1.0",
+    fap_description="Reads Bambu Lab spool NFC tags; logs spools and weights to Bambuddy via the FliBuddy iPhone app",
+)
