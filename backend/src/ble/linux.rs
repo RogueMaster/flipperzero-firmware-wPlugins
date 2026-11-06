@@ -79,7 +79,7 @@ struct BleLink<'a> {
 
 impl Link for BleLink<'_> {
     fn recv(&mut self, timeout: Duration) -> Result<Vec<u8>> {
-        let next = self.rt.block_on(tokio::time::timeout(timeout, self.notifications.next()));
+        let next = self.rt.block_on(async { tokio::time::timeout(timeout, self.notifications.next()).await });
         match next {
             Ok(Some(n)) if n.uuid == Uuid::from_u128(TX_CHAR_UUID) => Ok(n.value),
             Ok(Some(_)) => Ok(Vec::new()),
@@ -153,6 +153,8 @@ pub fn spawn(shared: Arc<Shared>) -> Option<JoinHandle<()>> {
 }
 
 fn worker(shared: &Shared, rt: &Runtime) {
+    // BlueZ streams need a reactor when they are created and dropped, which happens outside block_on.
+    let _guard = rt.enter();
     let mut backoff = BACKOFF_MIN;
     while !shared.stopping() {
         let Some(addr) = shared.ble_address().filter(|_| shared.transport_allows(LinkKind::Ble) && !shared.pairing())
