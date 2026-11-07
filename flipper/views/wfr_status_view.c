@@ -236,7 +236,9 @@ static bool wfr_status_view_input(InputEvent* event, void* context) {
 
     WfrStatusMode mode = WfrStatusModeNone;
     with_view_model(status->view, WfrStatusViewModel * m, { mode = m->mode; }, false);
-    if(mode != WfrStatusModeResult && mode != WfrStatusModeConnected) return false;
+    /* The NFC scan screen only has a Left "Back" hint */
+    bool nfc_back = (mode == WfrStatusModeNfcScan && event->key == InputKeyLeft);
+    if(mode != WfrStatusModeResult && mode != WfrStatusModeConnected && !nfc_back) return false;
 
     if(status->callback) status->callback(status->context, event->key);
     return true;

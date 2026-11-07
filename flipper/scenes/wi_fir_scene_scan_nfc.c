@@ -75,9 +75,16 @@ static void wi_fir_nfc_show_error(WiFirApp* app, const char* title, const char* 
     app->dismiss_ticks = NFC_ERROR_TICKS;
 }
 
+static void wi_fir_nfc_status_callback(void* context, InputKey key) {
+    WiFirApp* app = context;
+    if(key == InputKeyLeft) {
+        view_dispatcher_send_custom_event(app->view_dispatcher, WiFirCustomEventStatusLeft);
+    }
+}
+
 void wi_fir_scene_scan_nfc_on_enter(void* context) {
     WiFirApp* app = context;
-    wfr_status_view_set_callback(app->status, NULL, NULL);
+    wfr_status_view_set_callback(app->status, wi_fir_nfc_status_callback, app);
     view_dispatcher_switch_to_view(app->view_dispatcher, WiFirViewStatus);
     wi_fir_nfc_start(app);
 }
@@ -107,6 +114,11 @@ bool wi_fir_scene_scan_nfc_on_event(void* context, SceneManagerEvent event) {
 
         } else if(event.event == WiFirCustomEventNfcError) {
             wi_fir_nfc_show_error(app, "Read error", "Couldn't read tag", "Hold it still");
+            consumed = true;
+
+        } else if(event.event == WiFirCustomEventStatusLeft && app->dismiss_ticks == 0) {
+            /* Left on the scan screen matches its "Back" hint */
+            scene_manager_previous_scene(app->scene_manager);
             consumed = true;
         }
     } else if(event.type == SceneManagerEventTypeTick) {
