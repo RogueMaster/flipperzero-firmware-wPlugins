@@ -273,6 +273,12 @@ static void adjust(JamState* s, Item it, int dir) {
     switch(it) {
     case ItemMode:
         s->mode = (JamMode)wrap((int)s->mode + dir, ModeCount);
+        s->mark = 12;
+        s->space = 12;
+        s->min_t = 8;
+        s->max_t = 70;
+        s->speed = 1;
+        s->sweep_dir = 1;
         break;
     case ItemFreq:
         s->freq_idx = wrap((int)s->freq_idx + dir, (int)FREQ_COUNT);
@@ -340,7 +346,7 @@ static void item_text(const JamState* s, Item it, const char** label, char* val,
         snprintf(val, sz, "%u", s->speed);
         break;
     case ItemPower:
-        *label = "Power";
+        *label = "Density";
         snprintf(val, sz, "%u", s->power);
         break;
     }
@@ -360,8 +366,7 @@ static void draw_cb(Canvas* c, void* ctx) {
     canvas_draw_str(c, 3, 9, "IR Jammer");
     canvas_set_font(c, FontSecondary);
     bool ext = (s->tx_pin == FuriHalInfraredTxPinExtPA7);
-    bool blink = (furi_get_tick() / 400) % 2;
-    const char* st = s->active ? (blink ? "JAMMING" : "") : "IDLE";
+    const char* st = s->active ? "JAMMING" : "IDLE";
     snprintf(buf, sizeof(buf), "%s %s", ext ? "EXT" : "INT", st);
     canvas_draw_str_aligned(c, 125, 6, AlignRight, AlignCenter, buf);
     canvas_set_color(c, ColorBlack);
