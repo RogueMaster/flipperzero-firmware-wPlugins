@@ -12,7 +12,11 @@ App(
     fap_private_libs=[
         Lib(
             name="monocypher",
-            cflags=["-O2", "-DBLAKE2_NO_UNROLLING", "-Wno-unused-parameter"],  # compact BLAKE2b: the FAP lives in RAM
+            cflags=[
+                "-O2",
+                "-DBLAKE2_NO_UNROLLING",
+                "-Wno-unused-parameter",
+            ],  # compact BLAKE2b: the FAP lives in RAM
         ),
     ],
     fap_category="Tools",
