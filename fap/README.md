@@ -6,7 +6,7 @@ Advanced Wi-Fi and Bluetooth Low Energy wardriving application for Flipper Zero 
 - **ALL Mode:** Simultaneous Wi-Fi 2.4 GHz and BLE wardriving.
 - **WIFI Mode:** Dedicated 2.4 GHz 802.11 b/g/n network scanning.
 - **BLE Mode:** Bluetooth Low Energy device discovery with RSSI.
-- **WiGLE CSV 1.4:** Generates WiGLE-compatible CSV log files on the microSD card in `/ext/apps_data/catwardrive/`.
+- **WiGLE CSV 1.4:** Generates WiGLE-compatible CSV log files on the microSD card in apps_data/catdriver/.
 - **GPS Tagging:** Real-time NMEA GPS location tracking via UART on pins 15 and 16.
 - **Session Isolation:** Creates distinct timestamped CSV logs for each scanning session.
 - **Power Saving:** ESP32 remains in idle state until scanning starts.
