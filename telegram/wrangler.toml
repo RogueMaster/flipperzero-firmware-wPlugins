@@ -8,6 +8,17 @@ compatibility_date = "2024-11-01"
 binding = "PHR"
 id = "REPLACE_WITH_KV_NAMESPACE_ID"
 
+# Free-tier daily alert counter (issue #27). SQLite-backed Durable Objects are on the Workers Free plan
+# (100k requests/day); KV free allows only 1000 writes/day, which a KV counter would burn at ~100 users.
+# `wrangler deploy` creates the class from the migration below, no extra setup.
+[[durable_objects.bindings]]
+name = "ALERT_COUNTER"
+class_name = "AlertCounter"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["AlertCounter"]
+
 # /pair: at most 5 attempts per IP per minute (Workers rate limiting binding).
 [[ratelimits]]
 name = "PAIR_LIMIT"

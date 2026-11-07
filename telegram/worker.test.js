@@ -1,23 +1,55 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { handle, FREE_DAILY_LIMIT, PRO_PRICE_STARS } from "./worker.js";
+import { handle, AlertCounter, FREE_DAILY_LIMIT, PRO_PRICE_STARS } from "./worker.js";
 
 function mkKv() {
   const m = new Map();
-  return {
+  const kv = {
     m,
+    writes: 0,
     get: async (k) => (m.has(k) ? m.get(k) : null),
-    put: async (k, v) => void m.set(k, v),
+    put: async (k, v) => {
+      kv.writes++;
+      m.set(k, v);
+    },
     delete: async (k) => void m.delete(k),
     list: async ({ prefix }) => ({ keys: [...m.keys()].filter((k) => k.startsWith(prefix)).map((name) => ({ name })), list_complete: true }),
   };
+  return kv;
 }
 
-function setup(t0 = Date.UTC(2026, 0, 1, 12)) {
+// Fake Durable Object namespace: one AlertCounter per name, storage in a Map, alarms recorded.
+function mkCounterNs() {
+  const objs = new Map();
+  const ns = {
+    objs,
+    idFromName: (name) => name,
+    get: (id) => {
+      if (!objs.has(id)) {
+        const data = new Map();
+        const storage = {
+          data,
+          alarm: null,
+          get: async (k) => data.get(k),
+          put: async (k, v) => void data.set(k, structuredClone(v)),
+          setAlarm: async (t) => void (storage.alarm = t),
+          deleteAll: async () => void data.clear(),
+        };
+        objs.set(id, new AlertCounter({ storage }));
+      }
+      const obj = objs.get(id);
+      return { fetch: (url, init) => obj.fetch(new Request(url, init)) };
+    },
+  };
+  return ns;
+}
+
+function setup(t0 = Date.UTC(2026, 0, 1, 12), { counter = false } = {}) {
   const sent = [];
   const calls = [];
   const clock = { t: t0 };
   const env = { PHR: mkKv(), BOT_TOKEN: "tok", WEBHOOK_SECRET: "sec", ADMIN_CHAT_ID: "999" };
+  if (counter) env.ALERT_COUNTER = mkCounterNs();
   const opts = {
     now: () => clock.t,
     fetch: async (url, init) => {
@@ -49,8 +81,8 @@ function setup(t0 = Date.UTC(2026, 0, 1, 12)) {
   return { env, sent, calls, clock, call, say, upd, pay };
 }
 
-async function pair(s, name = "GAMING-PC") {
-  await s.say("/link");
+async function pair(s, name = "GAMING-PC", chat = 1) {
+  await s.say("/link", {}, chat);
   const code = /: ([A-Z0-9]{6})/.exec(s.sent.at(-1).text)[1];
   const r = await s.call("/pair", { code, pc_name: name });
   return { code, r, body: await r.clone().json() };
@@ -261,4 +293,57 @@ test("/pair is rate limited per IP when PAIR_LIMIT is bound", async () => {
   assert.equal((await s.call("/pair", { code: "BBBBBB", pc_name: "x" }, h)).status, 400);
   assert.equal((await s.call("/pair", { code: "CCCCCC", pc_name: "x" }, h)).status, 429);
   assert.deepEqual(seen, ["203.0.113.7", "203.0.113.7", "203.0.113.7"]);
+});
+
+// KV write budget (issue #27): free tier = 1000 KV writes/day.
+async function alertWrites(counter, users, perUser) {
+  const s = setup(undefined, { counter });
+  const keys = [];
+  for (let u = 0; u < users; u++) keys.push((await pair(s, "PC" + u, 100 + u)).body.device_key);
+  const a = { rule: "cpu_temp", value: 90 };
+  const before = s.env.PHR.writes;
+  const codes = [];
+  for (const k of keys) for (let i = 0; i < perUser; i++) codes.push((await s.call("/alert", a, { "X-Device-Key": k })).status);
+  return { writes: s.env.PHR.writes - before, codes, s };
+}
+
+test("KV writes per 100 alerts: before (KV counter) vs after (Durable Object counter)", async () => {
+  const kv10x10 = await alertWrites(false, 10, 10);
+  const do10x10 = await alertWrites(true, 10, 10);
+  const kv1x100 = await alertWrites(false, 1, 100);
+  const do1x100 = await alertWrites(true, 1, 100);
+  console.log("KV writes per 100 alerts, 10 users x 10:", kv10x10.writes, "->", do10x10.writes);
+  console.log("KV writes per 100 alerts, 1 user x 100:", kv1x100.writes, "->", do1x100.writes);
+  assert.equal(kv10x10.writes, 100);
+  assert.equal(do10x10.writes, 0);
+  assert.equal(kv1x100.writes, 11);
+  assert.equal(do1x100.writes, 0);
+  assert.deepEqual(do10x10.codes, kv10x10.codes);
+  assert.deepEqual(do1x100.codes, kv1x100.codes);
+});
+
+test("Durable Object counter: limit enforced, one note, resets next UTC day, /status shows usage", async () => {
+  const s = setup(undefined, { counter: true });
+  const { body } = await pair(s);
+  const h = { "X-Device-Key": body.device_key };
+  const a = { rule: "cpu_temp", value: 90 };
+  const before = s.sent.length;
+  for (let i = 0; i < FREE_DAILY_LIMIT; i++) assert.equal((await s.call("/alert", a, h)).status, 200);
+  assert.equal((await s.call("/alert", a, h)).status, 429);
+  assert.equal((await s.call("/alert", a, h)).status, 429);
+  assert.equal(s.sent.length - before, FREE_DAILY_LIMIT + 1); // 10 alerts + one limit note
+  await s.say("/status");
+  assert.match(s.sent.at(-1).text, new RegExp(String(FREE_DAILY_LIMIT)));
+  s.clock.t += 24 * 3600 * 1000;
+  assert.equal((await s.call("/alert", a, h)).status, 200);
+});
+
+test("Durable Object counter forgets the day via its alarm", async () => {
+  const s = setup(undefined, { counter: true });
+  const { body } = await pair(s);
+  await s.call("/alert", { rule: "cpu_temp", value: 90 }, { "X-Device-Key": body.device_key });
+  const [obj] = s.env.ALERT_COUNTER.objs.values();
+  assert.ok(obj.storage.alarm > Date.now());
+  await obj.alarm();
+  assert.equal(obj.storage.data.size, 0);
 });
