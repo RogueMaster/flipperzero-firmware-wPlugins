@@ -40,6 +40,7 @@ That list is only for default SubGHz app, apps like *Weather Station* have their
 - Doitrand `AM650` (37 bits, Dynamic)
 - Elplast/P-11B/3BK/E.C.A `433MHz` `AM650` (18 bits, Static)
 - FAAC SLH `433.92MHz, 868.35MHz` `AM650` (64 bits, Dynamic) - Add Manually: **FAAC SLH 868MHz**, **FAAC SLH 433MHz**
+- FAAC TM `433.92MHz, 868MHz` `AM650` (12 bits, Static) (TM 433/868 DS dip switch remotes) - `Te` is kept from the capture and replayed. CAME 12bit shares the pulse grammar and used to decode these as well, it now tells them apart by the 47 Te gap between its repeats. Add Manually: **FAAC TM 433MHz**, **FAAC TM 868MHz**
 - Genius `433.92MHz, 868.35MHz` `AM650` (64 bits, Dynamic) (Genius KILO TX2/4 JLC, Amigo, other Genius models) - same frame as FAAC SLH with its own manufacture key, selected by a `Manufacture: Genius` line in the .sub file. Add Manually: **Genius 433MHz**, **Genius 868MHz**
 - Gate TX `433.92MHz` `AM650` (64 bits, Static)
 - Hormann `868MHz` `AM650` (44 bits, Static)
@@ -135,6 +136,7 @@ The following manufacturers have KeeLoq support in RM Firmware (thanks to Unleas
 - Jolly Motors - `433.92MHz` `AM650` (KeeLoq, 64 bits)
 - KEY - `433.92MHz` `AM650` (KeeLoq, 64 bits) (no serial in Hop, uses fixed value 0x2FF - simple learning)
 - Monarch - `433.92MHz` `AM650` (KeeLoq, 64 bits) (no serial in Hop, uses fixed value 0x100 or 0x280 - normal learning) (Dorcas 22366CLN / D-22366CLN uses 0x280)
+- Phantom / Hiland - `433.92MHz` `AM650` (KeeLoq, 64 bits) (HCS300, 10bit serial part in Hop - normal learning) (the 12bit discriminator is kept in `Seed`: its low 10 bits are `serial & 0x3FF`, the top 2 differ per remote and the receiver ignores them)
 - Motorline - `433.92MHz` `AM650` (KeeLoq, 64 bits) (normal learning)
 - Clemsa Mutancode (KeeLoq, 64 bits) (12bit serial part in Hop - normal learning)
 - Mhouse - `433.92MHz` `AM650` (KeeLoq, 64 bits) (8bit serial part in Hop - simple learning)

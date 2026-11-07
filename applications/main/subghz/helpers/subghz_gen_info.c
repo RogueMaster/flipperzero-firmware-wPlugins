@@ -69,6 +69,24 @@ void subghz_scene_set_type_fill_generation_infos(GenInfo* infos_dest, SetType ty
             .data.bits = 24,
             .data.te = 0};
         break;
+    case SetTypeFaacTm433:
+        gen_info = (GenInfo){
+            .type = GenData,
+            .mod = "AM650",
+            .freq = 433920000,
+            .data.name = SUBGHZ_PROTOCOL_FAAC_TM_NAME,
+            .data.key = (key & 0xFFF), // 12 dip switches, no button field
+            .data.bits = 12};
+        break;
+    case SetTypeFaacTm868:
+        gen_info = (GenInfo){
+            .type = GenData,
+            .mod = "AM650",
+            .freq = 868000000,
+            .data.name = SUBGHZ_PROTOCOL_FAAC_TM_NAME,
+            .data.key = (key & 0xFFF),
+            .data.bits = 12};
+        break;
     case SetTypeCAME12bit:
         gen_info = (GenInfo){
             .type = GenData,
@@ -365,6 +383,19 @@ void subghz_scene_set_type_fill_generation_infos(GenInfo* infos_dest, SetType ty
             .keeloq_seed.cnt = 0x03,
             .keeloq_seed.seed = 0x100,
             .keeloq_seed.manuf = "Monarch"};
+        break;
+    case SetTypePhantomHiland433:
+        // Seed carries the 12 bit discriminator: serial & 0x3FF in the low 10 bits, the top
+        // 2 differing per remote. Advanced Add Manually asks for it, the quick path clears it
+        gen_info = (GenInfo){
+            .type = GenKeeloqSeed,
+            .mod = "AM650",
+            .freq = 433920000,
+            .keeloq_seed.serial = (key & 0x0FFFFFFF),
+            .keeloq_seed.btn = 0x02,
+            .keeloq_seed.cnt = 0x03,
+            .keeloq_seed.seed = (key & 0x3FF),
+            .keeloq_seed.manuf = "Phantom_Hiland"};
         break;
     case SetTypeKEY433:
         gen_info = (GenInfo){

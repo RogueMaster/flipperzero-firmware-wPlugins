@@ -327,6 +327,9 @@ void archive_favorites_save(void* context) {
 
     for(size_t i = 0; i < archive_file_get_array_size(browser); i++) {
         ArchiveFile_t* item = archive_get_file_at(browser, i);
+        if(!item) {
+            continue;
+        }
         archive_file_append(ARCHIVE_FAV_TEMP_PATH, "%s\n", furi_string_get_cstr(item->path));
     }
 

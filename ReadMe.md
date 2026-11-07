@@ -196,6 +196,10 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [FliBuddy v1.0 - Bambu Lab spool NFC reader with USB/Bluetooth sync to Bambuddy via the FliBuddy companion app (By Gennady Sokolachko)](https://github.com/sokogen/flipperzero-flibuddy)
 - Updated: [PC Health Remote v1.1 (By ataman-lab)](https://github.com/ataman-lab/pc-health-remote) Req: [Backend](https://github.com/ataman-lab/pc-health-remote/tree/main/backend)
 - Added: [VaultFlipper v0.1 - Offline Bitwarden/Vaultwarden vault with PIN unlock, USB login typing and TOTP codes (By Sven Würth / its-sven)](https://github.com/its-sven/vaultflipper)
+- Added: [Phantom/Hiland KeeLoq support and discriminator preservation (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/840cb4e69ba0c90bd9668a7f00681be3a08b6ef6)
+- Added: [FAAC TM 12-bit Sub-GHz protocol and manual generation at 433/868 MHz (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/24f539c3821c6a25b5348dc96afba4fcc5ef7dea)
+- Added: [TM01x Cyfral/Metakom write support with parity checks and write-error feedback (By Leptopt1los)](https://github.com/flipperdevices/flipperzero-firmware/commit/0aa3d5b74f504657bd28cdb74c50e46f5757267c) / [UL integration](https://github.com/DarkFlippers/unleashed-firmware/pull/1209)
+- Updated: [Archive favorites saving skips unavailable list entries (By xMasterX)](https://github.com/flipperdevices/flipperzero-firmware/commit/389fb35f9929771b6db87d8fc89ec126f30e515d)
 
 <a name="release"></a>
 
