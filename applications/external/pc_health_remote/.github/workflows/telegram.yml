@@ -1,0 +1,131 @@
+name: telegram
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "telegram/**"
+      - ".github/workflows/telegram.yml"
+  pull_request:
+    paths:
+      - "telegram/**"
+      - ".github/workflows/telegram.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: telegram-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: node --test
+        working-directory: telegram
+        run: node --test
+
+  deploy:
+    needs: test
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    env:
+      KV_TITLE: phr-telegram-PHR
+    steps:
+      # Secrets enter only here; cleaned values reach later steps through GITHUB_ENV (masked).
+      - name: Secrets present?
+        id: ready
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          ADMIN_CHAT_ID: ${{ secrets.ADMIN_CHAT_ID }}
+        run: |
+          # Secrets piped in from PowerShell can carry a trailing CR/LF; strip whitespace for all later steps.
+          for n in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID BOT_TOKEN ADMIN_CHAT_ID; do
+            v=$(printf '%s' "${!n}" | tr -d '\r\n\t ')
+            [ -n "$v" ] && echo "::add-mask::$v"
+            { echo "$n<<__EOF__"; echo "$v"; echo "__EOF__"; } >> "$GITHUB_ENV"
+            printf -v "$n" '%s' "$v"
+          done
+          # The webhook secret is derived from BOT_TOKEN (no separate secret to paste) and masked before any use.
+          WEBHOOK_SECRET=$(printf 'phr-webhook:%s' "$BOT_TOKEN" | sha256sum | cut -c1-64)
+          echo "::add-mask::$WEBHOOK_SECRET"
+          { echo "WEBHOOK_SECRET<<__EOF__"; echo "$WEBHOOK_SECRET"; echo "__EOF__"; } >> "$GITHUB_ENV"
+          missing=""
+          for n in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID BOT_TOKEN; do
+            [ -n "${!n}" ] || missing="$missing $n"
+          done
+          if [ -n "$missing" ]; then
+            echo "::notice::Deploy skipped, missing secrets:$missing"
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.ready.outputs.ok == 'true'
+      - uses: actions/setup-node@v4
+        if: steps.ready.outputs.ok == 'true'
+        with:
+          node-version: 22
+
+      - name: KV namespace (find or create)
+        if: steps.ready.outputs.ok == 'true'
+        run: |
+          api="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/storage/kv/namespaces"
+          auth="Authorization: Bearer $CLOUDFLARE_API_TOKEN"
+          id=$(curl -sSf -H "$auth" "$api?per_page=100" | jq -r --arg t "$KV_TITLE" '.result[] | select(.title==$t) | .id' | head -1)
+          if [ -z "$id" ]; then
+            id=$(curl -sSf -X POST -H "$auth" -H "Content-Type: application/json" \
+              -d "{\"title\":\"$KV_TITLE\"}" "$api" | jq -r '.result.id')
+            echo "Created KV namespace $KV_TITLE"
+          fi
+          [ -n "$id" ] && [ "$id" != "null" ] || { echo "::error::No KV namespace id"; exit 1; }
+          sed -i "s/REPLACE_WITH_KV_NAMESPACE_ID/$id/" telegram/wrangler.toml
+
+      - name: wrangler deploy
+        if: steps.ready.outputs.ok == 'true'
+        working-directory: telegram
+        run: npx --yes wrangler@4 deploy
+
+      - name: Worker secrets
+        if: steps.ready.outputs.ok == 'true'
+        working-directory: telegram
+        run: |
+          for n in BOT_TOKEN WEBHOOK_SECRET ADMIN_CHAT_ID; do
+            [ -n "${!n}" ] || continue
+            printf '%s' "${!n}" | npx --yes wrangler@4 secret put "$n" >/dev/null
+            echo "secret $n set"
+          done
+
+      - name: Webhook + smoke test
+        if: steps.ready.outputs.ok == 'true'
+        run: |
+          sub=$(curl -sSf -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/subdomain" | jq -r '.result.subdomain')
+          url="https://phr-telegram.$sub.workers.dev"
+          for i in 1 2 3 4 5 6; do
+            [ "$(curl -s "$url/")" = "phr-telegram up" ] && break
+            sleep 5
+          done
+          [ "$(curl -s "$url/")" = "phr-telegram up" ] || { echo "::error::$url/ is not up"; exit 1; }
+          body=$(jq -n --arg u "$url/tg" --arg s "$WEBHOOK_SECRET" \
+            '{url:$u, secret_token:$s, allowed_updates:["message","pre_checkout_query"], drop_pending_updates:true}')
+          res=$(curl -sS -X POST -H "Content-Type: application/json" -d "$body" \
+            "https://api.telegram.org/bot$BOT_TOKEN/setWebhook")
+          echo "$res" | jq -e '.ok' >/dev/null || { echo "::error::setWebhook: $(echo "$res" | jq -r '.description')"; exit 1; }
+          bot=$(curl -sSf "https://api.telegram.org/bot$BOT_TOKEN/getMe" | jq -r '.result.username')
+          pending=$(curl -sSf "https://api.telegram.org/bot$BOT_TOKEN/getWebhookInfo" | jq -r '.result.url')
+          {
+            echo "### Telegram bot deployed"
+            echo "- Worker: $url"
+            echo "- Bot: https://t.me/$bot"
+            echo "- Webhook: $pending"
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -28,7 +28,7 @@ impl TransportMode {
 #[serde(default)]
 pub struct TelegramConfig {
     pub enabled: bool,
-    /// Bot server URL, e.g. "https://<worker>.workers.dev".
+    /// Bot server URL; empty = the official server (telegram::DEFAULT_SERVER).
     pub server: String,
     /// Written by `--link-telegram <CODE>`.
     pub device_key: String,

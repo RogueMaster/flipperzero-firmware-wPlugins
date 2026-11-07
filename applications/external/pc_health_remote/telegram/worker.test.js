@@ -251,3 +251,14 @@ test("/stats and /refund are admin only", async () => {
   await s.say("/stats", {}, 999);
   assert.match(s.sent.at(-1).text, /Stars: 0/);
 });
+
+test("/pair is rate limited per IP when PAIR_LIMIT is bound", async () => {
+  const s = setup();
+  const seen = [];
+  s.env.PAIR_LIMIT = { limit: async ({ key }) => (seen.push(key), { success: seen.length <= 2 }) };
+  const h = { "CF-Connecting-IP": "203.0.113.7" };
+  assert.equal((await s.call("/pair", { code: "AAAAAA", pc_name: "x" }, h)).status, 400);
+  assert.equal((await s.call("/pair", { code: "BBBBBB", pc_name: "x" }, h)).status, 400);
+  assert.equal((await s.call("/pair", { code: "CCCCCC", pc_name: "x" }, h)).status, 429);
+  assert.deepEqual(seen, ["203.0.113.7", "203.0.113.7", "203.0.113.7"]);
+});

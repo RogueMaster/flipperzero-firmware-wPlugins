@@ -2,11 +2,19 @@ name = "phr-telegram"
 main = "worker.js"
 compatibility_date = "2024-11-01"
 
-# Replace the id with the output of: wrangler kv namespace create PHR
+# The deploy workflow (.github/workflows/telegram.yml) finds or creates the KV namespace "phr-telegram-PHR"
+# and replaces this placeholder at deploy time. For a manual deploy: wrangler kv namespace create PHR
 [[kv_namespaces]]
 binding = "PHR"
 id = "REPLACE_WITH_KV_NAMESPACE_ID"
 
-# Secrets (never commit them; set with `wrangler secret put <NAME>`):
+# /pair: at most 5 attempts per IP per minute (Workers rate limiting binding).
+[[ratelimits]]
+name = "PAIR_LIMIT"
+namespace_id = "1001"
+simple = { limit = 5, period = 60 }
+
+# Secrets (never commit them; the deploy workflow copies them from GitHub secrets):
 #   BOT_TOKEN       - Telegram bot token from @BotFather
-#   WEBHOOK_SECRET  - value passed as secret_token to Telegram setWebhook
+#   WEBHOOK_SECRET  - derived in the workflow from BOT_TOKEN, passed as secret_token to setWebhook
+#   ADMIN_CHAT_ID   - Vlad's Telegram chat id, enables /stats and /refund

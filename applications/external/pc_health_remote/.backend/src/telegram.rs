@@ -16,8 +16,20 @@ fn agent() -> ureq::Agent {
     ureq::Agent::config_builder().timeout_global(Some(TIMEOUT)).build().into()
 }
 
+/// Official bot server; `server` in `[telegram]` overrides it (self-hosting or testing).
+pub const DEFAULT_SERVER: &str = "https://phr-telegram.ataman-lab.workers.dev";
+
+fn server_or_default(server: &str) -> &str {
+    let s = server.trim();
+    if s.is_empty() {
+        DEFAULT_SERVER
+    } else {
+        s
+    }
+}
+
 fn endpoint(server: &str, path: &str) -> String {
-    format!("{}/{}", server.trim().trim_end_matches('/'), path)
+    format!("{}/{}", server_or_default(server).trim_end_matches('/'), path)
 }
 
 pub fn pc_name() -> String {
@@ -45,8 +57,8 @@ impl Sender {
         if !cfg.enabled {
             return None;
         }
-        if cfg.server.trim().is_empty() || cfg.device_key.is_empty() {
-            log::warn!("telegram alerts enabled but server/device_key missing; run --link-telegram <CODE>");
+        if cfg.device_key.is_empty() {
+            log::warn!("telegram alerts enabled but device_key missing; run --link-telegram <CODE>");
             return None;
         }
         let (tx, rx) = mpsc::sync_channel::<AlertEvent>(QUEUE_LIMIT);
@@ -81,9 +93,6 @@ impl Sender {
 
 /// `--link-telegram <CODE>`: exchange the pairing code for a device key.
 pub fn link(server: &str, code: &str) -> Result<String> {
-    if server.trim().is_empty() {
-        bail!("set `server` in the [telegram] section of config.toml first");
-    }
     let code = code.trim();
     if code.is_empty() {
         bail!("empty pairing code");
@@ -91,11 +100,22 @@ pub fn link(server: &str, code: &str) -> Result<String> {
     let mut resp = agent()
         .post(&endpoint(server, "pair"))
         .send_json(json!({ "code": code, "pc_name": pc_name() }))
-        .context("pairing request failed")?;
+        .map_err(pair_error)?;
     let body: Value = resp.body_mut().read_json().context("unexpected reply from the server")?;
     match body.get("device_key").and_then(Value::as_str).filter(|k| !k.is_empty()) {
         Some(k) => Ok(k.to_string()),
         None => bail!("the server reply has no device_key"),
+    }
+}
+
+/// Turns HTTP errors from `/pair` into a hint the user can act on.
+fn pair_error(e: ureq::Error) -> anyhow::Error {
+    match e {
+        ureq::Error::StatusCode(400) => {
+            anyhow::anyhow!("the code is wrong or expired (codes live 10 minutes); send /link to the bot again")
+        }
+        ureq::Error::StatusCode(429) => anyhow::anyhow!("too many attempts; wait a minute and try again"),
+        e => anyhow::Error::new(e).context("pairing request failed"),
     }
 }
 
@@ -128,8 +148,21 @@ mod tests {
     }
 
     #[test]
-    fn link_needs_server_and_code() {
-        assert!(link("", "123456").is_err());
+    fn pair_errors_are_actionable() {
+        assert!(pair_error(ureq::Error::StatusCode(400)).to_string().contains("/link"));
+        assert!(pair_error(ureq::Error::StatusCode(429)).to_string().contains("wait"));
+    }
+
+    #[test]
+    fn link_needs_code() {
+        assert!(link("", " ").is_err());
         assert!(link("https://x.invalid", " ").is_err());
+    }
+
+    #[test]
+    fn empty_server_uses_default() {
+        assert_eq!(endpoint("", "pair"), format!("{DEFAULT_SERVER}/pair"));
+        assert_eq!(endpoint("  ", "alert"), format!("{DEFAULT_SERVER}/alert"));
+        assert_eq!(endpoint("http://localhost:8787/", "alert"), "http://localhost:8787/alert");
     }
 }

@@ -1,5 +1,7 @@
 # PC Health Remote
 
+<p align="center"><img src="docs/brand/banner.png" alt="PC Health Remote" width="100%"></p>
+
 **Температуры и нагрузка вашего ПК на Flipper Zero, с оповещениями вибро, звуком и светодиодом.**
 
 <p align="center">
@@ -51,5 +53,21 @@ LibreHardwareMonitor.
 
 Для точной температуры CPU и оборотов вентилятора запустите LibreHardwareMonitor (в автозагрузке).
 Если связи нет: `pc-health-remote.exe unpair`, затем снова `pair`. Логи: `%APPDATA%\pc-health-remote\`.
+
+## Уведомления в Telegram (бета)
+
+Те же алерты на телефон в Telegram, Flipper не нужен. Бот: **@PCHealthRemoteBot**.
+
+1. Откройте бота и отправьте `/link`. Придёт код из 6 символов (действует 10 минут).
+2. На ПК выполните `.\pc-health-remote.exe --link-telegram <КОД>`.
+3. Перезапустите бэкенд. Уведомления приходят так: `🔥 GAMING-PC: CPU temp 92°C (limit 90°C)`.
+
+| | Бесплатно | Pro |
+|---|---|---|
+| ПК | 1 | 5 |
+| Уведомлений в сутки | 10 | без лимита |
+| Цена | 0 | 99 Telegram Stars / 30 дней (`/pro`) |
+
+Подробности и приватность: [docs/TELEGRAM.md](docs/TELEGRAM.md) (на английском).
 
 Протокол: [docs/PROTOCOL.md](docs/PROTOCOL.md). Лицензия: [MIT](LICENSE).
