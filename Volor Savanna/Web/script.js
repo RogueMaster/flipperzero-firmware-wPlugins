@@ -14,8 +14,8 @@ function ask_name()
         if (user_input.length > 0)
         {
             localStorage.setItem("user_name", user_input);
-            localStorage.setItem("death_level", choice + ", YOU LOSE!<br>THE END!");
-            localStorage.setItem("victory_level", choice + ", YOU WIN!<br>THE END!");
+            localStorage.setItem("death_level", user_input + ", YOU LOSE!<br>THE END!");
+            localStorage.setItem("victory_level", user_input + ", YOU WIN!<br>THE END!");
         }
     }
     
@@ -73,6 +73,8 @@ function hunter()
     let rand = Math.floor(Math.random() * 2 ) + 1;
 
     let user_name = localStorage.getItem("user_name");
+    let death_level = localStorage.getItem("death_level");
+    let victory_level = localStorage.getItem("victory_level");
     let choice = localStorage.getItem("choice");
     let idx = localStorage.getItem("idx");
     
@@ -91,15 +93,41 @@ function hunter()
     {
         if (choice.length > 0)
         {
-            if (idx == "hunter_1" && choice == 1)
+            if (idx == "hunter_1" && choice == "1")
             {
                 document.getElementById("my_text").innerHTML = "You have chosen to go hunt!<br>You have gone hunting.<br>You didn't find any food.<br>You return to your village.<br>Luckily, the farmer has enough crops to last your tribe a week.<br>Do you want to go hunt right away to make up lost time or do you choose to go eat?<br><br>1- Hunt; 2- Eat<br>Make your choice " + user_name + ":<br>";
                 user_input = document.getElementById("choice_field").value;
-                if (user_input.length > 0)
+                document.querySelector("form").addEventListener("submit", function(event)
                 {
                     localStorage.setItem("idx", "hunter_2");
                     localStorage.setItem("choice", user_input);
-                }
+                    location.reload();
+                });
+            }
+
+            if (idx == "hunter_1" && choice == "2")
+            {
+                document.getElementById("my_text").innerHTML = "You have chosen to stay put.<br>Unfortunately, your whole village parishes from hunger.<br>" + death_level;
+                user_input = document.getElementById("choice_field").value;
+                document.querySelector("form").addEventListener("submit", function(event)
+                {
+                    localStorage.removeItem("character");
+                    localStorage.removeItem("choice");
+                    localStorage.removeItem("idx");
+                    location.reload();
+                });
+            }
+
+            if (idx == "hunter_2" && choice == "1")
+            {
+                document.getElementById("my_text").innerHTML = "You have chosen to go hunt!<br>You have gone hunting.<br>You didn't find any food.<br>You return to your village.<br>Luckily, the farmer has enough crops to last your tribe a week.<br>Do you want to go hunt right away to make up lost time or do you choose to go eat?<br><br>1- Hunt; 2- Eat<br>Make your choice " + user_name + ":<br>";
+                user_input = document.getElementById("choice_field").value;
+                document.querySelector("form").addEventListener("submit", function(event)
+                {
+                    localStorage.setItem("idx", "hunter_3");
+                    localStorage.setItem("choice", user_input);
+                    location.reload();
+                });
             }
         }
     }
