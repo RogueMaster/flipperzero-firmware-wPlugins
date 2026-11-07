@@ -6,6 +6,8 @@
  */
 #pragma once
 
+#include "fn_lang.h"
+
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -53,11 +55,11 @@ typedef enum {
 /** Код входит в каталог протокола. */
 bool fn_error_is_known(FNError code);
 
-/** Короткий русский текст; для неизвестного — «Неизвестный код ответа ФН». */
-const char* fn_error_title(FNError code);
+/** Короткий текст на выбранном языке; для неизвестного — «Unknown FN response code». */
+const char* fn_error_title(FNError code, FnLang lang);
 
 /** Подсказка; пустая строка, если ее нет. Никогда не NULL. */
-const char* fn_error_hint(FNError code);
+const char* fn_error_hint(FNError code, FnLang lang);
 
 #ifdef __cplusplus
 }

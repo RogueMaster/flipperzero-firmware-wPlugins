@@ -176,7 +176,10 @@ ufbt format         # apply clang-format
 ufbt lint           # static analysis
 ```
 
-Unit tests run **on the device** from the app itself (minunit runner compiled into the FAP):
+Unit tests run **on the device** from the app itself (minunit runner compiled into the FAP).
+The runner is compiled only in debug builds (`FURI_DEBUG`) or when the `TEA_TIMER_TESTS`
+define is added to `application.fam` by hand; the catalog build has neither, so the test
+command is not registered there.
 
 ```bash
 ufbt launch         # upload and run the app
@@ -204,8 +207,8 @@ Status: PASSED
 ```
 
 A successful run is also confirmed by the device notification (sound/vibration); a failure
-plays the error notification. The CLI test command is registered only in builds with the
-`TEA_TIMER_TESTS` define (set in `application.fam`), so a release build can omit it.
+plays the error notification. The CLI test command is registered only in builds with
+`FURI_DEBUG` or a manually added `TEA_TIMER_TESTS` define, so a release build omits it.
 
 ## Project layout
 

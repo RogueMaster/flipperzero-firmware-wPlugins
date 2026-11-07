@@ -229,4 +229,4 @@ static void execute(PipeSide* pipe, FuriString* args, void* context) {
     furi_record_close(RECORD_BT);
 }
 
-CLI_COMMAND_INTERFACE(bt, execute, CliCommandFlagDefault, 1024, CLI_APPID);
+CLI_COMMAND_INTERFACE(bt, execute, CliCommandFlagDefault, 4 * 1024, CLI_APPID);

@@ -10,13 +10,20 @@ typedef enum {
     FnMenuItemFlashMgm,
     FnMenuItemWiring,
     FnMenuItemAbout,
+    FnMenuItemLanguage,
 } FnMenuItem;
 
 void fn_scene_start_on_enter(void* context) {
     furi_assert(context);
     FNApp* app = context;
 
+    fn_view_menu_set_language(app->view_menu, app->lang);
     view_dispatcher_switch_to_view(app->view_dispatcher, FNAppViewMenu);
+
+    /* Первый запуск: сначала спрашиваем язык. */
+    if(!app->lang_selected) {
+        scene_manager_next_scene(app->scene_manager, FNAppSceneLanguage);
+    }
 }
 
 static void fn_scene_start_start_info(FNApp* app) {
@@ -74,6 +81,9 @@ bool fn_scene_start_on_event(void* context, SceneManagerEvent event) {
     case FnMenuItemAbout:
         /* Справочный экран: операций с ФН не запускает (FR-017). */
         scene_manager_next_scene(app->scene_manager, FNAppSceneAbout);
+        return true;
+    case FnMenuItemLanguage:
+        scene_manager_next_scene(app->scene_manager, FNAppSceneLanguage);
         return true;
     default:
         return false;

@@ -9,8 +9,11 @@ App(
         "dialogs",
     ],
     provides=[
+        "cli_bt",
         "bt_settings",
     ],
+    # The CLI command ships as a separate .fal - keep its source out of the service image.
+    sources=["*.c*", "!bt_cli.c"],
     stack_size=1 * 1024,
     order=20,
     sdk_headers=["bt_service/bt.h", "bt_service/bt_keys_storage.h"],

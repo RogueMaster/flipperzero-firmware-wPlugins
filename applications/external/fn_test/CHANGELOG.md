@@ -1,3 +1,13 @@
+## v 0.7.0
+
+- English and Russian interface. On the first launch the app asks for the
+  language and saves the choice on the SD card; the Language menu item changes
+  it later. English is the default, so the catalog screenshots match the app.
+- All user-visible text is localized: menu, waiting, information, life cycle,
+  result, confirmation and about screens, plus FN stage, document, warning and
+  response code descriptions.
+- The catalog screenshots were re-taken from qFlipper in the English interface.
+
 ## v 0.6.2
 
 - The catalog description now explains what a fiscal drive is, which hardware

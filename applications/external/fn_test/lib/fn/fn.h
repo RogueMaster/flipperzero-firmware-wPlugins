@@ -9,6 +9,7 @@
 
 #include "core/fn_error.h"
 #include "core/fn_frame.h"
+#include "core/fn_lang.h"
 #include "core/fn_types.h"
 #include "core/fn_wire.h"
 

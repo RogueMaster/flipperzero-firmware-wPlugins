@@ -6,6 +6,7 @@ App(
     cdefines=["APP_FN_TEST"],
     sources=[
         "fn_test_app.c",
+        "fn_settings.c",
         "ui/*.c",
         "ui/views/*.c",
         "ui/scenes/*.c",
@@ -23,6 +24,6 @@ App(
     fap_category="GPIO",
     fap_author="Igor Danilov",
     fap_weburl="https://github.com/polarikus/flipper-zero_fn_tester",
-    fap_version=(0, 6, 2),
+    fap_version=(0, 7, 0),
     fap_description="Tester for fiscal drives (FN/FN-M) of Russian cash registers",
 )

@@ -201,6 +201,9 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [TM01x Cyfral/Metakom write support with parity checks and write-error feedback (By Leptopt1los)](https://github.com/flipperdevices/flipperzero-firmware/commit/0aa3d5b74f504657bd28cdb74c50e46f5757267c) / [UL integration](https://github.com/DarkFlippers/unleashed-firmware/pull/1209)
 - Updated: [StroboMeter v2.0 (By LeanderJDev)](https://github.com/LeanderJDev/FlipperStroboMeterApp)
 - OFW: [Archive stability improvements (By xMasterX)](https://github.com/flipperdevices/flipperzero-firmware/pull/4509)
+- Updated: [FN Tester v0.7.0 with English/Russian UI and saved language selection (By Igor Danilov)](https://github.com/polarikus/flipper-zero_fn_tester)
+- Updated: [Tea Timer release builds omit the debug CLI test command (By igordanilov)](https://github.com/polarikus/FlipperZero-TeaTimer)
+- UL: [CLI command source separation and Bluetooth CLI source exclusion (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/b18296933c0dda06935afaf0b6a556e1cbb45362)
 
 <a name="release"></a>
 
@@ -760,7 +763,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [FM Transmitter KT0803 v1.0 (By goosedev72-projects)](https://github.com/goosedev72-projects/flipperzero-kt0803-transmitter) `Req: KT0803`
 - [FM TX v0.1.0 (By yo3gnd)](https://github.com/yo3gnd/fmtx)
 - [FMF2USBMIDI v0.1 (By crackerjacques)](https://github.com/crackerjacques/Flipper_Zero_FMF2USBMIDI)
-- [FN Tester v0.6.2 (By Igor Danilov)](https://github.com/polarikus/flipper-zero_fn_tester) `Req: FN/FN-M fiscal drive over UART`
+- [FN Tester v0.7.0 (By Igor Danilov)](https://github.com/polarikus/flipper-zero_fn_tester) `Req: FN/FN-M fiscal drive over UART`
 - [Ford Radio Codes v0.1 (By DavidB445)](https://github.com/DavidB445/fz_fordradiocodes)
 - [FreeStyle Libre CGM v0.1 (By darendarrow)](https://github.com/darendarrow/flipnCGM)
 - [Frequency Analyzer (External) v1.2 (By xMasterX)](https://github.com/xMasterX/all-the-plugins/tree/dev/non_catalog_apps/freq_analyzer_ext)

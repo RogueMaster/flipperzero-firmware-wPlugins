@@ -6,7 +6,6 @@ App(
     stack_size=2 * 1024,
     fap_icon="images/10px.png",
     fap_icon_assets="images",
-    cdefines=["TEA_TIMER_TESTS"],
     fap_private_libs=[
         Lib(name="tea_logic", sources=["*.c"]),
     ],

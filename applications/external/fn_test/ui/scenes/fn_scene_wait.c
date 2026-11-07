@@ -16,20 +16,21 @@ static FnWaitMode fn_scene_wait_mode(FnOpKind kind) {
 }
 
 /** Тексты ожидания: заголовок и подсказка подзаголовка. */
-static void fn_scene_wait_texts(FnWaitMode mode, const char** title, const char** subtitle) {
+static void
+    fn_scene_wait_texts(FnWaitMode mode, FnLang lang, const char** title, const char** subtitle) {
     switch(mode) {
     case FnWaitModeFlash:
-        *title = FN_STR_WAIT_FLASH;
-        *subtitle = FN_STR_WAIT_FLASH_HINT;
+        *title = fn_str(lang, FnStrWaitFlash);
+        *subtitle = fn_str(lang, FnStrWaitFlashHint);
         break;
     case FnWaitModeRead:
-        *title = FN_STR_WAIT_READ;
-        *subtitle = FN_STR_WAIT_READ_HINT;
+        *title = fn_str(lang, FnStrWaitRead);
+        *subtitle = fn_str(lang, FnStrWaitReadHint);
         break;
     case FnWaitModeDetect:
     default:
-        *title = FN_STR_WAIT_DETECT;
-        *subtitle = FN_STR_WAIT_DETECT_HINT;
+        *title = fn_str(lang, FnStrWaitDetect);
+        *subtitle = fn_str(lang, FnStrWaitDetectHint);
         break;
     }
 }
@@ -48,7 +49,7 @@ void fn_scene_wait_on_enter(void* context) {
 
     const char* title = NULL;
     const char* subtitle = NULL;
-    fn_scene_wait_texts(mode, &title, &subtitle);
+    fn_scene_wait_texts(mode, app->lang, &title, &subtitle);
     fn_view_wait_set(app->view_wait, mode, title, subtitle, cancelable);
 
     view_dispatcher_switch_to_view(app->view_dispatcher, FNAppViewWait);

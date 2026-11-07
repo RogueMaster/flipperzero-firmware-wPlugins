@@ -23,7 +23,11 @@ void fn_scene_confirm_on_enter(void* context) {
     furi_assert(context);
     FNApp* app = context;
 
-    fn_view_confirm_set(app->view_confirm, FN_STR_CONFIRM_TITLE, FN_STR_CONFIRM_BODY);
+    fn_view_confirm_set(
+        app->view_confirm,
+        fn_str(app->lang, FnStrConfirmTitle),
+        fn_str(app->lang, FnStrConfirmBody),
+        app->lang);
     fn_view_confirm_set_callback(app->view_confirm, fn_scene_confirm_callback, app);
     view_dispatcher_switch_to_view(app->view_dispatcher, FNAppViewConfirm);
 }

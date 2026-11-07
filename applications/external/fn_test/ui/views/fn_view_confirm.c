@@ -17,6 +17,7 @@ typedef struct {
     char title[32];
     char body[128];
     uint8_t selected; /* 0 — отмена, 1 — подтверждение */
+    FnLang lang;
 } FnConfirmModel;
 
 struct FnConfirmView {
@@ -61,7 +62,8 @@ static void fn_view_confirm_draw_callback(Canvas* canvas, void* context) {
             button_y + FN_CONFIRM_BUTTON_H / 2 + 1,
             AlignCenter,
             AlignCenter,
-            (i == 0) ? FN_STR_CONFIRM_CANCEL : FN_STR_CONFIRM_ACCEPT);
+            (i == 0) ? fn_str(model->lang, FnStrConfirmCancel) :
+                       fn_str(model->lang, FnStrConfirmAccept));
         canvas_set_color(canvas, ColorBlack);
     }
 }
@@ -107,8 +109,10 @@ FnConfirmView* fn_view_confirm_alloc(void) {
         FnConfirmModel * model,
         {
             memset(model, 0, sizeof(FnConfirmModel));
-            strncpy(model->title, FN_STR_CONFIRM_TITLE, sizeof(model->title) - 1);
-            strncpy(model->body, FN_STR_CONFIRM_BODY, sizeof(model->body) - 1);
+            model->lang = FN_LANG_DEFAULT;
+            strncpy(
+                model->title, fn_str(model->lang, FnStrConfirmTitle), sizeof(model->title) - 1);
+            strncpy(model->body, fn_str(model->lang, FnStrConfirmBody), sizeof(model->body) - 1);
             model->selected = 0;
         },
         false);
@@ -125,12 +129,13 @@ View* fn_view_confirm_get_view(FnConfirmView* confirm) {
     return confirm ? confirm->view : NULL;
 }
 
-void fn_view_confirm_set(FnConfirmView* confirm, const char* title, const char* body) {
+void fn_view_confirm_set(FnConfirmView* confirm, const char* title, const char* body, FnLang lang) {
     if(!confirm) return;
     with_view_model(
         confirm->view,
         FnConfirmModel * model,
         {
+            model->lang = lang;
             strncpy(model->title, title ? title : "", sizeof(model->title) - 1);
             model->title[sizeof(model->title) - 1] = '\0';
             strncpy(model->body, body ? body : "", sizeof(model->body) - 1);

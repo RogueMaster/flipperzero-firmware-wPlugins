@@ -26,8 +26,9 @@ extern "C" {
  *
  * @param info  данные операции (не NULL)
  * @param model модель экрана; полностью перезаписывается
+ * @param lang  язык пользовательских строк
  */
-void fn_format_info(const FnInfo* info, FnTextModel* model);
+void fn_format_info(const FnInfo* info, FnTextModel* model, FnLang lang);
 
 /**
  * Заполнить модель экрана «Информация о фазе жизни ФН» (US2,
@@ -40,8 +41,9 @@ void fn_format_info(const FnInfo* info, FnTextModel* model);
  *
  * @param life  данные операции (не NULL)
  * @param model модель экрана; полностью перезаписывается
+ * @param lang  язык пользовательских строк
  */
-void fn_format_life(const FnLifeInfo* life, FnTextModel* model);
+void fn_format_life(const FnLifeInfo* life, FnTextModel* model, FnLang lang);
 
 /**
  * Причина показа экрана результата, если она не следует из FnOpResult.
@@ -62,8 +64,13 @@ typedef enum {
  * @param result итог операции; допускается NULL при `FnResultReasonNotMgm`
  * @param reason причина показа результата
  * @param model  модель экрана; полностью перезаписывается
+ * @param lang   язык пользовательских строк
  */
-void fn_format_result(const FnOpResult* result, FnResultReason reason, FnTextModel* model);
+void fn_format_result(
+    const FnOpResult* result,
+    FnResultReason reason,
+    FnTextModel* model,
+    FnLang lang);
 
 #ifdef __cplusplus
 }

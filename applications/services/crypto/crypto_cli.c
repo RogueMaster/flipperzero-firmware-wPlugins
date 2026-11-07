@@ -319,4 +319,4 @@ static void execute(PipeSide* pipe, FuriString* args, void* context) {
     furi_string_free(cmd);
 }
 
-CLI_COMMAND_INTERFACE(crypto, execute, CliCommandFlagDefault, 1024, CLI_APPID);
+CLI_COMMAND_INTERFACE(crypto, execute, CliCommandFlagDefault, 4 * 1024, CLI_APPID);
