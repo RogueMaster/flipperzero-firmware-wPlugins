@@ -1,0 +1,23 @@
+# SPDX-FileCopyrightText: 2026 Sven Würth
+# SPDX-License-Identifier: MIT
+App(
+    appid="vaultflipper",
+    name="VaultFlipper",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="vaultflipper_app",
+    stack_size=8 * 1024,
+    fap_icon="vaultflipper_10px.png",
+    fap_file_assets="files",
+    fap_icon_assets="images",
+    fap_private_libs=[
+        Lib(
+            name="monocypher",
+            cflags=["-O2", "-DBLAKE2_NO_UNROLLING", "-Wno-unused-parameter"],  # compact BLAKE2b: the FAP lives in RAM
+        ),
+    ],
+    fap_category="Tools",
+    fap_author="its-sven",
+    fap_weburl="https://github.com/its-sven/vaultflipper",
+    fap_version="0.1",
+    fap_description="Offline Bitwarden/Vaultwarden vault that types logins over USB",
+)

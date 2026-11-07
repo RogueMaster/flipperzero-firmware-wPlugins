@@ -195,6 +195,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - SubGHz: [KeeLoq `CounterMode` 7, 8 and 9 each reproduce a DoorHan Smart clone resync pack, one per board family (what `CounterMode: 7` used to send is now mode 8) (By xMasterX)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/644cd8c5c2fdf20940d324387b844deb70dafc3b)
 - Added: [FliBuddy v1.0 - Bambu Lab spool NFC reader with USB/Bluetooth sync to Bambuddy via the FliBuddy companion app (By Gennady Sokolachko)](https://github.com/sokogen/flipperzero-flibuddy)
 - Updated: [PC Health Remote v1.1 (By ataman-lab)](https://github.com/ataman-lab/pc-health-remote) Req: [Backend](https://github.com/ataman-lab/pc-health-remote/tree/main/backend)
+- Added: [VaultFlipper v0.1 - Offline Bitwarden/Vaultwarden vault with PIN unlock, USB login typing and TOTP codes (By Sven Würth / its-sven)](https://github.com/its-sven/vaultflipper)
 
 <a name="release"></a>
 
@@ -1185,6 +1186,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [USB Midi v1.0 (By DrZlo13 & kribesk)](https://github.com/kribesk/flipper-zero-usb-midi) [Instructions by ESurge](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/applications/plugins/usb_midi/ReadMe.md)
 - [UV Meter v1.0 (By michaelbaisch)](https://github.com/michaelbaisch/uv_meter) `Req: AS7331`
 - [Varta v1.1 (By mishamyte)](https://github.com/mishamyte/varta)
+- [VaultFlipper v0.1 - Offline Bitwarden/Vaultwarden vault and USB login keyboard (By Sven Würth / its-sven)](https://github.com/its-sven/vaultflipper)
 - [VB Migration Assistant v1.3 (By GMMan)](https://github.com/GMMan/flipperzero-vb-migrate)
 - [VEML7700 Lux Meter v1.1 (By kamylwnb)](https://github.com/kamylwnb/Flipper-zero-app-VEML7700)
 - [VGM Air Mouse v1.4 (By nminaylov)](https://github.com/flipperdevices/flipperzero-good-faps/tree/nm/motion_mouse_app) `Req: ICM42688, or Video Game Module By Flipper Devices`
