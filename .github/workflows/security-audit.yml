@@ -124,7 +124,7 @@ jobs:
         run: |
           jq -n --arg topic "$NTFY_TOPIC" --arg t "$REPO_NAME: внешний PR #$PR, аудит $V" \
             --arg c "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/pull/$PR" \
-            '{topic: $topic, title: $t, message: "Автопилот на нём не запускается.", click: $c, priority: (if env.V == "RISK" then 4 else 3 end), tags: ["shield", env.NTFY_EMOJI, env.REPO_NAME], icon: env.NTFY_ICON, actions: [{action: "view", label: "PR", url: $c, clear: true}, {action: "view", label: "Изменения", url: "\($c)/files", clear: true}, {action: "view", label: "Отчёт аудита", url: env.RUN_URL, clear: true}]}' \
+            '{topic: $topic, title: $t, message: "Автопилот на нём не запускается.", click: $c, priority: (if env.V == "RISK" then 4 else 3 end), tags: ["shield", env.NTFY_EMOJI, env.REPO_NAME], icon: env.NTFY_ICON, attach: env.NTFY_ICON, actions: [{action: "view", label: "PR", url: $c, clear: true}, {action: "view", label: "Изменения", url: "\($c)/files", clear: true}, {action: "view", label: "Отчёт аудита", url: env.RUN_URL, clear: true}]}' \
             | curl -sf -X POST https://ntfy.sh/ -H "Content-Type: application/json" -d @- >/dev/null
       - name: Fail on risk
         if: steps.final.outputs.verdict == 'RISK'

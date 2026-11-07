@@ -62,7 +62,7 @@ jobs:
           gh issue comment "$ISSUE" -R "$GITHUB_REPOSITORY" --body "🛡️ Автопилот не запущен: $why. Он работает только для задач и комментариев Влада и коллабораторов. Перенеси задачу в новый issue своими словами (или удали чужие комментарии) и поставь метку снова." || true
           [ "$HAS_NTFY" = true ] || exit 0
           jq -n --arg topic "$NTFY_TOPIC" --arg t "$REPO_NAME #$ISSUE: автопилот заблокирован" --arg m "$why" \
-            --arg c "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/issues/$ISSUE" '{topic: $topic, title: $t, message: $m, click: $c, priority: 4, tags: ["shield", env.NTFY_EMOJI, env.REPO_NAME], icon: env.NTFY_ICON, actions: [{action: "view", label: "Задача", url: $c, clear: true}]}' \
+            --arg c "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/issues/$ISSUE" '{topic: $topic, title: $t, message: $m, click: $c, priority: 4, tags: ["shield", env.NTFY_EMOJI, env.REPO_NAME], icon: env.NTFY_ICON, attach: env.NTFY_ICON, actions: [{action: "view", label: "Задача", url: $c, clear: true}]}' \
             | curl -sf -X POST https://ntfy.sh/ -H "Content-Type: application/json" -d @- >/dev/null || true
 
   work:
@@ -76,7 +76,7 @@ jobs:
         continue-on-error: true
         run: |
           jq -n --arg topic "$NTFY_TOPIC" --arg t "$REPO_NAME #$ISSUE: Claude начал" --arg c "$RUN_URL" \
-            '{topic: $topic, title: $t, message: "Задача пошла.", click: $c, priority: 2, tags: ["robot", env.NTFY_EMOJI, env.REPO_NAME], icon: env.NTFY_ICON, actions: [{action: "view", label: "Лог", url: $c, clear: true}, {action: "view", label: "Задача", url: env.ISSUE_URL, clear: true}]}' \
+            '{topic: $topic, title: $t, message: "Задача пошла.", click: $c, priority: 2, tags: ["robot", env.NTFY_EMOJI, env.REPO_NAME], icon: env.NTFY_ICON, attach: env.NTFY_ICON, actions: [{action: "view", label: "Лог", url: $c, clear: true}, {action: "view", label: "Задача", url: env.ISSUE_URL, clear: true}]}' \
             | curl -sf -X POST https://ntfy.sh/ -H "Content-Type: application/json" -d @- >/dev/null
       - uses: actions/checkout@v4
       - uses: anthropics/claude-code-action@v1
@@ -105,7 +105,7 @@ jobs:
           gh issue comment "$ISSUE" -R "$GITHUB_REPOSITORY" --body "$(printf '🙋 **Нужен Влад:** %s\n\n%s\n\nОтветь комментарием с номером, потом сними и снова поставь метку `claude-task`.' "$q" "$opts")"
           [ "$HAS_NTFY" = true ] || exit 0
           jq -n --arg topic "$NTFY_TOPIC" --arg t "$REPO_NAME #$ISSUE: нужен твой выбор" --arg m "$(printf '%s\n%s' "$q" "$opts")" \
-            --arg c "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/issues/$ISSUE" '{topic: $topic, title: $t, message: $m, click: $c, priority: 4, tags: ["raising_hand", env.NTFY_EMOJI, env.REPO_NAME], icon: env.NTFY_ICON, actions: [{action: "view", label: "Ответить в задаче", url: $c, clear: true}]}' \
+            --arg c "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/issues/$ISSUE" '{topic: $topic, title: $t, message: $m, click: $c, priority: 4, tags: ["raising_hand", env.NTFY_EMOJI, env.REPO_NAME], icon: env.NTFY_ICON, attach: env.NTFY_ICON, actions: [{action: "view", label: "Ответить в задаче", url: $c, clear: true}]}' \
             | curl -sf -X POST https://ntfy.sh/ -H "Content-Type: application/json" -d @- >/dev/null || true
       - name: Denied tools
         if: always()
@@ -121,7 +121,7 @@ jobs:
           [ -n "$pr" ] || { echo "::error::no PR for claude/issue-$ISSUE"; exit 1; }
           [ "$HAS_NTFY" = true ] || exit 0
           jq -n --arg topic "$NTFY_TOPIC" --arg t "$REPO_NAME #$ISSUE: PR готов" --arg c "$pr" \
-            '{topic: $topic, title: $t, message: "Смержи, когда удобно.", click: $c, tags: ["white_check_mark", env.NTFY_EMOJI, env.REPO_NAME], icon: env.NTFY_ICON, actions: [{action: "view", label: "PR", url: $c, clear: true}, {action: "view", label: "Изменения", url: "\($c)/files", clear: true}, {action: "view", label: "Задача", url: env.ISSUE_URL, clear: true}]}' \
+            '{topic: $topic, title: $t, message: "Смержи, когда удобно.", click: $c, tags: ["white_check_mark", env.NTFY_EMOJI, env.REPO_NAME], icon: env.NTFY_ICON, attach: env.NTFY_ICON, actions: [{action: "view", label: "PR", url: $c, clear: true}, {action: "view", label: "Изменения", url: "\($c)/files", clear: true}, {action: "view", label: "Задача", url: env.ISSUE_URL, clear: true}]}' \
             | curl -sf -X POST https://ntfy.sh/ -H "Content-Type: application/json" -d @- >/dev/null || true
       - name: Report failure
         if: failure()
@@ -129,5 +129,5 @@ jobs:
           gh issue comment "$ISSUE" -R "$GITHUB_REPOSITORY" --body "Claude task failed: $RUN_URL" || true
           [ "$HAS_NTFY" = true ] || exit 0
           jq -n --arg topic "$NTFY_TOPIC" --arg t "$REPO_NAME #$ISSUE: сбой" --arg c "$RUN_URL" \
-            '{topic: $topic, title: $t, message: "Задача упала.", click: $c, priority: 4, tags: ["x", env.NTFY_EMOJI, env.REPO_NAME], icon: env.NTFY_ICON, actions: [{action: "view", label: "Лог", url: $c, clear: true}, {action: "view", label: "Задача", url: env.ISSUE_URL, clear: true}]}' \
+            '{topic: $topic, title: $t, message: "Задача упала.", click: $c, priority: 4, tags: ["x", env.NTFY_EMOJI, env.REPO_NAME], icon: env.NTFY_ICON, attach: env.NTFY_ICON, actions: [{action: "view", label: "Лог", url: $c, clear: true}, {action: "view", label: "Задача", url: env.ISSUE_URL, clear: true}]}' \
             | curl -sf -X POST https://ntfy.sh/ -H "Content-Type: application/json" -d @- >/dev/null || true
