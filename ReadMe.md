@@ -200,6 +200,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [FAAC TM 12-bit Sub-GHz protocol and manual generation at 433/868 MHz (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/24f539c3821c6a25b5348dc96afba4fcc5ef7dea)
 - Added: [TM01x Cyfral/Metakom write support with parity checks and write-error feedback (By Leptopt1los)](https://github.com/flipperdevices/flipperzero-firmware/commit/0aa3d5b74f504657bd28cdb74c50e46f5757267c) / [UL integration](https://github.com/DarkFlippers/unleashed-firmware/pull/1209)
 - Updated: [Archive favorites saving skips unavailable list entries (By xMasterX)](https://github.com/flipperdevices/flipperzero-firmware/commit/389fb35f9929771b6db87d8fc89ec126f30e515d)
+- Updated: [StroboMeter v2.0 (By LeanderJDev)](https://github.com/LeanderJDev/FlipperStroboMeterApp)
 
 <a name="release"></a>
 
@@ -1110,7 +1111,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Staff Time Clock v2.16 (By vladpereverzyev)](https://github.com/vladpereverzyev/flipper-staff-time-clock)
 - [Step Seq v0.3 (By rseufert)](https://github.com/rseufert/step_seq)
 - [Stopwatch v1.0 (By bergr22)](https://github.com/bergr22/Stopwatch-Flipper)
-- [StroboMeter v1.1 (By LeanderJDev)](https://github.com/LeanderJDev/FlipperStroboMeterApp)
+- [StroboMeter v2.0 (By LeanderJDev)](https://github.com/LeanderJDev/FlipperStroboMeterApp)
 - [Sub Analyzer v1.0 (By RocketGod)](https://github.com/RocketGod-git/Flipper-Zero-SUB-Analyzer)
 - [Sub Duplicate Finder v1.3.1 (By Endika)](https://github.com/Endika/flipper-sub-dup)
 - [Sub-GHz Bruteforcer v4.3 (By Ganapati/xMasterX/derskythe)](https://github.com/derskythe/flipperzero-subbrute/tree/master)
