@@ -90,6 +90,61 @@ async function getJson(kv, key) {
   return v ? JSON.parse(v) : null;
 }
 
+// Daily free-tier alert counter, one per chat per UTC day.
+// With the ALERT_COUNTER Durable Object bound (wrangler.toml), counting costs zero KV writes: KV free tier allows
+// only 1000 writes/day, the Durable Object free tier 100k. Without the binding (old deploys) it falls back to a KV
+// counter, one write per free alert.
+export class AlertCounter {
+  constructor(state) {
+    this.storage = state.storage;
+  }
+  async fetch(req) {
+    const { pathname } = new URL(req.url);
+    const c = (await this.storage.get("c")) || { n: 0, noted: false };
+    if (pathname === "/peek") return json({ n: c.n });
+    const { limit } = await req.json();
+    if (c.n >= limit) {
+      const noteNow = !c.noted;
+      if (noteNow) await this.storage.put("c", { ...c, noted: true });
+      return json({ n: c.n, allowed: false, noteNow });
+    }
+    const next = { ...c, n: c.n + 1 };
+    await this.storage.put("c", next);
+    if (c.n === 0) await this.storage.setAlarm(Date.now() + 172800 * 1000); // forget the day after 48 h
+    return json({ n: next.n, allowed: true, noteNow: false });
+  }
+  async alarm() {
+    await this.storage.deleteAll();
+  }
+}
+
+function counter(env, ckey) {
+  const ns = env.ALERT_COUNTER;
+  if (ns) {
+    const stub = ns.get(ns.idFromName(ckey));
+    const call = async (path, body) => (await stub.fetch("https://counter" + path, body ? { method: "POST", body: JSON.stringify(body) } : {})).json();
+    return {
+      peek: async () => (await call("/peek")).n,
+      hit: (limit) => call("/hit", { limit }),
+    };
+  }
+  const kv = env.PHR;
+  return {
+    peek: async () => ((await getJson(kv, ckey)) || { n: 0 }).n,
+    hit: async (limit) => {
+      const c = (await getJson(kv, ckey)) || { n: 0, noted: false };
+      if (c.n >= limit) {
+        const noteNow = !c.noted;
+        if (noteNow) await kv.put(ckey, JSON.stringify({ ...c, noted: true }), { expirationTtl: 172800 });
+        return { n: c.n, allowed: false, noteNow };
+      }
+      c.n++;
+      await kv.put(ckey, JSON.stringify(c), { expirationTtl: 172800 });
+      return { n: c.n, allowed: true, noteNow: false };
+    },
+  };
+}
+
 async function send(env, f, chat, text) {
   const res = await f("https://api.telegram.org/bot" + env.BOT_TOKEN + "/sendMessage", {
     method: "POST",
@@ -220,10 +275,10 @@ async function handleMessage(msg, env, f, now) {
     });
     await send(env, f, chat, r && r.result ? t.pro(r.result) : t.proFail);
   } else if (cmd === "/status") {
-    const c = await getJson(kv, "cnt:" + chat + ":" + dayOf(now));
+    const used = await counter(env, "cnt:" + chat + ":" + dayOf(now)).peek();
     const pro = isPro(user, now);
     const exp = pro ? new Date(user.pro.until).toISOString().slice(0, 10) : null;
-    await send(env, f, chat, t.status(pro ? "Pro" : "Free", exp, Object.keys(user.pcs).length, c ? c.n : 0));
+    await send(env, f, chat, t.status(pro ? "Pro" : "Free", exp, Object.keys(user.pcs).length, used));
   } else if (cmd === "/stats" && isAdmin(env, chat)) {
     await send(env, f, chat, await stats(env, now));
   } else if (cmd === "/refund" && isAdmin(env, chat)) {
@@ -321,19 +376,15 @@ async function handleAlert(req, env, f, now) {
   const kv = env.PHR;
   const user = await getUser(kv, dev.chat);
   const t = T[user.lang];
-  const ckey = "cnt:" + dev.chat + ":" + dayOf(now);
-  const c = (await getJson(kv, ckey)) || { n: 0, noted: false };
   const pro = isPro(user, now);
-  if (!pro && c.n >= FREE_DAILY_LIMIT) {
-    if (!c.noted) {
-      c.noted = true;
-      await kv.put(ckey, JSON.stringify(c), { expirationTtl: 172800 });
-      await send(env, f, dev.chat, t.limit);
+  if (!pro) {
+    // Pro: no counter at all.
+    const r = await counter(env, "cnt:" + dev.chat + ":" + dayOf(now)).hit(FREE_DAILY_LIMIT);
+    if (!r.allowed) {
+      if (r.noteNow) await send(env, f, dev.chat, t.limit);
+      return json({ ok: false, limited: true }, 429);
     }
-    return json({ ok: false, limited: true }, 429);
   }
-  c.n++;
-  if (!pro) await kv.put(ckey, JSON.stringify(c), { expirationTtl: 172800 }); // Pro: no counter writes
   const [label, unit] = rule;
   let text = "🔥 " + dev.pc_name + ": " + label + " " + b.value + unit;
   if (b.threshold != null) text += " (limit " + b.threshold + unit + ")";
