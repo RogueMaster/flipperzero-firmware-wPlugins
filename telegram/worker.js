@@ -64,7 +64,7 @@ const T = {
     pro: (url) => "Pro: unlimited alerts, up to " + PRO_MAX_PCS + " PCs, " + PRO_PRICE_STARS + " Stars / 30 days.\n" + url,
     proFail: "Could not create the invoice, try again later.",
     thanks: (d) => "Thank you! Pro is active until " + d + ".",
-    status: (plan, exp, pcs, n) => "Plan: " + plan + (exp ? "\nExpires: " + exp : "") + "\nPCs: " + pcs + "\nAlerts today: " + n,
+    status: (plan, exp, pcs, n, id, admin) => "Plan: " + plan + (exp ? "\nExpires: " + exp : "") + "\nPCs: " + pcs + "\nAlerts today: " + n + "\nChat id: " + id + (admin ? " (admin)" : ""),
     limit: "Daily free limit of " + FREE_DAILY_LIMIT + " alerts reached. More alerts will be dropped until tomorrow (UTC).",
     pcLimit: "This PC was not linked: the free plan has " + FREE_MAX_PCS + " PC. Unlink one with /unlink <name>, or get Pro for up to " + PRO_MAX_PCS + " PCs.",
     pcLimitPro: "This PC was not linked: Pro allows up to " + PRO_MAX_PCS + " PCs. Unlink one with /unlink <name>.",
@@ -89,7 +89,7 @@ const T = {
     pro: (url) => "Pro: без лимита уведомлений, до " + PRO_MAX_PCS + " ПК, " + PRO_PRICE_STARS + " Stars / 30 дней.\n" + url,
     proFail: "Не удалось создать счёт, попробуйте позже.",
     thanks: (d) => "Спасибо! Pro активен до " + d + ".",
-    status: (plan, exp, pcs, n) => "Тариф: " + plan + (exp ? "\nДо: " + exp : "") + "\nПК: " + pcs + "\nУведомлений сегодня: " + n,
+    status: (plan, exp, pcs, n, id, admin) => "Тариф: " + plan + (exp ? "\nДо: " + exp : "") + "\nПК: " + pcs + "\nУведомлений сегодня: " + n + "\nChat id: " + id + (admin ? " (админ)" : ""),
     limit: "Достигнут бесплатный лимит: " + FREE_DAILY_LIMIT + " уведомлений в сутки. Остальные до завтра (UTC) не будут отправлены.",
     pcLimit: "ПК не привязан: в бесплатном тарифе " + FREE_MAX_PCS + " ПК. Отвяжите лишний через /unlink <имя> или возьмите Pro (до " + PRO_MAX_PCS + " ПК).",
     pcLimitPro: "ПК не привязан: в Pro до " + PRO_MAX_PCS + " ПК. Отвяжите лишний через /unlink <имя>.",
@@ -366,7 +366,7 @@ async function handleMessage(msg, env, f, now) {
     const used = await counter(env, "cnt:" + chat + ":" + dayOf(now)).peek();
     const pro = isPro(user, now);
     const exp = pro ? new Date(user.pro.until).toISOString().slice(0, 10) : null;
-    await send(env, f, chat, t.status(pro ? "Pro" : "Free", exp, Object.keys(user.pcs).length, used));
+    await send(env, f, chat, t.status(pro ? "Pro" : "Free", exp, Object.keys(user.pcs).length, used, chat, isAdmin(env, chat)));
   } else if (cmd === "/stats" && isAdmin(env, chat)) {
     await send(env, f, chat, await stats(env, now));
   } else if (cmd === "/refund" && isAdmin(env, chat)) {

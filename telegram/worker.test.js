@@ -451,3 +451,11 @@ test("upsell: no invoice in group chats; network error falls back to the plain l
   assert.equal((await pair(s2, "B")).r.status, 403);
   assert.match(s2.sent.at(-1).text, /free plan/);
 });
+
+test("/status shows the chat id and marks the admin", async () => {
+  const s = setup();
+  await s.say("/status", {}, 42);
+  assert.match(s.sent.at(-1).text, /Chat id: 42$/);
+  await s.say("/status", {}, 999);
+  assert.match(s.sent.at(-1).text, /Chat id: 999 \(admin\)/);
+});
