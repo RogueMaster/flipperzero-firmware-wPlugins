@@ -12,4 +12,6 @@ typedef enum {
     ActionVoiceStart,
     ActionVoiceStop,
     ActionExit,
+    ActionGiveUp,
+    ActionStartOver,
 } Action;

@@ -23,14 +23,28 @@ static void view_draw_voice(Canvas* canvas) {
     canvas_set_color(canvas, ColorBlack);
 }
 
-static void view_draw_no_link(Canvas* canvas, int32_t hint_x, const char* hint) {
+static void view_draw_no_link_status_row(Canvas* canvas) {
     canvas_draw_icon(canvas, 2, 1, &I_bluetooth_off);
     canvas_set_font(canvas, FontPrimary);
     canvas_draw_str(canvas, 15, 9, "No link");
     canvas_draw_line(canvas, 0, 12, 127, 12);
+}
+
+static void view_draw_no_link(Canvas* canvas, int32_t hint_x, const char* hint) {
+    view_draw_no_link_status_row(canvas);
     canvas_draw_str(canvas, 27, 37, "Reconnecting...");
     canvas_set_font(canvas, FontSecondary);
     canvas_draw_str(canvas, hint_x, 49, hint);
+}
+
+static void view_draw_stopped(Canvas* canvas) {
+    view_draw_no_link_status_row(canvas);
+    canvas_draw_str(canvas, 17, 28, "Reconnect stopped");
+    canvas_set_font(canvas, FontSecondary);
+    canvas_draw_str(canvas, 28, 41, "Any button: retry");
+    canvas_draw_rframe(canvas, 48, 47, 33, 11, 2);
+    canvas_draw_icon(canvas, 51, 49, &I_back);
+    canvas_draw_str(canvas, 62, 56, "exit");
 }
 
 void view_draw(Canvas* canvas, Mode mode, Action flash) {
@@ -47,6 +61,9 @@ void view_draw(Canvas* canvas, Mode mode, Action flash) {
         break;
     case ModeVoiceCut:
         view_draw_no_link(canvas, 11, "Voice stopped: release OK");
+        break;
+    case ModeStopped:
+        view_draw_stopped(canvas);
         break;
     }
 }

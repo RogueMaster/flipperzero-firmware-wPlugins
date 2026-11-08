@@ -105,6 +105,28 @@ static void test_none_and_exit_send_nothing(void) {
     transport_fake_free(transport);
 }
 
+static void test_give_up_withdraws_sending_nothing(void) {
+    Transport* transport = transport_fake_alloc();
+    assert(transport_fake_offered(transport));
+
+    actions_perform(transport, ActionGiveUp);
+
+    assert(!transport_fake_offered(transport));
+    assert(transport_fake_count(transport) == 0);
+    transport_fake_free(transport);
+}
+
+static void test_start_over_offers_sending_nothing(void) {
+    Transport* transport = transport_fake_alloc();
+    actions_perform(transport, ActionGiveUp);
+
+    actions_perform(transport, ActionStartOver);
+
+    assert(transport_fake_offered(transport));
+    assert(transport_fake_count(transport) == 0);
+    transport_fake_free(transport);
+}
+
 int main(void) {
     test_run(test_enter_sends_enter);
     test_run(test_arrow_up_sends_arrow_up);
@@ -116,5 +138,7 @@ int main(void) {
     test_run(test_effort_high_sends_ctrl_x_then_ctrl_f);
     test_run(test_effort_max_sends_ctrl_x_twice);
     test_run(test_none_and_exit_send_nothing);
+    test_run(test_give_up_withdraws_sending_nothing);
+    test_run(test_start_over_offers_sending_nothing);
     return 0;
 }

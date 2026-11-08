@@ -5,4 +5,5 @@ typedef enum {
     ModeVoice,
     ModeNoLink,
     ModeVoiceCut,
+    ModeStopped,
 } Mode;

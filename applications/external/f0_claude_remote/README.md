@@ -25,6 +25,7 @@ The Flipper's buttons do the rest, so voice and one hand run the whole session.
 - **Prompt:** Enter, the arrows, and Esc to stop a turn.
 - **Commands:** hold a button for `/clear` or the effort level.
 - **Feedback:** every action buzzes; no buzz, nothing sent.
+- **The dolphin:** a dictation earns it 1 XP, a `/clear` 10.
 - **Bluetooth:** a keyboard to the computer, paired once, reconnecting by itself.
 - **Debugging:** breakpoints on the device from CLion, with no plugin.
 

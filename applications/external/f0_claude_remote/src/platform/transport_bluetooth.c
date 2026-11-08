@@ -80,3 +80,13 @@ void transport_press(Transport* transport, TransportKey key) {
 void transport_release(Transport* transport, TransportKey key) {
     ble_profile_hid_kb_release(transport->profile, transport_bluetooth_keys[key]);
 }
+
+void transport_offer(Transport* transport) {
+    UNUSED(transport);
+    furi_hal_bt_start_advertising();
+}
+
+void transport_withdraw(Transport* transport) {
+    UNUSED(transport);
+    furi_hal_bt_stop_advertising();
+}

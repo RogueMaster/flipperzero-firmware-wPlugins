@@ -1,7 +1,16 @@
 #include "feedback.h"
 
 bool feedback_vibrates(Action action) {
-    return action != ActionNone && action != ActionVoiceStop && action != ActionExit;
+    switch(action) {
+    case ActionNone:
+    case ActionVoiceStop:
+    case ActionExit:
+    case ActionGiveUp:
+    case ActionStartOver:
+        return false;
+    default:
+        return true;
+    }
 }
 
 /* Arrows come in series, and a flash longer than the gap between taps would merge them. */

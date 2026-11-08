@@ -42,6 +42,12 @@ void actions_perform(Transport* transport, Action action) {
     case ActionVoiceStop:
         transport_release(transport, TransportKeyControlQ);
         break;
+    case ActionGiveUp:
+        transport_withdraw(transport);
+        break;
+    case ActionStartOver:
+        transport_offer(transport);
+        break;
     default:
         break;
     }

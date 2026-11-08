@@ -214,6 +214,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Loteria Zero v1.0 - Mexican Loteria caller with 54 cards and original rhymes (By databrainsco)](https://github.com/databrainsco/Loteria_Zero)
 - Updated: [IR Jammer v1.0 (By Clawzman)](https://github.com/Clawzman/flipper-ir-jammer)
 - Updated: [Disn3y Toolbox v0.2 (By Nathaniel.Belles)](https://gitlab.com/Nathaniel.Belles/flipper-disney-toolbox)
+- Updated: [Claude Remote v0.1 - Dolphin XP for dictation and /clear, and a one-minute Bluetooth reconnect timeout (By Petr Korobeinikov)](https://github.com/petr-korobeinikov/f0-claude-remote)
+- UL: [iButton write-error feedback for disabled blanks and protocol writability check before starting the bus (By Leptopt1los and xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/069616d840b0513de91f4bd439004d9b59d890df)
 
 <a name="release"></a>
 

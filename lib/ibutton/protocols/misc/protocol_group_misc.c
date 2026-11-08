@@ -180,7 +180,7 @@ static bool ibutton_protocol_group_misc_write_id(
 
     // Before the bus is started, so a key the protocol refuses costs neither the settle
     // below nor a moment of driving the line.
-    if(protocol->is_valid && !protocol->is_valid(data)) return false;
+    if(protocol->is_writable && !protocol->is_writable(data)) return false;
 
     OneWireHost* host = group->host;
     bool success = false;

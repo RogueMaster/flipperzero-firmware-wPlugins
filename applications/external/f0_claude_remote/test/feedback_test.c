@@ -16,6 +16,8 @@ static void test_the_rest_stay_silent(void) {
     assert(!feedback_vibrates(ActionNone));
     assert(!feedback_vibrates(ActionVoiceStop));
     assert(!feedback_vibrates(ActionExit));
+    assert(!feedback_vibrates(ActionGiveUp));
+    assert(!feedback_vibrates(ActionStartOver));
 }
 
 static void test_arrows_flash_for_100_ms(void) {
@@ -36,6 +38,8 @@ static void test_the_rest_do_not_flash(void) {
     assert(feedback_flash_ms(ActionVoiceStart) == 0);
     assert(feedback_flash_ms(ActionVoiceStop) == 0);
     assert(feedback_flash_ms(ActionExit) == 0);
+    assert(feedback_flash_ms(ActionGiveUp) == 0);
+    assert(feedback_flash_ms(ActionStartOver) == 0);
 }
 
 int main(void) {
