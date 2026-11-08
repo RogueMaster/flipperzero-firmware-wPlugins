@@ -16,3 +16,7 @@ compile_commands.json
 *.old.txt
 .DS_Store
 Thumbs.db
+
+# Claude task hand-off files
+.needs-vlad.json
+.claude-pr.md
