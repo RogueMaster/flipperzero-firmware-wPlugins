@@ -8,7 +8,7 @@ a sequence of bits encoded in Manchester - https://en.wikipedia.org/wiki/Manches
 
 Other than showing the raw signal, ProtoView is able to decode a few interesting protocols:
 
-* TPMS sensors: Renault, Toyota, Schrader, Citroen, Ford.
+* TPMS sensors: Renault, Toyota, Schrader, Citroen, Ford, VW/Audi (Huf).
 * Microchip HSC200/300/301 Keeloq protocol.
 * Oregon thermometer protocol 2.
 * PT2262, SC5262 based remotes.
@@ -118,6 +118,7 @@ rate.
 * Weather stations are often too in the 433.92Mhz OOK.
 * For car keys, try 433.92 OOK650 and 868.35 Mhz in OOK or 2FSK.
 * For TPMS try 433.92 in TPMS1 or TPMS2 modulations (FSK and OOK custom modulations optimized for these signals, that have a relatively high data rate).
+* VW/Audi/Huf TPMS sensors (e.g. 5Q0907275F) transmit at 40 kbaud (25us chips): select "FSK 40kBaud". The "TPMS 1" preset filters out pulses shorter than 30us and will not see them.
 
 ## Signal creator
 

@@ -20,6 +20,7 @@ extern ProtoViewDecoder SchraderTPMSDecoder;
 extern ProtoViewDecoder SchraderEG53MA4TPMSDecoder;
 extern ProtoViewDecoder CitroenTPMSDecoder;
 extern ProtoViewDecoder FordTPMSDecoder;
+extern ProtoViewDecoder VWTPMSDecoder;
 extern ProtoViewDecoder KeeloqDecoder;
 extern ProtoViewDecoder ProtoViewChatDecoder;
 extern ProtoViewDecoder UnknownDecoder;
@@ -33,6 +34,7 @@ ProtoViewDecoder* Decoders[] = {
     &SchraderEG53MA4TPMSDecoder, /* Schrader EG53MA4 TPMS. */
     &CitroenTPMSDecoder, /* Citroen TPMS. */
     &FordTPMSDecoder, /* Ford TPMS. */
+    &VWTPMSDecoder, /* VW / Audi (Huf) TPMS. */
     &KeeloqDecoder, /* Keeloq remote. */
     &ProtoViewChatDecoder, /* Protoview simple text messages. */
 
@@ -160,6 +162,16 @@ uint32_t search_coherent_signal(RawSamplesBuffer* s, uint32_t idx, uint32_t min_
     return len;
 }
 
+/* Bounded string copy into the fixed size Tyre struct char arrays:
+ * truncates instead of overflowing. */
+static void tyre_strcpy(char* dst, size_t dstlen, const char* src) {
+    size_t len = strlen(src);
+    if(len >= dstlen) len = dstlen - 1;
+    memcpy(dst, src, len);
+    dst[len] = 0;
+}
+#define TYRE_STRCPY(dst, src) tyre_strcpy((dst), sizeof(dst), (src))
+
 /* Called when we detect a message. Just blinks when the message was
  * not decoded. Vibrates, too, when the message was correctly decoded. */
 void notify_signal_detected(ProtoViewApp* app, bool decoded) {
@@ -229,7 +241,7 @@ void scan_for_signal(ProtoViewApp* app, RawSamplesBuffer* source, uint32_t min_d
                 } else if(strcmp("Renault TPMS", info->decoder->name) == 0) {
                     strcpy(uom, "KPA");
                     strcpy(decoder, "R");
-                } else if(strcmp("Schrader EG53MA4 TPMS kpa", info->decoder->name) == 0) {
+                } else if(strcmp("Schrader EG53MA4 TPMS", info->decoder->name) == 0) {
                     strcpy(uom, "KPA");
                     strcpy(decoder, "S");
                 } else if(strcmp("Schrader TPMS", info->decoder->name) == 0) {
@@ -241,6 +253,9 @@ void scan_for_signal(ProtoViewApp* app, RawSamplesBuffer* source, uint32_t min_d
                 } else if(strcmp("Citroen TPMS", info->decoder->name) == 0) {
                     strcpy(uom, "KPA");
                     strcpy(decoder, "C");
+                } else if(strcmp("VW TPMS", info->decoder->name) == 0) {
+                    strcpy(uom, "KPA");
+                    strcpy(decoder, "V");
                 } else {
                     strcpy(uom, "???"); // Effectively just means "not a TPMS signal"
                 }
@@ -278,20 +293,20 @@ void scan_for_signal(ProtoViewApp* app, RawSamplesBuffer* source, uint32_t min_d
                     for(i = 0; i < app->tyre_list_count; i++) {
                         if(strcmp(app->tyre_list[i].serial, tyreid) == 0) {
                             FURI_LOG_D(TAG, "Updating existing list entry");
-                            strcpy(app->tyre_list[i].pressure, psi);
-                            strcpy(app->tyre_list[i].pressure_bar, barstring);
-                            strcpy(app->tyre_list[i].temperature, temp);
+                            TYRE_STRCPY(app->tyre_list[i].pressure, psi);
+                            TYRE_STRCPY(app->tyre_list[i].pressure_bar, barstring);
+                            TYRE_STRCPY(app->tyre_list[i].temperature, temp);
                             found = true;
                             notify_signal_detected(app, false); //Blink light
                         }
                     }
                     if(found == false && app->tyre_list_count < 30) {
-                        strcpy(app->tyre_list[app->tyre_list_count].serial, tyreid);
-                        strcpy(app->tyre_list[app->tyre_list_count].pressure, psi);
-                        strcpy(app->tyre_list[app->tyre_list_count].pressure_bar, barstring);
-                        strcpy(app->tyre_list[app->tyre_list_count].temperature, temp);
-                        strcpy(app->tyre_list[i].uom, uom);
-                        strcpy(app->tyre_list[i].decoder, decoder);
+                        TYRE_STRCPY(app->tyre_list[app->tyre_list_count].serial, tyreid);
+                        TYRE_STRCPY(app->tyre_list[app->tyre_list_count].pressure, psi);
+                        TYRE_STRCPY(app->tyre_list[app->tyre_list_count].pressure_bar, barstring);
+                        TYRE_STRCPY(app->tyre_list[app->tyre_list_count].temperature, temp);
+                        TYRE_STRCPY(app->tyre_list[i].uom, uom);
+                        TYRE_STRCPY(app->tyre_list[i].decoder, decoder);
                         app->tyre_list[i].favorite = false;
                         app->tyre_list[i].favorite_set = false;
                         app->tyre_list_count++;
