@@ -27,7 +27,7 @@ void metroflip_scene_about_on_enter(void* context) {
     metroflip_card_view_add_field(view, p, "", "Multi-protocol", false);
     metroflip_card_view_add_field(view, p, "", "transit card reader", false);
     metroflip_card_view_add_field(view, p, "", "for Flipper Zero.", false);
-    metroflip_card_view_add_field(view, p, "Version", "2.0", true);
+    metroflip_card_view_add_field(view, p, "Version", "2.1 Beta 1", true);
 
     /* Page 2: credits & project */
     p = metroflip_card_view_add_page(view, "Credits");
