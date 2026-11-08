@@ -218,6 +218,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - UL: [iButton write-error feedback for disabled blanks, protocol writability check before starting the bus, and removal of obsolete can_write_id interfaces (By Leptopt1los and xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/069616d840b0513de91f4bd439004d9b59d890df)
 - UL: [Removed obsolete registry includes from Bluetooth and Crypto CLI commands (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/b18296933c0dda06935afaf0b6a556e1cbb45362)
 - OFW: [Case-only file renames and filename validator initialization (By Leptopt1los)](https://github.com/flipperdevices/flipperzero-firmware/commit/3060cee9bac71d332dc7629191ae1aeb1edaac33)
+- UL: [Archive case-only rename collision handling (By xMasterX and Leptopt1los)](https://github.com/DarkFlippers/unleashed-firmware/commit/648fad779345efd8d041305717941d276af60cff)
 
 <a name="release"></a>
 
