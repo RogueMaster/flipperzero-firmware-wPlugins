@@ -1,0 +1,16 @@
+App(
+    appid="f0_claude_remote",
+    name="Claude Remote",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="main_entry",
+    stack_size=2 * 1024,
+    fap_icon="f0_claude_remote.png",
+    fap_icon_assets="images",
+    fap_libs=["ble_profile"],  # ble_profile_hid is not among the firmware's exports
+    sources=["*.c*", "!test"],
+    fap_category="Bluetooth",
+    fap_author="Petr Korobeinikov",
+    fap_weburl="https://github.com/petr-korobeinikov/f0-claude-remote",
+    fap_version="0.1",
+    fap_description="Drives Claude Code from the device's buttons over Bluetooth",
+)

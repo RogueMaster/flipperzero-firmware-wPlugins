@@ -204,6 +204,11 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [FN Tester v0.7.0 with English/Russian UI and saved language selection (By Igor Danilov)](https://github.com/polarikus/flipper-zero_fn_tester)
 - Updated: [Tea Timer release builds omit the debug CLI test command (By igordanilov)](https://github.com/polarikus/FlipperZero-TeaTimer)
 - UL: [CLI command source separation and Bluetooth CLI source exclusion (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/b18296933c0dda06935afaf0b6a556e1cbb45362)
+- UL: [Expose KeeLoq counter modes 8 and 9 in signal settings (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/60a082933dc5e7d659383bd7f4dd8d72278400c0)
+- UL: [Allow writing Dallas keys with a bad CRC while retaining invalid-frame write refusals; check TM01x finalize-mode coverage at compile time (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/acc61778e47d75753c9803cbd0e92409bb385759) [Report refused iButton writes before starting the worker (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/c8556be673cada184fe8cb712aad9206bf9ae273)
+- Added: [Claude Remote v0.1 - Bluetooth keyboard controls for Claude Code (By Petr Korobeinikov)](https://github.com/petr-korobeinikov/f0-claude-remote)
+- Updated: [InfraFi v2.0 NFC scan Left/Back handling (By amd989)](https://github.com/amd989/InfraFi)
+- OFW: [iButton TM01x refactor, bit utilities and write-refusal notifications (By Leptopt1los)](https://github.com/flipperdevices/flipperzero-firmware/pull/4511)
 
 <a name="release"></a>
 
@@ -617,6 +622,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [CK42X Passvault v0.4.6 (By lordbuffcloud)](https://github.com/lordbuffcloud/flipper-ck42x-passvault)
 - [CK42X Wakeup v2.29 (By lordbuffcloud)](https://github.com/lordbuffcloud/flipper-ck42x-wakeup)
 - [Claude Buddy v0.6 (By jxw1102)](https://github.com/jxw1102/flipper-claude-buddy)
+- [Claude Remote v0.1 (By Petr Korobeinikov)](https://github.com/petr-korobeinikov/f0-claude-remote)
 - [ClayLoop v1.0 (By b0bby225)](https://github.com/b0bby225/ClayLoop)
 - [CLI-GUI Bridge v0.2 (By ranchordo)](https://github.com/ranchordo/flipperzero-cli-bridge)
 - [Click Recorder v1.2 (By 0x78f1935)](https://github.com/0x78f1935/Click-Recorder)

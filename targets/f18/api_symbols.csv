@@ -1,5 +1,5 @@
 entry,status,name,type,params
-Version,+,88.24,,
+Version,+,88.25,,
 Function,-,LL_ADC_CommonDeInit,ErrorStatus,ADC_Common_TypeDef*
 Function,-,LL_ADC_CommonInit,ErrorStatus,"ADC_Common_TypeDef*, const LL_ADC_CommonInitTypeDef*"
 Function,-,LL_ADC_CommonStructInit,void,LL_ADC_CommonInitTypeDef*
@@ -396,6 +396,7 @@ Function,+,bit_lib_print_regions,void,"const BitLibRegion*, size_t, const uint8_
 Function,+,bit_lib_push_bit,void,"uint8_t*, size_t, _Bool"
 Function,+,bit_lib_remove_bit_every_nth,size_t,"uint8_t*, size_t, uint8_t, uint8_t"
 Function,+,bit_lib_reverse_16_fast,uint16_t,uint16_t
+Function,+,bit_lib_reverse_32_fast,uint32_t,uint32_t
 Function,+,bit_lib_reverse_8_fast,uint8_t,uint8_t
 Function,+,bit_lib_reverse_bits,void,"uint8_t*, size_t, uint8_t"
 Function,+,bit_lib_set_bit,void,"uint8_t*, size_t, _Bool"

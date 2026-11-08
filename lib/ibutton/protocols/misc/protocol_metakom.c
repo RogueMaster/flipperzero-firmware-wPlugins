@@ -14,9 +14,6 @@
 
 #define METAKOM_PERIOD_SAMPLE_COUNT 10
 
-/** Leading 4 bits of the Metakom code frame, as sent on the wire. */
-#define METAKOM_FRAME_PREFIX 0x02U
-
 typedef enum {
     METAKOM_WAIT_PERIOD_SYNC,
     METAKOM_WAIT_START_BIT,
@@ -101,6 +98,17 @@ static bool metakom_parity_check(uint8_t data) {
     result = (ones_count % 2 == 0);
 
     return result;
+}
+
+/** @returns index of the first byte with odd parity, or -1 if every byte has even parity. */
+static int protocol_metakom_odd_parity_byte(const iButtonProtocolData* data) {
+    const ProtocolMetakom* proto = data;
+
+    for(size_t i = 0; i < METAKOM_DATA_SIZE; ++i) {
+        if(!metakom_parity_check(((const uint8_t*)&proto->data)[i])) return (int)i;
+    }
+
+    return -1;
 }
 
 static bool metakom_process_bit(
@@ -318,23 +326,15 @@ static void protocol_metakom_render_brief_data(ProtocolMetakom* proto, FuriStrin
 }
 
 static bool protocol_metakom_is_valid(const iButtonProtocolData* data) {
-    const ProtocolMetakom* proto = data;
-
-    for(size_t i = 0; i < METAKOM_DATA_SIZE; ++i) {
-        if(!metakom_parity_check(((const uint8_t*)&proto->data)[i])) return false;
-    }
-
-    return true;
+    return protocol_metakom_odd_parity_byte(data) < 0;
 }
 
 static void protocol_metakom_render_error(FuriString* result, const iButtonProtocolData* data) {
-    const ProtocolMetakom* proto = data;
+    const int odd_parity_byte = protocol_metakom_odd_parity_byte(data);
 
-    for(size_t i = 0; i < METAKOM_DATA_SIZE; ++i) {
-        if(!metakom_parity_check(((const uint8_t*)&proto->data)[i])) {
-            furi_string_cat_printf(result, "Invalid Metakom key:\nodd parity in byte %zu", i);
-            return;
-        }
+    if(odd_parity_byte >= 0) {
+        furi_string_cat_printf(
+            result, "Invalid Metakom key:\nodd parity in byte %zu", (size_t)odd_parity_byte);
     }
 }
 
@@ -346,15 +346,15 @@ static bool protocol_metakom_write_id(
 
     const ProtocolMetakom* proto = data;
 
+    // Deliberately duplicates the check the misc group makes before starting the bus: this
+    // is the last gate before a write that finalizes the blank, which cannot be undone, so
+    // write_id() does not rely on its caller having asked.
     if(!protocol_metakom_is_valid(data)) {
         FURI_LOG_W("Metakom", "Refusing to write a key with odd parity");
         return false;
     }
 
-    uint8_t rom[TM01X_ROM_SIZE];
-    tm01x_protocol_misc_make_image(rom, METAKOM_FRAME_PREFIX, proto->data);
-
-    return tm01x_write_protocol_misc(host, Tm01xKeyModeMetakom, rom);
+    return tm01x_write_metakom(host, proto->data);
 }
 
 const iButtonProtocolMiscBase ibutton_protocol_misc_metakom = {
