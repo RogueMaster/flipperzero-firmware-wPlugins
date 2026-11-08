@@ -408,7 +408,8 @@ bool ibutton_protocols_is_writable(iButtonProtocols* protocols, const iButtonKey
     const iButtonProtocolData* data = ibutton_key_get_protocol_data(key);
 
     GET_PROTOCOL_GROUP(id);
-    return GROUP_BASE->can_write_id ? GROUP_BASE->can_write_id(GROUP_DATA, data, PROTOCOL_ID) : true;
+    return GROUP_BASE->can_write_id ? GROUP_BASE->can_write_id(GROUP_DATA, data, PROTOCOL_ID) :
+                                      true;
 }
 
 void ibutton_protocols_get_editable_data(
