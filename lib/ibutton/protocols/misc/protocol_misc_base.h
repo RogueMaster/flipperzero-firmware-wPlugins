@@ -34,6 +34,18 @@ typedef bool (*iButtonProtocolMiscWriteIdFunc)(
 typedef bool (*iButtonProtocolMiscIsValidFunc)(const iButtonProtocolData* data);
 
 /**
+ * Check whether the protocol can program the data into a blank.
+ *
+ * Whether the data is valid for reading is a separate question, answered by
+ * is_valid().
+ *
+ * @param data  Protocol data, `base.data_size` bytes.
+ *
+ * @returns true if the protocol can write the data into a blank.
+ */
+typedef bool (*iButtonProtocolMiscIsWritableFunc)(const iButtonProtocolData* data);
+
+/**
  * Explain to the user why is_valid() rejected the data.
  *
  * @param result  String to append the explanation to.
@@ -53,6 +65,9 @@ typedef struct {
 
     /** NULL means "every value is valid", as for a protocol with no redundancy. */
     const iButtonProtocolMiscIsValidFunc is_valid;
+
+    /** NULL means "no restriction", as for a protocol that writes any data it is given. */
+    const iButtonProtocolMiscIsWritableFunc is_writable;
 
     /** NULL means "nothing to explain", as for a protocol with no redundancy. */
     const iButtonProtocolMiscRenderErrorFunc render_error;

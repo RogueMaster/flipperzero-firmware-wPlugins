@@ -382,5 +382,6 @@ const iButtonProtocolMiscBase ibutton_protocol_misc_metakom = {
     .write_targets = IBUTTON_WRITE_TARGET_BIT(iButtonWriteTargetTM01x),
     .write_id = protocol_metakom_write_id,
     .is_valid = protocol_metakom_is_valid,
+    .is_writable = protocol_metakom_is_valid,
     .render_error = protocol_metakom_render_error,
 };

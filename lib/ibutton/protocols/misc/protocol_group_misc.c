@@ -316,6 +316,17 @@ static bool ibutton_protocol_group_misc_is_valid(
     return protocol->is_valid ? protocol->is_valid(data) : true;
 }
 
+static bool ibutton_protocol_group_misc_is_writable(
+    iButtonProtocolGroupMisc* group,
+    const iButtonProtocolData* data,
+    iButtonProtocolLocalId id) {
+    UNUSED(group);
+    furi_assert(id < iButtonProtocolMiscMax);
+
+    const iButtonProtocolMiscBase* protocol = ibutton_protocols_misc[id];
+    return protocol->is_writable ? protocol->is_writable(data) : true;
+}
+
 static void ibutton_protocol_group_misc_get_editable_data(
     iButtonProtocolGroupMisc* group,
     iButtonProtocolData* data,
@@ -370,6 +381,7 @@ const iButtonProtocolGroupBase ibutton_protocol_group_misc = {
     .render_error = (iButtonProtocolGroupRenderFunc)ibutton_protocol_group_misc_render_error,
 
     .is_valid = (iButtonProtocolGroupIsValidFunc)ibutton_protocol_group_misc_is_valid,
+    .is_writable = (iButtonProtocolGroupIsWritableFunc)ibutton_protocol_group_misc_is_writable,
     .get_editable_data =
         (iButtonProtocolGroupGetDataFunc)ibutton_protocol_group_misc_get_editable_data,
     .apply_edits = (iButtonProtocolGroupApplyFunc)ibutton_protocol_group_misc_apply_edits,

@@ -177,17 +177,7 @@ iButtonWriteTargetMask
 }
 
 bool ibutton_protocols_can_write_id(iButtonProtocols* protocols, iButtonKey* key) {
-    furi_check(protocols);
-    furi_check(key);
-
-    const iButtonProtocolId id = ibutton_key_get_protocol_id(key);
-    const iButtonProtocolData* data = ibutton_key_get_protocol_data(key);
-
-    GET_PROTOCOL_GROUP(id);
-
-    if(!GROUP_BASE->can_write_id) return true;
-
-    return GROUP_BASE->can_write_id(GROUP_DATA, data, PROTOCOL_ID);
+    return ibutton_protocols_is_writable(protocols, key);
 }
 
 // Every blank type the protocol supports, which is what a write did before write targets
@@ -408,8 +398,7 @@ bool ibutton_protocols_is_writable(iButtonProtocols* protocols, const iButtonKey
     const iButtonProtocolData* data = ibutton_key_get_protocol_data(key);
 
     GET_PROTOCOL_GROUP(id);
-    return GROUP_BASE->can_write_id ? GROUP_BASE->can_write_id(GROUP_DATA, data, PROTOCOL_ID) :
-                                      true;
+    return GROUP_BASE->is_writable(GROUP_DATA, data, PROTOCOL_ID);
 }
 
 void ibutton_protocols_get_editable_data(

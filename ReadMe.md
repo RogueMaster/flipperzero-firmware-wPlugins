@@ -210,6 +210,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [InfraFi v2.0 NFC scan Left/Back handling (By amd989)](https://github.com/amd989/InfraFi)
 - OFW: [iButton TM01x refactor, bit utilities and write-refusal notifications (By Leptopt1los)](https://github.com/flipperdevices/flipperzero-firmware/pull/4511)
 - Updated: [FliBuddy v1.0 starts on the reader screen, including first launch, and preserves existing settings (By Gennady Sokolachko)](https://github.com/sokogen/flipperzero-flibuddy)
+- OFW: [Complete iButton Dallas and misc-protocol writability callbacks while retaining RM blank selection (By Leptopt1los)](https://github.com/flipperdevices/flipperzero-firmware/pull/4511)
 
 <a name="release"></a>
 
