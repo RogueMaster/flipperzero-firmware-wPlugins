@@ -27,6 +27,7 @@ older firmware. See [§10](#10-firmware-compatibility-and-versioning) for detail
 - [9. Known Limits and Safe-Use Notes](#9-known-limits-and-safe-use-notes)
 - [10. Firmware Compatibility and Versioning](#10-firmware-compatibility-and-versioning)
 - [11. WiFi CLI over TCP](#11-wifi-cli-over-tcp)
+- [12. License](#12-license)
 
 ## 1. Scope and App Behavior
 CAN Commander on Flipper is a UART-driven UI/controller for the CAN Commander
@@ -646,8 +647,8 @@ start tools, run injection, manage DBC, etc.
    ```
 
 Defaults if you haven't changed them:
-- SSID: `CANCommander`
-- Password: `change_me_123` (**change this**)
+- SSID: `CAN_Commander`
+- Password: `cancommander` (**change this**: it is public, and the Wi-Fi CLI can transmit on the CAN bus)
 - TCP port: `7777`
 - Autostart: off (start manually with `ap=1` from the Flipper or `wifi
   start` over USB CLI)
@@ -715,3 +716,17 @@ respective hardware. Track <https://www.cancommander.com> for downloads.
   address.
 - Issue `wifi stop` over USB (or `ap=0` from the Flipper) to disable the
   AP without changing SSID/password persistence.
+
+## 12. License
+
+Copyright (C) 2026 Matthew KuKanich
+
+The CAN Commander Flipper app is free software: you can redistribute it
+and/or modify it under the terms of the GNU General Public License,
+version 3, as published by the Free Software Foundation. It is distributed
+in the hope that it will be useful, but WITHOUT ANY WARRANTY; see the
+[LICENSE](LICENSE) file for the full terms.
+
+The ESP32 firmware in this repository is licensed separately (PolyForm
+Noncommercial 1.0.0); see the top-level README for the license that applies
+to each folder.
