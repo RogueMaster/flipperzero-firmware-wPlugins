@@ -117,7 +117,9 @@ class FlipperRPC:
             time.sleep(0.05)
         time.sleep(pause)
 
-    def next_frame(self, timeout: float = 3.0, distinct_from: bytes | None = None) -> bytes | None:
+    def next_frame(
+        self, timeout: float = 3.0, distinct_from: bytes | None = None
+    ) -> bytes | None:
         deadline = time.time() + timeout
         while time.time() < deadline:
             chunk = self.ser.read(8192)

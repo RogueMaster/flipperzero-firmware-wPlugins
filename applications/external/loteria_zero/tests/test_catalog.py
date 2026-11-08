@@ -111,7 +111,9 @@ class CatalogTests(unittest.TestCase):
             "El Arpa",
             "La Rana",
         ]
-        names = [c["name"] for c in sorted(self.catalog["cards"], key=lambda c: c["id"])]
+        names = [
+            c["name"] for c in sorted(self.catalog["cards"], key=lambda c: c["id"])
+        ]
         self.assertEqual(names, expected)
 
     def test_shuffle_no_duplicates_simulation(self) -> None:

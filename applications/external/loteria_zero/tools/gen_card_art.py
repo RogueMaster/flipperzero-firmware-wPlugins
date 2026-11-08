@@ -477,7 +477,10 @@ def draw_sol(d: ImageDraw.ImageDraw) -> None:
 
 
 def draw_corona(d: ImageDraw.ImageDraw) -> None:
-    d.polygon([(10, 30), (14, 14), (20, 24), (24, 10), (28, 24), (34, 14), (38, 30)], outline=BLACK)
+    d.polygon(
+        [(10, 30), (14, 14), (20, 24), (24, 10), (28, 24), (34, 14), (38, 30)],
+        outline=BLACK,
+    )
     d.rectangle((10, 30, 38, 36), outline=BLACK)
     d.ellipse((22, 18, 26, 22), fill=BLACK)
 
@@ -507,7 +510,10 @@ def draw_palma(d: ImageDraw.ImageDraw) -> None:
     d.line((24, 18, 24, 42), fill=BLACK)
     for a, r in ((-50, 16), (-20, 18), (20, 18), (50, 16)):
         rad = math.radians(a - 90)
-        d.line((24, 18, 24 + int(r * math.cos(rad)), 18 + int(r * math.sin(rad))), fill=BLACK)
+        d.line(
+            (24, 18, 24 + int(r * math.cos(rad)), 18 + int(r * math.sin(rad))),
+            fill=BLACK,
+        )
     d.ellipse((20, 40, 28, 46), outline=BLACK)
 
 
