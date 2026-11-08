@@ -108,6 +108,16 @@ If a signal was detected, the info view will show the details about the signal. 
 When resending, you can select a different frequency and modulation if you
 wish.
 
+## TPMS list screen
+
+The TPMS list shows one line per detected sensor, prefixed with the make (V is VW/Audi/Huf). Parked sensors often stay silent until woken by a 125 kHz LF field: a long press of RIGHT in this screen turns on a plain, unmodulated 125 kHz carrier from the Flipper's RFID coil for 3 seconds (a short vibration confirms the start and the bottom line shows "Waking 125kHz..."). The radio keeps listening during and after the burst.
+
+1. Select the right modulation first (e.g. "FSK 40kBaud" for VW/Audi/Huf) and go to the TPMS list screen.
+2. Hold the back of the Flipper flat against the tyre sidewall, right at the valve stem (the sensor sits behind the valve).
+3. Long-press RIGHT and keep the Flipper still for the 3 seconds, then watch for a new line.
+
+The range is only a few cm, so if nothing appears move a little around the valve and press again. Pressing again while the carrier is on does nothing. Leaving the screen or exiting the app turns the carrier off immediately.
+
 ## Frequency and modulation screen
 
 In this view you can just set the frequency and modulation you want to use.

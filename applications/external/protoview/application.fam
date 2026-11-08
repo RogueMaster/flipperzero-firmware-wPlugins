@@ -11,5 +11,5 @@ App(
     fap_version="1.5",
     fap_description="Digital signal detection, visualization, editing and reply tool",
     #  v1.3: [Extra history page for TPMS detections (By Mascot68)](https://github.com/Mascot68/ProtoViewTPMS)
-    #  v1.5: VW/Audi (Huf) TPMS decoder
+    #  v1.5: VW/Audi (Huf) TPMS decoder, 125 kHz LF wake for TPMS sensors (long RIGHT in the TPMS list)
 )

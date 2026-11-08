@@ -70,6 +70,9 @@ static void input_callback(InputEvent* input_event, void* ctx) {
  * special views ViewGoNext and ViewGoPrev in order to move to
  * the logical next/prev view. */
 static void app_switch_view(ProtoViewApp* app, ProtoViewCurrentView switchto) {
+    /* Any view change ends a TPMS wake burst (only the list view starts
+     * one, and the carrier must never outlive it). Idempotent. */
+    wake_stop(app);
     furi_mutex_acquire(app->view_updating_mutex, FuriWaitForever);
 
     /* Switch to the specified view. */
@@ -185,6 +188,7 @@ ProtoViewApp* protoview_app_alloc() {
     subghz_devices_reset(app->radio_device);
     subghz_devices_idle(app->radio_device);
 
+    wake_init(app);
     app->running = 1;
 
     return app;
@@ -195,6 +199,9 @@ ProtoViewApp* protoview_app_alloc() {
  * even if we forget to free something here. */
 void protoview_app_free(ProtoViewApp* app) {
     furi_assert(app);
+
+    /* LF carrier off and wake timer freed before anything else. */
+    wake_deinit(app);
 
     subghz_devices_sleep(app->radio_device);
     radio_device_loader_end(app->radio_device);
@@ -285,7 +292,9 @@ int32_t protoview_app_entry(void* p) {
      * view_port_update() in order to refresh our screen content. */
     InputEvent input;
     while(app->running) {
-        FuriStatus qstat = furi_message_queue_get(app->event_queue, &input, 100);
+        FuriStatus qstat = furi_message_queue_get(app->event_queue, &input, WAKE_POLL_SLACK_MS);
+        /* Stop an expired wake burst here, on the main thread. */
+        wake_poll(app);
         ProtoViewTxResult tx_result = radio_tx_poll(app);
         if(tx_result == ProtoViewTxComplete) {
             notify_signal_sent(app);
@@ -418,7 +427,8 @@ int32_t protoview_app_entry(void* p) {
         }
     }
 
-    /* App no longer running. Shut down and free. */
+    /* App no longer running. Shut down and free. Carrier off first. */
+    wake_stop(app);
     radio_tx_stop(app, false);
     if(app->txrx->txrx_state == TxRxStateRx) {
         FURI_LOG_E(TAG, "Putting CC1101 to sleep before exiting.");

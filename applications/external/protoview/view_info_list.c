@@ -191,6 +191,16 @@ void render_list_view_info(Canvas* const canvas, ProtoViewApp* app) {
     } else {
         render_info_list_main(canvas, app);
     }
+
+    /* While the 3 s wake burst runs, a status bar covers the bottom row. */
+    if(app->wake_active) {
+        canvas_set_color(canvas, ColorBlack);
+        canvas_draw_box(canvas, 0, 53, 128, 11);
+        canvas_set_color(canvas, ColorWhite);
+        canvas_set_font(canvas, FontSecondary);
+        canvas_draw_str_aligned(canvas, 64, 62, AlignCenter, AlignBottom, "Waking 125kHz...");
+        canvas_set_color(canvas, ColorBlack);
+    }
 }
 
 void clear_tyre_list(ProtoViewApp* app) {
@@ -248,6 +258,10 @@ void tyre_list_process_input(ProtoViewApp* app, InputEvent input) {
             clear_tyre_list(app);
             ui_show_alert(app, "Tyre list cleared", 1000);
         }
+    } else if(input.type == InputTypeLong && input.key == InputKeyRight) {
+        /* TPMS wake: 125 kHz carrier for up to 3 s (see wake.c). Long
+         * RIGHT is free here; short RIGHT is the view switch. */
+        wake_start(app);
     } else if(input.type == InputTypeLong && input.key == InputKeyDown) {
         if(!show_in_bar) {
             show_in_bar = true;
