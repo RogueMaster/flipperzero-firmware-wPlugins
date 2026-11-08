@@ -1,19 +1,19 @@
 # IR Jammer for Flipper Zero
 
-IR jammer app for the Flipper Zero. Works with the internal IR LED or an external IR module.
+IR jammer app that works with the internal IR LED and external IR module.
 
 <img src="Screenshot.jpg" width="350" alt="Screenshot">
 
 ## What it does
 
-The app floods the area in front of it with infrared pulses, which drowns out the IR
+The app floods the area with infrared pulses, which drowns/blockes out the IR
 signal from remote controls and other IR receivers.
 
 It can affect any device that uses IR, for example TVs, projectors, AC units,
-soundbars, IR cameras and night vision equipment, and IR-based detection or sensor
+soundbars, IR cameras and night vision equipment, and IR based detection or sensor
 systems.
 
-Random and Empty modes with Density set high will run the LED close to continuously. 
+NOTE: Random and Empty modes with Density set high will run the LED close to continuously. 
 Avoid running them for long periods, as the ext module can get warm.
 
 ## Features
