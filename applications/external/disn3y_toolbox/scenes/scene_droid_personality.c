@@ -1,7 +1,7 @@
 #include <gui/elements.h>
 
 #include "../disney_toolbox_app.h"
-#include "disney_toolbox_icons.h"
+#include <disney_toolbox_icons.h>
 
 #define DROID_ANIMATION_FRAMES 5
 #define DROID_ANIMATION_MOD    2

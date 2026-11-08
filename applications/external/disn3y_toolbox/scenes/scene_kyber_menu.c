@@ -1,4 +1,4 @@
-#include "../disn3y_toolbox_app.h"
+#include "../disney_toolbox_app.h"
 
 enum KyberSubmenuIndex {
     KyberSubmenuIndexSeries1,
@@ -7,13 +7,13 @@ enum KyberSubmenuIndex {
     KyberSubmenuIndexAbout,
 };
 
-static void disn3y_toolbox_app_scene_kyber_menu_submenu_callback(void* context, uint32_t index) {
-    Disn3yToolboxApp* app = context;
+static void disney_toolbox_app_scene_kyber_menu_submenu_callback(void* context, uint32_t index) {
+    DisneyToolboxApp* app = context;
     view_dispatcher_send_custom_event(app->view_dispatcher, index);
 }
 
-void disn3y_toolbox_app_scene_kyber_menu_on_enter(void* context) {
-    Disn3yToolboxApp* app = context;
+void disney_toolbox_app_scene_kyber_menu_on_enter(void* context) {
+    DisneyToolboxApp* app = context;
     Submenu* submenu = app->submenu;
 
     submenu_set_header(submenu, "Kyber Crystal");
@@ -21,52 +21,52 @@ void disn3y_toolbox_app_scene_kyber_menu_on_enter(void* context) {
         submenu,
         "Series 1 Writer",
         KyberSubmenuIndexSeries1,
-        disn3y_toolbox_app_scene_kyber_menu_submenu_callback,
+        disney_toolbox_app_scene_kyber_menu_submenu_callback,
         app);
     submenu_add_item(
         submenu,
         "Series 2 Writer (beta)",
         KyberSubmenuIndexSeries2,
-        disn3y_toolbox_app_scene_kyber_menu_submenu_callback,
+        disney_toolbox_app_scene_kyber_menu_submenu_callback,
         app);
     submenu_add_item(
         submenu,
         "Crystal Checker",
         KyberSubmenuIndexSeriesCheck,
-        disn3y_toolbox_app_scene_kyber_menu_submenu_callback,
+        disney_toolbox_app_scene_kyber_menu_submenu_callback,
         app);
     submenu_add_item(
         submenu,
         "About",
         KyberSubmenuIndexAbout,
-        disn3y_toolbox_app_scene_kyber_menu_submenu_callback,
+        disney_toolbox_app_scene_kyber_menu_submenu_callback,
         app);
 
     submenu_set_selected_item(
         submenu,
-        scene_manager_get_scene_state(app->scene_manager, Disn3yToolboxAppSceneKyberMenu));
+        scene_manager_get_scene_state(app->scene_manager, DisneyToolboxAppSceneKyberMenu));
 
-    view_dispatcher_switch_to_view(app->view_dispatcher, Disn3yToolboxAppViewSubmenu);
+    view_dispatcher_switch_to_view(app->view_dispatcher, DisneyToolboxAppViewSubmenu);
 }
 
-bool disn3y_toolbox_app_scene_kyber_menu_on_event(void* context, SceneManagerEvent event) {
-    Disn3yToolboxApp* app = context;
+bool disney_toolbox_app_scene_kyber_menu_on_event(void* context, SceneManagerEvent event) {
+    DisneyToolboxApp* app = context;
     bool consumed = false;
 
     if(event.type == SceneManagerEventTypeCustom) {
         scene_manager_set_scene_state(
-            app->scene_manager, Disn3yToolboxAppSceneKyberMenu, event.event);
+            app->scene_manager, DisneyToolboxAppSceneKyberMenu, event.event);
         if(event.event == KyberSubmenuIndexSeries1) {
-            scene_manager_next_scene(app->scene_manager, Disn3yToolboxAppSceneKyberSelectorS1);
+            scene_manager_next_scene(app->scene_manager, DisneyToolboxAppSceneKyberSelectorS1);
             consumed = true;
         } else if(event.event == KyberSubmenuIndexSeries2) {
-            scene_manager_next_scene(app->scene_manager, Disn3yToolboxAppSceneKyberSelectorS2);
+            scene_manager_next_scene(app->scene_manager, DisneyToolboxAppSceneKyberSelectorS2);
             consumed = true;
         } else if(event.event == KyberSubmenuIndexSeriesCheck) {
-            scene_manager_next_scene(app->scene_manager, Disn3yToolboxAppSceneKyberSeriesCheck);
+            scene_manager_next_scene(app->scene_manager, DisneyToolboxAppSceneKyberSeriesCheck);
             consumed = true;
         } else if(event.event == KyberSubmenuIndexAbout) {
-            scene_manager_next_scene(app->scene_manager, Disn3yToolboxAppSceneKyberAbout);
+            scene_manager_next_scene(app->scene_manager, DisneyToolboxAppSceneKyberAbout);
             consumed = true;
         }
     }
@@ -74,7 +74,7 @@ bool disn3y_toolbox_app_scene_kyber_menu_on_event(void* context, SceneManagerEve
     return consumed;
 }
 
-void disn3y_toolbox_app_scene_kyber_menu_on_exit(void* context) {
-    Disn3yToolboxApp* app = context;
+void disney_toolbox_app_scene_kyber_menu_on_exit(void* context) {
+    DisneyToolboxApp* app = context;
     submenu_reset(app->submenu);
 }

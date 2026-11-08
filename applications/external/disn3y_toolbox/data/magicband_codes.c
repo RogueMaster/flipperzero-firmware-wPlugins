@@ -35,9 +35,9 @@ const uint32_t magicband_preset_count = sizeof(magicband_presets) / sizeof(magic
 // --- Hex parsing helpers ---
 
 static uint8_t hex_nibble(char c) {
-    if (c >= '0' && c <= '9') return (uint8_t)(c - '0');
-    if (c >= 'a' && c <= 'f') return (uint8_t)(c - 'a' + 10);
-    if (c >= 'A' && c <= 'F') return (uint8_t)(c - 'A' + 10);
+    if(c >= '0' && c <= '9') return (uint8_t)(c - '0');
+    if(c >= 'a' && c <= 'f') return (uint8_t)(c - 'a' + 10);
+    if(c >= 'A' && c <= 'F') return (uint8_t)(c - 'A' + 10);
     return 0;
 }
 
@@ -48,21 +48,21 @@ static uint8_t hex_byte(const char* s) {
 uint8_t magicband_preset_to_beacon_data(const char* hex, uint8_t* output) {
     // Count hex payload length
     uint8_t hex_len = 0;
-    for (const char* p = hex; *p && *(p + 1); p += 2) {
+    for(const char* p = hex; *p && *(p + 1); p += 2) {
         hex_len++;
     }
 
     // AD header: length, type, Disney specifier, E1 00
     uint8_t pos = 0;
-    output[pos++] = (uint8_t)(hex_len + 5);  // AD length: 0xFF + 8301 + E100 + payload
-    output[pos++] = 0xFF;                    // AD type: manufacturer specific
+    output[pos++] = (uint8_t)(hex_len + 5); // AD length: 0xFF + 8301 + E100 + payload
+    output[pos++] = 0xFF; // AD type: manufacturer specific
     output[pos++] = 0x83;
-    output[pos++] = 0x01;  // Disney specifier
+    output[pos++] = 0x01; // Disney specifier
     output[pos++] = 0xE1;
-    output[pos++] = 0x00;  // Purpose unknown
+    output[pos++] = 0x00; // Purpose unknown
 
     // Copy raw hex bytes
-    for (const char* p = hex; *p && *(p + 1); p += 2) {
+    for(const char* p = hex; *p && *(p + 1); p += 2) {
         output[pos++] = hex_byte(p);
     }
 
@@ -107,39 +107,48 @@ const uint8_t magicband_color_values[] = {
 
 // --- Light mask palette (unique entries, maps enum -> 3-bit wire value) ---
 const char* const magicband_mask_names[] = {
-    [MagicBandMaskAllLEDs] = "All",        // All LEDs
-    [MagicBandMaskTopRight] = "Top R",     // Top Right
-    [MagicBandMaskBottomRight] = "Bot R",  // Bottom Right
-    [MagicBandMaskBottomLeft] = "Bot L",   // Bottom Left
-    [MagicBandMaskTopLeft] = "Top L",      // Top Left
+    [MagicBandMaskAllLEDs] = "All", // All LEDs
+    [MagicBandMaskTopRight] = "Top R", // Top Right
+    [MagicBandMaskBottomRight] = "Bot R", // Bottom Right
+    [MagicBandMaskBottomLeft] = "Bot L", // Bottom Left
+    [MagicBandMaskTopLeft] = "Top L", // Top Left
 };
 
 const uint8_t magicband_mask_values[] = {
-    [MagicBandMaskAllLEDs] = 0x00,     [MagicBandMaskTopRight] = 0x01,
-    [MagicBandMaskBottomRight] = 0x02, [MagicBandMaskBottomLeft] = 0x03,
+    [MagicBandMaskAllLEDs] = 0x00,
+    [MagicBandMaskTopRight] = 0x01,
+    [MagicBandMaskBottomRight] = 0x02,
+    [MagicBandMaskBottomLeft] = 0x03,
     [MagicBandMaskTopLeft] = 0x04,
 };
 
 // --- Vibration palette (unique entries, maps enum -> 4-bit wire value) ---
 const char* const magicband_vibration_names[] = {
-    [MagicBandVibNone] = "None",        // no vibration
-    [MagicBandVibShort1] = "1x Tap",    // - (6s break) -
-    [MagicBandVibShort2] = "2x Tap",    // -- (6s break) --
-    [MagicBandVibShort3] = "3x Tap",    // --- (6s break) ---
-    [MagicBandVibMedMix1] = "Mix 1",    // --* (4s break) --*
-    [MagicBandVibLongMix] = "Mix 2",    // ----*- (3s break) ----*-
-    [MagicBandVibLongHeavy] = "Mix 3",  // ---***--- (3s break) ---***---
-    [MagicBandVibHeavy] = "Heavy",      // # (4s break) #
-    [MagicBandVibPulse] = "Pulse",      // '''''' (6s break) ''''''
-    [MagicBandVibMedium] = "Medium",    // * (6s break) *
-    [MagicBandVibLong] = "Long",        // % (5s break) %
+    [MagicBandVibNone] = "None", // no vibration
+    [MagicBandVibShort1] = "1x Tap", // - (6s break) -
+    [MagicBandVibShort2] = "2x Tap", // -- (6s break) --
+    [MagicBandVibShort3] = "3x Tap", // --- (6s break) ---
+    [MagicBandVibMedMix1] = "Mix 1", // --* (4s break) --*
+    [MagicBandVibLongMix] = "Mix 2", // ----*- (3s break) ----*-
+    [MagicBandVibLongHeavy] = "Mix 3", // ---***--- (3s break) ---***---
+    [MagicBandVibHeavy] = "Heavy", // # (4s break) #
+    [MagicBandVibPulse] = "Pulse", // '''''' (6s break) ''''''
+    [MagicBandVibMedium] = "Medium", // * (6s break) *
+    [MagicBandVibLong] = "Long", // % (5s break) %
 };
 
 const uint8_t magicband_vibration_values[] = {
-    [MagicBandVibNone] = 0x00,      [MagicBandVibShort1] = 0x01,  [MagicBandVibShort2] = 0x02,
-    [MagicBandVibShort3] = 0x03,    [MagicBandVibMedMix1] = 0x04, [MagicBandVibLongMix] = 0x05,
-    [MagicBandVibLongHeavy] = 0x06, [MagicBandVibHeavy] = 0x07,   [MagicBandVibPulse] = 0x08,
-    [MagicBandVibMedium] = 0x0A,    [MagicBandVibLong] = 0x0B,
+    [MagicBandVibNone] = 0x00,
+    [MagicBandVibShort1] = 0x01,
+    [MagicBandVibShort2] = 0x02,
+    [MagicBandVibShort3] = 0x03,
+    [MagicBandVibMedMix1] = 0x04,
+    [MagicBandVibLongMix] = 0x05,
+    [MagicBandVibLongHeavy] = 0x06,
+    [MagicBandVibHeavy] = 0x07,
+    [MagicBandVibPulse] = 0x08,
+    [MagicBandVibMedium] = 0x0A,
+    [MagicBandVibLong] = 0x0B,
 };
 
 // --- Code type info ---
@@ -179,22 +188,22 @@ static void parse_timing_byte(uint8_t timing, MagicBandCodeParams* params) {
 
 static MagicBandVibration vibration_from_wire(uint8_t wire) {
     uint8_t val = wire & 0x0F;
-    for (int i = 0; i < MagicBandVibCount; i++) {
-        if (magicband_vibration_values[i] == val) return (MagicBandVibration)i;
+    for(int i = 0; i < MagicBandVibCount; i++) {
+        if(magicband_vibration_values[i] == val) return (MagicBandVibration)i;
     }
     return MagicBandVibNone;
 }
 
 static MagicBandColor color_from_wire(uint8_t wire) {
-    for (int i = 0; i < MagicBandColorCount; i++) {
-        if (magicband_color_values[i] == wire) return (MagicBandColor)i;
+    for(int i = 0; i < MagicBandColorCount; i++) {
+        if(magicband_color_values[i] == wire) return (MagicBandColor)i;
     }
     return MagicBandColorCyan;
 }
 
 static MagicBandMask mask_from_wire(uint8_t wire) {
-    for (int i = 0; i < MagicBandMaskCount; i++) {
-        if (magicband_mask_values[i] == wire) return (MagicBandMask)i;
+    for(int i = 0; i < MagicBandMaskCount; i++) {
+        if(magicband_mask_values[i] == wire) return (MagicBandMask)i;
     }
     return MagicBandMaskAllLEDs;
 }
@@ -204,7 +213,7 @@ MagicBandCodeType magicband_code_params_from_hex(const char* hex, MagicBandCodeP
     uint8_t func_hi = hex_byte(hex);
     uint8_t func_lo = hex_byte(hex + 2);
 
-    if (func_hi != 0xE9) return MagicBandCodeTypeCount;
+    if(func_hi != 0xE9) return MagicBandCodeTypeCount;
 
     // Skip function code (4 chars) + spacer 00 (2 chars) = offset 6
     const char* p = hex + 6;
@@ -214,9 +223,9 @@ MagicBandCodeType magicband_code_params_from_hex(const char* hex, MagicBandCodeP
     parse_timing_byte(timing, params);
     p += 2;
 
-    if (func_lo == 0x05) {
+    if(func_lo == 0x05) {
         // E905: skip unknown (0E), then mask_color, then vib
-        p += 2;  // skip 0x0E
+        p += 2; // skip 0x0E
         uint8_t mask_color = hex_byte(p);
         p += 2;
         uint8_t vib = hex_byte(p);
@@ -226,9 +235,9 @@ MagicBandCodeType magicband_code_params_from_hex(const char* hex, MagicBandCodeP
         params->vibration = vibration_from_wire(vib);
         return MagicBandCodeTypeE905;
 
-    } else if (func_lo == 0x06) {
+    } else if(func_lo == 0x06) {
         // E906: skip unknown (0F), then inner, outer, vib
-        p += 2;  // skip 0x0F
+        p += 2; // skip 0x0F
         uint8_t inner = hex_byte(p);
         p += 2;
         uint8_t outer = hex_byte(p);
@@ -240,10 +249,10 @@ MagicBandCodeType magicband_code_params_from_hex(const char* hex, MagicBandCodeP
         params->vibration = vibration_from_wire(vib);
         return MagicBandCodeTypeE906;
 
-    } else if (func_lo == 0x08) {
+    } else if(func_lo == 0x08) {
         // E908: skip D2 (2), skip 55 (2), then red, green, blue, vib
-        p += 2;  // skip 0xD2
-        p += 2;  // skip 0x55
+        p += 2; // skip 0xD2
+        p += 2; // skip 0x55
         uint8_t red = hex_byte(p);
         p += 2;
         uint8_t green = hex_byte(p);
@@ -261,10 +270,10 @@ MagicBandCodeType magicband_code_params_from_hex(const char* hex, MagicBandCodeP
         params->vibration = vibration_from_wire(vib);
         return MagicBandCodeTypeE908;
 
-    } else if (func_lo == 0x09) {
+    } else if(func_lo == 0x09) {
         // E909: skip 0F (2), then center, top_right, bottom_right, bottom_left,
         // top_left, vib
-        p += 2;  // skip 0x0F
+        p += 2; // skip 0x0F
         params->color_center = color_from_wire(hex_byte(p) & 0x1F);
         p += 2;
         params->color_top_right = color_from_wire(hex_byte(p) & 0x1F);
@@ -286,7 +295,7 @@ MagicBandCodeType magicband_code_params_from_hex(const char* hex, MagicBandCodeP
 void magicband_code_params_init(MagicBandCodeParams* params) {
     // Set baseline defaults, then override per code type from default_hex
     memset(params, 0, sizeof(*params));
-    for (int i = 0; i < MagicBandCodeTypeCount; i++) {
+    for(int i = 0; i < MagicBandCodeTypeCount; i++) {
         magicband_code_params_from_hex(magicband_code_info[i].default_hex, params);
     }
 }
@@ -305,18 +314,19 @@ static uint8_t magicband_code_generate_e905(const MagicBandCodeParams* params, u
     uint8_t vib_byte = (uint8_t)(0xB0 | (magicband_vibration_values[params->vibration] & 0x0F));
 
     const uint8_t data[] = {
-        0x0C,  // AD length (12 bytes follow)
-        0xFF,  // AD type: manufacturer specific
-        0x83,  // Disney specifier
+        0x0C, // AD length (12 bytes follow)
+        0xFF, // AD type: manufacturer specific
+        0x83, // Disney specifier
         0x01,
-        0xE1,  // Purpose unknown
+        0xE1, // Purpose unknown
         0x00,
-        0xE9,  // Single color function
+        0xE9, // Single color function
         0x05,
-        0x00,  // Spacer
+        0x00, // Spacer
         timing,
-        0x0E,  // Purpose unknown
-        mask_color, vib_byte,
+        0x0E, // Purpose unknown
+        mask_color,
+        vib_byte,
     };
     const uint8_t len = sizeof(data);
     memcpy(output, data, len);
@@ -339,18 +349,20 @@ static uint8_t magicband_code_generate_e906(const MagicBandCodeParams* params, u
     uint8_t vib_byte = (uint8_t)(0xB0 | (magicband_vibration_values[params->vibration] & 0x0F));
 
     const uint8_t data[] = {
-        0x0E,  // AD length (14 bytes follow)
-        0xFF,  // AD type: manufacturer specific
-        0x83,  // Disney specifier
+        0x0E, // AD length (14 bytes follow)
+        0xFF, // AD type: manufacturer specific
+        0x83, // Disney specifier
         0x01,
-        0xE2,  // Purpose unknown
+        0xE2, // Purpose unknown
         0x00,
-        0xE9,  // Dual color function
+        0xE9, // Dual color function
         0x06,
-        0x00,  // Spacer
+        0x00, // Spacer
         timing,
-        0x0F,  // Purpose unknown
-        inner,  outer, vib_byte,
+        0x0F, // Purpose unknown
+        inner,
+        outer,
+        vib_byte,
     };
     const uint8_t len = sizeof(data);
     memcpy(output, data, len);
@@ -375,19 +387,22 @@ static uint8_t magicband_code_generate_e908(const MagicBandCodeParams* params, u
     uint8_t vib_byte = (uint8_t)(0xB0 | (magicband_vibration_values[params->vibration] & 0x0F));
 
     const uint8_t data[] = {
-        0x10,  // AD length (16 bytes follow)
-        0xFF,  // AD type: manufacturer specific
-        0x83,  // Disney specifier
+        0x10, // AD length (16 bytes follow)
+        0xFF, // AD type: manufacturer specific
+        0x83, // Disney specifier
         0x01,
-        0xE2,  // Purpose unknown
+        0xE2, // Purpose unknown
         0x00,
-        0xE9,  // RGB color function
+        0xE9, // RGB color function
         0x08,
-        0x00,  // Spacer
+        0x00, // Spacer
         timing,
-        0xD2,  // Purpose unknown
-        0x55,  // Purpose unknown
-        red,    green, blue, vib_byte,
+        0xD2, // Purpose unknown
+        0x55, // Purpose unknown
+        red,
+        green,
+        blue,
+        vib_byte,
     };
     const uint8_t len = sizeof(data);
     memcpy(output, data, len);
@@ -413,36 +428,43 @@ static uint8_t magicband_code_generate_e909(const MagicBandCodeParams* params, u
     uint8_t vib_byte = (uint8_t)(0xB0 | (magicband_vibration_values[params->vibration] & 0x0F));
 
     const uint8_t data[] = {
-        0x10,  // AD length (16 bytes follow)
-        0xFF,  // AD type: manufacturer specific
-        0x83,  // Disney specifier
+        0x10, // AD length (16 bytes follow)
+        0xFF, // AD type: manufacturer specific
+        0x83, // Disney specifier
         0x01,
-        0xE1,  // Purpose unknown
+        0xE1, // Purpose unknown
         0x00,
-        0xE9,  // 5-zone color function
+        0xE9, // 5-zone color function
         0x09,
-        0x00,  // Spacer
+        0x00, // Spacer
         timing,
-        0x0F,  // Purpose unknown
-        center, top_right, bottom_right, bottom_left, top_left, vib_byte,
+        0x0F, // Purpose unknown
+        center,
+        top_right,
+        bottom_right,
+        bottom_left,
+        top_left,
+        vib_byte,
     };
     const uint8_t len = sizeof(data);
     memcpy(output, data, len);
     return len;
 }
 
-uint8_t magicband_code_generate(MagicBandCodeType type, const MagicBandCodeParams* params,
-                                uint8_t* output) {
-    switch (type) {
-        case MagicBandCodeTypeE905:
-            return magicband_code_generate_e905(params, output);
-        case MagicBandCodeTypeE906:
-            return magicband_code_generate_e906(params, output);
-        case MagicBandCodeTypeE908:
-            return magicband_code_generate_e908(params, output);
-        case MagicBandCodeTypeE909:
-            return magicband_code_generate_e909(params, output);
-        default:
-            return 0;
+uint8_t magicband_code_generate(
+    MagicBandCodeType type,
+    const MagicBandCodeParams* params,
+    uint8_t* output) {
+    switch(type) {
+    case MagicBandCodeTypeE905:
+        return magicband_code_generate_e905(params, output);
+    case MagicBandCodeTypeE906:
+        return magicband_code_generate_e906(params, output);
+    case MagicBandCodeTypeE908:
+        return magicband_code_generate_e908(params, output);
+    case MagicBandCodeTypeE909:
+        return magicband_code_generate_e909(params, output);
+    default:
+        return 0;
     }
 }

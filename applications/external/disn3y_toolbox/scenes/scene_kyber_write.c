@@ -1,7 +1,7 @@
 #include <gui/icon_i.h>
 
-#include "../disn3y_toolbox_app.h"
-#include "disn3y_toolbox_icons.h"
+#include "../disney_toolbox_app.h"
+#include <disney_toolbox_icons.h>
 
 static const uint8_t kyber_write_animation_length = 4;
 static const uint8_t kyber_write_animation_mod = 2;
@@ -13,24 +13,24 @@ static const Icon* kyber_write_animation[] = {
 };
 
 static void kyber_write_callback(LFRFIDWorkerWriteResult result, void* context) {
-    Disn3yToolboxApp* app = context;
+    DisneyToolboxApp* app = context;
     uint32_t event = 0;
 
     if(result == LFRFIDWorkerWriteOK) {
-        event = Disn3yToolboxEventWriteOK;
+        event = DisneyToolboxEventWriteOK;
     } else if(result == LFRFIDWorkerWriteProtocolCannotBeWritten) {
-        event = Disn3yToolboxEventWriteProtocolCannotBeWritten;
+        event = DisneyToolboxEventWriteProtocolCannotBeWritten;
     } else if(result == LFRFIDWorkerWriteFobCannotBeWritten) {
-        event = Disn3yToolboxEventWriteFobCannotBeWritten;
+        event = DisneyToolboxEventWriteFobCannotBeWritten;
     } else if(result == LFRFIDWorkerWriteTooLongToWrite) {
-        event = Disn3yToolboxEventWriteTooLongToWrite;
+        event = DisneyToolboxEventWriteTooLongToWrite;
     }
 
     view_dispatcher_send_custom_event(app->view_dispatcher, event);
 }
 
-void disn3y_toolbox_app_scene_kyber_write_on_enter(void* context) {
-    Disn3yToolboxApp* app = context;
+void disney_toolbox_app_scene_kyber_write_on_enter(void* context) {
+    DisneyToolboxApp* app = context;
     Popup* popup = app->popup;
 
     app->protocol_id = LFRFIDProtocolEM4100;
@@ -55,7 +55,7 @@ void disn3y_toolbox_app_scene_kyber_write_on_enter(void* context) {
 
     popup_set_context(popup, app);
 
-    view_dispatcher_switch_to_view(app->view_dispatcher, Disn3yToolboxAppViewPopup);
+    view_dispatcher_switch_to_view(app->view_dispatcher, DisneyToolboxAppViewPopup);
 
     lfrfid_worker_start_thread(app->lfworker);
     lfrfid_worker_write_start(
@@ -63,17 +63,17 @@ void disn3y_toolbox_app_scene_kyber_write_on_enter(void* context) {
     notification_message(app->notifications, &sequence_blink_start_magenta);
 }
 
-bool disn3y_toolbox_app_scene_kyber_write_on_event(void* context, SceneManagerEvent event) {
-    Disn3yToolboxApp* app = context;
+bool disney_toolbox_app_scene_kyber_write_on_event(void* context, SceneManagerEvent event) {
+    DisneyToolboxApp* app = context;
     Popup* popup = app->popup;
     bool consumed = false;
 
     if(event.type == SceneManagerEventTypeCustom) {
-        if(event.event == Disn3yToolboxEventWriteOK) {
+        if(event.event == DisneyToolboxEventWriteOK) {
             notification_message(app->notifications, &sequence_success);
-            scene_manager_next_scene(app->scene_manager, Disn3yToolboxAppSceneKyberWriteSuccess);
+            scene_manager_next_scene(app->scene_manager, DisneyToolboxAppSceneKyberWriteSuccess);
             consumed = true;
-        } else if(event.event == Disn3yToolboxEventWriteProtocolCannotBeWritten) {
+        } else if(event.event == DisneyToolboxEventWriteProtocolCannotBeWritten) {
             app->write_animation_paused = true;
             popup_set_icon(popup, 0, 0, NULL);
             popup_set_header(popup, "Error", 64, 3, AlignCenter, AlignTop);
@@ -81,8 +81,8 @@ bool disn3y_toolbox_app_scene_kyber_write_on_event(void* context, SceneManagerEv
             notification_message(app->notifications, &sequence_blink_start_red);
             consumed = true;
         } else if(
-            (event.event == Disn3yToolboxEventWriteFobCannotBeWritten) ||
-            (event.event == Disn3yToolboxEventWriteTooLongToWrite)) {
+            (event.event == DisneyToolboxEventWriteFobCannotBeWritten) ||
+            (event.event == DisneyToolboxEventWriteTooLongToWrite)) {
             app->write_animation_paused = true;
             popup_set_icon(popup, 0, 0, NULL);
             popup_set_header(popup, "Still Trying to Write...", 64, 0, AlignCenter, AlignTop);
@@ -117,8 +117,8 @@ bool disn3y_toolbox_app_scene_kyber_write_on_event(void* context, SceneManagerEv
     return consumed;
 }
 
-void disn3y_toolbox_app_scene_kyber_write_on_exit(void* context) {
-    Disn3yToolboxApp* app = context;
+void disney_toolbox_app_scene_kyber_write_on_exit(void* context) {
+    DisneyToolboxApp* app = context;
     notification_message(app->notifications, &sequence_blink_stop);
     popup_reset(app->popup);
 

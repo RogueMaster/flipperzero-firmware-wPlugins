@@ -1,7 +1,7 @@
-#include "../disn3y_toolbox_app.h"
+#include "../disney_toolbox_app.h"
 
-void disn3y_toolbox_app_scene_kyber_about_on_enter(void* context) {
-    Disn3yToolboxApp* app = context;
+void disney_toolbox_app_scene_kyber_about_on_enter(void* context) {
+    DisneyToolboxApp* app = context;
     Widget* widget = app->widget;
 
     FuriString* temp_str;
@@ -29,16 +29,16 @@ void disn3y_toolbox_app_scene_kyber_about_on_enter(void* context) {
     widget_add_text_scroll_element(widget, 0, 0, 128, 64, furi_string_get_cstr(temp_str));
     furi_string_free(temp_str);
 
-    view_dispatcher_switch_to_view(app->view_dispatcher, Disn3yToolboxAppViewWidget);
+    view_dispatcher_switch_to_view(app->view_dispatcher, DisneyToolboxAppViewWidget);
 }
 
-bool disn3y_toolbox_app_scene_kyber_about_on_event(void* context, SceneManagerEvent event) {
+bool disney_toolbox_app_scene_kyber_about_on_event(void* context, SceneManagerEvent event) {
     UNUSED(context);
     UNUSED(event);
     return false;
 }
 
-void disn3y_toolbox_app_scene_kyber_about_on_exit(void* context) {
-    Disn3yToolboxApp* app = context;
+void disney_toolbox_app_scene_kyber_about_on_exit(void* context) {
+    DisneyToolboxApp* app = context;
     widget_reset(app->widget);
 }

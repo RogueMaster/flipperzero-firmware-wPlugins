@@ -78,7 +78,7 @@ typedef struct {
     DroidLocation selected_droid_location;
     uint8_t droid_loc_interval_idx;
     uint8_t droid_loc_rssi_idx;
-    uint8_t droid_loc_field;  // LocField enum from scene_droid_location
+    uint8_t droid_loc_field; // LocField enum from scene_droid_location
 
     // Animation
     uint8_t animation_counter;

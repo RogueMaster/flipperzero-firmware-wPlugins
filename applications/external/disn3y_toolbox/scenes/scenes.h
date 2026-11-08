@@ -3,14 +3,14 @@
 #include <gui/scene_manager.h>
 
 // Generate scene id and total number
-#define ADD_SCENE(prefix, name, id) Disn3yToolboxAppScene##id,
+#define ADD_SCENE(prefix, name, id) DisneyToolboxAppScene##id,
 typedef enum {
 #include "scene_config.h"
-    Disn3yToolboxAppSceneNum,
-} Disn3yToolboxAppScene;
+    DisneyToolboxAppSceneNum,
+} DisneyToolboxAppScene;
 #undef ADD_SCENE
 
-extern const SceneManagerHandlers disn3y_toolbox_app_scene_handlers;
+extern const SceneManagerHandlers disney_toolbox_app_scene_handlers;
 
 // Generate scene on_enter handlers declaration
 #define ADD_SCENE(prefix, name, id) void prefix##_scene_##name##_on_enter(void*);

@@ -108,7 +108,7 @@ void magicband_code_params_init(MagicBandCodeParams* params);
 
 // Parse a hex string payload (e.g. "e90500090eedb0") and set params
 // accordingly. The hex string should start with the function code
-// (E905/E906/E908) and not include the 8301 Disn3y specifier or E100/E200
+// (E905/E906/E908) and not include the 8301 Disney specifier or E100/E200
 // prefix. Returns the detected code type, or MagicBandCodeTypeCount on error.
 MagicBandCodeType magicband_code_params_from_hex(const char* hex, MagicBandCodeParams* params);
 

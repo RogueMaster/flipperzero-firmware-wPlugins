@@ -1,8 +1,8 @@
 App(
-    appid="disn3y_toolbox",
-    name="Disn3y Toolbox",
+    appid="disney_toolbox",
+    name="Disney Toolbox",
     apptype=FlipperAppType.EXTERNAL,
-    entry_point="disn3y_toolbox_app",
+    entry_point="disney_toolbox_app",
     stack_size=2 * 1024,
     fap_icon="images/icon_10x.png",
     fap_icon_assets="images",

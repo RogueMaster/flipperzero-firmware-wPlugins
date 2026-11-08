@@ -1,17 +1,17 @@
-#include <disn3y_toolbox_icons.h>
+#include <disney_toolbox_icons.h>
 #include <furi.h>
 
 #include "../data/kyber_crystals.h"
-#include "../disn3y_toolbox_app.h"
+#include "../disney_toolbox_app.h"
 
-static void disn3y_toolbox_app_scene_kyber_selector_s1_confirm_dialog_callback(
+static void disney_toolbox_app_scene_kyber_selector_s1_confirm_dialog_callback(
     DialogExResult result,
     void* context) {
-    Disn3yToolboxApp* app = context;
+    DisneyToolboxApp* app = context;
     view_dispatcher_send_custom_event(app->view_dispatcher, result);
 }
 
-static void kyber_selector_s1_update_status_text(Disn3yToolboxApp* app) {
+static void kyber_selector_s1_update_status_text(DisneyToolboxApp* app) {
     DialogEx* dialog_ex = app->dialog_ex;
 
     dialog_ex_set_header(dialog_ex, "Kyber Crystal Series 1", 0, 0, AlignLeft, AlignTop);
@@ -41,21 +41,21 @@ static void kyber_selector_s1_update_status_text(Disn3yToolboxApp* app) {
     dialog_ex_set_center_button_text(dialog_ex, "Write");
 
     dialog_ex_set_result_callback(
-        dialog_ex, disn3y_toolbox_app_scene_kyber_selector_s1_confirm_dialog_callback);
+        dialog_ex, disney_toolbox_app_scene_kyber_selector_s1_confirm_dialog_callback);
     dialog_ex_set_context(dialog_ex, app);
 }
 
-void disn3y_toolbox_app_scene_kyber_selector_s1_on_enter(void* context) {
-    Disn3yToolboxApp* app = context;
+void disney_toolbox_app_scene_kyber_selector_s1_on_enter(void* context) {
+    DisneyToolboxApp* app = context;
     app->kyber_series = 1;
 
     kyber_selector_s1_update_status_text(app);
 
-    view_dispatcher_switch_to_view(app->view_dispatcher, Disn3yToolboxAppViewDialog);
+    view_dispatcher_switch_to_view(app->view_dispatcher, DisneyToolboxAppViewDialog);
 }
 
-bool disn3y_toolbox_app_scene_kyber_selector_s1_on_event(void* context, SceneManagerEvent event) {
-    Disn3yToolboxApp* app = context;
+bool disney_toolbox_app_scene_kyber_selector_s1_on_event(void* context, SceneManagerEvent event) {
+    DisneyToolboxApp* app = context;
 
     if(event.type == SceneManagerEventTypeCustom) {
         if(event.event == DialogExResultLeft) {
@@ -71,14 +71,14 @@ bool disn3y_toolbox_app_scene_kyber_selector_s1_on_event(void* context, SceneMan
             }
             return true;
         } else if(event.event == DialogExResultCenter) {
-            scene_manager_next_scene(app->scene_manager, Disn3yToolboxAppSceneKyberWrite);
+            scene_manager_next_scene(app->scene_manager, DisneyToolboxAppSceneKyberWrite);
             return true;
         }
     }
     return false;
 }
 
-void disn3y_toolbox_app_scene_kyber_selector_s1_on_exit(void* context) {
-    Disn3yToolboxApp* app = context;
+void disney_toolbox_app_scene_kyber_selector_s1_on_exit(void* context) {
+    DisneyToolboxApp* app = context;
     dialog_ex_reset(app->dialog_ex);
 }

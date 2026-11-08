@@ -1,7 +1,7 @@
 #include <gui/icon_i.h>
 
-#include "../disn3y_toolbox_app.h"
-#include "disn3y_toolbox_icons.h"
+#include "../disney_toolbox_app.h"
+#include <disney_toolbox_icons.h>
 
 static bool worker_running;
 
@@ -18,15 +18,15 @@ static void kyber_series_check_read_callback(
     LFRFIDWorkerReadResult result,
     ProtocolId protocol,
     void* context) {
-    Disn3yToolboxApp* app = context;
+    DisneyToolboxApp* app = context;
     if(result == LFRFIDWorkerReadDone) {
         app->protocol_id = protocol;
-        view_dispatcher_send_custom_event(app->view_dispatcher, Disn3yToolboxEventReadDone);
+        view_dispatcher_send_custom_event(app->view_dispatcher, DisneyToolboxEventReadDone);
     }
 }
 
-void disn3y_toolbox_app_scene_kyber_series_check_on_enter(void* context) {
-    Disn3yToolboxApp* app = context;
+void disney_toolbox_app_scene_kyber_series_check_on_enter(void* context) {
+    DisneyToolboxApp* app = context;
     Popup* popup = app->popup;
 
     popup_set_icon(
@@ -34,7 +34,7 @@ void disn3y_toolbox_app_scene_kyber_series_check_on_enter(void* context) {
     popup_set_header(popup, "Reading", 97, 12, AlignCenter, AlignTop);
     popup_set_text(popup, "Place\ncrystal\non Flipper", 97, 25, AlignCenter, AlignTop);
 
-    view_dispatcher_switch_to_view(app->view_dispatcher, Disn3yToolboxAppViewPopup);
+    view_dispatcher_switch_to_view(app->view_dispatcher, DisneyToolboxAppViewPopup);
 
     worker_running = true;
     lfrfid_worker_start_thread(app->lfworker);
@@ -44,12 +44,12 @@ void disn3y_toolbox_app_scene_kyber_series_check_on_enter(void* context) {
     notification_message(app->notifications, &sequence_blink_start_cyan);
 }
 
-bool disn3y_toolbox_app_scene_kyber_series_check_on_event(void* context, SceneManagerEvent event) {
-    Disn3yToolboxApp* app = context;
+bool disney_toolbox_app_scene_kyber_series_check_on_event(void* context, SceneManagerEvent event) {
+    DisneyToolboxApp* app = context;
     bool consumed = false;
 
     if(event.type == SceneManagerEventTypeCustom) {
-        if(event.event == Disn3yToolboxEventReadDone) {
+        if(event.event == DisneyToolboxEventReadDone) {
             notification_message(app->notifications, &sequence_blink_stop);
             notification_message(app->notifications, &sequence_success);
 
@@ -120,7 +120,7 @@ bool disn3y_toolbox_app_scene_kyber_series_check_on_event(void* context, SceneMa
             widget_add_text_scroll_element(widget, 0, 0, 128, 64, furi_string_get_cstr(result));
             furi_string_free(result);
 
-            view_dispatcher_switch_to_view(app->view_dispatcher, Disn3yToolboxAppViewWidget);
+            view_dispatcher_switch_to_view(app->view_dispatcher, DisneyToolboxAppViewWidget);
             consumed = true;
         }
     } else if(event.type == SceneManagerEventTypeTick && worker_running) {
@@ -143,8 +143,8 @@ bool disn3y_toolbox_app_scene_kyber_series_check_on_event(void* context, SceneMa
     return consumed;
 }
 
-void disn3y_toolbox_app_scene_kyber_series_check_on_exit(void* context) {
-    Disn3yToolboxApp* app = context;
+void disney_toolbox_app_scene_kyber_series_check_on_exit(void* context) {
+    DisneyToolboxApp* app = context;
     notification_message(app->notifications, &sequence_blink_stop);
     popup_reset(app->popup);
     widget_reset(app->widget);

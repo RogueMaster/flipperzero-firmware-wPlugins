@@ -1,5 +1,5 @@
 #include "../disney_toolbox_app.h"
-#include "disney_toolbox_icons.h"
+#include <disney_toolbox_icons.h>
 
 #define LOC_BC_ANIMATION_FRAMES 5
 #define LOC_BC_ANIMATION_MOD    2
