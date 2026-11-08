@@ -13,6 +13,7 @@ export const SUPPORT_URL = "https://github.com/ataman-lab/pc-health-remote/issue
 // Shown in the bot menu (setMyCommands via admin /setcommands). Telegram requires /paysupport for Stars bots.
 export const COMMANDS = {
   en: [
+    ["help", "All commands and buttons"],
     ["link", "Get a code to link a PC"],
     ["pcs", "Linked PCs"],
     ["status", "Plan and alerts today"],
@@ -22,6 +23,7 @@ export const COMMANDS = {
     ["support", "Report a problem"],
   ],
   ru: [
+    ["help", "Все команды и кнопки"],
     ["link", "Код для привязки ПК"],
     ["pcs", "Привязанные ПК"],
     ["status", "Тариф и уведомления за сегодня"],
@@ -30,6 +32,28 @@ export const COMMANDS = {
     ["terms", "Условия Pro"],
     ["support", "Сообщить о проблеме"],
   ],
+};
+// Persistent reply keyboard: button label -> command. Shown on /start and /help.
+export const BUTTONS = {
+  en: [
+    ["🔗 Link PC", "/link"],
+    ["💻 My PCs", "/pcs"],
+    ["📊 Status", "/status"],
+    ["⭐ Pro", "/pro"],
+    ["❓ Help", "/help"],
+  ],
+  ru: [
+    ["🔗 Привязать ПК", "/link"],
+    ["💻 Мои ПК", "/pcs"],
+    ["📊 Статус", "/status"],
+    ["⭐ Pro", "/pro"],
+    ["❓ Помощь", "/help"],
+  ],
+};
+const BUTTON_CMD = new Map(Object.values(BUTTONS).flat());
+const keyboard = (lang) => {
+  const b = BUTTONS[lang].map(([text]) => ({ text }));
+  return { keyboard: [[b[0], b[1]], [b[2], b[3]], [b[4]]], resize_keyboard: true, is_persistent: true };
 };
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
@@ -47,8 +71,8 @@ export const RULES = {
 const isNum = (v) => typeof v === "number" && Number.isFinite(v);
 
 const GREETING = {
-  en: "Hi! I send PC Health Remote alerts to your phone.\n\n1. Send /link to get a 6-character code.\n2. On the PC run: pc-health-remote.exe --link-telegram CODE\n\nCommands: /link, /pcs, /unlink <name>, /status, /pro\nHelp: /support, /paysupport, /terms",
-  ru: "Привет! Я присылаю уведомления PC Health Remote на телефон.\n\n1. Отправьте /link, чтобы получить 6-значный код.\n2. На ПК выполните: pc-health-remote.exe --link-telegram КОД\n\nКоманды: /link, /pcs, /unlink <имя>, /status, /pro\nПомощь: /support, /paysupport, /terms",
+  en: "Hi! I send PC Health Remote alerts to your phone.\n\n1. Send /link to get a 6-character code.\n2. On the PC run: pc-health-remote.exe --link-telegram CODE\n\nCommands: /link, /pcs, /unlink <name>, /status, /pro\nHelp: /help",
+  ru: "Привет! Я присылаю уведомления PC Health Remote на телефон.\n\n1. Отправьте /link, чтобы получить 6-значный код.\n2. На ПК выполните: pc-health-remote.exe --link-telegram КОД\n\nКоманды: /link, /pcs, /unlink <имя>, /status, /pro\nПомощь: /help",
 };
 
 const T = {
@@ -66,6 +90,8 @@ const T = {
     thanks: (d) => "Thank you! Pro is active until " + d + ".",
     status: (plan, exp, pcs, n, id, admin) => "Plan: " + plan + (exp ? "\nExpires: " + exp : "") + "\nPCs: " + pcs + "\nAlerts today: " + n + "\nChat id: " + id + (admin ? " (admin)" : ""),
     limit: "Daily free limit of " + FREE_DAILY_LIMIT + " alerts reached. More alerts will be dropped until tomorrow (UTC).",
+    help: "Commands:\n/link - code to link a PC\n/pcs - linked PCs\n/unlink <name> - remove a PC\n/status - plan, alerts today, chat id\n/pro - Pro subscription\n/paysupport - help with a payment\n/terms - terms of Pro\n/support - report a problem",
+    payBtn: "Pay " + PRO_PRICE_STARS + " ⭐ for 30 days",
     pcLimit: "This PC was not linked: the free plan has " + FREE_MAX_PCS + " PC. Unlink one with /unlink <name>, or get Pro for up to " + PRO_MAX_PCS + " PCs.",
     pcLimitPro: "This PC was not linked: Pro allows up to " + PRO_MAX_PCS + " PCs. Unlink one with /unlink <name>.",
     paysupport:
@@ -91,6 +117,8 @@ const T = {
     thanks: (d) => "Спасибо! Pro активен до " + d + ".",
     status: (plan, exp, pcs, n, id, admin) => "Тариф: " + plan + (exp ? "\nДо: " + exp : "") + "\nПК: " + pcs + "\nУведомлений сегодня: " + n + "\nChat id: " + id + (admin ? " (админ)" : ""),
     limit: "Достигнут бесплатный лимит: " + FREE_DAILY_LIMIT + " уведомлений в сутки. Остальные до завтра (UTC) не будут отправлены.",
+    help: "Команды:\n/link - код для привязки ПК\n/pcs - привязанные ПК\n/unlink <имя> - убрать ПК\n/status - тариф, уведомления за сегодня, chat id\n/pro - подписка Pro\n/paysupport - помощь с оплатой\n/terms - условия Pro\n/support - сообщить о проблеме",
+    payBtn: "Оплатить " + PRO_PRICE_STARS + " ⭐ за 30 дней",
     pcLimit: "ПК не привязан: в бесплатном тарифе " + FREE_MAX_PCS + " ПК. Отвяжите лишний через /unlink <имя> или возьмите Pro (до " + PRO_MAX_PCS + " ПК).",
     pcLimitPro: "ПК не привязан: в Pro до " + PRO_MAX_PCS + " ПК. Отвяжите лишний через /unlink <имя>.",
     paysupport:
@@ -188,12 +216,17 @@ function counter(env, ckey) {
   };
 }
 
-async function send(env, f, chat, text) {
-  const res = await f("https://api.telegram.org/bot" + env.BOT_TOKEN + "/sendMessage", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ chat_id: chat, text }),
-  });
+async function send(env, f, chat, text, reply_markup) {
+  let res;
+  try {
+    res = await f("https://api.telegram.org/bot" + env.BOT_TOKEN + "/sendMessage", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(reply_markup ? { chat_id: chat, text, reply_markup } : { chat_id: chat, text }),
+    });
+  } catch {
+    return false;
+  }
   return res.ok;
 }
 
@@ -231,7 +264,15 @@ async function proOffer(env, f, chat, t) {
     prices: [{ label: "Pro 30d", amount: PRO_PRICE_STARS }],
     subscription_period: PRO_PERIOD_SEC,
   });
-  return r && r.result ? t.pro(r.result) : null;
+  if (!(r && r.result)) return null;
+  return { text: t.pro(r.result), markup: { inline_keyboard: [[{ text: t.payBtn, url: r.result }]] } };
+}
+
+// Sends `note` (optional) followed by the Pro offer with a pay button; plain note when no offer.
+async function sendWithOffer(env, f, chat, t, note) {
+  const offer = await proOffer(env, f, chat, t);
+  if (!offer) return send(env, f, chat, note || t.proFail);
+  return send(env, f, chat, note ? note + "\n\n" + offer.text : offer.text, offer.markup);
 }
 
 async function handlePayment(msg, env, f, now) {
@@ -322,19 +363,22 @@ async function handleMessage(msg, env, f, now) {
   if (chat === undefined) return;
   if (msg.successful_payment) return handlePayment(msg, env, f, now);
   if (typeof msg.text !== "string") return;
-  if (!msg.text.startsWith("/")) return handleSupportText(msg, env, f, now);
+  const text = BUTTON_CMD.get(msg.text.trim()) || msg.text;
+  if (!text.startsWith("/")) return handleSupportText(msg, env, f, now);
   const kv = env.PHR;
   const user = await getUser(kv, chat);
   user.lang = langOf(msg.from && msg.from.language_code);
   const t = T[user.lang];
-  const [cmdRaw, ...rest] = msg.text.trim().split(/\s+/);
+  const [cmdRaw, ...rest] = text.trim().split(/\s+/);
   const cmd = cmdRaw.split("@")[0].toLowerCase();
 
   if (cmd === "/start") {
     const m = /^src_([A-Za-z0-9_-]{1,32})$/.exec(rest[0] || "");
     if (m) user.src = m[1];
     await kv.put("user:" + chat, JSON.stringify(user));
-    await send(env, f, chat, GREETING[user.lang]);
+    await send(env, f, chat, GREETING[user.lang], keyboard(user.lang));
+  } else if (cmd === "/help") {
+    await send(env, f, chat, t.help, keyboard(user.lang));
   } else if (cmd === "/link") {
     const code = randomCode();
     await kv.put("code:" + code, JSON.stringify({ chat, exp: now() + CODE_TTL_SEC * 1000 }), {
@@ -343,7 +387,7 @@ async function handleMessage(msg, env, f, now) {
     await kv.put("user:" + chat, JSON.stringify(user));
     await send(env, f, chat, t.code(code));
   } else if (cmd === "/pro") {
-    await send(env, f, chat, (await proOffer(env, f, chat, t)) || t.proFail);
+    await sendWithOffer(env, f, chat, t);
   } else if (cmd === "/paysupport") {
     user.ask = now() + SUPPORT_WINDOW_SEC * 1000;
     await kv.put("user:" + chat, JSON.stringify(user));
@@ -441,8 +485,7 @@ async function handlePair(req, env, f, now) {
     if (isPro(user, now)) {
       await send(env, f, rec.chat, t.pcLimitPro);
     } else {
-      const offer = await proOffer(env, f, rec.chat, t);
-      await send(env, f, rec.chat, offer ? t.pcLimit + "\n\n" + offer : t.pcLimit);
+      await sendWithOffer(env, f, rec.chat, t, t.pcLimit);
     }
     return json({ error: "pc limit reached" }, 403);
   }
@@ -478,8 +521,7 @@ async function handleAlert(req, env, f, now) {
     const r = await counter(env, "cnt:" + dev.chat + ":" + dayOf(now)).hit(FREE_DAILY_LIMIT);
     if (!r.allowed) {
       if (r.noteNow) {
-        const offer = await proOffer(env, f, dev.chat, t);
-        await send(env, f, dev.chat, offer ? t.limit + "\n\n" + offer : t.limit);
+        await sendWithOffer(env, f, dev.chat, t, t.limit);
       }
       return json({ ok: false, limited: true }, 429);
     }

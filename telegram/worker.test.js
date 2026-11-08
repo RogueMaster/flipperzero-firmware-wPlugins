@@ -366,7 +366,7 @@ test("/paysupport, /terms, /support answer in EN and RU", async () => {
     assert.match(s.sent.at(-1).text, re);
   }
   await s.say("/start", { language_code: "en" }, 7);
-  assert.match(s.sent.at(-1).text, /\/paysupport/);
+  assert.match(s.sent.at(-1).text, /\/help/);
 });
 
 test("PC limit: free user is told in chat with a Pro offer; Pro user without offer", async () => {
@@ -458,4 +458,36 @@ test("/status shows the chat id and marks the admin", async () => {
   assert.match(s.sent.at(-1).text, /Chat id: 42$/);
   await s.say("/status", {}, 999);
   assert.match(s.sent.at(-1).text, /Chat id: 999 \(admin\)/);
+});
+
+test("/start and /help show the reply keyboard; buttons act as commands", async () => {
+  const s = setup();
+  await s.say("/start", { language_code: "ru" }, 3);
+  const kb = s.sent.at(-1).reply_markup;
+  assert.equal(kb.is_persistent, true);
+  assert.deepEqual(kb.keyboard.flat().map((b) => b.text), ["🔗 Привязать ПК", "💻 Мои ПК", "📊 Статус", "⭐ Pro", "❓ Помощь"]);
+  await s.say("📊 Статус", { language_code: "ru" }, 3);
+  assert.match(s.sent.at(-1).text, /Тариф: Free/);
+  await s.say("🔗 Link PC", { language_code: "en" }, 3);
+  assert.match(s.sent.at(-1).text, /Your code: [A-Z0-9]{6}/);
+  await s.say("/help", { language_code: "en" }, 3);
+  assert.match(s.sent.at(-1).text, /\/paysupport/);
+  assert.ok(s.sent.at(-1).reply_markup.keyboard);
+  // a button label is never forwarded as a support message
+  await s.say("/paysupport", {}, 3);
+  const n = s.sent.length;
+  await s.say("⭐ Pro", {}, 3);
+  assert.equal(s.sent.filter((m) => m.chat_id === "999").length, 0);
+  assert.ok(s.sent.length > n);
+});
+
+test("Pro offer carries an inline pay button with the invoice link", async () => {
+  const s = setup();
+  await s.say("/pro", { language_code: "en" }, 5);
+  const m = s.sent.at(-1);
+  assert.deepEqual(m.reply_markup, { inline_keyboard: [[{ text: "Pay 99 ⭐ for 30 days", url: "https://t.me/$inv" }]] });
+  await pair(s, "A", 5);
+  await pair(s, "B", 5);
+  assert.match(s.sent.at(-1).text, /free plan/);
+  assert.equal(s.sent.at(-1).reply_markup.inline_keyboard[0][0].url, "https://t.me/$inv");
 });
