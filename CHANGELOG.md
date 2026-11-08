@@ -1,5 +1,18 @@
 ## v2.1-beta
 
+## Santo Domingo Parser (Dominican Republic)
+
+- Added Santo Domingo parser for MetroSD / SDGO MIFARE Classic 1K cards
+  (Metro, OMSA buses, Teleferico) - dumps and system notes by @DIVIADAR
+  - Cash purse balance in Dominican pesos, plus how many Metro rides it buys
+  - Metro trip bundles: trips remaining and bundle size (10/20/30)
+  - Fare reference for the three modes
+  - Recent taps are listed by sequence number only; the per-tap log is not
+    fully decoded, so its remaining field is shown raw rather than guessed at
+- Card detection works on every card including the hardened SDGO batch, since
+  sector 0 carries a shared issuer signature. Reading the purse and trips still
+  needs a key file recovered for that UID, as with SmartRider
+
 ## BIP Piemonte (GTT) Parser
 
 - Added BIP GTT parser (Turin / Piedmont, Italy) - contributed by @filippo-ferrando

@@ -203,3 +203,12 @@ App(
     sources=["scenes/plugins/trt.c"],
     fal_embedded=True,
 )
+
+App(
+    appid="santo_domingo_plugin",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="santo_domingo_plugin_ep",
+    requires=["metroflip"],
+    sources=["scenes/plugins/santo_domingo.c"],
+    fal_embedded=True,
+)

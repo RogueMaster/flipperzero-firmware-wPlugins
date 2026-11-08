@@ -71,6 +71,7 @@ This is a list of metro cards and transit systems that need support or have part
 |--------------------|----------------------------------------------|-------------------|
 | **BIP (GTT)**      | 🇮🇹 Turin / Piedmont, Italy                   | Calypso           |
 | **Bip!**           | 🇨🇱 Santiago de Chile, Chile                  | MIFARE Classic    |
+| **MetroSD / SDGO** | 🇩🇴 Santo Domingo, Dominican Republic         | MIFARE Classic    |
 | **Charliecard**    | 🇺🇸 Boston, MA, USA                           | MIFARE Classic    |
 | **Clipper**        | 🇺🇸 San Francisco, CA, USA                    | MIFARE DESFire    |
 | **Go Card**        | 🇦🇺 Gold Coast, QLD, Australia                | MIFARE Classic    |
