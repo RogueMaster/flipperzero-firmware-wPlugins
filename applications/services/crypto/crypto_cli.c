@@ -4,7 +4,7 @@
 #include <lib/toolbox/args.h>
 #include <toolbox/pipe.h>
 #include <cli/cli_main_commands.h>
-#include <toolbox/cli/cli_registry.h>
+#include <toolbox/cli/cli_command.h>
 #include <toolbox/cli/cli_ansi.h>
 
 void crypto_cli_print_usage(void) {

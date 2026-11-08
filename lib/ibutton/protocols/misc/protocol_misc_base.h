@@ -10,8 +10,8 @@
 /**
  * Write protocol data into a blank of a specific type.
  *
- * Only the protocol knows how its data is laid out in the code frame and what
- * blank it needs, so all the wire-level details stay out of the protocol group.
+ * The protocol chooses the blank writer and hands it the code to program; the
+ * writer lays the code out in the frame its blank expects.
  *
  * @param host    OneWire host instance.
  * @param target  Blank type to address, one of the protocol's write_targets.

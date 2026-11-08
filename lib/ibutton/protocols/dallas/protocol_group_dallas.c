@@ -314,7 +314,9 @@ static bool ibutton_protocol_group_dallas_is_writable(
     UNUSED(group);
     UNUSED(data);
     furi_assert(id < iButtonProtocolDSMax);
-    // The CRC affects whether the key will read back, not whether it can be written
+    // No veto: a ROM whose CRC does not match is still something a blank can carry, and
+    // writing one is a thing people do on purpose. The CRC decides whether the key reads
+    // back, not whether it can be written.
     return true;
 }
 
@@ -356,9 +358,6 @@ const iButtonProtocolGroupBase ibutton_protocol_group_dallas = {
     .read = (iButtonProtocolGroupReadFunc)ibutton_protocol_group_dallas_read,
     .get_write_targets =
         (iButtonProtocolGroupGetTargetsFunc)ibutton_protocol_group_dallas_get_write_targets,
-    // No veto: a ROM whose CRC does not match is still something a blank can carry, and
-    // writing one is a thing people do on purpose.
-    .can_write_id = NULL,
     .write_id = (iButtonProtocolGroupWriteIdFunc)ibutton_protocol_group_dallas_write_id,
     .write_copy = (iButtonProtocolGroupWriteFunc)ibutton_protocol_group_dallas_write_copy,
 
