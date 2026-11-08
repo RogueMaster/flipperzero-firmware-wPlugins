@@ -29,8 +29,7 @@ static bool valid_v3(const AppSettingsV3* s) {
 static bool valid(const AppSettings* s) {
     return s->version == APP_SETTINGS_VERSION && known_connection(s->connection) &&
            s->autosave <= 1 && known_feedback(s->feedback) && s->sound <= 1 &&
-           s->after_scan <= AppAfterScanWeigh && s->weigh_as <= AppWeighAsNet &&
-           s->first_run_done <= 1;
+           s->after_scan <= AppAfterScanWeigh && s->weigh_as <= AppWeighAsNet && s->reserved <= 1;
 }
 
 void app_settings_defaults(AppSettings* settings) {
@@ -41,7 +40,7 @@ void app_settings_defaults(AppSettings* settings) {
     settings->sound = 0;
     settings->after_scan = AppAfterScanShow;
     settings->weigh_as = AppWeighAsGross;
-    settings->first_run_done = 0;
+    settings->reserved = 0;
 }
 
 void app_settings_load(AppSettings* settings, const AppSettingsStorage* storage) {
@@ -52,6 +51,7 @@ void app_settings_load(AppSettings* settings, const AppSettingsStorage* storage)
     if(storage->load(storage->ctx, APP_SETTINGS_VERSION, &stored, sizeof(stored)) &&
        valid(&stored)) {
         *settings = stored;
+        settings->reserved = 0;
         return;
     }
     app_settings_defaults(settings);
@@ -71,10 +71,7 @@ void app_settings_load(AppSettings* settings, const AppSettingsStorage* storage)
         storage->load(storage->ctx, 1, &v1, sizeof(v1)) && v1.version == 1 &&
         known_transport(v1.transport)) {
         settings->connection = v1.transport;
-    } else {
-        return; /* no file, or none that reads: a first run */
     }
-    settings->first_run_done = 1; /* an older file: a run before */
 }
 
 bool app_settings_save(const AppSettings* settings, const AppSettingsStorage* storage) {
@@ -142,12 +139,4 @@ void app_settings_set_weigh_as(AppSettings* settings, AppWeighAs weigh_as) {
     if(weigh_as == AppWeighAsGross || weigh_as == AppWeighAsNet) {
         settings->weigh_as = (uint8_t)weigh_as;
     }
-}
-
-bool app_settings_first_run_done(const AppSettings* settings) {
-    return settings->first_run_done != 0;
-}
-
-void app_settings_set_first_run_done(AppSettings* settings) {
-    settings->first_run_done = 1;
 }

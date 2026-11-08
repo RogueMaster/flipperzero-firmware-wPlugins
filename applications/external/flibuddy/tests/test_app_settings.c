@@ -90,11 +90,11 @@ static void put_v4_file(
     uint8_t sound,
     uint8_t after_scan,
     uint8_t weigh_as,
-    uint8_t first_run_done) {
+    uint8_t reserved) {
     put_v3_file(connection, autosave, feedback, sound, after_scan, weigh_as);
     file_version = 4;
     file[0] = 4;
-    file[7] = first_run_done;
+    file[7] = reserved;
     file_size = 8;
 }
 
@@ -113,7 +113,7 @@ static void check_defaults(const AppSettings* s) {
     CHECK(!app_settings_sound(s));
     CHECK_EQ_INT(app_settings_after_scan(s), AppAfterScanShow);
     CHECK_EQ_INT(app_settings_weigh_as(s), AppWeighAsGross);
-    CHECK(!app_settings_first_run_done(s));
+    CHECK_EQ_INT(s->reserved, 0);
 }
 
 static void test_settings_live_in_the_flibuddy_dir(void) {
@@ -121,7 +121,7 @@ static void test_settings_live_in_the_flibuddy_dir(void) {
     CHECK_STR_EQ(APP_SETTINGS_PATH, "/ext/apps_data/flibuddy/settings.bin");
 }
 
-static void test_layout_is_version_transport_autosave_feedback_sound_after_weigh_first_run(void) {
+static void test_layout_is_version_transport_autosave_feedback_sound_after_weigh_reserved(void) {
     CHECK_EQ_INT(sizeof(AppSettings), 8);
     CHECK_EQ_INT(sizeof(AppSettingsV3), 7);
     CHECK_EQ_INT(sizeof(AppSettingsV2), 5);
@@ -144,7 +144,7 @@ static void test_layout_is_version_transport_autosave_feedback_sound_after_weigh
     CHECK_EQ_INT(AppWeighAsNet, 1);
 }
 
-static void test_defaults_are_auto_autosave_off_show_gross_vibro_led_silent_first_run(void) {
+static void test_defaults_are_auto_autosave_off_show_gross_vibro_led_silent(void) {
     AppSettings s;
     memset(&s, 0xAA, sizeof(s));
     app_settings_defaults(&s);
@@ -157,16 +157,18 @@ static void test_missing_file_loads_defaults(void) {
     check_defaults(&s);
 }
 
+/* Byte 7 is reserved: builds before 1.0's release stored a first-run flag
+ * there, so 0 and 1 load (and read back as 0); anything else does not. */
 static void test_saved_v4_file_loads(void) {
     put_v4_file(AppConnectionBluetooth, 1, AppFeedbackOff, 1, AppAfterScanWeigh, AppWeighAsNet, 1);
     AppSettings s = loaded();
+    CHECK_EQ_INT(s.reserved, 0);
     CHECK_EQ_INT(app_settings_connection(&s), AppConnectionBluetooth);
     CHECK(app_settings_autosave(&s));
     CHECK_EQ_INT(app_settings_feedback(&s), AppFeedbackOff);
     CHECK(app_settings_sound(&s));
     CHECK_EQ_INT(app_settings_after_scan(&s), AppAfterScanWeigh);
     CHECK_EQ_INT(app_settings_weigh_as(&s), AppWeighAsNet);
-    CHECK(app_settings_first_run_done(&s));
 
     put_v4_file(AppConnectionUsb, 0, AppFeedbackLed, 0, AppAfterScanShow, AppWeighAsGross, 0);
     s = loaded();
@@ -176,16 +178,12 @@ static void test_saved_v4_file_loads(void) {
     CHECK(!app_settings_sound(&s));
     CHECK_EQ_INT(app_settings_after_scan(&s), AppAfterScanShow);
     CHECK_EQ_INT(app_settings_weigh_as(&s), AppWeighAsGross);
-    CHECK(!app_settings_first_run_done(&s));
 }
 
-/* An older file comes from a run before: its first run is over, so Get app
- * does not open by itself after an update. */
-static void test_v3_file_keeps_its_fields_and_its_first_run_is_over(void) {
+static void test_v3_file_keeps_its_fields(void) {
     put_v3_file(AppConnectionBluetooth, 1, AppFeedbackOff, 1, AppAfterScanWeigh, AppWeighAsNet);
     AppSettings s = loaded();
     CHECK_EQ_INT(s.version, APP_SETTINGS_VERSION);
-    CHECK(app_settings_first_run_done(&s));
     CHECK_EQ_INT(app_settings_connection(&s), AppConnectionBluetooth);
     CHECK(app_settings_autosave(&s));
     CHECK_EQ_INT(app_settings_feedback(&s), AppFeedbackOff);
@@ -201,7 +199,6 @@ static void test_v3_file_keeps_its_fields_and_its_first_run_is_over(void) {
     CHECK(!app_settings_sound(&s));
     CHECK_EQ_INT(app_settings_after_scan(&s), AppAfterScanShow);
     CHECK_EQ_INT(app_settings_weigh_as(&s), AppWeighAsGross);
-    CHECK(app_settings_first_run_done(&s));
 }
 
 static void test_v2_file_keeps_its_fields_and_defaults_after_scan_and_weigh_as(void) {
@@ -214,7 +211,6 @@ static void test_v2_file_keeps_its_fields_and_defaults_after_scan_and_weigh_as(v
     CHECK(app_settings_sound(&s));
     CHECK_EQ_INT(app_settings_after_scan(&s), AppAfterScanShow);
     CHECK_EQ_INT(app_settings_weigh_as(&s), AppWeighAsGross);
-    CHECK(app_settings_first_run_done(&s));
 
     put_v2_file(AppConnectionUsb, 0, AppFeedbackLed, 0);
     s = loaded();
@@ -278,7 +274,6 @@ static void test_v1_file_keeps_the_transport_and_defaults_the_rest(void) {
     CHECK(!app_settings_autosave(&s));
     CHECK_EQ_INT(app_settings_feedback(&s), AppFeedbackVibroLed);
     CHECK(!app_settings_sound(&s));
-    CHECK(app_settings_first_run_done(&s));
 
     put_v1_file(AppConnectionUsb);
     s = loaded();
@@ -307,7 +302,6 @@ static void test_migrated_v1_v2_and_v3_save_as_v4(void) {
     AppSettings back = loaded();
     CHECK_EQ_INT(app_settings_connection(&back), AppConnectionBluetooth);
     CHECK_EQ_INT(app_settings_weigh_as(&back), AppWeighAsNet);
-    CHECK(app_settings_first_run_done(&back));
 
     put_v2_file(AppConnectionBluetooth, 1, AppFeedbackLed, 1);
     s = loaded();
@@ -427,7 +421,6 @@ static void test_save_round_trips_every_field(void) {
     app_settings_set_sound(&s, true);
     app_settings_set_after_scan(&s, AppAfterScanWeigh);
     app_settings_set_weigh_as(&s, AppWeighAsNet);
-    app_settings_set_first_run_done(&s);
     CHECK(app_settings_save(&s, &storage));
     CHECK_EQ_INT(saves, 1);
     CHECK_EQ_INT(file_version, 4);
@@ -439,7 +432,7 @@ static void test_save_round_trips_every_field(void) {
     CHECK_EQ_INT(file[4], 1);
     CHECK_EQ_INT(file[5], AppAfterScanWeigh);
     CHECK_EQ_INT(file[6], AppWeighAsNet);
-    CHECK_EQ_INT(file[7], 1);
+    CHECK_EQ_INT(file[7], 0);
     AppSettings back = loaded();
     CHECK_EQ_INT(app_settings_connection(&back), AppConnectionBluetooth);
     CHECK(app_settings_autosave(&back));
@@ -447,7 +440,6 @@ static void test_save_round_trips_every_field(void) {
     CHECK(app_settings_sound(&back));
     CHECK_EQ_INT(app_settings_after_scan(&back), AppAfterScanWeigh);
     CHECK_EQ_INT(app_settings_weigh_as(&back), AppWeighAsNet);
-    CHECK(app_settings_first_run_done(&back));
 }
 
 static void test_failed_save_is_reported(void) {
@@ -509,11 +501,11 @@ static void test_set_autosave_and_sound_toggle(void) {
 
 int main(void) {
     RUN_TEST(test_settings_live_in_the_flibuddy_dir);
-    RUN_TEST(test_layout_is_version_transport_autosave_feedback_sound_after_weigh_first_run);
-    RUN_TEST(test_defaults_are_auto_autosave_off_show_gross_vibro_led_silent_first_run);
+    RUN_TEST(test_layout_is_version_transport_autosave_feedback_sound_after_weigh_reserved);
+    RUN_TEST(test_defaults_are_auto_autosave_off_show_gross_vibro_led_silent);
     RUN_TEST(test_missing_file_loads_defaults);
     RUN_TEST(test_saved_v4_file_loads);
-    RUN_TEST(test_v3_file_keeps_its_fields_and_its_first_run_is_over);
+    RUN_TEST(test_v3_file_keeps_its_fields);
     RUN_TEST(test_v2_file_keeps_its_fields_and_defaults_after_scan_and_weigh_as);
     RUN_TEST(test_v2_file_with_a_field_out_of_range_loads_defaults);
     RUN_TEST(test_auto_is_stored_from_version_3);

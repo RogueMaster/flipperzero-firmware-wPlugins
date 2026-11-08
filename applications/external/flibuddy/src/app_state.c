@@ -848,10 +848,6 @@ AppEffect app_reduce(AppState* s, const AppEvent* e) {
         if(s->screen == AppScreenWaiting || s->screen == AppScreenGetApp) {
             go_home(s, AppOutcomeNone);
         }
-        if(!app_settings_first_run_done(&s->settings)) {
-            app_settings_set_first_run_done(&s->settings);
-            effect = AppEffectSaveSettings;
-        }
         break;
     case AppEventHostLost:
         on_host_lost(s);
@@ -897,12 +893,7 @@ AppEffect app_reduce(AppState* s, const AppEvent* e) {
         if(e->via < TRANSPORT_KINDS) s->other_version[e->via] = s->connected ? 0 : e->version;
         break;
     case AppEventStart:
-        if(s->screen == AppScreenWaiting && !app_settings_first_run_done(&s->settings)) {
-            app_settings_set_first_run_done(&s->settings);
-            go(s, AppScreenGetApp);
-            effect = AppEffectSaveSettings;
-        }
-        break;
+        break; /* the caller starts the reader and draws after any event */
     }
     return effect;
 }
