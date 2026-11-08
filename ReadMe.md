@@ -211,6 +211,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - OFW: [iButton TM01x refactor, bit utilities and write-refusal notifications (By Leptopt1los)](https://github.com/flipperdevices/flipperzero-firmware/pull/4511)
 - Updated: [FliBuddy v1.0 starts on the reader screen, including first launch, and preserves existing settings (By Gennady Sokolachko)](https://github.com/sokogen/flipperzero-flibuddy)
 - OFW: [Complete iButton Dallas and misc-protocol writability callbacks while retaining RM blank selection (By Leptopt1los)](https://github.com/flipperdevices/flipperzero-firmware/pull/4511)
+- Added: [Loteria Zero v1.0 - Mexican Loteria caller with 54 cards and original rhymes (By databrainsco)](https://github.com/databrainsco/Loteria_Zero)
 
 <a name="release"></a>
 
@@ -427,6 +428,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Lettercade v1.0 (By andreimagic)](https://github.com/andreimagic/flipper-lettercade)
 - [Lifecounter v1.0 (By antsy)](https://github.com/antsy/Lifecounter) (Multi Counter remake)
 - [Lights Out Flipper Zero v1.1 (By DigiMancer3D)](https://github.com/DigiMancer3D)
+- [Loteria Zero v1.0 (By databrainsco)](https://github.com/databrainsco/Loteria_Zero)
 - [Magic 8-ball v0.1 (By stevenquinn)](https://github.com/stevenquinn/flipper-8-ball)
 - [Mancala v0.1 (By fgreil)](https://github.com/fgreil/mitzi-mancala)
 - [Mandelbrot Set v1.4 (By Possibly-Matt)](https://github.com/Possibly-Matt/flipperzero-firmware-wPlugins)

@@ -1,0 +1,332 @@
+{
+  "version": "1.0",
+  "deck": "Loteria Zero",
+  "slogan": "La tradición en tus manos.",
+  "total_cards": 54,
+  "cards": [
+    {
+      "id": 1,
+      "name": "El Gallo",
+      "image": "el_gallo",
+      "rhyme": "El que canta al despertar, ¡al gallo vamos a cantar!"
+    },
+    {
+      "id": 2,
+      "name": "El Diablito",
+      "image": "el_diablito",
+      "rhyme": "Con sus cuernos y su colita, ¡ahí viene el diablito!"
+    },
+    {
+      "id": 3,
+      "name": "La Dama",
+      "image": "la_dama",
+      "rhyme": "Elegante y distinguida, ¡la dama llega enseguida!"
+    },
+    {
+      "id": 4,
+      "name": "El Catrín",
+      "image": "el_catrin",
+      "rhyme": "Sombrero de copa y bigote fino, ¡el catrín va de camino!"
+    },
+    {
+      "id": 5,
+      "name": "El Paraguas",
+      "image": "el_paraguas",
+      "rhyme": "Si el cielo se pone a llorar, ¡el paraguas hay que abrir ya!"
+    },
+    {
+      "id": 6,
+      "name": "La Sirena",
+      "image": "la_sirena",
+      "rhyme": "Entre las olas viene cantando, ¡la sirena está llegando!"
+    },
+    {
+      "id": 7,
+      "name": "La Escalera",
+      "image": "la_escalera",
+      "rhyme": "Sube un peldaño y luego otro más, ¡la escalera ya verás!"
+    },
+    {
+      "id": 8,
+      "name": "La Botella",
+      "image": "la_botella",
+      "rhyme": "De vidrio y con tapa bien puesta, ¡la botella está en la fiesta!"
+    },
+    {
+      "id": 9,
+      "name": "El Barril",
+      "image": "el_barril",
+      "rhyme": "Redondo, fuerte y de madera, ¡el barril no se espera!"
+    },
+    {
+      "id": 10,
+      "name": "El Árbol",
+      "image": "el_arbol",
+      "rhyme": "Raíz profunda y copa en flor, ¡el árbol da sombra y amor!"
+    },
+    {
+      "id": 11,
+      "name": "El Melón",
+      "image": "el_melon",
+      "rhyme": "Dulce, fresco y bien maduro, ¡el melón es un tesoro puro!"
+    },
+    {
+      "id": 12,
+      "name": "El Valiente",
+      "image": "el_valiente",
+      "rhyme": "Sin miedo y con el pecho erguido, ¡el valiente ha venido!"
+    },
+    {
+      "id": 13,
+      "name": "El Gorrito",
+      "image": "el_gorrito",
+      "rhyme": "Pequeño, suave y muy abrigador, ¡el gorrito es un encanto mayor!"
+    },
+    {
+      "id": 14,
+      "name": "La Muerte",
+      "image": "la_muerte",
+      "rhyme": "Con su sonrisa y su guadaña, ¡la muerte nunca se engaña!"
+    },
+    {
+      "id": 15,
+      "name": "La Pera",
+      "image": "la_pera",
+      "rhyme": "Amarilla y de forma curiosa, ¡la pera está sabrosa!"
+    },
+    {
+      "id": 16,
+      "name": "La Bandera",
+      "image": "la_bandera",
+      "rhyme": "Verde, blanco y rojo ondeando, ¡la bandera va pasando!"
+    },
+    {
+      "id": 17,
+      "name": "El Bandolón",
+      "image": "el_bandolon",
+      "rhyme": "Cuerdas que suenan con pasión, ¡llegó el bandolón!"
+    },
+    {
+      "id": 18,
+      "name": "El Violoncello",
+      "image": "el_violoncello",
+      "rhyme": "Voz grave que llena el salón, ¡el violoncello da el ton!"
+    },
+    {
+      "id": 19,
+      "name": "La Garza",
+      "image": "la_garza",
+      "rhyme": "Cuello largo junto al río, ¡la garza viene con brío!"
+    },
+    {
+      "id": 20,
+      "name": "El Pájaro",
+      "image": "el_pajaro",
+      "rhyme": "Vuela alto y canta alegre, ¡el pájaro no se detiene!"
+    },
+    {
+      "id": 21,
+      "name": "La Mano",
+      "image": "la_mano",
+      "rhyme": "Cinco dedos para saludar, ¡la mano te va a encontrar!"
+    },
+    {
+      "id": 22,
+      "name": "La Bota",
+      "image": "la_bota",
+      "rhyme": "De charol y bien lustrada, ¡la bota está lista y preparada!"
+    },
+    {
+      "id": 23,
+      "name": "La Luna",
+      "image": "la_luna",
+      "rhyme": "Plateada en la noche clara, ¡la luna nos ilumina y ampara!"
+    },
+    {
+      "id": 24,
+      "name": "El Cotorro",
+      "image": "el_cotorro",
+      "rhyme": "Habla y ríe sin parar, ¡el cotorro quiere cantar!"
+    },
+    {
+      "id": 25,
+      "name": "El Borracho",
+      "image": "el_borracho",
+      "rhyme": "Tambalea de lado a lado, ¡el borracho ha llegado!"
+    },
+    {
+      "id": 26,
+      "name": "El Negrito",
+      "image": "el_negrito",
+      "rhyme": "Con sombrero y gran sonrisa, ¡el negrito no se prisa!"
+    },
+    {
+      "id": 27,
+      "name": "El Corazón",
+      "image": "el_corazon",
+      "rhyme": "Late fuerte con emoción, ¡ahí viene el corazón!"
+    },
+    {
+      "id": 28,
+      "name": "La Sandía",
+      "image": "la_sandia",
+      "rhyme": "Roja por dentro, verde por fuera, ¡la sandía refresca cualquiera!"
+    },
+    {
+      "id": 29,
+      "name": "El Tambor",
+      "image": "el_tambor",
+      "rhyme": "Tum tum tum con gran rumbo, ¡el tambor marca el rumbo!"
+    },
+    {
+      "id": 30,
+      "name": "El Camarón",
+      "image": "el_camaron",
+      "rhyme": "Del mar salado llega al sazón, ¡listo está el camarón!"
+    },
+    {
+      "id": 31,
+      "name": "Las Jaras",
+      "image": "las_jaras",
+      "rhyme": "Vuelan rectas hacia el blanco, ¡las jaras no fallan ni un franco!"
+    },
+    {
+      "id": 32,
+      "name": "El Músico",
+      "image": "el_musico",
+      "rhyme": "Con su instrumento y su canción, ¡el músico pone el corazón!"
+    },
+    {
+      "id": 33,
+      "name": "La Araña",
+      "image": "la_arana",
+      "rhyme": "Teje su red con paciencia, ¡la araña muestra su presencia!"
+    },
+    {
+      "id": 34,
+      "name": "El Soldado",
+      "image": "el_soldado",
+      "rhyme": "Firme en su puesto de honor, ¡el soldado cumple con valor!"
+    },
+    {
+      "id": 35,
+      "name": "La Estrella",
+      "image": "la_estrella",
+      "rhyme": "Brilla en el cielo sin igual, ¡la estrella es un farol celestial!"
+    },
+    {
+      "id": 36,
+      "name": "El Cazo",
+      "image": "el_cazo",
+      "rhyme": "Para el caldo o el atole caliente, ¡el cazo siempre está presente!"
+    },
+    {
+      "id": 37,
+      "name": "El Mundo",
+      "image": "el_mundo",
+      "rhyme": "Gira y gira sin descanso, ¡el mundo es nuestro gran abrazo!"
+    },
+    {
+      "id": 38,
+      "name": "El Apache",
+      "image": "el_apache",
+      "rhyme": "Plumas al viento y mirada fiera, ¡el apache ya se espera!"
+    },
+    {
+      "id": 39,
+      "name": "El Nopal",
+      "image": "el_nopal",
+      "rhyme": "Espinas fuera, sabor por dentro, ¡el nopal es orgullo del centro!"
+    },
+    {
+      "id": 40,
+      "name": "El Alacrán",
+      "image": "el_alacran",
+      "rhyme": "Cola en alto y paso sigiloso, ¡cuidado con el alacrán peligroso!"
+    },
+    {
+      "id": 41,
+      "name": "La Rosa",
+      "image": "la_rosa",
+      "rhyme": "Pétalos suaves de color, ¡la rosa regala su olor!"
+    },
+    {
+      "id": 42,
+      "name": "La Calavera",
+      "image": "la_calavera",
+      "rhyme": "Sonríe en la ofrenda con alegría, ¡la calavera no se olvida!"
+    },
+    {
+      "id": 43,
+      "name": "La Campana",
+      "image": "la_campana",
+      "rhyme": "Din don din por el atrio, ¡la campana anuncia el inicio!"
+    },
+    {
+      "id": 44,
+      "name": "El Cantarito",
+      "image": "el_cantarito",
+      "rhyme": "De barro fresco y agua fría, ¡el cantarito no se enfría!"
+    },
+    {
+      "id": 45,
+      "name": "El Venado",
+      "image": "el_venado",
+      "rhyme": "Astas alzadas, salto ligero, ¡el venado es todo un caballero!"
+    },
+    {
+      "id": 46,
+      "name": "El Sol",
+      "image": "el_sol",
+      "rhyme": "Sale el sol por la mañana, ¡y nos calienta hasta la ventana!"
+    },
+    {
+      "id": 47,
+      "name": "La Corona",
+      "image": "la_corona",
+      "rhyme": "De reyes y de realeza, ¡la corona trae grandeza!"
+    },
+    {
+      "id": 48,
+      "name": "La Chalupa",
+      "image": "la_chalupa",
+      "rhyme": "Navega el lago con gran soltura, ¡la chalupa es pura aventura!"
+    },
+    {
+      "id": 49,
+      "name": "El Pino",
+      "image": "el_pino",
+      "rhyme": "Verde todo el año sin fallar, ¡el pino sabe perdurar!"
+    },
+    {
+      "id": 50,
+      "name": "El Pescado",
+      "image": "el_pescado",
+      "rhyme": "Nada en el río con gran cuidado, ¡ahí viene el pescado!"
+    },
+    {
+      "id": 51,
+      "name": "La Palma",
+      "image": "la_palma",
+      "rhyme": "Alta y esbelta bajo el sol, ¡la palma baila con el viento al sol!"
+    },
+    {
+      "id": 52,
+      "name": "La Maceta",
+      "image": "la_maceta",
+      "rhyme": "Flor plantada con cariño, ¡la maceta luce su diseño!"
+    },
+    {
+      "id": 53,
+      "name": "El Arpa",
+      "image": "el_arpa",
+      "rhyme": "Cuerdas que cantan con delicadeza, ¡el arpa llena de belleza!"
+    },
+    {
+      "id": 54,
+      "name": "La Rana",
+      "image": "la_rana",
+      "rhyme": "Salta y brinca en el charquito, ¡ahí viene la rana con su brinquito!"
+    }
+  ]
+}
