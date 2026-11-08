@@ -13,7 +13,8 @@ export const SUPPORT_URL = "https://github.com/ataman-lab/pc-health-remote/issue
 // Shown in the bot menu (setMyCommands via admin /setcommands). Telegram requires /paysupport for Stars bots.
 export const COMMANDS = {
   en: [
-    ["help", "All commands and buttons"],
+    ["menu", "Main menu buttons"],
+    ["help", "Help: commands, support, terms"],
     ["link", "Get a code to link a PC"],
     ["pcs", "Linked PCs"],
     ["status", "Plan and alerts today"],
@@ -23,7 +24,8 @@ export const COMMANDS = {
     ["support", "Report a problem"],
   ],
   ru: [
-    ["help", "Все команды и кнопки"],
+    ["menu", "Кнопки главного меню"],
+    ["help", "Помощь: команды, поддержка, условия"],
     ["link", "Код для привязки ПК"],
     ["pcs", "Привязанные ПК"],
     ["status", "Тариф и уведомления за сегодня"],
@@ -33,28 +35,66 @@ export const COMMANDS = {
     ["support", "Сообщить о проблеме"],
   ],
 };
-// Persistent reply keyboard: button label -> command. Shown on /start and /help.
+// Reply keyboards with navigation: button label -> command. Main menu on /start and /menu,
+// /help and /pcs open submenus with a Back button. Labels in both languages map to commands.
 export const BUTTONS = {
-  en: [
-    ["🔗 Link PC", "/link"],
-    ["💻 My PCs", "/pcs"],
-    ["📊 Status", "/status"],
-    ["⭐ Pro", "/pro"],
-    ["❓ Help", "/help"],
-  ],
-  ru: [
-    ["🔗 Привязать ПК", "/link"],
-    ["💻 Мои ПК", "/pcs"],
-    ["📊 Статус", "/status"],
-    ["⭐ Pro", "/pro"],
-    ["❓ Помощь", "/help"],
-  ],
+  en: {
+    main: [
+      ["🔗 Link PC", "/link"],
+      ["💻 My PCs", "/pcs"],
+      ["📊 Status", "/status"],
+      ["⭐ Pro", "/pro"],
+      ["❓ Help", "/help"],
+    ],
+    help: [
+      ["📋 Commands", "/commands"],
+      ["💬 Support", "/support"],
+      ["💳 Payment help", "/paysupport"],
+      ["📜 Terms", "/terms"],
+      ["⬅️ Back", "/menu"],
+    ],
+    unlink: "❌ Unlink: ",
+    back: "⬅️ Back",
+  },
+  ru: {
+    main: [
+      ["🔗 Привязать ПК", "/link"],
+      ["💻 Мои ПК", "/pcs"],
+      ["📊 Статус", "/status"],
+      ["⭐ Pro", "/pro"],
+      ["❓ Помощь", "/help"],
+    ],
+    help: [
+      ["📋 Команды", "/commands"],
+      ["💬 Поддержка", "/support"],
+      ["💳 Помощь с оплатой", "/paysupport"],
+      ["📜 Условия", "/terms"],
+      ["⬅️ Назад", "/menu"],
+    ],
+    unlink: "❌ Отвязать: ",
+    back: "⬅️ Назад",
+  },
 };
-const BUTTON_CMD = new Map(Object.values(BUTTONS).flat());
-const keyboard = (lang) => {
-  const b = BUTTONS[lang].map(([text]) => ({ text }));
-  return { keyboard: [[b[0], b[1]], [b[2], b[3]], [b[4]]], resize_keyboard: true, is_persistent: true };
+const BUTTON_CMD = new Map(Object.values(BUTTONS).flatMap((b) => [...b.main, ...b.help]));
+const UNLINK_PREFIXES = Object.values(BUTTONS).map((b) => b.unlink);
+const rows2 = (labels) => {
+  const rows = [];
+  for (let i = 0; i < labels.length; i += 2) rows.push(labels.slice(i, i + 2).map((text) => ({ text })));
+  return rows;
 };
+const kb = (rows) => ({ keyboard: rows, resize_keyboard: true, is_persistent: true });
+const mainKeyboard = (lang) => kb(rows2(BUTTONS[lang].main.map(([text]) => text)));
+const helpKeyboard = (lang) => kb(rows2(BUTTONS[lang].help.map(([text]) => text)));
+// One "Unlink: <name>" button per PC (max PRO_MAX_PCS), then Back.
+const pcsKeyboard = (lang, names) => kb([...names.map((n) => [{ text: BUTTONS[lang].unlink + n }]), [{ text: BUTTONS[lang].back }]]);
+// Button text -> command text: menu labels, or "Unlink: <name>" -> "/unlink <name>".
+function buttonToCommand(text) {
+  const label = text.trim();
+  const cmd = BUTTON_CMD.get(label);
+  if (cmd) return cmd;
+  for (const p of UNLINK_PREFIXES) if (label.startsWith(p) && label.length > p.length) return "/unlink " + label.slice(p.length);
+  return text;
+}
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
 // Rule keys sent by the backend (backend/src/alerts.rs Rule::key) and their display units.
@@ -90,7 +130,10 @@ const T = {
     thanks: (d) => "Thank you! Pro is active until " + d + ".",
     status: (plan, exp, pcs, n, id, admin) => "Plan: " + plan + (exp ? "\nExpires: " + exp : "") + "\nPCs: " + pcs + "\nAlerts today: " + n + "\nChat id: " + id + (admin ? " (admin)" : ""),
     limit: "Daily free limit of " + FREE_DAILY_LIMIT + " alerts reached. More alerts will be dropped until tomorrow (UTC).",
-    help: "Commands:\n/link - code to link a PC\n/pcs - linked PCs\n/unlink <name> - remove a PC\n/status - plan, alerts today, chat id\n/pro - Pro subscription\n/paysupport - help with a payment\n/terms - terms of Pro\n/support - report a problem",
+    menu: "Main menu",
+    helpMenu: "Help: pick a topic below.",
+    pcsHint: "Tap a button to unlink a PC, or Back.",
+    help: "Commands:\n/link - code to link a PC\n/pcs - linked PCs\n/unlink <name> - remove a PC\n/status - plan, alerts today, chat id\n/pro - Pro subscription\n/menu - main menu buttons\n/paysupport - help with a payment\n/terms - terms of Pro\n/support - report a problem",
     payBtn: "Pay " + PRO_PRICE_STARS + " ⭐ for 30 days",
     pcLimit: "This PC was not linked: the free plan has " + FREE_MAX_PCS + " PC. Unlink one with /unlink <name>, or get Pro for up to " + PRO_MAX_PCS + " PCs.",
     pcLimitPro: "This PC was not linked: Pro allows up to " + PRO_MAX_PCS + " PCs. Unlink one with /unlink <name>.",
@@ -117,7 +160,10 @@ const T = {
     thanks: (d) => "Спасибо! Pro активен до " + d + ".",
     status: (plan, exp, pcs, n, id, admin) => "Тариф: " + plan + (exp ? "\nДо: " + exp : "") + "\nПК: " + pcs + "\nУведомлений сегодня: " + n + "\nChat id: " + id + (admin ? " (админ)" : ""),
     limit: "Достигнут бесплатный лимит: " + FREE_DAILY_LIMIT + " уведомлений в сутки. Остальные до завтра (UTC) не будут отправлены.",
-    help: "Команды:\n/link - код для привязки ПК\n/pcs - привязанные ПК\n/unlink <имя> - убрать ПК\n/status - тариф, уведомления за сегодня, chat id\n/pro - подписка Pro\n/paysupport - помощь с оплатой\n/terms - условия Pro\n/support - сообщить о проблеме",
+    menu: "Главное меню",
+    helpMenu: "Помощь: выберите раздел кнопкой ниже.",
+    pcsHint: "Нажмите кнопку, чтобы отвязать ПК, или Назад.",
+    help: "Команды:\n/link - код для привязки ПК\n/pcs - привязанные ПК\n/unlink <имя> - убрать ПК\n/status - тариф, уведомления за сегодня, chat id\n/pro - подписка Pro\n/menu - кнопки главного меню\n/paysupport - помощь с оплатой\n/terms - условия Pro\n/support - сообщить о проблеме",
     payBtn: "Оплатить " + PRO_PRICE_STARS + " ⭐ за 30 дней",
     pcLimit: "ПК не привязан: в бесплатном тарифе " + FREE_MAX_PCS + " ПК. Отвяжите лишний через /unlink <имя> или возьмите Pro (до " + PRO_MAX_PCS + " ПК).",
     pcLimitPro: "ПК не привязан: в Pro до " + PRO_MAX_PCS + " ПК. Отвяжите лишний через /unlink <имя>.",
@@ -363,7 +409,7 @@ async function handleMessage(msg, env, f, now) {
   if (chat === undefined) return;
   if (msg.successful_payment) return handlePayment(msg, env, f, now);
   if (typeof msg.text !== "string") return;
-  const text = BUTTON_CMD.get(msg.text.trim()) || msg.text;
+  const text = buttonToCommand(msg.text);
   if (!text.startsWith("/")) return handleSupportText(msg, env, f, now);
   const kv = env.PHR;
   const user = await getUser(kv, chat);
@@ -376,9 +422,13 @@ async function handleMessage(msg, env, f, now) {
     const m = /^src_([A-Za-z0-9_-]{1,32})$/.exec(rest[0] || "");
     if (m) user.src = m[1];
     await kv.put("user:" + chat, JSON.stringify(user));
-    await send(env, f, chat, GREETING[user.lang], keyboard(user.lang));
+    await send(env, f, chat, GREETING[user.lang], mainKeyboard(user.lang));
+  } else if (cmd === "/menu") {
+    await send(env, f, chat, t.menu, mainKeyboard(user.lang));
   } else if (cmd === "/help") {
-    await send(env, f, chat, t.help, keyboard(user.lang));
+    await send(env, f, chat, t.helpMenu, helpKeyboard(user.lang));
+  } else if (cmd === "/commands") {
+    await send(env, f, chat, t.help, helpKeyboard(user.lang));
   } else if (cmd === "/link") {
     const code = randomCode();
     await kv.put("code:" + code, JSON.stringify({ chat, exp: now() + CODE_TTL_SEC * 1000 }), {
@@ -430,7 +480,8 @@ async function handleMessage(msg, env, f, now) {
     await send(env, f, chat, "Refunded " + id);
   } else if (cmd === "/pcs") {
     const names = Object.keys(user.pcs);
-    await send(env, f, chat, names.length ? t.pcs + "\n" + names.join("\n") : t.nopcs);
+    if (!names.length) return void (await send(env, f, chat, t.nopcs, mainKeyboard(user.lang)));
+    await send(env, f, chat, t.pcs + "\n" + names.join("\n") + "\n\n" + t.pcsHint, pcsKeyboard(user.lang, names));
   } else if (cmd === "/unlink") {
     const name = rest.join(" ");
     if (!name) return void (await send(env, f, chat, t.unlinkUsage));
@@ -438,7 +489,8 @@ async function handleMessage(msg, env, f, now) {
     await kv.delete("dev:" + user.pcs[name]);
     delete user.pcs[name];
     await kv.put("user:" + chat, JSON.stringify(user));
-    await send(env, f, chat, t.unlinked(name));
+    const left = Object.keys(user.pcs);
+    await send(env, f, chat, t.unlinked(name), left.length ? pcsKeyboard(user.lang, left) : mainKeyboard(user.lang));
   }
 }
 

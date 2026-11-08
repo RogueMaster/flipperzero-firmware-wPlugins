@@ -9,7 +9,7 @@ Stores only chat id, language, source tag, device keys, PC names and counters
 
 Pro (Telegram Stars, `PRO_PRICE_STARS` in `worker.js`): `/pro` sends a 30-day subscription
 invoice, Pro = no daily limit and up to 5 PCs (free: 1 PC). `/status` shows the plan.
-`/start` and `/help` show a persistent reply keyboard (Link PC, My PCs, Status, Pro, Help; labels in EN and RU map to the commands). Every Pro offer has an inline pay button with the invoice link.
+`/start` and `/menu` show the main reply keyboard (Link PC, My PCs, Status, Pro, Help). `/help` opens a submenu (Commands, Support, Payment help, Terms, Back); `/pcs` shows one "Unlink: <name>" button per PC plus Back. EN and RU labels map to the commands. Every Pro offer has an inline pay button with the invoice link.
 Support: `/paysupport` (required by Telegram for Stars; the user's next message within 1 hour is forwarded privately to `ADMIN_CHAT_ID`, the admin answers with `/reply <chat_id> <text>`), `/terms`, `/support` (public GitHub issues, bugs only). Refunding the current charge also cancels the Stars subscription renewal. A free user who hits the daily limit or tries to link a second PC gets the Pro offer with an invoice link.
 Admin-only `/stats`, `/refund <charge_id>` and `/setcommands` (fills the bot menu in EN + RU via `setMyCommands`; run once after deploy): set the secret `ADMIN_CHAT_ID`
 (`wrangler secret put ADMIN_CHAT_ID`). The webhook must allow `pre_checkout_query` updates.

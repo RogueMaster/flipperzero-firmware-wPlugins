@@ -470,7 +470,7 @@ test("/start and /help show the reply keyboard; buttons act as commands", async 
   assert.match(s.sent.at(-1).text, /Тариф: Free/);
   await s.say("🔗 Link PC", { language_code: "en" }, 3);
   assert.match(s.sent.at(-1).text, /Your code: [A-Z0-9]{6}/);
-  await s.say("/help", { language_code: "en" }, 3);
+  await s.say("/commands", { language_code: "en" }, 3);
   assert.match(s.sent.at(-1).text, /\/paysupport/);
   assert.ok(s.sent.at(-1).reply_markup.keyboard);
   // a button label is never forwarded as a support message
@@ -490,4 +490,32 @@ test("Pro offer carries an inline pay button with the invoice link", async () =>
   await pair(s, "B", 5);
   assert.match(s.sent.at(-1).text, /free plan/);
   assert.equal(s.sent.at(-1).reply_markup.inline_keyboard[0][0].url, "https://t.me/$inv");
+});
+
+test("navigation: Help submenu with Back, My PCs with per-PC unlink buttons", async () => {
+  const s = setup();
+  const labels = (m) => m.reply_markup.keyboard.flat().map((b) => b.text);
+  await s.say("❓ Help", { language_code: "en" }, 8);
+  assert.deepEqual(labels(s.sent.at(-1)), ["📋 Commands", "💬 Support", "💳 Payment help", "📜 Terms", "⬅️ Back"]);
+  await s.say("📜 Terms", { language_code: "en" }, 8);
+  assert.match(s.sent.at(-1).text, /Terms of PC Health Remote Pro/);
+  await s.say("⬅️ Back", { language_code: "en" }, 8);
+  assert.equal(s.sent.at(-1).text, "Main menu");
+  assert.deepEqual(labels(s.sent.at(-1)), ["🔗 Link PC", "💻 My PCs", "📊 Status", "⭐ Pro", "❓ Help"]);
+  // PCs submenu
+  await s.say("💻 My PCs", { language_code: "ru" }, 8);
+  assert.match(s.sent.at(-1).text, /Нет привязанных ПК/);
+  await pair(s, "GAMING-PC", 8);
+  await s.pay("ch8", 8);
+  await pair(s, "Office PC", 8);
+  await s.say("💻 Мои ПК", { language_code: "ru" }, 8);
+  assert.deepEqual(labels(s.sent.at(-1)), ["❌ Отвязать: GAMING-PC", "❌ Отвязать: Office PC", "⬅️ Назад"]);
+  await s.say("❌ Отвязать: Office PC", { language_code: "ru" }, 8);
+  assert.match(s.sent.at(-1).text, /Отвязан: Office PC/);
+  assert.deepEqual(labels(s.sent.at(-1)), ["❌ Отвязать: GAMING-PC", "⬅️ Назад"]);
+  await s.say("❌ Отвязать: GAMING-PC", { language_code: "ru" }, 8);
+  assert.deepEqual(labels(s.sent.at(-1)), ["🔗 Привязать ПК", "💻 Мои ПК", "📊 Статус", "⭐ Pro", "❓ Помощь"]);
+  // unknown name via button text is a normal "no such PC", never a support message
+  await s.say("❌ Отвязать: Ghost", { language_code: "ru" }, 8);
+  assert.match(s.sent.at(-1).text, /Нет такого ПК: Ghost/);
 });
