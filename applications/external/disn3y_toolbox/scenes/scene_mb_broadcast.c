@@ -1,5 +1,5 @@
-#include "../disn3y_toolbox_app.h"
-#include "disn3y_toolbox_icons.h"
+#include "../disney_toolbox_app.h"
+#include "disney_toolbox_icons.h"
 
 #define MB_BROADCAST_ANIMATION_FRAMES 5
 #define MB_BROADCAST_ANIMATION_MOD    2
@@ -13,12 +13,12 @@ static const Icon* mb_broadcast_animation[] = {
 };
 
 static void
-    disn3y_toolbox_app_scene_mb_broadcast_dialog_callback(DialogExResult result, void* context) {
-    Disn3yToolboxApp* app = context;
+    disney_toolbox_app_scene_mb_broadcast_dialog_callback(DialogExResult result, void* context) {
+    DisneyToolboxApp* app = context;
     view_dispatcher_send_custom_event(app->view_dispatcher, result);
 }
 
-static void disn3y_toolbox_app_scene_mb_broadcast_update(Disn3yToolboxApp* app) {
+static void disney_toolbox_app_scene_mb_broadcast_update(DisneyToolboxApp* app) {
     DialogEx* dialog_ex = app->dialog_ex;
 
     const char* header = app->preset_mode ? app->preset_name :
@@ -41,11 +41,11 @@ static void disn3y_toolbox_app_scene_mb_broadcast_update(Disn3yToolboxApp* app) 
     dialog_ex_set_icon(dialog_ex, 86, 13, mb_broadcast_animation[frame]);
 
     dialog_ex_set_result_callback(
-        dialog_ex, disn3y_toolbox_app_scene_mb_broadcast_dialog_callback);
+        dialog_ex, disney_toolbox_app_scene_mb_broadcast_dialog_callback);
     dialog_ex_set_context(dialog_ex, app);
 }
 
-static void disn3y_toolbox_app_apply_beacon_data(Disn3yToolboxApp* app) {
+static void disney_toolbox_app_apply_beacon_data(DisneyToolboxApp* app) {
     furi_hal_bt_extra_beacon_stop();
 
     if(!app->preset_mode) {
@@ -61,27 +61,27 @@ static void disn3y_toolbox_app_apply_beacon_data(Disn3yToolboxApp* app) {
     }
 }
 
-void disn3y_toolbox_app_scene_mb_broadcast_on_enter(void* context) {
-    Disn3yToolboxApp* app = context;
+void disney_toolbox_app_scene_mb_broadcast_on_enter(void* context) {
+    DisneyToolboxApp* app = context;
 
     if(!app->preset_mode) {
         app->beacon_data_len =
             magicband_code_generate(app->selected_code_type, &app->code_params, app->beacon_data);
     }
 
-    disn3y_toolbox_app_scene_mb_broadcast_update(app);
-    view_dispatcher_switch_to_view(app->view_dispatcher, Disn3yToolboxAppViewDialog);
+    disney_toolbox_app_scene_mb_broadcast_update(app);
+    view_dispatcher_switch_to_view(app->view_dispatcher, DisneyToolboxAppViewDialog);
 }
 
-bool disn3y_toolbox_app_scene_mb_broadcast_on_event(void* context, SceneManagerEvent event) {
-    Disn3yToolboxApp* app = context;
+bool disney_toolbox_app_scene_mb_broadcast_on_event(void* context, SceneManagerEvent event) {
+    DisneyToolboxApp* app = context;
     bool consumed = false;
 
     if(event.type == SceneManagerEventTypeCustom) {
         if(event.event == DialogExResultCenter) {
             app->is_beacon_active = !app->is_beacon_active;
 
-            disn3y_toolbox_app_apply_beacon_data(app);
+            disney_toolbox_app_apply_beacon_data(app);
 
             if(app->is_beacon_active) {
                 notification_message_block(app->notifications, &sequence_set_blue_255);
@@ -90,7 +90,7 @@ bool disn3y_toolbox_app_scene_mb_broadcast_on_event(void* context, SceneManagerE
                 app->animation_counter = 0;
             }
 
-            disn3y_toolbox_app_scene_mb_broadcast_update(app);
+            disney_toolbox_app_scene_mb_broadcast_update(app);
             consumed = true;
         }
     } else if(event.type == SceneManagerEventTypeTick) {
@@ -106,8 +106,8 @@ bool disn3y_toolbox_app_scene_mb_broadcast_on_event(void* context, SceneManagerE
     return consumed;
 }
 
-void disn3y_toolbox_app_scene_mb_broadcast_on_exit(void* context) {
-    Disn3yToolboxApp* app = context;
+void disney_toolbox_app_scene_mb_broadcast_on_exit(void* context) {
+    DisneyToolboxApp* app = context;
 
     if(app->is_beacon_active) {
         furi_hal_bt_extra_beacon_stop();

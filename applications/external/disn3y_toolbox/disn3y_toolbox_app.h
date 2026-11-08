@@ -23,16 +23,16 @@
 #include "extra_beacon.h"
 #include "scenes/scenes.h"
 
-#define TAG "Disn3yToolbox"
+#define TAG "DisneyToolbox"
 
-enum Disn3yToolboxCustomEvent {
-    Disn3yToolboxEventNext = 100,
-    Disn3yToolboxEventPopupClosed,
-    Disn3yToolboxEventWriteOK,
-    Disn3yToolboxEventWriteProtocolCannotBeWritten,
-    Disn3yToolboxEventWriteFobCannotBeWritten,
-    Disn3yToolboxEventWriteTooLongToWrite,
-    Disn3yToolboxEventReadDone,
+enum DisneyToolboxCustomEvent {
+    DisneyToolboxEventNext = 100,
+    DisneyToolboxEventPopupClosed,
+    DisneyToolboxEventWriteOK,
+    DisneyToolboxEventWriteProtocolCannotBeWritten,
+    DisneyToolboxEventWriteFobCannotBeWritten,
+    DisneyToolboxEventWriteTooLongToWrite,
+    DisneyToolboxEventReadDone,
 };
 
 typedef struct {
@@ -78,20 +78,20 @@ typedef struct {
     DroidLocation selected_droid_location;
     uint8_t droid_loc_interval_idx;
     uint8_t droid_loc_rssi_idx;
-    uint8_t droid_loc_field; // LocField enum from scene_droid_location
+    uint8_t droid_loc_field;  // LocField enum from scene_droid_location
 
     // Animation
     uint8_t animation_counter;
     bool animation_counter_direction;
-} Disn3yToolboxApp;
+} DisneyToolboxApp;
 
 typedef enum {
-    Disn3yToolboxAppViewSubmenu,
-    Disn3yToolboxAppViewDialog,
-    Disn3yToolboxAppViewWidget,
-    Disn3yToolboxAppViewPopup,
-    Disn3yToolboxAppViewConfig,
-    Disn3yToolboxAppViewDroid,
-} Disn3yToolboxAppView;
+    DisneyToolboxAppViewSubmenu,
+    DisneyToolboxAppViewDialog,
+    DisneyToolboxAppViewWidget,
+    DisneyToolboxAppViewPopup,
+    DisneyToolboxAppViewConfig,
+    DisneyToolboxAppViewDroid,
+} DisneyToolboxAppView;
 
-void disn3y_toolbox_app_popup_timeout_callback(void* context);
+void disney_toolbox_app_popup_timeout_callback(void* context);

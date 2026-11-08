@@ -18,9 +18,9 @@
 // =============================================================================
 
 // CAN1 backends: 0 = none, 1 = MCP2517FD/MCP2518FD (ACAN2517FD), 2 = MCP2515 (autowp-mcp2515)
-#define BOARDCFG_CAN1_DRIVER_NONE 0
+#define BOARDCFG_CAN1_DRIVER_NONE      0
 #define BOARDCFG_CAN1_DRIVER_MCP2517FD 1
-#define BOARDCFG_CAN1_DRIVER_MCP2515 2
+#define BOARDCFG_CAN1_DRIVER_MCP2515   2
 
 // Backward-compatible names for the Flipper UART pin overrides.
 #if defined(FLIPPER_UART_TX_PIN) && !defined(BOARDCFG_FLIPPER_UART_TX_PIN)
@@ -112,12 +112,13 @@
 #endif
 
 #if !defined(BOARDCFG_CAN1_DRIVER) || !defined(BOARDCFG_NEOPIXEL_ENABLED) || \
-    !defined(BOARDCFG_CAN0_TX_PIN) || !defined(BOARDCFG_CAN0_RX_PIN) ||       \
-    !defined(BOARDCFG_SPI_CS_PIN) || !defined(BOARDCFG_SPI_MOSI_PIN) ||       \
-    !defined(BOARDCFG_SPI_SCK_PIN) || !defined(BOARDCFG_SPI_MISO_PIN) ||      \
-    !defined(BOARDCFG_NEOPIXEL_PIN) || !defined(BOARDCFG_NEOPIXEL_COUNT) ||   \
+    !defined(BOARDCFG_CAN0_TX_PIN) || !defined(BOARDCFG_CAN0_RX_PIN) ||      \
+    !defined(BOARDCFG_SPI_CS_PIN) || !defined(BOARDCFG_SPI_MOSI_PIN) ||      \
+    !defined(BOARDCFG_SPI_SCK_PIN) || !defined(BOARDCFG_SPI_MISO_PIN) ||     \
+    !defined(BOARDCFG_NEOPIXEL_PIN) || !defined(BOARDCFG_NEOPIXEL_COUNT) ||  \
     !defined(BOARDCFG_FLIPPER_UART_TX_PIN) || !defined(BOARDCFG_FLIPPER_UART_RX_PIN)
-#error "No default pin map for this ESP32 target. Define BOARDCFG_CAN1_DRIVER, BOARDCFG_NEOPIXEL_ENABLED, BOARDCFG_CAN0_TX_PIN, BOARDCFG_CAN0_RX_PIN, BOARDCFG_SPI_{CS,MOSI,SCK,MISO}_PIN, BOARDCFG_NEOPIXEL_PIN, BOARDCFG_NEOPIXEL_COUNT and BOARDCFG_FLIPPER_UART_{TX,RX}_PIN."
+#error \
+    "No default pin map for this ESP32 target. Define BOARDCFG_CAN1_DRIVER, BOARDCFG_NEOPIXEL_ENABLED, BOARDCFG_CAN0_TX_PIN, BOARDCFG_CAN0_RX_PIN, BOARDCFG_SPI_{CS,MOSI,SCK,MISO}_PIN, BOARDCFG_NEOPIXEL_PIN, BOARDCFG_NEOPIXEL_COUNT and BOARDCFG_FLIPPER_UART_{TX,RX}_PIN."
 #endif
 
 // ---- Target-independent defaults ------------------------------------------
@@ -174,7 +175,7 @@ namespace BoardConfig {
 
 static constexpr uint8_t FIRMWARE_VERSION_MAJOR = 2;
 static constexpr uint8_t FIRMWARE_VERSION_MINOR = 3;
-static constexpr const char *FIRMWARE_VERSION_STRING = BOARDCFG_FIRMWARE_VERSION_STRING;
+static constexpr const char* FIRMWARE_VERSION_STRING = BOARDCFG_FIRMWARE_VERSION_STRING;
 
 static constexpr uint8_t CAN1_DRIVER_NONE = BOARDCFG_CAN1_DRIVER_NONE;
 static constexpr uint8_t CAN1_DRIVER_MCP2517FD = BOARDCFG_CAN1_DRIVER_MCP2517FD;
@@ -183,8 +184,8 @@ static constexpr uint8_t CAN1_DRIVER = BOARDCFG_CAN1_DRIVER;
 static constexpr uint8_t CAN1_CRYSTAL_MHZ = BOARDCFG_CAN1_CRYSTAL_MHZ;
 static constexpr uint8_t NEOPIXEL_ENABLED = BOARDCFG_NEOPIXEL_ENABLED;
 static constexpr uint8_t WIFI_AP_ENABLED = BOARDCFG_WIFI_AP_ENABLED;
-static constexpr const char *WIFI_AP_SSID = BOARDCFG_WIFI_AP_SSID;
-static constexpr const char *WIFI_AP_PASSWORD = BOARDCFG_WIFI_AP_PASSWORD;
+static constexpr const char* WIFI_AP_SSID = BOARDCFG_WIFI_AP_SSID;
+static constexpr const char* WIFI_AP_PASSWORD = BOARDCFG_WIFI_AP_PASSWORD;
 static constexpr uint8_t WIFI_AP_CHANNEL = BOARDCFG_WIFI_AP_CHANNEL;
 static constexpr uint8_t WIFI_AP_MAX_CLIENTS = BOARDCFG_WIFI_AP_MAX_CLIENTS;
 static constexpr uint16_t WIFI_CLI_PORT = BOARDCFG_WIFI_CLI_PORT;
@@ -225,61 +226,73 @@ static constexpr uint16_t CLI_OUT_MAX = 192;
 
 // ---- Compile-time checks ----------------------------------------------------
 
-static_assert(CAN1_DRIVER == CAN1_DRIVER_NONE ||
-                  CAN1_DRIVER == CAN1_DRIVER_MCP2517FD ||
-                  CAN1_DRIVER == CAN1_DRIVER_MCP2515,
-              "Invalid BOARDCFG_CAN1_DRIVER");
-static_assert(CAN1_DRIVER != CAN1_DRIVER_MCP2517FD ||
-                  CAN1_CRYSTAL_MHZ == 4 || CAN1_CRYSTAL_MHZ == 20 || CAN1_CRYSTAL_MHZ == 40,
-              "Invalid BOARDCFG_CAN1_CRYSTAL_MHZ for MCP2517FD/MCP2518FD (valid: 4, 20, 40)");
-static_assert(CAN1_DRIVER != CAN1_DRIVER_MCP2515 ||
-                  CAN1_CRYSTAL_MHZ == 8 || CAN1_CRYSTAL_MHZ == 16 || CAN1_CRYSTAL_MHZ == 20,
-              "Invalid BOARDCFG_CAN1_CRYSTAL_MHZ for MCP2515 (valid: 8, 16, 20)");
-static_assert(NEOPIXEL_ENABLED == 0 || NEOPIXEL_ENABLED == 1,
-              "Invalid BOARDCFG_NEOPIXEL_ENABLED (valid: 0 or 1)");
-static_assert(WIFI_AP_ENABLED == 0 || WIFI_AP_ENABLED == 1,
-              "Invalid BOARDCFG_WIFI_AP_ENABLED (valid: 0 or 1)");
-static_assert(WIFI_AP_AUTOSTART == 0 || WIFI_AP_AUTOSTART == 1,
-              "Invalid BOARDCFG_WIFI_AP_AUTOSTART (valid: 0 or 1)");
-static_assert((sizeof(BOARDCFG_WIFI_AP_SSID) - 1) > 0 && (sizeof(BOARDCFG_WIFI_AP_SSID) - 1) <= 32,
-              "Invalid BOARDCFG_WIFI_AP_SSID length (valid: 1..32 chars)");
 static_assert(
-    WIFI_AP_ENABLED == 0 ||
-        ((sizeof(BOARDCFG_WIFI_AP_PASSWORD) - 1) >= 8 && (sizeof(BOARDCFG_WIFI_AP_PASSWORD) - 1) <= 63),
+    CAN1_DRIVER == CAN1_DRIVER_NONE || CAN1_DRIVER == CAN1_DRIVER_MCP2517FD ||
+        CAN1_DRIVER == CAN1_DRIVER_MCP2515,
+    "Invalid BOARDCFG_CAN1_DRIVER");
+static_assert(
+    CAN1_DRIVER != CAN1_DRIVER_MCP2517FD || CAN1_CRYSTAL_MHZ == 4 || CAN1_CRYSTAL_MHZ == 20 ||
+        CAN1_CRYSTAL_MHZ == 40,
+    "Invalid BOARDCFG_CAN1_CRYSTAL_MHZ for MCP2517FD/MCP2518FD (valid: 4, 20, 40)");
+static_assert(
+    CAN1_DRIVER != CAN1_DRIVER_MCP2515 || CAN1_CRYSTAL_MHZ == 8 || CAN1_CRYSTAL_MHZ == 16 ||
+        CAN1_CRYSTAL_MHZ == 20,
+    "Invalid BOARDCFG_CAN1_CRYSTAL_MHZ for MCP2515 (valid: 8, 16, 20)");
+static_assert(
+    NEOPIXEL_ENABLED == 0 || NEOPIXEL_ENABLED == 1,
+    "Invalid BOARDCFG_NEOPIXEL_ENABLED (valid: 0 or 1)");
+static_assert(
+    WIFI_AP_ENABLED == 0 || WIFI_AP_ENABLED == 1,
+    "Invalid BOARDCFG_WIFI_AP_ENABLED (valid: 0 or 1)");
+static_assert(
+    WIFI_AP_AUTOSTART == 0 || WIFI_AP_AUTOSTART == 1,
+    "Invalid BOARDCFG_WIFI_AP_AUTOSTART (valid: 0 or 1)");
+static_assert(
+    (sizeof(BOARDCFG_WIFI_AP_SSID) - 1) > 0 && (sizeof(BOARDCFG_WIFI_AP_SSID) - 1) <= 32,
+    "Invalid BOARDCFG_WIFI_AP_SSID length (valid: 1..32 chars)");
+static_assert(
+    WIFI_AP_ENABLED == 0 || ((sizeof(BOARDCFG_WIFI_AP_PASSWORD) - 1) >= 8 &&
+                             (sizeof(BOARDCFG_WIFI_AP_PASSWORD) - 1) <= 63),
     "Invalid BOARDCFG_WIFI_AP_PASSWORD length (valid: 8..63 chars when Wi-Fi AP is enabled)");
-static_assert(WIFI_AP_CHANNEL >= 1 && WIFI_AP_CHANNEL <= 13,
-              "Invalid BOARDCFG_WIFI_AP_CHANNEL (valid: 1..13)");
-static_assert(WIFI_AP_MAX_CLIENTS >= 1 && WIFI_AP_MAX_CLIENTS <= 4,
-              "Invalid BOARDCFG_WIFI_AP_MAX_CLIENTS (valid: 1..4)");
+static_assert(
+    WIFI_AP_CHANNEL >= 1 && WIFI_AP_CHANNEL <= 13,
+    "Invalid BOARDCFG_WIFI_AP_CHANNEL (valid: 1..13)");
+static_assert(
+    WIFI_AP_MAX_CLIENTS >= 1 && WIFI_AP_MAX_CLIENTS <= 4,
+    "Invalid BOARDCFG_WIFI_AP_MAX_CLIENTS (valid: 1..4)");
 static_assert(WIFI_CLI_PORT > 0, "Invalid BOARDCFG_WIFI_CLI_PORT");
 
 static_assert(BOARDCFG_CAN0_TX_PIN != BOARDCFG_CAN0_RX_PIN, "CAN0 TX and RX pins must differ");
 static_assert(FLIPPER_UART_TX != FLIPPER_UART_RX, "Flipper UART TX and RX pins must differ");
-static_assert(FLIPPER_UART_TX != BOARDCFG_CAN0_TX_PIN && FLIPPER_UART_TX != BOARDCFG_CAN0_RX_PIN &&
-                  FLIPPER_UART_RX != BOARDCFG_CAN0_TX_PIN && FLIPPER_UART_RX != BOARDCFG_CAN0_RX_PIN,
-              "Flipper UART pins overlap the CAN0 pins");
-static_assert(!CAN1_ENABLED ||
-                  (SPI_CS_PIN != BOARDCFG_CAN0_TX_PIN && SPI_CS_PIN != BOARDCFG_CAN0_RX_PIN &&
-                   SPI_MOSI_PIN != BOARDCFG_CAN0_TX_PIN && SPI_MOSI_PIN != BOARDCFG_CAN0_RX_PIN &&
-                   SPI_SCK_PIN != BOARDCFG_CAN0_TX_PIN && SPI_SCK_PIN != BOARDCFG_CAN0_RX_PIN &&
-                   SPI_MISO_PIN != BOARDCFG_CAN0_TX_PIN && SPI_MISO_PIN != BOARDCFG_CAN0_RX_PIN &&
-                   SPI_CS_PIN != FLIPPER_UART_TX && SPI_CS_PIN != FLIPPER_UART_RX &&
-                   SPI_MOSI_PIN != FLIPPER_UART_TX && SPI_MOSI_PIN != FLIPPER_UART_RX &&
-                   SPI_SCK_PIN != FLIPPER_UART_TX && SPI_SCK_PIN != FLIPPER_UART_RX &&
-                   SPI_MISO_PIN != FLIPPER_UART_TX && SPI_MISO_PIN != FLIPPER_UART_RX),
-              "CAN1 SPI pins overlap the CAN0 or Flipper UART pins");
-static_assert(!NEOPIXEL_ENABLED ||
-                  (NEOPIXEL_PIN != BOARDCFG_CAN0_TX_PIN && NEOPIXEL_PIN != BOARDCFG_CAN0_RX_PIN &&
-                   NEOPIXEL_PIN != FLIPPER_UART_TX && NEOPIXEL_PIN != FLIPPER_UART_RX),
-              "NeoPixel pin overlaps the CAN0 or Flipper UART pins");
+static_assert(
+    FLIPPER_UART_TX != BOARDCFG_CAN0_TX_PIN && FLIPPER_UART_TX != BOARDCFG_CAN0_RX_PIN &&
+        FLIPPER_UART_RX != BOARDCFG_CAN0_TX_PIN && FLIPPER_UART_RX != BOARDCFG_CAN0_RX_PIN,
+    "Flipper UART pins overlap the CAN0 pins");
+static_assert(
+    !CAN1_ENABLED ||
+        (SPI_CS_PIN != BOARDCFG_CAN0_TX_PIN && SPI_CS_PIN != BOARDCFG_CAN0_RX_PIN &&
+         SPI_MOSI_PIN != BOARDCFG_CAN0_TX_PIN && SPI_MOSI_PIN != BOARDCFG_CAN0_RX_PIN &&
+         SPI_SCK_PIN != BOARDCFG_CAN0_TX_PIN && SPI_SCK_PIN != BOARDCFG_CAN0_RX_PIN &&
+         SPI_MISO_PIN != BOARDCFG_CAN0_TX_PIN && SPI_MISO_PIN != BOARDCFG_CAN0_RX_PIN &&
+         SPI_CS_PIN != FLIPPER_UART_TX && SPI_CS_PIN != FLIPPER_UART_RX &&
+         SPI_MOSI_PIN != FLIPPER_UART_TX && SPI_MOSI_PIN != FLIPPER_UART_RX &&
+         SPI_SCK_PIN != FLIPPER_UART_TX && SPI_SCK_PIN != FLIPPER_UART_RX &&
+         SPI_MISO_PIN != FLIPPER_UART_TX && SPI_MISO_PIN != FLIPPER_UART_RX),
+    "CAN1 SPI pins overlap the CAN0 or Flipper UART pins");
+static_assert(
+    !NEOPIXEL_ENABLED ||
+        (NEOPIXEL_PIN != BOARDCFG_CAN0_TX_PIN && NEOPIXEL_PIN != BOARDCFG_CAN0_RX_PIN &&
+         NEOPIXEL_PIN != FLIPPER_UART_TX && NEOPIXEL_PIN != FLIPPER_UART_RX),
+    "NeoPixel pin overlaps the CAN0 or Flipper UART pins");
 
 #if defined(CONFIG_IDF_TARGET_ESP32)
-static_assert((BOARDCFG_CAN0_TX_PIN < 6 || BOARDCFG_CAN0_TX_PIN > 11) &&
-                  (BOARDCFG_CAN0_RX_PIN < 6 || BOARDCFG_CAN0_RX_PIN > 11) &&
-                  (FLIPPER_UART_TX < 6 || FLIPPER_UART_TX > 11) &&
-                  (FLIPPER_UART_RX < 6 || FLIPPER_UART_RX > 11) &&
-                  (!NEOPIXEL_ENABLED || NEOPIXEL_PIN < 6 || NEOPIXEL_PIN > 11),
-              "GPIO6-11 are connected to the flash chip on ESP32 and cannot be used");
+static_assert(
+    (BOARDCFG_CAN0_TX_PIN < 6 || BOARDCFG_CAN0_TX_PIN > 11) &&
+        (BOARDCFG_CAN0_RX_PIN < 6 || BOARDCFG_CAN0_RX_PIN > 11) &&
+        (FLIPPER_UART_TX < 6 || FLIPPER_UART_TX > 11) &&
+        (FLIPPER_UART_RX < 6 || FLIPPER_UART_RX > 11) &&
+        (!NEOPIXEL_ENABLED || NEOPIXEL_PIN < 6 || NEOPIXEL_PIN > 11),
+    "GPIO6-11 are connected to the flash chip on ESP32 and cannot be used");
 #endif
 
 // With "USB CDC On Boot" disabled, Serial (the USB CLI) is UART0 on the board's
@@ -287,10 +300,11 @@ static_assert((BOARDCFG_CAN0_TX_PIN < 6 || BOARDCFG_CAN0_TX_PIN > 11) &&
 // the two would fight over the same pins. Build with CDCOnBoot=cdc
 // (Arduino IDE: Tools > USB CDC On Boot > Enabled) or move the Flipper UART.
 #if !defined(ARDUINO_USB_CDC_ON_BOOT) || !ARDUINO_USB_CDC_ON_BOOT
-static_assert(FLIPPER_UART_TX != TX && FLIPPER_UART_TX != RX &&
-                  FLIPPER_UART_RX != TX && FLIPPER_UART_RX != RX,
-              "Flipper UART pins collide with UART0 (the USB CLI when 'USB CDC On Boot' is disabled). "
-              "Build with --fqbn esp32:esp32:esp32s3:CDCOnBoot=cdc or move BOARDCFG_FLIPPER_UART_*_PIN.");
+static_assert(
+    FLIPPER_UART_TX != TX && FLIPPER_UART_TX != RX && FLIPPER_UART_RX != TX &&
+        FLIPPER_UART_RX != RX,
+    "Flipper UART pins collide with UART0 (the USB CLI when 'USB CDC On Boot' is disabled). "
+    "Build with --fqbn esp32:esp32:esp32s3:CDCOnBoot=cdc or move BOARDCFG_FLIPPER_UART_*_PIN.");
 #endif
 
 } // namespace BoardConfig

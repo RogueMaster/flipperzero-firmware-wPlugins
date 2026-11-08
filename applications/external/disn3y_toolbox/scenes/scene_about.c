@@ -12,7 +12,7 @@ void disn3y_toolbox_app_scene_about_on_enter(void* context) {
     temp_str = furi_string_alloc();
     furi_string_printf(temp_str, "\e#Disn3y Toolbox\n");
 
-    furi_string_cat_printf(temp_str, "Version: %s\n", "v0.1");
+    furi_string_cat_printf(temp_str, "Version: %s\n", "v0.2");
     furi_string_cat_printf(temp_str, "Developed by: \n    %s\n\n", "Nathaniel Belles");
 
     furi_string_cat_printf(

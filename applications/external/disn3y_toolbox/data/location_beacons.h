@@ -32,7 +32,7 @@ typedef struct {
 } LocRssiInfo;
 
 #define LOC_INTERVAL_COUNT 10
-#define LOC_RSSI_COUNT     6
+#define LOC_RSSI_COUNT 6
 
 extern const LocIntervalInfo loc_interval_info[];
 extern const LocRssiInfo loc_rssi_info[];
@@ -42,8 +42,5 @@ extern const LocRssiInfo loc_rssi_info[];
 // = 1 min) rssi: expected RSSI threshold byte (e.g. 0xA6 = -90dBm, 0xBA =
 // -70dBm) output must have room for at least 10 bytes. Returns the number of
 // bytes written.
-uint8_t droid_location_beacon_generate(
-    DroidLocation location,
-    uint8_t interval,
-    uint8_t rssi,
-    uint8_t* output);
+uint8_t droid_location_beacon_generate(DroidLocation location, uint8_t interval, uint8_t rssi,
+                                       uint8_t* output);

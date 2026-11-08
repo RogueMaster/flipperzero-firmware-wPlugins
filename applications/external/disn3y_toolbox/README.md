@@ -1,6 +1,6 @@
-# flipper-disn3y-toolbox
+# flipper-disney-toolbox
 
-A Flipper Zero app for interacting with Disn3y park technology. Write custom kyber crystal identities for Savi's Workshop lightsabers, broadcast MagicBand+ BLE beacon packets, and control Galaxy's Edge droids with personality and location beacons.
+A Flipper Zero app for interacting with Disney park technology. Write custom kyber crystal identities for Savi's Workshop lightsabers, broadcast MagicBand+ BLE beacon packets, and control Galaxy's Edge droids with personality and location beacons.
 
 <table>
   <tr>
@@ -56,7 +56,7 @@ A Flipper Zero app for interacting with Disn3y park technology. Write custom kyb
 
 - Broadcast BLE advertisement packets that trigger light and vibration effects on MagicBand+ wristbands
 - Multiple code types with configurable colors, vibration patterns, timing, and fade settings
-- Pre-built presets for common Disn3y park interactions
+- Pre-built presets for common Disney park interactions
 
 ### Droid Controller
 
@@ -81,12 +81,12 @@ A Flipper Zero app for interacting with Disn3y park technology. Write custom kyb
 
 1. Open the Flipper mobile app and connect to your Flipper Zero
 2. Go to the **Apps** tab
-3. Search for **Disn3y Toolbox**
+3. Search for **Disney Toolbox**
 4. Tap **Install**
 
 ### Pre-built FAP
 
-Download the latest `.fap` file from the [Releases](https://gitlab.com/Nathaniel.Belles/flipper-disn3y-toolbox/-/releases) page and copy it to your Flipper Zero's SD card under `apps/Tools/`.
+Download the latest `.fap` file from the [Releases](https://gitlab.com/Nathaniel.Belles/flipper-disney-toolbox/-/releases) page and copy it to your Flipper Zero's SD card under `apps/Tools/`.
 
 
 ### Build from source
@@ -98,8 +98,8 @@ You can build without the full firmware source using the [ufbt](https://pypi.org
 ```bash
 pip install ufbt
 ufbt update  # downloads the SDK for your Flipper's firmware version
-git clone https://gitlab.com/Nathaniel.Belles/flipper-disn3y-toolbox.git
-cd flipper-disn3y-toolbox
+git clone https://gitlab.com/Nathaniel.Belles/flipper-disney-toolbox.git
+cd flipper-disney-toolbox
 ufbt build
 ufbt launch  # to build and run on a connected Flipper
 ```
@@ -110,16 +110,16 @@ Clone this repo into the `applications_user/` directory of the [Flipper Zero fir
 
 ```bash
 cd flipperzero-firmware/applications_user
-git clone https://gitlab.com/Nathaniel.Belles/flipper-disn3y-toolbox.git
-cd flipper-disn3y-toolbox
-../../fbt launch APPSRC=applications_user/disn3y_toolbox
+git clone https://gitlab.com/Nathaniel.Belles/flipper-disney-toolbox.git
+cd flipper-disney-toolbox
+../../fbt launch APPSRC=applications_user/disney_toolbox
 ```
 
 ## Usage
 
 ### Writing a Kyber Crystal
 
-1. Open **Disn3y Toolbox** → **Kyber Crystal Writer**
+1. Open **Disney Toolbox** → **Kyber Crystal Writer**
 2. Choose **Series 1 Writer** or **Series 2 Writer**
 3. Browse crystals with the left/right buttons
 4. Place a writable EM4100 RFID tag on the Flipper's back
@@ -129,7 +129,7 @@ Once written, insert the crystal into a Savi's Workshop lightsaber or Holocron t
 
 ### Broadcasting a MagicBand+ Beacon
 
-1. Open **Disn3y Toolbox** → **MagicBand+ Beacon**
+1. Open **Disney Toolbox** → **MagicBand+ Beacon**
 2. Select a code type or choose from **Presets**
 3. Configure colors, vibration, and timing
 4. Press **Start Broadcast**
@@ -140,7 +140,7 @@ The Flipper will broadcast BLE advertisement packets. Nearby MagicBand+ wristban
 
 #### Personality Broadcaster
 
-1. Open **Disn3y Toolbox** → **Droid Controller** → **Personality Broadcaster**
+1. Open **Disney Toolbox** → **Droid Controller** → **Personality Broadcaster**
 2. Browse personality chips with the left/right buttons
 3. Toggle paired/unpaired with the up/down buttons
 4. Press **Start** to begin broadcasting
@@ -149,7 +149,7 @@ Nearby Galaxy's Edge droids will react to the emulated personality chip beacon. 
 
 #### Location Broadcaster
 
-1. Open **Disn3y Toolbox** → **Droid Controller** → **Location Broadcaster**
+1. Open **Disney Toolbox** → **Droid Controller** → **Location Broadcaster**
 2. Select a location, reaction interval, and distance threshold
 3. Press **Start Broadcast**
 

@@ -212,6 +212,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [FliBuddy v1.0 starts on the reader screen, including first launch, and preserves existing settings (By Gennady Sokolachko)](https://github.com/sokogen/flipperzero-flibuddy)
 - OFW: [Complete iButton Dallas and misc-protocol writability callbacks while retaining RM blank selection (By Leptopt1los)](https://github.com/flipperdevices/flipperzero-firmware/pull/4511)
 - Added: [Loteria Zero v1.0 - Mexican Loteria caller with 54 cards and original rhymes (By databrainsco)](https://github.com/databrainsco/Loteria_Zero)
+- Updated: [IR Jammer v1.0 (By Clawzman)](https://github.com/Clawzman/flipper-ir-jammer)
+- Updated: [Disn3y Toolbox v0.2 (By Nathaniel.Belles)](https://gitlab.com/Nathaniel.Belles/flipper-disney-toolbox)
 
 <a name="release"></a>
 
@@ -664,7 +666,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Device Info (By hedger)](https://github.com/hedger/flipperdevinfo)
 - [DFC v1.1.1 (By cindersocket)](https://github.com/cindersocket/dfc-flipper)
 - [Digimon F-Com v1.5 (By TylerWilley)](https://github.com/TylerWilley/flipper-f-com)
-- [Disn3y Toolbox v0.1 (By Nathaniel.Belles)](https://gitlab.com/Nathaniel.Belles/flipper-disney-toolbox)
+- [Disn3y Toolbox v0.2 (By Nathaniel.Belles)](https://gitlab.com/Nathaniel.Belles/flipper-disney-toolbox)
 - [Distance Sensor v1.1 (By Sanqui)](https://github.com/Sanqui/flipperzero-firmware/tree/hc_sr04) `Req: HC-SR04`
 - [Distance Sensor v1.2 (By privet971)](https://github.com/privet971/FlipperZeroApps/tree/main/usping) `Req: Parallax (3 wires) SKU 28015`
 - [Doc Viewer Lite v0.1 (By C0d3-5t3w)](https://github.com/C0d3-5t3w/docviewlite)

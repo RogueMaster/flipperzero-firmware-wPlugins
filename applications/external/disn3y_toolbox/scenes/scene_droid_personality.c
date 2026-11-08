@@ -1,7 +1,7 @@
 #include <gui/elements.h>
 
-#include "../disn3y_toolbox_app.h"
-#include "disn3y_toolbox_icons.h"
+#include "../disney_toolbox_app.h"
+#include "disney_toolbox_icons.h"
 
 #define DROID_ANIMATION_FRAMES 5
 #define DROID_ANIMATION_MOD    2
@@ -22,7 +22,7 @@ enum {
 };
 
 static void droid_personality_view_draw(Canvas* canvas, void* model) {
-    Disn3yToolboxApp* app = *(Disn3yToolboxApp**)model;
+    DisneyToolboxApp* app = *(DisneyToolboxApp**)model;
     if(!app) return;
 
     const DroidPersonalityInfo* info = &droid_personality_info[app->selected_droid_personality];
@@ -88,7 +88,7 @@ static void droid_personality_view_draw(Canvas* canvas, void* model) {
 }
 
 static bool droid_personality_view_input(InputEvent* event, void* context) {
-    Disn3yToolboxApp* app = context;
+    DisneyToolboxApp* app = context;
 
     if(event->type != InputTypeShort && event->type != InputTypeRepeat) {
         return false;
@@ -113,7 +113,7 @@ static bool droid_personality_view_input(InputEvent* event, void* context) {
     }
 }
 
-static void droid_personality_apply_beacon(Disn3yToolboxApp* app) {
+static void droid_personality_apply_beacon(DisneyToolboxApp* app) {
     furi_hal_bt_extra_beacon_stop();
 
     app->beacon_data_len = droid_beacon_generate(
@@ -127,22 +127,22 @@ static void droid_personality_apply_beacon(Disn3yToolboxApp* app) {
     }
 }
 
-static void droid_personality_redraw(Disn3yToolboxApp* app) {
+static void droid_personality_redraw(DisneyToolboxApp* app) {
     view_commit_model(app->droid_view, true);
 }
 
-void disn3y_toolbox_app_scene_droid_personality_on_enter(void* context) {
-    Disn3yToolboxApp* app = context;
+void disney_toolbox_app_scene_droid_personality_on_enter(void* context) {
+    DisneyToolboxApp* app = context;
 
     view_set_draw_callback(app->droid_view, droid_personality_view_draw);
     view_set_input_callback(app->droid_view, droid_personality_view_input);
     view_set_context(app->droid_view, app);
 
-    view_dispatcher_switch_to_view(app->view_dispatcher, Disn3yToolboxAppViewDroid);
+    view_dispatcher_switch_to_view(app->view_dispatcher, DisneyToolboxAppViewDroid);
 }
 
-bool disn3y_toolbox_app_scene_droid_personality_on_event(void* context, SceneManagerEvent event) {
-    Disn3yToolboxApp* app = context;
+bool disney_toolbox_app_scene_droid_personality_on_event(void* context, SceneManagerEvent event) {
+    DisneyToolboxApp* app = context;
 
     if(event.type == SceneManagerEventTypeCustom) {
         switch(event.event) {
@@ -188,8 +188,8 @@ bool disn3y_toolbox_app_scene_droid_personality_on_event(void* context, SceneMan
     return false;
 }
 
-void disn3y_toolbox_app_scene_droid_personality_on_exit(void* context) {
-    Disn3yToolboxApp* app = context;
+void disney_toolbox_app_scene_droid_personality_on_exit(void* context) {
+    DisneyToolboxApp* app = context;
 
     if(app->is_beacon_active) {
         furi_hal_bt_extra_beacon_stop();

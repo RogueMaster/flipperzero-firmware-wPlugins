@@ -1,4 +1,4 @@
-#include "../disn3y_toolbox_app.h"
+#include "../disney_toolbox_app.h"
 
 enum DroidSubmenuIndex {
     DroidSubmenuIndexBroadcastPersonality,
@@ -6,13 +6,13 @@ enum DroidSubmenuIndex {
     DroidSubmenuIndexAbout,
 };
 
-static void disn3y_toolbox_app_scene_droid_menu_submenu_callback(void* context, uint32_t index) {
-    Disn3yToolboxApp* app = context;
+static void disney_toolbox_app_scene_droid_menu_submenu_callback(void* context, uint32_t index) {
+    DisneyToolboxApp* app = context;
     view_dispatcher_send_custom_event(app->view_dispatcher, index);
 }
 
-void disn3y_toolbox_app_scene_droid_menu_on_enter(void* context) {
-    Disn3yToolboxApp* app = context;
+void disney_toolbox_app_scene_droid_menu_on_enter(void* context) {
+    DisneyToolboxApp* app = context;
     Submenu* submenu = app->submenu;
 
     submenu_set_header(submenu, "Droid Controller (beta)");
@@ -20,43 +20,43 @@ void disn3y_toolbox_app_scene_droid_menu_on_enter(void* context) {
         submenu,
         "Personality Broadcaster",
         DroidSubmenuIndexBroadcastPersonality,
-        disn3y_toolbox_app_scene_droid_menu_submenu_callback,
+        disney_toolbox_app_scene_droid_menu_submenu_callback,
         app);
     submenu_add_item(
         submenu,
         "Location Broadcaster",
         DroidSubmenuIndexBroadcastLocation,
-        disn3y_toolbox_app_scene_droid_menu_submenu_callback,
+        disney_toolbox_app_scene_droid_menu_submenu_callback,
         app);
     submenu_add_item(
         submenu,
         "About",
         DroidSubmenuIndexAbout,
-        disn3y_toolbox_app_scene_droid_menu_submenu_callback,
+        disney_toolbox_app_scene_droid_menu_submenu_callback,
         app);
 
     submenu_set_selected_item(
         submenu,
-        scene_manager_get_scene_state(app->scene_manager, Disn3yToolboxAppSceneDroidMenu));
+        scene_manager_get_scene_state(app->scene_manager, DisneyToolboxAppSceneDroidMenu));
 
-    view_dispatcher_switch_to_view(app->view_dispatcher, Disn3yToolboxAppViewSubmenu);
+    view_dispatcher_switch_to_view(app->view_dispatcher, DisneyToolboxAppViewSubmenu);
 }
 
-bool disn3y_toolbox_app_scene_droid_menu_on_event(void* context, SceneManagerEvent event) {
-    Disn3yToolboxApp* app = context;
+bool disney_toolbox_app_scene_droid_menu_on_event(void* context, SceneManagerEvent event) {
+    DisneyToolboxApp* app = context;
     bool consumed = false;
 
     if(event.type == SceneManagerEventTypeCustom) {
         scene_manager_set_scene_state(
-            app->scene_manager, Disn3yToolboxAppSceneDroidMenu, event.event);
+            app->scene_manager, DisneyToolboxAppSceneDroidMenu, event.event);
         if(event.event == DroidSubmenuIndexBroadcastPersonality) {
-            scene_manager_next_scene(app->scene_manager, Disn3yToolboxAppSceneDroidPersonality);
+            scene_manager_next_scene(app->scene_manager, DisneyToolboxAppSceneDroidPersonality);
             consumed = true;
         } else if(event.event == DroidSubmenuIndexBroadcastLocation) {
-            scene_manager_next_scene(app->scene_manager, Disn3yToolboxAppSceneDroidLocation);
+            scene_manager_next_scene(app->scene_manager, DisneyToolboxAppSceneDroidLocation);
             consumed = true;
         } else if(event.event == DroidSubmenuIndexAbout) {
-            scene_manager_next_scene(app->scene_manager, Disn3yToolboxAppSceneDroidAbout);
+            scene_manager_next_scene(app->scene_manager, DisneyToolboxAppSceneDroidAbout);
             consumed = true;
         }
     }
@@ -64,7 +64,7 @@ bool disn3y_toolbox_app_scene_droid_menu_on_event(void* context, SceneManagerEve
     return consumed;
 }
 
-void disn3y_toolbox_app_scene_droid_menu_on_exit(void* context) {
-    Disn3yToolboxApp* app = context;
+void disney_toolbox_app_scene_droid_menu_on_exit(void* context) {
+    DisneyToolboxApp* app = context;
     submenu_reset(app->submenu);
 }

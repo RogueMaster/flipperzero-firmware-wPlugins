@@ -1,5 +1,5 @@
-#include "../disn3y_toolbox_app.h"
-#include "disn3y_toolbox_icons.h"
+#include "../disney_toolbox_app.h"
+#include "disney_toolbox_icons.h"
 
 #define LOC_BC_ANIMATION_FRAMES 5
 #define LOC_BC_ANIMATION_MOD    2
@@ -13,11 +13,11 @@ static const Icon* loc_bc_animation[] = {
 };
 
 static void droid_location_broadcast_callback(DialogExResult result, void* context) {
-    Disn3yToolboxApp* app = context;
+    DisneyToolboxApp* app = context;
     view_dispatcher_send_custom_event(app->view_dispatcher, result);
 }
 
-static void droid_location_broadcast_update(Disn3yToolboxApp* app) {
+static void droid_location_broadcast_update(DisneyToolboxApp* app) {
     DialogEx* dialog_ex = app->dialog_ex;
 
     dialog_ex_set_header(dialog_ex, "Location Broadcaster", 64, 0, AlignCenter, AlignTop);
@@ -44,8 +44,8 @@ static void droid_location_broadcast_update(Disn3yToolboxApp* app) {
     dialog_ex_set_context(dialog_ex, app);
 }
 
-void disn3y_toolbox_app_scene_droid_location_broadcast_on_enter(void* context) {
-    Disn3yToolboxApp* app = context;
+void disney_toolbox_app_scene_droid_location_broadcast_on_enter(void* context) {
+    DisneyToolboxApp* app = context;
 
     // Start broadcasting
     furi_hal_bt_extra_beacon_stop();
@@ -56,13 +56,13 @@ void disn3y_toolbox_app_scene_droid_location_broadcast_on_enter(void* context) {
     notification_message_block(app->notifications, &sequence_set_blue_255);
 
     droid_location_broadcast_update(app);
-    view_dispatcher_switch_to_view(app->view_dispatcher, Disn3yToolboxAppViewDialog);
+    view_dispatcher_switch_to_view(app->view_dispatcher, DisneyToolboxAppViewDialog);
 }
 
-bool disn3y_toolbox_app_scene_droid_location_broadcast_on_event(
+bool disney_toolbox_app_scene_droid_location_broadcast_on_event(
     void* context,
     SceneManagerEvent event) {
-    Disn3yToolboxApp* app = context;
+    DisneyToolboxApp* app = context;
     bool consumed = false;
 
     if(event.type == SceneManagerEventTypeCustom) {
@@ -87,8 +87,8 @@ bool disn3y_toolbox_app_scene_droid_location_broadcast_on_event(
     return consumed;
 }
 
-void disn3y_toolbox_app_scene_droid_location_broadcast_on_exit(void* context) {
-    Disn3yToolboxApp* app = context;
+void disney_toolbox_app_scene_droid_location_broadcast_on_exit(void* context) {
+    DisneyToolboxApp* app = context;
 
     if(app->is_beacon_active) {
         furi_hal_bt_extra_beacon_stop();
