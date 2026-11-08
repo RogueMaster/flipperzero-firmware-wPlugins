@@ -129,6 +129,30 @@ function hunter()
                     location.reload();
                 });
             }
+
+            if (idx == "hunter_2" && choice == "2")
+            {
+                document.getElementById("my_text").innerHTML = "You have chosen to eat.<br>You are fully fueled with energy.<br>Do you want to go hunting or play a game with the rest of your tribe?<br><br>1- Hunt; 2- Play a game with the rest of my tribe<br>Make your choice " + user_name + ":<br>";
+                user_input = document.getElementById("choice_field").value;
+                document.querySelector("form").addEventListener("submit", function(event)
+                {
+                    localStorage.setItem("idx", "hunter_4");
+                    localStorage.setItem("choice", user_input);
+                    location.reload();
+                });
+            }
+
+            if (idx == "hunter_3" && choice == "1")
+            {
+                document.getElementById("my_text").innerHTML = "You have chosen to wait for her.<br>Because you have chosen to wait for her patiently, she attends to you in a matter of a couple days.<br>You are better in a week.<br>Some white men have come to your tribe.<br>They're asking to trade you guns for some of your tribe's animal pelts.<br>Do you trade them pelts for guns?<br><br>1- Trade; 2- Not trade<br>Make your choice " + user_name + ":<br>";
+                user_input = document.getElementById("choice_field").value;
+                document.querySelector("form").addEventListener("submit", function(event)
+                {
+                    localStorage.setItem("idx", "hunter_5");
+                    localStorage.setItem("choice", user_input);
+                    location.reload();
+                });
+            }
         }
     }
 }
