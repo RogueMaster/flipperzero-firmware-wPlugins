@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="screenshots/main.png" alt="The app's main screen on the device">
+<img src="asset/screenshot/main.png" alt="The app's main screen on the device">
 
 # F0 Claude Remote
 

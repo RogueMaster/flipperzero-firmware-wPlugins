@@ -50,6 +50,13 @@ static void view_draw_switch_plate(Canvas* canvas, Link link) {
     canvas_set_color(canvas, ColorBlack);
 }
 
+static void view_draw_hold_legend(Canvas* canvas) {
+    canvas_draw_rbox(canvas, 97, 0, 30, 11, 2);
+    canvas_set_color(canvas, ColorWhite);
+    canvas_draw_str(canvas, 100, 9, "HOLD");
+    canvas_set_color(canvas, ColorBlack);
+}
+
 static void view_draw_stopped(Canvas* canvas, Link link) {
     view_draw_no_link_status_row(canvas, link);
     canvas_draw_str(canvas, 17, 28, "Reconnect stopped");
@@ -72,6 +79,7 @@ void view_draw(Canvas* canvas, Mode mode, Link link, Action flash) {
     case ModeNoLink:
         view_draw_no_link(canvas, link, 28, "Keys are not sent");
         view_draw_switch_plate(canvas, link);
+        view_draw_hold_legend(canvas);
         break;
     case ModeVoiceCut:
         view_draw_no_link(canvas, link, 11, "Voice stopped: release OK");

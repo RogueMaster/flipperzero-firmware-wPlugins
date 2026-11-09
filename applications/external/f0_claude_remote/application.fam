@@ -4,8 +4,8 @@ App(
     apptype=FlipperAppType.EXTERNAL,
     entry_point="main_entry",
     stack_size=2 * 1024,
-    fap_icon="f0_claude_remote.png",
-    fap_icon_assets="images",
+    fap_icon="asset/icon/f0_claude_remote.png",
+    fap_icon_assets="asset/image",
     fap_libs=["ble_profile"],  # ble_profile_hid is not among the firmware's exports
     sources=["*.c*", "!test"],
     fap_category="Bluetooth",

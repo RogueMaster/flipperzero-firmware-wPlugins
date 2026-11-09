@@ -240,7 +240,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Servo Tester precise manual adjustment, full automatic sweep endpoints and PWM shutdown ordering (By ELynx)](https://github.com/spin7ion/flipper-servotester/pull/1)
 - Updated: [MeshCore Config worker shutdown cleanup, persistent sound/vibration/LED settings, connection feedback and logger status display (By hleserg)](https://github.com/hleserg/flipperMeshCoreConfig/pull/28)
 - Updated: [BadUSB MSC v0.1 resource cleanup, callback initialization and file-browser icon (By ZombieDolphin)](https://github.com/ZombieDolphin/BadUSB_MSC)
-- Updated: [Claude Remote v0.1 USB keyboard fallback and link switching (By Petr Korobeinikov)](https://github.com/petr-korobeinikov/f0-claude-remote)
+- Updated: [Claude Remote v0.1 (By Petr Korobeinikov)](https://github.com/petr-korobeinikov/f0-claude-remote)
 
 <a name="release"></a>
 
