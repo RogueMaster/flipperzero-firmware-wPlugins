@@ -148,6 +148,9 @@ void subghz_scene_set_type_on_enter(void* context) {
         }
     }
 
+    submenu_set_selected_item(
+        subghz->submenu, scene_manager_get_scene_state(subghz->scene_manager, SubGhzSceneSetType));
+
     view_dispatcher_switch_to_view(subghz->view_dispatcher, SubGhzViewIdMenu);
 }
 
@@ -344,6 +347,7 @@ bool subghz_scene_set_type_on_event(void* context, SceneManagerEvent event) {
         if(event.event >= SetTypeMAX) {
             return false;
         }
+        scene_manager_set_scene_state(subghz->scene_manager, SubGhzSceneSetType, event.event);
 
         subghz_gen_info_reset(subghz->gen_info);
         subghz_scene_set_type_fill_generation_infos(subghz->gen_info, event.event);
@@ -353,12 +357,10 @@ bool subghz_scene_set_type_on_event(void* context, SceneManagerEvent event) {
             return true;
         }
 
-        if(scene_manager_get_scene_state(subghz->scene_manager, SubGhzSceneSetType) ==
-           SubmenuIndexAddManually) {
+        if(subghz->add_manually_scene_state == SubmenuIndexAddManually) {
             generated_protocol = subghz_scene_set_type_generate_protocol_from_infos(subghz);
         } else if(
-            scene_manager_get_scene_state(subghz->scene_manager, SubGhzSceneSetType) ==
-            SubmenuIndexAddManuallyAdvanced) {
+            subghz->add_manually_scene_state == SubmenuIndexAddManuallyAdvanced) {
             switch(subghz->gen_info->type) {
             case GenData: // Key (u64)
                 scene_manager_next_scene(subghz->scene_manager, SubGhzSceneSetKey);

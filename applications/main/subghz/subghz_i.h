@@ -90,6 +90,10 @@ struct SubGhz {
 
     GenInfo* gen_info;
 
+#ifdef SUBGHZ_ADD_MANUALLY
+    uint32_t add_manually_scene_state;
+#endif
+
     SubGhzFileEncoderWorker* decode_raw_file_worker_encoder;
 
     SubGhzThresholdRssi* threshold_rssi;

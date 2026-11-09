@@ -229,6 +229,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [GPS NMEA Marauder v1.6 (By ezod & xMasterX & AzureSky)](https://github.com/AzzureSkyy/flipper-gps-marauder-c5)
 - Added: [Theme Player v1.0 (By AzureSky)](https://github.com/AzzureSkyy/flipper-theme-player)
 - Added: [DigiPet v1.0 (By AzureSky)](https://github.com/AzzureSkyy/flipper-games)
+- UL: [Sub-GHz Add Manually remembers the selected protocol (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/1fe237846cffe1f54add2a7f78f961cab9e35221)
 
 <a name="release"></a>
 

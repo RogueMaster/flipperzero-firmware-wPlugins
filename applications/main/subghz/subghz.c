@@ -507,8 +507,7 @@ int32_t subghz_add_manually(void* p) {
     UNUSED(subghz_rpc_command_callback);
     UNUSED(subghz_load_custom_presets);
 
-    scene_manager_set_scene_state(
-        subghz->scene_manager, SubGhzSceneSetType, add_manually_scene_state);
+    subghz->add_manually_scene_state = add_manually_scene_state;
 
     view_dispatcher_attach_to_gui(
         subghz->view_dispatcher, subghz->gui, ViewDispatcherTypeFullscreen);
