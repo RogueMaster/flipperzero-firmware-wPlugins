@@ -159,7 +159,7 @@ static void start_emulation(App* app, const Entry* entry) {
     view_dispatcher_switch_to_view(app->dispatcher, ViewEmulate);
 }
 
-#define ABOUT_HEIGHT 92
+#define ABOUT_HEIGHT 80
 #define ABOUT_STEP   8
 
 static void draw_triforce(Canvas* c, int cx, int top) {
@@ -178,7 +178,6 @@ static void about_draw(Canvas* c, void* model) {
     canvas_set_font(c, FontPrimary);
     canvas_draw_str_aligned(c, 64, y + 3, AlignCenter, AlignTop, "Amiibo Browser");
     canvas_set_font(c, FontSecondary);
-    canvas_draw_str_aligned(c, 64, y + 16, AlignCenter, AlignTop, "by AzureSky");
     static const char* const lines[] = {
         "Amiibo is a trademark of",
         "Nintendo. Characters are",
@@ -186,9 +185,9 @@ static void about_draw(Canvas* c, void* model) {
         "reserved.",
     };
     for(size_t i = 0; i < sizeof(lines) / sizeof(lines[0]); i++) {
-        canvas_draw_str_aligned(c, 64, y + 30 + i * 10, AlignCenter, AlignTop, lines[i]);
+        canvas_draw_str_aligned(c, 64, y + 18 + i * 10, AlignCenter, AlignTop, lines[i]);
     }
-    draw_triforce(c, 64, y + 74);
+    draw_triforce(c, 64, y + 62);
     // scrollbar
     int track = 64 - 4;
     int thumb = track * 64 / ABOUT_HEIGHT;

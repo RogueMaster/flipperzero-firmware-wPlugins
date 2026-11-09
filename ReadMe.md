@@ -232,6 +232,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - UL: [Sub-GHz Add Manually remembers the selected protocol (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/1fe237846cffe1f54add2a7f78f961cab9e35221)
 - Updated: [Loteria Zero v1.1 full called-card history browsing, complete history lists and shuffle validation (By databrainsco)](https://github.com/databrainsco/Loteria_Zero)
 - Updated: [ListEM v1.5 compact menus, selected-row scrolling and generation progress with recent UID previews (By Clawzman)](https://github.com/Clawzman/Flipper_ListEM)
+- Updated: [Amiibo Browser v1.0 compact About layout and refreshed screenshot (By AzureSky)](https://github.com/AzzureSkyy/flipper-amiibo-browser)
 
 <a name="release"></a>
 
