@@ -241,6 +241,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [MeshCore Config worker shutdown cleanup, persistent sound/vibration/LED settings, connection feedback and logger status display (By hleserg)](https://github.com/hleserg/flipperMeshCoreConfig/pull/28)
 - Updated: [BadUSB MSC v0.1 resource cleanup, callback initialization and file-browser icon (By ZombieDolphin)](https://github.com/ZombieDolphin/BadUSB_MSC)
 - Updated: [Claude Remote v0.1 (By Petr Korobeinikov)](https://github.com/petr-korobeinikov/f0-claude-remote)
+- Updated: [Theme Player with 13 author-added Zelda tune files (By AzureSky)](https://github.com/AzzureSkyy/flipper-theme-player)
 
 <a name="release"></a>
 

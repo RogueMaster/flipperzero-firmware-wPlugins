@@ -1,0 +1,1 @@
+Saria's Song:d=8,o=4,b=160:f,a,4b,f,a,4b,f,a,b,e5,4d5,b,c5,b,g,2e,d,e,g,2e

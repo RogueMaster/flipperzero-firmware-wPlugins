@@ -1,0 +1,10 @@
+Melody:d=8,o=5,b=120:
+d4,f4,d5,p,p,
+d4,f4,d5,p,p,
+e5,p,f5,e5,f5,e5,c5,a4,p,p,
+a4,p,d4,p,f4,g4,a4,p,p,
+a4,p,d4,p,f4,g4,e4,p,p,
+d4,f4,d5,p,p,
+d4,f4,d5,p,p,
+e5,p,f5,e5,f5,e5,c5,a4,p,p,
+a4,p,d4,p,f4,g4,a4,p,a4,d4,p,p,p

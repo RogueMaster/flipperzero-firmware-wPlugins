@@ -1,0 +1,1 @@
+Bolero of Fire:d=8,o=4,b=150:f,d,f,d,a,f,a,f,4p,f,d,f,d,a,f,a,f
