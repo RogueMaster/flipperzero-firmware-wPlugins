@@ -2,6 +2,8 @@
 // Stores only: chat id, language, source tag, device keys, pc names, counters.
 // Logs never contain keys or message text.
 
+import { hitCounter } from "./alert-counter.js";
+
 export const FREE_DAILY_LIMIT = 10; // alerts per chat per UTC day (Pro: unlimited)
 export const PRO_PRICE_STARS = 99; // Telegram Stars per 30 days
 export const PRO_PERIOD_SEC = 2592000;
@@ -220,15 +222,10 @@ export class AlertCounter {
     const c = (await this.storage.get("c")) || { n: 0, noted: false };
     if (pathname === "/peek") return json({ n: c.n });
     const { limit } = await req.json();
-    if (c.n >= limit) {
-      const noteNow = !c.noted;
-      if (noteNow) await this.storage.put("c", { ...c, noted: true });
-      return json({ n: c.n, allowed: false, noteNow });
-    }
-    const next = { ...c, n: c.n + 1 };
-    await this.storage.put("c", next);
-    if (c.n === 0) await this.storage.setAlarm(Date.now() + 172800 * 1000); // forget the day after 48 h
-    return json({ n: next.n, allowed: true, noteNow: false });
+    const { next, result } = hitCounter(c, limit);
+    if (next) await this.storage.put("c", next);
+    if (result.allowed && c.n === 0) await this.storage.setAlarm(Date.now() + 172800 * 1000); // forget the day after 48 h
+    return json(result);
   }
   async alarm() {
     await this.storage.deleteAll();
@@ -250,14 +247,9 @@ function counter(env, ckey) {
     peek: async () => ((await getJson(kv, ckey)) || { n: 0 }).n,
     hit: async (limit) => {
       const c = (await getJson(kv, ckey)) || { n: 0, noted: false };
-      if (c.n >= limit) {
-        const noteNow = !c.noted;
-        if (noteNow) await kv.put(ckey, JSON.stringify({ ...c, noted: true }), { expirationTtl: 172800 });
-        return { n: c.n, allowed: false, noteNow };
-      }
-      c.n++;
-      await kv.put(ckey, JSON.stringify(c), { expirationTtl: 172800 });
-      return { n: c.n, allowed: true, noteNow: false };
+      const { next, result } = hitCounter(c, limit);
+      if (next) await kv.put(ckey, JSON.stringify(next), { expirationTtl: 172800 });
+      return result;
     },
   };
 }
