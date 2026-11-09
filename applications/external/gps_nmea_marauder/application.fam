@@ -1,0 +1,16 @@
+App(
+    appid="gps_nmea_marauder",
+    name="GPS Marauder [NMEA]",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="gps_app",
+    stack_size=1 * 1024,
+    fap_icon="gps_10px.png",
+    fap_private_libs=[
+        Lib(name="minmea", sources=["minmea.c"], cdefines=["timegm=mktime"])
+    ],
+    fap_category="GPIO/ESP32",
+    fap_author="ezod & xMasterX & AzureSky",
+    fap_weburl="https://github.com/AzzureSkyy/flipper-gps-marauder-c5",
+    fap_version="1.6",
+    fap_description="GPS via ESP32 Marauder board (ESP32-C5) using the 'nmea' CLI stream.",
+)

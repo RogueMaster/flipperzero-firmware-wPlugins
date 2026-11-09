@@ -222,6 +222,13 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [ProtoView v1.5 VW/Audi TPMS decoder, 125 kHz sensor wake and bounded history copies (By arthurdurlesteanu)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/pull/1211)
 - Updated: [Metroflip v2.1-beta.1 Santo Domingo and BIP Piemonte support, additional DESFire AIDs, Calypso ticketing dumps and Suica plugin assets (By luu176, filippo-ferrando, DIVIADAR and ry4000)](https://github.com/luu176/Metroflip)
 - Updated: [Dooya Remote v1.2 saves remotes under apps_data, removes serial wildcard sweeps and checks the firmware region before 433.92 MHz transmission (By Lechnio)](https://github.com/Lechnio/Dooya-Remote/commit/2abceec60166d88af00fc6e4b5ca4eced614c999)
+- Updated: [Remote Analyzer adds Life Fido, Crypt and Crypt Lite detection (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/faa3b6f3bd59868024a1d464fa0c999bb0453d6d)
+- Updated: [KeeLoq mode 10 Phantom/Hiland resync and Crypt Key identification (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/24b053f847176e789cd66d54c9b63371134f731d)
+- Updated: [Sub-GHz Add Manually list sorted by remote name (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/a169d65f4cc483de96a346c8564d86207bdc88ea)
+- Added: [Amiibo Browser v1.0 (By AzureSky)](https://github.com/AzzureSkyy/flipper-amiibo-browser)
+- Added: [GPS NMEA Marauder v1.6 (By ezod & xMasterX & AzureSky)](https://github.com/AzzureSkyy/flipper-gps-marauder-c5)
+- Added: [Theme Player v1.0 (By AzureSky)](https://github.com/AzzureSkyy/flipper-theme-player)
+- Added: [DigiPet v1.0 (By AzureSky)](https://github.com/AzzureSkyy/flipper-games)
 
 <a name="release"></a>
 
@@ -373,6 +380,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Decision Maker v1.0 (By Gerijacki)](https://github.com/Gerijacki/random_decision_maker)
 - [Devilliers Platformer v0.1 (By adevil5)](https://github.com/adevil5/flipper-platformer-game)
 - [Dice (RM) Including SEX/WAR/8BALL/WEED/DRINK DICE v2.6 (By RogueMaster)](https://github.com/RogueMaster/flipperzero-dice)
+- [DigiPet v1.0 (By AzureSky)](https://github.com/AzzureSkyy/flipper-games)
 - [Digital Kaleidoscope v0.1 (By JamesR555)](https://github.com/JamesR555/digital_kaleidoscope)
 - [DnD Dice v1.3 (By Ka3u6y6a)](https://github.com/Ka3u6y6a/flipper-zero-dice)
 - [DNDAdventure v4.20.2 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
@@ -550,6 +558,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Air Stats v1.0 (By thevan4)](https://github.com/thevan4/flipper-air-stats) Req: [See App Readme For Supported Modules](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/applications/external/air_stats/README.md)
 - [Alcohol Calc v1.0 (By vtlklr)](https://github.com/vtlklr/alcohol_calc)
 - [Allstar Firefly v0.1 (By jlaughter)](https://github.com/jlaughter/flipper-allstar-firefly)
+- [Amiibo Browser v1.0 (By AzureSky)](https://github.com/AzzureSkyy/flipper-amiibo-browser)
 - [AmiiTool v0.3 (By Firefox2100)](https://github.com/Firefox2100/ami_tool) `Req: key_retail.bin on SD card /nfc/assets`
 - [Amusement IC v0.1 (By object-Object)](https://github.com/object-Object/flip_aic)
 - [Analog Clock v1.2 (By scrolltex)](https://github.com/scrolltex/flipper_analog_clock)
@@ -812,6 +821,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [GPIO Reader (biotinker) (By biotinker)](https://github.com/biotinker/flipperzero-gpioreader)
 - [GPIO Reader v1.2 (Aurelilc) (By aureli1c)](https://github.com/aureli1c/flipperzero_GPIO_read)
 - [GPIO w I2C (By gornekich)-OFW] with [I²C-Scanner #1431 (By GitChris3004)](https://github.com/flipperdevices/flipperzero-firmware/pull/1431) and [read EEPROM of SFP Modules using I2C (By marcusju)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/pull/198)
+- [GPS NMEA Marauder v1.6 (By ezod & xMasterX & AzureSky)](https://github.com/AzzureSkyy/flipper-gps-marauder-c5)
 - [GPS Track v1.0 (By xumbax)](https://github.com/xumbax/GPS-Track) `Req: NMEA GPS Module`
 - [GPS v1.5 (By ezod)](https://github.com/ezod/flipperzero-gps) `Req: NMEA 0183`
 - [Gree AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
@@ -1174,6 +1184,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Text Viewer v1.7 (By WillyJL)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/ae4fc4a54febccb44b010c4025a99c2edef9a7f0)
 - [The C Prog. Language v0.2 (By armixz)](https://github.com/armixz/Flipper-Zero-The-C-Programming-Language)
 - [Theme Manager v1.6 (By Hoasker)](https://github.com/Hoasker/flipper-theme-manager)
+- [Theme Player v1.0 (By AzureSky)](https://github.com/AzzureSkyy/flipper-theme-player)
 - [Thermometer v0.2.1 (By niki-timofe)](https://github.com/niki-timofe/flipperzero-app-onewire)
 - [Time Dilation Calculator v1.0 (By ejfox)](https://github.com/ejfox/flipper-space-calculators)
 - [Time Tracker v1.0.3 (By MassivDash)](https://github.com/MassivDash/flipper-tracker)

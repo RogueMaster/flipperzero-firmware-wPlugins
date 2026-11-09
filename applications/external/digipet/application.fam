@@ -1,0 +1,13 @@
+App(
+    appid="digipet",
+    name="DigiPet",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="digipet_app",
+    stack_size=4 * 1024,
+    fap_icon="digipet.png",
+    fap_category="Games",
+    fap_author="AzureSky",
+    fap_weburl="https://github.com/AzzureSkyy/flipper-games",
+    fap_version="1.0",
+    fap_description="Virtual pet with SD persistence and offline aging",
+)

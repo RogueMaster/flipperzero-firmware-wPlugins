@@ -1,0 +1,14 @@
+App(
+    appid="amiibo_browser",
+    name="Amiibo Browser",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="amiibo_browser_app",
+    stack_size=4 * 1024,
+    fap_icon="amiibo_browser.png",
+    targets=["f7"],
+    fap_category="NFC",
+    fap_author="AzureSky",
+    fap_weburl="https://github.com/AzzureSkyy/flipper-amiibo-browser",
+    fap_version="1.0",
+    fap_description="Browse amiibo by game and emulate them",
+)
