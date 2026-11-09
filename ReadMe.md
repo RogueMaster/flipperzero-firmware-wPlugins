@@ -243,6 +243,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Claude Remote v0.1 (By Petr Korobeinikov)](https://github.com/petr-korobeinikov/f0-claude-remote)
 - Updated: [Theme Player with 13 author-added Zelda tune files (By AzureSky)](https://github.com/AzzureSkyy/flipper-theme-player)
 - Updated: [BLE Clipboard v0.5.4 persistent keyboard settings, desktop sync and typing pace (By otcan)](https://github.com/otcan/ble-clipboard)
+- Updated: [Sub-GHz Proteco MOVER 433MHz decoding, encoding, custom buttons and Add Manually support (By dkorunic & xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/pull/1210)
 
 <a name="release"></a>
 

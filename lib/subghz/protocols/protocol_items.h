@@ -95,3 +95,4 @@
 #include "cardin_s508.h"
 #include "freezer.h"
 #include "faac_tm.h"
+#include "proteco.h"
