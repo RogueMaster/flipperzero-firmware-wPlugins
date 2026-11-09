@@ -359,8 +359,7 @@ bool subghz_scene_set_type_on_event(void* context, SceneManagerEvent event) {
 
         if(subghz->add_manually_scene_state == SubmenuIndexAddManually) {
             generated_protocol = subghz_scene_set_type_generate_protocol_from_infos(subghz);
-        } else if(
-            subghz->add_manually_scene_state == SubmenuIndexAddManuallyAdvanced) {
+        } else if(subghz->add_manually_scene_state == SubmenuIndexAddManuallyAdvanced) {
             switch(subghz->gen_info->type) {
             case GenData: // Key (u64)
                 scene_manager_next_scene(subghz->scene_manager, SubGhzSceneSetKey);

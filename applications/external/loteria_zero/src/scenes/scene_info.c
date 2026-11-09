@@ -55,10 +55,11 @@ void loteria_scene_about_on_enter(void* context) {
         "Tradition in your hands.\n\n"
         "Digital Mexican Loteria caller for Flipper Zero.\n\n"
         "54 cards - original rhymes\n"
-        "Version 1.0\n\n"
+        "Version 1.1\n\n"
         "Controls (hold Flipper vertical):\n"
         "OK / RIGHT: next\n"
-        "LEFT: previous\n"
+        "LEFT: history back\n"
+        "RIGHT in hist: forward\n"
         "UP / DOWN: rhyme\n"
         "BACK: menu\n\n"
         "For APA");
@@ -129,20 +130,20 @@ void loteria_scene_history_on_enter(void* context) {
     furi_string_cat_printf(
         text, "Called: %u\nPending: %u\n\n", sung, (unsigned)(LOTERIA_CARD_COUNT - sung));
 
-    for(uint8_t i = 0; i < sung && i < 20; i++) {
-        const LoteriaCard* card = &loteria_cards[app->game.order[i]];
+    /* Full called list (scrollable widget). */
+    for(uint8_t i = 0; i < sung; i++) {
+        uint8_t idx = app->game.order[i];
+        if(idx >= LOTERIA_CARD_COUNT) {
+            continue;
+        }
+        const LoteriaCard* card = &loteria_cards[idx];
         furi_string_cat_printf(text, "%02u. %s\n", i + 1, card->name);
-    }
-    if(sung > 20) {
-        furi_string_cat(text, "...\n");
     }
 
     furi_string_cat(text, "\n\e#Pending\n");
-    uint8_t shown = 0;
-    for(uint8_t id = 1; id <= LOTERIA_CARD_COUNT && shown < 15; id++) {
+    for(uint8_t id = 1; id <= LOTERIA_CARD_COUNT; id++) {
         if(!loteria_game_is_sung(&app->game, id)) {
             furi_string_cat_printf(text, "- %s\n", loteria_cards[id - 1].name);
-            shown++;
         }
     }
 

@@ -96,9 +96,10 @@ void loteria_renderer_draw_card(Canvas* canvas, const LoteriaRenderModel* model)
         return;
     }
 
-    /* Progress */
+    /* Progress: when browsing history, show that card's call number */
     char progress[16];
-    snprintf(progress, sizeof(progress), "%u/%u", model->sung, model->total);
+    uint8_t shown = model->card_number ? model->card_number : model->sung;
+    snprintf(progress, sizeof(progress), "%u/%u", shown, model->total);
     canvas_set_font(canvas, FontSecondary);
     canvas_draw_str_aligned(canvas, 32, 1, AlignCenter, AlignTop, progress);
 
@@ -160,7 +161,7 @@ void loteria_renderer_draw_card(Canvas* canvas, const LoteriaRenderModel* model)
     }
 
     if(model->showing_previous) {
-        canvas_draw_str_aligned(canvas, 4, 118, AlignLeft, AlignTop, "<prev");
+        canvas_draw_str_aligned(canvas, 4, 118, AlignLeft, AlignTop, "<hist");
     } else if(model->paused) {
         canvas_draw_str_aligned(canvas, 4, 118, AlignLeft, AlignTop, "PAUSE");
     }

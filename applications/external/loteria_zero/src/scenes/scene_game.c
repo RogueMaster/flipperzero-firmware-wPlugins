@@ -14,27 +14,37 @@ static void loteria_game_view_redraw(LoteriaApp* app) {
 static void loteria_game_view_draw_callback(Canvas* canvas, void* model) {
     LoteriaApp* app = ((GameViewModel*)model)->app;
     LoteriaRenderModel render = {0};
+    uint8_t sung = loteria_game_sung_count(&app->game);
+    uint8_t lookback = app->history_offset;
+
     render.total = LOTERIA_CARD_COUNT;
-    render.sung = loteria_game_sung_count(&app->game);
+    render.sung = sung;
     render.paused = app->game.paused;
     render.auto_mode = app->persist.auto_mode;
     render.finished = app->game.finished;
-    render.showing_previous = app->viewing_previous;
+    render.showing_previous = (lookback > 0);
     render.rhyme_scroll = app->rhyme_scroll;
-
-    if(app->viewing_previous) {
-        render.card = loteria_game_previous_card(&app->game);
+    render.card = loteria_game_card_at_lookback(&app->game, lookback);
+    if(sung > lookback) {
+        render.card_number = (uint8_t)(sung - lookback);
     } else {
-        render.card = loteria_game_current_card(&app->game);
+        render.card_number = sung;
     }
 
     loteria_renderer_draw_card(canvas, &render);
 }
 
+static void loteria_game_exit_history(LoteriaApp* app) {
+    app->history_offset = 0;
+    app->viewing_previous = false;
+    app->rhyme_scroll = 0;
+}
+
 static void loteria_game_request_next(LoteriaApp* app) {
-    if(app->viewing_previous) {
-        app->viewing_previous = false;
-        app->rhyme_scroll = 0;
+    /* Browsing history: first OK/Right returns to the live card (no advance).
+     * A second press advances. This avoids "re-calling" a past card. */
+    if(app->history_offset > 0) {
+        loteria_game_exit_history(app);
         loteria_game_view_redraw(app);
         return;
     }
@@ -49,24 +59,45 @@ static void loteria_game_request_next(LoteriaApp* app) {
 
 static bool loteria_game_view_input_callback(InputEvent* event, void* context) {
     LoteriaApp* app = context;
+    /* Only Short for next/history nav — Repeat was easy to double-advance. */
     if(event->type != InputTypeShort && event->type != InputTypeRepeat) {
         return false;
     }
 
     switch(event->key) {
     case InputKeyOk:
+        if(event->type != InputTypeShort) {
+            return true;
+        }
         loteria_game_request_next(app);
         return true;
     case InputKeyRight:
+        if(event->type != InputTypeShort) {
+            return true;
+        }
+        if(app->history_offset > 0) {
+            app->history_offset--;
+            app->viewing_previous = (app->history_offset > 0);
+            app->rhyme_scroll = 0;
+            loteria_game_view_redraw(app);
+            return true;
+        }
         loteria_game_request_next(app);
         return true;
-    case InputKeyLeft:
-        if(loteria_game_previous_card(&app->game)) {
+    case InputKeyLeft: {
+        /* Walk back through every called card, not only the last one. */
+        if(event->type != InputTypeShort && event->type != InputTypeRepeat) {
+            return true;
+        }
+        uint8_t max_lb = loteria_game_max_lookback(&app->game);
+        if(app->history_offset < max_lb) {
+            app->history_offset++;
             app->viewing_previous = true;
             app->rhyme_scroll = 0;
             loteria_game_view_redraw(app);
         }
         return true;
+    }
     case InputKeyUp:
         if(app->rhyme_scroll > 0) {
             app->rhyme_scroll--;
@@ -89,8 +120,7 @@ static bool loteria_game_view_input_callback(InputEvent* event, void* context) {
 
 void loteria_scene_game_on_enter(void* context) {
     LoteriaApp* app = context;
-    app->viewing_previous = false;
-    app->rhyme_scroll = 0;
+    loteria_game_exit_history(app);
 
     with_view_model(app->game_view, GameViewModel * model, { model->app = app; }, false);
 
@@ -108,9 +138,9 @@ bool loteria_scene_game_on_event(void* context, SceneManagerEvent event) {
         consumed = true;
         if(event.event == LoteriaCustomEventGameNext ||
            event.event == LoteriaCustomEventGameAutoTick) {
-            if(app->viewing_previous) {
-                app->viewing_previous = false;
-                app->rhyme_scroll = 0;
+            if(app->history_offset > 0) {
+                /* Auto-tick while browsing: snap back to live card, do not advance. */
+                loteria_game_exit_history(app);
                 loteria_game_view_redraw(app);
                 return true;
             }
@@ -118,8 +148,7 @@ bool loteria_scene_game_on_event(void* context, SceneManagerEvent event) {
                 return true;
             }
 
-            uint8_t before = loteria_game_sung_count(&app->game);
-            if(before >= LOTERIA_CARD_COUNT) {
+            if(loteria_game_sung_count(&app->game) >= LOTERIA_CARD_COUNT) {
                 app->game.finished = true;
                 app->game.active = false;
                 app->persist.stats.games_completed++;
@@ -137,6 +166,8 @@ bool loteria_scene_game_on_event(void* context, SceneManagerEvent event) {
                 loteria_notify_card(app);
             }
             app->rhyme_scroll = 0;
+            app->history_offset = 0;
+            app->viewing_previous = false;
             /* Keep save in RAM during play; flush on Back / exit / game end. */
             app->persist.saved_game = app->game;
             app->persist.has_saved_game = loteria_game_has_save(&app->game);
@@ -154,6 +185,12 @@ bool loteria_scene_game_on_event(void* context, SceneManagerEvent event) {
         }
     } else if(event.type == SceneManagerEventTypeBack) {
         consumed = true;
+        if(app->history_offset > 0) {
+            /* Back leaves history browse first, then exits to menu. */
+            loteria_game_exit_history(app);
+            loteria_game_view_redraw(app);
+            return true;
+        }
         app->persist.saved_game = app->game;
         app->persist.has_saved_game = loteria_game_has_save(&app->game);
         loteria_app_save(app);

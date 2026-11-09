@@ -19,7 +19,7 @@ Loteria Zero turns your Flipper Zero into a digital caller for classic Mexican L
 1. Open **New game**
 2. Hold the Flipper vertically to read each card
 3. Press **OK** or **Right** for the next card
-4. Press **Left** to peek at the previous card
+4. Press **Left** to step back through called cards; **Right** to move forward in that history
 5. Press **Up** / **Down** to scroll the rhyme
 6. Press **Back** to save and return to the menu
 

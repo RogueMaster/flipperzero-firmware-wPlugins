@@ -22,11 +22,29 @@ static void loteria_game_shuffle(uint8_t* order, size_t count) {
 
 void loteria_game_start_new(LoteriaGame* game) {
     loteria_game_shuffle(game->order, LOTERIA_CARD_COUNT);
-    game->index = 0;
+
+    /* Guarantee a permutation (no duplicate card indices). */
+    bool seen[LOTERIA_CARD_COUNT] = {false};
+    bool unique = true;
+    for(uint8_t i = 0; i < LOTERIA_CARD_COUNT; i++) {
+        uint8_t v = game->order[i];
+        if(v >= LOTERIA_CARD_COUNT || seen[v]) {
+            unique = false;
+            break;
+        }
+        seen[v] = true;
+    }
+    if(!unique) {
+        for(uint8_t i = 0; i < LOTERIA_CARD_COUNT; i++) {
+            game->order[i] = i;
+        }
+        loteria_game_shuffle(game->order, LOTERIA_CARD_COUNT);
+    }
+
     game->active = true;
     game->finished = false;
     game->paused = false;
-    /* Reveal first card immediately */
+    /* Reveal first card immediately (index = sung count). */
     game->index = 1;
 }
 
@@ -35,39 +53,45 @@ bool loteria_game_has_save(const LoteriaGame* game) {
 }
 
 const LoteriaCard* loteria_game_current_card(const LoteriaGame* game) {
-    if(!game->active || game->index == 0) {
-        return NULL;
-    }
-    uint8_t pos = game->index - 1;
-    return &loteria_cards[game->order[pos]];
+    return loteria_game_card_at_lookback(game, 0);
 }
 
 const LoteriaCard* loteria_game_previous_card(const LoteriaGame* game) {
-    if(!game->active || game->index < 2) {
+    return loteria_game_card_at_lookback(game, 1);
+}
+
+const LoteriaCard* loteria_game_card_at_lookback(const LoteriaGame* game, uint8_t lookback) {
+    uint8_t sung = loteria_game_sung_count(game);
+    if(sung == 0 || lookback >= sung) {
         return NULL;
     }
-    uint8_t pos = game->index - 2;
-    return &loteria_cards[game->order[pos]];
+    uint8_t pos = (uint8_t)(sung - 1 - lookback);
+    uint8_t idx = game->order[pos];
+    if(idx >= LOTERIA_CARD_COUNT) {
+        return NULL;
+    }
+    return &loteria_cards[idx];
+}
+
+uint8_t loteria_game_max_lookback(const LoteriaGame* game) {
+    uint8_t sung = loteria_game_sung_count(game);
+    if(sung <= 1) {
+        return 0;
+    }
+    return (uint8_t)(sung - 1);
 }
 
 bool loteria_game_next(LoteriaGame* game) {
     if(!game->active || game->finished || game->paused) {
         return false;
     }
+    /* Already showing the last card: finish on next press. */
     if(game->index >= LOTERIA_CARD_COUNT) {
         game->finished = true;
         game->active = false;
         return false;
     }
     game->index++;
-    if(game->index >= LOTERIA_CARD_COUNT) {
-        /* last card just revealed; next call finishes */
-    }
-    if(game->index > LOTERIA_CARD_COUNT) {
-        game->finished = true;
-        game->active = false;
-        return false;
-    }
     return true;
 }
 

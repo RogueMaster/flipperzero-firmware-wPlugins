@@ -150,10 +150,11 @@ If the API/SDK mismatches: `ufbt flash_usb` (updates firmware to the SDK channel
 
 | Button | Action |
 |--------|--------|
-| OK / Right | Call next card |
-| Left | Peek previous card |
+| OK | Call next card (or exit history browse first) |
+| Right | Next card, or step forward in history |
+| Left | Step back through all called cards |
 | Up / Down | Scroll the rhyme |
-| BACK | Save and return to menu |
+| BACK | Leave history browse, then save and menu |
 
 Down also pauses auto-call when a timed mode is active.
 

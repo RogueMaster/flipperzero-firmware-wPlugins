@@ -60,6 +60,7 @@ bool loteria_scene_main_menu_on_event(void* context, SceneManagerEvent event) {
             app->persist.stats.last_played_epoch = furi_hal_rtc_get_timestamp();
             loteria_app_save(app);
             app->viewing_previous = false;
+            app->history_offset = 0;
             scene_manager_next_scene(app->scene_manager, LoteriaSceneGame);
             break;
         case MenuContinue:
@@ -67,6 +68,7 @@ bool loteria_scene_main_menu_on_event(void* context, SceneManagerEvent event) {
                 app->game = app->persist.saved_game;
             }
             app->viewing_previous = false;
+            app->history_offset = 0;
             scene_manager_next_scene(app->scene_manager, LoteriaSceneGame);
             break;
         case MenuAllCards:

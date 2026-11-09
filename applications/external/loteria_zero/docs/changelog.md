@@ -1,3 +1,9 @@
+v1.1:
+- LEFT steps back through all called cards (not only the last)
+- History menu lists every called and pending card
+- OK/Right while browsing history returns to the live card without re-calling
+- Shuffle uniqueness check so no card can appear twice in a game
+
 v1.0:
 - First public Flipper Zero release
 - 54-card Mexican Loteria caller

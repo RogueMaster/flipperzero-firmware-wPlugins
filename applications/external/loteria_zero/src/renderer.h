@@ -8,7 +8,8 @@
 
 typedef struct {
     const LoteriaCard* card;
-    uint8_t sung;
+    uint8_t sung; /* live sung count (progress denominator position when live) */
+    uint8_t card_number; /* 1-based number shown for this card (history-aware) */
     uint8_t total;
     bool paused;
     bool showing_previous;

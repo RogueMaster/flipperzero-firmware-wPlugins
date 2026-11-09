@@ -230,6 +230,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Theme Player v1.0 (By AzureSky)](https://github.com/AzzureSkyy/flipper-theme-player)
 - Added: [DigiPet v1.0 (By AzureSky)](https://github.com/AzzureSkyy/flipper-games)
 - UL: [Sub-GHz Add Manually remembers the selected protocol (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/1fe237846cffe1f54add2a7f78f961cab9e35221)
+- Updated: [Loteria Zero v1.1 full called-card history browsing, complete history lists and shuffle validation (By databrainsco)](https://github.com/databrainsco/Loteria_Zero)
 
 <a name="release"></a>
 
@@ -447,7 +448,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Lettercade v1.0 (By andreimagic)](https://github.com/andreimagic/flipper-lettercade)
 - [Lifecounter v1.0 (By antsy)](https://github.com/antsy/Lifecounter) (Multi Counter remake)
 - [Lights Out Flipper Zero v1.1 (By DigiMancer3D)](https://github.com/DigiMancer3D)
-- [Loteria Zero v1.0 (By databrainsco)](https://github.com/databrainsco/Loteria_Zero)
+- [Loteria Zero v1.1 (By databrainsco)](https://github.com/databrainsco/Loteria_Zero)
 - [Magic 8-ball v0.1 (By stevenquinn)](https://github.com/stevenquinn/flipper-8-ball)
 - [Mancala v0.1 (By fgreil)](https://github.com/fgreil/mitzi-mancala)
 - [Mandelbrot Set v1.4 (By Possibly-Matt)](https://github.com/Possibly-Matt/flipperzero-firmware-wPlugins)
