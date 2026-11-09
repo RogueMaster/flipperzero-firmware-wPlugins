@@ -3,6 +3,12 @@
 #include "keyboard_layout.h"
 #include <string.h>
 
+ClipboardSaved clipboard_saved_for_keyboard(const ClipboardSaved* saved, const ClipboardKeyboardSettings* settings) {
+    ClipboardSaved run = *saved;
+    if(settings->override_saved) { run.layout = settings->layout; run.target = settings->target; }
+    return run;
+}
+
 static bool valid_name(const char* name, size_t length) {
     if(!length || length >= CLIPBOARD_SAVED_NAME) return false;
     for(size_t i = 0; i < length;) {

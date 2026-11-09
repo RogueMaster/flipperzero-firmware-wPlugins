@@ -10,3 +10,13 @@ static const char* const clipboard_layout_files[] = {
     "nb-NO.kl",     "nl-NL.kl", "pt-BR.kl", "pt-PT.kl", "si-SI.kl",     "sk-SK.kl", "sv-SE.kl",
 };
 #define CLIPBOARD_LAYOUT_COUNT (sizeof(clipboard_layout_files) / sizeof(clipboard_layout_files[0]))
+static const char* const clipboard_layout_titles[] = {
+    "English US", "Turkish Q", "Bosnian", "Czech", "Danish", "German Swiss", "German",
+    "Dvorak", "English UK", "Spanish", "Spanish Latin Am.", "French Belgium", "French Canada",
+    "French Swiss", "French Mac", "French", "Croatian", "Hungarian", "Italian Mac",
+    "Italian", "Japanese", "Norwegian", "Dutch", "Portuguese Brazil", "Portuguese",
+    "Slovenian", "Slovak", "Swedish",
+};
+static const char* const clipboard_target_titles[] = {"macOS", "Windows", "Linux"};
+_Static_assert(sizeof(clipboard_layout_titles) / sizeof(clipboard_layout_titles[0]) == CLIPBOARD_LAYOUT_COUNT,
+               "Every layout must have a device title");

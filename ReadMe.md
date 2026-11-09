@@ -242,6 +242,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [BadUSB MSC v0.1 resource cleanup, callback initialization and file-browser icon (By ZombieDolphin)](https://github.com/ZombieDolphin/BadUSB_MSC)
 - Updated: [Claude Remote v0.1 (By Petr Korobeinikov)](https://github.com/petr-korobeinikov/f0-claude-remote)
 - Updated: [Theme Player with 13 author-added Zelda tune files (By AzureSky)](https://github.com/AzzureSkyy/flipper-theme-player)
+- Updated: [BLE Clipboard v0.5.4 persistent keyboard settings, desktop sync and typing pace (By otcan)](https://github.com/otcan/ble-clipboard)
 
 <a name="release"></a>
 
@@ -610,7 +611,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [BlackJack Counter v1.0 (By grugnoymeme)](https://github.com/grugnoymeme/flipperzero-blackjack_counter-fap)
 - [BLE Beacon v1.1 (By steanlab)](https://github.com/steanlab/BLE-Beacon)
 - [BLE Clicker v1.0 (By random1st)](https://github.com/random1st/flipper-ble-clicker)
-- [BLE Clipboard v0.5.3 (By otcan)](https://github.com/otcan/ble-clipboard)
+- [BLE Clipboard v0.5.4 (By otcan)](https://github.com/otcan/ble-clipboard)
 - [BLE Killer v1.1 (By H4lo)](https://github.com/H4lo/flipper_zero_ble_killer) `Req: ESP32`
 - [BLE Scanner v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite) `Req: ESP32`
 - [BLE Spam v6.6 (By WillyJL & ECTO-1A & Spooks4576 with research from xMasterX; OFW API thanks to noproto)](https://github.com/Next-Flip/Momentum-Apps/tree/dev/ble_spam)

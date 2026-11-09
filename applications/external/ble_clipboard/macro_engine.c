@@ -91,6 +91,10 @@ static bool valid_timing(uint32_t duration, uint32_t low, uint32_t high) {
            high <= 3600000;
 }
 
+static bool valid_typing(uint16_t pause, uint16_t variation) {
+    return pause <= 1000 && variation <= pause && (uint32_t)pause + variation <= 1000;
+}
+
 static ClipboardProgramResult validate_records(
     const ClipboardReader* reader,
     size_t* position,
@@ -163,6 +167,12 @@ static ClipboardProgramResult validate_records(
                 &body, &cursor, clipboard_read_u16(repeat + 12), layout, turkish, true, budget);
             if(result != ClipboardProgramOk || cursor != body.size) return ClipboardProgramInvalid;
             output = true;
+        } else if(record[0] == 7) {
+            if(nested || operation != 0 || cursor != 7 || !read_at(reader, cursor, record, 4))
+                return ClipboardProgramInvalid;
+            cursor += 4;
+            if(!valid_typing(clipboard_read_u16(record), clipboard_read_u16(record + 2)))
+                return ClipboardProgramInvalid;
         } else
             return ClipboardProgramInvalid;
     }
@@ -275,6 +285,7 @@ static bool next_key(ClipboardEngine* engine, uint32_t now, uint16_t* key) {
             }
             *key = text_key(engine->layout, engine->turkish, scalar);
             engine->finish_grave = engine->mac_turkish && scalar == '`';
+            engine->literal_key = true;
             if(!*key) {
                 engine_fail(engine);
                 return false;
@@ -321,6 +332,7 @@ static bool next_key(ClipboardEngine* engine, uint32_t now, uint16_t* key) {
             engine->cursor += 3;
             *key = chord_key(engine->layout, record[0], clipboard_read_u16(record + 1));
             engine->finish_grave = false;
+            engine->literal_key = false;
             if(!*key) {
                 engine_fail(engine);
                 return false;
@@ -386,6 +398,14 @@ static bool next_key(ClipboardEngine* engine, uint32_t now, uint16_t* key) {
             engine->remaining = count;
             engine->due = now;
             return false;
+        } else if(record[0] == 7) {
+            if(engine->repeat_active || engine->cursor != 7 || !read_at(&engine->reader, engine->cursor, record, 4)) {
+                engine_fail(engine); return false;
+            }
+            engine->cursor += 4;
+            engine->typing_pause = clipboard_read_u16(record);
+            engine->typing_variation = clipboard_read_u16(record + 2);
+            if(!valid_typing(engine->typing_pause, engine->typing_variation)) { engine_fail(engine); return false; }
         } else {
             engine_fail(engine);
             return false;
@@ -437,7 +457,13 @@ void clipboard_engine_tick(ClipboardEngine* engine, uint32_t now, bool usb_conne
             return;
         }
         engine->phase = engine->finish_grave ? 2 : 0;
-        engine->due = now + 8;
+        uint32_t pause = 0;
+        if(engine->phase == 0 && engine->literal_key) {
+            uint32_t sample;
+            if(!random_index(engine, 2U * engine->typing_variation + 1U, &sample)) { engine_fail(engine); return; }
+            pause = engine->typing_pause - engine->typing_variation + sample;
+        }
+        engine->due = now + 8+ pause;
         return;
     }
     uint16_t key;

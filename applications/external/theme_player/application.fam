@@ -5,6 +5,7 @@ App(
     entry_point="theme_player_app",
     stack_size=4 * 1024,
     fap_icon="theme_player.png",
+    fap_file_assets="tunes",
     fap_category="Media",
     fap_author="AzureSky",
     fap_weburl="https://github.com/AzzureSkyy/flipper-theme-player",

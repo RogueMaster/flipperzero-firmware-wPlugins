@@ -51,6 +51,9 @@ typedef struct {
     bool turkish;
     bool mac_turkish;
     bool finish_grave;
+    bool literal_key;
+    uint16_t typing_pause;
+    uint16_t typing_variation;
     bool mouse_active;
     bool mouse_return;
     uint32_t mouse_end;

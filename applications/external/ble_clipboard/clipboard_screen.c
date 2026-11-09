@@ -41,7 +41,7 @@ void clipboard_screen_draw(Canvas* canvas, const ClipboardScreen* screen) {
     if(screen->companion_qr) {
         canvas_draw_str(canvas, 4, 10, "Companions");
         canvas_draw_str(canvas, 4, 23, "v" CLIPBOARD_APP_VERSION);
-        canvas_draw_str(canvas, 4, 35, "Mac + Flipper");
+        canvas_draw_str(canvas, 4, 35, "Mac/Win + F0");
         canvas_draw_str(canvas, 4, 47, "GitHub release");
         canvas_draw_xbm(
             canvas,

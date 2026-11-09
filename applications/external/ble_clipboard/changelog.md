@@ -1,3 +1,11 @@
+## 0.5.4
+
+- Persistent on-device keyboard settings: all 28 layouts, target OS and explicit Save.
+- Optional device keyboard for local runs without modifying saved snapshot files.
+- Mac/Windows keyboard sync; Flipper wins reconnect, with revision/busy/SD error checks.
+- Optional saved-program typing pace and matching full Windows beta companion.
+- Physical BLE/USB/focus/layout/long-run validation remains unverified for this version.
+
 ## 0.5.3
 
 - Fix SD initialization rejecting the app-data root's trailing slash, blocking
