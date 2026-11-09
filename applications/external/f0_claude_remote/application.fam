@@ -12,5 +12,5 @@ App(
     fap_author="Petr Korobeinikov",
     fap_weburl="https://github.com/petr-korobeinikov/f0-claude-remote",
     fap_version="0.1",
-    fap_description="Drives Claude Code from the device's buttons over Bluetooth",
+    fap_description="Drives Claude Code from the device's buttons over Bluetooth or USB",
 )

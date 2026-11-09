@@ -1,118 +1,71 @@
 # BadUSB MSC v0.1
 
-**BadUSB + USB Mass Storage for Flipper Zero**
+**BadUSB scripts + an isolated USB Mass Storage drive for Flipper Zero.**
 
-BadUSB MSC combines BadUSB script execution with an 8 MiB FAT16 USB storage drive in a single application.
+BadUSB MSC combines a USB HID keyboard and an 8 MiB FAT16 virtual disk in one application. On Windows, the disk appears with the label **`BADUSBMSC`**. No extra PC-side transfer program is required. This is a community project maintained by **ZombieDolphin**, not an official Flipper Devices application.
 
-Transfer files between your Flipper Zero and a computer using native Windows commands, without additional PC software.
+## Important warning / Disclaimer
 
-**Developer:** ZombieDolphin  
-**Version:** 0.1  
-**License:** GNU GPLv3
+**For educational use, research and authorized security testing only.** Run BadUSB scripts **only on computers you own or have explicit permission to test**. Do not use this app to access, modify or transfer data on someone else's system without authorization. You are responsible for complying with applicable laws and policies.
+
+**Risk of data loss:** the virtual disk can be corrupted if disconnected while Windows is writing to it. Safely eject **`BADUSBMSC`** before closing the app or disconnecting USB, and keep backups of important files. Use test files first.
+
+The software is provided **"AS IS"**, without warranty of any kind. To the extent permitted by applicable law, the author and contributors disclaim liability for misuse, data loss or other damage. **Use at your own risk.**
 
 ## Features
 
-- **BadUSB:** Execute DuckyScript files (`.txt`).
-- **USB Mass Storage:** 8 MiB FAT16 virtual drive named `BADUSBMSC`.
-- **File Manager:** Browse and manage supported files directly on the Flipper.
-- **Keyboard Layouts:** 55 built-in layouts, automatically installed when missing, including Canadian French Legacy.
-- **USB/BLE:** Select the BadUSB HID connection mode.
-- **Configuration:** Keyboard selection and USB identity settings.
-- **Persistent Storage:** Virtual disk and files are preserved between sessions and updates.
+- **BadUSB** — run DuckyScript `.txt` files stored in `SD Card/badusb/`.
+- **Files** — browse and manage supported local files.
+- **USB HID + MSC** — run keyboard scripts while a separate 8 MiB FAT16 volume is available to the host.
+- **Keyboard layouts** — 55 embedded `.kl` layouts are automatically installed if missing. Existing/custom maps are not overwritten.
+- **Config** — choose a keyboard layout, configure USB identity, and switch the HID transport between USB and BLE from the BadUSB script interface. The MSC drive is USB-only.
+- **Persistent virtual disk** — `drive.img` is created once when missing, and reused on later launches.
 
-## Installation
+The main menu contains only **BadUSB** and **Files**; the keyboard and USB/BLE options are under **BadUSB → select script → Config**.
 
-1. Download or clone this repository.
-2. Open a terminal in the project directory.
-3. Build using uFBT:
+## Build and install
 
-   `ufbt -j 1`
+This repository contains **source code**, not a pretested universal `.fap`. Build against the SDK corresponding to your Flipper firmware using [uFBT](https://developer.flipper.net/flipperzero/doxygen/app_dev_your_first_app_in_c.html).
 
-4. Copy the compiled `badusb_msc.fap` to your Flipper Zero using qFlipper.
-5. Launch **BadUSB MSC**.
+1. Clone or download this repository and open a terminal in the folder containing `application.fam`.
+2. Run:
 
-Use an SDK compatible with your Flipper firmware.
+   ```powershell
+   ufbt -j 1
+   ```
 
-On the first launch, the application automatically creates the virtual disk and displays **"Installing disk..."** with a progress bar.
+3. Once the build succeeds, install `dist/badusb_msc.fap` on your Flipper Zero (for example via qFlipper under `SD Card/apps/USB/`). Firmware/API compatibility must match your device.
+4. Launch **BadUSB MSC** from the Flipper's Apps menu.
 
-The disk is created only when missing. Existing data is preserved.
+On the **first launch only**, if the virtual disk is missing (or is an empty zero-byte placeholder), the app displays **"Installing disk..."** and a real 0–100% progress bar while creating an 8 MiB FAT16 `drive.img`. **Do not disconnect the Flipper during disk creation.** Subsequent launches reuse an existing valid disk without showing this installation screen. The app will never overwrite a nonempty invalid disk image automatically; back it up and investigate instead.
 
-## Usage
+The disk lives at `SD Card/apps_data/badusb_msc/drive.img`. It **must not** be uploaded to GitHub or included in releases.
 
-**BadUSB Scripts**
+## Keyboard layouts
 
-Place your scripts in:
+The app installs missing layouts into `SD Card/badusb/assets/layouts/` when it starts, even when the disk already exists. No manual asset copying is needed; user-created `.kl` files are preserved. Choose the layout that matches the target computer in **BadUSB → Config → Keyboard Layout**. The Flipper **cannot automatically detect** the active Windows keyboard layout.
 
-`SD Card/badusb/`
+`fr-CA-Legacy.kl` has been tested on a Windows **Canadian French (Legacy)** layout. Other international variants, including some XKB-derived and Windows Legacy ASCII-only maps, require verification on their respective host keyboards. The 256-byte `.kl` format cannot represent arbitrary Unicode alphabets or complex dead-key sequences; see [layout limitations](docs/WINDOWS_LEGACY_LIMITATIONS.md).
 
-Select a script from the BadUSB menu to execute it.
+For a quick check, open a text editor on the authorized PC and run [`examples/KEYBOARD_LAYOUT_TEST_LEGACY.txt`](examples/KEYBOARD_LAYOUT_TEST_LEGACY.txt). Confirm that punctuation is typed correctly before running PowerShell transfer scripts.
 
-**Keyboard Layouts**
+## Transfer a test file (Windows)
 
-Select your keyboard in:
+The example scripts use only built-in Windows PowerShell commands and locate the volume by its label, not by a fixed drive letter:
 
-`BadUSB → Select Script → Config → Keyboard Layout`
+- [`examples/EXAMPLE_TRANSFER.txt`](examples/EXAMPLE_TRANSFER.txt): create `FLIPTEST.TXT` on the Windows Desktop and copy it to `BADUSBMSC`.
+- [`examples/EXAMPLE_RETURN.txt`](examples/EXAMPLE_RETURN.txt): copy `BADUSBMSC\FLIPTEST.TXT` back as `FLIPBACK.TXT` on the Desktop.
 
-Layouts are automatically installed in:
+First make sure the selected keyboard layout matches Windows. After transferring, **eject the `BADUSBMSC` volume safely** before closing the app. The local qFlipper mirror is `SD Card/apps_data/badusb_msc/files/`; only supported root-level **8.3** filenames (for example `FLIPTEST.TXT`) are synchronized. Nested directories, long names and many special characters are not supported by this file mirror.
 
-`SD Card/badusb/assets/layouts/`
+More details: [transfer guide](docs/SCRIPT_TRANSFER_GUIDE.md) and [test checklist](docs/TEST_CHECKLIST.md).
 
-Choose a layout matching the target computer. The active Windows keyboard layout cannot be detected automatically.
+## Project status and compatibility
 
-**USB Storage**
+Version: **v0.1** (`fap_version="0.1"`). This release is intended for initial community testing. The keyboard layout installer and `fr-CA Legacy` selection were tested on a Flipper, but a **full build and complete regression test of this GitHub packaging change have not been performed here**. Check the [test checklist](docs/TEST_CHECKLIST.md) before distributing a binary. The USB/BLE and custom USB identity features may vary with firmware and host operating system.
 
-When connected, Windows detects a FAT16 drive named `BADUSBMSC`.
+## License and credits
 
-Virtual disk location:
+Licensed under **GNU GPL v3**: [LICENSE](LICENSE). Maintained by **ZombieDolphin**. This project adapts upstream Flipper Devices BadUSB and Mass Storage components; upstream copyright and attribution are retained in [CREDITS.md](CREDITS.md). Third-party keyboard layout data has separate upstream notices in [`docs/XKB_DATA_LICENSE.txt`](docs/XKB_DATA_LICENSE.txt).
 
-`SD Card/apps_data/badusb_msc/drive.img`
-
-Example transfer scripts are available in the `examples/` directory:
-
-- `EXAMPLE_TRANSFER.txt` — Windows to Flipper.
-- `EXAMPLE_RETURN.txt` — Flipper to Windows.
-
-These examples use PowerShell and require no additional PC software.
-
-**Always safely eject the USB drive before disconnecting.**
-
-## Compatibility & Limitations
-
-- Designed for Flipper Zero.
-- Requires compatible firmware and application API.
-- USB storage is available through USB only.
-- Keyboard layouts must match the host computer.
-- Some international keyboard layouts support only ASCII characters.
-- The file manager's disk mirror supports root-level 8.3 filenames; long filenames and nested directories are not fully supported.
-
-## ⚠️ Disclaimer & Legal Notice
-
-**BadUSB MSC is intended for educational purposes, security research, authorized testing, and legitimate personal use only.**
-
-**Authorized Use:** Use this software only on devices and systems you own or have explicit permission to access and test. Unauthorized use is strictly discouraged.
-
-**User Responsibility:** Users are solely responsible for the scripts they execute, the data they access or transfer, and compliance with applicable laws and regulations.
-
-**Risk of Data Loss:** USB storage operations may result in file corruption or data loss. Always safely eject the drive and maintain backups of important files.
-
-**No Warranty:** This software is provided **"AS IS"**, without warranties of any kind, express or implied.
-
-**Limitation of Liability:** To the maximum extent permitted by applicable law, the developer **ZombieDolphin**, contributors, and copyright holders shall not be liable for damages, data loss, security incidents, or other consequences resulting from the use or misuse of this software. Nothing in this notice excludes liability that cannot legally be excluded.
-
-**No Endorsement:** The developer does not encourage or endorse illegal activities, unauthorized access, or malicious use.
-
-**USE AT YOUR OWN RISK.**
-
-This disclaimer supplements the warranty and liability provisions of the GNU General Public License v3.0 without restricting the rights granted by that license.
-
-## License & Credits
-
-Licensed under the **GNU General Public License v3.0 (GPLv3)**.
-
-Developed and maintained by **ZombieDolphin**.
-
-This project incorporates and adapts components from the official Flipper Zero firmware, including BadUSB and USB Mass Storage functionality.
-
-Original upstream copyright and license notices are retained. See `LICENSE` and `CREDITS.md` for details.
-
-**BadUSB MSC is an independent community project and is not affiliated with or officially endorsed by Flipper Devices.**
+Flipper Zero, Flipper Devices, qFlipper and Unleashed are the names of their respective owners. This project is **not affiliated with or endorsed by** Flipper Devices or any custom firmware team.

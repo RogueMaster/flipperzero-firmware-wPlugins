@@ -15,11 +15,6 @@ static const WmbusMVT k_mvt[] = {
     {"TCH", 0x69, 0x80},
     {"TCH", 0x94, 0x08},
     {"TCH", 0x94, 0x80},
-    /* Some Techem firmwares ship the version / medium bytes swapped in
-     * the link header — wmbusmeters lists both orderings under the same
-     * `fhkvdataiii` driver. */
-    {"TCH", 0x80, 0x69},
-    {"TCH", 0x80, 0x94},
     {{0}, 0, 0}};
 
 static size_t

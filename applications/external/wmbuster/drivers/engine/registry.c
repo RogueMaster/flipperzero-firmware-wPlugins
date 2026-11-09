@@ -17,9 +17,12 @@
 extern const WmbusDriver wmbus_drv_techem_fhkv;
 extern const WmbusDriver wmbus_drv_techem_mkradio3;
 extern const WmbusDriver wmbus_drv_techem_mkradio4;
+extern const WmbusDriver wmbus_drv_techem_mkradio4a;
 extern const WmbusDriver wmbus_drv_techem_compact5;
 extern const WmbusDriver wmbus_drv_techem_vario;
+extern const WmbusDriver wmbus_drv_techem_vario_oms;
 extern const WmbusDriver wmbus_drv_techem_smoke;
+extern const WmbusDriver wmbus_drv_techem_tsd2;
 
 /* === HCA drivers with custom 12-byte preamble === */
 extern const WmbusDriver wmbus_drv_qundis_hca;
@@ -146,9 +149,12 @@ const WmbusDriver* const wmbus_engine_registry[] = {
     &wmbus_drv_techem_fhkv,
     &wmbus_drv_techem_mkradio3,
     &wmbus_drv_techem_mkradio4,
+    &wmbus_drv_techem_mkradio4a,
     &wmbus_drv_techem_compact5,
     &wmbus_drv_techem_vario,
+    &wmbus_drv_techem_vario_oms,
     &wmbus_drv_techem_smoke,
+    &wmbus_drv_techem_tsd2,
     &wmbus_drv_qundis_hca,
     &wmbus_drv_ista_hca,
     &wmbus_drv_brunata_hca,

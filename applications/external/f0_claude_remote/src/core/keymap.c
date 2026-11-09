@@ -8,6 +8,8 @@ static const uint32_t keymap_link_wait_ms = 60000;
 
 struct Keymap {
     Mode mode;
+    bool right_pressed_on_no_link;
+    bool on_usb;
 };
 
 /* Esc acts on press: past the long press a slow one would otherwise do nothing. */
@@ -41,6 +43,8 @@ static const Mode keymap_link_down_modes[] = {
 Keymap* keymap_alloc(void) {
     Keymap* keymap = malloc(sizeof(Keymap));
     keymap->mode = ModeNoLink;
+    keymap->right_pressed_on_no_link = false;
+    keymap->on_usb = false;
     return keymap;
 }
 
@@ -48,9 +52,32 @@ void keymap_free(Keymap* keymap) {
     free(keymap);
 }
 
+/* The long press fires 300 ms after the press, so one that began on another board would switch the
+ * link from a press meant for that board: Esc on the main screen, or starting over on the stopped
+ * one. */
+static bool keymap_switches_link(Keymap* keymap, KeymapKey key, KeymapEvent event) {
+    if(key != KeymapKeyRight) {
+        return false;
+    }
+    if(event == KeymapEventPress) {
+        keymap->right_pressed_on_no_link = keymap->mode == ModeNoLink;
+    }
+    if(event != KeymapEventLong) {
+        return false;
+    }
+    bool switches = keymap->mode == ModeNoLink && keymap->right_pressed_on_no_link;
+    keymap->right_pressed_on_no_link = false;
+    return switches;
+}
+
 Action keymap_handle(Keymap* keymap, KeymapKey key, KeymapEvent event) {
     bool ok_released = key == KeymapKeyOk && event == KeymapEventRelease;
     Action action = keymap_actions[key][event];
+
+    if(keymap_switches_link(keymap, key, event)) {
+        keymap->on_usb = !keymap->on_usb;
+        return keymap->on_usb ? ActionUseUsb : ActionUseBluetooth;
+    }
 
     switch(keymap->mode) {
     case ModeIdle:

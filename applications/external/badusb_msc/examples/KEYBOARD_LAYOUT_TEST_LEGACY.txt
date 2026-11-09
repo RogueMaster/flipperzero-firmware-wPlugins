@@ -1,0 +1,8 @@
+REM Diagnostic clavier canadien francais ancien (Legacy)
+DELAY 1500
+STRING ABC123
+ENTER
+STRING " \ [ ] { } $ :
+ENTER
+STRING $desk=[Environment]::GetFolderPath('Desktop')
+ENTER

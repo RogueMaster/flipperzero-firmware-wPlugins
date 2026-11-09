@@ -21,6 +21,7 @@ App(
         "protocol/meshcore_c/*.c",
         "messenger/*.c",
         "logger/*.c",
+        "notify/*.c",
         "scenes/*.c",
     ],
     fap_category="GPIO",

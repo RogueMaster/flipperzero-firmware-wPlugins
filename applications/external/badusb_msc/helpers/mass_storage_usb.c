@@ -408,6 +408,8 @@ MassStorageUsb* mass_storage_usb_start(
     SCSIDeviceFunc fn,
     const FuriHalUsbHidConfig* usb_cfg) {
     MassStorageUsb* mass = malloc(sizeof(MassStorageUsb));
+    // Initialize callback pointers before USB can invoke init/deinit handlers.
+    memset(mass, 0, sizeof(*mass));
     mass->usb_prev = furi_hal_usb_get_config();
     mass->usb.init = usb_init;
     mass->usb.deinit = usb_deinit;

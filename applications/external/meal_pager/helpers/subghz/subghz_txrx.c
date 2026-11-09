@@ -28,12 +28,14 @@ static void subghz_txrx_radio_device_power_off(SubGhzTxRx* instance) {
 }
 
 SubGhzTxRx* subghz_txrx_alloc() {
-    SubGhzTxRx* instance = malloc(sizeof(SubGhzTxRx));
+    SubGhzTxRx* instance = calloc(1, sizeof(SubGhzTxRx));
+    furi_check(instance);
     instance->transmitter = NULL;
     instance->setting = subghz_setting_alloc();
     subghz_setting_load(instance->setting, EXT_PATH("subghz/assets/setting_user.txt"));
 
-    instance->preset = malloc(sizeof(SubGhzRadioPreset));
+    instance->preset = calloc(1, sizeof(SubGhzRadioPreset));
+    furi_check(instance->preset);
     instance->preset->name = furi_string_alloc();
     subghz_txrx_set_preset(
         instance, "AM650", subghz_setting_get_default_frequency(instance->setting), NULL, 0);
@@ -352,9 +354,11 @@ static void subghz_txrx_tx_stop(SubGhzTxRx* instance) {
     furi_assert(instance->txrx_state == SubGhzTxRxStateTx);
     //Stop TX
     subghz_devices_stop_async_tx(instance->radio_device);
-    subghz_transmitter_stop(instance->transmitter);
-    subghz_transmitter_free(instance->transmitter);
-    instance->transmitter = NULL;
+    if(instance->transmitter) {
+        subghz_transmitter_stop(instance->transmitter);
+        subghz_transmitter_free(instance->transmitter);
+        instance->transmitter = NULL;
+    }
 
     //if protocol dynamic then we save the last upload
     /*if(instance->decoder_result->protocol->type == SubGhzProtocolTypeDynamic) {
@@ -577,10 +581,18 @@ void subghz_txrx_set_raw_file_encoder_worker_callback_end(
     SubGhzTxRx* instance,
     SubGhzProtocolEncoderRAWCallbackEnd callback,
     void* context) {
+    furi_assert(instance);
+    if(!instance->transmitter) {
+        FURI_LOG_E(TAG, "No transmitter, cannot set end callback");
+        return;
+    }
+    void* protocol = subghz_transmitter_get_protocol_instance(instance->transmitter);
+    if(!protocol) {
+        FURI_LOG_E(TAG, "No protocol instance, cannot set end callback");
+        return;
+    }
     subghz_protocol_raw_file_encoder_worker_set_callback_end(
-        (SubGhzProtocolEncoderRAW*)subghz_transmitter_get_protocol_instance(instance->transmitter),
-        callback,
-        context);
+        (SubGhzProtocolEncoderRAW*)protocol, callback, context);
 }
 
 bool subghz_txrx_radio_device_is_external_connected(SubGhzTxRx* instance, const char* name) {

@@ -20,7 +20,9 @@ bool meal_pager_navigation_event_callback(void* context) {
 }
 
 Meal_Pager* meal_pager_app_alloc() {
-    Meal_Pager* app = malloc(sizeof(Meal_Pager));
+    Meal_Pager* app = calloc(1, sizeof(Meal_Pager));
+    furi_check(app);
+    app->state_notifications = SubGhzNotificationStateIDLE;
     app->gui = furi_record_open(RECORD_GUI);
     app->notification = furi_record_open(RECORD_NOTIFICATION);
 
@@ -47,20 +49,13 @@ Meal_Pager* meal_pager_app_alloc() {
     app->save_settings = 1;
     app->pager_type = 0;
     app->first_station = 0;
-    app->first_station_char = "0";
     app->last_station = 10;
-    app->last_station_char = "10";
     app->first_pager = 0;
-    app->first_pager_char = "0";
     app->last_pager = 31;
-    app->last_pager_char = "31";
     app->stop_transmit = false;
     app->repeats = 1;
-    app->repeats_char = "1";
     app->max_station = 8191;
     app->max_pager = 999;
-
-    snprintf(app->text_store[0], 32, "%lu", app->first_station);
 
     // Used for File Browser
     app->dialogs = furi_record_open(RECORD_DIALOGS);
@@ -96,10 +91,19 @@ Meal_Pager* meal_pager_app_alloc() {
 
     //End Scene Additions
 
-    snprintf(app->text_store[0], 20, "%lu", app->first_station);
-    snprintf(app->text_store[1], 20, "%lu", app->last_station);
-    snprintf(app->text_store[2], 20, "%lu", app->first_pager);
-    snprintf(app->text_store[3], 20, "%lu", app->last_pager);
+    snprintf(app->text_store[0], sizeof(app->text_store[0]), "%lu", app->first_station);
+    snprintf(app->text_store[1], sizeof(app->text_store[1]), "%lu", app->last_station);
+    snprintf(app->text_store[2], sizeof(app->text_store[2]), "%lu", app->first_pager);
+    snprintf(app->text_store[3], sizeof(app->text_store[3]), "%lu", app->last_pager);
+    snprintf(app->text_store[5], sizeof(app->text_store[5]), "%lu", app->repeats);
+
+    // The *_char fields must point to writable storage, never to string literals:
+    // the settings and numeric input scenes write into them.
+    app->first_station_char = app->text_store[0];
+    app->last_station_char = app->text_store[1];
+    app->first_pager_char = app->text_store[2];
+    app->last_pager_char = app->text_store[3];
+    app->repeats_char = app->text_store[5];
 
     return app;
 }

@@ -4,7 +4,7 @@
 #include <furi_hal.h>
 #include "toolbox/path.h"
 
-// Confirmation avant de couper le disque virtuel pour eviter les pertes cachees Windows.
+// Confirm safe ejection before disconnecting the virtual disk to avoid cached Windows writes.
 static bool combo_confirm_safe_eject(BadUsbApp* app) {
     DialogMessage* msg = dialog_message_alloc();
     dialog_message_set_header(msg, "Eject BADUSBMSC", 64, 7, AlignCenter, AlignTop);
@@ -62,7 +62,7 @@ bool bad_usb_scene_work_on_event(void* context, SceneManagerEvent event) {
             consumed = true;
         }
     } else if(event.type == SceneManagerEventTypeBack) {
-        // Bloquer le retour tant que l'utilisateur n'a pas confirme l'ejection.
+        // Block navigation until the user confirms that the volume was ejected.
         if(!bad_usb_view_is_idle_state(app->bad_usb_view)) return true;
         if(combo_confirm_safe_eject(app)) {
             scene_manager_previous_scene(app->scene_manager);

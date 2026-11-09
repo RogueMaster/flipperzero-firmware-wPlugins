@@ -61,6 +61,7 @@ void meal_pager_scene_transmit_on_enter(void* context) {
             meal_pager_transmit_model_set_sending(app->meal_pager_transmit, 1);
             dolphin_deed(DolphinDeedSubGhzSend);
         } else {
+            FURI_LOG_E(TAG, "Could not start transmission");
             meal_pager_blink_stop(app);
             meal_pager_transmit_model_set_sending(app->meal_pager_transmit, 2);
             notification_message(app->notification, &sequence_error);

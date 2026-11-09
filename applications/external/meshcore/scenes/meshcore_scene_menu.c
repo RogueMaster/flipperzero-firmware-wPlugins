@@ -10,6 +10,7 @@ typedef enum {
     MeshCoreMenuIndexRole,
     MeshCoreMenuIndexProfiles,
     MeshCoreMenuIndexSendAdvert,
+    MeshCoreMenuIndexSettings,
     MeshCoreMenuIndexSerialLog,
 } MeshCoreMenuIndex;
 
@@ -36,6 +37,7 @@ void meshcore_scene_menu_on_enter(void* context) {
     ITEM("Role", MeshCoreMenuIndexRole);
     ITEM("Profiles", MeshCoreMenuIndexProfiles);
     ITEM("Send advert", MeshCoreMenuIndexSendAdvert);
+    ITEM("Settings", MeshCoreMenuIndexSettings);
     ITEM("Serial log", MeshCoreMenuIndexSerialLog);
 
 #undef ITEM
@@ -91,6 +93,9 @@ bool meshcore_scene_menu_on_event(void* context, SceneManagerEvent event) {
             break;
         case MeshCoreMenuIndexSendAdvert:
             scene_manager_next_scene(app->scene_manager, MeshCoreSceneAdvert);
+            break;
+        case MeshCoreMenuIndexSettings:
+            scene_manager_next_scene(app->scene_manager, MeshCoreSceneSettings);
             break;
         case MeshCoreMenuIndexSerialLog:
             scene_manager_next_scene(app->scene_manager, MeshCoreSceneLog);

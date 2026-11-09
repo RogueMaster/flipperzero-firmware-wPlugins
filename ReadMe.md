@@ -233,6 +233,14 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Loteria Zero v1.1 full called-card history browsing, complete history lists and shuffle validation (By databrainsco)](https://github.com/databrainsco/Loteria_Zero)
 - Updated: [ListEM v1.5 compact menus, selected-row scrolling and generation progress with recent UID previews (By Clawzman)](https://github.com/Clawzman/Flipper_ListEM)
 - Updated: [Amiibo Browser v1.0 compact About layout and refreshed screenshot (By AzureSky)](https://github.com/AzzureSkyy/flipper-amiibo-browser)
+- Updated: [Sub-GHz RAW Edit preserves long gap durations when cutting a capture (By Hugo-Gomez-Sanchez-01101)](https://github.com/Lechnio/SubGHz-RAW-Edit/pull/1)
+- Updated: [Restaurant Pager buffer bounds, writable settings storage, allocation checks and transmission error handling (By Bosiux)](https://github.com/leedave/flipper-zero-meal-pager/pull/32)
+- Updated: [Flipper Wedge NDEF URI record decoding and prefix expansion (By omar711)](https://github.com/DangerousThings/flipper-wedge/pull/3)
+- Updated: [wM-Buster Techem meter routing, heat-reading scale, water details and smoke detector status (By dixonbg)](https://github.com/i12bp8/wmbuster/pull/5)
+- Updated: [Servo Tester precise manual adjustment, full automatic sweep endpoints and PWM shutdown ordering (By ELynx)](https://github.com/spin7ion/flipper-servotester/pull/1)
+- Updated: [MeshCore Config worker shutdown cleanup, persistent sound/vibration/LED settings, connection feedback and logger status display (By hleserg)](https://github.com/hleserg/flipperMeshCoreConfig/pull/28)
+- Updated: [BadUSB MSC v0.1 resource cleanup, callback initialization and file-browser icon (By ZombieDolphin)](https://github.com/ZombieDolphin/BadUSB_MSC)
+- Updated: [Claude Remote v0.1 USB keyboard fallback and link switching (By Petr Korobeinikov)](https://github.com/petr-korobeinikov/f0-claude-remote)
 
 <a name="release"></a>
 

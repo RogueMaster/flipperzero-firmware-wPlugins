@@ -5,12 +5,13 @@
 #include "../../engine/driver.h"
 #include "_compact.h"
 
+/* (version, type) per wmbusmeters `drivers/src/compact5.xmq`. */
 static const WmbusMVT k_mvt[] = {
-    {"TCH", 0x04, 0x45},
-    {"TCH", 0xC3, 0x45},
-    {"TCH", 0x43, 0x45},
-    {"TCH", 0x43, 0x39},
-    {"TCH", 0x43, 0x22},
+    {"TCH", 0x45, 0x04},
+    {"TCH", 0x45, 0xC3},
+    {"TCH", 0x22, 0x43},
+    {"TCH", 0x45, 0x43},
+    {"TCH", 0x39, 0x43},
     {{0}, 0, 0}};
 
 static size_t

@@ -20,6 +20,7 @@ void customConcat(char* dest, const char* src) {
 char* encManchester(const char* bits, int mode) {
     // Allocate memory for the result string
     char* res = (char*)malloc((strlen(bits) * 2 + 1) * sizeof(char));
+    if(!res) return NULL;
 
     int index = 0;
     for(int i = 0; bits[i] != '\0'; i++) {
@@ -55,6 +56,10 @@ char* encManchester(const char* bits, int mode) {
 
 void uint32ToBinaray(uint32_t number, char* str, int8_t length) {
     int i = 0;
+    if(length <= 0) {
+        str[0] = '\0';
+        return;
+    }
     length--; // count length without 0
     for(i = length; i >= 0; i--) {
         // Bitwise AND extration of the i-th bit

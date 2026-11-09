@@ -55,10 +55,17 @@ static void meshcore_scene_logger_show_running(MeshCoreApp* app) {
     char line[48];
     widget_reset(app->widget);
 
-    widget_add_string_element(app->widget, 0, 10, AlignLeft, AlignBottom, FontPrimary, "Logging");
+    /* A spinner that advances one step per received packet: no timer, no CPU —
+     * it moves only when the screen is rebuilt, which is exactly when a packet
+     * lands. A frozen spinner means the traffic stopped, not the app. */
+    static const char spin[4] = {'|', '/', '-', '\\'};
+    char header[16];
+    snprintf(
+        header, sizeof(header), "Logging %c", spin[meshcore_logger_rx_count(app->logger) & 3u]);
+    widget_add_string_element(app->widget, 0, 10, AlignLeft, AlignBottom, FontPrimary, header);
 
-    snprintf(line, sizeof(line), "%.20s", node->name);
-    widget_add_string_element(app->widget, 64, 10, AlignLeft, AlignBottom, FontSecondary, line);
+    snprintf(line, sizeof(line), "%.16s", node->name);
+    widget_add_string_element(app->widget, 78, 10, AlignLeft, AlignBottom, FontSecondary, line);
 
     /* SNR gets the primary font and the top line, because it is the number the
      * operator is actually walking by — everything else is confirmation that
@@ -75,52 +82,60 @@ static void meshcore_scene_logger_show_running(MeshCoreApp* app) {
 
         /* Right-aligned so it sits at the edge and reads as a verdict, not part
          * of the number. */
-        const char* grade = meshcore_rxlog_grade_label(meshcore_rxlog_grade_snr(snr_q4));
+        MeshCoreSnrGrade snr_grade = meshcore_rxlog_grade_snr(snr_q4);
+        const char* grade = meshcore_rxlog_grade_label(snr_grade);
         widget_add_string_element(
             app->widget, 128, 24, AlignRight, AlignBottom, FontPrimary, grade);
+
+        /* The RGB LED mirrors the grade so the link can be read at arm's length,
+         * or with the backlight off. Refreshed here, i.e. on every packet that
+         * changes the display, so it also shows traffic is live. */
+        meshcore_notify_led_status(app->notify, snr_grade);
     } else {
         snprintf(line, sizeof(line), "waiting for traffic");
         widget_add_string_element(app->widget, 0, 24, AlignLeft, AlignBottom, FontPrimary, line);
     }
 
-    /* Packets prove the radio is heard at all; the ping ratio is the number the
-     * acceptance criteria are written in, so both belong on one line. */
+    /* Packets prove the radio is heard; the ping ratio is the acceptance
+     * number. Marks (and a card-can't-keep-up DROP warning) fold in here so the
+     * strip below can be the SNR bar. */
     uint32_t sent = 0;
     uint32_t ok = 0;
     meshcore_logger_ping_stats(app->logger, &sent, &ok);
-    if(sent > 0) {
-        snprintf(
-            line,
-            sizeof(line),
-            "pkt %lu   ping %lu/%lu",
-            (unsigned long)meshcore_logger_rx_count(app->logger),
-            (unsigned long)ok,
-            (unsigned long)sent);
-    } else {
-        snprintf(
-            line, sizeof(line), "pkt %lu", (unsigned long)meshcore_logger_rx_count(app->logger));
-    }
-    widget_add_string_element(app->widget, 0, 36, AlignLeft, AlignBottom, FontSecondary, line);
-
     uint32_t dropped = meshcore_logger_dropped(app->logger);
+    uint32_t rx = meshcore_logger_rx_count(app->logger);
+    uint32_t marks = meshcore_logger_marks(app->logger);
     if(dropped > 0) {
-        /* Only shown when it happens — a dropped row means the card could not
-         * keep up, which the user needs to know about while still recording,
-         * and it displaces the session name because it matters more. */
-        snprintf(line, sizeof(line), "dropped: %lu", (unsigned long)dropped);
-    } else {
-        /* Just the session name; the full path would not fit and the user
-         * already knows the directory it lives in. */
-        const char* path = meshcore_logger_session_path(app->logger);
-        const char* leaf = strrchr(path, '/');
+        /* A dropped row means the card could not keep up — surfaced over the
+         * ping ratio because it matters more while still recording. */
+        snprintf(
+            line, sizeof(line), "pkt %lu  DROP %lu", (unsigned long)rx, (unsigned long)dropped);
+    } else if(sent > 0) {
         snprintf(
             line,
             sizeof(line),
-            "%s  marks %lu",
-            leaf ? leaf + 1 : path,
-            (unsigned long)meshcore_logger_marks(app->logger));
+            "pkt %lu  %lu/%lu  m%lu",
+            (unsigned long)rx,
+            (unsigned long)ok,
+            (unsigned long)sent,
+            (unsigned long)marks);
+    } else {
+        snprintf(line, sizeof(line), "pkt %lu  m%lu", (unsigned long)rx, (unsigned long)marks);
     }
-    widget_add_string_element(app->widget, 0, 47, AlignLeft, AlignBottom, FontSecondary, line);
+    widget_add_string_element(app->widget, 0, 37, AlignLeft, AlignBottom, FontSecondary, line);
+
+    /* SNR bar with the LED's zones: an instant read of the link without parsing
+     * the number. Empty until the first packet; -10..+15 dB maps across the
+     * width. */
+    widget_add_frame_element(app->widget, 0, 41, 128, 8, 1);
+    int8_t bar_snr = 0;
+    int8_t bar_rssi = 0;
+    if(meshcore_logger_last_rx(app->logger, &bar_snr, &bar_rssi)) {
+        int32_t lo = -40, hi = 60; /* quarter-dB: -10..+15 dB */
+        int32_t clamped = bar_snr < lo ? lo : (bar_snr > hi ? hi : bar_snr);
+        int32_t fill = (clamped - lo) * 124 / (hi - lo); /* 0..124 px */
+        if(fill > 0) widget_add_rect_element(app->widget, 2, 43, (uint8_t)fill, 4, 0, true);
+    }
 
     widget_add_button_element(
         app->widget, GuiButtonTypeCenter, "Mark", meshcore_scene_logger_button, app);
@@ -192,6 +207,10 @@ bool meshcore_scene_logger_on_event(void* context, SceneManagerEvent event) {
             app->worker = NULL;
         }
         meshcore_scene_logger_show(app, true);
+        /* Alarm once if the logger could not start (SD missing, UART busy). */
+        if(meshcore_logger_error(app->logger)) {
+            meshcore_notify_event(app->notify, MeshCoreNotifyError);
+        }
         scene_manager_set_scene_state(
             app->scene_manager, MeshCoreSceneLogger, meshcore_scene_logger_signature(app));
         return true;
@@ -201,6 +220,8 @@ bool meshcore_scene_logger_on_event(void* context, SceneManagerEvent event) {
         /* Cheap enough for the GUI thread: it formats a row and posts it to the
          * writer, and never touches the card or the link. */
         meshcore_logger_mark(app->logger);
+        /* Tactile confirmation the press counted — the point of a field mark. */
+        meshcore_notify_event(app->notify, MeshCoreNotifyMark);
         meshcore_scene_logger_show(app, true);
         scene_manager_set_scene_state(
             app->scene_manager, MeshCoreSceneLogger, meshcore_scene_logger_signature(app));
@@ -237,5 +258,7 @@ void meshcore_scene_logger_on_exit(void* context) {
     }
 
     meshcore_logger_stop(app->logger);
+    /* Leave no status colour lit once we are out of the logger. */
+    meshcore_notify_led_off(app->notify);
     widget_reset(app->widget);
 }

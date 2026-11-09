@@ -153,7 +153,7 @@ void meal_pager_scene_settings_on_enter(void* context) {
         1,
         meal_pager_scene_settings_set_first_station,
         app);
-    snprintf(app->first_pager_char, 20, "%lu", app->first_station);
+    snprintf(app->first_station_char, sizeof(app->text_store[0]), "%lu", app->first_station);
     variable_item_set_current_value_text(item, app->first_station_char);
 
     // Last Station

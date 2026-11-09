@@ -164,6 +164,10 @@ void hid_ble_adjust_config(BadUsbHidConfig* hid_cfg) {
 
 void* hid_ble_init(BadUsbHidConfig* hid_cfg) {
     BleHidInstance* ble_hid = malloc(sizeof(BleHidInstance));
+    // The BT status callback may run before set_state_callback is called.
+    ble_hid->state_callback = NULL;
+    ble_hid->callback_context = NULL;
+    ble_hid->is_connected = false;
     ble_hid->bt = furi_record_open(RECORD_BT);
     bt_disconnect(ble_hid->bt);
 

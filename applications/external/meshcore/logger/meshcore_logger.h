@@ -57,8 +57,16 @@ typedef struct {
 
 typedef struct MeshCoreLogger MeshCoreLogger;
 
+/* Forward: the logger fires ping ok/fail feedback through it. Defined in
+ * notify/meshcore_notify.h; a redundant typedef is fine under C11. */
+typedef struct MeshCoreNotify MeshCoreNotify;
+
 MeshCoreLogger* meshcore_logger_alloc(MeshCoreLog* log);
 void meshcore_logger_free(MeshCoreLogger* logger);
+
+/** Optional field feedback: a beep when a ping returns or is lost. NULL leaves
+ *  the logger silent. */
+void meshcore_logger_set_notify(MeshCoreLogger* logger, MeshCoreNotify* notify);
 
 /** Create the session directory, open the CSVs, attach to the node and start
  *  recording. Blocks (it talks to the node), so call it from a worker thread.

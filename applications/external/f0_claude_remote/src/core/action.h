@@ -14,4 +14,6 @@ typedef enum {
     ActionExit,
     ActionGiveUp,
     ActionStartOver,
+    ActionUseUsb,
+    ActionUseBluetooth,
 } Action;

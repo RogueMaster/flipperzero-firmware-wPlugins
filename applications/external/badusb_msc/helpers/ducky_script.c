@@ -464,7 +464,8 @@ static int32_t bad_usb_worker(void* context) {
     int32_t delay_val = 0;
 
     FURI_LOG_I(WORKER_TAG, "Init");
-    File* script_file = storage_file_alloc(furi_record_open(RECORD_STORAGE));
+    Storage* script_storage = furi_record_open(RECORD_STORAGE);
+    File* script_file = storage_file_alloc(script_storage);
     bad_usb->line = furi_string_alloc();
     bad_usb->line_prev = furi_string_alloc();
     bad_usb->string_print = furi_string_alloc();
@@ -739,6 +740,8 @@ static int32_t bad_usb_worker(void* context) {
 
     storage_file_close(script_file);
     storage_file_free(script_file);
+    // Match the record opened in this worker thread. File free alone is not enough.
+    furi_record_close(RECORD_STORAGE);
     furi_string_free(bad_usb->line);
     furi_string_free(bad_usb->line_prev);
     furi_string_free(bad_usb->string_print);

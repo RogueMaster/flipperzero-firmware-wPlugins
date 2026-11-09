@@ -53,7 +53,6 @@ bool meal_pager_save_subghz_buffer_file_start(
     if(!flipper_format_file_open_new(ff, MEAL_PAGER_TMP_FILE)) {
         //totp_close_config_file(fff_file);
         FURI_LOG_D(TAG, "Error creating new file %s", MEAL_PAGER_TMP_FILE);
-        meal_pager_close_storage();
         return success;
     }
 
@@ -72,12 +71,10 @@ void meal_pager_save_subghz_buffer_stop(void* context, FlipperFormat* ff) {
     if(!flipper_format_rewind(ff)) {
         meal_pager_close_config_file(ff);
         FURI_LOG_E(TAG, "Rewind error");
-        meal_pager_close_storage();
         return;
     }
 
     meal_pager_close_config_file(ff);
-    meal_pager_close_storage();
 }
 
 void meal_pager_save_settings(void* context) {

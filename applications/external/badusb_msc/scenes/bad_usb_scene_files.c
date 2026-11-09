@@ -5,7 +5,7 @@
 #include <string.h>
 #include <ctype.h>
 
-// Les operations sont exclusivement limitees a /ext/apps_data/badusb_msc/files/.
+// File operations are restricted to /ext/apps_data/badusb_msc/files/.
 static const char* files_name(const FuriString* path) {
     const char* p = furi_string_get_cstr(path);
     const char* slash = strrchr(p, '/');
@@ -110,11 +110,11 @@ void bad_usb_scene_home_on_exit(void* context) {
     UNUSED(context);
 }
 
-// ---------------------------- Selection fichier --------------------------
+// ---------------------------- File selection -----------------------------
 void bad_usb_scene_files_select_on_enter(void* context) {
     BadUsbApp* app = context;
     Storage* storage = furi_record_open(RECORD_STORAGE);
-    // Le chemin est cree une seule fois et utilise dans qFlipper.
+    // Create the file directory once; it is also accessible through qFlipper.
     storage_common_mkdir(storage, BAD_USB_FILES_BASE_FOLDER);
     storage_common_mkdir(storage, BAD_USB_FILES_FOLDER);
     bool available = storage_dir_exists(storage, BAD_USB_FILES_FOLDER);
@@ -129,7 +129,7 @@ void bad_usb_scene_files_select_on_enter(void* context) {
         furi_string_set(app->storage_file_path, BAD_USB_FILES_FOLDER);
     }
     DialogsFileBrowserOptions options;
-    dialog_file_browser_set_basic_options(&options, "*", NULL);
+    dialog_file_browser_set_basic_options(&options, "*", &I_badusb_10px);
     options.base_path = BAD_USB_FILES_FOLDER;
     options.hide_ext = false;
     options.skip_assets = false;
@@ -271,7 +271,7 @@ void bad_usb_scene_files_read_on_enter(void* context) {
     storage_file_free(file);
     furi_record_close(RECORD_STORAGE);
 
-    // Remplacer les octets de controle pour rendre les fichiers binaires consultables sans crash.
+    // Replace control bytes so binary files can be previewed without crashing.
     for(size_t i = 0; i < used; ++i) {
         unsigned char c = (unsigned char)buf[i];
         if(c == 0 || (c < 32 && c != '\n' && c != '\r' && c != '\t')) buf[i] = '.';
@@ -341,7 +341,7 @@ void bad_usb_scene_files_lines_on_enter(void* context) {
                 "%u: %.26s",
                 (unsigned)(app->edit_lines + 1),
                 app->edit_buffer + start);
-            // Ne pas afficher du contenu des lignes suivantes dans l'extrait.
+            // Do not include content from subsequent lines in the preview.
             char* p = label;
             while(*p) {
                 if(*p == '\r' || *p == '\n') {
@@ -364,8 +364,8 @@ void bad_usb_scene_files_lines_on_enter(void* context) {
 }
 bool bad_usb_scene_files_lines_on_event(void* context, SceneManagerEvent event) {
     BadUsbApp* app = context;
-    // SceneManagerEvent.event est un uint32_t : comparer avec des valeurs
-    // non signees pour eviter -Werror=sign-compare dans ufbt.
+    // SceneManagerEvent.event is uint32_t; use unsigned values to avoid
+    // -Werror=sign-compare in uFBT.
     const uint32_t line_base = (uint32_t)BadUsbFilesEventLineBase;
     if(event.type == SceneManagerEventTypeCustom && event.event >= line_base &&
        (event.event - line_base) < (uint32_t)app->edit_lines) {
@@ -383,7 +383,7 @@ void bad_usb_scene_files_lines_on_exit(void* context) {
     UNUSED(context);
 }
 
-// Remplacement soigneux : fichier temporaire + copie de secours locale.
+// Safe replacement: temporary file plus local backup.
 static bool files_save_line(BadUsbApp* app) {
     size_t pos = app->edit_line_starts[app->edit_line_index];
     size_t old_len = app->edit_line_lengths[app->edit_line_index];
@@ -399,7 +399,7 @@ static bool files_save_line(BadUsbApp* app) {
         furi_string_alloc_printf("%s.__badusb_bak", furi_string_get_cstr(app->storage_file_path));
     Storage* storage = furi_record_open(RECORD_STORAGE);
     bool ok = false;
-    // Ne jamais ecraser un fichier temporaire ou une sauvegarde existants.
+    // Never overwrite an existing temporary file or backup.
     if(!storage_file_exists(storage, furi_string_get_cstr(temp)) &&
        !storage_file_exists(storage, furi_string_get_cstr(backup))) {
         File* file = storage_file_alloc(storage);
@@ -446,7 +446,7 @@ void bad_usb_scene_files_edit_on_enter(void* context) {
     if(length >= sizeof(app->line_buffer)) length = sizeof(app->line_buffer) - 1;
     memcpy(app->line_buffer, app->edit_buffer + start, length);
     app->line_buffer[length] = '\0';
-    // Supprimer CR final des lignes CRLF; celui-ci sera restaure lors de la sauvegarde.
+    // Remove the trailing CR from CRLF lines; restore it when saving.
     if(length && app->line_buffer[length - 1] == '\r') app->line_buffer[length - 1] = '\0';
     text_input_reset(app->text_input);
     text_input_set_header_text(app->text_input, "Edit line");
@@ -462,7 +462,7 @@ void bad_usb_scene_files_edit_on_enter(void* context) {
 bool bad_usb_scene_files_edit_on_event(void* context, SceneManagerEvent event) {
     BadUsbApp* app = context;
     if(event.type == SceneManagerEventTypeCustom && event.event == BadUsbFilesEventInputDone) {
-        // Retablir CR pour les fichiers Windows avec fins de lignes CRLF.
+        // Restore CR when saving files with Windows CRLF line endings.
         size_t pos = app->edit_line_starts[app->edit_line_index];
         size_t len = app->edit_line_lengths[app->edit_line_index];
         if(len && app->edit_buffer[pos + len - 1] == '\r')

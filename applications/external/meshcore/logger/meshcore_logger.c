@@ -9,6 +9,7 @@
 #include "meshcore_ping.h"
 #include "meshcore_rxlog.h"
 #include "meshcore_telemetry.h"
+#include "../notify/meshcore_notify.h"
 
 #define MESHCORE_LOG_ROOT EXT_PATH("apps_data/meshcore_cfg")
 #define MESHCORE_LOG_DIR  MESHCORE_LOG_ROOT "/logs"
@@ -121,6 +122,11 @@ struct MeshCoreLogger {
     volatile bool have_rx;
     volatile int8_t last_snr_q4;
     volatile int8_t last_rssi;
+
+    /* Optional: a beep when a ping returns or is lost. Set once, read from the
+     * session-worker (ack) and poller (expiry) threads; a plain pointer is fine
+     * because it is never reassigned while those run. */
+    MeshCoreNotify* notify;
 };
 
 static void
@@ -408,6 +414,8 @@ static void meshcore_logger_on_event(
                 sizeof(line.text));
             meshcore_logger_emit(logger, MeshCoreLogFilePing, &line);
             logger->ping_ok++;
+            /* Heard back: the success chirp, so a good link reads by ear. */
+            if(logger->notify) meshcore_notify_event(logger->notify, MeshCoreNotifyPingOk);
         } else {
             /* An ack for something we are not timing. Worth saying: it means
              * either the round trip outlived its timeout, or the tag did not
@@ -672,6 +680,8 @@ static void meshcore_logger_ping_expire(MeshCoreLogger* logger) {
     meshcore_logger_sanitise(logger->ping.targets[index].name, safe, sizeof(safe));
     meshcore_ping_format(ts, safe, seq, false, 0, lat, lon, line.text, sizeof(line.text));
     meshcore_logger_emit(logger, MeshCoreLogFilePing, &line);
+    /* Lost: the miss tone, so a failing link is audible on the move. */
+    if(logger->notify) meshcore_notify_event(logger->notify, MeshCoreNotifyPingFail);
 }
 
 /* A thread that overflows its stack does not report anything — it faults, and
@@ -745,6 +755,7 @@ MeshCoreLogger* meshcore_logger_alloc(MeshCoreLog* log) {
     MeshCoreLogger* logger = malloc(sizeof(MeshCoreLogger));
 
     logger->log = log;
+    logger->notify = NULL;
     logger->storage = furi_record_open(RECORD_STORAGE);
 
     memset(&logger->node, 0, sizeof(logger->node));
@@ -778,6 +789,11 @@ MeshCoreLogger* meshcore_logger_alloc(MeshCoreLog* log) {
     logger->last_rssi = 0;
 
     return logger;
+}
+
+void meshcore_logger_set_notify(MeshCoreLogger* logger, MeshCoreNotify* notify) {
+    furi_assert(logger);
+    logger->notify = notify;
 }
 
 void meshcore_logger_free(MeshCoreLogger* logger) {

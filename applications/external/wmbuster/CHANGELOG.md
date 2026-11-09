@@ -7,6 +7,25 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Fixed
+- **Techem meters not recognised.** Several Techem MVT rows had the
+  version and type bytes swapped relative to wmbusmeters
+  (`mvt = TCH,<version>,<type>`), so MK-Radio 3/4/3a water, Compact V
+  heat, Vario 451 heat and TSD2 smoke frames fell through to the
+  generic walker. Rows now match wmbusmeters `drivers/src/*.xmq`.
+- **Vario 451 kWh 100× too high.** The MJ→kWh conversion used
+  `raw × 250 / 9` instead of `raw / 3.6`.
+- Vario 451 MID (v0x17) and Vario 411 (v0x28) send OMS DIF/VIF
+  records and now use the generic walker instead of the compact decoder.
+
+### Added
+- Techem MK-Radio water version 0x52 (seen in the field, same layout
+  as MK-Radio 3).
+- Water titles show warm/cold water; MK-Radio 4 shows billing dates.
+- TSD2 smoke detector status (OK / SMOKE / DEFECT) and billing date.
+- Host tests `tests/test_techem_water.c` and `tests/test_techem_other.c`
+  using wmbusmeters test vectors.
+
 ## [1.1.1] — 2026-05-01
 
 ### Fixed

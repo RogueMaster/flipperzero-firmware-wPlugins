@@ -441,7 +441,7 @@ BadUsbApp* bad_usb_app_alloc(char* arg) {
             scene_manager_set_scene_state(app->scene_manager, BadUsbSceneWork, true);
             scene_manager_next_scene(app->scene_manager, BadUsbSceneWork);
         } else {
-            // Le menu ajoute les fonctions fichiers sans changer l'interface Bad USB.
+            // The menu adds file tools without changing the BadUSB interface.
             furi_string_set(app->file_path, BAD_USB_APP_BASE_FOLDER);
             scene_manager_next_scene(app->scene_manager, BadUsbSceneHome);
         }
@@ -452,7 +452,7 @@ BadUsbApp* bad_usb_app_alloc(char* arg) {
 
 void bad_usb_app_free(BadUsbApp* app) {
     furi_assert(app);
-    // Stopper le worker HID avant de deconnecter son USB composite.
+    // Stop the HID worker before disconnecting its composite USB interface.
     if(app->bad_usb_script) {
         bad_usb_script_close(app->bad_usb_script);
         app->bad_usb_script = NULL;

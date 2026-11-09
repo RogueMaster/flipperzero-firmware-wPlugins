@@ -29,7 +29,7 @@ void bad_usb_scene_file_select_on_enter(void* context) {
         scene_manager_set_scene_state(bad_usb->scene_manager, BadUsbSceneWork, true);
         scene_manager_next_scene(bad_usb->scene_manager, BadUsbSceneWork);
     } else {
-        // Retour au menu principal de l'application combinee.
+        // Return to the composite application main menu.
         if(!scene_manager_search_and_switch_to_previous_scene(
                bad_usb->scene_manager, BadUsbSceneHome)) {
             view_dispatcher_stop(bad_usb->view_dispatcher);

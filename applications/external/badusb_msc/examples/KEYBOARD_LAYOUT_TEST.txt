@@ -1,0 +1,11 @@
+REM BadUSB MSC - Keyboard layout verification
+REM Open Notepad and ensure the following text is typed exactly.
+DELAY 1500
+STRING ABC123 abc123
+ENTER
+STRING $desk=[Environment]::GetFolderPath('Desktop')
+ENTER
+STRING C:\FLIPTEST.TXT
+ENTER
+STRING " [ ] { } \ $ : ( )
+ENTER

@@ -10,7 +10,7 @@
 #include "backlight.h"
 #include "keymap_input.h"
 #include "screen.h"
-#include "transport_bluetooth.h"
+#include "transport_hid.h"
 
 struct App {
     FuriEventLoop* event_loop;
@@ -32,6 +32,12 @@ static const DolphinDeed app_dolphin_deeds[DeedMAX] = {
 };
 
 static void app_perform(App* app, Action action) {
+    /* Before the switch, which holds this loop at least 700 ms: the board changes at once, and a
+     * wait of zero makes app_follow_wait start the 60 s afresh. */
+    if(action == ActionUseUsb || action == ActionUseBluetooth) {
+        screen_set_link(app->screen, action == ActionUseUsb ? LinkUsb : LinkBluetooth);
+        app->wait_ms = 0;
+    }
     actions_perform(app->transport, action);
     Deed deed = deed_earned(action);
     if(deed != DeedNone) {
@@ -118,14 +124,14 @@ App* app_alloc(void) {
     app->backlight = backlight_alloc();
     app->keymap = keymap_alloc();
     app->screen = screen_alloc(app->event_loop, app->input_queue, keymap_mode(app->keymap));
-    app->transport = transport_bluetooth_alloc(app->link_queue);
+    app->transport = transport_hid_alloc(app->link_queue);
     app_follow_wait(app);
     return app;
 }
 
 void app_free(App* app) {
     screen_free(app->screen);
-    transport_bluetooth_free(app->transport);
+    transport_hid_free(app->transport);
     keymap_free(app->keymap);
     backlight_free(app->backlight);
     furi_record_close(RECORD_NOTIFICATION);

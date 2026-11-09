@@ -19,6 +19,8 @@ static void test_the_rest_earn_nothing(void) {
     assert(deed_earned(ActionEffortMax) == DeedNone);
     assert(deed_earned(ActionVoiceStop) == DeedNone);
     assert(deed_earned(ActionExit) == DeedNone);
+    assert(deed_earned(ActionUseUsb) == DeedNone);
+    assert(deed_earned(ActionUseBluetooth) == DeedNone);
 }
 
 int main(void) {

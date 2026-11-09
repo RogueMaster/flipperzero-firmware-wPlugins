@@ -7,6 +7,8 @@ bool feedback_vibrates(Action action) {
     case ActionExit:
     case ActionGiveUp:
     case ActionStartOver:
+    case ActionUseUsb:
+    case ActionUseBluetooth:
         return false;
     default:
         return true;

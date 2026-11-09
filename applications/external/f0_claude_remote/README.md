@@ -27,6 +27,7 @@ The Flipper's buttons do the rest, so voice and one hand run the whole session.
 - **Feedback:** every action buzzes; no buzz, nothing sent.
 - **The dolphin:** a dictation earns it 1 XP, a `/clear` 10.
 - **Bluetooth:** a keyboard to the computer, paired once, reconnecting by itself.
+- **USB:** with no Bluetooth link, hold Right and the cable takes over.
 - **Debugging:** breakpoints on the device from CLion, with no plugin.
 
 ## Installation

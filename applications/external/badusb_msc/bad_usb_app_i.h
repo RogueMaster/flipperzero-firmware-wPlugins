@@ -24,7 +24,7 @@
 #include "views/bad_usb_view.h"
 #include <furi_hal_usb.h>
 
-// Les fichiers personnels ne sont jamais exposés comme disque USB.
+// Personal files are never exposed as a USB mass-storage volume.
 #define BAD_USB_FILES_BASE_FOLDER EXT_PATH("apps_data/badusb_msc")
 #define BAD_USB_FILES_FOLDER      BAD_USB_FILES_BASE_FOLDER "/files"
 #define BAD_USB_FILES_PAGE_SIZE   4096
@@ -116,7 +116,7 @@ void bad_usb_storage_progress_update(BadUsbApp* app, uint8_t percent, uint8_t st
 void bad_usb_set_interface(BadUsbApp* app, BadUsbHidInterface interface);
 void bad_usb_save_settings(BadUsbApp* app);
 
-// Evenements prives du gestionnaire de fichiers; les touches du Bad USB restent intactes.
+// Private file manager events; the BadUSB key bindings remain unchanged.
 typedef enum {
     BadUsbFilesEventScripts = 1000,
     BadUsbFilesEventFiles,

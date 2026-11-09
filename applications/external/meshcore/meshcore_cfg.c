@@ -42,6 +42,14 @@ static void meshcore_cfg_push_callback(
     }
 }
 
+/* Fires on the mailbox worker after a drain stored new mail. Buzz/flash so an
+ * incoming message is not missed with the screen dark. notification_message is
+ * thread-safe, so calling it off the GUI thread is fine. */
+static void meshcore_cfg_mail_callback(void* context) {
+    MeshCoreApp* app = context;
+    meshcore_notify_event(app->notify, MeshCoreNotifyIncoming);
+}
+
 static MeshCoreApp* meshcore_cfg_app_alloc(void) {
     MeshCoreApp* app = malloc(sizeof(MeshCoreApp));
 
@@ -97,6 +105,12 @@ static MeshCoreApp* meshcore_cfg_app_alloc(void) {
     app->logger = meshcore_logger_alloc(app->log);
     memset(&app->node, 0, sizeof(app->node));
 
+    /* Feedback settings and the notifier that reads them, up before any scene
+     * or worker can want to buzz. */
+    meshcore_settings_load(&app->settings);
+    app->notify = meshcore_notify_alloc(&app->settings);
+    meshcore_logger_set_notify(app->logger, app->notify);
+
     meshcore_contacts_reset(&app->contacts);
     meshcore_messages_reset(&app->messages);
     /* Built-ins only for now; the card is read the first time Profiles opens,
@@ -120,6 +134,7 @@ static MeshCoreApp* meshcore_cfg_app_alloc(void) {
     app->msglog = meshcore_msglog_alloc();
     meshcore_msglog_load(app->msglog, &app->messages);
     meshcore_mailbox_set_msglog(app->mailbox, app->msglog);
+    meshcore_mailbox_set_callback(app->mailbox, meshcore_cfg_mail_callback, app);
     meshcore_session_set_event_callback(app->session, meshcore_cfg_push_callback, app);
     meshcore_mailbox_start(app->mailbox);
 
@@ -139,9 +154,10 @@ static MeshCoreApp* meshcore_cfg_app_alloc(void) {
 static void meshcore_cfg_app_free(MeshCoreApp* app) {
     furi_assert(app);
 
-    /* Scenes join their own workers on exit, so nothing should be running by
-     * the time we get here — except the two app-lifetime workers, which have a
-     * mutual dependency: the mailbox worker calls into the session, and the
+    /* Scenes join their own workers in on_exit — but only when the scene stack
+     * is actually unwound, which an outside close does not do (see below). On
+     * top of that there are the two app-lifetime workers, which have a mutual
+     * dependency: the mailbox worker calls into the session, and the
      * session worker's push callback calls into the mailbox
      * (meshcore_cfg_push_callback -> meshcore_mailbox_notify). Freeing the
      * mailbox while the session worker is still pumping lets a MSG_WAITING push
@@ -153,6 +169,28 @@ static void meshcore_cfg_app_free(MeshCoreApp* app) {
      * Reachable since the messenger auto-connects — before that the session was
      * only running at exit if the user had pressed Connect. */
     meshcore_session_stop(app->session);
+
+    /* A scene's on_exit does NOT run when the app is closed from outside —
+     * `loader close`, or anything else that stops the ViewDispatcher, stops the
+     * event loop without unwinding the scene stack. So a scene worker started
+     * in on_enter can still be alive right here, and the scene that would have
+     * joined it never got the chance.
+     *
+     * Two things go wrong if we ignore it. Its FuriThread and 2 kB stack are
+     * never returned — that is the whole of the ~2.4 kB this app used to lose
+     * per run, which starved the logger after a handful of launches. And worse,
+     * the thread is still reading app state that the rest of this function is
+     * about to free.
+     *
+     * Done after the session stop so a worker parked on a reply is already
+     * awake: stop() sets the reply flag, the request fails, and the worker
+     * falls out of its loop instead of sitting out the link timeout. */
+    if(app->worker) {
+        app->worker_stop = true;
+        furi_thread_join(app->worker);
+        furi_thread_free(app->worker);
+        app->worker = NULL;
+    }
     meshcore_mailbox_free(app->mailbox);
     /* After the mailbox worker has stopped, so nothing appends to it any more. */
     meshcore_msglog_free(app->msglog);
@@ -162,6 +200,8 @@ static void meshcore_cfg_app_free(MeshCoreApp* app) {
      * it, and before the log itself goes away. */
     meshcore_log_dump(app->log);
     meshcore_log_free(app->log);
+    /* After everything that might buzz has stopped. Resets the LED on the way. */
+    meshcore_notify_free(app->notify);
 
     view_dispatcher_remove_view(app->view_dispatcher, MeshCoreViewSubmenu);
     view_dispatcher_remove_view(app->view_dispatcher, MeshCoreViewWidget);
@@ -198,13 +238,11 @@ static void meshcore_cfg_app_free(MeshCoreApp* app) {
  * For driving the app from a laptop:
  *
  *     loader open /ext/apps/GPIO/meshcore_cfg.fap logger
- *     input send ok short
  *
- * `input send` does reach a running application, so this is a convenience
- * rather than the only way in — it skips walking the menu, which matters when
- * the thing under test is three screens deep and the run has to be repeatable.
- * `loader open "<App Name>"` does not resolve external FAPs; the path form is
- * the one that takes an argument. */
+ * This is the ONLY way in from a laptop: `input send` is accepted by the CLI
+ * but never reaches a running application on unlshd-089, so a scene can be
+ * opened but not operated. `loader open "<App Name>"` does not resolve external
+ * FAPs; the path form is the one that takes an argument. */
 static const struct {
     const char* name;
     MeshCoreSceneId scene;
@@ -221,6 +259,7 @@ static const struct {
     {"radio", MeshCoreSceneRadio},
     {"identity", MeshCoreSceneIdentity},
     {"advert", MeshCoreSceneAdvert},
+    {"settings", MeshCoreSceneSettings},
     {"log", MeshCoreSceneLog},
 };
 
@@ -239,6 +278,13 @@ int32_t meshcore_cfg_app(void* p) {
         }
         /* An unknown argument leaves the menu open rather than failing to
          * start: a typo should not look like a crash. */
+
+        /* Easter egg: "party" plays a tune with the LED and motor dancing to
+         * it, then falls through to the normal menu. Not a scene, so it does
+         * not set launch_scene. */
+        if(strcmp(arg, "party") == 0) {
+            meshcore_notify_play_song(app->notify);
+        }
     }
 
     /* The menu opens the requested scene on its first tick, once the dispatcher

@@ -10,12 +10,13 @@ struct Screen {
     FuriEventLoopTimer* flash_timer;
     /* The draw callback reads these on the GUI thread. */
     _Atomic Mode mode;
+    _Atomic Link link;
     _Atomic Action flash;
 };
 
 static void screen_draw_callback(Canvas* canvas, void* context) {
     Screen* screen = context;
-    view_draw(canvas, screen->mode, screen->flash);
+    view_draw(canvas, screen->mode, screen->link, screen->flash);
 }
 
 /* Runs on the GUI thread, and event_loop.h binds its functions to the loop's own thread. */
@@ -33,6 +34,7 @@ static void screen_flash_callback(void* context) {
 Screen* screen_alloc(FuriEventLoop* event_loop, FuriMessageQueue* input_queue, Mode mode) {
     Screen* screen = malloc(sizeof(Screen));
     screen->mode = mode;
+    screen->link = LinkBluetooth;
     screen->flash = ActionNone;
     screen->flash_timer = furi_event_loop_timer_alloc(
         event_loop, screen_flash_callback, FuriEventLoopTimerTypeOnce, screen);
@@ -56,6 +58,11 @@ void screen_free(Screen* screen) {
 
 void screen_set_mode(Screen* screen, Mode mode) {
     screen->mode = mode;
+    view_port_update(screen->view_port);
+}
+
+void screen_set_link(Screen* screen, Link link) {
+    screen->link = link;
     view_port_update(screen->view_port);
 }
 

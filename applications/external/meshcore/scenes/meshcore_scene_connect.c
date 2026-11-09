@@ -14,6 +14,11 @@
 #define MESHCORE_CONNECT_EVENT_DONE   0x100u
 #define MESHCORE_CONNECT_WORKER_STACK 2048u
 
+/* Advances on each scene tick while the handshake runs, to animate the dots.
+ * `active` gates it so the tick does not redraw over the result screen. */
+static uint8_t meshcore_connect_anim;
+static bool meshcore_connect_active;
+
 static void meshcore_connect_copy_self_info(MeshCoreNodeInfo* node, const mc_self_info_t* info) {
     node->role_type = info->type;
     node->tx_power = info->tx_power;
@@ -76,6 +81,9 @@ static const char* meshcore_connect_run(MeshCoreApp* app) {
     }
 
     node->valid = true;
+    /* A real (re)connect only — connect_ensure short-circuits when already up,
+     * so this does not fire on every auto-connect. */
+    meshcore_notify_event(app->notify, MeshCoreNotifyConnected);
     return NULL;
 }
 
@@ -107,14 +115,18 @@ static void meshcore_scene_connect_show(MeshCoreApp* app, bool done) {
          * here is cheaper than debugging a node that came up on radio because
          * it never saw the detect signal. */
         MeshCoreDetectState detect = meshcore_detect_state();
+        /* Animated by the scene tick (below): shows the handshake is working, not
+         * hung. Cheap — no timer, just the dot count the tick advances. */
+        static const char* const dots[] = {".  ", ".. ", "...", "   "};
         snprintf(
             text,
             sizeof(text),
-            "\e#Connecting...\n\n"
+            "\e#Connecting%s\n\n"
             "block A: 11 GND 12 DET\n"
             "         13 TX  14 RX\n"
             "115200 8N1\n"
             "detect A%s B%s%s",
+            dots[meshcore_connect_anim & 3u],
             detect.block_a_high ? "+" : "-",
             detect.block_b_high ? "+" : "-",
             detect.debug_mode ? "\nturn Debug OFF: it owns pin 12" : "");
@@ -160,6 +172,8 @@ void meshcore_scene_connect_on_enter(void* context) {
 
     app->worker_stop = false;
     app->worker_error = NULL;
+    meshcore_connect_anim = 0;
+    meshcore_connect_active = true;
 
     meshcore_scene_connect_show(app, false);
     view_dispatcher_switch_to_view(app->view_dispatcher, MeshCoreViewWidget);
@@ -173,7 +187,22 @@ bool meshcore_scene_connect_on_event(void* context, SceneManagerEvent event) {
     MeshCoreApp* app = context;
 
     if(event.type == SceneManagerEventTypeCustom && event.event == MESHCORE_CONNECT_EVENT_DONE) {
+        meshcore_connect_active = false;
+        /* Success already fired Connected inside connect_run. A failure otherwise
+         * has no cue but the screen — signal it so a Connect that did not take is
+         * felt, not just read. Only the explicit Connect press reaches here;
+         * connect_ensure's silent auto-connect (Contacts) does not. */
+        if(app->worker_error) meshcore_notify_event(app->notify, MeshCoreNotifyDisconnected);
         meshcore_scene_connect_show(app, true);
+        return true;
+    }
+
+    if(event.type == SceneManagerEventTypeTick) {
+        /* Animate the dots while the handshake is still running. */
+        if(meshcore_connect_active) {
+            meshcore_connect_anim++;
+            meshcore_scene_connect_show(app, false);
+        }
         return true;
     }
 

@@ -314,6 +314,7 @@ bool meshcore_scene_radio_on_event(void* context, SceneManagerEvent event) {
 
         char text[128];
         if(app->worker_error == NULL) {
+            meshcore_notify_event(app->notify, MeshCoreNotifyApplyOk);
             MeshCorePreset preset;
             meshcore_radio_build_preset(&preset);
             char freq[MESHCORE_PRESET_FIELD_LEN];

@@ -103,14 +103,20 @@ size_t techem_decode_fhkv(uint8_t version, const uint8_t* a, size_t l, char* o, 
     return pos;
 }
 
-size_t techem_decode_water(bool with_dates, const uint8_t* a, size_t l, char* o, size_t cap) {
+size_t techem_decode_water(
+    const char* title,
+    bool with_dates,
+    const uint8_t* a,
+    size_t l,
+    char* o,
+    size_t cap) {
     if(l < 9) return techem_hex_dump(a, l, o, cap, "Techem water short");
     uint16_t prev = (uint16_t)(a[3] | (a[4] << 8)); /* deci-m^3 */
     uint16_t curr = (uint16_t)(a[7] | (a[8] << 8));
     uint32_t total_dl = (uint32_t)prev + curr;
 
     size_t pos = 0;
-    pos += append(o, cap, pos, "Techem water\n");
+    pos += append(o, cap, pos, "%s\n", title ? title : "Techem water");
     pos += append(
         o,
         cap,
@@ -130,7 +136,7 @@ size_t techem_decode_water(bool with_dates, const uint8_t* a, size_t l, char* o,
         techem_prev_date(prev_date_w, dprev, sizeof(dprev), &yr_prev);
         techem_curr_date(curr_date_w, yr_prev, day_prev, mon_prev, dcurr, sizeof(dcurr));
         pos += append(o, cap, pos, "Reset  %s\n", dprev);
-        pos += append(o, cap, pos, "Ends   %s\n", dcurr);
+        pos += append(o, cap, pos, "Read   %s\n", dcurr);
     }
     return pos;
 }
@@ -151,16 +157,14 @@ size_t techem_decode_compact5(const uint8_t* a, size_t l, char* o, size_t cap) {
 
 size_t techem_decode_vario(const uint8_t* a, size_t l, char* o, size_t cap) {
     if(l < 9) return techem_hex_dump(a, l, o, cap, "Vario heat short");
-    /* Raw u16 = "GJ × 1000". Convert to kWh via integer math:
-     *   1 GJ = 1e9 J = 1e9 / 3600 Wh ≈ 277.778 kWh
-     *   raw / 1000 GJ × (1000 × 1000 / 3600) kWh/GJ
-     *  = raw × (1000 / 3600) / 1
-     *  = raw × 250 / 9    (exact rational form)
-     * Width: raw ≤ 65535 → kWh ≤ 1820972. Fits in u32. */
+    /* Raw u16 = "GJ × 1000" (MJ). 1 GJ = 277.78 kWh, so
+     *   kWh = raw / 1000 × 277.78 = raw / 3.6 = raw × 5 / 18
+     * which matches wmbusmeters vario451.xmq (`raw / 3.6 * 1 kwh`).
+     * Rounded to the nearest kWh. */
     uint16_t prev_raw = (uint16_t)(a[3] | (a[4] << 8));
     uint16_t curr_raw = (uint16_t)(a[7] | (a[8] << 8));
-    uint32_t prev_kwh = (uint32_t)((uint64_t)prev_raw * 250 / 9);
-    uint32_t curr_kwh = (uint32_t)((uint64_t)curr_raw * 250 / 9);
+    uint32_t prev_kwh = ((uint32_t)prev_raw * 5 + 9) / 18;
+    uint32_t curr_kwh = ((uint32_t)curr_raw * 5 + 9) / 18;
 
     /* GJ to two decimals: raw / 1000 GJ → raw / 10 in centi-GJ. */
     uint32_t prev_gj_x100 = (uint32_t)prev_raw / 10;
@@ -192,6 +196,21 @@ size_t techem_decode_vario(const uint8_t* a, size_t l, char* o, size_t cap) {
         "LastGJ %lu.%02lu\n",
         (unsigned long)(prev_gj_x100 / 100),
         (unsigned long)(prev_gj_x100 % 100));
+    return pos;
+}
+
+size_t techem_decode_tsd2(const uint8_t* a, size_t l, char* o, size_t cap) {
+    if(l < 3) return techem_hex_dump(a, l, o, cap, "Techem TSD2 short");
+    const char* st = a[0] == 0x00 ? "OK" : a[0] == 0x01 ? "SMOKE" : a[0] == 0x80 ? "DEFECT" : NULL;
+    char dprev[16];
+    techem_prev_date((uint16_t)(a[1] | (a[2] << 8)), dprev, sizeof(dprev), NULL);
+    size_t pos = 0;
+    pos += append(o, cap, pos, "Techem TSD2 smoke\n");
+    if(st)
+        pos += append(o, cap, pos, "Status %s\n", st);
+    else
+        pos += append(o, cap, pos, "Status 0x%02X\n", a[0]);
+    pos += append(o, cap, pos, "Reset  %s\n", dprev);
     return pos;
 }
 

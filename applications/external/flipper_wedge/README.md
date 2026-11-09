@@ -160,7 +160,30 @@ Available layouts include: French AZERTY, German QWERTZ, Hungarian, Czech, Spani
 
 ## Building from Source
 
-### Setup Environment
+### macOS (ufbt — easiest)
+On macOS the simplest path is [`ufbt`](https://github.com/flipperdevices/flipperzero-ufbt),
+the standalone Flipper app SDK. It downloads its own ARM toolchain and SDK, so you don't
+need to clone any firmware. Works on Apple Silicon and Intel.
+
+```bash
+# 1. Install ufbt (pipx keeps it isolated; "python3 -m pip install --user ufbt" also works)
+brew install pipx && pipx ensurepath
+pipx install ufbt
+
+# 2. Build from the app folder (the one containing application.fam)
+cd flipper-wedge
+ufbt                 # first run downloads the SDK + toolchain, then compiles
+#   Output: .ufbt/build/flipper_wedge.fap
+
+# 3. Install onto a connected Flipper over USB (quit qFlipper first — it holds the port)
+ufbt launch          # build + upload + start the app on the device
+```
+
+> ufbt builds against the **official** firmware SDK by default, which is fine for testing.
+> For a custom firmware, point ufbt at it once with `ufbt update --channel=release` (or a
+> custom SDK URL). Official-built FAPs usually run on the custom firmwares anyway.
+
+### Linux / fbt (full firmware tree)
 ```bash
 # Clone official Flipper Zero firmware
 cd ~

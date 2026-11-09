@@ -9,6 +9,7 @@
 #include <nfc/protocols/iso15693_3/iso15693_3_poller.h>
 #include <toolbox/simple_array.h>
 #include <toolbox/bit_buffer.h>
+#include <string.h>
 
 #define TAG "FlipperWedgeNfc"
 
@@ -54,8 +55,92 @@ struct FlipperWedgeNfc {
     FuriThreadId owner_thread;
 };
 
-// Simple NDEF text record parser
-// Returns number of bytes written to output, 0 if no text records found
+// NFC Forum URI Record Type Definition: abbreviated prefix strings indexed by
+// the URI identifier code (the first byte of a 'U' record payload), e.g. code
+// 0x04 expands to "https://".
+static const char* const NDEF_URI_PREFIXES[] = {
+    "", // 0x00 (no prefix)
+    "http://www.", // 0x01
+    "https://www.", // 0x02
+    "http://", // 0x03
+    "https://", // 0x04
+    "tel:", // 0x05
+    "mailto:", // 0x06
+    "ftp://anonymous:anonymous@", // 0x07
+    "ftp://ftp.", // 0x08
+    "ftps://", // 0x09
+    "sftp://", // 0x0A
+    "smb://", // 0x0B
+    "nfs://", // 0x0C
+    "ftp://", // 0x0D
+    "dav://", // 0x0E
+    "news:", // 0x0F
+    "telnet://", // 0x10
+    "imap:", // 0x11
+    "rtsp://", // 0x12
+    "urn:", // 0x13
+    "pop:", // 0x14
+    "sip:", // 0x15
+    "sips:", // 0x16
+    "tftp:", // 0x17
+    "btspp://", // 0x18
+    "btl2cap://", // 0x19
+    "btgoep://", // 0x1A
+    "tcpobex://", // 0x1B
+    "irdaobex://", // 0x1C
+    "file://", // 0x1D
+    "urn:epc:id:", // 0x1E
+    "urn:epc:tag:", // 0x1F
+    "urn:epc:pat:", // 0x20
+    "urn:epc:raw:", // 0x21
+    "urn:epc:", // 0x22
+    "urn:nfc:", // 0x23
+};
+#define NDEF_URI_PREFIX_COUNT (sizeof(NDEF_URI_PREFIXES) / sizeof(NDEF_URI_PREFIXES[0]))
+
+// Append an NDEF URI record payload ([prefix code][uri bytes]) to output as the
+// expanded prefix followed by the remaining URI bytes. Returns bytes appended.
+static size_t flipper_wedge_nfc_append_uri_record(
+    const uint8_t* payload,
+    uint32_t payload_len,
+    char* output,
+    size_t output_pos,
+    size_t output_max) {
+    if(!payload || payload_len < 1 || output_pos + 1 >= output_max) {
+        return 0;
+    }
+
+    const size_t start = output_pos;
+
+    uint8_t prefix_code = payload[0];
+    const char* prefix = (prefix_code < NDEF_URI_PREFIX_COUNT) ? NDEF_URI_PREFIXES[prefix_code] :
+                                                                 "";
+
+    // Copy the expanded prefix (e.g. "https://")
+    size_t prefix_len = strlen(prefix);
+    if(output_pos + prefix_len >= output_max) {
+        prefix_len = output_max - output_pos - 1;
+    }
+    if(prefix_len > 0) {
+        memcpy(&output[output_pos], prefix, prefix_len);
+        output_pos += prefix_len;
+    }
+
+    // Copy the URI body (everything after the prefix code byte)
+    size_t body_len = payload_len - 1;
+    if(output_pos + body_len >= output_max) {
+        body_len = output_max - output_pos - 1;
+    }
+    if(body_len > 0) {
+        memcpy(&output[output_pos], &payload[1], body_len);
+        output_pos += body_len;
+    }
+
+    return output_pos - start;
+}
+
+// Simple NDEF text/URI record parser
+// Returns number of bytes written to output, 0 if no text/URI records found
 // Parse raw NDEF records (for Type 4 tags - no TLV wrapping)
 static size_t flipper_wedge_nfc_parse_raw_ndef_text(
     const uint8_t* data,
@@ -117,37 +202,44 @@ static size_t flipper_wedge_nfc_parse_raw_ndef_text(
         const uint8_t* payload = &data[pos];
         pos += payload_len;
 
-        // Check if this is a text record (TNF=0x01, Type='T')
-        if(tnf == 0x01 && type_len == 1 && type[0] == 'T' && payload_len > 1) {
-            FURI_LOG_I(TAG, "Type 4 NDEF: Found text record in raw NDEF");
+        // Well-known records (TNF=0x01) we can render as text
+        if(tnf == 0x01 && type_len == 1 && payload_len > 1) {
+            if(type[0] == 'T') {
+                FURI_LOG_I(TAG, "Type 4 NDEF: Found text record in raw NDEF");
 
-            // Text record format: [status byte][language code][text]
-            uint8_t status = payload[0];
-            uint8_t lang_len = status & 0x3F;
+                // Text record format: [status byte][language code][text]
+                uint8_t status = payload[0];
+                uint8_t lang_len = status & 0x3F;
 
-            FURI_LOG_I(
-                TAG,
-                "Type 4 NDEF: Status=0x%02X, lang_len=%d, payload_len=%lu",
-                status,
-                lang_len,
-                payload_len);
+                FURI_LOG_I(
+                    TAG,
+                    "Type 4 NDEF: Status=0x%02X, lang_len=%d, payload_len=%lu",
+                    status,
+                    lang_len,
+                    payload_len);
 
-            if((uint32_t)(lang_len + 1) <= payload_len) {
-                // Skip language code, extract text
-                const uint8_t* text = &payload[1 + lang_len];
-                size_t text_len = payload_len - 1 - lang_len;
+                if((uint32_t)(lang_len + 1) <= payload_len) {
+                    // Skip language code, extract text
+                    const uint8_t* text = &payload[1 + lang_len];
+                    size_t text_len = payload_len - 1 - lang_len;
 
-                FURI_LOG_I(TAG, "Type 4 NDEF: Text length=%zu", text_len);
+                    FURI_LOG_I(TAG, "Type 4 NDEF: Text length=%zu", text_len);
 
-                // Copy text to output
-                size_t copy_len = text_len;
-                if(output_pos + copy_len >= output_max) {
-                    copy_len = output_max - output_pos - 1;
+                    // Copy text to output
+                    size_t copy_len = text_len;
+                    if(output_pos + copy_len >= output_max) {
+                        copy_len = output_max - output_pos - 1;
+                    }
+                    if(copy_len > 0) {
+                        memcpy(&output[output_pos], text, copy_len);
+                        output_pos += copy_len;
+                    }
                 }
-                if(copy_len > 0) {
-                    memcpy(&output[output_pos], text, copy_len);
-                    output_pos += copy_len;
-                }
+            } else if(type[0] == 'U') {
+                // URI record format: [prefix code byte][uri bytes]
+                FURI_LOG_I(TAG, "Type 4 NDEF: Found URI record (prefix code 0x%02X)", payload[0]);
+                output_pos += flipper_wedge_nfc_append_uri_record(
+                    payload, payload_len, output, output_pos, output_max);
             }
         }
 
@@ -250,26 +342,32 @@ static size_t flipper_wedge_nfc_parse_ndef_text(
                 const uint8_t* payload = &data[pos];
                 pos += payload_len;
 
-                // Check if this is a text record (TNF=0x01, Type='T')
-                if(tnf == 0x01 && type_len == 1 && type[0] == 'T' && payload_len > 1) {
-                    // Text record format: [status byte][language code][text]
-                    uint8_t status = payload[0];
-                    uint8_t lang_len = status & 0x3F;
+                // Well-known records (TNF=0x01) we can render as text
+                if(tnf == 0x01 && type_len == 1 && payload_len > 1) {
+                    if(type[0] == 'T') {
+                        // Text record format: [status byte][language code][text]
+                        uint8_t status = payload[0];
+                        uint8_t lang_len = status & 0x3F;
 
-                    if((uint32_t)(lang_len + 1) <= payload_len) {
-                        // Skip language code, extract text
-                        const uint8_t* text = &payload[1 + lang_len];
-                        size_t text_len = payload_len - 1 - lang_len;
+                        if((uint32_t)(lang_len + 1) <= payload_len) {
+                            // Skip language code, extract text
+                            const uint8_t* text = &payload[1 + lang_len];
+                            size_t text_len = payload_len - 1 - lang_len;
 
-                        // Copy text to output
-                        size_t copy_len = text_len;
-                        if(output_pos + copy_len >= output_max) {
-                            copy_len = output_max - output_pos - 1;
+                            // Copy text to output
+                            size_t copy_len = text_len;
+                            if(output_pos + copy_len >= output_max) {
+                                copy_len = output_max - output_pos - 1;
+                            }
+                            if(copy_len > 0) {
+                                memcpy(&output[output_pos], text, copy_len);
+                                output_pos += copy_len;
+                            }
                         }
-                        if(copy_len > 0) {
-                            memcpy(&output[output_pos], text, copy_len);
-                            output_pos += copy_len;
-                        }
+                    } else if(type[0] == 'U') {
+                        // URI record format: [prefix code byte][uri bytes]
+                        output_pos += flipper_wedge_nfc_append_uri_record(
+                            payload, payload_len, output, output_pos, output_max);
                     }
                 }
             }

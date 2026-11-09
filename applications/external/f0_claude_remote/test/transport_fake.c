@@ -9,6 +9,7 @@ struct Transport {
     TransportFakeEvent events[TRANSPORT_FAKE_EVENTS];
     size_t count;
     bool offered;
+    bool on_usb;
 };
 
 static void transport_fake_record(Transport* transport, TransportKey key, bool pressed) {
@@ -23,6 +24,7 @@ Transport* transport_fake_alloc(void) {
     assert(transport);
     transport->count = 0;
     transport->offered = true;
+    transport->on_usb = false;
     return transport;
 }
 
@@ -43,6 +45,10 @@ bool transport_fake_offered(const Transport* transport) {
     return transport->offered;
 }
 
+bool transport_fake_on_usb(const Transport* transport) {
+    return transport->on_usb;
+}
+
 void transport_press(Transport* transport, TransportKey key) {
     transport_fake_record(transport, key, true);
 }
@@ -57,4 +63,12 @@ void transport_offer(Transport* transport) {
 
 void transport_withdraw(Transport* transport) {
     transport->offered = false;
+}
+
+void transport_use_usb(Transport* transport) {
+    transport->on_usb = true;
+}
+
+void transport_use_bluetooth(Transport* transport) {
+    transport->on_usb = false;
 }

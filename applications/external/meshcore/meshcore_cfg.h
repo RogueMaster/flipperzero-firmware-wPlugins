@@ -33,6 +33,8 @@
 
 #include "config/meshcore_apply.h"
 #include "config/meshcore_preset_store.h"
+#include "config/meshcore_settings.h"
+#include "notify/meshcore_notify.h"
 #include "logger/meshcore_logger.h"
 #include "meshcore_log.h"
 #include "messenger/meshcore_contacts.h"
@@ -106,6 +108,10 @@ typedef struct {
      * do a per-frame canvas animation, so this one owns its own draw. */
     View* splash_view;
     FuriTimer* splash_timer;
+
+    /* Field feedback: sound/vibro/LED, and the toggles that gate them. */
+    MeshCoreSettings settings;
+    MeshCoreNotify* notify;
 
     /* Transport + protocol */
     MeshCoreLog* log;

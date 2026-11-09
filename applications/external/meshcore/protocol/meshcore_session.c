@@ -153,9 +153,11 @@ void meshcore_session_stop(MeshCoreSession* session) {
      * handled by the flag set. */
     session->running = false;
 
-    furi_thread_join(session->worker);
-    furi_thread_free(session->worker);
-    session->worker = NULL;
+    if(session->worker) {
+        furi_thread_join(session->worker);
+        furi_thread_free(session->worker);
+        session->worker = NULL;
+    }
 
     /* Wake any requester parked waiting for a reply the worker — now joined —
      * will never deliver. Without this it would sit out the full link timeout

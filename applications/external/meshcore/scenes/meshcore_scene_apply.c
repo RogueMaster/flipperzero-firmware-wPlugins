@@ -133,6 +133,21 @@ static int32_t meshcore_scene_apply_worker(void* context) {
         app->apply_result[MeshCoreApplyPathHash] = MeshCoreApplyResultUnverifiable;
     }
 
+    /* Feedback on the outcome, so a field apply is felt, not just seen. */
+    switch(app->apply_result[MeshCoreApplyRadio]) {
+    case MeshCoreApplyResultOk:
+        meshcore_notify_event(app->notify, MeshCoreNotifyApplyOk);
+        break;
+    case MeshCoreApplyResultRefused:
+    case MeshCoreApplyResultSilent:
+    case MeshCoreApplyResultMismatch:
+        meshcore_notify_event(app->notify, MeshCoreNotifyError);
+        break;
+    default:
+        /* Skipped / Unverifiable: no strong signal either way. */
+        break;
+    }
+
     /* One line to the log so the outcome survives in last_run.log — the screen
      * needs the device in hand, and this is the only record of what a given
      * Apply actually did to the node. */

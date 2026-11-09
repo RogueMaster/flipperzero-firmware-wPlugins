@@ -73,7 +73,8 @@ static size_t decode_mk3a(
     return pos;
 }
 
-static const WmbusMVT k_mvt[] = {{"TCH", 0x72, 0x50}, {{0}, 0, 0}};
+/* wmbusmeters: mvt = TCH,50,72 (version 0x50, type 0x72). */
+static const WmbusMVT k_mvt[] = {{"TCH", 0x50, 0x72}, {{0}, 0, 0}};
 const WmbusDriver wmbus_drv_techem_mkradio3a = {
     .id = "mkradio3a",
     .title = "Techem MK-Radio 3a",

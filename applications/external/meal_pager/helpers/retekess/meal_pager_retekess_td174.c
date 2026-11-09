@@ -2,25 +2,25 @@
 #include "meal_pager_retekess_td174.h"
 
 static char* genRawDataTd174(int zero, int one, const char* bits) {
-    int bitsLen = strlen(bits);
-    int lineLen = 256; // Adjust the line length as needed
-    char* line = (char*)malloc(lineLen * sizeof(char));
-
-    // Initialize the line with the first part
-    char* res = (char*)malloc(lineLen * sizeof(char));
-    res[0] = '\0'; // Null-terminate the result string
+    size_t bitsLen = strlen(bits);
+    char line[16];
+    // Every bit expands to at most 5 characters (" -900") plus prefix/suffix.
+    size_t resLen = bitsLen * 5 + 64;
+    char* res = (char*)malloc(resLen);
+    if(!res) return NULL;
+    res[0] = '\0';
 
     customConcat(res, "-6000 300 -900"); // Always starts with 01
 
     // Append bits and create the line
-    for(int i = 0; i < bitsLen; i++) {
+    for(size_t i = 0; i < bitsLen; i++) {
         char c = bits[i];
         int t = (c == '0') ? zero : one;
 
         if(i % 2 == 0) {
-            snprintf(line, lineLen, " %d", t);
+            snprintf(line, sizeof(line), " %d", t);
         } else {
-            snprintf(line, lineLen, " -%d", t);
+            snprintf(line, sizeof(line), " -%d", t);
         }
 
         // Concatenate the line to the result string
@@ -29,8 +29,6 @@ static char* genRawDataTd174(int zero, int one, const char* bits) {
 
     // Append the closing part to the line
     customConcat(res, " 300 -6000");
-
-    free(line); // Free memory allocated for the line
 
     return res;
 }
@@ -42,9 +40,9 @@ static void meal_pager_retekess_td174_generate_pager(
     FlipperFormat* ff) {
     Meal_Pager* app = context;
     char pagerId[11];
-    char* fullId = (char*)malloc(25 * sizeof(char));
+    char fullId[32] = {0};
     uint32_t action = 0; // 0 = ring, 1 = mute
-    char actionId[2];
+    char actionId[3];
     //FURI_LOG_D(TAG, "Generating TD174 Data for Pager %lu", pager);
     app->current_pager = pager;
     meal_pager_transmit_model_set_pager(app->meal_pager_transmit, app->current_pager);
@@ -59,9 +57,12 @@ static void meal_pager_retekess_td174_generate_pager(
     customConcat(fullId, actionId);
     customConcat(fullId, pagerId);
     char* manchester = encManchester(fullId, 0);
+    if(!manchester) return;
     char* rawSignal = genRawDataTd174(300, 900, manchester);
-    for(uint32_t i = 1; app->repeats >= i; i++) {
-        flipper_format_write_string_cstr(ff, "RAW_Data", rawSignal);
+    if(rawSignal) {
+        for(uint32_t i = 1; app->repeats >= i; i++) {
+            flipper_format_write_string_cstr(ff, "RAW_Data", rawSignal);
+        }
     }
     free(manchester);
     free(rawSignal);

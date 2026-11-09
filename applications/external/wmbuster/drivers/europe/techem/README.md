@@ -18,8 +18,7 @@ right decoder.
 
 ## Known limitations
 
-- The Vario heat decoder uses an integer GJ→kWh approximation
-  (raw × 250 / 9). The largest possible 16-bit raw value rounds
-  to within ±0.06 kWh of the IEEE-double calculation.
+- The Vario heat decoder converts MJ to kWh with integer math
+  (raw × 5 / 18, i.e. raw / 3.6), rounded to the nearest kWh.
 - Smoke alarm bit semantics are not public; we surface the
   status byte verbatim so a non-zero value flags an event.

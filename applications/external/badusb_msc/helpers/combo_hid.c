@@ -368,6 +368,10 @@ void hid_deinit(usbd_device* dev) {
     callback = NULL;
     cb_ctx = NULL;
     usb_dev = NULL;
+    if(hid_semaphore != NULL) {
+        furi_semaphore_free(hid_semaphore);
+        hid_semaphore = NULL;
+    }
 }
 
 void hid_on_wakeup(usbd_device* dev) {
@@ -401,6 +405,8 @@ static bool hid_send_report(uint8_t report_id) {
     }
     furi_check(status == FuriStatusOk);
     if(hid_connected == false) {
+        // Return the acquired token if the USB link drops before transmission.
+        furi_semaphore_release(hid_semaphore);
         return false;
     }
     if(boot_protocol == true) {
