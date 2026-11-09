@@ -112,6 +112,39 @@ static bool renfe_suma10_verify(Nfc* nfc, MfClassicData* mfc_data, bool data_loa
     return false;
 }
 
+/* Santo Domingo (Dominican Republic) integrated transit.
+ *
+ * Sector 0 carries the same issuer signature on every card seen, and its key B
+ * is shared across cards; every other sector is diversified per card. Live
+ * detection therefore authenticates sector 0 with that key B, while a saved
+ * dump is matched on the signature itself, which is stronger. */
+static const uint64_t santo_domingo_sector0_key_b = 0x766E873D1A3E;
+
+static bool santo_domingo_verify(Nfc* nfc, MfClassicData* mfc_data, bool data_loaded) {
+    if(!data_loaded) {
+        uint8_t block = mf_classic_get_first_block_num_of_sector(0);
+        MfClassicKey key = {0};
+        bit_lib_num_to_bytes_be(santo_domingo_sector0_key_b, COUNT_OF(key.data), key.data);
+        MfClassicAuthContext auth_ctx;
+        return mf_classic_poller_sync_auth(nfc, block, &key, MfClassicKeyTypeB, &auth_ctx) ==
+               MfClassicErrorNone;
+    }
+
+    if(!mfc_data) return false;
+    if(!mf_classic_is_block_read(mfc_data, 1) || !mf_classic_is_block_read(mfc_data, 2)) {
+        return false;
+    }
+
+    static const uint8_t sig_b1[] = {
+        0x35, 0x80, 0x00, 0x00, 0x04, 0xD0, 0xFC, 0x40, 0x10, 0x06, 0x84, 0x03};
+    static const uint8_t sig_b2[] = {0x34, 0x3F, 0x10, 0x00};
+    const uint8_t* b1 = mfc_data->block[1].data;
+
+    /* Bytes 12-13 of block 1 are card specific, the rest is fixed. */
+    return memcmp(b1, sig_b1, sizeof(sig_b1)) == 0 && b1[14] == 0x43 && b1[15] == 0xF1 &&
+           memcmp(mfc_data->block[2].data, sig_b2, sizeof(sig_b2)) == 0;
+}
+
 // RENFE Regular
 static bool renfe_regular_verify(Nfc* nfc, MfClassicData* mfc_data, bool data_loaded) {
     if(!data_loaded) {
@@ -183,6 +216,7 @@ CardType determine_card_type(Nfc* nfc, MfClassicData* mfc_data, bool data_loaded
     if(gocard_verify(mfc_data, data_loaded)) return CARD_TYPE_GOCARD;
     if(renfe_suma10_verify(nfc, mfc_data, data_loaded)) return CARD_TYPE_RENFE_SUM10;
     if(renfe_regular_verify(nfc, mfc_data, data_loaded)) return CARD_TYPE_RENFE_REGULAR;
+    if(santo_domingo_verify(nfc, mfc_data, data_loaded)) return CARD_TYPE_SANTO_DOMINGO;
 
     return CARD_TYPE_UNKNOWN;
 }

@@ -153,7 +153,9 @@ FS_Error archive_copy_rename_file_or_dir(
         error = FSE_INVALID_NAME;
     } else if(!copy && !strcmp(src_path, furi_string_get_cstr(dst_path))) {
         error = FSE_EXIST;
-    } else if(!copy && storage_common_equivalent_path(fs_api, src_path, furi_string_get_cstr(dst_path))) {
+    } else if(
+        !copy &&
+        storage_common_equivalent_path(fs_api, src_path, furi_string_get_cstr(dst_path))) {
         // Same entry under a different spelling, as when only the case of the name changes:
         // the free-name search below would see the entry itself as a collision and rename to
         // a numbered name instead, so the rename goes straight to storage.

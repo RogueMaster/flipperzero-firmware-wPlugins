@@ -1,3 +1,37 @@
+## v2.1-beta
+
+## Santo Domingo Parser (Dominican Republic)
+
+- Added Santo Domingo parser for MetroSD / SDGO MIFARE Classic 1K cards
+  (Metro, OMSA buses, Teleferico) - dumps and system notes by @DIVIADAR
+  - Cash purse balance in Dominican pesos, plus how many Metro rides it buys
+  - Metro trip bundles: trips remaining and bundle size (10/20/30)
+  - Fare reference for the three modes
+  - Recent taps are listed by sequence number only; the per-tap log is not
+    fully decoded, so its remaining field is shown raw rather than guessed at
+- Card detection works on every card including the hardened SDGO batch, since
+  sector 0 carries a shared issuer signature. Reading the purse and trips still
+  needs a key file recovered for that UID, as with SmartRider
+
+## BIP Piemonte (GTT) Parser
+
+- Added BIP GTT parser (Turin / Piedmont, Italy) - contributed by @filippo-ferrando
+  - Reads up to 4 contracts and 3 recent trips, with load/travel timestamps
+  - Handles the card's CET-without-DST clock, converting to local Italian time
+  - Contract type and code are shown as raw values - the layout is reverse
+    engineered from a single card and only the timestamps are confirmed
+  - Trips are matched back to the contract that paid for them
+- Unknown Calypso networks now dump the standard ticketing files (contracts,
+  events, special events, counters) into the saved file, so a parser can be
+  written from a capture without owning the card
+
+## Memory
+
+- Suica icons (~150 images) moved out of the main app into the Suica plugin's
+  own asset bundle: 142 fewer entries in the plugin API table, and the image
+  data is only resident when a Suica card is actually being read
+- Main app no longer compiles plugin sources into the FAP
+
 ## v2
 
 ## UI Overhaul
