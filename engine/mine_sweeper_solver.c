@@ -131,6 +131,12 @@ void bfs_tile_clear_solver(
     furi_assert(edges);
     furi_assert(visited);
 
+    const uint16_t start_i = board_index(board, x, y);
+    if (point_visited_test(visited, start_i) || CELL_IS_REVEALED(board->cells[start_i]) ||
+        CELL_IS_FLAGGED(board->cells[start_i])) {
+        return;
+    }
+
     point_deq_t deq;
     point_deq_init(deq);
 
@@ -139,6 +145,8 @@ void bfs_tile_clear_solver(
 
     pointobj_set_point(pos, (Point){.x = x, .y = y});
 
+    // Visited means scheduled or processed, shared across this solver run's flood fills.
+    point_visited_set(visited, start_i);
     point_deq_push_back(deq, pos);
 
     while (point_deq_size(deq) > 0) {
@@ -147,12 +155,9 @@ void bfs_tile_clear_solver(
         uint16_t curr_pos_1d = board_index(board, curr_pos.x, curr_pos.y);
         MineSweeperCell curr_cell = board->cells[curr_pos_1d];
 
-        if (point_visited_test(visited, curr_pos_1d) || CELL_IS_REVEALED(curr_cell) ||
-            CELL_IS_FLAGGED(curr_cell)) {
+        if (CELL_IS_REVEALED(curr_cell) || CELL_IS_FLAGGED(curr_cell)) {
             continue;
         }
-
-        point_visited_set(visited, curr_pos_1d);
 
         uint8_t neighbor_bomb_count = CELL_GET_NEIGHBORS(curr_cell);
 
@@ -174,10 +179,14 @@ void bfs_tile_clear_solver(
             if (!board_in_bounds(board, dx, dy)) continue;
 
             const uint16_t neighbor_pos_1d = board_index(board, (uint8_t)dx, (uint8_t)dy);
-            if (point_visited_test(visited, neighbor_pos_1d)) continue;
+            const MineSweeperCell neighbor_cell = board->cells[neighbor_pos_1d];
+            if (point_visited_test(visited, neighbor_pos_1d) || CELL_IS_REVEALED(neighbor_cell) ||
+                CELL_IS_FLAGGED(neighbor_cell)) {
+                continue;
+            }
 
             pointobj_set_point(pos, (Point){.x = (uint8_t)dx, .y = (uint8_t)dy});
-
+            point_visited_set(visited, neighbor_pos_1d);
             point_deq_push_back(deq, pos);
         }
     }
