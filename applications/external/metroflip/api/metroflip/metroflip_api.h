@@ -8,6 +8,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <assets_icons.h>
 #include "../../metroflip_i.h"
 #include <gui/gui.h>
 #include <gui/modules/widget_elements/widget_element.h>
@@ -137,11 +138,8 @@ void show_ravkav_contract_info(RavKavCardContract* contract, FuriString* parsed_
 
 void show_ravkav_environment_info(RavKavCardEnv* environment, FuriString* parsed_data);
 
-extern const Icon I_RFIDDolphinReceive_97x61;
 extern const Icon I_icon;
-extern const Icon I_DolphinDone_80x58;
-extern const Icon I_WarningDolphinFlip_45x42;
-extern const Icon I_DolphinMafia_119x62;
+extern const Icon I_DolphinMafia_115x62;
 
 /*******************/
 #ifdef __cplusplus

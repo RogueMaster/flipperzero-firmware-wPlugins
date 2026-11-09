@@ -187,6 +187,12 @@ struct ProtoViewApp {
     int favorites_count;
     bool dirty; // Used to trigger recount of favorites
     Tyre tyre_list[30]; // Static max for simplicity since I don't C
+
+    /* 125 kHz TPMS wake (wake.c). Only the main thread touches the HAL;
+     * the timer callback just sets wake_expired. */
+    FuriTimer* wake_timer; /* One-shot burst timer. */
+    volatile bool wake_active; /* Carrier currently on. */
+    volatile bool wake_expired; /* Set by timer, consumed by wake_poll(). */
 };
 
 /* =========================== Protocols decoders =========================== */
@@ -408,6 +414,17 @@ bool field_set_from_string(ProtoViewField* f, char* buf, size_t len);
 bool field_incr_value(ProtoViewField* f, int incr);
 void fieldset_copy_matching_fields(ProtoViewFieldSet* dst, ProtoViewFieldSet* src);
 void field_set_from_field(ProtoViewField* dst, ProtoViewField* src);
+
+/* wake.c */
+#define WAKE_CARRIER_HZ    125000.0f /* LF carrier frequency. */
+#define WAKE_DUTY_CYCLE    0.5f
+#define WAKE_MAX_MS        3000 /* Hard cap on one burst, per key press. */
+#define WAKE_POLL_SLACK_MS 100 /* Main loop wakes at least this often. */
+void wake_init(ProtoViewApp* app);
+bool wake_start(ProtoViewApp* app);
+void wake_stop(ProtoViewApp* app);
+void wake_poll(ProtoViewApp* app);
+void wake_deinit(ProtoViewApp* app);
 
 /* crc.c */
 uint8_t crc8(const uint8_t* data, size_t len, uint8_t init, uint8_t poly);

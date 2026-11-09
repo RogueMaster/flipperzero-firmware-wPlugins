@@ -90,4 +90,4 @@ static constexpr auto metroflip_api_table = sort(create_array_t<sym_entry>(
 
     API_VARIABLE(I_WarningDolphinFlip_45x42, Icon),
     API_VARIABLE(I_DolphinDone_80x58, Icon),
-    API_VARIABLE(I_DolphinMafia_119x62, Icon)));
+    API_VARIABLE(I_DolphinMafia_115x62, Icon)));

@@ -128,6 +128,7 @@ typedef enum {
 
 typedef struct {
     MineSweeperConfig config;
+    // Board/config are candidate data; gameplay runtime is initialized at generation_finish().
     MineSweeperState latest_candidate;
     uint32_t attempts_total;
     uint32_t start_tick;

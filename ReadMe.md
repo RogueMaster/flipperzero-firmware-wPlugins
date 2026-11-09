@@ -188,7 +188,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Temp Sensors Reader one-wire allocation and invalid GPIO checks (By quen0n; fixes by xMasterX)](https://github.com/xMasterX/all-the-plugins/commit/4b718695420ac9e9c4242eadf8308d9db6cd5949)
 - Updated: [BLE Clipboard v0.5.3 SD initialization for saved snapshots and transfers larger than 4 KiB (By otcan)](https://github.com/otcan/ble-clipboard/commit/0810291361b1e2308291a29f88363c05c24e72cf)
 - Sub-GHz: [KeeLoq remotes that send at half the usual rate (Te 200us) are now decoded, and sent back at the rate they were received at & Hormann HSM remotes whose frame starts with seven preamble ones instead of eight are now decoded (By xMasterX)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/2d89f1e1f420fc011b2019fd100fd3deed216e5f)
-- Updated: [Dooya Remote v1.1 batch progress, remaining time and keypad layout (By Lechnio)](https://github.com/Lechnio/Dooya-Remote/commit/47f178f7e5e33594833f26af1bd2162bc60cb72e)
 - Added: [IDentity v0.22 - NFC eID/ePassport reader with document authentication and photo display (By Dani)](https://github.com/daniqed/flipper-identity)
 - Updated: [NFC/RFID Detector v1.5 precise LF frequency measurement and crystal calibration (By mfcarroll)](https://github.com/flipperdevices/flipperzero-good-faps/pull/313)
 - Updated: [T5577 v1.3 (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1208)
@@ -219,6 +218,10 @@ This software is for experimental purposes only and is not meant for any illegal
 - UL: [Removed obsolete registry includes from Bluetooth and Crypto CLI commands (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/b18296933c0dda06935afaf0b6a556e1cbb45362)
 - OFW: [Case-only file renames and filename validator initialization (By Leptopt1los)](https://github.com/flipperdevices/flipperzero-firmware/commit/3060cee9bac71d332dc7629191ae1aeb1edaac33)
 - UL: [Archive case-only rename collision handling (By xMasterX and Leptopt1los)](https://github.com/DarkFlippers/unleashed-firmware/commit/648fad779345efd8d041305717941d276af60cff)
+- Updated: [Minesweeper Redux v1.7 author board-generation and solver optimizations (By squee72564)](https://github.com/squee72564/F0_Minesweeper_Fap)
+- Updated: [ProtoView v1.5 VW/Audi TPMS decoder, 125 kHz sensor wake and bounded history copies (By arthurdurlesteanu)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/pull/1211)
+- Updated: [Metroflip v2.1-beta.1 Santo Domingo and BIP Piemonte support, additional DESFire AIDs, Calypso ticketing dumps and Suica plugin assets (By luu176, filippo-ferrando, DIVIADAR and ry4000)](https://github.com/luu176/Metroflip)
+- Updated: [Dooya Remote v1.2 saves remotes under apps_data, removes serial wildcard sweeps and checks the firmware region before 433.92 MHz transmission (By Lechnio)](https://github.com/Lechnio/Dooya-Remote/commit/2abceec60166d88af00fc6e4b5ca4eced614c999)
 
 <a name="release"></a>
 
@@ -675,7 +678,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Distance Sensor v1.1 (By Sanqui)](https://github.com/Sanqui/flipperzero-firmware/tree/hc_sr04) `Req: HC-SR04`
 - [Distance Sensor v1.2 (By privet971)](https://github.com/privet971/FlipperZeroApps/tree/main/usping) `Req: Parallax (3 wires) SKU 28015`
 - [Doc Viewer Lite v0.1 (By C0d3-5t3w)](https://github.com/C0d3-5t3w/docviewlite)
-- [Dooya Remote v1.1 (By Lechnio)](https://github.com/Lechnio/Dooya-Remote)
+- [Dooya Remote v1.2 (By Lechnio)](https://github.com/Lechnio/Dooya-Remote)
 - [DroidBeacon v0.1 (By spandox2)](https://github.com/spandox2/droidbeacon)
 - [DropDetect Live v0.1 (By TheRealLuro)](https://github.com/TheRealLuro/Flipper-zero-drop-detector.-) `Req: ICM42688P IMU`
 - [DSTIKE Deauther v1.1 (By SequoiaSan)](https://github.com/SequoiaSan/FlipperZero-Wifi-ESP8266-Deauther-Module/tree/FlipperZero-Module-v2/FlipperZeroModule/FlipperZero-ESP8266-Deauth-App) `Req: ESP8266`
@@ -919,7 +922,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [MAX31855 (By skotopes)](https://github.com/skotopes/flipperzero_max31855)
 - [Mayan Decoder v1.1 (By RogerF5-Security)](https://github.com/RogerF5-Security/Mayan_decoder)
 - [Meshcore Config v0.1 (By hleserg)](https://github.com/hleserg/flipperMeshCoreConfig/tree/main)
-- [Metroflip v2.0.3 (By luu176)](https://github.com/luu176/Metroflip)
+- [Metroflip v2.1-beta.1 (By luu176)](https://github.com/luu176/Metroflip)
 - [Metronome v1.3 (By panki27)](https://github.com/panki27/Metronome)
 - [MFC Editor v1.0 (By TollyH)](https://github.com/TollyH/flipper-apps)
 - [MFDesfire Auth v1.0 (By Gatorixx)](https://github.com/Gatorixx/flipper-zero-legacy-authentication)
@@ -1052,7 +1055,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Prime Factors v1.0 (By gbritoda)](https://github.com/gbritoda/flipper0-prime_factors)
 - [Programmer Calculator v0.9.2 (By armixz)](https://github.com/armixz/Flipper-Zero-Programmer-Calculator)
 - [ProtoPirate v4.1 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
-- [ProtoView v1.4 (By antirez)](https://github.com/antirez/protoview)
+- [ProtoView v1.5 (By antirez)](https://github.com/antirez/protoview)
 - [Pulse BPM v1.0 (By alaviation)](https://github.com/alaviation/flipper-pulse)
 - [PwnPal v3.0 (By mrq1911)](https://github.com/mrq1911/pwnpal) `Req: ESP32`
 - [QR Code v2.1.4 (By bmatcuk)](https://github.com/bmatcuk/flipperzero-qrcode)

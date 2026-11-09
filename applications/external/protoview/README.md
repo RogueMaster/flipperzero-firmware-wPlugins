@@ -8,7 +8,7 @@ a sequence of bits encoded in Manchester - https://en.wikipedia.org/wiki/Manches
 
 Other than showing the raw signal, ProtoView is able to decode a few interesting protocols:
 
-* TPMS sensors: Renault, Toyota, Schrader, Citroen, Ford.
+* TPMS sensors: Renault, Toyota, Schrader, Citroen, Ford, VW/Audi (Huf).
 * Microchip HSC200/300/301 Keeloq protocol.
 * Oregon thermometer protocol 2.
 * PT2262, SC5262 based remotes.
@@ -108,6 +108,16 @@ If a signal was detected, the info view will show the details about the signal. 
 When resending, you can select a different frequency and modulation if you
 wish.
 
+## TPMS list screen
+
+The TPMS list shows one line per detected sensor, prefixed with the make (V is VW/Audi/Huf). Parked sensors often stay silent until woken by a 125 kHz LF field: a long press of RIGHT in this screen turns on a plain, unmodulated 125 kHz carrier from the Flipper's RFID coil for 3 seconds (a short vibration confirms the start and the bottom line shows "Waking 125kHz..."). The radio keeps listening during and after the burst.
+
+1. Select the right modulation first (e.g. "FSK 40kBaud" for VW/Audi/Huf) and go to the TPMS list screen.
+2. Hold the back of the Flipper flat against the tyre sidewall, right at the valve stem (the sensor sits behind the valve).
+3. Long-press RIGHT and keep the Flipper still for the 3 seconds, then watch for a new line.
+
+The range is only a few cm, so if nothing appears move a little around the valve and press again. Pressing again while the carrier is on does nothing. Leaving the screen or exiting the app turns the carrier off immediately.
+
 ## Frequency and modulation screen
 
 In this view you can just set the frequency and modulation you want to use.
@@ -118,6 +128,7 @@ rate.
 * Weather stations are often too in the 433.92Mhz OOK.
 * For car keys, try 433.92 OOK650 and 868.35 Mhz in OOK or 2FSK.
 * For TPMS try 433.92 in TPMS1 or TPMS2 modulations (FSK and OOK custom modulations optimized for these signals, that have a relatively high data rate).
+* VW/Audi/Huf TPMS sensors (e.g. 5Q0907275F) transmit at 40 kbaud (25us chips): select "FSK 40kBaud". The "TPMS 1" preset filters out pulses shorter than 30us and will not see them.
 
 ## Signal creator
 

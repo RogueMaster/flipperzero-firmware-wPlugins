@@ -11,6 +11,6 @@ App(
     fap_category="Sub-GHz",
     fap_author="Lechnio",
     fap_weburl="https://github.com/Lechnio/Dooya-Remote",
-    fap_version="1.1",
+    fap_version="1.2",
     fap_description="Dooya shutter remote emulator for Flipper Zero. Store single remotes or whole groups of serials, pick a channel and send Up/Stop/Down over Sub-GHz.",
 )

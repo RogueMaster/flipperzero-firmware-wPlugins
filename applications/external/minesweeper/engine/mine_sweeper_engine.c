@@ -191,25 +191,28 @@ void board_init(MineSweeperBoard* board, uint8_t width, uint8_t height) {
 
 void board_compute_neighbor_counts(MineSweeperBoard* board) {
     furi_assert(board);
+    // Recompute safe-cell counts without changing any other packed-cell bits.
+    const uint16_t total = (uint16_t)board->width * board->height;
+    for(uint16_t i = 0; i < total; ++i) {
+        if(!CELL_IS_MINE(board->cells[i])) CELL_SET_NEIGHBORS(board->cells[i], 0);
+    }
+
     for(uint8_t y = 0; y < board->height; ++y) {
         for(uint8_t x = 0; x < board->width; ++x) {
-            uint16_t i = board_index(board, x, y);
-
-            if(CELL_IS_MINE(board->cells[i])) continue;
-
-            uint8_t count = 0;
+            const uint16_t i = board_index(board, x, y);
+            if(!CELL_IS_MINE(board->cells[i])) continue;
 
             for(uint8_t n = 0; n < 8; ++n) {
-                int8_t nx = x + neighbor_offsets[n][0];
-                int8_t ny = y + neighbor_offsets[n][1];
+                const int8_t nx = x + neighbor_offsets[n][0];
+                const int8_t ny = y + neighbor_offsets[n][1];
+                if(!board_in_bounds(board, nx, ny)) continue;
 
-                if(board_in_bounds(board, nx, ny)) {
-                    uint16_t ni = board_index(board, nx, ny);
-                    if(CELL_IS_MINE(board->cells[ni])) count++;
-                }
+                const uint16_t ni = board_index(board, nx, ny);
+                if(CELL_IS_MINE(board->cells[ni])) continue;
+
+                const uint8_t count = CELL_GET_NEIGHBORS(board->cells[ni]) + 1u;
+                CELL_SET_NEIGHBORS(board->cells[ni], count);
             }
-
-            CELL_SET_NEIGHBORS(board->cells[i], count);
         }
     }
 }
@@ -323,6 +326,9 @@ MineSweeperResult minesweeper_engine_generation_begin(
 
     memset(job, 0, sizeof(*job));
     job->config = *config;
+    job->latest_candidate.config = *config;
+    job->latest_candidate.board.width = config->width;
+    job->latest_candidate.board.height = config->height;
     job->status = MineSweeperGenerationStatusInProgress;
     job->start_tick = furi_get_tick();
 
@@ -342,13 +348,10 @@ MineSweeperGenerationStatus
     const uint16_t mine_count = minesweeper_engine_compute_mine_count(&job->config);
 
     for(uint16_t i = 0; i < attempt_budget; ++i) {
-        memset(&job->latest_candidate, 0, sizeof(job->latest_candidate));
-        job->latest_candidate.config = job->config;
         job->latest_candidate_is_solved = false;
 
-        board_init(&job->latest_candidate.board, job->config.width, job->config.height);
+        // Candidate generation owns the per-attempt board reset.
         board_generate_candidate(&job->latest_candidate.board, mine_count);
-        minesweeper_engine_prepare_runtime(&job->latest_candidate);
 
         job->has_latest_candidate = true;
         job->attempts_total++;
