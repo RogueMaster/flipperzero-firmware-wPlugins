@@ -8,7 +8,7 @@ App(
     fap_icon_assets="assets",
     fap_category="GPIO/VGM",
     fap_author="JBlanked",
-    fap_weburl="https://github.com/jblanked",
+    fap_weburl="https://github.com/jblanked/Video-Game-Module-Console",
     fap_version="1.0",
     fap_description="Flipper Zero console handling game display rendering and input forwarding",
 )

@@ -231,6 +231,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [DigiPet v1.0 (By AzureSky)](https://github.com/AzzureSkyy/flipper-games)
 - UL: [Sub-GHz Add Manually remembers the selected protocol (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/1fe237846cffe1f54add2a7f78f961cab9e35221)
 - Updated: [Loteria Zero v1.1 full called-card history browsing, complete history lists and shuffle validation (By databrainsco)](https://github.com/databrainsco/Loteria_Zero)
+- Updated: [ListEM v1.5 compact menus, selected-row scrolling and generation progress with recent UID previews (By Clawzman)](https://github.com/Clawzman/Flipper_ListEM)
 
 <a name="release"></a>
 
@@ -912,7 +913,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Lightmeter v1.3 (By oleksiikutuzov)](https://github.com/oleksiikutuzov/flipperzero-lightmeter) `Req: BH1750/MAX44009`
 - [Lightning Distance v0.1 (By HyperMuffin12)](https://github.com/HyperMuffin12/Flipper-Lightning-Distance)
 - [Lishi HU66 v0.3 (By evillero)](https://github.com/evillero/lishi_hu66)
-- [ListEM v1.4 (By Clawzman)](https://github.com/Clawzman/Flipper_ListEM)
+- [ListEM v1.5 (By Clawzman)](https://github.com/Clawzman/Flipper_ListEM)
 - [Logic Analyzer v1.1 (By g3gg0)](https://github.com/g3gg0/flipper-logic_analyzer)
 - [Longwave Clock v0.1 (By m7i-org)](https://github.com/m7i-org/flipper_longwave_clock)
 - [LoRa Relay v1.1.3 (By ElectronicCats)](https://github.com/ElectronicCats/flipper-SX1262-LoRa) `Req: SX1262 By ElectronicCats`

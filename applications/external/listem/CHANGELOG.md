@@ -1,5 +1,9 @@
 # Changelog
 
+## [v1.5] – 08-11-2026
+
+## UI improvements
+
 
 ## [v1.4] – 30-03-2026
 

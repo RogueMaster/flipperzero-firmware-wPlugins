@@ -9,23 +9,9 @@ Now with **Fuzzing Mode / Bit Mutation engine!** A real, usable reader testing F
 ---
 
 
-## 🆕 What’s New in v1.4
+## 🆕 What’s New in v1.5
 
-- **Structured Mode (NEW)**
-  - UID modeling using segmented generation (Facility + Card)
-  - Tail patterns for better bruteforce efficiency
-
-- **Structured Randomization Option**
-  - Switch between:
-    - Sequential structured (default)
-    - Randomized structured (anti pattern detection & wide coverage)
-
-- **Engine Upgrade**
-  - Prefix × Sequence × Tail generation
-  - Better coverage of UID distributions
-  - More efficient brute force lists
-
-- General improvements & code cleanup
+- **UI improvements**
 
 ---
 
@@ -35,8 +21,6 @@ Now with **Fuzzing Mode / Bit Mutation engine!** A real, usable reader testing F
   <img src="screenshots/main_menu.jpg" width="220">
   <img src="screenshots/prefix_select.jpg" width="220">
   <img src="screenshots/fuzz_select.jpg" width="220">
-  <img src="screenshots/sequential_select.jpg" width="220">
-  <img src="screenshots/generating.jpg" width="220">
 </p>
 
 ---
