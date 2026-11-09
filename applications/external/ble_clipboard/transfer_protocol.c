@@ -54,30 +54,41 @@ static void emit_id(ClipboardServer* server, ClipboardCommand command) {
     emit(server, command, payload, sizeof(payload));
 }
 
-static void emit_keyboard(ClipboardServer* server, uint16_t request, ClipboardKeyboardResult result) {
+static void
+    emit_keyboard(ClipboardServer* server, uint16_t request, ClipboardKeyboardResult result) {
     uint8_t payload[11] = {1};
     clipboard_write_u16(payload + 1, request);
-    payload[3] = result; payload[4] = server->keyboard_settings.layout; payload[5] = server->keyboard_settings.target;
+    payload[3] = result;
+    payload[4] = server->keyboard_settings.layout;
+    payload[5] = server->keyboard_settings.target;
     payload[6] = server->keyboard_settings.override_saved;
     clipboard_write_u32(payload + 7, server->keyboard_settings.revision);
     emit(server, ClipboardKeyboardReply, payload, sizeof(payload));
 }
 
 void clipboard_server_keyboard_changed(ClipboardServer* server) {
-    if(server->authenticated && server->keyboard_subscribed) emit_keyboard(server, 0, ClipboardKeyboardOk);
+    if(server->authenticated && server->keyboard_subscribed)
+        emit_keyboard(server, 0, ClipboardKeyboardOk);
 }
 
-ClipboardKeyboardResult clipboard_server_set_keyboard(ClipboardServer* server, ClipboardKeyboardSettings settings) {
+ClipboardKeyboardResult
+    clipboard_server_set_keyboard(ClipboardServer* server, ClipboardKeyboardSettings settings) {
     if(server->state != ClipboardJobIdle) return ClipboardKeyboardBusy;
-    if(settings.layout >= CLIPBOARD_LAYOUT_COUNT || settings.target > 2) return ClipboardKeyboardInvalid;
-    if(settings.revision != server->keyboard_settings.revision || settings.revision == UINT32_MAX) return ClipboardKeyboardConflict;
+    if(settings.layout >= CLIPBOARD_LAYOUT_COUNT || settings.target > 2)
+        return ClipboardKeyboardInvalid;
+    if(settings.revision != server->keyboard_settings.revision || settings.revision == UINT32_MAX)
+        return ClipboardKeyboardConflict;
     uint16_t layout[128];
-    if(settings.override_saved && !server->io.load_layout(server->io.context, settings.layout, settings.target, layout))
+    if(settings.override_saved &&
+       !server->io.load_layout(server->io.context, settings.layout, settings.target, layout))
         return ClipboardKeyboardUnavailable;
-    if(settings.layout == server->keyboard_settings.layout && settings.target == server->keyboard_settings.target &&
-       settings.override_saved == server->keyboard_settings.override_saved) return ClipboardKeyboardOk;
+    if(settings.layout == server->keyboard_settings.layout &&
+       settings.target == server->keyboard_settings.target &&
+       settings.override_saved == server->keyboard_settings.override_saved)
+        return ClipboardKeyboardOk;
     settings.revision++;
-    if(!server->io.save_keyboard || !server->io.save_keyboard(server->io.context, &settings)) return ClipboardKeyboardSaveFailed;
+    if(!server->io.save_keyboard || !server->io.save_keyboard(server->io.context, &settings))
+        return ClipboardKeyboardSaveFailed;
     server->keyboard_settings = settings;
     return ClipboardKeyboardOk;
 }
@@ -192,21 +203,31 @@ static void command(
         clipboard_write_u16(ready + 4, CLIPBOARD_CHUNK_MAX);
         ready[6] = CLIPBOARD_LAYOUT_COUNT;
         ready[7] = 7;
-        ready[8] = 63| 128 | (server->io.save_keyboard ? 64 : 0); size_t name_size = strlen(server->device_name);
+        ready[8] = 63 | 128 | (server->io.save_keyboard ? 64 : 0);
+        size_t name_size = strlen(server->device_name);
         memcpy(ready + 9, server->device_name, name_size);
         if(emit(server, ClipboardReady, ready, 9 + name_size)) emit_active(server, now);
         return;
     }
     if(!server->authenticated) {
-        reject(server, id, 1, "Handshake required", false); return; }
+        reject(server, id, 1, "Handshake required", false);
+        return;
+    }
     if(cmd == ClipboardGetKeyboard || cmd == ClipboardSetKeyboard) {
-        if(!server->io.save_keyboard) { reject(server, 0, 2, "Keyboard sync unavailable", false); return; }
+        if(!server->io.save_keyboard) {
+            reject(server, 0, 2, "Keyboard sync unavailable", false);
+            return;
+        }
         server->keyboard_subscribed = true;
         uint16_t request = size >= 2 ? clipboard_read_u16(payload) : 0;
         ClipboardKeyboardResult result = ClipboardKeyboardInvalid;
-        if(request && cmd == ClipboardGetKeyboard && size == 2) result = ClipboardKeyboardOk;
-        else if(request && cmd == ClipboardSetKeyboard && size == 10 && payload[2] == 1 && payload[5] <= 1) {
-            ClipboardKeyboardSettings settings = {payload[3], payload[4], payload[5] != 0, clipboard_read_u32(payload + 6)};
+        if(request && cmd == ClipboardGetKeyboard && size == 2)
+            result = ClipboardKeyboardOk;
+        else if(
+            request && cmd == ClipboardSetKeyboard && size == 10 && payload[2] == 1 &&
+            payload[5] <= 1) {
+            ClipboardKeyboardSettings settings = {
+                payload[3], payload[4], payload[5] != 0, clipboard_read_u32(payload + 6)};
             result = clipboard_server_set_keyboard(server, settings);
         }
         emit_keyboard(server, request, result);

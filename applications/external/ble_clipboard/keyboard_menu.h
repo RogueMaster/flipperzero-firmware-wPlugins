@@ -11,8 +11,13 @@ typedef struct {
     bool layouts;
 } ClipboardKeyboardMenu;
 
-typedef enum { ClipboardKeyboardMenuNone, ClipboardKeyboardMenuBack, ClipboardKeyboardMenuSave } ClipboardKeyboardMenuAction;
+typedef enum {
+    ClipboardKeyboardMenuNone,
+    ClipboardKeyboardMenuBack,
+    ClipboardKeyboardMenuSave
+} ClipboardKeyboardMenuAction;
 
 void clipboard_keyboard_menu_init(ClipboardKeyboardMenu* menu, ClipboardKeyboardSettings settings);
-ClipboardKeyboardMenuAction clipboard_keyboard_menu_input(ClipboardKeyboardMenu* menu, InputKey key);
+ClipboardKeyboardMenuAction
+    clipboard_keyboard_menu_input(ClipboardKeyboardMenu* menu, InputKey key);
 void clipboard_keyboard_menu_screen(const ClipboardKeyboardMenu* menu, ClipboardScreen* screen);

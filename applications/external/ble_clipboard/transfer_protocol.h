@@ -19,7 +19,8 @@ typedef enum {
     ClipboardCancel,
     ClipboardSave,
     ClipboardInfo,
-    ClipboardGetKeyboard, ClipboardSetKeyboard,
+    ClipboardGetKeyboard,
+    ClipboardSetKeyboard,
     ClipboardReady = 0x81,
     ClipboardBegun,
     ClipboardChunked,
@@ -30,7 +31,8 @@ typedef enum {
     ClipboardDone,
     ClipboardSavedReply,
     ClipboardActive,
-    ClipboardInfoReply = 0x8B, ClipboardKeyboardReply = 0x8C,
+    ClipboardInfoReply = 0x8B,
+    ClipboardKeyboardReply = 0x8C,
     ClipboardError = 0xFF,
 } ClipboardCommand;
 
@@ -56,7 +58,7 @@ typedef struct {
     bool (*mouse_move)(void* context, int8_t dx, int8_t dy);
     bool (*save_program)(void* context, const ClipboardSaved* saved);
     bool (*random)(void* context, uint32_t* value);
-bool (*save_keyboard)(void* context, const ClipboardKeyboardSettings* settings);
+    bool (*save_keyboard)(void* context, const ClipboardKeyboardSettings* settings);
 } ClipboardServerIO;
 
 typedef struct {
@@ -97,5 +99,6 @@ bool clipboard_server_run_saved(
     const ClipboardSaved* saved,
     uint32_t id,
     uint32_t now);
-ClipboardKeyboardResult clipboard_server_set_keyboard(ClipboardServer* server, ClipboardKeyboardSettings settings);
+ClipboardKeyboardResult
+    clipboard_server_set_keyboard(ClipboardServer* server, ClipboardKeyboardSettings settings);
 void clipboard_server_keyboard_changed(ClipboardServer* server);

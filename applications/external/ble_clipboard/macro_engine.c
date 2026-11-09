@@ -399,13 +399,18 @@ static bool next_key(ClipboardEngine* engine, uint32_t now, uint16_t* key) {
             engine->due = now;
             return false;
         } else if(record[0] == 7) {
-            if(engine->repeat_active || engine->cursor != 7 || !read_at(&engine->reader, engine->cursor, record, 4)) {
-                engine_fail(engine); return false;
+            if(engine->repeat_active || engine->cursor != 7 ||
+               !read_at(&engine->reader, engine->cursor, record, 4)) {
+                engine_fail(engine);
+                return false;
             }
             engine->cursor += 4;
             engine->typing_pause = clipboard_read_u16(record);
             engine->typing_variation = clipboard_read_u16(record + 2);
-            if(!valid_typing(engine->typing_pause, engine->typing_variation)) { engine_fail(engine); return false; }
+            if(!valid_typing(engine->typing_pause, engine->typing_variation)) {
+                engine_fail(engine);
+                return false;
+            }
         } else {
             engine_fail(engine);
             return false;
@@ -460,10 +465,13 @@ void clipboard_engine_tick(ClipboardEngine* engine, uint32_t now, bool usb_conne
         uint32_t pause = 0;
         if(engine->phase == 0 && engine->literal_key) {
             uint32_t sample;
-            if(!random_index(engine, 2U * engine->typing_variation + 1U, &sample)) { engine_fail(engine); return; }
+            if(!random_index(engine, 2U * engine->typing_variation + 1U, &sample)) {
+                engine_fail(engine);
+                return;
+            }
             pause = engine->typing_pause - engine->typing_variation + sample;
         }
-        engine->due = now + 8+ pause;
+        engine->due = now + 8 + pause;
         return;
     }
     uint16_t key;

@@ -3,9 +3,14 @@
 #include "keyboard_layout.h"
 #include <string.h>
 
-ClipboardSaved clipboard_saved_for_keyboard(const ClipboardSaved* saved, const ClipboardKeyboardSettings* settings) {
+ClipboardSaved clipboard_saved_for_keyboard(
+    const ClipboardSaved* saved,
+    const ClipboardKeyboardSettings* settings) {
     ClipboardSaved run = *saved;
-    if(settings->override_saved) { run.layout = settings->layout; run.target = settings->target; }
+    if(settings->override_saved) {
+        run.layout = settings->layout;
+        run.target = settings->target;
+    }
     return run;
 }
 

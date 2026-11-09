@@ -20,4 +20,6 @@ bool clipboard_saved_encode(const ClipboardSaved* saved, uint8_t output[CLIPBOAR
 bool clipboard_saved_decode(const uint8_t input[CLIPBOARD_SAVED_HEADER], ClipboardSaved* saved);
 bool clipboard_saved_verify(const ClipboardSaved* saved, const ClipboardReader* program);
 void clipboard_saved_id(const uint8_t id[16], char output[33]);
-ClipboardSaved clipboard_saved_for_keyboard(const ClipboardSaved* saved, const ClipboardKeyboardSettings* settings);
+ClipboardSaved clipboard_saved_for_keyboard(
+    const ClipboardSaved* saved,
+    const ClipboardKeyboardSettings* settings);
