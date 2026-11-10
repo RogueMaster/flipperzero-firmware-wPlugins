@@ -3,7 +3,9 @@
 
 #define GPIO_PIN_COUNT        8
 #define ANIMATE_FRAME_TIME_MS 133
-#define FRAME_TIME            66.666666
+
+// Main-loop wake interval: ~15 fps while idle, sooner when input arrives.
+#define FRAME_TIME_MS 67
 
 typedef void (*DrawView)(Canvas* canvas, void* ctx);
 typedef void (*HandleInput)(InputEvent* event, void* ctx);
@@ -47,9 +49,6 @@ typedef struct {
     int wiggle_frame;
     size_t prev_frame_time;
     size_t elapsed_time;
-    double result;
-    double freq_var;
-    double elapsed_var;
     ConfigMenuOptions config_menu_selected;
 } ViewerState;
 

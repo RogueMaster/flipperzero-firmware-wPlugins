@@ -51,10 +51,6 @@ void infrared_brute_force_set_db_filename(InfraredBruteForce* brute_force, const
  * This function must be called each time after setting the database via
  * a infrared_brute_force_set_db_filename() call.
  *
- * Every signal in the database is read and validated, but only the ones whose name
- * was registered via infrared_brute_force_add_record() are added to the dictionary.
- * A database name with no matching record is skipped, which is not an error.
- *
  * @param[in,out] brute_force pointer to the instance to be updated.
  * @param[in] auto_detect_buttons bool whether to automatically register newly discovered buttons.
  * @param[in] ignore_unknown_buttons bool whether to ignore unknown buttons when auto_detect_buttons is false.
@@ -70,6 +66,10 @@ InfraredErrorCode infrared_brute_force_calculate_messages_ex(
  *
  * This function must be called each time after setting the database via
  * a infrared_brute_force_set_db_filename() call.
+ *
+ * Every signal in the database is read and validated, but only the ones whose name
+ * was registered via infrared_brute_force_add_record() are added to the dictionary.
+ * A database name with no matching record is skipped, which is not an error.
  *
  * @param[in,out] brute_force pointer to the instance to be updated.
  * @returns InfraredErrorCodeNone on success, otherwise error code.

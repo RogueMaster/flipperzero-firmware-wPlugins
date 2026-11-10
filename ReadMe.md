@@ -244,6 +244,10 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [BLE Clipboard v0.5.4 persistent keyboard settings, desktop sync and typing pace (By otcan)](https://github.com/otcan/ble-clipboard)
 - Updated: [Sub-GHz Proteco MOVER 433MHz decoding, encoding, custom buttons and Add Manually support (By dkorunic & xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/pull/1210)
 - Updated: [Tesla Mod v2.17.0b6 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
+- Updated: [GPIO Controller v1.1: nonblocking drawing and input, guarded pin selection and responsive Back handling (By Lokno; fixes by mishamyte)](https://github.com/Lokno/gpio_controller)
+- Infrared: [Validate universal database signals, skip unregistered names and reject empty raw timings (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1211)
+- GUI/API: [Report unreadable folders, complete failed file-browser loads and export the optional error callback (API 88.26) (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1212)
+- Updated: [T5577 v1.4: measure symbol classes from addressed commands and bound the complete histogram (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware)
 
 <a name="release"></a>
 
@@ -831,7 +835,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Govee Control v0.1 (By devdotbo)](https://github.com/devdotbo/GlowFin)
 - [GPIO 7-Segment Output v1.3 (By jamisonderek)](https://github.com/jamisonderek/flipper-zero-tutorials/tree/main/gpio)
 - [GPIO Badge v1.0 (By jamisonderek)](https://github.com/jamisonderek/flipper-zero-tutorials/tree/main/gpio/gpio_badge)
-- [GPIO Controller (By Lokno)](https://github.com/Lokno/gpio_controller)
+- [GPIO Controller v1.1 (By Lokno)](https://github.com/Lokno/gpio_controller)
 - [GPIO Explorer v1.0 (By EvgeniGenchev07)](https://github.com/EvgeniGenchev07/gpio_explorer)
 - [GPIO Reader (biotinker) (By biotinker)](https://github.com/biotinker/flipperzero-gpioreader)
 - [GPIO Reader v1.2 (Aurelilc) (By aureli1c)](https://github.com/aureli1c/flipperzero_GPIO_read)
@@ -1180,7 +1184,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Survival Manual v1.0 (By Radiomanrf)](https://github.com/Radiomanrf/Survival_manual)
 - [SWD Probe v1.4 (By g3gg0)](https://github.com/g3gg0/flipper-swd_probe)
 - [T-Union Master (China) v0.1 (By SocialSisterYi)](https://github.com/SocialSisterYi/T-Union_Master)
-- [T5577 v1.3 (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware) (.t5577 ext incompatible to T5577 Raw Writer)
+- [T5577 v1.4 (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware) (.t5577 ext incompatible to T5577 Raw Writer)
 - [T5577 Multiwriter v0.3 (By Leptopt1los)](https://github.com/Leptopt1los/t5577_multiwriter)
 - [T5577 Raw Writer v1.1 (By zinongli)](https://github.com/zinongli/T5577_Raw_Writer) (.t5577 ext incompatible to T5577)
 - [TagTinker v2.1 (By i12bp8)](https://github.com/i12bp8/TagTinker)

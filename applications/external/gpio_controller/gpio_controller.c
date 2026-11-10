@@ -14,6 +14,8 @@
 
 #include "app_defines.h"
 
+#define TAG "GpioController"
+
 static void draw_main_view(Canvas* canvas, void* ctx);
 static void draw_config_menu_view(Canvas* canvas, void* ctx);
 
@@ -108,21 +110,16 @@ static ViewElement elements[] = {
 
 static GPIOPin gpio_pin_config[GPIO_PIN_COUNT];
 
-static int element_count =
-    NONE; // The NONE enum will a value equal to the number of elements defined in enum_view_element
-
-size_t strnlen(const char* str, size_t maxlen) {
-    size_t len = 0;
-    while(len < maxlen && str[len] != '\0') {
-        len++;
-    }
-    return len;
-}
+// NONE is the last enumerator of enum_view_element, so its value is the number of
+// view elements. elements[] must hold exactly that many entries, in enum order.
+static int element_count = NONE;
 
 static void init_state() {
     vstate.selected = PIN_A7;
     vstate.wiggle_frame = -1;
     vstate.view = MAIN_VIEW;
+    vstate.prev_frame_time = furi_get_tick();
+    vstate.elapsed_time = 0;
 }
 
 static void init_gpio() {
@@ -168,7 +165,26 @@ static void init_gpio() {
         }
     }
 
-    vstate.result = 0;
+    // The table above is matched by name against firmware internals, so a renamed
+    // or reordered pin silently turns a pin into a dead decoration. Say so.
+    if(count != GPIO_PIN_COUNT) {
+        FURI_LOG_W(TAG, "bound %d/%d pins, some will not be configurable", count, GPIO_PIN_COUNT);
+    }
+}
+
+// Returns the pin slot a view element edits, or NULL when there is none.
+// gp_idx < 0 means the element was never matched to a firmware pin (5V, GND,
+// Settings, ...). The upper-bound and NULL checks are redundant given init_gpio()
+// above, and kept so that a future init bug degrades into a dead menu entry
+// instead of an out-of-bounds access like the one that crashed PC1/PC0.
+static GPIOPin* gpio_pin_for_element(int element_idx) {
+    if(element_idx < 0 || element_idx >= element_count) return NULL;
+
+    int gp_idx = elements[element_idx].gp_idx;
+    if(gp_idx < 0 || gp_idx >= GPIO_PIN_COUNT) return NULL;
+
+    GPIOPin* gpc = &gpio_pin_config[gp_idx];
+    return gpc->pin != NULL ? gpc : NULL;
 }
 
 static void update_gpio() {
@@ -192,10 +208,11 @@ const char* gpio_user_value_strs[] = {"TRUE", "FALSE", "INPUT"};
 static void draw_config_menu_view(Canvas* canvas, void* ctx) {
     UNUSED(ctx);
 
-    int gp_idx = elements[vstate.selected].gp_idx;
-    GPIOPin* gpc = &gpio_pin_config[gp_idx];
-
-    UNUSED(gpc);
+    // Defensive: handle_main_input() only enters this view for elements that have
+    // a pin, so this should be unreachable. Draw nothing rather than a half-built
+    // menu; handle_config_menu_input() owns the way back to the overview.
+    GPIOPin* gpc = gpio_pin_for_element(vstate.selected);
+    if(gpc == NULL) return;
 
     canvas_set_font(canvas, FontSecondary);
 
@@ -227,11 +244,14 @@ static void draw_config_menu_view(Canvas* canvas, void* ctx) {
 
         canvas_draw_str(canvas, 45, 12 + 16, gpio_user_value_strs[gpc->user.value]);
 
-        if(gpc->user.value < GPIO_VALUE_INPUT) canvas_draw_str(canvas, 120, 12 + 16, ">");
+        if(gpc->user.value < GPIO_VALUE_FALSE) canvas_draw_str(canvas, 120, 12 + 16, ">");
     }
 }
 
-// TODO: Determine the lowest frame delta we can get away with.
+// This callback runs on the GUI thread (see view_port_draw_callback_set), so it
+// must never sleep: a frame budget burned here stalls rendering and input for
+// every app. The app loop drives the redraw rate instead, see FRAME_TIME_MS.
+//
 // TODO: Redraw only what changes.
 //       - clear previous (drawn) selected pin
 //       - clear newly selected pin
@@ -248,19 +268,12 @@ static void draw_main_view(Canvas* canvas, void* ctx) {
              0);
     size_t delta_time_ms = delta_cycles * 1000 / furi_kernel_get_tick_frequency();
 
-    // delay until desired delta time and recalculate
-    if(delta_time_ms < FRAME_TIME) {
-        furi_delay_ms(FRAME_TIME - delta_time_ms);
-        current_frame_time = furi_get_tick();
-        delta_cycles =
-            (current_frame_time > vstate.prev_frame_time ?
-                 current_frame_time - vstate.prev_frame_time :
-                 0);
-        delta_time_ms = delta_cycles * 1000 / furi_kernel_get_tick_frequency();
+    // Two redraws inside one tick round down to 0 ms. Keep the remainder for the
+    // next frame instead of dropping it, so the animation clock tracks real time.
+    if(delta_time_ms > 0) {
+        vstate.elapsed_time += delta_time_ms;
+        vstate.prev_frame_time = current_frame_time;
     }
-
-    vstate.elapsed_time += delta_time_ms;
-    vstate.prev_frame_time = current_frame_time;
 
     canvas_set_font(canvas, FontSecondary);
 
@@ -354,23 +367,29 @@ static void draw_main_view(Canvas* canvas, void* ctx) {
 }
 
 static void handle_main_input(InputEvent* event, void* ctx) {
+    furi_assert(ctx);
+    FuriMessageQueue* event_queue = ctx;
+
+    // Back is the only key gpio_controller_main() acts on and the queue is its
+    // only route there, so hand it over before anything else can swallow it -
+    // the wiggle animation below used to eat half a second of input, Back
+    // included. Queueing nothing else keeps the 8 slots free. Never wait here:
+    // this callback runs on the GUI thread, where blocking freezes the whole UI,
+    // and a dropped Back just means one more press.
+    if(event->key == InputKeyBack) furi_message_queue_put(event_queue, event, 0);
+
     if(vstate.wiggle_frame < 0) {
-        furi_assert(ctx);
-        FuriMessageQueue* event_queue = ctx;
-
-        // place in queue to handle backing out of app
-        furi_message_queue_put(event_queue, event, FuriWaitForever);
-
         if((event->type == InputTypePress || event->type == InputTypeRelease) &&
            event->key == InputKeyOk) {
-            if(event->type == InputTypePress && elements[vstate.selected].gp_idx < 0) {
-                vstate.wiggle_frame = 0;
-                vstate.elapsed_time = 0;
-            } else if(
-                elements[vstate.selected].gp_idx >= 0 &&
-                (event->type == InputTypePress || event->type == InputTypeRelease)) {
-                int gp_idx = elements[vstate.selected].gp_idx;
-                gpio_pin_config[gp_idx].user.prev_mode = gpio_pin_config[gp_idx].user.mode;
+            GPIOPin* gpc = gpio_pin_for_element(vstate.selected);
+
+            if(gpc == NULL) {
+                if(event->type == InputTypePress) {
+                    vstate.wiggle_frame = 0;
+                    vstate.elapsed_time = 0;
+                }
+            } else {
+                gpc->user.prev_mode = gpc->user.mode;
 
                 vstate.view = CONFIG_MENU_VIEW;
                 vstate.config_menu_selected = CONFIG_MENU_MODE;
@@ -405,9 +424,7 @@ static void handle_main_input(InputEvent* event, void* ctx) {
     }
 }
 
-static void set_GPIO_pin_via_user(int gp_idx) {
-    GPIOPin* gpc = &gpio_pin_config[gp_idx];
-
+static void set_GPIO_pin_via_user(GPIOPin* gpc) {
     if(gpc->user.changed) {
         // update attributes
         switch(gpc->user.mode) {
@@ -456,8 +473,13 @@ static void set_GPIO_pin_via_user(int gp_idx) {
 static void handle_config_menu_input(InputEvent* event, void* ctx) {
     UNUSED(ctx);
 
-    int gp_idx = elements[vstate.selected].gp_idx;
-    GPIOPin* gpc = &gpio_pin_config[gp_idx];
+    // Same defensive guard as draw_config_menu_view(): if this view was somehow
+    // entered for an element without a pin, leave instead of editing nothing.
+    GPIOPin* gpc = gpio_pin_for_element(vstate.selected);
+    if(gpc == NULL) {
+        vstate.view = MAIN_VIEW;
+        return;
+    }
 
     if(event->type == InputTypePress || event->type == InputTypeRepeat) {
         switch(event->key) {
@@ -520,7 +542,7 @@ static void handle_config_menu_input(InputEvent* event, void* ctx) {
         case InputKeyBack:
 
             // Set new pin configuration
-            set_GPIO_pin_via_user(gp_idx);
+            set_GPIO_pin_via_user(gpc);
 
             vstate.view = MAIN_VIEW;
 
@@ -548,22 +570,26 @@ int32_t gpio_controller_main(void* p) {
     view_port_draw_callback_set(view_port, app_draw_callback, view_port);
     view_port_input_callback_set(view_port, app_input_callback, event_queue);
 
+    // Set up state before the GUI can call back into it: gui_add_view_port()
+    // makes both callbacks live immediately, and an unseeded gpio_pin_config[]
+    // reads as eight configured pins.
+    init_state();
+    init_gpio();
+
     // Register view port in GUI
     Gui* gui = furi_record_open(RECORD_GUI);
     gui_add_view_port(gui, view_port, GuiLayerFullscreen);
 
     InputEvent event;
-
-    init_state();
-    init_gpio();
-
-    vstate.prev_frame_time = furi_get_tick();
-    vstate.elapsed_time = 0;
+    const uint32_t frame_ticks = furi_ms_to_ticks(FRAME_TIME_MS);
 
     bool running = true;
     while(running) {
-        if(furi_message_queue_get(event_queue, &event, 100) == FuriStatusOk) {
+        if(furi_message_queue_get(event_queue, &event, frame_ticks) == FuriStatusOk) {
             if(event.type == InputTypePress || event.type == InputTypeRepeat) {
+                // Only Back is handled here, and handle_main_input() queues
+                // nothing else. Anything added to this switch needs its own
+                // delivery guarantee.
                 switch(event.key) {
                 case InputKeyBack:
                     running = false;
