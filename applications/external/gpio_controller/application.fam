@@ -9,6 +9,6 @@ App(
     fap_category="GPIO",
     fap_author="Lokno",
     fap_weburl="https://github.com/Lokno/gpio_controller",
-    fap_version=(1, 1),
+    fap_version="1.1",
     fap_description="A visual tool to control the general purpose pins of the Flipper Zero",
 )
