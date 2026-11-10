@@ -55,7 +55,7 @@ function setup(t0 = Date.UTC(2026, 0, 1, 12), { counter = false } = {}) {
     now: () => clock.t,
     fetch: async (url, init) => {
       if (flags.failInvoice && url.endsWith("/createInvoiceLink")) throw new TypeError("network down");
-      sent.push(JSON.parse(init.body));
+      sent.push(init.body instanceof FormData ? Object.fromEntries(init.body) : JSON.parse(init.body));
       calls.push({ method: url.split("/").pop(), body: sent.at(-1) });
       return new Response('{"ok":true,"result":"https://t.me/$inv"}', { status: 200 });
     },
@@ -396,6 +396,41 @@ test("/setcommands is admin only and sets EN + RU menus", async () => {
   assert.equal(s.sent.at(-1).text, "Commands set");
 });
 
+test("/brand is admin only: en default + uk/ru descriptions, EN/RU menus, JPEG avatar", async () => {
+  const { PROFILE } = await import("./profile.js");
+  const { checkProfile } = await import("./bot-profile.js");
+  assert.deepEqual(checkProfile(PROFILE), []);
+  const s = setup();
+  await s.say("/brand", {}, 1);
+  assert.equal(s.calls.some((c) => c.method.startsWith("setMy")), false);
+  await s.say("/brand", {}, 999);
+  const desc = s.calls.filter((c) => c.method === "setMyDescription");
+  assert.deepEqual(desc.map((c) => c.body.language_code), [undefined, "uk", "ru"]);
+  const menus = s.calls.filter((c) => c.method === "setMyCommands");
+  assert.deepEqual(menus.map((c) => c.body.language_code), [undefined, "ru"]);
+  assert.ok(menus[0].body.commands.some((c) => c.command === "paysupport"));
+  assert.equal(s.calls.find((c) => c.method === "setMyProfilePhoto").body.avatar.type, "image/jpeg");
+  assert.match(s.sent.at(-1).text, /^Profile set/);
+});
+
+test("/brand reports failed steps (ok:false, network error, bad JSON) without the token", async () => {
+  const replies = [];
+  const env = { PHR: mkKv(), BOT_TOKEN: "123:secret-token", WEBHOOK_SECRET: "sec", ADMIN_CHAT_ID: "999" };
+  const f = async (url, init) => {
+    const method = url.split("/").pop();
+    if (method === "sendMessage") { replies.push(JSON.parse(init.body).text); return new Response('{"ok":true,"result":{}}'); }
+    if (method === "setMyShortDescription") return new Response('{"ok":false,"description":"bad 123:secret-token"}');
+    if (method === "setMyProfilePhoto") throw new TypeError("network down 123:secret-token");
+    if (method === "setMyCommands") return new Response("not json");
+    return new Response('{"ok":true,"result":true}');
+  };
+  await handle(new Request("https://x/tg", { method: "POST", headers: { "X-Telegram-Bot-Api-Secret-Token": "sec" },
+    body: JSON.stringify({ message: { chat: { id: 999 }, from: {}, text: "/brand" } }) }), env, { now: () => 0, fetch: f });
+  const reply = replies.at(-1);
+  assert.match(reply, /^Profile: failed short:en, commands:en, short:uk, short:ru, commands:ru, photo$/);
+  assert.equal(reply.includes("secret-token"), false);
+});
+
 test("/paysupport: next text goes privately to the admin once; admin answers with /reply", async () => {
   const s = setup();
   await s.say("hello", {}, 7); // free text without /paysupport is ignored
@@ -518,4 +553,21 @@ test("navigation: Help submenu with Back, My PCs with per-PC unlink buttons", as
   // unknown name via button text is a normal "no such PC", never a support message
   await s.say("❌ Отвязать: Ghost", { language_code: "ru" }, 8);
   assert.match(s.sent.at(-1).text, /Нет такого ПК: Ghost/);
+});
+
+test("default export applies the profile automatically once (GET / after deploy)", async (t) => {
+  const { default: w } = await import("./worker.js");
+  const calls = [];
+  t.mock.method(globalThis, "fetch", async (url) => { calls.push(url.split("/").pop()); return new Response('{"ok":true}'); });
+  const env = { PHR: mkKv(), BOT_TOKEN: "tok", WEBHOOK_SECRET: "sec", ADMIN_CHAT_ID: "999" };
+  const waits = [];
+  const ctx = { waitUntil: (p) => waits.push(p) };
+  assert.equal((await w.fetch(new Request("https://x/"), env, ctx)).status, 200);
+  await Promise.all(waits);
+  assert.deepEqual(calls.filter((m) => m === "setMyDescription").length, 3);
+  assert.ok(calls.includes("setMyProfilePhoto"));
+  const n = calls.length;
+  await w.fetch(new Request("https://x/"), env, ctx);
+  await Promise.all(waits);
+  assert.equal(calls.length, n, "second request: already applied");
 });
