@@ -3763,6 +3763,11 @@ void web_dashboard_init(FSDState *state,
     g_ws.begin();
     g_ws.onEvent(ws_event);
     g_ws.onValidateHttpHeader(ws_header_ok, nullptr, 0);
+    // Drop a client that vanished without closing (phone WiFi off, out of
+    // range) in ~10 s — ping every 2 s, disconnect after 3 missed 3 s pongs.
+    // Otherwise every 1 Hz broadcast to it blocks loop() for up to
+    // WEBSOCKETS_TCP_TIMEOUT (5 s), starving CAN RX and the nag echo (#270).
+    g_ws.enableHeartbeat(2000, 3000, 3);
 
     Serial.println("[Web] HTTP :80  WS :81 — ready");
 }
