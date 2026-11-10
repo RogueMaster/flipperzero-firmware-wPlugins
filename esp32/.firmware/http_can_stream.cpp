@@ -1,6 +1,7 @@
 #include "http_can_stream.h"
 #include "can_capture_filter.h"
 #include "web_dashboard.h"   // web_dashboard_stream_access(): whose requests are served
+#include <freertos/FreeRTOS.h>   // portMUX for the ring (producer core 1 / consumer core 0)
 #include <WiFi.h>
 #include <esp_heap_caps.h>
 #include <ctype.h>
@@ -33,6 +34,17 @@ static uint32_t   g_dropped = 0;
 static uint32_t   g_filtered = 0;
 static uint16_t   g_head = 0;
 static uint16_t   g_tail = 0;
+// The producer (http_can_stream_record, from process_frame on the CAN core) and
+// the consumer (flush_stream, from web_dashboard_update) both mutate g_tail —
+// the producer advances it on drop-oldest, the consumer on send. In the default
+// build both run in loop() on core 1, so there is no contention; with the web
+// server moved to its own core-0 task they run on different cores, which makes
+// g_tail a two-writer and lets write_frame read a slot the producer is
+// overwriting. This spinlock serialises the index mutations and makes the
+// consumer copy the slot out before its blocking send. It is only ever taken
+// while a capture is streaming (record() returns early otherwise), so the normal
+// CAN path pays nothing.
+static portMUX_TYPE g_ring_mux = portMUX_INITIALIZER_UNLOCKED;
 // On the heap, not in .bss: as a static array these 72 KB left the classic
 // ESP32 builds a few dozen bytes short of the static DRAM limit. Reserved once
 // at boot (http_can_stream_reserve) and never freed.
@@ -461,9 +473,20 @@ static void flush_stream() {
 
     uint16_t budget = HTTP_CAN_STREAM_FLUSH_BUDGET;
     while (budget > 0) {
-        if (ring_empty()) return;
-        if (!write_frame(g_ring[g_tail])) return;
+        // Copy the oldest frame out under the lock so the producer can't
+        // overwrite the slot mid-send; advance g_tail (also under the lock)
+        // only after a successful write, so a busy client still back-pressures
+        // instead of losing the frame.
+        StreamFrame item;
+        portENTER_CRITICAL(&g_ring_mux);
+        bool have = !ring_empty();
+        if (have) item = g_ring[g_tail];
+        portEXIT_CRITICAL(&g_ring_mux);
+        if (!have) return;
+        if (!write_frame(item)) return;
+        portENTER_CRITICAL(&g_ring_mux);
         g_tail = ring_next(g_tail);
+        portEXIT_CRITICAL(&g_ring_mux);
         g_sent++;
         budget--;
     }
@@ -510,11 +533,14 @@ void http_can_stream_record(CanBusId bus, const CanFrame &frame) {
         return;
     }
 
+    // Fill the slot, then publish it by advancing g_head — all under the lock
+    // so the consumer (possibly on another core) never sees a half-written slot
+    // and the drop-oldest g_tail bump can't race the consumer's advance.
+    portENTER_CRITICAL(&g_ring_mux);
     if (ring_full()) {
         g_dropped++;
         g_tail = ring_next(g_tail);
     }
-
     StreamFrame &slot = g_ring[g_head];
     slot.elapsed_ms = millis() - g_start_ms;
     slot.bus = bus;
@@ -522,6 +548,7 @@ void http_can_stream_record(CanBusId bus, const CanFrame &frame) {
     slot.frame.dlc = frame.dlc > 8 ? 8 : frame.dlc;
     memcpy(slot.frame.data, frame.data, slot.frame.dlc);
     g_head = ring_next(g_head);
+    portEXIT_CRITICAL(&g_ring_mux);
 }
 
 void http_can_stream_set_enabled(bool enabled) {
