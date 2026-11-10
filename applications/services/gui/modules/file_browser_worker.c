@@ -51,6 +51,7 @@ struct BrowserWorker {
 
     void* cb_ctx;
     BrowserWorkerFolderOpenCallback folder_cb;
+    BrowserWorkerFolderErrorCallback folder_error_cb;
     BrowserWorkerListLoadCallback list_load_cb;
     BrowserWorkerListItemCallback list_item_cb;
     BrowserWorkerLongLoadCallback long_load_cb;
@@ -155,20 +156,49 @@ static bool browser_folder_check_and_switch(FuriString* path) {
         is_root = true;
     }
 
+    // A start path naming a file is normal and trims silently; a stat that fails is not
+    bool reported = false;
+
     while(1) {
         // Check if folder is existing and navigate back if not
-        if(storage_common_stat(storage, furi_string_get_cstr(path), &file_info) == FSE_OK) {
+        FS_Error error = storage_common_stat(storage, furi_string_get_cstr(path), &file_info);
+        if(error == FSE_OK) {
             if(file_info_is_dir(&file_info)) {
                 break;
             }
+        } else if(!reported) {
+            // Once per navigation, naming the path that failed, not every ancestor tried
+            reported = true;
+            FURI_LOG_W(
+                TAG,
+                "Cannot stat %s: %s, going back",
+                furi_string_get_cstr(path),
+                storage_error_get_desc(error));
         }
         if(is_root) {
             break;
         }
         is_root = browser_path_trim(path);
     }
+
     furi_record_close(RECORD_STORAGE);
     return is_root;
+}
+
+static void browser_log_error(File* directory, FuriString* path, const char* what) {
+    FURI_LOG_E(
+        TAG,
+        "Cannot %s %s: %s",
+        what,
+        furi_string_get_cstr(path),
+        storage_file_get_error_desc(directory));
+}
+
+// A read stops the same way on the last entry as on a failure: FSE_NOT_EXIST is the end
+// of the folder, any other error means the rest of it was never seen
+static bool browser_dir_read_complete(File* directory) {
+    FS_Error error = storage_file_get_error(directory);
+    return (error == FSE_OK) || (error == FSE_NOT_EXIST);
 }
 
 static bool browser_folder_init(
@@ -191,7 +221,11 @@ static bool browser_folder_init(
     *item_cnt = 0;
     *file_idx = -1;
 
-    if(storage_dir_open(directory, furi_string_get_cstr(path))) {
+    do {
+        if(!storage_dir_open(directory, furi_string_get_cstr(path))) {
+            browser_log_error(directory, path, "open");
+            break;
+        }
         state = true;
         while(1) {
             if(!storage_dir_read(directory, &file_info, name_temp, FILE_NAME_LEN_MAX)) {
@@ -216,7 +250,12 @@ static bool browser_folder_init(
                 }
             }
         }
-    }
+        if(!browser_dir_read_complete(directory)) {
+            // A count short of the folder would hide the entries past it for good
+            browser_log_error(directory, path, "count");
+            state = false;
+        }
+    } while(0);
 
     furi_string_free(name_str);
 
@@ -226,6 +265,46 @@ static bool browser_folder_init(
     furi_record_close(RECORD_STORAGE);
 
     return state;
+}
+
+static void browser_folder_report(
+    BrowserWorker* browser,
+    uint32_t item_cnt,
+    int32_t file_idx,
+    bool is_root,
+    bool opened) {
+    if(browser->folder_cb) {
+        browser->folder_cb(browser->cb_ctx, item_cnt, file_idx, is_root);
+    }
+    // folder_cb resets the view for the folder, clearing the error, so report after it
+    if(!opened && browser->folder_error_cb) {
+        browser->folder_error_cb(browser->cb_ctx);
+    }
+}
+
+// Every load ends with a last item, so the view stops waiting on it. After an abort there
+// are no further items, which is also true when the read died part way through
+static void browser_load_aborted(BrowserWorker* browser, uint32_t offset) {
+    if(browser->list_load_cb) {
+        browser->list_load_cb(browser->cb_ctx, offset);
+    }
+    if(browser->list_item_cb) {
+        browser->list_item_cb(browser->cb_ctx, NULL, false, true);
+    }
+}
+
+// The folder is gone, so the view loses the rows it was promised and gets the error.
+// Offset 0, because an unreadable folder has nothing left to show but the back item
+static void browser_load_failed(
+    BrowserWorker* browser,
+    File* directory,
+    FuriString* path,
+    const char* what) {
+    browser_log_error(directory, path, what);
+    browser_load_aborted(browser, 0);
+    if(browser->folder_error_cb) {
+        browser->folder_error_cb(browser->cb_ctx);
+    }
 }
 
 // Load files list by chunks, like it was originally, not compatible with sorting, sorting needs to be disabled to use this
@@ -247,6 +326,7 @@ static bool browser_folder_load_chunked(
 
     do {
         if(!storage_dir_open(directory, furi_string_get_cstr(path))) {
+            browser_load_failed(browser, directory, path, "open for loading");
             break;
         }
 
@@ -265,6 +345,17 @@ static bool browser_folder_load_chunked(
             }
         }
         if(items_cnt != offset) {
+            if(browser_dir_read_complete(directory)) {
+                // Nothing is wrong with the folder, it just lost entries under us
+                FURI_LOG_W(
+                    TAG,
+                    "Folder shrank below offset %lu while loading: %s",
+                    offset,
+                    furi_string_get_cstr(path));
+                browser_load_aborted(browser, offset);
+            } else {
+                browser_load_failed(browser, directory, path, "seek in");
+            }
             break;
         }
 
@@ -283,7 +374,10 @@ static bool browser_folder_load_chunked(
                     furi_string_printf(name_str, "%s/%s", furi_string_get_cstr(path), name_temp);
                     if(browser->list_item_cb) {
                         browser->list_item_cb(
-                            browser->cb_ctx, name_str, file_info_is_dir(&file_info), false);
+                            browser->cb_ctx,
+                            name_str,
+                            file_info_is_dir(&file_info),
+                            false);
                     }
                     items_cnt++;
                 }
@@ -293,6 +387,9 @@ static bool browser_folder_load_chunked(
         }
         if(browser->list_item_cb) {
             browser->list_item_cb(browser->cb_ctx, NULL, false, true);
+        }
+        if(!browser_dir_read_complete(directory)) {
+            browser_load_failed(browser, directory, path, "load");
         }
     } while(0);
 
@@ -322,6 +419,7 @@ static bool browser_folder_load_full(BrowserWorker* browser, FuriString* path) {
     bool ret = false;
     do {
         if(!storage_dir_open(directory, furi_string_get_cstr(path))) {
+            browser_load_failed(browser, directory, path, "open for loading");
             break;
         }
         if(browser->list_load_cb) {
@@ -342,6 +440,10 @@ static bool browser_folder_load_full(BrowserWorker* browser, FuriString* path) {
         if(browser->list_item_cb) {
             browser->list_item_cb(browser->cb_ctx, NULL, false, true);
         }
+        if(!browser_dir_read_complete(directory)) {
+            browser_load_failed(browser, directory, path, "load");
+            break;
+        }
         ret = true;
     } while(0);
 
@@ -361,6 +463,8 @@ static int32_t browser_worker(void* context) {
     FURI_LOG_D(TAG, "Start");
 
     uint32_t items_cnt = 0;
+    // Carried beside items_cnt: the count it holds is only as good as the folder it came from
+    bool folder_ok = true;
     FuriString* path;
     path = furi_string_alloc_set(BROWSER_ROOT);
 
@@ -389,7 +493,7 @@ static int32_t browser_worker(void* context) {
                 bool is_root = browser_folder_check_and_switch(path);
 
                 int32_t file_idx = 0;
-                browser_folder_init(browser, path, filename, &items_cnt, &file_idx);
+                bool opened = browser_folder_init(browser, path, filename, &items_cnt, &file_idx);
                 furi_string_set(browser->path_current, path);
                 FURI_LOG_D(
                     TAG,
@@ -397,9 +501,8 @@ static int32_t browser_worker(void* context) {
                     furi_string_get_cstr(path),
                     items_cnt,
                     file_idx);
-                if(browser->folder_cb) {
-                    browser->folder_cb(browser->cb_ctx, items_cnt, file_idx, is_root);
-                }
+                folder_ok = opened;
+                browser_folder_report(browser, items_cnt, file_idx, is_root, opened);
                 furi_string_reset(filename);
 
             } else {
@@ -417,7 +520,7 @@ static int32_t browser_worker(void* context) {
             bool is_root = browser_folder_check_and_switch(path);
 
             int32_t file_idx = 0;
-            browser_folder_init(browser, path, filename, &items_cnt, &file_idx);
+            bool opened = browser_folder_init(browser, path, filename, &items_cnt, &file_idx);
             furi_string_set(browser->path_current, path);
             FURI_LOG_D(
                 TAG,
@@ -425,9 +528,8 @@ static int32_t browser_worker(void* context) {
                 furi_string_get_cstr(path),
                 items_cnt,
                 file_idx);
-            if(browser->folder_cb) {
-                browser->folder_cb(browser->cb_ctx, items_cnt, file_idx, is_root);
-            }
+            folder_ok = opened;
+            browser_folder_report(browser, items_cnt, file_idx, is_root, opened);
             furi_string_reset(filename);
         }
 
@@ -438,7 +540,7 @@ static int32_t browser_worker(void* context) {
             bool is_root = browser_folder_check_and_switch(path);
 
             int32_t file_idx = 0;
-            browser_folder_init(browser, path, filename, &items_cnt, &file_idx);
+            bool opened = browser_folder_init(browser, path, filename, &items_cnt, &file_idx);
             furi_string_set(browser->path_current, path);
             FURI_LOG_D(
                 TAG,
@@ -446,9 +548,8 @@ static int32_t browser_worker(void* context) {
                 furi_string_get_cstr(path),
                 items_cnt,
                 file_idx);
-            if(browser->folder_cb) {
-                browser->folder_cb(browser->cb_ctx, items_cnt, file_idx, is_root);
-            }
+            folder_ok = opened;
+            browser_folder_report(browser, items_cnt, file_idx, is_root, opened);
             furi_string_reset(filename);
         }
 
@@ -458,23 +559,25 @@ static int32_t browser_worker(void* context) {
             bool is_root = browser_folder_check_and_switch(path);
 
             int32_t file_idx = 0;
-            browser_folder_init(browser, path, filename, &items_cnt, &file_idx);
+            bool opened = browser_folder_init(browser, path, filename, &items_cnt, &file_idx);
             FURI_LOG_D(
                 TAG,
                 "Refresh folder: %s items: %lu idx: %ld",
                 furi_string_get_cstr(path),
                 items_cnt,
                 file_idx);
-            if(browser->folder_cb) {
-                browser->folder_cb(browser->cb_ctx, items_cnt, file_idx, is_root);
-            }
+            folder_ok = opened;
+            browser_folder_report(browser, items_cnt, file_idx, is_root, opened);
             furi_string_reset(filename);
         }
 
         if(flags & WorkerEvtLoad) {
             FURI_LOG_D(
                 TAG, "Load offset: %lu cnt: %lu", browser->load_offset, browser->load_count);
-            if(items_cnt > BROWSER_SORT_THRESHOLD) {
+            if(!folder_ok) {
+                // Already reported, and opening it again would only fail again
+                browser_load_aborted(browser, 0);
+            } else if(items_cnt > BROWSER_SORT_THRESHOLD) {
                 browser_folder_load_chunked(
                     browser, path, browser->load_offset, browser->load_count);
             } else {
@@ -552,6 +655,13 @@ void file_browser_worker_set_folder_callback(
     BrowserWorkerFolderOpenCallback cb) {
     furi_check(browser);
     browser->folder_cb = cb;
+}
+
+void file_browser_worker_set_folder_error_callback(
+    BrowserWorker* browser,
+    BrowserWorkerFolderErrorCallback cb) {
+    furi_check(browser);
+    browser->folder_error_cb = cb;
 }
 
 void file_browser_worker_set_list_callback(

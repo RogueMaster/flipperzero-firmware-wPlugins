@@ -99,7 +99,9 @@ InfraredErrorCode infrared_brute_force_calculate_messages_ex(
     bool ignore_unknown_buttons) {
     furi_check(brute_force);
     furi_assert(!brute_force->is_started);
-    furi_assert(brute_force->db_filename);
+    // A check, not an assert: on a release build a missing filename would reach
+    // flipper_format_buffered_file_open_existing() as NULL
+    furi_check(brute_force->db_filename);
     InfraredErrorCode error = InfraredErrorCodeNone;
 
     Storage* storage = furi_record_open(RECORD_STORAGE);
@@ -138,13 +140,19 @@ InfraredErrorCode infrared_brute_force_calculate_messages_ex(
             break;
         }
 
-        bool signal_valid = false;
         uint32_t auto_detect_button_index = 0;
         while(infrared_signal_read_name(ff, signal_name) == InfraredErrorCodeNone) {
-            size_t signal_start = flipper_format_tell(ff);
+            const size_t signal_start = flipper_format_tell(ff);
+
             error = infrared_signal_read_body(signal, ff);
-            signal_valid = (!INFRARED_ERROR_PRESENT(error)) && infrared_signal_is_valid(signal);
-            if(!signal_valid) break;
+            if(INFRARED_ERROR_PRESENT(error)) break;
+
+            // read_body() rejects everything is_valid() catches; kept so that a reader which
+            // one day does not cannot put an unvalidated position into the dictionary
+            if(!infrared_signal_is_valid(signal)) {
+                error = InfraredErrorCodeSignalRawIsInvalid;
+                break;
+            }
 
             InfraredBruteForceRecord* record =
                 InfraredBruteForceRecordDict_get(brute_force->records, signal_name);
@@ -164,7 +172,6 @@ InfraredErrorCode infrared_brute_force_calculate_messages_ex(
             }
             SignalPositionArray_push_back(record->signals, signal_start);
         }
-        if(!signal_valid) break;
     } while(false);
 
     infrared_signal_free(signal);
@@ -176,7 +183,7 @@ InfraredErrorCode infrared_brute_force_calculate_messages_ex(
 }
 
 InfraredErrorCode infrared_brute_force_calculate_messages(InfraredBruteForce* brute_force) {
-    return infrared_brute_force_calculate_messages_ex(brute_force, false, false);
+    return infrared_brute_force_calculate_messages_ex(brute_force, false, true);
 }
 
 bool infrared_brute_force_start(
@@ -280,7 +287,10 @@ void infrared_brute_force_add_record(
 }
 
 void infrared_brute_force_reset(InfraredBruteForce* brute_force) {
+    furi_check(brute_force);
     furi_assert(!brute_force->is_started);
+    // Otherwise a caller that forgets to set it next time silently re-reads this database
+    brute_force->db_filename = NULL;
     InfraredBruteForceRecordDict_reset(brute_force->records);
 }
 

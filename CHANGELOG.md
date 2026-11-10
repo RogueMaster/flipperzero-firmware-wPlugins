@@ -1,5 +1,5 @@
 ## Main changes
-- Current API: 88.25
+- Current API: 88.26
 - SubGHz: **KeeLoq remotes that send at half the usual rate (Te 200us) are now decoded, and sent back at the rate they were received at**
 - SubGHz: **A KeeLoq remote sending at half rate is shown as `Crypt Key`, instead of an unknown manufacturer**
 - SubGHz: **Hormann HSM remotes whose frame starts with seven preamble ones instead of eight are now decoded**
@@ -59,12 +59,17 @@
 - RFID: **T5577 `Clear Password` shows the password that opened the tag, and offers to keep one you typed** (by @mishamyte | PR #1208)
 - RFID: **Fix the T5577 app saying `Not cleared` about a tag it had opened, on one flaked read** (by @mishamyte | PR #1208)
 - RFID: **T5577 app - a Test Tag backup is deleted once the tag is proven restored, and warns before overwriting one that survives** (by @mishamyte | PR #1179)
+- RFID: **Fix the T5577 `Sniff Password` reporting a password the cloner never sent, on a sender fast enough for the measured symbol split to land inside its own zero class** (by @mishamyte | PR #1213)
+- RFID: **Fix the T5577 sniffer's symbol-class histogram writing past its last bin** (by @mishamyte | PR #1213)
 - SubGHz: **Fix Marantec24 and Linear Delta 3 not decoding a signal the Flipper itself sends** (by @mishamyte | PR #1207 | Closes #1205)
 - SubGHz: **Fix Holtek HT12X reporting a key off one frame when the receiver had just been reset** (by @mishamyte | PR #1207)
 - SubGHz: **New KeeLoq manufacturer Phantom / Hiland - these remotes read and send properly, and `KL: Phantom/Hiland 433M` is in Add Manually**
 - SubGHz: **New protocol FAAC TM - the 12 dip switch TM 433/868 DS remotes, which CAME 12bit used to read as its own, with `FAAC TM 433MHz` and `FAAC TM 868MHz` in Add Manually**
 - SubGHz: **868.00 MHz is in the default frequency list**
 - iButton: **Cyfral and Metakom keys can be written to TM01x blanks** (by @Leptopt1los | PR #1209 | In OFW PR 4508)
+- Infrared: **`ir universal <remote> <signal>` over the CLI sends the signals it was asked for, instead of rebooting the device** (by @mishamyte | PR #1211 | Fixes #1201)
+- Infrared: **A universal remote database holding a button name the screen does not use no longer crashes on opening that remote** (by @mishamyte | PR #1211)
+- Infrared: **A raw signal saved with no timings is rejected when read, instead of being sent as whatever was read before it** (by @mishamyte | PR #1211)
 - Apps: Build tag (**6nov2026**) - **Check out more Apps updates and fixes by following** [this link](https://github.com/xMasterX/all-the-plugins/commits/dev)
 ## Other changes
 - SubGHz: **CAME TWEE no longer reads past the end of its decode table on a parcel counter of F**
@@ -84,6 +89,7 @@
 - API: **Export the T5577 block read/write API for apps (`t5577.h`, `t5577_file.h`)** (by @mishamyte | PR #1179)
 - iButton: **Fix write success text going off screen**
 - RFID: **Move the Writing screen text up so long file names fit**
+- GUI: **A folder the file browser cannot read says so, instead of showing `<Empty>` with Up, Down and OK dead** (by @mishamyte | PR #1212 | Closes #1197)
 - GUI: **A screen that is covered no longer repaints the one on top of it** (by @mishamyte | PR #1198 | Closes #1196)
 - GUI: **Delete screens (SubGHz, NFC, RFID, iButton, Archive) fit a long file name**
 - Archive: **Stability pass over the file menu, deleting during a load, favourites and Show**
