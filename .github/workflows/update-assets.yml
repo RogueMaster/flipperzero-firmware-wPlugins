@@ -1,0 +1,31 @@
+name: "Update Amiibo Assets"
+
+on:
+  schedule:
+    - cron: "0 0 * * *" # Daily
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-assets:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.head_ref }}
+          # Value already defaults to true, but `persist-credentials` is required to push new commits to the repository.
+          persist-credentials: true
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - run: pip install requests
+      - run: python amiibo_api_to_assets.py
+      - uses: stefanzweifel/git-auto-commit-action@v7
+        with:
+          commit_message: "chore: update Amiibo asset files"
