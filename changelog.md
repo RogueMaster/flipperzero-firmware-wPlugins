@@ -1,3 +1,10 @@
+## 2.17-beta.5 — nag killer survives a phone leaving Wi-Fi, black box works on low-memory boards
+
+Two fixes testers turned up on the 2.17 betas. Both are ESP32-only; the Flipper app is unchanged. The web flasher still installs the stable 2.16.0 by default; this is the opt-in beta on the same page (or `…/install/#beta`).
+
+- **The nag killer no longer stops when a phone drops off the Wi-Fi (#270).** The dashboard's once-a-second update runs in the same loop as CAN reception. A phone that left the Wi-Fi without closing its connection was kept for five minutes, and every update sent to it blocked the loop for up to five seconds — long enough for the receive queues to overflow and the car's `0x370` to be missed, so the nag echo stopped. A vanished client is now dropped in about ten seconds with a heartbeat ping, and a single blocked send can hold the loop for at most one second instead of five. Diagnosed and fixed by @boddyua.
+- **The black box can be turned on for low-memory boards (#191).** On the generic ESP32 + MCP2515 build and other boards without PSRAM, the recorder's buffer plus the Wi-Fi safety margin needed more memory than those boards have free, so the switch was refused and flipped straight back off. The buffer is now sized to the memory actually free, keeping the Wi-Fi margin, so the black box records with a proportionally shorter window instead of not at all. Found by @mxkr303.
+
 ## 2.17-beta.4 — safety fix for stale retransmitted frames
 
 A corrective build for a problem a tester's black-box record turned up on beta.3 (#176). **Please update to this build if you are on any 2.17 beta.** The web flasher still installs the stable 2.16.0 by default; this is the opt-in beta on the same page (or `…/install/#beta`).
