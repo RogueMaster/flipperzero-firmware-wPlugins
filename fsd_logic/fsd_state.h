@@ -398,6 +398,11 @@ typedef struct FSDState {
     uint32_t sleep_idle_ms;      // CAN silence before deep sleep
     bool mcp_rx_task;            // read the MCP2515 from its own task (opt-in, NVS)
     bool web_second_core;        // run the web server in a task on core 0 (opt-in, NVS, restart to apply)
+    bool rx_id_whitelist;        // RX ID whitelist (performance): program the CAN
+                                 // controller's hardware acceptance filter to just
+                                 // the ids the firmware needs now (opt-in, NVS,
+                                 // default OFF = accept-all = today's behaviour).
+                                 // Experimental; see fsd_logic/fsd_rx_whitelist.h.
 
     // Wi-Fi (ESP32 web dashboard)
     char wifi_ssid[33];          // max 32 chars + null

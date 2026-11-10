@@ -42,6 +42,24 @@ inline CanTwaiPrefilter can_capture_twai_prefilter(const uint32_t *ids, uint8_t 
     return {ones << 21, ((~(ones | zeros) & 0x7FFu) << 21) | 0x001FFFFFu};
 }
 
+// RX ID whitelist variant (fsd_rx_whitelist.h): the same common-bits prefilter,
+// but over an arbitrary-length id list rather than the <=6 capture list. TWAI
+// has a single acceptance code/mask, so an exact multi-id filter is impossible;
+// the common-bits prefilter instead accepts a SUPERSET of the requested ids
+// (every requested id matches by construction, plus any id sharing the common
+// bits). That is exactly what the whitelist needs — it never drops a needed id,
+// only trims part of the unrelated traffic.
+inline CanTwaiPrefilter can_rxw_twai_prefilter(const uint32_t *ids, size_t count) {
+    if (!ids || count == 0) return {0, 0xFFFFFFFFu};
+    uint32_t ones = ids[0] & 0x7FFu;
+    uint32_t zeros = (~ids[0]) & 0x7FFu;
+    for (size_t i = 1; i < count; i++) {
+        ones &= ids[i] & 0x7FFu;
+        zeros &= (~ids[i]) & 0x7FFu;
+    }
+    return {ones << 21, ((~(ones | zeros) & 0x7FFu) << 21) | 0x001FFFFFu};
+}
+
 // Shared by the real MCP2515 driver and register-call tests. Restore the
 // library reset() filter layout without resetting bitrate or controller state.
 template <typename Controller>

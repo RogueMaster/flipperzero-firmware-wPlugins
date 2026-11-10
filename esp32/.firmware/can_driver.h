@@ -110,6 +110,26 @@ public:
      *  when a driver cannot report successful hardware programming. */
     virtual const char *acceptanceFilterMode() { return "unknown"; }
 
+    /** RX ID whitelist (performance) — opt-in, default OFF (see
+     *  fsd_logic/fsd_rx_whitelist.h and recompute_rx_filter() in main.cpp).
+     *  Program the controller's hardware acceptance filter to admit AT LEAST
+     *  every id in @p ids — an EXACT SUPERSET, never a subset. Returns true only
+     *  when such a filter was installed; false when this controller cannot
+     *  express a superset of the set (more exact ids than it has filter slots),
+     *  in which case the caller MUST call setAcceptAll() so no needed id is ever
+     *  dropped (fits-or-accept-all, never a partial filter). This is separate
+     *  from the capture acceptance filter (setAcceptanceFilters): the caller
+     *  drives at most one of the two at a time, and never touches the filters at
+     *  all while the whitelist mode is off. Default: cannot express it -> false. */
+    virtual bool setAcceptFilter(const uint32_t *ids, size_t n) {
+        (void)ids; (void)n; return false;
+    }
+
+    /** Restore accept-all reception (today's default behaviour), clearing any
+     *  whitelist filter this driver installed. Default: delegate to the capture
+     *  path's accept-all. */
+    virtual void setAcceptAll() { setAcceptanceFilters(nullptr, 0); }
+
     /** Whether the underlying CAN hardware was detected on the bus/SPI.
      *  TWAI lives inside the SoC and is therefore always present.
      *  MCP2515 returns true once the chip has answered an SPI probe. */
