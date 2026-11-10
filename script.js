@@ -120,7 +120,7 @@ function hunter()
 
             if (idx == "hunter_2" && choice == "1")
             {
-                document.getElementById("my_text").innerHTML = "You have chosen to go hunt!<br>You have gone hunting.<br>You didn't find any food.<br>You return to your village.<br>Luckily, the farmer has enough crops to last your tribe a week.<br>Do you want to go hunt right away to make up lost time or do you choose to go eat?<br><br>1- Hunt; 2- Eat<br>Make your choice " + user_name + ":<br>";
+                document.getElementById("my_text").innerHTML = "You have chosen to go hunt!<br>You go on a successful hunt that should last your tribe a month.<br>However, you are very tired and because you didn't eat, you have become very sick with malnutrition.<br>Unluckily for you, the tribe's medicine woman is very busy and has a lot of patients to take care of first.<br>Do you wish to wait for her or tough it out?<br><br>1- Wait for her; 2- Tough it out<br>Make your choice " + user_name + ":<br>"
                 user_input = document.getElementById("choice_field").value;
                 document.querySelector("form").addEventListener("submit", function(event)
                 {
@@ -149,6 +149,55 @@ function hunter()
                 document.querySelector("form").addEventListener("submit", function(event)
                 {
                     localStorage.setItem("idx", "hunter_5");
+                    localStorage.setItem("choice", user_input);
+                    location.reload();
+                });
+            }
+
+            if (idx == "hunter_3" && choice == "2")
+            {
+                document.getElementById("my_text").innerHTML = "You have chosen to tough it out.<br>Unfortunately, because of this, you die from malnutrition.<br>" + death_level;
+                user_input = document.getElementById("choice_field").value;
+                document.querySelector("form").addEventListener("submit", function(event)
+                {
+                    localStorage.removeItem("character");
+                    localStorage.removeItem("choice");
+                    localStorage.removeItem("idx");
+                    location.reload();
+                });
+            }
+
+            if (idx == "hunter_4" && choice == "1")
+            {
+                document.getElementById("my_text").innerHTML = "You have chosen to hunt.<br>You have found a bunch of zebras to eat.<br>Some white men are willing to trade your tribe rifles for some of your zebras.<br>Recently, there have been some highly wanted criminals that trade weapons and drugs on the black market.<br>The problem is, you don't know if that's them.<br>Do you trade?<br>What about decline the offer?<br>Or do you report them to the authorities?<br><br>1- Trade; 2- Decline the trade; 3- Report them to the authorities<br>Make your choice " + user_name + ":<br>";
+                user_input = document.getElementById("choice_field").value;
+                document.querySelector("form").addEventListener("submit", function(event)
+                {
+                    localStorage.setItem("idx", "hunter_6");
+                    localStorage.setItem("choice", user_input);
+                    location.reload();
+                });
+            }
+
+            if (idx == "hunter_4" && choice == "2")
+            {
+                document.getElementById("my_text").innerHTML = "You have chosen to play a game with the rest of your tribe.<br>Everyone has a good time and you guys have an awesome feast.<br>There is a hunting challenge that your tribe is having.<br>The challenge is to go hunt The Mighty Lion!<br>Do you want to go hunt The Mighty Lion with your tribe to win the challenge?<br><br>1- Yes; 2- No<br>Make your choice " + user_name + ":<br>";
+                user_input = document.getElementById("choice_field").value;
+                document.querySelector("form").addEventListener("submit", function(event)
+                {
+                    localStorage.setItem("idx", "hunter_7");
+                    localStorage.setItem("choice", user_input);
+                    location.reload();
+                });
+            }
+
+            if (idx == "hunter_5" && choice == "1")
+            {
+                document.getElementById("my_text").innerHTML = "You have chosen to trade.<br>They trade you guns.<br>Do you want to go hunt The Mighty Lion?<br><br>1- Yes; 2- No<br>Make your choice " + user_name + ":<br>"
+                user_input = document.getElementById("choice_field").value;
+                document.querySelector("form").addEventListener("submit", function(event)
+                {
+                    localStorage.setItem("idx", "hunter_8");
                     localStorage.setItem("choice", user_input);
                     location.reload();
                 });
