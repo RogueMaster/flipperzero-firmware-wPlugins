@@ -16,6 +16,7 @@
 
 #include <Arduino.h>
 #include <freertos/FreeRTOS.h>
+#include <freertos/task.h>   // xTaskCreatePinnedToCore for the optional web task
 #include <esp_sleep.h>
 #include <esp_ota_ops.h>
 #include "config.h"
@@ -442,6 +443,25 @@ static void sync_http_can_stream_filter_if_needed() {
     }
     g_can_filtered = filtered;
     http_can_stream_note_filters(CAN_ACTIVE_BUS_COUNT, modes);
+}
+
+// ── Optional web server on the second core (opt-in, NVS "webtask") ────────────
+// The web/WebSocket/HTTP-CAN-stream work normally runs in loop() on core 1, the
+// same task as CAN receive and the read-modify-retransmit TX path, so any
+// network blocking stalls CAN (#270, part of #176). When the toggle is on, that
+// work moves to a task pinned to core 0 (PRO_CPU), next to the WiFi stack, and
+// loop() on core 1 becomes CAN-only. Created once at boot; never destroyed live
+// (the toggle takes effect on restart). g_web_on_task is true only when the task
+// was actually created, so loop() keeps running the web calls otherwise.
+static TaskHandle_t g_web_task   = nullptr;
+static bool         g_web_on_task = false;
+
+static void web_task_entry(void*) {
+    for (;;) {
+        web_dashboard_update();
+        sync_http_can_stream_filter_if_needed();
+        vTaskDelay(1);   // yield every pass so the idle task + WDT are fed
+    }
 }
 
 static uint8_t epas_hands_on_level(const CanFrame &frame) {
@@ -1945,6 +1965,21 @@ void setup() {
         // so a persisted-ON device can never re-trigger the boot loop (#124).
         if (g_state.blackbox_enabled) blackbox_set_enabled(true);
         Serial.println("[SER] Type 'ip' in the serial monitor to print WiFi URLs again");
+
+        // Optional: run the web server in a task pinned to core 0 (PRO_CPU),
+        // next to the WiFi stack, so loop() on core 1 stays CAN-only (#270,
+        // part of #176). Opt-in (NVS "webtask"), created once; the toggle takes
+        // effect on restart only. Same priority as loopTask (1).
+        if (g_state.web_second_core) {
+            if (xTaskCreatePinnedToCore(web_task_entry, "webtask", 12288, nullptr, 1,
+                                        &g_web_task, 0) == pdPASS) {
+                g_web_on_task = true;
+                Serial.println("[WEB] Web server on core 0 (loop() is CAN-only)");
+            } else {
+                g_web_task = nullptr;
+                Serial.println("[WEB] Core-0 web task create failed — staying in loop()");
+            }
+        }
     }
 }
 
@@ -2181,9 +2216,12 @@ void loop() {
     g_loop_health.mark(LOOP_STAGE_LOGS, micros());
 
     // ── Web dashboard (after CAN to preserve CAN frame latency) ──────────────
-    web_dashboard_update();
-
-    sync_http_can_stream_filter_if_needed();
+    // When the web server runs on its own core-0 task (opt-in), loop() skips it
+    // so core 1 stays CAN-only. The stage mark is kept either way.
+    if (!g_web_on_task) {
+        web_dashboard_update();
+        sync_http_can_stream_filter_if_needed();
+    }
     g_loop_health.mark(LOOP_STAGE_WEB, micros());
 
 #if defined(BOARD_TTGO_DISPLAY)

@@ -62,6 +62,7 @@ void prefs_load(FSDState *state) {
 #endif
     state->sleep_idle_ms            = g_prefs.getUInt("sleep",  SLEEP_IDLE_MS);
     state->mcp_rx_task              = g_prefs.getBool("mcprx",  false);  // MCP2515 RX task
+    state->web_second_core         = g_prefs.getBool("webtask", false);  // web server on core 0 (restart to apply)
 
     // WiFi
     if (g_prefs.isKey("wss")) g_prefs.getString("wss").toCharArray(state->wifi_ssid, sizeof(state->wifi_ssid));
@@ -149,6 +150,7 @@ void prefs_save(const FSDState *state) {
 #endif
     g_prefs.putUInt("sleep",  state->sleep_idle_ms);
     g_prefs.putBool("mcprx",  state->mcp_rx_task);  // MCP2515 RX task
+    g_prefs.putBool("webtask", state->web_second_core);  // web server on core 0 (restart to apply)
 
     // WiFi
     g_prefs.putString("wss",  state->wifi_ssid);
