@@ -2538,6 +2538,52 @@ static void test_blackbox_ram_save_mem(void) {
     cap_free(empty.buf);
 }
 
+// The adaptive internal-RAM ring sizing (#191). bb_ram_ring_frames() picks the
+// largest ring that still leaves the WiFi/web margin free, clamped to the floor
+// and the per-target save cap, or 0 to refuse when even the floor won't fit.
+static void test_blackbox_ram_ring_sizing(void) {
+    const size_t FSZ = 19u; // sizeof(BBFrame) @ 19 B/frame
+    const size_t MARGIN = 60u * 1024u; // BLACKBOX_HEAP_MARGIN
+    const uint32_t MINF = 800u; // BB_MIN_INTERNAL_FRAMES
+    const uint32_t MAXF = 3000u; // BLACKBOX_FRAMES_INTERNAL (classic)
+
+    // Plenty of heap (e.g. an S3 or a freshly booted board): clamp to the cap,
+    // never larger, so the one-window save still fits inside the margin.
+    CHECK(
+        bb_ram_ring_frames(300u * 1024u, MARGIN, FSZ, MINF, MAXF) == MAXF,
+        "sizing: ample heap clamps to the per-target cap");
+
+    // The #191 board: ~86 KB free after WiFi + web. The OLD fixed-3000 ring
+    // needed 3000*19 + 60 KB = ~118 KB and so always failed; the adaptive ring
+    // is sized DOWN to a non-zero count strictly between the floor and the cap.
+    const size_t HEAP_191 = 86u * 1024u;
+    const size_t FIXED_NEED = (size_t)MAXF * FSZ + MARGIN;
+    CHECK(HEAP_191 < FIXED_NEED, "sizing: the fixed 3000 ring never fit the #191 heap");
+    uint32_t f191 = bb_ram_ring_frames(HEAP_191, MARGIN, FSZ, MINF, MAXF);
+    CHECK(
+        f191 > MINF && f191 < MAXF,
+        "sizing: #191 heap gives a shortened but usable ring (%lu frames)",
+        (unsigned long)f191);
+    CHECK(
+        (size_t)f191 * FSZ + MARGIN <= HEAP_191,
+        "sizing: the chosen ring still leaves the full margin free");
+
+    // Just above the floor: the computed count lands at the minimum (~4 s).
+    CHECK(
+        bb_ram_ring_frames(MARGIN + (size_t)MINF * FSZ + 10u, MARGIN, FSZ, MINF, MAXF) == MINF,
+        "sizing: just above the floor yields the minimum ring");
+
+    // At and below the floor: margin + floor can't both be had → refuse (0),
+    // exactly as the old code refused — the board is genuinely too tight.
+    CHECK(
+        bb_ram_ring_frames(MARGIN + (size_t)MINF * FSZ, MARGIN, FSZ, MINF, MAXF) == 0u,
+        "sizing: margin + floor exactly won't fit, refuse");
+    CHECK(
+        bb_ram_ring_frames(MARGIN, MARGIN, FSZ, MINF, MAXF) == 0u,
+        "sizing: only the margin free, refuse");
+    CHECK(bb_ram_ring_frames(0u, MARGIN, FSZ, MINF, MAXF) == 0u, "sizing: no heap, refuse");
+}
+
 // ── #176: stale-frame TX gate ────────────────────────────────────────────────
 // A drain pass that empties a receive backlog hands process_frame() frames up to
 // ~0.5 s old; a read-modify-retransmit path must emit a modified copy only from a
@@ -2746,6 +2792,7 @@ int main() {
     test_blackbox_arm_action();
     test_blackbox_trigger_during_save();
     test_blackbox_ram_save_mem();
+    test_blackbox_ram_ring_sizing();
     test_blackbox_names();
 
     printf("\n%d passed, %d failed\n", g_pass, g_fail);

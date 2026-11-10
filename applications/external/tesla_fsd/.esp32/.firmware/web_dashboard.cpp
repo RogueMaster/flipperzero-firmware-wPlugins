@@ -40,6 +40,10 @@
 #include <lwip/sockets.h>
 #include <errno.h>
 
+// Defined in main.cpp: reprogram the RX ID whitelist hardware filter after the
+// dashboard toggles it (no-op while the flag is OFF).
+extern void recompute_rx_filter();
+
 // ── Module state ──────────────────────────────────────────────────────────────
 static FSDState  *g_state = nullptr;   // shared with main
 static CanDriver **g_can_buses = nullptr; // mode switch, error split, pre-reboot quiesce
@@ -796,6 +800,18 @@ R"rawliteral(
     </div>
     <div id="mcpRxSt" style="font-size:12px;color:var(--muted);margin-top:4px">--</div>
   </div>
+  <div class="row">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <span class="lbl">Web server on 2nd core (experimental — restart to apply)<br><small style="color:var(--muted)">Runs the web/WebSocket server in a task on core 0, next to the WiFi stack, so network stalls never delay CAN on core 1.</small></span>
+      <label class="sw"><input type="checkbox" id="swWebTask" onchange="cmd('web_second_core',this.checked)"><span class="sl2"></span></label>
+    </div>
+  </div>
+  <div class="row">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <span class="lbl">RX ID whitelist (performance, experimental)<br><small style="color:var(--muted)">Programs the CAN controller's hardware acceptance filter to just the IDs the firmware needs now, so a busy bus's other frames never reach the controller. Falls back to accept-all during a capture/capability check or when the set exceeds the controller's filter slots. Off = accept-all (today's behaviour).</small></span>
+      <label class="sw"><input type="checkbox" id="swRxFilter" onchange="cmd('rx_id_whitelist',this.checked)"><span class="sl2"></span></label>
+    </div>
+  </div>
 )rawliteral"
 #if defined(BOARD_LILYGO)
 R"rawliteral(
@@ -1203,6 +1219,8 @@ function updateControlsSummary(d){
   if(d.display_enabled)items.push('Display');
   if(d.can_dump)items.push('CAN Dump');
   if(d.mcp_rx_task&&d.mcp_rx_task.on)items.push('MCP2515 RX task');
+  if(d.web_second_core)items.push('Web on core 0');
+  if(d.rx_id_whitelist)items.push('RX ID whitelist');
   e.textContent=items.length?items.join(', '):'Expand to setup';
   e.title=e.textContent;
 }
@@ -1505,6 +1523,10 @@ function updControls(d){
   if(focusId()!=='dispTo' && document.getElementById('dispTo'))
     document.getElementById('dispTo').value=d.display_timeout_s!==undefined?d.display_timeout_s:60;
   if(document.getElementById('swDump')) document.getElementById('swDump').checked=!!d.can_dump;
+  var swWt=document.getElementById('swWebTask');
+  if(swWt&&swWt!==document.activeElement&&d.web_second_core!==undefined) swWt.checked=!!d.web_second_core;
+  var swRf=document.getElementById('swRxFilter');
+  if(swRf&&swRf!==document.activeElement&&d.rx_id_whitelist!==undefined) swRf.checked=!!d.rx_id_whitelist;
 
   if(focusId()!=='numSleep' && document.getElementById('numSleep'))
     document.getElementById('numSleep').value=Math.floor((d.sleep_ms||0)/1000);
@@ -2584,6 +2606,11 @@ static String build_json() {
         j += "},";
         break;
     }
+    // Web server on core 0 (opt-in, restart to apply). Reflects the persisted
+    // flag so the toggle shows its saved state even before a reboot.
+    j += "\"web_second_core\":"; j += state.web_second_core ? "true" : "false"; j += ',';
+    // RX ID whitelist (performance, opt-in). Reflects the persisted flag.
+    j += "\"rx_id_whitelist\":"; j += state.rx_id_whitelist ? "true" : "false"; j += ',';
     j += "\"bms\":";           j += bms;                               j += ',';
     // Tyre pressures (read-only 0x219, fsd_logic/fsd_tpms.h). Four slots in the
     // order the car fills them: mbar, temp in deg C, pos 0 FL 1 FR 2 RL 3 RR;
@@ -3230,6 +3257,34 @@ static WebCmdResult web_command(WebCmd &cmd, const uint8_t *payload, size_t leng
             Serial.printf("[Web] MCP2515 RX task: %s\n", enabled ? "ON" : "OFF");
             prefs_save(&saved);
         }
+    } else if (cmd.is("web_second_core")) {
+        bool enabled;
+        if (cmd.boolean(&enabled)) {
+            FSDState saved;
+            state_enter();
+            g_state->web_second_core = enabled;
+            saved = *g_state;
+            state_exit();
+            // Takes effect on reboot only — the task is created/left alone at
+            // boot; we never create or destroy it live.
+            Serial.printf("[Web] Web server on 2nd core: %s (restart to apply)\n",
+                          enabled ? "ON" : "OFF");
+            prefs_save(&saved);
+        }
+    } else if (cmd.is("rx_id_whitelist")) {
+        bool enabled;
+        if (cmd.boolean(&enabled)) {
+            FSDState saved;
+            state_enter();
+            g_state->rx_id_whitelist = enabled;
+            saved = *g_state;
+            state_exit();
+            prefs_save(&saved);
+            // Reprogram the hardware filter now so the new mode (narrow or
+            // accept-all) is in force before the handler returns.
+            recompute_rx_filter();
+            Serial.printf("[Web] RX ID whitelist: %s\n", enabled ? "ON" : "OFF");
+        }
     } else if (cmd.is("sleep")) {
         int n;
         if (cmd.integer_capped(&n, 10000, INT32_MAX)) {   // minimum 10 s
@@ -3763,6 +3818,11 @@ void web_dashboard_init(FSDState *state,
     g_ws.begin();
     g_ws.onEvent(ws_event);
     g_ws.onValidateHttpHeader(ws_header_ok, nullptr, 0);
+    // Drop a client that vanished without closing (phone WiFi off, out of
+    // range) in ~10 s — ping every 2 s, disconnect after 3 missed 3 s pongs.
+    // Otherwise every 1 Hz broadcast to it blocks loop() for up to
+    // WEBSOCKETS_TCP_TIMEOUT (5 s), starving CAN RX and the nag echo (#270).
+    g_ws.enableHeartbeat(2000, 3000, 3);
 
     Serial.println("[Web] HTTP :80  WS :81 — ready");
 }

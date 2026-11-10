@@ -170,6 +170,26 @@ void mcp2518fd_capture_filters(Filters &filters, Format standard,
     }
 }
 
+// RX ID whitelist (fsd_rx_whitelist.h): one exact filter per standard id, up to
+// the MCP2518FD's 32 filter objects. Each filter uses an exact 0x7FF mask, so
+// the installed set is an EXACT SUPERSET (equal to) the requested ids — never a
+// subset. The caller rejects a set larger than MCP2518FD_RXW_MAX_IDS before
+// calling, so the library's own "> 32 filters" error is never reached.
+static constexpr size_t MCP2518FD_RXW_MAX_IDS = 32;
+
+template <typename Filters, typename Format>
+void mcp2518fd_whitelist_filters(Filters &filters, Format standard,
+                                 const uint32_t *ids, size_t count) {
+    if (!ids || count == 0) {
+        filters.appendPassAllFilter(nullptr);
+        return;
+    }
+    if (count > MCP2518FD_RXW_MAX_IDS) count = MCP2518FD_RXW_MAX_IDS;
+    for (size_t i = 0; i < count; i++) {
+        filters.appendFrameFilter(standard, ids[i] & 0x7FFu, nullptr);
+    }
+}
+
 // A received message as CanFrame, classic CAN only. CAN FD frames (the chip
 // takes them in Listen-Only) and classic frames with DLC 9..15 (the library
 // reports those as 12..64 bytes) return false and are counted as rejected.

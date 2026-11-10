@@ -83,7 +83,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Hanzi Cards v0.5 (By rseufert)](https://github.com/rseufert/hanzi_cards)
 - Added: [Servo Tester+ v0.5 (By Enlighten Tech)](https://github.com/gbhobbytech/flipper-servo-tester)
 - Added: [Varta v1.0 (By mishamyte)](https://github.com/mishamyte/varta)
-- Updated: [Tesla Mod v2.17.0b4 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 - Updated: [Delete-dialog layout and text-box line spacing (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/33514cb3ce1b5ba47dc4d2821c1b2f7e7e8fe415)
 - Updated: [Varta v1.1 (By mishamyte)](https://github.com/mishamyte/varta)
 - Updated: [Nyx v1.2 (By at0m-b0mb)](https://github.com/at0m-b0mb/Nyx-FlipperZero)
@@ -244,6 +243,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Theme Player with 13 author-added Zelda tune files (By AzureSky)](https://github.com/AzzureSkyy/flipper-theme-player)
 - Updated: [BLE Clipboard v0.5.4 persistent keyboard settings, desktop sync and typing pace (By otcan)](https://github.com/otcan/ble-clipboard)
 - Updated: [Sub-GHz Proteco MOVER 433MHz decoding, encoding, custom buttons and Add Manually support (By dkorunic & xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/pull/1210)
+- Updated: [Tesla Mod v2.17.0b6 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 
 <a name="release"></a>
 
@@ -1194,7 +1194,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Telemeter v1.1 (By alaviation)](https://github.com/alaviation/flipper-telemeter)
 - [Telink SWS v0.1 (By ngxson)](https://github.com/ngxson/flipper-telink) `Req: Telink device`
 - [Temp Sensors Reader 2.1 (By quen0n)](https://github.com/quen0n/Unitemp-Flipper-Zero-Plugin) Req: [See App Readme For Supported Modules](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/applications/external/unitemp/README.md)
-- [Tesla Mod v2.17.0b4 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
+- [Tesla Mod v2.17.0b6 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 - [Text To SAM v1.5 (By RoundPi)](https://github.com/Round-Pi/flipperzero-text2sam)
 - [Text Viewer v1.7 (By WillyJL)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/ae4fc4a54febccb44b010c4025a99c2edef9a7f0)
 - [The C Prog. Language v0.2 (By armixz)](https://github.com/armixz/Flipper-Zero-The-C-Programming-Language)

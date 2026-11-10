@@ -81,6 +81,10 @@ void capability_tick(uint32_t now_ms) {
         g_cap_state = CAP_STATE_DONE;
 }
 
+bool capability_running(void) {
+    return g_cap_state == CAP_STATE_RUNNING;
+}
+
 static FSDCapSeen seen_for_bus(uint8_t bus) {
     FSDCapSeen s;
     s.epas       = g_count[bus][CAP_ID_EPAS]      >= CAP_MIN_FRAMES;

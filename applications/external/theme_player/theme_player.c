@@ -10,7 +10,7 @@
 #include <stdlib.h>
 #include "tunes.h"
 
-#define TUNE_DIR     EXT_PATH("apps_data/theme_player")
+#define TUNE_DIR     EXT_PATH("apps_assets/theme_player")
 #define MAX_THEMES   24
 #define MAX_TUNES    32
 #define NAME_LEN     32

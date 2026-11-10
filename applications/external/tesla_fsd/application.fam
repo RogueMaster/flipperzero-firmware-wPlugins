@@ -16,5 +16,5 @@ App(
     fap_author="hypery11",
     fap_weburl="https://github.com/hypery11/flipper-tesla-fsd",
     fap_version="2.17.0",
-    fap_description="Tesla CAN bus toolkit — FSD region-gate bypass, nag killer, BMS dashboard, and more. Requires CAN Add-On.",
+    fap_description="Beta 6. Tesla CAN bus toolkit — FSD region-gate bypass, nag killer, BMS dashboard, and more. Requires CAN Add-On.",
 )

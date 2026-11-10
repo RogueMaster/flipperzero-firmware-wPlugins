@@ -53,6 +53,13 @@
 #define BLACKBOX_FRAMES_INTERNAL  3000u   // ~57 KB  (classic ESP32)
 #endif
 #endif
+// Floor for the adaptive internal-RAM ring (#191). On a low-heap classic board
+// the ring is sized down to whatever leaves the heap margin free, but never
+// below this: ~800 frames ≈ 15 KB ≈ a ~4 s window — short, yet still a usable
+// black box. Below even this (margin + floor can't be had) enable is refused.
+#ifndef BB_MIN_INTERNAL_FRAMES
+#define BB_MIN_INTERNAL_FRAMES   800u   // ~15 KB  (~4 s window)
+#endif
 
 #define BLACKBOX_DIR        "/blackbox"
 #define BLACKBOX_RETAIN      5u      // keep newest N events (disk backends)
@@ -573,7 +580,20 @@ static bool bb_try_alloc(bool psram, uint32_t frames) {
 static bool blackbox_alloc_ring() {
     if (g_ring) return true;
     if (g_want_psram && bb_try_alloc(true, BLACKBOX_FRAMES_PSRAM)) return true;
-    return bb_try_alloc(false, BLACKBOX_FRAMES_INTERNAL);
+    // Internal-RAM fallback: size the ring to the heap we actually have, not a
+    // fixed BLACKBOX_FRAMES_INTERNAL. A classic ESP32 with no PSRAM has only
+    // ~80-90 KB free after the WiFi AP + web server, so the fixed 57 KB ring
+    // plus the 60 KB margin (117 KB) could never be satisfied: enable was always
+    // refused and the dashboard toggle bounced straight back off (#191). Take the
+    // largest ring that still leaves the margin free, clamped to the floor
+    // (~4 s window) and the per-target save-copy cap — a shorter window on a
+    // low-RAM board, which still records, beats no black box at all. bb_try_alloc
+    // re-guards against the live heap and logs the chosen frame count / KB.
+    uint32_t frames = bb_ram_ring_frames(ESP.getFreeHeap(), BLACKBOX_HEAP_MARGIN,
+                                         sizeof(BBFrame), BB_MIN_INTERNAL_FRAMES,
+                                         BLACKBOX_FRAMES_INTERNAL);
+    if (frames == 0u) return false;   // margin + floor won't fit: genuinely too tight
+    return bb_try_alloc(false, frames);
 }
 
 // Free the ring and drop any pre-roll / armed capture (on disable).
