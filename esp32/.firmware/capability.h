@@ -40,5 +40,9 @@ void capability_start(uint32_t now_ms);
 // Finalize the window once CAP_WINDOW_MS has elapsed. Call once per loop().
 void capability_tick(uint32_t now_ms);
 
+// True while a capability listen window is running. The RX ID whitelist uses
+// this to fall back to accept-all so the checker sees every id (#125).
+bool capability_running(void);
+
 // Dashboard payload: {"state":..,"ms_left":..,"hw":..,"buses":[{...}]}.
 String capability_status_json();

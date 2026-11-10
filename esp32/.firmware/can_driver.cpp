@@ -52,6 +52,15 @@ class TwaiDriver : public CanDriver {
     uint32_t rx_count_    = 0;
     uint8_t  filter_count_ = 0;
     uint32_t filter_ids_[CAN_CAPTURE_MAX_IDS] = {};
+    // RX ID whitelist (performance) prefilter — separate from the capture filter
+    // above, and only ever active while no capture filter is (recompute_rx_filter
+    // drives at most one at a time). A TWAI single acceptance code/mask can only
+    // express a common-bits SUPERSET of a multi-id set, which never drops a
+    // needed id. Kept off the capture metadata path so Listen-Only sleep and the
+    // capture read-outs are byte-identical when no capture runs.
+    bool     rxw_on_       = false;
+    uint32_t rxw_code_     = 0;
+    uint32_t rxw_mask_     = 0xFFFFFFFFu;
     bool     recovering_    = false;  // true while a bus-off recovery is in flight
     bool     busoff_event_  = false;  // consume-on-read edge: recovery just started
     uint32_t rx_rejected_   = 0;      // DLC>8 frames dropped
@@ -95,6 +104,11 @@ class TwaiDriver : public CanDriver {
             CanTwaiPrefilter prefilter = can_capture_twai_prefilter(filter_ids_, filter_count_);
             f.acceptance_code = prefilter.code;
             f.acceptance_mask = prefilter.mask;
+            f.single_filter   = true;
+        } else if (rxw_on_) {
+            // RX ID whitelist common-bits prefilter (superset; no capture active).
+            f.acceptance_code = rxw_code_;
+            f.acceptance_mask = rxw_mask_;
             f.single_filter   = true;
         } else {
             f = TWAI_FILTER_CONFIG_ACCEPT_ALL();
@@ -324,6 +338,42 @@ public:
         }
     }
 
+    // RX ID whitelist: a TWAI single acceptance code/mask can always express a
+    // common-bits SUPERSET of the id set, so this never returns false (never
+    // forces the caller to accept-all) and never drops a requested id.
+    bool setAcceptFilter(const uint32_t *ids, size_t n) override {
+        if (!ids || n == 0) { setAcceptAll(); return true; }
+        CanTwaiPrefilter pf = can_rxw_twai_prefilter(ids, n);
+        if (rxw_on_ && installed_ && rxw_code_ == pf.code && rxw_mask_ == pf.mask) {
+            return true;  // unchanged — no RX-gap reinstall
+        }
+        rxw_on_   = true;
+        rxw_code_ = pf.code;
+        rxw_mask_ = pf.mask;
+        if (!installed_) return true;  // begin() will pick up the prefilter
+        bool lo = listen_only_;
+        stop_and_uninstall();
+        if (!install_and_start(lo)) {
+            Serial.printf("[CAN] %s TWAI RX-whitelist filter FAILED\n", label_);
+        } else {
+            Serial.printf("[CAN] %s TWAI RX-whitelist prefilter -> %u ids (superset)\n",
+                          label_, (unsigned)n);
+        }
+        return true;
+    }
+
+    void setAcceptAll() override {
+        if (!rxw_on_ && filter_count_ == 0) return;  // already accept-all
+        rxw_on_ = false;
+        if (filter_count_ > 0) return;  // a capture filter owns the hardware
+        if (!installed_) return;
+        bool lo = listen_only_;
+        stop_and_uninstall();
+        if (!install_and_start(lo)) {
+            Serial.printf("[CAN] %s TWAI RX-whitelist accept-all FAILED\n", label_);
+        }
+    }
+
     // Pre-reboot quiesce: stop the controller (no TX, no ACK), then take the TX
     // pad back from the TWAI peripheral and drive it recessive until the chip
     // resets. The level is latched high before the pad becomes an output (and
@@ -401,6 +451,16 @@ class Mcp2515Driver : public CanDriver {
     bool     installed_    = false;
     bool     chip_detected_ = false;
     const char *filter_mode_ = "unknown";
+    // RX ID whitelist (performance): up to the MCP2515's 6 exact filter slots.
+    // Separate from the capture filter (filter_mode_/capture path) and driven
+    // only while no capture filter is active. filter_mode_ is left untouched so
+    // capture metadata and Listen-Only sleep stay byte-identical when no capture
+    // runs. The MCP2515 has 2 masks + 6 filters, so a set of > 6 ids can't be
+    // expressed exactly: setAcceptFilter then returns false and the caller
+    // accepts all (fits-or-accept-all).
+    bool     rxw_on_       = false;
+    uint8_t  rxw_count_    = 0;
+    uint32_t rxw_ids_[CAN_CAPTURE_MAX_IDS] = {};
     uint32_t err_count_    = 0;
     uint32_t tx_count_     = 0;
     uint32_t rx_count_     = 0;
@@ -655,6 +715,14 @@ public:
                           listen_only ? "Listen-Only" : "Normal",
                           mcp_clock_name(MCP_CRYSTAL_MHZ));
             apply_rx_task();
+            // Reapply the RX whitelist a reconnect reset to accept-all. (The
+            // capture sync re-narrows next cycle if a capture is in progress;
+            // recompute_rx_filter() stands down while one is, so the two never
+            // fight here.)
+            if (rxw_on_ && rxw_count_ > 0) {
+                SpiLock lock(spi_mutex_);
+                can_capture_program_mcp_filters(mcp_, rxw_ids_, rxw_count_, listen_only_);
+            }
         } else {
             Serial.printf("[CAN] %s MCP2515 detected but mode change FAILED (err=%d)\n",
                           label_, (int)err);
@@ -835,6 +903,42 @@ public:
             Serial.printf("[CAN] %s MCP2515 hardware filter -> accept all\n", label_);
         }
     }
+
+    // RX ID whitelist: the MCP2515 can hold at most 6 exact ids (2 masks + 6
+    // filters). A larger set cannot be expressed as an exact superset, so return
+    // false and let the caller accept all — never a partial filter.
+    bool setAcceptFilter(const uint32_t *ids, size_t n) override {
+        if (!ids || n == 0) { setAcceptAll(); return true; }
+        if (n > CAN_CAPTURE_MAX_IDS) return false;  // > 6 ids: caller accepts all
+        rxw_on_    = true;
+        rxw_count_ = (uint8_t)n;
+        for (size_t i = 0; i < n; i++) rxw_ids_[i] = ids[i] & 0x7FFu;
+        if (!installed_) return true;  // begin() will load the filters
+        bool ok;
+        {
+            SpiLock lock(spi_mutex_);
+            ok = can_capture_program_mcp_filters(mcp_, rxw_ids_, rxw_count_, listen_only_);
+        }
+        if (!ok) {
+            Serial.printf("[CAN] %s MCP2515 RX-whitelist filter FAILED\n", label_);
+            return false;  // caller accepts all
+        }
+        Serial.printf("[CAN] %s MCP2515 RX-whitelist -> %u exact ids\n", label_, (unsigned)n);
+        return true;
+    }
+
+    void setAcceptAll() override {
+        bool was = rxw_on_;
+        rxw_on_    = false;
+        rxw_count_ = 0;
+        if (!was || !installed_) return;  // nothing to undo
+        bool ok;
+        {
+            SpiLock lock(spi_mutex_);
+            ok = can_capture_program_mcp_filters(mcp_, nullptr, 0, listen_only_);
+        }
+        if (!ok) Serial.printf("[CAN] %s MCP2515 RX-whitelist accept-all FAILED\n", label_);
+    }
 };
 #endif
 
@@ -892,6 +996,14 @@ class Mcp2518FdDriver : public CanDriver {
     const char *filter_mode_ = "unknown";
     uint8_t  filter_count_  = 0;
     uint32_t filter_ids_[CAN_CAPTURE_MAX_IDS] = {};
+    // RX ID whitelist (performance): up to the MCP2518FD's 32 filter objects.
+    // Separate from the capture filter and driven only while no capture filter
+    // is active; filter_mode_ stays on the capture path so capture metadata is
+    // unaffected. A set of > 32 ids can't be expressed exactly -> setAcceptFilter
+    // returns false and the caller accepts all (fits-or-accept-all).
+    bool     rxw_on_        = false;
+    uint8_t  rxw_count_     = 0;
+    uint32_t rxw_ids_[MCP2518FD_RXW_MAX_IDS] = {};
     uint32_t tx_count_      = 0;
     uint32_t rx_count_      = 0;
     uint32_t rx_rejected_   = 0;   // DLC>8 and CAN FD frames dropped
@@ -937,7 +1049,14 @@ class Mcp2518FdDriver : public CanDriver {
             return kTimingRejected;
         }
         ACAN2517FDFilters filters;
-        mcp2518fd_capture_filters(filters, kStandard, filter_ids_, filter_count_);
+        if (filter_count_ > 0) {
+            mcp2518fd_capture_filters(filters, kStandard, filter_ids_, filter_count_);
+        } else if (rxw_on_ && rxw_count_ > 0) {
+            // RX ID whitelist exact superset (no capture active).
+            mcp2518fd_whitelist_filters(filters, kStandard, rxw_ids_, rxw_count_);
+        } else {
+            mcp2518fd_capture_filters(filters, kStandard, nullptr, 0);  // pass-all
+        }
         started_ = true;
         return can_.begin(s, nullptr, filters);
     }
@@ -1297,6 +1416,41 @@ public:
                           label_, (unsigned)count);
         } else {
             Serial.printf("[CAN] %s MCP2518FD hardware filter -> accept all\n", label_);
+        }
+    }
+
+    // RX ID whitelist: the MCP2518FD has 32 filter objects, so up to 32 exact
+    // ids install as an exact superset. A larger set returns false (caller
+    // accepts all). On any programming failure the controller is restored to
+    // accept-all rather than left stopped.
+    bool setAcceptFilter(const uint32_t *ids, size_t n) override {
+        if (!ids || n == 0) { setAcceptAll(); return true; }
+        if (n > MCP2518FD_RXW_MAX_IDS) return false;  // > 32 ids: caller accepts all
+        rxw_on_    = true;
+        rxw_count_ = (uint8_t)n;
+        for (size_t i = 0; i < n; i++) rxw_ids_[i] = ids[i] & 0x7FFu;
+        if (!begun_ || filter_count_ > 0) return true;  // begin() loads them / capture owns it
+        uint32_t err = restart(listen_only_);
+        if (err != 0 || !installed_) {
+            // Never leave the controller stopped: fall back to accept-all.
+            rxw_on_ = false; rxw_count_ = 0;
+            restart(listen_only_);
+            Serial.printf("[CAN] %s MCP2518FD RX-whitelist FAILED (code 0x%lX) — accept-all\n",
+                          label_, (unsigned long)err);
+            return false;
+        }
+        Serial.printf("[CAN] %s MCP2518FD RX-whitelist -> %u exact ids\n", label_, (unsigned)n);
+        return true;
+    }
+
+    void setAcceptAll() override {
+        bool was = rxw_on_;
+        rxw_on_ = false; rxw_count_ = 0;
+        if (!was || !begun_ || filter_count_ > 0) return;  // nothing to undo / capture owns it
+        uint32_t err = restart(listen_only_);
+        if (err != 0) {
+            Serial.printf("[CAN] %s MCP2518FD RX-whitelist accept-all FAILED (code 0x%lX)\n",
+                          label_, (unsigned long)err);
         }
     }
 

@@ -37,6 +37,7 @@
 #include "../../fsd_logic/fsd_can_ops.h"  // tesla_can_rx_accept
 #include "../../fsd_logic/fsd_bms.h"      // fsd_bms_temp_fresh
 #include "../../fsd_logic/fsd_freshness.h" // fsd_tx_fresh — stale-frame TX gate (#176)
+#include "../../fsd_logic/fsd_rx_whitelist.h" // RX ID whitelist (performance) derivation
 #include "prefs.h"
 #include "ota_verify.h"
 #include "power_log.h"
@@ -430,7 +431,14 @@ static void sync_http_can_stream_filter_if_needed() {
     bool active = http_can_stream_filter_snapshot(ids, CAN_CAPTURE_MAX_IDS, &count);
     CanBusId bus = CAN_BUS_PRIMARY;
     bool scoped = http_can_stream_bus_filter(&bus);
-    sync.update(g_can, g_can_ok, CAN_ACTIVE_BUS_COUNT, state_snapshot().op_mode,
+    // Read just op_mode under the lock rather than snapshotting the whole 792-byte
+    // FSDState onto this frame: the function runs at the loop task's web stage and
+    // must stay well under the stack budget whether or not it is inlined (#296).
+    OpMode op_mode;
+    state_enter();
+    op_mode = g_state.op_mode;
+    state_exit();
+    sync.update(g_can, g_can_ok, CAN_ACTIVE_BUS_COUNT, op_mode,
                 active, ids, count, scoped, bus);
     // Report actual driver state after programming, including failed changes.
     // "unknown": a filter change failed part-way, so one may be on.
@@ -443,6 +451,104 @@ static void sync_http_can_stream_filter_if_needed() {
     }
     g_can_filtered = filtered;
     http_can_stream_note_filters(CAN_ACTIVE_BUS_COUNT, modes);
+}
+
+// ── RX ID whitelist (performance), opt-in NVS "rxfilter", default OFF ─────────
+// When OFF the hardware acceptance filter is never touched here, so reception is
+// accept-all exactly as today (byte-identical). When ON, program each
+// controller's hardware filter to the DERIVED id set (fsd_rx_whitelist.h) so a
+// busy bus's irrelevant frames never reach the controller's RX path — a real win
+// on the SPI controllers. A capture stream (which owns the hardware filter via
+// sync_http_can_stream_filter_if_needed()), the capability check, or a set that
+// exceeds a controller's filter capacity all fall back to accept-all; the set is
+// never a partial filter that could drop a needed id. Must run AFTER the capture
+// sync each cycle. Dedups so a steady set never reprograms (each reprogram is a
+// brief, config-mode RX gap).
+// Non-static: the dashboard's "rx_id_whitelist" toggle calls it so a just-
+// enabled feature's frames are admitted before the handler returns. Runs on a
+// single task per boot (loop() OR the core-0 web task, never both — see the
+// g_web_on_task guard; the one setup() boot call is made before the web task is
+// created), so the off-stack scratch below needs no lock of its own.
+void recompute_rx_filter() {
+    static bool     last_valid      = false;
+    static bool     last_accept_all = true;
+    static size_t   last_n          = 0;
+    static uint32_t last_ids[FSD_RXW_MAX_IDS] = {};
+    static uint8_t  last_avail      = 0;
+
+    // A capture stream owns the hardware filter (see the capture sync above);
+    // stand down for BOTH flag states so the two never fight, and invalidate our
+    // dedup so the filter is reprogrammed as soon as the capture ends.
+    if (http_can_stream_active()) {
+        last_valid = false;
+        return;
+    }
+
+    // Read just the fields the derivation needs, so no 792-byte FSDState lands on
+    // this function's stack frame (it runs at the loop task's web stage). The
+    // scratch is a zero-initialised file-static; fsd_rx_whitelist_needed() reads
+    // only the four feature/Signal-Map fields filled here.
+    static FSDState rxw_in;
+    bool flag, blackbox;
+    state_enter();
+    flag                   = g_state.rx_id_whitelist;
+    blackbox               = g_state.blackbox_enabled;
+    rxw_in.track_mode_inject = g_state.track_mode_inject;
+    rxw_in.tlssc_restore     = g_state.tlssc_restore;
+    rxw_in.cfg_das_id        = g_state.cfg_das_id;
+    rxw_in.cfg_steer_id      = g_state.cfg_steer_id;
+    state_exit();
+
+    // Default OFF: never touch the filters. If the flag was just turned off after
+    // we had narrowed earlier this boot, restore accept-all once.
+    if (!flag) {
+        if (last_valid && !last_accept_all) {
+            for (uint8_t i = 0; i < CAN_ACTIVE_BUS_COUNT; i++)
+                if (g_can_ok[i] && g_can[i]) g_can[i]->setAcceptAll();
+        }
+        last_valid = true;
+        last_accept_all = true;
+        last_n = 0;
+        last_avail = 0;
+        return;
+    }
+
+    uint32_t ids[FSD_RXW_MAX_IDS];
+    size_t   n = 0;
+    bool accept_all = fsd_rx_whitelist_needed(&rxw_in, blackbox,
+                                              /*capture_all*/ false,  // handled above
+                                              capability_running(),
+                                              /*signalmap_discovery*/ false,
+                                              ids, FSD_RXW_MAX_IDS, &n);
+
+    uint8_t avail = 0;
+    for (uint8_t i = 0; i < CAN_ACTIVE_BUS_COUNT; i++)
+        if (g_can_ok[i] && g_can[i]) avail |= (uint8_t)(1u << i);
+
+    // Dedup: nothing changed since the last program -> no RX-gap reinstall.
+    if (last_valid && avail == last_avail && accept_all == last_accept_all &&
+        n == last_n && memcmp(ids, last_ids, n * sizeof(uint32_t)) == 0) {
+        return;
+    }
+
+    for (uint8_t i = 0; i < CAN_ACTIVE_BUS_COUNT; i++) {
+        if (!(avail & (1u << i))) continue;
+        if (accept_all) {
+            g_can[i]->setAcceptAll();
+        } else if (!g_can[i]->setAcceptFilter(ids, n)) {
+            // This controller can't hold an exact superset of the set: accept all
+            // rather than install a partial filter that could drop a needed id.
+            Serial.printf("[RXFILTER] %s: %u ids > controller capacity — accept-all\n",
+                          can_bus_name(bus_id_from_index(i)), (unsigned)n);
+            g_can[i]->setAcceptAll();
+        }
+    }
+
+    last_valid = true;
+    last_accept_all = accept_all;
+    last_n = n;
+    memcpy(last_ids, ids, n * sizeof(uint32_t));
+    last_avail = avail;
 }
 
 // ── Optional web server on the second core (opt-in, NVS "webtask") ────────────
@@ -460,6 +566,7 @@ static void web_task_entry(void*) {
     for (;;) {
         web_dashboard_update();
         sync_http_can_stream_filter_if_needed();
+        recompute_rx_filter();  // RX ID whitelist (no-op while the flag is OFF)
         vTaskDelay(1);   // yield every pass so the idle task + WDT are fed
     }
 }
@@ -1966,6 +2073,12 @@ void setup() {
         if (g_state.blackbox_enabled) blackbox_set_enabled(true);
         Serial.println("[SER] Type 'ip' in the serial monitor to print WiFi URLs again");
 
+        // RX ID whitelist (performance): apply the derived hardware acceptance
+        // filter now that the drivers and web stack are up. Done before the
+        // optional core-0 web task is created, so that task becomes the sole
+        // caller afterwards. No-op while the flag is OFF (accept-all, default).
+        recompute_rx_filter();
+
         // Optional: run the web server in a task pinned to core 0 (PRO_CPU),
         // next to the WiFi stack, so loop() on core 1 stays CAN-only (#270,
         // part of #176). Opt-in (NVS "webtask"), created once; the toggle takes
@@ -2221,6 +2334,7 @@ void loop() {
     if (!g_web_on_task) {
         web_dashboard_update();
         sync_http_can_stream_filter_if_needed();
+        recompute_rx_filter();  // RX ID whitelist (no-op while the flag is OFF)
     }
     g_loop_health.mark(LOOP_STAGE_WEB, micros());
 
