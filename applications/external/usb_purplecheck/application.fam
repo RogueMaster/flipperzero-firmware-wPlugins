@@ -1,0 +1,14 @@
+App(
+    appid="usb_purplecheck",
+    name="USB PurpleCheck",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="purplecheck_app",
+    sources=["src/*.c", "vendor/*.c"],
+    stack_size=6 * 1024,
+    fap_icon="assets/purplecheck_10px.png",
+    fap_category="USB",
+    fap_author="RogerF5",
+    fap_weburl="https://github.com/RogerF5-Security/USB-PurpleCheck",
+    fap_version="0.3",
+    fap_description="Standalone USB keyboard and isolated storage checks; reports on SD",
+)

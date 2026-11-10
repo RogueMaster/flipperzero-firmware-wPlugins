@@ -248,6 +248,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Infrared: [Validate universal database signals, skip unregistered names and reject empty raw timings (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1211)
 - GUI/API: [Report unreadable folders, complete failed file-browser loads and export the optional error callback (API 88.26) (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1212)
 - Updated: [T5577 v1.4: measure symbol classes from addressed commands and bound the complete histogram (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware)
+- Added: [USB PurpleCheck v0.3 (By RogerF5)](https://github.com/RogerF5-Security/USB-PurpleCheck)
 
 <a name="release"></a>
 
@@ -1242,6 +1243,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [USB Mass Storage v1.5 (By nminaylov)](https://github.com/flipperdevices/flipperzero-good-faps/tree/nm/usb_mass_storage_app/mass_storage)
 - [USB Midi Capturing v0.1 (By fgreil)](https://github.com/fgreil/mitzi-midi)
 - [USB Midi v1.0 (By DrZlo13 & kribesk)](https://github.com/kribesk/flipper-zero-usb-midi) [Instructions by ESurge](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/applications/plugins/usb_midi/ReadMe.md)
+- [USB PurpleCheck v0.3 (By RogerF5)](https://github.com/RogerF5-Security/USB-PurpleCheck)
 - [UV Meter v1.0 (By michaelbaisch)](https://github.com/michaelbaisch/uv_meter) `Req: AS7331`
 - [Varta v1.1 (By mishamyte)](https://github.com/mishamyte/varta)
 - [VaultFlipper v0.1 - Offline Bitwarden/Vaultwarden vault and USB login keyboard (By Sven Würth / its-sven)](https://github.com/its-sven/vaultflipper)
