@@ -48,6 +48,26 @@ static inline bool bb_ring_push(uint32_t cap, uint32_t &head, uint32_t &tail,
     return true;
 }
 
+// Largest internal-RAM ring (in frames) that still leaves `margin` bytes of heap
+// free after the allocation, clamped to [min_frames, max_frames]. The classic
+// ESP32 that #191 was filed on has only ~80-90 KB free after the WiFi AP + web
+// server, so a fixed 3000-frame / 57 KB ring plus the 60 KB WiFi margin (117 KB)
+// never fit and enable was always refused; sizing the ring to the heap we have
+// lets the recorder run with a proportionally shorter window instead. Returns 0
+// — refuse, as before — when even the floor ring (min_frames, a ~4 s window)
+// plus the margin won't fit: that board is genuinely too tight for a black box.
+// Above the gate the computed count is > min_frames, so the lower clamp is a
+// safety net; the upper clamp holds the per-target save-copy cap (<= margin).
+static inline uint32_t bb_ram_ring_frames(size_t avail, size_t margin,
+                                          size_t frame_size,
+                                          uint32_t min_frames, uint32_t max_frames) {
+    if (avail <= margin + (size_t)min_frames * frame_size) return 0u;
+    uint32_t frames = (uint32_t)((avail - margin) / frame_size);
+    if (frames > max_frames) frames = max_frames;
+    if (frames < min_frames) frames = min_frames;
+    return frames;
+}
+
 // The frames with lo_ms <= ts <= hi_ms, as `count` frames from logical position
 // `first` (0 = the oldest frame in the ring).
 struct BBWindow {
