@@ -7,7 +7,6 @@
 #include <furi.h>
 #include <furi_hal_subghz.h>
 #include <furi_hal_power.h>
-#include <furi_hal_region.h>
 #include <gui/gui.h>
 #include <gui/view_dispatcher.h>
 #include <gui/modules/submenu.h>
@@ -175,7 +174,7 @@ struct App {
 
     uint8_t serials[MAX_SERIALS][SERIAL_LEN];
     uint8_t serial_mode[MAX_SERIALS]; // 0 = standard (0x0n), 1 = mask (0x1n)
-    uint8_t serial_wild[MAX_SERIALS]; // always 0; kept so the .dr "Wild" field stays compatible
+    uint8_t serial_wild[MAX_SERIALS]; // bit n set = nibble n is a '*' wildcard
     uint8_t serial_disabled[MAX_SERIALS]; // 1 = kept in list but skipped on send
     uint8_t count;
     uint8_t channel;
@@ -203,7 +202,7 @@ struct App {
     volatile bool tx_busy;
     volatile uint32_t tx_prog_done; // frames put on air so far
     uint32_t tx_prog_total; // frames this send will put on air
-    uint32_t tx_combos_total; // serials handled in this send
+    uint32_t tx_combos_total; // wildcard-expanded serials in this send
     uint32_t tx_rep_sum; // frames sent per expanded serial (sum of reps)
     bool tx_show_progress; // this send is long enough for the progress panel
     uint8_t p_btns[3];
@@ -238,13 +237,43 @@ static uint8_t nibble_at(const uint8_t* b, uint8_t n) {
     return (n & 1) ? (b[n / 2] & 0x0F) : (b[n / 2] >> 4);
 }
 
-// "AA BB CC" style serial.
-static void serial_pattern_str(const uint8_t* b, char* out, size_t n) {
+// "AA BB C*" style, with '*' for wildcard nibbles.
+static void serial_pattern_str(const uint8_t* b, uint8_t wild, char* out, size_t n) {
     static const char hx[] = "0123456789ABCDEF";
     char d[6];
     for(uint8_t i = 0; i < 6; i++)
-        d[i] = hx[nibble_at(b, i)];
+        d[i] = (wild & (1 << i)) ? '*' : hx[nibble_at(b, i)];
     snprintf(out, n, "%c%c %c%c %c%c", d[0], d[1], d[2], d[3], d[4], d[5]);
+}
+
+// Wildcard-aware overlap. Returns the index of a colliding pattern or -1.
+// *exact is set when the collision is an identical pattern (no wildcards involved).
+static int serial_find_overlap(App* app, const uint8_t* b, uint8_t wild, int except, bool* exact) {
+    for(int i = 0; i < app->count; i++) {
+        if(i == except) continue;
+        bool overlap = true;
+        for(uint8_t n = 0; n < 6; n++) {
+            if((wild & (1 << n)) || (app->serial_wild[i] & (1 << n))) continue;
+            if(nibble_at(b, n) != nibble_at(app->serials[i], n)) {
+                overlap = false;
+                break;
+            }
+        }
+        if(overlap) {
+            if(exact)
+                *exact =
+                    (wild == app->serial_wild[i] && memcmp(b, app->serials[i], SERIAL_LEN) == 0);
+            return i;
+        }
+    }
+    return -1;
+}
+
+static uint8_t wild_count(uint8_t wild) {
+    uint8_t n = 0;
+    for(uint8_t i = 0; i < 6; i++)
+        if(wild & (1 << i)) n++;
+    return n;
 }
 
 static bool all_disabled(App* app) {
@@ -254,16 +283,19 @@ static bool all_disabled(App* app) {
     return true;
 }
 
-// Number of enabled serials in the remote.
+// Total number of concrete serials, expanding every wildcard nibble to 16.
 static uint32_t effective_count(App* app) {
     uint32_t total = 0;
-    for(uint8_t s = 0; s < app->count; s++)
-        if(!app->serial_disabled[s]) total++;
+    for(uint8_t s = 0; s < app->count; s++) {
+        if(app->serial_disabled[s]) continue;
+        uint32_t e = 1u << (4 * wild_count(app->serial_wild[s]));
+        total = (total > 0xFFFFFFFFu - e) ? 0xFFFFFFFFu : total + e;
+    }
     return total;
 }
 
-// Keeps large frame totals short enough to fit; a leading '>' marks the value
-// as rounded down.
+// Keeps huge wildcard totals (a ****** serial is 16777216) short enough to fit;
+// a leading '>' marks the value as rounded down.
 static void fmt_count(char* buf, size_t n, uint32_t v) {
     if(v < 10000)
         snprintf(buf, n, "%lu", (unsigned long)v);
@@ -453,11 +485,24 @@ static void
     }
 }
 
-// Sends one serial once.
+// Sends one serial pattern, expanding every '*' nibble to all 16 values.
 static void tx_frame_once(App* app, const SubGhzDevice* dev, uint8_t idx, uint8_t btn) {
-    if(app->tx_abort) return;
-    tx_emit(app, dev, app->serials[idx], app->serial_mode[idx], btn);
-    app->tx_prog_done++;
+    uint8_t wpos[6], wn = 0;
+    for(uint8_t i = 0; i < 6; i++)
+        if(app->serial_wild[idx] & (1 << i)) wpos[wn++] = i;
+
+    uint32_t total = 1u << (4 * wn);
+    for(uint32_t combo = 0; combo < total && !app->tx_abort; combo++) {
+        uint8_t nib[6];
+        for(uint8_t i = 0; i < 6; i++)
+            nib[i] = nibble_at(app->serials[idx], i);
+        for(uint8_t j = 0; j < wn; j++)
+            nib[wpos[j]] = (combo >> (4 * j)) & 0x0F;
+        uint8_t bytes[SERIAL_LEN] = {
+            (nib[0] << 4) | nib[1], (nib[2] << 4) | nib[3], (nib[4] << 4) | nib[5]};
+        tx_emit(app, dev, bytes, app->serial_mode[idx], btn);
+        app->tx_prog_done++;
+    }
 }
 
 // Runs on the worker thread. Stops promptly when app->tx_abort is set.
@@ -543,10 +588,6 @@ static void tx_start(
         remote_commit(app);
         return;
     }
-    if(!furi_hal_region_is_frequency_allowed(SUBGHZ_FREQ)) {
-        info_dialog(app, APP_NAME, "TX not allowed\nin your region");
-        return;
-    }
 
     tx_join(app);
 
@@ -614,9 +655,7 @@ static bool remote_load(App* app, const char* path) {
         memset(app->serial_wild, 0, sizeof(app->serial_wild));
         memset(app->serial_disabled, 0, sizeof(app->serial_disabled));
         if(cnt > 0) flipper_format_read_hex(ff, "Modes", app->serial_mode, cnt); // optional
-        // "Wild" is intentionally not read: this build has no wildcards, so any
-        // wildcard serials in a file made by the unrestricted app collapse to
-        // their stored (plain) nibbles instead of expanding into a range.
+        if(cnt > 0) flipper_format_read_hex(ff, "Wild", app->serial_wild, cnt); // optional
         if(cnt > 0) flipper_format_read_hex(ff, "Disabled", app->serial_disabled, cnt); // optional
         uint32_t tilt = 0;
         flipper_format_read_uint32(ff, "Tilt", &tilt, 1); // optional
@@ -817,7 +856,7 @@ static void mk_items(uint8_t k, const char** out) {
 }
 
 // Centered, titled panel, matching the limit/action menus. The counter shows
-// how many serials have been sent so far.
+// wildcard-expanded serials handled, so one two-star serial runs 0..256.
 static void draw_progress(Canvas* c, App* app, const char* act) {
     canvas_set_font(c, FontSecondary);
     char title[32];
@@ -1152,7 +1191,7 @@ static void list_draw(Canvas* c, void* ctx) {
         int idx = m->top + i;
         int y = 14 + i * rh;
         char s[16];
-        serial_pattern_str(app->serials[idx], s, sizeof(s));
+        serial_pattern_str(app->serials[idx], app->serial_wild[idx], s, sizeof(s));
         const char* modetag = app->serial_mode[idx] ? "mask" : "std";
         if(idx == m->sel) {
             canvas_draw_box(c, 0, y, SCREEN_W, rh);
@@ -1227,7 +1266,7 @@ static bool list_input(InputEvent* e, void* ctx) {
                 info_dialog(app, APP_NAME, "Keep at least\none serial");
             } else if(msel == 1) {
                 char s[16];
-                serial_pattern_str(app->serials[sel], s, sizeof(s));
+                serial_pattern_str(app->serials[sel], app->serial_wild[sel], s, sizeof(s));
                 DialogMessage* dm = dialog_message_alloc();
                 dialog_message_set_header(dm, "Delete serial?", 64, 4, AlignCenter, AlignTop);
                 dialog_message_set_text(dm, s, 64, 32, AlignCenter, AlignCenter);
@@ -1307,7 +1346,10 @@ static void hex_draw(Canvas* c, void* ctx) {
     for(int i = 0; i < 6; i++) {
         int x = x0[i], w = 16, mcx = x + w / 2;
         char d[4];
-        snprintf(d, sizeof(d), "%X", m->nib[i] & 0x0F);
+        if(m->nib[i] == 16)
+            snprintf(d, sizeof(d), "*");
+        else
+            snprintf(d, sizeof(d), "%X", m->nib[i] & 0x0F);
 
         // mini up/down arrows above and below every box
         canvas_draw_dot(c, mcx, by - 5);
@@ -1374,9 +1416,9 @@ static bool hex_input(InputEvent* e, void* ctx) {
                 if(m->col == 6)
                     m->mode = !m->mode;
                 else if(e->key == InputKeyUp)
-                    m->nib[m->col] = (m->nib[m->col] >= 15) ? 0 : m->nib[m->col] + 1;
+                    m->nib[m->col] = (m->nib[m->col] >= 16) ? 0 : m->nib[m->col] + 1;
                 else
-                    m->nib[m->col] = (m->nib[m->col] == 0) ? 15 : m->nib[m->col] - 1;
+                    m->nib[m->col] = (m->nib[m->col] == 0) ? 16 : m->nib[m->col] - 1;
             },
             true);
         return true;
@@ -1396,16 +1438,25 @@ static bool hex_input(InputEvent* e, void* ctx) {
             false);
 
         uint8_t bytes[SERIAL_LEN] = {0, 0, 0};
+        uint8_t wild = 0;
         for(uint8_t n = 0; n < 6; n++) {
-            uint8_t v = nib[n] & 0x0F;
+            uint8_t v = nib[n];
+            if(v == 16) {
+                wild |= (1 << n);
+                v = 0;
+            }
             if(n & 1)
                 bytes[n / 2] |= v;
             else
                 bytes[n / 2] |= v << 4;
         }
 
-        if(serial_find(app, bytes, index) >= 0) {
-            info_dialog(app, APP_NAME, "Serial already\nin this remote");
+        bool exact = false;
+        if(serial_find_overlap(app, bytes, wild, index, &exact) >= 0) {
+            info_dialog(
+                app,
+                APP_NAME,
+                exact ? "Serial already\nin this remote" : "Overlaps a mask\nalready added");
             return true;
         }
         if(index < 0) {
@@ -1415,7 +1466,7 @@ static bool hex_input(InputEvent* e, void* ctx) {
             }
             memcpy(app->serials[app->count], bytes, SERIAL_LEN);
             app->serial_mode[app->count] = mode;
-            app->serial_wild[app->count] = 0;
+            app->serial_wild[app->count] = wild;
             app->serial_disabled[app->count] = 0;
             app->count++;
             serials_sort(app);
@@ -1430,7 +1481,7 @@ static bool hex_input(InputEvent* e, void* ctx) {
         } else {
             memcpy(app->serials[index], bytes, SERIAL_LEN);
             app->serial_mode[index] = mode;
-            app->serial_wild[index] = 0;
+            app->serial_wild[index] = wild;
             app->dirty = true;
             serials_sort(app);
             int pos = serial_find(app, bytes, -1);
@@ -1443,7 +1494,7 @@ static bool hex_input(InputEvent* e, void* ctx) {
     return false;
 }
 
-static void hex_set(App* app, const uint8_t* bytes, int index, uint8_t mode) {
+static void hex_set(App* app, const uint8_t* bytes, int index, uint8_t mode, uint8_t wild) {
     uint8_t b[3] = {0, 0, 0};
     if(bytes) memcpy(b, bytes, SERIAL_LEN);
     with_view_model(
@@ -1451,7 +1502,7 @@ static void hex_set(App* app, const uint8_t* bytes, int index, uint8_t mode) {
         HexModel * m,
         {
             for(uint8_t i = 0; i < 6; i++)
-                m->nib[i] = nibble_at(b, i);
+                m->nib[i] = (wild & (1 << i)) ? 16 : nibble_at(b, i);
             m->col = 0;
             m->mode = mode;
             m->index = index;
@@ -1460,7 +1511,7 @@ static void hex_set(App* app, const uint8_t* bytes, int index, uint8_t mode) {
 }
 
 static void hex_enter_from_list(App* app, uint8_t idx) {
-    hex_set(app, app->serials[idx], idx, app->serial_mode[idx]);
+    hex_set(app, app->serials[idx], idx, app->serial_mode[idx], app->serial_wild[idx]);
     view_dispatcher_switch_to_view(app->vd, ViewHex);
 }
 
@@ -1545,10 +1596,14 @@ static bool add_from_file(App* app) {
     if(browse(app, ".sub", SUBGHZ_FOLDER, app->sub_path)) {
         uint8_t serial[SERIAL_LEN];
         uint8_t mode = 0;
+        bool exact = false;
         if(!serial_from_sub(app, furi_string_get_cstr(app->sub_path), serial, &mode))
             info_dialog(app, APP_NAME, "Not a Dooya\n.sub file");
-        else if(serial_find(app, serial, -1) >= 0)
-            info_dialog(app, APP_NAME, "Serial already\nin this remote");
+        else if(serial_find_overlap(app, serial, 0, -1, &exact) >= 0)
+            info_dialog(
+                app,
+                APP_NAME,
+                exact ? "Serial already\nin this remote" : "Overlaps a mask\nalready added");
         else if(app->count >= MAX_SERIALS)
             info_dialog(app, APP_NAME, "Remote is full");
         else {
@@ -1628,7 +1683,7 @@ static void create_menu_cb(void* ctx, uint32_t index) {
             enter_remote(app);
         }
     } else if(index == CreateCustom) {
-        hex_set(app, NULL, -1, 0);
+        hex_set(app, NULL, -1, 0, 0);
         view_dispatcher_switch_to_view(app->vd, ViewHex);
     }
 }
@@ -1804,7 +1859,7 @@ static void edit_menu_cb(void* ctx, uint32_t index) {
     if(index == EditAddFile) {
         add_from_file(app);
     } else if(index == EditAddCustom) {
-        hex_set(app, NULL, -1, 0);
+        hex_set(app, NULL, -1, 0, 0);
         view_dispatcher_switch_to_view(app->vd, ViewHex);
     } else if(index == EditList) {
         serials_sort(app);
@@ -1963,7 +2018,6 @@ static void build_about(App* app) {
         SCREEN_W,
         SCREEN_H - 15,
         "\e#Version " APP_VERSION "\n"
-        "(restricted)\n"
         "" APP_REPO "\n"
         "\n"
         "Emulate a Dooya shutter\n"

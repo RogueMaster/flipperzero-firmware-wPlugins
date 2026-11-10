@@ -30,6 +30,9 @@ and keeps it per serial.
 * **Import from `.sub` captures.** Point the app at any Dooya `.sub` file and it
   pulls out the 3 byte serial. The recorded button does not matter.
 * **Type serials by hand.** Enter the serial as six independent hex digits.
+* **Wildcards.** Set any digit to `*` and it expands to every value from 0 to F.
+  `AA BB C*` sends 16 frames, `** ** **` sweeps the whole range. The list and the
+  keypad tag show the expanded total.
 * **Channels 0 to 15.** Left and Right change the channel and wrap around.
   Channel 0 is the master address that every channel answers to.
 * **Per serial channel format.** Standard (`0x0n`) and mask (`0x1n`) are detected
@@ -51,11 +54,11 @@ Managing the serials in a remote:
 |:---:|:---:|:---:|
 | ![Manage Serials menu](docs/images/04-manage-serials.png) | ![Serial list](docs/images/05-serial-list.png) | ![Row actions](docs/images/06-serial-actions.png) |
 
-Editing a serial and a disabled (struck out) row:
+Editing a serial, adding a wildcard, and a disabled (struck out) row:
 
-| Serial editor | Disabled row |
-|:---:|:---:|
-| ![Serial editor](docs/images/07-serial-editor.png) | ![Disabled row](docs/images/09-serial-disabled.png) |
+| Serial editor | Wildcard digit | Disabled row |
+|:---:|:---:|:---:|
+| ![Serial editor](docs/images/07-serial-editor.png) | ![Wildcard digit](docs/images/08-serial-wildcard.png) | ![Disabled row](docs/images/09-serial-disabled.png) |
 
 Sending commands from the keypad:
 
@@ -85,8 +88,8 @@ A single tap sends *TX Count* frames (2 by default). The hold menus send for the
 right duration and show a "sending, wait" box so no other key is pressed meanwhile.
 
 The top left shows the loaded file name. The top right tag shows `S` only when a
-single serial is stored, otherwise `G:<n>`, where `n` is the number of enabled
-serials (disabled serials skipped). So two serials with one of
+single plain serial is stored, otherwise `G:<n>`, where `n` is the number of enabled
+frames (wildcards expanded, disabled serials skipped). So two serials with one of
 them disabled still read `G:1`. When every serial is disabled the tag gains `(D)`,
 for example `S (D)` or `G:0 (D)`, and a key press then shows `No remotes`. The tag
 ends in `I` or `E` for the internal or external radio. The bottom left shows the
@@ -126,14 +129,14 @@ appears just left of the `Hold ... exit` hint.
 
 * **Add From File**: pull the serial out of a Dooya `.sub` file.
 * **Add Custom**: type the serial as six hex digits, each one Left/Right to pick
-  and Up/Down to change.
+  and Up/Down to change. Push a digit past F to reach the `*` wildcard.
 * **Edit List**: the stored serials. Press OK on one for **Edit**, **Delete** or
   **Enable / Disable**. Disabled rows are struck out and sorted to the bottom.
   Deleting is refused when only one serial is left, so a remote always keeps at
   least one. Those remaining serials may all be disabled, that is fine.
 
-Duplicate serials and non-Dooya files are rejected. A new serial that matches one
-already in the list is rejected too, even a disabled one.
+Duplicate serials and non-Dooya files are rejected. A new serial that overlaps a
+serial or a wildcard already in the list is rejected too, even a disabled one.
 
 ## File format
 
@@ -152,10 +155,8 @@ TX Count: 2
 ```
 
 `Serials` holds three bytes per entry. `Modes`, `Wild` and `Disabled` hold one byte
-per entry and are optional, so older files still load. This restricted build has no
-wildcards, so `Wild` is always written as zeros; it is kept in the file only so the
-format stays interchangeable with the unrestricted build (which reads it, and treats
-a missing `Wild` as zeros too). `Tilt` and `TX Count` apply to the whole remote.
+per entry and are optional, so older files still load. `Wild` is a bit mask of the
+six digits that are wildcards. `Tilt` and `TX Count` apply to the whole remote.
 
 ## Build
 
@@ -175,10 +176,8 @@ from Apps then Sub-GHz.
 
 ## Notes and limitations
 
-* This is the **restricted** build for the Flipper app catalog: no serial
-  wildcards, and transmission is blocked unless 433.92 MHz is allowed in the
-  firmware's region (a "TX not allowed in your region" message is shown).
 * The app transmits only. It does not receive or learn serials over the air.
 * Set and delete limit commands are included but not every Dooya motor acts on an
   RF limit command. Many only take limits set at the motor head.
-* Back cancels any send in progress.
+* A very wide wildcard such as `** ** **` is a large sweep (millions of frames).
+  Back cancels any send in progress.

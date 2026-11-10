@@ -1,11 +1,6 @@
 ## v1.2
 
 - Move saved remotes to `/ext/apps_data/dooya_remote` (was the SD card root).
-- Remove serial wildcards; only real serials (typed or imported) are sent. Files
-  still keep a `Wild` field (all zeros) so they stay interchangeable with the
-  unrestricted build.
-- Block transmission when 433.92 MHz is not allowed in the firmware's region.
-- Mark the build as "(restricted)" in the About screen.
 
 ## v1.1
 

@@ -220,7 +220,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Minesweeper Redux v1.7 author board-generation and solver optimizations (By squee72564)](https://github.com/squee72564/F0_Minesweeper_Fap)
 - Updated: [ProtoView v1.5 VW/Audi TPMS decoder, 125 kHz sensor wake and bounded history copies (By arthurdurlesteanu)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/pull/1211)
 - Updated: [Metroflip v2.1-beta.1 Santo Domingo and BIP Piemonte support, additional DESFire AIDs, Calypso ticketing dumps and Suica plugin assets (By luu176, filippo-ferrando, DIVIADAR and ry4000)](https://github.com/luu176/Metroflip)
-- Updated: [Dooya Remote v1.2 saves remotes under apps_data, removes serial wildcard sweeps and checks the firmware region before 433.92 MHz transmission (By Lechnio)](https://github.com/Lechnio/Dooya-Remote/commit/2abceec60166d88af00fc6e4b5ca4eced614c999)
 - Updated: [Remote Analyzer adds Life Fido, Crypt and Crypt Lite detection (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/faa3b6f3bd59868024a1d464fa0c999bb0453d6d)
 - Updated: [KeeLoq mode 10 Phantom/Hiland resync and Crypt Key identification (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/24b053f847176e789cd66d54c9b63371134f731d)
 - Updated: [Sub-GHz Add Manually list sorted by remote name (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/a169d65f4cc483de96a346c8564d86207bdc88ea)
@@ -249,6 +248,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - GUI/API: [Report unreadable folders, complete failed file-browser loads and export the optional error callback (API 88.26) (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1212)
 - Updated: [T5577 v1.4: measure symbol classes from addressed commands and bound the complete histogram (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware)
 - Added: [USB PurpleCheck v0.3 (By RogerF5)](https://github.com/RogerF5-Security/USB-PurpleCheck)
+- Updated: [Dooya Remote v1.2 restored to author main (By Lechnio)](https://github.com/Lechnio/Dooya-Remote)
 
 <a name="release"></a>
 
