@@ -7,8 +7,6 @@ on:
 
 permissions:
   contents: write
-  pages: write
-  id-token: write
 
 jobs:
   prep:
@@ -172,146 +170,34 @@ jobs:
           generate_release_notes: true
           prerelease: ${{ needs.prep.outputs.is_prerelease == 'true' }}
 
-  publish-repos:
-    needs: [prep, build-deb, build-rpm]
-    # Prereleases (e.g. v0.0.1-beta) skip the stable apt/yum repos to avoid
-    # pushing preview builds to users running `apt install infrafid`.
+  # Packages are published centrally by amd989/packages, which serves
+  # packages.alejandro.md. This repository builds, attaches the artifacts to
+  # its own GitHub Release, and asks the publisher to pick that release up.
+  # The signing key and the storage credentials live only over there.
+  publish:
+    needs: [prep, release]
     if: needs.prep.outputs.is_prerelease != 'true'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-        with:
-          ref: gh-pages
-          fetch-depth: 0
-        continue-on-error: true
-
-      - name: Initialize gh-pages if needed
-        run: |
-          if [ ! -f index.html ]; then
-            git init
-            git checkout -b gh-pages
-          fi
-
-      - name: Download deb artifacts
-        uses: actions/download-artifact@v5
-        with:
-          pattern: deb-*
-          path: incoming-deb
-          merge-multiple: true
-
-      - name: Download rpm artifacts
-        uses: actions/download-artifact@v5
-        with:
-          pattern: rpm-*
-          path: incoming-rpm
-          merge-multiple: true
-
-      - name: Install repo tools
-        run: sudo apt-get update && sudo apt-get install -y reprepro createrepo-c
-
-      - name: Import or generate GPG key
-        run: |
-          if [ -n "${{ secrets.GPG_PRIVATE_KEY }}" ]; then
-            echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --import
-            GPG_KEY_ID=$(gpg --list-secret-keys --keyid-format long | grep sec | head -1 | awk '{print $2}' | cut -d'/' -f2)
-          else
-            # Generate a temporary key for signing (user should replace with proper key)
-            cat > /tmp/gpg-batch <<GPGEOF
-              %no-protection
-              Key-Type: RSA
-              Key-Length: 4096
-              Subkey-Type: RSA
-              Subkey-Length: 4096
-              Name-Real: infrafid
-              Name-Email: amd989@users.noreply.github.com
-              Expire-Date: 0
-          GPGEOF
-            gpg --batch --gen-key /tmp/gpg-batch
-            GPG_KEY_ID=$(gpg --list-secret-keys --keyid-format long | grep sec | head -1 | awk '{print $2}' | cut -d'/' -f2)
-            echo "::warning::Using auto-generated GPG key. For production, add GPG_PRIVATE_KEY secret."
-          fi
-          echo "GPG_KEY_ID=$GPG_KEY_ID" >> "$GITHUB_ENV"
-          gpg --armor --export "$GPG_KEY_ID" > gpg.key
-
-      - name: Configure reprepro
-        run: |
-          mkdir -p conf
-          cat > conf/distributions <<EOF
-          Origin: infrafid
-          Label: infrafid
-          Codename: stable
-          Architectures: amd64 arm64 armhf armel
-          Components: main
-          Description: InfraFi IR WiFi credential receiver daemon
-          SignWith: ${{ env.GPG_KEY_ID }}
-          EOF
-
-      - name: Add deb packages to APT repo
-        run: |
-          for deb in incoming-deb/*.deb; do
-            reprepro includedeb stable "$deb"
-          done
-
-      - name: Create YUM/DNF repo
-        run: |
-          rm -rf rpm/packages rpm/repodata
-          mkdir -p rpm/packages
-          cp incoming-rpm/*.rpm rpm/packages/
-          gpg --batch --pinentry-mode loopback --detach-sign --armor rpm/packages/*.rpm 2>/dev/null || true
-          createrepo_c rpm/
-          gpg --batch --pinentry-mode loopback --detach-sign --armor rpm/repodata/repomd.xml
-
-      - name: Fetch site assets from source
-        run: |
-          curl -fsSL "https://raw.githubusercontent.com/amd989/InfraFi/${GITHUB_REF_NAME}/gh-pages/index.html" -o index.html
-          sed -i "s/{{VERSION}}/${GITHUB_REF_NAME#v}/g" index.html
-          curl -fsSL "https://raw.githubusercontent.com/amd989/InfraFi/${GITHUB_REF_NAME}/gh-pages/flipper.svg" -o flipper.svg
-          mkdir -p screenshots
-          for i in 1 2 3 4 5 6 7; do
-            curl -fsSL "https://raw.githubusercontent.com/amd989/InfraFi/${GITHUB_REF_NAME}/screenshots/ss${i}.png" -o "screenshots/ss${i}.png"
-          done
-
-      - name: Create APT setup script
-        run: |
-          cat > setup.sh <<'SETUPEOF'
-          #!/bin/bash
-          set -e
-          echo "Adding InfraFi APT repository..."
-          curl -fsSL https://amd989.github.io/InfraFi/gpg.key | gpg --dearmor -o /usr/share/keyrings/infrafid.gpg
-          echo "deb [signed-by=/usr/share/keyrings/infrafid.gpg] https://amd989.github.io/InfraFi stable main" > /etc/apt/sources.list.d/infrafid.list
-          apt-get update
-          echo "Done! You can now run: sudo apt install infrafid"
-          SETUPEOF
-          chmod +x setup.sh
-
-      - name: Create DNF setup script
-        run: |
-          cat > setup-rpm.sh <<'SETUPEOF'
-          #!/bin/bash
-          set -e
-          echo "Adding InfraFi YUM/DNF repository..."
-          rpm --import https://amd989.github.io/InfraFi/gpg.key
-          cat > /etc/yum.repos.d/infrafid.repo <<REPOEOF
-          [infrafid]
-          name=infrafid
-          baseurl=https://amd989.github.io/InfraFi/rpm/
-          enabled=1
-          gpgcheck=1
-          gpgkey=https://amd989.github.io/InfraFi/gpg.key
-          REPOEOF
-          echo "Done! You can now run: sudo dnf install infrafid"
-          SETUPEOF
-          chmod +x setup-rpm.sh
-
-      - name: Deploy to GitHub Pages
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          # Clean up build artifacts, keep repo files
-          rm -rf incoming-deb incoming-rpm conf
-          git add -A
-          git commit -m "Update package repo for ${GITHUB_REF_NAME}" || true
-          git push origin gh-pages --force
+      - name: Publish to packages.alejandro.md
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.PACKAGES_DISPATCH_TOKEN }}
+          REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::error::PACKAGES_DISPATCH_TOKEN is not set. The release exists, but packages.alejandro.md was not asked to publish it. Set the secret, then run the publish workflow in amd989/packages by hand for $REPO $TAG."
+            exit 1
+          fi
+          # -f rather than -F: -F converts values that look like numbers or
+          # booleans, and the publisher expects the tag as a string.
+          gh api repos/amd989/packages/dispatches \
+            -f event_type=publish \
+            -f "client_payload[repo]=$REPO" \
+            -f "client_payload[tag]=$TAG"
+          {
+            echo "### Asked packages.alejandro.md to publish \`$REPO\` \`$TAG\`"
+            echo
+            echo "Follow it at https://github.com/amd989/packages/actions/workflows/publish.yaml"
+          } >> "$GITHUB_STEP_SUMMARY"
