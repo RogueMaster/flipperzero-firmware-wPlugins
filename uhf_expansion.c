@@ -535,7 +535,7 @@ static bool uhf_read_selected_user(UhfApp* app);
 static bool uhf_write_selected_bank(UhfApp* app, UhfTagBank bank, const char* value_hex);
 static bool uhf_lock_selected_bank(UhfApp* app, bool lock);
 static bool uhf_erase_selected_bank(UhfApp* app);
-static bool uhf_initialize_tag_access_key(UhfApp* app);
+static bool uhf_apply_tag_access_key(UhfApp* app);
 static bool uhf_reset_tag_access_key(UhfApp* app);
 static void uhf_leave_tag_actions(UhfApp* app);
 static const char* uhf_current_tag_bank_value(UhfApp* app, bool* valid);
@@ -1649,6 +1649,11 @@ static bool uhf_send_raw_frame(UhfApp* app, const uint8_t* frame, size_t frame_s
     furi_hal_serial_tx(app->serial, frame, frame_size);
     furi_hal_serial_tx_wait_complete(app->serial);
 
+    if(frame[3] == UHF_CMD_READ_TAG || frame[3] == UHF_CMD_WRITE_TAG ||
+       frame[3] == UHF_CMD_LOCK_TAG) {
+        uhf_diag_log(app, "TX cmd=%02X len=%lu", frame[3], (unsigned long)frame_size);
+        return true;
+    }
     char hex[49] = "";
     const size_t shown = frame_size > 24U ? 24U : frame_size;
     if(uhf_bytes_to_hex(frame, shown, hex, sizeof(hex))) {
@@ -1691,12 +1696,17 @@ static bool uhf_wait_tag_reply(
     app->tag_reply_ready = false;
     app->tag_reply_len = 0U;
     app->tag_reply_cmd = cmd;
-    if(!uhf_send_command(app, cmd, payload, payload_len)) return false;
+    if(!uhf_send_command(app, cmd, payload, payload_len)) {
+        uhf_set_status(app, "Reader send failed (0x%02X)", cmd);
+        return false;
+    }
 
     const uint32_t started = furi_get_tick();
     while((furi_get_tick() - started) < timeout_ms) {
         uhf_process_rx(app);
         if(app->tag_reply_ready && app->tag_reply_cmd == cmd) {
+            if(!app->tag_reply_checksum_ok)
+                uhf_set_status(app, "Reader checksum error (0x%02X)", cmd);
             return app->tag_reply_checksum_ok;
         }
         furi_delay_ms(5U);
@@ -1771,7 +1781,7 @@ static void uhf_clear_selected_epc_filter(UhfApp* app) {
     }
 }
 
-static bool uhf_read_selected_bank_words(
+static bool uhf_read_selected_bank_words_with_key(
     UhfApp* app,
     uint8_t memory_bank,
     uint8_t word_address,
@@ -1779,7 +1789,8 @@ static bool uhf_read_selected_bank_words(
     char* out,
     size_t out_size,
     const char* name,
-    bool use_epc_filter) {
+    bool use_epc_filter,
+    const uint8_t key[4]) {
     if(use_epc_filter && !app->epc_filter_active && !uhf_set_selected_epc_filter(app)) {
         return false;
     }
@@ -1801,7 +1812,7 @@ static bool uhf_read_selected_bank_words(
         0x00U,
     };
     payload[4] = word_address;
-    memcpy(&payload[7], app->access_keys[app->active_key_slot], 4U);
+    memcpy(&payload[7], key, 4U);
     uhf_set_status(app, "Reading %s...", name);
     view_port_update(app->view_port);
     if(!uhf_wait_tag_reply(app, UHF_CMD_READ_TAG, payload, sizeof(payload), 2500U)) return false;
@@ -1840,6 +1851,20 @@ static bool uhf_read_selected_bank_words(
     }
     uhf_set_status(app, "%s read: %lu bytes", name, (unsigned long)read_len);
     return true;
+}
+
+static bool uhf_read_selected_bank_words(
+    UhfApp* app,
+    uint8_t memory_bank,
+    uint8_t word_address,
+    uint8_t word_count,
+    char* out,
+    size_t out_size,
+    const char* name,
+    bool use_epc_filter) {
+    return uhf_read_selected_bank_words_with_key(
+        app, memory_bank, word_address, word_count, out, out_size, name, use_epc_filter,
+        app->access_keys[app->active_key_slot]);
 }
 
 static uint8_t uhf_last_tag_reply_error(const UhfApp* app) {
@@ -2166,90 +2191,146 @@ static bool uhf_lock_selected_bank(UhfApp* app, bool lock) {
     return ok;
 }
 
-static bool uhf_initialize_tag_access_key(UhfApp* app) {
+/* Write Reserved words 2-3, trying each known current password only once. */
+static bool uhf_change_tag_access_key(UhfApp* app, const uint8_t new_key[4], bool reset) {
     if(!app || !app->access_epc[0]) return false;
-    if(uhf_active_key_is_zero(app)) {
-        uhf_set_status(app, "Select a non-zero key");
+    if(!app->epc_filter_active && !uhf_set_selected_epc_filter(app)) {
+        uhf_notify_operation_result(app, "Select tag", false);
         return false;
     }
-    if(!app->epc_filter_active && !uhf_set_selected_epc_filter(app)) return false;
     uhf_led_send(app, &uhf_led_write_start);
     app->tag_write_led_active = true;
 
-    /* Recovery/initialization path for a tag whose current Access Password is
-       zero. Reserved bank words 2-3 contain the new 32-bit Access Password. */
-    uint8_t payload[15] = {0};
-    payload[4] = 0x00U;
-    payload[8] = 0x02U;
-    payload[10] = 0x02U;
-    memcpy(&payload[11], app->access_keys[app->active_key_slot], 4U);
-    uhf_set_status(app, "Setting tag access key...");
-    if(!uhf_wait_tag_reply(app, UHF_CMD_WRITE_TAG, payload, sizeof(payload), 3000U)) {
-        uhf_notify_write_result(app, false);
-        return false;
+    uint8_t candidates[1U + UHF_KEY_SLOT_COUNT][4] = {{0}};
+    if(reset) memcpy(candidates[0], app->access_keys[app->active_key_slot], 4U);
+    size_t candidate_count = 1U;
+    for(size_t s = 0U; s <= UHF_KEY_SLOT_COUNT; s++) {
+        const uint8_t zero[4] = {0};
+        const uint8_t* candidate = s < UHF_KEY_SLOT_COUNT ? app->access_keys[s] : zero;
+        bool duplicate = false;
+        for(size_t i = 0U; i < candidate_count; i++) {
+            if(memcmp(candidates[i], candidate, 4U) == 0) duplicate = true;
+        }
+        if(!duplicate) memcpy(candidates[candidate_count++], candidate, 4U);
     }
-    const uint8_t status = uhf_tag_reply_status(app);
-    const bool ok = status == 0x10U;
-    if(!ok) {
-        uhf_set_status(app, "Set key: %s", uhf_tag_error_text(status));
-        uhf_notify_write_result(app, false);
-        return false;
-    }
-    app->memory_cache_valid[0] = false;
 
-    char verify[9] = "";
-    if(!uhf_read_selected_bank_words(
-           app, 0x00U, 0x02U, 2U, verify, sizeof(verify), "Access key", true)) {
-        uhf_set_status(app, "Key set; verify unavailable");
-        uhf_notify_write_result(app, true);
-        return true;
+    bool ok = false;
+    uint8_t status = 0xFFU;
+    for(size_t i = 0U; i <= candidate_count; i++) {
+        uint8_t payload[15] = {0};
+        if(i == candidate_count) {
+            char old_key_hex[9] = "";
+            if(!uhf_prompt_memory_hex(
+                   app, "Current tag key (8 hex)", old_key_hex, sizeof(old_key_hex), 8U)) {
+                uhf_notify_write_result(app, false);
+                snprintf(app->write_popup_text, sizeof(app->write_popup_text), "Canceled");
+                uhf_set_status(app, "Key change canceled");
+                return false;
+            }
+            size_t old_len = 0U;
+            if(!uhf_hex_to_bytes(old_key_hex, payload, 4U, &old_len) || old_len != 4U) {
+                uhf_set_status(app, "Key must be 8 hex");
+                break;
+            }
+        } else {
+            memcpy(payload, candidates[i], 4U);
+        }
+        payload[8] = 0x02U;
+        payload[10] = 0x02U;
+        memcpy(&payload[11], new_key, 4U);
+        uhf_set_status(app, reset ? "Resetting tag access key..." : "Setting tag access key...");
+        view_port_update(app->view_port);
+        /* This reader can silently drop wrong-password requests. First check
+           whether a timed-out write completed before trying another key. */
+        if(!uhf_wait_tag_reply(app, UHF_CMD_WRITE_TAG, payload, sizeof(payload), 2500U)) {
+            char recovered[9] = "";
+            char expected[9];
+            uhf_bytes_to_hex(new_key, 4U, expected, sizeof(expected));
+            if(uhf_read_selected_bank_words_with_key(
+                   app, 0x00U, 0x02U, 2U, recovered, sizeof(recovered), "Access key", true,
+                   new_key) && strcmp(recovered, expected) == 0) {
+                ok = true;
+                break;
+            }
+            continue;
+        }
+        status = uhf_tag_reply_status(app);
+        if(status == 0x10U) {
+            ok = true;
+            break;
+        }
+        uhf_set_status(app, "Key change: %s", uhf_tag_error_text(status));
+        /* Only authentication errors justify trying another password. */
+        if(status != 0x22U && status != 0x31U && status != 0x37U && status != 0x40U) break;
     }
+    if(!ok) {
+        uhf_notify_write_result(app, false);
+        snprintf(
+            app->write_popup_text, sizeof(app->write_popup_text),
+            "%s", reset ? "Reset failed" : "Write failed");
+        uhf_diag_log(app, "ChangeKey failed status=0x%02X", status);
+        (void)uhf_save_diag_log(app);
+        return false;
+    }
+
+    app->memory_cache_valid[0] = false;
+    char verify[9] = "";
+    const bool readback_ok = uhf_read_selected_bank_words_with_key(
+        app, 0x00U, 0x02U, 2U, verify, sizeof(verify), "Access key", true, new_key);
     char expected[9];
-    snprintf(
-        expected,
-        sizeof(expected),
-        "%02X%02X%02X%02X",
-        app->access_keys[app->active_key_slot][0],
-        app->access_keys[app->active_key_slot][1],
-        app->access_keys[app->active_key_slot][2],
-        app->access_keys[app->active_key_slot][3]);
-    const bool verified = strcmp(verify, expected) == 0;
-    uhf_set_status(app, verified ? "Tag access key verified" : "Key set; verify mismatch");
-    uhf_notify_write_result(app, verified);
-    return verified;
+    uhf_bytes_to_hex(new_key, 4U, expected, sizeof(expected));
+    if(readback_ok && strcmp(verify, expected) != 0) {
+        uhf_set_status(app, "Key written; readback differs");
+        uhf_notify_write_result(app, false);
+        snprintf(app->write_popup_text, sizeof(app->write_popup_text), "Verify failed");
+        return false;
+    }
+
+    /* Preserve stored keys; select a zero slot after reset when one exists. */
+    bool zero_slot_found = false;
+    if(reset) {
+        for(uint8_t s = 0U; s < UHF_KEY_SLOT_COUNT; s++) {
+            if(memcmp(app->access_keys[s], new_key, 4U) == 0) {
+                app->active_key_slot = s;
+                zero_slot_found = true;
+                break;
+            }
+        }
+    }
+    const bool saved = uhf_save_key_vault(app);
+    uhf_notify_write_result(app, true);
+    const char* detail =
+        reset ? (!readback_ok ? "Reset OK; unverified. Use zero key" :
+                 zero_slot_found ? "Key reset; zero slot selected" : "Key reset; select a zero key") :
+                (readback_ok ? "Key written and read back" : "Key written; readback unavailable");
+    uhf_set_status(app, saved ? "%s" : "Key changed; slot save failed", detail);
+    /* Brief, single-line feedback; retain the full explanation in status. */
+    const char* result = !saved ? "Slot save failed" :
+                         !readback_ok ? "Unverified" :
+                         reset && !zero_slot_found ? "Select zero key" :
+                         reset ? "Key reset" : "Key written";
+    snprintf(app->write_popup_text, sizeof(app->write_popup_text), "%s", result);
+    return true;
+}
+
+static bool uhf_apply_tag_access_key(UhfApp* app) {
+    if(!app || !app->access_epc[0]) return false;
+    if(uhf_active_key_is_zero(app)) {
+        uhf_set_status(app, "Slot key is 0; edit key first");
+        uhf_notify_write_result(app, false);
+        snprintf(app->write_popup_text, sizeof(app->write_popup_text), "Edit key first");
+        return false;
+    }
+    uint8_t new_key[4];
+    memcpy(new_key, app->access_keys[app->active_key_slot], sizeof(new_key));
+    return uhf_change_tag_access_key(app, new_key, false);
 }
 
 static bool uhf_reset_tag_access_key(UhfApp* app) {
-    if(!app || !app->access_epc[0]) return false;
-    if(uhf_active_key_is_zero(app)) {
-        uhf_set_status(app, "Select current non-zero key");
-        uhf_notify_write_result(app, false);
-        return false;
-    }
-    if(!app->epc_filter_active && !uhf_set_selected_epc_filter(app)) return false;
-    uhf_led_send(app, &uhf_led_write_start);
-    app->tag_write_led_active = true;
-
-    /* Authenticate with the active key, then restore Reserved words 2-3 to
-       the Gen2 default Access Password. Banks must be unlocked first. */
-    uint8_t payload[15] = {0};
-    memcpy(payload, app->access_keys[app->active_key_slot], 4U);
-    payload[4] = 0x00U;
-    payload[8] = 0x02U;
-    payload[10] = 0x02U;
-    uhf_set_status(app, "Resetting tag access key...");
-    if(!uhf_wait_tag_reply(app, UHF_CMD_WRITE_TAG, payload, sizeof(payload), 3000U)) {
-        uhf_notify_write_result(app, false);
-        return false;
-    }
-    const uint8_t status = uhf_tag_reply_status(app);
-    const bool ok = status == 0x10U;
-    if(ok) app->memory_cache_valid[0] = false;
-    uhf_set_status(
-        app, ok ? "Tag key reset to zero" : "Reset key: %s", uhf_tag_error_text(status));
-    uhf_notify_write_result(app, ok);
-    return ok;
+    const uint8_t zero[4] = {0};
+    return uhf_change_tag_access_key(app, zero, true);
 }
+
 
 static bool uhf_erase_selected_bank(UhfApp* app) {
     if(!app || app->tag_bank == UhfTagBankTid) {
@@ -4616,18 +4697,32 @@ static void uhf_draw_callback(Canvas* canvas, void* context) {
             elements_button_center(canvas, "Select");
         }
     } else if(page == UhfPageAccessKeyMenu) {
+        /* Unframed key row: keep font ascenders clear of the title and menus. */
         canvas_set_font(canvas, FontSecondary);
-        const char* actions[] = {"Set from 00000000", "Reset to 00000000"};
+        char slot_text[16];
+        const uint8_t* key = app->access_keys[app->active_key_slot];
+        char key_text[9];
+        snprintf(slot_text, sizeof(slot_text), "Slot %u", app->active_key_slot + 1U);
+        snprintf(key_text, sizeof(key_text), "%02X%02X%02X%02X", key[0], key[1], key[2], key[3]);
+        canvas_draw_str(canvas, 8, 22, slot_text);
+        canvas_set_font(canvas, FontKeyboard);
+        canvas_draw_str(canvas, 120 - canvas_string_width(canvas, key_text), 22, key_text);
+        canvas_set_font(canvas, FontSecondary);
+
+        /* Two 11px rows, with 2px between rows and before the footer at y=52. */
+        const char* actions[] = {"Write slot to tag", "Reset to 00000000"};
         for(size_t row = 0U; row < COUNT_OF(actions); row++) {
-            const int y = 27 + (int)row * 14;
+            const int top = 26 + (int)row * 13;
             if(row == app->access_key_action_selected) {
-                canvas_draw_rbox(canvas, 7, y - 9, 114, 12, 2);
+                canvas_draw_rbox(canvas, 4, top, 120, 11, 2);
                 canvas_set_color(canvas, ColorWhite);
             }
-            canvas_draw_str(canvas, 13, y, actions[row]);
+            canvas_draw_str(canvas, 10, top + 8, actions[row]);
             if(row == app->access_key_action_selected) canvas_set_color(canvas, ColorBlack);
         }
-        elements_button_center(canvas, "Select");
+        uhf_draw_fixed_side_button(canvas, "Slot", false);
+        uhf_draw_fixed_center_button(canvas, "Run");
+        uhf_draw_fixed_side_button(canvas, "Edit", true);
     } else if(page == UhfPageList) {
         const bool fullscreen = app->ascii_filter_active && app->ascii_filter_fullscreen;
         const size_t visible_rows = fullscreen ? UHF_FILTER_FULL_VISIBLE_ROWS : UHF_LIST_VISIBLE_ROWS;
@@ -5837,7 +5932,7 @@ static void uhf_edit_memory_window(UhfApp* app) {
 
 static bool uhf_handle_inventory_actions(UhfApp* app, const InputEvent* input) {
     if(!app->inventory_actions_active && app->page != UhfPageConfirm &&
-       app->page != UhfPageActionResult) return false;
+       app->page != UhfPageActionResult && app->page != UhfPageAccessKeyMenu) return false;
     const bool short_press = input->type == InputTypeShort;
     if(app->page == UhfPageTagActions && app->memory_readonly) {
         if(input->key == InputKeyBack) {
@@ -5908,25 +6003,32 @@ static bool uhf_handle_inventory_actions(UhfApp* app, const InputEvent* input) {
         }
         return true;
     }
-    if(app->security_mode && app->page == UhfPageAccessKeyMenu) {
-        if(input->key == InputKeyBack) app->page = UhfPageTagActionMenu;
-        else if(short_press && (input->key == InputKeyUp || input->key == InputKeyDown))
-            app->access_key_action_selected = app->access_key_action_selected == 0U ? 1U : 0U;
-        else if(input->key == InputKeyOk) {
-            if(short_press && app->access_key_action_selected == 0U) {
+    if(app->page == UhfPageAccessKeyMenu) {
+        if(input->key == InputKeyBack) {
+            app->page = UhfPageTagActionMenu;
+        } else if(short_press) {
+            if(input->key == InputKeyUp) {
+                app->access_key_action_selected ^= 1U;
+            } else if(input->key == InputKeyDown) {
+                app->access_key_action_selected ^= 1U;
+            } else if(input->key == InputKeyLeft) {
+                app->active_key_slot = (app->active_key_slot + 1U) % UHF_KEY_SLOT_COUNT;
+                if(!uhf_save_key_vault(app)) uhf_set_status(app, "Key save failed");
+            } else if(input->key == InputKeyRight) {
+                app->key_vault_selected_slot = app->active_key_slot;
+                uhf_edit_active_key(app);
+            } else if(input->key == InputKeyOk) {
                 app->write_popup_active = false;
-                const bool ok = uhf_initialize_tag_access_key(app);
-                uhf_notify_operation_result(app, "Set key", ok);
-            } else if(short_press && app->access_key_action_selected == 1U) {
-                app->write_popup_active = false;
-                const bool ok = uhf_reset_tag_access_key(app);
-                uhf_notify_operation_result(app, "Reset key", ok);
+                if(app->access_key_action_selected == 0U) {
+                    (void)uhf_apply_tag_access_key(app);
+                } else {
+                    (void)uhf_reset_tag_access_key(app);
+                }
             }
         }
         return true;
     }
-    if(app->page == UhfPageTagActions || app->page == UhfPageTagActionMenu ||
-       app->page == UhfPageAccessKeyMenu) {
+    if(app->page == UhfPageTagActions || app->page == UhfPageTagActionMenu) {
         if(input->key == InputKeyLeft && !app->security_mode && !app->inventory_details_direct &&
            app->page == UhfPageTagActions)
             return true; /* Write EPC remains focused on the EPC bank. */
@@ -6526,16 +6628,6 @@ static void uhf_handle_input(UhfApp* app, const InputEvent* input) {
                 app->page = UhfPageTagActions;
                 (void)uhf_lock_selected_bank(app, false);
             }
-        } else if(app->page == UhfPageAccessKeyMenu) {
-            if(app->access_key_action_selected == 0U) {
-                app->write_popup_active = false;
-                const bool ok = uhf_initialize_tag_access_key(app);
-                uhf_notify_operation_result(app, "Set key", ok);
-            } else {
-                app->write_popup_active = false;
-                const bool ok = uhf_reset_tag_access_key(app);
-                uhf_notify_operation_result(app, "Reset key", ok);
-            }
         } else {
             uhf_toggle_inventory_with_cooldown(app);
         }
@@ -6614,8 +6706,6 @@ static void uhf_handle_input(UhfApp* app, const InputEvent* input) {
             if(app->tag_action_selected < app->tag_action_top) {
                 app->tag_action_top = app->tag_action_selected;
             }
-        } else if(app->page == UhfPageAccessKeyMenu) {
-            app->access_key_action_selected = app->access_key_action_selected == 0U ? 1U : 0U;
         } else {
             uhf_toggle_serial_port(app);
         }
@@ -6708,16 +6798,12 @@ static void uhf_handle_input(UhfApp* app, const InputEvent* input) {
             if(app->tag_action_selected >= app->tag_action_top + 3U) {
                 app->tag_action_top = app->tag_action_selected - 2U;
             }
-        } else if(app->page == UhfPageAccessKeyMenu) {
-            app->access_key_action_selected = app->access_key_action_selected == 0U ? 1U : 0U;
+
         }
         break;
     case InputKeyBack:
         if(app->page == UhfPageAbout) {
             uhf_exit_about_page(app);
-        } else if(app->page == UhfPageAccessKeyMenu) {
-            app->page = UhfPageTagActionMenu;
-            uhf_set_status(app, "Tag operations");
         } else if(app->page == UhfPageTagActionMenu) {
             app->page = UhfPageTagActions;
             uhf_set_status(app, "%s", uhf_current_tag_bank_name(app->tag_bank));
