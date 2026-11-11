@@ -3,11 +3,16 @@ App(
     name="U2F",
     apptype=FlipperAppType.MENUEXTERNAL,
     entry_point="u2f_app",
-    stack_size=2 * 1024,
+    stack_size=4 * 1024,  # U2F over NFC runs ECDSA in the NFC worker context
     icon="A_U2F_14",
     order=80,
     resources="resources",
     fap_libs=["assets", "mbedtls"],
-    fap_category="USB",
     fap_icon="icon.png",
+    targets=["f7"],
+    fap_category="USB",
+    fap_author="Flipper Devices, lewisQ17",
+    fap_weburl="https://github.com/lewisQ17/Momentum-Firmware",
+    fap_version="0.1",
+    fap_description="U2F security key over USB HID or NFC, with separate transport selection.",
 )

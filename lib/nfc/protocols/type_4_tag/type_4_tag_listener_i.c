@@ -350,7 +350,9 @@ Type4TagError
             }
         } else {
             bool extended_lc = false;
-            if(data[0] == 0) {
+            // Extended Lc needs 3 header bytes (00 + 2-byte length); require room
+            // so a 2-byte body can't over-read data[2] or underflow body_size.
+            if(data[0] == 0 && body_size >= 4) {
                 extended_lc = true;
                 lc = bit_lib_bytes_to_num_be(&data[1], sizeof(uint16_t));
                 data += 1 + sizeof(uint16_t);

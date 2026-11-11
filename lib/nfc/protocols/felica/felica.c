@@ -683,6 +683,12 @@ bool felica_check_mac(
     furi_check(blocks);
     furi_check(data);
 
+    // A card claiming 0 blocks would make (block_count - 1) wrap and read past
+    // the data buffer when computing the MAC offset below.
+    if(block_count == 0) {
+        return false;
+    }
+
     uint8_t mac[8];
     felica_calculate_mac_read(ctx, session_key, rc, blocks, block_count, data, mac);
 

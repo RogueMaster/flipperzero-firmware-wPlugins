@@ -1,0 +1,16 @@
+App(
+    appid="hamcram",
+    name="Ham Cram",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="hamcram_app",
+    stack_size=4 * 1024,
+    fap_icon="hamcram.png",
+    fap_file_assets="files",
+    # tests/ holds host-side unit tests that are not part of the app
+    sources=["*.c", "!tests"],
+    fap_category="Tools",
+    fap_author="NicPWNs",
+    fap_weburl="https://github.com/NicPWNs/HamCram",
+    fap_version="1.0",
+    fap_description="Offline study for the US ham radio license exams",
+)

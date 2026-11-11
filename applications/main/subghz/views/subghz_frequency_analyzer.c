@@ -163,10 +163,19 @@ void subghz_frequency_analyzer_draw(Canvas* canvas, SubGhzFrequencyAnalyzerModel
     //canvas_draw_str(canvas, 0, 7, model->is_ext_radio ? "Ext" : "Int");
     canvas_draw_str(canvas, 20, 7, "Frequency Analyzer");
 
-    // RSSI
-    canvas_draw_str(canvas, 33, 62, "RSSI");
+    // RSSI bar
     subghz_frequency_analyzer_draw_rssi(
         canvas, model->rssi, model->rssi_last, model->trigger, 56, 57);
+
+    // Numeric RSSI readout in dBm on the LEFT — replaces the redundant "RSSI"
+    // label and stays clear of the bar (x>=56), so nothing overlaps at the bottom.
+    float rssi_dbm = !float_is_equal(model->rssi, 0.f) ? model->rssi : model->rssi_last;
+    if(!float_is_equal(rssi_dbm, 0.f)) {
+        snprintf(buffer, sizeof(buffer), "%d dBm", (int)rssi_dbm);
+    } else {
+        snprintf(buffer, sizeof(buffer), "RSSI");
+    }
+    canvas_draw_str(canvas, 2, 62, buffer);
 
     // Last detected frequency
     subghz_frequency_analyzer_history_frequency_draw(canvas, model);

@@ -258,6 +258,11 @@ This software is for experimental purposes only and is not meant for any illegal
 - BadUSB: [MASS_STORAGE_MOUNT and MASS_STORAGE_UMOUNT commands for switching between HID and a disk image (By lewisQ17)](https://github.com/lewisQ17/Momentum-Firmware/commit/7f810d0cb78585461d50b7738f802ee44ad3d3a0)
 - CFW Settings: [Separate Name, BLE MAC and Serial/UID spoofing with bounded UID storage (By lewisQ17)](https://github.com/lewisQ17/Momentum-Firmware/commit/3d46c13497ba59e4b45260ababdc976514bd616c)
 - Fixed: [CFW Settings spoofing reload use-after-free and stale BLE MAC/UID overrides (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/55ff2ecbf24bb1e7275d46afaa8b2d1e892c4bda)
+- SubGHz: [Frequency Analyzer live/last RSSI in dBm with corrected placement (By lewisQ17)](https://github.com/lewisQ17/Momentum-Firmware/commit/5e3a2ce67f2556469f31dd66416e379c4cff54eb) - [layout fix](https://github.com/lewisQ17/Momentum-Firmware/commit/8c28efdbe427c7a2f3d36a1651cb4fb26d91cbd8)
+- U2F: [NFC transport with USB/NFC mode selection (By lewisQ17)](https://github.com/lewisQ17/Momentum-Firmware/commit/561524ebe0dddc5d10582e1d94dfcf9858a03b2b)
+- Power: [Percentage and combined timer/percentage shutdown, estimated remaining runtime and optional critical cutoff (By lewisQ17)](https://github.com/lewisQ17/Momentum-Firmware/commit/73e2f7f067e636e5f5ac14bdbd893fd42712798d)
+- NFC: [Plantain card-number bounds, Type 4 Tag APDU length guard and FeliCa zero-block MAC guard (By lewisQ17)](https://github.com/lewisQ17/Momentum-Firmware/commit/73e2f7f067e636e5f5ac14bdbd893fd42712798d)
+- Added: [Ham Cram v1.0 offline US amateur-radio license study and practice exams (By NicPWNs)](https://github.com/NicPWNs/HamCram)
 
 <a name="release"></a>
 
@@ -863,6 +868,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Habit Flow v0.1.4 (By Endika)](https://github.com/Endika/flipper-habit-flow)
 - [Haier AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
 - [HAM v0.6 (By lumen-rot)](https://github.com/lumen-rot/flipper-ham)
+- [Ham Cram v1.0 (By NicPWNs)](https://github.com/NicPWNs/HamCram)
 - [Ham Scanner v1.1 (By Clawzman)](https://github.com/Clawzman/Flipper-HAM-Scanner)
 - [Handpan Chords v1.0 (By KingBoa / NoodleNugget-com)](https://github.com/NoodleNugget-com/handpan_chords)
 - [Hanzi Cards v0.5 (By rseufert)](https://github.com/rseufert/hanzi_cards)

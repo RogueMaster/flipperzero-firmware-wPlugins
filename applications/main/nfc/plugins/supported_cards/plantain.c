@@ -278,9 +278,14 @@ static inline void extract_purse_data(
     FuriString* card_number_s = furi_string_alloc();
     furi_string_cat_printf(card_number_s, "%lld", card_number);
     FuriString* tmp_s = furi_string_alloc_set_str("9643 3078 ");
+    size_t card_number_len = furi_string_size(card_number_s);
     for(uint8_t i = 0; i < 24; i += 4) {
         for(uint8_t j = 0; j < 4; j++) {
-            furi_string_push_back(tmp_s, furi_string_get_char(card_number_s, i + j));
+            // Pad instead of reading past the string: card_number is <=17 chars.
+            char c = ((size_t)(i + j) < card_number_len) ?
+                         furi_string_get_char(card_number_s, i + j) :
+                         '0';
+            furi_string_push_back(tmp_s, c);
         }
         furi_string_push_back(tmp_s, ' ');
     }

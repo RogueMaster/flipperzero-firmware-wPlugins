@@ -48,9 +48,13 @@ U2fApp* u2f_app_alloc(void) {
     view_dispatcher_add_view(
         app->view_dispatcher, U2fAppViewMain, u2f_view_get_view(app->u2f_view));
 
+    app->submenu = submenu_alloc();
+    view_dispatcher_add_view(
+        app->view_dispatcher, U2fAppViewStart, submenu_get_view(app->submenu));
+
     furi_hal_usb_unlock();
     if(u2f_data_check(true)) {
-        scene_manager_next_scene(app->scene_manager, U2fSceneMain);
+        scene_manager_next_scene(app->scene_manager, U2fSceneStart);
     } else {
         app->error = U2fAppErrorNoFiles;
         scene_manager_next_scene(app->scene_manager, U2fSceneError);
@@ -63,6 +67,8 @@ void u2f_app_free(U2fApp* app) {
     furi_assert(app);
 
     // Views
+    view_dispatcher_remove_view(app->view_dispatcher, U2fAppViewStart);
+    submenu_free(app->submenu);
     view_dispatcher_remove_view(app->view_dispatcher, U2fAppViewMain);
     u2f_view_free(app->u2f_view);
 

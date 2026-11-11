@@ -1,0 +1,50 @@
+{
+  "_comment": "Official NCVEC question pools (public domain). Update this file and run `python tools/hampool.py all` to ship a new pool.",
+  "pools": [
+    {
+      "stem": "technician",
+      "name": "Technician",
+      "element": 2,
+      "prefix": "T",
+      "years": "2026-2030",
+      "valid_from": "2026-07-01",
+      "valid_to": "2030-06-30",
+      "exam_questions": 35,
+      "pass_correct": 26,
+      "page": "https://www.ncvec.org/index.php/2026-2030-technician-question-pool",
+      "url": "https://www.ncvec.org/downloads/2026-2030%20Technician%20Pool%20and%20Syllabus%20Public%20Release%20Feb%2019%202026.docx",
+      "sha256": "c3bb9ebf46730a9812ae854d12a93f07b7a38f521441e51c451e917ccb9e3a54",
+      "revision": "Public release with errata of February 19, 2026"
+    },
+    {
+      "stem": "general",
+      "name": "General",
+      "element": 3,
+      "prefix": "G",
+      "years": "2023-2027",
+      "valid_from": "2023-07-01",
+      "valid_to": "2027-06-30",
+      "exam_questions": 35,
+      "pass_correct": 26,
+      "page": "https://www.ncvec.org/index.php/2023-2027-general-question-pool-release",
+      "url": "https://www.ncvec.org/downloads/General%20Class%20Pool%20and%20Syllabus%202023-2027%20Public%20Release%20with%206th%20Errata%20Feb%204%202026.docx",
+      "sha256": "a07b15d6b9b7aef9e51dae3dd7d37b23de1d7bb410733b7ac6323eaac2f4b396",
+      "revision": "Public release with 6th errata of February 4, 2026"
+    },
+    {
+      "stem": "extra",
+      "name": "Extra",
+      "element": 4,
+      "prefix": "E",
+      "years": "2024-2028",
+      "valid_from": "2024-07-01",
+      "valid_to": "2028-06-30",
+      "exam_questions": 50,
+      "pass_correct": 37,
+      "page": "https://www.ncvec.org/index.php/2024-2028-extra-class-question-pool-release",
+      "url": "https://www.ncvec.org/downloads/2024-2028%20Extra%20Class%20Question%20Pool%20and%20Syllabus%20Public%20Release%20with%204th%20Errata%20Feb%204%202026.docx",
+      "sha256": "581ff3aa4c98bb2a6fcc303fe1ce19beb29bc7d3d02ff7fe5c6162c4c26ce4f7",
+      "revision": "Public release with 4th errata of February 4, 2026"
+    }
+  ]
+}
