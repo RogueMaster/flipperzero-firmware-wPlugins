@@ -3,6 +3,10 @@
 Standalone, resumable Flipper Zero workflow for the vulnerable GT23SC4489-style
 MIFARE Ultralight-C attack implemented by the original ULCFKey project.
 
+Project: [rohanday3/ulcfkey-recovery](https://github.com/rohanday3/ulcfkey-recovery).
+Independent fork of the [BREAKMEIFYOUCAN ULCFKey app](https://github.com/zc-public/breakme-resources/tree/main/flipper_apps/ulcfkey),
+adapted for RogueMaster firmware; not an official BREAKMEIFYOUCAN release.
+
 ## Workflow
 
 1. Collect repeating `AUTH1` nonces from the card.
