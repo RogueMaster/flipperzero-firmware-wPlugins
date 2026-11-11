@@ -302,6 +302,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Claude Remote v0.2: keep button gestures on the screen where they began (By Petr Korobeinikov)](https://github.com/petr-korobeinikov/f0-claude-remote)
 - Added: [eReader v1.0 - Streaming plain-text book reader with word wrap, saved positions and two font sizes (By Daniel Baker)](https://github.com/daniebker/flipper_ereader)
 - Fixed: [BadUSB Usage Overflow caused by PR #4501 BadUSB Ducky Script 3.0 code changes (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/a2a44e125e2ae88bbb1f0adafc07202c1d0ab151)
+- Updated: [Sub-GHz RAW Edit v1.8 (By Lechnio)](https://github.com/Lechnio/SubGHz-RAW-Edit)
 
 <a name="release"></a>
 
