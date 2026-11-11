@@ -30,7 +30,7 @@
 - SubGHz Remote: **RAW is sent in full with one click, and repeats while the button is held**
 - SubGHz Remote: **Fix rolling code and custom button resets after TX, and the counter moving twice per press**
 - Apps: **`SubGHz WarDriving` - RX restarts after TX, and sending a received dynamic signal no longer overwrites a saved file**
-- SubGHz: **KeeLoq `CounterMode: 7` now opens a Doorhan on the first press**
+- SubGHz: **KeeLoq `CounterMode: 8` now opens a Doorhan on the first press**
 - SubGHz: **KeeLoq `CounterMode` 7, 8 and 9 each reproduce a DoorHan Smart clone resync pack, one per board family** (what `CounterMode: 7` used to send is now mode 8)
 - SubGHz: **New KeeLoq `CounterMode: 10` - the Phantom / Hiland resync pair, `0xFFFE` then `0xFFFF` in one press, as a clone remote for that system sends it**
 - SubGHz: **The read list is no longer capped at 55 signals, and Hold Right deletes one**
@@ -70,7 +70,7 @@
 - Infrared: **`ir universal <remote> <signal>` over the CLI sends the signals it was asked for, instead of rebooting the device** (by @mishamyte | PR #1211 | Fixes #1201)
 - Infrared: **A universal remote database holding a button name the screen does not use no longer crashes on opening that remote** (by @mishamyte | PR #1211)
 - Infrared: **A raw signal saved with no timings is rejected when read, instead of being sent as whatever was read before it** (by @mishamyte | PR #1211)
-- Apps: Build tag (**6nov2026**) - **Check out more Apps updates and fixes by following** [this link](https://github.com/xMasterX/all-the-plugins/commits/dev)
+- Apps: Build tag (**11nov2026**) - **Check out more Apps updates and fixes by following** [this link](https://github.com/xMasterX/all-the-plugins/commits/dev)
 ## Other changes
 - SubGHz: **CAME TWEE no longer reads past the end of its decode table on a parcel counter of F**
 - SubGHz: **Fix encoder buffers too small for the keys Came Atomo, Somfy Keytis, Somfy Telis, Power Smart and Dooya accept**
