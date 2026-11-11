@@ -11,3 +11,6 @@ enum UsbDevDescStr {
     UsbDevProduct = 2,
     UsbDevSerial = 3,
 };
+
+/* Shared manufacturer string descriptor ("Flipper Devices Inc."), defined in furi_hal_usb_cdc.c */
+extern const struct usb_string_descriptor furi_hal_usb_manuf_desc;

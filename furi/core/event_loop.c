@@ -243,6 +243,7 @@ void furi_event_loop_run(FuriEventLoop* instance) {
 
             } else if(flags & FuriEventLoopFlagPending) {
                 furi_event_loop_process_pending_callbacks(instance);
+                furi_event_loop_restore_flags(instance, flags & ~FuriEventLoopFlagPending);
 
             } else if(flags & FuriEventLoopFlagThreadFlag) {
                 if(instance->are_thread_flags_subscribed)

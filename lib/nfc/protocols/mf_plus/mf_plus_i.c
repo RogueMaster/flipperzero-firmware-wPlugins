@@ -266,9 +266,13 @@ bool mf_plus_security_level_load(MfPlusSecurityLevel* data, FlipperFormat* ff) {
     FuriString* security_level_string = furi_string_alloc();
     flipper_format_read_string(ff, MF_PLUS_FFF_SECURITY_LEVEL_KEY, security_level_string);
 
-    // Take the last character of the string
-    char security_level_char = furi_string_get_char(
-        security_level_string, furi_string_utf8_length(security_level_string) - 1);
+    // Take the last character of the string (guard against a missing/empty value:
+    // utf8_length would underflow size_t and index far out of bounds).
+    size_t security_level_len = furi_string_utf8_length(security_level_string);
+    char security_level_char =
+        (security_level_len > 0) ?
+            furi_string_get_char(security_level_string, security_level_len - 1) :
+            '\0';
 
     switch(security_level_char) {
     case '0':

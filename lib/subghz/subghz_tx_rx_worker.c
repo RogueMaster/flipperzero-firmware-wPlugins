@@ -217,6 +217,15 @@ SubGhzTxRxWorker* subghz_tx_rx_worker_alloc(void) {
 
     instance->status = SubGhzTxRxWorkerStatusIDLE;
     instance->worker_stopping = true;
+    // Explicitly initialize the remaining fields before the RX thread starts.
+    // RM's allocator currently zero-fills allocations; keep these defaults local
+    // so callbacks and device pointers remain well-defined if that changes.
+    instance->worker_running = false;
+    instance->frequency = 0;
+    instance->device = NULL;
+    instance->device_data_gpio = NULL;
+    instance->callback_have_read = NULL;
+    instance->context_have_read = NULL;
 
     return instance;
 }

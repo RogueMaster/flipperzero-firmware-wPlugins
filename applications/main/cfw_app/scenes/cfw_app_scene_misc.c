@@ -6,6 +6,7 @@ enum VarItemListIndex {
     VarItemListIndexSpoof,
     VarItemListIndexVgm,
     VarItemListIndexMemInfo,
+    VarItemListIndexCredits,
     VarItemListIndexShowCFWIntro,
 };
 
@@ -32,6 +33,9 @@ void cfw_app_scene_misc_on_enter(void* context) {
     variable_item_set_current_value_text(item, ">");
 
     item = variable_item_list_add(var_item_list, "System Info", 0, NULL, app);
+    variable_item_set_current_value_text(item, ">");
+
+    item = variable_item_list_add(var_item_list, "Credits", 0, NULL, app);
     variable_item_set_current_value_text(item, ">");
 
     variable_item_list_add(var_item_list, "Show CFW Intro", 0, NULL, app);
@@ -72,6 +76,10 @@ bool cfw_app_scene_misc_on_event(void* context, SceneManagerEvent event) {
         case VarItemListIndexMemInfo:
             scene_manager_set_scene_state(app->scene_manager, CFWAppSceneMiscMeminfo, 0);
             scene_manager_next_scene(app->scene_manager, CFWAppSceneMiscMeminfo);
+            break;
+        case VarItemListIndexCredits:
+            scene_manager_set_scene_state(app->scene_manager, CFWAppSceneMiscCredits, 0);
+            scene_manager_next_scene(app->scene_manager, CFWAppSceneMiscCredits);
             break;
         case VarItemListIndexShowCFWIntro: {
             for(int i = 0; i < 10; i++) {

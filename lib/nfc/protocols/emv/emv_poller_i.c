@@ -172,6 +172,7 @@ static bool
         FURI_LOG_T(TAG, "found EMV_TAG_APPL_NAME %x: %s", tag, app->application_name);
         break;
     case EMV_TAG_APPL_EFFECTIVE:
+        if(tlen < 3) return emv_tag_rejected(tag, tlen);
         app->effective_year = buff[i];
         app->effective_month = buff[i + 1];
         app->effective_day = buff[i + 2];
@@ -264,6 +265,7 @@ static bool
         FURI_LOG_T(TAG, "found EMV_TAG_PAN %x", tag);
         break;
     case EMV_TAG_EXP_DATE:
+        if(tlen < 3) return emv_tag_rejected(tag, tlen);
         app->exp_year = buff[i];
         app->exp_month = buff[i + 1];
         app->exp_day = buff[i + 2];
@@ -271,16 +273,19 @@ static bool
         FURI_LOG_T(TAG, "found EMV_TAG_EXP_DATE %x", tag);
         break;
     case EMV_TAG_CURRENCY_CODE:
+        if(tlen < 2) return emv_tag_rejected(tag, tlen);
         app->currency_code = (buff[i] << 8 | buff[i + 1]);
         success = true;
         FURI_LOG_T(TAG, "found EMV_TAG_CURRENCY_CODE %x", tag);
         break;
     case EMV_TAG_COUNTRY_CODE:
+        if(tlen < 2) return emv_tag_rejected(tag, tlen);
         app->country_code = (buff[i] << 8 | buff[i + 1]);
         success = true;
         FURI_LOG_T(TAG, "found EMV_TAG_COUNTRY_CODE %x", tag);
         break;
     case EMV_TAG_LOG_ENTRY:
+        if(tlen < 2) return emv_tag_rejected(tag, tlen);
         app->log_sfi = buff[i];
         app->log_records = buff[i + 1];
         success = true;
@@ -292,10 +297,12 @@ static bool
             app->log_records);
         break;
     case EMV_TAG_LAST_ONLINE_ATC:
+        if(tlen < 2) return emv_tag_rejected(tag, tlen);
         app->last_online_atc = (buff[i] << 8 | buff[i + 1]);
         success = true;
         break;
     case EMV_TAG_ATC:
+        if(tlen < 2) return emv_tag_rejected(tag, tlen);
         if(emv_trans_writable(app))
             app->trans[app->active_tr].atc = (buff[i] << 8 | buff[i + 1]);
         else
@@ -309,11 +316,13 @@ static bool
         success = true;
         break;
     case EMV_TAG_LOG_COUNTRY:
+        if(tlen < 2) return emv_tag_rejected(tag, tlen);
         if(!emv_trans_writable(app)) return emv_tag_rejected(tag, tlen);
         app->trans[app->active_tr].country = (buff[i] << 8 | buff[i + 1]);
         success = true;
         break;
     case EMV_TAG_LOG_CURRENCY:
+        if(tlen < 2) return emv_tag_rejected(tag, tlen);
         if(!emv_trans_writable(app)) return emv_tag_rejected(tag, tlen);
         app->trans[app->active_tr].currency = (buff[i] << 8 | buff[i + 1]);
         success = true;
@@ -331,6 +340,7 @@ static bool
         success = true;
         break;
     case EMV_TAG_PIN_TRY_COUNTER:
+        if(tlen < 1) return emv_tag_rejected(tag, tlen);
         app->pin_try_counter = buff[i];
         success = true;
         FURI_LOG_T(TAG, "found EMV_TAG_PIN_TRY_COUNTER %x: %d", tag, app->pin_try_counter);

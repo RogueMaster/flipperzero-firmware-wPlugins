@@ -540,6 +540,40 @@ static void nfc_protocol_support_scene_read_on_exit(NfcApp* instance) {
 }
 
 // SceneReadMenu
+// Turn an eligible read card into a bare-UID Iso14443-3A card. This replaces
+// its in-RAM data before the normal SaveName flow; physical and saved cards stay
+// untouched. A cancelled save keeps the converted in-RAM card, as upstream does.
+static bool nfc_protocol_support_save_as_uid(NfcApp* instance) {
+    const NfcProtocol protocol = nfc_device_get_protocol(instance->nfc_device);
+    if(!nfc_protocol_support_has_feature(protocol, instance, NfcProtocolFeatureEmulateUid)) {
+        return false;
+    }
+
+    size_t uid_len = 0;
+    const uint8_t* uid = nfc_device_get_uid(instance->nfc_device, &uid_len);
+    if(!uid || (uid_len != 4 && uid_len != 7 && uid_len != 10)) return false;
+
+    // Snapshot before resetting scratch data or replacing the device's protocol data.
+    uint8_t uid_copy[ISO14443_3A_MAX_UID_SIZE];
+    memcpy(uid_copy, uid, uid_len);
+    Iso14443_3aData* data = instance->iso14443_3a_edit_data;
+    iso14443_3a_reset(data);
+    if(!iso14443_3a_set_uid(data, uid_copy, uid_len)) return false;
+    if(uid_len == 4) {
+        const uint8_t atqa[2] = {0x04, 0x00};
+        iso14443_3a_set_atqa(data, atqa);
+        iso14443_3a_set_sak(data, 0x08);
+    } else {
+        // ATQA bits 7:6 encode double-size (7-byte) or triple-size (10-byte) UID.
+        const uint8_t atqa[2] = {uid_len == 7 ? 0x44 : 0x84, 0x00};
+        iso14443_3a_set_atqa(data, atqa);
+        iso14443_3a_set_sak(data, 0x00);
+    }
+    nfc_device_set_data(instance->nfc_device, NfcProtocolIso14443_3a, data);
+    furi_string_reset(instance->file_name); // force a fresh auto-name in SaveName
+    return true;
+}
+
 static void nfc_protocol_support_scene_read_menu_on_enter(NfcApp* instance) {
     const NfcProtocol protocol = nfc_device_get_protocol(instance->nfc_device);
 
@@ -593,6 +627,15 @@ static void nfc_protocol_support_scene_read_menu_on_enter(NfcApp* instance) {
             instance);
     }
 
+    if(nfc_protocol_support_has_feature(protocol, instance, NfcProtocolFeatureEmulateUid)) {
+        submenu_add_item(
+            submenu,
+            "Save as UID-only",
+            SubmenuIndexCommonSaveUid,
+            nfc_protocol_support_common_submenu_callback,
+            instance);
+    }
+
     base->scene_read_menu.on_enter(instance);
 
     submenu_add_item(
@@ -632,6 +675,11 @@ static bool
             consumed = true;
         } else if(event.event == SubmenuIndexCommonEdit) {
             scene_manager_next_scene(instance->scene_manager, NfcSceneSetUid);
+            consumed = true;
+        } else if(event.event == SubmenuIndexCommonSaveUid) {
+            if(nfc_protocol_support_save_as_uid(instance)) {
+                scene_manager_next_scene(instance->scene_manager, NfcSceneSaveName);
+            }
             consumed = true;
         } else {
             const NfcProtocol protocol = nfc_device_get_protocol(instance->nfc_device);

@@ -24,37 +24,7 @@ static const char* const tab_default_paths[] = {
     [ArchiveTabBrowser] = STORAGE_EXT_PATH_PREFIX,
 };
 
-static const char* const known_ext[] = {
-    // clang-format off
-    [ArchiveFileTypeIButton] = ".ibtn",
-    [ArchiveFileTypeNFC] = ".nfc",
-    [ArchiveFileTypeSubGhz] = ".sub",
-    [ArchiveFileTypeLFRFID] = ".rfid",
-    [ArchiveFileTypeInfrared] = ".ir",
-    [ArchiveFileTypeSubghzPlaylist] = ".txt",
-    [ArchiveFileTypeSubghzRemote] = ".txt",
-    [ArchiveFileTypeInfraredRemote] = ".txt",
-    [ArchiveFileTypeBadUsb] = ".txt",
-    [ArchiveFileTypeMP3] = ".mp3",
-    [ArchiveFileTypeWAV] = ".wav",
-    [ArchiveFileTypeMag] = ".mag",
-    [ArchiveFileTypeCrossRemote] = ".xr",
-    [ArchiveFileTypePicopass] = ".picopass",
-    [ArchiveFileTypeU2f] = "?",
-    [ArchiveFileTypeApplication] = ".fap",
-    [ArchiveFileTypeJS] = ".js",
-    [ArchiveFileTypeSearch] = "*",
-    [ArchiveFileTypeUpdateManifest] = ".fuf",
-    [ArchiveFileTypeDiskImage] = ".img",
-    [ArchiveFileTypeFolder] = "?",
-    [ArchiveFileTypeProtoPirate] = ".psf",
-    [ArchiveFileTypeUnknown] = "*",
-    [ArchiveFileTypeAppOrJs] = "?", // Legacy filter value, not a file type.
-    [ArchiveFileTypeLoading] = "?",
-    [ArchiveFileTypeT5577] = T5577_FILE_EXTENSION,
-    [ArchiveFileTypeSetting] = "?",
-    // clang-format on
-};
+extern const char* const known_ext[ArchiveFileTypeT5577 + 1];
 
 // Tab filters may contain multiple extensions; file types always describe one file.
 static const char* const tab_ext[] = {
@@ -99,6 +69,7 @@ void archive_update_focus(ArchiveBrowserView* browser, const char* target);
 
 void archive_file_array_load(ArchiveBrowserView* browser, int8_t dir);
 size_t archive_file_get_array_size(ArchiveBrowserView* browser);
+bool archive_file_array_contains(ArchiveBrowserView* browser, const char* path);
 void archive_file_array_rm_selected(ArchiveBrowserView* browser);
 void archive_file_array_swap(ArchiveBrowserView* browser, int8_t dir);
 void archive_file_array_rm_all(ArchiveBrowserView* browser);

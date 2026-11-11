@@ -11,15 +11,9 @@ uint16_t felica_crc_calculate(const uint8_t* data, size_t length) {
     uint16_t crc = FELICA_CRC_INIT;
 
     for(size_t i = 0; i < length; i++) {
-        crc ^= ((uint16_t)data[i] << 8);
-        for(size_t j = 0; j < 8; j++) {
-            if(crc & 0x8000) {
-                crc <<= 1;
-                crc ^= FELICA_CRC_POLY;
-            } else {
-                crc <<= 1;
-            }
-        }
+        uint8_t x = (uint8_t)(crc >> 8) ^ data[i];
+        x ^= x >> 4;
+        crc = (uint16_t)((crc << 8) ^ ((uint16_t)x << 12) ^ ((uint16_t)x << 5) ^ x);
     }
 
     return (crc << 8) | (crc >> 8);

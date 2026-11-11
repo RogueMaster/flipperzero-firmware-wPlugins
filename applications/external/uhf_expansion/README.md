@@ -92,6 +92,8 @@ ufbt update --channel release
 ufbt build
 ```
 
+Run the host regression suite with `python3 tests/run_host_tests.py` (requires a C compiler with AddressSanitizer and UndefinedBehaviorSanitizer). It covers protocol frames, storage failures, and the actual settings event handler with a mocked reader. Both SDK builds and Catalog publishing require this suite to pass.
+
 The compiled `.fap` will be at `dist/uhf_expansion.fap`.
 
 After upgrading Flipper firmware, rebuild and replace the installed FAP: an older
@@ -125,6 +127,10 @@ Catalog bundle, updates the Catalog fork, and opens the upstream pull request.
 9. Open the separate **Access Keys** tool to select or edit an Access Password slot
 10. Set **EPC Display** to **ASCII** to show printable ASCII EPCs in Tag Inventory
 11. Use **EPC ASCII** to capture one tag, edit up to 12 characters, and write the 96-bit EPC with Right
+12. In **Reader Settings**, the app queries the reader's frequency configuration on entry. Select **Region** with Left/Right: FCC, ETSI, CHN_1*, CHN_2 or Custom. Standard presets update Start MHz, Space kHz and Channels together. Custom enables editing those fields: Left/Right changes start/spacing by 25 kHz or channel count by one; OK opens a digit editor (Left/Right selects a digit, Up/Down changes it, OK accepts, Back cancels). Custom plans support 1–255 channels, spacing of 25–65535 kHz, and a complete frequency range within 840–960 MHz. Editing uses a separate draft, so reader telemetry cannot overwrite pending changes.
+13. Settings have no bottom Save button. Back exits immediately if unchanged; otherwise **Save changes?** offers Left **Discard**, Right **Save**, or Back to continue editing. Reader frequency writes are read back before persisting. Failed saves keep the editor open and attempt to restore the reader's previous configuration. Settings are written through a synced temporary file before replacing the previous record; their binary format and legacy migration are preserved. **Reset** requires a long OK press and reboots the reader, refreshes its actual state, and preserves pending edits.
+
+**Frequency protocol detail:** The v1.2.3 manual identifies CHN_1 as 840–845 MHz but omits its frequency index table; older sample programs contradict this region assignment. **CHN_1*** therefore uses an explicitly defined software preset (840.000 MHz, 500 kHz spacing, 11 channels) sent through the documented Custom command. A subsequent reader query reports it as Custom. Existing native CHN_1 configurations retain their raw indices, with unavailable physical values shown as unknown. FCC follows the chapter 5 index table (902.000–928.000 MHz, 500 kHz), which differs from the .250 MHz command example in the same manual.
 
 > **Key storage:** Access-password slots are stored locally on the SD card and
 > shown in plain text in the Access Keys list for verification. They are not

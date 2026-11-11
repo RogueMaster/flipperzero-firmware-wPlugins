@@ -486,6 +486,11 @@ static void js_badusb_alt_println(struct mjs* mjs) {
     badusb_print(mjs, true, true);
 }
 
+// Return the host keyboard LED bitmask (HID_KB_LED_NUM/CAPS/SCROLL bits). (#132)
+static void js_badusb_get_led_state(struct mjs* mjs) {
+    mjs_return(mjs, mjs_mk_number(mjs, furi_hal_hid_get_led_state()));
+}
+
 static void* js_badusb_create(struct mjs* mjs, mjs_val_t* object, JsModules* modules) {
     UNUSED(modules);
     JsBadusbInst* badusb = malloc(sizeof(JsBadusbInst));
@@ -494,6 +499,7 @@ static void* js_badusb_create(struct mjs* mjs, mjs_val_t* object, JsModules* mod
     mjs_set(mjs, badusb_obj, "setup", ~0, MJS_MK_FN(js_badusb_setup));
     mjs_set(mjs, badusb_obj, "quit", ~0, MJS_MK_FN(js_badusb_quit));
     mjs_set(mjs, badusb_obj, "isConnected", ~0, MJS_MK_FN(js_badusb_is_connected));
+    mjs_set(mjs, badusb_obj, "getLedState", ~0, MJS_MK_FN(js_badusb_get_led_state));
     mjs_set(mjs, badusb_obj, "press", ~0, MJS_MK_FN(js_badusb_press));
     mjs_set(mjs, badusb_obj, "hold", ~0, MJS_MK_FN(js_badusb_hold));
     mjs_set(mjs, badusb_obj, "release", ~0, MJS_MK_FN(js_badusb_release));

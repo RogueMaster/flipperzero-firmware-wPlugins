@@ -14,7 +14,7 @@
 #define INFRARED_TX_MIN_INTERVAL_MS (50U)
 #define INFRARED_TASK_STACK_SIZE    (2048UL)
 
-static const NotificationSequence*
+static const NotificationSequence* const
     infrared_notification_sequences[InfraredNotificationMessageCount] = {
         &sequence_success,
         &sequence_set_only_green_255,

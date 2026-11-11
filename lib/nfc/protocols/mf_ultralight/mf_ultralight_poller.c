@@ -788,7 +788,13 @@ static NfcCommand mf_ultralight_poller_handler_try_default_pass(MfUltralightPoll
             // original card
             config->auth0 = instance->pages_read;
             config->access.prot = true;
-        } else if(!instance->auth_context.auth_success) {
+        } else if(!instance->auth_context.auth_success && config->auth0 < instance->pages_total) {
+            // All pages were read but we could not authenticate. Only hide the
+            // PWD/PACK pages (which read back masked on a real card) when the tag
+            // is actually protected, i.e. AUTH0 points at an existing page. An
+            // AUTH0 past the last page (e.g. 0xFF after a set-then-clear) means
+            // no page is protected, so keep the tag reported as fully unlocked
+            // (matches NFC Tools / TagInfo). Fixes #538.
             instance->pages_read -= 2;
             instance->data->pages_read -= 2;
         }

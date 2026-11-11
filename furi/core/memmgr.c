@@ -1,5 +1,6 @@
 #include "memmgr.h"
 #include <string.h>
+#include <stdint.h>
 #include <furi_hal_memory.h>
 #include <FreeRTOS.h>
 
@@ -8,6 +9,7 @@ extern void vPortFree(void* pv);
 extern size_t xPortGetFreeHeapSize(void);
 extern size_t xPortGetTotalHeapSize(void);
 extern size_t xPortGetMinimumEverFreeHeapSize(void);
+extern size_t xPortGetAllocatedBlockSize(void* pv);
 
 void* malloc(size_t size) {
     return pvPortMalloc(size);
@@ -25,7 +27,10 @@ void* realloc(void* ptr, size_t size) {
 
     void* p = pvPortMalloc(size);
     if(ptr != NULL) {
-        memcpy(p, ptr, size);
+        // Copy only what the old block actually holds: copying `size` bytes from
+        // a smaller block would read out of bounds when growing the allocation.
+        const size_t old_size = xPortGetAllocatedBlockSize(ptr);
+        memcpy(p, ptr, size < old_size ? size : old_size);
         vPortFree(ptr);
     }
 
@@ -33,6 +38,9 @@ void* realloc(void* ptr, size_t size) {
 }
 
 void* calloc(size_t count, size_t size) {
+    // Same overflow guard as pvPortCalloc: count * size must not wrap size_t,
+    // else a tiny block would be returned for a large logical size -> heap corruption.
+    furi_check(size == 0 || count <= (SIZE_MAX / size));
     return pvPortMalloc(count * size);
 }
 

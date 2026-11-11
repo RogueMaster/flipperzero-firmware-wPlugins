@@ -25,7 +25,7 @@ typedef enum {
     CliShellComponentMAX, //<! do not use
 } CliShellComponent;
 
-CliShellKeyComboSet* component_key_combo_sets[] = {
+const CliShellKeyComboSet* const component_key_combo_sets[] = {
     [CliShellComponentCompletions] = &cli_shell_completions_key_combo_set,
     [CliShellComponentLine] = &cli_shell_line_key_combo_set,
 };
@@ -346,7 +346,7 @@ static void
     if(key_combo.key == CliKeyUnrecognized) return;
 
     for(size_t i = 0; i < CliShellComponentMAX; i++) { // -V1008
-        CliShellKeyComboSet* set = component_key_combo_sets[i];
+        const CliShellKeyComboSet* set = component_key_combo_sets[i];
         void* component_context = cli_shell->components[i];
 
         for(size_t j = 0; j < set->count; j++) {

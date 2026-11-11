@@ -11,7 +11,7 @@ void subghz_scene_set_type_submenu_callback(void* context, uint32_t index) {
     view_dispatcher_send_custom_event(subghz->view_dispatcher, index);
 }
 
-static const char* submenu_names[SetTypeMAX] = {
+static const char* const submenu_names[SetTypeMAX] = {
     [SetTypeAllmatic433] = "KL: Allmatic 433MHz",
     [SetTypeAllmatic868] = "KL: Allmatic 868MHz",
     [SetTypeAlutechAT4N] = "Alutech AT4N 433MHz",

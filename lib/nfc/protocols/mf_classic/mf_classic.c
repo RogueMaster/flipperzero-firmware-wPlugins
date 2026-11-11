@@ -121,7 +121,14 @@ static void mf_classic_parse_block(FuriString* block_str, MfClassicData* data, u
     uint16_t block_unknown_bytes_mask = 0;
 
     furi_string_trim(block_str);
+    size_t block_str_len = furi_string_size(block_str);
     for(size_t i = 0; i < MF_CLASSIC_BLOCK_SIZE; i++) {
+        // A truncated .nfc block string must not be read out of bounds; treat any
+        // missing byte as unknown.
+        if((3 * i + 1) >= block_str_len) {
+            FURI_BIT_SET(block_unknown_bytes_mask, i);
+            continue;
+        }
         char hi = furi_string_get_char(block_str, 3 * i);
         char low = furi_string_get_char(block_str, 3 * i + 1);
         uint8_t byte = 0;

@@ -26,8 +26,8 @@ bool infrared_decoder_rc5_interpret(InfraredCommonDecoder* decoder) {
     decoder->data[1] = ~decoder->data[1];
 
     // MSB first
-    uint8_t address = reverse((uint8_t)decoder->data[0]) & 0x1F;
-    uint8_t command = (reverse((uint8_t)decoder->data[1]) >> 2) & 0x3F;
+    uint8_t address = infrared_reverse((uint8_t)decoder->data[0]) & 0x1F;
+    uint8_t command = (infrared_reverse((uint8_t)decoder->data[1]) >> 2) & 0x3F;
     bool start_bit1 = *data & 0x01;
     bool start_bit2 = *data & 0x02;
     bool toggle = !!(*data & 0x04);

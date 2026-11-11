@@ -1,0 +1,17 @@
+App(
+    appid="gbhobbytech_ac_multi_remote",
+    name="A/C Master",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="gbhobbytech_ac_multi_remote_app",
+    sources=["*.c"],
+    stack_size=4 * 1024,
+    fap_icon="gbhobbytech_ac_multi_remote.png",
+    fap_icon_assets="images",
+    fap_libs=["infrared"],
+    targets=["f7"],
+    fap_category="Infrared",
+    fap_author="Enlighten Tech",
+    fap_weburl="https://github.com/gbhobbytech/flipper-ac-multi-remote",
+    fap_version="0.3",
+    fap_description="Multi-profile infrared controller for air conditioners",
+)

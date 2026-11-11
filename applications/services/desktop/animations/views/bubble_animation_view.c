@@ -11,6 +11,7 @@
 #include <input/input.h>
 #include <stdint.h>
 #include <core/dangerous_defines.h>
+#include <notification/notification_app.h>
 
 #define ACTIVE_SHIFT 2
 
@@ -31,6 +32,7 @@ struct BubbleAnimationView {
     FuriTimer* timer;
     BubbleAnimationInteractCallback interact_callback;
     void* interact_callback_context;
+    NotificationApp* notification;
 };
 
 static void bubble_animation_activate(BubbleAnimationView* view, bool force);
@@ -233,6 +235,15 @@ static void bubble_animation_next_frame(BubbleAnimationViewModel* model) {
 static void bubble_animation_timer_callback(void* context) {
     furi_assert(context);
     BubbleAnimationView* view = context;
+
+    // Skip the whole frame while the backlight is off — rendering to a dark screen
+    // (canvas compose + ~1KB LCD SPI) every tick is pure idle-power waste. State is
+    // untouched; a keypress re-lights the screen (which redraws) and the next tick
+    // resumes the animation.
+    if(!notification_is_display_backlight_on(view->notification)) {
+        return;
+    }
+
     bool activate = false;
 
     BubbleAnimationViewModel* model = view_get_model(view->view);
@@ -316,6 +327,7 @@ BubbleAnimationView* bubble_animation_view_alloc(void) {
     view->view = view_alloc();
     view->interact_callback = NULL;
     view->timer = furi_timer_alloc(bubble_animation_timer_callback, FuriTimerTypePeriodic, view);
+    view->notification = furi_record_open(RECORD_NOTIFICATION);
 
     view_allocate_model(view->view, ViewModelTypeLocking, sizeof(BubbleAnimationViewModel));
     view_set_context(view->view, view);
@@ -333,6 +345,12 @@ void bubble_animation_view_free(BubbleAnimationView* view) {
     view_set_draw_callback(view->view, NULL);
     view_set_input_callback(view->view, NULL);
     view_set_context(view->view, NULL);
+
+    // Stop and release the timer before its context and notification record.
+    furi_timer_free(view->timer);
+    view->timer = NULL;
+    furi_record_close(RECORD_NOTIFICATION);
+    view->notification = NULL;
 
     view_free(view->view);
     view->view = NULL;

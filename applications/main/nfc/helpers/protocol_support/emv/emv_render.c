@@ -138,9 +138,36 @@ void nfc_render_emv_transactions(const EmvApplication* apl, FuriString* str) {
 }
 
 void nfc_render_emv_extra(const EmvData* data, FuriString* str) {
-    nfc_render_emv_application(&data->emv_application, str);
-    nfc_render_emv_application_interchange_profile(&data->emv_application, str);
+    const EmvApplication* apl = &data->emv_application;
 
-    nfc_render_emv_currency(data->emv_application.currency_code, str);
-    nfc_render_emv_country(data->emv_application.country_code, str);
+    // Human-readable application identifiers (Preferred Name 9F12 / Label 50)
+    if(apl->application_name[0] != '\0')
+        furi_string_cat_printf(str, "Name: %s\n", apl->application_name);
+    if(apl->application_label[0] != '\0')
+        furi_string_cat_printf(str, "Label: %s\n", apl->application_label);
+
+    nfc_render_emv_application(apl, str);
+    nfc_render_emv_application_interchange_profile(apl, str);
+
+    // Application Expiration Date (5F24), stored as BCD -> print MM/YY
+    if(apl->exp_month || apl->exp_year)
+        furi_string_cat_printf(str, "Expires: %02X/%02X\n", apl->exp_month, apl->exp_year);
+
+    // Application Effective Date (5F25), if the card provided it -> MM/YY
+    if(apl->effective_month || apl->effective_year)
+        furi_string_cat_printf(
+            str, "Effective: %02X/%02X\n", apl->effective_month, apl->effective_year);
+
+    nfc_render_emv_currency(apl->currency_code, str);
+    nfc_render_emv_country(apl->country_code, str);
+
+    // PIN try counter (9F17); 0xFF is the reset sentinel for "tag not read"
+    if(apl->pin_try_counter != 0xff)
+        furi_string_cat_printf(str, "PIN tries left: %d\n", apl->pin_try_counter);
+
+    // Application Transaction Counter / last online ATC, when present
+    if(apl->transaction_counter)
+        furi_string_cat_printf(str, "Transactions count: %d\n", apl->transaction_counter);
+    if(apl->last_online_atc)
+        furi_string_cat_printf(str, "Last Online ATC: %d\n", apl->last_online_atc);
 }

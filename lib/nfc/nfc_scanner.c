@@ -198,7 +198,7 @@ void nfc_scanner_state_handler_complete(NfcScanner* instance) {
     furi_delay_ms(100);
 }
 
-static NfcScannerStateHandler nfc_scanner_state_handlers[NfcScannerStateNum] = {
+static const NfcScannerStateHandler nfc_scanner_state_handlers[NfcScannerStateNum] = {
     [NfcScannerStateIdle] = nfc_scanner_state_handler_idle,
     [NfcScannerStateTryBasePollers] = nfc_scanner_state_handler_try_base_pollers,
     [NfcScannerStateFindChildrenProtocols] = nfc_scanner_state_handler_find_children_protocols,

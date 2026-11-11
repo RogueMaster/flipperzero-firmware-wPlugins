@@ -107,11 +107,8 @@ static bool u2f_nfc_parse_apdu(
     return true;
 }
 
-static void u2f_nfc_send_sw(
-    U2fNfc* u2f_nfc,
-    Iso14443_4aListener* listener,
-    uint8_t sw1,
-    uint8_t sw2) {
+static void
+    u2f_nfc_send_sw(U2fNfc* u2f_nfc, Iso14443_4aListener* listener, uint8_t sw1, uint8_t sw2) {
     bit_buffer_reset(u2f_nfc->tx);
     bit_buffer_append_byte(u2f_nfc->tx, sw1);
     bit_buffer_append_byte(u2f_nfc->tx, sw2);

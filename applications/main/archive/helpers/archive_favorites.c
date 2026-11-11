@@ -163,6 +163,13 @@ bool archive_favorites_read(void* context) {
                 continue;
             }
 
+            // Display-only de-duplication: skip a favorite whose full path was
+            // already added (keeps the first occurrence, preserving the user's
+            // ordering). The on-disk favorites file is intentionally left as-is.
+            if(archive_file_array_contains(browser, furi_string_get_cstr(buffer))) {
+                continue;
+            }
+
             if(furi_string_search(buffer, "/app:") == 0) {
                 if(archive_app_is_available(browser, furi_string_get_cstr(buffer))) {
                     archive_add_app_item(browser, furi_string_get_cstr(buffer));

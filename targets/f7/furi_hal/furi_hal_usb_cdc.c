@@ -43,7 +43,8 @@ struct CdcConfigDescriptorDual {
     struct CdcIadDescriptor iad_1;
 } FURI_PACKED;
 
-static const struct usb_string_descriptor dev_manuf_desc = USB_STRING_DESC("Flipper Devices Inc.");
+const struct usb_string_descriptor furi_hal_usb_manuf_desc =
+    USB_STRING_DESC("Flipper Devices Inc.");
 
 /* Device descriptor */
 static const struct usb_device_descriptor cdc_device_desc = {
@@ -407,7 +408,7 @@ FuriHalUsbInterface usb_cdc_single = {
 
     .dev_descr = (struct usb_device_descriptor*)&cdc_device_desc,
 
-    .str_manuf_descr = (void*)&dev_manuf_desc,
+    .str_manuf_descr = (void*)&furi_hal_usb_manuf_desc,
     .str_prod_descr = NULL,
     .str_serial_descr = NULL,
 
@@ -422,7 +423,7 @@ FuriHalUsbInterface usb_cdc_dual = {
 
     .dev_descr = (struct usb_device_descriptor*)&cdc_device_desc,
 
-    .str_manuf_descr = (void*)&dev_manuf_desc,
+    .str_manuf_descr = (void*)&furi_hal_usb_manuf_desc,
     .str_prod_descr = NULL,
     .str_serial_descr = NULL,
 

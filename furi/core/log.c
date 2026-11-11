@@ -50,6 +50,7 @@ bool furi_log_add_handler(FuriLogHandler handler) {
     while(!FuriLogHandlersList_end_p(it)) {
         if(memcmp(FuriLogHandlersList_ref(it), &handler, sizeof(FuriLogHandler)) == 0) {
             ret = false;
+            break;
         } else {
             FuriLogHandlersList_next(it);
         }

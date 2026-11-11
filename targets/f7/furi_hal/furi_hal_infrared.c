@@ -82,7 +82,7 @@ static volatile InfraredState furi_hal_infrared_state = InfraredStateIdle;
 static InfraredTimTx infrared_tim_tx;
 static InfraredTimRx infrared_tim_rx;
 
-static const GpioPin* infrared_tx_pins[FuriHalInfraredTxPinMax] = {
+static const GpioPin* const infrared_tx_pins[FuriHalInfraredTxPinMax] = {
     [FuriHalInfraredTxPinInternal] = &gpio_infrared_tx,
     [FuriHalInfraredTxPinExtPA7] = &gpio_ext_pa7,
 };

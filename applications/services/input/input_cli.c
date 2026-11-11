@@ -61,54 +61,111 @@ static void fake_input(FuriPubSub* event_pubsub, InputKey key, InputType type) {
     }
 }
 
+// Map a directional CliKey (arrows + Home/End) to the matching Flipper InputKey.
+// Home/End have no dedicated Flipper key, so they act like Left/Right (jump to
+// start/end). Returns InputKeyMAX for anything else.
+static InputKey input_cli_key_from_cli_key(CliKey key) {
+    switch(key) {
+    case CliKeyUp:
+        return InputKeyUp;
+    case CliKeyDown:
+        return InputKeyDown;
+    case CliKeyRight:
+    case CliKeyEnd:
+        return InputKeyRight;
+    case CliKeyLeft:
+    case CliKeyHome:
+        return InputKeyLeft;
+    default:
+        return InputKeyMAX;
+    }
+}
+
+// Map a directional CliKey to the device-control ASCII code used in non-hold
+// mode (kept identical to the original arrow mapping: Up=DC1..Left=DC4).
+static uint8_t input_cli_dc_from_cli_key(CliKey key) {
+    switch(key) {
+    case CliKeyUp:
+        return AsciiValueDC1;
+    case CliKeyDown:
+        return AsciiValueDC2;
+    case CliKeyRight:
+    case CliKeyEnd:
+        return AsciiValueDC3;
+    case CliKeyLeft:
+    case CliKeyHome:
+        return AsciiValueDC4;
+    default:
+        return AsciiValueNUL;
+    }
+}
+
 static void input_cli_keyboard(PipeSide* pipe, FuriString* args, FuriPubSub* event_pubsub) {
     UNUSED(args);
     printf("Using console keyboard feedback for flipper input\r\n");
 
     printf("\r\nUsage:\r\n");
-    printf("\tMove = Arrows\r\n");
+    printf("\tMove = Arrows (Home/End = Left/Right)\r\n");
     printf("\tOk = Enter\r\n");
     printf("\tBack = Backspace/Ctrl + Q\r\n");
     printf("\tEnable hold for next key = Space (press twice to send space key)\r\n");
+    printf("\tCtrl/Alt + a device-control key = long press\r\n");
 
     printf("\r\nPress CTRL+C to stop\r\n");
     bool hold = false;
     FuriPubSub* ascii_pubsub = furi_record_open(RECORD_ASCII_EVENTS);
+    CliAnsiParser* parser = cli_ansi_parser_alloc();
+
     while(pipe_state(pipe) == PipeStateOpen) {
         char in_chr = getchar();
-        if(in_chr == CliKeyETX) break;
+
+        // Feed every byte through the ANSI parser; it assembles escape sequences
+        // (arrows, Home/End, and modifier combos) and passes plain bytes straight
+        // through. Keep reading until a full key combo is decoded.
+        CliAnsiParserResult parsed = cli_ansi_parser_feed(parser, in_chr);
+        if(!parsed.is_done) continue;
+
+        CliKey key = parsed.result.key;
+        if(key == CliKeyETX) break;
+
+        // A held modifier acts like the Space hold-toggle for this single key.
+        bool effective_hold = hold || (parsed.result.modifiers != CliModKeyNo);
+
         InputKey send_key = InputKeyMAX;
         uint8_t send_ascii = AsciiValueNUL;
 
-        switch(in_chr) {
-        case CliKeyEsc: // Escape code for arrows
-            if(!pipe_receive(pipe, &in_chr, 1) || in_chr != '[') break;
-            if(!pipe_receive(pipe, &in_chr, 1)) break;
-            if(in_chr >= 'A' && in_chr <= 'D') { // Arrows = Dpad
-                if(hold) {
-                    send_key = InputKeyUp + (in_chr - 'A'); // Same order as InputKey
-                } else {
-                    send_ascii = AsciiValueDC1 + (in_chr - 'A'); // Same order as DC
-                }
+        // Switch on int: some handled bytes (e.g. Ctrl+Q = 0x11) are valid keys
+        // the parser passes through but are not named CliKey enumerators.
+        switch((int)key) {
+        case CliKeyUp: // Arrows = Dpad
+        case CliKeyDown:
+        case CliKeyLeft:
+        case CliKeyRight:
+        case CliKeyHome: // Home/End = Left/Right
+        case CliKeyEnd:
+            if(effective_hold) {
+                send_key = input_cli_key_from_cli_key(key);
+            } else {
+                send_ascii = input_cli_dc_from_cli_key(key);
             }
             break;
         case CliKeyBackspace: // (minicom) Backspace = Back
         case CliKeyDEL: // (putty/picocom) Backspace = Back
-            if(hold) {
+            if(effective_hold) {
                 send_key = InputKeyBack;
             } else {
                 send_ascii = AsciiValueBS;
             }
             break;
         case 0x11: // Ctrl Q = Escape (no Esc key over CLI)
-            if(hold) {
+            if(effective_hold) {
                 send_key = InputKeyBack;
             } else {
                 send_ascii = AsciiValueESC;
             }
             break;
         case CliKeyCR: // Enter = Ok
-            if(hold) {
+            if(effective_hold) {
                 send_key = InputKeyOk;
             } else {
                 send_ascii = AsciiValueCR;
@@ -122,12 +179,12 @@ static void input_cli_keyboard(PipeSide* pipe, FuriString* args, FuriPubSub* eve
             }
             break;
         default:
-            send_ascii = in_chr;
+            send_ascii = (uint8_t)key;
             break;
         }
 
         if(send_key != InputKeyMAX) {
-            fake_input(event_pubsub, send_key, hold ? InputTypeLong : InputTypeShort);
+            fake_input(event_pubsub, send_key, effective_hold ? InputTypeLong : InputTypeShort);
             hold = false;
         }
         if(send_ascii != AsciiValueNUL) {
@@ -136,6 +193,8 @@ static void input_cli_keyboard(PipeSide* pipe, FuriString* args, FuriPubSub* eve
             hold = false;
         }
     }
+
+    cli_ansi_parser_free(parser);
     furi_record_close(RECORD_ASCII_EVENTS);
 }
 

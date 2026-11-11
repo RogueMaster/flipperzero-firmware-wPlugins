@@ -105,6 +105,12 @@ static void notification_reset_notification_led_layer(NotificationLedLayer* laye
     furi_hal_light_set(layer->light, layer->value[LayerInternal]);
 }
 
+// Publish actual output state, including enforced/internal backlight layers.
+// The animation timer reads this from a different thread.
+static void notification_set_display_backlight_state(NotificationApp* app, uint8_t value) {
+    __atomic_store_n(&app->display_backlight_on, value != 0, __ATOMIC_RELAXED);
+}
+
 static void notification_reset_notification_layer(
     NotificationApp* app,
     uint8_t reset_mask,
@@ -130,6 +136,7 @@ static void notification_reset_notification_layer(
     if(reset_mask & reset_display_mask) {
         if(!float_is_equal(display_brightness_set, app->settings.display_brightness)) {
             furi_hal_light_set(LightBacklight, app->settings.display_brightness * 0xFF);
+            notification_set_display_backlight_state(app, app->settings.display_brightness * 0xFF);
         }
         furi_timer_start(app->display_timer, notification_settings_display_off_delay_ticks(app));
     }
@@ -189,6 +196,11 @@ static void notification_display_timer(void* ctx) {
     notification_message(app, &sequence_display_backlight_off);
 }
 
+bool notification_is_display_backlight_on(NotificationApp* app) {
+    furi_assert(app);
+    return __atomic_load_n(&app->display_backlight_on, __ATOMIC_RELAXED);
+}
+
 // message processing
 static void notification_process_notification_message(
     NotificationApp* app,
@@ -219,9 +231,13 @@ static void notification_process_notification_message(
                     &app->display,
                     notification_message->data.led.value * display_brightness_setting);
                 reset_mask |= reset_display_mask;
+                notification_set_display_backlight_state(
+                    app, app->display.value[app->display.index]);
             } else {
                 reset_mask &= ~reset_display_mask;
                 notification_reset_notification_led_layer(&app->display);
+                notification_set_display_backlight_state(
+                    app, app->display.value[app->display.index]);
                 if(furi_timer_is_running(app->display_timer)) {
                     furi_timer_stop(app->display_timer);
                 }
@@ -234,6 +250,10 @@ static void notification_process_notification_message(
                 notification_apply_internal_led_layer(
                     &app->display,
                     notification_message->data.led.value * display_brightness_setting);
+                if(app->display.index == LayerInternal) {
+                    notification_set_display_backlight_state(
+                        app, app->display.value[LayerInternal]);
+                }
             }
             break;
         case NotificationMessageTypeLedDisplayBacklightEnforceAuto:
@@ -243,6 +263,10 @@ static void notification_process_notification_message(
                     notification_apply_internal_led_layer(
                         &app->display,
                         notification_message->data.led.value * display_brightness_setting);
+                    if(app->display.index == LayerInternal) {
+                        notification_set_display_backlight_state(
+                            app, app->display.value[LayerInternal]);
+                    }
                 }
             } else {
                 FURI_LOG_E(TAG, "Incorrect BacklightEnforce use");
@@ -397,6 +421,9 @@ static void
                 &app->display,
                 notification_settings_get_display_brightness(
                     app, notification_message->data.led.value));
+            if(app->display.index == LayerInternal) {
+                notification_set_display_backlight_state(app, app->display.value[LayerInternal]);
+            }
             break;
         case NotificationMessageTypeLedRed:
         case NotificationMessageTypeLedGreen:
@@ -475,6 +502,7 @@ static NotificationApp* notification_app_alloc(void) {
     app->display.value[LayerNotification] = 0x00;
     app->display.index = LayerInternal;
     app->display.light = LightBacklight;
+    notification_set_display_backlight_state(app, 0);
 
     app->led[0].value[LayerInternal] = 0x00;
     app->led[0].value[LayerNotification] = 0x00;

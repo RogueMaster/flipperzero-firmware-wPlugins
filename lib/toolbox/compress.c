@@ -74,15 +74,23 @@ void compress_icon_decode(CompressIcon* instance, const uint8_t* icon_data, uint
     CompressHeader* header = (CompressHeader*)icon_data;
     if(header->is_compressed) {
         size_t decoded_size = 0;
-        /* If decompression fails - check that decode_buf_size is large enough */
-        furi_check(compress_decode_internal(
-            instance->decoder,
-            icon_data,
-            /* Decoder will check/process headers again - need to pass them */
-            sizeof(CompressHeader) + header->compressed_buff_size,
-            instance->buffer,
-            instance->buffer_size,
-            &decoded_size));
+        if(!compress_decode_internal(
+               instance->decoder,
+               icon_data,
+               /* Decoder will check/process headers again - need to pass them */
+               sizeof(CompressHeader) + header->compressed_buff_size,
+               instance->buffer,
+               instance->buffer_size,
+               &decoded_size)) {
+            /* Malformed or oversized icon data (e.g. a corrupt custom asset
+               pack) must not crash the drawing thread / GUI service. Built-in
+               icons are compressed and sized to fit at build time and never
+               take this path, so a failure here means untrusted data: render a
+               blank icon instead of a furi_check crash. The log preserves the
+               original developer signal that a decode buffer was too small. */
+            FURI_LOG_E(TAG, "Icon decode failed (bad data or decode buffer too small)");
+            memset(instance->buffer, 0, instance->buffer_size);
+        }
         *output = instance->buffer;
     } else {
         *output = (uint8_t*)&icon_data[1];
@@ -317,9 +325,14 @@ static bool compress_decode_internal(
     furi_check(data_res_size);
 
     bool result = false;
+    *data_res_size = 0;
+    if(data_in_size == 0) return false;
+    // Compressed inputs need the complete header and its declared payload.
+    if(data_in[0] && (data_in_size < sizeof(CompressHeader))) return false;
 
     CompressHeader* header = (CompressHeader*)data_in;
     if(header->is_compressed) {
+        if(header->compressed_buff_size > data_in_size - sizeof(CompressHeader)) return false;
         MemoryStreamState compressed_context = {
             .data_ptr = (uint8_t*)&data_in[sizeof(CompressHeader)],
             .data_size = header->compressed_buff_size,
@@ -341,7 +354,10 @@ static bool compress_decode_internal(
             *data_res_size = data_out_size - decompressed_context.data_size;
         }
     } else if(data_out_size >= data_in_size - 1) {
-        memcpy(data_out, &data_in[1], data_in_size);
+        // Payload is data_in_size - 1 bytes (data_in[0] is the header). Copying
+        // data_in_size would read one byte past data_in and, when data_out is
+        // sized exactly to the payload, write one byte past data_out.
+        memcpy(data_out, &data_in[1], data_in_size - 1);
         *data_res_size = data_in_size - 1;
         result = true;
     } else {

@@ -25,19 +25,28 @@ void subghz_scene_receiver_info_callback(GuiButtonType result, InputType type, v
     } else if((result == GuiButtonTypeLeft) && (type == InputTypeShort) && subghz->gps) {
         view_dispatcher_send_custom_event(
             subghz->view_dispatcher, SubGhzCustomEventSceneReceiverInfoSats);
+    } else if((result == GuiButtonTypeLeft) && (type == InputTypeShort) && !subghz->gps) {
+        view_dispatcher_send_custom_event(
+            subghz->view_dispatcher, SubGhzCustomEventSceneReceiverInfoMore);
+    } else if((result == GuiButtonTypeLeft) && (type == InputTypeLong)) {
+        view_dispatcher_send_custom_event(
+            subghz->view_dispatcher, SubGhzCustomEventSceneReceiverInfoMore);
     }
 }
 
-static bool subghz_scene_receiver_info_update_parser(void* context) {
+bool subghz_scene_receiver_info_update_parser(void* context) {
     SubGhz* subghz = context;
 
     if(subghz_txrx_load_decoder_by_name_protocol(
            subghz->txrx,
            subghz_history_get_protocol_name(subghz->history, subghz->idx_menu_chosen))) {
         // we are trying to deserialize without checking for errors, since it is assumed that we just received this chignal
-        subghz_protocol_decoder_base_deserialize(
-            subghz_txrx_get_decoder(subghz->txrx),
-            subghz_history_get_raw_data(subghz->history, subghz->idx_menu_chosen));
+        if(subghz_protocol_decoder_base_deserialize(
+               subghz_txrx_get_decoder(subghz->txrx),
+               subghz_history_get_raw_data(subghz->history, subghz->idx_menu_chosen)) !=
+           SubGhzProtocolStatusOk) {
+            return false;
+        }
 
         SubGhzRadioPreset* preset =
             subghz_history_get_radio_preset(subghz->history, subghz->idx_menu_chosen);
@@ -88,14 +97,15 @@ void subghz_scene_receiver_info_draw_widget(SubGhz* subghz) {
         widget_add_string_multiline_element(
             subghz->widget, 0, 0, AlignLeft, AlignTop, FontSecondary, furi_string_get_cstr(text));
 
-        if(subghz->gps) {
-            widget_add_button_element(
-                subghz->widget,
-                GuiButtonTypeLeft,
-                "Geo",
-                subghz_scene_receiver_info_callback,
-                subghz);
-        }
+        // Left button: "Geo" opens GPS info when a fix is available, otherwise
+        // "More" opens the read-only Signal Inspector. A long press always
+        // opens the Signal Inspector regardless of the GPS state.
+        widget_add_button_element(
+            subghz->widget,
+            GuiButtonTypeLeft,
+            subghz->gps ? "Geo" : "More",
+            subghz_scene_receiver_info_callback,
+            subghz);
 
         furi_string_free(frequency_str);
         furi_string_free(modulation_str);
@@ -206,6 +216,9 @@ bool subghz_scene_receiver_info_on_event(void* context, SceneManagerEvent event)
                 subghz->save_datetime_set = true;
                 scene_manager_next_scene(subghz->scene_manager, SubGhzSceneSaveName);
             }
+            return true;
+        } else if(event.event == SubGhzCustomEventSceneReceiverInfoMore) {
+            scene_manager_next_scene(subghz->scene_manager, SubGhzSceneSignalInspector);
             return true;
         } else if(event.event == SubGhzCustomEventSceneReceiverInfoSats) {
             if(subghz->gps) {

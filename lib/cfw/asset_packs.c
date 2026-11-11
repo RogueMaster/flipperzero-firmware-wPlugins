@@ -18,6 +18,37 @@
 
 AssetPacks* asset_packs = NULL;
 
+#define ASSET_PACKS_ICON_MAX_W          128
+#define ASSET_PACKS_ICON_MAX_H          64
+// Compressed frame headers carry a uint16 payload length plus a 4-byte header.
+#define ASSET_PACKS_ICON_MAX_FRAME_SIZE (UINT16_MAX + 4u)
+
+static bool asset_packs_icon_dims_valid(int32_t width, int32_t height) {
+    return width > 0 && height > 0 && width <= ASSET_PACKS_ICON_MAX_W &&
+           height <= ASSET_PACKS_ICON_MAX_H;
+}
+
+// Verify a frame blob is at least as large as what the draw path reads from it.
+// Uncompressed (byte 0 == 0): compress_icon_decode points the canvas straight at
+// frame+1 and it reads ((w+7)/8)*h raw XBM bytes. Compressed (byte 0 != 0): a
+// 4-byte CompressHeader whose bytes 2-3 (LE) hold the compressed payload size;
+// the heatshrink decoder reads 4 + that many bytes. Either way the file must
+// contain those bytes or the decode path reads past the malloc'd frame buffer.
+static bool asset_packs_icon_frame_valid(
+    const uint8_t* frame,
+    uint64_t frame_size,
+    int32_t width,
+    int32_t height) {
+    if(frame_size < 1) return false;
+    if(frame[0] == 0) {
+        uint32_t need = 1u + (uint32_t)((width + 7) / 8) * (uint32_t)height;
+        return frame_size >= need;
+    }
+    if(frame_size < 4) return false;
+    uint32_t compressed = (uint32_t)frame[2] | ((uint32_t)frame[3] << 8);
+    return frame_size >= 4u + compressed;
+}
+
 typedef struct {
     Icon icon;
     uint8_t* frames[];
@@ -39,6 +70,14 @@ static void
         bool ok = storage_file_read(file, &meta, sizeof(meta)) == sizeof(meta);
         storage_file_close(file);
 
+        // frame_count comes straight from an asset-pack meta file. Bound it (as
+        // animation_storage.c does) so a crafted/huge value can't wrap the malloc
+        // size and overflow the frames[] array.
+        if(ok &&
+           (meta.frame_count <= 0 || meta.frame_count > 255 || meta.frame_rate < 1 ||
+            meta.frame_rate > 255 || !asset_packs_icon_dims_valid(meta.width, meta.height))) {
+            ok = false;
+        }
         if(ok) {
             AnimatedIconSwap* swap =
                 malloc(sizeof(AnimatedIconSwap) + (sizeof(uint8_t*) * meta.frame_count));
@@ -48,8 +87,16 @@ static void
                 if(storage_file_open(
                        file, furi_string_get_cstr(path), FSAM_READ, FSOM_OPEN_EXISTING)) {
                     uint64_t frame_size = storage_file_size(file);
+                    // Reject frames larger than the format can address before allocating.
+                    if(frame_size == 0 || frame_size > ASSET_PACKS_ICON_MAX_FRAME_SIZE) {
+                        storage_file_close(file);
+                        i--;
+                        break;
+                    }
                     swap->frames[i] = malloc(frame_size);
-                    ok = storage_file_read(file, swap->frames[i], frame_size) == frame_size;
+                    ok = storage_file_read(file, swap->frames[i], frame_size) == frame_size &&
+                         asset_packs_icon_frame_valid(
+                             swap->frames[i], frame_size, meta.width, meta.height);
                     storage_file_close(file);
                     if(ok) continue;
                 } else {
@@ -99,11 +146,22 @@ static void
     furi_string_printf(path, ICONS_FMT ".bmx", cfw_settings.asset_pack, name);
     if(storage_file_open(file, furi_string_get_cstr(path), FSAM_READ, FSOM_OPEN_EXISTING)) {
         StaticIconBmxHeader header;
-        uint64_t frame_size = storage_file_size(file) - sizeof(header);
+        // A valid .bmx holds at least the header; a shorter (corrupt) file would
+        // underflow frame_size into a huge malloc, so treat it as no frame data
+        // and let the read guard below reject it (keeping the built-in icon).
+        uint64_t file_size = storage_file_size(file);
+        uint64_t frame_size = (file_size >= sizeof(header)) ? (file_size - sizeof(header)) : 0;
+        if(frame_size > ASSET_PACKS_ICON_MAX_FRAME_SIZE) {
+            storage_file_close(file);
+            return;
+        }
         StaticIconSwap* swap = malloc(sizeof(StaticIconSwap) + frame_size);
 
-        if(storage_file_read(file, &header, sizeof(header)) == sizeof(header) &&
-           storage_file_read(file, swap->frame, frame_size) == frame_size) {
+        if(file_size >= sizeof(header) && frame_size <= ASSET_PACKS_ICON_MAX_FRAME_SIZE &&
+           storage_file_read(file, &header, sizeof(header)) == sizeof(header) &&
+           storage_file_read(file, swap->frame, frame_size) == frame_size &&
+           asset_packs_icon_dims_valid(header.width, header.height) &&
+           asset_packs_icon_frame_valid(swap->frame, frame_size, header.width, header.height)) {
             FURI_CONST_ASSIGN(swap->icon.width, header.width);
             FURI_CONST_ASSIGN(swap->icon.height, header.height);
             FURI_CONST_ASSIGN(swap->icon.frame_count, 1);
@@ -188,6 +246,7 @@ void asset_packs_init(void) {
     if(storage_common_stat(storage, furi_string_get_cstr(p), &info) == FSE_OK &&
        info.flags & FSF_DIRECTORY) {
         asset_packs = malloc(sizeof(AssetPacks));
+        memset(asset_packs, 0, sizeof(AssetPacks));
         IconSwapList_init(asset_packs->icons);
 
         File* f = storage_file_alloc(storage);

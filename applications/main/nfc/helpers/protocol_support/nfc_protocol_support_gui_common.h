@@ -21,6 +21,7 @@ enum {
     SubmenuIndexCommonRename, /**< Rename menu option. */
     SubmenuIndexCommonDelete, /**< Delete menu option. */
     SubmenuIndexCommonRestore, /**< Restore menu option. */
+    SubmenuIndexCommonSaveUid, /**< Save-as-UID-only menu option. */
     SubmenuIndexCommonMax, /**< Special value, internal use. */
 };
 

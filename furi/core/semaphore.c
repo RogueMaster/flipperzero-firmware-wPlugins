@@ -104,6 +104,12 @@ FuriStatus furi_semaphore_release(FuriSemaphore* instance) {
 
     stat = FuriStatusOk;
 
+    // Make the whole release atomic: without this, a thread waiting in
+    // acquire() could wake the instant xSemaphoreGive() runs and free the
+    // semaphore before we finish touching it (use-after-free). Upstream fix
+    // (Next-Flip feat/use-after-free-sentinel f30f0c193).
+    FURI_CRITICAL_ENTER();
+
     if(FURI_IS_IRQ_MODE()) {
         yield = pdFALSE;
 
@@ -122,6 +128,8 @@ FuriStatus furi_semaphore_release(FuriSemaphore* instance) {
     if(stat == FuriStatusOk) {
         furi_event_loop_link_notify(&instance->event_loop_link, FuriEventLoopEventIn);
     }
+
+    FURI_CRITICAL_EXIT();
 
     return stat;
 }

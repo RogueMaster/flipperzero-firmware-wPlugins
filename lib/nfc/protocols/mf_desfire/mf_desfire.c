@@ -28,7 +28,7 @@
      ((minor) == MF_DESFIRE_HW_MINOR_TYPE_MF3ICD40) &&       \
      ((storage) == MF_DESFIRE_STORAGE_SIZE_MF3ICD40))
 
-static const char* mf_desfire_type_strings[] = {
+static const char* const mf_desfire_type_strings[] = {
     [MfDesfireTypeMF3ICD40] = "(MF3ICD40)",
     [MfDesfireTypeEV1] = "EV1",
     [MfDesfireTypeEV2] = "EV2",
@@ -38,7 +38,7 @@ static const char* mf_desfire_type_strings[] = {
     [MfDesfireTypeUnknown] = "UNK",
 };
 
-static const char* mf_desfire_size_strings[] = {
+static const char* const mf_desfire_size_strings[] = {
     [MfDesfireSize2k] = "2K",
     [MfDesfireSize4k] = "4K",
     [MfDesfireSize8k] = "8K",

@@ -150,6 +150,7 @@ static void hid_media_process_press(HidMedia* hid_media, InputEvent* event) {
                 hid_hal_consumer_key_press(hid_media->hid, HID_CONSUMER_PLAY_PAUSE);
             } else if(event->key == InputKeyBack) {
                 model->back_pressed = true;
+                // Emit Mute on InputTypeShort, once a long exit has been ruled out.
             }
         },
         true);
@@ -191,7 +192,10 @@ static bool hid_media_input_callback(InputEvent* event, void* context) {
         hid_hal_keyboard_release_all(hid_media->hid);
     } else {
         consumed = true;
-        if(event->type == InputTypePress) {
+        if(event->type == InputTypeShort && event->key == InputKeyBack) {
+            hid_hal_consumer_key_press(hid_media->hid, HID_CONSUMER_MUTE);
+            hid_hal_consumer_key_release(hid_media->hid, HID_CONSUMER_MUTE);
+        } else if(event->type == InputTypePress) {
             hid_media_process_press(hid_media, event);
         } else if(event->type == InputTypeRelease) {
             hid_media_process_release(hid_media, event);

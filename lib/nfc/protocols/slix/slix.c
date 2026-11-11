@@ -56,7 +56,7 @@ const NfcDeviceBase nfc_device_slix = {
     .get_base_data = (NfcDeviceGetBaseData)slix_get_base_data,
 };
 
-static const char* slix_nfc_device_name[] = {
+static const char* const slix_nfc_device_name[] = {
     [SlixTypeSlix] = SLIX_DEVICE_NAME,
     [SlixTypeSlixS] = SLIX_DEVICE_NAME "-S",
     [SlixTypeSlixL] = SLIX_DEVICE_NAME "-L",
@@ -70,7 +70,7 @@ static const SlixTypeFeatures slix_type_features[] = {
     [SlixTypeSlix2] = SLIX_TYPE_FEATURES_SLIX2,
 };
 
-static const char* slix_capabilities_names[SlixCapabilitiesCount] = {
+static const char* const slix_capabilities_names[SlixCapabilitiesCount] = {
     [SlixCapabilitiesDefault] = "Default",
     [SlixCapabilitiesAcceptAllPasswords] = "AcceptAllPasswords",
 };

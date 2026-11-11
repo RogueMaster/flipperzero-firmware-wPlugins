@@ -229,9 +229,9 @@ InfraredMessage*
     }
     decoder->level = level; // start with low level (Space timing)
 
+    furi_check(decoder->timings_cnt < COUNT_OF(decoder->timings));
     decoder->timings[decoder->timings_cnt] = duration;
     decoder->timings_cnt++;
-    furi_check(decoder->timings_cnt <= COUNT_OF(decoder->timings));
 
     while(1) {
         switch(decoder->state) {

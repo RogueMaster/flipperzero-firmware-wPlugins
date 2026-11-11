@@ -211,7 +211,7 @@ static void rpc_system_storage_list_root(const PB_Main* request, void* context) 
     RpcSession* session = rpc_storage->session;
     furi_assert(session);
 
-    const char* hard_coded_dirs[] = {"any", "int", "ext"};
+    static const char* const hard_coded_dirs[] = {"any", "int", "ext"};
 
     PB_Main response = {
         .has_next = false,
@@ -227,6 +227,18 @@ static void rpc_system_storage_list_root(const PB_Main* request, void* context) 
         response.content.storage_list_response.file[i].size = 0;
         response.content.storage_list_response.file[i].type = PB_Storage_File_FileType_DIR;
         response.content.storage_list_response.file[i].name = strdup(hard_coded_dirs[i]);
+    }
+
+    // Expose /mnt as a root only when a device is actually mounted there.
+    if(storage_dir_exists(rpc_storage->api, STORAGE_MNT_PATH_PREFIX)) {
+        uint32_t i = response.content.storage_list_response.file_count;
+        if(i < COUNT_OF(response.content.storage_list_response.file)) {
+            ++response.content.storage_list_response.file_count;
+            response.content.storage_list_response.file[i].data = NULL;
+            response.content.storage_list_response.file[i].size = 0;
+            response.content.storage_list_response.file[i].type = PB_Storage_File_FileType_DIR;
+            response.content.storage_list_response.file[i].name = strdup("mnt");
+        }
     }
 
     rpc_send_and_release(session, &response);

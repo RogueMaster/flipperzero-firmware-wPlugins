@@ -19,14 +19,10 @@ static uint16_t
     }
 
     for(size_t i = 0; i < data_size; ++i) {
-        crc ^= (uint16_t)data[i];
-        for(size_t j = 0; j < 8; ++j) {
-            if(crc & 1U) {
-                crc = (crc >> 1) ^ ISO13239_CRC_POLY;
-            } else {
-                crc >>= 1;
-            }
-        }
+        uint8_t byte = data[i];
+        byte ^= (uint8_t)(crc & 0xffU);
+        byte ^= byte << 4;
+        crc = (crc >> 8) ^ (((uint16_t)byte) << 8) ^ (((uint16_t)byte) << 3) ^ (byte >> 4);
     }
 
     return type == Iso13239CrcTypePicopass ? crc : ~crc;

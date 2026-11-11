@@ -148,7 +148,7 @@ void* infrared_common_encoder_alloc(const InfraredCommonProtocolSpec* protocol) 
         furi_assert(protocol->databit_len[i] <= protocol->databit_len[0]);
     }
 
-    uint32_t alloc_size = sizeof(InfraredCommonDecoder) + protocol->databit_len[0] / 8 +
+    uint32_t alloc_size = sizeof(InfraredCommonEncoder) + protocol->databit_len[0] / 8 +
                           !!(protocol->databit_len[0] % 8);
     InfraredCommonEncoder* encoder = malloc(alloc_size);
     memset(encoder, 0, alloc_size);

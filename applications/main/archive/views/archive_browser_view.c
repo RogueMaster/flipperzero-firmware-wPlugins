@@ -184,6 +184,15 @@ static void render_item_menu(Canvas* canvas, ArchiveBrowserViewModel* model) {
                         selected->type == ArchiveFileTypeDiskImage ? "Mount" : "Show",
                         ArchiveBrowserEventFileMenuShow);
                 }
+                if(selected->type != ArchiveFileTypeFolder &&
+                   (furi_string_end_withi_str(selected->path, ".tar") ||
+                    furi_string_end_withi_str(selected->path, ".tgz") ||
+                    furi_string_end_withi_str(selected->path, ".tar.gz"))) {
+                    archive_menu_add_item(
+                        menu_array_push_raw(model->context_menu),
+                        "Extract",
+                        ArchiveBrowserEventFileMenuExtract);
+                }
             }
             if(favorites) {
                 archive_menu_add_item(

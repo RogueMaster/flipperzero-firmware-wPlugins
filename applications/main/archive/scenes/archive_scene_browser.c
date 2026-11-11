@@ -165,6 +165,14 @@ bool archive_scene_browser_on_event(void* context, SceneManagerEvent event) {
             scene_manager_next_scene(archive->scene_manager, ArchiveAppSceneInfo);
             consumed = true;
             break;
+        case ArchiveBrowserEventFileMenuExtract:
+            archive_show_file_menu(browser, false, false);
+            scene_manager_set_scene_state(
+                archive->scene_manager, ArchiveAppSceneBrowser, SCENE_STATE_NEED_REFRESH);
+            scene_manager_set_scene_state(archive->scene_manager, ArchiveAppSceneExtract, 0);
+            scene_manager_next_scene(archive->scene_manager, ArchiveAppSceneExtract);
+            consumed = true;
+            break;
         case ArchiveBrowserEventFileMenuShow: {
             ArchiveFile_t preview;
             ArchiveFile_t_init(&preview);

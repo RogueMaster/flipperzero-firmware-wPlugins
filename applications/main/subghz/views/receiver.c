@@ -34,7 +34,7 @@ struct SubGhzReceiverHistory {
 
 typedef struct SubGhzReceiverHistory SubGhzReceiverHistory;
 
-static const Icon* ReceiverItemIcons[] = {
+static const Icon* const ReceiverItemIcons[] = {
     [SubGhzProtocolTypeUnknown] = &I_Quest_7x8,
     [SubGhzProtocolTypeStatic] = &I_Static_9x7,
     [SubGhzProtocolTypeDynamic] = &I_Dynamic_9x7,

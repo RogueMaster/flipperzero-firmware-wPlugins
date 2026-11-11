@@ -193,7 +193,9 @@ static void text_box_update_screen_text(Canvas* canvas, TextBoxModel* model) {
             &model->text[current_line_text_offset],
             next_line_text_offset - current_line_text_offset);
         size_t str_len = furi_string_size(model->text_line);
-        if(furi_string_get_char(model->text_line, str_len - 1) != '\n') {
+        // str_len == 0 (empty line) would make str_len - 1 underflow; skip the
+        // read and still append the newline so the blank line renders.
+        if(str_len == 0 || furi_string_get_char(model->text_line, str_len - 1) != '\n') {
             furi_string_push_back(model->text_line, '\n');
         }
         furi_string_cat(model->text_on_screen, model->text_line);

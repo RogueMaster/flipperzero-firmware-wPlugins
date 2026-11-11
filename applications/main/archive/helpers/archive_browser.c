@@ -234,6 +234,26 @@ size_t archive_file_get_array_size(ArchiveBrowserView* browser) {
     return size;
 }
 
+bool archive_file_array_contains(ArchiveBrowserView* browser, const char* path) {
+    furi_assert(browser);
+    furi_assert(path);
+
+    bool found = false;
+    with_view_model(
+        browser->view,
+        ArchiveBrowserViewModel * model,
+        {
+            for(size_t i = 0; i < files_array_size(model->files); i++) {
+                if(furi_string_cmp_str(files_array_get(model->files, i)->path, path) == 0) {
+                    found = true;
+                    break;
+                }
+            }
+        },
+        false);
+    return found;
+}
+
 void archive_set_item_count(ArchiveBrowserView* browser, uint32_t count) {
     furi_assert(browser);
 

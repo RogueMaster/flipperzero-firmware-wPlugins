@@ -19,13 +19,12 @@
 typedef struct {
     uint8_t magic;
     char desc[13];
-    uint8_t chk;
 } ProtocolNexwatchMagic;
 
-static ProtocolNexwatchMagic magic_items[] = {
-    {0xBE, "Quadrakey", 0},
-    {0x88, "Nexkey", 0},
-    {0x86, "Honeywell", 0}};
+static const ProtocolNexwatchMagic magic_items[] = {
+    {0xBE, "Quadrakey"},
+    {0x88, "Nexkey"},
+    {0x86, "Honeywell"}};
 
 typedef struct {
     uint8_t data_index;
@@ -278,8 +277,7 @@ static void protocol_nexwatch_render_data_internal(
     uint8_t chk = bit_lib_get_bits(protocol->data, 48, 8);
 
     for(m_idx = 0; m_idx < COUNT_OF(magic_items); m_idx++) {
-        magic_items[m_idx].chk = protocol_nexwatch_checksum(magic_items[m_idx].magic, id, parity);
-        if(magic_items[m_idx].chk == chk) {
+        if(protocol_nexwatch_checksum(magic_items[m_idx].magic, id, parity) == chk) {
             break;
         }
     }

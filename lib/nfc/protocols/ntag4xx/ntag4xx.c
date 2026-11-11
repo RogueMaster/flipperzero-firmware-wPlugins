@@ -9,7 +9,7 @@
 
 #define NTAG4XX_HW_SUBTYPE_TAGTAMPER_FLAG (0x08)
 
-static const char* ntag4xx_type_strings[] = {
+static const char* const ntag4xx_type_strings[] = {
     [Ntag4xxType413DNA] = "NTAG413 DNA",
     [Ntag4xxType424DNA] = "NTAG424 DNA",
     [Ntag4xxType424DNATT] = "NTAG424 DNA TagTamper",

@@ -8,8 +8,19 @@
 #define UHF_LEGACY_DIR APP_DATA_PATH("uhf_expansion")
 
 bool uhf_settings_save(const UhfSettingsData* data) {
-    return data &&
-           uhf_storage_write_blob(UHF_DATA_DIR, UHF_DATA_DIR "/settings.bin", data, sizeof(*data));
+    if(!data) return false;
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    if(!storage) return false;
+
+    /* Keep the previous settings intact until the complete replacement has
+       been written, synced and closed. Rename overwrites the destination. */
+    const char* temporary = UHF_DATA_DIR "/settings.tmp";
+    const bool saved = uhf_storage_write_blob(UHF_DATA_DIR, temporary, data, sizeof(*data)) &&
+                       storage_common_rename(storage, temporary, UHF_DATA_DIR "/settings.bin") ==
+                           FSE_OK;
+    if(!saved) (void)storage_common_remove(storage, temporary);
+    furi_record_close(RECORD_STORAGE);
+    return saved;
 }
 
 static bool uhf_settings_read(const char* path, UhfSettingsData* record) {

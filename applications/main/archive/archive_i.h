@@ -47,6 +47,7 @@ struct ArchiveApp {
     FuriThread* info_thread;
     FuriThread* search_thread;
     FuriString* info_path;
+    FuriString* extract_path; // owned selection snapshot while the extract scene is active
 };
 
 void archive_show_loading_popup(ArchiveApp* context, bool show);

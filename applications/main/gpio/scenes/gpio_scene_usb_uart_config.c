@@ -9,10 +9,10 @@ typedef enum {
     UsbUartLineIndexFlow,
 } LineIndex;
 
-static const char* vcp_ch[] = {"0 (CLI)", "1"};
-static const char* uart_ch[] = {"13,14", "15,16"};
-static const char* flow_pins[] = {"None", "2,3", "6,7", "16,15"};
-static const char* baudrate_mode[] = {"Host"};
+static const char* const vcp_ch[] = {"0 (CLI)", "1"};
+static const char* const uart_ch[] = {"13,14", "15,16"};
+static const char* const flow_pins[] = {"None", "2,3", "6,7", "16,15"};
+static const char* const baudrate_mode[] = {"Host"};
 static const uint32_t baudrate_list[] = {
     1200,
     2400,
@@ -27,7 +27,7 @@ static const uint32_t baudrate_list[] = {
     460800,
     921600,
 };
-static const char* software_de_re[] = {"None", "4"};
+static const char* const software_de_re[] = {"None", "4"};
 
 bool gpio_scene_usb_uart_cfg_on_event(void* context, SceneManagerEvent event) {
     GpioApp* app = context;

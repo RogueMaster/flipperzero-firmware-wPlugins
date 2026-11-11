@@ -36,7 +36,7 @@ typedef struct {
     void* context;
 } RpcSystemCallbacks;
 
-static RpcSystemCallbacks rpc_systems[] = {
+static const RpcSystemCallbacks rpc_systems[] = {
     {
         .alloc = rpc_system_system_alloc,
         .free = NULL,

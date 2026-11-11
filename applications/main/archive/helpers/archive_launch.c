@@ -72,13 +72,22 @@ static void archive_show_file(Loader* loader, const char* path) {
     File* file = storage_file_alloc(storage);
     bool text = true;
     if(storage_file_open(file, path, FSAM_READ, FSOM_OPEN_EXISTING)) {
-        uint8_t buf[1000];
-        size_t read = storage_file_read(file, buf, sizeof(buf));
-        for(size_t i = 0; i < read; i++) {
-            const char c = buf[i];
-            if((c < ' ' || c > '~') && c != '\r' && c != '\n') {
-                text = false;
-                break;
+        // Scan the first 1000 bytes for a non-printable char in small chunks
+        // instead of one 1000-byte stack buffer (same bytes, same predicate,
+        // identical result) to keep this off the 6 KB archive scene stack.
+        uint8_t buf[128];
+        size_t remaining = 1000;
+        while(text && remaining > 0) {
+            size_t want = remaining < sizeof(buf) ? remaining : sizeof(buf);
+            size_t read = storage_file_read(file, buf, want);
+            if(read == 0) break;
+            remaining -= read;
+            for(size_t i = 0; i < read; i++) {
+                const char c = buf[i];
+                if((c < ' ' || c > '~') && c != '\r' && c != '\n') {
+                    text = false;
+                    break;
+                }
             }
         }
     }

@@ -48,7 +48,7 @@ static const DolphinDeedWeight dolphin_deed_weights[] = {
     {10, DolphinAppPlugin}, // DolphinDeedPluginInternalStart
 };
 
-static uint8_t dolphin_deed_limits[] = {
+static const uint8_t dolphin_deed_limits[] = {
     100, // DolphinAppSubGhz
     100, // DolphinAppRfid
     100, // DolphinAppNfc

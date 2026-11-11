@@ -70,7 +70,7 @@ static void desktop_clock_reconfigure(Desktop* desktop) {
 
     desktop_clock_update(desktop);
 
-    if(desktop->settings.display_clock) {
+    if(desktop->settings.display_clock && !desktop->app_running) {
         furi_timer_start(desktop->update_clock_timer, furi_ms_to_ticks(1000));
     } else {
         furi_timer_stop(desktop->update_clock_timer);
@@ -122,6 +122,9 @@ static bool desktop_custom_event_callback(void* context, uint32_t event) {
             animation_manager_unload_and_stall_animation(desktop->animation_manager);
         }
 
+        // Pause the desktop clock while a foreground app owns the screen.
+        furi_timer_stop(desktop->update_clock_timer);
+
         desktop_auto_lock_inhibit(desktop);
         desktop->app_running = true;
 
@@ -129,8 +132,9 @@ static bool desktop_custom_event_callback(void* context, uint32_t event) {
 
     } else if(event == DesktopGlobalAfterAppFinished) {
         animation_manager_load_and_continue_animation(desktop->animation_manager);
-        desktop_auto_lock_arm(desktop);
         desktop->app_running = false;
+        desktop_clock_reconfigure(desktop); // refresh time + restart the timer if enabled
+        desktop_auto_lock_arm(desktop);
 
     } else if(event == DesktopGlobalAutoLock) {
         if(!desktop->app_running && !desktop->locked) {

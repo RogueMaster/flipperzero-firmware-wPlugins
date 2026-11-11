@@ -1,3 +1,12 @@
+v1.8:
+
+- Added reader frequency queries and linked FCC, ETSI, CHN_1*, CHN_2, and Custom presets to Reader Settings. CHN_1* uses an explicitly labelled 840–845 MHz custom spectrum because its native channel index table is absent from the reader manual.
+- Added custom start frequency, channel spacing and 1–255 channel editing, including a digit editor and full-range validation.
+- Removed the Settings Save footer. Back now offers Save/Discard only for changed settings; Back from that prompt continues editing. Reset requires a long OK press and reports its result.
+- Isolated settings drafts from live reader telemetry, refreshed reader state after Reset, and verified frequency writes before persisting them.
+- Preserved the existing settings format and legacy migration, used temporary-file replacement for settings saves, and restored reader values after failed saves.
+- Added sanitizer-backed protocol, storage-failure and settings-state regression tests to build and Catalog release checks.
+
 v1.7:
 
 - Added RGB LED feedback for single-tag reads and writes: blue while reading, magenta while writing, green after a successful read, cyan after a successful write, and red on failure.

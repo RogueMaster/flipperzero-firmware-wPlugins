@@ -18,6 +18,7 @@ ADD_SCENE(subghz, need_saving, NeedSaving)
 ADD_SCENE(subghz, rpc, Rpc)
 ADD_SCENE(subghz, show_gps, ShowGps)
 ADD_SCENE(subghz, signal_settings, SignalSettings)
+ADD_SCENE(subghz, signal_inspector, SignalInspector)
 #else
 ADD_SCENE(subghz, set_type, SetType)
 ADD_SCENE(subghz, set_key, SetKey)

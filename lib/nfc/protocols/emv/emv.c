@@ -30,6 +30,9 @@ const NfcDeviceBase nfc_device_emv = {
 EmvData* emv_alloc(void) {
     EmvData* data = malloc(sizeof(EmvData));
     data->iso14443_4a_data = iso14443_4a_alloc();
+    // Explicitly initialize optional fields as in emv_reset. RM already zeroes
+    // malloc allocations; keep this defensive initialization independent of that policy.
+    memset(&data->emv_application, 0, sizeof(EmvApplication));
     data->emv_application.pin_try_counter = 0xff;
 
     return data;

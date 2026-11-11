@@ -3,7 +3,7 @@
 #include <string.h>
 
 // This is map mapping the connector type to the appropriate name. (see SFF-8024 Rev. 4.9, Table 4-3)
-const char* sfp_connector_map[256] = {
+static const char* const sfp_connector_map[256] = {
     "Unknown or unspecified",
     "SC",
     "Fibre Channel Style 1",

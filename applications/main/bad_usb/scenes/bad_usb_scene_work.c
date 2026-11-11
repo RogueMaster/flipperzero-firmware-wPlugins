@@ -43,14 +43,43 @@ bool bad_usb_scene_work_on_event(void* context, SceneManagerEvent event) {
             consumed = true;
         }
     } else if(event.type == SceneManagerEventTypeTick) {
-        bad_usb_view_set_state(app->bad_usb_view, bad_usb_script_get_state(app->bad_usb_script));
+        BadUsbState* state = bad_usb_script_get_state(app->bad_usb_script);
+        bad_usb_view_set_state(app->bad_usb_view, state);
         bad_usb_view_set_interface(app->bad_usb_view, app->interface);
+
+        // Restore the LED indicator: blink magenta while actively typing, cyan
+        // while waiting for a user button, off otherwise. Only re-send on change
+        // so the blink phase doesn't reset (and the queue isn't spammed) each tick.
+        uint8_t led_mode;
+        switch(state->state) {
+        case BadUsbStateWillRun:
+        case BadUsbStateRunning:
+        case BadUsbStateDelay:
+        case BadUsbStateStringDelay:
+            led_mode = 1;
+            break;
+        case BadUsbStateWaitForBtn:
+            led_mode = 2;
+            break;
+        default:
+            led_mode = 0;
+            break;
+        }
+        if(led_mode != app->led_mode) {
+            app->led_mode = led_mode;
+            const NotificationSequence* seq = (led_mode == 1) ? &sequence_blink_start_magenta :
+                                              (led_mode == 2) ? &sequence_blink_start_cyan :
+                                                                &sequence_blink_stop;
+            notification_message(app->notifications, seq);
+        }
     }
     return consumed;
 }
 
 void bad_usb_scene_work_on_enter(void* context) {
     BadUsbApp* app = context;
+
+    app->led_mode = 0xFF; // sentinel: force the first tick to apply the LED state
 
     bad_usb_view_set_interface(app->bad_usb_view, app->interface);
 
@@ -87,5 +116,7 @@ void bad_usb_scene_work_on_enter(void* context) {
 }
 
 void bad_usb_scene_work_on_exit(void* context) {
-    UNUSED(context);
+    BadUsbApp* app = context;
+    // Turn the LED indicator off when leaving the work screen.
+    notification_message(app->notifications, &sequence_blink_stop);
 }

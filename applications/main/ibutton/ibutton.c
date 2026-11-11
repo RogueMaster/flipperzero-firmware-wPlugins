@@ -16,7 +16,7 @@ static const NotificationSequence sequence_blink_set_magenta = {
     NULL,
 };
 
-static const NotificationSequence* ibutton_notification_sequences[] = {
+static const NotificationSequence* const ibutton_notification_sequences[] = {
     &sequence_error,
     &sequence_success,
     &sequence_blink_start_cyan,

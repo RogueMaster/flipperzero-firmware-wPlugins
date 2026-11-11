@@ -339,8 +339,10 @@ bool iso15693_3_is_block_locked(const Iso15693_3Data* data, uint8_t block_index)
     furi_check(data);
     furi_check(block_index < data->system_info.block_count);
 
-    // TODO: make proper fix for this, old format had no Block Security Status in file
-    if(simple_array_get_count(data->block_security) != 0) {
+    // Legacy/partial files may carry a shorter (or empty) block-security array
+    // than block_count, so bound the index against the array's actual length
+    // instead of only testing for emptiness (prevents an out-of-bounds read).
+    if((size_t)block_index < simple_array_get_count(data->block_security)) {
         return *(const uint8_t*)simple_array_cget(data->block_security, block_index);
     } else {
         return false;

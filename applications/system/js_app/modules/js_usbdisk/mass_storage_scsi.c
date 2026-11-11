@@ -251,7 +251,10 @@ bool scsi_cmd_end(SCSISession* scsi) {
         bool eject = (cmd[4] & 2) != 0;
         bool start = (cmd[4] & 1) != 0;
         FURI_LOG_D(TAG, "SCSI_START_STOP_UNIT eject=%d start=%d", eject, start);
-        if(eject) {
+        // Per SCSI: medium removal only when LOEJ=1 AND START=0 (unload). Hosts
+        // (e.g. macOS) send LOEJ=1/START=1 (load) on mount, which must NOT eject.
+        // Fixes the false wasEjected() on mount (#106).
+        if(eject && !start) {
             scsi->fn.eject(scsi->fn.ctx);
         }
         return true;

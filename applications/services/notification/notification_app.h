@@ -7,6 +7,11 @@
 #define NOTIFICATION_LED_COUNT      3
 #define NOTIFICATION_EVENT_COMPLETE 0x00000001U
 
+/** Whether the display backlight is currently on (tracked by the notification
+ *  service). Internal API — lets idle firmware views skip rendering while the
+ *  screen is dark. Not part of the public FAP SDK. */
+bool notification_is_display_backlight_on(NotificationApp* app);
+
 typedef enum {
     NotificationLayerMessage,
     InternalLayerMessage,
@@ -54,6 +59,7 @@ struct NotificationApp {
     NotificationLedLayer display;
     NotificationLedLayer led[NOTIFICATION_LED_COUNT];
     uint8_t display_led_lock;
+    bool display_backlight_on; // Accessed atomically by notification and animation threads
 
     NotificationSettings settings;
 

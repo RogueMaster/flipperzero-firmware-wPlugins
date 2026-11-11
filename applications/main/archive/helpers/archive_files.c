@@ -9,6 +9,39 @@
 
 #define ASSETS_DIR "assets"
 
+/* Both the resident launcher and Archive FAP compile this shared source. */
+const char* const known_ext[ArchiveFileTypeT5577 + 1] = {
+    // clang-format off
+    [ArchiveFileTypeIButton] = ".ibtn",
+    [ArchiveFileTypeNFC] = ".nfc",
+    [ArchiveFileTypeSubGhz] = ".sub",
+    [ArchiveFileTypeLFRFID] = ".rfid",
+    [ArchiveFileTypeInfrared] = ".ir",
+    [ArchiveFileTypeSubghzPlaylist] = ".txt",
+    [ArchiveFileTypeSubghzRemote] = ".txt",
+    [ArchiveFileTypeInfraredRemote] = ".txt",
+    [ArchiveFileTypeBadUsb] = ".txt",
+    [ArchiveFileTypeMP3] = ".mp3",
+    [ArchiveFileTypeWAV] = ".wav",
+    [ArchiveFileTypeMag] = ".mag",
+    [ArchiveFileTypeCrossRemote] = ".xr",
+    [ArchiveFileTypePicopass] = ".picopass",
+    [ArchiveFileTypeU2f] = "?",
+    [ArchiveFileTypeApplication] = ".fap",
+    [ArchiveFileTypeJS] = ".js",
+    [ArchiveFileTypeSearch] = "*",
+    [ArchiveFileTypeUpdateManifest] = ".fuf",
+    [ArchiveFileTypeDiskImage] = ".img",
+    [ArchiveFileTypeFolder] = "?",
+    [ArchiveFileTypeProtoPirate] = ".psf",
+    [ArchiveFileTypeUnknown] = "*",
+    [ArchiveFileTypeAppOrJs] = "?", // Legacy filter value, not a file type.
+    [ArchiveFileTypeLoading] = "?",
+    [ArchiveFileTypeT5577] = T5577_FILE_EXTENSION,
+    [ArchiveFileTypeSetting] = "?",
+    // clang-format on
+};
+
 void archive_set_file_type(ArchiveFile_t* file, const char* path, bool is_folder, bool is_app) {
     furi_assert(file);
 

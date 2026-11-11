@@ -16,7 +16,7 @@
 #define USB_CDC_BIT_RTS     (1 << 1)
 #define USB_USART_DE_RE_PIN &gpio_ext_pa4
 
-static const GpioPin* flow_pins[][2] = {
+static const GpioPin* const flow_pins[][2] = {
     {&gpio_ext_pa7, &gpio_ext_pa6}, // 2, 3
     {&gpio_ext_pb2, &gpio_ext_pc3}, // 6, 7
     {&gpio_ext_pc0, &gpio_ext_pc1}, // 16, 15

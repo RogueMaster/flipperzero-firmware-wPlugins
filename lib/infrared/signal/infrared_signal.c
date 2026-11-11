@@ -178,6 +178,7 @@ static inline InfraredErrorCode
         }
 
         InfraredMessage message;
+        message.repeat = false;
         message.protocol = infrared_get_protocol_by_name(furi_string_get_cstr(buf));
 
         if(!flipper_format_read_hex(
@@ -239,6 +240,10 @@ static inline InfraredErrorCode
         }
 
         uint32_t* timings = malloc(sizeof(uint32_t) * timings_size);
+        if(timings == NULL) {
+            error = InfraredErrorCodeSignalRawUnableToReadData;
+            break;
+        }
         if(!flipper_format_read_uint32(ff, INFRARED_SIGNAL_DATA_KEY, timings, timings_size)) {
             error = InfraredErrorCodeSignalRawUnableToReadData;
             free(timings);
@@ -338,14 +343,18 @@ void infrared_signal_set_raw_signal(
         return;
     }
 
-    signal->is_raw = true;
+    uint32_t* new_timings = malloc(timings_size * sizeof(uint32_t));
+    if(new_timings == NULL) {
+        // Previous RAW timings have already been cleared; parsed contents remain unchanged.
+        return;
+    }
+    memcpy(new_timings, timings, timings_size * sizeof(uint32_t));
 
+    signal->is_raw = true;
     signal->payload.raw.timings_size = timings_size;
     signal->payload.raw.frequency = frequency;
     signal->payload.raw.duty_cycle = duty_cycle;
-
-    signal->payload.raw.timings = malloc(timings_size * sizeof(uint32_t));
-    memcpy(signal->payload.raw.timings, timings, timings_size * sizeof(uint32_t));
+    signal->payload.raw.timings = new_timings;
 }
 
 const InfraredRawSignal* infrared_signal_get_raw_signal(const InfraredSignal* signal) {

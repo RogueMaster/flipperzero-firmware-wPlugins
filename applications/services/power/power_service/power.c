@@ -278,33 +278,35 @@ static bool power_update_info(Power* power) {
     return need_refresh;
 }
 
-static void power_check_charging_state(Power* power) {
+static void power_notify(const NotificationSequence* sequence) {
     NotificationApp* notification = furi_record_open(RECORD_NOTIFICATION);
+    notification_internal_message(notification, sequence);
+    furi_record_close(RECORD_NOTIFICATION);
+}
 
-    if(furi_hal_power_is_charging()) {
+static void power_check_charging_state(Power* power) {
+    if(power->info.is_charging) {
         if((power->info.charge == 100) || (furi_hal_power_is_charging_done())) {
             if(power->state != PowerStateCharged) {
-                notification_internal_message(notification, &sequence_charged);
+                power_notify(&sequence_charged);
                 power->state = PowerStateCharged;
                 power->event.type = PowerEventTypeFullyCharged;
                 furi_pubsub_publish(power->event_pubsub, &power->event);
             }
 
         } else if(power->state != PowerStateCharging) {
-            notification_internal_message(notification, &sequence_charging);
+            power_notify(&sequence_charging);
             power->state = PowerStateCharging;
             power->event.type = PowerEventTypeStartCharging;
             furi_pubsub_publish(power->event_pubsub, &power->event);
         }
 
     } else if(power->state != PowerStateNotCharging) {
-        notification_internal_message(notification, &sequence_not_charging);
+        power_notify(&sequence_not_charging);
         power->state = PowerStateNotCharging;
         power->event.type = PowerEventTypeStopCharging;
         furi_pubsub_publish(power->event_pubsub, &power->event);
     }
-
-    furi_record_close(RECORD_NOTIFICATION);
 }
 
 // Estimate remaining battery runtime in minutes from the fuel gauge (ours, not

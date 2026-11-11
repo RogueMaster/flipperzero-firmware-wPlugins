@@ -499,8 +499,12 @@ void vPortFree(void* pv) {
                     /* Check for underflow as this can occur if xBlockSize is
                      * overwritten in a heap block. */
                     if(heapSUBTRACT_WILL_UNDERFLOW(pxLink->xBlockSize, xHeapStructSize) == 0) {
+                        /* Poison with 0xDD (not 0x00) so a later use-after-free
+                         * reads 0xDDDDDDDD — an obviously-invalid pointer that
+                         * faults cleanly and is recognised by BusFault_Handler.
+                         * Dormant unless configHEAP_CLEAR_MEMORY_ON_FREE == 1. */
                         (void)memset(
-                            puc + xHeapStructSize, 0, pxLink->xBlockSize - xHeapStructSize);
+                            puc + xHeapStructSize, 0xDD, pxLink->xBlockSize - xHeapStructSize);
                     }
                 }
 #endif
@@ -531,6 +535,24 @@ void vPortFree(void* pv) {
 
 size_t xPortGetFreeHeapSize(void) {
     return xFreeBytesRemaining;
+}
+/*-----------------------------------------------------------*/
+
+/* Furi extension: usable payload size of a currently-allocated block, computed
+ * from its header exactly the way pvPortMalloc/vPortFree do. Used by realloc()
+ * to avoid copying more bytes than the old block actually holds. */
+size_t xPortGetAllocatedBlockSize(void* pv) {
+    if(pv == NULL) {
+        return 0;
+    }
+
+    uint8_t* puc = ((uint8_t*)pv) - xHeapStructSize;
+    BlockLink_t* pxLink = (void*)puc;
+
+    configASSERT(heapBLOCK_IS_ALLOCATED(pxLink) != 0);
+    configASSERT(pxLink->pxNextFreeBlock == heapPROTECT_BLOCK_POINTER(NULL));
+
+    return (pxLink->xBlockSize & ~heapBLOCK_ALLOCATED_BITMASK) - xHeapStructSize;
 }
 /*-----------------------------------------------------------*/
 

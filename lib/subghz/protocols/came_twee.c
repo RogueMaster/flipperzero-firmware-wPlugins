@@ -36,26 +36,14 @@
 #define CAME_TWEE_FRAME_PREFIX_MASK 0x3FFFFFUL
 #define CAME_TWEE_FRAME_PREFIX_SH   32
 
-/** 
- * Rainbow table Came Twee.
+/**
+ * Rainbow table Came Twee (closed form: entry[idx] == 0x0E0E0E00 + idx*0x0F0F0F11).
  */
-static const uint32_t came_twee_magic_numbers_xor[15] = {
-    0x0E0E0E00,
-    0x1D1D1D11,
-    0x2C2C2C22,
-    0x3B3B3B33,
-    0x4A4A4A44,
-    0x59595955,
-    0x68686866,
-    0x77777777,
-    0x86868688,
-    0x95959599,
-    0xA4A4A4AA,
-    0xB3B3B3BB,
-    0xC2C2C2CC,
-    0xD1D1D1DD,
-    0xE0E0E0EE,
-};
+#define CAME_TWEE_PARCEL_COUNT 15U
+
+static inline uint32_t came_twee_magic_xor(uint8_t idx) {
+    return 0x0E0E0E00UL + (uint32_t)idx * 0x0F0F0F11UL;
+}
 
 static const SubGhzBlockConst subghz_protocol_came_twee_const = {
     .te_short = 500,
@@ -170,7 +158,7 @@ static void subghz_protocol_encoder_came_twee_get_upload(SubGhzProtocolEncoderCa
 
     for(int i = 14; i >= 0; i--) {
         temp_parcel = (temp_parcel & 0xFFFFFFFF00000000) |
-                      (instance->generic.serial ^ came_twee_magic_numbers_xor[i]);
+                      (instance->generic.serial ^ came_twee_magic_xor((uint8_t)i));
 
         for(uint8_t i = instance->generic.data_count_bit; i > 0; i--) {
             if(!manchester_encoder_advance(&enc_state, !bit_read(temp_parcel, i - 1), &result)) {
@@ -235,14 +223,14 @@ static void subghz_protocol_came_twee_remote_controller(SubGhzBlockGeneric* inst
     uint8_t cnt_parcel = (uint8_t)(instance->data & 0xF);
     uint32_t data = (uint32_t)(instance->data & 0x0FFFFFFFF);
 
-    // The parcel counter only ever runs 0xE..0x0, so the rainbow table has 15 entries.
+    // The parcel counter only ever runs 0xE..0x0, so there are 15 valid parcels.
     // A noisy 54 bit frame or a hand-edited key can still carry 0xF here - clamp to
-    // stay inside the table instead of reading past its end.
-    if(cnt_parcel >= COUNT_OF(came_twee_magic_numbers_xor)) {
-        cnt_parcel = COUNT_OF(came_twee_magic_numbers_xor) - 1;
+    // preserve the existing handling of this unsupported parcel counter.
+    if(cnt_parcel >= CAME_TWEE_PARCEL_COUNT) {
+        cnt_parcel = CAME_TWEE_PARCEL_COUNT - 1;
     }
 
-    data = (data ^ came_twee_magic_numbers_xor[cnt_parcel]);
+    data = (data ^ came_twee_magic_xor(cnt_parcel));
     instance->serial = data;
     data /= 4;
     instance->btn = (data >> 4) & 0x0F;

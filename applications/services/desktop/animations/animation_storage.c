@@ -411,6 +411,8 @@ static bool animation_storage_load_bubbles(BubbleAnimation* animation, FlipperFo
                 bubble = bubble->next_bubble;
             } else if(current_slot == index + 1) {
                 ++index;
+                // Bound-check BEFORE indexing (was checked one line too late).
+                if(index >= animation->frame_bubble_sequences_count) break;
                 bubble = animation->frame_bubble_sequences[index];
             } else {
                 /* slots have to start from 0, be ascending sorted, and

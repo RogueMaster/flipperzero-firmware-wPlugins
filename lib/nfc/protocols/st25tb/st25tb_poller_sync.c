@@ -64,7 +64,7 @@ static St25tbError
     return st25tb_poller_write_block(poller, data->write_block.block, data->write_block.block_num);
 }
 
-static St25tbPollerCmdHandler st25tb_poller_cmd_handlers[St25tbPollerCmdTypeNum] = {
+static const St25tbPollerCmdHandler st25tb_poller_cmd_handlers[St25tbPollerCmdTypeNum] = {
     [St25tbPollerCmdTypeDetectType] = st25tb_poller_detect_handler,
     [St25tbPollerCmdTypeReadBlock] = st25tb_poller_read_block_handler,
     [St25tbPollerCmdTypeWriteBlock] = st25tb_poller_write_block_handler,

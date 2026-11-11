@@ -5,7 +5,7 @@
 
 #define MF_PLUS_PROTOCOL_NAME "Mifare Plus"
 
-static const char* mf_plus_type_strings[] = {
+static const char* const mf_plus_type_strings[] = {
     [MfPlusTypeS] = "Plus S",
     [MfPlusTypeX] = "Plus X",
     [MfPlusTypeSE] = "Plus SE",
@@ -15,14 +15,14 @@ static const char* mf_plus_type_strings[] = {
     [MfPlusTypeUnknown] = "Unknown",
 };
 
-static const char* mf_plus_size_strings[] = {
+static const char* const mf_plus_size_strings[] = {
     [MfPlusSize1K] = "1K",
     [MfPlusSize2K] = "2K",
     [MfPlusSize4K] = "4K",
     [MfPlusSizeUnknown] = "Unknown",
 };
 
-static const char* mf_plus_security_level_strings[] = {
+static const char* const mf_plus_security_level_strings[] = {
     [MfPlusSecurityLevel0] = "SL0",
     [MfPlusSecurityLevel1] = "SL1",
     [MfPlusSecurityLevel2] = "SL2",

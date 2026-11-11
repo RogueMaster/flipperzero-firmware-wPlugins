@@ -130,7 +130,7 @@ static void cli_vcp_cdc_ctrl_line_callback(void* context, CdcCtrlLine ctrl_lines
     }
 }
 
-static CdcCallbacks cdc_callbacks = {
+static const CdcCallbacks cdc_callbacks = {
     .tx_ep_callback = cli_vcp_cdc_tx_done,
     .rx_ep_callback = cli_vcp_cdc_rx,
     .state_callback = cli_vcp_cdc_state_callback,
@@ -171,7 +171,7 @@ static void cli_vcp_message_received(FuriEventLoopObject* object, void* context)
         // switch usb mode
         cli_vcp->previous_interface = furi_hal_usb_get_config();
         furi_hal_usb_set_config(&usb_cdc_single, NULL);
-        furi_hal_cdc_set_callbacks(VCP_IF_NUM, &cdc_callbacks, cli_vcp);
+        furi_hal_cdc_set_callbacks(VCP_IF_NUM, (CdcCallbacks*)&cdc_callbacks, cli_vcp);
         break;
 
     case CliVcpMessageTypeDisable:

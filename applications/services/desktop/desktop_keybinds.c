@@ -58,7 +58,7 @@ void desktop_keybinds_migrate(Desktop* desktop) {
     storage_common_remove(desktop->storage, OLD_DESKTOP_KEYBINDS_PATH);
 }
 
-const char* desktop_keybinds_defaults[DesktopKeybindTypeMAX][DesktopKeybindKeyMAX] = {
+const char* const desktop_keybinds_defaults[DesktopKeybindTypeMAX][DesktopKeybindKeyMAX] = {
     [DesktopKeybindTypePress] =
         {
             [DesktopKeybindKeyUp] = "Lock Menu",
@@ -96,12 +96,12 @@ const char* desktop_keybinds_game_mode[DesktopKeybindTypeMAX][DesktopKeybindKeyM
         },
 };
 
-const char* desktop_keybind_types[DesktopKeybindTypeMAX] = {
+const char* const desktop_keybind_types[DesktopKeybindTypeMAX] = {
     [DesktopKeybindTypePress] = "Press",
     [DesktopKeybindTypeHold] = "Hold",
 };
 
-const char* desktop_keybind_keys[DesktopKeybindKeyMAX] = {
+const char* const desktop_keybind_keys[DesktopKeybindKeyMAX] = {
     [DesktopKeybindKeyUp] = "Up",
     [DesktopKeybindKeyDown] = "Down",
     [DesktopKeybindKeyRight] = "Right",

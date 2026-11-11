@@ -10,7 +10,10 @@
  * Define IO Authentication
  */
 #define CFG_ENCRYPTION_KEY_SIZE_MAX (16)
-#define CFG_ENCRYPTION_KEY_SIZE_MIN (8)
+// Require a full 128-bit (16-byte) LE encryption key — rejects key-size downgrade
+// (KNOB-style) attacks. Modern phones already negotiate 16. If some older/embedded
+// device refuses to pair, drop this back to (8) for maximum compatibility.
+#define CFG_ENCRYPTION_KEY_SIZE_MIN (16)
 
 /**
  * Define IO capabilities

@@ -9,6 +9,7 @@
 #include <gui/canvas_i.h>
 
 #include <FreeRTOS.h>
+#include <stm32wbxx.h>
 
 #define TAG "Flipper"
 
@@ -249,5 +250,11 @@ void vApplicationGetTimerTaskMemory(
 }
 
 void vApplicationGetRandomHeapCanary(portPOINTER_SIZE_TYPE* pxHeapCanary) {
-    *pxHeapCanary = HEAP_CANARY_VALUE;
+    // Derive the heap-protector canary from the 96-bit device-unique ID so it is
+    // per-device rather than the globally-known constant that ships in public
+    // source (which gives a heap-overflow exploit a free pass to forge the XOR).
+    // UID_BASE is OTP flash, always readable from reset with no clock setup.
+    const uint32_t* uid = (const uint32_t*)UID_BASE;
+    *pxHeapCanary =
+        (portPOINTER_SIZE_TYPE)(HEAP_CANARY_VALUE ^ uid[0] ^ (uid[1] * 0x9E3779B9u) ^ uid[2]);
 }

@@ -173,7 +173,7 @@ NfcCommand st25tb_poller_failure_handler(St25tbPoller* instance) {
     return command;
 }
 
-static St25tbPollerStateHandler st25tb_poller_state_handlers[St25tbPollerStateNum] = {
+static const St25tbPollerStateHandler st25tb_poller_state_handlers[St25tbPollerStateNum] = {
     [St25tbPollerStateSelect] = st25tb_poller_select_handler,
     [St25tbPollerStateRequestMode] = st25tb_poller_request_mode_handler,
     [St25tbPollerStateRead] = st25tb_poller_read_handler,

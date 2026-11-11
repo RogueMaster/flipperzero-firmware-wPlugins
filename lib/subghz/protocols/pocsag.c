@@ -33,7 +33,8 @@ static const SubGhzBlockConst pocsag2400_const = {
 #define POCSAG_FUNC_ALERT2   2
 #define POCSAG_FUNC_ALPHANUM 3
 
-static const char* func_msg[] = {"\e#Num:\e# ", "\e#Alert\e#", "\e#Alert:\e# ", "\e#Msg:\e# "};
+static const char* const func_msg[] =
+    {"\e#Num:\e# ", "\e#Alert\e#", "\e#Alert:\e# ", "\e#Msg:\e# "};
 static const char* bcd_chars = "*U -)(";
 
 struct SubGhzProtocolDecoderPocsag {
@@ -180,7 +181,7 @@ static void pocsag_message_done(SubGhzProtocolDecoderPocsag* instance) {
     }
     furi_string_cat_str(instance->done_msg, " ");
 
-    furi_string_cat(instance->generic.result_msg, instance->done_msg);
+    furi_string_set(instance->generic.result_msg, instance->done_msg);
 
     // reset the state
     instance->char_bits = 0;

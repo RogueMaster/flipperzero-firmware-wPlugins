@@ -22,8 +22,8 @@ void infrared_encoder_rc5_reset(void* encoder_ptr, const InfraredMessage* messag
         *data |= 0x02; // start bit
     }
     *data |= encoder->toggle_bit ? 0x04 : 0;
-    *data |= (reverse(message->address) >> 3) << 3; /* address 5 bit */
-    *data |= (reverse(message->command) >> 2) << 8; /* command 6 bit */
+    *data |= (infrared_reverse(message->address) >> 3) << 3; /* address 5 bit */
+    *data |= (infrared_reverse(message->command) >> 2) << 8; /* command 6 bit */
 
     common_encoder->data[0] = ~common_encoder->data[0];
     common_encoder->data[1] = ~common_encoder->data[1];

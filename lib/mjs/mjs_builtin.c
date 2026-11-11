@@ -45,7 +45,19 @@ static void mjs_load(struct mjs* mjs) {
     int custom_global = 0; /* whether the custom global object was provided */
 
     if(mjs_is_string(arg0)) {
-        const char* path = mjs_get_cstring(mjs, &arg0);
+        const char* path_arg = mjs_get_cstring(mjs, &arg0);
+        if(path_arg == NULL) {
+            mjs_prepend_errorf(mjs, MJS_BAD_ARGS_ERROR, "load path must be a C string");
+            mjs_return(mjs, res);
+            return;
+        }
+        // Keep the path outside the moving string buffer while creating globals.
+        char* path = strdup(path_arg);
+        if(path == NULL) {
+            mjs_prepend_errorf(mjs, MJS_OUT_OF_MEMORY, "copying load path");
+            mjs_return(mjs, res);
+            return;
+        }
         struct mjs_bcode_part* bp = NULL;
         mjs_err_t ret;
 
@@ -53,6 +65,22 @@ static void mjs_load(struct mjs* mjs) {
             custom_global = 1;
             push_mjs_val(&mjs->scopes, arg1);
         }
+
+        /* Give the loaded file its own __filename/__dirname (as the entry script
+         * gets), then restore the caller's afterwards. The saved values are owned
+         * across the exec so a GC cannot collect them. */
+        mjs_val_t global = vtop(&mjs->scopes);
+        int had_filename = mjs_get_own_property(mjs, global, "__filename", ~0) != NULL;
+        int had_dirname = mjs_get_own_property(mjs, global, "__dirname", ~0) != NULL;
+        mjs_val_t saved_filename = mjs_get(mjs, global, "__filename", ~0);
+        mjs_val_t saved_dirname = mjs_get(mjs, global, "__dirname", ~0);
+        mjs_own(mjs, &saved_filename);
+        mjs_own(mjs, &saved_dirname);
+        const char* last_slash = strrchr(path, '/');
+        size_t dir_len = last_slash ? (size_t)(last_slash - path) : 0;
+        mjs_set(mjs, global, "__filename", ~0, mjs_mk_string(mjs, path, strlen(path), 1));
+        mjs_set(mjs, global, "__dirname", ~0, mjs_mk_string(mjs, path, dir_len, 1));
+
         bp = mjs_get_loaded_file_bcode(mjs, path);
         if(bp == NULL) {
             /* File was not loaded before, so, load */
@@ -73,20 +101,28 @@ static void mjs_load(struct mjs* mjs) {
             }
         }
         if(ret != MJS_OK) {
-            /*
-       * arg0 and path might be invalidated by executing a file, so refresh
-       * them
-       */
-            arg0 = mjs_arg(mjs, 0);
-            path = mjs_get_cstring(mjs, &arg0);
             mjs_prepend_errorf(mjs, ret, "failed to exec file \"%s\"", path);
             goto clean;
         }
 
     clean:
+        /* Restore the caller's __filename/__dirname, including absent properties. */
+        if(had_filename) {
+            mjs_set(mjs, global, "__filename", ~0, saved_filename);
+        } else {
+            mjs_del(mjs, global, "__filename", ~0);
+        }
+        if(had_dirname) {
+            mjs_set(mjs, global, "__dirname", ~0, saved_dirname);
+        } else {
+            mjs_del(mjs, global, "__dirname", ~0);
+        }
+        mjs_disown(mjs, &saved_dirname);
+        mjs_disown(mjs, &saved_filename);
         if(custom_global) {
             mjs_pop_val(&mjs->scopes);
         }
+        free(path);
     }
     mjs_return(mjs, res);
 }

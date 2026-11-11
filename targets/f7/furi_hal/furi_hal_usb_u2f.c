@@ -47,7 +47,6 @@ static const uint8_t hid_u2f_report_desc[] = {
     HID_END_COLLECTION,
 };
 
-static const struct usb_string_descriptor dev_manuf_desc = USB_STRING_DESC("Flipper Devices Inc.");
 static const struct usb_string_descriptor dev_prod_desc = USB_STRING_DESC("U2F Token");
 
 /* Device descriptor */
@@ -182,7 +181,7 @@ FuriHalUsbInterface usb_hid_u2f = {
 
     .dev_descr = (struct usb_device_descriptor*)&hid_u2f_device_desc,
 
-    .str_manuf_descr = (void*)&dev_manuf_desc,
+    .str_manuf_descr = (void*)&furi_hal_usb_manuf_desc,
     .str_prod_descr = (void*)&dev_prod_desc,
     .str_serial_descr = NULL,
 

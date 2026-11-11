@@ -58,7 +58,11 @@ static const char* const CONCESSION_TYPES[] = {
     "Free Travel"};
 
 static inline const char* get_concession_type(uint8_t token) {
-    return (token <= 0x10) ? CONCESSION_TYPES[token] : "Unknown";
+    // Indices 3,5,8..13 in CONCESSION_TYPES are reserved (NULL); a card carrying
+    // such a token must not pass NULL to printf("%s") -> hard fault. Fall back to
+    // "Unknown" for both out-of-range and reserved/NULL tokens.
+    const char* type = (token <= 0x10) ? CONCESSION_TYPES[token] : NULL;
+    return type ? type : "Unknown";
 }
 
 static bool authenticate_and_read(

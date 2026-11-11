@@ -47,7 +47,9 @@ def find_compiler() -> list[str]:
 
         return [sys.executable, "-m", "ziglang", "cc"]
     except ImportError:
-        sys.exit("No C compiler found. Install gcc or clang, or run `pip install ziglang`.")
+        sys.exit(
+            "No C compiler found. Install gcc or clang, or run `pip install ziglang`."
+        )
 
 
 def expected_dump(pool: dict) -> list[str]:
@@ -75,12 +77,19 @@ def expected_dump(pool: dict) -> list[str]:
     for sub in pool["subelements"]:
         for group in sub["groups"]:
             for q in group["questions"]:
-                text = [hampool.to_ascii(t, q["id"]).decode() for t in (q["ref"], q["question"], *q["answers"])]
+                text = [
+                    hampool.to_ascii(t, q["id"]).decode()
+                    for t in (q["ref"], q["question"], *q["answers"])
+                ]
                 flags = (hampool.FLAG_FIGURE if "figure" in q else 0) | (
                     hampool.FLAG_PIN_LAST if hampool.RE_PIN_LAST.match(text[5]) else 0
                 )
                 correct = hampool.ANSWER_LETTERS.index(q["correct"])
-                lines.append("\t".join(["Q", q["id"], str(correct), str(flags), group["id"], *text]))
+                lines.append(
+                    "\t".join(
+                        ["Q", q["id"], str(correct), str(flags), group["id"], *text]
+                    )
+                )
     return lines
 
 
@@ -90,14 +99,19 @@ def main() -> int:
         exe = Path(tmp) / ("host_tests.exe" if os.name == "nt" else "host_tests")
         cmd = [*compiler, *CFLAGS, *SOURCES, "-o", str(exe)]
         if os.environ.get("HAMCRAM_SANITIZE"):
-            cmd[len(compiler) : len(compiler)] = ["-fsanitize=address,undefined", "-fno-sanitize-recover=all"]
+            cmd[len(compiler) : len(compiler)] = [
+                "-fsanitize=address,undefined",
+                "-fno-sanitize-recover=all",
+            ]
         print("build:", " ".join(compiler), "...")
         subprocess.run(cmd, cwd=ROOT, check=True)
 
         failed = False
         for src in hampool.load_sources():
             stem = src["stem"]
-            pool = json.loads((ROOT / "pools" / f"{stem}.json").read_text(encoding="utf-8"))
+            pool = json.loads(
+                (ROOT / "pools" / f"{stem}.json").read_text(encoding="utf-8")
+            )
             result = subprocess.run(
                 [str(exe), "dump", str(ROOT / "files" / "pools" / f"{stem}.hcp")],
                 capture_output=True,
@@ -116,7 +130,9 @@ def main() -> int:
                 else:
                     print(f"  app read {len(got)} lines, expected {len(want)}")
             else:
-                print(f"dump {stem}: {len(got) - 1 - len(pool['subelements'])} questions match the JSON")
+                print(
+                    f"dump {stem}: {len(got) - 1 - len(pool['subelements'])} questions match the JSON"
+                )
 
         result = subprocess.run([str(exe), "test", str(ROOT / "files" / "pools"), tmp])
         failed = failed or result.returncode != 0

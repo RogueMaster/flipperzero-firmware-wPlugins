@@ -165,7 +165,7 @@ static const Keyboard symbol_keyboard = {
     .keyboard_index = 1,
 };
 
-static const Keyboard* keyboards[] = {
+static const Keyboard* const keyboards[] = {
     &keyboard,
     &symbol_keyboard,
 };
@@ -293,7 +293,9 @@ static void text_input_view_draw_callback(Canvas* canvas, void* _model) {
     canvas_draw_str(canvas, 2, 8, model->header);
     elements_slightly_rounded_frame(canvas, 1, 12, 126, 15);
 
-    char buf[text_length + 1];
+    // +2, not +1: the cursor-insert memmove below shifts the string (incl. its
+    // NUL) one byte right, writing buf[text_length + 1].
+    char buf[text_length + 2];
     if(model->text_buffer) {
         strlcpy(buf, model->text_buffer, sizeof(buf));
     }

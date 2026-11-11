@@ -169,7 +169,7 @@ typedef struct {
     int32_t button_held_for_ticks;
 } FileBrowserModel;
 
-static const Icon* BrowserItemIcons[] = {
+static const Icon* const BrowserItemIcons[] = {
     [BrowserItemTypeLoading] = &I_loading_10px,
     [BrowserItemTypeBack] = &I_back_10px,
     [BrowserItemTypeFolder] = &I_dir_10px,

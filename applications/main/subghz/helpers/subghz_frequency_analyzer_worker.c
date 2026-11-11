@@ -123,9 +123,8 @@ static int32_t subghz_frequency_analyzer_worker_thread(void* context) {
                 (current_frequency <= 920000000))) {
                 furi_hal_spi_acquire(&furi_hal_spi_bus_handle_subghz);
                 cc1101_switch_to_idle(&furi_hal_spi_bus_handle_subghz);
-                frequency = cc1101_set_frequency(
-                    &furi_hal_spi_bus_handle_subghz,
-                    subghz_setting_get_frequency(instance->setting, i));
+                frequency =
+                    cc1101_set_frequency(&furi_hal_spi_bus_handle_subghz, current_frequency);
 
                 cc1101_calibrate(&furi_hal_spi_bus_handle_subghz);
 

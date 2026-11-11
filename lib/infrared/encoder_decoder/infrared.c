@@ -353,3 +353,12 @@ float infrared_get_protocol_duty_cycle(InfraredProtocol protocol) {
 size_t infrared_get_protocol_min_repeat_count(InfraredProtocol protocol) {
     return infrared_get_variant_by_protocol(protocol)->repeat_count;
 }
+
+uint8_t infrared_reverse(uint8_t value) {
+    uint8_t reverse_value = 0;
+    for(int i = 0; i < 8; ++i) {
+        reverse_value |= (value & (0x01 << i)) ? 1 << (7 - i) : 0;
+    }
+
+    return reverse_value;
+}

@@ -127,6 +127,14 @@ void subghz_blink_start(SubGhz* subghz);
 void subghz_blink_stop(SubGhz* subghz);
 
 bool subghz_tx_start(SubGhz* subghz, FlipperFormat* flipper_format);
+
+/** (Re)load the decoder for the currently selected history record.
+ *  Shared with the Signal Inspector scene. Read-only, transmits nothing.
+ *
+ * @param context SubGhz instance
+ * @return true if the decoder was loaded and deserialized successfully
+ */
+bool subghz_scene_receiver_info_update_parser(void* context);
 void subghz_dialog_message_freq_error(SubGhz* subghz, SubGhzTx can_tx);
 
 bool subghz_key_load(SubGhz* subghz, const char* file_path, bool show_dialog);

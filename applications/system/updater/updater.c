@@ -33,6 +33,10 @@ static void
 
 Updater* updater_alloc(const char* arg) {
     Updater* updater = malloc(sizeof(Updater));
+    // Keep optional cleanup pointers explicit for the LoadCfg startup path.
+    // RM's allocator also zeroes new allocations.
+    updater->update_task = NULL;
+    updater->loaded_manifest = NULL;
     if(arg && strlen(arg)) {
         updater->startup_arg = furi_string_alloc_set(arg);
         furi_string_replace(updater->startup_arg, ANY_PATH(""), EXT_PATH(""));

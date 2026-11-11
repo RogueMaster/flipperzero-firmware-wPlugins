@@ -98,7 +98,11 @@ void subghz_file_encoder_worker_get_text_progress(
     size_t current_offset = stream_tell(stream);
     size_t buffer_avail = furi_stream_buffer_bytes_available(instance->stream);
 
-    furi_string_printf(output, "%03u%%", 100 * (current_offset - buffer_avail) / total_size);
+    if(total_size == 0) {
+        furi_string_printf(output, "000%%");
+    } else {
+        furi_string_printf(output, "%03u%%", 100 * (current_offset - buffer_avail) / total_size);
+    }
 }
 
 LevelDuration subghz_file_encoder_worker_get_level_duration(void* context) {

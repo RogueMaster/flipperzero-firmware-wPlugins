@@ -19,8 +19,8 @@ void infrared_encoder_rc6_reset(void* encoder_ptr, const InfraredMessage* messag
     *data |= 0x01; // start bit
     (void)*data; // 3 bits for mode == 0
     *data |= encoder->toggle_bit ? 0x10 : 0;
-    *data |= reverse(message->address) << 5;
-    *data |= reverse(message->command) << 13;
+    *data |= infrared_reverse(message->address) << 5;
+    *data |= infrared_reverse(message->command) << 13;
 
     common_encoder->bits_to_encode = common_encoder->protocol->databit_len[0];
     encoder->toggle_bit ^= 1;

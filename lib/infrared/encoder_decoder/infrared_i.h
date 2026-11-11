@@ -37,11 +37,4 @@ typedef InfraredMessage* (*InfraredDecoderCheckReady)(void*);
 typedef void (*InfraredEncoderReset)(void* encoder, const InfraredMessage* message);
 typedef InfraredStatus (*InfraredEncode)(void* encoder, uint32_t* out, bool* polarity);
 
-static inline uint8_t reverse(uint8_t value) {
-    uint8_t reverse_value = 0;
-    for(int i = 0; i < 8; ++i) {
-        reverse_value |= (value & (0x01 << i)) ? 1 << (7 - i) : 0;
-    }
-
-    return reverse_value;
-}
+uint8_t infrared_reverse(uint8_t value);

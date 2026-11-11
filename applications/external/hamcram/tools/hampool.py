@@ -113,7 +113,9 @@ def to_ascii(text: str, where: str) -> bytes:
         ch = ASCII_MAP.get(ch, ch)
         for c in ch:
             if not 32 <= ord(c) <= 126:
-                raise PoolError(f"{where}: unmapped character {c!r} (U+{ord(c):04X}); add it to ASCII_MAP")
+                raise PoolError(
+                    f"{where}: unmapped character {c!r} (U+{ord(c):04X}); add it to ASCII_MAP"
+                )
         out.append(ch)
     return re.sub(r" +", " ", "".join(out)).strip().encode("ascii")
 
@@ -170,7 +172,9 @@ RE_ANSWER = re.compile(r"^([A-D])\.\s*(\S.*)$")
 RE_END = re.compile(r"^~~+\s*end of question pool text", re.I)
 RE_FIGURE = re.compile(r"\bfigure\s+([TGE]\d?-\d+)", re.I)
 RE_PIN_LAST = re.compile(r"^(all|none|both|neither)\b.*\b(these|choices|above)\b", re.I)
-RE_POSITIONAL = re.compile(r"\b(?:[A-D]\s+(?:and|or|&)\s+[A-D]\b|(?:answers?|choices?)\s+[A-D]\b|(?:of|all)\s+the\s+above\b)")
+RE_POSITIONAL = re.compile(
+    r"\b(?:[A-D]\s+(?:and|or|&)\s+[A-D]\b|(?:answers?|choices?)\s+[A-D]\b|(?:of|all)\s+the\s+above\b)"
+)
 
 
 def parse_docx(path: Path, src: dict) -> dict:
@@ -191,14 +195,22 @@ def parse_docx(path: Path, src: dict) -> dict:
         elif m:
             body_subs.append((i, m.group(1).upper()))
     if not body_subs or sorted(s for _, s in body_subs) != sorted(syllabus_counts):
-        raise PoolError(f"{path.name}: syllabus and pool body list different subelements")
+        raise PoolError(
+            f"{path.name}: syllabus and pool body list different subelements"
+        )
     body_start = body_subs[0][0]
 
     head = " ".join(lines[:body_start])
     y, mo, d = src["valid_from"].split("-")
-    date_forms = [f"{int(mo)}/{d}/{y}", f"{int(mo)}/{int(d)}/{y}", f"July {int(d)}, {y}"]
+    date_forms = [
+        f"{int(mo)}/{d}/{y}",
+        f"{int(mo)}/{int(d)}/{y}",
+        f"July {int(d)}, {y}",
+    ]
     if not any(f"Effective {form}" in head for form in date_forms):
-        raise PoolError(f"{path.name}: effective date {src['valid_from']} not confirmed by the document")
+        raise PoolError(
+            f"{path.name}: effective date {src['valid_from']} not confirmed by the document"
+        )
 
     subelements: list[dict] = []
     deleted: list[str] = []
@@ -223,7 +235,11 @@ def parse_docx(path: Path, src: dict) -> dict:
                 question = None
                 continue
             m = RE_ANSWER.match(line)
-            if m and ANSWER_LETTERS[len(question["answers"]) % 4] == m.group(1) and len(question["answers"]) < 4:
+            if (
+                m
+                and ANSWER_LETTERS[len(question["answers"]) % 4] == m.group(1)
+                and len(question["answers"]) < 4
+            ):
                 question["answers"].append(m.group(2))
             elif not question["answers"]:
                 question["question"] = clean(question["question"] + " " + line)
@@ -277,7 +293,9 @@ def parse_docx(path: Path, src: dict) -> dict:
         if not sub["id"].startswith(prefix):
             raise PoolError(f"{sub['id']}: wrong prefix for {src['name']}")
         if len(sub["groups"]) != sub.pop("declared_groups"):
-            raise PoolError(f"{sub['id']}: group count differs from the SUBELEMENT header")
+            raise PoolError(
+                f"{sub['id']}: group count differs from the SUBELEMENT header"
+            )
         if sub["exam_questions"] != len(sub["groups"]):
             raise PoolError(f"{sub['id']}: exam draws are not one per group")
         count = 0
@@ -293,15 +311,21 @@ def parse_docx(path: Path, src: dict) -> dict:
                     q["figure"] = fig.group(1).upper()
                 for ans in q["answers"]:
                     if RE_POSITIONAL.search(ans):
-                        raise PoolError(f"{q['id']}: answer refers to a position, unsafe to shuffle: {ans!r}")
+                        raise PoolError(
+                            f"{q['id']}: answer refers to a position, unsafe to shuffle: {ans!r}"
+                        )
             count += len(group["questions"])
         declared = syllabus_counts.get(sub["id"])
         if declared is not None and declared != count:
-            print(f"  note: {sub['id']} syllabus says {declared} questions, pool has {count} (errata deletions)")
+            print(
+                f"  note: {sub['id']} syllabus says {declared} questions, pool has {count} (errata deletions)"
+            )
         total += count
     exam = sum(s["exam_questions"] for s in subelements)
     if exam != src["exam_questions"]:
-        raise PoolError(f"{src['name']}: {exam} groups but {src['exam_questions']} exam questions expected")
+        raise PoolError(
+            f"{src['name']}: {exam} groups but {src['exam_questions']} exam questions expected"
+        )
     if src["pass_correct"] != -(-src["exam_questions"] * 74 // 100):
         raise PoolError(f"{src['name']}: pass_correct is not 74% of the exam")
 
@@ -313,7 +337,12 @@ def parse_docx(path: Path, src: dict) -> dict:
         "valid_to": src["valid_to"],
         "exam_questions": src["exam_questions"],
         "pass_correct": src["pass_correct"],
-        "source": {"page": src["page"], "url": src["url"], "sha256": src["sha256"], "revision": src["revision"]},
+        "source": {
+            "page": src["page"],
+            "url": src["url"],
+            "sha256": src["sha256"],
+            "revision": src["revision"],
+        },
         "question_count": total,
         "deleted": deleted,
         "subelements": subelements,
@@ -366,7 +395,9 @@ def pack_pool(pool: dict) -> bytes:
         )
         rec += ref + text + b"".join(answers)
         if len(rec) > MAX_RECORD_SIZE:
-            raise PoolError(f"{where}: record is {len(rec)} bytes, limit {MAX_RECORD_SIZE}")
+            raise PoolError(
+                f"{where}: record is {len(rec)} bytes, limit {MAX_RECORD_SIZE}"
+            )
         records.append((rec, flags))
 
     sub_table = b""
@@ -375,17 +406,25 @@ def pack_pool(pool: dict) -> bytes:
     for si, sub in enumerate(subs):
         title = to_ascii(sub["title"], sub["id"])
         if len(title) > MAX_SUB_TITLE:
-            raise PoolError(f"{sub['id']}: title longer than {MAX_SUB_TITLE} characters")
+            raise PoolError(
+                f"{sub['id']}: title longer than {MAX_SUB_TITLE} characters"
+            )
         nq = sum(len(g["questions"]) for g in sub["groups"])
-        sub_table += struct.pack(SUB_FMT, sub["id"].encode(), gi, len(sub["groups"]), 0, qi, nq, title)
+        sub_table += struct.pack(
+            SUB_FMT, sub["id"].encode(), gi, len(sub["groups"]), 0, qi, nq, title
+        )
         for group in sub["groups"]:
             if len(group["questions"]) > 255:
                 raise PoolError(f"{group['id']}: too many questions")
-            group_table += struct.pack(GROUP_FMT, group["id"].encode(), qi, len(group["questions"]), si)
+            group_table += struct.pack(
+                GROUP_FMT, group["id"].encode(), qi, len(group["questions"]), si
+            )
             qi += len(group["questions"])
             gi += 1
 
-    offset = HEADER_SIZE + len(sub_table) + len(group_table) + INDEX_SIZE * len(questions)
+    offset = (
+        HEADER_SIZE + len(sub_table) + len(group_table) + INDEX_SIZE * len(questions)
+    )
     index = b""
     for (gidx, q), (rec, flags) in zip(questions, records, strict=True):
         index += struct.pack(INDEX_FMT, offset, question_code(q["id"]), flags, gidx)
@@ -408,7 +447,9 @@ def pack_pool(pool: dict) -> bytes:
         max(len(rec) for rec, _ in records),
         b"",
     )
-    return header + sub_table + group_table + index + b"".join(rec for rec, _ in records)
+    return (
+        header + sub_table + group_table + index + b"".join(rec for rec, _ in records)
+    )
 
 
 def unpack_pool(data: bytes) -> dict:
@@ -417,16 +458,40 @@ def unpack_pool(data: bytes) -> dict:
     def cstr(raw: bytes) -> str:
         return raw.split(b"\0", 1)[0].decode("ascii")
 
-    (magic, version, element, n_sub, n_group, n_q, exam, need, v_from, v_to, name, years, max_rec, _) = struct.unpack_from(
-        HEADER_FMT, data, 0
-    )
+    (
+        magic,
+        version,
+        element,
+        n_sub,
+        n_group,
+        n_q,
+        exam,
+        need,
+        v_from,
+        v_to,
+        name,
+        years,
+        max_rec,
+        _,
+    ) = struct.unpack_from(HEADER_FMT, data, 0)
     if magic != MAGIC or version != FORMAT_VERSION:
         raise PoolError("bad magic or version")
     pos = HEADER_SIZE
     subs = []
     for _ in range(n_sub):
-        sid, first_g, n_g, _pad, first_q, nq, title = struct.unpack_from(SUB_FMT, data, pos)
-        subs.append({"id": cstr(sid), "first_group": first_g, "groups": n_g, "first_q": first_q, "nq": nq, "title": cstr(title)})
+        sid, first_g, n_g, _pad, first_q, nq, title = struct.unpack_from(
+            SUB_FMT, data, pos
+        )
+        subs.append(
+            {
+                "id": cstr(sid),
+                "first_group": first_g,
+                "groups": n_g,
+                "first_q": first_q,
+                "nq": nq,
+                "title": cstr(title),
+            }
+        )
         pos += SUB_SIZE
     groups = []
     for _ in range(n_group):
@@ -435,8 +500,12 @@ def unpack_pool(data: bytes) -> dict:
         pos += GROUP_SIZE
     questions = []
     for i in range(n_q):
-        offset, code, flags, gi = struct.unpack_from(INDEX_FMT, data, pos + i * INDEX_SIZE)
-        qid, correct, rflags, rgi, ref_len, q_len, *a_len = struct.unpack_from(RECORD_FMT, data, offset)
+        offset, code, flags, gi = struct.unpack_from(
+            INDEX_FMT, data, pos + i * INDEX_SIZE
+        )
+        qid, correct, rflags, rgi, ref_len, q_len, *a_len = struct.unpack_from(
+            RECORD_FMT, data, offset
+        )
         if (rflags, rgi) != (flags, gi) or question_code(cstr(qid)) != code:
             raise PoolError(f"index/record mismatch at question {i}")
         p = offset + RECORD_SIZE
@@ -475,7 +544,12 @@ def unpack_pool(data: bytes) -> dict:
 
 def verify_pool(pool: dict, data: bytes) -> None:
     got = unpack_pool(data)
-    want_q = [(g["id"], q) for s in pool["subelements"] for g in s["groups"] for q in g["questions"]]
+    want_q = [
+        (g["id"], q)
+        for s in pool["subelements"]
+        for g in s["groups"]
+        for q in g["questions"]
+    ]
     if len(got["questions"]) != len(want_q) or len(want_q) != pool["question_count"]:
         raise PoolError("question count mismatch")
     for (gid, want), have in zip(want_q, got["questions"], strict=True):
@@ -485,7 +559,8 @@ def verify_pool(pool: dict, data: bytes) -> None:
             and ANSWER_LETTERS[have["correct"]] == want["correct"]
             and got["groups"][have["group"]]["id"] == gid
             and have["question"].encode() == to_ascii(want["question"], where)
-            and [a.encode() for a in have["answers"]] == [to_ascii(a, where) for a in want["answers"]]
+            and [a.encode() for a in have["answers"]]
+            == [to_ascii(a, where) for a in want["answers"]]
             and bool(have["flags"] & FLAG_FIGURE) == ("figure" in want)
         )
         if not same:
@@ -519,7 +594,9 @@ def cmd_fetch(sources: list[dict]) -> None:
         dest = CACHE_DIR / f"{src['stem']}.docx"
         if not (dest.exists() and sha256(dest) == src["sha256"]):
             print(f"fetch  {src['url']}")
-            req = urllib.request.Request(src["url"], headers={"User-Agent": "hampool/1.0"})
+            req = urllib.request.Request(
+                src["url"], headers={"User-Agent": "hampool/1.0"}
+            )
             with urllib.request.urlopen(req, timeout=60) as resp:
                 dest.write_bytes(resp.read())
         if sha256(dest) != src["sha256"]:
@@ -537,8 +614,17 @@ def cmd_parse(sources: list[dict]) -> None:
             raise PoolError(f"{docx} missing; run `hampool.py fetch` first")
         pool = parse_docx(docx, src)
         out = JSON_DIR / f"{src['stem']}.json"
-        out.write_text(json.dumps(pool, indent=1, ensure_ascii=False) + "\n", encoding="utf-8", newline="\n")
-        figures = sum("figure" in q for s in pool["subelements"] for g in s["groups"] for q in g["questions"])
+        out.write_text(
+            json.dumps(pool, indent=1, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+            newline="\n",
+        )
+        figures = sum(
+            "figure" in q
+            for s in pool["subelements"]
+            for g in s["groups"]
+            for q in g["questions"]
+        )
         print(
             f"parse  {out.relative_to(ROOT)}: {pool['question_count']} questions, "
             f"{sum(len(s['groups']) for s in pool['subelements'])} groups, "
@@ -549,7 +635,9 @@ def cmd_parse(sources: list[dict]) -> None:
 def cmd_pack(sources: list[dict]) -> None:
     HCP_DIR.mkdir(parents=True, exist_ok=True)
     for src in sources:
-        pool = json.loads((JSON_DIR / f"{src['stem']}.json").read_text(encoding="utf-8"))
+        pool = json.loads(
+            (JSON_DIR / f"{src['stem']}.json").read_text(encoding="utf-8")
+        )
         data = pack_pool(pool)
         out = HCP_DIR / f"{src['stem']}.hcp"
         out.write_bytes(data)
@@ -558,7 +646,9 @@ def cmd_pack(sources: list[dict]) -> None:
 
 def cmd_verify(sources: list[dict]) -> None:
     for src in sources:
-        pool = json.loads((JSON_DIR / f"{src['stem']}.json").read_text(encoding="utf-8"))
+        pool = json.loads(
+            (JSON_DIR / f"{src['stem']}.json").read_text(encoding="utf-8")
+        )
         hcp = HCP_DIR / f"{src['stem']}.hcp"
         data = hcp.read_bytes()
         if data != pack_pool(pool):
@@ -590,30 +680,47 @@ def cmd_upstream(sources: list[dict]) -> None:
             problems.append(f"{src['name']}: no .docx link on {src['page']}")
         elif doc_name(docs[0]) != doc_name(src["url"]):
             # NCVEC lists the newest release (latest errata) first
-            problems.append(f"{src['name']}: newest document is now {doc_name(docs[0])!r}")
+            problems.append(
+                f"{src['name']}: newest document is now {doc_name(docs[0])!r}"
+            )
         else:
             print(f"ok     {src['name']}: {src['revision']}")
         if date_int(src["valid_to"]) < int(datetime.date.today().strftime("%Y%m%d")):
             problems.append(f"{src['name']}: pool expired on {src['valid_to']}")
 
     known = {s["page"].rsplit("/", 1)[-1] for s in load_sources()}
-    listed = set(re.findall(r'href="[^"]*/index\.php/(\d{4}-\d{4}-[a-z-]*question-pool[a-z-]*)"', http_get(POOLS_INDEX)))
+    listed = set(
+        re.findall(
+            r'href="[^"]*/index\.php/(\d{4}-\d{4}-[a-z-]*question-pool[a-z-]*)"',
+            http_get(POOLS_INDEX),
+        )
+    )
     for page in sorted(listed - known):
         problems.append(f"new pool page listed by NCVEC: {page}")
 
     if problems:
-        raise PoolError("upstream changed:\n  " + "\n  ".join(problems) + "\nSee docs/updating-pools.md")
+        raise PoolError(
+            "upstream changed:\n  "
+            + "\n  ".join(problems)
+            + "\nSee docs/updating-pools.md"
+        )
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    parser.add_argument("command", choices=["fetch", "parse", "pack", "verify", "all", "upstream"])
+    parser.add_argument(
+        "command", choices=["fetch", "parse", "pack", "verify", "all", "upstream"]
+    )
     parser.add_argument("--only", help="limit to one pool stem, e.g. technician")
     args = parser.parse_args()
     sources = [s for s in load_sources() if args.only in (None, s["stem"])]
     if not sources:
         parser.error(f"no pool named {args.only!r} in {SOURCES.name}")
-    steps = ["fetch", "parse", "pack", "verify"] if args.command == "all" else [args.command]
+    steps = (
+        ["fetch", "parse", "pack", "verify"]
+        if args.command == "all"
+        else [args.command]
+    )
     try:
         for step in steps:
             globals()[f"cmd_{step}"](sources)
