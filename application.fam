@@ -5,7 +5,7 @@ App(
     entry_point="morse_master_app",
     stack_size=2 * 1024,
     fap_category="Media",
-    fap_version="1.0",
+    fap_version="1.1",
     fap_icon="morse_master.png",  # 10x10 1-bit PNG
     fap_description="Learn Morse code using this toolkit.",
     fap_author="P1X",
