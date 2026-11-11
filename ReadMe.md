@@ -257,6 +257,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - CFW Settings: [System Info with heap, uptime and battery snapshot; reopen to refresh (By lewisQ17)](https://github.com/lewisQ17/Momentum-Firmware/commit/bedf276408947036229614d56202971efc1eac63) - [snapshot update](https://github.com/lewisQ17/Momentum-Firmware/commit/8c28efdbe427c7a2f3d36a1651cb4fb26d91cbd8)
 - BadUSB: [MASS_STORAGE_MOUNT and MASS_STORAGE_UMOUNT commands for switching between HID and a disk image (By lewisQ17)](https://github.com/lewisQ17/Momentum-Firmware/commit/7f810d0cb78585461d50b7738f802ee44ad3d3a0)
 - CFW Settings: [Separate Name, BLE MAC and Serial/UID spoofing with bounded UID storage (By lewisQ17)](https://github.com/lewisQ17/Momentum-Firmware/commit/3d46c13497ba59e4b45260ababdc976514bd616c)
+- Fixed: [CFW Settings spoofing reload use-after-free and stale BLE MAC/UID overrides (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/55ff2ecbf24bb1e7275d46afaa8b2d1e892c4bda)
 
 <a name="release"></a>
 
