@@ -24,8 +24,15 @@ step masks, recovery nonces, brute-force position, recovered key, and restore
 position. Select **Resume** after reopening the app. Select **New** from the main
 screen to delete the active checkpoint and start over.
 
-The main screen is a navigable three-item menu. Workflow screens show an overall
-`Section n/8` progress bar plus local progress for countable work. Lock-byte
+The main screen has **Resume/Start**, **New session**, **Saved cards**, and
+**Help**. Saved cards lists the `ulcfkey_emulation_*.nfc` files under `/ext/nfc/`;
+select one to view its UID and recovered 16-byte key. This is a read-only view
+of files already exported by the app, not a separate key database. Starting a
+new session does not remove saved NFC files. Keep the SD card secure: these
+files contain working authentication keys.
+
+Workflow screens show an overall `Section n/8` progress bar plus local progress
+for countable work. Lock-byte
 tearing shows its live delay and attempt number as indeterminate because the
 successful timing point cannot be known in advance.
 
@@ -49,6 +56,17 @@ each destructive key-page operation before/after its write, and brute force ever
   cache is rebuilt automatically after Resume.
 - Restoration is offered only after both key recovery and emulation-file saving
   succeed. The UID is checked before any restore write.
+
+## Host-side scripts
+
+- Key cracking from collected challenges: Proxmark3's
+  [`mfulc_counterfeit_recovery.py`](https://github.com/RfidResearchGroup/proxmark3/blob/master/client/pyscripts/mfulc_counterfeit_recovery.py)
+  (by noproto and doegox; locally installed at
+  `~/proxmark3/client/pyscripts/mfulc_counterfeit_recovery.py`). This is **not**
+  our script. The Flipper app also has its own on-device key search.
+- Make an authenticated dump emulatable after host-side recovery: our
+  [`make_emulation_dump.py`](make_emulation_dump.py). The app normally creates
+  an emulatable `.nfc` file itself after its on-device recovery completes.
 
 Build with `./fbt fap_ulcfkey_recovery`.
 

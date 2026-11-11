@@ -49,6 +49,7 @@
 #define ULCFKEY_SESSION_BACKUP_PATH    APP_DATA_PATH("session.bak")
 #define ULCFKEY_LEGACY_SESSION_PATH    EXT_PATH("apps_data/ulcfkey_fixed/session.bin")
 #define ULCFKEY_LEGACY_BACKUP_PATH     EXT_PATH("apps_data/ulcfkey_fixed/session.bak")
+#define ULCFKEY_SAVED_CARD_PREFIX      "ulcfkey_emulation_"
 #define TEAR_DELAY_US                  850
 // fork SAFETY: 0 = stop after the collision auth succeeds, WITHOUT tearing/overwriting
 // the card (read-only, non-destructive). Set to 1 only on a sacrificial card to run the
@@ -70,6 +71,8 @@ typedef enum {
     AppStateMain,
     AppStateNewConfirm,
     AppStateHelp,
+    AppStateSavedCards,
+    AppStateSavedCardDetail,
     AppStateCollectNTReady,
     AppStateCollectNTInit,
     AppStateCollectNTWaiting,
@@ -100,6 +103,12 @@ typedef struct {
 typedef struct {
     AppState state;
     uint8_t menu_selection;
+    uint16_t saved_card_selection;
+    uint16_t saved_card_count;
+    char saved_card_name[64];
+    uint8_t saved_card_uid[7];
+    uint8_t saved_card_key[16];
+    bool saved_card_loaded;
     const char* error;
     uint8_t auth1_response[8];
     uint8_t auth2_response[16];
@@ -1200,12 +1209,96 @@ static void ulcfkey_draw_menu_row(
     }
 }
 
+static bool ulcfkey_saved_card_filename(const char* name) {
+    const size_t prefix_len = strlen(ULCFKEY_SAVED_CARD_PREFIX);
+    if(strncmp(name, ULCFKEY_SAVED_CARD_PREFIX, prefix_len) ||
+       strlen(name) != prefix_len + 14 + strlen(NFC_APP_EXTENSION) ||
+       strcmp(name + prefix_len + 14, NFC_APP_EXTENSION)) {
+        return false;
+    }
+    for(size_t i = prefix_len; i < prefix_len + 14; i++) {
+        if(!((name[i] >= '0' && name[i] <= '9') ||
+             (name[i] >= 'A' && name[i] <= 'F') ||
+             (name[i] >= 'a' && name[i] <= 'f'))) {
+            return false;
+        }
+    }
+    return true;
+}
+
+static bool ulcfkey_saved_card_find(uint16_t index, char* selected, size_t selected_size, uint16_t* count) {
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    File* dir = storage_file_alloc(storage);
+    bool found = false;
+    *count = 0;
+    if(storage_dir_open(dir, NFC_APP_FOLDER)) {
+        FileInfo info;
+        char name[64];
+        while(storage_dir_read(dir, &info, name, sizeof(name))) {
+            if((info.flags & FSF_DIRECTORY) || !ulcfkey_saved_card_filename(name)) continue;
+            if(*count == index && selected && selected_size > strlen(name)) {
+                strcpy(selected, name);
+                found = true;
+            }
+            if(*count < UINT16_MAX) (*count)++;
+        }
+        storage_dir_close(dir);
+    }
+    storage_file_free(dir);
+    furi_record_close(RECORD_STORAGE);
+    return found;
+}
+
+static void ulcfkey_saved_card_refresh(AppContext* app) {
+    app->saved_card_name[0] = '\0';
+    ulcfkey_saved_card_find(
+        app->saved_card_selection,
+        app->saved_card_name,
+        sizeof(app->saved_card_name),
+        &app->saved_card_count);
+    if(app->saved_card_selection >= app->saved_card_count) {
+        app->saved_card_selection = app->saved_card_count ? app->saved_card_count - 1 : 0;
+        if(app->saved_card_count) {
+            ulcfkey_saved_card_find(
+                app->saved_card_selection,
+                app->saved_card_name,
+                sizeof(app->saved_card_name),
+                &app->saved_card_count);
+        }
+    }
+}
+
+static void ulcfkey_saved_card_open(AppContext* app) {
+    app->saved_card_loaded = false;
+    if(!app->saved_card_name[0]) return;
+
+    FuriString* path = furi_string_alloc_printf(NFC_APP_FOLDER "/%s", app->saved_card_name);
+    NfcDevice* device = nfc_device_alloc();
+    if(nfc_device_load(device, furi_string_get_cstr(path)) &&
+       nfc_device_get_protocol(device) == NfcProtocolMfUltralight) {
+        const MfUltralightData* data = nfc_device_get_data(device, NfcProtocolMfUltralight);
+        size_t uid_len;
+        const uint8_t* uid = iso14443_3a_get_uid(data->iso14443_3a_data, &uid_len);
+        if(data->type == MfUltralightTypeMfulC && data->pages_read >= 48 && uid_len == 7) {
+            memcpy(app->saved_card_uid, uid, sizeof(app->saved_card_uid));
+            for(size_t page = 0; page < 4; page++) {
+                memcpy(app->saved_card_key + page * 4, data->page[44 + page].data, 4);
+            }
+            app->saved_card_loaded = true;
+        }
+    }
+    nfc_device_free(device);
+    furi_string_free(path);
+    app->state = AppStateSavedCardDetail;
+}
+
 static void render_callback(Canvas* canvas, void* ctx) {
     AppContext* app = ctx;
     canvas_clear(canvas);
     canvas_set_font(canvas, FontPrimary);
 
     if(app->state == AppStateMain || app->state == AppStateHelp ||
+       app->state == AppStateSavedCards || app->state == AppStateSavedCardDetail ||
        app->state == AppStateNewConfirm || app->state == AppStateError) {
         canvas_draw_str(canvas, 2, 12, "ULCFKey Recovery");
     } else {
@@ -1225,10 +1318,58 @@ static void render_callback(Canvas* canvas, void* ctx) {
         } else {
             snprintf(first_item, sizeof(first_item), "Start attack");
         }
-        ulcfkey_draw_menu_row(canvas, 0, app->menu_selection, 28, first_item);
-        ulcfkey_draw_menu_row(canvas, 1, app->menu_selection, 43, "New session");
-        ulcfkey_draw_menu_row(canvas, 2, app->menu_selection, 58, "Help & safety");
-        elements_scrollbar_pos(canvas, 127, 17, 43, app->menu_selection, 3);
+        ulcfkey_draw_menu_row(canvas, 0, app->menu_selection, 23, first_item);
+        ulcfkey_draw_menu_row(canvas, 1, app->menu_selection, 36, "New session");
+        ulcfkey_draw_menu_row(canvas, 2, app->menu_selection, 49, "Saved cards");
+        ulcfkey_draw_menu_row(canvas, 3, app->menu_selection, 62, "Help");
+        elements_scrollbar_pos(canvas, 127, 17, 43, app->menu_selection, 4);
+        break;
+    }
+    case AppStateSavedCards: {
+        char line[32];
+        snprintf(line, sizeof(line), "Saved cards: %u", app->saved_card_count);
+        canvas_draw_str(canvas, 2, 26, line);
+        if(app->saved_card_count) {
+            if(app->saved_card_name[0]) {
+                canvas_draw_str(
+                    canvas, 2, 40, app->saved_card_name + strlen(ULCFKEY_SAVED_CARD_PREFIX));
+            }
+            snprintf(
+                line,
+                sizeof(line),
+                "%u/%u  Up/Down  OK: View",
+                app->saved_card_selection + 1,
+                app->saved_card_count);
+            canvas_draw_str(canvas, 2, 57, line);
+        } else {
+            canvas_draw_str(canvas, 2, 42, "No recovered cards yet");
+        }
+        break;
+    }
+    case AppStateSavedCardDetail: {
+        if(!app->saved_card_loaded) {
+            canvas_draw_str(canvas, 2, 32, "Could not load card");
+            break;
+        }
+        char line[32];
+        snprintf(
+            line,
+            sizeof(line),
+            "UID: %02X%02X%02X%02X%02X%02X%02X",
+            app->saved_card_uid[0], app->saved_card_uid[1], app->saved_card_uid[2],
+            app->saved_card_uid[3], app->saved_card_uid[4], app->saved_card_uid[5],
+            app->saved_card_uid[6]);
+        canvas_draw_str(canvas, 2, 25, line);
+        canvas_draw_str(canvas, 2, 38, "Key:");
+        for(size_t half = 0; half < 2; half++) {
+            snprintf(
+                line, sizeof(line), "%02X%02X%02X%02X%02X%02X%02X%02X",
+                app->saved_card_key[half * 8], app->saved_card_key[half * 8 + 1],
+                app->saved_card_key[half * 8 + 2], app->saved_card_key[half * 8 + 3],
+                app->saved_card_key[half * 8 + 4], app->saved_card_key[half * 8 + 5],
+                app->saved_card_key[half * 8 + 6], app->saved_card_key[half * 8 + 7]);
+            canvas_draw_str(canvas, 2, 48 + half * 12, line);
+        }
         break;
     }
     case AppStateNewConfirm:
@@ -1985,8 +2126,6 @@ int32_t ulcfkey_app(void* p) {
     app->notifications = furi_record_open(RECORD_NOTIFICATION);
     app->help_state = malloc(sizeof(HelpState));
     app->help_state->scroll_pos = 0;
-    // Calculate number of scroll positions based on total text height
-    app->help_state->scroll_num = 11;
     app->tear_delay = TEAR_DELAY_US;
     app->session_loaded = ulcfkey_session_load(app);
     app->help_state->text = furi_string_alloc_set("Collect NT from card, then\n"
@@ -2002,7 +2141,18 @@ int32_t ulcfkey_app(void* p) {
                                                   "\n"
                                                   "After key recovery the app\n"
                                                   "saves an NFC emulation and\n"
-                                                  "can restore the card.");
+                                                   "can restore the card.\n"
+                                                   "\n"
+                                                   "Saved cards shows exported\n"
+                                                   "UIDs and recovered keys.\n"
+                                                   "See README for PC script\n"
+                                                   "links and instructions.");
+    const char* help_text = furi_string_get_cstr(app->help_state->text);
+    uint8_t help_lines = 1;
+    for(const char* p = help_text; *p; p++) {
+        if(*p == '\n') help_lines++;
+    }
+    app->help_state->scroll_num = help_lines > 4 ? help_lines - 3 : 1;
 
     // GUI
     app->gui = furi_record_open(RECORD_GUI);
@@ -2021,7 +2171,8 @@ int32_t ulcfkey_app(void* p) {
         if(status == FuriStatusOk) {
             if(event.type == EventTypeKey &&
                (event.input.type == InputTypeShort ||
-                ((app->state == AppStateHelp || app->state == AppStateMain) &&
+                 ((app->state == AppStateHelp || app->state == AppStateMain ||
+                   app->state == AppStateSavedCards) &&
                  event.input.type == InputTypeRepeat))) {
                 // Handle states
                 if(app->state == AppStateMain) {
@@ -2030,11 +2181,11 @@ int32_t ulcfkey_app(void* p) {
                         running = false;
                         break;
                     case InputKeyUp:
-                        app->menu_selection = app->menu_selection == 0 ? 2 :
+                        app->menu_selection = app->menu_selection == 0 ? 3 :
                                                                          app->menu_selection - 1;
                         break;
                     case InputKeyDown:
-                        app->menu_selection = (app->menu_selection + 1) % 3;
+                        app->menu_selection = (app->menu_selection + 1) % 4;
                         break;
                     case InputKeyOk:
                         if(app->menu_selection == 0) {
@@ -2042,6 +2193,10 @@ int32_t ulcfkey_app(void* p) {
                                                                AppStateCollectNTReady;
                         } else if(app->menu_selection == 1) {
                             app->state = AppStateNewConfirm;
+                        } else if(app->menu_selection == 2) {
+                            app->saved_card_selection = 0;
+                            ulcfkey_saved_card_refresh(app);
+                            app->state = AppStateSavedCards;
                         } else {
                             app->state = AppStateHelp;
                         }
@@ -2050,10 +2205,38 @@ int32_t ulcfkey_app(void* p) {
                         app->menu_selection = 1;
                         break;
                     case InputKeyRight:
-                        app->menu_selection = 2;
+                        app->menu_selection = 3;
                         break;
                     default:
                         break;
+                    }
+                } else if(app->state == AppStateSavedCards) {
+                    switch(event.input.key) {
+                    case InputKeyBack:
+                        app->state = AppStateMain;
+                        break;
+                    case InputKeyUp:
+                        if(app->saved_card_selection) app->saved_card_selection--;
+                        ulcfkey_saved_card_refresh(app);
+                        break;
+                    case InputKeyDown:
+                        if(app->saved_card_selection + 1 < app->saved_card_count) {
+                            app->saved_card_selection++;
+                        }
+                        ulcfkey_saved_card_refresh(app);
+                        break;
+                    case InputKeyOk:
+                        ulcfkey_saved_card_open(app);
+                        break;
+                    default:
+                        break;
+                    }
+                } else if(app->state == AppStateSavedCardDetail) {
+                    if(event.input.key == InputKeyBack || event.input.key == InputKeyOk) {
+                        memset(app->saved_card_key, 0, sizeof(app->saved_card_key));
+                        app->saved_card_loaded = false;
+                        ulcfkey_saved_card_refresh(app);
+                        app->state = AppStateSavedCards;
                     }
                 } else if(app->state == AppStateNewConfirm) {
                     if(event.input.key == InputKeyBack || event.input.key == InputKeyLeft) {
