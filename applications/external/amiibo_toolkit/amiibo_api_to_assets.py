@@ -143,7 +143,9 @@ def _write_game_files(
         for game_name in sorted_game_names:
             games_file.write(f"{game_name}\n")
 
-    with open(f"files/game_{console.lower()}_mapping.dat", "w", encoding="utf-8") as mapping_file:
+    with open(
+        f"files/game_{console.lower()}_mapping.dat", "w", encoding="utf-8"
+    ) as mapping_file:
         mapping_file.write("Filetype: AmiTool Games Mapping DB\n")
         mapping_file.write("Version: 1\n")
         mapping_file.write(f"Console: {console}\n")
