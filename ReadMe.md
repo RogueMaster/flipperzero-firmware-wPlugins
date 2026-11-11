@@ -299,6 +299,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [A/C Master v0.3 multi-profile infrared air-conditioner remote (By Enlighten Tech)](https://github.com/gbhobbytech/flipper-ac-multi-remote)
 - Fixed: [Archive extension-table linkage for firmware and file-browser builds (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins)
 - Updated: [UHF Expansion v1.8 reader-frequency settings, draft Save/Discard flow and verified persistence (By MTools Tec)](https://github.com/mtoolstec/fz-uhf-expansion)
+- Updated: [Claude Remote v0.2: keep button gestures on the screen where they began (By Petr Korobeinikov)](https://github.com/petr-korobeinikov/f0-claude-remote)
+- Added: [eReader v1.0 - Streaming plain-text book reader with word wrap, saved positions and two font sizes (By Daniel Baker)](https://github.com/daniebker/flipper_ereader)
 
 <a name="release"></a>
 
@@ -717,7 +719,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [CK42X Passvault v0.4.6 (By lordbuffcloud)](https://github.com/lordbuffcloud/flipper-ck42x-passvault)
 - [CK42X Wakeup v2.29 (By lordbuffcloud)](https://github.com/lordbuffcloud/flipper-ck42x-wakeup)
 - [Claude Buddy v0.6 (By jxw1102)](https://github.com/jxw1102/flipper-claude-buddy)
-- [Claude Remote v0.1 (By Petr Korobeinikov)](https://github.com/petr-korobeinikov/f0-claude-remote)
+- [Claude Remote v0.2 (By Petr Korobeinikov)](https://github.com/petr-korobeinikov/f0-claude-remote)
 - [ClayLoop v1.0 (By b0bby225)](https://github.com/b0bby225/ClayLoop)
 - [CLI-GUI Bridge v0.2 (By ranchordo)](https://github.com/ranchordo/flipperzero-cli-bridge)
 - [Click Recorder v1.2 (By 0x78f1935)](https://github.com/0x78f1935/Click-Recorder)
@@ -774,6 +776,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Encoder Reader v0.1 (By Engineegor)](https://github.com/Engineegor/Enc_reader)
 - [Enhanced Sub-Ghz Chat v1.3 (By twisted-pear)](https://github.com/twisted-pear/esubghz_chat)
 - [Enigma v1.1 (By xtruan)](https://github.com/xtruan/flipper-enigma)
+- [eReader v1.0 (By Daniel Baker)](https://github.com/daniebker/flipper_ereader)
 - [ESP Flasher v1.9 (By 0xchocolate)](https://github.com/0xchocolate/flipperzero-esp-flasher)
 - [ESP WiFi Scanner v1.1 (By SequoiaSan)](https://github.com/SequoiaSan/FlipperZero-WiFi-Scanner_Module-ESP8266) `Req: ESP8266 or ESP32`
 - [ESP32 Camera Suite v1.9 (By CodyTolene)](https://github.com/CodyTolene/Flipper-Zero-Camera-Suite)

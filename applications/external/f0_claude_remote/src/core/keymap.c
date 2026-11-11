@@ -1,6 +1,7 @@
 #include "keymap.h"
 
 #include <stdlib.h>
+#include <string.h>
 
 /* The firmware's fast advertising lasts 60 s (gap.c:430-435), and stopping sooner than the 30 s
  * Bluetooth gives pairing, plus the walk to the Mac's settings, cuts the link just paired. */
@@ -8,7 +9,7 @@ static const uint32_t keymap_link_wait_ms = 60000;
 
 struct Keymap {
     Mode mode;
-    bool right_pressed_on_no_link;
+    bool pressed[KeymapKeyMAX];
     bool on_usb;
 };
 
@@ -40,10 +41,26 @@ static const Mode keymap_link_down_modes[] = {
     [ModeStopped] = ModeStopped,
 };
 
+static void keymap_forget_presses(Keymap* keymap) {
+    memset(keymap->pressed, 0, sizeof(keymap->pressed));
+}
+
+static void keymap_set_screen(Keymap* keymap, Mode mode, bool on_usb) {
+    if(mode != keymap->mode || on_usb != keymap->on_usb) {
+        keymap->mode = mode;
+        keymap->on_usb = on_usb;
+        keymap_forget_presses(keymap);
+    }
+}
+
+static void keymap_set_mode(Keymap* keymap, Mode mode) {
+    keymap_set_screen(keymap, mode, keymap->on_usb);
+}
+
 Keymap* keymap_alloc(void) {
     Keymap* keymap = malloc(sizeof(Keymap));
     keymap->mode = ModeNoLink;
-    keymap->right_pressed_on_no_link = false;
+    keymap_forget_presses(keymap);
     keymap->on_usb = false;
     return keymap;
 }
@@ -52,48 +69,45 @@ void keymap_free(Keymap* keymap) {
     free(keymap);
 }
 
-/* The long press fires 300 ms after the press, so one that began on another board would switch the
- * link from a press meant for that board: Esc on the main screen, or starting over on the stopped
- * one. */
-static bool keymap_switches_link(Keymap* keymap, KeymapKey key, KeymapEvent event) {
-    if(key != KeymapKeyRight) {
-        return false;
-    }
-    if(event == KeymapEventPress) {
-        keymap->right_pressed_on_no_link = keymap->mode == ModeNoLink;
-    }
-    if(event != KeymapEventLong) {
-        return false;
-    }
-    bool switches = keymap->mode == ModeNoLink && keymap->right_pressed_on_no_link;
-    keymap->right_pressed_on_no_link = false;
-    return switches;
-}
-
 Action keymap_handle(Keymap* keymap, KeymapKey key, KeymapEvent event) {
     bool ok_released = key == KeymapKeyOk && event == KeymapEventRelease;
+    bool gesture = event == KeymapEventShort || event == KeymapEventLong;
     Action action = keymap_actions[key][event];
 
-    if(keymap_switches_link(keymap, key, event)) {
-        keymap->on_usb = !keymap->on_usb;
+    if(event == KeymapEventPress) {
+        keymap->pressed[key] = true;
+    } else if(event == KeymapEventRelease) {
+        keymap->pressed[key] = false;
+    }
+
+    /* The long press fires 300 ms after the press and the tap comes with the release, so a gesture
+     * begun on another screen would act here on a press meant for that one: starting over, then
+     * Enter or voice on the main screen. Back's hold only leaves, which every screen but voice
+     * allows. */
+    if(gesture && !keymap->pressed[key] && action != ActionExit) {
+        return ActionNone;
+    }
+
+    if(key == KeymapKeyRight && event == KeymapEventLong && keymap->mode == ModeNoLink) {
+        keymap_set_screen(keymap, ModeNoLink, !keymap->on_usb);
         return keymap->on_usb ? ActionUseUsb : ActionUseBluetooth;
     }
 
     switch(keymap->mode) {
     case ModeIdle:
         if(action == ActionVoiceStart) {
-            keymap->mode = ModeVoice;
+            keymap_set_mode(keymap, ModeVoice);
         }
         return action;
     case ModeVoice:
         if(!ok_released) {
             return ActionNone;
         }
-        keymap->mode = ModeIdle;
+        keymap_set_mode(keymap, ModeIdle);
         return ActionVoiceStop;
     case ModeVoiceCut:
         if(ok_released) {
-            keymap->mode = ModeNoLink;
+            keymap_set_mode(keymap, ModeNoLink);
         }
         break;
     case ModeNoLink:
@@ -105,7 +119,7 @@ Action keymap_handle(Keymap* keymap, KeymapKey key, KeymapEvent event) {
         if(key == KeymapKeyBack) {
             return ActionExit;
         }
-        keymap->mode = ModeNoLink;
+        keymap_set_mode(keymap, ModeNoLink);
         return ActionStartOver;
     }
 
@@ -114,7 +128,8 @@ Action keymap_handle(Keymap* keymap, KeymapKey key, KeymapEvent event) {
 
 Action keymap_set_connected(Keymap* keymap, bool connected) {
     Mode previous = keymap->mode;
-    keymap->mode = connected ? keymap_link_up_modes[previous] : keymap_link_down_modes[previous];
+    keymap_set_mode(
+        keymap, connected ? keymap_link_up_modes[previous] : keymap_link_down_modes[previous]);
     return previous == ModeVoice && keymap->mode == ModeVoiceCut ? ActionVoiceStop : ActionNone;
 }
 
@@ -122,7 +137,7 @@ Action keymap_time_out(Keymap* keymap) {
     if(keymap_wait_ms(keymap) == 0) {
         return ActionNone;
     }
-    keymap->mode = ModeStopped;
+    keymap_set_mode(keymap, ModeStopped);
     return ActionGiveUp;
 }
 

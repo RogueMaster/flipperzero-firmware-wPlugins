@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.2 — 2026-11-11
+
+### 🚀 Features
+
+- *(deed)* Earn the dolphin xp for dictations and /clear (`c0d89e6`)
+- *(reconnect)* Stop advertising after a minute with no link (`6be8b40`)
+- *(keymap)* Switch the link by holding right (`3e283c5`)
+- *(view)* Draw the usb boards and switch plate (`ac960a3`)
+- *(usb)* Act as a usb keyboard over the cable (`d421d5b`)
+- *(view)* Show the hold legend on no link (`a0cca23`)
+
+### 🐛 Bug Fixes
+
+- *(keymap)* Act on the screen a gesture began on (`34985ac`)
+
+### 🚜 Refactor
+
+- *(transport)* Split out the key router (`e1afed9`)
+- *(asset)* Move the pictures under asset/ (`002c973`)
+
 ## 0.1 — 2026-11-07
 
 ### 🚀 Features

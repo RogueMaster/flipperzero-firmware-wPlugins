@@ -9,6 +9,7 @@ static Keymap* keymap_test_alloc_connected(void) {
 
 static Keymap* keymap_test_alloc_voice(void) {
     Keymap* keymap = keymap_test_alloc_connected();
+    keymap_handle(keymap, KeymapKeyOk, KeymapEventPress);
     keymap_handle(keymap, KeymapKeyOk, KeymapEventLong);
     return keymap;
 }
@@ -35,6 +36,9 @@ static Keymap* keymap_test_alloc_on_usb(void) {
 
 static Action keymap_test_fresh(KeymapKey key, KeymapEvent event) {
     Keymap* keymap = keymap_test_alloc_connected();
+    if(event == KeymapEventShort || event == KeymapEventLong) {
+        keymap_handle(keymap, key, KeymapEventPress);
+    }
     Action action = keymap_handle(keymap, key, event);
     keymap_free(keymap);
     return action;
@@ -88,6 +92,7 @@ static void test_release_without_voice_does_nothing(void) {
 static void test_hold_ok_turns_voice_on(void) {
     Keymap* keymap = keymap_test_alloc_connected();
     assert(keymap_mode(keymap) == ModeIdle);
+    keymap_handle(keymap, KeymapKeyOk, KeymapEventPress);
     keymap_handle(keymap, KeymapKeyOk, KeymapEventLong);
     assert(keymap_mode(keymap) == ModeVoice);
     keymap_free(keymap);
@@ -257,6 +262,7 @@ static void test_right_held_elsewhere_on_usb_returns_nothing(void) {
 
     Keymap* voice = keymap_test_alloc_on_usb();
     keymap_set_connected(voice, true);
+    keymap_handle(voice, KeymapKeyOk, KeymapEventPress);
     keymap_handle(voice, KeymapKeyOk, KeymapEventLong);
     keymap_handle(voice, KeymapKeyRight, KeymapEventPress);
     assert(keymap_handle(voice, KeymapKeyRight, KeymapEventLong) == ActionNone);
@@ -365,6 +371,7 @@ static void test_hold_ok_after_cut_starts_voice_again(void) {
     Keymap* keymap = keymap_test_alloc_voice_cut();
     keymap_handle(keymap, KeymapKeyOk, KeymapEventRelease);
     keymap_set_connected(keymap, true);
+    keymap_handle(keymap, KeymapKeyOk, KeymapEventPress);
     assert(keymap_handle(keymap, KeymapKeyOk, KeymapEventLong) == ActionVoiceStart);
     assert(keymap_mode(keymap) == ModeVoice);
     keymap_free(keymap);
@@ -372,8 +379,10 @@ static void test_hold_ok_after_cut_starts_voice_again(void) {
 
 static void test_buttons_act_after_link_returns(void) {
     Keymap* keymap = keymap_alloc();
+    keymap_handle(keymap, KeymapKeyUp, KeymapEventPress);
     keymap_handle(keymap, KeymapKeyUp, KeymapEventShort);
     keymap_set_connected(keymap, true);
+    keymap_handle(keymap, KeymapKeyUp, KeymapEventPress);
     assert(keymap_handle(keymap, KeymapKeyUp, KeymapEventShort) == ActionArrowUp);
     keymap_free(keymap);
 }
@@ -540,6 +549,44 @@ static void test_press_during_wait_changes_nothing(void) {
     keymap_free(keymap);
 }
 
+static void test_started_over_on_a_cable_sends_nothing(void) {
+    static const struct {
+        KeymapKey key;
+        KeymapEvent event;
+    } gestures[] = {
+        {KeymapKeyUp, KeymapEventShort},
+        {KeymapKeyOk, KeymapEventLong},
+        {KeymapKeyUp, KeymapEventLong},
+        {KeymapKeyDown, KeymapEventLong},
+        {KeymapKeyLeft, KeymapEventLong},
+    };
+    for(size_t i = 0; i < sizeof(gestures) / sizeof(gestures[0]); i++) {
+        Keymap* keymap = keymap_test_alloc_on_usb();
+        keymap_time_out(keymap);
+        assert(keymap_handle(keymap, gestures[i].key, KeymapEventPress) == ActionStartOver);
+        keymap_set_connected(keymap, true);
+        assert(keymap_handle(keymap, gestures[i].key, gestures[i].event) == ActionNone);
+        assert(keymap_mode(keymap) == ModeIdle);
+        keymap_free(keymap);
+    }
+}
+
+static void test_tap_through_link_return_does_nothing(void) {
+    Keymap* keymap = keymap_alloc();
+    keymap_handle(keymap, KeymapKeyUp, KeymapEventPress);
+    keymap_set_connected(keymap, true);
+    assert(keymap_handle(keymap, KeymapKeyUp, KeymapEventShort) == ActionNone);
+    keymap_free(keymap);
+}
+
+static void test_back_held_through_drop_exits(void) {
+    Keymap* keymap = keymap_test_alloc_connected();
+    keymap_handle(keymap, KeymapKeyBack, KeymapEventPress);
+    keymap_set_connected(keymap, false);
+    assert(keymap_handle(keymap, KeymapKeyBack, KeymapEventLong) == ActionExit);
+    keymap_free(keymap);
+}
+
 int main(void) {
     test_run(test_tap_acts);
     test_run(test_tap_on_left_or_back_does_nothing);
@@ -596,5 +643,8 @@ int main(void) {
     test_run(test_starting_over_waits_again);
     test_run(test_wait_runs_only_while_offering_with_no_link);
     test_run(test_press_during_wait_changes_nothing);
+    test_run(test_started_over_on_a_cable_sends_nothing);
+    test_run(test_tap_through_link_return_does_nothing);
+    test_run(test_back_held_through_drop_exits);
     return 0;
 }

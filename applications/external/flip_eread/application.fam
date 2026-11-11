@@ -1,0 +1,15 @@
+App(
+    appid="ereader",
+    name="eReader",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="flip_eread_app",
+    stack_size=4 * 1024,
+    fap_icon="flip_eread.png",
+    fap_icon_assets="images",
+    fap_icon_assets_symbol="flip_eread",
+    fap_category="Tools",
+    fap_author="Daniel Baker",
+    fap_weburl="https://github.com/daniebker/flipper_ereader",
+    fap_version="1.0",
+    fap_description="Read .txt books from the SD card",
+)
