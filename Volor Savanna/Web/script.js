@@ -193,12 +193,37 @@ function hunter()
 
             if (idx == "hunter_5" && choice == "1")
             {
-                document.getElementById("my_text").innerHTML = "You have chosen to trade.<br>They trade you guns.<br>Do you want to go hunt The Mighty Lion?<br><br>1- Yes; 2- No<br>Make your choice " + user_name + ":<br>"
+                document.getElementById("my_text").innerHTML = "You have chosen to trade.<br>They trade you guns.<br>Do you want to go hunt The Mighty Lion?<br><br>1- Yes; 2- No<br>Make your choice " + user_name + ":<br>";
                 user_input = document.getElementById("choice_field").value;
                 document.querySelector("form").addEventListener("submit", function(event)
                 {
                     localStorage.setItem("idx", "hunter_8");
                     localStorage.setItem("choice", user_input);
+                    location.reload();
+                });
+            }
+
+            if (idx == "hunter_5" && choice == "2")
+            {
+                document.getElementById("my_text").innerHTML = "You have chosen not to trade.<br>Because of this they want to kill you.<br>Do you escape?<br><br>1- Find out!<br>Make your choice " + user_name + ":<br>";
+                user_input = document.getElementById("choice_field").value;
+                document.querySelector("form").addEventListener("submit", function(event)
+                {
+                    localStorage.setItem("idx", "hunter_9");
+                    localStorage.setItem("choice", user_input);
+                    location.reload();
+                });
+            }
+
+            if (idx == "hunter_6" && choice == "1")
+            {
+                document.getElementById("my_text").innerHTML = "You have chosen to trade.<br>Luckily, these aren't the criminals that are wanted.<br>A couple months later the white men settle here.<br>People keep on flooding into the white men's settlement.<br>Because of this your village becomes rich.<br>" + victory_level;
+                user_input = document.getElementById("choice_field").value;
+                document.querySelector("form").addEventListener("submit", function(event)
+                {
+                    localStorage.removeItem("character");
+                    localStorage.removeItem("choice");
+                    localStorage.removeItem("idx");
                     location.reload();
                 });
             }
