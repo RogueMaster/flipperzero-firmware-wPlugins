@@ -14,7 +14,15 @@ on:
     - cron: "1 1 * * *"
 
 jobs:
+  host-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test protocol and settings with sanitizers
+        run: python3 tests/run_host_tests.py
+
   ufbt-build:
+    needs: host-tests
     runs-on: ubuntu-latest
     strategy:
       matrix:

@@ -55,8 +55,17 @@ jobs:
           echo "publish=true" >> "$GITHUB_OUTPUT"
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
-  publish-catalog:
+  host-tests:
     needs: detect-release
+    if: needs.detect-release.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test protocol and settings with sanitizers
+        run: python3 tests/run_host_tests.py
+
+  publish-catalog:
+    needs: [detect-release, host-tests]
     if: needs.detect-release.outputs.publish == 'true'
     runs-on: ubuntu-latest
     env:
@@ -204,7 +213,7 @@ jobs:
 
           # AI usage disclosure (Fill this out)
 
-          - Partially AI assisted - AI assistance was used to create and review the release automation and Catalog metadata preparation. Source changes are reviewed and tested by the maintainer before a release commit is pushed.
+          - Partially AI assisted - This update to an existing application uses AI-generated code for the frequency settings, settings state handling, regression tests, and release automation. These changes query and configure reader frequencies, isolate settings drafts, preserve previous settings on storage failures, and gate publication on automated protocol, storage-failure, settings-state tests and a release-SDK build.
 
           # Reviewer Checklist (Don't fill this out, and don't remove it from the template)
 

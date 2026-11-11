@@ -2,12 +2,14 @@
 
 #include <storage/storage.h>
 
-static void uhf_storage_close(Storage* storage, File* file) {
+static bool uhf_storage_close(Storage* storage, File* file) {
+    bool closed = true;
     if(file) {
-        storage_file_close(file);
+        closed = storage_file_close(file);
         storage_file_free(file);
     }
     if(storage) furi_record_close(RECORD_STORAGE);
+    return closed;
 }
 
 bool uhf_storage_read_blob(const char* path, void* data, size_t size) {
@@ -32,7 +34,8 @@ bool uhf_storage_write_blob(const char* directory, const char* path, const void*
         if(file && storage_file_open(file, path, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
             ok = storage_file_write(file, data, size) == size && storage_file_sync(file);
         }
-        uhf_storage_close(storage, file);
+        const bool closed = uhf_storage_close(storage, file);
+        ok = ok && closed;
     } else {
         furi_record_close(RECORD_STORAGE);
     }
