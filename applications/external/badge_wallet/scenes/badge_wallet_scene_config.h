@@ -1,0 +1,6 @@
+ADD_SCENE(badge_wallet, start, Start)
+ADD_SCENE(badge_wallet, list, List)
+ADD_SCENE(badge_wallet, card, Card)
+ADD_SCENE(badge_wallet, emulate, Emulate)
+ADD_SCENE(badge_wallet, edit_label, EditLabel)
+ADD_SCENE(badge_wallet, info, Info)

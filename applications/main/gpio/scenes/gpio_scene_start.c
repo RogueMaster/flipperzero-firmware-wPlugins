@@ -12,6 +12,7 @@ enum GpioItem {
     GpioItemOtg,
     GpioItemI2CScanner,
     GpioItemI2CSfp,
+    GpioItemInputMonitor,
 };
 
 enum GpioOtg {
@@ -36,6 +37,8 @@ static void gpio_scene_start_var_list_enter_callback(void* context, uint32_t ind
         view_dispatcher_send_custom_event(app->view_dispatcher, GpioStartEventI2CScanner);
     } else if(index == GpioItemI2CSfp) {
         view_dispatcher_send_custom_event(app->view_dispatcher, GpioStartEventI2CSfp);
+    } else if(index == GpioItemInputMonitor) {
+        view_dispatcher_send_custom_event(app->view_dispatcher, GpioStartEventInputMonitor);
     }
 }
 
@@ -79,6 +82,7 @@ void gpio_scene_start_on_enter(void* context) {
 
     variable_item_list_add(var_item_list, "I2C-Scanner", 0, NULL, NULL);
     variable_item_list_add(var_item_list, "I2C-SFP", 0, NULL, NULL);
+    variable_item_list_add(var_item_list, "GPIO Logic Monitor", 0, NULL, NULL);
 
     variable_item_list_set_selected_item(
         var_item_list, scene_manager_get_scene_state(app->scene_manager, GpioSceneStart));
@@ -104,6 +108,10 @@ bool gpio_scene_start_on_event(void* context, SceneManagerEvent event) {
         } else if(event.event == GpioStartEventI2CSfp) {
             scene_manager_set_scene_state(app->scene_manager, GpioSceneStart, GpioItemI2CSfp);
             scene_manager_next_scene(app->scene_manager, GpioSceneI2CSfp);
+        } else if(event.event == GpioStartEventInputMonitor) {
+            scene_manager_set_scene_state(
+                app->scene_manager, GpioSceneStart, GpioItemInputMonitor);
+            scene_manager_next_scene(app->scene_manager, GpioSceneInputMonitor);
         } else if(event.event == GpioStartEventUsbUart) {
             scene_manager_set_scene_state(app->scene_manager, GpioSceneStart, GpioItemUsbUart);
             if(!furi_hal_usb_is_locked()) {

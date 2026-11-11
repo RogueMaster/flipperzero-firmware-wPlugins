@@ -1,7 +1,9 @@
 #include "../cfw_app.h"
 
 enum VarItemListIndex {
-    VarItemListIndexFlipperName, // TODO: Split into name, mac, serial
+    VarItemListIndexFlipperName,
+    VarItemListIndexBleMac,
+    VarItemListIndexSerial,
     VarItemListIndexShellColor,
 };
 
@@ -33,6 +35,15 @@ void cfw_app_scene_misc_spoof_on_enter(void* context) {
     item = variable_item_list_add(var_item_list, "Flipper Name", 0, NULL, app);
     variable_item_set_current_value_text(item, app->device_name);
 
+    item = variable_item_list_add(var_item_list, "BLE MAC", 0, NULL, app);
+    variable_item_set_current_value_text(
+        item, cfw_app_bytes_any_set(app->spoof_mac, sizeof(app->spoof_mac)) ? "Custom" : "Real");
+
+    item = variable_item_list_add(var_item_list, "Serial (UID)", 0, NULL, app);
+    variable_item_set_current_value_text(
+        item,
+        cfw_app_bytes_any_set(app->spoof_serial, sizeof(app->spoof_serial)) ? "Custom" : "Real");
+
     item = variable_item_list_add(
         var_item_list,
         "Shell Color",
@@ -61,6 +72,12 @@ bool cfw_app_scene_misc_spoof_on_event(void* context, SceneManagerEvent event) {
         switch(event.event) {
         case VarItemListIndexFlipperName:
             scene_manager_next_scene(app->scene_manager, CFWAppSceneMiscSpoofName);
+            break;
+        case VarItemListIndexBleMac:
+            scene_manager_next_scene(app->scene_manager, CFWAppSceneMiscSpoofMac);
+            break;
+        case VarItemListIndexSerial:
+            scene_manager_next_scene(app->scene_manager, CFWAppSceneMiscSpoofSerial);
             break;
         default:
             break;

@@ -22,6 +22,10 @@ void gpio_items_set_pin(GPIOItems* items, uint8_t index, bool level);
 
 void gpio_items_set_all_pins(GPIOItems* items, bool level);
 
+bool gpio_items_read_pin(GPIOItems* items, uint8_t index);
+
+void gpio_items_configure_all_input(GPIOItems* items, GpioPull pull);
+
 const char* gpio_items_get_pin_name(GPIOItems* items, uint8_t index);
 
 #ifdef __cplusplus

@@ -61,6 +61,17 @@ void gpio_items_set_all_pins(GPIOItems* items, bool level) {
     }
 }
 
+bool gpio_items_read_pin(GPIOItems* items, uint8_t index) {
+    furi_assert(index < items->count);
+    return furi_hal_gpio_read(items->pins[index].pin);
+}
+
+void gpio_items_configure_all_input(GPIOItems* items, GpioPull pull) {
+    for(uint8_t i = 0; i < items->count; i++) {
+        furi_hal_gpio_init(items->pins[i].pin, GpioModeInput, pull, GpioSpeedVeryHigh);
+    }
+}
+
 const char* gpio_items_get_pin_name(GPIOItems* items, uint8_t index) {
     furi_assert(index < items->count + 1);
     if(index == items->count) {

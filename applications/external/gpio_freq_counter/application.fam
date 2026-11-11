@@ -1,0 +1,12 @@
+App(
+    appid="gpio_freq_counter",
+    name="GPIO Frequency Counter",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="gpio_freq_counter_app",
+    stack_size=2 * 1024,
+    fap_category="GPIO",
+    fap_author="lewisQ17",
+    fap_weburl="https://github.com/lewisQ17/Momentum-Firmware",
+    fap_version="1.0",
+    fap_description="Measure the frequency of a digital signal on pin PB3 using TIM2 in hardware external-clock counting mode. Edges are counted in silicon; a ~1s timer reads the count and shows Hz. No per-edge interrupts.",
+)

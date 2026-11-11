@@ -6,6 +6,7 @@ extern "C" {
 
 #include <furi.h>
 #include <furi_hal.h>
+#include <storage/storage.h>
 #include "ducky_script.h"
 #include "ducky_script_3.h"
 #include "bad_usb_hid.h"
@@ -51,6 +52,12 @@ struct BadUsbScript {
     FuriString* string_print;
     size_t string_print_pos;
     Ducky3Context ducky3;
+
+    // USB Mass-Storage mount state (MASS_STORAGE_MOUNT). While mounted, HID is
+    // torn down (single-function USB) and hid_inst is NULL; UMOUNT restores HID.
+    void* msc; // MassStorageUsb* while mounted, else NULL
+    File* msc_file; // backing image file while mounted
+    Storage* msc_storage; // storage record held while mounted
 };
 
 uint16_t ducky_get_keycode(BadUsbScript* bad_usb, const char* param, bool accept_modifiers);
@@ -84,6 +91,14 @@ bool ducky_string(BadUsbScript* bad_usb, const char* param);
 int32_t ducky_execute_cmd(BadUsbScript* bad_usb, const char* line);
 
 int32_t ducky_error(BadUsbScript* bad_usb, const char* text, ...);
+
+// Mass-Storage (MASS_STORAGE_MOUNT/UMOUNT). Defined in ducky_script.c because
+// mount/umount re-register the file-scope HID state callback there.
+bool bad_usb_msc_mount(BadUsbScript* bad_usb, const char* path);
+
+void bad_usb_msc_umount(BadUsbScript* bad_usb);
+
+bool bad_usb_msc_is_mounted(BadUsbScript* bad_usb);
 
 #ifdef __cplusplus
 }

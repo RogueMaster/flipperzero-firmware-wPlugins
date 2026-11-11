@@ -13,6 +13,14 @@ void callback_reboot(void* context) {
     power_reboot(power, PowerBootModeNormal);
 }
 
+// True if any byte is non-zero (an all-zero buffer is the "real / not set" sentinel).
+bool cfw_app_bytes_any_set(const uint8_t* data, size_t size) {
+    for(size_t i = 0; i < size; i++) {
+        if(data[i]) return true;
+    }
+    return false;
+}
+
 bool cfw_app_apply(CFWApp* app) {
     if(app->save_gamemenu_apps) {
         size_t count = CharList_size(app->gamemenu_app_exes);
@@ -95,16 +103,33 @@ bool cfw_app_apply(CFWApp* app) {
     }
 
     if(app->save_name) {
-        if(strcmp(app->device_name, "") == 0) {
+        // save_name doubles as "rewrite name.settings" for all three spoof fields.
+        bool has_name = app->device_name[0] != '\0';
+        bool has_mac = cfw_app_bytes_any_set(app->spoof_mac, sizeof(app->spoof_mac));
+        bool has_serial = cfw_app_bytes_any_set(app->spoof_serial, sizeof(app->spoof_serial));
+
+        if(!has_name && !has_mac && !has_serial) {
+            // Only delete the file when NOTHING is spoofed: clearing just the name
+            // must not silently wipe a MAC / serial spoof.
             storage_simply_remove(app->storage, NAMESPOOF_PATH);
         } else {
             FlipperFormat* file = flipper_format_file_alloc(app->storage);
 
+            // open_always truncates (CREATE_ALWAYS), so stale keys never survive.
             do {
                 if(!flipper_format_file_open_always(file, NAMESPOOF_PATH)) break;
                 if(!flipper_format_write_header_cstr(file, NAMESPOOF_HEADER, NAMESPOOF_VERSION))
                     break;
-                if(!flipper_format_write_string_cstr(file, "Name", app->device_name)) break;
+                if(has_name &&
+                   !flipper_format_write_string_cstr(file, NAMESPOOF_KEY_NAME, app->device_name))
+                    break;
+                if(has_mac && !flipper_format_write_hex(
+                                  file, NAMESPOOF_KEY_MAC, app->spoof_mac, sizeof(app->spoof_mac)))
+                    break;
+                if(has_serial &&
+                   !flipper_format_write_hex(
+                       file, NAMESPOOF_KEY_SERIAL, app->spoof_serial, sizeof(app->spoof_serial)))
+                    break;
             } while(0);
 
             flipper_format_free(file);
@@ -380,6 +405,9 @@ CFWApp* cfw_app_alloc() {
     view_dispatcher_add_view(
         app->view_dispatcher, CFWAppViewDialogEx, dialog_ex_get_view(app->dialog_ex));
 
+    app->widget = widget_alloc();
+    view_dispatcher_add_view(app->view_dispatcher, CFWAppViewWidget, widget_get_view(app->widget));
+
     // Settings init
 
     app->asset_pack_index = 0;
@@ -457,6 +485,30 @@ CFWApp* cfw_app_alloc() {
 
     strlcpy(app->device_name, furi_hal_version_get_name_ptr(), FURI_HAL_VERSION_ARRAY_NAME_LENGTH);
 
+    // Seed the MAC/serial spoof from the file (not the live HAL) so the spoof
+    // scene can distinguish Real (all-zero) from Custom and pre-fill the editor.
+    memset(app->spoof_mac, 0, sizeof(app->spoof_mac));
+    memset(app->spoof_serial, 0, sizeof(app->spoof_serial));
+    {
+        FlipperFormat* ns_file = flipper_format_file_alloc(app->storage);
+        FuriString* ns_str = furi_string_alloc();
+        do {
+            uint32_t ns_version;
+            if(!flipper_format_file_open_existing(ns_file, NAMESPOOF_PATH)) break;
+            if(!flipper_format_read_header(ns_file, ns_str, &ns_version)) break;
+            if(furi_string_cmp_str(ns_str, NAMESPOOF_HEADER) || ns_version != NAMESPOOF_VERSION)
+                break;
+            flipper_format_rewind(ns_file);
+            flipper_format_read_hex(
+                ns_file, NAMESPOOF_KEY_MAC, app->spoof_mac, sizeof(app->spoof_mac));
+            flipper_format_rewind(ns_file);
+            flipper_format_read_hex(
+                ns_file, NAMESPOOF_KEY_SERIAL, app->spoof_serial, sizeof(app->spoof_serial));
+        } while(false);
+        furi_string_free(ns_str);
+        flipper_format_free(ns_file);
+    }
+
     DolphinStats stats = dolphin_stats(app->dolphin);
     app->dolphin_xp = stats.icounter;
     app->dolphin_angry = stats.butthurt;
@@ -513,6 +565,8 @@ void cfw_app_free(CFWApp* app) {
     popup_free(app->popup);
     view_dispatcher_remove_view(app->view_dispatcher, CFWAppViewDialogEx);
     dialog_ex_free(app->dialog_ex);
+    view_dispatcher_remove_view(app->view_dispatcher, CFWAppViewWidget);
+    widget_free(app->widget);
 
     // View Dispatcher and Scene Manager
     view_dispatcher_free(app->view_dispatcher);

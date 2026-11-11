@@ -61,6 +61,12 @@ GpioApp* gpio_app_alloc(void) {
     view_dispatcher_add_view(
         app->view_dispatcher, GpioAppViewGpioTest, gpio_test_get_view(app->gpio_test));
 
+    app->gpio_input_monitor = gpio_input_monitor_alloc(app->gpio_items);
+    view_dispatcher_add_view(
+        app->view_dispatcher,
+        GpioAppViewInputMonitor,
+        gpio_input_monitor_get_view(app->gpio_input_monitor));
+
     app->gpio_i2c_scanner = gpio_i2c_scanner_alloc();
     view_dispatcher_add_view(
         app->view_dispatcher,
@@ -95,6 +101,7 @@ void gpio_app_free(GpioApp* app) {
     // Views
     view_dispatcher_remove_view(app->view_dispatcher, GpioAppViewVarItemList);
     view_dispatcher_remove_view(app->view_dispatcher, GpioAppViewGpioTest);
+    view_dispatcher_remove_view(app->view_dispatcher, GpioAppViewInputMonitor);
     view_dispatcher_remove_view(app->view_dispatcher, GpioAppViewI2CScanner);
     view_dispatcher_remove_view(app->view_dispatcher, GpioAppViewI2CSfp);
     view_dispatcher_remove_view(app->view_dispatcher, GpioAppViewUsbUart);
@@ -104,6 +111,7 @@ void gpio_app_free(GpioApp* app) {
     variable_item_list_free(app->var_item_list);
     widget_free(app->widget);
     gpio_test_free(app->gpio_test);
+    gpio_input_monitor_free(app->gpio_input_monitor);
     gpio_usb_uart_free(app->gpio_usb_uart);
     dialog_ex_free(app->dialog);
     gpio_i2c_scanner_free(app->gpio_i2c_scanner);

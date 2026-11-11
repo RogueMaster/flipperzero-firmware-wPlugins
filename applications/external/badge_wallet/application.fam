@@ -1,0 +1,14 @@
+App(
+    appid="badge_wallet",
+    name="Badge Wallet",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="badge_wallet_app",
+    stack_size=3 * 1024,
+    fap_icon="badge_wallet_10px.png",
+    targets=["f7"],
+    fap_category="NFC",
+    fap_author="lewisQ17",
+    fap_weburl="https://github.com/lewisQ17/Momentum-Firmware",
+    fap_version="1.0",
+    fap_description="Daily-carry wallet for saved NFC access badges. Lists your /ext/nfc cards, lets you favourite and label them, and emulates any one in a couple of taps. Metadata lives in a sidecar; the .nfc files are never modified.",
+)

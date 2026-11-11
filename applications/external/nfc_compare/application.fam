@@ -1,0 +1,13 @@
+App(
+    appid="nfc_compare",
+    name="NFC Compare",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="nfc_compare_app",
+    stack_size=4 * 1024,
+    targets=["f7"],
+    fap_category="NFC",
+    fap_author="lewisQ17",
+    fap_weburl="https://github.com/lewisQ17/Momentum-Firmware",
+    fap_version="1.0",
+    fap_description="Pick a saved .nfc file, read a physical card, and check whether their UIDs match. Access-testing helper. Read-only, standard poller lifecycle.",
+)

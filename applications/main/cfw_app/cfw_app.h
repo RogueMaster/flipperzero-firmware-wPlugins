@@ -17,6 +17,7 @@
 #include <gui/modules/number_input.h>
 #include <gui/modules/popup.h>
 #include <gui/modules/dialog_ex.h>
+#include <gui/modules/widget.h>
 
 #include <cfw/asset_packs.h>
 #include <loader/loader_menu.h>
@@ -65,6 +66,7 @@ typedef struct {
     NumberInput* number_input;
     Popup* popup;
     DialogEx* dialog_ex;
+    Widget* widget;
 
     CharList_t asset_pack_names;
     uint8_t asset_pack_index;
@@ -88,6 +90,8 @@ typedef struct {
     RgbColor lcd_color;
     RgbColor vgm_color;
     char device_name[FURI_HAL_VERSION_ARRAY_NAME_LENGTH];
+    uint8_t spoof_mac[NAMESPOOF_MAC_LEN];
+    uint8_t spoof_serial[NAMESPOOF_SERIAL_LEN];
     uint32_t dolphin_xp;
     uint32_t dolphin_angry;
     FuriString* version_tag;
@@ -116,9 +120,12 @@ typedef enum {
     CFWAppViewNumberInput,
     CFWAppViewPopup,
     CFWAppViewDialogEx,
+    CFWAppViewWidget,
 } CFWAppView;
 
 bool cfw_app_apply(CFWApp* app);
+
+bool cfw_app_bytes_any_set(const uint8_t* data, size_t size);
 
 void cfw_app_push_mainmenu_app(CFWApp* app, FuriString* exe);
 void cfw_app_load_mainmenu_apps(CFWApp* app);

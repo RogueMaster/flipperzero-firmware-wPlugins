@@ -4,9 +4,11 @@
 #include <input/input.h>
 #include <lib/toolbox/args.h>
 #include <lib/toolbox/strint.h>
+#include <lib/toolbox/path.h>
 #include <storage/storage.h>
 #include "ducky_script.h"
 #include "ducky_script_i.h"
+#include "bad_usb_msc_usb.h"
 #include <dolphin/dolphin.h>
 
 #define TAG "BadUsb"
@@ -292,6 +294,127 @@ static void bad_usb_hid_state_callback(bool state, void* context) {
     } else {
         furi_thread_flags_set(furi_thread_get_id(bad_usb->thread), WorkerEvtDisconnect);
     }
+}
+
+// ---------------------------------------------------------------------------
+// USB Mass-Storage mount (MASS_STORAGE_MOUNT / UMOUNT). Lives here because
+// mount/umount re-register the file-scope bad_usb_hid_state_callback above.
+// The USB device is single-function: while a volume is mounted the HID is
+// unplugged, so a payload must MOUNT, do host-side I/O, then UMOUNT to type again.
+// ---------------------------------------------------------------------------
+
+static bool bad_usb_msc_file_read(
+    void* ctx,
+    uint32_t lba,
+    uint16_t count,
+    uint8_t* out,
+    uint32_t* out_len,
+    uint32_t out_cap) {
+    BadUsbScript* bad_usb = ctx;
+    if(!storage_file_seek(bad_usb->msc_file, lba * SCSI_BLOCK_SIZE, true)) return false;
+    uint32_t clamp = MIN(out_cap, (uint32_t)count * SCSI_BLOCK_SIZE);
+    *out_len = storage_file_read(bad_usb->msc_file, out, clamp);
+    return *out_len == clamp;
+}
+
+static bool
+    bad_usb_msc_file_write(void* ctx, uint32_t lba, uint16_t count, uint8_t* buf, uint32_t len) {
+    BadUsbScript* bad_usb = ctx;
+    if(len != (uint32_t)count * SCSI_BLOCK_SIZE) return false;
+    if(!storage_file_seek(bad_usb->msc_file, lba * SCSI_BLOCK_SIZE, true)) return false;
+    return storage_file_write(bad_usb->msc_file, buf, len) == len;
+}
+
+static uint32_t bad_usb_msc_file_num_blocks(void* ctx) {
+    BadUsbScript* bad_usb = ctx;
+    return storage_file_size(bad_usb->msc_file) / SCSI_BLOCK_SIZE;
+}
+
+static void bad_usb_msc_file_eject(void* ctx) {
+    UNUSED(ctx);
+    // Host-side eject: leave the volume up; UMOUNT or script-end tears it down.
+    FURI_LOG_D(WORKER_TAG, "MSC host eject");
+}
+
+static void bad_usb_hid_start(BadUsbScript* bad_usb) {
+    bad_usb->hid_inst = bad_usb->hid->init(bad_usb->hid_cfg);
+    bad_usb->hid->set_state_callback(bad_usb->hid_inst, bad_usb_hid_state_callback, bad_usb);
+}
+
+static void bad_usb_hid_stop(BadUsbScript* bad_usb) {
+    if(bad_usb->hid_inst) {
+        bad_usb->hid->set_state_callback(bad_usb->hid_inst, NULL, NULL);
+        bad_usb->hid->deinit(bad_usb->hid_inst);
+        bad_usb->hid_inst = NULL;
+    }
+}
+
+bool bad_usb_msc_is_mounted(BadUsbScript* bad_usb) {
+    return bad_usb->msc != NULL;
+}
+
+bool bad_usb_msc_mount(BadUsbScript* bad_usb, const char* path) {
+    if(bad_usb->msc) return true; // already mounted
+
+    bad_usb->msc_storage = furi_record_open(RECORD_STORAGE);
+    bad_usb->msc_file = storage_file_alloc(bad_usb->msc_storage);
+    if(!storage_file_open(bad_usb->msc_file, path, FSAM_READ | FSAM_WRITE, FSOM_OPEN_EXISTING)) {
+        storage_file_free(bad_usb->msc_file);
+        bad_usb->msc_file = NULL;
+        furi_record_close(RECORD_STORAGE);
+        bad_usb->msc_storage = NULL;
+        return false; // image missing / unopenable: HID left running
+    }
+
+    // The USB device is single-function; HID must leave before MSC enumerates.
+    bad_usb_hid_stop(bad_usb);
+
+    SCSIDeviceFunc fn = {
+        .ctx = bad_usb,
+        .read = bad_usb_msc_file_read,
+        .write = bad_usb_msc_file_write,
+        .num_blocks = bad_usb_msc_file_num_blocks,
+        .eject = bad_usb_msc_file_eject,
+    };
+
+    furi_hal_usb_unlock();
+    FuriString* name = furi_string_alloc();
+    path_extract_filename_no_ext(path, name);
+    bad_usb->msc = mass_storage_usb_start(furi_string_get_cstr(name), fn, NULL);
+    furi_string_free(name);
+
+    if(!bad_usb->msc) {
+        // Couldn't grab USB: undo and restore HID so the payload isn't stranded.
+        storage_file_close(bad_usb->msc_file);
+        storage_file_free(bad_usb->msc_file);
+        bad_usb->msc_file = NULL;
+        furi_record_close(RECORD_STORAGE);
+        bad_usb->msc_storage = NULL;
+        bad_usb_hid_start(bad_usb);
+        return false;
+    }
+    return true;
+}
+
+void bad_usb_msc_umount(BadUsbScript* bad_usb) {
+    if(!bad_usb->msc) return;
+
+    mass_storage_usb_stop(bad_usb->msc);
+    bad_usb->msc = NULL;
+
+    if(bad_usb->msc_file) {
+        storage_file_close(bad_usb->msc_file);
+        storage_file_free(bad_usb->msc_file);
+        bad_usb->msc_file = NULL;
+    }
+    if(bad_usb->msc_storage) {
+        furi_record_close(RECORD_STORAGE);
+        bad_usb->msc_storage = NULL;
+    }
+
+    // Restore HID so keystrokes resume, and so the worker's final teardown has a
+    // valid hid_inst to deinit again.
+    bad_usb_hid_start(bad_usb);
 }
 
 static bool ducky_script_preload(BadUsbScript* bad_usb, File* script_file) {
@@ -749,6 +872,12 @@ static int32_t bad_usb_worker(void* context) {
         }
     }
 
+    // A payload may end mid-mount; tear the volume down first. umount restores
+    // HID, so the deinit below always has a valid hid_inst.
+    if(bad_usb_msc_is_mounted(bad_usb)) {
+        bad_usb_msc_umount(bad_usb);
+    }
+
     bad_usb->hid->set_state_callback(bad_usb->hid_inst, NULL, NULL);
     bad_usb->hid->deinit(bad_usb->hid_inst);
 
@@ -787,6 +916,10 @@ BadUsbScript* bad_usb_script_open(
     bad_usb->hid_cfg = hid_cfg;
     bad_usb->load_id_cfg = load_id_cfg;
     bad_usb->hid = bad_usb_hid_get_interface(*bad_usb->interface);
+
+    bad_usb->msc = NULL;
+    bad_usb->msc_file = NULL;
+    bad_usb->msc_storage = NULL;
 
     bad_usb->thread = furi_thread_alloc_ex("BadUsbWorker", 2048, bad_usb_worker, bad_usb);
     furi_thread_start(bad_usb->thread);
