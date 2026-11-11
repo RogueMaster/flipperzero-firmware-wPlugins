@@ -266,11 +266,10 @@ void draw_callback(Canvas* canvas, void* ctx) {
     char score_text[16];
     snprintf(score_text, sizeof(score_text), "%04d", state->score);
 
+    canvas_set_font(canvas, FontSecondary);
+
     // Calculate position for score
     int score_x = SCREEN_WIDTH / 2 - canvas_string_width(canvas, score_text) / 2;
-
-    // Draw score
-    canvas_set_font(canvas, FontSecondary);
     canvas_draw_str(canvas, score_x, 10, score_text);
 
     // Draw high score in the corner

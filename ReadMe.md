@@ -303,6 +303,9 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [eReader v1.0 - Streaming plain-text book reader with word wrap, saved positions and two font sizes (By Daniel Baker)](https://github.com/daniebker/flipper_ereader)
 - Fixed: [BadUSB Usage Overflow caused by PR #4501 BadUSB Ducky Script 3.0 code changes (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/a2a44e125e2ae88bbb1f0adafc07202c1d0ab151)
 - Updated: [Sub-GHz RAW Edit v1.8 (By Lechnio)](https://github.com/Lechnio/SubGHz-RAW-Edit)
+- Updated: [Network Defender v1.2.1 (By w84death)](https://github.com/w84death/network-defender)
+- Updated: [Moon Phases v1.2 (By w84death)](https://github.com/w84death/moon-phases)
+- Added: [ULCFKey Recovery v2.3 (By rohanday3; based on ULCFKey By noproto)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/pull/1212)
 
 <a name="release"></a>
 
@@ -538,7 +541,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Multi Counter v1.1 (By JadePossible)](https://github.com/JadePossible/Flipper-Multi-Counter)
 - [Mystic Balloon v3.0 (By apfxtech)](https://github.com/apfxtech/FlipperMysticBalloon)
 - [Nah 2 da Nah Nah Nah v0.2 (By DigiMancer3D)](https://github.com/DigiMancer3D/nah2nah3)
-- [Network Defender v1.1 (By w84death)](https://github.com/w84death/flipper-zero-apps)
+- [Network Defender v1.2.1 (By w84death)](https://github.com/w84death/network-defender)
 - [Nu Pogodi! (Ну, погоди!) v1.3 (By sionyx)](https://github.com/sionyx/flipper_nupogodi)
 - [NW Crawl v0.4 (By rseufert)](https://github.com/rseufert/nw_crawl)
 - [Oregon Trail v0.1 (By jlaughter)](https://github.com/jlaughter/flipper_oregon_trail)
@@ -1037,7 +1040,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [MiZip Balance Editor v1.0 (By teohumeau)](https://github.com/teohumeau/MiZipBalanceEditor)
 - [MODBUS v1.1.3.1 (By ElectronicCats)](https://github.com/ElectronicCats/flipper-rs485modbus) `Req: Modbus By ElectronicCats`
 - [Moisture Sensor v1.0 (By smallwat3r)](https://github.com/smallwat3r/flipperzero-moisture-sensor)
-- [Moon Phases v1.0 (By w84death)](https://github.com/w84death/flipper-zero-apps)
+- [Moon Phases v1.2 (By w84death)](https://github.com/w84death/moon-phases)
 - [Morse Beacon v1.0 (By jdmills)](https://github.com/jdmills-edu/flipper-morse-beacon)
 - [Morse Code v1.3 (By wh00hw)](https://github.com/wh00hw/MorseCodeFAP)
 - [Morse Flipper v0.3.0 (By yo3gnd)](https://github.com/yo3gnd/morse-flipper)
@@ -1293,6 +1296,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [UID Brute Smarter v1.1 (By fbettag)](https://github.com/fbettag/uid_brute_smarter)
 - [UL-C Bruteforce Optimized v1.0 (By noproto)](https://github.com/zc-public/breakme-resources/tree/main/flipper_apps)
 - [UL-C Relay v1.0 (By noproto)](https://github.com/zc-public/breakme-resources/tree/main/flipper_apps)
+- [ULCFKey Recovery v2.3 (By rohanday3; based on ULCFKey By noproto)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/pull/1212)
 - [ULCFKey Next v1.0 (By noproto)](https://github.com/zc-public/breakme-resources/tree/main/flipper_apps)
 - [ULCFKey v1.0 (By noproto)](https://github.com/zc-public/breakme-resources/tree/main/flipper_apps)
 - [Unbank BTCLN QR Generator v1.0 (By shanzy39)](https://github.com/shanzy39/Unbank-BTCLN-QR-Generator)

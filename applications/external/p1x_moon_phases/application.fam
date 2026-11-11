@@ -9,7 +9,7 @@ App(
     fap_category="Tools",
     fap_author="w84death",
     #  fap_author="Krzysztof Krystian Jankowski / P1X",
-    fap_weburl="https://github.com/w84death/flipper-zero-apps",
-    fap_version="1.0",
+    fap_weburl="https://github.com/w84death/moon-phases",
+    fap_version="1.2",
     fap_description="A simple application to display the current phase of the moon",
 )
