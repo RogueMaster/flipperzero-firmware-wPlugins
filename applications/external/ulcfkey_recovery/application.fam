@@ -1,0 +1,14 @@
+App(
+    appid="ulcfkey_recovery",
+    name="ULCFKey Recovery",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="ulcfkey_app",
+    targets=["f7"],
+    stack_size=6 * 1024,
+    fap_icon="ulcfkey.png",
+    fap_category="NFC",
+    fap_author="noproto (fork)",
+    fap_weburl="https://github.com/zc-public/breakme-resources",
+    fap_version=(2, 3),
+    fap_description="Standalone resumable Ultralight-C recovery: persistent checkpoints, on-device key search, emulation export, and guarded physical-card restore.",
+)
