@@ -6,10 +6,10 @@
 	url = https://github.com/DarkFlippers/Multi_Fuzzer.git
 [submodule "base_pack/flipper-dallas-tester"]
 	path = base_pack/flipper-dallas-tester
-	url = https://github.com/mishamyte/flipper-dallas-tester.git
+	url = https://github.com/DarkFlippers/flipper-dallas-tester.git
 [submodule "base_pack/varta"]
 	path = base_pack/varta
-	url = https://github.com/mishamyte/varta.git
+	url = https://github.com/DarkFlippers/varta.git
 [submodule "base_pack/super-sniffer-card"]
 	path = base_pack/super-sniffer-card
-	url = https://github.com/mishamyte/super-sniffer-card.git
+	url = https://github.com/DarkFlippers/super-sniffer-card.git
