@@ -1,6 +1,6 @@
 Filetype: AmiTool Amiibo DB
 Version: 1
-AmiiboCount: 933
+AmiiboCount: 952
 
 0000000000000002: Mario|Mario|Super Smash Bros.|Super Mario|Figure|au.2014-11-29,na.2014-11-21,eu.2014-11-28,jp.2014-12-06
 0000000000340102: Mario|Mario|Super Mario Bros.|Super Mario|Figure|au.2015-03-21,na.2015-03-20,eu.2015-03-20,jp.2015-03-12
@@ -11,9 +11,12 @@ AmiiboCount: 933
 0000000003710102: Mario - Wedding|Mario|Super Mario Bros.|Super Mario|Figure|au.2017-10-27,na.2017-10-27,eu.2017-10-27,jp.2017-10-27
 00000003039bff02: Mario - Power Up Band|Mario|Super Nintendo World|Super Mario|Band|au.None,na.None,eu.None,jp.2021-02-04
 000000030430ff02: Golden - Power Up Band|Mario|Super Nintendo World|Super Mario|Band|au.None,na.None,eu.None,jp.2023-03-18
-00000004043f1c02: Mario - My Mario Wooden Blocks|Mario|My Mario Wooden Blocks|Super Mario|Block|au.None,eu.None,jp.2025-08-26,na.None
+00000004043f1c02: Mario - My Mario Wooden Blocks|Mario|My Mario Wooden Blocks|Super Mario|Block|au.None,na.None,eu.None,jp.2025-08-26
+0000000404431c02: Mario (Melody Car) - My Mario Wooden Blocks|Mario|My Mario Wooden Blocks|Super Mario|Block|au.None,na.None,eu.None,jp.2026-10-20
 0000010000190002: Dr. Mario|Mario|Super Smash Bros.|Super Mario|Figure|au.2015-07-23,na.2015-09-11,eu.2015-07-17,jp.2015-07-17
 0000030003a60102: Mario - Cat|Mario|Super Mario Bros.|Super Mario|Figure|au.2021-02-12,na.2021-02-12,eu.2021-02-12,jp.2021-02-12
+0000040004c10102: Elephant Mario|Mario|Super Mario Bros.|Super Mario|Figure|au.2026-03-26,na.2026-03-26,eu.2026-03-26,jp.2026-03-26
+0000050004e90102: Mario and Luma|Mario|Super Mario Bros.|Super Mario|Figure|au.2026-04-02,na.2026-04-02,eu.2026-04-02,jp.2026-04-02
 00010000000c0002: Luigi|Luigi|Super Smash Bros.|Super Mario|Figure|au.2014-12-12,na.2014-12-14,eu.2014-12-19,jp.2014-12-06
 0001000000350102: Luigi|Luigi|Super Mario Bros.|Super Mario|Figure|au.2015-03-21,na.2015-03-20,eu.2015-03-20,jp.2015-03-12
 00010003039cff02: Luigi - Power Up Band|Luigi|Super Nintendo World|Super Mario|Band|au.None,na.None,eu.None,jp.2021-02-04
@@ -34,6 +37,7 @@ AmiiboCount: 933
 00030102023e0302: Mega Yarn Yoshi|Yoshi|Yoshi's Woolly World|Super Mario|Yarn|au.2015-11-28,na.2015-11-15,eu.2015-11-27,jp.2015-12-10
 0004000002620102: Rosalina|Rosalina|Super Mario Bros.|Super Mario|Figure|au.2016-10-08,na.2016-11-04,eu.2016-10-07,jp.2016-10-20
 0004010000130002: Rosalina & Luma|Rosalina|Super Smash Bros.|Super Mario|Figure|au.2015-01-29,na.2015-02-01,eu.2015-01-23,jp.2015-01-22
+0004010004ea0102: Rosalina and Lumas|Rosalina|Super Mario Bros.|Super Mario|Figure|au.2026-04-02,na.2026-04-02,eu.2026-04-02,jp.2026-04-02
 0005000000140002: Bowser|Bowser|Super Smash Bros.|Super Mario|Figure|au.2015-01-29,na.2015-02-01,eu.2015-01-23,jp.2015-01-22
 0005000000390102: Bowser|Bowser|Super Mario Bros.|Super Mario|Figure|au.2015-03-21,na.2015-03-20,eu.2015-03-20,jp.2015-03-12
 0005000003730102: Bowser - Wedding|Bowser|Super Mario Bros.|Super Mario|Figure|au.2017-10-27,na.2017-10-27,eu.2017-10-27,jp.2017-10-27
@@ -51,6 +55,8 @@ AmiiboCount: 933
 000900030432ff02: Diddy Kong - Power Up Band|Diddy Kong|Super Nintendo World|Super Mario|Band|au.None,na.None,eu.None,jp.2024-12-11
 000a000000380102: Toad|Toad|Super Mario Bros.|Super Mario|Figure|au.2015-03-21,na.2015-03-20,eu.2015-03-20,jp.2015-03-12
 000a000303a0ff02: Toad - Power Up Band|Toad|Super Nintendo World|Super Mario|Band|au.None,na.None,eu.None,jp.2021-02-04
+000a000404451c02: Toad - My Mario Wooden Blocks|Toad|My Mario Wooden Blocks|Super Mario|Block|au.None,na.None,eu.None,jp.2026-10-20
+000a010004c20102: Captain Toad & Talking Flower|Toad|Super Mario Bros.|Super Mario|Figure|au.2026-03-26,na.2026-03-26,eu.2026-03-26,jp.2026-03-26
 0013000002660102: Daisy|Daisy|Super Mario Bros.|Super Mario|Figure|au.2016-11-05,na.2016-11-04,eu.2016-11-04,jp.2016-10-20
 00130000037a0002: Daisy|Daisy|Super Smash Bros.|Super Mario|Figure|au.2019-04-12,na.2019-04-12,eu.2019-04-12,jp.2019-04-12
 00130003039eff02: Daisy - Power Up Band|Daisy|Super Nintendo World|Super Mario|Band|au.None,na.None,eu.None,jp.2021-02-04
@@ -59,6 +65,7 @@ AmiiboCount: 933
 0017000002680102: Boo|Boo|Super Mario Bros.|Super Mario|Figure|au.2016-10-08,na.2016-11-04,eu.2016-10-07,jp.2016-10-20
 0023000003680102: Koopa Troopa|Koopa Troopa|Super Mario Bros.|Super Mario|Figure|au.2017-10-07,na.2017-10-06,eu.2017-10-06,jp.2017-10-05
 00240000038d0002: Piranha Plant|Piranha Plant|Super Smash Bros.|Super Mario|Figure|au.2019-02-15,na.2019-02-15,eu.2019-02-15,jp.2019-02-15
+0025010004c30102: Poplin & Prince Florian|Poplin|Super Mario Bros.|Super Mario|Figure|au.2026-03-26,na.2026-03-26,eu.2026-03-26,jp.2026-03-26
 00800102035d0302: Poochy|Poochy|Yoshi's Woolly World|Yoshi's Woolly World|Yarn|au.2017-02-04,na.2017-02-03,eu.2017-02-03,jp.2017-01-19
 00c00000037b0002: King K. Rool|King K. Rool|Super Smash Bros.|Donkey Kong|Figure|au.2019-02-15,na.2019-02-15,eu.2019-02-15,jp.2019-02-15
 0100000000040002: Link|Link|Super Smash Bros.|The Legend of Zelda|Figure|au.2014-11-29,na.2014-11-21,eu.2014-11-28,jp.2014-12-06
@@ -79,7 +86,7 @@ AmiiboCount: 933
 0101000003560902: Zelda|Zelda|Legend Of Zelda|The Legend of Zelda|Figure|au.2017-03-03,na.2017-03-03,eu.2017-03-03,jp.2017-03-03
 0101000004190902: Zelda - Tears of the Kingdom|Zelda|Legend Of Zelda|The Legend of Zelda|Figure|au.2023-11-03,na.2023-11-03,eu.2023-11-03,jp.2023-11-03
 0101010000170002: Sheik|Zelda|Super Smash Bros.|The Legend of Zelda|Figure|au.2015-01-29,na.2015-02-01,eu.2015-01-23,jp.2015-01-22
-0101030004140902: Zelda & Loftwing|Zelda|Legend Of Zelda|The Legend of Zelda|Figure|au.2021-07-16,na.2021-07-16,eu.2021-07-16,jp.2021-07-16
+0101030004140902: Zelda and Loftwing|Zelda|Legend Of Zelda|The Legend of Zelda|Figure|au.2021-07-16,na.2021-07-16,eu.2021-07-16,jp.2021-07-16
 01020100001b0002: Ganondorf|Ganon|Super Smash Bros.|The Legend of Zelda|Figure|au.2015-07-04,na.2015-09-11,eu.2015-06-26,jp.2015-06-11
 01020100041a0902: Ganondorf - Tears of the Kingdom|Ganon|Legend Of Zelda|The Legend of Zelda|Figure|au.2023-11-03,na.2023-11-03,eu.2023-11-03,jp.2023-11-03
 01030000024f0902: Midna & Wolf Link|Midna|Legend Of Zelda|The Legend of Zelda|Figure|au.2016-03-05,na.2016-03-04,eu.2016-03-04,jp.2016-03-10
@@ -91,6 +98,7 @@ AmiiboCount: 933
 010a000004a40902: Sidon|Sidon|Legend Of Zelda|The Legend of Zelda|Figure|au.2025-06-05,eu.2025-06-05,jp.2025-06-05,na.2025-06-05
 010b000004a50902: Tulin|Tulin|Legend Of Zelda|The Legend of Zelda|Figure|au.2025-06-05,eu.2025-06-05,jp.2025-06-05,na.2025-06-05
 010c000004a60902: Yunobo|Yunobo|Legend Of Zelda|The Legend of Zelda|Figure|au.2025-06-05,eu.2025-06-05,jp.2025-06-05,na.2025-06-05
+010d000004a70902: Mineru's Construct|Mineru's Construct|Legend Of Zelda|The Legend of Zelda|Figure|au.2026-09-17,eu.2026-09-17,jp.2026-09-17,na.2026-09-17
 0140000003550902: Guardian|Guardian|Legend Of Zelda|The Legend of Zelda|Figure|au.2017-03-03,na.2017-03-03,eu.2017-03-03,jp.2017-03-03
 01410000035c0902: Bokoblin|Bokoblin|Legend Of Zelda|The Legend of Zelda|Figure|au.2017-03-03,na.2017-03-03,eu.2017-03-03,jp.2017-03-03
 0180000000080002: Villager|Villager|Super Smash Bros.|Animal Crossing|Figure|au.2014-11-29,na.2014-11-21,eu.2014-11-28,jp.2014-12-06
@@ -641,9 +649,12 @@ AmiiboCount: 933
 08050200041b0402: Octoling - Blue|Octoling|Splatoon|Splatoon|Figure|au.2022-11-11,na.2022-11-11,eu.2022-11-11,jp.2022-11-11
 0805030003900402: Octoling Octopus|Octoling|Splatoon|Splatoon|Figure|au.2018-11-11,na.2018-11-09,eu.2018-11-09,jp.2018-11-09
 08060100041c0402: Smallfry|Smallfry|Splatoon|Splatoon|Figure|au.2022-11-11,na.2022-11-11,eu.2022-11-11,jp.2022-11-11
-0807000004330402: Shiver|Shiver|Splatoon|Splatoon|Figure|au.2023-11-17,eu.2023-11-17,jp.2023-11-17,na.2023-11-17
-0808000004340402: Frye|Frye|Splatoon|Splatoon|Figure|au.2023-11-17,eu.2023-11-17,jp.2023-11-17,na.2023-11-17
-0809000004350402: Big Man|Big Man|Splatoon|Splatoon|Figure|au.2023-11-17,eu.2023-11-17,jp.2023-11-17,na.2023-11-17
+0807000004330402: Shiver|Shiver|Splatoon|Splatoon|Figure|au.2023-11-17,na.2023-11-17,eu.2023-11-17,jp.2023-11-17
+0807000004f70402: Shiver - Splatoon Raiders|Shiver|Splatoon|Splatoon|Figure|au.2026-07-23,na.2026-07-23,eu.2026-07-23,jp.2026-07-23
+0808000004340402: Frye|Frye|Splatoon|Splatoon|Figure|au.2023-11-17,na.2023-11-17,eu.2023-11-17,jp.2023-11-17
+0808000004f80402: Frye - Splatoon Raiders|Frye|Splatoon|Splatoon|Figure|au.2026-07-23,na.2026-07-23,eu.2026-07-23,jp.2026-07-23
+0809000004350402: Big Man|Big Man|Splatoon|Splatoon|Figure|au.2023-11-17,na.2023-11-17,eu.2023-11-17,jp.2023-11-17
+0809000004f90402: Big Man - Splatoon Raiders|Big Man|Splatoon|Splatoon|Figure|au.2026-07-23,na.2026-07-23,eu.2026-07-23,jp.2026-07-23
 09c0010102690e02: Mario - Soccer|Mario|Mario Sports Superstars|Mario Sports Superstars|Card|au.2017-03-11,na.2017-03-24,eu.2017-03-10,jp.2017-03-30
 09c00201026a0e02: Mario - Baseball|Mario|Mario Sports Superstars|Mario Sports Superstars|Card|au.2017-03-11,na.2017-03-24,eu.2017-03-10,jp.2017-03-30
 09c00301026b0e02: Mario - Tennis|Mario|Mario Sports Superstars|Mario Sports Superstars|Card|au.2017-03-11,na.2017-03-24,eu.2017-03-10,jp.2017-03-30
@@ -789,8 +800,10 @@ AmiiboCount: 933
 1f01000004c61e03: Meta Knight (& Shadow Star)|Meta Knight|Kirby Air Riders|Kirby|Figure|au.2026-03-05,na.2026-03-05,eu.2026-03-05,jp.2026-03-05
 1f02000000280002: King Dedede|King Dedede|Super Smash Bros.|Kirby|Figure|au.2015-01-29,na.2015-02-01,eu.2015-02-20,jp.2015-01-22
 1f02000002560c02: King Dedede|King Dedede|Kirby|Kirby|Figure|au.2016-06-11,na.2016-06-10,eu.2016-06-10,jp.2016-04-28
+1f02000004c71e03: King Dedede (& Tank Star)|King Dedede|Kirby Air Riders|Kirby|Figure|au.2026-07-02,na.2026-07-02,eu.2026-07-02,jp.2026-07-02
 1f03000002570c02: Waddle Dee|Waddle Dee|Kirby|Kirby|Figure|au.2016-06-11,na.2016-06-10,eu.2016-06-10,jp.2016-04-28
 1f03010004c91e03: Bandana Waddle Dee (& Winged Star)|Waddle Dee|Kirby Air Riders|Kirby|Figure|au.2025-11-20,eu.2025-11-20,jp.2025-11-20,na.2025-11-20
+1f04000004ca1e03: Chef Kawasaki (& Hop Star)|Chef Kawasaki|Kirby Air Riders|Kirby|Figure|au.2026-09-03,na.2026-09-03,eu.2026-09-03,jp.2026-09-03
 1f400000035e1002: Qbby|Qbby|BoxBoy!|BoxBoy!|Figure|au.None,na.None,eu.None,jp.2017-02-02
 21000000000b0002: Marth|Marth|Super Smash Bros.|Fire Emblem|Figure|au.2014-11-29,na.2014-11-21,eu.2014-11-28,jp.2014-12-06
 2101000000180002: Ike|Ike|Super Smash Bros.|Fire Emblem|Figure|au.2015-01-29,na.2015-02-01,eu.2015-01-23,jp.2015-01-22
@@ -898,6 +911,12 @@ AmiiboCount: 933
 350a000004111802: Palamute|Palamute|Monster Hunter Rise|Monster Hunter|Figure|au.2021-03-26,na.2021-03-26,eu.2021-03-26,jp.2021-03-26
 350a0100042c1802: Palamute|Palamute|Monster Hunter Rise|Monster Hunter|Figure|au.2022-06-30,na.2022-06-30,eu.2022-06-30,jp.2022-06-30
 350b0000042d1802: Malzeno|Malzeno|Monster Hunter Rise|Monster Hunter|Figure|au.2022-06-30,na.2022-06-30,eu.2022-06-30,jp.2022-06-30
+350c000004fa0f02: Ratha|Ratha|Monster Hunter|Monster Hunter|Figure|au.2026-03-13,na.2026-03-13,eu.2026-03-13,jp.2026-03-13
+350d000004fb0f02: Ratha V|Ratha V|Monster Hunter|Monster Hunter|Figure|au.2026-03-13,na.2026-03-13,eu.2026-03-13,jp.2026-03-13
+350e000004fc0f02: Rudy|Rudy|Monster Hunter|Monster Hunter|Figure|au.2026-03-13,na.2026-03-13,eu.2026-03-13,jp.2026-03-13
+3540000005032002: Grace Ashcroft|Grace Ashcroft|Resident Evil|Resident Evil|Figure|au.2026-07-30,na.2026-07-30,eu.2026-07-30,jp.2026-07-30
+3541000005042002: Leon S. Kennedy|Leon S. Kennedy|Resident Evil|Resident Evil|Figure|au.2026-07-30,na.2026-07-30,eu.2026-07-30,jp.2026-07-30
+3580000005062102: Diana|Diana|Pragmata|Pragmata|Figure|au.2026-04-17,na.2026-04-17,eu.2026-06-11,jp.2026-04-24
 35c0000002500a02: Shovel Knight|Shovel Knight|Shovel Knight|Shovel Knight|Figure|au.2015-12-11,na.2016-01-08,eu.2016-01-08,jp.2016-06-30
 35c0000003920a02: Shovel Knight - Gold Edition|Shovel Knight|Shovel Knight|Shovel Knight|Figure|au.None,na.2019-12-10,eu.2019-12-10,jp.None
 35c10000036c0a02: Plague Knight|Plague Knight|Shovel Knight|Shovel Knight|Figure|au.None,na.2019-12-10,eu.2019-12-10,jp.None
@@ -926,10 +945,10 @@ AmiiboCount: 933
 38460001042a1902: Asana Mutsuba|Asana Mutsuba|Yu-Gi-Oh!|Yu-Gi-Oh!|Card|au.None,na.2021-08-12,eu.None,jp.None
 38c0000003911602: Loot Goblin|Loot Goblin|Diablo|Diablo|Figure|au.None,na.2018-12-21,eu.None,jp.None
 3a00000003a10002: Joker|Joker|Super Smash Bros.|Persona|Figure|au.2020-09-25,na.2020-10-02,eu.2020-09-25,jp.2020-09-25
-3b40000003a30002: Banjo & Kazooie|Banjo|Super Smash Bros.|Banjo Kazooie|Figure|au.2021-03-26,na.2021-03-26,eu.2021-03-26,jp.2021-03-26
-3c80000003a40002: Terry|Terry|Super Smash Bros.|Fatal Fury|Figure|au.2021-03-26,na.2021-03-26,eu.2021-03-26,jp.2021-03-26
-3c80000104e81d02: Terry|Terry|Street Fighter 6|Fatal Fury|Card|au.2025-09-30,na.2025-09-30,eu.2025-09-30,jp.2025-09-30
-3c80000104f11d02: Terry|Terry|Street Fighter 6|Fatal Fury|Card|au.2025-09-30,na.2025-09-30,eu.2025-09-30,jp.2025-09-30
+3b40000003a30002: Banjo & Kazooie|Banjo & Kazooie|Super Smash Bros.|Banjo Kazooie|Figure|au.2021-03-26,na.2021-03-26,eu.2021-03-26,jp.2021-03-26
+3c80000003a40002: Terry Bogard|Terry Bogard|Super Smash Bros.|Fatal Fury|Figure|au.2021-03-26,na.2021-03-26,eu.2021-03-26,jp.2021-03-26
+3c80000104e81d02: Terry|Terry Bogard|Street Fighter 6|Fatal Fury|Card|au.2025-09-30,na.2025-09-30,eu.2025-09-30,jp.2025-09-30
+3c80000104f11d02: Terry|Terry Bogard|Street Fighter 6|Fatal Fury|Card|au.2025-09-30,na.2025-09-30,eu.2025-09-30,jp.2025-09-30
 3c81000104f21d02: Mai|Mai|Street Fighter 6|Fatal Fury|Card|au.2025-09-30,na.2025-09-30,eu.2025-09-30,jp.2025-09-30
 3c81000104f31d02: Mai|Mai|Street Fighter 6|Fatal Fury|Card|au.2025-09-30,na.2025-09-30,eu.2025-09-30,jp.2025-09-30
 3dc0000004220002: Steve|Steve|Super Smash Bros.|Minecraft|Figure|au.2022-09-09,na.2022-09-09,eu.2022-09-09,jp.2022-09-09
