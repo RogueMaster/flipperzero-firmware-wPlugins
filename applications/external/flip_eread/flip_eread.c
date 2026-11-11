@@ -38,17 +38,17 @@
 #define LAST_BOOK_FILE APP_DATA_PATH("last_book.txt")
 #define SETTINGS_FILE  APP_DATA_PATH("settings.txt")
 
-#define SCREEN_W       128
-#define SCREEN_H       64
-#define TEXT_X         1
-#define TEXT_W         123 /* leave room for the scroll indicator on the right */
-#define SCROLLBAR_X    126
-#define MAX_LINES      8
-#define LINE_BUF       96
-#define PAGE_BUF_SIZE  2048
-#define BACK_WINDOW    4096
-#define LOOKAHEAD      (LINE_BUF * 4) /* bytes read past a seek target */
-#define JUMP_PERCENT   5
+#define SCREEN_W      128
+#define SCREEN_H      64
+#define TEXT_X        1
+#define TEXT_W        123 /* leave room for the scroll indicator on the right */
+#define SCROLLBAR_X   126
+#define MAX_LINES     8
+#define LINE_BUF      96
+#define PAGE_BUF_SIZE 2048
+#define BACK_WINDOW   4096
+#define LOOKAHEAD     (LINE_BUF * 4) /* bytes read past a seek target */
+#define JUMP_PERCENT  5
 
 typedef enum {
     ReaderFontSmall = 0,
@@ -258,12 +258,8 @@ static size_t decode_char(const uint8_t* p, size_t avail, char out[4]) {
  * line starts. If out is not NULL the visible text is written to it.
  * If no progress can be made (incomplete data) pos is returned unchanged.
  */
-static size_t layout_line(
-    const uint8_t* buf,
-    size_t len,
-    size_t pos,
-    const uint8_t* widths,
-    char* out) {
+static size_t
+    layout_line(const uint8_t* buf, size_t len, size_t pos, const uint8_t* widths, char* out) {
     char line[LINE_BUF];
     size_t n = 0;
     uint16_t w = 0;
@@ -287,7 +283,8 @@ static size_t layout_line(
         }
 
         uint16_t rw = 0;
-        for(size_t i = 0; i < rlen; i++) rw += widths[(uint8_t)rep[i]];
+        for(size_t i = 0; i < rlen; i++)
+            rw += widths[(uint8_t)rep[i]];
 
         if(w + rw > TEXT_W || n + rlen >= LINE_BUF) {
             if(rep[0] == ' ') {
@@ -323,7 +320,8 @@ static size_t layout_line(
 
     if(out) {
         /* trim trailing spaces */
-        while(n > 0 && line[n - 1] == ' ') n--;
+        while(n > 0 && line[n - 1] == ' ')
+            n--;
         memcpy(out, line, n);
         out[n] = '\0';
     }
@@ -378,12 +376,14 @@ static uint32_t reader_seek_back(Reader* r, uint32_t target, uint8_t lines_back)
     if(win_start > 0) {
         /* start right after the first newline in the window */
         size_t i = 0;
-        while(i < scan_len && r->back_buf[i] != '\n') i++;
+        while(i < scan_len && r->back_buf[i] != '\n')
+            i++;
         if(i < scan_len) {
             s = i + 1;
         } else {
             /* no newline at all: align to a UTF-8 character boundary */
-            while(s < scan_len && (r->back_buf[s] & 0xC0) == 0x80) s++;
+            while(s < scan_len && (r->back_buf[s] & 0xC0) == 0x80)
+                s++;
         }
     }
 
@@ -419,7 +419,8 @@ static uint32_t reader_align(Reader* r, uint32_t offset) {
 
 static uint32_t path_hash(const char* s) {
     uint32_t h = 5381;
-    while(*s) h = ((h << 5) + h) ^ (uint8_t)*s++;
+    while(*s)
+        h = ((h << 5) + h) ^ (uint8_t)*s++;
     return h;
 }
 
@@ -514,7 +515,8 @@ static void draw_callback(Canvas* canvas, void* ctx) {
 
     /* scroll indicator: a thumb on a dotted track at the right edge */
     if(r->file_size > 0) {
-        for(uint8_t y = 0; y < SCREEN_H; y += 2) canvas_draw_dot(canvas, SCROLLBAR_X + 1, y);
+        for(uint8_t y = 0; y < SCREEN_H; y += 2)
+            canvas_draw_dot(canvas, SCROLLBAR_X + 1, y);
         uint32_t span = r->page_end - r->page_start;
         uint8_t thumb_h = (uint8_t)((uint64_t)span * SCREEN_H / r->file_size);
         if(thumb_h < 3) thumb_h = 3;
@@ -565,8 +567,7 @@ static void measure_fonts(Reader* r, Gui* gui) {
     for(int f = 0; f < ReaderFontCount; f++) {
         canvas_set_font(canvas, font_metrics[f].font);
         for(int c = 0; c < 128; c++) {
-            r->widths[f][c] = (c >= 0x20 && c < 0x7F) ? (uint8_t)canvas_glyph_width(canvas, c) :
-                                                         0;
+            r->widths[f][c] = (c >= 0x20 && c < 0x7F) ? (uint8_t)canvas_glyph_width(canvas, c) : 0;
         }
     }
     gui_direct_draw_release(gui);
