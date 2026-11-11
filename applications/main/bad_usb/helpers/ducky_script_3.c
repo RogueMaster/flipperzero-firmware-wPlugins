@@ -3,7 +3,6 @@
 
 #include <ctype.h>
 #include <stdlib.h>
-#include <toolbox/stream/stream.h>
 
 #define DUCKY3_NO_LINE ((size_t) - 1)
 
@@ -13,6 +12,30 @@ typedef struct {
     const char* input;
     bool error;
 } Ducky3ExpressionParser;
+
+// Read lines from Storage's File API, not the unrelated Stream API.
+// A small buffer avoids one storage request per character.
+typedef struct {
+    uint8_t data[64];
+    size_t count;
+    size_t offset;
+} Ducky3FileReader;
+
+static bool ducky3_file_read_line(File* file, Ducky3FileReader* reader, FuriString* line) {
+    furi_string_reset(line);
+    while(true) {
+        if(reader->offset == reader->count) {
+            reader->count = storage_file_read(file, reader->data, sizeof(reader->data));
+            reader->offset = 0;
+            if(reader->count == 0) break;
+        }
+        const uint8_t c = reader->data[reader->offset++];
+        if(c == '\r') continue;
+        furi_string_push_back(line, c);
+        if(c == '\n') break;
+    }
+    return furi_string_size(line) != 0;
+}
 
 static const char* ducky3_skip_spaces(const char* input) {
     while(*input == ' ' || *input == '\t')
@@ -970,7 +993,8 @@ bool ducky3_preload(BadUsbScript* bad_usb, File* script_file) {
     bad_usb->ducky3.has_deferred = false;
     bad_usb->ducky3.has_return_value = false;
     storage_file_seek(script_file, 0, true);
-    while(stream_read_line((Stream*)script_file, line)) {
+    Ducky3FileReader reader = {0};
+    while(ducky3_file_read_line(script_file, &reader, line)) {
         furi_string_trim(line);
         const char* text = furi_string_get_cstr(line);
 
