@@ -8,7 +8,7 @@ App(
     fap_version="1.1",
     fap_icon="morse_master.png",  # 10x10 1-bit PNG
     fap_description="Learn Morse code using this toolkit.",
-    fap_author="P1X",
+    fap_author="Krzysztof Krystian Jankowski",
     fap_weburl="https://github.com/w84death/morse-master",
     fap_icon_assets="images",  # Image assets to compile for this application
 )
