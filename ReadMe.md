@@ -297,10 +297,11 @@ This software is for experimental purposes only and is not meant for any illegal
 - Archive: [Display each exact favorite path once while preserving first-occurrence order (By lewisQ17)](https://github.com/lewisQ17/Momentum-Firmware/commit/bd1e31434bbfeaef49585bd4c3f0f8a1d21f49d1)
 - Build: [Scope the DWARF line-section workaround to unit-test builds (By lewisQ17)](https://github.com/lewisQ17/Momentum-Firmware/commit/9aa29b4115c029e42adf601a4144e83b9b4c9e66)
 - Added: [A/C Master v0.3 multi-profile infrared air-conditioner remote (By Enlighten Tech)](https://github.com/gbhobbytech/flipper-ac-multi-remote)
-- Fixed: [Archive extension-table linkage for firmware and file-browser builds (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins)
+- Fixed: [Archive extension-table linkage for firmware and file-browser builds (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/bd5edb1ed4ceff8df4a44c3408068ad1b698d4b9)
 - Updated: [UHF Expansion v1.8 reader-frequency settings, draft Save/Discard flow and verified persistence (By MTools Tec)](https://github.com/mtoolstec/fz-uhf-expansion)
 - Updated: [Claude Remote v0.2: keep button gestures on the screen where they began (By Petr Korobeinikov)](https://github.com/petr-korobeinikov/f0-claude-remote)
 - Added: [eReader v1.0 - Streaming plain-text book reader with word wrap, saved positions and two font sizes (By Daniel Baker)](https://github.com/daniebker/flipper_ereader)
+- Fixed: [BadUSB Usage Overflow caused by PR #4501 BadUSB Ducky Script 3.0 code changes (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/a2a44e125e2ae88bbb1f0adafc07202c1d0ab151)
 
 <a name="release"></a>
 
