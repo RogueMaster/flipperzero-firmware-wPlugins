@@ -1,6 +1,6 @@
 # Dallas Tester
 
-[![Build App with Unleashed Firmware](https://github.com/mishamyte/flipper-dallas-tester/actions/workflows/build.yml/badge.svg)](https://github.com/mishamyte/flipper-dallas-tester/actions/workflows/build.yml)
+[![Build App with Unleashed Firmware](https://github.com/DarkFlippers/flipper-dallas-tester/actions/workflows/build.yml/badge.svg)](https://github.com/DarkFlippers/flipper-dallas-tester/actions/workflows/build.yml)
 
 A Flipper Zero app (Unleashed, `applications_user`) that measures the **1-Wire presence-detect
 low time (tPDL)** of iButton / Dallas keys and blanks (DS1990A, RW1990, TM1990 …) and shows the
