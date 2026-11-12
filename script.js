@@ -227,6 +227,31 @@ function hunter()
                     location.reload();
                 });
             }
+
+            if (idx == "hunter_6" && choice == "2")
+            {
+                document.getElementById("my_text").innerHTML = "You have chosen to decline the trade.<br>Unfortunately, these people have smallpox.<br>They transmit it to your tribe.<br>Because your tribe doesn't have any immunity against smallpox your whole tribe dies!<br>" + death_level;
+                user_input = document.getElementById("choice_field").value;
+                document.querySelector("form").addEventListener("submit", function(event)
+                {
+                    localStorage.removeItem("character");
+                    localStorage.removeItem("choice");
+                    localStorage.removeItem("idx");
+                    location.reload();
+                });
+            }
+
+            if (idx == "hunter_6" && choice == "3")
+            {
+                document.getElementById("my_text").innerHTML = "You have chosen to report them to the authorities.<br>These guys turn out to be the wanted criminals after all.<br>Your tribe gains importance in the African community because you turned these criminals into the authorities.<br>Do you want to go hunt The Mighty Lion?<br><br>1- Yes; 2- No<br>Make your choice " + user_name + ":<br>";
+                user_input = document.getElementById("choice_field").value;
+                document.querySelector("form").addEventListener("submit", function(event)
+                {
+                    localStorage.setItem("idx", "hunter_10");
+                    localStorage.setItem("choice", user_input);
+                    location.reload();
+                });
+            }
         }
     }
 }
