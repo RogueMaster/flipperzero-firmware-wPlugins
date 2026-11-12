@@ -880,6 +880,7 @@ void pokemon_stat_calc(PokemonData* pdata, DataStat stat) {
 
 /* Copy the traded-in Pokemon's main data to our struct */
 void pokemon_stat_memcpy(PokemonData* dst, PokemonData* src, uint8_t which) {
+    if(which >= 6) return;
     if(dst->gen == GEN_I) {
         ((TradeBlockGenI*)dst->trade_block)->party_members[0] =
             ((TradeBlockGenI*)src->trade_block)->party_members[which];

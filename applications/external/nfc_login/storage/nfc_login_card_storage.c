@@ -213,7 +213,8 @@ bool app_save_cards(App* app) {
                 if(bytes_read == file_size) {
                     uint16_t passcode_len = (uint16_t)(file_data[0] | (file_data[1] << 8));
 
-                    if(passcode_len > 0 && passcode_len < 512) {
+                    if(passcode_len > 0 && passcode_len < 512 &&
+                       (size_t)(PASSCODE_HEADER_SIZE + passcode_len) <= file_size) {
                         passcode_header = malloc(PASSCODE_HEADER_SIZE + passcode_len);
                         if(passcode_header) {
                             memcpy(

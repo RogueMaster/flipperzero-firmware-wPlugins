@@ -231,6 +231,7 @@ void _wifi_marauder_script_execute_beacon_list(
 
     for(int i = 0; i < stage->ssid_count; i++) {
         ssid = stage->ssids[i];
+        if(ssid == NULL) continue; // calloc'd slots for non-string entries stay NULL
         snprintf(command, sizeof(command), "ssid -a -n \"%s\"", ssid);
         wifi_marauder_uart_tx(worker->uart, (uint8_t*)(command), strlen(command));
         _send_line_break(worker);

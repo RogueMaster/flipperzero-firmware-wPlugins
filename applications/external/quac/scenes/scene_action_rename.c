@@ -31,7 +31,9 @@ void scene_action_rename_on_enter(void* context) {
     char ext[MAX_EXT_LEN] = {0};
     bool is_link;
     item_path_extract_filename(item->path, file_name, &ext, &is_link);
-    strncpy(app->temp_cstr, furi_string_get_cstr(file_name), MAX_NAME_LEN);
+    // strlcpy always NUL-terminates within MAX_NAME_LEN; a filename up to 255 chars
+    // would otherwise leave temp_cstr[64] unterminated -> OOB read on later use.
+    strlcpy(app->temp_cstr, furi_string_get_cstr(file_name), MAX_NAME_LEN);
 
     text_input_set_result_callback(
         text, scene_action_rename_callback, app, app->temp_cstr, MAX_NAME_LEN, false);

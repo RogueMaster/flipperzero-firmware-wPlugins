@@ -566,7 +566,7 @@ bool totp_token_info_iterator_go_to(TokenInfoIteratorContext* context, size_t to
 
         if(flipper_format_read_uint32(
                context->config_file, TOTP_CONFIG_KEY_TOKEN_SECRET_LENGTH, &temp_data32, 1)) {
-            tokenInfo->token_plain_length = temp_data32;
+            tokenInfo->token_plain_length = MIN(temp_data32, tokenInfo->token_length);
         } else {
             tokenInfo->token_plain_length = tokenInfo->token_length;
         }

@@ -449,7 +449,7 @@ SubGhzProtocolStatus
         uint32_t version_temp;
         if(flipper_format_read_uint32(flipper_format, "KIAVersion", &version_temp, 1)) {
             if(!version_from_protocol_name) {
-                instance->version = (uint8_t)version_temp;
+                instance->version = (version_temp <= 1) ? (uint8_t)version_temp : 0;
             }
         } else if(!version_from_protocol_name) {
             instance->version = 0;

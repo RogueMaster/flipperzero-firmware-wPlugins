@@ -133,7 +133,7 @@ void wifi_marauder_scene_console_output_on_enter(void* context) {
             char* resolved_path = sequential_file_resolve_path(
                 app->storage, MARAUDER_APP_FOLDER_LOGS, prefix, "log");
             if(resolved_path != NULL) {
-                strcpy(app->log_file_path, resolved_path);
+                strlcpy(app->log_file_path, resolved_path, sizeof(app->log_file_path));
                 free(resolved_path);
                 if(storage_file_open(
                        app->log_file, app->log_file_path, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {

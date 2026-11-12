@@ -269,6 +269,15 @@ void passy_secure_messaging_unwrap_rapdu(SecureMessaging* secure_messaging, BitB
         i += len;
     } while(i < length - 2);
 
+    // encrypted_len (= card TLV len - 1) is attacker-controlled: len == 0 wraps it
+    // to 255, and a large value overflows K[] at the memcpy below or reads
+    // `encrypted` past the received frame. Reject before building K.
+    if(encrypted && (encrypted_len == 0 || encrypted_len > SECURE_MESSAGING_MAX_SIZE - 16 ||
+                     (size_t)(encrypted - data) + encrypted_len > length)) {
+        FURI_LOG_W(TAG, "SM: invalid encrypted length %u", encrypted_len);
+        return;
+    }
+
     if(mac) {
         uint8_t K[SECURE_MESSAGING_MAX_SIZE];
         memset(K, 0, sizeof(K));

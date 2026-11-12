@@ -1,5 +1,8 @@
 #include "wardriver_uart.h"
 
+// Keep this much heap free; stop adding access points below it to avoid OOM.
+#define WARDRIVER_MIN_FREE_HEAP (8 * 1024)
+
 static void removeSpaces(char* str) {
     int i = 0;
     while(isspace((unsigned char)str[i])) {
@@ -45,6 +48,16 @@ static void uart_parse_esp(void* context, char* line) {
     AccessPoint ap = {.ssid = malloc(MAX_SSID_LENGTH + 1), .bssid = malloc(MAX_BSSID_LENGTH + 1)};
 
     Packet pkt = {.recievedMac = malloc(18 + 1), .sentMac = malloc(18 + 1)};
+
+    // Bail out safely if any allocation failed (low heap) — otherwise the
+    // strcpy/strncpy below would dereference a NULL pointer and crash.
+    if(!ap.ssid || !ap.bssid || !pkt.recievedMac || !pkt.sentMac) {
+        free(ap.ssid);
+        free(ap.bssid);
+        free(pkt.recievedMac);
+        free(pkt.sentMac);
+        return;
+    }
 
     char* token = strtok(line, ",");
     int i = 0;
@@ -156,8 +169,16 @@ static void uart_parse_esp(void* context, char* line) {
         }
 
         if(!found) {
-            memcpy(&ctx->access_points[ctx->access_points_count], &ap, sizeof(AccessPoint));
-            ctx->access_points_count++;
+            // Stop collecting before the fixed array overflows or the heap is
+            // exhausted; free this AP's buffers instead of leaking them.
+            if(ctx->access_points_count < MAX_ACCESS_POINTS &&
+               memmgr_get_free_heap() > WARDRIVER_MIN_FREE_HEAP) {
+                memcpy(&ctx->access_points[ctx->access_points_count], &ap, sizeof(AccessPoint));
+                ctx->access_points_count++;
+            } else {
+                free(ap.ssid);
+                free(ap.bssid);
+            }
         }
 
         sort_access_points(ctx);

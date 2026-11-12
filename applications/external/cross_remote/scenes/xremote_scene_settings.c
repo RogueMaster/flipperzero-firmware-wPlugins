@@ -139,6 +139,7 @@ void xremote_scene_settings_init(void* context) {
         xremote_scene_settings_set_ir_pin,
         app);
     value_index = app->ir_tx_pin;
+    if(value_index >= COUNT_OF(infrared_pin_text)) value_index = 0;
     variable_item_set_current_value_index(item, value_index);
     variable_item_set_current_value_text(item, infrared_pin_text[value_index]);
 

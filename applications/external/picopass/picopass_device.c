@@ -73,6 +73,14 @@ static bool picopass_device_save_file_seader(
         uint8_t sio[128];
         size_t sio_length = card_data[start_block].data[1];
         size_t block_count = (sio_length + PICOPASS_BLOCK_LEN - 1) / PICOPASS_BLOCK_LEN;
+        // sio_length is a raw byte from the card/.picopass file (0-255), so block_count
+        // can reach 32 and overrun both the 16-block sio[] stack buffer and the
+        // 32-block card_data[] array. Clamp to whichever bound is tighter.
+        size_t sio_max = sizeof(sio) / PICOPASS_BLOCK_LEN;
+        size_t card_max =
+            (start_block < PICOPASS_MAX_APP_LIMIT) ? (PICOPASS_MAX_APP_LIMIT - start_block) : 0;
+        size_t max_blocks = (sio_max < card_max) ? sio_max : card_max;
+        if(block_count > max_blocks) block_count = max_blocks;
         for(uint8_t i = 0; i < block_count; i++) {
             memcpy(
                 sio + (i * PICOPASS_BLOCK_LEN),

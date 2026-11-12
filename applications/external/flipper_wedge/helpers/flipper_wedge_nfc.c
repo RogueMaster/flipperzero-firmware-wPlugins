@@ -198,7 +198,7 @@ static size_t flipper_wedge_nfc_parse_raw_ndef_text(
         pos += id_len;
 
         // Read payload
-        if(pos + payload_len > data_len) break;
+        if(payload_len > data_len - pos) break;
         const uint8_t* payload = &data[pos];
         pos += payload_len;
 
@@ -338,7 +338,7 @@ static size_t flipper_wedge_nfc_parse_ndef_text(
                 pos += id_len;
 
                 // Read payload
-                if(pos + payload_len > data_len) break;
+                if(payload_len > data_len - pos) break;
                 const uint8_t* payload = &data[pos];
                 pos += payload_len;
 

@@ -47,6 +47,13 @@ void picopass_scene_parse_sio_on_enter(void* context) {
     uint8_t sio_buffer[128];
     size_t sio_length = card_data[start_block].data[1];
     size_t block_count = (sio_length + PICOPASS_BLOCK_LEN - 1) / PICOPASS_BLOCK_LEN;
+    // sio_length is a raw card/.picopass byte (0-255): block_count can reach 32 and
+    // overrun both the 16-block sio_buffer[] and the 32-block card_data[]. Clamp.
+    size_t sio_max = sizeof(sio_buffer) / PICOPASS_BLOCK_LEN;
+    size_t card_max =
+        (start_block < PICOPASS_MAX_APP_LIMIT) ? (PICOPASS_MAX_APP_LIMIT - start_block) : 0;
+    size_t max_blocks = (sio_max < card_max) ? sio_max : card_max;
+    if(block_count > max_blocks) block_count = max_blocks;
     for(uint8_t i = 0; i < block_count; i++) {
         memcpy(
             sio_buffer + (i * PICOPASS_BLOCK_LEN),

@@ -1,5 +1,6 @@
 #include "subghz_remote_app_i.h"
 #include "helpers/txrx/subghz_txrx_i.h"
+#include "helpers/subrem_custom_button_info.h" // NumButtons
 #include <lib/toolbox/path.h>
 #include <toolbox/strint.h>
 #include <flipper_format/flipper_format_i.h>
@@ -119,7 +120,10 @@ static bool subrem_map_preset_load(SubRemMapPreset* map_preset, FlipperFormat* f
                 map_file_labels[i][0],
                 furi_string_get_cstr(button_str));
 #endif
-        } else {
+        } else if(button_code < NumButtons) {
+            // The .txt map's button code is untrusted and indexes
+            // custom_button_text[NumButtons]; ignore out-of-range values (the
+            // default button 0 stays), so no consumer reads out of bounds.
             sub_preset->button = (uint8_t)button_code;
         }
 

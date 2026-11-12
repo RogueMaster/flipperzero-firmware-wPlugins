@@ -445,11 +445,18 @@ static NfcCommand gen4_poller_write_mf_ultralight(Gen4Poller* instance) {
         if(instance->current_block < mfu_data->pages_read) {
             FURI_LOG_D(
                 TAG, "Writing page %zu / %zu", instance->current_block, mfu_data->pages_read);
+            // Stage into a full 16-byte write block: a MfUltralightPage .data is
+            // only 4 bytes, but gen4_poller_write_block always reads 16 — passing
+            // the raw 4-byte page over-reads 12 bytes of adjacent heap into the
+            // over-air frame (crafted .nfc with a large "Pages read"). Matches the
+            // sibling signature/version writes below.
+            uint8_t page_block[GEN4_POLLER_BLOCK_SIZE] = {0};
+            memcpy(
+                page_block,
+                mfu_data->page[instance->current_block].data,
+                sizeof(mfu_data->page[instance->current_block].data));
             Gen4PollerError error = gen4_poller_write_block(
-                instance,
-                instance->password,
-                instance->current_block,
-                mfu_data->page[instance->current_block].data);
+                instance, instance->password, instance->current_block, page_block);
             if(error != Gen4PollerErrorNone) {
                 FURI_LOG_D(TAG, "Failed to write %d page: %d", instance->current_block, error);
                 instance->state = Gen4PollerStateFail;

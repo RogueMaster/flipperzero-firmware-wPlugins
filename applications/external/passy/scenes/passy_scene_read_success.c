@@ -79,9 +79,14 @@ void passy_scene_read_success_on_enter(void* context) {
             }
 
             char name[40] = {0};
-            memset(name, 0, sizeof(name));
             uint8_t name_offset = td_variant == 3 ? 5 : 60;
-            memcpy(name, dg1->mrz.buf + name_offset, 38);
+            // Only copy the name field if it lies within the parsed MRZ, and never
+            // read past mrz.size or overrun name[] (38 bytes, leaving a NUL).
+            if(name_offset < dg1->mrz.size) {
+                size_t name_len = dg1->mrz.size - name_offset;
+                if(name_len > 38) name_len = 38;
+                memcpy(name, dg1->mrz.buf + name_offset, name_len);
+            }
             // Work backwards replace < at the end with \0
             for(size_t i = sizeof(name) - 1; i > 0; i--) {
                 if(name[i] == '<') {

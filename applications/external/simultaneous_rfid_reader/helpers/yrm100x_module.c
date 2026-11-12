@@ -92,23 +92,24 @@ uint16_t crc16_genibus(const uint8_t* data, size_t length) {
 }
 
 char* _m100_info_helper(M100Module* module, char** info) {
-    if(!uhf_buffer_get_size(module->uart->buffer)) return NULL;
+    size_t buf_size = uhf_buffer_get_size(module->uart->buffer);
+    if(buf_size < 6) return NULL; // need the 5-byte header + at least the payload start
     uint8_t* data = uhf_buffer_get_data(module->uart->buffer);
-    uint16_t payload_len = data[3];
-    payload_len = (payload_len << 8) + data[4];
-    FuriString* temp_str = furi_string_alloc();
-    for(int i = 0; i < payload_len; i++) {
-        furi_string_cat_printf(temp_str, "%c", data[6 + i]);
+    uint16_t payload_len = (data[3] << 8) + data[4];
+    // payload_len is module-supplied (0-65535); keep the data[6 + i] reads inside
+    // the received buffer.
+    if((size_t)6 + payload_len > buf_size) {
+        payload_len = (uint16_t)(buf_size - 6);
     }
-    if(*info == NULL) {
-        *info = (char*)malloc(sizeof(char) * payload_len);
-    } else {
-        for(size_t i = 0; i < strlen(*info); i++) {
-            (*info)[i] = 0;
-        }
+    // Always (re)allocate to exactly fit the payload plus a NUL terminator: the
+    // old code reused a stale-sized buffer (OOB write) and never NUL-terminated
+    // (caller strlen over-read).
+    char* resized = realloc(*info, (size_t)payload_len + 1);
+    if(resized) {
+        *info = resized;
+        memcpy(*info, data + 6, payload_len);
+        (*info)[payload_len] = '\0';
     }
-    memcpy(*info, furi_string_get_cstr(temp_str), payload_len);
-    furi_string_free(temp_str);
     return *info;
 }
 
@@ -265,6 +266,10 @@ M100ResponseType m100_read_label_data_storage(
     }
 
     size_t ptr_offset = 5 /*<-ptr offset*/ + uhf_tag_get_epc_size(uhf_tag) + 3 /*<-pc + ul*/;
+    // A short/malformed module payload makes payload_len - (ptr_offset - 5)
+    // underflow size_t to a huge value; reject it (the bank setters also clamp
+    // the copy to MAX_BANK_SIZE, so the write can never overrun either).
+    if(payload_len < (ptr_offset - 5)) return M100ValidationFail;
     size_t bank_data_length = payload_len - (ptr_offset - 5 /*dont include the offset*/);
 
     if(bank == TIDBank) {

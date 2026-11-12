@@ -174,6 +174,12 @@ CryptoSeedIVResult totp_crypto_seed_iv_v3(
 }
 
 bool totp_crypto_verify_key_v3(const CryptoSettings* crypto_settings) {
+    uint8_t crypto_vkey_length_check = get_crypto_verify_key_length();
+    if(crypto_settings->crypto_verify_data == NULL ||
+       crypto_settings->crypto_verify_data_length < crypto_vkey_length_check) {
+        return false;
+    }
+
     size_t decrypted_key_length;
     uint8_t* decrypted_key = totp_crypto_decrypt_v3(
         crypto_settings->crypto_verify_data,

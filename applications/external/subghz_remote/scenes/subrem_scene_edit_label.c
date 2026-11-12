@@ -41,7 +41,10 @@ void subrem_scene_edit_label_on_enter(void* context) {
             strcpy(app->file_name_tmp, "");
         }
     } else {
-        strcpy(app->file_name_tmp, furi_string_get_cstr(sub_preset->label));
+        // Bounded: a label loaded from a .txt map can exceed file_name_tmp.
+        strncpy(
+            app->file_name_tmp, furi_string_get_cstr(sub_preset->label), SUBREM_MAX_LEN_NAME - 1);
+        app->file_name_tmp[SUBREM_MAX_LEN_NAME - 1] = '\0';
     }
 
     TextInput* text_input = app->text_input;

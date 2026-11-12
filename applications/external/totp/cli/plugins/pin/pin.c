@@ -47,7 +47,7 @@ static bool totp_cli_read_pin(PipeSide* pipe, uint8_t* pin, uint8_t* pin_length)
             uint8_t c3;
             if(pipe_receive(pipe, &c2, 1) == 1 && pipe_receive(pipe, &c3, 1) == 1 && c2 == 0x5b) {
                 uint8_t code = totp_cli_key_to_pin_code(c3);
-                if(code > 0) {
+                if(code > 0 && *pin_length < CRYPTO_IV_LENGTH) {
                     pin[*pin_length] = code;
                     *pin_length = *pin_length + 1;
                     putc('*', stdout);

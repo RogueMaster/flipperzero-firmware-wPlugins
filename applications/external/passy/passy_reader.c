@@ -243,6 +243,9 @@ NfcCommand passy_reader_external_authenticate(PassyReader* passy_reader) {
 
     const uint8_t* data = bit_buffer_get_data(passy_reader->rx_buffer);
     size_t length = bit_buffer_get_size_bytes(passy_reader->rx_buffer);
+    // A short card response makes length-2-8 underflow to a huge value -> OOB
+    // mac pointer and an out-of-bounds passy_mac() read. Require the minimum.
+    if(length < 2 + 8) return NfcCommandStop;
     const uint8_t* mac = data + length - 2 - 8;
     uint8_t calculated_mac[8];
     passy_mac(secure_messaging->KMAC, (uint8_t*)data, length - 8 - 2, calculated_mac, false);
@@ -344,7 +347,8 @@ NfcCommand passy_reader_read_com(PassyReader* passy_reader) {
         return ret;
     }
     size_t body_size = 1 + passy_asn1_length_length(header + 1) + passy_asn1_length(header + 1);
-    uint8_t body_offset = sizeof(header);
+    size_t body_offset = sizeof(header); // size_t, not uint8_t: a card-supplied
+        // body_size > 256 would wrap a uint8_t offset and loop forever re-reading.
     bit_buffer_append_bytes(passy_reader->COM, header, sizeof(header));
     do {
         view_dispatcher_send_custom_event(passy->view_dispatcher, PassyCustomEventReaderReading);
@@ -375,7 +379,8 @@ NfcCommand passy_reader_read_dg1(PassyReader* passy_reader) {
         return ret;
     }
     size_t body_size = 1 + passy_asn1_length_length(header + 1) + passy_asn1_length(header + 1);
-    uint8_t body_offset = sizeof(header);
+    size_t body_offset = sizeof(header); // size_t, not uint8_t: a card-supplied
+        // body_size > 256 would wrap a uint8_t offset and loop forever re-reading.
     bit_buffer_append_bytes(passy_reader->DG1, header, sizeof(header));
     do {
         view_dispatcher_send_custom_event(passy->view_dispatcher, PassyCustomEventReaderReading);

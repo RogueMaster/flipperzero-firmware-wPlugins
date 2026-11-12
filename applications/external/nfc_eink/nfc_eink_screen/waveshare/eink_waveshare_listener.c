@@ -25,6 +25,8 @@ static NfcCommand
 
     NfcEinkWaveshareSpecificContext* ctx = screen->device->screen_context;
 
+    // index is a raw reader byte (0-255); keep the 16-byte read inside ctx->buf.
+    if((size_t)index * 4 + 16 > sizeof(ctx->buf)) return NfcCommandContinue;
     bit_buffer_append_bytes(screen->tx_buf, &ctx->buf[index * 4], 4 * 4);
     return NfcCommandContinue;
 }
@@ -36,6 +38,8 @@ static NfcCommand
     NfcEinkWaveshareSpecificContext* ctx = screen->device->screen_context;
     uint8_t* blocks = ctx->buf;
 
+    // index is a raw reader byte (0-255); keep the 4-byte write inside ctx->buf.
+    if((size_t)index * 4 + 4 > sizeof(ctx->buf)) return NfcCommandContinue;
     memcpy(&blocks[index * 4], &data[2], 4);
     bit_buffer_append_byte(screen->tx_buf, 0x0A);
     return NfcCommandContinue;
@@ -80,6 +84,9 @@ static NfcCommand
     NfcEinkScreenDevice* const screen_device = screen->device;
     NfcEinkWaveshareSpecificContext* ctx = screen->device->screen_context;
 
+    // data[2] (length) and received_data are reader-controlled; never write past image_data.
+    if((size_t)screen_device->received_data + data[2] > screen_data->image_size)
+        return eink_waveshare_listener_default_cmd_response(screen, data);
     memcpy(screen_data->image_data + screen_device->received_data, &data[3], data[2]);
     screen_device->received_data += data[2];
 

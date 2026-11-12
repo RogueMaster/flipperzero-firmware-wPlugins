@@ -1291,7 +1291,7 @@ void flipper_http_rx_callback(const char* line, void* context) {
                 const char marker[] = "[GET/END]";
                 const size_t marker_len = sizeof(marker) - 1; // Exclude null terminator
 
-                for(size_t i = 0; i <= fhttp->file_buffer_len - marker_len; i++) {
+                for(size_t i = 0; i + marker_len <= fhttp->file_buffer_len; i++) {
                     // Check if the marker is found
                     if(memcmp(&fhttp->file_buffer[i], marker, marker_len) == 0) {
                         // Remove the marker by shifting the remaining data left
@@ -1356,7 +1356,7 @@ void flipper_http_rx_callback(const char* line, void* context) {
                 const char marker[] = "[POST/END]";
                 const size_t marker_len = sizeof(marker) - 1; // Exclude null terminator
 
-                for(size_t i = 0; i <= fhttp->file_buffer_len - marker_len; i++) {
+                for(size_t i = 0; i + marker_len <= fhttp->file_buffer_len; i++) {
                     // Check if the marker is found
                     if(memcmp(&fhttp->file_buffer[i], marker, marker_len) == 0) {
                         // Remove the marker by shifting the remaining data left

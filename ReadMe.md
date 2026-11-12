@@ -310,6 +310,12 @@ This software is for experimental purposes only and is not meant for any illegal
 - Sub-GHz: [DEA Mio discriminator preservation and Advanced Add Manually discriminator/TE input; restore full-history receive feedback (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/d2754d73e09f1da39bbc909dddcdce4579f8e591)
 - Updated: [AmiiTool: add the Zelda & Loftwing name alias (By Firefox2100)](https://github.com/Firefox2100/flipper-amiibo-toolkit/commit/2a5abb3558e8bb919940cd7aaccb15ec51eb08b1)
 - Sub-GHz: [Add Manually system list with frequency/modulation selection and protocol-sized Advanced key input (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/c16f66d8ea59ceea92d6c04d3ec4369d8319e059)
+- Fixed: [NFC eInk, NFC Login, NFC Magic, Passy, PicoPass, Metroflip and Saflip buffer and input bounds (By lewisQ17)](https://github.com/lewisQ17/Momentum-Firmware/tree/495d984039084f8217303fbe4636c65cb95d975d/applications/external)
+- Fixed: [FlipSocial, FlipWorld, Web Crawler and FlipStore HTTP marker and JSON token bounds (By lewisQ17)](https://github.com/lewisQ17/Momentum-Firmware/tree/495d984039084f8217303fbe4636c65cb95d975d/applications/external)
+- Fixed: [Flipper Wedge NDEF length checks, Pokémon Trader party-index bounds and TOTP buffer validation (By lewisQ17)](https://github.com/lewisQ17/Momentum-Firmware/tree/495d984039084f8217303fbe4636c65cb95d975d/applications/external)
+- Fixed: [WiFi Marauder log-path bounds and Mayhem Marauder script JSON allocation checks (By lewisQ17)](https://github.com/lewisQ17/Momentum-Firmware/tree/495d984039084f8217303fbe4636c65cb95d975d/applications/external)
+- Fixed: [UHF RFID and Simultaneous RFID Reader buffer bounds and allocation sizes; Wardriver access-point bounds and low-memory guards (By lewisQ17)](https://github.com/lewisQ17/Momentum-Firmware/tree/495d984039084f8217303fbe4636c65cb95d975d/applications/external)
+- Fixed: [POCSAG message-length bounds, ProtoPirate version range validation and Cross Remote, Quac and SubGHz Remote input bounds (By lewisQ17)](https://github.com/lewisQ17/Momentum-Firmware/tree/495d984039084f8217303fbe4636c65cb95d975d/applications/external)
 
 <a name="release"></a>
 

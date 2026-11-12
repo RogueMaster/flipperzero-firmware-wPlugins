@@ -46,7 +46,8 @@ const char* get_opus_transport_type(int location_id) {
 }
 
 const char* get_opus_transport_line(int route_number) {
-    if(OPUS_LINES_LIST[route_number]) {
+    // route_number is a 16-bit card field (0..65535); OPUS_LINES_LIST has 512 entries.
+    if(route_number >= 0 && route_number < 512 && OPUS_LINES_LIST[route_number]) {
         return OPUS_LINES_LIST[route_number];
     } else {
         // Use static buffer to avoid memory leak
@@ -95,7 +96,11 @@ void show_opus_event_info(
         parsed_data,
         "Contract: %d - %s\n",
         event->used_contract,
-        get_opus_tariff(contracts[event->used_contract - 1].tariff));
+        // used_contract is a 5-bit card field (0..31); contracts[] has 4 entries and
+        // the index is used_contract-1, so 0 underflows and >4 overflows.
+        (event->used_contract >= 1 && event->used_contract <= 4) ?
+            get_opus_tariff(contracts[event->used_contract - 1].tariff) :
+            "Unknown");
     furi_string_cat_printf(parsed_data, "Simulation: %s\n", event->simulation ? "true" : "false");
     furi_string_cat_printf(parsed_data, "Date: ");
     locale_format_datetime_cat(parsed_data, &event->date, true);

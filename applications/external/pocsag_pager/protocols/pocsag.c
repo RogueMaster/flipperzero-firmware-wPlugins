@@ -397,7 +397,14 @@ SubGhzProtocolStatus
         instance->version = 1200;
         flipper_format_read_uint32(flipper_format, "PocsagVer", &instance->version, 1);
 
+        // msg_len is file-controlled: reject absurd sizes (a huge value fails the
+        // malloc below, and the original had no NULL check -> read_hex(NULL) crash).
+        if(msg_len == 0 || msg_len > 10000) {
+            FURI_LOG_E(TAG, "Bad MsgLen");
+            break;
+        }
         buf = malloc(msg_len);
+        if(!buf) break;
         if(!flipper_format_read_hex(flipper_format, "Msg", buf, msg_len)) {
             FURI_LOG_E(TAG, "Missing Msg");
             free(buf);

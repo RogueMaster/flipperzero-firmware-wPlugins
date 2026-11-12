@@ -450,6 +450,11 @@ FuriString* get_json_value_furi(const char* key, const FuriString* json_data) {
 
     for(int i = 1; i < ret; i++) {
         if(jsoneq_furi(json_data, &tokens[i], key_str) == 0) {
+            if(i + 1 >= ret) {
+                free(tokens);
+                furi_string_free(key_str);
+                return NULL;
+            }
             int length = tokens[i + 1].end - tokens[i + 1].start;
             FuriString* value = furi_string_alloc_set(json_data);
             furi_string_mid(value, tokens[i + 1].start, length);

@@ -26,7 +26,9 @@ void _wifi_marauder_script_load_meta(WifiMarauderScript* script, cJSON* meta_sec
     if(meta_section != NULL) {
         // Script description
         cJSON* description = cJSON_GetObjectItem(meta_section, "description");
-        if(description != NULL) {
+        // Must be a JSON string: a non-string value leaves valuestring == NULL, so
+        // strdup(NULL) would crash. cJSON_IsString null-checks internally.
+        if(cJSON_IsString(description)) {
             script->description = strdup(description->valuestring);
         }
         // Enable LED
@@ -56,7 +58,9 @@ WifiMarauderScriptStageScan* _wifi_marauder_script_get_stage_scan(cJSON* stages)
         return NULL;
     }
     cJSON* type = cJSON_GetObjectItem(stage_scan, "type");
-    if(type == NULL) {
+    // Reject a non-string "type": strcmp(type->valuestring,...) below would else
+    // dereference NULL when the value is a number/object.
+    if(!cJSON_IsString(type)) {
         return NULL;
     }
     WifiMarauderScriptScanType scan_type;
@@ -310,7 +314,9 @@ WifiMarauderScriptStageBeaconList* _wifi_marauder_script_get_stage_beacon_list(c
     }
     beaconlist_stage->ssid_count = ssid_count;
     // SSIDs
-    beaconlist_stage->ssids = (char**)malloc(sizeof(char*) * ssid_count);
+    // calloc, not malloc: the fill loop skips non-string array elements, so unfilled
+    // slots must be NULL (else free()/use of garbage pointers). free(NULL) is safe.
+    beaconlist_stage->ssids = (char**)calloc(ssid_count, sizeof(char*));
     if(beaconlist_stage->ssids == NULL) {
         return NULL;
     }
@@ -507,11 +513,16 @@ WifiMarauderScript* wifi_marauder_script_parse_json(Storage* storage, const char
 
     if(storage_file_open(script_file, file_path, FSAM_READ, FSOM_OPEN_EXISTING)) {
         uint32_t file_size = storage_file_size(script_file);
+        // file_size is attacker-controlled; a large script can fail the alloc.
+        // Guard the NULL (was an unchecked write) and free the buffer (was a leak).
         char* json_buffer = (char*)malloc(file_size + 1);
-        uint16_t bytes_read = storage_file_read(script_file, json_buffer, file_size);
-        json_buffer[bytes_read] = '\0';
+        if(json_buffer != NULL) {
+            size_t bytes_read = storage_file_read(script_file, json_buffer, file_size);
+            json_buffer[bytes_read] = '\0';
 
-        script = wifi_marauder_script_parse_raw(json_buffer);
+            script = wifi_marauder_script_parse_raw(json_buffer);
+            free(json_buffer);
+        }
     }
     if(script == NULL) {
         script = wifi_marauder_script_create(furi_string_get_cstr(script_name));

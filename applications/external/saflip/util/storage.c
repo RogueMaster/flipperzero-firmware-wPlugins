@@ -62,6 +62,9 @@ bool saflip_load_file(SaflipApp* app, const char* path) {
             app->uid_len = temp_uint32;
         } else
             break;
+        // app->uid is malloc'd to ISO14443_3A_MAX_UID_SIZE (10); a file-supplied
+        // larger "UID Length" would overflow it in the read_hex below.
+        if(app->uid_len > 10) app->uid_len = 10;
         if(!flipper_format_read_hex(file, "UID", app->uid, app->uid_len)) break;
 
         if(flipper_format_read_uint32(file, "Format", &temp_uint32, 1)) {

@@ -276,7 +276,7 @@ void uart_demo_process_line(FuriString* Line, void* Context) {
     // Wait for the number of tags read
     case UHFReaderStateWaitForNumber:
         App->NumberOfEpcsToRead = atoi(furi_string_get_cstr(Line));
-        memset(App->EpcValues, 0, 127 * 26);
+        memset(App->EpcValues, 0, 50 * 26);
         App->State = UHFReaderStateCollectEPCs;
         break;
 
@@ -295,21 +295,21 @@ void uart_demo_process_line(FuriString* Line, void* Context) {
     // Wait for the number of TIDs read
     case UHFReaderStateWaitForTID:
         App->NumberOfTidsToRead = atoi(furi_string_get_cstr(Line));
-        memset(App->TidValues, 0, 127 * 41);
+        memset(App->TidValues, 0, 50 * 41);
         App->State = UHFReaderStateCollectTIDs;
         break;
 
     // Wait for number of reserved reads
     case UHFReaderStateWaitForRES:
         App->NumberOfResToRead = atoi(furi_string_get_cstr(Line));
-        memset(App->ResValues, 0, 127 * 17);
+        memset(App->ResValues, 0, 50 * 17);
         App->State = UHFReaderStateCollectRESs;
         break;
 
     // Wait for number of user reads
     case UHFReaderStateWaitForMEM:
         App->NumberOfMemToRead = atoi(furi_string_get_cstr(Line));
-        memset(App->MemValues, 0, 127 * 33);
+        memset(App->MemValues, 0, 50 * 33);
         App->State = UHFReaderStateCollectMEMs;
         break;
 

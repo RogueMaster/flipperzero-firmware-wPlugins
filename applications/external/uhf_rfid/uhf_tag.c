@@ -55,6 +55,7 @@ void uhf_tag_set_epc_crc(UHFTag* uhf_tag, uint16_t crc) {
 }
 
 void uhf_tag_set_epc(UHFTag* uhf_tag, uint8_t* data_in, size_t size) {
+    if(size > MAX_BANK_SIZE) size = MAX_BANK_SIZE; // never overrun the fixed bank buffer
     memcpy(uhf_tag->epc->data, data_in, size);
     uhf_tag->epc->size = size;
 }
@@ -64,6 +65,7 @@ void uhf_tag_set_epc_size(UHFTag* uhf_tag, size_t size) {
 }
 
 void uhf_tag_set_tid(UHFTag* uhf_tag, uint8_t* data_in, size_t size) {
+    if(size > MAX_BANK_SIZE) size = MAX_BANK_SIZE; // never overrun the fixed bank buffer
     memcpy(uhf_tag->tid->data, data_in, size);
     uhf_tag->tid->size = size;
 }
@@ -73,6 +75,7 @@ void uhf_tag_set_tid_size(UHFTag* uhf_tag, size_t size) {
 }
 
 void uhf_tag_set_user(UHFTag* uhf_tag, uint8_t* data_in, size_t size) {
+    if(size > MAX_BANK_SIZE) size = MAX_BANK_SIZE; // never overrun the fixed bank buffer
     memcpy(uhf_tag->user->data, data_in, size);
     uhf_tag->user->size = size;
 }

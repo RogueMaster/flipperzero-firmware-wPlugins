@@ -434,6 +434,10 @@ char* get_json_value(const char* key, const char* json_data) {
         // Loop through the tokens to find the key
         for(int i = 1; i < ret; i++) {
             if(jsoneq(json_data, &tokens[i], key) == 0) {
+                if(i + 1 >= ret) {
+                    free(tokens);
+                    return NULL;
+                }
                 // We found the key. Now, return the associated value.
                 int length = tokens[i + 1].end - tokens[i + 1].start;
                 char* value = malloc(length + 1);

@@ -380,7 +380,12 @@ char* get_navigo_station(
 }
 
 char* get_navigo_train_sector(int station_group_id) {
-    // group id is in format XY where X is the sector
+    // group id is in format XY where X is the sector. station_group_id is derived
+    // from a 16-bit card field, so station_group_id/10 can reach 12 while the list
+    // has only 8 entries -> OOB read + strdup of a garbage pointer.
+    if(station_group_id < 0 || (unsigned)(station_group_id / 10) >= 8) {
+        return strdup("Unknown");
+    }
     const char* station_name = NAVIGO_SNCF_SECTORS_LIST[station_group_id / 10];
     return strdup(station_name);
 }

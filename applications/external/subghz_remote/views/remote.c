@@ -93,6 +93,9 @@ void subrem_view_remote_update_data_labels(
                     model->labels[i],
                     furi_string_get_cstr(labels[i]),
                     SUBREM_VIEW_REMOTE_MAX_LABEL_LENGTH);
+                // strncpy doesn't terminate when the source is >= max; the buffer is
+                // MAX_LABEL_LENGTH+1, so index MAX is in bounds and forces a NUL.
+                model->labels[i][SUBREM_VIEW_REMOTE_MAX_LABEL_LENGTH] = '\0';
             }
         },
         true);

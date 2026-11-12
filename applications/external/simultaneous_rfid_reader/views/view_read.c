@@ -551,14 +551,19 @@ bool uhf_reader_view_read_custom_event_callback(uint32_t event, void* context) {
         char* TempPc = uint16_to_hex_string(TestTag->epc->pc);
 
         //If any of the banks returned empty, create visual placeholders to indicate to the user that something failed to read.
-        if(strcmp(TempUser, " ") == 0 || TempUser == NULL) {
-            TempUser = "XXXXXXXX";
+        // Check NULL first (strcmp(NULL,...) would crash), and replace the heap
+        // placeholder with a heap copy so the free() below never frees a literal.
+        if(TempUser == NULL || strcmp(TempUser, " ") == 0) {
+            free(TempUser);
+            TempUser = strdup("XXXXXXXX");
         }
-        if(strcmp(TempTid, " ") == 0 || TempTid == NULL) {
-            TempTid = "XXXXXXXX";
+        if(TempTid == NULL || strcmp(TempTid, " ") == 0) {
+            free(TempTid);
+            TempTid = strdup("XXXXXXXX");
         }
-        if(strcmp(TempRes, " ") == 0 || TempRes == NULL) {
-            TempRes = "XXXXXXXX";
+        if(TempRes == NULL || strcmp(TempRes, " ") == 0) {
+            free(TempRes);
+            TempRes = strdup("XXXXXXXX");
         }
         App->CurEpcIndex = 26;
         App->NumberOfEpcsToRead = 1;

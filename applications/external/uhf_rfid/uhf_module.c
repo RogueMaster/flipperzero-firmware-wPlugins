@@ -132,6 +132,10 @@ M100ResponseType m100_single_poll(M100Module* module, UHFTag* uhf_tag) {
     // get protocol control
     pc <<= 8;
     pc += data[7];
+    // Ensure the response actually contains the EPC + CRC bytes we index below.
+    if(uhf_buffer_get_size(module->uart->buffer) < (size_t)(8 + epc_len + 2)) {
+        return M100ValidationFail;
+    }
     // get cyclic redundency check
     crc = data[8 + epc_len];
     crc <<= 8;
@@ -253,7 +257,16 @@ M100ResponseType m100_read_label_data_storage(
     }
 
     size_t ptr_offset = 5 /*<-ptr offset*/ + uhf_tag_get_epc_size(uhf_tag) + 3 /*<-pc + ul*/;
+    // payload_len is tag-controlled (up to 65535). Guard the subtraction against
+    // underflow (which would make bank_data_length ~SIZE_MAX) and clamp the copy
+    // to both the actually-received data and the destination bank buffer, so a
+    // crafted/short response cannot overrun the rx buffer or the tag buffers.
+    if(payload_len < (ptr_offset - 5)) return M100ValidationFail;
     size_t bank_data_length = payload_len - (ptr_offset - 5 /*dont include the offset*/);
+    size_t received = uhf_buffer_get_size(module->uart->buffer);
+    if(ptr_offset >= received) return M100ValidationFail;
+    if(bank_data_length > received - ptr_offset) bank_data_length = received - ptr_offset;
+    if(bank_data_length > MAX_BANK_SIZE) bank_data_length = MAX_BANK_SIZE;
 
     if(bank == TIDBank) {
         uhf_tag_set_tid(uhf_tag, data + ptr_offset, bank_data_length);
