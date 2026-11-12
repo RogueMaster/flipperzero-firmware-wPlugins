@@ -1300,7 +1300,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [UID Brute Smarter v1.1 (By fbettag)](https://github.com/fbettag/uid_brute_smarter)
 - [UL-C Bruteforce Optimized v1.0 (By noproto)](https://github.com/zc-public/breakme-resources/tree/main/flipper_apps)
 - [UL-C Relay v1.0 (By noproto)](https://github.com/zc-public/breakme-resources/tree/main/flipper_apps)
-- [ULCFKey Recovery v2.3 (By rohanday3; based on ULCFKey By noproto)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/pull/1212)
+- [ULCFKey Recovery v2.3 (By rohanday3; based on ULCFKey By noproto)](https://github.com/rohanday3/ulcfkey-recovery)
 - [ULCFKey Next v1.0 (By noproto)](https://github.com/zc-public/breakme-resources/tree/main/flipper_apps)
 - [ULCFKey v1.0 (By noproto)](https://github.com/zc-public/breakme-resources/tree/main/flipper_apps)
 - [Unbank BTCLN QR Generator v1.0 (By shanzy39)](https://github.com/shanzy39/Unbank-BTCLN-QR-Generator)
