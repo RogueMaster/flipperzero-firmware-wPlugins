@@ -11,7 +11,7 @@ export const PROFILE = {
         "🔥 CPU and GPU temperature and load over your limits, with the value and the limit\n" +
         "🔗 Link a PC in 1 minute: /link, then one command on the PC\n" +
         "🆓 Free: 1 PC, 10 alerts a day. Pro 99 ⭐ / 30 days: up to 5 PCs, unlimited alerts\n\n" +
-        "The PC app is free and open source (MIT). No message text or keys in logs.",
+        "The PC app is free and open source (MIT). No message text or keys in logs.\n✉️ support@pchealthremote.com",
     },
     uk: {
       short: "Сповіщення з вашого ПК у Telegram: температура й навантаження CPU/GPU понад ліміт. Безкоштовний застосунок, MIT.",
@@ -20,7 +20,7 @@ export const PROFILE = {
         "🔥 Температура й навантаження CPU та GPU понад ваші ліміти, зі значенням і лімітом\n" +
         "🔗 Прив’язка ПК за 1 хвилину: /link, потім одна команда на ПК\n" +
         "🆓 Безкоштовно: 1 ПК, 10 сповіщень на день. Pro 99 ⭐ / 30 днів: до 5 ПК, без ліміту\n\n" +
-        "Застосунок для ПК безкоштовний і відкритий (MIT). Бот відповідає англійською.",
+        "Застосунок для ПК безкоштовний і відкритий (MIT). Бот відповідає англійською.\n✉️ support@pchealthremote.com",
     },
     ru: {
       short: "Уведомления с вашего ПК в Telegram: температура и нагрузка CPU/GPU выше лимита. Бесплатное приложение, MIT.",
@@ -29,7 +29,7 @@ export const PROFILE = {
         "🔥 Температура и нагрузка CPU и GPU выше ваших лимитов, со значением и лимитом\n" +
         "🔗 Привязка ПК за 1 минуту: /link, затем одна команда на ПК\n" +
         "🆓 Бесплатно: 1 ПК, 10 уведомлений в день. Pro 99 ⭐ / 30 дней: до 5 ПК, без лимита\n\n" +
-        "Приложение для ПК бесплатное и открытое (MIT). Логи без текста сообщений и ключей.",
+        "Приложение для ПК бесплатное и открытое (MIT). Логи без текста сообщений и ключей.\n✉️ support@pchealthremote.com",
     },
   },
 };

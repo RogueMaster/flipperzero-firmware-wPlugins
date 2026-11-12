@@ -369,6 +369,16 @@ test("/paysupport, /terms, /support answer in EN and RU", async () => {
   assert.match(s.sent.at(-1).text, /\/help/);
 });
 
+test("support@pchealthremote.com in /help, /commands, /terms, /support (EN, RU) and in every profile description", async () => {
+  const s = setup();
+  for (const lang of ["en", "ru"]) for (const cmd of ["/help", "/commands", "/terms", "/support"]) {
+    await s.say(cmd, { language_code: lang }, 7);
+    assert.ok(s.sent.at(-1).text.includes("support@pchealthremote.com"), lang + " " + cmd);
+  }
+  const { PROFILE } = await import("./profile.js");
+  for (const p of Object.values(PROFILE.langs)) assert.ok(p.description.includes("support@pchealthremote.com") && p.description.length <= 512);
+});
+
 test("PC limit: free user is told in chat with a Pro offer; Pro user without offer", async () => {
   const s = setup();
   await pair(s, "A");

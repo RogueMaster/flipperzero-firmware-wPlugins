@@ -21,6 +21,7 @@ The same alert repeats at most every 5 minutes while the condition lasts.
 
 **Privacy.** The bot stores only: chat id, language, the source tag from the start link, device keys, PC names,
 daily counters and payment records. No temperatures history, no message text in logs. `/unlink` deletes a device key.
+Questions about your data or deletion requests: [support@pchealthremote.com](mailto:support@pchealthremote.com).
 
 ## For the maintainer (deploy)
 

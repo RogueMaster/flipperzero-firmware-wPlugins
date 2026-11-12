@@ -113,6 +113,8 @@ Get the same alerts on your phone in Telegram, no Flipper needed. Bot: **@PCHeal
 
 Details and privacy: [docs/TELEGRAM.md](docs/TELEGRAM.md).
 
+Contact: [support@pchealthremote.com](mailto:support@pchealthremote.com) (bugs and ideas also welcome as [issues](https://github.com/ataman-lab/pc-health-remote/issues)).
+
 ## Command-line reference
 
 ```
