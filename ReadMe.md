@@ -309,6 +309,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - NFC: [Fix third-party NFC apps reading the wrong NTAG/Ultralight pages (Weebo Wrong password on every amiibo) - the Ultralight AES fields no longer sit in the middle of `MfUltralightData` (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/25d23c93fa2f2451e3040486f5c56b79ea93e54d)
 - Sub-GHz: [DEA Mio discriminator preservation and Advanced Add Manually discriminator/TE input; restore full-history receive feedback (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/d2754d73e09f1da39bbc909dddcdce4579f8e591)
 - Updated: [AmiiTool: add the Zelda & Loftwing name alias (By Firefox2100)](https://github.com/Firefox2100/flipper-amiibo-toolkit/commit/2a5abb3558e8bb919940cd7aaccb15ec51eb08b1)
+- Sub-GHz: [Add Manually system list with frequency/modulation selection and protocol-sized Advanced key input (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/c16f66d8ea59ceea92d6c04d3ec4369d8319e059)
 
 <a name="release"></a>
 

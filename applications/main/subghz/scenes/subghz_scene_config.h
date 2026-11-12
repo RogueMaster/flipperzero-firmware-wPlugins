@@ -21,6 +21,7 @@ ADD_SCENE(subghz, signal_settings, SignalSettings)
 ADD_SCENE(subghz, signal_inspector, SignalInspector)
 #else
 ADD_SCENE(subghz, set_type, SetType)
+ADD_SCENE(subghz, set_freq, SetFreq)
 ADD_SCENE(subghz, set_key, SetKey)
 ADD_SCENE(subghz, set_serial, SetSerial)
 ADD_SCENE(subghz, set_button, SetButton)
