@@ -17,3 +17,6 @@ Admin-only `/stats`, `/refund <charge_id>` and `/setcommands` (fills the bot men
 ## Test
 
     cd telegram && node --test
+
+## Support department
+`/support` (and the 💬 Support button) sends the message to the overclock-lab support desk (`infra/hq-desk`): an AI answers at once, Vlad is alerted when a human is needed, his answers come back via `POST /hq-reply` (header `x-hq-token`). Active only when the `HQ` service binding and the `HQ_TOKEN` secret exist (see `wrangler.toml`); otherwise `/support` shows the issues link. Shared helper: `hq-client.js` (copy of overclock-lab `infra/hq-desk/client.js`).
