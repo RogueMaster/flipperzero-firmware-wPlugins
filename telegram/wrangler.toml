@@ -30,9 +30,8 @@ simple = { limit = 5, period = 60 }
 #   WEBHOOK_SECRET  - derived in the workflow from BOT_TOKEN, passed as secret_token to setWebhook
 #   ADMIN_CHAT_ID   - Vlad's Telegram chat id, enables /stats and /refund
 
-# Support department (overclock-lab infra/hq-desk). Uncomment after hq-desk is deployed (a binding to a missing
-# Worker fails the deploy), and add HQ_TOKEN (hq-desk deploy.ps1 sets it on this Worker). Without it /support keeps
-# the GitHub issues link and /paysupport stays as it is.
-# [[services]]
-# binding = "HQ"
-# service = "hq-desk"
+# Support department (overclock-lab infra/hq-desk, deployed 2026-11-11). HQ_TOKEN is set on this Worker by
+# hq-desk deploy.ps1. Rollback: comment these 3 lines out again; /support then falls back to the GitHub issues link.
+[[services]]
+binding = "HQ"
+service = "hq-desk"
