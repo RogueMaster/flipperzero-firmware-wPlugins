@@ -3,6 +3,7 @@
 // Logs never contain keys or message text.
 
 import { hitCounter } from "./alert-counter.js";
+import { supportTicket, supportCopy, readHqReply, hqOn, SUPPORT_WINDOW_MS } from "./hq-client.js";
 import { applyProfile, autoProfile } from "./bot-profile.js";
 import { PROFILE } from "./profile.js";
 import { AVATARS } from "./avatar.js";
@@ -385,11 +386,23 @@ async function getUser(kv, chat) {
 }
 
 // One private message to the admin per /paysupport (window SUPPORT_WINDOW_SEC). Other free text is ignored.
+// Support department (overclock-lab infra/hq-desk): AI answers at once, Vlad is alerted when a human is needed.
+async function hqTicket(env, f, chat, user, text, msg) {
+  const reply = await supportTicket(env, { src: "pchealth", lang: user.lang, uid: chat, text, key: chat + ":" + (msg.message_id || msg.date || "") });
+  await send(env, f, chat, reply);
+}
+
 async function handleSupportText(msg, env, f, now) {
   const chat = msg.chat.id;
-  if (!(chat > 0) || !env.ADMIN_CHAT_ID) return;
+  if (!(chat > 0)) return;
   const kv = env.PHR;
   const user = await getUser(kv, chat);
+  if (hqOn(env) && user.sup && user.sup > now()) {
+    delete user.sup; // one ticket per /support
+    await kv.put("user:" + chat, JSON.stringify(user));
+    return hqTicket(env, f, chat, user, msg.text, msg);
+  }
+  if (!env.ADMIN_CHAT_ID) return;
   if (!user.ask || user.ask <= now()) return;
   delete user.ask; // one message per /paysupport
   await kv.put("user:" + chat, JSON.stringify(user));
@@ -435,8 +448,20 @@ async function handleMessage(msg, env, f, now) {
     await sendWithOffer(env, f, chat, t);
   } else if (cmd === "/paysupport") {
     user.ask = now() + SUPPORT_WINDOW_SEC * 1000;
+    delete user.sup; // a payment question goes to the admin /reply flow, never to the AI desk
     await kv.put("user:" + chat, JSON.stringify(user));
     await send(env, f, chat, t.paysupport);
+  } else if (cmd === "/support" && hqOn(env)) {
+    const body = text.trim().replace(/^\S+\s*/, "");
+    if (body) {
+      // An inline ticket closes any open window, so the next plain message is not sent again (AI desk or payment admin).
+      if (user.sup || user.ask) { delete user.sup; delete user.ask; await kv.put("user:" + chat, JSON.stringify(user)); }
+      return hqTicket(env, f, chat, user, body, msg);
+    }
+    user.sup = now() + SUPPORT_WINDOW_MS;
+    delete user.ask;
+    await kv.put("user:" + chat, JSON.stringify(user));
+    await send(env, f, chat, supportCopy(user.lang).ask);
   } else if (cmd === "/terms" || cmd === "/support") {
     await send(env, f, chat, t[cmd.slice(1)]);
   } else if (cmd === "/reply" && isAdmin(env, chat)) {
@@ -591,6 +616,12 @@ export async function handle(req, env, { fetch: f = fetch, now = Date.now } = {}
   if (req.method === "POST" && pathname === "/tg") return handleWebhook(req, env, f, now);
   if (req.method === "POST" && pathname === "/pair") return handlePair(req, env, f, now);
   if (req.method === "POST" && pathname === "/alert") return handleAlert(req, env, f, now);
+  if (req.method === "POST" && pathname === "/hq-reply") {
+    // Vlad's answer to a support ticket, from hq-desk (service binding, x-hq-token).
+    const r = await readHqReply(req, env);
+    if (r instanceof Response) return r;
+    return (await send(env, f, r.uid, "💬 " + r.text)) ? json({ ok: true }) : json({ error: "delivery failed" }, 502);
+  }
   return json({ error: "not found" }, 404);
 }
 
