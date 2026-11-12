@@ -180,6 +180,10 @@ static void subghz_scene_add_to_history_callback(
     if(subghz->last_settings->delete_old_signals) {
         const uint16_t deleted =
             subghz_scene_receiver_delete_old_signals(subghz, decoder_base->protocol->type);
+        // Preserve a pending receive beep while old entries are removed.
+        if(deleted != 0 && subghz->state_notifications == SubGhzNotificationStateIDLE) {
+            subghz->state_notifications = SubGhzNotificationStateRx;
+        }
         idx -= deleted;
         if(idx == 0) subghz_rx_key_state_set(subghz, SubGhzRxKeyStateStart);
     }
@@ -264,10 +268,12 @@ static void subghz_scene_add_to_history_callback(
             }
         }
         subghz_rx_key_state_set(subghz, SubGhzRxKeyStateAddKey);
-    } else if(
-        !subghz->last_settings->delete_old_signals &&
-        subghz_history_is_full(history, decoder_base->protocol->type)) {
-        subghz->state_notifications = SubGhzNotificationStateIDLE;
+    } else if(subghz_history_is_full(history, decoder_base->protocol->type)) {
+        // A refused signal must also warn when deleting could not free enough memory.
+        // Leave RX running in that mode: the next signal may still fit.
+        if(!subghz->last_settings->delete_old_signals) {
+            subghz->state_notifications = SubGhzNotificationStateIDLE;
+        }
         subghz_scene_receiver_update_statusbar(subghz);
         notification_message(subghz->notifications, &sequence_error);
     }

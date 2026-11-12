@@ -85,6 +85,7 @@ typedef enum {
     SubGhzViewIdVariableItemList,
     SubGhzViewIdFrequencyAnalyzer, // Registered by the analyzer plugin, not by the app
     SubGhzViewIdReadRAW,
+    SubGhzViewIdNumberInput, // Registered by the Add Manually TE scene
 
 } SubGhzViewId;
 

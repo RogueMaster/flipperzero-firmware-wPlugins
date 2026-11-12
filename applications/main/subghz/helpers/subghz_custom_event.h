@@ -74,6 +74,7 @@ typedef enum {
     SubGhzCustomEventViewRepeaterStop,
 
     SubGhzCustomEventByteInputDone,
+    SubGhzCustomEventNumberInputDone,
 } SubGhzCustomEvent;
 
 typedef enum {

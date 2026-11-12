@@ -26,6 +26,39 @@ typedef struct {
 
 static const uint32_t mf_ultralight_data_format_version = 2;
 
+// Precompiled FAPs (the app catalog builds against upstream headers) index MfUltralightData.page[]
+// themselves, so a field inserted ahead of it silently shifts every page a FAP reads - which is how
+// the UL-AES signature fields once made every amiibo dump fail its PWD check. Keep additions after
+// auth_attempts; the asserts below pin every upstream field to the offset this reference copy of
+// the upstream field order gives it, so padding and compiler flags cannot skew the comparison.
+typedef struct {
+    Iso14443_3aData* iso14443_3a_data;
+    MfUltralightType type;
+    MfUltralightVersion version;
+    MfUltralightSignature signature;
+    MfUltralightCounter counter[MF_ULTRALIGHT_COUNTER_NUM];
+    MfUltralightTearingFlag tearing_flag[MF_ULTRALIGHT_TEARING_FLAG_NUM];
+    MfUltralightPage page[MF_ULTRALIGHT_MAX_PAGE_NUM];
+    uint16_t pages_read;
+    uint16_t pages_total;
+    uint32_t auth_attempts;
+} MfUltralightDataUpstreamLayout;
+
+#define MF_ULTRALIGHT_ASSERT_UPSTREAM_OFFSET(field)                                           \
+    _Static_assert(                                                                           \
+        offsetof(MfUltralightData, field) == offsetof(MfUltralightDataUpstreamLayout, field), \
+        "MfUltralightData." #field " moved: breaks precompiled FAPs")
+
+MF_ULTRALIGHT_ASSERT_UPSTREAM_OFFSET(counter);
+MF_ULTRALIGHT_ASSERT_UPSTREAM_OFFSET(tearing_flag);
+MF_ULTRALIGHT_ASSERT_UPSTREAM_OFFSET(page);
+MF_ULTRALIGHT_ASSERT_UPSTREAM_OFFSET(pages_read);
+MF_ULTRALIGHT_ASSERT_UPSTREAM_OFFSET(pages_total);
+MF_ULTRALIGHT_ASSERT_UPSTREAM_OFFSET(auth_attempts);
+_Static_assert(
+    offsetof(MfUltralightData, aes_signature_present) > offsetof(MfUltralightData, auth_attempts),
+    "Unleashed-only MfUltralightData fields must stay after auth_attempts");
+
 static const MfUltralightFeatures mf_ultralight_features[MfUltralightTypeNum] = {
     [MfUltralightTypeOrigin] =
         {

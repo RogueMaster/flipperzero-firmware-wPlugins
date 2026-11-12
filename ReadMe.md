@@ -306,6 +306,9 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Network Defender v1.2.1 (By w84death)](https://github.com/w84death/network-defender)
 - Updated: [Moon Phases v1.2 (By w84death)](https://github.com/w84death/moon-phases)
 - Added: [ULCFKey Recovery v2.3 (By rohanday3; based on ULCFKey By noproto)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/pull/1212)
+- NFC: [Fix third-party NFC apps reading the wrong NTAG/Ultralight pages (Weebo Wrong password on every amiibo) - the Ultralight AES fields no longer sit in the middle of `MfUltralightData` (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/25d23c93fa2f2451e3040486f5c56b79ea93e54d)
+- Sub-GHz: [DEA Mio discriminator preservation and Advanced Add Manually discriminator/TE input; restore full-history receive feedback (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/d2754d73e09f1da39bbc909dddcdce4579f8e591)
+- Updated: [AmiiTool: add the Zelda & Loftwing name alias (By Firefox2100)](https://github.com/Firefox2100/flipper-amiibo-toolkit/commit/2a5abb3558e8bb919940cd7aaccb15ec51eb08b1)
 
 <a name="release"></a>
 
