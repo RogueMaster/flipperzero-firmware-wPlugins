@@ -2,6 +2,7 @@ App(
     appid="tag_duplicate",
     name="TagDuplicate",
     apptype=FlipperAppType.EXTERNAL,
+    targets=["f7"],
     entry_point="tag_duplicate_app",
     stack_size=6 * 1024,
     fap_icon="tag_duplicate.png",
