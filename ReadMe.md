@@ -13,7 +13,7 @@ Apps contains changes needed to compile them on latest firmware, fixes has been 
 
 The Flipper and its community wouldn't be as rich as it is without your contributions and support. Thank you for all you have done.
 
-### Apps checked & updated at `2 Nov 15:51 GMT +3`
+### Apps checked & updated at `13 Nov 03:29 GMT +3`
 
 
 # Default pack
@@ -269,7 +269,7 @@ The Flipper and its community wouldn't be as rich as it is without your contribu
 | Fake Chip Detector | ![GPIO Badge] | [by hleserg](https://github.com/hleserg/flipper-fake-chip-detector) | Reads an I2C sensor's factory ID register to tell whether it really is the chip it was sold as | ![None Badge] |
 | I2C BMS Reader | ![GPIO Badge] | [by gazirov](https://github.com/gazirov/battery_reader) | SBS battery reader/service tool for TI BQ30/BQ40 controllers (via I2C) | ![None Badge] |
 | YRM100X PRO UHF RFID | ![GPIO Badge] | [by AlexeySmirnov74](https://github.com/AlexeySmirnov74/YRM100X_PRO) | UHF RFID read, write, clone, lock and kill toolkit for the YRM100X module | [![Author Badge]](https://lab.flipper.net/apps/yrm100x_pro) |
-| UHF Expansion | ![GPIO Badge] | [by MTools Tec](https://github.com/mtoolstec/fz-uhf-expansion) | UHF RFID inventory, tag memory read/write, EPC filtering and saved-tag library for the MTools UHF expansion board | [![Author Badge]](https://lab.flipper.net/apps/uhf_expansion) |
+| UHF Expansion | ![GPIO Badge] | [by MTools Tec](https://github.com/mtoolstec/fz-uhf-expansion) | UHF RFID inventory, tag memory read/write, EPC filtering, region/frequency presets (FCC, ETSI, CHN, custom) and saved-tag library for the MTools UHF expansion board | [![Author Badge]](https://lab.flipper.net/apps/uhf_expansion) |
 | Telink SWS | ![GPIO Badge] | [by ngxson](https://github.com/ngxson/flipper-telink) | SWire (SWS) master for Telink TLSR chips - probe, read RAM/registers and dump SPI flash over bitbang, driven from the `sws` CLI command | [![Author Badge]](https://lab.flipper.net/apps/telink_sws) |
 | Pwnpal | ![GPIO Badge] | [by mrq1911](https://github.com/mrq1911/pwnpal) | A full pwnagotchi on Flipper + ESP32 - befriends other pwnagotchis over pwngrid, captures WPA/WPA2 handshakes & PMKIDs, de-cloaks hidden SSIDs and GPS wardrives | ![None Badge] |
 | SH1106 Test | ![GPIO Badge] | [by gbhobbytech](https://github.com/gbhobbytech/ssd1306_test/tree/sh1106-development) | SH1106 128x64 I2C OLED diagnostics - clock/status board, test patterns, I2C scanner, FPS benchmark and software scrolling (a port of SSD1306 Test by martin bogomolni) | [![Author Badge]](https://lab.flipper.net/apps/gbhobbytech_sh1106_test) |

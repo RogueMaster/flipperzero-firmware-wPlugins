@@ -24,6 +24,7 @@
 #include <ctype.h>
 
 #include "uhf_protocol.h"
+#include "uhf_frequency.h"
 #include "uhf_tag.h"
 #include "uhf_types.h"
 #include "uhf_settings.h"
@@ -44,6 +45,8 @@
 #define UHF_CMD_SAVE_PARAMS   0x4AU
 #define UHF_CMD_SET_BUZZER    0x7AU
 #define UHF_CMD_GET_POWER     0x77U
+#define UHF_CMD_SET_FREQUENCY 0x78U
+#define UHF_CMD_GET_FREQUENCY 0x79U
 #define UHF_CMD_GET_TEMP      0x7BU
 #define UHF_CMD_GET_UUID      0xF3U
 #define UHF_CMD_START_INV     0x89U
@@ -141,6 +144,27 @@ typedef enum {
 } UhfPage;
 
 typedef struct {
+    bool sound;
+    bool indicator;
+    uint8_t power;
+    UhfStartupApp startup;
+    UhfEpcDisplay display;
+    bool confirm;
+    UhfFrequency frequency;
+} UhfSettingsSnapshot;
+
+typedef enum {
+    UhfReaderIndicator,
+    UhfReaderRegion,
+    UhfReaderStart,
+    UhfReaderSpacing,
+    UhfReaderCount,
+    UhfReaderPower,
+    UhfReaderReset,
+    UhfReaderRowCount,
+} UhfReaderSetting;
+
+typedef struct {
     Gui* gui;
     ViewPort* view_port;
     NotificationApp* notifications;
@@ -216,6 +240,22 @@ typedef struct {
     uint8_t main_menu_top_row;
     uint8_t settings_selected;
     bool settings_reader_mode;
+    UhfSettingsSnapshot settings_initial;
+    UhfSettingsSnapshot settings_draft;
+    UhfFrequency reader_frequency;
+    UhfFrequency custom_frequency;
+    bool frequency_valid;
+    bool reader_frequency_valid;
+    uint8_t settings_region_choice;
+    bool settings_save_prompt;
+    bool settings_hardware_changed;
+    uint8_t settings_apply_mask;
+    bool settings_power_valid;
+    bool settings_message_active;
+    bool settings_number_edit;
+    uint32_t settings_number_value;
+    uint8_t settings_number_digit;
+    char settings_error[32];
     UhfStartupApp startup_app;
     bool action_confirm;
     UhfEpcDisplay epc_display;
@@ -485,7 +525,9 @@ static void uhf_close_serial(UhfApp* app);
 static bool uhf_open_bridge_uart(UhfApp* app);
 static void uhf_set_startup_text(UhfApp* app, const char* text, const char* subtext, uint8_t dots);
 static void uhf_load_settings(UhfApp* app);
-static bool uhf_save_settings(const UhfApp* app);
+static void uhf_settings_begin(UhfApp* app, bool reader);
+static bool uhf_handle_settings(UhfApp* app, const InputEvent* input);
+static bool uhf_save_settings_snapshot(const UhfSettingsSnapshot* settings);
 static void uhf_load_key_vault(UhfApp* app);
 static bool uhf_save_key_vault(const UhfApp* app);
 static bool uhf_epc_hex_to_ascii(const char* epc_hex, char* out, size_t out_size);
@@ -2835,7 +2877,8 @@ static void uhf_handle_frame(UhfApp* app, const uint8_t* frame, size_t frame_siz
 
     if(cmd == UHF_CMD_READ_TAG || cmd == UHF_CMD_WRITE_TAG || cmd == UHF_CMD_LOCK_TAG ||
        cmd == UHF_CMD_SET_EPC_MATCH || cmd == UHF_CMD_SET_POWER || cmd == UHF_CMD_SAVE_PARAMS ||
-       cmd == UHF_CMD_SET_BUZZER || cmd == UHF_CMD_RESET || cmd == UHF_CMD_GET_UUID) {
+       cmd == UHF_CMD_SET_BUZZER || cmd == UHF_CMD_RESET || cmd == UHF_CMD_GET_UUID ||
+       cmd == UHF_CMD_GET_FREQUENCY || cmd == UHF_CMD_SET_FREQUENCY) {
         FURI_LOG_I(
             TAG,
             "Tag RX cmd=%02X len=%lu cs=%s raw=%s",
@@ -2847,7 +2890,8 @@ static void uhf_handle_frame(UhfApp* app, const uint8_t* frame, size_t frame_siz
 
     if(cmd == UHF_CMD_READ_TAG || cmd == UHF_CMD_WRITE_TAG || cmd == UHF_CMD_LOCK_TAG ||
        cmd == UHF_CMD_SET_EPC_MATCH || cmd == UHF_CMD_SET_POWER || cmd == UHF_CMD_SAVE_PARAMS ||
-       cmd == UHF_CMD_SET_BUZZER || cmd == UHF_CMD_RESET || cmd == UHF_CMD_GET_UUID) {
+       cmd == UHF_CMD_SET_BUZZER || cmd == UHF_CMD_RESET || cmd == UHF_CMD_GET_UUID ||
+       cmd == UHF_CMD_GET_FREQUENCY || cmd == UHF_CMD_SET_FREQUENCY) {
         const size_t copied = data_len > sizeof(app->tag_reply) ? sizeof(app->tag_reply) :
                                                                   data_len;
         if(copied) memcpy(app->tag_reply, data, copied);
@@ -3553,9 +3597,7 @@ static void uhf_enter_feature(UhfApp* app, uint8_t feature) {
         uhf_set_status(app, "Select key slot");
         break;
     case 7:
-        app->page = UhfPageSettings;
-        app->settings_reader_mode = false;
-        app->settings_selected = 0U;
+        uhf_settings_begin(app, false);
         break;
     default:
         uhf_enter_about_page(app);
@@ -3996,35 +4038,127 @@ static void uhf_draw_ascii(Canvas* canvas, UhfApp* app) {
 }
 
 static void uhf_draw_settings(Canvas* canvas, UhfApp* app) {
+    canvas_set_font(canvas, FontPrimary);
+    if(app->settings_message_active) {
+        uhf_draw_centered_text(canvas, 12, "Reader Settings");
+        canvas_set_font(canvas, FontSecondary);
+        uhf_draw_centered_text(canvas, 34, app->settings_error);
+        uhf_draw_fixed_center_button(canvas, "OK");
+        return;
+    }
+    if(app->settings_save_prompt) {
+        uhf_draw_centered_text(canvas, 17, "Save changes?");
+        canvas_set_font(canvas, FontSecondary);
+        uhf_draw_centered_text(
+            canvas, 34, app->settings_error[0] ? app->settings_error : "Back: keep editing");
+        elements_button_left(canvas, "Discard");
+        elements_button_right(canvas, "Save");
+        return;
+    }
+    if(app->settings_number_edit) {
+        const bool start = app->settings_selected == UhfReaderStart;
+        uhf_draw_centered_text(
+            canvas,
+            10,
+            start                                      ? "Start (kHz)" :
+            app->settings_selected == UhfReaderSpacing ? "Spacing (kHz)" :
+                                                         "Channels");
+        char number[12];
+        const unsigned digits = start ? 6U : app->settings_selected == UhfReaderSpacing ? 5U : 3U;
+        snprintf(
+            number, sizeof(number), "%0*lu", digits, (unsigned long)app->settings_number_value);
+        canvas_set_font(canvas, FontKeyboard);
+        const int x = (128 - canvas_string_width(canvas, number)) / 2;
+        canvas_draw_str(canvas, x, 29, number);
+        char prefix[12];
+        memcpy(prefix, number, app->settings_number_digit);
+        prefix[app->settings_number_digit] = '\0';
+        const int cursor_x = x + canvas_string_width(canvas, prefix);
+        char digit[] = {number[app->settings_number_digit], '\0'};
+        canvas_draw_line(
+            canvas, cursor_x, 32, cursor_x + canvas_string_width(canvas, digit) - 1, 32);
+        canvas_set_font(canvas, FontSecondary);
+        uhf_draw_centered_text(
+            canvas, 44, app->settings_error[0] ? app->settings_error : "L/R digit  U/D +/-");
+        uhf_draw_fixed_center_button(canvas, "Done");
+        return;
+    }
     uhf_draw_centered_text(
         canvas, 9, app->settings_reader_mode ? "Reader Settings" : "App Settings");
     canvas_set_font(canvas, FontSecondary);
     static const char* const app_labels[] = {
         "Sound", "EPC Display", "Startup App", "Action Confirm"};
-    static const char* const reader_labels[] = {"Indicator", "RF Power", "Reset"};
+    static const char* const reader_labels[] = {
+        "Indicator", "Region", "Start MHz", "Space kHz", "Channels", "RF Power", "Reset"};
     const char* const* labels = app->settings_reader_mode ? reader_labels : app_labels;
-    char values[4][20];
+    char values[UhfReaderRowCount][24] = {0};
     if(app->settings_reader_mode) {
+        const UhfFrequency* f = &app->settings_draft.frequency;
+        const bool custom = f->region == UHF_FREQUENCY_REGION_CUSTOM &&
+                            app->settings_region_choice == 4U;
         snprintf(
-            values[0], sizeof(values[0]), "< %s >", app->reader_buzzer_enabled ? "ON" : "OFF");
-        snprintf(values[1], sizeof(values[1]), "< %u dBm >", app->reader_power_dbm);
-        snprintf(values[2], sizeof(values[2]), "Press OK");
+            values[UhfReaderIndicator],
+            sizeof(values[0]),
+            "< %s >",
+            app->settings_draft.indicator ? "ON" : "OFF");
+        snprintf(
+            values[UhfReaderRegion],
+            sizeof(values[0]),
+            "< %s >",
+            app->frequency_valid ?
+                (app->settings_region_choice == 2U && f->region == UHF_FREQUENCY_REGION_CUSTOM ?
+                     "CHN_1*" :
+                     uhf_frequency_region_name(f->region)) :
+                "Query!");
+        if(app->frequency_valid && f->start_khz) {
+            snprintf(
+                values[UhfReaderStart],
+                sizeof(values[0]),
+                custom ? "< %lu.%03lu >" : "%lu.%03lu",
+                (unsigned long)(f->start_khz / 1000U),
+                (unsigned long)(f->start_khz % 1000U));
+            snprintf(
+                values[UhfReaderSpacing],
+                sizeof(values[0]),
+                custom ? "< %u >" : "%u",
+                f->spacing_khz);
+        } else {
+            snprintf(
+                values[UhfReaderStart],
+                sizeof(values[0]),
+                app->frequency_valid ? "Index %u" : "--",
+                f->start_index);
+            snprintf(values[UhfReaderSpacing], sizeof(values[0]), "--");
+        }
+        snprintf(
+            values[UhfReaderCount],
+            sizeof(values[0]),
+            app->frequency_valid && f->count ? (custom ? "< %u >" : "%u") : "--",
+            f->count);
+        snprintf(
+            values[UhfReaderPower],
+            sizeof(values[0]),
+            app->settings_power_valid ? "< %u dBm >" : "Query!",
+            app->settings_draft.power);
+        snprintf(values[UhfReaderReset], sizeof(values[0]), "Hold OK");
     } else {
-        snprintf(values[0], sizeof(values[0]), "< %s >", app->tag_beep_enabled ? "ON" : "OFF");
+        snprintf(values[0], sizeof(values[0]), "< %s >", app->settings_draft.sound ? "ON" : "OFF");
         snprintf(
             values[1],
             sizeof(values[1]),
             "< %s >",
-            app->epc_display == UhfEpcDisplayAscii ? "ASCII" : "HEX");
-        snprintf(values[2], sizeof(values[2]), "< %s >", uhf_startup_names[app->startup_app]);
-        snprintf(values[3], sizeof(values[3]), "< %s >", app->action_confirm ? "Yes" : "No");
+            app->settings_draft.display == UhfEpcDisplayAscii ? "ASCII" : "HEX");
+        snprintf(
+            values[2], sizeof(values[2]), "< %s >", uhf_startup_names[app->settings_draft.startup]);
+        snprintf(
+            values[3], sizeof(values[3]), "< %s >", app->settings_draft.confirm ? "Yes" : "No");
     }
     const size_t total_rows = app->settings_reader_mode ? COUNT_OF(reader_labels) :
                                                           COUNT_OF(app_labels);
-    const size_t visible_rows = 3U;
+    const size_t visible_rows = 4U;
     const size_t top =
         app->settings_selected >= visible_rows ? app->settings_selected - visible_rows + 1U : 0U;
-    for(size_t row = 0U; row < visible_rows; row++) {
+    for(size_t row = 0U; row < visible_rows && top + row < total_rows; row++) {
         const size_t item = top + row;
         const int y = 12 + (int)row * 13;
         if(item == app->settings_selected) {
@@ -4036,9 +4170,7 @@ static void uhf_draw_settings(Canvas* canvas, UhfApp* app) {
             canvas, 120 - canvas_string_width(canvas, values[item]), y + 9, values[item]);
         if(item == app->settings_selected) canvas_set_color(canvas, ColorBlack);
     }
-    elements_scrollbar_pos(canvas, 125, 12, 39, app->settings_selected, total_rows);
-    uhf_draw_fixed_center_button(
-        canvas, app->settings_reader_mode && app->settings_selected == 2U ? "Reset" : "Save");
+    elements_scrollbar_pos(canvas, 125, 12, 52, app->settings_selected, total_rows);
 }
 
 static void uhf_draw_tag_security(Canvas* canvas, UhfApp* app) {
@@ -4915,16 +5047,16 @@ static void uhf_load_settings(UhfApp* app) {
     app->action_confirm = data.action_confirm != 0U;
 }
 
-static bool uhf_save_settings(const UhfApp* app) {
-    if(!app) return false;
+static bool uhf_save_settings_snapshot(const UhfSettingsSnapshot* settings) {
+    if(!settings) return false;
     const UhfSettingsData data = {
         .magic = UHF_SETTINGS_MAGIC,
-        .sound_enabled = app->tag_beep_enabled ? 1U : 0U,
-        .rf_power_dbm = app->reader_power_dbm,
-        .startup_app = (uint8_t)app->startup_app,
-        .epc_display = (uint8_t)app->epc_display,
-        .action_confirm = app->action_confirm ? 1U : 0U,
-        .reader_buzzer_enabled = app->reader_buzzer_enabled ? 1U : 0U,
+        .sound_enabled = settings->sound ? 1U : 0U,
+        .rf_power_dbm = settings->power,
+        .startup_app = (uint8_t)settings->startup,
+        .epc_display = (uint8_t)settings->display,
+        .action_confirm = settings->confirm ? 1U : 0U,
+        .reader_buzzer_enabled = settings->indicator ? 1U : 0U,
         .reader_buzzer_marker = 0xA5U,
     };
     return uhf_settings_save(&data);
@@ -6121,6 +6253,423 @@ static bool uhf_handle_inventory_actions(UhfApp* app, const InputEvent* input) {
     return true;
 }
 
+static UhfSettingsSnapshot uhf_settings_snapshot(const UhfApp* app) {
+    return (UhfSettingsSnapshot){
+        .sound = app->tag_beep_enabled,
+        .indicator = app->reader_buzzer_enabled,
+        .power = app->reader_power_dbm,
+        .startup = app->startup_app,
+        .display = app->epc_display,
+        .confirm = app->action_confirm,
+        .frequency = app->reader_frequency,
+    };
+}
+
+static bool uhf_query_frequency(UhfApp* app) {
+    app->reader_frequency_valid = false;
+    UhfFrequency frequency;
+    if(!uhf_ensure_hardware(app) ||
+       !uhf_wait_tag_reply(app, UHF_CMD_GET_FREQUENCY, NULL, 0U, 1200U) ||
+       !uhf_frequency_parse(app->tag_reply, app->tag_reply_len, &frequency))
+        return false;
+    app->reader_frequency = frequency;
+    app->reader_frequency_valid = true;
+    return true;
+}
+
+static uint8_t uhf_settings_region_choice(const UhfFrequency* frequency) {
+    switch(frequency->region) {
+    case UHF_FREQUENCY_REGION_FCC:
+        return 0U;
+    case UHF_FREQUENCY_REGION_ETSI:
+        return 1U;
+    case UHF_FREQUENCY_REGION_CHN_1:
+        return 2U;
+    case UHF_FREQUENCY_REGION_CHN_2:
+        return 3U;
+    default:
+        return 4U;
+    }
+}
+
+static bool uhf_settings_query_power(UhfApp* app) {
+    app->power_valid = false;
+    app->settings_power_valid = uhf_query_reader_power(app, true) && app->power_valid;
+    return app->settings_power_valid;
+}
+
+static void uhf_settings_accept_frequency(UhfApp* app) {
+    app->frequency_valid = true;
+    app->settings_initial.frequency = app->reader_frequency;
+    app->settings_draft.frequency = app->reader_frequency;
+    app->settings_region_choice = uhf_settings_region_choice(&app->reader_frequency);
+    if(app->reader_frequency.region == UHF_FREQUENCY_REGION_CUSTOM)
+        app->custom_frequency = app->reader_frequency;
+}
+
+static void uhf_settings_message(UhfApp* app, const char* message) {
+    snprintf(app->settings_error, sizeof(app->settings_error), "%s", message);
+    app->settings_message_active = true;
+}
+
+static void uhf_settings_begin(UhfApp* app, bool reader) {
+    app->settings_reader_mode = reader;
+    app->settings_selected = 0U;
+    app->settings_save_prompt = false;
+    app->settings_hardware_changed = false;
+    app->settings_apply_mask = 0U;
+    app->settings_number_edit = false;
+    app->settings_message_active = false;
+    app->settings_error[0] = '\0';
+    if(reader) {
+        if(app->inventory_running) uhf_stop_inventory(app);
+        (void)uhf_settings_query_power(app);
+        app->frequency_valid = uhf_query_frequency(app);
+        uhf_frequency_preset(UHF_FREQUENCY_REGION_CUSTOM, &app->custom_frequency);
+    }
+    app->settings_initial = uhf_settings_snapshot(app);
+    app->settings_draft = app->settings_initial;
+    if(reader) {
+        app->settings_region_choice = uhf_settings_region_choice(&app->reader_frequency);
+        if(app->frequency_valid) uhf_settings_accept_frequency(app);
+    }
+    app->page = UhfPageSettings;
+}
+
+static bool uhf_settings_dirty(const UhfApp* app) {
+    if(app->settings_hardware_changed) return true;
+    const UhfSettingsSnapshot* draft = &app->settings_draft;
+    const UhfSettingsSnapshot* initial = &app->settings_initial;
+    if(!app->settings_reader_mode)
+        return draft->sound != initial->sound || draft->startup != initial->startup ||
+               draft->display != initial->display || draft->confirm != initial->confirm;
+    return draft->indicator != initial->indicator || draft->power != initial->power ||
+           (app->frequency_valid && !uhf_frequency_equal(&draft->frequency, &initial->frequency));
+}
+
+/* Verify the reader's actual plan without changing the editor's draft. */
+static bool uhf_settings_apply_frequency(UhfApp* app, const UhfFrequency* frequency) {
+    uint8_t payload[UHF_FREQUENCY_MAX_PAYLOAD_SIZE];
+    size_t length;
+    return uhf_frequency_encode(frequency, payload, sizeof(payload), &length) &&
+           uhf_wait_tag_reply(app, UHF_CMD_SET_FREQUENCY, payload, length, 1200U) &&
+           app->tag_reply_len == 1U && app->tag_reply[0] == 0x10U && uhf_query_frequency(app) &&
+           uhf_frequency_equal(&app->reader_frequency, frequency);
+}
+
+static bool uhf_settings_rollback(UhfApp* app) {
+    if(!app->settings_hardware_changed) return true;
+    const UhfSettingsSnapshot* initial = &app->settings_initial;
+    bool ok = true;
+    if(app->settings_apply_mask & 1U) ok = uhf_settings_apply_frequency(app, &initial->frequency);
+    if(app->settings_apply_mask & 2U) {
+        const bool restored = uhf_set_reader_power(app, initial->power);
+        ok = restored && ok;
+    }
+    if(app->settings_apply_mask & 4U) {
+        app->reader_buzzer_enabled = initial->indicator;
+        const bool restored = uhf_set_reader_buzzer(app);
+        ok = restored && ok;
+    }
+    if(ok) ok = uhf_save_reader_params(app);
+    if(ok) {
+        app->settings_hardware_changed = false;
+        app->settings_apply_mask = 0U;
+    } else
+        snprintf(app->settings_error, sizeof(app->settings_error), "Restore failed; retry Save");
+    return ok;
+}
+
+static void uhf_settings_discard(UhfApp* app) {
+    if(!uhf_settings_rollback(app)) return;
+    /* Drafts never modify runtime settings or the local settings record. */
+    app->settings_draft = app->settings_initial;
+    app->settings_save_prompt = false;
+    app->page = app->feature_return_page;
+}
+
+static bool uhf_settings_commit(UhfApp* app) {
+    if(!uhf_settings_rollback(app)) return false;
+    const UhfSettingsSnapshot* wanted = &app->settings_draft;
+    if(app->settings_reader_mode) {
+        if(app->frequency_valid && !uhf_frequency_valid(&wanted->frequency)) {
+            snprintf(app->settings_error, sizeof(app->settings_error), "Invalid frequency range");
+            return false;
+        }
+        if(app->frequency_valid &&
+           (!app->reader_frequency_valid ||
+            !uhf_frequency_equal(&wanted->frequency, &app->reader_frequency))) {
+            app->settings_hardware_changed = true;
+            app->settings_apply_mask |= 1U;
+            if(!uhf_settings_apply_frequency(app, &wanted->frequency)) {
+                snprintf(
+                    app->settings_error, sizeof(app->settings_error), "Frequency verify failed");
+                return false;
+            }
+        }
+        /* Reconcile with hardware, including values reloaded by Reset. */
+        if(app->settings_power_valid) {
+            app->settings_hardware_changed = true;
+            app->settings_apply_mask |= 2U;
+            if(!uhf_set_reader_power(app, wanted->power)) {
+                snprintf(app->settings_error, sizeof(app->settings_error), "Power set failed");
+                return false;
+            }
+        }
+        app->settings_hardware_changed = true;
+        app->settings_apply_mask |= 4U;
+        app->reader_buzzer_enabled = wanted->indicator;
+        if(!uhf_set_reader_buzzer(app)) {
+            snprintf(app->settings_error, sizeof(app->settings_error), "Indicator set failed");
+            return false;
+        }
+        if(!uhf_save_reader_params(app)) {
+            snprintf(app->settings_error, sizeof(app->settings_error), "Reader save failed");
+            return false;
+        }
+    }
+    if(!uhf_save_settings_snapshot(wanted)) {
+        snprintf(app->settings_error, sizeof(app->settings_error), "App save failed");
+        return false;
+    }
+    if(app->settings_reader_mode) {
+        app->reader_buzzer_enabled = wanted->indicator;
+    } else {
+        app->tag_beep_enabled = wanted->sound;
+        app->startup_app = wanted->startup;
+        app->epc_display = wanted->display;
+        app->action_confirm = wanted->confirm;
+    }
+    app->settings_initial = *wanted;
+    app->settings_hardware_changed = false;
+    app->settings_apply_mask = 0U;
+    app->settings_save_prompt = false;
+    app->page = app->feature_return_page;
+    uhf_set_status(app, "Settings saved");
+    return true;
+}
+
+static void uhf_settings_region_step(UhfApp* app, bool right) {
+    if(!app->frequency_valid) {
+        uhf_settings_message(app, "Press OK to retry query");
+        return;
+    }
+    UhfFrequency* frequency = &app->settings_draft.frequency;
+    if(frequency->region == UHF_FREQUENCY_REGION_CUSTOM && app->settings_region_choice == 4U)
+        app->custom_frequency = *frequency;
+    app->settings_region_choice = (app->settings_region_choice + (right ? 1U : 4U)) % 5U;
+    static const uint8_t regions[] = {
+        UHF_FREQUENCY_REGION_FCC,
+        UHF_FREQUENCY_REGION_ETSI,
+        UHF_FREQUENCY_REGION_CHN_1,
+        UHF_FREQUENCY_REGION_CHN_2,
+        UHF_FREQUENCY_REGION_CUSTOM};
+    const uint8_t region = regions[app->settings_region_choice];
+    if(region == UHF_FREQUENCY_REGION_CUSTOM)
+        *frequency = app->custom_frequency;
+    else if(region == UHF_FREQUENCY_REGION_CHN_1) {
+        /* The manual omits CHN_1 indices. This labelled software preset uses
+           the documented custom command, never guessed standard indices. */
+        *frequency = (UhfFrequency){
+            .region = UHF_FREQUENCY_REGION_CUSTOM,
+            .start_khz = 840000U,
+            .spacing_khz = 500U,
+            .count = 11U};
+        uhf_settings_message(app, "CHN_1 uses Custom 840-845");
+    } else
+        uhf_frequency_preset(region, frequency);
+}
+
+static void uhf_settings_number_step(UhfApp* app, bool increase, uint32_t step) {
+    uint32_t* value = &app->settings_number_value;
+    const uint32_t min = app->settings_selected == UhfReaderStart ? UHF_FREQUENCY_MIN_KHZ :
+                         app->settings_selected == UhfReaderSpacing ?
+                                                                    UHF_FREQUENCY_MIN_SPACING_KHZ :
+                                                                    1U;
+    const uint32_t max = app->settings_selected == UhfReaderStart   ? UHF_FREQUENCY_MAX_KHZ :
+                         app->settings_selected == UhfReaderSpacing ? 65535U :
+                                                                      UHF_FREQUENCY_MAX_COUNT;
+    if(increase)
+        *value = step > max - *value ? max : *value + step;
+    else
+        *value = step > *value - min ? min : *value - step;
+}
+
+static void uhf_settings_reset(UhfApp* app) {
+    if(!uhf_settings_rollback(app)) {
+        app->settings_message_active = true;
+        return;
+    }
+    const bool had_power = app->settings_power_valid;
+    app->reader_frequency_valid = false;
+    app->power_valid = false;
+    const bool reset_ok = uhf_reset_reader_command(app);
+    /* Reset is a reboot, not a settings edit. Refresh actual values while
+       retaining the user's draft, so it can still be saved or discarded. */
+    const bool power_ok = reset_ok && uhf_settings_query_power(app);
+    const bool frequency_ok = reset_ok && uhf_query_frequency(app);
+    const bool indicator_ok = reset_ok && uhf_set_reader_buzzer(app);
+    if(power_ok)
+        app->settings_initial.power = app->reader_power_dbm;
+    else
+        app->settings_power_valid = had_power;
+    if(frequency_ok) app->settings_initial.frequency = app->reader_frequency;
+    const bool ok = reset_ok && power_ok && frequency_ok && indicator_ok;
+    uhf_settings_message(app, ok ? "Reader restarted" : "Reset/query failed");
+    uhf_notify_result_sound(app, ok);
+}
+
+static bool uhf_handle_settings(UhfApp* app, const InputEvent* input) {
+    if(app->page != UhfPageSettings) return false;
+    const bool short_press = input->type == InputTypeShort;
+    const bool repeat = input->type == InputTypeRepeat;
+    const bool long_press = input->type == InputTypeLong;
+    if(!short_press && !repeat && !long_press) return true;
+    if(app->settings_message_active) {
+        if(short_press && (input->key == InputKeyOk || input->key == InputKeyBack)) {
+            app->settings_message_active = false;
+            app->settings_error[0] = '\0';
+        }
+        return true;
+    }
+    if(app->settings_save_prompt) {
+        if(!short_press) return true;
+        if(input->key == InputKeyBack) {
+            app->settings_save_prompt = false;
+            app->settings_error[0] = '\0';
+        } else if(input->key == InputKeyLeft)
+            uhf_settings_discard(app);
+        else if(input->key == InputKeyRight) {
+            const bool saved = uhf_settings_commit(app);
+            if(!saved) (void)uhf_settings_rollback(app);
+            uhf_notify_result_sound(app, saved);
+        }
+        return true;
+    }
+    if(app->settings_number_edit) {
+        const uint8_t digits = app->settings_selected == UhfReaderStart   ? 6U :
+                               app->settings_selected == UhfReaderSpacing ? 5U :
+                                                                            3U;
+        if(input->key == InputKeyBack && short_press)
+            app->settings_number_edit = false;
+        else if(input->key == InputKeyLeft && short_press)
+            app->settings_number_digit = (app->settings_number_digit + digits - 1U) % digits;
+        else if(input->key == InputKeyRight && short_press)
+            app->settings_number_digit = (app->settings_number_digit + 1U) % digits;
+        else if(
+            (input->key == InputKeyUp || input->key == InputKeyDown) &&
+            (short_press || repeat || long_press)) {
+            uint32_t step = 1U;
+            for(uint8_t n = app->settings_number_digit + 1U; n < digits; n++)
+                step *= 10U;
+            uhf_settings_number_step(app, input->key == InputKeyUp, step);
+            app->settings_error[0] = '\0';
+        } else if(input->key == InputKeyOk && short_press) {
+            UhfFrequency edited = app->settings_draft.frequency;
+            if(app->settings_selected == UhfReaderStart)
+                edited.start_khz = app->settings_number_value;
+            else if(app->settings_selected == UhfReaderSpacing)
+                edited.spacing_khz = app->settings_number_value;
+            else
+                edited.count = app->settings_number_value;
+            if(uhf_frequency_valid(&edited)) {
+                app->settings_draft.frequency = edited;
+                app->custom_frequency = edited;
+                app->settings_number_edit = false;
+            } else
+                snprintf(
+                    app->settings_error, sizeof(app->settings_error), "End must be <=960 MHz");
+        }
+        return true;
+    }
+    if(input->key == InputKeyBack && short_press) {
+        if(uhf_settings_dirty(app)) {
+            app->settings_save_prompt = true;
+            app->settings_error[0] = '\0';
+        } else
+            app->page = app->feature_return_page;
+        return true;
+    }
+    const uint8_t rows = app->settings_reader_mode ? UhfReaderRowCount : 4U;
+    if((input->key == InputKeyUp || input->key == InputKeyDown) && (short_press || repeat)) {
+        app->settings_selected =
+            (app->settings_selected + (input->key == InputKeyDown ? 1U : rows - 1U)) % rows;
+    } else if(input->key == InputKeyOk && app->settings_reader_mode) {
+        if(app->settings_selected == UhfReaderReset && long_press)
+            uhf_settings_reset(app);
+        else if(app->settings_selected == UhfReaderRegion && short_press && !app->frequency_valid) {
+            const bool ok = uhf_query_frequency(app);
+            if(ok) uhf_settings_accept_frequency(app);
+            uhf_settings_message(app, ok ? "Frequency queried" : "Frequency query failed");
+        } else if(
+            app->settings_selected == UhfReaderPower && short_press &&
+            !app->settings_power_valid) {
+            if(uhf_settings_query_power(app)) {
+                app->settings_initial.power = app->reader_power_dbm;
+                app->settings_draft.power = app->reader_power_dbm;
+                uhf_settings_message(app, "Power queried");
+            } else
+                uhf_settings_message(app, "Power query failed");
+        } else if(
+            short_press && app->settings_selected >= UhfReaderStart &&
+            app->settings_selected <= UhfReaderCount && app->frequency_valid &&
+            app->settings_region_choice == 4U) {
+            const UhfFrequency* frequency = &app->settings_draft.frequency;
+            app->settings_number_value =
+                app->settings_selected == UhfReaderStart   ? frequency->start_khz :
+                app->settings_selected == UhfReaderSpacing ? frequency->spacing_khz :
+                                                             frequency->count;
+            app->settings_number_digit = app->settings_selected == UhfReaderStart   ? 3U :
+                                         app->settings_selected == UhfReaderSpacing ? 3U :
+                                                                                      2U;
+            app->settings_number_edit = true;
+            app->settings_error[0] = '\0';
+        }
+    } else if((input->key == InputKeyLeft || input->key == InputKeyRight) && short_press) {
+        const bool right = input->key == InputKeyRight;
+        UhfSettingsSnapshot* draft = &app->settings_draft;
+        if(app->settings_reader_mode) {
+            if(app->settings_selected == UhfReaderIndicator)
+                draft->indicator = !draft->indicator;
+            else if(app->settings_selected == UhfReaderPower && app->settings_power_valid) {
+                if(right && draft->power < 20U) draft->power++;
+                if(!right && draft->power > 0U) draft->power--;
+            } else if(app->settings_selected == UhfReaderRegion)
+                uhf_settings_region_step(app, right);
+            else if(
+                app->settings_selected >= UhfReaderStart &&
+                app->settings_selected <= UhfReaderCount && app->frequency_valid &&
+                app->settings_region_choice == 4U) {
+                UhfFrequency edited = draft->frequency;
+                app->settings_number_value =
+                    app->settings_selected == UhfReaderStart   ? edited.start_khz :
+                    app->settings_selected == UhfReaderSpacing ? edited.spacing_khz :
+                                                                 edited.count;
+                uhf_settings_number_step(
+                    app, right, app->settings_selected == UhfReaderCount ? 1U : 25U);
+                if(app->settings_selected == UhfReaderStart)
+                    edited.start_khz = app->settings_number_value;
+                else if(app->settings_selected == UhfReaderSpacing)
+                    edited.spacing_khz = app->settings_number_value;
+                else
+                    edited.count = app->settings_number_value;
+                if(uhf_frequency_valid(&edited)) draft->frequency = edited;
+            }
+        } else if(app->settings_selected == 0U)
+            draft->sound = !draft->sound;
+        else if(app->settings_selected == 1U)
+            draft->display = draft->display == UhfEpcDisplayHex ? UhfEpcDisplayAscii :
+                                                                  UhfEpcDisplayHex;
+        else if(app->settings_selected == 2U)
+            draft->startup =
+                (UhfStartupApp)((draft->startup + (right ? 1U : UhfStartupCount - 1U)) %
+                                UhfStartupCount);
+        else
+            draft->confirm = !draft->confirm;
+    }
+    return true;
+}
+
 static bool uhf_handle_home_tools(UhfApp* app, const InputEvent* input) {
     if(app->page < UhfPageHomeTagTools || app->page > UhfPageHomeSettings) return false;
     if(input->key == InputKeyBack) {
@@ -6147,10 +6696,7 @@ static bool uhf_handle_home_tools(UhfApp* app, const InputEvent* input) {
         } else if(app->home_tool_selected == 0U)
             uhf_enter_feature(app, 7U);
         else if(app->home_tool_selected == 1U) {
-            app->settings_reader_mode = true;
-            app->settings_selected = 0U;
-            app->page = UhfPageSettings;
-            (void)uhf_query_reader_power(app, true);
+            uhf_settings_begin(app, true);
         } else
             uhf_enter_about_page(app);
     }
@@ -6158,6 +6704,7 @@ static bool uhf_handle_home_tools(UhfApp* app, const InputEvent* input) {
 }
 
 static void uhf_handle_input(UhfApp* app, const InputEvent* input) {
+    if(uhf_handle_settings(app, input)) return;
     const bool fire = (input->type == InputTypeShort) || (input->type == InputTypeLong);
     if(!fire) return;
     if(uhf_handle_home_tools(app, input)) return;
@@ -6241,47 +6788,6 @@ static void uhf_handle_input(UhfApp* app, const InputEvent* input) {
                 app,
                 uhf_save_key_vault(app) ? "Active key: slot %u" : "Key save failed",
                 app->active_key_slot + 1U);
-        } else if(app->page == UhfPageSettings) {
-            if(app->settings_reader_mode && app->settings_selected == 2U) {
-                const bool reset_ok = uhf_reset_reader_command(app);
-                uhf_set_status(app, reset_ok ? "Reader reset" : "Reader reset failed");
-                app->write_popup_active = false;
-                app->save_popup_csv = false;
-                app->save_popup_active = true;
-                view_port_update(app->view_port);
-                uhf_notify_result_sound(app, reset_ok);
-                furi_delay_ms(1200U);
-                app->save_popup_active = false;
-                view_port_update(app->view_port);
-                break;
-            }
-            bool saved;
-            if(app->settings_reader_mode) {
-                const bool power_ok = uhf_set_reader_power(app, app->reader_power_dbm);
-                const bool indicator_ok = uhf_set_reader_buzzer(app);
-                const bool reader_saved = power_ok && indicator_ok && uhf_save_reader_params(app);
-                const bool local_saved = uhf_save_settings(app);
-                saved = reader_saved && local_saved;
-                uhf_set_status(
-                    app,
-                    !power_ok     ? "Power not applied" :
-                    !indicator_ok ? "Indicator not applied" :
-                    !reader_saved ? "Reader save failed" :
-                    !local_saved  ? "App save failed" :
-                                    "Reader settings saved");
-            } else {
-                saved = uhf_save_settings(app);
-                uhf_set_status(app, saved ? "App settings saved" : "App save failed");
-            }
-            app->write_popup_active = false;
-            app->save_popup_csv = false;
-            app->save_popup_active = true;
-            view_port_update(app->view_port);
-            uhf_notify_result_sound(app, saved);
-            furi_delay_ms(1200U);
-            app->save_popup_active = false;
-            app->save_popup_csv = false;
-            view_port_update(app->view_port);
         } else if(app->page == UhfPageAbout) {
             if(app->about_reader_page)
                 uhf_refresh_about_reader(app);
@@ -6340,23 +6846,6 @@ static void uhf_handle_input(UhfApp* app, const InputEvent* input) {
         } else if(app->page == UhfPageAbout) {
             app->about_reader_page = false;
             app->about_top_line = 0U;
-        } else if(app->page == UhfPageSettings && input->type == InputTypeShort) {
-            if(app->settings_reader_mode) {
-                if(app->settings_selected == 0U)
-                    app->reader_buzzer_enabled = !app->reader_buzzer_enabled;
-                else if(app->settings_selected == 1U && app->reader_power_dbm > 0U)
-                    app->reader_power_dbm--;
-            } else if(app->settings_selected == 0U)
-                app->tag_beep_enabled = !app->tag_beep_enabled;
-            else if(app->settings_selected == 1U)
-                app->epc_display = app->epc_display == UhfEpcDisplayHex ? UhfEpcDisplayAscii :
-                                                                          UhfEpcDisplayHex;
-            else if(app->settings_selected == 2U)
-                app->startup_app = app->startup_app == UhfStartupDefault ?
-                                       (UhfStartupApp)(UhfStartupCount - 1U) :
-                                       (UhfStartupApp)(app->startup_app - 1U);
-            else if(app->settings_selected == 3U)
-                app->action_confirm = !app->action_confirm;
         } else if(app->page == UhfPageAscii && app->ascii_tag_captured) {
             uhf_clear_tags(app);
             app->ascii_tag_captured = false;
@@ -6397,10 +6886,6 @@ static void uhf_handle_input(UhfApp* app, const InputEvent* input) {
             }
             if(row < app->main_menu_top_row) app->main_menu_top_row = row;
             if(row >= app->main_menu_top_row + 3U) app->main_menu_top_row = row - 2U;
-        } else if(app->page == UhfPageSettings) {
-            const uint8_t last = app->settings_reader_mode ? 2U : 3U;
-            app->settings_selected = app->settings_selected == 0U ? last :
-                                                                    app->settings_selected - 1U;
         } else if(app->page == UhfPageKeyVault) {
             app->key_vault_selected_slot = app->key_vault_selected_slot == 0U ?
                                                UHF_KEY_SLOT_COUNT - 1U :
@@ -6445,22 +6930,6 @@ static void uhf_handle_input(UhfApp* app, const InputEvent* input) {
                 app->about_top_line = 0U;
                 uhf_refresh_about_reader(app);
             }
-        } else if(app->page == UhfPageSettings && input->type == InputTypeShort) {
-            if(app->settings_reader_mode) {
-                if(app->settings_selected == 0U)
-                    app->reader_buzzer_enabled = !app->reader_buzzer_enabled;
-                else if(app->settings_selected == 1U && app->reader_power_dbm < 20U)
-                    app->reader_power_dbm++;
-            } else if(app->settings_selected == 0U)
-                app->tag_beep_enabled = !app->tag_beep_enabled;
-            else if(app->settings_selected == 1U)
-                app->epc_display = app->epc_display == UhfEpcDisplayHex ? UhfEpcDisplayAscii :
-                                                                          UhfEpcDisplayHex;
-            else if(app->settings_selected == 2U)
-                app->startup_app =
-                    (UhfStartupApp)(((uint8_t)app->startup_app + 1U) % UhfStartupCount);
-            else if(app->settings_selected == 3U)
-                app->action_confirm = !app->action_confirm;
         } else if(
             app->page == UhfPageAscii && app->ascii_tag_captured &&
             input->type == InputTypeShort) {
@@ -6501,10 +6970,6 @@ static void uhf_handle_input(UhfApp* app, const InputEvent* input) {
             }
             if(row < app->main_menu_top_row) app->main_menu_top_row = row;
             if(row >= app->main_menu_top_row + 3U) app->main_menu_top_row = row - 2U;
-        } else if(app->page == UhfPageSettings) {
-            const uint8_t last = app->settings_reader_mode ? 2U : 3U;
-            app->settings_selected = app->settings_selected == last ? 0U :
-                                                                      app->settings_selected + 1U;
         } else if(app->page == UhfPageKeyVault) {
             app->key_vault_selected_slot =
                 (app->key_vault_selected_slot + 1U) % UHF_KEY_SLOT_COUNT;

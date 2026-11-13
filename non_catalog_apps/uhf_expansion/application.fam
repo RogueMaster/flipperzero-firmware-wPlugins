@@ -6,9 +6,14 @@ App(
     apptype=FlipperAppType.EXTERNAL,
     entry_point="uhf_expansion_app",
     stack_size=6 * 1024,
+    sources=[
+        "uhf_expansion.c", "uhf_frequency.c", "uhf_protocol.c", "uhf_settings.c",
+        "uhf_storage.c", "uhf_saved_storage.c", "uhf_saved_tag.c", "uhf_tag.c",
+        "uhf_view_helpers.c",
+    ],  # Exclude host-only tests/ from the device build.
     fap_category="GPIO",
     # Optional values
-    fap_version="1.7",
+    fap_version="1.8",
     fap_icon="uhf_icon.png",  # 10x10 1-bit PNG
     fap_description="UHF RFID inventory reader over GPIO UART",
     fap_author="MTools Tec",
