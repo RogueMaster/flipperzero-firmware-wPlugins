@@ -666,7 +666,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Air Level v1.0 (By jamisonderek)](https://github.com/jamisonderek/flipper-zero-tutorials/tree/main/vgm/air_level) `Req: Video Game Module By Flipper Devices`
 - [Air Stats v1.0 (By thevan4)](https://github.com/thevan4/flipper-air-stats) Req: [See App Readme For Supported Modules](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/applications/external/air_stats/README.md)
 - [Alcohol Calc v1.0 (By vtlklr)](https://github.com/vtlklr/alcohol_calc)
-- [Allstar Firefly v0.1 (By jlaughter)](https://github.com/jlaughter/flipper-allstar-firefly)
+- [Allstar Firefly v0.1 (By jlaughter)](https://github.com/jlaughter/flipper-allstar-firefly) - Gate remote decoder/encoder
 - [Amiibo Browser v1.0 (By AzureSky)](https://github.com/AzzureSkyy/flipper-amiibo-browser)
 - [Amiibo Emulator v0.1 (By Soap-n-Cartridge)](https://github.com/Soap-n-Cartridge/flipper_amiibo)
 - [AmiiTool v0.3 (By Firefox2100)](https://github.com/Firefox2100/ami_tool) `Req: key_retail.bin on SD card /nfc/assets`
@@ -681,15 +681,15 @@ This software is for experimental purposes only and is not meant for any illegal
 - [API Caller v0.1.4 (By todotge)](https://github.com/todotge/Flipper-api-caller)
 - [App Search v0.2 (By tbelbek)](https://github.com/tbelbek/flipper-app-search)
 - [APRS TX v1.3.24 (By yo3gnd)](https://github.com/yo3gnd/flipper-zero-aprs-tx)
-- [Argus v1.0 (By at0m-b0mb)](https://github.com/at0m-b0mb/Argus-FlipperZero) `Req: ESP32`
+- [Argus v1.0 (By at0m-b0mb)](https://github.com/at0m-b0mb/Argus-FlipperZero) - Wi-Fi attack detection `Req: ESP32`
 - [ASCII Table v1.0 (By x10102)](https://github.com/x10102/flipper_ascii)
 - [Atari SIO Emulator v0.5 (By cepetr)](https://github.com/cepetr/sio2flip)
-- [ATM Player v1.0.8 (By apfxtech)](https://github.com/apfxtech/FlipperATM)
+- [ATM Player v1.0.8 (By apfxtech)](https://github.com/apfxtech/FlipperATM) - Four-channel tracker music player
 - [Atomic Dice Roller v1.1 (By nmrr)](https://github.com/nmrr/flipperzero-atomicdiceroller)
 - [Authenticator/TOTP v5.19.0 (By akopachov)](https://github.com/akopachov/flipper-zero_authenticator)
 - [AVR Flasher v1.5 (By Skorpionm)](https://github.com/flipperdevices/flipperzero-firmware/pull/2475)
 - [AZERTY Mouse Jacker v1.2 (By mothball187)](https://github.com/mothball187/flipperzero-nrf24/tree/main/mousejacker) `Req: NRF24` (Uses AZERTY keyboard - Source Unknown)
-- [Bad Duck3 v1.1 (By dutchpatriot)](https://github.com/dutchpatriot/all-the-plugins)
+- [Bad Duck3 v1.1 (By dutchpatriot)](https://github.com/dutchpatriot/all-the-plugins) - USB/BLE DuckyScript interpreter
 - [Bad KB (By WillyJL)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/pull/739) (Part of BadUSB)
 - [Badge Audit v1.0 (By ViperDroid)](https://github.com/ViperDroid/flipper-badge-audit)
 - [Badge Wallet v1.0 (By lewisQ17)](https://github.com/lewisQ17/Momentum-Firmware)
@@ -704,7 +704,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Better Mouse v1.2 (By timon)](https://github.com/xMasterX/all-the-plugins)
 - [Bible [BSB] v1.2 (By dpshde)](https://github.com/dpshde/bible-bsb)
 - [Big Clock v1.3 (By Eris-Margeta)](https://github.com/Eris-Margeta/flipper-apps)
-- [BioVault v0.1 (By flamebarke)](https://github.com/flamebarke/biovault-flipper)
+- [BioVault v0.1 (By flamebarke)](https://github.com/flamebarke/biovault-flipper) - NFC implant password vault
 - [BlackJack Counter v1.0 (By grugnoymeme)](https://github.com/grugnoymeme/flipperzero-blackjack_counter-fap)
 - [BLE Beacon v1.1 (By steanlab)](https://github.com/steanlab/BLE-Beacon)
 - [BLE Clicker v1.0 (By random1st)](https://github.com/random1st/flipper-ble-clicker)
@@ -712,22 +712,22 @@ This software is for experimental purposes only and is not meant for any illegal
 - [BLE Killer v1.1 (By H4lo)](https://github.com/H4lo/flipper_zero_ble_killer) `Req: ESP32`
 - [BLE Scanner v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite) `Req: ESP32`
 - [BLE Spam v6.6 (By WillyJL & ECTO-1A & Spooks4576 with research from xMasterX; OFW API thanks to noproto)](https://github.com/Next-Flip/Momentum-Apps/tree/dev/ble_spam)
-- [Bleepsentry v1.1 (By hdyrawan)](https://github.com/hdyrawan/bleepsentry)
+- [Bleepsentry v1.1 (By hdyrawan)](https://github.com/hdyrawan/bleepsentry) - Passive RF activity monitor
 - [Bluetooth Bridge v0.1 (By excitoon)](https://github.com/excitoon/zero-bluetooth-bridge)
 - [Bluetooth/USB Remote v1.8 (By Cutch)-OFW](https://github.com/flipperdevices/flipperzero-firmware/pull/1330)
 - [BME280 Vario v1.1 (By xumbax)](https://github.com/xumbax/flipper-vario) `Req: BME280`
 - [BME680 v1.2 (By Dr.Mosfet)](https://github.com/kamylwnb/bme680_flipper_zero) `Req: BME680 sensor`
 - [BMI Air Mouse v1.4 (By ginkage)](https://github.com/ginkage/FlippAirMouse/) `Req: BMI160 or GY-521`
 - [BPM Tapper v1.3 (By panki27)](https://github.com/panki27/bpm-tapper)
-- [Brainfuck v1.5 (By nymda)](https://github.com/nymda/FlipperZeroBrainfuck)
-- [BreachMap v1.0 (By Gerijacki)](https://github.com/Gerijacki/BreachMap)
+- [Brainfuck v1.5 (By nymda)](https://github.com/nymda/FlipperZeroBrainfuck) - Programming interpreter and editor
+- [BreachMap v1.0 (By Gerijacki)](https://github.com/Gerijacki/BreachMap) - Physical security assessment notebook
 - [BT Audio v1.2 (By FatherDivine)](https://github.com/FatherDivine/flipperzero-mayhem/tree/bt_audio/flipper_companion_apps/bt_audio) `Req: ESP32 w BT` & [This FW](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/tree/420/applications/external/bt_audio/.esp32_firmware)
 - [BT Remote for Kodi v1.2 (Remixed By coded-with-claws)](https://github.com/coded-with-claws/flipperzero-tools/tree/main/applications_user/bt_hid_kodi)
-- [BT Trigger v1.5 (By Nem0oo)](https://github.com/Nem0oo/flipper-zero_ios-bluetooth-trigger)
-- [BTHome v0.1 (By ghedo)](https://github.com/ghedo/flipper-bthome)
+- [BT Trigger v1.5 (By Nem0oo)](https://github.com/Nem0oo/flipper-zero_ios-bluetooth-trigger) - Bluetooth camera intervalometer
+- [BTHome v0.1 (By ghedo)](https://github.com/ghedo/flipper-bthome) - Home automation BLE beacon
 - [BunnyConnect v1.0 (By C0d3-5t3w)](https://github.com/C0d3-5t3w/flipper-bunnyconnect) `Req: BashBunny`
-- [BusterMan v1.0 (By Mr-Nobody88)](https://github.com/Mr-Nobody88/BusterMan) `Req: ESP32`
-- [C5 Lab v0.41 (By C5Lab / Lab Team)](https://github.com/C5Lab/projectZero)
+- [BusterMan v1.0 (By Mr-Nobody88)](https://github.com/Mr-Nobody88/BusterMan) - Layered text decoder `Req: ESP32`
+- [C5 Lab v0.41 (By C5Lab / Lab Team)](https://github.com/C5Lab/projectZero) - Wireless security testing platform
 - [Caesar Cipher v1.3 (By panki27)](https://github.com/panki27/caesar-cipher)
 - [Calculator v1.4 (By n-o-T-I-n-s-a-n-e)](https://github.com/n-o-T-I-n-s-a-n-e)
 - [Calendar (By Adiras)](https://github.com/Adiras/flipperzero-calendar)
@@ -742,25 +742,25 @@ This software is for experimental purposes only and is not meant for any illegal
 - [CANBUS v1.1.6.2 (By ElectronicCats)](https://github.com/ElectronicCats/flipper-MCP2515-CANBUS) `Req: CANBUS By ElectronicCats`
 - [Canon Intervalometer v1.0 (By TravisCG)](https://github.com/TravisCG/canonivm)
 - [Carrier AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
-- [CatDriver v1.0 (By EVL87)](https://github.com/EVL87/catwardrive) `Req: ESP32`
+- [CatDriver v1.0 (By EVL87)](https://github.com/EVL87/catwardrive) - GPS Wi-Fi/BLE wardriving `Req: ESP32`
 - [CCID Emu v1.0 (By kidbomb)](https://github.com/kidbomb/flipper-ccid-app)
 - [CCID Emulator v1.1 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
-- [Cerberus v1.1 (By at0m-b0mb)](https://github.com/at0m-b0mb/flipper-cerberus)
+- [Cerberus v1.1 (By at0m-b0mb)](https://github.com/at0m-b0mb/flipper-cerberus) - Passive Sub-GHz anomaly monitor
 - [CFS Tag Writer v1.0 (By pwschattenberg)](https://github.com/pwschattenberg/cfs-tag-writer)
 - [CFS Tag Writer+ v1.5 (By BaniMun)](https://github.com/BaniMun/cfs-tag-writer)
 - [CFW Settings v2.3 (By WillyJL)](https://github.com/Next-Flip/Momentum-Firmware/tree/dev/applications/main/momentum_app)
 - [Chameleon Ultra v1.0 (By muylder)](https://github.com/muylder/Chameleon_Flipper)
-- [ChaosID v0.6 (By cybersantana83)](https://github.com/cybersantana83/ChaosID)
-- [Chief Cooker v1.1 (By denr01)](https://github.com/denr01/FZ-ChiefCooker)
+- [ChaosID v0.6 (By cybersantana83)](https://github.com/cybersantana83/ChaosID) - RFID/NFC security assessment
+- [Chief Cooker v1.1 (By denr01)](https://github.com/denr01/FZ-ChiefCooker) - Restaurant pager signal tool
 - [Chronometer (By nmrr)](https://github.com/nmrr/flipperzero-chronometer)
 - [CK42X Passvault v0.4.6 (By lordbuffcloud)](https://github.com/lordbuffcloud/flipper-ck42x-passvault)
-- [CK42X Wakeup v2.29 (By lordbuffcloud)](https://github.com/lordbuffcloud/flipper-ck42x-wakeup)
+- [CK42X Wakeup v2.29 (By lordbuffcloud)](https://github.com/lordbuffcloud/flipper-ck42x-wakeup) - Multi-alarm clock utility
 - [Claude Buddy v0.6 (By jxw1102)](https://github.com/jxw1102/flipper-claude-buddy)
 - [Claude Remote v0.2 (By Petr Korobeinikov)](https://github.com/petr-korobeinikov/f0-claude-remote)
-- [ClayLoop v1.0 (By b0bby225)](https://github.com/b0bby225/ClayLoop)
+- [ClayLoop v1.0 (By b0bby225)](https://github.com/b0bby225/ClayLoop) - Timed Sub-GHz transmission sequences
 - [CLI-GUI Bridge v0.2 (By ranchordo)](https://github.com/ranchordo/flipperzero-cli-bridge)
 - [Click Recorder v1.2 (By 0x78f1935)](https://github.com/0x78f1935/Click-Recorder)
-- [Clippy v0.1 (By mtormento)](https://github.com/mtormento/clippy)
+- [Clippy v0.1 (By mtormento)](https://github.com/mtormento/clippy) - Cross-device shared clipboard
 - [Clock v1.2 (By kowalski7cc)](https://github.com/kowalski7cc/flipperzero-firmware/tree/clock-v1)
 - [Clock LED v1.0 (RGB LED RTC Clock) (By TONYIVCZ1)](https://github.com/TONYIVCZ1/tiv_led_hodiny)
 - [Clock-o-Dial v1.1 (By ManeFunction)](https://github.com/ManeFunction/clock-o-dial--fz)
@@ -768,18 +768,18 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Coach Watch v1.0 (By alaviation)](https://github.com/alaviation/flipper-coach-watch)
 - [Cocktail Book v0.4 (By resu95)](https://github.com/resu95/flipper_cocktail_book)
 - [Coffee-EEPROM (By wh00hw)](https://github.com/wh00hw/Coffee-EEPROM-FAP) For ethical pentest only.
-- [COGS MyKey v1.1 (By lupettohf)](https://github.com/lupettohf/mykey)
+- [COGS MyKey v1.1 (By lupettohf)](https://github.com/lupettohf/mykey) - COGES vending key editor
 - [Combo Cracker v0.5 (By CharlesTheGreat77)](https://github.com/CharlesTheGreat77/ComboCracker-FZ)
 - [Continuity Tester (By benallen-dev)](https://github.com/benallen-dev/flipper-zero-apps/tree/main/continuity)
-- [Controller Ducky v1.0 (By eric-m-holub)](https://github.com/eric-m-holub/controller-ducky)
+- [Controller Ducky v1.0 (By eric-m-holub)](https://github.com/eric-m-holub/controller-ducky) - Scriptable USB game controller
 - [Cookie Clicker v1.1 (By jamisonderek)](https://github.com/jamisonderek/flipper-zero-tutorials/tree/main/hid/hid_cookie)
 - [Coolix AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
 - [Count Down Timer v1.5 (By 0w0mewo)](https://github.com/0w0mewo/fpz_cntdown_timer)
 - [Counter v1.5 (By Krulknul & TEXploder)](https://github.com/TEXploder/TEX-Counter)
-- [Cross Remote v3.5 (By leedave)](https://github.com/leedave/flipper-zero-cross-remote)
+- [Cross Remote v3.5 (By leedave)](https://github.com/leedave/flipper-zero-cross-remote) - IR/Sub-GHz command playlists
 - [Crypto Dictionary v0.1 (By armixz)](https://github.com/armixz/Flipper-Zero-Crypto-Dictionary)
 - [Cube Timer v0.1 (By navarr393)](https://github.com/navarr393/CubeTimer)
-- [Cyborg Detector v1.1 (By RocketGod-Git)](https://github.com/RocketGod-Git/Flipper-Zero-Cyborg-Detector)
+- [Cyborg Detector v1.1 (By RocketGod-Git)](https://github.com/RocketGod-Git/Flipper-Zero-Cyborg-Detector) - Activates NFC implant LEDs
 - [Dab Timer v2.5 (By RogueMaster)](https://github.com/RogueMaster/flipperzero-dabtimer)
 - [Daikin AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
 - [Daikin64 AC Remote v0.1 (By mrcalifornium)](https://github.com/mrcalifornium/flipperzero-daikin64-ac-remote)
@@ -789,21 +789,21 @@ This software is for experimental purposes only and is not meant for any illegal
 - [DCF77 Transmitter v2.0 (By arha)](https://github.com/arha/flipper-dcf77)
 - [Deauther PWNDTOOLS V2.6.0 (By HEX0DAYS)](https://github.com/HEX0DAYS/FlipperZero-PWNDTOOLS) `Req: ESP8266` [Original](https://github.com/SpacehuhnTech/esp8266_deauther)
 - [Debug Mode v0.5 (By Alex Dean)](https://github.com/deanmachinedev/debug_mode)
-- [DelfiRTL v0.1 (By gorebrau)](https://github.com/gorebrau/delfyRTL) `Req: RTL8720DN`
+- [DelfiRTL v0.1 (By gorebrau)](https://github.com/gorebrau/delfyRTL) - Dual-band Wi-Fi testing tool `Req: RTL8720DN`
 - [Delonghi AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
 - [Device Info (By hedger)](https://github.com/hedger/flipperdevinfo)
-- [DFC v1.1.1 (By cindersocket)](https://github.com/cindersocket/dfc-flipper)
-- [Digimon F-Com v1.5 (By TylerWilley)](https://github.com/TylerWilley/flipper-f-com)
+- [DFC v1.1.1 (By cindersocket)](https://github.com/cindersocket/dfc-flipper) - DESFire card reader/emulator
+- [Digimon F-Com v1.5 (By TylerWilley)](https://github.com/TylerWilley/flipper-f-com) - Digimon virtual pet interface
 - [Disn3y Toolbox v0.2 (By Nathaniel.Belles)](https://gitlab.com/Nathaniel.Belles/flipper-disney-toolbox)
 - [Distance Sensor v1.1 (By Sanqui)](https://github.com/Sanqui/flipperzero-firmware/tree/hc_sr04) `Req: HC-SR04`
 - [Distance Sensor v1.2 (By privet971)](https://github.com/privet971/FlipperZeroApps/tree/main/usping) `Req: Parallax (3 wires) SKU 28015`
 - [Doc Viewer Lite v0.1 (By C0d3-5t3w)](https://github.com/C0d3-5t3w/docviewlite)
 - [Dooya Remote v1.2 (By Lechnio)](https://github.com/Lechnio/Dooya-Remote)
-- [DroidBeacon v0.1 (By spandox2)](https://github.com/spandox2/droidbeacon)
+- [DroidBeacon v0.1 (By spandox2)](https://github.com/spandox2/droidbeacon) - Droid Depot beacon emulator
 - [DropDetect Live v0.1 (By TheRealLuro)](https://github.com/TheRealLuro/Flipper-zero-drop-detector.-) `Req: ICM42688P IMU`
 - [DSTIKE Deauther v1.1 (By SequoiaSan)](https://github.com/SequoiaSan/FlipperZero-Wifi-ESP8266-Deauther-Module/tree/FlipperZero-Module-v2/FlipperZeroModule/FlipperZero-ESP8266-Deauth-App) `Req: ESP8266`
 - [DTMF Dolphin v1.5 (By litui)](https://github.com/litui/dtmf_dolphin)
-- [Ducobox v0.1 (By Martin Elsner)](https://github.com/martinelsner/flipper-zero-ducobox)
+- [Ducobox v0.1 (By Martin Elsner)](https://github.com/martinelsner/flipper-zero-ducobox) - Home ventilation remote control
 - [E220 LoRa Configurator v0.1 (By crackerjacques)](https://github.com/crackerjacques/Flipper_E220_Lora_Module_Configurator) `Req: E220-900T22S(JP)`
 - [E6B Flight Computer v1.0 (By Marcopiiit)](https://github.com/skylovervibecoder/Flipper-Zero-E6B-Flight-Computer)
 - [Ear Trainer v1.1 (By barismert98)](https://github.com/barismert98/flipper-ear-trainer)
@@ -813,12 +813,12 @@ This software is for experimental purposes only and is not meant for any illegal
 - [EMV Reader v0.1 (By AmsaOne)](https://github.com/AmsaOne/Flipper-EMV-Reader)
 - [Encoder Reader v0.1 (By Engineegor)](https://github.com/Engineegor/Enc_reader)
 - [Enhanced Sub-Ghz Chat v1.3 (By twisted-pear)](https://github.com/twisted-pear/esubghz_chat)
-- [Enigma v1.1 (By xtruan)](https://github.com/xtruan/flipper-enigma)
+- [Enigma v1.1 (By xtruan)](https://github.com/xtruan/flipper-enigma) - Enigma cipher machine emulator
 - [eReader v1.0 (By Daniel Baker)](https://github.com/daniebker/flipper_ereader)
 - [ESP Flasher v1.9 (By 0xchocolate)](https://github.com/0xchocolate/flipperzero-esp-flasher)
 - [ESP WiFi Scanner v1.1 (By SequoiaSan)](https://github.com/SequoiaSan/FlipperZero-WiFi-Scanner_Module-ESP8266) `Req: ESP8266 or ESP32`
 - [ESP32 Camera Suite v1.9 (By CodyTolene)](https://github.com/CodyTolene/Flipper-Zero-Camera-Suite)
-- [ESP32 Gravity v1.0.1 (By chris-bc)](https://github.com/chris-bc/Flipper-Gravity) `Req: ESP32`
+- [ESP32 Gravity v1.0.1 (By chris-bc)](https://github.com/chris-bc/Flipper-Gravity) - Wireless exploration companion `Req: ESP32`
 - [ESP32 WIFI Mapping v0.2 (By carvilsi)](https://github.com/carvilsi/flipper0-wifi-map) `Req: ESP32` & [ESP32 FW](https://github.com/carvilsi/esp32-wifi-map)
 - [ESP32CAM Camera v1.0.0 (By Z4urce & eried)](https://github.com/eried/flipperzero-mayhem) `Req: ESP32-CAM (Mayhem)`
 - [ESP32CAM Marauder v0.7.5 (By 0xchocolate & eried)](https://github.com/eried/flipperzero-mayhem) `Req: ESP32-CAM (Mayhem)`
@@ -834,7 +834,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Eye Saver v0.1 (By paul-sopin)](https://github.com/paul-sopin/flipper-eye-saver)
 - [Fake Chip Detector v0.13 (By hleserg)](https://github.com/hleserg/flipper-fake-chip-detector)
 - [FAP Boilerplate v1.3 (By leedave)](https://github.com/leedave/flipper-zero-fap-boilerplate)
-- [Faraday v1.3 (By at0m-b0mb)](https://github.com/at0m-b0mb/Faraday-FlipperZero)
+- [Faraday v1.3 (By at0m-b0mb)](https://github.com/at0m-b0mb/Faraday-FlipperZero) - Signal-blocking pouch tester
 - [FastJS v1.3 (By JBlanked)](https://github.com/jblanked/FastJS-FlipperZero)
 - [Fav Launcher v0.8 (By tbelbek)](https://github.com/tbelbek/flipper-fav-launcher)
 - [FCC ID Lookup v0.1 (By lrehmann)](https://github.com/lrehmann/fcc-id-lookup-flipper)
@@ -842,36 +842,36 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Fencing Test Box v0.1 (By aarjaneiro)](https://www.github.com/aarjaneiro/fencing_testbox)
 - [Financial Calculator v1.0 (By schaene)](https://github.com/schaene/Flipper-Financial-Calculator)
 - [FindMy Flipper v3.5.2 (By MatthewKuKanich)](https://github.com/MatthewKuKanich/FindMyFlipper)
-- [Fire String v2.0 (By RyanAboueljoud)](https://github.com/RyanAboueljoud/Fire-String)
+- [Fire String v2.0 (By RyanAboueljoud)](https://github.com/RyanAboueljoud/Fire-String) - Infrared random string generator
 - [Flame RNG v0.3 (By OrionW06)](https://github.com/OrionW06/Flame-RNG)
 - [Flashlight v1.3 (By xMasterX)](https://github.com/xMasterX/flipper-flashlight)
 - [FliBuddy v1.0 - Bambu Lab spool NFC reader and Bambuddy inventory companion (By Gennady Sokolachko)](https://github.com/sokogen/flipperzero-flibuddy)
 - [Flight Monitor v1.0 (By kamylwnb)](https://github.com/kamylwnb/flight_monitor)
-- [Flipagotchi v2.1.1 (By Matt-London)](https://github.com/Matt-London/pwnagotchi-flipper)
-- [FlipBase v0.1 (By Space-Raler)](https://github.com/Space-Raler/FlipBase)
+- [Flipagotchi v2.1.1 (By Matt-London)](https://github.com/Matt-London/pwnagotchi-flipper) - Pwnagotchi display companion
+- [FlipBase v0.1 (By Space-Raler)](https://github.com/Space-Raler/FlipBase) - Disney Infinity base emulator
 - [FlipBIP Crypto Wallet v2.1 (By xtruan)](https://github.com/xtruan/FlipBIP)
 - [FlipBoard Blinky v3.6 (By jamisonderek)](https://github.com/jamisonderek/flipboard)
 - [FlipBoard Keyboard v3.9 (By jamisonderek)](https://github.com/jamisonderek/flipboard)
 - [FlipBoard Signal v3.13 (By jamisonderek)](https://github.com/jamisonderek/flipboard)
 - [FlipBoard Simon v1.10 (By jamisonderek)](https://github.com/jamisonderek/flipboard)
-- [FlipCrypt v0.7 (By TAxelAnderson)](https://github.com/TAxelAnderson/FlipCrypt)
-- [FlipDeck v3.0 (By ismail-oe)](https://github.com/ismail-oe/flipdeck)
-- [FlipDeFlock v0.98 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
+- [FlipCrypt v0.7 (By TAxelAnderson)](https://github.com/TAxelAnderson/FlipCrypt) - Ciphers, hashes and encoding
+- [FlipDeck v3.0 (By ismail-oe)](https://github.com/ismail-oe/flipdeck) - Programmable USB macro pad
+- [FlipDeFlock v0.98 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) - Surveillance radio detection `Req: ESP32`
 - [FlipDownloader v1.3.5 (By jblanked)](https://github.com/jblanked/FlipStore) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
-- [Flipfetch v0.1 (By alexroses47)](https://github.com/alexroses47/flipper-flipfetch)
-- [FlipFlash v1.0 (By Mushi0)](https://github.com/Mushi0/FlippFlash)
-- [FlipGemini v1.0 (By jblanked)](https://github.com/jblanked/FlipGemini) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
+- [Flipfetch v0.1 (By alexroses47)](https://github.com/alexroses47/flipper-flipfetch) - Device information dashboard
+- [FlipFlash v1.0 (By Mushi0)](https://github.com/Mushi0/FlippFlash) - Text-based study flashcards
+- [FlipGemini v1.0 (By jblanked)](https://github.com/jblanked/FlipGemini) - Gemini AI chat client `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
 - [FlipIRFreq v0.2 (By jsammarco)](https://github.com/jsammarco/FlipIRFreq)
-- [FlipLibrary v1.5 (By jblanked)](https://github.com/jblanked/FlipLibrary) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
+- [FlipLibrary v1.5 (By jblanked)](https://github.com/jblanked/FlipLibrary) - Online reference and facts `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
 - [FlipMap v0.2.2 (By jblanked)](https://github.com/jblanked/FlipMap) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
 - [FlipNote v1.0 (By morty517)](https://github.com/morty517/flipnote)
 - [FliPort v0.3 (By FliPort)](https://github.com/TheRealLuro/Flipper-zero-drop-detector.-) `Req: ICM42688P IMU`
-- [FlipPar v0.1 (By jsammarco)](https://github.com/jsammarco/FlipPar)
-- [FlipPass v3.1 (By Arckanos)](https://github.com/Arckanos/FlipPass)
-- [Flipper Aid v1.0 (By spaghety)](https://github.com/spaghety/flipper-aid)
+- [FlipPar v0.1 (By jsammarco)](https://github.com/jsammarco/FlipPar) - Golf round scorekeeper
+- [FlipPass v3.1 (By Arckanos)](https://github.com/Arckanos/FlipPass) - KeePass password manager
+- [Flipper Aid v1.0 (By spaghety)](https://github.com/spaghety/flipper-aid) - Pulse and CPR timers
 - [Flipper Blackhat v0.4.1 (By o7-machinehum)](https://github.com/o7-machinehum/flipper-blackhat-app) `Req: Blackhat Board` with [Blackhat OS](https://github.com/o7-machinehum/flipper-blackhat-os)
 - [Flipper Blinker v1.0 (By T3chieJack)](https://github.com/T3chieJack/FlipperBlinker) `Req: external LED on PC3`
-- [Flipper Elements v2.0 (By steanlab)](https://github.com/steanlab/flipper-elements)
+- [Flipper Elements v2.0 (By steanlab)](https://github.com/steanlab/flipper-elements) - Periodic table reference
 - [Flipper Lotto v1.0 (By molykima)](https://github.com/molykima/Flipper-Lottery-Number-Generator)
 - [Flipper Printer v1.0 (By alxcrt)](https://github.com/alxcrt/flipper-zero-thermal-printer) `Req: T7-US thermal printer module`
 - [Flipper Share iButton v0.1 (By lomalkin)](https://github.com/lomalkin/flipper-zero-apps/blob/-/flipper_share_ibutton)
@@ -879,27 +879,27 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Flipper Share NFC v1.5 (By lomalkin)](https://github.com/lomalkin/flipper-zero-apps/blob/-/flipper_share_nfc)
 - [Flipper Share RFID v0.1 (By lomalkin)](https://github.com/lomalkin/flipper-zero-apps/blob/-/flipper_share_rfid)
 - [Flipper Share v1.5 (By lomalkin)](https://github.com/lomalkin/flipper-zero-apps/tree/dev/flipper_share)
-- [Flipper Tag v1.0 (By thejudge156)](https://github.com/thejudge156/flippertag)
-- [Flipper Wedge v1.1 (By DangerousThings)](https://github.com/DangerousThings/flipper-wedge)
-- [Flipper95 v1.1 (By CookiePLMonster)](https://github.com/CookiePLMonster/flipper-bakery)
-- [FlipperFire v1.0 (By jankammerath)](https://github.com/jankammerath/FlipperFire)
+- [Flipper Tag v1.0 (By thejudge156)](https://github.com/thejudge156/flippertag) - Nerf-compatible infrared laser tag
+- [Flipper Wedge v1.1 (By DangerousThings)](https://github.com/DangerousThings/flipper-wedge) - RFID/NFC keyboard output
+- [Flipper95 v1.1 (By CookiePLMonster)](https://github.com/CookiePLMonster/flipper-bakery) - CPU prime-number stress test
+- [FlipperFire v1.0 (By jankammerath)](https://github.com/jankammerath/FlipperFire) - Animated Doom fire effect
 - [FlipperHTTP v1.1 (By JBlanked)](https://github.com/jblanked/FlipperHTTP-App) `Req: ESP32 with FlipperHTTP firmware`
-- [FlipperPwn v1.7 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
-- [FlipperTrack v1.0 (By pinkpwningclub)](https://github.com/pinkpwningclub/flipperTrack)
+- [FlipperPwn v1.7 (By barkandbite)](https://github.com/barkandbite/flipper_suite) - Modular security testing framework
+- [FlipperTrack v1.0 (By pinkpwningclub)](https://github.com/pinkpwningclub/flipperTrack) - USB HID activity simulator
 - [FlipperZero Clock v1.3 (By mdaskalov)](https://github.com/mdaskalov/flipperzero-clock)
 - [Flippy Temp WIP v0.1 (By n0ciple)](https://github.com/n0ciple/flippy_sensors) `Req: Flippy Sensor Board`
-- [FlipRPI v1.0 (By jblanked)](https://github.com/jblanked/FlipRPI) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
+- [FlipRPI v1.0 (By jblanked)](https://github.com/jblanked/FlipRPI) - Raspberry Pi remote control `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
 - [FlipSocial v2.0.9 (By jblanked)](https://github.com/jblanked/FlipSocial) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
 - [FlipTDI v1.1 (By Skorpionm)](https://github.com/flipperdevices/flipperzero-good-faps/pull/234)
 - [FlipTelegram v1.0.1 (By jblanked)](https://github.com/jblanked/FlipTelegram) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
-- [FlipTok Live v1.0 (By kamylwnb)](https://github.com/kamylwnb/FlipTok_Live_Chat)
+- [FlipTok Live v1.0 (By kamylwnb)](https://github.com/kamylwnb/FlipTok_Live_Chat) - TikTok live chat monitor
 - [FlipTrader v1.2 (By jblanked)](https://github.com/jblanked/FlipTrader) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
 - [FlipWeather v1.4 (By jblanked)](https://github.com/jblanked/FlipWeather) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
 - [FlipWifi v1.6.3 (By jblanked)](https://github.com/jblanked/FlipWiFi) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
-- [FlipWind v1.0 (By Marcopiiit)](https://github.com/skylovervibecoder/Flipper-Zero-FlipWind)
-- [FlipWorld v1.0.4 (By jblanked)](https://github.com/jblanked/FlipWorld) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
-- [Flizzer Tracker v0.11 (By LTVA1)](https://github.com/LTVA1/flizzer_tracker)
-- [Flo Tracker v1.0 (By harimwoo)](https://github.com/harimwoo/flipper-flo-tracker)
+- [FlipWind v1.0 (By Marcopiiit)](https://github.com/skylovervibecoder/Flipper-Zero-FlipWind) - Runway crosswind calculator
+- [FlipWorld v1.0.4 (By jblanked)](https://github.com/jblanked/FlipWorld) - Open-world multiplayer game `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
+- [Flizzer Tracker v0.11 (By LTVA1)](https://github.com/LTVA1/flizzer_tracker) - Four-channel chiptune composer
+- [Flo Tracker v1.0 (By harimwoo)](https://github.com/harimwoo/flipper-flo-tracker) - Menstrual cycle tracker
 - [FM Radio RDS v0.1 (By victormico)](https://github.com/victormico/flipperzero-radio)
 - [FM Radio v2.2 (By coolshrimp)](https://github.com/coolshrimp/flipperzero-fm-radio) `Req: TEA5767/Si4703`
 - [FM Radio w Vol v0.10 (By coolshrimp & pchmielewski1)](https://github.com/pchmielewski1/tea5767-pt2257-fm-radio-with-volume-control) `Req: TEA5767+PT2257`
@@ -910,23 +910,23 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Ford Radio Codes v0.1 (By DavidB445)](https://github.com/DavidB445/fz_fordradiocodes)
 - [FreeStyle Libre CGM v0.1 (By darendarrow)](https://github.com/darendarrow/flipnCGM)
 - [Frequency Analyzer (External) v1.2 (By xMasterX)](https://github.com/xMasterX/all-the-plugins/tree/dev/non_catalog_apps/freq_analyzer_ext)
-- [FRSScan v0.2 (By thecybermind)](https://github.com/thecybermind/frsscan)
+- [FRSScan v0.2 (By thecybermind)](https://github.com/thecybermind/frsscan) - FRS/GMRS radio scanner
 - [Fujitsu AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
-- [FuseZero v1.0 (By Marcopiiit)](https://github.com/skylovervibecoder/Flipper-Zero-FuseZero)
+- [FuseZero v1.0 (By Marcopiiit)](https://github.com/skylovervibecoder/Flipper-Zero-FuseZero) - Four-city world clock
 - [FZ nRF24 Jammer v1.4 (By W0rthlessS0ul)](https://github.com/W0rthlessS0ul/FZ_nRF24_jammer)
 - [Gas Sensor v0.1 (By iancohee)](https://github.com/iancohee/gas_sensor_fap) `Req: BME680 / SGP30`
-- [Gatekeeper v1.1 (By enexis1337)](https://github.com/enexis1337/Gatekeeper)
+- [Gatekeeper v1.1 (By enexis1337)](https://github.com/enexis1337/Gatekeeper) - USB password manager
 - [Gauge Tool v0.1 (By skotopes)](https://github.com/skotopes/flipperzero_gauge_tool) (Used To Downgrade From 10/07/2024 Update)
 - [GB Printer v0.5 (By kbembedded)](https://github.com/kbembedded/flipper-gb-printer) `Req: GB Link Cable / Malveke`
 - [Gemini IA v1.1 (By d4rks1d33 & jamisonderek)](https://github.com/d4rks1d33/Gemini-Flipper)
 - [Genie Recorder v3.2 (By jamisonderek)](https://github.com/jamisonderek/flipper-zero-tutorials/tree/main/subghz/apps/genie-recorder)
-- [Ghost ESP v1.9 (By jaylikesbunda & Spooks4576)](https://github.com/Spooks4576/ghost_esp_app) `Req: ESP32` with [Ghost ESP Firmware](https://github.com/Spooks4576/Ghost_ESP)
-- [Ghost Tracker v1.0 (By Zinetick)](https://github.com/Zinetick/ghost_tracker)
-- [GhostBook v0.6 (By digitard)](https://github.com/digitard/ghostbook)
-- [GhostTag v2.0 (By at0m-b0mb)](https://github.com/at0m-b0mb/GhostTag-FlipperZero) `Req: ESP32`
-- [Gitphin v1.2 (By Adhamura)](https://github.com/Adhamura/gitphin)
-- [GlitchTrigger v1.3 (By at0m-b0mb)](https://github.com/at0m-b0mb/GlitchTrigger-FlipperZero)
-- [GnomishTool v1.0 (By Andreeved88)](https://github.com/Andreeved88/GnomishTool)
+- [Ghost ESP v1.9 (By jaylikesbunda & Spooks4576)](https://github.com/Spooks4576/ghost_esp_app) - Wi-Fi/Bluetooth testing companion `Req: ESP32` with [Ghost ESP Firmware](https://github.com/Spooks4576/Ghost_ESP)
+- [Ghost Tracker v1.0 (By Zinetick)](https://github.com/Zinetick/ghost_tracker) - RF and proximity instruments
+- [GhostBook v0.6 (By digitard)](https://github.com/digitard/ghostbook) - Encrypted NFC contact sharing
+- [GhostTag v2.0 (By at0m-b0mb)](https://github.com/at0m-b0mb/GhostTag-FlipperZero) - Persistent Bluetooth tracker detection `Req: ESP32`
+- [Gitphin v1.2 (By Adhamura)](https://github.com/Adhamura/gitphin) - USB Git repository hosting
+- [GlitchTrigger v1.3 (By at0m-b0mb)](https://github.com/at0m-b0mb/GlitchTrigger-FlipperZero) - GPIO fault-injection pulse generator
+- [GnomishTool v1.0 (By Andreeved88)](https://github.com/Andreeved88/GnomishTool) - Ruler and electronics multitool
 - [Goodweather AC v1.0 (By xMasterX)](https://github.com/xMasterX/all-the-plugins)
 - [Govee Control v0.1 (By devdotbo)](https://github.com/devdotbo/GlowFin)
 - [GPIO 7-Segment Output v1.3 (By jamisonderek)](https://github.com/jamisonderek/flipper-zero-tutorials/tree/main/gpio)
@@ -948,14 +948,14 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Habit Flow v0.1.4 (By Endika)](https://github.com/Endika/flipper-habit-flow)
 - [Haier AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
 - [Haier AC YR-HE2 v2.0 (By Marcopiiit)](https://github.com/skylovervibecoder/Flipper-Zero-Haier-AC)
-- [HAM v0.6 (By lumen-rot)](https://github.com/lumen-rot/flipper-ham)
-- [Ham Cram v1.0 (By NicPWNs)](https://github.com/NicPWNs/HamCram)
+- [HAM v0.6 (By lumen-rot)](https://github.com/lumen-rot/flipper-ham) - Keyboard/mouse activity simulator
+- [Ham Cram v1.0 (By NicPWNs)](https://github.com/NicPWNs/HamCram) - Amateur radio exam practice
 - [Ham Scanner v1.1 (By Clawzman)](https://github.com/Clawzman/Flipper-HAM-Scanner)
 - [Handpan Chords v1.0 (By KingBoa / NoodleNugget-com)](https://github.com/NoodleNugget-com/handpan_chords)
-- [Hanzi Cards v0.5 (By rseufert)](https://github.com/rseufert/hanzi_cards)
+- [Hanzi Cards v0.5 (By rseufert)](https://github.com/rseufert/hanzi_cards) - Mandarin vocabulary flashcards
 - [Hard Hat Brigade IR v0.1 (By Anomalous68)](https://github.com/Anomalous68/HHB-Flipper-App) `Req: Hard Hat Brigade Hat`
 - [HC-11 Modem v1.3 (By Giraut)](https://github.com/Giraut/flipper_zero_hc11_wireless_modem) `Req: HC-11`
-- [Hermes v1.3 (By at0m-b0mb)](https://github.com/at0m-b0mb/Hermes-FlipperZero)
+- [Hermes v1.3 (By at0m-b0mb)](https://github.com/at0m-b0mb/Hermes-FlipperZero) - UART detection and terminal
 - [HEX Editor v1.4 (By dunaevai135)](https://github.com/dunaevai135/flipper-zero-hex_editor)
 - [HEX Viewer v2.0 (By QtRoS)](https://github.com/QtRoS/flipperzero-firmware)
 - [HID Exfil v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
@@ -971,12 +971,12 @@ This software is for experimental purposes only and is not meant for any illegal
 - [iButton Fuzzer v1.8 (By gid9798)](https://github.com/DarkFlippers/unleashed-firmware/pull/507)
 - [IconEdit v0.7.1 (By rdefeo)](https://github.com/rdefeo/iconedit)
 - [ID Card v3.0 (By evillero)](https://github.com/evillero/ID_card_v2)
-- [IDentity v0.22 (By Dani)](https://github.com/daniqed/flipper-identity)
+- [IDentity v0.22 (By Dani)](https://github.com/daniqed/flipper-identity) - Electronic identity document reader
 - [IFTTT Button (By Ferrazzi)](https://github.com/Ferrazzi/FlipperZero_IFTTT_Virtual_Button) `Req: ESP8266 w/ IFTTT FW Flashed`
 - [Image Scroller v0.1 (By fgreil)](https://github.com/fgreil/mitzi-scroller)
 - [Image Viewer v0.2 (By polioan)](https://github.com/polioan/flipper-zero-image-viewer)
 - [INA Meter v0.8 (By cepetr)](https://github.com/cepetr/flipper-tina)
-- [InfraFi v2.0 (By amd989)](https://github.com/amd989/InfraFi)
+- [InfraFi v2.0 (By amd989)](https://github.com/amd989/InfraFi) - Infrared Wi-Fi credential transfer
 - [Infrared Playback v0.2 (By kdiller713)](https://github.com/kdiller713/public-FlipperApps)
 - [Internet Bridge v0.5 (By mete888)](https://github.com/mete888/flipper_usb_to_wifi)
 - [Internet Time Screen v0.2 (By sureserverman)](https://github.com/sureserverman/internet-time-screen)
@@ -997,26 +997,26 @@ This software is for experimental purposes only and is not meant for any illegal
 - [ISO15693-3 NFC Writer v1.0 (By ch4istO)](https://github.com/ch4istO/unleashed-firmware/tree/dev/applications_user/iso15693_nfc_writer)
 - [J305 Geiger Counter v1.5 (By nmrr)](https://github.com/nmrr/flipperzero-geigercounter)
 - [JAYX PC Monitor v0.4 (By contactjayclatty)](https://github.com/contactjayclatty/JAYX)
-- [Jiggler v0.1 (By rseufert)](https://github.com/rseufert/jiggler)
+- [Jiggler v0.1 (By rseufert)](https://github.com/rseufert/jiggler) - Computer-awake mouse simulator
 - [Joycon v1.0 (By ccyyturralde)](https://github.com/ccyyturralde/Flipper-Zero-Joycon)
-- [K2 RFID v1.0 (By mitchsurp)](https://github.com/mitchsurp/K2-RFID-Flipper)
-- [Karl Eido v0.1 (By fgreil)](https://github.com/fgreil/mitzi-karl-eido)
+- [K2 RFID v1.0 (By mitchsurp)](https://github.com/mitchsurp/K2-RFID-Flipper) - Creality filament tag manager
+- [Karl Eido v0.1 (By fgreil)](https://github.com/fgreil/mitzi-karl-eido) - Interactive kaleidoscope display
 - [Kelon AC v1.0 (By xMasterX)](https://github.com/xMasterX/all-the-plugins)
 - [Kelvinator AC v1.0 (By xMasterX)](https://github.com/xMasterX/all-the-plugins)
 - [Key Copier v1.5 (By zinongli)](https://github.com/zinongli/KeyCopier)
 - [Key Copier Italia v1.0 (By Torron / Maranello89)](https://github.com/Maranello89/KeyCopier-Italia)
-- [Key Wizard v1.3 (By Vazgen Grigoryan)](https://github.com/vazgen3201/flipper-key-wizard)
+- [Key Wizard v1.3 (By Vazgen Grigoryan)](https://github.com/vazgen3201/flipper-key-wizard) - RFID/NFC/iButton automatic identification
 - [Keylogger v1.0 (By dagnazty)](https://github.com/dagnazty/Flipper_Keylogger)
-- [KeyRecoveryTool v1.0 (By Marcopiiit)](https://github.com/skylovervibecoder/Flipper-Zero-KeyRecoveryTool)
+- [KeyRecoveryTool v1.0 (By Marcopiiit)](https://github.com/skylovervibecoder/Flipper-Zero-KeyRecoveryTool) - MIFARE dump key extraction
 - [Kindle Click v0.4 (By zuyan9)](https://github.com/zuyan9/Flipper-Zero-Kindle-Click)
 - [KneeFlip Rehab v0.1 (By daryalok)](https://github.com/daryalok/KneeFlip-Rehab)
 - [Knit Counter v1.0.2 (By fridgepoet)](https://github.com/fridgepoet/knit-counter)
-- [Kota v0.2 (By cobanov)](https://github.com/cobanov/kota)
-- [KyberWrite v0.1 (By spandox2)](https://github.com/spandox2/KyberWrite)
-- [Lab401/DigiLab v1.1.1 (By lab-401 & tixlegeek)](https://github.com/lab-401/fzDigiLab)
+- [Kota v0.2 (By cobanov)](https://github.com/cobanov/kota) - Claude usage quota monitor
+- [KyberWrite v0.1 (By spandox2)](https://github.com/spandox2/KyberWrite) - Kyber crystal RFID programming
+- [Lab401/DigiLab v1.1.1 (By lab-401 & tixlegeek)](https://github.com/lab-401/fzDigiLab) - Digital electronics probing toolkit
 - [Lab401/Light MESSENGER v1.4.1 (By tixlegeek)](https://github.com/lab-401/fzLightMessenger/tree/main/401lightMessengerApp)
 - [LAN Tester v2.10 (By dok2d)](https://github.com/dok2d/fz-W5500-lan-analyse)
-- [LaserCat v1.1 (By DroWez)](https://github.com/DroWez/LaserCat)
+- [LaserCat v1.1 (By DroWez)](https://github.com/DroWez/LaserCat) - External laser pointer control
 - [Lasko 2519 Timer v1.0 (By LN4CY)](https://github.com/LN4CY/lasko-2519-timer)
 - [LD2410 Human Detector v1.0 (By sistemasorp)](https://github.com/sistemasorp/flipper-ld2410_human_detector)
 - [LED Blinker v1.0 (By Cupprum)](https://github.com/Cupprum/Blinker)
@@ -1024,22 +1024,22 @@ This software is for experimental purposes only and is not meant for any illegal
 - [LED Remote v1.0 (By AugustinKrb)](https://github.com/AugustinKrb/flipper-led-remote)
 - [LED Ring & Matrix Studio v0.1 (By xfwluna)](https://github.com/xfwluna/led_ring_matrix_studio) `Req: WS2812B / SK6812 NeoPixel`
 - [LEGO Dimensions Toy Pad v0.5 (By SegerEnd)](https://github.com/SegerEnd/Flipper-Zero-LD-Toypad-Emulator)
-- [Letter Beacon v1.0 (By nmrr)](https://github.com/nmrr/flipperzero-rfidbeacon)
+- [Letter Beacon v1.0 (By nmrr)](https://github.com/nmrr/flipperzero-rfidbeacon) - RFID/NFC Morse code beacon
 - [LG AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
 - [LGT ISP (SWD) v0.7 (By mkrasem / SimonE)](https://github.com/mkrasem/flipper_lgt_isp) `Req: LGT8F328P`
 - [LIDAR Emulator v0.2 (By regaly)](https://github.com/regaly/flipperzero-lidar_emulator)
 - [Lightmeter v1.3 (By oleksiikutuzov)](https://github.com/oleksiikutuzov/flipperzero-lightmeter) `Req: BH1750/MAX44009`
 - [Lightning Distance v0.1 (By HyperMuffin12)](https://github.com/HyperMuffin12/Flipper-Lightning-Distance)
-- [Lishi HU66 v0.3 (By evillero)](https://github.com/evillero/lishi_hu66)
-- [ListEM v1.5 (By Clawzman)](https://github.com/Clawzman/Flipper_ListEM)
+- [Lishi HU66 v0.3 (By evillero)](https://github.com/evillero/lishi_hu66) - Lock decoding record keeper
+- [ListEM v1.5 (By Clawzman)](https://github.com/Clawzman/Flipper_ListEM) - RFID/NFC/iButton UID dictionary generator
 - [Logic Analyzer v1.1 (By g3gg0)](https://github.com/g3gg0/flipper-logic_analyzer)
 - [Longwave Clock v0.1 (By m7i-org)](https://github.com/m7i-org/flipper_longwave_clock)
 - [LoRa Relay v1.1.3 (By ElectronicCats)](https://github.com/ElectronicCats/flipper-SX1262-LoRa) `Req: SX1262 By ElectronicCats`
 - [LoRa Sample v1.1.3 (By ElectronicCats)](https://github.com/ElectronicCats/flipper-SX1262-LoRa) `Req: SX1262 By ElectronicCats`
 - [LORA Terminal (By aafksab)](https://github.com/aafksab/LORA-Term)
-- [LoRadar v0.1 (By baptleduc)](https://github.com/baptleduc/flipper-loradar-app)
+- [LoRadar v0.1 (By baptleduc)](https://github.com/baptleduc/flipper-loradar-app) - LoRa balloon position tracking
 - [MagicBand Plus Lights v3.0 (By Haw8411)](https://github.com/Haw8411/magic-band-plus-lights)
-- [MagSpoof v0.10 (By zacharyweiss)](https://github.com/zacharyweiss/magspoof_flipper)
+- [MagSpoof v0.10 (By zacharyweiss)](https://github.com/zacharyweiss/magspoof_flipper) - Magnetic stripe card emulation
 - [MALVEKE GAME BOY ADVANCE Cartridge v2.2 (By EstebanFuentealba)](https://github.com/EstebanFuentealba/MALVEKE-Flipper-Zero/tree/main/flipper_companion_apps/applications/external/malveke_gba_cartridge) `Req: Malveke`
 - [MALVEKE GAME BOY Cartridge (GB/GBC) v2.2 (By EstebanFuentealba)](https://github.com/EstebanFuentealba/MALVEKE-Flipper-Zero/tree/main/flipper_companion_apps/applications/external/malveke_gb_cartridge) `Req: Malveke`
 - [MALVEKE GAME BOY Emulator v2.1 (By EstebanFuentealba)](https://github.com/EstebanFuentealba/MALVEKE-Flipper-Zero/tree/main/flipper_companion_apps/applications/external/malveke_gb_emulator) `Req: Malveke`
@@ -1048,17 +1048,17 @@ This software is for experimental purposes only and is not meant for any illegal
 - [MALVEKE GB Photo v2.3 (By EstebanFuentealba)](https://github.com/EstebanFuentealba/MALVEKE-Flipper-Zero/tree/main/flipper_companion_apps/applications/external/malveke_gb_photo) `Req: Malveke`
 - [MALVEKE PIN Test v2.2 (By EstebanFuentealba)](https://github.com/EstebanFuentealba/MALVEKE-Flipper-Zero/tree/main/flipper_companion_apps/applications/external/malveke_pin_test) `Req: Malveke`
 - [Marauder GUI v1.1 (By mel4mi)](https://github.com/mel4mi/Marauder-GUI-Flipper)
-- [Marmalade v0.1.1 (By RocketGod)](https://github.com/RocketGod-git/flipper-zero-rf-jammer) (Exercise Caution and Follow Your Local Laws)
+- [Marmalade v0.1.1 (By RocketGod)](https://github.com/RocketGod-git/flipper-zero-rf-jammer) - Multi-mode RF jammer (Exercise Caution and Follow Your Local Laws)
 - [Math Wiz v1.1 (By ImPapaGhost)](https://github.com/ImPapaGhost/math_wiz)
 - [MAX31855 (By skotopes)](https://github.com/skotopes/flipperzero_max31855)
 - [Mayan Decoder v1.1 (By RogerF5-Security)](https://github.com/RogerF5-Security/Mayan_decoder)
-- [MDC1200 v0.2.2beta (By Marcopiiit)](https://github.com/skylovervibecoder/Flipper-Zero-MDC1200-beta-testing-)
+- [MDC1200 v0.2.2beta (By Marcopiiit)](https://github.com/skylovervibecoder/Flipper-Zero-MDC1200-beta-testing-) - Radio signaling encoder/decoder
 - [Meshcore Config v0.1 (By hleserg)](https://github.com/hleserg/flipperMeshCoreConfig/tree/main)
-- [Metroflip v2.1-beta.1 (By luu176)](https://github.com/luu176/Metroflip)
+- [Metroflip v2.1-beta.1 (By luu176)](https://github.com/luu176/Metroflip) - Transit card data reader
 - [Metronome v1.3 (By panki27)](https://github.com/panki27/Metronome)
 - [MFC Editor v1.0 (By TollyH)](https://github.com/TollyH/flipper-apps)
 - [MFDesfire Auth v1.0 (By Gatorixx)](https://github.com/Gatorixx/flipper-zero-legacy-authentication)
-- [Mfkey v4.1 (By noproto)](https://github.com/noproto/FlipperMfkey)
+- [Mfkey v4.1 (By noproto)](https://github.com/noproto/FlipperMfkey) - MIFARE Classic key recovery
 - [MFP Reader v1.1 (By Defensor7)](https://github.com/Defensor7/flipperzero-mfp-reader)
 - [MH-Z19 CO2 Sensor v0.2 (By meshchaninov)](https://github.com/meshchaninov/flipper-zero-mh-z19)
 - [MH-Z19 UART (By skotopes)](https://github.com/skotopes/flipperzero_mhz19_uart)
@@ -1069,7 +1069,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [MIDI Ocarina v0.1 (By crackerjacques)](https://github.com/crackerjacques/Flipper_Zero_MIDI_Ocarina)
 - [MIDI Player v0.1 (By Aspenini)](https://github.com/Aspenini/Flipper-Zero-MIDI-Player)
 - [MIDI RX v0.1 (By crackerjacques)](https://github.com/crackerjacques/flipper_zero_midi_rx)
-- [Miele Scout RX2 v1.0 (By kallevaravas)](https://github.com/kallevaravas/flipper-miele-scout)
+- [Miele Scout RX2 v1.0 (By kallevaravas)](https://github.com/kallevaravas/flipper-miele-scout) - Robot vacuum infrared remote
 - [Mifare Fuzzer v1.5 (By spheeere98)](https://github.com/spheeere98/mifare_fuzzer)
 - [Mitsubishi AC (Full) v1.0 (By xMasterX)](https://github.com/xMasterX/all-the-plugins)
 - [Mitsubishi AC (New) v1.0 (By Str4ch)](https://github.com/Str4ch/flipperzero-mitsubishi-ac-remote-new-protocol)
@@ -1110,7 +1110,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Network Subnet v0.1 (By aaumkar)](https://github.com/aaumkar/network_subnet)
 - [Networking NFC + QR v2.0 (By DonJulve)](https://github.com/DonJulve/Networking_NFC_QR_Flipper_Zero)
 - [NFC APDU Runner v0.3.5 (By SpenserCai)](https://github.com/SpenserCai/nfc_apdu_runner)
-- [NFC Canary v0.2 (By antitree)](https://github.com/antitree/nfc_canary)
+- [NFC Canary v0.2 (By antitree)](https://github.com/antitree/nfc_canary) - NFC reader detection alerts
 - [NFC Comparator v2.6 (By acegoal07)](https://github.com/acegoal07/FlipperZero_NFC_Comparator)
 - [NFC Compare v1.0 (By lewisQ17)](https://github.com/lewisQ17/Momentum-Firmware)
 - [NFC Dict Manager v1.0 (By grugnoymeme)](https://github.com/grugnoymeme/nfc_dicts_manager)
@@ -1118,12 +1118,12 @@ This software is for experimental purposes only and is not meant for any illegal
 - [NFC Fuzzer v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
 - [NFC Keyboard v1.0 (By Patrick762)](https://github.com/Patrick762/flipper-nfc-keyboard)
 - [NFC Login v1.1.3 (By Play2BReal)](https://github.com/Play2BReal/NFC-Login)
-- [NFC Magic v2.3 (By gornekich)](https://github.com/flipperdevices/flipperzero-firmware/pull/1966)
+- [NFC Magic v2.3 (By gornekich)](https://github.com/flipperdevices/flipperzero-firmware/pull/1966) - Rewritable NFC tag tools
 - [NFC Maker v2.1 (by WillyJL)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/343cb39d08f60b75b537e1a31100707935cf6e9d)
 - [NFC Playlist v3.5 (By acegoal07)](https://github.com/acegoal07/FlipperZero_NFC_Playlist/tree/main)
 - [NFC QR Presenter v1.1 (By RogerF5-Security)](https://github.com/RogerF5-Security/NFC_QR_Presenter)
 - [NFC Relay v0.2 (By leommxj)](https://github.com/leommxj/nfc_relay)
-- [NFC Seader v4.2 (By bettse)](https://github.com/bettse/seader)
+- [NFC Seader v4.2 (By bettse)](https://github.com/bettse/seader) - HID credential reader
 - [NFC Sniffer v0.2 (By kdiller713)](https://github.com/kdiller713/public-FlipperApps/tree/main/nfc_sniffer)
 - [NFC Stock Manager v0.1.7 (By Endika)](https://github.com/Endika/flipper-nfc-stock)
 - [NFC Tools v1.3 (By wakdev)](https://github.com/wakdev/nfctools-fz)
@@ -1145,21 +1145,21 @@ This software is for experimental purposes only and is not meant for any illegal
 - [NRF24 Monitor v1.0 (By CyberDemon73)](https://github.com/CyberDemon73/flipperzero-nrf24monitor)
 - [NRF24 Scanner v2.3 (By vad7)](https://github.com/vad7/nrf24scan)
 - [NRF24 Tool v1.0 (By S. Terrier)](https://github.com/OuinOuin74/nrf24tool) `Req: NRF24L01 module`
-- [Nyx v1.2 (By at0m-b0mb)](https://github.com/at0m-b0mb/Nyx-FlipperZero)
+- [Nyx v1.2 (By at0m-b0mb)](https://github.com/at0m-b0mb/Nyx-FlipperZero) - Infrared emitter detector
 - [Ocarina v1.3 (By invalidna-me)](https://github.com/invalidna-me/flipperzero-ocarina) [Here are the LOTZ Songs](https://www.zeldadungeon.net/wiki/Ocarina_of_Time_Songs)
 - [Onkyo Remote v1.0 (By gergely-xyz)](https://github.com/gergely-xyz/OnkyoRemote)
-- [OpenPrintTag v1.0 (By Houzvicka)](https://github.com/Houzvicka/FlipperPrintTag)
+- [OpenPrintTag v1.0 (By Houzvicka)](https://github.com/Houzvicka/FlipperPrintTag) - Filament spool tag editor
 - [OpenShock v0.1 (By OpenShock Team)](https://github.com/OpenShock/FlipperZero)
-- [Orgasmotron v1.1 (By leedave)](https://github.com/leedave/Leeds-Flipper-Zero-Applications)
+- [Orgasmotron v1.1 (By leedave)](https://github.com/leedave/Leeds-Flipper-Zero-Applications) - Vibration pattern player
 - [Oscilloscope v0.4 (By anfractuosity)](https://github.com/anfractuosity/flipperscope)
 - [OSM Logger GPS v0.15 (By simongrossi)](https://github.com/simongrossi/flipperzero-osm-logger-gps)
-- [Pack Track v1.0 (By thecoolguy2001)](https://github.com/thecoolguy2001/flipper-pack-track) `Req: ESP32 / WiFi DevBoard`
+- [Pack Track v1.0 (By thecoolguy2001)](https://github.com/thecoolguy2001/flipper-pack-track) - Parcel shipment tracker `Req: ESP32 / WiFi DevBoard`
 - [Panasonic AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
-- [Paranoia WIP v0.2 (By C0d3-5t3w)](https://github.com/C0d3-5t3w/flipper-paranoia)
+- [Paranoia WIP v0.2 (By C0d3-5t3w)](https://github.com/C0d3-5t3w/flipper-paranoia) - RF/NFC/IR activity scanner
 - [Password Generator v1.4 (By anakod)](https://github.com/anakod/flipper_passgen)
 - [Password Keyboard v0.1 (By evgeniyraev)](https://github.com/evgeniyraev/password_keyboard)
 - [Password Manager v1.2 (By Rrycbarm)](https://github.com/Rrycbarm/flipperZeroPasswordManager)
-- [Passy v1.6 (By bettse)](https://github.com/bettse/passy)
+- [Passy v1.6 (By bettse)](https://github.com/bettse/passy) - Electronic passport reader
 - [Pause Timer v1.0 (By Matt-London)](https://github.com/Matt-London/pause_timer)
 - [PayTo Wallets v0.1 (By Rastislav Core)](https://github.com/rastislavcore/flipper_payto)
 - [PC Health Remote v1.1 (By ataman-lab)](https://github.com/ataman-lab/pc-health-remote) Req: [Backend](https://github.com/ataman-lab/pc-health-remote/tree/main/backend)
@@ -1178,24 +1178,24 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Plugin Demo v1.0 (By csBlueChip)](https://github.com/csBlueChip/FlipperZero_plugin_howto)
 - [Pocket Chords v0.1 (By rvonsch)](https://github.com/rvonsch/flipper-pocket-chords)
 - [Pocket CVSS v0.3 (By vavkamil)](https://github.com/vavkamil/pocket-cvss)
-- [PocketLab v1.6 (By PerfectoWeb)](https://github.com/PerfectoWeb/flipper-pocketlab)
+- [PocketLab v1.6 (By PerfectoWeb)](https://github.com/PerfectoWeb/flipper-pocketlab) - Interactive Flipper learning labs
 - [POCSAG Pager v1.4 (By XMasterx & Shmuma)](https://github.com/xMasterX/flipper-pager)
 - [Pokemon Battle [GBC] v0.1 (By cycalo)](https://github.com/cycalo/Flipper-Zero-Game-Boy-Pokemon-Battle) `Req: Link Cable/Adaptor`
 - [Pokemon Trading v2.3 (By EstebanFuentealba & kbembedded)](https://github.com/EstebanFuentealba/Flipper-Zero-Game-Boy-Trading-Pokemons) `Req: Link Cable/Adaptor`
 - [Polk MagnifiMini Remote v1.0 (By varunyellina)](https://github.com/varunyellina/flipper-ir-remote-polkmagnifi)
 - [Pomodoro 2 v2.4.1 (By Th3Un1q3)](https://github.com/Th3Un1q3/flipp_pomodoro)
 - [Pomodoro Timer v1.5 (By sbrin)](https://github.com/sbrin/flipperzero_pomodoro)
-- [Portal of Flipper v1.3 (By bettse & sanjay900)](https://github.com/sanjay900/portal_of_flipper)
-- [Postman v0.1 (By MassivDash)](https://github.com/MassivDash/flipper-postman) `Req: ESP32` with [Postman Firmware](https://github.com/MassivDash/flipper-postman-esp32s2)
+- [Portal of Flipper v1.3 (By bettse & sanjay900)](https://github.com/sanjay900/portal_of_flipper) - Skylanders USB portal emulator
+- [Postman v0.1 (By MassivDash)](https://github.com/MassivDash/flipper-postman) - HTTP requests and downloads `Req: ESP32` with [Postman Firmware](https://github.com/MassivDash/flipper-postman-esp32s2)
 - [Prime Factors v1.0 (By gbritoda)](https://github.com/gbritoda/flipper0-prime_factors)
 - [Programmer Calculator v0.9.2 (By armixz)](https://github.com/armixz/Flipper-Zero-Programmer-Calculator)
 - [ProtoPirate v4.1 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
-- [ProtoView v1.5 (By antirez)](https://github.com/antirez/protoview)
+- [ProtoView v1.5 (By antirez)](https://github.com/antirez/protoview) - Radio signal visualizer
 - [Pulse BPM v1.0 (By alaviation)](https://github.com/alaviation/flipper-pulse)
-- [PwnPal v3.0 (By mrq1911)](https://github.com/mrq1911/pwnpal) `Req: ESP32`
+- [PwnPal v3.0 (By mrq1911)](https://github.com/mrq1911/pwnpal) - ESP32 Pwnagotchi companion `Req: ESP32`
 - [QR Code v2.1.4 (By bmatcuk)](https://github.com/bmatcuk/flipperzero-qrcode)
 - [QRCode Generator v0.1 (By qw3rtty)](https://github.com/qw3rtty/flipperzero-qrcode-generator)
-- [Quac! v0.10.0 (By rdefeo)](https://github.com/rdefeo/quac)
+- [Quac! v0.10.0 (By rdefeo)](https://github.com/rdefeo/quac) - Saved signal launcher
 - [Quadratic Solver v0.1 (By paul-sopin)](https://github.com/paul-sopin/flipper-quadratic-solver)
 - [R.O.B. Control v1.0.1 (By riney)](https://github.com/riney/flip_rob)
 - [Radar Scanner v2.0 (By MatthewKuKanich)](https://github.com/MatthewKuKanich/flipper-radar) `Req: RCWL-0516`
@@ -1219,14 +1219,14 @@ This software is for experimental purposes only and is not meant for any illegal
 - [RGB LED (By flyandi)](https://github.com/flyandi/flipper_zero_rgb_led)
 - [Rogue AP Detector v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite) `Req: ESP32`
 - [Roku App v1.0 (By Sifi11)](https://github.com/sifi11/Flipper-Roku-App)
-- [RollCall v1.1 (By at0m-b0mb)](https://github.com/at0m-b0mb/RollCall-FlipperZero)
+- [RollCall v1.1 (By at0m-b0mb)](https://github.com/at0m-b0mb/RollCall-FlipperZero) - Rolling-code behavior analyzer
 - [Roman Decoder v0.2 (By evillero)](https://github.com/evillero/roman_decoder)
-- [Rosetta v1.0 (By at0m-b0mb)](https://github.com/at0m-b0mb/Rosetta-FlipperZero)
+- [Rosetta v1.0 (By at0m-b0mb)](https://github.com/at0m-b0mb/Rosetta-FlipperZero) - Interactive protocol tutorials
 - [ROT13 v0.1 (By nothingbutlucas)](https://codeberg.org/nothingbutlucas/flipperzero_rot13)
 - [RS41 Tracker v1.1 (By yeckel)](https://github.com/yeckel/RS41flipper)
 - [Rubiks Cube Timer v0.0.2 (By KHOPAN)](https://github.com/KHOPAN/Cuber-Zero)
-- [SaFlip v0.1 (By aaronjamt)](https://github.com/aaronjamt/saflip)
-- [SAM (By Unknown)](https://github.com/ctoth/SAM)
+- [SaFlip v0.1 (By aaronjamt)](https://github.com/aaronjamt/saflip) - Saflok credential tools
+- [SAM (By Unknown)](https://github.com/ctoth/SAM) - Retro speech synthesizer
 - [Samsung AC (Full) v1.0 (By xMasterX)](https://github.com/xMasterX/all-the-plugins)
 - [Samsung AC Remote v1.0 (By dappermint)](https://github.com/dappermint/samsung-ac-remote-flipper-app)
 - [San Morse v1.0.1 (By sanjorgek)](https://github.com/sanjorgek/san-morse-flipper)
@@ -1236,32 +1236,32 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Seed Capturer v1.2 (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/64d285c8e2a7eeef5f34cd5988d8506e2d730743)
 - [Segment Clock v1.2 (By Sladkisnovraper)](https://github.com/Sladkisnovraper/Segment-Clock-For-Flipper-Zero)
 - [Sentry Safe v2.0 (By H4ckd4ddy)](https://github.com/H4ckd4ddy/flipperzero-sentry-safe-plugin) ([Pin Out](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/tree/420/applications/external/sentry_safe) from [UberGuidoZ](https://github.com/UberGuidoZ/))
-- [Seos compatible v1.3 (By bettse)](https://github.com/bettse/seos_compatible)
+- [Seos compatible v1.3 (By bettse)](https://github.com/bettse/seos_compatible) - Access credential reader/emulator
 - [Serial Chat v1.0 (By Osman Gokce)](https://github.com/osmangokc/flipper_serial_chat)
 - [Servo Tester+ v0.5 (By Enlighten Tech)](https://github.com/gbhobbytech/flipper-servo-tester)
 - [ServoTester (2) v0.2 (By mhasbini)](https://github.com/mhasbini/ServoTesterApp)
 - [Servotester v1.2 (By spin7ion)](https://github.com/spin7ion/flipper-servotester)
 - [SH1106 Test v0.5 (By gbhobbytech & martinbogo)](https://github.com/gbhobbytech/ssd1306_test) `Req: SH1106 OLED`
-- [ShapShup v1.2 (By derskythe)](https://github.com/derskythe/flipperzero-shapshup)
+- [ShapShup v1.2 (By derskythe)](https://github.com/derskythe/flipperzero-shapshup) - Sub-GHz RAW signal viewer
 - [SI4713 Tuner v0.1 (By rullinoiz)](https://github.com/rullinoiz/flipper-si4713) `Req: SI4713`
-- [Sig Diary WIP v0.1 (By C0d3-5t3w)](https://github.com/C0d3-5t3w/flipper-sigdiary)
+- [Sig Diary WIP v0.1 (By C0d3-5t3w)](https://github.com/C0d3-5t3w/flipper-sigdiary) - RF/NFC/IR signal logger
 - [Signal Generator v1.2 (By nminaylov)-OFW](https://github.com/flipperdevices/flipperzero-firmware/pull/1793)
 - [SigRoam Wardriving v0.9.1 (By pingequalab)](https://github.com/pingequalab/sigroam-wardriving) `Req: ESP32`
 - [Simultanious UHF RFID Reader v1.1.2 (By RileyHaffner)](https://github.com/haffnerriley/Simultaneous-UHF-RFID-FlipperZero) `Req: M6e Nano UHF RFID Reader & Raspberry Pi Zero`
 - [Skeleton App v1.1 (By jamisonderek)](https://github.com/jamisonderek/flipper-zero-tutorials/tree/main/ui/skeleton_app)
-- [SKIDcity v1.2 (By H4W9)](https://github.com/H4W9/SKIDcity_App)
+- [SKIDcity v1.2 (By H4W9)](https://github.com/H4W9/SKIDcity_App) - Flipper myth-busting tutorials
 - [Sleep Counter v2.0 (By silverwolf2r)](https://github.com/silverwolf2r/flipper-sleep-counter) `Req: RCWL-0516`
 - [SLI Writer v1.4 (By Julienbxl)](https://github.com/Julienbxl/SLI-Writer)
 - [Smack My Dolphin Up! v1.0 (By siberianbot)](https://github.com/siberianbot/smack-my-dolphin-up)
 - [SmartHome v2.0 (By biotechnicallc)](https://github.com/biotechnicallc/SmartHome) `Req: ESP32`
 - [Smartra VIN2PIN v2.0 (By evillero)](https://github.com/evillero/smartra_vin2pin)
 - [Smoke Free v0.1 (By kamylwnb)](https://github.com/kamylwnb/smoke_free)
-- [Snowflake v0.1 (By fgreil)](https://github.com/fgreil/mitzi-snowflake)
+- [Snowflake v0.1 (By fgreil)](https://github.com/fgreil/mitzi-snowflake) - Snowflake pattern generator
 - [Solar Compass v1.0 (By Marcopiiit)](https://github.com/skylovervibecoder/Flipper-Zero-Solar-Compass)
 - [Sonic Head ID v1.0 (By flipper_zero)](https://git.mbirth.uk/flipper_zero/sonicare)
-- [Space PLayground v0.1 (By alanfortlink)](https://github.com/alanfortlink/fzspground)
+- [Space PLayground v0.1 (By alanfortlink)](https://github.com/alanfortlink/fzspground) - Space simulation screensaver
 - [Space Travel Calculator v1.0 (By ejfox)](https://github.com/ejfox/flipper-space-calculators)
-- [Specter v3.1.1 (By at0m-b0mb)](https://github.com/at0m-b0mb/Specter-FlipperZero)
+- [Specter v3.1.1 (By at0m-b0mb)](https://github.com/at0m-b0mb/Specter-FlipperZero) - NFC reader field detector
 - [Spectrum Analyzer v1.5 (By jolcese)](https://github.com/jolcese/flipperzero-firmware/tree/spectrum/applications/spectrum_analyzer)
 - [SPI Flash Dump v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
 - [SPI Mem Manager v1.5 (By drunkbatya)-OFW](https://github.com/flipperdevices/flipperzero-good-faps/tree/dev/spi_mem_manager)
@@ -1287,25 +1287,25 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Sub-GHz Spectrum v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
 - [Sub-GHz Toolkit 1808 v1.0 (By RocketGod-git)](https://github.com/RocketGod-git/RocketGods-SubGHz-Toolkit)
 - [Sub-GHz WarDriving v0.2 (By xMasterX)](https://github.com/xMasterX/all-the-plugins)
-- [Subhound v1.2 (By maxwalks)](https://github.com/maxwalks/subhound)
+- [Subhound v1.2 (By maxwalks)](https://github.com/maxwalks/subhound) - BinRAW radio signal classifier
 - [Subscriber Counter v1.3 (By TheProductAgency)](https://github.com/TheProductAgency/flipper-subscriber-counter)
-- [Super Sniffer Card v0.2 (By mishamyte)](https://github.com/mishamyte/super-sniffer-card)
+- [Super Sniffer Card v0.2 (By mishamyte)](https://github.com/mishamyte/super-sniffer-card) - MIFARE authentication log reader
 - [Survival Manual v1.0 (By Radiomanrf)](https://github.com/Radiomanrf/Survival_manual)
 - [SWD Probe v1.4 (By g3gg0)](https://github.com/g3gg0/flipper-swd_probe)
-- [T-Union Master (China) v0.1 (By SocialSisterYi)](https://github.com/SocialSisterYi/T-Union_Master)
+- [T-Union Master (China) v0.1 (By SocialSisterYi)](https://github.com/SocialSisterYi/T-Union_Master) - Chinese transit card reader
 - [T5577 v1.4 (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware) (.t5577 ext incompatible to T5577 Raw Writer)
 - [T5577 Multiwriter v0.3 (By Leptopt1los)](https://github.com/Leptopt1los/t5577_multiwriter)
 - [T5577 Raw Writer v1.1 (By zinongli)](https://github.com/zinongli/T5577_Raw_Writer) (.t5577 ext incompatible to T5577)
 - [TagDuplicate v1.0 (By Marcopiiit)](https://github.com/skylovervibecoder/Flipper-Zero-TagDuplicate)
-- [TagTinker v2.1 (By i12bp8)](https://github.com/i12bp8/TagTinker)
+- [TagTinker v2.1 (By i12bp8)](https://github.com/i12bp8/TagTinker) - Infrared shelf-label editor
 - [Taiko Player v0.5.1 (By ZeroNinx)](https://github.com/ZeroNinx/flipper-zero-taiko-player)
 - [Talk Timer v1.0 (By Manoah Ruiz Rodriguez)](https://github.com/Mableton/talk_timer)
-- [TamaConnect v1.0 (By s2013p)](https://github.com/s2013p/TamaConnect)
+- [TamaConnect v1.0 (By s2013p)](https://github.com/s2013p/TamaConnect) - Tamagotchi infrared interactions
 - [Tasks v1.3 (By MadLadSquad)](https://github.com/MadLadSquad/FlipperTasks)
 - [TCL AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
 - [Tea Timer v1.0 (By igordanilov)](https://github.com/polarikus/FlipperZero-TeaTimer)
 - [Telecrane Control v1.1 (By nmatt0 & xMasterX)](https://github.com/nmatt0/telecrane-contol)
-- [Telemeter v1.1 (By alaviation)](https://github.com/alaviation/flipper-telemeter)
+- [Telemeter v1.1 (By alaviation)](https://github.com/alaviation/flipper-telemeter) - Light-to-sound distance calculator
 - [Telink SWS v0.1 (By ngxson)](https://github.com/ngxson/flipper-telink) `Req: Telink device`
 - [Temp Sensors Reader 2.1 (By quen0n)](https://github.com/quen0n/Unitemp-Flipper-Zero-Plugin) Req: [See App Readme For Supported Modules](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/applications/external/unitemp/README.md)
 - [Tesla Mod v2.17.0b6 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
@@ -1326,9 +1326,9 @@ This software is for experimental purposes only and is not meant for any illegal
 - [TPMS Bridge v1.1 (By VishovVladimir)](https://github.com/VishovVladimir/flipper-zero-tpms)
 - [TPMS Reader v1.0 (By wosk)](https://github.com/wosk/flipperzero-tpms)
 - [Tree Identification v0.0.5 (By fgreil)](https://github.com/fgreil/mitzi-tree-ident)
-- [Tricorder v0.3 (By rseufert)](https://github.com/rseufert/tricorder)
-- [Trident v1.1 (By at0m-b0mb)](https://github.com/at0m-b0mb/Trident-FlipperZero) `Req: 3-in-1 ESP32 + NRF24 + CC1101`
-- [TuLlave v0.1 (By zqu4rtz)](https://github.com/zqu4rtz/FlipperApp-TuLlave)
+- [Tricorder v0.3 (By rseufert)](https://github.com/rseufert/tricorder) - Multi-sensor signal scanner
+- [Trident v1.1 (By at0m-b0mb)](https://github.com/at0m-b0mb/Trident-FlipperZero) - Three-radio expansion board controller `Req: 3-in-1 ESP32 + NRF24 + CC1101`
+- [TuLlave v0.1 (By zqu4rtz)](https://github.com/zqu4rtz/FlipperApp-TuLlave) - Bogotá transit card reader
 - [Tuning Fork v2.0 (By besya)](https://github.com/besya/flipperzero-tuning-fork)
 - [TV Remote v1.2 (By jmanion0139)](https://github.com/jmanion0139/flipper_tv_remote)
 - [u-blox GPS v0.5 (By liamhays)](https://github.com/liamhays/ublox)
@@ -1336,7 +1336,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [UART Echo (By DrZlo13)-OFW](https://github.com/flipperdevices/flipperzero-firmware/pull/831)
 - [UART Sniff v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
 - [UART Terminal v1.7 (By cool4uma)](https://github.com/cool4uma/UART_Terminal)
-- [UDECard v1.0.4 (By hahnworks)](https://github.com/hahnworks/UDECard)
+- [UDECard v1.0.4 (By hahnworks)](https://github.com/hahnworks/UDECard) - Duisburg-Essen student card reader
 - [UHF Expansion v1.8 (By mtoolstec)](https://github.com/mtoolstec/fz-uhf-expansion)
 - [UHF RFID WIP v1.0 (By frux-c)](https://github.com/frux-c/uhf_rfid) `Req: M100 or QM100`
 - [UID Brute Smarter v1.1 (By fbettag)](https://github.com/fbettag/uid_brute_smarter)
@@ -1355,11 +1355,11 @@ This software is for experimental purposes only and is not meant for any illegal
 - [USB Mass Storage v1.5 (By nminaylov)](https://github.com/flipperdevices/flipperzero-good-faps/tree/nm/usb_mass_storage_app/mass_storage)
 - [USB Midi Capturing v0.1 (By fgreil)](https://github.com/fgreil/mitzi-midi)
 - [USB Midi v1.0 (By DrZlo13 & kribesk)](https://github.com/kribesk/flipper-zero-usb-midi) [Instructions by ESurge](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/applications/plugins/usb_midi/ReadMe.md)
-- [USB PurpleCheck v0.3 (By RogerF5)](https://github.com/RogerF5-Security/USB-PurpleCheck)
+- [USB PurpleCheck v0.3 (By RogerF5)](https://github.com/RogerF5-Security/USB-PurpleCheck) - USB security control assessment
 - [UV Meter v1.0 (By michaelbaisch)](https://github.com/michaelbaisch/uv_meter) `Req: AS7331`
-- [Varta v1.1 (By mishamyte)](https://github.com/mishamyte/varta)
+- [Varta v1.1 (By mishamyte)](https://github.com/mishamyte/varta) - Varta-M intercom key tools
 - [VaultFlipper v0.1 - Offline Bitwarden/Vaultwarden vault and USB login keyboard (By Sven Würth / its-sven)](https://github.com/its-sven/vaultflipper)
-- [VB Migration Assistant v1.3 (By GMMan)](https://github.com/GMMan/flipperzero-vb-migrate)
+- [VB Migration Assistant v1.3 (By GMMan)](https://github.com/GMMan/flipperzero-vb-migrate) - Vital Bracelet character transfer
 - [VEML7700 Lux Meter v1.1 (By kamylwnb)](https://github.com/kamylwnb/Flipper-zero-app-VEML7700)
 - [VGM Air Mouse v1.4 (By nminaylov)](https://github.com/flipperdevices/flipperzero-good-faps/tree/nm/motion_mouse_app) `Req: ICM42688, or Video Game Module By Flipper Devices`
 - [VGM Game Remote v1.1 (By jblanked)](https://github.com/jblanked/VGM-Library) `Req: Video Game Module By Flipper Devices`
@@ -1373,7 +1373,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Walkie Talkie v1.2 (By coolshrimp)](https://github.com/coolshrimp/flipperzero-walkie-talkie)
 - [Walkman v1.0 (By rynosec)](https://github.com/rynosec/flipper-walkman) `Req:  GD3300D / HW-311 / YX5300-family board`
 - [Wanbo RC v1.0 (By Yuri Monteiro)](https://github.com/yurimonteir0/wanbo-rc-flipper)
-- [Warden v1.1 (By at0m-b0mb)](https://github.com/at0m-b0mb/Warden-FlipperZero)
+- [Warden v1.1 (By at0m-b0mb)](https://github.com/at0m-b0mb/Warden-FlipperZero) - Access badge security grading
 - [Wardriver GPS v1.0 (By Sil333033)](https://github.com/Next-Flip/Momentum-Apps/tree/dev/wardriver)
 - [Water Sensor Reader v1.0 (By MatveyStrelov)](https://github.com/MatveyStrelov/flipper-water-sensor)
 - [WAV Player v1.4 (By DrZlo13)](https://github.com/flipperdevices/flipperzero-firmware/tree/zlo/wav-player)
@@ -1391,20 +1391,20 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Wifi Mapping (By carvilsi)](https://github.com/carvilsi/flipper0-wifi-map/tree/main) `Req: ESP32`
 - [Wifi Radio v1.0 (By thecoolguy2001)](https://github.com/thecoolguy2001/flipper-wifi-radio) `Req: ESP32`
 - [Wii EC Analyzer v1.1 (By csBlueChip)](https://github.com/csBlueChip/FlipperZero_WiiEC)
-- [WikiFlip v1.3 (By RogerF5-Security)](https://github.com/RogerF5-Security/WikiFlip)
+- [WikiFlip v1.3 (By RogerF5-Security)](https://github.com/RogerF5-Security/WikiFlip) - Offline cybersecurity dictionary
 - [Wire Tester v1.1 (By unixispower)](https://gitlab.com/unixispower/flipper-wire-tester)
-- [wM-Buster v1.1.1 (By i12bp8)](https://github.com/i12bp8/wmbuster)
+- [wM-Buster v1.1.1 (By i12bp8)](https://github.com/i12bp8/wmbuster) - Wireless utility meter reader
 - [WMBus Decoder v1.0 (By maresmar)](https://github.com/maresmar/wmbus-decoder)
 - [WoL Flipper v1.1 (By keetsta)](https://github.com/keetsta/wol-flipper) `Req: ESP32`
 - [WS2812B LED Tester v1.9 (By jamisonderek)](https://github.com/jamisonderek/flipper-zero-tutorials/tree/main/gpio/ws2812b_tester)
 - [Xbox Post Code Reader v0.14 (By coolshrimp)](https://github.com/coolshrimp/flipperzero-xbox-post-code-reader)
 - [XBox360 USB Game Controller v0.2 (By expected-ingot)](https://github.com/expected-ingot/flipper-xinput)
 - [Xiaomi Filter Reset v1.0 (By khmm12)](https://github.com/khmm12/flipper-xiaomi-filter-reset)
-- [XRemote v1.4 (By kala13x)](https://github.com/kala13x/flipper-xremote)
-- [YRM100X Pro v1.0 (By AlexeySmirnov74)](https://github.com/AlexeySmirnov74/YRM100X_PRO) `Req: YRM100X`
-- [YuriCable Pro Max v0.4 (By arag0re)](https://github.com/arag0re/fz-yuricable-pro-max)
-- [ZeroFIDO v0.8 (By MinorGlitch)](https://github.com/MinorGlitch/zerofido)
-- [ZeroMesh v3.1 (By SAMS0N1TE)](https://github.com/SAMS0N1TE/ZeroMesh) `Req: Meshtastic`
+- [XRemote v1.4 (By kala13x)](https://github.com/kala13x/flipper-xremote) - Advanced infrared remote control
+- [YRM100X Pro v1.0 (By AlexeySmirnov74)](https://github.com/AlexeySmirnov74/YRM100X_PRO) - UHF RFID reader toolkit `Req: YRM100X`
+- [YuriCable Pro Max v0.4 (By arag0re)](https://github.com/arag0re/fz-yuricable-pro-max) - iPhone debug cable interface
+- [ZeroFIDO v0.8 (By MinorGlitch)](https://github.com/MinorGlitch/zerofido) - Passkey and security-key authenticator
+- [ZeroMesh v3.1 (By SAMS0N1TE)](https://github.com/SAMS0N1TE/ZeroMesh) - Meshtastic messaging client `Req: Meshtastic`
 - [Zoom Remote v1.0 (By Manoah Ruiz Rodriguez)](https://github.com/Mableton/zoom_remote)
 
 # Install GitHub Version With [WEB INSTALLER](https://lab.flipper.net/?url=https%3A%2F%2Frogue-master.net%2F%3Ffile%3DRM1024-1347-392a65c3.tgz&channel=RM1024-1347-392a65c3&version=0.420.0&target=f7)
