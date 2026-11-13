@@ -322,6 +322,21 @@ This software is for experimental purposes only and is not meant for any illegal
 - SubGHz: [Advanced Add Manually guard-time input for Princeton and ZKTeco and fix FAAC TM generation without Guard_time (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/62e921731912eb7d308f990398f2c925240976e9)
 - SubGHz: [Fix internal-radio CLI rx, tx and tx_from_file failing to start and add regression test (By GodKimba)](https://github.com/DarkFlippers/unleashed-firmware/pull/1216)
 - Added: [Amiibo Emulator v0.1 (By Soap-n-Cartridge)](https://github.com/Soap-n-Cartridge/flipper_amiibo) with file handling and crypto safety fixes
+- Added: [Universal TPMS Dashboard v0.3 (By Marcopiiit)](https://github.com/skylovervibecoder/Flipper-Zero-Universal-TPMS-Dashboard)
+- Added: [E6B Flight Computer v1.0 (By Marcopiiit)](https://github.com/skylovervibecoder/Flipper-Zero-E6B-Flight-Computer)
+- Added: [FlipWind v1.0 (By Marcopiiit)](https://github.com/skylovervibecoder/Flipper-Zero-FlipWind)
+- Added: [FuseZero v1.0 (By Marcopiiit)](https://github.com/skylovervibecoder/Flipper-Zero-FuseZero)
+- Added: [Haier AC YR-HE2 v2.0 (By Marcopiiit)](https://github.com/skylovervibecoder/Flipper-Zero-Haier-AC)
+- Added: [IR Identifier v1.0 (By Marcopiiit)](https://github.com/skylovervibecoder/Flipper-Zero-IR-Identifier)
+- Added: [KeyRecoveryTool v1.0 (By Marcopiiit)](https://github.com/skylovervibecoder/Flipper-Zero-KeyRecoveryTool)
+- Added: [MDC1200 v0.2.2beta (By Marcopiiit)](https://github.com/skylovervibecoder/Flipper-Zero-MDC1200-beta-testing-)
+- Added: [MorseTX v2.0 (By Marcopiiit)](https://github.com/skylovervibecoder/Flipper-Zero-MorseTX)
+- Added: [Nissan TPMS Dashboard v1.2beta (By Marcopiiit)](https://github.com/skylovervibecoder/Flipper-Zero-Nissan-TPMS-Dashboard)
+- Added: [RFIDduplicates v1.0 (By Marcopiiit)](https://github.com/skylovervibecoder/Flipper-Zero-RFIDduplicates)
+- Added: [RFidentifier v1.0 (By Marcopiiit)](https://github.com/skylovervibecoder/Flipper-Zero-RFidentifier)
+- Added: [Solar Compass v1.0 (By Marcopiiit)](https://github.com/skylovervibecoder/Flipper-Zero-Solar-Compass)
+- Added: [TagDuplicate v1.0 (By Marcopiiit)](https://github.com/skylovervibecoder/Flipper-Zero-TagDuplicate)
+- Added: [Tone TX v1.1 (By Marcopiiit)](https://github.com/skylovervibecoder/Flipper-Zero-Tone-TX)
 
 <a name="release"></a>
 
@@ -790,6 +805,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [DTMF Dolphin v1.5 (By litui)](https://github.com/litui/dtmf_dolphin)
 - [Ducobox v0.1 (By Martin Elsner)](https://github.com/martinelsner/flipper-zero-ducobox)
 - [E220 LoRa Configurator v0.1 (By crackerjacques)](https://github.com/crackerjacques/Flipper_E220_Lora_Module_Configurator) `Req: E220-900T22S(JP)`
+- [E6B Flight Computer v1.0 (By Marcopiiit)](https://github.com/skylovervibecoder/Flipper-Zero-E6B-Flight-Computer)
 - [Ear Trainer v1.1 (By barismert98)](https://github.com/barismert98/flipper-ear-trainer)
 - [EM4100 Key Generator v1.1 (By Milk-Cool)](https://github.com/Milk-Cool/fz-em4100-generator)
 - [Embraco Starter v1.0.0 (By Adam Gray (Expert Hub))](https://github.com/graycoderep/Embraco-Starter) `Req: External PWM-controlled compressor interface`
@@ -880,6 +896,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [FlipTrader v1.2 (By jblanked)](https://github.com/jblanked/FlipTrader) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
 - [FlipWeather v1.4 (By jblanked)](https://github.com/jblanked/FlipWeather) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
 - [FlipWifi v1.6.3 (By jblanked)](https://github.com/jblanked/FlipWiFi) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
+- [FlipWind v1.0 (By Marcopiiit)](https://github.com/skylovervibecoder/Flipper-Zero-FlipWind)
 - [FlipWorld v1.0.4 (By jblanked)](https://github.com/jblanked/FlipWorld) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
 - [Flizzer Tracker v0.11 (By LTVA1)](https://github.com/LTVA1/flizzer_tracker)
 - [Flo Tracker v1.0 (By harimwoo)](https://github.com/harimwoo/flipper-flo-tracker)
@@ -895,6 +912,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Frequency Analyzer (External) v1.2 (By xMasterX)](https://github.com/xMasterX/all-the-plugins/tree/dev/non_catalog_apps/freq_analyzer_ext)
 - [FRSScan v0.2 (By thecybermind)](https://github.com/thecybermind/frsscan)
 - [Fujitsu AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
+- [FuseZero v1.0 (By Marcopiiit)](https://github.com/skylovervibecoder/Flipper-Zero-FuseZero)
 - [FZ nRF24 Jammer v1.4 (By W0rthlessS0ul)](https://github.com/W0rthlessS0ul/FZ_nRF24_jammer)
 - [Gas Sensor v0.1 (By iancohee)](https://github.com/iancohee/gas_sensor_fap) `Req: BME680 / SGP30`
 - [Gatekeeper v1.1 (By enexis1337)](https://github.com/enexis1337/Gatekeeper)
@@ -929,6 +947,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [H1030L Writer v1.3 (By Zacvr)](https://github.com/Zacvr/h10301_writer)
 - [Habit Flow v0.1.4 (By Endika)](https://github.com/Endika/flipper-habit-flow)
 - [Haier AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
+- [Haier AC YR-HE2 v2.0 (By Marcopiiit)](https://github.com/skylovervibecoder/Flipper-Zero-Haier-AC)
 - [HAM v0.6 (By lumen-rot)](https://github.com/lumen-rot/flipper-ham)
 - [Ham Cram v1.0 (By NicPWNs)](https://github.com/NicPWNs/HamCram)
 - [Ham Scanner v1.1 (By Clawzman)](https://github.com/Clawzman/Flipper-HAM-Scanner)
@@ -965,6 +984,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [IR Blaster v1.1 (By mateusz-szafraniec)](https://github.com/mateusz-szafraniec/flipperzero-IR_Blaster)
 - [IR Builder v3.2 (By sanoobis)](https://github.com/sanoobis/IR-Builder)
 - [IR Decoder v1.0 (By prplecake)](https://github.com/prplecake/f0/tree/master/infrared/apps/ir_decoder)
+- [IR Identifier v1.0 (By Marcopiiit)](https://github.com/skylovervibecoder/Flipper-Zero-IR-Identifier)
 - [IR Intervalometer v2.2 (By Nitepone)](https://github.com/Nitepone/flipper-intervalometer)
 - [IR Jammer v1.0 (By Clawzman)](https://github.com/Clawzman/flipper-ir-jammer)
 - [IR Pad v1.0 (By tbelbek)](https://github.com/tbelbek/flipper-ir-pad)
@@ -987,6 +1007,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Key Copier Italia v1.0 (By Torron / Maranello89)](https://github.com/Maranello89/KeyCopier-Italia)
 - [Key Wizard v1.3 (By Vazgen Grigoryan)](https://github.com/vazgen3201/flipper-key-wizard)
 - [Keylogger v1.0 (By dagnazty)](https://github.com/dagnazty/Flipper_Keylogger)
+- [KeyRecoveryTool v1.0 (By Marcopiiit)](https://github.com/skylovervibecoder/Flipper-Zero-KeyRecoveryTool)
 - [Kindle Click v0.4 (By zuyan9)](https://github.com/zuyan9/Flipper-Zero-Kindle-Click)
 - [KneeFlip Rehab v0.1 (By daryalok)](https://github.com/daryalok/KneeFlip-Rehab)
 - [Knit Counter v1.0.2 (By fridgepoet)](https://github.com/fridgepoet/knit-counter)
@@ -1031,6 +1052,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Math Wiz v1.1 (By ImPapaGhost)](https://github.com/ImPapaGhost/math_wiz)
 - [MAX31855 (By skotopes)](https://github.com/skotopes/flipperzero_max31855)
 - [Mayan Decoder v1.1 (By RogerF5-Security)](https://github.com/RogerF5-Security/Mayan_decoder)
+- [MDC1200 v0.2.2beta (By Marcopiiit)](https://github.com/skylovervibecoder/Flipper-Zero-MDC1200-beta-testing-)
 - [Meshcore Config v0.1 (By hleserg)](https://github.com/hleserg/flipperMeshCoreConfig/tree/main)
 - [Metroflip v2.1-beta.1 (By luu176)](https://github.com/luu176/Metroflip)
 - [Metronome v1.3 (By panki27)](https://github.com/panki27/Metronome)
@@ -1061,6 +1083,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Morse Beacon v1.0 (By jdmills)](https://github.com/jdmills-edu/flipper-morse-beacon)
 - [Morse Code v1.3 (By wh00hw)](https://github.com/wh00hw/MorseCodeFAP)
 - [Morse Flipper v0.3.0 (By yo3gnd)](https://github.com/yo3gnd/morse-flipper)
+- [MorseTX v2.0 (By Marcopiiit)](https://github.com/skylovervibecoder/Flipper-Zero-MorseTX)
 - [Motion Lab v1.0 (By thecoolguy2001)](https://github.com/thecoolguy2001/flipper-motion-lab) `Req: VGM`
 - [Mouse Jacker for MS Mouse v1.2 (Remixed By coded-with-claws)](https://github.com/coded-with-claws/flipperzero-tools/tree/main/applications_user/mousejacker_ms) `Req: NRF24`
 - [Mouse Jacker v1.2 (By mothball187)](https://github.com/mothball187/flipperzero-nrf24/tree/main/mousejacker) [Pin Out from nocomp/Frog/UberGuidoZ](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/tree/420/applications/mousejacker) `Req: NRF24`
@@ -1110,6 +1133,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Nice O-Code v2.0 (By zero-mega & xMasterX)](https://github.com/DarkFlippers/unleashed-firmware)
 - [Nickname Generator v0.2 (By disaxq)](https://github.com/disaxq/Nickname-Generator)
 - [Nightstand Clock v1.3 (By nymda)](https://github.com/nymda/FlipperNightStand)
+- [Nissan TPMS Dashboard v1.2beta (By Marcopiiit)](https://github.com/skylovervibecoder/Flipper-Zero-Nissan-TPMS-Dashboard)
 - [Noptel LRF Sampler v2.4 (By Giraut)](https://github.com/Giraut/flipper_zero_noptel_lrf_sampler)
 - [Notes for FZ WIP (By AdrianN001)](https://github.com/AdrianN001/Flipper-Zero-Note-Application)
 - [Now Playing v1.2 (By Vchekryzhov)](https://github.com/Vchekryzhov/mac-media-remote) `Req: Mac`
@@ -1189,6 +1213,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - [RF Survey v1.3 (By tbelbek)](https://github.com/tbelbek/flipper-rf-survey)
 - [RFID Fuzzer v1.8 (By gid9798)](https://github.com/DarkFlippers/unleashed-firmware/pull/507)
 - [RFID Metal Detector v1.0 (By hnsvrdmn)](https://github.com/hnsvrdmn/flipper-rfid-metal-detector)
+- [RFIDduplicates v1.0 (By Marcopiiit)](https://github.com/skylovervibecoder/Flipper-Zero-RFIDduplicates)
+- [RFidentifier v1.0 (By Marcopiiit)](https://github.com/skylovervibecoder/Flipper-Zero-RFidentifier)
 - [RFIDMaker v0.9 (By KindaCharming / jeremydbean)](https://github.com/jeremydbean/FlipperRFIDMaker)
 - [RGB LED (By flyandi)](https://github.com/flyandi/flipper_zero_rgb_led)
 - [Rogue AP Detector v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite) `Req: ESP32`
@@ -1231,6 +1257,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Smartra VIN2PIN v2.0 (By evillero)](https://github.com/evillero/smartra_vin2pin)
 - [Smoke Free v0.1 (By kamylwnb)](https://github.com/kamylwnb/smoke_free)
 - [Snowflake v0.1 (By fgreil)](https://github.com/fgreil/mitzi-snowflake)
+- [Solar Compass v1.0 (By Marcopiiit)](https://github.com/skylovervibecoder/Flipper-Zero-Solar-Compass)
 - [Sonic Head ID v1.0 (By flipper_zero)](https://git.mbirth.uk/flipper_zero/sonicare)
 - [Space PLayground v0.1 (By alanfortlink)](https://github.com/alanfortlink/fzspground)
 - [Space Travel Calculator v1.0 (By ejfox)](https://github.com/ejfox/flipper-space-calculators)
@@ -1269,6 +1296,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [T5577 v1.4 (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware) (.t5577 ext incompatible to T5577 Raw Writer)
 - [T5577 Multiwriter v0.3 (By Leptopt1los)](https://github.com/Leptopt1los/t5577_multiwriter)
 - [T5577 Raw Writer v1.1 (By zinongli)](https://github.com/zinongli/T5577_Raw_Writer) (.t5577 ext incompatible to T5577)
+- [TagDuplicate v1.0 (By Marcopiiit)](https://github.com/skylovervibecoder/Flipper-Zero-TagDuplicate)
 - [TagTinker v2.1 (By i12bp8)](https://github.com/i12bp8/TagTinker)
 - [Taiko Player v0.5.1 (By ZeroNinx)](https://github.com/ZeroNinx/flipper-zero-taiko-player)
 - [Talk Timer v1.0 (By Manoah Ruiz Rodriguez)](https://github.com/Mableton/talk_timer)
@@ -1292,6 +1320,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Timed Remote v0.1 (By anders-dc)](https://github.com/anders-dc/timed-remote)
 - [Timer v0.1 (By nagamine-git)](https://github.com/nagamine-git/flipperzero_timer_app)
 - [Tone Generator v1.0 (By GEMISIS)](https://github.com/GEMISIS/tone_gen)
+- [Tone TX v1.1 (By Marcopiiit)](https://github.com/skylovervibecoder/Flipper-Zero-Tone-TX)
 - [TonUINO Writer v2.0 (By Bastelsaal)](https://github.com/Bastelsaal/tonuino-flipper-zero)
 - [Toshiba AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
 - [TPMS Bridge v1.1 (By VishovVladimir)](https://github.com/VishovVladimir/flipper-zero-tpms)
@@ -1317,6 +1346,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [ULCFKey Next v1.0 (By noproto)](https://github.com/zc-public/breakme-resources/tree/main/flipper_apps)
 - [ULCFKey v1.0 (By noproto)](https://github.com/zc-public/breakme-resources/tree/main/flipper_apps)
 - [Unbank BTCLN QR Generator v1.0 (By shanzy39)](https://github.com/shanzy39/Unbank-BTCLN-QR-Generator)
+- [Universal TPMS Dashboard v0.3 (By Marcopiiit)](https://github.com/skylovervibecoder/Flipper-Zero-Universal-TPMS-Dashboard)
 - [uPython v1.8 (By ofabel)](https://github.com/ofabel/mp-flipper)
 - [USB CD-ROM v0.1.2 (By piersroberts)](https://github.com/piersroberts/flippercd)
 - [USB Consumer Control (By WithSecureLabs)](https://github.com/WithSecureLabs/usb-consumer-control)

@@ -1,0 +1,13 @@
+App(
+    appid="solar_compass",
+    name="Solar Compass",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="solar_compass_app",
+    stack_size=4 * 1024,
+    fap_icon="icon.png",
+    fap_category="Tools",
+    fap_author="Marcopiiit",
+    fap_weburl="https://github.com/skylovervibecoder/Flipper-Zero-Solar-Compass",
+    fap_version=(1, 0),
+    fap_description="Dynamic solar compass: Flipper time + sun position + selectable city",
+)

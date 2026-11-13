@@ -1,0 +1,15 @@
+App(
+    appid="ir_identifier",
+    name="IR Identifier",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="ir_identifier_app",
+    stack_size=6 * 1024,
+    sources=["ir_identifier.c"],
+    fap_icon="fapicon.png",
+    targets=["f7"],
+    fap_category="Infrared",
+    fap_author="Marco",
+    fap_weburl="https://github.com/skylovervibecoder/Flipper-Zero-IR-Identifier",
+    fap_version="1.0",
+    fap_description="Reads an IR remote signal and identifies the device type and brand using the Flipper IR databases",
+)

@@ -1,0 +1,14 @@
+App(
+    appid="morse_radio_tx",
+    name="MorseTX",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="morse_radio_tx_app",
+    stack_size=4 * 1024,
+    fap_icon="morse_radio_tx.png",
+    targets=["f7"],
+    fap_category="Sub-GHz",
+    fap_author="Marcopiiit",
+    fap_weburl="https://github.com/skylovervibecoder/Flipper-Zero-MorseTX",
+    fap_version="2.0",
+    fap_description="Send and receive/decode Morse code on PMR446 / LPD433 channels, with quick SOS",
+)

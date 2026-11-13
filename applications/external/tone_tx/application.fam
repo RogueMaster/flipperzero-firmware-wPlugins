@@ -1,0 +1,14 @@
+App(
+    appid="tone_tx",
+    name="Tone TX",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="tone_tx_app",
+    stack_size=4 * 1024,
+    fap_icon="icon.png",
+    targets=["f7"],
+    fap_category="Sub-GHz",
+    fap_author="Marcopiiit",
+    fap_weburl="https://github.com/skylovervibecoder/Flipper-Zero-Tone-TX",
+    fap_version="1.1",
+    fap_description="Transmit audio tones, music and Morse code over sub-GHz radio",
+)

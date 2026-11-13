@@ -1,0 +1,14 @@
+App(
+    appid="mdc1200",
+    name="MDC1200",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="mdc1200_app",
+    stack_size=4 * 1024,
+    fap_icon="icon.png",
+    targets=["f7"],
+    fap_category="Sub-GHz",
+    fap_author="Marcopiiit",
+    fap_weburl="https://github.com/skylovervibecoder/Flipper-Zero-MDC1200-beta-testing-",
+    fap_version="0.2.2",
+    fap_description="Menu MDC1200: ricezione con log pacchetti e trasmissione funzioni su canali PMR446 e FRS",
+)

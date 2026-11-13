@@ -1,0 +1,13 @@
+App(
+    appid="tag_duplicate",
+    name="TagDuplicate",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="tag_duplicate_app",
+    stack_size=6 * 1024,
+    fap_icon="tag_duplicate.png",
+    fap_category="NFC",
+    fap_author="Marcopiiit",
+    fap_weburl="https://github.com/skylovervibecoder/Flipper-Zero-TagDuplicate",
+    fap_version="1.0",
+    fap_description="Reads an NFC tag UID, checks saved files and finds duplicate NFC files.",
+)

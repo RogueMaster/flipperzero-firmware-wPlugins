@@ -1,0 +1,13 @@
+App(
+    appid="e6b_flight_computer",
+    name="E6B Flight Computer",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="e6b_main",
+    stack_size=4 * 1024,
+    fap_icon="icon.png",
+    fap_category="Tools",
+    fap_author="Marcopiiit",
+    fap_weburl="https://github.com/skylovervibecoder/Flipper-Zero-E6B-Flight-Computer",
+    fap_version="1.0",
+    fap_description="E6B aviation flight computer",
+)

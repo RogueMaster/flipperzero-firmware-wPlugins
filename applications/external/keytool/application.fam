@@ -1,0 +1,16 @@
+App(
+    appid="keytool",
+    name="KeyRecoveryTool",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="keytool_app",
+    cdefines=["APP_KEYTOOL"],
+    stack_size=4 * 1024,
+    order=10,
+    fap_icon="icon.png",
+    fap_icon_assets="images",
+    fap_category="NFC",
+    fap_author="Marcopiiit",
+    fap_weburl="https://github.com/skylovervibecoder/Flipper-Zero-KeyRecoveryTool",
+    fap_version="1.0",
+    fap_description="Checks whether MIFARE Classic dump keys are present in dictionary files",
+)

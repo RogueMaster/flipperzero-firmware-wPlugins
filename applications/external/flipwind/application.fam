@@ -1,0 +1,13 @@
+App(
+    appid="flipwind",
+    name="FlipWind",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="flipwind_app",
+    stack_size=4 * 1024,
+    fap_icon="flipwind.png",
+    fap_category="Tools",
+    fap_author="Marcopiiit",
+    fap_weburl="https://github.com/skylovervibecoder/Flipper-Zero-FlipWind",
+    fap_version="1.0",
+    fap_description="Wind correction calculator",
+)

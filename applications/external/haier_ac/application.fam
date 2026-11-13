@@ -1,0 +1,13 @@
+App(
+    appid="haier_ac",
+    name="Haier AC YR-HE2",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="haier_ac_app",
+    stack_size=4 * 1024,
+    targets=["f7"],
+    fap_category="Infrared",
+    fap_author="Marcopiiit",
+    fap_weburl="https://github.com/skylovervibecoder/Flipper-Zero-Haier-AC",
+    fap_version="2.0",
+    fap_description="Telecomando grafico per climatizzatore Haier AS35RBAHRA-3 (YR-HE2)",
+)

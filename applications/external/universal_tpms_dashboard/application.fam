@@ -1,0 +1,21 @@
+App(
+    appid="universal_tpms_dashboard",
+    name="Universal TPMS Dashboard",
+    apptype=FlipperAppType.EXTERNAL,
+    targets=["f7"],
+    entry_point="universal_tpms_dashboard_app",
+    stack_size=10 * 1024,
+    sources=[
+        "universal_tpms_dashboard.c",
+        "utd_proto.c",
+        "tpms_encoder.c",
+        "protocols/proto6/*.c",
+        "protocols/proto6/tpms/*.c",
+    ],
+    fap_icon="universal_tpms_dashboard.png",
+    fap_category="Sub-GHz",
+    fap_author="Marcopiiit",
+    fap_weburl="https://github.com/skylovervibecoder/Flipper-Zero-Universal-TPMS-Dashboard",
+    fap_version="0.3",
+    fap_description="Nissan/Renault TPMS + all TPMS-Editor-EN protocols: monitor, transmit, pair",
+)
