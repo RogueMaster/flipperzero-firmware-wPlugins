@@ -1,6 +1,6 @@
 App(
     appid="pwnpal",
-    fap_version="3.0",
+    fap_version="3.0.1",
     name="Pwnpal",
     apptype=FlipperAppType.EXTERNAL,
     entry_point="pwnpal_app",
