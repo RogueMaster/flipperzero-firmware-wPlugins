@@ -321,6 +321,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Remote Analyzer: [Remove standalone BelGate decoder now provided by firmware and list app-specific protocols in How to use (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/edc19780ed48f054f3442588317fe33e85a9dddc)
 - SubGHz: [Advanced Add Manually guard-time input for Princeton and ZKTeco and fix FAAC TM generation without Guard_time (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/62e921731912eb7d308f990398f2c925240976e9)
 - SubGHz: [Fix internal-radio CLI rx, tx and tx_from_file failing to start and add regression test (By GodKimba)](https://github.com/DarkFlippers/unleashed-firmware/pull/1216)
+- Added: [Amiibo Emulator v0.1 (By Soap-n-Cartridge)](https://github.com/Soap-n-Cartridge/flipper_amiibo) with file handling and crypto safety fixes
 
 <a name="release"></a>
 
@@ -652,6 +653,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Alcohol Calc v1.0 (By vtlklr)](https://github.com/vtlklr/alcohol_calc)
 - [Allstar Firefly v0.1 (By jlaughter)](https://github.com/jlaughter/flipper-allstar-firefly)
 - [Amiibo Browser v1.0 (By AzureSky)](https://github.com/AzzureSkyy/flipper-amiibo-browser)
+- [Amiibo Emulator v0.1 (By Soap-n-Cartridge)](https://github.com/Soap-n-Cartridge/flipper_amiibo)
 - [AmiiTool v0.3 (By Firefox2100)](https://github.com/Firefox2100/ami_tool) `Req: key_retail.bin on SD card /nfc/assets`
 - [Amusement IC v0.1 (By object-Object)](https://github.com/object-Object/flip_aic)
 - [Analog Clock v1.2 (By scrolltex)](https://github.com/scrolltex/flipper_analog_clock)

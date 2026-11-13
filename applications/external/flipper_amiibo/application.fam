@@ -1,0 +1,15 @@
+App(
+    appid="amiibo_emulator",
+    name="Amiibo Emulator",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="flipper_amiibo_app",
+    stack_size=8 * 1024,
+    fap_libs=["mbedtls"],
+    targets=["f7"],
+    fap_icon="flipper-amiibo_10px.png",
+    fap_category="NFC",
+    fap_author="Soap-n-Cartridge",
+    fap_weburl="https://github.com/Soap-n-Cartridge/flipper_amiibo",
+    fap_version="0.1",
+    fap_description="Browse amiibo dumps, emulate NTAG215, and sign a new UID for emulation",
+)
