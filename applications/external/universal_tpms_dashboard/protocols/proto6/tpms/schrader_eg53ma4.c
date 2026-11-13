@@ -22,7 +22,8 @@
 #include "tpms_build.h"
 
 static bool decode(uint8_t* bits, uint32_t numbytes, uint32_t numbits, ProtoViewMsgInfo* info) {
-    const char* sync_pattern = "010101010101" "01100101";
+    const char* sync_pattern = "010101010101"
+                               "01100101";
     const uint8_t sync_len = 12U + 8U;
     if(numbits - sync_len + 8U < 8U * 10U) return false;
 
@@ -38,7 +39,8 @@ static bool decode(uint8_t* bits, uint32_t numbytes, uint32_t numbits, ProtoView
     if(decoded < 10U * 8U) return false;
 
     uint8_t checksum = 0U;
-    for(size_t j = 0U; j < 9U; j++) checksum = (uint8_t)(checksum + raw[j]);
+    for(size_t j = 0U; j < 9U; j++)
+        checksum = (uint8_t)(checksum + raw[j]);
     if(checksum != raw[9]) return false;
 
     info->pulses_count = (off + 10U * 8U * 2U) - info->start_off;
@@ -71,40 +73,35 @@ static void get_fields(ProtoViewFieldSet* fieldset) {
 static void build_message(RawSamplesBuffer* samples, ProtoViewFieldSet* fieldset) {
     const uint32_t te = 123U;
     uint8_t data[10] = {0};
-    const bool have_raw =
-        tpms_build_load_raw_payload(fieldset, data, sizeof(data), NULL) == sizeof(data);
+    const bool have_raw = tpms_build_load_raw_payload(fieldset, data, sizeof(data), NULL) ==
+                          sizeof(data);
 
     ProtoViewField* id_field = proto6_field_find(fieldset, "Tire ID");
     ProtoViewField* pressure_field = proto6_field_find(fieldset, "Pressure kpa");
     ProtoViewField* temperature_field = proto6_field_find(fieldset, "Temperature C");
     ProtoViewField* flags_field = proto6_field_find(fieldset, "Flags");
-    ProtoViewField* temp_raw_field =
-        proto6_field_find(fieldset, "Temperature F Raw");
+    ProtoViewField* temp_raw_field = proto6_field_find(fieldset, "Temperature F Raw");
 
     if(tpms_build_should_patch(fieldset, have_raw, TPMS_EDIT_FLAGS)) {
-        const uint32_t flags =
-            flags_field ? (uint32_t)flags_field->uvalue : 0x4D030060U;
+        const uint32_t flags = flags_field ? (uint32_t)flags_field->uvalue : 0x4D030060U;
         data[0] = (uint8_t)(flags >> 24U);
         data[1] = (uint8_t)(flags >> 16U);
         data[2] = (uint8_t)(flags >> 8U);
         data[3] = (uint8_t)flags;
     }
-    if(tpms_build_should_patch(fieldset, have_raw, TPMS_EDIT_ID) &&
-       id_field && id_field->bytes) {
+    if(tpms_build_should_patch(fieldset, have_raw, TPMS_EDIT_ID) && id_field && id_field->bytes) {
         memcpy(data + 4U, id_field->bytes, 3U);
     }
     if(tpms_build_should_patch(fieldset, have_raw, TPMS_EDIT_PRESSURE)) {
-        const int32_t pressure_raw =
-            (int32_t)(pressure_field->fvalue / 2.5f + 0.5f);
+        const int32_t pressure_raw = (int32_t)(pressure_field->fvalue / 2.5f + 0.5f);
         data[7] = (uint8_t)tpms_clamp_i32(pressure_raw, 0, 255);
     }
     if(tpms_build_should_patch(fieldset, have_raw, TPMS_EDIT_TEMPERATURE)) {
         if(temp_raw_field) {
-            data[8] = (uint8_t)tpms_clamp_i32(
-                (int32_t)temp_raw_field->uvalue, 0, 255);
+            data[8] = (uint8_t)tpms_clamp_i32((int32_t)temp_raw_field->uvalue, 0, 255);
         } else {
-            const int32_t temp_f = (int32_t)(
-                (float)temperature_field->value * 9.0f / 5.0f + 32.0f + 0.5f);
+            const int32_t temp_f =
+                (int32_t)((float)temperature_field->value * 9.0f / 5.0f + 32.0f + 0.5f);
             data[8] = (uint8_t)tpms_clamp_i32(temp_f, 0, 255);
         }
     }

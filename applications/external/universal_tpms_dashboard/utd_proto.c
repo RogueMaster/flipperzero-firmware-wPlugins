@@ -82,7 +82,8 @@ static uint32_t read_id(const ProtoViewField* f, uint8_t* len_out) {
     uint32_t count = (f->len + 1U) / 2U;
     if(count > UTD_ID_MAX) count = UTD_ID_MAX;
     uint32_t id = 0;
-    for(uint32_t i = 0; i < count; i++) id = (id << 8U) | f->bytes[i];
+    for(uint32_t i = 0; i < count; i++)
+        id = (id << 8U) | f->bytes[i];
     if(len_out) *len_out = (uint8_t)count;
     return id;
 }
@@ -169,8 +170,8 @@ bool utd_rx_scan(UtdFrame* out) {
 
     /* come nel bridge: scansione a meta' buffer, oppure a burst finito */
     const bool half_buffer_ready = delta >= total / 2U;
-    const bool quiet_burst_ready =
-        delta >= 18U && (now - g_last_progress_tick) >= furi_ms_to_ticks(50U);
+    const bool quiet_burst_ready = delta >= 18U &&
+                                   (now - g_last_progress_tick) >= furi_ms_to_ticks(50U);
     if(!half_buffer_ready && !quiet_burst_ready) return false;
 
     g_pv.signal_last_scan_idx = current_idx;
@@ -299,8 +300,8 @@ uint8_t utd_kind_id_len(TpmsEncoderKind kind) {
 
 uint8_t utd_kind_default_profile(TpmsEncoderKind kind) {
     if(kind == TpmsEncoderPMV107J) return 0; /* 315 FSK */
-    if(utd_kind_is_ook(kind)) return 4;      /* 433 OOK */
-    return 3;                                /* 433 FSK */
+    if(utd_kind_is_ook(kind)) return 4; /* 433 OOK */
+    return 3; /* 433 FSK */
 }
 
 uint16_t utd_kind_step_kpa(TpmsEncoderKind kind) {
@@ -351,7 +352,8 @@ bool utd_transmit(const UtdTx* tx) {
     v.pressure_kpa = tx->kpa;
     v.temperature_c = (float)tx->temp_c;
     if(tx->raw_valid) {
-        v.flags = tx->flags; /* senza payload catturato restano i flag predefiniti del protocollo */
+        v.flags =
+            tx->flags; /* senza payload catturato restano i flag predefiniti del protocollo */
         v.temperature_raw_f = tx->temp_f_raw;
         v.temperature_raw_f_valid = tx->temp_f_valid;
     }

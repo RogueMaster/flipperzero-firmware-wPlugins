@@ -74,35 +74,17 @@ static const NotificationMessage message_beep_found = {
 
 // found: green LED blinks 3 times, with a vibration pulse and a beep on each blink
 static const NotificationSequence sequence_tag_found = {
-    &message_green_255,
-    &message_vibro_on,
-    &message_beep_found,
-    &message_delay_100,
-    &message_delay_50,
-    &message_green_0,
-    &message_vibro_off,
-    &message_sound_off,
-    &message_delay_100,
+    &message_green_255, &message_vibro_on,  &message_beep_found,
+    &message_delay_100, &message_delay_50,  &message_green_0,
+    &message_vibro_off, &message_sound_off, &message_delay_100,
 
-    &message_green_255,
-    &message_vibro_on,
-    &message_beep_found,
-    &message_delay_100,
-    &message_delay_50,
-    &message_green_0,
-    &message_vibro_off,
-    &message_sound_off,
-    &message_delay_100,
+    &message_green_255, &message_vibro_on,  &message_beep_found,
+    &message_delay_100, &message_delay_50,  &message_green_0,
+    &message_vibro_off, &message_sound_off, &message_delay_100,
 
-    &message_green_255,
-    &message_vibro_on,
-    &message_beep_found,
-    &message_delay_100,
-    &message_delay_50,
-    &message_green_0,
-    &message_vibro_off,
-    &message_sound_off,
-    NULL,
+    &message_green_255, &message_vibro_on,  &message_beep_found,
+    &message_delay_100, &message_delay_50,  &message_green_0,
+    &message_vibro_off, &message_sound_off, NULL,
 };
 
 // not found: red LED on and steady vibration for 1 second
@@ -455,8 +437,8 @@ static void cache_load(App* app) {
     File* file = storage_file_alloc(app->storage);
     if(storage_file_open(file, CACHE_PATH, FSAM_READ, FSOM_OPEN_EXISTING)) {
         CacheHeader hdr;
-        if(storage_file_read(file, &hdr, sizeof(hdr)) == sizeof(hdr) &&
-           hdr.magic == CACHE_MAGIC && hdr.sig == cache_signature() && hdr.count <= MAX_FILES &&
+        if(storage_file_read(file, &hdr, sizeof(hdr)) == sizeof(hdr) && hdr.magic == CACHE_MAGIC &&
+           hdr.sig == cache_signature() && hdr.count <= MAX_FILES &&
            storage_file_size(file) == sizeof(hdr) + (uint64_t)hdr.count * sizeof(CacheEntry)) {
             uint16_t bytes = (uint16_t)(hdr.count * sizeof(CacheEntry));
             if(bytes == 0 || storage_file_read(file, app->cache, bytes) == bytes) {
@@ -594,7 +576,8 @@ static bool scan_nfc_files(App* app) {
     uint32_t last_pct = 101; // forces the first update
     progress_set(app, 0, total);
 
-    for(size_t i = 0; i < app->cache_count; i++) app->cache[i].seen = 0;
+    for(size_t i = 0; i < app->cache_count; i++)
+        app->cache[i].seen = 0;
 
     DirWalk* walk = dir_walk_alloc(app->storage);
     dir_walk_set_filter_cb(walk, walk_filter, NULL);

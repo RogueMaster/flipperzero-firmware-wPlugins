@@ -11,8 +11,8 @@
 #include <strings.h>
 
 #define KEYTOOL_MAX_LOG_ENTRIES 64
-#define KEYTOOL_VISIBLE_ROWS 4
-#define KEYTOOL_ROW_HEIGHT 11
+#define KEYTOOL_VISIBLE_ROWS    4
+#define KEYTOOL_ROW_HEIGHT      11
 
 typedef struct {
     FuriString* filename; // basename only, inside KEYTOOL_LOGS_FOLDER
@@ -146,8 +146,7 @@ static void keytool_log_list_draw_callback(Canvas* canvas, void* model_ptr) {
     }
 
     size_t y = 22;
-    for(size_t i = model->scroll;
-        i < model->count && i < model->scroll + KEYTOOL_VISIBLE_ROWS;
+    for(size_t i = model->scroll; i < model->count && i < model->scroll + KEYTOOL_VISIBLE_ROWS;
         i++) {
         bool selected = (i == model->selected);
         if(selected) {
@@ -277,7 +276,8 @@ void keytool_log_list_refresh(KeyToolApp* app) {
     storage_common_mkdir(storage, KEYTOOL_LOGS_FOLDER);
 
     FuriString* names[KEYTOOL_MAX_LOG_ENTRIES];
-    for(size_t i = 0; i < KEYTOOL_MAX_LOG_ENTRIES; i++) names[i] = furi_string_alloc();
+    for(size_t i = 0; i < KEYTOOL_MAX_LOG_ENTRIES; i++)
+        names[i] = furi_string_alloc();
     size_t count = 0;
 
     File* dir = storage_file_alloc(storage);
@@ -319,8 +319,8 @@ void keytool_log_list_refresh(KeyToolApp* app) {
         furi_string_set_str(model->entries[i].card_name, "?");
         furi_string_set_str(model->entries[i].date_str, "?");
 
-        FuriString* full_path = furi_string_alloc_printf(
-            "%s/%s", KEYTOOL_LOGS_FOLDER, furi_string_get_cstr(names[i]));
+        FuriString* full_path =
+            furi_string_alloc_printf("%s/%s", KEYTOOL_LOGS_FOLDER, furi_string_get_cstr(names[i]));
         Stream* stream = file_stream_alloc(storage);
         if(file_stream_open(
                stream, furi_string_get_cstr(full_path), FSAM_READ, FSOM_OPEN_EXISTING)) {
@@ -348,7 +348,8 @@ void keytool_log_list_refresh(KeyToolApp* app) {
 
     view_commit_model(app->log_list_view, true);
 
-    for(size_t i = 0; i < KEYTOOL_MAX_LOG_ENTRIES; i++) furi_string_free(names[i]);
+    for(size_t i = 0; i < KEYTOOL_MAX_LOG_ENTRIES; i++)
+        furi_string_free(names[i]);
 }
 
 // ---------------------------------------------------------------------

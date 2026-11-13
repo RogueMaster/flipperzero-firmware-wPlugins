@@ -45,7 +45,13 @@ static void keytool_about_build(KeyToolApp* app) {
     widget_add_string_element(
         app->widget_about, 64, 24, AlignCenter, AlignCenter, FontPrimary, "v1.0");
     widget_add_string_element(
-        app->widget_about, 64, 40, AlignCenter, AlignCenter, FontSecondary, "created by Marcopiiit");
+        app->widget_about,
+        64,
+        40,
+        AlignCenter,
+        AlignCenter,
+        FontSecondary,
+        "created by Marcopiiit");
 }
 
 // ---------------------------------------------------------------------
@@ -82,8 +88,8 @@ static void keytool_scene_start_run(KeyToolApp* app) {
     KeyToolKeyEntry* keys = malloc(sizeof(KeyToolKeyEntry) * KEYTOOL_MAX_KEYS);
     size_t key_count = 0;
     FuriString* err = furi_string_alloc();
-    bool parse_ok =
-        keytool_mifare_parse_dump(app->storage, furi_string_get_cstr(dump_path), keys, &key_count, err);
+    bool parse_ok = keytool_mifare_parse_dump(
+        app->storage, furi_string_get_cstr(dump_path), keys, &key_count, err);
 
     size_t found_count = 0;
 

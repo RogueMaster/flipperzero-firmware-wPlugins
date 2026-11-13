@@ -34,13 +34,7 @@ typedef struct {
 } FlipWindApp;
 
 /* Disegna una freccia */
-static void cw_draw_arrow(
-    Canvas* canvas,
-    int x1,
-    int y1,
-    int x2,
-    int y2) {
-
+static void cw_draw_arrow(Canvas* canvas, int x1, int y1, int x2, int y2) {
     canvas_draw_line(canvas, x1, y1, x2, y2);
 
     float angle = atan2f((float)(y2 - y1), (float)(x2 - x1));
@@ -57,11 +51,7 @@ static void cw_draw_arrow(
 }
 
 /* Diagramma con pista e una sola freccia del vento */
-static void draw_diagram(
-    Canvas* canvas,
-    int runway,
-    int wind_dir) {
-
+static void draw_diagram(Canvas* canvas, int runway, int wind_dir) {
     const int cx = 99;
     const int cy = 29;
 
@@ -184,11 +174,9 @@ static void draw_safety(Canvas* canvas, FlipWindApp* app) {
         "The pilot in",
         "command is always",
         "responsible for",
-        "flight decisions."
-    };
+        "flight decisions."};
 
-    const uint8_t line_count =
-        sizeof(safety_lines) / sizeof(safety_lines[0]);
+    const uint8_t line_count = sizeof(safety_lines) / sizeof(safety_lines[0]);
     const uint8_t visible_lines = 6;
 
     canvas_clear(canvas);
@@ -199,11 +187,7 @@ static void draw_safety(Canvas* canvas, FlipWindApp* app) {
         uint8_t index = app->safety_scroll + i;
 
         if(index < line_count) {
-            canvas_draw_str(
-                canvas,
-                2,
-                9 + (int)i * 10,
-                safety_lines[index]);
+            canvas_draw_str(canvas, 2, 9 + (int)i * 10, safety_lines[index]);
         }
     }
 }
@@ -265,17 +249,9 @@ static void draw_calculator(Canvas* canvas, FlipWindApp* app) {
     if(crosswind_abs == 0) {
         snprintf(crosswind_text, sizeof(crosswind_text), "XW 0 kt");
     } else if(crosswind > 0.0f) {
-        snprintf(
-            crosswind_text,
-            sizeof(crosswind_text),
-            "XW %d kt RIGHT",
-            crosswind_abs);
+        snprintf(crosswind_text, sizeof(crosswind_text), "XW %d kt RIGHT", crosswind_abs);
     } else {
-        snprintf(
-            crosswind_text,
-            sizeof(crosswind_text),
-            "XW %d kt LEFT",
-            crosswind_abs);
+        snprintf(crosswind_text, sizeof(crosswind_text), "XW %d kt LEFT", crosswind_abs);
     }
 
     char headwind_text[24];
@@ -283,17 +259,9 @@ static void draw_calculator(Canvas* canvas, FlipWindApp* app) {
     if(headwind_abs == 0) {
         snprintf(headwind_text, sizeof(headwind_text), "WIND 0 kt");
     } else if(headwind > 0.0f) {
-        snprintf(
-            headwind_text,
-            sizeof(headwind_text),
-            "HEAD %d kt",
-            headwind_abs);
+        snprintf(headwind_text, sizeof(headwind_text), "HEAD %d kt", headwind_abs);
     } else {
-        snprintf(
-            headwind_text,
-            sizeof(headwind_text),
-            "TAIL %d kt",
-            headwind_abs);
+        snprintf(headwind_text, sizeof(headwind_text), "TAIL %d kt", headwind_abs);
     }
 
     canvas_draw_str(canvas, 2, 60, crosswind_text);
@@ -427,16 +395,14 @@ static void handle_input(FlipWindApp* app, InputEvent* event) {
         break;
 
     case ScreenAbout:
-        if(event->key == InputKeyBack &&
-           event->type == InputTypePress) {
+        if(event->key == InputKeyBack && event->type == InputTypePress) {
             app->screen = ScreenMain;
             changed = true;
         }
         break;
 
     case ScreenSafety:
-        if(event->key == InputKeyBack &&
-           event->type == InputTypePress) {
+        if(event->key == InputKeyBack && event->type == InputTypePress) {
             app->screen = ScreenMain;
             changed = true;
         } else if(event->key == InputKeyDown) {
@@ -492,10 +458,7 @@ int32_t flipwind_app(void* p) {
     InputEvent event;
 
     while(app->running) {
-        if(furi_message_queue_get(
-               app->queue,
-               &event,
-               FuriWaitForever) == FuriStatusOk) {
+        if(furi_message_queue_get(app->queue, &event, FuriWaitForever) == FuriStatusOk) {
             handle_input(app, &event);
         }
     }

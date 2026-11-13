@@ -75,8 +75,21 @@
 
 #define ARR_LEN(a) ((int)(sizeof(a) / sizeof((a)[0])))
 
-typedef enum { ModeAuto, ModeCool, ModeHeat, ModeDry, ModeFan, ModeCount } AcMode;
-typedef enum { FanAuto, FanLow, FanMed, FanHigh, FanCount } AcFan;
+typedef enum {
+    ModeAuto,
+    ModeCool,
+    ModeHeat,
+    ModeDry,
+    ModeFan,
+    ModeCount
+} AcMode;
+typedef enum {
+    FanAuto,
+    FanLow,
+    FanMed,
+    FanHigh,
+    FanCount
+} AcFan;
 
 #define SWH_COUNT  6 /* indici 0..5 = posizioni 1..6 (1 sx, 3 centro, 5 dx, 6 auto) */
 #define SWH_CENTER 2
@@ -146,13 +159,15 @@ static void build_frame(const AcState* s, bool clean, uint8_t f[FRAME_BYTES]) {
     f[10] = clean ? 0x10 : 0x00;
     f[12] = clean ? KEY_CLEAN : s->last_key;
     uint8_t sum = 0;
-    for(int i = 0; i < 13; i++) sum += f[i];
+    for(int i = 0; i < 13; i++)
+        sum += f[i];
     f[13] = sum;
     f[14] = 0xB7;
     f[15] = (clean ? 0x40 : 0x00) | (s->eco ? (0x10 | (s->eco << 2)) : 0x00);
     f[16] = fan_b16_code[fan];
     sum = 0;
-    for(int i = 14; i < 21; i++) sum += f[i];
+    for(int i = 14; i < 21; i++)
+        sum += f[i];
     f[21] = sum;
 }
 
@@ -203,7 +218,10 @@ typedef struct {
     BtnId id;
 } Btn;
 
-typedef enum { ScrMain, ScrMore } Screen;
+typedef enum {
+    ScrMain,
+    ScrMore
+} Screen;
 
 #define GX(c) (49 + (c) * 26)
 #define GY(r) ((r) * 22)
@@ -255,12 +273,18 @@ static int find_btn(const Btn* bt, int n, BtnId id) {
 static bool btn_enabled(const AcState* s, BtnId id) {
     switch(id) {
     case BtnTempUp:
-    case BtnTempDown: return temp_allowed(s);
-    case BtnTurbo: return tq_allowed(s);
-    case BtnEco: return eco_allowed(s);
-    case BtnSleep: return sleep_allowed(s);
-    case BtnClean: return clean_allowed(s);
-    default: return true;
+    case BtnTempDown:
+        return temp_allowed(s);
+    case BtnTurbo:
+        return tq_allowed(s);
+    case BtnEco:
+        return eco_allowed(s);
+    case BtnSleep:
+        return sleep_allowed(s);
+    case BtnClean:
+        return clean_allowed(s);
+    default:
+        return true;
     }
 }
 
@@ -270,31 +294,60 @@ static void btn_text(const AcState* s, BtnId id, char* out, size_t len) {
         return;
     }
     switch(id) {
-    case BtnPower: snprintf(out, len, "%s", s->power ? "ON" : "OFF"); break;
-    case BtnMode: snprintf(out, len, "%s", mode_name[s->mode]); break;
-    case BtnFan: snprintf(out, len, "%s", fan_name[s->tq ? FanAuto : s->fan]); break;
+    case BtnPower:
+        snprintf(out, len, "%s", s->power ? "ON" : "OFF");
+        break;
+    case BtnMode:
+        snprintf(out, len, "%s", mode_name[s->mode]);
+        break;
+    case BtnFan:
+        snprintf(out, len, "%s", fan_name[s->tq ? FanAuto : s->fan]);
+        break;
     case BtnSwingV:
-        if(s->swing_v == SWV_AUTO) snprintf(out, len, "Auto");
-        else snprintf(out, len, "%u", s->swing_v);
+        if(s->swing_v == SWV_AUTO)
+            snprintf(out, len, "Auto");
+        else
+            snprintf(out, len, "%u", s->swing_v);
         break;
     case BtnSwingH:
-        if(s->swing_h == SWH_COUNT - 1) snprintf(out, len, "Auto");
-        else snprintf(out, len, "%u", s->swing_h + 1);
+        if(s->swing_h == SWH_COUNT - 1)
+            snprintf(out, len, "Auto");
+        else
+            snprintf(out, len, "%u", s->swing_h + 1);
         break;
     case BtnTurbo:
         snprintf(
-            out, len, "%s", s->tq == TQ_TURBO ? "Turbo" : s->tq == TQ_QUIET ? "Quiet" : "Off");
+            out,
+            len,
+            "%s",
+            s->tq == TQ_TURBO ? "Turbo" :
+            s->tq == TQ_QUIET ? "Quiet" :
+                                "Off");
         break;
     case BtnEco:
-        if(s->eco) snprintf(out, len, "L%u", s->eco);
-        else snprintf(out, len, "Off");
+        if(s->eco)
+            snprintf(out, len, "L%u", s->eco);
+        else
+            snprintf(out, len, "Off");
         break;
-    case BtnSleep: snprintf(out, len, "%s", s->sleep ? "ON" : "OFF"); break;
-    case BtnHealth: snprintf(out, len, "%s", s->health ? "ON" : "OFF"); break;
-    case BtnMore: snprintf(out, len, "More"); break;
-    case BtnClean: snprintf(out, len, "Send"); break;
-    case BtnBack: snprintf(out, len, "Back"); break;
-    default: out[0] = 0; break;
+    case BtnSleep:
+        snprintf(out, len, "%s", s->sleep ? "ON" : "OFF");
+        break;
+    case BtnHealth:
+        snprintf(out, len, "%s", s->health ? "ON" : "OFF");
+        break;
+    case BtnMore:
+        snprintf(out, len, "More");
+        break;
+    case BtnClean:
+        snprintf(out, len, "Send");
+        break;
+    case BtnBack:
+        snprintf(out, len, "Back");
+        break;
+    default:
+        out[0] = 0;
+        break;
     }
 }
 
@@ -305,10 +358,12 @@ static void btn_text(const AcState* s, BtnId id, char* out, size_t len) {
 static void draw_icon(Canvas* c, BtnId id, const AcState* s, int cx, int cy, Color fg, Color bg) {
     switch(id) {
     case BtnTempUp:
-        for(int i = 0; i < 5; i++) canvas_draw_line(c, cx - i, cy - 2 + i, cx + i, cy - 2 + i);
+        for(int i = 0; i < 5; i++)
+            canvas_draw_line(c, cx - i, cy - 2 + i, cx + i, cy - 2 + i);
         break;
     case BtnTempDown:
-        for(int i = 0; i < 5; i++) canvas_draw_line(c, cx - i, cy + 2 - i, cx + i, cy + 2 - i);
+        for(int i = 0; i < 5; i++)
+            canvas_draw_line(c, cx - i, cy + 2 - i, cx + i, cy + 2 - i);
         break;
     case BtnPower:
         canvas_draw_circle(c, cx, cy + 1, 3);
@@ -358,8 +413,10 @@ static void draw_icon(Canvas* c, BtnId id, const AcState* s, int cx, int cy, Col
         for(int i = 0; i < 3; i++) {
             int h = 3 + 3 * i;
             int x = cx - 5 + i * 4;
-            if(level > i) canvas_draw_box(c, x, cy + 4 - h + 1, 3, h);
-            else canvas_draw_frame(c, x, cy + 4 - h + 1, 3, h);
+            if(level > i)
+                canvas_draw_box(c, x, cy + 4 - h + 1, 3, h);
+            else
+                canvas_draw_frame(c, x, cy + 4 - h + 1, 3, h);
         }
         break;
     }
@@ -443,14 +500,18 @@ static void draw_btn(Canvas* c, const Btn* b, bool focus, const AcState* s) {
     int cx = b->x + b->w / 2;
 
     canvas_set_color(c, ColorBlack);
-    if(focus) canvas_draw_rbox(c, b->x, b->y, b->w, b->h, 2);
-    else canvas_draw_rframe(c, b->x, b->y, b->w, b->h, 2);
+    if(focus)
+        canvas_draw_rbox(c, b->x, b->y, b->w, b->h, 2);
+    else
+        canvas_draw_rframe(c, b->x, b->y, b->w, b->h, 2);
     canvas_set_color(c, fg);
     canvas_set_font(c, FontSecondary);
 
     if(b->h < 18) { /* Temp+ / Temp-: solo icona */
-        if(btn_enabled(s, b->id)) draw_icon(c, b->id, s, cx, b->y + b->h / 2, fg, bg);
-        else canvas_draw_line(c, cx - 3, b->y + b->h / 2, cx + 3, b->y + b->h / 2);
+        if(btn_enabled(s, b->id))
+            draw_icon(c, b->id, s, cx, b->y + b->h / 2, fg, bg);
+        else
+            canvas_draw_line(c, cx - 3, b->y + b->h / 2, cx + 3, b->y + b->h / 2);
     } else {
         char t[8];
         draw_icon(c, b->id, s, cx, b->y + 5, fg, bg);
@@ -509,7 +570,8 @@ static void draw_info(Canvas* c, const AcState* s) {
             mode_name[s->mode],
             s->temp,
             fan);
-    else snprintf(l1, sizeof(l1), "%s Fan  speed:%s", s->power ? "ON" : "OFF", fan);
+    else
+        snprintf(l1, sizeof(l1), "%s Fan  speed:%s", s->power ? "ON" : "OFF", fan);
     snprintf(l2, sizeof(l2), "V:%s H:%s Eco:%s", swv, swh, eco);
     canvas_draw_str(c, 2, 49, l1);
     canvas_draw_str(c, 2, 60, l2);
@@ -523,9 +585,12 @@ static void draw_cb(Canvas* canvas, void* ctx) {
     canvas_clear(canvas);
     int n;
     const Btn* bt = screen_btns(app->screen, &n);
-    for(int i = 0; i < n; i++) draw_btn(canvas, &bt[i], i == app->focus, s);
-    if(app->screen == ScrMain) draw_display(canvas, s);
-    else draw_info(canvas, s);
+    for(int i = 0; i < n; i++)
+        draw_btn(canvas, &bt[i], i == app->focus, s);
+    if(app->screen == ScrMain)
+        draw_display(canvas, s);
+    else
+        draw_info(canvas, s);
 
     furi_mutex_release(app->mutex);
 }
@@ -669,7 +734,8 @@ static bool press(AcState* s, BtnId id, bool* clean) {
         if(!clean_allowed(s)) return false;
         *clean = true;
         return true;
-    default: return false;
+    default:
+        return false;
     }
 }
 
@@ -719,7 +785,9 @@ int32_t haier_ac_app(void* p) {
         case InputKeyUp:
         case InputKeyDown:
         case InputKeyLeft:
-        case InputKeyRight: app->focus = nav(bt, n, app->focus, ev.key); break;
+        case InputKeyRight:
+            app->focus = nav(bt, n, app->focus, ev.key);
+            break;
         case InputKeyOk: {
             BtnId id = bt[app->focus].id;
             if(id == BtnMore) {
@@ -743,7 +811,8 @@ int32_t haier_ac_app(void* p) {
                 running = false;
             }
             break;
-        default: break;
+        default:
+            break;
         }
         snap = app->st;
         furi_mutex_release(app->mutex);

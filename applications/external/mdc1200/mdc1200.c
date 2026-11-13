@@ -12,27 +12,36 @@
 #include <stdio.h>
 #include <string.h>
 
-#define FEC_K 7
-#define MDC_LEAD 12
-#define MDC_PRE 3
-#define MDC_TAIL 2
-#define MDC_TX_MAX (MDC_LEAD + MDC_PRE + 5 + FEC_K * 4 + MDC_TAIL)
-#define RSSI_CARRIER (-90.0f)
-#define LOG_LEN 24
+#define FEC_K         7
+#define MDC_LEAD      12
+#define MDC_PRE       3
+#define MDC_TAIL      2
+#define MDC_TX_MAX    (MDC_LEAD + MDC_PRE + 5 + FEC_K * 4 + MDC_TAIL)
+#define RSSI_CARRIER  (-90.0f)
+#define LOG_LEN       24
 #define OP_CALL_FIRST 0x35
 
 #define PMR_COUNT 16
 #define FRS_COUNT 15
 
-static const uint8_t frs_num[FRS_COUNT] = {
-    1, 2, 3, 4, 5, 6, 7, 15, 16, 17, 18, 19, 20, 21, 22
-};
+static const uint8_t frs_num[FRS_COUNT] = {1, 2, 3, 4, 5, 6, 7, 15, 16, 17, 18, 19, 20, 21, 22};
 
 static const uint32_t frs_freq[FRS_COUNT] = {
-    462562500, 462587500, 462612500, 462637500,
-    462662500, 462687500, 462712500, 462550000,
-    462575000, 462600000, 462625000, 462650000,
-    462675000, 462700000, 462725000,
+    462562500,
+    462587500,
+    462612500,
+    462637500,
+    462662500,
+    462687500,
+    462712500,
+    462550000,
+    462575000,
+    462600000,
+    462625000,
+    462650000,
+    462675000,
+    462700000,
+    462725000,
 };
 
 typedef enum {
@@ -110,15 +119,11 @@ static const KnownOp known[] = {
 };
 
 static const uint8_t mdc_preset[] = {
-    0x02, 0x0D, 0x03, 0x47, 0x07, 0x04, 0x08, 0x32,
-    0x0B, 0x06, 0x0C, 0x00, 0x10, 0xF8, 0x11, 0x83,
-    0x12, 0x10, 0x13, 0x22, 0x14, 0xF8, 0x15, 0x04,
-    0x17, 0x00, 0x18, 0x18, 0x19, 0x16, 0x1B, 0x43,
-    0x1C, 0x40, 0x1D, 0x91, 0x20, 0xFB, 0x21, 0xB6,
-    0x22, 0x10, 0x23, 0xE9, 0x24, 0x2A, 0x25, 0x00,
-    0x26, 0x1F, 0x2C, 0x81, 0x2D, 0x35, 0x2E, 0x09,
-    0x00, 0x00, 0xC0, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00,
+    0x02, 0x0D, 0x03, 0x47, 0x07, 0x04, 0x08, 0x32, 0x0B, 0x06, 0x0C, 0x00, 0x10, 0xF8,
+    0x11, 0x83, 0x12, 0x10, 0x13, 0x22, 0x14, 0xF8, 0x15, 0x04, 0x17, 0x00, 0x18, 0x18,
+    0x19, 0x16, 0x1B, 0x43, 0x1C, 0x40, 0x1D, 0x91, 0x20, 0xFB, 0x21, 0xB6, 0x22, 0x10,
+    0x23, 0xE9, 0x24, 0x2A, 0x25, 0x00, 0x26, 0x1F, 0x2C, 0x81, 0x2D, 0x35, 0x2E, 0x09,
+    0x00, 0x00, 0xC0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 };
 
 static const uint8_t mdc_sync[5] = {0x07, 0x09, 0x2a, 0x44, 0x6f};
@@ -176,9 +181,7 @@ static void mdc_encode_data(uint8_t* data8) {
         for(int bn = 0; bn < 8; bn++) {
             sr = (uint8_t)((sr << 1) | ((bi >> bn) & 1u));
 
-            bo |= (uint8_t)(
-                (((sr >> 6) ^ (sr >> 5) ^ (sr >> 2) ^ (sr >> 0)) & 1u)
-                << bn);
+            bo |= (uint8_t)((((sr >> 6) ^ (sr >> 5) ^ (sr >> 2) ^ (sr >> 0)) & 1u) << bn);
         }
 
         data8[FEC_K + i] = bo;
@@ -268,12 +271,9 @@ static void mdc_fec_correct(uint8_t* d) {
 
             sr = (uint8_t)((sr << 1) | ((bi >> bn) & 1u));
 
-            uint8_t b =
-                ((sr >> 6) ^ (sr >> 5) ^ (sr >> 2) ^ (sr >> 0)) & 1u;
+            uint8_t b = ((sr >> 6) ^ (sr >> 5) ^ (sr >> 2) ^ (sr >> 0)) & 1u;
 
-            syn = (uint8_t)(
-                (syn << 1) |
-                (((b ^ (d[i + FEC_K] >> bn)) & 1u) ? 1u : 0u));
+            syn = (uint8_t)((syn << 1) | (((b ^ (d[i + FEC_K] >> bn)) & 1u) ? 1u : 0u));
 
             if(syn & 0x80) k++;
             if(syn & 0x20) k++;
@@ -408,11 +408,7 @@ typedef struct {
     bool tx_inv;
 } App;
 
-static const char* const menu_items[] = {
-    "Receive",
-    "Transmit",
-    "About"
-};
+static const char* const menu_items[] = {"Receive", "Transmit", "About"};
 
 #define MENU_COUNT 3
 
@@ -431,9 +427,7 @@ static uint8_t band_count(Band b) {
 }
 
 static uint8_t cur_ch_number(const App* app) {
-    return app->band == BandPMR
-        ? (uint8_t)(app->ch[BandPMR] + 1)
-        : frs_num[app->ch[BandFRS]];
+    return app->band == BandPMR ? (uint8_t)(app->ch[BandPMR] + 1) : frs_num[app->ch[BandFRS]];
 }
 
 static LogEntry* log_get(App* app, uint8_t i) {
@@ -579,8 +573,7 @@ static void push_bit(App* app, uint8_t bit) {
     app->dprev = d;
 
     if(d) {
-        app->data[app->count >> 3] |=
-            (uint8_t)(1u << (7 - (app->count & 7)));
+        app->data[app->count >> 3] |= (uint8_t)(1u << (7 - (app->count & 7)));
     }
 
     app->count++;
@@ -597,7 +590,8 @@ static void dec_flush(App* app) {
 
     uint8_t bit = (app->run_label == 2) ? 1 : 0;
 
-    while(nbits--) push_bit(app, bit);
+    while(nbits--)
+        push_bit(app, bit);
 
     app->run_label = 0;
     app->run_time = 0;
@@ -631,8 +625,7 @@ static void process_edges(App* app) {
     LevelDuration ld;
     int n = 0;
 
-    while(n++ < 200 &&
-          furi_stream_buffer_receive(app->edges, &ld, sizeof(ld), 0) == sizeof(ld)) {
+    while(n++ < 200 && furi_stream_buffer_receive(app->edges, &ld, sizeof(ld), 0) == sizeof(ld)) {
         dec_interval(app, level_duration_get_duration(ld));
     }
 }
@@ -661,11 +654,7 @@ static void rx_start(App* app) {
     furi_hal_subghz_idle();
     furi_hal_subghz_load_custom_preset(mdc_preset);
 
-    furi_hal_gpio_init(
-        &gpio_cc1101_g0,
-        GpioModeInput,
-        GpioPullNo,
-        GpioSpeedLow);
+    furi_hal_gpio_init(&gpio_cc1101_g0, GpioModeInput, GpioPullNo, GpioSpeedLow);
 
     furi_hal_subghz_set_frequency_and_path(cur_freq(app));
     furi_hal_subghz_flush_rx();
@@ -691,8 +680,7 @@ static LevelDuration tx_cb(void* ctx) {
         return level_duration_reset();
     }
 
-    bool bit =
-        (app->txbuf[app->tx_bit >> 3] >> (7 - (app->tx_bit & 7))) & 1u;
+    bool bit = (app->txbuf[app->tx_bit >> 3] >> (7 - (app->tx_bit & 7))) & 1u;
 
     if(app->tx_inv) bit = !bit;
 
@@ -735,11 +723,8 @@ static uint8_t* nib_ptr(App* app, FnKind k, uint8_t i) {
 }
 
 static uint16_t nib_val(const uint8_t* n) {
-    return (uint16_t)(
-        ((n[0] & 0xF) << 12) |
-        ((n[1] & 0xF) << 8) |
-        ((n[2] & 0xF) << 4) |
-        (n[3] & 0xF));
+    return (uint16_t)(((n[0] & 0xF) << 12) | ((n[1] & 0xF) << 8) | ((n[2] & 0xF) << 4) |
+                      (n[3] & 0xF));
 }
 
 static void make_pkt(App* app, MdcPkt* pk) {
@@ -787,11 +772,7 @@ static void tx_send(App* app) {
     furi_hal_subghz_idle();
     furi_hal_subghz_load_custom_preset(mdc_preset);
 
-    furi_hal_gpio_init(
-        &gpio_cc1101_g0,
-        GpioModeOutputPushPull,
-        GpioPullNo,
-        GpioSpeedLow);
+    furi_hal_gpio_init(&gpio_cc1101_g0, GpioModeOutputPushPull, GpioPullNo, GpioSpeedLow);
 
     furi_hal_gpio_write(&gpio_cc1101_g0, false);
 
@@ -813,10 +794,7 @@ static void tx_send(App* app) {
 
     furi_mutex_acquire(app->mutex, FuriWaitForever);
 
-    snprintf(
-        app->status,
-        sizeof(app->status),
-        ok ? "TX sent" : "TX blocked (region)");
+    snprintf(app->status, sizeof(app->status), ok ? "TX sent" : "TX blocked (region)");
 
     furi_mutex_release(app->mutex);
 }
@@ -889,22 +867,11 @@ static void draw_rx(Canvas* c, App* app) {
 
     canvas_set_font(c, FontSecondary);
 
-    snprintf(
-        nm,
-        sizeof(nm),
-        "%s%02u",
-        app->band == BandPMR ? "PMR" : "FRS",
-        cur_ch_number(app));
+    snprintf(nm, sizeof(nm), "%s%02u", app->band == BandPMR ? "PMR" : "FRS", cur_ch_number(app));
 
     uint32_t f = cur_freq(app);
 
-    snprintf(
-        buf,
-        sizeof(buf),
-        "%s %lu.%04lu",
-        nm,
-        f / 1000000UL,
-        (f % 1000000UL) / 100UL);
+    snprintf(buf, sizeof(buf), "%s %lu.%04lu", nm, f / 1000000UL, (f % 1000000UL) / 100UL);
 
     canvas_draw_str(c, 0, 8, buf);
 
@@ -1044,12 +1011,7 @@ static void draw_tx_session(Canvas* c, App* app) {
 
     uint32_t fr = cur_freq(app);
 
-    snprintf(
-        buf,
-        sizeof(buf),
-        "%lu.%05lu",
-        fr / 1000000UL,
-        (fr % 1000000UL) / 10UL);
+    snprintf(buf, sizeof(buf), "%lu.%05lu", fr / 1000000UL, (fr % 1000000UL) / 10UL);
 
     canvas_draw_str(c, 50, 21, buf);
 
@@ -1074,8 +1036,7 @@ static void draw_tx_session(Canvas* c, App* app) {
         canvas_draw_str(c, 2, 34, "Arg");
         canvas_draw_str(c, 2, 46, "ID");
 
-        uint8_t arg_now =
-            (uint8_t)((f->arg & 0xF0) | (app->arg_nib & 0x0F));
+        uint8_t arg_now = (uint8_t)((f->arg & 0xF0) | (app->arg_nib & 0x0F));
 
         snprintf(buf, sizeof(buf), "%02X/%02X", f->op, arg_now);
         canvas_draw_str(c, 76, 34, buf);
@@ -1092,10 +1053,7 @@ static void draw_tx_session(Canvas* c, App* app) {
 
         uint8_t v = *nib_ptr(app, k, i) & 0xF;
 
-        char ch[2] = {
-            (char)(v < 10 ? '0' + v : 'A' + v - 10),
-            0
-        };
+        char ch[2] = {(char)(v < 10 ? '0' + v : 'A' + v - 10), 0};
 
         canvas_draw_str(c, x, y, ch);
 
@@ -1129,13 +1087,7 @@ static void draw_cb(Canvas* canvas, void* ctx) {
             break;
 
         case ScreenTxList:
-            draw_list(
-                canvas,
-                "MDC1200 Function",
-                fn_titles,
-                FN_COUNT,
-                app->tx_sel,
-                app->tx_top);
+            draw_list(canvas, "MDC1200 Function", fn_titles, FN_COUNT, app->tx_sel, app->tx_top);
             break;
 
         case ScreenTxSession:
@@ -1158,8 +1110,7 @@ static void input_cb(InputEvent* ev, void* ctx) {
 static void change_channel(App* app, int delta) {
     uint8_t c = band_count(app->band);
 
-    app->ch[app->band] =
-        (uint8_t)((app->ch[app->band] + c + delta) % c);
+    app->ch[app->band] = (uint8_t)((app->ch[app->band] + c + delta) % c);
 
     app->retune = true;
 }
@@ -1173,8 +1124,7 @@ static void tx_edit(App* app, int delta) {
     } else if(app->pos == 1) {
         uint8_t c = band_count(app->band);
 
-        app->ch[app->band] =
-            (uint8_t)((app->ch[app->band] + c + delta) % c);
+        app->ch[app->band] = (uint8_t)((app->ch[app->band] + c + delta) % c);
     } else if(app->pos < 2 + n) {
         uint8_t* p = nib_ptr(app, k, (uint8_t)(app->pos - 2));
 
@@ -1194,13 +1144,11 @@ static bool handle_input(App* app, const InputEvent* ev) {
         if(ev->key == InputKeyBack && is_short) return false;
 
         if(ev->key == InputKeyUp) {
-            app->menu_sel =
-                (uint8_t)((app->menu_sel + MENU_COUNT - 1) % MENU_COUNT);
+            app->menu_sel = (uint8_t)((app->menu_sel + MENU_COUNT - 1) % MENU_COUNT);
         }
 
         if(ev->key == InputKeyDown) {
-            app->menu_sel =
-                (uint8_t)((app->menu_sel + 1) % MENU_COUNT);
+            app->menu_sel = (uint8_t)((app->menu_sel + 1) % MENU_COUNT);
         }
 
         if(ev->key == InputKeyOk && is_short) {
@@ -1250,8 +1198,7 @@ static bool handle_input(App* app, const InputEvent* ev) {
         if(ev->key == InputKeyBack && is_short) {
             app->screen = ScreenMenu;
         } else if(ev->key == InputKeyUp) {
-            app->tx_sel =
-                (uint8_t)((app->tx_sel + FN_COUNT - 1) % FN_COUNT);
+            app->tx_sel = (uint8_t)((app->tx_sel + FN_COUNT - 1) % FN_COUNT);
 
             fix_top(app->tx_sel, &app->tx_top, 5);
         } else if(ev->key == InputKeyDown) {
@@ -1267,8 +1214,7 @@ static bool handle_input(App* app, const InputEvent* ev) {
         break;
 
     case ScreenTxSession: {
-        uint8_t total =
-            (uint8_t)(2 + nib_count(fns[app->tx_fn].kind) + 1);
+        uint8_t total = (uint8_t)(2 + nib_count(fns[app->tx_fn].kind) + 1);
 
         if(ev->key == InputKeyBack && is_short) {
             app->screen = ScreenTxList;
@@ -1340,8 +1286,7 @@ int32_t mdc1200_app(void* p) {
         fn_titles[i] = fns[i].name;
     }
 
-    FuriMessageQueue* queue =
-        furi_message_queue_alloc(8, sizeof(InputEvent));
+    FuriMessageQueue* queue = furi_message_queue_alloc(8, sizeof(InputEvent));
 
     ViewPort* vp = view_port_alloc();
 
@@ -1358,8 +1303,7 @@ int32_t mdc1200_app(void* p) {
         InputEvent ev;
 
         if(furi_message_queue_get(queue, &ev, 25) == FuriStatusOk) {
-            if(ev.type == InputTypeShort ||
-               ev.type == InputTypeRepeat ||
+            if(ev.type == InputTypeShort || ev.type == InputTypeRepeat ||
                ev.type == InputTypeLong) {
                 if(furi_mutex_acquire(app->mutex, 50) == FuriStatusOk) {
                     running = handle_input(app, &ev);
@@ -1391,10 +1335,7 @@ int32_t mdc1200_app(void* p) {
             app->do_tx = false;
 
             if(furi_mutex_acquire(app->mutex, 50) == FuriStatusOk) {
-                snprintf(
-                    app->status,
-                    sizeof(app->status),
-                    "TX in progress...");
+                snprintf(app->status, sizeof(app->status), "TX in progress...");
 
                 furi_mutex_release(app->mutex);
             }

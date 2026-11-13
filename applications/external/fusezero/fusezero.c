@@ -94,7 +94,8 @@ static int nth_sunday(int y, int m, int week) {
     int first_sun = 1 + (7 - wd1) % 7;
     if(week < 5) return first_sun + 7 * (week - 1);
     int d = first_sun;
-    while(d + 7 <= days_in_month(y, m)) d += 7;
+    while(d + 7 <= days_in_month(y, m))
+        d += 7;
     return d;
 }
 
@@ -135,65 +136,26 @@ typedef struct {
 } City;
 
 static const City cities[] = {
-    {"Honolulu", -600, DstNone},
-    {"Anchorage", -540, DstUS},
-    {"L. Angeles", -480, DstUS},
-    {"Vancouver", -480, DstUS},
-    {"Denver", -420, DstUS},
-    {"Phoenix", -420, DstNone},
-    {"Chicago", -360, DstUS},
-    {"Mexico", -360, DstNone},
-    {"New York", -300, DstUS},
-    {"Toronto", -300, DstUS},
-    {"Bogota", -300, DstNone},
-    {"Lima", -300, DstNone},
-    {"Caracas", -240, DstNone},
-    {"Sao Paulo", -180, DstNone},
-    {"B. Aires", -180, DstNone},
-    {"Reykjavik", 0, DstNone},
-    {"London", 0, DstEU},
-    {"Lisbon", 0, DstEU},
-    {"Dublin", 0, DstEU},
-    {"Casablanca", 60, DstNone},
-    {"Lagos", 60, DstNone},
-    {"Madrid", 60, DstEU},
-    {"Paris", 60, DstEU},
-    {"Rome", 60, DstEU},
-    {"Berlin", 60, DstEU},
-    {"Amsterdam", 60, DstEU},
-    {"Brussels", 60, DstEU},
-    {"Vienna", 60, DstEU},
-    {"Zurich", 60, DstEU},
-    {"Stockholm", 60, DstEU},
-    {"Warsaw", 60, DstEU},
-    {"Prague", 60, DstEU},
-    {"Athens", 120, DstEU},
-    {"Helsinki", 120, DstEU},
-    {"Kyiv", 120, DstEU},
-    {"Bucharest", 120, DstEU},
-    {"Joburg", 120, DstNone},
-    {"Istanbul", 180, DstNone},
-    {"Moscow", 180, DstNone},
-    {"Nairobi", 180, DstNone},
-    {"Riyadh", 180, DstNone},
-    {"Dubai", 240, DstNone},
-    {"Karachi", 300, DstNone},
-    {"Delhi", 330, DstNone},
-    {"Dhaka", 360, DstNone},
-    {"Bangkok", 420, DstNone},
-    {"Jakarta", 420, DstNone},
-    {"Beijing", 480, DstNone},
-    {"Hong Kong", 480, DstNone},
-    {"Singapore", 480, DstNone},
-    {"Perth", 480, DstNone},
-    {"Manila", 480, DstNone},
-    {"Taipei", 480, DstNone},
-    {"Tokyo", 540, DstNone},
-    {"Seoul", 540, DstNone},
-    {"Brisbane", 600, DstNone},
-    {"Sydney", 600, DstAU},
-    {"Melbourne", 600, DstAU},
-    {"Auckland", 720, DstNZ},
+    {"Honolulu", -600, DstNone}, {"Anchorage", -540, DstUS},   {"L. Angeles", -480, DstUS},
+    {"Vancouver", -480, DstUS},  {"Denver", -420, DstUS},      {"Phoenix", -420, DstNone},
+    {"Chicago", -360, DstUS},    {"Mexico", -360, DstNone},    {"New York", -300, DstUS},
+    {"Toronto", -300, DstUS},    {"Bogota", -300, DstNone},    {"Lima", -300, DstNone},
+    {"Caracas", -240, DstNone},  {"Sao Paulo", -180, DstNone}, {"B. Aires", -180, DstNone},
+    {"Reykjavik", 0, DstNone},   {"London", 0, DstEU},         {"Lisbon", 0, DstEU},
+    {"Dublin", 0, DstEU},        {"Casablanca", 60, DstNone},  {"Lagos", 60, DstNone},
+    {"Madrid", 60, DstEU},       {"Paris", 60, DstEU},         {"Rome", 60, DstEU},
+    {"Berlin", 60, DstEU},       {"Amsterdam", 60, DstEU},     {"Brussels", 60, DstEU},
+    {"Vienna", 60, DstEU},       {"Zurich", 60, DstEU},        {"Stockholm", 60, DstEU},
+    {"Warsaw", 60, DstEU},       {"Prague", 60, DstEU},        {"Athens", 120, DstEU},
+    {"Helsinki", 120, DstEU},    {"Kyiv", 120, DstEU},         {"Bucharest", 120, DstEU},
+    {"Joburg", 120, DstNone},    {"Istanbul", 180, DstNone},   {"Moscow", 180, DstNone},
+    {"Nairobi", 180, DstNone},   {"Riyadh", 180, DstNone},     {"Dubai", 240, DstNone},
+    {"Karachi", 300, DstNone},   {"Delhi", 330, DstNone},      {"Dhaka", 360, DstNone},
+    {"Bangkok", 420, DstNone},   {"Jakarta", 420, DstNone},    {"Beijing", 480, DstNone},
+    {"Hong Kong", 480, DstNone}, {"Singapore", 480, DstNone},  {"Perth", 480, DstNone},
+    {"Manila", 480, DstNone},    {"Taipei", 480, DstNone},     {"Tokyo", 540, DstNone},
+    {"Seoul", 540, DstNone},     {"Brisbane", 600, DstNone},   {"Sydney", 600, DstAU},
+    {"Melbourne", 600, DstAU},   {"Auckland", 720, DstNZ},
 };
 
 #define CITY_COUNT ((uint8_t)(sizeof(cities) / sizeof(cities[0])))
@@ -425,7 +387,14 @@ static void draw_clock_box(
     const bool wide = (w == 128 && h == 32);
 
     if(full) {
-        snprintf(line, sizeof(line), "%s  %s %d %s", diff, wd_names[t.weekday], t.day, mon_names[t.month - 1]);
+        snprintf(
+            line,
+            sizeof(line),
+            "%s  %s %d %s",
+            diff,
+            wd_names[t.weekday],
+            t.day,
+            mon_names[t.month - 1]);
         canvas_set_font(c, FontPrimary);
         canvas_draw_str_aligned(c, x + 64, y + 2, AlignCenter, AlignTop, city->name);
 
@@ -495,8 +464,7 @@ static bool clock_input(InputEvent* event, void* context) {
 static void clock_enter(void* context) {
     FuseZeroApp* app = context;
     settings_save(&app->settings);
-    with_view_model(
-        app->clock, ClockModel * model, { model->s = app->settings; }, true);
+    with_view_model(app->clock, ClockModel * model, { model->s = app->settings; }, true);
     furi_timer_start(app->timer, furi_ms_to_ticks(1000));
 }
 
@@ -507,8 +475,7 @@ static void clock_exit(void* context) {
 
 static void tick_callback(void* context) {
     FuseZeroApp* app = context;
-    with_view_model(
-        app->clock, ClockModel * model, { UNUSED(model); }, true);
+    with_view_model(app->clock, ClockModel * model, { UNUSED(model); }, true);
 }
 
 /* ------------------------------------------------------------------ */

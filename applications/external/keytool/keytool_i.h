@@ -11,7 +11,7 @@
 #include <dialogs/dialogs.h>
 #include <storage/storage.h>
 
-#define KEYTOOL_APP_FOLDER "/ext/apps_data/keytool"
+#define KEYTOOL_APP_FOLDER          "/ext/apps_data/keytool"
 #define KEYTOOL_DEFAULT_DUMP_FOLDER "/ext/nfc"
 
 typedef enum {

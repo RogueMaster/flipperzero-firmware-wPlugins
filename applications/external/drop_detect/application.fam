@@ -1,11 +1,12 @@
 App(
-    appid="drop_detect",
+    appid="fliport",
     name="FliPort",
     apptype=FlipperAppType.EXTERNAL,
     entry_point="drop_detect_app",
     stack_size=2 * 1024,
     fap_icon="fliport_10px.png",
     fap_icon_assets="images",
+    fap_icon_assets_symbol="drop_detect",
     sources=[
         "drop_detect_app.c",
         "views/drop_view.c",

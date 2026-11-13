@@ -53,7 +53,7 @@ typedef struct {
     uint8_t raw_bits;
     bool raw_valid;
     uint8_t edit_mask; /* TPMS_EDIT_* dei campi da riscrivere sul payload catturato */
-    uint8_t profile;   /* profilo radio 0..5 */
+    uint8_t profile; /* profilo radio 0..5 */
     uint8_t repeats;
 } UtdTx;
 

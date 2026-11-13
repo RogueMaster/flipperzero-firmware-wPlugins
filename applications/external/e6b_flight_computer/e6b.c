@@ -12,8 +12,8 @@
 #include <math.h>
 #include <stdio.h>
 
-#define RAD(x) ((x) * 0.017453292519943295)
-#define DEG(x) ((x) * 57.29577951308232)
+#define RAD(x)    ((x) * 0.017453292519943295)
+#define DEG(x)    ((x) * 57.29577951308232)
 #define ERR(o, m) furi_string_cat_str(o, "! " m "\n")
 
 static int D = 1; // decimals
@@ -32,15 +32,32 @@ static void TM(FuriString* o, const char* l, float min) {
 }
 static void conv2(FuriString* o, int32_t v, const char* a, const char* b, float k) {
     furi_string_cat_printf(
-        o, "%ld %s = %.*f %s\n%ld %s = %.*f %s\n", (long)v, a, D, (double)(v * k), b, (long)v, b, D, (double)(v / k), a);
+        o,
+        "%ld %s = %.*f %s\n%ld %s = %.*f %s\n",
+        (long)v,
+        a,
+        D,
+        (double)(v * k),
+        b,
+        (long)v,
+        b,
+        D,
+        (double)(v / k),
+        a);
 }
 
 /* ---------- Wind ---------- */
 static void c_wt(const int32_t* v, FuriString* o) {
     float tc = v[0], tas = v[1], wd = v[2], ws = v[3];
-    if(tas <= 0) { ERR(o, "TAS must be > 0"); return; }
+    if(tas <= 0) {
+        ERR(o, "TAS must be > 0");
+        return;
+    }
     float a = RAD(wd - tc), x = ws * sinf(a) / tas;
-    if(fabsf(x) > 1) { ERR(o, "Wind too strong"); return; }
+    if(fabsf(x) > 1) {
+        ERR(o, "Wind too strong");
+        return;
+    }
     float w = asinf(x);
     P(o, "WCA", DEG(w), "deg");
     P(o, "True HDG", nrm(tc + DEG(w)), "deg");
@@ -58,7 +75,10 @@ static void c_fw(const int32_t* v, FuriString* o) {
     P(o, "Wind speed", hypotf(wx, wy), "kt");
 }
 static void c_160(const int32_t* v, FuriString* o) {
-    if(v[1] <= 0 || v[2] <= 0) { ERR(o, "Distances must be > 0"); return; }
+    if(v[1] <= 0 || v[2] <= 0) {
+        ERR(o, "Distances must be > 0");
+        return;
+    }
     float e = DEG(atanf((float)v[0] / v[1])), c = DEG(atanf((float)v[0] / v[2]));
     P(o, "Track error", e, "deg");
     P(o, "Closing angle", c, "deg");
@@ -71,13 +91,19 @@ static void c_mv(const int32_t* v, FuriString* o) {
     P(o, "Compass HDG", nrm(mc - v[2]), "deg");
 }
 static void c_pnr(const int32_t* v, FuriString* o) {
-    if(v[1] + v[2] <= 0 || v[1] <= 0) { ERR(o, "GS must be > 0"); return; }
+    if(v[1] + v[2] <= 0 || v[1] <= 0) {
+        ERR(o, "GS must be > 0");
+        return;
+    }
     float d = (v[0] / 60.0) * v[1] * v[2] / (v[1] + v[2]);
     P(o, "PNR dist", d, "NM");
     TM(o, "PNR time", d / v[1] * 60);
 }
 static void c_etp(const int32_t* v, FuriString* o) {
-    if(v[1] + v[2] <= 0 || v[1] <= 0) { ERR(o, "GS must be > 0"); return; }
+    if(v[1] + v[2] <= 0 || v[1] <= 0) {
+        ERR(o, "GS must be > 0");
+        return;
+    }
     float x = (float)v[0] * v[2] / (v[1] + v[2]);
     P(o, "ETP dist", x, "NM");
     TM(o, "ETP time", x / v[1] * 60);
@@ -85,13 +111,22 @@ static void c_etp(const int32_t* v, FuriString* o) {
 /* ---------- Time / Speed / Distance ---------- */
 static void c_std(const int32_t* v, FuriString* o) {
     int z = (v[0] == 0) + (v[1] == 0) + (v[2] == 0);
-    if(z != 1) { ERR(o, "Set ONE field to 0"); return; }
-    if(v[0] == 0) P(o, "GS", v[2] / (float)v[1] * 60, "kt");
-    else if(v[1] == 0) TM(o, "Time", v[2] / (float)v[0] * 60);
-    else P(o, "Dist", v[0] * v[1] / 60.0, "NM");
+    if(z != 1) {
+        ERR(o, "Set ONE field to 0");
+        return;
+    }
+    if(v[0] == 0)
+        P(o, "GS", v[2] / (float)v[1] * 60, "kt");
+    else if(v[1] == 0)
+        TM(o, "Time", v[2] / (float)v[0] * 60);
+    else
+        P(o, "Dist", v[0] * v[1] / 60.0, "NM");
 }
 static void c_eta(const int32_t* v, FuriString* o) {
-    if(v[2] <= 0) { ERR(o, "GS must be > 0"); return; }
+    if(v[2] <= 0) {
+        ERR(o, "GS must be > 0");
+        return;
+    }
     float ete = v[1] / (float)v[2] * 60;
     int m = (int)((v[0] / 100) * 60 + v[0] % 100 + ete + 0.5);
     m = ((m % 1440) + 1440) % 1440;
@@ -101,10 +136,16 @@ static void c_eta(const int32_t* v, FuriString* o) {
 /* ---------- Fuel ---------- */
 static void c_fuel(const int32_t* v, FuriString* o) {
     int z = (v[0] == 0) + (v[1] == 0) + (v[2] == 0);
-    if(z != 1) { ERR(o, "Set ONE field to 0"); return; }
-    if(v[0] == 0) P(o, "Flow", v[2] / (float)v[1] * 60, "/h");
-    else if(v[1] == 0) TM(o, "Endurance", v[2] / (float)v[0] * 60);
-    else P(o, "Fuel", v[0] * v[1] / 60.0, "");
+    if(z != 1) {
+        ERR(o, "Set ONE field to 0");
+        return;
+    }
+    if(v[0] == 0)
+        P(o, "Flow", v[2] / (float)v[1] * 60, "/h");
+    else if(v[1] == 0)
+        TM(o, "Endurance", v[2] / (float)v[0] * 60);
+    else
+        P(o, "Fuel", v[0] * v[1] / 60.0, "");
 }
 static void c_fw2(const int32_t* v, FuriString* o) {
     float kg = v[0] * v[1] / 1000.0;
@@ -112,9 +153,15 @@ static void c_fw2(const int32_t* v, FuriString* o) {
     P(o, "Weight", kg * 2.20462, "lb");
 }
 static void c_rng(const int32_t* v, FuriString* o) {
-    if(v[2] <= 0) { ERR(o, "Flow must be > 0"); return; }
+    if(v[2] <= 0) {
+        ERR(o, "Flow must be > 0");
+        return;
+    }
     float h = (v[0] - v[1]) / (float)v[2];
-    if(h < 0) { ERR(o, "Reserve > fuel"); return; }
+    if(h < 0) {
+        ERR(o, "Reserve > fuel");
+        return;
+    }
     TM(o, "Usable endur.", h * 60);
     P(o, "Max range", h * v[3], "NM");
 }
@@ -138,7 +185,10 @@ static void c_tas(const int32_t* v, FuriString* o) {
 }
 /* ---------- Climb / descent ---------- */
 static void c_tod(const int32_t* v, FuriString* o) {
-    if(v[2] <= 0 || v[1] <= 0) { ERR(o, "GS/angle must be > 0"); return; }
+    if(v[2] <= 0 || v[1] <= 0) {
+        ERR(o, "GS/angle must be > 0");
+        return;
+    }
     float t = tanf(RAD(v[2])), d = v[0] / (t * 6076.12);
     P(o, "Descent dist", d, "NM");
     P(o, "Descent rate", v[1] * t * 101.27, "fpm");
@@ -152,15 +202,20 @@ static void c_grad(const int32_t* v, FuriString* o) {
 }
 static void c_turn(const int32_t* v, FuriString* o) {
     float t = tanf(RAD(v[1]));
-    if(v[0] <= 0 || t <= 0) { ERR(o, "TAS/bank must be > 0"); return; }
+    if(v[0] <= 0 || t <= 0) {
+        ERR(o, "TAS/bank must be > 0");
+        return;
+    }
     float r = 1091 * t / v[0];
     P(o, "Turn rate", r, "deg/s");
     P(o, "360 turn", 360 / r, "s");
     P(o, "Turn radius", v[0] * (float)v[0] / (11.26 * t), "ft");
 }
 /* ---------- Conversions ---------- */
-#define CONV(fn, A, B, K) \
-    static void fn(const int32_t* v, FuriString* o) { conv2(o, v[0], A, B, K); }
+#define CONV(fn, A, B, K)                             \
+    static void fn(const int32_t* v, FuriString* o) { \
+        conv2(o, v[0], A, B, K);                      \
+    }
 CONV(c_nmkm, "NM", "km", 1.852)
 CONV(c_nmsm, "NM", "SM", 1.15078)
 CONV(c_ktkmh, "kt", "km/h", 1.852)
@@ -185,7 +240,11 @@ typedef struct {
 } Calc;
 
 static const Calc C[] = {
-    {"Wind triangle", 4, {"TC deg", "TAS kt", "Wind from deg", "Wind kt"}, {90, 100, 180, 20}, c_wt},
+    {"Wind triangle",
+     4,
+     {"TC deg", "TAS kt", "Wind from deg", "Wind kt"},
+     {90, 100, 180, 20},
+     c_wt},
     {"Wind components", 3, {"RWY/Course deg", "Wind from deg", "Wind kt"}, {90, 130, 20}, c_wc},
     {"Find wind", 4, {"TC deg", "GS kt", "True HDG deg", "TAS kt"}, {90, 110, 85, 100}, c_fw},
     {"1 in 60", 3, {"Off track NM", "Flown NM", "To go NM"}, {2, 40, 60}, c_160},
@@ -231,9 +290,26 @@ static const Grp G[] = {
 #define GRP_N (sizeof(G) / sizeof(G[0]))
 
 /* ---------- App ---------- */
-typedef enum { ViewMenu, ViewNum, ViewText, ViewSettings, ViewAbout } ViewId;
-typedef enum { PgMain, PgStart, PgGroup, PgCalc } Page;
-typedef enum { ScrMenu, ScrNum, ScrText, ScrSettings, ScrAbout } Scr;
+typedef enum {
+    ViewMenu,
+    ViewNum,
+    ViewText,
+    ViewSettings,
+    ViewAbout
+} ViewId;
+typedef enum {
+    PgMain,
+    PgStart,
+    PgGroup,
+    PgCalc
+} Page;
+typedef enum {
+    ScrMenu,
+    ScrNum,
+    ScrText,
+    ScrSettings,
+    ScrAbout
+} Scr;
 
 typedef struct {
     Gui* gui;
@@ -266,7 +342,8 @@ static void build_menu(App* a) {
         break;
     case PgStart:
         submenu_set_header(a->menu, "E6B Flight Computer");
-        for(uint32_t g = 0; g < GRP_N; g++) submenu_add_item(a->menu, G[g].name, g, menu_cb, a);
+        for(uint32_t g = 0; g < GRP_N; g++)
+            submenu_add_item(a->menu, G[g].name, g, menu_cb, a);
         break;
     case PgGroup:
         submenu_set_header(a->menu, G[a->grp].name);
@@ -312,7 +389,9 @@ static void menu_cb(void* ctx, uint32_t index) {
     switch(a->page) {
     case PgMain:
         if(index == 0) {
-            a->page = PgStart; a->sel = 0; show_menu(a);
+            a->page = PgStart;
+            a->sel = 0;
+            show_menu(a);
         } else if(index == 1) {
             a->scr = ScrSettings;
             view_dispatcher_switch_to_view(a->vd, ViewSettings);
@@ -322,10 +401,16 @@ static void menu_cb(void* ctx, uint32_t index) {
         }
         break;
     case PgStart:
-        a->grp = index; a->page = PgGroup; a->sel = 0; show_menu(a);
+        a->grp = index;
+        a->page = PgGroup;
+        a->sel = 0;
+        show_menu(a);
         break;
     case PgGroup:
-        a->cur = index; a->page = PgCalc; a->sel = 0; show_menu(a);
+        a->cur = index;
+        a->page = PgCalc;
+        a->sel = 0;
+        show_menu(a);
         break;
     case PgCalc:
         if(index < C[a->cur].n) {
@@ -357,16 +442,27 @@ static bool nav_cb(void* ctx) {
         show_menu(a);
         return true;
     case ScrSettings:
-        a->page = PgMain; a->sel = 1; show_menu(a);
+        a->page = PgMain;
+        a->sel = 1;
+        show_menu(a);
         return true;
     case ScrAbout:
-        a->page = PgMain; a->sel = 2; show_menu(a);
+        a->page = PgMain;
+        a->sel = 2;
+        show_menu(a);
         return true;
     case ScrMenu:
         if(a->page == PgMain) return false;
-        if(a->page == PgStart) { a->page = PgMain; a->sel = 0; }
-        else if(a->page == PgGroup) { a->page = PgStart; a->sel = a->grp; }
-        else { a->page = PgGroup; a->sel = a->cur - G[a->grp].first; }
+        if(a->page == PgStart) {
+            a->page = PgMain;
+            a->sel = 0;
+        } else if(a->page == PgGroup) {
+            a->page = PgStart;
+            a->sel = a->grp;
+        } else {
+            a->page = PgGroup;
+            a->sel = a->cur - G[a->grp].first;
+        }
         show_menu(a);
         return true;
     }
@@ -390,7 +486,8 @@ int32_t e6b_main(void* p) {
     App* a = malloc(sizeof(App));
     memset(a, 0, sizeof(App));
     for(size_t i = 0; i < CALC_N; i++)
-        for(int f = 0; f < 4; f++) a->vals[i][f] = C[i].def[f];
+        for(int f = 0; f < 4; f++)
+            a->vals[i][f] = C[i].def[f];
 
     a->text = furi_string_alloc();
     a->gui = furi_record_open(RECORD_GUI);
@@ -402,7 +499,12 @@ int32_t e6b_main(void* p) {
     a->set = variable_item_list_alloc();
     a->about = widget_alloc();
     widget_add_string_multiline_element(
-        a->about, 64, 32, AlignCenter, AlignCenter, FontPrimary,
+        a->about,
+        64,
+        32,
+        AlignCenter,
+        AlignCenter,
+        FontPrimary,
         "E6B Flight Computer\n\nv1.0\ncreated by Marcopiiit");
 
     VariableItem* it = variable_item_list_add(a->set, "Decimals", 4, set_dec_cb, a);

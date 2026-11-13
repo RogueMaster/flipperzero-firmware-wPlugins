@@ -29,22 +29,22 @@
 #include <ctype.h>
 #include <math.h>
 
-#define MAX_SEGMENTS 3000
-#define MAX_FILE_BYTES 8192
-#define PMR_BASE_HZ 446006250UL
-#define PMR_STEP_HZ 12500UL
-#define PMR_CHANNELS 16
-#define LPD_BASE_HZ 433075000UL // LPD433: 69 channels of 25 kHz, 433.075-434.775 MHz
-#define LPD_STEP_HZ 25000UL
-#define LPD_CHANNELS 69
-#define TONE_MIN_HZ 300
-#define TONE_MAX_HZ 3000
-#define MORSE_TONE_HZ 700
-#define MORSE_UNIT_MS 80
+#define MAX_SEGMENTS     3000
+#define MAX_FILE_BYTES   8192
+#define PMR_BASE_HZ      446006250UL
+#define PMR_STEP_HZ      12500UL
+#define PMR_CHANNELS     16
+#define LPD_BASE_HZ      433075000UL // LPD433: 69 channels of 25 kHz, 433.075-434.775 MHz
+#define LPD_STEP_HZ      25000UL
+#define LPD_CHANNELS     69
+#define TONE_MIN_HZ      300
+#define TONE_MAX_HZ      3000
+#define MORSE_TONE_HZ    700
+#define MORSE_UNIT_MS    80
 #define SILENCE_CHUNK_US 10000
-#define LEAD_MS 400 // toneless carrier at the start, to open the squelch
-#define TAIL_MS 200
-#define NOTE_GAP_MS 20
+#define LEAD_MS          400 // toneless carrier at the start, to open the squelch
+#define TAIL_MS          200
+#define NOTE_GAP_MS      20
 
 typedef struct {
     uint16_t freq_hz; // 0 = carrier without tone
@@ -111,14 +111,22 @@ static void add_tone(SegList* l, uint16_t freq, uint32_t ms, bool with_gap) {
 
 static int semitone(char n) {
     switch(n) {
-    case 'C': return 0;
-    case 'D': return 2;
-    case 'E': return 4;
-    case 'F': return 5;
-    case 'G': return 7;
-    case 'A': return 9;
-    case 'B': return 11;
-    default: return -1;
+    case 'C':
+        return 0;
+    case 'D':
+        return 2;
+    case 'E':
+        return 4;
+    case 'F':
+        return 5;
+    case 'G':
+        return 7;
+    case 'A':
+        return 9;
+    case 'B':
+        return 11;
+    default:
+        return -1;
     }
 }
 
@@ -128,7 +136,8 @@ static void parse_notes(const char* p, uint32_t bpm, uint32_t def_dur, int def_o
     const uint32_t whole_ms = 240000UL / bpm;
 
     while(*p) {
-        while(*p == ' ' || *p == ',' || *p == '\t' || *p == '\n' || *p == '\r') p++;
+        while(*p == ' ' || *p == ',' || *p == '\t' || *p == '\n' || *p == '\r')
+            p++;
         if(!*p) break;
 
         uint32_t dur = 0;
@@ -158,7 +167,8 @@ static void parse_notes(const char* p, uint32_t bpm, uint32_t def_dur, int def_o
             dot = true;
             q++;
         }
-        while(*q && *q != ',' && *q != ' ' && *q != '\t' && *q != '\n' && *q != '\r') q++;
+        while(*q && *q != ',' && *q != ' ' && *q != '\t' && *q != '\n' && *q != '\r')
+            q++;
         p = q;
 
         if(dur == 0) dur = def_dur;
@@ -175,8 +185,10 @@ static void parse_notes(const char* p, uint32_t bpm, uint32_t def_dur, int def_o
 
         int midi = 12 * (oct + 1) + st + (sharp ? 1 : 0);
         float f = 440.0f * powf(2.0f, (float)(midi - 69) / 12.0f);
-        while(f < TONE_MIN_HZ) f *= 2.0f;
-        while(f > TONE_MAX_HZ) f /= 2.0f;
+        while(f < TONE_MIN_HZ)
+            f *= 2.0f;
+        while(f > TONE_MAX_HZ)
+            f /= 2.0f;
         add_tone(l, (uint16_t)f, ms, true);
     }
 }
@@ -220,7 +232,8 @@ static bool has_notes_line(const char* text) {
 // Valid note token: [duration][.]NOTE[#][octave][.]  (NOTE = A-G or P for pause)
 static bool is_note_token(const char* s, size_t n) {
     size_t i = 0;
-    while(i < n && s[i] >= '0' && s[i] <= '9') i++;
+    while(i < n && s[i] >= '0' && s[i] <= '9')
+        i++;
     if(i < n && s[i] == '.') i++;
     if(i >= n) return false;
     char c = (char)toupper((unsigned char)s[i]);
@@ -237,10 +250,12 @@ static bool looks_like_note_list(const char* text) {
     size_t tokens = 0;
     const char* p = text;
     while(*p) {
-        while(*p == ' ' || *p == ',' || *p == '\t' || *p == '\n' || *p == '\r') p++;
+        while(*p == ' ' || *p == ',' || *p == '\t' || *p == '\n' || *p == '\r')
+            p++;
         if(!*p) break;
         const char* start = p;
-        while(*p && *p != ' ' && *p != ',' && *p != '\t' && *p != '\n' && *p != '\r') p++;
+        while(*p && *p != ' ' && *p != ',' && *p != '\t' && *p != '\n' && *p != '\r')
+            p++;
         if(!is_note_token(start, (size_t)(p - start))) return false;
         tokens++;
     }
@@ -267,9 +282,12 @@ static void parse_rtttl(const char* text, SegList* l) {
     for(const char* p = c1 + 1; p < c2; p++) {
         if(p[1] != '=') continue;
         char k = (char)tolower((unsigned char)*p);
-        if(k == 'd') dur = (uint32_t)atoi(p + 2);
-        else if(k == 'o') oct = atoi(p + 2);
-        else if(k == 'b') bpm = (uint32_t)atoi(p + 2);
+        if(k == 'd')
+            dur = (uint32_t)atoi(p + 2);
+        else if(k == 'o')
+            oct = atoi(p + 2);
+        else if(k == 'b')
+            bpm = (uint32_t)atoi(p + 2);
     }
     parse_notes(c2 + 1, bpm, dur, oct, l);
 }
@@ -277,18 +295,21 @@ static void parse_rtttl(const char* text, SegList* l) {
 // Try to read the text as music. Returns false if it isn't (then Morse is used).
 static bool parse_music_text(char* text, SegList* l) {
     size_t before = l->count;
-    if(has_notes_line(text)) parse_fmf(text, l);
-    else if(is_rtttl(text)) parse_rtttl(text, l);
-    else if(looks_like_note_list(text)) parse_notes(text, 120, 4, 5, l);
-    else return false;
+    if(has_notes_line(text))
+        parse_fmf(text, l);
+    else if(is_rtttl(text))
+        parse_rtttl(text, l);
+    else if(looks_like_note_list(text))
+        parse_notes(text, 120, 4, 5, l);
+    else
+        return false;
     return l->count > before;
 }
 
-static const char* const MORSE_AZ[26] = {".-",   "-...", "-.-.", "-..",  ".",   "..-.", "--.",
-                                         "....", "..",   ".---", "-.-",  ".-..", "--",
-                                         "-.",   "---",  ".--.", "--.-", ".-.", "...",
-                                         "-",    "..-",  "...-", ".--",  "-..-", "-.--",
-                                         "--.."};
+static const char* const MORSE_AZ[26] = {".-",   "-...", "-.-.", "-..",  ".",    "..-.", "--.",
+                                         "....", "..",   ".---", "-.-",  ".-..", "--",   "-.",
+                                         "---",  ".--.", "--.-", ".-.",  "...",  "-",    "..-",
+                                         "...-", ".--",  "-..-", "-.--", "--.."};
 static const char* const MORSE_09[10] =
     {"-----", ".----", "..---", "...--", "....-", ".....", "-....", "--...", "---..", "----."};
 
@@ -296,12 +317,15 @@ static void build_morse(const char* text, SegList* l) {
     for(; *text; text++) {
         char c = (char)toupper((unsigned char)*text);
         const char* code = NULL;
-        if(c >= 'A' && c <= 'Z') code = MORSE_AZ[c - 'A'];
-        else if(c >= '0' && c <= '9') code = MORSE_09[c - '0'];
+        if(c >= 'A' && c <= 'Z')
+            code = MORSE_AZ[c - 'A'];
+        else if(c >= '0' && c <= '9')
+            code = MORSE_09[c - '0'];
         else if(c == ' ' || c == '\n') {
             seg_add(l, 0, 4 * MORSE_UNIT_MS); // 3 end-of-letter + 4 = word space
             continue;
-        } else continue;
+        } else
+            continue;
 
         for(const char* e = code; *e; e++) {
             seg_add(l, MORSE_TONE_HZ, (*e == '.' ? 1 : 3) * MORSE_UNIT_MS);
@@ -468,19 +492,23 @@ static void load_file(App* a, const char* path) {
     seg_add(&a->list, 0, TAIL_MS);
     free(buf);
 
-    for(size_t i = 0; i < a->list.count; i++) a->total_ms += a->list.seg[i].dur_ms;
+    for(size_t i = 0; i < a->list.count; i++)
+        a->total_ms += a->list.seg[i].dur_ms;
 
     const char* slash = strrchr(path, '/');
     snprintf(a->name, sizeof(a->name), "%.*s", (int)sizeof(a->name) - 1, slash ? slash + 1 : path);
 
-    if(a->list.count <= 2) set_status(a, "Empty or invalid file");
-    else if(a->list.count >= MAX_SEGMENTS) set_status(a, "Ready (file truncated)");
-    else set_status(a, music ? "Ready (music)" : "Ready (morse)");
+    if(a->list.count <= 2)
+        set_status(a, "Empty or invalid file");
+    else if(a->list.count >= MAX_SEGMENTS)
+        set_status(a, "Ready (file truncated)");
+    else
+        set_status(a, music ? "Ready (music)" : "Ready (morse)");
 }
 
 // The last chosen file is saved on the SD card, so the browser reopens there even
 // after closing and reopening the app.
-#define DATA_DIR "/ext/apps_data/tone_tx"
+#define DATA_DIR       "/ext/apps_data/tone_tx"
 #define LAST_PATH_FILE DATA_DIR "/last_path.txt"
 
 static void save_last_path(App* a) {
@@ -538,7 +566,7 @@ static void pick_file(App* a) {
 
 /* ---------- user interface ---------- */
 
-#define MENU_ITEMS 3
+#define MENU_ITEMS    3
 #define VISIBLE_LINES 6
 
 static const char* const MENU_LABELS[MENU_ITEMS] = {"Start", "Disclaimer", "About"};
@@ -585,7 +613,7 @@ static const char* const DISCLAIMER_LINES[] = {
     "Use this application at",
     "your own risk.",
 };
-#define DISCLAIMER_COUNT (sizeof(DISCLAIMER_LINES) / sizeof(DISCLAIMER_LINES[0]))
+#define DISCLAIMER_COUNT      (sizeof(DISCLAIMER_LINES) / sizeof(DISCLAIMER_LINES[0]))
 #define DISCLAIMER_MAX_SCROLL (DISCLAIMER_COUNT - VISIBLE_LINES)
 
 static void draw_menu(Canvas* canvas, const App* a) {
@@ -633,17 +661,31 @@ static void draw_main(Canvas* canvas, const App* a) {
     canvas_draw_str(canvas, 2, 20, "by Marcopiiit");
 
     if(a->lpd) {
-        snprintf(line, sizeof(line), "Ch LPD %u  %lu.%03lu", a->channel, f / 1000000UL, (f % 1000000UL) / 1000UL);
+        snprintf(
+            line,
+            sizeof(line),
+            "Ch LPD %u  %lu.%03lu",
+            a->channel,
+            f / 1000000UL,
+            (f % 1000000UL) / 1000UL);
     } else {
-        snprintf(line, sizeof(line), "Ch PMR %u  %lu.%05lu", a->channel, f / 1000000UL, (f % 1000000UL) / 10UL);
+        snprintf(
+            line,
+            sizeof(line),
+            "Ch PMR %u  %lu.%05lu",
+            a->channel,
+            f / 1000000UL,
+            (f % 1000000UL) / 10UL);
     }
     canvas_draw_str(canvas, 2, 32, line);
 
     snprintf(line, sizeof(line), "File: %s", a->name[0] ? a->name : "(none)");
     canvas_draw_str(canvas, 2, 43, line);
 
-    if(a->total_ms) snprintf(line, sizeof(line), "%s (%lu s)", a->status, (unsigned long)(a->total_ms / 1000));
-    else snprintf(line, sizeof(line), "%s", a->status);
+    if(a->total_ms)
+        snprintf(line, sizeof(line), "%s (%lu s)", a->status, (unsigned long)(a->total_ms / 1000));
+    else
+        snprintf(line, sizeof(line), "%s", a->status);
     canvas_draw_str(canvas, 2, 54, line);
 
     canvas_draw_str(canvas, 2, 63, "</>ch ^file vband OK tx");
@@ -653,10 +695,18 @@ static void draw_cb(Canvas* canvas, void* ctx) {
     App* a = ctx;
     canvas_clear(canvas);
     switch(a->screen) {
-    case ScreenMenu: draw_menu(canvas, a); break;
-    case ScreenDisclaimer: draw_disclaimer(canvas, a); break;
-    case ScreenAbout: draw_about(canvas); break;
-    case ScreenMain: draw_main(canvas, a); break;
+    case ScreenMenu:
+        draw_menu(canvas, a);
+        break;
+    case ScreenDisclaimer:
+        draw_disclaimer(canvas, a);
+        break;
+    case ScreenAbout:
+        draw_about(canvas);
+        break;
+    case ScreenMain:
+        draw_main(canvas, a);
+        break;
     }
 }
 

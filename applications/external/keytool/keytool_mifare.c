@@ -62,7 +62,8 @@ bool keytool_mifare_parse_dump(
         char tokens[16][3];
         int token_count = 0;
         while(*p && token_count < 16) {
-            while(*p == ' ') p++;
+            while(*p == ' ')
+                p++;
             if(!*p) break;
             if(p[0] && p[1]) {
                 tokens[token_count][0] = p[0];
@@ -117,8 +118,7 @@ bool keytool_mifare_parse_dump(
 
     *key_count_out = key_count;
     if(key_count == 0) {
-        furi_string_set_str(
-            error, "No readable sector-trailer keys were found in this dump.");
+        furi_string_set_str(error, "No readable sector-trailer keys were found in this dump.");
         return false;
     }
     return true;

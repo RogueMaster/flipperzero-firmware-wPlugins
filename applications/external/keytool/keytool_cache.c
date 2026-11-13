@@ -9,10 +9,10 @@
 #include <string.h>
 #include <strings.h>
 
-#define KEYTOOL_MAX_CACHE_ENTRIES 64
+#define KEYTOOL_MAX_CACHE_ENTRIES  64
 #define KEYTOOL_CACHE_VISIBLE_ROWS 4
-#define KEYTOOL_CACHE_ROW_HEIGHT 11
-#define KEYTOOL_CACHE_HEADER "# Dump: "
+#define KEYTOOL_CACHE_ROW_HEIGHT   11
+#define KEYTOOL_CACHE_HEADER       "# Dump: "
 
 typedef struct {
     FuriString* filename; // basename only, inside KEYTOOL_CACHE_FOLDER
@@ -39,7 +39,8 @@ typedef struct {
 // ---------------------------------------------------------------------
 
 static bool keytool_cache_parse_key(const char* line, uint8_t* out) {
-    while(*line == ' ' || *line == '\t') line++;
+    while(*line == ' ' || *line == '\t')
+        line++;
     for(int i = 0; i < 6; i++) {
         int value = 0;
         for(int n = 0; n < 2; n++) {
@@ -106,8 +107,7 @@ void keytool_cache_save(
         storage_simply_mkdir(storage, KEYTOOL_CACHE_FOLDER);
 
         Stream* stream = file_stream_alloc(storage);
-        if(file_stream_open(
-               stream, furi_string_get_cstr(path), FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
+        if(file_stream_open(stream, furi_string_get_cstr(path), FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
             stream_write_cstring(stream, KEYTOOL_CACHE_HEADER);
             stream_write_cstring(stream, dump_name);
             stream_write_cstring(stream, "\n");
@@ -229,7 +229,8 @@ static bool keytool_cache_import_file(
             continue;
         }
         furi_string_reset(out);
-        for(int b = 0; b < 6; b++) furi_string_cat_printf(out, "%02X", keys[i][b]);
+        for(int b = 0; b < 6; b++)
+            furi_string_cat_printf(out, "%02X", keys[i][b]);
         furi_string_cat_str(out, "\n");
         stream_write_cstring(stream, furi_string_get_cstr(out));
         (*added_out)++;
@@ -261,8 +262,7 @@ static void keytool_cache_list_draw_callback(Canvas* canvas, void* model_ptr) {
             canvas_draw_str(canvas, 4, 12, "Import done");
             canvas_set_font(canvas, FontSecondary);
             FuriString* a = furi_string_alloc_printf("%zu key(s) added", model->notice_added);
-            FuriString* s =
-                furi_string_alloc_printf("%zu already present", model->notice_skipped);
+            FuriString* s = furi_string_alloc_printf("%zu already present", model->notice_skipped);
             canvas_draw_str(canvas, 4, 28, furi_string_get_cstr(a));
             canvas_draw_str(canvas, 4, 40, furi_string_get_cstr(s));
             furi_string_free(a);
@@ -321,7 +321,9 @@ static void keytool_cache_list_draw_callback(Canvas* canvas, void* model_ptr) {
             canvas_set_color(canvas, ColorWhite);
         }
         FuriString* row = furi_string_alloc_printf(
-            "%s (%zu)", furi_string_get_cstr(model->entries[i].dump_name), model->entries[i].key_count);
+            "%s (%zu)",
+            furi_string_get_cstr(model->entries[i].dump_name),
+            model->entries[i].key_count);
         canvas_draw_str(canvas, 3, y, furi_string_get_cstr(row));
         furi_string_free(row);
         if(selected) canvas_set_color(canvas, ColorBlack);
@@ -504,7 +506,8 @@ void keytool_cache_list_refresh(KeyToolApp* app) {
     storage_simply_mkdir(storage, KEYTOOL_CACHE_FOLDER);
 
     FuriString* names[KEYTOOL_MAX_CACHE_ENTRIES];
-    for(size_t i = 0; i < KEYTOOL_MAX_CACHE_ENTRIES; i++) names[i] = furi_string_alloc();
+    for(size_t i = 0; i < KEYTOOL_MAX_CACHE_ENTRIES; i++)
+        names[i] = furi_string_alloc();
     size_t count = 0;
 
     File* dir = storage_file_alloc(storage);
@@ -577,7 +580,8 @@ void keytool_cache_list_refresh(KeyToolApp* app) {
 
     view_commit_model(app->cache_view, true);
 
-    for(size_t i = 0; i < KEYTOOL_MAX_CACHE_ENTRIES; i++) furi_string_free(names[i]);
+    for(size_t i = 0; i < KEYTOOL_MAX_CACHE_ENTRIES; i++)
+        furi_string_free(names[i]);
 }
 
 // ---------------------------------------------------------------------

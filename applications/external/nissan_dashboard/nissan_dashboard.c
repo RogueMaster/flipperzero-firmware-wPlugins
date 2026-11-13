@@ -67,9 +67,9 @@
 #define MAX_PULSES   900U
 #define PROFILE_ROOT EXT_PATH("apps_data/tpms_editor")
 
-#define CONFIG_DIR      EXT_PATH("apps_data/nissan_dashboard")
-#define CONFIG_PATH     CONFIG_DIR "/config.txt"
-#define CONFIG_FILETYPE "Nissan Dashboard Config"
+#define CONFIG_DIR            EXT_PATH("apps_data/nissan_dashboard")
+#define CONFIG_PATH           CONFIG_DIR "/config.txt"
+#define CONFIG_FILETYPE       "Nissan Dashboard Config"
 #define CONFIG_VERSION        2U
 #define CONFIG_VERSION_LEGACY 1U
 
@@ -119,19 +119,19 @@ static const uint8_t k_default_ids[N_WHEELS][3] = {
     {0x00, 0x00, 0x04},
 };
 
-static uint8_t g_id[N_WHEELS][3];       /* ID in uso (RX e TX) */
+static uint8_t g_id[N_WHEELS][3]; /* ID in uso (RX e TX) */
 static uint8_t g_saved[N_WHEELS][CAR_WHEEL_BYTES]; /* ultimo stato salvato/caricato (per il "*") */
-static char g_car_name[CAR_NAME_LEN + 1];          /* auto attiva ("" = nessuna) */
+static char g_car_name[CAR_NAME_LEN + 1]; /* auto attiva ("" = nessuna) */
 
 /* ---- dati TX di ogni ruota ---------------------------------------------- */
 typedef struct {
     uint8_t flags6; /* raw[0] >> 2 */
-    uint8_t b6;     /* raw[6] */
-    uint8_t b7;     /* raw[7] */
-    uint16_t kpa;   /* pressione impostata, in kPa */
-    int8_t temp;    /* gradi C */
+    uint8_t b6; /* raw[6] */
+    uint8_t b7; /* raw[7] */
+    uint16_t kpa; /* pressione impostata, in kPa */
+    int8_t temp; /* gradi C */
     bool from_profile; /* flag/stato letti dal profilo .tpms salvato */
-    bool locked;       /* dati arrivati da un'auto salvata o da PAIR: i .tpms non li toccano */
+    bool locked; /* dati arrivati da un'auto salvata o da PAIR: i .tpms non li toccano */
 } TxSensor;
 
 /* byte di stato provvisori (copiati dalle anteriori) finche' non si trova il profilo */
@@ -154,22 +154,22 @@ static RxSensor g_rx[N_WHEELS];
 
 /* Preset CC1101 (2-FSK async) da capture .sub di sensori reali: coppie registro/valore,
  * terminatore 00 00, poi PATABLE da 8 byte. */
-static const uint8_t k_preset[] = {
-    0x02, 0x0D, 0x0B, 0x06, 0x08, 0x32, 0x07, 0x04, 0x14, 0x00, 0x13, 0x02, 0x12, 0x04,
-    0x11, 0x93, 0x10, 0x59, 0x15, 0x41, 0x18, 0x18, 0x19, 0x16, 0x1D, 0x91, 0x1C, 0x00,
-    0x1B, 0x07, 0x20, 0xFB, 0x22, 0x10, 0x21, 0x56, 0x00, 0x00,
-    0xC0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+static const uint8_t k_preset[] = {0x02, 0x0D, 0x0B, 0x06, 0x08, 0x32, 0x07, 0x04, 0x14, 0x00,
+                                   0x13, 0x02, 0x12, 0x04, 0x11, 0x93, 0x10, 0x59, 0x15, 0x41,
+                                   0x18, 0x18, 0x19, 0x16, 0x1D, 0x91, 0x1C, 0x00, 0x1B, 0x07,
+                                   0x20, 0xFB, 0x22, 0x10, 0x21, 0x56, 0x00, 0x00, 0xC0, 0x00,
+                                   0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
 /* ------------------------------------------------------------------------ */
 /* LED RGB: un lampo (100 ms) a ogni frame valido, con colore che cambia ogni */
 /* volta: rosso, verde, blu, giallo, ciano, magenta, bianco.                  */
 /* ------------------------------------------------------------------------ */
-static const NotificationSequence seq_flash_red = {
-    &message_red_255, &message_delay_100, &message_red_0, NULL};
-static const NotificationSequence seq_flash_green = {
-    &message_green_255, &message_delay_100, &message_green_0, NULL};
-static const NotificationSequence seq_flash_blue = {
-    &message_blue_255, &message_delay_100, &message_blue_0, NULL};
+static const NotificationSequence seq_flash_red =
+    {&message_red_255, &message_delay_100, &message_red_0, NULL};
+static const NotificationSequence seq_flash_green =
+    {&message_green_255, &message_delay_100, &message_green_0, NULL};
+static const NotificationSequence seq_flash_blue =
+    {&message_blue_255, &message_delay_100, &message_blue_0, NULL};
 static const NotificationSequence seq_flash_yellow = {
     &message_red_255,
     &message_green_255,
@@ -241,7 +241,7 @@ typedef struct {
     uint32_t reg; /* registro a scorrimento degli ultimi simboli */
     bool in_data;
     bool invert;
-    uint8_t half;  /* 0 = attendo 1o simbolo della coppia, 1 = attendo il 2o */
+    uint8_t half; /* 0 = attendo 1o simbolo della coppia, 1 = attendo il 2o */
     uint8_t first; /* 1o simbolo della coppia */
     uint8_t nbits;
     uint8_t frame[FRAME_LEN];
@@ -587,8 +587,8 @@ static void active_load(void) {
     FuriString* fn = furi_string_alloc();
     if(flipper_format_file_open_existing(ff, CONFIG_PATH)) {
         uint32_t ver = 0;
-        bool ok =
-            flipper_format_read_header(ff, ft, &ver) && furi_string_cmp_str(ft, CONFIG_FILETYPE) == 0;
+        bool ok = flipper_format_read_header(ff, ft, &ver) &&
+                  furi_string_cmp_str(ft, CONFIG_FILETYPE) == 0;
         if(ok && ver == CONFIG_VERSION) {
             if(flipper_format_read_string(ff, "Car", fn)) {
                 snprintf(name, sizeof(name), "%s", furi_string_get_cstr(fn));
@@ -596,7 +596,8 @@ static void active_load(void) {
             }
         } else if(ok && ver == CONFIG_VERSION_LEGACY) {
             for(uint8_t i = 0; ok && i < N_WHEELS; i++) {
-                ok = flipper_format_rewind(ff) && flipper_format_read_hex(ff, k_cfg_keys[i], tmp[i], 3);
+                ok = flipper_format_rewind(ff) &&
+                     flipper_format_read_hex(ff, k_cfg_keys[i], tmp[i], 3);
             }
             if(ok) mode = 2;
         }
@@ -988,7 +989,8 @@ static bool profiles_up_to_date(void) {
 /* Versione bloccante, per il salvataggio auto: aspetta l'eventuale scansione in
  * background e rilegge solo se serve. */
 static void profiles_rescan(void) {
-    while(g_scan_running) furi_delay_ms(10);
+    while(g_scan_running)
+        furi_delay_ms(10);
     if(profiles_up_to_date()) return;
     profiles_scan_body();
 }
@@ -1094,7 +1096,8 @@ static bool transmit_sensor(uint8_t idx) {
 
     bool ok = furi_hal_subghz_start_async_tx(tx_callback, NULL);
     if(ok) {
-        while(!furi_hal_subghz_is_async_tx_complete()) furi_delay_ms(5);
+        while(!furi_hal_subghz_is_async_tx_complete())
+            furi_delay_ms(5);
         furi_hal_subghz_stop_async_tx();
     }
     furi_hal_subghz_sleep();
@@ -1112,7 +1115,8 @@ static void tx_send_one(App* app, uint8_t idx) {
 static void tx_send_all(App* app) {
     bool ok = true;
     for(uint8_t i = 0; i < N_WHEELS; i++) {
-        snprintf(app->tx_msg, sizeof(app->tx_msg), "TX %u/%u", (unsigned)(i + 1U), (unsigned)N_WHEELS);
+        snprintf(
+            app->tx_msg, sizeof(app->tx_msg), "TX %u/%u", (unsigned)(i + 1U), (unsigned)N_WHEELS);
         app->sending = true;
         view_port_update(app->vp);
         ok = transmit_sensor(i) && ok;
@@ -1164,14 +1168,14 @@ static void draw_wheel(Canvas* c, int x, int y, bool sel) {
 /* Auto vista dall'alto con le 4 ruote (valori passati come testo). */
 static void draw_car(Canvas* canvas, uint8_t sel, const char* const vals[N_WHEELS]) {
     canvas_draw_rframe(canvas, 26, 4, 16, 44, 5); /* carrozzeria */
-    canvas_draw_line(canvas, 29, 14, 38, 14);      /* parabrezza */
-    canvas_draw_line(canvas, 29, 38, 38, 38);      /* lunotto */
-    canvas_draw_line(canvas, 29, 7, 30, 7);        /* fari */
+    canvas_draw_line(canvas, 29, 14, 38, 14); /* parabrezza */
+    canvas_draw_line(canvas, 29, 38, 38, 38); /* lunotto */
+    canvas_draw_line(canvas, 29, 7, 30, 7); /* fari */
     canvas_draw_line(canvas, 37, 7, 38, 7);
 
     canvas_set_font(canvas, FontSecondary);
-    draw_wheel(canvas, 19, 7, sel == 0U);  /* ANT SX */
-    draw_wheel(canvas, 43, 7, sel == 1U);  /* ANT DX */
+    draw_wheel(canvas, 19, 7, sel == 0U); /* ANT SX */
+    draw_wheel(canvas, 43, 7, sel == 1U); /* ANT DX */
     draw_wheel(canvas, 19, 31, sel == 2U); /* POST SX */
     draw_wheel(canvas, 43, 31, sel == 3U); /* POST DX */
 
@@ -1194,8 +1198,8 @@ static void format_age(char* out, size_t n, uint32_t age_ms) {
 
 /* ---- Main menu --------------------------------------------------------- */
 
-static const char* const k_menu_items[MENU_ITEMS] = {
-    "Monitor", "Transmit", "Pair sensors", "Settings", "About"};
+static const char* const k_menu_items[MENU_ITEMS] =
+    {"Monitor", "Transmit", "Pair sensors", "Settings", "About"};
 
 static void draw_menu(Canvas* canvas, const App* app) {
     const char* title = g_car_name[0] ? g_car_name : "NISSAN TPMS";
@@ -1338,12 +1342,14 @@ static void draw_tx(Canvas* canvas, const App* app) {
         canvas_set_font(canvas, FontSecondary);
 
         /* bar e psi su due righe: insieme non entrano nei 52 px */
-        snprintf(buf, sizeof(buf), "%u.%02u bar", (unsigned)(s->kpa / 100U), (unsigned)(s->kpa % 100U));
+        snprintf(
+            buf, sizeof(buf), "%u.%02u bar", (unsigned)(s->kpa / 100U), (unsigned)(s->kpa % 100U));
         canvas_draw_str(canvas, 76, 44, buf);
 
         snprintf(buf, sizeof(buf), "%u psi", (psi10 + 5U) / 10U);
         canvas_draw_str(canvas, 76, 53, buf);
-        if(!s->from_profile) canvas_draw_str_aligned(canvas, 127, 49, AlignRight, AlignCenter, "dflt");
+        if(!s->from_profile)
+            canvas_draw_str_aligned(canvas, 127, 49, AlignRight, AlignCenter, "dflt");
     } else {
         canvas_set_font(canvas, FontPrimary);
         canvas_draw_str(canvas, 76, 12, "RESET");
@@ -1490,7 +1496,8 @@ static void draw_pair(Canvas* canvas, const App* app) {
         canvas_draw_str_aligned(canvas, 64, 39, AlignCenter, AlignCenter, "Wake up sensors");
     }
 
-    for(uint8_t r = app->pair_scroll; r < app->pair_n && r < app->pair_scroll + PAIR_VISIBLE; r++) {
+    for(uint8_t r = app->pair_scroll; r < app->pair_n && r < app->pair_scroll + PAIR_VISIBLE;
+        r++) {
         const PairSensor* p = &app->pair[r];
         int y0 = 14 + (int)(r - app->pair_scroll) * 10;
         if(app->pair_sel == r) {
@@ -1513,7 +1520,8 @@ static void draw_pair(Canvas* canvas, const App* app) {
 
     if(app->pair_n > PAIR_VISIBLE) {
         int thumb_h = (int)(40U * PAIR_VISIBLE / app->pair_n);
-        int thumb_y = 14 + (int)app->pair_scroll * (40 - thumb_h) / (int)(app->pair_n - PAIR_VISIBLE);
+        int thumb_y =
+            14 + (int)app->pair_scroll * (40 - thumb_h) / (int)(app->pair_n - PAIR_VISIBLE);
         canvas_draw_box(canvas, 125, thumb_y, 2, (size_t)thumb_h);
     }
 
@@ -1549,7 +1557,8 @@ static void draw_cars(Canvas* canvas, const App* app) {
 
     if(app->cars_n > SET_VISIBLE) {
         int thumb_h = (int)(50U * SET_VISIBLE / app->cars_n);
-        int thumb_y = 14 + (int)app->cars_scroll * (50 - thumb_h) / (int)(app->cars_n - SET_VISIBLE);
+        int thumb_y =
+            14 + (int)app->cars_scroll * (50 - thumb_h) / (int)(app->cars_n - SET_VISIBLE);
         canvas_draw_box(canvas, 125, thumb_y, 2, (size_t)thumb_h);
     }
 }
@@ -1821,7 +1830,8 @@ static bool on_input_tx(App* app, const InputEvent* ev) {
         } else {
             /* stessa pressione della ruota scelta su tutte le ruote, poi invio */
             uint16_t kpa = g_tx[app->tx_sel].kpa;
-            for(uint8_t i = 0; i < N_WHEELS; i++) g_tx[i].kpa = kpa;
+            for(uint8_t i = 0; i < N_WHEELS; i++)
+                g_tx[i].kpa = kpa;
             tx_send_all(app);
         }
     } else {
@@ -2024,7 +2034,8 @@ static bool on_input_cars(App* app, const InputEvent* ev) {
             car_delete(name);
             if(strcmp(name, g_car_name) == 0) g_car_name[0] = 0;
             cars_scan(app);
-            if(app->cars_sel >= app->cars_n) app->cars_sel = app->cars_n ? (uint8_t)(app->cars_n - 1U) : 0U;
+            if(app->cars_sel >= app->cars_n)
+                app->cars_sel = app->cars_n ? (uint8_t)(app->cars_n - 1U) : 0U;
             app->cars_scroll = 0;
             list_fix_scroll(app->cars_sel, &app->cars_scroll, SET_VISIBLE);
             app->cars_del = false;

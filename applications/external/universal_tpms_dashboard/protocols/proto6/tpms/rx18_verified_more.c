@@ -19,11 +19,7 @@
 
 #define RX18_NOT_FOUND UINT32_MAX
 
-static bool rx18_get_bit(
-    const uint8_t* bits,
-    uint32_t numbytes,
-    uint32_t pos,
-    bool invert) {
+static bool rx18_get_bit(const uint8_t* bits, uint32_t numbytes, uint32_t pos, bool invert) {
     bool value = bitmap_get((uint8_t*)bits, numbytes, pos);
     return invert ? !value : value;
 }
@@ -160,11 +156,8 @@ static void rx18_insert_bits(
     }
 }
 
-static void rx18_add_manchester_bit(
-    RawSamplesBuffer* samples,
-    bool value,
-    uint32_t te,
-    bool invert) {
+static void
+    rx18_add_manchester_bit(RawSamplesBuffer* samples, bool value, uint32_t te, bool invert) {
     bool first = value ? false : true;
     bool second = !first;
     if(invert) {
@@ -209,9 +202,8 @@ static uint16_t rx18_crc16_ccitt_false(const uint8_t* message, uint32_t count) {
     for(uint32_t byte = 0U; byte < count; byte++) {
         remainder ^= (uint16_t)message[byte] << 8U;
         for(uint32_t bit = 0U; bit < 8U; bit++) {
-            remainder = (remainder & 0x8000U) ?
-                            (uint16_t)((remainder << 1U) ^ 0x1021U) :
-                            (uint16_t)(remainder << 1U);
+            remainder = (remainder & 0x8000U) ? (uint16_t)((remainder << 1U) ^ 0x1021U) :
+                                                (uint16_t)(remainder << 1U);
         }
     }
     return remainder;
@@ -219,7 +211,8 @@ static uint16_t rx18_crc16_ccitt_false(const uint8_t* message, uint32_t count) {
 
 static uint8_t rx18_xor8(const uint8_t* data, uint32_t count) {
     uint8_t value = 0U;
-    for(uint32_t i = 0U; i < count; i++) value ^= data[i];
+    for(uint32_t i = 0U; i < count; i++)
+        value ^= data[i];
     return value;
 }
 
@@ -238,7 +231,8 @@ static uint32_t rx18_id32_from_field(const ProtoViewField* field) {
     uint32_t count = (field->len + 1U) / 2U;
     if(count > 4U) count = 4U;
     uint32_t value = 0U;
-    for(uint32_t i = 0U; i < count; i++) value = (value << 8U) | field->bytes[i];
+    for(uint32_t i = 0U; i < count; i++)
+        value = (value << 8U) | field->bytes[i];
     return value;
 }
 
@@ -268,16 +262,15 @@ static bool rx18_pmv107j_decode(
                 bitmap_set(raw, sizeof(raw), 8U + i, bitmap_get(packet, sizeof(packet), 2U + i));
             }
 
-            if(crc8(raw, 8U, 0x00U, 0x13U) == raw[8] &&
-               raw[5] == (uint8_t)(raw[6] ^ 0xFFU)) {
+            if(crc8(raw, 8U, 0x00U, 0x13U) == raw[8] && raw[5] == (uint8_t)(raw[6] ^ 0xFFU)) {
                 const uint32_t id = ((uint32_t)raw[0] << 26U) | ((uint32_t)raw[1] << 18U) |
                                     ((uint32_t)raw[2] << 10U) | ((uint32_t)raw[3] << 2U) |
                                     (raw[4] >> 6U);
                 const uint32_t status = raw[4] & 0x3FU;
                 const float pressure_kpa = ((float)raw[5] - 40.0f) * 2.48f;
                 const int32_t temperature_c = (int32_t)raw[7] - 40;
-                if(pressure_kpa >= -100.0f && pressure_kpa <= 800.0f &&
-                   temperature_c >= -40 && temperature_c <= 215) {
+                if(pressure_kpa >= -100.0f && pressure_kpa <= 800.0f && temperature_c >= -40 &&
+                   temperature_c <= 215) {
                     info->start_off = pos;
                     info->pulses_count = 6U + consumed;
                     rx18_add_id32(info->fieldset, id);
@@ -306,8 +299,8 @@ static void rx18_pmv107j_get_fields(ProtoViewFieldSet* fields) {
 static void rx18_pmv107j_build(RawSamplesBuffer* samples, ProtoViewFieldSet* fields) {
     const uint32_t te = 100U;
     uint8_t raw[9] = {0};
-    const bool have_raw =
-        tpms_build_load_raw_payload(fields, raw, sizeof(raw), NULL) == sizeof(raw);
+    const bool have_raw = tpms_build_load_raw_payload(fields, raw, sizeof(raw), NULL) ==
+                          sizeof(raw);
     ProtoViewField* id = proto6_field_find(fields, "Tire ID");
     ProtoViewField* pressure = proto6_field_find(fields, "Pressure kpa");
     ProtoViewField* temperature = proto6_field_find(fields, "Temperature C");
@@ -368,8 +361,8 @@ static bool rx18_abarth_decode_common(
     const uint32_t wanted_bits = q85 ? 96U : 72U;
     const uint32_t wanted_bytes = q85 ? 12U : 9U;
     uint32_t pos = 0U;
-    while((pos = rx18_seek_pattern(
-               bits, numbytes, numbits, pos, preamble_inverted, 24U, true)) != RX18_NOT_FOUND) {
+    while((pos = rx18_seek_pattern(bits, numbytes, numbits, pos, preamble_inverted, 24U, true)) !=
+          RX18_NOT_FOUND) {
         uint8_t raw[12] = {0};
         uint32_t consumed = 0U;
         const uint32_t decoded = rx18_manchester_decode(
@@ -397,7 +390,8 @@ static bool rx18_abarth_decode_common(
                 const int32_t temperature_c = (int32_t)raw[6] - (q85 ? 55 : 50);
                 const int32_t min_temp = q85 ? -20 : -50;
                 const int32_t max_temp = q85 ? 80 : 125;
-                if(temperature_c >= min_temp && temperature_c <= max_temp && pressure_kpa <= 900.0f) {
+                if(temperature_c >= min_temp && temperature_c <= max_temp &&
+                   pressure_kpa <= 900.0f) {
                     info->start_off = pos;
                     info->pulses_count = 24U + consumed;
                     rx18_add_id32(info->fieldset, id);
@@ -407,10 +401,8 @@ static bool rx18_abarth_decode_common(
                      * Low 8 bits = byte4, next 8 bits = status. */
                     fieldset_add_hex(
                         info->fieldset, "Flags", ((uint32_t)raw[7] << 8U) | raw[4], 16U);
-                    fieldset_add_bytes(
-                        info->fieldset, "Raw payload", raw, wanted_bytes * 2U);
-                    fieldset_add_uint(
-                        info->fieldset, "Raw payload bits", wanted_bits, 8U);
+                    fieldset_add_bytes(info->fieldset, "Raw payload", raw, wanted_bytes * 2U);
+                    fieldset_add_uint(info->fieldset, "Raw payload bits", wanted_bits, 8U);
                     return true;
                 }
             }
@@ -420,19 +412,13 @@ static bool rx18_abarth_decode_common(
     return false;
 }
 
-static bool rx18_q85_decode(
-    uint8_t* bits,
-    uint32_t numbytes,
-    uint32_t numbits,
-    ProtoViewMsgInfo* info) {
+static bool
+    rx18_q85_decode(uint8_t* bits, uint32_t numbytes, uint32_t numbits, ProtoViewMsgInfo* info) {
     return rx18_abarth_decode_common(bits, numbytes, numbits, info, true);
 }
 
-static bool rx18_tg1c_decode(
-    uint8_t* bits,
-    uint32_t numbytes,
-    uint32_t numbits,
-    ProtoViewMsgInfo* info) {
+static bool
+    rx18_tg1c_decode(uint8_t* bits, uint32_t numbytes, uint32_t numbits, ProtoViewMsgInfo* info) {
     return rx18_abarth_decode_common(bits, numbytes, numbits, info, false);
 }
 
@@ -452,10 +438,8 @@ static void rx18_q85_get_fields(ProtoViewFieldSet* fields) {
     rx18_abarth_get_fields_common(fields);
 }
 
-static void rx18_abarth_build_common(
-    RawSamplesBuffer* samples,
-    ProtoViewFieldSet* fields,
-    bool q85) {
+static void
+    rx18_abarth_build_common(RawSamplesBuffer* samples, ProtoViewFieldSet* fields, bool q85) {
     const uint32_t te = 52U;
     const uint32_t bytes = q85 ? 12U : 9U;
     uint8_t raw[12] = {0};
@@ -566,8 +550,8 @@ static bool rx18_mercedes_try_manchester(
                             ((uint32_t)raw[3] << 8U) | raw[4];
         const float pressure_psi = (float)raw[5] / 2.75f;
         const int32_t temperature_c = (int32_t)raw[6] - 51;
-        const uint32_t packed_flags = ((uint32_t)raw[0] << 16U) |
-                                      ((uint32_t)raw[8] << 8U) | raw[7];
+        const uint32_t packed_flags = ((uint32_t)raw[0] << 16U) | ((uint32_t)raw[8] << 8U) |
+                                      raw[7];
         if(pressure_psi > 150.0f || temperature_c < -80 || temperature_c > 180) continue;
 
         info->start_off = start;
@@ -606,8 +590,8 @@ static void rx18_mercedes_get_fields(ProtoViewFieldSet* fields) {
 static void rx18_mercedes_build(RawSamplesBuffer* samples, ProtoViewFieldSet* fields) {
     const uint32_t te = 25U;
     uint8_t raw[10] = {0};
-    const bool have_raw =
-        tpms_build_load_raw_payload(fields, raw, sizeof(raw), NULL) == sizeof(raw);
+    const bool have_raw = tpms_build_load_raw_payload(fields, raw, sizeof(raw), NULL) ==
+                          sizeof(raw);
     ProtoViewField* id = proto6_field_find(fields, "Tire ID");
     ProtoViewField* pressure = proto6_field_find(fields, "Pressure psi");
     ProtoViewField* temperature = proto6_field_find(fields, "Temperature C");

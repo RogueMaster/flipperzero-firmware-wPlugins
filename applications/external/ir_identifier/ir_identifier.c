@@ -66,16 +66,16 @@
 #define USER_DIR       EXT_PATH("infrared")
 #define PATH_LEN       128
 
-#define LOG_DIR        EXT_PATH("apps_data/ir_identifier")
-#define LOG_NAME_LEN   32
-#define LOG_MAX_FILES  40 /* newest files kept in the list */
-#define LOG_LIST_ROWS  4
-#define LOG_VIEW_ROWS  6
-#define LOG_COLS       22 /* characters per line in the viewer (hard wrap) */
-#define LOG_VIEW_MAX   6144 /* bytes of a log file shown in the viewer */
-#define LOG_MAX_LINES  400
+#define LOG_DIR       EXT_PATH("apps_data/ir_identifier")
+#define LOG_NAME_LEN  32
+#define LOG_MAX_FILES 40 /* newest files kept in the list */
+#define LOG_LIST_ROWS 4
+#define LOG_VIEW_ROWS 6
+#define LOG_COLS      22 /* characters per line in the viewer (hard wrap) */
+#define LOG_VIEW_MAX  6144 /* bytes of a log file shown in the viewer */
+#define LOG_MAX_LINES 400
 
-#define MENU_COUNT     4 /* Scan, Log, Settings, About */
+#define MENU_COUNT 4 /* Scan, Log, Settings, About */
 
 /* ------------------------------------------------------------------ */
 /* Types                                                               */
@@ -254,100 +254,186 @@ typedef struct {
  * results: famous brands are shown before niche ones, and anything NOT in this table
  * (unknown folder names, "Not specified") is shown last. Add or re-rank brands here. */
 static const BrandKey BRAND_KEYS[] = {
-    {"samsung", "Samsung", 3}, {"lg", "LG", 3},
-    {"sony", "Sony", 3}, {"philips", "Philips", 3},
-    {"panasonic", "Panasonic", 3}, {"toshiba", "Toshiba", 3},
-    {"sharp", "Sharp", 3}, {"hisense", "Hisense", 3},
-    {"tcl", "TCL", 3}, {"xiaomi", "Xiaomi", 3},
-    {"apple", "Apple", 3}, {"amazon", "Amazon", 3},
-    {"firetv", "Amazon", 3}, {"google", "Google", 3},
-    {"chromecast", "Google", 3}, {"daikin", "Daikin", 3},
-    {"mitsubishi", "Mitsubishi", 3}, {"yamaha", "Yamaha", 3},
-    {"pioneer", "Pioneer", 3}, {"bose", "Bose", 3},
-    {"denon", "Denon", 3}, {"epson", "Epson", 3},
-    {"hitachi", "Hitachi", 3}, {"haier", "Haier", 3},
-    {"midea", "Midea", 3}, {"sky", "Sky", 3},
-    {"gree", "Gree", 2}, {"carrier", "Carrier", 2},
-    {"fujitsu", "Fujitsu", 2}, {"whirlpool", "Whirlpool", 2},
-    {"electrolux", "Electrolux", 2}, {"beko", "Beko", 2},
-    {"bosch", "Bosch", 2}, {"siemens", "Siemens", 2},
-    {"onkyo", "Onkyo", 2}, {"marantz", "Marantz", 2},
-    {"jvc", "JVC", 2}, {"benq", "BenQ", 2},
-    {"optoma", "Optoma", 2}, {"dyson", "Dyson", 2},
-    {"vizio", "Vizio", 2}, {"jbl", "JBL", 2},
-    {"sonos", "Sonos", 2}, {"grundig", "Grundig", 2},
-    {"thomson", "Thomson", 2}, {"rca", "RCA", 2},
-    {"hyundai", "Hyundai", 2}, {"vestel", "Vestel", 2},
-    {"sanyo", "Sanyo", 2}, {"nvidia", "NVIDIA", 2},
-    {"tivo", "TiVo", 2}, {"insignia", "Insignia", 2},
-    {"roku", "Roku", 2}, {"acer", "Acer", 2},
-    {"asus", "ASUS", 2}, {"hp", "HP", 2},
-    {"viewsonic", "ViewSonic", 2}, {"huawei", "Huawei", 2},
-    {"oppo", "Oppo", 2}, {"oneplus", "OnePlus", 2},
-    {"nokia", "Nokia", 2}, {"harman", "Harman", 2},
-    {"kenwood", "Kenwood", 2}, {"technics", "Technics", 2},
-    {"klipsch", "Klipsch", 2}, {"sennheiser", "Sennheiser", 2},
-    {"logitech", "Logitech", 2}, {"ikea", "IKEA", 2},
-    {"osram", "Osram", 2}, {"ledvance", "Ledvance", 2},
-    {"roborock", "Roborock", 2}, {"irobot", "iRobot", 2},
-    {"roomba", "iRobot", 2}, {"ecovacs", "Ecovacs", 2},
-    {"eufy", "Eufy", 2}, {"xbox", "Xbox", 2},
-    {"lennox", "Lennox", 2}, {"trane", "Trane", 2},
-    {"rheem", "Rheem", 2}, {"olimpia", "Olimpia Splendid", 2},
-    {"argo", "Argo", 2}, {"ariston", "Ariston", 2},
-    {"baxi", "Baxi", 2}, {"delonghi", "De'Longhi", 2},
-    {"humax", "Humax", 2}, {"technisat", "TechniSat", 2},
-    {"kathrein", "Kathrein", 2}, {"dreambox", "Dreambox", 2},
-    {"tivusat", "Tivusat", 2}, {"arris", "ARRIS", 2},
-    {"motorola", "Motorola", 2}, {"cisco", "Cisco", 2},
-    {"comcast", "Comcast", 2}, {"xfinity", "Comcast", 2},
-    {"directv", "DirecTV", 2}, {"echostar", "EchoStar", 2},
-    {"vodafone", "Vodafone", 2}, {"blaupunkt", "Blaupunkt", 2},
-    {"medion", "Medion", 2}, {"loewe", "Loewe", 2},
-    {"metz", "Metz", 2}, {"akai", "Akai", 1},
-    {"telefunken", "Telefunken", 1}, {"westinghouse", "Westinghouse", 1},
-    {"element", "Element", 1}, {"magnavox", "Magnavox", 1},
-    {"sceptre", "Sceptre", 1}, {"funai", "Funai", 1},
-    {"emerson", "Emerson", 1}, {"polaroid", "Polaroid", 1},
-    {"finlux", "Finlux", 1}, {"sencor", "Sencor", 1},
-    {"nordmende", "Nordmende", 1}, {"schneider", "Schneider", 1},
-    {"daewoo", "Daewoo", 1}, {"orion", "Orion", 1},
-    {"skyworth", "Skyworth", 1}, {"changhong", "Changhong", 1},
-    {"konka", "Konka", 1}, {"coocaa", "Coocaa", 1},
-    {"kogan", "Kogan", 1}, {"realme", "Realme", 1},
-    {"hannspree", "Hannspree", 1}, {"proscan", "Proscan", 1},
-    {"coby", "Coby", 1}, {"seiki", "Seiki", 1},
-    {"bush", "Bush", 1}, {"luxor", "Luxor", 1},
-    {"cello", "Cello", 1}, {"aoc", "AOC", 1},
-    {"dell", "Dell", 1}, {"casio", "Casio", 1},
-    {"vivitek", "Vivitek", 1}, {"infocus", "InFocus", 1},
-    {"xgimi", "XGIMI", 1}, {"sim2", "SIM2", 1},
-    {"eiki", "Eiki", 1}, {"ricoh", "Ricoh", 1},
-    {"sinclair", "Sinclair", 1}, {"airwell", "Airwell", 1},
-    {"chigo", "Chigo", 1}, {"kelon", "Kelon", 1},
-    {"tadiran", "Tadiran", 1}, {"tosot", "Tosot", 1},
-    {"mcquay", "Mcquay", 1}, {"york", "York", 1},
-    {"rowenta", "Rowenta", 1}, {"honeywell", "Honeywell", 1},
-    {"vornado", "Vornado", 1}, {"lasko", "Lasko", 1},
-    {"govee", "Govee", 1}, {"dreame", "Dreame", 1},
-    {"shark", "Shark", 1}, {"neato", "Neato", 1},
-    {"nad", "NAD", 1}, {"arcam", "Arcam", 1},
-    {"rotel", "Rotel", 1}, {"sherwood", "Sherwood", 1},
-    {"sansui", "Sansui", 1}, {"teac", "TEAC", 1},
-    {"polk", "Polk", 1}, {"wharfedale", "Wharfedale", 1},
-    {"edifier", "Edifier", 1}, {"anker", "Anker", 1},
-    {"soundcore", "Soundcore", 1}, {"mecool", "Mecool", 1},
-    {"tanix", "Tanix", 1}, {"minix", "Minix", 1},
-    {"zidoo", "Zidoo", 1}, {"formuler", "Formuler", 1},
-    {"swisscom", "Swisscom", 1}, {"orange", "Orange", 1},
+    {"samsung", "Samsung", 3},
+    {"lg", "LG", 3},
+    {"sony", "Sony", 3},
+    {"philips", "Philips", 3},
+    {"panasonic", "Panasonic", 3},
+    {"toshiba", "Toshiba", 3},
+    {"sharp", "Sharp", 3},
+    {"hisense", "Hisense", 3},
+    {"tcl", "TCL", 3},
+    {"xiaomi", "Xiaomi", 3},
+    {"apple", "Apple", 3},
+    {"amazon", "Amazon", 3},
+    {"firetv", "Amazon", 3},
+    {"google", "Google", 3},
+    {"chromecast", "Google", 3},
+    {"daikin", "Daikin", 3},
+    {"mitsubishi", "Mitsubishi", 3},
+    {"yamaha", "Yamaha", 3},
+    {"pioneer", "Pioneer", 3},
+    {"bose", "Bose", 3},
+    {"denon", "Denon", 3},
+    {"epson", "Epson", 3},
+    {"hitachi", "Hitachi", 3},
+    {"haier", "Haier", 3},
+    {"midea", "Midea", 3},
+    {"sky", "Sky", 3},
+    {"gree", "Gree", 2},
+    {"carrier", "Carrier", 2},
+    {"fujitsu", "Fujitsu", 2},
+    {"whirlpool", "Whirlpool", 2},
+    {"electrolux", "Electrolux", 2},
+    {"beko", "Beko", 2},
+    {"bosch", "Bosch", 2},
+    {"siemens", "Siemens", 2},
+    {"onkyo", "Onkyo", 2},
+    {"marantz", "Marantz", 2},
+    {"jvc", "JVC", 2},
+    {"benq", "BenQ", 2},
+    {"optoma", "Optoma", 2},
+    {"dyson", "Dyson", 2},
+    {"vizio", "Vizio", 2},
+    {"jbl", "JBL", 2},
+    {"sonos", "Sonos", 2},
+    {"grundig", "Grundig", 2},
+    {"thomson", "Thomson", 2},
+    {"rca", "RCA", 2},
+    {"hyundai", "Hyundai", 2},
+    {"vestel", "Vestel", 2},
+    {"sanyo", "Sanyo", 2},
+    {"nvidia", "NVIDIA", 2},
+    {"tivo", "TiVo", 2},
+    {"insignia", "Insignia", 2},
+    {"roku", "Roku", 2},
+    {"acer", "Acer", 2},
+    {"asus", "ASUS", 2},
+    {"hp", "HP", 2},
+    {"viewsonic", "ViewSonic", 2},
+    {"huawei", "Huawei", 2},
+    {"oppo", "Oppo", 2},
+    {"oneplus", "OnePlus", 2},
+    {"nokia", "Nokia", 2},
+    {"harman", "Harman", 2},
+    {"kenwood", "Kenwood", 2},
+    {"technics", "Technics", 2},
+    {"klipsch", "Klipsch", 2},
+    {"sennheiser", "Sennheiser", 2},
+    {"logitech", "Logitech", 2},
+    {"ikea", "IKEA", 2},
+    {"osram", "Osram", 2},
+    {"ledvance", "Ledvance", 2},
+    {"roborock", "Roborock", 2},
+    {"irobot", "iRobot", 2},
+    {"roomba", "iRobot", 2},
+    {"ecovacs", "Ecovacs", 2},
+    {"eufy", "Eufy", 2},
+    {"xbox", "Xbox", 2},
+    {"lennox", "Lennox", 2},
+    {"trane", "Trane", 2},
+    {"rheem", "Rheem", 2},
+    {"olimpia", "Olimpia Splendid", 2},
+    {"argo", "Argo", 2},
+    {"ariston", "Ariston", 2},
+    {"baxi", "Baxi", 2},
+    {"delonghi", "De'Longhi", 2},
+    {"humax", "Humax", 2},
+    {"technisat", "TechniSat", 2},
+    {"kathrein", "Kathrein", 2},
+    {"dreambox", "Dreambox", 2},
+    {"tivusat", "Tivusat", 2},
+    {"arris", "ARRIS", 2},
+    {"motorola", "Motorola", 2},
+    {"cisco", "Cisco", 2},
+    {"comcast", "Comcast", 2},
+    {"xfinity", "Comcast", 2},
+    {"directv", "DirecTV", 2},
+    {"echostar", "EchoStar", 2},
+    {"vodafone", "Vodafone", 2},
+    {"blaupunkt", "Blaupunkt", 2},
+    {"medion", "Medion", 2},
+    {"loewe", "Loewe", 2},
+    {"metz", "Metz", 2},
+    {"akai", "Akai", 1},
+    {"telefunken", "Telefunken", 1},
+    {"westinghouse", "Westinghouse", 1},
+    {"element", "Element", 1},
+    {"magnavox", "Magnavox", 1},
+    {"sceptre", "Sceptre", 1},
+    {"funai", "Funai", 1},
+    {"emerson", "Emerson", 1},
+    {"polaroid", "Polaroid", 1},
+    {"finlux", "Finlux", 1},
+    {"sencor", "Sencor", 1},
+    {"nordmende", "Nordmende", 1},
+    {"schneider", "Schneider", 1},
+    {"daewoo", "Daewoo", 1},
+    {"orion", "Orion", 1},
+    {"skyworth", "Skyworth", 1},
+    {"changhong", "Changhong", 1},
+    {"konka", "Konka", 1},
+    {"coocaa", "Coocaa", 1},
+    {"kogan", "Kogan", 1},
+    {"realme", "Realme", 1},
+    {"hannspree", "Hannspree", 1},
+    {"proscan", "Proscan", 1},
+    {"coby", "Coby", 1},
+    {"seiki", "Seiki", 1},
+    {"bush", "Bush", 1},
+    {"luxor", "Luxor", 1},
+    {"cello", "Cello", 1},
+    {"aoc", "AOC", 1},
+    {"dell", "Dell", 1},
+    {"casio", "Casio", 1},
+    {"vivitek", "Vivitek", 1},
+    {"infocus", "InFocus", 1},
+    {"xgimi", "XGIMI", 1},
+    {"sim2", "SIM2", 1},
+    {"eiki", "Eiki", 1},
+    {"ricoh", "Ricoh", 1},
+    {"sinclair", "Sinclair", 1},
+    {"airwell", "Airwell", 1},
+    {"chigo", "Chigo", 1},
+    {"kelon", "Kelon", 1},
+    {"tadiran", "Tadiran", 1},
+    {"tosot", "Tosot", 1},
+    {"mcquay", "Mcquay", 1},
+    {"york", "York", 1},
+    {"rowenta", "Rowenta", 1},
+    {"honeywell", "Honeywell", 1},
+    {"vornado", "Vornado", 1},
+    {"lasko", "Lasko", 1},
+    {"govee", "Govee", 1},
+    {"dreame", "Dreame", 1},
+    {"shark", "Shark", 1},
+    {"neato", "Neato", 1},
+    {"nad", "NAD", 1},
+    {"arcam", "Arcam", 1},
+    {"rotel", "Rotel", 1},
+    {"sherwood", "Sherwood", 1},
+    {"sansui", "Sansui", 1},
+    {"teac", "TEAC", 1},
+    {"polk", "Polk", 1},
+    {"wharfedale", "Wharfedale", 1},
+    {"edifier", "Edifier", 1},
+    {"anker", "Anker", 1},
+    {"soundcore", "Soundcore", 1},
+    {"mecool", "Mecool", 1},
+    {"tanix", "Tanix", 1},
+    {"minix", "Minix", 1},
+    {"zidoo", "Zidoo", 1},
+    {"formuler", "Formuler", 1},
+    {"swisscom", "Swisscom", 1},
+    {"orange", "Orange", 1},
 };
 
 /* Folder names that say nothing about the brand (never used as a brand). */
 static const char* const GENERIC_DIRS[] = {
-    "misc", "miscellaneous", "other", "others", "various", "unknown", "universal", "remote",
-    "remotes", "custom", "test", "tests", "backup", "new", "old", "my", "flipper", "irdb",
-    "ir", "saved", "captured", "signals", "devices", "user", "download", "downloads", "temp",
-    "tmp", "stuff", "misc_ir",
+    "misc",     "miscellaneous", "other", "others", "various",  "unknown", "universal", "remote",
+    "remotes",  "custom",        "test",  "tests",  "backup",   "new",     "old",       "my",
+    "flipper",  "irdb",          "ir",    "saved",  "captured", "signals", "devices",   "user",
+    "download", "downloads",     "temp",  "tmp",    "stuff",    "misc_ir",
 };
 
 /* Well-known protocol + address pairs. address = -1 -> any. First match wins. */
@@ -484,13 +570,8 @@ static int cand_key(const Candidate* c) {
 }
 
 /* Derives type and brand from a path/file name (tokens split on non-alphanumerics). */
-static void classify_path(
-    const char* path,
-    bool want_brand,
-    char* type,
-    size_t tn,
-    char* brand,
-    size_t bn) {
+static void
+    classify_path(const char* path, bool want_brand, char* type, size_t tn, char* brand, size_t bn) {
     type[0] = 0;
     brand[0] = 0;
     char tok[24];
@@ -522,11 +603,13 @@ static void classify_path(
         const char* base = strrchr(path, '/');
         if(base && base > path) {
             const char* start = base;
-            while(start > path && *(start - 1) != '/') start--;
+            while(start > path && *(start - 1) != '/')
+                start--;
             size_t len = (size_t)(base - start);
             char low[32];
             if(len > 0 && len < sizeof(low)) {
-                for(size_t i = 0; i < len; i++) low[i] = (char)tolower((unsigned char)start[i]);
+                for(size_t i = 0; i < len; i++)
+                    low[i] = (char)tolower((unsigned char)start[i]);
                 low[len] = 0;
                 if(strcmp(low, "infrared") != 0 && !is_generic_dir(low) &&
                    !lookup(TYPE_KEYS, COUNT_OF(TYPE_KEYS), low)) {
@@ -800,7 +883,8 @@ static void build_order(App* app) {
     app->nord = 0;
     app->sel = 0;
     if(app->has_known) app->order[app->nord++] = &app->known;
-    for(size_t i = 0; i < app->ncand; i++) app->order[app->nord++] = &app->cand[i];
+    for(size_t i = 0; i < app->ncand; i++)
+        app->order[app->nord++] = &app->cand[i];
 
     /* stable insertion sort, descending */
     for(size_t i = 1; i < app->nord; i++) {
@@ -1071,8 +1155,7 @@ static void log_open_view(App* app) {
     app->log_len = 0;
     app->log_scroll = 0;
 
-    FuriString* path =
-        furi_string_alloc_printf("%s/%s", LOG_DIR, app->log_names[app->log_sel]);
+    FuriString* path = furi_string_alloc_printf("%s/%s", LOG_DIR, app->log_names[app->log_sel]);
     File* f = storage_file_alloc(app->storage);
     if(storage_file_open(f, furi_string_get_cstr(path), FSAM_READ, FSOM_OPEN_EXISTING)) {
         app->log_len = storage_file_read(f, app->log_text, LOG_VIEW_MAX);
@@ -1119,7 +1202,9 @@ static bool log_delete_selected(App* app) {
 
 /* Deletes every log file in LOG_DIR. Returns the number of files removed. */
 static size_t log_delete_all(App* app) {
-    enum { BATCH = 12 };
+    enum {
+        BATCH = 12
+    };
     size_t removed = 0;
     char(*names)[LOG_NAME_LEN] = malloc(BATCH * LOG_NAME_LEN);
     char* name = malloc(NAME_LEN);
@@ -1182,8 +1267,7 @@ static void draw_cb(Canvas* canvas, void* ctx) {
         canvas_draw_str_aligned(canvas, 64, 1, AlignCenter, AlignTop, "Settings");
         for(uint8_t i = 0; i < 3; i++) {
             if(i == 0) {
-                snprintf(
-                    buf, sizeof(buf), "< User DB: %s >", app->search_user_db ? "ON" : "OFF");
+                snprintf(buf, sizeof(buf), "< User DB: %s >", app->search_user_db ? "ON" : "OFF");
             } else if(i == 1) {
                 snprintf(buf, sizeof(buf), "< Log: %s >", log_mode_label(app->log_mode));
             } else {
@@ -1242,7 +1326,8 @@ static void draw_cb(Canvas* canvas, void* ctx) {
         canvas_set_font(canvas, FontPrimary);
         canvas_draw_str_aligned(canvas, 64, 6, AlignCenter, AlignTop, "Clear all logs?");
         canvas_set_font(canvas, FontSecondary);
-        canvas_draw_str_aligned(canvas, 64, 28, AlignCenter, AlignTop, "Every log will be deleted");
+        canvas_draw_str_aligned(
+            canvas, 64, 28, AlignCenter, AlignTop, "Every log will be deleted");
         canvas_draw_str_aligned(canvas, 64, 54, AlignCenter, AlignTop, "OK: delete  Back: cancel");
 
     } else if(app->state == AppStateLogList) {
@@ -1365,10 +1450,7 @@ static void draw_cb(Canvas* canvas, void* ctx) {
         } else {
             canvas_draw_str(canvas, 2, 46, "No match found");
             canvas_draw_str(
-                canvas,
-                2,
-                57,
-                app->can_resume ? "Back:resume OK:new" : "OK: new  Back: return");
+                canvas, 2, 57, app->can_resume ? "Back:resume OK:new" : "OK: new  Back: return");
         }
     }
 
@@ -1551,8 +1633,10 @@ int32_t ir_identifier_app(void* p) {
                     app->set_sel = (app->set_sel + 1) % 3;
                     view_port_update(app->vp);
                 } else if(app->set_sel == 2) {
-                    if(e.input.key == InputKeyOk) set_state(app, AppStateConfirmClearAll);
-                    else view_port_update(app->vp);
+                    if(e.input.key == InputKeyOk)
+                        set_state(app, AppStateConfirmClearAll);
+                    else
+                        view_port_update(app->vp);
                 } else if(
                     e.input.key == InputKeyLeft || e.input.key == InputKeyRight ||
                     e.input.key == InputKeyOk) {
@@ -1609,8 +1693,8 @@ int32_t ir_identifier_app(void* p) {
                 }
                 break;
             case AppStateLogView: {
-                size_t maxs =
-                    app->log_nlines > LOG_VIEW_ROWS ? app->log_nlines - LOG_VIEW_ROWS : 0;
+                size_t maxs = app->log_nlines > LOG_VIEW_ROWS ? app->log_nlines - LOG_VIEW_ROWS :
+                                                                0;
                 if(e.input.key == InputKeyBack) {
                     set_state(app, AppStateLogList); /* leave the view state before freeing */
                     log_close_view(app);

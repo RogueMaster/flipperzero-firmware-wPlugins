@@ -30,30 +30,18 @@ typedef struct {
 } City;
 
 static const City CITIES[] = {
-    {"Taranto", 40.47f, 17.24f},
-    {"Roma", 41.90f, 12.50f},
-    {"Reykjavik", 64.15f, -21.94f},
-    {"Svalbard", 78.22f, 15.63f},
-    {"Moscow", 55.76f, 37.62f},
-    {"Cairo", 30.04f, 31.24f},
-    {"Nairobi", -1.29f, 36.82f},
-    {"Cape Town", -33.92f, 18.42f},
-    {"Dubai", 25.20f, 55.27f},
-    {"Mumbai", 19.08f, 72.88f},
-    {"Singapore", 1.35f, 103.82f},
-    {"Beijing", 39.90f, 116.41f},
-    {"Tokyo", 35.68f, 139.69f},
-    {"Sydney", -33.87f, 151.21f},
-    {"Auckland", -36.85f, 174.76f},
-    {"Honolulu", 21.31f, -157.86f},
-    {"Anchorage", 61.22f, -149.90f},
-    {"Los Angeles", 34.05f, -118.24f},
-    {"Mexico", 19.43f, -99.13f},
-    {"New York", 40.71f, -74.01f},
-    {"Lima", -12.05f, -77.04f},
-    {"Rio", -22.91f, -43.17f},
-    {"B. Aires", -34.60f, -58.38f},
-    {"Ushuaia", -54.80f, -68.30f},
+    {"Taranto", 40.47f, 17.24f},     {"Roma", 41.90f, 12.50f},
+    {"Reykjavik", 64.15f, -21.94f},  {"Svalbard", 78.22f, 15.63f},
+    {"Moscow", 55.76f, 37.62f},      {"Cairo", 30.04f, 31.24f},
+    {"Nairobi", -1.29f, 36.82f},     {"Cape Town", -33.92f, 18.42f},
+    {"Dubai", 25.20f, 55.27f},       {"Mumbai", 19.08f, 72.88f},
+    {"Singapore", 1.35f, 103.82f},   {"Beijing", 39.90f, 116.41f},
+    {"Tokyo", 35.68f, 139.69f},      {"Sydney", -33.87f, 151.21f},
+    {"Auckland", -36.85f, 174.76f},  {"Honolulu", 21.31f, -157.86f},
+    {"Anchorage", 61.22f, -149.90f}, {"Los Angeles", 34.05f, -118.24f},
+    {"Mexico", 19.43f, -99.13f},     {"New York", 40.71f, -74.01f},
+    {"Lima", -12.05f, -77.04f},      {"Rio", -22.91f, -43.17f},
+    {"B. Aires", -34.60f, -58.38f},  {"Ushuaia", -54.80f, -68.30f},
 };
 #define CITY_COUNT (sizeof(CITIES) / sizeof(CITIES[0]))
 
@@ -139,16 +127,16 @@ static void sun_position(
     int32_t m = dt->month + 12 * a - 3;
     int32_t jdn = dt->day + (153 * m + 2) / 5 + 365 * y + y / 4 - y / 100 + y / 400 - 32045;
 
-    float hours = (float)dt->hour + (float)dt->minute / 60.0f + (float)dt->second / 3600.0f -
-                  utc_offset_h;
+    float hours =
+        (float)dt->hour + (float)dt->minute / 60.0f + (float)dt->second / 3600.0f - utc_offset_h;
     float frac = (hours - 12.0f) / 24.0f; // fraction of day since J2000
     float nint = (float)(jdn - 2451545); // whole days since J2000
     float n = nint + frac;
 
     // Large numbers split into integer part + fraction to keep float precision
     float L = fmodf(fmodf(280.460f + 0.9856474f * nint, 360.0f) + 0.9856474f * frac, 360.0f);
-    float g = fmodf(fmodf(357.528f + 0.9856003f * nint, 360.0f) + 0.9856003f * frac, 360.0f) *
-              DEG2RAD;
+    float g =
+        fmodf(fmodf(357.528f + 0.9856003f * nint, 360.0f) + 0.9856003f * frac, 360.0f) * DEG2RAD;
     float lam = (L + 1.915f * sinf(g) + 0.020f * sinf(2.0f * g)) * DEG2RAD;
     float eps = (23.439f - 0.0000004f * n) * DEG2RAD;
 
@@ -221,7 +209,8 @@ static void settings_load(App* app) {
 
     // Only accept sane values, otherwise keep the defaults
     if(ok && data.magic == SETTINGS_MAGIC && data.city < CITY_COUNT && data.utc_offset >= -12 &&
-       data.utc_offset <= 14 && data.dst <= (uint8_t)DstAutoEU && data.mode <= (uint8_t)ModeNorthUp) {
+       data.utc_offset <= 14 && data.dst <= (uint8_t)DstAutoEU &&
+       data.mode <= (uint8_t)ModeNorthUp) {
         app->city = data.city;
         app->utc_offset = data.utc_offset;
         app->dst = (DstMode)data.dst;

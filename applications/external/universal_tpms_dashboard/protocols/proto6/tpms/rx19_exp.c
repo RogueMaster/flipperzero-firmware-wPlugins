@@ -9,12 +9,8 @@
 
 #define RX19_NOT_FOUND UINT32_MAX
 
-
-static void rx19_add_manchester_bit(
-    RawSamplesBuffer* samples,
-    bool value,
-    uint32_t te,
-    bool invert) {
+static void
+    rx19_add_manchester_bit(RawSamplesBuffer* samples, bool value, uint32_t te, bool invert) {
     /* rtl_433 convention used by the RX19 ports: 01 -> 1, 10 -> 0. */
     bool first = value ? false : true;
     bool second = !first;
@@ -71,11 +67,7 @@ static void rx19_store_id24(uint8_t* dst, const ProtoViewField* field) {
     memcpy(dst + (3U - count), field->bytes, count);
 }
 
-static bool rx19_get_bit(
-    const uint8_t* bits,
-    uint32_t numbytes,
-    uint32_t pos,
-    bool invert) {
+static bool rx19_get_bit(const uint8_t* bits, uint32_t numbytes, uint32_t pos, bool invert) {
     bool value = bitmap_get((uint8_t*)bits, numbytes, pos);
     return invert ? !value : value;
 }
@@ -198,18 +190,14 @@ static void rx19_extract_bits(
     }
 }
 
-static uint16_t rx19_crc16(
-    const uint8_t* message,
-    uint32_t count,
-    uint16_t polynomial,
-    uint16_t init) {
+static uint16_t
+    rx19_crc16(const uint8_t* message, uint32_t count, uint16_t polynomial, uint16_t init) {
     uint16_t remainder = init;
     for(uint32_t byte = 0U; byte < count; byte++) {
         remainder ^= (uint16_t)message[byte] << 8U;
         for(uint32_t bit = 0U; bit < 8U; bit++) {
-            remainder = (remainder & 0x8000U) ?
-                            (uint16_t)((remainder << 1U) ^ polynomial) :
-                            (uint16_t)(remainder << 1U);
+            remainder = (remainder & 0x8000U) ? (uint16_t)((remainder << 1U) ^ polynomial) :
+                                                (uint16_t)(remainder << 1U);
         }
     }
     return remainder;
@@ -225,11 +213,8 @@ static void rx19_add_id32(ProtoViewFieldSet* fields, uint32_t id) {
     fieldset_add_bytes(fields, "Tire ID", bytes, 8U);
 }
 
-static bool rx19_bmw_g3_decode(
-    uint8_t* bits,
-    uint32_t numbytes,
-    uint32_t numbits,
-    ProtoViewMsgInfo* info) {
+static bool
+    rx19_bmw_g3_decode(uint8_t* bits, uint32_t numbytes, uint32_t numbits, ProtoViewMsgInfo* info) {
     static const uint8_t preamble[] = {0xCCU, 0xCDU};
     const uint32_t pos = rx19_seek_pattern(bits, numbytes, numbits, 0U, preamble, 16U, false);
     if(pos == RX19_NOT_FOUND || pos + 16U >= numbits) return false;
@@ -307,8 +292,8 @@ static bool rx19_hyundai_vdo_decode(
     ProtoViewMsgInfo* info) {
     static const uint8_t preamble_inverted[] = {0xAAU, 0xAAU, 0xAAU, 0xA9U};
     uint32_t pos = 0U;
-    while((pos = rx19_seek_pattern(
-               bits, numbytes, numbits, pos, preamble_inverted, 32U, true)) != RX19_NOT_FOUND) {
+    while((pos = rx19_seek_pattern(bits, numbytes, numbits, pos, preamble_inverted, 32U, true)) !=
+          RX19_NOT_FOUND) {
         uint8_t raw[10] = {0};
         uint32_t consumed = 0U;
         const uint32_t decoded = rx19_manchester_decode(
@@ -338,15 +323,12 @@ static bool rx19_hyundai_vdo_decode(
     return false;
 }
 
-static bool rx19_truck_decode(
-    uint8_t* bits,
-    uint32_t numbytes,
-    uint32_t numbits,
-    ProtoViewMsgInfo* info) {
+static bool
+    rx19_truck_decode(uint8_t* bits, uint32_t numbytes, uint32_t numbits, ProtoViewMsgInfo* info) {
     static const uint8_t preamble_inverted[] = {0xAAU, 0xAAU, 0xA9U};
     uint32_t pos = 0U;
-    while((pos = rx19_seek_pattern(
-               bits, numbytes, numbits, pos, preamble_inverted, 24U, true)) != RX19_NOT_FOUND) {
+    while((pos = rx19_seek_pattern(bits, numbytes, numbits, pos, preamble_inverted, 24U, true)) !=
+          RX19_NOT_FOUND) {
         uint8_t decoded_raw[10] = {0};
         uint32_t consumed = 0U;
         const uint32_t decoded = rx19_manchester_decode(
@@ -374,8 +356,8 @@ static bool rx19_truck_decode(
                    that passed the XOR after a 4-bit shifted interpretation. */
                 const bool wheel_valid = raw[4] >= 1U && raw[4] <= 6U;
                 const bool pressure_valid = pressure_kpa >= 10U && pressure_kpa <= 1200U;
-                if(wheel_valid && pressure_valid &&
-                   temperature_c >= -127 && temperature_c <= 127) {
+                if(wheel_valid && pressure_valid && temperature_c >= -127 &&
+                   temperature_c <= 127) {
                     info->start_off = pos;
                     info->pulses_count = 24U + consumed;
                     rx19_add_id32(info->fieldset, id);
@@ -385,10 +367,8 @@ static bool rx19_truck_decode(
                         info->fieldset, "Battery", (flags & 0x03U) == 0x03U ? 100U : 0U, 8U);
                     fieldset_add_hex(info->fieldset, "Flags", flags, 4U);
                     fieldset_add_uint(info->fieldset, "Wheel", raw[4], 8U);
-                    fieldset_add_hex(
-                        info->fieldset, "State", (decoded_raw[0] >> 4U) & 0x0FU, 4U);
-                    fieldset_add_bytes(
-                        info->fieldset, "Raw payload", decoded_raw, 10U * 2U);
+                    fieldset_add_hex(info->fieldset, "State", (decoded_raw[0] >> 4U) & 0x0FU, 4U);
+                    fieldset_add_bytes(info->fieldset, "Raw payload", decoded_raw, 10U * 2U);
                     fieldset_add_uint(info->fieldset, "Raw payload bits", 76U, 8U);
                     return true;
                 }
@@ -406,8 +386,8 @@ static bool rx19_renault_0435r_decode(
     ProtoViewMsgInfo* info) {
     static const uint8_t preamble_inverted[] = {0xAAU, 0xA9U};
     uint32_t pos = 0U;
-    while((pos = rx19_seek_pattern(
-               bits, numbytes, numbits, pos, preamble_inverted, 16U, true)) != RX19_NOT_FOUND) {
+    while((pos = rx19_seek_pattern(bits, numbytes, numbits, pos, preamble_inverted, 16U, true)) !=
+          RX19_NOT_FOUND) {
         uint8_t raw[10] = {0};
         uint32_t consumed = 0U;
         const uint32_t decoded = rx19_manchester_decode(
@@ -447,11 +427,8 @@ static bool rx19_renault_0435r_decode(
     return false;
 }
 
-static bool rx19_honda_decode(
-    uint8_t* bits,
-    uint32_t numbytes,
-    uint32_t numbits,
-    ProtoViewMsgInfo* info) {
+static bool
+    rx19_honda_decode(uint8_t* bits, uint32_t numbytes, uint32_t numbits, ProtoViewMsgInfo* info) {
     static const uint8_t marker[] = {0xDAU, 0xE3U, 0x54U};
     uint32_t pos = 0U;
     while((pos = rx19_seek_pattern(bits, numbytes, numbits, pos, marker, 23U, false)) !=
@@ -511,8 +488,7 @@ static bool rx19_porsche_decode(
                 rx19_add_id32(info->fieldset, id);
                 fieldset_add_float(info->fieldset, "Pressure kpa", (float)pressure_kpa, 1U);
                 fieldset_add_int(info->fieldset, "Temperature C", temperature_c, 8U);
-                fieldset_add_hex(
-                    info->fieldset, "Flags", ((uint16_t)raw[6] << 8U) | raw[7], 16U);
+                fieldset_add_hex(info->fieldset, "Flags", ((uint16_t)raw[6] << 8U) | raw[7], 16U);
                 fieldset_add_bytes(info->fieldset, "Raw payload", raw, 10U * 2U);
                 fieldset_add_uint(info->fieldset, "Raw payload bits", 80U, 8U);
                 return true;
@@ -523,11 +499,8 @@ static bool rx19_porsche_decode(
     return false;
 }
 
-static bool rx19_kia_decode(
-    uint8_t* bits,
-    uint32_t numbytes,
-    uint32_t numbits,
-    ProtoViewMsgInfo* info) {
+static bool
+    rx19_kia_decode(uint8_t* bits, uint32_t numbytes, uint32_t numbits, ProtoViewMsgInfo* info) {
     static const uint8_t preamble[] = {0xEDU, 0x71U};
     uint32_t pos = 0U;
     while((pos = rx19_seek_pattern(bits, numbytes, numbits, pos, preamble, 16U, false)) !=
@@ -541,8 +514,7 @@ static bool rx19_kia_decode(
             const uint8_t expected = crc8(raw, 8U, 0x76U, 0x07U);
             if(raw[8] == expected) {
                 const uint8_t pressure_raw = (uint8_t)((raw[0] << 4U) | (raw[1] >> 4U));
-                const uint8_t temperature_raw =
-                    (uint8_t)((raw[1] << 4U) | (raw[2] >> 4U));
+                const uint8_t temperature_raw = (uint8_t)((raw[1] << 4U) | (raw[2] >> 4U));
                 const uint32_t id = ((uint32_t)raw[2] << 28U) | ((uint32_t)raw[3] << 20U) |
                                     ((uint32_t)raw[4] << 12U) | ((uint32_t)raw[5] << 4U) |
                                     (raw[6] >> 4U);
@@ -571,8 +543,6 @@ static bool rx19_kia_decode(
     return false;
 }
 
-
-
 /* -------------------------------------------------------------------------
  * Experimental TX builders. They intentionally use conservative, plausible
  * default fields and the exact line-code/checksum expected by the RX ports.
@@ -591,11 +561,9 @@ static void rx19_bmw_g3_build(RawSamplesBuffer* samples, ProtoViewFieldSet* fiel
     const uint32_t te = 52U;
     uint8_t data[11] = {0};
     uint32_t raw_bits = 0U;
-    const size_t raw_bytes =
-        tpms_build_load_raw_payload(fields, data, sizeof(data), &raw_bits);
-    const bool have_raw =
-        (raw_bytes == 10U && raw_bits == 80U) ||
-        (raw_bytes == 11U && raw_bits == 88U);
+    const size_t raw_bytes = tpms_build_load_raw_payload(fields, data, sizeof(data), &raw_bits);
+    const bool have_raw = (raw_bytes == 10U && raw_bits == 80U) ||
+                          (raw_bytes == 11U && raw_bits == 88U);
 
     ProtoViewField* id = proto6_field_find(fields, "Tire ID");
     ProtoViewField* pressure = proto6_field_find(fields, "Pressure kpa");
@@ -607,12 +575,10 @@ static void rx19_bmw_g3_build(RawSamplesBuffer* samples, ProtoViewFieldSet* fiel
         rx19_store_id32(data, id);
     }
     if(tpms_build_should_patch(fields, have_raw, TPMS_EDIT_PRESSURE)) {
-        data[4] = (uint8_t)tpms_clamp_i32(
-            (int32_t)(pressure->fvalue / 2.5f + 43.5f), 0, 255);
+        data[4] = (uint8_t)tpms_clamp_i32((int32_t)(pressure->fvalue / 2.5f + 43.5f), 0, 255);
     }
     if(tpms_build_should_patch(fields, have_raw, TPMS_EDIT_TEMPERATURE)) {
-        data[5] =
-            (uint8_t)tpms_clamp_i32((int32_t)temperature->value + 40, 0, 255);
+        data[5] = (uint8_t)tpms_clamp_i32((int32_t)temperature->value + 40, 0, 255);
     }
     if(tpms_build_should_patch(fields, have_raw, TPMS_EDIT_FLAGS)) {
         const uint16_t flags = (uint16_t)flags_f->uvalue;
@@ -621,20 +587,21 @@ static void rx19_bmw_g3_build(RawSamplesBuffer* samples, ProtoViewFieldSet* fiel
     }
 
     bool gen2;
-    if(raw_bytes == 10U || raw_bits == 80U) gen2 = true;
-    else if(raw_bytes == 11U || raw_bits == 88U) gen2 = false;
-    else gen2 = generation && generation->uvalue == 2U;
+    if(raw_bytes == 10U || raw_bits == 80U)
+        gen2 = true;
+    else if(raw_bytes == 11U || raw_bits == 88U)
+        gen2 = false;
+    else
+        gen2 = generation && generation->uvalue == 2U;
 
     const uint32_t payload_bytes = gen2 ? 8U : 9U;
     if(!gen2 && !have_raw) data[8] = 0x03U;
-    const uint16_t crc =
-        rx19_crc16(data, payload_bytes, 0x1021U, 0x0000U);
+    const uint16_t crc = rx19_crc16(data, payload_bytes, 0x1021U, 0x0000U);
     data[payload_bytes] = (uint8_t)(crc >> 8U);
     data[payload_bytes + 1U] = (uint8_t)crc;
 
     tpms_add_pattern(samples, "1100110011001101", te);
-    rx19_add_diff_manchester_bits(
-        samples, data, (payload_bytes + 2U) * 8U, te, true);
+    rx19_add_diff_manchester_bits(samples, data, (payload_bytes + 2U) * 8U, te, true);
 }
 
 static void rx19_elantra_get_fields(ProtoViewFieldSet* fields) {
@@ -648,20 +615,18 @@ static void rx19_elantra_get_fields(ProtoViewFieldSet* fields) {
 static void rx19_elantra_build(RawSamplesBuffer* samples, ProtoViewFieldSet* fields) {
     const uint32_t te = 52U;
     uint8_t data[8] = {0};
-    const bool have_raw =
-        tpms_build_load_raw_payload(fields, data, sizeof(data), NULL) == sizeof(data);
+    const bool have_raw = tpms_build_load_raw_payload(fields, data, sizeof(data), NULL) ==
+                          sizeof(data);
     ProtoViewField* id = proto6_field_find(fields, "Tire ID");
     ProtoViewField* pressure = proto6_field_find(fields, "Pressure kpa");
     ProtoViewField* temperature = proto6_field_find(fields, "Temperature C");
     ProtoViewField* flags = proto6_field_find(fields, "Flags");
 
     if(tpms_build_should_patch(fields, have_raw, TPMS_EDIT_PRESSURE)) {
-        data[0] = (uint8_t)tpms_clamp_i32(
-            (int32_t)(pressure->fvalue + 0.5f) - 60, 0, 255);
+        data[0] = (uint8_t)tpms_clamp_i32((int32_t)(pressure->fvalue + 0.5f) - 60, 0, 255);
     }
     if(tpms_build_should_patch(fields, have_raw, TPMS_EDIT_TEMPERATURE)) {
-        data[1] =
-            (uint8_t)tpms_clamp_i32((int32_t)temperature->value + 50, 0, 255);
+        data[1] = (uint8_t)tpms_clamp_i32((int32_t)temperature->value + 50, 0, 255);
     }
     if(tpms_build_should_patch(fields, have_raw, TPMS_EDIT_ID)) {
         rx19_store_id32(data + 2U, id);
@@ -686,13 +651,11 @@ static void rx19_hyundai_vdo_get_fields(ProtoViewFieldSet* fields) {
     fieldset_add_hex(fields, "Battery raw", 0x64U, 8U);
 }
 
-static void rx19_hyundai_vdo_build(
-    RawSamplesBuffer* samples,
-    ProtoViewFieldSet* fields) {
+static void rx19_hyundai_vdo_build(RawSamplesBuffer* samples, ProtoViewFieldSet* fields) {
     const uint32_t te = 52U;
     uint8_t data[10] = {0};
-    const bool have_raw =
-        tpms_build_load_raw_payload(fields, data, sizeof(data), NULL) == sizeof(data);
+    const bool have_raw = tpms_build_load_raw_payload(fields, data, sizeof(data), NULL) ==
+                          sizeof(data);
     ProtoViewField* id = proto6_field_find(fields, "Tire ID");
     ProtoViewField* pressure = proto6_field_find(fields, "Pressure kpa");
     ProtoViewField* temperature = proto6_field_find(fields, "Temperature C");
@@ -706,19 +669,16 @@ static void rx19_hyundai_vdo_build(
         rx19_store_id32(data + 1U, id);
     }
     if(tpms_build_should_patch(fields, have_raw, TPMS_EDIT_FLAGS)) {
-        data[5] =
-            (uint8_t)((data[5] & 0x0FU) | ((flags->uvalue & 0x0FU) << 4U));
+        data[5] = (uint8_t)((data[5] & 0x0FU) | ((flags->uvalue & 0x0FU) << 4U));
     }
     if(!have_raw && repeat) {
         data[5] = (uint8_t)((data[5] & 0xF0U) | (repeat->uvalue & 0x0FU));
     }
     if(tpms_build_should_patch(fields, have_raw, TPMS_EDIT_PRESSURE)) {
-        data[6] = (uint8_t)tpms_clamp_i32(
-            (int32_t)(pressure->fvalue / 1.375f + 0.5f), 0, 255);
+        data[6] = (uint8_t)tpms_clamp_i32((int32_t)(pressure->fvalue / 1.375f + 0.5f), 0, 255);
     }
     if(tpms_build_should_patch(fields, have_raw, TPMS_EDIT_TEMPERATURE)) {
-        data[7] =
-            (uint8_t)tpms_clamp_i32((int32_t)temperature->value + 50, 0, 255);
+        data[7] = (uint8_t)tpms_clamp_i32((int32_t)temperature->value + 50, 0, 255);
     }
     if(!have_raw && battery_raw) data[8] = (uint8_t)battery_raw->uvalue;
     data[9] = crc8(data, 9U, 0xAAU, 0x07U);
@@ -763,31 +723,26 @@ static void rx19_truck_build(RawSamplesBuffer* samples, ProtoViewFieldSet* field
     }
     if(!have_raw && wheel) data[4] = (uint8_t)wheel->uvalue;
     if(tpms_build_should_patch(fields, have_raw, TPMS_EDIT_PRESSURE)) {
-        const uint16_t pressure = (uint16_t)tpms_clamp_i32(
-            (int32_t)(pressure_f->fvalue + 0.5f), 0, 4095);
-        data[5] =
-            (uint8_t)((data[5] & 0xF0U) | ((pressure >> 8U) & 0x0FU));
+        const uint16_t pressure =
+            (uint16_t)tpms_clamp_i32((int32_t)(pressure_f->fvalue + 0.5f), 0, 4095);
+        data[5] = (uint8_t)((data[5] & 0xF0U) | ((pressure >> 8U) & 0x0FU));
         data[6] = (uint8_t)pressure;
     }
     if(tpms_build_should_patch(fields, have_raw, TPMS_EDIT_FLAGS)) {
-        data[5] =
-            (uint8_t)((data[5] & 0x0FU) | ((flags->uvalue & 0x0FU) << 4U));
+        data[5] = (uint8_t)((data[5] & 0x0FU) | ((flags->uvalue & 0x0FU) << 4U));
     }
     if(tpms_build_should_patch(fields, have_raw, TPMS_EDIT_TEMPERATURE)) {
-        data[7] = (uint8_t)tpms_clamp_i32(
-            (int32_t)temperature->value, -127, 127);
+        data[7] = (uint8_t)tpms_clamp_i32((int32_t)temperature->value, -127, 127);
     }
     data[8] = xor_bytes(data, 8U, 0U);
     if(!have_raw && state) state_value = (uint8_t)(state->uvalue & 0x0FU);
 
     tpms_add_pattern(samples, "010101010101010101010110", te);
     for(int32_t bit = 3; bit >= 0; bit--) {
-        rx19_add_manchester_bit(
-            samples, ((state_value >> bit) & 1U) != 0U, te, true);
+        rx19_add_manchester_bit(samples, ((state_value >> bit) & 1U) != 0U, te, true);
     }
     for(uint32_t bit = 0U; bit < 72U; bit++) {
-        rx19_add_manchester_bit(
-            samples, bitmap_get(data, sizeof(data), bit), te, true);
+        rx19_add_manchester_bit(samples, bitmap_get(data, sizeof(data), bit), te, true);
     }
 }
 
@@ -801,13 +756,11 @@ static void rx19_renault_0435r_get_fields(ProtoViewFieldSet* fields) {
     fieldset_add_hex(fields, "Acceleration", 0x20U, 8U);
 }
 
-static void rx19_renault_0435r_build(
-    RawSamplesBuffer* samples,
-    ProtoViewFieldSet* fields) {
+static void rx19_renault_0435r_build(RawSamplesBuffer* samples, ProtoViewFieldSet* fields) {
     const uint32_t te = 52U;
     uint8_t data[9] = {0};
-    const bool have_raw =
-        tpms_build_load_raw_payload(fields, data, sizeof(data), NULL) == sizeof(data);
+    const bool have_raw = tpms_build_load_raw_payload(fields, data, sizeof(data), NULL) ==
+                          sizeof(data);
     ProtoViewField* id = proto6_field_find(fields, "Tire ID");
     ProtoViewField* pressure = proto6_field_find(fields, "Pressure kpa");
     ProtoViewField* temperature = proto6_field_find(fields, "Temperature C");
@@ -822,12 +775,10 @@ static void rx19_renault_0435r_build(
         data[3] = (uint8_t)flags->uvalue;
     }
     if(tpms_build_should_patch(fields, have_raw, TPMS_EDIT_PRESSURE)) {
-        data[4] = (uint8_t)tpms_clamp_i32(
-            (int32_t)(pressure->fvalue * 0.75f + 0.5f), 0, 255);
+        data[4] = (uint8_t)tpms_clamp_i32((int32_t)(pressure->fvalue * 0.75f + 0.5f), 0, 255);
     }
     if(tpms_build_should_patch(fields, have_raw, TPMS_EDIT_TEMPERATURE)) {
-        data[5] =
-            (uint8_t)tpms_clamp_i32((int32_t)temperature->value + 50, 0, 255);
+        data[5] = (uint8_t)tpms_clamp_i32((int32_t)temperature->value + 50, 0, 255);
     }
     if(!have_raw) {
         if(acceleration) data[6] = (uint8_t)acceleration->uvalue;
@@ -851,20 +802,18 @@ static void rx19_honda_get_fields(ProtoViewFieldSet* fields) {
 static void rx19_honda_build(RawSamplesBuffer* samples, ProtoViewFieldSet* fields) {
     const uint32_t te = 50U;
     uint8_t data[8] = {0};
-    const bool have_raw =
-        tpms_build_load_raw_payload(fields, data, sizeof(data), NULL) == sizeof(data);
+    const bool have_raw = tpms_build_load_raw_payload(fields, data, sizeof(data), NULL) ==
+                          sizeof(data);
     ProtoViewField* id = proto6_field_find(fields, "Tire ID");
     ProtoViewField* pressure = proto6_field_find(fields, "Pressure psi");
     ProtoViewField* temperature = proto6_field_find(fields, "Temperature C");
     ProtoViewField* flags = proto6_field_find(fields, "Flags");
 
     if(tpms_build_should_patch(fields, have_raw, TPMS_EDIT_PRESSURE)) {
-        data[0] = (uint8_t)tpms_clamp_i32(
-            (int32_t)(pressure->fvalue * 5.0f + 0.5f), 0, 255);
+        data[0] = (uint8_t)tpms_clamp_i32((int32_t)(pressure->fvalue * 5.0f + 0.5f), 0, 255);
     }
     if(tpms_build_should_patch(fields, have_raw, TPMS_EDIT_TEMPERATURE)) {
-        data[1] =
-            (uint8_t)tpms_clamp_i32((int32_t)temperature->value + 50, 0, 255);
+        data[1] = (uint8_t)tpms_clamp_i32((int32_t)temperature->value + 50, 0, 255);
     }
     if(tpms_build_should_patch(fields, have_raw, TPMS_EDIT_ID)) {
         rx19_store_id32(data + 2U, id);
@@ -889,8 +838,8 @@ static void rx19_porsche_get_fields(ProtoViewFieldSet* fields) {
 static void rx19_porsche_build(RawSamplesBuffer* samples, ProtoViewFieldSet* fields) {
     const uint32_t te = 52U;
     uint8_t data[10] = {0};
-    const bool have_raw =
-        tpms_build_load_raw_payload(fields, data, sizeof(data), NULL) == sizeof(data);
+    const bool have_raw = tpms_build_load_raw_payload(fields, data, sizeof(data), NULL) ==
+                          sizeof(data);
     ProtoViewField* id = proto6_field_find(fields, "Tire ID");
     ProtoViewField* pressure = proto6_field_find(fields, "Pressure kpa");
     ProtoViewField* temperature = proto6_field_find(fields, "Temperature C");
@@ -900,12 +849,11 @@ static void rx19_porsche_build(RawSamplesBuffer* samples, ProtoViewFieldSet* fie
         rx19_store_id32(data, id);
     }
     if(tpms_build_should_patch(fields, have_raw, TPMS_EDIT_PRESSURE)) {
-        data[4] = (uint8_t)tpms_clamp_i32(
-            (int32_t)((pressure->fvalue + 100.0f) / 2.5f + 0.5f), 0, 255);
+        data[4] =
+            (uint8_t)tpms_clamp_i32((int32_t)((pressure->fvalue + 100.0f) / 2.5f + 0.5f), 0, 255);
     }
     if(tpms_build_should_patch(fields, have_raw, TPMS_EDIT_TEMPERATURE)) {
-        data[5] =
-            (uint8_t)tpms_clamp_i32((int32_t)temperature->value + 40, 0, 255);
+        data[5] = (uint8_t)tpms_clamp_i32((int32_t)temperature->value + 40, 0, 255);
     }
     if(tpms_build_should_patch(fields, have_raw, TPMS_EDIT_FLAGS)) {
         const uint16_t flags = (uint16_t)flags_f->uvalue;
@@ -933,10 +881,9 @@ static void rx19_kia_build(RawSamplesBuffer* samples, ProtoViewFieldSet* fields)
     const uint32_t te = 50U;
     uint8_t data[9] = {0};
     uint32_t raw_bits = 0U;
-    const bool have_raw =
-        tpms_build_load_raw_payload(fields, data, sizeof(data), &raw_bits) ==
-            sizeof(data) &&
-        raw_bits == 69U;
+    const bool have_raw = tpms_build_load_raw_payload(fields, data, sizeof(data), &raw_bits) ==
+                              sizeof(data) &&
+                          raw_bits == 69U;
     ProtoViewField* id_f = proto6_field_find(fields, "Tire ID");
     ProtoViewField* pressure_f = proto6_field_find(fields, "Pressure psi");
     ProtoViewField* temperature_f = proto6_field_find(fields, "Temperature C");
@@ -945,19 +892,18 @@ static void rx19_kia_build(RawSamplesBuffer* samples, ProtoViewFieldSet* fields)
 
     uint8_t id_bytes[4];
     rx19_store_id32(id_bytes, id_f);
-    const uint32_t id =
-        ((uint32_t)id_bytes[0] << 24U) | ((uint32_t)id_bytes[1] << 16U) |
-        ((uint32_t)id_bytes[2] << 8U) | id_bytes[3];
+    const uint32_t id = ((uint32_t)id_bytes[0] << 24U) | ((uint32_t)id_bytes[1] << 16U) |
+                        ((uint32_t)id_bytes[2] << 8U) | id_bytes[3];
 
     if(tpms_build_should_patch(fields, have_raw, TPMS_EDIT_PRESSURE)) {
-        const uint8_t pressure = (uint8_t)tpms_clamp_i32(
-            (int32_t)(pressure_f->fvalue * 5.0f + 0.5f), 0, 255);
+        const uint8_t pressure =
+            (uint8_t)tpms_clamp_i32((int32_t)(pressure_f->fvalue * 5.0f + 0.5f), 0, 255);
         data[0] = (uint8_t)((data[0] & 0xF0U) | (pressure >> 4U));
         data[1] = (uint8_t)((data[1] & 0x0FU) | (pressure << 4U));
     }
     if(tpms_build_should_patch(fields, have_raw, TPMS_EDIT_TEMPERATURE)) {
-        const uint8_t temperature = (uint8_t)tpms_clamp_i32(
-            (int32_t)temperature_f->value + 50, 0, 255);
+        const uint8_t temperature =
+            (uint8_t)tpms_clamp_i32((int32_t)temperature_f->value + 50, 0, 255);
         data[1] = (uint8_t)((data[1] & 0xF0U) | (temperature >> 4U));
         data[2] = (uint8_t)((data[2] & 0x0FU) | (temperature << 4U));
     }
@@ -969,18 +915,15 @@ static void rx19_kia_build(RawSamplesBuffer* samples, ProtoViewFieldSet* fields)
         data[6] = (uint8_t)((data[6] & 0x0FU) | ((id & 0x0FU) << 4U));
     }
     if(tpms_build_should_patch(fields, have_raw, TPMS_EDIT_FLAGS)) {
-        data[0] =
-            (uint8_t)((data[0] & 0x0FU) | ((flags->uvalue & 0x0FU) << 4U));
+        data[0] = (uint8_t)((data[0] & 0x0FU) | ((flags->uvalue & 0x0FU) << 4U));
     }
 
     const uint16_t base_unknown = have_raw ?
-        (uint16_t)(((uint16_t)(data[6] & 0x0FU) << 8U) | data[7]) :
-        (uint16_t)(unknown_f ? (unknown_f->uvalue & 0x0FFFU) : 0U);
+                                      (uint16_t)(((uint16_t)(data[6] & 0x0FU) << 8U) | data[7]) :
+                                      (uint16_t)(unknown_f ? (unknown_f->uvalue & 0x0FFFU) : 0U);
     for(uint16_t offset = 0U; offset < 4096U; offset++) {
-        const uint16_t unknown =
-            (uint16_t)((base_unknown + offset) & 0x0FFFU);
-        data[6] =
-            (uint8_t)((data[6] & 0xF0U) | (uint8_t)(unknown >> 8U));
+        const uint16_t unknown = (uint16_t)((base_unknown + offset) & 0x0FFFU);
+        data[6] = (uint8_t)((data[6] & 0xF0U) | (uint8_t)(unknown >> 8U));
         data[7] = (uint8_t)unknown;
         const uint8_t crc = crc8(data, 8U, 0x76U, 0x07U);
         if((crc & 0x07U) == 0U) {

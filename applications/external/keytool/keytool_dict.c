@@ -4,10 +4,10 @@
 #include <string.h>
 #include <strings.h>
 
-#define KEYTOOL_DICT_ASSET_USER "/ext/nfc/assets/mf_classic_dict_user.nfc"
+#define KEYTOOL_DICT_ASSET_USER   "/ext/nfc/assets/mf_classic_dict_user.nfc"
 #define KEYTOOL_DICT_ASSET_SYSTEM "/ext/nfc/assets/mf_classic_dict.nfc"
-#define KEYTOOL_DICT_FOLDER_1 "/ext/nfc/dict"
-#define KEYTOOL_DICT_FOLDER_2 "/ext/dict"
+#define KEYTOOL_DICT_FOLDER_1     "/ext/nfc/dict"
+#define KEYTOOL_DICT_FOLDER_2     "/ext/dict"
 
 static bool keytool_has_dict_extension(const char* name) {
     static const char* exts[] = {".dict", ".txt", ".nfc"};
@@ -100,22 +100,21 @@ void keytool_dict_autodetect(
         if(remaining > KEYTOOL_MAX_DICTS) remaining = KEYTOOL_MAX_DICTS;
 
         FuriString* tmp_names[KEYTOOL_MAX_DICTS];
-        for(size_t i = 0; i < remaining; i++) tmp_names[i] = furi_string_alloc();
+        for(size_t i = 0; i < remaining; i++)
+            tmp_names[i] = furi_string_alloc();
 
         size_t tmp_count = 0;
         keytool_dict_enumerate(storage, folders[f], tmp_names, &tmp_count, remaining);
 
         for(size_t i = 0; i < tmp_count && *count_out < max_count; i++) {
             furi_string_printf(
-                paths_out[*count_out],
-                "%s/%s",
-                folders[f],
-                furi_string_get_cstr(tmp_names[i]));
+                paths_out[*count_out], "%s/%s", folders[f], furi_string_get_cstr(tmp_names[i]));
             furi_string_set(names_out[*count_out], tmp_names[i]);
             (*count_out)++;
         }
 
-        for(size_t i = 0; i < remaining; i++) furi_string_free(tmp_names[i]);
+        for(size_t i = 0; i < remaining; i++)
+            furi_string_free(tmp_names[i]);
     }
 }
 

@@ -20,11 +20,11 @@
 #include <lfrfid/lfrfid_dict_file.h>
 #include <lfrfid/protocols/lfrfid_protocols.h>
 
-#define LFRFID_FOLDER  EXT_PATH("lfrfid")
-#define LFRFID_EXT     ".rfid"
-#define MAX_KEYS       256
-#define KEY_NAME_LEN   40
-#define KEY_DATA_MAX   32
+#define LFRFID_FOLDER EXT_PATH("lfrfid")
+#define LFRFID_EXT    ".rfid"
+#define MAX_KEYS      256
+#define KEY_NAME_LEN  40
+#define KEY_DATA_MAX  32
 
 typedef enum {
     ViewMenu,
@@ -274,8 +274,7 @@ static void show_read_result(App* app) {
         furi_string_cat(text, "\e#Tag not in memory\e#\n");
     }
 
-    furi_string_cat_printf(
-        text, "\n%s\n", protocol_dict_get_name(app->dict, app->read_protocol));
+    furi_string_cat_printf(text, "\n%s\n", protocol_dict_get_name(app->dict, app->read_protocol));
     for(size_t i = 0; i < app->read_size; i++) {
         furi_string_cat_printf(text, "%02X ", app->read_data[i]);
     }
@@ -422,8 +421,7 @@ static App* app_alloc(void) {
 
     app->widget_about = widget_alloc();
     setup_about(app);
-    view_dispatcher_add_view(
-        app->view_dispatcher, ViewAbout, widget_get_view(app->widget_about));
+    view_dispatcher_add_view(app->view_dispatcher, ViewAbout, widget_get_view(app->widget_about));
 
     app->current = ViewMenu;
     return app;

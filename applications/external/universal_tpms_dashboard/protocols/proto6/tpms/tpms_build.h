@@ -9,11 +9,8 @@ static inline void tpms_add_pattern(RawSamplesBuffer* samples, const char* patte
     }
 }
 
-static inline void tpms_add_manchester(
-    RawSamplesBuffer* samples,
-    const uint8_t* data,
-    size_t bytes,
-    uint32_t te) {
+static inline void
+    tpms_add_manchester(RawSamplesBuffer* samples, const uint8_t* data, size_t bytes, uint32_t te) {
     for(size_t bit = 0; bit < bytes * 8U; bit++) {
         if(bitmap_get((uint8_t*)data, bytes, bit)) {
             raw_samples_add_or_update(samples, true, te);
@@ -54,7 +51,10 @@ static inline uint32_t tpms_clamp_u32(uint32_t value, uint32_t max) {
 /* TPMS 2.3: retrieve the decoded source payload appended by tpms_encoder.c.
  * Builders use it as their starting frame and overwrite only editable fields. */
 static inline size_t tpms_build_load_raw_payload(
-    ProtoViewFieldSet* fields, uint8_t* dst, size_t dst_size, uint32_t* raw_bits) {
+    ProtoViewFieldSet* fields,
+    uint8_t* dst,
+    size_t dst_size,
+    uint32_t* raw_bits) {
     if(raw_bits) *raw_bits = 0U;
     if(!fields || !dst || dst_size == 0U) return 0U;
     ProtoViewField* raw = proto6_field_find(fields, "Raw payload");
@@ -72,7 +72,7 @@ static inline uint32_t tpms_build_get_edit_mask(ProtoViewFieldSet* fields) {
     return mask ? (uint32_t)mask->uvalue : TPMS_EDIT_ALL;
 }
 
-static inline bool tpms_build_should_patch(
-    ProtoViewFieldSet* fields, bool have_raw, uint32_t field_mask) {
+static inline bool
+    tpms_build_should_patch(ProtoViewFieldSet* fields, bool have_raw, uint32_t field_mask) {
     return !have_raw || ((tpms_build_get_edit_mask(fields) & field_mask) != 0U);
 }

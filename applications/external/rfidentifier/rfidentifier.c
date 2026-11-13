@@ -45,16 +45,16 @@ extern const SubGhzProtocolRegistry subghz_protocol_registry;
 #define SUBGHZ_DIR "/ext/subghz"
 
 /* Tunables */
-#define CAP_MAX        700 /* max captured pulses                      */
-#define MIN_PULSES     60 /* min pulses to consider a capture valid   */
-#define RAW_MAX        4096 /* max RAW values read from one .sub file   */
-#define SIG_LEN        24 /* length of the RAW "fingerprint"          */
-#define GAP_US         2500 /* a gap >= this marks the start of a frame */
-#define MAX_FILES      400 /* max files loaded for duplicate search    */
-#define MAX_DUP_PAIRS  60
-#define MAX_MATCHES    30
-#define WARMUP_MS      600 /* ignore the radio right after it starts */
-#define END_MS         150
+#define CAP_MAX       700 /* max captured pulses                      */
+#define MIN_PULSES    60 /* min pulses to consider a capture valid   */
+#define RAW_MAX       4096 /* max RAW values read from one .sub file   */
+#define SIG_LEN       24 /* length of the RAW "fingerprint"          */
+#define GAP_US        2500 /* a gap >= this marks the start of a frame */
+#define MAX_FILES     400 /* max files loaded for duplicate search    */
+#define MAX_DUP_PAIRS 60
+#define MAX_MATCHES   30
+#define WARMUP_MS     600 /* ignore the radio right after it starts */
+#define END_MS        150
 
 typedef enum {
     ViewMenu,
@@ -89,11 +89,26 @@ typedef enum {
 } SearchMode;
 
 static const uint32_t freq_values[] = {
-    300000000, 303875000, 304250000, 310000000, 315000000, 318000000,
-    330000000, 345000000, 390000000, 433075000, 433420000, 433920000,
-    434420000, 434775000, 438900000, 868350000, 915000000, 925000000,
+    300000000,
+    303875000,
+    304250000,
+    310000000,
+    315000000,
+    318000000,
+    330000000,
+    345000000,
+    390000000,
+    433075000,
+    433420000,
+    433920000,
+    434420000,
+    434775000,
+    438900000,
+    868350000,
+    915000000,
+    925000000,
 };
-#define FREQ_COUNT (sizeof(freq_values) / sizeof(freq_values[0]))
+#define FREQ_COUNT   (sizeof(freq_values) / sizeof(freq_values[0]))
 #define FREQ_DEFAULT 11 /* 433.92 MHz */
 static char freq_text[FREQ_COUNT][16];
 
@@ -107,9 +122,9 @@ typedef enum {
 
 static const char* scope_text[] = {"All files", "Saved only", "Folder"};
 
-#define FOLDER_MAX     32
-#define FOLDER_NAME    48
-#define FOLDER_BASE    100
+#define FOLDER_MAX  32
+#define FOLDER_NAME 48
+#define FOLDER_BASE 100
 
 typedef struct {
     bool has_dec;
@@ -203,7 +218,8 @@ struct App {
 
 static uint32_t hash_str(const char* s) {
     uint32_t h = 5381;
-    while(*s) h = ((h << 5) + h) + (uint8_t)*s++;
+    while(*s)
+        h = ((h << 5) + h) + (uint8_t)*s++;
     return h;
 }
 
@@ -211,7 +227,8 @@ static uint64_t parse_key(const char* s) {
     uint64_t key = 0;
     const char* p = s;
     while(*p) {
-        while(*p == ' ') p++;
+        while(*p == ' ')
+            p++;
         if(!*p || *p == '\r' || *p == '\n') break;
         char* end;
         unsigned long v = strtoul(p, &end, 16);
@@ -292,7 +309,8 @@ static bool parse_sub(App* app, const char* path, SubInfo* info, bool want_raw) 
 
         if(strncmp(l, "Protocol:", 9) == 0) {
             const char* p = l + 9;
-            while(*p == ' ') p++;
+            while(*p == ' ')
+                p++;
             size_t i = 0;
             while(*p && *p != '\r' && *p != '\n' && i < sizeof(info->proto) - 1)
                 info->proto[i++] = *p++;
@@ -306,7 +324,8 @@ static bool parse_sub(App* app, const char* path, SubInfo* info, bool want_raw) 
             if(!want_raw) break;
             const char* p = l + 9;
             while(*p) {
-                while(*p == ' ') p++;
+                while(*p == ' ')
+                    p++;
                 if(!*p || *p == '\r' || *p == '\n') break;
                 char* end;
                 long v = strtol(p, &end, 10);
@@ -351,7 +370,8 @@ static void progress_draw_cb(Canvas* canvas, void* model) {
 
     char buf[40];
     unsigned pct = m->total ? (unsigned)((m->done * 100) / m->total) : 0;
-    snprintf(buf, sizeof(buf), "%u%%  (%lu/%lu)", pct, (unsigned long)m->done, (unsigned long)m->total);
+    snprintf(
+        buf, sizeof(buf), "%u%%  (%lu/%lu)", pct, (unsigned long)m->done, (unsigned long)m->total);
     canvas_set_font(canvas, FontSecondary);
     canvas_draw_str_aligned(canvas, 64, 42, AlignCenter, AlignCenter, buf);
     canvas_draw_str_aligned(canvas, 64, 53, AlignCenter, AlignCenter, m->name);
@@ -370,7 +390,8 @@ static bool progress_input_cb(InputEvent* ev, void* ctx) {
     return false;
 }
 
-static void progress_set(App* app, const char* title, const char* name, uint32_t done, uint32_t total) {
+static void
+    progress_set(App* app, const char* title, const char* name, uint32_t done, uint32_t total) {
     if(title) snprintf(app->prog_title, sizeof(app->prog_title), "%s", title);
     with_view_model(
         app->progress,
@@ -473,8 +494,10 @@ static void rx_decoded_cb(SubGhzReceiver* receiver, SubGhzProtocolDecoderBase* b
             uint8_t b[16];
             if(flipper_format_read_hex(ff, "Key", b, cnt)) {
                 uint64_t key = 0;
-                for(uint32_t i = 0; i < cnt; i++) key = (key << 8) | b[i];
-                snprintf(app->dec_proto, sizeof(app->dec_proto), "%s", furi_string_get_cstr(proto));
+                for(uint32_t i = 0; i < cnt; i++)
+                    key = (key << 8) | b[i];
+                snprintf(
+                    app->dec_proto, sizeof(app->dec_proto), "%s", furi_string_get_cstr(proto));
                 app->dec_key = key;
                 app->dec_ready = true;
             }
@@ -542,7 +565,8 @@ static bool radio_start(App* app) {
     subghz_receiver_set_rx_callback(app->receiver, rx_decoded_cb, app);
 
     app->worker = subghz_worker_alloc();
-    subghz_worker_set_overrun_callback(app->worker, (SubGhzWorkerOverrunCallback)subghz_receiver_reset);
+    subghz_worker_set_overrun_callback(
+        app->worker, (SubGhzWorkerOverrunCallback)subghz_receiver_reset);
     subghz_worker_set_pair_callback(app->worker, (SubGhzWorkerPairCallback)subghz_receiver_decode);
     subghz_worker_set_context(app->worker, app->receiver);
 
@@ -625,7 +649,11 @@ static bool read_cb(App* app, const char* path, void* ctx) {
             furi_string_cat_str(c->matches, "- ");
             append_name(c->matches, path);
             furi_string_cat_printf(
-                c->matches, "\n   [%s%s%s]\n", dec ? "DEC" : "", (dec && raw) ? "+" : "", raw ? "RAW" : "");
+                c->matches,
+                "\n   [%s%s%s]\n",
+                dec ? "DEC" : "",
+                (dec && raw) ? "+" : "",
+                raw ? "RAW" : "");
         }
     }
     return true;
@@ -812,7 +840,11 @@ static void dup_run(App* app) {
                 furi_string_cat_str(body, "\n  = ");
                 append_name(body, furi_string_get_cstr(d.list[j].path));
                 furi_string_cat_printf(
-                    body, "\n  [%s%s%s]\n\n", dec ? "DEC" : "", (dec && raw) ? "+" : "", raw ? "RAW" : "");
+                    body,
+                    "\n  [%s%s%s]\n\n",
+                    dec ? "DEC" : "",
+                    (dec && raw) ? "+" : "",
+                    raw ? "RAW" : "");
             }
         }
     }
@@ -825,15 +857,16 @@ static void dup_run(App* app) {
         scope_text[app->scope],
         (unsigned)pairs,
         pairs >= MAX_DUP_PAIRS ? "+" : "");
-    if(d.truncated) furi_string_cat_str(app->text, "(limit reached, only the first files were checked)\n\n");
+    if(d.truncated)
+        furi_string_cat_str(app->text, "(limit reached, only the first files were checked)\n\n");
     if(app->cancelled) furi_string_cat_str(app->text, "(scan stopped)\n\n");
     if(!pairs) furi_string_cat_str(app->text, "No duplicates.\n");
     furi_string_cat(app->text, body);
 
     furi_string_free(body);
-    for(size_t i = 0; i < d.count; i++) furi_string_free(d.list[i].path);
+    for(size_t i = 0; i < d.count; i++)
+        furi_string_free(d.list[i].path);
     free(d.list);
-
 }
 
 static void dup_present(App* app) {
@@ -901,7 +934,8 @@ static void folder_menu_cb(void* ctx, uint32_t index);
 static void folder_populate(App* app) {
     submenu_reset(app->folder_menu);
 
-    const char* rel = (strlen(app->browse) > strlen(SUBGHZ_DIR)) ? app->browse + strlen(SUBGHZ_DIR) : "/";
+    const char* rel =
+        (strlen(app->browse) > strlen(SUBGHZ_DIR)) ? app->browse + strlen(SUBGHZ_DIR) : "/";
     snprintf(app->browse_hdr, sizeof(app->browse_hdr), "%.40s", rel);
     submenu_set_header(app->folder_menu, app->browse_hdr);
 
@@ -997,7 +1031,8 @@ static void settings_load(App* app) {
             flipper_format_rewind(ff);
             if(flipper_format_read_uint32(ff, "SignalType", &v, 1) && v <= ModeBoth) app->mode = v;
             flipper_format_rewind(ff);
-            if(flipper_format_read_uint32(ff, "SearchIn", &v, 1) && v <= ScopeFolder) app->scope = v;
+            if(flipper_format_read_uint32(ff, "SearchIn", &v, 1) && v <= ScopeFolder)
+                app->scope = v;
             flipper_format_rewind(ff);
             if(flipper_format_read_uint32(ff, "Sensitivity", &v, 1) && v < 4) {
                 app->sens_idx = v;
@@ -1150,7 +1185,8 @@ int32_t rfidentifier_app(void* p) {
 
     /* Settings */
     app->settings = variable_item_list_alloc();
-    VariableItem* it = variable_item_list_add(app->settings, "Frequency", FREQ_COUNT, freq_change_cb, app);
+    VariableItem* it =
+        variable_item_list_add(app->settings, "Frequency", FREQ_COUNT, freq_change_cb, app);
     variable_item_set_current_value_index(it, app->freq_idx);
     variable_item_set_current_value_text(it, freq_text[app->freq_idx]);
     it = variable_item_list_add(app->settings, "Signal type", 3, mode_change_cb, app);
@@ -1159,7 +1195,8 @@ int32_t rfidentifier_app(void* p) {
     it = variable_item_list_add(app->settings, "Search in", 3, scope_change_cb, app);
     variable_item_set_current_value_index(it, app->scope);
     variable_item_set_current_value_text(it, scope_text[app->scope]);
-    app->folder_item = variable_item_list_add(app->settings, "Folder (OK)", 1, noop_change_cb, app);
+    app->folder_item =
+        variable_item_list_add(app->settings, "Folder (OK)", 1, noop_change_cb, app);
     set_folder_label(app);
     it = variable_item_list_add(app->settings, "Sensitivity", 4, sens_change_cb, app);
     variable_item_set_current_value_index(it, app->sens_idx);
@@ -1184,9 +1221,16 @@ int32_t rfidentifier_app(void* p) {
 
     /* About */
     app->w_about = widget_alloc();
-    widget_add_string_element(app->w_about, 64, 10, AlignCenter, AlignCenter, FontPrimary, "RFidentifier");
+    widget_add_string_element(
+        app->w_about, 64, 10, AlignCenter, AlignCenter, FontPrimary, "RFidentifier");
     widget_add_string_multiline_element(
-        app->w_about, 64, 38, AlignCenter, AlignCenter, FontSecondary, "v1.0\nCreated by Marcopiiit");
+        app->w_about,
+        64,
+        38,
+        AlignCenter,
+        AlignCenter,
+        FontSecondary,
+        "v1.0\nCreated by Marcopiiit");
     view_set_previous_callback(widget_get_view(app->w_about), nav_to_menu_cb);
     view_dispatcher_add_view(app->vd, ViewAbout, widget_get_view(app->w_about));
 
