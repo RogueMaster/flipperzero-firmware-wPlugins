@@ -20,6 +20,7 @@ static const char* const submenu_names[SetTypeMAX] = {
     [SetTypeANMotorsAT4] = "AN-Motors AT4",
     [SetTypeAprimatic] = "KL: Aprimatic",
     [SetTypeATA_PTX4] = "KL: ATA PTX4",
+    [SetTypeBelKorn] = "BelKorn",
     [SetTypeBeninca] = "KL: Beninca",
     [SetTypeBenincaARC] = "Beninca ARC",
     [SetTypeBETT] = "BETT",
@@ -151,7 +152,8 @@ bool subghz_scene_set_type_generate_protocol_from_infos(SubGhz* subghz) {
                 gen_info.data.name,
                 gen_info.data.key,
                 gen_info.data.bits,
-                gen_info.data.te);
+                gen_info.data.te,
+                gen_info.data.gt);
         } else {
             generated_protocol = subghz_txrx_gen_data_protocol(
                 subghz->txrx,
@@ -246,6 +248,15 @@ bool subghz_scene_set_type_generate_protocol_from_infos(SubGhz* subghz) {
             gen_info.beninca_arc.serial,
             gen_info.beninca_arc.btn,
             gen_info.beninca_arc.cnt);
+        break;
+    case GenBelKorn:
+        generated_protocol = subghz_txrx_gen_belkorn_protocol(
+            subghz->txrx,
+            gen_info.mod,
+            gen_info.freq,
+            gen_info.belkorn.serial,
+            gen_info.belkorn.btn,
+            gen_info.belkorn.cnt);
         break;
     case GenJarolift:
         generated_protocol = subghz_txrx_gen_jarolift_protocol(
@@ -365,6 +376,7 @@ bool subghz_scene_set_type_proceed(SubGhz* subghz) {
         case GenSecPlus2: // Serial (u32), Button (u8), Counter (u32)
         case GenPhoenixV2: // Serial (u32), Counter (u16)
         case GenPrastel: // Serial (u32), Button (u8), Counter (u16)
+        case GenBelKorn: // Serial (u36), Button (u8), Counter (u16)
             scene_manager_next_scene(subghz->scene_manager, SubGhzSceneSetSerial);
             break;
         }

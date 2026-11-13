@@ -85,6 +85,7 @@ typedef enum {
     SetTypeANMotorsAT4,
     SetTypeAprimatic,
     SetTypeATA_PTX4,
+    SetTypeBelKorn,
     SetTypeBeninca,
     SetTypeBenincaARC,
     SetTypeBETT,

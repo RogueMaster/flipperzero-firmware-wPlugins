@@ -7,6 +7,32 @@ extern "C" {
 #endif
 
 /**
+ * Name of the variant a frame length belongs to: the CAME decoder also carries Prastel and
+ * Airforce remotes, and the history list has to show what the info screen shows.
+ * @param bits Frame length, generic.data_count_bit
+ * @return Variant name, or the protocol name when the length is CAME's own
+ */
+const char* subghz_protocol_came_get_variant_name(uint16_t bits);
+
+/**
+ * Name of the variant the last decoded frame belongs to: the SLH frame is shared by several
+ * makers, and the history list has to show what the info screen shows. The maker is resolved
+ * from the keystore rather than the file, so this needs the decoder, not the saved key.
+ * @param context Pointer to a SubGhzProtocolDecoderFaacSLH instance
+ * @return Manufacturer name, or the protocol name for plain FAAC
+ */
+const char* subghz_protocol_decoder_faac_slh_get_variant_name(void* context);
+
+/**
+ * Name of the variant a frame belongs to: the Nice FloR-S decoder also carries Nice One and
+ * Nice O-Code, and the history list has to show what the info screen shows.
+ * @param bits Frame length, generic.data_count_bit
+ * @param o_code True for an O-Code frame, which a saved file marks with IC or No_IC
+ * @return Variant name
+ */
+const char* subghz_protocol_nice_flor_s_get_variant_name(uint16_t bits, bool o_code);
+
+/**
  * Key generation from simple data.
  * @param context Pointer to a SubGhzProtocolEncoderSecPlus_v2 instance
  * @param flipper_format Pointer to a FlipperFormat instance
@@ -294,6 +320,25 @@ bool subghz_protocol_ditec_gol4_create_data(
     void* context,
     FlipperFormat* flipper_format,
     uint32_t serial,
+    uint8_t btn,
+    uint16_t cnt,
+    SubGhzRadioPreset* preset);
+
+/**
+ * Key generator for Add Manually.
+ * @param context Pointer to a SubGhzProtocolEncoderBelKorn instance
+ * @param flipper_format Pointer to a FlipperFormat instance
+ * @param model Model nibble: 0xD for Korn, 0x7 for BelGate
+ * @param serial Serial number of the remote, 32 bit
+ * @param btn One-hot button code, 6 bit
+ * @param cnt Press counter, 15 bit
+ * @param preset Modulation to generate for, SubGhzRadioPreset
+ * @return true On success
+ */
+bool subghz_protocol_belkorn_create_data(
+    void* context,
+    FlipperFormat* flipper_format,
+    uint64_t serial,
     uint8_t btn,
     uint16_t cnt,
     SubGhzRadioPreset* preset);

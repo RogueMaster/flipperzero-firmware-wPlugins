@@ -72,7 +72,8 @@ bool subghz_txrx_gen_data_protocol_and_te(
     const char* protocol_name,
     uint64_t key,
     uint32_t bit,
-    uint32_t te) {
+    uint32_t te,
+    uint32_t gt) {
     furi_assert(instance);
     bool ret = false;
     if(subghz_txrx_gen_data_protocol(instance, preset_name, frequency, protocol_name, key, bit)) {
@@ -82,10 +83,9 @@ bool subghz_txrx_gen_data_protocol_and_te(
             ret = true;
         }
     }
-    if(ret) {
-        uint32_t guard_time = 30;
-        if(!flipper_format_update_uint32(
-               instance->fff_data, "Guard_time", (uint32_t*)&guard_time, 1)) {
+    // Only Princeton serializes a Guard_time, and update needs the key to be there already
+    if(ret && gt) {
+        if(!flipper_format_update_uint32(instance->fff_data, "Guard_time", (uint32_t*)&gt, 1)) {
             ret = false;
             FURI_LOG_E(TAG, "Unable to update Guard_time");
         }
@@ -430,6 +430,39 @@ bool subghz_txrx_gen_beninca_arc_protocol(
                                 subghz_transmitter_get_protocol_instance(txrx->transmitter),
                                 txrx->fff_data,
                                 serial,
+                                btn,
+                                cnt,
+                                txrx->preset)) {
+        res = true;
+    }
+
+    subghz_transmitter_free(txrx->transmitter);
+
+    return res;
+}
+
+bool subghz_txrx_gen_belkorn_protocol(
+    void* context,
+    const char* preset_name,
+    uint32_t frequency,
+    const uint8_t serial[5],
+    uint8_t btn,
+    uint16_t cnt) {
+    SubGhzTxRx* txrx = context;
+
+    bool res = false;
+
+    const uint64_t serial36 = ((uint64_t)(serial[0] & 0x0F) << 32) | ((uint64_t)serial[1] << 24) |
+                              ((uint64_t)serial[2] << 16) | ((uint64_t)serial[3] << 8) | serial[4];
+
+    txrx->transmitter =
+        subghz_transmitter_alloc_init(txrx->environment, SUBGHZ_PROTOCOL_BELKORN_NAME);
+    subghz_txrx_set_preset(txrx, preset_name, frequency, NAN, NAN, NULL, 0);
+
+    if(txrx->transmitter && subghz_protocol_belkorn_create_data(
+                                subghz_transmitter_get_protocol_instance(txrx->transmitter),
+                                txrx->fff_data,
+                                serial36,
                                 btn,
                                 cnt,
                                 txrx->preset)) {

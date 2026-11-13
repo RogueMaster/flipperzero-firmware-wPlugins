@@ -29,7 +29,10 @@ void subghz_scene_set_type_fill_generation_infos(GenInfo* infos_dest, SetType ty
             .data.bits = 24,
             .data.te = 400,
             .data.te_min = 109,
-            .data.te_max = 689};
+            .data.te_max = 689,
+            .data.gt = 30,
+            .data.gt_min = 15,
+            .data.gt_max = 72};
         break;
     case SetTypeZKTeco:
         gen_info = (GenInfo){
@@ -41,7 +44,10 @@ void subghz_scene_set_type_fill_generation_infos(GenInfo* infos_dest, SetType ty
             .data.bits = 24,
             .data.te = 357,
             .data.te_min = 109,
-            .data.te_max = 689};
+            .data.te_max = 689,
+            .data.gt = 30,
+            .data.gt_min = 15,
+            .data.gt_max = 72};
         break;
     case SetTypeNiceFlo12bit:
         gen_info = (GenInfo){
@@ -526,6 +532,21 @@ void subghz_scene_set_type_fill_generation_infos(GenInfo* infos_dest, SetType ty
             .beninca_arc.serial = key & 0x00FFFFFF,
             .beninca_arc.btn = 0x02,
             .beninca_arc.cnt = 0x03};
+        break;
+    case SetTypeBelKorn:
+        gen_info = (GenInfo){
+            .type = GenBelKorn,
+            .mod = "AM650",
+            .freq = 433920000,
+            // 36 bit serial, big endian; rand() only fills 31 bits so the top one is seeded too
+            .belkorn.serial =
+                {(uint8_t)((key >> 32) & 0x0F),
+                 (uint8_t)(key >> 24),
+                 (uint8_t)(key >> 16),
+                 (uint8_t)(key >> 8),
+                 (uint8_t)key},
+            .belkorn.btn = 0x01, // one-hot: 0x01, 0x02, 0x04, 0x20
+            .belkorn.cnt = 0x05};
         break;
     case SetTypeJarolift:
         gen_info = (GenInfo){

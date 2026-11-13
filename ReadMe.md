@@ -316,6 +316,11 @@ This software is for experimental purposes only and is not meant for any illegal
 - Fixed: [WiFi Marauder log-path bounds and Mayhem Marauder script JSON allocation checks (By lewisQ17)](https://github.com/lewisQ17/Momentum-Firmware/tree/495d984039084f8217303fbe4636c65cb95d975d/applications/external)
 - Fixed: [UHF RFID and Simultaneous RFID Reader buffer bounds and allocation sizes; Wardriver access-point bounds and low-memory guards (By lewisQ17)](https://github.com/lewisQ17/Momentum-Firmware/tree/495d984039084f8217303fbe4636c65cb95d975d/applications/external)
 - Fixed: [POCSAG message-length bounds, ProtoPirate version range validation and Cross Remote, Quac and SubGHz Remote input bounds (By lewisQ17)](https://github.com/lewisQ17/Momentum-Firmware/tree/495d984039084f8217303fbe4636c65cb95d975d/applications/external)
+- SubGHz: [BelKorn protocol with 36-bit serial, unified Add Manually support and custom buttons (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/1a5676a0a6f66e47725bed8023b60fc9d29fc8d7)
+- SubGHz: [History displays decoded system names for CAME, Nice FloR-S, Faac SLH and KeeLoq (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/edc19780ed48f054f3442588317fe33e85a9dddc)
+- Remote Analyzer: [Remove standalone BelGate decoder now provided by firmware and list app-specific protocols in How to use (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/edc19780ed48f054f3442588317fe33e85a9dddc)
+- SubGHz: [Advanced Add Manually guard-time input for Princeton and ZKTeco and fix FAAC TM generation without Guard_time (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/62e921731912eb7d308f990398f2c925240976e9)
+- SubGHz: [Fix internal-radio CLI rx, tx and tx_from_file failing to start and add regression test (By GodKimba)](https://github.com/DarkFlippers/unleashed-firmware/pull/1216)
 
 <a name="release"></a>
 

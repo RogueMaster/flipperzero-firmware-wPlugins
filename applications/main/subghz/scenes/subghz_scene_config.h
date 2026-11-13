@@ -28,6 +28,7 @@ ADD_SCENE(subghz, set_button, SetButton)
 ADD_SCENE(subghz, set_counter, SetCounter)
 ADD_SCENE(subghz, set_seed, SetSeed)
 ADD_SCENE(subghz, set_te, SetTe)
+ADD_SCENE(subghz, set_gt, SetGt)
 #define SubGhzSceneStart SubGhzSceneSetType
 #endif
 ADD_SCENE(subghz, save_name, SaveName)

@@ -20,6 +20,7 @@ typedef enum {
     GenSecPlus2,
     GenPhoenixV2,
     GenPrastel,
+    GenBelKorn,
 } GenType;
 
 typedef struct {
@@ -36,6 +37,11 @@ typedef struct {
             uint32_t te;
             uint16_t te_min;
             uint16_t te_max;
+            /* gt != 0 means the protocol carries a guard time - the gap that closes the frame,
+               counted in te - and Advanced asks for it, within gt_min..gt_max. */
+            uint32_t gt;
+            uint16_t gt_min;
+            uint16_t gt_max;
         } data;
         struct {
             uint32_t serial;
@@ -122,6 +128,13 @@ typedef struct {
             uint8_t btn;
             uint16_t cnt;
         } prastel;
+        struct {
+            /* 36 bit serial (frame bits 12..47), big endian so byte_input can write it in
+               place; only the low 36 bits of the 5 bytes are used */
+            uint8_t serial[5];
+            uint8_t btn;
+            uint16_t cnt;
+        } belkorn;
     };
 } GenInfo;
 

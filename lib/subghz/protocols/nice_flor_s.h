@@ -1,6 +1,7 @@
 #pragma once
 
 #include "base.h"
+#include "public_api.h"
 
 #define SUBGHZ_PROTOCOL_NICE_FLOR_S_NAME "Nice FloR-S"
 
