@@ -12,22 +12,22 @@
 #include "uart_storage.h"
 #include <stdbool.h>
 #include "firmware_api.h"
+#include "uart_framing.h"
 
 #define UART_CH_ESP (cfw_settings.uart_esp_channel)
 #define UART_CH_GPS (cfw_settings.uart_nmea_channel)
 #define BAUDRATE    (115200)
 
-#define TEXT_BOX_STORE_SIZE           (8 * 1024) // 8KB text box buffer size
-#define RX_BUF_SIZE                   2048
-#define PCAP_BUF_SIZE                 4096
+#define TEXT_BOX_STORE_SIZE           (12 * 1024) // Preserve the original terminal history
+#define UART_RX_QUEUE_SIZE            4096
+#define UART_WRITE_BUFFER_SIZE        512
 #define GHOST_ESP_APP_FOLDER          "/ext/apps_data/ghost_esp"
 #define GHOST_ESP_APP_FOLDER_PCAPS    "/ext/apps_data/ghost_esp/pcaps"
 #define GHOST_ESP_APP_FOLDER_WARDRIVE "/ext/apps_data/ghost_esp/wardrive"
 #define GHOST_ESP_APP_FOLDER_LOGS     "/ext/apps_data/ghost_esp/logs"
 #define GHOST_ESP_APP_SETTINGS_FILE   "/ext/apps_data/ghost_esp/settings.ini"
 #define ESP_CHECK_TIMEOUT_MS          100
-#define RING_BUFFER_SIZE              (4 * 1024) // 4KB for incoming data
-#define TEXT_LOG_BUFFER_SIZE          (TEXT_BOX_STORE_SIZE + RING_BUFFER_SIZE) // reuse total 16KB
+#define TEXT_LOG_BUFFER_SIZE          TEXT_BOX_STORE_SIZE
 #define VIEW_BUFFER_SIZE              TEXT_LOG_BUFFER_SIZE
 #define PCAP_GLOBAL_HEADER_SIZE       24
 #define PCAP_PACKET_HEADER_SIZE       16
@@ -47,9 +47,6 @@ typedef struct {
 typedef enum {
     WorkerEvtStop = (1 << 0),
     WorkerEvtRxDone = (1 << 1),
-    WorkerEvtPcapDone = (1 << 2),
-    WorkerEvtStorage = (1 << 3),
-    WorkerEvtCsvDone = (1 << 4),
 } WorkerEvtFlags;
 
 typedef struct {
@@ -68,20 +65,17 @@ typedef struct UartContext {
     FuriHalSerialHandle* gps_handle;
     FuriStreamBuffer* gps_stream;
     FuriThread* rx_thread;
+    // Serializes the worker with file/stream reconfiguration. Never used in IRQ.
+    FuriMutex* worker_mutex;
     FuriStreamBuffer* rx_stream;
-    FuriStreamBuffer* pcap_stream;
-    FuriStreamBuffer* csv_stream;
-    bool pcap;
-    bool csv;
-    bool pcap_flush_pending;
-    // Firmware always sends a single '\n' right after every [BUF/CLOSE]/[CSV/CLOSE]
-    // marker as a wire delimiter; it isn't part of the marker itself and isn't
-    // meant for any stream, so swallow exactly one after a close marker.
-    bool swallow_next_newline;
-    uint8_t mark_test_buf[11]; // Fixed size for markers
-    uint8_t mark_test_idx;
-    uint8_t mark_candidate_mask;
-    uint8_t rx_buf[RX_BUF_SIZE + 1]; // Add +1 for null termination
+    UartFrameType capture_type;
+    UartFraming framing;
+    volatile uint32_t rx_last_tick;
+    volatile uint32_t rx_dropped_bytes;
+    uint8_t write_buf[UART_WRITE_BUFFER_SIZE];
+    size_t write_len;
+    UartFrameType write_type;
+    bool capture_sync_pending;
     void (*handle_rx_data_cb)(uint8_t* buf, size_t len, void* context);
     void (*handle_rx_pcap_cb)(uint8_t* buf, size_t len, void* context);
     void (*handle_rx_csv_cb)(uint8_t* buf, size_t len, void* context);
@@ -89,7 +83,6 @@ typedef struct UartContext {
     UartStorageContext* storageContext;
     bool is_serial_active;
     TextBufferManager* text_manager;
-    size_t pcap_buf_len; // Current PCAP buffer length
 } UartContext;
 
 // Function prototypes
@@ -112,6 +105,7 @@ void uart_reset_text_buffers(UartContext* uart);
 bool uart_copy_text_buffer(UartContext* uart, char* out, size_t out_size, size_t* out_len);
 bool uart_copy_text_buffer_tail(UartContext* uart, char* out, size_t out_size, size_t* out_len);
 void uart_cleanup_capture_streams(UartContext* uart);
+void uart_wait_capture_idle(UartContext* uart);
 
 #endif
 

@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.9.1
+
+- Stripped terminal color/control codes from text and logs.
+- Reduced capture memory use; preserved log history.
+- Fixed CSV/PCAP framing, switching and final flushes.
+- Fixed UART races and excessive log syncing; report RX loss.
+- Synced app version displays.
+
 ## v1.9.0
 
 ### Added

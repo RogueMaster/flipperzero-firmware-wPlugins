@@ -3695,6 +3695,10 @@ static void execute_menu_command(AppState* state, const MenuCommand* command) {
 
             if(!file_opened) {
                 FURI_LOG_E("Capture", "Failed to open capture file");
+                show_result_dialog(
+                    state,
+                    "Capture unavailable",
+                    "Check free memory\nand SD card space.\nCapture not started.");
                 return;
             }
 
@@ -3799,6 +3803,10 @@ static void execute_menu_command(AppState* state, const MenuCommand* command) {
 
         if(!file_opened) {
             FURI_LOG_E("Capture", "Failed to open capture file");
+            show_result_dialog(
+                state,
+                "Capture unavailable",
+                "Check free memory\nand SD card space.\nCapture not started.");
             return;
         }
 
@@ -4841,6 +4849,14 @@ bool back_event_callback(void* context) {
         // connection that was just started.
         if(state->settings.stop_on_back_index && !state->connect_log_active) {
             send_uart_command(wifi_stop_command.command, state);
+        }
+        // The firmware buffers captured rows and flushes them as framed chunks;
+        // stopping makes it emit one final flush. Give that frame a moment to
+        // arrive before the capture streams are torn down, otherwise the tail
+        // of the capture is lost or leaks into the text log.
+        if(state->settings.stop_on_back_index && !state->connect_log_active &&
+           state->uart_context && state->uart_context->capture_type != UartFrameText) {
+            uart_wait_capture_idle(state->uart_context);
         }
         state->connect_log_active = false;
         if(state->uart_context) {

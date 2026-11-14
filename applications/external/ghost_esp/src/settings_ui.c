@@ -1,4 +1,5 @@
 #include "settings_ui.h"
+#include "app_version.h"
 #include "settings_ui_types.h"
 #include "settings_def.h"
 #include "app_state.h"
@@ -585,7 +586,8 @@ bool settings_custom_event_callback(void* context, uint32_t event_id) {
                                 "Built with <3\n"
                                 "GhostESP-Revival/GhostESP-FlipperCompanion\n\n";
 
-        confirmation_view_set_header(app_state->confirmation_view, "Ghost ESP v1.8.3");
+        confirmation_view_set_header(
+            app_state->confirmation_view, "Ghost ESP v" GHOSTESP_APP_VERSION);
         confirmation_view_set_text(app_state->confirmation_view, info_text);
 
         // Save current view before switching

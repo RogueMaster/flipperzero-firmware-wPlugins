@@ -212,7 +212,8 @@ void uart_storage_rx_callback(uint8_t* buf, size_t len, void* context) {
     }
 
     // **Ensure PCAP File is Open**
-    if(!app->storageContext->current_file || !app->storageContext->HasOpenedFile) {
+    if(!app->storageContext->current_file ||
+       !storage_file_is_open(app->storageContext->current_file)) {
         FURI_LOG_E("Storage", "PCAP file is not open. Data cannot be written.");
         return;
     }
@@ -234,7 +235,6 @@ void uart_storage_rx_callback(uint8_t* buf, size_t len, void* context) {
     if(written != len) {
         FURI_LOG_E(
             "Storage", "Failed to write PCAP data: Expected %zu, Written %zu", len, written);
-        app->pcap = false; // Reset PCAP state on write failure
         return;
     }
 

@@ -91,7 +91,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Archive and file-browser icon copy, sorting, and selection fixes (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/a23fea8740ed8bcfc6fe31feee5451340fefacba)
 - ESP Flasher: [Comes with Marauder v1.20.0 (By justcallmekoko)](https://github.com/justcallmekoko/ESP32Marauder/releases/tag/v1.20.0)
 - Updated: [FlipBIP Crypto Wallet v2.1 (By xtruan)](https://github.com/xtruan/FlipBIP)
-- Updated: [Ghost ESP v1.9 (By jaylikesbunda & Spooks4576)](https://github.com/Spooks4576/ghost_esp_app) `Req: ESP32` with [Ghost ESP Firmware](https://github.com/Spooks4576/Ghost_ESP)
 - Updated: [Networking NFC + QR v2.0 filename conflict handling and URL validation (By DonJulve)](https://github.com/DonJulve/Networking_NFC_QR_Flipper_Zero)
 - Added: [Tea Timer v1.0 (By igordanilov)](https://github.com/polarikus/FlipperZero-TeaTimer)
 - Added: [Pokemon Battle [GBC] v0.1 (By cycalo)](https://github.com/cycalo/Flipper-Zero-Game-Boy-Pokemon-Battle) `Req: Link Cable/Adaptor`
@@ -340,6 +339,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [PwnPal v3.0.1 (By mrq1911)](https://github.com/mrq1911/pwnpal) - ESP32 Pwnagotchi companion `Req: ESP32`
 - Updated: [NFC Magic v2.4 ISO15693 gen1/gen2 support (By mfcarroll)](https://github.com/xMasterX/all-the-plugins/pull/250)
 - Fixed: [PVS-Studio warnings in Archive and NFC (By Project516)](https://github.com/flipperdevices/flipperzero-firmware/pull/4517)
+- Updated: [Ghost ESP v1.9.1 (By jaylikesbunda & Spooks4576)](https://github.com/Spooks4576/ghost_esp_app) `Req: ESP32` with [Ghost ESP Firmware](https://github.com/Spooks4576/Ghost_ESP)
 
 <a name="release"></a>
 
@@ -923,7 +923,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [GB Printer v0.5 (By kbembedded)](https://github.com/kbembedded/flipper-gb-printer) `Req: GB Link Cable / Malveke`
 - [Gemini IA v1.1 (By d4rks1d33 & jamisonderek)](https://github.com/d4rks1d33/Gemini-Flipper)
 - [Genie Recorder v3.2 (By jamisonderek)](https://github.com/jamisonderek/flipper-zero-tutorials/tree/main/subghz/apps/genie-recorder)
-- [Ghost ESP v1.9 (By jaylikesbunda & Spooks4576)](https://github.com/Spooks4576/ghost_esp_app) - Wi-Fi/Bluetooth testing companion `Req: ESP32` with [Ghost ESP Firmware](https://github.com/Spooks4576/Ghost_ESP)
+- [Ghost ESP v1.9.1 (By jaylikesbunda & Spooks4576)](https://github.com/Spooks4576/ghost_esp_app) - Wi-Fi/Bluetooth testing companion `Req: ESP32` with [Ghost ESP Firmware](https://github.com/Spooks4576/Ghost_ESP)
 - [Ghost Tracker v1.0 (By Zinetick)](https://github.com/Zinetick/ghost_tracker) - RF and proximity instruments
 - [GhostBook v0.6 (By digitard)](https://github.com/digitard/ghostbook) - Encrypted NFC contact sharing
 - [GhostTag v2.0 (By at0m-b0mb)](https://github.com/at0m-b0mb/GhostTag-FlipperZero) - Persistent Bluetooth tracker detection `Req: ESP32`

@@ -11,8 +11,7 @@ uint32_t g_uart_rx_session_bytes = 0;
 bool g_uart_rx_session_started = false;
 uint32_t g_uart_callback_count = 0;
 
-#define WORKER_ALL_RX_EVENTS \
-    (WorkerEvtStop | WorkerEvtRxDone | WorkerEvtPcapDone | WorkerEvtCsvDone)
+#define WORKER_ALL_RX_EVENTS   (WorkerEvtStop | WorkerEvtRxDone)
 #define PCAP_WRITE_CHUNK_SIZE  1024
 #define AP_LIST_TIMEOUT_MS     5000
 #define INITIAL_BUFFER_SIZE    2048
@@ -202,181 +201,19 @@ static void text_buffer_restore_view_terminator(TextBufferManager* manager, char
     if(end >= manager->capacity) end = manager->capacity - 1;
     manager->buffer[end] = saved_char;
 }
+// The interrupt owns only the input queue. Parsing, files and UI belong to
+// the worker, so no capture-start allocation or IRQ-side mutex is needed.
 static void
     uart_rx_callback(FuriHalSerialHandle* handle, FuriHalSerialRxEvent event, void* context) {
-    g_uart_callback_count++;
-
-    UartContext* uart = (UartContext*)context;
-    const char* mark_pcap_begin = "[BUF/BEGIN]";
-    const char* mark_pcap_close = "[BUF/CLOSE]";
-    const char* mark_csv_begin = "[CSV/BEGIN]";
-    const char* mark_csv_close = "[CSV/CLOSE]";
-    size_t mark_len = 11;
-
-    if(!uart || !uart->text_manager || event != FuriHalSerialRxEventData) {
-        return;
-    }
-
+    UartContext* uart = context;
+    if(!uart || event != FuriHalSerialRxEventData) return;
     uint8_t data = furi_hal_serial_async_rx(handle);
-
-    g_uart_rx_session_bytes++;
-
-    if(uart->swallow_next_newline) {
-        uart->swallow_next_newline = false;
-        if(data == '\n') {
-            return;
-        }
-        // Not the expected delimiter; fall through and process normally.
-    }
-
-    // Check if we're collecting a marker
-    if(uart->mark_test_idx > 0) {
-        if(uart->mark_test_idx >= sizeof(uart->mark_test_buf)) {
-            uart->mark_test_idx = 0;
-            uart->mark_candidate_mask = 0;
-            return;
-        }
-
-        if(uart->mark_test_idx < mark_len) {
-            uint8_t next_mask = 0;
-            if(uart->mark_candidate_mask & 0x01) {
-                if(data == mark_pcap_begin[uart->mark_test_idx]) next_mask |= 0x01;
-            }
-            if(uart->mark_candidate_mask & 0x02) {
-                if(data == mark_pcap_close[uart->mark_test_idx]) next_mask |= 0x02;
-            }
-            if(uart->mark_candidate_mask & 0x04) {
-                if(data == mark_csv_begin[uart->mark_test_idx]) next_mask |= 0x04;
-            }
-            if(uart->mark_candidate_mask & 0x08) {
-                if(data == mark_csv_close[uart->mark_test_idx]) next_mask |= 0x08;
-            }
-
-            if(next_mask) {
-                uart->mark_test_buf[uart->mark_test_idx++] = data;
-                uart->mark_candidate_mask = next_mask;
-
-                if(uart->mark_test_idx == mark_len) {
-                    furi_mutex_acquire(uart->text_manager->mutex, FuriWaitForever);
-
-                    if(uart->mark_candidate_mask & 0x01) {
-                        // Firmware only ever emits the generic [BUF/BEGIN] marker for both
-                        // PCAP and CSV (wardrive) streams; route it to whichever capture is
-                        // actually active instead of assuming PCAP.
-                        if(uart->csv_stream && !uart->pcap_stream) {
-                            uart->pcap = false;
-                            uart->csv = true;
-                        } else {
-                            uart->csv = false;
-                            uart->pcap = true;
-                        }
-                    } else if(uart->mark_candidate_mask & 0x02) {
-                        // Symmetric close for the generic [BUF/CLOSE] marker.
-                        if(uart->csv) {
-                            uart->csv = false;
-                        } else {
-                            uart->pcap = false;
-                            uart->pcap_flush_pending = true;
-                            if(uart->rx_thread) {
-                                furi_thread_flags_set(
-                                    furi_thread_get_id(uart->rx_thread), WorkerEvtPcapDone);
-                            }
-                        }
-                        // Firmware always writes a bare '\n' right after the close
-                        // marker as a wire delimiter; swallow it so it doesn't leak
-                        // into the console as a blank line.
-                        uart->swallow_next_newline = true;
-                    } else if(uart->mark_candidate_mask & 0x04) {
-                        uart->pcap = false;
-                        uart->csv = true;
-                    } else if(uart->mark_candidate_mask & 0x08) {
-                        uart->csv = false;
-                        uart->swallow_next_newline = true;
-                    }
-
-                    furi_mutex_release(uart->text_manager->mutex);
-                    uart->mark_test_idx = 0;
-                    uart->mark_candidate_mask = 0;
-                    return;
-                }
-                return;
-            } else {
-                furi_mutex_acquire(uart->text_manager->mutex, FuriWaitForever);
-
-                if(uart->rx_thread) {
-                    if(uart->pcap && uart->pcap_stream) {
-                        if(furi_stream_buffer_send(
-                               uart->pcap_stream, uart->mark_test_buf, uart->mark_test_idx, 0) ==
-                           uart->mark_test_idx) {
-                            furi_thread_flags_set(
-                                furi_thread_get_id(uart->rx_thread), WorkerEvtPcapDone);
-                        }
-                    } else if(uart->csv && uart->csv_stream) {
-                        if(furi_stream_buffer_send(
-                               uart->csv_stream, uart->mark_test_buf, uart->mark_test_idx, 0) ==
-                           uart->mark_test_idx) {
-                            furi_thread_flags_set(
-                                furi_thread_get_id(uart->rx_thread), WorkerEvtCsvDone);
-                        }
-                    } else if(uart->rx_stream) {
-                        if(furi_stream_buffer_send(
-                               uart->rx_stream, uart->mark_test_buf, uart->mark_test_idx, 0) ==
-                           uart->mark_test_idx) {
-                            furi_thread_flags_set(
-                                furi_thread_get_id(uart->rx_thread), WorkerEvtRxDone);
-                        }
-                    }
-                }
-
-                furi_mutex_release(uart->text_manager->mutex);
-                uart->mark_test_idx = 0;
-                uart->mark_candidate_mask = 0;
-
-                if(data == mark_pcap_begin[0] || data == mark_pcap_close[0] ||
-                   data == mark_csv_begin[0] || data == mark_csv_close[0]) {
-                    uart->mark_test_buf[0] = data;
-                    uart->mark_test_idx = 1;
-                    uart->mark_candidate_mask = 0x0F;
-                    return;
-                }
-            }
-        }
-    }
-
-    if(uart->mark_test_idx == 0) {
-        if(data == mark_pcap_begin[0] || data == mark_pcap_close[0] || data == mark_csv_begin[0] ||
-           data == mark_csv_close[0]) {
-            uart->mark_test_buf[0] = data;
-            uart->mark_test_idx = 1;
-            uart->mark_candidate_mask = 0x0F;
-            return;
-        }
-    }
-
-    // Handle regular data atomically
-    furi_mutex_acquire(uart->text_manager->mutex, FuriWaitForever);
-
-    bool current_pcap = uart->pcap;
-    bool current_csv = uart->csv;
-
-    // Ensure valid thread and stream before sending
-    if(uart->rx_thread) {
-        if(current_pcap && uart->pcap_stream) {
-            if(furi_stream_buffer_send(uart->pcap_stream, &data, 1, 0) == 1) {
-                furi_thread_flags_set(furi_thread_get_id(uart->rx_thread), WorkerEvtPcapDone);
-            }
-        } else if(current_csv && uart->csv_stream) {
-            if(furi_stream_buffer_send(uart->csv_stream, &data, 1, 0) == 1) {
-                furi_thread_flags_set(furi_thread_get_id(uart->rx_thread), WorkerEvtCsvDone);
-            }
-        } else if(uart->rx_stream) {
-            if(furi_stream_buffer_send(uart->rx_stream, &data, 1, 0) == 1) {
-                furi_thread_flags_set(furi_thread_get_id(uart->rx_thread), WorkerEvtRxDone);
-            }
-        }
-    }
-
-    furi_mutex_release(uart->text_manager->mutex);
+    ++g_uart_callback_count;
+    ++g_uart_rx_session_bytes;
+    uart->rx_last_tick = furi_get_tick();
+    if(furi_stream_buffer_send(uart->rx_stream, &data, 1, 0) != 1) ++uart->rx_dropped_bytes;
+    if(uart->rx_thread)
+        furi_thread_flags_set(furi_thread_get_id(uart->rx_thread), WorkerEvtRxDone);
 }
 
 void handle_uart_rx_data(uint8_t* buf, size_t len, void* context) {
@@ -387,15 +224,11 @@ void handle_uart_rx_data(uint8_t* buf, size_t len, void* context) {
         return;
     }
 
-    // Only log data if NOT in PCAP or CSV mode
-    if(!state->uart_context->pcap && !state->uart_context->csv &&
-       state->uart_context->storageContext && state->uart_context->storageContext->log_file &&
-       state->uart_context->storageContext->HasOpenedFile) {
+    // This stream was already classified as text by the RX parser. Its routing
+    // must not depend on whether a later frame is currently arriving.
+    if(state->uart_context->storageContext && state->uart_context->storageContext->log_file &&
+       storage_file_is_open(state->uart_context->storageContext->log_file)) {
         static size_t bytes_since_sync = 0;
-
-        if(bytes_since_sync > 1024 && state->uart_context->storageContext->HasOpenedFile) {
-            bytes_since_sync = 0;
-        }
 
         size_t written =
             storage_file_write(state->uart_context->storageContext->log_file, buf, len);
@@ -404,7 +237,7 @@ void handle_uart_rx_data(uint8_t* buf, size_t len, void* context) {
             FURI_LOG_E("UART", "Failed to write log data: expected %zu, wrote %zu", len, written);
         } else {
             bytes_since_sync += written;
-            if(bytes_since_sync >= 1024) { // Sync every 1KB
+            if(bytes_since_sync >= 8192 && state->uart_context->capture_type == UartFrameText) {
                 storage_file_sync(state->uart_context->storageContext->log_file);
                 bytes_since_sync = 0;
                 FURI_LOG_D("UART", "Synced log file to storage");
@@ -433,73 +266,77 @@ void handle_uart_rx_data(uint8_t* buf, size_t len, void* context) {
     }
 }
 
+static void uart_flush_output(UartContext* uart) {
+    if(!uart->write_len) return;
+    if(uart->write_type == UartFrameText) {
+        if(uart->handle_rx_data_cb && uart->state)
+            uart->handle_rx_data_cb(uart->write_buf, uart->write_len, uart->state);
+    } else if(uart->write_type == UartFrameCsv) {
+        if(uart->handle_rx_csv_cb) uart->handle_rx_csv_cb(uart->write_buf, uart->write_len, uart);
+    } else {
+        if(uart->handle_rx_pcap_cb)
+            uart->handle_rx_pcap_cb(uart->write_buf, uart->write_len, uart);
+    }
+    uart->write_len = 0;
+}
+
+static void uart_route_output(UartFrameType type, const uint8_t* data, size_t len, void* context) {
+    UartContext* uart = context;
+    if(!len) {
+        uart_flush_output(uart);
+        if(type == UartFramePcap) uart->capture_sync_pending = true;
+        return;
+    }
+    if(uart->capture_type == UartFrameText) type = UartFrameText;
+    if(type != uart->write_type) uart_flush_output(uart);
+    uart->write_type = type;
+    while(len) {
+        size_t count = sizeof(uart->write_buf) - uart->write_len;
+        if(count > len) count = len;
+        memcpy(uart->write_buf + uart->write_len, data, count);
+        uart->write_len += count;
+        data += count;
+        len -= count;
+        if(uart->write_len == sizeof(uart->write_buf)) uart_flush_output(uart);
+    }
+}
+
+// Caller holds worker_mutex; the IRQ can continue filling the single queue.
+static void uart_drain_input(UartContext* uart) {
+    uint8_t input[128];
+    size_t len;
+    while((len = furi_stream_buffer_receive(uart->rx_stream, input, sizeof(input), 0)) != 0) {
+        uart_framing_feed(&uart->framing, input, len, uart_route_output, uart);
+    }
+    uart_flush_output(uart);
+    if(uart->capture_sync_pending && uart->storageContext &&
+       storage_file_is_open(uart->storageContext->current_file)) {
+        storage_file_sync(uart->storageContext->current_file);
+    }
+    uart->capture_sync_pending = false;
+}
+
 static int32_t uart_worker(void* context) {
-    UartContext* uart = (UartContext*)context;
+    UartContext* uart = context;
     if(!uart) return -1;
-
-    FURI_LOG_I("Worker", "UART worker thread started");
-
-    while(1) {
+    uint32_t reported_drops = 0;
+    for(;;) {
         uint32_t events =
             furi_thread_flags_wait(WORKER_ALL_RX_EVENTS, FuriFlagWaitAny, FuriWaitForever);
-
-        FURI_LOG_D("Worker", "Received events: 0x%08lX", (unsigned long)events);
-
-        // Check for stop first
+        furi_mutex_acquire(uart->worker_mutex, FuriWaitForever);
+        uart_drain_input(uart);
         if(events & WorkerEvtStop) {
-            FURI_LOG_I("Worker", "Stopping worker thread");
-            break;
+            uart_framing_finish(&uart->framing, uart_route_output, uart);
+            uart_flush_output(uart);
         }
-
-        // Process RX data if stream is still valid
-        if((events & WorkerEvtRxDone) && uart->rx_stream) {
-            size_t len = furi_stream_buffer_receive(uart->rx_stream, uart->rx_buf, RX_BUF_SIZE, 0);
-            FURI_LOG_D("Worker", "Processing rx_stream data: %zu bytes", len);
-
-            if(len > 0 && uart->handle_rx_data_cb && uart->state) {
-                uart->handle_rx_data_cb(uart->rx_buf, len, uart->state);
-            }
+        uint32_t dropped = uart->rx_dropped_bytes;
+        if(dropped != reported_drops) {
+            FURI_LOG_E("UART", "RX buffer overflow: %lu bytes lost in this session", dropped);
+            reported_drops = dropped;
         }
-
-        // Process PCAP data if stream is still valid
-        if((events & WorkerEvtPcapDone) && uart->pcap_stream) {
-            size_t total = 0;
-            size_t len = 0;
-            do {
-                len = furi_stream_buffer_receive(uart->pcap_stream, uart->rx_buf, RX_BUF_SIZE, 0);
-                if(len > 0) {
-                    FURI_LOG_D("Worker", "Processing pcap_stream data: %zu bytes", len);
-                    if(uart->handle_rx_pcap_cb) {
-                        uart->handle_rx_pcap_cb(uart->rx_buf, len, uart);
-                    }
-                    total += len;
-                }
-            } while(len > 0);
-
-            if(uart->pcap_flush_pending && uart->storageContext &&
-               uart->storageContext->current_file) {
-                storage_file_sync(uart->storageContext->current_file);
-                uart->pcap_flush_pending = false;
-                FURI_LOG_I(
-                    "Worker",
-                    "Flushed PCAP frame on CLOSE (drained %zu bytes, stream now synced)",
-                    total);
-            }
-        }
-
-        // Process CSV data if stream is still valid
-        if((events & WorkerEvtCsvDone) && uart->csv_stream) {
-            size_t len =
-                furi_stream_buffer_receive(uart->csv_stream, uart->rx_buf, RX_BUF_SIZE, 0);
-            FURI_LOG_D("Worker", "Processing csv_stream data: %zu bytes", len);
-
-            if(len > 0 && uart->handle_rx_csv_cb) {
-                uart->handle_rx_csv_cb(uart->rx_buf, len, uart);
-            }
-        }
+        furi_mutex_release(uart->worker_mutex);
+        if(events & WorkerEvtStop) break;
     }
-
-    FURI_LOG_I("Worker", "Worker thread exited");
     return 0;
 }
 
@@ -529,20 +366,16 @@ UartContext* uart_init(AppState* state) {
         return NULL;
     }
     memset(uart, 0, sizeof(UartContext));
+    uart->worker_mutex = furi_mutex_alloc(FuriMutexTypeNormal);
+    if(!uart->worker_mutex) {
+        free(uart);
+        return NULL;
+    }
 
     uart->state = state;
     uart->is_serial_active = false;
-    uart->pcap = false;
-    uart->csv = false;
-    uart->mark_test_idx = 0;
-    uart->mark_candidate_mask = 0;
-    uart->pcap_buf_len = 0;
-    uart->pcap_flush_pending = false;
-
-    // Initialize rx stream
-    uart->rx_stream = furi_stream_buffer_alloc(RX_BUF_SIZE, 1);
-    uart->pcap_stream = NULL; // Allocate on demand
-    uart->csv_stream = NULL; // Allocate on demand
+    uart_framing_reset(&uart->framing, UartFrameText);
+    uart->rx_stream = furi_stream_buffer_alloc(UART_RX_QUEUE_SIZE, 1);
 
     if(!uart->rx_stream) {
         FURI_LOG_E("UART", "Failed to allocate rx stream buffer");
@@ -584,8 +417,6 @@ UartContext* uart_init(AppState* state) {
         return NULL;
     }
 
-    furi_hal_serial_async_rx_start(uart->serial_handle, uart_rx_callback, uart, false);
-
     // Initialize RX thread
     uart->rx_thread = furi_thread_alloc();
     if(uart->rx_thread) {
@@ -599,6 +430,8 @@ UartContext* uart_init(AppState* state) {
         uart_free(uart);
         return NULL;
     }
+
+    furi_hal_serial_async_rx_start(uart->serial_handle, uart_rx_callback, uart, false);
 
     uint32_t duration = furi_get_tick() - start_time;
     FURI_LOG_I("UART", "UART initialization complete (Time taken: %lu ms)", duration);
@@ -652,16 +485,6 @@ void uart_free(UartContext* uart) {
         uart->rx_stream = NULL;
     }
 
-    if(uart->pcap_stream) {
-        furi_stream_buffer_free(uart->pcap_stream);
-        uart->pcap_stream = NULL;
-    }
-
-    if(uart->csv_stream) {
-        furi_stream_buffer_free(uart->csv_stream);
-        uart->csv_stream = NULL;
-    }
-
     // Clean up storage context
     if(uart->storageContext) {
         uart_storage_free(uart->storageContext);
@@ -675,6 +498,7 @@ void uart_free(UartContext* uart) {
     }
 
     // Finally free the UART context
+    if(uart->worker_mutex) furi_mutex_free(uart->worker_mutex);
     FURI_LOG_I("UART", "Freeing UART context");
     free(uart);
     FURI_LOG_I("UART", "UART cleanup complete");
@@ -768,31 +592,40 @@ bool uart_is_esp_connected(UartContext* uart) {
     return connected;
 }
 
+void uart_wait_capture_idle(UartContext* uart) {
+    if(!uart || uart->capture_type == UartFrameText) return;
+    uint32_t started = furi_get_tick();
+    while(furi_get_tick() - started < furi_ms_to_ticks(3000)) {
+        furi_mutex_acquire(uart->worker_mutex, FuriWaitForever);
+        bool idle = uart->framing.frame_type == UartFrameText && !uart->framing.prefix_len &&
+                    furi_stream_buffer_bytes_available(uart->rx_stream) == 0;
+        furi_mutex_release(uart->worker_mutex);
+        uint32_t now = furi_get_tick();
+        if(now - started >= furi_ms_to_ticks(350) && idle &&
+           now - uart->rx_last_tick >= furi_ms_to_ticks(150))
+            return;
+        furi_delay_ms(10);
+    }
+    FURI_LOG_W("UART", "Timed out waiting for capture stream to finish");
+}
+
 void uart_cleanup_capture_streams(UartContext* uart) {
     if(!uart) return;
-
-    if(uart->is_serial_active) {
-        furi_hal_serial_async_rx_stop(uart->serial_handle);
+    if(uart->is_serial_active) furi_hal_serial_async_rx_stop(uart->serial_handle);
+    furi_mutex_acquire(uart->worker_mutex, FuriWaitForever);
+    uart_drain_input(uart);
+    uart_framing_finish(&uart->framing, uart_route_output, uart);
+    uart_flush_output(uart);
+    uart->capture_type = UartFrameText;
+    if(uart->storageContext) {
+        if(storage_file_is_open(uart->storageContext->current_file))
+            storage_file_sync(uart->storageContext->current_file);
+        if(storage_file_is_open(uart->storageContext->log_file))
+            storage_file_sync(uart->storageContext->log_file);
     }
-
-    if(uart->pcap_stream) {
-        furi_stream_buffer_free(uart->pcap_stream);
-        uart->pcap_stream = NULL;
-        FURI_LOG_I("UART", "Freed PCAP stream on exit");
-    }
-    if(uart->csv_stream) {
-        furi_stream_buffer_free(uart->csv_stream);
-        uart->csv_stream = NULL;
-        FURI_LOG_I("UART", "Freed CSV stream on exit");
-    }
-
-    uart->pcap = false;
-    uart->csv = false;
-    uart->pcap_flush_pending = false;
-
-    if(uart->is_serial_active) {
+    furi_mutex_release(uart->worker_mutex);
+    if(uart->is_serial_active)
         furi_hal_serial_async_rx_start(uart->serial_handle, uart_rx_callback, uart, false);
-    }
 }
 
 bool uart_receive_data(
@@ -811,72 +644,32 @@ bool uart_receive_data(
     // connect_log_active after this call returns.
     state->connect_log_active = false;
 
+    uart_cleanup_capture_streams(uart);
+    if(uart->is_serial_active) {
+        furi_hal_serial_async_rx_stop(uart->serial_handle);
+    }
+    furi_mutex_acquire(uart->worker_mutex, FuriWaitForever);
+
     // Close any existing file
-    if(uart->storageContext->HasOpenedFile) {
+    if(storage_file_is_open(uart->storageContext->current_file)) {
         storage_file_sync(uart->storageContext->current_file);
         storage_file_close(uart->storageContext->current_file);
         uart->storageContext->HasOpenedFile = false;
     }
 
-    FURI_LOG_I(
-        "UART", "[INIT] uart_receive_data: BEFORE reset pcap=%d csv=%d", uart->pcap, uart->csv);
-    uart->pcap = false;
-    uart->csv = false;
-    uart->pcap_flush_pending = false;
-    FURI_LOG_I(
-        "UART",
-        "[INIT] uart_receive_data: AFTER reset pcap=%d csv=%d (should be 0 0)",
-        uart->pcap,
-        uart->csv);
-
-    // Stop RX briefly to safely reconfigure streams
-    if(uart->is_serial_active) {
-        furi_hal_serial_async_rx_stop(uart->serial_handle);
-    }
-
-    // Reset or free streams
-    if(uart->pcap_stream) {
-        furi_stream_buffer_reset(uart->pcap_stream);
-    }
-    if(uart->csv_stream) {
-        furi_stream_buffer_reset(uart->csv_stream);
-    }
-
-    // Check if we need to allocate streams
-    if(extension && strlen(extension) > 0) {
-        if(strcmp(extension, "pcap") == 0) {
-            if(!uart->pcap_stream) {
-                uart->pcap_stream = furi_stream_buffer_alloc(PCAP_BUF_SIZE, 1);
-                FURI_LOG_I("UART", "Allocated PCAP stream");
-            }
-        } else if(strcmp(extension, "csv") == 0) {
-            if(!uart->csv_stream) {
-                uart->csv_stream = furi_stream_buffer_alloc(RX_BUF_SIZE, 1);
-                FURI_LOG_I("UART", "Allocated CSV stream");
-            }
-        }
-    } else {
-        // If not capturing, we can free unused streams to save memory
-        if(uart->pcap_stream) {
-            furi_stream_buffer_free(uart->pcap_stream);
-            uart->pcap_stream = NULL;
-            FURI_LOG_I("UART", "Freed PCAP stream");
-        }
-        if(uart->csv_stream) {
-            furi_stream_buffer_free(uart->csv_stream);
-            uart->csv_stream = NULL;
-            FURI_LOG_I("UART", "Freed CSV stream");
-        }
-    }
-
-    // Restart RX if it was active
-    if(uart->is_serial_active) {
-        furi_hal_serial_async_rx_start(uart->serial_handle, uart_rx_callback, uart, false);
-    }
+    // Capture mode changes only the destination. The UART queue is shared
+    // across text, CSV and PCAP, with no allocation at capture startup.
+    uart->capture_type = UartFrameText;
+    if(extension && strcmp(extension, "pcap") == 0) uart->capture_type = UartFramePcap;
+    if(extension && strcmp(extension, "csv") == 0) uart->capture_type = UartFrameCsv;
+    furi_stream_buffer_reset(uart->rx_stream);
+    uart_framing_reset(&uart->framing, uart->capture_type);
+    uart->write_len = 0;
 
     g_uart_rx_session_bytes = 0;
     g_uart_rx_session_started = false;
     g_uart_callback_count = 0;
+    uart->rx_dropped_bytes = 0;
 
     FURI_LOG_I("UART", "[INIT] Reset RX logging counters for new session");
 
@@ -914,8 +707,20 @@ bool uart_receive_data(
 
         if(!uart->storageContext->HasOpenedFile) {
             FURI_LOG_E("UART", "Failed to open file");
+            uart->capture_type = UartFrameText;
+            uart_framing_reset(&uart->framing, UartFrameText);
+            furi_mutex_release(uart->worker_mutex);
+            if(uart->is_serial_active) {
+                furi_hal_serial_async_rx_start(uart->serial_handle, uart_rx_callback, uart, false);
+            }
             return false;
         }
+    }
+
+    furi_mutex_release(uart->worker_mutex);
+    // The destination file and routing are ready before the first RX byte.
+    if(uart->is_serial_active) {
+        furi_hal_serial_async_rx_start(uart->serial_handle, uart_rx_callback, uart, false);
     }
 
     // Set the view state before switching
