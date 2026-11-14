@@ -339,6 +339,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Tone TX v1.1 (By Marcopiiit)](https://github.com/skylovervibecoder/Flipper-Zero-Tone-TX)
 - Updated: [PwnPal v3.0.1 (By mrq1911)](https://github.com/mrq1911/pwnpal) - ESP32 Pwnagotchi companion `Req: ESP32`
 - Updated: [NFC Magic v2.4 ISO15693 gen1/gen2 support (By mfcarroll)](https://github.com/xMasterX/all-the-plugins/pull/250)
+- Fixed: [PVS-Studio warnings in Archive and NFC (By Project516)](https://github.com/flipperdevices/flipperzero-firmware/pull/4517)
 
 <a name="release"></a>
 
