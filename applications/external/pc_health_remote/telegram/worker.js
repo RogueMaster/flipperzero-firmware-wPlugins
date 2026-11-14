@@ -16,6 +16,8 @@ export const PRO_MAX_PCS = 5;
 export const CODE_TTL_SEC = 600;
 export const SUPPORT_WINDOW_SEC = 3600; // after /paysupport, the next free-text message goes to the admin
 export const SUPPORT_URL = "https://github.com/ataman-lab/pc-health-remote/issues";
+// Brand mailbox (Zoho, lands in the developer's inbox). Telegram /support via HQ stays the main channel.
+export const SUPPORT_EMAIL = "support@pchealthremote.com";
 // Shown in the bot menu (setMyCommands via admin /setcommands). Telegram requires /paysupport for Stars bots.
 export const COMMANDS = {
   en: [
@@ -137,9 +139,9 @@ const T = {
     status: (plan, exp, pcs, n, id, admin) => "Plan: " + plan + (exp ? "\nExpires: " + exp : "") + "\nPCs: " + pcs + "\nAlerts today: " + n + "\nChat id: " + id + (admin ? " (admin)" : ""),
     limit: "Daily free limit of " + FREE_DAILY_LIMIT + " alerts reached. More alerts will be dropped until tomorrow (UTC).",
     menu: "Main menu",
-    helpMenu: "Help: pick a topic below.",
+    helpMenu: "Help: pick a topic below.\nEmail: " + SUPPORT_EMAIL,
     pcsHint: "Tap a button to unlink a PC, or Back.",
-    help: "Commands:\n/link - code to link a PC\n/pcs - linked PCs\n/unlink <name> - remove a PC\n/status - plan, alerts today, chat id\n/pro - Pro subscription\n/menu - main menu buttons\n/paysupport - help with a payment\n/terms - terms of Pro\n/support - report a problem",
+    help: "Commands:\n/link - code to link a PC\n/pcs - linked PCs\n/unlink <name> - remove a PC\n/status - plan, alerts today, chat id\n/pro - Pro subscription\n/menu - main menu buttons\n/paysupport - help with a payment\n/terms - terms of Pro\n/support - report a problem\nEmail: " + SUPPORT_EMAIL,
     payBtn: "Pay " + PRO_PRICE_STARS + " ⭐ for 30 days",
     pcLimit: "This PC was not linked: the free plan has " + FREE_MAX_PCS + " PC. Unlink one with /unlink <name>, or get Pro for up to " + PRO_MAX_PCS + " PCs.",
     pcLimitPro: "This PC was not linked: Pro allows up to " + PRO_MAX_PCS + " PCs. Unlink one with /unlink <name>.",
@@ -149,8 +151,8 @@ const T = {
       "\nTelegram support cannot help with purchases in this bot.",
     sentToSupport: "Sent to the developer. You will get an answer here.",
     terms:
-      "Terms of PC Health Remote Pro\n1. Pro costs " + PRO_PRICE_STARS + " Stars per 30 days and renews until you cancel the subscription in Telegram. After Pro ends, linked PCs stay; the free limit of " + FREE_DAILY_LIMIT + " alerts/day applies again.\n2. Pro removes the daily limit of " + FREE_DAILY_LIMIT + " alerts and allows up to " + PRO_MAX_PCS + " PCs.\n3. Refunds: ask via /paysupport, refunds are made in Telegram Stars.\n4. Alerts are best effort, no warranty: do not rely on them for safety-critical equipment.\n5. Stored: chat id, language, source tag, PC names and device keys, counters, payment records (charge id, amount, date). /unlink removes a PC and its key.\nThe app is free and open source (MIT).",
-    support: "Bug or idea? Open an issue: " + SUPPORT_URL + "\nPayment questions: /paysupport",
+      "Terms of PC Health Remote Pro\n1. Pro costs " + PRO_PRICE_STARS + " Stars per 30 days and renews until you cancel the subscription in Telegram. After Pro ends, linked PCs stay; the free limit of " + FREE_DAILY_LIMIT + " alerts/day applies again.\n2. Pro removes the daily limit of " + FREE_DAILY_LIMIT + " alerts and allows up to " + PRO_MAX_PCS + " PCs.\n3. Refunds: ask via /paysupport, refunds are made in Telegram Stars.\n4. Alerts are best effort, no warranty: do not rely on them for safety-critical equipment.\n5. Stored: chat id, language, source tag, PC names and device keys, counters, payment records (charge id, amount, date). /unlink removes a PC and its key.\n6. Contact and data requests: " + SUPPORT_EMAIL + "\nThe app is free and open source (MIT).",
+    support: "Bug or idea? Open an issue: " + SUPPORT_URL + "\nEmail: " + SUPPORT_EMAIL + "\nPayment questions: /paysupport",
   },
   ru: {
     code: (c) => "Ваш код: " + c + "\nДействует 10 минут. На ПК выполните:\npc-health-remote.exe --link-telegram " + c,
@@ -167,9 +169,9 @@ const T = {
     status: (plan, exp, pcs, n, id, admin) => "Тариф: " + plan + (exp ? "\nДо: " + exp : "") + "\nПК: " + pcs + "\nУведомлений сегодня: " + n + "\nChat id: " + id + (admin ? " (админ)" : ""),
     limit: "Достигнут бесплатный лимит: " + FREE_DAILY_LIMIT + " уведомлений в сутки. Остальные до завтра (UTC) не будут отправлены.",
     menu: "Главное меню",
-    helpMenu: "Помощь: выберите раздел кнопкой ниже.",
+    helpMenu: "Помощь: выберите раздел кнопкой ниже.\nПочта: " + SUPPORT_EMAIL,
     pcsHint: "Нажмите кнопку, чтобы отвязать ПК, или Назад.",
-    help: "Команды:\n/link - код для привязки ПК\n/pcs - привязанные ПК\n/unlink <имя> - убрать ПК\n/status - тариф, уведомления за сегодня, chat id\n/pro - подписка Pro\n/menu - кнопки главного меню\n/paysupport - помощь с оплатой\n/terms - условия Pro\n/support - сообщить о проблеме",
+    help: "Команды:\n/link - код для привязки ПК\n/pcs - привязанные ПК\n/unlink <имя> - убрать ПК\n/status - тариф, уведомления за сегодня, chat id\n/pro - подписка Pro\n/menu - кнопки главного меню\n/paysupport - помощь с оплатой\n/terms - условия Pro\n/support - сообщить о проблеме\nПочта: " + SUPPORT_EMAIL,
     payBtn: "Оплатить " + PRO_PRICE_STARS + " ⭐ за 30 дней",
     pcLimit: "ПК не привязан: в бесплатном тарифе " + FREE_MAX_PCS + " ПК. Отвяжите лишний через /unlink <имя> или возьмите Pro (до " + PRO_MAX_PCS + " ПК).",
     pcLimitPro: "ПК не привязан: в Pro до " + PRO_MAX_PCS + " ПК. Отвяжите лишний через /unlink <имя>.",
@@ -179,8 +181,8 @@ const T = {
       "\nПоддержка Telegram не помогает с покупками в этом боте.",
     sentToSupport: "Отправлено разработчику. Ответ придёт сюда.",
     terms:
-      "Условия PC Health Remote Pro\n1. Pro стоит " + PRO_PRICE_STARS + " Stars за 30 дней и продлевается, пока вы не отмените подписку в Telegram. После окончания Pro привязанные ПК остаются, снова действует лимит " + FREE_DAILY_LIMIT + " уведомлений в сутки.\n2. Pro снимает лимит " + FREE_DAILY_LIMIT + " уведомлений в сутки и даёт до " + PRO_MAX_PCS + " ПК.\n3. Возврат: через /paysupport, возврат делается в Stars.\n4. Уведомления без гарантий: не полагайтесь на них для критичного оборудования.\n5. Храним: id чата, язык, метку источника, имена ПК и ключи устройств, счётчики, записи об оплате (id платежа, сумма, дата). /unlink удаляет ПК и его ключ.\nПриложение бесплатное, открытый код (MIT).",
-    support: "Ошибка или идея? Создайте issue: " + SUPPORT_URL + "\nВопросы оплаты: /paysupport",
+      "Условия PC Health Remote Pro\n1. Pro стоит " + PRO_PRICE_STARS + " Stars за 30 дней и продлевается, пока вы не отмените подписку в Telegram. После окончания Pro привязанные ПК остаются, снова действует лимит " + FREE_DAILY_LIMIT + " уведомлений в сутки.\n2. Pro снимает лимит " + FREE_DAILY_LIMIT + " уведомлений в сутки и даёт до " + PRO_MAX_PCS + " ПК.\n3. Возврат: через /paysupport, возврат делается в Stars.\n4. Уведомления без гарантий: не полагайтесь на них для критичного оборудования.\n5. Храним: id чата, язык, метку источника, имена ПК и ключи устройств, счётчики, записи об оплате (id платежа, сумма, дата). /unlink удаляет ПК и его ключ.\n6. Связь и вопросы о данных: " + SUPPORT_EMAIL + "\nПриложение бесплатное, открытый код (MIT).",
+    support: "Ошибка или идея? Создайте issue: " + SUPPORT_URL + "\nПочта: " + SUPPORT_EMAIL + "\nВопросы оплаты: /paysupport",
   },
 };
 

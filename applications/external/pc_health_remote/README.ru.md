@@ -70,4 +70,6 @@ LibreHardwareMonitor.
 
 Подробности и приватность: [docs/TELEGRAM.md](docs/TELEGRAM.md) (на английском).
 
+Связь: [support@pchealthremote.com](mailto:support@pchealthremote.com) (ошибки и идеи можно и в [issues](https://github.com/ataman-lab/pc-health-remote/issues)).
+
 Протокол: [docs/PROTOCOL.md](docs/PROTOCOL.md). Лицензия: [MIT](LICENSE).
