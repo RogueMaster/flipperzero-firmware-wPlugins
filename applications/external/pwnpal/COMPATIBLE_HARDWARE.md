@@ -10,6 +10,7 @@ capture). You need both.
 | Board | Chip | Status | Notes |
 |-------|------|--------|-------|
 | **Feberis Pro** (bpmcircuits) | **classic ESP32** (chip_id 0) | ✅ tested | GPS + BT + NeoPixel on board. Ships with stock Marauder — reflash with our build. Rear switch must be set to **ESP32**. |
+| **Rabbit Labs EU ESP32-S3 v4** | ESP32-S3 | ✅ community-confirmed | Flash the published `multiboard-s3` build. Needs the Flipper 5V rail, which the app raises automatically since v3.0.1. Reported working in [#2](https://github.com/mrq1911/pwnpal/issues/2). |
 | Any board running the pwnpal Marauder fork | ESP32 / S2 / S3 | ⚠️ works, build-it-yourself | The app talks to *any* Marauder that has the `pwnpal` command, over the standard UART. We only publish a **classic-ESP32** firmware image; other chips need a matching build (see below). |
 | Official Flipper Wi-Fi devboard | ESP32-S2 | ⚠️ untested | Needs an S2 build of the fork; not currently published. |
 

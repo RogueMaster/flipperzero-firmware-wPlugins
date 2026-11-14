@@ -337,6 +337,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Solar Compass v1.0 (By Marcopiiit)](https://github.com/skylovervibecoder/Flipper-Zero-Solar-Compass)
 - Added: [TagDuplicate v1.0 (By Marcopiiit)](https://github.com/skylovervibecoder/Flipper-Zero-TagDuplicate)
 - Added: [Tone TX v1.1 (By Marcopiiit)](https://github.com/skylovervibecoder/Flipper-Zero-Tone-TX)
+- Updated: [PwnPal v3.0.1 (By mrq1911)](https://github.com/mrq1911/pwnpal) - ESP32 Pwnagotchi companion `Req: ESP32`
 
 <a name="release"></a>
 
@@ -1192,7 +1193,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [ProtoPirate v4.1 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
 - [ProtoView v1.5 (By antirez)](https://github.com/antirez/protoview) - Radio signal visualizer
 - [Pulse BPM v1.0 (By alaviation)](https://github.com/alaviation/flipper-pulse)
-- [PwnPal v3.0 (By mrq1911)](https://github.com/mrq1911/pwnpal) - ESP32 Pwnagotchi companion `Req: ESP32`
+- [PwnPal v3.0.1 (By mrq1911)](https://github.com/mrq1911/pwnpal) - ESP32 Pwnagotchi companion `Req: ESP32`
 - [QR Code v2.1.4 (By bmatcuk)](https://github.com/bmatcuk/flipperzero-qrcode)
 - [QRCode Generator v0.1 (By qw3rtty)](https://github.com/qw3rtty/flipperzero-qrcode-generator)
 - [Quac! v0.10.0 (By rdefeo)](https://github.com/rdefeo/quac) - Saved signal launcher

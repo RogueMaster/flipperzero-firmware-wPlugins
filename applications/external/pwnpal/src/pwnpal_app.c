@@ -4501,8 +4501,21 @@ static void pwnpal_app_free(PwnpalApp* app) {
 
 int32_t pwnpal_app(void* p) {
     UNUSED(p);
+    // raise the 5V OTG rail so boards that need it (e.g. ESP32-S3) power up, like the marauder companion
+    uint8_t otg_attempts = 0;
+    bool otg_was_enabled = furi_hal_power_is_otg_enabled();
+    while(!furi_hal_power_is_otg_enabled() && otg_attempts++ < 5) {
+        furi_hal_power_enable_otg();
+        furi_delay_ms(10);
+    }
+    furi_delay_ms(200);
+
     PwnpalApp* app = pwnpal_app_alloc();
     view_dispatcher_run(app->view_dispatcher);
     pwnpal_app_free(app);
+
+    if(furi_hal_power_is_otg_enabled() && !otg_was_enabled) {
+        furi_hal_power_disable_otg();
+    }
     return 0;
 }

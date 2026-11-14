@@ -11,6 +11,6 @@ App(
     fap_category="GPIO/ESP32",
     fap_author="mrq1911",
     fap_weburl="https://github.com/mrq1911/pwnpal",
-    fap_version="3.0",
+    fap_version="3.0.1",
     fap_description="A full pwnagotchi on your Flipper + ESP32: befriends other pwnagotchis over pwngrid, captures WPA/WPA2 handshakes & PMKIDs, de-cloaks hidden SSIDs, GPS wardrives, and grows a persona. Authorized use only; capture/deauth ship off behind a consent gate.",
 )
