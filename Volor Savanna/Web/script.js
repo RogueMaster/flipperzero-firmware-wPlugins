@@ -41,7 +41,7 @@ function volor_savanna_original()
 
     else
     {
-         if (character == "1")
+        if (character == "1")
         {
             hunter();
         }
@@ -64,6 +64,11 @@ function volor_savanna_original()
         if (character == "5")
         {
             medicine_person();
+        }
+
+        if (character == "the_mighty_lion")
+        {
+            the_mighty_lion()
         }
     }
 }
@@ -252,6 +257,98 @@ function hunter()
                     location.reload();
                 });
             }
+
+            if (idx == "hunter_7" && choice == "1")
+            {
+                localStorage.setItem("character", "the_mighty_lion");
+                localStorage.removeItem("choice");
+                localStorage.removeItem("idx");
+                location.reload();
+            }
+
+            if (idx == "hunter_7" && choice == "2")
+            {
+                document.getElementById("my_text").innerHTML = "You have chosen not to hunt The Mighty Lion.<br>Unfortunately, you die from malaria.<br>" + death_level;
+                document.querySelector("form").addEventListener("submit", function(event)
+                {
+                    localStorage.removeItem("character");
+                    localStorage.removeItem("choice");
+                    localStorage.removeItem("idx");
+                    location.reload();
+                });
+            }
+
+            if (idx == "hunter_8" && choice == "1")
+            {
+                localStorage.setItem("character", "the_mighty_lion");
+                localStorage.removeItem("choice");
+                localStorage.removeItem("idx");
+                location.reload();
+            }
+
+            if (idx == "hunter_8" && choice == "2")
+            {
+                document.getElementById("my_text").innerHTML = "You have chosen not to hunt The Mighty Lion.<br>Unfortunately, a random lightning bolt from out of nowhere, probably from Zeus, kills you.<br>" + death_level
+                user_input = document.getElementById("choice_field").value;
+                document.querySelector("form").addEventListener("submit", function(event)
+                {
+                    localStorage.removeItem("character");
+                    localStorage.removeItem("choice");
+                    localStorage.removeItem("idx");
+                    location.reload();
+                });
+            }
+
+            if (idx == "hunter_9" && choice == "1" && rand == 1)
+            {
+                document.getElementById("my_text").innerHTML = "Unfortunately, you don't escape.<br>They kill you on the spot with a feather.<br>" + death_level;
+                document.querySelector("form").addEventListener("submit", function(event)
+                {
+                    localStorage.removeItem("character");
+                    localStorage.removeItem("choice");
+                    localStorage.removeItem("idx");
+                    location.reload();
+                });
+            }
+
+            if (idx == "hunter_9" && choice == "1" && rand == 2)
+            {
+                document.getElementById("my_text").innerHTML = "You manage to escape.<br>You live a long and prosperous life!<br>" + victory_level;
+                document.querySelector("form").addEventListener("submit", function(event)
+                {
+                    localStorage.removeItem("character");
+                    localStorage.removeItem("choice");
+                    localStorage.removeItem("idx");
+                    location.reload();
+                });
+            }
         }
+    }
+}
+
+function the_mighty_lion()
+{
+    let rand = Math.floor(Math.random() * 2 ) + 1;
+
+    let user_name = localStorage.getItem("user_name");
+    let death_level = localStorage.getItem("death_level");
+    let victory_level = localStorage.getItem("victory_level");
+    let choice = localStorage.getItem("choice");
+    let idx = localStorage.getItem("idx");
+
+    if (choice == null)
+    {
+        document.getElementById("my_text").innerHTML = "You have chosen to hunt The Mighty Lion.<br>You have been on your journey for about a week now.<br>The trail splits off into three sections.<br>Do you choose to go through the canyon?<br>How about the prairie?<br>Or what about continuing on through the forest?<br><br>1- Canyon; 2- Prairie; 3- Forest<br>Make your choice " + user_name + ":<br>"
+        let user_input = document.getElementById("choice_field").value;
+        if (user_input.length > 0)
+        {
+            localStorage.setItem("idx", "the_mighty_lion_1");
+            localStorage.setItem("choice", user_input);
+        }
+    }
+
+    else
+    {
+        // Pass for now
     }
 }
