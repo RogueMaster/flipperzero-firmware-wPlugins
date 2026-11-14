@@ -1,4 +1,5 @@
 #include "../nfc_magic_app_i.h"
+#include "nfc_magic_scene_partial_details_common.h"
 
 void nfc_magic_scene_gen2_wipe_partial_details_on_enter(void* context) {
     NfcMagicApp* instance = context;
@@ -14,12 +15,8 @@ void nfc_magic_scene_gen2_wipe_partial_details_on_enter(void* context) {
         instance->gen2_poller_is_wipe_mode ? "Blocks not wiped" : "Blocks not written");
 
     FuriString* message = furi_string_alloc();
-    // Bitmap is block-ordered, so emit set bits ascending as-is.
-    for(uint16_t block = 0; block < instance->gen2_partial_blocks_total; block++) {
-        if(instance->gen2_partial_failed_bitmap[block >> 3] & (1u << (block & 7u))) {
-            furi_string_cat_printf(message, "%u ", block);
-        }
-    }
+    nfc_magic_partial_details_append_indices(
+        message, instance->gen2_partial_failed_bitmap, instance->gen2_partial_blocks_total, 0);
 
     widget_add_text_scroll_element(widget, 0, 13, 128, 51, furi_string_get_cstr(message));
     furi_string_free(message);

@@ -6,7 +6,7 @@ void nfc_magic_scene_iso15693_info_on_enter(void* context) {
     NfcMagicApp* instance = context;
     widget_reset(instance->widget);
 
-    const Iso15693_3Data* iso_data = instance->iso15693_data->iso15693_3_data;
+    const Iso15693_3Data* iso_data = instance->iso15693_data;
     const Iso15693_3SystemInfo* sys_info = &iso_data->system_info;
 
     FuriString* temp_str = furi_string_alloc();
@@ -14,10 +14,8 @@ void nfc_magic_scene_iso15693_info_on_enter(void* context) {
     furi_string_cat_str(temp_str, "ISO15693 / NfcV\n");
 
     // UID (stored MSB-first: uid[0] == 0xE0, uid[1] == manufacturer, uid[2] == IC id)
-    furi_string_cat_str(temp_str, "UID:");
-    for(size_t i = 0; i < ISO15693_3_UID_SIZE; ++i) {
-        furi_string_cat_printf(temp_str, " %02X", iso_data->uid[i]);
-    }
+    furi_string_cat_str(temp_str, "UID: ");
+    iso15693_info_cat_uid(temp_str, iso_data->uid, Iso15693UidFormatSpaced);
     furi_string_push_back(temp_str, '\n');
 
     // Manufacturer + chip type, decoded from the UID. The chip decode inspects the full UID so

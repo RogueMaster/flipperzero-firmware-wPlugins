@@ -338,6 +338,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [TagDuplicate v1.0 (By Marcopiiit)](https://github.com/skylovervibecoder/Flipper-Zero-TagDuplicate)
 - Added: [Tone TX v1.1 (By Marcopiiit)](https://github.com/skylovervibecoder/Flipper-Zero-Tone-TX)
 - Updated: [PwnPal v3.0.1 (By mrq1911)](https://github.com/mrq1911/pwnpal) - ESP32 Pwnagotchi companion `Req: ESP32`
+- Updated: [NFC Magic v2.4 ISO15693 gen1/gen2 support (By mfcarroll)](https://github.com/xMasterX/all-the-plugins/pull/250)
 
 <a name="release"></a>
 
@@ -1119,7 +1120,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [NFC Fuzzer v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
 - [NFC Keyboard v1.0 (By Patrick762)](https://github.com/Patrick762/flipper-nfc-keyboard)
 - [NFC Login v1.1.3 (By Play2BReal)](https://github.com/Play2BReal/NFC-Login)
-- [NFC Magic v2.3 (By gornekich)](https://github.com/flipperdevices/flipperzero-firmware/pull/1966) - Rewritable NFC tag tools
+- [NFC Magic v2.4 (By gornekich)](https://github.com/flipperdevices/flipperzero-firmware/pull/1966) - Rewritable NFC tag tools
 - [NFC Maker v2.1 (by WillyJL)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/343cb39d08f60b75b537e1a31100707935cf6e9d)
 - [NFC Playlist v3.5 (By acegoal07)](https://github.com/acegoal07/FlipperZero_NFC_Playlist/tree/main)
 - [NFC QR Presenter v1.1 (By RogerF5-Security)](https://github.com/RogerF5-Security/NFC_QR_Presenter)

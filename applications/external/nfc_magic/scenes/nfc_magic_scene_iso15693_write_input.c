@@ -12,10 +12,7 @@ void nfc_magic_scene_iso15693_write_input_on_enter(void* context) {
 
     // Seed the editor with the card's current UID if it has already been read (via "Info"),
     // otherwise start from a valid E0-prefixed template.
-    memcpy(
-        instance->iso15693_target_uid,
-        instance->iso15693_data->iso15693_3_data->uid,
-        ISO15693_3_UID_SIZE);
+    memcpy(instance->iso15693_target_uid, instance->iso15693_data->uid, ISO15693_3_UID_SIZE);
     if(instance->iso15693_target_uid[0] != 0xE0) {
         memset(instance->iso15693_target_uid, 0, ISO15693_3_UID_SIZE);
         instance->iso15693_target_uid[0] = 0xE0;
@@ -42,7 +39,7 @@ bool nfc_magic_scene_iso15693_write_input_on_event(void* context, SceneManagerEv
             // Every ISO15693 UID must begin with 0xE0; enforce it before writing (proxmark rejects
             // a non-E0 UID outright, and the byte editor lets the user change byte 0 freely).
             instance->iso15693_target_uid[0] = 0xE0;
-            scene_manager_next_scene(instance->scene_manager, NfcMagicSceneIso15693WriteConfirm);
+            scene_manager_next_scene(instance->scene_manager, NfcMagicSceneWriteConfirm);
             consumed = true;
         }
     }

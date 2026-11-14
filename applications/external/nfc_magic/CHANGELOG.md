@@ -1,5 +1,23 @@
 # Changelog
 
+## 2.4
+
+### Added
+
+- **ISO15693 / NfcV support** - The app can now detect an ISO15693 tag, show its Info, and
+  **clone / wipe / write the UID** of a magic ISO15693 card the same way it handles other magic
+  types. **gen1 and gen2 cards only; gen3 is not supported.**
+  - Magic status on ISO15693 can only be confirmed by writing, so the scan shows every ISO15693
+    tag as a Magic candidate.
+  - **A wipe can brick a gen3 card.** It cannot tell if a card is gen3, and zeroing an
+    un-finalized gen3 card's configuration bricks it permanently, per the author of proxmark's
+    ISO15693 V3 support (not tried in testing). The wipe's confirmation screen warns about it.
+  - **A wipe can change a gen1 card's UID**, since blocks 56/57 are its UID registers. The app
+    re-reads the UID afterwards and, where it can, displays the UID the card now answers to.
+  - **Keep one tag in the field at a time.** Most writes are addressed to the card, but the gen2
+    UID write and all reads are not.
+  - See [ISO15693.md](ISO15693.md) for how each operation behaves and what it was tested on.
+
 ## 2.3
 
 ### Added

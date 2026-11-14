@@ -47,8 +47,12 @@ static bool nfc_magic_scene_file_select_is_file_suitable(NfcMagicApp* instance) 
             suitable = true;
         }
     } else if(instance->protocol == NfcMagicProtocolIso15693) {
-        // Any ISO15693-3 dump is a valid clone source for a magic ISO15693 target.
-        if(protocol == NfcProtocolIso15693_3) {
+        // Any ISO15693-3 dump is a valid clone source for a magic ISO15693 target, and so is one saved
+        // under a protocol built on ISO15693-3: the stock NFC app saves an NXP SLIX tag as SLIX. What
+        // a clone writes is the ISO15693-3 data underneath, which nfc_device_get_data hands over when
+        // asked for the parent protocol, so the SLIX-only settings are not copied.
+        if(protocol == NfcProtocolIso15693_3 ||
+           nfc_protocol_has_parent(protocol, NfcProtocolIso15693_3)) {
             suitable = true;
         }
     } else if(
@@ -103,6 +107,17 @@ void nfc_magic_scene_file_select_on_enter(void* context) {
             instance->protocol == NfcMagicProtocolClassic ||
             instance->protocol == NfcMagicProtocolGen2) {
             scene_manager_next_scene(instance->scene_manager, NfcMagicSceneMfClassicDictAttack);
+        } else if(instance->protocol == NfcMagicProtocolIso15693) {
+            // ISO15693 clone goes straight to the write. The gen2 backdoor write is a harmless custom
+            // command on a non-magic tag, and data blocks follow only once the UID reads back as the
+            // target (see the poller), so nothing is clobbered before the card proves it takes that
+            // UID; consent for the one destructive path, the gen1 fallback, is asked mid-write where it
+            // becomes real. Gen2 reaches the write unprompted too when its pre-write checks find
+            // nothing (gen2_write_check.c) -- NOT Classic, whose check sets uid_locked unconditionally,
+            // so it always shows at least one WriteProblems screen. Gen1/Gen4/USCUID-UL show the static
+            // confirm below regardless of the card. The wipe prompts because destruction is its only
+            // product, whereas a clone leaves the card holding the image the user picked.
+            scene_manager_next_scene(instance->scene_manager, NfcMagicSceneWrite);
         } else {
             scene_manager_next_scene(instance->scene_manager, NfcMagicSceneWriteConfirm);
         }

@@ -74,6 +74,7 @@ enum NfcMagicAppCustomEvent {
     NfcMagicCustomEventTextInputDone,
     NfcMagicCustomEventIso15693CardDetected,
     NfcMagicCustomEventIso15693CardDetectFailed,
+    NfcMagicCustomEventIso15693NotGen2,
 };
 
 typedef struct {
@@ -107,12 +108,75 @@ typedef enum {
 
 // Reason passed to the Iso15693WriteFail scene via its scene state so it can explain the outcome.
 typedef enum {
-    NfcMagicIso15693WriteFailReasonNotMagic, // card present, but the backdoor write was not accepted
+    NfcMagicIso15693WriteFailReasonUnset, // 0, the scene manager's starting state, so a screen
+        // entered without a reason cannot pass for NotMagic. Never set on purpose: the reason
+        // switches crash on it.
+    NfcMagicIso15693WriteFailReasonNotMagic, // card present, but the backdoor write was not accepted.
+        // Defensive fallback only: a card that really isn't magic leaves the UID unchanged, which is
+        // NotGen2 rather than Fail, and lands on the gen1 opt-in screen instead of here.
     NfcMagicIso15693WriteFailReasonCardLost, // no card in the field / card removed mid-write
     NfcMagicIso15693WriteFailReasonPartial, // clone: UID written but some data blocks failed
-    NfcMagicIso15693WriteFailReasonOverCapacity, // clone OK, but the card now advertises more blocks
-        // than it physically holds (the extra were empty, so nothing was lost) -- a success with a note
+    // clone OK and nothing lost, but the card carries something the bare Success popup cannot hold.
+    // Any of the survey's three findings -- readable blocks above the source still holding data from
+    // before the clone, a card answering reads past the count it now reports, or a block count or IC
+    // reference it goes on reporting that is not the source's -- or a gen1 clone whose file reached
+    // 56/57/62/63 with nothing there, where the card has registers in place of the file's blocks.
+    // None is a failure and none is Partial. Why the survey's are kept apart is at
+    // iso15693_poller_survey_above_source.
+    NfcMagicIso15693WriteFailReasonCloneComplete,
+    NfcMagicIso15693WriteFailReasonOverCapacity, // clone OK, but the file is larger than the card
+        // and the blocks past its end were empty, so nothing was lost -- a success with a note
+    NfcMagicIso15693WriteFailReasonNothingWiped, // wipe: not one block accepted the zero-write
+    NfcMagicIso15693WriteFailReasonEmptySource, // clone: the source image has no data blocks to write
+    NfcMagicIso15693WriteFailReasonNothingCloned, // clone: the UID took but not one data block did, so
+        // the card carries the source's UID and none of its data
+    NfcMagicIso15693WriteFailReasonUidUnexpected, // the gen2 backdoor moved the UID, but to neither the
+        // original nor the target. The card IS magic -- an inert tag cannot change its UID -- so it
+        // must not share the "not a magic tag" screen. The UID it answers with is in the result.
+        // A clone's re-read after a pass that reached 56/57 lands here the same way.
+        // So does a gen1 sequence that leaves half a UID.
+    NfcMagicIso15693WriteFailReasonGen1Failed, // the opt-in gen1 UID didn't verify. The sequence is
+        // sent before anything is checked, so blocks 56/57/62/63 were overwritten regardless -- on what
+        // is most likely an ordinary tag. Naming them is the point of the screen.
+    NfcMagicIso15693WriteFailReasonUidUnverifiable, // Write UID: the requested UID is the card's own,
+        // so nothing was written -- a read-back against a UID the card already has proves nothing
+    NfcMagicIso15693WriteFailReasonWipeUidChanged, // wipe: the blocks cleared, but the UID read back
+        // afterwards is not the one the card presented before. On gen1 that is the wipe zeroing blocks
+        // 56/57, which ARE the UID registers (see ISO15693_MAGIC_BLK_UNLOCK in the poller).
+    NfcMagicIso15693WriteFailReasonWipeComplete, // wipe: a clean success -- the sweep was not cut and
+        // nothing it reached is known to still hold data. NOT "no block refused": a block that refuses
+        // every write and then reads back empty is deliberately not counted, because nothing was lost
+        // there. Here rather than on the bare Success popup so it can report the
+        // range it measured beside the count the card advertises, since the two can differ without
+        // either being a fault. A wipe whose UID check never reached an answer still lands here and
+        // says so on the third line: the wipe finished, only the identity check did not run.
+    NfcMagicIso15693WriteFailReasonWipeStopped, // wipe: the sweep hit its time limit. Nothing ties the
+        // cut to the advertised count -- the check is a wall-clock test at the top of every iteration,
+        // so a card that accepts some writes and then answers reads at every address CAN be cut with
+        // every claimed block already attempted and the cut index above that count. A high claim is
+        // cut below it instead -- both sides are live, which is why the details screen branches on
+        // them. (NOT the refuses-every-write card: that one clears nothing, so the wipe short-circuits
+        // to NothingWiped before the WipeStopped truncation reporting -- it is NothingWiped's screen
+        // that states the cut.) A
+        // partial outcome, not a qualified success -- the poller reports Partial for it -- so it
+        // carries the error tone and offers Retry, since re-running is the correct action when
+        // data may sit above the cut.
 } NfcMagicIso15693WriteFailReason;
+
+// Which ISO15693 operation the shared write scene is running: a clone, a wipe or a Write-UID.
+typedef enum {
+    NfcMagicIso15693ModeClone, // write a saved .nfc image onto the card
+    NfcMagicIso15693ModeWipe, // zero every data block on the card, 56/57/62/63 included
+    NfcMagicIso15693ModeWriteUid, // write a hand-entered UID and nothing else
+} NfcMagicIso15693Mode;
+
+// Which flow reached the gen1 opt-in screen. The two consent to different things (a clone writes every
+// data block, a Write-UID writes only the UID registers) and return to different write scenes. Stored
+// as the opt-in scene's state by whichever scene routes to it.
+typedef enum {
+    NfcMagicIso15693Gen1OptinFromClone,
+    NfcMagicIso15693Gen1OptinFromWriteUid,
+} NfcMagicIso15693Gen1OptinSource;
 
 struct NfcMagicApp {
     ViewDispatcher* view_dispatcher;
@@ -136,8 +200,8 @@ struct NfcMagicApp {
     uint8_t card_uid[ISO14443_3A_MAX_UID_SIZE]; // scanned card's UID; names its key cache entry
     uint8_t card_uid_len; // 0 when the card never activated (backdoor-only)
     UscuidUlData uscuid_ul_data;
-    uint16_t write_progress_current; // USCUID-UL: pages written so far (live progress)
-    uint16_t write_progress_total; // USCUID-UL: total pages to write
+    uint16_t write_progress_current; // USCUID-UL & ISO15693: units written so far
+    uint16_t write_progress_total; // USCUID-UL & ISO15693: total units to write
     uint16_t write_failed_count; // USCUID-UL: pages that didn't take (partial clone)
     uint8_t write_failed_bitmap[USCUID_UL_FAILED_BITMAP_SIZE]; // bit N set = page N failed
     uint8_t uscuid_ul_password[USCUID_UL_PWD_SIZE]; // PWD-AUTH password (direct/ATS tags)
@@ -160,17 +224,17 @@ struct NfcMagicApp {
     // iso15693_poller_alloc -> nfc_poller_alloc(Iso15693_3) calls nfc_config() on the shared Nfc,
     // and holding that config would make the scanner's first nfc_config() furi_check-fail.
     Iso15693Poller* iso15693_poller;
-    Iso15693Data* iso15693_data; // last read result, kept so the info scene survives the poller free
+    Iso15693_3Data*
+        iso15693_data; // last read result, kept so the info scene survives the poller free
     uint8_t
         iso15693_target_uid[ISO15693_3_UID_SIZE]; // MSB-first UID to write to a magic ISO15693 card
-    bool iso15693_is_wipe_mode; // ISO15693 write scene: wipe (zero blocks) vs clone (from a file)
-    uint16_t iso15693_clone_blocks_total; // ISO15693 clone: data blocks on the source image
-    uint16_t iso15693_clone_failed_count; // ISO15693 clone: in-range blocks that couldn't be written
-    uint16_t
-        iso15693_clone_over_capacity; // ISO15693 clone: source blocks past the target's capacity
-    uint8_t iso15693_clone_failed_bitmap
-        [ISO15693_POLLER_BLOCK_BITMAP_SIZE]; // bit N = source block N failed
-    bool iso15693_clone_used_gen1; // ISO15693 clone: gen1 fallback set the UID (overwrote blocks 56/57/62/63)
+    NfcMagicIso15693Mode iso15693_mode; // which ISO15693 operation the shared write scene is running
+    bool iso15693_force_gen1; // ISO15693 clone / Write-UID: run the opt-in gen1 attempt (set by the
+        // gen1 opt-in scene, cleared when a fresh clone or Write-UID is started from the menu)
+    // Outcome of the last ISO15693 clone or wipe, fetched on every WriteProgress event and once per
+    // terminal event -- mid-run it carries the live progress figures, see blocks_total. See
+    // Iso15693PollerResult in iso15693_poller.h for the per-field meaning and its mode dependence.
+    Iso15693PollerResult iso15693_result;
 
     Gen4* gen4_data;
 
