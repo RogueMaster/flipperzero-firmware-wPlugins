@@ -4,6 +4,10 @@
 
 **Your PC's temperatures and load on a Flipper Zero, with vibration, sound and LED alerts when something goes wrong.**
 
+**New in v1.1: your PC pings you in Telegram before it overheats, no Flipper needed.** Free for 1 PC:
+[open @PCHealthRemoteBot](https://t.me/PCHealthRemoteBot?start=src_github_readme), send `/link`, then run
+`pc-health-remote.exe --link-telegram CODE`. Details below in [Telegram alerts](#telegram-alerts-beta).
+
 <p align="center">
   <img src="docs/img/1_temps.png" width="19%" alt="Temps page">
   <img src="docs/img/2_details.png" width="19%" alt="Details page">

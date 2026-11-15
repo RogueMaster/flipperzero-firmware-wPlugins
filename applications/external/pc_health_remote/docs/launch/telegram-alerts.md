@@ -23,6 +23,7 @@ Tag rule: `[A-Za-z0-9_-]{1,32}`. The bot saves it on `/start src_<tag>`.
 | Source | Tag | Link |
 |---|---|---|
 | GitHub release | github_release | https://t.me/PCHealthRemoteBot?start=src_github_release |
+| GitHub README | github_readme | https://t.me/PCHealthRemoteBot?start=src_github_readme |
 | Flipper forum | flipper_forum | https://t.me/PCHealthRemoteBot?start=src_flipper_forum |
 | r/flipperzero | reddit_flipper | https://t.me/PCHealthRemoteBot?start=src_reddit_flipper |
 | r/pcmasterrace | reddit_pcmasterrace | https://t.me/PCHealthRemoteBot?start=src_reddit_pcmasterrace |
