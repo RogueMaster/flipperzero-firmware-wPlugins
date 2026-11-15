@@ -2,8 +2,11 @@
 
 CAN Commander is a CAN bus toolkit for vehicle reverse engineering, diagnostics and signal injection. An ESP32 board does all of the CAN work; you drive it from a Flipper Zero app, or from a command line over USB or Wi-Fi.
 
-- Buy the official board: <https://rabbit-labs.com/product/cancommander/>
-- Firmware downloads and the DBC profile converter: <https://www.cancommander.com>
+Created and maintained by [Matthew KuKanich](https://github.com/MatthewKuKanich). The official board is co-developed with Rabbit Labs, who manufacture and sell it.
+
+- **Project home**, firmware downloads and the DBC profile converter: <https://cancommander.com>
+- **Build your own** from an ESP32 and a CAN transceiver: [build guide](CAN_Commander_Firmware/CAN_Commander_Main/docs/BUILD_YOUR_OWN.md)
+- **Official board** (plug-and-play, dual bus): [buy from Rabbit Labs](https://rabbit-labs.com/product/cancommander/)
 
 ## Documentation
 
@@ -48,7 +51,7 @@ Wi-Fi TCP CLI    --------------> +------------------+ ---> CAN1 (optional): MCP2
 
 ### DBC decoding
 - Live decoding of signals from DBC definitions: Intel and Motorola byte order, signed values, scaling, multiplexed signals.
-- Load curated `.dbcprof` profiles on the Flipper (convert a `.dbc` file at <https://www.cancommander.com>), with per-signal dashboards and value-to-label mapping.
+- Load curated `.dbcprof` profiles on the Flipper (convert a `.dbc` file at <https://cancommander.com>), with per-signal dashboards and value-to-label mapping.
 
 ### Interfaces and hardware
 - Flipper Zero app with dashboards for every tool.
