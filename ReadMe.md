@@ -340,6 +340,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [NFC Magic v2.4 ISO15693 gen1/gen2 support (By mfcarroll)](https://github.com/xMasterX/all-the-plugins/pull/250)
 - Fixed: [PVS-Studio warnings in Archive and NFC (By Project516)](https://github.com/flipperdevices/flipperzero-firmware/pull/4517)
 - Updated: [Ghost ESP v1.9.1 (By jaylikesbunda & Spooks4576)](https://github.com/Spooks4576/ghost_esp_app) `Req: ESP32` with [Ghost ESP Firmware](https://github.com/Spooks4576/Ghost_ESP)
+- OFW: [Bound CLI startup waits in host test scripts (By Project516)](https://github.com/flipperdevices/flipperzero-firmware/pull/4518)
 
 <a name="release"></a>
 
