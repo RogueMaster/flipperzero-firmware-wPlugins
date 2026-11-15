@@ -341,6 +341,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Fixed: [PVS-Studio warnings in Archive and NFC (By Project516)](https://github.com/flipperdevices/flipperzero-firmware/pull/4517)
 - Updated: [Ghost ESP v1.9.1 (By jaylikesbunda & Spooks4576)](https://github.com/Spooks4576/ghost_esp_app) `Req: ESP32` with [Ghost ESP Firmware](https://github.com/Spooks4576/Ghost_ESP)
 - OFW: [Bound CLI startup waits in host test scripts (By Project516)](https://github.com/flipperdevices/flipperzero-firmware/pull/4518)
+- Added: [TV Off v1.0 (By ryanneufeld)](https://github.com/ryanneufeld/flipper-tv-off)
 
 <a name="release"></a>
 
@@ -1334,6 +1335,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Trident v1.1 (By at0m-b0mb)](https://github.com/at0m-b0mb/Trident-FlipperZero) - Three-radio expansion board controller `Req: 3-in-1 ESP32 + NRF24 + CC1101`
 - [TuLlave v0.1 (By zqu4rtz)](https://github.com/zqu4rtz/FlipperApp-TuLlave) - Bogotá transit card reader
 - [Tuning Fork v2.0 (By besya)](https://github.com/besya/flipperzero-tuning-fork)
+- [TV Off v1.0 (By ryanneufeld)](https://github.com/ryanneufeld/flipper-tv-off)
 - [TV Remote v1.2 (By jmanion0139)](https://github.com/jmanion0139/flipper_tv_remote)
 - [u-blox GPS v0.5 (By liamhays)](https://github.com/liamhays/ublox)
 - [U2F over NFC v1.0 (By asaldele1)](https://github.com/asaldele1/u2f_over_nfc)
