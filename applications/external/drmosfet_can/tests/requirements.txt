@@ -1,0 +1,2 @@
+unicorn>=2.1,<3
+pyelftools>=0.32,<1

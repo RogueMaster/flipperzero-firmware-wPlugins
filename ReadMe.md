@@ -320,7 +320,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - Remote Analyzer: [Remove standalone BelGate decoder now provided by firmware and list app-specific protocols in How to use (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/edc19780ed48f054f3442588317fe33e85a9dddc)
 - SubGHz: [Advanced Add Manually guard-time input for Princeton and ZKTeco and fix FAAC TM generation without Guard_time (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/62e921731912eb7d308f990398f2c925240976e9)
 - SubGHz: [Fix internal-radio CLI rx, tx and tx_from_file failing to start and add regression test (By GodKimba)](https://github.com/DarkFlippers/unleashed-firmware/pull/1216)
-- Added: [Amiibo Emulator v0.1 (By Soap-n-Cartridge)](https://github.com/Soap-n-Cartridge/flipper_amiibo) with file handling and crypto safety fixes
 - Added: [Universal TPMS Dashboard v0.3 (By Marcopiiit)](https://github.com/skylovervibecoder/Flipper-Zero-Universal-TPMS-Dashboard)
 - Added: [E6B Flight Computer v1.0 (By Marcopiiit)](https://github.com/skylovervibecoder/Flipper-Zero-E6B-Flight-Computer)
 - Added: [FlipWind v1.0 (By Marcopiiit)](https://github.com/skylovervibecoder/Flipper-Zero-FlipWind)
@@ -342,6 +341,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Ghost ESP v1.9.1 (By jaylikesbunda & Spooks4576)](https://github.com/Spooks4576/ghost_esp_app) `Req: ESP32` with [Ghost ESP Firmware](https://github.com/Spooks4576/Ghost_ESP)
 - OFW: [Bound CLI startup waits in host test scripts (By Project516)](https://github.com/flipperdevices/flipperzero-firmware/pull/4518)
 - Added: [TV Off v1.0 (By ryanneufeld)](https://github.com/ryanneufeld/flipper-tv-off)
+- Added: [DrMosfetCan v1.1 (By Dr Mosfet)](https://github.com/kamylwnb/DrMosfetCan) - GVRET USB-CAN bridge `Req: MCP2515 with 16 MHz oscillator and CAN transceiver`
+- Added: [Amiibo Emulator v1.0 (By Soap-n-Cartridge)](https://github.com/Soap-n-Cartridge/flipper_amiibo) with file handling and crypto safety fixes [Scan, favorites and graphical menus (By Soap-n-Cartridge)](https://github.com/Soap-n-Cartridge/flipper_amiibo/commit/5ba059a65691fd3d4b8ab8b836c2bc26ae417275)
 
 <a name="release"></a>
 
@@ -673,7 +674,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Alcohol Calc v1.0 (By vtlklr)](https://github.com/vtlklr/alcohol_calc)
 - [Allstar Firefly v0.1 (By jlaughter)](https://github.com/jlaughter/flipper-allstar-firefly) - Gate remote decoder/encoder
 - [Amiibo Browser v1.0 (By AzureSky)](https://github.com/AzzureSkyy/flipper-amiibo-browser)
-- [Amiibo Emulator v0.1 (By Soap-n-Cartridge)](https://github.com/Soap-n-Cartridge/flipper_amiibo)
+- [Amiibo Emulator v1.0 (By Soap-n-Cartridge)](https://github.com/Soap-n-Cartridge/flipper_amiibo)
 - [AmiiTool v0.3 (By Firefox2100)](https://github.com/Firefox2100/ami_tool) `Req: key_retail.bin on SD card /nfc/assets`
 - [Amusement IC v0.1 (By object-Object)](https://github.com/object-Object/flip_aic)
 - [Analog Clock v1.2 (By scrolltex)](https://github.com/scrolltex/flipper_analog_clock)
@@ -804,6 +805,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Distance Sensor v1.2 (By privet971)](https://github.com/privet971/FlipperZeroApps/tree/main/usping) `Req: Parallax (3 wires) SKU 28015`
 - [Doc Viewer Lite v0.1 (By C0d3-5t3w)](https://github.com/C0d3-5t3w/docviewlite)
 - [Dooya Remote v1.2 (By Lechnio)](https://github.com/Lechnio/Dooya-Remote)
+- [DrMosfetCan v1.1 (By Dr Mosfet)](https://github.com/kamylwnb/DrMosfetCan) - GVRET USB-CAN bridge `Req: MCP2515 with 16 MHz oscillator and CAN transceiver`
 - [DroidBeacon v0.1 (By spandox2)](https://github.com/spandox2/droidbeacon) - Droid Depot beacon emulator
 - [DropDetect Live v0.1 (By TheRealLuro)](https://github.com/TheRealLuro/Flipper-zero-drop-detector.-) `Req: ICM42688P IMU`
 - [DSTIKE Deauther v1.1 (By SequoiaSan)](https://github.com/SequoiaSan/FlipperZero-Wifi-ESP8266-Deauther-Module/tree/FlipperZero-Module-v2/FlipperZeroModule/FlipperZero-ESP8266-Deauth-App) `Req: ESP8266`

@@ -1,0 +1,13 @@
+#include "gvret_protocol.h"
+#include <string.h>
+GvretProtocol protocol;
+uint8_t scratch[4096], replies[4096], lastdata[8];
+uint32_t reply_size, frame_count, lastid, lastdlc, lastext, configured;
+static void reply(void* c, const uint8_t* b, size_t n) { (void)c; if(reply_size + n <= sizeof(replies)) { memcpy(replies + reply_size,b,n); reply_size += n; } }
+static void frame(void* c, uint32_t id, bool ext, uint8_t dlc, const uint8_t data[8]) { (void)c; ++frame_count; lastid=id; lastext=ext; lastdlc=dlc; memcpy(lastdata,data,dlc); }
+static bool bitrate(void* c, uint32_t speed) { (void)c; if(speed!=50000 && speed!=125000 && speed!=250000 && speed!=500000 && speed!=1000000) return false; configured=speed; return true; }
+static uint32_t timestamp(void* c) { (void)c; return 0x12345678; }
+void test_reset(void) { GvretIo io={reply,frame,bitrate,timestamp}; gvret_init(&protocol,&io,0,500000); reply_size=frame_count=lastid=lastdlc=lastext=configured=0; }
+void test_feed(uint8_t* data, uint32_t size) { for(uint32_t i=0;i<size;++i) gvret_feed(&protocol,data[i]); }
+uint32_t test_encode(uint32_t id, uint32_t ext, uint32_t dlc) { return gvret_encode(scratch,0x12345678,id,ext,dlc,(uint8_t[]){0,1,2,3,4,5,6,7}); }
+int main(void) { return 0; }

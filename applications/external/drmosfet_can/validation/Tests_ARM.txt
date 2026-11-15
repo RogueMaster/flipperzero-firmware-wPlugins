@@ -1,0 +1,14 @@
+test_bitrate_flags (__main__.ProtocolTests.test_bitrate_flags) ... ok
+test_encode (__main__.ProtocolTests.test_encode) ... ok
+test_extended_and_zero_dlc (__main__.ProtocolTests.test_extended_and_zero_dlc) ... ok
+test_fragmented (__main__.ProtocolTests.test_fragmented) ... ok
+test_handshakes (__main__.ProtocolTests.test_handshakes) ... ok
+test_invalid_dlc_consumed_and_resync (__main__.ProtocolTests.test_invalid_dlc_consumed_and_resync) ... ok
+test_many_frames (__main__.ProtocolTests.test_many_frames) ... ok
+test_reject_other_bus_and_invalid_id (__main__.ProtocolTests.test_reject_other_bus_and_invalid_id) ... ok
+test_unsupported_bitrate_keeps_actual (__main__.ProtocolTests.test_unsupported_bitrate_keeps_actual) ... ok
+
+----------------------------------------------------------------------
+Ran 9 tests in 0.046s
+
+OK

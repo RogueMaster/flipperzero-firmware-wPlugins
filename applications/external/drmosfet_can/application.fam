@@ -1,0 +1,15 @@
+App(
+    appid="drmosfet_can",
+    name="DrMosfetCan",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="drmosfet_can_app",
+    stack_size=3072,
+    sources=["*.c", "!tests"],
+    fap_icon_assets="assets",
+    fap_icon="icon.png",
+    fap_category="GPIO",
+    fap_author="Dr Mosfet",
+    fap_weburl="https://github.com/kamylwnb/DrMosfetCan",
+    fap_version=(1, 1),
+    fap_description="USB-CAN bridge using GVRET and an MCP2515 module",
+)
