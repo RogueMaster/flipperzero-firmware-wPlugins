@@ -4,6 +4,10 @@
 
 **Температуры и нагрузка вашего ПК на Flipper Zero, с оповещениями вибро, звуком и светодиодом.**
 
+**Новое в v1.1: ПК сам напишет вам в Telegram до перегрева, Flipper не нужен.** Бесплатно для 1 ПК:
+[откройте @PCHealthRemoteBot](https://t.me/PCHealthRemoteBot?start=src_github_readme), отправьте `/link`, затем
+`pc-health-remote.exe --link-telegram КОД`.
+
 <p align="center">
   <img src="docs/img/1_temps.png" width="19%" alt="Temps">
   <img src="docs/img/2_details.png" width="19%" alt="Details">
