@@ -288,7 +288,7 @@ function hunter()
 
             if (idx == "hunter_8" && choice == "2")
             {
-                document.getElementById("my_text").innerHTML = "You have chosen not to hunt The Mighty Lion.<br>Unfortunately, a random lightning bolt from out of nowhere, probably from Zeus, kills you.<br>" + death_level
+                document.getElementById("my_text").innerHTML = "You have chosen not to hunt The Mighty Lion.<br>Unfortunately, a random lightning bolt from out of nowhere, probably from Zeus, kills you.<br>" + death_level;
                 user_input = document.getElementById("choice_field").value;
                 document.querySelector("form").addEventListener("submit", function(event)
                 {
@@ -322,6 +322,26 @@ function hunter()
                     location.reload();
                 });
             }
+
+            if (idx == "hunter_10" && choice == "1")
+            {
+                localStorage.setItem("character", "the_mighty_lion");
+                localStorage.removeItem("choice");
+                localStorage.removeItem("idx");
+                location.reload();
+            }
+
+            if (idx == "hunter_10" && choice == "2")
+            {
+                document.getElementById("my_text").innerHTML = "You have chosen not to hunt The Mighty Lion.<br>Unfortunately, a Chandra Planeswalker burns you to death!<br>" + death_level;
+                document.querySelector("form").addEventListener("submit", function(event)
+                {
+                    localStorage.removeItem("character");
+                    localStorage.removeItem("choice");
+                    localStorage.removeItem("idx");
+                    location.reload();
+                });
+            }
         }
     }
 }
@@ -338,7 +358,7 @@ function the_mighty_lion()
 
     if (choice == null)
     {
-        document.getElementById("my_text").innerHTML = "You have chosen to hunt The Mighty Lion.<br>You have been on your journey for about a week now.<br>The trail splits off into three sections.<br>Do you choose to go through the canyon?<br>How about the prairie?<br>Or what about continuing on through the forest?<br><br>1- Canyon; 2- Prairie; 3- Forest<br>Make your choice " + user_name + ":<br>"
+        document.getElementById("my_text").innerHTML = "You have chosen to hunt The Mighty Lion.<br>You have been on your journey for about a week now.<br>The trail splits off into three sections.<br>Do you choose to go through the canyon?<br>How about the prairie?<br>Or what about continuing on through the forest?<br><br>1- Canyon; 2- Prairie; 3- Forest<br>Make your choice " + user_name + ":<br>";
         let user_input = document.getElementById("choice_field").value;
         if (user_input.length > 0)
         {
@@ -349,6 +369,56 @@ function the_mighty_lion()
 
     else
     {
-        // Pass for now
+        if (choice.length > 0)
+        {
+            if (idx == "the_mighty_lion_1" && choice == "1")
+            {
+                document.getElementById("my_text").innerHTML = "You have chosen to go through the canyon!<br>The canyon is the quickest route to The Mighty Lion.<br>Unfortunately, you're almost out of the canyon when a flash flood occurs.<br>You get wiped away instantly and you drown to death.<br>" + death_level;
+                user_input = document.getElementById("choice_field").value;
+                document.querySelector("form").addEventListener("submit", function(event)
+                {
+                    localStorage.removeItem("character");
+                    localStorage.removeItem("choice");
+                    localStorage.removeItem("idx");
+                    location.reload();
+                });
+            }
+
+            if (idx == "the_mighty_lion_1" && choice == "2")
+            {
+                document.getElementById("my_text").innerHTML = "You have chosen to go through the prairie!<br>Which way do you travel?<br><br>1- Left; 2- Right<br>Make your choice " + user_name + ":<br>";
+                user_input = document.getElementById("choice_field").value;
+                document.querySelector("form").addEventListener("submit", function(event)
+                {
+                    localStorage.setItem("idx", "the_mighty_lion_2");
+                    localStorage.setItem("choice", user_input);
+                    location.reload();
+                });
+            }
+
+            if (idx == "the_mighty_lion_1" && choice == "3")
+            {
+                document.getElementById("my_text").innerHTML = "You have chosen to go through the forest!<br>You see a river.<br>Do you drink from it?<br><br>1- Yes; 2- No<br>Make your choice " + user_name + ":<br>";
+                user_input = document.getElementById("choice_field").value;
+                document.querySelector("form").addEventListener("submit", function(event)
+                {
+                    localStorage.setItem("idx", "the_mighty_lion_3");
+                    localStorage.setItem("choice", user_input);
+                    location.reload();
+                });
+            }
+
+            if (idx == "the_mighty_lion_2" && choice == "1")
+            {
+                document.getElementById("my_text").innerHTML = "You have chosen to go left.<br>Unfortunately, there are hyenas in front of you after only about an hour of walking.<br>They see you and kill you.<br>" + death_level;
+                document.querySelector("form").addEventListener("submit", function(event)
+                {
+                    localStorage.removeItem("character");
+                    localStorage.removeItem("choice");
+                    localStorage.removeItem("idx");
+                    location.reload();
+                });
+            }
+        }
     }
 }
