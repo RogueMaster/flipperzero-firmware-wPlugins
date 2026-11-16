@@ -344,6 +344,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [DrMosfetCan v1.1 (By Dr Mosfet)](https://github.com/kamylwnb/DrMosfetCan) - GVRET USB-CAN bridge `Req: MCP2515 with 16 MHz oscillator and CAN transceiver`
 - Added: [Amiibo Emulator v1.0 (By Soap-n-Cartridge)](https://github.com/Soap-n-Cartridge/flipper_amiibo) with file handling and crypto safety fixes [Scan, favorites and graphical menus (By Soap-n-Cartridge)](https://github.com/Soap-n-Cartridge/flipper_amiibo/commit/5ba059a65691fd3d4b8ab8b836c2bc26ae417275)
 - Updated: [DFC v1.1.1 with dfc-core v2.0.0, faster DES and chained reads, lower-memory credential loading and teardown cleanup (By cindersocket)](https://github.com/cindersocket/dfc-flipper)
+- Added: [USB I2S Audio v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_i2s) - USB sound card to I2S DAC `Req: External I2S DAC`
 
 <a name="release"></a>
 
@@ -1359,8 +1360,9 @@ This software is for experimental purposes only and is not meant for any illegal
 - [uPython v1.8 (By ofabel)](https://github.com/ofabel/mp-flipper)
 - [USB CD-ROM v0.1.2 (By piersroberts)](https://github.com/piersroberts/flippercd)
 - [USB Consumer Control (By WithSecureLabs)](https://github.com/WithSecureLabs/usb-consumer-control)
-- [USB HID Autofire v1.1 (By pbek)](https://github.com/pbek/usb_hid_autofire)
 - [USB Floppy v0.1.3 (By piersroberts)](https://github.com/piersroberts/flipperfloppy)
+- [USB HID Autofire v1.1 (By pbek)](https://github.com/pbek/usb_hid_autofire)
+- [USB I2S Audio v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_i2s) - USB sound card to I2S DAC `Req: External I2S DAC`
 - [USB Mass Storage v1.5 (By nminaylov)](https://github.com/flipperdevices/flipperzero-good-faps/tree/nm/usb_mass_storage_app/mass_storage)
 - [USB Midi Capturing v0.1 (By fgreil)](https://github.com/fgreil/mitzi-midi)
 - [USB Midi v1.0 (By DrZlo13 & kribesk)](https://github.com/kribesk/flipper-zero-usb-midi) [Instructions by ESurge](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/applications/plugins/usb_midi/ReadMe.md)

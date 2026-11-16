@@ -1,0 +1,12 @@
+App(
+    appid="usb_i2s",
+    name="USB I2S Audio",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="usb_i2s_app",
+    stack_size=2 * 1024,
+    fap_category="USB",
+    fap_icon="usb_i2s_10px.png",
+    fap_version="1.0",
+    fap_author="xMasterX(MMX)",
+    fap_description="USB Audio Class 1 sound card: stereo 16-bit up to 96 kHz / 24-bit up to 48 kHz, I2S (SAI1) on GPIO header, optional MCLK",
+)
