@@ -26,6 +26,7 @@
 #include "dnie_auth.h"
 #include "dnie_bac.h"
 #include "dnie_country.h"
+#include "dnie_plugin.h"
 
 #define DNIE_CAN_LENGTH      6 // El CAN del DNIe son 6 digitos impresos en el anverso
 #define DNIE_CAN_BUFFER_SIZE (DNIE_CAN_LENGTH + 1)
@@ -94,6 +95,8 @@ typedef struct {
     // NFC
     Nfc* nfc;
     NfcPoller* poller; // solo vive mientras estamos en la escena Read
+    DniePlugin ecc; // curva eliptica: cargado solo durante la sesion NFC
+    DniePluginStatus ecc_status;
 
     // Resultado de la ultima lectura
     DnieCardResult read_result; // lectura de EF.CardAccess

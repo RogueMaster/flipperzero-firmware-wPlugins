@@ -23,12 +23,27 @@ static const char* const DNIE_STEP_NAMES[] = {
     "Photo (DG2)",
     "Authenticating chip",
 };
-#define DNIE_READ_STEPS 8
-#define DNIE_STEP_PHOTO 7 // muestra el porcentaje
+#define DNIE_READ_STEPS  8
+#define DNIE_STEP_PHOTO  7 // muestra el porcentaje
+#define DNIE_STEP_VERIFY 0xFF // lectura terminada: comprobando firma y cadena CSCA
 
 static void dnie_scene_read_draw(DnieApp* app) {
     Widget* widget = app->widget;
     uint8_t step = app->pace_progress;
+    if(step == DNIE_STEP_VERIFY) {
+        widget_reset(widget);
+        widget_add_string_element(
+            widget, 64, 2, AlignCenter, AlignTop, FontPrimary, "Checking authenticity...");
+        widget_add_string_multiline_element(
+            widget,
+            64,
+            24,
+            AlignCenter,
+            AlignTop,
+            FontSecondary,
+            "You can remove\nthe document now");
+        return;
+    }
     if(step > DNIE_READ_STEPS) step = DNIE_READ_STEPS;
 
     widget_reset(widget);
@@ -120,6 +135,18 @@ static NfcCommand dnie_scene_read_poller_callback(NfcGenericEvent event, void* c
         }
         app->read_result = DnieCardOk; // para el pasaporte, sin CardAccess seguimos con BAC
 
+        // Sin el plugin de curva eliptica no hay PACE. Un pasaporte aun se puede leer con BAC;
+        // un DNIe no: se avisa del motivo en la pantalla de resultado.
+        const DnieEccApi* ecc = app->ecc.api;
+        if(pace && !ecc) {
+            if(!app->passport) {
+                app->pace_result = app->ecc_status == DniePluginNoMemory ? DniePaceErrorNoMemory :
+                                                                           DniePaceErrorPlugin;
+                break;
+            }
+            pace = false;
+        }
+
         DnieSm sm;
         if(pace) {
             // Paso B: PACE con el CAN (DNIe) o con la MRZ (pasaporte)
@@ -132,7 +159,7 @@ static NfcCommand dnie_scene_read_poller_callback(NfcGenericEvent event, void* c
                 memcpy(pw.secret, app->can, pw.len);
             }
             app->pace_result =
-                dnie_pace_establish(tr, &pw, &app->pace, dnie_scene_read_progress, app);
+                ecc->pace_establish(tr, &pw, &app->pace, dnie_scene_read_progress, app);
             memset(&pw, 0, sizeof(pw));
             if(app->pace_result != DniePaceOk) break;
             dnie_sm_init(&sm, app->pace.ks_enc, app->pace.ks_mac);
@@ -181,15 +208,17 @@ static NfcCommand dnie_scene_read_poller_callback(NfcGenericEvent event, void* c
         // Paso F: Chip Authentication (al final: cambia el canal a 3DES con claves nuevas)
         if(app->auth.dg14_ok && pr != DnieLdsErrorSm && pr != DnieLdsErrorTransport) {
             dnie_scene_read_progress(DNIE_PACE_STEPS + 4, app);
-            dnie_ca_run(tr, &sm, &app->auth.dg14, app->dg1, &app->auth.ca);
+            if(ecc) {
+                ecc->ca_run(tr, &sm, &app->auth.dg14, app->dg1, &app->auth.ca);
+            } else {
+                app->auth.ca.result = DnieCaNoMemory; // no se hizo: no dice nada del chip
+            }
             FURI_LOG_I(
                 "DnieRead", "Chip Auth: %d (SW %04X)", app->auth.ca.result, app->auth.ca.sw);
         }
         dnie_sm_clear(&sm);
-        dnie_auth_compact(&app->auth); // fuera SOD y DG14: liberamos memoria para la foto
     } while(false);
     memset(mrz_info, 0, sizeof(mrz_info));
-    dnie_auth_compact(&app->auth); // tambien si algo fallo a medias
     FURI_LOG_I(
         "DnieRead",
         "Heap libre %u B, bloque max %u B",
@@ -267,6 +296,9 @@ bool dnie_scene_read_on_event(void* context, SceneManagerEvent event) {
                 nfc_scanner_free(app->scanner);
                 app->scanner = NULL;
             }
+            // Antes de arrancar el poller: desde su hilo no se puede cargar. Si no cabe, la
+            // lectura sigue y el poller decide (BAC o aviso en la pantalla de resultado).
+            app->ecc_status = dnie_plugin_open_ecc(&app->ecc);
             app->poller = nfc_poller_alloc(app->nfc, app->protocol);
             nfc_poller_start(app->poller, dnie_scene_read_poller_callback, app);
             consumed = true;
@@ -274,6 +306,20 @@ bool dnie_scene_read_on_event(void* context, SceneManagerEvent event) {
             dnie_scene_read_draw(app);
             consumed = true;
         } else if(event.event == DnieCustomEventReadOk || event.event == DnieCustomEventReadError) {
+            // El poller ya no usa el plugin de curva: fuera antes de cargar el siguiente
+            bool ecc_missing = app->ecc_status != DniePluginOk;
+            dnie_plugin_close(&app->ecc);
+
+            // Ya sin radio: firma y cadena CSCA. El plugin se descarga al terminar y despues se
+            // libera el SOD, asi la foto (que carga su propio plugin) tiene la memoria libre.
+            if(app->auth.sod) {
+                app->pace_progress = DNIE_STEP_VERIFY;
+                dnie_scene_read_draw(app);
+                furi_delay_ms(50); // que la GUI llegue a pintarlo antes de ponernos a calcular
+                if(!dnie_auth_verify(&app->auth)) app->pending_toast = "Not verified";
+            }
+            dnie_auth_compact(&app->auth); // fuera SOD y DG14
+
             // Extraer la foto de DG2 (acceso a SD: aqui, en el hilo de la GUI)
             if(app->photo.lds.result == DnieLdsOk && app->photo.dg2_len > 0) {
                 dnie_photo_extract(&app->photo);
@@ -287,7 +333,9 @@ bool dnie_scene_read_on_event(void* context, SceneManagerEvent event) {
             // Autentico: himno del pais. No autentico: sonido grave + vibracion larga.
             // Sin veredicto: pitido normal (exito) o de error, como el NFC.
             if(v == DnieVerdictOriginal || v == DnieVerdictGenuine) {
-                dnie_sound_original(app->notifications, app->mrz.issuer);
+                if(!dnie_sound_original(app->notifications, app->mrz.issuer)) {
+                    app->pending_toast = "No anthem";
+                }
             } else if(v == DnieVerdictFake) {
                 dnie_sound_fake(app->notifications);
             } else {
@@ -295,6 +343,7 @@ bool dnie_scene_read_on_event(void* context, SceneManagerEvent event) {
                     app->notifications,
                     event.event == DnieCustomEventReadOk ? &sequence_success : &sequence_error);
             }
+            if(card && ecc_missing && !app->pending_toast) app->pending_toast = "No chip auth";
             app->card_hint_pending = card; // en el carnet: "Up: save"
             scene_manager_next_scene(
                 app->scene_manager,
@@ -321,6 +370,8 @@ void dnie_scene_read_on_exit(void* context) {
         nfc_poller_free(app->poller);
         app->poller = NULL;
     }
+    dnie_plugin_close(&app->ecc); // ya no hay poller que lo use
+    dnie_auth_compact(&app->auth); // por si salimos con Atras a media lectura
     notification_message(app->notifications, &sequence_blink_stop); // por si salimos con Atras
     widget_reset(app->widget);
 }

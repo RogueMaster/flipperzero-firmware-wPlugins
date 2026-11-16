@@ -11,7 +11,6 @@
 #include <gui/view.h>
 #include <gui/view_stack.h>
 #include <gui/modules/popup.h>
-#include <gui/modules/submenu.h>
 #include <gui/modules/widget.h>
 #include <gui/view_dispatcher.h>
 #include <input/input.h>
@@ -32,6 +31,7 @@ typedef enum {
     ViewTag,
     ViewEmulate,
     ViewHelp,
+    ViewAbout,
     ViewRead,
     ViewSettings,
     ViewMy,
@@ -58,7 +58,7 @@ typedef enum {
 #define FILE_MAX     40
 #define MenuFileBase 400
 
-#define APP_VERSION "1.0"
+#define APP_VERSION "1.1"
 
 typedef enum {
     UidFollowSetting,
@@ -82,13 +82,14 @@ typedef enum {
 typedef struct {
     Gui* gui;
     ViewDispatcher* dispatcher;
-    Submenu* submenu;
+    View* list_view;
     Widget* widget;
     View* menu_view;
     View* splash_view;
     View* cleanup_view;
     FuriTimer* menu_timer;
     View* help_view;
+    View* about_view;
     View* tag_buttons;
     ViewStack* tag_stack;
     Popup* popup;
@@ -251,15 +252,34 @@ static const char HELP[] = "This app can back up\n"
                            "2 seconds. Database\n"
                            "files stay.\n";
 
+static const char ABOUT[] =
+    "Amiibo is a trademark\n"
+    "of Nintendo.\n"
+    "\n"
+    "Characters and names\n"
+    "are copyright Nintendo.\n"
+    "All rights reserved.\n"
+    "\n"
+    "This app is not made\n"
+    "by Nintendo.\n"
+    "\n"
+    "Written by\n"
+    "Soap-n-Cartridge.\n"
+    "Open source.\n"
+    "\n"
+    "Does not own Amiibo\n"
+    "or Nintendo content.\n";
+
 typedef struct {
     uint16_t scroll;
     uint16_t lines;
     uint8_t visible;
-} HelpModel;
+    const char* title;
+    const char* body;
+} PageModel;
 
-static uint16_t help_line_count(void) {
+static uint16_t page_line_count(const char* text) {
     uint16_t count = 0;
-    const char* text = HELP;
     while(*text) {
         count++;
         while(*text && *text != '\n')
@@ -269,8 +289,7 @@ static uint16_t help_line_count(void) {
     return count;
 }
 
-static void help_copy_line(uint16_t index, char* out, size_t out_size) {
-    const char* text = HELP;
+static void page_copy_line(const char* text, uint16_t index, char* out, size_t out_size) {
     uint16_t line = 0;
     while(*text && line < index) {
         if(*text == '\n') line++;
@@ -282,11 +301,11 @@ static void help_copy_line(uint16_t index, char* out, size_t out_size) {
     out[used] = '\0';
 }
 
-static void help_draw(Canvas* canvas, void* context) {
-    HelpModel* model = context;
+static void page_draw(Canvas* canvas, void* context) {
+    PageModel* model = context;
     canvas_clear(canvas);
     canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str(canvas, 4, 11, "Help");
+    canvas_draw_str(canvas, 4, 11, model->title);
 
     canvas_set_font(canvas, FontSecondary);
     size_t font_height = canvas_current_font_height(canvas);
@@ -301,24 +320,41 @@ static void help_draw(Canvas* canvas, void* context) {
     for(uint8_t row = 0; row < visible; row++) {
         uint16_t index = model->scroll + row;
         if(index >= model->lines) break;
-        help_copy_line(index, line, sizeof(line));
+        page_copy_line(model->body, index, line, sizeof(line));
         canvas_draw_str(canvas, 4, (int32_t)(16 + ((row + 1) * font_height) - 2), line);
     }
     if(model->lines > visible) elements_scrollbar(canvas, model->scroll, model->lines);
 }
 
-static bool help_input(InputEvent* event, void* context) {
-    App* app = context;
+static bool page_input(InputEvent* event, View* view) {
     if(event->type != InputTypeShort && event->type != InputTypeRepeat) return false;
     if(event->key != InputKeyUp && event->key != InputKeyDown) return false;
 
-    HelpModel* model = view_get_model(app->help_view);
+    PageModel* model = view_get_model(view);
     uint8_t visible = model->visible ? model->visible : 4;
     uint16_t max_scroll = model->lines > visible ? model->lines - visible : 0;
     if(event->key == InputKeyDown && model->scroll < max_scroll) model->scroll++;
     if(event->key == InputKeyUp && model->scroll > 0) model->scroll--;
-    view_commit_model(app->help_view, true);
+    view_commit_model(view, true);
     return true;
+}
+
+static bool help_input(InputEvent* event, void* context) {
+    App* app = context;
+    return page_input(event, app->help_view);
+}
+
+static bool about_input(InputEvent* event, void* context) {
+    App* app = context;
+    return page_input(event, app->about_view);
+}
+
+static void show_about(App* app) {
+    PageModel* model = view_get_model(app->about_view);
+    model->scroll = 0;
+    view_commit_model(app->about_view, false);
+    app->current = ViewAbout;
+    view_dispatcher_switch_to_view(app->dispatcher, ViewAbout);
 }
 
 static void show_menu(App* app);
@@ -733,13 +769,291 @@ static void show_menu(App* app) {
     view_dispatcher_switch_to_view(app->dispatcher, ViewCarousel);
 }
 
+typedef struct {
+    FuriString* label;
+    unsigned count;
+    bool show_count;
+    uint32_t index;
+} ListItem;
+
+typedef struct {
+    ListItem* items;
+    uint16_t count;
+    uint16_t capacity;
+    FuriString* header;
+    unsigned header_count;
+    bool header_show;
+    size_t position;
+    size_t window_position;
+} ListModel;
+
+#define COUNT_RIGHT 122
+
+static void list_draw_line(
+    Canvas* canvas,
+    const char* name,
+    unsigned count,
+    bool show_count,
+    int x,
+    int y) {
+    char number[12];
+    uint16_t number_w = 0;
+    if(show_count && count > 0) {
+        snprintf(number, sizeof(number), "%u", count);
+        number_w = canvas_string_width(canvas, number);
+    }
+    int room = COUNT_RIGHT - x;
+    if(number_w > 0) {
+        if(room > (int)number_w + 4) room -= (int)number_w + 4;
+        else room = 0;
+    }
+    FuriString* shown = furi_string_alloc_set(name);
+    if(room <= 0) furi_string_reset(shown);
+    else elements_string_fit_width(canvas, shown, (size_t)room);
+    canvas_draw_str(canvas, x, y, furi_string_get_cstr(shown));
+    furi_string_free(shown);
+    if(number_w > 0) canvas_draw_str(canvas, COUNT_RIGHT - (int)number_w, y, number);
+}
+
+static void list_draw(Canvas* canvas, void* _model) {
+    ListModel* model = _model;
+    const uint8_t item_height = 16;
+    uint8_t item_width = canvas_width(canvas) - 5;
+    bool has_header = model->header && !furi_string_empty(model->header);
+    size_t items_on_screen = has_header ? 3 : 4;
+    uint8_t y_offset = has_header ? 16 : 0;
+
+    canvas_clear(canvas);
+    if(has_header) {
+        canvas_set_font(canvas, FontPrimary);
+        canvas_set_color(canvas, ColorBlack);
+        list_draw_line(
+            canvas,
+            furi_string_get_cstr(model->header),
+            model->header_count,
+            model->header_show,
+            4,
+            11);
+    }
+    canvas_set_font(canvas, FontSecondary);
+    for(uint16_t position = 0; position < model->count; position++) {
+        if(position < model->window_position) continue;
+        size_t item_position = position - model->window_position;
+        if(item_position >= items_on_screen) break;
+        if(position == model->position) {
+            canvas_set_color(canvas, ColorBlack);
+            elements_slightly_rounded_box(
+                canvas,
+                0,
+                y_offset + (item_position * item_height) + 1,
+                item_width,
+                item_height - 2);
+            canvas_set_color(canvas, ColorWhite);
+        } else {
+            canvas_set_color(canvas, ColorBlack);
+        }
+        list_draw_line(
+            canvas,
+            furi_string_get_cstr(model->items[position].label),
+            model->items[position].count,
+            model->items[position].show_count,
+            6,
+            y_offset + (item_position * item_height) + item_height - 4);
+    }
+    elements_scrollbar(canvas, model->position, model->count);
+}
+
+static void list_move(ListModel* model, bool down) {
+    bool has_header = model->header && !furi_string_empty(model->header);
+    size_t items_on_screen = has_header ? 3 : 4;
+    size_t items_size = model->count;
+    if(items_size == 0) return;
+    if(!down) {
+        if(model->position > 0) {
+            model->position--;
+            if(model->position == model->window_position && model->window_position > 0) {
+                model->window_position--;
+            }
+        } else {
+            model->position = items_size - 1;
+            if(model->position > items_on_screen - 1) {
+                model->window_position = model->position - (items_on_screen - 1);
+            }
+        }
+        return;
+    }
+    if(model->position < items_size - 1) {
+        model->position++;
+        if((model->position - model->window_position > items_on_screen - 2) &&
+           (model->window_position < items_size - items_on_screen)) {
+            model->window_position++;
+        }
+    } else {
+        model->position = 0;
+        model->window_position = 0;
+    }
+}
+
+static bool list_input(InputEvent* event, void* context) {
+    App* app = context;
+    bool consumed = false;
+    if(event->key == InputKeyOk) {
+        consumed = true;
+        if(event->type == InputTypeShort) {
+            uint32_t index = 0;
+            bool have = false;
+            with_view_model(
+                app->list_view,
+                ListModel * model,
+                {
+                    if(model->position < model->count) {
+                        index = model->items[model->position].index;
+                        have = true;
+                    }
+                },
+                false);
+            if(have) submenu_callback(app, index);
+        }
+    } else if(event->type == InputTypeShort || event->type == InputTypeRepeat) {
+        if(event->key == InputKeyUp || event->key == InputKeyDown) {
+            consumed = true;
+            with_view_model(
+                app->list_view,
+                ListModel * model,
+                { list_move(model, event->key == InputKeyDown); },
+                true);
+        }
+    }
+    return consumed;
+}
+
+static void list_reset(App* app) {
+    with_view_model(
+        app->list_view,
+        ListModel * model,
+        {
+            for(uint16_t i = 0; i < model->count; i++) furi_string_free(model->items[i].label);
+            free(model->items);
+            model->items = NULL;
+            model->count = 0;
+            model->capacity = 0;
+            model->position = 0;
+            model->window_position = 0;
+            furi_string_reset(model->header);
+            model->header_count = 0;
+            model->header_show = false;
+        },
+        true);
+}
+
+static void list_header(App* app, const char* name, unsigned count, bool show_count) {
+    with_view_model(
+        app->list_view,
+        ListModel * model,
+        {
+            furi_string_set(model->header, name);
+            model->header_count = count;
+            model->header_show = show_count;
+        },
+        true);
+}
+
+static void list_add(App* app, const char* name, unsigned count, bool show_count, uint32_t index) {
+    with_view_model(
+        app->list_view,
+        ListModel * model,
+        {
+            if(model->count == model->capacity) {
+                uint16_t next = model->capacity == 0 ? 8 : (uint16_t)(model->capacity * 2);
+                ListItem* grown = realloc(model->items, (size_t)next * sizeof(ListItem));
+                if(grown) {
+                    model->items = grown;
+                    model->capacity = next;
+                }
+            }
+            if(model->count < model->capacity) {
+                ListItem* item = &model->items[model->count++];
+                item->label = furi_string_alloc_set(name);
+                item->count = count;
+                item->show_count = show_count;
+                item->index = index;
+            }
+        },
+        true);
+}
+
+static void list_select(App* app, uint32_t index) {
+    with_view_model(
+        app->list_view,
+        ListModel * model,
+        {
+            size_t position = 0;
+            for(; position < model->count; position++) {
+                if(model->items[position].index == index) break;
+            }
+            if(position >= model->count) position = 0;
+            model->position = position;
+            model->window_position = position;
+            if(model->window_position > 0) model->window_position--;
+            bool has_header = model->header && !furi_string_empty(model->header);
+            size_t items_on_screen = has_header ? 3 : 4;
+            if(model->count <= items_on_screen) {
+                model->window_position = 0;
+            } else {
+                size_t pos = model->count - items_on_screen;
+                if(model->window_position > pos) model->window_position = pos;
+            }
+        },
+        true);
+}
+
+static unsigned count_tags_in(App* app, const char* folder) {
+    unsigned count = 0;
+    FuriString** subs = NULL;
+    uint16_t sub_count = 0;
+    uint16_t sub_cap = 0;
+    File* dir = storage_file_alloc(app->storage);
+    if(storage_dir_open(dir, folder)) {
+        FileInfo info;
+        char name[128];
+        while(storage_dir_read(dir, &info, name, (uint16_t)sizeof(name))) {
+            if(name[0] == '\0' || name[0] == '.') continue;
+            if(info.flags & FSF_DIRECTORY) {
+                if(sub_count == sub_cap) {
+                    uint16_t next = sub_cap == 0 ? 8 : (uint16_t)(sub_cap * 2);
+                    FuriString** grown = realloc(subs, (size_t)next * sizeof(FuriString*));
+                    if(!grown) continue;
+                    subs = grown;
+                    sub_cap = next;
+                }
+                subs[sub_count++] = furi_string_alloc_printf("%s/%s", folder, name);
+            } else if(ends_with_i(name, ".bin") || ends_with_i(name, ".nfc")) {
+                count++;
+            }
+        }
+        storage_dir_close(dir);
+    }
+    storage_file_free(dir);
+    for(uint16_t i = 0; i < sub_count; i++) {
+        count += count_tags_in(app, furi_string_get_cstr(subs[i]));
+        furi_string_free(subs[i]);
+    }
+    free(subs);
+    return count;
+}
+
 static void show_scan(App* app) {
-    submenu_reset(app->submenu);
-    submenu_set_header(app->submenu, "Scan Amiibos");
-    submenu_add_item(app->submenu, "Scan Amiibos", MenuRead, submenu_callback, app);
-    submenu_add_item(app->submenu, "Scanned Amiibos", MenuUnsaved, submenu_callback, app);
+    list_reset(app);
+    list_header(app, "Scan Amiibos", 0, false);
+    list_add(app, "Scan Amiibos", 0, false, MenuRead);
+    list_add(
+        app,
+        "Scanned Amiibos",
+        count_tags_in(app, APP_DATA_PATH("scanned")),
+        true,
+        MenuUnsaved);
     if(app->my_index != MenuRead && app->my_index != MenuUnsaved) app->my_index = MenuRead;
-    submenu_set_selected_item(app->submenu, app->my_index);
+    list_select(app, app->my_index);
     app->current = ViewMy;
     view_dispatcher_switch_to_view(app->dispatcher, ViewMenu);
 }
@@ -747,24 +1061,14 @@ static void show_scan(App* app) {
 static void show_settings(App* app) {
     char version[32];
     snprintf(version, sizeof(version), "Version [v%s]", APP_VERSION);
-    submenu_reset(app->submenu);
-    submenu_set_header(app->submenu, "Settings");
-    submenu_add_item(app->submenu, version, MenuVersion, submenu_callback, app);
-    submenu_add_item(
-        app->submenu,
-        app->auto_uid ? "Auto UID: ON" : "Auto UID: OFF",
-        MenuAuto,
-        submenu_callback,
-        app);
-    submenu_add_item(
-        app->submenu,
-        app->keys_loaded ? "Keys: Loaded" : "Keys: Missing",
-        MenuKeys,
-        submenu_callback,
-        app);
-    submenu_add_item(app->submenu, "Clean added tags", MenuClean, submenu_callback, app);
+    list_reset(app);
+    list_header(app, "Settings", 0, false);
+    list_add(app, version, 0, false, MenuVersion);
+    list_add(app, app->auto_uid ? "Auto UID: ON" : "Auto UID: OFF", 0, false, MenuAuto);
+    list_add(app, app->keys_loaded ? "Keys: Loaded" : "Keys: Missing", 0, false, MenuKeys);
+    list_add(app, "Clean added tags", 0, false, MenuClean);
     if(app->settings_index == 0) app->settings_index = MenuVersion;
-    submenu_set_selected_item(app->submenu, app->settings_index);
+    list_select(app, app->settings_index);
     app->current = ViewSettings;
     view_dispatcher_switch_to_view(app->dispatcher, ViewMenu);
 }
@@ -1208,7 +1512,7 @@ static void finish_read(App* app, bool ok) {
     app->policy = UidForceOff;
     if(!save_dump(app)) app->dirty = true;
     app->browse = BrowseNone;
-    show_tag(app);
+    show_scan(app);
 }
 
 static void show_file_list(App* app, bool saved) {
@@ -1229,22 +1533,25 @@ static void show_file_list(App* app, bool saved) {
     }
     storage_file_free(dir);
 
-    submenu_reset(app->submenu);
-    submenu_set_header(app->submenu, saved ? "Favorites" : "Scanned Amiibos");
+    list_reset(app);
+    list_header(
+        app,
+        saved ? "Favorites" : "Scanned Amiibos",
+        count_tags_in(app, folder),
+        true);
     if(app->file_count == 0) {
-        submenu_add_item(app->submenu, "None yet", MenuEmpty, submenu_callback, app);
+        list_add(app, "None yet", 0, false, MenuEmpty);
     } else {
         for(uint8_t i = 0; i < app->file_count; i++) {
             FuriString* label = furi_string_alloc();
             path_extract_filename(app->files[i], label, true);
-            submenu_add_item(
-                app->submenu, furi_string_get_cstr(label), MenuFileBase + i, submenu_callback, app);
+            list_add(app, furi_string_get_cstr(label), 0, false, MenuFileBase + i);
             furi_string_free(label);
         }
     }
     uint32_t selected = saved ? app->saved_index : app->unsaved_index;
     if(app->file_count == 0) selected = MenuEmpty;
-    submenu_set_selected_item(app->submenu, selected);
+    list_select(app, selected);
     app->current = saved ? ViewSaved : ViewUnsaved;
     view_dispatcher_switch_to_view(app->dispatcher, ViewMenu);
 }
@@ -1403,9 +1710,11 @@ static void carousel_open(App* app) {
         show_scan(app);
     } else if(index == 3) {
         show_settings(app);
-    } else {
+    } else if(index == 4) {
         app->current = ViewHelp;
         view_dispatcher_switch_to_view(app->dispatcher, ViewHelp);
+    } else {
+        show_about(app);
     }
 }
 
@@ -1415,6 +1724,7 @@ static int section_of(App* app) {
     if(app->current == ViewMy) return 2;
     if(app->current == ViewSettings) return 3;
     if(app->current == ViewHelp) return 4;
+    if(app->current == ViewAbout) return 5;
     return -1;
 }
 
@@ -1603,34 +1913,41 @@ static void db_load(App* app) {
 
 static void show_database(App* app) {
     db_load(app);
-    submenu_reset(app->submenu);
+    FuriString* title = furi_string_alloc();
     if(db_is_root(app)) {
-        submenu_set_header(app->submenu, "Amiibo Database");
+        furi_string_set(title, "Amiibo Database");
     } else {
-        FuriString* header = furi_string_alloc();
-        path_extract_filename(app->db_path, header, false);
-        submenu_set_header(app->submenu, furi_string_get_cstr(header));
-        furi_string_free(header);
+        path_extract_filename(app->db_path, title, false);
     }
+    unsigned title_count = count_tags_in(app, furi_string_get_cstr(app->db_path));
+    list_reset(app);
+    list_header(app, furi_string_get_cstr(title), title_count, true);
+    furi_string_free(title);
     if(app->db_count == 0) {
-        submenu_add_item(app->submenu, "None yet", MenuEmpty, submenu_callback, app);
+        list_add(app, "None yet", 0, false, MenuEmpty);
     } else {
         if(app->db_index >= app->db_count) app->db_index = 0;
         for(uint16_t i = 0; i < app->db_count; i++) {
             FuriString* label = furi_string_alloc_set(app->db_names[i]);
-            if(app->db_is_dir[i]) {
+            unsigned row_count = 0;
+            bool folder = app->db_is_dir[i] != 0;
+            if(folder) {
                 furi_string_cat(label, "/");
+                FuriString* child = furi_string_alloc_printf(
+                    "%s/%s",
+                    furi_string_get_cstr(app->db_path),
+                    furi_string_get_cstr(app->db_names[i]));
+                row_count = count_tags_in(app, furi_string_get_cstr(child));
+                furi_string_free(child);
             } else {
                 size_t dot = furi_string_search_rchar(label, '.');
                 if(dot != FURI_STRING_FAILURE) furi_string_left(label, dot);
             }
-            submenu_add_item(
-                app->submenu, furi_string_get_cstr(label), MenuFileBase + i, submenu_callback, app);
+            list_add(app, furi_string_get_cstr(label), row_count, folder, MenuFileBase + i);
             furi_string_free(label);
         }
     }
-    submenu_set_selected_item(
-        app->submenu, app->db_count == 0 ? MenuEmpty : MenuFileBase + app->db_index);
+    list_select(app, app->db_count == 0 ? MenuEmpty : MenuFileBase + app->db_index);
     app->current = ViewDatabase;
     view_dispatcher_switch_to_view(app->dispatcher, ViewMenu);
 }
@@ -1912,7 +2229,8 @@ static bool back_event(void* context) {
         show_scan(app);
         return true;
     }
-    if(app->current == ViewMy || app->current == ViewSettings || app->current == ViewHelp) {
+    if(app->current == ViewMy || app->current == ViewSettings || app->current == ViewHelp ||
+       app->current == ViewAbout) {
         show_menu(app);
         return true;
     }
@@ -1975,12 +2293,20 @@ int32_t flipper_amiibo_app(void* arg) {
 
     app->path = furi_string_alloc_set(APP_DATA_PATH("db"));
     app->db_path = furi_string_alloc_set(APP_DATA_PATH("db"));
-    for(uint8_t i = 0; i < FILE_MAX; i++)
-        app->files[i] = furi_string_alloc();
+    for(uint8_t i = 0; i < FILE_MAX; i++) app->files[i] = furi_string_alloc();
     app->info = furi_string_alloc();
     app->device = nfc_device_alloc();
     app->dispatcher = view_dispatcher_alloc();
-    app->submenu = submenu_alloc();
+    app->list_view = view_alloc();
+    view_allocate_model(app->list_view, ViewModelTypeLocking, sizeof(ListModel));
+    with_view_model(
+        app->list_view,
+        ListModel * model,
+        { model->header = furi_string_alloc(); },
+        false);
+    view_set_context(app->list_view, app);
+    view_set_draw_callback(app->list_view, list_draw);
+    view_set_input_callback(app->list_view, list_input);
     app->widget = widget_alloc();
     app->tag_buttons = view_alloc();
     view_allocate_model(app->tag_buttons, ViewModelTypeLocking, sizeof(TagBarModel));
@@ -2010,15 +2336,29 @@ int32_t flipper_amiibo_app(void* arg) {
     app->popup = popup_alloc();
     app->menu_timer = furi_timer_alloc(menu_timer_cb, FuriTimerTypePeriodic, app);
     app->help_view = view_alloc();
-    view_allocate_model(app->help_view, ViewModelTypeLocking, sizeof(HelpModel));
-    HelpModel* help_model = view_get_model(app->help_view);
+    view_allocate_model(app->help_view, ViewModelTypeLocking, sizeof(PageModel));
+    PageModel* help_model = view_get_model(app->help_view);
     help_model->scroll = 0;
-    help_model->lines = help_line_count();
+    help_model->title = "Help";
+    help_model->body = HELP;
+    help_model->lines = page_line_count(HELP);
     help_model->visible = 4;
     view_commit_model(app->help_view, false);
     view_set_context(app->help_view, app);
-    view_set_draw_callback(app->help_view, help_draw);
+    view_set_draw_callback(app->help_view, page_draw);
     view_set_input_callback(app->help_view, help_input);
+    app->about_view = view_alloc();
+    view_allocate_model(app->about_view, ViewModelTypeLocking, sizeof(PageModel));
+    PageModel* about_model = view_get_model(app->about_view);
+    about_model->scroll = 0;
+    about_model->title = "About";
+    about_model->body = ABOUT;
+    about_model->lines = page_line_count(ABOUT);
+    about_model->visible = 4;
+    view_commit_model(app->about_view, false);
+    view_set_context(app->about_view, app);
+    view_set_draw_callback(app->about_view, page_draw);
+    view_set_input_callback(app->about_view, about_input);
     app->input_pubsub = furi_record_open(RECORD_INPUT_EVENTS);
     app->input_subscription = furi_pubsub_subscribe(app->input_pubsub, section_key, app);
 
@@ -2030,10 +2370,11 @@ int32_t flipper_amiibo_app(void* arg) {
     view_dispatcher_add_view(app->dispatcher, ViewSplash, app->splash_view);
     view_dispatcher_add_view(app->dispatcher, ViewCleanup, app->cleanup_view);
     view_dispatcher_add_view(app->dispatcher, ViewCarousel, app->menu_view);
-    view_dispatcher_add_view(app->dispatcher, ViewMenu, submenu_get_view(app->submenu));
+    view_dispatcher_add_view(app->dispatcher, ViewMenu, app->list_view);
     view_dispatcher_add_view(app->dispatcher, ViewTag, view_stack_get_view(app->tag_stack));
     view_dispatcher_add_view(app->dispatcher, ViewNotice, popup_get_view(app->popup));
     view_dispatcher_add_view(app->dispatcher, ViewHelp, app->help_view);
+    view_dispatcher_add_view(app->dispatcher, ViewAbout, app->about_view);
 
     view_dispatcher_set_tick_event_callback(app->dispatcher, app_tick, furi_ms_to_ticks(50));
     show_splash(app);
@@ -2056,22 +2397,32 @@ int32_t flipper_amiibo_app(void* arg) {
     view_free(app->tag_buttons);
     view_dispatcher_remove_view(app->dispatcher, ViewNotice);
     view_dispatcher_remove_view(app->dispatcher, ViewHelp);
+    view_dispatcher_remove_view(app->dispatcher, ViewAbout);
     furi_timer_free(app->menu_timer);
     view_free(app->splash_view);
     view_free(app->cleanup_view);
     view_free(app->menu_view);
     view_free(app->help_view);
+    view_free(app->about_view);
     widget_free(app->widget);
     popup_free(app->popup);
-    submenu_free(app->submenu);
+    with_view_model(
+        app->list_view,
+        ListModel * model,
+        {
+            for(uint16_t i = 0; i < model->count; i++) furi_string_free(model->items[i].label);
+            free(model->items);
+            furi_string_free(model->header);
+        },
+        false);
+    view_free(app->list_view);
     view_dispatcher_free(app->dispatcher);
     nfc_device_free(app->device);
     furi_string_free(app->info);
     db_clear(app);
     furi_string_free(app->db_path);
     furi_string_free(app->path);
-    for(uint8_t i = 0; i < FILE_MAX; i++)
-        furi_string_free(app->files[i]);
+    for(uint8_t i = 0; i < FILE_MAX; i++) furi_string_free(app->files[i]);
     furi_record_close(RECORD_GUI);
     furi_record_close(RECORD_NOTIFICATION);
     furi_record_close(RECORD_DIALOGS);

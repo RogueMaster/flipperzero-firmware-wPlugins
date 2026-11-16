@@ -21,6 +21,7 @@ The main menu is a row of pictures. Left and Right move. OK opens one. Back retu
 3. **Scan Amiibos** reads a real Amiibo.
 4. **Settings** shows the app version, Auto UID, and whether the key file is ready.
 5. **Help** explains the steps on the Flipper.
+6. **About** says Amiibo is a Nintendo trademark and that the characters are copyright Nintendo. The app is open source, written by Soap-n-Cartridge. It does not own Amiibo or Nintendo content.
 
 From one of these screens, Left and Right jump to the next one.
 

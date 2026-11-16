@@ -1,5 +1,7 @@
 # Varta
 
+[![Build App with Unleashed Firmware](https://github.com/DarkFlippers/varta/actions/workflows/build.yml/badge.svg)](https://github.com/DarkFlippers/varta/actions/workflows/build.yml)
+
 Everything you can do with a **Варта-М** intercom key on a Flipper Zero: read one, check
 whether it is genuine, open a door by emulating it, write a copy to a blank tag, or build a
 working key from nothing but the number printed on the fob.

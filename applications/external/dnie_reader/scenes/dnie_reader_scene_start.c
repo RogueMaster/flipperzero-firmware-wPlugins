@@ -62,7 +62,9 @@ bool dnie_scene_start_on_event(void* context, SceneManagerEvent event) {
             consumed = true;
         } else if(event.event == SubmenuIndexDemo) {
             if(dnie_demo_load(app)) {
-                dnie_sound_original(app->notifications, "ESP");
+                if(!dnie_sound_original(app->notifications, "ESP")) {
+                    app->pending_toast = "No anthem";
+                }
                 scene_manager_next_scene(app->scene_manager, DnieSceneCard);
             }
             consumed = true;

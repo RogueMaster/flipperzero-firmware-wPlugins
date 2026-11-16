@@ -1,0 +1,13 @@
+App(
+    appid='codex_meter',
+    name='Codex Monitor',
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point='codex_meter_app',
+    stack_size=3 * 1024,
+    fap_icon='meter_10px.png',
+    fap_category='Bluetooth',
+    fap_author='Dr. Mosfet',
+    fap_weburl='https://github.com/kamylwnb/codex-monitor',
+    fap_version='1.4',
+    fap_description='Codex quota dashboard over Bluetooth, with live reset timers.',
+)

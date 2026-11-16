@@ -1,6 +1,8 @@
 #include "../dnie_reader.h"
 #include "dnie_reader_scene.h"
+#include "dnie_mem.h"
 #include "../dnie_sounds.h"
+#include "../dnie_plugin.h"
 
 #define SAVED_EMPTY_INDEX 0xFFFF
 
@@ -17,7 +19,8 @@ void dnie_scene_saved_list_on_enter(void* context) {
     submenu_set_header(submenu, "Saved readings");
 
     // La lista solo ocupa memoria mientras se ve (unos 4 KB)
-    if(!app->saved_entries) app->saved_entries = malloc(sizeof(DnieSavedEntry) * DNIE_STORE_MAX);
+    if(!app->saved_entries)
+        app->saved_entries = dnie_malloc(sizeof(DnieSavedEntry) * DNIE_STORE_MAX);
     // Se descifra cada lectura para mostrar el nombre (puede tardar un instante)
     app->saved_count = app->saved_entries ? dnie_store_list(app->saved_entries, DNIE_STORE_MAX) :
                                             0;
@@ -36,7 +39,7 @@ void dnie_scene_saved_list_on_enter(void* context) {
 
 // Carga una lectura guardada en la app como si se acabara de leer
 static bool load_saved(DnieApp* app, size_t index) {
-    DnieRecord* rec = malloc(sizeof(DnieRecord));
+    DnieRecord* rec = dnie_malloc(sizeof(DnieRecord));
     if(!rec) return false;
     bool ok = dnie_store_load(app->saved_entries[index].path, rec) == DnieStoreOk &&
               rec->dg1_len <= sizeof(app->dg1);
@@ -65,14 +68,15 @@ static bool load_saved(DnieApp* app, size_t index) {
         app->photo_decode_tried = true; // la foto viene ya escalada: no hay que decodificar
         memset(&app->pix, 0, sizeof(app->pix));
         if(rec->has_photo) {
-            if(!app->pix_src) app->pix_src = malloc(sizeof(DniePixelSource));
+            if(!app->pix_src) app->pix_src = dnie_malloc(sizeof(DniePixelSource));
+            app->photo_decode_result = DnieJ2kErrorMemory;
             if(app->pix_src) {
                 *app->pix_src = rec->photo;
-                app->photo_decode_result =
-                    dnie_pixelart_dither(app->pix_src, app->dither, &app->pix) ?
-                        DnieJ2kOk :
-                        DnieJ2kErrorMemory;
+                if(dnie_foto_dither(app->pix_src, app->dither, &app->pix)) {
+                    app->photo_decode_result = DnieJ2kOk;
+                }
             }
+            if(app->photo_decode_result != DnieJ2kOk) app->pending_toast = "No photo";
         } else {
             app->photo_decode_result = DnieJ2kErrorFormat;
         }
@@ -92,7 +96,9 @@ bool dnie_scene_saved_list_on_event(void* context, SceneManagerEvent event) {
             if(load_saved(app, event.event)) {
                 // El himno de su pais al abrirla
                 const char* issuer = app->viewing_album ? app->album_issuer : app->mrz.issuer;
-                if(issuer[0]) dnie_sound_original(app->notifications, issuer);
+                if(issuer[0] && !dnie_sound_original(app->notifications, issuer)) {
+                    app->pending_toast = "No anthem";
+                }
                 scene_manager_next_scene(app->scene_manager, DnieSceneCard);
             } else {
                 notification_message(app->notifications, &sequence_error);

@@ -1,5 +1,7 @@
 # Sniffer Card
 
+[![Build App with Unleashed Firmware](https://github.com/DarkFlippers/super-sniffer-card/actions/workflows/build.yml/badge.svg)](https://github.com/DarkFlippers/super-sniffer-card/actions/workflows/build.yml)
+
 A Flipper Zero app for Super Sniffer cards: it reads the MIFARE Classic authentications the card
 collected from a reader and hands them to the MFKey app as nonces, which recovers the keys.
 

@@ -1,3 +1,12 @@
+v0.4:
+
+- Send left and right arrows on a tap, Esc on a hold
+- Trace the recess from the case
+- Add an options screen with a vibration switch
+- Keep the options across launches
+- Add a backlight option
+- Show the battery after the first press
+
 v0.3:
 
 - Internal changes only

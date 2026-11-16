@@ -1,5 +1,6 @@
 #include "../dnie_reader.h"
 #include "dnie_reader_scene.h"
+#include "dnie_mem.h"
 
 #include <furi_hal_rtc.h>
 
@@ -26,7 +27,8 @@ void dnie_scene_save_menu_on_enter(void* context) {
 }
 
 static DnieStoreResult save_current(DnieApp* app, DnieRecordKind kind) {
-    DnieRecord* rec = malloc(sizeof(DnieRecord));
+    DnieRecord* rec = dnie_malloc(sizeof(DnieRecord));
+    if(!rec) return DnieStoreErrorCrypto;
     memset(rec, 0, sizeof(DnieRecord));
     rec->kind = kind;
     rec->saved_at = furi_hal_rtc_get_timestamp();

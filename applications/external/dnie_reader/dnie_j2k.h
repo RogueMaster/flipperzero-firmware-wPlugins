@@ -19,6 +19,7 @@ typedef enum {
     DnieJ2kErrorUnsupported, // variante que este decodificador minimo no implementa
     DnieJ2kErrorMemory,
     DnieJ2kErrorTruncated, // faltan bytes: los datos de baja resolucion siguen mas adelante
+    DnieJ2kErrorPlugin, // no se pudo cargar el plugin de foto
 } DnieJ2kResult;
 
 typedef struct {

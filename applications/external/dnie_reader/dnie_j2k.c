@@ -1,5 +1,6 @@
 #include "dnie_j2k.h"
 #include "dnie_dg2.h"
+#include "dnie_mem.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -336,7 +337,7 @@ static bool tgt_create(Tgt* t, uint32_t w, uint32_t h) {
         lw = (lw + 1) / 2;
         lh = (lh + 1) / 2;
     } while(nlevels < 32);
-    t->nodes = malloc(sizeof(TgtNode) * total);
+    t->nodes = dnie_malloc(sizeof(TgtNode) * total);
     if(!t->nodes) return false;
     t->leaves_w = w;
     t->leaves_h = h;
@@ -693,7 +694,7 @@ static bool t1_decode(
     t.orient = orient;
     t.v = out;
     memset(out, 0, sizeof(int32_t) * w * h);
-    t.f = calloc((size_t)(w + 2) * (h + 2), 1);
+    t.f = dnie_calloc((size_t)(w + 2) * (h + 2), 1);
     if(!t.f) return false;
     mq_init(&t.mq, data, len);
 
@@ -776,7 +777,7 @@ static DnieJ2kResult
         total_cbs += ncb_x[b] * ncb_y[b];
     CbInfo* tmp = NULL;
     if(!store && total_cbs) {
-        tmp = calloc(total_cbs, sizeof(CbInfo));
+        tmp = dnie_calloc(total_cbs, sizeof(CbInfo));
         if(!tmp) return DnieJ2kErrorMemory;
     }
 
@@ -971,7 +972,7 @@ DnieJ2kResult
             total += luma.count[r][b];
         }
     }
-    luma.cbs = calloc(total ? total : 1, sizeof(CbInfo));
+    luma.cbs = dnie_calloc(total ? total : 1, sizeof(CbInfo));
     if(!luma.cbs) return DnieJ2kErrorMemory;
 
     // Recorrer paquetes en el orden de progresion hasta tener toda la luminancia necesaria.
@@ -1003,14 +1004,14 @@ DnieJ2kResult
     }
 
     // Buffer de la luminancia a la resolucion objetivo (subbandas colocadas como en OpenJPEG)
-    float* img = calloc((size_t)out_w * out_h, sizeof(float));
+    float* img = dnie_calloc((size_t)out_w * out_h, sizeof(float));
     // Un code-block nunca supera su subbanda, y con rmax > 0 ninguna subbanda pasa de la
     // mitad (redondeada hacia arriba) de la imagen de salida
     uint32_t band_max_w = rmax > 0 ? (out_w + 1) / 2 : out_w;
     uint32_t band_max_h = rmax > 0 ? (out_h + 1) / 2 : out_h;
     uint32_t cb_max_w = (1u << c0->xcb) < band_max_w ? (1u << c0->xcb) : band_max_w;
     uint32_t cb_max_h = (1u << c0->ycb) < band_max_h ? (1u << c0->ycb) : band_max_h;
-    int32_t* cbuf = malloc(sizeof(int32_t) * cb_max_w * cb_max_h);
+    int32_t* cbuf = dnie_malloc(sizeof(int32_t) * cb_max_w * cb_max_h);
     if(!img || !cbuf) {
         free(img);
         free(cbuf);
@@ -1082,8 +1083,8 @@ DnieJ2kResult
     // Wavelet inversa nivel a nivel: filas y luego columnas
     if(res == DnieJ2kOk) {
         uint32_t maxdim = out_w > out_h ? out_w : out_h;
-        float* line = malloc(sizeof(float) * maxdim);
-        float* tmp = malloc(sizeof(float) * maxdim);
+        float* line = dnie_malloc(sizeof(float) * maxdim);
+        float* tmp = dnie_malloc(sizeof(float) * maxdim);
         if(!line || !tmp) {
             res = DnieJ2kErrorMemory;
         } else {
@@ -1121,8 +1122,8 @@ DnieJ2kResult
                 px[i] =
                     (uint8_t)(v < 0 ? 0 : (v > 255 ? 255 : v)); // i <= 4*i: no pisa lo pendiente
             }
-            void* shrunk = realloc(img, (size_t)out_w * out_h);
-            // Si realloc falla, el bloque original (con los pixeles ya escritos) sigue valido
+            void* shrunk = dnie_realloc(img, (size_t)out_w * out_h);
+            // Si no se puede, el bloque original (con los pixeles ya escritos) sigue valido
             out->pixels = shrunk ? (uint8_t*)shrunk : px;
             img = NULL;
             out->width = (uint16_t)out_w;
@@ -1132,25 +1133,4 @@ DnieJ2kResult
     }
     free(img);
     return res;
-}
-
-void dnie_gray_free(DnieGrayImage* img) {
-    free(img->pixels);
-    img->pixels = NULL;
-}
-
-const char* dnie_j2k_result_str(DnieJ2kResult result) {
-    switch(result) {
-    case DnieJ2kOk:
-        return "OK";
-    case DnieJ2kErrorFormat:
-        return "JPEG2000 mal formado";
-    case DnieJ2kErrorUnsupported:
-        return "Variante JPEG2000\nno soportada";
-    case DnieJ2kErrorMemory:
-        return "Sin memoria";
-    case DnieJ2kErrorTruncated:
-        return "JPEG2000 incompleto";
-    }
-    return "Unknown error";
 }

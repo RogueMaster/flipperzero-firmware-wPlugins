@@ -9,7 +9,7 @@ App(
     fap_icon_assets="images",
     fap_category="RFID",
     fap_author="mishamyte",
-    fap_weburl="https://github.com/mishamyte/varta",
+    fap_weburl="https://github.com/DarkFlippers/varta",
     fap_version="1.1",
     fap_description="Application for working with Varta-M keys and readers",
 )

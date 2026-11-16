@@ -1,9 +1,12 @@
 #include "dnie_auth.h"
+#include "dnie_mem.h"
+#include "dnie_plugin.h"
 #include <storage/storage.h>
 
 #include <string.h>
 
-#define TAG "DnieAuth"
+#define TAG               "DnieAuth"
+#define AUTH_VERIFY_STACK (8 * 1024) // mbedtls bignum (RSA-4096) usa bastante pila
 
 typedef struct {
     uint8_t* buf;
@@ -55,7 +58,7 @@ void dnie_auth_read(
         a->sod_status.result = DnieLdsErrorSink;
         return;
     }
-    a->sod_buf = malloc(DNIE_SOD_MAX);
+    a->sod_buf = dnie_malloc(DNIE_SOD_MAX);
     if(a->sod_buf) {
         MemSink m = {.buf = a->sod_buf, .max = DNIE_SOD_MAX};
         if(dnie_lds_read_file(
@@ -63,9 +66,9 @@ void dnie_auth_read(
            DnieLdsOk) {
             a->sod_len = m.len;
             // Encoger el buffer a lo que de verdad ocupa el SOD antes de parsearlo
-            uint8_t* shrunk = realloc(a->sod_buf, a->sod_len ? a->sod_len : 1);
+            uint8_t* shrunk = dnie_realloc(a->sod_buf, a->sod_len ? a->sod_len : 1);
             if(shrunk) a->sod_buf = shrunk;
-            a->sod = malloc(sizeof(DnieSod));
+            a->sod = dnie_malloc(sizeof(DnieSod));
             if(a->sod && !dnie_sod_parse(a->sod_buf, a->sod_len, a->sod)) {
                 FURI_LOG_E(TAG, "SOD no parseable (%u B)", a->sod_len);
                 free(a->sod);
@@ -78,7 +81,7 @@ void dnie_auth_read(
         return;
 
     // DG14
-    a->dg14_buf = malloc(DNIE_DG14_MAX);
+    a->dg14_buf = dnie_malloc(DNIE_DG14_MAX);
     // (se encoge igual que el SOD tras leerlo)
     if(a->dg14_buf) {
         MemSink m = {.buf = a->dg14_buf, .max = DNIE_DG14_MAX};
@@ -86,7 +89,7 @@ void dnie_auth_read(
                poller, sm, DNIE_FID_DG14, mem_sink, NULL, &m, &total, &a->dg14_status) ==
            DnieLdsOk) {
             a->dg14_len = m.len;
-            uint8_t* shrunk = realloc(a->dg14_buf, a->dg14_len ? a->dg14_len : 1);
+            uint8_t* shrunk = dnie_realloc(a->dg14_buf, a->dg14_len ? a->dg14_len : 1);
             if(shrunk) a->dg14_buf = shrunk;
             a->dg14_ok = dnie_dg14_parse(a->dg14_buf, a->dg14_len, &a->dg14);
         }
@@ -105,11 +108,40 @@ void dnie_auth_read(
     strlcpy(a->ds_subject_cn, a->sod->ds_subject_cn, sizeof(a->ds_subject_cn));
     strlcpy(a->ds_issuer_cn, a->sod->ds_issuer_cn, sizeof(a->ds_issuer_cn));
 
+    a->dg1 = check_hash(a->sod, 1, dg1, dg1_len);
+    if(a->dg14_ok) a->dg14_hash = check_hash(a->sod, 14, a->dg14_buf, a->dg14_len);
+    if(!dnie_hash_supported(a->sod->signer_hash)) {
+        a->message_digest = DnieCheckUnsupported;
+    } else {
+        a->message_digest = dnie_sod_check_message_digest(a->sod) ? DnieCheckOk : DnieCheckFail;
+    }
+}
+
+static const DnieAutenticidadHost autenticidad_host = {
+    .hash_len = dnie_hash_len,
+    .hash_supported = dnie_hash_supported,
+    .hash_start = dnie_hash_start,
+    .hash_update = dnie_hash_update,
+    .hash_finish = dnie_hash_finish,
+    .hash_from_oid = dnie_hash_from_oid,
+};
+
+typedef struct {
+    DnieAuth* auth;
+    const DnieAutenticidadApi* api;
+    File* csca_file; // ya abierto; NULL = solo las CSCA de Espana
+} AuthVerifyCtx;
+
+// Las cuentas RSA van en un hilo con pila grande, como las de curva eliptica en PACE
+static int32_t auth_verify_thread(void* context) {
+    AuthVerifyCtx* c = context;
+    DnieAuth* a = c->auth;
+
     // Firma del SOD con la clave del certificado DS (RSA PKCS#1 v1.5 en el DNIe).
     // La exponenciacion RSA reserva unos KB: solo si hay margen.
     uint32_t t0 = furi_get_tick();
     if(memmgr_get_free_heap() > 12288 && memmgr_heap_get_max_free_block() > 4096) {
-        dnie_pa_verify_sod(a->sod, &a->pa);
+        c->api->verify_sod(a->sod, &a->pa);
     } else {
         a->pa.result = DniePaNoMemory;
     }
@@ -125,27 +157,59 @@ void dnie_auth_read(
         t0 = furi_get_tick();
         if(memmgr_get_free_heap() > 16384 && memmgr_heap_get_max_free_block() > 6144) {
             // CSCA de otros paises: fichero de assets en la SD
-            Storage* storage = furi_record_open(RECORD_STORAGE);
-            File* f = storage_file_alloc(storage);
-            bool open =
-                storage_file_open(f, APP_ASSETS_PATH("csca.bin"), FSAM_READ, FSOM_OPEN_EXISTING);
-            dnie_csca_verify_cert(&a->sod->cert, open ? csca_file_read : NULL, f, &a->csca);
-            if(open) storage_file_close(f);
-            storage_file_free(f);
-            furi_record_close(RECORD_STORAGE);
+            c->api->verify_cert(
+                &a->sod->cert, c->csca_file ? csca_file_read : NULL, c->csca_file, &a->csca);
         } else {
             a->csca.result = DnieCscaNoMemory;
         }
         FURI_LOG_I(TAG, "Cadena CSCA: %d en %lu ms", a->csca.result, furi_get_tick() - t0);
     }
+    return 0;
+}
 
-    a->dg1 = check_hash(a->sod, 1, dg1, dg1_len);
-    if(a->dg14_ok) a->dg14_hash = check_hash(a->sod, 14, a->dg14_buf, a->dg14_len);
-    if(!dnie_hash_supported(a->sod->signer_hash)) {
-        a->message_digest = DnieCheckUnsupported;
-    } else {
-        a->message_digest = dnie_sod_check_message_digest(a->sod) ? DnieCheckOk : DnieCheckFail;
+// No se ha comprobado nada: el resultado es "no comprobado", nunca "falso"
+static bool auth_verify_no_memory(DnieAuth* a) {
+    a->pa.result = DniePaNoMemory;
+    if(a->sod->has_cert) a->csca.result = DnieCscaNoMemory;
+    return false;
+}
+
+bool dnie_auth_verify(DnieAuth* a) {
+    if(!a->sod) return true;
+
+    DniePlugin plugin;
+    if(dnie_plugin_open(&plugin, DniePluginAutenticidad) != DniePluginOk) {
+        return auth_verify_no_memory(a);
     }
+    const DnieAutenticidadApi* api = plugin.api;
+    api->set_host(&autenticidad_host);
+
+    // Con el plugin ya cargado: sin hueco para la pila, el malloc colgaria el Flipper
+    if(memmgr_heap_get_max_free_block() < AUTH_VERIFY_STACK + 2048 ||
+       memmgr_get_free_heap() < AUTH_VERIFY_STACK + 8192) {
+        FURI_LOG_E(TAG, "Sin memoria para verificar (libre %u)", memmgr_get_free_heap());
+        dnie_plugin_close(&plugin);
+        return auth_verify_no_memory(a);
+    }
+
+    // csca.bin se abre aqui: APP_ASSETS_PATH se resuelve segun el hilo que abre el fichero
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    File* f = storage_file_alloc(storage);
+    bool open = a->sod->has_cert &&
+                storage_file_open(f, APP_ASSETS_PATH("csca.bin"), FSAM_READ, FSOM_OPEN_EXISTING);
+
+    AuthVerifyCtx ctx = {.auth = a, .api = api, .csca_file = open ? f : NULL};
+    FuriThread* thread =
+        furi_thread_alloc_ex("DnieVerify", AUTH_VERIFY_STACK, auth_verify_thread, &ctx);
+    furi_thread_start(thread);
+    furi_thread_join(thread);
+    furi_thread_free(thread);
+
+    if(open) storage_file_close(f);
+    storage_file_free(f);
+    furi_record_close(RECORD_STORAGE);
+    dnie_plugin_close(&plugin);
+    return true;
 }
 
 bool dnie_auth_dg2_hash_start(const DnieAuth* a, DnieHash* h) {

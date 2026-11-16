@@ -1,6 +1,7 @@
 #include "dnie_ca.h"
 #include "dnie_crypto.h"
 #include "dnie_pace_math.h"
+#include "dnie_mem.h"
 
 #include <string.h>
 #include <furi_hal_random.h>
@@ -90,8 +91,8 @@ DnieCaResult dnie_ca_run(
         FURI_LOG_E(TAG, "Sin memoria para CA (libre %u)", memmgr_get_free_heap());
         return st->result = DnieCaNoMemory;
     }
-    CaEcc* c = malloc(sizeof(CaEcc));
-    if(!c) return st->result = DnieCaCrypto;
+    CaEcc* c = dnie_malloc(sizeof(CaEcc));
+    if(!c) return st->result = DnieCaNoMemory;
     memset(c, 0, sizeof(*c));
     c->key = key;
     c->ret = -1;
@@ -179,27 +180,4 @@ DnieCaResult dnie_ca_run(
     memset(c, 0, sizeof(*c));
     free(c);
     return st->result;
-}
-
-const char* dnie_ca_result_str(DnieCaResult r) {
-    switch(r) {
-    case DnieCaOk:
-        return "GENUINE CHIP";
-    case DnieCaNotAvailable:
-        return "not available";
-    case DnieCaUnsupported:
-        return "unsupported variant";
-    case DnieCaRejected:
-        return "rejected by chip";
-    case DnieCaFailed:
-        return "FAIL: possible clone";
-    case DnieCaTransport:
-        return "radio error";
-    case DnieCaCrypto:
-        return "crypto error";
-    case DnieCaNoMemory:
-        return "out of memory";
-    default:
-        return "not performed";
-    }
 }

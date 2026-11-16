@@ -5,6 +5,20 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-11-16
+
+### Added
+- Bookmarks. Hold OK while reading to open a menu where you can bookmark the
+  current page (or remove its bookmark) and list all bookmarks for the book.
+  The list shows each bookmark's percentage and first line of text; OK jumps
+  to it and holding OK deletes it. Up to 256 bookmarks per book, stored in
+  `SD:/apps_data/flip_eread/<hash>.bmk`.
+- Bookmark ticks beside the position bar, and a ribbon in the top-right
+  corner when the current page is bookmarked.
+
+### Changed
+- Hold OK now opens the menu; the font size switch has moved into it.
+
 ## [1.0.0] - 2026-11-11
 
 ### Added

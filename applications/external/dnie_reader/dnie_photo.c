@@ -1,4 +1,5 @@
 #include "dnie_photo.h"
+#include "dnie_mem.h"
 
 #define TAG        "DniePhoto"
 #define COPY_CHUNK 512
@@ -67,9 +68,10 @@ bool dnie_photo_extract(DniePhoto* photo) {
     Storage* storage = furi_record_open(RECORD_STORAGE);
     File* in = storage_file_alloc(storage);
     File* out = storage_file_alloc(storage);
-    uint8_t* buf = malloc(DNIE_DG2_HEAD_LEN);
+    uint8_t* buf = dnie_malloc(DNIE_DG2_HEAD_LEN);
 
     do {
+        if(!buf) break;
         if(!storage_file_open(in, DNIE_DG2_PATH, FSAM_READ, FSOM_OPEN_EXISTING)) break;
         size_t total = storage_file_size(in);
         size_t head = storage_file_read(in, buf, DNIE_DG2_HEAD_LEN);

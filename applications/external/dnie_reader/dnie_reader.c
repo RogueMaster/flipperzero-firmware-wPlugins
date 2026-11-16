@@ -1,6 +1,7 @@
 #include "dnie_reader.h"
 #include "dnie_sounds.h"
 #include "scenes/dnie_reader_scene.h"
+#include "dnie_mem.h"
 
 #include <furi_hal_rtc.h>
 
@@ -21,7 +22,8 @@ static bool dnie_back_event_callback(void* context) {
 // --- Ciclo de vida de la app ---
 
 static DnieApp* dnie_app_alloc(void) {
-    DnieApp* app = malloc(sizeof(DnieApp));
+    DnieApp* app = dnie_malloc(sizeof(DnieApp));
+    if(!app) return NULL;
     memset(app, 0, sizeof(DnieApp));
 
     app->nfc = nfc_alloc();
@@ -110,6 +112,10 @@ void dnie_birth_full(const char* yymmdd, char out[9]) {
 int32_t dnie_reader_app(void* p) {
     UNUSED(p);
     DnieApp* app = dnie_app_alloc();
+    if(!app) {
+        FURI_LOG_E("IDentity", "Sin memoria para arrancar");
+        return -1;
+    }
 
     Gui* gui = furi_record_open(RECORD_GUI);
     view_dispatcher_attach_to_gui(app->view_dispatcher, gui, ViewDispatcherTypeFullscreen);

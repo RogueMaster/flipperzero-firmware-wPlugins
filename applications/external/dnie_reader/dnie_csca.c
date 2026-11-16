@@ -1,5 +1,6 @@
 #include "dnie_csca.h"
 #include "dnie_pa.h"
+#include "dnie_mem.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -25,6 +26,7 @@ static DnieCscaResult
                  dnie_pa_rsa_pkcs1_verify(n, nl, e, el, s->hash, s->h, s->sig, s->sig_len);
     if(r == DniePaOk) return DnieCscaOk;
     if(r == DniePaBadSignature) return DnieCscaBadSignature;
+    if(r == DniePaNoMemory) return DnieCscaNoMemory;
     return DnieCscaFormat;
 }
 
@@ -37,7 +39,7 @@ static DnieCscaResult scan_file(
     const Sig* s,
     bool any_subject,
     DnieCscaInfo* info) {
-    uint8_t* rec = malloc(REC_MAX);
+    uint8_t* rec = dnie_malloc(REC_MAX);
     if(!rec) return DnieCscaNoMemory;
     DnieCscaResult res = DnieCscaUnknownIssuer;
     uint8_t hdr[2];
@@ -150,25 +152,4 @@ DnieCscaResult
         }
     }
     return info->result = DnieCscaUnknownIssuer;
-}
-
-const char* dnie_csca_result_str(DnieCscaResult r) {
-    switch(r) {
-    case DnieCscaOk:
-        return "OK";
-    case DnieCscaBadSignature:
-        return "FAKE";
-    case DnieCscaUnknownIssuer:
-        return "unknown issuer";
-    case DnieCscaUnsupported:
-        return "unsupported alg.";
-    case DnieCscaFormat:
-        return "malformed";
-    case DnieCscaNoMemory:
-        return "out of memory";
-    case DnieCscaKeyNotFound:
-        return "key not found";
-    default:
-        return "not checked";
-    }
 }

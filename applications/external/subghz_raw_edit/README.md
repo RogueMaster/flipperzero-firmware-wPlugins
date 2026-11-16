@@ -2,6 +2,10 @@ https://github.com/user-attachments/assets/16b59c75-5fc2-4f3a-b325-f7fb1d623210
 
 # Sub-GHz .sub RAW Files Editor for Flipper Zero
 
+<p align="center">
+  <a href="https://buymeacoffee.com/Lechnio"><img src="https://img.shields.io/badge/Buy%20me%20a%20coffee-FFDD00?style=for-the-badge&logo=buymeacoffee&logoColor=black" alt="Buy Me a Coffee"/></a>
+</p>
+
 A tiny on-device waveform editor for **Flipper Zero** that trims RAW `.sub`
 captures down to just the part you care about. Open a recording, let the app
 find the actual signal hiding inside a long stretch of silence, slide two

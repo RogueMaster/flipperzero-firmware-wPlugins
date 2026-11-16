@@ -1,7 +1,9 @@
 #include "../dnie_reader.h"
 #include "../dnie_jpeg.h"
 #include "../dnie_sounds.h"
+#include "../dnie_plugin.h"
 #include "dnie_reader_scene.h"
+#include "dnie_mem.h"
 
 #include <furi_hal_rtc.h>
 
@@ -52,8 +54,8 @@ static uint8_t* read_prefix(const char* path, size_t want, size_t* got, size_t* 
     if(storage_file_open(f, path, FSAM_READ, FSOM_OPEN_EXISTING)) {
         *file_size = storage_file_size(f);
         size_t n = want < *file_size ? want : *file_size;
-        buf = malloc(n ? n : 1);
-        *got = storage_file_read(f, buf, n);
+        buf = dnie_malloc(n ? n : 1);
+        if(buf) *got = storage_file_read(f, buf, n);
         storage_file_close(f);
     }
     storage_file_free(f);
@@ -66,25 +68,25 @@ static size_t card_file_read(void* ctx, uint8_t* buf, size_t max) {
     return storage_file_read((File*)ctx, buf, max);
 }
 
-static void card_photo_to_pixelart(DnieApp* app, DnieGrayImage* gray) {
+static void card_photo_to_pixelart(DnieApp* app, const DnieFotoApi* foto, DnieGrayImage* gray) {
     app->photo_decoded_w = gray->width;
     app->photo_decoded_h = gray->height;
     app->photo_reduce = gray->reduce;
-    if(!app->pix_src) app->pix_src = malloc(sizeof(DniePixelSource));
+    if(!app->pix_src) app->pix_src = dnie_malloc(sizeof(DniePixelSource));
     bool ok = app->pix_src &&
-              dnie_pixelart_prepare(
+              foto->pixelart_prepare(
                   gray->pixels,
                   gray->width,
                   gray->height,
                   CARD_PHOTO_MAX_W,
                   CARD_PHOTO_MAX_H,
                   app->pix_src) &&
-              dnie_pixelart_dither(app->pix_src, app->dither, &app->pix);
+              foto->pixelart_dither(app->pix_src, app->dither, &app->pix);
     dnie_gray_free(gray);
     if(!ok) app->photo_decode_result = DnieJ2kErrorMemory;
 }
 
-static void card_decode_jpeg(DnieApp* app) {
+static void card_decode_jpeg(DnieApp* app, const DnieFotoApi* foto) {
     // ~1.5 KB de estado + la imagen a 1/8 (unos 4 KB en una foto de pasaporte)
     if(memmgr_get_free_heap() < 8192 + CARD_HEAP_MARGIN ||
        memmgr_heap_get_max_free_block() < 6144) {
@@ -96,33 +98,45 @@ static void card_decode_jpeg(DnieApp* app) {
     if(storage_file_open(f, app->photo.path, FSAM_READ, FSOM_OPEN_EXISTING)) {
         DnieGrayImage gray;
         uint32_t t0 = furi_get_tick();
-        app->photo_decode_result = dnie_jpeg_decode_dc(card_file_read, f, &gray);
+        app->photo_decode_result = foto->jpeg_decode_dc(card_file_read, f, &gray);
         FURI_LOG_I(TAG, "JPEG: %d en %lu ms", app->photo_decode_result, furi_get_tick() - t0);
         storage_file_close(f);
-        if(app->photo_decode_result == DnieJ2kOk) card_photo_to_pixelart(app, &gray);
+        if(app->photo_decode_result == DnieJ2kOk) card_photo_to_pixelart(app, foto, &gray);
     }
     storage_file_free(f);
     furi_record_close(RECORD_STORAGE);
 }
 
-static void card_decode_photo_inner(DnieApp* app);
+static void card_decode_j2k(DnieApp* app, const DnieFotoApi* foto);
 
 static void card_decode_photo(DnieApp* app) {
-    card_decode_photo_inner(app);
+    app->photo_decode_tried = true;
+    app->photo_decode_result = DnieJ2kErrorFormat;
+    bool jpeg = app->photo.saved && app->photo.dg2.image_type == DnieImageJpeg && app->photo.path;
+    bool j2k = app->photo.saved && app->photo.dg2.image_type == DnieImageJpeg2000 &&
+               app->photo.j2k_ok;
+    if(jpeg || j2k) {
+        // El plugin solo esta cargado mientras se decodifica
+        DniePlugin plugin;
+        DniePluginStatus st = dnie_plugin_open(&plugin, DniePluginFoto);
+        if(st == DniePluginOk) {
+            if(jpeg) {
+                card_decode_jpeg(app, plugin.api);
+            } else {
+                card_decode_j2k(app, plugin.api);
+            }
+            dnie_plugin_close(&plugin);
+        } else {
+            app->photo_decode_result = st == DniePluginNoMemory ? DnieJ2kErrorMemory :
+                                                                  DnieJ2kErrorPlugin;
+            app->pending_toast = "No photo";
+        }
+    }
     // Privacidad: la foto a resolucion completa no se queda en la SD sin cifrar
     if(app->photo.saved) dnie_photo_wipe();
 }
 
-static void card_decode_photo_inner(DnieApp* app) {
-    app->photo_decode_tried = true;
-    app->photo_decode_result = DnieJ2kErrorFormat;
-    if(app->photo.saved && app->photo.dg2.image_type == DnieImageJpeg && app->photo.path) {
-        card_decode_jpeg(app);
-        return;
-    }
-    if(!app->photo.saved || app->photo.dg2.image_type != DnieImageJpeg2000 || !app->photo.j2k_ok)
-        return;
-
+static void card_decode_j2k(DnieApp* app, const DnieFotoApi* foto) {
     // Altura objetivo: 64 (77x95 en un DNI) y, si no hay memoria, 48 (39x48) o 32
     static const uint16_t heights[] = {CARD_PHOTO_MAX_H, 48, 32};
     // En orden LRCP la baja resolucion va al principio: probamos con prefijos crecientes
@@ -150,17 +164,20 @@ static void card_decode_photo_inner(DnieApp* app) {
 
             size_t got = 0, file_size = 0;
             uint8_t* data = read_prefix(app->photo.path, prefixes[pi], &got, &file_size);
-            if(!data) return;
+            if(!data) {
+                app->photo_decode_result = DnieJ2kErrorMemory;
+                return;
+            }
             DnieGrayImage gray;
             uint32_t t0 = furi_get_tick();
-            DnieJ2kResult r = dnie_j2k_decode_luma(data, got, heights[hi], &gray);
+            DnieJ2kResult r = foto->j2k_decode_luma(data, got, heights[hi], &gray);
             free(data);
             FURI_LOG_I(TAG, "decode %u B: %d en %lu ms", got, r, furi_get_tick() - t0);
             app->photo_decode_result = r;
             if(r == DnieJ2kErrorTruncated && got < file_size) continue; // pedir mas bytes
             if(r != DnieJ2kOk) return;
 
-            card_photo_to_pixelart(app, &gray);
+            card_photo_to_pixelart(app, foto, &gray);
             return;
         }
     }
@@ -407,8 +424,12 @@ static bool card_input(InputEvent* event, void* context) {
     if(event->key == InputKeyLeft || event->key == InputKeyRight) {
         if(app->photo_decode_result != DnieJ2kOk || !app->pix_src) return true;
         int d = (int)app->dither + (event->key == InputKeyRight ? 1 : DnieDitherCount - 1);
-        app->dither = (DnieDither)(d % DnieDitherCount);
-        dnie_pixelart_dither(app->pix_src, app->dither, &app->pix);
+        DnieDither next = (DnieDither)(d % DnieDitherCount);
+        if(!dnie_foto_dither(app->pix_src, next, &app->pix)) {
+            card_show_toast(app, "No memory", 1500); // se queda el estilo que habia
+            return true;
+        }
+        app->dither = next;
         with_view_model(app->card_view, CardModel * model, { UNUSED(model); }, true);
         return true;
     }

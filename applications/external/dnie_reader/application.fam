@@ -3,12 +3,28 @@ App(
     name="IDentity",
     apptype=FlipperAppType.EXTERNAL,
     entry_point="dnie_reader_app",
-    stack_size=6 * 1024,
+    # Lo pesado va en plugins (.fal) que se cargan solo mientras se usan
+    sources=[
+        "*.c*",
+        "!plugins",
+        "!dnie_j2k.c",
+        "!dnie_jpeg.c",
+        "!dnie_pixelart.c",
+        "!dnie_pa.c",
+        "!dnie_csca.c",
+        "!dnie_pace.c",
+        "!dnie_ca.c",
+        "!dnie_ec.c",
+        "!dnie_pace_math.c",
+    ],
+    cdefines=["DNIE_ON_FLIPPER"],
+    stack_size=6 * 1024,  # el decodificador JPEG2000 corre en este hilo
     targets=["f7"],
     fap_icon="dnie_10px.png",
-    fap_file_assets="assets",
+    fap_file_assets="assets", # csca.bin: claves CSCA de otros paises (se copia a la SD)
     fap_icon_assets_symbol="dnie_reader",
     fap_libs=["mbedtls"],
+    # La libmbedtls.a del SDK no trae constant_time.o: lo compilamos nosotros (misma version 3.6.2)
     fap_private_libs=[
         Lib(
             name="mbedtls_ct",
@@ -22,4 +38,97 @@ App(
     fap_weburl="https://github.com/daniqed/flipper-identity",
     fap_version="0.22",
     fap_description="Read eIDs and ePassports and verify that they are genuine",
+)
+
+App(
+    appid="dnie_foto",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="dnie_foto_ep",
+    requires=["identity"],
+    sources=[
+        "plugins/plugin_foto.c",
+        "dnie_j2k.c",
+        "dnie_jpeg.c",
+        "dnie_pixelart.c",
+        "dnie_dg2.c",
+    ],
+    cdefines=["DNIE_ON_FLIPPER"],
+    fal_embedded=True,
+    targets=["f7"],
+    fap_category="NFC",
+    fap_author="Dani",
+    fap_weburl="https://github.com/daniqed/flipper-identity",
+    fap_version="0.22",
+    fap_description="IDentity photo decoding plugin",
+)
+
+App(
+    appid="dnie_autenticidad",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="dnie_autenticidad_ep",
+    requires=["identity"],
+    sources=["plugins/plugin_autenticidad.c", "dnie_pa.c", "dnie_csca.c", "dnie_der.c"],
+    cdefines=["DNIE_ON_FLIPPER"],
+    fap_libs=["mbedtls"],
+    fap_private_libs=[
+        Lib(
+            name="mbedtls_ct",
+            sources=["constant_time.c"],
+            fap_include_paths=[".", "include"],
+            cflags=["-Wno-unused-parameter"],
+        ),
+    ],
+    fal_embedded=True,
+    targets=["f7"],
+    fap_category="NFC",
+    fap_author="Dani",
+    fap_weburl="https://github.com/daniqed/flipper-identity",
+    fap_version="0.22",
+    fap_description="IDentity document authentication plugin",
+)
+
+App(
+    appid="dnie_himnos",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="dnie_himnos_ep",
+    requires=["identity"],
+    sources=["plugins/plugin_himnos.c"],
+    fal_embedded=True,
+    targets=["f7"],
+    fap_category="NFC",
+    fap_author="Dani",
+    fap_weburl="https://github.com/daniqed/flipper-identity",
+    fap_version="0.22",
+    fap_description="IDentity anthem playback plugin",
+)
+
+App(
+    appid="dnie_ecc",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="dnie_ecc_ep",
+    requires=["identity"],
+    sources=[
+        "plugins/plugin_ecc.c",
+        "dnie_pace.c",
+        "dnie_ca.c",
+        "dnie_ec.c",
+        "dnie_pace_math.c",
+    ],
+    cdefines=["DNIE_ON_FLIPPER"],
+    fap_libs=["mbedtls"],
+    fap_private_libs=[
+        Lib(
+            name="mbedtls_ct",
+            sources=["constant_time.c"],
+            fap_include_paths=[".", "include"],
+            cflags=["-Wno-unused-parameter"],
+        ),
+    ],
+    fal_embedded=True,
+    targets=["f7"],
+    fap_category="NFC",
+    fap_author="Dani",
+    fap_weburl="https://github.com/daniqed/flipper-identity",
+    fap_version="0.22",
+    fap_description="IDentity elliptic-curve authentication plugin",
 )

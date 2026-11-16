@@ -1,4 +1,5 @@
 #include "dnie_jpeg.h"
+#include "dnie_mem.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -194,7 +195,7 @@ static DnieJ2kResult scan(Jpeg* j, DnieGrayImage* out) {
     out->width = (uint16_t)yw_img;
     out->height = (uint16_t)yh_img;
     out->reduce = 3;
-    out->pixels = malloc((size_t)yw_img * yh_img);
+    out->pixels = dnie_malloc((size_t)yw_img * yh_img);
     if(!out->pixels) return DnieJ2kErrorMemory;
 
     int q = j->qdc[y->tq];
@@ -231,7 +232,7 @@ bad:
 
 DnieJ2kResult dnie_jpeg_decode_dc(DnieJpegRead read, void* ctx, DnieGrayImage* out) {
     memset(out, 0, sizeof(*out));
-    Jpeg* j = calloc(1, sizeof(Jpeg));
+    Jpeg* j = dnie_calloc(1, sizeof(Jpeg));
     if(!j) return DnieJ2kErrorMemory;
     j->read = read;
     j->ctx = ctx;

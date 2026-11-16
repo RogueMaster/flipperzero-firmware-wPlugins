@@ -1,4 +1,5 @@
 #include "dnie_pa.h"
+#include "dnie_mem.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -107,11 +108,15 @@ DniePaResult dnie_pa_rsa_pkcs1_verify(
     mbedtls_mpi_init(&E);
     mbedtls_mpi_init(&S);
     mbedtls_mpi_init(&M);
-    uint8_t* em = malloc(n_len);
+    uint8_t* em = dnie_malloc(n_len);
     DniePaResult r = DniePaBadSignature;
 
     do {
-        if(!em || mbedtls_mpi_read_binary(&N, n, n_len) != 0 ||
+        if(!em) {
+            r = DniePaNoMemory;
+            break;
+        }
+        if(mbedtls_mpi_read_binary(&N, n, n_len) != 0 ||
            mbedtls_mpi_read_binary(&E, e, e_len) != 0 ||
            mbedtls_mpi_read_binary(&S, sig, sig_len) != 0) {
             r = DniePaFormat;
@@ -256,11 +261,15 @@ DniePaResult dnie_pa_rsa_pss_verify(
     mbedtls_mpi_init(&E);
     mbedtls_mpi_init(&S);
     mbedtls_mpi_init(&M);
-    uint8_t* buf = malloc(n_len * 2);
+    uint8_t* buf = dnie_malloc(n_len * 2);
     DniePaResult r = DniePaBadSignature;
 
     do {
-        if(!buf || mbedtls_mpi_read_binary(&N, n, n_len) != 0 ||
+        if(!buf) {
+            r = DniePaNoMemory;
+            break;
+        }
+        if(mbedtls_mpi_read_binary(&N, n, n_len) != 0 ||
            mbedtls_mpi_read_binary(&E, e, e_len) != 0 ||
            mbedtls_mpi_read_binary(&S, sig, sig_len) != 0) {
             r = DniePaFormat;
@@ -425,23 +434,4 @@ DniePaResult dnie_pa_verify_sod(const DnieSod* sod, DniePaInfo* info) {
             dnie_pa_rsa_pkcs1_verify(
                 n.val, n.len, e.val, e.len, alg, h, sod->signature.val, sod->signature.len);
     return info->result;
-}
-
-const char* dnie_pa_result_str(DniePaResult r) {
-    switch(r) {
-    case DniePaOk:
-        return "OK";
-    case DniePaBadSignature:
-        return "INVALID";
-    case DniePaNoCert:
-        return "no certificate";
-    case DniePaUnsupported:
-        return "unsupported alg.";
-    case DniePaFormat:
-        return "malformed";
-    case DniePaNoMemory:
-        return "out of memory";
-    default:
-        return "not checked";
-    }
 }

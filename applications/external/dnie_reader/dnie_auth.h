@@ -66,6 +66,10 @@ void dnie_auth_read(
     size_t dg1_len,
     DnieAuth* a);
 
+// Firma del SOD y cadena CSCA, con el plugin de autenticidad. Se llama ya sin sesion NFC, desde
+// el hilo de la GUI y antes de dnie_auth_compact. false si no se pudo cargar el plugin.
+bool dnie_auth_verify(DnieAuth* a);
+
 // Para hashear DG2 mientras se vuelca a la SD
 bool dnie_auth_dg2_hash_start(const DnieAuth* a, DnieHash* h);
 void dnie_auth_dg2_hash_done(DnieAuth* a, DnieHash* h, bool read_ok);

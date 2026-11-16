@@ -26,74 +26,10 @@ const char* dnie_verdict_reason(const DnieAuth* a) {
 #include <storage/storage.h>
 #include <string.h>
 
-typedef struct {
-    float freq; // 0 = silencio
-    uint16_t ms;
-} Note;
+#include "dnie_mem.h"
+#include "dnie_plugin.h"
 
-// Marcha Real (Espinosa, 1761, dominio publico). Melodia de la partitura para piano de
-// Wikimedia Commons ("Marcha Real de España.pdf"), en Do mayor: frase A (con la 2a casilla)
-// y frase B, sin repeticiones. Negra = 400 ms.
-#define Q   400
-#define G4_ 392.00f
-#define A4_ 440.00f
-#define B4_ 493.88f
-#define C5_ 523.25f
-#define D5_ 587.33f
-#define E5_ 659.25f
-#define F5_ 698.46f
-#define G5_ 783.99f
-static const Note ANTHEM_ES[] = {
-    // A
-    {C5_, Q},
-    {G4_, Q},
-    {E5_, Q},
-    {C5_, Q / 2},
-    {G5_, Q / 2},
-    {F5_, Q / 2},
-    {E5_, Q / 2},
-    {D5_, Q / 2},
-    {C5_, Q / 2},
-    {C5_, Q / 2},
-    {B4_, Q / 2},
-    {A4_, Q / 2},
-    {G4_, Q / 2},
-    {C5_, Q},
-    {D5_, Q},
-    {E5_, Q},
-    {0, Q / 2},
-    {G5_, Q / 2},
-    {F5_, Q / 2},
-    {E5_, Q / 2},
-    {D5_, Q / 2},
-    {C5_, Q / 2},
-    {G5_, Q * 2},
-    // B
-    {G5_, Q},
-    {E5_, Q * 3 / 4},
-    {G5_, Q / 4},
-    {F5_, Q},
-    {D5_, Q * 3 / 4},
-    {F5_, Q / 4},
-    {E5_, Q},
-    {C5_, Q * 3 / 4},
-    {E5_, Q / 4},
-    {D5_, Q / 2},
-    {G4_, Q / 2},
-    {A4_, Q / 2},
-    {B4_, Q / 2},
-    {C5_, Q},
-    {D5_, Q},
-    {E5_, Q * 3 / 4},
-    {F5_, Q / 4},
-    {G5_, Q * 3 / 4},
-    {F5_, Q / 4},
-    {E5_, Q},
-    {D5_, Q},
-    {C5_, Q * 2},
-};
-
-#include "dnie_anthems.inc"
+typedef DnieNote Note;
 
 // Pais sin himno en la app: fanfarria corta
 static const Note FANFARE[] = {
@@ -113,30 +49,11 @@ static const Note FAKE[] = {
     {164.81f, 1000},
 };
 
-#define ANTHEM(cc, code) {cc, ANTHEM_##code, sizeof(ANTHEM_##code) / sizeof(Note)}
-static const struct {
-    const char* issuer; // emisor de la MRZ (3 letras; Alemania es "D")
-    const Note* notes;
-    size_t n;
-} ANTHEMS[] = {
-    ANTHEM("ESP", ES),
-    ANTHEM("USA", US),
-    ANTHEM("FRA", FR),
-    ANTHEM("GBR", GB),
-    ANTHEM("CAN", CA),
-    ANTHEM("JPN", JP),
-    ANTHEM("CHN", CN),
-    ANTHEM("IDN", ID),
-    ANTHEM("D", DE),
-    ANTHEM("DEU", DE),
-    ANTHEM("ITA", IT),
-    ANTHEM("NLD", NL),
-};
-
 typedef struct {
     FuriThread* thread;
     const Note* notes;
     size_t n;
+    DnieNote* owned; // copia del himno en el heap (el plugin ya esta descargado)
     volatile bool stop;
 } Player;
 
@@ -204,17 +121,31 @@ void dnie_sound_stop(void) {
     furi_thread_join(player.thread);
     furi_thread_free(player.thread);
     player.thread = NULL;
+    free(player.owned);
+    player.owned = NULL;
 }
 
-static void play(const Note* notes, size_t n) {
+#define PLAYER_STACK 1024
+
+static bool sound_muted(void) {
+    return furi_hal_rtc_is_flag_set(FuriHalRtcFlagStealthMode) || volume_level == 0;
+}
+
+// owned: notas en el heap que pasan a ser del reproductor (se liberan al parar)
+static bool play(const Note* notes, size_t n, DnieNote* owned) {
     dnie_sound_stop();
     // Modo silencioso del Flipper: sin musica (las luces y la vibracion siguen)
-    if(furi_hal_rtc_is_flag_set(FuriHalRtcFlagStealthMode) || volume_level == 0) return;
+    if(sound_muted() || !dnie_mem_ok(PLAYER_STACK + 512)) {
+        free(owned);
+        return sound_muted();
+    }
     player.notes = notes;
     player.n = n;
+    player.owned = owned;
     player.stop = false;
-    player.thread = furi_thread_alloc_ex("DnieMusic", 1024, player_thread, NULL);
+    player.thread = furi_thread_alloc_ex("DnieMusic", PLAYER_STACK, player_thread, NULL);
     furi_thread_start(player.thread);
+    return true;
 }
 
 static const NotificationSequence seq_ok = {
@@ -238,22 +169,30 @@ static const NotificationSequence seq_fake = {
     NULL,
 };
 
-void dnie_sound_original(NotificationApp* n, const char* issuer) {
+bool dnie_sound_original(NotificationApp* n, const char* issuer) {
     notification_message(n, &seq_ok);
-    for(size_t i = 0; i < sizeof(ANTHEMS) / sizeof(ANTHEMS[0]); i++) {
-        if(issuer && strcmp(issuer, ANTHEMS[i].issuer) == 0) {
-            play(ANTHEMS[i].notes, ANTHEMS[i].n);
-            return;
-        }
-    }
-    play(FANFARE, sizeof(FANFARE) / sizeof(FANFARE[0]));
+    dnie_sound_stop(); // libera las notas anteriores antes de cargar el plugin
+    if(sound_muted()) return true;
+
+    DniePlugin plugin;
+    if(dnie_plugin_open(&plugin, DniePluginHimnos) != DniePluginOk) return false;
+    const DnieHimnosApi* api = plugin.api;
+    const DnieNote* notes = NULL;
+    size_t count = api->find(issuer, &notes);
+    // El himno se copia al heap: asi el plugin no sigue cargado mientras suena
+    DnieNote* copy = count ? dnie_malloc(count * sizeof(DnieNote)) : NULL;
+    if(copy) memcpy(copy, notes, count * sizeof(DnieNote));
+    dnie_plugin_close(&plugin);
+
+    if(!count) return play(FANFARE, COUNT_OF(FANFARE), NULL);
+    return copy ? play(copy, count, copy) : false;
 }
 
 void dnie_sound_preview(void) {
-    play(FANFARE, sizeof(FANFARE) / sizeof(FANFARE[0]));
+    play(FANFARE, COUNT_OF(FANFARE), NULL);
 }
 
 void dnie_sound_fake(NotificationApp* n) {
     notification_message(n, &seq_fake);
-    play(FAKE, sizeof(FAKE) / sizeof(FAKE[0]));
+    play(FAKE, COUNT_OF(FAKE), NULL);
 }

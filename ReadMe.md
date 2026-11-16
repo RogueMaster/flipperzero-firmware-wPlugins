@@ -211,7 +211,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Loteria Zero v1.0 - Mexican Loteria caller with 54 cards and original rhymes (By databrainsco)](https://github.com/databrainsco/Loteria_Zero)
 - Updated: [IR Jammer v1.0 (By Clawzman)](https://github.com/Clawzman/flipper-ir-jammer)
 - Updated: [Disn3y Toolbox v0.2 (By Nathaniel.Belles)](https://gitlab.com/Nathaniel.Belles/flipper-disney-toolbox)
-- Updated: [Claude Remote v0.1 - Dolphin XP for dictation and /clear, and a one-minute Bluetooth reconnect timeout (By Petr Korobeinikov)](https://github.com/petr-korobeinikov/f0-claude-remote)
 - UL: [iButton write-error feedback for disabled blanks, protocol writability check before starting the bus, and removal of obsolete can_write_id interfaces (By Leptopt1los and xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/069616d840b0513de91f4bd439004d9b59d890df)
 - UL: [Removed obsolete registry includes from Bluetooth and Crypto CLI commands (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/b18296933c0dda06935afaf0b6a556e1cbb45362)
 - OFW: [Case-only file renames and filename validator initialization (By Leptopt1los)](https://github.com/flipperdevices/flipperzero-firmware/commit/3060cee9bac71d332dc7629191ae1aeb1edaac33)
@@ -237,7 +236,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Servo Tester precise manual adjustment, full automatic sweep endpoints and PWM shutdown ordering (By ELynx)](https://github.com/spin7ion/flipper-servotester/pull/1)
 - Updated: [MeshCore Config worker shutdown cleanup, persistent sound/vibration/LED settings, connection feedback and logger status display (By hleserg)](https://github.com/hleserg/flipperMeshCoreConfig/pull/28)
 - Updated: [BadUSB MSC v0.1 resource cleanup, callback initialization and file-browser icon (By ZombieDolphin)](https://github.com/ZombieDolphin/BadUSB_MSC)
-- Updated: [Claude Remote v0.1 (By Petr Korobeinikov)](https://github.com/petr-korobeinikov/f0-claude-remote)
 - Updated: [Theme Player with 13 author-added Zelda tune files (By AzureSky)](https://github.com/AzzureSkyy/flipper-theme-player)
 - Updated: [BLE Clipboard v0.5.4 persistent keyboard settings, desktop sync and typing pace (By otcan)](https://github.com/otcan/ble-clipboard)
 - Updated: [Sub-GHz Proteco MOVER 433MHz decoding, encoding, custom buttons and Add Manually support (By dkorunic & xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/pull/1210)
@@ -298,7 +296,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [A/C Master v0.3 multi-profile infrared air-conditioner remote (By Enlighten Tech)](https://github.com/gbhobbytech/flipper-ac-multi-remote)
 - Fixed: [Archive extension-table linkage for firmware and file-browser builds (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/bd5edb1ed4ceff8df4a44c3408068ad1b698d4b9)
 - Updated: [UHF Expansion v1.8 reader-frequency settings, draft Save/Discard flow and verified persistence (By MTools Tec)](https://github.com/mtoolstec/fz-uhf-expansion)
-- Updated: [Claude Remote v0.2: keep button gestures on the screen where they began (By Petr Korobeinikov)](https://github.com/petr-korobeinikov/f0-claude-remote)
 - Added: [eReader v1.0 - Streaming plain-text book reader with word wrap, saved positions and two font sizes (By Daniel Baker)](https://github.com/daniebker/flipper_ereader)
 - Fixed: [BadUSB Usage Overflow caused by PR #4501 BadUSB Ducky Script 3.0 code changes (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/a2a44e125e2ae88bbb1f0adafc07202c1d0ab151)
 - Updated: [Sub-GHz RAW Edit v1.8 (By Lechnio)](https://github.com/Lechnio/SubGHz-RAW-Edit)
@@ -346,6 +343,11 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [DFC v1.1.1 with dfc-core v2.0.0, faster DES and chained reads, lower-memory credential loading and teardown cleanup (By cindersocket)](https://github.com/cindersocket/dfc-flipper)
 - Added: [USB I2S Audio v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_i2s) - USB sound card to I2S DAC `Req: External I2S DAC`
 - Updated: [Claude Remote v0.4 (By Petr Korobeinikov)](https://github.com/petr-korobeinikov/f0-claude-remote)
+- Updated: [IDentity v0.22 - load photo decoding, document authentication, anthems and elliptic-curve routines as plugins when used (By Dani)](https://github.com/daniqed/flipper-identity)
+- Updated: [eReader v1.1 - per-book bookmarks, bookmark list and hold-OK menu (By Daniel Baker)](https://github.com/daniebker/flipper_ereader)
+- Updated: [Sub-GHz Keystore Decryptor v1.1 - selectable factory key slots, validated decrypted entries and app-data output (By Lechnio)](https://github.com/Lechnio/KeeLoq-Keystore-Decryptor)
+- Updated: [Amiibo Emulator v1.1 (By Soap-n-Cartridge)](https://github.com/Soap-n-Cartridge/flipper_amiibo)
+- Added: [Codex Monitor v1.4 (By Dr. Mosfet)](https://github.com/kamylwnb/codex-monitor) - Codex quota and reset timers over Bluetooth or USB
 
 <a name="release"></a>
 
@@ -677,7 +679,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Alcohol Calc v1.0 (By vtlklr)](https://github.com/vtlklr/alcohol_calc)
 - [Allstar Firefly v0.1 (By jlaughter)](https://github.com/jlaughter/flipper-allstar-firefly) - Gate remote decoder/encoder
 - [Amiibo Browser v1.0 (By AzureSky)](https://github.com/AzzureSkyy/flipper-amiibo-browser)
-- [Amiibo Emulator v1.0 (By Soap-n-Cartridge)](https://github.com/Soap-n-Cartridge/flipper_amiibo)
+- [Amiibo Emulator v1.1 (By Soap-n-Cartridge)](https://github.com/Soap-n-Cartridge/flipper_amiibo)
 - [AmiiTool v0.3 (By Firefox2100)](https://github.com/Firefox2100/ami_tool) `Req: key_retail.bin on SD card /nfc/assets`
 - [Amusement IC v0.1 (By object-Object)](https://github.com/object-Object/flip_aic)
 - [Analog Clock v1.2 (By scrolltex)](https://github.com/scrolltex/flipper_analog_clock)
@@ -776,6 +778,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [CO2 Logger v0.4 (By harryob2)](https://github.com/harryob2/co2_logger) `Req: MH-Z19`
 - [Coach Watch v1.0 (By alaviation)](https://github.com/alaviation/flipper-coach-watch)
 - [Cocktail Book v0.4 (By resu95)](https://github.com/resu95/flipper_cocktail_book)
+- [Codex Monitor v1.4 (By Dr. Mosfet)](https://github.com/kamylwnb/codex-monitor) - Codex quota and reset timers over Bluetooth or USB
 - [Coffee-EEPROM (By wh00hw)](https://github.com/wh00hw/Coffee-EEPROM-FAP) For ethical pentest only.
 - [COGS MyKey v1.1 (By lupettohf)](https://github.com/lupettohf/mykey) - COGES vending key editor
 - [Combo Cracker v0.5 (By CharlesTheGreat77)](https://github.com/CharlesTheGreat77/ComboCracker-FZ)
@@ -792,7 +795,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Dab Timer v2.5 (By RogueMaster)](https://github.com/RogueMaster/flipperzero-dabtimer)
 - [Daikin AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
 - [Daikin64 AC Remote v0.1 (By mrcalifornium)](https://github.com/mrcalifornium/flipperzero-daikin64-ac-remote)
-- [Dallas Tester v0.1 (By mishamyte)](https://github.com/mishamyte/flipper-dallas-tester)
+- [Dallas Tester v0.1 (By mishamyte)](https://github.com/DarkFlippers/flipper-dallas-tester)
 - [DAP Link v1.4 (By DrZlo13)-OFW](https://github.com/flipperdevices/flipperzero-firmware/pull/1897)
 - [DCF77 Clock Spoof v1.4 (By mdaskalov & molodos)](https://github.com/mdaskalov/dcf77-clock-sync)
 - [DCF77 Transmitter v2.0 (By arha)](https://github.com/arha/flipper-dcf77)
@@ -824,7 +827,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Encoder Reader v0.1 (By Engineegor)](https://github.com/Engineegor/Enc_reader)
 - [Enhanced Sub-Ghz Chat v1.3 (By twisted-pear)](https://github.com/twisted-pear/esubghz_chat)
 - [Enigma v1.1 (By xtruan)](https://github.com/xtruan/flipper-enigma) - Enigma cipher machine emulator
-- [eReader v1.0 (By Daniel Baker)](https://github.com/daniebker/flipper_ereader)
+- [eReader v1.1 (By Daniel Baker)](https://github.com/daniebker/flipper_ereader)
 - [ESP Flasher v1.9 (By 0xchocolate)](https://github.com/0xchocolate/flipperzero-esp-flasher)
 - [ESP WiFi Scanner v1.1 (By SequoiaSan)](https://github.com/SequoiaSan/FlipperZero-WiFi-Scanner_Module-ESP8266) `Req: ESP8266 or ESP32`
 - [ESP32 Camera Suite v1.9 (By CodyTolene)](https://github.com/CodyTolene/Flipper-Zero-Camera-Suite)
@@ -1299,7 +1302,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Sub-GHz WarDriving v0.2 (By xMasterX)](https://github.com/xMasterX/all-the-plugins)
 - [Subhound v1.2 (By maxwalks)](https://github.com/maxwalks/subhound) - BinRAW radio signal classifier
 - [Subscriber Counter v1.3 (By TheProductAgency)](https://github.com/TheProductAgency/flipper-subscriber-counter)
-- [Super Sniffer Card v0.2 (By mishamyte)](https://github.com/mishamyte/super-sniffer-card) - MIFARE authentication log reader
+- [Super Sniffer Card v0.2 (By mishamyte)](https://github.com/DarkFlippers/super-sniffer-card) - MIFARE authentication log reader
 - [Survival Manual v1.0 (By Radiomanrf)](https://github.com/Radiomanrf/Survival_manual)
 - [SWD Probe v1.4 (By g3gg0)](https://github.com/g3gg0/flipper-swd_probe)
 - [T-Union Master (China) v0.1 (By SocialSisterYi)](https://github.com/SocialSisterYi/T-Union_Master) - Chinese transit card reader
@@ -1369,7 +1372,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [USB Midi v1.0 (By DrZlo13 & kribesk)](https://github.com/kribesk/flipper-zero-usb-midi) [Instructions by ESurge](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/applications/plugins/usb_midi/ReadMe.md)
 - [USB PurpleCheck v0.3 (By RogerF5)](https://github.com/RogerF5-Security/USB-PurpleCheck) - USB security control assessment
 - [UV Meter v1.0 (By michaelbaisch)](https://github.com/michaelbaisch/uv_meter) `Req: AS7331`
-- [Varta v1.1 (By mishamyte)](https://github.com/mishamyte/varta) - Varta-M intercom key tools
+- [Varta v1.1 (By mishamyte)](https://github.com/DarkFlippers/varta) - Varta-M intercom key tools
 - [VaultFlipper v0.1 - Offline Bitwarden/Vaultwarden vault and USB login keyboard (By Sven Würth / its-sven)](https://github.com/its-sven/vaultflipper)
 - [VB Migration Assistant v1.3 (By GMMan)](https://github.com/GMMan/flipperzero-vb-migrate) - Vital Bracelet character transfer
 - [VEML7700 Lux Meter v1.1 (By kamylwnb)](https://github.com/kamylwnb/Flipper-zero-app-VEML7700)

@@ -3,14 +3,43 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "demo_face.inc"
+#include "dnie_mem.h"
+#include "dnie_plugin.h"
 
 // Retrato ficticio (4 bits por pixel) -> gris 8 bits
-static void draw_face(uint8_t* img) {
-    for(int i = 0; i < DEMO_FACE_W * DEMO_FACE_H; i++) {
-        uint8_t b = DEMO_FACE[i / 2];
+static void draw_face(const DnieFotoApi* foto, uint8_t* img) {
+    for(int i = 0; i < foto->demo_face_w * foto->demo_face_h; i++) {
+        uint8_t b = foto->demo_face[i / 2];
         img[i] = ((i & 1) ? (b & 15) : (b >> 4)) * 17;
     }
+}
+
+// Pasa el retrato a pixel art, como una foto de verdad
+static DnieJ2kResult demo_photo(DnieApp* app) {
+    DniePlugin plugin;
+    DniePluginStatus st = dnie_plugin_open(&plugin, DniePluginFoto);
+    if(st != DniePluginOk) {
+        return st == DniePluginNoMemory ? DnieJ2kErrorMemory : DnieJ2kErrorPlugin;
+    }
+    const DnieFotoApi* foto = plugin.api;
+    DnieJ2kResult res = DnieJ2kErrorMemory;
+    uint8_t* img = dnie_malloc((size_t)foto->demo_face_w * foto->demo_face_h);
+    if(img) {
+        draw_face(foto, img);
+        if(!app->pix_src) app->pix_src = dnie_malloc(sizeof(DniePixelSource));
+        if(app->pix_src &&
+           foto->pixelart_prepare(
+               img, foto->demo_face_w, foto->demo_face_h, 56, 64, app->pix_src) &&
+           foto->pixelart_dither(app->pix_src, app->dither, &app->pix)) {
+            res = DnieJ2kOk;
+            app->photo_decoded_w = foto->demo_face_w;
+            app->photo_decoded_h = foto->demo_face_h;
+            app->photo_reduce = 0;
+        }
+        free(img);
+    }
+    dnie_plugin_close(&plugin);
+    return res;
 }
 
 // DG1 de demo en formato TD1, con digitos de control correctos (calculados al vuelo)
@@ -64,21 +93,8 @@ bool dnie_demo_load(DnieApp* app) {
 
     // Foto dibujada y pasada a pixel art como una de verdad
     app->photo_decode_tried = true;
-    app->photo_decode_result = DnieJ2kErrorMemory;
-    uint8_t* img = malloc(DEMO_FACE_W * DEMO_FACE_H);
-    if(img) {
-        draw_face(img);
-        if(!app->pix_src) app->pix_src = malloc(sizeof(DniePixelSource));
-        if(app->pix_src &&
-           dnie_pixelart_prepare(img, DEMO_FACE_W, DEMO_FACE_H, 56, 64, app->pix_src) &&
-           dnie_pixelart_dither(app->pix_src, app->dither, &app->pix)) {
-            app->photo_decode_result = DnieJ2kOk;
-            app->photo_decoded_w = DEMO_FACE_W;
-            app->photo_decoded_h = DEMO_FACE_H;
-            app->photo_reduce = 0;
-        }
-        free(img);
-    }
+    app->photo_decode_result = demo_photo(app);
+    if(app->photo_decode_result != DnieJ2kOk) app->pending_toast = "No photo";
     app->photo.lds.result = DnieLdsOk;
     app->photo.image_found = true;
     app->photo.saved = true;

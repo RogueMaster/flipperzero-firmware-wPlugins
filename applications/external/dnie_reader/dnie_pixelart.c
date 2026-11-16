@@ -1,4 +1,5 @@
 #include "dnie_pixelart.h"
+#include "dnie_mem.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -90,7 +91,7 @@ typedef struct {
 static bool
     diffuse(const DniePixelSource* src, DniePixelArt* out, const Tap* taps, int ntaps, int divisor) {
     uint32_t tw = src->width, th = src->height;
-    int16_t* buf = malloc(sizeof(int16_t) * tw * th);
+    int16_t* buf = dnie_malloc(sizeof(int16_t) * tw * th);
     if(!buf) return false;
     for(uint32_t i = 0; i < tw * th; i++)
         buf[i] = src->gray[i];
@@ -140,17 +141,4 @@ bool dnie_pixelart_dither(const DniePixelSource* src, DnieDither mode, DniePixel
         }
     }
     return true;
-}
-
-const char* dnie_dither_name(DnieDither mode) {
-    switch(mode) {
-    case DnieDitherAtkinson:
-        return "Atkinson";
-    case DnieDitherFloyd:
-        return "Floyd-Steinberg";
-    case DnieDitherBayer:
-        return "Bayer";
-    default:
-        return "?";
-    }
 }

@@ -1,6 +1,7 @@
 #include "dnie_store.h"
 #include "dnie_country.h"
 #include "dnie_mrz.h"
+#include "dnie_mem.h"
 
 #include <furi_hal_crypto.h>
 #include <furi_hal_random.h>
@@ -27,8 +28,8 @@ static bool
 // --- Ficheros ---
 
 static DnieStoreResult write_record(const char* path, const DnieRecord* rec) {
-    uint8_t* plain = malloc(DNIE_RECORD_MAX);
-    uint8_t* cipher = malloc(DNIE_RECORD_MAX);
+    uint8_t* plain = dnie_malloc(DNIE_RECORD_MAX);
+    uint8_t* cipher = dnie_malloc(DNIE_RECORD_MAX);
     DnieStoreResult res = DnieStoreOk;
     size_t n = 0;
 
@@ -74,8 +75,8 @@ static DnieStoreResult write_record(const char* path, const DnieRecord* rec) {
 }
 
 DnieStoreResult dnie_store_load(const char* path, DnieRecord* out) {
-    uint8_t* cipher = malloc(DNIE_RECORD_MAX);
-    uint8_t* plain = malloc(DNIE_RECORD_MAX);
+    uint8_t* cipher = dnie_malloc(DNIE_RECORD_MAX);
+    uint8_t* plain = dnie_malloc(DNIE_RECORD_MAX);
     DnieStoreResult res = DnieStoreOk;
 
     do {
@@ -179,7 +180,7 @@ static bool find_same_person(const char* path, void* context) {
 DnieStoreResult dnie_store_save(const DnieRecord* rec) {
     FindCtx f = {.found = {0}, .count = 0};
     if(!record_key(rec, f.key, sizeof(f.key))) return DnieStoreErrorFormat;
-    f.tmp = malloc(sizeof(DnieRecord));
+    f.tmp = dnie_malloc(sizeof(DnieRecord));
     if(!f.tmp) return DnieStoreErrorCrypto;
     // Ojo: for_each_entry abre el storage; dnie_store_load tambien (el record es reentrante)
     for_each_entry(find_same_person, &f);
@@ -190,9 +191,9 @@ DnieStoreResult dnie_store_save(const DnieRecord* rec) {
         strlcpy(path, f.found, sizeof(path));
         // Se sustituye la lectura de la misma persona: conservar el nombre que le pusiste
         if(!rec->alias[0]) {
-            DnieRecord* old = malloc(sizeof(DnieRecord));
+            DnieRecord* old = dnie_malloc(sizeof(DnieRecord));
             if(old && dnie_store_load(path, old) == DnieStoreOk && old->alias[0]) {
-                DnieRecord* copy = malloc(sizeof(DnieRecord));
+                DnieRecord* copy = dnie_malloc(sizeof(DnieRecord));
                 if(copy) {
                     *copy = *rec;
                     strlcpy(copy->alias, old->alias, sizeof(copy->alias));
@@ -282,7 +283,7 @@ static bool list_one(const char* path, void* context) {
 
 size_t dnie_store_list(DnieSavedEntry* out, size_t max) {
     ListCtx l = {.out = out, .max = max, .n = 0};
-    l.tmp = malloc(sizeof(DnieRecord));
+    l.tmp = dnie_malloc(sizeof(DnieRecord));
     if(!l.tmp) return 0;
     for_each_entry(list_one, &l);
     free(l.tmp);
@@ -297,7 +298,7 @@ bool dnie_store_delete(const char* path) {
 }
 
 DnieStoreResult dnie_store_rename(const char* path, const char* alias) {
-    DnieRecord* rec = malloc(sizeof(DnieRecord));
+    DnieRecord* rec = dnie_malloc(sizeof(DnieRecord));
     if(!rec) return DnieStoreErrorCrypto;
     DnieStoreResult r = dnie_store_load(path, rec);
     if(r == DnieStoreOk) {

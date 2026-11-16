@@ -1,6 +1,7 @@
 #include "dnie_pace.h"
 #include "dnie_crypto.h"
 #include "dnie_pace_math.h"
+#include "dnie_mem.h"
 
 #include <string.h>
 #include <furi_hal_random.h>
@@ -9,11 +10,6 @@
 
 #define TAG   "DniePace"
 #define SW_OK 0x9000
-
-#define PACE_MAPPING_ECDH_GM 2
-#define PACE_CIPHER_AES128   2
-#define PACE_PARAM_BP256R1   13
-#define PACE_PASSWORD_CAN    0x02
 
 #define DNIE_ECC_STACK_SIZE (8 * 1024) // mbedtls ECP usa bastante pila
 #define DNIE_RX_SIZE        160
@@ -139,17 +135,6 @@ static int dnie_ecc_run(DnieEccCtx* c, DnieEccOp op, uint32_t* elapsed_ms) {
 // APDUs
 // ---------------------------------------------------------------------------
 
-bool dnie_pace_choose(const DniePaceInfo* infos, size_t n, DniePaceInfo* chosen) {
-    for(size_t i = 0; i < n; i++) {
-        if(infos[i].mapping == PACE_MAPPING_ECDH_GM && infos[i].cipher == PACE_CIPHER_AES128 &&
-           infos[i].has_param_id && infos[i].param_id == PACE_PARAM_BP256R1) {
-            *chosen = infos[i];
-            return true;
-        }
-    }
-    return false;
-}
-
 static void dnie_pace_oid(const DniePaceInfo* info, uint8_t oid[DNIE_PACE_OID_LEN]) {
     memcpy(oid, ID_PACE_PREFIX, sizeof(ID_PACE_PREFIX));
     oid[8] = info->mapping;
@@ -257,9 +242,10 @@ DniePaceResult dnie_pace_establish(
     DniePaceState* state,
     DniePaceProgressCallback progress,
     void* progress_context) {
+    DnieEccCtx* c = dnie_malloc(sizeof(DnieEccCtx));
+    if(!c) return DniePaceErrorNoMemory;
     BitBuffer* tx = bit_buffer_alloc(DNIE_RX_SIZE);
     BitBuffer* rx = bit_buffer_alloc(DNIE_RX_SIZE);
-    DnieEccCtx* c = malloc(sizeof(DnieEccCtx));
     memset(c, 0, sizeof(*c));
     mbedtls_ecp_group_init(&c->grp);
     mbedtls_mpi_init(&c->sk_map);
@@ -411,36 +397,4 @@ DniePaceResult dnie_pace_establish(
         memset(state->ks_mac, 0, 16);
     }
     return result;
-}
-
-const char* dnie_pace_result_str(DniePaceResult result) {
-    switch(result) {
-    case DniePaceOk:
-        return "OK";
-    case DniePaceErrorUnsupported:
-        return "PACE variant\nnot supported";
-    case DniePaceErrorTransport:
-        return "Radio error\n(don't move the ID)";
-    case DniePaceErrorMse:
-        return "Chip rejected\nMSE:Set AT";
-    case DniePaceErrorNonce:
-        return "Chip rejected\nstep 1 (nonce)";
-    case DniePaceErrorMap:
-        return "Chip rejected\nstep 2 (mapping)";
-    case DniePaceErrorKeyAgreement:
-        return "Chip rejected\nstep 3 (ECDH)";
-    case DniePaceErrorWrongCan:
-        return "Wrong CAN or\nMRZ data";
-    case DniePaceErrorChipToken:
-        return "Chip token\nmismatch";
-    case DniePaceErrorFormat:
-        return "Response has\nunexpected format";
-    case DniePaceErrorBadPoint:
-        return "Invalid curve\npoint";
-    case DniePaceErrorCrypto:
-        return "Crypto error";
-    case DniePaceErrorNoMemory:
-        return "No memory for\nelliptic curve";
-    }
-    return "Unknown error";
 }

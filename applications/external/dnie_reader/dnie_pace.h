@@ -20,6 +20,7 @@ typedef enum {
     DniePaceErrorBadPoint, // el chip mando un punto invalido o repetido
     DniePaceErrorCrypto,
     DniePaceErrorNoMemory, // no hay RAM para la cuenta de curva eliptica
+    DniePaceErrorPlugin, // no se pudo cargar el plugin de curva eliptica
 } DniePaceResult;
 
 typedef struct {
