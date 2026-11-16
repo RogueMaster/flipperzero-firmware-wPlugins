@@ -345,6 +345,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Amiibo Emulator v1.0 (By Soap-n-Cartridge)](https://github.com/Soap-n-Cartridge/flipper_amiibo) with file handling and crypto safety fixes [Scan, favorites and graphical menus (By Soap-n-Cartridge)](https://github.com/Soap-n-Cartridge/flipper_amiibo/commit/5ba059a65691fd3d4b8ab8b836c2bc26ae417275)
 - Updated: [DFC v1.1.1 with dfc-core v2.0.0, faster DES and chained reads, lower-memory credential loading and teardown cleanup (By cindersocket)](https://github.com/cindersocket/dfc-flipper)
 - Added: [USB I2S Audio v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_i2s) - USB sound card to I2S DAC `Req: External I2S DAC`
+- Updated: [Claude Remote v0.4 (By Petr Korobeinikov)](https://github.com/petr-korobeinikov/f0-claude-remote)
 
 <a name="release"></a>
 
@@ -764,7 +765,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [CK42X Passvault v0.4.6 (By lordbuffcloud)](https://github.com/lordbuffcloud/flipper-ck42x-passvault)
 - [CK42X Wakeup v2.29 (By lordbuffcloud)](https://github.com/lordbuffcloud/flipper-ck42x-wakeup) - Multi-alarm clock utility
 - [Claude Buddy v0.6 (By jxw1102)](https://github.com/jxw1102/flipper-claude-buddy)
-- [Claude Remote v0.2 (By Petr Korobeinikov)](https://github.com/petr-korobeinikov/f0-claude-remote)
+- [Claude Remote v0.4 (By Petr Korobeinikov)](https://github.com/petr-korobeinikov/f0-claude-remote)
 - [ClayLoop v1.0 (By b0bby225)](https://github.com/b0bby225/ClayLoop) - Timed Sub-GHz transmission sequences
 - [CLI-GUI Bridge v0.2 (By ranchordo)](https://github.com/ranchordo/flipperzero-cli-bridge)
 - [Click Recorder v1.2 (By 0x78f1935)](https://github.com/0x78f1935/Click-Recorder)

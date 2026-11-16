@@ -3,10 +3,10 @@
 #include <furi_hal_usb.h>
 #include <furi_hal_usb_hid.h>
 
-struct TransportUsb {
+typedef struct {
     FuriMessageQueue* link_queue;
     FuriHalUsbInterface* previous;
-};
+} TransportUsb;
 
 /* The firmware's own IDs, furi_hal_usb_hid.c:16-17: a config replaces them, and nobody assigned
  * this project any. Static: a switch keeps the pointer for a restart (furi_hal_usb.c:374). */
@@ -22,7 +22,7 @@ static void transport_usb_state_callback(bool connected, void* context) {
     furi_message_queue_put(link_queue, &connected, 0);
 }
 
-TransportUsb* transport_usb_alloc(FuriMessageQueue* link_queue) {
+static void* transport_usb_alloc(FuriMessageQueue* link_queue) {
     TransportUsb* usb = malloc(sizeof(TransportUsb));
     usb->link_queue = link_queue;
     usb->previous = furi_hal_usb_get_config();
@@ -35,24 +35,40 @@ TransportUsb* transport_usb_alloc(FuriMessageQueue* link_queue) {
     return usb;
 }
 
-void transport_usb_free(TransportUsb* usb) {
+static void transport_usb_free(void* instance) {
+    TransportUsb* usb = instance;
     furi_hal_hid_set_state_callback(NULL, NULL);
     furi_hal_usb_set_config(usb->previous, NULL);
     free(usb);
 }
 
-void transport_usb_press(TransportUsb* usb, uint16_t key) {
-    UNUSED(usb);
+static void transport_usb_press(void* instance, uint16_t key) {
+    UNUSED(instance);
     furi_hal_hid_kb_press(key);
 }
 
-void transport_usb_release(TransportUsb* usb, uint16_t key) {
-    UNUSED(usb);
+static void transport_usb_release(void* instance, uint16_t key) {
+    UNUSED(instance);
     furi_hal_hid_kb_release(key);
 }
 
 /* ModeStopped ignored the report that came, and none follows until the cable moves. */
-void transport_usb_offer(TransportUsb* usb) {
+static void transport_usb_offer(void* instance) {
+    TransportUsb* usb = instance;
     bool connected = furi_hal_hid_is_connected();
     furi_message_queue_put(usb->link_queue, &connected, 0);
 }
+
+/* A keyboard on a cable does not advertise. */
+static void transport_usb_withdraw(void* instance) {
+    UNUSED(instance);
+}
+
+const TransportLink transport_usb = {
+    .alloc = transport_usb_alloc,
+    .free = transport_usb_free,
+    .press = transport_usb_press,
+    .release = transport_usb_release,
+    .offer = transport_usb_offer,
+    .withdraw = transport_usb_withdraw,
+};

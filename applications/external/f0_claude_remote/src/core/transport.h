@@ -2,6 +2,8 @@
 
 typedef enum {
     TransportKeyArrowDown,
+    TransportKeyArrowLeft,
+    TransportKeyArrowRight,
     TransportKeyArrowUp,
     TransportKeyControlF,
     TransportKeyControlL,
@@ -21,7 +23,3 @@ void transport_release(Transport* transport, TransportKey key);
 void transport_offer(Transport* transport);
 
 void transport_withdraw(Transport* transport);
-
-void transport_use_usb(Transport* transport);
-
-void transport_use_bluetooth(Transport* transport);

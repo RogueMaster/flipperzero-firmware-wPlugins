@@ -14,13 +14,15 @@ static void test_the_rest_earn_nothing(void) {
     assert(deed_earned(ActionEnter) == DeedNone);
     assert(deed_earned(ActionArrowUp) == DeedNone);
     assert(deed_earned(ActionArrowDown) == DeedNone);
+    assert(deed_earned(ActionArrowLeft) == DeedNone);
+    assert(deed_earned(ActionArrowRight) == DeedNone);
     assert(deed_earned(ActionEsc) == DeedNone);
     assert(deed_earned(ActionEffortHigh) == DeedNone);
     assert(deed_earned(ActionEffortMax) == DeedNone);
     assert(deed_earned(ActionVoiceStop) == DeedNone);
     assert(deed_earned(ActionExit) == DeedNone);
-    assert(deed_earned(ActionUseUsb) == DeedNone);
-    assert(deed_earned(ActionUseBluetooth) == DeedNone);
+    assert(deed_earned(ActionGiveUp) == DeedNone);
+    assert(deed_earned(ActionStartOver) == DeedNone);
 }
 
 int main(void) {

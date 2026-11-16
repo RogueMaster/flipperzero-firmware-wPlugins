@@ -5,6 +5,8 @@ typedef enum {
     ActionEnter,
     ActionArrowUp,
     ActionArrowDown,
+    ActionArrowLeft,
+    ActionArrowRight,
     ActionEsc,
     ActionEffortHigh,
     ActionEffortMax,
@@ -14,6 +16,4 @@ typedef enum {
     ActionExit,
     ActionGiveUp,
     ActionStartOver,
-    ActionUseUsb,
-    ActionUseBluetooth,
 } Action;

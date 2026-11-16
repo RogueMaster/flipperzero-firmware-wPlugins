@@ -5,15 +5,16 @@
 #include "transport_bluetooth.h"
 #include "transport_usb.h"
 
-/* One of the two links at a time: the other is NULL. */
 struct Transport {
     FuriMessageQueue* link_queue;
-    TransportBluetooth* bluetooth;
-    TransportUsb* usb;
+    const TransportLink* link;
+    void* instance;
 };
 
 static const uint16_t transport_hid_keys[TransportKeyMAX] = {
     [TransportKeyArrowDown] = HID_KEYBOARD_DOWN_ARROW,
+    [TransportKeyArrowLeft] = HID_KEYBOARD_LEFT_ARROW,
+    [TransportKeyArrowRight] = HID_KEYBOARD_RIGHT_ARROW,
     [TransportKeyArrowUp] = HID_KEYBOARD_UP_ARROW,
     [TransportKeyControlF] = KEY_MOD_LEFT_CTRL | HID_KEYBOARD_F,
     [TransportKeyControlL] = KEY_MOD_LEFT_CTRL | HID_KEYBOARD_L,
@@ -23,64 +24,54 @@ static const uint16_t transport_hid_keys[TransportKeyMAX] = {
     [TransportKeyEsc] = HID_KEYBOARD_ESCAPE,
 };
 
-Transport* transport_hid_alloc(FuriMessageQueue* link_queue) {
+static const TransportLink* const transport_hid_links[LinkMAX] = {
+    [LinkBluetooth] = &transport_bluetooth,
+    [LinkUsb] = &transport_usb,
+};
+
+static void transport_hid_open(Transport* transport, Link link) {
+    transport->link = transport_hid_links[link];
+    transport->instance = transport->link->alloc(transport->link_queue);
+}
+
+static void transport_hid_close(Transport* transport) {
+    transport->link->free(transport->instance);
+}
+
+Transport* transport_hid_alloc(FuriMessageQueue* link_queue, Link link) {
     Transport* transport = malloc(sizeof(Transport));
     transport->link_queue = link_queue;
-    transport->bluetooth = transport_bluetooth_alloc(link_queue);
-    transport->usb = NULL;
+    transport_hid_open(transport, link);
     return transport;
 }
 
 void transport_hid_free(Transport* transport) {
-    if(transport->usb) {
-        transport_usb_free(transport->usb);
-    } else {
-        transport_bluetooth_free(transport->bluetooth);
-    }
+    transport_hid_close(transport);
     free(transport);
 }
 
-void transport_press(Transport* transport, TransportKey key) {
-    if(transport->usb) {
-        transport_usb_press(transport->usb, transport_hid_keys[key]);
-    } else {
-        transport_bluetooth_press(transport->bluetooth, transport_hid_keys[key]);
+/* A Connected that one link left queued would read as the other's. */
+void transport_hid_set_link(Transport* transport, Link link) {
+    if(transport_hid_links[link] == transport->link) {
+        return;
     }
+    transport_hid_close(transport);
+    furi_message_queue_reset(transport->link_queue);
+    transport_hid_open(transport, link);
+}
+
+void transport_press(Transport* transport, TransportKey key) {
+    transport->link->press(transport->instance, transport_hid_keys[key]);
 }
 
 void transport_release(Transport* transport, TransportKey key) {
-    if(transport->usb) {
-        transport_usb_release(transport->usb, transport_hid_keys[key]);
-    } else {
-        transport_bluetooth_release(transport->bluetooth, transport_hid_keys[key]);
-    }
+    transport->link->release(transport->instance, transport_hid_keys[key]);
 }
 
 void transport_offer(Transport* transport) {
-    if(transport->usb) {
-        transport_usb_offer(transport->usb);
-    } else {
-        transport_bluetooth_offer(transport->bluetooth);
-    }
+    transport->link->offer(transport->instance);
 }
 
 void transport_withdraw(Transport* transport) {
-    if(transport->bluetooth) {
-        transport_bluetooth_withdraw(transport->bluetooth);
-    }
-}
-
-/* A Connected that one link left queued would read as the other's. */
-void transport_use_usb(Transport* transport) {
-    transport_bluetooth_free(transport->bluetooth);
-    transport->bluetooth = NULL;
-    furi_message_queue_reset(transport->link_queue);
-    transport->usb = transport_usb_alloc(transport->link_queue);
-}
-
-void transport_use_bluetooth(Transport* transport) {
-    transport_usb_free(transport->usb);
-    transport->usb = NULL;
-    furi_message_queue_reset(transport->link_queue);
-    transport->bluetooth = transport_bluetooth_alloc(transport->link_queue);
+    transport->link->withdraw(transport->instance);
 }

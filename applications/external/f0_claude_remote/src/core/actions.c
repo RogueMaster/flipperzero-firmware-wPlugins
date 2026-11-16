@@ -21,6 +21,12 @@ void actions_perform(Transport* transport, Action action) {
     case ActionArrowDown:
         actions_tap(transport, TransportKeyArrowDown);
         break;
+    case ActionArrowLeft:
+        actions_tap(transport, TransportKeyArrowLeft);
+        break;
+    case ActionArrowRight:
+        actions_tap(transport, TransportKeyArrowRight);
+        break;
     case ActionEsc:
         actions_tap(transport, TransportKeyEsc);
         break;
@@ -48,13 +54,8 @@ void actions_perform(Transport* transport, Action action) {
     case ActionStartOver:
         transport_offer(transport);
         break;
-    case ActionUseUsb:
-        transport_use_usb(transport);
-        break;
-    case ActionUseBluetooth:
-        transport_use_bluetooth(transport);
-        break;
-    default:
+    case ActionNone:
+    case ActionExit:
         break;
     }
 }

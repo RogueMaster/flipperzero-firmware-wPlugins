@@ -24,11 +24,31 @@ The Flipper's buttons do the rest, so voice and one hand run the whole session.
 - **Dictation:** hold OK and speak; nothing is sent until you tap OK.
 - **Prompt:** Enter, the arrows, and Esc to stop a turn.
 - **Commands:** hold a button for `/clear` or the effort level.
-- **Feedback:** every action buzzes; no buzz, nothing sent.
+- **Feedback:** every action buzzes and flashes; a tap on Back opens the options, where the buzz turns off.
 - **The dolphin:** a dictation earns it 1 XP, a `/clear` 10.
 - **Bluetooth:** a keyboard to the computer, paired once, reconnecting by itself.
 - **USB:** with no Bluetooth link, hold Right and the cable takes over.
 - **Debugging:** breakpoints on the device from CLion, with no plugin.
+
+## Screens
+
+<table>
+<tr>
+<td><img src="asset/screenshot/main-usb.png" alt="The main screen on USB" width="256"></td>
+<td><img src="asset/screenshot/voice-bt.png" alt="Listening" width="256"></td>
+</tr>
+<tr>
+<td><img src="asset/screenshot/no-link-bt.png" alt="No link on Bluetooth" width="256"></td>
+<td><img src="asset/screenshot/no-link-usb.png" alt="No link on USB" width="256"></td>
+</tr>
+<tr>
+<td><img src="asset/screenshot/voice-cut-bt.png" alt="Voice stopped" width="256"></td>
+<td><img src="asset/screenshot/stopped-bt.png" alt="Reconnect stopped" width="256"></td>
+</tr>
+<tr>
+<td><img src="asset/screenshot/options-bt.png" alt="The options" width="256"></td>
+</tr>
+</table>
 
 ## Installation
 

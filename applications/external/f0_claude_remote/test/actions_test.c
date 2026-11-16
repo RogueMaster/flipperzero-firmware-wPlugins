@@ -32,6 +32,14 @@ static void test_arrow_down_sends_arrow_down(void) {
     assert_tap_sends_one_key(ActionArrowDown, TransportKeyArrowDown);
 }
 
+static void test_arrow_left_sends_arrow_left(void) {
+    assert_tap_sends_one_key(ActionArrowLeft, TransportKeyArrowLeft);
+}
+
+static void test_arrow_right_sends_arrow_right(void) {
+    assert_tap_sends_one_key(ActionArrowRight, TransportKeyArrowRight);
+}
+
 static void test_esc_sends_esc(void) {
     assert_tap_sends_one_key(ActionEsc, TransportKeyEsc);
 }
@@ -127,32 +135,12 @@ static void test_start_over_offers_sending_nothing(void) {
     transport_fake_free(transport);
 }
 
-static void test_use_usb_switches_sending_nothing(void) {
-    Transport* transport = transport_fake_alloc();
-    assert(!transport_fake_on_usb(transport));
-
-    actions_perform(transport, ActionUseUsb);
-
-    assert(transport_fake_on_usb(transport));
-    assert(transport_fake_count(transport) == 0);
-    transport_fake_free(transport);
-}
-
-static void test_use_bluetooth_switches_back_sending_nothing(void) {
-    Transport* transport = transport_fake_alloc();
-    actions_perform(transport, ActionUseUsb);
-
-    actions_perform(transport, ActionUseBluetooth);
-
-    assert(!transport_fake_on_usb(transport));
-    assert(transport_fake_count(transport) == 0);
-    transport_fake_free(transport);
-}
-
 int main(void) {
     test_run(test_enter_sends_enter);
     test_run(test_arrow_up_sends_arrow_up);
     test_run(test_arrow_down_sends_arrow_down);
+    test_run(test_arrow_left_sends_arrow_left);
+    test_run(test_arrow_right_sends_arrow_right);
     test_run(test_esc_sends_esc);
     test_run(test_clear_sends_ctrl_x_then_ctrl_l);
     test_run(test_voice_start_leaves_ctrl_q_down);
@@ -162,7 +150,5 @@ int main(void) {
     test_run(test_none_and_exit_send_nothing);
     test_run(test_give_up_withdraws_sending_nothing);
     test_run(test_start_over_offers_sending_nothing);
-    test_run(test_use_usb_switches_sending_nothing);
-    test_run(test_use_bluetooth_switches_back_sending_nothing);
     return 0;
 }

@@ -5,13 +5,13 @@
 #include <furi_hal_bt.h>
 #include <storage/storage.h>
 
-#define TRANSPORT_BLUETOOTH_NVM_MS 200
+static const uint32_t transport_bluetooth_nvm_ms = 200;
 
-struct TransportBluetooth {
+typedef struct {
     Bt* bt;
     FuriHalBleProfileTemplate profile_template;
     FuriHalBleProfileBase* profile;
-};
+} TransportBluetooth;
 
 /* Neither 0, the stock Remote's address, nor 0x0002, BadUSB's. */
 static BleProfileHidParams transport_bluetooth_params = {
@@ -31,7 +31,7 @@ static void transport_bluetooth_status_callback(BtStatus status, void* context) 
     furi_message_queue_put(link_queue, &connected, 0);
 }
 
-TransportBluetooth* transport_bluetooth_alloc(FuriMessageQueue* link_queue) {
+static void* transport_bluetooth_alloc(FuriMessageQueue* link_queue) {
     TransportBluetooth* bluetooth = malloc(sizeof(TransportBluetooth));
     bluetooth->bt = furi_record_open(RECORD_BT);
     bluetooth->profile_template = *ble_profile_hid;
@@ -39,7 +39,7 @@ TransportBluetooth* transport_bluetooth_alloc(FuriMessageQueue* link_queue) {
 
     /* The stock order, hid.c:200-239: the second core writes its NVM after a disconnect. */
     bt_disconnect(bluetooth->bt);
-    furi_delay_ms(TRANSPORT_BLUETOOTH_NVM_MS);
+    furi_delay_ms(transport_bluetooth_nvm_ms);
     bt_keys_storage_set_storage_path(bluetooth->bt, APP_DATA_PATH(".bt_hid.keys"));
     bluetooth->profile =
         bt_profile_start(bluetooth->bt, &bluetooth->profile_template, &transport_bluetooth_params);
@@ -50,10 +50,11 @@ TransportBluetooth* transport_bluetooth_alloc(FuriMessageQueue* link_queue) {
     return bluetooth;
 }
 
-void transport_bluetooth_free(TransportBluetooth* bluetooth) {
+static void transport_bluetooth_free(void* instance) {
+    TransportBluetooth* bluetooth = instance;
     bt_set_status_changed_callback(bluetooth->bt, NULL, NULL);
     bt_disconnect(bluetooth->bt);
-    furi_delay_ms(TRANSPORT_BLUETOOTH_NVM_MS);
+    furi_delay_ms(transport_bluetooth_nvm_ms);
     bt_keys_storage_set_default_path(bluetooth->bt);
     furi_check(bt_profile_restore_default(bluetooth->bt));
     furi_record_close(RECORD_BT);
@@ -61,20 +62,31 @@ void transport_bluetooth_free(TransportBluetooth* bluetooth) {
 }
 
 /* The result reads inverted (gatt.c:144, against hid_profile.h:26), so nothing branches on it. */
-void transport_bluetooth_press(TransportBluetooth* bluetooth, uint16_t key) {
+static void transport_bluetooth_press(void* instance, uint16_t key) {
+    TransportBluetooth* bluetooth = instance;
     ble_profile_hid_kb_press(bluetooth->profile, key);
 }
 
-void transport_bluetooth_release(TransportBluetooth* bluetooth, uint16_t key) {
+static void transport_bluetooth_release(void* instance, uint16_t key) {
+    TransportBluetooth* bluetooth = instance;
     ble_profile_hid_kb_release(bluetooth->profile, key);
 }
 
-void transport_bluetooth_offer(TransportBluetooth* bluetooth) {
-    UNUSED(bluetooth);
+static void transport_bluetooth_offer(void* instance) {
+    UNUSED(instance);
     furi_hal_bt_start_advertising();
 }
 
-void transport_bluetooth_withdraw(TransportBluetooth* bluetooth) {
-    UNUSED(bluetooth);
+static void transport_bluetooth_withdraw(void* instance) {
+    UNUSED(instance);
     furi_hal_bt_stop_advertising();
 }
+
+const TransportLink transport_bluetooth = {
+    .alloc = transport_bluetooth_alloc,
+    .free = transport_bluetooth_free,
+    .press = transport_bluetooth_press,
+    .release = transport_bluetooth_release,
+    .offer = transport_bluetooth_offer,
+    .withdraw = transport_bluetooth_withdraw,
+};
