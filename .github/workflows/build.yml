@@ -46,7 +46,7 @@ jobs:
           app-dir: apps/${{ matrix.app }}
           sdk-channel: ${{ matrix.sdk-channel }}
       - name: Upload app artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.app }}-${{ steps.build-app.outputs.suffix }}
           path: ${{ steps.build-app.outputs.fap-artifacts }}
