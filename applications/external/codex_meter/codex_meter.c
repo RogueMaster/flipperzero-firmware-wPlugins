@@ -10,10 +10,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define TAG          "Meter"
-#define RX_BUF_SIZE  128
-#define HELLO        "CODEXMETER 1\n"
-#define REFRESH      "R\n"
+#define TAG         "Meter"
+#define RX_BUF_SIZE 128
+#define HELLO       "CODEXMETER 1\n"
+#define REFRESH     "R\n"
 
 /* Keep the internal backlight layer at 24%, beneath the normal timed layer.
  * Hardware key input still wakes the normal brightness and restarts the user's
@@ -87,7 +87,8 @@ static void meter_parse_line(Meter* app, const char* line) {
         if(end == p) return;
         p = end;
     }
-    while(*p == ' ' || *p == '\r') p++;
+    while(*p == ' ' || *p == '\r')
+        p++;
     if(*p) return;
     if(v[0] < -1 || v[0] > 100 || v[3] < -1 || v[3] > 100) return;
     furi_mutex_acquire(app->mutex, FuriWaitForever);
@@ -195,7 +196,8 @@ static void meter_ble_stop(Meter* app) {
 static void format_duration(char* out, size_t size, uint32_t s) {
     uint32_t m = s / 60;
     if(m >= 24 * 60) {
-        snprintf(out, size, "%lud %luh", (unsigned long)(m / 1440), (unsigned long)((m % 1440) / 60));
+        snprintf(
+            out, size, "%lud %luh", (unsigned long)(m / 1440), (unsigned long)((m % 1440) / 60));
     } else if(m >= 60) {
         snprintf(out, size, "%luh %02lum", (unsigned long)(m / 60), (unsigned long)(m % 60));
     } else if(m > 0) {
@@ -206,14 +208,24 @@ static void format_duration(char* out, size_t size, uint32_t s) {
 }
 
 static void window_label(char* out, size_t size, uint32_t minutes, const char* fallback) {
-    if(minutes == 0) snprintf(out, size, "%s", fallback);
-    else if(minutes % 1440 == 0) snprintf(out, size, "%lud", (unsigned long)(minutes / 1440));
-    else if(minutes % 60 == 0) snprintf(out, size, "%luh", (unsigned long)(minutes / 60));
-    else snprintf(out, size, "%lum", (unsigned long)minutes);
+    if(minutes == 0)
+        snprintf(out, size, "%s", fallback);
+    else if(minutes % 1440 == 0)
+        snprintf(out, size, "%lud", (unsigned long)(minutes / 1440));
+    else if(minutes % 60 == 0)
+        snprintf(out, size, "%luh", (unsigned long)(minutes / 60));
+    else
+        snprintf(out, size, "%lum", (unsigned long)minutes);
 }
 
-static void draw_meter(Canvas* c, int y, const char* label, int pct, uint32_t reset,
-                       bool remaining, bool expired) {
+static void draw_meter(
+    Canvas* c,
+    int y,
+    const char* label,
+    int pct,
+    uint32_t reset,
+    bool remaining,
+    bool expired) {
     char text[24];
     canvas_set_font(c, FontSecondary);
     canvas_draw_str(c, 3, y, label);
@@ -233,7 +245,8 @@ static void draw_meter(Canvas* c, int y, const char* label, int pct, uint32_t re
     int fill = (117 * value) / 100;
     if(fill) canvas_draw_box(c, 5, y + 5, fill, 3);
     canvas_set_color(c, ColorWhite);
-    for(int i = 1; i < 4; i++) canvas_draw_line(c, 3 + 121 * i / 4, y + 5, 3 + 121 * i / 4, y + 7);
+    for(int i = 1; i < 4; i++)
+        canvas_draw_line(c, 3 + 121 * i / 4, y + 5, 3 + 121 * i / 4, y + 7);
     canvas_set_color(c, ColorBlack);
 }
 
@@ -253,20 +266,32 @@ static void meter_draw(Canvas* c, void* context) {
     furi_mutex_acquire(app->mutex, FuriWaitForever);
     Usage u = app->usage;
     furi_mutex_release(app->mutex);
-    uint32_t age = u.has_data ? (furi_get_tick() - u.received_tick) / furi_kernel_get_tick_frequency() : 0;
+    uint32_t age =
+        u.has_data ? (furi_get_tick() - u.received_tick) / furi_kernel_get_tick_frequency() : 0;
     canvas_draw_rbox(c, 0, 0, 128, 13, 2);
     canvas_set_color(c, ColorWhite);
     canvas_set_font(c, FontPrimary);
     canvas_draw_str(c, 4, 10, "CODEX");
     canvas_set_font(c, FontSecondary);
-    const char* status = app->failed ? "API ERROR" : app->refreshing ? "SYNC..." :
-        app->usb_mode ? (age > 150 ? "STALE" : "USB") : !app->ble_ok ? "BT ERROR" :
-        !app->connected ? "OFFLINE" : !u.has_data ? "LINKED" : age > 150 ? "STALE" : "LIVE";
+    const char* status = app->failed     ? "API ERROR" :
+                         app->refreshing ? "SYNC..." :
+                         app->usb_mode   ? (age > 150 ? "STALE" : "USB") :
+                         !app->ble_ok    ? "BT ERROR" :
+                         !app->connected ? "OFFLINE" :
+                         !u.has_data     ? "LINKED" :
+                         age > 150       ? "STALE" :
+                                           "LIVE";
     canvas_draw_str_aligned(c, 123, 10, AlignRight, AlignBottom, status);
     canvas_set_color(c, ColorBlack);
     if(!u.has_data) {
         canvas_set_font(c, FontPrimary);
-        canvas_draw_str_aligned(c, 64, 30, AlignCenter, AlignCenter, app->failed ? "Check Codex login" : "Waiting for PC");
+        canvas_draw_str_aligned(
+            c,
+            64,
+            30,
+            AlignCenter,
+            AlignCenter,
+            app->failed ? "Check Codex login" : "Waiting for PC");
         canvas_set_font(c, FontSecondary);
         canvas_draw_str_aligned(c, 64, 43, AlignCenter, AlignCenter, "Run START-WINDOWS.cmd");
     } else {
@@ -280,7 +305,8 @@ static void meter_draw(Canvas* c, void* context) {
     }
     canvas_set_font(c, FontSecondary);
     canvas_draw_str(c, 3, 63, "OK sync");
-    canvas_draw_str_aligned(c, 125, 63, AlignRight, AlignBottom, app->remaining ? "<> LEFT" : "<> USED");
+    canvas_draw_str_aligned(
+        c, 125, 63, AlignRight, AlignBottom, app->remaining ? "<> LEFT" : "<> USED");
 }
 
 static void meter_input(InputEvent* event, void* context) {
@@ -316,7 +342,8 @@ int32_t codex_meter_app(void* p) {
     while(true) {
         if(furi_message_queue_get(app->input_queue, &event, 1000) == FuriStatusOk) {
             if(event.key == InputKeyBack && event.type == InputTypeShort) break;
-            if((event.key == InputKeyLeft || event.key == InputKeyRight) && event.type == InputTypeShort)
+            if((event.key == InputKeyLeft || event.key == InputKeyRight) &&
+               event.type == InputTypeShort)
                 app->remaining = !app->remaining;
             if(event.key == InputKeyOk && event.type == InputTypeShort &&
                (app->usb_mode || (app->connected && app->profile))) {

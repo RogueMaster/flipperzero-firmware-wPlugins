@@ -56,12 +56,12 @@
 #define BACK_WINDOW   4096
 #define LOOKAHEAD     (LINE_BUF * 4) /* bytes read past a seek target */
 #define JUMP_PERCENT  5
-#define MAX_BOOKMARKS  256 /* 4 bytes each */
-#define SNIPPET_LEN    48
+#define MAX_BOOKMARKS 256 /* 4 bytes each */
+#define SNIPPET_LEN   48
 
 /* menu overlay */
-#define MENU_W        100
-#define MENU_ITEM_H   11
+#define MENU_W      100
+#define MENU_ITEM_H 11
 
 /* bookmark list */
 #define LIST_HEADER_H 12
@@ -527,11 +527,11 @@ static void bookmark_file_path(FuriString* out, const char* book) {
 /* Insert keeping the list sorted and free of duplicates. */
 static bool bookmark_insert(Reader* r, uint32_t offset) {
     uint16_t i = 0;
-    while(i < r->bookmark_count && r->bookmarks[i] < offset) i++;
+    while(i < r->bookmark_count && r->bookmarks[i] < offset)
+        i++;
     if(i < r->bookmark_count && r->bookmarks[i] == offset) return true;
     if(r->bookmark_count >= MAX_BOOKMARKS) return false;
-    memmove(
-        &r->bookmarks[i + 1], &r->bookmarks[i], (r->bookmark_count - i) * sizeof(uint32_t));
+    memmove(&r->bookmarks[i + 1], &r->bookmarks[i], (r->bookmark_count - i) * sizeof(uint32_t));
     r->bookmarks[i] = offset;
     r->bookmark_count++;
     return true;
@@ -747,19 +747,19 @@ static void draw_bookmarks(Canvas* canvas, Reader* r) {
         char pct[6];
         snprintf(pct, sizeof(pct), "%u%%", offset_percent(r, r->bookmarks[i]));
         canvas_draw_str(canvas, 2, ry + 10, pct);
-        draw_str_fit(
-            canvas, LIST_PCT_W + 2, ry + 10, r->snippets[row], row_w - LIST_PCT_W - 4);
+        draw_str_fit(canvas, LIST_PCT_W + 2, ry + 10, r->snippets[row], row_w - LIST_PCT_W - 4);
         canvas_set_color(canvas, ColorBlack);
     }
 
     if(scrollbar) {
         uint8_t track_y = LIST_HEADER_H;
         uint8_t track_h = SCREEN_H - LIST_HEADER_H;
-        for(uint8_t y = track_y; y < SCREEN_H; y += 2) canvas_draw_dot(canvas, SCREEN_W - 2, y);
+        for(uint8_t y = track_y; y < SCREEN_H; y += 2)
+            canvas_draw_dot(canvas, SCREEN_W - 2, y);
         uint8_t thumb_h = track_h * LIST_ROWS / r->bookmark_count;
         if(thumb_h < 3) thumb_h = 3;
-        uint8_t thumb_y = track_y + (track_h - thumb_h) * r->list_scroll /
-                                        (r->bookmark_count - LIST_ROWS);
+        uint8_t thumb_y =
+            track_y + (track_h - thumb_h) * r->list_scroll / (r->bookmark_count - LIST_ROWS);
         canvas_draw_box(canvas, SCREEN_W - 3, thumb_y, 3, thumb_h);
     }
 }

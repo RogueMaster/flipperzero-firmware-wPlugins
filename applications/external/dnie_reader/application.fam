@@ -21,7 +21,7 @@ App(
     stack_size=6 * 1024,  # el decodificador JPEG2000 corre en este hilo
     targets=["f7"],
     fap_icon="dnie_10px.png",
-    fap_file_assets="assets", # csca.bin: claves CSCA de otros paises (se copia a la SD)
+    fap_file_assets="assets",  # csca.bin: claves CSCA de otros paises (se copia a la SD)
     fap_icon_assets_symbol="dnie_reader",
     fap_libs=["mbedtls"],
     # La libmbedtls.a del SDK no trae constant_time.o: lo compilamos nosotros (misma version 3.6.2)

@@ -1,0 +1,15 @@
+App(
+    appid="ir_raw_edit",
+    name="IR RAW Edit",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="ir_raw_edit_app",
+    stack_size=3 * 1024,
+    fap_icon="icons/icon.png",
+    fap_icon_assets="icons",
+    targets=["f7"],
+    fap_category="Infrared",
+    fap_author="Lechnio",
+    fap_weburl="https://github.com/Lechnio/IR-RAW-Edit",
+    fap_version="1.0",
+    fap_description="Open an infrared .ir signal, see its waveform, pick start/end with the arrows and save just the trimmed part as a RAW signal.",
+)

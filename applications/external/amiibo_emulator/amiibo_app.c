@@ -252,23 +252,22 @@ static const char HELP[] = "This app can back up\n"
                            "2 seconds. Database\n"
                            "files stay.\n";
 
-static const char ABOUT[] =
-    "Amiibo is a trademark\n"
-    "of Nintendo.\n"
-    "\n"
-    "Characters and names\n"
-    "are copyright Nintendo.\n"
-    "All rights reserved.\n"
-    "\n"
-    "This app is not made\n"
-    "by Nintendo.\n"
-    "\n"
-    "Written by\n"
-    "Soap-n-Cartridge.\n"
-    "Open source.\n"
-    "\n"
-    "Does not own Amiibo\n"
-    "or Nintendo content.\n";
+static const char ABOUT[] = "Amiibo is a trademark\n"
+                            "of Nintendo.\n"
+                            "\n"
+                            "Characters and names\n"
+                            "are copyright Nintendo.\n"
+                            "All rights reserved.\n"
+                            "\n"
+                            "This app is not made\n"
+                            "by Nintendo.\n"
+                            "\n"
+                            "Written by\n"
+                            "Soap-n-Cartridge.\n"
+                            "Open source.\n"
+                            "\n"
+                            "Does not own Amiibo\n"
+                            "or Nintendo content.\n";
 
 typedef struct {
     uint16_t scroll;
@@ -789,13 +788,8 @@ typedef struct {
 
 #define COUNT_RIGHT 122
 
-static void list_draw_line(
-    Canvas* canvas,
-    const char* name,
-    unsigned count,
-    bool show_count,
-    int x,
-    int y) {
+static void
+    list_draw_line(Canvas* canvas, const char* name, unsigned count, bool show_count, int x, int y) {
     char number[12];
     uint16_t number_w = 0;
     if(show_count && count > 0) {
@@ -804,12 +798,16 @@ static void list_draw_line(
     }
     int room = COUNT_RIGHT - x;
     if(number_w > 0) {
-        if(room > (int)number_w + 4) room -= (int)number_w + 4;
-        else room = 0;
+        if(room > (int)number_w + 4)
+            room -= (int)number_w + 4;
+        else
+            room = 0;
     }
     FuriString* shown = furi_string_alloc_set(name);
-    if(room <= 0) furi_string_reset(shown);
-    else elements_string_fit_width(canvas, shown, (size_t)room);
+    if(room <= 0)
+        furi_string_reset(shown);
+    else
+        elements_string_fit_width(canvas, shown, (size_t)room);
     canvas_draw_str(canvas, x, y, furi_string_get_cstr(shown));
     furi_string_free(shown);
     if(number_w > 0) canvas_draw_str(canvas, COUNT_RIGHT - (int)number_w, y, number);
@@ -932,7 +930,8 @@ static void list_reset(App* app) {
         app->list_view,
         ListModel * model,
         {
-            for(uint16_t i = 0; i < model->count; i++) furi_string_free(model->items[i].label);
+            for(uint16_t i = 0; i < model->count; i++)
+                furi_string_free(model->items[i].label);
             free(model->items);
             model->items = NULL;
             model->count = 0;
@@ -1047,11 +1046,7 @@ static void show_scan(App* app) {
     list_header(app, "Scan Amiibos", 0, false);
     list_add(app, "Scan Amiibos", 0, false, MenuRead);
     list_add(
-        app,
-        "Scanned Amiibos",
-        count_tags_in(app, APP_DATA_PATH("scanned")),
-        true,
-        MenuUnsaved);
+        app, "Scanned Amiibos", count_tags_in(app, APP_DATA_PATH("scanned")), true, MenuUnsaved);
     if(app->my_index != MenuRead && app->my_index != MenuUnsaved) app->my_index = MenuRead;
     list_select(app, app->my_index);
     app->current = ViewMy;
@@ -1534,11 +1529,7 @@ static void show_file_list(App* app, bool saved) {
     storage_file_free(dir);
 
     list_reset(app);
-    list_header(
-        app,
-        saved ? "Favorites" : "Scanned Amiibos",
-        count_tags_in(app, folder),
-        true);
+    list_header(app, saved ? "Favorites" : "Scanned Amiibos", count_tags_in(app, folder), true);
     if(app->file_count == 0) {
         list_add(app, "None yet", 0, false, MenuEmpty);
     } else {
@@ -2293,17 +2284,15 @@ int32_t flipper_amiibo_app(void* arg) {
 
     app->path = furi_string_alloc_set(APP_DATA_PATH("db"));
     app->db_path = furi_string_alloc_set(APP_DATA_PATH("db"));
-    for(uint8_t i = 0; i < FILE_MAX; i++) app->files[i] = furi_string_alloc();
+    for(uint8_t i = 0; i < FILE_MAX; i++)
+        app->files[i] = furi_string_alloc();
     app->info = furi_string_alloc();
     app->device = nfc_device_alloc();
     app->dispatcher = view_dispatcher_alloc();
     app->list_view = view_alloc();
     view_allocate_model(app->list_view, ViewModelTypeLocking, sizeof(ListModel));
     with_view_model(
-        app->list_view,
-        ListModel * model,
-        { model->header = furi_string_alloc(); },
-        false);
+        app->list_view, ListModel * model, { model->header = furi_string_alloc(); }, false);
     view_set_context(app->list_view, app);
     view_set_draw_callback(app->list_view, list_draw);
     view_set_input_callback(app->list_view, list_input);
@@ -2410,7 +2399,8 @@ int32_t flipper_amiibo_app(void* arg) {
         app->list_view,
         ListModel * model,
         {
-            for(uint16_t i = 0; i < model->count; i++) furi_string_free(model->items[i].label);
+            for(uint16_t i = 0; i < model->count; i++)
+                furi_string_free(model->items[i].label);
             free(model->items);
             furi_string_free(model->header);
         },
@@ -2422,7 +2412,8 @@ int32_t flipper_amiibo_app(void* arg) {
     db_clear(app);
     furi_string_free(app->db_path);
     furi_string_free(app->path);
-    for(uint8_t i = 0; i < FILE_MAX; i++) furi_string_free(app->files[i]);
+    for(uint8_t i = 0; i < FILE_MAX; i++)
+        furi_string_free(app->files[i]);
     furi_record_close(RECORD_GUI);
     furi_record_close(RECORD_NOTIFICATION);
     furi_record_close(RECORD_DIALOGS);

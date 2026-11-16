@@ -348,6 +348,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Sub-GHz Keystore Decryptor v1.1 - selectable factory key slots, validated decrypted entries and app-data output (By Lechnio)](https://github.com/Lechnio/KeeLoq-Keystore-Decryptor)
 - Updated: [Amiibo Emulator v1.1 (By Soap-n-Cartridge)](https://github.com/Soap-n-Cartridge/flipper_amiibo)
 - Added: [Codex Monitor v1.4 (By Dr. Mosfet)](https://github.com/kamylwnb/codex-monitor) - Codex quota and reset timers over Bluetooth or USB
+- Added: [IR RAW Edit v1.0 (By Lechnio)](https://github.com/Lechnio/IR-RAW-Edit) - Trim, decode and merge infrared signal files
 
 <a name="release"></a>
 
@@ -1001,6 +1002,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [IR Intervalometer v2.2 (By Nitepone)](https://github.com/Nitepone/flipper-intervalometer)
 - [IR Jammer v1.0 (By Clawzman)](https://github.com/Clawzman/flipper-ir-jammer)
 - [IR Pad v1.0 (By tbelbek)](https://github.com/tbelbek/flipper-ir-pad)
+- [IR RAW Edit v1.0 (By Lechnio)](https://github.com/Lechnio/IR-RAW-Edit) - Trim, decode and merge infrared signal files
 - [IR Remote v1.1 (By Hong5489)](https://github.com/Hong5489/ir_remote)
 - [IR Remote Maker v1.0 (By lewisQ17)](https://github.com/lewisQ17/Momentum-Firmware)
 - [IR Scope v1.4 (By kallanreed)](https://github.com/kallanreed/unleashed-firmware/tree/dev/applications/external/ir_scope)
