@@ -105,6 +105,7 @@ The Flipper and its community wouldn't be as rich as it is without your contribu
 | Morse Code | ![Media Badge] | [by wh00hw](https://github.com/wh00hw/MorseCodeFAP) |  | [![UFW Badge]](https://lab.flipper.net/apps/morse_code) |
 | BLE Spam | ![BT Badge] | [by @WillyJL & @ECTO-1A & @Spooks4576](https://github.com/Next-Flip/Momentum-Apps/tree/dev/ble_spam) |  | ![None Badge] |
 | FindMy Flipper | ![BT Badge] | [by @MatthewKuKanich](https://github.com/MatthewKuKanich/FindMyFlipper) | Please Read [how to add keys here](https://github.com/MatthewKuKanich/FindMyFlipper) | [![Author Badge]](https://lab.flipper.net/apps/findmy) |
+| USB I2S Audio | ![USB Badge] | [by xMasterX](https://github.com/xMasterX/flipper_i2s) | USB Audio Class 1 sound card into an I2S DAC on the GPIO header - stereo 16-bit up to 96kHz / 24-bit up to 48kHz, asynchronous clocking with host volume & mute, selectable MCLK and an in-app wiring guide | ![None Badge] |
 
 ### Games
 
