@@ -21,7 +21,7 @@ jobs:
       apps: ${{ steps.find.outputs.apps }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Find app folders
         id: find
         run: |
@@ -38,7 +38,7 @@ jobs:
     name: 'ufbt: ${{ matrix.app }} (${{ matrix.sdk-channel }})'
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Build with ufbt
         uses: flipperdevices/flipperzero-ufbt-action@v0.1
         id: build-app
