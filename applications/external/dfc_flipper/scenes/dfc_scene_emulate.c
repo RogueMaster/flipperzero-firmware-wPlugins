@@ -110,8 +110,20 @@ void dfc_scene_emulate_on_enter(void* context) {
         return;
     }
 
+    dfc->radio_tx_buffer = bit_buffer_alloc(DFC_BYTEBUF_MAX);
+    if(!dfc->radio_tx_buffer) {
+        dfc_emulator_free(dfc->dfc_emulator);
+        dfc->dfc_emulator = NULL;
+        popup_set_header(popup, "Out of memory", 64, 24, AlignCenter, AlignTop);
+        popup_set_text(popup, "Could not start\nemulation", 64, 42, AlignCenter, AlignTop);
+        view_dispatcher_switch_to_view(dfc->view_dispatcher, DfcViewPopup);
+        return;
+    }
+
     dfc->listener = nfc_listener_alloc(dfc->nfc, NfcProtocolIso14443_4a, data);
     if(!dfc->listener) {
+        bit_buffer_free(dfc->radio_tx_buffer);
+        dfc->radio_tx_buffer = NULL;
         dfc_emulator_free(dfc->dfc_emulator);
         dfc->dfc_emulator = NULL;
         popup_set_header(popup, "Out of memory", 64, 24, AlignCenter, AlignTop);
@@ -154,7 +166,11 @@ bool dfc_scene_emulate_on_event(void* context, SceneManagerEvent event) {
             consumed = true;
         }
     } else if(event.type == SceneManagerEventTypeBack) {
-        if(dfc->credential->dirty) {
+        if(dfc->hardware_test_mode) {
+            // The host uploads a fresh fixture for every case. Never offer to
+            // persist commands issued by the reader into that fixture.
+            dfc_credential_clear_dirty(dfc->credential);
+        } else if(dfc->credential->dirty) {
             scene_manager_next_scene(dfc->scene_manager, DfcSceneMutationSave);
             consumed = true;
         } else if(dfc->emulate_from_blank) {
@@ -180,6 +196,10 @@ void dfc_scene_emulate_on_exit(void* context) {
     if(dfc->dfc_emulator) {
         dfc_emulator_free(dfc->dfc_emulator);
         dfc->dfc_emulator = NULL;
+    }
+    if(dfc->radio_tx_buffer) {
+        bit_buffer_free(dfc->radio_tx_buffer);
+        dfc->radio_tx_buffer = NULL;
     }
     dfc_log_memory("after emulator stop");
 

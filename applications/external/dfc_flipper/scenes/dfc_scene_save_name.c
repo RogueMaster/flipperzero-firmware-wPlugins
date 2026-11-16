@@ -18,11 +18,11 @@ void dfc_scene_save_name_on_enter(void* context) {
     // Setup view
     TextInput* text_input = dfc->text_input;
     bool dev_name_empty = false;
-    if(!strcmp(dfc->credential->name, "")) {
+    if(dfc->credential_name[0] == '\0') {
         name_generator_make_auto(dfc->text_store, sizeof(dfc->text_store), DFC_APP_FILE_PREFIX);
         dev_name_empty = true;
     } else {
-        dfc_text_store_set(dfc, dfc->credential->name);
+        dfc_text_store_set(dfc, dfc->credential_name);
     }
     text_input_set_header_text(text_input, "Name the card");
     text_input_set_result_callback(
@@ -43,7 +43,7 @@ void dfc_scene_save_name_on_enter(void* context) {
     }
 
     ValidatorIsFile* validator_is_file = validator_is_file_alloc_init(
-        furi_string_get_cstr(folder_path), DFC_APP_EXTENSION, dfc->credential->name);
+        furi_string_get_cstr(folder_path), DFC_APP_EXTENSION, dfc->credential_name);
     text_input_set_validator(text_input, validator_is_file_callback, validator_is_file);
 
     view_dispatcher_switch_to_view(dfc->view_dispatcher, DfcViewTextInput);
@@ -57,7 +57,7 @@ bool dfc_scene_save_name_on_event(void* context, SceneManagerEvent event) {
 
     if(event.type == SceneManagerEventTypeCustom) {
         if(event.event == DfcCustomEventTextInputDone) {
-            strlcpy(dfc->credential->name, dfc->text_store, sizeof(dfc->credential->name));
+            strlcpy(dfc->credential_name, dfc->text_store, sizeof(dfc->credential_name));
             if(dfc_credential_save(dfc->credential, dfc->text_store)) {
                 scene_manager_next_scene(dfc->scene_manager, DfcSceneSaveSuccess);
                 consumed = true;

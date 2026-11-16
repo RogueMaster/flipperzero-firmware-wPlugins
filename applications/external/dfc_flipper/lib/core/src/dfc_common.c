@@ -1,7 +1,142 @@
 #include "dfc_common.h"
 
-#include <stdio.h>
+#if DFC_ENABLE_AES_CRYPTO
+#include "aes_cmac.h"
+#endif
 
+bool dfc_uid_length_is_valid(size_t length) {
+    return length == DFC_DESFIRE_UID_SHORT_LEN || length == DFC_DESFIRE_UID_LEN ||
+           length == DFC_DESFIRE_UID_LONG_LEN;
+}
+
+bool dfc_iso_file_id_is_reserved(uint16_t value) {
+    return value == 0x0000 || value == 0x3F00 || value == 0x3FFF || value == 0xFFFF;
+}
+
+bool dfc_communication_settings_is_valid(uint8_t value) {
+    uint8_t mode = value & DFC_COMM_MODE_MASK;
+    uint8_t flags = 0;
+#if DFC_ENABLE_SDM
+    // SDM shares the serialized octet with the communication mode.
+    flags = DFC_SDM_ENABLED_MASK;
+#endif
+    return (value & (uint8_t)~(flags | DFC_COMM_MODE_MASK)) == 0 &&
+           (mode == DFC_COMM_PLAIN || mode == DFC_COMM_MAC || mode == DFC_COMM_ENCIPHERED);
+}
+
+static bool access_nibble_is_valid(uint8_t value, size_t key_count) {
+    return value >= DFC_ACCESS_FREE || value < key_count;
+}
+
+bool dfc_access_rights_are_valid(uint16_t rights, size_t key_count) {
+    for(size_t shift = 0; shift < 16; shift += 4) {
+        if(!access_nibble_is_valid((uint8_t)(rights >> shift) & 0x0F, key_count)) return false;
+    }
+    return true;
+}
+
+bool dfc_transaction_mac_access_rights_are_valid(uint16_t rights, size_t key_count) {
+    // This file type reserves the write nibble and requires its disabled value.
+    return dfc_access_rights_are_valid(rights, key_count) &&
+           dfc_access_nibble(rights, 8) == DFC_ACCESS_DENY;
+}
+
+bool dfc_sdm_access_rights_are_valid(uint16_t rights, size_t key_count) {
+    uint8_t meta_read = (uint8_t)(rights >> 12);
+    uint8_t file_read = dfc_access_nibble(rights, 8);
+    uint8_t reserved = dfc_access_nibble(rights, 4);
+    uint8_t counter_read = (uint8_t)rights & 0x0F;
+    // The wire sends the low byte first, but the model keeps semantic nibble order.
+    return access_nibble_is_valid(meta_read, key_count) &&
+           access_nibble_is_valid(file_read, key_count) && reserved == DFC_ACCESS_DENY &&
+           access_nibble_is_valid(counter_read, key_count);
+}
+
+bool dfc_transaction_mac_key_type_is_valid(uint8_t value) {
+    return value == DFC_TRANSACTION_MAC_KEY_TYPE_AES;
+}
+
+size_t dfc_key_set_type_length(uint8_t type) {
+    if(type == DFC_KEY_SET_TYPE_3K3DES) return DFC_KEY_SET_MAXIMUM_24_BYTE;
+    if(type == DFC_KEY_SET_TYPE_2K3DES || type == DFC_KEY_SET_TYPE_AES) {
+        return DFC_KEY_SET_MAXIMUM_16_BYTE;
+    }
+    return 0;
+}
+
+uint8_t dfc_key_type_for_set_type(uint8_t type) {
+    if(type == DFC_KEY_SET_TYPE_3K3DES) return DFC_KEY_TYPE_3K3DES;
+    if(type == DFC_KEY_SET_TYPE_AES) return DFC_KEY_TYPE_AES;
+    return DFC_KEY_TYPE_DES_2K3DES;
+}
+
+bool dfc_ct_equal(const uint8_t* left, const uint8_t* right, size_t length) {
+    uint8_t difference = 0;
+    for(size_t i = 0; i < length; i++)
+        difference |= left[i] ^ right[i];
+    return difference == 0;
+}
+
+void dfc_truncate_aes_wire_mac(
+    const uint8_t full[DFC_AES_CMAC_LENGTH],
+    uint8_t wire[DFC_WIRE_MAC_LENGTH]) {
+    for(size_t i = 0; i < DFC_WIRE_MAC_LENGTH; i++)
+        wire[i] = full[i * 2 + 1];
+}
+
+bool dfc_aes_wire_mac(
+    const uint8_t key[DFC_AES_KEY_LENGTH],
+    const uint8_t* input,
+    size_t input_len,
+    uint8_t output[DFC_WIRE_MAC_LENGTH]) {
+    if(!output) return false;
+    memset(output, 0, DFC_WIRE_MAC_LENGTH);
+    if(!key || (input_len != 0 && !input)) return false;
+
+#if DFC_ENABLE_AES_CRYPTO
+    uint8_t full[DFC_AES_CMAC_LENGTH] = {0};
+    bool success = aes_cmac((uint8_t*)key, DFC_AES_KEY_LENGTH, (uint8_t*)input, input_len, full);
+    if(success) dfc_truncate_aes_wire_mac(full, output);
+    dfc_secure_wipe(full, sizeof(full));
+    return success;
+#else
+    return false;
+#endif
+}
+
+void dfc_secure_wipe(void* buffer, size_t length) {
+    volatile uint8_t* bytes = buffer;
+    while(length--)
+        *bytes++ = 0;
+}
+
+uint16_t dfc_crc16_iso14443_extend(uint16_t crc, const uint8_t* data, size_t length) {
+    for(size_t i = 0; i < length; i++) {
+        uint8_t byte = data[i] ^ (crc & 0xFF);
+        byte ^= byte << 4;
+        crc = (crc >> 8) ^ ((uint16_t)byte << 8) ^ ((uint16_t)byte << 3) ^ ((uint16_t)byte >> 4);
+    }
+    return crc;
+}
+
+uint16_t dfc_crc16_iso14443(const uint8_t* data, size_t length) {
+    return dfc_crc16_iso14443_extend(0x6363, data, length);
+}
+
+uint32_t dfc_crc32_extend(uint32_t crc, const uint8_t* data, size_t length) {
+    for(size_t i = 0; i < length; i++) {
+        crc ^= data[i];
+        for(size_t bit = 0; bit < 8; bit++) {
+            uint32_t mask = 0u - (crc & 1u);
+            crc = (crc >> 1) ^ (0xEDB88320u & mask);
+        }
+    }
+    return crc;
+}
+
+uint32_t dfc_crc32(const uint8_t* data, size_t length) {
+    return dfc_crc32_extend(0xFFFFFFFFu, data, length);
+}
 
 const uint8_t DFC_ISO_AID[7] = {0xD2, 0x76, 0x00, 0x00, 0x85, 0x01, 0x00};
 
@@ -33,7 +168,8 @@ const char* dfc_authentication_mode_to_string(uint8_t auth_command) {
 }
 
 bool dfc_authentication_mode_from_string(const char* value, uint8_t* auth_command) {
-    if(strcmp(value, "D40") == 0 || strcmp(value, "Legacy") == 0 || strcmp(value, "NativeD40") == 0 || strcmp(value, "Native-D40") == 0) {
+    if(strcmp(value, "D40") == 0 || strcmp(value, "Legacy") == 0 ||
+       strcmp(value, "NativeD40") == 0 || strcmp(value, "Native-D40") == 0) {
         *auth_command = DFC_CMD_AUTHENTICATE_LEGACY;
         return true;
     }
@@ -126,12 +262,12 @@ bool dfc_wrap_native_response_as_iso7816(
 
     size_t offset = 0;
     if(prefix_len > 0) {
-        memcpy(output, native_response, prefix_len);
+        memmove(output, native_response, prefix_len);
         offset += prefix_len;
     }
 
     if(native_data_len > 0) {
-        memcpy(output + offset, native_response + prefix_len + 1, native_data_len);
+        memmove(output + offset, native_response + prefix_len + 1, native_data_len);
         offset += native_data_len;
     }
 
@@ -141,23 +277,6 @@ bool dfc_wrap_native_response_as_iso7816(
     return true;
 }
 
-void dfc_log_buffer(char* TAG, char* prefix, uint8_t* buffer, size_t buffer_len) {
-    (void)TAG;
-    char display[DFC_WORKER_MAX_BUFFER_SIZE * 2 + 1];
-
-    size_t limit = DFC_MIN((size_t)DFC_WORKER_MAX_BUFFER_SIZE, buffer_len);
-    memset(display, 0, sizeof(display));
-    for(uint8_t i = 0; i < limit; i++) {
-        snprintf(display + (i * 2), sizeof(display), "%02x", buffer[i]);
-    }
-    if(prefix) {
-        DFC_LOG_T(TAG, "%s %d: %s", prefix, limit, display);
-    } else {
-        DFC_LOG_T(TAG, "Buffer %d: %s", limit, display);
-    }
-}
-
-
 void dfc_rotate_left(uint8_t* buffer, size_t len) {
     if(len == 0) return;
     uint8_t first = buffer[0];
@@ -165,7 +284,8 @@ void dfc_rotate_left(uint8_t* buffer, size_t len) {
     buffer[len - 1] = first;
 }
 
-void dfc_worker_des_cbc_decrypt(
+#if DFC_ENABLE_DES_CRYPTO
+bool dfc_worker_des_cbc_decrypt(
     const uint8_t* key,
     size_t key_len,
     uint8_t iv[8],
@@ -173,11 +293,10 @@ void dfc_worker_des_cbc_decrypt(
     const uint8_t* encrypted,
     uint8_t* clear) {
     bool ok = dfc_crypto_des_cbc(false, key, key_len, iv, encrypted, clear, length);
-    DFC_ASSERT(ok);
-    DFC_UNUSED(ok);
+    return ok;
 }
 
-void dfc_worker_des_cbc_encrypt(
+bool dfc_worker_des_cbc_encrypt(
     const uint8_t* key,
     size_t key_len,
     uint8_t iv[8],
@@ -185,11 +304,12 @@ void dfc_worker_des_cbc_encrypt(
     const uint8_t* clear,
     uint8_t* encrypted) {
     bool ok = dfc_crypto_des_cbc(true, key, key_len, iv, clear, encrypted, length);
-    DFC_ASSERT(ok);
-    DFC_UNUSED(ok);
+    return ok;
 }
+#endif
 
-void dfc_worker_aes_cbc_decrypt(
+#if DFC_ENABLE_AES_CRYPTO
+bool dfc_worker_aes_cbc_decrypt(
     const uint8_t* key,
     size_t key_len,
     uint8_t iv[16],
@@ -197,11 +317,10 @@ void dfc_worker_aes_cbc_decrypt(
     const uint8_t* encrypted,
     uint8_t* clear) {
     bool ok = dfc_crypto_aes_cbc(false, key, key_len, iv, encrypted, clear, length);
-    DFC_ASSERT(ok);
-    DFC_UNUSED(ok);
+    return ok;
 }
 
-void dfc_worker_aes_cbc_encrypt(
+bool dfc_worker_aes_cbc_encrypt(
     const uint8_t* key,
     size_t key_len,
     uint8_t iv[16],
@@ -209,9 +328,9 @@ void dfc_worker_aes_cbc_encrypt(
     const uint8_t* clear,
     uint8_t* encrypted) {
     bool ok = dfc_crypto_aes_cbc(true, key, key_len, iv, clear, encrypted, length);
-    DFC_ASSERT(ok);
-    DFC_UNUSED(ok);
+    return ok;
 }
+#endif
 
 // True when a 16-octet key is the same 8-octet key twice, which makes it single
 // DES rather than 2K3DES.

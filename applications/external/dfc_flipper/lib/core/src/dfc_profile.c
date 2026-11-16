@@ -20,12 +20,11 @@ void dfc_profile_default(DfcProfile* profile) {
     profile->max_keys_per_app = DFC_MAX_KEYS;
     profile->max_storage = DFC_ENABLE_STORAGE_8K ? DfcStorage8KByteCount :
                            DFC_ENABLE_STORAGE_4K ? DfcStorage4KByteCount :
-                                                  DfcStorage2KByteCount;
+                                                   DfcStorage2KByteCount;
     profile->supports_picc_files = false;
-    profile->supported_generations =
-        (DFC_ENABLE_GENERATION_EV1 ? DFC_PROFILE_GEN_EV1 : 0) |
-        (DFC_ENABLE_GENERATION_EV2 ? DFC_PROFILE_GEN_EV2 : 0) |
-        (DFC_ENABLE_GENERATION_EV3 ? DFC_PROFILE_GEN_EV3 : 0);
+    profile->supported_generations = (DFC_ENABLE_GENERATION_EV1 ? DFC_PROFILE_GEN_EV1 : 0) |
+                                     (DFC_ENABLE_GENERATION_EV2 ? DFC_PROFILE_GEN_EV2 : 0) |
+                                     (DFC_ENABLE_GENERATION_EV3 ? DFC_PROFILE_GEN_EV3 : 0);
 }
 
 static const char* generation_name(DfcGeneration g) {
@@ -58,23 +57,27 @@ DfcDerStatus dfc_profile_check(
     // Generation decides which feature set applies to the remaining checks.
     uint8_t bit = DFC_PROFILE_GEN_BIT(credential->card.generation);
     if((profile->supported_generations & bit) == 0) {
-        say(reason, reason_cap, "generation %s not emulated",
+        say(reason,
+            reason_cap,
+            "generation %s not emulated",
             generation_name(credential->card.generation));
         return DfcDerUnsupported;
     }
 
     // Refuse an ATS whose length octet disagrees with its encoded length.
     if(!dfc_credential_picc_ats_is_consistent(credential)) {
-        say(reason, reason_cap, "user ATS length octet %02X for %zu octets",
-            credential->picc_ats[0], credential->picc_ats_len);
+        say(reason,
+            reason_cap,
+            "user ATS length octet %02X for %zu octets",
+            credential->picc_ats[0],
+            credential->picc_ats_len);
         return DfcDerUnsupported;
     }
 
     if(!profile->supports_picc_files) {
         for(size_t i = 0; i < credential->num_files; i++) {
             if(credential->files[i].app_index == DFC_FILE_OWNER_PICC) {
-                say(reason, reason_cap, "file %02X at PICC level",
-                    credential->files[i].number);
+                say(reason, reason_cap, "file %02X at PICC level", credential->files[i].number);
                 return DfcDerUnsupported;
             }
         }
@@ -88,8 +91,7 @@ DfcDerStatus dfc_profile_check(
     }
 
     if(credential->num_apps > max_apps) {
-        say(reason, reason_cap, "applications %zu over limit %zu",
-            credential->num_apps, max_apps);
+        say(reason, reason_cap, "applications %zu over limit %zu", credential->num_apps, max_apps);
         return DfcDerCapacity;
     }
     if(credential->num_files > max_files) {
@@ -97,14 +99,21 @@ DfcDerStatus dfc_profile_check(
         return DfcDerCapacity;
     }
     if(credential->picc_num_keys > max_keys) {
-        say(reason, reason_cap, "PICC keys %zu over limit %zu",
-            credential->picc_num_keys, max_keys);
+        say(reason,
+            reason_cap,
+            "PICC keys %zu over limit %zu",
+            credential->picc_num_keys,
+            max_keys);
         return DfcDerCapacity;
     }
     for(size_t i = 0; i < credential->num_apps; i++) {
         if(credential->apps[i].num_keys > max_keys) {
-            say(reason, reason_cap, "application %zu keys %zu over limit %zu", i,
-                credential->apps[i].num_keys, max_keys);
+            say(reason,
+                reason_cap,
+                "application %zu keys %zu over limit %zu",
+                i,
+                credential->apps[i].num_keys,
+                max_keys);
             return DfcDerCapacity;
         }
     }
@@ -113,7 +122,11 @@ DfcDerStatus dfc_profile_check(
     for(size_t i = 0; i < credential->num_apps; i++) {
         size_t count = dfc_credential_count_files_in_app(credential, i);
         if(count > DFC_EV1_MAX_FILES_PER_APP) {
-            say(reason, reason_cap, "application %zu files %zu over limit %d", i, count,
+            say(reason,
+                reason_cap,
+                "application %zu files %zu over limit %d",
+                i,
+                count,
                 DFC_EV1_MAX_FILES_PER_APP);
             return DfcDerCapacity;
         }
@@ -121,7 +134,10 @@ DfcDerStatus dfc_profile_check(
 
     // The credential's own declared storage, and the space its contents need.
     if(profile->max_storage && credential->card.storage > profile->max_storage) {
-        say(reason, reason_cap, "storage %u over limit %u", credential->card.storage,
+        say(reason,
+            reason_cap,
+            "storage %u over limit %u",
+            credential->card.storage,
             profile->max_storage);
         return DfcDerCapacity;
     }
@@ -130,14 +146,19 @@ DfcDerStatus dfc_profile_check(
         for(size_t i = 0; i < credential->num_files; i++) {
             const DfcFile* f = &credential->files[i];
             if(f->type == 0x00 || f->type == 0x01) {
-                declared += f->declared_size;
+                uint32_t declared_size;
+                if(!dfc_file_get_declared_size(f, &declared_size)) return DfcDerMalformed;
+                declared += declared_size;
             } else if(f->type == 0x03 || f->type == 0x04) {
-                declared += (uint64_t)f->record_size * f->max_records;
+                declared += (uint64_t)f->state.record.size * f->state.record.max_records;
             }
         }
         if(declared > profile->max_storage) {
-            say(reason, reason_cap, "declared file space %llu over limit %u",
-                (unsigned long long)declared, profile->max_storage);
+            say(reason,
+                reason_cap,
+                "declared file space %llu over limit %u",
+                (unsigned long long)declared,
+                profile->max_storage);
             return DfcDerCapacity;
         }
     }

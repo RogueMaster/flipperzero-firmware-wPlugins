@@ -28,18 +28,17 @@ bool dfc_credential_content_is_binary(const uint8_t* content, size_t len) {
 #define PREFIX_MAX 40
 #define KEY_MAX    96
 
-// Lines whose consumption is tracked individually. Past this the parser still
-// refuses a document with unrecognised keys, it just cannot name the key.
-#define TRACKED_LINES 4096
-
 static const char* const GENERATION_NAMES[] = {"EV1", "EV2", "EV3"};
 static const char* const PROVENANCE_NAMES[] = {"Real", "Random", "Unknown"};
 static const char* const AUTH_NAMES[] = {"D40", "ISO", "AES"};
-static const char* const AUTH_COMMAND_NAMES[] = {
-    "D40", "ISO", "AES", "EV2First", "EV2NonFirst", "ISO7816"};
+static const char* const AUTH_COMMAND_NAMES[] =
+    {"D40", "ISO", "AES", "EV2First", "EV2NonFirst", "ISO7816"};
 static const uint8_t AUTH_COMMAND_BITS[] = {
-    DFC_AUTH_COMMAND_D40, DFC_AUTH_COMMAND_ISO_NATIVE, DFC_AUTH_COMMAND_AES,
-    DFC_AUTH_COMMAND_EV2_FIRST, DFC_AUTH_COMMAND_EV2_NON_FIRST,
+    DFC_AUTH_COMMAND_D40,
+    DFC_AUTH_COMMAND_ISO_NATIVE,
+    DFC_AUTH_COMMAND_AES,
+    DFC_AUTH_COMMAND_EV2_FIRST,
+    DFC_AUTH_COMMAND_EV2_NON_FIRST,
     DFC_AUTH_COMMAND_ISO7816};
 static const char* const FILE_TYPE_NAMES[] =
     {"Standard Data", "Backup Data", "Value", "Linear Record", "Cyclic Record", "Transaction MAC"};
@@ -56,10 +55,6 @@ static bool type_is_record(uint8_t type) {
     return type == TYPE_LINEAR || type == TYPE_CYCLIC;
 }
 
-static bool iso_file_id_is_reserved(uint16_t v) {
-    return v == 0x0000 || v == 0x3F00 || v == 0x3FFF || v == 0xFFFF;
-}
-
 static uint8_t auth_command_for(size_t index) {
     if(index == 2) return DFC_CMD_AUTHENTICATE_AES;
     if(index == 1) return DFC_CMD_AUTHENTICATE_ISO;
@@ -68,10 +63,6 @@ static uint8_t auth_command_for(size_t index) {
 
 // Stored key length is fixed by the key type (section 1.4); 8-octet DES is held
 // as 16, which is what the model already carries.
-static size_t stored_key_length(size_t key_len) {
-    return key_len == 24 ? 24 : 16;
-}
-
 // ------------------------------------------------------------------ parser ---
 
 typedef struct {
@@ -93,9 +84,13 @@ typedef struct {
     // recognised (rule 4).
     size_t total;
     size_t consumed;
-    size_t last_claimed_line;
-    uint8_t seen[TRACKED_LINES / 8];
-    bool tracked;
+    size_t cursor_pos;
+    size_t cursor_line;
+    size_t lookahead_end;
+    Line lookahead;
+    const char* last_key;
+    size_t last_key_len;
+    bool has_lookahead;
 
     bool failed;
     DfcTextStatus status;
@@ -118,9 +113,8 @@ static bool req_auth_commands(P* p, const char* key, uint8_t* commands) {
         size_t length = strlen(AUTH_COMMAND_NAMES[i]);
         if(at + length <= line.value_len &&
            memcmp(line.value + at, AUTH_COMMAND_NAMES[i], length) == 0 &&
-           (at + length == line.value_len ||
-            (at + length + 2 <= line.value_len &&
-             memcmp(line.value + at + length, ", ", 2) == 0))) {
+           (at + length == line.value_len || (at + length + 2 <= line.value_len &&
+                                              memcmp(line.value + at + length, ", ", 2) == 0))) {
             result |= AUTH_COMMAND_BITS[i];
             at += length;
             if(at == line.value_len) break;
@@ -158,18 +152,6 @@ static bool fail_class(P* p, DfcTextStatus status, size_t line, const char* fmt,
         va_end(ap);
     }
     return false;
-}
-
-static void mark_seen(P* p, size_t number) {
-    if(!p->tracked || number == 0 || number > TRACKED_LINES) return;
-    size_t bit = number - 1;
-    p->seen[bit / 8] |= (uint8_t)(1u << (bit % 8));
-}
-
-static bool was_seen(const P* p, size_t number) {
-    if(!p->tracked || number == 0 || number > TRACKED_LINES) return true;
-    size_t bit = number - 1;
-    return (p->seen[bit / 8] & (uint8_t)(1u << (bit % 8))) != 0;
 }
 
 // Next raw line, LF terminated. A final line without its LF is still a line.
@@ -237,7 +219,6 @@ static bool prescan(P* p) {
         if(p->total == 1) first = l;
         if(p->total == 2) second = l;
     }
-    p->tracked = p->total <= TRACKED_LINES;
     if(p->total < 2) return fail(p, 0, "Filetype and Version shall come first");
     if(first.key_len != 8 || memcmp(first.key, "Filetype", 8) != 0 || second.key_len != 7 ||
        memcmp(second.key, "Version", 7) != 0) {
@@ -246,41 +227,67 @@ static bool prescan(P* p) {
     return true;
 }
 
-// Find the single line carrying `key`. A second occurrence is a duplicate and
-// therefore an error (rule 2). Claiming a line marks it recognised.
-static bool lookup(P* p, const char* key, Line* out, bool claim) {
-    if(p->failed) return false;
-    size_t key_len = strlen(key);
-    size_t pos = 0;
-    size_t number = 0;
-    bool found = false;
+// Peek at the next significant line. Grammar rules request keys in wire order,
+// so valid documents are consumed in one forward pass rather than rescanned
+// from byte zero for every field.
+static bool peek_line(P* p, Line* out) {
+    if(p->has_lookahead) {
+        *out = p->lookahead;
+        return true;
+    }
+    size_t pos = p->cursor_pos;
+    size_t number = p->cursor_line;
     while(true) {
         const char* s;
         size_t n;
-        if(!raw_line(p, &pos, &s, &n)) break;
+        if(!raw_line(p, &pos, &s, &n)) return false;
         number++;
         if(line_is_skipped(s, n)) continue;
-        Line l;
-        if(!split_line(p, s, n, number, &l)) return false;
-        if(l.key_len != key_len || memcmp(l.key, key, key_len) != 0) continue;
-        if(found) return fail(p, number, "duplicate key %s", key);
-        *out = l;
-        found = true;
+        if(!split_line(p, s, n, number, &p->lookahead)) return false;
+        p->lookahead_end = pos;
+        p->has_lookahead = true;
+        *out = p->lookahead;
+        return true;
     }
-    if(found && claim) {
-        if(out->number <= p->last_claimed_line) {
-            return fail(p, out->number, "%s: out of order", key);
+}
+
+// Claim the next line when it carries `key`. Optional keys can therefore be
+// tested without consuming the following field.
+static bool lookup(P* p, const char* key, Line* out, bool claim) {
+    if(p->failed) return false;
+    Line line;
+    if(!peek_line(p, &line)) return false;
+    size_t key_len = strlen(key);
+    if(line.key_len != key_len || memcmp(line.key, key, key_len) != 0) {
+        if(p->last_key && line.key_len == p->last_key_len &&
+           memcmp(line.key, p->last_key, line.key_len) == 0) {
+            return fail(p, line.number, "duplicate key %.*s", (int)line.key_len, line.key);
         }
-        p->last_claimed_line = out->number;
-        p->consumed++;
-        mark_seen(p, out->number);
+        return false;
     }
-    return found;
+    *out = line;
+    if(claim) {
+        p->cursor_pos = p->lookahead_end;
+        p->cursor_line = line.number;
+        p->has_lookahead = false;
+        p->last_key = line.key;
+        p->last_key_len = line.key_len;
+        p->consumed++;
+    }
+    return true;
 }
 
 static bool required(P* p, const char* key, Line* out) {
     if(lookup(p, key, out, true)) return true;
     if(p->failed) return false;
+    Line next;
+    if(peek_line(p, &next)) {
+        return fail(
+            p,
+            next.number,
+            "missing required key %s; next key is unrecognised or out of order",
+            key);
+    }
     return fail(p, 0, "missing required key %s", key);
 }
 
@@ -441,8 +448,21 @@ static bool req_int32(P* p, const char* key, int32_t* out) {
     return true;
 }
 
-static bool req_bool(P* p, const char* key, bool* out) {
+static bool opt_nonnegative_int32(P* p, const char* key, int32_t* out) {
+    *out = 0;
     Line l;
+    if(!lookup(p, key, &l, true)) return !p->failed;
+    int64_t value = 0;
+    if(!parse_decimal(p, &l, key, false, &value)) return false;
+    if(value < 0 || value > INT32_MAX) {
+        return fail(p, l.number, "%s: outside 0..Int32Max", key);
+    }
+    *out = (int32_t)value;
+    return true;
+}
+
+static bool req_bool(P* p, const char* key, bool* out) {
+    Line l = {0};
     if(!required(p, key, &l)) return false;
     if(l.value_len != 1 || (l.value[0] != '0' && l.value[0] != '1')) {
         return fail(p, l.number, "%s: boolean shall be 0 or 1", key);
@@ -455,7 +475,7 @@ static bool req_bool(P* p, const char* key, bool* out) {
 // non-canonical input; the writer omits it (rule 5).
 static bool opt_bool(P* p, const char* key, bool* out) {
     *out = false;
-    Line l;
+    Line l = {0};
     if(!lookup(p, key, &l, true)) return !p->failed;
     if(l.value_len != 1 || (l.value[0] != '0' && l.value[0] != '1')) {
         return fail(p, l.number, "%s: boolean shall be 0 or 1", key);
@@ -466,11 +486,24 @@ static bool opt_bool(P* p, const char* key, bool* out) {
 
 #if DFC_ENABLE_SDM
 // Reads an optional decimal value. Sets *present to false when the key is absent.
-static bool opt_uint(P* p, const char* key, uint32_t lo, uint32_t hi, uint32_t* out, bool* present) {
+static bool
+    opt_uint(P* p, const char* key, uint32_t lo, uint32_t hi, uint32_t* out, bool* present) {
     *present = false;
     Line l;
-    if(!lookup(p, key, &l, false)) return !p->failed;
-    if(!req_uint(p, key, lo, hi, out)) return false;
+    if(!lookup(p, key, &l, true)) return !p->failed;
+    int64_t value = 0;
+    if(!parse_decimal(p, &l, key, false, &value)) return false;
+    if((uint64_t)value < lo || (uint64_t)value > hi) {
+        return fail(
+            p,
+            l.number,
+            "%s: %lu outside %lu..%lu",
+            key,
+            (unsigned long)value,
+            (unsigned long)lo,
+            (unsigned long)hi);
+    }
+    *out = (uint32_t)value;
     *present = true;
     return true;
 }
@@ -501,7 +534,7 @@ static bool opt_iso_file_id(P* p, const char* key, bool* present, uint16_t* valu
     uint8_t raw[2];
     hex_decode(&l, raw, 2);
     uint16_t v = (uint16_t)((raw[0] << 8) | raw[1]);
-    if(iso_file_id_is_reserved(v)) return fail(p, l.number, "%s: %04X is reserved", key, v);
+    if(dfc_iso_file_id_is_reserved(v)) return fail(p, l.number, "%s: %04X is reserved", key, v);
     *present = true;
     *value = v;
     return true;
@@ -539,11 +572,11 @@ static bool parse_sdm(P* p, const char* prefix, DfcFile* f) {
     Line probe;
     if(!lookup(p, key, &probe, false)) return !p->failed;
 #if DFC_ENABLE_SDM
-    if(!req_hex(p, key, &f->sdm_options, 1)) return false;
+    if(!req_hex(p, key, &f->state.data.sdm.options, 1)) return false;
     snprintf(key, sizeof(key), "%s SDM Access Rights", prefix);
     uint8_t rights[2];
     if(!req_hex(p, key, rights, 2)) return false;
-    f->sdm_access_rights = (uint16_t)((rights[0] << 8) | rights[1]);
+    f->state.data.sdm.access_rights = (uint16_t)((rights[0] << 8) | rights[1]);
 
     static const char* const OFFSETS[] = {
         "UID Offset",
@@ -552,23 +585,25 @@ static bool parse_sdm(P* p, const char* prefix, DfcFile* f) {
         "MAC Input Offset",
         "MAC Offset",
         "Encrypted File Offset"};
-    bool* flags[] = {
-        &f->sdm_has_uid_offset,
-        &f->sdm_has_counter_offset,
-        &f->sdm_has_picc_data_offset,
-        &f->sdm_has_mac_input_offset,
-        &f->sdm_has_mac_offset,
-        &f->sdm_has_encrypted_file_offset};
+    static const DfcSdmFlag flags[] = {
+        DfcSdmFlagUidOffset,
+        DfcSdmFlagCounterOffset,
+        DfcSdmFlagPiccDataOffset,
+        DfcSdmFlagMacInputOffset,
+        DfcSdmFlagMacOffset,
+        DfcSdmFlagEncryptedFile};
     uint32_t* values[] = {
-        &f->sdm_uid_offset,
-        &f->sdm_counter_offset,
-        &f->sdm_picc_data_offset,
-        &f->sdm_mac_input_offset,
-        &f->sdm_mac_offset,
-        &f->sdm_encrypted_file_offset};
+        &f->state.data.sdm.uid_offset,
+        &f->state.data.sdm.counter_offset,
+        &f->state.data.sdm.picc_data_offset,
+        &f->state.data.sdm.mac_input_offset,
+        &f->state.data.sdm.mac_offset,
+        &f->state.data.sdm.encrypted_file_offset};
     for(size_t i = 0; i < 6; i++) {
         snprintf(key, sizeof(key), "%s SDM %s", prefix, OFFSETS[i]);
-        if(!opt_uint(p, key, 0, U24_MAX, values[i], flags[i])) return false;
+        bool present = false;
+        if(!opt_uint(p, key, 0, U24_MAX, values[i], &present)) return false;
+        dfc_file_sdm_flag_set(f, flags[i], present);
     }
 
     bool has_length = false;
@@ -576,18 +611,20 @@ static bool parse_sdm(P* p, const char* prefix, DfcFile* f) {
     snprintf(key, sizeof(key), "%s SDM Encrypted File Length", prefix);
     if(!opt_uint(p, key, 0, U24_MAX, &length, &has_length)) return false;
     // The encrypted offset and its length occur together.
-    if(has_length != f->sdm_has_encrypted_file_offset) {
+    if(has_length != dfc_file_sdm_flag_is_set(f, DfcSdmFlagEncryptedFile)) {
         return fail(p, 0, "%s: SDM encrypted offset and length occur together", prefix);
     }
-    f->sdm_encrypted_file_length = length;
+    f->state.data.sdm.encrypted_file_length = length;
 
     snprintf(key, sizeof(key), "%s SDM Counter Limit", prefix);
-    if(!opt_uint(p, key, 0, U24_MAX, &f->sdm_counter_limit, &f->sdm_has_counter_limit)) {
+    bool has_limit = false;
+    if(!opt_uint(p, key, 0, U24_MAX, &f->state.data.sdm.counter_limit, &has_limit)) {
         return false;
     }
+    dfc_file_sdm_flag_set(f, DfcSdmFlagCounterLimit, has_limit);
     snprintf(key, sizeof(key), "%s SDM Read Counter", prefix);
-    if(!req_uint(p, key, 0, U24_MAX, &f->sdm_read_counter)) return false;
-    f->sdm_enabled = true;
+    if(!req_uint(p, key, 0, U24_MAX, &f->state.data.sdm_read_counter)) return false;
+    dfc_file_sdm_flag_set(f, DfcSdmFlagEnabled, true);
     return true;
 #else
     (void)f;
@@ -601,7 +638,7 @@ static bool parse_data_contents(P* p, const char* prefix, DfcFile* f) {
     snprintf(key, sizeof(key), "%s Size", prefix);
     uint32_t size = 0;
     if(!req_uint(p, key, 1, U24_MAX, &size)) return false;
-    f->declared_size = (uint32_t)size;
+    if(!dfc_file_set_declared_size(f, size)) return false;
 
     snprintf(key, sizeof(key), "%s Data", prefix);
     Line l;
@@ -631,16 +668,19 @@ static bool parse_data_contents(P* p, const char* prefix, DfcFile* f) {
 static bool parse_value_contents(P* p, const char* prefix, DfcFile* f) {
     char key[KEY_MAX];
     snprintf(key, sizeof(key), "%s Value Lower Limit", prefix);
-    if(!req_int32(p, key, &f->value_lower_limit)) return false;
+    if(!req_int32(p, key, &f->state.value.lower_limit)) return false;
     snprintf(key, sizeof(key), "%s Value Upper Limit", prefix);
-    if(!req_int32(p, key, &f->value_upper_limit)) return false;
+    if(!req_int32(p, key, &f->state.value.upper_limit)) return false;
     snprintf(key, sizeof(key), "%s Value", prefix);
-    if(!req_int32(p, key, &f->value)) return false;
-    if(f->value_lower_limit > f->value || f->value > f->value_upper_limit) {
+    if(!req_int32(p, key, &f->state.value.current)) return false;
+    if(f->state.value.lower_limit > f->state.value.current ||
+       f->state.value.current > f->state.value.upper_limit) {
         return fail(p, 0, "%s: Value outside its own limits", prefix);
     }
     snprintf(key, sizeof(key), "%s Limited Credit", prefix);
-    return req_hex(p, key, &f->limited_credit, 1);
+    if(!req_hex(p, key, &f->state.value.limited_credit, 1)) return false;
+    snprintf(key, sizeof(key), "%s Limited Credit Value", prefix);
+    return opt_nonnegative_int32(p, key, &f->state.value.limited_credit_value);
 }
 
 static bool parse_record_contents(P* p, const char* prefix, DfcFile* f) {
@@ -656,24 +696,50 @@ static bool parse_record_contents(P* p, const char* prefix, DfcFile* f) {
     if(f->type == TYPE_CYCLIC && rmax < 2) {
         return fail(p, 0, "%s: cyclic Max Records below 2", prefix);
     }
-    f->record_size = (uint32_t)rsize;
-    f->max_records = (uint32_t)rmax;
-    f->record_count = (uint32_t)rcount;
+    f->state.record.size = (uint32_t)rsize;
+    f->state.record.max_records = (uint32_t)rmax;
+    f->state.record.count = (uint32_t)rcount;
 
-    // Count the stored records first: the pool slice is sized once, so the
-    // records cannot be decoded as they are found.
+    // Count the contiguous record lines without moving the parser. The pool
+    // slice is sized once, then the same short span is consumed and decoded.
     size_t stored = 0;
+    size_t pos = p->cursor_pos;
+    size_t number = p->cursor_line;
     while(true) {
         snprintf(key, sizeof(key), "%s Record %02X", prefix, (unsigned)stored);
+        const char* s;
+        size_t len;
         Line l;
-        if(!lookup(p, key, &l, true)) break;
-        size_t n = 0;
-        if(!hex_count(p, &l, key, &n)) return false;
-        if(n != rsize) return fail(p, l.number, "%s: length is not Record Size", key);
+        do {
+            if(!raw_line(p, &pos, &s, &len)) goto records_counted;
+            number++;
+        } while(line_is_skipped(s, len));
+        if(!split_line(p, s, len, number, &l)) return false;
+        size_t key_len = strlen(key);
+        if(l.key_len != key_len || memcmp(l.key, key, key_len) != 0) break;
         stored++;
     }
+records_counted:
     if(p->failed) return false;
     if(stored > rcount) return fail(p, 0, "%s: more records than Record Count", prefix);
+
+    uint8_t* dst = NULL;
+    if(stored > 0) {
+        if(!dfc_file_resize(p->c, f, stored * (size_t)rsize)) {
+            return fail_class(p, DfcTextCapacity, 0, "%s: records do not fit", prefix);
+        }
+        dst = dfc_file_data(p->c, f);
+        if(!dst) return fail_class(p, DfcTextCapacity, 0, "%s: no room for records", prefix);
+        for(size_t i = 0; i < stored; i++) {
+            snprintf(key, sizeof(key), "%s Record %02X", prefix, (unsigned)i);
+            Line l;
+            if(!lookup(p, key, &l, true)) return fail(p, 0, "%s: record vanished", prefix);
+            size_t n = 0;
+            if(!hex_count(p, &l, key, &n)) return false;
+            if(n != rsize) return fail(p, l.number, "%s: length is not Record Size", key);
+            hex_decode(&l, dst + i * (size_t)rsize, (size_t)rsize);
+        }
+    }
 
     snprintf(key, sizeof(key), "%s Record Complete", prefix);
     if(!req_bool(p, key, &f->contents_complete)) return false;
@@ -681,19 +747,6 @@ static bool parse_record_contents(P* p, const char* prefix, DfcFile* f) {
         return fail(p, 0, "%s: Record Complete is 1 but records are missing", prefix);
     }
 
-    if(stored > 0) {
-        if(!dfc_file_resize(p->c, f, stored * (size_t)rsize)) {
-            return fail_class(p, DfcTextCapacity, 0, "%s: records do not fit", prefix);
-        }
-        uint8_t* dst = dfc_file_data(p->c, f);
-        if(!dst) return fail_class(p, DfcTextCapacity, 0, "%s: no room for records", prefix);
-        for(size_t i = 0; i < stored; i++) {
-            snprintf(key, sizeof(key), "%s Record %02X", prefix, (unsigned)i);
-            Line l;
-            if(!lookup(p, key, &l, false)) return fail(p, 0, "%s: record vanished", prefix);
-            hex_decode(&l, dst + i * (size_t)rsize, (size_t)rsize);
-        }
-    }
     return true;
 }
 
@@ -701,23 +754,31 @@ static bool parse_transaction_mac_contents(P* p, const char* prefix, DfcFile* f)
 #if DFC_ENABLE_TRANSACTION_MAC
     char key[KEY_MAX];
     snprintf(key, sizeof(key), "%s Transaction Counter", prefix);
-    if(!req_uint(p, key, 0, UINT32_MAX, &f->transaction_counter)) return false;
+    if(!req_uint(p, key, 0, UINT32_MAX, &f->state.transaction_mac.counter)) return false;
     snprintf(key, sizeof(key), "%s Transaction MAC", prefix);
-    if(!req_hex(p, key, f->transaction_mac, sizeof(f->transaction_mac))) return false;
+    if(!req_hex(p, key, f->state.transaction_mac.mac, sizeof(f->state.transaction_mac.mac))) {
+        return false;
+    }
     snprintf(key, sizeof(key), "%s Transaction Key Type", prefix);
     uint32_t key_type = 0;
     if(!req_uint(p, key, 0, 0xFF, &key_type)) return false;
-    f->transaction_mac_key_type = (uint8_t)key_type;
+    f->state.transaction_mac.key_type = (uint8_t)key_type;
     snprintf(key, sizeof(key), "%s Transaction Key Version", prefix);
-    if(!req_hex(p, key, &f->transaction_mac_key_version, 1)) return false;
+    if(!req_hex(p, key, &f->state.transaction_mac.key_version, 1)) return false;
     snprintf(key, sizeof(key), "%s Transaction Key", prefix);
-    if(!req_hex(p, key, f->transaction_mac_key, sizeof(f->transaction_mac_key))) return false;
+    if(!req_hex(p, key, f->state.transaction_mac.key, sizeof(f->state.transaction_mac.key)))
+        return false;
     snprintf(key, sizeof(key), "%s Previous Reader ID", prefix);
-    return req_hex(p, key, f->previous_reader_id, sizeof(f->previous_reader_id));
+    return req_hex(
+        p,
+        key,
+        f->state.transaction_mac.previous_reader_id,
+        sizeof(f->state.transaction_mac.previous_reader_id));
 #else
     (void)f;
     // The field is recognized but the build omits the feature.
-    return fail_class(p, DfcTextUnsupported, 0, "%s: transaction MAC is not in this build", prefix);
+    return fail_class(
+        p, DfcTextUnsupported, 0, "%s: transaction MAC is not in this build", prefix);
 #endif
 }
 
@@ -735,7 +796,7 @@ static bool parse_files(P* p, const char* parent, size_t owner) {
         }
         DfcFile* f = &p->c->files[p->c->num_files];
         memset(f, 0, sizeof(*f));
-        f->app_index = owner;
+        f->app_index = (uint8_t)owner;
         f->data_offset = DFC_FILE_POOL_NONE;
 
         snprintf(key, sizeof(key), "%s Number", prefix);
@@ -814,6 +875,8 @@ static bool parse_delegated(P* p, const char* prefix, DfcApplication* app) {
     if(!req_uint(p, key, 0, 0xFFFFu, &quota)) return false;
     snprintf(key, sizeof(key), "%s Delegated Free Blocks", prefix);
     if(!req_uint(p, key, 0, 0xFFFFu, &free_blocks)) return false;
+    snprintf(key, sizeof(key), "%s Delegated Format Disabled", prefix);
+    if(!opt_bool(p, key, &app->delegated_format_disabled)) return false;
     if(free_blocks > quota) {
         return fail(p, 0, "%s Delegated Free Blocks: exceeds the quota", prefix);
     }
@@ -851,25 +914,34 @@ static bool parse_key_sets(P* p, const char* prefix, DfcApplication* app) {
     app->key_set_settings = settings;
 
     for(size_t set = 0; set < count; set++) {
+        uint8_t* set_version = dfc_credential_key_set_version(p->c, app, set);
+        uint8_t* set_type = dfc_credential_key_set_type(p->c, app, set);
+        if(!set_version || !set_type) {
+            return fail_class(
+                p, DfcTextCapacity, 0, "%s: metadata does not fit this build", prefix);
+        }
         snprintf(name, sizeof(name), "%s Key Set %02X", prefix, (unsigned)set);
         snprintf(key, sizeof(key), "%s Version", name);
-        if(!req_hex(p, key, &app->key_set_versions[set], 1)) return false;
+        if(!req_hex(p, key, set_version, 1)) return false;
         snprintf(key, sizeof(key), "%s Type", name);
         size_t type_index = 0;
         if(!req_token(p, key, AUTH_NAMES, 3, &type_index)) return false;
-        app->key_set_types[set] = (uint8_t)type_index;
-        size_t required = type_index == DFC_KEY_SET_TYPE_3K3DES ? 24 : 16;
+        *set_type = (uint8_t)type_index;
+        size_t required = dfc_key_set_type_length((uint8_t)type_index);
         if(required > max_size) {
             return fail(p, 0, "%s Type: key type exceeds the maximum key size", name);
         }
         snprintf(key, sizeof(key), "%s Initialized", name);
-        if(!req_bool(p, key, &app->key_set_initialized[set])) return false;
+        bool initialized;
+        if(!req_bool(p, key, &initialized) ||
+           !dfc_credential_key_set_set_initialized(p->c, app, set, initialized))
+            return false;
         uint32_t set_keys = 0;
         snprintf(key, sizeof(key), "%s Key Count", name);
         if(!req_uint(p, key, 0, key_count, &set_keys)) return false;
         for(size_t slot = 0; slot < set_keys; slot++) {
             uint8_t* value = dfc_credential_key_in_set(p->c, app, set, slot);
-            uint8_t* version = dfc_credential_key_version_in_set(app, set, slot);
+            uint8_t* version = dfc_credential_key_version_in_set(p->c, app, set, slot);
             if(!value || !version) {
                 return fail_class(p, DfcTextCapacity, 0, "%s: key does not fit this build", name);
             }
@@ -879,7 +951,7 @@ static bool parse_key_sets(P* p, const char* prefix, DfcApplication* app) {
             if(!req_hex(p, key, version, 1)) return false;
         }
     }
-    if(!app->key_set_initialized[0]) {
+    if(!dfc_credential_key_set_is_initialized(p->c, app, 0)) {
         return fail(p, 0, "%s Key Set 00: set zero shall be initialized", prefix);
     }
     return true;
@@ -918,9 +990,11 @@ static bool parse_applications(P* p) {
 
         snprintf(key, sizeof(key), "%s DF Name", prefix);
         bool has_df = false;
-        if(!opt_hex(p, key, app->iso_aid, sizeof(app->iso_aid), 16, &app->iso_aid_len, &has_df)) {
+        size_t iso_aid_len = 0;
+        if(!opt_hex(p, key, app->iso_aid, sizeof(app->iso_aid), 16, &iso_aid_len, &has_df)) {
             return false;
         }
+        app->iso_aid_len = (uint8_t)iso_aid_len;
 
         snprintf(key, sizeof(key), "%s Key Settings 1", prefix);
         if(!req_hex(p, key, &app->key_settings_1, 1)) return false;
@@ -932,8 +1006,9 @@ static bool parse_applications(P* p) {
             if(!req_auth_commands(p, key, &app->auth_commands)) return false;
             app->has_auth_commands = true;
             snprintf(key, sizeof(key), "%s Preferred Authentication Command", prefix);
-            if(!opt_preferred_auth_command(p, key, &app->has_preferred_auth_command,
-                                           &app->preferred_auth_command)) return false;
+            if(!opt_preferred_auth_command(
+                   p, key, &app->has_preferred_auth_command, &app->preferred_auth_command))
+                return false;
         } else {
             snprintf(key, sizeof(key), "%s Authentication Mode", prefix);
             size_t auth = 0;
@@ -944,7 +1019,7 @@ static bool parse_applications(P* p) {
         }
 
         char selector[KEY_MAX];
-        snprintf(selector, sizeof(selector), "%s Key Set Count", prefix);
+        snprintf(selector, sizeof(selector), "%s Key Set Key Count", prefix);
         Line probe;
         // The key-set block replaces the ordinary key list.
         if(lookup(p, selector, &probe, false)) {
@@ -957,7 +1032,7 @@ static bool parse_applications(P* p) {
 
         // Files reference their owner by index, so the application has to be
         // part of the model before they are parsed.
-        p->c->num_apps = i + 1;
+        p->c->num_apps = (uint8_t)(i + 1);
         if(!parse_files(p, prefix, i)) return false;
         if(!parse_capability_data(p, prefix, app)) return false;
         if(!parse_delegated(p, prefix, app)) return false;
@@ -1010,8 +1085,7 @@ static bool parse_ev2_capabilities(P* p) {
     return true;
 #else
     // The field is recognized but the build omits the feature.
-    return fail_class(
-        p, DfcTextUnsupported, 0, "PICC EV2 Card Capabilities: not in this build");
+    return fail_class(p, DfcTextUnsupported, 0, "PICC EV2 Card Capabilities: not in this build");
 #endif
 }
 
@@ -1026,7 +1100,8 @@ static bool parse_proximity(P* p) {
     }
     if(!req_hex(p, "PICC Proximity Option", &c->picc_proximity_option, 1)) return false;
     uint32_t published = 0;
-    if(!req_uint(p, "PICC Proximity Published Response Time", 0, 0xFFFFu, &published)) return false;
+    if(!req_uint(p, "PICC Proximity Published Response Time", 0, 0xFFFFu, &published))
+        return false;
     c->picc_proximity_published_response_time = (uint16_t)published;
     size_t len = 0;
     if(!opt_hex(
@@ -1053,19 +1128,21 @@ static bool parse_virtual_card(P* p) {
     if(!lookup(p, "PICC Virtual Card Installation ID", &probe, false)) return !p->failed;
 #if DFC_ENABLE_VIRTUAL_CARD
     bool present = false;
+    size_t installation_id_len = 0;
     if(!opt_hex(
            p,
            "PICC Virtual Card Installation ID",
            c->virtual_card_installation_id,
            sizeof(c->virtual_card_installation_id),
            DFC_VIRTUAL_CARD_MAX_INSTALLATION_ID_LENGTH,
-           &c->virtual_card_installation_id_len,
+           &installation_id_len,
            &present)) {
         return false;
     }
-    if(c->virtual_card_installation_id_len == 0) {
+    if(installation_id_len == 0) {
         return fail(p, 0, "PICC Virtual Card Installation ID: at least one octet");
     }
+    c->virtual_card_installation_id_len = (uint8_t)installation_id_len;
     if(!req_hex(p, "PICC Virtual Card Information", &c->virtual_card_information, 1)) return false;
     if(!req_hex(
            p,
@@ -1074,20 +1151,21 @@ static bool parse_virtual_card(P* p) {
            sizeof(c->virtual_card_capabilities))) {
         return false;
     }
+    size_t virtual_uid_len = 0;
     if(!opt_hex(
            p,
            "PICC Virtual Card UID",
            c->virtual_card_uid,
            sizeof(c->virtual_card_uid),
            DFC_VIRTUAL_CARD_UID_MAX_LENGTH,
-           &c->virtual_card_uid_len,
+           &virtual_uid_len,
            &present)) {
         return false;
     }
-    size_t uid_len = c->virtual_card_uid_len;
-    if(uid_len != 4 && uid_len != 7 && uid_len != 10) {
+    if(!dfc_uid_length_is_valid(virtual_uid_len)) {
         return fail(p, 0, "PICC Virtual Card UID: length shall be 4, 7, or 10");
     }
+    c->virtual_card_uid_len = (uint8_t)virtual_uid_len;
     if(!req_hex(
            p,
            "PICC Virtual Card Select MAC Key",
@@ -1104,10 +1182,13 @@ static bool parse_virtual_card(P* p) {
     }
     // Both flags are required, so an absent one is malformed.
     if(!req_bool(
-           p, "PICC Virtual Card Authentication Mandatory", &c->virtual_card_authentication_mandatory)) {
+           p,
+           "PICC Virtual Card Authentication Mandatory",
+           &c->virtual_card_authentication_mandatory)) {
         return false;
     }
-    if(!req_bool(p, "PICC Virtual Card Proximity Mandatory", &c->virtual_card_proximity_mandatory)) {
+    if(!req_bool(
+           p, "PICC Virtual Card Proximity Mandatory", &c->virtual_card_proximity_mandatory)) {
         return false;
     }
     c->virtual_card_configured = true;
@@ -1124,14 +1205,18 @@ static bool parse_dam_keys(P* p) {
     Line probe;
     if(!lookup(p, "PICC DAM Authentication Key", &probe, false)) return !p->failed;
 #if DFC_ENABLE_DELEGATED_APPLICATIONS
-    if(!req_hex(p, "PICC DAM Authentication Key", c->picc_dam_auth_key, sizeof(c->picc_dam_auth_key))) {
+    if(!req_hex(
+           p, "PICC DAM Authentication Key", c->picc_dam_auth_key, sizeof(c->picc_dam_auth_key))) {
         return false;
     }
     if(!req_hex(p, "PICC DAM MAC Key", c->picc_dam_mac_key, sizeof(c->picc_dam_mac_key))) {
         return false;
     }
     if(!req_hex(
-           p, "PICC DAM Encryption Key", c->picc_dam_encryption_key, sizeof(c->picc_dam_encryption_key))) {
+           p,
+           "PICC DAM Encryption Key",
+           c->picc_dam_encryption_key,
+           sizeof(c->picc_dam_encryption_key))) {
         return false;
     }
     c->picc_has_dam_keys = true;
@@ -1150,9 +1235,12 @@ static bool parse_picc(P* p) {
             return false;
         }
         c->picc_has_auth_commands = true;
-        if(!opt_preferred_auth_command(p, "PICC Preferred Authentication Command",
-                                       &c->picc_has_preferred_auth_command,
-                                       &c->picc_preferred_auth_command)) return false;
+        if(!opt_preferred_auth_command(
+               p,
+               "PICC Preferred Authentication Command",
+               &c->picc_has_preferred_auth_command,
+               &c->picc_preferred_auth_command))
+            return false;
     } else {
         size_t auth = 0;
         if(!req_token(p, "PICC Authentication Mode", AUTH_NAMES, 3, &auth)) return false;
@@ -1162,13 +1250,18 @@ static bool parse_picc(P* p) {
     }
     if(!parse_keys(p, "PICC", c->picc_key_settings_2, NULL)) return false;
     if(!opt_bool(p, "PICC Random ID", &c->picc_random_id)) return false;
+    if(!opt_bool(p, "PICC Random ID Legacy Prefix", &c->picc_random_id_legacy)) return false;
+    if(c->picc_random_id_legacy && !c->picc_random_id) {
+        return fail(p, 0, "PICC Random ID Legacy Prefix requires PICC Random ID");
+    }
     if(!opt_bool(p, "PICC Format Disabled", &c->picc_format_disabled)) return false;
 
     bool present = false;
-    if(!opt_hex(
-           p, "PICC ATS", c->picc_ats, sizeof(c->picc_ats), U24_MAX, &c->picc_ats_len, &present)) {
+    size_t ats_len = 0;
+    if(!opt_hex(p, "PICC ATS", c->picc_ats, sizeof(c->picc_ats), U24_MAX, &ats_len, &present)) {
         return false;
     }
+    c->picc_ats_len = (uint8_t)ats_len;
     size_t len = 0;
     if(!opt_hex(p, "PICC SAK", &c->picc_sak, 1, 1, &len, &c->picc_has_sak)) return false;
     if(!opt_hex(p, "PICC ATQA", c->picc_atqa, 2, 2, &len, &c->picc_has_atqa)) return false;
@@ -1183,8 +1276,13 @@ static bool parse_picc(P* p) {
     return true;
 }
 
-DfcTextStatus
-    dfc_text_parse(DfcCredential* credential, const char* text, size_t len, DfcTextError* detail) {
+// Fills `credential` in place. Like the binary decoder, it is only reached
+// through its public entry point, which owns the failure contract.
+static DfcTextStatus parse_credential(
+    DfcCredential* credential,
+    const char* text,
+    size_t len,
+    DfcTextError* detail) {
     if(detail) {
         detail->line = 0;
         detail->message[0] = '\0';
@@ -1232,22 +1330,24 @@ DfcTextStatus
         if(!req_uint(&p, "Card Storage", 0, U32_MAX, &storage)) break;
         credential->card.storage = (uint32_t)storage;
         bool uid_present = false;
+        size_t uid_len = 0;
         if(!opt_hex(
                &p,
                "UID",
                credential->uid,
                sizeof(credential->uid),
                DFC_DESFIRE_UID_LONG_LEN,
-               &credential->uid_len,
+               &uid_len,
                &uid_present)) {
             break;
         }
-        if(credential->uid_len != DFC_DESFIRE_UID_SHORT_LEN &&
-           credential->uid_len != DFC_DESFIRE_UID_LEN &&
-           credential->uid_len != DFC_DESFIRE_UID_LONG_LEN) {
-            fail(&p, 0, "UID: length shall be 4, 7, or 10");
+        if(!dfc_uid_length_is_valid(uid_len)) {
+            Line next;
+            size_t line = peek_line(&p, &next) ? next.number : 0;
+            fail(&p, line, "UID: length shall be 4, 7, or 10");
             break;
         }
+        credential->uid_len = (uint8_t)uid_len;
         if(!req_token(&p, "UID Provenance", PROVENANCE_NAMES, 3, &index)) break;
         credential->card.uid_provenance = (DfcUidProvenance)index;
         if(!parse_static_signature(&p)) break;
@@ -1276,25 +1376,38 @@ DfcTextStatus
 
         // Every line shall have been claimed by a rule above (rule 4).
         if(p.consumed != p.total) {
-            size_t pos = 0;
-            size_t number = 0;
-            const char* s;
-            size_t n;
             bool named = false;
-            while(!named && raw_line(&p, &pos, &s, &n)) {
-                number++;
-                if(line_is_skipped(s, n)) continue;
-                if(was_seen(&p, number)) continue;
-                Line bad;
-                if(!split_line(&p, s, n, number, &bad)) break;
-                char name[KEY_MAX];
-                size_t copy = bad.key_len < sizeof(name) ? bad.key_len : sizeof(name) - 1;
-                memcpy(name, bad.key, copy);
-                name[copy] = '\0';
-                fail(&p, number, "unrecognised key %s", name);
-                named = true;
+            Line bad;
+            if(peek_line(&p, &bad)) {
+                // Claims only advance the forward cursor, so every significant
+                // line before `bad` belongs to the claimed prefix.
+                size_t prior_pos = 0;
+                size_t prior_number = 0;
+                const char* prior_s;
+                size_t prior_n;
+                while(raw_line(&p, &prior_pos, &prior_s, &prior_n)) {
+                    prior_number++;
+                    if(prior_number >= bad.number) break;
+                    if(line_is_skipped(prior_s, prior_n)) continue;
+                    Line prior;
+                    if(!split_line(&p, prior_s, prior_n, prior_number, &prior)) break;
+                    if(prior.key_len == bad.key_len &&
+                       memcmp(prior.key, bad.key, bad.key_len) == 0) {
+                        fail(&p, bad.number, "duplicate key %.*s", (int)bad.key_len, bad.key);
+                        named = true;
+                        break;
+                    }
+                }
+                if(!named) {
+                    char name[KEY_MAX];
+                    size_t copy = bad.key_len < sizeof(name) ? bad.key_len : sizeof(name) - 1;
+                    memcpy(name, bad.key, copy);
+                    name[copy] = '\0';
+                    fail(&p, bad.number, "unrecognised or out of order key %s", name);
+                    named = true;
+                }
             }
-            if(!named) fail(&p, 0, "unrecognised keys are present");
+            if(!named) fail(&p, 0, "unrecognised or out of order keys are present");
             break;
         }
     } while(false);
@@ -1302,7 +1415,7 @@ DfcTextStatus
     if(!p.failed) {
         // Text this accepts is text the binary codec also accepts, so the
         // shared model rules apply here too.
-        DfcDerStatus model = dfc_der_validate_model(credential);
+        DfcModelStatus model = dfc_credential_validate_model(credential);
         if(model != DfcDerOk) {
             fail_class(&p, (DfcTextStatus)model, 0, "the model breaks a DFC format rule");
         }
@@ -1310,11 +1423,18 @@ DfcTextStatus
 
     if(p.failed) {
         if(detail) *detail = p.err;
-        dfc_credential_clear(credential);
         return p.status;
     }
     credential->dirty = false;
     return DfcTextOk;
+}
+
+DfcTextStatus
+    dfc_text_parse(DfcCredential* credential, const char* text, size_t len, DfcTextError* detail) {
+    DfcTextStatus status = parse_credential(credential, text, len, detail);
+    // One exit for every failure, argument and capacity errors included.
+    if(status != DfcTextOk && credential) dfc_credential_clear(credential);
+    return status;
 }
 
 // ------------------------------------------------------------------ writer ---
@@ -1329,12 +1449,17 @@ typedef struct {
 } W;
 
 static void w_raw(W* w, const char* s, size_t n) {
+    if(n > SIZE_MAX - w->len) {
+        w->overflow = true;
+        w->len = SIZE_MAX;
+        return;
+    }
     if(w->buf) {
-        if(w->len + n > w->cap) {
+        if(n > w->cap - DFC_MIN(w->len, w->cap)) {
             w->overflow = true;
-            return;
+        } else if(!w->overflow) {
+            memcpy(w->buf + w->len, s, n);
         }
-        memcpy(w->buf + w->len, s, n);
     }
     w->len += n;
 }
@@ -1432,13 +1557,19 @@ static void
     snprintf(key, sizeof(key), "%s Key Set Count", prefix);
     w_line_uint(w, key, a->num_key_sets);
     for(size_t set = 0; set < a->num_key_sets; set++) {
+        const uint8_t* set_version = dfc_credential_key_set_version_const(c, a, set);
+        const uint8_t* set_type = dfc_credential_key_set_type_const(c, a, set);
+        if(!set_version || !set_type) {
+            w->overflow = true;
+            return;
+        }
         snprintf(name, sizeof(name), "%s Key Set %02X", prefix, (unsigned)set);
         snprintf(key, sizeof(key), "%s Version", name);
-        w_line_hex(w, key, &a->key_set_versions[set], 1);
+        w_line_hex(w, key, set_version, 1);
         snprintf(key, sizeof(key), "%s Type", name);
-        w_line_str(w, key, AUTH_NAMES[a->key_set_types[set]]);
+        w_line_str(w, key, AUTH_NAMES[*set_type]);
         snprintf(key, sizeof(key), "%s Initialized", name);
-        w_line_bool(w, key, a->key_set_initialized[set]);
+        w_line_bool(w, key, dfc_credential_key_set_is_initialized(c, a, set));
         snprintf(key, sizeof(key), "%s Key Count", name);
         w_line_uint(w, key, (uint32_t)a->num_keys);
         for(size_t slot = 0; slot < a->num_keys; slot++) {
@@ -1447,10 +1578,15 @@ static void
                 w->overflow = true;
                 return;
             }
-            uint8_t version = set == 0 ? a->key_versions[slot] :
-                                         a->additional_key_versions[set - 1][slot];
+            const uint8_t* version_ptr = dfc_credential_key_version_in_set_const(c, a, set, slot);
+            if(!version_ptr) {
+                w->overflow = true;
+                return;
+            }
+            uint8_t version = *version_ptr;
             snprintf(key, sizeof(key), "%s Key %02X", name, (unsigned)slot);
-            w_line_hex(w, key, value, stored_key_length(a->key_len));
+            size_t key_len = dfc_key_set_type_length(*set_type);
+            w_line_hex(w, key, value, key_len);
             snprintf(key, sizeof(key), "%s Key %02X Version", name, (unsigned)slot);
             w_line_hex(w, key, &version, 1);
         }
@@ -1492,8 +1628,10 @@ static DfcTextStatus write_files(W* w, const DfcCredential* c, const char* paren
 
         const uint8_t* known = dfc_file_data_const(c, f);
         if(type_is_data(f->type)) {
+            uint32_t declared_size;
+            if(!dfc_file_get_declared_size(f, &declared_size)) return DfcTextMalformed;
             snprintf(key, sizeof(key), "%s Size", prefix);
-            w_line_uint(w, key, f->declared_size);
+            w_line_uint(w, key, declared_size);
             if(known && f->data_len > 0) {
                 snprintf(key, sizeof(key), "%s Data", prefix);
                 w_line_hex(w, key, known, f->data_len);
@@ -1501,86 +1639,95 @@ static DfcTextStatus write_files(W* w, const DfcCredential* c, const char* paren
             snprintf(key, sizeof(key), "%s Data Complete", prefix);
             w_line_bool(w, key, f->contents_complete);
 #if DFC_ENABLE_SDM
-            if(f->sdm_enabled) {
+            if(dfc_file_sdm_flag_is_set(f, DfcSdmFlagEnabled)) {
                 uint8_t sdm_rights[2] = {
-                    (uint8_t)(f->sdm_access_rights >> 8), (uint8_t)(f->sdm_access_rights & 0xFF)};
+                    (uint8_t)(f->state.data.sdm.access_rights >> 8),
+                    (uint8_t)(f->state.data.sdm.access_rights & 0xFF)};
                 snprintf(key, sizeof(key), "%s SDM Options", prefix);
-                w_line_hex(w, key, &f->sdm_options, 1);
+                w_line_hex(w, key, &f->state.data.sdm.options, 1);
                 snprintf(key, sizeof(key), "%s SDM Access Rights", prefix);
                 w_line_hex(w, key, sdm_rights, 2);
-                if(f->sdm_has_uid_offset) {
+                if(dfc_file_sdm_flag_is_set(f, DfcSdmFlagUidOffset)) {
                     snprintf(key, sizeof(key), "%s SDM UID Offset", prefix);
-                    w_line_uint(w, key, f->sdm_uid_offset);
+                    w_line_uint(w, key, f->state.data.sdm.uid_offset);
                 }
-                if(f->sdm_has_counter_offset) {
+                if(dfc_file_sdm_flag_is_set(f, DfcSdmFlagCounterOffset)) {
                     snprintf(key, sizeof(key), "%s SDM Counter Offset", prefix);
-                    w_line_uint(w, key, f->sdm_counter_offset);
+                    w_line_uint(w, key, f->state.data.sdm.counter_offset);
                 }
-                if(f->sdm_has_picc_data_offset) {
+                if(dfc_file_sdm_flag_is_set(f, DfcSdmFlagPiccDataOffset)) {
                     snprintf(key, sizeof(key), "%s SDM PICC Data Offset", prefix);
-                    w_line_uint(w, key, f->sdm_picc_data_offset);
+                    w_line_uint(w, key, f->state.data.sdm.picc_data_offset);
                 }
-                if(f->sdm_has_mac_input_offset) {
+                if(dfc_file_sdm_flag_is_set(f, DfcSdmFlagMacInputOffset)) {
                     snprintf(key, sizeof(key), "%s SDM MAC Input Offset", prefix);
-                    w_line_uint(w, key, f->sdm_mac_input_offset);
+                    w_line_uint(w, key, f->state.data.sdm.mac_input_offset);
                 }
-                if(f->sdm_has_mac_offset) {
+                if(dfc_file_sdm_flag_is_set(f, DfcSdmFlagMacOffset)) {
                     snprintf(key, sizeof(key), "%s SDM MAC Offset", prefix);
-                    w_line_uint(w, key, f->sdm_mac_offset);
+                    w_line_uint(w, key, f->state.data.sdm.mac_offset);
                 }
-                if(f->sdm_has_encrypted_file_offset) {
+                if(dfc_file_sdm_flag_is_set(f, DfcSdmFlagEncryptedFile)) {
                     snprintf(key, sizeof(key), "%s SDM Encrypted File Offset", prefix);
-                    w_line_uint(w, key, f->sdm_encrypted_file_offset);
+                    w_line_uint(w, key, f->state.data.sdm.encrypted_file_offset);
                     snprintf(key, sizeof(key), "%s SDM Encrypted File Length", prefix);
-                    w_line_uint(w, key, f->sdm_encrypted_file_length);
+                    w_line_uint(w, key, f->state.data.sdm.encrypted_file_length);
                 }
-                if(f->sdm_has_counter_limit) {
+                if(dfc_file_sdm_flag_is_set(f, DfcSdmFlagCounterLimit)) {
                     snprintf(key, sizeof(key), "%s SDM Counter Limit", prefix);
-                    w_line_uint(w, key, f->sdm_counter_limit);
+                    w_line_uint(w, key, f->state.data.sdm.counter_limit);
                 }
                 snprintf(key, sizeof(key), "%s SDM Read Counter", prefix);
-                w_line_uint(w, key, f->sdm_read_counter);
+                w_line_uint(w, key, f->state.data.sdm_read_counter);
             }
 #endif
         } else if(f->type == TYPE_VALUE) {
             snprintf(key, sizeof(key), "%s Value Lower Limit", prefix);
-            w_line_int(w, key, f->value_lower_limit);
+            w_line_int(w, key, f->state.value.lower_limit);
             snprintf(key, sizeof(key), "%s Value Upper Limit", prefix);
-            w_line_int(w, key, f->value_upper_limit);
+            w_line_int(w, key, f->state.value.upper_limit);
             snprintf(key, sizeof(key), "%s Value", prefix);
-            w_line_int(w, key, f->value);
+            w_line_int(w, key, f->state.value.current);
             snprintf(key, sizeof(key), "%s Limited Credit", prefix);
-            w_line_hex(w, key, &f->limited_credit, 1);
+            w_line_hex(w, key, &f->state.value.limited_credit, 1);
+            if(f->state.value.limited_credit_value != 0) {
+                snprintf(key, sizeof(key), "%s Limited Credit Value", prefix);
+                w_line_int(w, key, f->state.value.limited_credit_value);
+            }
         } else if(f->type == TYPE_TMAC) {
 #if DFC_ENABLE_TRANSACTION_MAC
             snprintf(key, sizeof(key), "%s Transaction Counter", prefix);
-            w_line_uint(w, key, f->transaction_counter);
+            w_line_uint(w, key, f->state.transaction_mac.counter);
             snprintf(key, sizeof(key), "%s Transaction MAC", prefix);
-            w_line_hex(w, key, f->transaction_mac, sizeof(f->transaction_mac));
+            w_line_hex(w, key, f->state.transaction_mac.mac, sizeof(f->state.transaction_mac.mac));
             snprintf(key, sizeof(key), "%s Transaction Key Type", prefix);
-            w_line_uint(w, key, f->transaction_mac_key_type);
+            w_line_uint(w, key, f->state.transaction_mac.key_type);
             snprintf(key, sizeof(key), "%s Transaction Key Version", prefix);
-            w_line_hex(w, key, &f->transaction_mac_key_version, 1);
+            w_line_hex(w, key, &f->state.transaction_mac.key_version, 1);
             snprintf(key, sizeof(key), "%s Transaction Key", prefix);
-            w_line_hex(w, key, f->transaction_mac_key, sizeof(f->transaction_mac_key));
+            w_line_hex(w, key, f->state.transaction_mac.key, sizeof(f->state.transaction_mac.key));
             snprintf(key, sizeof(key), "%s Previous Reader ID", prefix);
-            w_line_hex(w, key, f->previous_reader_id, sizeof(f->previous_reader_id));
+            w_line_hex(
+                w,
+                key,
+                f->state.transaction_mac.previous_reader_id,
+                sizeof(f->state.transaction_mac.previous_reader_id));
 #else
             // The field is recognized but the build omits the feature.
             return DfcTextUnsupported;
 #endif
         } else {
-            if(f->record_size == 0) return DfcTextMalformed;
+            if(f->state.record.size == 0) return DfcTextMalformed;
             snprintf(key, sizeof(key), "%s Record Size", prefix);
-            w_line_uint(w, key, f->record_size);
+            w_line_uint(w, key, f->state.record.size);
             snprintf(key, sizeof(key), "%s Max Records", prefix);
-            w_line_uint(w, key, f->max_records);
+            w_line_uint(w, key, f->state.record.max_records);
             snprintf(key, sizeof(key), "%s Record Count", prefix);
-            w_line_uint(w, key, f->record_count);
-            size_t stored = f->data_len / f->record_size;
+            w_line_uint(w, key, f->state.record.count);
+            size_t stored = f->data_len / f->state.record.size;
             for(size_t r = 0; r < stored && known; r++) {
                 snprintf(key, sizeof(key), "%s Record %02X", prefix, (unsigned)r);
-                w_line_hex(w, key, known + r * f->record_size, f->record_size);
+                w_line_hex(w, key, known + r * f->state.record.size, f->state.record.size);
             }
             snprintf(key, sizeof(key), "%s Record Complete", prefix);
             w_line_bool(w, key, f->contents_complete);
@@ -1590,10 +1737,9 @@ static DfcTextStatus write_files(W* w, const DfcCredential* c, const char* paren
 }
 
 static DfcTextStatus write_credential(W* w, const DfcCredential* c) {
-    DfcDerStatus model = dfc_der_validate_model(c);
+    DfcModelStatus model = dfc_credential_validate_model(c);
     if(model != DfcDerOk) return (DfcTextStatus)model;
-    if(c->uid_len != DFC_DESFIRE_UID_SHORT_LEN && c->uid_len != DFC_DESFIRE_UID_LEN &&
-       c->uid_len != DFC_DESFIRE_UID_LONG_LEN) {
+    if(!dfc_uid_length_is_valid(c->uid_len)) {
         return DfcTextMalformed;
     }
     if(c->card.generation < DfcGenerationEv1 || c->card.generation > DfcGenerationEv3) {
@@ -1615,25 +1761,27 @@ static DfcTextStatus write_credential(W* w, const DfcCredential* c) {
     }
 #endif
     if(c->card.has_hardware_version) {
-        w_line_hex(w, "Card Hardware Version", c->card.hardware_version,
-                   sizeof(c->card.hardware_version));
+        w_line_hex(
+            w, "Card Hardware Version", c->card.hardware_version, sizeof(c->card.hardware_version));
     }
     if(c->card.has_software_version) {
-        w_line_hex(w, "Card Software Version", c->card.software_version,
-                   sizeof(c->card.software_version));
+        w_line_hex(
+            w, "Card Software Version", c->card.software_version, sizeof(c->card.software_version));
     }
 
     w_line_hex(w, "PICC Key Settings 1", &c->picc_key_settings_1, 1);
     w_line_hex(w, "PICC Key Settings 2", &c->picc_key_settings_2, 1);
     w_line_auth_commands(w, "PICC Authentication Commands", dfc_credential_picc_auth_commands(c));
     if(c->picc_has_preferred_auth_command) {
-        w_line_auth_commands(w, "PICC Preferred Authentication Command",
-                             c->picc_preferred_auth_command);
+        w_line_auth_commands(
+            w, "PICC Preferred Authentication Command", c->picc_preferred_auth_command);
     }
     w_line_uint(w, "PICC Key Count", (uint32_t)c->picc_num_keys);
-    write_keys(w, "PICC", c, NULL, c->picc_num_keys, stored_key_length(c->picc_key_len));
+    write_keys(
+        w, "PICC", c, NULL, c->picc_num_keys, dfc_credential_stored_key_length(c->picc_key_len));
     // Canonical omission: these carry their default (rule 5).
     if(c->picc_random_id) w_line_bool(w, "PICC Random ID", true);
+    if(c->picc_random_id_legacy) w_line_bool(w, "PICC Random ID Legacy Prefix", true);
     if(c->picc_format_disabled) w_line_bool(w, "PICC Format Disabled", true);
     if(c->picc_ats_len > 0) w_line_hex(w, "PICC ATS", c->picc_ats, c->picc_ats_len);
     if(c->picc_has_sak) w_line_hex(w, "PICC SAK", &c->picc_sak, 1);
@@ -1653,7 +1801,9 @@ static DfcTextStatus write_credential(W* w, const DfcCredential* c) {
         w_line_hex(w, "PICC Proximity Key", c->picc_proximity_key, sizeof(c->picc_proximity_key));
         w_line_hex(w, "PICC Proximity Option", &c->picc_proximity_option, 1);
         w_line_uint(
-            w, "PICC Proximity Published Response Time", c->picc_proximity_published_response_time);
+            w,
+            "PICC Proximity Published Response Time",
+            c->picc_proximity_published_response_time);
         if(c->picc_has_proximity_bitrate) {
             w_line_hex(w, "PICC Proximity Bitrate", &c->picc_proximity_bitrate, 1);
         }
@@ -1744,7 +1894,7 @@ static DfcTextStatus write_credential(W* w, const DfcCredential* c) {
 #endif
             snprintf(key, sizeof(key), "%s Key Count", prefix);
             w_line_uint(w, key, (uint32_t)a->num_keys);
-            write_keys(w, prefix, c, a, a->num_keys, stored_key_length(a->key_len));
+            write_keys(w, prefix, c, a, a->num_keys, dfc_credential_stored_key_length(a->key_len));
 #if DFC_ENABLE_KEY_SETS
         }
 #endif
@@ -1768,6 +1918,10 @@ static DfcTextStatus write_credential(W* w, const DfcCredential* c) {
             w_line_uint(w, key, a->delegated_quota_limit);
             snprintf(key, sizeof(key), "%s Delegated Free Blocks", prefix);
             w_line_uint(w, key, a->delegated_free_blocks);
+            if(a->delegated_format_disabled) {
+                snprintf(key, sizeof(key), "%s Delegated Format Disabled", prefix);
+                w_line_bool(w, key, true);
+            }
         }
 #endif
         if(a->has_sm_disable) {
@@ -1782,20 +1936,15 @@ DfcTextStatus dfc_text_write(const DfcCredential* credential, char* out, size_t 
     if(!credential || !len) return DfcTextMalformed;
     if(!out && cap > 0) return DfcTextMalformed;
 
-    W probe = {NULL, 0, 0, false};
-    DfcTextStatus st = write_credential(&probe, credential);
-    if(st != DfcTextOk) return st;
-    // Report the size even when it does not fit, so a caller can size a buffer
-    // with cap 0 and then write for real.
-    *len = probe.len;
-    if(probe.len > cap) return DfcTextCapacity;
-
     W w = {out, cap, 0, false};
-    st = write_credential(&w, credential);
+    DfcTextStatus st = write_credential(&w, credential);
     if(st != DfcTextOk) return st;
-    if(w.overflow) return DfcTextCapacity;
-    if(w.len < cap) out[w.len] = '\0';
     *len = w.len;
+    if(w.overflow) {
+        if(out && cap) out[0] = '\0';
+        return DfcTextCapacity;
+    }
+    if(w.len < cap) out[w.len] = '\0';
     return DfcTextOk;
 }
 
@@ -1808,7 +1957,11 @@ DfcTextStatus dfc_credential_load(
         detail->line = 0;
         detail->message[0] = '\0';
     }
-    if(!credential || (!content && len > 0)) return DfcTextMalformed;
+    if(!credential) return DfcTextMalformed;
+    if(!content && len > 0) {
+        dfc_credential_clear(credential);
+        return DfcTextMalformed;
+    }
     if(dfc_credential_content_is_binary(content, len)) {
         DfcDerStatus st = dfc_der_decode(credential, content, len);
         if(st != DfcDerOk && detail) {

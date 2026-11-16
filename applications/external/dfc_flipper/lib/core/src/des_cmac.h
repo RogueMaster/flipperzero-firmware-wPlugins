@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include "dfc_crypto.h"
 #include "dfc_port.h"
 
 // key_len must be 8 (single DES), 16 (2-key 3DES) or 24 (3-key 3DES); the underlying
@@ -14,5 +15,12 @@ bool des_cmac_with_iv(
     size_t key_len,
     uint8_t* message,
     size_t message_len,
+    uint8_t* iv,
+    uint8_t* cmac);
+bool des_cmac_segments_with_iv(
+    uint8_t* key,
+    size_t key_len,
+    const DfcCryptoSegment* segments,
+    size_t segment_count,
     uint8_t* iv,
     uint8_t* cmac);

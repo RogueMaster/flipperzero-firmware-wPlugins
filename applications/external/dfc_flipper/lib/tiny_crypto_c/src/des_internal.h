@@ -14,13 +14,13 @@
 int tc_des_bundle_is_rejected(const uint8_t* key, size_t keylen);
 /* Compare effective DES keys while ignoring parity bits. */
 int tc_des_keys_equal(const uint8_t* left, const uint8_t* right);
-/* Expand one 8-byte key into 16 round subkeys of 6 bytes. */
-void tc_des_key_schedule(uint8_t (*sk)[6], const uint8_t* key);
+/* Expand one 8-byte key into 16 round subkeys. */
+void tc_des_key_schedule(TC_DES_round_key* sk, const uint8_t* key);
 /* Expand an 8-byte key into 16 subkeys, or a 16- or 24-byte TDEA bundle into
  * 48 subkeys (K1, K2, K3). keylen is 8, 16 or 24 and sk holds enough rows. */
-void tc_des_schedule_key(uint8_t (*sk)[6], const uint8_t* key, size_t keylen);
+void tc_des_schedule_key(TC_DES_round_key* sk, const uint8_t* key, size_t keylen);
 /* Encrypt or decrypt one block with a 16-subkey schedule. */
-void tc_des_cipher_block(const uint8_t (*sk)[6], uint8_t* buf, int decrypt);
+void tc_des_cipher_block(const TC_DES_round_key* sk, uint8_t* buf, int decrypt);
 /* One DES stage, or the TDEA encrypt-decrypt-encrypt bundle when triple. */
 void tc_des_encrypt_scheduled(const void* schedule, uint8_t block[TC_DES_BLOCKLEN], int triple);
 /* Inverse of tc_des_encrypt_scheduled: D(K3), E(K2), D(K1) when triple. */

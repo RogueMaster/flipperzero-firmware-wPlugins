@@ -239,15 +239,21 @@ NfcCommand dfc_reader_read_file(DfcReader* reader, DfcFile* file) {
     size_t plain_len = 0;
     if(ev1_sm) {
         plain_len = dfc_secure_messaging_unwrap_ev1_response(
-            reader->secure_messaging, status, wrapped, wrapped_len, plain);
+            reader->secure_messaging, status, wrapped, wrapped_len, plain, sizeof(plain));
         if(plain_len == SIZE_MAX) {
             FURI_LOG_W(TAG, "EV1 secure messaging unwrap failed");
             return NfcCommandStop;
         }
     } else {
-        plain_len = dfc_secure_messaging_unwrap(
-            reader->secure_messaging, file->comm_settings, status, wrapped, wrapped_len, plain);
-        if(plain_len == 0 && wrapped_len > 0 && file->comm_settings != DFC_COMM_PLAIN) {
+        if(!dfc_secure_messaging_unwrap(
+               reader->secure_messaging,
+               file->comm_settings,
+               status,
+               wrapped,
+               wrapped_len,
+               plain,
+               sizeof(plain),
+               &plain_len)) {
             FURI_LOG_W(TAG, "Secure messaging unwrap failed");
             return NfcCommandStop;
         }

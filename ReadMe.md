@@ -343,6 +343,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [TV Off v1.0 (By ryanneufeld)](https://github.com/ryanneufeld/flipper-tv-off)
 - Added: [DrMosfetCan v1.1 (By Dr Mosfet)](https://github.com/kamylwnb/DrMosfetCan) - GVRET USB-CAN bridge `Req: MCP2515 with 16 MHz oscillator and CAN transceiver`
 - Added: [Amiibo Emulator v1.0 (By Soap-n-Cartridge)](https://github.com/Soap-n-Cartridge/flipper_amiibo) with file handling and crypto safety fixes [Scan, favorites and graphical menus (By Soap-n-Cartridge)](https://github.com/Soap-n-Cartridge/flipper_amiibo/commit/5ba059a65691fd3d4b8ab8b836c2bc26ae417275)
+- Updated: [DFC v1.1.1 with dfc-core v2.0.0, faster DES and chained reads, lower-memory credential loading and teardown cleanup (By cindersocket)](https://github.com/cindersocket/dfc-flipper)
 
 <a name="release"></a>
 

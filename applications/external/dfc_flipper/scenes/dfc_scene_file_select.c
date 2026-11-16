@@ -38,7 +38,7 @@ static void dfc_scene_file_select_callback(void* context) {
     FuriString* filename = furi_string_alloc();
     path_extract_filename(dfc_credential_storage_load_path(), filename, true);
     snprintf(
-        dfc_credential->name, sizeof(dfc_credential->name), "%s", furi_string_get_cstr(filename));
+        dfc->credential_name, sizeof(dfc->credential_name), "%s", furi_string_get_cstr(filename));
     furi_string_free(filename);
 
     DfcCredentialLoadStatus status = DfcCredentialLoadStatusOk;
@@ -47,6 +47,7 @@ static void dfc_scene_file_select_callback(void* context) {
     } else {
         dfc_credential_storage_show_error(dfc_scene_file_select_load_error_message(status));
         dfc_credential_clear(dfc_credential);
+        dfc->credential_name[0] = '\0';
         scene_manager_search_and_switch_to_previous_scene(dfc->scene_manager, DfcSceneMainMenu);
     }
 }

@@ -23,7 +23,7 @@
 // Largest body one EV2 MAC covers. A chained command is MACed as a whole, so
 // this is sized above one frame.
 #ifndef DFC_EV2_MAC_DATA_MAX
-#define DFC_EV2_MAC_DATA_MAX 512
+#define DFC_EV2_MAC_DATA_MAX DFC_EMULATOR_CHAIN_BUFFER_SIZE
 #endif
 
 // Which direction a data field travels, selecting the IV label.
@@ -66,7 +66,7 @@ bool dfc_ev2_mac(
     uint8_t output[DFC_WIRE_MAC_LENGTH]);
 
 // The IV for one encrypted field: E(SesAuthENCKey, label || TI || counter || 0).
-void dfc_ev2_derive_iv(
+bool dfc_ev2_derive_iv(
     const uint8_t encryption_key[DFC_AES_KEY_LENGTH],
     DfcEv2Direction direction,
     uint16_t counter,
@@ -74,6 +74,8 @@ void dfc_ev2_derive_iv(
     uint8_t iv[DFC_AES_KEY_LENGTH]);
 
 // Pads with 0x80 then zeroes, always adding at least one octet, and encrypts.
+// `clear` may alias `encrypted`; partial overlap is also supported. On failure,
+// output staged before the failing cipher call is wiped and `encrypted_len` is zero.
 bool dfc_ev2_encrypt_data(
     const uint8_t encryption_key[DFC_AES_KEY_LENGTH],
     DfcEv2Direction direction,
@@ -99,6 +101,4 @@ bool dfc_ev2_decrypt_data(
     bool allow_unpadded);
 
 // Comparison whose duration does not depend on where two MACs differ.
-bool dfc_ev2_equal(const uint8_t* a, const uint8_t* b, size_t len);
-
 #endif // DFC_ENABLE_EV2_SECURE_MESSAGING

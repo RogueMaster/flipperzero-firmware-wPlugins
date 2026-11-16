@@ -142,6 +142,16 @@
 #error "TC_ENABLE_TWIC_CCL must be 0 or 1"
 #endif
 
+/* TWIC Legacy and NEXGEN card support in the PIV modules (TWIC Part 2 v5):
+ * the TWIC application, its card profiles and their object, key and
+ * credential rules. */
+#ifndef TC_ENABLE_TWIC
+#define TC_ENABLE_TWIC TC_PROFILE_VALUE(0, 0, 0, 1)
+#endif
+#if TC_ENABLE_TWIC != 0 && TC_ENABLE_TWIC != 1
+#error "TC_ENABLE_TWIC must be 0 or 1"
+#endif
+
 /* Standalone credential formats can be selected without certificate parsing. */
 #ifndef TC_ENABLE_AAMVA
 #define TC_ENABLE_AAMVA TC_PROFILE_VALUE(0, 0, 0, 1)
@@ -297,8 +307,11 @@
 #if TC_ENABLE_CMS_VALIDATION && (!TC_ENABLE_CMS || !TC_ENABLE_X509_REVOCATION)
 #error "CMS validation requires CMS and X.509 revocation support"
 #endif
-#if TC_ENABLE_PIV_OBJECTS && (!TC_ENABLE_CMS || !TC_ENABLE_TWIC_UUID || !TC_ENABLE_PIV_OIDS)
-#error "PIV object readers require CMS, TWIC UUID, and PIV/TWIC identifiers"
+#if TC_ENABLE_PIV_OBJECTS && (!TC_ENABLE_CMS || !TC_ENABLE_FASCN || !TC_ENABLE_PIV_OIDS)
+#error "PIV object readers require CMS, FASC-N, and PIV identifiers"
+#endif
+#if TC_ENABLE_TWIC && TC_ENABLE_PIV_OBJECTS && !TC_ENABLE_TWIC_UUID
+#error "TWIC card objects require the TWIC UUID helpers"
 #endif
 #if TC_ENABLE_CREDENTIAL &&                                                                        \
     (!TC_ENABLE_PIV_OBJECTS || !TC_ENABLE_PIV_CHUID || !TC_ENABLE_CMS_VALIDATION)
@@ -459,18 +472,20 @@
 #if TC_MIN_TAG_LEN < 8 || TC_MIN_TAG_LEN > 16
 #error "TC_MIN_TAG_LEN must be in 8..16"
 #endif
-/* Minimum accepted HMAC tag length for the one-shot HMAC and verify APIs.
- * RFC 2104 section 5 asks for at least half the digest and at least 80 bits.
- * It may not exceed the digest length of any enabled SHA. */
+/* Library-wide floor in bytes for the default one-shot HMAC and verify APIs.
+ * RFC 2104 section 5 asks for at least 80 bits and at least half the digest.
+ * The floor must be at least 10 bytes, and hash.h raises it to half of each
+ * digest (TC_HMAC_MIN_TAG_LEN_FOR). It may not exceed the digest length of
+ * any enabled SHA. */
 #ifndef TC_HMAC_MIN_TAG_LEN
 #define TC_HMAC_MIN_TAG_LEN 16
 #endif
-#if TC_ENABLE_HMAC && (TC_HMAC_MIN_TAG_LEN < 1 || (TC_ENABLE_SHA1 && TC_HMAC_MIN_TAG_LEN > 20) ||  \
+#if TC_ENABLE_HMAC && (TC_HMAC_MIN_TAG_LEN < 10 || (TC_ENABLE_SHA1 && TC_HMAC_MIN_TAG_LEN > 20) || \
                        (TC_ENABLE_SHA224 && TC_HMAC_MIN_TAG_LEN > 28) ||                           \
                        (TC_ENABLE_SHA256 && TC_HMAC_MIN_TAG_LEN > 32) ||                           \
                        (TC_ENABLE_SHA384 && TC_HMAC_MIN_TAG_LEN > 48) ||                           \
                        (TC_ENABLE_SHA512 && TC_HMAC_MIN_TAG_LEN > 64))
-#error "TC_HMAC_MIN_TAG_LEN must be at least 1 and at most every enabled SHA digest length"
+#error "TC_HMAC_MIN_TAG_LEN must be at least 10 and at most every enabled SHA digest length"
 #endif
 
 /* AES defaults favor small constant-time firmware: one key schedule size,
@@ -621,7 +636,18 @@
 #endif
 
 /* DES defaults enable CTR and Triple DES only. DES has a 56-bit effective
- * key; use it only for legacy interoperability. */
+ * key; use it only where a protocol requires it. */
+/* DES S-box implementation:
+ *   TC_DES_SBOX_MODE_CONSTANT_TIME - algebraic normal form (default)
+ *   TC_DES_SBOX_MODE_FAST          - direct lookup, not constant-time */
+#define TC_DES_SBOX_MODE_CONSTANT_TIME 1
+#define TC_DES_SBOX_MODE_FAST 2
+#ifndef TC_DES_SBOX_MODE
+#define TC_DES_SBOX_MODE TC_DES_SBOX_MODE_CONSTANT_TIME
+#endif
+#if TC_DES_SBOX_MODE != TC_DES_SBOX_MODE_CONSTANT_TIME && TC_DES_SBOX_MODE != TC_DES_SBOX_MODE_FAST
+#error "TC_DES_SBOX_MODE must be TC_DES_SBOX_MODE_CONSTANT_TIME or TC_DES_SBOX_MODE_FAST"
+#endif
 #ifndef TC_DES_ENABLE_ECB
 #define TC_DES_ENABLE_ECB TC_PROFILE_VALUE(0, 0, 0, 1)
 #endif

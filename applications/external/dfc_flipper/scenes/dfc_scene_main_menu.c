@@ -43,6 +43,7 @@ bool dfc_scene_main_menu_on_event(void* context, SceneManagerEvent event) {
         } else if(event.event == SubmenuIndexBlankCard) {
             scene_manager_set_scene_state(
                 dfc->scene_manager, DfcSceneMainMenu, SubmenuIndexBlankCard);
+            dfc->credential_name[0] = '\0';
             dfc_credential_init_blank(dfc->credential);
             dfc->emulate_from_blank = true;
             scene_manager_next_scene(dfc->scene_manager, DfcSceneEmulate);

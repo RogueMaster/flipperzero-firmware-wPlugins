@@ -1,5 +1,7 @@
 #include "dfc_ev2.h"
+#include "dfc_ev2_command.h"
 #include "dfc_ev2_crypto.h"
+#include "dfc_emulator_i.h"
 
 #include <string.h>
 
@@ -7,54 +9,66 @@
 
 #if DFC_ENABLE_EV2_SECURE_MESSAGING
 
-enum {
-    DfcEv2FileCommandHeaderLength = 7,
-    DfcEv2UpdateRecordHeaderLength = DFC_UPDATE_RECORD_HEADER_SIZE - 1,
-    DfcEv2ValueCommandHeaderLength = 1,
-    DfcEv2SetConfigurationHeaderLength = 1,
-    DfcEv2CreateTransactionMacHeaderLength = 5,
-    DfcEv2CommitReaderIdHeaderLength = 0,
-    DfcEv2ChangeKeyHeaderLength = DFC_CHANGE_KEY_EV2_HEADER_LENGTH - 1,
-};
-
 static DfcFile* target_file(DfcEmulator* emulator, const uint8_t* command, size_t command_len) {
     if(command_len < 2 || emulator->selected_application != DfcEmulatorSelectedApplicationApp)
         return NULL;
-    switch(command[0]) {
+    DfcEv2CommandMetadata metadata = dfc_ev2_command_metadata(command[0]);
+    if(!dfc_ev2_command_has(&metadata, DfcEv2CommandTargetsFile)) return NULL;
+    return dfc_credential_find_file_in_app(
+        emulator->credential, emulator->selected_app_index, command[1]);
+}
+
+static bool command_file_access(uint8_t command, DfcFileAccess* access) {
+    uint8_t base = dfc_record_command_base(command);
+    switch(base) {
     case DFC_CMD_READ_DATA:
-    case DFC_CMD_WRITE_DATA:
     case DFC_CMD_READ_RECORDS:
-    case DFC_CMD_WRITE_RECORD:
-    case DFC_CMD_UPDATE_RECORD:
-    case DFC_CMD_UPDATE_RECORD_ISO:
     case DFC_CMD_GET_VALUE:
+        *access = DfcFileAccessRead;
+        return true;
+    case DFC_CMD_WRITE_DATA:
+    case DFC_CMD_WRITE_RECORD:
     case DFC_CMD_CREDIT:
     case DFC_CMD_DEBIT:
     case DFC_CMD_LIMITED_CREDIT:
-        return dfc_credential_find_file_in_app(
-            emulator->credential, emulator->selected_app_index, command[1]);
+        *access = DfcFileAccessWrite;
+        return true;
+    case DFC_CMD_UPDATE_RECORD:
+        *access = DfcFileAccessReadWrite;
+        return true;
+    case DFC_CMD_CHANGE_FILE_SETTINGS:
+        *access = DfcFileAccessChange;
+        return true;
     default:
-        return NULL;
+        return false;
     }
 }
 
-static bool bypass_secure_messaging(
+static uint8_t command_file_comm(
     DfcEmulator* emulator,
     const uint8_t* command,
-    size_t command_len) {
-    switch(command[0]) {
-    case DFC_CMD_ADDITIONAL_FRAME:
-    case DFC_CMD_AUTHENTICATE_EV2_FIRST:
-    case DFC_CMD_AUTHENTICATE_EV2_NON_FIRST:
-#if DFC_ENABLE_DELEGATED_APPLICATIONS
-    case DFC_CMD_CREATE_DELEGATED_APPLICATION:
-#endif
-        return true;
-    default:
-        break;
-    }
+    size_t command_len,
+    DfcFile** target) {
     DfcFile* file = target_file(emulator, command, command_len);
-    return file && file->comm_settings == DFC_COMM_PLAIN;
+    DfcFileAccess access;
+    if(target) *target = file;
+    if(file && command[0] == DFC_CMD_GET_FILE_COUNTERS) return DFC_COMM_ENCIPHERED;
+    if(!file || !command_file_access(command[0], &access)) return DFC_COMM_PLAIN;
+    uint8_t configured = command[0] == DFC_CMD_CHANGE_FILE_SETTINGS ? DFC_COMM_ENCIPHERED :
+                                                                      file->comm_settings;
+    return dfc_emulator_file_effective_comm_settings(emulator, file, access, configured);
+}
+
+static bool plain_file_command(DfcEmulator* emulator, const uint8_t* command, size_t command_len) {
+    const uint8_t* logical = command;
+    size_t logical_len = command_len;
+    if(command[0] == DFC_CMD_ADDITIONAL_FRAME && emulator->command_chain_active &&
+       emulator->command_chain && emulator->command_chain_len > 0) {
+        logical = emulator->command_chain;
+        logical_len = emulator->command_chain_len;
+    }
+    DfcFile* file = NULL;
+    return command_file_comm(emulator, logical, logical_len, &file) == DFC_COMM_PLAIN && file;
 }
 
 static bool command_mac(
@@ -83,11 +97,12 @@ bool dfc_ev2_verify_chained_command_mac(
     const uint8_t mac[DFC_WIRE_MAC_LENGTH]) {
     uint8_t expected[DFC_WIRE_MAC_LENGTH];
     if(!command_mac(emulator, instruction, data, data_len, expected)) return false;
-    return dfc_ev2_equal(expected, mac, sizeof(expected));
+    return dfc_ct_equal(expected, mac, sizeof(expected));
 }
 
 static bool response_mac(
     const DfcEmulator* emulator,
+    uint16_t counter,
     uint8_t status,
     const uint8_t* data,
     size_t data_len,
@@ -95,7 +110,7 @@ static bool response_mac(
     return dfc_ev2_mac(
         emulator->ev2_session_mac_key,
         status,
-        emulator->ev2_command_counter,
+        counter,
         emulator->ev2_transaction_identifier,
         data,
         data_len,
@@ -125,6 +140,7 @@ static bool decrypt_command_data(
 
 static bool encrypt_response_data(
     const DfcEmulator* emulator,
+    uint16_t counter,
     const uint8_t* clear,
     size_t clear_len,
     uint8_t* encrypted,
@@ -133,7 +149,7 @@ static bool encrypt_response_data(
     return dfc_ev2_encrypt_data(
         emulator->ev2_session_encryption_key,
         DfcEv2DirectionResponse,
-        emulator->ev2_command_counter,
+        counter,
         emulator->ev2_transaction_identifier,
         clear,
         clear_len,
@@ -149,9 +165,26 @@ DfcEv2CommandSecurity dfc_ev2_prepare_command(
     uint8_t* clear_command,
     size_t clear_capacity,
     size_t* clear_len) {
-    if(!emulator->ev2_session_active || bypass_secure_messaging(emulator, command, command_len)) {
+    if(!clear_len) return DfcEv2CommandInvalid;
+    *clear_len = 0;
+    if(!emulator || !command || !clear_command || command_len == 0) return DfcEv2CommandInvalid;
+    if(!emulator->ev2_session_active) {
         if(command_len > clear_capacity) return DfcEv2CommandInvalid;
-        memcpy(clear_command, command, command_len);
+        memmove(clear_command, command, command_len);
+        *clear_len = command_len;
+        return DfcEv2CommandPlain;
+    }
+    if(plain_file_command(emulator, command, command_len)) {
+        if(emulator->ev2_command_counter == UINT16_MAX || command_len > clear_capacity)
+            return DfcEv2CommandInvalid;
+        memmove(clear_command, command, command_len);
+        *clear_len = command_len;
+        return DfcEv2CommandPlainCounted;
+    }
+    DfcEv2CommandMetadata metadata = dfc_ev2_command_metadata(command[0]);
+    if(dfc_ev2_command_has(&metadata, DfcEv2CommandEmulatorBypass)) {
+        if(command_len > clear_capacity) return DfcEv2CommandInvalid;
+        memmove(clear_command, command, command_len);
         *clear_len = command_len;
         return DfcEv2CommandPlain;
     }
@@ -159,37 +192,27 @@ DfcEv2CommandSecurity dfc_ev2_prepare_command(
 
     size_t secured_data_len = command_len - 1 - DFC_WIRE_MAC_LENGTH;
     const uint8_t* secured_data = command + 1;
-    uint8_t expected[DFC_WIRE_MAC_LENGTH];
-    if(!command_mac(emulator, command[0], secured_data, secured_data_len, expected))
+    uint8_t expected[DFC_WIRE_MAC_LENGTH] = {0};
+    if(!command_mac(emulator, command[0], secured_data, secured_data_len, expected)) {
+        dfc_secure_wipe(expected, sizeof(expected));
         return DfcEv2CommandInvalid;
-    if(!dfc_ev2_equal(expected, command + 1 + secured_data_len, sizeof(expected)))
+    }
+    if(!dfc_ct_equal(expected, command + 1 + secured_data_len, sizeof(expected))) {
+        dfc_secure_wipe(expected, sizeof(expected));
         return DfcEv2CommandInvalid;
+    }
+    dfc_secure_wipe(expected, sizeof(expected));
 
     if(1 + secured_data_len > clear_capacity) return DfcEv2CommandInvalid;
-    clear_command[0] = command[0];
-    memcpy(clear_command + 1, secured_data, secured_data_len);
-    *clear_len = 1 + secured_data_len;
-
-    DfcFile* file = target_file(emulator, command, command_len);
-    size_t encrypted_header_len = 0;
+    DfcFile* file = NULL;
+    uint8_t comm = command_file_comm(emulator, command, command_len, &file);
+    bool full_command = file && comm == DFC_COMM_ENCIPHERED;
+    size_t encrypted_header_len = metadata.encrypted_header_length;
     bool decrypt_data = false;
-    if(file && file->comm_settings == DFC_COMM_ENCIPHERED) {
-        if(command[0] == DFC_CMD_WRITE_DATA || command[0] == DFC_CMD_WRITE_RECORD)
-            encrypted_header_len = DfcEv2FileCommandHeaderLength, decrypt_data = true;
-        if(command[0] == DFC_CMD_UPDATE_RECORD || command[0] == DFC_CMD_UPDATE_RECORD_ISO)
-            encrypted_header_len = DfcEv2UpdateRecordHeaderLength, decrypt_data = true;
-        if(command[0] == DFC_CMD_CREDIT || command[0] == DFC_CMD_DEBIT ||
-           command[0] == DFC_CMD_LIMITED_CREDIT)
-            encrypted_header_len = DfcEv2ValueCommandHeaderLength, decrypt_data = true;
+    if(metadata.encrypted_header_length != DfcEv2NoEncryptedHeader) {
+        decrypt_data = !dfc_ev2_command_has(&metadata, DfcEv2CommandTargetsFile) ||
+                       (file && comm == DFC_COMM_ENCIPHERED);
     }
-    if(command[0] == DFC_CMD_SET_CONFIGURATION)
-        encrypted_header_len = DfcEv2SetConfigurationHeaderLength, decrypt_data = true;
-    if(command[0] == DFC_CMD_CREATE_TRANSACTION_MAC_FILE)
-        encrypted_header_len = DfcEv2CreateTransactionMacHeaderLength, decrypt_data = true;
-    if(command[0] == DFC_CMD_COMMIT_READER_ID)
-        encrypted_header_len = DfcEv2CommitReaderIdHeaderLength, decrypt_data = true;
-    if(command[0] == DFC_CMD_CHANGE_KEY_EV2)
-        encrypted_header_len = DfcEv2ChangeKeyHeaderLength, decrypt_data = true;
     if(decrypt_data) {
         if(secured_data_len <= encrypted_header_len) return DfcEv2CommandInvalid;
         size_t decrypted_len = 0;
@@ -199,11 +222,18 @@ DfcEv2CommandSecurity dfc_ev2_prepare_command(
                secured_data_len - encrypted_header_len,
                clear_command + 1 + encrypted_header_len,
                &decrypted_len,
-               command[0] == DFC_CMD_COMMIT_READER_ID))
+               command[0] == DFC_CMD_COMMIT_READER_ID)) {
+            dfc_secure_wipe(clear_command, 1 + secured_data_len);
             return DfcEv2CommandInvalid;
+        }
+        clear_command[0] = command[0];
+        memmove(clear_command + 1, secured_data, encrypted_header_len);
         *clear_len = 1 + encrypted_header_len + decrypted_len;
+    } else {
+        memmove(clear_command, command, 1 + secured_data_len);
+        *clear_len = 1 + secured_data_len;
     }
-    return DfcEv2CommandSecured;
+    return full_command || decrypt_data ? DfcEv2CommandFull : DfcEv2CommandSecured;
 }
 
 bool dfc_ev2_protect_response(
@@ -215,39 +245,76 @@ bool dfc_ev2_protect_response(
     uint8_t* secured_response,
     size_t secured_capacity,
     size_t* secured_len) {
-    if(clear_response_len == 0 || emulator->ev2_command_counter == UINT16_MAX) return false;
+    if(!secured_len) return false;
+    *secured_len = 0;
+    if(!emulator || !clear_command || clear_command_len == 0 || !clear_response ||
+       clear_response_len == 0 || !secured_response || emulator->ev2_command_counter == UINT16_MAX)
+        return false;
     uint8_t status = clear_response[0];
     const uint8_t* response_data = clear_response + 1;
     size_t response_data_len = clear_response_len - 1;
-    emulator->ev2_command_counter++;
+    DfcFile* file = NULL;
+    uint8_t comm = command_file_comm(emulator, clear_command, clear_command_len, &file);
+    uint8_t base_command = dfc_record_command_base(clear_command[0]);
+    // GetCardUID is Full regardless of file settings; file reads inherit Full
+    // from the selected file's effective communication mode.
+    bool encrypt =
+        base_command == DFC_CMD_GET_CARD_UID ||
+        (file && comm == DFC_COMM_ENCIPHERED &&
+         (base_command == DFC_CMD_READ_DATA || base_command == DFC_CMD_READ_RECORDS ||
+          base_command == DFC_CMD_GET_VALUE || base_command == DFC_CMD_GET_FILE_COUNTERS));
 
-    uint8_t protected_data[DFC_WORKER_MAX_BUFFER_SIZE];
     size_t protected_data_len = response_data_len;
-    DfcFile* file = target_file(emulator, clear_command, clear_command_len);
-    bool encrypt = file && file->comm_settings == DFC_COMM_ENCIPHERED &&
-                   (clear_command[0] == DFC_CMD_READ_DATA ||
-                    clear_command[0] == DFC_CMD_READ_RECORDS ||
-                    clear_command[0] == DFC_CMD_GET_VALUE);
     if(encrypt) {
+        if(response_data_len >= secured_capacity) return false;
+        protected_data_len = (response_data_len / DFC_AES_KEY_LENGTH + 1) * DFC_AES_KEY_LENGTH;
+    }
+    if(protected_data_len > DFC_EV2_MAC_DATA_MAX) return false;
+    const size_t response_overhead = 1 + DFC_WIRE_MAC_LENGTH;
+    if(secured_capacity < response_overhead ||
+       protected_data_len > secured_capacity - response_overhead)
+        return false;
+
+    uint16_t response_counter = (uint16_t)(emulator->ev2_command_counter + 1);
+    uint8_t* protected_data = secured_response + 1;
+    if(encrypt) {
+        size_t encrypted_len = 0;
         if(!encrypt_response_data(
                emulator,
+               response_counter,
                response_data,
                response_data_len,
                protected_data,
-               sizeof(protected_data),
-               &protected_data_len))
+               protected_data_len,
+               &encrypted_len) ||
+           encrypted_len != protected_data_len) {
+            dfc_secure_wipe(protected_data, protected_data_len);
+            emulator->ev2_session_active = false;
+            dfc_secure_wipe(
+                emulator->ev2_session_encryption_key,
+                sizeof(emulator->ev2_session_encryption_key));
+            dfc_secure_wipe(emulator->ev2_session_mac_key, sizeof(emulator->ev2_session_mac_key));
             return false;
+        }
     } else {
-        memcpy(protected_data, response_data, response_data_len);
+        memmove(protected_data, response_data, response_data_len);
     }
 
-    if(1 + protected_data_len + DFC_WIRE_MAC_LENGTH > secured_capacity) return false;
-    uint8_t mac[DFC_WIRE_MAC_LENGTH];
-    if(!response_mac(emulator, status, protected_data, protected_data_len, mac)) return false;
+    uint8_t mac[DFC_WIRE_MAC_LENGTH] = {0};
+    if(!response_mac(emulator, response_counter, status, protected_data, protected_data_len, mac)) {
+        dfc_secure_wipe(protected_data, protected_data_len);
+        dfc_secure_wipe(mac, sizeof(mac));
+        emulator->ev2_session_active = false;
+        dfc_secure_wipe(
+            emulator->ev2_session_encryption_key, sizeof(emulator->ev2_session_encryption_key));
+        dfc_secure_wipe(emulator->ev2_session_mac_key, sizeof(emulator->ev2_session_mac_key));
+        return false;
+    }
     secured_response[0] = status;
-    memcpy(secured_response + 1, protected_data, protected_data_len);
     memcpy(secured_response + 1 + protected_data_len, mac, sizeof(mac));
     *secured_len = 1 + protected_data_len + sizeof(mac);
+    emulator->ev2_command_counter = response_counter;
+    dfc_secure_wipe(mac, sizeof(mac));
     return true;
 }
 
@@ -276,7 +343,7 @@ DfcEv2CommandSecurity dfc_ev2_prepare_command(
     size_t* clear_len) {
     DFC_UNUSED(emulator);
     if(command_len > clear_capacity) return DfcEv2CommandInvalid;
-    memcpy(clear_command, command, command_len);
+    memmove(clear_command, command, command_len);
     *clear_len = command_len;
     return DfcEv2CommandPlain;
 }

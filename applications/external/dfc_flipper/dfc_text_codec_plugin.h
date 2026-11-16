@@ -4,7 +4,7 @@
 
 #define DFC_TEXT_IMPORT_PLUGIN_ID         "dfc_text_import"
 #define DFC_TEXT_EXPORT_PLUGIN_ID         "dfc_text_export"
-#define DFC_TEXT_CODEC_PLUGIN_API_VERSION 1
+#define DFC_TEXT_CODEC_PLUGIN_API_VERSION 2
 #define DFC_TEXT_IMPORT_PLUGIN_PATH       APP_ASSETS_PATH("plugins/dfc_text_import.fal")
 #define DFC_TEXT_EXPORT_PLUGIN_PATH       APP_ASSETS_PATH("plugins/dfc_text_export.fal")
 
@@ -17,11 +17,23 @@ typedef struct {
     __typeof__(&dfc_credential_key_in_set) dfc_credential_key_in_set;
     __typeof__(&dfc_credential_key_in_set_const) dfc_credential_key_in_set_const;
     __typeof__(&dfc_credential_key_length) dfc_credential_key_length;
+    __typeof__(&dfc_credential_stored_key_length) dfc_credential_stored_key_length;
     __typeof__(&dfc_credential_key_sets_resize) dfc_credential_key_sets_resize;
     __typeof__(&dfc_credential_key_version_in_set) dfc_credential_key_version_in_set;
+    __typeof__(&dfc_credential_key_version_in_set_const) dfc_credential_key_version_in_set_const;
+    __typeof__(&dfc_credential_key_set_version) dfc_credential_key_set_version;
+    __typeof__(&dfc_credential_key_set_version_const) dfc_credential_key_set_version_const;
+    __typeof__(&dfc_credential_key_set_type) dfc_credential_key_set_type;
+    __typeof__(&dfc_credential_key_set_type_const) dfc_credential_key_set_type_const;
+    __typeof__(&dfc_credential_key_set_is_initialized) dfc_credential_key_set_is_initialized;
+    __typeof__(&dfc_credential_key_set_set_initialized) dfc_credential_key_set_set_initialized;
     __typeof__(&dfc_credential_keys_resize) dfc_credential_keys_resize;
     __typeof__(&dfc_credential_picc_auth_commands) dfc_credential_picc_auth_commands;
     __typeof__(&dfc_credential_reset_application) dfc_credential_reset_application;
+    __typeof__(&dfc_credential_validate_model) dfc_credential_validate_model;
+    __typeof__(&dfc_uid_length_is_valid) dfc_uid_length_is_valid;
+    __typeof__(&dfc_iso_file_id_is_reserved) dfc_iso_file_id_is_reserved;
+    __typeof__(&dfc_key_set_type_length) dfc_key_set_type_length;
     __typeof__(&dfc_der_decode) dfc_der_decode;
     __typeof__(&dfc_der_status_name) dfc_der_status_name;
     __typeof__(&dfc_der_validate_model) dfc_der_validate_model;

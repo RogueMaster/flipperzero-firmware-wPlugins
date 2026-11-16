@@ -503,21 +503,6 @@ TC_status tc_aes_cipher(state_t* state, const uint8_t* round_key)
 }
 #endif
 
-#if TC_AES_CAVP
-TC_status TC_AES_CAVP_encrypt_block(TC_bytes key, TC_buffer block)
-{
-  struct TC_AES_key_ctx schedule;
-  TC_status status = TC_AES_key_init(&schedule, key);
-  if (status == TC_OK && block.capacity == TC_AES_BLOCKLEN)
-    status = tc_aes_cipher((state_t*)block.data, schedule.round_key);
-  else
-    status = TC_ERROR;
-  TC_AES_key_ctx_clear(&schedule);
-  return status;
-}
-
-#endif
-
 #if TC_AES_NEED_INVERSE
 TC_status tc_aes_inverse_rounds(state_t* state, const uint8_t* round_key, uint8_t rounds)
 {
@@ -539,16 +524,29 @@ TC_status tc_aes_inverse_rounds(state_t* state, const uint8_t* round_key, uint8_
 #endif
 
 #if TC_AES_CAVP
-TC_status TC_AES_CAVP_decrypt_block(TC_bytes key, TC_buffer block)
+/* One block in place with a freshly scheduled key. */
+static TC_status tc_aes_cavp_block(TC_bytes key, TC_buffer block, int decrypt)
 {
   struct TC_AES_key_ctx schedule;
-  TC_status status = TC_AES_key_init(&schedule, key);
-  if (status == TC_OK && block.capacity == TC_AES_BLOCKLEN)
-    status = tc_aes_inverse_rounds((state_t*)block.data, schedule.round_key, Nr);
-  else
-    status = TC_ERROR;
+  TC_status status;
+  if (block.data == NULL || block.capacity != TC_AES_BLOCKLEN)
+    return TC_ERROR;
+  status = TC_AES_key_init(&schedule, key);
+  if (status == TC_OK)
+    status = decrypt ? tc_aes_inverse_rounds((state_t*)block.data, schedule.round_key, Nr)
+                     : tc_aes_cipher((state_t*)block.data, schedule.round_key);
   TC_AES_key_ctx_clear(&schedule);
   return status;
+}
+
+TC_status TC_AES_CAVP_encrypt_block(TC_bytes key, TC_buffer block)
+{
+  return tc_aes_cavp_block(key, block, 0);
+}
+
+TC_status TC_AES_CAVP_decrypt_block(TC_bytes key, TC_buffer block)
+{
+  return tc_aes_cavp_block(key, block, 1);
 }
 #endif
 #if TC_AES_ENABLE_DYNAMIC

@@ -4,6 +4,11 @@
 #include <stddef.h>
 #include <stdint.h>
 
+typedef struct {
+    const uint8_t* data;
+    size_t length;
+} DfcCryptoSegment;
+
 /*
  * Crypto adapter for the small block-cipher surface that DFC uses.
  *

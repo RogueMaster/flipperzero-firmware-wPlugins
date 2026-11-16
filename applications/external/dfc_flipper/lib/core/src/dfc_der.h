@@ -21,16 +21,11 @@
 #define DFC_DER_MAX_SIZE 65535
 
 // Error classes from section 2.4. Conformance is on the class, not the message.
-typedef enum {
-    DfcDerOk = 0,
-    // Violates section 2.1 or 2.2: broken encoding, out-of-range value, or a
-    // semantic constraint from section 2.2.4.
-    DfcDerMalformed,
-    // Well formed, but names something this build does not implement.
-    DfcDerUnsupported,
-    // Well formed and supported, but larger than this build can hold.
-    DfcDerCapacity,
-} DfcDerStatus;
+typedef DfcModelStatus DfcDerStatus;
+#define DfcDerOk          DfcModelOk
+#define DfcDerMalformed   DfcModelMalformed
+#define DfcDerUnsupported DfcModelUnsupported
+#define DfcDerCapacity    DfcModelCapacity
 
 #if DFC_ENABLE_BINARY_CODEC
 
@@ -56,14 +51,16 @@ DfcDerStatus
 
 #if DFC_ENABLE_DER_DECODER
 // Decode `in` into `credential`, which is cleared first. Enforces the section
-// 2.2.1 subset and every section 2.2.4 semantic rule.
+// 2.2.1 subset and every section 2.2.4 semantic rule. On any failure, including
+// invalid arguments, `credential` is left empty (see dfc_credential_clear) and
+// every octet decoded before the fault is wiped; it is never left partly
+// populated. A non-NULL `credential` is therefore always safe to reuse or free.
 DfcDerStatus dfc_der_decode(DfcCredential* credential, const uint8_t* in, size_t len);
 
 #endif
 
-// Checks the model rules that both encodings share: generation gating, file
-// consistency, and the bounds a field addresses. Returns DfcDerOk when the
-// model is sound.
+// Compatibility entry point. New code should call
+// dfc_credential_validate_model from dfc_credential.h.
 DfcDerStatus dfc_der_validate_model(const DfcCredential* credential);
 
 #if DFC_ENABLE_DER_ENCODER

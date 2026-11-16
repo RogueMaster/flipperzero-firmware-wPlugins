@@ -40,6 +40,7 @@ FORWARD(
     (const DfcCredential* c, const DfcApplication* a, size_t set, size_t slot),
     (c, a, set, slot))
 FORWARD(size_t, dfc_credential_key_length, (uint8_t settings), (settings))
+FORWARD(size_t, dfc_credential_stored_key_length, (size_t length), (length))
 FORWARD(
     bool,
     dfc_credential_key_sets_resize,
@@ -53,14 +54,53 @@ FORWARD(
 FORWARD(
     uint8_t*,
     dfc_credential_key_version_in_set,
-    (DfcApplication * a, size_t set, size_t slot),
-    (a, set, slot))
+    (DfcCredential * c, DfcApplication* a, size_t set, size_t slot),
+    (c, a, set, slot))
+FORWARD(
+    const uint8_t*,
+    dfc_credential_key_version_in_set_const,
+    (const DfcCredential* c, const DfcApplication* a, size_t set, size_t slot),
+    (c, a, set, slot))
+FORWARD(
+    uint8_t*,
+    dfc_credential_key_set_version,
+    (DfcCredential * c, DfcApplication* a, size_t set),
+    (c, a, set))
+FORWARD(
+    const uint8_t*,
+    dfc_credential_key_set_version_const,
+    (const DfcCredential* c, const DfcApplication* a, size_t set),
+    (c, a, set))
+FORWARD(
+    uint8_t*,
+    dfc_credential_key_set_type,
+    (DfcCredential * c, DfcApplication* a, size_t set),
+    (c, a, set))
+FORWARD(
+    const uint8_t*,
+    dfc_credential_key_set_type_const,
+    (const DfcCredential* c, const DfcApplication* a, size_t set),
+    (c, a, set))
+FORWARD(
+    bool,
+    dfc_credential_key_set_is_initialized,
+    (const DfcCredential* c, const DfcApplication* a, size_t set),
+    (c, a, set))
+FORWARD(
+    bool,
+    dfc_credential_key_set_set_initialized,
+    (DfcCredential * c, DfcApplication* a, size_t set, bool initialized),
+    (c, a, set, initialized))
 FORWARD(
     bool,
     dfc_credential_keys_resize,
     (DfcCredential * c, DfcApplication* a, size_t count, size_t length),
     (c, a, count, length))
 FORWARD(uint8_t, dfc_credential_picc_auth_commands, (const DfcCredential* c), (c))
+FORWARD(DfcModelStatus, dfc_credential_validate_model, (const DfcCredential* c), (c))
+FORWARD(bool, dfc_uid_length_is_valid, (size_t length), (length))
+FORWARD(bool, dfc_iso_file_id_is_reserved, (uint16_t value), (value))
+FORWARD(size_t, dfc_key_set_type_length, (uint8_t type), (type))
 
 void dfc_credential_reset_application(DfcApplication* a) {
     host_api->dfc_credential_reset_application(a);

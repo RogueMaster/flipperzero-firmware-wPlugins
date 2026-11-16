@@ -47,7 +47,7 @@ int main(int argc, char** argv) {
         file->type = 0x00;
         file->comm_settings = DFC_COMM_PLAIN;
         file->access_rights = 0xEEEE;
-        file->declared_size = length;
+        if(!dfc_file_set_declared_size(file, length)) return 1;
         file->contents_complete = true;
         memset(dfc_file_data(credential, file), (int)number, length);
         remaining -= length;

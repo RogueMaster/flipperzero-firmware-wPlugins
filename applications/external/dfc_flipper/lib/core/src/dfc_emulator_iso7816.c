@@ -8,7 +8,6 @@
 #define ISO14443_4A_CID_MASK DFC_ISO14443_4A_CID_MASK
 #define ISO14443_4A_NAD_MASK DFC_ISO14443_4A_NAD_MASK
 
-
 bool dfc_emulator_handle_iso7816_select(
     DfcEmulator* emulator,
     const uint8_t* apdu,
@@ -38,11 +37,10 @@ bool dfc_emulator_handle_iso7816_select(
          * following command from the wrong level. */
         for(size_t i = 0; i < emulator->credential->num_apps; i++) {
             DfcApplication* app = &emulator->credential->apps[i];
-            if(app->iso_aid_len > 0 && lc == app->iso_aid_len && memcmp(data, app->iso_aid, lc) == 0) {
+            if(app->iso_aid_len > 0 && lc == app->iso_aid_len &&
+               memcmp(data, app->iso_aid, lc) == 0) {
                 DFC_LOG_T(TAG, "ISO7816 SELECT matched app index %u", (unsigned int)i);
-                dfc_emulator_reset_session(emulator);
-                emulator->selected_application = DfcEmulatorSelectedApplicationApp;
-                emulator->selected_app_index = i;
+                dfc_emulator_select_application(emulator, DfcEmulatorSelectedApplicationApp, i);
                 dfc_bytebuf_append_byte(tx_buffer, DFC_ISO7816_SW_OK_HI);
                 dfc_bytebuf_append_byte(tx_buffer, DFC_ISO7816_SW_OK_LO);
                 if(app_selected) *app_selected = true;
@@ -52,8 +50,7 @@ bool dfc_emulator_handle_iso7816_select(
 
         if(lc == sizeof(DFC_ISO_AID) && memcmp(data, DFC_ISO_AID, lc) == 0) {
             DFC_LOG_T(TAG, "ISO7816 SELECT matched HID ISO AID");
-            dfc_emulator_reset_session(emulator);
-            emulator->selected_application = DfcEmulatorSelectedApplicationPicc;
+            dfc_emulator_select_application(emulator, DfcEmulatorSelectedApplicationPicc, 0);
             dfc_bytebuf_append_byte(tx_buffer, DFC_ISO7816_SW_OK_HI);
             dfc_bytebuf_append_byte(tx_buffer, DFC_ISO7816_SW_OK_LO);
             return true;
@@ -62,7 +59,6 @@ bool dfc_emulator_handle_iso7816_select(
 
     DFC_LOG_T(TAG, "ISO7816 SELECT not found p1=%02X lc=%u", p1, lc);
     dfc_emulator_reset_session(emulator);
-    emulator->selected_application = DfcEmulatorSelectedApplicationPicc;
     dfc_bytebuf_append_byte(tx_buffer, DFC_ISO7816_SW_NOT_FOUND_HI);
     dfc_bytebuf_append_byte(tx_buffer, DFC_ISO7816_SW_NOT_FOUND_LO);
     return dfc_bytebuf_get_size_bytes(tx_buffer) > prefix_len;

@@ -100,7 +100,8 @@ TC_status TC_AES_init(struct TC_AES_ctx* ctx, TC_bytes key);
 #endif
 #if TC_ENABLE_AES && TC_AES_CAVP
 /* Test-only single-block hooks used by the AESAVS harness. They return
- * TC_ERROR, leaving block unchanged, when the key cannot be scheduled. */
+ * TC_ERROR, leaving block unchanged, when the key cannot be scheduled or
+ * block is not TC_AES_BLOCKLEN bytes of storage. */
 TC_status TC_AES_CAVP_encrypt_block(TC_bytes key, TC_buffer block);
 TC_status TC_AES_CAVP_decrypt_block(TC_bytes key, TC_buffer block);
 #endif
@@ -189,8 +190,8 @@ TC_status TC_AES_OFB_crypt(struct TC_AES_ctx* ctx, TC_buffer buf);
  *   (SP 800-38B Appendix A.2). GCM short tags follow SP 800-38D Appendix C.
  * - The text output capacity must be at least the text input length.
  * - Text input and output are exact aliases or fully disjoint. The tag is
- *   disjoint from the text output. SIV associated data is disjoint from the
- *   text output. A violation returns TC_ERROR before a write.
+ *   disjoint from the text output. SIV associated data and its descriptor
+ *   array are disjoint from the text output. A violation returns TC_ERROR before a write.
  * - The key, and the nonce and AAD of GCM, CCM, EAX and EAX', may share
  *   storage with the text output. Each is read in full before the first
  *   output write.
@@ -452,8 +453,8 @@ void TC_AES_CMAC_ctx_clear(struct TC_AES_CMAC_ctx* ctx);
  * contract above. key is TC_AES_SIV_KEYLEN bytes: the S2V CMAC key, then the
  * CTR key. Associated data is an array of 0..TC_AES_SIV_MAX_AD spans, read in
  * place (empty components are valid). ad may be NULL when ad_count is 0.
- * Every AD span must be disjoint from the text output, because decrypt runs
- * S2V over the AD after writing candidate plaintext. Ciphertext length
+ * The ad array and every AD span must be disjoint from the text output,
+ * because decrypt runs S2V over the AD after writing candidate plaintext. Ciphertext length
  * equals plaintext length. v is the 16-byte synthetic IV, written by encrypt
  * only on success and read by decrypt. v may alias plaintext when ciphertext
  * is distinct. Any overlap between v and the text output returns TC_ERROR.

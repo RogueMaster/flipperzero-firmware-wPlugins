@@ -13,64 +13,73 @@
 #include "dfc_crypto.h"
 
 // DESFire native command bytes used by this app
-#define DFC_CMD_AUTHENTICATE_LEGACY  0x0A
-#define DFC_CMD_AUTHENTICATE_ISO     0x1A
-#define DFC_CMD_AUTHENTICATE_AES     0xAA
-#define DFC_CMD_AUTHENTICATE_EV2_FIRST 0x71
-#define DFC_CMD_AUTHENTICATE_EV2_NON_FIRST 0x77
-#define DFC_AUTH_COMMAND_D40          (1u << 0)
-#define DFC_AUTH_COMMAND_ISO_NATIVE    (1u << 1)
-#define DFC_AUTH_COMMAND_AES           (1u << 2)
-#define DFC_AUTH_COMMAND_EV2_FIRST     (1u << 3)
-#define DFC_AUTH_COMMAND_EV2_NON_FIRST (1u << 4)
-#define DFC_AUTH_COMMAND_ISO7816       (1u << 5)
-#define DFC_AUTH_COMMAND_ALL           ((1u << 6) - 1u)
-#define DFC_SM_DISABLE_D40             (1u << 0)
-#define DFC_SM_DISABLE_EV1             (1u << 1)
-#define DFC_SM_DISABLE_EV2_CHAINED_WRITE (1u << 2)
-#define DFC_CMD_ADDITIONAL_FRAME     0xAF
-#define DFC_CMD_CHANGE_KEY_SETTINGS  0x54
-#define DFC_CMD_GET_VERSION          0x60
-#define DFC_CMD_GET_CARD_UID         0x51
-#define DFC_CMD_SELECT_APPLICATION   0x5A
-#define DFC_CMD_GET_KEY_SETTINGS     0x45
-#define DFC_CMD_GET_KEY_VERSION      0x64
-#define DFC_CMD_INITIALIZE_KEY_SET   0x56
-#define DFC_CMD_FINALIZE_KEY_SET     0x57
-#define DFC_CMD_ROLL_KEY_SET         0x55
-#define DFC_CMD_GET_APPLICATION_IDS  0x6A
-#define DFC_CMD_GET_DF_NAMES         0x6D
-#define DFC_CMD_FREE_MEM             0x6E
-#define DFC_CMD_CREATE_APPLICATION   0xCA
-#define DFC_CMD_DELETE_APPLICATION   0xDA
-#define DFC_CMD_FORMAT_PICC          0xFC
-#define DFC_CMD_GET_ISO_FILE_IDS     0x61
-#define DFC_CMD_GET_FILE_IDS         0x6F
-#define DFC_CMD_GET_FILE_SETTINGS    0xF5
-#define DFC_CMD_CHANGE_FILE_SETTINGS 0x5F
-#define DFC_CMD_CREATE_STD_DATA_FILE 0xCD
-#define DFC_CMD_CREATE_BACKUP_DATA_FILE 0xCB
-#define DFC_CMD_CREATE_LINEAR_RECORD_FILE 0xC1
-#define DFC_CMD_CREATE_CYCLIC_RECORD_FILE 0xC0
-#define DFC_CMD_CREATE_VALUE_FILE    0xCC
-#define DFC_CMD_DELETE_FILE          0xDF
-#define DFC_CMD_CHANGE_KEY           0xC4
-#define DFC_CMD_CHANGE_KEY_EV2       0xC6
+#define DFC_CMD_AUTHENTICATE_LEGACY          0x0A
+#define DFC_CMD_AUTHENTICATE_ISO             0x1A
+#define DFC_CMD_AUTHENTICATE_AES             0xAA
+#define DFC_CMD_AUTHENTICATE_EV2_FIRST       0x71
+#define DFC_CMD_AUTHENTICATE_EV2_NON_FIRST   0x77
+#define DFC_AUTH_COMMAND_D40                 (1u << 0)
+#define DFC_AUTH_COMMAND_ISO_NATIVE          (1u << 1)
+#define DFC_AUTH_COMMAND_AES                 (1u << 2)
+#define DFC_AUTH_COMMAND_EV2_FIRST           (1u << 3)
+#define DFC_AUTH_COMMAND_EV2_NON_FIRST       (1u << 4)
+#define DFC_AUTH_COMMAND_ISO7816             (1u << 5)
+#define DFC_AUTH_COMMAND_ALL                 ((1u << 6) - 1u)
+#define DFC_SM_DISABLE_D40                   (1u << 0)
+#define DFC_SM_DISABLE_EV1                   (1u << 1)
+#define DFC_SM_DISABLE_EV2_CHAINED_WRITE     (1u << 2)
+#define DFC_CMD_ADDITIONAL_FRAME             0xAF
+#define DFC_CMD_CHANGE_KEY_SETTINGS          0x54
+#define DFC_CMD_GET_VERSION                  0x60
+#define DFC_CMD_GET_CARD_UID                 0x51
+#define DFC_CMD_SELECT_APPLICATION           0x5A
+#define DFC_CMD_GET_KEY_SETTINGS             0x45
+#define DFC_CMD_GET_KEY_VERSION              0x64
+#define DFC_CMD_INITIALIZE_KEY_SET           0x56
+#define DFC_CMD_FINALIZE_KEY_SET             0x57
+#define DFC_CMD_ROLL_KEY_SET                 0x55
+#define DFC_CMD_GET_APPLICATION_IDS          0x6A
+#define DFC_CMD_GET_DF_NAMES                 0x6D
+#define DFC_CMD_FREE_MEM                     0x6E
+#define DFC_CMD_CREATE_APPLICATION           0xCA
+#define DFC_CMD_DELETE_APPLICATION           0xDA
+#define DFC_CMD_FORMAT_PICC                  0xFC
+#define DFC_CMD_GET_ISO_FILE_IDS             0x61
+#define DFC_CMD_GET_FILE_IDS                 0x6F
+#define DFC_CMD_GET_FILE_SETTINGS            0xF5
+#define DFC_CMD_CHANGE_FILE_SETTINGS         0x5F
+#define DFC_CMD_CREATE_STD_DATA_FILE         0xCD
+#define DFC_CMD_CREATE_BACKUP_DATA_FILE      0xCB
+#define DFC_CMD_CREATE_LINEAR_RECORD_FILE    0xC1
+#define DFC_CMD_CREATE_CYCLIC_RECORD_FILE    0xC0
+#define DFC_CMD_CREATE_VALUE_FILE            0xCC
+#define DFC_CMD_DELETE_FILE                  0xDF
+#define DFC_CMD_CHANGE_KEY                   0xC4
+#define DFC_CMD_CHANGE_KEY_EV2               0xC6
 #define DFC_CMD_CREATE_DELEGATED_APPLICATION 0xC9
-#define DFC_CMD_GET_DELEGATED_INFO   0x69
-#define DFC_CMD_GET_VALUE            0x6C
-#define DFC_CMD_CREDIT               0x0C
-#define DFC_CMD_LIMITED_CREDIT       0x1C
-#define DFC_CMD_DEBIT                0xDC
-#define DFC_CMD_COMMIT_TRANSACTION   0xC7
-#define DFC_CMD_ABORT_TRANSACTION    0xA7
-#define DFC_CMD_READ_DATA            0xBD
-#define DFC_CMD_WRITE_DATA           0x3D
-#define DFC_CMD_WRITE_RECORD         0x3B
-#define DFC_CMD_READ_RECORDS         0xBB
-#define DFC_CMD_UPDATE_RECORD        0xDB
-#define DFC_CMD_UPDATE_RECORD_ISO    0xBA
-#define DFC_CMD_CLEAR_RECORD_FILE    0xEB
+#define DFC_CMD_GET_DELEGATED_INFO           0x69
+#define DFC_CMD_GET_VALUE                    0x6C
+#define DFC_CMD_CREDIT                       0x0C
+#define DFC_CMD_LIMITED_CREDIT               0x1C
+#define DFC_CMD_DEBIT                        0xDC
+#define DFC_CMD_COMMIT_TRANSACTION           0xC7
+#define DFC_CMD_ABORT_TRANSACTION            0xA7
+#define DFC_CMD_READ_DATA                    0xBD
+#define DFC_CMD_WRITE_DATA                   0x3D
+#define DFC_CMD_WRITE_RECORD                 0x3B
+#define DFC_CMD_WRITE_RECORD_ISO             0x8B
+#define DFC_CMD_READ_RECORDS                 0xBB
+#define DFC_CMD_READ_RECORDS_ISO             0xAB
+
+// Classify record variants without changing bytes authenticated on the wire.
+static inline uint8_t dfc_record_command_base(uint8_t command) {
+    if(command == DFC_CMD_READ_RECORDS_ISO) return DFC_CMD_READ_RECORDS;
+    if(command == DFC_CMD_WRITE_RECORD_ISO) return DFC_CMD_WRITE_RECORD;
+    return command;
+}
+#define DFC_CMD_UPDATE_RECORD           0xDB
+#define DFC_CMD_UPDATE_RECORD_ISO       0xBA
+#define DFC_CMD_CLEAR_RECORD_FILE       0xEB
 #define DFC_CMD_PREPARE_PROXIMITY_CHECK 0xF0
 #define DFC_CMD_PROXIMITY_CHECK         0xF2
 #define DFC_CMD_VERIFY_PROXIMITY_CHECK  0xFD
@@ -81,17 +90,17 @@
 // INS=0xA4) before or instead of native framing, and some PC/SC paths pass native DESFire
 // commands through wrapped in an ISO7816 command envelope (CLA=0x90, INS=<native cmd>,
 // P1=P2=0x00, Lc, data, Le=0x00), responding with <data> 0x91 <native status>.
-#define DFC_ISO7816_CLA_STANDARD            0x00
-#define DFC_ISO7816_CLA_WRAPPER             0x90
-#define DFC_ISO7816_INS_SELECT              0xA4
-#define DFC_ISO7816_INS_READ_BINARY         0xB0
-#define DFC_ISO7816_INS_UPDATE_BINARY       0xD6
-#define DFC_ISO7816_INS_READ_RECORD         0xB2
-#define DFC_ISO7816_SELECT_BY_FILE_ID        0x00
-#define DFC_ISO7816_SELECT_CHILD_DF          0x01
-#define DFC_ISO7816_SELECT_CHILD_EF          0x02
-#define DFC_ISO7816_SELECT_PARENT            0x03
-#define DFC_ISO7816_SELECT_BY_DF_NAME        0x04
+#define DFC_ISO7816_CLA_STANDARD              0x00
+#define DFC_ISO7816_CLA_WRAPPER               0x90
+#define DFC_ISO7816_INS_SELECT                0xA4
+#define DFC_ISO7816_INS_READ_BINARY           0xB0
+#define DFC_ISO7816_INS_UPDATE_BINARY         0xD6
+#define DFC_ISO7816_INS_READ_RECORD           0xB2
+#define DFC_ISO7816_SELECT_BY_FILE_ID         0x00
+#define DFC_ISO7816_SELECT_CHILD_DF           0x01
+#define DFC_ISO7816_SELECT_CHILD_EF           0x02
+#define DFC_ISO7816_SELECT_PARENT             0x03
+#define DFC_ISO7816_SELECT_BY_DF_NAME         0x04
 #define DFC_ISO7816_INS_EXTERNAL_AUTHENTICATE 0x82
 #define DFC_ISO7816_INS_GET_CHALLENGE         0x84
 #define DFC_ISO7816_INS_INTERNAL_AUTHENTICATE 0x88
@@ -109,89 +118,108 @@
 #define DFC_ISO7816_SW_INSTRUCTION_LO         0x00
 #define DFC_ISO7816_SW_WRONG_LE_HI            0x6C
 #define DFC_ISO7816_SW_WRONG_LE_LO            0x00
-#define DFC_ISO7816_SELECT_PATH_FROM_MF      0x08
-#define DFC_ISO7816_SELECT_PATH_FROM_DF      0x09
-#define DFC_ISO7816_STATUS_WORD_LENGTH       2
+#define DFC_ISO7816_SW_NO_DIAGNOSTIC_HI       0x6F
+#define DFC_ISO7816_SW_NO_DIAGNOSTIC_LO       0x00
+#define DFC_ISO7816_SW_EOF_BEFORE_LE_HI       0x62
+#define DFC_ISO7816_SW_EOF_BEFORE_LE_LO       0x82
+#define DFC_ISO7816_SELECT_PATH_FROM_MF       0x08
+#define DFC_ISO7816_SELECT_PATH_FROM_DF       0x09
+#define DFC_ISO7816_STATUS_WORD_LENGTH        2
 #define DFC_ISO7816_MASTER_FILE_ID            0x3F00
-#define DFC_ISO7816_SW_OK_HI                0x90
-#define DFC_ISO7816_SW_OK_LO                0x00
-#define DFC_ISO7816_SW_NOT_FOUND_HI         0x6A
-#define DFC_ISO7816_SW_NOT_FOUND_LO         0x82
-#define DFC_ISO7816_SW_WRONG_PARAMETERS_HI  0x6A
-#define DFC_ISO7816_SW_WRONG_PARAMETERS_LO  0x86
-#define DFC_ISO7816_SW_INS_NOT_SUPPORTED_HI 0x6D
-#define DFC_ISO7816_SW_INS_NOT_SUPPORTED_LO 0x00
+#define DFC_ISO7816_SW_OK_HI                  0x90
+#define DFC_ISO7816_SW_OK_LO                  0x00
+#define DFC_ISO7816_SW_NOT_FOUND_HI           0x6A
+#define DFC_ISO7816_SW_NOT_FOUND_LO           0x82
+#define DFC_ISO7816_SW_WRONG_PARAMETERS_HI    0x6A
+#define DFC_ISO7816_SW_WRONG_PARAMETERS_LO    0x86
+#define DFC_ISO7816_SW_INS_NOT_SUPPORTED_HI   0x6D
+#define DFC_ISO7816_SW_INS_NOT_SUPPORTED_LO   0x00
 // DESFire ISO7816 DF name, used to select the PICC/master file via standard
 // SELECT-by-DF-name (P1=0x04) regardless of which application AID is currently active.
 extern const uint8_t DFC_ISO_AID[7];
 
-#define DFC_STATUS_OK                    0x00
-#define DFC_STATUS_NO_CHANGES            0x0C
+#define DFC_STATUS_OK                     0x00
+#define DFC_STATUS_NO_CHANGES             0x0C
 #define DFC_STATUS_PROXIMITY_KEY_DISABLED 0x0B
-#define DFC_STATUS_OUT_OF_EEPROM         0x0E
-#define DFC_STATUS_ILLEGAL_COMMAND_CODE  0x1C // command code not supported/recognized
-#define DFC_STATUS_INTEGRITY_ERROR       0x1E
-#define DFC_STATUS_NO_SUCH_KEY           0x40
-#define DFC_STATUS_LENGTH_ERROR          0x7E
-#define DFC_STATUS_SPECIAL_SUCCESS       0x90
-#define DFC_STATUS_PERMISSION_DENIED     0x9D
-#define DFC_STATUS_PARAMETER_ERROR       0x9E
-#define DFC_STATUS_APPLICATION_NOT_FOUND 0xA0
-#define DFC_STATUS_AUTHENTICATION_ERR    0xAE
-#define DFC_STATUS_BOUNDARY_ERROR        0xBE
-#define DFC_STATUS_COMMAND_ABORTED       0xCA
-#define DFC_STATUS_COUNT_ERROR           0xCE
-#define DFC_STATUS_DUPLICATE_ERROR       0xDE
-#define DFC_STATUS_FILE_NOT_FOUND        0xF0
+#define DFC_STATUS_OUT_OF_EEPROM          0x0E
+#define DFC_STATUS_ILLEGAL_COMMAND_CODE   0x1C // command code not supported/recognized
+#define DFC_STATUS_INTEGRITY_ERROR        0x1E
+#define DFC_STATUS_NO_SUCH_KEY            0x40
+#define DFC_STATUS_LENGTH_ERROR           0x7E
+#define DFC_STATUS_SPECIAL_SUCCESS        0x90
+#define DFC_STATUS_PERMISSION_DENIED      0x9D
+#define DFC_STATUS_PARAMETER_ERROR        0x9E
+#define DFC_STATUS_APPLICATION_NOT_FOUND  0xA0
+#define DFC_STATUS_AUTHENTICATION_ERR     0xAE
+#define DFC_STATUS_BOUNDARY_ERROR         0xBE
+#define DFC_STATUS_COMMAND_ABORTED        0xCA
+#define DFC_STATUS_COUNT_ERROR            0xCE
+#define DFC_STATUS_DUPLICATE_ERROR        0xDE
+#define DFC_STATUS_MEMORY_ERROR           0xEE
+#define DFC_STATUS_FILE_NOT_FOUND         0xF0
 
-#define DFC_CHANGE_KEY_EV2_HEADER_LENGTH 3
+#define DFC_CHANGE_KEY_EV2_HEADER_LENGTH               3
 #define DFC_CHANGE_KEY_EV2_AES_SHORT_CRYPTOGRAM_LENGTH 24
-#define DFC_CHANGE_KEY_EV2_AES_CRYPTOGRAM_LENGTH 32
-#define DFC_CHANGE_KEY_EV2_LONG_CRYPTOGRAM_LENGTH 40
-#define DFC_CHANGE_KEY_EV2_VERSION_LENGTH 1
-#define DFC_CHANGE_KEY_EV2_CRC_LENGTH 4
+#define DFC_CHANGE_KEY_EV2_AES_CRYPTOGRAM_LENGTH       32
+#define DFC_CHANGE_KEY_EV2_LONG_CRYPTOGRAM_LENGTH      40
+#define DFC_CHANGE_KEY_EV2_VERSION_LENGTH              1
+#define DFC_CHANGE_KEY_EV2_CRC_LENGTH                  4
 #define DFC_CHANGE_KEY_EV2_SAME_KEY_CLEAR_LENGTH \
-    (DFC_CHANGE_KEY_EV2_HEADER_LENGTH + DFC_AES_KEY_LENGTH + \
-     DFC_CHANGE_KEY_EV2_VERSION_LENGTH)
+    (DFC_CHANGE_KEY_EV2_HEADER_LENGTH + DFC_AES_KEY_LENGTH + DFC_CHANGE_KEY_EV2_VERSION_LENGTH)
 #define DFC_CHANGE_KEY_EV2_OTHER_KEY_CLEAR_LENGTH \
     (DFC_CHANGE_KEY_EV2_SAME_KEY_CLEAR_LENGTH + DFC_CHANGE_KEY_EV2_CRC_LENGTH)
 #define DFC_DELEGATED_CREATE_HEADER_LENGTH 11
-#define DFC_DELEGATED_INFO_COMMAND_LENGTH 3
-#define DFC_DAM_AUTH_KEY_NUMBER 0x10
-#define DFC_VC_CONFIGURATION_KEY_NUMBER 0x20
-#define DFC_DAM_MAC_KEY_NUMBER 0x11
-#define DFC_DAM_ENCRYPTION_KEY_NUMBER 0x12
+#define DFC_DELEGATED_INFO_COMMAND_LENGTH  3
+#define DFC_DAM_AUTH_KEY_NUMBER            0x10
+#define DFC_VC_CONFIGURATION_KEY_NUMBER    0x20
+#define DFC_DAM_MAC_KEY_NUMBER             0x11
+#define DFC_DAM_ENCRYPTION_KEY_NUMBER      0x12
 #define DFC_DELEGATED_ENCRYPTED_KEY_LENGTH 32
-#define DFC_DELEGATED_MAC_LENGTH DFC_WIRE_MAC_LENGTH
+#define DFC_DELEGATED_MAC_LENGTH           DFC_WIRE_MAC_LENGTH
 #define DFC_DELEGATED_SECOND_FRAME_LENGTH \
     (1 + DFC_DELEGATED_ENCRYPTED_KEY_LENGTH + DFC_DELEGATED_MAC_LENGTH)
-#define DFC_DELEGATED_RANDOM_PREFIX_LENGTH 7
-#define DFC_DELEGATED_DEFAULT_KEY_LENGTH 24
-#define DFC_DELEGATED_DEFAULT_KEY_VERSION_LENGTH 1
-#define DFC_DELEGATED_CREATE_MAX_HEADER_LENGTH 34
-#define DFC_DELEGATED_AID_OFFSET 1
-#define DFC_DELEGATED_SLOT_OFFSET 4
-#define DFC_DELEGATED_SLOT_VERSION_OFFSET 6
-#define DFC_DELEGATED_QUOTA_OFFSET 7
-#define DFC_DELEGATED_KEY_SETTINGS_1_OFFSET 9
-#define DFC_DELEGATED_KEY_SETTINGS_2_OFFSET 10
-#define DFC_APPLICATION_GENERAL_OVERHEAD_BLOCKS 1
+#define DFC_DELEGATED_RANDOM_PREFIX_LENGTH        7
+#define DFC_DELEGATED_DEFAULT_KEY_LENGTH          24
+#define DFC_DELEGATED_DEFAULT_KEY_VERSION_LENGTH  1
+#define DFC_DELEGATED_CREATE_MAX_HEADER_LENGTH    34
+#define DFC_DELEGATED_AID_OFFSET                  1
+#define DFC_DELEGATED_SLOT_OFFSET                 4
+#define DFC_DELEGATED_SLOT_VERSION_OFFSET         6
+#define DFC_DELEGATED_QUOTA_OFFSET                7
+#define DFC_DELEGATED_KEY_SETTINGS_1_OFFSET       9
+#define DFC_DELEGATED_KEY_SETTINGS_2_OFFSET       10
+#define DFC_APPLICATION_GENERAL_OVERHEAD_BLOCKS   1
 #define DFC_DELEGATED_APPLICATION_OVERHEAD_BLOCKS 1
-#define DFC_KEY_STORAGE_INDEX_BLOCKS 1
-#define DFC_KEY_STORAGE_KEYS_PER_DATA_BLOCK 4
-#define DFC_KEY_STORAGE_UNITS_PER_16_BYTE_KEY 2
-#define DFC_KEY_STORAGE_UNITS_PER_24_BYTE_KEY 3
-#define DFC_KEY_STORAGE_SECOND_INDEX_THRESHOLD 3
-#define DFC_KEY_STORAGE_THIRD_INDEX_THRESHOLD 11
+#define DFC_KEY_STORAGE_INDEX_BLOCKS              1
+#define DFC_KEY_STORAGE_KEYS_PER_DATA_BLOCK       4
+#define DFC_KEY_STORAGE_UNITS_PER_16_BYTE_KEY     2
+#define DFC_KEY_STORAGE_UNITS_PER_24_BYTE_KEY     3
+#define DFC_KEY_STORAGE_SECOND_INDEX_THRESHOLD    3
+#define DFC_KEY_STORAGE_THIRD_INDEX_THRESHOLD     11
 
 // Key Settings 1 policy bits (EV1 / earlier)
-#define DFC_KS1_MASTER_KEY_CHANGEABLE 0x01
-#define DFC_KS1_FREE_DIRECTORY_ACCESS 0x02
-#define DFC_KS1_FREE_CREATE_DELETE    0x04
-#define DFC_KS1_CHANGE_KEY_ACCESS_MASK 0xF0
-#define DFC_KS1_CHANGE_KEY_ACCESS_SHIFT 4
-#define DFC_CHANGE_KEY_ACCESS_SAME    0x0E
-#define DFC_CHANGE_KEY_ACCESS_FROZEN  0x0F
+#define DFC_KS1_MASTER_KEY_CHANGEABLE    0x01
+#define DFC_KS1_FREE_DIRECTORY_ACCESS    0x02
+#define DFC_KS1_FREE_CREATE_DELETE       0x04
+#define DFC_KS1_CONFIGURATION_CHANGEABLE 0x08
+#define DFC_KS1_CHANGE_KEY_ACCESS_MASK   0xF0
+#define DFC_KS1_CHANGE_KEY_ACCESS_SHIFT  4
+#define DFC_CHANGE_KEY_ACCESS_SAME       0x0E
+#define DFC_CHANGE_KEY_ACCESS_FROZEN     0x0F
+
+// Decode one logical access-right nibble. Access rights stay in host order
+// inside the engine; only APDU ingress and egress convert the two wire octets.
+static inline uint8_t dfc_access_nibble(uint16_t access_rights, unsigned shift) {
+    return (uint8_t)((access_rights >> shift) & 0x0Fu);
+}
+
+// Store the little-endian counters and CRC values used by native commands.
+static inline void dfc_write_uint32_le(uint8_t output[4], uint32_t value) {
+    output[0] = (uint8_t)value;
+    output[1] = (uint8_t)(value >> 8);
+    output[2] = (uint8_t)(value >> 16);
+    output[3] = (uint8_t)(value >> 24);
+}
 
 // Access-right nibble values
 #define DFC_ACCESS_FREE 0x0E
@@ -210,45 +238,67 @@ extern const uint8_t DFC_ISO_AID[7];
 #define DFC_EV1_MAX_FRAME_PAYLOAD    59
 #define DFC_EV3_MAX_RESPONSE_PAYLOAD 58
 #define DFC_EV3_ISO_FIDS_PER_FRAME   27
-#define DFC_ISO_FID_SIZE            2
+#define DFC_ISO_FID_SIZE             2
 
 // Key Settings 2 crypto-suite bits (upper nibble) and ISO FID enable (bit 5)
-#define DFC_KEY_TYPE_DES_2K3DES 0x00
-#define DFC_KEY_TYPE_3K3DES     0x40
-#define DFC_KEY_TYPE_AES        0x80
-#define DFC_KEY_TYPE_MASK       0xC0
-#define DFC_KEY_TYPE_SHIFT      6
-#define DFC_NUM_KEYS_MASK       0x0F
-#define DFC_KS2_ISO_FILE_IDS    0x20 // bit 5: 2-byte ISO FIDs for files in the app
+#define DFC_KEY_TYPE_DES_2K3DES   0x00
+#define DFC_KEY_TYPE_3K3DES       0x40
+#define DFC_KEY_TYPE_AES          0x80
+#define DFC_KEY_TYPE_MASK         0xC0
+#define DFC_KEY_TYPE_SHIFT        6
+#define DFC_NUM_KEYS_MASK         0x0F
+#define DFC_KS2_ISO_FILE_IDS      0x20 // bit 5: 2-byte ISO FIDs for files in the app
 #define DFC_KS2_EXTENDED_SETTINGS 0x10
 
 // Extended application and key-set fields.
-#define DFC_EXTENDED_SETTINGS_KEY_SETS          0x01
-#define DFC_KEY_SET_NUMBER_MASK                 0x0F
-#define DFC_KEY_SET_SECOND_APPLICATION_MASK     0x80
-#define DFC_KEY_SET_RETRIEVAL_MASK              0x80
-#define DFC_KEY_SET_NUMBER_PRESENT_MASK         0x40
-#define DFC_KEY_NUMBER_MASK                     0x3F
-#define DFC_KEY_SET_TYPE_MASK                   0x03
-#define DFC_KEY_SET_TYPE_2K3DES                 0x00
-#define DFC_KEY_SET_TYPE_3K3DES                 0x01
-#define DFC_KEY_SET_TYPE_AES                    0x02
-#define DFC_KEY_SET_MINIMUM_COUNT               2
-#define DFC_KEY_SET_INITIAL_VERSION             0x00
-#define DFC_KEY_SET_MAXIMUM_16_BYTE             0x10
-#define DFC_KEY_SET_MAXIMUM_24_BYTE             0x18
+#define DFC_EXTENDED_SETTINGS_KEY_SETS                 0x01
+#define DFC_KEY_SET_NUMBER_MASK                        0x0F
+#define DFC_KEY_SET_SECOND_APPLICATION_MASK            0x80
+#define DFC_KEY_SET_RETRIEVAL_MASK                     0x80
+#define DFC_KEY_SET_NUMBER_PRESENT_MASK                0x40
+#define DFC_KEY_NUMBER_MASK                            0x3F
+#define DFC_KEY_SET_TYPE_MASK                          0x03
+#define DFC_KEY_SET_TYPE_2K3DES                        0x00
+#define DFC_KEY_SET_TYPE_3K3DES                        0x01
+#define DFC_KEY_SET_TYPE_AES                           0x02
+#define DFC_KEY_SET_MINIMUM_COUNT                      2
+#define DFC_KEY_SET_INITIAL_VERSION                    0x00
+#define DFC_KEY_SET_MAXIMUM_16_BYTE                    0x10
+#define DFC_KEY_SET_MAXIMUM_24_BYTE                    0x18
 #define DFC_CREATE_APPLICATION_KEY_SET_PARAMETER_COUNT 4
+
+// Shared format and protocol invariants. Keep these checks here so command
+// builders, codecs, the FFI, and the emulator cannot drift apart.
+bool dfc_uid_length_is_valid(size_t length);
+bool dfc_iso_file_id_is_reserved(uint16_t value);
+bool dfc_communication_settings_is_valid(uint8_t value);
+bool dfc_access_rights_are_valid(uint16_t rights, size_t key_count);
+bool dfc_transaction_mac_access_rights_are_valid(uint16_t rights, size_t key_count);
+bool dfc_sdm_access_rights_are_valid(uint16_t rights, size_t key_count);
+bool dfc_transaction_mac_key_type_is_valid(uint8_t value);
+// Returns 16 or 24 for a valid key-set type, and zero for an invalid type.
+size_t dfc_key_set_type_length(uint8_t type);
+uint8_t dfc_key_type_for_set_type(uint8_t type);
+bool dfc_ct_equal(const uint8_t* left, const uint8_t* right, size_t length);
+void dfc_secure_wipe(void* buffer, size_t length);
+uint16_t dfc_crc16_iso14443_extend(uint16_t crc, const uint8_t* data, size_t length);
+uint16_t dfc_crc16_iso14443(const uint8_t* data, size_t length);
+uint32_t dfc_crc32_extend(uint32_t crc, const uint8_t* data, size_t length);
+uint32_t dfc_crc32(const uint8_t* data, size_t length);
 
 // File communication settings
 #define DFC_COMM_PLAIN      0x00
 #define DFC_COMM_MAC        0x01
 #define DFC_COMM_ENCIPHERED 0x03
+#define DFC_COMM_MODE_MASK  0x03
 
-#define DFC_FILE_TYPE_STANDARD_DATA 0x00
-#define DFC_FILE_TYPE_BACKUP_DATA   0x01
-#define DFC_FILE_TYPE_VALUE         0x02
-#define DFC_FILE_TYPE_LINEAR_RECORD 0x03
-#define DFC_FILE_TYPE_CYCLIC_RECORD 0x04
+#define DFC_TRANSACTION_MAC_KEY_TYPE_AES 0x02
+
+#define DFC_FILE_TYPE_STANDARD_DATA   0x00
+#define DFC_FILE_TYPE_BACKUP_DATA     0x01
+#define DFC_FILE_TYPE_VALUE           0x02
+#define DFC_FILE_TYPE_LINEAR_RECORD   0x03
+#define DFC_FILE_TYPE_CYCLIC_RECORD   0x04
 #define DFC_FILE_TYPE_TRANSACTION_MAC 0x05
 
 #define DFC_EV3_4K_FREE_MEMORY_BYTES 5120
@@ -298,6 +348,20 @@ extern const uint8_t DFC_ISO_AID[7];
 #ifndef DFC_KEY_POOL_SIZE
 #define DFC_KEY_POOL_SIZE 4096
 #endif
+#if DFC_ENABLE_KEY_SETS
+// A key-set application's metadata is at most 7/32 of the key storage it
+// already reserves (one key, two sets is the worst ratio). Keeping that bound
+// in a separate pool preserves every credential that fits in key_pool without
+// charging every application for sixteen sets.
+#ifndef DFC_KEY_SET_METADATA_POOL_SIZE
+#define DFC_KEY_SET_METADATA_POOL_SIZE \
+    ((DFC_KEY_POOL_SIZE / 32u) * 7u + (((DFC_KEY_POOL_SIZE % 32u) * 7u + 31u) / 32u))
+#endif
+#define DFC_KEY_SET_METADATA_POOL_NONE UINT16_MAX
+#if DFC_KEY_SET_METADATA_POOL_SIZE >= UINT16_MAX
+#error "DFC_KEY_SET_METADATA_POOL_SIZE must fit in a uint16_t offset"
+#endif
+#endif
 // Allocation a blank card's first file gets. WriteData bounds-checks against
 // the file length and never grows the file, so a zero-length file cannot be
 // written to and a blank card would be useless. Kept well under
@@ -325,89 +389,105 @@ extern const uint8_t DFC_ISO_AID[7];
 #ifndef DFC_PICC_ATS_MAX
 #define DFC_PICC_ATS_MAX 20
 #endif
-#define DFC_AES_KEY_LENGTH 16
+#define DFC_AES_KEY_LENGTH  16
 #define DFC_AES_CMAC_LENGTH 16
 #define DFC_WIRE_MAC_LENGTH 8
-#define DFC_VIRTUAL_CARD_CHALLENGE_LENGTH DFC_AES_KEY_LENGTH
-#define DFC_VIRTUAL_CARD_CLEAR_DATA_LENGTH DFC_AES_KEY_LENGTH
-#define DFC_VIRTUAL_CARD_CAPABILITY_LENGTH 2
+void dfc_truncate_aes_wire_mac(
+    const uint8_t full[DFC_AES_CMAC_LENGTH],
+    uint8_t wire[DFC_WIRE_MAC_LENGTH]);
+bool dfc_aes_wire_mac(
+    const uint8_t key[DFC_AES_KEY_LENGTH],
+    const uint8_t* input,
+    size_t input_len,
+    uint8_t output[DFC_WIRE_MAC_LENGTH]);
+#define DFC_VIRTUAL_CARD_CHALLENGE_LENGTH           DFC_AES_KEY_LENGTH
+#define DFC_VIRTUAL_CARD_CLEAR_DATA_LENGTH          DFC_AES_KEY_LENGTH
+#define DFC_VIRTUAL_CARD_CAPABILITY_LENGTH          2
 #define DFC_VIRTUAL_CARD_MAX_INSTALLATION_ID_LENGTH 16
-#define DFC_VIRTUAL_CARD_UID_MAX_LENGTH 10
-#define DFC_SDM_ENABLED_MASK 0x40
-#define DFC_SDM_UID_MIRROR_MASK 0x80
-#define DFC_SDM_COUNTER_MIRROR_MASK 0x40
-#define DFC_SDM_COUNTER_LIMIT_MASK 0x20
-#define DFC_SDM_ENCRYPTED_FILE_MASK 0x10
-#define DFC_SDM_ASCII_ENCODING_MASK 0x01
-#define DFC_SDM_FREE_ACCESS 0x0E
-#define DFC_SDM_DENIED_ACCESS 0x0F
-#define DFC_SDM_OFFSET_LENGTH 3
-#define DFC_SDM_OPTIONS_OFFSET 0
-#define DFC_SDM_ACCESS_RIGHTS_OFFSET 1
-#define DFC_SDM_BASE_SETTINGS_LENGTH 3
-#define DFC_SDM_META_READ_SHIFT 12
-#define DFC_SDM_FILE_READ_SHIFT 8
-#define DFC_SDM_ACCESS_MASK 0x0F
-#define DFC_SDM_PICC_UID_TAG_MASK 0x80
-#define DFC_SDM_HEX_EXPANSION 2
-#define DFC_SDM_PICC_DATA_BLOCK_LENGTH DFC_AES_KEY_LENGTH
-#define DFC_SDM_HIDDEN_COUNTER_OFFSET 0xFFFFFFu
-#define DFC_CMD_GET_FILE_COUNTERS 0xF6
-#define DFC_CMD_CREATE_TRANSACTION_MAC_FILE 0xCE
-#define DFC_CMD_COMMIT_READER_ID 0xC8
-#define DFC_CMD_NOTIFY_TRANSACTION_SUCCESS 0xEE
-#define DFC_TRANSACTION_MAC_FILE_LENGTH 12
-#define DFC_TRANSACTION_READER_ID_LENGTH DFC_AES_KEY_LENGTH
-#define DFC_TRANSACTION_INPUT_MAX_LENGTH 128
-#define DFC_TRANSACTION_COMMIT_RETURN_MAC_OPTION 0x01
-#define DFC_TRANSACTION_MAC_DERIVATION_LABEL 0x5A
+#define DFC_VIRTUAL_CARD_UID_MAX_LENGTH             10
+#define DFC_SDM_ENABLED_MASK                        0x40
+#define DFC_SDM_UID_MIRROR_MASK                     0x80
+#define DFC_SDM_COUNTER_MIRROR_MASK                 0x40
+#define DFC_SDM_COUNTER_LIMIT_MASK                  0x20
+#define DFC_SDM_ENCRYPTED_FILE_MASK                 0x10
+#define DFC_SDM_ASCII_ENCODING_MASK                 0x01
+#define DFC_SDM_FREE_ACCESS                         0x0E
+#define DFC_SDM_DENIED_ACCESS                       0x0F
+#define DFC_SDM_OFFSET_LENGTH                       3
+#define DFC_SDM_OPTIONS_OFFSET                      0
+#define DFC_SDM_ACCESS_RIGHTS_OFFSET                1
+#define DFC_SDM_BASE_SETTINGS_LENGTH                3
+#define DFC_SDM_META_READ_SHIFT                     12
+#define DFC_SDM_FILE_READ_SHIFT                     8
+#define DFC_SDM_ACCESS_MASK                         0x0F
+#define DFC_SDM_PICC_UID_TAG_MASK                   0x80
+#define DFC_SDM_HEX_EXPANSION                       2
+#define DFC_SDM_PICC_DATA_BLOCK_LENGTH              DFC_AES_KEY_LENGTH
+#define DFC_SDM_HIDDEN_COUNTER_OFFSET               0xFFFFFFu
+#define DFC_CMD_GET_FILE_COUNTERS                   0xF6
+#define DFC_CMD_CREATE_TRANSACTION_MAC_FILE         0xCE
+#define DFC_CMD_COMMIT_READER_ID                    0xC8
+#define DFC_CMD_NOTIFY_TRANSACTION_SUCCESS          0xEE
+#define DFC_TRANSACTION_MAC_FILE_LENGTH             12
+#define DFC_TRANSACTION_READER_ID_LENGTH            DFC_AES_KEY_LENGTH
+#define DFC_TRANSACTION_COMMIT_RETURN_MAC_OPTION    0x01
+#define DFC_TRANSACTION_MAC_DERIVATION_LABEL        0x5A
 #define DFC_TRANSACTION_ENCRYPTION_DERIVATION_LABEL 0xA5
-#define DFC_DERIVATION_COUNTER_HIGH 0x00
-#define DFC_DERIVATION_COUNTER_LOW 0x01
-#define DFC_DERIVED_AES_KEY_LENGTH_HIGH 0x00
-#define DFC_DERIVED_AES_KEY_LENGTH_LOW 0x80
-#define DFC_TRANSACTION_VECTOR_COUNTER_OFFSET 5
-#define DFC_TRANSACTION_VECTOR_UID_OFFSET 9
-#define DFC_SDM_MAC_LABEL_HIGH 0x3C
-#define DFC_SDM_MAC_LABEL_LOW 0xC3
-#define DFC_SDM_ENCRYPTION_LABEL_HIGH 0xC3
-#define DFC_SDM_ENCRYPTION_LABEL_LOW 0x3C
-#define DFC_UINT32_BYTE_COUNT 4
-#define DFC_UINT24_BYTE_COUNT 3
-#define DFC_BITS_PER_BYTE 8
-#define DFC_ISO7816_SW_CONDITIONS_NOT_SATISFIED_HI 0x69
-#define DFC_ISO7816_SW_CONDITIONS_NOT_SATISFIED_LO 0x85
-#define DFC_ISO7816_SW_WRONG_LENGTH_HI 0x67
-#define DFC_ISO7816_SW_WRONG_LENGTH_LO 0x00
-#define DFC_FORMAT_VERSION 6
-#define DFC_MIN_READ_FORMAT_VERSION 4
-#define DFC_PROXIMITY_RANDOM_LENGTH 8
-#define DFC_PROXIMITY_PUBLISHED_TIME_LENGTH 2
-#define DFC_PROXIMITY_TRANSCRIPT_MAX (DFC_PROXIMITY_RANDOM_LENGTH * 2)
-#define DFC_PROXIMITY_BITRATE_PRESENT 0x01
-#define DFC_STATIC_SIGNATURE_LENGTH 56
-#define DFC_EV2_RANDOM_LENGTH 16
-#define DFC_EV2_TRANSACTION_IDENTIFIER_LENGTH 4
-#define DFC_EV2_CAPABILITY_LENGTH 6
-#define DFC_EV2_AUTHENTICATION_RESPONSE_LENGTH 32
-#define DFC_EV2_SESSION_VECTOR_LENGTH 32
-#define DFC_EV2_COUNTER_LENGTH 2
-#define DFC_EV2_ENCRYPTION_LABEL_HIGH 0xA5
-#define DFC_EV2_ENCRYPTION_LABEL_LOW 0x5A
-#define DFC_EV2_MAC_LABEL_HIGH 0x5A
-#define DFC_EV2_MAC_LABEL_LOW 0xA5
-#define DFC_EV2_DERIVATION_COUNTER_HIGH 0x00
-#define DFC_EV2_DERIVATION_COUNTER_LOW 0x01
-#define DFC_EV2_DERIVATION_LENGTH_HIGH 0x00
-#define DFC_EV2_DERIVATION_LENGTH_LOW 0x80
-#define DFC_CONFIGURATION_APPLICATION_CAPABILITIES 0x05
-#define DFC_TRANSACTION_TIMER_EXPIRY_MILLISECONDS 1000
-#define DFC_SET_CONFIGURATION_OPTION_OFFSET 1
-#define DFC_SET_CONFIGURATION_DATA_OFFSET 2
-#define DFC_APPLICATION_CAPABILITY_DATA_LENGTH 10
-#define DFC_APPLICATION_CARD_CAPABILITY_OFFSET 4
-#define DFC_TRANSACTION_TIMER_CAPABILITY_OFFSET 5
-#define DFC_TRANSACTION_TIMER_SHORT 0x01
+#define DFC_DERIVATION_COUNTER_HIGH                 0x00
+#define DFC_DERIVATION_COUNTER_LOW                  0x01
+#define DFC_DERIVED_AES_KEY_LENGTH_HIGH             0x00
+#define DFC_DERIVED_AES_KEY_LENGTH_LOW              0x80
+#define DFC_TRANSACTION_VECTOR_COUNTER_OFFSET       5
+#define DFC_TRANSACTION_VECTOR_UID_OFFSET           9
+#define DFC_SDM_MAC_LABEL_HIGH                      0x3C
+#define DFC_SDM_MAC_LABEL_LOW                       0xC3
+#define DFC_SDM_ENCRYPTION_LABEL_HIGH               0xC3
+#define DFC_SDM_ENCRYPTION_LABEL_LOW                0x3C
+#define DFC_UINT32_BYTE_COUNT                       4
+#define DFC_UINT24_BYTE_COUNT                       3
+#define DFC_BITS_PER_BYTE                           8
+#define DFC_ISO7816_SW_CONDITIONS_NOT_SATISFIED_HI  0x69
+#define DFC_ISO7816_SW_CONDITIONS_NOT_SATISFIED_LO  0x85
+#define DFC_ISO7816_SW_WRONG_LENGTH_HI              0x67
+#define DFC_ISO7816_SW_WRONG_LENGTH_LO              0x00
+#define DFC_FORMAT_VERSION                          6
+#define DFC_MIN_READ_FORMAT_VERSION                 4
+#define DFC_PROXIMITY_RANDOM_LENGTH                 8
+#define DFC_PROXIMITY_PUBLISHED_TIME_LENGTH         2
+#define DFC_PROXIMITY_TRANSCRIPT_MAX                (DFC_PROXIMITY_RANDOM_LENGTH * 2)
+#define DFC_PROXIMITY_BITRATE_PRESENT               0x01
+#define DFC_STATIC_SIGNATURE_LENGTH                 56
+#define DFC_EV2_RANDOM_LENGTH                       16
+#define DFC_EV2_TRANSACTION_IDENTIFIER_LENGTH       4
+#define DFC_EV2_CAPABILITY_LENGTH                   6
+#define DFC_EV2_AUTHENTICATION_RESPONSE_LENGTH      32
+#define DFC_EV2_SESSION_VECTOR_LENGTH               32
+#define DFC_EV2_COUNTER_LENGTH                      2
+#define DFC_EV2_ENCRYPTION_LABEL_HIGH               0xA5
+#define DFC_EV2_ENCRYPTION_LABEL_LOW                0x5A
+#define DFC_EV2_MAC_LABEL_HIGH                      0x5A
+#define DFC_EV2_MAC_LABEL_LOW                       0xA5
+#define DFC_EV2_DERIVATION_COUNTER_HIGH             0x00
+#define DFC_EV2_DERIVATION_COUNTER_LOW              0x01
+#define DFC_EV2_DERIVATION_LENGTH_HIGH              0x00
+#define DFC_EV2_DERIVATION_LENGTH_LOW               0x80
+#define DFC_CONFIGURATION_APPLICATION_CAPABILITIES  0x05
+#define DFC_CONFIGURATION_CARD_OR_APPLICATION       0x00
+#define DFC_CONFIGURATION_DISABLE_FORMAT            0x01
+#define DFC_CONFIGURATION_RANDOM_ID                 0x02
+#define DFC_CONFIGURATION_PROXIMITY_MANDATORY       0x04
+#define DFC_CONFIGURATION_AUTHENTICATION_MANDATORY  0x08
+#define DFC_CONFIGURATION_LEGACY_RANDOM_ID          0x20
+#define DFC_CONFIGURATION_PICC_RESERVED_MASK        0xD0
+#define DFC_CONFIGURATION_EV1_PICC_RESERVED_MASK    0xFC
+#define DFC_CONFIGURATION_APPLICATION_RESERVED_MASK 0xFE
+#define DFC_TRANSACTION_TIMER_EXPIRY_MILLISECONDS   1000
+#define DFC_SET_CONFIGURATION_OPTION_OFFSET         1
+#define DFC_SET_CONFIGURATION_DATA_OFFSET           2
+#define DFC_APPLICATION_CAPABILITY_DATA_LENGTH      10
+#define DFC_APPLICATION_CARD_CAPABILITY_OFFSET      4
+#define DFC_TRANSACTION_TIMER_CAPABILITY_OFFSET     5
+#define DFC_TRANSACTION_TIMER_SHORT                 0x01
 #define DFC_SET_CONFIGURATION_CAPABILITY_COMMAND_LENGTH \
     (DFC_SET_CONFIGURATION_DATA_OFFSET + DFC_APPLICATION_CAPABILITY_DATA_LENGTH)
 #define DFC_MASTER_KEY_NUMBER 0
@@ -422,21 +502,11 @@ extern const uint8_t DFC_ISO_AID[7];
 #ifndef DFC_RANDOM_UID_FIRST_BYTE
 #define DFC_RANDOM_UID_FIRST_BYTE 0x08
 #endif
-
-// Active DESFire authentication session, used to secure ReadData/WriteData
-// after a successful Authenticate(D40/ISO/AES) exchange.
-typedef struct {
-    uint8_t cipher; // DFC_CMD_AUTHENTICATE_LEGACY / _ISO / _AES
-    uint8_t key[DFC_MAX_KEY_LEN];
-    size_t key_len;
-    uint8_t session_key[DFC_MAX_KEY_LEN];
-    uint8_t iv[16];
-} DfcAuthParameters;
+#define DFC_LEGACY_RANDOM_UID_FIRST_BYTE 0x80
 
 size_t dfc_key_len_for_cipher(uint8_t cipher);
 size_t dfc_block_size_for_cipher(uint8_t cipher);
 
-void dfc_log_buffer(char* TAG, char* prefix, uint8_t* buffer, size_t buffer_len);
 bool dfc_desfire_uid_is_detectable(const uint8_t* uid, size_t uid_len);
 const char* dfc_authentication_mode_to_string(uint8_t auth_command);
 bool dfc_authentication_mode_from_string(const char* value, uint8_t* auth_command);
@@ -467,14 +537,14 @@ bool dfc_wrap_native_response_as_iso7816(
 // Rotate an N-byte buffer left by one byte (used in the RndA/RndB challenge rotation).
 void dfc_rotate_left(uint8_t* buffer, size_t len);
 
-void dfc_worker_aes_cbc_decrypt(
+bool dfc_worker_aes_cbc_decrypt(
     const uint8_t* key,
     size_t key_len,
     uint8_t iv[16],
     size_t length,
     const uint8_t* encrypted,
     uint8_t* clear);
-void dfc_worker_aes_cbc_encrypt(
+bool dfc_worker_aes_cbc_encrypt(
     const uint8_t* key,
     size_t key_len,
     uint8_t iv[16],
@@ -482,14 +552,14 @@ void dfc_worker_aes_cbc_encrypt(
     const uint8_t* clear,
     uint8_t* encrypted);
 
-void dfc_worker_des_cbc_decrypt(
+bool dfc_worker_des_cbc_decrypt(
     const uint8_t* key,
     size_t key_len,
     uint8_t iv[8],
     size_t length,
     const uint8_t* encrypted,
     uint8_t* clear);
-void dfc_worker_des_cbc_encrypt(
+bool dfc_worker_des_cbc_encrypt(
     const uint8_t* key,
     size_t key_len,
     uint8_t iv[8],

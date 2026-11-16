@@ -51,7 +51,17 @@ def build_tool(source, executable):
         *(str(path) for path in sorted((CORE / "src").glob("*.c"))),
         str(CORE / "port/host/dfc_port_host.c"),
         str(CORE / "port/host/dfc_bytebuf_host.c"),
-        *(str(CRYPTO / "src" / name) for name in ("aes.c", "des.c", "common.c")),
+        *(
+            str(CRYPTO / "src" / name)
+            for name in (
+                "aes.c",
+                "aes_modes.c",
+                "block_modes.c",
+                "common.c",
+                "des.c",
+                "des_modes.c",
+            )
+        ),
         "-o",
         str(executable),
     ]

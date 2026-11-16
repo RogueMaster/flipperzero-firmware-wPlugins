@@ -67,10 +67,58 @@ static inline int tc_internal_tag_length_allowed(size_t length, size_t max_lengt
   return short_tag ? length < TC_MIN_TAG_LEN : length >= TC_MIN_TAG_LEN;
 }
 
-/* A span is valid when it has storage or is empty. */
+/* A span is valid when it has storage or is empty and its address range
+ * stays below UINTPTR_MAX. */
 static inline int tc_internal_span_valid(const void* data, size_t length)
 {
-  return data != NULL || length == 0;
+  return (data != NULL || length == 0) && length <= UINTPTR_MAX - (uintptr_t)data;
+}
+
+/* Storage plan check for an operation that writes several regions. Every span
+ * must be valid, the writable spans pairwise disjoint, and each writable span
+ * disjoint from every input. Inputs may overlap one another. Pass the same
+ * array as writable with no inputs to require every span to be disjoint. */
+static inline int tc_internal_writes_disjoint(const TC_bytes* writable, size_t count,
+                                              const TC_bytes* input, size_t inputs)
+{
+  size_t i, j;
+  if ((count && !writable) || (inputs && !input))
+    return 0;
+  for (j = 0; j < inputs; ++j)
+    if (!tc_internal_span_valid(input[j].data, input[j].length))
+      return 0;
+  for (i = 0; i < count; ++i) {
+    if (!tc_internal_span_valid(writable[i].data, writable[i].length))
+      return 0;
+    for (j = 0; j < i; ++j)
+      if (!tc_internal_ranges_disjoint(writable[i].data, writable[i].length, writable[j].data,
+                                       writable[j].length))
+        return 0;
+    for (j = 0; j < inputs; ++j)
+      if (!tc_internal_ranges_disjoint(writable[i].data, writable[i].length, input[j].data,
+                                       input[j].length))
+        return 0;
+  }
+  return 1;
+}
+
+/* An array of count input spans is usable when the array is present or
+ * empty, its byte size fits size_t, every span is valid, and the array and
+ * every span are disjoint from output. An empty output skips the overlap
+ * checks. Callers that write output before reading every part need this, so
+ * that writing output cannot change a part or its descriptor. */
+static inline int tc_internal_parts_valid(const TC_bytes* parts, size_t count, const void* output,
+                                          size_t output_length)
+{
+  size_t i;
+  if ((count != 0 && parts == NULL) || count > SIZE_MAX / sizeof *parts ||
+      !tc_internal_ranges_disjoint(parts, count * sizeof *parts, output, output_length))
+    return 0;
+  for (i = 0; i < count; ++i)
+    if (!tc_internal_span_valid(parts[i].data, parts[i].length) ||
+        !tc_internal_ranges_disjoint(parts[i].data, parts[i].length, output, output_length))
+      return 0;
+  return 1;
 }
 
 static inline uint32_t tc_internal_load_be32(const uint8_t* src)

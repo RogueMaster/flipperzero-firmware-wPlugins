@@ -20,17 +20,18 @@
 #if DFC_ENABLE_READER
 
 // Largest data field a single native frame carries: the one-octet Lc bounds it.
-#define DFC_COMMAND_MAX_DATA 255
+#define DFC_COMMAND_MAX_DATA      255
 // CLA INS P1 P2 Lc data Le.
 #define DFC_COMMAND_APDU_OVERHEAD 6
 #define DFC_COMMAND_MAX_APDU      (DFC_COMMAND_MAX_DATA + DFC_COMMAND_APDU_OVERHEAD)
 
-#define DFC_COMMAND_AID_LENGTH             3
-#define DFC_COMMAND_DF_NAME_MAX_LENGTH     16
-#define DFC_COMMAND_READER_ID_LENGTH       16
-#define DFC_COMMAND_TMAC_KEY_LENGTH        16
-#define DFC_COMMAND_EV2_CAPABILITY_LENGTH  6
-#define DFC_COMMAND_UINT24_MAX             0xFFFFFFu
+#define DFC_COMMAND_AID_LENGTH            3
+#define DFC_COMMAND_DF_NAME_MAX_LENGTH    16
+#define DFC_COMMAND_READER_ID_LENGTH      16
+#define DFC_COMMAND_TMAC_KEY_LENGTH       16
+#define DFC_COMMAND_EV2_CAPABILITY_LENGTH 6
+#define DFC_COMMAND_UINT24_MAX            0xFFFFFFu
+#define DFC_COMMAND_MAX_FILE_NUMBER       31u
 
 typedef enum {
     DfcCommandOk = 0,
@@ -65,6 +66,8 @@ DfcCommandStatus
 
 // ------------------------------------------------------------ discovery ---
 
+// AIDs use the human-readable order stored by the credential model. The
+// command boundary converts them to least-significant-octet-first wire order.
 // `secondary_aid` may be NULL. With one, the card selects two applications.
 DfcCommandStatus dfc_command_select_application(
     DfcCommand* command,
@@ -78,6 +81,7 @@ DfcCommandStatus dfc_command_get_application_ids(DfcCommand* command);
 DfcCommandStatus dfc_command_get_df_names(DfcCommand* command);
 DfcCommandStatus dfc_command_get_file_ids(DfcCommand* command);
 DfcCommandStatus dfc_command_get_iso_file_ids(DfcCommand* command);
+// The response is always encrypted and authenticated by the active session.
 DfcCommandStatus dfc_command_get_card_uid(DfcCommand* command);
 DfcCommandStatus dfc_command_read_signature(DfcCommand* command, uint8_t signature_id);
 DfcCommandStatus dfc_command_get_key_version(DfcCommand* command, uint8_t key_no);
@@ -164,6 +168,7 @@ typedef struct {
     uint8_t file_no;
     uint8_t comm_settings;
     uint16_t access_rights;
+    // TMKeyOption uses DFC_TRANSACTION_MAC_KEY_TYPE_* values.
     uint8_t key_type;
     uint8_t key[DFC_COMMAND_TMAC_KEY_LENGTH];
     uint8_t key_version;

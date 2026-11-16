@@ -34,6 +34,7 @@
 /*****************************************************************************/
 
 /* Combined S-Box & P-Permutation Tables (8 x 64 uint32_t = 2KB ROM) */
+#if TC_DES_SBOX_MODE == TC_DES_SBOX_MODE_FAST
 static const uint32_t SP1[64] TC_DES_TABLE_STORAGE = {
     0x00808200U, 0x00000000U, 0x00008000U, 0x00808202U, 0x00808002U, 0x00008202U, 0x00000002U,
     0x00008000U, 0x00000200U, 0x00808200U, 0x00808202U, 0x00000200U, 0x00800202U, 0x00808002U,
@@ -129,6 +130,25 @@ static const uint32_t SP8[64] TC_DES_TABLE_STORAGE = {
     0x08020820U, 0x00020020U, 0x08000020U, 0x08020000U, 0x08000800U, 0x08000820U, 0x00000000U,
     0x08020820U, 0x00020800U, 0x00020800U, 0x00000820U, 0x00000820U, 0x00020020U, 0x08000000U,
     0x08020800U};
+#else
+/* Algebraic normal form for the eight S-boxes after the P permutation.
+ * Each word evaluates one monomial for all 32 output bits in parallel. */
+static const uint32_t des_sbox_output_masks[8] TC_DES_TABLE_STORAGE = {
+    0x00808202U, 0x40084010U, 0x04010104U, 0x80401040U,
+    0x21040080U, 0x10202008U, 0x02100401U, 0x08020820U};
+
+static const uint32_t des_sbox_anf[64] TC_DES_TABLE_STORAGE = {
+    0xd8d8dbbcU, 0x0fed827dU, 0x5bde2ffdU, 0xb1409cc2U, 0xc4344efeU, 0x994199c4U, 0xb74b9f80U,
+    0x18a17754U, 0xaacffd09U, 0x310456d4U, 0x6423d3eeU, 0x30048804U, 0x5b802384U, 0x7984ae84U,
+    0x73c0208dU, 0xb154ad95U, 0x57d29dbeU, 0xa85bd242U, 0xa80102e6U, 0xe86318c4U, 0x291da33dU,
+    0x6b038292U, 0x8928cde6U, 0xe2527748U, 0x92b93275U, 0xc14f8a07U, 0x202143c0U, 0x010151c2U,
+    0x08c13385U, 0x984636c5U, 0x00000000U, 0x00000000U, 0xce9f72dcU, 0xbc70ed87U, 0x15e29e03U,
+    0xd94e56e3U, 0x20d201e7U, 0x97c21166U, 0x6c4ea18eU, 0x9a6f690dU, 0xf530cdaaU, 0xb9604089U,
+    0xdce27ca7U, 0x1128dd6cU, 0x4880a3e2U, 0x6a803ce6U, 0x61d420cbU, 0xa241b7c7U, 0xe471c301U,
+    0x640da284U, 0xe443c0e6U, 0x27895a46U, 0xe1c11fe5U, 0x5b946a04U, 0xa1e81f7bU, 0x593aa394U,
+    0xe4ad8fabU, 0xbf5de609U, 0x64438e59U, 0xf8e3dedaU, 0xe9d593e7U, 0x1c848eafU, 0x00000000U,
+    0x00000000U};
+#endif
 
 /* Permuted Choice 1 (PC-1) matrices */
 static const uint8_t PC1_C[28] TC_DES_TABLE_STORAGE = {57, 49, 41, 33, 25, 17, 9,  1,  58, 50,
@@ -219,9 +239,7 @@ static inline uint8_t tc_des_get_key_bit(const uint8_t* key, uint8_t bit_1based)
   return (key[byte_idx] >> bit_idx) & 1U;
 }
 
-/* Pack each 48-bit round key into six bytes. The round function expands these
- * into eight 6-bit S-box inputs, saving 25% versus byte-per-input storage. */
-void tc_des_key_schedule(uint8_t (*sk)[6], const uint8_t* key)
+void tc_des_key_schedule(TC_DES_round_key* sk, const uint8_t* key)
 {
   uint32_t C = 0;
   uint32_t D = 0;
@@ -236,7 +254,7 @@ void tc_des_key_schedule(uint8_t (*sk)[6], const uint8_t* key)
     C = ((C << shift) | (C >> (28 - shift))) & 0x0FFFFFFFU;
     D = ((D << shift) | (D >> (28 - shift))) & 0x0FFFFFFFU;
 
-    memset(sk[r], 0, 6);
+    memset(sk[r], 0, sizeof(sk[r]));
 
     for (uint8_t i = 0; i < 48; ++i) {
       uint8_t bit_pos = TC_DES_READ_U8(DES_PC2, i);
@@ -245,7 +263,15 @@ void tc_des_key_schedule(uint8_t (*sk)[6], const uint8_t* key)
         bit_val = (uint8_t)((C >> (28u - bit_pos)) & 1u);
       else
         bit_val = (uint8_t)((D >> (56u - bit_pos)) & 1u);
+#if TC_DES_SBOX_MODE == TC_DES_SBOX_MODE_FAST
+      uint8_t group = (uint8_t)(i / 6u);
+      uint8_t word = (uint8_t)((group & 1u) == 0u);
+      uint8_t byte = (uint8_t)(3u - (group / 2u));
+      uint8_t shift_in_word = (uint8_t)(byte * 8u + 5u - (i % 6u));
+      sk[r][word] |= (uint32_t)bit_val << shift_in_word;
+#else
       sk[r][i / 8u] |= (uint8_t)(bit_val << (7u - (i % 8u)));
+#endif
     }
   }
   TC_secure_zero(&C, sizeof C);
@@ -254,14 +280,14 @@ void tc_des_key_schedule(uint8_t (*sk)[6], const uint8_t* key)
 
 /* A single key fills sk[0..15]. A TDEA bundle fills sk[0..47] with K1, K2
  * and K3, where two-key TDEA repeats K1 as K3. */
-void tc_des_schedule_key(uint8_t (*sk)[6], const uint8_t* key, size_t keylen)
+void tc_des_schedule_key(TC_DES_round_key* sk, const uint8_t* key, size_t keylen)
 {
   tc_des_key_schedule(&sk[0], key);
   if (keylen == TC_DES_KEYLEN)
     return;
   tc_des_key_schedule(&sk[16], key + TC_DES_KEYLEN);
   if (keylen == TC_DES_KEYLEN_2KEY)
-    memcpy(&sk[32], &sk[0], 16u * 6u);
+    memcpy(&sk[32], &sk[0], 16u * sizeof(sk[0]));
   else
     tc_des_key_schedule(&sk[32], key + TC_DES_KEYLEN_2KEY);
 }
@@ -328,8 +354,42 @@ static inline void tc_des_final_permutation(uint32_t* pL, uint32_t* pR)
   *pR = R;
 }
 
+#if TC_DES_SBOX_MODE == TC_DES_SBOX_MODE_CONSTANT_TIME
+static uint32_t tc_des_input_plane(const uint8_t inputs[8], uint8_t bit)
+{
+  uint32_t plane = 0;
+
+  for (uint8_t box = 0; box < 8; ++box) {
+    uint32_t selected = 0u - (uint32_t)((inputs[box] >> bit) & 1u);
+    plane |= selected & TC_DES_READ_U32(des_sbox_output_masks, box);
+  }
+  return plane;
+}
+
+static uint32_t tc_des_round(uint8_t b1, uint8_t b2, uint8_t b3, uint8_t b4, uint8_t b5, uint8_t b6,
+                             uint8_t b7, uint8_t b8)
+{
+  const uint8_t inputs[8] = {b1, b2, b3, b4, b5, b6, b7, b8};
+  uint32_t variables[6];
+  uint32_t result = TC_DES_READ_U32(des_sbox_anf, 0);
+
+  for (uint8_t bit = 0; bit < 6; ++bit)
+    variables[bit] = tc_des_input_plane(inputs, bit);
+
+  for (uint8_t monomial = 1; monomial < 64; ++monomial) {
+    uint32_t term = UINT32_MAX;
+    for (uint8_t bit = 0; bit < 6; ++bit) {
+      if ((monomial & (1u << bit)) != 0)
+        term &= variables[bit];
+    }
+    result ^= term & TC_DES_READ_U32(des_sbox_anf, monomial);
+  }
+  return result;
+}
+#endif
+
 /* Single DES block cipher core */
-void tc_des_cipher_block(const uint8_t (*sk)[6], uint8_t* buf, int decrypt)
+void tc_des_cipher_block(const TC_DES_round_key* sk, uint8_t* buf, int decrypt)
 {
   uint32_t L = tc_internal_load_be32(buf);
   uint32_t R = tc_internal_load_be32(buf + 4);
@@ -339,6 +399,15 @@ void tc_des_cipher_block(const uint8_t (*sk)[6], uint8_t* buf, int decrypt)
   for (int i = 0; i < 16; ++i) {
     int r = decrypt ? (15 - i) : i;
 
+#if TC_DES_SBOX_MODE == TC_DES_SBOX_MODE_FAST
+    uint32_t t = ((R << 1) | (R >> 31)) ^ sk[r][0];
+    uint32_t f_res = TC_DES_READ_U32(SP8, t & 0x3fu) ^ TC_DES_READ_U32(SP6, (t >> 8) & 0x3fu) ^
+                     TC_DES_READ_U32(SP4, (t >> 16) & 0x3fu) ^
+                     TC_DES_READ_U32(SP2, (t >> 24) & 0x3fu);
+    t = ((R >> 3) | (R << 29)) ^ sk[r][1];
+    f_res ^= TC_DES_READ_U32(SP7, t & 0x3fu) ^ TC_DES_READ_U32(SP5, (t >> 8) & 0x3fu) ^
+             TC_DES_READ_U32(SP3, (t >> 16) & 0x3fu) ^ TC_DES_READ_U32(SP1, (t >> 24) & 0x3fu);
+#else
     /* Split the packed 48 bits at 6-bit boundaries without 64-bit arithmetic. */
     const uint8_t* packed = sk[r];
     uint8_t sk8_0 = (uint8_t)(packed[0] >> 2);
@@ -359,10 +428,8 @@ void tc_des_cipher_block(const uint8_t (*sk)[6], uint8_t* buf, int decrypt)
     uint8_t b7 = (uint8_t)(((R >> 3) & 0x3FU) ^ sk8_6);
     uint8_t b8 = (uint8_t)((((R & 0x1FU) << 1) | ((R >> 31) & 1U)) ^ sk8_7);
 
-    uint32_t f_res = TC_DES_READ_U32(SP1, b1) ^ TC_DES_READ_U32(SP2, b2) ^
-                     TC_DES_READ_U32(SP3, b3) ^ TC_DES_READ_U32(SP4, b4) ^
-                     TC_DES_READ_U32(SP5, b5) ^ TC_DES_READ_U32(SP6, b6) ^
-                     TC_DES_READ_U32(SP7, b7) ^ TC_DES_READ_U32(SP8, b8);
+    uint32_t f_res = tc_des_round(b1, b2, b3, b4, b5, b6, b7, b8);
+#endif
 
     uint32_t L_next = R;
     uint32_t R_next = L ^ f_res;
@@ -385,7 +452,7 @@ void tc_des_cipher_block(const uint8_t (*sk)[6], uint8_t* buf, int decrypt)
 /* Run one DES stage or the EDE bundle selected by the key length. */
 void tc_des_encrypt_scheduled(const void* schedule, uint8_t block[TC_DES_BLOCKLEN], int triple)
 {
-  const uint8_t (*sk)[6] = (const uint8_t (*)[6])schedule;
+  const TC_DES_round_key* sk = (const TC_DES_round_key*)schedule;
   tc_des_cipher_block(&sk[0], block, 0);
   if (triple) {
     tc_des_cipher_block(&sk[16], block, 1);
@@ -395,7 +462,7 @@ void tc_des_encrypt_scheduled(const void* schedule, uint8_t block[TC_DES_BLOCKLE
 
 void tc_des_decrypt_scheduled(const void* schedule, uint8_t block[TC_DES_BLOCKLEN], int triple)
 {
-  const uint8_t (*sk)[6] = (const uint8_t (*)[6])schedule;
+  const TC_DES_round_key* sk = (const TC_DES_round_key*)schedule;
   if (!triple) {
     tc_des_cipher_block(&sk[0], block, 1);
     return;

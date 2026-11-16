@@ -4,7 +4,9 @@
 
 typedef enum {
     DfcEv2CommandPlain,
+    DfcEv2CommandPlainCounted,
     DfcEv2CommandSecured,
+    DfcEv2CommandFull,
     DfcEv2CommandInvalid,
 } DfcEv2CommandSecurity;
 
@@ -16,6 +18,10 @@ DfcEv2CommandSecurity dfc_ev2_prepare_command(
     size_t clear_capacity,
     size_t* clear_len);
 
+// Protects a response directly in the caller's destination. `clear_response`
+// may alias `secured_response`; partial overlap is supported. A cipher or MAC
+// failure wipes any bytes staged in the destination, sets `secured_len` to
+// zero, and terminates the EV2 session so the command cannot be replayed in it.
 bool dfc_ev2_protect_response(
     DfcEmulator* emulator,
     const uint8_t* clear_command,

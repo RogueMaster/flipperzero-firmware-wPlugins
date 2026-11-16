@@ -15,7 +15,7 @@
 #error "DFC_BUILD_PROFILE is not a supported profile"
 #endif
 
-#define DFC_PROFILE_INCLUDES_FULL_EV1 \
+#define DFC_PROFILE_INCLUDES_FULL_EV1                                                          \
     (DFC_BUILD_PROFILE == DFC_PROFILE_FULL_EV1 || DFC_BUILD_PROFILE == DFC_PROFILE_FULL_EV2 || \
      DFC_BUILD_PROFILE == DFC_PROFILE_FULL_EV3)
 #define DFC_PROFILE_INCLUDES_EV2 \
@@ -77,8 +77,7 @@
 #ifndef DFC_ENABLE_TRANSACTION_MAC
 #define DFC_ENABLE_TRANSACTION_MAC DFC_PROFILE_INCLUDES_EV2
 #endif
-#define DFC_ENABLE_TRANSACTIONAL_DATA_FILES \
-    (DFC_ENABLE_BACKUP_FILES || DFC_ENABLE_RECORD_FILES)
+#define DFC_ENABLE_TRANSACTIONAL_DATA_FILES (DFC_ENABLE_BACKUP_FILES || DFC_ENABLE_RECORD_FILES)
 #ifndef DFC_ENABLE_SDM
 #define DFC_ENABLE_SDM (DFC_BUILD_PROFILE == DFC_PROFILE_FULL_EV3)
 #endif
@@ -103,6 +102,15 @@
 #ifndef DFC_ENABLE_STATIC_SIGNATURE
 #define DFC_ENABLE_STATIC_SIGNATURE DFC_PROFILE_INCLUDES_EV2
 #endif
+
+// Cipher-family reachability is derived from protocol features. Build systems
+// use the same definitions to omit unused primitive and CMAC translation units.
+#define DFC_ENABLE_AES_CRYPTO                                                             \
+    (DFC_ENABLE_AUTH_AES || DFC_ENABLE_ISO7816_AUTH || DFC_ENABLE_EV2_SECURE_MESSAGING || \
+     DFC_ENABLE_SDM || DFC_ENABLE_PROXIMITY_CHECK || DFC_ENABLE_VIRTUAL_CARD ||           \
+     DFC_ENABLE_TRANSACTION_MAC || DFC_ENABLE_KEY_SETS || DFC_ENABLE_DELEGATED_APPLICATIONS)
+#define DFC_ENABLE_DES_CRYPTO \
+    (DFC_ENABLE_AUTH_D40 || DFC_ENABLE_AUTH_ISO || DFC_ENABLE_ISO7816_AUTH)
 
 // Select one role. A role chooses which halves of the library a build carries,
 // independently of the profile, which chooses the card generation.
@@ -207,31 +215,31 @@ enum {
 };
 
 typedef struct {
-    unsigned int generation_ev1 : 1;
-    unsigned int generation_ev2 : 1;
-    unsigned int generation_ev3 : 1;
-    unsigned int storage_2k : 1;
-    unsigned int storage_4k : 1;
-    unsigned int storage_8k : 1;
-    unsigned int ev2_secure_messaging : 1;
-    unsigned int iso7816 : 1;
-    unsigned int transaction_mac : 1;
-    unsigned int secure_dynamic_messaging : 1;
-    unsigned int proximity_check : 1;
-    unsigned int virtual_card : 1;
-    unsigned int key_sets : 1;
-    unsigned int delegated_applications : 1;
-    unsigned int transaction_timer : 1;
+    unsigned int generation_ev1              : 1;
+    unsigned int generation_ev2              : 1;
+    unsigned int generation_ev3              : 1;
+    unsigned int storage_2k                  : 1;
+    unsigned int storage_4k                  : 1;
+    unsigned int storage_8k                  : 1;
+    unsigned int ev2_secure_messaging        : 1;
+    unsigned int iso7816                     : 1;
+    unsigned int transaction_mac             : 1;
+    unsigned int secure_dynamic_messaging    : 1;
+    unsigned int proximity_check             : 1;
+    unsigned int virtual_card                : 1;
+    unsigned int key_sets                    : 1;
+    unsigned int delegated_applications      : 1;
+    unsigned int transaction_timer           : 1;
     unsigned int application_capability_data : 1;
-    unsigned int static_signature : 1;
-    unsigned int auth_d40 : 1;
-    unsigned int auth_iso : 1;
-    unsigned int auth_aes : 1;
-    unsigned int emulator : 1;
-    unsigned int reader : 1;
-    unsigned int der_decoder : 1;
-    unsigned int der_encoder : 1;
-    unsigned int text_codec : 1;
+    unsigned int static_signature            : 1;
+    unsigned int auth_d40                    : 1;
+    unsigned int auth_iso                    : 1;
+    unsigned int auth_aes                    : 1;
+    unsigned int emulator                    : 1;
+    unsigned int reader                      : 1;
+    unsigned int der_decoder                 : 1;
+    unsigned int der_encoder                 : 1;
+    unsigned int text_codec                  : 1;
 } DfcBuildCapabilities;
 
 static inline DfcBuildCapabilities dfc_build_capabilities(void) {

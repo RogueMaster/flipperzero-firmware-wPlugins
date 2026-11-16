@@ -9,6 +9,8 @@ void TC_secure_zero(void* memory, size_t length)
   volatile uint8_t* bytes = (volatile uint8_t*)memory;
   size_t i;
 
+  if (memory == NULL)
+    return;
   for (i = 0; i < length; ++i)
     bytes[i] = 0;
 #if defined(__GNUC__) || defined(__clang__)

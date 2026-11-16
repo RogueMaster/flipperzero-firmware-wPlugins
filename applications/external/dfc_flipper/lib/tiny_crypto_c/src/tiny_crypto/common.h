@@ -127,8 +127,8 @@ typedef enum {
 
 /* Best-effort secret wipe: write zero to length bytes of memory through
  * volatile stores. GCC and Clang builds add a compiler memory barrier. This
- * defeats common dead-store removal. memory must be writable for length bytes. NULL is
- * accepted only when length is zero. Copies already held in CPU registers
+ * defeats common dead-store removal. memory must be writable for length bytes.
+ * NULL memory is a no-op for any length. Copies already held in CPU registers
  * or elsewhere remain. */
 void TC_secure_zero(void* memory, size_t length);
 
@@ -137,6 +137,11 @@ void TC_secure_zero(void* memory, size_t length);
  * Returns TC_OK when the bytes are equal, TC_MISMATCH when any byte differs
  * or the lengths differ, and TC_ERROR for an invalid span. */
 TC_status TC_ct_equal(TC_bytes a, TC_bytes b);
+
+/* Shortest HMAC or KMAC tag in bytes. SP 800-107 Rev. 1 section 5.3.3 and
+ * SP 800-185 section 8.4.2 forbid tags below 32 bits, so the _short_tag
+ * entry points of both MACs start at this length. */
+#define TC_HASH_MAC_MIN_TAG_LEN 4
 
 #ifdef __cplusplus
 }

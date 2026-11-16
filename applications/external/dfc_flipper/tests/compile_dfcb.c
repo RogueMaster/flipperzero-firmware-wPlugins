@@ -39,8 +39,8 @@ int main(int argc, char** argv) {
     printf(
         "%s: %zu applications, %zu files, %zu bytes\n",
         argv[2],
-        credential->num_apps,
-        credential->num_files,
+        (size_t)credential->num_apps,
+        (size_t)credential->num_files,
         output_len);
     free(binary);
     dfc_credential_free(credential);

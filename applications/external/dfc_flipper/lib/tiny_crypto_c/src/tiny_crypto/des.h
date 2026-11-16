@@ -14,8 +14,9 @@
  * ISO/IEC 9797-1:2011.
  * Configuration: TC_ENABLE_DES, TC_DES_ENABLE_* per mode, TC_DES_ENABLE_TDES,
  * TC_DES_REJECT_WEAK_KEYS and TC_MIN_TAG_LEN.
- * Limitations: DES has a 56-bit key and its table lookups have no
- * cache-timing protection. Use it for legacy interoperability.
+ * Limitations: DES has a 56-bit key. TC_DES_SBOX_MODE_FAST uses table
+ * lookups without cache-timing protection. Use DES only where a protocol
+ * requires it.
  * After 2023, SP 800-131A Rev. 2 section 2 allows TDEA only for legacy
  * decryption.
  * Work: every function charges no work budget. The functions return
@@ -45,9 +46,15 @@
 /** Three-key TDEA bundle K1 || K2 || K3 in bytes (168 bits effective). */
 #define TC_DES_KEYLEN_3KEY 24
 
+#if TC_DES_SBOX_MODE == TC_DES_SBOX_MODE_FAST
+typedef uint32_t TC_DES_round_key[2];
+#else
+typedef uint8_t TC_DES_round_key[6];
+#endif
+
 /* Three DES schedules in encrypt, decrypt, encrypt order. */
 typedef struct TC_DES_key_bundle {
-  uint8_t schedule[48][6];
+  TC_DES_round_key schedule[48];
 } TC_DES_key_bundle;
 
 /* Round subkeys held by TC_DES_ctx: one schedule for single DES, three for
@@ -68,7 +75,7 @@ typedef struct TC_DES_key_bundle {
  * Fields are private. Clear it with TC_DES_ctx_clear when its lifetime ends.
  */
 struct TC_DES_ctx {
-  uint8_t schedule[TC_DES_CTX_SUBKEYS][6];
+  TC_DES_round_key schedule[TC_DES_CTX_SUBKEYS];
   uint8_t triple; /* 1 when schedule holds a K1, K2, K3 TDEA bundle. */
   uint8_t active;
 #if TC_DES_NEEDS_IV
@@ -100,7 +107,7 @@ void TC_DES_ctx_clear(struct TC_DES_ctx* ctx);
 /*
  * The ECB, CBC, CTR, CFB and OFB entry points share one argument contract.
  * They return TC_ERROR for a NULL or uninitialized context, a context without
- * an IV from TC_DES_set_iv(every mode except ECB, (TC_bytes){even for an empty buffer, TC_DES_BLOCKLEN}),
+ * an IV from TC_DES_set_iv (every mode except ECB, even for an empty buffer),
  * a NULL buffer with a nonzero length, or a buffer that overlaps the context,
  * and leave the context and buffer unchanged. Otherwise a NULL buffer with
  * length 0 returns TC_OK.
@@ -125,7 +132,7 @@ void TC_DES_ctx_clear(struct TC_DES_ctx* ctx);
  *         A NULL ctx is left alone. Every other failure wipes ctx, so a
  *         previous key is unusable after a failed re-init.
  * @note Key parity is ignored. With TC_DES_REJECT_WEAK_KEYS=1 (default 0 for
- *       legacy vectors) weak and semi-weak component keys and TDEA bundles
+ *       published vectors) weak and semi-weak component keys and TDEA bundles
  *       with K1 = K2 or K2 = K3 are rejected, because those collapse to single
  *       DES. K1 = K3 remains valid two-key TDEA.
  */

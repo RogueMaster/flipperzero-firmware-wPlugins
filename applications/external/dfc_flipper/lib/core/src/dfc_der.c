@@ -2,6 +2,16 @@
 
 #include <string.h>
 
+#define FILE_TYPE_STANDARD 0x00u
+#define FILE_TYPE_BACKUP   0x01u
+#define FILE_TYPE_VALUE    0x02u
+#define FILE_TYPE_LINEAR   0x03u
+#define FILE_TYPE_CYCLIC   0x04u
+#define FILE_TYPE_TMAC     0x05u
+
+#define U24_MAX           16777215u
+#define TAG_COUNT(values) (sizeof(values) / sizeof((values)[0]))
+
 // Tag numbers, from the assignment tables in section 2.2.3. Under implicit
 // tagging the identifier octet is 0x80 for a primitive component and 0xA0 for a
 // constructed one, plus the tag number.
@@ -22,31 +32,32 @@
 #define CRED_APPS    C(3)
 
 // Card
-#define CARD_GENERATION P(0)
-#define CARD_STORAGE    P(1)
-#define CARD_UID        P(2)
-#define CARD_PROVENANCE P(3)
-#define CARD_SIGNATURE  P(4)
+#define CARD_GENERATION       P(0)
+#define CARD_STORAGE          P(1)
+#define CARD_UID              P(2)
+#define CARD_PROVENANCE       P(3)
+#define CARD_SIGNATURE        P(4)
 #define CARD_HARDWARE_VERSION P(5)
 #define CARD_SOFTWARE_VERSION P(6)
 
 // Picc
-#define PICC_KS1        P(0)
-#define PICC_KS2        P(1)
-#define PICC_AUTH       P(2)
-#define PICC_RANDOM_ID  P(3)
-#define PICC_FORMAT_DIS P(4)
-#define PICC_ATS        P(5)
-#define PICC_SAK        P(6)
-#define PICC_ATQA       P(7)
-#define PICC_SM_DISABLE P(8)
-#define PICC_KEYS       C(9)
-#define PICC_FILES      C(10)
-#define PICC_EV2_CAPS   P(11)
-#define PICC_PROXIMITY  C(12)
-#define PICC_VCARD      C(13)
-#define PICC_DAM        C(14)
-#define PICC_PREFERRED_AUTH P(15)
+#define PICC_KS1              P(0)
+#define PICC_KS2              P(1)
+#define PICC_AUTH             P(2)
+#define PICC_RANDOM_ID        P(3)
+#define PICC_FORMAT_DIS       P(4)
+#define PICC_ATS              P(5)
+#define PICC_SAK              P(6)
+#define PICC_ATQA             P(7)
+#define PICC_SM_DISABLE       P(8)
+#define PICC_KEYS             C(9)
+#define PICC_FILES            C(10)
+#define PICC_EV2_CAPS         P(11)
+#define PICC_PROXIMITY        C(12)
+#define PICC_VCARD            C(13)
+#define PICC_DAM              C(14)
+#define PICC_PREFERRED_AUTH   P(15)
+#define PICC_RANDOM_ID_LEGACY P(16)
 
 // ProximityContents
 #define PROX_KEY       P(0)
@@ -70,18 +81,18 @@
 #define DAM_ENC  P(2)
 
 // Application
-#define APP_AID     P(0)
-#define APP_ISO_FID P(1)
-#define APP_DF_NAME P(2)
-#define APP_KS1     P(3)
-#define APP_KS2     P(4)
-#define APP_AUTH    P(5)
-#define APP_KEYS    C(6)
-#define APP_FILES   C(7)
-#define APP_KEY_SETS   C(8)
-#define APP_CAPABILITY P(9)
-#define APP_DELEGATED  C(10)
-#define APP_SM_DISABLE P(11)
+#define APP_AID            P(0)
+#define APP_ISO_FID        P(1)
+#define APP_DF_NAME        P(2)
+#define APP_KS1            P(3)
+#define APP_KS2            P(4)
+#define APP_AUTH           P(5)
+#define APP_KEYS           C(6)
+#define APP_FILES          C(7)
+#define APP_KEY_SETS       C(8)
+#define APP_CAPABILITY     P(9)
+#define APP_DELEGATED      C(10)
+#define APP_SM_DISABLE     P(11)
 #define APP_PREFERRED_AUTH P(12)
 
 // KeySetsContents
@@ -98,10 +109,11 @@
 #define SET_KEYS        C(4)
 
 // DelegatedContents
-#define DEL_SLOT    P(0)
-#define DEL_VERSION P(1)
-#define DEL_QUOTA   P(2)
-#define DEL_FREE    P(3)
+#define DEL_SLOT            P(0)
+#define DEL_VERSION         P(1)
+#define DEL_QUOTA           P(2)
+#define DEL_FREE            P(3)
+#define DEL_FORMAT_DISABLED P(4)
 
 // Key
 #define KEY_SLOT    P(0)
@@ -143,6 +155,7 @@
 #define VAL_UPPER   P(1)
 #define VAL_CURRENT P(2)
 #define VAL_LIMITED P(3)
+#define VAL_LIMIT   P(4)
 
 // RecordContents
 #define REC_SIZE     P(0)
@@ -158,15 +171,6 @@
 #define TMAC_KEY_VERSION P(3)
 #define TMAC_KEY         P(4)
 #define TMAC_READER_ID   P(5)
-
-#define FILE_TYPE_STANDARD 0x00u
-#define FILE_TYPE_BACKUP   0x01u
-#define FILE_TYPE_VALUE    0x02u
-#define FILE_TYPE_LINEAR   0x03u
-#define FILE_TYPE_CYCLIC   0x04u
-#define FILE_TYPE_TMAC     0x05u
-
-#define U24_MAX 16777215u
 
 const char* dfc_der_status_name(DfcDerStatus status) {
     switch(status) {
@@ -205,12 +209,12 @@ typedef struct {
 
 static void w_raw(Writer* w, const uint8_t* bytes, size_t n) {
     if(w->buf) {
-        if(w->len + n > w->cap) {
+        if(w->len > w->cap || n > w->cap - w->len) {
             w->overflow = true;
             return;
         }
         memcpy(w->buf + w->len, bytes, n);
-    } else if(w->len + n < w->len) {
+    } else if(n > SIZE_MAX - w->len) {
         w->overflow = true;
         return;
     }
@@ -265,20 +269,48 @@ static void w_bool(Writer* w, uint8_t tag, bool v) {
     w_tlv(w, tag, &b, 1);
 }
 
-// A constructed component whose body is produced by a callback. Two passes: one
-// to size the body, one to emit it, so lengths are exact without scratch space.
+// A constructed component whose body is produced by a callback. Reserve the
+// shortest header, emit the body once, then make room for a long-form length if
+// needed. This keeps output canonical without recursively probing every body.
 typedef void (*BodyFn)(Writer*, const void*);
 
 static void w_constructed(Writer* w, uint8_t tag, BodyFn fn, const void* ctx) {
-    Writer probe = {NULL, 0, 0, false};
-    fn(&probe, ctx);
-    if(probe.overflow) {
+    if(w->overflow) return;
+    size_t start = w->len;
+    w_byte(w, tag);
+    w_byte(w, 0); // short-form placeholder
+    if(w->overflow) return;
+
+    size_t body_start = w->len;
+    fn(w, ctx);
+    if(w->overflow) return;
+    size_t body_len = w->len - body_start;
+
+    size_t extra = 0;
+    if(body_len >= 256)
+        extra = 2;
+    else if(body_len >= 128)
+        extra = 1;
+    if(body_len > UINT16_MAX || extra > SIZE_MAX - w->len ||
+       (w->buf && (w->len > w->cap || extra > w->cap - w->len))) {
         w->overflow = true;
         return;
     }
-    w_byte(w, tag);
-    w_len(w, probe.len);
-    fn(w, ctx);
+
+    if(w->buf) {
+        if(extra) memmove(w->buf + body_start + extra, w->buf + body_start, body_len);
+        if(extra == 0) {
+            w->buf[start + 1] = (uint8_t)body_len;
+        } else if(extra == 1) {
+            w->buf[start + 1] = 0x81;
+            w->buf[start + 2] = (uint8_t)body_len;
+        } else {
+            w->buf[start + 1] = 0x82;
+            w->buf[start + 2] = (uint8_t)(body_len >> 8);
+            w->buf[start + 3] = (uint8_t)body_len;
+        }
+    }
+    w->len += extra;
 }
 
 typedef struct {
@@ -312,36 +344,43 @@ static void body_data_contents(Writer* w, const void* p) {
     const Ctx* x = p;
     const DfcFile* f = x->file;
     const uint8_t* known = dfc_file_data_const(x->c, f);
-    w_int(w, DATA_SIZE, (int64_t)f->declared_size);
+    uint32_t declared_size;
+    if(!dfc_file_get_declared_size(f, &declared_size)) {
+        w->overflow = true;
+        return;
+    }
+    w_int(w, DATA_SIZE, (int64_t)declared_size);
     if(known && f->data_len > 0) w_tlv(w, DATA_KNOWN, known, f->data_len);
     w_bool(w, DATA_COMPLETE, f->contents_complete);
 }
 
 static void body_value_contents(Writer* w, const void* p) {
     const DfcFile* f = ((const Ctx*)p)->file;
-    w_int(w, VAL_LOWER, f->value_lower_limit);
-    w_int(w, VAL_UPPER, f->value_upper_limit);
-    w_int(w, VAL_CURRENT, f->value);
-    w_tlv(w, VAL_LIMITED, &f->limited_credit, 1);
+    w_int(w, VAL_LOWER, f->state.value.lower_limit);
+    w_int(w, VAL_UPPER, f->state.value.upper_limit);
+    w_int(w, VAL_CURRENT, f->state.value.current);
+    w_tlv(w, VAL_LIMITED, &f->state.value.limited_credit, 1);
+    if(f->state.value.limited_credit_value != 0)
+        w_int(w, VAL_LIMIT, f->state.value.limited_credit_value);
 }
 
 static void body_records(Writer* w, const void* p) {
     const Ctx* x = p;
     const DfcFile* f = x->file;
     const uint8_t* known = dfc_file_data_const(x->c, f);
-    size_t count = f->record_size ? f->data_len / f->record_size : 0;
-    if(count > f->record_count) count = f->record_count;
+    size_t count = f->state.record.size ? f->data_len / f->state.record.size : 0;
+    if(count > f->state.record.count) count = f->state.record.count;
     for(size_t i = 0; i < count; i++) {
-        w_tlv(w, TAG_OCTETS, known + i * f->record_size, f->record_size);
+        w_tlv(w, TAG_OCTETS, known + i * f->state.record.size, f->state.record.size);
     }
 }
 
 static void body_record_contents(Writer* w, const void* p) {
     const Ctx* x = p;
     const DfcFile* f = x->file;
-    w_int(w, REC_SIZE, (int64_t)f->record_size);
-    w_int(w, REC_MAX, (int64_t)f->max_records);
-    w_int(w, REC_CURRENT, (int64_t)f->record_count);
+    w_int(w, REC_SIZE, (int64_t)f->state.record.size);
+    w_int(w, REC_MAX, (int64_t)f->state.record.max_records);
+    w_int(w, REC_CURRENT, (int64_t)f->state.record.count);
     w_bool(w, REC_COMPLETE, f->contents_complete);
     w_constructed(w, REC_RECORDS, body_records, x);
 }
@@ -349,12 +388,16 @@ static void body_record_contents(Writer* w, const void* p) {
 #if DFC_ENABLE_TRANSACTION_MAC
 static void body_transaction_mac_contents(Writer* w, const void* p) {
     const DfcFile* f = ((const Ctx*)p)->file;
-    w_int(w, TMAC_COUNTER, (int64_t)f->transaction_counter);
-    w_tlv(w, TMAC_VALUE, f->transaction_mac, sizeof(f->transaction_mac));
-    w_tlv(w, TMAC_KEY_TYPE, &f->transaction_mac_key_type, 1);
-    w_tlv(w, TMAC_KEY_VERSION, &f->transaction_mac_key_version, 1);
-    w_tlv(w, TMAC_KEY, f->transaction_mac_key, sizeof(f->transaction_mac_key));
-    w_tlv(w, TMAC_READER_ID, f->previous_reader_id, sizeof(f->previous_reader_id));
+    w_int(w, TMAC_COUNTER, (int64_t)f->state.transaction_mac.counter);
+    w_tlv(w, TMAC_VALUE, f->state.transaction_mac.mac, sizeof(f->state.transaction_mac.mac));
+    w_tlv(w, TMAC_KEY_TYPE, &f->state.transaction_mac.key_type, 1);
+    w_tlv(w, TMAC_KEY_VERSION, &f->state.transaction_mac.key_version, 1);
+    w_tlv(w, TMAC_KEY, f->state.transaction_mac.key, sizeof(f->state.transaction_mac.key));
+    w_tlv(
+        w,
+        TMAC_READER_ID,
+        f->state.transaction_mac.previous_reader_id,
+        sizeof(f->state.transaction_mac.previous_reader_id));
 }
 #endif
 
@@ -362,20 +405,27 @@ static void body_transaction_mac_contents(Writer* w, const void* p) {
 static void body_sdm(Writer* w, const void* p) {
     const DfcFile* f = ((const Ctx*)p)->file;
     uint8_t rights[2] = {
-        (uint8_t)(f->sdm_access_rights >> 8), (uint8_t)(f->sdm_access_rights & 0xFF)};
-    w_tlv(w, SDM_OPTIONS, &f->sdm_options, 1);
+        (uint8_t)(f->state.data.sdm.access_rights >> 8),
+        (uint8_t)(f->state.data.sdm.access_rights & 0xFF)};
+    w_tlv(w, SDM_OPTIONS, &f->state.data.sdm.options, 1);
     w_tlv(w, SDM_RIGHTS, rights, 2);
-    if(f->sdm_has_uid_offset) w_int(w, SDM_UID_OFF, (int64_t)f->sdm_uid_offset);
-    if(f->sdm_has_counter_offset) w_int(w, SDM_COUNTER_OFF, (int64_t)f->sdm_counter_offset);
-    if(f->sdm_has_picc_data_offset) w_int(w, SDM_PICC_OFF, (int64_t)f->sdm_picc_data_offset);
-    if(f->sdm_has_mac_input_offset) w_int(w, SDM_MAC_IN_OFF, (int64_t)f->sdm_mac_input_offset);
-    if(f->sdm_has_mac_offset) w_int(w, SDM_MAC_OFF, (int64_t)f->sdm_mac_offset);
-    if(f->sdm_has_encrypted_file_offset) {
-        w_int(w, SDM_ENC_OFF, (int64_t)f->sdm_encrypted_file_offset);
-        w_int(w, SDM_ENC_LEN, (int64_t)f->sdm_encrypted_file_length);
+    if(dfc_file_sdm_flag_is_set(f, DfcSdmFlagUidOffset))
+        w_int(w, SDM_UID_OFF, (int64_t)f->state.data.sdm.uid_offset);
+    if(dfc_file_sdm_flag_is_set(f, DfcSdmFlagCounterOffset))
+        w_int(w, SDM_COUNTER_OFF, (int64_t)f->state.data.sdm.counter_offset);
+    if(dfc_file_sdm_flag_is_set(f, DfcSdmFlagPiccDataOffset))
+        w_int(w, SDM_PICC_OFF, (int64_t)f->state.data.sdm.picc_data_offset);
+    if(dfc_file_sdm_flag_is_set(f, DfcSdmFlagMacInputOffset))
+        w_int(w, SDM_MAC_IN_OFF, (int64_t)f->state.data.sdm.mac_input_offset);
+    if(dfc_file_sdm_flag_is_set(f, DfcSdmFlagMacOffset))
+        w_int(w, SDM_MAC_OFF, (int64_t)f->state.data.sdm.mac_offset);
+    if(dfc_file_sdm_flag_is_set(f, DfcSdmFlagEncryptedFile)) {
+        w_int(w, SDM_ENC_OFF, (int64_t)f->state.data.sdm.encrypted_file_offset);
+        w_int(w, SDM_ENC_LEN, (int64_t)f->state.data.sdm.encrypted_file_length);
     }
-    if(f->sdm_has_counter_limit) w_int(w, SDM_LIMIT, (int64_t)f->sdm_counter_limit);
-    w_int(w, SDM_READ_COUNTER, (int64_t)f->sdm_read_counter);
+    if(dfc_file_sdm_flag_is_set(f, DfcSdmFlagCounterLimit))
+        w_int(w, SDM_LIMIT, (int64_t)f->state.data.sdm.counter_limit);
+    w_int(w, SDM_READ_COUNTER, (int64_t)f->state.data.sdm_read_counter);
 }
 #endif
 
@@ -406,7 +456,7 @@ static void body_file(Writer* w, const void* p) {
         w->overflow = true;
     }
 #if DFC_ENABLE_SDM
-    if(f->sdm_enabled) w_constructed(w, FILE_SDM, body_sdm, x);
+    if(dfc_file_sdm_flag_is_set(f, DfcSdmFlagEnabled)) w_constructed(w, FILE_SDM, body_sdm, x);
 #endif
 }
 
@@ -441,10 +491,12 @@ static void body_card(Writer* w, const void* p) {
     }
 #endif
     if(c->card.has_hardware_version) {
-        w_tlv(w, CARD_HARDWARE_VERSION, c->card.hardware_version, sizeof(c->card.hardware_version));
+        w_tlv(
+            w, CARD_HARDWARE_VERSION, c->card.hardware_version, sizeof(c->card.hardware_version));
     }
     if(c->card.has_software_version) {
-        w_tlv(w, CARD_SOFTWARE_VERSION, c->card.software_version, sizeof(c->card.software_version));
+        w_tlv(
+            w, CARD_SOFTWARE_VERSION, c->card.software_version, sizeof(c->card.software_version));
     }
 }
 
@@ -520,6 +572,7 @@ static void body_picc(Writer* w, const void* p) {
     if(c->picc_has_preferred_auth_command) {
         w_int(w, PICC_PREFERRED_AUTH, c->picc_preferred_auth_command);
     }
+    if(c->picc_random_id_legacy) w_bool(w, PICC_RANDOM_ID_LEGACY, true);
 }
 
 #if DFC_ENABLE_KEY_SETS
@@ -540,10 +593,17 @@ static void body_key_set_key(Writer* w, const void* p) {
         return;
     }
     // Set zero keeps its versions in the ordinary list; later sets follow it.
-    uint8_t version = k->set == 0 ? k->app->key_versions[k->slot] :
-                                    k->app->additional_key_versions[k->set - 1][k->slot];
+    const uint8_t* version_ptr =
+        dfc_credential_key_version_in_set_const(k->c, k->app, k->set, k->slot);
+    const uint8_t* type = dfc_credential_key_set_type_const(k->c, k->app, k->set);
+    if(!version_ptr || !type) {
+        w->overflow = true;
+        return;
+    }
+    uint8_t version = *version_ptr;
     w_int(w, KEY_SLOT, (int64_t)k->slot);
-    w_tlv(w, KEY_VALUE, value, dfc_credential_stored_key_length(k->app->key_len));
+    size_t key_len = dfc_key_set_type_length(*type);
+    w_tlv(w, KEY_VALUE, value, key_len);
     w_tlv(w, KEY_VERSION, &version, 1);
 }
 
@@ -558,11 +618,17 @@ static void body_key_set_keys(Writer* w, const void* p) {
 static void body_key_set(Writer* w, const void* p) {
     const KeySetCtx* k = p;
     const DfcApplication* a = k->app;
+    const uint8_t* version = dfc_credential_key_set_version_const(k->c, a, k->set);
+    const uint8_t* type = dfc_credential_key_set_type_const(k->c, a, k->set);
+    if(!version || !type) {
+        w->overflow = true;
+        return;
+    }
     w_int(w, SET_NUMBER, (int64_t)k->set);
-    w_tlv(w, SET_VERSION, &a->key_set_versions[k->set], 1);
-    w_int(w, SET_TYPE, (int64_t)a->key_set_types[k->set]);
+    w_tlv(w, SET_VERSION, version, 1);
+    w_int(w, SET_TYPE, (int64_t)*type);
     // Required, so FALSE is encoded rather than omitted.
-    w_bool(w, SET_INITIALIZED, a->key_set_initialized[k->set]);
+    w_bool(w, SET_INITIALIZED, dfc_credential_key_set_is_initialized(k->c, a, k->set));
     w_constructed(w, SET_KEYS, body_key_set_keys, k);
 }
 
@@ -591,6 +657,7 @@ static void body_delegated(Writer* w, const void* p) {
     w_tlv(w, DEL_VERSION, &a->delegated_slot_version, 1);
     w_int(w, DEL_QUOTA, (int64_t)a->delegated_quota_limit);
     w_int(w, DEL_FREE, (int64_t)a->delegated_free_blocks);
+    if(a->delegated_format_disabled) w_bool(w, DEL_FORMAT_DISABLED, true);
 }
 #endif
 
@@ -650,17 +717,185 @@ static void body_credential(Writer* w, const void* p) {
 
 #endif // DFC_ENABLE_DER_ENCODER
 
+#endif // DFC_ENABLE_BINARY_CODEC
+
+// Model validation is part of the credential API, not either codec. Keep it
+// available even when both codec directions are compiled out.
+
+static bool model_file_is_data(uint8_t type) {
+    return type == FILE_TYPE_STANDARD || type == FILE_TYPE_BACKUP;
+}
+
+static bool
+    model_slice_is_valid(size_t offset, size_t length, size_t used, size_t capacity, size_t none) {
+    if(used > capacity) return false;
+    if(length == 0) return offset == none;
+    return offset != none && offset <= used && length <= used - offset;
+}
+
+static bool model_slices_overlap(
+    size_t left_offset,
+    size_t left_length,
+    size_t right_offset,
+    size_t right_length) {
+    if(left_length == 0 || right_length == 0) return false;
+    return left_offset < right_offset + right_length && right_offset < left_offset + left_length;
+}
+
+static bool model_key_length_is_valid(uint8_t key_settings_2, size_t key_length) {
+    switch(key_settings_2 & DFC_KEY_TYPE_MASK) {
+    case DFC_KEY_TYPE_DES_2K3DES:
+        return key_length == 8 || key_length == 16;
+    case DFC_KEY_TYPE_3K3DES:
+        return key_length == 24;
+    case DFC_KEY_TYPE_AES:
+        return key_length == 16;
+    default:
+        return false;
+    }
+}
+
+static bool model_key_slice_is_valid(const DfcCredential* c, const DfcApplication* app) {
+    size_t count = app ? app->num_keys : c->picc_num_keys;
+    size_t key_length = app ? app->key_len : c->picc_key_len;
+    size_t offset = app ? app->key_offset : c->picc_key_offset;
+    size_t pool_length = app ? app->key_pool_len : c->picc_key_pool_len;
+    uint8_t settings = app ? app->key_settings_2 : c->picc_key_settings_2;
+    if(count > DFC_MAX_KEYS) return false;
+    if(count > 0 && !model_key_length_is_valid(settings, key_length)) return false;
+
+    size_t allocated = count;
+    size_t storage_length = key_length;
+#if DFC_ENABLE_KEY_SETS
+    if(app) {
+        if(app->num_key_sets == 0 || app->num_key_sets > DFC_MAX_KEY_SETS) return false;
+        if(app->num_key_sets >= DFC_KEY_SET_MINIMUM_COUNT) {
+            if(count == 0 || !dfc_credential_key_set_is_initialized(c, app, 0)) return false;
+            const uint8_t* active_type = dfc_credential_key_set_type_const(c, app, 0);
+            if(!active_type) return false;
+            if(app->max_key_size != DFC_KEY_SET_MAXIMUM_16_BYTE &&
+               app->max_key_size != DFC_KEY_SET_MAXIMUM_24_BYTE)
+                return false;
+            if(app->key_storage_len != app->max_key_size) return false;
+            if(key_length > app->max_key_size ||
+               dfc_key_set_type_length(*active_type) != key_length ||
+               (settings & DFC_KEY_TYPE_MASK) != dfc_key_type_for_set_type(*active_type))
+                return false;
+            for(size_t set = 0; set < app->num_key_sets; set++) {
+                const uint8_t* type = dfc_credential_key_set_type_const(c, app, set);
+                if(!type) return false;
+                size_t width = dfc_key_set_type_length(*type);
+                if(width == 0 || width > app->max_key_size) return false;
+            }
+            if(count > SIZE_MAX / app->num_key_sets) return false;
+            allocated = count * app->num_key_sets;
+            storage_length = app->key_storage_len;
+        } else if(app->num_key_sets != 1) {
+            return false;
+        }
+    }
+#endif
+    size_t stride = dfc_credential_stored_key_length(storage_length);
+    if(allocated > SIZE_MAX / stride) return false;
+    size_t expected = allocated * stride;
+    if(pool_length != expected) return false;
+    return model_slice_is_valid(
+        offset, pool_length, c->key_pool_used, DFC_KEY_POOL_SIZE, DFC_KEY_POOL_NONE);
+}
+
+static bool model_pools_are_valid(const DfcCredential* c) {
+    if(c->key_pool_used > DFC_KEY_POOL_SIZE || c->file_pool_used > DFC_FILE_POOL_SIZE
+#if DFC_ENABLE_KEY_SETS
+       || c->key_set_metadata_pool_used > DFC_KEY_SET_METADATA_POOL_SIZE
+#endif
+    ) {
+        return false;
+    }
+    if(!model_key_slice_is_valid(c, NULL)) return false;
+    size_t key_total = c->picc_key_pool_len;
+    for(size_t i = 0; i < c->num_apps; i++) {
+        const DfcApplication* app = &c->apps[i];
+        if(!model_key_slice_is_valid(c, app)) return false;
+        if(key_total > SIZE_MAX - app->key_pool_len) return false;
+        key_total += app->key_pool_len;
+        if(model_slices_overlap(
+               c->picc_key_offset, c->picc_key_pool_len, app->key_offset, app->key_pool_len))
+            return false;
+        for(size_t j = 0; j < i; j++) {
+            if(model_slices_overlap(
+                   c->apps[j].key_offset,
+                   c->apps[j].key_pool_len,
+                   app->key_offset,
+                   app->key_pool_len))
+                return false;
+        }
+    }
+    if(key_total != c->key_pool_used) return false;
+
+#if DFC_ENABLE_KEY_SETS
+    size_t metadata_total = 0;
+    for(size_t i = 0; i < c->num_apps; i++) {
+        const DfcApplication* app = &c->apps[i];
+        if(app->num_key_sets < DFC_KEY_SET_MINIMUM_COUNT) {
+            if(app->key_set_metadata_offset != DFC_KEY_SET_METADATA_POOL_NONE ||
+               app->key_set_metadata_len != 0)
+                return false;
+            continue;
+        }
+        if(!dfc_credential_key_set_version_const(c, app, 0)) return false;
+        if(metadata_total > SIZE_MAX - app->key_set_metadata_len) return false;
+        metadata_total += app->key_set_metadata_len;
+        for(size_t j = 0; j < i; j++) {
+            if(model_slices_overlap(
+                   c->apps[j].key_set_metadata_offset,
+                   c->apps[j].key_set_metadata_len,
+                   app->key_set_metadata_offset,
+                   app->key_set_metadata_len))
+                return false;
+        }
+    }
+    if(metadata_total != c->key_set_metadata_pool_used) return false;
+#endif
+
+    size_t file_total = 0;
+    for(size_t i = 0; i < c->num_files; i++) {
+        const DfcFile* file = &c->files[i];
+        if(!model_slice_is_valid(
+               file->data_offset,
+               file->data_len,
+               c->file_pool_used,
+               DFC_FILE_POOL_SIZE,
+               DFC_FILE_POOL_NONE))
+            return false;
+        if(file_total > SIZE_MAX - file->data_len) return false;
+        file_total += file->data_len;
+        for(size_t j = 0; j < i; j++) {
+            if(model_slices_overlap(
+                   c->files[j].data_offset,
+                   c->files[j].data_len,
+                   file->data_offset,
+                   file->data_len))
+                return false;
+        }
+    }
+    return file_total == c->file_pool_used;
+}
+
 // Reject a model that would encode into something a conforming decoder refuses,
 // so an invalid credential cannot leave this process.
-DfcDerStatus dfc_der_validate_model(const DfcCredential* c) {
-    if(c->uid_len != DFC_DESFIRE_UID_SHORT_LEN && c->uid_len != DFC_DESFIRE_UID_LEN &&
-       c->uid_len != DFC_DESFIRE_UID_LONG_LEN) {
+DfcModelStatus dfc_credential_validate_model(const DfcCredential* c) {
+    if(!c || c->num_apps > DFC_MAX_APPS || c->num_files > DFC_MAX_FILES) {
+        return DfcDerMalformed;
+    }
+    if(!model_pools_are_valid(c)) return DfcDerMalformed;
+    if(!dfc_uid_length_is_valid(c->uid_len)) {
         return DfcDerMalformed;
     }
     if(c->card.generation < DfcGenerationEv1 || c->card.generation > DfcGenerationEv3) {
         return DfcDerMalformed;
     }
     if(c->card.uid_provenance > DfcUidProvenanceUnknown) return DfcDerMalformed;
+    if(c->picc_random_id_legacy && !c->picc_random_id) return DfcDerMalformed;
     // A key list may be empty: an absent entry is the factory default
     // and an absent key slot encodes a required but empty
     // SEQUENCE OF as its tag with length zero.
@@ -672,12 +907,14 @@ DfcDerStatus dfc_der_validate_model(const DfcCredential* c) {
        (c->picc_preferred_auth_command == 0 ||
         (c->picc_preferred_auth_command & (c->picc_preferred_auth_command - 1u)) != 0 ||
         (c->picc_preferred_auth_command & DFC_AUTH_COMMAND_ALL) == 0 ||
-        ((c->picc_has_auth_commands ? picc_commands :
-          dfc_credential_possible_auth_commands(c->picc_key_settings_2, c->card.generation)) &
-         c->picc_preferred_auth_command) == 0)) return DfcDerMalformed;
-    uint8_t picc_allowed = dfc_credential_possible_auth_commands(
-                               c->picc_key_settings_2, c->card.generation) |
-                           DFC_AUTH_COMMAND_ISO7816;
+        ((c->picc_has_auth_commands ?
+              picc_commands :
+              dfc_credential_possible_auth_commands(c->picc_key_settings_2, c->card.generation)) &
+         c->picc_preferred_auth_command) == 0))
+        return DfcDerMalformed;
+    uint8_t picc_allowed =
+        dfc_credential_possible_auth_commands(c->picc_key_settings_2, c->card.generation) |
+        DFC_AUTH_COMMAND_ISO7816;
     if(picc_commands & (uint8_t)~picc_allowed) return DfcDerMalformed;
     if(picc_commands & (uint8_t)~dfc_credential_compiled_auth_commands()) {
         return DfcDerUnsupported;
@@ -691,8 +928,8 @@ DfcDerStatus dfc_der_validate_model(const DfcCredential* c) {
         return DfcDerMalformed;
     }
     if(c->picc_has_sm_disable &&
-       (c->picc_sm_disable & (uint8_t)~(DFC_SM_DISABLE_D40 | DFC_SM_DISABLE_EV1 |
-                                          DFC_SM_DISABLE_EV2_CHAINED_WRITE))) {
+       (c->picc_sm_disable &
+        (uint8_t)~(DFC_SM_DISABLE_D40 | DFC_SM_DISABLE_EV1 | DFC_SM_DISABLE_EV2_CHAINED_WRITE))) {
         return DfcDerMalformed;
     }
 
@@ -705,6 +942,12 @@ DfcDerStatus dfc_der_validate_model(const DfcCredential* c) {
 #endif
 #if DFC_ENABLE_VIRTUAL_CARD
     has_ev2 = has_ev2 || c->virtual_card_configured;
+    if(c->virtual_card_configured) {
+        if(c->virtual_card_installation_id_len > DFC_VIRTUAL_CARD_MAX_INSTALLATION_ID_LENGTH ||
+           !dfc_uid_length_is_valid(c->virtual_card_uid_len)) {
+            return DfcDerMalformed;
+        }
+    }
 #endif
 #if DFC_ENABLE_DELEGATED_APPLICATIONS
     has_ev2 = has_ev2 || c->picc_has_dam_keys;
@@ -723,12 +966,14 @@ DfcDerStatus dfc_der_validate_model(const DfcCredential* c) {
            (a->preferred_auth_command == 0 ||
             (a->preferred_auth_command & (a->preferred_auth_command - 1u)) != 0 ||
             (a->preferred_auth_command & DFC_AUTH_COMMAND_ALL) == 0 ||
-            ((a->has_auth_commands ? commands :
-              dfc_credential_possible_auth_commands(a->key_settings_2, c->card.generation)) &
-             a->preferred_auth_command) == 0)) return DfcDerMalformed;
-        uint8_t allowed = dfc_credential_possible_auth_commands(
-                              a->key_settings_2, c->card.generation) |
-                          DFC_AUTH_COMMAND_ISO7816;
+            ((a->has_auth_commands ?
+                  commands :
+                  dfc_credential_possible_auth_commands(a->key_settings_2, c->card.generation)) &
+             a->preferred_auth_command) == 0))
+            return DfcDerMalformed;
+        uint8_t allowed =
+            dfc_credential_possible_auth_commands(a->key_settings_2, c->card.generation) |
+            DFC_AUTH_COMMAND_ISO7816;
         if(commands & (uint8_t)~allowed) return DfcDerMalformed;
         if(commands & (uint8_t)~dfc_credential_compiled_auth_commands()) {
             return DfcDerUnsupported;
@@ -741,9 +986,9 @@ DfcDerStatus dfc_der_validate_model(const DfcCredential* c) {
            (commands & (DFC_AUTH_COMMAND_EV2_FIRST | DFC_AUTH_COMMAND_EV2_NON_FIRST))) {
             return DfcDerMalformed;
         }
-        if(a->has_sm_disable &&
-           (a->sm_disable & (uint8_t)~(DFC_SM_DISABLE_D40 | DFC_SM_DISABLE_EV1 |
-                                               DFC_SM_DISABLE_EV2_CHAINED_WRITE))) {
+        if(a->has_sm_disable && (a->sm_disable & (uint8_t)~(
+                                                     DFC_SM_DISABLE_D40 | DFC_SM_DISABLE_EV1 |
+                                                     DFC_SM_DISABLE_EV2_CHAINED_WRITE))) {
             return DfcDerMalformed;
         }
         (void)a;
@@ -761,7 +1006,7 @@ DfcDerStatus dfc_der_validate_model(const DfcCredential* c) {
         const DfcFile* f = &c->files[i];
         has_ev2 = has_ev2 || f->type == FILE_TYPE_TMAC;
 #if DFC_ENABLE_SDM
-        has_ev3 = has_ev3 || f->sdm_enabled;
+        has_ev3 = has_ev3 || dfc_file_sdm_flag_is_set(f, DfcSdmFlagEnabled);
 #endif
     }
     if(has_ev2 && c->card.generation < DfcGenerationEv2) return DfcDerMalformed;
@@ -771,6 +1016,9 @@ DfcDerStatus dfc_der_validate_model(const DfcCredential* c) {
         const DfcApplication* a = &c->apps[i];
         if(a->num_keys > DFC_MAX_KEYS) return DfcDerMalformed;
         if(a->iso_aid_len > 16) return DfcDerMalformed;
+        if(a->has_iso_file_id && dfc_iso_file_id_is_reserved(a->iso_file_id)) {
+            return DfcDerMalformed;
+        }
         for(size_t j = i + 1; j < c->num_apps; j++) {
             if(memcmp(a->aid, c->apps[j].aid, 3) == 0) return DfcDerMalformed;
         }
@@ -787,56 +1035,107 @@ DfcDerStatus dfc_der_validate_model(const DfcCredential* c) {
 #else
         if(f->type == FILE_TYPE_TMAC || f->type > FILE_TYPE_CYCLIC) return DfcDerUnsupported;
 #endif
+        size_t key_count = f->app_index == DFC_FILE_OWNER_PICC ? c->picc_num_keys :
+                                                                 c->apps[f->app_index].num_keys;
+        if(!dfc_communication_settings_is_valid(f->comm_settings)) return DfcDerMalformed;
+#if DFC_ENABLE_SDM
+        if((f->comm_settings & DFC_SDM_ENABLED_MASK) != 0 &&
+           !dfc_file_sdm_flag_is_set(f, DfcSdmFlagEnabled)) {
+            return DfcDerMalformed;
+        }
+#endif
+        if(f->type == FILE_TYPE_TMAC ?
+               !dfc_transaction_mac_access_rights_are_valid(f->access_rights, key_count) :
+               !dfc_access_rights_are_valid(f->access_rights, key_count)) {
+            return DfcDerMalformed;
+        }
         for(size_t j = i + 1; j < c->num_files; j++) {
             if(c->files[j].app_index == f->app_index && c->files[j].number == f->number) {
                 return DfcDerMalformed;
             }
         }
-        if(file_is_data(f->type)) {
-            if(f->declared_size == 0 || f->declared_size > U24_MAX) return DfcDerMalformed;
-            if(f->data_len > f->declared_size) return DfcDerMalformed;
-            if(f->contents_complete && f->data_len != f->declared_size) return DfcDerMalformed;
+        if(model_file_is_data(f->type)) {
+            uint32_t declared_size;
+            if(!dfc_file_get_declared_size(f, &declared_size) || declared_size == 0 ||
+               declared_size > U24_MAX) {
+                return DfcDerMalformed;
+            }
+            if(f->data_len > declared_size) return DfcDerMalformed;
+            if(f->contents_complete && f->data_len != declared_size) return DfcDerMalformed;
         } else if(f->type == FILE_TYPE_VALUE) {
-            if(f->value_lower_limit > f->value || f->value > f->value_upper_limit) {
+            if(f->state.value.lower_limit > f->state.value.current ||
+               f->state.value.current > f->state.value.upper_limit) {
+                return DfcDerMalformed;
+            }
+            if(f->state.value.limited_credit > 3 ||
+               ((f->state.value.limited_credit & 0x01u) == 0 &&
+                f->state.value.limited_credit_value != 0) ||
+               f->state.value.limited_credit_value < 0) {
                 return DfcDerMalformed;
             }
         } else if(f->type == FILE_TYPE_TMAC) {
             // A transaction-MAC file is an EV2 feature (section 2.2.4 rule 13).
-            if(c->card.generation < DfcGenerationEv2) return DfcDerMalformed;
-        } else {
-            if(f->record_size == 0 || f->record_size > U24_MAX) return DfcDerMalformed;
-            if(f->max_records == 0 || f->max_records > U24_MAX) return DfcDerMalformed;
-            if(f->record_count > f->max_records) return DfcDerMalformed;
-            if(f->data_len % f->record_size != 0) return DfcDerMalformed;
-            size_t stored = f->data_len / f->record_size;
-            bool reserved = stored == f->max_records;
-            if(stored > f->record_count && !reserved) return DfcDerMalformed;
-            if(f->contents_complete && stored != f->record_count && !reserved) {
+            if(c->card.generation < DfcGenerationEv2) {
                 return DfcDerMalformed;
             }
-            if(f->type == FILE_TYPE_CYCLIC && f->max_records < 2) return DfcDerMalformed;
+#if DFC_ENABLE_TRANSACTION_MAC
+            if(!dfc_transaction_mac_key_type_is_valid(f->state.transaction_mac.key_type)) {
+                return DfcDerMalformed;
+            }
+#endif
+        } else {
+            if(f->state.record.size == 0 || f->state.record.size > U24_MAX) return DfcDerMalformed;
+            if(f->state.record.max_records == 0 || f->state.record.max_records > U24_MAX)
+                return DfcDerMalformed;
+            if(f->state.record.count > f->state.record.max_records) return DfcDerMalformed;
+            if(f->data_len % f->state.record.size != 0) return DfcDerMalformed;
+            size_t stored = f->data_len / f->state.record.size;
+            bool reserved = stored == f->state.record.max_records;
+            if(stored > f->state.record.count && !reserved) return DfcDerMalformed;
+            if(f->contents_complete && stored != f->state.record.count && !reserved) {
+                return DfcDerMalformed;
+            }
+            if(f->type == FILE_TYPE_CYCLIC && f->state.record.max_records < 2)
+                return DfcDerMalformed;
         }
-        if(f->has_iso_file_id) {
-            uint16_t v = f->iso_file_id;
-            if(v == 0x0000 || v == 0x3F00 || v == 0x3FFF || v == 0xFFFF) return DfcDerMalformed;
+        if(f->has_iso_file_id && dfc_iso_file_id_is_reserved(f->iso_file_id)) {
+            return DfcDerMalformed;
         }
 #if DFC_ENABLE_SDM
-        if(f->sdm_enabled) {
+        if(dfc_file_sdm_flag_is_set(f, DfcSdmFlagEnabled)) {
             if(f->type != FILE_TYPE_STANDARD) return DfcDerMalformed;
+            if((f->state.data.sdm.options &
+                (uint8_t)~(
+                    DFC_SDM_UID_MIRROR_MASK | DFC_SDM_COUNTER_MIRROR_MASK |
+                    DFC_SDM_COUNTER_LIMIT_MASK | DFC_SDM_ENCRYPTED_FILE_MASK |
+                    DFC_SDM_ASCII_ENCODING_MASK)) != 0 ||
+               !dfc_sdm_access_rights_are_valid(f->state.data.sdm.access_rights, key_count)) {
+                return DfcDerMalformed;
+            }
             // Every offset addresses a position inside the file.
-            const uint32_t size = f->declared_size;
-            if(f->sdm_has_uid_offset && f->sdm_uid_offset >= size) return DfcDerMalformed;
-            if(f->sdm_has_counter_offset && f->sdm_counter_offset >= size) return DfcDerMalformed;
-            if(f->sdm_has_picc_data_offset && f->sdm_picc_data_offset >= size) {
+            uint32_t size;
+            if(!dfc_file_get_declared_size(f, &size)) return DfcDerMalformed;
+            if(dfc_file_sdm_flag_is_set(f, DfcSdmFlagUidOffset) &&
+               f->state.data.sdm.uid_offset >= size)
+                return DfcDerMalformed;
+            if(dfc_file_sdm_flag_is_set(f, DfcSdmFlagCounterOffset) &&
+               f->state.data.sdm.counter_offset >= size)
+                return DfcDerMalformed;
+            if(dfc_file_sdm_flag_is_set(f, DfcSdmFlagPiccDataOffset) &&
+               f->state.data.sdm.picc_data_offset >= size) {
                 return DfcDerMalformed;
             }
-            if(f->sdm_has_mac_input_offset && f->sdm_mac_input_offset >= size) {
+            if(dfc_file_sdm_flag_is_set(f, DfcSdmFlagMacInputOffset) &&
+               f->state.data.sdm.mac_input_offset >= size) {
                 return DfcDerMalformed;
             }
-            if(f->sdm_has_mac_offset && f->sdm_mac_offset >= size) return DfcDerMalformed;
-            if(f->sdm_has_encrypted_file_offset) {
-                if(f->sdm_encrypted_file_offset >= size) return DfcDerMalformed;
-                if(f->sdm_encrypted_file_offset + f->sdm_encrypted_file_length > size) {
+            if(dfc_file_sdm_flag_is_set(f, DfcSdmFlagMacOffset) &&
+               f->state.data.sdm.mac_offset >= size)
+                return DfcDerMalformed;
+            if(dfc_file_sdm_flag_is_set(f, DfcSdmFlagEncryptedFile)) {
+                if(f->state.data.sdm.encrypted_file_offset >= size) return DfcDerMalformed;
+                if(f->state.data.sdm.encrypted_file_length >
+                   size - f->state.data.sdm.encrypted_file_offset) {
                     return DfcDerMalformed;
                 }
             }
@@ -846,11 +1145,17 @@ DfcDerStatus dfc_der_validate_model(const DfcCredential* c) {
     return DfcDerOk;
 }
 
+#if DFC_ENABLE_BINARY_CODEC
+
+DfcDerStatus dfc_der_validate_model(const DfcCredential* credential) {
+    return dfc_credential_validate_model(credential);
+}
+
 #if DFC_ENABLE_DER_ENCODER
 
 DfcDerStatus dfc_der_encoded_size(const DfcCredential* credential, size_t* len) {
     if(!credential || !len) return DfcDerMalformed;
-    DfcDerStatus st = dfc_der_validate_model(credential);
+    DfcDerStatus st = dfc_credential_validate_model(credential);
     if(st != DfcDerOk) return st;
     Ctx ctx = {credential, NULL, NULL, 0};
     Writer probe = {NULL, 0, 0, false};
@@ -910,7 +1215,8 @@ static bool r_tlv(Slice* s, Tlv* out) {
         if(count == 0 || count > 2) return false;
         if(s->len < 2 + count) return false;
         n = 0;
-        for(size_t i = 0; i < count; i++) n = (n << 8) | s->p[2 + i];
+        for(size_t i = 0; i < count; i++)
+            n = (n << 8) | s->p[2 + i];
         hdr = 2 + count;
         if(n < 128) return false; // non-minimal long form
         if(count == 2 && n < 256) return false;
@@ -936,25 +1242,33 @@ size_t dfc_der_length(const uint8_t* data, size_t capacity) {
 // Components of one SEQUENCE, keyed by identifier octet, with declaration order
 // enforced. `order` lists the identifiers in the order section 2.2.2 declares
 // them; anything else, or out of order, is malformed.
-#define MAX_COMPONENTS 16
+#define MAX_COMPONENTS 17
+
+_Static_assert(DFC_DER_MAX_SIZE <= UINT16_MAX, "DER offsets must fit uint16_t");
 
 typedef struct {
-    uint8_t tags[MAX_COMPONENTS];
-    Slice bodies[MAX_COMPONENTS];
-    bool present[MAX_COMPONENTS];
-    size_t count;
+    const uint8_t* base;
+    const uint8_t* order;
+    uint32_t present;
+    uint16_t encoded_offset[MAX_COMPONENTS];
+    uint8_t count;
 } Fields;
 
-static bool
-    r_fields(Slice body, const uint8_t* order, size_t order_len, Fields* out) {
+#if DFC_BUILD_ROLE == DFC_ROLE_TARGET && SIZE_MAX == UINT32_MAX
+_Static_assert(sizeof(Fields) <= 48, "DER field index must remain stack-bounded");
+#endif
+
+static bool r_fields(Slice body, const uint8_t* order, size_t order_len, Fields* out) {
     memset(out, 0, sizeof(*out));
     if(order_len > MAX_COMPONENTS) return false;
-    out->count = order_len;
-    for(size_t i = 0; i < order_len; i++) out->tags[i] = order[i];
+    out->base = body.p;
+    out->order = order;
+    out->count = (uint8_t)order_len;
 
     size_t cursor = 0;
     Tlv tlv = {0};
     while(body.len > 0) {
+        const uint8_t* encoded = body.p;
         if(!r_tlv(&body, &tlv)) return false;
         size_t idx = order_len;
         for(size_t i = 0; i < order_len; i++) {
@@ -964,72 +1278,99 @@ static bool
             }
         }
         if(idx == order_len) return false; // unknown tag: no extensions in v3
-        if(out->present[idx]) return false; // duplicate
+        uint32_t bit = UINT32_C(1) << idx;
+        if(out->present & bit) return false; // duplicate
         if(idx < cursor) return false; // out of declaration order
+        size_t offset = (size_t)(encoded - out->base);
+        if(offset > UINT16_MAX) return false;
         cursor = idx + 1;
-        out->present[idx] = true;
-        out->bodies[idx] = tlv.body;
+        out->present |= bit;
+        out->encoded_offset[idx] = (uint16_t)offset;
     }
     return true;
 }
 
-static const Slice* f_get(const Fields* f, uint8_t tag) {
+static const uint8_t* f_get(const Fields* f, uint8_t tag) {
     for(size_t i = 0; i < f->count; i++) {
-        if(f->tags[i] == tag && f->present[i]) return &f->bodies[i];
+        if(f->order[i] == tag && (f->present & (UINT32_C(1) << i)))
+            return f->base + f->encoded_offset[i];
     }
     return NULL;
 }
 
-static bool r_int(const Slice* s, int64_t* out) {
-    if(!s || s->len == 0 || s->len > 8) return false;
-    if(s->len > 1) {
-        bool redundant = (s->p[0] == 0x00 && (s->p[1] & 0x80) == 0) ||
-                         (s->p[0] == 0xFF && (s->p[1] & 0x80) != 0);
+// `field` points at a TLV already validated by r_fields. Reconstructing its
+// body here keeps Fields compact without rescanning the parent sequence.
+static Slice field_body(const uint8_t* field) {
+    size_t header = 2;
+    size_t length = field[1];
+    if(length & 0x80) {
+        size_t count = length & 0x7F;
+        length = 0;
+        for(size_t i = 0; i < count; i++)
+            length = (length << 8) | field[2 + i];
+        header += count;
+    }
+    Slice body = {field + header, length};
+    return body;
+}
+
+static bool r_int(const uint8_t* field, int64_t* out) {
+    if(!field) return false;
+    Slice s = field_body(field);
+    if(s.len == 0 || s.len > 8) return false;
+    if(s.len > 1) {
+        bool redundant = (s.p[0] == 0x00 && (s.p[1] & 0x80) == 0) ||
+                         (s.p[0] == 0xFF && (s.p[1] & 0x80) != 0);
         if(redundant) return false;
     }
     // Accumulate in an unsigned value, so shifting a negative integer's sign
     // extension is never undefined, and convert once at the end. The sign
     // extension fills the octets above the encoding with ones, so the two's
     // complement conversion reproduces the encoded value exactly.
-    uint64_t v = (s->p[0] & 0x80) ? UINT64_MAX : 0;
-    for(size_t i = 0; i < s->len; i++) v = (v << 8) | s->p[i];
+    uint64_t v = (s.p[0] & 0x80) ? UINT64_MAX : 0;
+    for(size_t i = 0; i < s.len; i++)
+        v = (v << 8) | s.p[i];
     *out = (int64_t)v;
     return true;
 }
 
-static bool r_uint(const Slice* s, uint64_t max, uint64_t* out) {
+static bool r_uint(const uint8_t* field, uint64_t max, uint64_t* out) {
     int64_t v;
-    if(!r_int(s, &v)) return false;
+    if(!r_int(field, &v)) return false;
     if(v < 0 || (uint64_t)v > max) return false;
     *out = (uint64_t)v;
     return true;
 }
 
-static bool r_bool(const Slice* s, bool* out) {
-    if(!s || s->len != 1) return false;
-    if(s->p[0] != 0x00 && s->p[0] != 0xFF) return false;
-    *out = s->p[0] == 0xFF;
+static bool r_bool(const uint8_t* field, bool* out) {
+    if(!field) return false;
+    Slice s = field_body(field);
+    if(s.len != 1) return false;
+    if(s.p[0] != 0x00 && s.p[0] != 0xFF) return false;
+    *out = s.p[0] == 0xFF;
     return true;
 }
 
 // A DEFAULT FALSE boolean: absent means false, and an explicit false is invalid
 // because DER omits a component equal to its default.
 static bool r_default_false(const Fields* f, uint8_t tag, bool* out) {
-    const Slice* s = f_get(f, tag);
-    if(!s) {
+    const uint8_t* field = f_get(f, tag);
+    if(!field) {
         *out = false;
         return true;
     }
     bool v;
-    if(!r_bool(s, &v)) return false;
+    if(!r_bool(field, &v)) return false;
     if(!v) return false;
     *out = true;
     return true;
 }
 
-static bool r_octets(const Slice* s, size_t want, uint8_t* out) {
-    if(!s || s->len != want) return false;
-    memcpy(out, s->p, want);
+static bool r_octets(const uint8_t* field, size_t want, uint8_t* out) {
+    if(!field) return false;
+    Slice s = field_body(field);
+    if(s.len != want) return false;
+    memcpy(out, s.p, want);
     return true;
 }
 
@@ -1045,7 +1386,7 @@ static uint8_t auth_command_for(uint64_t code) {
 #if DFC_ENABLE_SDM
 // Reads one optional SDM offset. Returns false when the value is malformed.
 static bool sdm_offset(const Fields* f, uint8_t tag, bool* present, uint32_t* out) {
-    const Slice* found = f_get(f, tag);
+    const uint8_t* found = f_get(f, tag);
     if(!found) {
         *present = false;
         return true;
@@ -1071,56 +1412,60 @@ static DfcDerStatus decode_sdm(DfcFile* file, Slice body) {
         SDM_LIMIT,
         SDM_READ_COUNTER};
     Fields f;
-    if(!r_fields(body, order, sizeof(order), &f)) return DfcDerMalformed;
-    if(!r_octets(f_get(&f, SDM_OPTIONS), 1, &file->sdm_options)) return DfcDerMalformed;
+    if(!r_fields(body, order, TAG_COUNT(order), &f)) return DfcDerMalformed;
+    if(!r_octets(f_get(&f, SDM_OPTIONS), 1, &file->state.data.sdm.options)) return DfcDerMalformed;
     uint8_t rights[2];
     if(!r_octets(f_get(&f, SDM_RIGHTS), 2, rights)) return DfcDerMalformed;
-    file->sdm_access_rights = (uint16_t)((rights[0] << 8) | rights[1]);
-    if(!sdm_offset(&f, SDM_UID_OFF, &file->sdm_has_uid_offset, &file->sdm_uid_offset) ||
-       !sdm_offset(&f, SDM_COUNTER_OFF, &file->sdm_has_counter_offset, &file->sdm_counter_offset) ||
-       !sdm_offset(&f, SDM_PICC_OFF, &file->sdm_has_picc_data_offset, &file->sdm_picc_data_offset) ||
-       !sdm_offset(
-           &f, SDM_MAC_IN_OFF, &file->sdm_has_mac_input_offset, &file->sdm_mac_input_offset) ||
-       !sdm_offset(&f, SDM_MAC_OFF, &file->sdm_has_mac_offset, &file->sdm_mac_offset) ||
-       !sdm_offset(
-           &f,
-           SDM_ENC_OFF,
-           &file->sdm_has_encrypted_file_offset,
-           &file->sdm_encrypted_file_offset)) {
+    file->state.data.sdm.access_rights = (uint16_t)((rights[0] << 8) | rights[1]);
+    bool has_uid = false;
+    bool has_counter = false;
+    bool has_picc = false;
+    bool has_mac_input = false;
+    bool has_mac = false;
+    bool has_encrypted = false;
+    if(!sdm_offset(&f, SDM_UID_OFF, &has_uid, &file->state.data.sdm.uid_offset) ||
+       !sdm_offset(&f, SDM_COUNTER_OFF, &has_counter, &file->state.data.sdm.counter_offset) ||
+       !sdm_offset(&f, SDM_PICC_OFF, &has_picc, &file->state.data.sdm.picc_data_offset) ||
+       !sdm_offset(&f, SDM_MAC_IN_OFF, &has_mac_input, &file->state.data.sdm.mac_input_offset) ||
+       !sdm_offset(&f, SDM_MAC_OFF, &has_mac, &file->state.data.sdm.mac_offset) ||
+       !sdm_offset(&f, SDM_ENC_OFF, &has_encrypted, &file->state.data.sdm.encrypted_file_offset)) {
         return DfcDerMalformed;
     }
-    const Slice* enc_len = f_get(&f, SDM_ENC_LEN);
+    dfc_file_sdm_flag_set(file, DfcSdmFlagUidOffset, has_uid);
+    dfc_file_sdm_flag_set(file, DfcSdmFlagCounterOffset, has_counter);
+    dfc_file_sdm_flag_set(file, DfcSdmFlagPiccDataOffset, has_picc);
+    dfc_file_sdm_flag_set(file, DfcSdmFlagMacInputOffset, has_mac_input);
+    dfc_file_sdm_flag_set(file, DfcSdmFlagMacOffset, has_mac);
+    dfc_file_sdm_flag_set(file, DfcSdmFlagEncryptedFile, has_encrypted);
+    const uint8_t* enc_len = f_get(&f, SDM_ENC_LEN);
     // The encrypted offset and its length occur together.
-    if((enc_len != NULL) != file->sdm_has_encrypted_file_offset) return DfcDerMalformed;
+    if((enc_len != NULL) != has_encrypted) return DfcDerMalformed;
     if(enc_len) {
         uint64_t value;
         if(!r_uint(enc_len, U24_MAX, &value)) return DfcDerMalformed;
-        file->sdm_encrypted_file_length = (uint32_t)value;
+        file->state.data.sdm.encrypted_file_length = (uint32_t)value;
     }
-    if(!sdm_offset(&f, SDM_LIMIT, &file->sdm_has_counter_limit, &file->sdm_counter_limit)) {
+    bool has_limit = false;
+    if(!sdm_offset(&f, SDM_LIMIT, &has_limit, &file->state.data.sdm.counter_limit)) {
         return DfcDerMalformed;
     }
+    dfc_file_sdm_flag_set(file, DfcSdmFlagCounterLimit, has_limit);
     uint64_t counter;
     if(!r_uint(f_get(&f, SDM_READ_COUNTER), U24_MAX, &counter)) return DfcDerMalformed;
-    file->sdm_read_counter = (uint32_t)counter;
-    file->sdm_enabled = true;
+    file->state.data.sdm_read_counter = (uint32_t)counter;
+    dfc_file_sdm_flag_set(file, DfcSdmFlagEnabled, true);
     return DfcDerOk;
 }
 #endif
 
 #if DFC_ENABLE_KEY_SETS
 // Returns the stored key length that a key-set type requires.
-static size_t key_set_type_length(uint8_t type) {
-    return type == DFC_KEY_SET_TYPE_3K3DES ? 24 : 16;
-}
-
 static DfcDerStatus decode_key_sets(DfcCredential* c, DfcApplication* app, Slice body) {
     static const uint8_t order[] = {KS_KEY_COUNT, KS_MAX_SIZE, KS_SETTINGS, KS_SETS};
-    static const uint8_t sorder[] = {
-        SET_NUMBER, SET_VERSION, SET_TYPE, SET_INITIALIZED, SET_KEYS};
+    static const uint8_t sorder[] = {SET_NUMBER, SET_VERSION, SET_TYPE, SET_INITIALIZED, SET_KEYS};
     static const uint8_t korder[] = {KEY_SLOT, KEY_VALUE, KEY_VERSION};
     Fields f;
-    if(!r_fields(body, order, sizeof(order), &f)) return DfcDerMalformed;
+    if(!r_fields(body, order, TAG_COUNT(order), &f)) return DfcDerMalformed;
     uint64_t key_count, max_size;
     if(!r_uint(f_get(&f, KS_KEY_COUNT), DFC_MAX_KEYS, &key_count) || key_count == 0) {
         return DfcDerMalformed;
@@ -1129,10 +1474,10 @@ static DfcDerStatus decode_key_sets(DfcCredential* c, DfcApplication* app, Slice
     if(max_size != 16 && max_size != 24) return DfcDerMalformed;
     uint8_t settings;
     if(!r_octets(f_get(&f, KS_SETTINGS), 1, &settings)) return DfcDerMalformed;
-    const Slice* sets = f_get(&f, KS_SETS);
+    const uint8_t* sets = f_get(&f, KS_SETS);
     if(!sets) return DfcDerMalformed;
 
-    Slice probe = *sets;
+    Slice probe = field_body(sets);
     Tlv skip;
     size_t count = 0;
     while(probe.len > 0) {
@@ -1147,31 +1492,35 @@ static DfcDerStatus decode_key_sets(DfcCredential* c, DfcApplication* app, Slice
     }
     app->key_set_settings = settings;
 
-    Slice walk = *sets;
+    Slice walk = field_body(sets);
     size_t index = 0;
     Tlv item;
     while(walk.len > 0) {
         if(!r_tlv(&walk, &item)) return DfcDerMalformed;
         Fields sf;
-        if(!r_fields(item.body, sorder, sizeof(sorder), &sf)) return DfcDerMalformed;
+        if(!r_fields(item.body, sorder, TAG_COUNT(sorder), &sf)) return DfcDerMalformed;
         uint64_t number, type;
         if(!r_uint(f_get(&sf, SET_NUMBER), DFC_MAX_KEY_SETS - 1, &number)) return DfcDerMalformed;
         if(number != index) return DfcDerMalformed; // contiguous from zero
         if(!r_uint(f_get(&sf, SET_TYPE), 0xFF, &type)) return DfcDerMalformed;
         if(type > DFC_KEY_SET_TYPE_AES) return DfcDerMalformed;
-        size_t required = key_set_type_length((uint8_t)type);
+        size_t required = dfc_key_set_type_length((uint8_t)type);
         if(required > max_size) return DfcDerMalformed;
-        if(!r_octets(f_get(&sf, SET_VERSION), 1, &app->key_set_versions[index])) {
+        uint8_t* set_version = dfc_credential_key_set_version(c, app, index);
+        uint8_t* set_type = dfc_credential_key_set_type(c, app, index);
+        if(!set_version || !set_type || !r_octets(f_get(&sf, SET_VERSION), 1, set_version)) {
             return DfcDerMalformed;
         }
-        app->key_set_types[index] = (uint8_t)type;
+        *set_type = (uint8_t)type;
         // Required, so an absent flag is malformed.
-        if(!r_bool(f_get(&sf, SET_INITIALIZED), &app->key_set_initialized[index])) {
+        bool initialized;
+        if(!r_bool(f_get(&sf, SET_INITIALIZED), &initialized) ||
+           !dfc_credential_key_set_set_initialized(c, app, index, initialized)) {
             return DfcDerMalformed;
         }
-        const Slice* keys = f_get(&sf, SET_KEYS);
+        const uint8_t* keys = f_get(&sf, SET_KEYS);
         if(!keys) return DfcDerMalformed;
-        Slice kwalk = *keys;
+        Slice kwalk = field_body(keys);
         size_t slot = 0;
         Tlv kitem;
         while(kwalk.len > 0) {
@@ -1179,33 +1528,36 @@ static DfcDerStatus decode_key_sets(DfcCredential* c, DfcApplication* app, Slice
             if(kitem.tag != TAG_SEQUENCE) return DfcDerMalformed;
             if(slot >= key_count) return DfcDerMalformed;
             Fields kf;
-            if(!r_fields(kitem.body, korder, sizeof(korder), &kf)) return DfcDerMalformed;
+            if(!r_fields(kitem.body, korder, TAG_COUNT(korder), &kf)) return DfcDerMalformed;
             uint64_t number_slot;
             if(!r_uint(f_get(&kf, KEY_SLOT), DFC_MAX_KEYS - 1, &number_slot)) {
                 return DfcDerMalformed;
             }
             if(number_slot != slot) return DfcDerMalformed;
-            const Slice* value = f_get(&kf, KEY_VALUE);
-            if(!value || value->len != required) return DfcDerMalformed;
+            const uint8_t* value = f_get(&kf, KEY_VALUE);
+            if(!value) return DfcDerMalformed;
+            Slice value_body = field_body(value);
+            if(value_body.len != required) return DfcDerMalformed;
             uint8_t* dst = dfc_credential_key_in_set(c, app, index, slot);
-            uint8_t* version = dfc_credential_key_version_in_set(app, index, slot);
+            uint8_t* version = dfc_credential_key_version_in_set(c, app, index, slot);
             if(!dst || !version) return DfcDerCapacity;
-            memcpy(dst, value->p, value->len);
+            memcpy(dst, value_body.p, value_body.len);
             if(!r_octets(f_get(&kf, KEY_VERSION), 1, version)) return DfcDerMalformed;
             slot++;
         }
         index++;
     }
-    if(!app->key_set_initialized[0]) return DfcDerMalformed;
+    if(!dfc_credential_key_set_is_initialized(c, app, 0)) return DfcDerMalformed;
     return DfcDerOk;
 }
 #endif
 
 #if DFC_ENABLE_DELEGATED_APPLICATIONS
-static DfcDerStatus decode_delegated(DfcApplication* app, Slice body) {
-    static const uint8_t order[] = {DEL_SLOT, DEL_VERSION, DEL_QUOTA, DEL_FREE};
+static DfcDerStatus decode_delegated(DfcApplication* app, Slice body, uint64_t version) {
+    static const uint8_t order[] = {
+        DEL_SLOT, DEL_VERSION, DEL_QUOTA, DEL_FREE, DEL_FORMAT_DISABLED};
     Fields f;
-    if(!r_fields(body, order, sizeof(order), &f)) return DfcDerMalformed;
+    if(!r_fields(body, order, TAG_COUNT(order), &f)) return DfcDerMalformed;
     uint64_t slot, quota, free_blocks;
     if(!r_uint(f_get(&f, DEL_SLOT), 0xFFFFu, &slot)) return DfcDerMalformed;
     if(!r_octets(f_get(&f, DEL_VERSION), 1, &app->delegated_slot_version)) return DfcDerMalformed;
@@ -1215,6 +1567,10 @@ static DfcDerStatus decode_delegated(DfcApplication* app, Slice body) {
     app->delegated_slot_number = (uint16_t)slot;
     app->delegated_quota_limit = (uint16_t)quota;
     app->delegated_free_blocks = (uint16_t)free_blocks;
+    if(version < 6 && f_get(&f, DEL_FORMAT_DISABLED)) return DfcDerMalformed;
+    if(!r_default_false(&f, DEL_FORMAT_DISABLED, &app->delegated_format_disabled)) {
+        return DfcDerMalformed;
+    }
     app->delegated = true;
     return DfcDerOk;
 }
@@ -1224,7 +1580,7 @@ static DfcDerStatus decode_proximity(DfcCredential* c, Slice body) {
 #if DFC_ENABLE_PROXIMITY_CHECK
     static const uint8_t order[] = {PROX_KEY, PROX_OPTION, PROX_PUBLISHED, PROX_BITRATE};
     Fields f;
-    if(!r_fields(body, order, sizeof(order), &f)) return DfcDerMalformed;
+    if(!r_fields(body, order, TAG_COUNT(order), &f)) return DfcDerMalformed;
     if(!r_octets(f_get(&f, PROX_KEY), sizeof(c->picc_proximity_key), c->picc_proximity_key)) {
         return DfcDerMalformed;
     }
@@ -1232,7 +1588,7 @@ static DfcDerStatus decode_proximity(DfcCredential* c, Slice body) {
     uint64_t published;
     if(!r_uint(f_get(&f, PROX_PUBLISHED), 0xFFFFu, &published)) return DfcDerMalformed;
     c->picc_proximity_published_response_time = (uint16_t)published;
-    const Slice* bitrate = f_get(&f, PROX_BITRATE);
+    const uint8_t* bitrate = f_get(&f, PROX_BITRATE);
     if(bitrate) {
         if(!r_octets(bitrate, 1, &c->picc_proximity_bitrate)) return DfcDerMalformed;
         c->picc_has_proximity_bitrate = true;
@@ -1252,22 +1608,27 @@ static DfcDerStatus decode_virtual_card(DfcCredential* c, Slice body) {
     static const uint8_t order[] = {
         VC_INSTALL_ID, VC_INFO, VC_CAPS, VC_UID, VC_MAC_KEY, VC_ENC_KEY, VC_AUTH_REQ, VC_PROX_REQ};
     Fields f;
-    if(!r_fields(body, order, sizeof(order), &f)) return DfcDerMalformed;
-    const Slice* install = f_get(&f, VC_INSTALL_ID);
-    if(!install || install->len == 0) return DfcDerMalformed;
-    if(install->len > DFC_VIRTUAL_CARD_MAX_INSTALLATION_ID_LENGTH) return DfcDerMalformed;
-    memcpy(c->virtual_card_installation_id, install->p, install->len);
-    c->virtual_card_installation_id_len = install->len;
+    if(!r_fields(body, order, TAG_COUNT(order), &f)) return DfcDerMalformed;
+    const uint8_t* install = f_get(&f, VC_INSTALL_ID);
+    if(!install) return DfcDerMalformed;
+    Slice install_body = field_body(install);
+    if(install_body.len == 0) return DfcDerMalformed;
+    if(install_body.len > DFC_VIRTUAL_CARD_MAX_INSTALLATION_ID_LENGTH) return DfcDerMalformed;
+    memcpy(c->virtual_card_installation_id, install_body.p, install_body.len);
+    c->virtual_card_installation_id_len = (uint8_t)install_body.len;
     if(!r_octets(f_get(&f, VC_INFO), 1, &c->virtual_card_information)) return DfcDerMalformed;
     if(!r_octets(
-           f_get(&f, VC_CAPS), sizeof(c->virtual_card_capabilities), c->virtual_card_capabilities)) {
+           f_get(&f, VC_CAPS),
+           sizeof(c->virtual_card_capabilities),
+           c->virtual_card_capabilities)) {
         return DfcDerMalformed;
     }
-    const Slice* uid = f_get(&f, VC_UID);
+    const uint8_t* uid = f_get(&f, VC_UID);
     if(!uid) return DfcDerMalformed;
-    if(uid->len != 4 && uid->len != 7 && uid->len != 10) return DfcDerMalformed;
-    memcpy(c->virtual_card_uid, uid->p, uid->len);
-    c->virtual_card_uid_len = uid->len;
+    Slice uid_body = field_body(uid);
+    if(uid_body.len != 4 && uid_body.len != 7 && uid_body.len != 10) return DfcDerMalformed;
+    memcpy(c->virtual_card_uid, uid_body.p, uid_body.len);
+    c->virtual_card_uid_len = (uint8_t)uid_body.len;
     if(!r_octets(
            f_get(&f, VC_MAC_KEY),
            sizeof(c->virtual_card_select_mac_key),
@@ -1300,14 +1661,15 @@ static DfcDerStatus decode_dam(DfcCredential* c, Slice body) {
 #if DFC_ENABLE_DELEGATED_APPLICATIONS
     static const uint8_t order[] = {DAM_AUTH, DAM_MAC, DAM_ENC};
     Fields f;
-    if(!r_fields(body, order, sizeof(order), &f)) return DfcDerMalformed;
+    if(!r_fields(body, order, TAG_COUNT(order), &f)) return DfcDerMalformed;
     if(!r_octets(f_get(&f, DAM_AUTH), sizeof(c->picc_dam_auth_key), c->picc_dam_auth_key)) {
         return DfcDerMalformed;
     }
     if(!r_octets(f_get(&f, DAM_MAC), sizeof(c->picc_dam_mac_key), c->picc_dam_mac_key)) {
         return DfcDerMalformed;
     }
-    if(!r_octets(f_get(&f, DAM_ENC), sizeof(c->picc_dam_encryption_key), c->picc_dam_encryption_key)) {
+    if(!r_octets(
+           f_get(&f, DAM_ENC), sizeof(c->picc_dam_encryption_key), c->picc_dam_encryption_key)) {
         return DfcDerMalformed;
     }
     c->picc_has_dam_keys = true;
@@ -1352,23 +1714,24 @@ static DfcDerStatus decode_keys(
         if(!r_tlv(&body, &tlv)) return DfcDerMalformed;
         if(tlv.tag != TAG_SEQUENCE) return DfcDerMalformed;
         Fields f;
-        if(!r_fields(tlv.body, order, sizeof(order), &f)) return DfcDerMalformed;
+        if(!r_fields(tlv.body, order, TAG_COUNT(order), &f)) return DfcDerMalformed;
         uint64_t slot;
         if(!r_uint(f_get(&f, KEY_SLOT), 13, &slot)) return DfcDerMalformed;
         if(slot != n) return DfcDerMalformed; // ascending, contiguous from 0
-        const Slice* value = f_get(&f, KEY_VALUE);
-        if(!value || value->len != key_len) return DfcDerMalformed;
+        const uint8_t* value = f_get(&f, KEY_VALUE);
+        if(!value) return DfcDerMalformed;
+        Slice value_body = field_body(value);
+        if(value_body.len != key_len) return DfcDerMalformed;
         uint8_t* dst = dfc_credential_key(credential, app, n);
         if(!dst) return DfcDerCapacity;
-        memcpy(dst, value->p, value->len);
+        memcpy(dst, value_body.p, value_body.len);
         if(!r_octets(f_get(&f, KEY_VERSION), 1, &versions[n])) return DfcDerMalformed;
         n++;
     }
     return DfcDerOk;
 }
 
-static DfcDerStatus
-    decode_file(DfcCredential* c, size_t owner, Slice body) {
+static DfcDerStatus decode_file(DfcCredential* c, size_t owner, Slice body) {
     static const uint8_t order[] = {
         FILE_NUMBER,
         FILE_TYPE,
@@ -1381,7 +1744,7 @@ static DfcDerStatus
         FILE_TMAC,
         FILE_SDM};
     Fields f;
-    if(!r_fields(body, order, sizeof(order), &f)) return DfcDerMalformed;
+    if(!r_fields(body, order, TAG_COUNT(order), &f)) return DfcDerMalformed;
 
     uint64_t number, type;
     if(!r_uint(f_get(&f, FILE_NUMBER), DFC_EV1_MAX_FILE_NUMBER, &number)) return DfcDerMalformed;
@@ -1397,7 +1760,7 @@ static DfcDerStatus
 
     DfcFile* file = &c->files[c->num_files];
     memset(file, 0, sizeof(*file));
-    file->app_index = owner;
+    file->app_index = (uint8_t)owner;
     file->number = (uint8_t)number;
     file->type = (uint8_t)type;
     file->data_offset = DFC_FILE_POOL_NONE;
@@ -1407,20 +1770,20 @@ static DfcDerStatus
     if(!r_octets(f_get(&f, FILE_RIGHTS), 2, rights)) return DfcDerMalformed;
     file->access_rights = (uint16_t)((rights[0] << 8) | rights[1]);
 
-    const Slice* fid = f_get(&f, FILE_ISO_FID);
+    const uint8_t* fid = f_get(&f, FILE_ISO_FID);
     if(fid) {
         uint8_t raw[2];
         if(!r_octets(fid, 2, raw)) return DfcDerMalformed;
         uint16_t v = (uint16_t)((raw[0] << 8) | raw[1]);
-        if(v == 0x0000 || v == 0x3F00 || v == 0x3FFF || v == 0xFFFF) return DfcDerMalformed;
+        if(dfc_iso_file_id_is_reserved(v)) return DfcDerMalformed;
         file->has_iso_file_id = true;
         file->iso_file_id = v;
     }
 
-    const Slice* data = f_get(&f, FILE_DATA);
-    const Slice* value = f_get(&f, FILE_VALUE);
-    const Slice* record = f_get(&f, FILE_RECORD);
-    const Slice* transaction_mac = f_get(&f, FILE_TMAC);
+    const uint8_t* data = f_get(&f, FILE_DATA);
+    const uint8_t* value = f_get(&f, FILE_VALUE);
+    const uint8_t* record = f_get(&f, FILE_RECORD);
+    const uint8_t* transaction_mac = f_get(&f, FILE_TMAC);
     size_t alternatives =
         (data ? 1 : 0) + (value ? 1 : 0) + (record ? 1 : 0) + (transaction_mac ? 1 : 0);
     if(alternatives != 1) return DfcDerMalformed;
@@ -1430,25 +1793,27 @@ static DfcDerStatus
         if(!data) return DfcDerMalformed;
         static const uint8_t dorder[] = {DATA_SIZE, DATA_KNOWN, DATA_COMPLETE};
         Fields d;
-        if(!r_fields(*data, dorder, sizeof(dorder), &d)) return DfcDerMalformed;
+        if(!r_fields(field_body(data), dorder, TAG_COUNT(dorder), &d)) return DfcDerMalformed;
         uint64_t size;
         if(!r_uint(f_get(&d, DATA_SIZE), U24_MAX, &size) || size == 0) return DfcDerMalformed;
-        file->declared_size = (uint32_t)size;
+        if(!dfc_file_set_declared_size(file, (uint32_t)size)) return DfcDerMalformed;
         if(!r_bool(f_get(&d, DATA_COMPLETE), &file->contents_complete)) return DfcDerMalformed;
-        const Slice* known = f_get(&d, DATA_KNOWN);
+        const uint8_t* known = f_get(&d, DATA_KNOWN);
         if(known) {
-            if(known->len == 0 || known->len > size) return DfcDerMalformed;
-            if(!dfc_file_resize(c, file, known->len)) return DfcDerCapacity;
+            Slice known_body = field_body(known);
+            if(known_body.len == 0 || known_body.len > size) return DfcDerMalformed;
+            if(!dfc_file_resize(c, file, known_body.len)) return DfcDerCapacity;
             uint8_t* dst = dfc_file_data(c, file);
             if(!dst) return DfcDerCapacity;
-            memcpy(dst, known->p, known->len);
+            memcpy(dst, known_body.p, known_body.len);
         }
         if(file->contents_complete && file->data_len != size) return DfcDerMalformed;
     } else if(file->type == FILE_TYPE_VALUE) {
         if(!value) return DfcDerMalformed;
-        static const uint8_t vorder[] = {VAL_LOWER, VAL_UPPER, VAL_CURRENT, VAL_LIMITED};
+        static const uint8_t vorder[] = {
+            VAL_LOWER, VAL_UPPER, VAL_CURRENT, VAL_LIMITED, VAL_LIMIT};
         Fields v;
-        if(!r_fields(*value, vorder, sizeof(vorder), &v)) return DfcDerMalformed;
+        if(!r_fields(field_body(value), vorder, TAG_COUNT(vorder), &v)) return DfcDerMalformed;
         int64_t lower, upper, current;
         if(!r_int(f_get(&v, VAL_LOWER), &lower)) return DfcDerMalformed;
         if(!r_int(f_get(&v, VAL_UPPER), &upper)) return DfcDerMalformed;
@@ -1457,42 +1822,53 @@ static DfcDerStatus
             return DfcDerMalformed;
         }
         if(lower > current || current > upper) return DfcDerMalformed;
-        file->value_lower_limit = (int32_t)lower;
-        file->value_upper_limit = (int32_t)upper;
-        file->value = (int32_t)current;
-        if(!r_octets(f_get(&v, VAL_LIMITED), 1, &file->limited_credit)) return DfcDerMalformed;
+        file->state.value.lower_limit = (int32_t)lower;
+        file->state.value.upper_limit = (int32_t)upper;
+        file->state.value.current = (int32_t)current;
+        if(!r_octets(f_get(&v, VAL_LIMITED), 1, &file->state.value.limited_credit))
+            return DfcDerMalformed;
+        const uint8_t* limit_field = f_get(&v, VAL_LIMIT);
+        if(limit_field) {
+            int64_t limit;
+            if(!r_int(limit_field, &limit) || limit < 0 || limit > INT32_MAX) {
+                return DfcDerMalformed;
+            }
+            file->state.value.limited_credit_value = (int32_t)limit;
+        }
     } else if(file->type == FILE_TYPE_TMAC) {
         if(!transaction_mac) return DfcDerMalformed;
 #if DFC_ENABLE_TRANSACTION_MAC
         static const uint8_t torder[] = {
-            TMAC_COUNTER,
-            TMAC_VALUE,
-            TMAC_KEY_TYPE,
-            TMAC_KEY_VERSION,
-            TMAC_KEY,
-            TMAC_READER_ID};
+            TMAC_COUNTER, TMAC_VALUE, TMAC_KEY_TYPE, TMAC_KEY_VERSION, TMAC_KEY, TMAC_READER_ID};
         Fields tm;
-        if(!r_fields(*transaction_mac, torder, sizeof(torder), &tm)) return DfcDerMalformed;
+        if(!r_fields(field_body(transaction_mac), torder, TAG_COUNT(torder), &tm)) {
+            return DfcDerMalformed;
+        }
         uint64_t counter;
         if(!r_uint(f_get(&tm, TMAC_COUNTER), UINT32_MAX, &counter)) return DfcDerMalformed;
-        file->transaction_counter = (uint32_t)counter;
-        if(!r_octets(f_get(&tm, TMAC_VALUE), sizeof(file->transaction_mac), file->transaction_mac)) {
+        file->state.transaction_mac.counter = (uint32_t)counter;
+        if(!r_octets(
+               f_get(&tm, TMAC_VALUE),
+               sizeof(file->state.transaction_mac.mac),
+               file->state.transaction_mac.mac)) {
             return DfcDerMalformed;
         }
-        if(!r_octets(f_get(&tm, TMAC_KEY_TYPE), 1, &file->transaction_mac_key_type)) {
+        if(!r_octets(f_get(&tm, TMAC_KEY_TYPE), 1, &file->state.transaction_mac.key_type)) {
             return DfcDerMalformed;
         }
-        if(!r_octets(f_get(&tm, TMAC_KEY_VERSION), 1, &file->transaction_mac_key_version)) {
+        if(!r_octets(f_get(&tm, TMAC_KEY_VERSION), 1, &file->state.transaction_mac.key_version)) {
             return DfcDerMalformed;
         }
         if(!r_octets(
-               f_get(&tm, TMAC_KEY), sizeof(file->transaction_mac_key), file->transaction_mac_key)) {
+               f_get(&tm, TMAC_KEY),
+               sizeof(file->state.transaction_mac.key),
+               file->state.transaction_mac.key)) {
             return DfcDerMalformed;
         }
         if(!r_octets(
                f_get(&tm, TMAC_READER_ID),
-               sizeof(file->previous_reader_id),
-               file->previous_reader_id)) {
+               sizeof(file->state.transaction_mac.previous_reader_id),
+               file->state.transaction_mac.previous_reader_id)) {
             return DfcDerMalformed;
         }
 #else
@@ -1504,7 +1880,7 @@ static DfcDerStatus
         static const uint8_t rorder[] = {
             REC_SIZE, REC_MAX, REC_CURRENT, REC_COMPLETE, REC_RECORDS};
         Fields r;
-        if(!r_fields(*record, rorder, sizeof(rorder), &r)) return DfcDerMalformed;
+        if(!r_fields(field_body(record), rorder, TAG_COUNT(rorder), &r)) return DfcDerMalformed;
         uint64_t rsize, rmax, rcur;
         if(!r_uint(f_get(&r, REC_SIZE), U24_MAX, &rsize) || rsize == 0) return DfcDerMalformed;
         if(!r_uint(f_get(&r, REC_MAX), U24_MAX, &rmax) || rmax == 0) return DfcDerMalformed;
@@ -1512,13 +1888,13 @@ static DfcDerStatus
         if(rcur > rmax) return DfcDerMalformed;
         if(file->type == FILE_TYPE_CYCLIC && rmax < 2) return DfcDerMalformed;
         if(!r_bool(f_get(&r, REC_COMPLETE), &file->contents_complete)) return DfcDerMalformed;
-        file->record_size = (uint32_t)rsize;
-        file->max_records = (uint32_t)rmax;
-        file->record_count = (uint32_t)rcur;
+        file->state.record.size = (uint32_t)rsize;
+        file->state.record.max_records = (uint32_t)rmax;
+        file->state.record.count = (uint32_t)rcur;
 
-        const Slice* recs = f_get(&r, REC_RECORDS);
+        const uint8_t* recs = f_get(&r, REC_RECORDS);
         if(!recs) return DfcDerMalformed;
-        Slice walk = *recs;
+        Slice walk = field_body(recs);
         size_t stored = 0;
         Tlv item;
         while(walk.len > 0) {
@@ -1533,7 +1909,7 @@ static DfcDerStatus
             if(!dfc_file_resize(c, file, stored * rsize)) return DfcDerCapacity;
             uint8_t* dst = dfc_file_data(c, file);
             if(!dst) return DfcDerCapacity;
-            walk = *recs;
+            walk = field_body(recs);
             size_t off = 0;
             while(walk.len > 0) {
                 if(!r_tlv(&walk, &item)) return DfcDerMalformed;
@@ -1543,12 +1919,12 @@ static DfcDerStatus
         }
     }
 
-    const Slice* sdm = f_get(&f, FILE_SDM);
+    const uint8_t* sdm = f_get(&f, FILE_SDM);
     if(sdm) {
 #if DFC_ENABLE_SDM
         // Secure dynamic messaging belongs to a standard data file only.
         if(file->type != FILE_TYPE_STANDARD) return DfcDerMalformed;
-        DfcDerStatus sdm_status = decode_sdm(file, *sdm);
+        DfcDerStatus sdm_status = decode_sdm(file, field_body(sdm));
         if(sdm_status != DfcDerOk) return sdm_status;
 #else
         // The field is recognized but the build omits the feature.
@@ -1571,8 +1947,11 @@ static DfcDerStatus decode_files(DfcCredential* c, size_t owner, Slice body) {
     return DfcDerOk;
 }
 
-DfcDerStatus dfc_der_decode(DfcCredential* credential, const uint8_t* in, size_t len) {
-    if(!credential || !in) return DfcDerMalformed;
+// Fills `credential` in place, field by field. A failure can arrive at any
+// point, so this is only reached through dfc_der_decode, which owns the
+// failure contract and discards whatever was written.
+static DfcDerStatus decode_credential(DfcCredential* credential, const uint8_t* in, size_t len) {
+    if(!in) return DfcDerMalformed;
     // Section 2.2.1 bounds a .dfcb value at 65535 octets, so exceeding it is a
     // format violation rather than this build running out of room.
     if(len > DFC_DER_MAX_SIZE) return DfcDerMalformed;
@@ -1585,7 +1964,7 @@ DfcDerStatus dfc_der_decode(DfcCredential* credential, const uint8_t* in, size_t
 
     static const uint8_t corder[] = {CRED_VERSION, CRED_CARD, CRED_PICC, CRED_APPS};
     Fields cf;
-    if(!r_fields(root.body, corder, sizeof(corder), &cf)) return DfcDerMalformed;
+    if(!r_fields(root.body, corder, TAG_COUNT(corder), &cf)) return DfcDerMalformed;
 
     uint64_t version;
     if(!r_uint(f_get(&cf, CRED_VERSION), 0xFF, &version)) return DfcDerMalformed;
@@ -1598,53 +1977,63 @@ DfcDerStatus dfc_der_decode(DfcCredential* credential, const uint8_t* in, size_t
     // Card
     static const uint8_t caorder_v4[] = {
         CARD_GENERATION, CARD_STORAGE, CARD_UID, CARD_PROVENANCE, CARD_SIGNATURE};
-    static const uint8_t caorder_v5[] = {CARD_GENERATION,
-                                         CARD_STORAGE,
-                                         CARD_UID,
-                                         CARD_PROVENANCE,
-                                         CARD_SIGNATURE,
-                                         CARD_HARDWARE_VERSION,
-                                         CARD_SOFTWARE_VERSION};
-    const Slice* card = f_get(&cf, CRED_CARD);
+    static const uint8_t caorder_v5[] = {
+        CARD_GENERATION,
+        CARD_STORAGE,
+        CARD_UID,
+        CARD_PROVENANCE,
+        CARD_SIGNATURE,
+        CARD_HARDWARE_VERSION,
+        CARD_SOFTWARE_VERSION};
+    const uint8_t* card = f_get(&cf, CRED_CARD);
     Fields caf;
     const uint8_t* caorder = version == DFC_MIN_READ_FORMAT_VERSION ? caorder_v4 : caorder_v5;
-    size_t caorder_len = version == DFC_MIN_READ_FORMAT_VERSION ? sizeof(caorder_v4) :
-                                                                   sizeof(caorder_v5);
-    if(!card || !r_fields(*card, caorder, caorder_len, &caf)) return DfcDerMalformed;
+    size_t caorder_len = version == DFC_MIN_READ_FORMAT_VERSION ? TAG_COUNT(caorder_v4) :
+                                                                  TAG_COUNT(caorder_v5);
+    if(!card || !r_fields(field_body(card), caorder, caorder_len, &caf)) return DfcDerMalformed;
     uint64_t generation, storage, provenance;
     if(!r_uint(f_get(&caf, CARD_GENERATION), 0xFF, &generation)) return DfcDerMalformed;
     if(generation < DfcGenerationEv1 || generation > DfcGenerationEv3) return DfcDerMalformed;
     if(!r_uint(f_get(&caf, CARD_STORAGE), 0xFFFFFFFFu, &storage)) return DfcDerMalformed;
     if(!r_uint(f_get(&caf, CARD_PROVENANCE), 0xFF, &provenance)) return DfcDerMalformed;
     if(provenance > DfcUidProvenanceUnknown) return DfcDerMalformed;
-    const Slice* uid = f_get(&caf, CARD_UID);
+    const uint8_t* uid = f_get(&caf, CARD_UID);
     if(!uid) return DfcDerMalformed;
-    if(uid->len != DFC_DESFIRE_UID_SHORT_LEN && uid->len != DFC_DESFIRE_UID_LEN &&
-       uid->len != DFC_DESFIRE_UID_LONG_LEN) {
+    Slice uid_body = field_body(uid);
+    if(uid_body.len != DFC_DESFIRE_UID_SHORT_LEN && uid_body.len != DFC_DESFIRE_UID_LEN &&
+       uid_body.len != DFC_DESFIRE_UID_LONG_LEN) {
         return DfcDerMalformed;
     }
-    memcpy(credential->uid, uid->p, uid->len);
-    credential->uid_len = uid->len;
+    memcpy(credential->uid, uid_body.p, uid_body.len);
+    credential->uid_len = (uint8_t)uid_body.len;
     credential->card.generation = (DfcGeneration)generation;
     credential->card.storage = (uint32_t)storage;
     credential->card.uid_provenance = (DfcUidProvenance)provenance;
-    const Slice* hardware_version = f_get(&caf, CARD_HARDWARE_VERSION);
+    const uint8_t* hardware_version = f_get(&caf, CARD_HARDWARE_VERSION);
     if(hardware_version) {
-        if(!r_octets(hardware_version, sizeof(credential->card.hardware_version),
-                     credential->card.hardware_version)) return DfcDerMalformed;
+        if(!r_octets(
+               hardware_version,
+               sizeof(credential->card.hardware_version),
+               credential->card.hardware_version))
+            return DfcDerMalformed;
         credential->card.has_hardware_version = true;
     }
-    const Slice* software_version = f_get(&caf, CARD_SOFTWARE_VERSION);
+    const uint8_t* software_version = f_get(&caf, CARD_SOFTWARE_VERSION);
     if(software_version) {
-        if(!r_octets(software_version, sizeof(credential->card.software_version),
-                     credential->card.software_version)) return DfcDerMalformed;
+        if(!r_octets(
+               software_version,
+               sizeof(credential->card.software_version),
+               credential->card.software_version))
+            return DfcDerMalformed;
         credential->card.has_software_version = true;
     }
-    const Slice* signature = f_get(&caf, CARD_SIGNATURE);
+    const uint8_t* signature = f_get(&caf, CARD_SIGNATURE);
     if(signature) {
 #if DFC_ENABLE_STATIC_SIGNATURE
         if(!r_octets(
-               signature, sizeof(credential->picc_static_signature), credential->picc_static_signature)) {
+               signature,
+               sizeof(credential->picc_static_signature),
+               credential->picc_static_signature)) {
             return DfcDerMalformed;
         }
         credential->picc_has_static_signature = true;
@@ -1671,10 +2060,13 @@ DfcDerStatus dfc_der_decode(DfcCredential* credential, const uint8_t* in, size_t
         PICC_PROXIMITY,
         PICC_VCARD,
         PICC_DAM,
-        PICC_PREFERRED_AUTH};
-    const Slice* picc = f_get(&cf, CRED_PICC);
+        PICC_PREFERRED_AUTH,
+        PICC_RANDOM_ID_LEGACY};
+    const uint8_t* picc = f_get(&cf, CRED_PICC);
     Fields pf;
-    if(!picc || !r_fields(*picc, porder, sizeof(porder), &pf)) return DfcDerMalformed;
+    if(!picc || !r_fields(field_body(picc), porder, TAG_COUNT(porder), &pf)) {
+        return DfcDerMalformed;
+    }
     if(!r_octets(f_get(&pf, PICC_KS1), 1, &credential->picc_key_settings_1)) {
         return DfcDerMalformed;
     }
@@ -1682,12 +2074,12 @@ DfcDerStatus dfc_der_decode(DfcCredential* credential, const uint8_t* in, size_t
         return DfcDerMalformed;
     }
     uint64_t picc_auth;
-    if(!r_uint(f_get(&pf, PICC_AUTH),
-               version >= 6 ? DFC_AUTH_COMMAND_ALL : 2, &picc_auth)) return DfcDerMalformed;
+    if(!r_uint(f_get(&pf, PICC_AUTH), version >= 6 ? DFC_AUTH_COMMAND_ALL : 2, &picc_auth))
+        return DfcDerMalformed;
     if(version >= 6) {
         credential->picc_auth_commands = (uint8_t)picc_auth;
         credential->picc_has_auth_commands = true;
-        const Slice* preferred = f_get(&pf, PICC_PREFERRED_AUTH);
+        const uint8_t* preferred = f_get(&pf, PICC_PREFERRED_AUTH);
         if(preferred) {
             uint64_t value;
             if(!r_uint(preferred, DFC_AUTH_COMMAND_ALL, &value)) return DfcDerMalformed;
@@ -1704,38 +2096,43 @@ DfcDerStatus dfc_der_decode(DfcCredential* credential, const uint8_t* in, size_t
     if(!r_default_false(&pf, PICC_RANDOM_ID, &credential->picc_random_id)) {
         return DfcDerMalformed;
     }
+    if(version < 6 && f_get(&pf, PICC_RANDOM_ID_LEGACY)) return DfcDerMalformed;
+    if(!r_default_false(&pf, PICC_RANDOM_ID_LEGACY, &credential->picc_random_id_legacy)) {
+        return DfcDerMalformed;
+    }
     if(!r_default_false(&pf, PICC_FORMAT_DIS, &credential->picc_format_disabled)) {
         return DfcDerMalformed;
     }
-    const Slice* ats = f_get(&pf, PICC_ATS);
+    const uint8_t* ats = f_get(&pf, PICC_ATS);
     if(ats) {
-        if(ats->len == 0) return DfcDerMalformed;
-        if(ats->len > DFC_PICC_ATS_MAX) return DfcDerCapacity;
-        memcpy(credential->picc_ats, ats->p, ats->len);
-        credential->picc_ats_len = ats->len;
+        Slice ats_body = field_body(ats);
+        if(ats_body.len == 0) return DfcDerMalformed;
+        if(ats_body.len > DFC_PICC_ATS_MAX) return DfcDerCapacity;
+        memcpy(credential->picc_ats, ats_body.p, ats_body.len);
+        credential->picc_ats_len = (uint8_t)ats_body.len;
     }
-    const Slice* sak = f_get(&pf, PICC_SAK);
+    const uint8_t* sak = f_get(&pf, PICC_SAK);
     if(sak) {
         if(!r_octets(sak, 1, &credential->picc_sak)) return DfcDerMalformed;
         credential->picc_has_sak = true;
     }
-    const Slice* atqa = f_get(&pf, PICC_ATQA);
+    const uint8_t* atqa = f_get(&pf, PICC_ATQA);
     if(atqa) {
         if(!r_octets(atqa, 2, credential->picc_atqa)) return DfcDerMalformed;
         credential->picc_has_atqa = true;
     }
-    const Slice* smd = f_get(&pf, PICC_SM_DISABLE);
+    const uint8_t* smd = f_get(&pf, PICC_SM_DISABLE);
     if(smd) {
         if(!r_octets(smd, 1, &credential->picc_sm_disable)) return DfcDerMalformed;
         credential->picc_has_sm_disable = true;
     }
-    const Slice* picc_keys = f_get(&pf, PICC_KEYS);
+    const uint8_t* picc_keys = f_get(&pf, PICC_KEYS);
     if(!picc_keys) return DfcDerMalformed;
-    DfcDerStatus st =
-        decode_keys(credential, NULL, *picc_keys, credential->picc_key_len, DFC_MAX_KEYS);
+    DfcDerStatus st = decode_keys(
+        credential, NULL, field_body(picc_keys), credential->picc_key_len, DFC_MAX_KEYS);
     if(st != DfcDerOk) return st;
 
-    const Slice* ev2_caps = f_get(&pf, PICC_EV2_CAPS);
+    const uint8_t* ev2_caps = f_get(&pf, PICC_EV2_CAPS);
     if(ev2_caps) {
 #if DFC_ENABLE_EV2_SECURE_MESSAGING
         if(!r_octets(
@@ -1749,26 +2146,26 @@ DfcDerStatus dfc_der_decode(DfcCredential* credential, const uint8_t* in, size_t
         return DfcDerUnsupported;
 #endif
     }
-    const Slice* proximity = f_get(&pf, PICC_PROXIMITY);
+    const uint8_t* proximity = f_get(&pf, PICC_PROXIMITY);
     if(proximity) {
-        st = decode_proximity(credential, *proximity);
+        st = decode_proximity(credential, field_body(proximity));
         if(st != DfcDerOk) return st;
     }
-    const Slice* virtual_card = f_get(&pf, PICC_VCARD);
+    const uint8_t* virtual_card = f_get(&pf, PICC_VCARD);
     if(virtual_card) {
-        st = decode_virtual_card(credential, *virtual_card);
+        st = decode_virtual_card(credential, field_body(virtual_card));
         if(st != DfcDerOk) return st;
     }
-    const Slice* dam = f_get(&pf, PICC_DAM);
+    const uint8_t* dam = f_get(&pf, PICC_DAM);
     if(dam) {
-        st = decode_dam(credential, *dam);
+        st = decode_dam(credential, field_body(dam));
         if(st != DfcDerOk) return st;
     }
 
     // Applications, before PICC files so app_index values resolve.
-    const Slice* apps = f_get(&cf, CRED_APPS);
+    const uint8_t* apps = f_get(&cf, CRED_APPS);
     if(!apps) return DfcDerMalformed;
-    Slice walk = *apps;
+    Slice walk = field_body(apps);
     Tlv tlv;
     // The declared order is not numeric: APP_CAPABILITY follows APP_KEY_SETS.
     static const uint8_t aorder[] = {
@@ -1790,38 +2187,38 @@ DfcDerStatus dfc_der_decode(DfcCredential* credential, const uint8_t* in, size_t
         if(tlv.tag != TAG_SEQUENCE) return DfcDerMalformed;
         if(credential->num_apps >= DFC_MAX_APPS) return DfcDerCapacity;
         Fields af;
-        if(!r_fields(tlv.body, aorder, sizeof(aorder), &af)) return DfcDerMalformed;
+        if(!r_fields(tlv.body, aorder, TAG_COUNT(aorder), &af)) return DfcDerMalformed;
 
         DfcApplication* app = &credential->apps[credential->num_apps];
-        dfc_credential_reset_application(app);
         if(!r_octets(f_get(&af, APP_AID), 3, app->aid)) return DfcDerMalformed;
         for(size_t i = 0; i < credential->num_apps; i++) {
             if(memcmp(credential->apps[i].aid, app->aid, 3) == 0) return DfcDerMalformed;
         }
-        const Slice* afid = f_get(&af, APP_ISO_FID);
+        const uint8_t* afid = f_get(&af, APP_ISO_FID);
         if(afid) {
             uint8_t raw[2];
             if(!r_octets(afid, 2, raw)) return DfcDerMalformed;
             uint16_t v = (uint16_t)((raw[0] << 8) | raw[1]);
-            if(v == 0x0000 || v == 0x3F00 || v == 0x3FFF || v == 0xFFFF) return DfcDerMalformed;
+            if(dfc_iso_file_id_is_reserved(v)) return DfcDerMalformed;
             app->has_iso_file_id = true;
             app->iso_file_id = v;
         }
-        const Slice* df = f_get(&af, APP_DF_NAME);
+        const uint8_t* df = f_get(&af, APP_DF_NAME);
         if(df) {
-            if(df->len == 0 || df->len > sizeof(app->iso_aid)) return DfcDerMalformed;
-            memcpy(app->iso_aid, df->p, df->len);
-            app->iso_aid_len = df->len;
+            Slice df_body = field_body(df);
+            if(df_body.len == 0 || df_body.len > sizeof(app->iso_aid)) return DfcDerMalformed;
+            memcpy(app->iso_aid, df_body.p, df_body.len);
+            app->iso_aid_len = (uint8_t)df_body.len;
         }
         if(!r_octets(f_get(&af, APP_KS1), 1, &app->key_settings_1)) return DfcDerMalformed;
         if(!r_octets(f_get(&af, APP_KS2), 1, &app->key_settings_2)) return DfcDerMalformed;
         uint64_t app_auth;
-        if(!r_uint(f_get(&af, APP_AUTH),
-                   version >= 6 ? DFC_AUTH_COMMAND_ALL : 2, &app_auth)) return DfcDerMalformed;
+        if(!r_uint(f_get(&af, APP_AUTH), version >= 6 ? DFC_AUTH_COMMAND_ALL : 2, &app_auth))
+            return DfcDerMalformed;
         if(version >= 6) {
             app->auth_commands = (uint8_t)app_auth;
             app->has_auth_commands = true;
-            const Slice* preferred = f_get(&af, APP_PREFERRED_AUTH);
+            const uint8_t* preferred = f_get(&af, APP_PREFERRED_AUTH);
             if(preferred) {
                 uint64_t value;
                 if(!r_uint(preferred, DFC_AUTH_COMMAND_ALL, &value)) return DfcDerMalformed;
@@ -1836,16 +2233,16 @@ DfcDerStatus dfc_der_decode(DfcCredential* credential, const uint8_t* in, size_t
         }
         app->key_len = dfc_credential_key_length(app->key_settings_2);
 
-        const Slice* akeys = f_get(&af, APP_KEYS);
-        const Slice* aksets = f_get(&af, APP_KEY_SETS);
+        const uint8_t* akeys = f_get(&af, APP_KEYS);
+        const uint8_t* aksets = f_get(&af, APP_KEY_SETS);
         // Exactly one key storage alternative is required.
         if((akeys == NULL) == (aksets == NULL)) return DfcDerMalformed;
         if(akeys) {
-            st = decode_keys(credential, app, *akeys, app->key_len, DFC_MAX_KEYS);
+            st = decode_keys(credential, app, field_body(akeys), app->key_len, DFC_MAX_KEYS);
             if(st != DfcDerOk) return st;
         } else {
 #if DFC_ENABLE_KEY_SETS
-            st = decode_key_sets(credential, app, *aksets);
+            st = decode_key_sets(credential, app, field_body(aksets));
             if(st != DfcDerOk) return st;
 #else
             // The field is recognized but the build omits the feature.
@@ -1853,7 +2250,7 @@ DfcDerStatus dfc_der_decode(DfcCredential* credential, const uint8_t* in, size_t
 #endif
         }
 
-        const Slice* capability = f_get(&af, APP_CAPABILITY);
+        const uint8_t* capability = f_get(&af, APP_CAPABILITY);
         if(capability) {
 #if DFC_ENABLE_APPLICATION_CAPABILITY_DATA
             if(!r_octets(capability, sizeof(app->capability_data), app->capability_data)) {
@@ -1864,16 +2261,16 @@ DfcDerStatus dfc_der_decode(DfcCredential* credential, const uint8_t* in, size_t
             return DfcDerUnsupported;
 #endif
         }
-        const Slice* delegated = f_get(&af, APP_DELEGATED);
+        const uint8_t* delegated = f_get(&af, APP_DELEGATED);
         if(delegated) {
 #if DFC_ENABLE_DELEGATED_APPLICATIONS
-            st = decode_delegated(app, *delegated);
+            st = decode_delegated(app, field_body(delegated), version);
             if(st != DfcDerOk) return st;
 #else
             return DfcDerUnsupported;
 #endif
         }
-        const Slice* app_sm_disable = f_get(&af, APP_SM_DISABLE);
+        const uint8_t* app_sm_disable = f_get(&af, APP_SM_DISABLE);
         if(app_sm_disable) {
             if(version < 6 || !r_octets(app_sm_disable, 1, &app->sm_disable)) {
                 return DfcDerMalformed;
@@ -1884,22 +2281,31 @@ DfcDerStatus dfc_der_decode(DfcCredential* credential, const uint8_t* in, size_t
         size_t owner = credential->num_apps;
         credential->num_apps++;
 
-        const Slice* afiles = f_get(&af, APP_FILES);
+        const uint8_t* afiles = f_get(&af, APP_FILES);
         if(!afiles) return DfcDerMalformed;
-        st = decode_files(credential, owner, *afiles);
+        st = decode_files(credential, owner, field_body(afiles));
         if(st != DfcDerOk) return st;
     }
 
-    const Slice* pfiles = f_get(&pf, PICC_FILES);
+    const uint8_t* pfiles = f_get(&pf, PICC_FILES);
     if(!pfiles) return DfcDerMalformed;
-    st = decode_files(credential, DFC_FILE_OWNER_PICC, *pfiles);
+    st = decode_files(credential, DFC_FILE_OWNER_PICC, field_body(pfiles));
     if(st != DfcDerOk) return st;
 
-    st = dfc_der_validate_model(credential);
+    st = dfc_credential_validate_model(credential);
     if(st != DfcDerOk) return st;
 
     credential->dirty = false;
     return DfcDerOk;
+}
+
+DfcDerStatus dfc_der_decode(DfcCredential* credential, const uint8_t* in, size_t len) {
+    if(!credential) return DfcDerMalformed;
+    DfcDerStatus status = decode_credential(credential, in, len);
+    // One exit for every failure: the credential is the empty credential, with
+    // any key material decoded before the fault wiped, never a partial one.
+    if(status != DfcDerOk) dfc_credential_clear(credential);
+    return status;
 }
 
 #endif // DFC_ENABLE_DER_DECODER

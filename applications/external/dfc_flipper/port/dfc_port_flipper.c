@@ -9,8 +9,16 @@
 
 #include "../dfc_i.h"
 
-void dfc_random_fill(uint8_t* buf, size_t len) {
+bool dfc_random_fill(uint8_t* buf, size_t len) {
     furi_hal_random_fill_buf(buf, len);
+    return true;
+}
+
+void dfc_random_operation_begin(void) {
+}
+
+bool dfc_random_failure_is_retryable(void) {
+    return false;
 }
 
 void* dfc_platform_alloc(size_t size, DfcAllocTag tag) {

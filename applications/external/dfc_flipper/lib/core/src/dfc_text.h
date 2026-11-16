@@ -47,6 +47,8 @@ const char* dfc_text_status_name(DfcTextStatus status);
 // Parse `len` octets of `text` into `credential`, which is cleared first.
 // `detail` may be NULL. Enforces section 2.1 in full plus the section 2.2.4
 // semantic rules, so text this accepts is text the binary codec also accepts.
+// On any failure, including invalid arguments, `credential` is left empty (see
+// dfc_credential_clear), never partly populated.
 DfcTextStatus
     dfc_text_parse(DfcCredential* credential, const char* text, size_t len, DfcTextError* detail);
 
@@ -64,8 +66,9 @@ bool dfc_credential_content_is_binary(const uint8_t* content, size_t len);
 
 // Read a credential in either encoding, telling them apart by the first octet.
 // Binary goes through dfc_der_decode and text through dfc_text_parse, so both
-// enforce the same rules. `detail` may be NULL; for binary input it carries no
-// line, only the failure class.
+// enforce the same rules, and both leave `credential` empty on any failure.
+// `detail` may be NULL; for binary input it carries no line, only the failure
+// class.
 DfcTextStatus dfc_credential_load(
     DfcCredential* credential,
     const uint8_t* content,
