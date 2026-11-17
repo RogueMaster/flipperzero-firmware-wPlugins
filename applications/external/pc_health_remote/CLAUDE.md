@@ -11,7 +11,7 @@ keep repo files in English. Product: Flipper Zero app (`flipper/`, C) + Rust PC 
 - First and final message of every thread/run ends with `model: <model>, subagents: <N> (...)`.
 
 ## Tasks and merges
-- One issue per task on the overclock-lab board (GitHub Project "Overclock Lab"); PRs say `Closes #N`.
+- One issue per task on the overclock-lab board (GitHub Project "Ataman Lab"); PRs say `Closes #N`.
 - `.github/` and deploy/infra changes are merged by Vlad. Auto-merge per task only with the `automerge` label
   after Vlad's card tap (overclock-lab docs/automerge.md).
 - GitHub Actions budget is $5 for the whole lab: no macOS runners, no reruns without a known cause.
