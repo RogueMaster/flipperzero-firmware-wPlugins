@@ -31,6 +31,8 @@ This software is for experimental purposes only and is not meant for any illegal
 
 - Last Synced/Checked OFW, changes in [commits](https://github.com/flipperdevices/flipperzero-firmware/commits/dev): `2026-11-17 12:42 EST`
 - Last Synced/Checked CFW, changes in [changelog](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/CHANGELOG.md): `2026-11-17 12:42 EST`
+- Updated: [Sub-GHz Scheduler v3.5 (By shalebridge)](https://github.com/shalebridge/flipper-subghz-scheduler)
+- Added: [Dolphin Dash v0.1 (By Rasul Kireev)](https://github.com/rasulkireev/dolphin-dash) - Three-lane bubble collection and reef dodging
 
 <a name="release"></a>
 
@@ -196,6 +198,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [DNDJournal v4.20.2 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
 - [DNDolphins v4.20.2 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
 - [DNDSpellbook v4.20.2 (By RogueMaster)](https://github.com/RogueMaster/Dungeons_and_Dolphins)
+- [Dolphin Dash v0.1 (By Rasul Kireev)](https://github.com/rasulkireev/dolphin-dash)
 - [Doom v1.6 (By p4nic4ttack)](https://github.com/p4nic4ttack/doom-flipper-zero)
 - [DopeWars v0.7.9 (By lordbuffcloud)](https://github.com/lordbuffcloud/flipper-ck42x-dopeflipper)
 - [Dragotchi v0.4 (By Mohnki)](https://github.com/Mohnki/dragotchi-flipper) `Optional: ESP32`
@@ -981,7 +984,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Sub-GHz RAW Edit v1.8 (By Lechnio)](https://github.com/Lechnio/SubGHz-RAW-Edit)
 - [Sub-GHz Remote v1.9 (By gid9798)](https://github.com/DarkFlippers/SubGHz_Remote)
 - [Sub-GHz Rolling Flaws v1.5 (By jamisonderek)](https://github.com/jamisonderek/flipper-zero-tutorials)
-- [Sub-GHz Scheduler v3.4 (By shalebridge)](https://github.com/shalebridge/flipper-subghz-scheduler)
+- [Sub-GHz Scheduler v3.5 (By shalebridge)](https://github.com/shalebridge/flipper-subghz-scheduler)
 - [Sub-GHz Spectrum v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
 - [Sub-GHz Toolkit 1808 v1.0 (By RocketGod-git)](https://github.com/RocketGod-git/RocketGods-SubGHz-Toolkit)
 - [Sub-GHz WarDriving v0.2 (By xMasterX)](https://github.com/xMasterX/all-the-plugins)

@@ -5,3 +5,5 @@
 #define SCHEDULER_POPUP_TIMEOUT_MS 2000
 
 void scheduler_popup_success_show(SchedulerApp* app, const char* message);
+
+void scheduler_popup_error_show(SchedulerApp* app, const char* heading, const char* message);

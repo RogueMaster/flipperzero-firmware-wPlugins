@@ -21,3 +21,12 @@ void scheduler_popup_success_show(SchedulerApp* app, const char* message) {
 
     view_dispatcher_switch_to_view(app->view_dispatcher, SchedulerAppViewPopup);
 }
+
+void scheduler_popup_error_show(SchedulerApp* app, const char* heading, const char* message) {
+    popup_reset(app->popup);
+    popup_set_header(app->popup, heading, 64, 1, AlignCenter, AlignTop);
+    popup_set_text(app->popup, message, 3, 16, AlignLeft, AlignTop);
+    popup_set_context(app->popup, app);
+    popup_set_callback(app->popup, scheduler_popup_timeout_callback);
+    view_dispatcher_switch_to_view(app->view_dispatcher, SchedulerAppViewPopup);
+}

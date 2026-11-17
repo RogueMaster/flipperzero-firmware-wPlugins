@@ -1,0 +1,14 @@
+App(
+    appid="dolphin_dash",
+    name="Dolphin Dash",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="dolphin_dash_app",
+    stack_size=2 * 1024,
+    fap_icon="dolphin_dash.png",
+    fap_icon_assets="images",
+    fap_category="Games",
+    fap_author="Rasul Kireev",
+    fap_weburl="https://github.com/rasulkireev/dolphin-dash",
+    fap_version="0.1",
+    fap_description="Chase bubbles and dodge the reef in three lanes.",
+)

@@ -27,7 +27,7 @@
 #define SCHEDULER_PLAYLIST_FOLDER            EXT_PATH("subghz/playlist")
 
 #define SCHEDULER_APP_NAME    "Sub-GHz Scheduler"
-#define SCHEDULER_APP_VERSION "3.4"
+#define SCHEDULER_APP_VERSION "3.5"
 #define SCHEDULER_APP_AUTHOR  "Patrick Edwards"
 #define SCHEDULER_APP_HANDLE  "@shalebridge"
 
@@ -64,6 +64,7 @@ struct SchedulerApp {
     SchedulerRunView* run_view;
     SchedulerIntervalView* interval_view;
 
+    char popup_heading[24];
     char popup_msg[80];
     char save_name_tmp[SCHEDULER_MAX_LEN_NAME];
     char playlist_name_tmp[SCHEDULER_MAX_LEN_NAME];
