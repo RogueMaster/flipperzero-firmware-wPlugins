@@ -244,4 +244,5 @@ launch it from **Apps -> Sub-GHz** on the Flipper.
   25–30 s file. If you want to load longer RAWs just use `AM270` which won't
   make that much noise.
 - To decode any `.sub` protocol other than RAW Capture, this application relies on the device's internal decoder.
-  Therefore, for any recognized rolling protocols, it decodes the next keyframe, rather than the current one.
+  On custom firmware (Momentum, Unleashed, ...) rolling protocols are loaded with the counter as recorded.
+  Official firmware cannot skip the encoder's counter step, so there you get the next keyframe rather than the current one.

@@ -26,6 +26,7 @@
 #include <lib/subghz/subghz_protocol_registry.h>
 #ifndef FW_ORIGIN_Official
 #include <lib/subghz/blocks/custom_btn.h>
+#include <furi_hal_subghz.h>
 #else
 // Official firmware has no custom buttons: always send the recorded button.
 #define SUBGHZ_CUSTOM_BTN_OK 0
@@ -528,10 +529,11 @@ static void *safe_realloc(void *ptr, size_t size)
 /* Decoded protocols are synthesized by the firmware's own SubGhz encoder: the
  * key file is deserialized into a transmitter and we collect the level/duration
  * upload it would send on air. Every protocol the firmware supports works with
- * no per-protocol code here. Rolling codes (KeeLoq, Nice Flor-S, ...) increment
- * and re-encrypt their counter inside the encoder, so the synthesized frame is
- * the NEXT counter value, not a byte-for-byte replay; the manufacturer keystores
- * (system + user) are loaded so that encryption works. */
+ * no per-protocol code here. Rolling codes (KeeLoq, Nice Flor-S, ...) bump and
+ * re-encrypt their counter inside the encoder; custom firmware lets us zero that
+ * step so the frame keeps its recorded counter, official firmware always yields
+ * the NEXT one. The manufacturer keystores (system + user) are loaded so that
+ * encryption works. */
 
 static SubGhzEnvironment *subghz_env_setup(void)
 {
@@ -792,6 +794,12 @@ static bool synthesize_via_transmitter(
     }
 
 #ifndef FW_ORIGIN_Official
+    /* Rolling-code encoders add this multiplier to the counter before
+     * re-encrypting. Zero loads the frame with the counter as recorded, not
+     * the next one; the Sub-GHz app's setting is restored right after. */
+    int32_t cnt_mult = furi_hal_subghz_get_rolling_counter_mult();
+    furi_hal_subghz_set_rolling_counter_mult(0);
+
     if (g_custom_btn_id != SUBGHZ_CUSTOM_BTN_OK)
     {
         subghz_custom_btns_reset();
@@ -886,6 +894,10 @@ static bool synthesize_via_transmitter(
 
     if (fff)
         flipper_format_free(fff);
+
+#ifndef FW_ORIGIN_Official
+    furi_hal_subghz_set_rolling_counter_mult(cnt_mult);
+#endif
 
     subghz_environment_free(env);
     return ok;
