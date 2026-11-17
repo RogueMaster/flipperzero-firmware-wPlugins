@@ -1,6 +1,6 @@
-# v3.5 (2026-10-30)
+# v3.5 (2026-11-17)
 
-- Add valid frequency and region checks before transmission.
+- Add valid frequency and region checks before playlist & file loading.
 
 # v3.4 (2026-10-21)
 
