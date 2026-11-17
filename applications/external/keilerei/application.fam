@@ -1,0 +1,13 @@
+App(
+    appid="keilerei",
+    name="Keilerei",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="keilerei_app",
+    stack_size=4 * 1024,
+    fap_icon="keilerei.png",
+    fap_category="Games",
+    fap_author="JB",
+    fap_weburl="https://github.com/boeheimjonas-rgb/keilerei-flipper",
+    fap_version=(1, 0),
+    fap_description="LCD brawler with enemy waves, weapon crates and changing arenas",
+)

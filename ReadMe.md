@@ -349,6 +349,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Amiibo Emulator v1.1 (By Soap-n-Cartridge)](https://github.com/Soap-n-Cartridge/flipper_amiibo)
 - Added: [Codex Monitor v1.4 (By Dr. Mosfet)](https://github.com/kamylwnb/codex-monitor) - Codex quota and reset timers over Bluetooth or USB
 - Added: [IR RAW Edit v1.0 (By Lechnio)](https://github.com/Lechnio/IR-RAW-Edit) - Trim, decode and merge infrared signal files
+- Added: [Keilerei v1.0 (By JB)](https://github.com/boeheimjonas-rgb/keilerei-flipper) - LCD brawler with enemy waves, weapon crates and changing arenas
 
 <a name="release"></a>
 
@@ -562,6 +563,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [JetPack v1.1 (by timstrasser)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/1164e4d214efa38847e08c6387bf53578bc0d366)
 - [Jumping Pawns v0.1 (By Tyl3rA)](https://github.com/Tyl3rA/Jumping-Pawns)
 - [KC Line v1.2 (By HappyAmos)](https://github.com/HappyAmos/Flipper_FAPS/tree/master/kcline)
+- [Keilerei v1.0 (By JB)](https://github.com/boeheimjonas-rgb/keilerei-flipper) - LCD brawler with enemy waves, weapon crates and changing arenas
 - [Laser Tag v2.3 (By RocketGod & jamisonderek)](https://github.com/RocketGod-git/Flipper-Zero-Laser-Tag)
 - [Lettercade v1.0 (By andreimagic)](https://github.com/andreimagic/flipper-lettercade)
 - [Lifecounter v1.0 (By antsy)](https://github.com/antsy/Lifecounter) (Multi Counter remake)
