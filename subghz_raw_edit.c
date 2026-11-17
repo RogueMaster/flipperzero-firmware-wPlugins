@@ -78,8 +78,18 @@
 static_assert(LINE2_BASE <= SCREEN_H_PX);
 
 #define MENU_SEL_SAVE 0
-#define MENU_SEL_CUT 1
-#define MENU_SEL_UNDO 2
+#define MENU_SEL_DECODE 1
+#define MENU_SEL_CUT 2
+#define MENU_SEL_UNDO 3
+#define MENU_ITEMS 4
+
+#define DECODE_MAX 32
+#define DECODE_TAIL_US 100000
+#define DECODE_LEAD_MIN_US 2000
+#define DECODE_LEAD_MAX_US DUR_CLAMP
+#define DECODE_LEAD_US 18500
+#define DECODE_HEAP_RESERVE 4096
+#define DECODE_KEYS_HEAP 32768
 
 typedef struct
 {
@@ -1335,7 +1345,8 @@ static void propose_edit_name(Storage *st, App *a, char *out, size_t outlen)
     furi_string_free(path);
 }
 
-static bool write_selection(Storage *st, App *a, const char *savename)
+// Sample indices touched by A..B. False when nothing falls inside.
+static bool selection_range(const App *a, size_t *i0, size_t *i1)
 {
     int32_t lo = a->marker_a, hi = a->marker_b;
     if (lo > hi)
@@ -1346,7 +1357,6 @@ static bool write_selection(Storage *st, App *a, const char *savename)
     }
 
     int32_t run = 0;
-    size_t i0 = 0, i1 = 0;
     bool started = false;
     for (size_t i = 0; i < a->sd.count; i++)
     {
@@ -1358,14 +1368,20 @@ static bool write_selection(Storage *st, App *a, const char *savename)
         {
             if (!started)
             {
-                i0 = i;
+                *i0 = i;
                 started = true;
             }
-            i1 = i;
+            *i1 = i;
         }
     }
 
-    if (!started)
+    return started;
+}
+
+static bool write_selection(Storage *st, App *a, const char *path)
+{
+    size_t i0 = 0, i1 = 0;
+    if (!selection_range(a, &i0, &i1))
     {
         snprintf(a->status, sizeof(a->status), "Nothing in A..B");
         return false;
@@ -1389,21 +1405,10 @@ static bool write_selection(Storage *st, App *a, const char *savename)
         return false;
     }
 
-    FuriString *path = furi_string_alloc();
-    furi_string_printf(path, "%s/%s.sub", SUBGHZ_DIR, savename);
-
-    if (storage_file_exists(st, furi_string_get_cstr(path)))
-    {
-        furi_string_free(path);
-        snprintf(a->status, sizeof(a->status), "Name exists");
-        return false;
-    }
-
     File *f = storage_file_alloc(st);
-    if (!storage_file_open(f, furi_string_get_cstr(path), FSAM_WRITE, FSOM_CREATE_NEW))
+    if (!storage_file_open(f, path, FSAM_WRITE, FSOM_CREATE_NEW))
     {
         storage_file_free(f);
-        furi_string_free(path);
         snprintf(a->status, sizeof(a->status), "Write failed");
         return false;
     }
@@ -1442,10 +1447,256 @@ static bool write_selection(Storage *st, App *a, const char *savename)
     furi_string_free(lbuf);
     storage_file_close(f);
     storage_file_free(f);
-
-    snprintf(a->status, sizeof(a->status), "Saved %s.sub", savename);
-    furi_string_free(path);
     return true;
+}
+
+/* Decode: A..B is replayed through the firmware's own Sub-GHz decoders - the
+ * same ones the Sub-GHz app uses while reading - so every protocol it knows
+ * works here with no per-protocol code. Decoders are allocated one at a time
+ * instead of through a SubGhzReceiver (which holds all of them at once,
+ * BinRAW's big buffers included), keeping peak RAM to a single instance.
+ * Identical frames from one protocol collapse into one entry; only a short
+ * fingerprint is kept per entry and the full frame is recovered on demand by
+ * replaying that one protocol. */
+
+typedef struct
+{
+    const SubGhzProtocol *proto;
+    uint32_t hash;
+    uint16_t frames;
+    char key[18];
+} Decoded;
+
+typedef struct
+{
+    SubGhzEnvironment *env;
+    size_t i0, i1;
+    uint32_t lead_us;
+    Decoded *list;
+    size_t n;
+    const Decoded *want; // replay mode: stop at the first frame matching this entry
+    FuriString *text;
+    bool hit;
+    bool oom;
+} DecodeCtx;
+
+// FNV-1a of a frame description, skipping measured timings ("Te:350us",
+// "GT:Te*31") that jitter between otherwise identical frames.
+static uint32_t decoded_hash(const char *s)
+{
+    uint32_t h = 2166136261u;
+    while (*s)
+    {
+        if (s[0] == 'T' && s[1] == 'e' && (s[2] == ':' || s[2] == '*'))
+        {
+            for (s += 3; *s >= '0' && *s <= '9'; s++)
+                ;
+            continue;
+        }
+
+        h = (h ^ (uint8_t)*s++) * 16777619u;
+    }
+
+    return h;
+}
+
+static void decoded_key(const char *s, char *out, size_t n)
+{
+    size_t len = 0;
+    const char *k = strstr(s, "Key:");
+    if (k)
+    {
+        for (k += 4; *k == ' '; k++)
+            ;
+
+        if (k[0] == '0' && (k[1] == 'x' || k[1] == 'X'))
+            k += 2;
+
+        while (len + 1 < n && *k && strchr("0123456789ABCDEFabcdef", *k))
+            out[len++] = *k++;
+    }
+
+    out[len] = '\0';
+}
+
+static void decode_rx_cb(SubGhzProtocolDecoderBase *dec, void *ctx)
+{
+    DecodeCtx *dc = ctx;
+    furi_string_reset(dc->text);
+    subghz_protocol_decoder_base_get_string(dec, dc->text);
+    uint32_t h = decoded_hash(furi_string_get_cstr(dc->text));
+
+    if (dc->want)
+    {
+        if (h == dc->want->hash)
+            dc->hit = true;
+
+        return;
+    }
+
+    for (size_t i = 0; i < dc->n; i++)
+    {
+        if (dc->list[i].proto == dec->protocol && dc->list[i].hash == h)
+        {
+            if (dc->list[i].frames < UINT16_MAX)
+                dc->list[i].frames++;
+
+            return;
+        }
+    }
+
+    if (dc->n >= DECODE_MAX)
+        return;
+
+    Decoded *d = &dc->list[dc->n++];
+    *d = (Decoded){.proto = dec->protocol, .hash = h, .frames = 1};
+    decoded_key(furi_string_get_cstr(dc->text), d->key, sizeof(d->key));
+}
+
+// Feed A..B to one protocol's decoder as level/duration runs. Stops right after
+// a replay hit, so the returned (still allocated) decoder carries that frame.
+static SubGhzProtocolDecoderBase *decode_run(const App *a, const SubGhzProtocol *p, DecodeCtx *dc)
+{
+    SubGhzProtocolDecoderBase *dec = p->decoder->alloc(dc->env);
+    dec->callback = decode_rx_cb;
+    dec->context = dc;
+    p->decoder->reset(dec);
+    p->decoder->feed(dec, false, dc->lead_us);
+
+    bool level = a->sd.data[dc->i0] > 0;
+    uint32_t dur = 0;
+    for (size_t i = dc->i0; i <= dc->i1 && !dc->hit; i++)
+    {
+        int16_t v = a->sd.data[i];
+        if ((v > 0) != level)
+        {
+            p->decoder->feed(dec, level, dur);
+            level = v > 0;
+            dur = 0;
+        }
+
+        dur += iabs32(v);
+    }
+
+    // Close the last frame with a long silence so end-of-packet logic fires.
+    if (!dc->hit && level)
+    {
+        p->decoder->feed(dec, true, dur);
+        dur = 0;
+    }
+
+    if (!dc->hit)
+        p->decoder->feed(dec, false, dur + DECODE_TAIL_US);
+
+    return dec;
+}
+
+/* Shadow silence fed ahead of A..B (never shown or saved), standing in for
+ * whatever comes before the first pulse. Preamble-less protocols (Princeton,
+ * CAME, Nice FLO, ...) only start on a guard gap inside a protocol-specific
+ * window around N x Te, and those windows do not all overlap, so no fixed
+ * value fits every protocol. The signal's own guard does: take the longest
+ * gap in the selection that could be one, else a value most windows accept. */
+static uint32_t decode_lead_us(const App *a, size_t i0, size_t i1)
+{
+    uint32_t best = 0, run = 0;
+    for (size_t i = i0; i <= i1 + 1; i++)
+    {
+        if (i <= i1 && a->sd.data[i] <= 0)
+        {
+            run += -a->sd.data[i];
+            continue;
+        }
+
+        if (run >= DECODE_LEAD_MIN_US && run <= DECODE_LEAD_MAX_US && run > best)
+            best = run;
+
+        run = 0;
+    }
+
+    return best ? best : DECODE_LEAD_US;
+}
+
+static void decode_selection(const App *a, DecodeCtx *dc)
+{
+    size_t count = subghz_protocol_registry_count(&subghz_protocol_registry);
+    for (size_t k = 0; k < count; k++)
+    {
+        const SubGhzProtocol *p = subghz_protocol_registry_get_by_index(&subghz_protocol_registry, k);
+        if (!(p->flag & SubGhzProtocolFlag_Decodable) || !p->decoder || !p->decoder->alloc)
+            continue;
+
+        if (memmgr_get_free_heap() < DECODE_HEAP_RESERVE)
+        {
+            dc->oom = true;
+            break;
+        }
+
+        p->decoder->free(decode_run(a, p, dc));
+    }
+}
+
+// Replay A..B through d's protocol until d's frame comes out again. On success
+// dc->text describes it and the returned decoder (caller frees) still holds it.
+static SubGhzProtocolDecoderBase *decoded_replay(const App *a, DecodeCtx *dc, const Decoded *d)
+{
+    dc->want = d;
+    dc->hit = false;
+    SubGhzProtocolDecoderBase *dec = decode_run(a, d->proto, dc);
+    if (dc->hit)
+        return dec;
+
+    d->proto->decoder->free(dec);
+    return NULL;
+}
+
+// The firmware serializer takes the short preset names the Sub-GHz app uses.
+static const char *preset_short_name(const char *full)
+{
+    static const char *const map[][2] = {
+        {"FuriHalSubGhzPresetOok270Async", "AM270"},
+        {"FuriHalSubGhzPresetOok650Async", "AM650"},
+        {"FuriHalSubGhzPreset2FSKDev238Async", "FM238"},
+        {"FuriHalSubGhzPreset2FSKDev12KAsync", "FM12K"},
+        {"FuriHalSubGhzPreset2FSKDev476Async", "FM476"},
+    };
+
+    for (size_t i = 0; i < COUNT_OF(map); i++)
+        if (!strcmp(full, map[i][0]))
+            return map[i][1];
+
+    return full;
+}
+
+// Save a decoded entry as a regular Sub-GHz key file (the same format the
+// Sub-GHz app writes after Read), ready to be emulated.
+static bool write_decoded(Storage *st, App *a, DecodeCtx *dc, const Decoded *d, const char *path)
+{
+    SubGhzProtocolDecoderBase *dec = decoded_replay(a, dc, d);
+    bool ok = false;
+    if (dec)
+    {
+        SubGhzRadioPreset preset = {
+            .name = furi_string_alloc_set(preset_short_name(a->sd.preset)),
+            .frequency = a->sd.frequency,
+        };
+
+        FlipperFormat *ff = flipper_format_file_alloc(st);
+        bool opened = flipper_format_file_open_new(ff, path);
+        ok = opened && subghz_protocol_decoder_base_serialize(dec, ff, &preset) == SubGhzProtocolStatusOk;
+
+        flipper_format_free(ff);
+        furi_string_free(preset.name);
+        dec->protocol->decoder->free(dec);
+
+        if (opened && !ok)
+            storage_simply_remove(st, path);
+    }
+
+    if (!ok)
+        snprintf(a->status, sizeof(a->status), "Write failed");
+
+    return ok;
 }
 
 static bool snapshot_take(App *a)
@@ -1803,18 +2054,18 @@ static void draw_cb(Canvas *c, void *ctx)
 
     if (a->mode == EditModeMenu)
     {
-        const int bx = 36, by = 13, bw = 56, bh = 46;
+        const int bx = 36, bw = 56, bh = MENU_ITEMS * 14 + 4, by = (SCREEN_H_PX - bh) / 2;
         canvas_set_color(c, ColorWhite);
         canvas_draw_box(c, bx, by, bw, bh);
         canvas_set_color(c, ColorBlack);
         canvas_draw_frame(c, bx, by, bw, bh);
 
-        const char *labels[3] = {"Save", "Cut", "Undo"};
-        for (int i = 0; i < 3; i++)
+        const char *labels[MENU_ITEMS] = {"Save", "Decode", "Cut", "Undo"};
+        for (int i = 0; i < MENU_ITEMS; i++)
         {
             int ry = by + 2 + i * 14;
             int rh = 13;
-            bool disabled = (i == 2 && !a->has_undo);
+            bool disabled = (i == MENU_SEL_UNDO && !a->has_undo);
 
             if (a->menu_sel == i)
             {
@@ -2081,6 +2332,7 @@ typedef struct
 {
     ViewDispatcher *vd;
     bool confirmed;
+    uint32_t index;
 } PromptCtx;
 
 static void prompt_result_cb(void *ctx)
@@ -2090,36 +2342,54 @@ static void prompt_result_cb(void *ctx)
     view_dispatcher_stop(p->vd);
 }
 
+static void pick_index_cb(void *ctx, uint32_t index)
+{
+    PromptCtx *p = ctx;
+    p->index = index;
+    prompt_result_cb(p);
+}
+
+static void button_ok_cb(GuiButtonType button, InputType type, void *ctx)
+{
+    UNUSED(button);
+    if (type == InputTypeShort)
+        prompt_result_cb(ctx);
+}
+
 static uint32_t prompt_back_cb(void *ctx)
 {
     UNUSED(ctx);
     return VIEW_NONE;
 }
 
+// Run one view modally until it confirms (true) or Back leaves it (false).
+static bool prompt_run(Gui *gui, PromptCtx *pc, View *view)
+{
+    pc->vd = view_dispatcher_alloc();
+    view_set_previous_callback(view, prompt_back_cb);
+    view_dispatcher_attach_to_gui(pc->vd, gui, ViewDispatcherTypeFullscreen);
+    view_dispatcher_add_view(pc->vd, 0, view);
+    view_dispatcher_switch_to_view(pc->vd, 0);
+    view_dispatcher_run(pc->vd);
+    view_dispatcher_remove_view(pc->vd, 0);
+    view_dispatcher_free(pc->vd);
+    return pc->confirmed;
+}
+
 static bool prompt_filename(Gui *gui, char *namebuf, size_t buflen)
 {
-    PromptCtx pc = {.vd = NULL, .confirmed = false};
-    ViewDispatcher *vd = view_dispatcher_alloc();
-    pc.vd = vd;
-
+    PromptCtx pc = {0};
     TextInput *ti = text_input_alloc();
     text_input_set_header_text(ti, "Name the file");
     text_input_set_result_callback(ti, prompt_result_cb, &pc, namebuf, buflen, false);
-    view_set_previous_callback(text_input_get_view(ti), prompt_back_cb);
-
-    view_dispatcher_attach_to_gui(vd, gui, ViewDispatcherTypeFullscreen);
-    view_dispatcher_add_view(vd, 0, text_input_get_view(ti));
-    view_dispatcher_switch_to_view(vd, 0);
-    view_dispatcher_run(vd);
-
-    view_dispatcher_remove_view(vd, 0);
+    bool ok = prompt_run(gui, &pc, text_input_get_view(ti));
     text_input_free(ti);
-    view_dispatcher_free(vd);
-
-    return pc.confirmed;
+    return ok;
 }
 
-static void prompt_and_save(Gui *gui, ViewPort *vp, FuriMessageQueue *queue, Storage *st, App *a)
+// Save A..B as RAW, or with dc/d the decoded entry d as a key file.
+static void prompt_and_save(
+    Gui *gui, ViewPort *vp, FuriMessageQueue *queue, Storage *st, App *a, DecodeCtx *dc, const Decoded *d)
 {
     char namebuf[64];
     propose_edit_name(st, a, namebuf, sizeof(namebuf));
@@ -2134,8 +2404,15 @@ static void prompt_and_save(Gui *gui, ViewPort *vp, FuriMessageQueue *queue, Sto
         gui_add_view_port(gui, vp, GuiLayerFullscreen);
         view_port_update(vp);
 
-        write_selection(st, a, namebuf);
+        FuriString *path = furi_string_alloc_printf("%s/%s.sub", SUBGHZ_DIR, namebuf);
+        const char *p = furi_string_get_cstr(path);
 
+        if (storage_file_exists(st, p))
+            snprintf(a->status, sizeof(a->status), "Name exists");
+        else if (d ? write_decoded(st, a, dc, d, p) : write_selection(st, a, p))
+            snprintf(a->status, sizeof(a->status), "Saved %s.sub", namebuf);
+
+        furi_string_free(path);
         a->saving = false;
     }
     else
@@ -2147,6 +2424,131 @@ static void prompt_and_save(Gui *gui, ViewPort *vp, FuriMessageQueue *queue, Sto
     a->status_until = furi_get_tick() + 2000;
     furi_message_queue_reset(queue);
     view_port_update(vp);
+}
+
+// Full description of one decoded entry. Returns true when Save was pressed.
+static bool decoded_show(Gui *gui, const App *a, DecodeCtx *dc, const Decoded *d)
+{
+    SubGhzProtocolDecoderBase *dec = decoded_replay(a, dc, d);
+    if (!dec)
+        return false;
+
+    dec->protocol->decoder->free(dec);
+    furi_string_replace_all(dc->text, "\r", "");
+
+    PromptCtx pc = {0};
+    Widget *w = widget_alloc();
+    widget_add_text_scroll_element(w, 0, 0, 128, 50, furi_string_get_cstr(dc->text));
+    widget_add_button_element(w, GuiButtonTypeRight, "Save", button_ok_cb, &pc);
+    bool ok = prompt_run(gui, &pc, widget_get_view(w));
+    widget_free(w);
+    return ok;
+}
+
+// List of decoded entries (skipped for a single one). Returns the entry to save or -1.
+static int32_t decoded_browse(Gui *gui, const App *a, DecodeCtx *dc)
+{
+    uint32_t sel = 0;
+    while (true)
+    {
+        if (dc->n > 1)
+        {
+            PromptCtx pc = {0};
+            Submenu *sm = submenu_alloc();
+            char label[48];
+            snprintf(label, sizeof(label), "Decoded: %u", (unsigned)dc->n);
+            submenu_set_header(sm, label);
+
+            for (size_t i = 0; i < dc->n; i++)
+            {
+                const Decoded *d = &dc->list[i];
+                int len = snprintf(label, sizeof(label), "%s %s", d->proto->name, d->key);
+                if (d->frames > 1 && len > 0 && (size_t)len < sizeof(label))
+                    snprintf(label + len, sizeof(label) - len, " x%u", (unsigned)d->frames);
+
+                submenu_add_item(sm, label, i, pick_index_cb, &pc);
+            }
+
+            submenu_set_selected_item(sm, sel);
+            bool ok = prompt_run(gui, &pc, submenu_get_view(sm));
+            submenu_free(sm);
+
+            if (!ok)
+                return -1;
+
+            sel = pc.index;
+        }
+
+        if (decoded_show(gui, a, dc, &dc->list[sel]))
+            return (int32_t)sel;
+
+        if (dc->n == 1)
+            return -1;
+    }
+}
+
+static void do_decode_action(Gui *gui, ViewPort *vp, FuriMessageQueue *queue, Storage *st, App *a)
+{
+    DecodeCtx dc = {0};
+    a->status_until = furi_get_tick() + 1500;
+
+    if (!selection_range(a, &dc.i0, &dc.i1))
+    {
+        snprintf(a->status, sizeof(a->status), "Nothing in A..B");
+        return;
+    }
+
+    // The shadow silence replaces any leading gap: one that is too long or cut
+    // short by A would fall outside the start window.
+    while (dc.i0 < dc.i1 && a->sd.data[dc.i0] <= 0)
+        dc.i0++;
+
+    dc.lead_us = decode_lead_us(a, dc.i0, dc.i1);
+
+    if (memmgr_get_free_heap() < DECODE_HEAP_RESERVE + DECODE_MAX * sizeof(Decoded))
+    {
+        snprintf(a->status, sizeof(a->status), "Low memory");
+        return;
+    }
+
+    snprintf(a->status, sizeof(a->status), "Decoding...");
+    a->status_until = furi_get_tick() + 60000;
+    view_port_update(vp);
+
+    dc.env = subghz_env_setup();
+    // Rolling codes (KeeLoq & co.) only show their manufacturer and counter
+    // with the keystore; without spare RAM they still decode, just less.
+    if (memmgr_get_free_heap() > DECODE_KEYS_HEAP)
+    {
+        subghz_environment_load_keystore(dc.env, "/ext/subghz/assets/keeloq_mfcodes");
+        subghz_environment_load_keystore(dc.env, "/ext/subghz/assets/keeloq_mfcodes_user");
+    }
+
+    dc.list = malloc(DECODE_MAX * sizeof(Decoded));
+    dc.text = furi_string_alloc();
+    decode_selection(a, &dc);
+
+    a->status_until = 0;
+    int32_t save = -1;
+    if (dc.n)
+    {
+        gui_remove_view_port(gui, vp);
+        save = decoded_browse(gui, a, &dc);
+        gui_add_view_port(gui, vp, GuiLayerFullscreen);
+        furi_message_queue_reset(queue);
+    }
+    else
+    {
+        snprintf(a->status, sizeof(a->status), dc.oom ? "Low memory" : "No known protocol");
+        a->status_until = furi_get_tick() + 1500;
+    }
+
+    if (save >= 0)
+        prompt_and_save(gui, vp, queue, st, a, &dc, &dc.list[save]);
+
+    furi_string_free(dc.text);
+    free(dc.list);
+    subghz_environment_free(dc.env);
 }
 
 static void do_cut_action(Gui *gui, ViewPort *vp, FuriMessageQueue *queue, DialogsApp *dialogs, App *a)
@@ -2244,6 +2646,7 @@ static void run_editor_session(
             furi_mutex_acquire(app->mutex, FuriWaitForever);
             bool changed = false;
             bool want_save = false;
+            bool want_decode = false;
             bool want_cut = false;
 
             if (app->mode == EditModeMenu)
@@ -2252,11 +2655,11 @@ static void run_editor_session(
                 {
                     if (e.key == InputKeyDown)
                     {
-                        app->menu_sel = (app->menu_sel + 1) % 3;
+                        app->menu_sel = (app->menu_sel + 1) % MENU_ITEMS;
                     }
                     else if (e.key == InputKeyUp)
                     {
-                        app->menu_sel = (app->menu_sel + 2) % 3;
+                        app->menu_sel = (app->menu_sel + MENU_ITEMS - 1) % MENU_ITEMS;
                     }
                     else if (e.key == InputKeyOk)
                     {
@@ -2264,6 +2667,10 @@ static void run_editor_session(
                         if (app->menu_sel == MENU_SEL_SAVE)
                         {
                             want_save = true;
+                        }
+                        else if (app->menu_sel == MENU_SEL_DECODE)
+                        {
+                            want_decode = true;
                         }
                         else if (app->menu_sel == MENU_SEL_CUT)
                         {
@@ -2364,7 +2771,11 @@ static void run_editor_session(
 
             if (want_save)
             {
-                prompt_and_save(gui, vp, queue, storage, app);
+                prompt_and_save(gui, vp, queue, storage, app, NULL, NULL);
+            }
+            else if (want_decode)
+            {
+                do_decode_action(gui, vp, queue, storage, app);
             }
             else if (want_cut)
             {

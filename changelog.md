@@ -1,3 +1,9 @@
+## Unreleased
+
+- New *Decode* action: decodes the A..B selection with the firmware's Sub-GHz decoders, groups identical frames and saves the chosen one as a key file.
+
+Note: the app now takes about 2 KB more RAM once loaded, so when free RAM (not the 24000-sample cap) limits loading, files can be about 1000 samples shorter.
+
 ## v1.8
 
 - Fixed Cut collapsing every gap longer than 32 ms in the whole capture.

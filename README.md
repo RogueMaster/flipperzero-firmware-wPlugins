@@ -75,6 +75,12 @@ The app lets you choose which custom button to use, if its protocol supports the
 - **Trim, cut or undo.** Hold **OK** to open a small action menu:
   - *Save* writes just the A..B selection to a new `.sub` file, and lets you
     edit the suggested name first.
+  - *Decode* runs the A..B selection through every decoder built into the
+    firmware (the same ones the Sub-GHz app uses on *Read*). A selection with
+    many frames decodes in one go: identical frames of one protocol are grouped
+    into a single entry with an `xN` count. Pick an entry to see its full
+    description (key, serial, button, counter, ...) and press *Save* to store it
+    as a regular Sub-GHz key file that the Sub-GHz app can emulate.
   - *Cut* removes everything between the markers from the in-RAM working copy
     and joins the two sides back together, so you can delete a noisy stretch or
     an unwanted frame and keep editing. Nothing is written to the card until you
@@ -112,10 +118,10 @@ When loading any signal other than RAW, the app lets you choose which custom but
 | Left / Right | Move the active cut marker (hold = move faster) |
 | Up / Down    | Zoom in / out (centered on the active marker)   |
 | OK (short)   | Switch the active marker between **A** and **B**|
-| OK (hold)    | Open the action menu (**Save / Cut / Undo**)    |
+| OK (hold)    | Open the action menu (**Save / Decode / Cut / Undo**) |
 | Back         | Exit                                            |
 
-In the action menu, **Up / Down** move between Save, Cut and Undo, **OK**
+In the action menu, **Up / Down** move between Save, Decode, Cut and Undo, **OK**
 confirms the highlighted action and **Back** closes the menu without doing
 anything.
 
@@ -137,6 +143,9 @@ marked with `>` in the bottom bar. The other marker is dotted.
      `_edit3`, ... so saves never overwrite an earlier one). Edit it if you
      like and confirm; the A..B selection is written to
      `/ext/subghz/<name>.sub`.
+   - **Decode** - every known protocol found in A..B is listed (skipped when
+     there is only one); choose an entry, read its details and press **Save**
+     to write it as a key file. Shows *No known protocol* when nothing decodes.
    - **Cut** - the stretch between A and B is removed from the working copy and
      the two sides are joined. Re-place the markers and Cut again to clean up
      further, or Save when you are happy. If a cut would leave nothing behind it
