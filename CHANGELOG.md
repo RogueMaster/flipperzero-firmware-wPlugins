@@ -1,3 +1,7 @@
+# v3.5 (2026-10-30)
+
+- Add valid frequency and region checks before transmission.
+
 # v3.4 (2026-10-21)
 
 ## Bug-fix
