@@ -2815,7 +2815,8 @@ static void show_oom_dialog(DialogsApp *dialogs, const char *text)
     dialog_message_free(m);
 }
 
-static void run_editor(Storage *storage, DialogsApp *dialogs)
+// Edit `file`, or a file picked in the browser when NULL.
+static void run_editor(Storage *storage, DialogsApp *dialogs, const char *file)
 {
     App *app = safe_malloc(sizeof(App));
     if (!app)
@@ -2827,14 +2828,15 @@ static void run_editor(Storage *storage, DialogsApp *dialogs)
     memset(app, 0, sizeof(App));
     app->mutex = furi_mutex_alloc(FuriMutexTypeNormal);
 
-    FuriString *path = furi_string_alloc_set(SUBGHZ_DIR);
-    DialogsFileBrowserOptions br;
-    dialog_file_browser_set_basic_options(&br, ".sub", &I_sub1_10px);
-    br.base_path = SUBGHZ_DIR;
-    bool picked = dialog_file_browser_show(dialogs, path, path, &br);
-
-    if (!picked)
-        goto cleanup;
+    FuriString *path = furi_string_alloc_set(file ? file : SUBGHZ_DIR);
+    if (!file)
+    {
+        DialogsFileBrowserOptions br;
+        dialog_file_browser_set_basic_options(&br, ".sub", &I_sub1_10px);
+        br.base_path = SUBGHZ_DIR;
+        if (!dialog_file_browser_show(dialogs, path, path, &br))
+            goto cleanup;
+    }
 
     {
         const char *full = furi_string_get_cstr(path);
@@ -3473,7 +3475,9 @@ static void menu_build_about(Menu *menu)
 
 int32_t subghz_raw_edit_app(void *p)
 {
-    UNUSED(p);
+    // Launched with a file (e.g. Sub-GHz -> More -> Edit): open it directly.
+    const char *file = p;
+    bool direct = file && *file;
 
     Menu *menu = safe_malloc(sizeof(Menu));
     if (!menu)
@@ -3516,7 +3520,10 @@ int32_t subghz_raw_edit_app(void *p)
     view_dispatcher_add_view(
         menu->view_dispatcher, MenuViewGapInput, number_input_get_view(menu->num_input));
 
-    bool running = true;
+    if (direct)
+        run_editor(menu->storage, menu->dialogs, file);
+
+    bool running = !direct;
     while (running)
     {
         menu->action = MenuActionNone;
@@ -3525,7 +3532,7 @@ int32_t subghz_raw_edit_app(void *p)
 
         if (menu->action == MenuActionEdit)
         {
-            run_editor(menu->storage, menu->dialogs);
+            run_editor(menu->storage, menu->dialogs, NULL);
         }
         else if (menu->action == MenuActionMerge)
         {
