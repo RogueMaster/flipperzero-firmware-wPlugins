@@ -1826,7 +1826,7 @@ static int hex_nibble(char c) {
 static bool third_page_byte(const char* text, const char* end, uint8_t* out) {
     int hi = -1;
     int got = 0;
-    for(; text < end&&* text ! = '\n' && *text != '\r'; text++) {
+    for(; text < end && *text != '\n' && *text != '\r'; text++) {
         int nibble = hex_nibble(*text);
         if(nibble < 0) {
             if(hi >= 0) return false;

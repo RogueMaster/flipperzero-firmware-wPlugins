@@ -115,13 +115,14 @@ static uint32_t get_average(ReactionApp* app) {
 static void draw_splash(Canvas* canvas, ReactionApp* app) {
     char buf[40];
     uint32_t avg = get_average(app);
+    uint32_t count = app->count;
     canvas_set_font(canvas, FontPrimary);
     canvas_draw_str_aligned(canvas, 64, 2, AlignCenter, AlignTop, "Reaction Time Game");
     canvas_set_font(canvas, FontSecondary);
     canvas_draw_str_aligned(canvas, 64, 25, AlignCenter, AlignBottom, "Test your reaction time!");
 
     if(avg > 0) {
-        snprintf(buf, sizeof(buf), "Average: %lu ms", avg);
+        snprintf(buf, sizeof(buf), "Average of %lu: %lu ms", count, avg);
         //canvas_draw_str(canvas, 64, 32, buf);
         canvas_draw_str_aligned(canvas, 64, 38, AlignCenter, AlignBottom, buf);
     }

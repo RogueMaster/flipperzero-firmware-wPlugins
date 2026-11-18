@@ -35,10 +35,12 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Dolphin Dash v0.1 (By Rasul Kireev)](https://github.com/rasulkireev/dolphin-dash) - Three-lane bubble collection and reef dodging
 - CFW Settings: [Fix spoof remount lifetime and avoid persisting the real OTP name as a spoof (By lewisQ17)](https://github.com/lewisQ17/Momentum-Firmware/commit/3f932590d6cf877f3ce4a13bc05cb32ead290fd0)
 - GPIO: [Show all 13 non-debug pins in the Logic Monitor with a compact three-column layout (By lewisQ17)](https://github.com/lewisQ17/Momentum-Firmware/commit/e0f4d9b46e3fe784d6fce3308d0b2bc54b3ef084)
-- Updated: [Amiibo Emulator v1.2 (By Soap-n-Cartridge)](https://github.com/Soap-n-Cartridge/flipper_amiibo)
 - Fixed: [Gallagher EM4305 write bit offset (By Firat17aze)](https://github.com/DarkFlippers/unleashed-firmware/pull/1217)
 - BadUSB MSC: [Reject out-of-image READ/WRITE ranges and cap the exposed medium to 32-bit file offsets (By lewisQ17)](https://github.com/lewisQ17/Momentum-Firmware/commit/e96bf19deed56e35b630ab272d2c4a30efaea18c)
 - GPIO SFP: [Compact reserved connector entries and bound connector-name copies (By lewisQ17)](https://github.com/lewisQ17/Momentum-Firmware/commit/fc64db47d71832728a037f18aaee2c5d4362e5ac)
+- Updated: [Amiibo Emulator v1.2 (By Soap-n-Cartridge)](https://github.com/Soap-n-Cartridge/flipper_amiibo)
+- Updated: [Reaction Time Stats v1.0: show the saved-result count beside the average (By luvrltop)](https://github.com/luvrltop/ReactionTime)
+- HID: [Add a Mouse Jiggler auto-stop timer and countdown for USB and Bluetooth (By FelixLgr)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/pull/1215)
 
 <a name="release"></a>
 
