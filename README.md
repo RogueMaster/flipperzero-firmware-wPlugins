@@ -4,6 +4,14 @@ A creature-collecting RPG for the **Flipper Zero**. Explore towns, routes, caves
 
 Creatures, map, characters and music are all original and were made for this game.
 
+## Play it on PC / Juégalo en PC
+
+**Elementis Zeta is also a free game in your browser**, for PC and phones: the same world redrawn in HD color, with keyboard, gamepad or touch controls, saves kept in the cloud and online messages left by other players. Nothing to download or install.
+**Elementis Zeta también es un juego gratis en el navegador**, para PC y celular: el mismo mundo redibujado en HD a color, con teclado, control o pantalla táctil, partidas guardadas en la nube y mensajes en línea de otros jugadores. Sin descargar ni instalar nada.
+
+[![Play free in your browser / Juega gratis en el navegador](https://img.shields.io/badge/Play%20free%20%2F%20Juega%20gratis-elementis.xolotlworks.com-4b5a36?style=for-the-badge)](https://elementis.xolotlworks.com/)
+**[Play / Juega: elementis.xolotlworks.com](https://elementis.xolotlworks.com/)**
+
 ## Support / Apoya el proyecto
 
 If you enjoy the game, you can support its development on Ko-fi. It is optional: the game is complete without donating.
@@ -46,7 +54,7 @@ Si te gusta el juego, puedes apoyar su desarrollo en Ko-fi. Es voluntario: el ju
 
 ## Install
 
-- From the **Flipper Apps Catalog** (Flipper Lab or the mobile app), once it is listed; or
+- From the **Flipper Apps Catalog**: [lab.flipper.net/apps/elementis_zeta](https://lab.flipper.net/apps/elementis_zeta) (or search "Elementis Zeta" in the Flipper mobile app); or
 - copy a release `elementis_zeta.fap` to `apps/Games/` on the SD card; or
 - build it yourself (below).
 
