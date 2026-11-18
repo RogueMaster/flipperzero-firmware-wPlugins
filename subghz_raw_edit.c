@@ -54,6 +54,8 @@
 #define MERGE_REPEAT_DEFAULT 1
 #define MERGE_REPEAT_MIN 1
 #define MERGE_REPEAT_MAX 64
+#define STR_(x) #x
+#define STR(x) STR_(x)
 #define MERGE_PATH_LEN 128
 #define MERGE_BUF_CHUNK 512
 
@@ -3393,7 +3395,7 @@ static void config_enter_cb(void *context, uint32_t index)
     }
     else if (index == ConfigItemRepeat)
     {
-        header = "Repeat each";
+        header = "Repeat each (max: " STR(MERGE_REPEAT_MAX) ")";
         current = g_merge_repeat;
         min_val = MERGE_REPEAT_MIN;
         max_val = MERGE_REPEAT_MAX;
