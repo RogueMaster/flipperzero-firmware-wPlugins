@@ -41,6 +41,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Amiibo Emulator v1.2 (By Soap-n-Cartridge)](https://github.com/Soap-n-Cartridge/flipper_amiibo)
 - Updated: [Reaction Time Stats v1.0: show the saved-result count beside the average (By luvrltop)](https://github.com/luvrltop/ReactionTime)
 - HID: [Add a Mouse Jiggler auto-stop timer and countdown for USB and Bluetooth (By FelixLgr)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/pull/1215)
+- Added: [Zero Buster v1.1 (By DonJulve)](https://github.com/DonJulve/Zero_Buster)
 
 <a name="release"></a>
 
@@ -1114,6 +1115,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [XRemote v1.4 (By kala13x)](https://github.com/kala13x/flipper-xremote) - Advanced infrared remote control
 - [YRM100X Pro v1.0 (By AlexeySmirnov74)](https://github.com/AlexeySmirnov74/YRM100X_PRO) - UHF RFID reader toolkit `Req: YRM100X`
 - [YuriCable Pro Max v0.4 (By arag0re)](https://github.com/arag0re/fz-yuricable-pro-max) - iPhone debug cable interface
+- [Zero Buster v1.1 (By DonJulve)](https://github.com/DonJulve/Zero_Buster)
 - [ZeroFIDO v0.8 (By MinorGlitch)](https://github.com/MinorGlitch/zerofido) - Passkey and security-key authenticator
 - [ZeroMesh v3.1 (By SAMS0N1TE)](https://github.com/SAMS0N1TE/ZeroMesh) - Meshtastic messaging client `Req: Meshtastic`
 - [Zoom Remote v1.0 (By Manoah Ruiz Rodriguez)](https://github.com/Mableton/zoom_remote)

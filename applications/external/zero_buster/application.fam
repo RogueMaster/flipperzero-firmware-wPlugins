@@ -1,0 +1,17 @@
+App(
+    appid="zero_buster",
+    name="Zero Buster",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="zero_buster_app",
+    stack_size=4 * 1024,
+    sources=[
+        "*.c",
+        "!venv",
+    ],
+    fap_icon="assets/icon.png",
+    fap_category="USB",
+    fap_author="Javier Julve (@DonJulve)",
+    fap_weburl="https://github.com/DonJulve/Zero_Buster",
+    fap_version="1.1",
+    fap_description="Bidirectional BadUSB & USB CDC local exfiltration tool",
+)
