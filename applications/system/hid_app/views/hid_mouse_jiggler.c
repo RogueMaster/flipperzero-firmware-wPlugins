@@ -10,16 +10,45 @@ struct HidMouseJiggler {
     View* view;
     Hid* hid;
     FuriTimer* timer;
+    FuriTimer* countdown_timer;
 };
 
 typedef struct {
     bool connected;
     bool running;
     int interval_idx;
+    int timeout_idx;
     uint8_t counter;
+    uint32_t deadline_tick;
 } HidMouseJigglerModel;
 
 const int intervals[6] = {500, 2000, 5000, 10000, 30000, 60000};
+
+// Auto-stop durations in minutes, 0 means never.
+const uint16_t timeouts_min[] = {0, 15, 30, 45, 60, 120, 180, 240, 360, 480, 720};
+#define TIMEOUT_NEVER_IDX 0
+#define TIMEOUT_COUNT     COUNT_OF(timeouts_min)
+
+static void hid_mouse_jiggler_format_timeout(FuriString* str, uint16_t minutes) {
+    if(minutes == 0) {
+        furi_string_set(str, "Never");
+    } else if(minutes < 60) {
+        furi_string_printf(str, "%u min", minutes);
+    } else if(minutes % 60 == 0) {
+        furi_string_printf(str, "%u h", minutes / 60);
+    } else {
+        furi_string_printf(str, "%u h %u min", minutes / 60, minutes % 60);
+    }
+}
+
+static void hid_mouse_jiggler_format_remaining(FuriString* str, uint32_t seconds) {
+    if(seconds >= 3600) {
+        furi_string_printf(
+            str, "%lu:%02lu:%02lu", seconds / 3600, (seconds / 60) % 60, seconds % 60);
+    } else {
+        furi_string_printf(str, "%lu:%02lu", seconds / 60, seconds % 60);
+    }
+}
 
 static void hid_mouse_jiggler_draw_callback(Canvas* canvas, void* context) {
     furi_assert(context);
@@ -47,16 +76,36 @@ static void hid_mouse_jiggler_draw_callback(Canvas* canvas, void* context) {
     elements_multiline_text(canvas, 91, 26, furi_string_get_cstr(interval_str));
     furi_string_free(interval_str);
 
+    // Auto stop
     canvas_set_font(canvas, FontPrimary);
 #ifdef HID_TRANSPORT_BLE
     if(model->running && !model->connected) {
-        elements_multiline_text(canvas, AlignLeft, 40, "Waiting for\nConnection...");
+        elements_multiline_text(canvas, AlignLeft, 40, "Waiting...");
     } else {
-        elements_multiline_text(canvas, AlignLeft, 40, "Press Start\nto jiggle");
+        elements_multiline_text(canvas, AlignLeft, 40, "Auto stop:");
     }
 #else
-    elements_multiline_text(canvas, AlignLeft, 40, "Press Start\nto jiggle");
+    elements_multiline_text(canvas, AlignLeft, 40, "Auto stop:");
 #endif
+    canvas_set_font(canvas, FontSecondary);
+    FuriString* timeout_str = furi_string_alloc();
+    uint16_t timeout_min = timeouts_min[model->timeout_idx];
+    if(model->running && timeout_min != 0) {
+        uint32_t now = furi_get_tick();
+        uint32_t left_ms = (int32_t)(model->deadline_tick - now) > 0 ? model->deadline_tick - now :
+                                                                       0;
+        hid_mouse_jiggler_format_remaining(timeout_str, (left_ms + 999) / 1000);
+    } else {
+        hid_mouse_jiggler_format_timeout(timeout_str, timeout_min);
+    }
+    if(!model->running) {
+        if(model->timeout_idx != (int)TIMEOUT_COUNT - 1)
+            canvas_draw_icon(canvas, 1, 44, &I_ButtonUp_7x4);
+        if(model->timeout_idx != TIMEOUT_NEVER_IDX)
+            canvas_draw_icon(canvas, 1, 50, &I_ButtonDown_7x4);
+    }
+    elements_multiline_text(canvas, 11, 52, furi_string_get_cstr(timeout_str));
+    furi_string_free(timeout_str);
     canvas_set_font(canvas, FontSecondary);
 
     // Ok
@@ -103,6 +152,29 @@ static void hid_mouse_jiggler_timer_callback(void* context) {
     }
 }
 
+static void hid_mouse_jiggler_countdown_callback(void* context) {
+    furi_assert(context);
+    HidMouseJiggler* hid_mouse_jiggler = context;
+    bool expired = false;
+
+    with_view_model(
+        hid_mouse_jiggler->view,
+        HidMouseJigglerModel * model,
+        {
+            if(model->running && timeouts_min[model->timeout_idx] != 0 &&
+               (int32_t)(furi_get_tick() - model->deadline_tick) >= 0) {
+                model->running = false;
+                expired = true;
+            }
+        },
+        true);
+
+    if(expired) {
+        furi_timer_stop(hid_mouse_jiggler->timer);
+        furi_timer_stop(hid_mouse_jiggler->countdown_timer);
+    }
+}
+
 static void hid_mouse_jiggler_exit_callback(void* context) {
     furi_assert(context);
     HidMouseJiggler* hid_mouse_jiggler = context;
@@ -110,6 +182,7 @@ static void hid_mouse_jiggler_exit_callback(void* context) {
     with_view_model(
         hid_mouse_jiggler->view, HidMouseJigglerModel * model, { model->running = false; }, false);
     furi_timer_stop(hid_mouse_jiggler->timer);
+    furi_timer_stop(hid_mouse_jiggler->countdown_timer);
 }
 
 static bool hid_mouse_jiggler_input_callback(InputEvent* event, void* context) {
@@ -130,6 +203,18 @@ static bool hid_mouse_jiggler_input_callback(InputEvent* event, void* context) {
                 ok_pressed = true;
                 running = model->running;
                 timer_period = furi_ms_to_ticks(intervals[model->interval_idx]);
+                model->deadline_tick =
+                    furi_get_tick() + furi_ms_to_ticks(timeouts_min[model->timeout_idx] * 60000UL);
+                consumed = true;
+            }
+            if(event->type == InputTypePress && event->key == InputKeyUp && !model->running &&
+               model->timeout_idx < (int)TIMEOUT_COUNT - 1) {
+                model->timeout_idx++;
+                consumed = true;
+            }
+            if(event->type == InputTypePress && event->key == InputKeyDown && !model->running &&
+               model->timeout_idx > TIMEOUT_NEVER_IDX) {
+                model->timeout_idx--;
                 consumed = true;
             }
             if(event->type == InputTypePress && event->key == InputKeyRight && !model->running &&
@@ -148,8 +233,10 @@ static bool hid_mouse_jiggler_input_callback(InputEvent* event, void* context) {
     if(ok_pressed) {
         if(running) {
             furi_timer_start(hid_mouse_jiggler->timer, timer_period);
+            furi_timer_start(hid_mouse_jiggler->countdown_timer, furi_ms_to_ticks(1000));
         } else {
             furi_timer_stop(hid_mouse_jiggler->timer);
+            furi_timer_stop(hid_mouse_jiggler->countdown_timer);
         }
     }
 
@@ -172,8 +259,17 @@ HidMouseJiggler* hid_mouse_jiggler_alloc(Hid* hid) {
     hid_mouse_jiggler->timer = furi_timer_alloc(
         hid_mouse_jiggler_timer_callback, FuriTimerTypePeriodic, hid_mouse_jiggler);
 
+    hid_mouse_jiggler->countdown_timer = furi_timer_alloc(
+        hid_mouse_jiggler_countdown_callback, FuriTimerTypePeriodic, hid_mouse_jiggler);
+
     with_view_model(
-        hid_mouse_jiggler->view, HidMouseJigglerModel * model, { model->interval_idx = 2; }, true);
+        hid_mouse_jiggler->view,
+        HidMouseJigglerModel * model,
+        {
+            model->interval_idx = 2;
+            model->timeout_idx = TIMEOUT_NEVER_IDX;
+        },
+        true);
 
     return hid_mouse_jiggler;
 }
@@ -183,6 +279,8 @@ void hid_mouse_jiggler_free(HidMouseJiggler* hid_mouse_jiggler) {
 
     furi_timer_stop(hid_mouse_jiggler->timer);
     furi_timer_free(hid_mouse_jiggler->timer);
+    furi_timer_stop(hid_mouse_jiggler->countdown_timer);
+    furi_timer_free(hid_mouse_jiggler->countdown_timer);
 
     view_free(hid_mouse_jiggler->view);
 
