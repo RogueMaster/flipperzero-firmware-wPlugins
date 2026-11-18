@@ -42,6 +42,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Reaction Time Stats v1.0: show the saved-result count beside the average (By luvrltop)](https://github.com/luvrltop/ReactionTime)
 - HID: [Add a Mouse Jiggler auto-stop timer and countdown for USB and Bluetooth (By FelixLgr)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/pull/1215)
 - Added: [Zero Buster v1.1 (By DonJulve)](https://github.com/DonJulve/Zero_Buster)
+- Sub-GHz: [Validate incoming Feron LED remote checksums and recalculate them before transmission (By Lechnio)](https://github.com/DarkFlippers/unleashed-firmware/pull/1219)
 
 <a name="release"></a>
 
