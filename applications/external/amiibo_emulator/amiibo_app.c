@@ -42,23 +42,29 @@ typedef enum {
     ViewDatabase,
     ViewCleanup,
     ViewNotice,
+    ViewBlast,
 } ViewId;
 
 typedef enum {
     MenuUnsaved = 1,
     MenuRead,
-    MenuSettings,
     MenuVersion,
     MenuAuto,
     MenuKeys,
-    MenuClean,
+    MenuSort,
+    MenuDeleteScanned,
+    MenuDeleteFavorites,
     MenuEmpty,
 } MenuId;
 
 #define FILE_MAX     40
+/* One database folder keeps this many names. Each name is stored twice (the
+ * folder list and the on-screen row), and a few hundred of those can exhaust
+ * the heap. Favorites and Scanned stay at FILE_MAX. */
+#define DIR_LIST_MAX 200
 #define MenuFileBase 400
 
-#define APP_VERSION "1.1"
+#define APP_VERSION "1.2"
 
 typedef enum {
     UidFollowSetting,
@@ -70,6 +76,7 @@ typedef enum {
     OriginDatabase,
     OriginSaved,
     OriginUnsaved,
+    OriginBlast,
 } TagOrigin;
 
 typedef enum {
@@ -77,6 +84,7 @@ typedef enum {
     BrowseDatabase,
     BrowseSaved,
     BrowseUnsaved,
+    BrowseBlast,
 } BrowseFrom;
 
 typedef struct {
@@ -114,6 +122,23 @@ typedef struct {
     bool loaded;
     bool dirty;
     bool auto_uid;
+    bool sort_series;
+    bool list_cut;
+    bool cut_notice;
+    ViewId notice_return;
+    bool in_series;
+    bool in_other;
+    bool blast_list;
+    bool blasting;
+    bool blast_on_air;
+    uint32_t blast_phase_started;
+    uint32_t blast_index;
+    uint8_t blast_saved[AMIIBO_TAG_SIZE];
+    uint8_t open_series;
+    uint8_t series_ids[32];
+    uint8_t series_other[32];
+    uint8_t series_shown;
+    uint32_t series_index;
     bool keys_loaded;
     bool emulating;
     bool reading;
@@ -162,6 +187,16 @@ static const char HELP[] = "This app can back up\n"
                            "game reader. The game\n"
                            "sees that same\n"
                            "Amiibo.\n"
+                           "\n"
+                           "Amiibo Blast lists\n"
+                           "your Favorites. Blast\n"
+                           "sends a new ID for\n"
+                           "1 second, pauses\n"
+                           "2 seconds, and repeats.\n"
+                           "It does not save that\n"
+                           "ID. Any key stops.\n"
+                           "This needs the key\n"
+                           "file.\n"
                            "\n"
                            "Key\n"
                            "The app cannot include\n"
@@ -226,6 +261,14 @@ static const char HELP[] = "This app can back up\n"
                            "first, then files,\n"
                            "A to Z.\n"
                            "\n"
+                           "Only Amiibo .bin and\n"
+                           "NTAG215 .nfc files\n"
+                           "are listed. A long\n"
+                           "folder shows the first\n"
+                           "200 and says so.\n"
+                           "Favorites and scans\n"
+                           "show the first 40.\n"
+                           "\n"
                            "A folder named ZE\n"
                            "always makes a new ID.\n"
                            "A folder named SSB\n"
@@ -246,11 +289,19 @@ static const char HELP[] = "This app can back up\n"
                            "another one on that\n"
                            "screen.\n"
                            "\n"
-                           "Clean added tags\n"
-                           "removes Favorites and\n"
-                           "scans. Hold Up for\n"
-                           "2 seconds. Database\n"
-                           "files stay.\n";
+                           "Sort lists chooses\n"
+                           "Unsorted or By Series\n"
+                           "for Favorites and\n"
+                           "Scanned Amiibos.\n"
+                           "\n"
+                           "Delete Scanned Amiibos\n"
+                           "removes scans only.\n"
+                           "Delete Favorites\n"
+                           "removes favorites only.\n"
+                           "Hold Up for\n"
+                           "2 seconds. The\n"
+                           "downloaded database\n"
+                           "stays.\n";
 
 static const char ABOUT[] = "Amiibo is a trademark\n"
                             "of Nintendo.\n"
@@ -358,6 +409,7 @@ static void show_about(App* app) {
 
 static void show_menu(App* app);
 static void show_tag(App* app);
+static void blast_stop(App* app);
 static void show_database(App* app);
 static void widget_callback(GuiButtonType button, InputType type, void* context);
 static void submenu_callback(void* context, uint32_t index);
@@ -461,13 +513,19 @@ static const char* policy_label(const App* app) {
     return app->auto_uid ? "Auto UID: on" : "Auto UID: off";
 }
 
+static void save_settings(App* app);
+
 static void load_settings(App* app) {
     app->auto_uid = true;
+    app->sort_series = false;
     File* file = storage_file_alloc(app->storage);
     if(storage_file_open(file, APP_DATA_PATH("auto_uid"), FSAM_READ, FSOM_OPEN_EXISTING)) {
-        char value = '1';
-        if(storage_file_read(file, &value, 1) == 1) app->auto_uid = value != '0';
+        char value[3];
+        size_t read = storage_file_read(file, value, sizeof(value));
+        if(read >= 1) app->auto_uid = value[0] != '0';
+        if(read >= 2) app->sort_series = value[1] == '1';
         storage_file_close(file);
+        if(read > 2) save_settings(app);
     }
     storage_file_free(file);
 }
@@ -475,8 +533,10 @@ static void load_settings(App* app) {
 static void save_settings(App* app) {
     File* file = storage_file_alloc(app->storage);
     if(storage_file_open(file, APP_DATA_PATH("auto_uid"), FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
-        char value = app->auto_uid ? '1' : '0';
-        storage_file_write(file, &value, 1);
+        char value[2];
+        value[0] = app->auto_uid ? '1' : '0';
+        value[1] = app->sort_series ? '1' : '0';
+        storage_file_write(file, value, sizeof(value));
         storage_file_close(file);
     }
     storage_file_free(file);
@@ -711,6 +771,13 @@ static void tag_buttons_draw(Canvas* canvas, void* context) {
     App* app = model->app;
     if(app->current != ViewTag || app->uid_confirm) return;
 
+    if(app->origin == OriginBlast) {
+        canvas_set_font(canvas, FontSecondary);
+        uint8_t mid_w = tag_button_width(canvas, "Blast", true);
+        tag_button_draw(canvas, (128 - mid_w) / 2, mid_w, "Blast", 'C');
+        return;
+    }
+
     const char* left = app->origin == OriginSaved ? "New UID" : "Fav";
     const char* right = app->origin == OriginDatabase ? "New UID" : "Del";
     canvas_set_font(canvas, FontSecondary);
@@ -726,7 +793,18 @@ static void tag_buttons_draw(Canvas* canvas, void* context) {
 
 static bool tag_buttons_input(InputEvent* event, void* context) {
     App* app = context;
+    if(app->blasting) {
+        if(event->type == InputTypeShort) blast_stop(app);
+        return true;
+    }
     if(app->current != ViewTag || app->uid_confirm) return false;
+    if(app->origin == OriginBlast) {
+        if(event->key == InputKeyOk) {
+            widget_callback(GuiButtonTypeCenter, event->type, app);
+            return true;
+        }
+        return false;
+    }
     if(event->key == InputKeyLeft) {
         widget_callback(GuiButtonTypeLeft, event->type, app);
         return true;
@@ -1006,6 +1084,53 @@ static void list_select(App* app, uint32_t index) {
         true);
 }
 
+static bool bin_size_ok(uint64_t size) {
+    return size == 520 || size == 540 || size == 572;
+}
+
+/* Flipper NFC text, not a full parse. Amiibo dumps are NTAG215: 135 pages. */
+static bool nfc_header_is_amiibo(Storage* storage, const char* path) {
+    File* file = storage_file_alloc(storage);
+    bool ok = false;
+    if(storage_file_open(file, path, FSAM_READ, FSOM_OPEN_EXISTING)) {
+        char* buf = malloc(768);
+        if(buf) {
+            size_t n = storage_file_read(file, buf, 767);
+            buf[n] = '\0';
+            const char* pages = strstr(buf, "Pages total:");
+            if(pages) {
+                pages += strlen("Pages total:");
+                while(*pages == ' ' || *pages == '\t')
+                    pages++;
+                unsigned total = 0;
+                bool digits = false;
+                while(*pages >= '0' && *pages <= '9') {
+                    digits = true;
+                    total = total * 10u + (unsigned)(*pages - '0');
+                    if(total > 1000u) break;
+                    pages++;
+                }
+                bool ultralight = strstr(buf, "NTAG215") != NULL ||
+                                  strstr(buf, "Ultralight") != NULL;
+                ok = digits && total == 135 && ultralight;
+            } else if(strstr(buf, "NTAG215") != NULL) {
+                ok = true;
+            }
+            free(buf);
+        }
+        storage_file_close(file);
+    }
+    storage_file_free(file);
+    return ok;
+}
+
+static bool dump_ok(Storage* storage, const char* path, const char* name, const FileInfo* info) {
+    if(name[0] == '\0' || name[0] == '.') return false;
+    if(ends_with_i(name, ".bin")) return bin_size_ok(info->size);
+    if(ends_with_i(name, ".nfc")) return nfc_header_is_amiibo(storage, path);
+    return false;
+}
+
 static unsigned count_tags_in(App* app, const char* folder) {
     unsigned count = 0;
     FuriString** subs = NULL;
@@ -1027,7 +1152,9 @@ static unsigned count_tags_in(App* app, const char* folder) {
                 }
                 subs[sub_count++] = furi_string_alloc_printf("%s/%s", folder, name);
             } else if(ends_with_i(name, ".bin") || ends_with_i(name, ".nfc")) {
-                count++;
+                FuriString* path = furi_string_alloc_printf("%s/%s", folder, name);
+                if(dump_ok(app->storage, furi_string_get_cstr(path), name, &info)) count++;
+                furi_string_free(path);
             }
         }
         storage_dir_close(dir);
@@ -1061,40 +1188,91 @@ static void show_settings(App* app) {
     list_add(app, version, 0, false, MenuVersion);
     list_add(app, app->auto_uid ? "Auto UID: ON" : "Auto UID: OFF", 0, false, MenuAuto);
     list_add(app, app->keys_loaded ? "Keys: Loaded" : "Keys: Missing", 0, false, MenuKeys);
-    list_add(app, "Clean added tags", 0, false, MenuClean);
+    list_add(
+        app,
+        app->sort_series ? "Sort lists: By Series" : "Sort lists: Unsorted",
+        0,
+        false,
+        MenuSort);
+    list_add(app, "Delete Scanned Amiibos", 0, false, MenuDeleteScanned);
+    list_add(app, "Delete Favorites", 0, false, MenuDeleteFavorites);
     if(app->settings_index == 0) app->settings_index = MenuVersion;
     list_select(app, app->settings_index);
     app->current = ViewSettings;
     view_dispatcher_switch_to_view(app->dispatcher, ViewMenu);
 }
 
-static void erase_added_tags(App* app) {
-    storage_simply_remove_recursive(app->storage, APP_DATA_PATH("favorites"));
-    storage_simply_remove_recursive(app->storage, APP_DATA_PATH("scanned"));
-    storage_simply_remove_recursive(app->storage, APP_DATA_PATH("saved"));
-    storage_simply_remove_recursive(app->storage, APP_DATA_PATH("unsaved"));
-    storage_simply_mkdir(app->storage, APP_DATA_PATH("favorites"));
-    storage_simply_mkdir(app->storage, APP_DATA_PATH("scanned"));
+typedef enum {
+    CleanupScanned,
+    CleanupFavorites,
+} CleanupKind;
+
+static bool path_in_folder(const App* app, const char* folder) {
+    const char* path = furi_string_get_cstr(app->path);
+    size_t length = strlen(folder);
+    if(strncmp(path, folder, length) != 0) return false;
+    return path[length] == '/' || path[length] == '\0';
+}
+
+static void forget_if_deleted(App* app, bool scanned, bool favorites) {
+    bool drop = false;
+    if(scanned) {
+        drop = drop || path_in_folder(app, APP_DATA_PATH("scanned"));
+        drop = drop || path_in_folder(app, APP_DATA_PATH("unsaved"));
+    }
+    if(favorites) {
+        drop = drop || path_in_folder(app, APP_DATA_PATH("favorites"));
+        drop = drop || path_in_folder(app, APP_DATA_PATH("saved"));
+    }
+    if(!drop) return;
     app->loaded = false;
     app->dirty = false;
     app->file_count = 0;
 }
 
+static void erase_folder(App* app, const char* folder) {
+    storage_simply_remove_recursive(app->storage, folder);
+    storage_simply_mkdir(app->storage, folder);
+}
+
+static void erase_scanned(App* app) {
+    erase_folder(app, APP_DATA_PATH("scanned"));
+    storage_simply_remove_recursive(app->storage, APP_DATA_PATH("unsaved"));
+    forget_if_deleted(app, true, false);
+}
+
+static void erase_favorites(App* app) {
+    erase_folder(app, APP_DATA_PATH("favorites"));
+    storage_simply_remove_recursive(app->storage, APP_DATA_PATH("saved"));
+    forget_if_deleted(app, false, true);
+}
+
 typedef struct {
     uint8_t filled;
+    uint8_t kind;
 } CleanupModel;
 
 static void cleanup_draw(Canvas* canvas, void* context) {
     const CleanupModel* model = context;
+    const char* title = "Delete scans?";
+    const char* what = "Scanned Amiibos only.";
+    if(model->kind == CleanupFavorites) {
+        title = "Delete favorites?";
+        what = "Favorites only.";
+    }
     canvas_clear(canvas);
     canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str_aligned(canvas, 64, 0, AlignCenter, AlignTop, "Erase added tags?");
+    canvas_draw_str_aligned(canvas, 64, 0, AlignCenter, AlignTop, title);
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str_aligned(canvas, 64, 18, AlignCenter, AlignTop, "Favorites and scans.");
-    canvas_draw_str_aligned(canvas, 64, 32, AlignCenter, AlignTop, "Database files stay.");
-    canvas_draw_str_aligned(canvas, 64, 44, AlignCenter, AlignTop, "Hold Up 2 seconds");
-    canvas_draw_frame(canvas, 8, 56, 112, 6);
-    if(model->filled > 0) canvas_draw_box(canvas, 8, 56, model->filled, 6);
+    canvas_draw_str_aligned(canvas, 64, 14, AlignCenter, AlignTop, what);
+    canvas_draw_str_aligned(canvas, 64, 26, AlignCenter, AlignTop, "Downloaded database");
+    canvas_draw_str_aligned(canvas, 64, 36, AlignCenter, AlignTop, "on the SD card stays.");
+    canvas_draw_str_aligned(canvas, 64, 46, AlignCenter, AlignTop, "Hold Up 2 seconds");
+    canvas_draw_frame(canvas, 8, 58, 112, 5);
+    if(model->filled > 0) {
+        uint8_t width = model->filled > 112 ? 112 : model->filled;
+        canvas_draw_box(canvas, 8, 58, width, 5);
+    }
 }
 
 static void cleanup_reset_bar(App* app) {
@@ -1138,21 +1316,32 @@ static void cleanup_hold_tick(App* app) {
     }
     bool changed = model->filled != filled;
     model->filled = filled;
+    uint8_t kind = model->kind;
     view_commit_model(app->cleanup_view, changed);
     if(!erase) return;
-    erase_added_tags(app);
-    app_alert(app, "Cleaned", "Favorites and scans\nare gone.\nDatabase files stay.");
+    const char* header = "Deleted";
+    const char* text = "Scanned Amiibos\nare gone.\nDownloaded database\nstays.";
+    if(kind == CleanupFavorites) {
+        erase_favorites(app);
+        text = "Favorites\nare gone.\nDownloaded database\nstays.";
+    } else {
+        erase_scanned(app);
+    }
+    app_alert(app, header, text);
     show_settings(app);
 }
 
-static void show_cleanup(App* app) {
+static void show_cleanup(App* app, CleanupKind kind) {
     app->cleanup_holding = false;
-    cleanup_reset_bar(app);
+    CleanupModel* model = view_get_model(app->cleanup_view);
+    model->kind = (uint8_t)kind;
+    model->filled = 0;
+    view_commit_model(app->cleanup_view, true);
     app->current = ViewCleanup;
     view_dispatcher_switch_to_view(app->dispatcher, ViewCleanup);
 }
 
-static bool assign_uid(App* app) {
+static bool make_new_uid(App* app) {
     if(!app->keys_loaded) {
         app_alert(app, "Key file needed", "Copy key_retail.bin\ninto the app folder.");
         return false;
@@ -1164,32 +1353,44 @@ static bool assign_uid(App* app) {
         make_uid(uid);
         if(memcmp(uid, current, sizeof(uid)) != 0) break;
     }
-    if(app->figure_read) {
-        app->figure_read = false;
-        app->policy = UidFollowSetting;
-    }
     AmiiboResult result = amiibo_set_uid(app->tag, &app->keys, uid);
     if(result != AmiiboOk) {
         app_alert(app, "Not signed", "The dump did not\nmatch the key file.");
         return false;
     }
+    return true;
+}
+
+static bool assign_uid(App* app) {
+    if(!make_new_uid(app)) return false;
+    if(app->figure_read) {
+        app->figure_read = false;
+        app->policy = UidFollowSetting;
+    }
     app->dirty = true;
     return true;
 }
 
-static void stop_emulate(App* app) {
+static void stop_listener(App* app, bool keep_live, bool mark_dirty) {
     if(!app->emulating) return;
     nfc_listener_stop(app->listener);
-    const MfUltralightData* live = nfc_listener_get_data(app->listener, NfcProtocolMfUltralight);
-    tag_from_pages(app, live);
-    nfc_device_set_data(app->device, NfcProtocolMfUltralight, live);
+    if(keep_live) {
+        const MfUltralightData* live =
+            nfc_listener_get_data(app->listener, NfcProtocolMfUltralight);
+        tag_from_pages(app, live);
+        nfc_device_set_data(app->device, NfcProtocolMfUltralight, live);
+    }
     nfc_listener_free(app->listener);
     app->listener = NULL;
     nfc_free(app->nfc);
     app->nfc = NULL;
     app->emulating = false;
-    app->dirty = true;
+    if(mark_dirty) app->dirty = true;
     notification_message(app->notifications, &sequence_blink_stop);
+}
+
+static void stop_emulate(App* app) {
+    stop_listener(app, true, true);
 }
 
 static bool start_emulate(App* app, bool renew) {
@@ -1347,6 +1548,7 @@ enum {
     EventTagPrev = 230,
     EventTagNext = 231,
     EventFavNoted = 232,
+    EventBlastStop = 233,
 };
 
 #define READ_WAIT_MS 5000
@@ -1432,25 +1634,126 @@ static void stop_read(App* app) {
     notification_message(app->notifications, &sequence_blink_stop);
 }
 
-static void app_tick(void* context) {
-    App* app = context;
-    if(app->current == ViewCleanup) cleanup_hold_tick(app);
-    if(app->current == ViewSplash &&
-       (int32_t)(furi_get_tick() - app->splash_started) >= (int32_t)furi_ms_to_ticks(2000)) {
-        show_menu(app);
+typedef struct {
+    uint8_t frame;
+} SplashModel;
+
+#define SPLASH_FRAME_MS 120
+#define SPLASH_HOLD_MS  2000
+#define BLAST_SEND_MS   1000
+#define BLAST_PAUSE_MS  2000
+
+static void blast_restore(App* app) {
+    memcpy(app->tag, app->blast_saved, AMIIBO_TAG_SIZE);
+    if(app->loaded) pages_from_tag(app);
+    app->dirty = false;
+}
+
+static void blast_show(App* app, bool on_air) {
+    uint8_t uid[7];
+    char uid_text[24];
+    amiibo_uid_from_tag(app->tag, uid);
+    format_uid_display(uid, uid_text, sizeof(uid_text));
+    FuriString* name = furi_string_alloc();
+    path_extract_filename(app->path, name, true);
+    furi_string_printf(
+        app->info,
+        on_air ? "\e#Blasting\n%s\n%s\nAny key stops" : "\e#Blast pause\n%s\n%s\nAny key stops",
+        furi_string_get_cstr(name),
+        uid_text);
+    furi_string_free(name);
+    widget_reset(app->widget);
+    widget_add_text_scroll_element(app->widget, 0, 0, 128, 64, furi_string_get_cstr(app->info));
+    app->current = ViewEmulate;
+    view_dispatcher_switch_to_view(app->dispatcher, ViewTag);
+    if(on_air) notification_message(app->notifications, &sequence_blink_start_magenta);
+}
+
+static bool blast_go_on_air(App* app) {
+    if(!make_new_uid(app)) return false;
+    pages_from_tag(app);
+    app->nfc = nfc_alloc();
+    const MfUltralightData* data = nfc_device_get_data(app->device, NfcProtocolMfUltralight);
+    app->listener = nfc_listener_alloc(app->nfc, NfcProtocolMfUltralight, data);
+    nfc_listener_start(app->listener, NULL, NULL);
+    app->emulating = true;
+    app->blast_on_air = true;
+    app->blast_phase_started = furi_get_tick();
+    blast_show(app, true);
+    return true;
+}
+
+static void blast_pause(App* app) {
+    stop_listener(app, false, false);
+    app->blast_on_air = false;
+    app->blast_phase_started = furi_get_tick();
+    blast_show(app, false);
+}
+
+static void blast_stop(App* app) {
+    if(!app->blasting) return;
+    app->blasting = false;
+    app->blast_on_air = false;
+    if(app->emulating) stop_listener(app, false, false);
+    blast_restore(app);
+    show_tag(app);
+}
+
+static void blast_start(App* app) {
+    if(!app->loaded) {
+        app_alert(app, "No dump", "Open an Amiibo\nfirst.");
+        return;
+    }
+    memcpy(app->blast_saved, app->tag, AMIIBO_TAG_SIZE);
+    app->blasting = true;
+    if(!blast_go_on_air(app)) {
+        app->blasting = false;
+        blast_restore(app);
+        show_tag(app);
     }
 }
 
-static void splash_draw(Canvas* canvas, void* context) {
-    UNUSED(context);
+static void blast_tick(App* app) {
+    if(!app->blasting) return;
+    uint32_t phase_ms = app->blast_on_air ? BLAST_SEND_MS : BLAST_PAUSE_MS;
+    if((furi_get_tick() - app->blast_phase_started) < furi_ms_to_ticks(phase_ms)) return;
+    if(app->blast_on_air) {
+        blast_pause(app);
+        return;
+    }
+    if(!blast_go_on_air(app)) {
+        app->blasting = false;
+        blast_restore(app);
+        show_tag(app);
+    }
+}
+
+static void app_tick(void* context) {
+    App* app = context;
+    if(app->current == ViewCleanup) cleanup_hold_tick(app);
+    if(app->blasting) blast_tick(app);
+    if(app->current != ViewSplash) return;
+    uint32_t frame_ticks = furi_ms_to_ticks(SPLASH_FRAME_MS);
+    uint32_t elapsed = furi_get_tick() - app->splash_started;
+    uint32_t done = frame_ticks * SPLASH_FRAME_COUNT + furi_ms_to_ticks(SPLASH_HOLD_MS);
+    if(elapsed >= done) {
+        show_menu(app);
+        return;
+    }
+    uint32_t frame = elapsed / frame_ticks;
+    if(frame >= SPLASH_FRAME_COUNT) frame = SPLASH_FRAME_COUNT - 1;
+    SplashModel* model = view_get_model(app->splash_view);
+    bool changed = model->frame != (uint8_t)frame;
+    model->frame = (uint8_t)frame;
+    view_commit_model(app->splash_view, changed);
+}
+
+static void splash_draw(Canvas* canvas, void* model) {
+    const SplashModel* splash = model;
+    uint8_t frame = splash->frame;
+    if(frame >= SPLASH_FRAME_COUNT) frame = SPLASH_FRAME_COUNT - 1;
     canvas_clear(canvas);
-    canvas_draw_xbm(
-        canvas,
-        (128 - SPLASH_WIDTH) / 2,
-        (64 - SPLASH_HEIGHT) / 2,
-        SPLASH_WIDTH,
-        SPLASH_HEIGHT,
-        splash_bits);
+    canvas_draw_xbm(canvas, 0, 0, SPLASH_WIDTH, SPLASH_HEIGHT, splash_frames[frame]);
 }
 
 static bool splash_input(InputEvent* event, void* context) {
@@ -1510,41 +1813,224 @@ static void finish_read(App* app, bool ok) {
     show_scan(app);
 }
 
+static int hex_nibble(char c) {
+    if(c >= '0' && c <= '9') return c - '0';
+    if(c >= 'a' && c <= 'f') return c - 'a' + 10;
+    if(c >= 'A' && c <= 'F') return c - 'A' + 10;
+    return -1;
+}
+
+/* Third byte on a Flipper "Page 22:" line. That byte is the figure-id series. */
+static bool third_page_byte(const char* text, const char* end, uint8_t* out) {
+    int hi = -1;
+    int got = 0;
+    for(; text < end && *text != '\n' && *text != '\r'; text++) {
+        int nibble = hex_nibble(*text);
+        if(nibble < 0) {
+            if(hi >= 0) return false;
+            continue;
+        }
+        if(hi < 0) {
+            hi = nibble;
+        } else {
+            uint8_t byte = (uint8_t)((hi << 4) | nibble);
+            hi = -1;
+            if(got == 2) {
+                *out = byte;
+                return true;
+            }
+            got++;
+        }
+    }
+    return false;
+}
+
+static bool series_from_bin(Storage* storage, const char* path, uint8_t* series) {
+    File* file = storage_file_alloc(storage);
+    bool ok = false;
+    if(storage_file_open(file, path, FSAM_READ, FSOM_OPEN_EXISTING)) {
+        uint8_t id[8];
+        if(storage_file_seek(file, 0x54, true) &&
+           storage_file_read(file, id, sizeof(id)) == sizeof(id)) {
+            *series = id[6];
+            ok = true;
+        }
+        storage_file_close(file);
+    }
+    storage_file_free(file);
+    return ok;
+}
+
+static bool series_from_nfc(Storage* storage, const char* path, uint8_t* series) {
+    File* file = storage_file_alloc(storage);
+    bool ok = false;
+    if(storage_file_open(file, path, FSAM_READ, FSOM_OPEN_EXISTING)) {
+        char* buf = malloc(8192);
+        if(buf) {
+            size_t n = storage_file_read(file, buf, 8192);
+            static const char mark[] = "Page 22:";
+            for(size_t i = 0; i + sizeof(mark) - 1 < n; i++) {
+                if(memcmp(buf + i, mark, sizeof(mark) - 1) == 0) {
+                    ok = third_page_byte(buf + i + sizeof(mark) - 1, buf + n, series);
+                    break;
+                }
+            }
+            free(buf);
+        }
+        storage_file_close(file);
+    }
+    storage_file_free(file);
+    return ok;
+}
+
+static bool file_series(Storage* storage, const char* path, uint8_t* series) {
+    if(ends_with_i(path, ".bin")) return series_from_bin(storage, path, series);
+    if(ends_with_i(path, ".nfc")) return series_from_nfc(storage, path, series);
+    return false;
+}
+
+static void add_file_rows(App* app) {
+    if(app->file_count == 0) {
+        list_add(app, "None yet", 0, false, MenuEmpty);
+        return;
+    }
+    for(uint8_t i = 0; i < app->file_count; i++) {
+        FuriString* label = furi_string_alloc();
+        path_extract_filename(app->files[i], label, true);
+        list_add(app, furi_string_get_cstr(label), 0, false, MenuFileBase + i);
+        furi_string_free(label);
+    }
+}
+
+static void show_cut_notice(App* app, unsigned shown);
+
 static void show_file_list(App* app, bool saved) {
+    if(!app->sort_series) app->in_series = false;
+    app->list_cut = false;
     const char* folder = saved ? APP_DATA_PATH("favorites") : APP_DATA_PATH("scanned");
     app->file_count = 0;
+    uint16_t counts[256];
+    memset(counts, 0, sizeof(counts));
+    uint16_t other = 0;
+    uint16_t total = 0;
+
     File* dir = storage_file_alloc(app->storage);
     if(storage_dir_open(dir, folder)) {
         FileInfo info;
         char name[128];
-        while(app->file_count < FILE_MAX &&
-              storage_dir_read(dir, &info, name, (uint16_t)sizeof(name))) {
+        FuriString* path = furi_string_alloc();
+        while(storage_dir_read(dir, &info, name, (uint16_t)sizeof(name))) {
             if(info.flags & FSF_DIRECTORY) continue;
             if(!ends_with_i(name, ".bin") && !ends_with_i(name, ".nfc")) continue;
-            furi_string_printf(app->files[app->file_count], "%s/%s", folder, name);
-            app->file_count++;
+            furi_string_printf(path, "%s/%s", folder, name);
+            if(!dump_ok(app->storage, furi_string_get_cstr(path), name, &info)) continue;
+            if(!app->sort_series) {
+                if(app->file_count < FILE_MAX) {
+                    furi_string_set(app->files[app->file_count], path);
+                    app->file_count++;
+                } else {
+                    app->list_cut = true;
+                    break;
+                }
+                continue;
+            }
+            total++;
+            uint8_t series = 0;
+            bool known = file_series(app->storage, furi_string_get_cstr(path), &series) &&
+                         amiibo_series_name(series) != NULL;
+            if(known)
+                counts[series]++;
+            else
+                other++;
+            if(app->in_series) {
+                bool take = app->in_other ? !known : (known && series == app->open_series);
+                if(take) {
+                    if(app->file_count < FILE_MAX) {
+                        furi_string_set(app->files[app->file_count], path);
+                        app->file_count++;
+                    } else {
+                        app->list_cut = true;
+                    }
+                }
+            }
         }
+        furi_string_free(path);
         storage_dir_close(dir);
     }
     storage_file_free(dir);
 
     list_reset(app);
-    list_header(app, saved ? "Favorites" : "Scanned Amiibos", count_tags_in(app, folder), true);
-    if(app->file_count == 0) {
-        list_add(app, "None yet", 0, false, MenuEmpty);
-    } else {
-        for(uint8_t i = 0; i < app->file_count; i++) {
-            FuriString* label = furi_string_alloc();
-            path_extract_filename(app->files[i], label, true);
-            list_add(app, furi_string_get_cstr(label), 0, false, MenuFileBase + i);
-            furi_string_free(label);
+    if(app->sort_series && !app->in_series) {
+        const char* root_title = "Scanned Amiibos";
+        if(saved && app->blast_list)
+            root_title = "Amiibo Blast";
+        else if(saved)
+            root_title = "Favorites";
+        list_header(app, root_title, total, true);
+        app->series_shown = 0;
+        for(size_t i = 0; i < amiibo_series_count() && app->series_shown < 32; i++) {
+            uint8_t id = 0;
+            const char* label = amiibo_series_at(i, &id);
+            if(!label || counts[id] == 0) continue;
+            FuriString* row = furi_string_alloc_printf("%s/", label);
+            app->series_ids[app->series_shown] = id;
+            app->series_other[app->series_shown] = 0;
+            list_add(
+                app, furi_string_get_cstr(row), counts[id], true, MenuFileBase + app->series_shown);
+            furi_string_free(row);
+            app->series_shown++;
         }
+        if(other > 0 && app->series_shown < 32) {
+            app->series_ids[app->series_shown] = 0;
+            app->series_other[app->series_shown] = 1;
+            list_add(app, "Other/", other, true, MenuFileBase + app->series_shown);
+            app->series_shown++;
+        }
+        if(app->series_shown == 0) {
+            list_add(app, "None yet", 0, false, MenuEmpty);
+            list_select(app, MenuEmpty);
+        } else {
+            list_select(app, app->series_index);
+        }
+    } else if(app->sort_series) {
+        const char* title = "Other";
+        uint16_t header_count = other;
+        if(!app->in_other) {
+            const char* name = amiibo_series_name(app->open_series);
+            if(name) title = name;
+            header_count = counts[app->open_series];
+        }
+        list_header(app, title, header_count, true);
+        add_file_rows(app);
+        uint32_t selected = app->unsaved_index;
+        if(saved && app->blast_list)
+            selected = app->blast_index;
+        else if(saved)
+            selected = app->saved_index;
+        if(app->file_count == 0) selected = MenuEmpty;
+        list_select(app, selected);
+    } else {
+        const char* root_title = "Scanned Amiibos";
+        if(saved && app->blast_list)
+            root_title = "Amiibo Blast";
+        else if(saved)
+            root_title = "Favorites";
+        list_header(app, root_title, count_tags_in(app, folder), true);
+        add_file_rows(app);
+        uint32_t selected = app->unsaved_index;
+        if(saved && app->blast_list)
+            selected = app->blast_index;
+        else if(saved)
+            selected = app->saved_index;
+        if(app->file_count == 0) selected = MenuEmpty;
+        list_select(app, selected);
     }
-    uint32_t selected = saved ? app->saved_index : app->unsaved_index;
-    if(app->file_count == 0) selected = MenuEmpty;
-    list_select(app, selected);
-    app->current = saved ? ViewSaved : ViewUnsaved;
+    if(saved && app->blast_list)
+        app->current = ViewBlast;
+    else
+        app->current = saved ? ViewSaved : ViewUnsaved;
     view_dispatcher_switch_to_view(app->dispatcher, ViewMenu);
+    if(app->list_cut) show_cut_notice(app, FILE_MAX);
 }
 
 static bool load_listed_file(App* app, uint8_t index, bool saved) {
@@ -1555,20 +2041,50 @@ static bool load_listed_file(App* app, uint8_t index, bool saved) {
     if(!loaded) furi_string_set(app->path, previous);
     furi_string_free(previous);
     if(!loaded) return false;
-    app->origin = saved ? OriginSaved : OriginUnsaved;
     app->policy = UidForceOff;
     app->figure_read = true;
-    app->browse = saved ? BrowseSaved : BrowseUnsaved;
-    if(saved)
+    if(saved && app->blast_list) {
+        app->origin = OriginBlast;
+        app->browse = BrowseBlast;
+        app->blast_index = MenuFileBase + index;
+    } else if(saved) {
+        app->origin = OriginSaved;
+        app->browse = BrowseSaved;
         app->saved_index = MenuFileBase + index;
-    else
+    } else {
+        app->origin = OriginUnsaved;
+        app->browse = BrowseUnsaved;
         app->unsaved_index = MenuFileBase + index;
+    }
     show_tag(app);
     return true;
 }
 
+static void open_series_row(App* app, uint8_t index) {
+    bool saved = app->current == ViewSaved || app->current == ViewBlast;
+    if(index >= app->series_shown) {
+        show_file_list(app, saved);
+        return;
+    }
+    app->series_index = MenuFileBase + index;
+    app->in_series = true;
+    app->in_other = app->series_other[index] != 0;
+    app->open_series = app->series_ids[index];
+    if(saved && app->blast_list)
+        app->blast_index = MenuFileBase;
+    else if(saved)
+        app->saved_index = MenuFileBase;
+    else
+        app->unsaved_index = MenuFileBase;
+    show_file_list(app, saved);
+}
+
 static void open_listed(App* app, uint8_t index) {
-    bool saved = app->current == ViewSaved;
+    bool saved = app->current == ViewSaved || app->current == ViewBlast;
+    if(app->sort_series && !app->in_series) {
+        open_series_row(app, index);
+        return;
+    }
     if(!load_listed_file(app, index, saved)) show_file_list(app, saved);
 }
 
@@ -1623,7 +2139,24 @@ static void fav_notice_done(void* context) {
     view_dispatcher_send_custom_event(app->dispatcher, EventFavNoted);
 }
 
+static void show_cut_notice(App* app, unsigned shown) {
+    char line[24];
+    snprintf(line, sizeof(line), "First %u shown", shown);
+    app->notice_return = app->current;
+    app->cut_notice = true;
+    popup_reset(app->popup);
+    popup_set_callback(app->popup, fav_notice_done);
+    popup_set_context(app->popup, app);
+    popup_set_header(app->popup, "List shortened", 64, 16, AlignCenter, AlignCenter);
+    popup_set_text(app->popup, line, 64, 36, AlignCenter, AlignCenter);
+    popup_set_timeout(app->popup, 1500);
+    popup_enable_timeout(app->popup);
+    app->current = ViewNotice;
+    view_dispatcher_switch_to_view(app->dispatcher, ViewNotice);
+}
+
 static void show_fav_notice(App* app) {
+    app->cut_notice = false;
     popup_reset(app->popup);
     popup_set_callback(app->popup, fav_notice_done);
     popup_set_context(app->popup, app);
@@ -1696,12 +2229,18 @@ static void carousel_open(App* app) {
     if(index == 0) {
         show_database(app);
     } else if(index == 1) {
+        app->blast_list = false;
+        app->in_series = false;
         show_file_list(app, true);
     } else if(index == 2) {
         show_scan(app);
     } else if(index == 3) {
-        show_settings(app);
+        app->blast_list = true;
+        app->in_series = false;
+        show_file_list(app, true);
     } else if(index == 4) {
+        show_settings(app);
+    } else if(index == 5) {
         app->current = ViewHelp;
         view_dispatcher_switch_to_view(app->dispatcher, ViewHelp);
     } else {
@@ -1713,9 +2252,10 @@ static int section_of(App* app) {
     if(app->current == ViewDatabase) return 0;
     if(app->current == ViewSaved) return 1;
     if(app->current == ViewMy) return 2;
-    if(app->current == ViewSettings) return 3;
-    if(app->current == ViewHelp) return 4;
-    if(app->current == ViewAbout) return 5;
+    if(app->current == ViewBlast) return 3;
+    if(app->current == ViewSettings) return 4;
+    if(app->current == ViewHelp) return 5;
+    if(app->current == ViewAbout) return 6;
     return -1;
 }
 
@@ -1734,6 +2274,10 @@ static void show_section(App* app, int index) {
 static void section_key(const void* message, void* context) {
     const InputEvent* event = message;
     App* app = context;
+    if(app->blasting && event->type == InputTypeShort) {
+        view_dispatcher_send_custom_event(app->dispatcher, EventBlastStop);
+        return;
+    }
     if(event->type != InputTypeShort && event->type != InputTypeRepeat) return;
     if(event->key == InputKeyLeft || event->key == InputKeyRight) {
         if(event->type != InputTypeShort) return;
@@ -1878,6 +2422,7 @@ static bool db_is_root(const App* app) {
 
 static void db_load(App* app) {
     db_clear(app);
+    app->list_cut = false;
     File* dir = storage_file_alloc(app->storage);
     bool opened = storage_dir_open(dir, furi_string_get_cstr(app->db_path));
     if(!opened && !db_is_root(app)) {
@@ -1893,8 +2438,18 @@ static void db_load(App* app) {
         while(storage_dir_read(dir, &info, name, (uint16_t)sizeof(name))) {
             if(name[0] == '\0' || name[0] == '.') continue;
             bool is_dir = (info.flags & FSF_DIRECTORY) != 0;
-            if(!is_dir && !ends_with_i(name, ".bin") && !ends_with_i(name, ".nfc")) continue;
-            if(!db_push(app, name, is_dir)) break;
+            if(!is_dir) {
+                if(!ends_with_i(name, ".bin") && !ends_with_i(name, ".nfc")) continue;
+                FuriString* path =
+                    furi_string_alloc_printf("%s/%s", furi_string_get_cstr(app->db_path), name);
+                bool ok = dump_ok(app->storage, furi_string_get_cstr(path), name, &info);
+                furi_string_free(path);
+                if(!ok) continue;
+            }
+            if(app->db_count >= DIR_LIST_MAX || !db_push(app, name, is_dir)) {
+                app->list_cut = true;
+                break;
+            }
         }
         storage_dir_close(dir);
     }
@@ -1941,6 +2496,7 @@ static void show_database(App* app) {
     list_select(app, app->db_count == 0 ? MenuEmpty : MenuFileBase + app->db_index);
     app->current = ViewDatabase;
     view_dispatcher_switch_to_view(app->dispatcher, ViewMenu);
+    if(app->list_cut) show_cut_notice(app, DIR_LIST_MAX);
 }
 
 static void db_up(App* app) {
@@ -2038,8 +2594,11 @@ static void step_tag(App* app, int dir) {
             }
         }
     } else if(app->file_count > 1) {
-        bool saved = app->browse == BrowseSaved;
-        uint32_t selected = saved ? app->saved_index : app->unsaved_index;
+        bool blast = app->browse == BrowseBlast;
+        bool saved = blast || app->browse == BrowseSaved;
+        uint32_t selected = blast ? app->blast_index :
+                            saved ? app->saved_index :
+                                    app->unsaved_index;
         int pos = 0;
         if(selected >= MenuFileBase && selected < MenuFileBase + (uint32_t)app->file_count) {
             pos = (int)(selected - MenuFileBase);
@@ -2053,14 +2612,21 @@ static void step_tag(App* app, int dir) {
             furi_string_set(app->path, app->files[next]);
             ok = load_selected(app);
             if(ok) {
-                app->origin = saved ? OriginSaved : OriginUnsaved;
                 app->policy = UidForceOff;
                 app->figure_read = true;
-                app->browse = saved ? BrowseSaved : BrowseUnsaved;
-                if(saved)
+                if(blast) {
+                    app->origin = OriginBlast;
+                    app->browse = BrowseBlast;
+                    app->blast_index = MenuFileBase + (uint32_t)next;
+                } else if(saved) {
+                    app->origin = OriginSaved;
+                    app->browse = BrowseSaved;
                     app->saved_index = MenuFileBase + (uint32_t)next;
-                else
+                } else {
+                    app->origin = OriginUnsaved;
+                    app->browse = BrowseUnsaved;
                     app->unsaved_index = MenuFileBase + (uint32_t)next;
+                }
                 show_tag(app);
             }
         }
@@ -2084,6 +2650,8 @@ static void submenu_callback(void* context, uint32_t index) {
         app->my_index = index;
     else if(app->current == ViewSaved)
         app->saved_index = index;
+    else if(app->current == ViewBlast)
+        app->blast_index = index;
     else if(app->current == ViewUnsaved)
         app->unsaved_index = index;
     else if(app->current == ViewDatabase && index >= MenuFileBase)
@@ -2097,6 +2665,10 @@ static bool custom_event(void* context, uint32_t event) {
         menu_tick(app);
         return true;
     }
+    if(event == EventBlastStop) {
+        blast_stop(app);
+        return true;
+    }
     if(event == EventSectionLeft || event == EventSectionRight) {
         int section = section_of(app);
         if(!app->reading && !app->emulating && section >= 0) {
@@ -2105,7 +2677,13 @@ static bool custom_event(void* context, uint32_t event) {
         return true;
     }
     if(event == EventFavNoted) {
-        if(app->current == ViewNotice) show_tag(app);
+        if(app->cut_notice) {
+            app->cut_notice = false;
+            app->current = app->notice_return;
+            view_dispatcher_switch_to_view(app->dispatcher, ViewMenu);
+        } else if(app->current == ViewNotice) {
+            show_tag(app);
+        }
         return true;
     }
     if(event == EventTagPrev || event == EventTagNext) {
@@ -2126,6 +2704,10 @@ static bool custom_event(void* context, uint32_t event) {
     }
 
     if(app->emulating && event == GuiButtonTypeCenter + 100) {
+        if(app->blasting) {
+            blast_stop(app);
+            return true;
+        }
         stop_emulate(app);
         if(!start_emulate(app, true)) show_tag(app);
         return true;
@@ -2144,20 +2726,30 @@ static bool custom_event(void* context, uint32_t event) {
     if(event == MenuEmpty) {
         if(app->current == ViewDatabase)
             db_up(app);
-        else if(app->current == ViewSaved)
+        else if(
+            app->sort_series && app->in_series &&
+            (app->current == ViewSaved || app->current == ViewBlast ||
+             app->current == ViewUnsaved)) {
+            app->in_series = false;
+            show_file_list(app, app->current != ViewUnsaved);
+        } else if(app->current == ViewSaved || app->current == ViewBlast)
             show_menu(app);
         else
             show_scan(app);
     } else if(event == MenuUnsaved) {
+        app->in_series = false;
         show_file_list(app, false);
     } else if(event == MenuRead) {
         start_read(app);
-    } else if(event == MenuSettings) {
-        show_settings(app);
     } else if(event == MenuVersion) {
         show_settings(app);
     } else if(event == MenuAuto) {
         app->auto_uid = !app->auto_uid;
+        save_settings(app);
+        show_settings(app);
+    } else if(event == MenuSort) {
+        app->sort_series = !app->sort_series;
+        app->in_series = false;
         save_settings(app);
         show_settings(app);
     } else if(event == MenuKeys) {
@@ -2167,8 +2759,10 @@ static bool custom_event(void* context, uint32_t event) {
             app_alert(app, "Keys missing", "Put key_retail.bin\nin apps_data/\namiibo_emulator");
         }
         show_settings(app);
-    } else if(event == MenuClean) {
-        show_cleanup(app);
+    } else if(event == MenuDeleteScanned) {
+        show_cleanup(app, CleanupScanned);
+    } else if(event == MenuDeleteFavorites) {
+        show_cleanup(app, CleanupFavorites);
     } else if(event == GuiButtonTypeLeft + 100) {
         if(app->uid_confirm) {
             app->uid_confirm = false;
@@ -2180,11 +2774,14 @@ static bool custom_event(void* context, uint32_t event) {
             show_uid_confirm(app);
         }
     } else if(event == GuiButtonTypeCenter + 100) {
-        start_emulate(app, false);
+        if(app->origin == OriginBlast)
+            blast_start(app);
+        else
+            start_emulate(app, false);
     } else if(event == GuiButtonTypeRight + 100) {
         if(app->origin == OriginDatabase) {
             if(assign_uid(app)) show_tag(app);
-        } else {
+        } else if(app->origin != OriginBlast) {
             delete_current(app);
         }
     }
@@ -2196,6 +2793,10 @@ static bool back_event(void* context) {
     if(app->reading || app->current == ViewRead) {
         stop_read(app);
         show_scan(app);
+        return true;
+    }
+    if(app->blasting) {
+        blast_stop(app);
         return true;
     }
     if(app->emulating || app->current == ViewEmulate) {
@@ -2212,12 +2813,22 @@ static bool back_event(void* context) {
         db_up(app);
         return true;
     }
-    if(app->current == ViewSaved) {
-        show_menu(app);
+    if(app->current == ViewSaved || app->current == ViewBlast) {
+        if(app->sort_series && app->in_series) {
+            app->in_series = false;
+            show_file_list(app, true);
+        } else {
+            show_menu(app);
+        }
         return true;
     }
     if(app->current == ViewUnsaved) {
-        show_scan(app);
+        if(app->sort_series && app->in_series) {
+            app->in_series = false;
+            show_file_list(app, false);
+        } else {
+            show_scan(app);
+        }
         return true;
     }
     if(app->current == ViewMy || app->current == ViewSettings || app->current == ViewHelp ||
@@ -2225,12 +2836,22 @@ static bool back_event(void* context) {
         show_menu(app);
         return true;
     }
-    if(app->uid_confirm || app->current == ViewNotice) {
+    if(app->current == ViewNotice) {
+        if(app->cut_notice) {
+            app->cut_notice = false;
+            app->current = app->notice_return;
+            view_dispatcher_switch_to_view(app->dispatcher, ViewMenu);
+        } else {
+            show_tag(app);
+        }
+        return true;
+    }
+    if(app->uid_confirm) {
         show_tag(app);
         return true;
     }
     if(app->current == ViewTag) {
-        if(app->origin == OriginSaved)
+        if(app->origin == OriginSaved || app->origin == OriginBlast)
             show_file_list(app, true);
         else if(app->origin == OriginUnsaved)
             show_file_list(app, false);
@@ -2309,6 +2930,10 @@ int32_t flipper_amiibo_app(void* arg) {
     view_stack_add_view(app->tag_stack, widget_get_view(app->widget));
     view_stack_add_view(app->tag_stack, app->tag_buttons);
     app->splash_view = view_alloc();
+    view_allocate_model(app->splash_view, ViewModelTypeLocking, sizeof(SplashModel));
+    SplashModel* splash_model = view_get_model(app->splash_view);
+    splash_model->frame = 0;
+    view_commit_model(app->splash_view, false);
     view_set_context(app->splash_view, app);
     view_set_draw_callback(app->splash_view, splash_draw);
     view_set_input_callback(app->splash_view, splash_input);

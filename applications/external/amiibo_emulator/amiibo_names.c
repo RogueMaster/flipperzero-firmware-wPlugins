@@ -947,6 +947,39 @@ static const AmiiboName amiibo_names[] = {
     {{0x3F, 0x00, 0x00, 0x00, 0x04, 0x2E, 0x00, 0x02}, "Sora"},
 };
 
+static const struct {
+    uint8_t id;
+    const char* name;
+} SERIES[] = {
+    {0x00, "Smash Bros."},    {0x01, "Super Mario"},    {0x02, "Chibi-Robo"},
+    {0x03, "Yarn Yoshi"},     {0x04, "Splatoon"},       {0x05, "Animal Crossing"},
+    {0x06, "8-bit Mario"},    {0x07, "Skylanders"},     {0x09, "Zelda"},
+    {0x0A, "Shovel Knight"},  {0x0C, "Kirby"},          {0x0D, "Pokemon"},
+    {0x0E, "Mario Sports"},   {0x0F, "MH Stories"},     {0x10, "BoxBoy!"},
+    {0x11, "Pikmin"},         {0x12, "Fire Emblem"},    {0x13, "Metroid"},
+    {0x14, "Dark Souls"},     {0x15, "Mega Man"},       {0x16, "Diablo"},
+    {0x17, "Power Pros"},     {0x18, "MH Rise"},        {0x19, "Yu-Gi-Oh!"},
+    {0x1A, "Mario Movie"},    {0x1B, "Xenoblade"},      {0x1C, "My Mario"},
+    {0x1D, "Street Fighter"}, {0x1E, "Kirby Air Ride"}, {0xFF, "Power-Up Band"},
+};
+
+const char* amiibo_series_name(uint8_t series) {
+    for(size_t i = 0; i < sizeof(SERIES) / sizeof(SERIES[0]); i++) {
+        if(SERIES[i].id == series) return SERIES[i].name;
+    }
+    return NULL;
+}
+
+size_t amiibo_series_count(void) {
+    return sizeof(SERIES) / sizeof(SERIES[0]);
+}
+
+const char* amiibo_series_at(size_t index, uint8_t* id) {
+    if(index >= sizeof(SERIES) / sizeof(SERIES[0])) return NULL;
+    if(id) *id = SERIES[index].id;
+    return SERIES[index].name;
+}
+
 const char* amiibo_figure_name(const uint8_t tag[AMIIBO_TAG_SIZE]) {
     const uint8_t* id = tag + 0x54;
     size_t low = 0;

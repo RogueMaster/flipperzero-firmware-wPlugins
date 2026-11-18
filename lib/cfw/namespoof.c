@@ -24,17 +24,11 @@ void namespoof_init(void) {
     FlipperFormat* file = flipper_format_file_alloc(storage);
 
     const char* prev_custom_name = version_get_custom_name(NULL);
+    char* new_name = NULL;
     bool mac_ok = false;
     bool serial_ok = false;
     uint8_t mac[NAMESPOOF_MAC_LEN];
     uint8_t uid[NAMESPOOF_SERIAL_LEN];
-
-    // Detach the old name before freeing it, even when only Mac/Serial remain.
-    // Rebuild the real identity first so removed overrides cannot survive a reload.
-    if(prev_custom_name || prev_mac_override || prev_serial_override) {
-        version_set_custom_name(NULL, NULL);
-        furi_hal_version_init();
-    }
 
     do {
         uint32_t version;
@@ -46,13 +40,12 @@ void namespoof_init(void) {
         // All three keys are optional and read independently (rewind before each,
         // so file order does not matter). A missing Name must NOT skip Mac/Serial.
 
-        // Name first: furi_hal_version_set_name() re-derives ble_mac + custom_uid,
-        // so the explicit overrides below have to be applied after it.
+        // Everything is only read here and applied below, once we know whether a
+        // revert to the real OTP identity is needed first.
         flipper_format_rewind(file);
         if(flipper_format_read_string(file, NAMESPOOF_KEY_NAME, str) &&
            furi_string_size(str) > 0) {
-            version_set_custom_name(NULL, strdup(furi_string_get_cstr(str)));
-            furi_hal_version_set_name(NULL);
+            new_name = strdup(furi_string_get_cstr(str));
         }
 
         // BLE MAC: all-zero is the "real" sentinel (matches the UI) = not set.
@@ -69,10 +62,29 @@ void namespoof_init(void) {
             serial_ok = true;
         }
 
-        if(mac_ok) furi_hal_version_set_ble_mac(mac);
-        if(serial_ok) furi_hal_version_set_custom_uid(uid);
     } while(false);
 
+    // Revert: if a previous pass applied an override that this pass no longer
+    // sets (e.g. the SD card / spoof file was removed or edited), restore the real
+    // OTP identity first. A single furi_hal_version_init() re-derives name,
+    // ble_mac AND custom_uid from OTP; whatever is still wanted is re-applied below.
+    // The old name pointer must be uninstalled before it is freed.
+    if((prev_custom_name && !new_name) || (prev_mac_override && !mac_ok) ||
+       (prev_serial_override && !serial_ok)) {
+        version_set_custom_name(NULL, NULL);
+        furi_hal_version_init();
+    }
+
+    // Name first: furi_hal_version_set_name() re-derives ble_mac + custom_uid,
+    // so the explicit overrides have to be applied after it.
+    if(new_name) {
+        version_set_custom_name(NULL, new_name);
+        furi_hal_version_set_name(NULL);
+    }
+    if(mac_ok) furi_hal_version_set_ble_mac(mac);
+    if(serial_ok) furi_hal_version_set_custom_uid(uid);
+
+    // Nothing references the previous name any more (replaced or reverted).
     if(prev_custom_name) free((void*)prev_custom_name);
 
     prev_mac_override = mac_ok;

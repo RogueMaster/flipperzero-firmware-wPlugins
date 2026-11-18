@@ -104,7 +104,8 @@ bool cfw_app_apply(CFWApp* app) {
 
     if(app->save_name) {
         // save_name doubles as "rewrite name.settings" for all three spoof fields.
-        bool has_name = app->device_name[0] != '\0';
+        // device_name starts as the real OTP name; only write it once spoofed.
+        bool has_name = app->name_spoofed && app->device_name[0] != '\0';
         bool has_mac = cfw_app_bytes_any_set(app->spoof_mac, sizeof(app->spoof_mac));
         bool has_serial = cfw_app_bytes_any_set(app->spoof_serial, sizeof(app->spoof_serial));
 
@@ -489,6 +490,7 @@ CFWApp* cfw_app_alloc() {
     // scene can distinguish Real (all-zero) from Custom and pre-fill the editor.
     memset(app->spoof_mac, 0, sizeof(app->spoof_mac));
     memset(app->spoof_serial, 0, sizeof(app->spoof_serial));
+    app->name_spoofed = false;
     {
         FlipperFormat* ns_file = flipper_format_file_alloc(app->storage);
         FuriString* ns_str = furi_string_alloc();
@@ -498,6 +500,9 @@ CFWApp* cfw_app_alloc() {
             if(!flipper_format_read_header(ns_file, ns_str, &ns_version)) break;
             if(furi_string_cmp_str(ns_str, NAMESPOOF_HEADER) || ns_version != NAMESPOOF_VERSION)
                 break;
+            flipper_format_rewind(ns_file);
+            app->name_spoofed = flipper_format_read_string(ns_file, NAMESPOOF_KEY_NAME, ns_str) &&
+                                furi_string_size(ns_str) > 0;
             flipper_format_rewind(ns_file);
             flipper_format_read_hex(
                 ns_file, NAMESPOOF_KEY_MAC, app->spoof_mac, sizeof(app->spoof_mac));

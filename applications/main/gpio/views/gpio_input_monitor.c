@@ -21,9 +21,10 @@ static void gpio_input_monitor_draw_callback(Canvas* canvas, void* _model) {
     const uint8_t count = gpio_items_get_count(model->gpio_items);
     char text[16];
     for(uint8_t i = 0; i < count; i++) {
-        const int32_t x = (i % 2) ? 68 : 4;
-        const int32_t y = 24 + (int32_t)(i / 2) * 11;
-        if(y > 62) break;
+        // 3 columns x 5 rows so all 13 non-debug pins fit on screen.
+        const int32_t x = 2 + (int32_t)(i % 3) * 42;
+        const int32_t y = 22 + (int32_t)(i / 3) * 10;
+        if(y > 63) break;
         snprintf(
             text,
             sizeof(text),

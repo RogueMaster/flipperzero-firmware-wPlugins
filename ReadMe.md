@@ -33,6 +33,10 @@ This software is for experimental purposes only and is not meant for any illegal
 - Last Synced/Checked CFW, changes in [changelog](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/CHANGELOG.md): `2026-11-17 12:42 EST`
 - Updated: [Sub-GHz Scheduler v3.5 (By shalebridge)](https://github.com/shalebridge/flipper-subghz-scheduler)
 - Added: [Dolphin Dash v0.1 (By Rasul Kireev)](https://github.com/rasulkireev/dolphin-dash) - Three-lane bubble collection and reef dodging
+- CFW Settings: [Fix spoof remount lifetime and avoid persisting the real OTP name as a spoof (By lewisQ17)](https://github.com/lewisQ17/Momentum-Firmware/commit/3f932590d6cf877f3ce4a13bc05cb32ead290fd0)
+- GPIO: [Show all 13 non-debug pins in the Logic Monitor with a compact three-column layout (By lewisQ17)](https://github.com/lewisQ17/Momentum-Firmware/commit/e0f4d9b46e3fe784d6fce3308d0b2bc54b3ef084)
+- Updated: [Amiibo Emulator v1.2 (By Soap-n-Cartridge)](https://github.com/Soap-n-Cartridge/flipper_amiibo)
+- Fixed: [Gallagher EM4305 write bit offset (By Firat17aze)](https://github.com/DarkFlippers/unleashed-firmware/pull/1217)
 
 <a name="release"></a>
 
@@ -366,7 +370,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Alcohol Calc v1.0 (By vtlklr)](https://github.com/vtlklr/alcohol_calc)
 - [Allstar Firefly v0.1 (By jlaughter)](https://github.com/jlaughter/flipper-allstar-firefly) - Gate remote decoder/encoder
 - [Amiibo Browser v1.0 (By AzureSky)](https://github.com/AzzureSkyy/flipper-amiibo-browser)
-- [Amiibo Emulator v1.1 (By Soap-n-Cartridge)](https://github.com/Soap-n-Cartridge/flipper_amiibo)
+- [Amiibo Emulator v1.2 (By Soap-n-Cartridge)](https://github.com/Soap-n-Cartridge/flipper_amiibo)
 - [AmiiTool v0.3 (By Firefox2100)](https://github.com/Firefox2100/ami_tool) `Req: key_retail.bin on SD card /nfc/assets`
 - [Amusement IC v0.1 (By object-Object)](https://github.com/object-Object/flip_aic)
 - [Analog Clock v1.2 (By scrolltex)](https://github.com/scrolltex/flipper_analog_clock)

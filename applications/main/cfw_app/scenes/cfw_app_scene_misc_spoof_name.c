@@ -8,6 +8,7 @@ static void cfw_app_scene_misc_spoof_name_text_input_callback(void* context) {
     CFWApp* app = context;
 
     app->save_name = true;
+    app->name_spoofed = true;
     app->require_reboot = true;
     view_dispatcher_send_custom_event(app->view_dispatcher, TextInputResultOk);
 }

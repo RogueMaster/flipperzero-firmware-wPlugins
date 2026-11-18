@@ -102,6 +102,7 @@ typedef struct {
     bool save_subghz_freqs;
     bool save_subghz;
     bool save_name;
+    bool name_spoofed; // device_name is a user-set spoof, not the real OTP name
     bool save_xp;
     bool save_angry;
     bool save_dolphin;
