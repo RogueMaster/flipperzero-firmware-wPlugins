@@ -140,12 +140,15 @@ marked with `>` in the bottom bar. The other marker is dotted.
    end.
 5. Hold **OK** to open the action menu and choose:
    - **Save** - a name is suggested (`<name>_edit1`, the next free `_edit2`,
-     `_edit3`, ... so saves never overwrite an earlier one). Edit it if you
-     like and confirm; the A..B selection is written to
-     `/ext/subghz/<name>.sub`.
+     `_edit3`, ...; editing `<name>_edit1` continues with `<name>_edit2`).
+     Edit it if you like and confirm; the A..B selection is written to
+     `/ext/subghz/<name>.sub`. Typing a name that already exists asks
+     *Name exists, overwrite?*; the file currently open is never overwritten.
    - **Decode** - every known protocol found in A..B is listed (skipped when
      there is only one); choose an entry, read its details and press **Save**
-     to write it as a key file. Shows *No known protocol* when nothing decodes.
+     to write it as a key file. The suggested name is the protocol and, for
+     KeeLoq, its manufacturer (`KeeLoq_Verex`, then `KeeLoq_Verex_1`, `_2`, ...).
+     Shows *No known protocol* when nothing decodes.
    - **Cut** - the stretch between A and B is removed from the working copy and
      the two sides are joined. Re-place the markers and Cut again to clean up
      further, or Save when you are happy. If a cut would leave nothing behind it

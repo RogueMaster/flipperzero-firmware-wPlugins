@@ -117,6 +117,7 @@ typedef struct
 {
     SubData sd;
     char basename[48];
+    bool src_in_dir; // the open file is SUBGHZ_DIR/<basename>.sub
 
     int32_t view_start;
     int32_t view_end;
@@ -1337,26 +1338,44 @@ static bool load_sub_repeated(Storage *storage, const char *path, SubData *out)
     return out->count >= 2;
 }
 
-static void propose_edit_name(Storage *st, App *a, char *out, size_t outlen)
+// First free name: <base> itself when bare, then <base><sep>1, <base><sep>2, ...
+static void propose_name(Storage *st, const char *base, const char *sep, bool bare, char *out, size_t outlen)
 {
     FuriString *path = furi_string_alloc();
-    int suffix = 1;
-    while (true)
+    for (int n = bare ? 0 : 1; n < 1000; n++)
     {
-        snprintf(out, outlen, "%s_edit%d", a->basename, suffix);
+        if (n)
+            snprintf(out, outlen, "%s%s%d", base, sep, n);
+        else
+            strlcpy(out, base, outlen);
         furi_string_printf(path, "%s/%s.sub", SUBGHZ_DIR, out);
         if (!storage_file_exists(st, furi_string_get_cstr(path)))
             break;
-
-        suffix++;
-        if (suffix > 999)
-        {
-            snprintf(out, outlen, "%s_edit", a->basename);
-            break;
-        }
     }
 
     furi_string_free(path);
+}
+
+// <name>_editN for a RAW save; an open <name>_editK continues the same series.
+static void propose_edit_name(Storage *st, const App *a, char *out, size_t outlen)
+{
+    char base[sizeof(a->basename)];
+    strlcpy(base, a->basename, sizeof(base));
+
+    char *hit = NULL;
+    for (char *s = base; (s = strstr(s, "_edit")); s++)
+        hit = s;
+
+    if (hit)
+    {
+        const char *t = hit + 5;
+        while (*t >= '0' && *t <= '9')
+            t++;
+        if (!*t)
+            *hit = '\0';
+    }
+
+    propose_name(st, base, "_edit", false, out, outlen);
 }
 
 // Sample indices touched by A..B. False when nothing falls inside.
@@ -1420,7 +1439,7 @@ static bool write_selection(Storage *st, App *a, const char *path)
     }
 
     File *f = storage_file_alloc(st);
-    if (!storage_file_open(f, path, FSAM_WRITE, FSOM_CREATE_NEW))
+    if (!storage_file_open(f, path, FSAM_WRITE, FSOM_CREATE_ALWAYS))
     {
         storage_file_free(f);
         snprintf(a->status, sizeof(a->status), "Write failed");
@@ -1696,7 +1715,7 @@ static bool write_decoded(Storage *st, App *a, DecodeCtx *dc, const Decoded *d, 
         };
 
         FlipperFormat *ff = flipper_format_file_alloc(st);
-        bool opened = flipper_format_file_open_new(ff, path);
+        bool opened = flipper_format_file_open_always(ff, path);
         ok = opened && subghz_protocol_decoder_base_serialize(dec, ff, &preset) == SubGhzProtocolStatusOk;
 
         flipper_format_free(ff);
@@ -2363,11 +2382,15 @@ static void pick_index_cb(void *ctx, uint32_t index)
     prompt_result_cb(p);
 }
 
+// Widget buttons: Left declines, any other confirms.
 static void button_ok_cb(GuiButtonType button, InputType type, void *ctx)
 {
-    UNUSED(button);
-    if (type == InputTypeShort)
-        prompt_result_cb(ctx);
+    PromptCtx *p = ctx;
+    if (type != InputTypeShort)
+        return;
+
+    p->confirmed = button != GuiButtonTypeLeft;
+    view_dispatcher_stop(p->vd);
 }
 
 static uint32_t prompt_back_cb(void *ctx)
@@ -2401,39 +2424,94 @@ static bool prompt_filename(Gui *gui, char *namebuf, size_t buflen)
     return ok;
 }
 
+static bool confirm_overwrite(Gui *gui)
+{
+    PromptCtx pc = {0};
+    Widget *w = widget_alloc();
+    widget_add_string_multiline_element(
+        w, 64, 24, AlignCenter, AlignCenter, FontPrimary, "Name exists,\noverwrite?");
+    widget_add_button_element(w, GuiButtonTypeLeft, "No", button_ok_cb, &pc);
+    widget_add_button_element(w, GuiButtonTypeRight, "Yes", button_ok_cb, &pc);
+    bool ok = prompt_run(gui, &pc, widget_get_view(w));
+    widget_free(w);
+    return ok;
+}
+
+// <Protocol>[_<Manufacturer>] from the decoded text, made filename-safe.
+static void decoded_base_name(const DecodeCtx *dc, const Decoded *d, char *out, size_t outlen)
+{
+    size_t n = strlcpy(out, d->proto->name, outlen);
+    const char *mf = strstr(furi_string_get_cstr(dc->text), "MF:");
+    if (mf)
+    {
+        mf += 3;
+        int len = strcspn(mf, " \n");
+        if (len && strncmp(mf, "Unknown", len) != 0 && n < outlen)
+            snprintf(out + n, outlen - n, "_%.*s", len, mf);
+    }
+
+    char *w = out;
+    for (const char *r = out; *r; r++)
+    {
+        char l = *r | 0x20;
+        char c = ((*r >= '0' && *r <= '9') || (l >= 'a' && l <= 'z') || *r == '-') ? *r : '_';
+        if (c != '_' || (w > out && w[-1] != '_'))
+            *w++ = c;
+    }
+
+    while (w > out && w[-1] == '_')
+        w--;
+    *w = '\0';
+}
+
 // Save A..B as RAW, or with dc/d the decoded entry d as a key file.
 static void prompt_and_save(
     Gui *gui, ViewPort *vp, FuriMessageQueue *queue, Storage *st, App *a, DecodeCtx *dc, const Decoded *d)
 {
     char namebuf[64];
-    propose_edit_name(st, a, namebuf, sizeof(namebuf));
+    if (d)
+    {
+        char base[48];
+        decoded_base_name(dc, d, base, sizeof(base));
+        propose_name(st, base, "_", true, namebuf, sizeof(namebuf));
+    }
+    else
+        propose_edit_name(st, a, namebuf, sizeof(namebuf));
 
     gui_remove_view_port(gui, vp);
 
-    bool ok = prompt_filename(gui, namebuf, sizeof(namebuf));
+    FuriString *path = furi_string_alloc();
+    bool write = false;
+    snprintf(a->status, sizeof(a->status), "Cancelled");
+    while (prompt_filename(gui, namebuf, sizeof(namebuf)) && namebuf[0] != '\0')
+    {
+        furi_string_printf(path, "%s/%s.sub", SUBGHZ_DIR, namebuf);
+        if (!storage_file_exists(st, furi_string_get_cstr(path)))
+            write = true;
+        else if (a->src_in_dir && strcasecmp(namebuf, a->basename) == 0)
+            snprintf(a->status, sizeof(a->status), "Can't overwrite open file");
+        else if (!confirm_overwrite(gui))
+            continue;
+        else
+            write = true;
 
-    if (ok && namebuf[0] != '\0')
+        break;
+    }
+
+    gui_add_view_port(gui, vp, GuiLayerFullscreen);
+    if (write)
     {
         a->saving = true;
-        gui_add_view_port(gui, vp, GuiLayerFullscreen);
         view_port_update(vp);
 
-        FuriString *path = furi_string_alloc_printf("%s/%s.sub", SUBGHZ_DIR, namebuf);
         const char *p = furi_string_get_cstr(path);
-
-        if (storage_file_exists(st, p))
-            snprintf(a->status, sizeof(a->status), "Name exists");
-        else if (d ? write_decoded(st, a, dc, d, p) : write_selection(st, a, p))
+        if (d ? write_decoded(st, a, dc, d, p) : write_selection(st, a, p))
             snprintf(a->status, sizeof(a->status), "Saved %s.sub", namebuf);
 
-        furi_string_free(path);
         a->saving = false;
     }
-    else
-    {
-        snprintf(a->status, sizeof(a->status), "Cancelled");
-        gui_add_view_port(gui, vp, GuiLayerFullscreen);
-    }
+
+    furi_string_free(path);
 
     a->status_until = furi_get_tick() + 2000;
     furi_message_queue_reset(queue);
@@ -2846,6 +2924,10 @@ static void run_editor(Storage *storage, DialogsApp *dialogs, const char *file)
         char *dot = strrchr(app->basename, '.');
         if (dot)
             *dot = '\0';
+
+        size_t dl = strlen(SUBGHZ_DIR);
+        app->src_in_dir = slash && (size_t)(slash - full) == dl && strncmp(full, SUBGHZ_DIR, dl) == 0 &&
+                          strlen(nm) < sizeof(app->basename);
     }
 
     Gui *gui = furi_record_open(RECORD_GUI);
