@@ -18,6 +18,18 @@
 
 #define SCSI_MIN(a, b) ((a) < (b) ? (a) : (b))
 
+// The LBA and block count are host-supplied: anything past the end of the image
+// would seek (and, for writes, grow the file) far beyond it.
+static bool scsi_lba_out_of_range(SCSISession* scsi, uint32_t lba, uint16_t count) {
+    return (uint64_t)lba + count > scsi->fn.num_blocks(scsi->fn.ctx);
+}
+
+static bool scsi_lba_oob_error(SCSISession* scsi) {
+    scsi->sk = SCSI_SK_ILLEGAL_REQUEST;
+    scsi->asc = SCSI_ASC_LBA_OOB;
+    return false;
+}
+
 bool scsi_cmd_start(SCSISession* scsi, uint8_t* cmd, uint8_t len) {
     if(!len) {
         scsi->sk = SCSI_SK_ILLEGAL_REQUEST;
@@ -29,11 +41,13 @@ bool scsi_cmd_start(SCSISession* scsi, uint8_t* cmd, uint8_t len) {
     scsi->cmd_len = len;
     scsi->rx_done = false;
     scsi->tx_done = false;
+    scsi->lba_oob = false;
     switch(cmd[0]) {
     case SCSI_WRITE_10: {
         if(len < 10) return false;
         scsi->write_10.lba = cmd[2] << 24 | cmd[3] << 16 | cmd[4] << 8 | cmd[5];
         scsi->write_10.count = cmd[7] << 8 | cmd[8];
+        scsi->lba_oob = scsi_lba_out_of_range(scsi, scsi->write_10.lba, scsi->write_10.count);
         FURI_LOG_D(TAG, "SCSI_WRITE_10 %08lX %04X", scsi->write_10.lba, scsi->write_10.count);
         return true;
     }; break;
@@ -41,6 +55,7 @@ bool scsi_cmd_start(SCSISession* scsi, uint8_t* cmd, uint8_t len) {
         if(len < 10) return false;
         scsi->read_10.lba = cmd[2] << 24 | cmd[3] << 16 | cmd[4] << 8 | cmd[5];
         scsi->read_10.count = cmd[7] << 8 | cmd[8];
+        scsi->lba_oob = scsi_lba_out_of_range(scsi, scsi->read_10.lba, scsi->read_10.count);
         FURI_LOG_D(TAG, "SCSI_READ_10 %08lX %04X", scsi->read_10.lba, scsi->read_10.count);
         return true;
     }; break;
@@ -53,8 +68,11 @@ bool scsi_cmd_rx_data(SCSISession* scsi, uint8_t* data, uint32_t len) {
     if(scsi->rx_done) return false;
     switch(scsi->cmd[0]) {
     case SCSI_WRITE_10: {
+        if(scsi->lba_oob) return scsi_lba_oob_error(scsi);
         uint32_t block_size = SCSI_BLOCK_SIZE;
         uint16_t blocks = len / block_size;
+        // Never take more than the command announced
+        if(blocks > scsi->write_10.count) blocks = scsi->write_10.count;
         bool result =
             scsi->fn.write(scsi->fn.ctx, scsi->write_10.lba, blocks, data, blocks * block_size);
         scsi->write_10.lba += blocks;
@@ -237,6 +255,7 @@ bool scsi_cmd_tx_data(SCSISession* scsi, uint8_t* data, uint32_t* len, uint32_t 
         return true;
     }; break;
     case SCSI_READ_10: {
+        if(scsi->lba_oob) return scsi_lba_oob_error(scsi);
         uint32_t block_size = SCSI_BLOCK_SIZE;
         bool result =
             scsi->fn.read(scsi->fn.ctx, scsi->read_10.lba, scsi->read_10.count, data, len, cap);

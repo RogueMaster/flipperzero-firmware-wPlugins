@@ -44,6 +44,7 @@ typedef struct {
     uint8_t cmd_len;
     bool rx_done;
     bool tx_done;
+    bool lba_oob; // READ(10)/WRITE(10) range is outside the medium
 
     uint8_t sk; // sense key
     uint8_t asc; // additional sense code

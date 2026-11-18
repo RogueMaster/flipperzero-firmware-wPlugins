@@ -4,15 +4,15 @@ Version 1.2.
 
 This app is similar to the devices that are selling online for $30-50, except this is even better! Whether you want to backup your Amiibo collection and use them on the go, or download a complete set of Amiibos (use Google to find them), this app will ocme in handy! You can then generate random identifiers, so games like Ocarina of Time will allow unlimited loot drops. The "Amiibo Blast" option gives you a new Amiibo identifier sent to your game every couple seconds until you stop it. Then on your game controller, just activate the Amiibo option over and over, and watch the bombs, hearts, arrows, etc rain down around you!
 
-This app saves Amiibos you already own, so you can use them again later on compatible Nintendo games, such as Switch / Switch 2, 3DS, and Wii. You do not need a downloaded list of Amiibos. You do not need a key file to save and play your own.
+This app saves Amiibos you already own, so you can use them again later.
+
+You do not need a downloaded list of Amiibos. You do not need a key file to save and play your own.
 
 1. Scan your real Amiibo.
 2. Save a copy in Favorites.
 3. Press Emulate and hold the Flipper on the game reader. The game sees that same Amiibo.
 
-A downloaded library is optional. The app cannot include Nintendo's key file, or the specific Amiibo files. You add those yourself. A new ID needs that key. Without it, New UID and Auto UID cannot change the ID. Emulate still works. It uses the ID from your Amiibo.
-
-The code was written with an AI coding assistant under my direction, and I tested it on my Flipper Zero (official firmware 1.5.1).
+A downloaded library is optional. The app cannot include Nintendo's key file. You add that file yourself. A new ID needs that key. Without it, New UID and Auto UID cannot change the ID. Emulate still works. It uses the ID from your Amiibo.
 
 Open Help in the app for the short steps on the Flipper.
 
@@ -40,7 +40,7 @@ If a scan does not work, press OK to try again. Back returns to the Scan menu.
 
 ## Favorites
 
-Open a saved Amiibo. The buttons are New UID, Emulate, and Del. Saving a favorite Amiibo is particularly useful for LoZ:OOT 40th, where the fifth daily scan of your Amiibo gives you a bonus scan. In order to reach this requirement, the UID of the Amiibo tag must not change.
+Open a saved Amiibo. The buttons are New UID, Emulate, and Del.
 
 - **Emulate** plays that Amiibo. Hold the Flipper on the game reader.
 - **New UID** asks first. Press it again to make a new ID. Back cancels. The new ID is saved on that favorite.
@@ -73,29 +73,3 @@ A folder named ZE always tries to make a new ID. That needs the key file. A fold
 The app cannot ship Nintendo's key file. Emulate of a scanned Amiibo works without it.
 
 New UID and Auto UID cannot change the ID unless that key file is on the SD card. If you already have the file, put key_retail.bin in the app folder apps_data/amiibo_emulator. If amiibo_keys.bin is already in the nfc folder, you can leave it there. Open Settings to see if the key is ready.
-
-## Copyright & Trademark Notice
-
-amiibo™ and Nintendo® are trademarks of Nintendo Co., Ltd. All associated characters, names, artwork, designs, and other intellectual property are owned by Nintendo and/or their respective rights holders. © Nintendo. All rights reserved.
-
-This application is an independently developed, third-party utility and is not affiliated with, endorsed by, sponsored by, licensed by, or otherwise officially associated with Nintendo Co., Ltd. or any of its subsidiaries or affiliates.
-
-## Application Usage & User Responsibility
-
-This application provides tools for the local storage, management, scanning, and transmission of user-supplied amiibo NFC data. The application does not include, host, distribute, or provide downloadable amiibo NFC data.
-
-Users are responsible for obtaining and managing their own NFC data and for ensuring that their use of such data complies with applicable laws, intellectual property rights, and relevant terms of service.
-
-## NFC Data & UID Functionality
-
-This application includes functionality for generating randomized NFC unique identifiers (UIDs), which may alter how compatible games or devices recognize previously used NFC data.
-
-Such functionality is independently implemented and is not authorized, endorsed, or supported by Nintendo. Users acknowledge that modifying or randomizing NFC identifiers may affect normal game functionality or circumvent software-imposed usage limitations.
-
-Use of these features is undertaken at the user's own discretion and responsibility.
-
-## Disclaimer of Affiliation
-
-All product names, trademarks, and registered trademarks referenced within this application remain the property of their respective owners. References to Nintendo products are made solely for identification and compatibility purposes.
-
-No affiliation with or endorsement by Nintendo is expressed or implied.

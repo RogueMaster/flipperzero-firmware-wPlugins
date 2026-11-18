@@ -327,7 +327,8 @@ static bool
 
 static uint32_t bad_usb_msc_file_num_blocks(void* ctx) {
     BadUsbScript* bad_usb = ctx;
-    return storage_file_size(bad_usb->msc_file) / SCSI_BLOCK_SIZE;
+    // Byte offsets are 32 bit (storage_file_seek), so expose at most 4 GiB
+    return MIN(storage_file_size(bad_usb->msc_file), (uint64_t)UINT32_MAX) / SCSI_BLOCK_SIZE;
 }
 
 static void bad_usb_msc_file_eject(void* ctx) {

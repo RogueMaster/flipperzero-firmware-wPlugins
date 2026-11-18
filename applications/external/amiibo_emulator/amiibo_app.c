@@ -192,6 +192,7 @@ static const char HELP[] = "This app can back up\n"
                            "your Favorites. Blast\n"
                            "sends a new ID for\n"
                            "1 second, pauses\n"
+
                            "2 seconds, and repeats.\n"
                            "It does not save that\n"
                            "ID. Any key stops.\n"
@@ -299,6 +300,7 @@ static const char HELP[] = "This app can back up\n"
                            "Delete Favorites\n"
                            "removes favorites only.\n"
                            "Hold Up for\n"
+
                            "2 seconds. The\n"
                            "downloaded database\n"
                            "stays.\n";
@@ -1213,7 +1215,6 @@ static bool path_in_folder(const App* app, const char* folder) {
     if(strncmp(path, folder, length) != 0) return false;
     return path[length] == '/' || path[length] == '\0';
 }
-
 static void forget_if_deleted(App* app, bool scanned, bool favorites) {
     bool drop = false;
     if(scanned) {
@@ -1640,8 +1641,9 @@ typedef struct {
 
 #define SPLASH_FRAME_MS 120
 #define SPLASH_HOLD_MS  2000
-#define BLAST_SEND_MS   1000
-#define BLAST_PAUSE_MS  2000
+
+#define BLAST_SEND_MS  1000
+#define BLAST_PAUSE_MS 2000
 
 static void blast_restore(App* app) {
     memcpy(app->tag, app->blast_saved, AMIIBO_TAG_SIZE);
@@ -1824,7 +1826,7 @@ static int hex_nibble(char c) {
 static bool third_page_byte(const char* text, const char* end, uint8_t* out) {
     int hi = -1;
     int got = 0;
-    for(; text < end && *text != '\n' && *text != '\r'; text++) {
+    for(; text < end&&* text ! = '\n' && *text != '\r'; text++) {
         int nibble = hex_nibble(*text);
         if(nibble < 0) {
             if(hi >= 0) return false;
@@ -1858,6 +1860,7 @@ static bool series_from_bin(Storage* storage, const char* path, uint8_t* series)
         storage_file_close(file);
     }
     storage_file_free(file);
+
     return ok;
 }
 
@@ -1901,7 +1904,6 @@ static void add_file_rows(App* app) {
         furi_string_free(label);
     }
 }
-
 static void show_cut_notice(App* app, unsigned shown);
 
 static void show_file_list(App* app, bool saved) {
