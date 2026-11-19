@@ -1,0 +1,14 @@
+App(
+    appid="subghz_editor",
+    name="Sub-GHz Editor",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="subghz_editor_app",
+    stack_size=4 * 1024,
+    fap_category="Sub-GHz",
+    fap_version="1.1",
+    fap_icon="subghz_editor.png",
+    fap_description="Sub-GHz Editor: Edit frequency presets, custom frequencies, and key codes in saved Sub-GHz files",
+    fap_author="Vazgen Grigoryan",
+    fap_weburl="https://github.com/vazgen3201/flipper-subghz-editor",
+    requires=["gui", "notification", "storage", "dialogs"],
+)

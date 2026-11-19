@@ -380,6 +380,7 @@ The Flipper and its community wouldn't be as rich as it is without your contribu
 | FM TX | ![SubGhz Badge] | [by yo3gnd](https://github.com/yo3gnd/fmtx) | Experimental MP3 audio over CC1101 FM | [![Author Badge]](https://lab.flipper.net/apps/fmtx) |
 | TPMS Bridge | ![SubGhz Badge] | [by VishovVladimir](https://github.com/VishovVladimir/flipper-zero-tpms) | Reads TPMS tyre-pressure sensors | [![Author Badge]](https://lab.flipper.net/apps/tpms_bridge) |
 | Telecrane Control | ![SubGhz Badge] | [by nmatt0](https://github.com/nmatt0/telecrane-contol) | Telecrane-style 2FSK crane remotes - saved remotes, hold-to-send buttons and a channel sniffer. (+ ext CC1101 module support, memory fixes so it loads and sniffs, validated serial entry by @xMasterX) | ![None Badge] |
+| Sub-GHz Editor | ![SubGhz Badge] | [by vazgen3201](https://github.com/vazgen3201/flipper-subghz-editor) | Edit frequency preset, custom frequency and hex key code of saved .sub files, overwrite in place or save as a copy | [![Author Badge]](https://lab.flipper.net/apps/subghz_editor) |
 | Analog Clock | ![Tools Badge] | [by scrolltex](https://github.com/scrolltex/flipper_analog_clock) |  | [![UFW Badge]](https://lab.flipper.net/apps/analog_clock) |
 | Brainfuck interpreter | ![Tools Badge] | [by nymda](https://github.com/nymda/FlipperZeroBrainfuck) |  | [![UFW Badge]](https://lab.flipper.net/apps/brainfuck) |
 | Ceasar Cipher | ![Tools Badge] | [by panki27](https://github.com/panki27/caesar-cipher) |  | [![UFW Badge]](https://lab.flipper.net/apps/caesar_cipher) |
