@@ -2932,12 +2932,7 @@ static void run_editor(Storage *storage, DialogsApp *dialogs, const char *file)
 
     Gui *gui = furi_record_open(RECORD_GUI);
 
-    if (!btn_select_for_file(gui, storage, furi_string_get_cstr(path)))
-    {
-        furi_record_close(RECORD_GUI);
-        goto cleanup;
-    }
-
+    // Loading screen first: probing the buttons takes a moment and the menu would show meanwhile
     ViewPort *vp = view_port_alloc();
     FuriMessageQueue *queue = furi_message_queue_alloc(8, sizeof(InputEvent));
     view_port_draw_callback_set(vp, draw_cb, app);
@@ -2945,6 +2940,16 @@ static void run_editor(Storage *storage, DialogsApp *dialogs, const char *file)
     app->loading = true;
     gui_add_view_port(gui, vp, GuiLayerFullscreen);
     view_port_update(vp);
+
+    if (!btn_select_for_file(gui, storage, furi_string_get_cstr(path)))
+    {
+        gui_remove_view_port(gui, vp);
+        view_port_free(vp);
+        furi_message_queue_free(queue);
+        furi_record_close(RECORD_GUI);
+        goto cleanup;
+    }
+    furi_message_queue_reset(queue);
 
     bool loaded = (g_merge_repeat > 1)
                       ? load_sub_repeated(storage, furi_string_get_cstr(path), &app->sd)

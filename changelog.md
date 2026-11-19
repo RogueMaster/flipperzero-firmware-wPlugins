@@ -1,5 +1,7 @@
 ## v1.10
 
+- Loading a decoded signal shows the loading screen instead of briefly flashing the main menu before the button picker.
+
 ## v1.9
 
 - New *Decode* action: decodes the A..B selection with the firmware's Sub-GHz decoders, groups identical frames and saves the chosen one as a key file.
