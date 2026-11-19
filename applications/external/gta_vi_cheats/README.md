@@ -12,12 +12,21 @@ Flipper GUI, application ID, author, Tools category, and original `icon.png` (un
   Source: Polygon as recorded at GTA6DB. NOT independently verified; Xbox input not populated.
 - The other 42 effects have no published input recorded here. Their individual unlock
   requirements are nevertheless browsable, and a missing input displays `[?]`.
-- The supplied Instagram image's 28 titles have a dedicated **Image claims [!]** section.
-  The image's sequences are deliberately not promoted into the GTA VI code list:
-  its R1/R2/L1/face-button format conflicts with the D-pad-only entry method
-  documented by launch-day guides, and names such as **Thug Weapons, Nutter Weapons,
-  Health + Armor + $250K and Jetpack** are known from **GTA San Andreas**.
-  The screenshot claims are transcribed into `Screenshot_28_Claims_Audit.csv` for audit.
+- All **28 button sequences** shown in the supplied image are now transcribed in C
+  and the CSV audit. The **24 screenshot-only effects** appear under **Unverified codes
+  (24)**, and each displays its controller sequence rather than just a name.
+- Four effects match the 61-entry catalog: **Infinite Ammo**, **Raise Wanted Level**,
+  **Spawn Sanchez** (Maibatsu Sanchez), **Change Weather** (Cycle Weather). Those are
+  not duplicated in the Unverified list. Their screenshot inputs are shown as
+  **image alternates** inside the corresponding main catalog details, alongside any
+  existing GTA VI D-pad sequence. This does NOT validate the image's alternate input.
+- PS screenshot tokens are preserved verbatim in the CSV. On Xbox the app maps PS
+  physical button labels to Xbox equivalents (R1=RB, R2=RT, L1=LB, L2=LT,
+  Triangle=Y, Circle=B, Square=X). These Xbox sequences are DERIVED; the image did
+  not provide Xbox codes. The image contains combinations reminiscent of earlier GTA
+  titles, so they must not be presented as console-tested GTA VI codes.
+- Fixed sequence rendering: controller button numbers are no longer discarded
+  (formerly R1 and R2 both appeared as R; L1 and L2 both appeared as L).
 
 **Published** is not the same as console-tested or Rockstar-verified. This FAP has
 not been used to validate the reported codes in-game.
@@ -25,12 +34,13 @@ not been used to validate the reported codes in-game.
 ## Usage
 
 Choose your console, then pick **Published inputs**, **All GTA VI entries**,
-a category (showing published/total), **Image claims [!]**, or **Quick guide**.
-After the full story, open **Progress > Cheats** to inspect the unlock requirement.
+a category (showing published/total), **Unverified codes (24)**, or **Quick guide**.
+For main-catalog cheats, open **Progress > Cheats** to inspect unlock requirements.
+The screenshot-derived sequences have not been verified for GTA VI and may have
+incompatible input methods. Do not treat them as equivalents to published D-pad codes.
 In free roam, open the phone with D-pad Up, then hold L1 + R1 (PS5) or LB + RB
 (Xbox), and input the D-pad directions. Press reporting says active cheats stop
 saving and trophies/achievements in that session. Save first. Story Mode only.
-
 
 ## Sources
 

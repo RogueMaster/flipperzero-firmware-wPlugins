@@ -11,6 +11,13 @@ typedef struct {
 } GtaCheat;
 extern const GtaCheat gta_cheat_catalog[];
 extern const size_t gta_cheat_count;
-/* Titles from supplied image. NOT verified GTA VI codes. */
-extern const char* const gta_image_claims[];
-extern const size_t gta_image_claim_count;
+/* All 28 PS5 sequences transcribed from the user-supplied screenshot.
+ * main_catalog_name indicates a matching EFFECT, not a verified image input. */
+typedef struct {
+    const char* name;
+    const char* ps5_sequence;
+    const char* main_catalog_name; /* NULL for screenshot-only effects */
+} GtaScreenshotCode;
+extern const GtaScreenshotCode gta_screenshot_codes[];
+extern const size_t gta_screenshot_count;
+extern const size_t gta_unverified_count;

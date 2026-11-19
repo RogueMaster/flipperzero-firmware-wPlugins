@@ -432,35 +432,51 @@ const GtaCheat gta_cheat_catalog[] = {
 };
 const size_t gta_cheat_count = sizeof(gta_cheat_catalog) / sizeof(gta_cheat_catalog[0]) - 1u;
 
-/* Social image content is kept SEPARATE from GTA VI source data. */
-const char* const gta_image_claims[] = {
-    "Weapon Set 1 - Thug Weapons",
-    "Weapon Set 2 - Professional",
-    "Weapon Set 3 - Nutter Weapons",
-    "Give Health, Armor & $250K",
-    "Full Health & Armor",
-    "Infinite Ammo",
-    "Raise Wanted Level",
-    "Lower Wanted Level",
-    "Clear Wanted Level (row 9)",
-    "Clear Wanted Level (row 10)",
-    "Police Disappear",
-    "Spawn Buzzard",
-    "Spawn Comet",
-    "Spawn PCJ-600",
-    "Spawn Sanchez",
-    "Spawn Tank",
-    "Spawn Jetpack",
-    "Get a Helicopter",
-    "Get a Boat",
-    "Get a Garbage Truck",
-    "Get a Stretch Limo",
-    "Get a Caddy",
-    "Change Weather",
-    "Thunderstorm",
-    "Slow Motion",
-    "Fast Swim",
-    "Super Jump",
-    "Nitrous Oxide",
+/* All 28 screenshot controller combinations. These are *not* validated GTA VI
+ * codes. Overlapping EFFECTS are shown inside existing catalog details. */
+const GtaScreenshotCode gta_screenshot_codes[] = {
+    {"Weapon Set 1 - Thug Weapons",
+     "R1 R2 L1 L2 Up Up Down Down Left Right",
+     NULL}, /* image row 1 */
+    {"Weapon Set 2 - Professional",
+     "R1 R1 L1 L1 Left Right Left Right Up Up",
+     NULL}, /* image row 2 */
+    {"Weapon Set 3 - Nutter Weapons",
+     "R2 R2 L1 L2 Left Left Up Up Right Right",
+     NULL}, /* image row 3 */
+    {"Give Health, Armor & $250K",
+     "R2 L1 R2 R2 Triangle Triangle Circle Circle",
+     NULL}, /* image row 4 */
+    {"Full Health & Armor", "L1 R1 L1 R2 Left Left Right Right Triangle", NULL}, /* image row 5 */
+    {"Infinite Ammo", "L1 R1 Circle Circle Square Up Down Down", "Infinite Ammo"}, /* image row 6 */
+    {"Raise Wanted Level",
+     "R1 R1 R2 R2 Circle Circle Circle Circle",
+     "Raise Wanted Level"}, /* image row 7 */
+    {"Lower Wanted Level", "R1 R1 L1 L2 Circle Circle Square Square", NULL}, /* image row 8 */
+    {"Clear Wanted Level (row 9)", "R2 R1 L1 L1 Right Right Left Left", NULL}, /* image row 9 */
+    {"Clear Wanted Level (row 10)",
+     "R1 R2 L2 L1 Triangle Triangle Triangle Triangle",
+     NULL}, /* image row 10 */
+    {"Police Disappear", "R1 L1 R1 L2 Circle Circle Right Up", NULL}, /* image row 11 */
+    {"Spawn Buzzard", "Triangle Triangle L1 L1 Circle Circle Circle", NULL}, /* image row 12 */
+    {"Spawn Comet", "R1 R2 L1 L2 Right Right Triangle Triangle", NULL}, /* image row 13 */
+    {"Spawn PCJ-600", "R1 L1 R2 R2 Left Left Circle Circle", NULL}, /* image row 14 */
+    {"Spawn Sanchez", "R2 L2 R1 R1 Up Up Right Right", "Maibatsu Sanchez"}, /* image row 15 */
+    {"Spawn Tank", "L1 L2 R1 R2 Circle Circle Triangle Triangle", NULL}, /* image row 16 */
+    {"Spawn Jetpack", "R1 L1 R2 L2 Up Up Up Up", NULL}, /* image row 17 */
+    {"Get a Helicopter", "Triangle R1 L1 L2 Left Right Triangle Circle", NULL}, /* image row 18 */
+    {"Get a Boat", "R1 R1 L1 L2 Left Left Right Right", NULL}, /* image row 19 */
+    {"Get a Garbage Truck", "R2 L1 L2 R1 Triangle Triangle Left Left", NULL}, /* image row 20 */
+    {"Get a Stretch Limo", "L1 R2 R1 L1 Right Right Circle Circle", NULL}, /* image row 21 */
+    {"Get a Caddy", "R2 L2 L1 R1 Up Up Triangle Triangle", NULL}, /* image row 22 */
+    {"Change Weather",
+     "R1 L1 R2 L2 Square Square Circle Circle",
+     "Cycle Weather"}, /* image row 23 */
+    {"Thunderstorm", "R2 R1 L2 L1 Up Up Square Square", NULL}, /* image row 24 */
+    {"Slow Motion", "L2 R1 L1 L1 Circle Circle Triangle Triangle", NULL}, /* image row 25 */
+    {"Fast Swim", "L1 L2 R1 R2 Right Right Circle Circle", NULL}, /* image row 26 */
+    {"Super Jump", "Triangle Triangle R1 R2 Up Up Circle Circle", NULL}, /* image row 27 */
+    {"Nitrous Oxide", "L1 R1 R2 L2 Left Left Triangle Triangle", NULL}, /* image row 28 */
 };
-const size_t gta_image_claim_count = sizeof(gta_image_claims) / sizeof(gta_image_claims[0]);
+const size_t gta_screenshot_count = sizeof(gta_screenshot_codes) / sizeof(gta_screenshot_codes[0]);
+const size_t gta_unverified_count = 24; /* 28 screenshot rows - 4 matching main effects */
