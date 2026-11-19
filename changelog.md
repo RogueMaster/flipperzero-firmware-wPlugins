@@ -1,6 +1,7 @@
 ## v1.10
 
 - Loading a decoded signal shows the loading screen instead of briefly flashing the main menu before the button picker.
+- *Config* shows, under a read-only line, whether custom buttons and keeping the rolling counter are available in this build.
 
 ## v1.9
 

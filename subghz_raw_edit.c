@@ -63,6 +63,13 @@
 #define APP_REPO "github.com/Lechnio/SubGHz-RAW-Edit"
 #define APP_NAME "Sub-GHz RAW Edit"
 
+// Custom buttons and keeping the rolling counter need a custom firmware's SDK
+#ifdef FW_ORIGIN_Official
+#define APP_CUSTOM_FW_FEATURES false
+#else
+#define APP_CUSTOM_FW_FEATURES true
+#endif
+
 #define SCREEN_W_PX 128
 #define SCREEN_H_PX 64
 #define FONT_SIZE_PX 7
@@ -3516,6 +3523,14 @@ static void menu_build_config(Menu *menu)
         menu->config_list, "Repeat",
         MERGE_REPEAT_MAX - MERGE_REPEAT_MIN + 1, config_repeat_changed_cb, menu);
     config_repeat_sync_item(menu->repeat_item);
+
+    // Fixed by the SDK the app was built with, so set apart under a line
+    const char *state = APP_CUSTOM_FW_FEATURES ? "ON" : "OFF";
+    variable_item_list_add(menu->config_list, "------ Read-only ------", 1, NULL, NULL);
+    it = variable_item_list_add(menu->config_list, "Custom buttons", 1, NULL, NULL);
+    variable_item_set_current_value_text(it, state);
+    it = variable_item_list_add(menu->config_list, "Keep counter", 1, NULL, NULL);
+    variable_item_set_current_value_text(it, state);
 
     variable_item_list_set_enter_callback(menu->config_list, config_enter_cb, menu);
 }
