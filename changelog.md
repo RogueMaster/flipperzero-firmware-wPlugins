@@ -5,6 +5,7 @@
 - The fixed 24000-sample limit is gone: how long a signal can be now depends on free RAM, always leaving room for Decode and Save. On Unleashed that is up to about 39000 samples.
 - A signal that doesn't fit in RAM is loaded up to that point with a *Signal truncated* warning instead of being cut silently.
 - *Cut* on a signal too big for an Undo copy asks *No RAM for Undo. Cut anyway?* instead of refusing.
+- *Decode* reports *Low memory* instead of crashing when free RAM is split into pieces too small for a decoder.
 - A file name too long for the top bar scrolls instead of losing its last letters.
 
 ## v1.9

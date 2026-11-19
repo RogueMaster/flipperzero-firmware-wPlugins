@@ -101,7 +101,7 @@ static_assert(LINE2_BASE <= SCREEN_H_PX);
 #define DECODE_LEAD_MIN_US 2000
 #define DECODE_LEAD_MAX_US DUR_CLAMP
 #define DECODE_LEAD_US 18500
-#define DECODE_HEAP_RESERVE 4096
+#define DECODE_HEAP_RESERVE 10240 // contiguous: the biggest decoder (BinRAW) takes ~8.8 KB
 #define DECODE_KEYS_HEAP 32768
 
 typedef struct
@@ -1698,7 +1698,7 @@ static void decode_selection(const App *a, DecodeCtx *dc)
         if (!(p->flag & SubGhzProtocolFlag_Decodable) || !p->decoder || !p->decoder->alloc)
             continue;
 
-        if (memmgr_get_free_heap() < DECODE_HEAP_RESERVE)
+        if (memmgr_heap_get_max_free_block() < DECODE_HEAP_RESERVE)
         {
             dc->oom = true;
             break;
@@ -2657,7 +2657,7 @@ static void do_decode_action(Gui *gui, ViewPort *vp, FuriMessageQueue *queue, St
 
     dc.lead_us = decode_lead_us(a, dc.i0, dc.i1);
 
-    if (memmgr_get_free_heap() < DECODE_HEAP_RESERVE + DECODE_MAX * sizeof(Decoded))
+    if (memmgr_heap_get_max_free_block() < DECODE_HEAP_RESERVE + DECODE_MAX * sizeof(Decoded))
     {
         snprintf(a->status, sizeof(a->status), "Low memory");
         return;
