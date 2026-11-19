@@ -359,6 +359,27 @@ static void recompute_overview(App *a)
     a->ov_max = mx ? mx : 1;
 }
 
+/* Select the frame start..end and frame the view around it. B extends into
+ * the trailing inter-frame gap so the selection keeps the end-of-frame
+ * silence that decoders (KeeLoq, ...) require to finalize a frame. Without it
+ * the selection ends on the last bit and the saved capture won't decode (it
+ * had to be widened by hand). Any positive extension is enough:
+ * write_selection emits the whole gap sample once the marker lands inside it.
+ * Limit it to GAP_KEEP_MAX_US so the marker/view stay tidy and never reach
+ * into the next frame. */
+static __attribute__((noinline)) void select_frame(App *a, int32_t start, int32_t end, int32_t gap)
+{
+    if (gap > GAP_KEEP_MAX_US)
+        gap = GAP_KEEP_MAX_US;
+
+    int32_t pad = (end - start) / 6 + 500;
+    a->marker_a = start;
+    a->marker_b = end + gap;
+    a->view_start = start - pad * 3;
+    a->view_end = a->marker_b + pad * 3;
+    clamp_view(a);
+}
+
 static void auto_detect(App *a)
 {
     int32_t total = a->sd.total_us;
@@ -448,23 +469,7 @@ static void auto_detect(App *a)
         return;
     }
 
-    /* Extend B into the trailing inter-frame gap so the auto-selected frame
-     * keeps the end-of-frame silence that decoders (KeeLoq, ...) require to
-     * finalize a frame. Without it the selection ends on the last bit and the
-     * saved capture won't decode (it had to be widened by hand). Any positive
-     * extension is enough: write_selection emits the whole gap sample once the
-     * marker lands inside it. Limit it to GAP_KEEP_MAX_US so the marker/view
-     * stay tidy and never reach into the next frame. */
-    int32_t gap_keep = best_gap;
-    if (gap_keep > GAP_KEEP_MAX_US)
-        gap_keep = GAP_KEEP_MAX_US;
-
-    int32_t pad = (best_b - best_a) / 6 + 500;
-    a->marker_a = best_a;
-    a->marker_b = best_b + gap_keep;
-    a->view_start = best_a - pad * 3;
-    a->view_end = a->marker_b + pad * 3;
-    clamp_view(a);
+    select_frame(a, best_a, best_b, best_gap);
 }
 
 typedef struct
@@ -1830,8 +1835,7 @@ static void decoded_start(const App *a, DecodeCtx *dc, Decoded *d)
     dc->i1 = i1;
 }
 
-// Move A..B onto d's first frame, found while decoding, plus part of the
-// trailing gap as auto_detect keeps.
+// Move A..B onto d's first frame, found while decoding.
 static void decoded_locate(App *a, DecodeCtx *dc, Decoded *d)
 {
     decoded_start(a, dc, d);
@@ -1854,16 +1858,8 @@ static void decoded_locate(App *a, DecodeCtx *dc, Decoded *d)
         }
     }
 
-    if (gap > GAP_KEEP_MAX_US)
-        gap = GAP_KEEP_MAX_US;
-
-    int32_t pad = (t_b - t_a) / 6 + 500;
     furi_mutex_acquire(a->mutex, FuriWaitForever);
-    a->marker_a = t_a;
-    a->marker_b = t_b + gap;
-    a->view_start = t_a - pad * 3;
-    a->view_end = a->marker_b + pad * 3;
-    clamp_view(a);
+    select_frame(a, t_a, t_b, gap);
     recompute_activity(a);
     furi_mutex_release(a->mutex);
 }
