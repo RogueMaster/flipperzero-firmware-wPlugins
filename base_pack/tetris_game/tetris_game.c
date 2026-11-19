@@ -23,6 +23,9 @@
 #define MAX_FALL_SPEED 500
 #define MIN_FALL_SPEED 100
 
+#define LOCK_DELAY      500
+#define MAX_LOCK_RESETS 15
+
 typedef struct Point {
     // Also used for offset data, which is sometimes negative
     int8_t x, y;
@@ -66,8 +69,8 @@ static Piece shapes[] = {
     {.p = {{5, 1}, {4, 1}, {6, 1}, {6, 0}}, .rotIdx = 0, .offsetType = OffsetTypeCommon}, // L
     {.p = {{5, 1}, {4, 0}, {4, 1}, {6, 1}}, .rotIdx = 0, .offsetType = OffsetTypeCommon}, // J
     {.p = {{5, 1}, {4, 1}, {5, 0}, {6, 1}}, .rotIdx = 0, .offsetType = OffsetTypeCommon}, // T
-    {.p = {{5, 1}, {4, 1}, {6, 1}, {7, 1}}, .rotIdx = 0, .offsetType = OffsetTypeI}, // I
-    {.p = {{5, 1}, {5, 0}, {6, 0}, {6, 1}}, .rotIdx = 0, .offsetType = OffsetTypeO} // O
+    {.p = {{5, 1}, {4, 1}, {6, 1}, {7, 1}}, .rotIdx = 0, .offsetType = OffsetTypeI},      // I
+    {.p = {{5, 1}, {5, 0}, {6, 0}, {6, 1}}, .rotIdx = 0, .offsetType = OffsetTypeO}       // O
 };
 
 typedef enum {
@@ -83,15 +86,19 @@ typedef struct {
     Piece currPiece;
     uint16_t numLines;
     uint16_t fallSpeed;
-    bool hardDropping;
     GameState gameState;
     FuriTimer* timer;
+    FuriTimer* lockTimer;
     FuriMutex* mutex;
+    uint8_t lockResetCount;
+    bool readyToLock;
+    int lockLowestY;
 } TetrisState;
 
 typedef enum {
     EventTypeTick,
     EventTypeKey,
+    EventTypeLock,
 } EventType;
 
 typedef struct {
@@ -159,6 +166,36 @@ static void tetris_game_draw_block(Canvas* const canvas, uint16_t xOffset, uint1
         canvas,
         BORDER_OFFSET + MARGIN_OFFSET + xOffset + 2,
         BORDER_OFFSET + MARGIN_OFFSET + yOffset + 2);
+
+    // Necessary to cover the black pixel in the bottom right corner of a ghost block
+    canvas_set_color(canvas, ColorWhite);
+    canvas_draw_dot(
+        canvas,
+        BORDER_OFFSET + MARGIN_OFFSET + xOffset + 3,
+        BORDER_OFFSET + MARGIN_OFFSET + yOffset + 2);
+    canvas_set_color(canvas, ColorBlack);
+}
+
+static void tetris_game_draw_ghost(Canvas* const canvas, uint16_t xOffset, uint16_t yOffset) {
+    canvas_draw_box(
+        canvas,
+        BORDER_OFFSET + MARGIN_OFFSET + xOffset + 2,
+        BORDER_OFFSET + MARGIN_OFFSET + yOffset + 1,
+        2, 2);
+}
+
+static bool tetris_game_piece_at_bottom(const TetrisState* tetris_state, Piece* newPiece) {
+    for(int i = 0; i < 4; i++) {
+        const Point* pos = (const Point*)&newPiece->p;
+        int8_t x = pos[i].x;
+        int8_t y = pos[i].y + 1;
+
+        if(y >= FIELD_HEIGHT || tetris_state->playField[y][x]) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 static void tetris_game_draw_playfield(Canvas* const canvas, const TetrisState* tetris_state) {
@@ -171,6 +208,44 @@ static void tetris_game_draw_playfield(Canvas* const canvas, const TetrisState* 
                     FIELD_Y_OFFSET + y * (BLOCK_HEIGHT - 1));
             }
         }
+    }
+}
+
+static void tetris_game_draw_curr_piece(Canvas* const canvas, const TetrisState* tetris_state) {
+    for(int i = 0; i < 4; i++) {
+        uint8_t x = tetris_state->currPiece.p[i].x;
+        uint8_t y = tetris_state->currPiece.p[i].y;
+
+        tetris_game_draw_block(
+            canvas,
+            FIELD_X_OFFSET + x * (BLOCK_WIDTH - 1),
+            FIELD_Y_OFFSET + y * (BLOCK_HEIGHT - 1));
+    }
+}
+
+static void tetris_game_hard_drop_piece(const TetrisState* tetris_state, Piece* ghostPiece) {
+    Point* p = ghostPiece->p;
+    while(!tetris_game_piece_at_bottom(tetris_state, ghostPiece)) {
+        for(int i = 0; i < 4; i++) {
+            p[i].y += 1;
+        }
+    }
+}
+
+static void tetris_game_draw_ghost_piece(Canvas* const canvas, const TetrisState* tetris_state) {
+    Piece ghostPiece;
+    memcpy(&ghostPiece, &tetris_state->currPiece, sizeof(ghostPiece));
+
+    tetris_game_hard_drop_piece(tetris_state, &ghostPiece);
+
+    for(int i = 0; i < 4; i++) {
+        uint8_t x = ghostPiece.p[i].x;
+        uint8_t y = ghostPiece.p[i].y;
+
+        tetris_game_draw_ghost(
+            canvas,
+            FIELD_X_OFFSET + x * (BLOCK_WIDTH - 1),
+            FIELD_Y_OFFSET + y * (BLOCK_HEIGHT - 1));
     }
 }
 
@@ -194,6 +269,8 @@ static void tetris_game_render_callback(Canvas* const canvas, void* ctx) {
 
     tetris_game_draw_border(canvas);
     tetris_game_draw_playfield(canvas, tetris_state);
+    tetris_game_draw_ghost_piece(canvas, tetris_state);
+    tetris_game_draw_curr_piece(canvas, tetris_state);
     tetris_game_draw_next_piece(canvas, tetris_state);
 
     // Show score on the game field
@@ -275,7 +352,6 @@ static void tetris_game_init_state(TetrisState* tetris_state) {
     tetris_state->gameState = GameStatePlaying;
     tetris_state->numLines = 0;
     tetris_state->fallSpeed = MAX_FALL_SPEED;
-    tetris_state->hardDropping = false;
     memset(tetris_state->playField, 0, sizeof(tetris_state->playField));
     memset(tetris_state->bag, 0, sizeof(tetris_state->bag));
 
@@ -284,19 +360,14 @@ static void tetris_game_init_state(TetrisState* tetris_state) {
     int next_piece_id = tetris_game_get_next_piece(tetris_state);
     memcpy(&tetris_state->currPiece, &shapes[next_piece_id], sizeof(tetris_state->currPiece));
 
+    tetris_state->lockResetCount = 0;
+    tetris_state->readyToLock = false;
+    tetris_state->lockLowestY = -1;
+    furi_timer_stop(tetris_state->lockTimer);
     furi_timer_start(tetris_state->timer, tetris_state->fallSpeed);
 }
 
-static void tetris_game_remove_curr_piece(TetrisState* tetris_state) {
-    for(int i = 0; i < 4; i++) {
-        uint8_t x = tetris_state->currPiece.p[i].x;
-        uint8_t y = tetris_state->currPiece.p[i].y;
-
-        tetris_state->playField[y][x] = false;
-    }
-}
-
-static void tetris_game_render_curr_piece(TetrisState* tetris_state) {
+static void tetris_game_place_curr_piece(TetrisState* tetris_state) {
     for(int i = 0; i < 4; i++) {
         uint8_t x = tetris_state->currPiece.p[i].x;
         uint8_t y = tetris_state->currPiece.p[i].y;
@@ -383,16 +454,6 @@ static void
     }
 }
 
-static bool tetris_game_piece_at_bottom(TetrisState* tetris_state, Piece* newPiece) {
-    for(int i = 0; i < 4; i++) {
-        Point* pos = (Point*)&newPiece->p;
-        if(pos[i].y >= FIELD_HEIGHT || tetris_state->playField[pos[i].y][pos[i].x] == true) {
-            return true;
-        }
-    }
-    return false;
-}
-
 static void tetris_game_update_timer_callback(void* ctx) {
     furi_assert(ctx);
     FuriMessageQueue* event_queue = ctx;
@@ -401,79 +462,122 @@ static void tetris_game_update_timer_callback(void* ctx) {
     furi_message_queue_put(event_queue, &event, FuriWaitForever);
 }
 
+static void tetris_game_lock_timer_callback(void* ctx) {
+    furi_assert(ctx);
+    FuriMessageQueue* event_queue = ctx;
+
+    TetrisEvent event = {.type = EventTypeLock};
+    furi_message_queue_put(event_queue, &event, FuriWaitForever);
+}
+
+static void tetris_game_update_lock(TetrisState* s, bool wasGrounded, bool moved) {
+    if(s->readyToLock)
+        return;
+
+    bool grounded = tetris_game_piece_at_bottom(s, &s->currPiece);
+    int y = s->currPiece.p[0].y;
+    bool resetTimer = false;
+
+    if(y > s->lockLowestY) {
+        // resets the locking if the piece is moved down to a lower position
+        s->lockLowestY = y;
+        s->lockResetCount = 0;
+        resetTimer = true;
+    } else if(wasGrounded && moved) {
+        if(++s->lockResetCount < MAX_LOCK_RESETS) { // moving resets the lock, so increment the count
+            resetTimer = true;
+        } else if(grounded) { // immediately lock the piece if it has been moved too many times
+            s->readyToLock = true;
+            furi_timer_stop(s->lockTimer);
+            return;
+        }
+    } else if(grounded && !wasGrounded) { // begin/reset the timer when the piece first touches the ground
+        resetTimer = true;
+    }
+
+    if(!grounded)
+        furi_timer_stop(s->lockTimer);
+    else if(resetTimer)
+        furi_timer_restart(s->lockTimer, LOCK_DELAY);
+}
+
+static void tetris_game_clear_lock(TetrisState* tetris_state) {
+    tetris_state->lockResetCount = 0;
+    tetris_state->readyToLock = false;
+    tetris_state->lockLowestY = -1;
+    furi_timer_stop(tetris_state->lockTimer);
+}
+
 static void
     tetris_game_process_step(TetrisState* tetris_state, Piece* newPiece, bool wasDownMove) {
     if(tetris_state->gameState == GameStateGameOver || tetris_state->gameState == GameStatePaused)
         return;
 
-    tetris_game_remove_curr_piece(tetris_state);
+    bool wasGrounded = tetris_game_piece_at_bottom(tetris_state, &tetris_state->currPiece);
+    bool moved = false;
 
     if(tetris_game_is_valid_pos(tetris_state, newPiece->p)) {
+        moved = memcmp(newPiece->p, tetris_state->currPiece.p, sizeof(newPiece->p)) != 0;
         memcpy(&tetris_state->currPiece, newPiece, sizeof(tetris_state->currPiece));
     }
 
-    if(wasDownMove) {
-        // Apply gravity to the committed piece, not to the caller's candidate: a
-        // candidate combining a rejected input transform with the down move could
-        // otherwise read as "at bottom", locking the piece mid-air (floating piece)
-        Piece downPiece;
-        memcpy(&downPiece, &tetris_state->currPiece, sizeof(downPiece));
+    if(wasDownMove && !tetris_game_piece_at_bottom(tetris_state, &tetris_state->currPiece)) {
         for(int i = 0; i < 4; i++) {
-            downPiece.p[i].y += 1;
-        }
-
-        if(tetris_game_piece_at_bottom(tetris_state, &downPiece)) {
-            furi_timer_stop(tetris_state->timer);
-
-            tetris_state->hardDropping = false;
-
-            tetris_game_render_curr_piece(tetris_state);
-            uint8_t numLines = 0;
-            uint8_t lines[] = {0, 0, 0, 0};
-            uint16_t nextFallSpeed;
-
-            tetris_game_check_for_lines(tetris_state, lines, &numLines);
-            if(numLines > 0) {
-                for(int i = 0; i < numLines; i++) {
-                    // zero out row
-                    for(int j = 0; j < FIELD_WIDTH; j++) {
-                        tetris_state->playField[lines[i]][j] = false;
-                    }
-                    // move all above rows down
-                    for(int k = lines[i]; k >= 0; k--) {
-                        for(int m = 0; m < FIELD_WIDTH; m++) {
-                            tetris_state->playField[k][m] =
-                                (k == 0) ? false : tetris_state->playField[k - 1][m];
-                        }
-                    }
-                }
-
-                uint16_t oldNumLines = tetris_state->numLines;
-                tetris_state->numLines += numLines;
-                if((oldNumLines / 10) % 10 != (tetris_state->numLines / 10) % 10) {
-                    nextFallSpeed =
-                        tetris_state->fallSpeed - (100 / (tetris_state->numLines / 10));
-                    if(nextFallSpeed >= MIN_FALL_SPEED) {
-                        tetris_state->fallSpeed = nextFallSpeed;
-                    }
-                }
-            }
-
-            // Check for game over
-            int next_piece_id = tetris_game_get_next_piece(tetris_state);
-            Piece* spawnedPiece = &shapes[next_piece_id];
-            if(!tetris_game_is_valid_pos(tetris_state, spawnedPiece->p)) {
-                tetris_state->gameState = GameStateGameOver;
-            } else {
-                memcpy(&tetris_state->currPiece, spawnedPiece, sizeof(tetris_state->currPiece));
-                furi_timer_start(tetris_state->timer, tetris_state->fallSpeed);
-            }
-        } else {
-            memcpy(&tetris_state->currPiece, &downPiece, sizeof(tetris_state->currPiece));
+            tetris_state->currPiece.p[i].y++;
         }
     }
 
-    tetris_game_render_curr_piece(tetris_state);
+    tetris_game_update_lock(tetris_state, wasGrounded, moved);
+
+    if(tetris_state->readyToLock && tetris_game_piece_at_bottom(tetris_state, &tetris_state->currPiece)) {
+        if(tetris_state->lockResetCount > 0 && !tetris_state->readyToLock) {
+            return;
+        }
+        furi_timer_stop(tetris_state->timer);
+
+        tetris_game_place_curr_piece(tetris_state);
+        uint8_t numLines = 0;
+        uint8_t lines[] = {0, 0, 0, 0};
+        uint16_t nextFallSpeed;
+
+        tetris_game_check_for_lines(tetris_state, lines, &numLines);
+        if(numLines > 0) {
+            for(int i = 0; i < numLines; i++) {
+                // zero out row
+                for(int j = 0; j < FIELD_WIDTH; j++) {
+                    tetris_state->playField[lines[i]][j] = false;
+                }
+                // move all above rows down
+                for(int k = lines[i]; k >= 0; k--) {
+                    for(int m = 0; m < FIELD_WIDTH; m++) {
+                        tetris_state->playField[k][m] =
+                            (k == 0) ? false : tetris_state->playField[k - 1][m];
+                    }
+                }
+            }
+
+            uint16_t oldNumLines = tetris_state->numLines;
+            tetris_state->numLines += numLines;
+            if((oldNumLines / 10) % 10 != (tetris_state->numLines / 10) % 10) {
+                nextFallSpeed =
+                    tetris_state->fallSpeed - (100 / (tetris_state->numLines / 10));
+                if(nextFallSpeed >= MIN_FALL_SPEED) {
+                    tetris_state->fallSpeed = nextFallSpeed;
+                }
+            }
+        }
+
+        // Check for game over
+        int next_piece_id = tetris_game_get_next_piece(tetris_state);
+        Piece* spawnedPiece = &shapes[next_piece_id];
+        if(!tetris_game_is_valid_pos(tetris_state, spawnedPiece->p)) {
+            tetris_state->gameState = GameStateGameOver;
+        } else {
+            tetris_game_clear_lock(tetris_state);
+            memcpy(&tetris_state->currPiece, spawnedPiece, sizeof(tetris_state->currPiece));
+            furi_timer_start(tetris_state->timer, tetris_state->fallSpeed);
+        }
+    }
 }
 
 int32_t tetris_game_app() {
@@ -503,6 +607,8 @@ int32_t tetris_game_app() {
 
     tetris_state->timer =
         furi_timer_alloc(tetris_game_update_timer_callback, FuriTimerTypePeriodic, event_queue);
+    tetris_state->lockTimer =
+        furi_timer_alloc(tetris_game_lock_timer_callback, FuriTimerTypeOnce, event_queue);
     tetris_game_init_state(tetris_state);
 
     TetrisEvent event;
@@ -533,17 +639,13 @@ int32_t tetris_game_app() {
             }
         }
 
-        if(tetris_state->hardDropping) {
-            wasDownMove = true;
-        } else if(event_status == FuriStatusOk) {
+        if(event_status == FuriStatusOk) {
             if(event.type == EventTypeKey) {
                 if(event.input.type == InputTypePress || event.input.type == InputTypeLong ||
-                   event.input.type == InputTypeRepeat) {
+                    event.input.type == InputTypeRepeat) {
                     switch(event.input.key) {
                     case InputKeyUp:
-                        if(tetris_state->gameState == GameStatePlaying) {
-                            tetris_state->hardDropping = true;
-                        }
+                        tetris_game_try_rotation(tetris_state, newPiece);
                         break;
                     case InputKeyDown:
                         break;
@@ -559,9 +661,9 @@ int32_t tetris_game_app() {
                         break;
                     case InputKeyOk:
                         if(tetris_state->gameState == GameStatePlaying) {
-                            tetris_game_remove_curr_piece(tetris_state);
-                            tetris_game_try_rotation(tetris_state, newPiece);
-                            tetris_game_render_curr_piece(tetris_state);
+                            tetris_game_hard_drop_piece(tetris_state, newPiece);
+                            tetris_state->readyToLock = true;
+                            wasDownMove = true;
                         } else if(tetris_state->gameState == GameStatePaused) {
                             tetris_state->gameState = GameStatePlaying;
                         } else {
@@ -597,6 +699,11 @@ int32_t tetris_game_app() {
                 }
             } else if(event.type == EventTypeTick) {
                 wasDownMove = true;
+            } else if(event.type == EventTypeLock) {
+                if(!furi_timer_is_running(tetris_state->lockTimer)
+                    && tetris_game_piece_at_bottom(tetris_state, &tetris_state->currPiece)) {
+                    tetris_state->readyToLock = true;
+                }
             }
         }
 
@@ -607,6 +714,8 @@ int32_t tetris_game_app() {
     }
 
     furi_timer_free(tetris_state->timer);
+    furi_timer_stop(tetris_state->lockTimer);
+    furi_timer_free(tetris_state->lockTimer);
     view_port_enabled_set(view_port, false);
     gui_remove_view_port(gui, view_port);
     furi_record_close(RECORD_GUI);
