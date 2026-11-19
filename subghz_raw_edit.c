@@ -5,6 +5,7 @@
 
 #include <furi.h>
 #include <gui/gui.h>
+#include <gui/elements.h>
 #include <input/input.h>
 #include <storage/storage.h>
 #include <dialogs/dialogs.h>
@@ -40,6 +41,8 @@
 
 #define SUBGHZ_DIR "/ext/subghz"
 #define SYNTH_YIELD_CAP 4096
+#define NAME_SCROLL_HOLD_MS 1500
+#define NAME_SCROLL_STEP_MS 300
 #define DUR_CLAMP 32000
 #define LOAD_HEAP_RESERVE 12288
 
@@ -125,6 +128,7 @@ typedef struct
     SubData sd;
     char basename[48];
     bool src_in_dir; // the open file is SUBGHZ_DIR/<basename>.sub
+    uint32_t opened_tick; // a name too long for the top bar scrolls from here
 
     int32_t view_start;
     int32_t view_end;
@@ -1947,14 +1951,18 @@ static void draw_cb(Canvas *c, void *ctx)
         return;
     }
 
-    char nm[15];
-    strncpy(nm, a->basename, sizeof(nm) - 1);
-    nm[sizeof(nm) - 1] = '\0';
-    canvas_draw_str(c, 0, FONT_SIZE_PX, nm);
-
     char total_time_str[14];
     fmt_time(a->sd.total_us, total_time_str, sizeof(total_time_str));
     canvas_draw_str_aligned(c, SCREEN_W_PX - 1, FONT_SIZE_PX, AlignRight, AlignBottom, total_time_str);
+
+    // The name gets what the total time leaves, minus a letter to keep them apart; longer ones
+    // scroll after a pause
+    uint32_t elapsed = furi_get_tick() - a->opened_tick;
+    size_t scroll = elapsed < NAME_SCROLL_HOLD_MS ? 0 : 1 + (elapsed - NAME_SCROLL_HOLD_MS) / NAME_SCROLL_STEP_MS;
+    size_t name_w = SCREEN_W_PX - canvas_string_width(c, total_time_str) - canvas_glyph_width(c, 'a') - 4;
+    FuriString *name = furi_string_alloc_set_str(a->basename);
+    elements_scrollable_text_line(c, 0, FONT_SIZE_PX, name_w, name, scroll, false);
+    furi_string_free(name);
 
     for (int x = 0; x < SCREEN_W_PX; x++)
     {
@@ -2741,6 +2749,7 @@ static void run_editor_session(
     bool auto_select)
 {
     app->loading = false;
+    app->opened_tick = furi_get_tick();
     if (auto_select)
     {
         auto_detect(app);

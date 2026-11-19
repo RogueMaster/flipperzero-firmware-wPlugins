@@ -4,6 +4,7 @@
 - *Config* shows, under a read-only line, whether custom buttons and keeping the rolling counter are available in this build.
 - The fixed 24000-sample limit is gone: how long a signal can be now depends on free RAM, always leaving room for Undo, Decode and Save on the whole signal.
 - A signal that doesn't fit in RAM is loaded up to that point with a *Signal truncated* warning instead of being cut silently.
+- A file name too long for the top bar scrolls instead of losing its last letters.
 
 ## v1.9
 
