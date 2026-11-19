@@ -26,8 +26,12 @@ def digest(path):
 def validate_inventory(inventory, version):
     project = [item for item in inventory
                if item["name"].replace("_", "-").lower() == "flipper-usb-internet-bridge-host"]
-    if len(project) != 1 or project[0]["version"] != version:
-        raise ValueError("Archive version does not match release")
+    # Editable installs may expose both source .egg-info and installed
+    # .dist-info. Identical versions are fine; conflicting/stale ones are not.
+    versions = [item.get("version") for item in project]
+    print("Application metadata versions:", versions, flush=True)
+    if not versions or any(value != version for value in versions):
+        raise ValueError(f"Archive versions {versions!r} do not match release {version}")
 
 
 def main():
