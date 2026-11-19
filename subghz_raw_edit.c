@@ -3016,6 +3016,26 @@ static void run_editor(Storage *storage, DialogsApp *dialogs, const char *file)
         goto cleanup;
     }
 
+    if (app->sd.truncated)
+    {
+        char msg[96];
+        snprintf(
+            msg,
+            sizeof(msg),
+            "Not enough RAM for all of\nit. Loaded the first\n%u samples (%ld.%ld s).",
+            (unsigned)app->sd.count,
+            (long)(app->sd.total_us / 1000000),
+            (long)(app->sd.total_us / 100000 % 10));
+
+        DialogMessage *m = dialog_message_alloc();
+        dialog_message_set_header(m, "Signal truncated", 64, 2, AlignCenter, AlignTop);
+        dialog_message_set_text(m, msg, 64, 34, AlignCenter, AlignCenter);
+        dialog_message_set_buttons(m, NULL, NULL, "OK");
+        dialog_message_show(dialogs, m);
+        dialog_message_free(m);
+        furi_message_queue_reset(queue);
+    }
+
     run_editor_session(gui, vp, queue, storage, dialogs, app, true);
 
     gui_remove_view_port(gui, vp);
