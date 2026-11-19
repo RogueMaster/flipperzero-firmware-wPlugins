@@ -2,6 +2,7 @@
 #include <gui/elements.h>
 #include <gui/gui.h>
 
+#include "helpers/nfc_helpers.h"
 #include "helpers/radio_device_loader.h"
 #include "esubghz_chat_i.h"
 
@@ -552,10 +553,6 @@ int32_t esubghz_chat(const char* args) {
         return -1;
     }
 
-    furi_hal_nfc_acquire();
-    furi_hal_nfc_low_power_mode_start();
-    furi_hal_nfc_release();
-    furry_hal_nfc_init();
     /* init the crypto system */
     crypto_init();
 
@@ -619,20 +616,15 @@ int32_t esubghz_chat(const char* args) {
         goto err_alloc_worker;
     }
 
-    NfcDevice* nfcdevic = nfc_device_alloc();
-    state->nfc_dev_data = &nfcdevic->dev_data;
-
-    state->nfc_worker = nfc_worker_alloc();
-    if(state->nfc_worker == NULL) {
-        goto err_alloc_nworker;
-    }
-
-    /*state->nfc_dev_data = malloc(sizeof(NfcDeviceData));
+    /* The NFC chip itself is only claimed while one of the NFC scenes is on
+     * screen, see scenes/esubghz_chat_key_read_popup.c and
+     * scenes/esubghz_chat_key_share_popup.c. Only the card data lives for as
+     * long as the app does. */
+    state->nfc_dev_data = mf_ultralight_alloc();
     if(state->nfc_dev_data == NULL) {
         goto err_alloc_ndevdata;
-    }*/
-
-    //memset(state->nfc_dev_data, 0, sizeof(NfcDeviceData));
+    }
+    nfc_dev_data_clear(state->nfc_dev_data);
 
     state->crypto_ctx = crypto_ctx_alloc();
     if(state->crypto_ctx == NULL) {
@@ -725,8 +717,24 @@ int32_t esubghz_chat(const char* args) {
         subghz_tx_rx_worker_stop(state->subghz_worker);
     }
 
-    /* if it is running, stop the NFC worker */
-    nfc_worker_stop(state->nfc_worker);
+    /* if a NFC scene is still on screen its on_exit never runs, so release the
+     * poller/listener and the NFC chip here */
+    if(state->nfc_poller != NULL) {
+        nfc_poller_stop(state->nfc_poller);
+        nfc_poller_free(state->nfc_poller);
+        state->nfc_poller = NULL;
+    }
+
+    if(state->nfc_listener != NULL) {
+        nfc_listener_stop(state->nfc_listener);
+        nfc_listener_free(state->nfc_listener);
+        state->nfc_listener = NULL;
+    }
+
+    if(state->nfc != NULL) {
+        nfc_free(state->nfc);
+        state->nfc = NULL;
+    }
 
     err = 0;
 
@@ -751,12 +759,7 @@ int32_t esubghz_chat(const char* args) {
     crypto_ctx_clear(state->crypto_ctx);
 
     /* clear nfc data */
-    if(state->nfc_dev_data->parsed_data != NULL) {
-        furi_string_free(state->nfc_dev_data->parsed_data);
-    }
-
-    //nfc_device_data_clear(state->nfc_dev_data);
-    crypto_explicit_bzero(state->nfc_dev_data, sizeof(NfcDeviceData));
+    nfc_dev_data_clear(state->nfc_dev_data);
 
     /* deinit devices */
     radio_device_loader_end(state->subghz_device);
@@ -771,14 +774,9 @@ int32_t esubghz_chat(const char* args) {
     crypto_ctx_free(state->crypto_ctx);
 
 err_alloc_crypto:
-    //free(state->nfc_dev_data);
+    mf_ultralight_free(state->nfc_dev_data);
 
-    //err_alloc_ndevdata:
-    nfc_worker_free(state->nfc_worker);
-
-    nfc_device_free(nfcdevic);
-
-err_alloc_nworker:
+err_alloc_ndevdata:
     subghz_tx_rx_worker_free(state->subghz_worker);
 
 err_alloc_worker:
@@ -818,9 +816,7 @@ err_alloc:
         FURI_LOG_I(APPLICATION_NAME, "Clean exit.");
     }
 
-    furry_hal_nfc_deinit();
-
-    //
+    /* make sure the NFC chip is parked */
     furi_hal_nfc_acquire();
     furi_hal_nfc_low_power_mode_start();
     furi_hal_nfc_release();
