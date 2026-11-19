@@ -1,3 +1,7 @@
+/* NOT a firmware header - app-local copy of a firmware private header. It must
+ * stay byte-identical to the firmware's. See the sync notes at the top of
+ * view_port_i.h before changing anything in this directory.
+ */
 /**
  * @file view_dispatcher_i.h
  * GUI: ViewDispatcher API
@@ -24,6 +28,7 @@ struct ViewDispatcher {
     ViewDict_t views;
 
     View* current_view;
+    struct Loading* loading;
 
     View* ongoing_input_view;
     uint8_t ongoing_input;

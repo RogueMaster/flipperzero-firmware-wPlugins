@@ -1,3 +1,7 @@
+/* NOT a firmware header - app-local copy of a firmware private header. It must
+ * stay byte-identical to the firmware's. See the sync notes at the top of
+ * view_port_i.h before changing anything in this directory.
+ */
 /**
  * @file gui_i.h
  * GUI: main API internals
@@ -50,9 +54,10 @@ struct Gui {
 
     // Layers and Canvas
     bool lockdown;
+    bool lockdown_inhibit;
     bool direct_draw;
     ViewPortArray_t layers[GuiLayerMAX];
-    //Canvas* canvas;
+    Canvas* canvas;
 
     // Input
     FuriMessageQueue* input_queue;
