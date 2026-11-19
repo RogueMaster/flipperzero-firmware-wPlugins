@@ -44,7 +44,8 @@
 #define NAME_SCROLL_HOLD_MS 1500
 #define NAME_SCROLL_STEP_MS 300
 #define DUR_CLAMP 32000
-#define LOAD_HEAP_RESERVE 12288
+#define LOAD_HEAP_RESERVE 16384 // Decode (DECODE_HEAP_RESERVE + its list), Save and dialogs
+#define LINE_RESERVE 4096 // Sub-GHz writes up to 512 RAW values (~3.5 KB) per line
 
 #define GAP_KEEP_MAX_US 1500
 
@@ -540,23 +541,23 @@ static void *safe_realloc(void *ptr, size_t size)
     return realloc(ptr, size);
 }
 
-// Most samples a signal may take so that every action still works on it: Cut copies the whole
-// buffer for Undo (safe_malloc wants that copy plus LOAD_HEAP_RESERVE free), and Decode and Save
-// run inside LOAD_HEAP_RESERVE. Hence two buffers' worth out of what is left above the reserve,
-// and the buffer itself no larger than half the largest free block so the copy can still find
-// a contiguous block next to it.
+// Most samples a signal may take: everything above LOAD_HEAP_RESERVE, which Decode and Save run
+// in. The reserve has to stay contiguous too, so it is also kept back from the largest block the
+// samples come out of; the rest of the heap may be only crumbs. Cut works in place and only its
+// Undo copy needs as much again, so a signal too big for that copy is cut without Undo after
+// asking.
 static size_t sample_budget(void)
 {
     size_t free_heap = memmgr_get_free_heap();
-    if (free_heap <= LOAD_HEAP_RESERVE)
+    size_t block = memmgr_heap_get_max_free_block();
+    if (free_heap <= LOAD_HEAP_RESERVE || block <= LOAD_HEAP_RESERVE)
         return 0;
 
     size_t usable = free_heap - LOAD_HEAP_RESERVE;
-    size_t block = memmgr_heap_get_max_free_block();
-    if (usable > block)
-        usable = block;
+    if (usable > block - LOAD_HEAP_RESERVE)
+        usable = block - LOAD_HEAP_RESERVE;
 
-    return usable / (2 * sizeof(int16_t));
+    return usable / sizeof(int16_t);
 }
 
 /* Decoded protocols are synthesized by the firmware's own SubGhz encoder: the
@@ -1127,6 +1128,11 @@ static bool load_sub(Storage *storage, const char *path, SubData *sd)
     // good first guess that fits normal captures without over-allocating. It is
     // only a hint: push_duration grows the buffer on demand (e.g. when long gaps
     // split into several samples), and decoded files synthesize into it.
+    // The line buffer is sized before the samples take what is left: growing it later, with the
+    // heap nearly full, would have nowhere to go.
+    FuriString *line = furi_string_alloc();
+    furi_string_reserve(line, LINE_RESERVE);
+
     sd->limit = sample_budget();
     size_t est = (size_t)(fsize / 4) + 64;
     if (est > sd->limit)
@@ -1136,6 +1142,7 @@ static bool load_sub(Storage *storage, const char *path, SubData *sd)
     if (!sd->data)
     {
         sd->out_of_memory = true;
+        furi_string_free(line);
         storage_file_close(f);
         storage_file_free(f);
         return false;
@@ -1146,7 +1153,6 @@ static bool load_sub(Storage *storage, const char *path, SubData *sd)
     char protocol[32] = {0};
 
     LineReader lr = {.file = f, .len = 0, .pos = 0, .eof = false};
-    FuriString *line = furi_string_alloc();
     bool stop = false;
 
     while (!stop && lr_read_line(&lr, line))
@@ -1815,7 +1821,8 @@ static void snapshot_restore(App *a)
     recompute_activity(a);
 }
 
-static bool cut_compact(App *a)
+// Samples left once A..B is cut out; only with apply is the buffer rewritten in place.
+static size_t cut_run(App *a, bool apply)
 {
     int32_t lo = a->marker_a, hi = a->marker_b;
     if (lo > hi)
@@ -1829,6 +1836,7 @@ static bool cut_compact(App *a)
     size_t n = a->sd.count;
     size_t w = 0;
     int32_t run = 0;
+    int32_t last = 0; // d[w - 1], tracked so a dry run needs no writes
     bool seam = false; // true once something was dropped before the current sample
     for (size_t i = 0; i < n; i++)
     {
@@ -1855,34 +1863,51 @@ static bool cut_compact(App *a)
         int32_t val = sign * keep;
         // Merge only across the cut seam. Consecutive same-sign samples elsewhere
         // are long gaps split by push_duration() and must stay as they are.
-        if (seam && w > 0 && ((d[w - 1] >= 0) == (val >= 0)))
+        if (seam && w > 0 && ((last >= 0) == (val >= 0)))
         {
-            int32_t sum = (int32_t)d[w - 1] + val;
+            int32_t sum = last + val;
             if (iabs32(sum) <= DUR_CLAMP)
             {
-                d[w - 1] = (int16_t)sum;
+                last = sum;
+                if (apply)
+                    d[w - 1] = (int16_t)sum;
             }
             else
             {
                 // Keep the full duration: fill the previous sample, spill the rest.
                 // Safe in place: at most one extra sample, written at index <= i.
-                d[w - 1] = (int16_t)(sign * DUR_CLAMP);
-                d[w++] = (int16_t)(sum - sign * DUR_CLAMP);
+                last = sum - sign * DUR_CLAMP;
+                if (apply)
+                {
+                    d[w - 1] = (int16_t)(sign * DUR_CLAMP);
+                    d[w] = (int16_t)last;
+                }
+                w++;
             }
         }
         else
         {
-            d[w++] = (int16_t)val;
+            last = val;
+            if (apply)
+                d[w] = (int16_t)val;
+            w++;
         }
 
         if (keep == ad && s0 >= hi)
             seam = false; // past the cut, back to verbatim copying
     }
 
-    a->sd.count = w;
-    if (w < 2)
-        return true;
+    if (apply)
+        a->sd.count = w;
+    return w;
+}
 
+// Cut A..B out in place; the caller has checked with cut_run() that it leaves a signal.
+static void cut_compact(App *a)
+{
+    int32_t lo = a->marker_a < a->marker_b ? a->marker_a : a->marker_b;
+
+    cut_run(a, true);
     recompute_total_us(&a->sd);
 
     a->marker_a = lo;
@@ -1902,7 +1927,6 @@ static bool cut_compact(App *a)
 
     recompute_overview(a);
     recompute_activity(a);
-    return false;
 }
 
 static void draw_marker(Canvas *c, int x, bool active)
@@ -2461,12 +2485,11 @@ static bool prompt_filename(Gui *gui, char *namebuf, size_t buflen)
     return ok;
 }
 
-static bool confirm_overwrite(Gui *gui)
+static bool confirm(Gui *gui, const char *question)
 {
     PromptCtx pc = {0};
     Widget *w = widget_alloc();
-    widget_add_string_multiline_element(
-        w, 64, 24, AlignCenter, AlignCenter, FontPrimary, "Name exists,\noverwrite?");
+    widget_add_string_multiline_element(w, 64, 24, AlignCenter, AlignCenter, FontPrimary, question);
     widget_add_button_element(w, GuiButtonTypeLeft, "No", button_ok_cb, &pc);
     widget_add_button_element(w, GuiButtonTypeRight, "Yes", button_ok_cb, &pc);
     bool ok = prompt_run(gui, &pc, widget_get_view(w));
@@ -2527,7 +2550,7 @@ static void prompt_and_save(
             write = true;
         else if (a->src_in_dir && strcasecmp(namebuf, a->basename) == 0)
             snprintf(a->status, sizeof(a->status), "Can't overwrite open file");
-        else if (!confirm_overwrite(gui))
+        else if (!confirm(gui, "Name exists,\noverwrite?"))
             continue;
         else
             write = true;
@@ -2700,43 +2723,54 @@ static void do_cut_action(Gui *gui, ViewPort *vp, FuriMessageQueue *queue, Dialo
         return;
     }
 
-    if (!snapshot_take(a))
+    if (cut_run(a, false) < 2)
     {
-        snprintf(a->status, sizeof(a->status), "Low memory, no cut");
-        a->status_until = furi_get_tick() + 1500;
         furi_mutex_release(a->mutex);
+        gui_remove_view_port(gui, vp);
+
+        DialogMessage *m = dialog_message_alloc();
+        dialog_message_set_header(m, "Cannot cut", 64, 2, AlignCenter, AlignTop);
+        dialog_message_set_text(
+            m, "That would leave the\nsignal empty.", 64, 30, AlignCenter, AlignCenter);
+        dialog_message_set_buttons(m, NULL, NULL, "OK");
+        dialog_message_show(dialogs, m);
+        dialog_message_free(m);
+
+        gui_add_view_port(gui, vp, GuiLayerFullscreen);
+        furi_message_queue_reset(queue);
         return;
     }
 
-    bool emptied = cut_compact(a);
-    if (!emptied)
+    bool undo = snapshot_take(a);
+    if (!undo)
     {
-        snprintf(a->status, sizeof(a->status), "Cut");
-        a->status_until = furi_get_tick() + 1200;
         furi_mutex_release(a->mutex);
-        return;
+        gui_remove_view_port(gui, vp);
+        bool go = confirm(gui, "No RAM for Undo.\nCut anyway?");
+        gui_add_view_port(gui, vp, GuiLayerFullscreen);
+        furi_message_queue_reset(queue);
+        furi_mutex_acquire(a->mutex, FuriWaitForever);
+
+        if (!go)
+        {
+            snprintf(a->status, sizeof(a->status), "Cut cancelled");
+            a->status_until = furi_get_tick() + 1500;
+            furi_mutex_release(a->mutex);
+            return;
+        }
+
+        // An older snapshot would undo two cuts at once; dropping it may also free enough
+        // for this one.
+        free(a->undo_data);
+        a->undo_data = NULL;
+        a->has_undo = false;
+        undo = snapshot_take(a);
     }
 
+    cut_compact(a);
+    snprintf(a->status, sizeof(a->status), undo ? "Cut" : "Cut, no Undo");
+    a->status_until = furi_get_tick() + 1200;
     furi_mutex_release(a->mutex);
-
-    gui_remove_view_port(gui, vp);
-
-    DialogMessage *m = dialog_message_alloc();
-    dialog_message_set_header(m, "Cannot cut", 64, 2, AlignCenter, AlignTop);
-    dialog_message_set_text(
-        m, "That would leave the\nsignal empty.", 64, 30, AlignCenter, AlignCenter);
-    dialog_message_set_buttons(m, NULL, NULL, "OK");
-    dialog_message_show(dialogs, m);
-    dialog_message_free(m);
-
-    furi_mutex_acquire(a->mutex, FuriWaitForever);
-    snapshot_restore(a);
-    snprintf(a->status, sizeof(a->status), "Cut cancelled");
-    a->status_until = furi_get_tick() + 1500;
-    furi_mutex_release(a->mutex);
-
-    gui_add_view_port(gui, vp, GuiLayerFullscreen);
-    furi_message_queue_reset(queue);
 }
 
 static void run_editor_session(

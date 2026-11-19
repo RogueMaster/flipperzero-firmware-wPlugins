@@ -226,19 +226,18 @@ launch it from **Apps -> Sub-GHz** on the Flipper.
 - **Cut is memory-safe.** Cutting compacts the data in place and allocates
   nothing, so trimming or cutting a large region cannot run you out of memory.
   The only allocation is the single-level Undo snapshot, which is taken before a
-  cut and gated on free RAM: if there isn't enough, the cut is declined with a
-  "Low memory" message instead of going ahead, so you never lose the ability to
-  undo and never crash mid-cut.
+  cut and gated on free RAM: if there isn't enough (a long signal takes most of
+  the RAM), you are asked *No RAM for Undo. Cut anyway?* and can cut without
+  Undo or cancel, so it never crashes mid-cut.
 - Durations are clamped to +/-32 ms so the capture fits a compact buffer. This
   only ever touches inter-frame silence; the signal pulses themselves
   (hundreds of microseconds) are stored exactly.
-- **How much fits depends on free RAM.** Each sample (signal edge) takes 2 bytes.
-  When loading, the app keeps enough RAM free for every action to still work on
-  the whole signal: a full copy of it for Cut's Undo, plus room for Decode and
-  Save. So roughly a quarter of the free RAM goes to samples, e.g. 40000 samples
-  need about 160 KB free. A capture that doesn't fit is loaded up to that point
-  and a *Signal truncated* message says how much of it was loaded. A real frame
-  is only a few hundred samples, so this is plenty in practice.
+- **How much fits depends on free RAM.** Each sample (signal edge) takes 2 bytes,
+  and the app keeps about 16 KB free for Decode and Save. On Unleashed a freshly
+  started app loads up to about 39000 samples. A capture that doesn't fit is
+  loaded up to that point and a *Signal truncated* message says how much of it
+  was loaded. A real frame is only a few hundred samples, so this is plenty in
+  practice.
 - **Undo is one level deep.** Only the most recent cut can be reverted; a second
   cut replaces the snapshot of the first.
 - Note the two separate ceilings: ~35 minutes of time (microseconds in an int32_t)
