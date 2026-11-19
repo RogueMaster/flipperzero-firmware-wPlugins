@@ -2643,6 +2643,17 @@ static bool confirm(Gui *gui, const char *question)
     return ok;
 }
 
+// Message with a header and an OK button; text_y centres the text.
+static void show_message(DialogsApp *dialogs, const char *header, const char *text, uint8_t text_y)
+{
+    DialogMessage *m = dialog_message_alloc();
+    dialog_message_set_header(m, header, 64, 2, AlignCenter, AlignTop);
+    dialog_message_set_text(m, text, 64, text_y, AlignCenter, AlignCenter);
+    dialog_message_set_buttons(m, NULL, NULL, "OK");
+    dialog_message_show(dialogs, m);
+    dialog_message_free(m);
+}
+
 // <Protocol>[_<Manufacturer>] from the decoded text, made filename-safe.
 static void decoded_base_name(const DecodeCtx *dc, const Decoded *d, char *out, size_t outlen)
 {
@@ -2884,14 +2895,7 @@ static void do_cut_action(Gui *gui, FuriMessageQueue *queue, DialogsApp *dialogs
     {
         furi_mutex_release(a->mutex);
 
-        DialogMessage *m = dialog_message_alloc();
-        dialog_message_set_header(m, "Cannot cut", 64, 2, AlignCenter, AlignTop);
-        dialog_message_set_text(
-            m, "That would leave the\nsignal empty.", 64, 30, AlignCenter, AlignCenter);
-        dialog_message_set_buttons(m, NULL, NULL, "OK");
-        dialog_message_show(dialogs, m);
-        dialog_message_free(m);
-
+        show_message(dialogs, "Cannot cut", "That would leave the\nsignal empty.", 30);
         furi_message_queue_reset(queue);
         return;
     }
@@ -3108,15 +3112,6 @@ static void run_editor_session(
     }
 }
 
-static void show_oom_dialog(DialogsApp *dialogs, const char *text)
-{
-    DialogMessage *m = dialog_message_alloc();
-    dialog_message_set_header(m, "Out of memory", 64, 2, AlignCenter, AlignTop);
-    dialog_message_set_text(m, text, 64, 32, AlignCenter, AlignCenter);
-    dialog_message_set_buttons(m, NULL, NULL, "OK");
-    dialog_message_show(dialogs, m);
-    dialog_message_free(m);
-}
 
 // Edit `file`, or a file picked in the browser when NULL.
 static void run_editor(Storage *storage, DialogsApp *dialogs, const char *file)
@@ -3124,7 +3119,7 @@ static void run_editor(Storage *storage, DialogsApp *dialogs, const char *file)
     App *app = safe_malloc(sizeof(App));
     if (!app)
     {
-        show_oom_dialog(dialogs, "Not enough RAM to\nopen the editor.\nReboot Flipper.");
+        show_message(dialogs, "Out of memory", "Not enough RAM to\nopen the editor.\nReboot Flipper.", 32);
         return;
     }
 
@@ -3187,28 +3182,12 @@ static void run_editor(Storage *storage, DialogsApp *dialogs, const char *file)
         furi_message_queue_free(queue);
         furi_record_close(RECORD_GUI);
 
-        DialogMessage *m = dialog_message_alloc();
         if (app->sd.out_of_memory)
-        {
-            dialog_message_set_header(m, "Out of memory", 64, 2, AlignCenter, AlignTop);
-            dialog_message_set_text(
-                m,
-                "Not enough free RAM to\nload this capture.\nReboot Flipper, then\nopen the app first.",
-                64,
-                34,
-                AlignCenter,
-                AlignCenter);
-        }
+            show_message(dialogs, "Out of memory",
+                         "Not enough free RAM to\nload this capture.\nReboot Flipper, then\nopen the app first.", 34);
         else
-        {
-            dialog_message_set_header(m, APP_NAME, 64, 4, AlignCenter, AlignTop);
-            dialog_message_set_text(
-                m, "Unsupported protocol or file is empty", 64, 32, AlignCenter, AlignCenter);
-        }
+            show_message(dialogs, APP_NAME, "Unsupported protocol or file is empty", 32);
 
-        dialog_message_set_buttons(m, NULL, NULL, "OK");
-        dialog_message_show(dialogs, m);
-        dialog_message_free(m);
         goto cleanup;
     }
 
@@ -3223,12 +3202,7 @@ static void run_editor(Storage *storage, DialogsApp *dialogs, const char *file)
             (long)(app->sd.total_us / 1000000),
             (long)(app->sd.total_us / 100000 % 10));
 
-        DialogMessage *m = dialog_message_alloc();
-        dialog_message_set_header(m, "Signal truncated", 64, 2, AlignCenter, AlignTop);
-        dialog_message_set_text(m, msg, 64, 34, AlignCenter, AlignCenter);
-        dialog_message_set_buttons(m, NULL, NULL, "OK");
-        dialog_message_show(dialogs, m);
-        dialog_message_free(m);
+        show_message(dialogs, "Signal truncated", msg, 34);
         furi_message_queue_reset(queue);
     }
 
@@ -3276,7 +3250,7 @@ static void run_merge(Storage *storage, DialogsApp *dialogs)
     App *app = safe_malloc(sizeof(App));
     if (!app)
     {
-        show_oom_dialog(dialogs, "Not enough RAM to\nstart merging.\nReboot Flipper.");
+        show_message(dialogs, "Out of memory", "Not enough RAM to\nstart merging.\nReboot Flipper.", 32);
         return;
     }
 
@@ -3291,7 +3265,7 @@ static void run_merge(Storage *storage, DialogsApp *dialogs)
     uint8_t *pbuf = safe_malloc(pcap);
     if (!pbuf)
     {
-        show_oom_dialog(dialogs, "Not enough RAM to\nstart merging.\nReboot Flipper.");
+        show_message(dialogs, "Out of memory", "Not enough RAM to\nstart merging.\nReboot Flipper.", 32);
         furi_mutex_free(app->mutex);
         free(app);
         return;
@@ -3349,13 +3323,7 @@ static void run_merge(Storage *storage, DialogsApp *dialogs)
 
         if (cnt == 0)
         {
-            DialogMessage *m = dialog_message_alloc();
-            dialog_message_set_header(m, "Unsupported file", 64, 2, AlignCenter, AlignTop);
-            dialog_message_set_text(
-                m, "Unsupported protocol or file is empty", 64, 34, AlignCenter, AlignCenter);
-            dialog_message_set_buttons(m, NULL, NULL, "OK");
-            dialog_message_show(dialogs, m);
-            dialog_message_free(m);
+            show_message(dialogs, "Unsupported file", "Unsupported protocol or file is empty", 34);
             continue;
         }
 
@@ -3370,12 +3338,7 @@ static void run_merge(Storage *storage, DialogsApp *dialogs)
                 (unsigned long)((freq % 1000000) / 10000),
                 (unsigned long)(f / 1000000),
                 (unsigned long)((f % 1000000) / 10000));
-            DialogMessage *m = dialog_message_alloc();
-            dialog_message_set_header(m, "Frequency mismatch", 64, 2, AlignCenter, AlignTop);
-            dialog_message_set_text(m, msg, 64, 32, AlignCenter, AlignCenter);
-            dialog_message_set_buttons(m, NULL, NULL, "OK");
-            dialog_message_show(dialogs, m);
-            dialog_message_free(m);
+            show_message(dialogs, "Frequency mismatch", msg, 32);
             continue;
         }
 
@@ -3393,12 +3356,7 @@ static void run_merge(Storage *storage, DialogsApp *dialogs)
             snprintf(msg, sizeof(msg), "Have %u, +%u.\nRAM fits %u.", (unsigned)total,
                      (unsigned)extra, (unsigned)budget);
 
-            DialogMessage *m = dialog_message_alloc();
-            dialog_message_set_header(m, "Won't fit", 64, 2, AlignCenter, AlignTop);
-            dialog_message_set_text(m, msg, 64, 34, AlignCenter, AlignCenter);
-            dialog_message_set_buttons(m, NULL, NULL, "OK");
-            dialog_message_show(dialogs, m);
-            dialog_message_free(m);
+            show_message(dialogs, "Won't fit", msg, 34);
             continue;
         }
 
@@ -3474,7 +3432,7 @@ static void run_merge(Storage *storage, DialogsApp *dialogs)
     if (!app->sd.data)
     {
         free(pbuf);
-        show_oom_dialog(dialogs, "Not enough RAM to\nbuild the merge.\nReboot Flipper.");
+        show_message(dialogs, "Out of memory", "Not enough RAM to\nbuild the merge.\nReboot Flipper.", 32);
         goto cleanup;
     }
 
