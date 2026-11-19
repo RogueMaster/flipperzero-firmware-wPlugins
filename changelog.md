@@ -2,6 +2,7 @@
 
 - Loading a decoded signal shows the loading screen instead of briefly flashing the main menu before the button picker.
 - *Config* shows, under a read-only line, whether custom buttons and keeping the rolling counter are available in this build.
+- The fixed 24000-sample limit is gone: how long a signal can be now depends on free RAM, always leaving room for Undo, Decode and Save on the whole signal.
 
 ## v1.9
 

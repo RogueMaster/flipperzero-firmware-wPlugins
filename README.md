@@ -232,20 +232,21 @@ launch it from **Apps -> Sub-GHz** on the Flipper.
 - Durations are clamped to +/-32 ms so the capture fits a compact buffer. This
   only ever touches inter-frame silence; the signal pulses themselves
   (hundreds of microseconds) are stored exactly.
-- Up to ~24000 samples (about 47 KB) per file; larger captures are truncated
-  rather than failing. A real frame is only a few hundred samples, so this is
-  plenty in practice.
+- **How much fits depends on free RAM.** Each sample (signal edge) takes 2 bytes.
+  When loading, the app keeps enough RAM free for every action to still work on
+  the whole signal: a full copy of it for Cut's Undo, plus room for Decode and
+  Save. So roughly a quarter of the free RAM goes to samples, e.g. 40000 samples
+  need about 160 KB free. A capture that doesn't fit is loaded up to that point
+  and a *Signal truncated* message says how much of it was loaded. A real frame
+  is only a few hundred samples, so this is plenty in practice.
 - **Undo is one level deep.** Only the most recent cut can be reverted; a second
   cut replaces the snapshot of the first.
 - Note the two separate ceilings: ~35 minutes of time (microseconds in an int32_t)
-  and ~24000 samples (signal edges). They're independent - noise hits the sample
-  limit within seconds because it's a dense storm of edges,
-  even though it's nowhere near the time limit; a real frame is only a few hundred edges.
-  The buffer holds ~24000 samples (signal edges) ≈ 47 KB of RAM - plenty for any
-  real frame (a few hundred edges), but noise fills it in seconds. For example, an
-  `AM650` capture at `433.92` MHz in a noisy area hits the limit around a ~105 KB
-  25–30 s file. If you want to load longer RAWs just use `AM270` which won't
-  make that much noise.
+  and the RAM for samples (signal edges). They're independent - noise hits the
+  sample limit within seconds because it's a dense storm of edges, even though
+  it's nowhere near the time limit. For example, an `AM650` capture at
+  `433.92` MHz in a noisy area is mostly noise edges. If you want to load longer
+  RAWs just use `AM270` which won't make that much noise.
 - To decode any `.sub` protocol other than RAW Capture, this application relies on the device's internal decoder.
   On custom firmware (Momentum, Unleashed, ...) rolling protocols are loaded with the counter as recorded.
   Official firmware cannot skip the encoder's counter step, so there you get the next keyframe rather than the current one.

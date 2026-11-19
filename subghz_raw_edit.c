@@ -39,7 +39,6 @@
 #include <string.h>
 
 #define SUBGHZ_DIR "/ext/subghz"
-#define MAX_SAMPLES 24000
 #define SYNTH_YIELD_CAP 4096
 #define DUR_CLAMP 32000
 #define LOAD_HEAP_RESERVE 12288
@@ -106,6 +105,7 @@ typedef struct
     int16_t *data;
     size_t count;
     size_t cap;
+    size_t limit; // sample_budget() when loading started
     int32_t total_us;
     uint32_t frequency;
     char preset[48];
@@ -536,6 +536,25 @@ static void *safe_realloc(void *ptr, size_t size)
     return realloc(ptr, size);
 }
 
+// Most samples a signal may take so that every action still works on it: Cut copies the whole
+// buffer for Undo (safe_malloc wants that copy plus LOAD_HEAP_RESERVE free), and Decode and Save
+// run inside LOAD_HEAP_RESERVE. Hence two buffers' worth out of what is left above the reserve,
+// and the buffer itself no larger than half the largest free block so the copy can still find
+// a contiguous block next to it.
+static size_t sample_budget(void)
+{
+    size_t free_heap = memmgr_get_free_heap();
+    if (free_heap <= LOAD_HEAP_RESERVE)
+        return 0;
+
+    size_t usable = free_heap - LOAD_HEAP_RESERVE;
+    size_t block = memmgr_heap_get_max_free_block();
+    if (usable > block)
+        usable = block;
+
+    return usable / (2 * sizeof(int16_t));
+}
+
 /* Decoded protocols are synthesized by the firmware's own SubGhz encoder: the
  * key file is deserialized into a transmitter and we collect the level/duration
  * upload it would send on air. Every protocol the firmware supports works with
@@ -572,8 +591,8 @@ static bool synth_grow(SubData *sd, size_t need)
     while (ncap < need)
         ncap *= 2;
 
-    if (ncap > MAX_SAMPLES)
-        ncap = MAX_SAMPLES;
+    if (ncap > sd->limit)
+        ncap = sd->limit;
 
     if (ncap < need)
         return false;
@@ -581,7 +600,9 @@ static bool synth_grow(SubData *sd, size_t need)
     int16_t *grown = safe_realloc(sd->data, ncap * sizeof(int16_t));
     if (!grown)
     {
-        sd->out_of_memory = true;
+        // What is already loaded stays usable, just truncated
+        if (sd->count == 0)
+            sd->out_of_memory = true;
         return false;
     }
 
@@ -1102,9 +1123,10 @@ static bool load_sub(Storage *storage, const char *path, SubData *sd)
     // good first guess that fits normal captures without over-allocating. It is
     // only a hint: push_duration grows the buffer on demand (e.g. when long gaps
     // split into several samples), and decoded files synthesize into it.
+    sd->limit = sample_budget();
     size_t est = (size_t)(fsize / 4) + 64;
-    if (est > MAX_SAMPLES)
-        est = MAX_SAMPLES;
+    if (est > sd->limit)
+        est = sd->limit;
 
     sd->data = safe_malloc(est * sizeof(int16_t));
     if (!sd->data)
@@ -1236,8 +1258,7 @@ static size_t count_sub_samples(
      * so synthesize it once via the firmware encoder and count the samples. */
     if (protocol[0] && strcmp(protocol, "RAW") != 0)
     {
-        SubData tmp;
-        memset(&tmp, 0, sizeof(tmp));
+        SubData tmp = {.limit = sample_budget()};
         size_t n = 0;
         if (synthesize_via_transmitter(storage, path, protocol, &tmp))
             n = tmp.count;
@@ -1322,7 +1343,8 @@ static bool load_sub_repeated(Storage *storage, const char *path, SubData *out)
     out->cap = 0;
 
     size_t want = sig.count * (size_t)g_merge_repeat;
-    size_t need = want > MAX_SAMPLES ? MAX_SAMPLES : want;
+    out->limit = sample_budget();
+    size_t need = want > out->limit ? out->limit : want;
     out->data = safe_malloc(need * sizeof(int16_t));
     if (!out->data)
     {
@@ -1331,7 +1353,7 @@ static bool load_sub_repeated(Storage *storage, const char *path, SubData *out)
         return false;
     }
     out->cap = need;
-    if (want > MAX_SAMPLES)
+    if (want > need)
         out->truncated = true;
 
     for (int r = 0; r < g_merge_repeat; r++)
@@ -3150,18 +3172,15 @@ static void run_merge(Storage *storage, DialogsApp *dialogs)
         size_t gap_chunks = duration_samples(g_merge_gap_ms * 1000);
         size_t extra = cnt * copies + (n > 0 ? gap_chunks : 0);
         size_t newtotal = total + extra;
-        bool over_cap = newtotal > MAX_SAMPLES;
-        bool over_ram = newtotal * sizeof(int16_t) + LOAD_HEAP_RESERVE > memmgr_get_free_heap();
-        if (over_cap || over_ram)
+        size_t budget = sample_budget();
+        if (newtotal > budget)
         {
             char msg[128];
-            snprintf(msg, sizeof(msg), "Have %u, +%u.\n%s %d.", (unsigned)total, (unsigned)cnt,
-                     over_cap ? "Limit" : "RAM fits ~",
-                     over_cap ? MAX_SAMPLES : (int)(memmgr_get_free_heap() / sizeof(int16_t)));
+            snprintf(msg, sizeof(msg), "Have %u, +%u.\nRAM fits %u.", (unsigned)total,
+                     (unsigned)extra, (unsigned)budget);
 
             DialogMessage *m = dialog_message_alloc();
-            dialog_message_set_header(
-                m, over_cap ? "Won't fit" : "Out of memory", 64, 2, AlignCenter, AlignTop);
+            dialog_message_set_header(m, "Won't fit", 64, 2, AlignCenter, AlignTop);
             dialog_message_set_text(m, msg, 64, 34, AlignCenter, AlignCenter);
             dialog_message_set_buttons(m, NULL, NULL, "OK");
             dialog_message_show(dialogs, m);
