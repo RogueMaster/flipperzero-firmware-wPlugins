@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <furi.h>
-#include <furi_hal_power.h>
+#include <furi_hal.h>
 #include <gui/gui.h>
 #include <input/input.h>
 #include <gui/elements.h>
@@ -8,171 +8,264 @@
 #include <nrf24.h>
 #include "nrf24channelscanner_icons.h"
 
-const uint8_t num_channels = 128;
-static uint8_t nrf24values[128] = {0}; //to store channel data
+#define CHANNEL_COUNT    128
+#define SAMPLES_PER_PASS 3
 
-bool ifNotFoundNrf = false; //to show error message
-bool szuz = true; //to show welcome screen
-static bool isScanning = false; //to track the progress
-static bool stopNrfScan = false; //to exit thread
+// x maps 1:1 to the channel index, so the plot is exactly 128px wide
+#define CHART_TOP        12
+#define CHART_BOTTOM     53
+#define CHART_HEIGHT     (CHART_BOTTOM - CHART_TOP)
+#define AXIS_TICK_TOP    54
+#define AXIS_TICK_BOTTOM 56
+#define AXIS_LABEL_Y     63
 
-static bool isInfiniteScan = false; //to prevent stop scan when OK long pressed
+// A sweep touches 128 channels, and a repaint per channel is ~64 full framebuffer
+// transfers a second. That saturates the GUI thread, which is also what dispatches
+// input - hence the dead buttons. Cap the repaint rate instead.
+#define REDRAW_PERIOD_MS 80
 
-static bool threadStoppedsoFree = false; //indicate if I can free the thread from ram.
-static uint8_t currCh = 0; //for the progress bar or the channel selector
+#define DWELL_MIN 1
+#define DWELL_MAX 50
 
-static int delayPerChan = 150; //can set via up / down.
-
-bool showFreq = true;
-
-FuriThread* thread;
-
-typedef enum {
-    EventTypeKey,
-    EventTypeTick,
-} EventType;
+// Halve both counters rather than let them wrap; the ratio survives
+#define SAMPLE_RESCALE_AT 0xF000
 
 typedef struct {
-    EventType type;
-    InputEvent input;
-} Event;
+    uint8_t channel;
+    const char* label;
+} WifiMarker;
+
+// 2.4GHz Wi-Fi centres: ch1 2412, ch6 2437, ch11 2462, ch13 2472 MHz
+static const WifiMarker wifi_markers[] = {
+    {12, "1"},
+    {37, "6"},
+    {62, "11"},
+    {72, "13"},
+};
+
+// Hits over samples, rather than a free-running count, so the number means something:
+// the share of dwell time this channel had a carrier above the RPD threshold
+static uint16_t ch_hits[CHANNEL_COUNT];
+static uint16_t ch_samples[CHANNEL_COUNT];
+
+static bool nrf_missing;
+static bool show_help;
+static bool scanning;
+static bool stop_requested;
+static bool show_dwell;
+static uint8_t scan_ch;
+static uint8_t cursor_ch;
+static int dwell_ms;
+
+static FuriThread* worker;
+
+static uint8_t channel_busy_pct(uint8_t channel) {
+    const uint16_t samples = ch_samples[channel];
+    if(samples == 0) return 0;
+    const uint32_t pct = ((uint32_t)ch_hits[channel] * 100u) / samples;
+    return (pct > 100u) ? 100u : (uint8_t)pct;
+}
+
+static uint8_t channel_bar_height(uint8_t channel) {
+    const uint8_t pct = channel_busy_pct(channel);
+    if(pct == 0) return 0;
+    const uint8_t h = (uint8_t)(((uint32_t)pct * CHART_HEIGHT) / 100u);
+    // The RPD only trips above about -64dBm, so hits are sparse - give anything
+    // that was seen at all one visible pixel instead of rounding it away
+    return h ? h : 1;
+}
+
+static void clear_samples(void) {
+    memset(ch_hits, 0, sizeof(ch_hits));
+    memset(ch_samples, 0, sizeof(ch_samples));
+}
 
 static void draw_callback(Canvas* canvas, void* ctx) {
     UNUSED(ctx);
 
     canvas_clear(canvas);
-    canvas_set_bitmap_mode(canvas, true);
-    canvas_draw_icon(canvas, 100, 0, &I_Pin_back_arrow_10x8);
+    canvas_set_bitmap_mode(canvas, 1);
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str(canvas, 112, 8, "Exit");
+
     canvas_draw_icon(canvas, 1, 0, &I_Ok_btn_9x9);
-    canvas_set_font(canvas, FontSecondary);
-    if(isScanning) {
-        canvas_draw_str(canvas, 12, 8, "Stop");
+    canvas_draw_str(canvas, 12, 8, scanning ? "Stop" : "Scan");
+    canvas_draw_icon(canvas, 118, 0, &I_Pin_back_arrow_10x8);
+
+    char readout[24];
+    if(show_dwell) {
+        snprintf(readout, sizeof(readout), "dwell %dms", dwell_ms);
     } else {
-        canvas_draw_str(canvas, 12, 8, "Scan");
+        snprintf(
+            readout, sizeof(readout), "%uMHz %u%%", 2400u + cursor_ch, channel_busy_pct(cursor_ch));
     }
+    canvas_draw_str_aligned(canvas, 76, 4, AlignCenter, AlignCenter, readout);
+
+    // Where the sweep is right now, kept above the rule so it cannot be read as the cursor
+    if(scanning) canvas_draw_line(canvas, scan_ch, 9, scan_ch, 10);
+
     canvas_draw_line(canvas, 0, 11, 127, 11);
 
-    if(ifNotFoundNrf) {
+    if(nrf_missing) {
         canvas_set_font(canvas, FontPrimary);
-        canvas_draw_str(canvas, 23, 35, "NRF24 not found!");
+        canvas_draw_str_aligned(canvas, 64, 34, AlignCenter, AlignCenter, "NRF24 not found!");
         return;
     }
 
-    canvas_draw_line(canvas, currCh, 12, currCh, 13); //draw the current channel
-
-    //draw hello mesage
-    if(szuz) {
-        canvas_set_font(canvas, FontSecondary);
-        canvas_draw_str(canvas, 1, 22, "OK: scan / stop. Long: infinite.");
-        canvas_draw_str(canvas, 1, 33, "Up / Down to change channel time.");
-        canvas_draw_str(canvas, 1, 44, "Left / Right to select channel");
-        canvas_draw_str(canvas, 1, 56, "  to get it's frequency");
-    }
-
-    //draw freq ir the progress
-    canvas_set_font(canvas, FontSecondary);
-    if(isScanning) {
-        if(isInfiniteScan)
-            canvas_draw_str(canvas, 37, 8, "scanning...");
-        else
-            canvas_draw_str(canvas, 37, 8, "scanning");
-
+    if(show_help) {
+        canvas_draw_str(canvas, 2, 21, "OK: start/stop scan");
+        canvas_draw_str(canvas, 2, 31, "< >: channel  ^v: dwell");
+        canvas_draw_str(canvas, 2, 41, "Back: clear, hold: exit");
+        canvas_draw_str(canvas, 2, 51, "ticks: Wi-Fi 1/6/11/13");
     } else {
-        if(showFreq) {
-            int freq = 2400 + currCh;
-            char strfreq[10] = {0};
-            snprintf(strfreq, sizeof(strfreq), "%d MHZ", freq);
-            canvas_draw_str(canvas, 40, 8, strfreq);
-        } else {
-            //show delay
-            int dly = delayPerChan;
-            char strdel[10] = {0};
-            snprintf(strdel, sizeof(strdel), "%d us", dly);
-            canvas_draw_str(canvas, 40, 8, strdel);
+        for(uint8_t i = 0; i < CHANNEL_COUNT; i++) {
+            const uint8_t h = channel_bar_height(i);
+            if(h) canvas_draw_line(canvas, i, CHART_BOTTOM - h, i, CHART_BOTTOM);
+        }
+
+        // Dotted above the bar, cut back out of the bar itself, so the cursor stays
+        // visible whether or not the channel it sits on has anything on it
+        const uint8_t cursor_h = channel_bar_height(cursor_ch);
+        const int bar_top = CHART_BOTTOM - cursor_h;
+        for(int y = CHART_TOP; y < bar_top; y += 2) {
+            canvas_draw_dot(canvas, cursor_ch, y);
+        }
+        if(cursor_h) {
+            canvas_set_color(canvas, ColorWhite);
+            canvas_draw_line(canvas, cursor_ch, bar_top, cursor_ch, CHART_BOTTOM);
+            canvas_set_color(canvas, ColorBlack);
         }
     }
 
-    //draw the chart
-    for(int i = 0; i < num_channels; ++i) {
-        int h = 64 - nrf24values[i];
-        if(h < 11) h = 12;
-        canvas_draw_line(canvas, i, h, i, 64);
+    for(size_t i = 0; i < COUNT_OF(wifi_markers); i++) {
+        const uint8_t x = wifi_markers[i].channel;
+        canvas_draw_line(canvas, x, AXIS_TICK_TOP, x, AXIS_TICK_BOTTOM);
+        canvas_draw_str_aligned(
+            canvas, x, AXIS_LABEL_Y, AlignCenter, AlignBottom, wifi_markers[i].label);
     }
 }
 
 static void input_callback(InputEvent* input_event, void* ctx) {
     furi_assert(ctx);
     FuriMessageQueue* event_queue = ctx;
-    Event event = {.type = EventTypeKey, .input = *input_event};
-    furi_message_queue_put(event_queue, &event, FuriWaitForever);
+    furi_message_queue_put(event_queue, input_event, FuriWaitForever);
 }
 
-static int32_t scanner(void* context) {
-    UNUSED(context);
-    isScanning = true;
-    stopNrfScan = false;
-    threadStoppedsoFree = false;
-    uint8_t tmp = 0;
-    currCh = 0;
-    nrf24_set_rx_mode(nrf24_HANDLE, false);
-    nrf24_write_reg(nrf24_HANDLE, REG_EN_AA, 0x0);
+static int32_t scan_worker(void* context) {
+    ViewPort* view_port = context;
+
+    nrf24_write_reg(nrf24_HANDLE, REG_EN_AA, 0x00);
     nrf24_write_reg(nrf24_HANDLE, REG_RF_SETUP, 0x0f);
-    while(true) { //scan until stopped somehow
-        if(stopNrfScan) break;
-        for(uint8_t i = 0; i < num_channels; i++) {
-            if(stopNrfScan) break;
-            currCh = i;
+    nrf24_set_rx_mode(nrf24_HANDLE, true);
+    furi_delay_ms(10); // Tpd2stby, 4.5ms worst case
+
+    const uint32_t redraw_ticks = furi_ms_to_ticks(REDRAW_PERIOD_MS);
+    uint32_t last_redraw = furi_get_tick();
+
+    while(!stop_requested) {
+        for(uint8_t i = 0; i < CHANNEL_COUNT; i++) {
+            if(stop_requested) break;
+            scan_ch = i;
+
+            // RF_CH has to be written from standby. Writing it with CE still high is
+            // not guaranteed to take, which left the sweep re-reading one channel.
+            furi_hal_gpio_write(nrf24_CE_PIN, false);
             nrf24_write_reg(nrf24_HANDLE, REG_RF_CH, i);
-            nrf24_set_rx_mode(nrf24_HANDLE, true);
-            for(uint8_t ii = 0; ii < 3; ++ii) {
-                nrf24_flush_rx(nrf24_HANDLE);
-                furi_delay_us(delayPerChan);
-                tmp = nrf24_get_rdp(nrf24_HANDLE);
-                if(tmp > 0 && nrf24values[i] < 65) {
-                    nrf24values[i]++; //don't overrun it
-                }
-                if(nrf24values[i] > 50 && !isInfiniteScan) {
-                    stopNrfScan = true; //stop, bc maxed, but only when not infinite
-                }
+            furi_hal_gpio_write(nrf24_CE_PIN, true);
+            furi_delay_us(150); // Tstby2a = 130us
+
+            for(uint8_t s = 0; s < SAMPLES_PER_PASS; s++) {
+                furi_delay_ms(dwell_ms);
+                if(nrf24_get_rdp(nrf24_HANDLE) & 0x01) ch_hits[i]++;
+                ch_samples[i]++;
+            }
+
+            if(ch_samples[i] >= SAMPLE_RESCALE_AT) {
+                ch_samples[i] >>= 1;
+                ch_hits[i] >>= 1;
+            }
+
+            const uint32_t now = furi_get_tick();
+            if(now - last_redraw >= redraw_ticks) {
+                last_redraw = now;
+                view_port_update(view_port);
             }
         }
-        furi_delay_ms(1);
-        //for screen refresh.
     }
-    //cleanup
+
     nrf24_set_idle(nrf24_HANDLE);
-    isScanning = false;
-    threadStoppedsoFree = true;
-    currCh = 0;
+    scanning = false;
+    view_port_update(view_port);
     return 0;
 }
 
-void ChangeFreq(int delta) {
-    currCh += delta;
-    if(currCh > num_channels) currCh = 0;
-    showFreq = true;
+static bool scan_start(ViewPort* view_port) {
+    if(!nrf24_check_connected(nrf24_HANDLE)) {
+        nrf_missing = true;
+        return false;
+    }
+
+    nrf_missing = false;
+    stop_requested = false;
+    scanning = true; // set here, so this frame already shows "Stop"
+
+    worker = furi_thread_alloc();
+    furi_thread_set_name(worker, "NrfChScan");
+    furi_thread_set_stack_size(worker, 2048);
+    furi_thread_set_callback(worker, scan_worker);
+    furi_thread_set_context(worker, view_port);
+    furi_thread_start(worker);
+    return true;
 }
 
-void ChangeDelay(int delta) {
-    delayPerChan += delta;
-    if(delayPerChan > 4000) delayPerChan = 4000;
-    if(delayPerChan < 120) delayPerChan = 120;
-    if(delayPerChan == 170) delayPerChan = 150; //rounding for the next
-    showFreq = false;
+static void scan_stop(void) {
+    stop_requested = true;
+    if(worker) {
+        furi_thread_join(worker);
+        furi_thread_free(worker);
+        worker = NULL;
+    }
+    scanning = false;
+}
+
+static void change_dwell(int delta) {
+    dwell_ms += delta;
+    if(dwell_ms < DWELL_MIN) dwell_ms = DWELL_MIN;
+    if(dwell_ms > DWELL_MAX) dwell_ms = DWELL_MAX;
+    show_dwell = true;
+}
+
+static void move_cursor(int delta) {
+    int channel = (int)cursor_ch + delta;
+    while(channel < 0) {
+        channel += CHANNEL_COUNT;
+    }
+    while(channel >= CHANNEL_COUNT) {
+        channel -= CHANNEL_COUNT;
+    }
+    cursor_ch = (uint8_t)channel;
+    show_dwell = false;
 }
 
 // Main entry of the application
 int32_t nrf24channelscanner_main(void* p) {
     UNUSED(p);
 
-    Event event;
-    FuriMessageQueue* event_queue = furi_message_queue_alloc(8, sizeof(Event));
+    clear_samples();
+    nrf_missing = false;
+    show_help = true;
+    scanning = false;
+    stop_requested = false;
+    show_dwell = false;
+    scan_ch = 0;
+    cursor_ch = 0;
+    dwell_ms = 5;
+    worker = NULL;
 
-    //turn on 5v for some modules
+    InputEvent event;
+    FuriMessageQueue* event_queue = furi_message_queue_alloc(8, sizeof(InputEvent));
+
     uint8_t attempts = 0;
-    bool otg_was_enabled = furi_hal_power_is_otg_enabled();
+    const bool otg_was_enabled = furi_hal_power_is_otg_enabled();
     while(!furi_hal_power_is_otg_enabled() && attempts++ < 5) {
         furi_hal_power_enable_otg();
         furi_delay_ms(10);
@@ -189,82 +282,88 @@ int32_t nrf24channelscanner_main(void* p) {
 
     NotificationApp* notification = furi_record_open(RECORD_NOTIFICATION);
 
-    while(true) {
+    bool running = true;
+    while(running) {
         furi_check(furi_message_queue_get(event_queue, &event, FuriWaitForever) == FuriStatusOk);
 
-        if(event.type == EventTypeKey) {
-            szuz = false; //hit any button, so hide welcome screen
-            if((event.input.type == InputTypeShort || event.input.type == InputTypeLong) &&
-               event.input.key == InputKeyBack) {
-                if(isScanning) {
-                    stopNrfScan = true; //if running, stop it.
+        show_help = false;
+
+        switch(event.key) {
+        case InputKeyOk:
+            if(event.type == InputTypeShort) {
+                if(scanning) {
                     notification_message(notification, &sequence_blink_yellow_100);
-                    furi_thread_join(thread);
-                    furi_thread_free(thread);
-                }
-                break;
-            }
-            //isInfiniteScan
-            if((event.input.type == InputTypeShort || event.input.type == InputTypeLong) &&
-               event.input.key == InputKeyOk) {
-                if(isScanning) {
-                    notification_message(notification, &sequence_blink_yellow_100);
-                    stopNrfScan = true;
-                    furi_thread_join(thread);
-                    furi_thread_free(thread);
-                    threadStoppedsoFree = false; //to prevent double free
-                    continue;
-                }
-                memset(nrf24values, 0, sizeof(nrf24values));
-                if(nrf24_check_connected(nrf24_HANDLE)) {
-                    threadStoppedsoFree = false;
-                    ifNotFoundNrf = false;
+                    scan_stop();
+                } else if(scan_start(view_port)) {
                     notification_message(notification, &sequence_blink_green_100);
-                    isInfiniteScan = (event.input.type == InputTypeLong);
-                    thread = furi_thread_alloc();
-                    furi_thread_set_name(thread, "nrfscannerth");
-                    furi_thread_set_stack_size(thread, 1024);
-                    furi_thread_set_callback(thread, scanner);
-                    furi_thread_start(thread);
                 } else {
-                    ifNotFoundNrf = true;
                     notification_message(notification, &sequence_error);
                 }
             }
-            //change the delay
-            if(event.input.type == InputTypeShort && event.input.key == InputKeyUp) {
-                ChangeDelay(50);
-            }
-            if(event.input.type == InputTypeShort && event.input.key == InputKeyDown) {
-                ChangeDelay(-50);
-            }
+            break;
 
-            if(!isScanning) {
-                if(event.input.type == InputTypeLong && event.input.key == InputKeyLeft)
-                    ChangeFreq(-10);
-                if(event.input.type == InputTypeShort && event.input.key == InputKeyLeft)
-                    ChangeFreq(-1);
-                if(event.input.type == InputTypeLong && event.input.key == InputKeyRight)
-                    ChangeFreq(10);
-                if(event.input.type == InputTypeShort && event.input.key == InputKeyRight)
-                    ChangeFreq(1);
+        case InputKeyBack:
+            if(event.type == InputTypeLong) {
+                running = false;
+            } else if(event.type == InputTypeShort) {
+                clear_samples();
+                nrf_missing = false;
             }
+            break;
+
+        case InputKeyUp:
+            if(event.type == InputTypeShort) {
+                change_dwell(1);
+            } else if(event.type == InputTypeRepeat) {
+                change_dwell(5);
+            }
+            break;
+
+        case InputKeyDown:
+            if(event.type == InputTypeShort) {
+                change_dwell(-1);
+            } else if(event.type == InputTypeRepeat) {
+                change_dwell(-5);
+            }
+            break;
+
+        case InputKeyLeft:
+            if(event.type == InputTypeShort) {
+                move_cursor(-1);
+            } else if(event.type == InputTypeRepeat) {
+                move_cursor(-5);
+            }
+            break;
+
+        case InputKeyRight:
+            if(event.type == InputTypeShort) {
+                move_cursor(1);
+            } else if(event.type == InputTypeRepeat) {
+                move_cursor(5);
+            }
+            break;
+
+        default:
+            break;
         }
-        if(threadStoppedsoFree) {
-            threadStoppedsoFree = false;
-            furi_thread_join(thread);
-            furi_thread_free(thread);
-        }
+
+        view_port_update(view_port);
     }
+
+    scan_stop();
     nrf24_deinit();
 
     if(furi_hal_power_is_otg_enabled() && !otg_was_enabled) {
         furi_hal_power_disable_otg();
     }
 
-    furi_message_queue_free(event_queue);
+    // View port first: it is what feeds the queue, so the queue cannot be freed
+    // while the GUI thread may still be posting into it
     gui_remove_view_port(gui, view_port);
     view_port_free(view_port);
+    furi_message_queue_free(event_queue);
+
+    furi_record_close(RECORD_NOTIFICATION);
     furi_record_close(RECORD_GUI);
     return 0;
 }

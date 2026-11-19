@@ -46,6 +46,10 @@ static uint16_t bt_serial_callback(SerialServiceEvent event, void* ctx) {
             notification_message(app->notification, &sequence_display_backlight_on);
 
             notification_message(app->notification, &sequence_blink_blue_10);
+
+            // Nothing else asks for a repaint, so the new numbers only reach the
+            // screen if we request it here
+            view_port_update(app->view_port);
         }
     }
 
@@ -54,6 +58,13 @@ static uint16_t bt_serial_callback(SerialServiceEvent event, void* ctx) {
 
 static PcMonitorApp* pc_monitor_alloc() {
     PcMonitorApp* app = malloc(sizeof(PcMonitorApp));
+    // The draw callback switches on this and runs as soon as the view port is added,
+    // so it cannot be left as whatever malloc() handed us
+    app->bt_state = BtStateWaiting;
+    // draw_bars_view() divides by lines_count and only assigns it on the way out, so the
+    // first bars frame reads it before anything has written it. Start at the number of
+    // rows it can draw; that frame then corrects it to however many the PC actually sent.
+    app->lines_count = 4;
     app->view_port = view_port_alloc();
     app->event_queue = furi_message_queue_alloc(8, sizeof(InputEvent));
     app->notification = furi_record_open(RECORD_NOTIFICATION);
@@ -100,6 +111,7 @@ int32_t pc_monitor_app(void* p) {
     furi_hal_bt_start_advertising();
 
     app->bt_state = BtStateWaiting;
+    view_port_update(app->view_port);
     FURI_LOG_D(TAG, "Bluetooth is active!");
 
     // Main loop
@@ -110,8 +122,10 @@ int32_t pc_monitor_app(void* p) {
         }
 
         if(app->bt_state == BtStateRecieving &&
-           (furi_hal_rtc_get_timestamp() - app->last_packet > 5))
+           (furi_hal_rtc_get_timestamp() - app->last_packet > 5)) {
             app->bt_state = BtStateLost;
+            view_port_update(app->view_port);
+        }
     }
 
     ble_profile_serial_set_event_callback(app->ble_serial_profile, 0, NULL, NULL);

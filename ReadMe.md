@@ -52,6 +52,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - GPIO: [Add SIM800 v1.0 and open saved contacts from the Archive Phone tab. (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/62ed7711ef072a9d0929225b74c68838fbb779e2)
 - Games: [Update Tetris to v1.7 with a ghost piece, hard drop, and lock delay. (By PurelyAndy)](https://github.com/xMasterX/all-the-plugins/pull/284)
 - Sub-GHz: [Fix the Enhanced Sub-GHz Chat MemManage crash on launch. (By mishamyte)](https://github.com/xMasterX/all-the-plugins/pull/285)
+- Bluetooth: [Fix PC Monitor display updates and initialize the status display on launch. (By xMasterX)](https://github.com/xMasterX/all-the-plugins/commit/cb339f82d2d0855313183920f0154d9fdb665e5a)
+- GPIO: [Rework nRF24 Channel Scanner with a 128-channel activity plot, adjustable dwell, and rate-limited redraws. (By xMasterX)](https://github.com/xMasterX/all-the-plugins/commit/cb339f82d2d0855313183920f0154d9fdb665e5a)
 
 <a name="release"></a>
 
