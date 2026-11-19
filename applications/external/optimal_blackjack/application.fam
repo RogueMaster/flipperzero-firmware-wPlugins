@@ -1,0 +1,13 @@
+App(
+    appid="optimal_blackjack",
+    name="Optimal Blackjack",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="optimal_blackjack_app",
+    stack_size=4 * 1024,
+    fap_icon="optimal_blackjack.png",
+    fap_category="Games",
+    fap_author="Optimal Blackjack",
+    fap_weburl="https://github.com/blackjackprostudio/optimal-blackjack-flipper",
+    fap_version=(1, 0),
+    fap_description="Blackjack basic-strategy and card-counting trainer. Your score is how often you match basic strategy, not money.",
+)

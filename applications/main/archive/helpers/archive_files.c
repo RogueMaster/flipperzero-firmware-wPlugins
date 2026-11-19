@@ -10,7 +10,7 @@
 #define ASSETS_DIR "assets"
 
 /* Both the resident launcher and Archive FAP compile this shared source. */
-const char* const known_ext[ArchiveFileTypeT5577 + 1] = {
+const char* const known_ext[ArchiveFileTypePhone + 1] = {
     // clang-format off
     [ArchiveFileTypeIButton] = ".ibtn",
     [ArchiveFileTypeNFC] = ".nfc",
@@ -38,6 +38,7 @@ const char* const known_ext[ArchiveFileTypeT5577 + 1] = {
     [ArchiveFileTypeAppOrJs] = "?", // Legacy filter value, not a file type.
     [ArchiveFileTypeLoading] = "?",
     [ArchiveFileTypeT5577] = T5577_FILE_EXTENSION,
+    [ArchiveFileTypePhone] = ".phone",
     [ArchiveFileTypeSetting] = "?",
     // clang-format on
 };

@@ -41,6 +41,8 @@ static const char* archive_get_flipper_app_name(ArchiveFileTypeEnum file_type) {
         return EXT_PATH("apps/NFC/picopass.fap");
     case ArchiveFileTypeU2f:
         return "U2F";
+    case ArchiveFileTypePhone:
+        return EXT_PATH("apps/GPIO/sim800.fap");
     case ArchiveFileTypeT5577:
         return T5577_APP_PATH;
     case ArchiveFileTypeUpdateManifest:

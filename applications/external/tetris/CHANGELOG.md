@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.7
+
+- Added a "lock delay" feature when the piece touches the ground according to Tetris guidelines. When the piece touches the ground, you have half a second to move it around before it sticks and the next piece is chosen. Each time you move the piece resets that timer, but after 15 movements, the piece locks in place for good.
+- Added a "ghost" that shows where the piece will fall to, making it much easier to align your pieces.
+- Improved hard dropping behavior to be actually instant rather than just rapidly repeating the game loop, which caused the piece to quickly (but visibly) drop down.
+
 ## 1.6
 
 - Fix pressing OK while paused instantly starting a new game - OK now resumes the game, a new game can only be started from the game-over screen

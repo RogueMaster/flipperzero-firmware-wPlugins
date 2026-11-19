@@ -16,6 +16,7 @@ static const char* const tab_default_paths[] = {
     [ArchiveTabLFRFID] = EXT_PATH("lfrfid"),
     [ArchiveTabInfrared] = EXT_PATH("infrared"),
     [ArchiveTabBadUsb] = EXT_PATH("badusb"),
+    [ArchiveTabPhone] = EXT_PATH("phonebook"),
     [ArchiveTabU2f] = "/app:u2f",
     [ArchiveTabApplications] = EXT_PATH("apps"),
     [ArchiveTabSearch] = "/app:search",
@@ -24,7 +25,7 @@ static const char* const tab_default_paths[] = {
     [ArchiveTabBrowser] = STORAGE_EXT_PATH_PREFIX,
 };
 
-extern const char* const known_ext[ArchiveFileTypeT5577 + 1];
+extern const char* const known_ext[ArchiveFileTypePhone + 1];
 
 // Tab filters may contain multiple extensions; file types always describe one file.
 static const char* const tab_ext[] = {
@@ -35,6 +36,7 @@ static const char* const tab_ext[] = {
     [ArchiveTabLFRFID] = ".rfid|" T5577_FILE_EXTENSION,
     [ArchiveTabInfrared] = ".ir",
     [ArchiveTabBadUsb] = ".txt",
+    [ArchiveTabPhone] = ".phone",
     [ArchiveTabU2f] = "?",
     [ArchiveTabApplications] = ".fap|.js",
     [ArchiveTabSearch] = "*",
@@ -52,7 +54,8 @@ static inline const char* archive_get_default_path(ArchiveTabEnum tab) {
 }
 
 static inline bool archive_is_known_app(ArchiveFileTypeEnum type) {
-    return type < ArchiveFileTypeUnknown || type == ArchiveFileTypeT5577;
+    return type < ArchiveFileTypeUnknown || type == ArchiveFileTypeT5577 ||
+           type == ArchiveFileTypePhone;
 }
 
 void archive_file_browser_set_path(

@@ -1,0 +1,14 @@
+App(
+    appid="avr_updi",
+    name="AVR UPDI",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="avr_updi_app",
+    stack_size=4 * 1024,
+    fap_icon="updi_10px.png",
+    sources=["*.c*", "!test_intel_hex.c"],
+    fap_category="GPIO",
+    fap_author="gztproject",
+    fap_weburl="https://github.com/gztproject/avr-updi",
+    fap_version="0.2",
+    fap_description="Program AVR microcontrollers over UPDI",
+)

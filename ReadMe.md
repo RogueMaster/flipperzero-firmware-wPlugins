@@ -46,6 +46,12 @@ This software is for experimental purposes only and is not meant for any illegal
 - Fixed: [Gallagher EM4305 write bit offset (By Firat17aze)](https://github.com/DarkFlippers/unleashed-firmware/pull/1217)
 - Added: [GTA VI Cheats v0.2 (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/tree/420/applications/external/gta_vi_cheats)
 - Sub-GHz: [Open saved RAW captures in RAW Edit from the More menu (By Lechnio)](https://github.com/DarkFlippers/unleashed-firmware/pull/1221)
+- Sub-GHz: [Ignore unsupported bits in saved receiver filters (By Lechnio)](https://github.com/DarkFlippers/unleashed-firmware/pull/1220)
+- Games: [Add Optimal Blackjack v1.0, a basic strategy and card-counting trainer. (By Optimal Blackjack)](https://github.com/flipperdevices/flipper-application-catalog/pull/1411)
+- GPIO: [Add AVR UPDI v0.2 for programming AVR microcontrollers. (By gztproject)](https://github.com/flipperdevices/flipper-application-catalog/pull/1413)
+- GPIO: [Add SIM800 v1.0 and open saved contacts from the Archive Phone tab. (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/62ed7711ef072a9d0929225b74c68838fbb779e2)
+- Games: [Update Tetris to v1.7 with a ghost piece, hard drop, and lock delay. (By PurelyAndy)](https://github.com/xMasterX/all-the-plugins/pull/284)
+- Sub-GHz: [Fix the Enhanced Sub-GHz Chat MemManage crash on launch. (By mishamyte)](https://github.com/xMasterX/all-the-plugins/pull/285)
 
 <a name="release"></a>
 
@@ -286,6 +292,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Network Defender v1.2.1 (By w84death)](https://github.com/w84death/network-defender)
 - [Nu Pogodi! (Ну, погоди!) v1.3 (By sionyx)](https://github.com/sionyx/flipper_nupogodi)
 - [NW Crawl v0.4 (By rseufert)](https://github.com/rseufert/nw_crawl)
+- [Optimal Blackjack v1.0 (By Optimal Blackjack)](https://github.com/blackjackprostudio/optimal-blackjack-flipper) - Blackjack strategy and card-counting trainer
 - [Oregon Trail v0.1 (By jlaughter)](https://github.com/jlaughter/flipper_oregon_trail)
 - [P1X Adventure v0.1 (By w84death)](https://github.com/w84death/flipper-zero-apps)
 - [P1X Your Own Adventure v0.1 (By w84death)](https://github.com/w84death/flipper-zero-apps)
@@ -341,7 +348,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Tanks v1.4 (By Alexgr13)](https://github.com/alexgr13/flipperzero-firmware/tree/fork/dev/applications/tanks-game)
 - [Tarot v0.2 (By pionaiki & tihyltew)](https://github.com/pionaiki/fz-tarot)
 - [Tetris Modern v1.5 (By Alloy-Lou)](https://github.com/Alloy-Lou/all-the-plugins/tree/dev/base_pack/tetris_modern_game)
-- [Tetris v1.6 (By jeffplang)](https://github.com/jeffplang/flipperzero-firmware/tree/tetris_game/applications/tetris_game)
+- [Tetris v1.7 (By jeffplang & PurelyAndy)](https://github.com/xMasterX/all-the-plugins/pull/284)
 - [Tic Tac Toe v1.3 (By gotnull)](https://github.com/gotnull/flipperzero-firmware-wPlugins)
 - [Tic-Tac-Toe Multi v1.1 (By RouNNdeL)](https://github.com/RouNNdeL/flipper-tictactoe-multi)
 - [Tower Defense v2.1 (By apfxtech)](https://github.com/apfxtech/FlipperTowerDefense)
@@ -399,6 +406,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Atomic Dice Roller v1.1 (By nmrr)](https://github.com/nmrr/flipperzero-atomicdiceroller)
 - [Authenticator/TOTP v5.19.0 (By akopachov)](https://github.com/akopachov/flipper-zero_authenticator)
 - [AVR Flasher v1.5 (By Skorpionm)](https://github.com/flipperdevices/flipperzero-firmware/pull/2475)
+- [AVR UPDI v0.2 (By gztproject)](https://github.com/gztproject/avr-updi) - AVR microcontroller programmer
 - [AZERTY Mouse Jacker v1.2 (By mothball187)](https://github.com/mothball187/flipperzero-nrf24/tree/main/mousejacker) `Req: NRF24` (Uses AZERTY keyboard - Source Unknown)
 - [Bad Duck3 v1.1 (By dutchpatriot)](https://github.com/dutchpatriot/all-the-plugins) - USB/BLE DuckyScript interpreter
 - [Bad KB (By WillyJL)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/pull/739) (Part of BadUSB)
@@ -962,6 +970,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Sig Diary WIP v0.1 (By C0d3-5t3w)](https://github.com/C0d3-5t3w/flipper-sigdiary) - RF/NFC/IR signal logger
 - [Signal Generator v1.2 (By nminaylov)-OFW](https://github.com/flipperdevices/flipperzero-firmware/pull/1793)
 - [SigRoam Wardriving v0.9.1 (By pingequalab)](https://github.com/pingequalab/sigroam-wardriving) `Req: ESP32`
+- [SIM800 v1.0 (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/62ed7711ef072a9d0929225b74c68838fbb779e2) `Req: SIM800 GSM module`
 - [Simultanious UHF RFID Reader v1.1.2 (By RileyHaffner)](https://github.com/haffnerriley/Simultaneous-UHF-RFID-FlipperZero) `Req: M6e Nano UHF RFID Reader & Raspberry Pi Zero`
 - [Skeleton App v1.1 (By jamisonderek)](https://github.com/jamisonderek/flipper-zero-tutorials/tree/main/ui/skeleton_app)
 - [SKIDcity v1.2 (By H4W9)](https://github.com/H4W9/SKIDcity_App) - Flipper myth-busting tutorials

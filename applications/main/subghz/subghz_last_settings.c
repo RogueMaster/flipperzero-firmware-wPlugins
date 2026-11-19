@@ -27,6 +27,12 @@
 #define SUBGHZ_LAST_SETTING_FIELD_TX_POWER          "TXPower"
 #define SUBGHZ_LAST_SETTING_FIELD_LED_AND_POWER_AMP "LedAndPowerAmp"
 
+// Keep the receiver's supported ignore filters, including RM Weather and TPMS.
+#define SUBGHZ_LAST_SETTING_IGNORE_FILTER_MASK                       \
+    (SubGhzProtocolFilter_ReversRB2 | SubGhzProtocolFilter_Alarms |  \
+     SubGhzProtocolFilter_Sensors | SubGhzProtocolFilter_Princeton | \
+     SubGhzProtocolFilter_NiceFlorS | SubGhzProtocolFilter_Weather | SubGhzProtocolFilter_TPMS)
+
 SubGhzLastSettings* subghz_last_settings_alloc(void) {
     SubGhzLastSettings* instance = malloc(sizeof(SubGhzLastSettings));
     return instance;
@@ -110,6 +116,8 @@ void subghz_last_settings_load(SubGhzLastSettings* instance, size_t preset_count
                    1)) {
                 flipper_format_rewind(fff_data_file);
             }
+            // Some settings files contain bits outside the receiver's ignore-filter enum.
+            instance->ignore_filter &= SUBGHZ_LAST_SETTING_IGNORE_FILTER_MASK;
             if(!flipper_format_read_uint32(
                    fff_data_file, SUBGHZ_LAST_SETTING_FIELD_FILTER, &instance->filter, 1)) {
                 flipper_format_rewind(fff_data_file);
