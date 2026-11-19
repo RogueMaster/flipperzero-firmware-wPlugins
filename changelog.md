@@ -8,6 +8,7 @@
 - *Decode* reports *Low memory* instead of crashing when free RAM is split into pieces too small for a decoder.
 - A file name too long for the top bar scrolls instead of losing its last letters.
 - *Decode*, *Save* and *Cut* no longer flash the main menu between their screens; *Decoding...* stays up until the list shows.
+- Loading a merge shows the same *Loading...* screen as loading a file.
 - A decoded entry has a *Locate* button that sets A..B exactly on its frame, the first one when it repeats.
 
 ## v1.9

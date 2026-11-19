@@ -147,8 +147,7 @@ typedef struct
     char status[80];
     uint32_t status_until;
 
-    bool loading;
-    bool saving;
+    const char *busy; // full-screen message while loading, decoding or saving
 
     int mode;
     int menu_sel;
@@ -2090,32 +2089,36 @@ static void draw_marker(Canvas *c, int x, bool active)
     }
 }
 
+static const char busy_loading[] = "Loading...";
+
+// Full-screen wait message, with the file name under it when there is one.
+static void draw_busy(Canvas *c, const char *text, const char *name)
+{
+    canvas_clear(c);
+    canvas_set_color(c, ColorBlack);
+    canvas_set_font(c, FontSecondary);
+    canvas_draw_str_aligned(c, 64, name ? 28 : 32, AlignCenter, AlignCenter, text);
+    if (name)
+        canvas_draw_str_aligned(c, 64, 40, AlignCenter, AlignCenter, name);
+}
+
 static void draw_cb(Canvas *c, void *ctx)
 {
     App *a = ctx;
     furi_mutex_acquire(a->mutex, FuriWaitForever);
 
+    if (a->busy)
+    {
+        char ln[20];
+        strlcpy(ln, a->basename, sizeof(ln));
+        draw_busy(c, a->busy, a->busy == busy_loading ? ln : NULL);
+        furi_mutex_release(a->mutex);
+        return;
+    }
+
     canvas_clear(c);
     canvas_set_color(c, ColorBlack);
     canvas_set_font(c, FontSecondary);
-
-    if (a->loading)
-    {
-        canvas_draw_str_aligned(c, SCREEN_H_PX, 28, AlignCenter, AlignCenter, "Loading...");
-        char ln[20];
-        strncpy(ln, a->basename, sizeof(ln) - 1);
-        ln[sizeof(ln) - 1] = '\0';
-        canvas_draw_str_aligned(c, 64, 40, AlignCenter, AlignCenter, ln);
-        furi_mutex_release(a->mutex);
-        return;
-    }
-
-    if (a->saving)
-    {
-        canvas_draw_str_aligned(c, 64, 34, AlignCenter, AlignCenter, "Saving...");
-        furi_mutex_release(a->mutex);
-        return;
-    }
 
     char total_time_str[14];
     fmt_time(a->sd.total_us, total_time_str, sizeof(total_time_str));
@@ -2701,14 +2704,14 @@ static void prompt_and_save(
 
     if (write)
     {
-        a->saving = true;
+        a->busy = "Saving...";
         view_port_update(vp);
 
         const char *p = furi_string_get_cstr(path);
         if (d ? write_decoded(st, a, dc, d, p) : write_selection(st, a, p))
             snprintf(a->status, sizeof(a->status), "Saved %s.sub", namebuf);
 
-        a->saving = false;
+        a->busy = NULL;
     }
 
     furi_string_free(path);
@@ -2932,7 +2935,7 @@ static void run_editor_session(
     App *app,
     bool auto_select)
 {
-    app->loading = false;
+    app->busy = NULL;
     app->opened_tick = furi_get_tick();
     if (auto_select)
     {
@@ -3159,7 +3162,7 @@ static void run_editor(Storage *storage, DialogsApp *dialogs, const char *file)
     FuriMessageQueue *queue = furi_message_queue_alloc(8, sizeof(InputEvent));
     view_port_draw_callback_set(vp, draw_cb, app);
     view_port_input_callback_set(vp, input_cb, queue);
-    app->loading = true;
+    app->busy = busy_loading;
     gui_add_view_port(gui, vp, GuiLayerFullscreen);
     view_port_update(vp);
 
@@ -3252,9 +3255,7 @@ cleanup:
 static void merge_loading_draw_cb(Canvas *c, void *ctx)
 {
     UNUSED(ctx);
-    canvas_clear(c);
-    canvas_set_font(c, FontPrimary);
-    canvas_draw_str_aligned(c, 64, 32, AlignCenter, AlignCenter, "Loading...");
+    draw_busy(c, busy_loading, NULL);
 }
 
 static DialogMessageButton merge_ask_more(DialogsApp *dialogs, int n, size_t total)
