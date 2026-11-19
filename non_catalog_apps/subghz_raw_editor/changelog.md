@@ -1,8 +1,19 @@
+## v1.9
+
+- New *Decode* action: decodes the A..B selection with the firmware's Sub-GHz decoders, groups identical frames and saves the chosen one as a key file.
+- Loading a rolling-code signal (KeeLoq, Nice Flor-S, ...) no longer bumps its counter on custom firmware.
+- A decoded frame is saved under its protocol and manufacturer name by default (e.g. KeeLoq_Verex, then KeeLoq_Verex_1, KeeLoq_Verex_2, ...).
+- Saving from a file like merge_edit1 suggests merge_edit2 instead of merge_edit1_edit1.
+- Saving under an existing name asks to overwrite it instead of refusing; the open file is never overwritten.
+- *Repeat each* shows its maximum (64).
+- The app can be launched with a .sub file path as argument and then opens it straight in the editor (used by Sub-GHz → More → Edit in Lechnio's Momentum fork).
+
+Note: the app now takes about 2 KB more RAM once loaded, so when free RAM (not the 24000-sample cap) limits loading, files can be about 1000 samples shorter.
+
 ## v1.8
 
+- Fixed Cut collapsing every gap longer than 32 ms in the whole capture.
 - Loading a non-RAW signal now offers a button picker for protocols that support custom buttons.
-- Allow merging without gaps (0ms gaps).
-- Fixed synchronization gap for static signals when merging.
 
 ## v1.7
 
