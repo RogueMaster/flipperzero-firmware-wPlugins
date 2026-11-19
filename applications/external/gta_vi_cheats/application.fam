@@ -1,0 +1,13 @@
+App(
+    appid="gta_vi_cheats",
+    name="GTA VI Cheats",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="gta_vi_cheats_app",
+    stack_size=2 * 1024,
+    fap_icon="icon.png",
+    fap_category="Tools",
+    fap_author="RogueMaster",
+    fap_weburl="https://github.com/RogueMaster/flipperzero-firmware-wPlugins/tree/420/applications/external/gta_vi_cheats",
+    fap_version="0.1",
+    fap_description="Offline GTA VI story-mode cheat reference for PS5 and Xbox",
+)
