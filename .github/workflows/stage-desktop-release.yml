@@ -1,0 +1,34 @@
+name: Stage verified desktop release assets
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing draft release tag
+        required: true
+        default: v0.5.1
+      run_id:
+        description: Successful cross-platform build run
+        required: true
+        default: "44538804629"
+      source_sha:
+        description: Exact source SHA of the build and draft
+        required: true
+        default: d8647c20e6e9a0f89dce9bfc79f6d4180ff8cc02
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  stage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify provenance, archives and source hashes; upload to draft only
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag }}
+          BUILD_RUN_ID: ${{ inputs.run_id }}
+          BUILD_SOURCE_SHA: ${{ inputs.source_sha }}
+        run: python -m scripts.stage_desktop_release
