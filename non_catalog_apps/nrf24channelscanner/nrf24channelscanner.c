@@ -115,7 +115,7 @@ static void input_callback(InputEvent* input_event, void* ctx) {
 }
 
 static int32_t scanner(void* context) {
-    UNUSED(context);
+    ViewPort* view_port = context;
     isScanning = true;
     stopNrfScan = false;
     threadStoppedsoFree = false;
@@ -138,12 +138,14 @@ static int32_t scanner(void* context) {
                 if(tmp > 0) nrf24values[i]++;
                 if(nrf24values[i] > 50) j = 254; //stop, bc maxed
             }
+            view_port_update(view_port);
         }
     }
     nrf24_set_idle(nrf24_HANDLE);
     isScanning = false;
     threadStoppedsoFree = true;
     currCh = 0;
+    view_port_update(view_port);
     return 0;
 }
 
@@ -219,6 +221,7 @@ int32_t nrf24channelscanner_main(void* p) {
                     furi_thread_set_name(thread, "nrfscannerth");
                     furi_thread_set_stack_size(thread, 1024);
                     furi_thread_set_callback(thread, scanner);
+                    furi_thread_set_context(thread, view_port);
                     furi_thread_start(thread);
                 } else {
                     ifNotFoundNrf = true;
@@ -249,6 +252,9 @@ int32_t nrf24channelscanner_main(void* p) {
             furi_thread_join(thread);
             furi_thread_free(thread);
         }
+        // The GUI only repaints what asks for it; a covered view port's request is dropped,
+        // so nothing else will ever redraw this screen for us
+        view_port_update(view_port);
     }
     nrf24_deinit();
 
