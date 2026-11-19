@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.5
+
+- Fix the launch crash on the Official firmware: the app-local copies of the firmware's private GUI structs were Unleashed-only, so on Official `bool was_drawn` put `draw_callback` at offset 16 instead of 12 and the hooked draw callback jumped to a garbage pointer, the same fault that 1.3 fixed for Unleashed
+- Split `struct ViewPort` and `struct ViewDispatcher` on `FW_ORIGIN_Official`, verified field by field against both firmware.elf DWARF layouts (Unleashed dev 000b238e, Official 1.5.1)
+- Add `_Static_assert`s on the offsets this app actually reads, so an edit to the copied structs fails the build instead of the device
+
 ## 1.4
 
 - Drop the bundled `lib/nfclegacy` compatibility library: the app no longer ships its own copy of the pre-rework NFC stack (ST25RFAL002 driver, `furi_hal_nfc`, `nfc_worker` and the MIFARE Ultralight protocol code) and no longer drives the ST25R3916 behind the firmware's back

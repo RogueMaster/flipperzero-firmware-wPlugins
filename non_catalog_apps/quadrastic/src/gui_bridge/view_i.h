@@ -23,6 +23,7 @@
 #pragma once
 
 #include <gui/view.h>
+#include <stddef.h>
 
 typedef struct {
     FuriMutex* mutex;
@@ -46,3 +47,21 @@ struct View {
     void* model;
     void* context;
 };
+
+/* This app reads draw_callback / input_callback / context straight out of a
+ * firmware-owned View, so this copy must stay byte-identical to the firmware's
+ * private struct View. The layout is the same on Unleashed dev 000b238e and
+ * Official 1.5.1, verified against each firmware.elf's DWARF (2026-11).
+ * Fail the build instead of the device if the copy is ever edited. */
+_Static_assert(
+    offsetof(struct View, draw_callback) == 0,
+    "struct View layout drifted: re-sync this copy against the firmware");
+_Static_assert(
+    offsetof(struct View, input_callback) == 4,
+    "struct View layout drifted: re-sync this copy against the firmware");
+_Static_assert(
+    offsetof(struct View, context) == 44,
+    "struct View layout drifted: re-sync this copy against the firmware");
+_Static_assert(
+    sizeof(struct View) == 48,
+    "struct View layout drifted: re-sync this copy against the firmware");

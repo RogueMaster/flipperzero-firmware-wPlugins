@@ -14,7 +14,7 @@ App(
     fap_icon="assets/chat_10px.png",
     fap_author="@twisted-pear & @xMasterX & more in ReadMe",
     fap_weburl="https://github.com/twisted-pear/esubghz_chat",
-    fap_version="1.4",
+    fap_version="1.5",
     fap_description="Send text messages over Sub-GHz radio to another Flippers",
     fap_icon_assets="assets",
     fap_icon_assets_symbol="esubghz_chat",
