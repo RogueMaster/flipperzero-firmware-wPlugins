@@ -7,6 +7,7 @@
 - *Cut* on a signal too big for an Undo copy asks *No RAM for Undo. Cut anyway?* instead of refusing.
 - *Decode* reports *Low memory* instead of crashing when free RAM is split into pieces too small for a decoder.
 - A file name too long for the top bar scrolls instead of losing its last letters.
+- A decoded entry has a *Locate* button that sets A..B exactly on its frame, the first one when it repeats.
 
 ## v1.9
 

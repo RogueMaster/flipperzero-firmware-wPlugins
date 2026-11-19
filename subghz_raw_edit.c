@@ -101,6 +101,7 @@ static_assert(LINE2_BASE <= SCREEN_H_PX);
 #define DECODE_LEAD_MIN_US 2000
 #define DECODE_LEAD_MAX_US DUR_CLAMP
 #define DECODE_LEAD_US 18500
+#define DECODE_START_TRIES 32 // Locate: bursts tried back from the end of a frame
 #define DECODE_HEAP_RESERVE 10240 // contiguous: the biggest decoder (BinRAW) takes ~8.8 KB
 #define DECODE_KEYS_HEAP 32768
 
@@ -1537,6 +1538,7 @@ typedef struct
     uint32_t hash;
     uint16_t frames;
     char key[18];
+    uint32_t first, last; // samples of the entry's first frame: its first and last pulse
 } Decoded;
 
 typedef struct
@@ -1548,7 +1550,11 @@ typedef struct
     size_t n;
     const Decoded *want; // replay mode: stop at the first frame matching this entry
     FuriString *text;
+    const int16_t *data;
+    size_t run, run_end; // the run being fed: samples [run, run_end)
+    uint32_t run_gap;    // its length when it is a gap, else 0
     bool hit;
+    size_t hit_last; // replay: last pulse of the frame that hit
     bool oom;
 } DecodeCtx;
 
@@ -1601,7 +1607,10 @@ static void decode_rx_cb(SubGhzProtocolDecoderBase *dec, void *ctx)
     if (dc->want)
     {
         if (h == dc->want->hash)
+        {
             dc->hit = true;
+            dc->hit_last = dc->run_gap ? dc->run - 1 : dc->run_end - 1;
+        }
 
         return;
     }
@@ -1623,6 +1632,55 @@ static void decode_rx_cb(SubGhzProtocolDecoderBase *dec, void *ctx)
     Decoded *d = &dc->list[dc->n++];
     *d = (Decoded){.proto = dec->protocol, .hash = h, .frames = 1};
     decoded_key(furi_string_get_cstr(dc->text), d->key, sizeof(d->key));
+
+    /* Where the frame lies, for Locate. A decoder reports a frame once the
+     * run that completes it - usually the gap after it - is fed, so the last
+     * pulse is known. Its start is not reported: take the pulse after the
+     * latest gap at least half as long as the one closing the frame (or as
+     * the signal's guard), which skips gaps inside the frame such as the
+     * header gap of KeeLoq. A high run that long ends the search too: it is
+     * a carrier or a stuck receiver, not a pulse of the frame. */
+    d->last = dc->run_gap ? dc->run - 1 : dc->run_end - 1;
+    uint32_t thr = (dc->run_gap >= DECODE_LEAD_MIN_US ? dc->run_gap : dc->lead_us) / 2;
+    uint32_t low = 0, high = 0;
+    size_t after = d->last;
+    d->first = d->last;
+    for (size_t i = d->last; i-- > dc->i0;)
+    {
+        int16_t v = dc->data[i];
+        if (v <= 0)
+        {
+            low += -v;
+            high = 0;
+            continue;
+        }
+
+        if (low >= thr)
+            break;
+
+        if (!high)
+            after = d->first;
+
+        low = 0;
+        high += v;
+        if (high >= thr)
+        {
+            d->first = after;
+            break;
+        }
+
+        d->first = i;
+    }
+}
+
+// Feed one level run [run, end) - extra is silence added past the selection.
+static void decode_feed(const SubGhzProtocol *p, SubGhzProtocolDecoderBase *dec, DecodeCtx *dc, bool level,
+                        uint32_t dur, uint32_t extra, size_t run, size_t end)
+{
+    dc->run = run;
+    dc->run_end = end;
+    dc->run_gap = level ? 0 : dur;
+    p->decoder->feed(dec, level, dur + extra);
 }
 
 // Feed A..B to one protocol's decoder as level/duration runs. Stops right after
@@ -1637,14 +1695,16 @@ static SubGhzProtocolDecoderBase *decode_run(const App *a, const SubGhzProtocol 
 
     bool level = a->sd.data[dc->i0] > 0;
     uint32_t dur = 0;
+    size_t run = dc->i0;
     for (size_t i = dc->i0; i <= dc->i1 && !dc->hit; i++)
     {
         int16_t v = a->sd.data[i];
         if ((v > 0) != level)
         {
-            p->decoder->feed(dec, level, dur);
+            decode_feed(p, dec, dc, level, dur, 0, run, i);
             level = v > 0;
             dur = 0;
+            run = i;
         }
 
         dur += iabs32(v);
@@ -1653,12 +1713,13 @@ static SubGhzProtocolDecoderBase *decode_run(const App *a, const SubGhzProtocol 
     // Close the last frame with a long silence so end-of-packet logic fires.
     if (!dc->hit && level)
     {
-        p->decoder->feed(dec, true, dur);
+        decode_feed(p, dec, dc, true, dur, 0, run, dc->i1 + 1);
         dur = 0;
+        run = dc->i1 + 1;
     }
 
     if (!dc->hit)
-        p->decoder->feed(dec, false, dur + DECODE_TAIL_US);
+        decode_feed(p, dec, dc, false, dur, DECODE_TAIL_US, run, dc->i1 + 1);
 
     return dec;
 }
@@ -1720,6 +1781,91 @@ static SubGhzProtocolDecoderBase *decoded_replay(const App *a, DecodeCtx *dc, co
 
     d->proto->decoder->free(dec);
     return NULL;
+}
+
+/* The start decode_rx_cb guesses from gap lengths goes wrong both ways: a gap
+ * inside the frame half as long as the one closing it cuts it short (KeeLoq's
+ * 10 Te header gap before a short guard: no preamble, so it does not decode
+ * again), and a guard shorter than that half lets in whatever came before.
+ * Let d's own decoder say instead: the frame starts at the latest burst (pulses
+ * between gaps of at least DECODE_LEAD_MIN_US) from which d's frame comes out
+ * again - as this one, not an identical frame before it. The guess stays when
+ * none does. */
+static void decoded_start(const App *a, DecodeCtx *dc, Decoded *d)
+{
+    size_t i0 = dc->i0, i1 = dc->i1, j = d->last + 1;
+    for (int tries = 0; tries < DECODE_START_TRIES && j > i0; tries++)
+    {
+        // Back over the burst ending at j - 1, to the gap before it
+        size_t start = j;
+        for (uint32_t low = 0; j > i0; j--)
+        {
+            int16_t v = a->sd.data[j - 1];
+            if (v > 0)
+            {
+                low = 0;
+                start = j - 1;
+            }
+            else if ((low += -v) >= DECODE_LEAD_MIN_US)
+                break;
+        }
+
+        dc->i0 = start;
+        dc->i1 = d->last;
+        SubGhzProtocolDecoderBase *dec = decoded_replay(a, dc, d);
+        if (dec)
+        {
+            d->proto->decoder->free(dec);
+            if (dc->hit_last == d->last)
+                d->first = start;
+
+            break;
+        }
+
+        while (j > i0 && a->sd.data[j - 1] <= 0)
+            j--;
+    }
+
+    dc->i0 = i0;
+    dc->i1 = i1;
+}
+
+// Move A..B onto d's first frame, found while decoding, plus part of the
+// trailing gap as auto_detect keeps.
+static void decoded_locate(App *a, DecodeCtx *dc, Decoded *d)
+{
+    decoded_start(a, dc, d);
+
+    int32_t t = 0, t_a = 0, t_b = 0, gap = 0;
+    for (size_t i = 0; i < a->sd.count; i++)
+    {
+        if (i == d->first)
+            t_a = t;
+
+        t += iabs32(a->sd.data[i]);
+        if (i == d->last)
+            t_b = t;
+        else if (i > d->last)
+        {
+            if (a->sd.data[i] > 0)
+                break;
+
+            gap = t - t_b;
+        }
+    }
+
+    if (gap > GAP_KEEP_MAX_US)
+        gap = GAP_KEEP_MAX_US;
+
+    int32_t pad = (t_b - t_a) / 6 + 500;
+    furi_mutex_acquire(a->mutex, FuriWaitForever);
+    a->marker_a = t_a;
+    a->marker_b = t_b + gap;
+    a->view_start = t_a - pad * 3;
+    a->view_end = a->marker_b + pad * 3;
+    clamp_view(a);
+    recompute_activity(a);
+    furi_mutex_release(a->mutex);
 }
 
 // The firmware serializer takes the short preset names the Sub-GHz app uses.
@@ -2451,6 +2597,7 @@ static void button_ok_cb(GuiButtonType button, InputType type, void *ctx)
         return;
 
     p->confirmed = button != GuiButtonTypeLeft;
+    p->index = button;
     view_dispatcher_stop(p->vd);
 }
 
@@ -2578,27 +2725,30 @@ static void prompt_and_save(
     view_port_update(vp);
 }
 
-// Full description of one decoded entry. Returns true when Save was pressed.
-static bool decoded_show(Gui *gui, const App *a, DecodeCtx *dc, const Decoded *d)
+// Full description of one decoded entry. Returns the button pressed (Left:
+// Locate, Right: Save) or -1 for Back.
+static int decoded_show(Gui *gui, const App *a, DecodeCtx *dc, const Decoded *d)
 {
     SubGhzProtocolDecoderBase *dec = decoded_replay(a, dc, d);
     if (!dec)
-        return false;
+        return -1;
 
     dec->protocol->decoder->free(dec);
     furi_string_replace_all(dc->text, "\r", "");
 
-    PromptCtx pc = {0};
+    PromptCtx pc = {.index = UINT32_MAX};
     Widget *w = widget_alloc();
     widget_add_text_scroll_element(w, 0, 0, 128, 50, furi_string_get_cstr(dc->text));
+    widget_add_button_element(w, GuiButtonTypeLeft, "Locate", button_ok_cb, &pc);
     widget_add_button_element(w, GuiButtonTypeRight, "Save", button_ok_cb, &pc);
-    bool ok = prompt_run(gui, &pc, widget_get_view(w));
+    prompt_run(gui, &pc, widget_get_view(w));
     widget_free(w);
-    return ok;
+    return pc.index == UINT32_MAX ? -1 : (int)pc.index;
 }
 
-// List of decoded entries (skipped for a single one). Returns the entry to save or -1.
-static int32_t decoded_browse(Gui *gui, const App *a, DecodeCtx *dc)
+// List of decoded entries (skipped for a single one). Returns the entry picked
+// for Save, or for Locate with *locate set, or -1.
+static int32_t decoded_browse(Gui *gui, const App *a, DecodeCtx *dc, bool *locate)
 {
     uint32_t sel = 0;
     while (true)
@@ -2631,8 +2781,12 @@ static int32_t decoded_browse(Gui *gui, const App *a, DecodeCtx *dc)
             sel = pc.index;
         }
 
-        if (decoded_show(gui, a, dc, &dc->list[sel]))
+        int button = decoded_show(gui, a, dc, &dc->list[sel]);
+        if (button >= 0)
+        {
+            *locate = button == GuiButtonTypeLeft;
             return (int32_t)sel;
+        }
 
         if (dc->n == 1)
             return -1;
@@ -2656,6 +2810,7 @@ static void do_decode_action(Gui *gui, ViewPort *vp, FuriMessageQueue *queue, St
         dc.i0++;
 
     dc.lead_us = decode_lead_us(a, dc.i0, dc.i1);
+    dc.data = a->sd.data;
 
     if (memmgr_heap_get_max_free_block() < DECODE_HEAP_RESERVE + DECODE_MAX * sizeof(Decoded))
     {
@@ -2682,10 +2837,11 @@ static void do_decode_action(Gui *gui, ViewPort *vp, FuriMessageQueue *queue, St
 
     a->status_until = 0;
     int32_t save = -1;
+    bool locate = false;
     if (dc.n)
     {
         gui_remove_view_port(gui, vp);
-        save = decoded_browse(gui, a, &dc);
+        save = decoded_browse(gui, a, &dc, &locate);
         gui_add_view_port(gui, vp, GuiLayerFullscreen);
         furi_message_queue_reset(queue);
     }
@@ -2695,7 +2851,13 @@ static void do_decode_action(Gui *gui, ViewPort *vp, FuriMessageQueue *queue, St
         a->status_until = furi_get_tick() + 1500;
     }
 
-    if (save >= 0)
+    if (save >= 0 && locate)
+    {
+        decoded_locate(a, &dc, &dc.list[save]);
+        snprintf(a->status, sizeof(a->status), "Located");
+        a->status_until = furi_get_tick() + 1500;
+    }
+    else if (save >= 0)
         prompt_and_save(gui, vp, queue, st, a, &dc, &dc.list[save]);
 
     furi_string_free(dc.text);

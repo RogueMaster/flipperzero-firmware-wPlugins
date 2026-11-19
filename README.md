@@ -80,7 +80,8 @@ The app lets you choose which custom button to use, if its protocol supports the
     many frames decodes in one go: identical frames of one protocol are grouped
     into a single entry with an `xN` count. Pick an entry to see its full
     description (key, serial, button, counter, ...) and press *Save* to store it
-    as a regular Sub-GHz key file that the Sub-GHz app can emulate.
+    as a regular Sub-GHz key file that the Sub-GHz app can emulate, or *Locate*
+    to move A..B onto that frame (the first one of an `xN` group).
   - *Cut* removes everything between the markers from the in-RAM working copy
     and joins the two sides back together, so you can delete a noisy stretch or
     an unwanted frame and keep editing. Nothing is written to the card until you
@@ -146,7 +147,8 @@ marked with `>` in the bottom bar. The other marker is dotted.
      *Name exists, overwrite?*; the file currently open is never overwritten.
    - **Decode** - every known protocol found in A..B is listed (skipped when
      there is only one); choose an entry, read its details and press **Save**
-     to write it as a key file. The suggested name is the protocol and, for
+     to write it as a key file, or **Locate** to set A..B exactly on its first
+     frame (B keeps a bit of the gap after it). The suggested name is the protocol and, for
      KeeLoq, its manufacturer (`KeeLoq_Verex`, then `KeeLoq_Verex_1`, `_2`, ...).
      Shows *No known protocol* when nothing decodes.
    - **Cut** - the stretch between A and B is removed from the working copy and
