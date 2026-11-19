@@ -41,9 +41,14 @@ outside the MVP.
 Find **Internet Bridge** under **Apps → Tools**. Desktop helpers retain the
 **Flipper Internet Bridge** name. The category is shared
 by both connection modes; the application ID and FAP filename remain unchanged.
-This describes version 0.5.0. Apps Catalog updates become available after the
+This describes version 0.5.1. Apps Catalog updates become available after the
 maintainers approve and merge the version's submission.
 See [0.5.0 release checks and remaining hardware limits](docs/release-validation-0.5.0.md).
+
+Version **0.5.1** fixes portable USB discovery and noisy-port scanning. Windows
+and Linux users should update their desktop helper; no USB/network driver or
+administrator helper is introduced. The FAP ID and data locations stay unchanged.
+An updated FAP version may require fresh internet consent; pairing is not reset.
 
 First choose USB Internet Bridge or Bluetooth Internet Bridge. Their shared menu:
 

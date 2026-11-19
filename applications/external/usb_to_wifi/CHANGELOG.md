@@ -1,3 +1,17 @@
+## v0.5.1 (2026-11-19)
+
+- Fix portable desktop USB discovery to use official Flipper VID/PID
+  `0483:5740`, shared by single and dual CDC; HELLO identifies the bridge.
+- Recognize generic Windows serial-device names by hardware identity in the
+  CLI, while retaining name hints only when USB metadata is unavailable.
+- Enforce the initial HELLO deadline even when a wrong port continuously sends
+  unrelated bytes, allowing scanning to continue to the correct CDC port.
+- Add regression coverage for real USB IDs, generic COM names, unrelated USB
+  devices and noisy-port recovery. Preserve explicit consent, pairing, protocol
+  identity checks, radio behavior and all Toolbox tools.
+- Include bounded transport-error details in portable desktop diagnostics.
+- Build/test the native macOS release on a clean Apple Silicon CI runner.
+
 ## v0.5.0 (2026-10-09)
 
 - Keep currency amount-editor copies explicitly bounded for newer compilers.

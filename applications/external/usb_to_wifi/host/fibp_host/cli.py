@@ -226,6 +226,11 @@ def serve_port(
     handshaken = False
     try:
         while stop is None or not stop.is_set():
+            # Only a validated HELLO completes probing. Debug/CLI chatter must
+            # not keep us on the wrong CDC port forever.
+            if not handshaken and time.monotonic() - connected_at >= handshake_timeout:
+                host.debug("HELLO deadline expired; trying the next serial candidate")
+                return False
             # Desktop commands run on the transport owner, never the GUI thread.
             if on_tick is not None:
                 _write_frames(connection, on_tick(host), host.verbose)
@@ -244,11 +249,6 @@ def serve_port(
             if host.session.permission_pending:
                 _write_frames(connection, host.resolve_permission(), host.verbose)
             if not data:
-                if (
-                    not handshaken
-                    and time.monotonic() - connected_at >= handshake_timeout
-                ):
-                    return False
                 continue
             for frame in decoder.feed(data):
                 host.debug(
