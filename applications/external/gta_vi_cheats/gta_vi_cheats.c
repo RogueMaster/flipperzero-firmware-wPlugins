@@ -140,7 +140,11 @@ static void gta_detail(GtaApp* app, const GtaCheat* cheat) {
         furi_string_cat_printf(app->content, "No verified code for this platform.\n\n");
     }
     furi_string_cat_printf(
-        app->content, "Effect / unlock:\n%s\n\nSource / status:\n%s", cheat->effect, cheat->status);
+        app->content,
+        "Unlock requirement:\n%s\n\nEffect:\n%s\n\nSource / status:\n%s",
+        cheat->unlock,
+        cheat->effect,
+        cheat->status);
     if(sequence[0]) {
         furi_string_cat_printf(
             app->content,

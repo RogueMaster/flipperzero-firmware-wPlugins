@@ -8,6 +8,7 @@ typedef struct {
     const char* ps5;
     const char* xbox;
     const char* effect;
+    const char* unlock;
     const char* status;
 } GtaCheat;
 

@@ -35,7 +35,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Dolphin Dash v0.1 (By Rasul Kireev)](https://github.com/rasulkireev/dolphin-dash) - Three-lane bubble collection and reef dodging
 - CFW Settings: [Fix spoof remount lifetime and avoid persisting the real OTP name as a spoof (By lewisQ17)](https://github.com/lewisQ17/Momentum-Firmware/commit/3f932590d6cf877f3ce4a13bc05cb32ead290fd0)
 - GPIO: [Show all 13 non-debug pins in the Logic Monitor with a compact three-column layout (By lewisQ17)](https://github.com/lewisQ17/Momentum-Firmware/commit/e0f4d9b46e3fe784d6fce3308d0b2bc54b3ef084)
-- Fixed: [Gallagher EM4305 write bit offset (By Firat17aze)](https://github.com/DarkFlippers/unleashed-firmware/pull/1217)
 - BadUSB MSC: [Reject out-of-image READ/WRITE ranges and cap the exposed medium to 32-bit file offsets (By lewisQ17)](https://github.com/lewisQ17/Momentum-Firmware/commit/e96bf19deed56e35b630ab272d2c4a30efaea18c)
 - GPIO SFP: [Compact reserved connector entries and bound connector-name copies (By lewisQ17)](https://github.com/lewisQ17/Momentum-Firmware/commit/fc64db47d71832728a037f18aaee2c5d4362e5ac)
 - Updated: [Amiibo Emulator v1.2 (By Soap-n-Cartridge)](https://github.com/Soap-n-Cartridge/flipper_amiibo)
@@ -44,7 +43,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Zero Buster v1.1 (By DonJulve)](https://github.com/DonJulve/Zero_Buster)
 - Sub-GHz: [Validate incoming Feron LED remote checksums and recalculate them before transmission (By Lechnio)](https://github.com/DarkFlippers/unleashed-firmware/pull/1219)
 - Updated: [Sub-GHz RAW Edit v1.9 (By Lechnio)](https://github.com/Lechnio/SubGHz-RAW-Edit)
-- Added: [GTA VI Cheats v0.1 (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/tree/420/applications/external/gta_vi_cheats)
+- Fixed: [Gallagher EM4305 write bit offset (By Firat17aze)](https://github.com/DarkFlippers/unleashed-firmware/pull/1217)
+- Added: [GTA VI Cheats v0.2 (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/tree/420/applications/external/gta_vi_cheats)
 
 <a name="release"></a>
 
@@ -654,7 +654,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [GPS v1.5 (By ezod)](https://github.com/ezod/flipperzero-gps) `Req: NMEA 0183`
 - [Gree AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
 - [GS1 Parser v0.2 (By kdiller713)](https://github.com/kdiller713/public-FlipperApps/tree/main/gs1_rfid_parser) `Req: U107 or YRM100`
-- [GTA VI Cheats v0.1 (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/tree/420/applications/external/gta_vi_cheats)
+- [GTA VI Cheats v0.2 (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/tree/420/applications/external/gta_vi_cheats)
 - [Guido Music Score Reader v0.1 (By fgreil)](https://github.com/fgreil/mitzi-guido)
 - [Guitar Chords v1.0 (By KingBoa / NoodleNugget-com)](https://github.com/NoodleNugget-com/flipper-guitar-chords)
 - [H1030L Writer v1.3 (By Zacvr)](https://github.com/Zacvr/h10301_writer)
