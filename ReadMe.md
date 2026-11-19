@@ -56,6 +56,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - GPIO: [Rework nRF24 Channel Scanner with a 128-channel activity plot, adjustable dwell, and rate-limited redraws. (By xMasterX)](https://github.com/xMasterX/all-the-plugins/commit/cb339f82d2d0855313183920f0154d9fdb665e5a)
 - Updated: [GTA VI Cheats v0.3 (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/tree/420/applications/external/gta_vi_cheats)
 - Updated: [Internet Bridge v0.5.1 (By mete888)](https://github.com/mete888/flipper_usb_to_wifi)
+- Added: [ServoMotor v1.0 (By alcdaniel)](https://github.com/alcdaniel/flipper-servo-tester-hw)
+- Added: [UART Logger v1.0 (By 2p4g0)](https://github.com/2p4g0/flipper-uart-logger)
 
 <a name="release"></a>
 
@@ -966,6 +968,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Seos compatible v1.3 (By bettse)](https://github.com/bettse/seos_compatible) - Access credential reader/emulator
 - [Serial Chat v1.0 (By Osman Gokce)](https://github.com/osmangokc/flipper_serial_chat)
 - [Servo Tester+ v0.5 (By Enlighten Tech)](https://github.com/gbhobbytech/flipper-servo-tester)
+- [ServoMotor v1.0 (By alcdaniel)](https://github.com/alcdaniel/flipper-servo-tester-hw)
 - [ServoTester (2) v0.2 (By mhasbini)](https://github.com/mhasbini/ServoTesterApp)
 - [Servotester v1.2 (By spin7ion)](https://github.com/spin7ion/flipper-servotester)
 - [SH1106 Test v0.5 (By gbhobbytech & martinbogo)](https://github.com/gbhobbytech/ssd1306_test) `Req: SH1106 OLED`
@@ -1063,6 +1066,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [u-blox GPS v0.5 (By liamhays)](https://github.com/liamhays/ublox)
 - [U2F over NFC v1.0 (By asaldele1)](https://github.com/asaldele1/u2f_over_nfc)
 - [UART Echo (By DrZlo13)-OFW](https://github.com/flipperdevices/flipperzero-firmware/pull/831)
+- [UART Logger v1.0 (By 2p4g0)](https://github.com/2p4g0/flipper-uart-logger)
 - [UART Sniff v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
 - [UART Terminal v1.7 (By cool4uma)](https://github.com/cool4uma/UART_Terminal)
 - [UDECard v1.0.4 (By hahnworks)](https://github.com/hahnworks/UDECard) - Duisburg-Essen student card reader
