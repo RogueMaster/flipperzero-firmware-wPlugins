@@ -45,6 +45,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Sub-GHz RAW Edit v1.9 (By Lechnio)](https://github.com/Lechnio/SubGHz-RAW-Edit)
 - Fixed: [Gallagher EM4305 write bit offset (By Firat17aze)](https://github.com/DarkFlippers/unleashed-firmware/pull/1217)
 - Added: [GTA VI Cheats v0.2 (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/tree/420/applications/external/gta_vi_cheats)
+- Sub-GHz: [Open saved RAW captures in RAW Edit from the More menu (By Lechnio)](https://github.com/DarkFlippers/unleashed-firmware/pull/1221)
 
 <a name="release"></a>
 

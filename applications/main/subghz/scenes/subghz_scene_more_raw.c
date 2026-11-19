@@ -1,14 +1,33 @@
 #include "../subghz_i.h"
+#include <flipper_application/flipper_application.h>
+#include <loader/firmware_api/firmware_api.h>
+#include <loader/loader.h>
+
+#define SUBGHZ_RAW_EDITOR_PATH        EXT_PATH("apps/Sub-GHz/subghz_raw_edit.fap")
+#define SUBGHZ_RAW_EDITOR_MIN_VERSION ((1U << 16) | 9U)
 
 enum SubmenuIndex {
     SubmenuIndexDecode,
     SubmenuIndexEdit,
     SubmenuIndexDelete,
+    SubmenuIndexRawEditor,
 };
 
 void subghz_scene_more_raw_submenu_callback(void* context, uint32_t index) {
     SubGhz* subghz = context;
     view_dispatcher_send_custom_event(subghz->view_dispatcher, index);
+}
+
+static bool subghz_scene_more_raw_editor_available(void) {
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    FlipperApplication* app = flipper_application_alloc(storage, firmware_api_interface);
+    bool available = flipper_application_preload_manifest(app, SUBGHZ_RAW_EDITOR_PATH) ==
+                         FlipperApplicationPreloadStatusSuccess &&
+                     flipper_application_get_manifest(app)->app_version >=
+                         SUBGHZ_RAW_EDITOR_MIN_VERSION;
+    flipper_application_free(app);
+    furi_record_close(RECORD_STORAGE);
+    return available;
 }
 
 void subghz_scene_more_raw_on_enter(void* context) {
@@ -20,6 +39,15 @@ void subghz_scene_more_raw_on_enter(void* context) {
         SubmenuIndexDecode,
         subghz_scene_more_raw_submenu_callback,
         subghz);
+
+    if(subghz_scene_more_raw_editor_available()) {
+        submenu_add_item(
+            subghz->submenu,
+            "Edit",
+            SubmenuIndexRawEditor,
+            subghz_scene_more_raw_submenu_callback,
+            subghz);
+    }
 
     submenu_add_item(
         subghz->submenu,
@@ -51,6 +79,21 @@ bool subghz_scene_more_raw_on_event(void* context, SceneManagerEvent event) {
                 scene_manager_stop(subghz->scene_manager);
                 view_dispatcher_stop(subghz->view_dispatcher);
             }
+            return true;
+        }
+        if(event.event == SubmenuIndexRawEditor) {
+            // Let Sub-GHz exit before loading the editor and reopen it afterward.
+            Loader* loader = furi_record_open(RECORD_LOADER);
+            loader_enqueue_launch(
+                loader,
+                SUBGHZ_RAW_EDITOR_PATH,
+                furi_string_get_cstr(subghz->file_path),
+                LoaderDeferredLaunchFlagGui);
+            loader_enqueue_launch(loader, "Sub-GHz", NULL, LoaderDeferredLaunchFlagNone);
+            furi_record_close(RECORD_LOADER);
+
+            scene_manager_stop(subghz->scene_manager);
+            view_dispatcher_stop(subghz->view_dispatcher);
             return true;
         }
         scene_manager_set_scene_state(subghz->scene_manager, SubGhzSceneMoreRAW, event.event);
