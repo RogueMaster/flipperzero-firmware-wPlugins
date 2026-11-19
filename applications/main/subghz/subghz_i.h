@@ -42,6 +42,7 @@
 #include "helpers/subghz_txrx.h"
 #include "helpers/subghz_gps.h"
 #include "helpers/subghz_frequency_analyzer_plugin.h"
+#include "helpers/subghz_scene_plugin.h"
 
 #include <flipper_application/plugins/composite_resolver.h>
 #include <flipper_application/plugins/plugin_manager.h>
@@ -104,10 +105,12 @@ struct SubGhz {
     SubGhzRepeaterState repeater;
     bool repeater_bin_raw_was_off;
 
-    // Frequency Analyzer, resident only while its scene is on screen
+    // The analyzer and settings plugins are loaded only while their scenes are active.
     CompositeApiResolver* api_resolver;
     PluginManager* freq_analyzer_plugin_manager;
     const SubGhzFrequencyAnalyzerPlugin* freq_analyzer_plugin;
+    PluginManager* scene_plugin_manager;
+    const SubGhzScenePlugin* scene_plugin;
 
     uint16_t idx_menu_chosen;
     SubGhzLoadTypeFile load_type_file;

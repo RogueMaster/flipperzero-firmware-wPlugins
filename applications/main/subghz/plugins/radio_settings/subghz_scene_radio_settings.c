@@ -1,5 +1,6 @@
-#include "../subghz_i.h"
-#include "../helpers/subghz_custom_event.h"
+#include <subghz/subghz_i.h>
+#include <subghz/helpers/subghz_txrx_i.h>
+#include <subghz/helpers/subghz_custom_event.h>
 #include <lib/toolbox/value_index.h>
 #include <applications/drivers/subghz/cc1101_ext/cc1101_ext_interconnect.h>
 
@@ -122,7 +123,7 @@ static void subghz_scene_receiver_config_set_debug_pin(VariableItem* item) {
 
     variable_item_set_current_value_text(item, debug_pin_text[index]);
 
-    subghz_txrx_set_debug_pin_state(subghz->txrx, index == 1);
+    subghz->txrx->debug_pin_state = index == 1;
 }
 
 static void subghz_scene_receiver_config_set_ext_amp_leds_control(VariableItem* item) {
@@ -281,7 +282,7 @@ void subghz_scene_radio_settings_on_enter(void* context) {
         DEBUG_P_COUNT,
         subghz_scene_receiver_config_set_debug_pin,
         subghz);
-    value_index = subghz_txrx_get_debug_pin_state(subghz->txrx);
+    value_index = subghz->txrx->debug_pin_state;
     variable_item_set_current_value_index(item, value_index);
     variable_item_set_current_value_text(item, debug_pin_text[value_index]);
     variable_item_set_locked(
@@ -308,3 +309,5 @@ void subghz_scene_radio_settings_on_exit(void* context) {
     variable_item_list_set_selected_item(subghz->variable_item_list, 0);
     variable_item_list_reset(subghz->variable_item_list);
 }
+
+SUBGHZ_SCENE_PLUGIN_DEFINE(radio_settings)

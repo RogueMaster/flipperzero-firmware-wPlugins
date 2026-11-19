@@ -1,6 +1,7 @@
-#include "../subghz_i.h"
+#include <subghz/subghz_i.h>
+#include <subghz/helpers/subghz_txrx_i.h>
 #include "subghz/types.h"
-#include "../helpers/subghz_custom_event.h"
+#include <subghz/helpers/subghz_custom_event.h>
 #include <lib/toolbox/value_index.h>
 #include <machine/endian.h>
 #include <toolbox/strint.h>
@@ -67,7 +68,7 @@ static const Protocols protocols[] = {
 
 #define PROTOCOLS_COUNT (sizeof(protocols) / sizeof(Protocols));
 
-void subghz_scene_signal_settings_counter_mode_changed(VariableItem* item) {
+static void subghz_scene_signal_settings_counter_mode_changed(VariableItem* item) {
     uint8_t index = variable_item_get_current_value_index(item);
     variable_item_set_current_value_text(item, counter_mode_text[index]);
     counter_mode = counter_mode_value[index];
@@ -105,12 +106,13 @@ void subghz_scene_signal_settings_counter_mode_changed(VariableItem* item) {
     }
 }
 
-void subghz_scene_signal_settings_byte_input_callback(void* context) {
+static void subghz_scene_signal_settings_byte_input_callback(void* context) {
     SubGhz* subghz = context;
     view_dispatcher_send_custom_event(subghz->view_dispatcher, SubGhzCustomEventByteInputDone);
 }
 
-void subghz_scene_signal_settings_variable_item_list_enter_callback(void* context, uint32_t index) {
+static void
+    subghz_scene_signal_settings_variable_item_list_enter_callback(void* context, uint32_t index) {
     SubGhz* subghz = context;
 
     // when we click OK on "Edit counter" item
@@ -224,10 +226,10 @@ void subghz_scene_signal_settings_on_enter(void* context) {
     variable_item_set_locked(item, (counter_mode == 0xff), "Not available\nfor this\nprotocol !");
     //
 
-    SubGhzProtocolDecoderBase* decoder = subghz_txrx_get_decoder(subghz->txrx);
+    SubGhzProtocolDecoderBase* decoder = subghz->txrx->decoder_result;
 
     // deserialaze and decode loaded sugbhz file and push data to subghz_block_generic_global variable
-    if(subghz_protocol_decoder_base_deserialize(decoder, subghz_txrx_get_fff_data(subghz->txrx)) ==
+    if(subghz_protocol_decoder_base_deserialize(decoder, subghz->txrx->fff_data) ==
        SubGhzProtocolStatusOk) {
         subghz_protocol_decoder_base_get_string(decoder, tmp_text);
     } else {
@@ -304,14 +306,14 @@ bool subghz_scene_signal_settings_on_event(void* context, SceneManagerEvent even
                     // set new cnt value and override_flag to global variable and call transmit to generate and save subghz signal
                     counter16 = __bswap16(counter16);
                     subghz_block_generic_global_counter_override_set(counter16);
-                    subghz_tx_start(subghz, subghz_txrx_get_fff_data(subghz->txrx));
+                    subghz_tx_start(subghz, subghz->txrx->fff_data);
                     subghz_txrx_stop(subghz->txrx);
                     break;
                 case 4:
                     // the same for 32 bit Counter
                     counter32 = __bswap32(counter32);
                     subghz_block_generic_global_counter_override_set(counter32);
-                    subghz_tx_start(subghz, subghz_txrx_get_fff_data(subghz->txrx));
+                    subghz_tx_start(subghz, subghz->txrx->fff_data);
                     subghz_txrx_stop(subghz->txrx);
                     break;
                 default:
@@ -324,7 +326,7 @@ bool subghz_scene_signal_settings_on_event(void* context, SceneManagerEvent even
                 // save counter mult to rewrite subghz singnal without changing counter
                 int32_t tmp_counter = furi_hal_subghz_get_rolling_counter_mult();
                 furi_hal_subghz_set_rolling_counter_mult(0);
-                subghz_tx_start(subghz, subghz_txrx_get_fff_data(subghz->txrx));
+                subghz_tx_start(subghz, subghz->txrx->fff_data);
                 subghz_txrx_stop(subghz->txrx);
                 // restore counter mult
                 furi_hal_subghz_set_rolling_counter_mult(tmp_counter);
@@ -334,14 +336,8 @@ bool subghz_scene_signal_settings_on_event(void* context, SceneManagerEvent even
                 break;
             }
 
-            scene_manager_previous_scene(subghz->scene_manager);
+            // The host returns to the previous scene after this handler returns.
             return true;
-
-        } else {
-            if(event.type == SceneManagerEventTypeBack) {
-                scene_manager_previous_scene(subghz->scene_manager);
-                return true;
-            }
         }
     }
     return false;
@@ -359,3 +355,5 @@ void subghz_scene_signal_settings_on_exit(void* context) {
     byte_input_set_header_text(subghz->byte_input, "");
     furi_string_free(byte_input_text);
 }
+
+SUBGHZ_SCENE_PLUGIN_DEFINE(signal_settings)

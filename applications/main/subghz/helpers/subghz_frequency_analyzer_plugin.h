@@ -16,16 +16,6 @@ extern "C" {
 /** Unique string identifier for the Frequency Analyzer plugin. */
 #define SUBGHZ_FREQUENCY_ANALYZER_PLUGIN_APP_ID "SubGhzFrequencyAnalyzerPlugin"
 
-/**
- * @brief Currently supported plugin API version.
- *
- * Bump on any change to what the .fal compiles in: @c SubGhz or @c SubGhzLastSettings layout,
- * the signature of an exported symbol (the API hash covers the name only, so a changed signature
- * still resolves and then miscalls), or the values in @c SubGhzCustomEvent / @c SubGhzViewId.
- * Dropping an export needs no bump - the loader fails to resolve it on its own.
- */
-#define SUBGHZ_FREQUENCY_ANALYZER_PLUGIN_API_VERSION 420
-
 /** Frequency Analyzer plugin interface. Mirrors the scene handlers the app dispatches to. */
 typedef struct {
     /** Allocate the view, register it and switch to it, which starts the worker. */

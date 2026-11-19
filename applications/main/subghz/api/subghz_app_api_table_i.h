@@ -14,4 +14,18 @@ static constexpr auto subghz_app_api_table = sort(create_array_t<sym_entry>(
     API_METHOD(subghz_txrx_radio_device_get, SubGhzRadioDeviceType, (SubGhzTxRx*)),
     API_METHOD(subghz_txrx_get_setting, SubGhzSetting*, (SubGhzTxRx*)),
     API_METHOD(subghz_txrx_radio_device_is_frequency_valid, bool, (SubGhzTxRx*, uint32_t)),
-    API_METHOD(subghz_last_settings_save, bool, (SubGhzLastSettings*))));
+    API_METHOD(subghz_last_settings_save, bool, (SubGhzLastSettings*)),
+    // Saved signal settings reuse the app's existing file and radio paths.
+    API_METHOD(subghz_key_load, bool, (SubGhz*, const char*, bool)),
+    API_METHOD(subghz_tx_start, bool, (SubGhz*, FlipperFormat*)),
+    API_METHOD(subghz_txrx_stop, void, (SubGhzTxRx*)),
+    // Radio Settings retains RM's module polling, amplifier control and GPS selection.
+    API_METHOD(
+        subghz_txrx_radio_device_set,
+        SubGhzRadioDeviceType,
+        (SubGhzTxRx*, SubGhzRadioDeviceType)),
+    API_METHOD(subghz_txrx_radio_device_is_external_connected, bool, (SubGhzTxRx*, const char*)),
+    API_METHOD(subghz_txrx_radio_device_poll, bool, (SubGhzTxRx*)),
+    API_METHOD(subghz_txrx_set_ext_leds_and_amp, void, (SubGhzTxRx*, bool)),
+    API_METHOD(subghz_gps_plugin_init, SubGhzGPS*, (uint32_t)),
+    API_METHOD(subghz_gps_plugin_deinit, void, (SubGhzGPS*))));

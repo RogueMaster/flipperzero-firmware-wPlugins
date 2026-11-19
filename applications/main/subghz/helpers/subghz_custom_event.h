@@ -75,6 +75,7 @@ typedef enum {
 
     SubGhzCustomEventByteInputDone,
     SubGhzCustomEventNumberInputDone,
+    SubGhzCustomEventSceneSettingsMissing,
 } SubGhzCustomEvent;
 
 /* One entry per system, with no band in the name: Add Manually asks for the frequency and

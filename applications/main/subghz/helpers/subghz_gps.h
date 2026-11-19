@@ -43,6 +43,10 @@ struct SubGhzGPS {
     void (*cat_realtime)(SubGhzGPS* subghz_gps, FuriString* descr, float latitude, float longitude);
 };
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * Initialize SubGhzGPS plugin
  * Fails and returns NULL if Expansion is connected
@@ -58,3 +62,7 @@ SubGhzGPS* subghz_gps_plugin_init(uint32_t baudrate);
  * @return void
 */
 void subghz_gps_plugin_deinit(SubGhzGPS* subghz_gps);
+
+#ifdef __cplusplus
+}
+#endif
