@@ -3,6 +3,16 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 
+FLIPPER_USB_VENDOR_ID = 0x0483
+# Official firmware uses this SAME descriptor for single and dual CDC.
+# CDC interface metadata and a valid HELLO distinguish the bridge from the CLI.
+FLIPPER_USB_PRODUCT_ID = 0x5740
+
+
+def is_flipper_usb_device(port) -> bool:
+    return (getattr(port, "vid", None) == FLIPPER_USB_VENDOR_ID
+            and getattr(port, "pid", None) == FLIPPER_USB_PRODUCT_ID)
+
 
 @dataclass(frozen=True)
 class SerialCandidate:
@@ -27,7 +37,10 @@ def serial_candidates() -> list[SerialCandidate]:
             if value
         )
         searchable = f"{port.device} {description}".lower()
-        likely = "flipper" in searchable or "usbmodemflip" in searchable
+        has_usb_identity = (getattr(port, "vid", None) is not None
+                            or getattr(port, "pid", None) is not None)
+        likely = is_flipper_usb_device(port) if has_usb_identity else (
+            "flipper" in searchable or "usbmodemflip" in searchable)
         candidates.append(
             SerialCandidate(port.device, description or "serial device", likely)
         )

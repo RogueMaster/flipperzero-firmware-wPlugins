@@ -24,7 +24,7 @@ App(
     fap_icon="app.png",
     fap_category="Tools",
     fap_description="HTTPS bridge over USB or Bluetooth",
-    fap_version="0.5.0",
+    fap_version="0.5.1",
     fap_author="mete888",
     fap_weburl="https://github.com/mete888/flipper_internet_bridge",
 )

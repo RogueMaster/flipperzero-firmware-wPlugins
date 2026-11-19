@@ -18,6 +18,7 @@ from scripts.fibp_codec import MessageType, encode_permission_status
 from .cli import BridgeHost, serve_port
 from .permissions import PermissionStore
 from .session import PermissionDecision
+from .serial_ports import is_flipper_usb_device
 
 
 def display_text(value, maximum=160):
@@ -111,9 +112,9 @@ class DesktopHost(BridgeHost):
 
 
 def bridge_ports():
-    """Probe only Flipper dual-CDC VID/PID, never unrelated serial devices."""
+    """Probe official Flipper CDC devices; HELLO identifies the bridge port."""
     from serial.tools import list_ports
-    ports = [p.device for p in list_ports.comports() if p.vid == 0x0483 and p.pid == 0x5741]
+    ports = [p.device for p in list_ports.comports() if is_flipper_usb_device(p)]
     # The macOS CLI ends in 1 and bridge CDC in 3. Elsewhere this is only a
     # probe order; validated FIBP HELLO, not the port name, identifies the peer.
     return sorted(ports, key=lambda name: (not name.endswith("3"), name))
@@ -245,8 +246,9 @@ class ConnectionWorker:
                         self.host = host
                         try:
                             serve_port(port, host, stop=self.stop_event, on_tick=self.tick, on_update=self.update)
-                        except (OSError, RuntimeError):
-                            self.controller.log(self.link, "USB connection ended; waiting for device")
+                        except (OSError, RuntimeError) as error:
+                            self.controller.log(self.link,
+                                f"USB connection ended ({type(error).__name__}): {display_text(error)}")
                         finally:
                             host.close()
                             self.controller.prompts.cancel(self.owner)

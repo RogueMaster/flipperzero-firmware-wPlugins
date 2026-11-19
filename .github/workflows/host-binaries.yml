@@ -48,7 +48,7 @@ jobs:
         env:
           QT_QPA_PLATFORM: offscreen
       - if: runner.os == 'Windows'
-        run: python -m unittest tests.test_fibp_codec tests.test_host_network tests.test_host_permissions tests.test_host_session tests.test_host_transforms tests.test_toolbox_transforms tests.test_bluetooth_host tests.test_bluetooth_radio tests.test_radio_pcm tests.test_desktop_backend tests.test_desktop_gui tests.test_sdk_export tests.test_desktop_release_notices
+        run: python -m unittest tests.test_fibp_codec tests.test_host_network tests.test_host_permissions tests.test_host_session tests.test_host_transforms tests.test_toolbox_transforms tests.test_bluetooth_host tests.test_bluetooth_radio tests.test_radio_pcm tests.test_desktop_backend tests.test_desktop_gui tests.test_sdk_export tests.test_desktop_release_notices tests.test_serial_discovery
         env:
           QT_QPA_PLATFORM: offscreen
       - if: runner.os == 'Windows'

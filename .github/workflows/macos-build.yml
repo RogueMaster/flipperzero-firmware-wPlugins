@@ -1,0 +1,31 @@
+name: Native macOS helper
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "macos/**"
+      - "scripts/package_macos.sh"
+      - ".github/workflows/macos-build.yml"
+
+jobs:
+  macos:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify Apple Silicon toolchain and run native tests
+        run: |
+          test "$(uname -m)" = arm64
+          swift --version
+          swift test --package-path macos -Xswiftc -warnings-as-errors
+      - name: Build native release and verify the signed app and image
+        run: |
+          ./scripts/package_macos.sh
+          codesign --verify --deep --strict "dist/macos/Build.noindex/Flipper Internet Bridge.app"
+          hdiutil verify dist/macos/Flipper-Internet-Bridge.dmg
+          file "dist/macos/Build.noindex/Flipper Internet Bridge.app/Contents/MacOS/FlipperInternetBridge"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fib-bridge-macos-arm64
+          path: dist/macos/Flipper-Internet-Bridge.dmg

@@ -130,13 +130,13 @@ class DesktopBackendTests(unittest.TestCase):
         self.assertFalse(self.pairs.vault.values)
         self.assertTrue(self.permissions.contains(hello))
 
-    def test_port_discovery_excludes_other_devices_and_single_cdc_cli(self):
+    def test_port_discovery_uses_official_id_shared_by_both_cdc_ports(self):
         from types import SimpleNamespace
         ports = [SimpleNamespace(vid=0x0483, pid=0x5740, device="cli"),
-                 SimpleNamespace(vid=0x0483, pid=0x5741, device="/dev/cu.usbmodemflip_Mico3"),
-                 SimpleNamespace(vid=0x1234, pid=0x5741, device="unrelated")]
+                 SimpleNamespace(vid=0x0483, pid=0x5740, device="/dev/cu.usbmodemflip_Mico3"),
+                 SimpleNamespace(vid=0x1234, pid=0x5740, device="unrelated")]
         with patch("serial.tools.list_ports.comports", return_value=ports):
-            self.assertEqual(bridge_ports(), ["/dev/cu.usbmodemflip_Mico3"])
+            self.assertEqual(bridge_ports(), ["/dev/cu.usbmodemflip_Mico3", "cli"])
 
     def test_rapid_off_on_waits_for_the_still_closing_serial_owner(self):
         entered, release, second = threading.Event(), threading.Event(), threading.Event()
