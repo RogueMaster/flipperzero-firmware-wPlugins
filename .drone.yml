@@ -70,6 +70,7 @@ steps:
       - ls -laS artifacts-base
       - ls -laS artifacts-totp/plugins
       - rm -f artifacts-base/GPIO/gpio.fap
+      - rm -f artifacts-base/GPIO/sim800.fap
       - rm -f artifacts-base/iButton/ibutton.fap
       - rm -f artifacts-base/Infrared/infrared.fap
       - rm -f artifacts-base/NFC/nfc.fap
@@ -81,6 +82,7 @@ steps:
       - rm -f artifacts-base/Sub-GHz/nice_o_code.fap
       - rm -f artifacts-base/Sub-GHz/seed_capturer.fap
       - rm -f artifacts-base/Sub-GHz/remote_analyzer.fap
+      - rm -f artifacts-base/Sub-GHz/subghz_raw_edit.fap
       - rm -f artifacts-base/Tools/clock.fap
       - rm -f artifacts-base/USB/bad_usb.fap
       - rm -f artifacts-base/USB/u2f.fap
@@ -137,6 +139,7 @@ steps:
       - mv dist/f7-C/f7-update-local/resources/apps/* artifacts-extra/
       - ls -laS artifacts-extra
       - rm -f artifacts-extra/GPIO/gpio.fap
+      - rm -f artifacts-extra/GPIO/sim800.fap
       - rm -f artifacts-extra/iButton/ibutton.fap
       - rm -f artifacts-extra/Infrared/infrared.fap
       - rm -f artifacts-extra/NFC/nfc.fap
@@ -148,6 +151,7 @@ steps:
       - rm -f artifacts-extra/Sub-GHz/nice_o_code.fap
       - rm -f artifacts-extra/Sub-GHz/seed_capturer.fap
       - rm -f artifacts-extra/Sub-GHz/remote_analyzer.fap
+      - rm -f artifacts-extra/Sub-GHz/subghz_raw_edit.fap
       - rm -f artifacts-extra/Tools/clock.fap
       - rm -f artifacts-extra/USB/bad_usb.fap
       - rm -f artifacts-extra/USB/u2f.fap
