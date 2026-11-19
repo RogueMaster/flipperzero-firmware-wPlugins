@@ -1,4 +1,4 @@
-## Unreleased
+## v1.9
 
 - New *Decode* action: decodes the A..B selection with the firmware's Sub-GHz decoders, groups identical frames and saves the chosen one as a key file.
 - Loading a rolling-code signal (KeeLoq, Nice Flor-S, ...) no longer bumps its counter on custom firmware.
