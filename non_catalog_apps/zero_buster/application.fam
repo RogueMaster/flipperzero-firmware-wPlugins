@@ -1,0 +1,18 @@
+App(
+    appid="zero_buster",
+    name="Zero Buster",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="zero_buster_app",
+    requires=["gui", "storage", "notification"],
+    stack_size=4 * 1024,
+    sources=[
+        "*.c",
+        "!venv",
+    ],
+    fap_category="USB",
+    fap_version="1.3",
+    fap_icon="assets/icon.png",
+    fap_description="USB keyboard and serial communication utility with built-in script presets",
+    fap_author="Javier Julve (@DonJulve)",
+    fap_file_assets="assets",
+)

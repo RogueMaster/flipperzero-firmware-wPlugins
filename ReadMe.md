@@ -432,6 +432,7 @@ The Flipper and its community wouldn't be as rich as it is without your contribu
 | Better Mouse | ![USB Badge] | [by Timon-sys](https://github.com/Timon-sys/Bettermouse) | USB mouse remote with acceleration, diagonals, scroll & momentum | [![Author Badge]](https://lab.flipper.net/apps/bettermouse) |
 | USB Floppy | ![USB Badge] | [by piersroberts](https://github.com/piersroberts/flipperfloppy) | Emulates a USB floppy drive (UFI) from a 720K or 1.44M disk image on the SD card | ![None Badge] |
 | USB CD-ROM | ![USB Badge] | [by piersroberts](https://github.com/piersroberts/flippercd) | Emulates a USB CD/DVD-ROM drive from .iso images on the SD card | ![None Badge] |
+| USB Utility (Zero Buster) | ![USB Badge] | [by DonJulve](https://github.com/DonJulve/Zero_Buster) | Types a script as USB keyboard, then switches to CDC serial and logs the host reply to a timestamped file - stock BadUSB `.kl` layouts, spoofable VID/PID | ![None Badge] |
 
 
 #### Catalog links checked at `17 Feb 2026 00:01 GMT +3`
