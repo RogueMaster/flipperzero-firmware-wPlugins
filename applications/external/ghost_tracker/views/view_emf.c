@@ -235,7 +235,8 @@ static int32_t emf_worker(void* context) {
                 /* Re-zero against whatever ambient baseline this sensor/
                  * environment has right now, so only a CHANGE (e.g. a
                  * magnet approaching) reads as signal. */
-                emf_baseline_mv = emf_measure_average_mv(adc_handle, EMF_GPIO_BASELINE_SAMPLE_COUNT);
+                emf_baseline_mv =
+                    emf_measure_average_mv(adc_handle, EMF_GPIO_BASELINE_SAMPLE_COUNT);
             }
         }
 
@@ -348,7 +349,8 @@ static void emf_view_draw_callback(Canvas* canvas, void* model) {
         snprintf(val_buf, sizeof(val_buf), "%.1fmV", (double)m->display_value);
     }
     canvas_draw_str_aligned(canvas, w / 2, h - 19, AlignCenter, AlignBottom, "UP/DN:CAL");
-    canvas_draw_str_aligned(canvas, w / 2, h - 10, AlignCenter, AlignBottom, level_words[m->level]);
+    canvas_draw_str_aligned(
+        canvas, w / 2, h - 10, AlignCenter, AlignBottom, level_words[m->level]);
     canvas_draw_str_aligned(canvas, w / 2, h - 1, AlignCenter, AlignBottom, val_buf);
 }
 
@@ -377,12 +379,13 @@ static bool emf_view_input_callback(InputEvent* event, void* context) {
         return true;
     }
 
-    if(event->type != InputTypeShort) return false; /* only UP/DOWN repeat; LEFT/RIGHT is a single toggle */
+    if(event->type != InputTypeShort)
+        return false; /* only UP/DOWN repeat; LEFT/RIGHT is a single toggle */
 
     if(event->key == InputKeyLeft || event->key == InputKeyRight) {
-        instance->requested_source =
-            instance->requested_source == EmfSourceInternal ? EmfSourceExternal :
-                                                                EmfSourceInternal;
+        instance->requested_source = instance->requested_source == EmfSourceInternal ?
+                                         EmfSourceExternal :
+                                         EmfSourceInternal;
         return true;
     }
     /* Back is intentionally not consumed: it must bubble up to the app's
@@ -413,7 +416,8 @@ static void emf_view_enter_callback(void* context) {
 static void emf_view_exit_callback(void* context) {
     EmfView* instance = context;
     instance->running = false;
-    furi_thread_join(instance->thread); /* blocks until the worker releases everything and returns */
+    furi_thread_join(
+        instance->thread); /* blocks until the worker releases everything and returns */
 }
 
 EmfView* emf_view_alloc(void) {

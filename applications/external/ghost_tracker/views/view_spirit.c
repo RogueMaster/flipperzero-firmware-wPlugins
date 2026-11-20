@@ -34,15 +34,18 @@
  * jack into a separate speaker/headphones wired directly to it - the
  * Flipper's own speaker is never touched in this mode, and there's no
  * software volume control, only real hardware mute (register bit). */
-#define TEA5767_I2C_ADDR (0x60 << 1) /* fixed 7-bit device address 0x60, shifted for furi_hal_i2c */
+#define TEA5767_I2C_ADDR \
+    (0x60 << 1) /* fixed 7-bit device address 0x60, shifted for furi_hal_i2c */
 #define TEA5767_I2C_TIMEOUT_MS 10
 
 #define FM_FREQ_MIN_HZ  87500000UL /* 87.5MHz: standard US/Europe FM band low edge */
 #define FM_FREQ_MAX_HZ  108000000UL
 #define FM_FREQ_STEP_HZ 100000UL /* 0.1MHz per hop */
-#define FM_SETTLE_MS    50 /* TEA5767's PLL needs real time to lock before ADC level reads are valid */
+#define FM_SETTLE_MS \
+    50 /* TEA5767's PLL needs real time to lock before ADC level reads are valid */
 
-#define SPIRIT_STEP_MIN_MS 20 /* FM mode floors out near FM_SETTLE_MS - can't tune faster than the PLL locks */
+#define SPIRIT_STEP_MIN_MS \
+    20 /* FM mode floors out near FM_SETTLE_MS - can't tune faster than the PLL locks */
 #define SPIRIT_STEP_MAX_MS 500
 #define SPIRIT_STEP_INC_MS 10
 
@@ -98,7 +101,11 @@ static bool tea5767_write_frequency(uint32_t freq_hz, bool mute) {
     data[4] = 0x00;
 
     return furi_hal_i2c_tx(
-        &furi_hal_i2c_handle_external, TEA5767_I2C_ADDR, data, sizeof(data), TEA5767_I2C_TIMEOUT_MS);
+        &furi_hal_i2c_handle_external,
+        TEA5767_I2C_ADDR,
+        data,
+        sizeof(data),
+        TEA5767_I2C_TIMEOUT_MS);
 }
 
 /* Reads real signal-strength/stereo status back from the TEA5767. Level is
@@ -108,7 +115,11 @@ static bool tea5767_write_frequency(uint32_t freq_hz, bool mute) {
 static bool tea5767_read_status(uint8_t* level_out, bool* stereo_out) {
     uint8_t data[5] = {0};
     bool ok = furi_hal_i2c_rx(
-        &furi_hal_i2c_handle_external, TEA5767_I2C_ADDR, data, sizeof(data), TEA5767_I2C_TIMEOUT_MS);
+        &furi_hal_i2c_handle_external,
+        TEA5767_I2C_ADDR,
+        data,
+        sizeof(data),
+        TEA5767_I2C_TIMEOUT_MS);
     if(ok) {
         *stereo_out = (data[2] & 0x80) != 0;
         *level_out = (data[3] >> 4) & 0x0F;
@@ -289,7 +300,12 @@ static void spirit_view_draw_callback(Canvas* canvas, void* model) {
     canvas_set_font(canvas, FontSecondary);
     canvas_draw_str_aligned(canvas, w / 2, 1, AlignCenter, AlignTop, "SPIRIT BOX");
     canvas_draw_str_aligned(
-        canvas, w / 2, 11, AlignCenter, AlignTop, m->source == SpiritSourceFm ? "FM SWEEP" : "RF SWEEP");
+        canvas,
+        w / 2,
+        11,
+        AlignCenter,
+        AlignTop,
+        m->source == SpiritSourceFm ? "FM SWEEP" : "RF SWEEP");
 
     if(m->source == SpiritSourceFm && !m->fm_connected) {
         /* No ACK from the TEA5767 on the bus - module not wired/powered or
@@ -304,7 +320,8 @@ static void spirit_view_draw_callback(Canvas* canvas, void* model) {
     }
 
     char freq_buf[16];
-    snprintf(freq_buf, sizeof(freq_buf), "%lu.%02lu", m->freq_hz / 1000000, (m->freq_hz / 10000) % 100);
+    snprintf(
+        freq_buf, sizeof(freq_buf), "%lu.%02lu", m->freq_hz / 1000000, (m->freq_hz / 10000) % 100);
     canvas_set_font(canvas, FontPrimary);
     canvas_draw_str_aligned(canvas, w / 2, h / 2 - 14, AlignCenter, AlignCenter, freq_buf);
     canvas_set_font(canvas, FontSecondary);
@@ -418,7 +435,8 @@ static void spirit_view_enter_callback(void* context) {
 static void spirit_view_exit_callback(void* context) {
     SpiritView* instance = context;
     instance->running = false;
-    furi_thread_join(instance->thread); /* blocks until the worker releases everything and returns */
+    furi_thread_join(
+        instance->thread); /* blocks until the worker releases everything and returns */
 }
 
 SpiritView* spirit_view_alloc(void) {
