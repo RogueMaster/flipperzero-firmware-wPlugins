@@ -60,7 +60,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [UART Logger v1.0 (By 2p4g0)](https://github.com/2p4g0/flipper-uart-logger)
 - Updated: [Weather Station v2.1 (By Skorpionm)-OFW](https://github.com/flipperdevices/flipperzero-good-faps/tree/dev/weather_station) [Add Read RAW to Weather Station v2.1 to decode weather readings from saved captures. (By Lechnio)](https://github.com/flipperdevices/flipperzero-good-faps/pull/314)
 - Sub-GHz: [Update Enhanced Sub-GHz Chat to v1.6 and fix NFC key sharing with the firmware NFC API. (By xMasterX)](https://github.com/xMasterX/all-the-plugins/commit/64182ebf87e21232a98e53c90ffd7a5de2d52c2e)
-- Sub-GHz Chat reliability fixes & Weather Station RAW fixes
+- [Sub-GHz Chat reliability fixes & Weather Station RAW fixes (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/75db628d56ee3ab6968a3db3e06ed3d032d52a72)
+- Sub-GHz: [Two more frequencies in the default list - 317.0 and 336.1 MHz (By xMasterX)](https://github.com/xMasterX/all-the-plugins/commit/64182ebf87e21232a98e53c90ffd7a5de2d52c2e)
 
 <a name="release"></a>
 

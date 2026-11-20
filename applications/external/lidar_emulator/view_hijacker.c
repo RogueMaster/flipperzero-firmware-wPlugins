@@ -2,27 +2,23 @@
 #include <gui/view_stack.h>
 #include <gui/view_dispatcher.h>
 #include <m-dict.h>
+#include <stddef.h>
 
-//copied from gui/view_port_i.h
+/* NOT firmware headers. The structs below are app-local copies of the
+ * firmware's private GUI types, so this app can save and restore a view's
+ * original callbacks: no public API reads them back.
+ *
+ * They MUST stay byte-identical to the firmware's own definitions. The FAP API
+ * version check cannot detect a layout change, so a silent drift makes the app
+ * read callbacks out of the wrong fields and jump to a garbage pointer. The
+ * layouts below were verified against firmware.elf DWARF on both Unleashed
+ * (FAP API 88.19) and Official 1.5.1 (FAP API 88.2).
+ *
+ * The firmware's struct ViewPort used to be copied here as well; nothing ever
+ * dereferenced it, so it is gone rather than kept stale.
+ */
 
-struct ViewPort {
-    Gui* gui;
-    FuriMutex* mutex;
-    bool is_enabled;
-    ViewPortOrientation orientation;
-
-    uint8_t width;
-    uint8_t height;
-
-    ViewPortDrawCallback draw_callback;
-    void* draw_callback_context;
-
-    ViewPortInputCallback input_callback;
-    void* input_callback_context;
-};
-
-//copied from gui/view_i.h
-
+// copied from gui/view_i.h - identical on Unleashed and Official
 struct View {
     ViewDrawCallback draw_callback;
     ViewInputCallback input_callback;
@@ -57,6 +53,12 @@ struct ViewDispatcher {
 
     View* current_view;
 
+#ifndef FW_ORIGIN_Official
+    /* Built-in loading view, allocated on first use. Unleashed and its
+     * derivatives only; the Official firmware has no such field. */
+    struct Loading* loading;
+#endif
+
     View* ongoing_input_view;
     uint8_t ongoing_input;
 
@@ -66,6 +68,12 @@ struct ViewDispatcher {
     uint32_t tick_period;
     void* event_context;
 };
+
+/* current_view is the only field this app reads out of a firmware-owned
+ * ViewDispatcher. Fail the build instead of the device if it ever moves. */
+_Static_assert(
+    offsetof(struct ViewDispatcher, current_view) == 48,
+    "struct ViewDispatcher drifted: re-sync this copy against the firmware");
 
 ViewHijacker* alloc_view_hijacker() {
     ViewHijacker* view_hijacker = malloc(sizeof(ViewHijacker));

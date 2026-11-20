@@ -4,6 +4,7 @@
 #include <gui/gui.h>
 #include <gui/view_port.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include "coffee.h"
 #include <math.h>
 #include <storage/storage.h>
@@ -21,8 +22,9 @@ typedef struct {
     bool editor_mode;
     float digit_editor;
     float credit;
-    FuriString* msg;
-    FuriString* status;
+    // Plain storage, not a FuriString: the GUI thread reads this while the app thread
+    // writes it, and a reallocating string hands the reader a freed buffer
+    char status[32];
 } CoffeeContext;
 
 static void coffee_render_callback(Canvas* const canvas, void* ctx) {
@@ -30,21 +32,24 @@ static void coffee_render_callback(Canvas* const canvas, void* ctx) {
     canvas_clear(canvas);
     canvas_set_color(canvas, ColorBlack);
     canvas_set_font(canvas, FontSecondary);
+
+    /* Format into locals and touch nothing shared: this runs on the GUI thread while
+       the app thread is writing the same context */
+    char line[32];
+
     if(context->credit >= 0.0) {
-        furi_string_printf(context->msg, "Credit: %.2f EUR", (double)context->credit);
+        snprintf(line, sizeof(line), "Credit: %.2f EUR", (double)context->credit);
         elements_button_left(canvas, "Load");
         elements_button_right(canvas, "Save");
         elements_button_center(canvas, "Edit (Hold)");
         canvas_set_font(canvas, FontPrimary);
-        canvas_draw_str_aligned(
-            canvas, 64, 8, AlignCenter, AlignCenter, furi_string_get_cstr(context->msg));
-
+        canvas_draw_str_aligned(canvas, 64, 8, AlignCenter, AlignCenter, line);
+        canvas_set_font(canvas, FontKeyboard);
+        canvas_draw_str_aligned(canvas, 64, 26, AlignCenter, AlignCenter, context->status);
     } else {
-        furi_string_printf(context->status, "EEPROM not connected!");
+        canvas_set_font(canvas, FontKeyboard);
+        canvas_draw_str_aligned(canvas, 64, 26, AlignCenter, AlignCenter, "EEPROM not connected!");
     }
-    canvas_set_font(canvas, FontKeyboard);
-    canvas_draw_str_aligned(
-        canvas, 64, 26, AlignCenter, AlignCenter, furi_string_get_cstr(context->status));
 }
 
 /* This function is called from the GUI thread. All it does is put the event
@@ -57,6 +62,13 @@ static void coffee_input_callback(InputEvent* event, void* ctx) {
 static CoffeeContext* coffee_context_alloc() {
     CoffeeContext* context = malloc(sizeof(CoffeeContext));
 
+    // The draw callback reads status and credit, and can run as soon as the view port
+    // goes on screen - neither may still be whatever malloc() returned
+    context->status[0] = '\0';
+    context->credit = 0.0;
+    context->digit_editor = 0.01;
+    context->editor_mode = false;
+
     context->view_port = view_port_alloc();
     view_port_draw_callback_set(context->view_port, coffee_render_callback, context);
     view_port_input_callback_set(context->view_port, coffee_input_callback, context);
@@ -64,8 +76,6 @@ static CoffeeContext* coffee_context_alloc() {
     context->event_queue = furi_message_queue_alloc(8, sizeof(InputEvent));
     context->gui = furi_record_open(RECORD_GUI);
     gui_add_view_port(context->gui, context->view_port, GuiLayerFullscreen);
-    context->msg = furi_string_alloc();
-    context->status = furi_string_alloc();
     return context;
 }
 
@@ -174,6 +184,7 @@ static void coffee_run(CoffeeContext* context) {
     /* Start the reader thread. It will talk to the thermometer in the background. */
     context->credit = read_credit();
     context->digit_editor = 0.01;
+    view_port_update(context->view_port);
     /* An endless loop which handles the input*/
     for(bool is_running = true; is_running;) {
         InputEvent event;
@@ -218,7 +229,7 @@ static void coffee_run(CoffeeContext* context) {
                             (double)context->digit_editor);
                     } else {
                         save_file_dump(context->credit);
-                        furi_string_printf(context->status, "Dump saved!");
+                        snprintf(context->status, sizeof(context->status), "Dump saved!");
                     }
                     break;
                 case InputKeyLeft:
@@ -233,20 +244,20 @@ static void coffee_run(CoffeeContext* context) {
                         //virgin();
                         load_file_dump();
                         context->credit = read_credit();
-                        furi_string_printf(context->status, "Dump write done!");
+                        snprintf(context->status, sizeof(context->status), "Dump write done!");
                     }
                     break;
                 case InputKeyOk:
                     if(context->editor_mode) {
                         write_credit(context->credit);
                         context->credit = read_credit();
-                        furi_string_printf(context->status, "Write done!");
+                        snprintf(context->status, sizeof(context->status), "Write done!");
                         context->editor_mode = false;
                     }
                     break;
                 case InputKeyBack:
                     if(context->editor_mode) {
-                        furi_string_reset(context->status);
+                        context->status[0] = '\0';
                         context->editor_mode = false;
                     } else {
                         is_running = false;
@@ -254,17 +265,19 @@ static void coffee_run(CoffeeContext* context) {
                     break;
                 }
             } else if(event.type == InputTypeLong && event.key == InputKeyOk) {
-                furi_string_printf(context->status, "Editor Mode");
+                snprintf(context->status, sizeof(context->status), "Editor Mode");
                 context->editor_mode = true;
             }
         }
+
+        /* Every branch above changes what the draw callback reads, and nothing else
+           asks for a repaint */
+        view_port_update(context->view_port);
     }
 }
 
 /* Release the unused resources and deallocate memory */
 static void coffee_context_free(CoffeeContext* context) {
-    furi_string_free(context->msg);
-    furi_string_free(context->status);
     view_port_enabled_set(context->view_port, false);
     gui_remove_view_port(context->gui, context->view_port);
     furi_message_queue_free(context->event_queue);
