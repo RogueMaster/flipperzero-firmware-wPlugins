@@ -1,0 +1,14 @@
+App(
+    appid="lanternfall",
+    name="Lanternfall",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="lanternfall_app",
+    sources=["lanternfall.c", "game.c", "render.c"],
+    stack_size=8 * 1024,
+    fap_icon="icon.png",
+    fap_category="Games",
+    fap_author="Dusk Engineering",
+    fap_weburl="https://github.com/DuskEngServices/lanternfall-flipper",
+    fap_version="1.0",
+    fap_description="Lantern-lit action RPG: procedural island, villages, day and night, storms.",
+)

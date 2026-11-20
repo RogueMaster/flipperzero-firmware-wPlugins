@@ -62,9 +62,11 @@ This software is for experimental purposes only and is not meant for any illegal
 - Sub-GHz: [Update Enhanced Sub-GHz Chat to v1.6 and fix NFC key sharing with the firmware NFC API. (By xMasterX)](https://github.com/xMasterX/all-the-plugins/commit/64182ebf87e21232a98e53c90ffd7a5de2d52c2e)
 - [Sub-GHz Chat reliability fixes & Weather Station RAW fixes (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/75db628d56ee3ab6968a3db3e06ed3d032d52a72)
 - Sub-GHz: [Two more frequencies in the default list - 317.0 and 336.1 MHz (By xMasterX)](https://github.com/xMasterX/all-the-plugins/commit/64182ebf87e21232a98e53c90ffd7a5de2d52c2e)
-- Updated: [UART Logger v1.0 (By 2p4g0)](https://github.com/2p4g0/flipper-uart-logger) [Add FM reception and calibrate EMF. (By Zinetick)](https://github.com/flipperdevices/flipper-application-catalog/pull/1416) [Save UART logs in app data. (By 2p4g0)](https://github.com/flipperdevices/flipper-application-catalog/pull/1415)
-- Updated: [Ghost Tracker v1.1 (By Zinetick)](https://github.com/Zinetick/ghost_tracker) - RF and proximity instruments
+- Updated: [UART Logger v1.0 (By 2p4g0)](https://github.com/2p4g0/flipper-uart-logger) [Save UART logs in app data. (By 2p4g0)](https://github.com/flipperdevices/flipper-application-catalog/pull/1415)
+- Updated: [Ghost Tracker v1.1 (By Zinetick)](https://github.com/Zinetick/ghost_tracker) - RF and proximity instruments [Add FM reception and calibrate EMF. (By Zinetick)](https://github.com/flipperdevices/flipper-application-catalog/pull/1416)
 - Updated: [Quadrastic v1.1 (By ivanbarsukov)](https://github.com/ivanbarsukov/flipperzero-quadrastic) [Guard Quadrastic against GUI layout changes. (By xMasterX)](https://github.com/xMasterX/all-the-plugins/commit/981826ad5e4c94e210b16712f3bba92e7e0e7ecd)
+- Added: [Lanternfall v1.0, a lantern-lit procedural island RPG (By Dusk Engineering)](https://github.com/DuskEngServices/lanternfall-flipper)
+- Added: [FZReader v1.0 for EPUB books (By leptopt1los)](https://github.com/Leptopt1los/fzreader)
 
 <a name="release"></a>
 
@@ -280,6 +282,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Jumping Pawns v0.1 (By Tyl3rA)](https://github.com/Tyl3rA/Jumping-Pawns)
 - [KC Line v1.2 (By HappyAmos)](https://github.com/HappyAmos/Flipper_FAPS/tree/master/kcline)
 - [Keilerei v1.0 (By JB)](https://github.com/boeheimjonas-rgb/keilerei-flipper) - LCD brawler with enemy waves, weapon crates and changing arenas
+- [Lanternfall v1.0 (By Dusk Engineering)](https://github.com/DuskEngServices/lanternfall-flipper) - Lantern-lit procedural island RPG
 - [Laser Tag v2.3 (By RocketGod & jamisonderek)](https://github.com/RocketGod-git/Flipper-Zero-Laser-Tag)
 - [Lettercade v1.0 (By andreimagic)](https://github.com/andreimagic/flipper-lettercade)
 - [Lifecounter v1.0 (By antsy)](https://github.com/antsy/Lifecounter) (Multi Counter remake)
@@ -648,6 +651,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Fujitsu AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
 - [FuseZero v1.0 (By Marcopiiit)](https://github.com/skylovervibecoder/Flipper-Zero-FuseZero) - Four-city world clock
 - [FZ nRF24 Jammer v1.4 (By W0rthlessS0ul)](https://github.com/W0rthlessS0ul/FZ_nRF24_jammer)
+- [FZReader v1.0 (By leptopt1los)](https://github.com/Leptopt1los/fzreader) - EPUB reader with Latin and Cyrillic support
 - [Gas Sensor v0.1 (By iancohee)](https://github.com/iancohee/gas_sensor_fap) `Req: BME680 / SGP30`
 - [Gatekeeper v1.1 (By enexis1337)](https://github.com/enexis1337/Gatekeeper) - USB password manager
 - [Gauge Tool v0.1 (By skotopes)](https://github.com/skotopes/flipperzero_gauge_tool) (Used To Downgrade From 10/07/2024 Update)

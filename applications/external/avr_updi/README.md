@@ -1,6 +1,6 @@
 # AVR UPDI
 
-Program AVR microcontrollers over **UPDI** from a Flipper Zero. This is not ISP — for classic SPI/ISP (ATmega328P and similar) use the Flipper [AVR ISP Programmer](https://lab.flipper.net/apps/avr_isp) app.
+Program AVR microcontrollers over **UPDI** from a Flipper Zero. This is not ISP - for classic SPI/ISP (ATmega328P and similar) use the Flipper [AVR ISP Programmer](https://lab.flipper.net/apps/avr_isp) app.
 
 ## Features
 
@@ -12,7 +12,38 @@ Program AVR microcontrollers over **UPDI** from a Flipper Zero. This is not ISP 
 - USB **SerialUPDI** bridge for avrdude / pymcuprog (-c serialupdi)
 - Pin pair 15/16 or 13/14
 
-Supported UPDI NVM families: **P:0** (tinyAVR / megaAVR 0), **P:2** (AVR Dx), **P:3** (AVR EA), **P:4** (AVR DU). Unknown signatures are identified by SIB but refuse flash/dump until listed in the device table.
+## Supported chips
+
+Parts listed in the device table (signature match required for flash/dump/EEPROM). Unknown signatures still show SIB/NVM family on Detect, but programming is refused until they are added.
+
+**P:2 — AVR Dx / DD**
+
+- AVR128DA64 / 48 / 32 / 28 (+ S variants)
+- AVR128DB64 / 48 / 32 / 28
+- AVR64DA64 / 48 / 32 / 28
+- AVR64DB64 / 48 / 32 / 28
+- AVR32DA48 / 32 / 28
+- AVR64DD32 / 28 / 20 / 14
+- AVR32DD32 / 28 / 20 / 14
+- AVR16DD32 / 28 / 20 / 14
+
+**P:0 — megaAVR 0 / tinyAVR 1–2**
+
+- ATmega4809 / 4808 / 3209 / 3208 / 1609 / 1608 / 809 / 808
+- ATtiny3226 / 3224 / 1626 / 1624 / 1616 / 1614
+- ATtiny816 / 814 / 416 / 414 / 412 / 214 / 212
+
+**P:3 — AVR EA**
+
+- AVR64EA48 / 32 / 28
+- AVR32EA48 / 32 / 28
+- AVR16EA48 / 32 / 28
+
+**P:4 — AVR DU**
+
+- AVR64DU32 / 28
+- AVR32DU32 / 28 / 20 / 14
+- AVR16DU32 / 28 / 20 / 14
 
 ## Wiring
 
@@ -53,4 +84,4 @@ Host HEX tests: compile tests/test_intel_hex.c with hex/intel_hex.c and run the 
 
 ## License
 
-MIT — see LICENSE.
+MIT - see LICENSE.

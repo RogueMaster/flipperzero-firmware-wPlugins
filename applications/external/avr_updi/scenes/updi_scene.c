@@ -199,7 +199,7 @@ void updi_scene_about_on_enter(void* context) {
         "github.com/gztproject/\n"
         "AVR_programmer_debugger\n"
         "\n"
-        "Not ISP — use\n"
+        "Not ISP - use\n"
         "avr_isp for SPI.");
     view_dispatcher_switch_to_view(app->view_dispatcher, UpdiViewWidget);
 }
