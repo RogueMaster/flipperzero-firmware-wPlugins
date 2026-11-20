@@ -15,6 +15,6 @@ App(
     fap_category="Games",
     fap_author="ivanbarsukov",
     fap_weburl="https://github.com/ivanbarsukov/flipperzero-quadrastic",
-    fap_version="1.0.2",
+    fap_version="1.1",
     fap_description="Quadrastic is a simple addicting game inspired by the Arduboy game of the same name",
 )

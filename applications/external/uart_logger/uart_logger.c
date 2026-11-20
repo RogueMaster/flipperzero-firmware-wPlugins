@@ -22,8 +22,8 @@
 #define ROWS     9
 #define HEX_LINE 8
 
-#define MAX_DIRS     32
-#define NAME_LEN     32
+#define MAX_DIRS 32
+#define NAME_LEN 32
 #define DEFAULT_NAME "uart_logs"
 
 typedef enum {
@@ -79,7 +79,7 @@ typedef struct {
     uint8_t hex;
 
     /* save location: /ext[/<base>]/<name> */
-    char bases[MAX_DIRS + 1][NAME_LEN]; // [0] = SD root
+    char bases[MAX_DIRS + 2][NAME_LEN]; // [0] = app data, [1] = SD root
     uint8_t base_count;
     uint8_t base_idx;
     char name[NAME_LEN];
@@ -139,7 +139,12 @@ static void file_put(App* app, const uint8_t* d, size_t n) {
 }
 
 static void log_dir(App* app, FuriString* out) {
-    if(app->base_idx == 0)
+    if(app->base_idx == 0) {
+        /* default: /ext/apps_data/uart_logger */
+        furi_string_set(out, APP_DATA_PATH(""));
+        furi_string_left(out, furi_string_size(out) - 1);
+        storage_common_resolve_path_and_ensure_app_directory(app->storage, out);
+    } else if(app->base_idx == 1)
         furi_string_printf(out, "/ext/%s", app->name);
     else
         furi_string_printf(out, "/ext/%s/%s", app->bases[app->base_idx], app->name);
@@ -185,16 +190,16 @@ static void file_close(App* app) {
 }
 
 static void scan_bases(App* app) {
-    strcpy(app->bases[0], "SD root");
-    app->base_count = 1;
+    strcpy(app->bases[0], "App data");
+    strcpy(app->bases[1], "SD root");
+    app->base_count = 2;
     File* dir = storage_file_alloc(app->storage);
     if(storage_dir_open(dir, "/ext")) {
         FileInfo fi;
         char nm[NAME_LEN];
-        while(app->base_count <= MAX_DIRS && storage_dir_read(dir, &fi, nm, sizeof(nm))) {
+        while(app->base_count < MAX_DIRS + 2 && storage_dir_read(dir, &fi, nm, sizeof(nm))) {
             if(!file_info_is_dir(&fi) || nm[0] == '.') continue;
-            if(strcmp(nm, app->name) == 0) continue; // log folder itself
-            strlcpy(app->bases[app->base_count++], nm, NAME_LEN);
+                        strlcpy(app->bases[app->base_count++], nm, NAME_LEN);
         }
     }
     storage_dir_close(dir);
@@ -385,8 +390,8 @@ static void scene_log_enter(void* ctx) {
     app->worker = furi_thread_alloc_ex("UartLogWorker", 2048, worker, app);
     furi_thread_start(app->worker);
 
-    app->serial =
-        furi_hal_serial_control_acquire(app->pins ? FuriHalSerialIdLpuart : FuriHalSerialIdUsart);
+    app->serial = furi_hal_serial_control_acquire(
+        app->pins ? FuriHalSerialIdLpuart : FuriHalSerialIdUsart);
     if(app->serial) {
         furi_hal_serial_init(app->serial, bauds[app->baud_idx]);
         furi_hal_serial_dma_rx_start(app->serial, rx_cb, app, false);
@@ -524,13 +529,13 @@ static void scene_config_enter(void* ctx) {
     add_item(app, "Baudrate", BAUD_COUNT, baud_changed, app->baud_idx, baud_names[app->baud_idx]);
     add_item(app, "Pins TX/RX", 2, pins_changed, app->pins, app->pins ? "15/16 LP" : "13/14");
     add_item(app, "Mode", 2, mode_changed, app->hex, app->hex ? "Hex" : "Text");
-    add_item(
-        app, "Save in", app->base_count, base_changed, app->base_idx, app->bases[app->base_idx]);
+    add_item(app, "Save in", app->base_count, base_changed, app->base_idx, app->bases[app->base_idx]);
     VariableItem* it = variable_item_list_add(l, "Folder", 1, NULL, app);
     variable_item_set_current_value_text(it, app->name);
     variable_item_list_add(l, "Start", 0, NULL, app);
     variable_item_list_set_enter_callback(l, cfg_enter_cb, app);
-    variable_item_list_set_selected_item(l, scene_manager_get_scene_state(app->sm, SceneConfig));
+    variable_item_list_set_selected_item(
+        l, scene_manager_get_scene_state(app->sm, SceneConfig));
     view_dispatcher_switch_to_view(app->vd, ViewConfig);
 }
 

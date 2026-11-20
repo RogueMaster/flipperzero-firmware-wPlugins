@@ -62,6 +62,9 @@ This software is for experimental purposes only and is not meant for any illegal
 - Sub-GHz: [Update Enhanced Sub-GHz Chat to v1.6 and fix NFC key sharing with the firmware NFC API. (By xMasterX)](https://github.com/xMasterX/all-the-plugins/commit/64182ebf87e21232a98e53c90ffd7a5de2d52c2e)
 - [Sub-GHz Chat reliability fixes & Weather Station RAW fixes (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/75db628d56ee3ab6968a3db3e06ed3d032d52a72)
 - Sub-GHz: [Two more frequencies in the default list - 317.0 and 336.1 MHz (By xMasterX)](https://github.com/xMasterX/all-the-plugins/commit/64182ebf87e21232a98e53c90ffd7a5de2d52c2e)
+- Updated: [UART Logger v1.0 (By 2p4g0)](https://github.com/2p4g0/flipper-uart-logger) [Add FM reception and calibrate EMF. (By Zinetick)](https://github.com/flipperdevices/flipper-application-catalog/pull/1416) [Save UART logs in app data. (By 2p4g0)](https://github.com/flipperdevices/flipper-application-catalog/pull/1415)
+- Updated: [Ghost Tracker v1.1 (By Zinetick)](https://github.com/Zinetick/ghost_tracker) - RF and proximity instruments
+- Updated: [Quadrastic v1.1 (By ivanbarsukov)](https://github.com/ivanbarsukov/flipperzero-quadrastic) [Guard Quadrastic against GUI layout changes. (By xMasterX)](https://github.com/xMasterX/all-the-plugins/commit/981826ad5e4c94e210b16712f3bba92e7e0e7ecd)
 
 <a name="release"></a>
 
@@ -318,7 +321,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Portal Putt v0.1 (By rseufert)](https://github.com/rseufert/portal_putt)
 - [Prince Of Arabia v1.0.12 (By apfxtech)](https://github.com/apfxtech/FlipperPrinceOfArabia)
 - [Puck Girl v0.3 (By fgreil)](https://github.com/fgreil/mitzi-puck)
-- [Quadrastic v1.0.2 (By ivanbarsukov)](https://github.com/ivanbarsukov/flipperzero-quadrastic)
+- [Quadrastic v1.1 (By ivanbarsukov)](https://github.com/ivanbarsukov/flipperzero-quadrastic)
 - [Questions v1.1 (By nikilark)](https://github.com/nikilark/flipper_questions)
 - [Race Game v1.0 (By mrc19056)](https://github.com/mrc19056/flipper-race-game)
 - [Race v1.3 (By zyuhel)](https://github.com/zyuhel/flipperzero-racegame)
@@ -652,7 +655,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Gemini IA v1.1 (By d4rks1d33 & jamisonderek)](https://github.com/d4rks1d33/Gemini-Flipper)
 - [Genie Recorder v3.2 (By jamisonderek)](https://github.com/jamisonderek/flipper-zero-tutorials/tree/main/subghz/apps/genie-recorder)
 - [Ghost ESP v1.9.1 (By jaylikesbunda & Spooks4576)](https://github.com/Spooks4576/ghost_esp_app) - Wi-Fi/Bluetooth testing companion `Req: ESP32` with [Ghost ESP Firmware](https://github.com/Spooks4576/Ghost_ESP)
-- [Ghost Tracker v1.0 (By Zinetick)](https://github.com/Zinetick/ghost_tracker) - RF and proximity instruments
+- [Ghost Tracker v1.1 (By Zinetick)](https://github.com/Zinetick/ghost_tracker) - RF and proximity instruments
 - [GhostBook v0.6 (By digitard)](https://github.com/digitard/ghostbook) - Encrypted NFC contact sharing
 - [GhostTag v2.0 (By at0m-b0mb)](https://github.com/at0m-b0mb/GhostTag-FlipperZero) - Persistent Bluetooth tracker detection `Req: ESP32`
 - [Gitphin v1.2 (By Adhamura)](https://github.com/Adhamura/gitphin) - USB Git repository hosting

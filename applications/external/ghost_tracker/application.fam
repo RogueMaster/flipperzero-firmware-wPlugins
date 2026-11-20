@@ -8,6 +8,6 @@ App(
     fap_category="GPIO",
     fap_author="Zinetick",
     fap_weburl="https://github.com/Zinetick/ghost_tracker",
-    fap_version="1.0",
+    fap_version="1.1",
     fap_description="Paranormal investigation instrument: EMF meter (ambient RF / external ADC), Spirit Box (real sub-GHz audio sweep) and REM Pod (capacitive GPIO/ADC proximity detection).",
 )

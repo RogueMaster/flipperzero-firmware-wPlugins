@@ -11,12 +11,12 @@ Reads UART data on the GPIO header and logs it to the SD card.
 - **Baudrate:** 9600 … 921600 (default 115200)
 - **Pins TX/RX:** 13/14 (USART) or 15/16 (LPUART)
 - **Mode:** Text or Hex (16 bytes per line in file)
-- **Save in:** SD root or any top-level folder
-- **Folder:** log folder name (default uart_logs)
+- **Save in:** App data (default, /ext/apps_data/uart_logger), SD root or any top-level folder
+- **Folder:** log folder name used with SD root or a top-level folder (default uart_logs)
 - **Start:** open the log screen
 
 ## Log screen
-Recording starts automatically. The file is /ext/uart_logs/log_YYYYMMDD_HHMMSS.txt by default.
+Recording starts automatically. The file is /ext/apps_data/uart_logger/log_YYYYMMDD_HHMMSS.txt by default.
 - **OK:** pause / resume recording
 - **Up / Down:** scroll history
 - **Back:** stop and ask whether to keep the file, then show where it was saved
