@@ -59,6 +59,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [ServoMotor v1.0 (By alcdaniel)](https://github.com/alcdaniel/flipper-servo-tester-hw)
 - Added: [UART Logger v1.0 (By 2p4g0)](https://github.com/2p4g0/flipper-uart-logger)
 - Updated: [Weather Station v2.1 (By Skorpionm)-OFW](https://github.com/flipperdevices/flipperzero-good-faps/tree/dev/weather_station) [Add Read RAW to Weather Station v2.1 to decode weather readings from saved captures. (By Lechnio)](https://github.com/flipperdevices/flipperzero-good-faps/pull/314)
+- Sub-GHz: [Update Enhanced Sub-GHz Chat to v1.6 and fix NFC key sharing with the firmware NFC API. (By xMasterX)](https://github.com/xMasterX/all-the-plugins/commit/64182ebf87e21232a98e53c90ffd7a5de2d52c2e)
 
 <a name="release"></a>
 
@@ -540,7 +541,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [eMRTD Reader v1.0 (By filipsedivy)](https://github.com/filipsedivy/emrtd-flipperzero)
 - [EMV Reader v0.1 (By AmsaOne)](https://github.com/AmsaOne/Flipper-EMV-Reader)
 - [Encoder Reader v0.1 (By Engineegor)](https://github.com/Engineegor/Enc_reader)
-- [Enhanced Sub-Ghz Chat v1.3 (By twisted-pear)](https://github.com/twisted-pear/esubghz_chat)
+- [Enhanced Sub-Ghz Chat v1.6 (By twisted-pear)](https://github.com/twisted-pear/esubghz_chat)
 - [Enigma v1.1 (By xtruan)](https://github.com/xtruan/flipper-enigma) - Enigma cipher machine emulator
 - [eReader v1.1 (By Daniel Baker)](https://github.com/daniebker/flipper_ereader)
 - [ESP Flasher v1.9 (By 0xchocolate)](https://github.com/0xchocolate/flipperzero-esp-flasher)

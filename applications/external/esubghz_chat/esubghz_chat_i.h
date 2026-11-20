@@ -19,7 +19,11 @@
 
 #include "esubghz_chat_icons.h"
 
-#include <lib/nfclegacy/nfc_worker.h>
+#include <nfc/nfc.h>
+#include <nfc/nfc_listener.h>
+#include <nfc/nfc_poller.h>
+#include <nfc/protocols/mf_ultralight/mf_ultralight.h>
+#include <nfc/protocols/mf_ultralight/mf_ultralight_poller.h>
 
 #define APPLICATION_NAME "ESubGhzChat"
 
@@ -58,8 +62,14 @@ typedef struct {
     const SubGhzDevice* subghz_device;
 
     // for NFC
-    NfcWorker* nfc_worker;
-    NfcDeviceData* nfc_dev_data;
+    Nfc* nfc;
+    NfcPoller* nfc_poller;
+    NfcListener* nfc_listener;
+    MfUltralightData* nfc_dev_data;
+    /* set once a card has actually been activated, see the key read popup */
+    bool nfc_card_detected;
+    /* why the last NFC key read failed, shown on the failure popup */
+    char nfc_fail_text[48];
 
     // message assembly before TX
     FuriString* name_prefix;
@@ -101,6 +111,9 @@ typedef enum {
     ESubGhzChatEvent_KeyMenuHexKey,
     ESubGhzChatEvent_KeyMenuGenKey,
     ESubGhzChatEvent_KeyMenuReadKeyFromNfc,
+    ESubGhzChatEvent_NfcCardDetected,
+    ESubGhzChatEvent_NfcReadSuccess,
+    ESubGhzChatEvent_NfcReadFailed,
     ESubGhzChatEvent_KeyReadPopupFailed,
     ESubGhzChatEvent_KeyReadPopupSucceeded,
     ESubGhzChatEvent_PassEntered,

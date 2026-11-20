@@ -10,13 +10,70 @@ typedef enum {
     KeyReadPopupState_Success,
 } KeyReadPopupState;
 
-static bool read_worker_cb(NfcWorkerEvent event, void* context) {
+/* Callback for the MIFARE Ultralight poller. This runs on the NFC worker
+ * thread, so it only copies the card data over and hands control back to the
+ * scene through the view dispatcher. */
+static NfcCommand key_read_poller_cb(NfcGenericEvent event, void* context) {
     furi_assert(context);
+    furi_assert(event.protocol == NfcProtocolMfUltralight);
+    furi_assert(event.event_data);
+
     ESubGhzChatState* state = context;
+    MfUltralightPollerEvent* mfu_event = event.event_data;
 
-    view_dispatcher_send_custom_event(state->view_dispatcher, event);
+    NfcCommand cmd = NfcCommandContinue;
 
-    return true;
+    switch(mfu_event->type) {
+    /* a card was activated, we only want to read it */
+    case MfUltralightPollerEventTypeRequestMode:
+        mfu_event->data->poller_mode = MfUltralightPollerModeRead;
+        state->nfc_card_detected = true;
+        view_dispatcher_send_custom_event(
+            state->view_dispatcher, ESubGhzChatEvent_NfcCardDetected);
+        break;
+
+    /* the sharing Flipper never sets a password, don't burn auth attempts */
+    case MfUltralightPollerEventTypeAuthRequest:
+        mfu_event->data->auth_context.skip_auth = true;
+        break;
+
+    case MfUltralightPollerEventTypeReadSuccess: {
+        const MfUltralightData* poller_data = nfc_poller_get_data(state->nfc_poller);
+        /* Take the card memory across by hand instead of with
+         * mf_ultralight_copy(). What this scene needs is the payload bytes and
+         * nothing else, and the bookkeeping that copy does or does not carry
+         * varies between firmware revisions. */
+        memcpy(
+            nfc_dev_data_bytes(state->nfc_dev_data),
+            (const uint8_t*)poller_data->page,
+            NFC_KEY_OFFSET + NFC_MAX_BYTES);
+        state->nfc_dev_data->type = poller_data->type;
+        view_dispatcher_send_custom_event(state->view_dispatcher, ESubGhzChatEvent_NfcReadSuccess);
+        cmd = NfcCommandStop;
+        break;
+    }
+    case MfUltralightPollerEventTypeReadFailed:
+        /* While no card is in the field the ISO14443-3A poller errors out on
+         * every polling cycle and each of those surfaces here as a read
+         * failure. That is the "still waiting for a card" case, not a failed
+         * read, so keep polling. Only a card that activated and then failed
+         * to read is a real failure. */
+        if(state->nfc_card_detected) {
+            strlcpy(
+                state->nfc_fail_text,
+                "Failed\nto read\nthe card.",
+                sizeof(state->nfc_fail_text));
+            view_dispatcher_send_custom_event(
+                state->view_dispatcher, ESubGhzChatEvent_NfcReadFailed);
+            cmd = NfcCommandStop;
+        }
+        break;
+
+    default:
+        break;
+    }
+
+    return cmd;
 }
 
 static void key_read_popup_timeout_cb(void* context) {
@@ -59,44 +116,67 @@ static bool replay_dict_nfc_reader(uint64_t* run_id, uint32_t* counter, void* co
 }
 
 static bool key_read_popup_handle_key_read(ESubGhzChatState* state) {
-    NfcDeviceData* dev_data = state->nfc_dev_data;
+    MfUltralightData* dev_data = state->nfc_dev_data;
 
-    /* check for config pages */
-    if(dev_data->mf_ul_data.data_read < NFC_CONFIG_PAGES * 4) {
+    uint8_t* mem = nfc_dev_data_bytes(dev_data);
+
+    /* The page counts are deliberately not consulted here. MfUltralightData
+     * does not come back with them filled in on every firmware revision, so a
+     * card that read perfectly well can claim to have no memory at all. What
+     * the card itself states is used instead: the magic says the pages this
+     * app cares about were read, and the stated length bounds the payload. */
+    const struct FreqNfcEntry* freq_entry = (const struct FreqNfcEntry*)(mem + NFC_FREQ_OFFSET);
+
+
+    /* Reject anything that is not a card this app wrote, rather than taking
+     * whatever happens to sit at the key offset as key material. */
+    if(__ntohl(freq_entry->magic) != NFC_FORMAT_MAGIC) {
+        snprintf(
+            state->nfc_fail_text,
+            sizeof(state->nfc_fail_text),
+            "Not a\nkey card.");
         return false;
     }
 
-    size_t data_read = dev_data->mf_ul_data.data_read - (NFC_CONFIG_PAGES * 4);
+    size_t data_read = __ntohl(freq_entry->payload_len);
+    if(data_read > NFC_MAX_BYTES) {
+        snprintf(
+            state->nfc_fail_text,
+            sizeof(state->nfc_fail_text),
+            "Card data\nis invalid.");
+        return false;
+    }
 
     /* check if key was transmitted */
     if(data_read < KEY_BITS / 8) {
+        snprintf(
+            state->nfc_fail_text,
+            sizeof(state->nfc_fail_text),
+            "No key on\nthe card.");
         return false;
     }
 
     /* initiate the crypto context */
     bool ret = crypto_ctx_set_key(
-        state->crypto_ctx, dev_data->mf_ul_data.data, state->name_prefix, furi_get_tick());
+        state->crypto_ctx, mem + NFC_KEY_OFFSET, state->name_prefix, furi_get_tick());
 
     /* cleanup */
-    crypto_explicit_bzero(dev_data->mf_ul_data.data, KEY_BITS / 8);
+    crypto_explicit_bzero(mem + NFC_KEY_OFFSET, KEY_BITS / 8);
 
     if(!ret) {
         crypto_ctx_clear(state->crypto_ctx);
+        snprintf(state->nfc_fail_text, sizeof(state->nfc_fail_text), "Bad key\nmaterial.");
         return false;
     }
 
     /* read the frequency */
-    if(data_read >= (KEY_BITS / 8) + sizeof(struct FreqNfcEntry)) {
-        struct FreqNfcEntry* freq_entry =
-            (struct FreqNfcEntry*)(dev_data->mf_ul_data.data + (KEY_BITS / 8));
+    if(data_read >= (NFC_DICT_OFFSET - NFC_KEY_OFFSET)) {
         state->frequency = __ntohl(freq_entry->frequency);
     }
 
     /* read the replay dict */
     struct ReplayDictNfcReaderContext rd_ctx = {
-        .cur = dev_data->mf_ul_data.data + (KEY_BITS / 8) + sizeof(struct FreqNfcEntry),
-        .max =
-            dev_data->mf_ul_data.data + (data_read < NFC_MAX_BYTES ? data_read : NFC_MAX_BYTES)};
+        .cur = mem + NFC_DICT_OFFSET, .max = mem + NFC_KEY_OFFSET + data_read};
 
     crypto_ctx_read_replay_dict(state->crypto_ctx, replay_dict_nfc_reader, &rd_ctx);
 
@@ -133,11 +213,9 @@ static void key_read_popup_set_state(ESubGhzChatState* state, KeyReadPopupState 
         popup_set_icon(state->nfc_popup, 12, 23, &I_Loading_24);
         notification_message(state->notification, &sequence_blink_start_yellow);
     } else if(new_state == KeyReadPopupState_Fail) {
-        nfc_worker_stop(state->nfc_worker);
-
         popup_reset(state->nfc_popup);
         popup_set_header(state->nfc_popup, "Failure!", 64, 2, AlignCenter, AlignTop);
-        popup_set_text(state->nfc_popup, "Failed\nto read\nkey.", 78, 16, AlignLeft, AlignTop);
+        popup_set_text(state->nfc_popup, state->nfc_fail_text, 78, 16, AlignLeft, AlignTop);
         popup_set_icon(state->nfc_popup, 21, 13, &I_Cry_dolph_55x52);
 
         popup_set_timeout(state->nfc_popup, KEY_READ_POPUP_MS);
@@ -147,8 +225,6 @@ static void key_read_popup_set_state(ESubGhzChatState* state, KeyReadPopupState 
 
         notification_message(state->notification, &sequence_blink_stop);
     } else if(new_state == KeyReadPopupState_Success) {
-        nfc_worker_stop(state->nfc_worker);
-
         popup_reset(state->nfc_popup);
         popup_set_header(state->nfc_popup, "Key\nread!", 13, 22, AlignLeft, AlignBottom);
         popup_set_icon(state->nfc_popup, 32, 5, &I_DolphinNice_96x59);
@@ -174,10 +250,15 @@ void scene_on_enter_key_read_popup(void* context) {
     furi_assert(context);
     ESubGhzChatState* state = context;
 
+    nfc_dev_data_clear(state->nfc_dev_data);
+    state->nfc_card_detected = false;
+    strlcpy(state->nfc_fail_text, "Failed\nto read\nkey.", sizeof(state->nfc_fail_text));
+
     key_read_popup_set_state(state, KeyReadPopupState_Detecting);
 
-    nfc_worker_start(
-        state->nfc_worker, NfcWorkerStateRead, state->nfc_dev_data, read_worker_cb, state);
+    state->nfc = nfc_alloc();
+    state->nfc_poller = nfc_poller_alloc(state->nfc, NfcProtocolMfUltralight);
+    nfc_poller_start(state->nfc_poller, key_read_poller_cb, state);
 }
 
 /* Handles scene manager events for the key read popup scene. */
@@ -193,19 +274,13 @@ bool scene_on_event_key_read_popup(void* context, SceneManagerEvent event) {
     case SceneManagerEventTypeCustom:
         switch(event.event) {
         /* card detected */
-        case NfcWorkerEventCardDetected:
+        case ESubGhzChatEvent_NfcCardDetected:
             key_read_popup_set_state(state, KeyReadPopupState_Reading);
             consumed = true;
             break;
 
-        /* no card detected */
-        case NfcWorkerEventNoCardDetected:
-            key_read_popup_set_state(state, KeyReadPopupState_Detecting);
-            consumed = true;
-            break;
-
         /* key probably read */
-        case NfcWorkerEventReadMfUltralight:
+        case ESubGhzChatEvent_NfcReadSuccess:
             if(key_read_popup_handle_key_read(state)) {
                 key_read_popup_set_state(state, KeyReadPopupState_Success);
             } else {
@@ -228,7 +303,8 @@ bool scene_on_event_key_read_popup(void* context, SceneManagerEvent event) {
             consumed = true;
             break;
 
-        /* something else happend, treat as failure */
+        /* reading failed or something else happened, treat as failure */
+        case ESubGhzChatEvent_NfcReadFailed:
         default:
             key_read_popup_set_state(state, KeyReadPopupState_Fail);
             consumed = true;
@@ -252,17 +328,23 @@ void scene_on_exit_key_read_popup(void* context) {
     furi_assert(context);
     ESubGhzChatState* state = context;
 
+    if(state->nfc_poller != NULL) {
+        nfc_poller_stop(state->nfc_poller);
+        nfc_poller_free(state->nfc_poller);
+        state->nfc_poller = NULL;
+    }
+
+    if(state->nfc != NULL) {
+        nfc_free(state->nfc);
+        state->nfc = NULL;
+    }
+
     popup_reset(state->nfc_popup);
     scene_manager_set_scene_state(
         state->scene_manager, ESubGhzChatScene_KeyReadPopup, KeyReadPopupState_Idle);
 
     notification_message(state->notification, &sequence_blink_stop);
 
-    nfc_worker_stop(state->nfc_worker);
-
-    crypto_explicit_bzero(state->nfc_dev_data->mf_ul_data.data, KEY_BITS / 8);
-    /*if(state->nfc_dev_data->parsed_data != NULL) {
-        furi_string_free(state->nfc_dev_data->parsed_data);
-    }*/
-    //memset(state->nfc_dev_data, 0, sizeof(NfcDeviceData));
+    state->nfc_card_detected = false;
+    nfc_dev_data_clear(state->nfc_dev_data);
 }
