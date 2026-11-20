@@ -1,128 +1,162 @@
 #include "view_about.h"
 
 #include <furi.h>
-#include <gui/modules/text_box.h>
+#include <stdio.h>
 
-struct AboutView {
-    TextBox* text_box;
+/* XBM bitmap, 58x58px, generated offline from a QR code for:
+ *   https://github.com/Zinetick/ghost_tracker
+ * (qrcode Python library, error-correction L, 2px/module, no built-in
+ * quiet zone - the surrounding blank canvas already provides that).
+ * 1 bit/pixel, LSB-first per byte, bit=1 -> drawn (black). */
+#define ABOUT_QR_WIDTH  58
+#define ABOUT_QR_HEIGHT 58
+static const uint8_t kAboutQrBitmap[] = {
+    0xFF, 0x3F, 0xFF, 0x3C, 0x3C, 0xF0, 0xFF, 0x03, 0xFF, 0x3F, 0xFF, 0x3C,
+    0x3C, 0xF0, 0xFF, 0x03, 0x03, 0x30, 0xC0, 0x3F, 0xC0, 0x33, 0x00, 0x03,
+    0x03, 0x30, 0xC0, 0x3F, 0xC0, 0x33, 0x00, 0x03, 0xF3, 0x33, 0xCC, 0x3C,
+    0x03, 0x33, 0x3F, 0x03, 0xF3, 0x33, 0xCC, 0x3C, 0x03, 0x33, 0x3F, 0x03,
+    0xF3, 0x33, 0xF0, 0x0C, 0xCC, 0x33, 0x3F, 0x03, 0xF3, 0x33, 0xF0, 0x0C,
+    0xCC, 0x33, 0x3F, 0x03, 0xF3, 0x33, 0xF0, 0x33, 0xCF, 0x30, 0x3F, 0x03,
+    0xF3, 0x33, 0xF0, 0x33, 0xCF, 0x30, 0x3F, 0x03, 0x03, 0x30, 0xCC, 0x0C,
+    0x0F, 0x33, 0x00, 0x03, 0x03, 0x30, 0xCC, 0x0C, 0x0F, 0x33, 0x00, 0x03,
+    0xFF, 0x3F, 0x33, 0x33, 0x33, 0xF3, 0xFF, 0x03, 0xFF, 0x3F, 0x33, 0x33,
+    0x33, 0xF3, 0xFF, 0x03, 0x00, 0x00, 0x0F, 0x0F, 0xF3, 0x03, 0x00, 0x00,
+    0x00, 0x00, 0x0F, 0x0F, 0xF3, 0x03, 0x00, 0x00, 0xCF, 0x33, 0x0C, 0xF3,
+    0x0C, 0x30, 0x00, 0x03, 0xCF, 0x33, 0x0C, 0xF3, 0x0C, 0x30, 0x00, 0x03,
+    0xFC, 0xCF, 0x30, 0xFC, 0xFC, 0xCC, 0xF3, 0x00, 0xFC, 0xCF, 0x30, 0xFC,
+    0xFC, 0xCC, 0xF3, 0x00, 0xFF, 0xF3, 0x0F, 0xFF, 0x3F, 0xC3, 0x33, 0x00,
+    0xFF, 0xF3, 0x0F, 0xFF, 0x3F, 0xC3, 0x33, 0x00, 0x00, 0x0C, 0x03, 0xF0,
+    0xCC, 0xFC, 0x0C, 0x03, 0x00, 0x0C, 0x03, 0xF0, 0xCC, 0xFC, 0x0C, 0x03,
+    0x3C, 0x30, 0x3C, 0x00, 0x00, 0xF0, 0x00, 0x03, 0x3C, 0x30, 0x3C, 0x00,
+    0x00, 0xF0, 0x00, 0x03, 0xFF, 0x0F, 0x3F, 0x3F, 0xF3, 0xF0, 0xFF, 0x03,
+    0xFF, 0x0F, 0x3F, 0x3F, 0xF3, 0xF0, 0xFF, 0x03, 0xCF, 0xFF, 0x3F, 0xFC,
+    0xFF, 0x3F, 0x33, 0x03, 0xCF, 0xFF, 0x3F, 0xFC, 0xFF, 0x3F, 0x33, 0x03,
+    0x3C, 0x00, 0x0F, 0x03, 0xC0, 0xC0, 0x33, 0x03, 0x3C, 0x00, 0x0F, 0x03,
+    0xC0, 0xC0, 0x33, 0x03, 0xFF, 0x30, 0xCF, 0xCF, 0xC3, 0x0F, 0x0C, 0x00,
+    0xFF, 0x30, 0xCF, 0xCF, 0xC3, 0x0F, 0x0C, 0x00, 0xC3, 0xCC, 0xCC, 0xF0,
+    0xF0, 0x00, 0xF3, 0x00, 0xC3, 0xCC, 0xCC, 0xF0, 0xF0, 0x00, 0xF3, 0x00,
+    0x0F, 0xFF, 0x33, 0xF3, 0xF0, 0x00, 0x0F, 0x03, 0x0F, 0xFF, 0x33, 0xF3,
+    0xF0, 0x00, 0x0F, 0x03, 0xCF, 0xCC, 0xCC, 0xFC, 0xC0, 0x30, 0x3C, 0x00,
+    0xCF, 0xCC, 0xCC, 0xFC, 0xC0, 0x30, 0x3C, 0x00, 0x0F, 0xFC, 0xFF, 0xCC,
+    0x3C, 0xFF, 0xFF, 0x00, 0x0F, 0xFC, 0xFF, 0xCC, 0x3C, 0xFF, 0xFF, 0x00,
+    0x00, 0x00, 0x03, 0xFF, 0x3C, 0x03, 0x0F, 0x00, 0x00, 0x00, 0x03, 0xFF,
+    0x3C, 0x03, 0x0F, 0x00, 0xFF, 0x3F, 0xC0, 0xCC, 0xC3, 0x33, 0x0F, 0x00,
+    0xFF, 0x3F, 0xC0, 0xCC, 0xC3, 0x33, 0x0F, 0x00, 0x03, 0x30, 0xF0, 0xCF,
+    0xCC, 0x03, 0xC3, 0x03, 0x03, 0x30, 0xF0, 0xCF, 0xCC, 0x03, 0xC3, 0x03,
+    0xF3, 0x33, 0xCF, 0x0F, 0xC3, 0xFF, 0xCF, 0x00, 0xF3, 0x33, 0xCF, 0x0F,
+    0xC3, 0xFF, 0xCF, 0x00, 0xF3, 0x33, 0x0F, 0xFC, 0x33, 0x0C, 0x00, 0x03,
+    0xF3, 0x33, 0x0F, 0xFC, 0x33, 0x0C, 0x00, 0x03, 0xF3, 0x33, 0xF0, 0xCF,
+    0x0F, 0xCF, 0xF3, 0x03, 0xF3, 0x33, 0xF0, 0xCF, 0x0F, 0xCF, 0xF3, 0x03,
+    0x03, 0x30, 0xF3, 0x00, 0x03, 0xF0, 0x3C, 0x03, 0x03, 0x30, 0xF3, 0x00,
+    0x03, 0xF0, 0x3C, 0x03, 0xFF, 0x3F, 0x0F, 0x30, 0xC0, 0x33, 0x03, 0x00,
+    0xFF, 0x3F, 0x0F, 0x30, 0xC0, 0x33, 0x03, 0x00,
 };
 
-/* Reference pins used elsewhere in the app, for context:
- *   Pin 9  = 3V3 (power out, ON by default)
- *   Pin 11 = GND
- *   Pin 15 = PC1 (ADC) -> REM Pod antenna
- *   Pin 16 = PC0 (ADC) -> EMF external Hall sensor
- */
-static const char* kAboutText =
-    "GHOST TRACKER v1.0\n"
-    "\n"
-    "== EMF: EXTERNAL SENSOR ==\n"
-    "(optional, SS49E linear\n"
-    "Hall sensor)\n"
-    "\n"
-    "Bare IC pinout (3.0-6.5V):\n"
-    "  1=VCC 2=GND 3=OUT\n"
-    "If yours is a breakout\n"
-    "module, follow the\n"
-    "printed labels (S/OUT,\n"
-    "-/GND, +/VCC): physical\n"
-    "pin order varies by\n"
-    "manufacturer.\n"
-    "\n"
-    "Diagram (front view):\n"
-    "  ___________\n"
-    " | o   o   o |\n"
-    " |___________|\n"
-    "   1   2   3\n"
-    "  VCC GND OUT\n"
-    "\n"
-    "Wiring to the Flipper:\n"
-    "  OUT -> Pin 16 (PC0)\n"
-    "  VCC -> Pin 9  (3V3)\n"
-    "  GND -> Pin 11 (GND)\n"
-    "\n"
-    "A real K-II meter uses a\n"
-    "coil + bandpass filter\n"
-    "tuned to 50/60Hz mains\n"
-    "hum, not a raw DC level.\n"
-    "We replicate that in\n"
-    "software: sample the\n"
-    "sensor at 640Hz and run\n"
-    "a Goertzel filter at\n"
-    "50Hz AND 60Hz, keeping\n"
-    "whichever is stronger.\n"
-    "The mV shown is real AC\n"
-    "ripple amplitude, not a\n"
-    "deviation from baseline.\n"
-    "\n"
-    "== SPIRIT BOX ==\n"
-    "REAL sweep with the\n"
-    "CC1101 chip (same one\n"
-    "Radio Scanner uses):\n"
-    "tunes 300.00-348.00MHz\n"
-    "and reads real RSSI each\n"
-    "step. The static you\n"
-    "hear is the CC1101's raw\n"
-    "demodulated RX bitstream,\n"
-    "mirrored straight onto\n"
-    "the speaker pin in\n"
-    "hardware - real RF noise,\n"
-    "not a synthesized tone.\n"
-    "No analog volume exists\n"
-    "for this (it's a digital\n"
-    "signal), only OK = mute.\n"
-    "\n"
-    "== REM POD: ANTENNA ==\n"
-    "Bare rigid copper wire,\n"
-    "no extra components.\n"
-    "\n"
-    "  Wire -> Pin 15 (PC1)\n"
-    "  Suggested length: 15cm\n"
-    "\n"
-    "Longer = more sensitive.\n"
-    "Also adjust the\n"
-    "sensitivity threshold in\n"
-    "the REM Pod menu itself.\n"
-    "\n"
-    "== EMF: INTERNAL MODE ==\n"
-    "(ambient RF, no wiring)\n"
-    "Does NOT use the NFC\n"
-    "chip: its field-detect\n"
-    "only sees an active NFC\n"
-    "reader nearby (a phone,\n"
-    "another reader), not\n"
-    "magnetic fields.\n"
-    "\n"
-    "Uses the Sub-GHz CC1101\n"
-    "chip (same as Spirit\n"
-    "Box): reads real RSSI\n"
-    "at 300-348MHz. Nearby\n"
-    "electronics/RF genuinely\n"
-    "raise the reading; with\n"
-    "nothing around it sits\n"
-    "at the chip's own noise\n"
-    "floor.\n"
-    "\n"
-    "== CALIBRATION ==\n"
-    "All thresholds (EMF and\n"
-    "REM Pod) are starting\n"
-    "points. Tune them to\n"
-    "your real sensor and\n"
-    "environment.\n";
+typedef enum {
+    AboutPageEmf,
+    AboutPageRem,
+    AboutPageSpirit,
+    AboutPageQr,
+    AboutPageCount,
+} AboutPage;
+
+typedef struct {
+    AboutPage page;
+} AboutViewModel;
+
+struct AboutView {
+    View* view;
+};
+
+static void about_view_draw_callback(Canvas* canvas, void* model) {
+    AboutViewModel* m = model;
+    canvas_clear(canvas);
+
+    const uint32_t w = canvas_width(canvas);
+    const uint32_t h = canvas_height(canvas);
+
+    if(m->page == AboutPageQr) {
+        canvas_draw_xbm(
+            canvas,
+            ((int)w - ABOUT_QR_WIDTH) / 2,
+            ((int)h - ABOUT_QR_HEIGHT) / 2,
+            ABOUT_QR_WIDTH,
+            ABOUT_QR_HEIGHT,
+            kAboutQrBitmap);
+        return;
+    }
+
+    canvas_set_font(canvas, FontPrimary);
+    switch(m->page) {
+    case AboutPageEmf:
+        canvas_draw_str_aligned(canvas, 4, 1, AlignLeft, AlignTop, "EMF: HALL SENSOR");
+        canvas_set_font(canvas, FontSecondary);
+        canvas_draw_str_aligned(canvas, 4, 18, AlignLeft, AlignTop, "(optional, SS49E)");
+        canvas_draw_str_aligned(canvas, 4, 30, AlignLeft, AlignTop, "OUT -> Pin 16 (PC0)");
+        canvas_draw_str_aligned(canvas, 4, 40, AlignLeft, AlignTop, "VCC -> Pin 9  (3V3)");
+        canvas_draw_str_aligned(canvas, 4, 50, AlignLeft, AlignTop, "GND -> Pin 11");
+        break;
+    case AboutPageRem:
+        canvas_draw_str_aligned(canvas, 4, 1, AlignLeft, AlignTop, "REM POD: ANTENNA");
+        canvas_set_font(canvas, FontSecondary);
+        canvas_draw_str_aligned(canvas, 4, 18, AlignLeft, AlignTop, "(bare copper wire,");
+        canvas_draw_str_aligned(canvas, 4, 28, AlignLeft, AlignTop, "~15cm suggested)");
+        canvas_draw_str_aligned(canvas, 4, 40, AlignLeft, AlignTop, "Wire -> Pin 15 (PC1)");
+        break;
+    case AboutPageSpirit:
+        canvas_draw_str_aligned(canvas, 4, 1, AlignLeft, AlignTop, "SPIRIT BOX: FM MODULE");
+        canvas_set_font(canvas, FontSecondary);
+        canvas_draw_str_aligned(canvas, 4, 18, AlignLeft, AlignTop, "(optional, TEA5767)");
+        canvas_draw_str_aligned(canvas, 4, 30, AlignLeft, AlignTop, "SCL -> Pin 16 (PC0)");
+        canvas_draw_str_aligned(canvas, 4, 40, AlignLeft, AlignTop, "SDA -> Pin 15 (PC1)");
+        canvas_draw_str_aligned(canvas, 4, 50, AlignLeft, AlignTop, "VCC/GND -> Pin 9/11");
+        break;
+    default:
+        break;
+    }
+
+    char page_buf[8];
+    snprintf(page_buf, sizeof(page_buf), "%d/%d", m->page + 1, AboutPageCount);
+    canvas_set_font(canvas, FontSecondary);
+    canvas_draw_str_aligned(canvas, (int)w - 2, (int)h - 1, AlignRight, AlignBottom, page_buf);
+}
+
+static bool about_view_input_callback(InputEvent* event, void* context) {
+    AboutView* instance = context;
+    if(event->type != InputTypeShort) return false;
+
+    if(event->key == InputKeyLeft || event->key == InputKeyRight) {
+        with_view_model(
+            instance->view,
+            AboutViewModel * model,
+            { model->page = (model->page + 1) % AboutPageCount; },
+            true);
+        return true;
+    }
+
+    /* Back is intentionally not consumed: it must bubble up to the app's
+     * navigation callback so it returns to the main menu. */
+    return false;
+}
 
 AboutView* about_view_alloc(void) {
     AboutView* instance = malloc(sizeof(AboutView));
-    instance->text_box = text_box_alloc();
-    text_box_set_font(instance->text_box, TextBoxFontText);
-    text_box_set_text(instance->text_box, kAboutText);
+    instance->view = view_alloc();
+
+    view_allocate_model(instance->view, ViewModelTypeLockFree, sizeof(AboutViewModel));
+    view_set_context(instance->view, instance);
+    view_set_orientation(instance->view, ViewOrientationHorizontal);
+    view_set_draw_callback(instance->view, about_view_draw_callback);
+    view_set_input_callback(instance->view, about_view_input_callback);
+
     return instance;
 }
 
 void about_view_free(AboutView* instance) {
-    text_box_free(instance->text_box);
+    view_free(instance->view);
     free(instance);
 }
 
 View* about_view_get_view(AboutView* instance) {
-    return text_box_get_view(instance->text_box);
+    return instance->view;
 }

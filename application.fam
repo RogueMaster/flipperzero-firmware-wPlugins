@@ -7,7 +7,7 @@ App(
     entry_point="ghost_tracker_app",
     stack_size=4 * 1024,
     fap_category="Tools",
-    fap_version="1.0",
+    fap_version="1.1",
     fap_icon="ghost_tracker.png",  # 10x10 1-bit PNG
     fap_description="Paranormal investigation instrument: EMF meter (ambient RF / external ADC), Spirit Box (real sub-GHz audio sweep) and REM Pod (capacitive GPIO/ADC proximity detection).",
     fap_author="Zinetick",
