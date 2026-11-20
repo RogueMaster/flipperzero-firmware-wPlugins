@@ -3,12 +3,9 @@
 /* If no message was entred this simply emits a MsgEntered event to the scene
  * manager to switch to the text box. If a message was entered it is appended
  * to the name string. The result is encrypted, if encryption is enabled, and
- * then copied into the TX buffer. The contents of the TX buffer are then
- * transmitted. The sent message is appended to the text box and a MsgEntered
- * event is sent to the scene manager to switch to the text box view. */
+ * then queued for transmission. The queued message is appended to the text
+ * box and a MsgEntered event switches to the text box view. */
 static bool chat_input_validator(const char* text, FuriString* error, void* context) {
-    UNUSED(error);
-
     furi_assert(context);
     ESubGhzChatState* state = context;
 
@@ -23,14 +20,14 @@ static bool chat_input_validator(const char* text, FuriString* error, void* cont
     furi_string_cat_str(state->msg_input, ": ");
     furi_string_cat_str(state->msg_input, text);
 
-    /* append the message to the chat box and prepare message preview */
+    if(!tx_msg_input(state)) {
+        furi_string_reset(state->msg_input);
+        furi_string_set_str(error, "Could not\nsend message.");
+        return false;
+    }
+
     append_msg(state, furi_string_get_cstr(state->msg_input));
-
-    /* encrypt and transmit message */
-    tx_msg_input(state);
-
-    /* clear message input buffer */
-    furi_string_set_char(state->msg_input, 0, 0);
+    furi_string_reset(state->msg_input);
 
     /* switch to text box view */
     view_dispatcher_send_custom_event(state->view_dispatcher, ESubGhzChatEvent_MsgEntered);

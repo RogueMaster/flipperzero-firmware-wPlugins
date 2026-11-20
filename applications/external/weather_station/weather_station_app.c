@@ -85,6 +85,7 @@ WeatherStationApp* weather_station_app_alloc() {
     //init Worker & Protocol & History
     app->lock = WSLockOff;
     app->file_path = furi_string_alloc();
+    app->raw_preset_data = NULL;
     app->txrx = malloc(sizeof(WeatherStationTxRx));
     app->txrx->preset = malloc(sizeof(SubGhzRadioPreset));
     app->txrx->preset->name = furi_string_alloc();
@@ -155,6 +156,7 @@ void weather_station_app_free(WeatherStationApp* app) {
     subghz_receiver_free(app->txrx->receiver);
     subghz_environment_free(app->txrx->environment);
     ws_history_free(app->txrx->history);
+    free(app->raw_preset_data);
     subghz_worker_free(app->txrx->worker);
     furi_string_free(app->file_path);
     furi_string_free(app->txrx->preset->name);

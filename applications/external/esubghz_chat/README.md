@@ -30,7 +30,9 @@ button for a few seconds. To unlock the keyboard again quickly press the back
 button three times. By pressing the Right button the key display is opened.
 Here the currently used key is displayed in hex. This can be used to input the
 same key on another flipper. There is also an option to share the current key
-via NFC in the key display.
+via NFC in the key display. Use version 1.6 or newer on both Flippers for NFC
+key sharing. To share a key with an older version, enter the displayed hex key
+and matching frequency manually.
 
 Pressing the back button when entering the frequency, when selecting the method
 for deriving the key or when entering a message will terminate the plugin.

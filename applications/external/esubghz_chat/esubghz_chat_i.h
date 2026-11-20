@@ -136,5 +136,5 @@ typedef enum {
 
 void set_chat_input_header(ESubGhzChatState* state);
 void append_msg(ESubGhzChatState* state, const char* msg);
-void tx_msg_input(ESubGhzChatState* state);
+bool tx_msg_input(ESubGhzChatState* state);
 void enter_chat(ESubGhzChatState* state);

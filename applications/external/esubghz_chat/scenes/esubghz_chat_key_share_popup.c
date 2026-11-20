@@ -92,6 +92,12 @@ void scene_on_enter_key_share_popup(void* context) {
 
     popup_disable_timeout(state->nfc_popup);
 
+    if(furi_hal_nfc_is_hal_ready() != FuriHalNfcErrorNone) {
+        popup_set_header(state->nfc_popup, "NFC unavailable", 64, 24, AlignCenter, AlignTop);
+        view_dispatcher_switch_to_view(state->view_dispatcher, ESubGhzChatView_NfcPopup);
+        return;
+    }
+
     popup_set_header(state->nfc_popup, "Sharing...", 67, 13, AlignLeft, AlignTop);
     popup_set_icon(state->nfc_popup, 0, 3, &I_NFC_dolphin_emulation_47x61);
     popup_set_text(state->nfc_popup, "Sharing\nKey via\nNFC", 90, 28, AlignCenter, AlignTop);

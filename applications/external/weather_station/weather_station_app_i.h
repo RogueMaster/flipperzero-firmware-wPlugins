@@ -56,6 +56,7 @@ struct WeatherStationApp {
     WSLock lock;
     SubGhzSetting* setting;
     FuriString* file_path;
+    uint8_t* raw_preset_data; // Owned by the app while RAW history holds preset references.
 };
 
 void ws_preset_init(

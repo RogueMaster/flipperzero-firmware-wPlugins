@@ -1,5 +1,7 @@
 #include "../esubghz_chat_i.h"
 
+#include <errno.h>
+
 /* Sends FreqEntered event to scene manager and enters the chat. */
 static void freq_input_cb(void* context) {
     furi_assert(context);
@@ -21,26 +23,31 @@ static bool freq_input_validator(const char* text, FuriString* error, void* cont
     furi_assert(context);
     ESubGhzChatState* state = context;
 
-    int ret = sscanf(text, "%lu", &(state->frequency));
-    if(ret != 1) {
+    char* end;
+    errno = 0;
+    const unsigned long long frequency = strtoull(text, &end, 10);
+    if(text[0] < '0' || text[0] > '9' || *end != '\0' || errno == ERANGE ||
+       frequency > UINT32_MAX) {
         furi_string_printf(error, "Please enter\nfrequency\nin Hz!");
         return false;
     }
 
-    if(!subghz_devices_is_frequency_valid(state->subghz_device, state->frequency)) {
-        furi_string_printf(error, "Frequency\n%lu\n is invalid!", state->frequency);
+    const uint32_t frequency_hz = (uint32_t)frequency;
+    if(!subghz_devices_is_frequency_valid(state->subghz_device, frequency_hz)) {
+        furi_string_printf(error, "Frequency\n%lu\n is invalid!", (unsigned long)frequency_hz);
         return false;
     }
 
 #ifdef FW_ORIGIN_Official
-    if(!furi_hal_region_is_frequency_allowed(state->frequency)) {
+    if(!furi_hal_region_is_frequency_allowed(frequency_hz)) {
 #else /* FW_ORIGIN_Official */
-    if(!furi_hal_subghz_is_tx_allowed(state->frequency)) {
+    if(!furi_hal_subghz_is_tx_allowed(frequency_hz)) {
 #endif /* FW_ORIGIN_Official */
-        furi_string_printf(error, "TX forbidden\non frequency\n%lu!", state->frequency);
+        furi_string_printf(error, "TX forbidden\non frequency\n%lu!", (unsigned long)frequency_hz);
         return false;
     }
 
+    state->frequency = frequency_hz;
     return true;
 }
 

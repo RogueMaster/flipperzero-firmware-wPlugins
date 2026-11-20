@@ -7,9 +7,14 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#define TAG "WSReadRaw"
-
 #define WS_RAW_MAX_LINE_BYTES 8192U
+#define WS_RAW_PULSE_SPACES   " \t\r\n"
+
+static void ws_scene_read_raw_clear(WeatherStationApp* app) {
+    ws_history_reset(app->txrx->history);
+    free(app->raw_preset_data);
+    app->raw_preset_data = NULL;
+}
 
 // Preflight with a fixed buffer before any FlipperFormat string or line reads.
 static bool ws_scene_read_raw_lines_fit(Stream* stream) {
@@ -32,7 +37,8 @@ static bool
     ws_scene_read_raw_parse_pulse(const char* start, char** end, uint32_t* duration, bool* level) {
     errno = 0;
     const long value = strtol(start, end, 10);
-    if(*end == start || errno == ERANGE || value < -INT32_MAX || value > INT32_MAX) {
+    if(*end == start || !strchr(WS_RAW_PULSE_SPACES, **end) || errno == ERANGE ||
+       value < -INT32_MAX || value > INT32_MAX) {
         return false;
     }
     *level = value > 0;
@@ -68,6 +74,7 @@ static void ws_scene_read_raw_show_message(const char* text) {
 // Feeds every RAW_Data sample through the app's decoders. Returns NULL on success, or a message
 // to show when the file cannot be read as a RAW recording.
 static const char* ws_scene_read_raw_decode(WeatherStationApp* app, const char* path) {
+    ws_scene_read_raw_clear(app);
     Storage* storage = furi_record_open(RECORD_STORAGE);
     FlipperFormat* ff = flipper_format_file_alloc(storage);
     FuriString* str = furi_string_alloc();
@@ -85,36 +92,63 @@ static const char* ws_scene_read_raw_decode(WeatherStationApp* app, const char* 
             error = "RAW line too long\nor unreadable";
             break;
         }
-        if(!flipper_format_read_header(ff, str, &version) ||
-           !flipper_format_read_uint32(ff, "Frequency", &ctx.preset.frequency, 1) ||
-           !flipper_format_read_string(ff, "Preset", ctx.preset.name) ||
-           !flipper_format_read_string(ff, "Protocol", str)) {
+        if(!flipper_format_read_header(ff, str, &version)) {
             error = "Cannot read\nthis file";
             break;
         }
-        if(furi_string_cmp_str(str, "RAW") != 0) {
+        if(furi_string_cmp_str(str, SUBGHZ_RAW_FILE_TYPE) != 0 ||
+           version != SUBGHZ_RAW_FILE_VERSION) {
+            error = "Not a supported\nRAW recording";
+            break;
+        }
+        if(!flipper_format_read_uint32(ff, "Frequency", &ctx.preset.frequency, 1) ||
+           !flipper_format_read_string(ff, "Preset", ctx.preset.name)) {
+            error = "Cannot read\nthis file";
+            break;
+        }
+        if(furi_string_cmp_str(ctx.preset.name, "FuriHalSubGhzPresetCustom") == 0) {
+            uint32_t size = 0;
+            if(!flipper_format_read_string(ff, "Custom_preset_module", str) ||
+               furi_string_cmp_str(str, "CC1101") != 0 ||
+               !flipper_format_get_value_count(ff, "Custom_preset_data", &size) || size == 0 ||
+               size > UINT16_MAX) {
+                error = "Invalid custom\nradio preset";
+                break;
+            }
+            app->raw_preset_data = malloc(size);
+            if(!app->raw_preset_data ||
+               !flipper_format_read_hex(ff, "Custom_preset_data", app->raw_preset_data, size)) {
+                error = "Cannot read\ncustom preset";
+                break;
+            }
+            ctx.preset.data = app->raw_preset_data;
+            ctx.preset.data_size = size;
+        }
+        if(!flipper_format_read_string(ff, "Protocol", str) ||
+           furi_string_cmp_str(str, "RAW") != 0) {
             error = "Not a RAW\nrecording";
             break;
         }
 
-        ws_history_reset(app->txrx->history);
         subghz_receiver_reset(app->txrx->receiver);
         subghz_receiver_set_rx_callback(app->txrx->receiver, ws_scene_read_raw_rx_callback, &ctx);
 
         while(stream_read_line(stream, str)) {
             if(!furi_string_start_with_str(str, "RAW_Data:")) continue;
             const char* p = furi_string_get_cstr(str) + strlen("RAW_Data:");
-            char* end;
-            uint32_t duration;
-            bool level;
-            while(ws_scene_read_raw_parse_pulse(p, &end, &duration, &level)) {
-                p = end;
+            p += strspn(p, WS_RAW_PULSE_SPACES);
+            while(*p) {
+                char* end;
+                uint32_t duration;
+                bool level;
+                if(!ws_scene_read_raw_parse_pulse(p, &end, &duration, &level)) {
+                    error = "Invalid RAW\npulse duration";
+                    break;
+                }
                 if(duration != 0) subghz_receiver_decode(app->txrx->receiver, level, duration);
+                p = end + strspn(end, WS_RAW_PULSE_SPACES);
             }
-            if(end != p) {
-                error = "Invalid RAW\npulse duration";
-                break;
-            }
+            if(error) break;
         }
         // A long silence lets decoders that wait for the end of a frame finish the last one
         if(!error) subghz_receiver_decode(app->txrx->receiver, false, 100000);
@@ -157,7 +191,7 @@ void weather_station_scene_read_raw_on_enter(void* context) {
             error = "No weather data\nfound in this file";
         }
         if(error) {
-            ws_history_reset(app->txrx->history);
+            ws_scene_read_raw_clear(app);
             ws_scene_read_raw_show_message(error);
             scene_manager_previous_scene(app->scene_manager);
             return;
@@ -191,7 +225,7 @@ bool weather_station_scene_read_raw_on_event(void* context, SceneManagerEvent ev
     }
     if(event.type == SceneManagerEventTypeBack) {
         scene_manager_set_scene_state(app->scene_manager, WeatherStationSceneReadRaw, 0);
-        ws_history_reset(app->txrx->history);
+        ws_scene_read_raw_clear(app);
     }
     return false;
 }

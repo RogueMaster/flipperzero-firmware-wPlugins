@@ -8,7 +8,9 @@
 
 void ws_block_generic_get_preset_name(const char* preset_name, FuriString* preset_str) {
     const char* preset_name_temp;
-    if(!strcmp(preset_name, "AM270")) {
+    if(strncmp(preset_name, "FuriHalSubGhzPreset", sizeof("FuriHalSubGhzPreset") - 1) == 0) {
+        preset_name_temp = preset_name;
+    } else if(!strcmp(preset_name, "AM270")) {
         preset_name_temp = "FuriHalSubGhzPresetOok270Async";
     } else if(!strcmp(preset_name, "AM650")) {
         preset_name_temp = "FuriHalSubGhzPresetOok650Async";

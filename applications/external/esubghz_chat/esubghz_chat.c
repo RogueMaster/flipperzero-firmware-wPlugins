@@ -79,10 +79,12 @@ static void post_rx(ESubGhzChatState* state, size_t rx_size) {
         memcpy(state->rx_str_buffer, state->rx_buffer, rx_size);
         state->rx_str_buffer[rx_size] = 0;
 
-        /* remove trailing newline if it is there, for compat with CLI
-		 * Sub-GHz chat */
+        /* Strip the line ending used by CLI Sub-GHz chat. */
         if(state->rx_str_buffer[rx_size - 1] == '\n') {
-            state->rx_str_buffer[rx_size - 1] = 0;
+            state->rx_str_buffer[--rx_size] = 0;
+            if(rx_size && state->rx_str_buffer[rx_size - 1] == '\r') {
+                state->rx_str_buffer[rx_size - 1] = 0;
+            }
         }
     } else {
         /* if decryption fails output an error message */
@@ -100,7 +102,7 @@ static void post_rx(ESubGhzChatState* state, size_t rx_size) {
 
 /* Reads the message from msg_input, encrypts it if necessary and then
  * transmits it. */
-void tx_msg_input(ESubGhzChatState* state) {
+bool tx_msg_input(ESubGhzChatState* state) {
     /* encrypt message if necessary */
     size_t msg_len = strlen(furi_string_get_cstr(state->msg_input));
     size_t tx_size = msg_len;
@@ -108,11 +110,13 @@ void tx_msg_input(ESubGhzChatState* state) {
         tx_size += MSG_OVERHEAD;
         furi_check(tx_size <= sizeof(state->tx_buffer));
 
-        crypto_ctx_encrypt(
-            state->crypto_ctx,
-            (uint8_t*)furi_string_get_cstr(state->msg_input),
-            msg_len,
-            state->tx_buffer);
+        if(!crypto_ctx_encrypt(
+               state->crypto_ctx,
+               (uint8_t*)furi_string_get_cstr(state->msg_input),
+               msg_len,
+               state->tx_buffer)) {
+            return false;
+        }
     } else {
         tx_size += 2;
         furi_check(tx_size <= sizeof(state->tx_buffer));
@@ -124,7 +128,7 @@ void tx_msg_input(ESubGhzChatState* state) {
     }
 
     /* transmit */
-    subghz_tx_rx_worker_write(state->subghz_worker, state->tx_buffer, tx_size);
+    return subghz_tx_rx_worker_write(state->subghz_worker, state->tx_buffer, tx_size);
 }
 
 /* Displays information on frequency, encryption and radio type in the text
@@ -149,10 +153,12 @@ void enter_chat(ESubGhzChatState* state) {
     furi_string_cat_str(state->msg_input, " joined chat.");
 
     /* encrypt and transmit message */
-    tx_msg_input(state);
+    if(!tx_msg_input(state)) {
+        FURI_LOG_W(APPLICATION_NAME, "Could not queue join message");
+    }
 
     /* clear message input buffer */
-    furi_string_set_char(state->msg_input, 0, 0);
+    furi_string_reset(state->msg_input);
 }
 
 /* Sends a leave message */
@@ -162,13 +168,15 @@ void exit_chat(ESubGhzChatState* state) {
     furi_string_cat_str(state->msg_input, " left chat.");
 
     /* encrypt and transmit message */
-    tx_msg_input(state);
+    const bool queued = tx_msg_input(state);
 
     /* clear message input buffer */
-    furi_string_set_char(state->msg_input, 0, 0);
+    furi_string_reset(state->msg_input);
 
     /* wait for leave message to be delivered */
-    furi_delay_ms(CHAT_LEAVE_DELAY);
+    if(queued) {
+        furi_delay_ms(CHAT_LEAVE_DELAY);
+    }
 }
 
 /* Whether or not to display the locked message. */
@@ -194,6 +202,7 @@ static bool kbd_lock_msg_reset_timeout(ESubGhzChatState* state) {
 static void kbd_lock_msg_reset(ESubGhzChatState* state, bool backlight_off) {
     state->kbd_lock_msg_ticks = 0;
     state->kbd_lock_count = 0;
+    view_port_update(state->view_dispatcher->view_port);
 
     if(backlight_off) {
         notification_message(state->notification, &sequence_display_backlight_off);
@@ -312,6 +321,7 @@ static void esubghz_hooked_input_callback(InputEvent* event, void* context) {
 		 * initiate the timer */
         if(state->kbd_lock_count == 0) {
             state->kbd_lock_msg_ticks = furi_get_tick();
+            view_port_update(state->view_dispatcher->view_port);
         }
 
         /* back button has been pressed, increase the lock counter */
@@ -548,11 +558,6 @@ static void chat_box_free(ESubGhzChatState* state) {
 }
 
 int32_t esubghz_chat(const char* args) {
-    if(furi_hal_nfc_is_hal_ready() != FuriHalNfcErrorNone) {
-        printf("NFC chip failed to start\r\n");
-        return -1;
-    }
-
     /* init the crypto system */
     crypto_init();
 
@@ -815,11 +820,6 @@ err_alloc:
     } else {
         FURI_LOG_I(APPLICATION_NAME, "Clean exit.");
     }
-
-    /* make sure the NFC chip is parked */
-    furi_hal_nfc_acquire();
-    furi_hal_nfc_low_power_mode_start();
-    furi_hal_nfc_release();
 
     return err;
 }
