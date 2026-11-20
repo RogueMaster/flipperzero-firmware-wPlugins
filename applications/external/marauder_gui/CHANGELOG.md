@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.3
+
+- Add a custom Evil Portal page picker: after a probe-sniff capture, choose between the
+  built-in login page template or any `.html`/`.htm` file placed in
+  `apps_data/marauder_gui/html/` on the SD card. Falls back to the built-in template if the
+  selected file can't be read.
+- Rework WiFi Spam: broadcast from a user-supplied `apps_data/marauder_gui/ssids.txt` list
+  (one SSID per line) instead of only randomly-generated names. Names are loaded and
+  broadcast in safe-sized windows (capped at 500) that rotate every ~20 seconds, so lists
+  far larger than the ESP32 Marauder's onboard SSID memory limit can still be cycled through
+  continuously. Replaces the old fixed "Rick Roll" entry with a small built-in "Funny Names"
+  list that uses the same windowed broadcast path, and removes the separate "Set Count" menu
+  item in favor of a single prompt shown when choosing "Random SSID".
+
 ## 1.2
 
 - Show EAPOL and beacon counts in PMKID capture, rather than unrelated zero counters.

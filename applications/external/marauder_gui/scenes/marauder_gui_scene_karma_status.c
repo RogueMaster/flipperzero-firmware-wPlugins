@@ -1,6 +1,7 @@
 #include "../marauder_gui_app_i.h"
 #include <stdio.h>
 #include <string.h>
+#include <storage/storage.h>
 
 enum {
     KarmaStatusEventStop,
@@ -99,10 +100,39 @@ static void marauder_gui_scene_karma_status_tick(MarauderGuiApp* app) {
         app->karma_wait_ticks++;
         if(app->karma_wait_ticks >= KARMA_WAIT_BEFORE_HTML_TICKS) {
             app->karma_wait_ticks = 0;
-            marauder_uart_send(
-                app->uart,
-                marauder_gui_text(
-                    app, marauder_karma_html_template_tr, marauder_karma_html_template_en));
+
+            if(app->karma_use_default_html) {
+                marauder_uart_send(
+                    app->uart,
+                    marauder_gui_text(
+                        app, marauder_karma_html_template_tr, marauder_karma_html_template_en));
+            } else {
+                Storage* storage = furi_record_open(RECORD_STORAGE);
+                File* file = storage_file_alloc(storage);
+                char file_path[256];
+
+                snprintf(
+                    file_path,
+                    sizeof(file_path),
+                    MARAUDER_GUI_DATA_DIR "/html/%s",
+                    app->karma_custom_html_file);
+
+                if(storage_file_open(file, file_path, FSAM_READ, FSOM_OPEN_EXISTING)) {
+                    char buffer[4096];
+                    size_t read = storage_file_read(file, buffer, sizeof(buffer) - 1);
+                    buffer[read] = '\0';
+                    marauder_uart_send(app->uart, buffer);
+                    storage_file_close(file);
+                } else {
+                    marauder_uart_send(
+                        app->uart,
+                        marauder_gui_text(
+                            app, marauder_karma_html_template_tr, marauder_karma_html_template_en));
+                }
+
+                storage_file_free(file);
+                furi_record_close(RECORD_STORAGE);
+            }
             app->karma_state = KarmaStateWaitAfterHtml;
         }
     } else if(app->karma_state == KarmaStateWaitAfterHtml) {
