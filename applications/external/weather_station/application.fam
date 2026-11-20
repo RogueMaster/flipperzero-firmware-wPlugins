@@ -8,7 +8,7 @@ App(
     fap_icon="weather_station_10px.png",
     fap_category="Sub-GHz",
     fap_icon_assets="images",
-    fap_version="2.0.1",
+    fap_version="2.1",
     fap_description="Receive weather data from a wide range of supported Sub-1GHz remote sensor",
     #  1.8: [Solight TE44 recognition (By m7i-org)](https://github.com/Next-Flip/Momentum-Firmware/pull/183)
     #  1.9: [Added Bressner 3CH Protocol (By m7i-org)](https://github.com/Next-Flip/Momentum-Firmware/pull/217)

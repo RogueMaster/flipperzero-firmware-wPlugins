@@ -2,6 +2,8 @@
 
 This application allows you to read the data from Sub-GHz weather sensors and display it on your Flipper Zero. The interface is identical to the default Sub-GHz app, but the supported protocols are different.
 
+Read RAW File decodes a Sub-GHz RAW recording saved by the Sub-GHz app and lists every sensor found in it. Select a sensor to see its last reading; the age shown is counted from when the file was saved.
+
 ## Supported Protocols
 
 inFactory-TH

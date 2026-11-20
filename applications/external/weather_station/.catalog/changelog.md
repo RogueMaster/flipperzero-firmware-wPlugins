@@ -1,3 +1,5 @@
+## 2.1
+ - Add Read RAW File: decode weather sensors from a saved Sub-GHz RAW recording
 ## 2.0
  - Add protocol Bresser-3CH
  - Add protocol BL999
