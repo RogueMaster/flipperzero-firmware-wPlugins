@@ -1,5 +1,6 @@
 #include "../esubghz_chat_i.h"
 #include "../helpers/nfc_helpers.h"
+#include <nfc/helpers/nfc_data_generator.h>
 #include <machine/endian.h>
 
 struct ReplayDictNfcWriterContext {
@@ -37,51 +38,47 @@ static void prepare_nfc_dev_data(ESubGhzChatState* state) {
 
     nfc_dev_data_clear(dev_data);
 
-    Iso14443_3aData* iso14443_3a_data = dev_data->iso14443_3a_data;
-    furi_hal_random_fill_buf(iso14443_3a_data->uid, ISO14443_3A_UID_7_BYTES);
-    iso14443_3a_data->uid_len = ISO14443_3A_UID_7_BYTES;
-    iso14443_3a_data->atqa[0] = 0x44;
-    iso14443_3a_data->atqa[1] = 0x00;
-    iso14443_3a_data->sak = 0x00;
+    /* Let the firmware build the card. Its own generator is what the NFC app
+     * emulates when a card is added by hand, so this is a card the NFC stack
+     * is known to read: every fixed page, the version bytes, the counters and
+     * the configuration pages come out exactly as the stack expects, instead
+     * of being guessed at here. */
+    NfcDevice* generated = nfc_device_alloc();
+    nfc_data_generator_fill_data(NfcDataGeneratorTypeNTAG215, generated);
+    mf_ultralight_copy(dev_data, nfc_device_get_data(generated, NfcProtocolMfUltralight));
+    nfc_device_free(generated);
 
-    dev_data->type = MfUltralightTypeNTAG215;
-    dev_data->version.header = 0x00;
-    dev_data->version.vendor_id = 0x04;
-    dev_data->version.prod_type = 0x04;
-    dev_data->version.prod_subtype = 0x02;
-    dev_data->version.prod_ver_major = 0x01;
-    dev_data->version.prod_ver_minor = 0x00;
-    dev_data->version.storage_size = 0x11;
-    dev_data->version.protocol_type = 0x03;
+    /* Set the page count rather than trusting the copy to carry it: it arrives
+     * as zero, and a card claiming no pages is refused on every page read. */
+    dev_data->pages_total = mf_ultralight_get_pages_total(MfUltralightTypeNTAG215);
+    dev_data->pages_read = dev_data->pages_total;
 
+    /* Then put the payload in user memory, leaving every other page of the
+     * generated card alone. */
     uint8_t* mem = nfc_dev_data_bytes(dev_data);
-    size_t data_written = 0;
+    size_t payload_len = 0;
 
     /* write key */
     crypto_ctx_get_key(state->crypto_ctx, mem + NFC_KEY_OFFSET);
-    data_written += (KEY_BITS / 8);
+    payload_len += (KEY_BITS / 8);
 
     /* write frequency */
-    struct FreqNfcEntry* freq_entry = (struct FreqNfcEntry*)(mem + data_written);
+    struct FreqNfcEntry* freq_entry = (struct FreqNfcEntry*)(mem + NFC_FREQ_OFFSET);
     freq_entry->frequency = __htonl(state->frequency);
-    freq_entry->unused1 = 0;
-    freq_entry->unused2 = 0;
-    freq_entry->unused3 = 0;
-    data_written += sizeof(struct FreqNfcEntry);
+    freq_entry->magic = __htonl(NFC_FORMAT_MAGIC);
+    freq_entry->payload_len = 0;
+    freq_entry->unused = 0;
+    payload_len += sizeof(struct FreqNfcEntry);
 
     /* write the replay dict */
     struct ReplayDictNfcWriterContext wr_ctx = {
-        .cur = mem + data_written, .max = mem + NFC_MAX_BYTES};
+        .cur = mem + NFC_KEY_OFFSET + payload_len, .max = mem + NFC_KEY_OFFSET + NFC_MAX_BYTES};
 
     size_t n_entries =
         crypto_ctx_dump_replay_dict(state->crypto_ctx, replay_dict_nfc_writer, &wr_ctx);
-    data_written += n_entries * sizeof(struct ReplayDictNfcEntry);
+    payload_len += n_entries * sizeof(struct ReplayDictNfcEntry);
 
-    /* The reading side strips NFC_CONFIG_PAGES trailing pages, so expose the
-     * payload plus that many empty pages and nothing else. The poller stops
-     * once the listener NAKs the page after them. */
-    dev_data->pages_total = (data_written / MF_ULTRALIGHT_PAGE_SIZE) + NFC_CONFIG_PAGES;
-    dev_data->pages_read = dev_data->pages_total;
+    freq_entry->payload_len = __htonl((uint32_t)payload_len);
 }
 
 /* Prepares the key share popup scene. */
