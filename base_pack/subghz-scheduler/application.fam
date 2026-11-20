@@ -7,7 +7,7 @@ App(
     entry_point="scheduler_app",
     stack_size=5 * 1024,
     fap_category="Sub-GHz",
-    fap_version="3.4",
+    fap_version="3.5",
     fap_icon="icons/icon.png",
     fap_icon_assets="icons",
     fap_author="Patrick Edwards",

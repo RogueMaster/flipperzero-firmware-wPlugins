@@ -42,7 +42,7 @@ The Flipper and its community wouldn't be as rich as it is without your contribu
 | NFC Eink Tags | ![NFC Badge] | [by RebornedBrain](https://github.com/flipperdevices/flipperzero-good-faps/pull/245/files) | [![Official Badge]](https://lab.flipper.net/apps/nfc_eink) |
 | NFC/RFID detector | ![Tools Badge] |  | [![Official Badge]](https://lab.flipper.net/apps/nfc_rfid_detector) |
 | NightStand Clock | ![Tools Badge] | [by nymda](https://github.com/nymda/FlipperNightStand) + Fixes [by WillyJL](https://github.com/WillyJL) & [mishamyte](https://github.com/mishamyte) & Alarm by @xMasterX <br>Part of UFW as main app [sources](https://github.com/DarkFlippers/unleashed-firmware/tree/dev/applications/main/clock_app) | ![None Badge] |
-| Weather Station | ![SubGhz Badge] | added External Radio Support | [![Official Badge]](https://lab.flipper.net/apps/weather_station) |
+| Weather Station | ![SubGhz Badge] | added External Radio Support, + Read RAW File (decode sensors from a saved Sub-GHz RAW recording) by @Lechnio | [![Official Badge]](https://lab.flipper.net/apps/weather_station) |
 | USB Keyboard & Mouse | ![USB Badge] | Renamed, added Mouse `Clicker`/`Jiggler`, Added `PTT`, `Movie` by @hryamzik - Moved back to [firmware repo](https://github.com/DarkFlippers/unleashed-firmware/tree/dev/applications/system) | ![None Badge] |
 | Bluetooth Remote | ![BT Badge] | Renamed, added Mouse `Clicker`/`Jiggler` & `Tikshorts`, Added `PTT`, `Movie` by @hryamzik - Moved back to [firmware repo](https://github.com/DarkFlippers/unleashed-firmware/tree/dev/applications/system) | ![None Badge] |
 | USB Mass Storage | ![USB Badge] | [by hedger & nminaylov](https://github.com/flipperdevices/flipperzero-good-faps) | [![Official Badge]](https://lab.flipper.net/apps/mass_storage) |
@@ -314,6 +314,7 @@ The Flipper and its community wouldn't be as rich as it is without your contribu
 | Toshiba AC Remote | ![IR Badge] | [by xMasterX](https://github.com/xMasterX/flipper_ac) |  | ![None Badge] |
 | AC Detector | ![IR Badge] | [by xMasterX](https://github.com/xMasterX/flipper_ac) | Identifies which AC protocol a remote speaks | ![None Badge] |
 | Cross Remote | ![IR Badge] | [by leedave](https://github.com/leedave/flipper-zero-cross-remote) | One-click macro remote: sends multiple IR/Sub-GHz commands | ![None Badge] |
+| IR RAW Edit | ![IR Badge] | [by Lechnio](https://github.com/Lechnio/IR-RAW-Edit) | Trim, cut, undo and merge saved .ir signals, normalize jitter, decode the selection and save it as raw or parsed | [![Author Badge]](https://lab.flipper.net/apps/ir_raw_edit) |
 | BPM Tapper | ![Media Badge] | [by panki27](https://github.com/panki27/bpm-tapper) |  | [![UFW Badge]](https://lab.flipper.net/apps/bpm_tapper) |
 | Flizzer Tracker | ![Media Badge] | [by LTVA1](https://github.com/LTVA1/flizzer_tracker) |  | [![Author Badge]](https://lab.flipper.net/apps/flizzer_tracker) |
 | Music Beeper | ![Media Badge] | [by qqMajiKpp / Haseo](https://github.com/qqmajikpp/) |  | ![None Badge] |

@@ -55,6 +55,7 @@ struct WeatherStationApp {
     WSReceiverInfo* ws_receiver_info;
     WSLock lock;
     SubGhzSetting* setting;
+    FuriString* file_path;
 };
 
 void ws_preset_init(

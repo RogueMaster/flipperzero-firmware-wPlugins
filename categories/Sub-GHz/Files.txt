@@ -1,0 +1,5 @@
+# Sub-GHz / Files -- tools that work on saved .sub files: editing, previewing, playlists, duplicate hunting.
+shapshup
+subghz_editor
+sub_dup_finder
+subghz_playlist_creator
