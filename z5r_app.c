@@ -31,7 +31,8 @@ typedef enum { ByteAdd, ByteEdit } ByteMode;
 typedef enum { TickNone, TickTouch } TickMode;
 
 enum { MCtl, MRead, MLoad, MErase, MInfo };
-enum { CAdd, CTime, CKeys, CWrite, CSave };
+enum { CAdd, CTime, CKeys, CWrite }; /* CWrite: selector, Left / Right pick controller / file / both */
+enum { WCtl, WFile, WBoth };
 #define ROWS_FIRST 1 /* row 0 of the key list is the search line */
 enum { KAttr, KEdit, KExport, KDelete, KNone, KMarkAll, KUnmarkAll }; /* key card rows, then the marks menu rows */
 enum { AType, ATouch, ATouchRfid, AIbtn, ARfid, AManual }; /* AType: selector, Left / Right change the type of added keys */
@@ -75,6 +76,8 @@ typedef struct {
     bool kact; /* the key list holds the marked-keys or marks menu, not the key card */
     uint32_t kpress; /* tick Up / Down went down in the key list: held 3 s = steps of 20 */
     uint8_t paint; /* OK held after marking: 1 = rows passed with Up / Down get marked, 2 = unmarked */
+    uint8_t wto; /* "Write to:" target, WCtl.. */
+    bool wboth; /* the file name being asked is for "both": the controller write follows the save */
     uint8_t mark[(Z5R_KEYS_MAX + 7) / 8]; /* marked keys, bit per base index; only set while in the key list */
     uint16_t nmark;
     uint8_t fbytes[6]; /* key search input, MSB first */
@@ -608,7 +611,13 @@ static void text_done(void* ctx) {
         app->base0 = app->db->count;
     }
     main_labels(app);
-    if(ok) {
+    if(ok && app->wboth) { /* file first: it holds the base even if the controller write fails */
+        app->fdirty = false;
+        app->wboth = false;
+        snprintf(app->msg, sizeof(app->msg), "Saved %s", app->name);
+        quiet_done(app, VCtl);
+        do_write(app);
+    } else if(ok) {
         app->fdirty = false;
         show_dolphin(app, "Saved", VCtl);
     } else {
@@ -1448,7 +1457,8 @@ static void add_cb(void* ctx, uint32_t index) {
 
 static const char* main_items[] = {"", /* [0] = base state, set in main_labels */ "Read controller", "Load base from file", "Erase controller", "Info / connection"};
 static const char* const add_items[] = {"", /* [0] = type selector, drawn specially */ "Read iButton", "Read RFID", "File: iButton (.ibtn)", "File: RFID (.rfid)", "Manual entry"};
-static const char* const ctl_items[] = {"Add key", "Set open time", "Edit keys list", "Write base to controller", "Save base to file"};
+static const char* const ctl_items[] = {"Add key", "Set open time", "Edit keys list", "" /* [CWrite] "Write to:" selector, drawn specially */};
+static const char* const wto_names[] = {"controller", "file", "both"};
 
 
 
@@ -1504,6 +1514,11 @@ static void main_draw(Canvas* c, void* model) {
             canvas_draw_str(c, 2, y + 9, line);
             continue;
         }
+        if(mn->id == VCtl && top + i == CWrite) {
+            snprintf(line, sizeof(line), "Write to: < %s >", wto_names[app->wto]);
+            canvas_draw_str(c, 2, y + 9, line);
+            continue;
+        }
         if(sel)
             scroll_text(c, mn->items[top + i], line, sizeof(line), 118);
         else
@@ -1519,6 +1534,11 @@ static bool main_input(InputEvent* e, void* ctx) {
     App* app = mn->app;
     if(mn->id == VAdd && mn->sel == AType && e->type == InputTypeShort && (e->key == InputKeyLeft || e->key == InputKeyRight)) {
         step_type(app, e->key == InputKeyRight ? 1 : -1);
+        main_labels(app);
+        return true;
+    }
+    if(mn->id == VCtl && mn->sel == CWrite && e->type == InputTypeShort && (e->key == InputKeyLeft || e->key == InputKeyRight)) {
+        app->wto = (app->wto + (e->key == InputKeyRight ? 1 : 2)) % 3;
         main_labels(app);
         return true;
     }
@@ -1566,14 +1586,15 @@ static void ctl_cb(void* ctx, uint32_t index) {
         open_keys(app);
         break;
     case CWrite:
-        do_write(app);
+        app->wboth = app->wto == WBoth;
+        if(app->wto == WCtl)
+            do_write(app);
+        else
+            ask_name(app);
         break;
     case CAdd:
         menus[2].sel = ATouch; /* first action item, not the type selector */
         go(app, VAdd);
-        break;
-    case CSave:
-        ask_name(app);
         break;
     case CTime:
         number_input_set_header_text(app->num, "Open time, sec (0-255)");
