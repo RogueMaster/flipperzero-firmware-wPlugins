@@ -61,6 +61,7 @@ typedef struct {
     View* main; /* own view: header with key count and open time */
     uint32_t mq; /* last 250 ms step the menu was redrawn for (scrolling text) */
     bool mphase; /* pencil blink phase: true = hidden */
+    bool led; /* red LED lit together with "unsaved" */
     View* ctl; /* same header as main */
     View* keys; /* own list view: needs a Right = menu hint at the bottom, which Submenu cannot draw */
     uint16_t rid[KROWS];
@@ -946,6 +947,8 @@ static void bytes_done(void* ctx) {
 /* ---------- key reading ticker ---------- */
 
 static void blink(App* app, const NotificationSequence* seq) {
+    if(app->led) notification_message(app->notif, &sequence_reset_red); /* before the blink starts, not on top of it */
+    app->led = false;
     notification_message(app->notif, seq);
     app->blink = true;
 }
@@ -1144,6 +1147,11 @@ static void tick_cb(void* ctx) {
         app->mphase = ph;
         main_labels(app);
         if(app->tick == TickTouch) touch_redraw(app);
+    }
+    bool led = app->modified && !app->mphase && !app->blink; /* the read-in-progress blink owns the LED */
+    if(led != app->led) {
+        app->led = led;
+        notification_message(app->notif, led ? &sequence_set_only_red_255 : &sequence_reset_red);
     }
     if(app->tick == TickTouch) {
         Z5rKey k = {.len = 6};
@@ -1597,6 +1605,7 @@ int32_t z5r_app(void* p) {
     view_free(app->wire);
     view_dispatcher_free(app->vd);
     furi_record_close(RECORD_GUI);
+    if(app->led) notification_message(app->notif, &sequence_reset_red);
     furi_record_close(RECORD_NOTIFICATION);
     furi_record_close(RECORD_DIALOGS);
     furi_record_close(RECORD_STORAGE);
