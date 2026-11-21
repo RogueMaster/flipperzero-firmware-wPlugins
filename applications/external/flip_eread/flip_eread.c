@@ -40,7 +40,7 @@
 
 #define TAG "eReader"
 
-#define BOOKS_DIR      EXT_PATH("books")
+#define BOOKS_DIR      APP_DATA_PATH("books")
 #define DATA_DIR       APP_DATA_PATH("")
 #define LAST_BOOK_FILE APP_DATA_PATH("last_book.txt")
 #define SETTINGS_FILE  APP_DATA_PATH("settings.txt")
@@ -1167,7 +1167,11 @@ int32_t flip_eread_app(void* p) {
     measure_fonts(r, gui);
     r->font = load_font(r->storage);
 
-    storage_simply_mkdir(r->storage, BOOKS_DIR);
+    /* resolve the /data alias to the real SD path (SD:/apps_data/ereader/books)
+     * so the file browser, which is rooted at /ext, can navigate from it */
+    FuriString* books_dir = furi_string_alloc_set(BOOKS_DIR);
+    storage_common_resolve_path_and_ensure_app_directory(r->storage, books_dir);
+    storage_simply_mkdir(r->storage, furi_string_get_cstr(books_dir));
 
     /* start the browser on the last book read, or in the books folder */
     char last[256];
@@ -1175,8 +1179,9 @@ int32_t flip_eread_app(void* p) {
        storage_file_exists(r->storage, last)) {
         furi_string_set(r->path, last);
     } else {
-        furi_string_set(r->path, BOOKS_DIR);
+        furi_string_set(r->path, books_dir);
     }
+    furi_string_free(books_dir);
 
     while(pick_book(r, dialogs)) {
         if(!reader_open(r, dialogs)) continue;

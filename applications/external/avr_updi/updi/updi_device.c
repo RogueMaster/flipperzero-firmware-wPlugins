@@ -151,6 +151,7 @@ void updi_target_set_signature(UpdiTargetInfo* info, const uint8_t signature[3])
     }
 }
 
+/* SIB bytes at NVM_INDEX spell "P:x"; x selects the NVMCTRL command set. */
 UpdiNvmFamily updi_nvm_family_from_sib(const uint8_t sib[32]) {
     if(sib[UPDI_SIB_NVM_INDEX] != 'P' || sib[UPDI_SIB_NVM_INDEX + 1] != ':') {
         return UpdiNvmNone;

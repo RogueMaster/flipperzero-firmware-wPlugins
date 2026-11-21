@@ -1,3 +1,16 @@
+## v1.10
+
+- Loading a decoded signal shows the loading screen instead of briefly flashing the main menu before the button picker.
+- *Config* shows, under a read-only line, whether custom buttons and keeping the rolling counter are available in this build.
+- The fixed 24000-sample limit is gone: how long a signal can be now depends on free RAM, always leaving room for Decode and Save. On Unleashed that is up to about 39000 samples.
+- A signal that doesn't fit in RAM is loaded up to that point with a *Signal truncated* warning instead of being cut silently.
+- *Cut* on a signal too big for an Undo copy asks *No RAM for Undo. Cut anyway?* instead of refusing.
+- *Decode* reports *Low memory* instead of crashing when free RAM is split into pieces too small for a decoder.
+- A file name too long for the top bar scrolls instead of losing its last letters.
+- *Decode*, *Save* and *Cut* no longer flash the main menu between their screens; *Decoding...* stays up until the list shows.
+- Loading a merge shows the same *Loading...* screen as loading a file.
+- A decoded entry has a *Locate* button that sets A..B exactly on its frame, the first one when it repeats.
+
 ## v1.9
 
 - New *Decode* action: decodes the A..B selection with the firmware's Sub-GHz decoders, groups identical frames and saves the chosen one as a key file.

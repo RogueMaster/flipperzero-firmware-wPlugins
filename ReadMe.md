@@ -42,14 +42,13 @@ This software is for experimental purposes only and is not meant for any illegal
 - HID: [Add a Mouse Jiggler auto-stop timer and countdown for USB and Bluetooth (By FelixLgr)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/pull/1215)
 - Added: [Zero Buster v1.1 (By DonJulve)](https://github.com/DonJulve/Zero_Buster)
 - Sub-GHz: [Validate incoming Feron LED remote checksums and recalculate them before transmission (By Lechnio)](https://github.com/DarkFlippers/unleashed-firmware/pull/1219)
-- Updated: [Sub-GHz RAW Edit v1.9 (By Lechnio)](https://github.com/Lechnio/SubGHz-RAW-Edit)
 - Fixed: [Gallagher EM4305 write bit offset (By Firat17aze)](https://github.com/DarkFlippers/unleashed-firmware/pull/1217)
 - Added: [GTA VI Cheats v0.2 (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/tree/420/applications/external/gta_vi_cheats)
 - Sub-GHz: [Open saved RAW captures in RAW Edit from the More menu (By Lechnio)](https://github.com/DarkFlippers/unleashed-firmware/pull/1221)
 - Sub-GHz: [Ignore unsupported bits in saved receiver filters (By Lechnio)](https://github.com/DarkFlippers/unleashed-firmware/pull/1220)
-- Games: [Add Optimal Blackjack v1.0, a basic strategy and card-counting trainer. (By Optimal Blackjack)](https://github.com/flipperdevices/flipper-application-catalog/pull/1411)
-- GPIO: [Add AVR UPDI v0.2 for programming AVR microcontrollers. (By gztproject)](https://github.com/flipperdevices/flipper-application-catalog/pull/1413)
-- GPIO: [Add SIM800 v1.0 and open saved contacts from the Archive Phone tab. (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/62ed7711ef072a9d0929225b74c68838fbb779e2)
+- Added: [Optimal Blackjack v1.0, a basic strategy and card-counting trainer. (By Optimal Blackjack)](https://github.com/flipperdevices/flipper-application-catalog/pull/1411)
+- Added: [AVR UPDI v0.2 for programming AVR microcontrollers. (By gztproject)](https://github.com/flipperdevices/flipper-application-catalog/pull/1413)
+- Added: [SIM800 v1.0 and open saved contacts from the Archive Phone tab. (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/62ed7711ef072a9d0929225b74c68838fbb779e2)
 - Games: [Update Tetris to v1.7 with a ghost piece, hard drop, and lock delay. (By PurelyAndy)](https://github.com/xMasterX/all-the-plugins/pull/284)
 - Sub-GHz: [Fix the Enhanced Sub-GHz Chat MemManage crash on launch. (By mishamyte)](https://github.com/xMasterX/all-the-plugins/pull/285)
 - Bluetooth: [Fix PC Monitor display updates and initialize the status display on launch. (By xMasterX)](https://github.com/xMasterX/all-the-plugins/commit/cb339f82d2d0855313183920f0154d9fdb665e5a)
@@ -71,6 +70,10 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [GTA VI Companion v1.1 (By RogueMaster)](https://github.com/RogueMaster/GTA_VI_Companion)
 - Furi: [Harden heap block size checks. (By jeje77131)](https://github.com/DarkFlippers/unleashed-firmware/pull/1243)
 - Bluetooth: [Preserve BLE key storage callbacks across radio restarts. (By yorha59)](https://github.com/flipperdevices/flipperzero-firmware/pull/4515)
+- Updated: [Sub-GHz RAW Edit v1.10 (WIP) (By Lechnio)](https://github.com/Lechnio/SubGHz-RAW-Edit)
+- Updated: [AVR UPDI v0.2 documents supported chips and programming behavior (By gztproject)](https://github.com/gztproject/avr-updi) [AVR UPDI catalog submission (By gztproject)](https://github.com/flipperdevices/flipper-application-catalog/pull/1413)
+- Updated: [eReader v1.2.0 moves its default books folder into app data and adds a setup guide (By Daniel Baker)](https://github.com/daniebker/flipper_ereader)
+- Added: [RF Studio v0.1 (By Maurice Rogers)](https://github.com/cruzer45/rf-studio) - Build and operate virtual Sub-GHz remotes
 
 <a name="release"></a>
 
@@ -555,7 +558,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Encoder Reader v0.1 (By Engineegor)](https://github.com/Engineegor/Enc_reader)
 - [Enhanced Sub-Ghz Chat v1.6 (By twisted-pear)](https://github.com/twisted-pear/esubghz_chat)
 - [Enigma v1.1 (By xtruan)](https://github.com/xtruan/flipper-enigma) - Enigma cipher machine emulator
-- [eReader v1.1 (By Daniel Baker)](https://github.com/daniebker/flipper_ereader)
+- [eReader v1.2.0 (By Daniel Baker)](https://github.com/daniebker/flipper_ereader)
 - [ESP Flasher v1.9 (By 0xchocolate)](https://github.com/0xchocolate/flipperzero-esp-flasher)
 - [ESP WiFi Scanner v1.1 (By SequoiaSan)](https://github.com/SequoiaSan/FlipperZero-WiFi-Scanner_Module-ESP8266) `Req: ESP8266 or ESP32`
 - [ESP32 Camera Suite v1.9 (By CodyTolene)](https://github.com/CodyTolene/Flipper-Zero-Camera-Suite)
@@ -954,6 +957,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Remote Maker (By gid9798)](https://github.com/DarkFlippers/unleashed-firmware/pull/487)
 - [Resistance Calculator v1.4 (By instantiator)](https://github.com/instantiator/flipper-zero-experimental-apps)
 - [Restaurant Pager Trigger v1.8 (By leedave)](https://github.com/leedave/flipper-zero-meal-pager)
+- [RF Studio v0.1 (By Maurice Rogers)](https://github.com/cruzer45/rf-studio) - Build and operate virtual Sub-GHz remotes
 - [RF Survey v1.3 (By tbelbek)](https://github.com/tbelbek/flipper-rf-survey)
 - [RFID Fuzzer v1.8 (By gid9798)](https://github.com/DarkFlippers/unleashed-firmware/pull/507)
 - [RFID Metal Detector v1.0 (By hnsvrdmn)](https://github.com/hnsvrdmn/flipper-rfid-metal-detector)
@@ -1026,7 +1030,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Sub-GHz Keystore Decryptor v1.1 (By Lechnio)](https://github.com/Lechnio/KeeLoq-Keystore-Decryptor)
 - [Sub-GHz Playlist Creator v0.2 (By coolerUA)](https://github.com/coolerUA/Sub-Ghz-Playlist-Creator)
 - [Sub-GHz Playlist v1.0.1 (By darmiel)](https://github.com/darmiel/flipper-playlist)
-- [Sub-GHz RAW Edit v1.9 (By Lechnio)](https://github.com/Lechnio/SubGHz-RAW-Edit)
+- [Sub-GHz RAW Edit v1.10 (WIP) (By Lechnio)](https://github.com/Lechnio/SubGHz-RAW-Edit)
 - [Sub-GHz Remote v1.9 (By gid9798)](https://github.com/DarkFlippers/SubGHz_Remote)
 - [Sub-GHz Rolling Flaws v1.5 (By jamisonderek)](https://github.com/jamisonderek/flipper-zero-tutorials)
 - [Sub-GHz Scheduler v3.5 (By shalebridge)](https://github.com/shalebridge/flipper-subghz-scheduler)

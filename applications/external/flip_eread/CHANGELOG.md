@@ -5,6 +5,13 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-11-20
+
+### Changed
+- The books folder is now `SD:/apps_data/ereader/books/` instead of
+  `SD:/books/`, so the app no longer creates a folder in the SD card root.
+  Books already in `SD:/books/` can still be opened from the file browser.
+
 ## [1.1.0] - 2026-11-16
 
 ### Added

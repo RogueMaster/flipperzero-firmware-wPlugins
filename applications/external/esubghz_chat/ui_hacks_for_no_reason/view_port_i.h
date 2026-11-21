@@ -22,6 +22,7 @@
 #pragma once
 
 #include "gui_i.h"
+#include <stddef.h>
 #include <gui/view_port.h>
 
 struct ViewPort {
@@ -45,3 +46,11 @@ struct ViewPort {
     ViewPortAsciiCallback ascii_callback;
     void* ascii_callback_context;
 };
+
+_Static_assert(
+    offsetof(struct ViewPort, draw_callback) == 16,
+    "RM ViewPort.draw_callback layout changed");
+_Static_assert(
+    offsetof(struct ViewPort, input_callback) == 24,
+    "RM ViewPort.input_callback layout changed");
+_Static_assert(sizeof(struct ViewPort) == 40, "RM ViewPort size changed");

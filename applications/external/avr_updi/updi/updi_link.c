@@ -122,6 +122,7 @@ bool updi_link_try_fast_baud(UpdiLink* link) {
 
 bool updi_link_key(UpdiLink* link, const uint8_t key[8]) {
     uint8_t header[2] = {UPDI_PHY_SYNC, UPDI_KEY};
+    /* KEY payload is sent LSB-first on the wire (ASCII key string reversed). */
     uint8_t reversed[8];
     for(size_t i = 0; i < 8; i++)
         reversed[i] = key[7 - i];
@@ -182,6 +183,7 @@ static bool updi_link_repeat(UpdiLink* link, size_t repeats) {
         updi_link_error(link, "Bad UPDI repeat count");
         return false;
     }
+    /* Wire encoding is (N - 1): value 0 means "repeat once more" after the op. */
     uint8_t frame[3] = {
         UPDI_PHY_SYNC,
         UPDI_REPEAT,
@@ -202,6 +204,7 @@ bool updi_link_read(UpdiLink* link, uint32_t address, uint8_t* data, size_t size
     return updi_link_phy_recv(link, data, size, 1000);
 }
 
+/* RSD disables per-byte ACKs so a bulk pointer-inc store can stream. */
 static bool updi_link_set_ack(UpdiLink* link, bool enabled) {
     uint8_t value = enabled ? UPDI_CTRLA_IBDLY : (uint8_t)(UPDI_CTRLA_IBDLY | UPDI_CTRLA_RSD);
     return updi_link_stcs(link, UPDI_CS_CTRLA, value);
@@ -231,6 +234,7 @@ bool updi_link_write_words(UpdiLink* link, uint32_t address, const uint8_t* data
     uint8_t header[2] = {UPDI_PHY_SYNC, (uint8_t)(UPDI_ST | UPDI_PTR_INC | UPDI_DATA_16)};
     bool ok = updi_link_phy(link, header, sizeof(header));
     if(ok) ok = updi_link_phy(link, data, size);
+    /* Always re-enable ACKs even if the bulk transfer failed. */
     if(!updi_link_set_ack(link, true)) return false;
     return ok;
 }

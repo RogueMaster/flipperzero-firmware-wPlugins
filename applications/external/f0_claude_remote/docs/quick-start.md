@@ -6,19 +6,13 @@ description: From a Flipper Zero and a Mac to a prompt dictated and sent from th
 
 ## 1. Install
 
-With a Flipper Zero on firmware 1.5.1, unlocked on USB, on its desktop,
-and an Apple Silicon Mac with [mise](https://mise.jdx.dev),
-in a clone of the repository:
-
-```shell
-mise trust
-mise install
-mise run setup
-mise run launch
-```
-
-The app opens on the device.
-[Installation](guide/installation.md) has the other route and the details.
+With a Flipper Zero on firmware 1.5.1,
+press Install on the app's
+[page](https://lab.flipper.net/apps/f0_claude_remote)
+in Flipper Mobile App, with the device on Bluetooth,
+or in Flipper Lab in a Chromium browser, with the device on USB.
+Then open Apps → Bluetooth → `Claude Remote` on the device.
+[Installation](guide/installation.md) has the other routes and the details.
 
 ## 2. Pair
 

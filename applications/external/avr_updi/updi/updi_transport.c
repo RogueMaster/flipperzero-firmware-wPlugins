@@ -36,6 +36,7 @@ static void
     }
 }
 
+/* UPDI physical layer is always 8 data bits, even parity, 2 stop bits. */
 static void updi_transport_apply_framing(UpdiTransport* transport) {
     furi_hal_serial_configure_framing(
         transport->serial, FuriHalSerialDataBits8, FuriHalSerialParityEven, FuriHalSerialStopBits2);
@@ -122,6 +123,7 @@ bool updi_transport_recv(UpdiTransport* transport, uint8_t* data, size_t size, u
     return true;
 }
 
+/* TX only — used by the USB SerialUPDI bridge so the host sees its own echo. */
 bool updi_transport_send_raw(UpdiTransport* transport, const uint8_t* data, size_t size) {
     if(!transport->open || data == NULL) {
         updi_transport_set_error(transport, "UART is closed");
@@ -132,6 +134,10 @@ bool updi_transport_send_raw(UpdiTransport* transport, const uint8_t* data, size
     return true;
 }
 
+/*
+ * Single-wire UPDI: TX and RX share the line through a resistor, so every
+ * transmitted byte is also received. Discard that echo before reading replies.
+ */
 bool updi_transport_send(UpdiTransport* transport, const uint8_t* data, size_t size) {
     if(!updi_transport_send_raw(transport, data, size)) return false;
     uint8_t echo[32];

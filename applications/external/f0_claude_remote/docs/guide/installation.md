@@ -1,5 +1,5 @@
 ---
-description: What the app needs, and how to install, update and remove it from a Release or from the source.
+description: What the app needs, and how to install, update and remove it from the Flipper Apps Catalog, a Release or the source.
 ---
 
 # Installation
@@ -13,6 +13,20 @@ description: What the app needs, and how to install, update and remove it from a
 - Claude Code; the app is tried on 2.1.311.
 - To build from the source, an Apple Silicon Mac with [mise](https://mise.jdx.dev).
   `mise run setup` and the CLion debug profile are macOS-only.
+
+## From the Flipper Apps Catalog
+
+Press Install on the app's
+[page](https://lab.flipper.net/apps/f0_claude_remote)
+in Flipper Mobile App, with the device on Bluetooth,
+or in Flipper Lab in a Chromium browser, with the device on USB.
+The app then lives under Apps → Bluetooth on the device, as `Claude Remote`.
+
+To update, press Update on the app under Installed.
+
+To remove, press 🗑 on the app under Installed,
+then delete `apps_data/f0_claude_remote/` if it is left.
+Then forget `Claude Remote` on the computer.
 
 ## From a Release
 

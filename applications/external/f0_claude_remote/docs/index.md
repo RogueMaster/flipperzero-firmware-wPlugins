@@ -11,6 +11,9 @@ description: F0 Claude Remote is a Flipper Zero app that acts as a Bluetooth rem
 **F0 Claude Remote** is a Flipper Zero app
 that acts as a Bluetooth remote for Claude Code.
 [Quick start](quick-start.md) takes it from nothing to a dictated prompt.
+It installs from its
+[page](https://lab.flipper.net/apps/f0_claude_remote)
+in the Flipper Apps Catalog.
 
 ## Why
 

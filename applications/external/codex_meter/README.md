@@ -1,6 +1,6 @@
 # Codex Monitor
 
-Codex usage limits on Flipper Zero, with a Windows companion by **Dr. Mosfet**.
+Codex usage limits on Flipper Zero, with a Windows desktop companion and a Linux terminal companion by **Dr. Mosfet**.
 
 The Flipper dashboard shows the two quota windows reported by your Codex account,
 the remaining allowance and the time until each reset. The companion reads the
@@ -10,15 +10,15 @@ or USB. It does not generate model responses.
 ## Requirements
 
 - A Flipper Zero with a microSD card and a compatible firmware release.
-- Windows with Bluetooth LE, or a USB cable for USB mode.
-- Codex CLI or the Codex desktop application installed on the PC.
+- Windows or Linux, with Bluetooth LE or a USB cable.
+- Codex CLI on Linux. On Windows, use Codex CLI or the Codex desktop application.
 - A ChatGPT-backed Codex account and an internet connection for quota reads.
 
 The Windows executable includes Python and its runtime dependencies. Codex itself
 must be installed separately. API-key-only authentication does not provide a
 ChatGPT subscription quota.
 
-## Getting started
+## Getting started on Windows
 
 1. Install Codex Monitor on the Flipper and open it under Apps > Bluetooth.
 2. Start the Windows companion and select Bluetooth or USB.
@@ -28,6 +28,38 @@ ChatGPT subscription quota.
 
 The desktop companion detects Codex automatically. If detection fails, select
 **Wskaż Codex.exe** and choose the executable installed on your computer.
+
+## Getting started on Linux
+
+Install [Codex CLI](https://developers.openai.com/codex/cli) and
+[uv](https://docs.astral.sh/uv/getting-started/installation/). In the repository
+root, sign in with your ChatGPT account and check that Codex reports your limits:
+
+```bash
+codex login
+uv run --python 3.11 host/meter.py --once
+```
+
+Open Codex Monitor on your Flipper Zero. For native Linux, connect it over USB
+and make sure your user has permission to open the serial device. Close
+qFlipper if it is using the port.
+
+```bash
+uv run --python 3.11 host/meter.py --transport usb
+```
+
+If more than one matching device is connected, pass its actual serial device
+with `--port`, for example `--port /dev/ttyACM0`.
+
+To connect over Bluetooth LE, start BlueZ and run:
+
+```bash
+uv run --python 3.11 host/meter.py --transport ble
+```
+
+Confirm the pairing prompt if shown. The Linux companion runs in the terminal.
+Bluetooth LE and USB have been tested on Windows hardware. Linux hardware
+validation is pending.
 
 ## Flipper controls
 

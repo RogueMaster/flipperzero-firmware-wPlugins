@@ -19,7 +19,7 @@ ufbt launch     # build, upload and run on a USB-connected Flipper
 
 Or copy `dist/flip_eread.fap` to `SD:/apps/Tools/`.
 
-Put books in `SD:/books/` (created on first launch). The file browser can
+Put books in `SD:/apps_data/ereader/books/` (created on first launch). The file browser can
 open `.txt` files anywhere on the card.
 
 ## Controls

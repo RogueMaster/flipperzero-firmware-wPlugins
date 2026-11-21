@@ -86,6 +86,11 @@ bool updi_session_enter_progmode(UpdiSession* session) {
         return true;
     }
 
+    /*
+     * Standard UPDI NVMProg handshake: hold reset, present "NVMProg " key,
+     * pulse reset release, then wait for NVMPROG without LOCKSTATUS.
+     * Persistent LOCKSTATUS after the key means the part needs chip-erase.
+     */
     if(!updi_link_stcs(&session->link, UPDI_ASI_RESET_REQ, UPDI_RESET_REQ_VALUE)) return false;
     if(!updi_link_key(&session->link, updi_key_nvm)) return false;
 
@@ -127,6 +132,7 @@ bool updi_session_enter_progmode(UpdiSession* session) {
 }
 
 bool updi_session_unlock(UpdiSession* session) {
+    /* "NVMErase" key + reset clears LOCKSTATUS and erases the chip. */
     if(!updi_link_key(&session->link, updi_key_erase)) return false;
 
     uint8_t key_status = 0;

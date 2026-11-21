@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="68" viewBox="0 0 480 68" role="img" aria-label="Ham Cram is available in the Flipper Apps Catalog: lab.flipper.net/apps/hamcram">
+  <title>Ham Cram is available in the Flipper Apps Catalog</title>
+  <rect x="2" y="2" width="476" height="64" rx="10" fill="#FE8A2C" stroke="#000000" stroke-width="4"/>
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" fill="#000000">
+    <text x="22" y="27" font-size="11" font-weight="700" letter-spacing="1">AVAILABLE IN THE FLIPPER APPS CATALOG</text>
+    <text x="22" y="50" font-size="17" font-weight="700">lab.flipper.net/apps/hamcram</text>
+  </g>
+  <rect x="346" y="16" width="114" height="36" rx="6" fill="#000000"/>
+  <text x="362" y="39" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="14" font-weight="700" letter-spacing="1" fill="#FE8A2C">INSTALL</text>
+  <path d="M440 27 L450 34 L440 41 Z" fill="#FE8A2C"/>
+</svg>

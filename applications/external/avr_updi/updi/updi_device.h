@@ -14,6 +14,11 @@ typedef enum {
     UpdiNvmP4 = '4',
 } UpdiNvmFamily;
 
+/*
+ * Per-part memory map for UPDI data space. flash_base / eeprom_base / etc.
+ * are absolute addresses used in LD/ST; flash_size is the programmable length
+ * measured from offset 0 in application HEX files.
+ */
 typedef struct {
     const char* name;
     uint8_t signature[3];

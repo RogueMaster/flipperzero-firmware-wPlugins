@@ -44,7 +44,9 @@ the fork's `main` synced with the Flipper Apps Catalog's,
 each earlier version's branch deleted unless a pull request is open from it,
 and `<owner>/f0_claude_remote_0.2` cut from `main`
 with `applications/Bluetooth/f0_claude_remote/manifest.yml`,
-its pull request opened by hand;
+its pull request opened by hand,
+whose merge by the Flipper Apps Catalog brings the release to the app's
+[page](https://lab.flipper.net/apps/f0_claude_remote);
 and last the `publish` job, which publishes the draft.
 
 A published Release is immutable, and its tag name is spent.

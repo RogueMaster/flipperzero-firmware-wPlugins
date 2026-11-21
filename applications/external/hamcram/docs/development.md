@@ -37,7 +37,9 @@ pools/sources.json     where each pool came from, its dates and checksum
 tools/hampool.py       NCVEC .docx -> JSON -> .hcp, plus verification
 tools/make_icon.py     writes the 10x10 icon
 tests/                 host-side tests (not part of the app build)
-catalog/manifest.yml   draft manifest for the Flipper Apps Catalog
+tools/catalog_description.py  README.md -> catalog/description.md
+catalog/manifest.yml   manifest for the Flipper Apps Catalog
+catalog/description.md the README without its GitHub-only blocks (generated)
 ```
 
 ## Tests
@@ -81,5 +83,6 @@ question text is read from the SD card one question at a time. See
 1. Bump `fap_version` in `application.fam` and add an entry at the top of
    `docs/changelog.md`.
 2. `ufbt lint`, `ufbt`, `python tools/hampool.py verify`,
-   `python tests/run_host_tests.py`; test on a device.
+   `python tools/catalog_description.py`, `python tests/run_host_tests.py`;
+   test on a device.
 3. Commit and push, then follow [catalog/README.md](../catalog/README.md).

@@ -10,7 +10,15 @@
 #include <stdio.h>
 #include <string.h>
 
-#define UPDI_VCP_CDC_CH  1
+/*
+ * Host SerialUPDI bridge (avrdude -c serialupdi / pymcuprog).
+ *
+ * Flipper's CLI already owns CDC channel 0. We switch USB to dual-CDC, keep
+ * the CLI on ch0, and expose ch1 as a raw UART tunnel to the UPDI pins.
+ * Host baud changes (SET_LINE_CODING) are forwarded to the UART; UPDI BREAK
+ * handling stays on the host tool side.
+ */
+#define UPDI_VCP_CDC_CH  1 /* second CDC interface; ch0 remains the Flipper CLI */
 #define UPDI_VCP_PKT_LEN CDC_DATA_SZ
 
 typedef enum {
@@ -68,12 +76,14 @@ static void updi_bridge_on_line_config(void* context, struct usb_cdc_line_coding
     UpdiBridge* bridge = context;
     if(bridge->transport == NULL || !updi_transport_is_open(bridge->transport)) return;
     uint32_t baud = config->dwDTERate;
+    /* Host tools may probe very low rates; clamp to a usable UPDI floor. */
     if(baud < 9600) baud = UPDI_BAUD_SAFE;
     updi_transport_set_baud(bridge->transport, baud);
 }
 
 static void updi_bridge_vcp_init(UpdiBridge* bridge) {
     bridge->cli_vcp = furi_record_open(RECORD_CLI_VCP);
+    /* Temporarily drop CLI so we can reconfigure USB as dual CDC. */
     cli_vcp_disable(bridge->cli_vcp);
     furi_check(furi_hal_usb_set_config(&usb_cdc_dual, NULL) == true);
     furi_hal_usb_lock();
@@ -85,6 +95,7 @@ static void updi_bridge_vcp_deinit(UpdiBridge* bridge) {
     furi_hal_cdc_set_callbacks(UPDI_VCP_CDC_CH, NULL, NULL);
     cli_vcp_disable(bridge->cli_vcp);
     furi_hal_usb_unlock();
+    /* Restore single CDC so qFlipper / CLI behave normally after exit. */
     furi_check(furi_hal_usb_set_config(&usb_cdc_single, NULL) == true);
     cli_vcp_enable(bridge->cli_vcp);
     furi_record_close(RECORD_CLI_VCP);
@@ -129,6 +140,7 @@ static int32_t updi_bridge_thread(void* context) {
     }
 
     updi_bridge_vcp_init(bridge);
+    /* Put the target into a known UPDI state before the host starts talking. */
     updi_transport_double_break(bridge->transport);
     updi_bridge_refresh_widget(bridge);
 
@@ -149,10 +161,12 @@ static int32_t updi_bridge_thread(void* context) {
         if(events & UpdiBridgeEvtRx) {
             size_t len = furi_hal_cdc_receive(UPDI_VCP_CDC_CH, buf, UPDI_VCP_PKT_LEN);
             if(len > 0) {
+                /* Raw TX: host SerialUPDI expects to see the wire echo itself. */
                 updi_transport_send_raw(bridge->transport, buf, len);
             }
         }
 
+        /* Poll UART → USB even when no flag fired (short idle timeout above). */
         size_t nread = updi_transport_recv_available(bridge->transport, buf, sizeof(buf), 0);
         if(nread > 0) {
             furi_hal_cdc_send(UPDI_VCP_CDC_CH, buf, (uint16_t)nread);

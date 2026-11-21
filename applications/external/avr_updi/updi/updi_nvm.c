@@ -7,7 +7,13 @@
 #include <stdio.h>
 #include <string.h>
 
-/* Shared status/command offsets differ slightly by family. */
+/*
+ * NVMCTRL command sequences differ by SIB NVM version (P:0 / P:2 / P:3 / P:4).
+ * Register layouts and opcode values come from Microchip UPDI programming
+ * docs; we only implement the paths used for flash / EEPROM / fuse writes.
+ */
+
+/* Busy/error bit positions and chip-erase opcodes per family. */
 typedef struct {
     uint8_t status_off;
     uint8_t error_mask;
@@ -19,6 +25,7 @@ typedef struct {
 } UpdiNvmRegs;
 
 static UpdiNvmRegs updi_nvm_regs(UpdiNvmFamily family) {
+    /* Defaults match Dx-class P:2. */
     UpdiNvmRegs regs = {
         .status_off = 0x02,
         .error_mask = 0x70,
@@ -76,6 +83,7 @@ static bool updi_nvm_command(UpdiLink* link, const UpdiDeviceProfile* profile, u
     return updi_link_st8(link, profile->nvmctrl_base + 0x00u, command);
 }
 
+/* Fill the NVM page buffer in ≤64-byte word chunks (UPDI repeat limit). */
 static bool updi_nvm_write_words_page(
     UpdiLink* link,
     uint32_t abs_address,
@@ -101,6 +109,7 @@ bool updi_nvm_chip_erase(UpdiLink* link, const UpdiDeviceProfile* profile) {
     return updi_nvm_command(link, profile, regs.nocmd);
 }
 
+/* megaAVR 0 / tinyAVR: clear buffer → fill words → erase-write page. */
 static bool updi_nvm_write_flash_p0(
     UpdiLink* link,
     const UpdiDeviceProfile* profile,
@@ -116,6 +125,10 @@ static bool updi_nvm_write_flash_p0(
     return updi_nvm_command(link, profile, 0x00);
 }
 
+/*
+ * Dx / DU (P:2 / P:4): page erase is a separate FLPER + dummy store, then
+ * FLWR + word fill. Unlike P:0 there is no single erase-write opcode.
+ */
 static bool updi_nvm_write_flash_p2(
     UpdiLink* link,
     const UpdiDeviceProfile* profile,
@@ -135,6 +148,7 @@ static bool updi_nvm_write_flash_p2(
     return updi_nvm_command(link, profile, 0x00);
 }
 
+/* AVR EA (P:3): buffer clear → fill → PAGE_ERASE_WRITE. */
 static bool updi_nvm_write_flash_p3(
     UpdiLink* link,
     const UpdiDeviceProfile* profile,
@@ -172,6 +186,7 @@ bool updi_nvm_write_flash_page(
     case UpdiNvmP3:
         return updi_nvm_write_flash_p3(link, profile, byte_address, page);
     case UpdiNvmP4:
+        /* DU flash programming matches the P:2 FLPER/FLWR sequence. */
         return updi_nvm_write_flash_p2(link, profile, byte_address, page);
     default:
         snprintf(link->error, link->error_size, "Unsupported NVM");

@@ -1,0 +1,14 @@
+App(
+    appid="rf_studio",
+    name="RF Studio",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="rf_studio_app",
+    stack_size=4 * 1024,
+    fap_icon="icons/rf_studio_10px.png",
+    targets=["f7"],
+    fap_category="Sub-GHz",
+    fap_author="Maurice Rogers",
+    fap_weburl="https://github.com/cruzer45/rf-studio",
+    fap_version="0.1",
+    fap_description="Build and operate virtual Sub-GHz remotes from captured signals",
+)

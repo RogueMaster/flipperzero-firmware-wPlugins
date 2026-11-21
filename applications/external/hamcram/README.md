@@ -1,5 +1,16 @@
 # Ham Cram
 
+<!-- github-only:start -->
+<p align="center">
+  <a href="https://lab.flipper.net/apps/hamcram"><img src="screenshots/ss1.png" width="256" alt="Ham Cram pool list: Technician, General and Extra"></a>
+  <a href="https://lab.flipper.net/apps/hamcram"><img src="screenshots/ss0.png" width="256" alt="A Technician question with its answers"></a>
+  <a href="https://lab.flipper.net/apps/hamcram"><img src="screenshots/ss3.png" width="256" alt="Practice exam result: passed, 32 of 35 correct"></a>
+</p>
+<p align="center">
+  <a href="https://lab.flipper.net/apps/hamcram"><img src="docs/img/catalog-button.svg" width="480" alt="Ham Cram is available in the Flipper Apps Catalog: lab.flipper.net/apps/hamcram"></a>
+</p>
+<!-- github-only:end -->
+
 Study for the US amateur radio (ham) license exams on your Flipper Zero. Offline, distraction-free, and always in your pocket.
 
 Ham Cram carries the complete official question pools for all three license classes:
@@ -7,6 +18,16 @@ Ham Cram carries the complete official question pools for all three license clas
 - **Technician** (Element 2), 2026-2030 pool
 - **General** (Element 3), 2023-2027 pool
 - **Amateur Extra** (Element 4), 2024-2028 pool
+
+<!-- github-only:start -->
+## Install
+
+Ham Cram is in the official Flipper Apps Catalog. Find it under **Tools** in the Flipper mobile app, or install it from [lab.flipper.net/apps/hamcram](https://lab.flipper.net/apps/hamcram). To install by hand, copy `hamcram.fap` from the [latest release](https://github.com/NicPWNs/HamCram/releases/latest) to `apps/Tools` on the SD card.
+
+Catalog version and the firmware APIs it is built for:
+
+[![Ham Cram catalog build status](https://catalog.flipperzero.one/application/hamcram/widget)](https://lab.flipper.net/apps/hamcram)
+<!-- github-only:end -->
 
 ## What it does
 

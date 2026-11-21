@@ -52,7 +52,11 @@ The Flipper's buttons do the rest, so voice and one hand run the whole session.
 
 ## Installation
 
-On a Mac with [mise](https://mise.jdx.dev), the Flipper unlocked on USB:
+Install it from its
+[page](https://lab.flipper.net/apps/f0_claude_remote)
+in the Flipper Apps Catalog.
+
+From the source, on a Mac with [mise](https://mise.jdx.dev), the Flipper unlocked on USB:
 
 ```shell
 mise trust
@@ -63,7 +67,7 @@ mise run launch
 
 Then pair it and bind the keys by the
 [Quick start](https://petr-korobeinikov.github.io/f0-claude-remote/quick-start/).
-Requirements and the Release build are under
+Requirements and the other routes are under
 [Installation](https://petr-korobeinikov.github.io/f0-claude-remote/guide/installation/).
 
 ## Contributing

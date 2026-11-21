@@ -10,6 +10,7 @@
 #pragma once
 
 #include <m-dict.h>
+#include <stddef.h>
 
 #include <gui/view_dispatcher.h>
 #include "view_i.h"
@@ -42,3 +43,11 @@ struct ViewDispatcher {
 
     FuriMessageQueue* ascii_queue;
 };
+
+_Static_assert(offsetof(struct ViewDispatcher, gui) == 16, "RM ViewDispatcher.gui layout changed");
+_Static_assert(
+    offsetof(struct ViewDispatcher, view_port) == 20,
+    "RM ViewDispatcher.view_port layout changed");
+_Static_assert(
+    offsetof(struct ViewDispatcher, current_view) == 48,
+    "RM ViewDispatcher.current_view layout changed");

@@ -4,12 +4,21 @@
 #include <string.h>
 #include <stdio.h>
 
+/*
+ * Streaming Intel HEX → device-page adapter.
+ *
+ * Records arrive line by line. Data bytes are accumulated into a page-sized
+ * buffer (power of two). Unmentioned bytes stay 0xFF so AVR erased flash /
+ * EEPROM holes match silicon. A page is emitted when the address jumps to a
+ * new page, on EOF, or in finish(). Addresses must not go backwards.
+ */
+
 struct IntelHexParser {
     uint32_t max_address;
     uint16_t page_size;
     IntelHexPageCallback on_page;
     void* context;
-    uint32_t base;
+    uint32_t base; /* from type 02/04 extended-address records */
     bool have_page;
     bool eof;
     uint32_t page_address;
@@ -20,7 +29,7 @@ struct IntelHexWriter {
     IntelHexWriteFn write;
     void* context;
     bool have_ela;
-    uint16_t ela;
+    uint16_t ela; /* last type-04 upper 16 bits written */
     uint32_t cursor;
     bool have_cursor;
 };
@@ -75,6 +84,7 @@ static bool hex_place(
         return false;
     }
 
+    /* page_size is power-of-two; mask yields the aligned page base. */
     uint32_t page = address & ~(uint32_t)(parser->page_size - 1u);
     if(!parser->have_page) {
         parser->have_page = true;
@@ -178,6 +188,7 @@ bool intel_hex_parser_feed(
     uint8_t type = raw[3];
     const uint8_t* data = &raw[4];
 
+    /* 00 data: linear address = extended base + 16-bit offset. */
     if(type == 0x00) {
         if(parser->base > UINT32_MAX - offset) {
             hex_set_error(error, error_size, "HEX address overflow");
@@ -195,7 +206,7 @@ bool intel_hex_parser_feed(
         return true;
     }
 
-    if(type == 0x01) {
+    if(type == 0x01) { /* EOF */
         if(count != 0) {
             hex_set_error(error, error_size, "Bad EOF record");
             return false;
@@ -208,6 +219,7 @@ bool intel_hex_parser_feed(
         return true;
     }
 
+    /* 02 ESA (<<4) is rare on modern tools; 04 ELA (<<16) is the common case. */
     if(type == 0x02 || type == 0x04) {
         if(count != 2) {
             hex_set_error(error, error_size, "Bad extended address record");
@@ -222,6 +234,7 @@ bool intel_hex_parser_feed(
         return true;
     }
 
+    /* 03 / 05 start-address records: ignore; programming does not need them. */
     if(type == 0x03 || type == 0x05) return true;
 
     hex_set_error(error, error_size, "Unsupported HEX record type");
@@ -295,6 +308,7 @@ static bool hex_write_record(
     return hex_write_line(writer, line, error, error_size);
 }
 
+/* Emit a type-04 extended linear address when crossing a 64 KiB boundary. */
 static bool
     hex_ensure_ela(IntelHexWriter* writer, uint32_t address, char* error, size_t error_size) {
     uint16_t ela = (uint16_t)(address >> 16);
@@ -330,6 +344,7 @@ bool intel_hex_writer_feed(
         uint32_t at = address + (uint32_t)offset;
         if(!hex_ensure_ela(writer, at, error, error_size)) return false;
 
+        /* Stay inside one 64 KiB ELA window and cap data records at 16 bytes. */
         uint32_t segment_end = (at & 0xFFFF0000u) + 0x10000u;
         size_t room = (size_t)(segment_end - at);
         if(room > 16u) room = 16u;
