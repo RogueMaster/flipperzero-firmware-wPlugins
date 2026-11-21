@@ -1519,9 +1519,9 @@ static void main_draw(Canvas* c, void* model) {
             continue;
         }
         if(mn->id == VCtl && top + i == CWrite) /* selectors: too long for the row, so they scroll like file names */
-            text = item, snprintf(item, sizeof(item), "Save base to: < %s >", wto_names[app->wto]);
+            text = item, snprintf(item, sizeof(item), "Save to: < %s >", wto_names[app->wto]);
         if(mn->id == VMain && top + i == MRead)
-            text = item, snprintf(item, sizeof(item), "Read base from: < %s >", rfrom_names[app->rfrom]);
+            text = item, snprintf(item, sizeof(item), "Read: < %s >", rfrom_names[app->rfrom]);
         if(sel)
             scroll_text(c, text, line, sizeof(line), 118);
         else
