@@ -33,7 +33,7 @@ typedef enum { TickNone, TickTouch } TickMode;
 enum { MCtl, MRead, MLoad, MErase, MInfo };
 enum { CAdd, CTime, CKeys, CWrite, CSave };
 #define ROWS_FIRST 1 /* row 0 of the key list is the search line */
-enum { KAttr, KEdit, KExport, KDelete, KNone, KMark, KMarkAll, KUnmarkAll }; /* key card rows, then the hold-OK menu rows */
+enum { KAttr, KEdit, KExport, KDelete, KNone, KMarkAll, KUnmarkAll }; /* key card rows, then the marks menu rows */
 enum { AType, ATouch, ATouchRfid, AIbtn, ARfid, AManual }; /* AType: selector, Left / Right change the type of added keys */
 enum { TmIbtn = 1, TmRfid = 2 }; /* touch reading source */
 enum { FCode, FType, FReset };
@@ -72,7 +72,8 @@ typedef struct {
     VariableItem* kitem; /* key Type item */
     VariableItem* kexp; /* key Export item: iButton / EM4100 */
     uint8_t kmap[8]; /* key list row -> KAttr.. action */
-    bool kact; /* the key list holds the hold-OK menu, not the key card */
+    bool kact; /* the key list holds the marked-keys or marks menu, not the key card */
+    uint32_t kpress; /* tick Up / Down went down in the key list: held 3 s = steps of 20 */
     uint8_t mark[(Z5R_KEYS_MAX + 7) / 8]; /* marked keys, bit per base index; only set while in the key list */
     uint16_t nmark;
     uint8_t fbytes[6]; /* key search input, MSB first */
@@ -440,7 +441,9 @@ static void do_read(App* app) {
     main_labels(app);
     snprintf(app->msg, sizeof(app->msg), "Read\n%u keys", app->db->count);
     menus[1].sel = 0; /* the base screen opens on its first item */
-    show_dolphin(app, app->msg, VCtl);
+    log_msg(app, "Done"); /* also stops the reading blink */
+    notification_message(app->notif, &sequence_success); /* no Done screen after a read: sound + LED are enough */
+    go(app, VCtl);
 }
 
 static void write_run(App* app) {
@@ -752,11 +755,9 @@ static void key_type_cb(VariableItem* item) {
 static void keyhint_draw(Canvas* c, void* model) {
     App* app = *(App**)model;
     uint8_t i = variable_item_list_get_selected_item_index(app->key);
-    static const char* const h[] = {NULL, "Edit", "Export", "Delete", NULL, "Mark", "Mark all", "Unmark"}; /* by K* */
-    uint8_t m = i < sizeof(app->kmap) ? app->kmap[i] : KNone;
-    const char* s = h[m];
-    if(app->kact && m == KAttr) s = "Set";
-    if(m == KMark && marked(app, app->sel)) s = "Unmark";
+    static const char* const h[] = {NULL, "Edit", "Export", NULL, NULL, NULL, NULL}; /* by K* */
+    const char* s = i < sizeof(app->kmap) ? h[app->kmap[i]] : NULL;
+    if(app->kact && i < sizeof(app->kmap) && app->kmap[i] == KAttr) s = "Set";
     canvas_set_font(c, FontSecondary);
     if(s) elements_button_center(c, s);
 }
@@ -774,7 +775,7 @@ static void key_fill(App* app) {
     Z5rKey* k = &app->db->keys[app->sel];
     char s[13];
     z5r_key_str(k, s, sizeof(s));
-    if(variable_item_list_get_selected_item_index(app->key) >= 4) /* left on a row the longer hold-OK menu had */
+    if(variable_item_list_get_selected_item_index(app->key) >= 4) /* no row there: keep the card from opening on a blank */
         variable_item_list_set_selected_item(app->key, 0);
     variable_item_list_reset(app->key);
     app->kact = false;
@@ -794,43 +795,46 @@ static void key_fill(App* app) {
     app->kmap[n++] = KDelete;
 }
 
-/* hold OK in the key list: actions for the marked keys, or for the key under the cursor */
-static void act_fill(App* app) {
+/* Left in the key list */
+static void marks_fill(App* app) {
     variable_item_list_reset(app->key);
     app->kact = true;
     uint8_t n = 0;
-    int first = app->sel;
-    if(app->nmark) {
+    if(app->nmark)
         snprintf(app->klabel, sizeof(app->klabel), "%u keys marked", app->nmark);
-        for(first = 0; !marked(app, first); first++);
-    } else {
-        char s[13];
-        z5r_key_str(&app->db->keys[app->sel], s, sizeof(s));
-        snprintf(app->klabel, sizeof(app->klabel), "#%u  %s", app->sel + 1, s);
-    }
+    else
+        snprintf(app->klabel, sizeof(app->klabel), "No keys marked");
     variable_item_list_add(app->key, app->klabel, 0, NULL, app);
     app->kmap[n++] = KNone;
-    variable_item_list_add(app->key, marked(app, app->sel) ? "Unmark" : "Mark", 0, NULL, app);
-    app->kmap[n++] = KMark;
     variable_item_list_add(app->key, "Mark all shown", 0, NULL, app);
     app->kmap[n++] = KMarkAll;
     if(app->nmark) {
         variable_item_list_add(app->key, "Unmark all", 0, NULL, app);
         app->kmap[n++] = KUnmarkAll;
     }
+    variable_item_list_set_selected_item(app->key, 1);
+}
+
+/* Right / OK in the key list with marks: the key card for all marked keys at once */
+static void act_fill(App* app) {
+    variable_item_list_reset(app->key);
+    app->kact = true;
+    uint8_t n = 0;
+    int first = 0;
+    while(!marked(app, first)) first++;
+    snprintf(app->klabel, sizeof(app->klabel), "%u keys marked", app->nmark);
+    variable_item_list_add(app->key, app->klabel, 0, NULL, app);
+    app->kmap[n++] = KNone;
     uint8_t a = app->db->keys[first].attr;
     app->kitem = variable_item_list_add(app->key, "Type", 4, key_type_cb, app);
     variable_item_set_current_value_index(app->kitem, type_pos(a));
     variable_item_set_current_value_text(app->kitem, z5r_attr_name(a));
     app->kmap[n++] = KAttr;
-    bool em = false, rfid = false; /* EM4100 offered when any of the keys can be one; the rest keep their own format */
+    bool em = false; /* EM4100 offered when any of the keys can be one; the rest keep their own format */
     for(uint16_t i = 0; i < app->db->count; i++)
-        if(target(app, i)) {
-            em |= em_ok(&app->db->keys[i]);
-            rfid |= app->db->keys[i].len == 3;
-        }
+        if(target(app, i)) em |= em_ok(&app->db->keys[i]);
     app->kexp = variable_item_list_add(app->key, "Export", em ? 2 : 1, key_exp_cb, app);
-    variable_item_set_current_value_text(app->kexp, !app->nmark && rfid ? "RFID" : app->nmark && !em ? "auto" : "iButton");
+    variable_item_set_current_value_text(app->kexp, em ? "iButton" : "auto");
     app->kmap[n++] = KExport;
     variable_item_list_add(app->key, "Delete", 0, NULL, app);
     app->kmap[n++] = KDelete;
@@ -849,15 +853,12 @@ static void delete_targets(App* app) {
     main_labels(app);
 }
 
-/* hold-OK menu actions; card actions stay in key_cb */
+/* marks menu and marked-keys card actions; single key card actions stay in key_cb */
 static bool act_cb(App* app, uint32_t index) {
     uint16_t n = app->nmark ? app->nmark : 1;
     switch(index) {
     case KNone:
         return true;
-    case KMark:
-        mark_set(app, app->sel, !marked(app, app->sel));
-        break;
     case KMarkAll:
         for(uint16_t r = ROWS_FIRST; r < app->nrows; r++)
             if(app->rid[r] < app->db->count) mark_set(app, app->rid[r], true);
@@ -944,41 +945,53 @@ static void keys_draw(Canvas* c, void* model) {
     }
     canvas_set_color(c, ColorBlack);
     elements_scrollbar_pos(c, 127, 0, 48, app->ksel, app->nrows);
-    uint32_t id = app->rid[app->ksel];
-    if(id < app->db->count) elements_button_center(c, !app->nmark ? "Edit" : marked(app, id) ? "Unmark" : "Mark");
+    elements_button_left(c, "Marks");
+    if(app->nmark || app->rid[app->ksel] < app->db->count) elements_button_right(c, "Edit");
+}
+
+/* Right, or OK on a key: the key card, or the card for all marked keys */
+static void open_edit(App* app, uint32_t id) {
+    if(app->nmark)
+        act_fill(app);
+    else if(id < app->db->count) {
+        app->sel = id;
+        key_fill(app);
+    } else
+        return;
+    go(app, VKey);
 }
 
 
 static bool keys_input(InputEvent* e, void* ctx) {
     App* app = ctx;
-    if((e->type == InputTypeShort || e->type == InputTypeRepeat) &&
-       (e->key == InputKeyUp || e->key == InputKeyDown)) {
-        app->ksel = e->key == InputKeyUp ? (app->ksel ? app->ksel - 1 : app->nrows - 1) :
-                                           (app->ksel + 1 < app->nrows ? app->ksel + 1 : 0);
-        with_view_model(app->keys, App * *m, { UNUSED(m); }, true);
-        return true;
-    }
-    if((e->type == InputTypeShort || e->type == InputTypeRepeat) &&
-       (e->key == InputKeyLeft || e->key == InputKeyRight)) { /* page-sized jump through a long list */
-        int n = app->ksel + (e->key == InputKeyRight ? 12 : -12);
-        app->ksel = n < 0 ? 0 : n >= app->nrows ? app->nrows - 1 : n;
+    if(e->key == InputKeyUp || e->key == InputKeyDown) {
+        if(e->type == InputTypePress) app->kpress = furi_get_tick(); /* a new press starts again with single steps */
+        if(e->type != InputTypeShort && e->type != InputTypeRepeat) return true;
+        bool fast = e->type == InputTypeRepeat && furi_get_tick() - app->kpress > furi_ms_to_ticks(3000);
+        int n = app->ksel + (e->key == InputKeyDown ? 1 : -1) * (fast ? 20 : 1);
+        if(fast) /* steps of 20 stop at the ends; single steps wrap around */
+            app->ksel = n < 0 ? 0 : n >= app->nrows ? app->nrows - 1 : n;
+        else
+            app->ksel = n < 0 ? app->nrows - 1 : n >= app->nrows ? 0 : n;
         with_view_model(app->keys, App * *m, { UNUSED(m); }, true);
         return true;
     }
     uint32_t id = app->rid[app->ksel];
-    if(e->type == InputTypeShort && e->key == InputKeyOk) {
-        if(app->nmark && id < app->db->count) { /* marking mode: OK marks keys one by one */
-            mark_set(app, id, !marked(app, id));
-            keys_fill(app);
-        } else {
-            keys_cb(app, id);
-        }
+    if(e->type == InputTypeShort && (e->key == InputKeyOk || e->key == InputKeyRight)) {
+        if(e->key == InputKeyOk && id >= app->db->count)
+            keys_cb(app, id); /* search line */
+        else
+            open_edit(app, id);
+        return true;
+    }
+    if(e->type == InputTypeShort && e->key == InputKeyLeft) {
+        marks_fill(app);
+        go(app, VKey);
         return true;
     }
     if(e->type == InputTypeLong && e->key == InputKeyOk && id < app->db->count) {
-        app->sel = id;
-        act_fill(app);
-        go(app, VKey);
+        mark_set(app, id, !marked(app, id));
+        keys_fill(app);
         return true;
     }
     if(e->type == InputTypeShort && e->key == InputKeyBack && app->nmark) { /* first Back drops the marks */
@@ -995,11 +1008,7 @@ static void keys_cb(void* ctx, uint32_t index) {
     if(index == KEYS_FILTER) {
         filter_sync(app);
         go(app, VFilter);
-        return;
     }
-    app->sel = index;
-    key_fill(app);
-    go(app, VKey);
 }
 
 static void open_bytes(App* app, ByteMode mode, const Z5rKey* k) {
@@ -1638,10 +1647,11 @@ static const char* info_text =
     "Files: apps_data/z5flip\n"
     "*.bin = raw memory image\n"
     " (same as BaseZ5R).\n"
-    "Key list: hold OK = menu:\n"
-    " mark, type, export, delete.\n"
-    " With marks, OK marks keys,\n"
-    " Back unmarks all.\n"
+    "Key list: Right/OK = edit\n"
+    " (all marked keys if any),\n"
+    " hold OK = mark, Left =\n"
+    " marks menu, Back unmarks.\n"
+    " Hold Up/Down 3 s: by 20.\n"
     "Read saves the controller to\n"
     " controller_last.bin; Write\n"
     " of that base skips backup.\n"
