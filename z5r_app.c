@@ -99,7 +99,7 @@ typedef struct {
     char srcname[32]; /* file name without .bin, when src == 2 */
     char label[40]; /* first main menu item */
     uint16_t base0; /* key count at the last read / load / write / save: header shows the change against it */
-    uint8_t tstate; /* 0 nothing yet, 1 added, 2 already in base, 3 base full, 4 not a Dallas key */
+    uint8_t tstate; /* 0 nothing yet, 1 added, 2 already in base, 3 base full, 4 not a Dallas key, 5 type overwritten */
     uint16_t tadded, tdup;
     char tlast[13];
     Z5rKey tkey;
@@ -878,10 +878,18 @@ static void key_cb(void* ctx, uint32_t index) {
     }
 }
 
-/* 0 = added, 1 = already in base (*dup = its index), 2 = base full */
+/* 0 = added, 1 = already in base (*dup = its index), 2 = base full, 3 = in base with another type, type overwritten */
 static int try_add(App* app, const Z5rKey* k, int* dup) {
     *dup = z5r_find(app->db, k);
-    if(*dup >= 0) return 1;
+    if(*dup >= 0) {
+        Z5rKey* e = &app->db->keys[*dup];
+        if(e->attr == k->attr) return 1;
+        e->attr = k->attr;
+        app->modified = true;
+        app->fdirty = true;
+        keys_fill(app);
+        return 3;
+    }
     if(app->db->count >= z5r_capacity(app->db->mem_size)) return 2; /* the controller could not hold more */
     app->db->keys[app->db->count++] = *k;
     app->modified = true;
@@ -898,6 +906,9 @@ static void add_key(App* app, const Z5rKey* k) {
         snprintf(app->msg, sizeof(app->msg), "Already in base as #%d", dup + 1);
         warn_seq = &seq_key_dup; /* duplicate: double buzz everywhere */
         show_msg(app, "Duplicate", app->msg);
+    } else if(r == 3) {
+        snprintf(app->msg, sizeof(app->msg), "#%d set to %s", dup + 1, z5r_attr_name(k->attr));
+        show_msg(app, "Type updated", app->msg);
     } else if(r == 2) {
         show_msg(app, "Base full", "No free slots");
     } else {
@@ -1018,6 +1029,8 @@ static void touch_draw(Canvas* c, void* model) {
     canvas_set_font(c, FontSecondary);
     if(app->tstate == 2)
         snprintf(t, sizeof(t), "Duplicate #%u", app->tdup);
+    else if(app->tstate == 5)
+        snprintf(t, sizeof(t), "Type set #%u", app->tdup);
     else
         snprintf(t, sizeof(t), app->tstate == 3 ? "Base full" : app->tstate == 4 ? "Not a Dallas key" : app->tstate == 1 ? "Added #%u" : "Waiting...", app->db->count);
     canvas_draw_str(c, 2, 24, t); /* 9 px rows: five lines fit under the header */
@@ -1101,9 +1114,11 @@ static void touch_got(App* app, const Z5rKey* key) {
     int dup;
     int r = try_add(app, &k, &dup);
     z5r_key_str(&k, app->tlast, sizeof(app->tlast));
-    app->tstate = r == 0 ? 1 : r == 1 ? 2 : 3;
+    app->tstate = r == 0 ? 1 : r == 1 ? 2 : r == 3 ? 5 : 3;
     app->tdup = dup + 1;
-    if(r == 0) {
+    if(r == 3) {
+        notification_message(app->notif, &sequence_success); /* type overwritten */
+    } else if(r == 0) {
         app->tadded++;
         notification_message(app->notif, &sequence_success); /* same as the Done screen */
         blink(app, app->touch_mode == TmRfid ? &sequence_blink_start_cyan : &sequence_blink_start_yellow);
