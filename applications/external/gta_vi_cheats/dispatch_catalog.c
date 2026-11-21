@@ -54,42 +54,15 @@ enum {
 };
 
 const char* const gta_dispatch_assets[] = {
-    "book_swaps.tsv",
-    "cards_01.tsv",
-    "cards_02.tsv",
-    "cards_03.tsv",
-    "cards_04.tsv",
-    "cards_05.tsv",
-    "cards_06.tsv",
-    "cards_07.tsv",
-    "cards_08.tsv",
-    "cards_09.tsv",
-    "cards_10.tsv",
-    "cards_11.tsv",
-    "cards_12.tsv",
-    "cards_13.tsv",
-    "cards_14.tsv",
-    "cards_15.tsv",
-    "cards_16.tsv",
-    "cards_17.tsv",
-    "cards_18.tsv",
-    "curiosities.tsv",
-    "flamingos.tsv",
-    "kenton.tsv",
-    "landmarks.tsv",
-    "meditations.tsv",
-    "murals.tsv",
-    "no_flusher.tsv",
-    "publications.tsv",
-    "sculptures.tsv",
-    "sniper_posters.tsv",
-    "styles_jason.tsv",
-    "styles_lucia.tsv",
-    "tattoos.tsv",
-    "underwater.tsv",
-    "vault_poster.tsv",
-    "watches.tsv",
-    "ahol_pieces.tsv",
+    "book_swaps.tsv",     "cards_01.tsv",     "cards_02.tsv",     "cards_03.tsv",
+    "cards_04.tsv",       "cards_05.tsv",     "cards_06.tsv",     "cards_07.tsv",
+    "cards_08.tsv",       "cards_09.tsv",     "cards_10.tsv",     "cards_11.tsv",
+    "cards_12.tsv",       "cards_13.tsv",     "cards_14.tsv",     "cards_15.tsv",
+    "cards_16.tsv",       "cards_17.tsv",     "cards_18.tsv",     "curiosities.tsv",
+    "flamingos.tsv",      "kenton.tsv",       "landmarks.tsv",    "meditations.tsv",
+    "murals.tsv",         "no_flusher.tsv",   "publications.tsv", "sculptures.tsv",
+    "sniper_posters.tsv", "styles_jason.tsv", "styles_lucia.tsv", "tattoos.tsv",
+    "underwater.tsv",     "vault_poster.tsv", "watches.tsv",      "ahol_pieces.tsv",
 };
 
 _Static_assert(GtaDispatchRegionCount <= 8, "Dispatch region mask must fit in one byte");
@@ -98,13 +71,13 @@ _Static_assert(
     GTA_COUNT(gta_dispatch_assets) == GtaDispatchSourceCount - GtaDispatchFirstAsset,
     "Each collectible source must name its asset");
 
-#define VICE_CITY (1u << GtaDispatchViceCity)
-#define KEYS (1u << GtaDispatchKeys)
-#define GRASSRIVERS (1u << GtaDispatchGrassrivers)
+#define VICE_CITY     (1u << GtaDispatchViceCity)
+#define KEYS          (1u << GtaDispatchKeys)
+#define GRASSRIVERS   (1u << GtaDispatchGrassrivers)
 #define PORT_GELLHORN (1u << GtaDispatchPortGellhorn)
-#define AMBROSIA (1u << GtaDispatchAmbrosia)
-#define MOUNT_KALAGA (1u << GtaDispatchMountKalaga)
-#define OTHER (1u << GtaDispatchOther)
+#define AMBROSIA      (1u << GtaDispatchAmbrosia)
+#define MOUNT_KALAGA  (1u << GtaDispatchMountKalaga)
+#define OTHER         (1u << GtaDispatchOther)
 
 // Keep this index grouped by source so Dispatch only needs one collection asset in RAM.
 // The row IDs match the saved checklist IDs. Add a region mask when adding a usable clue.

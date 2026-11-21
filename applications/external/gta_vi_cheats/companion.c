@@ -33,16 +33,16 @@ static const struct {
     uint8_t count;
 } gta_ahol_ranges[] = {
     {1920, 10}, // Mattresses
-    {1930, 8},  // Tires
-    {1938, 9},  // Wheels
-    {1947, 9},  // Fridges
-    {1956, 7},  // Armchairs
-    {1963, 8},  // TVs
+    {1930, 8}, // Tires
+    {1938, 9}, // Wheels
+    {1947, 9}, // Fridges
+    {1956, 7}, // Armchairs
+    {1963, 8}, // TVs
     {1971, 15}, // Containers
     {1986, 13}, // Cones
     {1999, 11}, // Buckets
     {2010, 13}, // Pallets
-    {2023, 9},  // Chairs
+    {2023, 9}, // Chairs
 };
 
 #define GTA_AHOL_TYPE_COUNT (sizeof(gta_ahol_ranges) / sizeof(gta_ahol_ranges[0]))
@@ -328,8 +328,8 @@ static void gta_render_detail(GtaCompanion* companion) {
             text, "Dispatch / %s\n", gta_dispatch_regions[companion->dispatch_region]);
     }
     if(entry) {
-        const GtaCollection* collection =
-            companion->dispatch ? companion->dispatch_collection : companion->list;
+        const GtaCollection* collection = companion->dispatch ? companion->dispatch_collection :
+                                                                companion->list;
         const bool checked = gta_is_checked(companion->save.checked, entry->id);
         furi_string_cat_printf(
             text, "%s\n%s\n", entry->name, checked ? collection->checked_label : "Unchecked");
@@ -339,8 +339,9 @@ static void gta_render_detail(GtaCompanion* companion) {
         if(entry->notes) furi_string_cat_printf(text, "\n\n%s", entry->notes);
         if(companion->dispatch) {
             furi_string_cat_printf(text, "\n\n%s", collection->title);
-        } else if(companion->explore_section &&
-                  companion->explore_section->game_total > collection->count) {
+        } else if(
+            companion->explore_section &&
+            companion->explore_section->game_total > collection->count) {
             furi_string_cat_printf(
                 text,
                 "\n\nCatalog coverage: %u/%u",
@@ -516,8 +517,8 @@ static const GtaExploreSection*
 static const GtaCollection* gta_dispatch_load_source(GtaCompanion* companion, uint8_t source) {
     if(source < GtaDispatchFirstAsset) {
         gta_release_exploration(companion);
-        return &gta_collection_catalog[source == GtaDispatchSourceMoses ? GtaCollectionMoses :
-                                                                         GtaCollectionRandy];
+        return &gta_collection_catalog
+            [source == GtaDispatchSourceMoses ? GtaCollectionMoses : GtaCollectionRandy];
     }
     const GtaExploreSection* section = gta_find_explore_asset(
         gta_explore_sections,
@@ -538,7 +539,8 @@ static void gta_dispatch_next(GtaCompanion* companion) {
     companion->dispatch_unavailable = false;
     for(size_t tried = 0; tried < gta_dispatch_target_count; ++tried) {
         const GtaDispatchTarget* target = &gta_dispatch_targets[companion->dispatch_cursor];
-        if(++companion->dispatch_cursor == gta_dispatch_target_count) companion->dispatch_cursor = 0;
+        if(++companion->dispatch_cursor == gta_dispatch_target_count)
+            companion->dispatch_cursor = 0;
         if((!all_regions && !(target->regions & region)) ||
            gta_is_checked(companion->save.checked, target->id)) {
             continue;

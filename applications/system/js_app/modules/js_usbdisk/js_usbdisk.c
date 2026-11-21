@@ -5,6 +5,9 @@
 
 #define TAG "JsUsbdisk"
 
+// Front of a fresh image to clear, covering an MBR and a FAT boot sector
+#define USBDISK_IMAGE_CLEAR_SIZE (4096UL)
+
 typedef struct {
     File* file;
     char* path;
@@ -73,10 +76,22 @@ static void js_usbdisk_internal_stop_free(JsUsbdiskInst* usbdisk) {
 }
 
 static void js_usbdisk_create_image(struct mjs* mjs) {
-    size_t size = 0;
-    const char* path = NULL;
+    mjs_val_t obj_inst = mjs_get(mjs, mjs_get_this(mjs), INST_PROP_NAME, ~0);
+    JsUsbdiskInst* usbdisk = mjs_get_ptr(mjs, obj_inst);
+    furi_assert(usbdisk);
+
+    if(usbdisk->usb) {
+        mjs_prepend_errorf(mjs, MJS_INTERNAL_ERROR, "SCSI is already started");
+        mjs_return(mjs, MJS_UNDEFINED);
+        return;
+    }
 
     const char* error = NULL;
+    Storage* storage = NULL;
+    File* image = NULL;
+    FuriString* image_path = furi_string_alloc();
+    bool created = false;
+
     do {
         if(mjs_nargs(mjs) != 2) {
             error = "Wrong argument count";
@@ -88,57 +103,84 @@ static void js_usbdisk_create_image(struct mjs* mjs) {
             error = "Path must be a string";
             break;
         }
-
         size_t path_len = 0;
-        path = mjs_get_string(mjs, &path_arg, &path_len);
+        const char* path = mjs_get_string(mjs, &path_arg, &path_len);
         if((path_len == 0) || (path == NULL)) {
             error = "Bad path argument";
             break;
         }
+        furi_string_set_str(image_path, path);
 
         mjs_val_t size_arg = mjs_arg(mjs, 1);
         if(!mjs_is_number(size_arg)) {
             error = "Size must be a number";
             break;
         }
+        double requested = mjs_get_double(mjs, size_arg);
+        // One block is the smallest unit the host can address, and a seek offset
+        // reaches 4 GiB - 1, which is also where FAT stops
+        if(!(requested >= (double)SCSI_BLOCK_SIZE) || (requested > (double)UINT32_MAX)) {
+            error = "Size out of range";
+            break;
+        }
+        uint32_t size = (uint32_t)requested;
+        size -= size % SCSI_BLOCK_SIZE;
 
-        size = (size_t)mjs_get_int32(mjs, size_arg);
+        storage = furi_record_open(RECORD_STORAGE);
+        image = storage_file_alloc(storage);
+
+        // CREATE_NEW: never silently replace an image that is already there
+        if(!storage_file_open(
+               image, furi_string_get_cstr(image_path), FSAM_WRITE, FSOM_CREATE_NEW)) {
+            error = storage_file_get_error_desc(image);
+            break;
+        }
+        created = true;
+
+        // Seeking past the end of a file open for writing is what grows it. Only
+        // the cluster chain is written, not the blocks, so a large image costs a
+        // walk of the FAT rather than its own size in writes. On a full card the
+        // seek still reports success but stops short, so check where it landed
+        if(!storage_file_seek(image, size, true) || (storage_file_tell(image) != size)) {
+            error = "Not enough space for the image";
+            break;
+        }
+
+        // The grown blocks hold whatever the card had there before. The host is
+        // meant to format the image, but a stale boot sector in those leftovers
+        // could have it mount them instead, so clear the front of the disk
+        uint8_t* zeros = malloc(SCSI_BLOCK_SIZE);
+        memset(zeros, 0, SCSI_BLOCK_SIZE);
+        uint32_t cleared = 0;
+        if(storage_file_seek(image, 0, true)) {
+            while(cleared < USBDISK_IMAGE_CLEAR_SIZE) {
+                if(storage_file_write(image, zeros, SCSI_BLOCK_SIZE) != SCSI_BLOCK_SIZE) break;
+                cleared += SCSI_BLOCK_SIZE;
+            }
+        }
+        free(zeros);
+        if(cleared < USBDISK_IMAGE_CLEAR_SIZE) {
+            error = storage_file_get_error_desc(image);
+            break;
+        }
     } while(0);
 
-    if(!error) {
-        Storage* storage = furi_record_open(RECORD_STORAGE);
-        File* file = storage_file_alloc(storage);
-        do {
-            if(!storage_file_open(file, path, FSAM_READ | FSAM_WRITE, FSOM_CREATE_NEW)) {
-                error = storage_file_get_error_desc(file);
-                break;
-            }
-
-            if(!storage_file_expand(file, size)) {
-                error = storage_file_get_error_desc(file);
-                break;
-            }
-
-            error = "Image formatting failed";
-            if(storage_virtual_init(storage, file) != FSE_OK) {
-                if(storage_virtual_quit(storage) != FSE_OK) break;
-                if(storage_virtual_init(storage, file) != FSE_OK) break;
-            }
-            if(storage_virtual_format(storage) == FSE_OK) {
-                error = NULL;
-            }
-            storage_virtual_quit(storage);
-        } while(0);
-        storage_file_free(file);
+    if(image) {
+        storage_file_close(image);
+        storage_file_free(image);
+        // A half-made image would be started by the next run as if it were whole
+        if(error && created) {
+            storage_common_remove(storage, furi_string_get_cstr(image_path));
+        }
+    }
+    if(storage) {
         furi_record_close(RECORD_STORAGE);
     }
+    furi_string_free(image_path);
 
     if(error) {
         mjs_prepend_errorf(mjs, MJS_BAD_ARGS_ERROR, "%s", error);
-        mjs_return(mjs, MJS_UNDEFINED);
-        return;
     }
-
     mjs_return(mjs, MJS_UNDEFINED);
 }
 

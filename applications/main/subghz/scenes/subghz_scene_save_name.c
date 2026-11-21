@@ -70,6 +70,8 @@ void subghz_scene_save_name_on_enter(void* context) {
     }
 #endif
 
+    // strlcpy, not strncpy: a file name of SUBGHZ_MAX_LEN_NAME characters or more would be
+    // left without a terminator, and the text input runs strlen() over this buffer
     strlcpy(subghz->file_name_tmp, furi_string_get_cstr(file_name), SUBGHZ_MAX_LEN_NAME);
     text_input_set_header_text(text_input, "Name signal");
     text_input_set_result_callback(

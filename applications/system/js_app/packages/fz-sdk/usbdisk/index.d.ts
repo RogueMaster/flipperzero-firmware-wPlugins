@@ -5,9 +5,15 @@
  */
 
 /**
- * @brief Create a disk image and format it as FatFs, error on failure
- * @param path Where to create the disk image
- * @param size How big the disk image should be
+ * @brief Create an empty disk image
+ *
+ * The image is grown without writing its contents, so a large one takes far
+ * less time than its size suggests, and the first 4 KiB are cleared so the host
+ * offers to format it rather than mounting leftovers. Fails if something
+ * already exists at `path`.
+ *
+ * @param path Where to create the image
+ * @param size Image size in bytes, rounded down to a 512-byte block
  * @version Available with JS feature `usbdisk-createimage`
  */
 export declare function createImage(path: string, size: number): void;

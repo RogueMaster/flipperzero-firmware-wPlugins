@@ -75,7 +75,13 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [eReader v1.2.0 moves its default books folder into app data and adds a setup guide (By Daniel Baker)](https://github.com/daniebker/flipper_ereader)
 - Added: [RF Studio v0.1 (By Maurice Rogers)](https://github.com/cruzer45/rf-studio) - Build and operate virtual Sub-GHz remotes
 - OFW: [Reject missing BadUSB mouse arguments (By theobarrague)](https://github.com/flipperdevices/flipperzero-firmware/pull/4521)
-- GUI: [Bound TextInput drawing for long text (By jeje77131)](https://github.com/DarkFlippers/unleashed-firmware/pull/1239)
+- Sub-GHz: [New KeeLoq manufacturer - FAAC FIX, with `KL: FAAC FIX` in Add Manually and custom button support (thanks Anat01y)](https://github.com/DarkFlippers/unleashed-firmware/commit/e62d78cd70712a75e81fd1100740ec2b0f09a9b9)
+- Sub-GHz: [Fix `Edit button` in Signal Settings not saving the new button to the file for static protocols (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/a922b3d46da30b0a2297a05b2d6f92cd99d1eda5)
+- JS: [Fix `subghz.isExternal()` reporting internal radio when an external CC1101 is connected (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/a922b3d46da30b0a2297a05b2d6f92cd99d1eda5)
+- GUI: [Fix TextInput writing past its buffer when drawing the cursor and mishandling 256+ character strings (By jeje77131)](https://github.com/DarkFlippers/unleashed-firmware/commit/7a06653e3a838093de687c19177349875ecef4d9)
+- Sub-GHz: [Serialize receive history between the worker and GUI, and keep the open signal from being dropped when `Delete old signals` is on (By jeje77131)](https://github.com/DarkFlippers/unleashed-firmware/commit/5f6fb7caff88394fc2cf76a638616eae5b8b370c)
+- Sub-GHz: [Fix renaming a saved file with a 64+ character name dropping its `.sub` extension (By jeje77131)](https://github.com/DarkFlippers/unleashed-firmware/commit/edc5e57dda9bb8348be66954057d220ed582d5ab)
+- Furi: [`realloc()` copies only the old block when growing, and `calloc()` checks for overflow (By jeje77131)](https://github.com/DarkFlippers/unleashed-firmware/commit/3414ad8975ede7ecbdf0dfa493d0727384860df7)
 
 <a name="release"></a>
 

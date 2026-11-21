@@ -274,6 +274,7 @@ static const char* extra_features[] = {
     "infrared-send",
     "subghz",
     "usbdisk",
+    "usbdisk-createimage",
     "vgm",
 
     // extra features

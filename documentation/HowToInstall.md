@@ -7,7 +7,7 @@
 <br>
 
 ### **If installing for first time - Update to the latest official firmware before proceeding**
-### **If you are already using unleashed - no need to install any other FW or version before installing update, just install latest version on top of your current one, all will be fine**
+### **If you are already using RogueMaster - no need to install any other FW or version before installing update, just install latest version on top of your current one, all will be fine**
 
 <br>
 <br>
@@ -125,3 +125,5 @@
 - ## [Read instructions how to use plugins and more](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/documentation/)
 
 - ## [How To: Configure Sub-GHz Remote App](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/documentation/SubGHzRemotePlugin.md)
+
+- ## [How To: Use Sub-GHz Signal Settings (counter and button editor)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/dev/documentation/SubGHzSignalSettings.md)
