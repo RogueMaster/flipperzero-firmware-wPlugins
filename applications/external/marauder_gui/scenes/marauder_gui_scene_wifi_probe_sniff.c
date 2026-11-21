@@ -82,7 +82,7 @@ bool marauder_gui_scene_wifi_probe_sniff_on_event(void* context, SceneManagerEve
     if(event.type == SceneManagerEventTypeCustom) {
         if(event.event < app->ap_count) {
             app->selected_probe_index = (int)event.event;
-            scene_manager_next_scene(app->scene_manager, MarauderGuiSceneKarmaStatus);
+            scene_manager_next_scene(app->scene_manager, MarauderGuiSceneKarmaHtmlSelect);
             consumed = true;
         }
     } else if(event.type == SceneManagerEventTypeBack) {

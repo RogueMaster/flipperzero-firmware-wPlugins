@@ -7,8 +7,8 @@ App(
     fap_icon="marauder_gui.png",
     fap_icon_assets="assets",
     fap_category="GPIO/ESP32",
-    fap_author="mel4mi",
+    fap_author="mel4mi & AzureSky",
     fap_weburl="https://github.com/mel4mi/Marauder-GUI-Flipper",
-    fap_version="1.1",
+    fap_version="1.3",
     fap_description="ESP32 Marauder companion app - WiFi/BT attacks, detectors and network tools over UART",
 )

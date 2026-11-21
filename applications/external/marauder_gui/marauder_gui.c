@@ -170,6 +170,9 @@ static MarauderGuiApp* marauder_gui_app_alloc(void) {
     app->selected_probe_index = -1;
     app->selected_ip_index = -1;
 
+    app->karma_use_default_html = true;
+    app->karma_custom_html_file[0] = '\0';
+
     app->language = MarauderLanguageEnglish;
     marauder_gui_load_language(app);
 
@@ -179,6 +182,9 @@ static MarauderGuiApp* marauder_gui_app_alloc(void) {
        files to the Flipper SD card. */
     app->storage = furi_record_open(RECORD_STORAGE);
     app->capture_file = storage_file_alloc(app->storage);
+
+    storage_common_mkdir(app->storage, MARAUDER_GUI_DATA_DIR);
+    storage_common_mkdir(app->storage, MARAUDER_GUI_DATA_DIR "/html");
 
     app->gui = furi_record_open(RECORD_GUI);
 

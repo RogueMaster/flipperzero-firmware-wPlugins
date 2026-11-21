@@ -1,8 +1,8 @@
 #include "../marauder_gui_app_i.h"
 
 #define WIFI_SPAM_COUNT_MIN     1
-#define WIFI_SPAM_COUNT_MAX     50
-#define WIFI_SPAM_COUNT_DEFAULT 10
+#define WIFI_SPAM_COUNT_MAX     500
+#define WIFI_SPAM_COUNT_DEFAULT 50
 
 static void marauder_gui_scene_wifi_spam_count_input_callback(void* context, int32_t number) {
     MarauderGuiApp* app = context;
@@ -18,7 +18,7 @@ void marauder_gui_scene_wifi_spam_count_on_enter(void* context) {
     }
 
     number_input_set_header_text(
-        app->number_input, marauder_gui_text(app, "Kac sahte AG?", "How many fake APs?"));
+        app->number_input, marauder_gui_text(app, "Pencere boyutu?", "Window size?"));
     number_input_set_result_callback(
         app->number_input,
         marauder_gui_scene_wifi_spam_count_input_callback,

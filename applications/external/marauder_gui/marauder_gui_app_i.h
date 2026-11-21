@@ -189,6 +189,8 @@ struct MarauderGuiApp {
     int selected_probe_index;
     int karma_state;
     uint32_t karma_wait_ticks;
+    bool karma_use_default_html;
+    char karma_custom_html_file[128];
 
     char terminal_cmd[64];
     char terminal_log[600];
@@ -395,6 +397,7 @@ const char* marauder_gui_wifi_spam_type_label_en(size_t index);
 const char* marauder_gui_wifi_spam_type_command(size_t index);
 const char* marauder_gui_wifi_spam_type_description(size_t index);
 const char* marauder_gui_wifi_spam_type_description_en(size_t index);
+bool marauder_gui_wifi_spam_type_uses_builtin_list(size_t index);
 
 /* Implemented in marauder_gui_menu.c - the generic "menu with Right-key descriptions" view that
    replaces plain Submenu everywhere in this app. A scene calls marauder_gui_menu_set_items()
