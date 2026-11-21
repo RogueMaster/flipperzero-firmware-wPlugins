@@ -752,9 +752,11 @@ static void key_type_cb(VariableItem* item) {
 static void keyhint_draw(Canvas* c, void* model) {
     App* app = *(App**)model;
     uint8_t i = variable_item_list_get_selected_item_index(app->key);
-    static const char* const h[] = {NULL, "Edit", "Export", NULL, NULL, NULL, NULL, NULL}; /* by K* */
-    const char* s = i < sizeof(app->kmap) ? h[app->kmap[i]] : NULL;
-    if(app->kact && i < sizeof(app->kmap) && app->kmap[i] == KAttr) s = "Set";
+    static const char* const h[] = {NULL, "Edit", "Export", "Delete", NULL, "Mark", "Mark all", "Unmark"}; /* by K* */
+    uint8_t m = i < sizeof(app->kmap) ? app->kmap[i] : KNone;
+    const char* s = h[m];
+    if(app->kact && m == KAttr) s = "Set";
+    if(m == KMark && marked(app, app->sel)) s = "Unmark";
     canvas_set_font(c, FontSecondary);
     if(s) elements_button_center(c, s);
 }
@@ -764,10 +766,16 @@ static void key_exp_cb(VariableItem* item) {
     variable_item_set_current_value_text(item, em ? "EM4100" : "iButton");
 }
 
+static bool em_ok(const Z5rKey* k) {
+    return k->len == 6 && !k->b[5]; /* such a key may also be an EM4100 */
+}
+
 static void key_fill(App* app) {
     Z5rKey* k = &app->db->keys[app->sel];
     char s[13];
     z5r_key_str(k, s, sizeof(s));
+    if(variable_item_list_get_selected_item_index(app->key) >= 4) /* left on a row the longer hold-OK menu had */
+        variable_item_list_set_selected_item(app->key, 0);
     variable_item_list_reset(app->key);
     app->kact = false;
     uint8_t n = 0;
@@ -779,8 +787,7 @@ static void key_fill(App* app) {
     variable_item_set_current_value_index(app->kitem, type_pos(k->attr));
     variable_item_set_current_value_text(app->kitem, z5r_attr_name(k->attr));
     app->kmap[n++] = KAttr;
-    bool em = k->len == 6 && !k->b[5]; /* such a key may also be an EM4100 */
-    app->kexp = variable_item_list_add(app->key, "Export", em ? 2 : 1, key_exp_cb, app);
+    app->kexp = variable_item_list_add(app->key, "Export", em_ok(k) ? 2 : 1, key_exp_cb, app);
     variable_item_set_current_value_text(app->kexp, k->len == 3 ? "RFID" : "iButton");
     app->kmap[n++] = KExport;
     variable_item_list_add(app->key, "Delete", 0, NULL, app);
@@ -816,7 +823,14 @@ static void act_fill(App* app) {
     variable_item_set_current_value_index(app->kitem, type_pos(a));
     variable_item_set_current_value_text(app->kitem, z5r_attr_name(a));
     app->kmap[n++] = KAttr;
-    variable_item_list_add(app->key, "Export", 0, NULL, app);
+    bool em = false, rfid = false; /* EM4100 offered when any of the keys can be one; the rest keep their own format */
+    for(uint16_t i = 0; i < app->db->count; i++)
+        if(target(app, i)) {
+            em |= em_ok(&app->db->keys[i]);
+            rfid |= app->db->keys[i].len == 3;
+        }
+    app->kexp = variable_item_list_add(app->key, "Export", em ? 2 : 1, key_exp_cb, app);
+    variable_item_set_current_value_text(app->kexp, !app->nmark && rfid ? "RFID" : app->nmark && !em ? "auto" : "iButton");
     app->kmap[n++] = KExport;
     variable_item_list_add(app->key, "Delete", 0, NULL, app);
     app->kmap[n++] = KDelete;
@@ -861,12 +875,14 @@ static bool act_cb(App* app, uint32_t index) {
         break;
     }
     case KExport: {
-        snprintf(app->msg, sizeof(app->msg), "%u key(s) to\n/ext/ibutton (.ibtn)\nand /ext/lfrfid (.rfid)", n);
+        bool em = variable_item_get_current_value_index(app->kexp) == 1;
+        snprintf(app->msg, sizeof(app->msg), em ? "%u key(s), EM4100 where\npossible, to /ext/lfrfid\nand /ext/ibutton" : "%u key(s) to\n/ext/ibutton (.ibtn)\nand /ext/lfrfid (.rfid)", n);
         if(!confirm(app, "Export keys?", app->msg)) return true;
         uint16_t ok = 0;
         for(uint16_t i = 0; i < app->db->count; i++) {
             char path[64];
-            if(target(app, i) && z5r_key_export(app->storage, &app->db->keys[i], false, path, sizeof(path))) ok++;
+            const Z5rKey* k = &app->db->keys[i];
+            if(target(app, i) && z5r_key_export(app->storage, k, em && em_ok(k), path, sizeof(path))) ok++;
         }
         if(ok == n) {
             snprintf(app->msg, sizeof(app->msg), "Exported %u", ok);
@@ -919,7 +935,7 @@ static void keys_draw(Canvas* c, void* model) {
             z5r_key_str(k, s, sizeof(s));
             static const char* const abbr[] = {"?", "N", "B", "M", "I"};
             canvas_draw_str(c, 1, y + 9, n);
-            if(marked(app, id)) canvas_draw_box(c, 22, y + 4, 3, 3); /* between number and code */
+            if(marked(app, id)) canvas_draw_box(c, 119, y + 4, 3, 3); /* right of the type letter, before the scrollbar */
             canvas_draw_str(c, 27, y + 9, s);
             canvas_draw_str(c, 111, y + 9, abbr[k->attr <= 4 ? k->attr : 0]);
         } else {
