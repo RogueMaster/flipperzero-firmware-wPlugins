@@ -549,10 +549,17 @@ size_t xPortGetAllocatedBlockSize(void* pv) {
     uint8_t* puc = ((uint8_t*)pv) - xHeapStructSize;
     BlockLink_t* pxLink = (void*)puc;
 
+    heapVALIDATE_BLOCK_POINTER(pxLink);
     configASSERT(heapBLOCK_IS_ALLOCATED(pxLink) != 0);
     configASSERT(pxLink->pxNextFreeBlock == heapPROTECT_BLOCK_POINTER(NULL));
 
-    return (pxLink->xBlockSize & ~heapBLOCK_ALLOCATED_BITMASK) - xHeapStructSize;
+    if(heapBLOCK_IS_ALLOCATED(pxLink) == 0) return 0;
+    if(pxLink->pxNextFreeBlock != heapPROTECT_BLOCK_POINTER(NULL)) return 0;
+
+    const size_t xBlockSize = pxLink->xBlockSize & ~heapBLOCK_ALLOCATED_BITMASK;
+    if(heapSUBTRACT_WILL_UNDERFLOW(xBlockSize, xHeapStructSize) != 0) return 0;
+
+    return xBlockSize - xHeapStructSize;
 }
 /*-----------------------------------------------------------*/
 

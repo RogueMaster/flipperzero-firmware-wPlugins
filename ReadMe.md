@@ -69,6 +69,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - ESP Flasher: [Comes with Marauder v1.21.0 (By justcallmekoko)](https://github.com/justcallmekoko/ESP32Marauder/releases/tag/v1.21.0)
 - Updated: [Marauder GUI v1.3 (By mel4mi & AzureSky)](https://github.com/mel4mi/Marauder-GUI-Flipper)
 - Updated: [GTA VI Companion v1.1 (By RogueMaster)](https://github.com/RogueMaster/GTA_VI_Companion)
+- Furi: [Harden heap block size checks. (By jeje77131)](https://github.com/DarkFlippers/unleashed-firmware/pull/1243)
+- Bluetooth: [Preserve BLE key storage callbacks across radio restarts. (By yorha59)](https://github.com/flipperdevices/flipperzero-firmware/pull/4515)
 
 <a name="release"></a>
 
