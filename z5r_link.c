@@ -1,8 +1,6 @@
 #include "z5r.h"
 #include <furi.h>
 #include <furi_hal.h>
-#include <one_wire/one_wire_host.h>
-#include <one_wire/maxim_crc.h>
 #include <power/power_service/power.h>
 
 /*
@@ -63,18 +61,4 @@ void z5r_link_power(bool on5v) {
     if(on5v && furi_hal_power_get_usb_voltage() > 4.5f) return; /* USB already feeds pin 1 */
     power_enable_otg(furi_record_open(RECORD_POWER), on5v);
     furi_record_close(RECORD_POWER);
-}
-
-bool z5r_ibutton_read(uint8_t rom[8]) {
-    OneWireHost* h = onewire_host_alloc(&gpio_ibutton);
-    onewire_host_start(h);
-    bool ok = false;
-    if(onewire_host_reset(h)) {
-        onewire_host_write(h, 0x33); /* Read ROM */
-        onewire_host_read_bytes(h, rom, 8);
-        ok = rom[0] != 0 && maxim_crc8(rom, 7, 0) == rom[7];
-    }
-    onewire_host_stop(h);
-    onewire_host_free(h);
-    return ok;
 }

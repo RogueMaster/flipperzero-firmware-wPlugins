@@ -18,7 +18,6 @@
 #define Z5R_MEM_MAX     8192
 #define Z5R_HDR         6
 #define Z5R_KEYS_MAX    1363 /* what an 8 KB controller holds */
-#define Z5R_DB_KEYS     3000 /* keys the app keeps in RAM; fit is checked on write / save */
 
 typedef enum {
     Z5rAttrNormal = 1,
@@ -36,7 +35,7 @@ typedef struct {
 typedef struct {
     uint8_t mem[Z5R_MEM_MAX]; /* raw controller memory image */
     uint16_t mem_size; /* 4096 or 8192 */
-    Z5rKey keys[Z5R_DB_KEYS];
+    Z5rKey keys[Z5R_KEYS_MAX]; /* adding stops at z5r_capacity(mem_size) */
     uint16_t count;
 } Z5rDb;
 
@@ -65,8 +64,25 @@ bool z5r_link_read(uint16_t addr, uint8_t* buf, size_t len);
 bool z5r_link_write_page(uint16_t addr, const uint8_t* page); /* 32 bytes, page-aligned */
 void z5r_link_power(bool on5v);
 
-/* iButton (Flipper's own contact pad): read DS1990A ROM, true if CRC ok */
-bool z5r_ibutton_read(uint8_t rom[8]);
+/* controller operations (no UI): each probes the controller itself and returns a result for the caller to report */
+typedef enum {
+    CtlOk,
+    CtlNoLink, /* no answer on I2C */
+    CtlBadCode, /* memory code unknown / not formatted (info.code) */
+    CtlIo, /* read error */
+    CtlNoFit, /* base larger than the controller (info.size) */
+    CtlPageFail, /* page write failed (info.addr) */
+    CtlCommitFail, /* final page 0 write failed */
+} CtlResult;
+typedef struct {
+    uint16_t size; /* controller memory, 0 = unknown code */
+    uint16_t addr;
+    uint8_t code;
+} CtlInfo;
+CtlResult z5r_ctl_probe(uint8_t page0[Z5R_PAGE], CtlInfo* i);
+CtlResult z5r_ctl_read(Z5rDb* db, CtlInfo* i);
+CtlResult z5r_ctl_write(Z5rDb* db, CtlInfo* i); /* page 0 first with 0x34, then changed pages, 0x33 last */
+CtlResult z5r_ctl_erase(CtlInfo* i);
 
 /* Z-2 adapter emulation over USB CDC (channel 1, CLI stays on channel 0) */
 typedef struct Z2Emu Z2Emu;

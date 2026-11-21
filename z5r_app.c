@@ -1,5 +1,6 @@
 #include "z5r.h"
 #include <furi.h>
+#include <furi_hal.h>
 #include <gui/gui.h>
 #include <gui/view_dispatcher.h>
 #include <gui/modules/submenu.h>
@@ -50,7 +51,7 @@ static const Icon dolphin_ok = {.width = 80, .height = 58, .frame_count = 1, .fr
 #define SEC_TO_CODE(s) (((s) * 260 + 8) / 17)
 #define CODE_TO_SEC(c) (((c) * 17 + 130) / 260)
 #define KEYS_FILTER 0xFFFC
-#define KROWS       (Z5R_DB_KEYS + 2) /* search line + keys or a placeholder */
+#define KROWS       (Z5R_KEYS_MAX + 2) /* search line + keys or a placeholder */
 
 static uint32_t text_back = VMain; /* view the text input returns to on Back (save name / key search) */
 static uint32_t bytes_back = VAdd; /* same for the key number input */
@@ -104,7 +105,7 @@ typedef struct {
     char srcname[32]; /* file name without .bin, when src == 2 */
     char label[40]; /* first main menu item */
     uint16_t base0; /* key count at the last read / load / write / save: header shows the change against it */
-    uint8_t tstate; /* 0 nothing yet, 1 added, 2 already in base, 3 base full */
+    uint8_t tstate; /* 0 nothing yet, 1 added, 2 already in base, 3 base full, 4 not a Dallas key */
     uint16_t tadded, tdup;
     char tlast[13];
     Z5rKey tkey;
@@ -292,21 +293,6 @@ static void show_dolphin(App* app, const char* text, uint32_t ok) {
     go(app, VPopup);
 }
 
-static void show_done(App* app, const char* header, const char* text) {
-    if(text != app->msg) snprintf(app->msg, sizeof(app->msg), "%s", text);
-    log_msg(app, header);
-    notification_message(app->notif, &sequence_single_vibro);
-    app->ok = VKeys;
-    popup_reset(app->popup);
-    popup_set_header(app->popup, header, 64, 2, AlignCenter, AlignTop);
-    popup_set_text(app->popup, app->msg, 64, 16, AlignCenter, AlignTop);
-    popup_set_callback(app->popup, popup_ok);
-    popup_set_context(app->popup, app);
-    popup_set_timeout(app->popup, 1200);
-    popup_enable_timeout(app->popup);
-    go(app, VPopup);
-}
-
 static bool confirm(App* app, const char* header, const char* text) {
     DialogMessage* m = dialog_message_alloc();
     dialog_message_set_header(m, header, 64, 0, AlignCenter, AlignTop);
@@ -401,96 +387,74 @@ static bool backup_controller(App* app, uint16_t size, const char* path) {
     return ok;
 }
 
-/* controller memory size from its header; 0 = unknown code; -1 = no answer (message shown) */
-static int controller_size(App* app, uint8_t page0[Z5R_PAGE]) {
-    power_on(app);
-    if(!z5r_link_present() || !z5r_link_read(0, page0, Z5R_PAGE)) {
+enum { OpRead, OpWrite, OpErase };
+
+/* one place that turns a controller result into a message */
+static void ctl_fail(App* app, int op, CtlResult r, const CtlInfo* ci) {
+    char* m = app->msg;
+    size_t n = sizeof(app->msg);
+    switch(r) {
+    case CtlNoLink:
         show_msg(app, "No controller", "No answer on I2C.\nCheck wiring / power\n(see Info)");
-        return -1;
+        return;
+    case CtlBadCode:
+        if(op == OpRead) {
+            snprintf(m, n, "Unknown memory code 0x%02X\nTry Erase first", ci->code);
+            show_msg(app, "Read failed", m);
+        } else if(op == OpWrite) {
+            show_msg(app, "Write refused", "Controller memory\nnot formatted.\nUse Erase first.");
+        } else {
+            snprintf(m, n, "Unknown memory code 0x%02X.\nNot a plain Z-5R?", ci->code);
+            show_msg(app, "Erase refused", m);
+        }
+        return;
+    case CtlIo:
+        show_msg(app, "Read failed", "I2C error");
+        return;
+    case CtlNoFit: {
+        unsigned cap = z5r_capacity(ci->size);
+        snprintf(m, n, "%u keys, controller\nholds %u (%u KB).\nRemove %u keys.", app->db->count, cap, ci->size / 1024, app->db->count - cap);
+        show_msg(app, "Does not fit", m);
+        return;
     }
-    return z5r_mem_size_from_code(page0[5]);
+    case CtlPageFail:
+        if(op == OpErase) {
+            show_msg(app, "Erase FAILED", "I2C write error");
+        } else {
+            snprintf(m, n, "Page 0x%04X failed.\nController may hold a\nhalf-written base", ci->addr);
+            show_msg(app, "Write FAILED", m);
+        }
+        return;
+    default:
+        show_msg(app, "Write FAILED", "Commit page failed");
+    }
 }
 
 static void do_read(App* app) {
     busy_icon(app, &z5_read_icon, "Reading", &sequence_blink_start_cyan);
-    uint8_t p0[Z5R_PAGE];
-    int size = controller_size(app, p0);
-    if(size < 0) return;
-    if(!size) {
-        char t[48];
-        snprintf(t, sizeof(t), "Unknown memory code 0x%02X\nTry Erase first", p0[5]);
-        show_msg(app, "Read failed", t);
+    power_on(app);
+    CtlInfo ci;
+    CtlResult r = z5r_ctl_read(app->db, &ci);
+    if(r) {
+        ctl_fail(app, OpRead, r, &ci);
         return;
     }
-    for(int a = 0; a < size; a += 256) {
-        if(!z5r_link_read(a, app->db->mem + a, 256)) {
-            show_msg(app, "Read failed", "I2C error");
-            return;
-        }
-    }
-    bool ok = z5r_parse(app->db);
     app->src = 1;
     app->modified = false;
     app->base0 = app->db->count;
     main_labels(app);
-    snprintf(
-        app->msg,
-        sizeof(app->msg),
-        "%u keys, %u KB\nformat 0x%02X, open %u s%s",
-        app->db->count,
-        size / 1024,
-        app->db->mem[0],
-        (unsigned)CODE_TO_SEC((int32_t)z5r_open_time_code(app->db)),
-        ok ? "" : "\nNot a Z5 image!");
-    if(ok) {
-        snprintf(app->msg, sizeof(app->msg), "Read\n%u keys", app->db->count);
-        menus[1].sel = 0; /* the base screen opens on its first item */
-        show_dolphin(app, app->msg, VCtl);
-    } else {
-        show_done(app, "Read OK", app->msg);
-    }
+    snprintf(app->msg, sizeof(app->msg), "Read\n%u keys", app->db->count);
+    menus[1].sel = 0; /* the base screen opens on its first item */
+    show_dolphin(app, app->msg, VCtl);
 }
 
 static void write_run(App* app) {
     busy_icon(app, &z5_write_icon, "Writing", &sequence_blink_start_magenta);
-    uint8_t p0[Z5R_PAGE];
-    int size = controller_size(app, p0);
-    if(size < 0) return;
-    if(!size) {
-        show_msg(app, "Write refused", "Controller memory\nnot formatted.\nUse Erase first.");
-        return;
-    }
-    if(app->db->count > z5r_capacity(size)) {
-        snprintf(
-            app->msg,
-            sizeof(app->msg),
-            "%u keys, controller\nholds %u (%u KB).\nRemove %u keys.",
-            app->db->count,
-            z5r_capacity(size),
-            size / 1024,
-            app->db->count - z5r_capacity(size));
-        show_msg(app, "Does not fit", app->msg);
-        return;
-    }
-    app->db->mem_size = size; /* image layout of this controller */
-    /* an empty base is fine: only the open time may be needed, the controller then collects keys by itself */
-    memcpy(app->db->mem + 1, p0 + 1, 2); /* keep controller-specific header bytes, as BaseZ5R does */
-    size_t used = z5r_build(app->db);
-    unsigned written = 0;
-    for(size_t a = 0; a < used; a += Z5R_PAGE) {
-        uint8_t cur[Z5R_PAGE];
-        /* only changed pages go out; page 0 always (it carries the in-progress marker) */
-        if(a && z5r_link_read(a, cur, Z5R_PAGE) && !memcmp(cur, app->db->mem + a, Z5R_PAGE)) continue;
-        written++;
-        if(!z5r_link_write_page(a, app->db->mem + a)) {
-            snprintf(app->msg, sizeof(app->msg), "Page 0x%04X failed.\nController may hold a\nhalf-written base", (unsigned)a);
-            show_msg(app, "Write FAILED", app->msg);
-            return;
-        }
-    }
-    app->db->mem[0] = 0x33; /* commit marker last: controller ignores a half-written table */
-    if(!z5r_link_write_page(0, app->db->mem)) {
-        show_msg(app, "Write FAILED", "Commit page failed");
+    power_on(app);
+    CtlInfo ci;
+    CtlResult r = z5r_ctl_write(app->db, &ci);
+    if(r) {
+        ctl_fail(app, OpWrite, r, &ci);
         return;
     }
     app->modified = false;
@@ -502,29 +466,11 @@ static void write_run(App* app) {
 
 static void erase_run(App* app) {
     busy_icon(app, &z5_write_icon, "Erasing", &sequence_blink_start_red);
-    uint8_t p0[Z5R_PAGE];
-    int size = controller_size(app, p0);
-    if(size < 0) return;
-    if(!size) {
-        /* only a blank chip (0xFF) may be formatted as 8 KB; 0x3A/0x7A etc. is a bigger "Z7" controller */
-        if(p0[5] != 0xFF) {
-            snprintf(app->msg, sizeof(app->msg), "Unknown memory code 0x%02X.\nNot a plain Z-5R?", p0[5]);
-            show_msg(app, "Erase refused", app->msg);
-            return;
-        }
-        size = 8192; /* blank chip: standard Z-5R (1363 keys) */
-    }
-    uint8_t keep2 = p0[2], keep3 = p0[3], keep4 = p0[4];
-    bool fmt = z5r_mem_size_from_code(p0[5]);
-    memset(p0, 0xFF, sizeof(p0));
-    p0[0] = 0x33;
-    p0[1] = 0x00;
-    p0[2] = keep2;
-    p0[3] = fmt ? keep3 : 0xFF;
-    p0[4] = fmt ? keep4 : 0xD1;
-    p0[5] = size == 4096 ? 0x05 : 0x15;
-    if(!z5r_link_write_page(0, p0)) {
-        show_msg(app, "Erase FAILED", "I2C write error");
+    power_on(app);
+    CtlInfo ci;
+    CtlResult r = z5r_ctl_erase(&ci);
+    if(r) {
+        ctl_fail(app, OpErase, r, &ci);
         return;
     }
     show_dolphin(app, "Erased", app->cur);
@@ -539,12 +485,17 @@ static void backup_done(void* ctx) {
         if(*c == '/' || *c == '\\') *c = '_'; /* stay inside DATA_DIR */
     if(!app->name[0]) snprintf(app->name, sizeof(app->name), "controller");
     busy_icon(app, &z5_read_icon, "Backup", &sequence_blink_start_cyan);
+    power_on(app);
     uint8_t p0[Z5R_PAGE];
-    int size = controller_size(app, p0);
-    if(size < 0) return;
-    if(size) { /* unknown memory code: nothing to back up, the operation itself decides */
+    CtlInfo ci;
+    CtlResult pr = z5r_ctl_probe(p0, &ci);
+    if(pr) {
+        ctl_fail(app, OpRead, pr, &ci);
+        return;
+    }
+    if(ci.size) { /* unknown memory code: nothing to back up, the operation itself decides */
         FuriString* path = furi_string_alloc_printf("%s/%s%s", DATA_DIR, app->name, EXT);
-        bool ok = backup_controller(app, size, furi_string_get_cstr(path));
+        bool ok = backup_controller(app, ci.size, furi_string_get_cstr(path));
         furi_string_free(path);
         if(!ok) {
             show_msg(app, "Backup failed", "SD card? Nothing was\nchanged");
@@ -561,7 +512,9 @@ static void ask_backup(App* app, uint8_t op) {
         if(op == PendWrite) write_run(app); else erase_run(app);
         return;
     }
-    snprintf(app->name, sizeof(app->name), "controller");
+    DateTime dt;
+    furi_hal_rtc_get_datetime(&dt); /* a new name every time: the previous backup is never replaced */
+    snprintf(app->name, sizeof(app->name), "controller_%04u%02u%02u_%02u%02u%02u", dt.year % 10000, dt.month % 100, dt.day % 100, dt.hour % 100, dt.minute % 100, dt.second % 100);
     text_input_set_header_text(app->text, "Backup file name");
     text_input_set_result_callback(app->text, backup_done, app, app->name, sizeof(app->name), false);
     text_back = VCtl;
@@ -951,7 +904,7 @@ static void key_cb(void* ctx, uint32_t index) {
 static int try_add(App* app, const Z5rKey* k, int* dup) {
     *dup = z5r_find(app->db, k);
     if(*dup >= 0) return 1;
-    if(app->db->count >= Z5R_DB_KEYS) return 2; /* RAM limit; controller fit is checked on write */
+    if(app->db->count >= z5r_capacity(app->db->mem_size)) return 2; /* the controller could not hold more */
     app->db->keys[app->db->count++] = *k;
     app->modified = true;
     app->fdirty = true;
@@ -1141,7 +1094,7 @@ static void touch_draw(Canvas* c, void* model) {
     if(app->tstate == 2)
         snprintf(t, sizeof(t), "Duplicate #%u", app->tdup);
     else
-        snprintf(t, sizeof(t), app->tstate == 3 ? "Base full" : app->tstate == 1 ? "Added #%u" : "Waiting...", app->db->count);
+        snprintf(t, sizeof(t), app->tstate == 3 ? "Base full" : app->tstate == 4 ? "Not a Dallas key" : app->tstate == 1 ? "Added #%u" : "Waiting...", app->db->count);
     canvas_draw_str(c, 2, 26, t);
     canvas_draw_str(c, 1, 36, app->tlast[0] ? app->tlast : "-");
     snprintf(t, sizeof(t), "Type: <%s>", z5r_attr_name(app->tattr));
@@ -1282,13 +1235,20 @@ static void tick_cb(void* ctx) {
             iButtonEditableData ed;
             ibutton_protocols_get_editable_data(app->iprot, app->ikey, &ed);
             if(ed.size) { /* any key the stock reader understands */
-                Z5rKey ik = {.len = 6};
-                if(ed.size >= 8)
-                    memcpy(ik.b, ed.ptr + 1, 6); /* Dallas ROM[1..6] = serial, LSB first, as BaseZ5R stores it */
-                else
-                    memcpy(ik.b, ed.ptr, ed.size); /* Cyfral / Metakom and the like: their short id as it is */
-                ik.b[5] &= 0x0F;
-                touch_got(app, &ik);
+                if(ed.size >= 8) { /* Dallas family */
+                    Z5rKey ik = {.len = 6};
+                    memcpy(ik.b, ed.ptr + 1, 6); /* ROM[1..6] = serial, LSB first, as BaseZ5R stores it */
+                    ik.b[5] &= 0x0F;
+                    touch_got(app, &ik);
+                } else { /* Cyfral / Metakom: the controller cannot match them as Dallas keys */
+                    uint32_t now = furi_get_tick();
+                    if(!app->ttime || now - app->ttime > furi_ms_to_ticks(TOUCH_GAP_MS)) {
+                        app->tstate = 4;
+                        notification_message(app->notif, &sequence_error);
+                        touch_redraw(app);
+                    }
+                    app->ttime = now;
+                }
             }
             ibutton_worker_stop(app->iwork); /* wait for the next key */
             ibutton_worker_read_start(app->iwork, app->ikey);
@@ -1471,9 +1431,11 @@ static void main_cb(void* ctx, uint32_t index) {
         go(app, VCtl);
         break;
     case MLoad:
+        if(unsaved_base(app) && !confirm(app, "Discard base?", "Unsaved keys will\nbe replaced. Go on?")) break;
         do_open(app);
         break;
     case MRead:
+        if(unsaved_base(app) && !confirm(app, "Discard base?", "Unsaved keys will\nbe replaced. Go on?")) break;
         do_read(app);
         break;
     case MErase:

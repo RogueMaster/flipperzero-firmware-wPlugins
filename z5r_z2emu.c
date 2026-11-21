@@ -179,7 +179,7 @@ static int32_t emu_thread(void* ctx) {
                 continue;
             }
             if(len < need) break;
-            if(buf[0] == 0x00) {
+            if(buf[0] == 0x00 || buf[0] == 0x57 || buf[0] == 0x44) { /* sync / Dallas emulation stop / start: ACK only */
                 uint8_t aa = 0xAA;
                 send(e, &aa, 1);
             } else if(need > 1 && buf[0] != 0x44 && z2_cs(buf, need - 1) == buf[need - 1]) {
