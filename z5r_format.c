@@ -101,6 +101,13 @@ size_t z5r_build(Z5rDb* db) {
     return (size_t)(r + 6 - m);
 }
 
+void z5r_key_from_rfid(bool em, const uint8_t* d, Z5rKey* k) {
+    uint8_t n = em ? 5 : 3;
+    memset(k->b, 0, sizeof(k->b));
+    for(uint8_t i = 0; i < n; i++) k->b[i] = d[n - 1 - i];
+    k->len = em ? 6 : 3; /* EM4100 is a 6-byte record with b5 = 0, as a real controller stores it */
+}
+
 uint16_t z5r_open_time_code(const Z5rDb* db) {
     return (uint16_t)~((db->mem[3] << 8) | db->mem[4]);
 }

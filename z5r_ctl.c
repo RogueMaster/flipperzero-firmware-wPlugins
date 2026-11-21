@@ -14,8 +14,13 @@ CtlResult z5r_ctl_read(Z5rDb* db, CtlInfo* i) {
     CtlResult r = z5r_ctl_probe(p0, i);
     if(r) return r;
     if(!i->size) return CtlBadCode;
+    uint8_t hdr[Z5R_HDR]; /* keys stay as they were on failure; the header (open time) must too */
+    memcpy(hdr, db->mem, Z5R_HDR);
     for(uint16_t a = 0; a < i->size; a += 256)
-        if(!z5r_link_read(a, db->mem + a, 256)) return CtlIo;
+        if(!z5r_link_read(a, db->mem + a, 256)) {
+            memcpy(db->mem, hdr, Z5R_HDR);
+            return CtlIo;
+        }
     return z5r_parse(db) ? CtlOk : CtlBadCode;
 }
 
@@ -66,6 +71,15 @@ CtlResult z5r_ctl_erase(CtlInfo* i) {
     if(!z5r_link_write_page(0, p0)) {
         i->addr = 0;
         return CtlPageFail;
+    }
+    if(!fmt) {
+        /* blank chip: a 4 KB 24C32 ignores address bit 12, so 0x1000 reads back page 0 */
+        uint8_t hi[Z5R_PAGE];
+        if(!z5r_link_read(0x1000, hi, Z5R_PAGE)) return CtlIo;
+        if(!memcmp(hi, p0, Z5R_PAGE)) {
+            p0[5] = 0x05;
+            if(!z5r_link_write_page(0, p0)) return CtlPageFail;
+        }
     }
     return CtlOk;
 }

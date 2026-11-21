@@ -49,6 +49,8 @@ uint16_t z5r_open_time_code(const Z5rDb* db);
 int z5r_find(const Z5rDb* db, const Z5rKey* k);
 const char* z5r_attr_name(uint8_t attr);
 void z5r_key_str(const Z5rKey* k, char* out, size_t n); /* "00000123ABCD" */
+/* RFID data as Flipper gives it -> key: EM4100 (em, 5 bytes) or H10301 (3 bytes: FC, number hi, lo); attr untouched */
+void z5r_key_from_rfid(bool em, const uint8_t* d, Z5rKey* k);
 
 /* Flipper key files: DS1990 .ibtn (or EM4100 .rfid, em=true) for 6-byte keys, H10301 .rfid for 3-byte keys */
 typedef struct Storage Storage;
@@ -59,7 +61,7 @@ bool z5r_key_import(Storage* st, const char* path, Z5rKey* k);
 bool z5r_link_present(void);
 bool z5r_link_read(uint16_t addr, uint8_t* buf, size_t len);
 bool z5r_link_write_page(uint16_t addr, const uint8_t* page); /* 32 bytes, page-aligned */
-void z5r_link_power(bool on5v);
+bool z5r_link_power(bool on5v); /* true if the 5V state changed (give it time to settle) */
 
 /* controller operations (no UI): each probes the controller itself and returns a result for the caller to report */
 typedef enum {

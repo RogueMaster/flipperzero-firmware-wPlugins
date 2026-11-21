@@ -361,12 +361,10 @@ static void main_labels(App* app) {
     with_view_model(app->add, Menu * *m, { UNUSED(m); }, true);
 }
 
-/* 5V for the controller's EEPROM (header pin 5), switched on the first time it is needed; off on exit */
+/* 5V for the controller's EEPROM (header pin 5), before every controller operation, USB cable or not; off on exit */
 static void power_on(App* app) {
-    if(app->power5v) return;
-    z5r_link_power(true);
+    if(z5r_link_power(true)) furi_delay_ms(150); /* again each time: it may have dropped since (cable pulled, power service) */
     app->power5v = true;
-    furi_delay_ms(150);
 }
 
 /* ---------- controller operations ---------- */
@@ -492,28 +490,40 @@ static void erase_run(App* app) {
 enum { PendWrite = 1, PendErase };
 static uint8_t pending; /* operation waiting for the backup file name */
 
-static void backup_done(void* ctx) {
-    App* app = ctx;
+/* name typed by the user -> DATA_DIR/<name>.bin; NULL if that file exists and the user keeps it.
+   own = the base's own file (loaded from / saved to it): replaced without asking */
+static FuriString* typed_path(App* app, const char* def, bool own) {
     for(char* c = app->name; *c; c++)
         if(*c == '/' || *c == '\\') *c = '_'; /* stay inside DATA_DIR */
-    if(!app->name[0]) snprintf(app->name, sizeof(app->name), "controller");
+    if(!app->name[0]) snprintf(app->name, sizeof(app->name), "%s", def);
+    FuriString* path = furi_string_alloc_printf("%s/%s%s", DATA_DIR, app->name, EXT);
+    bool same = own && app->src == 2 && !strcmp(app->name, app->srcname);
+    if(!same && storage_file_exists(app->storage, furi_string_get_cstr(path)) &&
+       !confirm(app, "Overwrite?", "A file with this name\nalready exists.")) {
+        furi_string_free(path);
+        return NULL;
+    }
+    return path;
+}
+
+static void backup_done(void* ctx) {
+    App* app = ctx;
+    FuriString* path = typed_path(app, "controller", false); /* never over a saved base without asking */
+    if(!path) return;
     busy_icon(app, &z5_read_icon, "Backup", &sequence_blink_start_cyan);
     power_on(app);
     uint8_t p0[Z5R_PAGE];
     CtlInfo ci;
     CtlResult pr = z5r_ctl_probe(p0, &ci);
+    bool ok = !pr && (!ci.size || backup_controller(app, ci.size, furi_string_get_cstr(path))); /* unknown code: nothing to back up, the operation decides */
+    furi_string_free(path);
     if(pr) {
         ctl_fail(app, OpRead, pr, &ci);
         return;
     }
-    if(ci.size) { /* unknown memory code: nothing to back up, the operation itself decides */
-        FuriString* path = furi_string_alloc_printf("%s/%s%s", DATA_DIR, app->name, EXT);
-        bool ok = backup_controller(app, ci.size, furi_string_get_cstr(path));
-        furi_string_free(path);
-        if(!ok) {
-            show_msg(app, "Backup failed", "SD card? Nothing was\nchanged");
-            return;
-        }
+    if(!ok) {
+        show_msg(app, "Backup failed", "SD card? Nothing was\nchanged");
+        return;
     }
     if(pending == PendWrite) write_run(app); else erase_run(app);
 }
@@ -588,15 +598,8 @@ static void do_open(App* app) {
 
 static void text_done(void* ctx) {
     App* app = ctx;
-    for(char* c = app->name; *c; c++)
-        if(*c == '/' || *c == '\\') *c = '_'; /* stay inside DATA_DIR */
-    if(!app->name[0]) snprintf(app->name, sizeof(app->name), "base");
-    FuriString* path = furi_string_alloc_printf("%s/%s%s", DATA_DIR, app->name, EXT);
-    bool same = app->src == 2 && !strcmp(app->name, app->srcname);
-    if(!same && storage_file_exists(app->storage, furi_string_get_cstr(path)) && !confirm(app, "Overwrite?", "A file with this name\nalready exists.")) {
-        furi_string_free(path);
-        return;
-    }
+    FuriString* path = typed_path(app, "base", true);
+    if(!path) return;
     uint16_t cap = z5r_capacity(app->db->mem_size);
     if(app->db->count > cap) {
         snprintf(app->msg, sizeof(app->msg), "%u keys, image holds %u.\nRemove %u keys.", app->db->count, cap, app->db->count - cap);
@@ -1391,17 +1394,9 @@ static void tick_cb(void* ctx) {
         if(app->touch_mode & TmRfid) {
             if(app->rfid_hit) {
                 app->rfid_hit = false;
-                uint8_t* d = app->rfid_data;
-                if(app->rfid_proto == LFRFIDProtocolEM4100) { /* 5 bytes, stored as a 6-byte key */
-                    for(int i = 0; i < 5; i++) k.b[i] = d[4 - i];
-                    got = true;
-                } else if(app->rfid_proto == LFRFIDProtocolH10301) { /* 3 bytes: FC, number hi, lo */
-                    k.len = 3;
-                    k.b[0] = d[2];
-                    k.b[1] = d[1];
-                    k.b[2] = d[0];
-                    got = true;
-                }
+                bool em = app->rfid_proto == LFRFIDProtocolEM4100;
+                got = em || app->rfid_proto == LFRFIDProtocolH10301;
+                if(got) z5r_key_from_rfid(em, app->rfid_data, &k);
                 lfrfid_worker_stop(app->rfid); /* read again for the next card */
                 lfrfid_worker_read_start(app->rfid, LFRFIDWorkerReadTypeAuto, rfid_cb, app);
             }
@@ -1723,11 +1718,16 @@ static const char* info_text =
     " marked / unmarked.\n"
     "Read: controller saves it\n"
     " to controller_last.bin;\n"
-    " Save to: controller of\n"
-    " that base skips backup.\n"
+    " Save to: controller then\n"
+    " skips the backup. It does\n"
+    " not check that it is the\n"
+    " same controller!\n"
     "Otherwise Save to:\n"
     " controller and Erase offer\n"
-    " a backup file first.";
+    " a backup file first.\n"
+    "5V on pin 1 is switched on\n"
+    " for every controller\n"
+    " operation, USB or not.";
 
 int32_t z5r_app(void* p) {
     UNUSED(p);

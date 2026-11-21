@@ -66,23 +66,10 @@ bool z5r_key_import(Storage* st, const char* path, Z5rKey* k) {
             }
         } else if(furi_string_equal(t, "Flipper RFID key")) {
             ok = flipper_format_rewind(f) && flipper_format_read_string(f, "Key type", t);
-            if(ok && furi_string_equal(t, "H10301")) {
-                ok = flipper_format_rewind(f) && flipper_format_read_hex(f, "Data", d, 3);
-            } else if(ok && furi_string_equal(t, "EM4100")) {
-                ok = flipper_format_rewind(f) && flipper_format_read_hex(f, "Data", d, 5);
-                if(ok) {
-                    for(int i = 0; i < 5; i++) k->b[i] = d[4 - i];
-                    k->len = 6;
-                }
-            } else {
-                ok = false;
-            }
-            if(ok && !k->len) {
-                k->b[0] = d[2];
-                k->b[1] = d[1];
-                k->b[2] = d[0];
-                k->len = 3;
-            }
+            bool em = ok && furi_string_equal(t, "EM4100");
+            ok = ok && (em || furi_string_equal(t, "H10301")) && flipper_format_rewind(f) &&
+                 flipper_format_read_hex(f, "Data", d, em ? 5 : 3);
+            if(ok) z5r_key_from_rfid(em, d, k);
         }
     }
     furi_string_free(t);

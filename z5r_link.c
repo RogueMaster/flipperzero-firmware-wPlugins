@@ -4,10 +4,9 @@
 #include <power/power_service/power.h>
 
 /*
- * shortcut: assumes the Z-5R service header exposes the key EEPROM as a 24C32/24C64 on I2C
- * (32-byte pages and BaseZ5R's 0x1000/0x2000/0x4000 alias size probe point that way).
- * Not yet confirmed on hardware; if the header turns out to be an MCU protocol, replace only this file.
- * Flipper pins: 16 = SCL (PC0), 15 = SDA (PC1), 8/11/18 = GND, 9 = 3.3V, 1 = 5V (OTG).
+ * The Z-5R service header exposes the key EEPROM (24C64, 4 KB models: 24C32) on I2C; confirmed on two controllers.
+ * Header 2 = SDA, 6 = SCL, 5 = EEPROM-only 5V, 7/8 = GND (header 1 powers the MCU, which then holds SCL low).
+ * Flipper pins: 16 = SCL (PC0), 15 = SDA (PC1), 8/11/18 = GND, 1 = 5V (OTG).
  */
 #define EEPROM_ADDR 0xA0
 #define I2C_TIMEOUT 50
@@ -56,9 +55,12 @@ bool z5r_link_write_page(uint16_t addr, const uint8_t* page) {
     return z5r_link_read(addr, chk, Z5R_PAGE) && !memcmp(chk, page, Z5R_PAGE);
 }
 
-void z5r_link_power(bool on5v) {
-    /* the power service owns OTG and reverts direct furi_hal calls; with USB plugged in pin 1 is VBUS anyway */
-    if(on5v && furi_hal_power_get_usb_voltage() > 4.5f) return; /* USB already feeds pin 1 */
-    power_enable_otg(furi_record_open(RECORD_POWER), on5v);
+bool z5r_link_power(bool on5v) {
+    /* the power service owns OTG and reverts direct furi_hal calls; switched on with or without USB,
+       so pin 1 keeps 5V when the cable is pulled out */
+    Power* p = furi_record_open(RECORD_POWER);
+    bool was = power_is_otg_enabled(p);
+    power_enable_otg(p, on5v);
     furi_record_close(RECORD_POWER);
+    return was != on5v;
 }
