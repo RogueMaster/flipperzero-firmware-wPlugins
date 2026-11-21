@@ -27,7 +27,7 @@ name. Press **OK** to open it and **Back** to return to the same icon.
 | Standout Vehicles | Find documented spawn locations for distinctive vehicles and mark each one acquired. |
 | Garages | Track acquired garages and look up their locations, prices or unlocks, and storage capacity. |
 | Houses / Cribs | Track story safehouses and see their locations, chapter unlocks, and facilities. |
-| Dispatch | Cycle through location tips for unfinished Randy and Moses deliveries and mark targets complete. |
+| Dispatch | Pick a region and work through unchecked vehicle deliveries and collectibles with location clues. |
 | Quick guide / warnings | Review checklist controls, cheat entry steps, and warnings about saving and trophies or achievements. |
 | Mock Loaders | Browse full-screen loading images from the enabled sets. Press **Left** for the previous image, **Right** for the next, or **Back** for the menu. |
 | Mock Loader Settings | Switch the 15-image Dungeons & Dolphins set and 30-image GTA VI set on or off independently. |
@@ -45,9 +45,13 @@ in the details to toggle its checkmark. **Back** from the details returns to the
 row. The list header shows the number checked. The app saves progress at
 `/ext/apps_data/gta_vi_cheats/` on the SD card as each checkmark changes.
 
-In **Dispatch**, press **Right** for the next tip or **OK** to check or undo the current
-target. Dispatch and the two delivery checklists share the same progress. Consult the
-in-game mission marker if a reported spawn is unavailable.
+In **Dispatch**, choose **All regions** or an area. Press **OK** to check or undo a
+stop, **Right** to see the next unchecked stop, and **Back** to choose a different
+region. Checkmarks are shared with Randy's Wish List, Moses Drop-Offs, and Collections.
+**Other areas** includes places outside the six named regions and clues with an
+uncertain regional match. A stop with alternate pickups can appear in more than one
+region. Kenton's sets use their starting dive sites. Consult the in-game mission
+marker if a reported spawn is unavailable.
 
 ## Collections
 
@@ -56,38 +60,45 @@ the files bundled in the FAP.
 
 | Collection | Included entries |
 | --- | --- |
-| Collectible Cards | All 18 set menus and 190 documented cards. 187 have text location clues. The in-game catalog contains 480. |
-| WAiNK Locations | 31 landmarks, 35 curiosities, 23 sculptures, 15 mapped No Flusher tags, and the four Peewees Billboard counties. Published No Flusher totals differ. |
-| AHOL Street Art | 11 type checklists covering the game's 112 pieces, with starter clues where documented. Check a type when you finish its pieces. |
+| Collectible Cards | All 18 sets and 479 of 480 card entries with reported location clues. Vice City Manatees has 23 of 24. |
+| WAiNK Locations | 31 landmarks, 35 curiosities, and 23 sculptures with landmark clues, plus 15 mapped No Flusher tags. The four Peewees billboards have county-level clues. Published No Flusher totals differ. |
+| AHOL Street Art | All 112 individual scan locations, grouped by type in the piece list. Type Progress can check or clear every piece in a type. |
 | 1010 Murals | All five photo markers, with the landmark to frame from each marker. |
 | Kenton's Treasures | The seven sets after the tutorial wreck, with dive areas and piece counts. |
 | Underwater Discoveries | Six named wrecks from the current guides, including the tutorial wreck. The game tracks 33 discoveries. |
-| Magazines, Books & Comics | 26 documented titles and one location clue for each. |
+| Magazines, Books & Comics | 26 of 27 titles with location clues, including alternate copies and chapter availability where reported. |
 | Book Swaps | All seven Little Library stops, with nearby streets or landmarks. |
 | Meditations | All 18 completions at 10 spots. Shared spots have separate Jason and Lucia rows. |
-| Cocaine Flamingos | 22 documented locations out of the game's 125. |
+| Cocaine Flamingos | 28 reported locations out of the game's 125. |
 | Unique Playlists | Both playlists and all five poster locations. |
-| Discovered Styles | 15 documented entries across Jason's styles, Lucia's styles, tattoos, and luxury watches. |
+| Discovered Styles | 19 of 79 entries have location clues, including three luxury watches. |
 
 The list counter tracks entries included in the app. When a confirmed game total
 exceeds the included list, the details show the catalog coverage.
+In **AHOL Street Art**, checking the last piece completes its type. Existing
+completed types count toward the individual pieces and Dispatch.
 
 ### Exploration sources
 
 - [Story Mode collection totals and links to individual guides](https://www.powerpyx.com/gta-6-collectible-guide-progress-database/)
 - [Card set checklists and mapped variants](https://game-checklists.com/gta6/card-sets-checklist/)
+- [Card pickup map and variant clues](https://gta6-life.com/en/tools/interactive-map/collectibles/) and [card source comparisons](https://vicecitydb.org/collectibles/collectible-cards)
 - [Collectible marker locations, including cards, murals, books and magazines](https://gtagameintel.com/en/interactive-map/?location=community-1090704)
 - [WAiNK landmarks](https://www.gtabase.com/gta-6/map/?feature=waink-landmark), [curiosities](https://www.gtasixmap.com/guides/waink-curiosities), and [sculptures](https://www.gtasixmap.com/guides/waink-sculptures)
+- [WAiNK curiosity scan spots](https://thegameswiki.com/gta6/wiki/curiosities) and [sculpture scan spots](https://thegameswiki.com/gta6/wiki/sculptures)
 - [No Flusher tags and published count differences](https://gta6-life.com/en/guides/gta-6-graffiti-tags/)
 - [Peewees Billboard counties](https://www.gta6everything.com/activities/peewees-billboards)
-- [AHOL street art starter locations](https://finalboss.io/gta-6-ahol-street-art-murals)
+- [AHOL street art by type](https://thegameswiki.com/gta6/wiki/ahol-street-art) and [individual street art pins](https://www.gtabase.com/gta-6/map/?feature=ahol-street-art)
 - [Kenton's sets and treasure counts](https://www.nexzyapp.com/games/grand-theft-auto-vi/guide/kentons-treasures)
 - [Underwater discoveries](https://game-checklists.com/gta6/underwater-discoveries-checklist/)
-- [Cocaine Flamingo locations](https://game-checklists.com/gta6/cocaine-flamingos-checklist/)
-- [Discovered Styles locations](https://game-checklists.com/gta6/styles-checklist/)
+- [Cocaine Flamingo checklist](https://game-checklists.com/gta6/cocaine-flamingos-checklist/) and [additional map pins](https://www.gtabase.com/gta-6/map/?feature=hidden-packages)
+- [Discovered Styles checklist](https://game-checklists.com/gta6/styles-checklist/) and [additional style and tattoo pins](https://vicecitydb.org/collectibles/discovered-styles)
+- [Magazine copies and chapter availability](https://game-checklists.com/gta6/magazines-books-comics-checklist/)
+- [Marbelle Hotel watch](https://gta6.house/library/items/crowex-ambassador-breakfast-collectibles-watch) and [Kingpin Bowling watch](https://www.powerpyx.com/gta-6-hit-kingpin-bowling-walkthrough/)
 
 Keep the numeric IDs in `assets/collections/*.tsv` attached to their entries
-when editing or sorting the data. The checkmarks use those IDs.
+when editing or sorting the data. The checkmarks use those IDs. Add each new
+Dispatch stop to its source in `dispatch_catalog.c` with the pickup's region.
 
 ## Vehicle and property checklists
 
@@ -122,6 +133,8 @@ Choose **PS5 Cheats** or **Xbox Cheats**, then pick **Published inputs**, **All 
 a cheat category, **Unverified codes (24)**, or **Quick guide / warnings**.
 For main-catalog cheats, open **Progress > Cheats** in game to inspect unlock
 requirements.
+**Filters > Pinhole [report]** shows a single-source D-pad sequence. The
+19 entries under **Published inputs** have corroborating reports.
 
 In free roam, open the phone with D-pad Up, then hold L1 + R1 (PS5) or LB + RB
 (Xbox), and input the D-pad directions. Game guides report that active cheats
@@ -134,5 +147,7 @@ Cheats are for Story Mode.
 - [GamesRadar+ GTA VI cheats](https://www.gamesradar.com/games/grand-theft-auto/gta-6-cheats/)
 - [PC Gamer GTA VI cheats](https://www.pcgamer.com/games/grand-theft-auto/gta-6-cheats-list/)
 - [TrueAchievements GTA VI cheats](https://www.trueachievements.com/news/gta-6-cheat-codes)
+- [Published PS5 and Xbox input comparison](https://nerdism.com/gta-6-cheat-codes-live/)
+- [Single-source Pinhole input](https://www.respec.net/guide/318-gta-6-cheats-codes-list-unlock-requirements-ps5-xbox) and [published input status and Vehicle Force unlock](https://www.gta6database.com/cheats)
 - [GTA6DB live source log](https://gta6db.io/cheats) (historical source log)
 - [PC Gamer GTA San Andreas cheats](https://www.pcgamer.com/games/grand-theft-auto/san-andreas-cheats/)

@@ -1,4 +1,6 @@
 #include "cheat_catalog.h"
+#include <string.h>
+
 /* 61 reported effects; empty input means unpublished. */
 const GtaCheat gta_cheat_catalog[] = {
     {"Player",
@@ -146,8 +148,8 @@ const GtaCheat gta_cheat_catalog[] = {
      "Down Up Left Left Right Down Left Up Down",
      "Down Up Left Left Right Down Left Up Down",
      "Vehicle impacts launch targets.",
-     "Get 25 vehicle takedowns; civilians count.",
-     "PowerPyx / GamesRadar+"},
+     "Get 25 kills with a vehicle. Published guides count civilians too.",
+     "PowerPyx / GamesRadar+ / GTA6Database"},
     {"Vehicles",
      "Interstate Ambulance",
      "",
@@ -336,7 +338,7 @@ const GtaCheat gta_cheat_catalog[] = {
      "",
      "Pinhole camera filter.",
      "Clear 25 gang operations with your partner.",
-     "PowerPyx / GamesRadar+: input NOT PUBLISHED"},
+     "Respec (single-source input). PowerPyx (unlock)."},
     {"Filters",
      "Neon Jungle",
      "",
@@ -431,6 +433,13 @@ const GtaCheat gta_cheat_catalog[] = {
     {0},
 };
 const size_t gta_cheat_count = sizeof(gta_cheat_catalog) / sizeof(gta_cheat_catalog[0]) - 1u;
+
+const char* gta_reported_sequence(const GtaCheat* cheat) {
+    if(strcmp(cheat->name, "Pinhole") == 0) {
+        return "Down Down Up Right Right Up Left Left Up Down";
+    }
+    return NULL;
+}
 
 /* All 28 screenshot controller combinations. These are *not* validated GTA VI
  * codes. Overlapping EFFECTS are shown inside existing catalog details. */

@@ -17,6 +17,7 @@ enum {
     GtaDispatchNext,
     GtaExploreMaxAssetSize = 16 * 1024,
     GtaExploreMaxRows = 128,
+    GtaAholFirstTypeId = 1376,
 };
 
 #define GTA_DATA_DIRECTORY EXT_PATH("apps_data/gta_vi_cheats")
@@ -25,6 +26,26 @@ static const char* const gta_save_paths[GtaSaveSlots] = {
     GTA_DATA_DIRECTORY "/progress.a",
     GTA_DATA_DIRECTORY "/progress.b",
 };
+
+// Ranges use the saved IDs from ahol.tsv and ahol_pieces.tsv in type order.
+static const struct {
+    uint16_t first;
+    uint8_t count;
+} gta_ahol_ranges[] = {
+    {1920, 10}, // Mattresses
+    {1930, 8},  // Tires
+    {1938, 9},  // Wheels
+    {1947, 9},  // Fridges
+    {1956, 7},  // Armchairs
+    {1963, 8},  // TVs
+    {1971, 15}, // Containers
+    {1986, 13}, // Cones
+    {1999, 11}, // Buckets
+    {2010, 13}, // Pallets
+    {2023, 9},  // Chairs
+};
+
+#define GTA_AHOL_TYPE_COUNT (sizeof(gta_ahol_ranges) / sizeof(gta_ahol_ranges[0]))
 
 typedef struct {
     uint32_t magic;
@@ -64,8 +85,10 @@ struct GtaCompanion {
     GtaCollectionEntry* explore_rows;
     const char* list_status;
     const GtaCollectionEntry* dispatch_entry;
-    GtaCollectionId dispatch_collection;
+    const GtaCollection* dispatch_collection;
     size_t dispatch_cursor;
+    GtaDispatchRegion dispatch_region;
+    bool dispatch_unavailable;
     bool detail_visible;
     bool dispatch;
     bool save_error;
@@ -77,6 +100,46 @@ static uint8_t gta_entry_mask(uint16_t id) {
 
 static bool gta_is_checked(const uint8_t* checked, uint16_t id) {
     return (checked[id / 8u] & gta_entry_mask(id)) != 0;
+}
+
+static void gta_set_checked(uint8_t* checked, uint16_t id, bool value) {
+    const uint8_t mask = gta_entry_mask(id);
+    if(value) {
+        checked[id / 8u] |= mask;
+    } else {
+        checked[id / 8u] &= (uint8_t)~mask;
+    }
+}
+
+static void gta_set_ahol_pieces(uint8_t* checked, size_t type, bool value) {
+    const uint16_t first = gta_ahol_ranges[type].first;
+    for(uint16_t id = first; id < first + gta_ahol_ranges[type].count; ++id) {
+        gta_set_checked(checked, id, value);
+    }
+}
+
+static void gta_toggle_checkmark(uint8_t* checked, uint16_t id) {
+    const bool value = !gta_is_checked(checked, id);
+    gta_set_checked(checked, id, value);
+    for(size_t type = 0; type < GTA_AHOL_TYPE_COUNT; ++type) {
+        const uint16_t type_id = GtaAholFirstTypeId + type;
+        if(id == type_id) {
+            gta_set_ahol_pieces(checked, type, value);
+            return;
+        }
+        const uint16_t first = gta_ahol_ranges[type].first;
+        const uint16_t end = first + gta_ahol_ranges[type].count;
+        if(id < first || id >= end) continue;
+        bool complete = true;
+        for(uint16_t piece = first; piece < end; ++piece) {
+            if(!gta_is_checked(checked, piece)) {
+                complete = false;
+                break;
+            }
+        }
+        gta_set_checked(checked, type_id, complete);
+        return;
+    }
 }
 
 static uint32_t gta_save_checksum(const void* record, size_t length) {
@@ -112,6 +175,12 @@ static void gta_load_progress(GtaCompanion* companion) {
             companion->save_slot = slot;
         }
     }
+    // A checked type in an existing save means all of its pieces were scanned.
+    for(size_t type = 0; type < GTA_AHOL_TYPE_COUNT; ++type) {
+        if(gta_is_checked(companion->save.checked, GtaAholFirstTypeId + type)) {
+            gta_set_ahol_pieces(companion->save.checked, type, true);
+        }
+    }
 }
 
 static bool gta_save_checkmark(GtaCompanion* companion, uint16_t id) {
@@ -122,7 +191,7 @@ static bool gta_save_checkmark(GtaCompanion* companion, uint16_t id) {
     }
 
     GtaSave next = companion->save;
-    next.checked[id / 8u] ^= gta_entry_mask(id);
+    gta_toggle_checkmark(next.checked, id);
     ++next.generation;
     next.checksum = gta_save_checksum(&next, offsetof(GtaSave, checksum));
 
@@ -254,20 +323,24 @@ static void gta_render_detail(GtaCompanion* companion) {
     widget_reset(detail);
     furi_string_reset(text);
 
+    if(companion->dispatch) {
+        furi_string_cat_printf(
+            text, "Dispatch / %s\n", gta_dispatch_regions[companion->dispatch_region]);
+    }
     if(entry) {
         const GtaCollection* collection =
-            companion->dispatch ? &gta_collection_catalog[companion->dispatch_collection] :
-                                  companion->list;
+            companion->dispatch ? companion->dispatch_collection : companion->list;
         const bool checked = gta_is_checked(companion->save.checked, entry->id);
-        if(companion->dispatch) furi_string_cat_printf(text, "Dispatch / %s\n", collection->title);
         furi_string_cat_printf(
             text, "%s\n%s\n", entry->name, checked ? collection->checked_label : "Unchecked");
         if(companion->save_error) furi_string_cat_printf(text, "SD save failed. Try again.\n");
         furi_string_cat_printf(
             text, "\n%s", entry->location ? entry->location : "Location unconfirmed.");
         if(entry->notes) furi_string_cat_printf(text, "\n\n%s", entry->notes);
-        if(companion->explore_section &&
-           companion->explore_section->game_total > collection->count) {
+        if(companion->dispatch) {
+            furi_string_cat_printf(text, "\n\n%s", collection->title);
+        } else if(companion->explore_section &&
+                  companion->explore_section->game_total > collection->count) {
             furi_string_cat_printf(
                 text,
                 "\n\nCatalog coverage: %u/%u",
@@ -281,7 +354,11 @@ static void gta_render_detail(GtaCompanion* companion) {
                 detail, GuiButtonTypeRight, "Next", gta_detail_button, companion);
         }
     } else {
-        furi_string_cat_printf(text, "Dispatch\n\nNo unchecked targets with a location tip.");
+        furi_string_cat_printf(
+            text,
+            "\n%s",
+            companion->dispatch_unavailable ? "Some location data is unavailable." :
+                                              "No unchecked stops with a location clue.");
     }
     widget_add_text_scroll_element(detail, 0, 0, 128, entry ? 51 : 64, furi_string_get_cstr(text));
 }
@@ -411,23 +488,78 @@ static void gta_release_exploration(GtaCompanion* companion) {
     companion->explore_list.count = 0;
 }
 
-static void gta_dispatch_next(GtaCompanion* companion) {
-    const GtaCollection* moses = &gta_collection_catalog[GtaCollectionMoses];
-    const GtaCollection* randy = &gta_collection_catalog[GtaCollectionRandy];
-    const size_t total = moses->count + randy->count;
-    companion->dispatch_entry = NULL;
-    for(size_t tried = 0; tried < total; ++tried) {
-        const size_t index = companion->dispatch_cursor;
-        companion->dispatch_cursor = (index + 1) % total;
-        const bool is_moses = index < moses->count;
-        const GtaCollectionEntry* entry = is_moses ? &moses->entries[index] :
-                                                     &randy->entries[index - moses->count];
-        if(entry->location && !gta_is_checked(companion->save.checked, entry->id)) {
-            companion->dispatch_entry = entry;
-            companion->dispatch_collection = is_moses ? GtaCollectionMoses : GtaCollectionRandy;
-            break;
+static bool gta_prepare_exploration(GtaCompanion* companion, const GtaExploreSection* section) {
+    if(companion->explore_section == section) return companion->explore_list.count != 0;
+    gta_release_exploration(companion);
+    companion->explore_section = section;
+    companion->explore_list = (GtaCollection){
+        .title = section->title,
+        .checked_label = section->checked_label,
+    };
+    return section->asset && gta_load_explore_asset(companion, section->asset);
+}
+
+static const GtaExploreSection*
+    gta_find_explore_asset(const GtaExploreSection* sections, size_t count, const char* asset) {
+    for(size_t i = 0; i < count; ++i) {
+        const GtaExploreSection* section = &sections[i];
+        if(section->asset && strcmp(section->asset, asset) == 0) return section;
+        if(section->child_count) {
+            const GtaExploreSection* found =
+                gta_find_explore_asset(section->children, section->child_count, asset);
+            if(found) return found;
         }
     }
+    return NULL;
+}
+
+static const GtaCollection* gta_dispatch_load_source(GtaCompanion* companion, uint8_t source) {
+    if(source < GtaDispatchFirstAsset) {
+        gta_release_exploration(companion);
+        return &gta_collection_catalog[source == GtaDispatchSourceMoses ? GtaCollectionMoses :
+                                                                         GtaCollectionRandy];
+    }
+    const GtaExploreSection* section = gta_find_explore_asset(
+        gta_explore_sections,
+        gta_explore_section_count,
+        gta_dispatch_assets[source - GtaDispatchFirstAsset]);
+    if(!section || !gta_prepare_exploration(companion, section)) return NULL;
+    return &companion->explore_list;
+}
+
+static void gta_dispatch_next(GtaCompanion* companion) {
+    const uint8_t region = 1u << companion->dispatch_region;
+    const bool all_regions = companion->dispatch_region == GtaDispatchAll;
+    uint8_t loaded_source = UINT8_MAX;
+    const GtaCollection* collection = NULL;
+
+    companion->dispatch_entry = NULL;
+    companion->dispatch_collection = NULL;
+    companion->dispatch_unavailable = false;
+    for(size_t tried = 0; tried < gta_dispatch_target_count; ++tried) {
+        const GtaDispatchTarget* target = &gta_dispatch_targets[companion->dispatch_cursor];
+        if(++companion->dispatch_cursor == gta_dispatch_target_count) companion->dispatch_cursor = 0;
+        if((!all_regions && !(target->regions & region)) ||
+           gta_is_checked(companion->save.checked, target->id)) {
+            continue;
+        }
+        if(loaded_source != target->source) {
+            loaded_source = target->source;
+            collection = gta_dispatch_load_source(companion, loaded_source);
+        }
+        if(collection) {
+            for(size_t i = 0; i < collection->count; ++i) {
+                const GtaCollectionEntry* entry = &collection->entries[i];
+                if(entry->id == target->id && entry->location) {
+                    companion->dispatch_entry = entry;
+                    companion->dispatch_collection = collection;
+                    return;
+                }
+            }
+        }
+        companion->dispatch_unavailable = true;
+    }
+    gta_release_exploration(companion);
 }
 
 GtaCompanion* gta_companion_alloc(
@@ -487,24 +619,18 @@ void gta_companion_open_list(GtaCompanion* companion, GtaCollectionId collection
 }
 
 void gta_companion_open_exploration(GtaCompanion* companion, const GtaExploreSection* section) {
-    gta_release_exploration(companion);
-    companion->explore_section = section;
     companion->explore_selection = 0;
-    companion->explore_list = (GtaCollection){
-        .title = section->title,
-        .checked_label = section->checked_label,
-    };
-    const char* status = "Locations pending";
-    if(section->asset) {
-        status = gta_load_explore_asset(companion, section->asset) ? NULL :
-                                                                     "Collection unavailable";
-    }
+    const bool loaded = gta_prepare_exploration(companion, section);
+    const char* status = section->asset ? (loaded ? NULL : "Collection unavailable") :
+                                          "Locations pending";
     gta_open_checklist(companion, &companion->explore_list, &companion->explore_selection, status);
 }
 
-void gta_companion_open_dispatch(GtaCompanion* companion) {
+void gta_companion_open_dispatch(GtaCompanion* companion, GtaDispatchRegion region) {
     gta_release_exploration(companion);
     companion->dispatch = true;
+    companion->dispatch_region = region;
+    companion->dispatch_cursor = 0;
     companion->save_error = false;
     gta_dispatch_next(companion);
     gta_show_detail(companion);
@@ -537,6 +663,9 @@ bool gta_companion_back(GtaCompanion* companion) {
         return true;
     }
     companion->detail_visible = false;
+    companion->dispatch = false;
+    companion->dispatch_entry = NULL;
+    companion->dispatch_collection = NULL;
     gta_release_exploration(companion);
     return false;
 }

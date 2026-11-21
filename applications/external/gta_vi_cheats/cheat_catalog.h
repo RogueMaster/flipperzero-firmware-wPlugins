@@ -11,6 +11,7 @@ typedef struct {
 } GtaCheat;
 extern const GtaCheat gta_cheat_catalog[];
 extern const size_t gta_cheat_count;
+const char* gta_reported_sequence(const GtaCheat* cheat);
 /* All 28 PS5 sequences transcribed from the user-supplied screenshot.
  * main_catalog_name indicates a matching EFFECT, not a verified image input. */
 typedef struct {

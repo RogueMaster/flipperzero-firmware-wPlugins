@@ -34,6 +34,11 @@ static const GtaExploreSection waink[] = {
     GTA_LEAF("Peewees Billboards", "peewees", 4, "Scanned"),
 };
 
+static const GtaExploreSection ahol[] = {
+    GTA_LEAF("All 112 Pieces", "ahol_pieces", 112, "Scanned"),
+    GTA_LEAF("Type Progress", "ahol", 11, "Type complete"),
+};
+
 static const GtaExploreSection playlists[] = {
     GTA_LEAF("The Sniper of La Perle", "sniper_posters", 4, "Scanned"),
     GTA_LEAF("The Vault", "vault_poster", 1, "Scanned"),
@@ -49,7 +54,7 @@ static const GtaExploreSection styles[] = {
 const GtaExploreSection gta_explore_sections[] = {
     GTA_GROUP("Collectible Cards", card_sets),
     GTA_GROUP("WAiNK Locations", waink),
-    GTA_LEAF("AHOL Street Art", "ahol", 11, "Type complete"),
+    GTA_GROUP("AHOL Street Art", ahol),
     GTA_LEAF("1010 Murals", "murals", 5, "Scanned"),
     GTA_LEAF("Kenton's Treasures", "kenton", 7, "Set complete"),
     GTA_LEAF("Underwater Discoveries", "underwater", 33, "Discovered"),

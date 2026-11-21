@@ -30,6 +30,7 @@ typedef enum {
     ScreenCompanion,
     ScreenCollections,
     ScreenCollectionGroup,
+    ScreenDispatchRegions,
     ScreenMockLoaders,
     ScreenMockLoaderSettings,
 } GtaScreen;
@@ -54,6 +55,7 @@ enum {
     ItemMockLoaders,
     ItemMockLoaderSettings,
     ItemExploreRow = 256,
+    ItemDispatchRegion = 0x300,
 };
 
 typedef struct {
@@ -104,6 +106,7 @@ typedef struct {
     uint32_t list_selection;
     uint32_t explore_root_selection;
     uint32_t explore_group_selection;
+    GtaDispatchRegion dispatch_region;
 } GtaApp;
 
 static const char* gta_sequence(const GtaApp* app, const GtaCheat* cheat) {
@@ -216,6 +219,12 @@ static void gta_show_menu(GtaApp* app, GtaScreen screen) {
         }
         submenu_set_selected_item(
             app->menu, root ? app->explore_root_selection : app->explore_group_selection);
+    } else if(screen == ScreenDispatchRegions) {
+        submenu_set_header(app->menu, "Dispatch Region");
+        for(size_t i = 0; i < GtaDispatchRegionCount; ++i) {
+            gta_item(app, gta_dispatch_regions[i], ItemDispatchRegion + i);
+        }
+        submenu_set_selected_item(app->menu, ItemDispatchRegion + app->dispatch_region);
     } else if(screen == ScreenCategories) {
         submenu_set_header(app->menu, app->xbox ? "Xbox Series X|S" : "PlayStation 5");
         snprintf(label, sizeof(label), "Published inputs (%zu)", gta_published_count(app));
@@ -272,12 +281,13 @@ static void gta_show_menu(GtaApp* app, GtaScreen screen) {
                 if(has_input) {
                     gta_item(app, cheat->name, ItemRow + i);
                 } else {
-                    snprintf(
-                        label,
-                        sizeof(label),
-                        "%s %s",
-                        cheat->name,
-                        gta_screenshot_match(cheat->name) ? "[img?]" : "[?]");
+                    const char* marker = "[?]";
+                    if(gta_reported_sequence(cheat)) {
+                        marker = "[report]";
+                    } else if(gta_screenshot_match(cheat->name)) {
+                        marker = "[img?]";
+                    }
+                    snprintf(label, sizeof(label), "%s %s", cheat->name, marker);
                     gta_item(app, label, ItemRow + i);
                 }
                 any = true;
@@ -335,6 +345,7 @@ static void gta_detail(GtaApp* app, const GtaCheat* cheat, const GtaScreenshotCo
     text_box_reset(app->text);
     furi_string_reset(app->content);
     const bool screenshot_only = cheat == NULL;
+    const char* reported = screenshot_only ? NULL : gta_reported_sequence(cheat);
     const char* name = screenshot_only ? screenshot->name : cheat->name;
     furi_string_cat_printf(
         app->content, "%s\n%s\n\n", name, app->xbox ? "Xbox Series X|S" : "PlayStation 5");
@@ -343,6 +354,10 @@ static void gta_detail(GtaApp* app, const GtaCheat* cheat, const GtaScreenshotCo
         if(sequence[0]) {
             furi_string_cat_printf(app->content, "Reported GTA VI D-pad:\n");
             gta_append_sequence(app->content, sequence, app->xbox);
+            furi_string_cat_printf(app->content, "\n\n");
+        } else if(reported) {
+            furi_string_cat_printf(app->content, "Single-source D-pad (unverified)\n");
+            gta_append_sequence(app->content, reported, app->xbox);
             furi_string_cat_printf(app->content, "\n\n");
         } else {
             furi_string_cat_printf(app->content, "GTA VI D-pad code: not published here.\n\n");
@@ -373,7 +388,7 @@ static void gta_detail(GtaApp* app, const GtaCheat* cheat, const GtaScreenshotCo
             cheat->unlock,
             cheat->effect,
             cheat->status);
-        if(gta_sequence(app, cheat)[0]) {
+        if(gta_sequence(app, cheat)[0] || reported) {
             furi_string_cat_printf(
                 app->content,
                 "\n\nGTA VI code press-reported; not tested. "
@@ -400,13 +415,14 @@ static void gta_guide(GtaApp* app) {
         "OK also toggles the check in details. Checkmarks are saved on the SD card.\n\n"
         "The Collections menu groups Story Mode discoveries and collectibles. "
         "Partial guides show their documented coverage.\n\n"
-        "Dispatch offers location tips for unfinished Moses and Randy targets. "
-        "Right moves to the next tip.\n\n"
+        "Dispatch: pick a region for unchecked deliveries and collectibles. "
+        "OK checks or undoes a stop. Right opens the next stop. "
+        "Back returns to the region menu.\n\n"
         "61 GTA VI effects reported by game guides, but most inputs remain unpublished. "
         "[?] marks entries without a code.\n\n"
-        "19 inputs are reported on PS5 and Xbox, including Drunk. "
-        "Drunk sources: PC Gamer, GamesRadar+ and TrueAchievements. "
-        "These reports do not establish independent console testing.\n\n"
+        "19 inputs are corroborated in PS5 and Xbox guides, including Drunk. "
+        "Open Pinhole [report] under Filters for a single-source input. "
+        "The app labels it unverified.\n\n"
         "To use: finish the story and the individual cheat's unlock challenge. "
         "Check Progress > Cheats. In free roam press D-pad Up to open phone. "
         "Hold L1 and R1 (PS5) or LB and RB (Xbox), then enter the D-pad code.\n\n"
@@ -435,9 +451,7 @@ static bool gta_event(void* context, uint32_t event) {
             app->companion_back = ScreenHome;
             gta_companion_open_list(app->companion, (GtaCollectionId)(event - ItemCollection));
         } else if(event == ItemDispatch) {
-            app->screen = ScreenCompanion;
-            app->companion_back = ScreenHome;
-            gta_companion_open_dispatch(app->companion);
+            gta_show_menu(app, ScreenDispatchRegions);
         } else if(event == ItemCollections) {
             gta_show_menu(app, ScreenCollections);
         } else if(event == ItemMockLoaders) {
@@ -447,6 +461,14 @@ static bool gta_event(void* context, uint32_t event) {
             app->screen = ScreenMockLoaderSettings;
             view_dispatcher_switch_to_view(app->dispatcher, ViewMockLoaderSettings);
         }
+    } else if(app->screen == ScreenDispatchRegions) {
+        if(event < ItemDispatchRegion || event - ItemDispatchRegion >= GtaDispatchRegionCount) {
+            return false;
+        }
+        app->dispatch_region = (GtaDispatchRegion)(event - ItemDispatchRegion);
+        app->companion_back = ScreenDispatchRegions;
+        app->screen = ScreenCompanion;
+        gta_companion_open_dispatch(app->companion, app->dispatch_region);
     } else if(app->screen == ScreenCollections || app->screen == ScreenCollectionGroup) {
         const bool root = app->screen == ScreenCollections;
         const GtaExploreSection* items = root ? gta_explore_sections :
@@ -510,6 +532,7 @@ static bool gta_back(void* context) {
         break;
     case ScreenCategories:
     case ScreenCollections:
+    case ScreenDispatchRegions:
     case ScreenMockLoaders:
     case ScreenMockLoaderSettings:
         gta_show_menu(app, ScreenHome);
