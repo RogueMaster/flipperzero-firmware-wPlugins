@@ -30,7 +30,7 @@ typedef enum { VMain, VCtl, VKeys, VKey, VBytes, VText, VPopup, VInfo, VWire, VF
 typedef enum { ByteAdd, ByteEdit } ByteMode;
 typedef enum { TickNone, TickTouch } TickMode;
 
-enum { MCtl, MRead, MLoad, MErase, MInfo };
+enum { MCtl, MRead, MErase, MInfo }; /* MRead: selector, Left / Right pick controller / file */
 enum { CAdd, CTime, CKeys, CWrite }; /* CWrite: selector, Left / Right pick controller / file / both */
 enum { WCtl, WFile, WBoth };
 #define ROWS_FIRST 1 /* row 0 of the key list is the search line */
@@ -76,7 +76,8 @@ typedef struct {
     bool kact; /* the key list holds the marked-keys or marks menu, not the key card */
     uint32_t kpress; /* tick Up / Down went down in the key list: held 3 s = steps of 20 */
     uint8_t paint; /* OK held after marking: 1 = rows passed with Up / Down get marked, 2 = unmarked */
-    uint8_t wto; /* "Write to:" target, WCtl.. */
+    uint8_t wto; /* "Save base to:" target, WCtl.. */
+    uint8_t rfrom; /* "Read base from:" 0 = controller, 1 = file */
     bool wboth; /* the file name being asked is for "both": the controller write follows the save */
     uint8_t mark[(Z5R_KEYS_MAX + 7) / 8]; /* marked keys, bit per base index; only set while in the key list */
     uint16_t nmark;
@@ -1349,9 +1350,10 @@ static void touch_got(App* app, const Z5rKey* key) {
 static void tick_cb(void* ctx) {
     App* app = ctx;
     uint32_t mq = furi_get_tick() / 250;
-    if(app->src == 2 && mq != app->mq) { /* long file name scrolls in the selected menu item */
+    if(mq != app->mq) { /* long items (file name, selectors) scroll in the selected menu row */
         app->mq = mq;
         with_view_model(app->main, App * *m, { UNUSED(m); }, true);
+        with_view_model(app->ctl, App * *m, { UNUSED(m); }, true);
     }
     bool ph = (furi_get_tick() / 1200) & 1; /* blink the unsaved-changes text */
     if(app->modified && ph != app->mphase) {
@@ -1455,10 +1457,11 @@ static void add_cb(void* ctx, uint32_t index) {
 
 /* ---------- main menu ---------- */
 
-static const char* main_items[] = {"", /* [0] = base state, set in main_labels */ "Read controller", "Load base from file", "Erase controller", "Info / connection"};
+static const char* main_items[] = {"", /* [0] = base state, set in main_labels */ "" /* [MRead] "Read base from:" selector */, "Erase controller", "Info / connection"};
 static const char* const add_items[] = {"", /* [0] = type selector, drawn specially */ "Read iButton", "Read RFID", "File: iButton (.ibtn)", "File: RFID (.rfid)", "Manual entry"};
-static const char* const ctl_items[] = {"Add key", "Set open time", "Edit keys list", "" /* [CWrite] "Write to:" selector, drawn specially */};
+static const char* const ctl_items[] = {"Add key", "Set open time", "Edit keys list", "" /* [CWrite] "Save base to:" selector, drawn specially */};
 static const char* const wto_names[] = {"controller", "file", "both"};
+static const char* const rfrom_names[] = {"controller", "file"};
 
 
 
@@ -1508,21 +1511,21 @@ static void main_draw(Canvas* c, void* model) {
         canvas_set_color(c, ColorBlack);
         if(sel) canvas_draw_box(c, 0, y, 123, 12);
         canvas_set_color(c, sel ? ColorWhite : ColorBlack);
-        char line[48];
+        char line[48], item[48];
+        const char* text = mn->items[top + i];
         if(mn->id == VAdd && top + i == AType) {
             snprintf(line, sizeof(line), "Type: < %s >", z5r_attr_name(app->tattr));
             canvas_draw_str(c, 2, y + 9, line);
             continue;
         }
-        if(mn->id == VCtl && top + i == CWrite) {
-            snprintf(line, sizeof(line), "Write to: < %s >", wto_names[app->wto]);
-            canvas_draw_str(c, 2, y + 9, line);
-            continue;
-        }
+        if(mn->id == VCtl && top + i == CWrite) /* selectors: too long for the row, so they scroll like file names */
+            text = item, snprintf(item, sizeof(item), "Save base to: < %s >", wto_names[app->wto]);
+        if(mn->id == VMain && top + i == MRead)
+            text = item, snprintf(item, sizeof(item), "Read base from: < %s >", rfrom_names[app->rfrom]);
         if(sel)
-            scroll_text(c, mn->items[top + i], line, sizeof(line), 118);
+            scroll_text(c, text, line, sizeof(line), 118);
         else
-            fit_text(c, mn->items[top + i], line, sizeof(line), 118);
+            fit_text(c, text, line, sizeof(line), 118);
         canvas_draw_str(c, 2, y + 9, line);
     }
     canvas_set_color(c, ColorBlack);
@@ -1539,6 +1542,11 @@ static bool main_input(InputEvent* e, void* ctx) {
     }
     if(mn->id == VCtl && mn->sel == CWrite && e->type == InputTypeShort && (e->key == InputKeyLeft || e->key == InputKeyRight)) {
         app->wto = (app->wto + (e->key == InputKeyRight ? 1 : 2)) % 3;
+        main_labels(app);
+        return true;
+    }
+    if(mn->id == VMain && mn->sel == MRead && e->type == InputTypeShort && (e->key == InputKeyLeft || e->key == InputKeyRight)) {
+        app->rfrom ^= 1;
         main_labels(app);
         return true;
     }
@@ -1562,13 +1570,12 @@ static void main_cb(void* ctx, uint32_t index) {
         menus[1].sel = 0; /* entering the base screen: first item active */
         go(app, VCtl);
         break;
-    case MLoad:
-        if(app->modified && !confirm(app, "Discard base?", "Unsaved keys will\nbe replaced. Go on?")) break;
-        do_open(app);
-        break;
     case MRead:
         if(app->modified && !confirm(app, "Discard base?", "Unsaved keys will\nbe replaced. Go on?")) break;
-        do_read(app);
+        if(app->rfrom)
+            do_open(app);
+        else
+            do_read(app);
         break;
     case MErase:
         do_clear(app);
