@@ -18,6 +18,7 @@ typedef enum {
     ViewCollectionDetail,
     ViewHome,
     ViewMockLoaders,
+    ViewMockLoaderSettings,
 } GtaView;
 typedef enum {
     ScreenHome,
@@ -29,6 +30,7 @@ typedef enum {
     ScreenCollections,
     ScreenCollectionGroup,
     ScreenMockLoaders,
+    ScreenMockLoaderSettings,
 } GtaScreen;
 typedef enum {
     ListPublished,
@@ -49,6 +51,7 @@ enum {
     ItemDispatch = ItemCollection + GtaCollectionCount,
     ItemCollections,
     ItemMockLoaders,
+    ItemMockLoaderSettings,
     ItemExploreRow = 256,
 };
 
@@ -71,6 +74,7 @@ static const GtaHomeItem gta_home_items[] = {
     {&I_menu_dispatch_25x25, ItemDispatch, "Dispatch"},
     {&I_menu_quick_guide_warnings_25x25, ItemGuide, "Quick guide / warnings"},
     {&I_menu_mock_loaders_25x25, ItemMockLoaders, "Mock Loaders"},
+    {&I_menu_mock_loader_settings_25x25, ItemMockLoaderSettings, "Mock Loader Settings"},
 };
 
 enum {
@@ -83,7 +87,7 @@ enum {
 typedef struct {
     ViewDispatcher* dispatcher;
     View* home;
-    View* mock_loaders;
+    GtaMockLoaders* mock_loaders;
     Submenu* menu;
     TextBox* text;
     FuriString* content;
@@ -390,7 +394,7 @@ static void gta_guide(GtaApp* app) {
     furi_string_reset(app->content);
     furi_string_cat_printf(
         app->content,
-        "Companion v0.5\n\n"
+        "Companion v" FAP_VERSION "\n\n"
         "Collections: OK opens the location. Right checks or unchecks a row. "
         "OK also toggles the check in details. Checkmarks are saved on the SD card.\n\n"
         "The Collections menu groups Story Mode discoveries and collectibles. "
@@ -438,6 +442,9 @@ static bool gta_event(void* context, uint32_t event) {
         } else if(event == ItemMockLoaders) {
             app->screen = ScreenMockLoaders;
             view_dispatcher_switch_to_view(app->dispatcher, ViewMockLoaders);
+        } else if(event == ItemMockLoaderSettings) {
+            app->screen = ScreenMockLoaderSettings;
+            view_dispatcher_switch_to_view(app->dispatcher, ViewMockLoaderSettings);
         }
     } else if(app->screen == ScreenCollections || app->screen == ScreenCollectionGroup) {
         const bool root = app->screen == ScreenCollections;
@@ -501,6 +508,7 @@ static bool gta_back(void* context) {
     case ScreenCategories:
     case ScreenCollections:
     case ScreenMockLoaders:
+    case ScreenMockLoaderSettings:
         gta_show_menu(app, ScreenHome);
         break;
     case ScreenList:
@@ -521,12 +529,11 @@ static bool gta_back(void* context) {
     }
     return true;
 }
-int32_t gta_vi_cheats_app(void* args) {
+int32_t gta_vi_companion_app(void* args) {
     UNUSED(args);
     GtaApp app = {
         .dispatcher = view_dispatcher_alloc(),
         .home = view_alloc(),
-        .mock_loaders = gta_mock_loaders_alloc(),
         .menu = submenu_alloc(),
         .text = text_box_alloc(),
         .content = furi_string_alloc(),
@@ -542,21 +549,21 @@ int32_t gta_vi_cheats_app(void* args) {
     view_set_draw_callback(app.home, gta_home_draw);
     view_set_input_callback(app.home, gta_home_input);
     view_dispatcher_add_view(app.dispatcher, ViewHome, app.home);
-    view_dispatcher_add_view(app.dispatcher, ViewMockLoaders, app.mock_loaders);
     view_dispatcher_add_view(app.dispatcher, ViewMenu, submenu_get_view(app.menu));
     view_dispatcher_add_view(app.dispatcher, ViewText, text_box_get_view(app.text));
+    app.mock_loaders =
+        gta_mock_loaders_alloc(app.dispatcher, ViewMockLoaders, ViewMockLoaderSettings);
     app.companion = gta_companion_alloc(app.dispatcher, ViewCollection, ViewCollectionDetail);
     view_dispatcher_attach_to_gui(app.dispatcher, gui, ViewDispatcherTypeFullscreen);
     gta_show_menu(&app, ScreenHome);
     view_dispatcher_run(app.dispatcher);
     gta_companion_free(app.companion);
+    gta_mock_loaders_free(app.mock_loaders);
     view_dispatcher_remove_view(app.dispatcher, ViewText);
     view_dispatcher_remove_view(app.dispatcher, ViewMenu);
     view_dispatcher_remove_view(app.dispatcher, ViewHome);
-    view_dispatcher_remove_view(app.dispatcher, ViewMockLoaders);
     view_dispatcher_free(app.dispatcher);
     view_free(app.home);
-    view_free(app.mock_loaders);
     text_box_free(app.text);
     submenu_free(app.menu);
     furi_string_free(app.content);

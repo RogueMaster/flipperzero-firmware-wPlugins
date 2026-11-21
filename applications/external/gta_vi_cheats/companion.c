@@ -10,9 +10,7 @@
 #include <string.h>
 
 enum {
-    GtaSaveV1Magic = 0x31415447,
     GtaSaveMagic = 0x32415447,
-    GtaSaveV1ProgressBytes = 64,
     GtaSaveSlots = 2,
     GtaListRows = 4,
     GtaDetailToggle = 0x400,
@@ -35,15 +33,7 @@ typedef struct {
     uint32_t checksum;
 } GtaSave;
 
-typedef struct {
-    uint32_t magic;
-    uint32_t generation;
-    uint8_t checked[GtaSaveV1ProgressBytes];
-    uint32_t checksum;
-} GtaSaveV1;
-
 _Static_assert(sizeof(GtaSave) == 12 + GtaProgressBytes, "Progress record must stay stable");
-_Static_assert(sizeof(GtaSaveV1) == 76, "Version 0.4 progress record has 76 bytes");
 
 typedef struct {
     const GtaCollection* collection;
@@ -101,27 +91,11 @@ static uint32_t gta_save_checksum(const void* record, size_t length) {
 
 static bool gta_read_save(Storage* storage, const char* path, GtaSave* save) {
     File* file = storage_file_alloc(storage);
-    bool valid = false;
-    if(storage_file_open(file, path, FSAM_READ, FSOM_OPEN_EXISTING)) {
-        const uint64_t size = storage_file_size(file);
-        if(size == sizeof(*save)) {
-            valid = storage_file_read(file, save, sizeof(*save)) == sizeof(*save) &&
-                    save->magic == GtaSaveMagic &&
-                    save->checksum == gta_save_checksum(save, offsetof(GtaSave, checksum));
-        } else if(size == sizeof(GtaSaveV1)) {
-            GtaSaveV1 previous;
-            valid = storage_file_read(file, &previous, sizeof(previous)) == sizeof(previous) &&
-                    previous.magic == GtaSaveV1Magic &&
-                    previous.checksum ==
-                        gta_save_checksum(&previous, offsetof(GtaSaveV1, checksum));
-            if(valid) {
-                memset(save, 0, sizeof(*save));
-                save->magic = GtaSaveMagic;
-                save->generation = previous.generation;
-                memcpy(save->checked, previous.checked, sizeof(previous.checked));
-            }
-        }
-    }
+    const bool valid = storage_file_open(file, path, FSAM_READ, FSOM_OPEN_EXISTING) &&
+                       storage_file_size(file) == sizeof(*save) &&
+                       storage_file_read(file, save, sizeof(*save)) == sizeof(*save) &&
+                       save->magic == GtaSaveMagic &&
+                       save->checksum == gta_save_checksum(save, offsetof(GtaSave, checksum));
     storage_file_free(file);
     return valid;
 }

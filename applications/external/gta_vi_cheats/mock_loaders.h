@@ -1,5 +1,9 @@
 #pragma once
 
-#include <gui/view.h>
+#include <gui/view_dispatcher.h>
 
-View* gta_mock_loaders_alloc(void);
+typedef struct GtaMockLoaders GtaMockLoaders;
+
+GtaMockLoaders*
+    gta_mock_loaders_alloc(ViewDispatcher* dispatcher, uint32_t viewer_id, uint32_t settings_id);
+void gta_mock_loaders_free(GtaMockLoaders* loaders);

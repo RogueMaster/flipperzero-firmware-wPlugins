@@ -67,7 +67,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Lanternfall v1.0, a lantern-lit procedural island RPG (By Dusk Engineering)](https://github.com/DuskEngServices/lanternfall-flipper)
 - Added: [FZReader v1.0 for EPUB books (By leptopt1los)](https://github.com/Leptopt1los/fzreader)
 - ESP Flasher: [Comes with Marauder v1.21.0 (By justcallmekoko)](https://github.com/justcallmekoko/ESP32Marauder/releases/tag/v1.21.0)
-- Updated: [GTA VI Companion v0.5 (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/tree/420/applications/external/gta_vi_cheats)
+- Updated: [GTA VI Companion v1.0 (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/tree/420/applications/external/gta_vi_cheats)
 
 <a name="release"></a>
 
@@ -681,7 +681,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [GPS v1.5 (By ezod)](https://github.com/ezod/flipperzero-gps) `Req: NMEA 0183`
 - [Gree AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
 - [GS1 Parser v0.2 (By kdiller713)](https://github.com/kdiller713/public-FlipperApps/tree/main/gs1_rfid_parser) `Req: U107 or YRM100`
-- [GTA VI Companion v0.5 (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/tree/420/applications/external/gta_vi_cheats)
+- [GTA VI Companion v1.0 (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/tree/420/applications/external/gta_vi_cheats)
 - [Guido Music Score Reader v0.1 (By fgreil)](https://github.com/fgreil/mitzi-guido)
 - [Guitar Chords v1.0 (By KingBoa / NoodleNugget-com)](https://github.com/NoodleNugget-com/flipper-guitar-chords)
 - [H1030L Writer v1.3 (By Zacvr)](https://github.com/Zacvr/h10301_writer)

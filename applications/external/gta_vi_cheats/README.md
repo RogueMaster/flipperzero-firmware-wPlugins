@@ -1,3 +1,11 @@
+<p>
+  <h1 align="center"><b>Hello, I'm <a href='https://rogue-master.net'><img src="https://raw.githubusercontent.com/RogueMaster/flipperzero-firmware-wPlugins/420/.github/assets/rmlogo.png" width="40%"></a> 👋</b></h1>
+</p>
+<h1 align="center"><a href='https://discord.gg/gF2bBUzAFe' target='_blank'><img src="https://raw.githubusercontent.com/RogueMaster/flipperzero-firmware-wPlugins/420/.github/assets/Discord.png" alt='Discord' title='Discord'></a>
+&nbsp;<a href='https://github.com/RogueMaster/flipperzero-firmware-wPlugins/releases/latest' target='_blank'><img src="https://raw.githubusercontent.com/RogueMaster/flipperzero-firmware-wPlugins/420/.github/assets/Github.png"  alt='Firmware GitHub' title='Firmware GitHub'></a>
+&nbsp;<a href='https://www.patreon.com/RogueMaster?filters[tag]=Latest%20Release' target='_blank'><img src="https://raw.githubusercontent.com/RogueMaster/flipperzero-firmware-wPlugins/420/.github/assets/Patreon.png"  alt='Latest PATREON Release' title='Latest PATREON Release'></a>
+&nbsp;<a href='https://github.com/RogueMaster/awesome-flipperzero-withModules' target='_blank'><img src="https://raw.githubusercontent.com/RogueMaster/flipperzero-firmware-wPlugins/420/.github/assets/Resources.png"  alt='More Research / Assets' title='More Research / Assets'></a></h1><br>
+
 # GTA VI Companion
 
 Unofficial, offline GTA VI Story Mode reference and collection tracker for Flipper Zero.
@@ -21,7 +29,8 @@ name. Press **OK** to open it and **Back** to return to the same icon.
 | Houses / Cribs | Track story safehouses and see their locations, chapter unlocks, and facilities. |
 | Dispatch | Cycle through location tips for unfinished Randy and Moses deliveries and mark targets complete. |
 | Quick guide / warnings | Review checklist controls, cheat entry steps, and warnings about saving and trophies or achievements. |
-| Mock Loaders | Browse 15 full-screen Dungeons & Dolphins loading images. Press **Left** for the previous image, **Right** for the next, or **Back** for the menu. |
+| Mock Loaders | Browse full-screen loading images from the enabled sets. Press **Left** for the previous image, **Right** for the next, or **Back** for the menu. |
+| Mock Loader Settings | Switch the 15-image Dungeons & Dolphins set and 15-image GTA VI set on or off independently. |
 
 ## Checklist controls
 
