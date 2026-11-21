@@ -1245,6 +1245,7 @@ static void tick_cb(void* ctx) {
                     uint32_t now = furi_get_tick();
                     if(!app->ttime || now - app->ttime > furi_ms_to_ticks(TOUCH_GAP_MS)) {
                         app->tstate = 4;
+                        app->tlast[0] = 0;
                         notification_message(app->notif, &sequence_error);
                         touch_redraw(app);
                     }
@@ -1432,11 +1433,11 @@ static void main_cb(void* ctx, uint32_t index) {
         go(app, VCtl);
         break;
     case MLoad:
-        if(unsaved_base(app) && !confirm(app, "Discard base?", "Unsaved keys will\nbe replaced. Go on?")) break;
+        if(app->modified && !confirm(app, "Discard base?", "Unsaved keys will\nbe replaced. Go on?")) break;
         do_open(app);
         break;
     case MRead:
-        if(unsaved_base(app) && !confirm(app, "Discard base?", "Unsaved keys will\nbe replaced. Go on?")) break;
+        if(app->modified && !confirm(app, "Discard base?", "Unsaved keys will\nbe replaced. Go on?")) break;
         do_read(app);
         break;
     case MErase:
