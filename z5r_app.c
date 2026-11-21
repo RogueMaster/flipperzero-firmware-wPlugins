@@ -15,7 +15,6 @@
 #include <notification/notification_messages_notes.h>
 #include <gui/icon_i.h>
 #include <lfrfid/lfrfid_worker.h>
-#include <input/input.h>
 #include <ibutton/ibutton_worker.h>
 #include <ibutton/ibutton_key.h>
 #include <ibutton/ibutton_protocols.h>
@@ -1282,9 +1281,12 @@ static void tick_cb(void* ctx) {
             app->ihit = false;
             iButtonEditableData ed;
             ibutton_protocols_get_editable_data(app->iprot, app->ikey, &ed);
-            if(ibutton_key_get_protocol_id(app->ikey) == ibutton_protocols_get_id_by_name(app->iprot, "DS1990") && ed.size == 8) {
+            if(ed.size) { /* any key the stock reader understands */
                 Z5rKey ik = {.len = 6};
-                memcpy(ik.b, ed.ptr + 1, 6); /* ROM[1..6] = serial, LSB first, as BaseZ5R stores it */
+                if(ed.size >= 8)
+                    memcpy(ik.b, ed.ptr + 1, 6); /* Dallas ROM[1..6] = serial, LSB first, as BaseZ5R stores it */
+                else
+                    memcpy(ik.b, ed.ptr, ed.size); /* Cyfral / Metakom and the like: their short id as it is */
                 ik.b[5] &= 0x0F;
                 touch_got(app, &ik);
             }
@@ -1486,21 +1488,6 @@ static void main_cb(void* ctx, uint32_t index) {
     }
 }
 
-static uint32_t to_ctl(void* ctx);
-
-/* synthetic key press through the input service, as the CLI does */
-static void press(InputKey key) {
-    static uint8_t seq;
-    FuriPubSub* in = furi_record_open(RECORD_INPUT_EVENTS);
-    seq++;
-    for(InputType t = InputTypePress; t <= InputTypeRelease; t = t == InputTypePress ? InputTypeShort : InputTypeRelease + 1) {
-        InputEvent e = {.sequence_source = INPUT_SEQUENCE_SOURCE_SOFTWARE, .sequence_counter = seq, .key = key, .type = t};
-        furi_pubsub_publish(in, &e);
-    }
-    furi_record_close(RECORD_INPUT_EVENTS);
-    furi_delay_ms(60);
-}
-
 static void ctl_cb(void* ctx, uint32_t index) {
     App* app = ctx;
     switch(index) {
@@ -1518,20 +1505,12 @@ static void ctl_cb(void* ctx, uint32_t index) {
         ask_name(app);
         break;
     case CTime:
-        /* a fresh editor each time: its selection starts at the first key, so Left + Down always lands on Save */
-        view_dispatcher_remove_view(app->vd, VNum);
-        number_input_free(app->num);
-        app->num = number_input_alloc();
-        view_set_previous_callback(number_input_get_view(app->num), to_ctl);
-        view_dispatcher_add_view(app->vd, VNum, number_input_get_view(app->num));
         number_input_set_header_text(app->num, "Open time, sec (0-255)");
         {
             int32_t sec = CODE_TO_SEC((int32_t)z5r_open_time_code(app->db));
             number_input_set_result_callback(app->num, time_done, app, sec > 255 ? 255 : sec, 0, 255);
         }
         go(app, VNum);
-        press(InputKeyLeft); /* wraps to the last key of the top row */
-        press(InputKeyDown); /* ... and from there to Save */
         break;
     }
 }
