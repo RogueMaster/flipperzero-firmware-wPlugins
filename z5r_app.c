@@ -1479,7 +1479,7 @@ static void add_cb(void* ctx, uint32_t index) {
 static const char* main_items[] = {"", /* [0] = base state, set in main_labels */ "" /* [MRead] "Read base from:" selector */, "Erase controller", "Info / connection"};
 static const char* const add_items[] = {"", /* [0] = type selector, drawn specially */ "Read iButton", "Read RFID", "File: iButton (.ibtn)", "File: RFID (.rfid)", "Manual entry"};
 static const char* const ctl_items[] = {"Add key", "Set open time", "Edit keys list", "" /* [CWrite] "Save base to:" selector, drawn specially */};
-static const char* const wto_names[] = {"controller", "file", "both"};
+static const char* const wto_names[] = {"controller", "file", "controller & file"};
 static const char* const rfrom_names[] = {"controller", "file"};
 
 
