@@ -74,6 +74,7 @@ typedef struct {
     uint8_t kmap[8]; /* key list row -> KAttr.. action */
     bool kact; /* the key list holds the marked-keys or marks menu, not the key card */
     uint32_t kpress; /* tick Up / Down went down in the key list: held 3 s = steps of 20 */
+    uint8_t paint; /* OK held after marking: 1 = rows passed with Up / Down get marked, 2 = unmarked */
     uint8_t mark[(Z5R_KEYS_MAX + 7) / 8]; /* marked keys, bit per base index; only set while in the key list */
     uint16_t nmark;
     uint8_t fbytes[6]; /* key search input, MSB first */
@@ -285,6 +286,13 @@ static void show_dolphin(App* app, const char* text, uint32_t ok) {
     go(app, VPopup);
 }
 
+/* success without the Done screen (read, load): sound + LED, straight on to the next view */
+static void quiet_done(App* app, uint32_t v) {
+    log_msg(app, "Done"); /* also stops the reading blink */
+    notification_message(app->notif, &sequence_success);
+    go(app, v);
+}
+
 static bool confirm(App* app, const char* header, const char* text) {
     DialogMessage* m = dialog_message_alloc();
     dialog_message_set_header(m, header, 64, 0, AlignCenter, AlignTop);
@@ -441,9 +449,7 @@ static void do_read(App* app) {
     main_labels(app);
     snprintf(app->msg, sizeof(app->msg), "Read\n%u keys", app->db->count);
     menus[1].sel = 0; /* the base screen opens on its first item */
-    log_msg(app, "Done"); /* also stops the reading blink */
-    notification_message(app->notif, &sequence_success); /* no Done screen after a read: sound + LED are enough */
-    go(app, VCtl);
+    quiet_done(app, VCtl);
 }
 
 static void write_run(App* app) {
@@ -564,7 +570,7 @@ static void do_open(App* app) {
             keys_fill(app);
             snprintf(app->msg, sizeof(app->msg), "Loaded\n%u keys", app->db->count);
             menus[1].sel = 0; /* the base screen opens on its first item */
-            show_dolphin(app, app->msg, VCtl);
+            quiet_done(app, VCtl);
         } else {
             show_msg(app, "Bad file", "Expect raw 4 or 8 KB\nZ-5R memory image (.bin)");
         }
@@ -968,20 +974,36 @@ static bool keys_input(InputEvent* e, void* ctx) {
         if(e->type == InputTypePress) app->kpress = furi_get_tick(); /* a new press starts again with single steps */
         if(e->type != InputTypeShort && e->type != InputTypeRepeat) return true;
         bool fast = e->type == InputTypeRepeat && furi_get_tick() - app->kpress > furi_ms_to_ticks(3000);
-        int n = app->ksel + (e->key == InputKeyDown ? 1 : -1) * (fast ? 20 : 1);
+        int dir = e->key == InputKeyDown ? 1 : -1;
+        int old = app->ksel, n = old + dir * (fast ? 20 : 1);
         if(fast) /* steps of 20 stop at the ends; single steps wrap around */
             app->ksel = n < 0 ? 0 : n >= app->nrows ? app->nrows - 1 : n;
         else
             app->ksel = n < 0 ? app->nrows - 1 : n >= app->nrows ? 0 : n;
+        if(app->paint) { /* every row passed, not only where the cursor lands */
+            bool wrap = (app->ksel - old) * dir < 0;
+            for(int r = wrap ? app->ksel : old + dir; r >= 0 && r < app->nrows; r += dir) {
+                if(app->rid[r] < app->db->count) mark_set(app, app->rid[r], app->paint == 1);
+                if(r == app->ksel) break;
+            }
+            keys_fill(app);
+        }
         with_view_model(app->keys, App * *m, { UNUSED(m); }, true);
         return true;
     }
     uint32_t id = app->rid[app->ksel];
-    if(e->type == InputTypeShort && (e->key == InputKeyOk || e->key == InputKeyRight)) {
-        if(e->key == InputKeyOk && id >= app->db->count)
+    if(e->key == InputKeyOk && e->type == InputTypeRelease) app->paint = 0;
+    if(e->type == InputTypeShort && e->key == InputKeyOk) {
+        if(id >= app->db->count)
             keys_cb(app, id); /* search line */
-        else
-            open_edit(app, id);
+        else if(app->nmark) { /* marking started: OK marks more */
+            mark_set(app, id, !marked(app, id));
+            keys_fill(app);
+        }
+        return true;
+    }
+    if(e->type == InputTypeShort && e->key == InputKeyRight) {
+        open_edit(app, id);
         return true;
     }
     if(e->type == InputTypeShort && e->key == InputKeyLeft) {
@@ -990,7 +1012,9 @@ static bool keys_input(InputEvent* e, void* ctx) {
         return true;
     }
     if(e->type == InputTypeLong && e->key == InputKeyOk && id < app->db->count) {
-        mark_set(app, id, !marked(app, id));
+        bool on = !marked(app, id);
+        mark_set(app, id, on);
+        app->paint = on ? 1 : 2; /* keep OK held and scroll: the same for every row passed */
         keys_fill(app);
         return true;
     }
@@ -1647,10 +1671,13 @@ static const char* info_text =
     "Files: apps_data/z5flip\n"
     "*.bin = raw memory image\n"
     " (same as BaseZ5R).\n"
-    "Key list: Right/OK = edit\n"
+    "Key list: Right = edit\n"
     " (all marked keys if any),\n"
-    " hold OK = mark, Left =\n"
-    " marks menu, Back unmarks.\n"
+    " hold OK = mark, keep it\n"
+    " held + Up/Down = mark more;\n"
+    " with marks OK marks too.\n"
+    " Left = marks menu,\n"
+    " Back unmarks.\n"
     " Hold Up/Down 3 s: by 20.\n"
     "Read saves the controller to\n"
     " controller_last.bin; Write\n"
