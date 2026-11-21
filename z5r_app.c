@@ -15,6 +15,7 @@
 #include <notification/notification_messages_notes.h>
 #include <gui/icon_i.h>
 #include <lfrfid/lfrfid_worker.h>
+#include <input/input.h>
 #include <ibutton/ibutton_worker.h>
 #include <ibutton/ibutton_key.h>
 #include <ibutton/ibutton_protocols.h>
@@ -84,8 +85,7 @@ typedef struct {
     Popup* popup;
     View* emuv;
     View* touch; /* continuous key reading: iButton or RFID */
-    View* numv; /* open time editor: OK = Save */
-    int32_t tsec;
+    NumberInput* num;
     NotificationApp* notif;
     LFRFIDWorker* rfid;
     ProtocolDict* rdict;
@@ -697,41 +697,6 @@ static void time_done(void* ctx, int32_t v) {
         main_labels(app);
     }
     go(app, VCtl);
-}
-
-/* open time editor: Up / Down 1 s, Left / Right 10 s, OK = Save (focus is on Save from the start) */
-static void num_draw(Canvas* c, void* model) {
-    App* app = *(App**)model;
-    char t[16];
-    canvas_clear(c);
-    canvas_set_font(c, FontPrimary);
-    canvas_draw_str_aligned(c, 64, 1, AlignCenter, AlignTop, "Lock open time");
-    canvas_set_font(c, FontSecondary);
-    canvas_draw_str_aligned(c, 64, 15, AlignCenter, AlignTop, "Up/Down 1 s, Left/Right 10 s");
-    canvas_set_font(c, FontBigNumbers);
-    snprintf(t, sizeof(t), "%ld", (long)app->tsec);
-    canvas_draw_str_aligned(c, 54, 38, AlignRight, AlignCenter, t);
-    canvas_set_font(c, FontPrimary);
-    canvas_draw_str_aligned(c, 58, 41, AlignLeft, AlignCenter, "sec");
-    elements_button_center(c, "Save");
-}
-
-static bool num_input(InputEvent* e, void* ctx) {
-    App* app = ctx;
-    if(e->type == InputTypeShort && e->key == InputKeyOk) {
-        time_done(app, app->tsec);
-        return true;
-    }
-    if(e->type == InputTypeShort || e->type == InputTypeRepeat) {
-        int step = e->key == InputKeyUp ? 1 : e->key == InputKeyDown ? -1 : e->key == InputKeyRight ? 10 : e->key == InputKeyLeft ? -10 : 0;
-        if(step) {
-            int32_t v = app->tsec + step;
-            app->tsec = v < 0 ? 0 : v > 255 ? 255 : v;
-            with_view_model(app->numv, App * *m, { UNUSED(m); }, true);
-            return true;
-        }
-    }
-    return false;
 }
 
 /* ---------- keys ---------- */
@@ -1521,6 +1486,21 @@ static void main_cb(void* ctx, uint32_t index) {
     }
 }
 
+static uint32_t to_ctl(void* ctx);
+
+/* synthetic key press through the input service, as the CLI does */
+static void press(InputKey key) {
+    static uint8_t seq;
+    FuriPubSub* in = furi_record_open(RECORD_INPUT_EVENTS);
+    seq++;
+    for(InputType t = InputTypePress; t <= InputTypeRelease; t = t == InputTypePress ? InputTypeShort : InputTypeRelease + 1) {
+        InputEvent e = {.sequence_source = INPUT_SEQUENCE_SOURCE_SOFTWARE, .sequence_counter = seq, .key = key, .type = t};
+        furi_pubsub_publish(in, &e);
+    }
+    furi_record_close(RECORD_INPUT_EVENTS);
+    furi_delay_ms(60);
+}
+
 static void ctl_cb(void* ctx, uint32_t index) {
     App* app = ctx;
     switch(index) {
@@ -1538,9 +1518,20 @@ static void ctl_cb(void* ctx, uint32_t index) {
         ask_name(app);
         break;
     case CTime:
-        app->tsec = CODE_TO_SEC((int32_t)z5r_open_time_code(app->db));
-        if(app->tsec > 255) app->tsec = 255;
+        /* a fresh editor each time: its selection starts at the first key, so Left + Down always lands on Save */
+        view_dispatcher_remove_view(app->vd, VNum);
+        number_input_free(app->num);
+        app->num = number_input_alloc();
+        view_set_previous_callback(number_input_get_view(app->num), to_ctl);
+        view_dispatcher_add_view(app->vd, VNum, number_input_get_view(app->num));
+        number_input_set_header_text(app->num, "Open time, sec (0-255)");
+        {
+            int32_t sec = CODE_TO_SEC((int32_t)z5r_open_time_code(app->db));
+            number_input_set_result_callback(app->num, time_done, app, sec > 255 ? 255 : sec, 0, 255);
+        }
         go(app, VNum);
+        press(InputKeyLeft); /* wraps to the last key of the top row */
+        press(InputKeyDown); /* ... and from there to Save */
         break;
     }
 }
@@ -1714,12 +1705,7 @@ int32_t z5r_app(void* p) {
     view_set_context(app->emuv, app);
     view_set_draw_callback(app->emuv, emu_draw);
     view_set_input_callback(app->emuv, emu_input);
-    app->numv = view_alloc();
-    view_allocate_model(app->numv, ViewModelTypeLockFree, sizeof(App*));
-    with_view_model(app->numv, App * *m, { *m = app; }, false);
-    view_set_context(app->numv, app);
-    view_set_draw_callback(app->numv, num_draw);
-    view_set_input_callback(app->numv, num_input);
+    app->num = number_input_alloc();
     app->touch = view_alloc();
     view_allocate_model(app->touch, ViewModelTypeLockFree, sizeof(App*));
     with_view_model(app->touch, App * *m, { *m = app; }, false);
@@ -1748,7 +1734,7 @@ int32_t z5r_app(void* p) {
         {VPopup, popup_get_view(app->popup), to_ignore},
         {VEmuRun, app->emuv, to_ignore},
         {VWarn, app->warn, to_ignore},
-        {VNum, app->numv, to_ctl},
+        {VNum, number_input_get_view(app->num), to_ctl},
         {VTouch, app->touch, to_ignore},
         {VWire, app->wire, to_main},
         {VInfo, text_box_get_view(app->info), to_wire},
@@ -1784,7 +1770,7 @@ int32_t z5r_app(void* p) {
     view_free(app->emuv);
     view_free(app->warn);
     view_free(app->touch);
-    view_free(app->numv);
+    number_input_free(app->num);
     text_box_free(app->info);
     view_free(app->wire);
     view_dispatcher_free(app->vd);
