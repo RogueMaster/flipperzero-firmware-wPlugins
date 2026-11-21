@@ -1,6 +1,7 @@
 #include "mock_loaders.h"
 
 #include <furi.h>
+#include <furi_hal_random.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <storage/storage.h>
@@ -24,21 +25,21 @@ static const char* const gta_dnd_mock_loader_files[] = {
 };
 
 static const char* const gta_vi_mock_loader_files[] = {
-    "lazer_vice_city_128x64.bin",
-    "speeder_waterfront_128x64.bin",
-    "carbon_rs_ocean_drive_128x64.bin",
-    "maverick_vice_city_128x64.bin",
-    "rhino_air_station_128x64.bin",
-    "banshee_art_deco_128x64.bin",
-    "gauntlet_ambrosia_128x64.bin",
-    "airgator_grassrivers_128x64.bin",
-    "ocean_drive_after_dark_128x64.bin",
-    "vice_beach_lifeguard_128x64.bin",
-    "leonida_keys_causeway_128x64.bin",
-    "grassrivers_gator_128x64.bin",
-    "port_gellhorn_cranes_128x64.bin",
-    "vice_city_cafecito_128x64.bin",
-    "downtown_vice_elevated_128x64.bin",
+    "lazer_vice_city_128x64.bin",        "speeder_waterfront_128x64.bin",
+    "carbon_rs_ocean_drive_128x64.bin",  "maverick_vice_city_128x64.bin",
+    "rhino_air_station_128x64.bin",      "banshee_art_deco_128x64.bin",
+    "gauntlet_ambrosia_128x64.bin",      "airgator_grassrivers_128x64.bin",
+    "ocean_drive_after_dark_128x64.bin", "vice_beach_lifeguard_128x64.bin",
+    "leonida_keys_causeway_128x64.bin",  "grassrivers_gator_128x64.bin",
+    "port_gellhorn_cranes_128x64.bin",   "vice_city_cafecito_128x64.bin",
+    "downtown_vice_elevated_128x64.bin", "rearview_pursuit_128x64.bin",
+    "flamingo_car_wash_128x64.bin",      "lowrider_meet_128x64.bin",
+    "midnight_drawbridge_128x64.bin",    "jet_ski_cutback_128x64.bin",
+    "scrapyard_magnet_128x64.bin",       "seaplane_landing_128x64.bin",
+    "vice_boardwalk_128x64.bin",         "drive_in_double_feature_128x64.bin",
+    "hurricane_watch_128x64.bin",        "mangrove_tunnel_128x64.bin",
+    "overpass_basketball_128x64.bin",    "mud_run_128x64.bin",
+    "leonida_fire_tower_128x64.bin",     "rooftop_dj_128x64.bin",
 };
 
 typedef enum {
@@ -117,6 +118,7 @@ struct GtaMockLoaders {
     uint32_t settings_id;
     GtaMockLoaderSave save;
     size_t save_slot;
+    bool showing_startup;
 };
 
 static uint8_t gta_mock_loader_save_checksum(const GtaMockLoaderSave* save) {
@@ -187,15 +189,18 @@ static bool gta_mock_loader_toggle_set(GtaMockLoaders* loaders, GtaMockLoaderSet
     return true;
 }
 
-static void gta_mock_loader_read(GtaMockLoaders* loaders, GtaMockLoaderModel* model) {
+static void gta_mock_loader_read(
+    GtaMockLoaders* loaders,
+    GtaMockLoaderModel* model,
+    GtaMockLoaderSetId set_id,
+    size_t index) {
     model->available = false;
     if(!model->bitmap) model->bitmap = malloc(GtaMockLoaderBytes);
     if(!model->bitmap) return;
 
-    const GtaMockLoaderSet* set = &gta_mock_loader_sets[model->set];
+    const GtaMockLoaderSet* set = &gta_mock_loader_sets[set_id];
     char path[128];
-    snprintf(
-        path, sizeof(path), APP_ASSETS_PATH("%s/%s"), set->directory, set->files[model->selected]);
+    snprintf(path, sizeof(path), APP_ASSETS_PATH("%s/%s"), set->directory, set->files[index]);
 
     File* file = storage_file_alloc(loaders->storage);
     if(!file) return;
@@ -241,12 +246,14 @@ static void gta_mock_loader_move(GtaMockLoaderModel* model, uint8_t enabled_sets
 }
 
 static bool gta_mock_loader_input(InputEvent* event, void* context) {
+    GtaMockLoaders* loaders = context;
+    if(loaders->showing_startup) return true;
+
     if(event->type != InputTypeShort ||
        (event->key != InputKeyLeft && event->key != InputKeyRight)) {
         return false;
     }
 
-    GtaMockLoaders* loaders = context;
     const uint8_t enabled_sets = loaders->save.enabled_sets;
     if(enabled_sets) {
         with_view_model(
@@ -254,7 +261,7 @@ static bool gta_mock_loader_input(InputEvent* event, void* context) {
             GtaMockLoaderModel * model,
             {
                 gta_mock_loader_move(model, enabled_sets, event->key == InputKeyRight);
-                gta_mock_loader_read(loaders, model);
+                gta_mock_loader_read(loaders, model, model->set, model->selected);
             },
             true);
     }
@@ -263,6 +270,7 @@ static bool gta_mock_loader_input(InputEvent* event, void* context) {
 
 static void gta_mock_loader_enter(void* context) {
     GtaMockLoaders* loaders = context;
+    if(loaders->showing_startup) return;
     const uint8_t enabled_sets = loaders->save.enabled_sets;
     with_view_model(
         loaders->viewer,
@@ -275,7 +283,7 @@ static void gta_mock_loader_enter(void* context) {
                                                                              GtaMockLoaderGtaVi;
                     model->selected = 0;
                 }
-                gta_mock_loader_read(loaders, model);
+                gta_mock_loader_read(loaders, model, model->set, model->selected);
             }
         },
         true);
@@ -283,6 +291,7 @@ static void gta_mock_loader_enter(void* context) {
 
 static void gta_mock_loader_exit(void* context) {
     GtaMockLoaders* loaders = context;
+    loaders->showing_startup = false;
     with_view_model(
         loaders->viewer,
         GtaMockLoaderModel * model,
@@ -292,6 +301,50 @@ static void gta_mock_loader_exit(void* context) {
             model->available = false;
         },
         false);
+}
+
+bool gta_mock_loaders_show_startup(GtaMockLoaders* loaders) {
+    const uint8_t enabled_sets = loaders->save.enabled_sets;
+    uint32_t count = 0;
+    for(size_t set = 0; set < GtaMockLoaderSetCount; ++set) {
+        if(enabled_sets & (1u << set)) count += gta_mock_loader_sets[set].count;
+    }
+    if(!count) return false;
+
+    const uint32_t limit = UINT32_MAX - UINT32_MAX % count;
+    uint32_t random;
+    do {
+        random = furi_hal_random_get();
+    } while(random >= limit);
+
+    size_t index = random % count;
+    for(size_t set = 0; set < GtaMockLoaderSetCount; ++set) {
+        if(!(enabled_sets & (1u << set))) continue;
+        const size_t set_count = gta_mock_loader_sets[set].count;
+        if(index >= set_count) {
+            index -= set_count;
+            continue;
+        }
+
+        bool available = false;
+        with_view_model(
+            loaders->viewer,
+            GtaMockLoaderModel * model,
+            {
+                gta_mock_loader_read(loaders, model, (GtaMockLoaderSetId)set, index);
+                available = model->available;
+            },
+            false);
+        if(!available) {
+            gta_mock_loader_exit(loaders);
+            return false;
+        }
+
+        loaders->showing_startup = true;
+        view_dispatcher_switch_to_view(loaders->dispatcher, loaders->viewer_id);
+        return true;
+    }
+    return false;
 }
 
 static void gta_mock_loader_settings_draw(Canvas* canvas, void* context) {

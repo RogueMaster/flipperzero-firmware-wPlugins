@@ -22,6 +22,7 @@ typedef enum {
 } GtaView;
 typedef enum {
     ScreenHome,
+    ScreenStartup,
     ScreenCategories,
     ScreenList,
     ScreenDetail,
@@ -502,6 +503,8 @@ static bool gta_event(void* context, uint32_t event) {
 static bool gta_back(void* context) {
     GtaApp* app = context;
     switch(app->screen) {
+    case ScreenStartup:
+        break;
     case ScreenHome:
         view_dispatcher_stop(app->dispatcher);
         break;
@@ -529,6 +532,11 @@ static bool gta_back(void* context) {
     }
     return true;
 }
+
+static void gta_finish_startup(void* context) {
+    gta_show_menu(context, ScreenHome);
+}
+
 int32_t gta_vi_companion_app(void* args) {
     UNUSED(args);
     GtaApp app = {
@@ -555,8 +563,20 @@ int32_t gta_vi_companion_app(void* args) {
         gta_mock_loaders_alloc(app.dispatcher, ViewMockLoaders, ViewMockLoaderSettings);
     app.companion = gta_companion_alloc(app.dispatcher, ViewCollection, ViewCollectionDetail);
     view_dispatcher_attach_to_gui(app.dispatcher, gui, ViewDispatcherTypeFullscreen);
-    gta_show_menu(&app, ScreenHome);
+    FuriEventLoopTimer* startup_timer = NULL;
+    app.screen = ScreenStartup;
+    if(gta_mock_loaders_show_startup(app.mock_loaders)) {
+        startup_timer = furi_event_loop_timer_alloc(
+            view_dispatcher_get_event_loop(app.dispatcher),
+            gta_finish_startup,
+            FuriEventLoopTimerTypeOnce,
+            &app);
+        furi_event_loop_timer_start(startup_timer, furi_ms_to_ticks(500));
+    } else {
+        gta_show_menu(&app, ScreenHome);
+    }
     view_dispatcher_run(app.dispatcher);
+    if(startup_timer) furi_event_loop_timer_free(startup_timer);
     gta_companion_free(app.companion);
     gta_mock_loaders_free(app.mock_loaders);
     view_dispatcher_remove_view(app.dispatcher, ViewText);

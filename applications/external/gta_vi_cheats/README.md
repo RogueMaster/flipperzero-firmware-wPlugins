@@ -30,7 +30,13 @@ name. Press **OK** to open it and **Back** to return to the same icon.
 | Dispatch | Cycle through location tips for unfinished Randy and Moses deliveries and mark targets complete. |
 | Quick guide / warnings | Review checklist controls, cheat entry steps, and warnings about saving and trophies or achievements. |
 | Mock Loaders | Browse full-screen loading images from the enabled sets. Press **Left** for the previous image, **Right** for the next, or **Back** for the menu. |
-| Mock Loader Settings | Switch the 15-image Dungeons & Dolphins set and 15-image GTA VI set on or off independently. |
+| Mock Loader Settings | Switch the 15-image Dungeons & Dolphins set and 30-image GTA VI set on or off independently. |
+
+In **Mock Loader Settings**, press **Up** or **Down** to select a set and **OK**
+to toggle it. On first launch, GTA VI is on and Dungeons & Dolphins is off.
+The app saves each set's setting on the SD card.
+At startup, the app shows a random image from the enabled sets for half a second.
+With both sets off, the app opens directly to the home menu.
 
 ## Checklist controls
 
