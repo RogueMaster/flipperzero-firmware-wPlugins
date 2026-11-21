@@ -961,8 +961,13 @@ static void keys_draw(Canvas* c, void* model) {
     }
     canvas_set_color(c, ColorBlack);
     elements_scrollbar_pos(c, 127, 0, 48, app->ksel, app->nrows);
+    uint32_t id = app->rid[app->ksel];
     elements_button_left(c, "Marks");
-    if(app->nmark || app->rid[app->ksel] < app->db->count) elements_button_right(c, "Edit");
+    if(app->nmark || id < app->db->count) elements_button_right(c, "Edit");
+    if(id == KEYS_FILTER)
+        elements_button_center(c, "Search");
+    else if(id < app->db->count) /* without marks it takes a hold of OK, with marks a press */
+        elements_button_center(c, marked(app, id) ? "Unmark" : "Mark");
 }
 
 /* Right, or OK on a key: the key card, or the card for all marked keys */
