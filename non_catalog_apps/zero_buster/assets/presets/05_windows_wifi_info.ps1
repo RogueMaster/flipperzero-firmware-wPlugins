@@ -64,7 +64,7 @@ try {
         foreach ($pn in $profiles) {
             $serial.WriteLine("  SSID: " + $pn)
             $detail = netsh wlan show profile name="$pn" key=clear 2>$null
-            $keyMatch = ($detail | Select-String '(?i)Key Content\s*:\s*(.+)$' | Select-Object -First 1)
+            $keyMatch = ($detail | Select-String '(?i)Key Content|Contenido de la clave|Содержимое ключа\s*:\s*(.+)$' | Select-Object -First 1)
             if ($keyMatch) {
                 $serial.WriteLine("  KEY : " + $keyMatch.Matches.Groups[1].Value.Trim())
             } else {

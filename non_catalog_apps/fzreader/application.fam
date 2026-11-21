@@ -1,0 +1,21 @@
+App(
+    appid="fzreader",
+    name="FZReader",
+    apptype=FlipperAppType.EXTERNAL,
+    targets=["f7"],
+    entry_point="fzreader_app",
+    stack_size=4 * 1024,
+    requires=[
+        "storage",
+        "gui",
+    ],
+    fap_version="1.0",
+    fap_category="Tools",
+    fap_icon="assets/icon.png",
+    fap_description="Book reader for EPUB files",
+    fap_author="@leptopt1los",
+    fap_weburl="https://github.com/Leptopt1los/fzreader",
+    sources=[
+        "*.c",
+    ],
+)

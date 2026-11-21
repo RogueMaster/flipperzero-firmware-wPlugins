@@ -423,6 +423,7 @@ The Flipper and its community wouldn't be as rich as it is without your contribu
 | Net Calculator | ![Tools Badge] | [by WolfRorDev](https://github.com/WolfRorDev/Net-Calculator-for-Flipper-Zero) | IP subnet / network calculator | [![Author Badge]](https://lab.flipper.net/apps/net_calculator) |
 | Pulse BPM | ![Tools Badge] | [by alaviation](https://github.com/alaviation/flipper-pulse) | tap along a pulse to measure heart rate, locks the reading after 20s | [![Author Badge]](https://lab.flipper.net/apps/pulse_bpm) |
 | Telemeter | ![Tools Badge] | [by alaviation](https://github.com/alaviation/flipper-telemeter) | distance to a storm or a cannon from the flash-to-bang delay | [![Author Badge]](https://lab.flipper.net/apps/telemetro) |
+| FZReader | ![Tools Badge] | [by Leptopt1los](https://github.com/Leptopt1los/fzreader) | EPUB book reader - Cyrillic and Latin, adjustable font size, chapter/page jump, saves and restores the reading position | [![Author Badge]](https://lab.flipper.net/apps/fzreader) |
 | USB HID Autofire | ![USB Badge] | [by pbek](https://github.com/pbek/usb_hid_autofire) |  | [![UFW Badge]](https://lab.flipper.net/apps/usb_hid_autofire) |
 | USB Consumer Control | ![USB Badge] | [by WithSecureLabs](https://github.com/WithSecureLabs/usb-consumer-control/tree/main) |  | ![None Badge] |
 | HID File Transfer | ![USB Badge] | [by Kavakuo](https://github.com/Kavakuo/HID-File-Transfer) | Get client app in [original repo](https://github.com/Kavakuo/HID-File-Transfer) | ![None Badge] |
