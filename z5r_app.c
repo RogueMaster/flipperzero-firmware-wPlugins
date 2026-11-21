@@ -1700,7 +1700,8 @@ static uint32_t to_wire(void* ctx) {
 static const char* info_text =
     "Z5Flip v 1.0\n"
     "Z-5R key base manager\n"
-    "by Claude & Tobirg 2026\n"
+    "by Tobirg, coded with\n"
+    " Claude, 2026\n"
     "\n"
     "Memory: 8KB=1363 keys,\n"
     " 4KB=680 keys.\n"
