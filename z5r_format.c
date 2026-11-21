@@ -4,12 +4,6 @@
 
 static const uint8_t attr_bits[5] = {0, 0x40, 0x60, 0x20, 0x00}; /* index = Z5rAttr */
 
-uint8_t z2_cs(const uint8_t* d, size_t n) {
-    uint8_t s = 0x5A;
-    for(size_t i = 0; i < n; i++) s += d[i];
-    return (uint8_t)(0 - s);
-}
-
 uint16_t z5r_mem_size_from_code(uint8_t code) {
     if(code == 0x05) return 4096;
     if(code == 0x15) return 8192;

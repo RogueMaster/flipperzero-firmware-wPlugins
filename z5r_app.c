@@ -3,7 +3,6 @@
 #include <furi_hal.h>
 #include <gui/gui.h>
 #include <gui/view_dispatcher.h>
-#include <gui/modules/submenu.h>
 #include <gui/view_stack.h>
 #include <gui/elements.h>
 #include <gui/modules/byte_input.h>
@@ -27,11 +26,11 @@
 #define EXT           ".bin" /* raw memory image, byte-identical to BaseZ5R "controller -> file" */
 #define LOG_PATH      DATA_DIR "/log.txt"
 
-typedef enum { VMain, VCtl, VKeys, VKey, VBytes, VText, VPopup, VInfo, VWire, VFilter, VAdd, VEmu, VEmuRun, VWarn, VNum, VTouch } ViewId;
+typedef enum { VMain, VCtl, VKeys, VKey, VBytes, VText, VPopup, VInfo, VWire, VFilter, VAdd, VWarn, VNum, VTouch } ViewId;
 typedef enum { ByteAdd, ByteEdit } ByteMode;
-typedef enum { TickNone, TickTouch, TickEmuStart, TickEmu } TickMode;
+typedef enum { TickNone, TickTouch } TickMode;
 
-enum { MCtl, MRead, MLoad, MEmu, MErase, MInfo };
+enum { MCtl, MRead, MLoad, MErase, MInfo };
 enum { CAdd, CTime, CKeys, CWrite, CSave };
 #define ROWS_FIRST 1 /* row 0 of the key list is the search line */
 enum { KAttr, KEdit, KExport, KDelete };
@@ -60,8 +59,6 @@ typedef struct {
     Gui* gui;
     ViewDispatcher* vd;
     View* main; /* own view: header with key count and open time */
-    uint32_t epages; /* Z-2 emulation: page counter at the last tick, a change = data exchange */
-    uint8_t ehold; /* ticks the LED stays on after the last exchange */
     uint32_t mq; /* last 250 ms step the menu was redrawn for (scrolling text) */
     bool mphase; /* pencil blink phase: true = hidden */
     View* ctl; /* same header as main */
@@ -78,11 +75,9 @@ typedef struct {
     VariableItemList* filter;
     VariableItem* fitem[3];
     View* add; /* same header as main; row 0 = key type selector */
-    Submenu* emu_menu;
     ByteInput* bytes;
     TextInput* text;
     Popup* popup;
-    View* emuv;
     View* touch; /* continuous key reading: iButton or RFID */
     NumberInput* num;
     NotificationApp* notif;
@@ -119,8 +114,6 @@ typedef struct {
     uint32_t cur; /* last menu view shown: a message popup returns here on Back */
     uint32_t back; /* view Left returns to from the hint message */
     uint32_t ok; /* where OK on a message popup leads */
-    Z2Backend emu_backend;
-    Z2Emu* emu;
     uint8_t edit[6]; /* MSB first, as shown on screen */
     ByteMode byte_mode;
     int sel;
@@ -135,7 +128,7 @@ typedef struct {
 } App;
 
 static void go(App* app, uint32_t v) {
-    if(v != VPopup && v != VBytes && v != VText && v != VEmuRun && v != VWarn && v != VNum && v != VTouch)
+    if(v != VPopup && v != VBytes && v != VText && v != VWarn && v != VNum && v != VTouch)
         app->cur = v;
     view_dispatcher_switch_to_view(app->vd, v);
 }
@@ -172,13 +165,6 @@ static void busy_icon(App* app, const Icon* icon, const char* text, const Notifi
     popup_set_header(app->popup, text, 86, 44, AlignCenter, AlignTop); /* right of the dolphin */
     go(app, VPopup);
     furi_delay_ms(100);
-}
-
-static void busy(App* app, const char* text) {
-    popup_reset(app->popup);
-    popup_set_header(app->popup, text, 64, 28, AlignCenter, AlignTop);
-    go(app, VPopup);
-    furi_delay_ms(100); /* let the GUI thread draw it before we block */
 }
 
 static const uint8_t z5_warn_frame[] = {0,8,2,0,0,0,0,8,2,0,0,0,0,8,1,252,31,0,0,8,1,3,96,0,0,136,192,0,128,1,0,136,32,0,0,2,0,0,16,0,0,4,0,72,8,0,0,8,0,0,8,0,0,16,0,0,4,0,0,16,0,60,4,0,30,32,0,194,2,0,33,32,0,1,3,128,94,64,0,1,12,64,187,64,0,15,48,64,185,64,0,62,192,64,191,64,0,124,0,64,191,128,0,248,1,128,94,128,0,240,3,128,47,128,0,224,7,64,16,128,0,192,15,0,32,128,0,128,31,0,0,128,0,254,97,0,0,128,0,121,128,1,96,128,0,129,255,31,144,128,0,1,0,0,144,128,1,2,0,0,144,128,1,12,0,0,144,128,3,112,0,0,16,15,3,128,255,0,144,16,7,0,63,0,112,32,7,0,1,0,72,32,14,0,1,0,72,40,14,0,1,0,72,40,30,0,1,0,136,39,28,0,1,0,16,71,28,0,1,0,32,64,28,128,0,0,64,128,24,128,0,0,64,128,24,128,0,0,64,0,25,128,0,0,64,0,17,128,0,0,64,0,18};
@@ -258,7 +244,7 @@ static const NotificationSequence seq_error_sound = {
 static const NotificationSequence* warn_seq; /* NULL = stock error + audiovisual alert; set for one message to override */
 
 static void log_msg(App* app, const char* header) {
-    if(app->blink && app->tick == TickNone) { /* end of a blocking operation; touch / emulation own the LED themselves */
+    if(app->blink && app->tick == TickNone) { /* end of a blocking operation; touch owns the LED itself */
         notification_message(app->notif, &sequence_blink_stop);
         app->blink = false;
     }
@@ -944,7 +930,7 @@ static void bytes_done(void* ctx) {
     go(app, VKey);
 }
 
-/* ---------- emulation / key reading ticker ---------- */
+/* ---------- key reading ticker ---------- */
 
 static void blink(App* app, const NotificationSequence* seq) {
     notification_message(app->notif, seq);
@@ -974,59 +960,11 @@ static void stop_tick(App* app) {
         app->rfid = NULL;
     }
     if(app->blink) {
-        notification_message(app->notif, &sequence_blink_stop); /* LED follows the read/emulate state */
+        notification_message(app->notif, &sequence_blink_stop); /* LED follows the read state */
         app->blink = false;
-    }
-    if(app->emu) {
-        bool dirty = z2emu_dirty(app->emu);
-        z2emu_stop(app->emu);
-        app->emu = NULL;
-        if(dirty) {
-            z5r_parse(app->db);
-            app->modified = true;
-            app->fdirty = true;
-        }
     }
     app->tick = TickNone;
     main_labels(app);
-}
-
-static void emu_redraw(App* app) {
-    with_view_model(app->emuv, App * *m, { UNUSED(m); }, true);
-}
-
-static void draw_header(Canvas* c, App* app, bool show_time);
-
-static void emu_draw(Canvas* c, void* model) {
-    App* app = *(App**)model;
-    char t[24];
-    canvas_clear(c);
-    draw_header(c, app, true);
-    canvas_set_font(c, FontPrimary);
-    canvas_draw_str_aligned(
-        c, 64, 17, AlignCenter, AlignTop, app->emu_backend == Z2BackendImage ? "Z-2 EHR: virtual base" : "Z-2 EHR: controller");
-    canvas_set_font(c, FontSecondary);
-    canvas_draw_str_aligned(c, 64, 29, AlignCenter, AlignTop, "USB 3168:0106");
-    snprintf(t, sizeof(t), "pages: %lu", app->emu ? z2emu_pages(app->emu) : 0UL);
-    canvas_draw_str_aligned(c, 64, 39, AlignCenter, AlignTop, t);
-    elements_button_left(c, "Stop");
-}
-
-/* Back / Left: ask first; true = emulation stopped */
-static bool emu_ask_stop(App* app) {
-    bool yes = confirm(app, "Stop emulation?", "");
-    if(yes) {
-        busy(app, "Stopping..."); /* the USB switch blocks ~1 s */
-        stop_tick(app);
-        go(app, VEmu);
-    }
-    return yes;
-}
-
-static bool emu_input(InputEvent* e, void* ctx) {
-    if((e->type == InputTypeShort && e->key == InputKeyLeft) || (e->key == InputKeyBack && (e->type == InputTypeShort || e->type == InputTypeLong)))
-        emu_ask_stop(ctx);
-    return true;
 }
 
 /* ---- touch reading: stays on screen, adds every new key, buzzes on success ---- */
@@ -1142,8 +1080,7 @@ static void start_touch(App* app, uint8_t mode) {
         app->rfid = lfrfid_worker_alloc(app->rdict);
         lfrfid_worker_start_thread(app->rfid);
         lfrfid_worker_read_start(app->rfid, LFRFIDWorkerReadTypeAuto, rfid_cb, app);
-        /* as in the stock apps: iButton yellow, RFID cyan, emulation magenta */
-        blink(app, &sequence_blink_start_cyan);
+        blink(app, &sequence_blink_start_cyan); /* as in the stock apps: iButton yellow, RFID cyan */
     } else {
         blink(app, &sequence_blink_start_yellow);
     }
@@ -1237,45 +1174,10 @@ static void tick_cb(void* ctx) {
             ibutton_worker_stop(app->iwork); /* wait for the next key */
             ibutton_worker_read_start(app->iwork, app->ikey);
         }
-    } else if(app->tick == TickEmuStart) {
-        if(app->emu_backend == Z2BackendImage) {
-            z5r_build(app->db);
-            app->db->mem[0] = 0x33;
-        }
-        if(app->emu_backend == Z2BackendController) power_on(app);
-        app->emu = z2emu_start(app->emu_backend, app->db);
-        app->epages = 0;
-        app->ehold = 0;
-        app->tick = TickEmu;
-    } else if(app->tick == TickEmu) {
-        emu_redraw(app);
-        uint32_t pg = app->emu ? z2emu_pages(app->emu) : 0;
-        if(pg != app->epages) { /* magenta only while the PC is exchanging data */
-            app->epages = pg;
-            app->ehold = 5;
-            if(!app->blink) blink(app, &sequence_blink_start_magenta);
-            /* header follows the PC's writes; 0x33 = write committed, a half-written table is skipped */
-            if(app->emu_backend == Z2BackendImage && z2emu_dirty(app->emu) && app->db->mem[0] == 0x33) {
-                z5r_parse(app->db);
-                app->modified = true;
-                app->fdirty = true;
-            }
-        } else if(app->ehold && !--app->ehold && app->blink) {
-            notification_message(app->notif, &sequence_blink_stop);
-            app->blink = false;
-        }
     }
 }
 
-static void start_emu(App* app, Z2Backend b) {
-    /* the USB switch blocks ~1 s; doing it inside the OK handler lost the OK release,
-       after which the dispatcher routed every Back to the old menu view. Start on the next tick. */
-    app->emu_backend = b;
-    start_tick(app, TickEmuStart);
-    go(app, VEmuRun);
-}
-
-/* ---------- add key / emulation sub-menus ---------- */
+/* ---------- add key sub-menu ---------- */
 
 static void add_from_file(App* app, bool rfid) {
     const char* dir = rfid ? "/ext/lfrfid" : "/ext/ibutton";
@@ -1315,23 +1217,9 @@ static void add_cb(void* ctx, uint32_t index) {
     }
 }
 
-static void emu_cb(void* ctx, uint32_t index) {
-    App* app = ctx;
-    if(!index) { /* the PC may rewrite the controller: a base kept in RAM would no longer match it */
-        if(app->modified && !confirm(app, "Discard base?", "Unsaved keys will\nbe lost. Go on?")) return;
-        z5r_init_blank(app->db, 8192);
-        app->src = 0;
-        app->modified = false;
-        app->fdirty = false;
-        app->base0 = 0;
-        main_labels(app);
-    }
-    start_emu(app, index ? Z2BackendImage : Z2BackendController);
-}
-
 /* ---------- main menu ---------- */
 
-static const char* main_items[] = {"", /* [0] = base state, set in main_labels */ "Read controller", "Load base from file", "Z-2 EHR emulator", "Erase controller", "Info / connection"};
+static const char* main_items[] = {"", /* [0] = base state, set in main_labels */ "Read controller", "Load base from file", "Erase controller", "Info / connection"};
 static const char* const add_items[] = {"", /* [0] = type selector, drawn specially */ "Read iButton", "Read RFID", "File: iButton (.ibtn)", "File: RFID (.rfid)", "Manual entry"};
 static const char* const ctl_items[] = {"Add key", "Set open time", "Edit keys list", "Write base to controller", "Save base to file"};
 
@@ -1438,9 +1326,6 @@ static void main_cb(void* ctx, uint32_t index) {
     case MErase:
         do_clear(app);
         break;
-    case MEmu:
-        go(app, VEmu);
-        break;
     case MInfo:
         go(app, VWire);
         break;
@@ -1511,10 +1396,6 @@ static bool nav_cb(void* ctx) {
         if(confirm(app, "Unsaved base!", "The base is not saved\nto a file. Exit anyway?")) view_dispatcher_stop(app->vd);
         return true;
     }
-    if(app->tick == TickEmuStart || app->tick == TickEmu) {
-        emu_ask_stop(app);
-        return true;
-    }
     if(app->tick != TickNone) stop_tick(app); /* leaving popup stops the iButton wait */
     go(app, app->cur);
     return true;
@@ -1564,10 +1445,7 @@ static const char* info_text =
     "*.bin = raw memory image\n"
     " (same as BaseZ5R).\n"
     "Write/Erase offer a backup\n"
-    "file of the controller.\n"
-    "Z-2 emu: USB 3168:0106 CDC,\n"
-    "protocol Z2 (BaseZ5R).\n"
-    "DS1996L ops not emulated.";
+    "file of the controller.";
 
 int32_t z5r_app(void* p) {
     UNUSED(p);
@@ -1624,10 +1502,6 @@ int32_t z5r_app(void* p) {
     app->fitem[FReset] = variable_item_list_add(app->filter, "Reset", 1, NULL, app);
     variable_item_list_set_enter_callback(app->filter, filter_enter_cb, app);
     filter_sync(app);
-    app->emu_menu = submenu_alloc();
-    submenu_set_header(app->emu_menu, "Z-2 EHR emulator");
-    submenu_add_item(app->emu_menu, "Real controller (I2C)", 0, emu_cb, app);
-    submenu_add_item(app->emu_menu, "Virtual (base in RAM)", 1, emu_cb, app);
     app->bytes = byte_input_alloc();
     app->text = text_input_alloc();
     app->popup = popup_alloc();
@@ -1637,12 +1511,6 @@ int32_t z5r_app(void* p) {
     view_set_context(app->warn, app);
     view_set_draw_callback(app->warn, warn_draw);
     view_set_input_callback(app->warn, warn_input);
-    app->emuv = view_alloc();
-    view_allocate_model(app->emuv, ViewModelTypeLockFree, sizeof(App*));
-    with_view_model(app->emuv, App * *m, { *m = app; }, false);
-    view_set_context(app->emuv, app);
-    view_set_draw_callback(app->emuv, emu_draw);
-    view_set_input_callback(app->emuv, emu_input);
     app->num = number_input_alloc();
     app->touch = view_alloc();
     view_allocate_model(app->touch, ViewModelTypeLockFree, sizeof(App*));
@@ -1670,7 +1538,6 @@ int32_t z5r_app(void* p) {
         {VBytes, byte_input_get_view(app->bytes), to_bytes_back},
         {VText, text_input_get_view(app->text), to_text_back},
         {VPopup, popup_get_view(app->popup), to_ignore},
-        {VEmuRun, app->emuv, to_ignore},
         {VWarn, app->warn, to_ignore},
         {VNum, number_input_get_view(app->num), to_ctl},
         {VTouch, app->touch, to_ignore},
@@ -1678,7 +1545,6 @@ int32_t z5r_app(void* p) {
         {VInfo, text_box_get_view(app->info), to_wire},
         {VFilter, variable_item_list_get_view(app->filter), to_keys},
         {VAdd, app->add, to_ctl},
-        {VEmu, submenu_get_view(app->emu_menu), to_main},
     };
     for(size_t i = 0; i < COUNT_OF(views); i++) {
         view_set_previous_callback(views[i].v, views[i].prev);
@@ -1701,18 +1567,15 @@ int32_t z5r_app(void* p) {
     variable_item_list_free(app->key);
     variable_item_list_free(app->filter);
     view_free(app->add);
-    submenu_free(app->emu_menu);
     byte_input_free(app->bytes);
     text_input_free(app->text);
     popup_free(app->popup);
-    view_free(app->emuv);
     view_free(app->warn);
     view_free(app->touch);
     number_input_free(app->num);
     text_box_free(app->info);
     view_free(app->wire);
     view_dispatcher_free(app->vd);
-    z2emu_usb_release();
     furi_record_close(RECORD_GUI);
     furi_record_close(RECORD_NOTIFICATION);
     furi_record_close(RECORD_DIALOGS);

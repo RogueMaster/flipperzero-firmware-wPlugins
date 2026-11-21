@@ -55,9 +55,6 @@ typedef struct Storage Storage;
 bool z5r_key_export(Storage* st, const Z5rKey* k, bool em, char* path, size_t n); /* path = file written */
 bool z5r_key_import(Storage* st, const char* path, Z5rKey* k);
 
-/* Z-2 frame checksum: sum(frame incl. checksum) + 0x5A == 0 (mod 256) */
-uint8_t z2_cs(const uint8_t* d, size_t n);
-
 /* controller link (I2C EEPROM on external bus, 8-bit addr 0xA0, 16-bit memory address) */
 bool z5r_link_present(void);
 bool z5r_link_read(uint16_t addr, uint8_t* buf, size_t len);
@@ -84,15 +81,3 @@ CtlResult z5r_ctl_probe(uint8_t page0[Z5R_PAGE], CtlInfo* i);
 CtlResult z5r_ctl_read(Z5rDb* db, CtlInfo* i);
 CtlResult z5r_ctl_write(Z5rDb* db, CtlInfo* i, bool force); /* page 0 first with 0x34, then changed pages, 0x33 last */
 CtlResult z5r_ctl_erase(CtlInfo* i);
-
-/* Z-2 adapter emulation over USB CDC (channel 1, CLI stays on channel 0) */
-typedef struct Z2Emu Z2Emu;
-typedef enum {
-    Z2BackendController, /* pass page reads/writes to the I2C link */
-    Z2BackendImage, /* serve the in-RAM image as a virtual controller */
-} Z2Backend;
-Z2Emu* z2emu_start(Z2Backend backend, Z5rDb* db);
-void z2emu_stop(Z2Emu* emu);
-void z2emu_usb_release(void); /* restore the stock USB config; call on app exit */
-uint32_t z2emu_pages(Z2Emu* emu); /* page ops served, for UI */
-bool z2emu_dirty(Z2Emu* emu); /* image was written by PC */
