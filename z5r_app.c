@@ -217,7 +217,8 @@ static bool warn_input(InputEvent* e, void* ctx) {
     return false; /* Back must reach the navigation callback */
 }
 
-static const NotificationSequence seq_led_yellow = {&message_red_255, &message_green_255, &message_blue_0, NULL};
+/* do_not_reset: without it the service turns the LED off right after the sequence (a short dim flash) */
+static const NotificationSequence seq_led_yellow = {&message_red_255, &message_green_255, &message_blue_0, &message_do_not_reset, NULL};
 
 /* duplicate while reading keys: two low beeps with a double buzz */
 static const NotificationSequence seq_key_dup = {
