@@ -33,7 +33,7 @@ typedef enum { TickNone, TickTouch } TickMode;
 enum { MCtl, MRead, MLoad, MErase, MInfo };
 enum { CAdd, CTime, CKeys, CWrite, CSave };
 #define ROWS_FIRST 1 /* row 0 of the key list is the search line */
-enum { KAttr, KEdit, KExport, KDelete };
+enum { KAttr, KEdit, KExport, KDelete, KNone, KMark, KMarkAll, KUnmarkAll }; /* key card rows, then the hold-OK menu rows */
 enum { AType, ATouch, ATouchRfid, AIbtn, ARfid, AManual }; /* AType: selector, Left / Right change the type of added keys */
 enum { TmIbtn = 1, TmRfid = 2 }; /* touch reading source */
 enum { FCode, FType, FReset };
@@ -71,7 +71,10 @@ typedef struct {
     View* keyhint;
     VariableItem* kitem; /* key Type item */
     VariableItem* kexp; /* key Export item: iButton / EM4100 */
-    uint8_t kmap[4]; /* key list row -> KAttr.. action */
+    uint8_t kmap[8]; /* key list row -> KAttr.. action */
+    bool kact; /* the key list holds the hold-OK menu, not the key card */
+    uint8_t mark[(Z5R_KEYS_MAX + 7) / 8]; /* marked keys, bit per base index; only set while in the key list */
+    uint16_t nmark;
     uint8_t fbytes[6]; /* key search input, MSB first */
     VariableItemList* filter;
     VariableItem* fitem[3];
@@ -651,14 +654,37 @@ static bool key_match(const App* app, const Z5rKey* k) {
     return strstr(s, app->fcode) != NULL; /* part of the code, anywhere in the 6/12 digits */
 }
 
+static bool marked(const App* app, uint16_t i) {
+    return app->mark[i >> 3] & (1 << (i & 7));
+}
+
+static void mark_set(App* app, uint16_t i, bool on) {
+    if(marked(app, i) == on) return;
+    app->mark[i >> 3] ^= 1 << (i & 7);
+    app->nmark += on ? 1 : -1;
+}
+
+static void mark_clear(App* app) {
+    memset(app->mark, 0, sizeof(app->mark));
+    app->nmark = 0;
+}
+
+/* what a hold-OK menu action applies to: the marked keys, or else the key it was opened on */
+static bool target(const App* app, uint16_t i) {
+    return app->nmark ? marked(app, i) : i == app->sel;
+}
+
 static void keys_fill(App* app) {
     app->nrows = 0;
-    snprintf(
-        app->flabel,
-        sizeof(app->flabel),
-        "Search: %s, %s",
-        app->fcode[0] ? app->fcode : "any code",
-        app->fattr ? z5r_attr_name(app->fattr) : "any type");
+    if(app->nmark)
+        snprintf(app->flabel, sizeof(app->flabel), "%u marked, Back: unmark", app->nmark);
+    else
+        snprintf(
+            app->flabel,
+            sizeof(app->flabel),
+            "Search: %s, %s",
+            app->fcode[0] ? app->fcode : "any code",
+            app->fattr ? z5r_attr_name(app->fattr) : "any type");
     krow(app, KEYS_FILTER);
     for(uint16_t i = 0; i < app->db->count; i++)
         if(key_match(app, &app->db->keys[i])) krow(app, i); /* drawn from the base in keys_draw, in columns */
@@ -714,8 +740,9 @@ static void key_cb(void* ctx, uint32_t index);
 static void key_type_cb(VariableItem* item) {
     App* app = variable_item_get_context(item);
     uint8_t a = type_order[variable_item_get_current_value_index(item) % 4];
-    app->db->keys[app->sel].attr = a;
     variable_item_set_current_value_text(item, z5r_attr_name(a));
+    if(app->kact) return; /* menu: applied by OK, to all its keys at once */
+    app->db->keys[app->sel].attr = a;
     app->modified = true;
     app->fdirty = true;
     keys_fill(app);
@@ -725,8 +752,9 @@ static void key_type_cb(VariableItem* item) {
 static void keyhint_draw(Canvas* c, void* model) {
     App* app = *(App**)model;
     uint8_t i = variable_item_list_get_selected_item_index(app->key);
-    static const char* const h[] = {NULL, "Edit", "Export", NULL}; /* by KAttr, KEdit, KExport, KDelete */
+    static const char* const h[] = {NULL, "Edit", "Export", NULL, NULL, NULL, NULL, NULL}; /* by K* */
     const char* s = i < sizeof(app->kmap) ? h[app->kmap[i]] : NULL;
+    if(app->kact && i < sizeof(app->kmap) && app->kmap[i] == KAttr) s = "Set";
     canvas_set_font(c, FontSecondary);
     if(s) elements_button_center(c, s);
 }
@@ -741,6 +769,7 @@ static void key_fill(App* app) {
     char s[13];
     z5r_key_str(k, s, sizeof(s));
     variable_item_list_reset(app->key);
+    app->kact = false;
     uint8_t n = 0;
     /* one line, whole text in the label: no value column, so nothing scrolls */
     snprintf(app->klabel, sizeof(app->klabel), "#%u  %s", app->sel + 1, s);
@@ -758,9 +787,116 @@ static void key_fill(App* app) {
     app->kmap[n++] = KDelete;
 }
 
+/* hold OK in the key list: actions for the marked keys, or for the key under the cursor */
+static void act_fill(App* app) {
+    variable_item_list_reset(app->key);
+    app->kact = true;
+    uint8_t n = 0;
+    int first = app->sel;
+    if(app->nmark) {
+        snprintf(app->klabel, sizeof(app->klabel), "%u keys marked", app->nmark);
+        for(first = 0; !marked(app, first); first++);
+    } else {
+        char s[13];
+        z5r_key_str(&app->db->keys[app->sel], s, sizeof(s));
+        snprintf(app->klabel, sizeof(app->klabel), "#%u  %s", app->sel + 1, s);
+    }
+    variable_item_list_add(app->key, app->klabel, 0, NULL, app);
+    app->kmap[n++] = KNone;
+    variable_item_list_add(app->key, marked(app, app->sel) ? "Unmark" : "Mark", 0, NULL, app);
+    app->kmap[n++] = KMark;
+    variable_item_list_add(app->key, "Mark all shown", 0, NULL, app);
+    app->kmap[n++] = KMarkAll;
+    if(app->nmark) {
+        variable_item_list_add(app->key, "Unmark all", 0, NULL, app);
+        app->kmap[n++] = KUnmarkAll;
+    }
+    uint8_t a = app->db->keys[first].attr;
+    app->kitem = variable_item_list_add(app->key, "Type", 4, key_type_cb, app);
+    variable_item_set_current_value_index(app->kitem, type_pos(a));
+    variable_item_set_current_value_text(app->kitem, z5r_attr_name(a));
+    app->kmap[n++] = KAttr;
+    variable_item_list_add(app->key, "Export", 0, NULL, app);
+    app->kmap[n++] = KExport;
+    variable_item_list_add(app->key, "Delete", 0, NULL, app);
+    app->kmap[n++] = KDelete;
+    variable_item_list_set_selected_item(app->key, 1);
+}
+
+static void delete_targets(App* app) {
+    uint16_t j = 0;
+    for(uint16_t i = 0; i < app->db->count; i++)
+        if(!target(app, i)) app->db->keys[j++] = app->db->keys[i];
+    app->db->count = j;
+    mark_clear(app);
+    app->modified = true;
+    app->fdirty = true;
+    keys_fill(app);
+    main_labels(app);
+}
+
+/* hold-OK menu actions; card actions stay in key_cb */
+static bool act_cb(App* app, uint32_t index) {
+    uint16_t n = app->nmark ? app->nmark : 1;
+    switch(index) {
+    case KNone:
+        return true;
+    case KMark:
+        mark_set(app, app->sel, !marked(app, app->sel));
+        break;
+    case KMarkAll:
+        for(uint16_t r = ROWS_FIRST; r < app->nrows; r++)
+            if(app->rid[r] < app->db->count) mark_set(app, app->rid[r], true);
+        break;
+    case KUnmarkAll:
+        mark_clear(app);
+        break;
+    case KAttr: {
+        uint8_t a = type_order[variable_item_get_current_value_index(app->kitem) % 4];
+        for(uint16_t i = 0; i < app->db->count; i++)
+            if(target(app, i)) app->db->keys[i].attr = a;
+        app->modified = true;
+        app->fdirty = true;
+        main_labels(app);
+        break;
+    }
+    case KExport: {
+        snprintf(app->msg, sizeof(app->msg), "%u key(s) to\n/ext/ibutton (.ibtn)\nand /ext/lfrfid (.rfid)", n);
+        if(!confirm(app, "Export keys?", app->msg)) return true;
+        uint16_t ok = 0;
+        for(uint16_t i = 0; i < app->db->count; i++) {
+            char path[64];
+            if(target(app, i) && z5r_key_export(app->storage, &app->db->keys[i], false, path, sizeof(path))) ok++;
+        }
+        if(ok == n) {
+            snprintf(app->msg, sizeof(app->msg), "Exported %u", ok);
+            show_dolphin(app, app->msg, app->cur);
+        } else {
+            snprintf(app->msg, sizeof(app->msg), "%u of %u written.\nSD card?", ok, n);
+            show_msg(app, "Export failed", app->msg);
+        }
+        return true;
+    }
+    case KDelete:
+        snprintf(app->msg, sizeof(app->msg), "%u key(s) will be\nremoved from the base", n);
+        if(!confirm(app, "Delete keys?", app->msg)) return true;
+        delete_targets(app);
+        break;
+    default:
+        return false;
+    }
+    keys_fill(app);
+    go(app, VKeys);
+    return true;
+}
+
 static void key_enter_cb(void* ctx, uint32_t row) {
     App* app = ctx;
-    key_cb(app, app->kmap[row]);
+    if(row >= sizeof(app->kmap)) return;
+    if(app->kact)
+        act_cb(app, app->kmap[row]);
+    else
+        key_cb(app, app->kmap[row]);
 }
 
 static void keys_draw(Canvas* c, void* model) {
@@ -783,6 +919,7 @@ static void keys_draw(Canvas* c, void* model) {
             z5r_key_str(k, s, sizeof(s));
             static const char* const abbr[] = {"?", "N", "B", "M", "I"};
             canvas_draw_str(c, 1, y + 9, n);
+            if(marked(app, id)) canvas_draw_box(c, 22, y + 4, 3, 3); /* between number and code */
             canvas_draw_str(c, 27, y + 9, s);
             canvas_draw_str(c, 111, y + 9, abbr[k->attr <= 4 ? k->attr : 0]);
         } else {
@@ -791,7 +928,8 @@ static void keys_draw(Canvas* c, void* model) {
     }
     canvas_set_color(c, ColorBlack);
     elements_scrollbar_pos(c, 127, 0, 48, app->ksel, app->nrows);
-    if(app->rid[app->ksel] < app->db->count) elements_button_center(c, "Edit");
+    uint32_t id = app->rid[app->ksel];
+    if(id < app->db->count) elements_button_center(c, !app->nmark ? "Edit" : marked(app, id) ? "Unmark" : "Mark");
 }
 
 
@@ -811,8 +949,25 @@ static bool keys_input(InputEvent* e, void* ctx) {
         with_view_model(app->keys, App * *m, { UNUSED(m); }, true);
         return true;
     }
+    uint32_t id = app->rid[app->ksel];
     if(e->type == InputTypeShort && e->key == InputKeyOk) {
-        keys_cb(app, app->rid[app->ksel]);
+        if(app->nmark && id < app->db->count) { /* marking mode: OK marks keys one by one */
+            mark_set(app, id, !marked(app, id));
+            keys_fill(app);
+        } else {
+            keys_cb(app, id);
+        }
+        return true;
+    }
+    if(e->type == InputTypeLong && e->key == InputKeyOk && id < app->db->count) {
+        app->sel = id;
+        act_fill(app);
+        go(app, VKey);
+        return true;
+    }
+    if(e->type == InputTypeShort && e->key == InputKeyBack && app->nmark) { /* first Back drops the marks */
+        mark_clear(app);
+        keys_fill(app);
         return true;
     }
     return false;
@@ -873,12 +1028,7 @@ static void key_cb(void* ctx, uint32_t index) {
     case KDelete:
         snprintf(app->msg, sizeof(app->msg), "#%u will be removed\nfrom the base", app->sel + 1);
         if(!confirm(app, "Delete key?", app->msg)) break;
-        memmove(k, k + 1, (app->db->count - app->sel - 1) * sizeof(Z5rKey));
-        app->db->count--;
-        app->modified = true;
-        app->fdirty = true;
-        keys_fill(app);
-        main_labels(app);
+        delete_targets(app); /* no marks while the card is open: deletes just this key */
         go(app, VKeys);
         break;
     }
@@ -1472,6 +1622,10 @@ static const char* info_text =
     "Files: apps_data/z5flip\n"
     "*.bin = raw memory image\n"
     " (same as BaseZ5R).\n"
+    "Key list: hold OK = menu:\n"
+    " mark, type, export, delete.\n"
+    " With marks, OK marks keys,\n"
+    " Back unmarks all.\n"
     "Read saves the controller to\n"
     " controller_last.bin; Write\n"
     " of that base skips backup.\n"
