@@ -995,17 +995,20 @@ static void emu_redraw(App* app) {
     with_view_model(app->emuv, App * *m, { UNUSED(m); }, true);
 }
 
+static void draw_header(Canvas* c, App* app, bool show_time);
+
 static void emu_draw(Canvas* c, void* model) {
     App* app = *(App**)model;
     char t[24];
     canvas_clear(c);
+    draw_header(c, app, true);
     canvas_set_font(c, FontPrimary);
     canvas_draw_str_aligned(
-        c, 64, 4, AlignCenter, AlignTop, app->emu_backend == Z2BackendImage ? "Z-2 EHR: virtual base" : "Z-2 EHR: controller");
+        c, 64, 17, AlignCenter, AlignTop, app->emu_backend == Z2BackendImage ? "Z-2 EHR: virtual base" : "Z-2 EHR: controller");
     canvas_set_font(c, FontSecondary);
-    canvas_draw_str_aligned(c, 64, 22, AlignCenter, AlignTop, "USB 3168:0106");
+    canvas_draw_str_aligned(c, 64, 29, AlignCenter, AlignTop, "USB 3168:0106");
     snprintf(t, sizeof(t), "pages: %lu", app->emu ? z2emu_pages(app->emu) : 0UL);
-    canvas_draw_str_aligned(c, 64, 34, AlignCenter, AlignTop, t);
+    canvas_draw_str_aligned(c, 64, 39, AlignCenter, AlignTop, t);
     elements_button_left(c, "Stop");
 }
 
@@ -1251,6 +1254,12 @@ static void tick_cb(void* ctx) {
             app->epages = pg;
             app->ehold = 5;
             if(!app->blink) blink(app, &sequence_blink_start_magenta);
+            /* header follows the PC's writes; 0x33 = write committed, a half-written table is skipped */
+            if(app->emu_backend == Z2BackendImage && z2emu_dirty(app->emu) && app->db->mem[0] == 0x33) {
+                z5r_parse(app->db);
+                app->modified = true;
+                app->fdirty = true;
+            }
         } else if(app->ehold && !--app->ehold && app->blink) {
             notification_message(app->notif, &sequence_blink_stop);
             app->blink = false;
