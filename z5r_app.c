@@ -15,6 +15,9 @@
 #include <notification/notification_messages_notes.h>
 #include <gui/icon_i.h>
 #include <lfrfid/lfrfid_worker.h>
+#include <ibutton/ibutton_worker.h>
+#include <ibutton/ibutton_key.h>
+#include <ibutton/ibutton_protocols.h>
 #include <dialogs/dialogs.h>
 #include <storage/storage.h>
 #include <ctype.h>
@@ -88,6 +91,10 @@ typedef struct {
     ProtocolDict* rdict;
     bool blink;
     uint8_t touch_mode; /* TmIbtn | TmRfid */
+    iButtonProtocols* iprot; /* stock iButton reader: handles presence and timing itself */
+    iButtonWorker* iwork;
+    iButtonKey* ikey;
+    volatile bool ihit; /* set by the worker thread, consumed in the tick */
     volatile bool rfid_hit; /* set by the worker thread, consumed in the tick */
     uint8_t rfid_data[8];
     uint8_t rfid_proto;
@@ -1046,6 +1053,14 @@ static void start_tick(App* app, TickMode m) {
 
 static void stop_tick(App* app) {
     if(app->tick == TickTouch) notification_message(app->notif, &sequence_display_backlight_enforce_auto);
+    if(app->iwork) {
+        ibutton_worker_stop(app->iwork);
+        ibutton_worker_stop_thread(app->iwork);
+        ibutton_worker_free(app->iwork);
+        ibutton_key_free(app->ikey);
+        ibutton_protocols_free(app->iprot);
+        app->iwork = NULL;
+    }
     if(app->rfid) {
         lfrfid_worker_stop(app->rfid);
         lfrfid_worker_stop_thread(app->rfid);
@@ -1196,6 +1211,10 @@ static void rfid_cb(LFRFIDWorkerReadResult result, ProtocolId proto, void* ctx) 
     app->rfid_hit = true;
 }
 
+static void ibtn_cb(void* ctx) {
+    ((App*)ctx)->ihit = true;
+}
+
 static void start_touch(App* app, uint8_t mode) {
     app->touch_mode = mode;
     app->tadded = 0;
@@ -1203,7 +1222,16 @@ static void start_touch(App* app, uint8_t mode) {
     app->tlast[0] = 0;
     app->ttime = 0;
     app->rfid_hit = false;
+    app->ihit = false;
     memset(&app->tkey, 0, sizeof(app->tkey));
+    if(mode & TmIbtn) {
+        app->iprot = ibutton_protocols_alloc();
+        app->iwork = ibutton_worker_alloc(app->iprot);
+        app->ikey = ibutton_key_alloc(ibutton_protocols_get_max_data_size(app->iprot));
+        ibutton_worker_start_thread(app->iwork);
+        ibutton_worker_read_set_callback(app->iwork, ibtn_cb, app);
+        ibutton_worker_read_start(app->iwork, app->ikey);
+    }
     if(mode & TmRfid) {
         app->rdict = protocol_dict_alloc(lfrfid_protocols, LFRFIDProtocolMax);
         app->rfid = lfrfid_worker_alloc(app->rdict);
@@ -1285,14 +1313,18 @@ static void tick_cb(void* ctx) {
             }
             if(got) touch_got(app, &k);
         }
-        if(app->touch_mode & TmIbtn) {
-            uint8_t rom[8];
-            if(z5r_ibutton_read(rom)) {
+        if((app->touch_mode & TmIbtn) && app->ihit) {
+            app->ihit = false;
+            iButtonEditableData ed;
+            ibutton_protocols_get_editable_data(app->iprot, app->ikey, &ed);
+            if(ibutton_key_get_protocol_id(app->ikey) == ibutton_protocols_get_id_by_name(app->iprot, "DS1990") && ed.size == 8) {
                 Z5rKey ik = {.len = 6};
-                memcpy(ik.b, rom + 1, 6); /* ROM[1..6] = serial, LSB first, as BaseZ5R stores it */
+                memcpy(ik.b, ed.ptr + 1, 6); /* ROM[1..6] = serial, LSB first, as BaseZ5R stores it */
                 ik.b[5] &= 0x0F;
                 touch_got(app, &ik);
             }
+            ibutton_worker_stop(app->iwork); /* wait for the next key */
+            ibutton_worker_read_start(app->iwork, app->ikey);
         }
     } else if(app->tick == TickEmuStart) {
         if(app->emu_backend == Z2BackendImage) {
