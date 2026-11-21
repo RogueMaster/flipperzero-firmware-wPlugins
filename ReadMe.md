@@ -69,7 +69,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Marauder GUI v1.3 (By mel4mi & AzureSky)](https://github.com/mel4mi/Marauder-GUI-Flipper)
 - Updated: [GTA VI Companion v1.1 (By RogueMaster)](https://github.com/RogueMaster/GTA_VI_Companion)
 - Furi: [Harden heap block size checks. (By jeje77131)](https://github.com/DarkFlippers/unleashed-firmware/pull/1243)
-- Bluetooth: [Preserve BLE key storage callbacks across radio restarts. (By yorha59)](https://github.com/flipperdevices/flipperzero-firmware/pull/4515)
+- OFW: [Preserve BLE key storage callbacks across radio restarts. (By yorha59)](https://github.com/flipperdevices/flipperzero-firmware/pull/4515)
 - Updated: [Sub-GHz RAW Edit v1.10 (WIP) (By Lechnio)](https://github.com/Lechnio/SubGHz-RAW-Edit)
 - Updated: [AVR UPDI v0.2 documents supported chips and programming behavior (By gztproject)](https://github.com/gztproject/avr-updi) [AVR UPDI catalog submission (By gztproject)](https://github.com/flipperdevices/flipper-application-catalog/pull/1413)
 - Updated: [eReader v1.2.0 moves its default books folder into app data and adds a setup guide (By Daniel Baker)](https://github.com/daniebker/flipper_ereader)
