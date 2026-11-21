@@ -29,15 +29,14 @@
 
 typedef enum { VMain, VCtl, VKeys, VKey, VBytes, VText, VPopup, VInfo, VWire, VFilter, VAdd, VEmu, VEmuRun, VWarn, VNum, VTouch } ViewId;
 typedef enum { ByteAdd, ByteEdit } ByteMode;
-typedef enum { TickNone, TickTouch, TickEmuStart, TickEmu, TickAskSave } TickMode;
-#define ASK_SAVE 0xFFF0 /* pseudo view id: popup_ok asks to save the base instead of switching views */
+typedef enum { TickNone, TickTouch, TickEmuStart, TickEmu } TickMode;
 
-enum { MCtl, MRead, MLoad, MErase, MEmu, MInfo };
+enum { MCtl, MRead, MLoad, MEmu, MErase, MInfo };
 enum { CAdd, CTime, CKeys, CWrite, CSave };
 #define ROWS_FIRST 1 /* row 0 of the key list is the search line */
 enum { KAttr, KEdit, KExport, KDelete };
 enum { AType, ATouch, ATouchRfid, AIbtn, ARfid, AManual }; /* AType: selector, Left / Right change the type of added keys */
-enum { TmIbtn = 1, TmRfid = 2 }; /* touch reading sources, ORed */
+enum { TmIbtn = 1, TmRfid = 2 }; /* touch reading source */
 enum { FCode, FType, FReset };
 /* same key seen again within this time = still on the reader; shorter = faster re-tap, but a flaky read may count twice */
 #define TOUCH_GAP_MS      400 /* iButton polls every 100 ms */
@@ -90,7 +89,7 @@ typedef struct {
     LFRFIDWorker* rfid;
     ProtocolDict* rdict;
     bool blink;
-    uint8_t touch_mode; /* TmIbtn | TmRfid */
+    uint8_t touch_mode; /* TmIbtn or TmRfid */
     iButtonProtocols* iprot; /* stock iButton reader: handles presence and timing itself */
     iButtonWorker* iwork;
     iButtonKey* ikey;
@@ -151,9 +150,7 @@ static void open_keys(App* app) {
 
 static void popup_ok(void* ctx) {
     App* app = ctx;
-    if(app->ok == ASK_SAVE)
-        app->tick = TickAskSave; /* the dialog must not run in the popup timer thread: tick_cb asks */
-    else if(app->ok == VKeys)
+    if(app->ok == VKeys)
         open_keys(app);
     else
         go(app, app->ok);
@@ -464,9 +461,10 @@ static void write_run(App* app) {
     }
     app->modified = false;
     app->base0 = app->db->count;
+    if(app->src != 2) app->src = 3;
     main_labels(app);
     snprintf(app->msg, sizeof(app->msg), "Written\n%u keys", app->db->count);
-    show_dolphin(app, app->msg, ASK_SAVE);
+    show_dolphin(app, app->msg, app->cur);
 }
 
 static void erase_run(App* app) {
@@ -564,11 +562,11 @@ static void do_open(App* app) {
             char* dot = strrchr(app->srcname, '.');
             if(dot) *dot = 0;
             app->modified = false;
-    app->base0 = app->db->count;
+            app->base0 = app->db->count;
             keys_fill(app);
             snprintf(app->msg, sizeof(app->msg), "Loaded\n%u keys", app->db->count);
             menus[1].sel = 0; /* the base screen opens on its first item */
-        show_dolphin(app, app->msg, VCtl);
+            show_dolphin(app, app->msg, VCtl);
         } else {
             show_msg(app, "Bad file", "Expect raw 4 or 8 KB\nZ-5R memory image (.bin)");
         }
@@ -603,8 +601,8 @@ static void text_done(void* ctx) {
         app->modified = false;
         app->src = 2;
         snprintf(app->srcname, sizeof(app->srcname), "%s", app->name);
+        app->base0 = app->db->count;
     }
-    app->base0 = app->db->count;
     main_labels(app);
     if(ok) {
         app->fdirty = false;
@@ -615,7 +613,6 @@ static void text_done(void* ctx) {
     furi_string_free(path);
 }
 
-/* lock open time: stored in the base header, goes to the controller with Write */
 static void ask_name(App* app) {
     if(app->src == 2) /* base came from / went to a file: offer the same name, saving updates it */
         snprintf(app->name, sizeof(app->name), "%s", app->srcname);
@@ -632,17 +629,7 @@ static bool unsaved_base(const App* app) {
     return app->db->count && (app->src != 2 || app->fdirty);
 }
 
-/* after a write to the controller: offer to keep the base in a file (named by the user) */
-static void ask_save(App* app) {
-    if(unsaved_base(app) && confirm(app, "Save base?", "Save the written base\nto a file?")) {
-        ask_name(app);
-        return;
-    }
-    if(app->src != 2) app->src = 3;
-    main_labels(app);
-    go(app, app->cur);
-}
-
+/* lock open time: stored in the base header, goes to the controller with Write */
 static void time_done(void* ctx, int32_t v) {
     App* app = ctx;
     if(CODE_TO_SEC((int32_t)z5r_open_time_code(app->db)) != v) { /* same value again: base stays unchanged */
@@ -725,7 +712,7 @@ static void filter_enter_cb(void* ctx, uint32_t index) {
         memset(app->fbytes, 0, sizeof(app->fbytes));
         app->fattr = 0;
         app->fcode[0] = 0;
-            keys_fill(app);
+        keys_fill(app);
         filter_sync(app);
     }
 }
@@ -1024,11 +1011,7 @@ static void emu_draw(Canvas* c, void* model) {
 
 /* Back / Left: ask first; true = emulation stopped */
 static bool emu_ask_stop(App* app) {
-    DialogMessage* m = dialog_message_alloc();
-    dialog_message_set_header(m, "Stop emulation?", 64, 8, AlignCenter, AlignTop);
-    dialog_message_set_buttons(m, "No", NULL, "Yes");
-    bool yes = dialog_message_show(app->dialogs, m) == DialogMessageButtonRight;
-    dialog_message_free(m);
+    bool yes = confirm(app, "Stop emulation?", "");
     if(yes) {
         busy(app, "Stopping..."); /* the USB switch blocks ~1 s */
         stop_tick(app);
@@ -1096,11 +1079,12 @@ static void touch_draw(Canvas* c, void* model) {
         snprintf(t, sizeof(t), "Duplicate #%u", app->tdup);
     else
         snprintf(t, sizeof(t), app->tstate == 3 ? "Base full" : app->tstate == 4 ? "Not a Dallas key" : app->tstate == 1 ? "Added #%u" : "Waiting...", app->db->count);
-    canvas_draw_str(c, 2, 26, t);
-    canvas_draw_str(c, 1, 36, app->tlast[0] ? app->tlast : "-");
+    canvas_draw_str(c, 2, 24, t); /* 9 px rows: five lines fit under the header */
+    canvas_draw_str(c, 1, 33, app->tlast[0] ? app->tlast : "-");
     snprintf(t, sizeof(t), "Type: <%s>", z5r_attr_name(app->tattr));
-    canvas_draw_str(c, 2, 46, t);
-    canvas_draw_str(c, 2, 56, "Hold Back: exit");
+    canvas_draw_str(c, 2, 42, t);
+    canvas_draw_str(c, 2, 51, "Hold </>: type");
+    canvas_draw_str(c, 2, 60, "Hold Back: exit");
 }
 
 static bool touch_input(InputEvent* e, void* ctx) {
@@ -1156,7 +1140,7 @@ static void start_touch(App* app, uint8_t mode) {
         lfrfid_worker_start_thread(app->rfid);
         lfrfid_worker_read_start(app->rfid, LFRFIDWorkerReadTypeAuto, rfid_cb, app);
         /* as in the stock apps: iButton yellow, RFID cyan, emulation magenta */
-        blink(app, mode & TmIbtn ? &sequence_blink_start_blue : &sequence_blink_start_cyan);
+        blink(app, &sequence_blink_start_cyan);
     } else {
         blink(app, &sequence_blink_start_yellow);
     }
@@ -1182,7 +1166,7 @@ static void touch_got(App* app, const Z5rKey* key) {
     if(r == 0) {
         app->tadded++;
         notification_message(app->notif, &sequence_success); /* same as the Done screen */
-        blink(app, app->touch_mode & TmRfid ? (app->touch_mode & TmIbtn ? &sequence_blink_start_blue : &sequence_blink_start_cyan) : &sequence_blink_start_yellow);
+        blink(app, app->touch_mode == TmRfid ? &sequence_blink_start_cyan : &sequence_blink_start_yellow);
     } else if(r == 1) {
         notification_message(app->notif, &seq_key_dup); /* already in the base */
     } else {
@@ -1193,11 +1177,6 @@ static void touch_got(App* app, const Z5rKey* key) {
 
 static void tick_cb(void* ctx) {
     App* app = ctx;
-    if(app->tick == TickAskSave) {
-        app->tick = TickNone;
-        ask_save(app);
-        return;
-    }
     uint32_t mq = furi_get_tick() / 250;
     if(app->src == 2 && mq != app->mq) { /* long file name scrolls in the selected menu item */
         app->mq = mq;
@@ -1328,12 +1307,22 @@ static void add_cb(void* ctx, uint32_t index) {
 }
 
 static void emu_cb(void* ctx, uint32_t index) {
-    start_emu(ctx, index ? Z2BackendImage : Z2BackendController);
+    App* app = ctx;
+    if(!index) { /* the PC may rewrite the controller: a base kept in RAM would no longer match it */
+        if(app->modified && !confirm(app, "Discard base?", "Unsaved keys will\nbe lost. Go on?")) return;
+        z5r_init_blank(app->db, 8192);
+        app->src = 0;
+        app->modified = false;
+        app->fdirty = false;
+        app->base0 = 0;
+        main_labels(app);
+    }
+    start_emu(app, index ? Z2BackendImage : Z2BackendController);
 }
 
 /* ---------- main menu ---------- */
 
-static const char* main_items[] = {"", /* [0] = base state, set in main_labels */ "Read controller", "Load base from file", "Erase controller", "Z-2 EHR emulator", "Info / connection"};
+static const char* main_items[] = {"", /* [0] = base state, set in main_labels */ "Read controller", "Load base from file", "Z-2 EHR emulator", "Erase controller", "Info / connection"};
 static const char* const add_items[] = {"", /* [0] = type selector, drawn specially */ "Read iButton", "Read RFID", "File: iButton (.ibtn)", "File: RFID (.rfid)", "Manual entry"};
 static const char* const ctl_items[] = {"Add key", "Set open time", "Edit keys list", "Write base to controller", "Save base to file"};
 
@@ -1421,9 +1410,6 @@ static bool main_input(InputEvent* e, void* ctx) {
     }
     return false;
 }
-
-static void main_cb(void* ctx, uint32_t index);
-static void ctl_cb(void* ctx, uint32_t index);
 
 static void main_cb(void* ctx, uint32_t index) {
     App* app = ctx;
