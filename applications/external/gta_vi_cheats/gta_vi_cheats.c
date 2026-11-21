@@ -6,17 +6,21 @@
 #include <stdio.h>
 #include <string.h>
 #include "cheat_catalog.h"
+#include "companion.h"
 
 typedef enum {
     ViewMenu,
-    ViewText
+    ViewText,
+    ViewCollection,
+    ViewCollectionDetail,
 } GtaView;
 typedef enum {
-    ScreenPlatform,
+    ScreenHome,
     ScreenCategories,
     ScreenList,
     ScreenDetail,
-    ScreenGuide
+    ScreenGuide,
+    ScreenCompanion,
 } GtaScreen;
 typedef enum {
     ListPublished,
@@ -32,7 +36,9 @@ enum {
     ItemAll,
     ItemUnverified,
     ItemEmpty,
-    ItemRow = 16
+    ItemRow = 16,
+    ItemCollection = 128,
+    ItemDispatch = ItemCollection + GtaCollectionCount,
 };
 
 typedef struct {
@@ -40,6 +46,7 @@ typedef struct {
     Submenu* menu;
     TextBox* text;
     FuriString* content;
+    GtaCompanion* companion;
     GtaScreen screen;
     GtaScreen guide_back;
     GtaListMode list_mode;
@@ -47,6 +54,7 @@ typedef struct {
     size_t category;
     uint32_t category_selection;
     uint32_t list_selection;
+    uint32_t home_selection;
 } GtaApp;
 
 static const char* gta_sequence(const GtaApp* app, const GtaCheat* cheat) {
@@ -79,12 +87,16 @@ static void gta_show_menu(GtaApp* app, GtaScreen screen) {
     submenu_reset(app->menu);
     app->screen = screen;
     char label[64];
-    if(screen == ScreenPlatform) {
-        submenu_set_header(app->menu, "GTA VI Cheats v0.3.1");
-        gta_item(app, "PlayStation 5", ItemPs5);
-        gta_item(app, "Xbox Series X|S", ItemXbox);
+    if(screen == ScreenHome) {
+        submenu_set_header(app->menu, "GTA VI Companion");
+        gta_item(app, "PS5 Cheats", ItemPs5);
+        gta_item(app, "Xbox Cheats", ItemXbox);
+        for(size_t i = 0; i < GtaCollectionCount; ++i) {
+            gta_item(app, gta_collection_catalog[i].title, ItemCollection + i);
+        }
+        gta_item(app, "Dispatch", ItemDispatch);
         gta_item(app, "Quick guide / warnings", ItemGuide);
-        submenu_set_selected_item(app->menu, app->xbox ? ItemXbox : ItemPs5);
+        submenu_set_selected_item(app->menu, app->home_selection);
     } else if(screen == ScreenCategories) {
         submenu_set_header(app->menu, app->xbox ? "Xbox Series X|S" : "PlayStation 5");
         snprintf(label, sizeof(label), "Published inputs (%zu)", gta_published_count(app));
@@ -264,7 +276,11 @@ static void gta_guide(GtaApp* app) {
     furi_string_reset(app->content);
     furi_string_cat_printf(
         app->content,
-        "Quick guide (v0.3.1)\n\n"
+        "Companion v0.4\n\n"
+        "Collections: OK opens the location. Right checks or unchecks a row. "
+        "OK also toggles the check in details. Checkmarks are saved on the SD card.\n\n"
+        "Dispatch offers location tips for unfinished Moses and Randy targets. "
+        "Right moves to the next tip.\n\n"
         "61 GTA VI effects reported by game guides, but most inputs remain unpublished. "
         "[?] marks entries without a code.\n\n"
         "19 inputs are reported on PS5 and Xbox, including Drunk. "
@@ -285,13 +301,21 @@ static void gta_guide(GtaApp* app) {
 }
 static bool gta_event(void* context, uint32_t event) {
     GtaApp* app = context;
-    if(app->screen == ScreenPlatform) {
+    if(app->screen == ScreenCompanion) return gta_companion_custom_event(app->companion, event);
+    if(app->screen == ScreenHome) {
+        app->home_selection = event;
         if(event == ItemGuide) {
             gta_guide(app);
         } else if(event == ItemPs5 || event == ItemXbox) {
             app->xbox = event == ItemXbox;
             app->category_selection = ItemPublished;
             gta_show_menu(app, ScreenCategories);
+        } else if(event >= ItemCollection && event < ItemDispatch) {
+            app->screen = ScreenCompanion;
+            gta_companion_open_list(app->companion, (GtaCollectionId)(event - ItemCollection));
+        } else if(event == ItemDispatch) {
+            app->screen = ScreenCompanion;
+            gta_companion_open_dispatch(app->companion);
         }
     } else if(app->screen == ScreenCategories) {
         app->category_selection = event;
@@ -327,11 +351,11 @@ static bool gta_event(void* context, uint32_t event) {
 static bool gta_back(void* context) {
     GtaApp* app = context;
     switch(app->screen) {
-    case ScreenPlatform:
+    case ScreenHome:
         view_dispatcher_stop(app->dispatcher);
         break;
     case ScreenCategories:
-        gta_show_menu(app, ScreenPlatform);
+        gta_show_menu(app, ScreenHome);
         break;
     case ScreenList:
         gta_show_menu(app, ScreenCategories);
@@ -341,6 +365,9 @@ static bool gta_back(void* context) {
         break;
     case ScreenGuide:
         gta_show_menu(app, app->guide_back);
+        break;
+    case ScreenCompanion:
+        if(!gta_companion_back(app->companion)) gta_show_menu(app, ScreenHome);
         break;
     }
     return true;
@@ -359,9 +386,11 @@ int32_t gta_vi_cheats_app(void* args) {
     view_dispatcher_set_navigation_event_callback(app.dispatcher, gta_back);
     view_dispatcher_add_view(app.dispatcher, ViewMenu, submenu_get_view(app.menu));
     view_dispatcher_add_view(app.dispatcher, ViewText, text_box_get_view(app.text));
+    app.companion = gta_companion_alloc(app.dispatcher, ViewCollection, ViewCollectionDetail);
     view_dispatcher_attach_to_gui(app.dispatcher, gui, ViewDispatcherTypeFullscreen);
-    gta_show_menu(&app, ScreenPlatform);
+    gta_show_menu(&app, ScreenHome);
     view_dispatcher_run(app.dispatcher);
+    gta_companion_free(app.companion);
     view_dispatcher_remove_view(app.dispatcher, ViewText);
     view_dispatcher_remove_view(app.dispatcher, ViewMenu);
     view_dispatcher_free(app.dispatcher);

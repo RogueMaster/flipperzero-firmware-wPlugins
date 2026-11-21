@@ -1,6 +1,6 @@
 App(
     appid="gta_vi_cheats",
-    name="GTA VI Cheats",
+    name="GTA VI Companion",
     apptype=FlipperAppType.EXTERNAL,
     entry_point="gta_vi_cheats_app",
     stack_size=2 * 1024,
@@ -8,6 +8,6 @@ App(
     fap_category="Tools",
     fap_author="RogueMaster",
     fap_weburl="https://github.com/RogueMaster/flipperzero-firmware-wPlugins/tree/420/applications/external/gta_vi_cheats",
-    fap_version="0.3.1",
-    fap_description="Offline GTA VI cheats, unlocks and source audit",
+    fap_version="0.4",
+    fap_description="GTA VI cheats, vehicle hunts and property checklists",
 )
