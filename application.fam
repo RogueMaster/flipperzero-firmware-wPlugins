@@ -9,4 +9,5 @@ App(
     fap_description="Z5Flip: IronLogic Z-5R key base editor",
     fap_version="1.0",
     fap_icon="icon.png",
+    fap_author="Tobirg",
 )
