@@ -37,7 +37,8 @@ enum { WCtl, WFile, WBoth };
 enum { KAttr, KEdit, KExport, KDelete, KNone, KMarkAll, KUnmarkAll }; /* key card rows, then the marks menu rows */
 enum { AType, ATouch, ATouchRfid, AIbtn, ARfid, AManual }; /* AType: selector, Left / Right change the type of added keys */
 enum { TmIbtn = 1, TmRfid = 2 }; /* touch reading source */
-enum { FCode, FType, FReset };
+enum { FCode, FType, FMarked, FReset };
+static const char* const fmark_names[] = {"any", "marked", "unmarked"};
 /* same key seen again within this time = still on the reader; shorter = faster re-tap, but a flaky read may count twice */
 #define TOUCH_GAP_MS      400 /* iButton polls every 100 ms */
 #define TOUCH_GAP_RFID_MS 450 /* RFID worker re-reads a held card every few hundred ms */
@@ -83,7 +84,8 @@ typedef struct {
     uint16_t nmark;
     uint8_t fbytes[6]; /* key search input, MSB first */
     VariableItemList* filter;
-    VariableItem* fitem[3];
+    VariableItem* fitem[4];
+    uint8_t fmark; /* key filter: 0 any, 1 marked only, 2 unmarked only */
     View* add; /* same header as main; row 0 = key type selector */
     ByteInput* bytes;
     TextInput* text;
@@ -701,12 +703,14 @@ static void keys_fill(App* app) {
         snprintf(
             app->flabel,
             sizeof(app->flabel),
-            "Search: %s, %s",
+            "Filter: %s, %s%s%s",
             app->fcode[0] ? app->fcode : "any code",
-            app->fattr ? z5r_attr_name(app->fattr) : "any type");
+            app->fattr ? z5r_attr_name(app->fattr) : "any type",
+            app->fmark ? ", " : "",
+            app->fmark ? fmark_names[app->fmark] : "");
     krow(app, KEYS_FILTER);
     for(uint16_t i = 0; i < app->db->count; i++)
-        if(key_match(app, &app->db->keys[i])) krow(app, i); /* drawn from the base in keys_draw, in columns */
+        if(key_match(app, &app->db->keys[i]) && (!app->fmark || marked(app, i) == (app->fmark == 1))) krow(app, i); /* drawn from the base in keys_draw, in columns */
     if(app->nrows == ROWS_FIRST) krow(app, KEYS_NONE);
     if(app->ksel >= app->nrows) app->ksel = app->nrows - 1;
     with_view_model(app->keys, App * *m, { UNUSED(m); }, true);
@@ -716,6 +720,15 @@ static void filter_sync(App* app) {
     variable_item_set_current_value_text(app->fitem[FCode], app->fcode[0] ? app->fcode : "any");
     variable_item_set_current_value_index(app->fitem[FType], app->fattr ? type_pos(app->fattr) + 1 : 0);
     variable_item_set_current_value_text(app->fitem[FType], app->fattr ? z5r_attr_name(app->fattr) : "any");
+    variable_item_set_current_value_index(app->fitem[FMarked], app->fmark);
+    variable_item_set_current_value_text(app->fitem[FMarked], fmark_names[app->fmark]);
+}
+
+static void filter_mark_cb(VariableItem* item) {
+    App* app = variable_item_get_context(item);
+    app->fmark = variable_item_get_current_value_index(item);
+    keys_fill(app);
+    filter_sync(app);
 }
 
 static void fcode_done(void* ctx) {
@@ -748,6 +761,7 @@ static void filter_enter_cb(void* ctx, uint32_t index) {
     } else if(index == FReset) {
         memset(app->fbytes, 0, sizeof(app->fbytes));
         app->fattr = 0;
+        app->fmark = 0;
         app->fcode[0] = 0;
         keys_fill(app);
         filter_sync(app);
@@ -965,7 +979,7 @@ static void keys_draw(Canvas* c, void* model) {
     elements_button_left(c, "Marks");
     if(app->nmark || id < app->db->count) elements_button_right(c, "Edit");
     if(id == KEYS_FILTER)
-        elements_button_center(c, "Search");
+        elements_button_center(c, "Filter");
     else if(id < app->db->count) /* without marks it takes a hold of OK, with marks a press */
         elements_button_center(c, marked(app, id) ? "Unmark" : "Mark");
 }
@@ -1770,6 +1784,7 @@ int32_t z5r_app(void* p) {
     app->filter = variable_item_list_alloc();
     app->fitem[FCode] = variable_item_list_add(app->filter, "Code", 1, NULL, app);
     app->fitem[FType] = variable_item_list_add(app->filter, "Type", 5, filter_type_cb, app);
+    app->fitem[FMarked] = variable_item_list_add(app->filter, "Marked", 3, filter_mark_cb, app);
     app->fitem[FReset] = variable_item_list_add(app->filter, "Reset", 1, NULL, app);
     variable_item_list_set_enter_callback(app->filter, filter_enter_cb, app);
     filter_sync(app);
