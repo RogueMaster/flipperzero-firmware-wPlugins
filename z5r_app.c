@@ -94,6 +94,7 @@ typedef struct {
     uint8_t rfid_proto;
     uint8_t tattr; /* type given to the next key read */
     uint8_t src; /* where the base came from: 0 none / new, 1 controller, 2 file, 3 written to controller, not saved */
+    bool bak; /* src == 1 and controller_last.bin holds what was read: Write needs no backup prompt */
     bool fdirty; /* base differs from the file it was loaded from / saved to */
     bool exit_ask; /* Back on the main screen is waiting for the exit warning */
     char srcname[32]; /* file name without .bin, when src == 2 */
@@ -426,6 +427,7 @@ static void do_read(App* app) {
         return;
     }
     app->src = 1;
+    app->bak = backup_controller(app, ci.size, DATA_DIR "/controller_last" EXT); /* replaced on every read */
     app->modified = false;
     app->base0 = app->db->count;
     main_labels(app);
@@ -497,7 +499,7 @@ static void backup_done(void* ctx) {
 /* before Write / Erase: offer a backup of the controller, named by the user */
 static void ask_backup(App* app, uint8_t op) {
     pending = op;
-    if(!confirm(app, "Backup?", "Save the controller\nmemory to a file first?")) {
+    if((op == PendWrite && app->src == 1 && app->bak) || !confirm(app, "Backup?", "Save the controller\nmemory to a file first?")) {
         if(op == PendWrite) write_run(app); else erase_run(app);
         return;
     }
@@ -1459,8 +1461,11 @@ static const char* info_text =
     "Files: apps_data/z5flip\n"
     "*.bin = raw memory image\n"
     " (same as BaseZ5R).\n"
-    "Write/Erase offer a backup\n"
-    "file of the controller.";
+    "Read saves the controller to\n"
+    " controller_last.bin; Write\n"
+    " of that base skips backup.\n"
+    "Otherwise Write/Erase offer\n"
+    " a backup file first.";
 
 int32_t z5r_app(void* p) {
     UNUSED(p);
