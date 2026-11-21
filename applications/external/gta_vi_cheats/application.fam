@@ -1,13 +1,15 @@
 App(
-    appid="gta_vi_cheats",
+    appid="gta_vi_companion",
     name="GTA VI Companion",
     apptype=FlipperAppType.EXTERNAL,
     entry_point="gta_vi_cheats_app",
     stack_size=2 * 1024,
     fap_icon="icon.png",
+    fap_file_assets="assets",
+    fap_icon_assets="menu_icons",
     fap_category="Tools",
     fap_author="RogueMaster",
     fap_weburl="https://github.com/RogueMaster/flipperzero-firmware-wPlugins/tree/420/applications/external/gta_vi_cheats",
-    fap_version="0.4",
-    fap_description="GTA VI cheats, vehicle hunts and property checklists",
+    fap_version="0.5",
+    fap_description="GTA VI cheats, vehicle hunts and collectible checklists",
 )

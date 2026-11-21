@@ -1,14 +1,80 @@
-# GTA VI Companion v0.4
+# GTA VI Companion
 
 Unofficial, offline GTA VI Story Mode reference and collection tracker for Flipper Zero.
-The app opens as **GTA VI Companion** from Tools.
+Open **GTA VI Companion** from **Tools**.
 
-## Vehicle and property checklists
+## Main menu
+
+Use the **D-pad** to move between icons. The top line shows the selected item's
+name. Press **OK** to open it and **Back** to return to the same icon.
+
+| Menu option | Description |
+| --- | --- |
+| PS5 Cheats | Browse reported PS5 inputs, unlock requirements, and unverified codes. |
+| Xbox Cheats | Browse reported Xbox inputs, unlock requirements, and unverified codes. |
+| Collections | Find Story Mode collectibles and discoveries, view location clues, and track completed entries. |
+| Randy's Wish List | Track Randy's vehicle deliveries and see reported spawn locations and times where available. |
+| Moses Drop-Offs | Find Moses's Chapter 2 vehicle and follow-up targets, then check off each delivery. |
+| Wyman's Classic Cars | Track Ultimate Edition restoration projects and find the wrecks and final pickup. |
+| Standout Vehicles | Find documented spawn locations for distinctive vehicles and mark each one acquired. |
+| Garages | Track acquired garages and look up their locations, prices or unlocks, and storage capacity. |
+| Houses / Cribs | Track story safehouses and see their locations, chapter unlocks, and facilities. |
+| Dispatch | Cycle through location tips for unfinished Randy and Moses deliveries and mark targets complete. |
+| Quick guide / warnings | Review checklist controls, cheat entry steps, and warnings about saving and trophies or achievements. |
+| Mock Loaders | Browse 15 full-screen Dungeons & Dolphins loading images. Press **Left** for the previous image, **Right** for the next, or **Back** for the menu. |
+
+## Checklist controls
 
 Press **OK** on a row to open its location and notes. Press **Right** in the list or **OK**
 in the details to toggle its checkmark. **Back** from the details returns to the selected
 row. The list header shows the number checked. The app saves progress at
 `/ext/apps_data/gta_vi_cheats/` on the SD card as each checkmark changes.
+
+In **Dispatch**, press **Right** for the next tip or **OK** to check or undo the current
+target. Dispatch and the two delivery checklists share the same progress. Consult the
+in-game mission marker if a reported spawn is unavailable.
+
+## Collections
+
+Choose a category or set to open its checklist. The app loads one list at a time from
+the files bundled in the FAP.
+
+| Collection | Included entries |
+| --- | --- |
+| Collectible Cards | All 18 set menus and 190 documented cards. 187 have text location clues. The in-game catalog contains 480. |
+| WAiNK Locations | 31 landmarks, 35 curiosities, 23 sculptures, 15 mapped No Flusher tags, and the four Peewees Billboard counties. Published No Flusher totals differ. |
+| AHOL Street Art | 11 type checklists covering the game's 112 pieces, with starter clues where documented. Check a type when you finish its pieces. |
+| 1010 Murals | All five photo markers, with the landmark to frame from each marker. |
+| Kenton's Treasures | The seven sets after the tutorial wreck, with dive areas and piece counts. |
+| Underwater Discoveries | Six named wrecks from the current guides, including the tutorial wreck. The game tracks 33 discoveries. |
+| Magazines, Books & Comics | 26 documented titles and one location clue for each. |
+| Book Swaps | All seven Little Library stops, with nearby streets or landmarks. |
+| Meditations | All 18 completions at 10 spots. Shared spots have separate Jason and Lucia rows. |
+| Cocaine Flamingos | 22 documented locations out of the game's 125. |
+| Unique Playlists | Both playlists and all five poster locations. |
+| Discovered Styles | 15 documented entries across Jason's styles, Lucia's styles, tattoos, and luxury watches. |
+
+The list counter tracks entries included in the app. When a confirmed game total
+exceeds the included list, the details show the catalog coverage.
+
+### Exploration sources
+
+- [Story Mode collection totals and links to individual guides](https://www.powerpyx.com/gta-6-collectible-guide-progress-database/)
+- [Card set checklists and mapped variants](https://game-checklists.com/gta6/card-sets-checklist/)
+- [Collectible marker locations, including cards, murals, books and magazines](https://gtagameintel.com/en/interactive-map/?location=community-1090704)
+- [WAiNK landmarks](https://www.gtabase.com/gta-6/map/?feature=waink-landmark), [curiosities](https://www.gtasixmap.com/guides/waink-curiosities), and [sculptures](https://www.gtasixmap.com/guides/waink-sculptures)
+- [No Flusher tags and published count differences](https://gta6-life.com/en/guides/gta-6-graffiti-tags/)
+- [Peewees Billboard counties](https://www.gta6everything.com/activities/peewees-billboards)
+- [AHOL street art starter locations](https://finalboss.io/gta-6-ahol-street-art-murals)
+- [Kenton's sets and treasure counts](https://www.nexzyapp.com/games/grand-theft-auto-vi/guide/kentons-treasures)
+- [Underwater discoveries](https://game-checklists.com/gta6/underwater-discoveries-checklist/)
+- [Cocaine Flamingo locations](https://game-checklists.com/gta6/cocaine-flamingos-checklist/)
+- [Discovered Styles locations](https://game-checklists.com/gta6/styles-checklist/)
+
+Keep the numeric IDs in `assets/collections/*.tsv` attached to their entries
+when editing or sorting the data. The checkmarks use those IDs.
+
+## Vehicle and property checklists
 
 | Checklist | Entries | Details |
 | --- | ---: | --- |
@@ -19,12 +85,7 @@ row. The list header shows the number checked. The app saves progress at
 | Garages | 15 | Eight purchasable garages, four story rewards, and three edition or GTA+ benefits. Open a garage for the price or unlock, district, and capacity. |
 | Houses / Cribs | 4 | Story safehouses with their chapter unlock, location, and facilities. Check off each home as you reach it. |
 
-**Dispatch** shows an unfinished Moses or Randy delivery with a known location.
-Press **Right** for the next tip or **OK** to check or undo the current target.
-Dispatch and the two checklists share the same progress. Consult the mission's
-in-game marker if a reported spawn is unavailable.
-
-### Collection sources
+### Vehicle and property sources
 
 - [Moses locations and screenshots](https://www.pushsquare.com/guides/gta-6-moses-vehicle-drop-off-locations)
 - [Moses follow-up deliveries](https://www.powerpyx.com/gta-6-steal-vehicles-for-moses-walkthrough/)
@@ -40,45 +101,17 @@ in-game marker if a reported spawn is unavailable.
 - [Garage and safehouse locations](https://leonidawaypoint.com/database/properties)
 - [Story safehouses and facilities](https://outputlag.com/guides/gta-6-safehouses/)
 
-## Cheat catalog and evidence
-
-- 61 *reported* GTA VI cheat effects: Player 10, Combat 11, Vehicles 21, Environment 3, Filters 16.
-- The existing 18 published PS5/Xbox D-pad inputs from v0.2 are preserved without changes.
-- Drunk is populated for both PS5 and Xbox: `Up Left Right Up Up Left Right Up Left Right`.
-  Sources: PC Gamer, GamesRadar+ and TrueAchievements (checked November 21, 2026).
-  The catalog now has 19 published inputs per platform. Drunk has not been independently
-  console-tested by this app; multiple publications do not establish separate console tests.
-- The other 42 effects have no published input recorded here. Their individual unlock
-  requirements are nevertheless browsable, and a missing input displays `[?]`.
-- All **28 button sequences** shown in the supplied image are in the cheat catalog.
-  The **24 screenshot-only effects** appear under **Unverified codes
-  (24)**, and each displays its controller sequence rather than just a name.
-- Four effects match the 61-entry catalog: **Infinite Ammo**, **Raise Wanted Level**,
-  **Spawn Sanchez** (Maibatsu Sanchez), **Change Weather** (Cycle Weather). Those are
-  not duplicated in the Unverified list. Their screenshot inputs are shown as
-  **image alternates** inside the corresponding main catalog details, alongside any
-  existing GTA VI D-pad sequence. This does NOT validate the image's alternate input.
-- On Xbox the app maps PS
-  physical button labels to Xbox equivalents (R1=RB, R2=RT, L1=LB, L2=LT,
-  Triangle=Y, Circle=B, Square=X). These Xbox sequences are DERIVED; the image did
-  not provide Xbox codes. The image contains combinations reminiscent of earlier GTA
-  titles, so they must not be presented as console-tested GTA VI codes.
-- Fixed sequence rendering: controller button numbers are no longer discarded
-  (formerly R1 and R2 both appeared as R; L1 and L2 both appeared as L).
-
-**Published** is not the same as console-tested or Rockstar-verified. This FAP has
-not been used to validate the reported codes in-game.
-
 ## Cheat usage
 
 Choose **PS5 Cheats** or **Xbox Cheats**, then pick **Published inputs**, **All GTA VI entries**,
-a category (showing published/total), **Unverified codes (24)**, or **Quick guide**.
-For main-catalog cheats, open **Progress > Cheats** to inspect unlock requirements.
-The screenshot-derived sequences have not been verified for GTA VI and may have
-incompatible input methods. Do not treat them as equivalents to published D-pad codes.
+a cheat category, **Unverified codes (24)**, or **Quick guide / warnings**.
+For main-catalog cheats, open **Progress > Cheats** in game to inspect unlock
+requirements.
+
 In free roam, open the phone with D-pad Up, then hold L1 + R1 (PS5) or LB + RB
-(Xbox), and input the D-pad directions. Press reporting says active cheats stop
-saving and trophies/achievements in that session. Save first. Story Mode only.
+(Xbox), and input the D-pad directions. Game guides report that active cheats
+disable saving and trophies or achievements for the session. Save first.
+Cheats are for Story Mode.
 
 ## Cheat sources
 

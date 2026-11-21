@@ -1,4 +1,5 @@
 #include <furi.h>
+#include <gui/elements.h>
 #include <gui/gui.h>
 #include <gui/modules/submenu.h>
 #include <gui/modules/text_box.h>
@@ -7,12 +8,16 @@
 #include <string.h>
 #include "cheat_catalog.h"
 #include "companion.h"
+#include "gta_vi_companion_icons.h"
+#include "mock_loaders.h"
 
 typedef enum {
     ViewMenu,
     ViewText,
     ViewCollection,
     ViewCollectionDetail,
+    ViewHome,
+    ViewMockLoaders,
 } GtaView;
 typedef enum {
     ScreenHome,
@@ -21,6 +26,9 @@ typedef enum {
     ScreenDetail,
     ScreenGuide,
     ScreenCompanion,
+    ScreenCollections,
+    ScreenCollectionGroup,
+    ScreenMockLoaders,
 } GtaScreen;
 typedef enum {
     ListPublished,
@@ -39,22 +47,58 @@ enum {
     ItemRow = 16,
     ItemCollection = 128,
     ItemDispatch = ItemCollection + GtaCollectionCount,
+    ItemCollections,
+    ItemMockLoaders,
+    ItemExploreRow = 256,
+};
+
+typedef struct {
+    const Icon* icon;
+    uint32_t event;
+    const char* title;
+} GtaHomeItem;
+
+static const GtaHomeItem gta_home_items[] = {
+    {&I_menu_ps5_cheats_25x25, ItemPs5, "PS5 Cheats"},
+    {&I_menu_xbox_cheats_25x25, ItemXbox, "Xbox Cheats"},
+    {&I_menu_collections_25x25, ItemCollections, "Collections"},
+    {&I_menu_randys_wish_list_25x25, ItemCollection + GtaCollectionRandy, NULL},
+    {&I_menu_moses_drop_offs_25x25, ItemCollection + GtaCollectionMoses, NULL},
+    {&I_menu_wymans_classic_cars_25x25, ItemCollection + GtaCollectionWyman, NULL},
+    {&I_menu_standout_vehicles_25x25, ItemCollection + GtaCollectionStandout, NULL},
+    {&I_menu_garages_25x25, ItemCollection + GtaCollectionGarages, NULL},
+    {&I_menu_houses_cribs_25x25, ItemCollection + GtaCollectionHouses, NULL},
+    {&I_menu_dispatch_25x25, ItemDispatch, "Dispatch"},
+    {&I_menu_quick_guide_warnings_25x25, ItemGuide, "Quick guide / warnings"},
+    {&I_menu_mock_loaders_25x25, ItemMockLoaders, "Mock Loaders"},
+};
+
+enum {
+    GtaHomeColumns = 4,
+    GtaHomePageSize = 2 * GtaHomeColumns,
+    GtaHomeItemCount = sizeof(gta_home_items) / sizeof(gta_home_items[0]),
+    GtaHomePageCount = (GtaHomeItemCount + GtaHomePageSize - 1) / GtaHomePageSize,
 };
 
 typedef struct {
     ViewDispatcher* dispatcher;
+    View* home;
+    View* mock_loaders;
     Submenu* menu;
     TextBox* text;
     FuriString* content;
     GtaCompanion* companion;
     GtaScreen screen;
     GtaScreen guide_back;
+    GtaScreen companion_back;
+    const GtaExploreSection* explore_group;
     GtaListMode list_mode;
     bool xbox;
     size_t category;
     uint32_t category_selection;
     uint32_t list_selection;
-    uint32_t home_selection;
+    uint32_t explore_root_selection;
+    uint32_t explore_group_selection;
 } GtaApp;
 
 static const char* gta_sequence(const GtaApp* app, const GtaCheat* cheat) {
@@ -73,6 +117,70 @@ static void gta_post_selection(void* context, uint32_t index) {
     GtaApp* app = context;
     view_dispatcher_send_custom_event(app->dispatcher, index);
 }
+
+static void gta_home_draw(Canvas* canvas, void* context) {
+    const size_t selected = *(const size_t*)context;
+    const GtaHomeItem* item = &gta_home_items[selected];
+    const char* title = item->title;
+    if(!title) title = gta_collection_catalog[item->event - ItemCollection].title;
+    const size_t page = selected / GtaHomePageSize;
+    const size_t first = page * GtaHomePageSize;
+
+    canvas_clear(canvas);
+    canvas_set_color(canvas, ColorBlack);
+    canvas_set_font(canvas, FontSecondary);
+    canvas_draw_str_aligned(canvas, 64, 0, AlignCenter, AlignTop, title);
+    for(size_t slot = 0; slot < GtaHomePageSize && first + slot < GtaHomeItemCount; ++slot) {
+        const int32_t x = 2 + (slot % GtaHomeColumns) * 32;
+        const int32_t y = 10 + (slot / GtaHomeColumns) * 27;
+        if(first + slot == selected) canvas_draw_rframe(canvas, x, y, 27, 27, 2);
+        canvas_draw_icon(canvas, x + 1, y + 1, gta_home_items[first + slot].icon);
+    }
+    elements_scrollbar_pos(canvas, 127, 10, 54, page, GtaHomePageCount);
+}
+
+static bool gta_home_input(InputEvent* event, void* context) {
+    GtaApp* app = context;
+    if(event->key == InputKeyBack ||
+       (event->type != InputTypeShort && event->type != InputTypeRepeat)) {
+        return false;
+    }
+
+    uint32_t item_event;
+    bool moved;
+    with_view_model(
+        app->home,
+        size_t * selected,
+        {
+            size_t next = *selected;
+            switch(event->key) {
+            case InputKeyLeft:
+                next = next ? next - 1 : GtaHomeItemCount - 1;
+                break;
+            case InputKeyRight:
+                next = (next + 1) % GtaHomeItemCount;
+                break;
+            case InputKeyUp:
+                if(next >= GtaHomeColumns) next -= GtaHomeColumns;
+                break;
+            case InputKeyDown:
+                if(next / GtaHomeColumns < (GtaHomeItemCount - 1) / GtaHomeColumns)
+                    next = MIN(next + GtaHomeColumns, GtaHomeItemCount - 1U);
+                break;
+            default:
+                break;
+            }
+            moved = next != *selected;
+            *selected = next;
+            item_event = gta_home_items[next].event;
+        },
+        moved);
+
+    if(event->key == InputKeyOk && event->type == InputTypeShort)
+        gta_post_selection(app, item_event);
+    return true;
+}
+
 static void gta_item(GtaApp* app, const char* label, uint32_t index) {
     submenu_add_item(app->menu, label, index, gta_post_selection, app);
 }
@@ -84,19 +192,25 @@ static size_t gta_published_count(const GtaApp* app) {
 }
 
 static void gta_show_menu(GtaApp* app, GtaScreen screen) {
-    submenu_reset(app->menu);
     app->screen = screen;
-    char label[64];
     if(screen == ScreenHome) {
-        submenu_set_header(app->menu, "GTA VI Companion");
-        gta_item(app, "PS5 Cheats", ItemPs5);
-        gta_item(app, "Xbox Cheats", ItemXbox);
-        for(size_t i = 0; i < GtaCollectionCount; ++i) {
-            gta_item(app, gta_collection_catalog[i].title, ItemCollection + i);
+        view_dispatcher_switch_to_view(app->dispatcher, ViewHome);
+        return;
+    }
+
+    submenu_reset(app->menu);
+    char label[64];
+    if(screen == ScreenCollections || screen == ScreenCollectionGroup) {
+        const bool root = screen == ScreenCollections;
+        const GtaExploreSection* items = root ? gta_explore_sections :
+                                                app->explore_group->children;
+        const size_t count = root ? gta_explore_section_count : app->explore_group->child_count;
+        submenu_set_header(app->menu, root ? "Collections" : app->explore_group->title);
+        for(size_t i = 0; i < count; ++i) {
+            gta_item(app, items[i].title, ItemExploreRow + i);
         }
-        gta_item(app, "Dispatch", ItemDispatch);
-        gta_item(app, "Quick guide / warnings", ItemGuide);
-        submenu_set_selected_item(app->menu, app->home_selection);
+        submenu_set_selected_item(
+            app->menu, root ? app->explore_root_selection : app->explore_group_selection);
     } else if(screen == ScreenCategories) {
         submenu_set_header(app->menu, app->xbox ? "Xbox Series X|S" : "PlayStation 5");
         snprintf(label, sizeof(label), "Published inputs (%zu)", gta_published_count(app));
@@ -276,9 +390,11 @@ static void gta_guide(GtaApp* app) {
     furi_string_reset(app->content);
     furi_string_cat_printf(
         app->content,
-        "Companion v0.4\n\n"
+        "Companion v0.5\n\n"
         "Collections: OK opens the location. Right checks or unchecks a row. "
         "OK also toggles the check in details. Checkmarks are saved on the SD card.\n\n"
+        "The Collections menu groups Story Mode discoveries and collectibles. "
+        "Partial guides show their documented coverage.\n\n"
         "Dispatch offers location tips for unfinished Moses and Randy targets. "
         "Right moves to the next tip.\n\n"
         "61 GTA VI effects reported by game guides, but most inputs remain unpublished. "
@@ -303,7 +419,6 @@ static bool gta_event(void* context, uint32_t event) {
     GtaApp* app = context;
     if(app->screen == ScreenCompanion) return gta_companion_custom_event(app->companion, event);
     if(app->screen == ScreenHome) {
-        app->home_selection = event;
         if(event == ItemGuide) {
             gta_guide(app);
         } else if(event == ItemPs5 || event == ItemXbox) {
@@ -312,10 +427,39 @@ static bool gta_event(void* context, uint32_t event) {
             gta_show_menu(app, ScreenCategories);
         } else if(event >= ItemCollection && event < ItemDispatch) {
             app->screen = ScreenCompanion;
+            app->companion_back = ScreenHome;
             gta_companion_open_list(app->companion, (GtaCollectionId)(event - ItemCollection));
         } else if(event == ItemDispatch) {
             app->screen = ScreenCompanion;
+            app->companion_back = ScreenHome;
             gta_companion_open_dispatch(app->companion);
+        } else if(event == ItemCollections) {
+            gta_show_menu(app, ScreenCollections);
+        } else if(event == ItemMockLoaders) {
+            app->screen = ScreenMockLoaders;
+            view_dispatcher_switch_to_view(app->dispatcher, ViewMockLoaders);
+        }
+    } else if(app->screen == ScreenCollections || app->screen == ScreenCollectionGroup) {
+        const bool root = app->screen == ScreenCollections;
+        const GtaExploreSection* items = root ? gta_explore_sections :
+                                                app->explore_group->children;
+        const size_t count = root ? gta_explore_section_count : app->explore_group->child_count;
+        if(event < ItemExploreRow || event - ItemExploreRow >= count) return false;
+
+        const GtaExploreSection* selected = &items[event - ItemExploreRow];
+        if(root) {
+            app->explore_root_selection = event;
+        } else {
+            app->explore_group_selection = event;
+        }
+        if(selected->child_count) {
+            app->explore_group = selected;
+            app->explore_group_selection = ItemExploreRow;
+            gta_show_menu(app, ScreenCollectionGroup);
+        } else {
+            app->companion_back = app->screen;
+            app->screen = ScreenCompanion;
+            gta_companion_open_exploration(app->companion, selected);
         }
     } else if(app->screen == ScreenCategories) {
         app->category_selection = event;
@@ -355,6 +499,8 @@ static bool gta_back(void* context) {
         view_dispatcher_stop(app->dispatcher);
         break;
     case ScreenCategories:
+    case ScreenCollections:
+    case ScreenMockLoaders:
         gta_show_menu(app, ScreenHome);
         break;
     case ScreenList:
@@ -367,7 +513,10 @@ static bool gta_back(void* context) {
         gta_show_menu(app, app->guide_back);
         break;
     case ScreenCompanion:
-        if(!gta_companion_back(app->companion)) gta_show_menu(app, ScreenHome);
+        if(!gta_companion_back(app->companion)) gta_show_menu(app, app->companion_back);
+        break;
+    case ScreenCollectionGroup:
+        gta_show_menu(app, ScreenCollections);
         break;
     }
     return true;
@@ -376,14 +525,24 @@ int32_t gta_vi_cheats_app(void* args) {
     UNUSED(args);
     GtaApp app = {
         .dispatcher = view_dispatcher_alloc(),
+        .home = view_alloc(),
+        .mock_loaders = gta_mock_loaders_alloc(),
         .menu = submenu_alloc(),
         .text = text_box_alloc(),
         .content = furi_string_alloc(),
+        .explore_root_selection = ItemExploreRow,
     };
     Gui* gui = furi_record_open(RECORD_GUI);
     view_dispatcher_set_event_callback_context(app.dispatcher, &app);
     view_dispatcher_set_custom_event_callback(app.dispatcher, gta_event);
     view_dispatcher_set_navigation_event_callback(app.dispatcher, gta_back);
+    view_set_context(app.home, &app);
+    view_allocate_model(app.home, ViewModelTypeLocking, sizeof(size_t));
+    with_view_model(app.home, size_t * selected, { *selected = 0; }, false);
+    view_set_draw_callback(app.home, gta_home_draw);
+    view_set_input_callback(app.home, gta_home_input);
+    view_dispatcher_add_view(app.dispatcher, ViewHome, app.home);
+    view_dispatcher_add_view(app.dispatcher, ViewMockLoaders, app.mock_loaders);
     view_dispatcher_add_view(app.dispatcher, ViewMenu, submenu_get_view(app.menu));
     view_dispatcher_add_view(app.dispatcher, ViewText, text_box_get_view(app.text));
     app.companion = gta_companion_alloc(app.dispatcher, ViewCollection, ViewCollectionDetail);
@@ -393,7 +552,11 @@ int32_t gta_vi_cheats_app(void* args) {
     gta_companion_free(app.companion);
     view_dispatcher_remove_view(app.dispatcher, ViewText);
     view_dispatcher_remove_view(app.dispatcher, ViewMenu);
+    view_dispatcher_remove_view(app.dispatcher, ViewHome);
+    view_dispatcher_remove_view(app.dispatcher, ViewMockLoaders);
     view_dispatcher_free(app.dispatcher);
+    view_free(app.home);
+    view_free(app.mock_loaders);
     text_box_free(app.text);
     submenu_free(app.menu);
     furi_string_free(app.content);
