@@ -74,6 +74,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [AVR UPDI v0.2 documents supported chips and programming behavior (By gztproject)](https://github.com/gztproject/avr-updi) [AVR UPDI catalog submission (By gztproject)](https://github.com/flipperdevices/flipper-application-catalog/pull/1413)
 - Updated: [eReader v1.2.0 moves its default books folder into app data and adds a setup guide (By Daniel Baker)](https://github.com/daniebker/flipper_ereader)
 - Added: [RF Studio v0.1 (By Maurice Rogers)](https://github.com/cruzer45/rf-studio) - Build and operate virtual Sub-GHz remotes
+- OFW: [Reject missing BadUSB mouse arguments (By theobarrague)](https://github.com/flipperdevices/flipperzero-firmware/pull/4521)
+- GUI: [Bound TextInput drawing for long text (By jeje77131)](https://github.com/DarkFlippers/unleashed-firmware/pull/1239)
 
 <a name="release"></a>
 

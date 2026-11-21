@@ -48,6 +48,9 @@ static const uint8_t keyboard_origin_y = 29;
 static const uint8_t keyboard_row_count = 3;
 static const uint8_t keyboard_count = 2;
 
+// Bound the draw scratch space to the characters around the cursor.
+#define TEXT_INPUT_LINE_CHARS_MAX 127
+
 #define ENTER_KEY           '\r'
 #define BACKSPACE_KEY       '\b'
 #define SWITCH_KEYBOARD_KEY '\t'
@@ -280,7 +283,8 @@ static void text_input_backspace_cb(TextInputModel* model) {
 
 static void text_input_view_draw_callback(Canvas* canvas, void* _model) {
     TextInputModel* model = _model;
-    uint8_t text_length = model->text_buffer ? strlen(model->text_buffer) : 0;
+    const char* text = model->text_buffer ? model->text_buffer : "";
+    size_t text_length = strlen(text);
     uint8_t needed_string_width = canvas_width(canvas) - 8;
     uint8_t start_pos = 4;
 
@@ -293,13 +297,14 @@ static void text_input_view_draw_callback(Canvas* canvas, void* _model) {
     canvas_draw_str(canvas, 2, 8, model->header);
     elements_slightly_rounded_frame(canvas, 1, 12, 126, 15);
 
-    // +2, not +1: the cursor-insert memmove below shifts the string (incl. its
-    // NUL) one byte right, writing buf[text_length + 1].
-    char buf[text_length + 2];
-    if(model->text_buffer) {
-        strlcpy(buf, model->text_buffer, sizeof(buf));
-    }
+    // The scratch buffer holds the visible text window, cursor, ellipsis, and terminator.
+    const size_t before = MIN(cursor_pos, (size_t)TEXT_INPUT_LINE_CHARS_MAX);
+    const size_t after = MIN(text_length - cursor_pos, (size_t)TEXT_INPUT_LINE_CHARS_MAX);
+    char buf[before + after + 1 + 3 + 1];
+    memcpy(buf, text + cursor_pos - before, before + after);
+    buf[before + after] = '\0';
     char* str = buf;
+    cursor_pos = before;
 
     if(model->clear_default_text) {
         elements_slightly_rounded_box(
@@ -656,7 +661,7 @@ static bool text_input_view_ascii_callback(AsciiEvent* event, void* context) {
         return true;
     default: // Look in keyboards
         TextInputModel* model = view_get_model(text_input->view);
-        uint8_t text_length = model->text_buffer ? strlen(model->text_buffer) : 0;
+        size_t text_length = model->text_buffer ? strlen(model->text_buffer) : 0;
         bool uppercase = model->clear_default_text || text_length == 0;
         for(size_t k = 0; k < keyboard_count; k++) {
             bool symbols = k == symbol_keyboard.keyboard_index;
