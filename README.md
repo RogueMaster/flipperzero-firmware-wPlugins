@@ -39,7 +39,6 @@ All messages are also logged to /ext/apps_data/z5flip/log.txt.
 
 - Z-5R with 4 KB (680 keys) and 8 KB (1363 keys) memory. Z-5R model 5000 and Matrix (16/32 KB, Z7 format) are not supported.
 - Read and write block the screen for a few seconds.
-- The seconds-to-code conversion of the open time is not yet calibrated on hardware.
 - Skipping the backup after a read does not check that the same controller is still connected: read or back up a different controller before writing to it.
 
 ## Source
