@@ -858,7 +858,7 @@ static void open_bytes(App* app, ByteMode mode, const Z5rKey* k) {
     uint8_t len = k ? k->len : 6;
     for(int i = 0; k && i < len; i++) app->edit[i] = k->b[len - 1 - i];
     bytes_back = mode == ByteAdd ? VAdd : VKey;
-    byte_input_set_header_text(app->bytes, len == 3 ? "Short key, MSB first" : "Key MSB first (1st <= 0F)");
+    byte_input_set_header_text(app->bytes, len == 3 ? "Short key, MSB first" : "Key MSB first");
     go(app, VBytes);
 }
 
@@ -937,12 +937,8 @@ static void bytes_done(void* ctx) {
     App* app = ctx;
     Z5rKey k = {.len = 6, .attr = app->tattr};
     if(app->byte_mode == ByteEdit) k = app->db->keys[app->sel];
-    if(k.len == 6 && app->edit[0] > 0x0F) { /* the top nibble would be dropped silently */
-        show_msg(app, "Bad number", "First byte must be\n00..0F");
-        return;
-    }
     for(int i = 0; i < k.len; i++) k.b[i] = app->edit[k.len - 1 - i];
-    if(k.len == 6) k.b[5] &= 0x0F; /* top nibble of byte 6 holds flags in controller memory */
+    if(k.len == 6) k.b[5] &= 0x0F; /* top nibble of byte 6 holds flags in controller memory: the controller drops it too */
     if(app->byte_mode == ByteAdd) {
         add_key(app, &k);
         return;
