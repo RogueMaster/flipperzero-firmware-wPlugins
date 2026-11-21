@@ -9,3 +9,4 @@ spi_mem_manager
 swd_probe
 telink_sws
 wch_swio_flasher
+z5flip
