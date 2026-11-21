@@ -16,8 +16,8 @@ enum {
 static const MarauderMenuItem marauder_wifi_menu_items[] = {
     {"WiFi Spam>",
      "WiFi Spam>",
-     "Rastgele, Rick Roll, komik veya sayisi belirlenmis sahte WiFi aglari yayinlar.",
-     "Broadcasts random, Rick Roll, funny, or a fixed number of fake WiFi networks."},
+     "ssids.txt dosyasindan veya komik isimlerden sahte WiFi aglari yayinlar.",
+     "Broadcasts fake WiFi networks from ssids.txt or funny names."},
     {"Saldirilar>",
      "Attacks>",
      "Deauth, Hedefli Deauth, Probe Flood, AP Klon, SAE, CSA, Quiet Time, Bad Msg, Assoc Sleep ve Evil Portal (Karma).",
