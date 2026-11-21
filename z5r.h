@@ -73,6 +73,7 @@ typedef enum {
     CtlNoFit, /* base larger than the controller (info.size) */
     CtlPageFail, /* page write failed (info.addr) */
     CtlCommitFail, /* final page 0 write failed */
+    CtlLegacy, /* controller uses the old 4-byte-record layout; write only with force */
 } CtlResult;
 typedef struct {
     uint16_t size; /* controller memory, 0 = unknown code */
@@ -81,7 +82,7 @@ typedef struct {
 } CtlInfo;
 CtlResult z5r_ctl_probe(uint8_t page0[Z5R_PAGE], CtlInfo* i);
 CtlResult z5r_ctl_read(Z5rDb* db, CtlInfo* i);
-CtlResult z5r_ctl_write(Z5rDb* db, CtlInfo* i); /* page 0 first with 0x34, then changed pages, 0x33 last */
+CtlResult z5r_ctl_write(Z5rDb* db, CtlInfo* i, bool force); /* page 0 first with 0x34, then changed pages, 0x33 last */
 CtlResult z5r_ctl_erase(CtlInfo* i);
 
 /* Z-2 adapter emulation over USB CDC (channel 1, CLI stays on channel 0) */

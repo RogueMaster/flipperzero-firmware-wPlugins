@@ -19,12 +19,14 @@ CtlResult z5r_ctl_read(Z5rDb* db, CtlInfo* i) {
     return z5r_parse(db) ? CtlOk : CtlBadCode;
 }
 
-CtlResult z5r_ctl_write(Z5rDb* db, CtlInfo* i) {
+CtlResult z5r_ctl_write(Z5rDb* db, CtlInfo* i, bool force) {
     uint8_t p0[Z5R_PAGE];
     CtlResult r = z5r_ctl_probe(p0, i);
     if(r) return r;
     if(!i->size) return CtlBadCode;
     if(db->count > z5r_capacity(i->size)) return CtlNoFit;
+    /* the build always emits the new layout; an old firmware may not understand it */
+    if(p0[0] < 0x11 && !force) return CtlLegacy;
     db->mem_size = i->size; /* image layout of this controller */
     /* an empty base is fine: only the open time may be needed, the controller then collects keys by itself */
     memcpy(db->mem + 1, p0 + 1, 2); /* keep controller-specific header bytes, as BaseZ5R does */

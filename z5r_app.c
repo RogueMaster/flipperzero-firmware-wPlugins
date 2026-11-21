@@ -425,6 +425,9 @@ static void ctl_fail(App* app, int op, CtlResult r, const CtlInfo* ci) {
             show_msg(app, "Write FAILED", m);
         }
         return;
+    case CtlLegacy:
+        show_msg(app, "Write cancelled", "Old key layout kept");
+        return;
     default:
         show_msg(app, "Write FAILED", "Commit page failed");
     }
@@ -452,7 +455,9 @@ static void write_run(App* app) {
     busy_icon(app, &z5_write_icon, "Writing", &sequence_blink_start_magenta);
     power_on(app);
     CtlInfo ci;
-    CtlResult r = z5r_ctl_write(app->db, &ci);
+    CtlResult r = z5r_ctl_write(app->db, &ci, false);
+    if(r == CtlLegacy && confirm(app, "Old format!", "Controller uses the old\nkey layout. Write the\nnew one anyway?"))
+        r = z5r_ctl_write(app->db, &ci, true);
     if(r) {
         ctl_fail(app, OpWrite, r, &ci);
         return;
