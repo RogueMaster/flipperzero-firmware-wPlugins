@@ -427,7 +427,7 @@ static void do_read(App* app) {
         return;
     }
     app->src = 1;
-    app->bak = backup_controller(app, ci.size, DATA_DIR "/controller_last" EXT); /* replaced on every read */
+    app->bak = save_file(app, DATA_DIR "/controller_last" EXT); /* db->mem is still the raw image just read; replaced on every read */
     app->modified = false;
     app->base0 = app->db->count;
     main_labels(app);
