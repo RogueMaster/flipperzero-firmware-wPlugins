@@ -54,7 +54,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - Sub-GHz: [Fix the Enhanced Sub-GHz Chat MemManage crash on launch. (By mishamyte)](https://github.com/xMasterX/all-the-plugins/pull/285)
 - Bluetooth: [Fix PC Monitor display updates and initialize the status display on launch. (By xMasterX)](https://github.com/xMasterX/all-the-plugins/commit/cb339f82d2d0855313183920f0154d9fdb665e5a)
 - GPIO: [Rework nRF24 Channel Scanner with a 128-channel activity plot, adjustable dwell, and rate-limited redraws. (By xMasterX)](https://github.com/xMasterX/all-the-plugins/commit/cb339f82d2d0855313183920f0154d9fdb665e5a)
-- Updated: [GTA VI Cheats v0.3 (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/tree/420/applications/external/gta_vi_cheats)
 - Updated: [Internet Bridge v0.5.1 (By mete888)](https://github.com/mete888/flipper_usb_to_wifi)
 - Added: [ServoMotor v1.0 (By alcdaniel)](https://github.com/alcdaniel/flipper-servo-tester-hw)
 - Added: [UART Logger v1.0 (By 2p4g0)](https://github.com/2p4g0/flipper-uart-logger)
@@ -67,6 +66,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Quadrastic v1.1 (By ivanbarsukov)](https://github.com/ivanbarsukov/flipperzero-quadrastic) [Guard Quadrastic against GUI layout changes. (By xMasterX)](https://github.com/xMasterX/all-the-plugins/commit/981826ad5e4c94e210b16712f3bba92e7e0e7ecd)
 - Added: [Lanternfall v1.0, a lantern-lit procedural island RPG (By Dusk Engineering)](https://github.com/DuskEngServices/lanternfall-flipper)
 - Added: [FZReader v1.0 for EPUB books (By leptopt1los)](https://github.com/Leptopt1los/fzreader)
+- ESP Flasher: [Comes with Marauder v1.21.0 (By justcallmekoko)](https://github.com/justcallmekoko/ESP32Marauder/releases/tag/v1.21.0)
+- Updated: [GTA VI Cheats v0.3.1 (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/tree/420/applications/external/gta_vi_cheats)
 
 <a name="release"></a>
 
@@ -96,7 +97,7 @@ This software is for experimental purposes only and is not meant for any illegal
 ## New on MNTM RM Branch!
 
 - TLDR: More Assets, Game Mode, RM Passport & Many more apps! Extra NFC, RFID & SubGHz features!
-- ESP Flasher: [Comes with Marauder v1.20.0 (By justcallmekoko)](https://github.com/justcallmekoko/ESP32Marauder/releases/tag/v1.20.0)
+- ESP Flasher: [Comes with Marauder v1.21.0 (By justcallmekoko)](https://github.com/justcallmekoko/ESP32Marauder/releases/tag/v1.21.0)
 - Animations: [Asset Packs for RM HERE](https://github.com/RogueMaster/awesome-flipperzero-withModules/tree/rogue_main/RM_AssetPacks)
 - Animations: [PREVIEW "RM Minimal" animations (build default)](https://www.patreon.com/posts/animation-rm-77441581) or [OTHER SETS](https://www.patreon.com/RogueMaster?filters[tag]=Animations)
 - Archive: Open MP3 from File Browser, thanks to [MP3 Player v3.5 (By coolshrimp)](https://github.com/coolshrimp/flipperzero-mp3-player)
@@ -680,7 +681,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [GPS v1.5 (By ezod)](https://github.com/ezod/flipperzero-gps) `Req: NMEA 0183`
 - [Gree AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
 - [GS1 Parser v0.2 (By kdiller713)](https://github.com/kdiller713/public-FlipperApps/tree/main/gs1_rfid_parser) `Req: U107 or YRM100`
-- [GTA VI Cheats v0.3 (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/tree/420/applications/external/gta_vi_cheats)
+- [GTA VI Cheats v0.3.1 (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/tree/420/applications/external/gta_vi_cheats)
 - [Guido Music Score Reader v0.1 (By fgreil)](https://github.com/fgreil/mitzi-guido)
 - [Guitar Chords v1.0 (By KingBoa / NoodleNugget-com)](https://github.com/NoodleNugget-com/flipper-guitar-chords)
 - [H1030L Writer v1.3 (By Zacvr)](https://github.com/Zacvr/h10301_writer)

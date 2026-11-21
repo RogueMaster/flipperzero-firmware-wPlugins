@@ -8,6 +8,6 @@ App(
     fap_category="Tools",
     fap_author="RogueMaster",
     fap_weburl="https://github.com/RogueMaster/flipperzero-firmware-wPlugins/tree/420/applications/external/gta_vi_cheats",
-    fap_version="0.3",
+    fap_version="0.3.1",
     fap_description="Offline GTA VI cheats, unlocks and source audit",
 )

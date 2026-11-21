@@ -1,15 +1,15 @@
-# GTA VI Cheats v0.3 - Flipper Zero / RM 420
+# GTA VI Cheats v0.3.1 - Flipper Zero / RM 420
 
 Unofficial, offline Story Mode cheat reference for PlayStation 5 and Xbox Series X|S.
-Version 0.3 builds directly on the published RM 0.2 app. It retains `cheat_catalog.c` / `.h`, the
-Flipper GUI, application ID, author, Tools category, and original `icon.png` (unchanged).
 
-## Catalog and evidence - checked November 19, 2026
+## Catalog and evidence - updated November 21, 2026
 
 - 61 *reported* GTA VI cheat effects: Player 10, Combat 11, Vehicles 21, Environment 3, Filters 16.
 - The existing 18 published PS5/Xbox D-pad inputs from v0.2 are preserved without changes.
-- New single-source PS5 report: Drunk = `Up Left Right Up Up Left Right Up Left Right`.
-  Source: Polygon as recorded at GTA6DB. NOT independently verified; Xbox input not populated.
+- Drunk is populated for both PS5 and Xbox: `Up Left Right Up Up Left Right Up Left Right`.
+  Sources: PC Gamer, GamesRadar+ and TrueAchievements (checked November 21, 2026).
+  The catalog now has 19 published inputs per platform. Drunk has not been independently
+  console-tested by this app; multiple publications do not establish separate console tests.
 - The other 42 effects have no published input recorded here. Their individual unlock
   requirements are nevertheless browsable, and a missing input displays `[?]`.
 - All **28 button sequences** shown in the supplied image are now transcribed in C
@@ -47,7 +47,8 @@ saving and trophies/achievements in that session. Save first. Story Mode only.
 - [PowerPyx GTA VI cheats](https://www.powerpyx.com/gta-6-all-cheats/)
 - [GamesRadar+ GTA VI cheats](https://www.gamesradar.com/games/grand-theft-auto/gta-6-cheats/)
 - [PC Gamer GTA VI cheats](https://www.pcgamer.com/games/grand-theft-auto/gta-6-cheats-list/)
-- [GTA6DB live source log](https://gta6db.io/cheats) (single-source Polygon report)
+- [TrueAchievements GTA VI cheats](https://www.trueachievements.com/news/gta-6-cheat-codes)
+- [GTA6DB live source log](https://gta6db.io/cheats) (historical source log)
 - [PC Gamer GTA San Andreas cheats](https://www.pcgamer.com/games/grand-theft-auto/san-andreas-cheats/)
 
 Source discrepancies from v0.2 are **preserved**:

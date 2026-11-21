@@ -80,7 +80,7 @@ static void gta_show_menu(GtaApp* app, GtaScreen screen) {
     app->screen = screen;
     char label[64];
     if(screen == ScreenPlatform) {
-        submenu_set_header(app->menu, "GTA VI Cheats v0.3");
+        submenu_set_header(app->menu, "GTA VI Cheats v0.3.1");
         gta_item(app, "PlayStation 5", ItemPs5);
         gta_item(app, "Xbox Series X|S", ItemXbox);
         gta_item(app, "Quick guide / warnings", ItemGuide);
@@ -264,12 +264,12 @@ static void gta_guide(GtaApp* app) {
     furi_string_reset(app->content);
     furi_string_cat_printf(
         app->content,
-        "Quick guide (v0.3)\n\n"
+        "Quick guide (v0.3.1)\n\n"
         "61 GTA VI effects reported by game guides, but most inputs remain unpublished. "
         "[?] marks entries without a code.\n\n"
-        "18 inputs are reported by multiple sources on PS5 and Xbox. "
-        "Drunk is an EXTRA PS5-only single-source Polygon report. "
-        "Do not treat it as independently confirmed.\n\n"
+        "19 inputs are reported on PS5 and Xbox, including Drunk. "
+        "Drunk sources: PC Gamer, GamesRadar+ and TrueAchievements. "
+        "These reports do not establish independent console testing.\n\n"
         "To use: finish the story and the individual cheat's unlock challenge. "
         "Check Progress > Cheats. In free roam press D-pad Up to open phone. "
         "Hold L1 and R1 (PS5) or LB and RB (Xbox), then enter the D-pad code.\n\n"
