@@ -264,8 +264,10 @@ static void gta_secret_refresh(GtaApp* app) {
 }
 static void gta_secret_draw_label(Canvas* canvas, const char* name, int32_t x, int32_t y) {
     char buf[48];
-    snprintf(buf, sizeof(buf), "%s", name);
-    size_t len = strlen(buf);
+    size_t len = strlen(name);
+    if(len >= sizeof(buf)) len = sizeof(buf) - 1;
+    memcpy(buf, name, len);
+    buf[len] = '\0';
     while(len && canvas_string_width(canvas, buf) > 112) {
         buf[--len] = '\0';
     }
