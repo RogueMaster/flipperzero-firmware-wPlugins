@@ -27,10 +27,10 @@ This software is for experimental purposes only and is not meant for any illegal
 
 <a name="latest"></a>
 
-## Latest Updates - [PATREON: Latest Release RM1121-0530-0575c289-Patreon](https://www.patreon.com/RogueMaster?filters[tag]=Latest%20Release)
+## Latest Updates - [PATREON: Latest Release RM1121-2151-eeb9b914-Patreon](https://www.patreon.com/RogueMaster?filters[tag]=Latest%20Release)
 
-- Last Synced/Checked OFW, changes in [commits](https://github.com/flipperdevices/flipperzero-firmware/commits/dev): `2026-11-21 05:30 EST`
-- Last Synced/Checked CFW, changes in [changelog](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/CHANGELOG.md): `2026-11-21 05:30 EST`
+- Last Synced/Checked OFW, changes in [commits](https://github.com/flipperdevices/flipperzero-firmware/commits/dev): `2026-11-21 21:51 EST`
+- Last Synced/Checked CFW, changes in [changelog](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/CHANGELOG.md): `2026-11-21 21:51 EST`
 - Updated: [Sub-GHz Scheduler v3.5 (By shalebridge)](https://github.com/shalebridge/flipper-subghz-scheduler)
 - Added: [Dolphin Dash v0.1 (By Rasul Kireev)](https://github.com/rasulkireev/dolphin-dash) - Three-lane bubble collection and reef dodging
 - CFW Settings: [Fix spoof remount lifetime and avoid persisting the real OTP name as a spoof (By lewisQ17)](https://github.com/lewisQ17/Momentum-Firmware/commit/3f932590d6cf877f3ce4a13bc05cb32ead290fd0)
@@ -82,8 +82,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - Furi: [`realloc()` copies only the old block when growing, and `calloc()` checks for overflow (By jeje77131)](https://github.com/DarkFlippers/unleashed-firmware/commit/3414ad8975ede7ecbdf0dfa493d0727384860df7)
 - Sub-GHz: [Keep open captures stable during receiver history updates (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/cab80b1038ce4320569283e09604c851f340e1db)
 - Added: [Z5Flip v1.0 (By Tobirg)](https://github.com/Tobirg/z5flip) - Controller Maintenance Tool `Req: IronLogic Z-5R`
-- Updated: [GTA VI Companion v1.3 (By RogueMaster)](https://github.com/RogueMaster/GTA_VI_Companion)
 - Updated: [Amiibo Emulator v1.3 adds manual playlists (By Soap-n-Cartridge)](https://github.com/Soap-n-Cartridge/flipper_amiibo)
+- Updated: [GTA VI Companion v1.4 (By RogueMaster)](https://github.com/RogueMaster/GTA_VI_Companion)
 
 <a name="release"></a>
 
@@ -697,7 +697,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [GPS v1.5 (By ezod)](https://github.com/ezod/flipperzero-gps) `Req: NMEA 0183`
 - [Gree AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
 - [GS1 Parser v0.2 (By kdiller713)](https://github.com/kdiller713/public-FlipperApps/tree/main/gs1_rfid_parser) `Req: U107 or YRM100`
-- [GTA VI Companion v1.3 (By RogueMaster)](https://github.com/RogueMaster/GTA_VI_Companion)
+- [GTA VI Companion v1.4 (By RogueMaster)](https://github.com/RogueMaster/GTA_VI_Companion)
 - [Guido Music Score Reader v0.1 (By fgreil)](https://github.com/fgreil/mitzi-guido)
 - [Guitar Chords v1.0 (By KingBoa / NoodleNugget-com)](https://github.com/NoodleNugget-com/flipper-guitar-chords)
 - [H1030L Writer v1.3 (By Zacvr)](https://github.com/Zacvr/h10301_writer)
