@@ -1,0 +1,13 @@
+App(
+    appid="z5flip",
+    name="Z5Flip",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="z5r_app",
+    requires=["gui", "storage", "dialogs", "notification"],
+    stack_size=4 * 1024,
+    fap_category="GPIO",
+    fap_description="Z5Flip: IronLogic Z-5R key base editor",
+    fap_version="1.0",
+    fap_icon="icon.png",
+    fap_author="Tobirg",
+)
