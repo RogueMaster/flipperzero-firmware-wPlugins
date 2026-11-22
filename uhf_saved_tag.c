@@ -70,7 +70,7 @@ bool uhf_saved_tag_parse(const char* text, UhfSavedTag* out) {
         case 0: if(strcmp(colon, "UHF Tag")) return false; break;
         case 1: if(strcmp(colon, "1")) return false; break;
         case 2:
-            if(!uhf_saved_hex(colon, UHF_EPC_HEX_MAX, true)) return false;
+            if(!uhf_saved_hex(colon, UHF_EPC_HEX_MAX, false)) return false;
             strcpy(tag.epc, colon); break;
         case 3:
             if(strlen(colon) != 4U || !uhf_saved_number(colon, 16, UINT16_MAX, &number)) return false;
@@ -93,15 +93,15 @@ bool uhf_saved_tag_parse(const char* text, UhfSavedTag* out) {
         }
         line = next;
     }
-    if((seen & 0x0FU) != 0x0FU) return false;
+    if((seen & 0x0FU) != 0x0FU || (!tag.epc[0] && !tag.tid[0])) return false;
     *out = tag;
     return true;
 }
 
 bool uhf_saved_tag_format(const UhfSavedTag* tag, char* out, size_t size) {
-    if(!tag || !out || !uhf_saved_hex(tag->epc, UHF_EPC_HEX_MAX, true) ||
+    if(!tag || !out || !uhf_saved_hex(tag->epc, UHF_EPC_HEX_MAX, false) ||
        !uhf_saved_hex(tag->tid, UHF_TID_HEX_MAX, false) ||
-       !uhf_saved_hex(tag->user, UHF_USER_HEX_MAX, false) ||
+       !uhf_saved_hex(tag->user, UHF_USER_HEX_MAX, false) || (!tag->epc[0] && !tag->tid[0]) ||
        !uhf_saved_timestamp(tag->timestamp) || strlen(tag->name) >= sizeof(tag->name) ||
        strchr(tag->name, '\n') || strchr(tag->name, '\r')) return false;
     const int len = snprintf(out, size,
