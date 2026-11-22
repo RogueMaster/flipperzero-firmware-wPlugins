@@ -1,7 +1,23 @@
 # GTA VI Companion changelog
 
-## v1.6 — Location Enrichment
+## v1.7 — Secret Missions and Completion Tracking
+- Confirmed the existing shared checklist supports individual completed/uncompleted marks for Under the Bridge crossings, all stunt categories, Randy/Moses/Wyman/Standout vehicles, and populated Collections, using Right in the list or Check/Undo from details.
+- Clarified those controls in the in-app Quick guide and README; preserved shared progress files and original IDs.
+- Secret Missions now includes independently saved completion checkmarks (Right from list, OK Check/Uncheck from details) and a completion count.
+- Mission progress uses separate redundant SD save files keyed to fixed mission IDs, unaffected by chronological menu sorting.
+- Grouped the 16 home icons into gameplay, collection/vehicle, reference, and display tools; Infinite Money Glitch remains first.
+- Ordered Secret Missions by reported story access, with Chapter 1 missables prioritized and uncertain chapter requirements last.
+- Aligned the README feature list and secret walkthrough index with the actual menus.
+- Added a **Secret Missions** home-menu icon and a chronological, story-progress-ordered guide to 16 hidden activities, weapon pickups, cash routes, and Easter eggs.
+- Each secret includes earliest reported availability, specific location clues, steps, rewards, caveats, and named sources.
+- Start-of-game and missable Chapter 1 finds are listed before Chapter 2 events; uncertain chapter gates are flagged rather than guessed.
+- Added Hyde Island's Island Poacher FF-50 Manhunt guide. Silencer/attachment not established by the sources.
+- Added reported Satan ritual, Hellspawn shotgun reward, and an explicit note that an extra-health reward is not substantiated.
+- Added the UFO-to-alien-rescue route, which published walkthroughs associate with permanent Health/Stamina/Focus increases.
+- Added The Final Flush stamina reward, hidden radios, a tower egg, Chapter 1 cash routes and weapons.
+- Secret Mission checkmarks use independent save slots. Other checklists continue using the existing shared progress system, including bridges, stunts, vehicles, Collections and Dispatch.
 
+## v1.6 — Location Enrichment
 - Added reported landmarks for six Randy targets that previously lacked locations; added the final Truffade Thrax mission as new Randy ID 34, without changing existing IDs.
 - Improved 12 Standout Vehicle location descriptions and retained uncertainty/conflict labels for uncorroborated claims.
 - Added three previously absent Standout Vehicle variants (IDs 230-232): Driveshaft Hustler, Spiderweb Coquette and Seashark Sedna (Graffiti). Different variants and multiple spawn markers were not counted as new vehicles.

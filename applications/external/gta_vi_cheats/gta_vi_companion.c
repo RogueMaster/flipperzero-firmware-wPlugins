@@ -3,6 +3,8 @@
 #include <gui/gui.h>
 #include <gui/modules/submenu.h>
 #include <gui/modules/text_box.h>
+#include <gui/modules/widget.h>
+#include <storage/storage.h>
 #include <gui/view_dispatcher.h>
 #include <stdio.h>
 #include <string.h>
@@ -11,6 +13,8 @@
 #include "gta_vi_companion_icons.h"
 #include "mock_loaders.h"
 #include "safe_codes.h"
+#include "secret_missions.h"
+#include "secret_progress.h"
 
 typedef enum {
     ViewMenu,
@@ -18,6 +22,8 @@ typedef enum {
     ViewCollection,
     ViewCollectionDetail,
     ViewHome,
+    ViewSecretList,
+    ViewSecretDetail,
     ViewMockLoaders,
     ViewMockLoaderSettings,
 } GtaView;
@@ -29,6 +35,8 @@ typedef enum {
     ScreenDetail,
     ScreenGuide,
     ScreenMoneyGlitch,
+    ScreenSecretList,
+    ScreenSecretDetail,
     ScreenSafeCategories,
     ScreenSafeList,
     ScreenSafeDetail,
@@ -56,6 +64,7 @@ enum {
     ItemEmpty,
     ItemMoneyGlitch,
     ItemSafeCodes,
+    ItemSecretMissions,
     ItemRow = 16,
     ItemCollection = 128,
     ItemDispatch = ItemCollection + GtaCollectionCount,
@@ -71,6 +80,10 @@ enum {
     ItemSafePuzzles,
     ItemSafeTips,
     ItemSafeRow = 0x500,
+    ItemSecretRow = 0x600,
+    ItemSecretOpen = 0x700,
+    ItemSecretToggle,
+    ItemSecretToggleDetail,
 };
 typedef struct {
     const Icon* icon;
@@ -79,10 +92,11 @@ typedef struct {
 } GtaHomeItem;
 static const GtaHomeItem gta_home_items[] = {
     {&I_menu_infinite_money_glitch_25x25, ItemMoneyGlitch, "Infinite Money Glitch"},
-    {&I_menu_safe_codes_25x25, ItemSafeCodes, "Safe & Door Codes"},
     {&I_menu_ps5_cheats_25x25, ItemPs5, "PS5 Cheats"},
     {&I_menu_xbox_cheats_25x25, ItemXbox, "Xbox Cheats"},
     {&I_menu_collections_25x25, ItemCollections, "Collections"},
+    {&I_menu_safe_codes_25x25, ItemSafeCodes, "Safe & Door Codes"},
+    {&I_menu_secret_missions_25x25, ItemSecretMissions, "Secret Missions"},
     {&I_menu_randys_wish_list_25x25, ItemCollection + GtaCollectionRandy, NULL},
     {&I_menu_moses_drop_offs_25x25, ItemCollection + GtaCollectionMoses, NULL},
     {&I_menu_wymans_classic_cars_25x25, ItemCollection + GtaCollectionWyman, NULL},
@@ -90,9 +104,9 @@ static const GtaHomeItem gta_home_items[] = {
     {&I_menu_garages_25x25, ItemCollection + GtaCollectionGarages, NULL},
     {&I_menu_houses_cribs_25x25, ItemCollection + GtaCollectionHouses, NULL},
     {&I_menu_dispatch_25x25, ItemDispatch, "Dispatch"},
-    {&I_menu_quick_guide_warnings_25x25, ItemGuide, "Quick guide / warnings"},
     {&I_menu_mock_loaders_25x25, ItemMockLoaders, "Mock Loaders"},
     {&I_menu_mock_loader_settings_25x25, ItemMockLoaderSettings, "Mock Loader Settings"},
+    {&I_menu_quick_guide_warnings_25x25, ItemGuide, "Quick guide / warnings"},
 };
 enum {
     GtaHomeColumns = 4,
@@ -101,8 +115,19 @@ enum {
     GtaHomePageCount = (GtaHomeItemCount + GtaHomePageSize - 1) / GtaHomePageSize,
 };
 typedef struct {
+    size_t selected;
+    size_t completed;
+    uint8_t checked[GtaSecretProgressBytes];
+    bool save_error;
+} GtaSecretListModel;
+typedef struct {
     ViewDispatcher* dispatcher;
     View* home;
+    View* secret_list;
+    Widget* secret_detail;
+    Storage* secret_storage;
+    GtaSecretProgress secret_progress;
+    size_t secret_index;
     GtaMockLoaders* mock_loaders;
     Submenu* menu;
     TextBox* text;
@@ -219,10 +244,110 @@ static const char* gta_safe_category_name(uint8_t category) {
         "All codes", "Mission safes", "Operations", "Doors / garages", "Puzzles / other"};
     return labels[category < 5 ? category : 0];
 }
+static void gta_secret_refresh(GtaApp* app) {
+    size_t complete = 0;
+    for(size_t i = 0; i < gta_secret_mission_count; ++i) {
+        if(gta_secret_progress_is_checked(
+               &app->secret_progress, gta_secret_missions[i].progress_id))
+            ++complete;
+    }
+    with_view_model(
+        app->secret_list,
+        GtaSecretListModel * model,
+        {
+            model->selected = app->secret_index;
+            model->completed = complete;
+            memcpy(model->checked, app->secret_progress.save.checked, sizeof(model->checked));
+            model->save_error = app->secret_progress.save_error;
+        },
+        true);
+}
+static void gta_secret_draw_label(Canvas* canvas, const char* name, int32_t x, int32_t y) {
+    char buf[48];
+    snprintf(buf, sizeof(buf), "%s", name);
+    size_t len = strlen(buf);
+    while(len && canvas_string_width(canvas, buf) > 112) {
+        buf[--len] = '\0';
+    }
+    canvas_draw_str(canvas, x, y, buf);
+}
+static void gta_secret_list_draw(Canvas* canvas, void* context) {
+    const GtaSecretListModel* model = context;
+    canvas_clear(canvas);
+    canvas_set_color(canvas, ColorBlack);
+    canvas_set_font(canvas, FontSecondary);
+    canvas_draw_str(canvas, 2, 9, "Secret Missions");
+    char status[20];
+    snprintf(
+        status,
+        sizeof(status),
+        "%u/%u",
+        (unsigned)model->completed,
+        (unsigned)gta_secret_mission_count);
+    canvas_draw_str_aligned(canvas, 125, 9, AlignRight, AlignBottom, status);
+    canvas_draw_line(canvas, 0, 11, 127, 11);
+    const size_t first = (model->selected / 4u) * 4u;
+    for(size_t row = 0; row < 4 && first + row < gta_secret_mission_count; ++row) {
+        const size_t i = first + row;
+        const GtaSecretMission* entry = &gta_secret_missions[i];
+        const uint8_t y = (uint8_t)(20u + row * 10u);
+        if(i == model->selected) {
+            canvas_draw_box(canvas, 0, y - 8, 128, 10);
+            canvas_set_color(canvas, ColorWhite);
+        }
+        canvas_draw_frame(canvas, 3, y - 6, 7, 7);
+        const uint8_t id = entry->progress_id;
+        if(model->checked[id / 8u] & (1u << (id % 8u))) {
+            canvas_draw_line(canvas, 4, y - 3, 6, y - 1);
+            canvas_draw_line(canvas, 6, y - 1, 8, y - 5);
+        }
+        char title[60];
+        snprintf(title, sizeof(title), "%s %s", entry->stage, entry->title);
+        gta_secret_draw_label(canvas, title, 14, y);
+        canvas_set_color(canvas, ColorBlack);
+    }
+    canvas_draw_line(canvas, 0, 53, 127, 53);
+    canvas_draw_str(canvas, 2, 62, model->save_error ? "SD save failed" : "OK Details  > Check");
+}
+static bool gta_secret_list_input(InputEvent* event, void* context) {
+    GtaApp* app = context;
+    if(event->type != InputTypeShort && event->type != InputTypeRepeat) return false;
+    switch(event->key) {
+    case InputKeyUp:
+        if(app->secret_index) app->secret_index--;
+        break;
+    case InputKeyDown:
+        if(app->secret_index + 1 < gta_secret_mission_count) app->secret_index++;
+        break;
+    case InputKeyRight:
+        if(event->type == InputTypeShort)
+            view_dispatcher_send_custom_event(app->dispatcher, ItemSecretToggle);
+        return true;
+    case InputKeyOk:
+        if(event->type == InputTypeShort)
+            view_dispatcher_send_custom_event(app->dispatcher, ItemSecretOpen);
+        return true;
+    default:
+        return false;
+    }
+    gta_secret_refresh(app);
+    return true;
+}
+static void gta_secret_button_callback(GuiButtonType button, InputType type, void* context) {
+    if(button == GuiButtonTypeCenter && type == InputTypeShort) {
+        GtaApp* app = context;
+        view_dispatcher_send_custom_event(app->dispatcher, ItemSecretToggleDetail);
+    }
+}
 static void gta_show_menu(GtaApp* app, GtaScreen screen) {
     app->screen = screen;
     if(screen == ScreenHome) {
         view_dispatcher_switch_to_view(app->dispatcher, ViewHome);
+        return;
+    }
+    if(screen == ScreenSecretList) {
+        gta_secret_refresh(app);
+        view_dispatcher_switch_to_view(app->dispatcher, ViewSecretList);
         return;
     }
     submenu_reset(app->menu);
@@ -463,13 +588,19 @@ static void gta_guide(GtaApp* app) {
     furi_string_cat_printf(
         app->content,
         "Companion v" FAP_VERSION "\n\n"
+        "Secret Missions: optional finds by reported chapter. Right toggles checkmarks in the list; "
+        "OK opens details and Check/Uncheck toggles status. Progress saves on SD. "
+        "Chapter gates marked ? are uncertain. "
         "Safe & Door Codes: browse published numeric codes and passwords by type. "
         "[?] marks less-corroborated, conflicting or potentially changing reports. "
         "Ordinary robbery safes often have a random code.\n\n"
-        "Collections: OK opens the location. Right checks or unchecks a row. "
-        "OK also toggles the check in details. Checkmarks are saved on the SD card.\n\n"
-        "Collections includes Story Mode discoveries, collectibles and all 397 stunts. "
-        "Choose a county for Stunt Jumps or Under the Bridge. "
+        "Bridges, Cars, Stunts and Collections: each listed entry can be marked Completed. "
+        "Right toggles a checkmark in its list; OK opens details, with Check/Undo at center. "
+        "Progress saves to SD and reloads automatically.\n\n"
+        "Under the Bridge and Stunt Jumps are grouped by county in Collections; "
+        "Knife Flights and Base Jumps are there too (397 stunts total). "
+        "Cars include Randy, Moses, Wyman and Standout Vehicles. "
+        "Collections include cards, scans, flamingos and other finds. "
         "Any 300 stunts count toward 100%%.\n\n"
         "Dispatch: pick a region for unchecked deliveries and collectibles. "
         "OK checks or undoes a stop. Right opens the next stop. "
@@ -570,6 +701,35 @@ static void gta_safe_detail(GtaApp* app, size_t index) {
         gta_safe_status_name(entry->status));
     gta_show_text(app, ScreenSafeDetail);
 }
+static void gta_secret_detail(GtaApp* app, size_t index) {
+    if(index >= gta_secret_mission_count) return;
+    const GtaSecretMission* entry = &gta_secret_missions[index];
+    text_box_reset(app->text);
+    furi_string_reset(app->content);
+    furi_string_cat_printf(
+        app->content,
+        "%s\n\nEarliest access: %s\n\nLocation:\n%s\n\nSteps:\n%s\n\n"
+        "Reward:\n%s\n\nConfidence:\n%s\n\nSources:\n%s",
+        entry->title,
+        entry->when,
+        entry->where,
+        entry->steps,
+        entry->reward,
+        entry->status,
+        entry->sources);
+    app->screen = ScreenSecretDetail;
+    widget_reset(app->secret_detail);
+    widget_add_text_scroll_element(
+        app->secret_detail, 0, 0, 128, 52, furi_string_get_cstr(app->content));
+    widget_add_button_element(
+        app->secret_detail,
+        GuiButtonTypeCenter,
+        gta_secret_progress_is_checked(&app->secret_progress, entry->progress_id) ? "Uncheck" :
+                                                                                    "Check",
+        gta_secret_button_callback,
+        app);
+    view_dispatcher_switch_to_view(app->dispatcher, ViewSecretDetail);
+}
 static void gta_safe_tips(GtaApp* app) {
     text_box_reset(app->text);
     furi_string_reset(app->content);
@@ -599,6 +759,8 @@ static bool gta_event(void* context, uint32_t event) {
             gta_money_glitch(app);
         } else if(event == ItemSafeCodes) {
             gta_show_menu(app, ScreenSafeCategories);
+        } else if(event == ItemSecretMissions) {
+            gta_show_menu(app, ScreenSecretList);
         } else if(event == ItemGuide) {
             gta_guide(app);
         } else if(event == ItemPs5 || event == ItemXbox) {
@@ -619,6 +781,25 @@ static bool gta_event(void* context, uint32_t event) {
         } else if(event == ItemMockLoaderSettings) {
             app->screen = ScreenMockLoaderSettings;
             view_dispatcher_switch_to_view(app->dispatcher, ViewMockLoaderSettings);
+        }
+    } else if(app->screen == ScreenSecretList) {
+        if(event == ItemSecretOpen && app->secret_index < gta_secret_mission_count) {
+            gta_secret_detail(app, app->secret_index);
+        } else if(event == ItemSecretToggle && app->secret_index < gta_secret_mission_count) {
+            gta_secret_progress_toggle(
+                &app->secret_progress,
+                app->secret_storage,
+                gta_secret_missions[app->secret_index].progress_id);
+            gta_secret_refresh(app);
+        }
+    } else if(app->screen == ScreenSecretDetail) {
+        if(event == ItemSecretToggleDetail && app->secret_index < gta_secret_mission_count) {
+            gta_secret_progress_toggle(
+                &app->secret_progress,
+                app->secret_storage,
+                gta_secret_missions[app->secret_index].progress_id);
+            gta_secret_refresh(app);
+            gta_secret_detail(app, app->secret_index);
         }
     } else if(app->screen == ScreenSafeCategories) {
         if(event == ItemSafeTips) {
@@ -714,7 +895,11 @@ static bool gta_back(void* context) {
     case ScreenMockLoaderSettings:
     case ScreenMoneyGlitch:
     case ScreenSafeCategories:
+    case ScreenSecretList:
         gta_show_menu(app, ScreenHome);
+        break;
+    case ScreenSecretDetail:
+        gta_show_menu(app, ScreenSecretList);
         break;
     case ScreenSafeList:
         gta_show_menu(app, ScreenSafeCategories);
@@ -757,6 +942,14 @@ int32_t gta_vi_companion_app(void* args) {
         .explore_root_selection = ItemExploreRow,
         .safe_category_selection = ItemSafeAll,
     };
+    app.secret_storage = furi_record_open(RECORD_STORAGE);
+    gta_secret_progress_load(&app.secret_progress, app.secret_storage);
+    app.secret_list = view_alloc();
+    view_allocate_model(app.secret_list, ViewModelTypeLocking, sizeof(GtaSecretListModel));
+    view_set_context(app.secret_list, &app);
+    view_set_draw_callback(app.secret_list, gta_secret_list_draw);
+    view_set_input_callback(app.secret_list, gta_secret_list_input);
+    app.secret_detail = widget_alloc();
     Gui* gui = furi_record_open(RECORD_GUI);
     view_dispatcher_set_event_callback_context(app.dispatcher, &app);
     view_dispatcher_set_custom_event_callback(app.dispatcher, gta_event);
@@ -767,6 +960,8 @@ int32_t gta_vi_companion_app(void* args) {
     view_set_draw_callback(app.home, gta_home_draw);
     view_set_input_callback(app.home, gta_home_input);
     view_dispatcher_add_view(app.dispatcher, ViewHome, app.home);
+    view_dispatcher_add_view(app.dispatcher, ViewSecretList, app.secret_list);
+    view_dispatcher_add_view(app.dispatcher, ViewSecretDetail, widget_get_view(app.secret_detail));
     view_dispatcher_add_view(app.dispatcher, ViewMenu, submenu_get_view(app.menu));
     view_dispatcher_add_view(app.dispatcher, ViewText, text_box_get_view(app.text));
     app.mock_loaders =
@@ -792,8 +987,13 @@ int32_t gta_vi_companion_app(void* args) {
     view_dispatcher_remove_view(app.dispatcher, ViewText);
     view_dispatcher_remove_view(app.dispatcher, ViewMenu);
     view_dispatcher_remove_view(app.dispatcher, ViewHome);
+    view_dispatcher_remove_view(app.dispatcher, ViewSecretList);
+    view_dispatcher_remove_view(app.dispatcher, ViewSecretDetail);
     view_dispatcher_free(app.dispatcher);
     view_free(app.home);
+    view_free(app.secret_list);
+    widget_free(app.secret_detail);
+    furi_record_close(RECORD_STORAGE);
     text_box_free(app.text);
     submenu_free(app.menu);
     furi_string_free(app.content);
