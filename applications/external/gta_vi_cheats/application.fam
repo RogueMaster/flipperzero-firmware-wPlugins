@@ -11,5 +11,5 @@ App(
     fap_author="RogueMaster",
     fap_weburl="https://github.com/RogueMaster/GTA_VI_Companion",
     fap_version="1.5",
-    fap_description="GTA VI cheats, codes, vehicles and collectible checklists",
+    fap_description="GTA VI cheats, vehicle hunts and collectible checklists",
 )

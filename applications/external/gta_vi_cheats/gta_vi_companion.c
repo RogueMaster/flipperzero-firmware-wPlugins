@@ -246,13 +246,15 @@ static void gta_show_menu(GtaApp* app, GtaScreen screen) {
             const GtaSafeCode* entry = &gta_safe_codes[i];
             if(app->safe_category && entry->kind != (GtaSafeKind)(app->safe_category - 1))
                 continue;
+            /* Show the combination first: a long location name would hide it
+             * off-screen in the Flipper's narrow Submenu row. */
             snprintf(
                 label,
                 sizeof(label),
-                "%s: %s%s",
-                entry->name,
+                "%s%s %s",
                 entry->code,
-                entry->status >= GtaSafeReported ? " [?]" : "");
+                entry->status >= GtaSafeReported ? "?" : "",
+                entry->name);
             gta_item(app, label, ItemSafeRow + i);
         }
         if(app->safe_list_selection >= ItemSafeRow &&

@@ -1,12 +1,12 @@
 # GTA VI Companion changelog
 
 ## v1.5
+- Reordered safe-list labels to show combination first so long location names do not hide it.
 - Added **Safe & Door Codes** immediately after Infinite Money Glitch on the icon home menu, with its own vault icon.
 - Cataloged 38 published safe, mission, operation, keypad and puzzle combinations (including 4-, 5-, and 6-digit codes and two passwords). Locations, clues, chapters, and evidence-status details are browsable entirely offline.
-- Added category filters and a code on each menu row for quick lookup; Back returns to the previous filter and retains the selected row.
+- Added category filters and a code-first menu row for quick lookup; Back returns to the previous filter and retains the selected row.
 - Flagged variable, less-supported and contradictory reports rather than presenting every combination as certain. Specifically documents Kingpin Bowling (0300 vs 0330 in sources) and Saber Shipping Facility (1122 vs 1965).
 - Added a guide to randomized robbery safes, leading zeroes, employee clues and alternate opening methods. Updated the Quick Guide to mention the catalog.
-- Reused the existing 2 KiB application stack and on-demand TextBox / Submenu; no extra live data, timers, SD state, or network dependencies.
 
 ## v1.4
 - Added an Infinite Money Glitch guide to the first home-menu slot, with a dollar-sign icon and five steps for the reported Story Mode warehouse reset.
@@ -30,7 +30,6 @@
 - Expanded the GTA VI loader set to 30 images. With the 15 Dungeons & Dolphins images, Mock Loaders includes 45 full-screen images.
 - Added a randomized startup splash that displays an image from the enabled sets for half a second. Disabling both sets opens the main menu directly.
 - Switched the displayed version to the manifest's compiled `FAP_VERSION` and removed legacy checklist save support in favor of the current format.
-- Added a standalone GTA VI Companion app alongside the RogueMaster firmware build.
 
 ## v0.5
 - Added Collections with 18 card set menus and 190 documented cards, plus WAiNK locations, AHOL street art types, 1010 Murals, Kenton's Treasures, underwater discoveries, reading items, book swaps, meditations, flamingos, playlists, and Discovered Styles.
