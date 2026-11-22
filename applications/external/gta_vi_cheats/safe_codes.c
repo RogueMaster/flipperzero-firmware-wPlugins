@@ -251,7 +251,8 @@ const GtaSafeCode gta_safe_codes[] = {
         "La Perle, Vice City",
         "92665",
         "Garage next to Auntie's Place, pink bow graffiti.",
-        "Vanessa's Pfister Growler. Password found in Boobie Ike laptop.",
+        "MISSABLE: claim Vanessa's pink Pfister Growler BEFORE Chapter 3 ends. "
+        "Use Boobie Ike's laptop (MuffinsQueen15), then enter 92665 here.",
         GtaSafeDoor,
         GtaSafeCorroborated,
     },
@@ -323,7 +324,8 @@ const GtaSafeCode gta_safe_codes[] = {
         "Bayside / Vice City",
         "MuffinsQueen15",
         "Laptop in bedroom of VC Heights apartment.",
-        "Password selects MUFFINS, QUEEN and 15. Reveals 92665 garage code.",
+        "Chapter 3 only: select MUFFINS, QUEEN and 15. Read Unknown messages "
+        "for 92665; claim the pink Growler BEFORE Chapter 3 ends.",
         GtaSafePuzzle,
         GtaSafeCorroborated,
     },
