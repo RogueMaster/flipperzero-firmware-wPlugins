@@ -1,5 +1,9 @@
 # GTA VI Companion changelog
 
+## v1.4
+
+- Added an Infinite Money Glitch guide to the first home-menu slot, with a dollar-sign icon and five steps for the reported Story Mode warehouse reset.
+
 ## v1.3
 
 - Added checklists for all 397 stunts, including 130 Stunt Jumps, 202 Under the Bridge crossings, 40 Knife Flights, and 25 Base Jumps. Jumps and bridges are grouped by county. Entries include location clues, saved checkmarks, and reported bonus goals or par times. The game requires any 300 stunts for 100% completion.

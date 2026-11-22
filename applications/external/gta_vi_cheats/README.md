@@ -18,6 +18,7 @@ name. Press **OK** to open it and **Back** to return to the same icon.
 
 | Menu option | Description |
 | --- | --- |
+| Infinite Money Glitch | Five steps for the reported launch-era Apollo Aggregates warehouse reset and turning the loot into Story Mode cash. Keep a backup save; updates may patch the loop. |
 | PS5 Cheats | Browse reported PS5 inputs, unlock requirements, and unverified codes. |
 | Xbox Cheats | Browse reported Xbox inputs, unlock requirements, and unverified codes. |
 | Collections | Find Story Mode collectibles and discoveries, view location clues, and track completed entries. |
@@ -159,3 +160,7 @@ Cheats are for Story Mode.
 - [Single-source Pinhole input](https://www.respec.net/guide/318-gta-6-cheats-codes-list-unlock-requirements-ps5-xbox) and [published input status and Vehicle Force unlock](https://www.gta6database.com/cheats)
 - [GTA6DB live source log](https://gta6db.io/cheats) (historical source log)
 - [PC Gamer GTA San Andreas cheats](https://www.pcgamer.com/games/grand-theft-auto/san-andreas-cheats/)
+
+### Money glitch guide sources
+
+The app covers three reported reset methods. The manual save/reload loop is described by [KeenGamer](https://www.keengamer.com/articles/guides/gta-6-unlimited-money-glitch-guide/) and [Guías GTA 6](https://guiasgta6.com/en/guides/gta-6-unlimited-money-glitch-brians-lockup/). [VICE](https://www.vice.com/en/article/gta-6-money-glitch/) describes the character-switch reset ([switch controls and unlock](https://www.vice.com/en/article/how-to-switch-characters-in-gta-6/)), and [Insider Gaming](https://insider-gaming.com/gta-6-infinite-money-glitch/) describes leaving the area. The current game version was not tested.

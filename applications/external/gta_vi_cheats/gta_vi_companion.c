@@ -27,6 +27,7 @@ typedef enum {
     ScreenList,
     ScreenDetail,
     ScreenGuide,
+    ScreenMoneyGlitch,
     ScreenCompanion,
     ScreenCollections,
     ScreenCollectionGroup,
@@ -48,6 +49,7 @@ enum {
     ItemAll,
     ItemUnverified,
     ItemEmpty,
+    ItemMoneyGlitch,
     ItemRow = 16,
     ItemCollection = 128,
     ItemDispatch = ItemCollection + GtaCollectionCount,
@@ -65,6 +67,7 @@ typedef struct {
 } GtaHomeItem;
 
 static const GtaHomeItem gta_home_items[] = {
+    {&I_menu_infinite_money_glitch_25x25, ItemMoneyGlitch, "Infinite Money Glitch"},
     {&I_menu_ps5_cheats_25x25, ItemPs5, "PS5 Cheats"},
     {&I_menu_xbox_cheats_25x25, ItemXbox, "Xbox Cheats"},
     {&I_menu_collections_25x25, ItemCollections, "Collections"},
@@ -437,11 +440,45 @@ static void gta_guide(GtaApp* app) {
         "TRI=Triangle CIR=Circle SQR=Square; U/D/L/R=direction.");
     gta_show_text(app, ScreenGuide);
 }
+static void gta_money_glitch(GtaApp* app) {
+    text_box_reset(app->text);
+    furi_string_reset(app->content);
+    furi_string_cat_printf(
+        app->content,
+        "Infinite Money Glitch\n\n"
+        "Story Mode only. Reported at launch; updates may patch the loop. "
+        "The reset can restore warehouse pickups while your stowed bags stay put. Repeat and sell the loot; it is not instant cash. "
+        "Keep a separate backup save.\n\n"
+        "1. Find the warehouse\n"
+        "Use free roam with cheats off. A personal van with space is helpful. "
+        "Wait until Chapter 2, or back up your save before Tourist Trap; early earnings may be lost. "
+        "Go to Apollo Aggregates, east of Hamlet and north of Key Lento. Park by the red building.\n\n"
+        "2. Gather the loot\n"
+        "Check the teddy-bear van outside, the van inside, and the office table, safe and cash bag. "
+        "Keep track of which pickups come back.\n\n"
+        "3. Pack your vehicle\n"
+        "Carry loot back in bags and stow them in your personal vehicle. "
+        "Check its storage before attempting a reset.\n\n"
+        "4. Reset (choose one)\n"
+        "a) Drive about half a mile away, then return. Some one-time loot may not respawn.\n"
+        "b) After Coffee Break in Chapter 2, hold D-pad Right + R1 (PS5) or RB (Xbox) to switch. "
+        "Go from Lucia to Jason while he is far away, then switch back to Lucia.\n"
+        "c) After stowing the loot, make a manual save in a working slot. Reload that exact save. "
+        "Verify your stash and the warehouse pickups.\n\n"
+        "5. Repeat or cash out\n"
+        "Repeat only if the loot respawns. Deliver it to Brian's Lockup once unlocked (door code 7700), "
+        "or use a fence available in your chapter. Check the safehouse mailbox after a few in-game days "
+        "for delayed payout from Brian. Amounts vary.");
+    gta_show_text(app, ScreenMoneyGlitch);
+}
+
 static bool gta_event(void* context, uint32_t event) {
     GtaApp* app = context;
     if(app->screen == ScreenCompanion) return gta_companion_custom_event(app->companion, event);
     if(app->screen == ScreenHome) {
-        if(event == ItemGuide) {
+        if(event == ItemMoneyGlitch) {
+            gta_money_glitch(app);
+        } else if(event == ItemGuide) {
             gta_guide(app);
         } else if(event == ItemPs5 || event == ItemXbox) {
             app->xbox = event == ItemXbox;
@@ -536,6 +573,7 @@ static bool gta_back(void* context) {
     case ScreenDispatchRegions:
     case ScreenMockLoaders:
     case ScreenMockLoaderSettings:
+    case ScreenMoneyGlitch:
         gta_show_menu(app, ScreenHome);
         break;
     case ScreenList:
