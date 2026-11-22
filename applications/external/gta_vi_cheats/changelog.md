@@ -1,6 +1,10 @@
 # GTA VI Companion changelog
 
-## v1.9.2 
+## v1.9.3
+- Added 15 new collections
+- Expanded on 4 existing collections
+
+## v1.9.2
 - Added 12 Special Weapons
 - Added 8 Optional Missions
 - Added 6 Messages in Bottles

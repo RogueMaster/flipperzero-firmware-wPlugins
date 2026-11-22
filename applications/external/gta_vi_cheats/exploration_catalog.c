@@ -67,6 +67,24 @@ static const GtaExploreSection bridges[] = {
     GTA_LEAF("Lummox County", "bridges_lummox", 17, "Completed"),
 };
 
+static const GtaExploreSection activity_robberies[] = {
+    GTA_LEAF("Gang Operations", "gang_operations", 39, "Cleared"),
+    GTA_LEAF("Small Bank Jobs", "small_banks", 14, "Robbed"),
+    GTA_LEAF("Large Bank Vaults", "bank_vaults", 8, "Hit"),
+    GTA_LEAF("Payday Loan Jobs", "payday_loans", 7, "Robbed"),
+    GTA_LEAF("Fence Sale Milestones", "fence_goals", 4, "Reached"),
+    GTA_LEAF("Challenge Milestones", "challenge_milestones", 19, "Reached"),
+    GTA_LEAF("Smash and Grabs", "smash_grabs", 35, "Robbed"),
+    GTA_LEAF("Stick-Up Leads (partial)", "stickup_leads", 91, "Checked"),
+    GTA_LEAF("Drone Time Trials", "drone_trials", 42, "Completed"),
+    GTA_LEAF("Shooting Gold Medals", "shooting_gold", 42, "Gold"),
+    GTA_LEAF("Race Challenges", "race_challenges", 13, "Gold"),
+    GTA_LEAF("Arcade Video Games", "arcade_games", 4, "Played"),
+    GTA_LEAF("Pool Opponents", "pool_opponents", 7, "Beaten"),
+    GTA_LEAF("Golf Courses", "golf_courses", 5, "Played"),
+    GTA_LEAF("Unique Race Venues", "unique_race_hubs", 13, "Visited"),
+};
+
 const GtaExploreSection gta_explore_sections[] = {
     GTA_LEAF("Special Weapons", "special_weapons", 43, "Acquired"),
     GTA_GROUP("Collectible Cards", card_sets),
@@ -85,8 +103,9 @@ const GtaExploreSection gta_explore_sections[] = {
     GTA_GROUP("Under the Bridge", bridges),
     GTA_LEAF("Knife Flights", "knife_flights", 40, "Completed"),
     GTA_LEAF("Base Jumps", "base_jumps", 25, "Completed"),
-    GTA_LEAF("Optional Missions", "optional_missions", 8, "Completed"),
+    GTA_LEAF("Optional Missions", "optional_missions", 32, "Completed"),
     GTA_LEAF("Messages in Bottles", "messages_bottles", 6, "Read"),
+    GTA_GROUP("Activities / Robberies", activity_robberies),
     GTA_LEAF("Endings", "endings", 12, "Seen"),
 };
 const size_t gta_explore_section_count = GTA_COUNT(gta_explore_sections);
