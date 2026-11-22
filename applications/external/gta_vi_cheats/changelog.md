@@ -1,5 +1,14 @@
 # GTA VI Companion changelog
 
+## v1.6 — Location Enrichment
+
+- Added reported landmarks for six Randy targets that previously lacked locations; added the final Truffade Thrax mission as new Randy ID 34, without changing existing IDs.
+- Improved 12 Standout Vehicle location descriptions and retained uncertainty/conflict labels for uncorroborated claims.
+- Added three previously absent Standout Vehicle variants (IDs 230-232): Driveshaft Hustler, Spiderweb Coquette and Seashark Sedna (Graffiti). Different variants and multiple spawn markers were not counted as new vehicles.
+- Improved existing Capri flamingo directions and marked ambiguous map-only reports without changing the 30 known item IDs.
+- Replaced four county-only Peewees billboard records with reported highways, intersections and landmarks; added the reported final prize route to Peewees in Belville; preserved their existing checklist IDs.
+- Preserved existing Dispatch targets and all stored progress IDs. New Randy ID 34 is not yet a Dispatch stop; do not claim full new-stop dispatch parity until its mapping is integrated.
+
 ## v1.5
 - Reordered safe-list labels to show combination first so long location names do not hide it.
 - Added **Safe & Door Codes** immediately after Infinite Money Glitch on the icon home menu, with its own vault icon.

@@ -1,9 +1,9 @@
 #include "companion_catalog.h"
-
 #define GTA_COUNT(array) (sizeof(array) / sizeof((array)[0]))
+// IDs are stored on the SD card. Keep them with entries when adding or sorting rows.
+// Moses 1-15, Randy 16-63, Wyman 64-79, garages 80-111, houses 112-127,
+// Standouts 128-511. V1.6 only adds new IDs 34 and 230-232.
 
-// IDs are stored on the SD card. Keep them with the entries when sorting or adding rows.
-// Moses 1-15, Randy 16-63, Wyman 64-79, garages 80-111, houses 112-127, Standouts 128-511.
 static const GtaCollectionEntry moses[] = {
     {1,
      "'82 Canis Crawler",
@@ -35,9 +35,6 @@ static const GtaCollectionEntry moses[] = {
      "Chapter 2. Finishing Moses' requests unlocks his unique Emperor Sultan."},
 };
 
-static const char randy_map_hint[] =
-    "Check Map > Robberies > Randy's Wish List for current tips, or scan traffic with WAiNK.";
-
 static const GtaCollectionEntry randy[] = {
     {16,
      "Granforma Zorrusso",
@@ -51,7 +48,10 @@ static const GtaCollectionEntry randy[] = {
      "Pegassi Infernus",
      "Crosstown Police Station parking garage on NW 9th St, level 7.",
      NULL},
-    {19, "Buckingham Windsor Drop", NULL, randy_map_hint},
+    {19,
+     "Buckingham Windsor Drop",
+     "Northern Capri, Mariana County. Search luxury residential driveways.",
+     "Reported search area; no fixed driveway confirmed. Check Randy's map tips and WAiNK."},
     {20,
      "Pegassi Toros",
      "Outside Pegassi Residences on Bayside Dr in Tequesta Retreat.",
@@ -64,9 +64,18 @@ static const GtaCollectionEntry randy[] = {
      "Ascot Paragon",
      "Banana Hole bar on Shore Dr, Ocean Beach, or a villa in the northern Belville suburbs.",
      "Ocean Beach spawn reported around 6 PM in-game."},
-    {23, "Ocelot Jugular", NULL, randy_map_hint},
-    {24, "Buckingham Jubilee", NULL, randy_map_hint},
-    {25, "Grotti Itali RSX", NULL, randy_map_hint},
+    {23,
+     "Ocelot Jugular",
+     "Outside BITE, Atlantic Ave, Ocean Beach, Vice Beach.",
+     "Reported location; sources also spell this model Jagular. Verify with WAiNK."},
+    {24,
+     "Buckingham Jubilee",
+     "Beachfront parking along Shore Dr, Ocean Beach, Vice Beach.",
+     "Reported alternate: behind a black gate at a northern Capri residence. Spawn may vary."},
+    {25,
+     "Grotti Itali RSX",
+     "Vespucci Island villa, Rialto Islands; garage behind wooden fence.",
+     "Reported: enter right-hand garage access. Alternate: white mansion in northern Capri."},
     {26,
      "Pfister Growler",
      "Parking garage on Fig St, Ocean Beach.",
@@ -76,12 +85,18 @@ static const GtaCollectionEntry randy[] = {
      "M7 junkyard east of Boone Speedway, off Galerina St in Hamlet.",
      NULL},
     {28, "Piccia Furia", "Mansion garage on Palladia Ln, Peacock Estates.", NULL},
-    {29, "Benefactor Dubsta", NULL, randy_map_hint},
+    {29,
+     "Benefactor Dubsta",
+     "Vice Beach / Ocean Beach hotel parking areas; scan luxury SUVs.",
+     "Search area only. No independently confirmed fixed parking space."},
     {30,
      "Bravado Banshee",
      "Sweetbay Inn on East Buckley Dr in Capri. Also reported at Sunrise Premium Autos in Southside.",
      "Capri spawn reported around 3 AM in-game."},
-    {31, "Gallivanter Baller ST-D", NULL, randy_map_hint},
+    {31,
+     "Gallivanter Baller ST-D",
+     "Northern Capri, Mariana County; driveways of beige houses.",
+     "Single-guide location, not a confirmed fixed driveway."},
     {32,
      "Mamba GT",
      "Mansion in Leaf Links, Vice Beach.",
@@ -90,64 +105,68 @@ static const GtaCollectionEntry randy[] = {
      "Invetero Coquette D10",
      "Chatfield yard on the west docks of Waxman Island, Vice Beach. Look beside the red container.",
      "Appears during Randy's Steal the Coquette D10 job."},
+    {34,
+     "Truffade Thrax (final job)",
+     "Dalton Island Club. Take the ferry from Waxman Island; check the parking behind the club.",
+     "Reported final Randy mission after completing the earlier requests. Mission-dependent, not a regular spawn."},
 };
 
 static const GtaCollectionEntry wyman[] = {
     {64,
      "'67 Transgressor",
-     "Wrecks in Port Gellhorn:\n"
-     "1. Trailer park near McCarthy's Fruit & Veg.\n"
-     "2. Open shed by the blue house on Gellhorn Ave.\n"
-     "3. Behind the building at the end of the Dirt Merchants road.",
+     "Wrecks in Port Gellhorn:\n1. Trailer park near McCarthy's Fruit & Veg.\n2. Open shed by the blue house on Gellhorn Ave.\n3. Behind the building at the end of the Dirt Merchants road.",
      "Ultimate Edition. Scan 3 wrecks with WAiNK. Restoration $1,500."},
     {65,
      "'70 Riata",
-     "1. Carport opposite Key Lento's police impound.\n"
-     "2. Waterside carport in Southwind, beyond the Xero station.\n"
-     "3. Vacant gas station on Old Fort Rd, Shoeless Keys.",
+     "1. Carport opposite Key Lento's police impound.\n2. Waterside carport in Southwind, beyond the Xero station.\n3. Vacant gas station on Old Fort Rd, Shoeless Keys.",
      "Ultimate Edition. Scan 3 wrecks with WAiNK. Restoration $1,500."},
     {66,
      "'64 Mamba GT",
-     "1. Detached garage north of Leonida State Prison.\n"
-     "2. Garage behind the shops near Xero in Ambrosia.\n"
-     "3. Pond by the Thrillbilly Mud Club track.\n"
-     "4. Water beneath the broken bridge in north Moreau.",
+     "1. Detached garage north of Leonida State Prison.\n2. Garage behind the shops near Xero in Ambrosia.\n3. Pond by the Thrillbilly Mud Club track.\n4. Water beneath the broken bridge in north Moreau.",
      "Ultimate Edition. Scan 4 wrecks with WAiNK. Restoration $1,500."},
     {67,
      "Reynolds Kit Car",
-     "1. Willie's Service Center in Salton.\n"
-     "2. Mansion driveway on Casanova Island.\n"
-     "3. Orange beach container at Wild Hog Point.\n"
-     "4. Behind Donnie's Auto Repair on Seabell Ave, Watson Bay.\n"
-     "5. Mansion garage in northwest Capri.",
+     "1. Willie's Service Center in Salton.\n2. Mansion driveway on Casanova Island.\n3. Orange beach container at Wild Hog Point.\n4. Behind Donnie's Auto Repair on Seabell Ave, Watson Bay.\n5. Mansion garage in northwest Capri.",
      "Ultimate Edition. Scan 5 wrecks with WAiNK. Restoration $1,500."},
     {68,
      "'72 Deviant",
      "Wyman's salvage yard. Follow his garage marker after he calls.",
-     "Ultimate Edition. Collect the other four restored cars, wait for the call, "
-     "then pay Wyman $1,500."},
+     "Ultimate Edition. Collect the other four restored cars, wait for the call, then pay Wyman $1,500."},
 };
 
-#define GTA_BUY_GARAGE(id, name, place, price)               \
-    {id,                                                     \
-     name,                                                   \
-     place,                                                  \
-     "Buy price " price "\n1 parking slot\nAvailable after " \
-     "Daily Driver (Chapter 2) through Vice City Real Estate."}
-
 static const GtaCollectionEntry garages[] = {
-    GTA_BUY_GARAGE(80, "Mitchell Auto Center", "Historic Route 628, Kelly County.", "$4,000"),
-    GTA_BUY_GARAGE(
-        81,
-        "Persistence Road Garage",
-        "Persistence Rd, Belville, Leonard County.",
-        "$7,600"),
-    GTA_BUY_GARAGE(82, "7th Avenue Garage", "Salton, Vice City.", "$12,000"),
-    GTA_BUY_GARAGE(83, "Store n' Bolt", "Ambrosia, Kelly County.", "$16,800"),
-    GTA_BUY_GARAGE(84, "Wyatt Motors", "Allied Crystal, Ambrosia.", "$21,600"),
-    GTA_BUY_GARAGE(85, "Vela Rota Driver Garage", "Capri, Mariana County.", "$24,000"),
-    GTA_BUY_GARAGE(86, "Bonita Court Garage", "Vice Beach.", "$34,000"),
-    GTA_BUY_GARAGE(87, "Atlantic Court Garage", "Ocean Beach, Vice Beach.", "$40,000"),
+    {80,
+     "Mitchell Auto Center",
+     "Historic Route 628, Kelly County.",
+     "Buy price $4,000\n1 parking slot\nAvailable after Daily Driver (Chapter 2) through Vice City Real Estate."},
+    {81,
+     "Persistence Road Garage",
+     "Persistence Rd, Belville, Leonard County.",
+     "Buy price $7,600\n1 parking slot\nAvailable after Daily Driver (Chapter 2) through Vice City Real Estate."},
+    {82,
+     "7th Avenue Garage",
+     "Salton, Vice City.",
+     "Buy price $12,000\n1 parking slot\nAvailable after Daily Driver (Chapter 2) through Vice City Real Estate."},
+    {83,
+     "Store n' Bolt",
+     "Ambrosia, Kelly County.",
+     "Buy price $16,800\n1 parking slot\nAvailable after Daily Driver (Chapter 2) through Vice City Real Estate."},
+    {84,
+     "Wyatt Motors",
+     "Allied Crystal, Ambrosia.",
+     "Buy price $21,600\n1 parking slot\nAvailable after Daily Driver (Chapter 2) through Vice City Real Estate."},
+    {85,
+     "Vela Rota Driver Garage",
+     "Capri, Mariana County.",
+     "Buy price $24,000\n1 parking slot\nAvailable after Daily Driver (Chapter 2) through Vice City Real Estate."},
+    {86,
+     "Bonita Court Garage",
+     "Vice Beach.",
+     "Buy price $34,000\n1 parking slot\nAvailable after Daily Driver (Chapter 2) through Vice City Real Estate."},
+    {87,
+     "Atlantic Court Garage",
+     "Ocean Beach, Vice Beach.",
+     "Buy price $40,000\n1 parking slot\nAvailable after Daily Driver (Chapter 2) through Vice City Real Estate."},
     {88,
      "Port Gellhorn Station Garage",
      "Port Gellhorn, Kelly County.",
@@ -167,27 +186,22 @@ static const GtaCollectionEntry garages[] = {
     {92,
      "Shore Court Garage",
      "Shore Dr, Ocean Beach.",
-     "Vintage Vice City Pack pre-order bonus. Available in Chapter 3. 1 parking slot, "
-     "'55 Vapid Stanier and a weapon locker."},
+     "Vintage Vice City Pack pre-order bonus. Available in Chapter 3. 1 parking slot, '55 Vapid Stanier and a weapon locker."},
     {93,
      "Paradise Garage",
      "Paradise RV Park, Watson Bay.",
-     "Ultimate Edition. Chapter 2 Wyman exploration task. 1 parking slot, '67 Vapid "
-     "Dominator Buggy and a weapon locker."},
+     "Ultimate Edition. Chapter 2 Wyman exploration task. 1 parking slot, '67 Vapid Dominator Buggy and a weapon locker."},
     {94,
      "GTA+ Crosstown Garage",
      "Crosstown, Vice City.",
      "GTA+ membership benefit from Chapter 3. 1 parking slot."},
 };
 
-#undef GTA_BUY_GARAGE
-
 static const GtaCollectionEntry houses[] = {
     {112,
      "Jason's House",
      "Key Lento, Leonida Keys.",
-     "Chapter 1 starting safehouse. Brian lends Jason the stilt house. "
-     "Bed, wardrobe, floor stash and deck gym."},
+     "Chapter 1 starting safehouse. Brian lends Jason the stilt house. Bed, wardrobe, floor stash and deck gym."},
     {113,
      "Starlet Motel",
      "Port Gellhorn, Kelly County.",
@@ -199,8 +213,7 @@ static const GtaCollectionEntry houses[] = {
     {115,
      "The Y Hotel, Suite 701",
      "Ocean Beach, Vice Beach.",
-     "Chapter 4 story safehouse. Check in during Ocean Beach. "
-     "Two bedrooms, wardrobe, balcony and valet."},
+     "Chapter 4 story safehouse. Check in during Ocean Beach. Two bedrooms, wardrobe, balcony and valet."},
 };
 
 static const GtaCollectionEntry standouts[] = {
@@ -258,20 +271,20 @@ static const GtaCollectionEntry standouts[] = {
      NULL},
     {141,
      "Bravado Driveshaft Banshee",
-     "Hamlet.",
-     "Published map area. Exact landmark unconfirmed here."},
+     "Hamlet, Vice-Dale County. Inside Nova Auto Junkyard.",
+     "Reported junkyard landmark; exact parking bay unconfirmed."},
     {142,
      "Bravado Elven Queen Youga",
      "South Kelly County. Side road by the fence near Fort Acid, north of Capri.",
      NULL},
     {143,
      "Bravado Revenant Gauntlet",
-     "Ambrosia.",
-     "Published map area. Exact landmark unconfirmed here."},
+     "Ambrosia, Kelly County. Search the barn outside town.",
+     "Single-guide barn lead; exact address unconfirmed."},
     {144,
      "Bravado Swamp Blaster",
-     "Watson Bay.",
-     "Published map area. Exact landmark unconfirmed here."},
+     "Watson Bay, Mariana County. Search the swamp-tour campsite.",
+     "Reported campsite; specific vehicle position not confirmed."},
     {145,
      "Bravado Third Eye Youga",
      "Grayson, Lummox County. Beside a mobile home off SR-45. Third Eye Psychic's driveway near SR-45 after repeat visits.",
@@ -318,8 +331,8 @@ static const GtaCollectionEntry standouts[] = {
      NULL},
     {156,
      "Declasse Akane (Anime wrap)",
-     "Key Lento.",
-     "Published map area. Exact landmark unconfirmed here."},
+     "Dolphin Dr, Key Lento, Mariana County. Reported inside a residential garage.",
+     "Single-source street-level report; confirm house and garage by scanning."},
     {157,
      "Declasse Beach Candy Bobcat",
      "Bobcat Key, Mariana County. Parking lot near Loggerhead Rd in northern Bobcat Key.",
@@ -402,8 +415,8 @@ static const GtaCollectionEntry standouts[] = {
      "Published map area. Exact landmark unconfirmed here."},
     {177,
      "Imponte Ruiner Turbo",
-     "Key Lento.",
-     "Published map area. Exact landmark unconfirmed here."},
+     "Surfside Dr, Key Lento. Residential driveway beside wooden fence near local shops.",
+     "Reported street and driveway; check nearby house plots if absent."},
     {178,
      "Invetero '64 Coquette",
      "Waning Sands.",
@@ -442,8 +455,8 @@ static const GtaCollectionEntry standouts[] = {
      NULL},
     {187,
      "Maibatsu Penumbra FF (Paul Walker tribute)",
-     "Vice City.",
-     "Published map area. Exact landmark unconfirmed here."},
+     "Vespucci Island, Rialto Islands. Villa garage near island center, reportedly Neptune Cir.",
+     "Multiple guides report island garage; exact villa remains unconfirmed."},
     {188,
      "Maibatsu Pharaoh Sanchez",
      "Port Gellhorn.",
@@ -474,8 +487,8 @@ static const GtaCollectionEntry standouts[] = {
      NULL},
     {195,
      "Peacock Sovereign (motorcycle)",
-     "Capri.",
-     "Published map area. Exact landmark unconfirmed here."},
+     "Capri, Mariana County. Reportedly in garage behind a gas station.",
+     "Single map-guide landmark; station and garage not independently pinned."},
     {196,
      "Pegassi Charred Toros",
      "La Perle, Vice City. La Perle Trap House yard, off NW 10th Ave.",
@@ -486,16 +499,16 @@ static const GtaCollectionEntry standouts[] = {
      NULL},
     {198,
      "Pegassi Gold Rush Tempesta",
-     "Vice Beach.",
-     "Published map area. Exact landmark unconfirmed here."},
+     "Crimson Palms Condominiums, Washington Beach. Main gate, right ramp to covered parking.",
+     "Conflicting report: outside Cirque de Cuisine on Shore Dr, Ocean Beach. Confirm variant."},
     {199,
      "Pegassi Infernus (purple)",
-     "Vice City.",
-     "Published map area. Exact landmark unconfirmed here."},
+     "Vice City. Around the side of a building at its reported map marker.",
+     "Published map area only; building and road not confirmed."},
     {200,
      "Pegassi Tempesta (Gold)",
      "Vice Beach.",
-     "Published map area. Exact landmark unconfirmed here."},
+     "Published map area. Do not conflate with ID 198 until variant confirmed."},
     {201,
      "Pegassi Valiant Tempesta",
      "Washington Beach, Vice Beach. Courtyard in front of Vice Museum of Art.",
@@ -534,8 +547,8 @@ static const GtaCollectionEntry standouts[] = {
      NULL},
     {210,
      "Squalo \"Street Art\"",
-     "Key Lento.",
-     "Published map area. Exact landmark unconfirmed here."},
+     "Northeast end of Sunset Dr, Key Lento. Look for speedboat on a trailer.",
+     "Reported road-end and trailer; confirm by scanning boat."},
     {211,
      "Taci Ragno",
      "Vinewood Beach, Waning Sands. Bushes beside the path from Sands of Time Assisted Living to the beach.",
@@ -547,8 +560,8 @@ static const GtaCollectionEntry standouts[] = {
     {213, "Tuff Immortal BMX", "Hamlet, Vice-Dale County. Beside the Hamlet BMX Stunt Run.", NULL},
     {214,
      "Twinstripe Vigero",
-     "Key Lento.",
-     "Published map area. Exact landmark unconfirmed here."},
+     "Key Lento. Reportedly outside Brian's Isla Tropical / Lockup, near Sunset Dr.",
+     "Reported business landmark; exact curb space unconfirmed."},
     {215,
      "Vapid Beer Monster Marshall",
      "Thrillbilly Mud Club, Frogswater. Roof of the Mud Club bar near the tracks.",
@@ -609,6 +622,18 @@ static const GtaCollectionEntry standouts[] = {
      "Western Searing Zombie Bobber",
      "Belville, Leonard County. First floor of Farm Fix Meth Lab off Chastity Ave.",
      NULL},
+    {230,
+     "Vapid Driveshaft Hustler",
+     "Southeast Key Lento, Dolphin Dr. Front yard of large house east of Jeb's Snack Bar.",
+     "Two independent published guides agree on house frontage; standout, not regular '32 Hustler."},
+    {231,
+     "Invetero Spiderweb Coquette",
+     "Southeast Key Lento. Party-house ground-floor garage; garage keypad 092319.",
+     "Published garage/access instructions; may need to inspect photo clues upstairs."},
+    {232,
+     "Seashark Sedna (Graffiti)",
+     "Key Lento, Leonida Keys. Search docks and water access near map pin.",
+     "Only broad published map pin; exact dock unconfirmed."},
 };
 
 const GtaCollection gta_collection_catalog[GtaCollectionCount] = {
