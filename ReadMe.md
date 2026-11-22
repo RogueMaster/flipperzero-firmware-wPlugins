@@ -83,7 +83,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Sub-GHz: [Keep open captures stable during receiver history updates (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/cab80b1038ce4320569283e09604c851f340e1db)
 - Added: [Z5Flip v1.0 (By Tobirg)](https://github.com/Tobirg/z5flip) - Controller Maintenance Tool `Req: IronLogic Z-5R`
 - Updated: [Amiibo Emulator v1.3 adds manual playlists (By Soap-n-Cartridge)](https://github.com/Soap-n-Cartridge/flipper_amiibo)
-- Updated: [GTA VI Companion v1.4 (By RogueMaster)](https://github.com/RogueMaster/GTA_VI_Companion)
+- Updated: [GTA VI Companion v1.8 (By RogueMaster)](https://github.com/RogueMaster/GTA_VI_Companion)
 
 <a name="release"></a>
 
@@ -697,7 +697,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [GPS v1.5 (By ezod)](https://github.com/ezod/flipperzero-gps) `Req: NMEA 0183`
 - [Gree AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
 - [GS1 Parser v0.2 (By kdiller713)](https://github.com/kdiller713/public-FlipperApps/tree/main/gs1_rfid_parser) `Req: U107 or YRM100`
-- [GTA VI Companion v1.4 (By RogueMaster)](https://github.com/RogueMaster/GTA_VI_Companion)
+- [GTA VI Companion v1.8 (By RogueMaster)](https://github.com/RogueMaster/GTA_VI_Companion)
 - [Guido Music Score Reader v0.1 (By fgreil)](https://github.com/fgreil/mitzi-guido)
 - [Guitar Chords v1.0 (By KingBoa / NoodleNugget-com)](https://github.com/NoodleNugget-com/flipper-guitar-chords)
 - [H1030L Writer v1.3 (By Zacvr)](https://github.com/Zacvr/h10301_writer)
