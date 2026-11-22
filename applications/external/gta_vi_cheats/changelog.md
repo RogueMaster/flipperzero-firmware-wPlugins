@@ -1,5 +1,14 @@
 # GTA VI Companion changelog
 
+## v1.9.2 
+- Added 12 Special Weapons
+- Added 8 Optional Missions
+- Added 6 Messages in Bottles
+- Expanded on publications collection, cards, safe codes & special weapons
+
+## v1.9.1 
+- Expanded on safe codes and stand out car info
+
 ## v1.9 — Endings checklist
 - Added Collections > Endings with 12 independently checkable finale routes and epilogue variants, including descriptions of choices, preparation, and reported consequences.
 - Clearly distinguish nine reported outcomes/variants from three proposed but unverified savings-based epilogues; include a story-spoiler warning in the guide.

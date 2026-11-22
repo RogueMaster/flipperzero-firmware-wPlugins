@@ -18,10 +18,11 @@ const GtaSecretMission gta_secret_missions[] = {
     {"C1",
      "Cal's Lost Drugs",
      "Chapter 1 only, after Cal texts; missable after chapter ends",
-     "Four search areas north of Key Lento, supplied through Cal's phone hints",
-     "1. Watch for Cal's Find the Lost Drugs text during Chapter 1. 2. Visit each search circle "
-     "and locate the missing drug packages. 3. Deliver or sell the recovered goods to an "
-     "available fence before the chapter transition.",
+     "Recreation Area, Burned Houses, Pelican Valley and Thorpe Adventures; north of Key Lento",
+     "1. Check Cal's Find the Lost Drugs text in Chapter 1. 2. Search all four circles: "
+     "Recreation Area, Burned Houses, Pelican Valley, Thorpe Adventures; listen for beeps "
+     "and prepare for armed guards. 3. Sell packages to Donnie (reported $3,400) or Brian "
+     "(reported $2,720); Donnie can stop buying before Clear Skies. Finish in Chapter 1.",
      "Guide estimates $2,720-$3,400 after selling packages.",
      "Chapter 1 missable; this is a hidden optional job rather than a marked collectible.",
      "IGN (via Nexzy optional-missions guide)",

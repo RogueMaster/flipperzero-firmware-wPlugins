@@ -68,7 +68,7 @@ static const GtaExploreSection bridges[] = {
 };
 
 const GtaExploreSection gta_explore_sections[] = {
-    GTA_LEAF("Special Weapons", "special_weapons", 31, "Acquired"),
+    GTA_LEAF("Special Weapons", "special_weapons", 43, "Acquired"),
     GTA_GROUP("Collectible Cards", card_sets),
     GTA_GROUP("WAiNK Locations", waink),
     GTA_GROUP("AHOL Street Art", ahol),
@@ -85,6 +85,8 @@ const GtaExploreSection gta_explore_sections[] = {
     GTA_GROUP("Under the Bridge", bridges),
     GTA_LEAF("Knife Flights", "knife_flights", 40, "Completed"),
     GTA_LEAF("Base Jumps", "base_jumps", 25, "Completed"),
+    GTA_LEAF("Optional Missions", "optional_missions", 8, "Completed"),
+    GTA_LEAF("Messages in Bottles", "messages_bottles", 6, "Read"),
     GTA_LEAF("Endings", "endings", 12, "Seen"),
 };
 const size_t gta_explore_section_count = GTA_COUNT(gta_explore_sections);

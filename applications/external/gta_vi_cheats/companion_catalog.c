@@ -2,7 +2,8 @@
 #define GTA_COUNT(array) (sizeof(array) / sizeof((array)[0]))
 // IDs are stored on the SD card. Keep them with entries when adding or sorting rows.
 // Moses 1-15, Randy 16-63, Wyman 64-79, garages 80-111, houses 112-127,
-// Standouts 128-511. V1.6 only adds new IDs 34 and 230-232.
+// Standouts currently 128-233; Special Weapons 400-442 also use the shared progress bitmap.
+// Do not assign new Standout IDs without checking ALL TSV collections for collisions.
 
 static const GtaCollectionEntry moses[] = {
     {1,
@@ -640,7 +641,7 @@ static const GtaCollectionEntry standouts[] = {
     {233,
      "Vanessa's Pink Pfister Growler",
      "Location: Del Rio Blvd Garage, La Perle. Next to Auntie's Place; pink bow on garage door.",
-     "Access: Use Del Rio Blvd garage keypad by Auntie's Place, pink bow marking.\nAcquire: Enter 92665 and claim pink Growler BEFORE Chapter 3 ends.\nEquipment: Boobie Ike laptop password MuffinsQueen15; garage code 92665.\nOwnership: MISSABLE: claim before Chapter 3 ends; guides report the garage becomes yours."},
+     "Access: Del Rio Blvd garage next to Auntie's Place; go through run-down motel lot past Aline's Thrift Store and find the bow.\nPrerequisite: BEFORE Chapter 3 ends, use Boobie Ike's laptop. Inspect memorial photo (Muffins), vanity sketch (Queen), number 15; enter MuffinsQueen15. READ the WhatsUp message or the keypad may stay inactive.\nAcquire: Enter 92665 at garage and claim pink Growler.\nOwnership: MISSABLE after Chapter 3; later access may be lost. Existing Standout ID 233."},
 };
 
 const GtaCollection gta_collection_catalog[GtaCollectionCount] = {
