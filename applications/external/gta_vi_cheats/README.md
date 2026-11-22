@@ -60,7 +60,7 @@ the files bundled in the FAP.
 
 | Collection | Included entries |
 | --- | --- |
-| Collectible Cards | All 18 sets and 479 of 480 card entries with reported location clues. Vice City Manatees has 23 of 24. |
+| Collectible Cards | All 480 cards across 18 sets. John Morgan (Dusty Pink) has a reported area in Casanova Island and an unconfirmed pickup spot. |
 | WAiNK Locations | 31 landmarks, 35 curiosities, and 23 sculptures with landmark clues, plus 15 mapped No Flusher tags. The four Peewees billboards have county-level clues. Published No Flusher totals differ. |
 | AHOL Street Art | All 112 individual scan locations, grouped by type in the piece list. Type Progress can check or clear every piece in a type. |
 | 1010 Murals | All five photo markers, with the landmark to frame from each marker. |
@@ -69,9 +69,16 @@ the files bundled in the FAP.
 | Magazines, Books & Comics | 26 of 27 titles with location clues, including alternate copies and chapter availability where reported. |
 | Book Swaps | All seven Little Library stops, with nearby streets or landmarks. |
 | Meditations | All 18 completions at 10 spots. Shared spots have separate Jason and Lucia rows. |
-| Cocaine Flamingos | 28 reported locations out of the game's 125. |
+| Cocaine Flamingos | 30 reported locations out of the game's 125. |
 | Unique Playlists | Both playlists and all five poster locations. |
-| Discovered Styles | 19 of 79 entries have location clues, including three luxury watches. |
+| Discovered Styles | 21 of 79 entries have location clues, including three luxury watches and both tattoos from the B.A.M. magazine in Hamlet. |
+| Stunt Jumps | All 130 jumps, with launch locations and reported bonus goals. Choose a county. |
+| Under the Bridge | All 202 crossings, with the span and nearby landmarks. Choose a county. |
+| Knife Flights | All 40 flight gaps. |
+| Base Jumps | All 25 starting spots, with par times where reported. |
+
+Check off a stunt after the game registers it. Any 300 of the 397 stunts count
+toward 100% completion.
 
 The list counter tracks entries included in the app. When a confirmed game total
 exceeds the included list, the details show the catalog coverage.
@@ -84,6 +91,7 @@ completed types count toward the individual pieces and Dispatch.
 - [Card set checklists and mapped variants](https://game-checklists.com/gta6/card-sets-checklist/)
 - [Card pickup map and variant clues](https://gta6-life.com/en/tools/interactive-map/collectibles/) and [card source comparisons](https://vicecitydb.org/collectibles/collectible-cards)
 - [Collectible marker locations, including cards, murals, books and magazines](https://gtagameintel.com/en/interactive-map/?location=community-1090704)
+- [Stunt locations and directions](https://gtagameintel.com/en/interactive-map/) and [the 300-stunt completion requirement](https://www.powerpyx.com/gta-6-100-completion-checklist-guide/)
 - [WAiNK landmarks](https://www.gtabase.com/gta-6/map/?feature=waink-landmark), [curiosities](https://www.gtasixmap.com/guides/waink-curiosities), and [sculptures](https://www.gtasixmap.com/guides/waink-sculptures)
 - [WAiNK curiosity scan spots](https://thegameswiki.com/gta6/wiki/curiosities) and [sculpture scan spots](https://thegameswiki.com/gta6/wiki/sculptures)
 - [No Flusher tags and published count differences](https://gta6-life.com/en/guides/gta-6-graffiti-tags/)
@@ -98,7 +106,7 @@ completed types count toward the individual pieces and Dispatch.
 
 Keep the numeric IDs in `assets/collections/*.tsv` attached to their entries
 when editing or sorting the data. The checkmarks use those IDs. Add each new
-Dispatch stop to its source in `dispatch_catalog.c` with the pickup's region.
+Dispatch pickup to its source in `dispatch_catalog.c` with the pickup's region.
 
 ## Vehicle and property checklists
 

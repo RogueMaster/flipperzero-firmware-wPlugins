@@ -673,6 +673,8 @@ const GtaDispatchTarget gta_dispatch_targets[] = {
     {1561, GtaDispatchSourceFlamingos, OTHER},
     {1562, GtaDispatchSourceFlamingos, OTHER},
     {1563, GtaDispatchSourceFlamingos, PORT_GELLHORN},
+    {1564, GtaDispatchSourceFlamingos, OTHER},
+    {1565, GtaDispatchSourceFlamingos, KEYS},
 
     {1400, GtaDispatchSourceKenton, KEYS},
     {1401, GtaDispatchSourceKenton, KEYS},
@@ -829,6 +831,8 @@ const GtaDispatchTarget gta_dispatch_targets[] = {
     {1733, GtaDispatchSourceTattoos, VICE_CITY},
     {1734, GtaDispatchSourceTattoos, OTHER},
     {1735, GtaDispatchSourceTattoos, AMBROSIA},
+    {1736, GtaDispatchSourceTattoos, OTHER},
+    {1737, GtaDispatchSourceTattoos, OTHER},
 
     {1416, GtaDispatchSourceUnderwater, KEYS},
     {1417, GtaDispatchSourceUnderwater, KEYS},

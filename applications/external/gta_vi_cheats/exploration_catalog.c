@@ -51,6 +51,22 @@ static const GtaExploreSection styles[] = {
     GTA_LEAF("Luxury Watches", "watches", 34, "Collected"),
 };
 
+static const GtaExploreSection stunt_jumps[] = {
+    GTA_LEAF("Vice-Dale County", "jumps_vice_dale", 54, "Completed"),
+    GTA_LEAF("Mariana County", "jumps_mariana", 17, "Completed"),
+    GTA_LEAF("Kelly County", "jumps_kelly", 31, "Completed"),
+    GTA_LEAF("Leonard County", "jumps_leonard", 12, "Completed"),
+    GTA_LEAF("Lummox County", "jumps_lummox", 16, "Completed"),
+};
+
+static const GtaExploreSection bridges[] = {
+    GTA_LEAF("Vice-Dale County", "bridges_vice_dale", 59, "Completed"),
+    GTA_LEAF("Mariana County", "bridges_mariana", 39, "Completed"),
+    GTA_LEAF("Kelly County", "bridges_kelly", 52, "Completed"),
+    GTA_LEAF("Leonard County", "bridges_leonard", 35, "Completed"),
+    GTA_LEAF("Lummox County", "bridges_lummox", 17, "Completed"),
+};
+
 const GtaExploreSection gta_explore_sections[] = {
     GTA_GROUP("Collectible Cards", card_sets),
     GTA_GROUP("WAiNK Locations", waink),
@@ -64,6 +80,10 @@ const GtaExploreSection gta_explore_sections[] = {
     GTA_LEAF("Cocaine Flamingos", "flamingos", 125, "Destroyed"),
     GTA_GROUP("Unique Playlists", playlists),
     GTA_GROUP("Discovered Styles", styles),
+    GTA_GROUP("Stunt Jumps", stunt_jumps),
+    GTA_GROUP("Under the Bridge", bridges),
+    GTA_LEAF("Knife Flights", "knife_flights", 40, "Completed"),
+    GTA_LEAF("Base Jumps", "base_jumps", 25, "Completed"),
 };
 
 const size_t gta_explore_section_count = GTA_COUNT(gta_explore_sections);
