@@ -1,5 +1,11 @@
 # GTA VI Companion changelog
 
+## v1.8 - Special Weapons checklist
+- Added Collections > Special Weapons with 25 independently checkable weapon finds and named variants.
+- Weapon checkmarks use the existing Acquired progress system and SD-card saves; paired finds can be tracked separately.
+- Included reported locations, search instructions, and uncertainty labels for incomplete leads.
+- Grouped the new information under Collections without modifying Secret Missions or the main home-menu layout.
+
 ## v1.7 — Secret Missions and Completion Tracking
 - Confirmed the existing shared checklist supports individual completed/uncompleted marks for Under the Bridge crossings, all stunt categories, Randy/Moses/Wyman/Standout vehicles, and populated Collections, using Right in the list or Check/Undo from details.
 - Clarified those controls in the in-app Quick guide and README; preserved shared progress files and original IDs.

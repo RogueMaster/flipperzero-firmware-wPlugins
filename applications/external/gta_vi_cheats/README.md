@@ -23,7 +23,7 @@ The home screen has 16 icons across two pages. The first page groups gameplay gu
 | **Infinite Money Glitch** | A five-step walkthrough of the reported Apollo Aggregates loot-respawn method, including vehicle storage, three possible reset approaches, and cash-out locations. |
 | **PS5 Cheats** | Reported PlayStation controller sequences, effects, unlock prerequisites, and unverified-input labels. |
 | **Xbox Cheats** | Reported Xbox inputs and effects, including confidence notes for converted sequences. |
-| **Collections** | Checklists and directions for collectible cards, WAiNK scans, art, treasure, flamingos, publications, styles, and stunt challenges. |
+| **Collections** | Checklists and directions for collectible cards, WAiNK scans, art, treasure, flamingos, publications, styles, **25 special weapons**, and stunt challenges. |
 | **Safe & Door Codes** | 38 reported safe combinations, door codes, and puzzle passwords, with location clues and source-confidence labels. |
 | **Secret Missions** | 16 checkable optional encounters, hidden weapon finds, cash routes, stat rewards, and Easter eggs, grouped by the earliest reported story chapter. Uncertain unlocks appear at the end. |
 | **Randy's Wish List** | 19 vehicle requests with reported pickup clues, access conditions, and delivery progress. |
@@ -86,11 +86,11 @@ The menu explains these steps in greater detail. **Back up your game save** befo
 
 ### Money-glitch sources
 
-- [VICE — Apollo Aggregates loot method](https://www.vice.com/en/article/gta-6-money-glitch/) and [character switching](https://www.vice.com/en/article/how-to-switch-characters-in-gta-6/).
-- [Insider Gaming — leave-area reset](https://insider-gaming.com/gta-6-infinite-money-glitch/).
-- [KeenGamer — save/reload method](https://www.keengamer.com/articles/guides/gta-6-unlimited-money-glitch-guide/).
-- [Guías GTA 6 — Brian's Lockup method](https://guiasgta6.com/en/guides/gta-6-unlimited-money-glitch-brians-lockup/).
-- [Reddit r/gtaglitches — community discussion](https://www.reddit.com/r/gtaglitches/comments/1y1gou5/gta_6_unlimited_money_red_barn_apollo_aggregates/).
+- [VICE - Apollo Aggregates loot method](https://www.vice.com/en/article/gta-6-money-glitch/) and [character switching](https://www.vice.com/en/article/how-to-switch-characters-in-gta-6/).
+- [Insider Gaming - leave-area reset](https://insider-gaming.com/gta-6-infinite-money-glitch/).
+- [KeenGamer - save/reload method](https://www.keengamer.com/articles/guides/gta-6-unlimited-money-glitch-guide/).
+- [Guías GTA 6 - Brian's Lockup method](https://guiasgta6.com/en/guides/gta-6-unlimited-money-glitch-brians-lockup/).
+- [Reddit r/gtaglitches - community discussion](https://www.reddit.com/r/gtaglitches/comments/1y1gou5/gta_6_unlimited_money_red_barn_apollo_aggregates/).
 
 ## Secret Missions and Easter eggs
 
@@ -119,12 +119,12 @@ The in-app entries contain the detailed steps and specific location clues. For t
 
 ### Secret Missions sources
 
-- [The Big Lead — Hyde Island Manhunt and Island Poacher FF-50](https://www.thebiglead.com/saw-style-killer-gta-6/); [Cultured Vultures — Hyde Island mission walkthrough](https://culturedvultures.com/gta-6-how-to-find-the-manhunt-mission/); [GTA Base — Island Poacher variant](https://www.gtabase.com/gta-6/weapons/island-poacher-ff-50).
-- [LeonidaHub — Apollo warehouse and parrot cash](https://leonidahub.org/en/news/easy-early-money-in-gta-6-the-apollo-aggregates-warehouse-and-the-parrot-that-knows-where-the-cash-is); [GTA6CommunityWiki — Chapter 1 $20K route](https://gta6communitywiki.com/tips/early-money-route); [GTA6Direct — warehouse valuables](https://gta6direct.com/free-loot).
-- [GTA6.free — Permit Keys, outpost and free weapons](https://gta6.free/weapons/gta-6-unique-weapon-locations); [GTA6 Vice City Hub — secret weapon leads](https://www.gtavicecityhub.com/secrets).
-- [GamesRadar+ — The Final Flush and permanent stamina](https://www.gamesradar.com/games/grand-theft-auto/gta-6-final-flush-increase-maximum-stamina/); [PowerPyx — optional mission chapter windows](https://www.powerpyx.com/gta-6-all-strangers-freaks-side-missions/); [Nexzy — missable optional missions](https://www.nexzyapp.com/games/grand-theft-auto-vi/guide/gta-6-optional-missions).
-- [The Big Lead — UFO dream, airfield keypad and stat rewards](https://www.thebiglead.com/gta-6-keypad-door-code-south-point-airfield/); [Vice City DB — alien rescue evidence](https://vicecitydb.org/easter-eggs/alien-rescue-dream-quest).
-- [Indiatimes — Satan ritual and reported shotgun reward](https://www.indiatimes.com/game-guides/how-to-summon-and-kill-satan-in-gta-6-satanist-locations-hell-mission-beelzebub-dave-encounter-and-exclusive-shotgun-reward-explained/articleshow/136066345.html); [GTA Scoop — additional secrets and hidden radio stations](https://gtascoop.com/guides/gta-6-easter-eggs-and-secrets/).
+- [The Big Lead - Hyde Island Manhunt and Island Poacher FF-50](https://www.thebiglead.com/saw-style-killer-gta-6/); [Cultured Vultures - Hyde Island mission walkthrough](https://culturedvultures.com/gta-6-how-to-find-the-manhunt-mission/); [GTA Base - Island Poacher variant](https://www.gtabase.com/gta-6/weapons/island-poacher-ff-50).
+- [LeonidaHub - Apollo warehouse and parrot cash](https://leonidahub.org/en/news/easy-early-money-in-gta-6-the-apollo-aggregates-warehouse-and-the-parrot-that-knows-where-the-cash-is); [GTA6CommunityWiki - Chapter 1 $20K route](https://gta6communitywiki.com/tips/early-money-route); [GTA6Direct - warehouse valuables](https://gta6direct.com/free-loot).
+- [GTA6.free - Permit Keys, outpost and free weapons](https://gta6.free/weapons/gta-6-unique-weapon-locations); [GTA6 Vice City Hub - secret weapon leads](https://www.gtavicecityhub.com/secrets).
+- [GamesRadar+ - The Final Flush and permanent stamina](https://www.gamesradar.com/games/grand-theft-auto/gta-6-final-flush-increase-maximum-stamina/); [PowerPyx - optional mission chapter windows](https://www.powerpyx.com/gta-6-all-strangers-freaks-side-missions/); [Nexzy - missable optional missions](https://www.nexzyapp.com/games/grand-theft-auto-vi/guide/gta-6-optional-missions).
+- [The Big Lead - UFO dream, airfield keypad and stat rewards](https://www.thebiglead.com/gta-6-keypad-door-code-south-point-airfield/); [Vice City DB - alien rescue evidence](https://vicecitydb.org/easter-eggs/alien-rescue-dream-quest).
+- [Indiatimes - Satan ritual and reported shotgun reward](https://www.indiatimes.com/game-guides/how-to-summon-and-kill-satan-in-gta-6-satanist-locations-hell-mission-beelzebub-dave-encounter-and-exclusive-shotgun-reward-explained/articleshow/136066345.html); [GTA Scoop - additional secrets and hidden radio stations](https://gtascoop.com/guides/gta-6-easter-eggs-and-secrets/).
 
 **Source confidence:** These are third-party launch-period reports, not gameplay-tested by the companion. Names, spawns, unlock chapters, puzzle combinations and rewards can vary or be corrected by newer guides. Unknown requirements are explicitly labeled rather than inferred from their location.
 
@@ -146,14 +146,29 @@ An offline catalog of **38 published codes and passwords**. Choose **All codes**
 
 ### Safe and door code sources
 
-- [VICE — Illegal Operations safe codes](https://www.vice.com/en/article/all-gta-6-safe-codes-illegal-operations/).
-- [GamesRadar+ — safe codes](https://www.gamesradar.com/games/grand-theft-auto/gta-6-safe-codes/).
-- [GTA Guide — safes, doors, and garages](https://gta.guide/gta-6/guides/safe-door-garage-codes).
-- [GTA 6 Player Tools — mission and puzzle codes](https://gta6playertools.com/locations/safe-codes).
-- [GTA6Heists — robbery safe clues](https://www.gta6heists.com/robberies/safe-codes).
-- [Radio Times — door codes](https://www.radiotimes.com/technology/gaming/gta-6-door-codes-list).
-- [ToGame — safe-code catalog](https://togame.io/b/gta-6-safe-codes/).
-- [GTA Base — safe-location map](https://www.gtabase.com/gta-6/map/?feature=safe).
+- [VICE - Illegal Operations safe codes](https://www.vice.com/en/article/all-gta-6-safe-codes-illegal-operations/).
+- [GamesRadar+ - safe codes](https://www.gamesradar.com/games/grand-theft-auto/gta-6-safe-codes/).
+- [GTA Guide - safes, doors, and garages](https://gta.guide/gta-6/guides/safe-door-garage-codes).
+- [GTA 6 Player Tools - mission and puzzle codes](https://gta6playertools.com/locations/safe-codes).
+- [GTA6Heists - robbery safe clues](https://www.gta6heists.com/robberies/safe-codes).
+- [Radio Times - door codes](https://www.radiotimes.com/technology/gaming/gta-6-door-codes-list).
+- [ToGame - safe-code catalog](https://togame.io/b/gta-6-safe-codes/).
+- [GTA Base - safe-location map](https://www.gtabase.com/gta-6/map/?feature=safe).
+
+## Special Weapons
+
+Under **Collections → Special Weapons**, browse **25 individual weapon pickups and variants** covering rifles, pistols, SMGs, shotguns, launchers, a knife, and a speargun lead. Each row has a name, location or access clue, and acquisition notes. Several entries share a location but have independent checkmarks. Locations without adequate corroboration are labeled **reported** or **unconfirmed**, rather than shown as established spawns.
+
+**Mark acquired:** select a weapon and press **Right** to check or uncheck it. Press **OK** for details and choose **Check/Undo**. The status reads **Acquired**, the list shows progress, and checkmarks are saved to the app's SD-card progress files. Acquiring one of a paired set does not mark the other.
+
+Example searches include the Assassin Nipper .38 on a Permit Keys wreck, the Unpacked Comshot 12 inside a Key Lento house, the Drug Mule KZ-59 near a sunken Riquezas Keys speedboat, and the Deever Tech GLR40 plus Cockroach Xtreme 556 at the Sunrise Motel in Tequesta. These are reported community discoveries, not guaranteed spawns.
+
+### Special Weapons sources
+
+- [GTA6Bugs - unique weapon variants and locations](https://gta6bugs.com/collectibles/unique-weapon-variants)
+- [GTA Scoop - unique weapons and gang-operation rewards](https://gtascoop.com/guides/gta-6-unique-weapons/)
+- [GAMES.GG - unique weapons and pickup locations](https://games.gg/grand-theft-auto-vi/guides/grand-theft-auto-6-all-unique-weapons-where-to-get-them/)
+- [GTA Explained - hidden weapon clues and missable finds](https://gtaexplained.com/gta-6-hidden-weapons/)
 
 ## Collections and exploration
 
@@ -183,15 +198,15 @@ Select **Collections** to browse categories and individual sets. Each entry prov
 
 ### Collection and stunt sources
 
-- [PowerPyx — GTA VI collectibles and Progress database](https://www.powerpyx.com/gta-6-collectible-guide-progress-database/) and [100% completion checklist](https://www.powerpyx.com/gta-6-100-completion-checklist-guide/).
-- [GTA Game Intel — interactive map](https://gtagameintel.com/en/interactive-map/) and [collection markers](https://gtagameintel.com/en/interactive-map/?location=community-1090704).
-- [GTA Base — stunt jump map](https://www.gtabase.com/gta-6/map/?feature=stunt-jumps), [WAiNK landmarks](https://www.gtabase.com/gta-6/map/?feature=waink-landmark), and [AHOL Street Art map](https://www.gtabase.com/gta-6/map/?feature=ahol-street-art).
-- [Game Checklists — collectible card sets](https://game-checklists.com/gta6/card-sets-checklist/), [Cocaine Flamingos](https://game-checklists.com/gta6/cocaine-flamingos-checklist/), [Discovered Styles](https://game-checklists.com/gta6/styles-checklist/), [underwater discoveries](https://game-checklists.com/gta6/underwater-discoveries-checklist/), and [publications](https://game-checklists.com/gta6/magazines-books-comics-checklist/).
-- [GTA6 Life — collectible cards map](https://gta6-life.com/en/tools/interactive-map/collectibles/) and [No Flusher tags](https://gta6-life.com/en/guides/gta-6-graffiti-tags/); [Vice City DB — collectible cards](https://vicecitydb.org/collectibles/collectible-cards).
-- [GTA Six Map — WAiNK curiosities](https://www.gtasixmap.com/guides/waink-curiosities) and [sculptures](https://www.gtasixmap.com/guides/waink-sculptures); [The Games Wiki — curiosities](https://thegameswiki.com/gta6/wiki/curiosities), [sculptures](https://thegameswiki.com/gta6/wiki/sculptures), and [AHOL Street Art](https://thegameswiki.com/gta6/wiki/ahol-street-art).
-- [GTA 6 Everything — Peewees billboards](https://www.gta6everything.com/activities/peewees-billboards), [Push Square — billboard locations and prize puzzle](https://www.pushsquare.com/guides/gta-6-peewees-billboard-locations-and-grand-prize-puzzle-solution), and [The Games Wiki — billboard locations](https://thegameswiki.com/gta6/wiki/peewee-billboards).
-- [Nexzyapp — Kenton's Treasures](https://www.nexzyapp.com/games/grand-theft-auto-vi/guide/kentons-treasures).
-- [Vice City DB — Discovered Styles](https://vicecitydb.org/collectibles/discovered-styles), [GTA6 House — Marbelle watch](https://gta6.house/library/items/crowex-ambassador-breakfast-collectibles-watch), and [PowerPyx — Kingpin Bowling watch](https://www.powerpyx.com/gta-6-hit-kingpin-bowling-walkthrough/).
+- [PowerPyx - GTA VI collectibles and Progress database](https://www.powerpyx.com/gta-6-collectible-guide-progress-database/) and [100% completion checklist](https://www.powerpyx.com/gta-6-100-completion-checklist-guide/).
+- [GTA Game Intel - interactive map](https://gtagameintel.com/en/interactive-map/) and [collection markers](https://gtagameintel.com/en/interactive-map/?location=community-1090704).
+- [GTA Base - stunt jump map](https://www.gtabase.com/gta-6/map/?feature=stunt-jumps), [WAiNK landmarks](https://www.gtabase.com/gta-6/map/?feature=waink-landmark), and [AHOL Street Art map](https://www.gtabase.com/gta-6/map/?feature=ahol-street-art).
+- [Game Checklists - collectible card sets](https://game-checklists.com/gta6/card-sets-checklist/), [Cocaine Flamingos](https://game-checklists.com/gta6/cocaine-flamingos-checklist/), [Discovered Styles](https://game-checklists.com/gta6/styles-checklist/), [underwater discoveries](https://game-checklists.com/gta6/underwater-discoveries-checklist/), and [publications](https://game-checklists.com/gta6/magazines-books-comics-checklist/).
+- [GTA6 Life - collectible cards map](https://gta6-life.com/en/tools/interactive-map/collectibles/) and [No Flusher tags](https://gta6-life.com/en/guides/gta-6-graffiti-tags/); [Vice City DB - collectible cards](https://vicecitydb.org/collectibles/collectible-cards).
+- [GTA Six Map - WAiNK curiosities](https://www.gtasixmap.com/guides/waink-curiosities) and [sculptures](https://www.gtasixmap.com/guides/waink-sculptures); [The Games Wiki - curiosities](https://thegameswiki.com/gta6/wiki/curiosities), [sculptures](https://thegameswiki.com/gta6/wiki/sculptures), and [AHOL Street Art](https://thegameswiki.com/gta6/wiki/ahol-street-art).
+- [GTA 6 Everything - Peewees billboards](https://www.gta6everything.com/activities/peewees-billboards), [Push Square - billboard locations and prize puzzle](https://www.pushsquare.com/guides/gta-6-peewees-billboard-locations-and-grand-prize-puzzle-solution), and [The Games Wiki - billboard locations](https://thegameswiki.com/gta6/wiki/peewee-billboards).
+- [Nexzyapp - Kenton's Treasures](https://www.nexzyapp.com/games/grand-theft-auto-vi/guide/kentons-treasures).
+- [Vice City DB - Discovered Styles](https://vicecitydb.org/collectibles/discovered-styles), [GTA6 House - Marbelle watch](https://gta6.house/library/items/crowex-ambassador-breakfast-collectibles-watch), and [PowerPyx - Kingpin Bowling watch](https://www.powerpyx.com/gta-6-hit-kingpin-bowling-walkthrough/).
 
 ## Vehicle locations, deliveries, and properties
 
@@ -199,7 +214,7 @@ The vehicle sections describe the reported pickup area, the particular vehicle o
 
 ### Vehicle hunts
 
-**Randy's Wish List — 19 requests.** Find delivery vehicles using reported streets, buildings, parking areas, and mission hints. Examples include:
+**Randy's Wish List - 19 requests.** Find delivery vehicles using reported streets, buildings, parking areas, and mission hints. Examples include:
 
 - **Windsor Drop:** luxury residential driveways in northern Capri.
 - **Ocelot Jugular:** outside BITE on Atlantic Avenue in Ocean Beach.
@@ -211,9 +226,9 @@ The vehicle sections describe the reported pickup area, the particular vehicle o
 
 The game's **Map > Robberies** may offer more current hints for active jobs.
 
-**Moses Drop-Offs — 7 vehicles.** The guide covers the Chapter 2 story delivery and six further vehicle pickups, with drop-off instructions and activity clues.
+**Moses Drop-Offs - 7 vehicles.** The guide covers the Chapter 2 story delivery and six further vehicle pickups, with drop-off instructions and activity clues.
 
-**Wyman's Classic Cars — 5 restoration projects.** Find the reported 15 wreck parts and follow the final `'72 Deviant` pickup instructions. The collection is identified by guides as Ultimate Edition content.
+**Wyman's Classic Cars - 5 restoration projects.** Find the reported 15 wreck parts and follow the final `'72 Deviant` pickup instructions. The collection is identified by guides as Ultimate Edition content.
 
 ### Standout Vehicles
 
@@ -242,12 +257,12 @@ The **Gold Rush Tempesta** has conflicting published spawn clues: Crimson Palms 
 
 ### Vehicle and property sources
 
-- [Push Square — Moses vehicle drop-offs](https://www.pushsquare.com/guides/gta-6-moses-vehicle-drop-off-locations) and [PowerPyx — Moses walkthrough](https://www.powerpyx.com/gta-6-steal-vehicles-for-moses-walkthrough/).
-- [Push Square — Randy's Wish List](https://www.pushsquare.com/guides/gta-6-randys-wish-list-vehicle-locations), [Radio Times — Randy's vehicle locations](https://www.radiotimes.com/technology/gaming/gta-6-randys-wishlist-cars/), [GTA Base — vehicle requests](https://www.gtabase.com/gta-6/map/?feature=vehicle-request), and [GTA6Map — Randy markers](https://gta6map.io/location/randy-wish-list).
-- [PowerPyx — trophies and vehicle-request context](https://www.powerpyx.com/gta-6-grand-theft-auto-vi-trophy-guide-roadmap/).
-- [GTA Base — standout vehicles map](https://www.gtabase.com/gta-6/map/?feature=standout-vehicle) and [GTA6Map — standout locations](https://gta6map.io/location/standout-vehicle).
-- [The Games Wiki — Driveshaft Hustler](https://thegameswiki.com/gta6/wiki/driveshaft-hustler), [Spiderweb Coquette](https://thegameswiki.com/gta6/wiki/invetero-spiderweb-coquette), and [Wyman's cars](https://thegameswiki.com/gta6/wiki/wymans-cars).
-- [GTA Base — garages](https://www.gtabase.com/gta-6/articles/how-to-unlock-garages-in-gta-6), [Leonida Waypoint — properties](https://leonidawaypoint.com/database/properties), and [Output Lag — safehouses](https://outputlag.com/guides/gta-6-safehouses/).
+- [Push Square - Moses vehicle drop-offs](https://www.pushsquare.com/guides/gta-6-moses-vehicle-drop-off-locations) and [PowerPyx - Moses walkthrough](https://www.powerpyx.com/gta-6-steal-vehicles-for-moses-walkthrough/).
+- [Push Square - Randy's Wish List](https://www.pushsquare.com/guides/gta-6-randys-wish-list-vehicle-locations), [Radio Times - Randy's vehicle locations](https://www.radiotimes.com/technology/gaming/gta-6-randys-wishlist-cars/), [GTA Base - vehicle requests](https://www.gtabase.com/gta-6/map/?feature=vehicle-request), and [GTA6Map - Randy markers](https://gta6map.io/location/randy-wish-list).
+- [PowerPyx - trophies and vehicle-request context](https://www.powerpyx.com/gta-6-grand-theft-auto-vi-trophy-guide-roadmap/).
+- [GTA Base - standout vehicles map](https://www.gtabase.com/gta-6/map/?feature=standout-vehicle) and [GTA6Map - standout locations](https://gta6map.io/location/standout-vehicle).
+- [The Games Wiki - Driveshaft Hustler](https://thegameswiki.com/gta6/wiki/driveshaft-hustler), [Spiderweb Coquette](https://thegameswiki.com/gta6/wiki/invetero-spiderweb-coquette), and [Wyman's cars](https://thegameswiki.com/gta6/wiki/wymans-cars).
+- [GTA Base - garages](https://www.gtabase.com/gta-6/articles/how-to-unlock-garages-in-gta-6), [Leonida Waypoint - properties](https://leonidawaypoint.com/database/properties), and [Output Lag - safehouses](https://outputlag.com/guides/gta-6-safehouses/).
 
 ## PS5 and Xbox Cheats
 
@@ -259,13 +274,13 @@ The app displays codes and instructions; it does not send controller inputs. Scr
 
 ### Cheat sources
 
-- [PowerPyx — GTA VI cheat list](https://www.powerpyx.com/gta-6-all-cheats/).
-- [GamesRadar+ — cheat guide](https://www.gamesradar.com/games/grand-theft-auto/gta-6-cheats/).
-- [PC Gamer — cheat list](https://www.pcgamer.com/games/grand-theft-auto/gta-6-cheats-list/).
-- [TrueAchievements — reported codes](https://www.trueachievements.com/news/gta-6-cheat-codes).
-- [Nerdism — PS5 and Xbox comparison](https://nerdism.com/gta-6-cheat-codes-live/).
-- [Respec — inputs and reported unlocks](https://www.respec.net/guide/318-gta-6-cheats-codes-list-unlock-requirements-ps5-xbox) and [GTA6Database — cheat status](https://www.gta6database.com/cheats).
-- [GTA6DB — code catalog](https://gta6db.io/cheats).
+- [PowerPyx - GTA VI cheat list](https://www.powerpyx.com/gta-6-all-cheats/).
+- [GamesRadar+ - cheat guide](https://www.gamesradar.com/games/grand-theft-auto/gta-6-cheats/).
+- [PC Gamer - cheat list](https://www.pcgamer.com/games/grand-theft-auto/gta-6-cheats-list/).
+- [TrueAchievements - reported codes](https://www.trueachievements.com/news/gta-6-cheat-codes).
+- [Nerdism - PS5 and Xbox comparison](https://nerdism.com/gta-6-cheat-codes-live/).
+- [Respec - inputs and reported unlocks](https://www.respec.net/guide/318-gta-6-cheats-codes-list-unlock-requirements-ps5-xbox) and [GTA6Database - cheat status](https://www.gta6database.com/cheats).
+- [GTA6DB - code catalog](https://gta6db.io/cheats).
 
 ## Mock Loaders
 

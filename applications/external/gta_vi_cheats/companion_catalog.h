@@ -29,7 +29,7 @@ typedef struct {
 
 enum {
     GtaProgressBytes = 256,
-    GtaExploreFirstId = 512,
+    GtaExploreFirstId = 400,
 };
 
 extern const GtaCollection gta_collection_catalog[GtaCollectionCount];
