@@ -10,6 +10,7 @@
 #include "companion.h"
 #include "gta_vi_companion_icons.h"
 #include "mock_loaders.h"
+#include "safe_codes.h"
 
 typedef enum {
     ViewMenu,
@@ -28,6 +29,10 @@ typedef enum {
     ScreenDetail,
     ScreenGuide,
     ScreenMoneyGlitch,
+    ScreenSafeCategories,
+    ScreenSafeList,
+    ScreenSafeDetail,
+    ScreenSafeTips,
     ScreenCompanion,
     ScreenCollections,
     ScreenCollectionGroup,
@@ -50,6 +55,7 @@ enum {
     ItemUnverified,
     ItemEmpty,
     ItemMoneyGlitch,
+    ItemSafeCodes,
     ItemRow = 16,
     ItemCollection = 128,
     ItemDispatch = ItemCollection + GtaCollectionCount,
@@ -58,16 +64,22 @@ enum {
     ItemMockLoaderSettings,
     ItemExploreRow = 256,
     ItemDispatchRegion = 0x300,
+    ItemSafeAll = 0x400,
+    ItemSafeMission,
+    ItemSafeOperations,
+    ItemSafeDoors,
+    ItemSafePuzzles,
+    ItemSafeTips,
+    ItemSafeRow = 0x500,
 };
-
 typedef struct {
     const Icon* icon;
     uint32_t event;
     const char* title;
 } GtaHomeItem;
-
 static const GtaHomeItem gta_home_items[] = {
     {&I_menu_infinite_money_glitch_25x25, ItemMoneyGlitch, "Infinite Money Glitch"},
+    {&I_menu_safe_codes_25x25, ItemSafeCodes, "Safe & Door Codes"},
     {&I_menu_ps5_cheats_25x25, ItemPs5, "PS5 Cheats"},
     {&I_menu_xbox_cheats_25x25, ItemXbox, "Xbox Cheats"},
     {&I_menu_collections_25x25, ItemCollections, "Collections"},
@@ -82,14 +94,12 @@ static const GtaHomeItem gta_home_items[] = {
     {&I_menu_mock_loaders_25x25, ItemMockLoaders, "Mock Loaders"},
     {&I_menu_mock_loader_settings_25x25, ItemMockLoaderSettings, "Mock Loader Settings"},
 };
-
 enum {
     GtaHomeColumns = 4,
     GtaHomePageSize = 2 * GtaHomeColumns,
     GtaHomeItemCount = sizeof(gta_home_items) / sizeof(gta_home_items[0]),
     GtaHomePageCount = (GtaHomeItemCount + GtaHomePageSize - 1) / GtaHomePageSize,
 };
-
 typedef struct {
     ViewDispatcher* dispatcher;
     View* home;
@@ -109,9 +119,11 @@ typedef struct {
     uint32_t list_selection;
     uint32_t explore_root_selection;
     uint32_t explore_group_selection;
+    uint32_t safe_category_selection;
+    uint32_t safe_list_selection;
+    uint8_t safe_category; /* 0=all; 1..4 correspond to GtaSafeKind+1 */
     GtaDispatchRegion dispatch_region;
 } GtaApp;
-
 static const char* gta_sequence(const GtaApp* app, const GtaCheat* cheat) {
     return app->xbox ? cheat->xbox : cheat->ps5;
 }
@@ -128,7 +140,6 @@ static void gta_post_selection(void* context, uint32_t index) {
     GtaApp* app = context;
     view_dispatcher_send_custom_event(app->dispatcher, index);
 }
-
 static void gta_home_draw(Canvas* canvas, void* context) {
     const size_t selected = *(const size_t*)context;
     const GtaHomeItem* item = &gta_home_items[selected];
@@ -136,7 +147,6 @@ static void gta_home_draw(Canvas* canvas, void* context) {
     if(!title) title = gta_collection_catalog[item->event - ItemCollection].title;
     const size_t page = selected / GtaHomePageSize;
     const size_t first = page * GtaHomePageSize;
-
     canvas_clear(canvas);
     canvas_set_color(canvas, ColorBlack);
     canvas_set_font(canvas, FontSecondary);
@@ -149,14 +159,12 @@ static void gta_home_draw(Canvas* canvas, void* context) {
     }
     elements_scrollbar_pos(canvas, 127, 10, 54, page, GtaHomePageCount);
 }
-
 static bool gta_home_input(InputEvent* event, void* context) {
     GtaApp* app = context;
     if(event->key == InputKeyBack ||
        (event->type != InputTypeShort && event->type != InputTypeRepeat)) {
         return false;
     }
-
     uint32_t item_event;
     bool moved;
     with_view_model(
@@ -186,7 +194,6 @@ static bool gta_home_input(InputEvent* event, void* context) {
             item_event = gta_home_items[next].event;
         },
         moved);
-
     if(event->key == InputKeyOk && event->type == InputTypeShort)
         gta_post_selection(app, item_event);
     return true;
@@ -201,17 +208,57 @@ static size_t gta_published_count(const GtaApp* app) {
         if(gta_sequence(app, &gta_cheat_catalog[i])[0]) count++;
     return count;
 }
-
+static size_t gta_safe_filter_count(uint8_t category) {
+    size_t count = 0;
+    for(size_t i = 0; i < gta_safe_code_count; i++)
+        if(!category || gta_safe_codes[i].kind == (GtaSafeKind)(category - 1)) count++;
+    return count;
+}
+static const char* gta_safe_category_name(uint8_t category) {
+    static const char* const labels[] = {
+        "All codes", "Mission safes", "Operations", "Doors / garages", "Puzzles / other"};
+    return labels[category < 5 ? category : 0];
+}
 static void gta_show_menu(GtaApp* app, GtaScreen screen) {
     app->screen = screen;
     if(screen == ScreenHome) {
         view_dispatcher_switch_to_view(app->dispatcher, ViewHome);
         return;
     }
-
     submenu_reset(app->menu);
     char label[64];
-    if(screen == ScreenCollections || screen == ScreenCollectionGroup) {
+    if(screen == ScreenSafeCategories) {
+        submenu_set_header(app->menu, "Safe & Door Codes");
+        for(uint8_t i = 0; i < 5; i++) {
+            snprintf(
+                label,
+                sizeof(label),
+                "%s (%zu)",
+                gta_safe_category_name(i),
+                gta_safe_filter_count(i));
+            gta_item(app, label, ItemSafeAll + i);
+        }
+        gta_item(app, "Random safe tips", ItemSafeTips);
+        submenu_set_selected_item(app->menu, app->safe_category_selection);
+    } else if(screen == ScreenSafeList) {
+        submenu_set_header(app->menu, gta_safe_category_name(app->safe_category));
+        for(size_t i = 0; i < gta_safe_code_count; i++) {
+            const GtaSafeCode* entry = &gta_safe_codes[i];
+            if(app->safe_category && entry->kind != (GtaSafeKind)(app->safe_category - 1))
+                continue;
+            snprintf(
+                label,
+                sizeof(label),
+                "%s: %s%s",
+                entry->name,
+                entry->code,
+                entry->status >= GtaSafeReported ? " [?]" : "");
+            gta_item(app, label, ItemSafeRow + i);
+        }
+        if(app->safe_list_selection >= ItemSafeRow &&
+           app->safe_list_selection - ItemSafeRow < gta_safe_code_count)
+            submenu_set_selected_item(app->menu, app->safe_list_selection);
+    } else if(screen == ScreenCollections || screen == ScreenCollectionGroup) {
         const bool root = screen == ScreenCollections;
         const GtaExploreSection* items = root ? gta_explore_sections :
                                                 app->explore_group->children;
@@ -414,6 +461,9 @@ static void gta_guide(GtaApp* app) {
     furi_string_cat_printf(
         app->content,
         "Companion v" FAP_VERSION "\n\n"
+        "Safe & Door Codes: browse published numeric codes and passwords by type. "
+        "[?] marks less-corroborated, conflicting or potentially changing reports. "
+        "Ordinary robbery safes often have a random code.\n\n"
         "Collections: OK opens the location. Right checks or unchecks a row. "
         "OK also toggles the check in details. Checkmarks are saved on the SD card.\n\n"
         "Collections includes Story Mode discoveries, collectibles and all 397 stunts. "
@@ -471,13 +521,82 @@ static void gta_money_glitch(GtaApp* app) {
         "for delayed payout from Brian. Amounts vary.");
     gta_show_text(app, ScreenMoneyGlitch);
 }
-
+static const char* gta_safe_status_name(GtaSafeStatus status) {
+    switch(status) {
+    case GtaSafeTested:
+        return "Guide-tested; not tested by this app";
+    case GtaSafeCorroborated:
+        return "Multiple published reports";
+    case GtaSafeVariable:
+        return "May differ by robbery/save";
+    case GtaSafeConflicting:
+        return "Sources disagree; check clue";
+    case GtaSafeReported:
+        return "Limited / single-source report";
+    default:
+        return "Unverified";
+    }
+}
+static const char* gta_safe_kind_name(GtaSafeKind kind) {
+    switch(kind) {
+    case GtaSafeMission:
+        return "Mission safe";
+    case GtaSafeOperation:
+        return "Gang / operation safe";
+    case GtaSafeDoor:
+        return "Door or garage keypad";
+    case GtaSafePuzzle:
+        return "Puzzle / other lock";
+    default:
+        return "Code";
+    }
+}
+static void gta_safe_detail(GtaApp* app, size_t index) {
+    if(index >= gta_safe_code_count) return;
+    const GtaSafeCode* entry = &gta_safe_codes[index];
+    text_box_reset(app->text);
+    furi_string_reset(app->content);
+    furi_string_cat_printf(
+        app->content,
+        "%s\n\nCODE: %s\n\nRegion: %s\nType: %s\n\nWhere:\n%s\n\nClue / notes:\n%s\n\nStatus:\n%s",
+        entry->name,
+        entry->code,
+        entry->region,
+        gta_safe_kind_name(entry->kind),
+        entry->where,
+        entry->notes,
+        gta_safe_status_name(entry->status));
+    gta_show_text(app, ScreenSafeDetail);
+}
+static void gta_safe_tips(GtaApp* app) {
+    text_box_reset(app->text);
+    furi_string_reset(app->content);
+    furi_string_cat_printf(
+        app->content,
+        "Randomized safe codes\n\n"
+        "This list collects published fixed or reported combinations. "
+        "Not all map safes have a reusable code. Many ordinary store and bank robbery "
+        "safes change the code between runs or saves. Some mission codes also vary.\n\n"
+        "Find the clue: search the office, notepad, map, wall, computer, "
+        "guard or employee. Use Focus mode to highlight evidence. "
+        "You can threaten an employee for the current safe code when available.\n\n"
+        "If a code fails, do not assume a game bug; check your local clue. "
+        "Retain every leading zero. Some keypads accept five or six digits, "
+        "and some computers accept words.\n\n"
+        "Sticky bombs can force open some safes but attract enemies or police. "
+        "Locked mission doors and garage keypads may not respond to explosives.\n\n"
+        "Entries are based on guides available 21 Nov 2026 and have not "
+        "been independently tested by this app's maintainers.");
+    gta_show_text(app, ScreenSafeTips);
+}
 static bool gta_event(void* context, uint32_t event) {
     GtaApp* app = context;
     if(app->screen == ScreenCompanion) return gta_companion_custom_event(app->companion, event);
     if(app->screen == ScreenHome) {
         if(event == ItemMoneyGlitch) {
             gta_money_glitch(app);
+        } else if(event == ItemSafeCodes) {
+            gta_show_menu(app, ScreenSafeCategories);
         } else if(event == ItemGuide) {
             gta_guide(app);
         } else if(event == ItemPs5 || event == ItemXbox) {
@@ -499,6 +618,25 @@ static bool gta_event(void* context, uint32_t event) {
             app->screen = ScreenMockLoaderSettings;
             view_dispatcher_switch_to_view(app->dispatcher, ViewMockLoaderSettings);
         }
+    } else if(app->screen == ScreenSafeCategories) {
+        if(event == ItemSafeTips) {
+            app->safe_category_selection = event;
+            gta_safe_tips(app);
+        } else if(event >= ItemSafeAll && event <= ItemSafePuzzles) {
+            app->safe_category_selection = event;
+            app->safe_category = (uint8_t)(event - ItemSafeAll);
+            app->safe_list_selection = 0;
+            gta_show_menu(app, ScreenSafeList);
+        }
+    } else if(app->screen == ScreenSafeList) {
+        if(event >= ItemSafeRow && event - ItemSafeRow < gta_safe_code_count) {
+            const size_t index = event - ItemSafeRow;
+            if(!app->safe_category ||
+               gta_safe_codes[index].kind == (GtaSafeKind)(app->safe_category - 1)) {
+                app->safe_list_selection = event;
+                gta_safe_detail(app, index);
+            }
+        }
     } else if(app->screen == ScreenDispatchRegions) {
         if(event < ItemDispatchRegion || event - ItemDispatchRegion >= GtaDispatchRegionCount) {
             return false;
@@ -513,7 +651,6 @@ static bool gta_event(void* context, uint32_t event) {
                                                 app->explore_group->children;
         const size_t count = root ? gta_explore_section_count : app->explore_group->child_count;
         if(event < ItemExploreRow || event - ItemExploreRow >= count) return false;
-
         const GtaExploreSection* selected = &items[event - ItemExploreRow];
         if(root) {
             app->explore_root_selection = event;
@@ -574,7 +711,17 @@ static bool gta_back(void* context) {
     case ScreenMockLoaders:
     case ScreenMockLoaderSettings:
     case ScreenMoneyGlitch:
+    case ScreenSafeCategories:
         gta_show_menu(app, ScreenHome);
+        break;
+    case ScreenSafeList:
+        gta_show_menu(app, ScreenSafeCategories);
+        break;
+    case ScreenSafeDetail:
+        gta_show_menu(app, ScreenSafeList);
+        break;
+    case ScreenSafeTips:
+        gta_show_menu(app, ScreenSafeCategories);
         break;
     case ScreenList:
         gta_show_menu(app, ScreenCategories);
@@ -594,11 +741,9 @@ static bool gta_back(void* context) {
     }
     return true;
 }
-
 static void gta_finish_startup(void* context) {
     gta_show_menu(context, ScreenHome);
 }
-
 int32_t gta_vi_companion_app(void* args) {
     UNUSED(args);
     GtaApp app = {
@@ -608,6 +753,7 @@ int32_t gta_vi_companion_app(void* args) {
         .text = text_box_alloc(),
         .content = furi_string_alloc(),
         .explore_root_selection = ItemExploreRow,
+        .safe_category_selection = ItemSafeAll,
     };
     Gui* gui = furi_record_open(RECORD_GUI);
     view_dispatcher_set_event_callback_context(app.dispatcher, &app);
