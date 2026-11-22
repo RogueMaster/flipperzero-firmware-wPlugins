@@ -10,6 +10,7 @@
 #include <gui/gui.h>
 #include <gui/view.h>
 #include <gui/view_stack.h>
+#include <gui/modules/loading.h>
 #include <gui/modules/popup.h>
 #include <gui/modules/widget.h>
 #include <gui/view_dispatcher.h>
@@ -43,6 +44,8 @@ typedef enum {
     ViewCleanup,
     ViewNotice,
     ViewBlast,
+    ViewPlaylist,
+    ViewLoading,
 } ViewId;
 
 typedef enum {
@@ -52,19 +55,59 @@ typedef enum {
     MenuAuto,
     MenuKeys,
     MenuSort,
+    MenuClickVol,
     MenuDeleteScanned,
     MenuDeleteFavorites,
     MenuEmpty,
+    MenuPlaylistMk8,
 } MenuId;
 
-#define FILE_MAX     40
+typedef enum {
+    ClickVolOff = 0,
+    ClickVolLow = 1,
+    ClickVolMed = 2,
+    ClickVolHigh = 3,
+    ClickVolMax = 4,
+} ClickVolume;
+
+#define FILE_MAX               40
 /* One database folder keeps this many names. Each name is stored twice (the
  * folder list and the on-screen row), and a few hundred of those can exhaust
  * the heap. Favorites and Scanned stay at FILE_MAX. */
-#define DIR_LIST_MAX 200
-#define MenuFileBase 400
+#define DIR_LIST_MAX           200
+#define MenuFileBase           400
+/* Show the system Loading hourglass after this much DB work (v1.2 PR #5). */
+#define DB_BUSY_SHOW_MS        200
+/* Cap one recursive tag walk so a pathological SD tree cannot hang forever. */
+#define COUNT_WALK_MAX_ENTRIES 20000
 
-#define APP_VERSION "1.2"
+#define APP_VERSION "1.3"
+
+/* Stable SD root. Do not use APP_DATA_PATH for browse/settings: Flipper maps
+ * /data via furi_thread_get_appid(), which follows the installed FAP filename.
+ * Installing as flipper_amiibo-1.3.fap pointed /data at an empty
+ * apps_data/flipper_amiibo-1.3/ while the real library stayed under
+ * apps_data/flipper_amiibo/ — Database/Favorites/Blast all showed "None yet". */
+#define AMIIBO_EXT_DATA_DIR  "/ext/apps_data/amiibo_emulator"
+#define AMIIBO_DB_PATH       AMIIBO_EXT_DATA_DIR "/db"
+#define AMIIBO_FAV_PATH      AMIIBO_EXT_DATA_DIR "/favorites"
+#define AMIIBO_SCAN_PATH     AMIIBO_EXT_DATA_DIR "/scanned"
+#define AMIIBO_SETTINGS_PATH AMIIBO_EXT_DATA_DIR "/auto_uid"
+#define AMIIBO_KEY_PATH      AMIIBO_EXT_DATA_DIR "/key_retail.bin"
+
+/* Carousel slots match gfx/carousel "Grid NN" numbers (0-based index = NN-1):
+ * 01 Database, 02 Favorites, 03 Scan, 04 Blast, 05 Playlist, 06 Settings,
+ * 07 Help, 08 About. */
+enum {
+    CarouselDatabase = 0,
+    CarouselFavorites = 1,
+    CarouselScan = 2,
+    CarouselBlast = 3,
+    CarouselPlaylist = 4,
+    CarouselSettings = 5,
+    CarouselHelp = 6,
+    CarouselAbout = 7,
+};
 
 typedef enum {
     UidFollowSetting,
@@ -101,7 +144,11 @@ typedef struct {
     View* tag_buttons;
     ViewStack* tag_stack;
     Popup* popup;
+    Loading* loading;
     bool uid_confirm;
+    bool db_busy_active;
+    bool db_busy_shown;
+    uint32_t db_busy_started;
     FuriPubSub* input_pubsub;
     FuriPubSubSubscription* input_subscription;
     NotificationApp* notifications;
@@ -123,6 +170,7 @@ typedef struct {
     bool dirty;
     bool auto_uid;
     bool sort_series;
+    ClickVolume click_vol;
     bool list_cut;
     bool cut_notice;
     ViewId notice_return;
@@ -134,6 +182,14 @@ typedef struct {
     uint32_t blast_phase_started;
     uint32_t blast_index;
     uint8_t blast_saved[AMIIBO_TAG_SIZE];
+    bool playlist_running;
+    bool playlist_on_air;
+    uint8_t playlist_index;
+    uint32_t playlist_list_index;
+    uint32_t playlist_last_advance;
+    FuriString* playlist_paths[21];
+    FuriString* playlist_root;
+    uint8_t playlist_found;
     uint8_t open_series;
     uint8_t series_ids[32];
     uint8_t series_other[32];
@@ -148,7 +204,7 @@ typedef struct {
     TagOrigin origin;
     BrowseFrom browse;
     ViewId current;
-    char key_path[96];
+    char key_path[192];
     uint32_t my_index;
     uint32_t settings_index;
     uint32_t saved_index;
@@ -195,9 +251,28 @@ static const char HELP[] = "This app can back up\n"
 
                            "2 seconds, and repeats.\n"
                            "It does not save that\n"
-                           "ID. Any key stops.\n"
+                           "ID. Back ends the\n"
+                           "run.\n"
                            "This needs the key\n"
-                           "file.\n"
+                           "file. A click can\n"
+                           "play when a new ID\n"
+                           "goes on air. Set the\n"
+                           "level in Settings.\n"
+                           "\n"
+                           "Amiibo Playlist\n"
+                           "Runs a fixed list of\n"
+                           "dumps from the Amiibo\n"
+                           "Database folder. The\n"
+                           "MK8 preset unlocks\n"
+                           "all amiibo-gated Mii\n"
+                           "costumes in Mario Kart\n"
+                           "8 Deluxe. Each dump\n"
+                           "stays on air until\n"
+                           "you press Next.\n"
+                           "UIDs stay the same.\n"
+                           "Back ends the run.\n"
+                           "A missing dump is\n"
+                           "skipped.\n"
                            "\n"
                            "Key\n"
                            "The app cannot include\n"
@@ -216,9 +291,18 @@ static const char HELP[] = "This app can back up\n"
                            "your Amiibo.\n"
                            "\n"
                            "If you have the file,\n"
-                           "copy key_retail.bin\n"
-                           "into:\n"
+                           "put key_retail.bin in\n"
                            "apps_data/amiibo_emulator\n"
+                           "or in the Amiibo\n"
+                           "database folder:\n"
+                           "apps_data/amiibo_emulator/db\n"
+                           "Any subfolder under\n"
+                           "those trees is fine.\n"
+                           "\n"
+                           "Split keys work too:\n"
+                           "unfixed-info.bin and\n"
+                           "locked-secret.bin in\n"
+                           "the same folder.\n"
                            "\n"
                            "If amiibo_keys.bin is\n"
                            "already in the nfc\n"
@@ -294,6 +378,15 @@ static const char HELP[] = "This app can back up\n"
                            "Unsorted or By Series\n"
                            "for Favorites and\n"
                            "Scanned Amiibos.\n"
+                           "\n"
+                           "Click volume sets\n"
+                           "Off, Low, Med, High,\n"
+                           "or Max for Blast\n"
+                           "clicks.\n"
+                           "Med is the default.\n"
+                           "Changing it plays a\n"
+                           "test click at that\n"
+                           "level.\n"
                            "\n"
                            "Delete Scanned Amiibos\n"
                            "removes scans only.\n"
@@ -412,9 +505,92 @@ static void show_about(App* app) {
 static void show_menu(App* app);
 static void show_tag(App* app);
 static void blast_stop(App* app);
+static void playlist_stop(App* app);
 static void show_database(App* app);
+static void show_playlist_list(App* app);
 static void widget_callback(GuiButtonType button, InputType type, void* context);
 static void submenu_callback(void* context, uint32_t index);
+
+/* Transmit click for Blast and Settings preview (not Playlist).
+ * Off / Low / Med / High / Max (equal steps). Default Med.
+ *
+ * Uses furi_hal_speaker directly (not the notification queue) so NFC blink
+ * sequences and stealth-muted notification sound cannot swallow the beep. */
+static float click_volume_level(ClickVolume level) {
+    if(level == ClickVolLow) return 0.25f;
+    if(level == ClickVolMed) return 0.50f;
+    if(level == ClickVolHigh) return 0.75f;
+    if(level == ClickVolMax) return 1.00f;
+    return 0.0f;
+}
+
+static const char* click_volume_label(ClickVolume level) {
+    if(level == ClickVolOff) return "Click volume: Off";
+    if(level == ClickVolLow) return "Click volume: Low";
+    if(level == ClickVolMed) return "Click volume: Med";
+    if(level == ClickVolHigh) return "Click volume: High";
+    return "Click volume: Max";
+}
+
+static ClickVolume click_volume_next(ClickVolume level) {
+    return (ClickVolume)(((unsigned)level + 1u) % 5u);
+}
+
+static void amiibo_transmit_click(App* app) {
+    if(app->click_vol == ClickVolOff) return;
+    float vol = click_volume_level(app->click_vol);
+    if(vol <= 0.0f) return;
+    /* Direct HAL: unmistakable short beep, blocks the calling thread. */
+    if(furi_hal_speaker_acquire(250)) {
+        furi_hal_speaker_start(2000.0f, vol);
+        furi_delay_ms(120);
+        furi_hal_speaker_stop();
+        furi_hal_speaker_release();
+    }
+}
+
+typedef struct {
+    const char* costume;
+    const char* rel_path;
+    const char* alt_path;
+} PlaylistEntry;
+
+/* Relative to apps_data/amiibo_emulator/db (Full Set layout). */
+static const PlaylistEntry MK8_PLAYLIST[] = {
+    {"Mario", "Super Smash Bros Amiibo/Mario.bin", NULL},
+    {"Luigi", "Super Smash Bros Amiibo/Luigi.bin", NULL},
+    {"Peach", "Super Smash Bros Amiibo/Peach.bin", NULL},
+    {"Yoshi", "Super Smash Bros Amiibo/Yoshi.bin", NULL},
+    {"Donkey Kong", "Super Smash Bros Amiibo/Donkey Kong.bin", NULL},
+    {"Link", "Super Smash Bros Amiibo/Link.bin", NULL},
+    {"Captain Falcon", "Super Smash Bros Amiibo/Captain Falcon.bin", NULL},
+    {"Kirby", "Super Smash Bros Amiibo/Kirby.bin", NULL},
+    {"Samus", "Super Smash Bros Amiibo/Samus.bin", NULL},
+    {"Fox", "Super Smash Bros Amiibo/Fox.bin", NULL},
+    {"Toad", "Super Mario Amiibo/Toad.bin", NULL},
+    {"Bowser", "Super Smash Bros Amiibo/Bowser.bin", NULL},
+    {"Wario", "Super Smash Bros Amiibo/Wario.bin", NULL},
+    /* On David's Full Set: Smash uses "Rosalina & Luma.bin" (not "_"). */
+    {"Rosalina", "Super Smash Bros Amiibo/Rosalina & Luma.bin", "Super Mario Amiibo/Rosalina.bin"},
+    {"Pikmin", "Super Smash Bros Amiibo/Olimar.bin", NULL},
+    {"Animal Crossing", "Super Smash Bros Amiibo/Villager.bin", NULL},
+    {"Mega Man", "Super Smash Bros Amiibo/Mega Man.bin", NULL},
+    {"PAC-MAN", "Super Smash Bros Amiibo/Pac-Man.bin", NULL},
+    {"Sonic", "Super Smash Bros Amiibo/Sonic.bin", NULL},
+    /* David's SD: Smash dump is Inkling.bin (no "Girl"); Inkling Girl lives under Splatoon. */
+    {"Splatoon", "Super Smash Bros Amiibo/Inkling.bin", "Splatoon Amiibo/Inkling Girl.bin"},
+    {"Daisy", "Super Smash Bros Amiibo/Daisy.bin", "Super Mario Amiibo/Daisy.bin"},
+};
+
+#define MK8_PLAYLIST_COUNT (sizeof(MK8_PLAYLIST) / sizeof(MK8_PLAYLIST[0]))
+#define MK8_PLAYLIST_MAX   21
+
+_Static_assert(MK8_PLAYLIST_COUNT == MK8_PLAYLIST_MAX, "playlist size mismatch");
+
+/* Generic confirm body (preset name is the dialog header). Keep short for 128x64. */
+static const char PLAYLIST_CONFIRM_DESC[] = "Center emulates this\n"
+                                            "Amiibo, then Next.\n"
+                                            "Back exits.";
 
 static bool ends_with_i(const char* text, const char* suffix) {
     size_t text_len = strlen(text);
@@ -520,54 +696,214 @@ static void save_settings(App* app);
 static void load_settings(App* app) {
     app->auto_uid = true;
     app->sort_series = false;
+    app->click_vol = ClickVolMed;
     File* file = storage_file_alloc(app->storage);
-    if(storage_file_open(file, APP_DATA_PATH("auto_uid"), FSAM_READ, FSOM_OPEN_EXISTING)) {
-        char value[3];
+    if(storage_file_open(file, AMIIBO_SETTINGS_PATH, FSAM_READ, FSOM_OPEN_EXISTING)) {
+        char value[4];
         size_t read = storage_file_read(file, value, sizeof(value));
         if(read >= 1) app->auto_uid = value[0] != '0';
         if(read >= 2) app->sort_series = value[1] == '1';
+        if(read >= 3) {
+            unsigned level = (unsigned)(value[2] - '0');
+            if(level <= (unsigned)ClickVolMax) app->click_vol = (ClickVolume)level;
+        }
         storage_file_close(file);
-        if(read > 2) save_settings(app);
+        if(read != 3) save_settings(app);
     }
     storage_file_free(file);
 }
 
 static void save_settings(App* app) {
     File* file = storage_file_alloc(app->storage);
-    if(storage_file_open(file, APP_DATA_PATH("auto_uid"), FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
-        char value[2];
+    if(storage_file_open(file, AMIIBO_SETTINGS_PATH, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
+        char value[3];
         value[0] = app->auto_uid ? '1' : '0';
         value[1] = app->sort_series ? '1' : '0';
+        value[2] = (char)('0' + (unsigned)app->click_vol);
         storage_file_write(file, value, sizeof(value));
         storage_file_close(file);
     }
     storage_file_free(file);
 }
 
+/* Flexible key discovery (ported from PR #2). Uses AMIIBO_* roots so FAP
+ * filename remapping cannot hide keys the way APP_DATA_PATH did. */
+#define KEY_HALF_SIZE        (AMIIBO_KEY_SIZE / 2)
+#define KEY_WALK_MAX_DEPTH   6
+#define KEY_WALK_MAX_DIRS    200
+#define KEY_WALK_MAX_ENTRIES 800
+
+typedef struct {
+    uint16_t dirs;
+    uint16_t entries;
+} KeyWalkBudget;
+
+static bool name_eq_i(const char* left, const char* right) {
+    while(*left && *right) {
+        char a = *left++;
+        char b = *right++;
+        if(a >= 'A' && a <= 'Z') a = (char)(a - 'A' + 'a');
+        if(b >= 'A' && b <= 'Z') b = (char)(b - 'A' + 'a');
+        if(a != b) return false;
+    }
+    return *left == '\0' && *right == '\0';
+}
+
+static bool load_retail_key_at(App* app, const char* path) {
+    uint8_t bytes[AMIIBO_KEY_SIZE];
+    File* file = storage_file_alloc(app->storage);
+    bool opened = storage_file_open(file, path, FSAM_READ, FSOM_OPEN_EXISTING);
+    size_t read = 0;
+    if(opened && storage_file_size(file) == sizeof(bytes)) {
+        read = storage_file_read(file, bytes, sizeof(bytes));
+    }
+    if(opened) storage_file_close(file);
+    storage_file_free(file);
+    if(read != sizeof(bytes) || !amiibo_keys_from_bytes(&app->keys, bytes, read)) return false;
+    app->keys_loaded = true;
+    snprintf(app->key_path, sizeof(app->key_path), "%s", path);
+    return true;
+}
+
+static bool load_split_keys_at(
+    App* app,
+    const char* dir,
+    const char* unfixed_name,
+    const char* locked_name) {
+    char path_unfixed[192];
+    char path_locked[192];
+    if(snprintf(path_unfixed, sizeof(path_unfixed), "%s/%s", dir, unfixed_name) >=
+       (int)sizeof(path_unfixed)) {
+        return false;
+    }
+    if(snprintf(path_locked, sizeof(path_locked), "%s/%s", dir, locked_name) >=
+       (int)sizeof(path_locked)) {
+        return false;
+    }
+
+    uint8_t bytes[AMIIBO_KEY_SIZE];
+    File* file = storage_file_alloc(app->storage);
+    size_t read_unfixed = 0;
+    size_t read_locked = 0;
+    if(storage_file_open(file, path_unfixed, FSAM_READ, FSOM_OPEN_EXISTING)) {
+        read_unfixed = storage_file_read(file, bytes, KEY_HALF_SIZE);
+        storage_file_close(file);
+    }
+    if(read_unfixed == KEY_HALF_SIZE &&
+       storage_file_open(file, path_locked, FSAM_READ, FSOM_OPEN_EXISTING)) {
+        read_locked = storage_file_read(file, bytes + KEY_HALF_SIZE, KEY_HALF_SIZE);
+        storage_file_close(file);
+    }
+    storage_file_free(file);
+
+    if(read_unfixed != KEY_HALF_SIZE || read_locked != KEY_HALF_SIZE) return false;
+    if(!amiibo_keys_from_bytes(&app->keys, bytes, AMIIBO_KEY_SIZE)) return false;
+    app->keys_loaded = true;
+    snprintf(app->key_path, sizeof(app->key_path), "%s", path_unfixed);
+    return true;
+}
+
+static bool walk_for_keys(App* app, const char* dir, uint8_t depth, KeyWalkBudget* budget) {
+    if(depth > KEY_WALK_MAX_DEPTH || budget->dirs >= KEY_WALK_MAX_DIRS ||
+       budget->entries >= KEY_WALK_MAX_ENTRIES) {
+        return false;
+    }
+    budget->dirs++;
+
+    File* handle = storage_file_alloc(app->storage);
+    if(!storage_dir_open(handle, dir)) {
+        storage_file_free(handle);
+        return false;
+    }
+
+    FileInfo info;
+    char name[128];
+    char unfixed_name[128];
+    char locked_name[128];
+    unfixed_name[0] = '\0';
+    locked_name[0] = '\0';
+
+    while(budget->entries < KEY_WALK_MAX_ENTRIES &&
+          storage_dir_read(handle, &info, name, (uint16_t)sizeof(name))) {
+        budget->entries++;
+        if(name[0] == '\0' || name[0] == '.') continue;
+        if((info.flags & FSF_DIRECTORY) != 0) continue;
+        if(name_eq_i(name, "key_retail.bin")) {
+            char path[192];
+            if(snprintf(path, sizeof(path), "%s/%s", dir, name) < (int)sizeof(path) &&
+               load_retail_key_at(app, path)) {
+                storage_dir_close(handle);
+                storage_file_free(handle);
+                return true;
+            }
+        } else if(name_eq_i(name, "unfixed-info.bin")) {
+            snprintf(unfixed_name, sizeof(unfixed_name), "%s", name);
+        } else if(name_eq_i(name, "locked-secret.bin")) {
+            snprintf(locked_name, sizeof(locked_name), "%s", name);
+        }
+    }
+
+    if(unfixed_name[0] != '\0' && locked_name[0] != '\0' &&
+       load_split_keys_at(app, dir, unfixed_name, locked_name)) {
+        storage_dir_close(handle);
+        storage_file_free(handle);
+        return true;
+    }
+
+    storage_dir_close(handle);
+    if(budget->dirs >= KEY_WALK_MAX_DIRS || budget->entries >= KEY_WALK_MAX_ENTRIES ||
+       depth >= KEY_WALK_MAX_DEPTH) {
+        storage_file_free(handle);
+        return false;
+    }
+
+    if(!storage_dir_open(handle, dir)) {
+        storage_file_free(handle);
+        return false;
+    }
+    /* Second pass only descends; entry budget was charged on the first pass. */
+    while(storage_dir_read(handle, &info, name, (uint16_t)sizeof(name))) {
+        if(name[0] == '\0' || name[0] == '.') continue;
+        if((info.flags & FSF_DIRECTORY) == 0) continue;
+        if(budget->dirs >= KEY_WALK_MAX_DIRS || budget->entries >= KEY_WALK_MAX_ENTRIES) break;
+        char child[192];
+        if(snprintf(child, sizeof(child), "%s/%s", dir, name) >= (int)sizeof(child)) continue;
+        if(walk_for_keys(app, child, (uint8_t)(depth + 1), budget)) {
+            storage_dir_close(handle);
+            storage_file_free(handle);
+            return true;
+        }
+    }
+    storage_dir_close(handle);
+    storage_file_free(handle);
+    return false;
+}
+
+static bool search_keys_under(App* app, const char* root) {
+    KeyWalkBudget budget = {.dirs = 0, .entries = 0};
+    return walk_for_keys(app, root, 0, &budget);
+}
+
 static void load_keys(App* app) {
-    const char* paths[] = {
-        APP_DATA_PATH("key_retail.bin"),
+    const char* fixed_retail[] = {
+        AMIIBO_KEY_PATH,
         "/ext/nfc/assets/amiibo_keys.bin",
         "/ext/nfc/amiibo_keys.bin",
     };
     app->keys_loaded = false;
     app->key_path[0] = '\0';
-    uint8_t bytes[AMIIBO_KEY_SIZE];
-    for(size_t i = 0; i < COUNT_OF(paths); i++) {
-        File* file = storage_file_alloc(app->storage);
-        bool opened = storage_file_open(file, paths[i], FSAM_READ, FSOM_OPEN_EXISTING);
-        size_t read = 0;
-        if(opened && storage_file_size(file) == sizeof(bytes)) {
-            read = storage_file_read(file, bytes, sizeof(bytes));
-        }
-        storage_file_close(file);
-        storage_file_free(file);
-        if(read == sizeof(bytes) && amiibo_keys_from_bytes(&app->keys, bytes, read)) {
-            app->keys_loaded = true;
-            snprintf(app->key_path, sizeof(app->key_path), "%s", paths[i]);
-            return;
-        }
+
+    for(size_t i = 0; i < COUNT_OF(fixed_retail); i++) {
+        if(load_retail_key_at(app, fixed_retail[i])) return;
     }
+
+    if(load_split_keys_at(app, AMIIBO_EXT_DATA_DIR, "unfixed-info.bin", "locked-secret.bin")) {
+        return;
+    }
+
+    /* App data tree first, then the downloaded Amiibo library root. */
+    if(search_keys_under(app, AMIIBO_EXT_DATA_DIR)) return;
+    search_keys_under(app, AMIIBO_DB_PATH);
 }
 
 static void pages_from_tag(App* app) {
@@ -724,17 +1060,11 @@ static void set_read_path(App* app) {
     if(n == 0) {
         char uid_text[20];
         format_uid(uid, uid_text, sizeof(uid_text));
-        furi_string_printf(app->path, "%s/%s.bin", APP_DATA_PATH("scanned"), uid_text);
+        furi_string_printf(app->path, "%s/%s.bin", AMIIBO_SCAN_PATH, uid_text);
         return;
     }
     furi_string_printf(
-        app->path,
-        "%s/%s_%02X%02X%02X.bin",
-        APP_DATA_PATH("scanned"),
-        safe,
-        uid[4],
-        uid[5],
-        uid[6]);
+        app->path, "%s/%s_%02X%02X%02X.bin", AMIIBO_SCAN_PATH, safe, uid[4], uid[5], uid[6]);
 }
 
 typedef struct {
@@ -795,10 +1125,8 @@ static void tag_buttons_draw(Canvas* canvas, void* context) {
 
 static bool tag_buttons_input(InputEvent* event, void* context) {
     App* app = context;
-    if(app->blasting) {
-        if(event->type == InputTypeShort) blast_stop(app);
-        return true;
-    }
+    /* Blast: left Back via widget. Playlist: Left Back + Center Next via widget. */
+    if(app->blasting || app->playlist_running) return false;
     if(app->current != ViewTag || app->uid_confirm) return false;
     if(app->origin == OriginBlast) {
         if(event->key == InputKeyOk) {
@@ -1133,7 +1461,33 @@ static bool dump_ok(Storage* storage, const char* path, const char* name, const 
     return false;
 }
 
-static unsigned count_tags_in(App* app, const char* folder) {
+static void db_busy_begin(App* app) {
+    app->db_busy_active = true;
+    app->db_busy_shown = false;
+    app->db_busy_started = furi_get_tick();
+}
+
+static void db_busy_pulse(App* app) {
+    if(!app->db_busy_active) return;
+    if(app->db_busy_shown) return;
+    if(furi_get_tick() - app->db_busy_started < furi_ms_to_ticks(DB_BUSY_SHOW_MS)) return;
+    /* Hourglass from the system Loading view; elevate timers so it animates. */
+    furi_timer_set_thread_priority(FuriTimerThreadPriorityElevated);
+    view_dispatcher_switch_to_view(app->dispatcher, ViewLoading);
+    app->db_busy_shown = true;
+}
+
+static void db_busy_end(App* app) {
+    if(!app->db_busy_active) return;
+    if(app->db_busy_shown) {
+        furi_timer_set_thread_priority(FuriTimerThreadPriorityNormal);
+    }
+    app->db_busy_active = false;
+    app->db_busy_shown = false;
+}
+
+/* Recursive tag walk with busy pulses and an entry cap. */
+static unsigned count_tags_walk(App* app, const char* folder, uint16_t* walked) {
     unsigned count = 0;
     FuriString** subs = NULL;
     uint16_t sub_count = 0;
@@ -1142,7 +1496,10 @@ static unsigned count_tags_in(App* app, const char* folder) {
     if(storage_dir_open(dir, folder)) {
         FileInfo info;
         char name[128];
-        while(storage_dir_read(dir, &info, name, (uint16_t)sizeof(name))) {
+        while(*walked < COUNT_WALK_MAX_ENTRIES &&
+              storage_dir_read(dir, &info, name, (uint16_t)sizeof(name))) {
+            (*walked)++;
+            db_busy_pulse(app);
             if(name[0] == '\0' || name[0] == '.') continue;
             if(info.flags & FSF_DIRECTORY) {
                 if(sub_count == sub_cap) {
@@ -1163,19 +1520,25 @@ static unsigned count_tags_in(App* app, const char* folder) {
     }
     storage_file_free(dir);
     for(uint16_t i = 0; i < sub_count; i++) {
-        count += count_tags_in(app, furi_string_get_cstr(subs[i]));
+        if(*walked < COUNT_WALK_MAX_ENTRIES) {
+            count += count_tags_walk(app, furi_string_get_cstr(subs[i]), walked);
+        }
         furi_string_free(subs[i]);
     }
     free(subs);
     return count;
 }
 
+static unsigned count_tags_in(App* app, const char* folder) {
+    uint16_t walked = 0;
+    return count_tags_walk(app, folder, &walked);
+}
+
 static void show_scan(App* app) {
     list_reset(app);
     list_header(app, "Scan Amiibos", 0, false);
     list_add(app, "Scan Amiibos", 0, false, MenuRead);
-    list_add(
-        app, "Scanned Amiibos", count_tags_in(app, APP_DATA_PATH("scanned")), true, MenuUnsaved);
+    list_add(app, "Scanned Amiibos", count_tags_in(app, AMIIBO_SCAN_PATH), true, MenuUnsaved);
     if(app->my_index != MenuRead && app->my_index != MenuUnsaved) app->my_index = MenuRead;
     list_select(app, app->my_index);
     app->current = ViewMy;
@@ -1196,6 +1559,7 @@ static void show_settings(App* app) {
         0,
         false,
         MenuSort);
+    list_add(app, click_volume_label(app->click_vol), 0, false, MenuClickVol);
     list_add(app, "Delete Scanned Amiibos", 0, false, MenuDeleteScanned);
     list_add(app, "Delete Favorites", 0, false, MenuDeleteFavorites);
     if(app->settings_index == 0) app->settings_index = MenuVersion;
@@ -1218,12 +1582,12 @@ static bool path_in_folder(const App* app, const char* folder) {
 static void forget_if_deleted(App* app, bool scanned, bool favorites) {
     bool drop = false;
     if(scanned) {
-        drop = drop || path_in_folder(app, APP_DATA_PATH("scanned"));
-        drop = drop || path_in_folder(app, APP_DATA_PATH("unsaved"));
+        drop = drop || path_in_folder(app, AMIIBO_SCAN_PATH);
+        drop = drop || path_in_folder(app, AMIIBO_EXT_DATA_DIR "/unsaved");
     }
     if(favorites) {
-        drop = drop || path_in_folder(app, APP_DATA_PATH("favorites"));
-        drop = drop || path_in_folder(app, APP_DATA_PATH("saved"));
+        drop = drop || path_in_folder(app, AMIIBO_FAV_PATH);
+        drop = drop || path_in_folder(app, AMIIBO_EXT_DATA_DIR "/saved");
     }
     if(!drop) return;
     app->loaded = false;
@@ -1237,14 +1601,14 @@ static void erase_folder(App* app, const char* folder) {
 }
 
 static void erase_scanned(App* app) {
-    erase_folder(app, APP_DATA_PATH("scanned"));
-    storage_simply_remove_recursive(app->storage, APP_DATA_PATH("unsaved"));
+    erase_folder(app, AMIIBO_SCAN_PATH);
+    storage_simply_remove_recursive(app->storage, AMIIBO_EXT_DATA_DIR "/unsaved");
     forget_if_deleted(app, true, false);
 }
 
 static void erase_favorites(App* app) {
-    erase_folder(app, APP_DATA_PATH("favorites"));
-    storage_simply_remove_recursive(app->storage, APP_DATA_PATH("saved"));
+    erase_folder(app, AMIIBO_FAV_PATH);
+    storage_simply_remove_recursive(app->storage, AMIIBO_EXT_DATA_DIR "/saved");
     forget_if_deleted(app, false, true);
 }
 
@@ -1514,10 +1878,10 @@ static bool save_dump(App* app) {
     return true;
 }
 
-static bool load_selected(App* app) {
+static bool load_selected_quiet(App* app, bool alert) {
     const char* path = furi_string_get_cstr(app->path);
     if(!ends_with_i(path, ".bin") && !ends_with_i(path, ".nfc")) {
-        app_alert(app, "Wrong file", "Choose a .bin\nor .nfc dump.");
+        if(alert) app_alert(app, "Wrong file", "Choose a .bin\nor .nfc dump.");
         return false;
     }
     App candidate = *app;
@@ -1525,7 +1889,8 @@ static bool load_selected(App* app) {
     bool ok = ends_with_i(path, ".bin") ? read_bin(&candidate, path) : read_nfc(&candidate, path);
     if(!ok) {
         nfc_device_free(candidate.device);
-        app_alert(app, "Cannot load", "Need NTAG215 NFC\nor 520/540/572\nbyte BIN dump.");
+        if(alert)
+            app_alert(app, "Cannot load", "Need NTAG215 NFC\nor 520/540/572\nbyte BIN dump.");
         return false;
     }
     nfc_device_free(app->device);
@@ -1540,6 +1905,10 @@ static bool load_selected(App* app) {
     return true;
 }
 
+static bool load_selected(App* app) {
+    return load_selected_quiet(app, true);
+}
+
 enum {
     EventReadOk = 200,
     EventReadFail = 201,
@@ -1550,6 +1919,8 @@ enum {
     EventTagNext = 231,
     EventFavNoted = 232,
     EventBlastStop = 233,
+    EventPlaylistStop = 234,
+    EventPlaylistNext = 235,
 };
 
 #define READ_WAIT_MS 5000
@@ -1660,12 +2031,13 @@ static void blast_show(App* app, bool on_air) {
     path_extract_filename(app->path, name, true);
     furi_string_printf(
         app->info,
-        on_air ? "\e#Blasting\n%s\n%s\nAny key stops" : "\e#Blast pause\n%s\n%s\nAny key stops",
+        on_air ? "\e#Blasting\n%s\n%s" : "\e#Blast pause\n%s\n%s",
         furi_string_get_cstr(name),
         uid_text);
     furi_string_free(name);
     widget_reset(app->widget);
-    widget_add_text_scroll_element(app->widget, 0, 0, 128, 64, furi_string_get_cstr(app->info));
+    widget_add_text_scroll_element(app->widget, 0, 0, 128, 48, furi_string_get_cstr(app->info));
+    widget_add_button_element(app->widget, GuiButtonTypeLeft, "Back", widget_callback, app);
     app->current = ViewEmulate;
     view_dispatcher_switch_to_view(app->dispatcher, ViewTag);
     if(on_air) notification_message(app->notifications, &sequence_blink_start_magenta);
@@ -1674,6 +2046,7 @@ static void blast_show(App* app, bool on_air) {
 static bool blast_go_on_air(App* app) {
     if(!make_new_uid(app)) return false;
     pages_from_tag(app);
+    amiibo_transmit_click(app);
     app->nfc = nfc_alloc();
     const MfUltralightData* data = nfc_device_get_data(app->device, NfcProtocolMfUltralight);
     app->listener = nfc_listener_alloc(app->nfc, NfcProtocolMfUltralight, data);
@@ -1730,6 +2103,266 @@ static void blast_tick(App* app) {
     }
 }
 
+static bool playlist_dir_exists(Storage* storage, const char* path) {
+    FileInfo info;
+    return storage_common_stat(storage, path, &info) == FSE_OK && (info.flags & FSF_DIRECTORY);
+}
+
+/* Pick the Full Set root the same way Database browsing expects: under db/,
+ * optionally one nested folder (e.g. Amiibo Full Set) that contains Smash. */
+static void playlist_pick_root(App* app, FuriString* root) {
+    const char* base = AMIIBO_DB_PATH; /* same absolute root Database uses */
+    FuriString* probe = furi_string_alloc();
+    furi_string_printf(probe, "%s/Super Smash Bros Amiibo", base);
+    if(playlist_dir_exists(app->storage, furi_string_get_cstr(probe))) {
+        furi_string_set(root, base);
+        furi_string_free(probe);
+        return;
+    }
+    furi_string_printf(probe, "%s/Amiibo Full Set/Super Smash Bros Amiibo", base);
+    if(playlist_dir_exists(app->storage, furi_string_get_cstr(probe))) {
+        furi_string_printf(root, "%s/Amiibo Full Set", base);
+        furi_string_free(probe);
+        return;
+    }
+    /* One-level scan: db/<folder>/Super Smash Bros Amiibo */
+    File* dir = storage_file_alloc(app->storage);
+    if(storage_dir_open(dir, base)) {
+        FileInfo info;
+        char name[128];
+        while(storage_dir_read(dir, &info, name, (uint16_t)sizeof(name))) {
+            if(!(info.flags & FSF_DIRECTORY) || name[0] == '\0' || name[0] == '.') continue;
+            furi_string_printf(probe, "%s/%s/Super Smash Bros Amiibo", base, name);
+            if(playlist_dir_exists(app->storage, furi_string_get_cstr(probe))) {
+                furi_string_printf(root, "%s/%s", base, name);
+                storage_dir_close(dir);
+                storage_file_free(dir);
+                furi_string_free(probe);
+                return;
+            }
+        }
+        storage_dir_close(dir);
+    }
+    storage_file_free(dir);
+    furi_string_free(probe);
+    /* Fall back to the Database browser root even if empty. */
+    furi_string_set(root, AMIIBO_DB_PATH);
+}
+
+static bool playlist_try_rel(App* app, const char* root, const char* rel, FuriString* out) {
+    if(!rel) return false;
+    furi_string_printf(out, "%s/%s", root, rel);
+    return storage_file_exists(app->storage, furi_string_get_cstr(out));
+}
+
+static bool playlist_resolve_into(App* app, uint8_t index, const char* root, FuriString* out) {
+    if(index >= MK8_PLAYLIST_COUNT) return false;
+    const PlaylistEntry* entry = &MK8_PLAYLIST[index];
+    if(playlist_try_rel(app, root, entry->rel_path, out)) return true;
+    if(playlist_try_rel(app, root, entry->alt_path, out)) return true;
+    /* AmiiboDB-style Smash Rosalina (underscore) if & / Super Mario miss. */
+    if(entry->costume && strcmp(entry->costume, "Rosalina") == 0) {
+        if(playlist_try_rel(app, root, "Super Smash Bros Amiibo/Rosalina _ Luma.bin", out)) {
+            return true;
+        }
+    }
+    /* Splatoon costume: other Full Set / AmiiboDB names if primary+alt miss. */
+    if(entry->costume && strcmp(entry->costume, "Splatoon") == 0) {
+        static const char* const splatoon_alts[] = {
+            "Super Smash Bros Amiibo/Inkling Girl.bin",
+            "Splatoon Amiibo/Inkling Girl (Lime Green).bin",
+            "Splatoon Amiibo/Inkling Girl (Neon Pink).bin",
+            "Splatoon Amiibo/Callie.bin",
+            "Splatoon Amiibo/Marie.bin",
+            "Splatoon Amiibo/Inkling Boy.bin",
+            "Splatoon Amiibo/Inkling Squid.bin",
+        };
+        for(size_t i = 0; i < COUNT_OF(splatoon_alts); i++) {
+            if(playlist_try_rel(app, root, splatoon_alts[i], out)) return true;
+        }
+    }
+    return false;
+}
+
+static void playlist_paths_free(App* app) {
+    for(uint8_t i = 0; i < MK8_PLAYLIST_MAX; i++) {
+        if(app->playlist_paths[i]) {
+            furi_string_free(app->playlist_paths[i]);
+            app->playlist_paths[i] = NULL;
+        }
+    }
+    if(app->playlist_root) {
+        furi_string_free(app->playlist_root);
+        app->playlist_root = NULL;
+    }
+    app->playlist_found = 0;
+}
+
+/* Resolve all slots on the GUI thread using the Database db root. */
+static uint8_t playlist_prepare_paths(App* app) {
+    playlist_paths_free(app);
+    app->playlist_root = furi_string_alloc();
+    playlist_pick_root(app, app->playlist_root);
+    const char* root = furi_string_get_cstr(app->playlist_root);
+    uint8_t found = 0;
+    FuriString* path = furi_string_alloc();
+    for(uint8_t i = 0; i < MK8_PLAYLIST_COUNT; i++) {
+        if(playlist_resolve_into(app, i, root, path)) {
+            app->playlist_paths[i] = furi_string_alloc_set(path);
+            found++;
+        } else {
+            app->playlist_paths[i] = NULL;
+        }
+    }
+    furi_string_free(path);
+    app->playlist_found = found;
+    return found;
+}
+
+static void playlist_show(App* app, const char* status) {
+    const PlaylistEntry* entry = &MK8_PLAYLIST[app->playlist_index];
+    furi_string_printf(
+        app->info,
+        "\e#Playlist\n%u/%u %s\n%s",
+        (unsigned)(app->playlist_index + 1),
+        (unsigned)MK8_PLAYLIST_COUNT,
+        entry->costume,
+        status);
+    widget_reset(app->widget);
+    widget_add_text_scroll_element(app->widget, 0, 0, 128, 48, furi_string_get_cstr(app->info));
+    widget_add_button_element(app->widget, GuiButtonTypeLeft, "Back", widget_callback, app);
+    widget_add_button_element(app->widget, GuiButtonTypeCenter, "Next", widget_callback, app);
+    app->current = ViewEmulate;
+    view_dispatcher_switch_to_view(app->dispatcher, ViewTag);
+    if(app->playlist_on_air) {
+        notification_message(app->notifications, &sequence_blink_start_magenta);
+    } else {
+        notification_message(app->notifications, &sequence_blink_stop);
+    }
+}
+
+static void playlist_cleanup_nfc(App* app) {
+    if(app->emulating) stop_listener(app, false, false);
+    app->playlist_on_air = false;
+    notification_message(app->notifications, &sequence_blink_stop);
+}
+
+static void playlist_finish_ui(App* app);
+static bool playlist_go_on_air(App* app);
+
+/* Load exactly playlist_index — never walk past a missing slot.
+ * Missing/bad dumps show "Missing dump" and wait for Next so numbers stay 1..21. */
+static bool playlist_go_on_air(App* app) {
+    if(!app->playlist_running) return false;
+    if(app->playlist_index >= MK8_PLAYLIST_COUNT) return false;
+
+    bool loaded = false;
+    if(app->playlist_paths[app->playlist_index]) {
+        furi_string_set(app->path, app->playlist_paths[app->playlist_index]);
+        loaded = load_selected_quiet(app, false);
+    }
+
+    if(!loaded) {
+        app->loaded = false;
+        app->playlist_on_air = false;
+        playlist_show(app, "Missing dump");
+        return true;
+    }
+
+    app->policy = UidForceOff;
+    app->figure_read = true;
+    pages_from_tag(app);
+    /* No transmit click on playlist — user paces with Next. */
+    app->nfc = nfc_alloc();
+    const MfUltralightData* data = nfc_device_get_data(app->device, NfcProtocolMfUltralight);
+    app->listener = nfc_listener_alloc(app->nfc, NfcProtocolMfUltralight, data);
+    nfc_listener_start(app->listener, NULL, NULL);
+    app->emulating = true;
+    app->playlist_on_air = true;
+    playlist_show(app, "On air");
+    return true;
+}
+
+static void playlist_stop(App* app) {
+    if(!app->playlist_running) return;
+    app->playlist_running = false;
+    playlist_cleanup_nfc(app);
+    playlist_paths_free(app);
+    app->loaded = false;
+    show_playlist_list(app);
+}
+
+static void playlist_finish_ui(App* app) {
+    app->playlist_running = false;
+    playlist_cleanup_nfc(app);
+    playlist_paths_free(app);
+    app->loaded = false;
+    app_alert(app, "Playlist done", "MK8 playlist finished.");
+    show_playlist_list(app);
+}
+
+/* Center / Next: leave current dump and transmit the next one.
+ * Debounce: widget Center + InputKeyOk pubsub both fire on one press.
+ * Sequence: indices 0..20 (UI 1..21), then Next finishes — never skips a slot. */
+#define PLAYLIST_ADVANCE_DEBOUNCE_MS 400
+
+static void playlist_advance(App* app) {
+    if(!app->playlist_running) return;
+    uint32_t now = furi_get_tick();
+    if((now - app->playlist_last_advance) < furi_ms_to_ticks(PLAYLIST_ADVANCE_DEBOUNCE_MS)) {
+        return;
+    }
+    app->playlist_last_advance = now;
+    playlist_cleanup_nfc(app);
+    if(app->playlist_index >= MK8_PLAYLIST_COUNT - 1) {
+        playlist_finish_ui(app);
+        return;
+    }
+    app->playlist_index++;
+    if(!playlist_go_on_air(app)) playlist_finish_ui(app);
+}
+
+static void playlist_start(App* app) {
+    uint8_t found = playlist_prepare_paths(app);
+    if(found == 0) {
+        app_alert(
+            app, "No dumps found", "Need Smash/Mario\nfolders in\napps_data/\namiibo_emulator/db");
+        playlist_paths_free(app);
+        show_playlist_list(app);
+        return;
+    }
+
+    app->playlist_index = 0;
+    app->playlist_on_air = false;
+    app->playlist_running = true;
+    app->playlist_last_advance = 0;
+    if(!playlist_go_on_air(app)) {
+        app_alert(app, "No dumps found", "Could not load\nany playlist dump.");
+        playlist_finish_ui(app);
+    }
+}
+
+static bool playlist_confirm_start(App* app) {
+    DialogMessage* message = dialog_message_alloc();
+    /* Preset name as header; generic body (no game-specific copy). */
+    dialog_message_set_header(message, "MK8 - All Mii Costumes", 64, 0, AlignCenter, AlignTop);
+    dialog_message_set_text(message, PLAYLIST_CONFIRM_DESC, 64, 20, AlignCenter, AlignTop);
+    dialog_message_set_buttons(message, NULL, "OK", NULL);
+    DialogMessageButton result = dialog_message_show(app->dialogs, message);
+    dialog_message_free(message);
+    return result == DialogMessageButtonCenter;
+}
+
+static void show_playlist_list(App* app) {
+    list_reset(app);
+    list_header(app, "Amiibo Playlist", 0, false);
+    list_add(app, "MK8 - All Mii Costumes", (unsigned)MK8_PLAYLIST_COUNT, true, MenuPlaylistMk8);
+    if(app->playlist_list_index != MenuPlaylistMk8) app->playlist_list_index = MenuPlaylistMk8;
+    list_select(app, app->playlist_list_index);
+    app->current = ViewPlaylist;
+    view_dispatcher_switch_to_view(app->dispatcher, ViewMenu);
+}
+
 static void app_tick(void* context) {
     App* app = context;
     if(app->current == ViewCleanup) cleanup_hold_tick(app);
@@ -1756,6 +2389,12 @@ static void splash_draw(Canvas* canvas, void* model) {
     if(frame >= SPLASH_FRAME_COUNT) frame = SPLASH_FRAME_COUNT - 1;
     canvas_clear(canvas);
     canvas_draw_xbm(canvas, 0, 0, SPLASH_WIDTH, SPLASH_HEIGHT, splash_frames[frame]);
+    /* Version badge: small, bottom-right, over every splash frame (incl. hold). */
+    char ver[12];
+    snprintf(ver, sizeof(ver), "v%s", APP_VERSION);
+    canvas_set_font(canvas, FontSecondary);
+    canvas_set_color(canvas, ColorBlack);
+    canvas_draw_str_aligned(canvas, 126, 62, AlignRight, AlignBottom, ver);
 }
 
 static bool splash_input(InputEvent* event, void* context) {
@@ -1909,7 +2548,7 @@ static void show_cut_notice(App* app, unsigned shown);
 static void show_file_list(App* app, bool saved) {
     if(!app->sort_series) app->in_series = false;
     app->list_cut = false;
-    const char* folder = saved ? APP_DATA_PATH("favorites") : APP_DATA_PATH("scanned");
+    const char* folder = saved ? AMIIBO_FAV_PATH : AMIIBO_SCAN_PATH;
     app->file_count = 0;
     uint16_t counts[256];
     memset(counts, 0, sizeof(counts));
@@ -2117,7 +2756,7 @@ static bool copy_to_favorites(App* app) {
     FuriString* name = furi_string_alloc();
     FuriString* dest = furi_string_alloc();
     path_extract_filename(app->path, name, false);
-    furi_string_printf(dest, "%s/%s", APP_DATA_PATH("favorites"), furi_string_get_cstr(name));
+    furi_string_printf(dest, "%s/%s", AMIIBO_FAV_PATH, furi_string_get_cstr(name));
     bool ok = write_dump_at(app, furi_string_get_cstr(dest));
     furi_string_free(name);
     furi_string_free(dest);
@@ -2228,21 +2867,23 @@ static void carousel_open(App* app) {
     MenuModel* model = view_get_model(app->menu_view);
     uint8_t index = model->index % MENU_ICON_COUNT;
     view_commit_model(app->menu_view, false);
-    if(index == 0) {
+    if(index == CarouselDatabase) {
         show_database(app);
-    } else if(index == 1) {
+    } else if(index == CarouselFavorites) {
         app->blast_list = false;
         app->in_series = false;
         show_file_list(app, true);
-    } else if(index == 2) {
+    } else if(index == CarouselScan) {
         show_scan(app);
-    } else if(index == 3) {
+    } else if(index == CarouselBlast) {
         app->blast_list = true;
         app->in_series = false;
         show_file_list(app, true);
-    } else if(index == 4) {
+    } else if(index == CarouselPlaylist) {
+        show_playlist_list(app);
+    } else if(index == CarouselSettings) {
         show_settings(app);
-    } else if(index == 5) {
+    } else if(index == CarouselHelp) {
         app->current = ViewHelp;
         view_dispatcher_switch_to_view(app->dispatcher, ViewHelp);
     } else {
@@ -2251,13 +2892,14 @@ static void carousel_open(App* app) {
 }
 
 static int section_of(App* app) {
-    if(app->current == ViewDatabase) return 0;
-    if(app->current == ViewSaved) return 1;
-    if(app->current == ViewMy) return 2;
-    if(app->current == ViewBlast) return 3;
-    if(app->current == ViewSettings) return 4;
-    if(app->current == ViewHelp) return 5;
-    if(app->current == ViewAbout) return 6;
+    if(app->current == ViewDatabase) return CarouselDatabase;
+    if(app->current == ViewSaved) return CarouselFavorites;
+    if(app->current == ViewMy) return CarouselScan;
+    if(app->current == ViewBlast) return CarouselBlast;
+    if(app->current == ViewPlaylist) return CarouselPlaylist;
+    if(app->current == ViewSettings) return CarouselSettings;
+    if(app->current == ViewHelp) return CarouselHelp;
+    if(app->current == ViewAbout) return CarouselAbout;
     return -1;
 }
 
@@ -2276,7 +2918,17 @@ static void show_section(App* app, int index) {
 static void section_key(const void* message, void* context) {
     const InputEvent* event = message;
     App* app = context;
-    if(app->blasting && event->type == InputTypeShort) {
+    /* Playlist Next is handled only by the Center widget button (Short).
+     * Do not also map InputKeyOk here — that double-fires with the widget
+     * and skips every other dump. Back still aborts via this pubsub. */
+    if(app->playlist_running && event->type == InputTypeShort) {
+        if(event->key == InputKeyBack) {
+            view_dispatcher_send_custom_event(app->dispatcher, EventPlaylistStop);
+        }
+        return;
+    }
+    /* Blast: physical Back aborts (chrome shows left Back). */
+    if(app->blasting && event->type == InputTypeShort && event->key == InputKeyBack) {
         view_dispatcher_send_custom_event(app->dispatcher, EventBlastStop);
         return;
     }
@@ -2419,7 +3071,7 @@ static void db_sort(App* app) {
 }
 
 static bool db_is_root(const App* app) {
-    return furi_string_cmp_str(app->db_path, APP_DATA_PATH("db")) == 0;
+    return furi_string_cmp_str(app->db_path, AMIIBO_DB_PATH) == 0;
 }
 
 static void db_load(App* app) {
@@ -2429,7 +3081,7 @@ static void db_load(App* app) {
     bool opened = storage_dir_open(dir, furi_string_get_cstr(app->db_path));
     if(!opened && !db_is_root(app)) {
         storage_file_free(dir);
-        furi_string_set(app->db_path, APP_DATA_PATH("db"));
+        furi_string_set(app->db_path, AMIIBO_DB_PATH);
         app->db_depth = 0;
         db_load(app);
         return;
@@ -2438,6 +3090,7 @@ static void db_load(App* app) {
         FileInfo info;
         char name[128];
         while(storage_dir_read(dir, &info, name, (uint16_t)sizeof(name))) {
+            db_busy_pulse(app);
             if(name[0] == '\0' || name[0] == '.') continue;
             bool is_dir = (info.flags & FSF_DIRECTORY) != 0;
             if(!is_dir) {
@@ -2460,6 +3113,9 @@ static void db_load(App* app) {
 }
 
 static void show_database(App* app) {
+    /* Long SD walks can take seconds on a full set. Show the system hourglass
+     * once work runs past DB_BUSY_SHOW_MS (v1.2 PR #5 behavior). */
+    db_busy_begin(app);
     db_load(app);
     FuriString* title = furi_string_alloc();
     if(db_is_root(app)) {
@@ -2476,6 +3132,7 @@ static void show_database(App* app) {
     } else {
         if(app->db_index >= app->db_count) app->db_index = 0;
         for(uint16_t i = 0; i < app->db_count; i++) {
+            db_busy_pulse(app);
             FuriString* label = furi_string_alloc_set(app->db_names[i]);
             unsigned row_count = 0;
             bool folder = app->db_is_dir[i] != 0;
@@ -2496,6 +3153,7 @@ static void show_database(App* app) {
         }
     }
     list_select(app, app->db_count == 0 ? MenuEmpty : MenuFileBase + app->db_index);
+    db_busy_end(app);
     app->current = ViewDatabase;
     view_dispatcher_switch_to_view(app->dispatcher, ViewMenu);
     if(app->list_cut) show_cut_notice(app, DIR_LIST_MAX);
@@ -2654,6 +3312,8 @@ static void submenu_callback(void* context, uint32_t index) {
         app->saved_index = index;
     else if(app->current == ViewBlast)
         app->blast_index = index;
+    else if(app->current == ViewPlaylist)
+        app->playlist_list_index = index;
     else if(app->current == ViewUnsaved)
         app->unsaved_index = index;
     else if(app->current == ViewDatabase && index >= MenuFileBase)
@@ -2671,9 +3331,17 @@ static bool custom_event(void* context, uint32_t event) {
         blast_stop(app);
         return true;
     }
+    if(event == EventPlaylistStop) {
+        playlist_stop(app);
+        return true;
+    }
+    if(event == EventPlaylistNext) {
+        playlist_advance(app);
+        return true;
+    }
     if(event == EventSectionLeft || event == EventSectionRight) {
         int section = section_of(app);
-        if(!app->reading && !app->emulating && section >= 0) {
+        if(!app->reading && !app->emulating && !app->playlist_running && section >= 0) {
             show_section(app, section + (event == EventSectionRight ? 1 : -1));
         }
         return true;
@@ -2705,16 +3373,25 @@ static bool custom_event(void* context, uint32_t event) {
         return true;
     }
 
-    if(app->emulating && event == GuiButtonTypeCenter + 100) {
-        if(app->blasting) {
+    /* Blast/Playlist chrome: Left Back aborts; Center Next advances playlist. */
+    if(event == GuiButtonTypeLeft + 100 && (app->blasting || app->playlist_running)) {
+        if(app->blasting)
             blast_stop(app);
-            return true;
-        }
+        else
+            playlist_stop(app);
+        return true;
+    }
+    if(event == GuiButtonTypeCenter + 100 && app->playlist_running) {
+        playlist_advance(app);
+        return true;
+    }
+
+    if(app->emulating && event == GuiButtonTypeCenter + 100) {
         stop_emulate(app);
         if(!start_emulate(app, true)) show_tag(app);
         return true;
     }
-    if(app->emulating) return true;
+    if(app->emulating || app->playlist_running) return true;
 
     if(app->current == ViewDatabase && event >= MenuFileBase &&
        event < (uint32_t)MenuFileBase + app->db_count) {
@@ -2725,7 +3402,12 @@ static bool custom_event(void* context, uint32_t event) {
         open_listed(app, (uint8_t)(event - MenuFileBase));
         return true;
     }
-    if(event == MenuEmpty) {
+    if(event == MenuPlaylistMk8) {
+        if(playlist_confirm_start(app))
+            playlist_start(app);
+        else
+            show_playlist_list(app);
+    } else if(event == MenuEmpty) {
         if(app->current == ViewDatabase)
             db_up(app);
         else if(
@@ -2734,10 +3416,13 @@ static bool custom_event(void* context, uint32_t event) {
              app->current == ViewUnsaved)) {
             app->in_series = false;
             show_file_list(app, app->current != ViewUnsaved);
-        } else if(app->current == ViewSaved || app->current == ViewBlast)
+        } else if(
+            app->current == ViewSaved || app->current == ViewBlast ||
+            app->current == ViewPlaylist) {
             show_menu(app);
-        else
+        } else {
             show_scan(app);
+        }
     } else if(event == MenuUnsaved) {
         app->in_series = false;
         show_file_list(app, false);
@@ -2754,11 +3439,19 @@ static bool custom_event(void* context, uint32_t event) {
         app->in_series = false;
         save_settings(app);
         show_settings(app);
+    } else if(event == MenuClickVol) {
+        app->click_vol = click_volume_next(app->click_vol);
+        save_settings(app);
+        amiibo_transmit_click(app);
+        show_settings(app);
     } else if(event == MenuKeys) {
         if(app->keys_loaded) {
             app_alert(app, "Keys loaded", app->key_path);
         } else {
-            app_alert(app, "Keys missing", "Put key_retail.bin\nin apps_data/\namiibo_emulator");
+            app_alert(
+                app,
+                "Keys missing",
+                "Put key_retail.bin\nin apps_data/\namiibo_emulator\n(any subfolder)");
         }
         show_settings(app);
     } else if(event == MenuDeleteScanned) {
@@ -2801,6 +3494,10 @@ static bool back_event(void* context) {
         blast_stop(app);
         return true;
     }
+    if(app->playlist_running) {
+        playlist_stop(app);
+        return true;
+    }
     if(app->emulating || app->current == ViewEmulate) {
         stop_emulate(app);
         if(app->origin == OriginSaved || app->origin == OriginUnsaved) save_dump(app);
@@ -2813,6 +3510,10 @@ static bool back_event(void* context) {
     }
     if(app->current == ViewDatabase) {
         db_up(app);
+        return true;
+    }
+    if(app->current == ViewPlaylist) {
+        show_menu(app);
         return true;
     }
     if(app->current == ViewSaved || app->current == ViewBlast) {
@@ -2896,17 +3597,17 @@ int32_t flipper_amiibo_app(void* arg) {
     app->dialogs = furi_record_open(RECORD_DIALOGS);
     app->notifications = furi_record_open(RECORD_NOTIFICATION);
     app->gui = furi_record_open(RECORD_GUI);
-    storage_simply_mkdir(app->storage, APP_DATA_PATH(""));
-    storage_simply_mkdir(app->storage, APP_DATA_PATH("db"));
-    storage_simply_mkdir(app->storage, APP_DATA_PATH("favorites"));
-    storage_simply_mkdir(app->storage, APP_DATA_PATH("scanned"));
-    move_legacy_files(app->storage, APP_DATA_PATH("saved"), APP_DATA_PATH("favorites"));
-    move_legacy_files(app->storage, APP_DATA_PATH("unsaved"), APP_DATA_PATH("scanned"));
+    storage_simply_mkdir(app->storage, AMIIBO_EXT_DATA_DIR);
+    storage_simply_mkdir(app->storage, AMIIBO_DB_PATH);
+    storage_simply_mkdir(app->storage, AMIIBO_FAV_PATH);
+    storage_simply_mkdir(app->storage, AMIIBO_SCAN_PATH);
+    move_legacy_files(app->storage, AMIIBO_EXT_DATA_DIR "/saved", AMIIBO_FAV_PATH);
+    move_legacy_files(app->storage, AMIIBO_EXT_DATA_DIR "/unsaved", AMIIBO_SCAN_PATH);
     load_settings(app);
     load_keys(app);
 
-    app->path = furi_string_alloc_set(APP_DATA_PATH("db"));
-    app->db_path = furi_string_alloc_set(APP_DATA_PATH("db"));
+    app->path = furi_string_alloc_set(AMIIBO_DB_PATH);
+    app->db_path = furi_string_alloc_set(AMIIBO_DB_PATH);
     for(uint8_t i = 0; i < FILE_MAX; i++)
         app->files[i] = furi_string_alloc();
     app->info = furi_string_alloc();
@@ -2950,6 +3651,7 @@ int32_t flipper_amiibo_app(void* arg) {
     view_set_draw_callback(app->menu_view, menu_draw);
     view_set_input_callback(app->menu_view, menu_input);
     app->popup = popup_alloc();
+    app->loading = loading_alloc();
     app->menu_timer = furi_timer_alloc(menu_timer_cb, FuriTimerTypePeriodic, app);
     app->help_view = view_alloc();
     view_allocate_model(app->help_view, ViewModelTypeLocking, sizeof(PageModel));
@@ -2991,11 +3693,17 @@ int32_t flipper_amiibo_app(void* arg) {
     view_dispatcher_add_view(app->dispatcher, ViewNotice, popup_get_view(app->popup));
     view_dispatcher_add_view(app->dispatcher, ViewHelp, app->help_view);
     view_dispatcher_add_view(app->dispatcher, ViewAbout, app->about_view);
+    view_dispatcher_add_view(app->dispatcher, ViewLoading, loading_get_view(app->loading));
 
     view_dispatcher_set_tick_event_callback(app->dispatcher, app_tick, furi_ms_to_ticks(50));
     show_splash(app);
     view_dispatcher_run(app->dispatcher);
 
+    if(app->playlist_running) {
+        app->playlist_running = false;
+        playlist_cleanup_nfc(app);
+        playlist_paths_free(app);
+    }
     if(app->reading) stop_read(app);
     if(app->emulating) stop_emulate(app);
     furi_timer_stop(app->menu_timer);
@@ -3014,6 +3722,7 @@ int32_t flipper_amiibo_app(void* arg) {
     view_dispatcher_remove_view(app->dispatcher, ViewNotice);
     view_dispatcher_remove_view(app->dispatcher, ViewHelp);
     view_dispatcher_remove_view(app->dispatcher, ViewAbout);
+    view_dispatcher_remove_view(app->dispatcher, ViewLoading);
     furi_timer_free(app->menu_timer);
     view_free(app->splash_view);
     view_free(app->cleanup_view);
@@ -3022,6 +3731,7 @@ int32_t flipper_amiibo_app(void* arg) {
     view_free(app->about_view);
     widget_free(app->widget);
     popup_free(app->popup);
+    loading_free(app->loading);
     with_view_model(
         app->list_view,
         ListModel * model,

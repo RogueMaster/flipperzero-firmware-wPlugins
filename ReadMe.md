@@ -37,7 +37,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - GPIO: [Show all 13 non-debug pins in the Logic Monitor with a compact three-column layout (By lewisQ17)](https://github.com/lewisQ17/Momentum-Firmware/commit/e0f4d9b46e3fe784d6fce3308d0b2bc54b3ef084)
 - BadUSB MSC: [Reject out-of-image READ/WRITE ranges and cap the exposed medium to 32-bit file offsets (By lewisQ17)](https://github.com/lewisQ17/Momentum-Firmware/commit/e96bf19deed56e35b630ab272d2c4a30efaea18c)
 - GPIO SFP: [Compact reserved connector entries and bound connector-name copies (By lewisQ17)](https://github.com/lewisQ17/Momentum-Firmware/commit/fc64db47d71832728a037f18aaee2c5d4362e5ac)
-- Updated: [Amiibo Emulator v1.2 (By Soap-n-Cartridge)](https://github.com/Soap-n-Cartridge/flipper_amiibo)
 - Updated: [Reaction Time Stats v1.0: show the saved-result count beside the average (By luvrltop)](https://github.com/luvrltop/ReactionTime)
 - HID: [Add a Mouse Jiggler auto-stop timer and countdown for USB and Bluetooth (By FelixLgr)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/pull/1215)
 - Added: [Zero Buster v1.1 (By DonJulve)](https://github.com/DonJulve/Zero_Buster)
@@ -67,7 +66,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [FZReader v1.0 for EPUB books (By leptopt1los)](https://github.com/Leptopt1los/fzreader)
 - ESP Flasher: [Comes with Marauder v1.21.0 (By justcallmekoko)](https://github.com/justcallmekoko/ESP32Marauder/releases/tag/v1.21.0)
 - Updated: [Marauder GUI v1.3 (By mel4mi & AzureSky)](https://github.com/mel4mi/Marauder-GUI-Flipper)
-- Updated: [GTA VI Companion v1.1 (By RogueMaster)](https://github.com/RogueMaster/GTA_VI_Companion)
 - Furi: [Harden heap block size checks. (By jeje77131)](https://github.com/DarkFlippers/unleashed-firmware/pull/1243)
 - OFW: [Preserve BLE key storage callbacks across radio restarts. (By yorha59)](https://github.com/flipperdevices/flipperzero-firmware/pull/4515)
 - Updated: [Sub-GHz RAW Edit v1.10 (WIP) (By Lechnio)](https://github.com/Lechnio/SubGHz-RAW-Edit)
@@ -84,6 +82,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - Furi: [`realloc()` copies only the old block when growing, and `calloc()` checks for overflow (By jeje77131)](https://github.com/DarkFlippers/unleashed-firmware/commit/3414ad8975ede7ecbdf0dfa493d0727384860df7)
 - Sub-GHz: [Keep open captures stable during receiver history updates (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/cab80b1038ce4320569283e09604c851f340e1db)
 - Added: [Z5Flip v1.0 (By Tobirg)](https://github.com/Tobirg/z5flip) - Controller Maintenance Tool `Req: IronLogic Z-5R`
+- Updated: [GTA VI Companion v1.3 (By RogueMaster)](https://github.com/RogueMaster/GTA_VI_Companion)
+- Updated: [Amiibo Emulator v1.3 adds manual playlists (By Soap-n-Cartridge)](https://github.com/Soap-n-Cartridge/flipper_amiibo)
 
 <a name="release"></a>
 
@@ -419,7 +419,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Alcohol Calc v1.0 (By vtlklr)](https://github.com/vtlklr/alcohol_calc)
 - [Allstar Firefly v0.1 (By jlaughter)](https://github.com/jlaughter/flipper-allstar-firefly) - Gate remote decoder/encoder
 - [Amiibo Browser v1.0 (By AzureSky)](https://github.com/AzzureSkyy/flipper-amiibo-browser)
-- [Amiibo Emulator v1.2 (By Soap-n-Cartridge)](https://github.com/Soap-n-Cartridge/flipper_amiibo)
+- [Amiibo Emulator v1.3 (By Soap-n-Cartridge)](https://github.com/Soap-n-Cartridge/flipper_amiibo)
 - [AmiiTool v0.3 (By Firefox2100)](https://github.com/Firefox2100/ami_tool) `Req: key_retail.bin on SD card /nfc/assets`
 - [Amusement IC v0.1 (By object-Object)](https://github.com/object-Object/flip_aic)
 - [Analog Clock v1.2 (By scrolltex)](https://github.com/scrolltex/flipper_analog_clock)
@@ -697,7 +697,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [GPS v1.5 (By ezod)](https://github.com/ezod/flipperzero-gps) `Req: NMEA 0183`
 - [Gree AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
 - [GS1 Parser v0.2 (By kdiller713)](https://github.com/kdiller713/public-FlipperApps/tree/main/gs1_rfid_parser) `Req: U107 or YRM100`
-- [GTA VI Companion v1.1 (By RogueMaster)](https://github.com/RogueMaster/GTA_VI_Companion)
+- [GTA VI Companion v1.3 (By RogueMaster)](https://github.com/RogueMaster/GTA_VI_Companion)
 - [Guido Music Score Reader v0.1 (By fgreil)](https://github.com/fgreil/mitzi-guido)
 - [Guitar Chords v1.0 (By KingBoa / NoodleNugget-com)](https://github.com/NoodleNugget-com/flipper-guitar-chords)
 - [H1030L Writer v1.3 (By Zacvr)](https://github.com/Zacvr/h10301_writer)

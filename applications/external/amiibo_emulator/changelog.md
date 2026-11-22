@@ -1,3 +1,10 @@
+v1.3:
+Amiibo Playlist is a new main-menu picture after Amiibo Blast. It lists one built-in preset, MK8 - All Mii Costumes. That preset walks 21 dumps under the Amiibo Database folder to unlock every amiibo-gated Mii costume in Mario Kart 8 Deluxe. A short description shows before the run. Each dump stays on air until you press Next (Center); Back exits. There is no auto-advance and no playlist click. Missing or bad dumps show as Missing dump on that slot (numbers stay 1–21); Next continues. UIDs are left alone. Paths assume a Full Set layout under apps_data/amiibo_emulator/db. Rosalina also tries Super Mario Amiibo/Rosalina.bin if the Smash name is missing. Splatoon prefers Smash Inkling.bin, then Splatoon Amiibo/Inkling Girl.bin (and color / series alts).
+
+Settings has Click volume: Off, Low, Med, High, or Max (equal steps 0.25–1.0). It applies to the transmit click for Amiibo Blast (not Playlist). Med is the default. Off plays no click. Changing the setting plays a test click at the new level (Off stays silent). The choice is saved with the other settings.
+
+Key files are found under apps_data/amiibo_emulator or the Amiibo database folder even when they sit in a subfolder. key_retail.bin works, and so do unfixed-info.bin plus locked-secret.bin in the same folder. Existing nfc/amiibo_keys.bin paths still work.
+
 v1.2:
 Settings can delete scanned Amiibos or Favorites. Each one names what will be removed and asks you to hold Up for 2 seconds. The downloaded library on the SD card stays. Deleting one Amiibo you have open still asks first.
 
