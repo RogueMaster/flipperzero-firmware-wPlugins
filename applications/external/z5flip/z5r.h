@@ -14,10 +14,10 @@
  * Key bytes are LSB first (b0 = DS1990A ROM[1]); shown MSB first as 12 hex digits.
  */
 
-#define Z5R_PAGE        32
-#define Z5R_MEM_MAX     8192
-#define Z5R_HDR         6
-#define Z5R_KEYS_MAX    1363 /* what an 8 KB controller holds */
+#define Z5R_PAGE     32
+#define Z5R_MEM_MAX  8192
+#define Z5R_HDR      6
+#define Z5R_KEYS_MAX 1363 /* what an 8 KB controller holds */
 
 typedef enum {
     Z5rAttrNormal = 1,
@@ -54,7 +54,12 @@ void z5r_key_from_rfid(bool em, const uint8_t* d, Z5rKey* k);
 
 /* Flipper key files: DS1990 .ibtn (or EM4100 .rfid, em=true) for 6-byte keys, H10301 .rfid for 3-byte keys */
 typedef struct Storage Storage;
-bool z5r_key_export(Storage* st, const Z5rKey* k, bool em, char* path, size_t n); /* path = file written */
+bool z5r_key_export(
+    Storage* st,
+    const Z5rKey* k,
+    bool em,
+    char* path,
+    size_t n); /* path = file written */
 bool z5r_key_import(Storage* st, const char* path, Z5rKey* k);
 
 /* controller link (I2C EEPROM on external bus, 8-bit addr 0xA0, 16-bit memory address) */
@@ -81,5 +86,8 @@ typedef struct {
 } CtlInfo;
 CtlResult z5r_ctl_probe(uint8_t page0[Z5R_PAGE], CtlInfo* i);
 CtlResult z5r_ctl_read(Z5rDb* db, CtlInfo* i);
-CtlResult z5r_ctl_write(Z5rDb* db, CtlInfo* i, bool force); /* page 0 first with 0x34, then changed pages, 0x33 last */
+CtlResult z5r_ctl_write(
+    Z5rDb* db,
+    CtlInfo* i,
+    bool force); /* page 0 first with 0x34, then changed pages, 0x33 last */
 CtlResult z5r_ctl_erase(CtlInfo* i);

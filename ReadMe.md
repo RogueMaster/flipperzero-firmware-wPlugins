@@ -83,6 +83,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Sub-GHz: [Fix renaming a saved file with a 64+ character name dropping its `.sub` extension (By jeje77131)](https://github.com/DarkFlippers/unleashed-firmware/commit/edc5e57dda9bb8348be66954057d220ed582d5ab)
 - Furi: [`realloc()` copies only the old block when growing, and `calloc()` checks for overflow (By jeje77131)](https://github.com/DarkFlippers/unleashed-firmware/commit/3414ad8975ede7ecbdf0dfa493d0727384860df7)
 - Sub-GHz: [Keep open captures stable during receiver history updates (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/cab80b1038ce4320569283e09604c851f340e1db)
+- Added: [Z5Flip v1.0 (By Tobirg)](https://github.com/Tobirg/z5flip) - Controller Maintenance Tool `Req: IronLogic Z-5R`
 
 <a name="release"></a>
 
@@ -1165,6 +1166,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [XRemote v1.4 (By kala13x)](https://github.com/kala13x/flipper-xremote) - Advanced infrared remote control
 - [YRM100X Pro v1.0 (By AlexeySmirnov74)](https://github.com/AlexeySmirnov74/YRM100X_PRO) - UHF RFID reader toolkit `Req: YRM100X`
 - [YuriCable Pro Max v0.4 (By arag0re)](https://github.com/arag0re/fz-yuricable-pro-max) - iPhone debug cable interface
+- [Z5Flip v1.0 (By Tobirg)](https://github.com/Tobirg/z5flip) - Controller Maintenance Tool `Req: IronLogic Z-5R`
 - [Zero Buster v1.1 (By DonJulve)](https://github.com/DonJulve/Zero_Buster)
 - [ZeroFIDO v0.8 (By MinorGlitch)](https://github.com/MinorGlitch/zerofido) - Passkey and security-key authenticator
 - [ZeroMesh v3.1 (By SAMS0N1TE)](https://github.com/SAMS0N1TE/ZeroMesh) - Meshtastic messaging client `Req: Meshtastic`

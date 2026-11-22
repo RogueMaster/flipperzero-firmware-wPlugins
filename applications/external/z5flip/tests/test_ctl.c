@@ -11,10 +11,13 @@
 static uint8_t eeprom[8192];
 static uint16_t chip = 8192; /* 4096 = 24C32: address bit 12 ignored, 0x1000 aliases 0x0000 */
 static int last_page_written = -1, writes, fail_read_at = -1;
-bool z5r_link_present(void) { return true; }
+bool z5r_link_present(void) {
+    return true;
+}
 bool z5r_link_read(uint16_t a, uint8_t* b, size_t n) {
     if(a == fail_read_at) return false;
-    for(size_t i = 0; i < n; i++) b[i] = eeprom[(a + i) & (chip - 1)];
+    for(size_t i = 0; i < n; i++)
+        b[i] = eeprom[(a + i) & (chip - 1)];
     return true;
 }
 bool z5r_link_write_page(uint16_t a, const uint8_t* p) {
@@ -37,7 +40,8 @@ static Z5rDb* db_with(int n) {
     Z5rDb* db = calloc(1, sizeof(*db));
     z5r_init_blank(db, 8192);
     for(int i = 0; i < n; i++) {
-        db->keys[i] = (Z5rKey){.b = {i & 0xFF, i >> 8, 0, 0, 0, 0}, .len = 6, .attr = Z5rAttrNormal};
+        db->keys[i] =
+            (Z5rKey){.b = {i & 0xFF, i >> 8, 0, 0, 0, 0}, .len = 6, .attr = Z5rAttrNormal};
     }
     db->count = n;
     return db;
@@ -52,7 +56,8 @@ static void round_trip(uint16_t mem_size) {
         Z5rKey* k = &db->keys[i];
         k->len = i % 3 ? 6 : 3;
         k->attr = 1 + i % 4;
-        for(int j = 0; j < 6; j++) k->b[j] = (uint8_t)(i * 7 + j * 31);
+        for(int j = 0; j < 6; j++)
+            k->b[j] = (uint8_t)(i * 7 + j * 31);
         k->b[5] &= 0x0F;
         if(k->len == 3) k->b[3] = k->b[4] = k->b[5] = 0;
     }
@@ -111,7 +116,9 @@ int main(void) {
 
     fresh(0xFF); /* blank 8 KB chip: formatted as 8 KB */
     eeprom[5] = 0xFF;
-    assert(z5r_ctl_erase(&ci) == CtlOk && eeprom[0] == 0x33 && eeprom[5] == 0x15 && eeprom[11] == 0xFF);
+    assert(
+        z5r_ctl_erase(&ci) == CtlOk && eeprom[0] == 0x33 && eeprom[5] == 0x15 &&
+        eeprom[11] == 0xFF);
     fresh(0xFF); /* blank 4 KB chip: the alias at 0x1000 gives it away */
     eeprom[5] = 0xFF;
     chip = 4096;
@@ -119,7 +126,9 @@ int main(void) {
     fresh(0xCF); /* formatted controller: open time kept */
     eeprom[3] = 0xAB;
     eeprom[4] = 0xCD;
-    assert(z5r_ctl_erase(&ci) == CtlOk && eeprom[3] == 0xAB && eeprom[4] == 0xCD && eeprom[5] == 0x15);
+    assert(
+        z5r_ctl_erase(&ci) == CtlOk && eeprom[3] == 0xAB && eeprom[4] == 0xCD &&
+        eeprom[5] == 0x15);
     fresh(0xCF); /* unknown code: refused, nothing written */
     eeprom[5] = 0x3A;
     assert(z5r_ctl_erase(&ci) == CtlBadCode && writes == 0);
@@ -150,7 +159,9 @@ int main(void) {
 
     /* real dumps */
     char first[13];
-    assert(parse_dump("../../dumps/controller_original.z5r", first) == 1 && !strcmp(first, "00000147F639"));
+    assert(
+        parse_dump("../../dumps/controller_original.z5r", first) == 1 &&
+        !strcmp(first, "00000147F639"));
     assert(parse_dump("../../dumps/basez5r_read.bin", NULL) == 1);
     assert(parse_dump("../../dumps/controller2_original.z5r", NULL) == 3);
     assert(parse_dump("../../dumps/test_1363_keys.bin", NULL) == 1363);

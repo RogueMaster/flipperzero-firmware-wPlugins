@@ -17,7 +17,8 @@ bool z5r_key_export(Storage* st, const Z5rKey* k, bool em, char* path, size_t n)
     z5r_key_str(k, s, sizeof(s));
     bool dallas = k->len == 6 && !em;
     storage_simply_mkdir(st, dallas ? "/ext/ibutton" : "/ext/lfrfid");
-    snprintf(path, n, "/ext/%s/Z5R_%s.%s", dallas ? "ibutton" : "lfrfid", s, dallas ? "ibtn" : "rfid");
+    snprintf(
+        path, n, "/ext/%s/Z5R_%s.%s", dallas ? "ibutton" : "lfrfid", s, dallas ? "ibtn" : "rfid");
     FlipperFormat* f = flipper_format_file_alloc(st);
     bool ok = flipper_format_file_open_always(f, path);
     if(ok && dallas) {
@@ -54,10 +55,11 @@ bool z5r_key_import(Storage* st, const char* path, Z5rKey* k) {
         if(furi_string_equal(t, "Flipper iButton key")) {
             /* v2: Protocol + Rom Data; v1: Key type Dallas + Data */
             bool v2 = flipper_format_rewind(f) && flipper_format_read_string(f, "Protocol", t);
-            ok = (v2 ? furi_string_equal(t, "DS1990")
-                     : flipper_format_rewind(f) && flipper_format_read_string(f, "Key type", t) &&
+            ok = (v2 ? furi_string_equal(t, "DS1990") :
+                       flipper_format_rewind(f) && flipper_format_read_string(f, "Key type", t) &&
                            furi_string_equal(t, "Dallas")) &&
-                 flipper_format_rewind(f) && flipper_format_read_hex(f, v2 ? "Rom Data" : "Data", d, 8) &&
+                 flipper_format_rewind(f) &&
+                 flipper_format_read_hex(f, v2 ? "Rom Data" : "Data", d, 8) &&
                  maxim_crc8(d, 7, 0) == d[7];
             if(ok) {
                 memcpy(k->b, d + 1, 6);

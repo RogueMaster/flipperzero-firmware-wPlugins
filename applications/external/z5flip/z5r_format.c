@@ -81,7 +81,10 @@ void z5r_init_blank(Z5rDb* db, uint16_t mem_size) {
 size_t z5r_build(Z5rDb* db) {
     uint8_t* m = db->mem;
     uint16_t cap = z5r_capacity(db->mem_size);
-    uint16_t n = db->count > cap ? cap : db->count; /* callers check the fit first; never drop keys from the base here */
+    uint16_t n =
+        db->count > cap ?
+            cap :
+            db->count; /* callers check the fit first; never drop keys from the base here */
     memset(m + Z5R_HDR, 0xFF, sizeof(db->mem) - Z5R_HDR);
     m[0] = 0x34; /* "in progress"; caller writes page 0 again with 0x33 last, like BaseZ5R */
     m[5] = db->mem_size == 4096 ? 0x05 : 0x15;
@@ -104,12 +107,14 @@ size_t z5r_build(Z5rDb* db) {
 void z5r_key_from_rfid(bool em, const uint8_t* d, Z5rKey* k) {
     uint8_t n = em ? 5 : 3;
     memset(k->b, 0, sizeof(k->b));
-    for(uint8_t i = 0; i < n; i++) k->b[i] = d[n - 1 - i];
-    k->len = em ? 6 : 3; /* EM4100 is a 6-byte record with b5 = 0, as a real controller stores it */
+    for(uint8_t i = 0; i < n; i++)
+        k->b[i] = d[n - 1 - i];
+    k->len = em ? 6 :
+                  3; /* EM4100 is a 6-byte record with b5 = 0, as a real controller stores it */
 }
 
 uint16_t z5r_open_time_code(const Z5rDb* db) {
-    return (uint16_t)~((db->mem[3] << 8) | db->mem[4]);
+    return (uint16_t) ~((db->mem[3] << 8) | db->mem[4]);
 }
 
 int z5r_find(const Z5rDb* db, const Z5rKey* k) {
@@ -129,5 +134,13 @@ void z5r_key_str(const Z5rKey* k, char* out, size_t n) {
         snprintf(out, n, "%02X%02X%02X", k->b[2], k->b[1], k->b[0]);
     else
         snprintf(
-            out, n, "%02X%02X%02X%02X%02X%02X", k->b[5], k->b[4], k->b[3], k->b[2], k->b[1], k->b[0]);
+            out,
+            n,
+            "%02X%02X%02X%02X%02X%02X",
+            k->b[5],
+            k->b[4],
+            k->b[3],
+            k->b[2],
+            k->b[1],
+            k->b[0]);
 }

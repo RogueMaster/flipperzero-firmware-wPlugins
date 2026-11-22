@@ -16,8 +16,10 @@ static const FuriHalI2cBusHandle* bus = &furi_hal_i2c_handle_external;
 static void acquire(void) {
     furi_hal_i2c_acquire(bus);
     /* firmware leaves PC0/PC1 without pull-ups; ~40k internal ones are enough for a short cable */
-    furi_hal_gpio_init_ex(&gpio_ext_pc0, GpioModeAltFunctionOpenDrain, GpioPullUp, GpioSpeedLow, GpioAltFn4I2C3);
-    furi_hal_gpio_init_ex(&gpio_ext_pc1, GpioModeAltFunctionOpenDrain, GpioPullUp, GpioSpeedLow, GpioAltFn4I2C3);
+    furi_hal_gpio_init_ex(
+        &gpio_ext_pc0, GpioModeAltFunctionOpenDrain, GpioPullUp, GpioSpeedLow, GpioAltFn4I2C3);
+    furi_hal_gpio_init_ex(
+        &gpio_ext_pc1, GpioModeAltFunctionOpenDrain, GpioPullUp, GpioSpeedLow, GpioAltFn4I2C3);
 }
 
 bool z5r_link_present(void) {

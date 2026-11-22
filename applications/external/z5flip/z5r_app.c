@@ -22,38 +22,119 @@
 #include <storage/storage.h>
 #include <ctype.h>
 
-#define DATA_DIR      "/ext/apps_data/z5flip"
-#define EXT           ".bin" /* raw memory image, byte-identical to BaseZ5R "controller -> file" */
-#define LOG_PATH      DATA_DIR "/log.txt"
+#define DATA_DIR "/ext/apps_data/z5flip"
+#define EXT      ".bin" /* raw memory image, byte-identical to BaseZ5R "controller -> file" */
+#define LOG_PATH DATA_DIR "/log.txt"
 
-typedef enum { VMain, VCtl, VKeys, VKey, VBytes, VText, VPopup, VInfo, VWire, VFilter, VAdd, VWarn, VNum, VTouch } ViewId;
-typedef enum { ByteAdd, ByteEdit } ByteMode;
-typedef enum { TickNone, TickTouch } TickMode;
+typedef enum {
+    VMain,
+    VCtl,
+    VKeys,
+    VKey,
+    VBytes,
+    VText,
+    VPopup,
+    VInfo,
+    VWire,
+    VFilter,
+    VAdd,
+    VWarn,
+    VNum,
+    VTouch
+} ViewId;
+typedef enum {
+    ByteAdd,
+    ByteEdit
+} ByteMode;
+typedef enum {
+    TickNone,
+    TickTouch
+} TickMode;
 
-enum { MCtl, MRead, MErase, MInfo }; /* MRead: selector, Left / Right pick controller / file */
-enum { CAdd, CTime, CKeys, CWrite }; /* CWrite: selector, Left / Right pick controller / file / both */
-enum { WCtl, WFile, WBoth };
+enum {
+    MCtl,
+    MRead,
+    MErase,
+    MInfo
+}; /* MRead: selector, Left / Right pick controller / file */
+enum {
+    CAdd,
+    CTime,
+    CKeys,
+    CWrite
+}; /* CWrite: selector, Left / Right pick controller / file / both */
+enum {
+    WCtl,
+    WFile,
+    WBoth
+};
 #define ROWS_FIRST 1 /* row 0 of the key list is the search line */
-enum { KAttr, KEdit, KExport, KDelete, KNone, KMarkAll, KUnmarkAll }; /* key card rows, then the marks menu rows */
-enum { AType, ATouch, ATouchRfid, AIbtn, ARfid, AManual }; /* AType: selector, Left / Right change the type of added keys */
-enum { TmIbtn = 1, TmRfid = 2 }; /* touch reading source */
-enum { FCode, FType, FMarked, FReset };
+enum {
+    KAttr,
+    KEdit,
+    KExport,
+    KDelete,
+    KNone,
+    KMarkAll,
+    KUnmarkAll
+}; /* key card rows, then the marks menu rows */
+enum {
+    AType,
+    ATouch,
+    ATouchRfid,
+    AIbtn,
+    ARfid,
+    AManual
+}; /* AType: selector, Left / Right change the type of added keys */
+enum {
+    TmIbtn = 1,
+    TmRfid = 2
+}; /* touch reading source */
+enum {
+    FCode,
+    FType,
+    FMarked,
+    FReset
+};
 static const char* const fmark_names[] = {"any", "marked", "unmarked"};
 /* same key seen again within this time = still on the reader; shorter = faster re-tap, but a flaky read may count twice */
 #define TOUCH_GAP_MS      400 /* iButton polls every 100 ms */
 #define TOUCH_GAP_RFID_MS 450 /* RFID worker re-reads a held card every few hundred ms */
-#define KEYS_NONE   0xFFFD
+#define KEYS_NONE         0xFFFD
 /* stock 'Dolphin done' (thumbs up) bitmap (system icons are not exported to FAPs); data is firmware-compressed */
-static const uint8_t dolphin_frame[] = {1,0,124,1,0,39,254,62,8,110,4,3,192,9,105,128,8,96,96,149,134,0,134,8,9,88,16,8,99,0,149,128,128,134,64,8,76,0,12,168,0,148,2,152,52,195,44,33,32,77,196,7,236,9,184,64,8,111,133,165,4,150,14,2,9,63,132,44,134,80,32,113,29,68,236,52,15,228,16,18,112,36,80,208,62,80,81,177,192,147,195,32,240,194,193,38,83,24,24,38,33,146,15,152,37,63,43,49,144,127,193,41,5,129,240,52,0,149,129,145,70,193,248,131,161,142,4,14,24,135,130,10,9,75,3,156,160,64,146,135,65,21,229,128,128,130,74,34,123,23,96,131,4,18,103,17,5,137,76,65,35,128,136,12,5,216,32,149,1,140,128,82,64,81,252,68,16,3,192,115,144,36,96,145,17,184,192,39,224,147,129,68,135,68,234,64,73,67,193,43,1,4,140,125,212,160,145,192,95,193,45,34,160,127,96,113,192,74,80,102,31,217,252,136,18,45,97,128,224,97,159,152,120,36,174,16,12,17,16,126,48,25,8,36,122,16,10,49,28,75,34,9,45,132,6,120,220,47,128,36,170,16,52,152,159,134,16,39,45,4,8,18,112,68,9,88,32,164,113,4,175,130,12,9,56,18,56,168,16,211,200,232,129,35,0,131,40,198,20,24,16,153,47,203,1,21,192,98,181,64,146,240,2,70,52,77,16,153,192,32,240,9,172,3,84,19,23,40,135,138,87,0,170,28,68,166,43,34,170,192,53,1,49,72,136,0,173,104,225,170,192,92,226,0,46,177,32,117,67,49,44,8,0,67,67,0,255,130,69,206,97,49,74,150,1,206,97,50,4,140,2,126,19,48};
+static const uint8_t dolphin_frame[] = {
+    1,   0,   124, 1,   0,   39,  254, 62,  8,   110, 4,   3,   192, 9,   105, 128, 8,   96,  96,
+    149, 134, 0,   134, 8,   9,   88,  16,  8,   99,  0,   149, 128, 128, 134, 64,  8,   76,  0,
+    12,  168, 0,   148, 2,   152, 52,  195, 44,  33,  32,  77,  196, 7,   236, 9,   184, 64,  8,
+    111, 133, 165, 4,   150, 14,  2,   9,   63,  132, 44,  134, 80,  32,  113, 29,  68,  236, 52,
+    15,  228, 16,  18,  112, 36,  80,  208, 62,  80,  81,  177, 192, 147, 195, 32,  240, 194, 193,
+    38,  83,  24,  24,  38,  33,  146, 15,  152, 37,  63,  43,  49,  144, 127, 193, 41,  5,   129,
+    240, 52,  0,   149, 129, 145, 70,  193, 248, 131, 161, 142, 4,   14,  24,  135, 130, 10,  9,
+    75,  3,   156, 160, 64,  146, 135, 65,  21,  229, 128, 128, 130, 74,  34,  123, 23,  96,  131,
+    4,   18,  103, 17,  5,   137, 76,  65,  35,  128, 136, 12,  5,   216, 32,  149, 1,   140, 128,
+    82,  64,  81,  252, 68,  16,  3,   192, 115, 144, 36,  96,  145, 17,  184, 192, 39,  224, 147,
+    129, 68,  135, 68,  234, 64,  73,  67,  193, 43,  1,   4,   140, 125, 212, 160, 145, 192, 95,
+    193, 45,  34,  160, 127, 96,  113, 192, 74,  80,  102, 31,  217, 252, 136, 18,  45,  97,  128,
+    224, 97,  159, 152, 120, 36,  174, 16,  12,  17,  16,  126, 48,  25,  8,   36,  122, 16,  10,
+    49,  28,  75,  34,  9,   45,  132, 6,   120, 220, 47,  128, 36,  170, 16,  52,  152, 159, 134,
+    16,  39,  45,  4,   8,   18,  112, 68,  9,   88,  32,  164, 113, 4,   175, 130, 12,  9,   56,
+    18,  56,  168, 16,  211, 200, 232, 129, 35,  0,   131, 40,  198, 20,  24,  16,  153, 47,  203,
+    1,   21,  192, 98,  181, 64,  146, 240, 2,   70,  52,  77,  16,  153, 192, 32,  240, 9,   172,
+    3,   84,  19,  23,  40,  135, 138, 87,  0,   170, 28,  68,  166, 43,  34,  170, 192, 53,  1,
+    49,  72,  136, 0,   173, 104, 225, 170, 192, 92,  226, 0,   46,  177, 32,  117, 67,  49,  44,
+    8,   0,   67,  67,  0,   255, 130, 69,  206, 97,  49,  74,  150, 1,   206, 97,  50,  4,   140,
+    2,   126, 19,  48};
 static const uint8_t* const dolphin_frames[] = {dolphin_frame};
-static const Icon dolphin_ok = {.width = 80, .height = 58, .frame_count = 1, .frame_rate = 0, .frames = dolphin_frames};
+static const Icon dolphin_ok =
+    {.width = 80, .height = 58, .frame_count = 1, .frame_rate = 0, .frames = dolphin_frames};
 /* open time code = sec * 260/17 (~15.3 ticks/s; BaseZ5R: 255 s = 3900, factory 3 s = 46) */
 #define SEC_TO_CODE(s) (((s) * 260 + 8) / 17)
 #define CODE_TO_SEC(c) (((c) * 17 + 130) / 260)
-#define KEYS_FILTER 0xFFFC
-#define KROWS       (Z5R_KEYS_MAX + 2) /* search line + keys or a placeholder */
+#define KEYS_FILTER    0xFFFC
+#define KROWS          (Z5R_KEYS_MAX + 2) /* search line + keys or a placeholder */
 
-static uint32_t text_back = VMain; /* view the text input returns to on Back (save name / key search) */
+static uint32_t text_back =
+    VMain; /* view the text input returns to on Back (save name / key search) */
 static uint32_t bytes_back = VAdd; /* same for the key number input */
 
 typedef struct {
@@ -76,11 +157,14 @@ typedef struct {
     uint8_t kmap[8]; /* key list row -> KAttr.. action */
     bool kact; /* the key list holds the marked-keys or marks menu, not the key card */
     uint32_t kpress; /* tick Up / Down went down in the key list: held 3 s = steps of 20 */
-    uint8_t paint; /* OK held after marking: 1 = rows passed with Up / Down get marked, 2 = unmarked */
+    uint8_t
+        paint; /* OK held after marking: 1 = rows passed with Up / Down get marked, 2 = unmarked */
     uint8_t wto; /* "Save base to:" target, WCtl.. */
     uint8_t rfrom; /* "Read base from:" 0 = controller, 1 = file */
     bool wboth; /* the file name being asked is for "both": the controller write follows the save */
-    uint8_t mark[(Z5R_KEYS_MAX + 7) / 8]; /* marked keys, bit per base index; only set while in the key list */
+    uint8_t mark
+        [(Z5R_KEYS_MAX + 7) /
+         8]; /* marked keys, bit per base index; only set while in the key list */
     uint16_t nmark;
     uint8_t fbytes[6]; /* key search input, MSB first */
     VariableItemList* filter;
@@ -105,14 +189,17 @@ typedef struct {
     uint8_t rfid_data[8];
     uint8_t rfid_proto;
     uint8_t tattr; /* type given to the next key read */
-    uint8_t src; /* where the base came from: 0 none / new, 1 controller, 2 file, 3 written to controller, not saved */
+    uint8_t
+        src; /* where the base came from: 0 none / new, 1 controller, 2 file, 3 written to controller, not saved */
     bool bak; /* src == 1 and controller_last.bin holds what was read: Write needs no backup prompt */
     bool fdirty; /* base differs from the file it was loaded from / saved to */
     bool exit_ask; /* Back on the main screen is waiting for the exit warning */
     char srcname[32]; /* file name without .bin, when src == 2 */
     char label[40]; /* first main menu item */
-    uint16_t base0; /* key count at the last read / load / write / save: header shows the change against it */
-    uint8_t tstate; /* 0 nothing yet, 1 added, 2 already in base, 3 base full, 4 not a Dallas key, 5 type overwritten */
+    uint16_t
+        base0; /* key count at the last read / load / write / save: header shows the change against it */
+    uint8_t
+        tstate; /* 0 nothing yet, 1 added, 2 already in base, 3 base full, 4 not a Dallas key, 5 type overwritten */
     uint16_t tadded, tdup;
     char tlast[13];
     Z5rKey tkey;
@@ -163,14 +250,101 @@ static void popup_ok(void* ctx) {
 }
 
 /* full-screen "working" notice: the dialog/menu that started a blocking operation is replaced first */
-static const uint8_t z5_read_frame[] = {0,0,0,254,31,0,0,0,1,0,0,0,0,0,0,192,1,224,1,0,128,0,0,0,0,0,0,0,48,0,0,6,0,128,0,0,0,0,0,0,0,12,0,0,24,0,64,0,0,0,0,0,0,0,2,0,0,32,0,64,64,0,248,255,255,1,0,1,0,0,64,0,32,32,0,8,2,30,1,128,0,0,0,128,0,32,32,0,232,2,33,1,64,0,0,0,0,1,32,16,0,168,130,64,1,32,0,0,0,0,2,16,16,0,232,130,76,1,32,0,0,0,60,4,16,8,4,8,130,76,1,16,0,0,0,66,4,16,8,2,232,130,64,1,16,0,0,0,129,8,16,8,2,168,2,33,1,8,6,0,128,24,9,16,8,2,232,2,30,1,8,9,8,128,36,9,16,8,2,8,2,0,1,132,16,8,128,36,17,16,8,2,232,194,31,1,196,16,16,128,36,17,16,8,4,168,130,24,1,68,16,16,128,36,17,16,16,0,232,130,16,1,70,32,32,128,36,17,32,16,0,8,194,31,1,42,32,32,128,36,17,32,32,0,232,2,0,1,54,32,64,128,24,17,32,32,0,168,2,0,1,27,224,128,0,129,16,64,64,0,232,2,0,1,13,224,0,1,66,16,64,0,0,8,2,0,1,7,224,1,0,60,24,128,0,0,232,2,0,1,3,240,1,0,0,20,128,0,0,168,2,0,1,1,240,3,0,0,10,0,1,0,232,2,0,1,0,208,255,1,0,8,0,0,0,8,2,0,1,0,208,255,1,0,12,0,0,0,232,2,0,1,0,24,255,0,0,14,0,0,0,168,226,15,1,0,8,60,0,31,14,0,0,0,232,242,31,1,0,24,0,96,128,6,0,0,0,8,242,31,1,0,12,0,8,0,5,0,0,0,232,226,15,1,0,20,0,2,0,7,0,0,0,168,2,0,1,0,12,0,0,0,6,0,0,0,232,194,127,1,0,6,0,0,0,4,0,0,0,8,66,85,1,0,10,0,0,0,4,0,0,0,232,194,127,1,0,5,0,0,0,8,0,0,0,168,66,85,1,0,11,0,0,0,8,0,0,0,232,194,127,1,128,5,24,0,0,16,0,0,0,8,2,0,1,192,2,32,0,0,16,0,0,0,248,255,255,1,64,5,192,0,0,32,0,0,0,0,0,0,0,160,2,0,1,0,32,0,0,0,0,0,0,0,80,1,0,6,0,64,0,0,0,0,0,0,0,176,0,20,8,0,64,0,0,0,0,0,0,0,88,0,106,48,0,64,0,0,0,0,0,0,0,172,0,212,65,0,64,0,0,0,0,0,0,0,84,0,168,131,1,64,0,0,0,0,0,0,0,42,0,80,15,2,64,0,0,0,0,0,0,0,21,0,160,30,252,95,0,0,0,0,0,0,0,11,0,64,125,0,48,0,0,0,0,0,0,0,1,0,160,250,1,16,0,0,0,0,0,0,0,0,0,0,245,7,8,0,0,0,0,0,0,0,0,0,0,234,255,7,0,0,0,0,0,0,0,0,0,0,208,95,0,0,0,0,0,0,0,0,0,0,0,160,158,0,0,0,0,0,0,0,0,0,0,0,64,149,0,0,0,0,0,0,0,0,0,0,0,0,154,0,0,0,0,0,0,0,0,0,0,0,0,16,1,0,0,0,0,0,0,0,0,0,0,0,8,1,0,0,0,0,0,0,0,0,0,0,0,8,1,0,0,0,0,0,0,0,0,0,0,0,8,2,0,0,0,0,0,0,0,0,0,0,0,8,2,0,0,0,0,0,0,0};
+static const uint8_t z5_read_frame[] = {
+    0,   0,   0,   254, 31,  0,   0,   0,   1,   0,   0,   0,   0,   0,   0,   192, 1,   224, 1,
+    0,   128, 0,   0,   0,   0,   0,   0,   0,   48,  0,   0,   6,   0,   128, 0,   0,   0,   0,
+    0,   0,   0,   12,  0,   0,   24,  0,   64,  0,   0,   0,   0,   0,   0,   0,   2,   0,   0,
+    32,  0,   64,  64,  0,   248, 255, 255, 1,   0,   1,   0,   0,   64,  0,   32,  32,  0,   8,
+    2,   30,  1,   128, 0,   0,   0,   128, 0,   32,  32,  0,   232, 2,   33,  1,   64,  0,   0,
+    0,   0,   1,   32,  16,  0,   168, 130, 64,  1,   32,  0,   0,   0,   0,   2,   16,  16,  0,
+    232, 130, 76,  1,   32,  0,   0,   0,   60,  4,   16,  8,   4,   8,   130, 76,  1,   16,  0,
+    0,   0,   66,  4,   16,  8,   2,   232, 130, 64,  1,   16,  0,   0,   0,   129, 8,   16,  8,
+    2,   168, 2,   33,  1,   8,   6,   0,   128, 24,  9,   16,  8,   2,   232, 2,   30,  1,   8,
+    9,   8,   128, 36,  9,   16,  8,   2,   8,   2,   0,   1,   132, 16,  8,   128, 36,  17,  16,
+    8,   2,   232, 194, 31,  1,   196, 16,  16,  128, 36,  17,  16,  8,   4,   168, 130, 24,  1,
+    68,  16,  16,  128, 36,  17,  16,  16,  0,   232, 130, 16,  1,   70,  32,  32,  128, 36,  17,
+    32,  16,  0,   8,   194, 31,  1,   42,  32,  32,  128, 36,  17,  32,  32,  0,   232, 2,   0,
+    1,   54,  32,  64,  128, 24,  17,  32,  32,  0,   168, 2,   0,   1,   27,  224, 128, 0,   129,
+    16,  64,  64,  0,   232, 2,   0,   1,   13,  224, 0,   1,   66,  16,  64,  0,   0,   8,   2,
+    0,   1,   7,   224, 1,   0,   60,  24,  128, 0,   0,   232, 2,   0,   1,   3,   240, 1,   0,
+    0,   20,  128, 0,   0,   168, 2,   0,   1,   1,   240, 3,   0,   0,   10,  0,   1,   0,   232,
+    2,   0,   1,   0,   208, 255, 1,   0,   8,   0,   0,   0,   8,   2,   0,   1,   0,   208, 255,
+    1,   0,   12,  0,   0,   0,   232, 2,   0,   1,   0,   24,  255, 0,   0,   14,  0,   0,   0,
+    168, 226, 15,  1,   0,   8,   60,  0,   31,  14,  0,   0,   0,   232, 242, 31,  1,   0,   24,
+    0,   96,  128, 6,   0,   0,   0,   8,   242, 31,  1,   0,   12,  0,   8,   0,   5,   0,   0,
+    0,   232, 226, 15,  1,   0,   20,  0,   2,   0,   7,   0,   0,   0,   168, 2,   0,   1,   0,
+    12,  0,   0,   0,   6,   0,   0,   0,   232, 194, 127, 1,   0,   6,   0,   0,   0,   4,   0,
+    0,   0,   8,   66,  85,  1,   0,   10,  0,   0,   0,   4,   0,   0,   0,   232, 194, 127, 1,
+    0,   5,   0,   0,   0,   8,   0,   0,   0,   168, 66,  85,  1,   0,   11,  0,   0,   0,   8,
+    0,   0,   0,   232, 194, 127, 1,   128, 5,   24,  0,   0,   16,  0,   0,   0,   8,   2,   0,
+    1,   192, 2,   32,  0,   0,   16,  0,   0,   0,   248, 255, 255, 1,   64,  5,   192, 0,   0,
+    32,  0,   0,   0,   0,   0,   0,   0,   160, 2,   0,   1,   0,   32,  0,   0,   0,   0,   0,
+    0,   0,   80,  1,   0,   6,   0,   64,  0,   0,   0,   0,   0,   0,   0,   176, 0,   20,  8,
+    0,   64,  0,   0,   0,   0,   0,   0,   0,   88,  0,   106, 48,  0,   64,  0,   0,   0,   0,
+    0,   0,   0,   172, 0,   212, 65,  0,   64,  0,   0,   0,   0,   0,   0,   0,   84,  0,   168,
+    131, 1,   64,  0,   0,   0,   0,   0,   0,   0,   42,  0,   80,  15,  2,   64,  0,   0,   0,
+    0,   0,   0,   0,   21,  0,   160, 30,  252, 95,  0,   0,   0,   0,   0,   0,   0,   11,  0,
+    64,  125, 0,   48,  0,   0,   0,   0,   0,   0,   0,   1,   0,   160, 250, 1,   16,  0,   0,
+    0,   0,   0,   0,   0,   0,   0,   0,   245, 7,   8,   0,   0,   0,   0,   0,   0,   0,   0,
+    0,   0,   234, 255, 7,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   208, 95,  0,   0,
+    0,   0,   0,   0,   0,   0,   0,   0,   0,   160, 158, 0,   0,   0,   0,   0,   0,   0,   0,
+    0,   0,   0,   64,  149, 0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   154, 0,
+    0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   16,  1,   0,   0,   0,   0,   0,   0,
+    0,   0,   0,   0,   0,   8,   1,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   8,
+    1,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   8,   2,   0,   0,   0,   0,   0,
+    0,   0,   0,   0,   0,   0,   8,   2,   0,   0,   0,   0,   0,   0,   0};
 static const uint8_t* const z5_read_frames[] = {z5_read_frame};
-static const Icon z5_read_icon = {.width = 97, .height = 61, .frame_count = 1, .frame_rate = 0, .frames = z5_read_frames};
-static const uint8_t z5_write_frame[] = {0,0,0,254,31,0,0,0,64,0,0,0,0,0,0,192,1,224,1,0,0,128,0,0,0,0,0,0,48,0,0,6,0,0,128,0,0,0,0,0,0,12,0,0,24,0,0,0,1,0,0,0,0,0,2,0,0,32,0,0,1,1,248,255,255,1,0,1,0,0,64,0,0,2,2,8,2,30,1,128,0,0,0,128,0,0,2,2,232,2,33,1,64,0,0,0,0,1,0,4,2,168,130,64,1,32,0,0,0,0,2,0,4,4,232,130,76,1,32,0,0,0,60,4,16,8,4,8,130,76,1,16,0,0,0,66,4,32,8,4,232,130,64,1,16,0,0,0,129,8,32,8,4,168,2,33,1,8,6,0,128,24,9,32,8,4,232,2,30,1,8,9,8,128,36,9,32,8,4,8,2,0,1,132,16,8,128,36,17,32,8,4,232,194,31,1,196,16,16,128,36,17,16,8,4,168,130,24,1,68,16,16,128,36,17,0,4,4,232,130,16,1,70,32,32,128,36,17,0,4,2,8,194,31,1,42,32,32,128,36,17,0,2,2,232,2,0,1,54,32,64,128,24,17,0,2,2,168,2,0,1,27,224,128,0,129,16,0,1,1,232,2,0,1,13,224,0,1,66,16,0,0,1,8,2,0,1,7,224,1,0,60,24,0,128,0,232,2,0,1,3,240,1,0,0,20,0,128,0,168,2,0,1,1,240,3,0,0,10,0,64,0,232,2,0,1,0,208,255,1,0,8,0,0,0,8,2,0,1,0,208,255,1,0,12,0,0,0,232,2,0,1,0,24,255,0,0,14,0,0,0,168,226,15,1,0,8,60,0,31,14,0,0,0,232,242,31,1,0,24,0,96,128,6,0,0,0,8,242,31,1,0,12,0,8,0,5,0,0,0,232,226,15,1,0,20,0,2,0,7,0,0,0,168,2,0,1,0,12,0,0,0,6,0,0,0,232,194,127,1,0,6,0,0,0,4,0,0,0,8,66,85,1,0,10,0,0,0,4,0,0,0,232,194,127,1,0,5,0,0,0,8,0,0,0,168,66,85,1,0,11,0,0,0,8,0,0,0,232,194,127,1,128,5,24,0,0,16,0,0,0,8,2,0,1,192,2,32,0,0,16,0,0,0,248,255,255,1,64,5,192,0,0,32,0,0,0,0,0,0,0,160,2,0,1,0,32,0,0,0,0,0,0,0,80,1,0,6,0,64,0,0,0,0,0,0,0,176,0,20,8,0,64,0,0,0,0,0,0,0,88,0,106,48,0,64,0,0,0,0,0,0,0,172,0,212,65,0,64,0,0,0,0,0,0,0,84,0,168,131,1,64,0,0,0,0,0,0,0,42,0,80,15,2,64,0,0,0,0,0,0,0,21,0,160,30,252,95,0,0,0,0,0,0,0,11,0,64,125,0,48,0,0,0,0,0,0,0,1,0,160,250,1,16,0,0,0,0,0,0,0,0,0,0,245,7,8,0,0,0,0,0,0,0,0,0,0,234,255,7,0,0,0,0,0,0,0,0,0,0,208,95,0,0,0,0,0,0,0,0,0,0,0,160,158,0,0,0,0,0,0,0,0,0,0,0,64,149,0,0,0,0,0,0,0,0,0,0,0,0,154,0,0,0,0,0,0,0,0,0,0,0,0,16,1,0,0,0,0,0,0,0,0,0,0,0,8,1,0,0,0,0,0,0,0,0,0,0,0,8,1,0,0,0,0,0,0,0,0,0,0,0,8,2,0,0,0,0,0,0,0,0,0,0,0,8,2,0,0,0,0,0,0,0};
+static const Icon z5_read_icon =
+    {.width = 97, .height = 61, .frame_count = 1, .frame_rate = 0, .frames = z5_read_frames};
+static const uint8_t z5_write_frame[] = {
+    0,   0,   0,   254, 31,  0,   0,   0,   64,  0,   0,   0,   0,   0,   0,   192, 1,   224, 1,
+    0,   0,   128, 0,   0,   0,   0,   0,   0,   48,  0,   0,   6,   0,   0,   128, 0,   0,   0,
+    0,   0,   0,   12,  0,   0,   24,  0,   0,   0,   1,   0,   0,   0,   0,   0,   2,   0,   0,
+    32,  0,   0,   1,   1,   248, 255, 255, 1,   0,   1,   0,   0,   64,  0,   0,   2,   2,   8,
+    2,   30,  1,   128, 0,   0,   0,   128, 0,   0,   2,   2,   232, 2,   33,  1,   64,  0,   0,
+    0,   0,   1,   0,   4,   2,   168, 130, 64,  1,   32,  0,   0,   0,   0,   2,   0,   4,   4,
+    232, 130, 76,  1,   32,  0,   0,   0,   60,  4,   16,  8,   4,   8,   130, 76,  1,   16,  0,
+    0,   0,   66,  4,   32,  8,   4,   232, 130, 64,  1,   16,  0,   0,   0,   129, 8,   32,  8,
+    4,   168, 2,   33,  1,   8,   6,   0,   128, 24,  9,   32,  8,   4,   232, 2,   30,  1,   8,
+    9,   8,   128, 36,  9,   32,  8,   4,   8,   2,   0,   1,   132, 16,  8,   128, 36,  17,  32,
+    8,   4,   232, 194, 31,  1,   196, 16,  16,  128, 36,  17,  16,  8,   4,   168, 130, 24,  1,
+    68,  16,  16,  128, 36,  17,  0,   4,   4,   232, 130, 16,  1,   70,  32,  32,  128, 36,  17,
+    0,   4,   2,   8,   194, 31,  1,   42,  32,  32,  128, 36,  17,  0,   2,   2,   232, 2,   0,
+    1,   54,  32,  64,  128, 24,  17,  0,   2,   2,   168, 2,   0,   1,   27,  224, 128, 0,   129,
+    16,  0,   1,   1,   232, 2,   0,   1,   13,  224, 0,   1,   66,  16,  0,   0,   1,   8,   2,
+    0,   1,   7,   224, 1,   0,   60,  24,  0,   128, 0,   232, 2,   0,   1,   3,   240, 1,   0,
+    0,   20,  0,   128, 0,   168, 2,   0,   1,   1,   240, 3,   0,   0,   10,  0,   64,  0,   232,
+    2,   0,   1,   0,   208, 255, 1,   0,   8,   0,   0,   0,   8,   2,   0,   1,   0,   208, 255,
+    1,   0,   12,  0,   0,   0,   232, 2,   0,   1,   0,   24,  255, 0,   0,   14,  0,   0,   0,
+    168, 226, 15,  1,   0,   8,   60,  0,   31,  14,  0,   0,   0,   232, 242, 31,  1,   0,   24,
+    0,   96,  128, 6,   0,   0,   0,   8,   242, 31,  1,   0,   12,  0,   8,   0,   5,   0,   0,
+    0,   232, 226, 15,  1,   0,   20,  0,   2,   0,   7,   0,   0,   0,   168, 2,   0,   1,   0,
+    12,  0,   0,   0,   6,   0,   0,   0,   232, 194, 127, 1,   0,   6,   0,   0,   0,   4,   0,
+    0,   0,   8,   66,  85,  1,   0,   10,  0,   0,   0,   4,   0,   0,   0,   232, 194, 127, 1,
+    0,   5,   0,   0,   0,   8,   0,   0,   0,   168, 66,  85,  1,   0,   11,  0,   0,   0,   8,
+    0,   0,   0,   232, 194, 127, 1,   128, 5,   24,  0,   0,   16,  0,   0,   0,   8,   2,   0,
+    1,   192, 2,   32,  0,   0,   16,  0,   0,   0,   248, 255, 255, 1,   64,  5,   192, 0,   0,
+    32,  0,   0,   0,   0,   0,   0,   0,   160, 2,   0,   1,   0,   32,  0,   0,   0,   0,   0,
+    0,   0,   80,  1,   0,   6,   0,   64,  0,   0,   0,   0,   0,   0,   0,   176, 0,   20,  8,
+    0,   64,  0,   0,   0,   0,   0,   0,   0,   88,  0,   106, 48,  0,   64,  0,   0,   0,   0,
+    0,   0,   0,   172, 0,   212, 65,  0,   64,  0,   0,   0,   0,   0,   0,   0,   84,  0,   168,
+    131, 1,   64,  0,   0,   0,   0,   0,   0,   0,   42,  0,   80,  15,  2,   64,  0,   0,   0,
+    0,   0,   0,   0,   21,  0,   160, 30,  252, 95,  0,   0,   0,   0,   0,   0,   0,   11,  0,
+    64,  125, 0,   48,  0,   0,   0,   0,   0,   0,   0,   1,   0,   160, 250, 1,   16,  0,   0,
+    0,   0,   0,   0,   0,   0,   0,   0,   245, 7,   8,   0,   0,   0,   0,   0,   0,   0,   0,
+    0,   0,   234, 255, 7,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   208, 95,  0,   0,
+    0,   0,   0,   0,   0,   0,   0,   0,   0,   160, 158, 0,   0,   0,   0,   0,   0,   0,   0,
+    0,   0,   0,   64,  149, 0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   154, 0,
+    0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   16,  1,   0,   0,   0,   0,   0,   0,
+    0,   0,   0,   0,   0,   8,   1,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   8,
+    1,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   8,   2,   0,   0,   0,   0,   0,
+    0,   0,   0,   0,   0,   0,   8,   2,   0,   0,   0,   0,   0,   0,   0};
 static const uint8_t* const z5_write_frames[] = {z5_write_frame};
-static const Icon z5_write_icon = {.width = 97, .height = 61, .frame_count = 1, .frame_rate = 0, .frames = z5_write_frames};
+static const Icon z5_write_icon =
+    {.width = 97, .height = 61, .frame_count = 1, .frame_rate = 0, .frames = z5_write_frames};
 
-static void busy_icon(App* app, const Icon* icon, const char* text, const NotificationSequence* led) {
+static void
+    busy_icon(App* app, const Icon* icon, const char* text, const NotificationSequence* led) {
     notification_message(app->notif, led); /* LED blinks until the result is shown (log_msg) */
     app->blink = true;
     popup_reset(app->popup);
@@ -180,19 +354,37 @@ static void busy_icon(App* app, const Icon* icon, const char* text, const Notifi
     furi_delay_ms(100);
 }
 
-static const uint8_t z5_warn_frame[] = {0,8,2,0,0,0,0,8,2,0,0,0,0,8,1,252,31,0,0,8,1,3,96,0,0,136,192,0,128,1,0,136,32,0,0,2,0,0,16,0,0,4,0,72,8,0,0,8,0,0,8,0,0,16,0,0,4,0,0,16,0,60,4,0,30,32,0,194,2,0,33,32,0,1,3,128,94,64,0,1,12,64,187,64,0,15,48,64,185,64,0,62,192,64,191,64,0,124,0,64,191,128,0,248,1,128,94,128,0,240,3,128,47,128,0,224,7,64,16,128,0,192,15,0,32,128,0,128,31,0,0,128,0,254,97,0,0,128,0,121,128,1,96,128,0,129,255,31,144,128,0,1,0,0,144,128,1,2,0,0,144,128,1,12,0,0,144,128,3,112,0,0,16,15,3,128,255,0,144,16,7,0,63,0,112,32,7,0,1,0,72,32,14,0,1,0,72,40,14,0,1,0,72,40,30,0,1,0,136,39,28,0,1,0,16,71,28,0,1,0,32,64,28,128,0,0,64,128,24,128,0,0,64,128,24,128,0,0,64,0,25,128,0,0,64,0,17,128,0,0,64,0,18};
+static const uint8_t z5_warn_frame[] = {
+    0,   8,   2,   0,   0,   0,   0,   8,   2,   0,   0,   0,   0,   8,   1,   252, 31,  0,   0,
+    8,   1,   3,   96,  0,   0,   136, 192, 0,   128, 1,   0,   136, 32,  0,   0,   2,   0,   0,
+    16,  0,   0,   4,   0,   72,  8,   0,   0,   8,   0,   0,   8,   0,   0,   16,  0,   0,   4,
+    0,   0,   16,  0,   60,  4,   0,   30,  32,  0,   194, 2,   0,   33,  32,  0,   1,   3,   128,
+    94,  64,  0,   1,   12,  64,  187, 64,  0,   15,  48,  64,  185, 64,  0,   62,  192, 64,  191,
+    64,  0,   124, 0,   64,  191, 128, 0,   248, 1,   128, 94,  128, 0,   240, 3,   128, 47,  128,
+    0,   224, 7,   64,  16,  128, 0,   192, 15,  0,   32,  128, 0,   128, 31,  0,   0,   128, 0,
+    254, 97,  0,   0,   128, 0,   121, 128, 1,   96,  128, 0,   129, 255, 31,  144, 128, 0,   1,
+    0,   0,   144, 128, 1,   2,   0,   0,   144, 128, 1,   12,  0,   0,   144, 128, 3,   112, 0,
+    0,   16,  15,  3,   128, 255, 0,   144, 16,  7,   0,   63,  0,   112, 32,  7,   0,   1,   0,
+    72,  32,  14,  0,   1,   0,   72,  40,  14,  0,   1,   0,   72,  40,  30,  0,   1,   0,   136,
+    39,  28,  0,   1,   0,   16,  71,  28,  0,   1,   0,   32,  64,  28,  128, 0,   0,   64,  128,
+    24,  128, 0,   0,   64,  128, 24,  128, 0,   0,   64,  0,   25,  128, 0,   0,   64,  0,   17,
+    128, 0,   0,   64,  0,   18};
 static const uint8_t* const z5_warn_frames[] = {z5_warn_frame};
-static const Icon z5_warn_icon = {.width = 45, .height = 42, .frame_count = 1, .frame_rate = 0, .frames = z5_warn_frames};
+static const Icon z5_warn_icon =
+    {.width = 45, .height = 42, .frame_count = 1, .frame_rate = 0, .frames = z5_warn_frames};
 
 /* warning screen: header and word-wrapped text on the left, the warning dolphin on the right */
 static void draw_wrapped(Canvas* c, const char* text, int x, int y, int w) {
     char t[160];
     snprintf(t, sizeof(t), "%s", text);
     for(char* k = t; *k; k++)
-        if(*k == '\n') *k = ' '; /* line breaks in the message strings are fitted to another layout: re-wrap */
+        if(*k == '\n')
+            *k =
+                ' '; /* line breaks in the message strings are fitted to another layout: re-wrap */
     size_t len = strlen(t), i = 0;
     for(int lines = 0; i < len && lines < 5; lines++, y += 10) {
-        while(i < len && t[i] == ' ') i++;
+        while(i < len && t[i] == ' ')
+            i++;
         char ln[40];
         size_t j = i, sp = 0;
         for(; j < len && j - i < sizeof(ln) - 1; j++) {
@@ -221,7 +413,8 @@ static void warn_draw(Canvas* c, void* model) {
 
 static bool warn_input(InputEvent* e, void* ctx) {
     App* app = ctx;
-    if(e->type == InputTypeShort && (e->key == InputKeyOk || e->key == InputKeyLeft || e->key == InputKeyRight)) {
+    if(e->type == InputTypeShort &&
+       (e->key == InputKeyOk || e->key == InputKeyLeft || e->key == InputKeyRight)) {
         popup_ok(app);
         return true;
     }
@@ -229,7 +422,8 @@ static bool warn_input(InputEvent* e, void* ctx) {
 }
 
 /* do_not_reset: without it the service turns the LED off right after the sequence (a short dim flash) */
-static const NotificationSequence seq_led_yellow = {&message_red_255, &message_green_255, &message_blue_0, &message_do_not_reset, NULL};
+static const NotificationSequence seq_led_yellow =
+    {&message_red_255, &message_green_255, &message_blue_0, &message_do_not_reset, NULL};
 
 /* duplicate while reading keys: two low beeps with a double buzz */
 static const NotificationSequence seq_key_dup = {
@@ -257,14 +451,17 @@ static const NotificationSequence seq_error_sound = {
     &message_sound_off,
     NULL,
 };
-static const NotificationSequence* warn_seq; /* NULL = stock error + audiovisual alert; set for one message to override */
+static const NotificationSequence*
+    warn_seq; /* NULL = stock error + audiovisual alert; set for one message to override */
 
 static void log_msg(App* app, const char* header) {
-    if(app->blink && app->tick == TickNone) { /* end of a blocking operation; touch owns the LED itself */
+    if(app->blink &&
+       app->tick == TickNone) { /* end of a blocking operation; touch owns the LED itself */
         notification_message(app->notif, &sequence_blink_stop);
         app->blink = false;
     }
-    File* f = storage_file_alloc(app->storage); /* session log, readable over CLI for remote tests */
+    File* f =
+        storage_file_alloc(app->storage); /* session log, readable over CLI for remote tests */
     if(storage_file_open(f, LOG_PATH, FSAM_WRITE, FSOM_OPEN_APPEND)) {
         storage_file_write(f, header, strlen(header));
         storage_file_write(f, ": ", 2);
@@ -277,7 +474,8 @@ static void log_msg(App* app, const char* header) {
 /* success notice: short buzz, then the key base opens by itself */
 /* 'Done!' screen with the thumbs-up dolphin; ok = view shown afterwards */
 static void show_dolphin(App* app, const char* text, uint32_t ok) {
-    if(text != app->msg) snprintf(app->msg, sizeof(app->msg), "%s", text); /* callers may pass msg itself */
+    if(text != app->msg)
+        snprintf(app->msg, sizeof(app->msg), "%s", text); /* callers may pass msg itself */
     log_msg(app, "Done");
     notification_message(app->notif, &sequence_success); /* sound + vibro + green LED */
     app->ok = ok;
@@ -338,12 +536,14 @@ typedef struct {
     uint32_t id;
 } Menu;
 static Menu menus[3];
-static const uint8_t type_order[] = {Z5rAttrNormal, Z5rAttrMaster, Z5rAttrBlocking, Z5rAttrInactive};
+static const uint8_t type_order[] =
+    {Z5rAttrNormal, Z5rAttrMaster, Z5rAttrBlocking, Z5rAttrInactive};
 
 /* position of a type in type_order (the order every list shows) */
 static int type_pos(uint8_t attr) {
     int i = 0;
-    while(i < 3 && type_order[i] != attr) i++;
+    while(i < 3 && type_order[i] != attr)
+        i++;
     return i;
 }
 
@@ -353,7 +553,10 @@ static void step_type(App* app, int dir) {
 }
 
 static void main_labels(App* app) {
-    const char* what = app->src == 1 ? "from controller" : app->src == 3 ? "to controller" : app->db->count ? "(new, unsaved)" : "(empty)";
+    const char* what = app->src == 1  ? "from controller" :
+                       app->src == 3  ? "to controller" :
+                       app->db->count ? "(new, unsaved)" :
+                                        "(empty)";
     if(app->src == 2) what = app->srcname; /* cut to the screen width in main_draw */
     snprintf(app->label, sizeof(app->label), "Base: %s >", what);
     with_view_model(app->main, App * *m, { UNUSED(m); }, true);
@@ -363,7 +566,9 @@ static void main_labels(App* app) {
 
 /* 5V for the controller's EEPROM (header pin 5), before every controller operation, USB cable or not; off on exit */
 static void power_on(App* app) {
-    if(z5r_link_power(true)) furi_delay_ms(150); /* again each time: it may have dropped since (cable pulled, power service) */
+    if(z5r_link_power(true))
+        furi_delay_ms(
+            150); /* again each time: it may have dropped since (cable pulled, power service) */
     app->power5v = true;
 }
 
@@ -378,9 +583,11 @@ static bool save_file(App* app, const char* path) {
 }
 
 static bool backup_controller(App* app, uint16_t size, const char* path) {
-    uint8_t* buf = malloc(size); /* transient: a static buffer would sit in the heap for the whole session */
+    uint8_t* buf =
+        malloc(size); /* transient: a static buffer would sit in the heap for the whole session */
     bool ok = true;
-    for(uint16_t a = 0; ok && a < size; a += 256) ok = z5r_link_read(a, buf + a, 256);
+    for(uint16_t a = 0; ok && a < size; a += 256)
+        ok = z5r_link_read(a, buf + a, 256);
     if(ok) {
         File* f = storage_file_alloc(app->storage);
         ok = storage_file_open(f, path, FSAM_WRITE, FSOM_CREATE_ALWAYS) &&
@@ -391,7 +598,11 @@ static bool backup_controller(App* app, uint16_t size, const char* path) {
     return ok;
 }
 
-enum { OpRead, OpWrite, OpErase };
+enum {
+    OpRead,
+    OpWrite,
+    OpErase
+};
 
 /* one place that turns a controller result into a message */
 static void ctl_fail(App* app, int op, CtlResult r, const CtlInfo* ci) {
@@ -417,7 +628,14 @@ static void ctl_fail(App* app, int op, CtlResult r, const CtlInfo* ci) {
         return;
     case CtlNoFit: {
         unsigned cap = z5r_capacity(ci->size);
-        snprintf(m, n, "%u keys, controller\nholds %u (%u KB).\nRemove %u keys.", app->db->count, cap, ci->size / 1024, app->db->count - cap);
+        snprintf(
+            m,
+            n,
+            "%u keys, controller\nholds %u (%u KB).\nRemove %u keys.",
+            app->db->count,
+            cap,
+            ci->size / 1024,
+            app->db->count - cap);
         show_msg(app, "Does not fit", m);
         return;
     }
@@ -425,7 +643,8 @@ static void ctl_fail(App* app, int op, CtlResult r, const CtlInfo* ci) {
         if(op == OpErase) {
             show_msg(app, "Erase FAILED", "I2C write error");
         } else {
-            snprintf(m, n, "Page 0x%04X failed.\nController may hold a\nhalf-written base", ci->addr);
+            snprintf(
+                m, n, "Page 0x%04X failed.\nController may hold a\nhalf-written base", ci->addr);
             show_msg(app, "Write FAILED", m);
         }
         return;
@@ -447,7 +666,10 @@ static void do_read(App* app) {
         return;
     }
     app->src = 1;
-    app->bak = save_file(app, DATA_DIR "/controller_last" EXT); /* db->mem is still the raw image just read; replaced on every read */
+    app->bak = save_file(
+        app,
+        DATA_DIR
+        "/controller_last" EXT); /* db->mem is still the raw image just read; replaced on every read */
     app->modified = false;
     app->base0 = app->db->count;
     main_labels(app);
@@ -461,7 +683,9 @@ static void write_run(App* app) {
     power_on(app);
     CtlInfo ci;
     CtlResult r = z5r_ctl_write(app->db, &ci, false);
-    if(r == CtlLegacy && confirm(app, "Old format!", "Controller uses the old\nkey layout. Write the\nnew one anyway?"))
+    if(r == CtlLegacy &&
+       confirm(
+           app, "Old format!", "Controller uses the old\nkey layout. Write the\nnew one anyway?"))
         r = z5r_ctl_write(app->db, &ci, true);
     if(r) {
         ctl_fail(app, OpWrite, r, &ci);
@@ -487,7 +711,10 @@ static void erase_run(App* app) {
     show_dolphin(app, "Erased", app->cur);
 }
 
-enum { PendWrite = 1, PendErase };
+enum {
+    PendWrite = 1,
+    PendErase
+};
 static uint8_t pending; /* operation waiting for the backup file name */
 
 /* name typed by the user -> DATA_DIR/<name>.bin; NULL if that file exists and the user keeps it.
@@ -508,14 +735,21 @@ static FuriString* typed_path(App* app, const char* def, bool own) {
 
 static void backup_done(void* ctx) {
     App* app = ctx;
-    FuriString* path = typed_path(app, "controller", false); /* never over a saved base without asking */
+    FuriString* path =
+        typed_path(app, "controller", false); /* never over a saved base without asking */
     if(!path) return;
     busy_icon(app, &z5_read_icon, "Backup", &sequence_blink_start_cyan);
     power_on(app);
     uint8_t p0[Z5R_PAGE];
     CtlInfo ci;
     CtlResult pr = z5r_ctl_probe(p0, &ci);
-    bool ok = !pr && (!ci.size || backup_controller(app, ci.size, furi_string_get_cstr(path))); /* unknown code: nothing to back up, the operation decides */
+    bool ok =
+        !pr &&
+        (!ci.size || backup_controller(
+                         app,
+                         ci.size,
+                         furi_string_get_cstr(
+                             path))); /* unknown code: nothing to back up, the operation decides */
     furi_string_free(path);
     if(pr) {
         ctl_fail(app, OpRead, pr, &ci);
@@ -525,21 +759,39 @@ static void backup_done(void* ctx) {
         show_msg(app, "Backup failed", "SD card? Nothing was\nchanged");
         return;
     }
-    if(pending == PendWrite) write_run(app); else erase_run(app);
+    if(pending == PendWrite)
+        write_run(app);
+    else
+        erase_run(app);
 }
 
 /* before Write / Erase: offer a backup of the controller, named by the user */
 static void ask_backup(App* app, uint8_t op) {
     pending = op;
-    if((op == PendWrite && app->src == 1 && app->bak) || !confirm(app, "Backup?", "Save the controller\nmemory to a file first?")) {
-        if(op == PendWrite) write_run(app); else erase_run(app);
+    if((op == PendWrite && app->src == 1 && app->bak) ||
+       !confirm(app, "Backup?", "Save the controller\nmemory to a file first?")) {
+        if(op == PendWrite)
+            write_run(app);
+        else
+            erase_run(app);
         return;
     }
     DateTime dt;
-    furi_hal_rtc_get_datetime(&dt); /* a new name every time: the previous backup is never replaced */
-    snprintf(app->name, sizeof(app->name), "controller_%04u%02u%02u_%02u%02u%02u", dt.year % 10000, dt.month % 100, dt.day % 100, dt.hour % 100, dt.minute % 100, dt.second % 100);
+    furi_hal_rtc_get_datetime(
+        &dt); /* a new name every time: the previous backup is never replaced */
+    snprintf(
+        app->name,
+        sizeof(app->name),
+        "controller_%04u%02u%02u_%02u%02u%02u",
+        dt.year % 10000,
+        dt.month % 100,
+        dt.day % 100,
+        dt.hour % 100,
+        dt.minute % 100,
+        dt.second % 100);
     text_input_set_header_text(app->text, "Backup file name");
-    text_input_set_result_callback(app->text, backup_done, app, app->name, sizeof(app->name), false);
+    text_input_set_result_callback(
+        app->text, backup_done, app, app->name, sizeof(app->name), false);
     text_back = VCtl;
     go(app, VText);
 }
@@ -578,7 +830,11 @@ static void do_open(App* app) {
             app->src = 2;
             app->fdirty = false;
             const char* base = strrchr(furi_string_get_cstr(path), '/');
-            snprintf(app->srcname, sizeof(app->srcname), "%s", base ? base + 1 : furi_string_get_cstr(path));
+            snprintf(
+                app->srcname,
+                sizeof(app->srcname),
+                "%s",
+                base ? base + 1 : furi_string_get_cstr(path));
             char* dot = strrchr(app->srcname, '.');
             if(dot) *dot = 0;
             app->modified = false;
@@ -602,7 +858,13 @@ static void text_done(void* ctx) {
     if(!path) return;
     uint16_t cap = z5r_capacity(app->db->mem_size);
     if(app->db->count > cap) {
-        snprintf(app->msg, sizeof(app->msg), "%u keys, image holds %u.\nRemove %u keys.", app->db->count, cap, app->db->count - cap);
+        snprintf(
+            app->msg,
+            sizeof(app->msg),
+            "%u keys, image holds %u.\nRemove %u keys.",
+            app->db->count,
+            cap,
+            app->db->count - cap);
         show_msg(app, "Does not fit", app->msg);
         furi_string_free(path);
         return;
@@ -651,7 +913,8 @@ static bool unsaved_base(const App* app) {
 /* lock open time: stored in the base header, goes to the controller with Write */
 static void time_done(void* ctx, int32_t v) {
     App* app = ctx;
-    if(CODE_TO_SEC((int32_t)z5r_open_time_code(app->db)) != v) { /* same value again: base stays unchanged */
+    if(CODE_TO_SEC((int32_t)z5r_open_time_code(app->db)) !=
+       v) { /* same value again: base stays unchanged */
         uint16_t code = SEC_TO_CODE(v);
         app->db->mem[3] = (uint8_t)(~code >> 8);
         app->db->mem[4] = (uint8_t)~code;
@@ -713,7 +976,9 @@ static void keys_fill(App* app) {
             app->fmark ? fmark_names[app->fmark] : "");
     krow(app, KEYS_FILTER);
     for(uint16_t i = 0; i < app->db->count; i++)
-        if(key_match(app, &app->db->keys[i]) && (!app->fmark || marked(app, i) == (app->fmark == 1))) krow(app, i); /* drawn from the base in keys_draw, in columns */
+        if(key_match(app, &app->db->keys[i]) &&
+           (!app->fmark || marked(app, i) == (app->fmark == 1)))
+            krow(app, i); /* drawn from the base in keys_draw, in columns */
     if(app->nrows == ROWS_FIRST) krow(app, KEYS_NONE);
     if(app->ksel >= app->nrows) app->ksel = app->nrows - 1;
     with_view_model(app->keys, App * *m, { UNUSED(m); }, true);
@@ -721,8 +986,10 @@ static void keys_fill(App* app) {
 
 static void filter_sync(App* app) {
     variable_item_set_current_value_text(app->fitem[FCode], app->fcode[0] ? app->fcode : "any");
-    variable_item_set_current_value_index(app->fitem[FType], app->fattr ? type_pos(app->fattr) + 1 : 0);
-    variable_item_set_current_value_text(app->fitem[FType], app->fattr ? z5r_attr_name(app->fattr) : "any");
+    variable_item_set_current_value_index(
+        app->fitem[FType], app->fattr ? type_pos(app->fattr) + 1 : 0);
+    variable_item_set_current_value_text(
+        app->fitem[FType], app->fattr ? z5r_attr_name(app->fattr) : "any");
     variable_item_set_current_value_index(app->fitem[FMarked], app->fmark);
     variable_item_set_current_value_text(app->fitem[FMarked], fmark_names[app->fmark]);
 }
@@ -737,9 +1004,19 @@ static void filter_mark_cb(VariableItem* item) {
 static void fcode_done(void* ctx) {
     App* app = ctx;
     char s[13];
-    snprintf(s, sizeof(s), "%02X%02X%02X%02X%02X%02X", app->fbytes[0], app->fbytes[1], app->fbytes[2], app->fbytes[3], app->fbytes[4], app->fbytes[5]);
+    snprintf(
+        s,
+        sizeof(s),
+        "%02X%02X%02X%02X%02X%02X",
+        app->fbytes[0],
+        app->fbytes[1],
+        app->fbytes[2],
+        app->fbytes[3],
+        app->fbytes[4],
+        app->fbytes[5]);
     const char* p = s;
-    while(*p == '0') p++; /* leading zeros are padding: search is by part of the code */
+    while(*p == '0')
+        p++; /* leading zeros are padding: search is by part of the code */
     snprintf(app->fcode, sizeof(app->fcode), "%s", p);
     keys_fill(app);
     filter_sync(app);
@@ -808,7 +1085,8 @@ static void key_fill(App* app) {
     Z5rKey* k = &app->db->keys[app->sel];
     char s[13];
     z5r_key_str(k, s, sizeof(s));
-    if(variable_item_list_get_selected_item_index(app->key) >= 4) /* no row there: keep the card from opening on a blank */
+    if(variable_item_list_get_selected_item_index(app->key) >=
+       4) /* no row there: keep the card from opening on a blank */
         variable_item_list_set_selected_item(app->key, 0);
     variable_item_list_reset(app->key);
     app->kact = false;
@@ -854,7 +1132,8 @@ static void act_fill(App* app) {
     app->kact = true;
     uint8_t n = 0;
     int first = 0;
-    while(!marked(app, first)) first++;
+    while(!marked(app, first))
+        first++;
     snprintf(app->klabel, sizeof(app->klabel), "%u keys marked", app->nmark);
     variable_item_list_add(app->key, app->klabel, 0, NULL, app);
     app->kmap[n++] = KNone;
@@ -863,7 +1142,8 @@ static void act_fill(App* app) {
     variable_item_set_current_value_index(app->kitem, type_pos(a));
     variable_item_set_current_value_text(app->kitem, z5r_attr_name(a));
     app->kmap[n++] = KAttr;
-    bool em = false; /* EM4100 offered when any of the keys can be one; the rest keep their own format */
+    bool em =
+        false; /* EM4100 offered when any of the keys can be one; the rest keep their own format */
     for(uint16_t i = 0; i < app->db->count; i++)
         if(target(app, i)) em |= em_ok(&app->db->keys[i]);
     app->kexp = variable_item_list_add(app->key, "Export", em ? 2 : 1, key_exp_cb, app);
@@ -910,13 +1190,20 @@ static bool act_cb(App* app, uint32_t index) {
     }
     case KExport: {
         bool em = variable_item_get_current_value_index(app->kexp) == 1;
-        snprintf(app->msg, sizeof(app->msg), em ? "%u key(s), EM4100 where\npossible, to /ext/lfrfid\nand /ext/ibutton" : "%u key(s) to\n/ext/ibutton (.ibtn)\nand /ext/lfrfid (.rfid)", n);
+        snprintf(
+            app->msg,
+            sizeof(app->msg),
+            em ? "%u key(s), EM4100 where\npossible, to /ext/lfrfid\nand /ext/ibutton" :
+                 "%u key(s) to\n/ext/ibutton (.ibtn)\nand /ext/lfrfid (.rfid)",
+            n);
         if(!confirm(app, "Export keys?", app->msg)) return true;
         uint16_t ok = 0;
         for(uint16_t i = 0; i < app->db->count; i++) {
             char path[64];
             const Z5rKey* k = &app->db->keys[i];
-            if(target(app, i) && z5r_key_export(app->storage, k, em && em_ok(k), path, sizeof(path))) ok++;
+            if(target(app, i) &&
+               z5r_key_export(app->storage, k, em && em_ok(k), path, sizeof(path)))
+                ok++;
         }
         if(ok == n) {
             snprintf(app->msg, sizeof(app->msg), "Exported %u", ok);
@@ -969,11 +1256,19 @@ static void keys_draw(Canvas* c, void* model) {
             z5r_key_str(k, s, sizeof(s));
             static const char* const abbr[] = {"?", "N", "B", "M", "I"};
             canvas_draw_str(c, 1, y + 9, n);
-            if(marked(app, id)) canvas_draw_box(c, 119, y + 4, 3, 3); /* right of the type letter, before the scrollbar */
+            if(marked(app, id))
+                canvas_draw_box(
+                    c, 119, y + 4, 3, 3); /* right of the type letter, before the scrollbar */
             canvas_draw_str(c, 27, y + 9, s);
             canvas_draw_str(c, 111, y + 9, abbr[k->attr <= 4 ? k->attr : 0]);
         } else {
-            canvas_draw_str(c, 2, y + 9, id == KEYS_FILTER ? app->flabel : app->db->count ? "(no matches)" : "(empty)");
+            canvas_draw_str(
+                c,
+                2,
+                y + 9,
+                id == KEYS_FILTER ? app->flabel :
+                app->db->count    ? "(no matches)" :
+                                    "(empty)");
         }
     }
     canvas_set_color(c, ColorBlack);
@@ -999,13 +1294,14 @@ static void open_edit(App* app, uint32_t id) {
     go(app, VKey);
 }
 
-
 static bool keys_input(InputEvent* e, void* ctx) {
     App* app = ctx;
     if(e->key == InputKeyUp || e->key == InputKeyDown) {
-        if(e->type == InputTypePress) app->kpress = furi_get_tick(); /* a new press starts again with single steps */
+        if(e->type == InputTypePress)
+            app->kpress = furi_get_tick(); /* a new press starts again with single steps */
         if(e->type != InputTypeShort && e->type != InputTypeRepeat) return true;
-        bool fast = e->type == InputTypeRepeat && furi_get_tick() - app->kpress > furi_ms_to_ticks(3000);
+        bool fast = e->type == InputTypeRepeat &&
+                    furi_get_tick() - app->kpress > furi_ms_to_ticks(3000);
         int dir = e->key == InputKeyDown ? 1 : -1;
         int old = app->ksel, n = old + dir * (fast ? 20 : 1);
         if(fast) /* steps of 20 stop at the ends; single steps wrap around */
@@ -1050,7 +1346,8 @@ static bool keys_input(InputEvent* e, void* ctx) {
         keys_fill(app);
         return true;
     }
-    if(e->type == InputTypeShort && e->key == InputKeyBack && app->nmark) { /* first Back drops the marks */
+    if(e->type == InputTypeShort && e->key == InputKeyBack &&
+       app->nmark) { /* first Back drops the marks */
         mark_clear(app);
         keys_fill(app);
         return true;
@@ -1071,7 +1368,8 @@ static void open_bytes(App* app, ByteMode mode, const Z5rKey* k) {
     app->byte_mode = mode;
     memset(app->edit, 0, sizeof(app->edit));
     uint8_t len = k ? k->len : 6;
-    for(int i = 0; k && i < len; i++) app->edit[i] = k->b[len - 1 - i];
+    for(int i = 0; k && i < len; i++)
+        app->edit[i] = k->b[len - 1 - i];
     bytes_back = mode == ByteAdd ? VAdd : VKey;
     byte_input_set_header_text(app->bytes, len == 3 ? "Short key, MSB first" : "Key MSB first");
     go(app, VBytes);
@@ -1094,7 +1392,13 @@ static void key_cb(void* ctx, uint32_t index) {
         bool dallas = k->len == 6 && !em;
         char s[13];
         z5r_key_str(k, s, sizeof(s));
-        snprintf(app->msg, sizeof(app->msg), "Z5R_%s.%s\nto /ext/%s", s, dallas ? "ibtn" : "rfid", dallas ? "ibutton" : "lfrfid");
+        snprintf(
+            app->msg,
+            sizeof(app->msg),
+            "Z5R_%s.%s\nto /ext/%s",
+            s,
+            dallas ? "ibtn" : "rfid",
+            dallas ? "ibutton" : "lfrfid");
         if(!confirm(app, "Export key?", app->msg)) break;
         char path[64];
         bool ok = z5r_key_export(app->storage, k, em, path, sizeof(path));
@@ -1127,7 +1431,8 @@ static int try_add(App* app, const Z5rKey* k, int* dup) {
         keys_fill(app);
         return 3;
     }
-    if(app->db->count >= z5r_capacity(app->db->mem_size)) return 2; /* the controller could not hold more */
+    if(app->db->count >= z5r_capacity(app->db->mem_size))
+        return 2; /* the controller could not hold more */
     app->db->keys[app->db->count++] = *k;
     app->modified = true;
     app->fdirty = true;
@@ -1158,8 +1463,11 @@ static void bytes_done(void* ctx) {
     App* app = ctx;
     Z5rKey k = {.len = 6, .attr = app->tattr};
     if(app->byte_mode == ByteEdit) k = app->db->keys[app->sel];
-    for(int i = 0; i < k.len; i++) k.b[i] = app->edit[k.len - 1 - i];
-    if(k.len == 6) k.b[5] &= 0x0F; /* top nibble of byte 6 holds flags in controller memory: the controller drops it too */
+    for(int i = 0; i < k.len; i++)
+        k.b[i] = app->edit[k.len - 1 - i];
+    if(k.len == 6)
+        k.b[5] &=
+            0x0F; /* top nibble of byte 6 holds flags in controller memory: the controller drops it too */
     if(app->byte_mode == ByteAdd) {
         add_key(app, &k);
         return;
@@ -1181,7 +1489,9 @@ static void bytes_done(void* ctx) {
 /* ---------- key reading ticker ---------- */
 
 static void blink(App* app, const NotificationSequence* seq) {
-    if(app->led) notification_message(app->notif, &sequence_reset_rgb); /* before the blink starts, not on top of it */
+    if(app->led)
+        notification_message(
+            app->notif, &sequence_reset_rgb); /* before the blink starts, not on top of it */
     app->led = false;
     notification_message(app->notif, seq);
     app->blink = true;
@@ -1193,7 +1503,8 @@ static void start_tick(App* app, TickMode m) {
 }
 
 static void stop_tick(App* app) {
-    if(app->tick == TickTouch) notification_message(app->notif, &sequence_display_backlight_enforce_auto);
+    if(app->tick == TickTouch)
+        notification_message(app->notif, &sequence_display_backlight_enforce_auto);
     if(app->iwork) {
         ibutton_worker_stop(app->iwork);
         ibutton_worker_stop_thread(app->iwork);
@@ -1223,10 +1534,46 @@ static void touch_redraw(App* app) {
     with_view_model(app->touch, App * *m, { UNUSED(m); }, true);
 }
 
-static const uint8_t ico_key[] = {0x0E,0x00,0xF1,0x01,0x51,0x01,0x0E,0x00};
-static const uint8_t ico_lock_open[] = {0x1C,0x22,0x02,0x7F,0x7F,0x77,0x7F,0x3E};
-static const uint8_t ico_ibtn[] = {0x00,0x00,0x00,0x00,0x00,0x3F,0x00,0x00,0x00,0x00,0x00,0xC0,0xC0,0x00,0x00,0x00,0x00,0x00,0x30,0x80,0x00,0x00,0x00,0x00,0x00,0x0C,0x00,0x01,0x00,0x00,0x00,0x00,0x02,0x00,0x01,0x00,0x00,0x00,0x80,0x01,0x00,0x01,0x00,0x00,0x00,0x60,0x00,0x00,0x01,0x00,0x00,0x00,0x10,0x00,0x80,0x00,0x00,0x00,0x00,0x0C,0x00,0x40,0x00,0x00,0x00,0x00,0x02,0x00,0x20,0x00,0x00,0x00,0x00,0x01,0x00,0x10,0x00,0x00,0x00,0xC0,0x00,0x00,0x08,0x00,0x00,0x00,0x30,0x00,0x00,0x04,0x00,0x00,0x00,0x08,0x00,0x00,0x02,0x00,0x00,0x00,0x06,0x00,0x00,0x01,0x00,0x00,0x00,0x01,0x00,0xC0,0x00,0x00,0x00,0xF0,0x0F,0x00,0x20,0x00,0x00,0x00,0x0C,0x30,0x00,0x10,0x00,0x00,0x00,0x03,0x40,0x00,0x0C,0x00,0x00,0x80,0x00,0x80,0x00,0x02,0x00,0x00,0x40,0x00,0x80,0x01,0x01,0x00,0x00,0x20,0x00,0x80,0x83,0x00,0x00,0x00,0x10,0x00,0x80,0x47,0x00,0x00,0x00,0x08,0x00,0x80,0x4F,0x00,0x00,0x00,0x04,0x00,0xC0,0x4F,0x00,0x00,0x00,0x04,0x00,0x40,0x4F,0x00,0x00,0x00,0x02,0x00,0xC0,0x4E,0x00,0x00,0x00,0x02,0x00,0x60,0x45,0x00,0x00,0x00,0x01,0x00,0xA0,0x46,0x00,0x00,0x00,0x01,0x00,0x30,0x45,0x00,0x00,0x00,0x01,0x00,0x98,0x42,0x00,0x00,0x00,0x01,0x00,0x0C,0x22,0x00,0x00,0x00,0x01,0x00,0x02,0x21,0x00,0x00,0x00,0x01,0x00,0x81,0x11,0x00,0x00,0x00,0x03,0xC0,0xC0,0x10,0x00,0x00,0x00,0x06,0x78,0x40,0x08,0x00,0x00,0x00,0xFC,0x0F,0x20,0x04,0x00,0x00,0x00,0x78,0x55,0x11,0x02,0x00,0x00,0x00,0xF0,0x0A,0x0E,0x01,0x00,0x00,0x00,0xE0,0xD5,0x83,0x00,0x00,0x00,0x00,0xC0,0x7F,0x40,0x00,0x00,0x00,0x00,0x80,0x00,0x30,0x00,0x00,0x00,0x00,0x00,0x0F,0x0F,0x00,0x00,0x00,0x00,0x00,0xF0,0x00,0x00,0x00,0x00,0x00};
-static const uint8_t ico_nfc[] = {0x00,0x00,0x00,0x00,0xFF,0x00,0x00,0x00,0x00,0xC0,0xFF,0x03,0x00,0x00,0x00,0xE0,0x00,0x07,0x00,0x00,0x00,0x30,0x00,0x0E,0x00,0x00,0x00,0x38,0x00,0x1C,0x00,0x00,0x00,0x18,0x00,0x18,0x00,0x00,0x00,0x0C,0x00,0x30,0x00,0x00,0x00,0x0C,0x00,0x30,0x00,0x00,0xE0,0x0F,0x00,0x30,0x00,0x00,0xFE,0x7F,0x00,0x30,0x00,0xC0,0xFF,0xFF,0x00,0x30,0x00,0xF0,0xFF,0xFF,0x01,0x30,0x00,0xFE,0xFF,0xFF,0x03,0x30,0x80,0xFF,0xFF,0xEF,0x07,0x18,0xC0,0xFF,0xFF,0x97,0x07,0x18,0xE0,0xFF,0xFF,0xB3,0x0F,0x0C,0xF0,0xFF,0xFF,0x77,0x0F,0x06,0xF8,0xFF,0xFF,0xEF,0x8D,0x03,0xFC,0x07,0xF8,0xFF,0xFF,0x01,0xFE,0x01,0xE0,0xFF,0x7F,0x00,0xFE,0x00,0xC0,0xFF,0x0F,0x00,0x7E,0x00,0x80,0xFF,0x0F,0x00,0x3F,0x00,0x80,0xFF,0x07,0x00,0x3F,0x00,0x00,0xFF,0x07,0x00,0x3F,0x00,0x00,0xFF,0x07,0x00,0x1F,0x00,0x00,0xFF,0x03,0x00,0x1F,0x00,0x00,0xFE,0x03,0x00,0x1F,0x00,0x00,0xFE,0x01,0x00,0x1F,0x00,0x00,0xFE,0x01,0x00,0x1F,0x00,0x00,0xFF,0x00,0x00,0x3F,0x00,0x00,0xFF,0x00,0x00,0x3F,0x00,0x00,0x7F,0x00,0x00,0x7E,0x00,0x80,0x3F,0x00,0x00,0x7E,0x00,0xC0,0x3F,0x00,0x00,0xFC,0x00,0xE0,0x1F,0x00,0x00,0xF8,0x03,0xF0,0x0F,0x00,0x00,0xF8,0x0F,0xFC,0x0F,0x00,0x00,0xF0,0xFF,0xFF,0x07,0x00,0x00,0xE0,0xFF,0xFF,0x03,0x00,0x00,0xC0,0xFF,0xFF,0x01,0x00,0x00,0x00,0xFF,0x7F,0x00,0x00,0x00,0x00,0xFC,0x1F,0x00,0x00,0x00};
+static const uint8_t ico_key[] = {0x0E, 0x00, 0xF1, 0x01, 0x51, 0x01, 0x0E, 0x00};
+static const uint8_t ico_lock_open[] = {0x1C, 0x22, 0x02, 0x7F, 0x7F, 0x77, 0x7F, 0x3E};
+static const uint8_t ico_ibtn[] = {
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x3F, 0x00, 0x00, 0x00, 0x00, 0x00, 0xC0, 0xC0, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x30, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0C, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
+    0x02, 0x00, 0x01, 0x00, 0x00, 0x00, 0x80, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x60, 0x00, 0x00,
+    0x01, 0x00, 0x00, 0x00, 0x10, 0x00, 0x80, 0x00, 0x00, 0x00, 0x00, 0x0C, 0x00, 0x40, 0x00, 0x00,
+    0x00, 0x00, 0x02, 0x00, 0x20, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x10, 0x00, 0x00, 0x00, 0xC0,
+    0x00, 0x00, 0x08, 0x00, 0x00, 0x00, 0x30, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x08, 0x00, 0x00,
+    0x02, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0xC0, 0x00, 0x00,
+    0x00, 0xF0, 0x0F, 0x00, 0x20, 0x00, 0x00, 0x00, 0x0C, 0x30, 0x00, 0x10, 0x00, 0x00, 0x00, 0x03,
+    0x40, 0x00, 0x0C, 0x00, 0x00, 0x80, 0x00, 0x80, 0x00, 0x02, 0x00, 0x00, 0x40, 0x00, 0x80, 0x01,
+    0x01, 0x00, 0x00, 0x20, 0x00, 0x80, 0x83, 0x00, 0x00, 0x00, 0x10, 0x00, 0x80, 0x47, 0x00, 0x00,
+    0x00, 0x08, 0x00, 0x80, 0x4F, 0x00, 0x00, 0x00, 0x04, 0x00, 0xC0, 0x4F, 0x00, 0x00, 0x00, 0x04,
+    0x00, 0x40, 0x4F, 0x00, 0x00, 0x00, 0x02, 0x00, 0xC0, 0x4E, 0x00, 0x00, 0x00, 0x02, 0x00, 0x60,
+    0x45, 0x00, 0x00, 0x00, 0x01, 0x00, 0xA0, 0x46, 0x00, 0x00, 0x00, 0x01, 0x00, 0x30, 0x45, 0x00,
+    0x00, 0x00, 0x01, 0x00, 0x98, 0x42, 0x00, 0x00, 0x00, 0x01, 0x00, 0x0C, 0x22, 0x00, 0x00, 0x00,
+    0x01, 0x00, 0x02, 0x21, 0x00, 0x00, 0x00, 0x01, 0x00, 0x81, 0x11, 0x00, 0x00, 0x00, 0x03, 0xC0,
+    0xC0, 0x10, 0x00, 0x00, 0x00, 0x06, 0x78, 0x40, 0x08, 0x00, 0x00, 0x00, 0xFC, 0x0F, 0x20, 0x04,
+    0x00, 0x00, 0x00, 0x78, 0x55, 0x11, 0x02, 0x00, 0x00, 0x00, 0xF0, 0x0A, 0x0E, 0x01, 0x00, 0x00,
+    0x00, 0xE0, 0xD5, 0x83, 0x00, 0x00, 0x00, 0x00, 0xC0, 0x7F, 0x40, 0x00, 0x00, 0x00, 0x00, 0x80,
+    0x00, 0x30, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F, 0x0F, 0x00, 0x00, 0x00, 0x00, 0x00, 0xF0, 0x00,
+    0x00, 0x00, 0x00, 0x00};
+static const uint8_t ico_nfc[] = {
+    0x00, 0x00, 0x00, 0x00, 0xFF, 0x00, 0x00, 0x00, 0x00, 0xC0, 0xFF, 0x03, 0x00, 0x00, 0x00, 0xE0,
+    0x00, 0x07, 0x00, 0x00, 0x00, 0x30, 0x00, 0x0E, 0x00, 0x00, 0x00, 0x38, 0x00, 0x1C, 0x00, 0x00,
+    0x00, 0x18, 0x00, 0x18, 0x00, 0x00, 0x00, 0x0C, 0x00, 0x30, 0x00, 0x00, 0x00, 0x0C, 0x00, 0x30,
+    0x00, 0x00, 0xE0, 0x0F, 0x00, 0x30, 0x00, 0x00, 0xFE, 0x7F, 0x00, 0x30, 0x00, 0xC0, 0xFF, 0xFF,
+    0x00, 0x30, 0x00, 0xF0, 0xFF, 0xFF, 0x01, 0x30, 0x00, 0xFE, 0xFF, 0xFF, 0x03, 0x30, 0x80, 0xFF,
+    0xFF, 0xEF, 0x07, 0x18, 0xC0, 0xFF, 0xFF, 0x97, 0x07, 0x18, 0xE0, 0xFF, 0xFF, 0xB3, 0x0F, 0x0C,
+    0xF0, 0xFF, 0xFF, 0x77, 0x0F, 0x06, 0xF8, 0xFF, 0xFF, 0xEF, 0x8D, 0x03, 0xFC, 0x07, 0xF8, 0xFF,
+    0xFF, 0x01, 0xFE, 0x01, 0xE0, 0xFF, 0x7F, 0x00, 0xFE, 0x00, 0xC0, 0xFF, 0x0F, 0x00, 0x7E, 0x00,
+    0x80, 0xFF, 0x0F, 0x00, 0x3F, 0x00, 0x80, 0xFF, 0x07, 0x00, 0x3F, 0x00, 0x00, 0xFF, 0x07, 0x00,
+    0x3F, 0x00, 0x00, 0xFF, 0x07, 0x00, 0x1F, 0x00, 0x00, 0xFF, 0x03, 0x00, 0x1F, 0x00, 0x00, 0xFE,
+    0x03, 0x00, 0x1F, 0x00, 0x00, 0xFE, 0x01, 0x00, 0x1F, 0x00, 0x00, 0xFE, 0x01, 0x00, 0x1F, 0x00,
+    0x00, 0xFF, 0x00, 0x00, 0x3F, 0x00, 0x00, 0xFF, 0x00, 0x00, 0x3F, 0x00, 0x00, 0x7F, 0x00, 0x00,
+    0x7E, 0x00, 0x80, 0x3F, 0x00, 0x00, 0x7E, 0x00, 0xC0, 0x3F, 0x00, 0x00, 0xFC, 0x00, 0xE0, 0x1F,
+    0x00, 0x00, 0xF8, 0x03, 0xF0, 0x0F, 0x00, 0x00, 0xF8, 0x0F, 0xFC, 0x0F, 0x00, 0x00, 0xF0, 0xFF,
+    0xFF, 0x07, 0x00, 0x00, 0xE0, 0xFF, 0xFF, 0x03, 0x00, 0x00, 0xC0, 0xFF, 0xFF, 0x01, 0x00, 0x00,
+    0x00, 0xFF, 0x7F, 0x00, 0x00, 0x00, 0x00, 0xFC, 0x1F, 0x00, 0x00, 0x00};
 
 /* top bar: key count, then open time if show_time; blinking "unsaved" */
 static void draw_header(Canvas* c, App* app, bool show_time) {
@@ -1238,7 +1585,8 @@ static void draw_header(Canvas* c, App* app, bool show_time) {
     int x = 15 + canvas_string_width(c, t) + 8;
     int d = (int)app->db->count - app->base0;
     if(d) {
-        snprintf(t, sizeof(t), "%+d", d); /* keys added (+) or removed (-) against the base as loaded */
+        snprintf(
+            t, sizeof(t), "%+d", d); /* keys added (+) or removed (-) against the base as loaded */
         canvas_draw_str(c, x, 10, t);
         x += canvas_string_width(c, t) + 4;
     }
@@ -1248,7 +1596,8 @@ static void draw_header(Canvas* c, App* app, bool show_time) {
         canvas_set_font(c, FontPrimary);
     }
     if(show_time) { /* right edge */
-        uint32_t sec = CODE_TO_SEC((int32_t)z5r_open_time_code(app->db)); /* blank base: factory 3 s */
+        uint32_t sec =
+            CODE_TO_SEC((int32_t)z5r_open_time_code(app->db)); /* blank base: factory 3 s */
         snprintf(t, sizeof(t), "%lus", (unsigned long)sec);
         canvas_draw_str_aligned(c, 127, 10, AlignRight, AlignBottom, t);
         canvas_draw_xbm(c, 127 - canvas_string_width(c, t) - 11, 2, 7, 8, ico_lock_open);
@@ -1271,7 +1620,14 @@ static void touch_draw(Canvas* c, void* model) {
     else if(app->tstate == 5)
         snprintf(t, sizeof(t), "Type set #%u", app->tdup);
     else
-        snprintf(t, sizeof(t), app->tstate == 3 ? "Base full" : app->tstate == 4 ? "Not a Dallas key" : app->tstate == 1 ? "Added #%u" : "Waiting...", app->db->count);
+        snprintf(
+            t,
+            sizeof(t),
+            app->tstate == 3 ? "Base full" :
+            app->tstate == 4 ? "Not a Dallas key" :
+            app->tstate == 1 ? "Added #%u" :
+                               "Waiting...",
+            app->db->count);
     canvas_draw_str(c, 2, 24, t); /* 9 px rows: five lines fit under the header */
     canvas_draw_str(c, 1, 33, app->tlast[0] ? app->tlast : "-");
     snprintf(t, sizeof(t), "Type: <%s>", z5r_attr_name(app->tattr));
@@ -1289,7 +1645,9 @@ static bool touch_input(InputEvent* e, void* ctx) {
         }
         return true; /* short Back does nothing: a stray press must not drop the reading */
     }
-    if(e->type == InputTypeLong && (e->key == InputKeyLeft || e->key == InputKeyRight)) { /* long: a stray press must not switch to Master */
+    if(e->type == InputTypeLong &&
+       (e->key == InputKeyLeft ||
+        e->key == InputKeyRight)) { /* long: a stray press must not switch to Master */
         step_type(app, e->key == InputKeyRight ? 1 : -1);
         touch_redraw(app);
     }
@@ -1332,11 +1690,13 @@ static void start_touch(App* app, uint8_t mode) {
         app->rfid = lfrfid_worker_alloc(app->rdict);
         lfrfid_worker_start_thread(app->rfid);
         lfrfid_worker_read_start(app->rfid, LFRFIDWorkerReadTypeAuto, rfid_cb, app);
-        blink(app, &sequence_blink_start_cyan); /* as in the stock apps: iButton yellow, RFID cyan */
+        blink(
+            app, &sequence_blink_start_cyan); /* as in the stock apps: iButton yellow, RFID cyan */
     } else {
         blink(app, &sequence_blink_start_yellow);
     }
-    notification_message(app->notif, &sequence_display_backlight_enforce_on); /* screen stays lit while reading */
+    notification_message(
+        app->notif, &sequence_display_backlight_enforce_on); /* screen stays lit while reading */
     start_tick(app, TickTouch);
     go(app, VTouch);
 }
@@ -1344,7 +1704,8 @@ static void start_touch(App* app, uint8_t mode) {
 static void touch_got(App* app, const Z5rKey* key) {
     uint32_t now = furi_get_tick();
     bool held = app->ttime && !memcmp(&app->tkey, key, sizeof(*key)) &&
-                now - app->ttime < furi_ms_to_ticks(app->touch_mode & TmRfid ? TOUCH_GAP_RFID_MS : TOUCH_GAP_MS);
+                now - app->ttime <
+                    furi_ms_to_ticks(app->touch_mode & TmRfid ? TOUCH_GAP_RFID_MS : TOUCH_GAP_MS);
     app->ttime = now;
     app->tkey = *key;
     if(held) return; /* still on the reader */
@@ -1360,7 +1721,9 @@ static void touch_got(App* app, const Z5rKey* key) {
     } else if(r == 0) {
         app->tadded++;
         notification_message(app->notif, &sequence_success); /* same as the Done screen */
-        blink(app, app->touch_mode == TmRfid ? &sequence_blink_start_cyan : &sequence_blink_start_yellow);
+        blink(
+            app,
+            app->touch_mode == TmRfid ? &sequence_blink_start_cyan : &sequence_blink_start_yellow);
     } else if(r == 1) {
         notification_message(app->notif, &seq_key_dup); /* already in the base */
     } else {
@@ -1383,7 +1746,8 @@ static void tick_cb(void* ctx) {
         main_labels(app);
         if(app->tick == TickTouch) touch_redraw(app);
     }
-    bool led = app->modified && !app->mphase && !app->blink; /* the read-in-progress blink owns the LED */
+    bool led = app->modified && !app->mphase &&
+               !app->blink; /* the read-in-progress blink owns the LED */
     if(led != app->led) {
         app->led = led;
         notification_message(app->notif, led ? &seq_led_yellow : &sequence_reset_rgb);
@@ -1409,7 +1773,10 @@ static void tick_cb(void* ctx) {
             if(ed.size) { /* any key the stock reader understands */
                 if(ed.size >= 8) { /* Dallas family */
                     Z5rKey ik = {.len = 6};
-                    memcpy(ik.b, ed.ptr + 1, 6); /* ROM[1..6] = serial, LSB first, as BaseZ5R stores it */
+                    memcpy(
+                        ik.b,
+                        ed.ptr + 1,
+                        6); /* ROM[1..6] = serial, LSB first, as BaseZ5R stores it */
                     ik.b[5] &= 0x0F;
                     touch_got(app, &ik);
                 } else { /* Cyfral / Metakom: the controller cannot match them as Dallas keys */
@@ -1442,9 +1809,11 @@ static void add_from_file(App* app, bool rfid) {
         if(z5r_key_import(app->storage, furi_string_get_cstr(path), &k)) {
             k.attr = app->tattr;
             add_key(app, &k);
-        }
-        else
-            show_msg(app, "Bad file", rfid ? "Need H10301 or EM4100\nRFID key" : "Need a DS1990\niButton key");
+        } else
+            show_msg(
+                app,
+                "Bad file",
+                rfid ? "Need H10301 or EM4100\nRFID key" : "Need a DS1990\niButton key");
     }
     furi_string_free(path);
 }
@@ -1471,13 +1840,25 @@ static void add_cb(void* ctx, uint32_t index) {
 
 /* ---------- main menu ---------- */
 
-static const char* main_items[] = {"", /* [0] = base state, set in main_labels */ "" /* [MRead] "Read base from:" selector */, "Erase controller", "Info / connection"};
-static const char* const add_items[] = {"", /* [0] = type selector, drawn specially */ "Read iButton", "Read RFID", "File: iButton (.ibtn)", "File: RFID (.rfid)", "Manual entry"};
-static const char* const ctl_items[] = {"Add key", "Set open time", "Edit keys list", "" /* [CWrite] "Save base to:" selector, drawn specially */};
+static const char* main_items[] = {
+    "",
+    /* [0] = base state, set in main_labels */ "" /* [MRead] "Read base from:" selector */,
+    "Erase controller",
+    "Info / connection"};
+static const char* const add_items[] = {
+    "",
+    /* [0] = type selector, drawn specially */ "Read iButton",
+    "Read RFID",
+    "File: iButton (.ibtn)",
+    "File: RFID (.rfid)",
+    "Manual entry"};
+static const char* const ctl_items[] = {
+    "Add key",
+    "Set open time",
+    "Edit keys list",
+    "" /* [CWrite] "Save base to:" selector, drawn specially */};
 static const char* const wto_names[] = {"controller", "file", "controller & file"};
 static const char* const rfrom_names[] = {"controller", "file"};
-
-
 
 /* text cut with ".." to the pixel width; a trailing " >" arrow is kept */
 static void fit_text(Canvas* c, const char* in, char* out, size_t n, int w) {
@@ -1506,7 +1887,8 @@ static void scroll_text(Canvas* c, const char* in, char* out, size_t n, int w) {
         if(fit == 0 || canvas_string_width(c, out) <= w) break;
     }
     if(fit >= blen) return; /* fits as it is */
-    size_t steps = blen - fit, phase = (furi_get_tick() / 250) % (steps + 8); /* 4 steps pause at each end */
+    size_t steps = blen - fit,
+           phase = (furi_get_tick() / 250) % (steps + 8); /* 4 steps pause at each end */
     size_t off = phase < 4 ? 0 : phase - 4 > steps ? steps : phase - 4;
     snprintf(out, n, "%s%.*s%s", pf, (int)fit, body + off, in + full - tl);
 }
@@ -1532,7 +1914,8 @@ static void main_draw(Canvas* c, void* model) {
             canvas_draw_str(c, 2, y + 9, line);
             continue;
         }
-        if(mn->id == VCtl && top + i == CWrite) /* selectors: too long for the row, so they scroll like file names */
+        if(mn->id == VCtl &&
+           top + i == CWrite) /* selectors: too long for the row, so they scroll like file names */
             text = item, snprintf(item, sizeof(item), "Save to: < %s >", wto_names[app->wto]);
         if(mn->id == VMain && top + i == MRead)
             text = item, snprintf(item, sizeof(item), "Read: < %s >", rfrom_names[app->rfrom]);
@@ -1549,28 +1932,34 @@ static void main_draw(Canvas* c, void* model) {
 static bool main_input(InputEvent* e, void* ctx) {
     Menu* mn = ctx;
     App* app = mn->app;
-    if(mn->id == VAdd && mn->sel == AType && e->type == InputTypeShort && (e->key == InputKeyLeft || e->key == InputKeyRight)) {
+    if(mn->id == VAdd && mn->sel == AType && e->type == InputTypeShort &&
+       (e->key == InputKeyLeft || e->key == InputKeyRight)) {
         step_type(app, e->key == InputKeyRight ? 1 : -1);
         main_labels(app);
         return true;
     }
-    if(mn->id == VCtl && mn->sel == CWrite && e->type == InputTypeShort && (e->key == InputKeyLeft || e->key == InputKeyRight)) {
+    if(mn->id == VCtl && mn->sel == CWrite && e->type == InputTypeShort &&
+       (e->key == InputKeyLeft || e->key == InputKeyRight)) {
         app->wto = (app->wto + (e->key == InputKeyRight ? 1 : 2)) % 3;
         main_labels(app);
         return true;
     }
-    if(mn->id == VMain && mn->sel == MRead && e->type == InputTypeShort && (e->key == InputKeyLeft || e->key == InputKeyRight)) {
+    if(mn->id == VMain && mn->sel == MRead && e->type == InputTypeShort &&
+       (e->key == InputKeyLeft || e->key == InputKeyRight)) {
         app->rfrom ^= 1;
         main_labels(app);
         return true;
     }
-    if((e->type == InputTypeShort || e->type == InputTypeRepeat) && (e->key == InputKeyUp || e->key == InputKeyDown)) {
-        mn->sel = e->key == InputKeyUp ? (mn->sel ? mn->sel - 1 : mn->n - 1) : (mn->sel + 1 < mn->n ? mn->sel + 1 : 0);
+    if((e->type == InputTypeShort || e->type == InputTypeRepeat) &&
+       (e->key == InputKeyUp || e->key == InputKeyDown)) {
+        mn->sel = e->key == InputKeyUp ? (mn->sel ? mn->sel - 1 : mn->n - 1) :
+                                         (mn->sel + 1 < mn->n ? mn->sel + 1 : 0);
         main_labels(app);
         return true;
     }
     if(e->type == InputTypeShort && e->key == InputKeyOk) {
-        app->cur = mn->id; /* Back from a sub-menu does not go through go(): messages must return here */
+        app->cur =
+            mn->id; /* Back from a sub-menu does not go through go(): messages must return here */
         mn->cb(app, mn->sel);
         return true;
     }
@@ -1585,7 +1974,9 @@ static void main_cb(void* ctx, uint32_t index) {
         go(app, VCtl);
         break;
     case MRead:
-        if(app->modified && !confirm(app, "Discard base?", "Unsaved keys will\nbe replaced. Go on?")) break;
+        if(app->modified &&
+           !confirm(app, "Discard base?", "Unsaved keys will\nbe replaced. Go on?"))
+            break;
         if(app->rfrom)
             do_open(app);
         else
@@ -1621,7 +2012,8 @@ static void ctl_cb(void* ctx, uint32_t index) {
         number_input_set_header_text(app->num, "Open time, sec (0-255)");
         {
             int32_t sec = CODE_TO_SEC((int32_t)z5r_open_time_code(app->db));
-            number_input_set_result_callback(app->num, time_done, app, sec > 255 ? 255 : sec, 0, 255);
+            number_input_set_result_callback(
+                app->num, time_done, app, sec > 255 ? 255 : sec, 0, 255);
         }
         go(app, VNum);
         break;
@@ -1662,7 +2054,8 @@ static bool nav_cb(void* ctx) {
     App* app = ctx;
     if(app->exit_ask) {
         app->exit_ask = false;
-        if(confirm(app, "Unsaved base!", "The base is not saved\nto a file. Exit anyway?")) view_dispatcher_stop(app->vd);
+        if(confirm(app, "Unsaved base!", "The base is not saved\nto a file. Exit anyway?"))
+            view_dispatcher_stop(app->vd);
         return true;
     }
     if(app->tick != TickNone) stop_tick(app); /* leaving popup stops the iButton wait */
@@ -1670,7 +2063,76 @@ static bool nav_cb(void* ctx) {
     return true;
 }
 
-static const uint8_t wiring_img[] = {0x00,0x00,0x00,0x00,0x00,0x80,0xE0,0x41,0xE0,0xFF,0x3F,0x00,0x04,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x80,0x10,0x42,0x10,0x00,0x40,0x00,0x04,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x80,0x18,0x44,0x08,0x00,0x80,0x00,0x04,0x00,0x00,0x00,0xF0,0xFF,0xFF,0x03,0x00,0x80,0x24,0x48,0x04,0x00,0x00,0x01,0x04,0x00,0x00,0x00,0x10,0x04,0x3C,0x02,0x00,0x80,0x44,0x48,0x04,0x00,0x00,0x01,0x04,0x00,0x00,0x00,0xD0,0x05,0x42,0x02,0x00,0x80,0x84,0x48,0x04,0x00,0x00,0x01,0x04,0x00,0x00,0x00,0x50,0x05,0x81,0x02,0x00,0x80,0x04,0x49,0x04,0x00,0x00,0x01,0x04,0x00,0x00,0x00,0xD0,0x05,0x99,0x02,0x00,0x80,0x08,0x46,0x08,0x00,0x80,0x00,0x04,0x00,0x00,0x00,0x10,0x04,0x99,0x02,0x00,0x80,0x10,0x42,0x10,0x00,0x40,0x00,0x04,0x00,0xFC,0x1F,0xD0,0x05,0x81,0x02,0x00,0x80,0xE0,0x41,0xE0,0xFF,0x3F,0x00,0xC4,0x8D,0xDC,0x18,0x50,0x05,0x42,0x02,0x00,0x80,0x00,0x40,0x00,0x00,0x00,0x00,0x44,0x54,0xCD,0x1E,0xD0,0x05,0x3C,0x02,0x00,0x80,0x00,0x40,0x00,0x00,0xE0,0xFF,0xDF,0xD5,0xDD,0x18,0x10,0x04,0x00,0x02,0x00,0x80,0x00,0x40,0x00,0x00,0x20,0x00,0x04,0x55,0xDD,0x1B,0xD0,0x85,0x3F,0x02,0x00,0x80,0x00,0x40,0xC0,0xE3,0xF1,0x78,0xC4,0x4D,0x8D,0x18,0x50,0x05,0x31,0x02,0x00,0x80,0x00,0x40,0x40,0x22,0xF1,0x48,0x04,0x00,0xFC,0x1F,0xD0,0x05,0x21,0x02,0x00,0x80,0x00,0x40,0x40,0x22,0xF1,0x48,0x04,0x00,0x00,0x00,0x10,0x84,0x3F,0x02,0x00,0xA0,0xE0,0x41,0xC0,0xE3,0xF1,0x78,0x04,0x00,0x00,0x00,0xD0,0x05,0x00,0x02,0x00,0x90,0x10,0x42,0x00,0x00,0x00,0x00,0x04,0x00,0x00,0x00,0x50,0x75,0x77,0x02,0x00,0x88,0x18,0x44,0x00,0x00,0x00,0x00,0x04,0x00,0xFC,0x01,0xD0,0x45,0x51,0x02,0x00,0x84,0x24,0x48,0x00,0x00,0x00,0x00,0x04,0x5C,0xDD,0x01,0x10,0x24,0x37,0x02,0x00,0x82,0x44,0x48,0xC0,0xE3,0xF1,0x78,0x84,0x44,0xCD,0x01,0xD0,0x15,0x54,0x02,0x00,0x81,0x84,0x48,0xC0,0xE3,0xF1,0xF8,0xDF,0x5D,0xDD,0x01,0x50,0x75,0x57,0x02,0x80,0x80,0x04,0x49,0xC0,0xE3,0xF1,0x78,0x84,0x50,0xDD,0x01,0xD0,0x05,0x00,0x02,0x40,0x80,0x08,0x46,0xC0,0xE3,0xF1,0x78,0x04,0x9C,0x8C,0x01,0x10,0x04,0x00,0x02,0x20,0x80,0x10,0x42,0x80,0x80,0x20,0x00,0x04,0x00,0xFC,0x01,0xD0,0x05,0x7C,0x02,0x10,0x80,0xE0,0x41,0x80,0x80,0x20,0x00,0x04,0x00,0x00,0x00,0x50,0xC5,0x83,0x03,0x08,0x80,0x00,0x40,0x80,0x80,0x20,0x00,0x04,0x00,0x00,0x00,0xD0,0xE5,0x00,0x02,0x04,0x80,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0x07,0x00,0x00,0x00,0x10,0x64,0x00,0x04,0x02,0x00,0x00,0x00,0x80,0x80,0x20,0x00,0x00,0x00,0xFC,0x1F,0xD0,0xE5,0xCC,0x0C,0x01,0x00,0x00,0x00,0x80,0x80,0x20,0x00,0xC0,0x5D,0xDC,0x18,0x50,0xE5,0xCC,0x8C,0x00,0x00,0x00,0x00,0x80,0x80,0x20,0x00,0x40,0x44,0xCC,0x1E,0xD0,0xD5,0xCC,0x5C,0x00,0x00,0x00,0x00,0x80,0xB6,0xE0,0xFF,0xDF,0x45,0xDC,0x18,0x10,0x14,0x00,0x10,0x00,0x00,0x00,0x00,0x80,0x8A,0x00,0x00,0x00,0x45,0xDC,0x1A,0xD0,0x15,0x00,0x10,0x00,0x00,0x00,0x00,0x90,0xBE,0x04,0x00,0xC0,0xDD,0x8D,0x18,0x50,0xD5,0xCC,0x1C,0x00,0x00,0x00,0x00,0xA0,0x80,0x02,0x00,0x00,0x00,0xFC,0x1F,0xD0,0xD5,0xCC,0x1C,0x00,0x00,0x00,0x00,0x90,0xBE,0x04,0x00,0x00,0x00,0x00,0x00,0x10,0xE4,0xCC,0x0C,0x00,0x00,0x00,0x00,0x80,0xA2,0x00,0x00,0x00,0x00,0x00,0x00,0xF0,0x3F,0x00,0x08,0x00,0x00,0x00,0x00,0x80,0xBE,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x40,0x00,0x04,0x00,0x00,0x00,0x00,0x80,0x80,0x00,0x00,0xFF,0xFF,0xFF,0x1F,0x00,0x80,0x00,0x0A,0x00,0x00,0x00,0x00,0x80,0x80,0x70,0x33,0xE3,0xBB,0xDF,0x18,0x00,0x00,0x83,0x1D,0x00,0x00,0x00,0x00,0x80,0x80,0x10,0x55,0xEB,0x99,0xCF,0x1A,0x00,0x00,0x7C,0x38,0x00,0x00,0x00,0x00,0x80,0xFF,0x57,0x55,0xE3,0xBB,0xDF,0x18,0x00,0x00,0x00,0x70,0x00,0x00,0x00,0x00,0x00,0x00,0x50,0x55,0xEB,0xBB,0xDF,0x1A,0x00,0x00,0x00,0xE0,0x00,0x00,0x00,0x00,0x00,0x00,0x70,0x35,0xE3,0x11,0x8F,0x18,0x00,0x00,0x00,0xC0,0x01,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0xFF,0xFF,0xFF,0x1F,0x00,0x00,0x00,0x80,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0xFE,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0x00,0x80,0x01,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x03,0x60,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x0C,0x18,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x30,0x06,0xFC,0xFF,0xFF,0xFF,0xFF,0x1F,0x00,0xFC,0xFF,0xFF,0xFF,0xFF,0xFF,0x7F,0xC0,0x01,0x04,0x00,0x00,0x00,0x00,0x10,0x00,0x04,0x00,0x00,0x00,0x00,0x00,0x40,0x00,0x00,0xF4,0xDE,0x7B,0xEF,0xBD,0x17,0x00,0xF4,0xDE,0x7B,0xEF,0xBD,0xF7,0x5E,0x00,0x00,0xF4,0x52,0x4A,0x29,0xA5,0x17,0x00,0x94,0xD2,0x4B,0x29,0xBD,0x97,0x5E,0x00,0x00,0xF4,0x52,0x4A,0x29,0xA5,0x17,0x00,0x94,0xD2,0x4B,0x29,0xBD,0x97,0x5E,0x00,0x00,0xF4,0xDE,0x7B,0xEF,0xBD,0x17,0x00,0xF4,0xDE,0x7B,0xEF,0xBD,0xF7,0x5E,0x00,0x00,0x04,0x00,0x00,0x00,0x00,0x10,0x00,0x04,0x00,0x00,0x00,0x00,0x00,0x40,0x00,0x00,0xFC,0xFF,0xFF,0xFF,0xFF,0x1F,0x00,0xFC,0xFF,0xFF,0xFF,0xFF,0xFF,0x7F,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x20,0x00,0x00,0x00,0x80,0x03,0x00,0x00,0x40,0x04,0x40,0x0E,0x39,0xE4,0x00,0x00,0x30,0x00,0x00,0x00,0x80,0x02,0x00,0x00,0x60,0x06,0x60,0x82,0x09,0xA6,0x00,0x00,0x20,0x00,0x00,0x00,0x80,0x03,0x00,0x00,0x40,0x04,0x40,0x0E,0x39,0xE4,0x00,0x00,0x20,0x00,0x00,0x00,0x80,0x02,0x00,0x00,0x40,0x04,0x40,0x08,0x29,0xA4,0x00,0x00,0x70,0x00,0x00,0x00,0x80,0x03,0x00,0x00,0xE0,0x0E,0xE0,0x8E,0x3B,0xEE,0x00};
+static const uint8_t wiring_img[] = {
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0xE0, 0x41, 0xE0, 0xFF, 0x3F, 0x00, 0x04, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x10, 0x42, 0x10, 0x00, 0x40, 0x00, 0x04, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x18, 0x44, 0x08, 0x00, 0x80, 0x00, 0x04,
+    0x00, 0x00, 0x00, 0xF0, 0xFF, 0xFF, 0x03, 0x00, 0x80, 0x24, 0x48, 0x04, 0x00, 0x00, 0x01,
+    0x04, 0x00, 0x00, 0x00, 0x10, 0x04, 0x3C, 0x02, 0x00, 0x80, 0x44, 0x48, 0x04, 0x00, 0x00,
+    0x01, 0x04, 0x00, 0x00, 0x00, 0xD0, 0x05, 0x42, 0x02, 0x00, 0x80, 0x84, 0x48, 0x04, 0x00,
+    0x00, 0x01, 0x04, 0x00, 0x00, 0x00, 0x50, 0x05, 0x81, 0x02, 0x00, 0x80, 0x04, 0x49, 0x04,
+    0x00, 0x00, 0x01, 0x04, 0x00, 0x00, 0x00, 0xD0, 0x05, 0x99, 0x02, 0x00, 0x80, 0x08, 0x46,
+    0x08, 0x00, 0x80, 0x00, 0x04, 0x00, 0x00, 0x00, 0x10, 0x04, 0x99, 0x02, 0x00, 0x80, 0x10,
+    0x42, 0x10, 0x00, 0x40, 0x00, 0x04, 0x00, 0xFC, 0x1F, 0xD0, 0x05, 0x81, 0x02, 0x00, 0x80,
+    0xE0, 0x41, 0xE0, 0xFF, 0x3F, 0x00, 0xC4, 0x8D, 0xDC, 0x18, 0x50, 0x05, 0x42, 0x02, 0x00,
+    0x80, 0x00, 0x40, 0x00, 0x00, 0x00, 0x00, 0x44, 0x54, 0xCD, 0x1E, 0xD0, 0x05, 0x3C, 0x02,
+    0x00, 0x80, 0x00, 0x40, 0x00, 0x00, 0xE0, 0xFF, 0xDF, 0xD5, 0xDD, 0x18, 0x10, 0x04, 0x00,
+    0x02, 0x00, 0x80, 0x00, 0x40, 0x00, 0x00, 0x20, 0x00, 0x04, 0x55, 0xDD, 0x1B, 0xD0, 0x85,
+    0x3F, 0x02, 0x00, 0x80, 0x00, 0x40, 0xC0, 0xE3, 0xF1, 0x78, 0xC4, 0x4D, 0x8D, 0x18, 0x50,
+    0x05, 0x31, 0x02, 0x00, 0x80, 0x00, 0x40, 0x40, 0x22, 0xF1, 0x48, 0x04, 0x00, 0xFC, 0x1F,
+    0xD0, 0x05, 0x21, 0x02, 0x00, 0x80, 0x00, 0x40, 0x40, 0x22, 0xF1, 0x48, 0x04, 0x00, 0x00,
+    0x00, 0x10, 0x84, 0x3F, 0x02, 0x00, 0xA0, 0xE0, 0x41, 0xC0, 0xE3, 0xF1, 0x78, 0x04, 0x00,
+    0x00, 0x00, 0xD0, 0x05, 0x00, 0x02, 0x00, 0x90, 0x10, 0x42, 0x00, 0x00, 0x00, 0x00, 0x04,
+    0x00, 0x00, 0x00, 0x50, 0x75, 0x77, 0x02, 0x00, 0x88, 0x18, 0x44, 0x00, 0x00, 0x00, 0x00,
+    0x04, 0x00, 0xFC, 0x01, 0xD0, 0x45, 0x51, 0x02, 0x00, 0x84, 0x24, 0x48, 0x00, 0x00, 0x00,
+    0x00, 0x04, 0x5C, 0xDD, 0x01, 0x10, 0x24, 0x37, 0x02, 0x00, 0x82, 0x44, 0x48, 0xC0, 0xE3,
+    0xF1, 0x78, 0x84, 0x44, 0xCD, 0x01, 0xD0, 0x15, 0x54, 0x02, 0x00, 0x81, 0x84, 0x48, 0xC0,
+    0xE3, 0xF1, 0xF8, 0xDF, 0x5D, 0xDD, 0x01, 0x50, 0x75, 0x57, 0x02, 0x80, 0x80, 0x04, 0x49,
+    0xC0, 0xE3, 0xF1, 0x78, 0x84, 0x50, 0xDD, 0x01, 0xD0, 0x05, 0x00, 0x02, 0x40, 0x80, 0x08,
+    0x46, 0xC0, 0xE3, 0xF1, 0x78, 0x04, 0x9C, 0x8C, 0x01, 0x10, 0x04, 0x00, 0x02, 0x20, 0x80,
+    0x10, 0x42, 0x80, 0x80, 0x20, 0x00, 0x04, 0x00, 0xFC, 0x01, 0xD0, 0x05, 0x7C, 0x02, 0x10,
+    0x80, 0xE0, 0x41, 0x80, 0x80, 0x20, 0x00, 0x04, 0x00, 0x00, 0x00, 0x50, 0xC5, 0x83, 0x03,
+    0x08, 0x80, 0x00, 0x40, 0x80, 0x80, 0x20, 0x00, 0x04, 0x00, 0x00, 0x00, 0xD0, 0xE5, 0x00,
+    0x02, 0x04, 0x80, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x07, 0x00, 0x00, 0x00, 0x10, 0x64,
+    0x00, 0x04, 0x02, 0x00, 0x00, 0x00, 0x80, 0x80, 0x20, 0x00, 0x00, 0x00, 0xFC, 0x1F, 0xD0,
+    0xE5, 0xCC, 0x0C, 0x01, 0x00, 0x00, 0x00, 0x80, 0x80, 0x20, 0x00, 0xC0, 0x5D, 0xDC, 0x18,
+    0x50, 0xE5, 0xCC, 0x8C, 0x00, 0x00, 0x00, 0x00, 0x80, 0x80, 0x20, 0x00, 0x40, 0x44, 0xCC,
+    0x1E, 0xD0, 0xD5, 0xCC, 0x5C, 0x00, 0x00, 0x00, 0x00, 0x80, 0xB6, 0xE0, 0xFF, 0xDF, 0x45,
+    0xDC, 0x18, 0x10, 0x14, 0x00, 0x10, 0x00, 0x00, 0x00, 0x00, 0x80, 0x8A, 0x00, 0x00, 0x00,
+    0x45, 0xDC, 0x1A, 0xD0, 0x15, 0x00, 0x10, 0x00, 0x00, 0x00, 0x00, 0x90, 0xBE, 0x04, 0x00,
+    0xC0, 0xDD, 0x8D, 0x18, 0x50, 0xD5, 0xCC, 0x1C, 0x00, 0x00, 0x00, 0x00, 0xA0, 0x80, 0x02,
+    0x00, 0x00, 0x00, 0xFC, 0x1F, 0xD0, 0xD5, 0xCC, 0x1C, 0x00, 0x00, 0x00, 0x00, 0x90, 0xBE,
+    0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0xE4, 0xCC, 0x0C, 0x00, 0x00, 0x00, 0x00, 0x80,
+    0xA2, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xF0, 0x3F, 0x00, 0x08, 0x00, 0x00, 0x00, 0x00,
+    0x80, 0xBE, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x00, 0x04, 0x00, 0x00, 0x00,
+    0x00, 0x80, 0x80, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0x1F, 0x00, 0x80, 0x00, 0x0A, 0x00, 0x00,
+    0x00, 0x00, 0x80, 0x80, 0x70, 0x33, 0xE3, 0xBB, 0xDF, 0x18, 0x00, 0x00, 0x83, 0x1D, 0x00,
+    0x00, 0x00, 0x00, 0x80, 0x80, 0x10, 0x55, 0xEB, 0x99, 0xCF, 0x1A, 0x00, 0x00, 0x7C, 0x38,
+    0x00, 0x00, 0x00, 0x00, 0x80, 0xFF, 0x57, 0x55, 0xE3, 0xBB, 0xDF, 0x18, 0x00, 0x00, 0x00,
+    0x70, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x50, 0x55, 0xEB, 0xBB, 0xDF, 0x1A, 0x00, 0x00,
+    0x00, 0xE0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x70, 0x35, 0xE3, 0x11, 0x8F, 0x18, 0x00,
+    0x00, 0x00, 0xC0, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0x1F,
+    0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0xFE, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+    0xFF, 0x00, 0x80, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x03, 0x60, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x0C, 0x18, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x30, 0x06, 0xFC, 0xFF, 0xFF, 0xFF, 0xFF, 0x1F, 0x00, 0xFC, 0xFF,
+    0xFF, 0xFF, 0xFF, 0xFF, 0x7F, 0xC0, 0x01, 0x04, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00, 0x04,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x00, 0x00, 0xF4, 0xDE, 0x7B, 0xEF, 0xBD, 0x17, 0x00,
+    0xF4, 0xDE, 0x7B, 0xEF, 0xBD, 0xF7, 0x5E, 0x00, 0x00, 0xF4, 0x52, 0x4A, 0x29, 0xA5, 0x17,
+    0x00, 0x94, 0xD2, 0x4B, 0x29, 0xBD, 0x97, 0x5E, 0x00, 0x00, 0xF4, 0x52, 0x4A, 0x29, 0xA5,
+    0x17, 0x00, 0x94, 0xD2, 0x4B, 0x29, 0xBD, 0x97, 0x5E, 0x00, 0x00, 0xF4, 0xDE, 0x7B, 0xEF,
+    0xBD, 0x17, 0x00, 0xF4, 0xDE, 0x7B, 0xEF, 0xBD, 0xF7, 0x5E, 0x00, 0x00, 0x04, 0x00, 0x00,
+    0x00, 0x00, 0x10, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x00, 0x00, 0xFC, 0xFF,
+    0xFF, 0xFF, 0xFF, 0x1F, 0x00, 0xFC, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x7F, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x20, 0x00, 0x00, 0x00, 0x80, 0x03, 0x00, 0x00, 0x40, 0x04, 0x40, 0x0E, 0x39, 0xE4, 0x00,
+    0x00, 0x30, 0x00, 0x00, 0x00, 0x80, 0x02, 0x00, 0x00, 0x60, 0x06, 0x60, 0x82, 0x09, 0xA6,
+    0x00, 0x00, 0x20, 0x00, 0x00, 0x00, 0x80, 0x03, 0x00, 0x00, 0x40, 0x04, 0x40, 0x0E, 0x39,
+    0xE4, 0x00, 0x00, 0x20, 0x00, 0x00, 0x00, 0x80, 0x02, 0x00, 0x00, 0x40, 0x04, 0x40, 0x08,
+    0x29, 0xA4, 0x00, 0x00, 0x70, 0x00, 0x00, 0x00, 0x80, 0x03, 0x00, 0x00, 0xE0, 0x0E, 0xE0,
+    0x8E, 0x3B, 0xEE, 0x00};
 
 static void wire_draw(Canvas* c, void* model) {
     UNUSED(model);
@@ -1692,42 +2154,41 @@ static uint32_t to_wire(void* ctx) {
     return VWire;
 }
 
-static const char* info_text =
-    "Z5Flip v 1.0\n"
-    "Z-5R key base manager\n"
-    "by Tobirg, coded with\n"
-    " Claude, 2026\n"
-    "\n"
-    "Memory: 8KB=1363 keys,\n"
-    " 4KB=680 keys.\n"
-    "Files: apps_data/z5flip\n"
-    "*.bin = raw memory image.\n"
-    "BaseZ5R: import with\n"
-    " Base > Import > Binary\n"
-    " file DS199L, export the\n"
-    " same way.\n"
-    "Key list: Right = edit\n"
-    " (all marked keys if any),\n"
-    " hold OK = mark, keep it\n"
-    " held + Up/Down = mark more;\n"
-    " with marks OK marks too.\n"
-    " Left = marks menu,\n"
-    " Back unmarks.\n"
-    " Hold Up/Down 3 s: by 20.\n"
-    " Filter: code, type,\n"
-    " marked / unmarked.\n"
-    "Read: controller saves it\n"
-    " to controller_last.bin;\n"
-    " Save to: controller then\n"
-    " skips the backup. It does\n"
-    " not check that it is the\n"
-    " same controller!\n"
-    "Otherwise Save to:\n"
-    " controller and Erase offer\n"
-    " a backup file first.\n"
-    "5V on pin 1 is switched on\n"
-    " for every controller\n"
-    " operation, USB or not.";
+static const char* info_text = "Z5Flip v 1.0\n"
+                               "Z-5R key base manager\n"
+                               "by Tobirg, coded with\n"
+                               " Claude, 2026\n"
+                               "\n"
+                               "Memory: 8KB=1363 keys,\n"
+                               " 4KB=680 keys.\n"
+                               "Files: apps_data/z5flip\n"
+                               "*.bin = raw memory image.\n"
+                               "BaseZ5R: import with\n"
+                               " Base > Import > Binary\n"
+                               " file DS199L, export the\n"
+                               " same way.\n"
+                               "Key list: Right = edit\n"
+                               " (all marked keys if any),\n"
+                               " hold OK = mark, keep it\n"
+                               " held + Up/Down = mark more;\n"
+                               " with marks OK marks too.\n"
+                               " Left = marks menu,\n"
+                               " Back unmarks.\n"
+                               " Hold Up/Down 3 s: by 20.\n"
+                               " Filter: code, type,\n"
+                               " marked / unmarked.\n"
+                               "Read: controller saves it\n"
+                               " to controller_last.bin;\n"
+                               " Save to: controller then\n"
+                               " skips the backup. It does\n"
+                               " not check that it is the\n"
+                               " same controller!\n"
+                               "Otherwise Save to:\n"
+                               " controller and Erase offer\n"
+                               " a backup file first.\n"
+                               "5V on pin 1 is switched on\n"
+                               " for every controller\n"
+                               " operation, USB or not.";
 
 int32_t z5r_app(void* p) {
     UNUSED(p);
@@ -1745,7 +2206,8 @@ int32_t z5r_app(void* p) {
     app->vd = view_dispatcher_alloc();
     view_dispatcher_attach_to_gui(app->vd, app->gui, ViewDispatcherTypeFullscreen);
     view_dispatcher_set_event_callback_context(app->vd, app);
-    view_dispatcher_set_tick_event_callback(app->vd, tick_cb, furi_ms_to_ticks(100)); /* key polling rate: 250 ms felt sluggish */
+    view_dispatcher_set_tick_event_callback(
+        app->vd, tick_cb, furi_ms_to_ticks(100)); /* key polling rate: 250 ms felt sluggish */
     view_dispatcher_set_navigation_event_callback(app->vd, nav_cb);
 
     app->main = view_alloc();
@@ -1774,7 +2236,8 @@ int32_t z5r_app(void* p) {
     app->keyhint = view_alloc();
     view_allocate_model(app->keyhint, ViewModelTypeLockFree, sizeof(App*));
     with_view_model(app->keyhint, App * *m, { *m = app; }, false);
-    view_set_draw_callback(app->keyhint, keyhint_draw); /* no input callback: keys go to the list */
+    view_set_draw_callback(
+        app->keyhint, keyhint_draw); /* no input callback: keys go to the list */
     app->keyv = view_stack_alloc();
     view_stack_add_view(app->keyv, variable_item_list_get_view(app->key));
     view_stack_add_view(app->keyv, app->keyhint);
@@ -1839,7 +2302,8 @@ int32_t z5r_app(void* p) {
 
     stop_tick(app);
     if(app->power5v) z5r_link_power(false);
-    for(size_t i = 0; i < COUNT_OF(views); i++) view_dispatcher_remove_view(app->vd, views[i].id);
+    for(size_t i = 0; i < COUNT_OF(views); i++)
+        view_dispatcher_remove_view(app->vd, views[i].id);
     view_free(app->main);
     view_free(app->ctl);
     view_free(app->keys);
