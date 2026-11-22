@@ -49,9 +49,9 @@ void subghz_scene_signal_inspector_on_enter(void* context) {
     FuriString* text = furi_string_alloc();
     bool show_save = false;
 
-    // Reload the decoder for the currently selected record. This is the same
-    // read-only helper the Info screen uses to render its widget.
-    if(subghz_scene_receiver_info_update_parser(subghz)) {
+    // Parse and render one history record before the receive worker can move it.
+    furi_mutex_acquire(subghz->history_mutex, FuriWaitForever);
+    if(subghz_scene_receiver_info_update_parser_locked(subghz)) {
         const char* protocol_name =
             subghz_history_get_protocol_name(subghz->history, subghz->idx_menu_chosen);
         uint32_t frequency =
@@ -104,6 +104,8 @@ void subghz_scene_signal_inspector_on_enter(void* context) {
     } else {
         furi_string_set(text, "Error history parse.");
     }
+
+    furi_mutex_release(subghz->history_mutex);
 
     // Leave a button bar at the bottom when the Save soft-button is shown.
     widget_add_text_scroll_element(

@@ -34,20 +34,12 @@ void subghz_scene_receiver_info_callback(GuiButtonType result, InputType type, v
     }
 }
 
-bool subghz_scene_receiver_info_update_parser(void* context) {
-    SubGhz* subghz = context;
-    bool res = false;
-
-    // RX goes on while this screen is up, and the receive callback keeps adding to the
-    // history from the radio worker thread, so the entry is read under the lock that
-    // callback writes under. The index is checked too: an entry that is not there reads as
-    // a parse error instead of as whatever lies past the end of the list
-    furi_mutex_acquire(subghz->history_mutex, FuriWaitForever);
+bool subghz_scene_receiver_info_update_parser_locked(SubGhz* subghz) {
+    // RX can still change history. The caller holds history_mutex.
     if((subghz->idx_menu_chosen < subghz_history_get_item(subghz->history)) &&
        subghz_txrx_load_decoder_by_name_protocol(
            subghz->txrx,
            subghz_history_get_protocol_name(subghz->history, subghz->idx_menu_chosen))) {
-        // we are trying to deserialize without checking for errors, since it is assumed that we just received this chignal
         if(subghz_protocol_decoder_base_deserialize(
                subghz_txrx_get_decoder(subghz->txrx),
                subghz_history_get_raw_data(subghz->history, subghz->idx_menu_chosen)) !=
@@ -70,10 +62,17 @@ bool subghz_scene_receiver_info_update_parser(void* context) {
             preset->data,
             preset->data_size);
 
-        res = true;
+        return true;
     }
+    return false;
+}
+
+bool subghz_scene_receiver_info_update_parser(void* context) {
+    SubGhz* subghz = context;
+    furi_mutex_acquire(subghz->history_mutex, FuriWaitForever);
+    const bool parsed = subghz_scene_receiver_info_update_parser_locked(subghz);
     furi_mutex_release(subghz->history_mutex);
-    return res;
+    return parsed;
 }
 
 void subghz_scene_receiver_info_draw_widget(SubGhz* subghz) {

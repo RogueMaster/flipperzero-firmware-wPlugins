@@ -1,8 +1,7 @@
 #include "../subghz_i.h"
 #include "../helpers/subghz_custom_event.h"
 
-void subghz_scene_show_gps_draw_satellites(void* context) {
-    SubGhz* subghz = context;
+static void subghz_scene_show_gps_draw_satellites(SubGhz* subghz) {
     widget_reset(subghz->widget);
 
     float latitude, longitude;
@@ -11,8 +10,15 @@ void subghz_scene_show_gps_draw_satellites(void* context) {
         latitude = subghz_txrx_get_latitude(subghz->txrx);
         longitude = subghz_txrx_get_longitude(subghz->txrx);
     } else {
-        latitude = subghz_history_get_latitude(subghz->history, subghz->idx_menu_chosen);
-        longitude = subghz_history_get_longitude(subghz->history, subghz->idx_menu_chosen);
+        latitude = NAN;
+        longitude = NAN;
+        furi_mutex_acquire(subghz->history_mutex, FuriWaitForever);
+        const uint16_t idx = subghz->idx_menu_chosen;
+        if(idx < subghz_history_get_item(subghz->history)) {
+            latitude = subghz_history_get_latitude(subghz->history, idx);
+            longitude = subghz_history_get_longitude(subghz->history, idx);
+        }
+        furi_mutex_release(subghz->history_mutex);
     }
     FuriString* text_str = furi_string_alloc_printf(
         "Captured at: %f,\r\n"
@@ -45,11 +51,7 @@ void subghz_scene_show_gps_on_enter(void* context) {
 
     subghz_scene_show_gps_draw_satellites(subghz);
 
-    if(subghz->gps) {
-        subghz->gps->timer =
-            furi_timer_alloc(subghz_scene_show_gps_draw_satellites, FuriTimerTypePeriodic, subghz);
-        furi_timer_start(subghz->gps->timer, 1000);
-    }
+    subghz->gps_view_last_refresh = furi_get_tick();
 
     view_dispatcher_switch_to_view(subghz->view_dispatcher, SubGhzViewIdWidget);
 }
@@ -57,10 +59,17 @@ void subghz_scene_show_gps_on_enter(void* context) {
 bool subghz_scene_show_gps_on_event(void* context, SceneManagerEvent event) {
     SubGhz* subghz = context;
 
-    // No rx blink if opened from saved file
-    if(scene_manager_get_scene_state(subghz->scene_manager, SubGhzSceneShowGps)) return false;
-
     if(event.type == SceneManagerEventTypeTick) {
+        // Refresh on the GUI thread, not from a timer callback that can overlap scene exit.
+        const uint32_t now = furi_get_tick();
+        if(subghz->gps && (now - subghz->gps_view_last_refresh >= furi_ms_to_ticks(1000))) {
+            subghz->gps_view_last_refresh = now;
+            subghz_scene_show_gps_draw_satellites(subghz);
+        }
+
+        // No RX blink if opened from a saved file.
+        if(scene_manager_get_scene_state(subghz->scene_manager, SubGhzSceneShowGps)) return false;
+
         // Live receiver history leaves RX running; saved-file GPS returns above.
         subghz_txrx_radio_device_poll_active(subghz->txrx);
         if(subghz->state_notifications == SubGhzNotificationStateRx) {
@@ -80,11 +89,6 @@ bool subghz_scene_show_gps_on_event(void* context, SceneManagerEvent event) {
 
 void subghz_scene_show_gps_on_exit(void* context) {
     SubGhz* subghz = context;
-
-    if(subghz->gps) {
-        furi_timer_stop(subghz->gps->timer);
-        furi_timer_free(subghz->gps->timer);
-    }
 
     widget_reset(subghz->widget);
 }

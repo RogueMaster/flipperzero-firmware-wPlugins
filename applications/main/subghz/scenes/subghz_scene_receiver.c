@@ -180,13 +180,12 @@ static void subghz_scene_add_to_history_callback(
     void* context) {
     furi_assert(context);
     SubGhz* subghz = context;
-    subghz_history_set_menu_growth(
-        subghz->history, subghz_view_receiver_get_menu_growth(subghz->subghz_receiver));
-
     // A decoded signal gets here on the radio worker thread (a BinRAW one from this
     // scene's tick), while the app's own thread reads the same list for Info, deletes
     // from it on Hold Right and rebuilds the view from it
     furi_mutex_acquire(subghz->history_mutex, FuriWaitForever);
+    subghz_history_set_menu_growth(
+        subghz->history, subghz_view_receiver_get_menu_growth(subghz->subghz_receiver));
 
     SubGhzHistory* history = subghz->history;
     FuriString* item_name = furi_string_alloc();
@@ -229,20 +228,27 @@ static void subghz_scene_add_to_history_callback(
                 // Look in history for signal hash
                 uint32_t hash_data = subghz_protocol_decoder_base_get_hash_data_long(decoder_base);
                 subghz_view_receiver_disable_draw_callback(subghz->subghz_receiver);
-                for(uint16_t i = idx; i > 0; i--) {
-                    i--; // Iterating in reverse with off by one
+                for(uint16_t i = idx; i > 0;) {
+                    --i;
+                    // Keep the capture open in Info and its detail screens.
+                    if(subghz->history_item_open && (i == subghz->idx_menu_chosen)) {
+                        continue;
+                    }
                     if(subghz_history_get_hash_data(subghz->history, i) == hash_data &&
                        subghz_history_get_protocol(subghz->history, i) == decoder_base->protocol) {
                         // Remove previous instance and update menu index
                         subghz_history_delete_item(subghz->history, i);
                         subghz_view_receiver_delete_item(subghz->subghz_receiver, i);
                         idx--;
+                        if(subghz->history_item_open && (i < subghz->idx_menu_chosen)) {
+                            subghz->idx_menu_chosen--;
+                        }
                     }
-                    i++;
                 }
-                // Restore ui state
-                subghz->idx_menu_chosen =
-                    subghz_view_receiver_get_idx_menu(subghz->subghz_receiver);
+                if(!subghz->history_item_open) {
+                    subghz->idx_menu_chosen =
+                        subghz_view_receiver_get_idx_menu(subghz->subghz_receiver);
+                }
                 subghz_view_receiver_enable_draw_callback(subghz->subghz_receiver);
                 if(idx == 0) {
                     subghz_rx_key_state_set(subghz, SubGhzRxKeyStateStart);
@@ -366,12 +372,14 @@ void subghz_scene_receiver_on_enter(void* context) {
         subghz->subghz_receiver, subghz_scene_receiver_callback, subghz);
     subghz_txrx_set_rx_callback(subghz->txrx, subghz_scene_add_to_history_callback, subghz);
 
+    furi_mutex_acquire(subghz->history_mutex, FuriWaitForever);
     subghz_scene_receiver_update_statusbar(subghz);
     if(!subghz->history_full) {
         subghz->state_notifications = SubGhzNotificationStateRx;
     } else {
         subghz->state_notifications = SubGhzNotificationStateIDLE;
     }
+    furi_mutex_release(subghz->history_mutex);
 
     // Check if hopping was enabled
     if(subghz->last_settings->enable_hopping) {
@@ -585,13 +593,6 @@ bool subghz_scene_receiver_on_event(void* context, SceneManagerEvent event) {
                 subghz_txrx_hopper_update(subghz->txrx, subghz->last_settings->hopping_threshold);
                 redraw = true;
             }
-            if(redraw) {
-                // Taken after the hop above, never around it: a hop restarts RX
-                furi_mutex_acquire(subghz->history_mutex, FuriWaitForever);
-                subghz_scene_receiver_update_statusbar(subghz);
-                furi_mutex_release(subghz->history_mutex);
-            }
-
             SubGhzThresholdRssiData ret_rssi = subghz_threshold_get_rssi_data(
                 subghz->threshold_rssi, subghz_txrx_radio_device_get_rssi(subghz->txrx));
 
@@ -606,7 +607,12 @@ bool subghz_scene_receiver_on_event(void* context, SceneManagerEvent event) {
                     subghz->gps->fix_minute = 0;
                     subghz->gps->fix_second = 0;
                 }
+            }
+            if(redraw || subghz->gps) {
+                // Taken after the hop above, never around it: a hop restarts RX.
+                furi_mutex_acquire(subghz->history_mutex, FuriWaitForever);
                 subghz_scene_receiver_update_statusbar(subghz);
+                furi_mutex_release(subghz->history_mutex);
             }
 
             subghz_receiver_rssi(subghz->subghz_receiver, ret_rssi.rssi);

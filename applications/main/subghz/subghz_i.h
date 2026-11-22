@@ -102,6 +102,7 @@ struct SubGhz {
     SubGhzHistory* history;
     bool history_full;
     SubGhzGPS* gps;
+    uint32_t gps_view_last_refresh;
     SubGhzRepeaterState repeater;
     bool repeater_bin_raw_was_off;
 
@@ -151,6 +152,8 @@ bool subghz_tx_start(SubGhz* subghz, FlipperFormat* flipper_format);
  * @return true if the decoder was loaded and deserialized successfully
  */
 bool subghz_scene_receiver_info_update_parser(void* context);
+/** Same parser; caller must already hold history_mutex. */
+bool subghz_scene_receiver_info_update_parser_locked(SubGhz* subghz);
 void subghz_dialog_message_freq_error(SubGhz* subghz, SubGhzTx can_tx);
 
 bool subghz_key_load(SubGhz* subghz, const char* file_path, bool show_dialog);

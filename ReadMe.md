@@ -82,6 +82,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Sub-GHz: [Serialize receive history between the worker and GUI, and keep the open signal from being dropped when `Delete old signals` is on (By jeje77131)](https://github.com/DarkFlippers/unleashed-firmware/commit/5f6fb7caff88394fc2cf76a638616eae5b8b370c)
 - Sub-GHz: [Fix renaming a saved file with a 64+ character name dropping its `.sub` extension (By jeje77131)](https://github.com/DarkFlippers/unleashed-firmware/commit/edc5e57dda9bb8348be66954057d220ed582d5ab)
 - Furi: [`realloc()` copies only the old block when growing, and `calloc()` checks for overflow (By jeje77131)](https://github.com/DarkFlippers/unleashed-firmware/commit/3414ad8975ede7ecbdf0dfa493d0727384860df7)
+- Sub-GHz: [Keep open captures stable during receiver history updates (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/)
 
 <a name="release"></a>
 
