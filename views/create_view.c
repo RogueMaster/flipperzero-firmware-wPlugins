@@ -2,9 +2,14 @@
 #include "create_view.h"
 #include <math.h>
 
-#define LINE_HEIGHT 16
-#define TEXT_PADDING 4
+#define LINE_HEIGHT      16
+#define TEXT_PADDING     4
 #define TOTAL_MENU_ITEMS 5
+
+#define NUMERIC_BARCODE_CHARS "0123456789- "
+#define CODE39_CHARS \
+    "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-. $/+%"
+#define CODABAR_CHARS "0123456789-$:/.+ABCDabcd"
 
 typedef enum {
     TypeMenuItem,
@@ -146,6 +151,120 @@ static void app_draw_callback(Canvas* canvas, void* ctx) {
     }
 }
 
+static const char* barcode_allowed_characters(BarcodeType type) {
+    switch(type) {
+    case UPCA:
+    case EAN8:
+    case EAN13:
+    case CODE128C:
+        return NUMERIC_BARCODE_CHARS;
+    case CODE39:
+        return CODE39_CHARS;
+    case CODABAR:
+        return CODABAR_CHARS;
+    case CODE128:
+    case QRCODE:
+    case UNKNOWN:
+    default:
+        return NULL;
+    }
+}
+
+static const char* barcode_validation_message(BarcodeType type, ErrorCode reason) {
+    if(reason == WrongNumberOfDigits) {
+        switch(type) {
+        case UPCA:
+            return "UPC-A needs 11 or 12\ndigits (hyphens OK).";
+        case EAN8:
+            return "EAN-8 needs 7 or 8\ndigits (hyphens OK).";
+        case EAN13:
+            return "EAN-13 needs 12 or 13\ndigits (hyphens OK).";
+        case CODE128C:
+            return "Code 128C needs at least\none digit; odd counts pad\nwith a leading zero.";
+        case CODE39:
+            return "Code 39 needs a payload.\nOptional * guards are added\nautomatically.";
+        case CODE128:
+            return "Code 128 needs at least\none printable ASCII\ncharacter.";
+        case CODABAR:
+            return "Codabar needs a payload.\nA guards are added at\nboth ends automatically.";
+        case QRCODE:
+            return "QR v1 fits 41 digits,\n25 QR alphanumeric, or\n17 general ASCII chars.";
+        case UNKNOWN:
+        default:
+            return "Enter at least one\nbarcode character.";
+        }
+    }
+
+    if(reason == InvalidCharacters || reason == EncodingTableError) {
+        switch(type) {
+        case UPCA:
+        case EAN8:
+        case EAN13:
+        case CODE128C:
+            return "This format accepts digits;\nhyphens/spaces are ignored.";
+        case CODE39:
+            return "Code 39: A-Z, 0-9, space,\nand - . $ / + %. * guards\nare optional and added.";
+        case CODABAR:
+            return "Codabar: 0-9, - $ : / . +.\nA-D guards may surround\nthe payload; missing guards add.";
+        case CODE128:
+            return "Code 128 supports printable\nASCII characters (space\nthrough ~).";
+        case QRCODE:
+            return "QR Code accepts printable\nASCII characters (space\nthrough ~).";
+        case UNKNOWN:
+        default:
+            break;
+        }
+    }
+
+    return get_error_code_message(reason);
+}
+
+static bool barcode_text_is_valid(
+    BarcodeTypeObj* barcode_type,
+    const char* text,
+    ErrorCode* reason) {
+    BarcodeData data = {
+        .type_obj = barcode_type,
+        .check_digit = -1,
+        .raw_data = furi_string_alloc_set_str(text),
+        .correct_data = furi_string_alloc(),
+        .valid = true,
+        .reason = OKCode,
+    };
+
+    barcode_loader(&data);
+    bool valid = data.valid;
+    if(reason) *reason = data.reason;
+
+    furi_string_free(data.raw_data);
+    furi_string_free(data.correct_data);
+    return valid;
+}
+
+static bool barcode_text_input_validator(const char* text, FuriString* error, void* context) {
+    CreateView* create_view_object = context;
+    BarcodeTypeObj* barcode_type = NULL;
+
+    with_view_model(
+        create_view_object->view,
+        CreateViewModel * model,
+        { barcode_type = model->barcode_type; },
+        false);
+
+    if(barcode_type == NULL) {
+        furi_string_set_str(error, "Select a barcode type first.");
+        return false;
+    }
+
+    ErrorCode reason = OKCode;
+    if(!barcode_text_is_valid(barcode_type, text, &reason)) {
+        furi_string_set_str(error, barcode_validation_message(barcode_type->type, reason));
+        return false;
+    }
+
+    return true;
+}
+
 void text_input_callback(void* ctx) {
     CreateView* create_view_object = ctx;
 
@@ -162,7 +281,9 @@ void text_input_callback(void* ctx) {
         },
         true);
 
-                text_input_show_illegal_symbols(create_view_object->barcode_app->text_input, true);
+    text_input_set_validator(create_view_object->barcode_app->text_input, NULL, NULL);
+    text_input_set_allowed_characters(create_view_object->barcode_app->text_input, NULL);
+    text_input_show_illegal_symbols(create_view_object->barcode_app->text_input, true);
     view_dispatcher_switch_to_view(
         create_view_object->barcode_app->view_dispatcher, CreateBarcodeView);
 }
@@ -231,11 +352,17 @@ static bool app_input_callback(InputEvent* input_event, void* ctx) {
                     create_view_object->input,
                     TEXT_BUFFER_SIZE - BARCODE_EXTENSION_LENGTH, //remove the barcode length
                     //clear default text
-                    false);text_input_set_header_text(
+                    false);
+                text_input_set_header_text(
                     create_view_object->barcode_app->text_input, "File Name");
-                text_input_show_illegal_symbols(create_view_object->barcode_app->text_input, false);
-                text_input_show_illegal_symbols(create_view_object->barcode_app->text_input, false);
-                view_dispatcher_switch_to_view(create_view_object->barcode_app->view_dispatcher, TextInputView);
+                text_input_set_validator(
+                    create_view_object->barcode_app->text_input, NULL, NULL);
+                text_input_set_allowed_characters(
+                    create_view_object->barcode_app->text_input, NULL);
+                text_input_show_illegal_symbols(
+                    create_view_object->barcode_app->text_input, false);
+                view_dispatcher_switch_to_view(
+                    create_view_object->barcode_app->view_dispatcher, TextInputView);
             }
             if(selected_menu_item == BarcodeDataMenuItem && barcode_type != NULL) {
                 create_view_object->setter = BarcodeDataSetter;
@@ -253,11 +380,19 @@ static bool app_input_callback(InputEvent* input_event, void* ctx) {
                     create_view_object->input,
                     TEXT_BUFFER_SIZE,
                     //clear default text
-                    false);text_input_set_header_text(
-                    create_view_object->barcode_app->text_input, "Barcode Data");
+                    false);
+                text_input_set_header_text(
+                    create_view_object->barcode_app->text_input, barcode_type->name);
+                text_input_set_validator(
+                    create_view_object->barcode_app->text_input,
+                    barcode_text_input_validator,
+                    create_view_object);
+                text_input_set_allowed_characters(
+                    create_view_object->barcode_app->text_input,
+                    barcode_allowed_characters(barcode_type->type));
                 text_input_show_illegal_symbols(create_view_object->barcode_app->text_input, true);
-                text_input_show_illegal_symbols(create_view_object->barcode_app->text_input, true);
-                view_dispatcher_switch_to_view(create_view_object->barcode_app->view_dispatcher, TextInputView);
+                view_dispatcher_switch_to_view(
+                    create_view_object->barcode_app->view_dispatcher, TextInputView);
             }
             if(selected_menu_item == SaveMenuButton && barcode_type != NULL) {
                 save_barcode(create_view_object);
@@ -350,20 +485,13 @@ void remove_barcode(CreateView* create_view_object) {
         true);
     furi_record_close(RECORD_STORAGE);
 
-    with_view_model(
-        create_view_object->barcode_app->message_view->view,
-        MessageViewModel * model,
-        {
-            if(success) {
-                model->message = "File Deleted";
-            } else {
-                model->message = "Could not delete file";
-            }
-        },
-        true);
-
-    view_dispatcher_switch_to_view(
-        create_view_object->barcode_app->view_dispatcher, MessageErrorView);
+    MessageView* message_view = create_view_object->barcode_app->message_view;
+    if(success) {
+        message_view_show(message_view, "File Deleted", MainMenuView);
+    } else {
+        //stay in the edit view so the user can retry
+        message_view_show(message_view, "Could not delete file", CreateBarcodeView);
+    }
 }
 
 void save_barcode(CreateView* create_view_object) {
@@ -385,20 +513,36 @@ void save_barcode(CreateView* create_view_object) {
         },
         true);
 
+    MessageView* message_view = create_view_object->barcode_app->message_view;
+
     if(file_name == NULL || furi_string_empty(file_name)) {
         FURI_LOG_E(TAG, "File Name cannot be empty");
+        message_view_show(message_view, "File name\ncannot be empty", CreateBarcodeView);
         return;
     }
     if(barcode_data == NULL || furi_string_empty(barcode_data)) {
         FURI_LOG_E(TAG, "Barcode Data cannot be empty");
+        message_view_show(message_view, "Barcode data\ncannot be empty", CreateBarcodeView);
         return;
     }
     if(barcode_type == NULL) {
         FURI_LOG_E(TAG, "Type not defined");
+        message_view_show(message_view, "Barcode type\nis not selected", CreateBarcodeView);
         return;
     }
 
-    bool success = false;
+    ErrorCode validation_reason = OKCode;
+    if(!barcode_text_is_valid(
+           barcode_type, furi_string_get_cstr(barcode_data), &validation_reason)) {
+        message_view_show(
+            message_view,
+            barcode_validation_message(barcode_type->type, validation_reason),
+            CreateBarcodeView);
+        return;
+    }
+
+    //NULL while the save is still going fine
+    const char* error_message = NULL;
 
     FuriString* full_file_path = furi_string_alloc_set(DEFAULT_USER_BARCODES);
     furi_string_push_back(full_file_path, '/');
@@ -407,76 +551,85 @@ void save_barcode(CreateView* create_view_object) {
 
     Storage* storage = furi_record_open(RECORD_STORAGE);
 
-    if(mode == EditMode) {
-        if(!furi_string_empty(file_path)) {
-            if(!furi_string_equal(file_path, full_file_path)) {
-                FS_Error error = storage_common_rename(
-                    storage,
-                    furi_string_get_cstr(file_path),
-                    furi_string_get_cstr(full_file_path));
-                if(error != FSE_OK) {
-                    FURI_LOG_E(TAG, "Rename error: %s", storage_error_get_desc(error));
-                } else {
-                    FURI_LOG_I(TAG, "Rename Success");
-                }
-            }
+    //ensure the barcodes folder exists before saving,
+    //it could have been removed while the app was running
+    if(!init_folder()) {
+        error_message = "Cannot access\nthe SD card";
+    }
+
+    //overwriting the barcode's own file in edit mode is fine, but saving
+    //over any other existing file would destroy it, fail with a clear message instead
+    bool same_file = file_path != NULL && furi_string_equal(file_path, full_file_path);
+    if(error_message == NULL && !same_file &&
+       storage_file_exists(storage, furi_string_get_cstr(full_file_path))) {
+        FURI_LOG_E(TAG, "File \"%s\" already exists", furi_string_get_cstr(full_file_path));
+        error_message = "A file with this\nname already exists";
+    }
+
+    //in edit mode a changed name moves the old file before saving
+    if(error_message == NULL && mode == EditMode && !same_file && !furi_string_empty(file_path)) {
+        FS_Error error = storage_common_rename(
+            storage, furi_string_get_cstr(file_path), furi_string_get_cstr(full_file_path));
+        if(error != FSE_OK) {
+            FURI_LOG_E(TAG, "Rename error: %s", storage_error_get_desc(error));
+            error_message = "Could not rename\nthe barcode file";
+        } else {
+            FURI_LOG_I(TAG, "Rename Success");
+            //keep the model path in sync so a failed save below
+            //does not leave it pointing at the old, now removed file
+            furi_string_set(file_path, full_file_path);
         }
     }
 
-    FlipperFormat* ff = flipper_format_file_alloc(storage);
+    FlipperFormat* ff = NULL;
+    if(error_message == NULL) {
+        FURI_LOG_I(TAG, "Saving Barcode to: %s", furi_string_get_cstr(full_file_path));
+        ff = flipper_format_file_alloc(storage);
 
-    FURI_LOG_I(TAG, "Saving Barcode to: %s", furi_string_get_cstr(full_file_path));
+        //open_new fails on existing files as a backstop to the check above
+        bool file_saved =
+            mode == NewMode ?
+                flipper_format_file_open_new(ff, furi_string_get_cstr(full_file_path)) :
+                flipper_format_file_open_always(ff, furi_string_get_cstr(full_file_path));
+        if(file_saved) {
+            // Filetype: Barcode
+            // Version: 1
 
-    bool file_opened_status = false;
-    if(mode == NewMode) {
-        file_opened_status =
-            flipper_format_file_open_new(ff, furi_string_get_cstr(full_file_path));
-    } else if(mode == EditMode) {
-        file_opened_status =
-            flipper_format_file_open_always(ff, furi_string_get_cstr(full_file_path));
+            // # Types - UPC-A, EAN-8, EAN-13, CODE-39, CODE-128, Codabar, QR Code
+            // Type: CODE-39
+            // Data: AB
+            file_saved =
+                flipper_format_write_string_cstr(ff, "Filetype", "Barcode") &&
+                flipper_format_write_string_cstr(ff, "Version", FILE_VERSION) &&
+                flipper_format_write_comment_cstr(
+                    ff,
+                    "Types - UPC-A, EAN-8, EAN-13, CODE-39, CODE-128, Codabar, QR Code") &&
+                flipper_format_write_string_cstr(ff, "Type", barcode_type->name) &&
+                flipper_format_write_string_cstr(ff, "Data", furi_string_get_cstr(barcode_data));
+            if(!file_saved) {
+                //the file may be partially written, e.g. if the SD card was removed mid-save
+                FURI_LOG_E(TAG, "Could not write the barcode file");
+            }
+        } else {
+            FURI_LOG_E(TAG, "Could not open file %s", furi_string_get_cstr(full_file_path));
+        }
+        if(!file_saved) {
+            error_message = "A saving error\nhas occurred";
+        }
     }
 
-    if(file_opened_status) {
-        // Filetype: Barcode
-        // Version: 1
-
-        // # Types - UPC-A, EAN-8, EAN-13, CODE-39
-        // Type: CODE-39
-        // Data: AB
-        flipper_format_write_string_cstr(ff, "Filetype", "Barcode");
-
-        flipper_format_write_string_cstr(ff, "Version", FILE_VERSION);
-
-        flipper_format_write_comment_cstr(
-            ff, "Types - UPC-A, EAN-8, EAN-13, CODE-39, CODE-128, Codabar");
-
-        flipper_format_write_string_cstr(ff, "Type", barcode_type->name);
-
-        flipper_format_write_string_cstr(ff, "Data", furi_string_get_cstr(barcode_data));
-
-        success = true;
-    } else {
-        FURI_LOG_E(TAG, "Save error");
-        success = false;
-    }
     furi_string_free(full_file_path);
-    flipper_format_free(ff);
+    if(ff != NULL) {
+        flipper_format_free(ff);
+    }
     furi_record_close(RECORD_STORAGE);
 
-    with_view_model(
-        create_view_object->barcode_app->message_view->view,
-        MessageViewModel * model,
-        {
-            if(success) {
-                model->message = "File Saved!";
-            } else {
-                model->message = "A saving error has occurred";
-            }
-        },
-        true);
-
-    view_dispatcher_switch_to_view(
-        create_view_object->barcode_app->view_dispatcher, MessageErrorView);
+    if(error_message == NULL) {
+        message_view_show(message_view, "File Saved!", MainMenuView);
+    } else {
+        //go back to the create view so the entered data is not lost
+        message_view_show(message_view, error_message, CreateBarcodeView);
+    }
 }
 
 void create_view_free(CreateView* create_view_object) {

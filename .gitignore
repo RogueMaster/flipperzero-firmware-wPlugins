@@ -1,0 +1,5 @@
+# Local/editor files
+.vscode/
+
+# Build output other than the distributable FAP
+dist/debug/

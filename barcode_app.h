@@ -14,13 +14,13 @@
 
 #include "barcode_utils.h"
 
-#define TAG "BARCODE"
-#define VERSION "1.1"
+#define TAG          "BARCODE"
+#define VERSION      "2.0"
 #define FILE_VERSION "1"
 
 #define TEXT_BUFFER_SIZE 128
 
-#define BARCODE_HEIGHT 50
+#define BARCODE_HEIGHT  50
 #define BARCODE_Y_START 3
 
 //the folder where the codabar encoding table is located
@@ -39,14 +39,13 @@
 #define DEFAULT_USER_BARCODES EXT_PATH("apps_data/barcodes")
 
 //The extension barcode files use
-#define BARCODE_EXTENSION ".txt"
+#define BARCODE_EXTENSION        ".txt"
 #define BARCODE_EXTENSION_LENGTH 4
 
 #include "views/barcode_view.h"
 #include "views/create_view.h"
 #include "views/message_view.h"
 #include "barcode_validator.h"
-extern const Icon I_barcode_10;
 
 typedef struct BarcodeApp BarcodeApp;
 
@@ -85,6 +84,8 @@ enum Views {
 };
 
 void submenu_callback(void* context, uint32_t index);
+
+bool init_folder();
 
 uint32_t main_menu_callback(void* context);
 

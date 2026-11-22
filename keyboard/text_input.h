@@ -86,6 +86,9 @@ void text_input_set_validator(
  */
 void text_input_show_illegal_symbols(TextInput* text_input, bool show);
 
+/** Restrict character keys to the supplied set. Pass NULL to allow every key. */
+void text_input_set_allowed_characters(TextInput* text_input, const char* allowed_characters);
+
 TextInputValidatorCallback text_input_get_validator_callback(TextInput* text_input);
 
 void* text_input_get_validator_callback_context(TextInput* text_input);

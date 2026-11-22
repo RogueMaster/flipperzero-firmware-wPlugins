@@ -1,10 +1,8 @@
 #include "barcode_app.h"
 
 #include "barcode_app_icons.h"
-#include <assets_icons.h>
 #include <notification/notification.h>
 #include <notification/notification_messages.h>
-#include <notification/notification_app.h>
 
 /**
  * Opens a file browser dialog and returns the filepath of the selected file
@@ -15,12 +13,19 @@
  * @returns true if a file is selected
 */
 
-NotificationApp* notifications = 0;
+static NotificationApp* barcode_notifications;
+
+const NotificationSequence sequence_display_backlight_barcode = {
+    &message_force_display_brightness_setting_1f,
+    &message_display_backlight_on,
+    &message_do_not_reset,
+    NULL,
+};
 
 static bool select_file(const char* folder, FuriString* file_path) {
     DialogsApp* dialogs = furi_record_open(RECORD_DIALOGS);
     DialogsFileBrowserOptions browser_options;
-    dialog_file_browser_set_basic_options(&browser_options, "", NULL);
+    dialog_file_browser_set_basic_options(&browser_options, "", &I_barcode_10);
     browser_options.base_path = DEFAULT_USER_BARCODES;
     furi_string_set(file_path, folder);
 
@@ -90,17 +95,19 @@ bool get_file_name_from_path(FuriString* file_path, FuriString* file_name, bool 
 }
 
 /**
- * Creates the barcode folder
+ * Creates the barcode folder if it does not exist
+ * @returns true if the folder exists or was created
 */
-void init_folder() {
+bool init_folder() {
     Storage* storage = furi_record_open(RECORD_STORAGE);
-    FURI_LOG_I(TAG, "Creating barcodes folder");
-    if(storage_simply_mkdir(storage, DEFAULT_USER_BARCODES)) {
-        FURI_LOG_I(TAG, "Barcodes folder successfully created!");
-    } else {
-        FURI_LOG_I(TAG, "Barcodes folder already exists.");
+    //simply_mkdir also returns true when the folder already exists,
+    //false is a real failure, e.g. a missing SD card
+    bool folder_ready = storage_simply_mkdir(storage, DEFAULT_USER_BARCODES);
+    if(!folder_ready) {
+        FURI_LOG_E(TAG, "Could not create the barcodes folder");
     }
     furi_record_close(RECORD_STORAGE);
+    return folder_ready;
 }
 
 void select_barcode_item(BarcodeApp* app) {
@@ -148,6 +155,8 @@ void select_barcode_item(BarcodeApp* app) {
             },
             true);
 
+        notification_message(barcode_notifications, &sequence_display_backlight_barcode);
+
         view_dispatcher_switch_to_view(app->view_dispatcher, BarcodeView);
     }
 
@@ -173,15 +182,7 @@ void edit_barcode_item(BarcodeApp* app) {
         reason = read_raw_data(file_path, raw_type, raw_data);
         if(reason != OKCode) {
             FURI_LOG_E(TAG, "Could not read data correctly");
-            with_view_model(
-                app->message_view->view,
-                MessageViewModel * model,
-                { model->message = get_error_code_message(reason); },
-                true);
-
-            view_dispatcher_switch_to_view(
-                create_view_object->barcode_app->view_dispatcher, MessageErrorView);
-
+            message_view_show(app->message_view, get_error_code_message(reason), MainMenuView);
         } else {
             BarcodeTypeObj* type_obj = get_type(raw_type);
             if(type_obj->type == UNKNOWN) {
@@ -268,7 +269,6 @@ uint32_t exit_callback(void* context) {
 void free_app(BarcodeApp* app) {
     FURI_LOG_I(TAG, "Freeing Data");
 
-    init_folder();
     free_types();
 
     view_dispatcher_remove_view(app->view_dispatcher, TextInputView);
@@ -303,23 +303,24 @@ void free_app(BarcodeApp* app) {
     free(app);
 }
 
-void set_backlight_brightness(float brightness) {
-    NotificationApp* notifications = furi_record_open(RECORD_NOTIFICATION);
-    notifications->settings.display_brightness = brightness;
-    notification_message(notifications, &sequence_display_backlight_on);
-}
+/*void set_backlight_brightness(float brightness) {
+    NotificationApp* barcode_notifications = furi_record_open(RECORD_NOTIFICATION);
+    barcode_notifications->settings.display_brightness = brightness;
+    notification_message(barcode_notifications, &sequence_display_backlight_on);
+}*/
 
 int32_t barcode_main(void* p) {
     UNUSED(p);
     BarcodeApp* app = malloc(sizeof(BarcodeApp));
     init_types();
+    init_folder();
     app->event_queue = furi_message_queue_alloc(8, sizeof(InputEvent));
 
     // Register view port in GUI
     app->gui = furi_record_open(RECORD_GUI);
 
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
+
     view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
 
     app->main_menu = submenu_alloc();
@@ -329,12 +330,12 @@ int32_t barcode_main(void* p) {
 
     submenu_add_item(app->main_menu, "Edit Barcode", EditBarcodeItem, submenu_callback, app);
 
-    NotificationApp* notifications = furi_record_open(RECORD_NOTIFICATION);
+    barcode_notifications = furi_record_open(RECORD_NOTIFICATION);
     // Save original brightness
-    float originalBrightness = notifications->settings.display_brightness;
+    //float originalBrightness = barcode_notifications->settings.display_brightness;
     // force backlight and increase brightness
-    notification_message_block(notifications, &sequence_display_backlight_enforce_on);
-    set_backlight_brightness(10); // set to highest
+    //notification_message(barcode_notifications, &sequence_display_backlight_enforce_on);
+    //set_backlight_brightness(10); // set to highest
 
     /*****************************
      * Creating Text Input View
@@ -371,16 +372,19 @@ int32_t barcode_main(void* p) {
         128,
         64,
         "\e#Error Codes\n"
-        "\e#Wrong # Of Characters\n"
-        "The barcode data has too \nmany or too few characters\n"
-        "UPC-A: 11-12 characters\n"
-        "EAN-8: 7-8 characters\n"
-        "EAN-13: 12-13 characters\n"
-        "Code128C - even # of \ncharacters\n"
+        "\e#Format Rules\n"
+        "UPC-A: 11-12 digits\n"
+        "EAN-8: 7-8 digits\n"
+        "EAN-13: 12-13 digits\n"
+        "For UPC/EAN, the shorter form gets a calculated check digit. Hyphens/spaces are ignored.\n"
+        "Code 39: A-Z, 0-9, space, - . $ / + %. Outer * guards are optional and added automatically.\n"
+        "Code 128: printable ASCII.\n"
+        "Code 128C: digits only; hyphens/spaces are ignored and odd digit counts receive a leading zero.\n"
+        "Codabar: 0-9, - $ : / . + with optional A-D outer guards. Missing guards are added automatically.\n"
+        "QR Code: printable ASCII. The screen-readable version 1 symbol fits 41 digits, 25 QR alphanumeric characters, or 17 general ASCII characters.\n"
         "\n"
         "\e#Invalid Characters\n"
-        "The barcode data has invalid \ncharacters.\n"
-        "Ex: UPC-A, EAN-8, EAN-13 barcodes can only have \nnumbers while Code128 can \nhave almost any character\n"
+        "Only characters supported by the selected format are shown and accepted.\n"
         "\n"
         "\e#Unsupported Type\n"
         "The barcode type is not \nsupported by this application\n"
@@ -416,12 +420,16 @@ int32_t barcode_main(void* p) {
         "This is a barcode generator\n"
         "capable of generating UPC-A,\n"
         "EAN-8, EAN-13, Code-39,\n"
-        "Codabar, and Code-128\n"
+        "Codabar, Code-128, and QR\n"
         "\n"
-        "author: @Kingal1337\n"
+        "Original author:\n"
+        "@Kingal1337\n"
         "\n"
-        "For more information or\n"
-        "issues, go to\n"
+        "QR and keyboard revisions:\n"
+        "AzureSky\n"
+        "https://github.com/AzzureSkyy/barcode-generator-azuresky\n"
+        "\n"
+        "Original project:\n"
         "https://github.com/Kingal1337/flipper-barcode-generator");
     view_set_previous_callback(widget_get_view(app->about_widget), main_menu_callback);
     view_dispatcher_add_view(
@@ -441,8 +449,9 @@ int32_t barcode_main(void* p) {
     view_dispatcher_run(app->view_dispatcher);
 
     free_app(app);
-    notification_message_block(notifications, &sequence_display_backlight_enforce_auto);
-    set_backlight_brightness(originalBrightness);
+    notification_message_block(barcode_notifications, &sequence_display_backlight_enforce_auto);
+    //set_backlight_brightness(originalBrightness);
+    furi_record_close(RECORD_NOTIFICATION);
 
     return 0;
 }
