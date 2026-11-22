@@ -2,8 +2,7 @@
 
 #include <core/log.h>
 
-#define TAG "MassStorageSCSI"
-
+#define TAG                         "MassStorageSCSI"
 #define SCSI_TEST_UNIT_READY        (0x00)
 #define SCSI_REQUEST_SENSE          (0x03)
 #define SCSI_INQUIRY                (0x12)
@@ -14,6 +13,24 @@
 #define SCSI_PREVENT_MEDIUM_REMOVAL (0x1E)
 #define SCSI_START_STOP_UNIT        (0x1B)
 #define SCSI_WRITE_10               (0x2A)
+
+// Reject a host-supplied range before it reaches the SD image backend.
+// Subtraction avoids overflow when the host supplies an LBA near UINT32_MAX.
+static bool scsi_range_valid(SCSISession* scsi, uint32_t lba, uint16_t count) {
+    uint32_t available = scsi->fn.num_blocks(scsi->fn.ctx);
+    return lba <= available && (uint32_t)count <= available - lba;
+}
+
+static bool scsi_invalid(SCSISession* scsi, uint8_t asc) {
+    scsi->sk = SCSI_SK_ILLEGAL_REQUEST;
+    scsi->asc = asc;
+    return false;
+}
+
+static uint32_t scsi_read_lba(const uint8_t* cmd) {
+    return ((uint32_t)cmd[2] << 24) | ((uint32_t)cmd[3] << 16) | ((uint32_t)cmd[4] << 8) |
+           (uint32_t)cmd[5];
+}
 
 bool scsi_cmd_start(SCSISession* scsi, uint8_t* cmd, uint8_t len) {
     if(!len) {
@@ -28,38 +45,55 @@ bool scsi_cmd_start(SCSISession* scsi, uint8_t* cmd, uint8_t len) {
     scsi->tx_done = false;
     switch(cmd[0]) {
     case SCSI_WRITE_10: {
-        if(len < 10) return false;
-        scsi->write_10.lba = cmd[2] << 24 | cmd[3] << 16 | cmd[4] << 8 | cmd[5];
-        scsi->write_10.count = cmd[7] << 8 | cmd[8];
+        if(len < 10) return scsi_invalid(scsi, SCSI_ASC_INVALID_FIELD_IN_CDB);
+        uint32_t lba = scsi_read_lba(cmd);
+        uint16_t count = (uint16_t)((uint16_t)cmd[7] << 8 | cmd[8]);
+        if(!scsi_range_valid(scsi, lba, count)) {
+            return scsi_invalid(scsi, SCSI_ASC_LBA_OOB);
+        }
+        scsi->write_10.lba = lba;
+        scsi->write_10.count = count;
+        // READ(10) and WRITE(10) with zero transfer length are no-ops.
+        if(!count) scsi->rx_done = true;
         FURI_LOG_D(TAG, "SCSI_WRITE_10 %08lX %04X", scsi->write_10.lba, scsi->write_10.count);
         return true;
     }; break;
     case SCSI_READ_10: {
-        if(len < 10) return false;
-        scsi->read_10.lba = cmd[2] << 24 | cmd[3] << 16 | cmd[4] << 8 | cmd[5];
-        scsi->read_10.count = cmd[7] << 8 | cmd[8];
+        if(len < 10) return scsi_invalid(scsi, SCSI_ASC_INVALID_FIELD_IN_CDB);
+        uint32_t lba = scsi_read_lba(cmd);
+        uint16_t count = (uint16_t)((uint16_t)cmd[7] << 8 | cmd[8]);
+        if(!scsi_range_valid(scsi, lba, count)) {
+            return scsi_invalid(scsi, SCSI_ASC_LBA_OOB);
+        }
+        scsi->read_10.lba = lba;
+        scsi->read_10.count = count;
+        if(!count) scsi->tx_done = true;
         FURI_LOG_D(TAG, "SCSI_READ_10 %08lX %04X", scsi->read_10.lba, scsi->read_10.count);
         return true;
     }; break;
     }
     return true;
 }
-
 bool scsi_cmd_rx_data(SCSISession* scsi, uint8_t* data, uint32_t len) {
     FURI_LOG_T(TAG, "RX %02X len %lu", scsi->cmd[0], len);
     if(scsi->rx_done) return false;
     switch(scsi->cmd[0]) {
     case SCSI_WRITE_10: {
-        uint32_t block_size = SCSI_BLOCK_SIZE;
-        uint16_t blocks = len / block_size;
-        bool result =
-            scsi->fn.write(scsi->fn.ctx, scsi->write_10.lba, blocks, data, blocks * block_size);
+        // The USB transfer must consist of full blocks and must not exceed
+        // the command's remaining block count (no unsigned underflow).
+        if(!len || (len % SCSI_BLOCK_SIZE) != 0 || len / SCSI_BLOCK_SIZE > scsi->write_10.count)
+            return scsi_invalid(scsi, SCSI_ASC_INVALID_FIELD_IN_CDB);
+        uint16_t blocks = (uint16_t)(len / SCSI_BLOCK_SIZE);
+        if(!scsi_range_valid(scsi, scsi->write_10.lba, blocks))
+            return scsi_invalid(scsi, SCSI_ASC_LBA_OOB);
+        bool result = scsi->fn.write(scsi->fn.ctx, scsi->write_10.lba, blocks, data, len);
+        if(!result) return false;
         scsi->write_10.lba += blocks;
         scsi->write_10.count -= blocks;
         if(!scsi->write_10.count) {
             scsi->rx_done = true;
         }
-        return result;
+        return true;
     }; break;
     default: {
         FURI_LOG_W(TAG, "unexpected scsi rx data cmd=%02X", scsi->cmd[0]);
@@ -69,7 +103,6 @@ bool scsi_cmd_rx_data(SCSISession* scsi, uint8_t* data, uint32_t len) {
     }; break;
     }
 }
-
 bool scsi_cmd_tx_data(SCSISession* scsi, uint8_t* data, uint32_t* len, uint32_t cap) {
     FURI_LOG_T(TAG, "TX %02X cap %lu", scsi->cmd[0], cap);
     if(scsi->tx_done) return false;
@@ -105,14 +138,12 @@ bool scsi_cmd_tx_data(SCSISession* scsi, uint8_t* data, uint32_t* len, uint32_t 
     case SCSI_INQUIRY: {
         FURI_LOG_D(TAG, "SCSI_INQUIRY");
         if(scsi->cmd_len < 5) return false;
-
         if(cap < 36) return false;
 
         bool evpd = scsi->cmd[1] & 1;
         uint8_t page_code = scsi->cmd[2];
         if(evpd == 0) {
             if(page_code != 0) return false;
-
             data[0] = 0x00; // device type: direct access block device
             data[1] = 0x80; // removable: true
             data[2] = 0x04; // version
@@ -154,7 +185,6 @@ bool scsi_cmd_tx_data(SCSISession* scsi, uint8_t* data, uint32_t* len, uint32_t 
         data[1] = 0;
         data[2] = 0;
         data[3] = 8;
-
         // Capacity Descriptor
         data[4] = (n_blocks - 1) >> 24;
         data[5] = (n_blocks - 1) >> 16;
@@ -197,17 +227,28 @@ bool scsi_cmd_tx_data(SCSISession* scsi, uint8_t* data, uint32_t* len, uint32_t 
         return true;
     }; break;
     case SCSI_READ_10: {
-        uint32_t block_size = SCSI_BLOCK_SIZE;
-        bool result =
-            scsi->fn.read(scsi->fn.ctx, scsi->read_10.lba, scsi->read_10.count, data, len, cap);
-        *len -= *len % block_size;
-        uint16_t blocks = *len / block_size;
+        if(!scsi_range_valid(scsi, scsi->read_10.lba, scsi->read_10.count))
+            return scsi_invalid(scsi, SCSI_ASC_LBA_OOB);
+        if(cap < SCSI_BLOCK_SIZE) return scsi_invalid(scsi, SCSI_ASC_INVALID_FIELD_IN_CDB);
+        // Only request whole blocks, and never more than the remaining CDB count.
+        uint32_t permitted = (uint32_t)scsi->read_10.count * SCSI_BLOCK_SIZE;
+        uint32_t bounded = MIN(cap, permitted);
+        bounded -= bounded % SCSI_BLOCK_SIZE;
+        if(!bounded) return scsi_invalid(scsi, SCSI_ASC_INVALID_FIELD_IN_CDB);
+        uint32_t actual = 0;
+        bool result = scsi->fn.read(
+            scsi->fn.ctx, scsi->read_10.lba, scsi->read_10.count, data, &actual, bounded);
+        if(!result) return false;
+        if(!actual || actual > bounded || actual % SCSI_BLOCK_SIZE)
+            return scsi_invalid(scsi, SCSI_ASC_INVALID_FIELD_IN_CDB);
+        uint16_t blocks = (uint16_t)(actual / SCSI_BLOCK_SIZE);
+        *len = actual;
         scsi->read_10.lba += blocks;
         scsi->read_10.count -= blocks;
         if(!scsi->read_10.count) {
             scsi->tx_done = true;
         }
-        return result;
+        return true;
     }; break;
     default: {
         FURI_LOG_W(TAG, "unexpected scsi tx data cmd=%02X", scsi->cmd[0]);
@@ -217,7 +258,6 @@ bool scsi_cmd_tx_data(SCSISession* scsi, uint8_t* data, uint32_t* len, uint32_t 
     }; break;
     }
 }
-
 bool scsi_cmd_end(SCSISession* scsi) {
     FURI_LOG_T(TAG, "END %02X", scsi->cmd[0]);
     uint8_t* cmd = scsi->cmd;
@@ -235,7 +275,6 @@ bool scsi_cmd_end(SCSISession* scsi) {
     case SCSI_MODE_SENSE_6:
     case SCSI_READ_10:
         return scsi->tx_done;
-
     case SCSI_TEST_UNIT_READY: {
         FURI_LOG_D(TAG, "SCSI_TEST_UNIT_READY");
         return true;
