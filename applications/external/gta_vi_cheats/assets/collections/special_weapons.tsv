@@ -11,15 +11,21 @@
 410	La Polilla Negra KZ-59	Palmer Fishing Warehouse, Watson Bay. Clear or infiltrate the Illegal Operation and inspect its valuables.	Named assault rifle; reported gang-operation reward.
 411	Palmer Warehouse Launcher (reported)	Palmer Fishing Warehouse, Watson Bay. Search the operation with the KZ-59.	A separate grenade launcher is reported but its exact model/reward status is unverified.
 412	La Polilla Negra VF-G1	Watson Bay Safehouse Illegal Operation. Inspect reward weapons after clearing the site.	Named assault rifle; reported gang-operation reward.
-413	Crabshack VF5	Pelican Valley abandoned research outpost; boat shack behind a keypad-protected door.	Military SMG; reported puzzle reward.
+413	Crabshack VF5	Pelican Valley research outpost. Dock boathouse keypad 0212; the code is revealed by the main-house safe 0072.	For the full clue chain, turn on power, use PC password CLEAVES, then open safe 0072. Door 0212 gets the Crabshack VF5 directly.
 414	Kingfishers W-22	Fishing Shacks Illegal Operation in Wetman Bay; check guarded waterside camp loot.	Named small-game rifle; reported gang-operation reward.
 415	Kingfishers Laird 350	Manatee Motel Illegal Operation, Gullet Marsh. Search the operation valuables.	Named sporting sniper; guides describe a potentially missable early pickup.
 416	Deever Tech GLR40	Sunrise Motel courtyard, Tequesta; in a one-car garage, near stacks of toilet paper.	Grenade launcher; reported pickup shared with Cockroach Xtreme 556.
 417	Cockroach Xtreme 556	Sunrise Motel courtyard, Tequesta; the same one-car garage as the Deever Tech GLR40.	Carbine rifle; check behind the toilet-paper stacks.
 418	H-AT Rocket Launcher	Reported underground armory / bunker weapon pickup; exact access and location unconfirmed.	Launcher; do not mark acquired until actually collected.
 419	Type 9 SMG (bunker)	Reported bunker/armory pickup. A Type 9 machine pistol is documented under a Balsero mobile home southwest of Griffin Shooting Range.	Type 9 attribution to the paired H-AT location remains unconfirmed.
-420	Black Eagle Import M306 TMR	Black Eagle warehouse, Balsero; go past barred door and squeeze left between stacked boxes and fence.	Marksman rifle; reports say only Lucia can fit through.
-421	Black Eagle Import Kalinga	Black Eagle warehouse office safe, Balsero. Look for the combination on the office computer.	Pistol; a separate pickup from the M306 TMR.
+420	Black Eagle Import M306 TMR	Black Eagle warehouse, Balsero; go past barred door and squeeze left between stacked boxes and fence.	Lucia reportedly squeezes through the boxes/fence gap; the office door and safe codes are for the separate Kalinga pistol, not this rifle.
+421	Black Eagle Import Kalinga	Black Eagle warehouse, Balsero. Enter loading bay, turn right, and unlock office keypad 789987; then open office safe 031462.	Black Eagle Import Kalinga .50 pistol and cash. Safe combination is six digits including the leading 0. Distinct from M306 TMR.
 422	Little Friend W-10 (Micro SMG)	Sunlite Motel, Shore Drive, Ocean Beach; blood-stained room on the second floor.	Reported named micro SMG pickup; the unnamed Micro SMG lead may refer to another weapon.
 423	Stoner K17 MCD	Big Day Motel, room 115, off US-35 just north of Ambrosia; search the bedside table.	Automatic pistol; reported hidden pickup.
 424	Dirty Drifter	Bonanza coastal road, Lummox County; trunk of the blue car trapped in a mudslide.	Double-barrel shotgun; reported hidden pickup.
+425	Clunker 556	Brooks Boatworks, Port Gellhorn. Enter Kolt warehouse and reach the upper office safe; enter 6823.	Named rifle reported as hideout reward; use the wall map for clue.
+426	Scrapper VF5C	La Cascara Motel, Port Gellhorn. Clear the Kolt hideout and open upstairs safe with 6969.	Reported silenced SMG variant behind the operation safe.
+427	Gutterball Moreland 850	Kingpin Bowling, Port Gellhorn. Northeast office safe; reported code 0300.	Shotgun reward; guides disagree: 0300 vs 0330. Check Brooks Boatworks map if rejected.
+428	Throttler Verro	Farm Fix Meth Lab, McKittrick Farm / Belville. Clear operation and open the office safe with 2121.	Reported unique shotgun reward at the meth lab.
+429	Russo's Pistol (reported)	President bunker, Sharktooth Island north of Waning Sands. Door 010317, then office safe 2975.	Reported rare pistol; published sources disagree on its model year (1922 or 1992).
+430	Cold War 556	Big Pine IAA Black Site, North Mariana County. Tree keypad at hatch 085355, then restore power and open hangar.	Unique rifle; prior bunker clue trail uses island door 010317 and safe 2975. Tank also inside.

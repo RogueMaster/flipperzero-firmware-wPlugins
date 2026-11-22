@@ -1,10 +1,17 @@
 # GTA VI Companion changelog
 
-## v1.8 - Special Weapons checklist
-- Added Collections > Special Weapons with 25 independently checkable weapon finds and named variants.
-- Weapon checkmarks use the existing Acquired progress system and SD-card saves; paired finds can be tracked separately.
-- Included reported locations, search instructions, and uncertainty labels for incomplete leads.
-- Grouped the new information under Collections without modifying Secret Missions or the main home-menu layout.
+## v1.9 — Endings checklist
+- Added Collections > Endings with 12 independently checkable finale routes and epilogue variants, including descriptions of choices, preparation, and reported consequences.
+- Clearly distinguish nine reported outcomes/variants from three proposed but unverified savings-based epilogues; include a story-spoiler warning in the guide.
+- Endings use persistent collection checkmarks and stable IDs, without changing the save format, Dispatch, Secret Missions, or the home-screen controller.
+- Documented ending prerequisites and source references in the README, with an explicit explanation of differing published ending counts.
+
+## v1.8 - Special Weapons and Code Navigation
+- Added two Black Eagle warehouse combinations (789987 office, 031462 safe) with Kalinga .50 access instructions.
+- Added four reported codes for the Marbelle Hotel and linked Presidential Bunker / IAA Black Site discoveries.
+- Safe & Door Codes can now be browsed by area or by type; code text preserves leading zeros.
+- Special Weapons now has 31 independently checkable pickups, including codes in the detail for every known locked weapon route.
+- Kept Secret Missions, Dispatch, existing collection IDs, and SD progress data formats unchanged.
 
 ## v1.7 — Secret Missions and Completion Tracking
 - Confirmed the existing shared checklist supports individual completed/uncompleted marks for Under the Bridge crossings, all stunt categories, Randy/Moses/Wyman/Standout vehicles, and populated Collections, using Right in the list or Check/Undo from details.

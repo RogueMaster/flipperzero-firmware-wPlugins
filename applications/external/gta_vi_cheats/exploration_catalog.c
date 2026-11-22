@@ -68,6 +68,7 @@ static const GtaExploreSection bridges[] = {
 };
 
 const GtaExploreSection gta_explore_sections[] = {
+    GTA_LEAF("Special Weapons", "special_weapons", 31, "Acquired"),
     GTA_GROUP("Collectible Cards", card_sets),
     GTA_GROUP("WAiNK Locations", waink),
     GTA_GROUP("AHOL Street Art", ahol),
@@ -80,11 +81,10 @@ const GtaExploreSection gta_explore_sections[] = {
     GTA_LEAF("Cocaine Flamingos", "flamingos", 125, "Destroyed"),
     GTA_GROUP("Unique Playlists", playlists),
     GTA_GROUP("Discovered Styles", styles),
-    GTA_LEAF("Special Weapons", "special_weapons", 25, "Acquired"),
     GTA_GROUP("Stunt Jumps", stunt_jumps),
     GTA_GROUP("Under the Bridge", bridges),
     GTA_LEAF("Knife Flights", "knife_flights", 40, "Completed"),
     GTA_LEAF("Base Jumps", "base_jumps", 25, "Completed"),
+    GTA_LEAF("Endings", "endings", 12, "Seen"),
 };
-
 const size_t gta_explore_section_count = GTA_COUNT(gta_explore_sections);

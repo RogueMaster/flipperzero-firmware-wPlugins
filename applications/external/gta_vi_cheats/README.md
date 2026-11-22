@@ -16,15 +16,15 @@ Open **GTA VI Companion** from the Flipper Zero **Tools** menu. The guide data a
 
 ## Features
 
-The home screen has 16 icons across two pages. The first page groups gameplay guides, collections, Dispatch, cheats, and quick help. The second page groups vehicle hunts, properties, and loading-screen controls.
+The home screen has 16 icons across two pages. Icons appear in this order, from left to right: **page 1** - Infinite Money Glitch, PS5 Cheats, Xbox Cheats, Collections, Safe & Door Codes, Secret Missions, Randy's Wish List, Moses Drop-Offs; **page 2** - Wyman's Classic Cars, Standout Vehicles, Garages, Houses / Cribs, Dispatch, Mock Loaders, Mock Loader Settings, Quick guide / warnings.
 
 | Menu | What you'll find |
 | --- | --- |
 | **Infinite Money Glitch** | A five-step walkthrough of the reported Apollo Aggregates loot-respawn method, including vehicle storage, three possible reset approaches, and cash-out locations. |
 | **PS5 Cheats** | Reported PlayStation controller sequences, effects, unlock prerequisites, and unverified-input labels. |
 | **Xbox Cheats** | Reported Xbox inputs and effects, including confidence notes for converted sequences. |
-| **Collections** | Checklists and directions for collectible cards, WAiNK scans, art, treasure, flamingos, publications, styles, **25 special weapons**, and stunt challenges. |
-| **Safe & Door Codes** | 38 reported safe combinations, door codes, and puzzle passwords, with location clues and source-confidence labels. |
+| **Collections** | Checklists and directions for collectible cards, WAiNK scans, art, treasure, flamingos, publications, styles, **31 special weapons**, an Endings checklist with 12 documented routes and proposed variations, and stunt challenges. |
+| **Safe & Door Codes** | 44 reported safe combinations, door codes, and puzzle passwords, with location clues and source-confidence labels. |
 | **Secret Missions** | 16 checkable optional encounters, hidden weapon finds, cash routes, stat rewards, and Easter eggs, grouped by the earliest reported story chapter. Uncertain unlocks appear at the end. |
 | **Randy's Wish List** | 19 vehicle requests with reported pickup clues, access conditions, and delivery progress. |
 | **Moses Drop-Offs** | Seven reported vehicle delivery jobs and their location clues. |
@@ -56,7 +56,7 @@ All populated entries in these areas have individual **Completed** checkmarks:
 | **Bridges** | Each **Under the Bridge** crossing, organized by county (202 reported crossings). |
 | **Cars** | Each Randy's Wish List vehicle, Moses drop-off, Wyman's Classic Cars restoration, and Standout Vehicle; garages and houses have their own acquired/visited-style checklists. |
 | **Stunts** | Each Stunt Jump, Under the Bridge crossing, Knife Flight, and Base Jump (397 reported stunts in total). A bridge crossing appears **once** in progress, even when viewed as a stunt. |
-| **Collections** | Each cataloged collectible or discovery in its category, including cards, flamingos, WAiNK, artwork, treasures, and published location entries. |
+| **Collections** | Each cataloged collectible or discovery, plus Special Weapons acquisitions and viewed story endings, with individual checkmarks. |
 
 **Right** toggles the selected entry from its list. **OK** opens its details, where the center **Check / Undo** action also toggles completion. An empty category marked *Locations pending* has no entries to check until location data is available. The count in each list header reflects checked entries, and returning to a list updates the checkmark state. All these lists share one persistent tracking system, so checking a bridge or vehicle through a different route does not create a second completion record.
 
@@ -130,15 +130,18 @@ The in-app entries contain the detailed steps and specific location clues. For t
 
 ## Safe & Door Codes
 
-An offline catalog of **38 published codes and passwords**. Choose **All codes**, **Mission safes**, **Operations**, **Doors / garages**, **Puzzles / other**, or **Random safe tips**. Each entry shows the published combination, area, landmark or access instructions, story context when known, and a confidence label. Codes appear at the start of list rows so they are visible on the Flipper's small display.
+An offline catalog of **44 published codes and passwords**. Choose **All codes**, **Mission safes**, **Operations**, **Doors / garages**, **Puzzles / other**, **Browse by area**, or **Random safe tips**. The area browser groups codes into Vice-Dale / Balsero, Keys / islands, Port Gellhorn, Swamps / Grassrivers, Mariana County, Inland / north, and Other areas. Each entry shows the published combination, area, landmark or access instructions, story context when known, and a confidence label. Codes appear at the start of list rows so they are visible on the Flipper's small display.
+
+**Weapon access:** Black Eagle's Balsero warehouse office uses `789987`, and the safe inside uses `031462` to obtain the Kalinga .50. The Pelican Valley research outpost uses password `CLEAVES`, safe `0072`, and boathouse keypad `0212` for the Crabshack VF5. Published bunker clues connect the island door (`010317`) and safe (`2975`) to the IAA Black Site hatch (`085355`), reportedly holding the Cold War 556. The Marbelle Hotel safe (`955214`) is reported to contain a collectible watch. These combinations are also listed in the relevant weapon details. The Black Eagle M306 TMR has a separate reported access route through the stacked boxes and fence.
+
 
 | Category | Entries | Examples |
 | --- | ---: | --- |
 | **Mission safes** | **8** | Delights Cabaret `2008`; Donovan Banks & Co. `0104`. |
 | **Illegal Operations** | **14** | Nova Auto Junkyard `7777`; Kingpin Bowling `0300` (conflicting report). |
-| **Doors / garages** | **10** | Brian's Lockup `7700`; Key Lento Party House `092319`; Mount Kalaga Tower `69185` (conflicting report). |
-| **Puzzles / other** | **6** | Pelican Valley research codes and two text passwords. |
-| **Total** | **38** | Four- to six-digit PINs and text passwords. |
+| **Doors / garages** | **13** | Brian's Lockup `7700`; Key Lento Party House `092319`; Mount Kalaga Tower `69185` (conflicting report). |
+| **Puzzles / other** | **9** | Pelican Valley research codes and two text passwords. |
+| **Total** | **44** | Four- to six-digit PINs and text passwords. |
 
 **Leading zeros matter.** Published sources disagree on Kingpin Bowling (`0300`/`0330`), Saber Shipping Facility (`1122`/`1965`), and Mount Kalaga Tower (`69185`/`691865`). South Point Airfield `2341` is also disputed. Certain robbery safes may randomize their combinations; if a number fails, look for an in-game note, computer, or other clue.
 
@@ -154,14 +157,19 @@ An offline catalog of **38 published codes and passwords**. Choose **All codes**
 - [Radio Times - door codes](https://www.radiotimes.com/technology/gaming/gta-6-door-codes-list).
 - [ToGame - safe-code catalog](https://togame.io/b/gta-6-safe-codes/).
 - [GTA Base - safe-location map](https://www.gtabase.com/gta-6/map/?feature=safe).
+- [GamerHour - Black Eagle office and safe codes](https://gamerhour.net/guides/black-eagle-all-safe-codes-in-gta-6/).
+- [GTA Scoop - safe codes and weapon rewards](https://gtascoop.com/guides/gta-6-safe-codes/) and [President's bunker route](https://gtascoop.com/guides/gta-6-president-bunker/).
+- [NerdSnack - hidden weapon-related codes](https://nerdsnack.com/gta-6-safe-codes/).
 
 ## Special Weapons
 
-Under **Collections → Special Weapons**, browse **25 individual weapon pickups and variants** covering rifles, pistols, SMGs, shotguns, launchers, a knife, and a speargun lead. Each row has a name, location or access clue, and acquisition notes. Several entries share a location but have independent checkmarks. Locations without adequate corroboration are labeled **reported** or **unconfirmed**, rather than shown as established spawns.
+Under **Collections → Special Weapons**, browse **31 individual weapon pickups and variants** covering rifles, pistols, SMGs, shotguns, launchers, a knife, and a speargun lead. Each row has a name, location or access clue, and acquisition notes. Several entries share a location but have independent checkmarks. Locations without adequate corroboration are labeled **reported** or **unconfirmed**, rather than shown as established spawns.
 
 **Mark acquired:** select a weapon and press **Right** to check or uncheck it. Press **OK** for details and choose **Check/Undo**. The status reads **Acquired**, the list shows progress, and checkmarks are saved to the app's SD-card progress files. Acquiring one of a paired set does not mark the other.
 
 Example searches include the Assassin Nipper .38 on a Permit Keys wreck, the Unpacked Comshot 12 inside a Key Lento house, the Drug Mule KZ-59 near a sunken Riquezas Keys speedboat, and the Deever Tech GLR40 plus Cockroach Xtreme 556 at the Sunrise Motel in Tequesta. These are reported community discoveries, not guaranteed spawns.
+
+A weapon's detail includes any required combination when known. For example, the Kalinga .50 gives both the office and safe codes; the Crabshack VF5 gives the dock code and optional puzzle chain; and Russo's Pistol and the Cold War 556 list their bunker combinations. Individual acquisition checkmarks are independent even when weapons share a building or puzzle.
 
 ### Special Weapons sources
 
@@ -169,6 +177,39 @@ Example searches include the Assassin Nipper .38 on a Permit Keys wreck, the Unp
 - [GTA Scoop - unique weapons and gang-operation rewards](https://gtascoop.com/guides/gta-6-unique-weapons/)
 - [GAMES.GG - unique weapons and pickup locations](https://games.gg/grand-theft-auto-vi/guides/grand-theft-auto-6-all-unique-weapons-where-to-get-them/)
 - [GTA Explained - hidden weapon clues and missable finds](https://gtaexplained.com/gta-6-hidden-weapons/)
+
+## Endings
+
+**Major story spoilers.** Under **Collections → Endings**, browse **12 finale routes and epilogue variations**, including **nine reported outcomes or scene variations** and **three speculative variants that have not been demonstrated reliably**. Each entry explains the relevant chapter, choices, preparation, and reported result. The final three entries are marked with `?` in their names so they cannot be mistaken for confirmed unlocks.
+
+**Track endings seen:** Press **Right** on an ending to mark it **Seen** or uncheck it; press **OK** to open its requirements and use **Check / Undo**. The completed count and checkmarks are saved to the regular Collections progress files on the SD card. This tracker does not change the game or its save data.
+
+Before the finale, make a **manual save**. Published guides identify four major influences: Jason and Lucia's relationship, each character's Criminal Profile, money deposited in **BuckMe Family Savings**, and the choices in **Protective Custody** and **The End of the Road**. Sources disagree on exact thresholds for some branches. The commonly cited best-outcome requirements are a **Hot Together** relationship, relatively clean profiles, **$2,000,000 in Family Savings**, and **Swim for It** at the bridge.
+
+| Ending / variant | Reported way to see it |
+| --- | --- |
+| **The Swamp** | Wait for **Take Deal** at the officer's standoff in *Protective Custody*, then accept it. |
+| **The Sacrifice** | Take the deal; if the alternate armed tower/elevator standoff triggers, choose **Stay Down**. Trigger uncertain. |
+| **Defend Jason** | Reach the reported alternate standoff, then select **Defend Jason**. Trigger uncertain. |
+| **No Surrender** | Shoot the officer; at the bridge select **No Surrender**. |
+| **No Surrender + Two Years Later** | Same bridge choice, with a full savings account and strong relationship; reported alternate family epilogue. |
+| **Armed Swim for It** | Build a high Criminal Profile, then choose **Swim for It**. An armed Jason reportedly leads to a fatal police response. |
+| **Armed Swim + Two Years Later** | Armed Swim route with full savings; a different post-credit family scene is reported. |
+| **Swim for It - Empty Handed (Prison)** | Strong relationship, clean Criminal Profiles, savings below $2,000,000; choose **Swim for It**. |
+| **Happily Ever After** | Hot Together relationship, clean profiles, $2,000,000 Family Savings; choose **Swim for It**. |
+| **The Swamp + Savings (?)** | *Speculative:* Take Deal with full Family Savings; an additional ending scene is unverified. |
+| **The Sacrifice + Savings (?)** | *Speculative:* Stay Down on the alternate deal route with full savings; not reliably documented. |
+| **Defend Jason + Savings (?)** | *Speculative:* Defend Jason on the alternate route with full savings; not reliably documented. |
+
+The **12-item count includes variations and predictions, not 12 independently verified, materially different endings**. GTA Base documents five principal endings; other written guides distinguish seven or nine outcomes and epilogue variants. The final three checklist entries are hypotheses, not demonstrated unlocks. Mark an entry Seen only after observing that version in your own playthrough.
+
+### Endings sources
+
+- [GTA Base - five principal endings and preparation](https://www.gtabase.com/gta-6/articles/gta-6-endings-explained).
+- [GTA Base - final mission choices](https://www.gtabase.com/gta-6/missions/the-end-of-the-road).
+- [GTA 6 Player Tools - seven reported finale paths](https://gta6playertools.com/guides/endings).
+- [U4N - nine ending/epilogue variants](https://www.u4n.com/news/gta-6-endings-explained-good-bad-and-secret-paths.html).
+- [VICE - the four ending-influencing factors](https://www.vice.com/en/article/gta-6-multiple-endings-explained/).
 
 ## Collections and exploration
 
@@ -189,6 +230,7 @@ Select **Collections** to browse categories and individual sets. Each entry prov
 | **Cocaine Flamingos** | **30 reported pickups**, including street, building, and landmark directions for locations in Capri, Key Lento, and other areas. |
 | **Unique Playlists** | **2 playlists** and **5 related poster locations**. |
 | **Discovered Styles** | **21 clothing and cosmetic discoveries**, including watches, the Backyard Wrestling Belt, and Luchadora tattoos. |
+| **Endings** | **12 finale outcomes and proposed variations**: nine reported outcomes or epilogues and three speculative savings-based variants, each with story choices, suggested prerequisites, and confidence notes. |
 | **Stunt Jumps** | **130 launch points** grouped by county, with reported launch directions and stunt goals. |
 | **Under the Bridge** | **202 bridge crossings**, with individual spans and nearby landmarks. |
 | **Knife Flights** | **40 aircraft gaps**. |
@@ -300,3 +342,12 @@ Where sources disagree or a position is not specific, entries use labels such as
 
 - [GTA VI Companion source repository](https://github.com/RogueMaster/GTA_VI_Companion)
 - [Patreon](https://www.patreon.com/RogueMaster?filters[tag]=Latest%20Release)
+
+### Additional code and weapon-access sources
+
+- [Black Eagle office and safe access](https://gamerhour.net/guides/gta-6-black-eagle-import-kalinga-black-eagle-warehouse-safe-code/)
+- [Black Eagle Kalinga and M306 TMR entry routes](https://www.followchain.org/gta-6-black-eagle-door-code-safe-code/)
+- [Pelican Valley research puzzle and Crabshack VF5](https://gta6.house/guides/gta-6-pelican-valley-outpost-codes-crabshack-smg)
+- [President's Bunker sequence and IAA Black Site](https://gtascoop.com/guides/gta-6-president-bunker/)
+- [Haunted Marbelle Hotel safe and watch](https://gta6.house/guides/gta-6-silent-hill-haunted-hotel-safe-code)
+- [Hideout safe combinations and weapon rewards](https://nerdsnack.com/gta-6-safe-codes/)
