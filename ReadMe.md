@@ -88,9 +88,10 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [VaultFlipper v0.1 clarifies setup and shows prior PIN attempts (By Sven Würth / its-sven)](https://github.com/its-sven/vaultflipper)
 - Added: [Moon Lander v1.0 with optional Video Game Module tilt controls (By FToThe3rdPower)](https://github.com/FToThe3rdPower/flipperMoonLander)
 - BadUSB: [Hardened keyboard layout validation (By ANTONiO-eagle)](https://github.com/DarkFlippers/unleashed-firmware/pull/1224)
-- Updated: [GTA VI Companion v1.9.5 (By RogueMaster)](https://github.com/RogueMaster/GTA_VI_Companion)
 - Updated: [AC Detector v1.1 (By xMasterX)](https://github.com/xMasterX/all-the-plugins)
 - Updated: [Barcode App v2.1 (By Kingal1337 & AzureSky)](https://github.com/Kingal1337/flipper-barcode-generator)
+- Updated: [GTA VI Companion v1.9.5 (By RogueMaster)](https://github.com/RogueMaster/GTA_VI_Companion)
+- Added: [TommyBox Capture v1.0 (By mitchsurp)](https://github.com/mitchsurp/Tonies-Capture-Flipper)
 
 <a name="release"></a>
 
@@ -1087,6 +1088,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Time Tracker v1.0.3 (By MassivDash)](https://github.com/MassivDash/flipper-tracker)
 - [Timed Remote v0.1 (By anders-dc)](https://github.com/anders-dc/timed-remote)
 - [Timer v0.1 (By nagamine-git)](https://github.com/nagamine-git/flipperzero_timer_app)
+- [TommyBox Capture v1.0 (By mitchsurp)](https://github.com/mitchsurp/Tonies-Capture-Flipper)
 - [Tone Generator v1.0 (By GEMISIS)](https://github.com/GEMISIS/tone_gen)
 - [Tone TX v1.1 (By Marcopiiit)](https://github.com/skylovervibecoder/Flipper-Zero-Tone-TX)
 - [TonUINO Writer v2.0 (By Bastelsaal)](https://github.com/Bastelsaal/tonuino-flipper-zero)
