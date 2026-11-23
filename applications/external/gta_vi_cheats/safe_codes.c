@@ -399,6 +399,24 @@ const GtaSafeCode gta_safe_codes[] = {
         GtaSafeDoor,
         GtaSafeReported,
     },
+    {
+        "Father Scrumpy's Red Apple Orchard Garage",
+        "Manifest Canyon / North Kelly Highlands",
+        "360782",
+        "Keypad on the farmhouse garage at the Red Apple Orchard.",
+        "Barn-loft magazine reportedly gives the clue; unlocks the Applesauce Bobcat.",
+        GtaSafeDoor,
+        GtaSafeReported,
+    },
+    {
+        "1010 Mural Reward Garage",
+        "Southside Storage / Vice City",
+        "1010",
+        "Garage shutter at Southside Storage after photographing all five 1010 murals.",
+        "Finish the 1010 Snapmatic mural challenge, then enter the code to claim the 1010 Cheetah.",
+        GtaSafeDoor,
+        GtaSafeReported,
+    },
 };
 
 const size_t gta_safe_code_count = sizeof(gta_safe_codes) / sizeof(gta_safe_codes[0]);
