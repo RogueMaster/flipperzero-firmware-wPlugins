@@ -7,7 +7,7 @@ App(
     stack_size=8 * 1024,
     fap_category="RFID",
     # Optional values
-    fap_version="0.2",
+    fap_version="0.3",
     fap_icon="assets/gs1_rfid_parser.png",
     fap_author="Kyle Diller",
     fap_icon_assets="assets",
