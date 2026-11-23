@@ -198,6 +198,13 @@ jobs:
           - Updates UHF Expansion to version ${VERSION}.
           - Uses source commit ${GITHUB_SHA} after a successful release-SDK build and Catalog bundle validation.
 
+          ### Changes in ${VERSION}:
+          - Added support for blank/no-EPC tags in Inventory, displaying, decoding, and saving them by TID.
+          - Improved TID decoding with automatic length truncation based on XTID header (e.g. 12-byte serial for UCODE 8).
+          - Safer selective bank writing in Saved Tags: only writes the active non-empty bank (EPC, TID, or User) without overwriting other banks or altering PC bits.
+          - Enforced length matching for EPC writes to protect target tag structure.
+          - Enhanced Access Keys menu with quick slot cycling (Left) and direct key hex editing (Right).
+
           # Extra Requirements
 
           - Requires an MTools Tec UHF Expansion or compatible UCM601 UHF reader module.
@@ -213,7 +220,7 @@ jobs:
 
           # AI usage disclosure (Fill this out)
 
-          - Partially AI assisted - This update to an existing application uses AI-generated code for the frequency settings, settings state handling, regression tests, and release automation. These changes query and configure reader frequencies, isolate settings drafts, preserve previous settings on storage failures, and gate publication on automated protocol, storage-failure, settings-state tests and a release-SDK build.
+          - Partially AI assisted - This update to an existing application uses AI-assisted code for blank/no-EPC tag handling, TID probe extraction, selective bank writing protection, access key slot navigation, and regression tests. These changes allow reading and saving tags without EPC, protect target tags during bank writes, and gate publication on automated protocol, storage, and regression test suites.
 
           # Reviewer Checklist (Don't fill this out, and don't remove it from the template)
 

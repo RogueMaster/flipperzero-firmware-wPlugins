@@ -10,6 +10,7 @@ UHF RFID Reader/Writer expansion for Flipper Zero, communicating over UART bridg
 ## Features
 
 - **Inventory Scan** — Fast UHF tag scanning with real-time display
+- **No-EPC Tag Support** — Read, display, save, and decode blank or zero-length EPC tags by TID
 - **Feature Menu** — Opens after reader detection with six focused entries
 - **TID Decoder** — Automatically pauses on one tag and shows scrollable MDID/model details
 - **EPC Fuzzing** — Generates incremental EPC variants with explicit verified writes
@@ -19,6 +20,7 @@ UHF RFID Reader/Writer expansion for Flipper Zero, communicating over UART bridg
 - **Paged EPC List** — Browse scanned tags page by page, with truncated preview
 - **Tag Details** — View full EPC, RSSI, and PC (Protocol Control) bits for each tag
 - **Tag Memory Actions** — Read and write EPC, TID, and User Data on compatible tags
+- **Selective Bank Writing** — Write only the selected memory bank (EPC, TID, or User) without altering other banks or PC bits
 - **TID-Changeable Tag Support** — Reads short and 128-bit TID banks with automatic window fallback and EPC-filter recovery
 - **Tag Protection Actions** — Erase writable banks and reversibly lock or unlock EPC, TID, and User memory
 - **Access Keys** — Keep four reusable 32-bit access-password slots in the app data directory, shown directly in the key list

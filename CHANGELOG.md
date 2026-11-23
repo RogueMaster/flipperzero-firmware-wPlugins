@@ -1,15 +1,10 @@
 v1.9:
 
-- Inventory keeps a tag whose PC word reports no EPC and shows its TID when available, or `TID - ...` while unavailable.
-- TID reads skip the EPC select filter when the tag has no EPC, including a one-shot probe from the inventory menu and TID Decoder.
-- Save Tag reads the TID first and stores a record with an empty EPC line when that is the only identity.
-- Selecting a No EPC tag opens the TID bank. EPC, User, and Reserved are shown as not populated without a reader command. TID is read with one custom-inventory round that stops itself, instead of an unfiltered read that leaves the module scanning.
-- Writing a No EPC tag updates the TID without an EPC filter, using session S0, and leaves EPC, User, and Reserved writes blocked.
-- TID reads capture PC, EPC, and TID from the same validated response before Stop or session restoration can replace it. Probing retains that identity, and extended reads must match it.
-- A TID read keeps the length declared by the XTID header, so a UCODE 8 serial is 12 bytes and bytes past that bank are dropped.
-- Saved Write writes only the selected nonempty EPC, TID, or User bank using the target EPC filter. A saved record with no EPC can write its recorded TID to an EPC-bearing compatible target; blank-EPC targets are refused because inventory cannot distinguish them by EPC.
-- Saved EPC writes require matching source and target lengths and preserve the full EPC up to 48 bytes. Empty banks and Info offer no Write action; Saved Write does not clone tags, alter PC, clear User, or write Reserved.
-- The inventory list shows a No EPC tag as TID followed by its value.
+- Added support for blank/no-EPC tags in Inventory, displaying, decoding, and saving them by TID.
+- Improved TID decoding with automatic length truncation based on XTID header (e.g. 12-byte serial for UCODE 8).
+- Safer selective bank writing in Saved Tags: only writes the active non-empty bank (EPC, TID, or User) without overwriting other banks or altering PC bits.
+- Enforced length matching for EPC writes to protect target tag structure.
+- Enhanced Access Keys menu with quick slot cycling (Left) and direct key hex editing (Right).
 
 v1.8:
 
