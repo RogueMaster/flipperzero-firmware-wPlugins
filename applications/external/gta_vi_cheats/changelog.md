@@ -1,6 +1,26 @@
 # GTA VI Companion changelog
 
-## v1.9.4
+## v1.9.5 — Fences
+- Added seven individually checkable Fences under Collections, immediately before Endings, sorted by chapter unlock: Brian, Donnie, Moses, Dunk, Tyrone, Yasmani and Randy.
+- Added unlock missions, selling locations, goods accepted, story-related availability and delayed/direct payment details.
+- Identified Tyrone as the best reported narcotics buyer and second-best jewelry/marked-bills buyer; Yasmani as best for jewelry and marked bills and second-best for narcotics.
+- Distinguished Moses' untracked vehicle purchases from Randy's premium Wish List jobs, without inventing comparable payout percentages.
+- Added a Fences section to the README and retained saved checklist IDs and the Endings-last menu order.
+- Expanded the existing Annis Pixel Elegy entry with its container-entry route; added the Maibatsu Sunset Sanchez as a distinct Standout Vehicle.
+- Added four named luxury watches with hideout pickup directions; expanded the existing Ashore and Ambassador entries with additional reported locations rather than duplicate checkmarks.
+- Added 15 geographically distinct, guide-reported Meteorite Chunk locations to the existing meteorite checklist, with separate progress markers.
+- Added the Goose Key Mile Zero shoreline flamingo and expanded six existing Gang Operations with specific watch and key-valuable directions.
+- Expanded existing Gang Operations with guide-reported unique weapons, rare vehicles, watch cross-references and safe-access clues; no duplicate operation IDs or new menus.
+- Enriched existing Standout Vehicle entries with reported unlock, lock/alarm, associated hideout and transport details, without creating extra vehicle checkmarks.
+- Clarified existing Orca and Ashore watch locations and cross-linked four Underwater Discoveries to their existing Kenton treasure routes, preserving the original saved IDs.
+- Preserved existing collection IDs, previous release notes, and menu ordering.
+- Added **Annis Yago's Elegy** as one distinct Street Racer Standout (ID 3603), acquired during the Chapter 3 Yago finale; not a duplicate Akane, Pixel, Drifter or Chameleon Elegy. Standout count: 262.
+- Expanded four existing Yago mission entries with unlock sequence, Jason-only requirements, race time limit, shop build/nitrous instructions, reward, and finale location; retained all existing mission IDs.
+- Refined all five Wyman restoration entries with map landmarks and payment flow; clarified Chapter 3 cut-off tool gate for the Reynolds Kit Car and corrected final Deviant payment from $1,500 to $1,000.
+- Improved the existing anime-wrap Akane location/security and livery-preservation warning; enriched the existing GTA+ Crosstown garage with bundled Venturas BLVD Elegy, weapon locker and fencing access.
+- Updated README vehicle totals, guide and research links.
+
+## v1.9.4 - Expanded Locations and Collectibles
 - Added 26 separately checkable, guide-reported Meteorite Chunk locations; marked the total and completion status as unconfirmed.
 - Added a five-stage Missing Persons walkthrough, distinguishing the warehouse and mine finale from the three reported missing tourists.
 - Added 22 basketball hoop guide-number locations with ball pickup instructions, bringing the documented location records from 51 to 73; marked legacy crosswalk conflicts for continued review.
@@ -9,7 +29,18 @@
 - Added 55 individually checkable Standout Vehicle entries with reported locations, including rare cars, motorcycles, an aircraft, and mission rewards.
 - Added vehicle acquisition notes for shared spawns, story prerequisites, garage access, and Key Cloner requirements.
 - Added two reported garage combinations: Red Apple Orchard (`360782`) for the Applesauce Bobcat, and Southside Storage (`1010`) for the mural-reward Cheetah.
-- Preserved existing vehicle checklist IDs and saved progress.
+- Added 46 additional Standout Vehicles, bringing the catalog to **260 vehicles**.
+- Expanded vehicle locations with additional garages, residential properties, racetracks, storage containers, mission rewards, and unique spawn points.
+- Improved vehicle acquisition instructions, including chapter requirements, Key Cloner access, special conditions, and alternate spawn locations.
+- Added 12 Meteorite Chunk locations, bringing the catalog to **43 locations**.
+- Added 5 Cocaine Flamingo locations, bringing the catalog to **40 locations**.
+- Added 3 Luxury Watch locations, bringing the catalog to **9 locations**.
+- Added 17 Location Search Leads for additional discoveries, including the Underwater Hotel and locations requiring further verification.
+- Expanded Kenton's Treasures with improved underwater directions for four shipwreck locations.
+- Updated Dispatch references and location details for additional collectible and vehicle discoveries.
+- Improved collection descriptions with additional landmarks, access instructions, and search areas.
+- Distinguished uncertain and potentially duplicate locations from established collectible entries.
+- Updated the README to reflect expanded collections, vehicle information, and location guidance.
 
 ## v1.9.3
 - Added 15 new collections

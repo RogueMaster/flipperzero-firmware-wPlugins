@@ -1,10 +1,8 @@
 #include "exploration_catalog.h"
-
 #define GTA_COUNT(items) (sizeof(items) / sizeof((items)[0]))
 #define GTA_LEAF(title, file, total, checked_label) \
     {title, file ".tsv", checked_label, total, NULL, 0}
 #define GTA_GROUP(title, items) {title, NULL, NULL, 0, items, GTA_COUNT(items)}
-
 static const GtaExploreSection card_sets[] = {
     GTA_LEAF("Vice City Flamingos", "cards_01", 24, "Collected"),
     GTA_LEAF("Vice City Narcos", "cards_02", 24, "Collected"),
@@ -25,7 +23,6 @@ static const GtaExploreSection card_sets[] = {
     GTA_LEAF("Right Wing: America's Hero", "cards_17", 36, "Collected"),
     GTA_LEAF("ED Comics Universe", "cards_18", 36, "Collected"),
 };
-
 static const GtaExploreSection waink[] = {
     GTA_LEAF("Landmarks", "landmarks", 31, "Scanned"),
     GTA_LEAF("Curiosities", "curiosities", 35, "Scanned"),
@@ -38,7 +35,6 @@ static const GtaExploreSection ahol[] = {
     GTA_LEAF("All 112 Pieces", "ahol_pieces", 112, "Scanned"),
     GTA_LEAF("Type Progress", "ahol", 11, "Type complete"),
 };
-
 static const GtaExploreSection playlists[] = {
     GTA_LEAF("The Sniper of La Perle", "sniper_posters", 4, "Scanned"),
     GTA_LEAF("The Vault", "vault_poster", 1, "Scanned"),
@@ -50,7 +46,6 @@ static const GtaExploreSection styles[] = {
     GTA_LEAF("Magazine Tattoos", "tattoos", 17, "Discovered"),
     GTA_LEAF("Luxury Watches", "watches", 34, "Collected"),
 };
-
 static const GtaExploreSection stunt_jumps[] = {
     GTA_LEAF("Vice-Dale County", "jumps_vice_dale", 54, "Completed"),
     GTA_LEAF("Mariana County", "jumps_mariana", 17, "Completed"),
@@ -58,7 +53,6 @@ static const GtaExploreSection stunt_jumps[] = {
     GTA_LEAF("Leonard County", "jumps_leonard", 12, "Completed"),
     GTA_LEAF("Lummox County", "jumps_lummox", 16, "Completed"),
 };
-
 static const GtaExploreSection bridges[] = {
     GTA_LEAF("Vice-Dale County", "bridges_vice_dale", 59, "Completed"),
     GTA_LEAF("Mariana County", "bridges_mariana", 39, "Completed"),
@@ -66,7 +60,6 @@ static const GtaExploreSection bridges[] = {
     GTA_LEAF("Leonard County", "bridges_leonard", 35, "Completed"),
     GTA_LEAF("Lummox County", "bridges_lummox", 17, "Completed"),
 };
-
 static const GtaExploreSection activity_robberies[] = {
     GTA_LEAF("Gang Operations", "gang_operations", 39, "Cleared"),
     GTA_LEAF("Small Bank Jobs", "small_banks", 14, "Robbed"),
@@ -86,7 +79,6 @@ static const GtaExploreSection activity_robberies[] = {
     GTA_LEAF("Basketball Hoops", "basketball_hoops", 100, "Scored"),
     GTA_LEAF("Hoop Search Leads", "basketball_hoop_leads", 0, "Checked"),
 };
-
 const GtaExploreSection gta_explore_sections[] = {
     GTA_LEAF("Special Weapons", "special_weapons", 43, "Acquired"),
     GTA_GROUP("Collectible Cards", card_sets),
@@ -111,6 +103,7 @@ const GtaExploreSection gta_explore_sections[] = {
     GTA_LEAF("Messages in Bottles", "messages_bottles", 6, "Read"),
     GTA_GROUP("Activities / Robberies", activity_robberies),
     GTA_LEAF("Location Search Leads", "location_leads", 0, "Checked"),
+    GTA_LEAF("Fences", "fences", 7, "Unlocked"),
     GTA_LEAF("Endings", "endings", 12, "Seen"),
 };
 const size_t gta_explore_section_count = GTA_COUNT(gta_explore_sections);
