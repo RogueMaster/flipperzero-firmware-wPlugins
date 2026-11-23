@@ -53,7 +53,7 @@ bool selection_range(const App *a, size_t *i0, size_t *i1)
         hi = t;
     }
 
-    int32_t run = 0;
+    int32_t run = a->sd.win_t0;
     bool started = false;
     for (size_t i = 0; i < a->sd.count; i++)
     {
@@ -147,56 +147,6 @@ bool write_selection(Storage *st, App *a, const char *path)
     return true;
 }
 
-bool snapshot_take(App *a)
-{
-    if (a->sd.count == 0)
-        return false;
-
-    size_t need = a->sd.count * sizeof(int16_t);
-    int16_t *copy = safe_malloc(need);
-    if (!copy)
-        return false;
-
-    memcpy(copy, a->sd.data, need);
-
-    if (a->undo_data)
-        free(a->undo_data);
-
-    a->undo_data = copy;
-    a->undo_count = a->sd.count;
-    a->undo_total_us = a->sd.total_us;
-    a->undo_marker_a = a->marker_a;
-    a->undo_marker_b = a->marker_b;
-    a->undo_active = a->active;
-    a->undo_view_start = a->view_start;
-    a->undo_view_end = a->view_end;
-    a->has_undo = true;
-    return true;
-}
-
-void snapshot_restore(App *a)
-{
-    if (!a->undo_data)
-        return;
-
-    free(a->sd.data);
-    a->sd.data = a->undo_data;
-    a->sd.count = a->undo_count;
-    a->sd.cap = a->undo_count;
-    a->sd.total_us = a->undo_total_us;
-    a->marker_a = a->undo_marker_a;
-    a->marker_b = a->undo_marker_b;
-    a->active = a->undo_active;
-    a->view_start = a->undo_view_start;
-    a->view_end = a->undo_view_end;
-
-    a->undo_data = NULL;
-    a->has_undo = false;
-
-    recompute_overview(a);
-    recompute_activity(a);
-}
-
 // Samples left once A..B is cut out; only with apply is the buffer rewritten in place.
 size_t cut_run(App *a, bool apply)
 {
@@ -211,7 +161,7 @@ size_t cut_run(App *a, bool apply)
     int16_t *d = a->sd.data;
     size_t n = a->sd.count;
     size_t w = 0;
-    int32_t run = 0;
+    int32_t run = a->sd.win_t0;
     int32_t last = 0; // d[w - 1], tracked so a dry run needs no writes
     bool seam = false; // true once something was dropped before the current sample
     for (size_t i = 0; i < n; i++)
@@ -238,7 +188,7 @@ size_t cut_run(App *a, bool apply)
 
         int32_t val = sign * keep;
         // Merge only across the cut seam. Consecutive same-sign samples elsewhere
-        // are long gaps split by push_duration() and must stay as they are.
+        // are long gaps split by work_put() and must stay as they are.
         if (seam && w > 0 && ((last >= 0) == (val >= 0)))
         {
             int32_t sum = last + val;
@@ -278,13 +228,14 @@ size_t cut_run(App *a, bool apply)
     return w;
 }
 
-// Cut A..B out in place; the caller has checked with cut_run() that it leaves a signal.
+/* Cut A..B out of the window in place; the caller has checked with cut_run()
+ * that it leaves a signal, and writes the result to the working file. */
 void cut_compact(App *a)
 {
     int32_t lo = a->marker_a < a->marker_b ? a->marker_a : a->marker_b;
 
     cut_run(a, true);
-    recompute_total_us(&a->sd);
+    a->sd.win_us = samples_us(a->sd.data, a->sd.count);
 
     a->marker_a = lo;
     a->marker_b = lo;
@@ -298,9 +249,4 @@ void cut_compact(App *a)
 
     a->view_start = a->marker_a - span / 2;
     a->view_end = a->view_start + span;
-
-    clamp_view(a);
-
-    recompute_overview(a);
-    recompute_activity(a);
 }

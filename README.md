@@ -18,7 +18,7 @@ a long recording full of repeats and noise becomes a single tidy frame.
 Tired of maintaining playlists to transmit multiple .sub files?
 Simply use merge feature to combine `.sub` files of **any type** into a single file
 and play it back by using main Sub-GHz app. No third party applications required.
-Combine any number of files you want, provided they fit within the Flipper's RAM.
+Combine any number of files you want, as long as the SD card has room.
 
 > **Receive/analysis only.** This app never transmits. It only reads, displays
 > and rewrites files you already have on the SD card.
@@ -82,10 +82,10 @@ The app lets you choose which custom button to use, if its protocol supports the
     description (key, serial, button, counter, ...) and press *Save* to store it
     as a regular Sub-GHz key file that the Sub-GHz app can emulate, or *Locate*
     to move A..B onto that frame (the first one of an `xN` group).
-  - *Cut* removes everything between the markers from the in-RAM working copy
-    and joins the two sides back together, so you can delete a noisy stretch or
-    an unwanted frame and keep editing. Nothing is written to the card until you
-    Save.
+  - *Cut* removes everything between the markers from the working copy and
+    joins the two sides back together, so you can delete a noisy stretch or an
+    unwanted frame and keep editing. The original file is never changed; only
+    Save writes a new `.sub`.
   - *Undo* reverts the last cut. It is greyed out (struck through) when there is
     nothing to undo.
 
@@ -237,29 +237,34 @@ launch it from **Apps -> Sub-GHz** on the Flipper.
   switching over time), not signal power, so a taller bar means "more activity
   here", not "stronger signal". The zoomed-in *square wave* view is likewise
   just the high/low timing, not a measured level.
-- **Cut is memory-safe.** Cutting compacts the data in place and allocates
-  nothing, so trimming or cutting a large region cannot run you out of memory.
-  The only allocation is the single-level Undo snapshot, which is taken before a
-  cut and gated on free RAM: if there isn't enough (a long signal takes most of
-  the RAM), you are asked *No RAM for Undo. Cut anyway?* and can cut without
-  Undo or cancel, so it never crashes mid-cut.
+- **The signal lives on the SD card.** Opening a file (or merging) writes the
+  whole signal into a binary working copy in the app's data folder
+  (`apps_data/subghz_raw_edit/tmp`), deleted when you leave the editor. The original
+  `.sub` is never touched. RAM holds a window of the working copy; times are
+  always counted from the start of the signal.
+- **Cut and Undo cost no RAM.** A cut rewrites the working copy without A..B and
+  keeps the previous one as the Undo copy, so Undo is always available. On a
+  long signal a cut takes as long as copying it on the card.
 - Durations are clamped to +/-32 ms so the capture fits a compact buffer. This
   only ever touches inter-frame silence; the signal pulses themselves
   (hundreds of microseconds) are stored exactly.
-- **How much fits depends on free RAM.** Each sample (signal edge) takes 2 bytes,
-  and the app keeps about 16 KB free for Decode and Save. On Unleashed a freshly
-  started app loads up to about 39000 samples. A capture that doesn't fit is
-  loaded up to that point and a *Signal truncated* message says how much of it
-  was loaded. A real frame is only a few hundred samples, so this is plenty in
-  practice.
+- **The RAM window.** Each sample (signal edge) takes 2 bytes, and the app keeps
+  about 10 KB free for Decode and Save. On a fresh boot the window holds about
+  38000 samples; a signal that fits is held whole. A longer one shows `<` / `>`
+  where it goes on: pushing A or B past the window's edge slides it a quarter
+  further (the other marker stays inside), and zooming out stops at the window
+  with *No RAM to zoom out*. A..B always lies within the window. When RAM fits
+  fewer than 15000 samples of such a signal, a *Low RAM* screen offers
+  *Reboot* or *Continue*. With *Normalize jitter* on, TE is fitted on the first
+  window and applied to the whole signal.
 - **Undo is one level deep.** Only the most recent cut can be reverted; a second
   cut replaces the snapshot of the first.
-- Note the two separate ceilings: ~35 minutes of time (microseconds in an int32_t)
-  and the RAM for samples (signal edges). They're independent - noise hits the
-  sample limit within seconds because it's a dense storm of edges, even though
-  it's nowhere near the time limit. For example, an `AM650` capture at
-  `433.92` MHz in a noisy area is mostly noise edges. If you want to load longer
-  RAWs just use `AM270` which won't make that much noise.
+- Note the two separate limits: a signal can be ~35 minutes long (microseconds
+  in an int32_t), while the RAM window is counted in samples (signal edges).
+  Noise fills the window within seconds because it's a dense storm of edges -
+  an `AM650` capture at `433.92` MHz in a noisy area is mostly noise edges. To
+  see more of a recording at once, record with `AM270`, which makes far less
+  noise.
 - To decode any `.sub` protocol other than RAW Capture, this application relies on the device's internal decoder.
   On custom firmware (Momentum, Unleashed, ...) rolling protocols are loaded with the counter as recorded.
   Official firmware cannot skip the encoder's counter step, so there you get the next keyframe rather than the current one.

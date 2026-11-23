@@ -46,7 +46,7 @@
 #define NAME_SCROLL_HOLD_MS 1500
 #define NAME_SCROLL_STEP_MS 300
 #define DUR_CLAMP 32000
-#define LOAD_HEAP_RESERVE 16384 // Decode (DECODE_HEAP_RESERVE + its list), Save and dialogs
+#define LOAD_HEAP_RESERVE 10240 // Decode (DECODE_HEAP), Save (a 4 KB line) and dialogs
 #define LINE_RESERVE 4096 // Sub-GHz writes up to 512 RAW values (~3.5 KB) per line
 
 #define GAP_KEEP_MAX_US 1500
@@ -104,15 +104,31 @@ static_assert(LINE2_BASE <= SCREEN_H_PX);
 #define DECODE_LEAD_MAX_US DUR_CLAMP
 #define DECODE_LEAD_US 18500
 #define DECODE_START_TRIES 32 // Locate: bursts tried back from the end of a frame
-#define DECODE_HEAP_RESERVE 10240 // contiguous: the biggest decoder (BinRAW) takes ~8.8 KB
+/* RAM Decode takes, from the sizes in the firmware's debug info plus 8 bytes of
+ * allocator header on each piece: list 1160, environment 64, text ~290, largest
+ * decoder (Security+ 1.0) 144, a rainbow-table read 1.2 K (FIL 608, LFN 520);
+ * then either the result list (32 items, ~5 K) or Save (~1.7 K). ~7 K in all,
+ * in pieces of at most the list. */
+#define DECODE_HEAP 8192
+#define DECODE_BLOCK 2048
+#define DECODE_RUN_HEAP 2048  // one decoder and a rainbow-table read
+#define DECODE_RUN_BLOCK 1024 // the FIL
 #define DECODE_KEYS_HEAP 32768
+#define DECODE_KEYS_BLOCK 8192 // the key array grows by copying: old and new at once
 
+/* The whole signal lives in a working file of int16 samples on the card; RAM
+ * holds a window of it: samples [win_s0, win_s0 + count). Times are always
+ * counted from the start of the signal, not of the window. */
 typedef struct
 {
     int16_t *data;
     size_t count;
     size_t cap;
-    size_t limit; // sample_budget() when loading started
+    size_t limit; // synthesis: sample_budget() when it started
+    size_t file_count; // samples in the working file
+    size_t win_s0;
+    int32_t win_t0; // time of data[0]
+    int32_t win_us; // time the window spans
     int32_t total_us;
     uint32_t frequency;
     char preset[48];
@@ -120,6 +136,40 @@ typedef struct
     bool out_of_memory;
     bool synthesized;
 } SubData;
+
+typedef struct
+{
+    size_t file_count;
+    size_t win_s0;
+    int32_t win_t0;
+    int32_t total_us;
+    int32_t marker_a;
+    int32_t marker_b;
+    int32_t view_start;
+    int32_t view_end;
+    int active;
+} WorkState;
+
+#define WORK_DIR APP_DATA_PATH("tmp")
+#define WORK_PATH WORK_DIR "/work.bin"
+#define WORK_NEW_PATH WORK_DIR "/work.new"
+#define WORK_UNDO_PATH WORK_DIR "/undo.bin"
+#define WORK_CHUNK 128 // samples per buffered file read or write
+#define WINDOW_WARN_SAMPLES 15000 // a fresh boot fits ~38000
+
+// Builds the working file sample by sample.
+typedef struct
+{
+    File *f;
+    size_t count;
+    int64_t total;
+    size_t tail; // first sample of the trailing silence (count when it ends on a pulse)
+    int32_t tail_us;
+    bool skip_lead; // drop silence until the first pulse
+    bool fail;
+    size_t n;
+    int16_t buf[WORK_CHUNK];
+} WorkWriter;
 
 typedef enum
 {
@@ -159,16 +209,10 @@ typedef struct
     uint32_t info_te;
     const char *info_enc;
 
-    int16_t *undo_data;
-    size_t undo_count;
-    int32_t undo_total_us;
-    int32_t undo_marker_a;
-    int32_t undo_marker_b;
-    int undo_active;
-    int32_t undo_view_start;
-    int32_t undo_view_end;
+    WorkState undo; // before the last cut, whose working file is WORK_UNDO_PATH
     bool has_undo;
 
+    Storage *st;
     FuriMutex *mutex;
 } App;
 
@@ -289,24 +333,31 @@ size_t duration_samples(int32_t mag);
 #ifndef FW_ORIGIN_Official
 void btn_probe(Storage *storage, const char *path, const char *protocol, BtnPick *out);
 #endif
-void normalize_jitter(SubData *sd);
-void recompute_total_us(SubData *sd);
+float jitter_te(const int16_t *d, size_t n);
+void jitter_apply(int16_t *d, size_t n, float te);
 bool parse_sub_meta(
     const char *s, uint32_t *freq, char *preset, size_t preset_sz, char *protocol, size_t proto_sz);
-bool load_sub(Storage *storage, const char *path, SubData *sd);
 size_t count_sub_samples(
     Storage *storage, const char *path, uint32_t *freq, char *preset, size_t preset_sz);
-bool load_signal(Storage *storage, const char *path, SubData *out);
-void append_signal(SubData *dst, const SubData *sig, MergeJoin join);
-bool load_sub_repeated(Storage *storage, const char *path, SubData *out);
+WorkWriter *work_begin(Storage *st);
+bool work_add_sub(Storage *st, const char *path, WorkWriter *w, SubData *meta, MergeJoin join);
+bool work_end(WorkWriter *w, SubData *sd);
+
+// work.c
+int32_t samples_us(const int16_t *d, size_t n);
+bool work_windowed(const SubData *sd);
+bool work_load(App *a, size_t s0);
+bool work_slide(App *a, int dir);
+bool work_open(App *a);
+bool work_cut(App *a);
+void work_undo(App *a);
+void work_cleanup(Storage *st);
 
 // edit_ops.c
 void propose_name(Storage *st, const char *base, const char *sep, bool bare, char *out, size_t outlen);
 void propose_edit_name(Storage *st, const App *a, char *out, size_t outlen);
 bool selection_range(const App *a, size_t *i0, size_t *i1);
 bool write_selection(Storage *st, App *a, const char *path);
-bool snapshot_take(App *a);
-void snapshot_restore(App *a);
 size_t cut_run(App *a, bool apply);
 void cut_compact(App *a);
 
@@ -335,6 +386,7 @@ void run_editor_session(
     DialogsApp *dialogs,
     App *app,
     bool auto_select);
+bool open_work(DialogsApp *dialogs, App *app);
 void run_editor(Storage *storage, DialogsApp *dialogs, const char *file);
 
 // merge.c

@@ -40,19 +40,6 @@ bool lr_read_line(LineReader *lr, FuriString *out)
     return any;
 }
 
-static bool append_sample(SubData *sd, int32_t v)
-{
-    if (sd->count >= sd->cap)
-    {
-        sd->truncated = true;
-        return false;
-    }
-
-    sd->data[sd->count++] = (int16_t)clamp_dur(v);
-
-    return true;
-}
-
 void *safe_malloc(size_t size)
 {
     if (size == 0 || memmgr_get_free_heap() < size + LOAD_HEAP_RESERVE)
@@ -69,11 +56,10 @@ void *safe_realloc(void *ptr, size_t size)
     return realloc(ptr, size);
 }
 
-// Most samples a signal may take: everything above LOAD_HEAP_RESERVE, which Decode and Save run
-// in. The reserve has to stay contiguous too, so it is also kept back from the largest block the
-// samples come out of; the rest of the heap may be only crumbs. Cut works in place and only its
-// Undo copy needs as much again, so a signal too big for that copy is cut without Undo after
-// asking.
+// Most samples the RAM window may take: everything above LOAD_HEAP_RESERVE, which Decode and Save
+// run in. The reserve has to stay contiguous too, so it is also kept back from the largest block
+// the samples come out of; the rest of the heap may be only crumbs. Cut and Undo work on the
+// working file, so they need no RAM of their own.
 size_t sample_budget(void)
 {
     size_t free_heap = memmgr_get_free_heap();
@@ -474,16 +460,20 @@ int32_t g_merge_repeat = MERGE_REPEAT_DEFAULT;
 #define JITTER_DATA_MAX_US 3000
 #define JITTER_FIT_ITERS 8
 
-void normalize_jitter(SubData *sd)
+/* The jitter clean-up snaps every data-length pulse to a whole multiple of the
+ * signal's TE. jitter_te fits TE (0 when there is nothing to fit) on the RAM
+ * window - the start of a signal bigger than RAM - and jitter_apply is then run
+ * over the whole working file. */
+float jitter_te(const int16_t *d, size_t n)
 {
-    if (!sd || !sd->data || sd->count < 8)
-        return;
+    if (n < 8)
+        return 0.0f;
 
     int64_t sum_all = 0;
     size_t n_all = 0;
-    for (size_t i = 0; i < sd->count; i++)
+    for (size_t i = 0; i < n; i++)
     {
-        int32_t a = iabs32(sd->data[i]);
+        int32_t a = iabs32(d[i]);
         if (a >= JITTER_DATA_MIN_US && a <= JITTER_DATA_MAX_US)
         {
             sum_all += a;
@@ -492,14 +482,14 @@ void normalize_jitter(SubData *sd)
     }
 
     if (n_all == 0)
-        return;
+        return 0.0f;
 
     int32_t mean_all = (int32_t)(sum_all / (int64_t)n_all);
     int64_t sum_short = 0;
     size_t n_short = 0;
-    for (size_t i = 0; i < sd->count; i++)
+    for (size_t i = 0; i < n; i++)
     {
-        int32_t a = iabs32(sd->data[i]);
+        int32_t a = iabs32(d[i]);
         if (a >= JITTER_DATA_MIN_US && a <= mean_all)
         {
             sum_short += a;
@@ -509,14 +499,14 @@ void normalize_jitter(SubData *sd)
 
     float te = (n_short > 0) ? (float)sum_short / (float)n_short : (float)mean_all;
     if (te < 1.0f)
-        return;
+        return 0.0f;
 
     for (int it = 0; it < JITTER_FIT_ITERS; it++)
     {
         float num = 0.0f, den = 0.0f;
-        for (size_t i = 0; i < sd->count; i++)
+        for (size_t i = 0; i < n; i++)
         {
-            int32_t a = iabs32(sd->data[i]);
+            int32_t a = iabs32(d[i]);
             if (a < JITTER_DATA_MIN_US || a > JITTER_DATA_MAX_US)
                 continue;
 
@@ -528,14 +518,19 @@ void normalize_jitter(SubData *sd)
             den += (float)m * (float)m;
         }
         if (den <= 0.0f)
-            return;
+            return 0.0f;
 
         te = num / den;
     }
 
-    for (size_t i = 0; i < sd->count; i++)
+    return te;
+}
+
+void jitter_apply(int16_t *d, size_t n, float te)
+{
+    for (size_t i = 0; i < n; i++)
     {
-        int32_t a = iabs32(sd->data[i]);
+        int32_t a = iabs32(d[i]);
         if (a < JITTER_DATA_MIN_US || a > JITTER_DATA_MAX_US)
             continue;
 
@@ -547,21 +542,8 @@ void normalize_jitter(SubData *sd)
         if (mag > DUR_CLAMP)
             mag = DUR_CLAMP;
 
-        sd->data[i] = (int16_t)(sd->data[i] < 0 ? -mag : mag);
+        d[i] = (int16_t)(d[i] < 0 ? -mag : mag);
     }
-}
-
-// Sum of all sample durations, saturated to int32, cached on the SubData.
-void recompute_total_us(SubData *sd)
-{
-    int64_t run = 0;
-    for (size_t i = 0; i < sd->count; i++)
-        run += iabs32(sd->data[i]);
-
-    if (run > 0x7FFFFFFF)
-        run = 0x7FFFFFFF;
-
-    sd->total_us = (int32_t)run;
 }
 
 // Parse a .sub metadata line (Frequency/Preset/Protocol) into the given fields.
@@ -626,118 +608,183 @@ static bool next_raw_value(const char **p, long *out)
     return false;
 }
 
-bool load_sub(Storage *storage, const char *path, SubData *sd)
+/* ---- The working file ----
+ * Every signal - a RAW capture, a synthesized decoded file, a repetition or a
+ * merge - is written sample by sample into WORK_PATH, int16 like the RAM copy,
+ * so a window of it is read back with one seek. */
+
+static void work_flush(WorkWriter *w)
 {
-    memset(sd, 0, sizeof(*sd));
-    sd->frequency = 433920000;
-    strncpy(sd->preset, "FuriHalSubGhzPresetOok650Async", sizeof(sd->preset) - 1);
+    size_t bytes = w->n * sizeof(int16_t);
+    if (w->n && storage_file_write(w->f, w->buf, bytes) != bytes)
+        w->fail = true;
 
-    File *f = storage_file_alloc(storage);
-    if (!storage_file_open(f, path, FSAM_READ, FSOM_OPEN_EXISTING))
-    {
-        storage_file_free(f);
-        return false;
-    }
-
-    uint64_t fsize = storage_file_size(f);
-
-    // Predict sample count from file weight. Measured RAW .sub captures run
-    // ~4.4-5.4 bytes per sample (number text + sign + space), so fsize/4 is a
-    // good first guess that fits normal captures without over-allocating. It is
-    // only a hint: push_duration grows the buffer on demand (e.g. when long gaps
-    // split into several samples), and decoded files synthesize into it.
-    // The line buffer is sized before the samples take what is left: growing it later, with the
-    // heap nearly full, would have nowhere to go.
-    FuriString *line = furi_string_alloc();
-    furi_string_reserve(line, LINE_RESERVE);
-
-    sd->limit = sample_budget();
-    size_t est = (size_t)(fsize / 4) + 64;
-    if (est > sd->limit)
-        est = sd->limit;
-
-    sd->data = safe_malloc(est * sizeof(int16_t));
-    if (!sd->data)
-    {
-        sd->out_of_memory = true;
-        furi_string_free(line);
-        storage_file_close(f);
-        storage_file_free(f);
-        return false;
-    }
-
-    sd->cap = est;
-
-    char protocol[32] = {0};
-
-    LineReader lr = {.file = f, .len = 0, .pos = 0, .eof = false};
-    bool stop = false;
-
-    while (!stop && lr_read_line(&lr, line))
-    {
-        const char *s = furi_string_get_cstr(line);
-        if (strncmp(s, "RAW_Data:", 9) == 0)
-        {
-            const char *p = s + 9;
-            long v;
-            while (next_raw_value(&p, &v))
-            {
-                if (!push_duration(sd, (int32_t)v))
-                {
-                    stop = true;
-                    break;
-                }
-            }
-        }
-        else
-        {
-            parse_sub_meta(
-                s, &sd->frequency, sd->preset, sizeof(sd->preset), protocol, sizeof(protocol));
-        }
-    }
-
-    furi_string_free(line);
-    storage_file_close(f);
-    storage_file_free(f);
-
-    if (sd->count == 0 && protocol[0] && strcmp(protocol, "RAW") != 0)
-        sd->synthesized = synthesize_via_transmitter(storage, path, protocol, sd);
-
-    if (sd->data && sd->count > 0 && sd->count < sd->cap)
-    {
-        int16_t *shrunk = safe_realloc(sd->data, sd->count * sizeof(int16_t));
-        if (shrunk)
-        {
-            sd->data = shrunk;
-            sd->cap = sd->count;
-        }
-    }
-
-    if (g_normalize_jitter)
-        normalize_jitter(sd);
-
-    recompute_total_us(sd);
-    return sd->count >= 2;
+    w->n = 0;
 }
 
-/* Insert a clean inter-signal separator so the silence at the join equals
- * exactly the configured gap. Signals (especially synthesized KeeLoq) end and
- * start with their own guard silence. Adding the gap on top of it would double
- * (or worse) the visible gap. So we replace the previous
- * signal's trailing silence with the gap here and the next signal's leading
- * silence is dropped by the caller when it is appended. */
-static void merge_separator(SubData *dst)
+static void work_put(WorkWriter *w, int32_t v)
 {
-    // Absorb the previous signal's trailing silence so the gap isn't added on
-    // top of it, then emit the gap via push_duration (which splits it into
-    // several samples when it exceeds the per-sample clamp).
-    if (g_merge_gap_ms == 0)
-        return;
+    if (w->skip_lead)
+    {
+        if (v < 0)
+            return;
 
-    while (dst->count > 0 && dst->data[dst->count - 1] < 0)
-        dst->count--;
+        w->skip_lead = false;
+    }
 
-    push_duration(dst, -(g_merge_gap_ms * 1000));
+    int32_t sign = (v < 0) ? -1 : 1;
+    int32_t mag = iabs32(v);
+    w->total += mag;
+    if (v < 0)
+        w->tail_us += mag;
+
+    do
+    {
+        int32_t chunk = (mag > DUR_CLAMP) ? DUR_CLAMP : mag;
+        if (w->n == WORK_CHUNK)
+            work_flush(w);
+
+        w->buf[w->n++] = (int16_t)(sign * chunk);
+        w->count++;
+        mag -= chunk;
+    } while (mag > 0);
+
+    if (v >= 0)
+    {
+        w->tail = w->count;
+        w->tail_us = 0;
+    }
+}
+
+WorkWriter *work_begin(Storage *st)
+{
+    WorkWriter *w = safe_malloc(sizeof(WorkWriter));
+    if (!w)
+        return NULL;
+
+    memset(w, 0, sizeof(*w));
+    storage_simply_mkdir(st, WORK_DIR);
+    w->f = storage_file_alloc(st);
+    if (!storage_file_open(w->f, WORK_PATH, FSAM_READ_WRITE, FSOM_CREATE_ALWAYS))
+        w->fail = true;
+
+    return w;
+}
+
+/* Prepare the join before the next signal so gaps don't stack: signals end and
+ * start with their own guard silence.
+ *  - Manual (a new file): the previous trailing silence becomes the configured gap.
+ *  - Native (a repetition): the previous trailing silence stays as the gap.
+ * Either way the appended signal's leading silence is dropped. */
+static void work_join(WorkWriter *w, MergeJoin join)
+{
+    w->skip_lead = false;
+    if (join == MergeJoinManual)
+    {
+        if (g_merge_gap_ms)
+        {
+            work_flush(w);
+            if (w->tail < w->count &&
+                !(storage_file_seek(w->f, w->tail * sizeof(int16_t), true) && storage_file_truncate(w->f)))
+                w->fail = true;
+
+            w->count = w->tail;
+            w->total -= w->tail_us;
+            w->tail_us = 0;
+            work_put(w, -(g_merge_gap_ms * 1000));
+        }
+
+        w->skip_lead = true;
+    }
+    else if (join == MergeJoinNative)
+        w->skip_lead = w->tail < w->count;
+}
+
+// Write the RAW samples of a .sub file; protocol gets its Protocol: line.
+static void work_raw(Storage *st, const char *path, WorkWriter *w, SubData *meta, char *protocol)
+{
+    File *f = storage_file_alloc(st);
+    if (storage_file_open(f, path, FSAM_READ, FSOM_OPEN_EXISTING))
+    {
+        FuriString *line = furi_string_alloc();
+        furi_string_reserve(line, LINE_RESERVE);
+        LineReader lr = {.file = f};
+        while (!w->fail && lr_read_line(&lr, line))
+        {
+            const char *s = furi_string_get_cstr(line);
+            if (strncmp(s, "RAW_Data:", 9) == 0)
+            {
+                const char *p = s + 9;
+                long v;
+                while (next_raw_value(&p, &v))
+                    work_put(w, (int32_t)v);
+            }
+            else
+            {
+                parse_sub_meta(s, &meta->frequency, meta->preset, sizeof(meta->preset), protocol, 32);
+            }
+        }
+
+        furi_string_free(line);
+        storage_file_close(f);
+    }
+
+    storage_file_free(f);
+}
+
+/* Append path's signal g_merge_repeat times, joined to what is before it by
+ * join and to itself natively. A decoded file is synthesized once and its
+ * frame repeated, so a rolling code keeps one counter. */
+bool work_add_sub(Storage *st, const char *path, WorkWriter *w, SubData *meta, MergeJoin join)
+{
+    // After the join: its gap alone must not pass for RAW data of this file
+    char protocol[32] = {0};
+    work_join(w, join);
+    size_t before = w->count;
+    work_raw(st, path, w, meta, protocol);
+
+    if (w->count > before)
+    {
+        for (int r = 1; r < g_merge_repeat && !w->fail; r++)
+        {
+            work_join(w, MergeJoinNative);
+            work_raw(st, path, w, meta, protocol);
+        }
+    }
+    else if (protocol[0] && strcmp(protocol, "RAW") != 0)
+    {
+        SubData tmp = {.limit = sample_budget()};
+        if (synthesize_via_transmitter(st, path, protocol, &tmp))
+        {
+            meta->synthesized = true;
+            for (int r = 0; r < g_merge_repeat && !w->fail; r++)
+            {
+                if (r)
+                    work_join(w, MergeJoinNative);
+
+                for (size_t i = 0; i < tmp.count; i++)
+                    work_put(w, tmp.data[i]);
+            }
+        }
+
+        free(tmp.data);
+    }
+
+    return w->count > before && !w->fail;
+}
+
+// Close the working file; sd gets its sample count and length.
+bool work_end(WorkWriter *w, SubData *sd)
+{
+    work_flush(w);
+    storage_file_close(w->f);
+    storage_file_free(w->f);
+
+    sd->file_count = w->count;
+    sd->total_us = w->total > 0x7FFFFFFF ? 0x7FFFFFFF : (int32_t)w->total;
+    bool ok = !w->fail && w->count >= 2;
+    free(w);
+    return ok;
 }
 
 size_t count_sub_samples(
@@ -764,7 +811,7 @@ size_t count_sub_samples(
             long v;
             while (next_raw_value(&p, &v))
             {
-                // Must match load_sub: durations beyond the clamp are split into
+                // Must match work_put: durations beyond the clamp are split into
                 // several samples, so count them the same way.
                 raw_count += duration_samples(iabs32((int32_t)v));
             }
@@ -799,91 +846,4 @@ size_t count_sub_samples(
     }
 
     return 0;
-}
-
-
-// Prepare the boundary before appending a signal and report whether its own
-// leading silence must be dropped so gaps don't stack into a doubled one.
-//  - Manual join: replace the previous signal's trailing silence with our gap.
-//  - Native join: keep the previous signal's native trailing silence as the gap.
-// In both cases the appended signal's leading silence is dropped.
-static bool merge_prepare_join(SubData *dst, MergeJoin join)
-{
-    if (join == MergeJoinManual)
-    {
-        merge_separator(dst);
-        return true;
-    }
-
-    if (join == MergeJoinNative && dst->count > 0 && dst->data[dst->count - 1] < 0)
-        return true;
-
-    return false;
-}
-
-bool load_signal(Storage *storage, const char *path, SubData *out)
-{
-    return load_sub(storage, path, out);
-}
-
-// Append a preloaded signal to dst, inserting the appropriate join gap and
-// dropping the signal's own leading silence so gaps don't stack.
-void append_signal(SubData *dst, const SubData *sig, MergeJoin join)
-{
-    bool skip_lead = merge_prepare_join(dst, join);
-    for (size_t i = 0; i < sig->count; i++)
-    {
-        int32_t v = sig->data[i];
-        if (skip_lead)
-        {
-            if (v < 0)
-                continue;
-
-            skip_lead = false;
-        }
-
-        if (!append_sample(dst, v))
-            break;
-    }
-}
-
-bool load_sub_repeated(Storage *storage, const char *path, SubData *out)
-{
-    SubData sig = {0};
-    bool ok = load_sub(storage, path, &sig);
-    if (!ok || !sig.data || sig.count == 0)
-    {
-        *out = sig; // carries out_of_memory / flags for the caller
-        return ok;
-    }
-
-    // Metadata (frequency, preset, flags) carries over; rebuild the samples.
-    *out = sig;
-    out->data = NULL;
-    out->count = 0;
-    out->cap = 0;
-
-    size_t want = sig.count * (size_t)g_merge_repeat;
-    out->limit = sample_budget();
-    size_t need = want > out->limit ? out->limit : want;
-    out->data = safe_malloc(need * sizeof(int16_t));
-    if (!out->data)
-    {
-        out->out_of_memory = true;
-        free(sig.data);
-        return false;
-    }
-    out->cap = need;
-    if (want > need)
-        out->truncated = true;
-
-    for (int r = 0; r < g_merge_repeat; r++)
-    {
-        MergeJoin join = (r == 0) ? MergeJoinNone : MergeJoinNative;
-        append_signal(out, &sig, join);
-    }
-
-    recompute_total_us(out);
-    free(sig.data);
-    return out->count >= 2;
 }

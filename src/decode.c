@@ -201,16 +201,25 @@ static uint32_t decode_lead_us(const App *a, size_t i0, size_t i1)
     return best ? best : DECODE_LEAD_US;
 }
 
+// Free RAM in all and in one piece: malloc crashes rather than fail.
+static bool heap_ok(size_t total, size_t block)
+{
+    return memmgr_get_free_heap() >= total && memmgr_heap_get_max_free_block() >= block;
+}
+
 static void decode_selection(const App *a, DecodeCtx *dc)
 {
     size_t count = subghz_protocol_registry_count(&subghz_protocol_registry);
     for (size_t k = 0; k < count; k++)
     {
+        // BinRAW only captures once the receiver reports RSSI, which a replay has
+        // not got; on official firmware its decoder also takes ~10 KB.
         const SubGhzProtocol *p = subghz_protocol_registry_get_by_index(&subghz_protocol_registry, k);
-        if (!(p->flag & SubGhzProtocolFlag_Decodable) || !p->decoder || !p->decoder->alloc)
+        if (!(p->flag & SubGhzProtocolFlag_Decodable) || (p->flag & SubGhzProtocolFlag_BinRAW) || !p->decoder ||
+            !p->decoder->alloc)
             continue;
 
-        if (memmgr_heap_get_max_free_block() < DECODE_HEAP_RESERVE)
+        if (!heap_ok(DECODE_RUN_HEAP, DECODE_RUN_BLOCK))
         {
             dc->oom = true;
             break;
@@ -286,7 +295,7 @@ static void decoded_locate(App *a, DecodeCtx *dc, Decoded *d)
 {
     decoded_start(a, dc, d);
 
-    int32_t t = 0, t_a = 0, t_b = 0, gap = 0;
+    int32_t t = a->sd.win_t0, t_a = t, t_b = t, gap = 0;
     for (size_t i = 0; i < a->sd.count; i++)
     {
         if (i == d->first)
@@ -473,9 +482,10 @@ void do_decode_action(Gui *gui, ViewPort *vp, FuriMessageQueue *queue, Storage *
     dc.lead_us = decode_lead_us(a, dc.i0, dc.i1);
     dc.data = a->sd.data;
 
-    if (memmgr_heap_get_max_free_block() < DECODE_HEAP_RESERVE + DECODE_MAX * sizeof(Decoded))
+    if (!heap_ok(DECODE_HEAP, DECODE_BLOCK))
     {
-        snprintf(a->status, sizeof(a->status), "Low memory");
+        snprintf(a->status, sizeof(a->status), "Low memory\nfree %u, block %u", (unsigned)memmgr_get_free_heap(),
+                 (unsigned)memmgr_heap_get_max_free_block());
         return;
     }
 
@@ -485,11 +495,18 @@ void do_decode_action(Gui *gui, ViewPort *vp, FuriMessageQueue *queue, Storage *
 
     dc.env = subghz_env_setup();
     // Rolling codes (KeeLoq & co.) only show their manufacturer and counter
-    // with the keystore; without spare RAM they still decode, just less.
-    if (memmgr_get_free_heap() > DECODE_KEYS_HEAP)
+    // with the keystore; without spare RAM they still decode, just less. Its
+    // size depends on the key files, so it is dropped again when it leaves
+    // Decode short.
+    if (heap_ok(DECODE_KEYS_HEAP, DECODE_KEYS_BLOCK))
     {
         subghz_environment_load_keystore(dc.env, "/ext/subghz/assets/keeloq_mfcodes");
         subghz_environment_load_keystore(dc.env, "/ext/subghz/assets/keeloq_mfcodes_user");
+        if (!heap_ok(DECODE_HEAP, DECODE_BLOCK))
+        {
+            subghz_environment_free(dc.env);
+            dc.env = subghz_env_setup();
+        }
     }
 
     dc.list = malloc(DECODE_MAX * sizeof(Decoded));

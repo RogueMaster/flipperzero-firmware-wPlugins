@@ -1,6 +1,7 @@
 // The editor: opening a file, its input loop and the Save and Cut actions.
 
 #include "app.h"
+#include <furi_hal_power.h>
 
 // Save A..B as RAW, or with dc/d the decoded entry d as a key file.
 void prompt_and_save(
@@ -41,7 +42,7 @@ void prompt_and_save(
 
         const char *p = furi_string_get_cstr(path);
         if (d ? write_decoded(st, a, dc, d, p) : write_selection(st, a, p))
-            snprintf(a->status, sizeof(a->status), "Saved %s.sub", namebuf);
+            snprintf(a->status, sizeof(a->status), "Saved\n%s.sub", namebuf);
 
         a->busy = NULL;
     }
@@ -53,7 +54,7 @@ void prompt_and_save(
     view_port_update(vp);
 }
 
-static void do_cut_action(Gui *gui, FuriMessageQueue *queue, DialogsApp *dialogs, App *a)
+static void do_cut_action(ViewPort *vp, FuriMessageQueue *queue, DialogsApp *dialogs, App *a)
 {
     furi_mutex_acquire(a->mutex, FuriWaitForever);
 
@@ -73,7 +74,7 @@ static void do_cut_action(Gui *gui, FuriMessageQueue *queue, DialogsApp *dialogs
         return;
     }
 
-    if (cut_run(a, false) < 2)
+    if (a->sd.file_count - a->sd.count + cut_run(a, false) < 2)
     {
         furi_mutex_release(a->mutex);
 
@@ -82,34 +83,31 @@ static void do_cut_action(Gui *gui, FuriMessageQueue *queue, DialogsApp *dialogs
         return;
     }
 
-    bool undo = snapshot_take(a);
-    if (!undo)
-    {
-        furi_mutex_release(a->mutex);
-        bool go = confirm(gui, "No RAM for Undo.\nCut anyway?");
-        furi_message_queue_reset(queue);
-        furi_mutex_acquire(a->mutex, FuriWaitForever);
+    // The wait screen draws nothing of the signal, so the file can be rewritten unlocked.
+    a->busy = "Cutting...";
+    furi_mutex_release(a->mutex);
+    view_port_update(vp);
 
-        if (!go)
-        {
-            snprintf(a->status, sizeof(a->status), "Cut cancelled");
-            a->status_until = furi_get_tick() + 1500;
-            furi_mutex_release(a->mutex);
-            return;
-        }
+    bool ok = work_cut(a);
 
-        // An older snapshot would undo two cuts at once; dropping it may also free enough
-        // for this one.
-        free(a->undo_data);
-        a->undo_data = NULL;
-        a->has_undo = false;
-        undo = snapshot_take(a);
-    }
-
-    cut_compact(a);
-    snprintf(a->status, sizeof(a->status), undo ? "Cut" : "Cut, no Undo");
+    furi_mutex_acquire(a->mutex, FuriWaitForever);
+    a->busy = NULL;
+    snprintf(a->status, sizeof(a->status), ok ? "Cut" : "Cut failed\nSD card error");
     a->status_until = furi_get_tick() + 1200;
     furi_mutex_release(a->mutex);
+}
+
+// Move the active marker, sliding the RAM window when it is pushed past an edge.
+static void move_marker(App *a, int32_t step)
+{
+    int32_t *m = a->active ? &a->marker_b : &a->marker_a;
+    *m += step;
+    int32_t lo = a->sd.win_t0, hi = lo + a->sd.win_us;
+    if ((*m < lo || *m > hi) && work_slide(a, *m > hi ? 1 : -1))
+        clamp_marker(a, !a->active); // the other one may have left the window
+
+    clamp_marker(a, a->active);
+    ensure_visible(a, *m);
 }
 
 void run_editor_session(
@@ -130,12 +128,11 @@ void run_editor_session(
     else
     {
         app->marker_a = 0;
-        app->marker_b = app->sd.total_us;
+        app->marker_b = app->sd.win_us;
         app->view_start = 0;
-        app->view_end = app->sd.total_us > 0 ? app->sd.total_us : 1;
+        app->view_end = app->sd.win_us > 0 ? app->sd.win_us : 1;
         clamp_view(app);
     }
-    recompute_overview(app);
     recompute_activity(app);
     furi_message_queue_reset(queue);
     view_port_update(vp);
@@ -183,7 +180,7 @@ void run_editor_session(
                         {
                             if (app->has_undo)
                             {
-                                snapshot_restore(app);
+                                work_undo(app);
                                 snprintf(app->status, sizeof(app->status), "Undone");
                             }
                             else
@@ -214,19 +211,14 @@ void run_editor_session(
                         step = fast;
                 }
 
-                int32_t *m = app->active ? &app->marker_b : &app->marker_a;
                 switch (e.key)
                 {
                 case InputKeyLeft:
-                    *m -= step;
-                    clamp_marker(app, app->active);
-                    ensure_visible(app, *m);
+                    move_marker(app, -step);
                     changed = true;
                     break;
                 case InputKeyRight:
-                    *m += step;
-                    clamp_marker(app, app->active);
-                    ensure_visible(app, *m);
+                    move_marker(app, step);
                     changed = true;
                     break;
                 case InputKeyUp:
@@ -283,7 +275,7 @@ void run_editor_session(
             }
             else if (want_cut)
             {
-                do_cut_action(gui, queue, dialogs, app);
+                do_cut_action(vp, queue, dialogs, app);
             }
 
             view_port_update(vp);
@@ -295,6 +287,41 @@ void run_editor_session(
     }
 }
 
+
+/* Once the working file is written: take the RAM window, and when RAM holds
+ * only a small part of the signal offer a reboot for a bigger one. False when
+ * the editor can't open. */
+bool open_work(DialogsApp *dialogs, App *app)
+{
+    if (!work_open(app))
+    {
+        show_message(dialogs, app->sd.out_of_memory ? "Out of memory" : "SD card error",
+                     app->sd.out_of_memory ? "Not enough free RAM.\nReboot Flipper, then\nopen the app first."
+                                           : "Can't read the\nworking copy.",
+                     34);
+        return false;
+    }
+
+    if (!work_windowed(&app->sd) || app->sd.cap >= WINDOW_WARN_SAMPLES)
+        return true;
+
+    char msg[64];
+    snprintf(msg, sizeof(msg), "RAM fits %u samples\nat once. Reboot for\na bigger window.", (unsigned)app->sd.cap);
+    DialogMessage *m = dialog_message_alloc();
+    dialog_message_set_header(m, "Low RAM", 64, 2, AlignCenter, AlignTop);
+    dialog_message_set_text(m, msg, 64, 32, AlignCenter, AlignCenter);
+    dialog_message_set_buttons(m, "Reboot", NULL, "Continue");
+    DialogMessageButton b = dialog_message_show(dialogs, m);
+    dialog_message_free(m);
+
+    if (b == DialogMessageButtonLeft)
+    {
+        work_cleanup(app->st);
+        furi_hal_power_reset();
+    }
+
+    return b == DialogMessageButtonRight;
+}
 
 // Edit `file`, or a file picked in the browser when NULL.
 void run_editor(Storage *storage, DialogsApp *dialogs, const char *file)
@@ -308,6 +335,7 @@ void run_editor(Storage *storage, DialogsApp *dialogs, const char *file)
 
     memset(app, 0, sizeof(App));
     app->mutex = furi_mutex_alloc(FuriMutexTypeNormal);
+    app->st = storage;
 
     FuriString *path = furi_string_alloc_set(file ? file : SUBGHZ_DIR);
     if (!file)
@@ -354,42 +382,20 @@ void run_editor(Storage *storage, DialogsApp *dialogs, const char *file)
     }
     furi_message_queue_reset(queue);
 
-    bool loaded = (g_merge_repeat > 1)
-                      ? load_sub_repeated(storage, furi_string_get_cstr(path), &app->sd)
-                      : load_sub(storage, furi_string_get_cstr(path), &app->sd);
+    app->sd.frequency = 433920000;
+    strncpy(app->sd.preset, "FuriHalSubGhzPresetOok650Async", sizeof(app->sd.preset) - 1);
+    WorkWriter *w = work_begin(storage);
+    bool loaded = w && work_add_sub(storage, furi_string_get_cstr(path), w, &app->sd, MergeJoinNone);
+    loaded = w && work_end(w, &app->sd) && loaded;
 
-    if (app->sd.out_of_memory || !loaded)
+    if (!loaded)
+        show_message(dialogs, APP_NAME, "Unsupported protocol,\nempty file or SD error", 32);
+
+    if (loaded && open_work(dialogs, app))
     {
-        gui_remove_view_port(gui, vp);
-        view_port_free(vp);
-        furi_message_queue_free(queue);
-        furi_record_close(RECORD_GUI);
-
-        if (app->sd.out_of_memory)
-            show_message(dialogs, "Out of memory",
-                         "Not enough free RAM to\nload this capture.\nReboot Flipper, then\nopen the app first.", 34);
-        else
-            show_message(dialogs, APP_NAME, "Unsupported protocol or file is empty", 32);
-
-        goto cleanup;
-    }
-
-    if (app->sd.truncated)
-    {
-        char msg[96];
-        snprintf(
-            msg,
-            sizeof(msg),
-            "Not enough RAM for all of\nit. Loaded the first\n%u samples (%ld.%ld s).",
-            (unsigned)app->sd.count,
-            (long)(app->sd.total_us / 1000000),
-            (long)(app->sd.total_us / 100000 % 10));
-
-        show_message(dialogs, "Signal truncated", msg, 34);
         furi_message_queue_reset(queue);
+        run_editor_session(gui, vp, queue, storage, dialogs, app, true);
     }
-
-    run_editor_session(gui, vp, queue, storage, dialogs, app, true);
 
     gui_remove_view_port(gui, vp);
     view_port_free(vp);
@@ -402,9 +408,7 @@ cleanup:
     if (app->sd.data)
         free(app->sd.data);
 
-    if (app->undo_data)
-        free(app->undo_data);
-
+    work_cleanup(storage);
     furi_mutex_free(app->mutex);
     free(app);
 }
