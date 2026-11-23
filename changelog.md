@@ -10,6 +10,7 @@
 - *Decode*, *Save* and *Cut* no longer flash the main menu between their screens; *Decoding...* stays up until the list shows.
 - Loading a merge shows the same *Loading...* screen as loading a file.
 - A decoded entry has a *Locate* button that sets A..B exactly on its frame, the first one when it repeats.
+- The long-press menu sits on the left with a read-only panel beside it showing A..B's sample count, TE and line coding (PWM, PPM, Manchester, NRZ or 1:1).
 
 ## v1.9
 

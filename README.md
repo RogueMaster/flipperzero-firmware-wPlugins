@@ -88,6 +88,18 @@ The app lets you choose which custom button to use, if its protocol supports the
     Save.
   - *Undo* reverts the last cut. It is greyed out (struck through) when there is
     nothing to undo.
+
+  Beside the menu a read-only panel describes the A..B selection:
+  - *Spl* - how many samples it holds.
+  - *TE* - the base pulse width in µs, averaged over every pulse that is a
+    small multiple of it (so a receiver stretching highs and shrinking lows
+    doesn't skew it).
+  - *Enc* - the line coding the pulses suggest: *PWM* (two pulse widths, a
+    constant bit period), *PPM* (one pulse width, the gaps carry the data),
+    *Manch.* (Manchester: highs and lows of 1 or 2 TE), *NRZ* (other runs that
+    are multiples of TE, e.g. wM-Bus mode C), *1:1* (a preamble or clock only),
+    *?* (noise or too few pulses) or *-* (nothing to measure). A RAW capture
+    can hold several remotes with different codings - only A..B is looked at.
 - **Merge multiple files** into one with the *Config → Merge gap* option to adjust the spacing.
 - **Repeat** any loaded signal up to 64 times automatically. Set it in *Config → Repeat*.
   It applies to both **Select file** and **Merge files**. Repetitions are separated by 

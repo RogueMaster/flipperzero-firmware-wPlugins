@@ -515,11 +515,28 @@ void draw_cb(Canvas *c, void *ctx)
 
     if (a->mode == EditModeMenu)
     {
-        const int bx = 36, bw = 56, bh = MENU_ITEMS * 14 + 4, by = (SCREEN_H_PX - bh) / 2;
+        const int bx = 4, bw = 52, bh = MENU_ITEMS * 14 + 4, by = (SCREEN_H_PX - bh) / 2;
         canvas_set_color(c, ColorWhite);
         canvas_draw_box(c, bx, by, bw, bh);
         canvas_set_color(c, ColorBlack);
         canvas_draw_frame(c, bx, by, bw, bh);
+
+        // Read-only A..B details on the right.
+        const int px = bx + bw + 3, pw = SCREEN_W_PX - 2 - px, ph = 3 * 10 + 6, py = (SCREEN_H_PX - ph) / 2;
+        canvas_set_color(c, ColorWhite);
+        canvas_draw_box(c, px, py, pw, ph);
+        canvas_set_color(c, ColorBlack);
+        canvas_draw_frame(c, px, py, pw, ph);
+
+        char info[3][20];
+        snprintf(info[0], sizeof(info[0]), "Spl: %lu", (unsigned long)a->info_spl);
+        if (a->info_te)
+            snprintf(info[1], sizeof(info[1]), "TE: %luus", (unsigned long)a->info_te);
+        else
+            snprintf(info[1], sizeof(info[1]), "TE: -");
+        snprintf(info[2], sizeof(info[2]), "Enc: %s", a->info_enc ? a->info_enc : "-");
+        for (int i = 0; i < 3; i++)
+            canvas_draw_str(c, px + 4, py + 3 + FONT_SIZE_PX + i * 10, info[i]);
 
         const char *labels[MENU_ITEMS] = {"Save", "Decode", "Cut", "Undo"};
         for (int i = 0; i < MENU_ITEMS; i++)

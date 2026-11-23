@@ -154,6 +154,11 @@ typedef struct
     int mode;
     int menu_sel;
 
+    // A..B details shown beside the menu, filled when it opens
+    uint32_t info_spl;
+    uint32_t info_te;
+    const char *info_enc;
+
     int16_t *undo_data;
     size_t undo_count;
     int32_t undo_total_us;
@@ -265,6 +270,9 @@ void draw_busy(Canvas *c, const char *text, const char *name);
 void draw_cb(Canvas *c, void *ctx);
 void input_cb(InputEvent *e, void *ctx);
 void zoom(App *a, bool in);
+
+// sel_info.c
+void selection_info(App *a);
 
 // load.c
 extern int32_t g_merge_repeat;

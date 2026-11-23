@@ -260,6 +260,7 @@ void run_editor_session(
                 {
                     app->mode = EditModeMenu;
                     app->menu_sel = 0;
+                    selection_info(app);
                 }
                 else if (e.key == InputKeyBack)
                 {
