@@ -533,14 +533,7 @@ void qr_code_loader(BarcodeData* barcode_data) {
     uint8_t temp_buffer[qrcodegen_BUFFER_LEN_FOR_VERSION(1)];
     uint8_t qr_code[qrcodegen_BUFFER_LEN_FOR_VERSION(1)];
     if(!qrcodegen_encodeText(
-           text,
-           temp_buffer,
-           qr_code,
-           qrcodegen_Ecc_LOW,
-           1,
-           1,
-           qrcodegen_Mask_AUTO,
-           false)) {
+           text, temp_buffer, qr_code, qrcodegen_Ecc_LOW, 1, 1, qrcodegen_Mask_AUTO, false)) {
         barcode_data->reason = WrongNumberOfDigits;
         barcode_data->valid = false;
     }

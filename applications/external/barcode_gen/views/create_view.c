@@ -7,9 +7,8 @@
 #define TOTAL_MENU_ITEMS 5
 
 #define NUMERIC_BARCODE_CHARS "0123456789- "
-#define CODE39_CHARS \
-    "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-. $/+%"
-#define CODABAR_CHARS "0123456789-$:/.+ABCDabcd"
+#define CODE39_CHARS          "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-. $/+%"
+#define CODABAR_CHARS         "0123456789-$:/.+ABCDabcd"
 
 typedef enum {
     TypeMenuItem,
@@ -219,10 +218,8 @@ static const char* barcode_validation_message(BarcodeType type, ErrorCode reason
     return get_error_code_message(reason);
 }
 
-static bool barcode_text_is_valid(
-    BarcodeTypeObj* barcode_type,
-    const char* text,
-    ErrorCode* reason) {
+static bool
+    barcode_text_is_valid(BarcodeTypeObj* barcode_type, const char* text, ErrorCode* reason) {
     BarcodeData data = {
         .type_obj = barcode_type,
         .check_digit = -1,
@@ -355,8 +352,7 @@ static bool app_input_callback(InputEvent* input_event, void* ctx) {
                     false);
                 text_input_set_header_text(
                     create_view_object->barcode_app->text_input, "File Name");
-                text_input_set_validator(
-                    create_view_object->barcode_app->text_input, NULL, NULL);
+                text_input_set_validator(create_view_object->barcode_app->text_input, NULL, NULL);
                 text_input_set_allowed_characters(
                     create_view_object->barcode_app->text_input, NULL);
                 text_input_show_illegal_symbols(
@@ -602,8 +598,7 @@ void save_barcode(CreateView* create_view_object) {
                 flipper_format_write_string_cstr(ff, "Filetype", "Barcode") &&
                 flipper_format_write_string_cstr(ff, "Version", FILE_VERSION) &&
                 flipper_format_write_comment_cstr(
-                    ff,
-                    "Types - UPC-A, EAN-8, EAN-13, CODE-39, CODE-128, Codabar, QR Code") &&
+                    ff, "Types - UPC-A, EAN-8, EAN-13, CODE-39, CODE-128, Codabar, QR Code") &&
                 flipper_format_write_string_cstr(ff, "Type", barcode_type->name) &&
                 flipper_format_write_string_cstr(ff, "Data", furi_string_get_cstr(barcode_data));
             if(!file_saved) {

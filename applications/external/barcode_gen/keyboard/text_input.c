@@ -281,13 +281,9 @@ static bool text_input_char_allowed(const TextInputModel* model, char character)
            strchr(model->allowed_characters, character) != NULL;
 }
 
-static bool text_input_key_allowed(
-    const TextInputModel* model,
-    uint8_t row,
-    uint8_t column) {
+static bool text_input_key_allowed(const TextInputModel* model, uint8_t row, uint8_t column) {
     char character = get_row(keyboards[model->selected_keyboard], row)[column].text;
-    if(character == ENTER_KEY || character == BACKSPACE_KEY ||
-       character == SWITCH_KEYBOARD_KEY) {
+    if(character == ENTER_KEY || character == BACKSPACE_KEY || character == SWITCH_KEYBOARD_KEY) {
         return true;
     }
 
@@ -305,8 +301,8 @@ static void text_input_select_allowed_column(TextInputModel* model, int directio
         if(text_input_key_allowed(model, model->selected_row, model->selected_column)) return;
 
         if(direction < 0) {
-            model->selected_column =
-                model->selected_column > 0 ? model->selected_column - 1 : column_count - 1;
+            model->selected_column = model->selected_column > 0 ? model->selected_column - 1 :
+                                                                  column_count - 1;
         } else {
             model->selected_column = (model->selected_column + 1) % column_count;
         }
@@ -507,8 +503,8 @@ static void text_input_handle_left(TextInput* text_input, TextInputModel* model)
     } else {
         const uint8_t column_count =
             get_row_size(keyboards[model->selected_keyboard], model->selected_row);
-        model->selected_column =
-            model->selected_column > 0 ? model->selected_column - 1 : column_count - 1;
+        model->selected_column = model->selected_column > 0 ? model->selected_column - 1 :
+                                                              column_count - 1;
         text_input_select_allowed_column(model, -1);
     }
 }
