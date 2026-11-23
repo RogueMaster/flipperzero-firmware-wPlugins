@@ -10,7 +10,9 @@
 #include <string.h>
 
 enum {
-    GtaSaveMagic = 0x32415447,
+    GtaSaveMagic = 0x33415447, // GTA3: extended 4096-bit save
+    GtaLegacySaveMagic = 0x32415447, // GTA2: original 2048-bit save
+    GtaLegacyProgressBytes = 256,
     GtaSaveSlots = 2,
     GtaListRows = 4,
     GtaDetailToggle = 0x400,
@@ -22,7 +24,12 @@ enum {
 
 #define GTA_DATA_DIRECTORY EXT_PATH("apps_data/gta_vi_cheats")
 
+// Use separate paths so the older 2048-bit saves remain available for recovery.
 static const char* const gta_save_paths[GtaSaveSlots] = {
+    GTA_DATA_DIRECTORY "/progress2.a",
+    GTA_DATA_DIRECTORY "/progress2.b",
+};
+static const char* const gta_legacy_save_paths[GtaSaveSlots] = {
     GTA_DATA_DIRECTORY "/progress.a",
     GTA_DATA_DIRECTORY "/progress.b",
 };
@@ -54,7 +61,15 @@ typedef struct {
     uint32_t checksum;
 } GtaSave;
 
-_Static_assert(sizeof(GtaSave) == 12 + GtaProgressBytes, "Progress record must stay stable");
+// The original on-disk structure is intentionally retained for read-only migration.
+typedef struct {
+    uint32_t magic;
+    uint32_t generation;
+    uint8_t checked[GtaLegacyProgressBytes];
+    uint32_t checksum;
+} GtaLegacySave;
+_Static_assert(sizeof(GtaLegacySave) == 268, "Legacy GTA2 save layout changed");
+_Static_assert(sizeof(GtaSave) == 524, "GTA3 progress save layout changed");
 
 typedef struct {
     const GtaCollection* collection;
@@ -92,6 +107,7 @@ struct GtaCompanion {
     bool detail_visible;
     bool dispatch;
     bool save_error;
+    bool progress_load_failed;
 };
 
 static uint8_t gta_entry_mask(uint16_t id) {
@@ -154,6 +170,7 @@ static uint32_t gta_save_checksum(const void* record, size_t length) {
 
 static bool gta_read_save(Storage* storage, const char* path, GtaSave* save) {
     File* file = storage_file_alloc(storage);
+    if(!file) return false;
     const bool valid = storage_file_open(file, path, FSAM_READ, FSOM_OPEN_EXISTING) &&
                        storage_file_size(file) == sizeof(*save) &&
                        storage_file_read(file, save, sizeof(*save)) == sizeof(*save) &&
@@ -163,18 +180,69 @@ static bool gta_read_save(Storage* storage, const char* path, GtaSave* save) {
     return valid;
 }
 
+static bool gta_read_legacy_save(Storage* storage, const char* path, GtaLegacySave* save) {
+    File* file = storage_file_alloc(storage);
+    if(!file) return false;
+    const bool valid = storage_file_open(file, path, FSAM_READ, FSOM_OPEN_EXISTING) &&
+                       storage_file_size(file) == sizeof(*save) &&
+                       storage_file_read(file, save, sizeof(*save)) == sizeof(*save) &&
+                       save->magic == GtaLegacySaveMagic &&
+                       save->checksum ==
+                           gta_save_checksum(save, offsetof(GtaLegacySave, checksum));
+    storage_file_free(file);
+    return valid;
+}
+
+static bool gta_generation_is_newer(uint32_t incoming, uint32_t current) {
+    const uint32_t age = incoming - current;
+    return age != 0 && age < UINT32_C(0x80000000);
+}
+
 static void gta_load_progress(GtaCompanion* companion) {
+    memset(&companion->save, 0, sizeof(companion->save));
     companion->save.magic = GtaSaveMagic;
     companion->save_slot = GtaSaveSlots;
+
+    // Prefer any valid extended save, even if a legacy file has a higher generation.
+    GtaSave* candidate = malloc(sizeof(*candidate));
+    if(!candidate) {
+        companion->save_error = true;
+        companion->progress_load_failed = true;
+        return;
+    }
     for(size_t slot = 0; slot < GtaSaveSlots; ++slot) {
-        GtaSave candidate;
-        if(!gta_read_save(companion->storage, gta_save_paths[slot], &candidate)) continue;
-        const uint32_t age = candidate.generation - companion->save.generation;
-        if(companion->save_slot == GtaSaveSlots || (age && age < UINT32_C(0x80000000))) {
-            companion->save = candidate;
+        if(!gta_read_save(companion->storage, gta_save_paths[slot], candidate)) continue;
+        if(companion->save_slot == GtaSaveSlots ||
+           gta_generation_is_newer(candidate->generation, companion->save.generation)) {
+            companion->save = *candidate;
             companion->save_slot = slot;
         }
     }
+    free(candidate);
+
+    // First run after upgrade: import valid GTA2 saves but never overwrite them.
+    if(companion->save_slot == GtaSaveSlots) {
+        GtaLegacySave* legacy = malloc(sizeof(*legacy));
+        if(!legacy) {
+            companion->save_error = true;
+            companion->progress_load_failed = true;
+            return;
+        }
+        bool have_legacy = false;
+        uint32_t legacy_generation = 0;
+        for(size_t slot = 0; slot < GtaSaveSlots; ++slot) {
+            if(!gta_read_legacy_save(companion->storage, gta_legacy_save_paths[slot], legacy))
+                continue;
+            if(!have_legacy || gta_generation_is_newer(legacy->generation, legacy_generation)) {
+                memcpy(companion->save.checked, legacy->checked, GtaLegacyProgressBytes);
+                legacy_generation = legacy->generation;
+                have_legacy = true;
+            }
+        }
+        if(have_legacy) companion->save.generation = legacy_generation;
+        free(legacy);
+    }
+
     // A checked type in an existing save means all of its pieces were scanned.
     for(size_t type = 0; type < GTA_AHOL_TYPE_COUNT; ++type) {
         if(gta_is_checked(companion->save.checked, GtaAholFirstTypeId + type)) {
@@ -184,37 +252,48 @@ static void gta_load_progress(GtaCompanion* companion) {
 }
 
 static bool gta_save_checkmark(GtaCompanion* companion, uint16_t id) {
+    if(id >= GtaProgressBytes * 8u || companion->progress_load_failed) return false;
     Storage* storage = companion->storage;
     if(!storage_simply_mkdir(storage, EXT_PATH("apps_data")) ||
        !storage_simply_mkdir(storage, GTA_DATA_DIRECTORY)) {
         return false;
     }
 
-    GtaSave next = companion->save;
-    gta_toggle_checkmark(next.checked, id);
-    ++next.generation;
-    next.checksum = gta_save_checksum(&next, offsetof(GtaSave, checksum));
+    // Keep the 524-byte record off the Flipper app's small (2 KiB) task stack.
+    GtaSave* next = malloc(sizeof(*next));
+    if(!next) return false;
+    *next = companion->save;
+    gta_toggle_checkmark(next->checked, id);
+    ++next->generation;
+    next->checksum = gta_save_checksum(next, offsetof(GtaSave, checksum));
 
-    // Keep the last complete save available until the new slot is written and synced.
+    // Preserve the last valid GTA3 slot until a full replacement has synced.
     const size_t slot = companion->save_slot == 0 ? 1 : 0;
     const char* path = gta_save_paths[slot];
     File* file = storage_file_alloc(storage);
+    if(!file) {
+        free(next);
+        return false;
+    }
     if(!storage_file_open(file, path, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
         storage_file_free(file);
+        free(next);
         return false;
     }
 
-    const bool written = storage_file_write(file, &next, sizeof(next)) == sizeof(next) &&
+    const bool written = storage_file_write(file, next, sizeof(*next)) == sizeof(*next) &&
                          storage_file_sync(file);
     const bool closed = storage_file_close(file);
     storage_file_free(file);
     if(!written || !closed) {
         storage_simply_remove(storage, path);
+        free(next);
         return false;
     }
 
-    companion->save = next;
+    companion->save = *next;
     companion->save_slot = slot;
+    free(next);
     return true;
 }
 

@@ -83,6 +83,7 @@ static const GtaExploreSection activity_robberies[] = {
     GTA_LEAF("Pool Opponents", "pool_opponents", 7, "Beaten"),
     GTA_LEAF("Golf Courses", "golf_courses", 5, "Played"),
     GTA_LEAF("Unique Race Venues", "unique_race_hubs", 13, "Visited"),
+    GTA_LEAF("Basketball Hoops (partial)", "basketball_hoops", 100, "Scored"),
 };
 
 const GtaExploreSection gta_explore_sections[] = {
@@ -104,6 +105,8 @@ const GtaExploreSection gta_explore_sections[] = {
     GTA_LEAF("Knife Flights", "knife_flights", 40, "Completed"),
     GTA_LEAF("Base Jumps", "base_jumps", 25, "Completed"),
     GTA_LEAF("Optional Missions", "optional_missions", 32, "Completed"),
+    GTA_LEAF("Missing Persons (5 steps)", "missing_persons", 5, "Investigated"),
+    GTA_LEAF("Meteorite Chunks (known)", "meteorites", 0, "Found"),
     GTA_LEAF("Messages in Bottles", "messages_bottles", 6, "Read"),
     GTA_GROUP("Activities / Robberies", activity_robberies),
     GTA_LEAF("Endings", "endings", 12, "Seen"),

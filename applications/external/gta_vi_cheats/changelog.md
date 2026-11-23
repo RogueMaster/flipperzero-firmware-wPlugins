@@ -1,5 +1,12 @@
 # GTA VI Companion changelog
 
+## v1.9.4
+- Added 26 separately checkable, guide-reported Meteorite Chunk locations; marked the total and completion status as unconfirmed.
+- Added a five-stage Missing Persons walkthrough, distinguishing the warehouse and mine finale from the three reported missing tourists.
+- Added 22 basketball hoop guide-number locations with ball pickup instructions, bringing the documented location records from 51 to 73; marked legacy crosswalk conflicts for continued review.
+- Expanded the collection progress bitmap from 2,048 to 4,096 IDs. Added redundant `progress2.a` / `progress2.b` saves and read-only migration from `progress.a` / `progress.b` to retain existing checkmarks.
+- Updated the README with new checklists, diving/quest references, safe migration instructions, and unresolved WAiNK/flamingo research. Kept home menu, existing IDs, and separate Secret Missions saves unchanged.
+
 ## v1.9.3
 - Added 15 new collections
 - Expanded on 4 existing collections

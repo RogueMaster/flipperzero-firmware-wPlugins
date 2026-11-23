@@ -28,7 +28,7 @@ typedef struct {
 } GtaCollection;
 
 enum {
-    GtaProgressBytes = 256,
+    GtaProgressBytes = 512,
     GtaExploreFirstId = 400,
 };
 

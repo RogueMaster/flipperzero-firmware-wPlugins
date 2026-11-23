@@ -23,7 +23,7 @@ The home screen has 16 icons across two pages. Icons appear in this order, from 
 | **Infinite Money Glitch** | A five-step walkthrough of the reported Apollo Aggregates loot-respawn method, including personal-vehicle bag storage, three possible reset approaches, a separate-slot manual save/reload sequence, and cash-out locations. |
 | **PS5 Cheats** | Reported PlayStation controller sequences, effects, unlock prerequisites, and unverified-input labels. |
 | **Xbox Cheats** | Reported Xbox inputs and effects, including confidence notes for converted sequences. |
-| **Collections** | Checklists and directions for collectible cards, WAiNK scans, art, treasure, flamingos, publications, styles, **43 reported special-weapon pickups and variants**, **32 individually tracked optional missions**, **6 Messages in Bottles**, an Endings checklist with 12 documented routes and proposed variations, and stunt challenges, plus a dedicated **Activities / Robberies** grouping for bank jobs, operations, store robberies, drone trials, shooting, racing, arcade games, pool, golf, and challenge milestones. |
+| **Collections** | Checklists and directions for collectible cards, WAiNK scans, art, treasure, flamingos, publications, styles, **43 reported special-weapon pickups and variants**, **32 individually tracked optional missions**, **6 Messages in Bottles**, **26 known meteorite sites**, **5 Missing Persons investigation stages**, an Endings checklist with 12 documented routes and proposed variations, and stunt challenges, plus a dedicated **Activities / Robberies** grouping for bank jobs, operations, store robberies, drone trials, shooting, racing, arcade games, pool, golf, and challenge milestones. |
 | **Safe & Door Codes** | 44 reported safe combinations, door codes, and puzzle passwords, with location clues and source-confidence labels. |
 | **Secret Missions** | 16 checkable optional encounters, hidden weapon finds, cash routes, stat rewards, and Easter eggs, grouped by the earliest reported story chapter. Uncertain unlocks appear at the end. |
 | **Randy's Wish List** | 19 vehicle requests with reported pickup clues, access conditions, and delivery progress. |
@@ -60,9 +60,15 @@ All populated entries in these areas have individual **Completed** checkmarks:
 
 **Right** toggles the selected entry from its list. **OK** opens its details, where the center **Check / Undo** action also toggles completion. An empty category marked *Locations pending* has no entries to check until location data is available. The count in each list header reflects checked entries, and returning to a list updates the checkmark state. All these lists share one persistent tracking system, so checking a bridge or vehicle through a different route does not create a second completion record.
 
-Checklist progress is saved automatically on the SD card in **`/ext/apps_data/gta_vi_cheats/`**. Files `progress.a` and `progress.b` store Collections (including Optional Missions, Messages in Bottles, and Special Weapons) and Dispatch checkmarks. The separate **Secret Missions** menu has its own `secrets.a` and `secrets.b` files so its hidden-activity status can be checked or unchecked without affecting other collections. Back up these files before reformatting or replacing the SD card.
+Checklist progress is saved automatically to the Flipper Zero SD card. See **Saved progress and backups** below for file locations and upgrade behavior.
 
 For **Secret Missions**, press **OK** to read the walkthrough, **Right** to check or uncheck an entry in the list, or choose **Check / Uncheck** with **OK** in its detail view. The menu shows the number completed out of 16, and completion is restored when the app restarts.
+
+### Saved progress and backups
+
+Collection and Dispatch checkmarks are saved in **`/ext/apps_data/gta_vi_cheats/`** using `progress2.a` and `progress2.b`. When upgrading from an older installation, the app can import checks from `progress.a` and `progress.b` if the newer save files are not present. The original files remain untouched as a backup; progress made after the upgrade is stored in the newer files and will not be visible if you revert to an older app build.
+
+**Secret Missions** keep their own `secrets.a` and `secrets.b` files. Back up the app's SD-card data directory before changing firmware, formatting the card, or reverting to an older app build.
 
 ### Region-aware Dispatch
 
@@ -183,6 +189,12 @@ An offline catalog of **44 published codes and passwords**. Choose **All codes**
 - [NerdSnack - hidden weapon-related codes](https://nerdsnack.com/gta-6-safe-codes/).
 - [PowerPyx - Kingpin Bowling operation and room rewards](https://www.powerpyx.com/gta-6-hit-kingpin-bowling-walkthrough/).
 - [MetaForge - chapter-bound Vanessa garage prerequisites](https://metaforge.app/gta-6/gta-6-chapter-3-missables-point-of-no-return).
+- [Black Eagle office and safe access](https://gamerhour.net/guides/gta-6-black-eagle-import-kalinga-black-eagle-warehouse-safe-code/)
+- [Black Eagle Kalinga and M306 TMR entry routes](https://www.followchain.org/gta-6-black-eagle-door-code-safe-code/)
+- [Pelican Valley research puzzle and Crabshack VF5](https://gta6.house/guides/gta-6-pelican-valley-outpost-codes-crabshack-smg)
+- [President's Bunker sequence and IAA Black Site](https://gtascoop.com/guides/gta-6-president-bunker/)
+- [Haunted Marbelle Hotel safe and watch](https://gta6.house/guides/gta-6-silent-hill-haunted-hotel-safe-code)
+- [Hideout safe combinations and weapon rewards](https://nerdsnack.com/gta-6-safe-codes/)
 
 ## Special Weapons
 
@@ -249,31 +261,41 @@ Select **Collections** to browse categories and individual sets. Each entry prov
 | **Peewees Billboards** | **4 roadside billboards** with highway, interchange, and nearby-business clues, plus the reported Belville reward puzzle. |
 | **AHOL Street Art** | **112 art scans** organized by art type, including an option to mark a whole type complete. |
 | **1010 Murals** | **5 photo locations** and framing clues. |
-| **Kenton's Treasures** | **7 treasure sets** after the tutorial wreck, with diving areas and piece counts. |
-| **Underwater Discoveries** | **6 named dive or underwater locations**; diving equipment and metal-detector search instructions are in the guide. The full 33-discovery target is not yet mapped. |
-| **Magazines, Books & Comics** | **26 publication entries** with alternate copies and cross-references to nearby cards, garages, and weapons. A 27th unique publication is not yet identified. |
+| **Kenton's Treasures** | **7 named treasure sets**, now with item-by-item lists and dive-site clues; the separate *Del Ocio* tutorial wreck has 10 doubloons and is not a set. |
+| **Underwater Discoveries** | **6 named shipwrecks**, now with piece counts. Belpoint Strait and Bobcat Dive Site are treasure-set dives, but **do not** count among these 33 discoveries. |
+| **Magazines, Books & Comics** | **26 publication entries**, with alternate pickup copies and cross-references to nearby cards, garages, and weapons. |
 | **Book Swaps** | **7 Little Library locations**. |
 | **Meditations** | **18 character-specific completions** across **10 places**, with separate Jason and Lucia entries when applicable. |
-| **Cocaine Flamingos** | **30 reported pickups**, including Capri, Key Lento, and Belpoint directions. Destroy black-and-white-beaked figures; black-and-yellow-beaked figures are decorative according to the linked guide. |
+| **Cocaine Flamingos** | **30 reported pickups**, including Capri, Key Lento, and Belpoint directions. Look for black-and-white-beaked figures; black-and-yellow-beaked ones are decorative according to the guide. |
 | **Unique Playlists** | **2 playlists** and **5 related poster locations**. |
 | **Discovered Styles** | **21 clothing and cosmetic discoveries**, including watches, the Backyard Wrestling Belt, and Luchadora tattoos; some require a phone magazine scan or the correct character. |
-| **Endings** | **12 finale outcomes and proposed variations**: nine reported outcomes or epilogues and three speculative savings-based variants, each with story choices, suggested prerequisites, and confidence notes. |
 | **Optional Missions** | **32 mission and side-activity entries**, with character, earliest reported chapter, missability, and reward clues. Distinct from the Secret Missions home-menu guide. |
 | **Messages in Bottles** | **6 optional reading finds** in broad western/northwestern Key Lento and Shoeless Keys search areas, independent of publications and Book Swaps. |
+| **Missing Persons investigation** | **5 checkable investigation stages**: Starlet Motel poster and warehouse, three missing-tourist reports, and the optional warehouse/mine finale. The guide has **three victims, not five**. |
+| **Meteorite Chunks** | **26 guide-reported locations** (including five distinct Selkie Hole tunnel finds). This is a known-location list, not a confirmed total or 100%-completion requirement. |
 | **Stunt Jumps** | **130 launch points** grouped by county, with reported launch directions and stunt goals. |
 | **Under the Bridge** | **202 bridge crossings**, with individual spans and nearby landmarks. |
 | **Knife Flights** | **40 aircraft gaps**. |
 | **Base Jumps** | **25 jump starts** with published par-time notes where available. |
+| **Endings** | **12 finale outcomes and proposed variations**: nine reported outcomes or epilogues and three speculative savings-based variants, each with story choices, suggested prerequisites, and confidence notes. |
 
-**No Flusher street scan update:** All **15 existing** named No Flusher entries retain their IDs but now include specific roads, intersections, and buildings, using an updated location list. Search the *ground-level pavement* with WAiNK, not walls. Sources disagree whether the overall set totals **15 or 23**; the companion keeps only the 15 actual named locations and adds no speculative tags. [Street-level location reference](https://thegameswiki.com/gta6/wiki/noflusher-tags) and [PowerPyx WAiNK guidance](https://www.powerpyx.com/gta-6-all-no-flusher-tag-utility-markings-locations/).
+**Meteorite Chunks:** The checklist covers 26 guide-reported sites, including five underwater pieces in the Selkie Hole tunnels, two pieces on an SOS island, and clusters in the Sandbars and Frampton Islands. These are known locations, not a confirmed full collection count or 100% requirement. Use [Tech4Gamers' locations guide](https://gta.tech4gamers.com/gta-6/collectibles/meteorite-chunks/) or [GTA6Bugs' meteorite guide](https://gta6bugs.com/collectibles/meteorites) for the broader routes.
 
-**Playlist update:** Five **existing** poster records remain intact: the four posters in La Perle/Crosstown unlock *The Sniper of La Perle* under **On Demand**, and the Downtown nightclub poster unlocks *The Vault* under **Radio**. The game does not separately mark which of the four Sniper posters you have scanned, so use their companion checkmarks. [PowerPyx poster walkthrough](https://www.powerpyx.com/gta-6-all-unique-playlist-collectible-locations/).
+**Missing Persons (story spoilers):** Start with the poster at the Starlet Motel and the warehouse across from Moses' garage. Inspect the warehouse clues, then follow leads at the pink `PRTYGRL` car in the junkyard, the trailer near the water tower, and the submerged car at Wild Hog Point. A final warehouse/mine investigation follows the three missing-person reports. See [KeenGamer's walkthrough](https://www.keengamer.com/articles/guides/gta-6-all-missing-persons-locations-and-serial-killer-walkthrough/) and [GTAXTREME's location guide](https://www.gta-xtreme.com/en/gta-6-missing-persons-locations).
+
+**Alternate publication copies:** If you miss a pickup, look for *Body Copy* at Ajax Gym, *Foiled* at a Grace Avenue garage, *High Rollerz* on a Port Vice cruise ship or at a Bayside Drive gazebo, *¡Bombazo!* in an NW 4th Avenue apartment or a Caledonia Boulevard mobile home, *Drive Shaft* in a yellow Draper Island railway container, and *Endowed* at a south Waning Sands villa. Different copies of the same title share a single checkmark. [GTA 6 GPS publications map](https://gta6gps.com/map/game/magazines).
+
+**No Flusher scans:** Search the *ground-level pavement* with WAiNK rather than scanning walls. The 15 documented sites include street, intersection, and building clues. Some guides report a larger total, so use these as the companion’s mapped locations. See the [street-level location guide](https://thegameswiki.com/gta6/wiki/noflusher-tags), [PowerPyx WAiNK guidance](https://www.powerpyx.com/gta-6-all-no-flusher-tag-utility-markings-locations/), and [WAiNK scan guide](https://game-checklists.com/gta6/waink-scans-checklist/).
+
+**Unique Playlist posters:** Four posters in La Perle/Crosstown unlock *The Sniper of La Perle* under **On Demand**. A Downtown nightclub poster unlocks *The Vault* under **Radio**. Use the five companion checkmarks to track scanned posters. [PowerPyx poster walkthrough](https://www.powerpyx.com/gta-6-all-unique-playlist-collectible-locations/).
+
+**Kenton's Treasures and underwater wrecks:** There are seven named Kenton sets; published completion guides call for five. The *Nuestra Senora del Ocio* wreck in *Island Dreams* yields 10 Gold Doubloons and counts as an underwater discovery, **not** an eighth Kenton set. **Belpoint Strait** and **Bobcat Dive Site** contain Kenton treasures but do not count toward the 33 underwater discoveries. Each available entry lists its known items or piece counts. See [Push Square's dive guide](https://www.pushsquare.com/guides/gta-6-underwater-discoveries-locations-and-kentons-treasures) and [Kenton's Treasures](https://www.nexzyapp.com/games/grand-theft-auto-vi/guide/kentons-treasures).
 
 **Collection-specific techniques:** For **Cocaine Flamingos**, look for **black-and-white beaks** and destroy the figures; the published guide identifies black-and-yellow beaks as decoration, and collecting the loose cocaine is optional. For **Discovered Styles**, scan applicable magazines with the in-game phone, switch between **Jason and Lucia** for character-specific unlocks, and enter homes where the description calls for it. For **Underwater Discoveries**, finish **Island Dreams** to unlock diving, bring scuba gear, choose the **metal detector** from the lower-right weapon wheel, follow chest markers, and dig when its light turns **green**. The reported adjacent wrecks southeast of Key Lento can be explored during one dive route.
 
 **Efficient shared-location searches:** The Key Lento **Dolphin Dr party house** may yield *Peche*, **Lionel Taber** card, and access to a garage associated with code `092319`. The **Sunset Dr waterfront house** contains a reported *Trigger Happy* copy and **Dartanyon Pearson** card. A **wooded lookout east of Kalaga Reservoir** may yield *11:59* and a **Laird 350**. These are independent finds/checkmarks even when they share a stop. The **Laki Maivia (Bronze)** card in the Cottonmouth Lake trailer is in the **microwave-side safe**, `44017` (bedroom-wall picture/postcard clue).
 
-**Messages in Bottles:** The checklist lists two broad western Key Lento areas, two northwestern Key Lento areas, one area southwest of Shoeless Keys, and one in Shoeless Keys. Guide text does **not** provide reliable coordinates for each bottle; do not mark a different bottle as found solely because two entries share a broad search area. The six readings are **not part of the 26 cataloged magazines/books/comics, the still-unidentified 27th title, or the seven Book Swaps**.
+**Messages in Bottles:** The checklist lists two broad western Key Lento areas, two northwestern Key Lento areas, one area southwest of Shoeless Keys, and one in Shoeless Keys. The guide gives broad search areas rather than exact coordinates; check the item description before marking each bottle found. These six readings are **separate from magazines, books, comics, and Book Swaps**.
 
 **Stunts:** Stunt Jumps, Under the Bridge, Knife Flights, and Base Jumps account for **397 listed challenges**. Published completion guides report that **300** count toward the game's 100% requirement. Mark each stunt in the companion after completing it in-game.
 
@@ -288,6 +310,9 @@ Select **Collections** to browse categories and individual sets. Each entry prov
 - [GTA 6 Everything - Peewees billboards](https://www.gta6everything.com/activities/peewees-billboards), [Push Square - billboard locations and prize puzzle](https://www.pushsquare.com/guides/gta-6-peewees-billboard-locations-and-grand-prize-puzzle-solution), and [The Games Wiki - billboard locations](https://thegameswiki.com/gta6/wiki/peewee-billboards).
 - [Nexzyapp - Kenton's Treasures](https://www.nexzyapp.com/games/grand-theft-auto-vi/guide/kentons-treasures).
 - [Vice City DB - Discovered Styles](https://vicecitydb.org/collectibles/discovered-styles), [GTA6 House - Marbelle watch](https://gta6.house/library/items/crowex-ambassador-breakfast-collectibles-watch), and [PowerPyx - Kingpin Bowling watch](https://www.powerpyx.com/gta-6-hit-kingpin-bowling-walkthrough/).
+
+
+**Publication chapter cutoffs:** The five copies in Jason's Key Lento house become unavailable after Chapter 1, the two Starlet Motel copies after Chapter 2, and the two Bayside Apartment copies after Chapter 3. These are **missable copies**, not necessarily permanently missable titles; alternate copies may exist. Check these locations before advancing the story. See [PowerPyx's publication guide](https://www.powerpyx.com/gta-6-all-magazines-books-comics-locations/) and the [Key Lento route](https://www.pushsquare.com/guides/gta-6-key-lento-collectibles-and-secrets-walkthrough).
 
 ## Activities / Robberies
 
@@ -310,16 +335,21 @@ The **Collections > Activities / Robberies** group contains guide-reported targe
 | Pool Opponents | 7 | Beat at least **5/7** different opponents. |
 | Golf Courses | 5 total: 3 mini, 2 full | Play **2/3 mini golf** courses. The two regular golf courses are optional reference entries. |
 | Unique Race Venues | 13 site leads covering 40 races | **30/40 unique races** needed for 100%; a checked venue means **visited**, not that its races are all won. Individual race names were not published. |
+| Basketball Hoops (partial) | 73 guide-mapped location clues | **90/100 hoops** required for reported 100% threshold. Score at distinct numbered baskets; visiting without scoring does not count. Locations are still a partial guide to all 100. |
 
-**Challenge milestone tracking:** The game lists **80 named Challenges across 8 families of 10**: Combat, Criminal, Exploration, Fitness, Shopping, Sports, Survival, and Vehicle. Their full objectives are under **Progress > Challenges**. The companion now records the **5/10 and 10/10 milestone for each family** and the overall **50/70/80** thresholds; it does not claim to store separate checkmarks for all 80. Published guides associate the family milestones with vehicle cheat unlocks. Cheat use remains gated behind story completion, and the app does not activate cheats. For the full named objectives, see the Challenge sources below.
+**Basketball Hoops:** The guide contains **73 individually checkable locations**. Published completion guides report a target of scoring at **90 of 100 hoops**. Pick up a ball near each basket, aim, and score before checking it off. Examples include Jackal's Track northwest parking lot, Leonida State Prison's recreation yard, Fire Rescue Station 8, the eastern Lake Tallaloko property, the Bare With Me rooftop, Samba Place, and Bantam Boxing Gym. Different guides count shared courts differently; check the game's own counter when scoring at multiple baskets on one court. [Game Checklists](https://game-checklists.com/gta6/basketball-hoops-checklist/), [Push Square](https://www.pushsquare.com/guides/gta-6-basketball-hoop-locations), [The Games Wiki's numbered locations](https://thegameswiki.com/gta6/wiki/basketball-hoop-locations), and [GTA6Bugs county guide](https://gta6bugs.com/collectibles/basketball-hoops/).
 
-The 22 Bank Jobs consist of **14 small banks and 8 large vaults**, so vaults are not another eight jobs on top of the 22. Some banks share names and neighborhoods; numbered vault entries distinguish the separate guide listings without inventing addresses. In-game filters: **Map > Robberies** for crime, or **Map > Activities** for racing/sports. Completion thresholds are guide-reported, not official app tracking.
+**Challenge milestones:** The game lists **80 named Challenges across 8 families of 10**: Combat, Criminal, Exploration, Fitness, Shopping, Sports, Survival, and Vehicle. Their full objectives are under **Progress > Challenges**. The companion tracks the **5/10 and 10/10 milestone for each family** and the overall **50/70/80** thresholds; it does not claim to store separate checkmarks for all 80. Published guides associate the family milestones with vehicle cheat unlocks. Cheat use remains gated behind story completion, and the app does not activate cheats. For the full named objectives, see the Challenge sources below.
 
-**Related optional missions:** Billy, Andy/Cellerica, Tyrone, Yasmani, Dunk, Eddie Acosta, Shayna, and Yago now have individual checklist steps under *Optional Missions*. Shayna's Lucia-only mission and Yago's timed race require prompt attention. Check the *That's Where The Money Is...* optional mission before attempting large vaults. These are not duplicated under *Secret Missions*.
+The **22 Bank Jobs** comprise **14 small banks** and **8 large vaults**. Some banks share names and neighborhoods; refer to the entry notes to distinguish each vault. In-game filters: **Map > Robberies** for crime, or **Map > Activities** for racing/sports. Completion thresholds are guide-reported, not official app tracking.
 
-**Additional field notes:** The bank checklist now shows guide-estimated payout *ranges*, not guaranteed rewards. For small banks, open both the drawer and safe; for large vaults, recover the vault loot, drawer, and safe, and be ready for a high wanted level. The 13 unique-race hub entries have clearer race counts, unlock prerequisites and coverage limits; they are not 40 separate race checkmarks.
+**Related optional missions:** Billy, Andy/Cellerica, Tyrone, Yasmani, Dunk, Eddie Acosta, Shayna, and Yago have individual checklist steps under *Optional Missions*. Shayna's Lucia-only mission and Yago's timed race require prompt attention. Check the *That's Where The Money Is...* optional mission before attempting large vaults. These are not duplicated under *Secret Missions*.
+
+**Bank and racing tips:** Payout ranges are guide estimates, not guaranteed rewards. At small banks, search the drawer and safe; at large vaults, take the vault loot, drawer, and safe, and prepare for a higher wanted level. The 13 Unique Race Venue entries cover access points and unlock requirements; checking a venue does not mark every race held there as complete.
 
 ### Activities and robbery source guides
+
+- [Game Checklists: first 17 basketball-hoop locations](https://game-checklists.com/gta6/basketball-hoops-checklist/) and [Push Square: detailed hoop finding guide](https://www.pushsquare.com/guides/gta-6-basketball-hoop-locations).
 
 - [PowerPyx: 100% completion categories and thresholds](https://www.powerpyx.com/gta-6-100-completion-checklist-guide/)
 - [PowerPyx: all 80 Challenge objectives](https://www.powerpyx.com/gta-6-all-challenges-guide/) and [PowerPyx: cheat unlock requirements](https://www.powerpyx.com/gta-6-all-cheats/)
@@ -337,10 +367,6 @@ The 22 Bank Jobs consist of **14 small banks and 8 large vaults**, so vaults are
 - [PowerPyx: pool opponents](https://www.powerpyx.com/gta-6-all-pool-opponent-locations/)
 - [PowerPyx: golf courses](https://www.powerpyx.com/gta-6-all-golf-course-locations/)
 - [PowerPyx: unique racing venues](https://www.powerpyx.com/gta-6-all-unique-race-locations-racing-activities/)
-
-### Incomplete location research
-
-No unnamed filler entries were added for the **27th publication**, remaining **27 underwater discoveries**, or remaining **95 cocaine flamingos**: publicly readable guides do not individually establish these missing records. The five style-location leads still need reliable pickup conditions. Current Standout Vehicle entries and Special Weapons were left intact rather than extrapolating from larger base-model/variant counts.
 
 ## Vehicle locations, deliveries, and properties
 
@@ -384,7 +410,7 @@ Examples:
 | **Invetero Spiderweb Coquette** | Party-house garage in southeastern Key Lento; reported keypad code `092319`. |
 | **Seashark Sedna (Graffiti)** | Key Lento; the exact dock is unconfirmed. |
 
-The **pink Pfister Growler** already has its own Standout Vehicle checkmark; it is not an additional garage collectible. The **Gold Rush Tempesta** has conflicting published spawn clues: Crimson Palms Condominiums in Washington Beach and Cirque de Cuisine on Shore Drive. The catalog describes uncertain locations as reported alternatives rather than guaranteed spawns.
+The **pink Pfister Growler** has a checkmark under Standout Vehicles; it is not a separate garage collectible. The **Gold Rush Tempesta** has conflicting published spawn clues: Crimson Palms Condominiums in Washington Beach and Cirque de Cuisine on Shore Drive. The catalog describes uncertain locations as reported alternatives rather than guaranteed spawns.
 
 ### Garages and safehouses
 
@@ -435,16 +461,3 @@ Where sources disagree or a position is not specific, entries use labels such as
 
 - [GTA VI Companion source repository](https://github.com/RogueMaster/GTA_VI_Companion)
 - [Patreon](https://www.patreon.com/RogueMaster?filters[tag]=Latest%20Release)
-
-### Additional code and weapon-access sources
-
-- [Black Eagle office and safe access](https://gamerhour.net/guides/gta-6-black-eagle-import-kalinga-black-eagle-warehouse-safe-code/)
-- [Black Eagle Kalinga and M306 TMR entry routes](https://www.followchain.org/gta-6-black-eagle-door-code-safe-code/)
-- [Pelican Valley research puzzle and Crabshack VF5](https://gta6.house/guides/gta-6-pelican-valley-outpost-codes-crabshack-smg)
-- [President's Bunker sequence and IAA Black Site](https://gtascoop.com/guides/gta-6-president-bunker/)
-- [Haunted Marbelle Hotel safe and watch](https://gta6.house/guides/gta-6-silent-hill-haunted-hotel-safe-code)
-- [Hideout safe combinations and weapon rewards](https://nerdsnack.com/gta-6-safe-codes/)
-
-### Additional research notes (November 22, 2026)
-
-The recent guide review found the complete **80-Challenge name and objective index**, which informed the 19 milestone entries rather than forcing more than 80 new IDs into an almost-full 2,048-bit progress map. The store-directory sources still list **107 possible retail targets**, not a verified one-to-one list of the **91 in-game Stick Ups**. Likewise, the named six shipwrecks do not establish the other 27 underwater discovery locations. No unsupported collectible positions or vague filler entries were added.
