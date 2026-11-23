@@ -4,6 +4,7 @@ App(
     apptype=FlipperAppType.EXTERNAL,
     entry_point="subghz_raw_edit_app",
     stack_size=3 * 1024,
+    sources=["*.c*", "!tests"],  # tests/ are host tests, not part of the app
     fap_category="Sub-GHz",
     fap_author="Lechnio",
     fap_weburl="https://github.com/Lechnio/SubGHz-RAW-Edit",

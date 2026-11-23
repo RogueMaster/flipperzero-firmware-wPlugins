@@ -6,6 +6,16 @@ on:
   workflow_dispatch:
 
 jobs:
+  tests:
+    name: Host tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run the tests
+        run: make -C tests
+
   build:
     name: "ufbt: ${{ matrix.name }}"
     runs-on: ubuntu-latest

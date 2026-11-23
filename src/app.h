@@ -5,6 +5,10 @@
  * https://github.com/Lechnio/SubGHz-RAW-Edit
  */
 
+#ifdef HOST_TEST
+// tests/: the few firmware APIs the editing code needs, on the host
+#include "host.h"
+#else
 #include <furi.h>
 #include <gui/gui.h>
 #include <gui/elements.h>
@@ -36,6 +40,7 @@
 #endif
 
 #include "subghz_raw_edit_icons.h"
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>

@@ -235,7 +235,19 @@ ufbt launch                          # builds + uploads + runs
 Every push and pull request is built with ufbt by GitHub Actions
 (`.github/workflows/build.yml`) against the official release and dev SDKs and
 the Unleashed release SDK; the `.fap` files are attached to each run as
-artifacts.
+artifacts. The host tests run there too.
+
+### Tests
+
+`tests/` holds host tests of the signal editing - loading a RAW `.sub` into the
+working file, the RAM window, Save, Copy, Cut, Paste and Undo - on a random
+capture (`tests/data/random.sub`). They build the app's own `load.c`,
+`work.c`, `edit_ops.c`, `view.c` and `sel_info.c` with a small stand-in for the
+firmware's storage, string and heap APIs (`tests/host.h`), so no SDK is needed:
+
+```bash
+make -C tests                        # Windows (MinGW): mingw32-make -C tests CC=gcc
+```
 
 ### Manual install
 

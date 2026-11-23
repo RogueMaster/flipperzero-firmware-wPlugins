@@ -74,6 +74,9 @@ size_t sample_budget(void)
     return usable / sizeof(int16_t);
 }
 
+// The host tests (tests/) build this file without the Sub-GHz library: no decoded files there.
+#ifndef HOST_TEST
+
 /* Decoded protocols are synthesized by the firmware's own SubGhz encoder: the
  * key file is deserialized into a transmitter and we collect the level/duration
  * upload it would send on air. Every protocol the firmware supports works with
@@ -443,6 +446,8 @@ static bool synthesize_via_transmitter(
     return ok;
 }
 
+#endif // HOST_TEST
+
 /* Snap each pulse to the nearest multiple of a base unit Te, removing timing
  * jitter and cumulative drift. Te is found by an iterative least-squares fit
  * |dur| ~ m*Te; gaps and noise (outside the data window) are left alone. */
@@ -751,6 +756,7 @@ bool work_add_sub(Storage *st, const char *path, WorkWriter *w, SubData *meta, M
             work_raw(st, path, w, meta, protocol);
         }
     }
+#ifndef HOST_TEST
     else if (protocol[0] && strcmp(protocol, "RAW") != 0)
     {
         SubData tmp = {.limit = sample_budget()};
@@ -769,6 +775,7 @@ bool work_add_sub(Storage *st, const char *path, WorkWriter *w, SubData *meta, M
 
         free(tmp.data);
     }
+#endif
 
     return w->count > before && !w->fail;
 }
@@ -787,6 +794,7 @@ bool work_end(WorkWriter *w, SubData *sd)
     return ok;
 }
 
+#ifndef HOST_TEST
 size_t count_sub_samples(
     Storage *storage, const char *path, uint32_t *freq, char *preset, size_t preset_sz)
 {
@@ -847,3 +855,4 @@ size_t count_sub_samples(
 
     return 0;
 }
+#endif
