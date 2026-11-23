@@ -26,6 +26,10 @@
 - Updated the Infinite Money Glitch screen to prioritize the Apollo Aggregates **cars-and-cocaine loop**: registered 10-slot van, **registered 6-slot car**, warehouse loot/vehicle storage, and character-switch warehouse refresh.
 - Documented the two-vehicle swap at Dunk's trailer as an **unverified community report**, including the alleged $13,200 payout, actual payment verification, and possible visual-only duplication.
 - Retained the owned-vehicle manual save/reload fallback, fence unlock/rate guidance, backup-save warnings and Chapter 1 money-loss caution; revised the README and sources without changing other release history.
+- Added three missing named Standout Vehicles to the existing catalog: Street Art Squalo (Key Lento), Muckspreader Bandito (Hamlet), and Cellerica Caddy (Belville); total now 280.
+- Expanded eight existing vehicle entries with precise acquisition, access, alarm and tracker information, including the Fruit Outlet Walton, Mountain Yosemite, Speedy Boomazoom, Westbound Azure, Brimstone Golfer, Rumpo, Taci Ragno and Searing Zombie Bobber.
+- Improved the existing Andy Peach! mission with the Cellerica Caddy pickup, added a Hamlet alternate copy for Bombazo!, and detailed the Couch Potato Mustang .357 hanging-couch pickup.
+- Retained earlier car and collection descriptions, alternate locations, saved progress IDs, Fences, Endings-last ordering, and all earlier changelog entries.
 
 ## v1.9.4 - Expanded Locations and Collectibles
 - Added 26 separately checkable, guide-reported Meteorite Chunk locations; marked the total and completion status as unconfirmed.

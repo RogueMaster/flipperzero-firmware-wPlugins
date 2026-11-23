@@ -29,7 +29,7 @@ The home screen has 16 icons across two pages. Icons appear in this order, from 
 | **Randy's Wish List** | 22 vehicle requests with reported pickup clues, access conditions, and delivery progress. |
 | **Moses Drop-Offs** | Seven reported vehicle delivery jobs and their location clues. |
 | **Wyman's Classic Cars** | Four restoration checklists with directions to 15 wreck parts, plus a checklist entry for claiming the final car. |
-| **Standout Vehicles** | 262 trackable vehicle entries, including parked variants, the Annis Pixel Elegy in a Capri container (existing checklist entry enriched), the Maibatsu Sunset Sanchez at Grayson, aircraft, watercraft, mission and stunt rewards, and reported leads. |
+| **Standout Vehicles** | 280 trackable vehicle entries, including parked variants, the Annis Pixel Elegy in a Capri container (existing checklist entry enriched), the Maibatsu Sunset Sanchez at Grayson, aircraft, watercraft, mission and stunt rewards, and reported leads. |
 | **Garages** | 15 garage entries with location, capacity, acquisition cost, or unlock requirements where known. |
 | **Houses / Cribs** | Five story safehouses with locations, chapter access, and facilities. |
 | **Dispatch** | Region-based browsing of 865 indexed pickups and activities, with progress tracking and a next-unchecked shortcut. |
@@ -211,6 +211,8 @@ Under **Collections → Special Weapons**, browse **43 individual guide-reported
 Example searches include the **Assassin Nipper .38** on a Permit Keys wreck, the **Unpacked Comshot 12** inside a Key Lento house, the **Drug Mule KZ-59** near a sunken Riquezas Keys speedboat, and the **Deever Tech GLR40** plus **Cockroach Xtreme 556** at the Sunrise Motel in Tequesta. These are reported community discoveries, not guaranteed spawns.
 
 The expanded catalog also tracks **Kingfishers Akulus** (Sunrise RV Park), **Chromium W-10** (La Perle Trap House), **Zodiac Nipper .38** (Ocean Beach Lab), **Quarter Mile ES9** (Chatfield Storage on Waxman Island), **Killtelligence SM-69** (Bret Vogel's hunting strand), **Shark Knife** (a shark cage north of Saint Attaway Islands), **The Patriarch DRX** (submerged vehicle southwest of Kalaga Reservoir), **Deadringer 1992** and **Money Bag 1992** (Moreau River mobile-home area), **Cargo H&L .38** (yellow Scoop container at Port Vice City), **Couch Potato Mustang .357** (suspended couch off Tanglewood Lane), and **Pete's KZ-59 Assault Rifle** (Sundown Private Airfield hangar). These named variants are **guide-reported leads**. Some have broad search areas, conflicting variant names, or limited independent verification; do not interpret all 43 as confirmed free pickups.
+
+**Updated pickup directions:** The **Couch Potato Mustang .357** is hidden in a hanging couch by a mobile home off Tanglewood Ln in Port Gellhorn. Shoot the supporting ropes, then sit on the fallen couch to claim the revolver. The *Bombazo!* publication also has a copy at the Formosa Ave apartments in Hamlet, inside the second ground-floor unit from the right (on the toilet).
 
 **Keep rewards and codes distinct:** The **Gutterball Moreland 850** is on the northeast **pool table**, not in the Kingpin Bowling office safe. **Pete's KZ-59** is on the hangar backroom **table**, not in the `3718` safe. **Killtelligence SM-69** is described as a hunting-quest reward, not an Ammu-Nation purchase. Named shop-exclusive variants should not be mistaken for world pickups.
 
@@ -416,7 +418,7 @@ The game's **Map > Robberies** may offer more current hints for active jobs.
 
 ### Standout Vehicles
 
-The **277-entry vehicle catalog** covers distinctive cars, motorcycles, aircraft, watercraft, liveries, and mission and stunt rewards. Entries give a pickup landmark, search area, or reward requirement where published.
+The **280-entry vehicle catalog** covers distinctive cars, motorcycles, aircraft, watercraft, liveries, and mission and stunt rewards. Entries give a pickup landmark, search area, or reward requirement where published.
 
 Examples:
 
@@ -431,6 +433,8 @@ Examples:
 | **Vanessa's Pink Pfister Growler** | Del Rio Blvd pink-bow garage near Auntie's Place, La Perle. Before Chapter 3 ends, unlock the laptop with `MuffinsQueen15`, **read WhatsUp**, and enter garage code `92665`; missable. |
 | **Peacock Sovereign** | Garage behind a gas station in Capri. |
 | **Street Art Squalo** | Boat trailer near the northeast end of Sunset Drive, Key Lento. |
+| **BF Muckspreader Bandito** | Yellow container in a junkyard near Boone Speedway, south of Hamlet; use the Chapter 3 Cut-Off Tool. |
+| **Maibatsu Cellerica Caddy** | Green branded golf cart outside Conference Hall B, Belville Cellerica campus, during Lucia's *Peach!* initiation. |
 | **Vapid Driveshaft Hustler** | Dolphin Drive, near Jeb's Snack Bar in southeastern Key Lento. |
 | **Invetero Spiderweb Coquette** | Party-house garage in southeastern Key Lento; reported keypad code `092319`. |
 | **Seashark Sedna (Graffiti)** | Key Lento; the exact dock is unconfirmed. |
@@ -442,6 +446,8 @@ Examples:
 | **Maibatsu Camo Caddy** | Next to a hut in Buckskin Swamp. Look for camouflage and American flags. |
 | **Vapid Peppermint Stanier** | Outside a storefront in La Perle. Look for the pearlescent finish and oversized wheels. |
 | **Berserker Sanchez, Black Dragon Maverick and Black Dragon Mallard** | Reported rewards for Stunt Jumps, Under the Bridge and Knife Flights, respectively. |
+
+**Acquisition tips:** The Street Art Squalo needs to be launched from its trailer. Bring the Chapter 3 Cut-Off Tool for the Muckspreader Bandito's shipping container. To see the Cellerica Caddy, progress Andy's Lucia-only missions through *Peach!* at the Belville campus.
 
 **Additional named Standouts and alternate locations (v1.9.5):** The catalog now includes the Cellerica Shamal at VCIA; Raul's Tempesta in the Scoop-container story job; Ultimate Edition Typhoon Squalo, Preziosa Cheetah and Wyman's restored reward vehicles; Memorial Sanchez; Thicc Esskey; GTA+ Venturas BLVD Elegy; and the Malibu Zombie Bobber. The earlier generic Phoenix is now correctly identified as **Blazin' Phoenix (existing ID 176)**, preserving its checkmark. **Seashell Boomazoom** is listed as an identified variant with no reliably documented pickup yet; it is not assigned a fabricated location.
 
@@ -459,6 +465,7 @@ The **pink Pfister Growler** has a checkmark under Standout Vehicles; it is not 
 
 ### Vehicle and property sources
 
+- [GTA Base - Muckspreader Bandito](https://www.gtabase.com/gta-6/vehicles/muckspreader-bandito), [GTA6Wiki - Street Art Squalo](https://gta6wiki.eu/vehicles/street-art-squalo/), [PowerPyx - Peach! initiation](https://www.powerpyx.com/gta-6-peach-join-the-cellerica-initiation-walkthrough/), and [GTA6 GPS - vehicle access notes](https://gta6gps.com/map/game/unique-vehicles).
 - [GAMETA - mapped Standout Vehicles and named variants](https://gameta.gg/gta6/map/standout-vehicles/); [Ultimate Edition vehicle and reward timing](https://gameta.gg/gta6/guides/ultimate-edition-items/); [GTA Base - Standout locations](https://www.gtabase.com/gta-6/map/?feature=standout-vehicle).
 - [GTA6Wiki - competing Gold Rush Tempesta pickup sites](https://gta6wiki.eu/vehicles/gold-rush-tempesta/); [GTA6Wiki - Venomous Marshall](https://gta6wiki.eu/vehicles/venomous-marshall/); [GTA Base - Crosstown GTA+ bundle](https://www.gtabase.com/gta-6/properties/gta-plus-crosstown-garage).
 - [Malibu Zombie Bobber portal walkthrough](https://www.keengamer.com/articles/guides/how-to-open-the-vice-city-portal-in-gta-6-and-get-tommy-vercettis-shirt/); [GTA Base - Malibu Zombie Bobber](https://www.gtabase.com/gta-6/vehicles/malibu-zombie-bobber).
