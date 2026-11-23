@@ -90,6 +90,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - BadUSB: [Hardened keyboard layout validation (By ANTONiO-eagle)](https://github.com/DarkFlippers/unleashed-firmware/pull/1224)
 - Updated: [GTA VI Companion v1.9.5 (By RogueMaster)](https://github.com/RogueMaster/GTA_VI_Companion)
 - Updated: [AC Detector v1.1 (By xMasterX)](https://github.com/xMasterX/all-the-plugins)
+- Updated: [Barcode App v2.1 (By Kingal1337 & AzureSky)](https://github.com/Kingal1337/flipper-barcode-generator)
 
 <a name="release"></a>
 
@@ -457,7 +458,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [BadUSB wPlaceholders v1.0 (By whitewhidow)](https://github.com/whitewhidow/flipper-badusb-ph)
 - [Ballu AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
 - [Bambu RFID v0.3 (By DanTheMan827)](https://github.com/DanTheMan827/bambu-rfid-flipper)
-- [Barcode App v1.5 (By Kingal1337)](https://github.com/Kingal1337/flipper-barcode-generator)
+- [Barcode App v2.1 (By Kingal1337 & AzureSky)](https://github.com/Kingal1337/flipper-barcode-generator)
 - [BarCode Scanner Emulator v0.5 (By polarikus)](https://github.com/polarikus/flipper-zero_bc_scanner_emulator) `Uses: COM-port`
 - [Battery Checker v0.2 (By Programistich)](https://github.com/Programistich/battery_checker)
 - [Better Mouse v1.2 (By timon)](https://github.com/xMasterX/all-the-plugins)

@@ -1,4 +1,5 @@
 #include "barcode_validator.h"
+#include "qrcodegen.h"
 
 void barcode_loader(BarcodeData* barcode_data) {
     switch(barcode_data->type_obj->type) {
@@ -18,6 +19,9 @@ void barcode_loader(BarcodeData* barcode_data) {
         break;
     case CODABAR:
         codabar_loader(barcode_data);
+        break;
+    case QRCODE:
+        qr_code_loader(barcode_data);
         break;
     case UNKNOWN:
         barcode_data->reason = UnsupportedType;
@@ -44,6 +48,7 @@ int calculate_check_digit(BarcodeData* barcode_data) {
     case CODE128:
     case CODE128C:
     case CODABAR:
+    case QRCODE:
     case UNKNOWN:
     default:
         break;
@@ -83,32 +88,42 @@ int calculate_ean_upc_check_digit(BarcodeData* barcode_data) {
     return (10 - check_digit) % 10;
 }
 
+static bool normalize_numeric_barcode_data(BarcodeData* barcode_data) {
+    int raw_length = furi_string_size(barcode_data->raw_data);
+    FuriString* normalized_data = furi_string_alloc();
+
+    for(int i = 0; i < raw_length; i++) {
+        char character = furi_string_get_char(barcode_data->raw_data, i);
+        if(character >= '0' && character <= '9') {
+            furi_string_push_back(normalized_data, character);
+        } else if(character != '-' && character != ' ' && character != '\t') {
+            furi_string_free(normalized_data);
+            barcode_data->reason = InvalidCharacters;
+            barcode_data->valid = false;
+            return false;
+        }
+    }
+
+    furi_string_set(barcode_data->raw_data, normalized_data);
+    furi_string_free(normalized_data);
+    return true;
+}
+
 /**
  * Loads and validates Barcode Types EAN-8, EAN-13, and UPC-A
  * barcode_data and its strings should already be allocated;
-*/
+ */
 void ean_upc_loader(BarcodeData* barcode_data) {
-    int barcode_length = furi_string_size(barcode_data->raw_data);
+    if(!normalize_numeric_barcode_data(barcode_data)) return;
 
+    int barcode_length = furi_string_size(barcode_data->raw_data);
     int min_digits = barcode_data->type_obj->min_digits;
     int max_digit = barcode_data->type_obj->max_digits;
 
-    //check the length of the barcode
     if(barcode_length < min_digits || barcode_length > max_digit) {
         barcode_data->reason = WrongNumberOfDigits;
         barcode_data->valid = false;
         return;
-    }
-
-    //checks if the barcode contains any characters that aren't a number
-    for(int i = 0; i < barcode_length; i++) {
-        char character = furi_string_get_char(barcode_data->raw_data, i);
-        int digit = character - '0'; //convert the number into an int (also the index)
-        if(digit < 0 || digit > 9) {
-            barcode_data->reason = InvalidCharacters;
-            barcode_data->valid = false;
-            return;
-        }
     }
 
     int check_digit = calculate_check_digit(barcode_data);
@@ -135,36 +150,40 @@ void ean_upc_loader(BarcodeData* barcode_data) {
 }
 
 void code_39_loader(BarcodeData* barcode_data) {
-    int barcode_length = furi_string_size(barcode_data->raw_data);
+    int raw_length = furi_string_size(barcode_data->raw_data);
+    FuriString* normalized_data = furi_string_alloc();
 
-    int min_digits = barcode_data->type_obj->min_digits;
+    // The asterisk is Code 39's reserved start/stop marker. Accept optional outer markers,
+    // normalize letters to uppercase, and reject an asterisk inside the actual payload.
+    for(int i = 0; i < raw_length; i++) {
+        char character = furi_string_get_char(barcode_data->raw_data, i);
+        if(character == '*' && (i == 0 || i == raw_length - 1)) continue;
+        if(character == '*') {
+            furi_string_free(normalized_data);
+            barcode_data->reason = InvalidCharacters;
+            barcode_data->valid = false;
+            return;
+        }
+        furi_string_push_back(normalized_data, toupper(character));
+    }
 
-    //check the length of the barcode, must contain atleast a character,
-    //this can have as many characters as it wants, it might not fit on the screen
-    if(barcode_length < min_digits) {
+    if(furi_string_empty(normalized_data)) {
+        furi_string_free(normalized_data);
         barcode_data->reason = WrongNumberOfDigits;
         barcode_data->valid = false;
         return;
     }
 
+    FuriString* framed_data = furi_string_alloc_set_str("*");
+    furi_string_cat(framed_data, normalized_data);
+    furi_string_push_back(framed_data, '*');
+    furi_string_set(barcode_data->raw_data, framed_data);
+    furi_string_free(framed_data);
+    furi_string_free(normalized_data);
+
+    int barcode_length = furi_string_size(barcode_data->raw_data);
     FuriString* barcode_bits = furi_string_alloc();
-    FuriString* temp_string = furi_string_alloc();
 
-    //add starting and ending *
-    if(!furi_string_start_with(barcode_data->raw_data, "*")) {
-        furi_string_push_back(temp_string, '*');
-        furi_string_cat(temp_string, barcode_data->raw_data);
-        furi_string_set(barcode_data->raw_data, temp_string);
-    }
-
-    if(!furi_string_end_with(barcode_data->raw_data, "*")) {
-        furi_string_push_back(barcode_data->raw_data, '*');
-    }
-
-    furi_string_free(temp_string);
-    barcode_length = furi_string_size(barcode_data->raw_data);
-
-    //Open Storage
     Storage* storage = furi_record_open(RECORD_STORAGE);
     FlipperFormat* ff = flipper_format_file_alloc(storage);
 
@@ -175,28 +194,22 @@ void code_39_loader(BarcodeData* barcode_data) {
     } else {
         FuriString* char_bits = furi_string_alloc();
         for(int i = 0; i < barcode_length; i++) {
-            char barcode_char = toupper(furi_string_get_char(barcode_data->raw_data, i));
-
-            //convert a char into a string so it used in flipper_format_read_string
-            char current_character[2];
-            snprintf(current_character, 2, "%c", barcode_char);
+            char barcode_char = furi_string_get_char(barcode_data->raw_data, i);
+            char current_character[2] = {barcode_char, '\0'};
 
             if(!flipper_format_read_string(ff, current_character, char_bits)) {
                 FURI_LOG_E(TAG, "Could not read \"%c\" string", barcode_char);
                 barcode_data->reason = InvalidCharacters;
                 barcode_data->valid = false;
                 break;
-            } else {
-                FURI_LOG_I(
-                    TAG, "\"%c\" string: %s", barcode_char, furi_string_get_cstr(char_bits));
-                furi_string_cat(barcode_bits, char_bits);
             }
+
+            furi_string_cat(barcode_bits, char_bits);
             flipper_format_rewind(ff);
         }
         furi_string_free(char_bits);
     }
 
-    //Close Storage
     flipper_format_free(ff);
     furi_record_close(RECORD_STORAGE);
 
@@ -251,6 +264,15 @@ void code_128_loader(BarcodeData* barcode_data) {
         barcode_data->reason = WrongNumberOfDigits;
         barcode_data->valid = false;
         return;
+    }
+
+    for(int i = 0; i < barcode_length; i++) {
+        char character = furi_string_get_char(barcode_data->raw_data, i);
+        if(character < 32 || character > 126) {
+            barcode_data->reason = InvalidCharacters;
+            barcode_data->valid = false;
+            return;
+        }
     }
 
     //Open Storage
@@ -363,7 +385,23 @@ void code_128_loader(BarcodeData* barcode_data) {
  * Loads a code 128 C barcode
 */
 void code_128c_loader(BarcodeData* barcode_data) {
+    if(!normalize_numeric_barcode_data(barcode_data)) return;
+
     int barcode_length = furi_string_size(barcode_data->raw_data);
+    if(barcode_length < 1) {
+        barcode_data->reason = WrongNumberOfDigits;
+        barcode_data->valid = false;
+        return;
+    }
+
+    // Code 128C encodes pairs. Pad a natural odd-length number with a leading zero.
+    if(barcode_length & 1) {
+        FuriString* padded_data = furi_string_alloc_set_str("0");
+        furi_string_cat(padded_data, barcode_data->raw_data);
+        furi_string_set(barcode_data->raw_data, padded_data);
+        furi_string_free(padded_data);
+        barcode_length++;
+    }
 
     //the start code for character set C
     int start_code_value = 105;
@@ -374,22 +412,12 @@ void code_128c_loader(BarcodeData* barcode_data) {
     //The bits for the stop code
     const char* stop_code_bits = "1100011101011";
 
-    int min_digits = barcode_data->type_obj->min_digits;
-
     int checksum_adder = start_code_value;
     int checksum_digits = 0;
 
     //the calculated check digit
     int final_check_digit = 0;
 
-    // check the length of the barcode, must contain atleast 2 character,
-    // this can have as many characters as it wants, it might not fit on the screen
-    // code 128 C: the length must be even
-    if((barcode_length < min_digits) || (barcode_length & 1)) {
-        barcode_data->reason = WrongNumberOfDigits;
-        barcode_data->valid = false;
-        return;
-    }
     //Open Storage
     Storage* storage = furi_record_open(RECORD_STORAGE);
     FlipperFormat* ff = flipper_format_file_alloc(storage);
@@ -484,24 +512,89 @@ void code_128c_loader(BarcodeData* barcode_data) {
     furi_string_free(barcode_bits);
 }
 
-void codabar_loader(BarcodeData* barcode_data) {
-    int barcode_length = furi_string_size(barcode_data->raw_data);
-
-    int min_digits = barcode_data->type_obj->min_digits;
-
-    //check the length of the barcode, must contain atleast a character,
-    //this can have as many characters as it wants, it might not fit on the screen
-    if(barcode_length < min_digits) {
+void qr_code_loader(BarcodeData* barcode_data) {
+    const char* text = furi_string_get_cstr(barcode_data->raw_data);
+    size_t text_length = furi_string_size(barcode_data->raw_data);
+    if(text_length == 0) {
         barcode_data->reason = WrongNumberOfDigits;
         barcode_data->valid = false;
         return;
     }
 
+    for(size_t i = 0; i < text_length; i++) {
+        unsigned char character = (unsigned char)text[i];
+        if(character < 32 || character > 126) {
+            barcode_data->reason = InvalidCharacters;
+            barcode_data->valid = false;
+            return;
+        }
+    }
+
+    uint8_t temp_buffer[qrcodegen_BUFFER_LEN_FOR_VERSION(1)];
+    uint8_t qr_code[qrcodegen_BUFFER_LEN_FOR_VERSION(1)];
+    if(!qrcodegen_encodeText(
+           text,
+           temp_buffer,
+           qr_code,
+           qrcodegen_Ecc_LOW,
+           1,
+           1,
+           qrcodegen_Mask_AUTO,
+           false)) {
+        barcode_data->reason = WrongNumberOfDigits;
+        barcode_data->valid = false;
+    }
+}
+
+void codabar_loader(BarcodeData* barcode_data) {
+    int raw_length = furi_string_size(barcode_data->raw_data);
+    if(raw_length < 1) {
+        barcode_data->reason = WrongNumberOfDigits;
+        barcode_data->valid = false;
+        return;
+    }
+
+    FuriString* normalized_data = furi_string_alloc();
+    for(int i = 0; i < raw_length; i++) {
+        furi_string_push_back(
+            normalized_data, toupper(furi_string_get_char(barcode_data->raw_data, i)));
+    }
+
+    char first = furi_string_get_char(normalized_data, 0);
+    char last = furi_string_get_char(normalized_data, raw_length - 1);
+    bool has_start_guard = first >= 'A' && first <= 'D';
+    bool has_end_guard = raw_length > 1 && last >= 'A' && last <= 'D';
+    int payload_start = has_start_guard ? 1 : 0;
+    int payload_end = has_end_guard ? raw_length - 1 : raw_length;
+
+    if(payload_end <= payload_start) {
+        furi_string_free(normalized_data);
+        barcode_data->reason = WrongNumberOfDigits;
+        barcode_data->valid = false;
+        return;
+    }
+
+    FuriString* framed_data = furi_string_alloc();
+    furi_string_push_back(framed_data, has_start_guard ? first : 'A');
+    for(int i = payload_start; i < payload_end; i++) {
+        char character = furi_string_get_char(normalized_data, i);
+        if(character >= 'A' && character <= 'D') {
+            furi_string_free(framed_data);
+            furi_string_free(normalized_data);
+            barcode_data->reason = InvalidCharacters;
+            barcode_data->valid = false;
+            return;
+        }
+        furi_string_push_back(framed_data, character);
+    }
+    furi_string_push_back(framed_data, has_end_guard ? last : 'A');
+    furi_string_set(barcode_data->raw_data, framed_data);
+    furi_string_free(framed_data);
+    furi_string_free(normalized_data);
+
+    int barcode_length = furi_string_size(barcode_data->raw_data);
     FuriString* barcode_bits = furi_string_alloc();
 
-    barcode_length = furi_string_size(barcode_data->raw_data);
-
-    //Open Storage
     Storage* storage = furi_record_open(RECORD_STORAGE);
     FlipperFormat* ff = flipper_format_file_alloc(storage);
 
@@ -512,28 +605,22 @@ void codabar_loader(BarcodeData* barcode_data) {
     } else {
         FuriString* char_bits = furi_string_alloc();
         for(int i = 0; i < barcode_length; i++) {
-            char barcode_char = toupper(furi_string_get_char(barcode_data->raw_data, i));
-
-            //convert a char into a string so it used in flipper_format_read_string
-            char current_character[2];
-            snprintf(current_character, 2, "%c", barcode_char);
+            char barcode_char = furi_string_get_char(barcode_data->raw_data, i);
+            char current_character[2] = {barcode_char, '\0'};
 
             if(!flipper_format_read_string(ff, current_character, char_bits)) {
                 FURI_LOG_E(TAG, "Could not read \"%c\" string", barcode_char);
                 barcode_data->reason = InvalidCharacters;
                 barcode_data->valid = false;
                 break;
-            } else {
-                FURI_LOG_I(
-                    TAG, "\"%c\" string: %s", barcode_char, furi_string_get_cstr(char_bits));
-                furi_string_cat(barcode_bits, char_bits);
             }
+
+            furi_string_cat(barcode_bits, char_bits);
             flipper_format_rewind(ff);
         }
         furi_string_free(char_bits);
     }
 
-    //Close Storage
     flipper_format_free(ff);
     furi_record_close(RECORD_STORAGE);
 

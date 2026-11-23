@@ -3,7 +3,7 @@
 #include <furi.h>
 #include <furi_hal.h>
 
-#define NUMBER_OF_BARCODE_TYPES 8
+#define NUMBER_OF_BARCODE_TYPES 9
 
 typedef enum {
     WrongNumberOfDigits, //There is too many or too few digits in the barcode
@@ -24,6 +24,7 @@ typedef enum {
     CODE128,
     CODE128C,
     CODABAR,
+    QRCODE,
 
     UNKNOWN
 } BarcodeType;

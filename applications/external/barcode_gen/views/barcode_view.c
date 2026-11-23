@@ -1,6 +1,7 @@
 #include "../barcode_app.h"
 #include "barcode_view.h"
 #include "../encodings.h"
+#include "../qrcodegen.h"
 
 /**
  * @brief Draws a single bit from a barcode at a specified location
@@ -323,6 +324,43 @@ static void draw_code_128(Canvas* canvas, BarcodeData* barcode_data) {
         canvas, 62, y + height + 8, AlignCenter, AlignBottom, furi_string_get_cstr(raw_data));
 }
 
+static void draw_qr_code(Canvas* canvas, BarcodeData* barcode_data) {
+    uint8_t temp_buffer[qrcodegen_BUFFER_LEN_FOR_VERSION(1)];
+    uint8_t qr_code[qrcodegen_BUFFER_LEN_FOR_VERSION(1)];
+    if(!qrcodegen_encodeText(
+           furi_string_get_cstr(barcode_data->raw_data),
+           temp_buffer,
+           qr_code,
+           qrcodegen_Ecc_LOW,
+           1,
+           1,
+           qrcodegen_Mask_AUTO,
+           false)) {
+        return;
+    }
+
+    const int module_scale = 2;
+    const int quiet_zone = 4;
+    const int qr_size = qrcodegen_getSize(qr_code);
+    const int display_size = (qr_size + quiet_zone * 2) * module_scale;
+    const int start_x = (128 - display_size) / 2 + quiet_zone * module_scale;
+    const int start_y = (64 - display_size) / 2 + quiet_zone * module_scale;
+
+    canvas_set_color(canvas, ColorBlack);
+    for(int y = 0; y < qr_size; y++) {
+        for(int x = 0; x < qr_size; x++) {
+            if(qrcodegen_getModule(qr_code, x, y)) {
+                canvas_draw_box(
+                    canvas,
+                    start_x + x * module_scale,
+                    start_y + y * module_scale,
+                    module_scale,
+                    module_scale);
+            }
+        }
+    }
+}
+
 static void draw_codabar(Canvas* canvas, BarcodeData* barcode_data) {
     FuriString* raw_data = barcode_data->raw_data;
     FuriString* barcode_digits = barcode_data->correct_data;
@@ -412,6 +450,9 @@ static void barcode_draw_callback(Canvas* canvas, void* ctx) {
             break;
         case CODABAR:
             draw_codabar(canvas, data);
+            break;
+        case QRCODE:
+            draw_qr_code(canvas, data);
             break;
         case UNKNOWN:
         default:

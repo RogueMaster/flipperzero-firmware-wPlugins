@@ -46,7 +46,7 @@ void init_types() {
     BarcodeTypeObj* code_128c = malloc(sizeof(BarcodeTypeObj));
     code_128c->name = "CODE-128C";
     code_128c->type = CODE128C;
-    code_128c->min_digits = 2;
+    code_128c->min_digits = 1;
     code_128c->max_digits = -1;
     code_128c->start_pos = 0;
     barcode_type_objs[CODE128C] = code_128c;
@@ -58,6 +58,14 @@ void init_types() {
     codabar->max_digits = -1;
     codabar->start_pos = 0;
     barcode_type_objs[CODABAR] = codabar;
+
+    BarcodeTypeObj* qr_code = malloc(sizeof(BarcodeTypeObj));
+    qr_code->name = "QR Code";
+    qr_code->type = QRCODE;
+    qr_code->min_digits = 1;
+    qr_code->max_digits = -1;
+    qr_code->start_pos = 0;
+    barcode_type_objs[QRCODE] = qr_code;
 
     BarcodeTypeObj* unknown = malloc(sizeof(BarcodeTypeObj));
     unknown->name = "Unknown";
@@ -95,6 +103,9 @@ BarcodeTypeObj* get_type(FuriString* type_string) {
     }
     if(furi_string_cmp_str(type_string, "Codabar") == 0) {
         return barcode_type_objs[CODABAR];
+    }
+    if(furi_string_cmp_str(type_string, "QR Code") == 0) {
+        return barcode_type_objs[QRCODE];
     }
 
     return barcode_type_objs[UNKNOWN];

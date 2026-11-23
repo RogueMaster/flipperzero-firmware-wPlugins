@@ -1,6 +1,5 @@
 #include "barcode_app.h"
 
-#include <assets_icons.h>
 #include "barcode_app_icons.h"
 #include <notification/notification.h>
 #include <notification/notification_messages.h>
@@ -321,6 +320,7 @@ int32_t barcode_main(void* p) {
     app->gui = furi_record_open(RECORD_GUI);
 
     app->view_dispatcher = view_dispatcher_alloc();
+
     view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
 
     app->main_menu = submenu_alloc();
@@ -372,16 +372,19 @@ int32_t barcode_main(void* p) {
         128,
         64,
         "\e#Error Codes\n"
-        "\e#Wrong # Of Characters\n"
-        "The barcode data has too \nmany or too few characters\n"
-        "UPC-A: 11-12 characters\n"
-        "EAN-8: 7-8 characters\n"
-        "EAN-13: 12-13 characters\n"
-        "Code128C - even # of \ncharacters\n"
+        "\e#Format Rules\n"
+        "UPC-A: 11-12 digits\n"
+        "EAN-8: 7-8 digits\n"
+        "EAN-13: 12-13 digits\n"
+        "For UPC/EAN, the shorter form gets a calculated check digit. Hyphens/spaces are ignored.\n"
+        "Code 39: A-Z, 0-9, space, - . $ / + %. Outer * guards are optional and added automatically.\n"
+        "Code 128: printable ASCII.\n"
+        "Code 128C: digits only; hyphens/spaces are ignored and odd digit counts receive a leading zero.\n"
+        "Codabar: 0-9, - $ : / . + with optional A-D outer guards. Missing guards are added automatically.\n"
+        "QR Code: printable ASCII. The screen-readable version 1 symbol fits 41 digits, 25 QR alphanumeric characters, or 17 general ASCII characters.\n"
         "\n"
         "\e#Invalid Characters\n"
-        "The barcode data has invalid \ncharacters.\n"
-        "Ex: UPC-A, EAN-8, EAN-13 barcodes can only have \nnumbers while Code128 can \nhave almost any character\n"
+        "Only characters supported by the selected format are shown and accepted.\n"
         "\n"
         "\e#Unsupported Type\n"
         "The barcode type is not \nsupported by this application\n"
@@ -417,12 +420,16 @@ int32_t barcode_main(void* p) {
         "This is a barcode generator\n"
         "capable of generating UPC-A,\n"
         "EAN-8, EAN-13, Code-39,\n"
-        "Codabar, and Code-128\n"
+        "Codabar, Code-128, and QR\n"
         "\n"
-        "author: @Kingal1337\n"
+        "Original author:\n"
+        "@Kingal1337\n"
         "\n"
-        "For more information or\n"
-        "issues, go to\n"
+        "QR and keyboard revisions:\n"
+        "AzureSky\n"
+        "https://github.com/AzzureSkyy/barcode-generator-azuresky\n"
+        "\n"
+        "Original project:\n"
         "https://github.com/Kingal1337/flipper-barcode-generator");
     view_set_previous_callback(widget_get_view(app->about_widget), main_menu_callback);
     view_dispatcher_add_view(
