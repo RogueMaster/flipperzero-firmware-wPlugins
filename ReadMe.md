@@ -90,8 +90,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - BadUSB: [Hardened keyboard layout validation (By ANTONiO-eagle)](https://github.com/DarkFlippers/unleashed-firmware/pull/1224)
 - Updated: [AC Detector v1.1 (By xMasterX)](https://github.com/xMasterX/all-the-plugins)
 - Updated: [Barcode App v2.1 (By Kingal1337 & AzureSky)](https://github.com/Kingal1337/flipper-barcode-generator)
-- Updated: [GTA VI Companion v1.9.5 (By RogueMaster)](https://github.com/RogueMaster/GTA_VI_Companion)
 - Added: [TommyBox Capture v1.0 (By mitchsurp)](https://github.com/mitchsurp/Tonies-Capture-Flipper)
+- Updated: [GTA VI Companion v1.9.6 (By RogueMaster)](https://github.com/RogueMaster/GTA_VI_Companion) - Update for Infinite Money Glitch before its patched!
 
 <a name="release"></a>
 
@@ -706,7 +706,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [GPS v1.5 (By ezod)](https://github.com/ezod/flipperzero-gps) `Req: NMEA 0183`
 - [Gree AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
 - [GS1 Parser v0.2 (By kdiller713)](https://github.com/kdiller713/public-FlipperApps/tree/main/gs1_rfid_parser) `Req: U107 or YRM100`
-- [GTA VI Companion v1.9.5 (By RogueMaster)](https://github.com/RogueMaster/GTA_VI_Companion)
+- [GTA VI Companion v1.9.6 (By RogueMaster)](https://github.com/RogueMaster/GTA_VI_Companion)
 - [Guido Music Score Reader v0.1 (By fgreil)](https://github.com/fgreil/mitzi-guido)
 - [Guitar Chords v1.0 (By KingBoa / NoodleNugget-com)](https://github.com/NoodleNugget-com/flipper-guitar-chords)
 - [H1030L Writer v1.3 (By Zacvr)](https://github.com/Zacvr/h10301_writer)

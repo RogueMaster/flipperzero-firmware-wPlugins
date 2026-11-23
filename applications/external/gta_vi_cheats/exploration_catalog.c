@@ -27,7 +27,7 @@ static const GtaExploreSection waink[] = {
     GTA_LEAF("Landmarks", "landmarks", 31, "Scanned"),
     GTA_LEAF("Curiosities", "curiosities", 35, "Scanned"),
     GTA_LEAF("Sculptures", "sculptures", 23, "Scanned"),
-    GTA_LEAF("No Flusher Tags", "no_flusher", 0, "Scanned"),
+    GTA_LEAF("No Flusher Tags", "no_flusher", 15, "Scanned"),
     GTA_LEAF("Peewees Billboards", "peewees", 4, "Scanned"),
 };
 
@@ -67,6 +67,8 @@ static const GtaExploreSection activity_robberies[] = {
     GTA_LEAF("Payday Loan Jobs", "payday_loans", 7, "Robbed"),
     GTA_LEAF("Fence Sale Milestones", "fence_goals", 4, "Reached"),
     GTA_LEAF("Challenge Milestones", "challenge_milestones", 19, "Reached"),
+    GTA_LEAF("Challenge Objectives", "challenge_objectives", 80, "Completed"),
+    GTA_LEAF("Bret's Target Decks", "bret_target_decks", 15, "Completed"),
     GTA_LEAF("Smash and Grabs", "smash_grabs", 35, "Robbed"),
     GTA_LEAF("Stick-Up Leads (partial)", "stickup_leads", 91, "Checked"),
     GTA_LEAF("Drone Time Trials", "drone_trials", 42, "Completed"),

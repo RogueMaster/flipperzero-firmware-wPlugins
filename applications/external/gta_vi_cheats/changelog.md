@@ -1,5 +1,18 @@
 # GTA VI Companion changelog
 
+## v1.9.6 — Vehicles and Collection Updates
+- Added a checklist of all **80 named Challenge objectives**, grouped by game category with individual goals; retained the existing 19 challenge milestones and their saved checkmarks.
+- Added the first three location-documented **Bret Target Decks** with target species, hunting areas and carcass-quality tips; retained Bret's existing optional-mission entry and documented the remaining unmapped decks as incomplete research.
+- Corrected the No Flusher Tags collection total to **15**, matching the 15 existing WAiNK scan records without duplicating scans.
+- Added Lucia's **Buzz Cut** magazine-style pickup in Hamlet to the existing Lucia styles catalog, using its own progress ID.
+- Expanded the Bret Vogel mission's in-app guidance and updated the README to distinguish fully enumerated objectives from partially mapped discoveries.
+- Added all remaining twelve numbered Bret Target Deck checklists (15 total), preserving the first three named contracts and avoiding unsupported animal/spawn claims.
+- Added separate Watson Bay Cocaine Flamingos in the table-top room and candlelit east-side building (43 mapped pickups total).
+- Expanded all six existing Underwater Discoveries with wreck-specific relic or doubloon search directions, without changing wreck IDs or adding unverified discoveries.
+- Located all six Cinco Torres treasures and completed the individual La Noche, Santa Sierra and Lujuriosa search notes under the original Kenton sets.
+- Added Del Ocio search areas and clarified that its ten doubloons may be recovered in fewer digs; the story wreck remains separate from Kenton's seven sets.
+- Clarified timed, weapon, location and completion conditions for selected entries in the existing 80 Challenge objectives; retained all 19 milestone checkmarks.
+
 ## v1.9.5 — Fences
 - Added seven individually checkable Fences under Collections, immediately before Endings, sorted by chapter unlock: Brian, Donnie, Moses, Dunk, Tyrone, Yasmani and Randy.
 - Added unlock missions, selling locations, goods accepted, story-related availability and delayed/direct payment details.
