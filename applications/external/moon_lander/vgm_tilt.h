@@ -20,13 +20,13 @@ typedef struct VgmTilt VgmTilt;
 VgmTilt* vgm_tilt_alloc(void);
 
 /* Release IMU resources. */
-void     vgm_tilt_free(VgmTilt* v);
+void vgm_tilt_free(VgmTilt* v);
 
 /* Returns true if the VGM was detected and IMU data is valid. */
-bool     vgm_tilt_present(const VgmTilt* v);
+bool vgm_tilt_present(const VgmTilt* v);
 
 /* Current pitch in degrees (see convention above). */
-float    vgm_tilt_pitch(VgmTilt* v);
+float vgm_tilt_pitch(VgmTilt* v);
 
 /* Current roll in degrees (see convention above). */
-float    vgm_tilt_roll(VgmTilt* v);
+float vgm_tilt_roll(VgmTilt* v);

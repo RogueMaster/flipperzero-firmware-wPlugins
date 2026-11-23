@@ -8,13 +8,13 @@
 
 /* Chosen in the menu, used by the game. */
 typedef enum {
-    ThrustModeTapImpulse = 0,   // each tap of the thrust key = one fixed impulse
-    ThrustModeBinary,           // hold the thrust key = full thrust, release = off
-    ThrustModeRamp,             // hold the thrust key, thrust ramps up over time
-    ThrustModeVidyaTap,         // VGM tilt steering + tap impulse
-    ThrustModeVidyaBinary,      // VGM tilt steering + binary (held key) thrust
-    ThrustModeVidyaRamp,        // VGM tilt steering + ramped (held key) thrust
-    ThrustModeVidyaFull,        // VGM full tilt: tilt steers AND fires thrusters
+    ThrustModeTapImpulse = 0, // each tap of the thrust key = one fixed impulse
+    ThrustModeBinary, // hold the thrust key = full thrust, release = off
+    ThrustModeRamp, // hold the thrust key, thrust ramps up over time
+    ThrustModeVidyaTap, // VGM tilt steering + tap impulse
+    ThrustModeVidyaBinary, // VGM tilt steering + binary (held key) thrust
+    ThrustModeVidyaRamp, // VGM tilt steering + ramped (held key) thrust
+    ThrustModeVidyaFull, // VGM full tilt: tilt steers AND fires thrusters
     ThrustModeCount,
 } ThrustMode;
 
@@ -40,16 +40,16 @@ extern const char* const thrust_key_label[ThrustKeyCount];
  * total tank for the entire game; crashing rewinds to that level's starting
  * fuel rather than draining what's left. */
 typedef enum {
-    FuelModeFull = 0,    // 100 fuel, refilled every level
-    FuelModeEasy,        // 500 fuel total, no top-up
-    FuelModeMed,         // 350 fuel total, no top-up
-    FuelModeHard,        // 200 fuel total, no top-up
+    FuelModeFull = 0, // 100 fuel, refilled every level
+    FuelModeEasy, // 500 fuel total, no top-up
+    FuelModeMed, // 350 fuel total, no top-up
+    FuelModeHard, // 200 fuel total, no top-up
     FuelModeCount,
 } FuelMode;
 
 extern const char* const fuel_mode_label[FuelModeCount];
 extern const char* const fuel_mode_desc[FuelModeCount];
-extern const int        fuel_mode_starting[FuelModeCount];
+extern const int fuel_mode_starting[FuelModeCount];
 
 typedef enum {
     ScreenMenu = 0,
@@ -63,20 +63,20 @@ typedef enum {
 } Screen;
 
 typedef enum {
-    DifficultyEasy = 0,  // safe thresholds doubled
-    DifficultyMedium,    // baseline (original values)
-    DifficultyHard,      // safe thresholds halved
+    DifficultyEasy = 0, // safe thresholds doubled
+    DifficultyMedium, // baseline (original values)
+    DifficultyHard, // safe thresholds halved
     DifficultyRealistic, // Vy<1, Vx<1, angle<3°
-    DifficultyCustom,    // player-set limits, never looser than Easy
+    DifficultyCustom, // player-set limits, never looser than Easy
     DifficultyCount,
 } Difficulty;
 
 extern const char* const difficulty_label[DifficultyCount];
 
 /* Custom difficulty ranges: 1 up to Easy's limits. */
-#define CUSTOM_VX_MAX     8
-#define CUSTOM_VY_MAX     16
-#define CUSTOM_ANGLE_MAX  25   // degrees
+#define CUSTOM_VX_MAX    8
+#define CUSTOM_VY_MAX    16
+#define CUSTOM_ANGLE_MAX 25 // degrees
 
 typedef enum {
     SoundOff = 0,
@@ -89,9 +89,9 @@ typedef enum {
 typedef enum {
     /* Every buzz (thrust, taps, crash, landing) is software-PWM'd per tick. */
     VibrationOff = 0,
-    VibrationLow,   // motor on 1 tick in 4
-    VibrationMed,   // motor on 1 tick in 2
-    VibrationHigh,  // motor on continuously
+    VibrationLow, // motor on 1 tick in 4
+    VibrationMed, // motor on 1 tick in 2
+    VibrationHigh, // motor on continuously
     VibrationCount,
 } VibrationLevel;
 

@@ -16,7 +16,7 @@ struct VgmTilt {
 
 VgmTilt* vgm_tilt_alloc(void) {
     VgmTilt* v = malloc(sizeof(VgmTilt));
-    v->imu     = imu_alloc();
+    v->imu = imu_alloc();
     v->present = imu_present(v->imu);
     return v;
 }

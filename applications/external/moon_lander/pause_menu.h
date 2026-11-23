@@ -16,9 +16,9 @@ typedef enum {
 } PauseAction;
 
 typedef struct {
-    bool    open;
-    bool    zero_tilt;  // has the Zero tilt row (the tilt modes)
-    uint8_t sel;        // focused row
+    bool open;
+    bool zero_tilt; // has the Zero tilt row (the tilt modes)
+    uint8_t sel; // focused row
 } PauseMenu;
 
 /* Opens the menu with Resume focused. */

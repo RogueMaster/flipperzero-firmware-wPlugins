@@ -20,16 +20,19 @@ static PauseRow row_at(const PauseMenu* p, int i) {
 
 static const char* row_label(PauseRow row) {
     switch(row) {
-        case PauseRowZeroTilt: return "Zero tilt";
-        case PauseRowQuit:     return "Back to menu";
-        default:               return "Resume";
+    case PauseRowZeroTilt:
+        return "Zero tilt";
+    case PauseRowQuit:
+        return "Back to menu";
+    default:
+        return "Resume";
     }
 }
 
 void pause_menu_open(PauseMenu* p, bool zero_tilt) {
-    p->open      = true;
+    p->open = true;
     p->zero_tilt = zero_tilt;
-    p->sel       = 0;
+    p->sel = 0;
 }
 
 PauseAction pause_menu_input(PauseMenu* p, const InputEvent* ev) {
@@ -39,9 +42,12 @@ PauseAction pause_menu_input(PauseMenu* p, const InputEvent* ev) {
     if(ev->key == InputKeyDown && p->sel < last) p->sel++;
     if(ev->key == InputKeyOk && ev->type == InputTypeShort) {
         switch(row_at(p, p->sel)) {
-            case PauseRowZeroTilt: return PauseActionZeroTilt;
-            case PauseRowQuit:     return PauseActionQuit;
-            default:               return PauseActionResume;
+        case PauseRowZeroTilt:
+            return PauseActionZeroTilt;
+        case PauseRowQuit:
+            return PauseActionQuit;
+        default:
+            return PauseActionResume;
         }
     }
     return PauseActionNone;
