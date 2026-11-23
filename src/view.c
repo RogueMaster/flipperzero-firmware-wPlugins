@@ -514,12 +514,14 @@ void draw_cb(Canvas *c, void *ctx)
         for (int i = 0; i < 3; i++)
             canvas_draw_str(c, px + 4, py + 3 + FONT_SIZE_PX + i * 10, info[i]);
 
-        const char *labels[MENU_ITEMS] = {"Save", "Decode", "Cut", "Undo"};
+        static const char *const ops[EditOps] = {"Cut", "Copy", "Paste"};
+        const char *labels[MENU_ITEMS] = {"Save", "Decode", ops[a->edit_op], "Undo"};
         for (int i = 0; i < MENU_ITEMS; i++)
         {
             int ry = by + 2 + i * 14;
             int rh = 13;
-            bool disabled = (i == MENU_SEL_UNDO && !a->undo_n);
+            bool disabled = (i == MENU_SEL_UNDO && !a->undo_n) ||
+                            (i == MENU_SEL_CUT && a->edit_op == EditPaste && !a->clip_count);
 
             if (a->menu_sel == i)
             {
@@ -537,6 +539,17 @@ void draw_cb(Canvas *c, void *ctx)
 
             if (disabled)
                 canvas_draw_line(c, cx - 13, ry + rh / 2, cx + 13, ry + rh / 2);
+
+            // Filled arrowheads: Left/Right switch Cut, Copy and Paste
+            if (i == MENU_SEL_CUT)
+            {
+                int cy = ry + rh / 2;
+                for (int j = 0; j < 3; j++)
+                {
+                    canvas_draw_line(c, bx + 5 + j, cy - j, bx + 5 + j, cy + j);
+                    canvas_draw_line(c, bx + bw - 6 - j, cy - j, bx + bw - 6 - j, cy + j);
+                }
+            }
         }
 
         canvas_set_color(c, ColorBlack);

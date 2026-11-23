@@ -85,8 +85,14 @@ The app lets you choose which custom button to use, if its protocol supports the
   - *Cut* removes everything between the markers from the working copy and
     joins the two sides back together, so you can delete a noisy stretch or an
     unwanted frame and keep editing. The original file is never changed; only
-    Save writes a new `.sub`.
-  - *Undo* reverts the last cut. With more than one cut behind you it lists the
+    Save writes a new `.sub`. **Left / Right** on this item switch it between
+    *Cut*, *Copy* and *Paste* (the small arrowheads beside it):
+    - *Copy* puts exactly A..B on the clipboard - a file in `tmp`, so it can be
+      any length and takes no RAM. *Cut* puts what it removes there too.
+    - *Paste* inserts the clipboard at the active marker and selects what was
+      pasted, e.g. to repeat a frame. It is struck through until something is
+      copied.
+  - *Undo* reverts the last cut or paste. With more than one behind you it lists the
     history, newest first - e.g. `3. Cut -120 @1.25s` (the step, the samples it
     removed and where) - and goes back to before the one you pick, undoing all
     later steps too. It is greyed out (struck through) when there is nothing to
@@ -137,9 +143,9 @@ When loading any signal other than RAW, the app lets you choose which custom but
 | OK (hold)    | Open the action menu (**Save / Decode / Cut / Undo**) |
 | Back         | Exit                                            |
 
-In the action menu, **Up / Down** move between Save, Decode, Cut and Undo, **OK**
-confirms the highlighted action and **Back** closes the menu without doing
-anything.
+In the action menu, **Up / Down** move between Save, Decode, Cut and Undo,
+**Left / Right** on Cut switch it to Copy or Paste, **OK** confirms the
+highlighted action and **Back** closes the menu without doing anything.
 
 The active marker is the one drawn as a solid line with a small box on top, and
 marked with `>` in the bottom bar. The other marker is dotted.
@@ -169,8 +175,10 @@ marked with `>` in the bottom bar. The other marker is dotted.
    - **Cut** - the stretch between A and B is removed from the working copy and
      the two sides are joined. Re-place the markers and Cut again to clean up
      further, or Save when you are happy. If a cut would leave nothing behind it
-     is refused and rolled back.
-   - **Undo** - revert the last cut, or pick from the history how far back to go.
+     is refused and rolled back. What is cut goes to the clipboard, ready to
+     paste. **Left / Right** turn it into **Copy** (A..B to
+     the clipboard) or **Paste** (the clipboard in at the active marker).
+   - **Undo** - revert the last cut or paste, or pick from the history how far back to go.
 
 ## File format
 

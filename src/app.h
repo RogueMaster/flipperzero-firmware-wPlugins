@@ -150,10 +150,13 @@ typedef struct
     int active;
 } WorkState;
 
+// What the menu's third item does; Left/Right on it switch.
 typedef enum
 {
     EditCut,
+    EditCopy,
     EditPaste,
+    EditOps,
 } EditOp;
 
 // One step of the Undo history: the state before an edit, whose working file is undo_<id>.bin.
@@ -169,6 +172,7 @@ typedef struct
 #define WORK_DIR APP_DATA_PATH("tmp")
 #define WORK_PATH WORK_DIR "/work.bin"
 #define WORK_NEW_PATH WORK_DIR "/work.new"
+#define CLIP_PATH WORK_DIR "/clip.bin"
 #define UNDO_DIR WORK_DIR "/undos"
 #define UNDO_MAX 32 // the oldest step is dropped past this
 #define WORK_CHUNK 128 // samples per buffered file read or write
@@ -225,6 +229,10 @@ typedef struct
     uint32_t info_spl;
     uint32_t info_te;
     const char *info_enc;
+
+    uint8_t edit_op; // EditOp
+    size_t clip_count; // samples copied to CLIP_PATH
+    int32_t clip_us;
 
     UndoEntry *undo; // the Undo history, oldest first
     size_t undo_n;
@@ -369,6 +377,8 @@ bool work_load(App *a, size_t s0);
 bool work_slide(App *a, int dir);
 bool work_open(App *a);
 bool work_cut(App *a);
+bool clip_store(App *a);
+bool work_paste(App *a);
 bool work_undo(App *a, size_t k);
 void undo_label(const App *a, size_t k, char *out, size_t n);
 void work_cleanup(Storage *st);

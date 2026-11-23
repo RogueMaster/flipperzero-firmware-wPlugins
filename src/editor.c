@@ -54,27 +54,36 @@ void prompt_and_save(
     view_port_update(vp);
 }
 
-static void do_cut_action(ViewPort *vp, FuriMessageQueue *queue, DialogsApp *dialogs, App *a)
+// The menu's Cut / Copy / Paste item.
+static void do_edit_action(ViewPort *vp, FuriMessageQueue *queue, DialogsApp *dialogs, App *a)
 {
     furi_mutex_acquire(a->mutex, FuriWaitForever);
+    a->status_until = furi_get_tick() + 1500;
+    bool paste = a->edit_op == EditPaste;
 
-    int32_t lo = a->marker_a, hi = a->marker_b;
-    if (lo > hi)
+    if (paste && !a->clip_count)
     {
-        int32_t t = lo;
-        lo = hi;
-        hi = t;
-    }
-
-    if (hi - lo < 1)
-    {
-        snprintf(a->status, sizeof(a->status), "Range too small");
-        a->status_until = furi_get_tick() + 1500;
+        snprintf(a->status, sizeof(a->status), "Nothing copied yet");
         furi_mutex_release(a->mutex);
         return;
     }
 
-    if (a->sd.file_count - a->sd.count + cut_run(a, false) < 2)
+    if (!paste && iabs32(a->marker_b - a->marker_a) < 1)
+    {
+        snprintf(a->status, sizeof(a->status), "Range too small");
+        furi_mutex_release(a->mutex);
+        return;
+    }
+
+    if (a->edit_op == EditCopy)
+    {
+        bool ok = clip_store(a);
+        snprintf(a->status, sizeof(a->status), ok ? "Copied %u samples" : "Copy failed", (unsigned)a->clip_count);
+        furi_mutex_release(a->mutex);
+        return;
+    }
+
+    if (!paste && a->sd.file_count - a->sd.count + cut_run(a, false) < 2)
     {
         furi_mutex_release(a->mutex);
 
@@ -83,16 +92,24 @@ static void do_cut_action(ViewPort *vp, FuriMessageQueue *queue, DialogsApp *dia
         return;
     }
 
+    // Like a copy, a cut puts A..B on the clipboard
+    if (!paste)
+        clip_store(a);
+
     // The wait screen draws nothing of the signal, so the file can be rewritten unlocked.
-    a->busy = "Cutting...";
+    a->busy = paste ? "Pasting..." : "Cutting...";
     furi_mutex_release(a->mutex);
     view_port_update(vp);
 
-    bool ok = work_cut(a);
+    bool ok = paste ? work_paste(a) : work_cut(a);
 
     furi_mutex_acquire(a->mutex, FuriWaitForever);
     a->busy = NULL;
-    snprintf(a->status, sizeof(a->status), ok ? "Cut" : "Cut failed\nSD card error");
+    if (ok)
+        snprintf(a->status, sizeof(a->status), paste ? "Pasted" : "Cut");
+    else
+        snprintf(a->status, sizeof(a->status), "%s failed\nSD card error", paste ? "Paste" : "Cut");
+
     a->status_until = furi_get_tick() + 1200;
     furi_mutex_release(a->mutex);
 }
@@ -202,6 +219,10 @@ void run_editor_session(
                     {
                         app->menu_sel = (app->menu_sel + MENU_ITEMS - 1) % MENU_ITEMS;
                     }
+                    else if (app->menu_sel == MENU_SEL_CUT && (e.key == InputKeyLeft || e.key == InputKeyRight))
+                    {
+                        app->edit_op = (app->edit_op + (e.key == InputKeyRight ? 1 : EditOps - 1)) % EditOps;
+                    }
                     else if (e.key == InputKeyOk)
                     {
                         app->mode = EditModeEdit;
@@ -306,7 +327,7 @@ void run_editor_session(
             }
             else if (want_cut)
             {
-                do_cut_action(vp, queue, dialogs, app);
+                do_edit_action(vp, queue, dialogs, app);
             }
             else if (want_undo)
             {
