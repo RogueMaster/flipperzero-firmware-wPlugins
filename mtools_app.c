@@ -2,6 +2,7 @@
 #include "features/uid_changer.h"
 #include "features/about_ndef.h"
 #include "features/magic_check.h"
+#include "features/bcc_recover.h"
 #include "ui/mtools_ui.h"
 
 #include <furi.h>
@@ -31,13 +32,34 @@ static bool mtools_view_input(InputEvent* event, void* context) {
         view_dispatcher_send_custom_event(app->view_dispatcher, MTOOLS_EVENT_RESCAN);
         return true;
     }
+    if(app->active_scene == MToolsSceneBccRecover) {
+        if(event->key == InputKeyOk) {
+            mtools_bcc_recover_input(app, event->key);
+            return true;
+        }
+        return false;
+    }
     if(app->active_scene != MToolsSceneHome) return false;
     if(event->key == InputKeyLeft || event->key == InputKeyRight ||
        event->key == InputKeyUp || event->key == InputKeyDown) {
-        if(event->key == InputKeyUp || event->key == InputKeyLeft)
-            app->selected_tool = (app->selected_tool + 2) % 3;
-        else
-            app->selected_tool = (app->selected_tool + 1) % 3;
+        if(event->key == InputKeyUp || event->key == InputKeyLeft) {
+            if(app->selected_tool == 0) {
+                app->selected_tool = 3;
+            } else {
+                app->selected_tool--;
+            }
+        } else {
+            if(app->selected_tool >= 3) {
+                app->selected_tool = 0;
+            } else {
+                app->selected_tool++;
+            }
+        }
+        if(app->selected_tool < app->home_window_offset) {
+            app->home_window_offset = app->selected_tool;
+        } else if(app->selected_tool >= app->home_window_offset + 3) {
+            app->home_window_offset = app->selected_tool - 3 + 1;
+        }
         view_commit_model(app->main_view, true);
         return true;
     }
@@ -51,15 +73,20 @@ static bool mtools_view_input(InputEvent* event, void* context) {
 static void mtools_scene_home_on_enter(void* context) {
     MToolsApp* app = context;
     app->active_scene = MToolsSceneHome;
+    if(app->selected_tool < app->home_window_offset) {
+        app->home_window_offset = app->selected_tool;
+    } else if(app->selected_tool >= app->home_window_offset + 3) {
+        app->home_window_offset = app->selected_tool - 3 + 1;
+    }
     view_dispatcher_switch_to_view(app->view_dispatcher, MTOOLS_VIEW_MAIN);
     view_commit_model(app->main_view, true);
 }
 
 static bool mtools_scene_home_on_event(void* context, SceneManagerEvent event) {
     MToolsApp* app = context;
-    if(event.type != SceneManagerEventTypeCustom || event.event > 2) return false;
+    if(event.type != SceneManagerEventTypeCustom || event.event > 3) return false;
     static const MToolsScene scenes[] = {
-        MToolsSceneMagicType, MToolsSceneUidChange, MToolsSceneAbout};
+        MToolsSceneMagicType, MToolsSceneUidChange, MToolsSceneBccRecover, MToolsSceneAbout};
     scene_manager_next_scene(app->scene_manager, scenes[event.event]);
     return true;
 }
@@ -76,6 +103,24 @@ static void mtools_scene_detail_on_enter(void* context) {
     }
     view_dispatcher_switch_to_view(app->view_dispatcher, MTOOLS_VIEW_MAIN);
     view_commit_model(app->main_view, true);
+}
+
+static void mtools_scene_bcc_on_enter(void* context) {
+    MToolsApp* app = context;
+    app->active_scene = MToolsSceneBccRecover;
+    mtools_bcc_recover_start(app);
+    view_dispatcher_switch_to_view(app->view_dispatcher, MTOOLS_VIEW_MAIN);
+    view_commit_model(app->main_view, true);
+}
+
+static bool mtools_scene_bcc_on_event(void* context, SceneManagerEvent event) {
+    if(event.type != SceneManagerEventTypeCustom) return false;
+    return mtools_bcc_recover_event(context, event.event);
+}
+
+static void mtools_scene_bcc_on_exit(void* context) {
+    MToolsApp* app = context;
+    mtools_bcc_recover_stop(app);
 }
 
 static bool mtools_scene_type_on_event(void* context, SceneManagerEvent event) {
@@ -124,18 +169,21 @@ static void (*const scene_on_enter[])(void*) = {
     mtools_scene_home_on_enter,
     mtools_scene_detail_on_enter,
     mtools_scene_uid_on_enter,
+    mtools_scene_bcc_on_enter,
     mtools_scene_detail_on_enter,
 };
 static bool (*const scene_on_event[])(void*, SceneManagerEvent) = {
     mtools_scene_home_on_event,
     mtools_scene_type_on_event,
     mtools_scene_uid_on_event,
+    mtools_scene_bcc_on_event,
     mtools_scene_about_on_event,
 };
 static void (*const scene_on_exit[])(void*) = {
     mtools_scene_no_exit,
     mtools_scene_type_on_exit,
     mtools_scene_uid_on_exit,
+    mtools_scene_bcc_on_exit,
     mtools_scene_about_on_exit,
 };
 
@@ -199,6 +247,7 @@ int32_t mtools_app(void* p) {
     scene_manager_next_scene(app->scene_manager, MToolsSceneHome);
     view_dispatcher_run(app->view_dispatcher);
 
+    mtools_bcc_recover_stop(app);
     mtools_uid_changer_free(app->uid_changer);
     furi_timer_stop(app->magic_anim_timer);
     furi_timer_free(app->magic_anim_timer);

@@ -1,6 +1,8 @@
 #pragma once
 
 #include <gui/canvas.h>
+#include <stdint.h>
+#include <stdbool.h>
 
 void mtools_scan_draw_flipper(Canvas* canvas, int x, int y);
 void mtools_scan_draw_arrow(Canvas* canvas, int x, int y, bool horizontal);

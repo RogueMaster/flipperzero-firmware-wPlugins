@@ -1,3 +1,11 @@
+v1.2:
+
+- Added BCC Recover tool to diagnose and repair corrupted UID BCC0/BCC1 bytes on DirectWrite 7-byte MIFARE Ultralight / NTAG magic tags.
+- Upgraded home menu with standard 16px row layout, smooth window scrolling, and native Flipper scrollbar indicator.
+- Added app icon to the main menu header.
+- Optimized NFC polling with instant, responsive back-navigation to the main menu.
+- Show possible Gen1 for 28 and 56 block ISO 15693 tags.
+
 v1.1:
 
 - Added saved NFC file selection to UID Changer for MIFARE Classic 1K/4K, ISO 15693, and compatible Ultralight/NTAG cards.
