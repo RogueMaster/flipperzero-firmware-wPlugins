@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.1
+
+- Remove exclamation point from validator dialog
+- Center validator error message for better readability
+- Adjust line breaks in validation messages to prevent text from clipping
+
 ## 2.0
 
 - Add compact version 1 QR Code creation, validation, save/load, and display support with printable-ASCII keyboard input and capacity-specific hints

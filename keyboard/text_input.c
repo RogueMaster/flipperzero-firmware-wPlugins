@@ -442,10 +442,11 @@ static void text_input_view_draw_callback(Canvas* canvas, void* _model) {
         canvas_set_color(canvas, ColorWhite);
         canvas_draw_box(canvas, 8, 10, 110, 48);
         canvas_set_color(canvas, ColorBlack);
-        canvas_draw_str(canvas, 13, 23, "!");
+        //canvas_draw_str(canvas, 13, 23, "!");
         canvas_draw_rframe(canvas, 8, 8, 112, 50, 3);
         canvas_draw_rframe(canvas, 9, 9, 110, 48, 2);
-        elements_multiline_text(canvas, 62, 20, furi_string_get_cstr(model->validator_text));
+        elements_multiline_text_aligned(
+            canvas, 62, 32, AlignCenter, AlignCenter, furi_string_get_cstr(model->validator_text));
         canvas_set_font(canvas, FontKeyboard);
     }
 }

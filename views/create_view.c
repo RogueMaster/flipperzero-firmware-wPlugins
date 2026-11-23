@@ -182,7 +182,7 @@ static const char* barcode_validation_message(BarcodeType type, ErrorCode reason
         case CODE128C:
             return "Code 128C needs at least\none digit; odd counts pad\nwith a leading zero.";
         case CODE39:
-            return "Code 39 needs a payload.\nOptional * guards are added\nautomatically.";
+            return "Code 39 needs a payload.\nOptional * guards are\nadded automatically.";
         case CODE128:
             return "Code 128 needs at least\none printable ASCII\ncharacter.";
         case CODABAR:
@@ -201,15 +201,15 @@ static const char* barcode_validation_message(BarcodeType type, ErrorCode reason
         case EAN8:
         case EAN13:
         case CODE128C:
-            return "This format accepts digits;\nhyphens/spaces are ignored.";
+            return "This format accepts\ndigits; hyphens/spaces\nare ignored.";
         case CODE39:
-            return "Code 39: A-Z, 0-9, space,\nand - . $ / + %. * guards\nare optional and added.";
+            return "Code 39: A-Z, 0-9,\nspace, and - . $ / + %.\n* guards are optional\nand added.";
         case CODABAR:
-            return "Codabar: 0-9, - $ : / . +.\nA-D guards may surround\nthe payload; missing guards add.";
+            return "Codabar: 0-9, - $ : / . +.\nA-D guards may\n surround the payload;\nmissing guards add.";
         case CODE128:
-            return "Code 128 supports printable\nASCII characters (space\nthrough ~).";
+            return "Code 128 supports\nprintable ASCII\ncharacters (space\nthrough ~).";
         case QRCODE:
-            return "QR Code accepts printable\nASCII characters (space\nthrough ~).";
+            return "QR Code accepts\nprintable ASCII\ncharacters(space\nthrough ~).";
         case UNKNOWN:
         default:
             break;
