@@ -1785,7 +1785,12 @@ int32_t vaultflipper_app(void* p) {
         vf_show_text(app, furi_string_get_cstr(s), ViewPin);
         furi_string_free(s);
     } else {
-        vf_pin_reset(app, T(app, app->fails ? S_PrevFails : S_EnterPin));
+        char msg[40];
+        if(app->fails)
+            snprintf(msg, sizeof(msg), T(app, S_PrevFails), app->fails, VF_MAX_FAILS);
+        else
+            strlcpy(msg, T(app, S_EnterPin), sizeof(msg));
+        vf_pin_reset(app, msg);
         vf_switch(app, ViewPin);
     }
 

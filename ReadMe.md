@@ -85,6 +85,10 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Amiibo Emulator v1.3 adds manual playlists (By Soap-n-Cartridge)](https://github.com/Soap-n-Cartridge/flipper_amiibo)
 - Updated: [BadUSB MSC v0.1 (By ZombieDolphin)](https://github.com/ZombieDolphin/BadUSB_MSC)
 - Updated: [GTA VI Companion v1.9.4 (By RogueMaster)](https://github.com/RogueMaster/GTA_VI_Companion)
+- Sub-GHz: [Label half-rate KeeLoq captures in history and signal details (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/6f9d96f6ac035cdfb7c4b38b411c3e03693d974d)
+- Updated: [VaultFlipper v0.1 clarifies setup and shows prior PIN attempts (By Sven Würth / its-sven)](https://github.com/its-sven/vaultflipper)
+- Added: [Moon Lander v1.0 with optional Video Game Module tilt controls (By FToThe3rdPower)](https://github.com/FToThe3rdPower/flipperMoonLander)
+- BadUSB: [Hardened keyboard layout validation (By ANTONiO-eagle)](https://github.com/DarkFlippers/unleashed-firmware/pull/1224)
 
 <a name="release"></a>
 
@@ -317,6 +321,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Minesweeper v1.2 (By panki27)](https://github.com/panki27/minesweeper)
 - [Monster Slayer v0.1 (By ratmanZorry)](https://github.com/ratmanZorry/monster_slayer_flipper_zero)
 - [Monty Hall v1.3 (By DevMilanIan)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/pull/203)
+- [Moon Lander v1.0 (By FToThe3rdPower)](https://github.com/FToThe3rdPower/flipperMoonLander)
 - [Morse Master v1.1 (By w84death)](https://github.com/w84death/morse-master)
 - [Morse Trainer v1.0 (By Baris Mert)](https://github.com/barismert98/flipper-morse-trainer)
 - [MTP WIP v1.0 (By Alex4386)](https://github.com/Alex4386/f0-mtp)

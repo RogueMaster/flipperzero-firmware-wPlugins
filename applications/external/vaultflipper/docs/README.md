@@ -12,4 +12,4 @@ On the Flipper:
 - Hold Back to lock. The app also locks after 2 minutes without input.
 - English and German interface.
 
-Setup: install the companion and run "vaultflipper setup". User guide and security notes: see the project page.
+You also need a computer: the free companion program reads your logins with the official Bitwarden CLI and copies them, encrypted, to the Flipper. Setup takes about ten minutes - the step-by-step guide (English and German) is at https://github.com/its-sven/vaultflipper

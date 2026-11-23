@@ -133,10 +133,9 @@ static const KeeloqResyncPack keeloq_resync_packs[] = {
 #define KEELOQ_UPLOAD_FRAME 156u
 
 // Half-rate KeeLoq. The HCS200/HCS300/HCS301 encoders carry a baud-rate-select field, so
-// the very same 66-bit frame also ships at Te=200us instead of the usual 400us.
+// the very same 66-bit frame also ships at Te=200us (KEELOQ_TE_FAST) instead of the usual 400us.
 // Te is locked from the sync gap, which is 10*Te and so unambiguous between the two rates,
 // and every later timing check is scaled by it. Nothing else about the frame changes.
-#define KEELOQ_TE_FAST 200u
 
 // The sync gap is what decides the rate: 10*Te, so 2000us for the half rate against 4000us
 // for the standard one. The half rate is locked only when the gap is unmistakably in its own
@@ -2208,18 +2207,22 @@ void subghz_protocol_decoder_keeloq_get_string(void* context, FuriString* output
     subghz_block_generic_global.current_btn = instance->generic.btn;
     subghz_block_generic_global.btn_length_bit = 4;
 
+    const char* bit_suffix =
+        (subghz_protocol_keeloq_te_nominal(instance->te) == KEELOQ_TE_FAST) ? "b HR" : "bit";
+
     if(strcmp(instance->manufacture_name, "AN-Motors") == 0) {
         // No counter only pseudo counter
         subghz_block_generic_global.cnt_is_available = false;
         furi_string_cat_printf(
             output,
-            "%s %dbit\r\n"
+            "%s %d%s\r\n"
             "Key:%08lX%08lX\r\n"
             "Fix:0x%08lX PsCn:%04lX\r\n"
             "Hop:0x%08lX    Btn:%01X\r\n"
             "MF:%s",
             instance->generic.protocol_name,
             instance->generic.data_count_bit,
+            bit_suffix,
             code_found_hi,
             code_found_lo,
             code_found_reverse_hi,
@@ -2234,13 +2237,14 @@ void subghz_protocol_decoder_keeloq_get_string(void* context, FuriString* output
         subghz_block_generic_global.current_cnt = instance->generic.cnt;
         furi_string_cat_printf(
             output,
-            "%s %dbit\r\n"
+            "%s %d%s\r\n"
             "Key:%08lX%08lX\r\n"
             "Fix:0x%08lX    Cnt:%04lX\r\n"
             "Hop:0x%08lX    Btn:%01X\r\n"
             "MF:%s",
             instance->generic.protocol_name,
             instance->generic.data_count_bit,
+            bit_suffix,
             code_found_hi,
             code_found_lo,
             code_found_reverse_hi,
@@ -2260,13 +2264,14 @@ void subghz_protocol_decoder_keeloq_get_string(void* context, FuriString* output
         if((prog_mode == PROG_MODE_KEELOQ_BFT) || (prog_mode == PROG_MODE_KEELOQ_ERREKA)) {
             furi_string_cat_printf(
                 output,
-                "%s %dbit\r\n"
+                "%s %d%s\r\n"
                 "Key:%08lX%08lX\r\n"
                 "Fix:0x%08lX    Cnt:%04lX\r\n"
                 "Hop:0x%08lX    Btn:%01X\r\n"
                 "MF:%s PRG Sd:%08lX",
                 instance->generic.protocol_name,
                 instance->generic.data_count_bit,
+                bit_suffix,
                 code_found_hi,
                 code_found_lo,
                 code_found_reverse_hi,
@@ -2278,13 +2283,14 @@ void subghz_protocol_decoder_keeloq_get_string(void* context, FuriString* output
         } else {
             furi_string_cat_printf(
                 output,
-                "%s %dbit\r\n"
+                "%s %d%s\r\n"
                 "Key:%08lX%08lX\r\n"
                 "Fix:0x%08lX    Cnt:%04lX\r\n"
                 "Hop:0x%08lX    Btn:%01X\r\n"
                 "MF:%s Sd:%08lX",
                 instance->generic.protocol_name,
                 instance->generic.data_count_bit,
+                bit_suffix,
                 code_found_hi,
                 code_found_lo,
                 code_found_reverse_hi,
@@ -2304,13 +2310,14 @@ void subghz_protocol_decoder_keeloq_get_string(void* context, FuriString* output
         subghz_block_generic_global.current_cnt = instance->generic.cnt;
         furi_string_cat_printf(
             output,
-            "%s %dbit\r\n"
+            "%s %d%s\r\n"
             "Key:%08lX%08lX\r\n"
             "Fix:0x%08lX    Cnt:%04lX\r\n"
             "Hop:0x%08lX    Btn:%01X\r\n"
             "MF:%s Ds:%03lX",
             instance->generic.protocol_name,
             instance->generic.data_count_bit,
+            bit_suffix,
             code_found_hi,
             code_found_lo,
             code_found_reverse_hi,
@@ -2325,13 +2332,14 @@ void subghz_protocol_decoder_keeloq_get_string(void* context, FuriString* output
         subghz_block_generic_global.cnt_is_available = false;
         furi_string_cat_printf(
             output,
-            "%s %dbit\r\n"
+            "%s %d%s\r\n"
             "Key:%08lX%08lX\r\n"
             "Fix:0x%08lX    Cnt:????\r\n"
             "Hop:0x%08lX    Btn:%01X\r\n"
             "MF:%s",
             instance->generic.protocol_name,
             instance->generic.data_count_bit,
+            bit_suffix,
             code_found_hi,
             code_found_lo,
             code_found_reverse_hi,
@@ -2345,13 +2353,14 @@ void subghz_protocol_decoder_keeloq_get_string(void* context, FuriString* output
         subghz_block_generic_global.current_cnt = instance->generic.cnt;
         furi_string_cat_printf(
             output,
-            "%s %dbit\r\n"
+            "%s %d%s\r\n"
             "Key:%08lX%08lX\r\n"
             "Fix:0x%08lX    Cnt:%04lX\r\n"
             "Hop:0x%08lX    Btn:%01X\r\n"
             "MF:%s",
             instance->generic.protocol_name,
             instance->generic.data_count_bit,
+            bit_suffix,
             code_found_hi,
             code_found_lo,
             code_found_reverse_hi,

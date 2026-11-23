@@ -1,0 +1,14 @@
+App(
+    appid="moon_lander",
+    name="Moon Lander",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="moon_lander_app",
+    stack_size=4 * 1024,
+    fap_icon="Moon_Lander_icon.png",
+    sources=["*.c"],
+    fap_category="Games",
+    fap_author="FToThe3rdPower",
+    fap_weburl="https://github.com/FToThe3rdPower/flipperMoonLander",
+    fap_version="1.0",
+    fap_description="Moon landing game, with tilt controls for the Video Game Module",
+)

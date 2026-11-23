@@ -3,12 +3,23 @@
 #include <storage/storage.h>
 #include <string.h>
 #include <stdio.h>
-
 #define TAG "DuckyLayout"
 
 static bool ducky_layout_token_char(char c) {
     return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') ||
            c == '-' || c == '_';
+}
+
+static bool ducky_layout_path_valid(const char* path) {
+    const size_t prefix = sizeof(DUCKY_LAYOUT_ROOT "/") - 1;
+    if(!path || strncmp(path, DUCKY_LAYOUT_ROOT "/", prefix) != 0) return false;
+    const char* name = path + prefix;
+    const size_t len = strlen(name);
+    if(len < 4 || len > 35 || strcmp(name + len - 3, ".kl") != 0) return false;
+    for(size_t i = 0; i < len - 3; ++i) {
+        if(!ducky_layout_token_char(name[i])) return false;
+    }
+    return true;
 }
 
 bool ducky_layout_load(uint16_t layout[DUCKY_LAYOUT_KEYS], const char* path) {
@@ -21,7 +32,8 @@ bool ducky_layout_load(uint16_t layout[DUCKY_LAYOUT_KEYS], const char* path) {
     Storage* storage = furi_record_open(RECORD_STORAGE);
     File* file = storage_file_alloc(storage);
     uint8_t bytes[DUCKY_LAYOUT_KEYS * sizeof(uint16_t)];
-    if(storage_file_open(file, path, FSAM_READ, FSOM_OPEN_EXISTING) &&
+    if(ducky_layout_path_valid(path) &&
+       storage_file_open(file, path, FSAM_READ, FSOM_OPEN_EXISTING) &&
        storage_file_size(file) == sizeof(bytes) &&
        storage_file_read(file, bytes, sizeof(bytes)) == sizeof(bytes)) {
         for(size_t i = 0; i < DUCKY_LAYOUT_KEYS; ++i) {

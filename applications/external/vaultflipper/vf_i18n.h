@@ -97,7 +97,7 @@ static const char* const vf_strings[VfLangCount][S_Count] = {
             [S_WrongPin] = "Wrong PIN (%u/%u)",
             [S_Locked] = "Locked",
             [S_AutoLocked] = "Locked after 2 min",
-            [S_PrevFails] = "Earlier wrong PINs",
+            [S_PrevFails] = "Wrong PINs so far: %u/%u",
             [S_NoMemory] = "Out of memory",
             [S_BadParams] = "Invalid parameters",
             [S_BadFile] = "Vault invalid - sync again",
@@ -150,14 +150,16 @@ static const char* const vf_strings[VfLangCount][S_Count] = {
             [S_Skipped] =
                 "\e#Not all typed\n%u character(s) do not exist\nin the keyboard layout\nand were left out.",
             [S_VaultWiped] = "\e#Vault wiped\nToo many wrong PINs.\nSync again from your PC.",
-            [S_EnclaveError] = "\e#Enclave error\nDevice key unavailable.",
+            [S_EnclaveError] =
+                "\e#Enclave error\nDevice key unavailable.\nRestart the Flipper.\nIf it stays, update\nthe firmware.",
             [S_NoVault] =
-                "\e#No vault yet\nDevice ID: %s\n\nOn your computer run:\n  vaultflipper setup\nand compare the ID.",
-            [S_AboutBody] = "\e#VaultFlipper " VF_VERSION
-                            "\nDevice ID: %s\nSynced: %s\nLogins: %lu (%u pages)\n"
-                            "2FA codes: %lu\nTime zone: %s\n"
-                            "Keyboard: %s\nUSB keyboard: %s\nUnlock: %lu ms\nFree block: %lu B\n\n"
-                            "github.com/its-sven/\nvaultflipper",
+                "\e#No vault yet\nDevice ID: %s\n\nNote this ID. Then\ninstall the companion\non your computer and run:\n  vaultflipper setup\n\nGuide: github.com/\nits-sven/vaultflipper",
+            [S_AboutBody] =
+                "\e#VaultFlipper " VF_VERSION
+                "\nDevice ID: %s\nSynced: %s\nLogins: %lu (%u pages)\n"
+                "2FA codes: %lu\nTime zone: %s\n"
+                "Keyboard: %s\nUSB keyboard: %s\nUnlock: %lu ms\nFree memory: %lu B\n\n"
+                "github.com/its-sven/\nvaultflipper",
             [S_HelpBody] =
                 "\e#Controls\nLists: Up/Down, OK opens\n\nEntry card:\n OK  type login + Enter\n"
                 " Left  type username\n Right  type password\n Up  show password\n"
@@ -188,12 +190,12 @@ static const char* const vf_strings[VfLangCount][S_Count] = {
             [S_WrongPin] = "Falsche PIN (%u/%u)",
             [S_Locked] = "Gesperrt",
             [S_AutoLocked] = "Nach 2 min gesperrt",
-            [S_PrevFails] = "Fruehere Fehlversuche",
+            [S_PrevFails] = "Bisher falsch: %u/%u",
             [S_NoMemory] = "Zu wenig Speicher",
             [S_BadParams] = "Parameter ungueltig",
             [S_BadFile] = "Tresor ungueltig - neu syncen",
             [S_IoError] = "Tresor-Datei nicht lesbar",
-            [S_PinOk] = "Auf",
+            [S_PinOk] = "Los",
             [S_PinDel] = "Entf",
             [S_TypeLoginEnter] = "Login tippen + Enter",
             [S_TypeLogin] = "Login ohne Enter",
@@ -233,23 +235,24 @@ static const char* const vf_strings[VfLangCount][S_Count] = {
             [S_NLogins] = "%lu Logins",
             [S_OneFolder] = "1 Ordner",
             [S_NFolders] = "%lu Ordner",
-            [S_Unlocking] = "Entsperre",
-            [S_Typing] = "Tippe",
-            [S_Searching] = "Suche",
-            [S_Connecting] = "Verbinde USB",
+            [S_Unlocking] = "Entsperren",
+            [S_Typing] = "Tippen",
+            [S_Searching] = "Suchen",
+            [S_Connecting] = "USB verbinden",
             [S_NoUsbHost] = "\e#Kein USB-Host\nFlipper per USB an PC\noder Handy (OTG) stecken.",
             [S_Skipped] =
                 "\e#Nicht alles getippt\n%u Zeichen fehlen im\nTastaturlayout und wurden\nausgelassen.",
             [S_VaultWiped] =
                 "\e#Tresor geloescht\nZu viele falsche PINs.\nVom PC neu synchronisieren.",
-            [S_EnclaveError] = "\e#Enclave-Fehler\nGeraeteschluessel fehlt.",
+            [S_EnclaveError] =
+                "\e#Enclave-Fehler\nGeraeteschluessel fehlt.\nFlipper neu starten.\nWenn es bleibt, die\nFirmware aktualisieren.",
             [S_NoVault] =
-                "\e#Noch kein Tresor\nGeraete-ID: %s\n\nAm Computer ausfuehren:\n  vaultflipper setup\nund die ID vergleichen.",
+                "\e#Noch kein Tresor\nGeraete-ID: %s\n\nDiese ID notieren. Dann\nam Computer das Begleit-\nTool installieren und\nausfuehren:\n  vaultflipper setup\n\nAnleitung: github.com/\nits-sven/vaultflipper",
             [S_AboutBody] =
                 "\e#VaultFlipper " VF_VERSION
                 "\nGeraete-ID: %s\nSync: %s\nLogins: %lu (%u Seiten)\n"
                 "2FA-Codes: %lu\nZeitzone: %s\n"
-                "Tastatur: %s\nUSB-Tastatur: %s\nEntsperren: %lu ms\nFreier Block: %lu B\n\n"
+                "Tastatur: %s\nUSB-Tastatur: %s\nEntsperren: %lu ms\nFreier Speicher: %lu B\n\n"
                 "github.com/its-sven/\nvaultflipper",
             [S_HelpBody] =
                 "\e#Bedienung\nListen: Hoch/Runter, OK oeffnet\n\nEintragskarte:\n"
