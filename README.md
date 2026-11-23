@@ -230,6 +230,13 @@ ufbt                                 # builds dist/subghz_raw_edit.fap
 ufbt launch                          # builds + uploads + runs
 ```
 
+### On GitHub
+
+Every push and pull request is built with ufbt by GitHub Actions
+(`.github/workflows/build.yml`) against the official release and dev SDKs and
+the Unleashed release SDK; the `.fap` files are attached to each run as
+artifacts.
+
 ### Manual install
 
 Copy the built `subghz_raw_edit.fap` onto the SD card at `/ext/apps/Sub-GHz/` and
