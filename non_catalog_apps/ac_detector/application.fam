@@ -7,7 +7,7 @@ App(
     entry_point="ac_detector_app",
     stack_size=4 * 1024,
     fap_category="Infrared",
-    fap_version="1.0",
+    fap_version="1.1",
     fap_icon="ac_detector.png",
     fap_description="Identify the IR protocol an air conditioner remote speaks",
     fap_author="xMasterX",
