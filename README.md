@@ -14,6 +14,26 @@ Built for Flipper Zero to reduce distraction and not to draw attention to your p
 12-hour analog dial showing actual time of day, tracking elapsed work time, breaks, and a prediction of how much of your shift is left.
 Hourly chimes, vibro, always-on backlight (everything is optional), **highly optimized** as a full-time running app.
 
+## Installation
+
+### From the official Flipper Apps catalog (recommended)
+
+1. Open the [Clock'o'Dial page](https://lab.flipper.net/apps/clock_o_dial) on Flipper Lab, or find **Clock'o'Dial** in the **Tools** category of the Apps tab in the [Flipper mobile app](https://flipperzero.one/downloads).
+2. Connect your Flipper Zero (USB for Flipper Lab, Bluetooth for the mobile app) and press **Install**.
+3. On the Flipper, launch it from **Apps → Tools → Clock'o'Dial**.
+
+Installing from the catalog keeps the app up to date through the same Flipper Lab / mobile app.
+
+### Manually from a GitHub release
+
+1. Download `clock_o_dial.fap` from the [latest release](https://github.com/ManeFunction/clock-o-dial--fz/releases/latest).
+2. Copy it to `apps/Tools/` on the Flipper's SD card, using [qFlipper](https://flipperzero.one/downloads) (File manager), Flipper Lab, or a card reader.
+3. On the Flipper, launch it from **Apps → Tools → Clock'o'Dial**.
+
+Release builds target the **Release** firmware channel. If the Flipper says the app is outdated or
+incompatible, update the firmware to the latest release, or [build the app from source](#building-from-source)
+against your firmware.
+
 ## Controls
 
 **Setting up a shift** (before you start):
