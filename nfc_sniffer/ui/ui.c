@@ -6,7 +6,7 @@
 
 #define LOG_TAG "nfc_sniffer_ui"
 
-#define LOG_FILE_FOLDER "/ext/nfc_sniffer_logs"
+#define LOG_FILE_FOLDER "/ext/apps_data/nfc_sniffer_logs"
 
 char* PROTOCOL_NAMES[NfcTechNum] = {
     "ISO14443-3A",
