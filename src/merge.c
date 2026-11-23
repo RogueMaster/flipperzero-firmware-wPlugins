@@ -251,6 +251,7 @@ cleanup:
     if (app->sd.data)
         free(app->sd.data);
 
+    free(app->undo);
     work_cleanup(storage);
     furi_mutex_free(app->mutex);
     free(app);

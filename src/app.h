@@ -150,10 +150,27 @@ typedef struct
     int active;
 } WorkState;
 
+typedef enum
+{
+    EditCut,
+    EditPaste,
+} EditOp;
+
+// One step of the Undo history: the state before an edit, whose working file is undo_<id>.bin.
+typedef struct
+{
+    WorkState st;
+    uint32_t id;
+    int32_t spl; // samples the edit added, negative when it removed them
+    int32_t at_us; // where it happened
+    uint8_t op; // EditOp
+} UndoEntry;
+
 #define WORK_DIR APP_DATA_PATH("tmp")
 #define WORK_PATH WORK_DIR "/work.bin"
 #define WORK_NEW_PATH WORK_DIR "/work.new"
-#define WORK_UNDO_PATH WORK_DIR "/undo.bin"
+#define UNDO_DIR WORK_DIR "/undos"
+#define UNDO_MAX 32 // the oldest step is dropped past this
 #define WORK_CHUNK 128 // samples per buffered file read or write
 #define WINDOW_WARN_SAMPLES 15000 // a fresh boot fits ~38000
 
@@ -209,8 +226,9 @@ typedef struct
     uint32_t info_te;
     const char *info_enc;
 
-    WorkState undo; // before the last cut, whose working file is WORK_UNDO_PATH
-    bool has_undo;
+    UndoEntry *undo; // the Undo history, oldest first
+    size_t undo_n;
+    uint32_t undo_seq; // id of the next step
 
     Storage *st;
     FuriMutex *mutex;
@@ -303,6 +321,7 @@ typedef struct
 
 // view.c
 extern const char busy_loading[];
+void fmt_time(int32_t us, char *out, size_t n);
 void clamp_marker(App *a, int idx);
 void clamp_view(App *a);
 void ensure_visible(App *a, int32_t m);
@@ -350,7 +369,8 @@ bool work_load(App *a, size_t s0);
 bool work_slide(App *a, int dir);
 bool work_open(App *a);
 bool work_cut(App *a);
-void work_undo(App *a);
+bool work_undo(App *a, size_t k);
+void undo_label(const App *a, size_t k, char *out, size_t n);
 void work_cleanup(Storage *st);
 
 // edit_ops.c

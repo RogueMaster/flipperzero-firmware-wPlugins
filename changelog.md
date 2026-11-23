@@ -5,6 +5,7 @@
 - No length limit: the signal is kept in a working file on the SD card and RAM holds a window of it, as big as free RAM allows (up to about 38000 samples on a fresh boot), always leaving room for Decode and Save. Pushing A or B past the window's edge slides it a quarter further; zooming out stops at the window with *No RAM to zoom out*.
 - When RAM fits fewer than 15000 samples of a signal that doesn't fit whole, a *Low RAM* screen offers *Reboot* or *Continue*.
 - *Cut* and *Undo* work on the working file, so Undo is always available and takes no RAM.
+- *Undo* keeps a history of the last 32 cuts: with more than one it lists them, newest first with the samples removed and where, and goes back to before the one picked.
 - Merging is bounded by the SD card instead of RAM.
 - *Decode* checks for the RAM it really takes (8 KB, in pieces of at most 2 KB) and reports *Low memory* with the free RAM instead of crashing. It skips BinRAW, which needs the receiver's RSSI, and drops the KeeLoq keystore again when loading it leaves too little.
 - A file name too long for the top bar scrolls instead of losing its last letters.

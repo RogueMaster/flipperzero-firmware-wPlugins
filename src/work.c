@@ -190,6 +190,15 @@ static bool work_jitter(App *a)
 bool work_open(App *a)
 {
     SubData *sd = &a->sd;
+
+    // The Undo history comes first: once the window is in, RAM is down to the reserve
+    a->undo = safe_malloc(UNDO_MAX * sizeof(UndoEntry));
+    if (!a->undo)
+    {
+        sd->out_of_memory = true;
+        return false;
+    }
+
     size_t cap = sample_budget();
     if (cap > sd->file_count)
         cap = sd->file_count;
@@ -236,6 +245,38 @@ static void state_restore(App *a, const WorkState *s)
     a->view_end = s->view_end;
     a->active = s->active;
     work_load(a, s->win_s0);
+}
+
+static void undo_path(char *out, size_t n, uint32_t id)
+{
+    snprintf(out, n, UNDO_DIR "/undo_%lu.bin", (unsigned long)id);
+}
+
+/* Make WORK_NEW_PATH the working file, keeping the old one as a new step of
+ * the Undo history; past UNDO_MAX steps the oldest is dropped. */
+static bool work_commit(App *a, const WorkState *before, EditOp op, int32_t spl, int32_t at)
+{
+    char path[48];
+    if (a->undo_n == UNDO_MAX)
+    {
+        undo_path(path, sizeof(path), a->undo[0].id);
+        storage_simply_remove(a->st, path);
+        memmove(a->undo, a->undo + 1, --a->undo_n * sizeof(UndoEntry));
+    }
+
+    undo_path(path, sizeof(path), a->undo_seq);
+    storage_simply_mkdir(a->st, UNDO_DIR);
+    if (storage_common_rename(a->st, WORK_PATH, path) != FSE_OK)
+        return false;
+
+    if (storage_common_rename(a->st, WORK_NEW_PATH, WORK_PATH) != FSE_OK)
+    {
+        storage_common_rename(a->st, path, WORK_PATH);
+        return false;
+    }
+
+    a->undo[a->undo_n++] = (UndoEntry){.st = *before, .id = a->undo_seq++, .spl = spl, .at_us = at, .op = op};
+    return true;
 }
 
 static bool work_copy(File *src, File *dst, size_t from, size_t n)
@@ -287,17 +328,7 @@ bool work_cut(App *a)
     if (dst)
         work_close(dst);
 
-    if (ok)
-    {
-        ok = storage_common_rename(a->st, WORK_PATH, WORK_UNDO_PATH) == FSE_OK;
-        if (ok && storage_common_rename(a->st, WORK_NEW_PATH, WORK_PATH) != FSE_OK)
-        {
-            storage_common_rename(a->st, WORK_UNDO_PATH, WORK_PATH);
-            ok = false;
-        }
-    }
-
-    if (!ok)
+    if (!ok || !work_commit(a, &before, EditCut, (int32_t)sd->count - (int32_t)old_count, a->marker_a))
     {
         storage_simply_remove(a->st, WORK_NEW_PATH);
         state_restore(a, &before);
@@ -305,8 +336,6 @@ bool work_cut(App *a)
         return false;
     }
 
-    a->undo = before;
-    a->has_undo = true;
     sd->file_count = before.file_count - old_count + sd->count;
     sd->total_us = before.total_us - (old_us - sd->win_us);
     work_load(a, sd->win_s0); // refill what the cut emptied
@@ -316,15 +345,38 @@ bool work_cut(App *a)
     return true;
 }
 
-void work_undo(App *a)
+/* Go back to the state before step k of the Undo history, dropping it and
+ * every later step. */
+bool work_undo(App *a, size_t k)
 {
-    if (!a->has_undo || storage_common_rename(a->st, WORK_UNDO_PATH, WORK_PATH) != FSE_OK)
-        return;
+    char path[48];
+    if (k >= a->undo_n)
+        return false;
 
-    a->has_undo = false;
-    state_restore(a, &a->undo);
+    undo_path(path, sizeof(path), a->undo[k].id);
+    if (storage_common_rename(a->st, path, WORK_PATH) != FSE_OK)
+        return false;
+
+    for (size_t i = k + 1; i < a->undo_n; i++)
+    {
+        undo_path(path, sizeof(path), a->undo[i].id);
+        storage_simply_remove(a->st, path);
+    }
+
+    a->undo_n = k;
+    state_restore(a, &a->undo[k].st);
     recompute_overview(a);
     recompute_activity(a);
+    return true;
+}
+
+// "3. Cut -120 @1.25s": the step's number, what it did and where.
+void undo_label(const App *a, size_t k, char *out, size_t n)
+{
+    const UndoEntry *e = &a->undo[k];
+    char at[14];
+    fmt_time(e->at_us, at, sizeof(at));
+    snprintf(out, n, "%u. %s %+ld @%s", (unsigned)(k + 1), e->op == EditPaste ? "Paste" : "Cut", (long)e->spl, at);
 }
 
 void work_cleanup(Storage *st)

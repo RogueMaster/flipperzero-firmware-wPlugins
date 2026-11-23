@@ -97,6 +97,46 @@ static void do_cut_action(ViewPort *vp, FuriMessageQueue *queue, DialogsApp *dia
     furi_mutex_release(a->mutex);
 }
 
+/* Undo one step, or with more of them pick from the history - newest first -
+ * the step to go back before. */
+static void do_undo_action(Gui *gui, FuriMessageQueue *queue, App *a)
+{
+    size_t k = a->undo_n - 1;
+    if (!a->undo_n)
+    {
+        snprintf(a->status, sizeof(a->status), "Nothing to undo");
+        a->status_until = furi_get_tick() + 1500;
+        return;
+    }
+
+    if (a->undo_n > 1)
+    {
+        PromptCtx pc = {0};
+        Submenu *sm = submenu_alloc();
+        submenu_set_header(sm, "Undo back to before");
+        char label[32];
+        for (size_t i = a->undo_n; i-- > 0;)
+        {
+            undo_label(a, i, label, sizeof(label));
+            submenu_add_item(sm, label, i, pick_index_cb, &pc);
+        }
+
+        bool ok = prompt_run(gui, &pc, submenu_get_view(sm));
+        submenu_free(sm);
+        furi_message_queue_reset(queue);
+        if (!ok)
+            return;
+
+        k = pc.index;
+    }
+
+    furi_mutex_acquire(a->mutex, FuriWaitForever);
+    bool ok = work_undo(a, k);
+    snprintf(a->status, sizeof(a->status), ok ? "Undone" : "Undo failed\nSD card error");
+    a->status_until = furi_get_tick() + 1500;
+    furi_mutex_release(a->mutex);
+}
+
 // Move the active marker, sliding the RAM window when it is pushed past an edge.
 static void move_marker(App *a, int32_t step)
 {
@@ -148,6 +188,7 @@ void run_editor_session(
             bool want_save = false;
             bool want_decode = false;
             bool want_cut = false;
+            bool want_undo = false;
 
             if (app->mode == EditModeMenu)
             {
@@ -178,17 +219,7 @@ void run_editor_session(
                         }
                         else if (app->menu_sel == MENU_SEL_UNDO)
                         {
-                            if (app->has_undo)
-                            {
-                                work_undo(app);
-                                snprintf(app->status, sizeof(app->status), "Undone");
-                            }
-                            else
-                            {
-                                snprintf(app->status, sizeof(app->status), "Nothing to undo");
-                            }
-
-                            app->status_until = furi_get_tick() + 1500;
+                            want_undo = true;
                         }
                     }
                     else if (e.key == InputKeyBack)
@@ -276,6 +307,10 @@ void run_editor_session(
             else if (want_cut)
             {
                 do_cut_action(vp, queue, dialogs, app);
+            }
+            else if (want_undo)
+            {
+                do_undo_action(gui, queue, app);
             }
 
             view_port_update(vp);
@@ -408,6 +443,7 @@ cleanup:
     if (app->sd.data)
         free(app->sd.data);
 
+    free(app->undo);
     work_cleanup(storage);
     furi_mutex_free(app->mutex);
     free(app);

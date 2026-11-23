@@ -2,7 +2,7 @@
 
 #include "app.h"
 
-static void fmt_time(int32_t us, char *out, size_t n)
+void fmt_time(int32_t us, char *out, size_t n)
 {
     if (us < 0)
         us = 0;
@@ -519,7 +519,7 @@ void draw_cb(Canvas *c, void *ctx)
         {
             int ry = by + 2 + i * 14;
             int rh = 13;
-            bool disabled = (i == MENU_SEL_UNDO && !a->has_undo);
+            bool disabled = (i == MENU_SEL_UNDO && !a->undo_n);
 
             if (a->menu_sel == i)
             {

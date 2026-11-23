@@ -86,8 +86,11 @@ The app lets you choose which custom button to use, if its protocol supports the
     joins the two sides back together, so you can delete a noisy stretch or an
     unwanted frame and keep editing. The original file is never changed; only
     Save writes a new `.sub`.
-  - *Undo* reverts the last cut. It is greyed out (struck through) when there is
-    nothing to undo.
+  - *Undo* reverts the last cut. With more than one cut behind you it lists the
+    history, newest first - e.g. `3. Cut -120 @1.25s` (the step, the samples it
+    removed and where) - and goes back to before the one you pick, undoing all
+    later steps too. It is greyed out (struck through) when there is nothing to
+    undo.
 
   Beside the menu a read-only panel describes the A..B selection:
   - *Spl* - how many samples it holds.
@@ -167,7 +170,7 @@ marked with `>` in the bottom bar. The other marker is dotted.
      the two sides are joined. Re-place the markers and Cut again to clean up
      further, or Save when you are happy. If a cut would leave nothing behind it
      is refused and rolled back.
-   - **Undo** - revert the last cut.
+   - **Undo** - revert the last cut, or pick from the history how far back to go.
 
 ## File format
 
@@ -243,8 +246,9 @@ launch it from **Apps -> Sub-GHz** on the Flipper.
   `.sub` is never touched. RAM holds a window of the working copy; times are
   always counted from the start of the signal.
 - **Cut and Undo cost no RAM.** A cut rewrites the working copy without A..B and
-  keeps the previous one as the Undo copy, so Undo is always available. On a
-  long signal a cut takes as long as copying it on the card.
+  moves the previous one to `tmp/undos/undo_<n>.bin`, a step of the Undo
+  history; going back is a rename. On a long signal a cut takes as long as
+  copying it on the card. The history keeps the last 32 steps.
 - Durations are clamped to +/-32 ms so the capture fits a compact buffer. This
   only ever touches inter-frame silence; the signal pulses themselves
   (hundreds of microseconds) are stored exactly.
@@ -257,8 +261,6 @@ launch it from **Apps -> Sub-GHz** on the Flipper.
   fewer than 15000 samples of such a signal, a *Low RAM* screen offers
   *Reboot* or *Continue*. With *Normalize jitter* on, TE is fitted on the first
   window and applied to the whole signal.
-- **Undo is one level deep.** Only the most recent cut can be reverted; a second
-  cut replaces the snapshot of the first.
 - Note the two separate limits: a signal can be ~35 minutes long (microseconds
   in an int32_t), while the RAM window is counted in samples (signal edges).
   Noise fills the window within seconds because it's a dense storm of edges -
