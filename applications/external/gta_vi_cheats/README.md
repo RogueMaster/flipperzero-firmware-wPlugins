@@ -20,7 +20,7 @@ The home screen has 16 icons across two pages. Icons appear in this order, from 
 
 | Menu | What you'll find |
 | --- | --- |
-| **Infinite Money Glitch** | A five-step walkthrough of the reported Apollo Aggregates loot-respawn method, including personal-vehicle bag storage, three possible reset approaches, a separate-slot manual save/reload sequence, and cash-out locations. |
+| **Infinite Money Glitch** | A five-step cars-and-cocaine walkthrough using a registered 10-slot van and registered second car, warehouse respawn pickups, an explicitly unverified two-car Dunk drop-off claim, confirmed-balance checks, and manual-save fallback. |
 | **PS5 Cheats** | Reported PlayStation controller sequences, effects, unlock prerequisites, and unverified-input labels. |
 | **Xbox Cheats** | Reported Xbox inputs and effects, including confidence notes for converted sequences. |
 | **Collections** | Checklists and directions for collectible cards, WAiNK scans, art, treasure, flamingos, publications, styles, **43 reported special-weapon pickups and variants**, **32 individually tracked optional missions**, **6 Messages in Bottles**, **58 guide-reported meteorite sites**, **5 Missing Persons investigation stages**, 12 endings and proposed variations, stunt challenges, and 17 location search leads. **Activities / Robberies** covers bank jobs, operations, store robberies, drone trials, shooting, racing, arcade games, pool, golf, **100 numbered basketball hoops**, and challenge milestones. |
@@ -80,23 +80,27 @@ Choose a region to open its first unchecked stop. Press **OK** to change the cur
 
 ## Infinite Money Glitch
 
-The guide describes a **reported** Story Mode loot-respawn method at **Apollo Aggregates, east or northeast of Hamlet**. The reported landmark is a **red barn/warehouse with a van decorated with teddy bears**. The process depends on collecting loot, placing bags in a suitable vehicle, refreshing the area, and cashing out at a fence or lockup. It is not an instant-money cheat.
+The in-app guide now prioritizes the **cars-and-cocaine warehouse loop** using vehicle storage rather than an immediate manual-save reset. The main location is **Apollo Aggregates**, the red warehouse east of Hamlet in South Vice-Dale County, beside the teddy-bear van. The method is an exploit reported in **Story Mode**, not an official cheat code, and may change with title updates.
 
-1. **Locate the warehouse.** Travel to Apollo Aggregates in free roam with a **personal vehicle** that has cargo storage. Make a backup save before testing the reported method.
-2. **Collect valuables.** Search the teddy-bear van outside, the van inside, and the warehouse/office for reported cash, cocaine, and other loot. Keep track of what actually respawns.
-3. **Store both bags.** Carry **both loot bags** to your **personal vehicle** and verify that both are in its storage **before** trying a reset. The guide warns that nearby or generic vehicles may not persist.
-4. **Refresh the area (choose one method).** Published guides describe **(a)** driving roughly half a mile away and returning, **(b)** switching Lucia → Jason → Lucia after the relevant chapter unlock, with Jason far enough away, or **(c)** opening **Pause → Game → Save Game** after stowing both bags, making a **manual save in a separate slot**, reloading that exact save, and returning to Apollo Aggregates. Check that the stored bags are still present and the site actually refreshed before repeating.
-5. **Sell or deposit.** Repeat only if loot respawns, then use an unlocked fence or **Brian's Lockup**, for which `7700` is a reported keypad code. Cash-out availability and payouts can differ by story progress.
+1. **Register both vehicles before collecting.** Bring a **10-bag-slot van or delivery truck** and, for the experimental two-car swap, a **6-bag-slot car**. **Both must be owned/registered**, including the second car; register a stolen vehicle using the **Register** service at a Pay 'n' Spray or through Moses before storing cocaine. Do not rely on an unregistered stolen car retaining its cargo. Keep an untouched manual save. Chapter 2 is recommended to avoid Chapter 1 story-related money loss.
+2. **Collect cocaine and cash.** Empty the teddy-bear van outside, the parked van inside, the office table, and the office safe. Retrieve the cash-filled stash bag from the central open van. Store filled bags in the 10-slot van and the second car. **Do not drive away the interior warehouse van**, which is used as a repeat pickup.
+3. **Refresh the warehouse by switching characters.** Keep the collected cocaine stored in your vehicles, switch to the other playable character, then switch back and return to Apollo Aggregates. Recheck the indoor van and office safe for respawned cocaine; refill your vehicles and repeat as needed. If the loot does not reset, the older **personal-vehicle manual save/reload** method remains a fallback; always use a separate save slot.
+4. **Try the two-car Dunk's trailer swap (unverified).** Back the full 10-slot van up to Dunk's drop-off and unload it, move it away, then reverse the filled 6-slot car into place and unload. A community poster claims that repeated character pickup/drop-off after swapping vehicles lets the storage keep paying, citing **$13,200 per drop-off**. **No independent confirmation of actual credited payments was found**; reports warn that the counter can change without payment. Do not assume the amount is repeatable.
+5. **Cash out and verify.** Check the real bank balance, pending sales and safehouse mailbox. If the two-car claim fails, use the repeatable warehouse pickup and sell full bags through a story-unlocked fence instead. Early-game buyers include Donnie or Dunk; **Tyrone** reportedly offers the strongest narcotics rate starting in Chapter 3. **Brian's Lockup** in Key Lento has a reported keypad code of `7700` and may pay after several in-game days. Fence demand, payout, and availability vary.
 
-**Caution:** This is a community-reported exploit, **not a guaranteed money cheat**. Chapter 1 transitions may discard funds, and respawn behavior varies with game progress and updates. The in-app guide carries fuller steps; keep an untouched backup save.
+**Evidence distinction:** Published guides describe the 10-slot van, cocaine pickup, and vehicle-loading route. This walkthrough uses **switching characters and returning to refresh the warehouse**; exact respawn behavior may vary by save or game version. Other guides describe leaving the area instead. The two-car Dunk payout is **a single community claim**, not a verified working exploit. A separate vehicle save/reload loop remains a fallback. Be cautious with autosaves and any bag that appears to remain in storage after selling.
 
 ### Money-glitch sources
 
 - [VICE - Apollo Aggregates loot method](https://www.vice.com/en/article/gta-6-money-glitch/) and [character switching](https://www.vice.com/en/article/how-to-switch-characters-in-gta-6/).
+- [Games.gg - registered vehicle and Register service at Pay 'n' Spray or Moses](https://games.gg/grand-theft-auto-vi/guides/grand-theft-auto-6-money-glitch-warehouse-location-how-to-repeat/).
 - [Insider Gaming - leave-area reset](https://insider-gaming.com/gta-6-infinite-money-glitch/).
 - [KeenGamer - save/reload method](https://www.keengamer.com/articles/guides/gta-6-unlimited-money-glitch-guide/).
 - [Guías GTA 6 - Brian's Lockup method](https://guiasgta6.com/en/guides/gta-6-unlimited-money-glitch-brians-lockup/).
 - [Reddit r/gtaglitches - community discussion](https://www.reddit.com/r/gtaglitches/comments/1y1gou5/gta_6_unlimited_money_red_barn_apollo_aggregates/).
+- [GTA VI Discussion - tested 10-slot van and drive-away cocaine loop](https://gtavidiscussion.com/guides/gta-vi-money-glitch-unlimited-money/).
+- [Reddit r/GTA6unmoderated - unverified two-vehicle Dunk payout claim](https://www.reddit.com/r/GTA6unmoderated/comments/1y1qu37/found_this_new_money_glitch/).
+- [Reddit r/GTA6unmoderated - warehouse + two-character car-storage report](https://www.reddit.com/r/GTA6unmoderated/comments/1y24h5k/money_glitch_apollo_warehouse_bag_dupe/).
 
 ## Secret Missions and Easter eggs
 
@@ -412,7 +416,7 @@ The game's **Map > Robberies** may offer more current hints for active jobs.
 
 ### Standout Vehicles
 
-The **262-entry vehicle catalog** covers distinctive cars, motorcycles, aircraft, watercraft, liveries, and mission and stunt rewards. Entries give a pickup landmark, search area, or reward requirement where published.
+The **277-entry vehicle catalog** covers distinctive cars, motorcycles, aircraft, watercraft, liveries, and mission and stunt rewards. Entries give a pickup landmark, search area, or reward requirement where published.
 
 Examples:
 
@@ -439,6 +443,12 @@ Examples:
 | **Vapid Peppermint Stanier** | Outside a storefront in La Perle. Look for the pearlescent finish and oversized wheels. |
 | **Berserker Sanchez, Black Dragon Maverick and Black Dragon Mallard** | Reported rewards for Stunt Jumps, Under the Bridge and Knife Flights, respectively. |
 
+**Additional named Standouts and alternate locations (v1.9.5):** The catalog now includes the Cellerica Shamal at VCIA; Raul's Tempesta in the Scoop-container story job; Ultimate Edition Typhoon Squalo, Preziosa Cheetah and Wyman's restored reward vehicles; Memorial Sanchez; Thicc Esskey; GTA+ Venturas BLVD Elegy; and the Malibu Zombie Bobber. The earlier generic Phoenix is now correctly identified as **Blazin' Phoenix (existing ID 176)**, preserving its checkmark. **Seashell Boomazoom** is listed as an identified variant with no reliably documented pickup yet; it is not assigned a fabricated location.
+
+**Alternative pickup reports, one checkmark per vehicle:** Gold Rush Tempesta is reported outside **Cirque de Cuisine (Shore Drive, Ocean Beach)** or on the **upper covered parking deck of Crimson Palms Condominiums (Washington Beach)**; both reports call for the Chapter 3 Key Cloner, but may be conflicting descriptions of one car. Venomous Marshall has reported sightings at the **Boone Speedway car show (southwest Hamlet)** and in the **Land of Plenty barn (eastern Mount Kalaga)**; a third map marker lacks published directions. Guides mark two sites for **Erotic Journey** in Watson Bay and **Pink Licorice Astron** around Belville, without yet providing a dependable second address for either. The museum/VCPD recruitment display notes for Valiant Tempesta may identify the same location. Use WAiNK to confirm identity, and never create extra progress entries solely for additional pins.
+
+**Edition and reward distinction:** Wyman's Classic Cars entries track salvage and restoration tasks; the named restored Standouts track the resulting vehicles. The garage entries for **Paradise Garage** and **GTA+ Crosstown Garage** track property access, while the corresponding unique vehicles are listed by name in Standout Vehicles. Ultimate Edition and GTA+ rewards require the appropriate entitlement, and some unlock only in later chapters.
+
 **Anime vehicle notes:** The Akane on Dolphin Drive is reportedly unlocked and has no tracker; a mod-shop replacement livery may permanently remove its anime wrap. Yago's Elegy is not a free roadside pickup: finish his four-part Jason storyline, including the time-sensitive *Race Against Yago* hourglass mission, and keep the final mission car. Bumper to Bumper requires the Custom Street Racing Build and Nitrous Boost (paid by Yago).
 
 The **pink Pfister Growler** has a checkmark under Standout Vehicles; it is not a separate garage collectible. The **Gold Rush Tempesta** has conflicting published spawn clues at Crimson Palms Condominiums in Washington Beach and Cirque de Cuisine on Shore Drive. Compare the **Gold Tempesta lead** with the Gold Rush WAiNK name and livery before checking them as two different vehicles.
@@ -449,6 +459,9 @@ The **pink Pfister Growler** has a checkmark under Standout Vehicles; it is not 
 
 ### Vehicle and property sources
 
+- [GAMETA - mapped Standout Vehicles and named variants](https://gameta.gg/gta6/map/standout-vehicles/); [Ultimate Edition vehicle and reward timing](https://gameta.gg/gta6/guides/ultimate-edition-items/); [GTA Base - Standout locations](https://www.gtabase.com/gta-6/map/?feature=standout-vehicle).
+- [GTA6Wiki - competing Gold Rush Tempesta pickup sites](https://gta6wiki.eu/vehicles/gold-rush-tempesta/); [GTA6Wiki - Venomous Marshall](https://gta6wiki.eu/vehicles/venomous-marshall/); [GTA Base - Crosstown GTA+ bundle](https://www.gtabase.com/gta-6/properties/gta-plus-crosstown-garage).
+- [Malibu Zombie Bobber portal walkthrough](https://www.keengamer.com/articles/guides/how-to-open-the-vice-city-portal-in-gta-6-and-get-tommy-vercettis-shirt/); [GTA Base - Malibu Zombie Bobber](https://www.gtabase.com/gta-6/vehicles/malibu-zombie-bobber).
 - [Akane anime-car pickup report](https://www.aprasi.com/blogs/trending-topics/gta-6-akane-anime-car) (single-guide security/wrap details; verify in-game).
 - [GTA Base - Yago's Elegy](https://www.gtabase.com/gta-6/vehicles/yagos-elegy), [PowerPyx - Bumper to Bumper](https://www.powerpyx.com/gta-6-bumper-to-bumper-mentor-yago-walkthrough/), [PowerPyx - Race Against Yago](https://www.powerpyx.com/gta-6-race-against-yago-walkthrough/), and [PowerPyx - Brother to Brother](https://www.powerpyx.com/gta-6-brother-to-brother-back-up-yago-walkthrough/).
 - [PC Gamer - Wyman Transgressor](https://www.pcgamer.com/games/grand-theft-auto/gta-6-transgressor-locations/), [Riata](https://www.pcgamer.com/games/grand-theft-auto/gta-6-riata-locations/), [Mamba GT](https://www.pcgamer.com/games/grand-theft-auto/gta-6-mamba-gt-locations/), and [Kit Car](https://www.pcgamer.com/games/grand-theft-auto/gta-6-kit-car-locations/); [GTA Base - GTA+ Crosstown Garage](https://www.gtabase.com/gta-6/properties/gta-plus-crosstown-garage).

@@ -7,7 +7,7 @@
 - Distinguished Moses' untracked vehicle purchases from Randy's premium Wish List jobs, without inventing comparable payout percentages.
 - Added a Fences section to the README and retained saved checklist IDs and the Endings-last menu order.
 - Expanded the existing Annis Pixel Elegy entry with its container-entry route; added the Maibatsu Sunset Sanchez as a distinct Standout Vehicle.
-- Added four named luxury watches with hideout pickup directions; expanded the existing Ashore and Ambassador entries with additional reported locations rather than duplicate checkmarks.
+- Added four named luxury watches with hideout pickup directions; expanded the existing Ashore and Ambassador entries with additional reported locations.
 - Added 15 geographically distinct, guide-reported Meteorite Chunk locations to the existing meteorite checklist, with separate progress markers.
 - Added the Goose Key Mile Zero shoreline flamingo and expanded six existing Gang Operations with specific watch and key-valuable directions.
 - Expanded existing Gang Operations with guide-reported unique weapons, rare vehicles, watch cross-references and safe-access clues; no duplicate operation IDs or new menus.
@@ -19,6 +19,13 @@
 - Refined all five Wyman restoration entries with map landmarks and payment flow; clarified Chapter 3 cut-off tool gate for the Reynolds Kit Car and corrected final Deviant payment from $1,500 to $1,000.
 - Improved the existing anime-wrap Akane location/security and livery-preservation warning; enriched the existing GTA+ Crosstown garage with bundled Venturas BLVD Elegy, weapon locker and fencing access.
 - Updated README vehicle totals, guide and research links.
+- Identified the existing Chapter 1 impound Phoenix as **Blazin' Phoenix** without changing its saved progress ID (176).
+- Added 15 individually named Standout vehicles/rewards absent from the existing 262-entry catalog (now 277), including story, Ultimate Edition, GTA+, and rare bikes/aircraft; marked undocumented pickup sites rather than inventing directions.
+- Expanded existing Gold Rush Tempesta, Venomous Marshall, Erotic Journey, Pink Licorice Astron and Valiant Tempesta records with reported alternate pickup clues and access caveats.
+- Cross-linked Wyman restored vehicles to their existing salvage tasks and the GTA+ / Paradise garages to their respective unique vehicles.
+- Updated the Infinite Money Glitch screen to prioritize the Apollo Aggregates **cars-and-cocaine loop**: registered 10-slot van, **registered 6-slot car**, warehouse loot/vehicle storage, and character-switch warehouse refresh.
+- Documented the two-vehicle swap at Dunk's trailer as an **unverified community report**, including the alleged $13,200 payout, actual payment verification, and possible visual-only duplication.
+- Retained the owned-vehicle manual save/reload fallback, fence unlock/rate guidance, backup-save warnings and Chapter 1 money-loss caution; revised the README and sources without changing other release history.
 
 ## v1.9.4 - Expanded Locations and Collectibles
 - Added 26 separately checkable, guide-reported Meteorite Chunk locations; marked the total and completion status as unconfirmed.
