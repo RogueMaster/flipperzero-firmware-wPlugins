@@ -64,7 +64,7 @@
 #define MERGE_PATH_LEN 128
 #define MERGE_BUF_CHUNK 512
 
-#define APP_VERSION "1.10"
+#define APP_VERSION "2.0"
 #define APP_REPO "github.com/Lechnio/SubGHz-RAW-Edit"
 #define APP_NAME "Sub-GHz RAW Edit"
 
