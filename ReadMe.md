@@ -84,11 +84,12 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Z5Flip v1.0 (By Tobirg)](https://github.com/Tobirg/z5flip) - Controller Maintenance Tool `Req: IronLogic Z-5R`
 - Updated: [Amiibo Emulator v1.3 adds manual playlists (By Soap-n-Cartridge)](https://github.com/Soap-n-Cartridge/flipper_amiibo)
 - Updated: [BadUSB MSC v0.1 (By ZombieDolphin)](https://github.com/ZombieDolphin/BadUSB_MSC)
-- Updated: [GTA VI Companion v1.9.4 (By RogueMaster)](https://github.com/RogueMaster/GTA_VI_Companion)
 - Sub-GHz: [Label half-rate KeeLoq captures in history and signal details (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/6f9d96f6ac035cdfb7c4b38b411c3e03693d974d)
 - Updated: [VaultFlipper v0.1 clarifies setup and shows prior PIN attempts (By Sven Würth / its-sven)](https://github.com/its-sven/vaultflipper)
 - Added: [Moon Lander v1.0 with optional Video Game Module tilt controls (By FToThe3rdPower)](https://github.com/FToThe3rdPower/flipperMoonLander)
 - BadUSB: [Hardened keyboard layout validation (By ANTONiO-eagle)](https://github.com/DarkFlippers/unleashed-firmware/pull/1224)
+- Updated: [GTA VI Companion v1.9.5 (By RogueMaster)](https://github.com/RogueMaster/GTA_VI_Companion)
+- Updated: [AC Detector v1.1 (By xMasterX)](https://github.com/xMasterX/all-the-plugins)
 
 <a name="release"></a>
 
@@ -415,7 +416,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [24Cxx Programmer v2.1 (By kamylwnb)](https://github.com/kamylwnb/24cxxprog)
 - [5Ghost Wifi Lab v2.8.1 (By pingequalab)](https://github.com/pingequalab/5ghost-wifi-lab) `Req: BW15`
 - [A/C Master v0.3 (By Enlighten Tech)](https://github.com/gbhobbytech/flipper-ac-multi-remote)
-- [AC Detector v1.0 (By xMasterX)](https://github.com/xMasterX/all-the-plugins)
+- [AC Detector v1.1 (By xMasterX)](https://github.com/xMasterX/all-the-plugins)
 - [AC Fujitsu General Remote v1.0 (By j-stud-res)](https://github.com/j-stud-res/flipper-ac-fujitsu-general-remote)
 - [Access Audit v1.13 (By matthewkayne)](https://github.com/matthewkayne/flipper-access-audit)
 - [Agentic Remote USB/BT v0.28 (By Wet-wr-Labs)](https://github.com/Wet-wr-Labs/claupper)
@@ -703,7 +704,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [GPS v1.5 (By ezod)](https://github.com/ezod/flipperzero-gps) `Req: NMEA 0183`
 - [Gree AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
 - [GS1 Parser v0.2 (By kdiller713)](https://github.com/kdiller713/public-FlipperApps/tree/main/gs1_rfid_parser) `Req: U107 or YRM100`
-- [GTA VI Companion v1.9.4 (By RogueMaster)](https://github.com/RogueMaster/GTA_VI_Companion)
+- [GTA VI Companion v1.9.5 (By RogueMaster)](https://github.com/RogueMaster/GTA_VI_Companion)
 - [Guido Music Score Reader v0.1 (By fgreil)](https://github.com/fgreil/mitzi-guido)
 - [Guitar Chords v1.0 (By KingBoa / NoodleNugget-com)](https://github.com/NoodleNugget-com/flipper-guitar-chords)
 - [H1030L Writer v1.3 (By Zacvr)](https://github.com/Zacvr/h10301_writer)

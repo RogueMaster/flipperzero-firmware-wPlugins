@@ -11,6 +11,6 @@ App(
     fap_category="Infrared",
     fap_author="xMasterX",
     fap_weburl="https://github.com/xMasterX/all-the-plugins/tree/213baa6e872d1db597a25d2c16e81406e9634440/non_catalog_apps/ac_detector",
-    fap_version="1.0",
+    fap_version="1.1",
     fap_description="Identify the IR protocol an air conditioner remote speaks",
 )

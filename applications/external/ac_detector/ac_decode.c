@@ -76,6 +76,7 @@ typedef struct {
     uint16_t pack_bits; ///< write cursor, realigned at every section
     uint8_t sections;
     bool overflow;
+    bool skipped_lead;
 
     uint32_t hm_sum, hs_sum;
     uint16_t hdr_count;
@@ -103,12 +104,41 @@ static void parse_push(AcParse* p, bool bit, bool msb_first) {
     p->pack_bits++;
 }
 
+static bool starts_with_entry(const uint32_t* t, size_t n, size_t pos, const AcProtoEntry* e) {
+    if(pos + 1 >= n) return false;
+    if(e->lead_mark && near_hdr_mark(t[pos], e->lead_mark) &&
+       near_hdr_space(t[pos + 1], e->lead_space)) {
+        return true;
+    }
+    return near_hdr_mark(t[pos], e->hdr_mark) && near_hdr_space(t[pos + 1], e->hdr_space);
+}
+
 /// Walk the capture as if it were `e`. Returns false the moment something
 /// does not fit, which is what keeps a wrong entry from claiming a signal.
 static bool ac_parse(const uint32_t* t, size_t n, const AcProtoEntry* e, AcParse* p) {
     memset(p, 0, sizeof(*p));
 
+    // Drop a lone trailing ambient glitch pulse separated from the real stop
+    // mark by a long silence (>= 15 ms).
+    if((n & 1u) && n >= 3 && t[n - 2] >= 15000 && t[n - 1] < 1500) {
+        n -= 2;
+    }
+
     size_t i = 0;
+
+    // Skip short pre-header wakeup bursts (e.g. Daikin's 5- or 6-bit zero
+    // preamble) or stray ambient glitches separated from the real frame by
+    // >= 10 ms of silence, without skipping past an actual header-sized mark.
+    if(!starts_with_entry(t, n, 0, e)) {
+        for(size_t j = 0; j + 3 < n && j < 20; j += 2) {
+            if(t[j] >= 1500) break;
+            if(t[j + 1] >= 10000 && starts_with_entry(t, n, j + 2, e)) {
+                i = j + 2;
+                p->skipped_lead = true;
+                break;
+            }
+        }
+    }
 
     // A few remotes open with one or more bursts that are not the header
     // proper. Daikin's BRC52B63 and DGS01 send two of them, so consume as
@@ -124,7 +154,10 @@ static bool ac_parse(const uint32_t* t, size_t n, const AcProtoEntry* e, AcParse
         uint32_t mark = t[i];
         uint32_t space = t[i + 1];
 
-        if(near_hdr_mark(mark, e->hdr_mark) && near_hdr_space(space, e->hdr_space)) {
+        // A real section header has data bits after it (i + 3 < n). A trailing
+        // footer shaped like a header (mark, long space, stop mark) falls
+        // through to the gap branch instead of inflating sections.
+        if(i + 3 < n && near_hdr_mark(mark, e->hdr_mark) && near_hdr_space(space, e->hdr_space)) {
             p->hm_sum += mark;
             p->hs_sum += space;
             p->hdr_count++;
@@ -234,6 +267,16 @@ static bool sig_neoclima(const AcParse* p) {
     return p->data[11] == sum;
 }
 
+/// Classic Carrier AC sends three 32-bit sections: frame, ~frame, frame.
+static bool sig_carrier32(const AcParse* p) {
+    if((p->pack_bits >> 3) < 12) return false;
+    for(uint8_t k = 0; k < 4; k++) {
+        if(p->data[k] != (uint8_t)~p->data[k + 4]) return false;
+        if(p->data[k] != p->data[k + 8]) return false;
+    }
+    return true;
+}
+
 static bool sig_check(const AcParse* p, const AcProtoEntry* e) {
     switch(e->sig_kind) {
     case AcSigCoolix:
@@ -244,6 +287,8 @@ static bool sig_check(const AcParse* p, const AcProtoEntry* e) {
         return sig_byte_pairs(p);
     case AcSigNeoclima:
         return sig_neoclima(p);
+    case AcSigCarrier32:
+        return sig_carrier32(p);
     case AcSigPrefix:
         // A protocol with a preamble - Daikin opens with five stray bits -
         // pushes its signature past the first byte.
@@ -444,7 +489,7 @@ bool ac_decode(const uint32_t* timings, size_t count, AcDetection* out) {
                 rel_err(hs, e->hdr_space) +
                 2 * rel_err(bm + one, (uint32_t)e->bit_mark + e->one_space) +
                 2 * rel_err(bm + zero, (uint32_t)e->bit_mark + e->zero_space) +
-                rel_err(one, e->one_space);
+                rel_err(one, e->one_space) + (c.parse.skipped_lead ? 50u : 0u);
 
         if(candidate_better(&c, &best)) best = c;
     }

@@ -15,6 +15,7 @@ typedef enum {
     AcSigMidea, ///< Six bytes, then the same six inverted, under a 0b10100 header
     AcSigBytePairs, ///< Every second byte is the inverse of the one before it
     AcSigNeoclima, ///< 0xA5 marker at byte 10 and a byte sum at byte 11
+    AcSigCarrier32, ///< Three 4-byte sections: frame, ~frame, frame
 } AcSigKind;
 
 /// One row of the protocol database.
