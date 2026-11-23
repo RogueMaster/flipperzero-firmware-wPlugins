@@ -1,0 +1,7 @@
+# ESP 32 Folders
+.venv/
+.pio/
+
+# Flipper Folders
+dist/
+.vscode/

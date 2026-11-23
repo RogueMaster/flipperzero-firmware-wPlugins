@@ -1,0 +1,14 @@
+App(
+    appid="tile_scanner",
+    name="[ESP32] Tile Scanner",
+    apptype=FlipperAppType.EXTERNAL,
+    targets=["f7"],
+    entry_point="tile_scanner_app",
+    stack_size=4 * 1024,
+    fap_category="Bluetooth",
+    # Optional values
+    fap_version="0.1",
+    fap_icon="assets/tile_scanner.png",
+    fap_author="Kyle Diller",
+    fap_icon_assets="assets",
+)
