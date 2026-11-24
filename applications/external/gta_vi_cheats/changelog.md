@@ -1,6 +1,7 @@
 # GTA VI Companion changelog
 
 ## v1.9.6 — Vehicles and Collection Updates
+- Added four reported safe/door combinations (Chatfield 5800, Biker Hideout 1982, Stormy 7869, Big Day Motel 4242); documented Cottonmouth 44017 versus shortened 4017 and Palmer 1886/1887 discrepancies, with existing collection IDs and progress unchanged. Enriched eight Flamingo routes, Bret hunting conditions, and linked gang-operation, weapon and card locations.
 - Enriched existing collectible-card, publication, meditation, meteorite and Challenge entries with detailed pickup routes, alternate-copy handling and Master shooting-range requirements.
 - Corrected Collections progress total to include Piccia Furia (ID 28), which was already tracked but omitted from the summary count; existing checkmarks and IDs are unchanged.
 - Added room-by-room Luxury Watch and gang-operation access routes, and cross-linked publication/card pickups at shared locations.
