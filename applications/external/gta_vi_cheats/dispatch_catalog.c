@@ -74,5 +74,5 @@ _Static_assert(
     GTA_COUNT(gta_dispatch_assets) == GtaDispatchSourceCount - GtaDispatchFirstAsset,
     "Each collectible source must name its asset");
 
-const size_t gta_dispatch_target_count = 923;
+const size_t gta_dispatch_target_count = 948;
 const size_t gta_dispatch_source_count = GtaDispatchSourceCount;

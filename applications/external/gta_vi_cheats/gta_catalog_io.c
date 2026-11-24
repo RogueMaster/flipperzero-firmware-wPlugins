@@ -5,6 +5,22 @@
 #include <stdlib.h>
 #include <string.h>
 
+void* gta_try_alloc(size_t size) {
+    // RM's allocator halts on exhaustion. Its largest-block figure includes
+    // allocator metadata; allow for the header and alignment on f7.
+    const size_t allocator_overhead = 16u;
+    if(!size) return NULL;
+    const int32_t lock = furi_kernel_lock();
+    if(lock < 0) return NULL;
+    const size_t largest = memmgr_heap_get_max_free_block();
+    void* buffer = NULL;
+    if(largest > allocator_overhead && size <= largest - allocator_overhead) {
+        buffer = malloc(size);
+    }
+    if(lock == 0) furi_kernel_unlock();
+    return buffer;
+}
+
 void gta_record_clear(GtaRecord* r) {
     free(r->data);
     memset(r, 0, sizeof(*r));
@@ -33,41 +49,48 @@ static File* open_catalog(Storage* storage, const char* asset) {
     }
     return file;
 }
-static bool build_index(File* file, const char* asset) {
-    uint64_t size = storage_file_size(file);
-    if(row_offsets && !strcmp(indexed_asset, asset) && row_offsets[row_count] == size) return true;
-    gta_record_index_release();
-    if(!size || size > 256u * 1024u || !storage_file_seek(file, 0, true)) return false;
+static size_t scan_rows(File* file, uint32_t* offsets, size_t limit) {
+    const uint64_t size = storage_file_size(file);
+    if(!size || size > GTA_CATALOG_MAX_SIZE || !storage_file_seek(file, 0, true)) return 0;
     uint8_t chunk[256];
     uint32_t pos = 0, start = 0;
-    size_t capacity = 0;
+    size_t count = 0;
     while(pos < size) {
         size_t n = size - pos > sizeof(chunk) ? sizeof(chunk) : (size_t)(size - pos);
-        if(storage_file_read(file, chunk, n) != n) goto fail;
+        if(storage_file_read(file, chunk, n) != n) return 0;
         for(size_t i = 0; i < n; ++i, ++pos) {
-            if(!chunk[i] || pos - start >= GTA_RECORD_MAX) goto fail;
+            if(!chunk[i] || pos - start >= GTA_RECORD_MAX) return 0;
             if(chunk[i] != '\n') continue;
-            if(pos == start || row_count >= 4096u) goto fail;
-            if(row_count == capacity) {
-                size_t next = capacity ? capacity * 2u : 16u;
-                uint32_t* tmp = realloc(row_offsets, (next + 1u) * sizeof(*tmp));
-                if(!tmp) goto fail;
-                row_offsets = tmp;
-                capacity = next;
-            }
-            row_offsets[row_count++] = start;
+            if(pos == start || count >= limit) return 0;
+            if(offsets) offsets[count] = start;
+            ++count;
             start = pos + 1u;
         }
     }
-    if(start != size || !row_count) goto fail;
-    row_offsets[row_count] = start;
-    uint32_t* exact = realloc(row_offsets, (row_count + 1u) * sizeof(*exact));
-    if(exact) row_offsets = exact;
+    if(start != size || !count) return 0;
+    if(offsets) offsets[count] = start;
+    return count;
+}
+
+size_t gta_tsv_row_count(File* file) {
+    return scan_rows(file, NULL, GTA_CATALOG_MAX_ROWS);
+}
+
+static bool build_index(File* file, const char* asset) {
+    const uint64_t size = storage_file_size(file);
+    if(row_offsets && !strcmp(indexed_asset, asset) && row_offsets[row_count] == size) return true;
+    gta_record_index_release();
+    const size_t count = gta_tsv_row_count(file);
+    if(!count) return false;
+    row_offsets = gta_try_alloc((count + 1u) * sizeof(*row_offsets));
+    if(!row_offsets) return false;
+    if(scan_rows(file, row_offsets, count) != count || row_offsets[count] != size) {
+        gta_record_index_release();
+        return false;
+    }
+    row_count = count;
     snprintf(indexed_asset, sizeof(indexed_asset), "%s", asset);
     return true;
-fail:
-    gta_record_index_release();
-    return false;
 }
 size_t gta_record_count(Storage* storage, const char* asset) {
     File* file = open_catalog(storage, asset);
@@ -138,7 +161,7 @@ bool gta_record_read(
         uint32_t start = row_offsets[index], end = row_offsets[index + 1u];
         size_t n = end - start;
         if(n && n <= GTA_RECORD_MAX) {
-            r->data = malloc(n);
+            r->data = gta_try_alloc(n);
             ok = r->data && storage_file_seek(file, start, true) &&
                  storage_file_read(file, r->data, n) == n && gta_record_decode(r, n, fields, true);
         }
@@ -164,7 +187,7 @@ bool gta_record_find(
     uint32_t pos = 0, start = 0;
     size_t key_len = strlen(key), matched = 0;
     bool prefix = true, equal = true, found = false;
-    if(!size || size > 256u * 1024u) goto done;
+    if(!size || size > GTA_CATALOG_MAX_SIZE) goto done;
     while(pos < size) {
         size_t n = size - pos > sizeof(chunk) ? sizeof(chunk) : (size_t)(size - pos);
         if(storage_file_read(file, chunk, n) != n) goto done;
@@ -174,7 +197,7 @@ bool gta_record_find(
             if(ch == '\n') {
                 if(!prefix && equal) {
                     size_t len = pos - start + 1u;
-                    r->data = malloc(len);
+                    r->data = gta_try_alloc(len);
                     found = r->data && storage_file_seek(file, start, true) &&
                             storage_file_read(file, r->data, len) == len &&
                             gta_record_decode(r, len, fields, true);
@@ -259,11 +282,11 @@ void gta_ram_log(const char* stage) {
 #ifdef GTA_RAM_DIAGNOSTICS
     FURI_LOG_I(
         "GTA RAM",
-        "%s: free=%zu minimum=%zu pool_largest=%zu stack_watermark=%lu",
+        "%s: free=%zu minimum=%zu heap_largest=%zu stack_watermark=%lu",
         stage,
         memmgr_get_free_heap(),
         memmgr_get_minimum_free_heap(),
-        memmgr_pool_get_max_block(),
+        memmgr_heap_get_max_free_block(),
         (unsigned long)furi_thread_get_stack_space(furi_thread_get_current_id()));
 #else
     (void)stage;
@@ -273,7 +296,7 @@ void gta_ram_log(const char* stage) {
  * read a single bounded prefix and never allocate a Dispatch index. */
 bool gta_dispatch_read(File* file, uint32_t* offset, GtaDispatchTarget* target) {
     uint64_t size = storage_file_size(file);
-    if(*offset >= size || size > 256u * 1024u) return false;
+    if(*offset >= size || size > GTA_CATALOG_MAX_SIZE) return false;
     char row[24];
     size_t n = size - *offset < sizeof(row) ? (size_t)(size - *offset) : sizeof(row);
     if(!storage_file_seek(file, *offset, true) || storage_file_read(file, row, n) != n)

@@ -19,6 +19,7 @@ typedef struct {
     uint8_t pause;
     bool scroll;
     bool at_end;
+    bool has_alternates;
 } GtaNfcViewModel;
 typedef struct {
     ViewDispatcher* dispatcher;
@@ -26,6 +27,7 @@ typedef struct {
     GtaUrlNfc* nfc;
     char url[GTA_URL_MAX];
     FuriEventLoopTimer* timer;
+    bool has_alternates;
 } GtaNfcApp;
 static void gta_draw_nfc(Canvas* canvas, void* context) {
     GtaNfcViewModel* model = context;
@@ -36,7 +38,13 @@ static void gta_draw_nfc(Canvas* canvas, void* context) {
         canvas_clear(canvas);
         canvas_set_font(canvas, FontSecondary);
         canvas_draw_str_aligned(canvas, 64, 26, AlignCenter, AlignCenter, model->error);
-        canvas_draw_str_aligned(canvas, 64, 49, AlignCenter, AlignCenter, "Back: return");
+        canvas_draw_str_aligned(
+            canvas,
+            64,
+            49,
+            AlignCenter,
+            AlignCenter,
+            model->has_alternates ? "OK: Links  Back: Return" : "Back: Return");
         return;
     }
     if(!model->url) return;
@@ -58,6 +66,12 @@ static void gta_draw_nfc(Canvas* canvas, void* context) {
     const bool at_end = remaining[length] == '\0';
     if(model->scroll && at_end && !model->at_end) model->pause = GtaNfcScrollPause;
     model->at_end = at_end;
+    if(model->has_alternates) {
+        canvas_set_color(canvas, ColorWhite);
+        canvas_draw_box(canvas, 40, 40, 48, 12);
+        canvas_set_color(canvas, ColorBlack);
+        canvas_draw_str_aligned(canvas, 64, 46, AlignCenter, AlignCenter, "OK: Links");
+    }
     // Divider is y=52; FontSecondary baseline 61 leaves room for descenders.
     canvas_draw_str(canvas, 2, 61, line);
 }
@@ -88,8 +102,11 @@ static void gta_nfc_scroll(void* context) {
 
 static bool input(InputEvent* event, void* ctx) {
     GtaNfcApp* app = ctx;
-    if(event->key == InputKeyBack &&
-       (event->type == InputTypeShort || event->type == InputTypeLong)) {
+    if(event->key == InputKeyOk && event->type == InputTypeShort && app->has_alternates) {
+        view_dispatcher_send_custom_event(app->dispatcher, GTA_NFC_LINKS_EVENT);
+    } else if(
+        event->key == InputKeyBack &&
+        (event->type == InputTypeShort || event->type == InputTypeLong)) {
         // Only the host may remove this view and unload the executing module.
         view_dispatcher_send_custom_event(
             app->dispatcher,
@@ -117,12 +134,17 @@ static void gta_nfc_close(void* context) {
     free(app);
 }
 
-static void*
-    gta_nfc_open(ViewDispatcher* dispatcher, const char* url, uint16_t id, GtaUrlKind kind) {
+static void* gta_nfc_open(
+    ViewDispatcher* dispatcher,
+    const char* url,
+    uint16_t id,
+    GtaUrlKind kind,
+    bool has_alternates) {
     if(!dispatcher || !url || strlen(url) >= GTA_URL_MAX) return NULL;
     GtaNfcApp* app = calloc(1, sizeof(*app));
     if(!app) return NULL;
     app->dispatcher = dispatcher;
+    app->has_alternates = has_alternates;
     memcpy(app->url, url, strlen(url) + 1);
     app->nfc = gta_url_nfc_start(app->url, id, kind);
     app->view = view_alloc();
@@ -137,6 +159,7 @@ static void*
             *model = ((GtaNfcViewModel){
                 .url = app->url,
                 .pause = GtaNfcScrollPause,
+                .has_alternates = has_alternates,
                 .error = app->nfc ? NULL : gta_url_nfc_error()});
         },
         false);

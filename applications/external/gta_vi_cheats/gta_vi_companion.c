@@ -84,6 +84,7 @@ enum {
     ItemSecretOpen = 0x700,
     ItemSecretToggle,
     ItemSecretToggleDetail,
+    ItemSecretMaps,
 };
 typedef struct {
     const Icon* icon;
@@ -367,10 +368,54 @@ static bool gta_secret_list_input(InputEvent* event, void* context) {
     return true;
 }
 static void gta_secret_button_callback(GuiButtonType button, InputType type, void* context) {
-    if(button == GuiButtonTypeCenter && type == InputTypeShort) {
-        GtaApp* app = context;
+    if(type != InputTypeShort) return;
+    GtaApp* app = context;
+    if(button == GuiButtonTypeCenter)
         view_dispatcher_send_custom_event(app->dispatcher, ItemSecretToggleDetail);
+    else if(button == GuiButtonTypeRight)
+        view_dispatcher_send_custom_event(app->dispatcher, ItemSecretMaps);
+}
+
+/* Secret progress IDs and collection progress IDs are independent. These are
+ * navigation references only; opening a map never changes either checkmark. */
+static const GtaExploreSection* gta_secret_map_target(uint8_t secret_id, uint16_t* id) {
+    const char* asset = "easter_eggs.tsv";
+    switch(secret_id) {
+    case 36:
+        *id = 4196;
+        break; /* Marbelle */
+    case 17:
+        *id = 4197;
+        break; /* Backrooms */
+    case 21:
+        *id = 4198;
+        break; /* Arthur hat */
+    case 34:
+        *id = 4199;
+        break; /* Plumber hats */
+    case 30:
+        *id = 4200;
+        break; /* Ghost ship */
+    case 19:
+        asset = "vice_city_portal.tsv";
+        *id = 4208;
+        break;
+    case 20:
+        asset = "underwater.tsv";
+        *id = 4170;
+        break;
+    case 24:
+        asset = "underwater.tsv";
+        *id = 4194;
+        break;
+    default:
+        return NULL;
     }
+    for(size_t i = 0; i < gta_explore_section_count; ++i) {
+        const GtaExploreSection* section = &gta_explore_sections[i];
+        if(section->asset && !strcmp(section->asset, asset)) return section;
+    }
+    return NULL;
 }
 static void gta_ensure_menu(GtaApp* app) {
     if(app->menu) return;
@@ -699,10 +744,10 @@ static void gta_guide(GtaApp* app) {
         "Bridges, Cars, Stunts and Collections: each listed entry can be marked Completed. "
         "Right toggles a checkmark in its list; OK opens details, with Check/Undo at center. "
         "Progress saves to SD and reloads automatically. "
-        "Hold OK in a linked collection or Dispatch detail to emulate its only NFC link "
-        "immediately, or choose between two links. Left: Source. Right: Map image or Source 2 "
-        "if no image is available. Tap your unlocked phone. Back stops NFC and returns to "
-        "the item or link selector.\n\n"
+        "Press Right (Emulate) to start the best map or link immediately. "
+        "GTA6GPS maps come first. Press OK during NFC to browse multiple links, "
+        "then Up/Down and OK to select. Tap your unlocked phone. Back stops NFC "
+        "and returns to the checklist with the item highlighted.\n\n"
         "Under the Bridge and Stunt Jumps are grouped by county in Collections; "
         "Knife Flights and Base Jumps are there too (397 stunts total). "
         "Cars include Randy, Moses, Wyman and Standout Vehicles. "
@@ -907,6 +952,10 @@ static void gta_secret_detail(GtaApp* app, size_t index) {
                                                                                     "Check",
         gta_secret_button_callback,
         app);
+    uint16_t map_id;
+    if(gta_secret_map_target(entry->progress_id, &map_id))
+        widget_add_button_element(
+            app->secret_detail, GuiButtonTypeRight, "Maps", gta_secret_button_callback, app);
     view_dispatcher_switch_to_view(app->dispatcher, ViewSecretDetail);
     gta_release_unused(app, ViewSecretDetail);
 }
@@ -978,7 +1027,18 @@ static bool gta_event(void* context, uint32_t event) {
             gta_secret_refresh(app);
         }
     } else if(app->screen == ScreenSecretDetail) {
-        if(event == ItemSecretToggleDetail && app->secret_index < gta_secret_mission_count) {
+        if(event == ItemSecretMaps && app->secret_index < gta_secret_mission_count) {
+            const GtaSecretMission* row = gta_secret_at(app->secret_index, false);
+            uint16_t map_id = 0;
+            const GtaExploreSection* section =
+                row ? gta_secret_map_target(row->progress_id, &map_id) : NULL;
+            if(section) {
+                app->companion_back = ScreenSecretList;
+                app->screen = ScreenCompanion;
+                gta_companion_open_exploration_item(app->companion, section, map_id);
+                gta_release_unused(app, ViewCollectionDetail);
+            }
+        } else if(event == ItemSecretToggleDetail && app->secret_index < gta_secret_mission_count) {
             const GtaSecretMission* row = gta_secret_at(app->secret_index, false);
             if(row)
                 gta_secret_progress_toggle(

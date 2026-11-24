@@ -29,10 +29,10 @@ The home screen has 16 icons across two pages. Icons appear in this order, from 
 | **Randy's Wish List** | 22 vehicle requests with reported pickup clues, access conditions, and delivery progress. |
 | **Moses Drop-Offs** | Seven reported vehicle delivery jobs and their location clues. |
 | **Wyman's Classic Cars** | Four restoration checklists with directions to 15 wreck parts, plus a checklist entry for claiming the final car. |
-| **Standout Vehicles** | 281 trackable vehicle entries covering special liveries, cars, motorcycles, aircraft, watercraft, mission rewards, and alternate pickup locations. |
+| **Standout Vehicles** | 282 trackable vehicle entries covering special liveries, cars, motorcycles, aircraft, watercraft, mission rewards, and alternate pickup locations. |
 | **Garages** | 15 garage entries with location, capacity, acquisition cost, or unlock requirements where known. |
 | **Houses / Cribs** | Five story safehouses with locations, chapter access, and facilities. |
-| **Dispatch** | Region-based browsing of 923 indexed pickups and activities, with progress tracking and a next-unchecked shortcut. |
+| **Dispatch** | Region-based browsing of 948 indexed pickups and activities, with progress tracking and a next-unchecked shortcut. |
 | **Mock Loaders** | Gallery of the enabled image sets. The app ships 30 GTA VI and 15 Dungeons & Dolphins images. |
 | **Mock Loader Settings** | Enable or disable each image set in the gallery, startup rotation and NFC module transitions. |
 | **Quick guide / warnings** | Button controls, cheat entry, saving precautions, achievement warnings, flamingo identification, style scanning, underwater search tips, and fast Focus leveling. |
@@ -62,21 +62,21 @@ All populated entries in these areas have individual **Completed** checkmarks:
 
 ### Memory usage and installation
 
-The app loads guide catalogs from bundled UTF-8 TSV files on demand. Lists cache visible labels and load detailed descriptions only when selected. NFC URLs are retrieved for the active item, and Dispatch reads individual location records. Inactive views release their temporary indexes to conserve RAM.
+The app reads bundled UTF-8 TSV catalogs on demand. Each checklist allocates one exact-size index with a four-byte slot per entry and one end offset. Lists cache four visible labels and load detailed text only for the selected item. The app releases its formatting buffer after the detail widget copies the text. NFC retrieves URLs for the active item, and Dispatch reads individual location records. Inactive views release their indexes.
 
 Install the Companion FAP with its bundled catalog, collection, image assets, and embedded plugins. The firmware extracts the assets on launch; plugins and gallery images load only when needed.
 
-Catalogs use UTF-8 TSV files without headers or a byte-order mark. Preserve progress IDs and the unique keys in `links.tsv` and `link_categories.tsv` when maintaining the catalogs. Developer diagnostics are available through the optional `GTA_RAM_DIAGNOSTICS` compile definition.
+Catalogs use UTF-8 TSV files without headers or a byte-order mark. Preserve progress IDs and unique keys in the NFC link catalogs. Item links are partitioned into `assets/catalogs/links_NN.tsv`, where `NN` is the zero-padded decimal result of dividing the item ID by 256 (integer division). Only nonempty partitions need to exist. Each lookup scans the item’s partition; category fallback remains in `link_categories.tsv`. Optional `links_extra_NN.tsv` partitions add up to eight labeled URLs per item without changing the six-column legacy format. Each extra row contains nine tab-separated fields: `id`, then four `label` / `url` pairs. Pad unused pairs with empty fields. If the first row contains four URLs, a second row keyed `id:2` may supply four more. Labels describe the location or purpose; the app adds the provider name. Exact duplicate URLs are merged, retaining a supplied location label. A shared GTA6GPS category map is offered first when no item-specific GTA6GPS reference exists. Remove the obsolete monolithic `assets/catalogs/links.tsv` when upgrading the source tree. Enable `GTA_RAM_DIAGNOSTICS` to log free heap, minimum free heap, the largest free heap block, and the app task's unused stack watermark.
 
 ### NFC source and map links
 
-Press **Right (Emulate)** in a collection, vehicle, property, or Dispatch detail. If there is one available URL, emulation starts immediately. With two options, choose **Source** on the left and **Map** (direct map image) or **Source 2** (second reference) on the right. Unavailable options are hidden. Bring an unlocked NFC-enabled phone near the Flipper to open the URL.
+Press **Right (Emulate)** in a linked collection, vehicle, property, or Dispatch detail to start emulating the best available link immediately. GTA6GPS location pins take priority, followed by GTA6GPS category maps, other interactive maps, map images and guides. When multiple distinct URLs are available, press **OK** on the emulation screen to stop NFC and open the scrollable Links list. Use **Up / Down** to browse and **OK** to emulate the selected URL. A single URL emulates directly without a selector. Each option identifies its provider and reference type or location. Bring an unlocked NFC-enabled phone near the Flipper to open the URL.
 
 References may be individual interactive map pins, location-specific guides, map images, or shared category indexes. A text-fragment URL may highlight a named entry in a shared guide. A venue or search-area pin is not necessarily the exact pickup position. Follow the accompanying location and confidence notes.
 
-For Wyman’s restoration projects, press **Left (Wrecks)** to browse component references using **Prev / Next**, then press **OK (Map or Guide)** to emulate the selected URL. The restoration retains its own checkmark.
+Wyman’s restoration projects use the same Links list for individual wreck markers and component guides. The restoration retains its own checkmark. Opening Links from NFC highlights the currently emulated link.
 
-The NFC plugin loads on demand, with a mock loading screen when enabled. The active URL appears on the emulation screen and scrolls if necessary. Press **Back** to stop emulation and return to the item or URL selector; hold **Back** to exit to the firmware.
+The NFC plugin loads on demand, with a mock loading screen when enabled. The active URL appears on the emulation screen and scrolls if necessary. Press **Back** to stop emulation and return directly to the originating vehicle or collection checklist with the same item highlighted. Back from the Links list also returns to that checklist. Dispatch and the Infinite Money Glitch guide return to their detail screen instead. Hold **Back** during emulation to exit to the firmware.
 
 The app emulates a temporary firmware-generated NTAG215 NDEF URI and blinks the magenta LED during emulation; it does not write a physical tag, download images, require a Flipper internet connection, or change collection progress. The phone needs internet access to load the source page or its map/images. All Collections and vehicle/property checklist details, including Regional Dispatch, offer a source link. If a pickup-specific reference is unavailable, the link opens a shared guide or category index; use the item directions to identify the target.
 
@@ -86,13 +86,13 @@ For **Secret Missions**, press **OK** to read the walkthrough, **Right** to chec
 
 ### Saved progress and backups
 
-Collection and Dispatch checkmarks are saved in **`/ext/apps_data/gta_vi_cheats/`** using `progress2.a` and `progress2.b`. If these files are absent, the app can import existing checks from `progress.a` and `progress.b`, leaving those files intact.
+Collection and Dispatch checkmarks are saved in **`/ext/apps_data/gta_vi_cheats/`** using alternating `progress3.a` and `progress3.b` files (8,192 progress bits). If neither new-format slot is valid, the app imports the newest valid save from `progress2.a` / `progress2.b` (4,096 bits) or, if neither is valid, `progress.a` / `progress.b` (2,048 bits). Both older pairs remain untouched; new checkmarks are saved in the new format. Older app builds cannot read new-format checkmarks.
 
 **Secret Missions** use `secrets.a` and `secrets.b`. **Mock Loader Settings** use `mock_loaders.a` and `mock_loaders.b`. Back up the app’s SD-card data directory before replacing firmware or formatting the card.
 
 ### Region-aware Dispatch
 
-Dispatch groups **923 location stops** into **Vice City**, **Leonida Keys**, **Grassrivers**, **Port Gellhorn**, **Ambrosia**, **Mount Kalaga**, **Other areas**, and **All regions**.
+Dispatch groups **948 location stops** into **Vice City**, **Leonida Keys**, **Grassrivers**, **Port Gellhorn**, **Ambrosia**, **Mount Kalaga**, **Other areas**, and **All regions**.
 
 Choose a region to open its first unchecked stop. Press **OK** to toggle its checkmark, **Left (Next)** to advance to the next unchecked stop, **Right (Emulate)** to open its location reference, or **Back** to choose another region. Checkmarks are shared with the corresponding collection or vehicle entry.
 
@@ -152,7 +152,7 @@ The guide covers a **cars-and-cocaine warehouse loop** using vehicle storage at 
 | Return after the Chapter 1 fire; police zone clears around Chapter 3 | **Dolores the Snake** | Burned house, Key Lento. | Hidden encounter; no new reward reported. |
 | Jason; chapter unknown | **Backyard Wrestling** | Backyard American Mania ring behind a trailer in Hamlet. | Luchador Mask, Adrenaline and other stat items; card identity unconfirmed. |
 | Jason; after access to all substations | **Vice City Portal** | Badger R&D tower, Key Lento; Reactor 2, Turtle Head Power Station east of Hamlet. | Tommy Vercetti shirt and Malibu Zombie Bobber (see Standout Vehicles). |
-| Boat and diving access; chapter unknown | **Burg Industries Mystery** | Yellow platform east of Key Lento; second station west of Mile Zero Air Station. | Reported meteorite pickups and two Underwater Discoveries. |
+| Boat and diving access; chapter unknown | **Burg Industries Mystery** | Yellow platform east of Key Lento; second station west of Mile Zero Air Station. | Reported meteorite pickups; five named facilities are in Underwater Discoveries. |
 | Free roam; chapter unknown | **Ride Em Chihuahua** | Frontier Adventure Golf, south Waning Sands. | Animal log entry. |
 | Diving access | **Kraken Shipwreck** | Seabed southeast of Gloriana Key. | Easter egg; no confirmed collectible counter or reward. |
 | Free roam; chapter unknown | **Immortal Man** | Southern Key Lento, residential decks near Donnie's trailer. | No verified reward. |
@@ -169,7 +169,11 @@ The guide covers a **cars-and-cocaine warehouse loop** using vehicle storage at 
 
 The in-app entries contain the detailed steps and specific location clues. For Kyle's chemical delivery, see [the FarmFix negotiation and stamina reward](https://getvicekeys.com/guides/gta-6-collect-chemicals-for-kyle). For the Hamlet cash route, the total combines several items and fences; it is **not** a guaranteed $20,000 cash pickup. The separate **Infinite Money Glitch** menu covers the disputed respawn/reset method. Some activities have a spoiler-heavy outcome, and certain Chapter 1 opportunities cannot be revisited after the story advances.
 
+Use **Collections → Easter Eggs** for mapped secret references and **Collections → Vice City Portal Route** for the ordered substation maps. Supported Secret Missions include a **Maps** shortcut to the related location detail. Back from NFC restores the map checklist; Back again restores the original Secret Missions list and focus.
+
 ### Secret Missions sources
+
+- [GTA6GPS - Vice City Portal route](https://gta6gps.com/guides/vice-city-portal) and [GTA6GPS - Easter eggs](https://gta6gps.com/map/game/easter-eggs).
 
 - [Dexerto - Marbelle Hotel fog](https://www.dexerto.com/wikis/gta-6/easter-eggs/marbelle-hotel--silent-hill-easter-egg/) and [KeenGamer - Chapter 2 missables](https://www.keengamer.com/articles/guides/gta-6-chapter-2-guide-all-missables-and-things-to-do-before-checking-out/).
 - [GTA6.free - Andrew Node Thrax route](https://gta6.free/vehicles/gta-6-andrew-node-thrax-starfish-island); [PixelArena - alternate warehouse code](https://pixelarena.io/no-flusher-tags-locations-in-gta-6-free-thrax-supercar/); [Insider Gaming - phone clipping method](https://insider-gaming.com/how-to-get-the-fastest-car-in-gta-6/); [GTA6.house - garage glitch](https://gta6.house/guides/gta-6-truffade-thrax-free-glitch-location); [Reddit - reported free Moses registration](https://www.reddit.com/r/GTAV/comments/1y34355/i_found_a_glitch_thrax_car_worth_70k_freely/).
@@ -187,10 +191,13 @@ The in-app entries contain the detailed steps and specific location clues. For K
 
 ### Optional Missions checklist
 
-The **Collections → Optional Missions** checklist tracks **32 mission and side-activity entries**, including mission strands and individual steps from Billy, Andy, Yasmani, Tyrone, Dunk, Cal, Eddie, Shayna, Yago, and the bank-vault tutorial. Entries describe reported chapter requirements, missable objectives, and rewards. This checklist is distinct from the Secret Missions home-menu guide.
+The **Collections → Optional Missions** checklist tracks **43 mission and side-activity entries**, including Freddie, Dodos Rising, Papa Audacity, Billy, Andy, Yasmani, Tyrone, Dunk, Cal, Eddie, Shayna, Yago, and the bank-vault tutorial. Entries describe reported chapter requirements, missable objectives, and rewards. This checklist is distinct from the Secret Missions home-menu guide.
 
 | Mission strand | Reported access and location | Important notes |
 | --- | --- | --- |
+| **Retest Freddie's Defenses** | Freddie's compound north of Lake Leonida, Leonard County. Either character. | Reach Freddie's intercom on the first visit, then wait for his text to start the retest. Reported $10,000 and Strangers & Freaks credit. [Walkthrough](https://www.powerpyx.com/gta-6-retest-freddies-defenses-walkthrough/) |
+| **Dodos Rising** | Meet Noah near the airport or Rosebud outside the Catalan Key Oceanarium. | Complete *Bring Out the Chimp* and *Sisters of the Sea*, then use Lucia for *Twin Flames* in Watson Bay and *Dodo, Rise!* at Emerald Springs. [Mission index](https://www.powerpyx.com/gta-6-all-strangers-freaks-side-missions/) |
+| **Papa Audacity** | Chapter 3. Start *The Unknown Stuntman* at the park on the south end of Ocean Beach. | Six checklist entries cover the stunt tests, reported AudaCity Sandking reward, and the launch party in Tequesta. [First mission](https://www.powerpyx.com/gta-6-the-unknown-stuntman-walkthrough/) |
 | **Get Shirley's Rum** | Chapter 1, Key Lento; buy Salty Squid rum at Three Sheets Liquor for Shirley. | **Missable before Tourist Trap.** Buy the rum before investigating strange bird noises: the reported shootout can close the shop. |
 | **Ring the Bell!** | Chapter 1; Cal's invitation to the Rusty Anchor after *Day Release*. | Go for drinks and drive Cal home. The Rusty Anchor shirt and cap become **purchasable**, rather than free mission rewards. |
 | **Steal the Scooter** | Chapter 1; Shirley's follow-up call, Peggy's driveway across the water in Key Lento. | Bring the scooter back to Shirley; reported unavailable after *Tourist Trap*. |
@@ -338,20 +345,20 @@ Select **Collections** to browse categories and individual sets. Each entry prov
 
 | Collection or activity | Content |
 | --- | --- |
-| **Collectible Cards** | **480 cards across 18 sets**, organized by card set with pickup clues. John Morgan (Dusty Pink) is reported on a floor-level poster at the back of the cream villa's garage on Casanova Island. |
+| **Collectible Cards** | **480 cards across 18 sets**, organized by card set with pickup clues. Random Card Pickups tracks 49 separately mapped locations; these are not additional card identities. John Morgan (Dusty Pink) is reported on a floor-level poster at the back of the cream villa's garage on Casanova Island. All 480 named entries have individual map or targeted guide references; some reported pickups have approximate or conflicting locations. |
 | **WAiNK** | **31 landmarks**, **35 curiosities**, **23 sculptures**, and **all 15 No Flusher tags**, with identifying landmarks and scan instructions where available. |
-| **Peewees Billboards** | **4 roadside billboards** with highway, interchange, and nearby-business clues, plus the reported Belville reward puzzle. |
+| **Peewees Billboards** | **4 roadside billboards** with highway, interchange, and nearby-business clues, plus the reported Belville reward puzzle and a direct map to the reward restaurant. |
 | **AHOL Street Art** | **112 art scans** organized by art type, including an option to mark a whole type complete. Each piece has an individual named guide reference. |
 | **1010 Murals** | **5 photo locations** and framing clues. The reported completion reward is the 1010 Cheetah at Southside Storage, code `1010`. |
 | **Kenton’s Treasures** | **7 named treasure sets**, with relic lists, dive-site directions, and individual search clues for the five named wreck sets. |
-| **Underwater Discoveries** | **8 reported sites**: six shipwrecks with relic routes and two Burg Industries labs (discovery credit unconfirmed). Additional unconfirmed wrecks and offshore sites appear under Location Search Leads. |
+| **Underwater Discoveries** | **33 named discoveries**: six existing wrecks, five numbered Burg facilities, the Underwater Hotel and other seabed sites. Includes numbered guide maps, verified named map references where available, and separate legacy lab leads. |
 | **Magazines, Books & Comics** | **27 reading entries**, including *Law & Litigation in Leonida*. That Hamlet copy has a published location and an unconfirmed contribution to the game's 27-title counter. |
 | **Book Swaps** | **7 Little Library locations**. |
 | **Meditations** | **18 character-specific completions** across **10 places**, with separate Jason and Lucia entries when applicable. |
 | **Cocaine Flamingos** | **94 reported pickups and search leads**, grouped by geographic area with landmarks, access clues, and available map references. |
 | **Unique Playlists** | **2 playlists** and **5 related poster locations**. |
 | **Discovered Styles** | **40 entries**: 4 Jason magazine styles, 8 Lucia magazine styles, 13 magazine tattoos, and 15 luxury-watch pickups and leads. |
-| **Optional Missions** | **32 mission and side-activity entries**, with character, earliest reported chapter, missability, and reward clues. Distinct from the Secret Missions home-menu guide. |
+| **Optional Missions** | **43 mission and side-activity entries**, with character, earliest reported chapter, missability, and reward clues. Distinct from the Secret Missions home-menu guide. |
 | **Messages in Bottles** | **6 numbered shoreline pickups** around Key Lento and the Shoeless Keys. These have their own checklist and do not count toward publications or Book Swaps. |
 | **Missing Persons investigation** | **5 checkable investigation stages**: Starlet Motel poster and warehouse, three missing-tourist reports, and the optional warehouse/mine finale. The guide has **three victims, not five**. |
 | **Meteorite Chunks** | **82 reported locations** across Keys, Coast & Islands and Mainland & Caves, with terrain, access, and nearby-landmark clues. |
@@ -359,7 +366,9 @@ Select **Collections** to browse categories and individual sets. Each entry prov
 | **Under the Bridge** | **202 bridge crossings**, with individual spans and nearby landmarks. |
 | **Knife Flights** | **40 aircraft gaps**. |
 | **Base Jumps** | **25 jump starts** with published par-time notes where available. |
-| **Location Search Leads** | **19 checkable leads** for map pins that may match an existing pickup or still need their unlock name or counter credit verified. Includes the Underwater Hotel off Key Lento and Halifax's custom '32 Hustler. |
+| **Location Search Leads** | **182 checkable leads** for map pins that may match an existing pickup or still need their unlock name or counter credit verified. Includes legacy lab leads, vehicle sightings, unmatched street art and lab markers, and optional roadside encounters. Search leads are not additional official collectible identities. |
+| **Easter Eggs** | 16 mapped optional discoveries and secret-route references, separate from Secret Missions completion. |
+| **Vice City Portal Route** | 14 mapped steps: radio tower, 12 substations and Reactor 2. |
 | **Endings** | **12 finale outcomes and proposed variations**: nine reported outcomes or epilogues and three speculative savings-based variants, each with story choices, suggested prerequisites, and confidence notes. |
 
 **Meteorite Chunks:** Search impact craters, coastal rocks, islands, caves, and underwater tunnels. The Selkie Hole tunnel route includes five reported fragments and requires scuba gear. The catalog distinguishes individual pickup clues from broader search areas.
@@ -376,7 +385,7 @@ Select **Collections** to browse categories and individual sets. Each entry prov
 
 **Unique Playlist posters:** Four La Perle/Crosstown posters unlock *The Sniper of La Perle* under **On Demand**; a Downtown nightclub poster unlocks *The Vault* under **Radio**. Track all five poster locations individually.
 
-**Kenton’s Treasures and underwater wrecks:** Use the named wreck routes and individual relic clues to search cargo holds, cabins, debris fields, and surrounding seabeds. Published completion guides call for five of the seven named sets. The *Nuestra Senora del Ocio* wreck in *Island Dreams* yields ten Gold Doubloons and is an underwater discovery, not a separate Kenton set. Unconfirmed offshore wrecks and the Misericordia marker appear under Location Search Leads; Burg Industries lab discovery credit is unconfirmed.
+**Kenton’s Treasures and underwater wrecks:** Use the named wreck routes and individual relic clues to search cargo holds, cabins, debris fields, and surrounding seabeds. Published completion guides call for five of the seven named sets. The *Nuestra Senora del Ocio* wreck in *Island Dreams* yields ten Gold Doubloons and is an underwater discovery, not a separate Kenton set. Unconfirmed offshore wrecks and the Misericordia marker appear under Location Search Leads; The five numbered Burg facilities count as discoveries; legacy unnumbered lab leads remain separately tracked. Facility 1 is west of Mile Zero, Facility 4 north of Mile Zero, Facility 2 east of Little Hardin Island, Facility 3 west of Wild Hog Point, and Facility 5 east of Key Lento. [Facility maps and dive guide](https://www.pushsquare.com/guides/gta-6-underwater-discoveries-locations-and-kentons-treasures).
 
 **Collection techniques:** Destroy cocaine flamingos with black-and-white beaks; black-and-yellow beaks are reported as decorative. Use WAiNK for style magazines, artwork, landmarks, and applicable scans. For underwater pickups, equip scuba gear and follow the wreck or cave directions.
 
@@ -386,6 +395,10 @@ Select **Collections** to browse categories and individual sets. Each entry prov
 
 ### Collection and stunt sources
 
+- [PowerPyx - all 33 underwater discoveries](https://www.powerpyx.com/gta-6-all-underwater-discoveries-locations/) and [GTA6GPS - random events](https://gta6gps.com/map/game/random-events).
+- [GTADB - Backyard Wrestling cards](https://gtadb.net/articles/gta-6-backyard-wrestling-trading-card-locations/), [Liberty City Penetrators](https://gtadb.net/articles/gta-6-liberty-city-penetrators-trading-card-locations/), [Vice City Club De Fútbol](https://gtadb.net/articles/gta-6-vice-city-club-de-futbol-trading-card-locations/), [Liberty City Wrath](https://gtadb.net/articles/gta-6-liberty-city-wrath-trading-card-locations/).
+- [GTADB - Liberty City Swingers](https://gtadb.net/articles/gta-6-liberty-city-swingers-trading-card-locations/), [Los Santos Corkers](https://gtadb.net/articles/gta-6-los-santos-corkers-trading-card-locations/), [Los Santos Panic](https://gtadb.net/articles/gta-6-los-santos-panic-trading-card-locations/), [Vice City Narcos](https://gtadb.net/articles/gta-6-vice-city-narcos-trading-card-locations/), [America's Next Top Hooker](https://gtadb.net/articles/gta-6-americas-next-top-hooker-trading-card-locations/).
+- [GTADB - Ed Comics Universe](https://gtadb.net/articles/gta-6-ed-comics-universe-trading-card-locations/), [Right Wing: America's Hero](https://gtadb.net/articles/gta-6-right-wing-americas-hero-trading-card-locations/), [The Legends of Ratface](https://gtadb.net/articles/gta-6-legends-of-ratface-trading-card-locations/), [Los Santos Pounders](https://gtadb.net/articles/gta-6-los-santos-pounders-trading-card-locations/), [Vice City Flamingos](https://gtadb.net/articles/gta-6-vice-city-flamingos-trading-card-locations/), [Vice City Manatees](https://gtadb.net/articles/gta-6-vice-city-manatees-trading-card-locations/), [GTA Boss - Georgie Macklerath (Gold)](https://www.gtaboss.gg/gta-6/map/collectible-cards-georgie-macklerath-gold), and [Game Checklists - card locations](https://game-checklists.com/gta6/card-sets-checklist/).
 - [GTA6 GPS - flamingo map pins](https://gta6gps.com/map/game/flamingos), [GTA6 GPS - collectible card pins](https://gta6gps.com/map/game/collectible-cards), [WAiNK landmarks](https://gta6gps.com/map/game/landmarks), [curiosities](https://gta6gps.com/map/game/oddities), [sculptures](https://gta6gps.com/map/game/sculptures), [book swaps](https://gta6gps.com/map/game/books), [special weapons](https://gta6gps.com/map/game/weapon-variants), [safehouses](https://gta6gps.com/map/game/safehouses), [GTA6 GPS - Key Lento mailbox](https://gta6gps.com/?p=pin-918472), [entrance stairs](https://gta6gps.com/?p=pin-918220), [Watson Bay doorway](https://gta6gps.com/?p=pin-918625), [flower bed](https://gta6gps.com/?p=pin-918627), [MetaForge - flamingo map locations](https://metaforge.app/gta-6/gta-6-cocaine-flamingos-locations), [Kenton set map](https://gta6gps.com/map/game/kenton-sets), [Vice Keys - filmed Mariana flamingo route](https://getvicekeys.com/guides/gta-6-mariana-county-pink-flamingo-route), [GTA Walkthrough - flamingo pickup screenshots](https://gta-walkthrough.com/gta-6-cocaine-flamingo-locations/), [LibertyCity - Dorado Pawn Shop flamingo](https://libertycity.net/map/gta6/1603-cocaine-flamingo-dorado-pawn-shop.html), [FinalBoss - illustrated flamingo routes](https://finalboss.io/gta-6-cocaine-flamingo-locations), and [LootMapped - interactive map](https://lootmapped.com/gta-6/map/).
 - [Kingy Wiki - Kenton dive sites](https://kingy.wiki/games/gta6/underwater-discoveries), [Sweat School - named wrecks](https://sweatschool.app/gta-6/collectibles/underwater-discoveries/).
 - [GTA6Gang - meteorite map directions](https://gta6gang.com/guides/gta6-meteorites.html), [GTA6 GPS - meteorites](https://gta6gps.com/map/game/meteorites), [GTA6 GPS - BASE jumps](https://gta6gps.com/map/game/base-jumps), [1010 murals](https://gta6gps.com/map/game/murals), [Peewees billboards](https://gta6gps.com/map/game/peewees-billboards), [golf](https://gta6gps.com/map/game/golf), [missing tourists](https://gta6gps.com/map/game/missing-tourists), [style unlocks](https://gta6gps.com/map/game/style-unlocks), [Vice City DB - flamingo reports](https://vicecitydb.org/collectibles/cocaine-flamingos), [CutsceneWire - flamingo routes](https://cutscenewire.com/games/gta-6/collectibles/gta-6-all-cocaine-flamingo-locations/), [GTADB - 50 mapped flamingo locations](https://gtadb.net/articles/gta-6-cocaine-flamingos-locations/), [Key Lento southwest shore](https://gtadb.net/gta-6-map/interactive/?category=collectibles&marker=IG6_000842&set=cocaine-flamingos&type=cocaine-flamingos), [Key Lento northeast shore](https://gtadb.net/gta-6-map/interactive/?category=collectibles&marker=IG6_000843&set=cocaine-flamingos&type=cocaine-flamingos), and [Leonida Players - underwater research facilities](https://leonidaplayers.com/guides/gta-6-underwater-research-facilities-all-5-locations-meteorite-safe-code-80085).
@@ -425,7 +438,8 @@ The **Collections → Activities / Robberies** group provides individual checkli
 | Bret's Target Decks | 15 (3 detailed, 12 numbered) | All 15 Jason-only hunting contracts have separate checkmarks. Species and hunt areas are provided for the first three; later entries use the deck number and Bret's in-game text/map clues without guessing the animals. |
 | Legendary Animals | 11 | Nine Bret clue hunts and two rare creatures; separate from Target Decks and the eight-animal challenge counter. |
 | Smash and Grabs | 35 | At least **34/35** for 100%; pawn shops after *Coffee Break*, jewelry after *Yasmani's Jewelry Jobs*. Check the back room. |
-| Stick-Up Leads (partial) | 17 named candidate stores | The game counts **91** eligible stick-ups, of which **50** are needed. This list is **not** an exhaustive or verified subset of 91; check the in-game robbery-map filter before claiming completion. |
+| Stick-Up Store Leads | 107 reported store leads | The game counts **91** eligible stick-ups, of which **50** are needed. Store positions may be approximate; check the in-game robbery-map filter. The two Grassrivers branches are not yet individually reconciled to the original lead. Six named store leads also have individual GTA6GPS pins. |
+| Kitty Litter Labs | 19 reported lab sites | Follow Tyrone’s Chapter 3 storyline; locate the smoking lab vents and laundry vans. The Spin On This finale remains tracked in Optional Missions. |
 | Drone Time Trials | 42 trials at 14 venues | All 42. Beat par on first two trials per venue; finish the third once. |
 | Shooting Gold Medals | 42 medals at two ranges | All 42 individual gold medals, across 12 courses. |
 | Race Challenges | 13 | Gold in at least **10/13**; separate from unique races. |
@@ -433,14 +447,13 @@ The **Collections → Activities / Robberies** group provides individual checkli
 | Pool Opponents | 7 | Beat at least **5/7** different opponents. |
 | Golf Courses | 5 total: 3 mini, 2 full | Play **2/3 mini golf** courses. The two regular golf courses are optional reference entries. |
 | Unique Race Venues | 13 site leads covering 40 races | **30/40 unique races** needed for 100%; a checked venue means **visited**, not that its races are all won. Individual race names were not published. |
-| Basketball Hoops | 100 individually numbered baskets | **90/100 hoops** required for the reported 100% threshold. Score at each distinct basket you check. |
-| Hoop Search Leads | 9 location leads | Numbered hoop identities are unconfirmed; use the clues to identify the corresponding baskets. |
+| Basketball Hoops | 100 individual GTA6GPS maps | **90/100 hoops** required for the reported 100% threshold. Score at each distinct basket you check. |
 
-**Basketball Hoops:** Each of the 100 numbered entries includes a hoop and ball location and an NFC reference. Score at each distinct basket before checking it off. Multiple baskets may share a court. Some map matches are probable rather than confirmed, and numbered guide links identify entries when an individual pin is unavailable.
+**Basketball Hoops:** The checklist uses all 100 individual [GTA6GPS hoop markers](https://gta6gps.com/map/game/basketball-hoops), grouped by region and identified by their map pin. Each entry directly emulates its own map. Score at each distinct basket before checking it off. The former numbered guide and duplicate search leads are no longer tracked; only the GTA6GPS checklist contributes to hoop progress.
 
 **Bret’s Target Decks:** After Chapter 2 *Coffee Break*, meet Bret Vogel as Jason and complete *Veteran Hunted*. Track all 15 hunting contracts separately. The first three decks include reported species and habitat requirements: whitetail buck and doe; wild white tom turkey, eastern spotted skunk and wild boar; and cane toad, nutria and Nile monitor. For decks 4–15, follow Bret’s texts and the purple **Map → Activities → Target Deck** markers; exact animal lists are not documented in the app. Mark a deck complete after Bret accepts the order. Check **Progress → Contacts → Bret Vogel** for the in-game total.
 
-**Legendary Animals:** After *Veteran Hunted*, wait for Bret’s specific Snapmatic clue before searching for the nine legendary targets. Karkinos and Gang Panther have separate entries. Study and log each animal, then follow the delivery or photo prompt. Search-area maps describe roaming habitats, not guaranteed stationary spawns. Verify the eight-animal Legendary Hunter challenge separately.
+**Legendary Animals:** After *Veteran Hunted*, wait for Bret’s specific Snapmatic clue before searching for the nine legendary targets. Karkinos and Gang Panther have separate entries. Study and log each animal, then follow the delivery or photo prompt. Search-area maps describe roaming habitats, not guaranteed stationary spawns. Verify the eight-animal Legendary Hunter challenge separately. All 11 animals have individual third-party search-area references. GTA6GPS radar, dairy and probable golf-course markers are labeled as landmarks, not animal spawns.
 
 **Challenge milestones:** The game lists **80 named Challenges across 8 families of 10**: Combat, Criminal, Exploration, Fitness, Shopping, Sports, Survival, and Vehicle. Their full objectives are under **Progress > Challenges**. The companion tracks **all 80 named objectives** individually in Challenge Objectives, plus the **5/10 and 10/10 milestones for each family** and overall **50/70/80** thresholds. Completing an objective does not automatically check its associated milestone; mark milestones after verifying the game's progress count. Published guides associate the family milestones with vehicle cheat unlocks. Cheat use remains gated behind story completion, and the app does not activate cheats. For the full named objectives, see the Challenge sources below.
 
@@ -468,7 +481,7 @@ The **22 Bank Jobs** comprise **14 small banks** and **8 large vaults**. Some ba
 - [PowerPyx: 14 small banks and 8 large vaults](https://www.powerpyx.com/gta-6-all-bank-jobs-locations-bank-vaults/), [GTA6 GPS - bank map](https://gta6gps.com/map/game/bank-jobs)
 - [PowerPyx: Payday Loan jobs](https://www.powerpyx.com/gta-6-all-payday-loans-jobs-locations/), [GTA6 GPS: Payday Loan pins](https://gta6gps.com/map/game/payday-loans)
 - [PowerPyx: Smash and Grabs](https://www.powerpyx.com/gta-6-all-smash-n-grabs-locations/), [GTA6 GPS - Smash and Grabs](https://gta6gps.com/map/game/smash-n-grabs), [bank jobs and vaults](https://gta6gps.com/map/game/bank-jobs), [playlist posters](https://gta6gps.com/map/game/playlists), [GTA Culture - unique animal map](https://gtaculture.com/map/legendary-animals), [race pins](https://gta6gps.com/map/game/races), [gang operations](https://gta6gps.com/map/game/gang-operations), [golf courses](https://gta6gps.com/map/game/golf), [magazines](https://gta6gps.com/map/game/magazines), [books](https://gta6gps.com/map/game/books), [GTA VI Atlas - Luxury Watches](https://linkleung310.github.io/gtavi-atlas/en/guides/collectibles/luxury-watches.html), [GTA6 GPS - style unlocks](https://gta6gps.com/map/game/style-unlocks), [basketball hoops](https://gta6gps.com/map/game/basketball-hoops), [arcade games](https://gta6gps.com/map/game/arcade-games), [GTA6 House - WAiNK styles](https://gta6.house/guides/gta-6-waink-app-hairstyles-makeup-magazines), [Tildrix - magazine map](https://gtamap.tildrix.dev/en/gta-6/magazines-books-and-comics)
-- [Game Checklists: 107-store directory, not 91 confirmed stick-ups](https://game-checklists.com/gta6/stick-ups-checklist/)
+- [Game Checklists: 107-store directory, not 91 confirmed stick-ups](https://game-checklists.com/gta6/stick-ups-checklist/), [GTA6Wiki - Stick-up store directory](https://gta6wiki.eu/map/stick-ups/), [PC Gamer - Kitty Litter lab locations](https://www.pcgamer.com/games/grand-theft-auto/gta-6-kitty-litter-lab-locations/), [Nexzy - Wyman’s 15 wrecks](https://www.nexzyapp.com/games/grand-theft-auto-vi/guide/gta-6-wymans-cars).
 - [GTA6Activities: candidate store map](https://www.gta6activities.com/map)
 - [PowerPyx: 42 drone time trials](https://www.powerpyx.com/gta-6-all-top-fun-drone-race-time-trial-locations/), [GTA6 GPS - drone venues](https://gta6gps.com/map/game/drone-trials), [shooting courses](https://gta6gps.com/map/game/shooting-ranges), and [meditation sites](https://gta6gps.com/map/game/meditation-spots), [Warp Pipes - Tallaloko waterfall](https://warppipes.com/en/gta-6/meditation-spots/med-waterfall), and [Vice Beach drone venue](https://warppipes.com/en/gta-6/top-fun-drones/drones-vice-beach)
 - [PowerPyx: shooting-range gold medals](https://www.powerpyx.com/gta-6-all-shooting-range-gold-medal-challenges/)
@@ -485,7 +498,7 @@ The vehicle sections describe the reported pickup area, the particular vehicle o
 
 ### Vehicle hunts
 
-**Randy's Wish List has 22 tracked requests.** Find delivery vehicles using reported streets, buildings, parking areas, and mission hints. Examples include:
+**Randy's Wish List has 22 tracked requests.** Variable vehicle sightings and nearby landmarks are labeled separately from fixed mission pickups; the Cypher, Carbonizzare and Neon are reported crossed out on some boards, so verify the active request. The Leaf Links Mamba has a dedicated mission-area map. Find delivery vehicles using reported streets, buildings, parking areas, and mission hints. Examples include:
 
 - **Windsor Drop:** luxury residential driveways in northern Capri.
 - **Ocelot Jugular:** outside BITE on Atlantic Avenue in Ocean Beach.
@@ -504,11 +517,11 @@ Vehicle entries include individual interactive map pins or map screenshots of re
 
 **Moses Drop-Offs has seven deliveries.** The guide covers the Chapter 2 story delivery and six further pickups. After delivering all seven, wait for Moses' text before collecting his **Emperor Sultan** at the Port Gellhorn shop. The reward has its own Standout Vehicle checkmark. [Collect Moses' Gift walkthrough](https://www.powerpyx.com/gta-6-collect-moses-gift-walkthrough/)
 
-**Wyman's Classic Cars has four restoration projects and a fifth checkmark for the final '72 Deviant.** The four restoration entries give directions to 15 wreck parts. Guides identify this as Ultimate Edition content. **Access:** The Reynolds Kit Car's Wild Hog Point container needs the cut-off tool from Chapter 3 *Meet the Heders*. The four rebuilt cars cost $1,500 each after Wyman sends a BuckMe request; the final Deviant is a direct $1,000 offer (no fifth wreck search).
+**Wyman's Classic Cars has four restoration projects and a fifth checkmark for the final '72 Deviant.** The four restoration entries give directions to 15 wreck parts, each with an individual pin or targeted component guide in the NFC Links list. Guides identify this as Ultimate Edition content. **Access:** The Reynolds Kit Car's Wild Hog Point container needs the cut-off tool from Chapter 3 *Meet the Heders*. The four rebuilt cars cost $1,500 each after Wyman sends a BuckMe request; the final Deviant is a direct $1,000 offer (no fifth wreck search).
 
 ### Standout Vehicles
 
-The **281-entry vehicle catalog** covers distinctive cars, motorcycles, aircraft, watercraft, liveries, and mission and stunt rewards. Entries give a pickup landmark, search area, or reward requirement where published.
+The **282-entry vehicle catalog** covers distinctive cars, motorcycles, aircraft, watercraft, liveries, and mission and stunt rewards. Entries give a pickup landmark, search area, or reward requirement where published.
 
 Examples:
 
@@ -539,7 +552,9 @@ Examples:
 
 **Acquisition tips:** The Street Art Squalo needs to be launched from its trailer. Bring the Chapter 3 Cut-Off Tool for the Muckspreader Bandito's shipping container. To see the Cellerica Caddy, progress Andy's Lucia-only missions through *Peach!* at the Belville campus.
 
-**Special vehicle rewards:** The catalog includes story, stunt, Ultimate Edition, and GTA+ vehicles alongside ordinary parked variants. Some entries, such as Seashell Boomazoom, identify the vehicle but do not have a documented pickup location.
+**Special vehicle rewards:** The catalog includes story, stunt, Ultimate Edition, and GTA+ vehicles alongside ordinary parked variants. GTA6 GPS gives a Vice-Dale County marker for the **Seashell Boomazoom** at X 315, Y 384. Exact parking and access details remain unconfirmed. [GTA6 GPS — unique vehicle sightings](https://gta6gps.com/map/game/unique-vehicles)
+
+Additional named sightings include the [Anarchist Dominator](https://gta6gps.com/?p=pin-918643) on the top garage level, the [Rocket Slamvan](https://gta6gps.com/?p=pin-918558) near Watson Bay, the [King of Swing Youga](https://gta6gps.com/?p=pin-918470) in Mariana County, and the [Chapter 5 Ultimate Edition Cheetah](https://gta6gps.com/?p=pin-990003) in Pegassi Residences. Verify variants in WAiNK.
 
 **Alternative pickup reports, one checkmark per vehicle:** Gold Rush Tempesta is reported outside **Cirque de Cuisine (Shore Drive, Ocean Beach)** or on the **upper covered parking deck of Crimson Palms Condominiums (Washington Beach)**; both reports call for the Chapter 3 Key Cloner, but may be conflicting descriptions of one car. Venomous Marshall has reported sightings at the **Boone Speedway car show (southwest Hamlet)** and in the **Land of Plenty barn (eastern Mount Kalaga)**; a third map marker lacks published directions. Guides mark two sites for **Erotic Journey** in Watson Bay and **Pink Licorice Astron** around Belville, without yet providing a dependable second address for either. The museum/VCPD recruitment display notes for Valiant Tempesta may identify the same location. Use WAiNK to confirm identity; alternate locations share the same vehicle checkmark.
 
@@ -549,9 +564,11 @@ Examples:
 
 ### Garages and safehouses
 
-**Garages** covers **15 purchase, story, and membership/edition entries**, including published prices, storage capacity, access conditions, and benefits: eight purchasable garages, four story rewards, and three edition or GTA+ benefits. **Houses / Cribs** lists **five story safehouses**, including the Chapter 5 **Pegassi Residences penthouse** on Bayside Dr, Tequesta Retreat. Its three-slot garage has its own entry under Garages. Individual property map links identify the building or reported search area. The GTA+ Crosstown Garage uses a third-party map reference; its exact entrance is not independently confirmed.
+**Garages** covers **15 purchase, story, and membership/edition entries**, including published prices, storage capacity, access conditions, and benefits: eight purchasable garages, four story rewards, and three edition or GTA+ benefits. **Houses / Cribs** lists **five story safehouses**, including the Chapter 5 **Pegassi Residences penthouse** on Bayside Dr, Tequesta Retreat. Its three-slot garage has its own entry under Garages. Individual property map links identify the building or reported search area. All five listed safehouses have individual GTA6GPS map pins. The GTA+ Crosstown Garage is reported as Caledonia Boulevard Garage, beside Shunters body shop in Crosstown. Its dedicated [garage map](https://gta-6-map.com/place/caledonia-boulevard-garage) and [pickup guide](https://timesaver.gg/tools/gta-6/cars/free) are included. GTA6GPS provides a nearby Dutch Courage landmark, not a dedicated garage pin; confirm the garage icon in-game.
 
 ### Vehicle and property sources
+
+- [GTA6 Maps - standout vehicle markers](https://gta6-maps.net/categories/standout-vehicles).
 
 - [GAMES.GG - Purple Drank Emerus scan and Chatfield access](https://games.gg/grand-theft-auto-vi/guides/grand-theft-auto-6-waxman-island-safe-code-purple-drank-emerus/), [GTA6.free - Purple Drank Emerus](https://gta6.free/vehicles/gta-6-chatfield-purple-drank-emerus), and [GTA6.house - Chatfield safe](https://gta6.house/guides/gta-6-chatfield-storage-logistics-safe-code).
 - [Sportskeeda - hidden container vehicles](https://dujseks5cqq0r.cloudfront.net/gta/all-hidden-cars-shipping-containers-gta-6-find), [GAMES.GG - container access](https://games.gg/grand-theft-auto-vi/guides/grand-theft-auto-6-container-cars-locations-how-to-open-them/), and [GAMETA - Royal Sanchez](https://gameta.gg/gta6/vehicles/royal-sanchez/).
