@@ -18,6 +18,17 @@
 - Located all six Cinco Torres treasures and completed the individual La Noche, Santa Sierra and Lujuriosa search notes under the original Kenton sets.
 - Added Del Ocio search areas and clarified that its ten doubloons may be recovered in fewer digs; the story wreck remains separate from Kenton's seven sets.
 - Clarified timed, weapon, location and completion conditions for selected entries in the existing 80 Challenge objectives; retained all 19 milestone checkmarks.
+- Added 19 individually tracked Special Weapons variants, including the San4San and Marabunta Grande KZ-59 rifles, bringing the catalog to **62**; expanded gang-operation pickup directions and distinguished weapons from nearby cash safes.
+- Added Cigar Import Front door code `1426` (**51** code entries), expanded safe landmarks and Pelican Valley loot details, and clarified variable Avery Pawn and alien-lab codes plus robbery Focus Mode instructions.
+- Updated collection completion totals and README counts while retaining existing checklist IDs.
+- Added 15 Secret Missions and Easter egg walkthroughs (31 total), including the Backrooms, Backyard Wrestling, full Vice City Portal switch order, Burg Industries and the Key Lento rainy-day fund.
+- Added two reported underwater discoveries, two meteorite pickups and the Belpoint lighthouse flamingo; added safe code 80085 and expanded Kenton and Bret directions.
+- Added reported resale and registration prices to 20 Standout Vehicles and an alternate Revenant Gauntlet search area.
+- Added Videotape and Dark Mirror filter inputs, corroborated by PC Gamer and GamesRadar+ (21 published inputs); retained Pinhole and screenshot reports.
+- Added Cursed Knife (63 special weapons), lighthouse ghost and SOS Island walkthroughs, two hidden trophies, Tenebrae Lux puzzle instructions, and expanded Backrooms, wrestling, portal and Bret hunting directions.
+- Added the Royal Sanchez Standout (281 vehicle entries); expanded container routes for the Cuban Hermes, Blue Drake Penumbra and Caliente Picador.
+- Added four reported Cocaine Flamingo sites (48 total), ten meteorite search locations (70 total), alternate shoreline/lawn clues and additional Burg Industries directions; expanded Regional Dispatch and collection totals.
+- Clarified Bret carcass delivery and the reported Fair Game panther encounter; documented three conflicting Dexerto controller sequences without replacing the corroborated inputs.
 
 ## v1.9.5 — Fences
 - Added seven individually checkable Fences under Collections, immediately before Endings, sorted by chapter unlock: Brian, Donnie, Moses, Dunk, Tyrone, Yasmani and Randy.

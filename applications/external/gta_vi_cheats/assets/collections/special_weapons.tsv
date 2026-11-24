@@ -11,7 +11,7 @@
 410	La Polilla Negra KZ-59	Palmer Fishing Warehouse, Watson Bay. Clear or infiltrate the Illegal Operation and inspect its valuables.	Named assault rifle; reported gang-operation reward.
 411	Palmer Warehouse Launcher (reported)	Palmer Fishing Warehouse, Watson Bay. Search the operation with the KZ-59.	A separate grenade launcher is reported but its exact model/reward status is unverified.
 412	La Polilla Negra VF-G1	Watson Bay Safehouse Illegal Operation. Inspect reward weapons after clearing the site.	Named assault rifle; reported gang-operation reward.
-413	Crabshack VF5	Pelican Valley research outpost. Dock boathouse keypad 0212; the code is revealed by the main-house safe 0072.	For the full clue chain, turn on power, use PC password CLEAVES, then open safe 0072. Door 0212 gets the Crabshack VF5 directly.
+413	Crabshack VF5	Pelican Valley research outpost. Dock boathouse keypad 0212; code comes from main-house safe 0072.	Restore power, enter PC password CLEAVES, double successful sample 0036, open safe 0072 for cash and dock code. Boathouse has SMG and reported $10,000 marked-bills stash.
 414	Kingfishers W-22	Fishing Shacks Illegal Operation in Wetman Bay; check guarded waterside camp loot.	Named small-game rifle; reported gang-operation reward.
 415	Kingfishers Laird 350	Manatee Motel Illegal Operation, Gullet Marsh. Search the operation valuables.	Named sporting sniper; guides describe a potentially missable early pickup.
 416	Deever Tech GLR40	Sunrise Motel courtyard, Tequesta; in a one-car garage, near stacks of toilet paper.	Grenade launcher; reported pickup shared with Cockroach Xtreme 556.
@@ -23,13 +23,13 @@
 422	Little Friend W-10 (Micro SMG)	Sunlite Motel, Shore Drive, Ocean Beach; blood-stained room on the second floor.	Reported named micro SMG pickup; the unnamed Micro SMG lead may refer to another weapon.
 423	Stoner K17 MCD	Big Day Motel, room 115, off US-35 just north of Ambrosia; search the bedside table.	Stoner K17 MCD, an automatic pistol, is on the bedside table in room 115. The cabinet safe (reported 4242) has Quinton Allen (Silver) collectible card ID 854; acquire both separately.
 424	Dirty Drifter	Bonanza coastal road, Lummox County; trunk of the blue car trapped in a mudslide.	Double-barrel shotgun; reported hidden pickup.
-425	Clunker 556	Brooks Boatworks, Port Gellhorn. Enter Kolt warehouse and reach the upper office safe; enter 6823.	Named rifle reported as hideout reward; use the wall map for clue.
-426	Scrapper VF5C	La Cascara Motel, Port Gellhorn. Clear the Kolt hideout and open upstairs safe with 6969.	Reported silenced SMG variant behind the operation safe.
+425	Clunker 556	Brooks Boatworks, Port Gellhorn. Search the smaller building near the northeast entrance.	Clunker rifle is in a separate weapon case, near wall map giving safe 6823 and other codes. Warehouse pool-table room has the cash safe.
+426	Scrapper VF5C	La Cascara Motel, Port Gellhorn. Top-floor courtyard, small room beside the gated safe room.	Reported silenced SMG in weapon case/on table; safe 6969 in adjacent yellow room is separate cash loot.
 427	Gutterball Moreland 850	Kingpin Bowling, Port Gellhorn. Shotgun lies on the pool table in the northeast room.	The northeast OFFICE safe is separate cash loot (reported 0300; some guides say 0330); it does NOT unlock this shotgun. Southeast room has a luxury watch. Check all three during Hit Kingpin Bowling; operation can reportedly be retried after cooldown.
-428	Throttler Verro	Farm Fix Meth Lab, McKittrick Farm / Belville. Clear operation and open the office safe with 2121.	Reported unique shotgun reward at the meth lab.
+428	Throttler Verro	Farm Fix Meth Lab, McKittrick Farm / Belville. Upstairs counter below the flag.	Reported unique shotgun (also spelled Throttler Vero); office safe 2121 is separate.
 429	Russo's Pistol (reported)	President bunker, Sharktooth Island north of Waning Sands. Door 010317, then office safe 2975.	Reported rare pistol; published sources disagree on its model year (1922 or 1992).
 430	Cold War 556	Big Pine IAA Black Site, North Mariana County. Tree keypad at hatch 085355, then restore power and open hangar.	Unique rifle; prior bunker clue trail uses island door 010317 and safe 2975. Tank also inside.
-431	Kingfishers Akulus	Sunrise RV Park Illegal Operation north of Cottonmouth Lake.	Guide-reported heavy revolver, operation reward. Do not confuse with Kingfishers W-22 (ID 414).
+431	Kingfishers Akulus	Sunrise RV Park, Gullet Marsh north of Cottonmouth Lake. RV across small bridge.	Reported revolver in bedroom weapon case; dock warehouse safe 6769 is separate.
 432	Chromium W-10	La Perle Trap House Illegal Operation, north Vice City.	Guide-reported unique Micro SMG pickup; confirm variant identity on the in-game item.
 433	Zodiac Nipper .38	Ocean Beach Lab Illegal Operation, Vice City.	Guide-reported compact pistol reward; published districts may use Ocean City/Ocean Beach wording.
 434	Quarter Mile ES9	Chatfield Storage & Logistics, Waxman Island. Climb the fence without barbed wire and enter the office building by the outside stairs.	Quarter Mile ES9 lies in the safe-office building. Read the laptop inside the open dockside container for safe code 5800; the Purple Drank Emerus is in a separate open container beyond the guard gate.
@@ -41,3 +41,23 @@
 440	Cargo H&L .38	Yellow Scoop shipping container at Port Vice City.	GTA Scoop-reported named revolver; container area also has other weapon leads, do not conflate pickups.
 441	Couch Potato Mustang .357	Port Gellhorn. Couch hanging from a tree by a mobile home off Tanglewood Ln, near Dunk's trailer.	Shoot the ropes holding up the couch until it falls, then sit on it to collect the hidden Mustang .357 revolver.
 442	Pete's KZ-59 Assault Rifle	Sundown Private Airfield, Pete's hangar backroom through the red door (Chapter 4).	The Last Mile: Passing the Torch. Take unique rifle from TABLE; hangar SAFE code 3718 is separate loot. Jason-only Pilot Pete strand; guide-reported.
+3622	San4San KZ-59	JanJak's Garage, La Perle, Vice City.	Check weapon case beside TV in adjoining office. Cash safe 4444 and Pink Gin Tulip are separate.
+3623	Marabunta Grande KZ-59	Nova Auto Junkyard (M7 Compound), Hamlet.	Under covered scrap area on north side, by blue container and stacked engines. Separate from garage safe 7777.
+3624	Kolt & Associates Vatra	June Warehouse, Port Gellhorn.	Reported SMG in case on workbench by exit; truck and dial safe are separate.
+3625	Kolt & Associates 556	Stash House, Port Gellhorn.	Reported rifle in safe room or on back porch between blue drums; check both.
+3626	Marabunta Grande Type 9	Weed Grow, northeast Lake Tallaloko, East Lummox.	Reported SMG key valuable. Two safes and Verdant Buccaneer are separate.
+3627	Ride Free H&L .38	Biker Hideout near The Thirsty Wolf, Belville.	Reported revolver. Clubhouse safe 1982 and Monarch Avarus are separate.
+3628	Final Chapter Shortstraw	Hog Stars Garage, Ambrosia.	Reported unique shotgun; also search for Devil's Rope Gauntlet.
+3629	Final Chapter KVGA-12	Irons Building Supply, Ambrosia.	Reported shotgun among operation valuables.
+3630	San4San K17	Sound4Sond Studio (Sound4Sound), Stockyard.	Search storage room behind black door for pistol. Studio safe and Bourbon Windsor separate.
+3631	San4San Gorse 425	Parlor Apartments, Rockridge.	Reported shotgun in kitchen; separate back-room safe.
+3632	PTT Youngin$ K17	Kamar Devon Community Center, Southside.	Reported pistol key valuable, separate from Novak Laurent Argonaut watch.
+3633	The Guardian ES18	Saber Shipping Yard, Little Cuba.	Reported pistol on illuminated workbench with armor; safe 8046 separate.
+3634	Guardia Brothers FRA	Casa Guardia, Little Cuba.	Reported rifle in black crate on warehouse ground floor. Upstairs safe 1965 separate.
+3635	Guardia Brothers VF5	Saber Shipping Facility, Balsero.	Reported SMG key valuable. Watch and safe are separate.
+3636	Hostile Super400	Mill Station Radar Base, north of Watson Bay.	Reported heavy shotgun among operation valuables.
+3637	Chronic Vatra	Industrial Weed Grow, North Mariana County.	Reported SMG key valuable, separate from Cultivator Sandking.
+3638	GRX 556	Leonida Carrier Warehouse, Balsero.	Reported rifle key valuable. Safe 9256, watch and Gunrunner Kamacho are separate.
+3639	Kingpin Heathen	Vespucci Mansion, Vespucci Island.	Reported rifle on wall behind brown door at end of stairwell. Two armory safes separate.
+3640	Eris Fresh DSG	Illegal Goods Store, Southside (Ultimate Edition).	Reported edition-exclusive SMG; check your edition and operation availability.
+3646	Cursed Knife	Shallow wreck east of St. Lucia Lighthouse, Little Hardin Island.	Reported dive route: take scuba gear from dock boat and search with metal detector near 1 AM. See Secret Missions > Lighthouse Ghost Ship for clues. GTA Base lists the unique unmodifiable melee weapon; route and timing remain player reports.

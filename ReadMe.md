@@ -91,12 +91,12 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [AC Detector v1.1 improves IR capture detection and adds AC protocols (By xMasterX)](https://github.com/xMasterX/all-the-plugins)
 - Updated: [Barcode App v2.1 (By Kingal1337 & AzureSky)](https://github.com/Kingal1337/flipper-barcode-generator)
 - Added: [TommyBox Capture v1.0 (By mitchsurp)](https://github.com/mitchsurp/Tonies-Capture-Flipper)
-- Updated: [GTA VI Companion v1.9.6 (By RogueMaster)](https://github.com/RogueMaster/GTA_VI_Companion) - Update for Infinite Money Glitch before its patched!
 - Removed: Desktop: [Hold Right in the up-menu for brightness, volume and vibro controls (By xMasterX; RM adaptation by RogueMaster)](https://github.com/DarkFlippers/unleashed-firmware/commit/f587620ec563e84219ddf80aca157ee83f3a259a)
 - Updated: [MTools v1.1 labels possible ISO15693 Gen1 tags (By MTools Tec)](https://github.com/mtoolstec/flipper-mtools)
 - Updated: [Badge Wallet v1.0 fixes long filenames and unsupported listeners (By lewisQ17)](https://github.com/lewisQ17/Momentum-Firmware)
 - Updated: [IR Remote Maker v1.0 rejects incomplete loads and preserves edited commands (By lewisQ17)](https://github.com/lewisQ17/Momentum-Firmware)
 - Updated: [Tesla Mod v2.17.0b7 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
+- Updated: [GTA VI Companion v1.9.6 (By RogueMaster)](https://github.com/RogueMaster/GTA_VI_Companion) - Update for Infinite Money Glitch before its patched!
 
 <a name="release"></a>
 

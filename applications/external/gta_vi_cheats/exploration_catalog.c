@@ -82,7 +82,7 @@ static const GtaExploreSection activity_robberies[] = {
     GTA_LEAF("Hoop Search Leads", "basketball_hoop_leads", 0, "Checked"),
 };
 const GtaExploreSection gta_explore_sections[] = {
-    GTA_LEAF("Special Weapons", "special_weapons", 43, "Acquired"),
+    GTA_LEAF("Special Weapons", "special_weapons", 63, "Acquired"),
     GTA_GROUP("Collectible Cards", card_sets),
     GTA_GROUP("WAiNK Locations", waink),
     GTA_GROUP("AHOL Street Art", ahol),

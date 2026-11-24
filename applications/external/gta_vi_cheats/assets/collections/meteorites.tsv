@@ -6,8 +6,8 @@
 2053	Selkie Hole - Chunk 4	Selkie Hole / Emerald Springs	One of three separate fragments reported in the deep central pit waterways of Selkie Hole. Surface inside the cave after the first tunnel, turn toward the large pit, dive again and sweep the submerged branches. Individual placement is not confirmed.
 2054	Selkie Hole - Chunk 5	Selkie Hole / Emerald Springs	Last of five reported Selkie Hole underwater pickups. After the two initial-tunnel fragments, use the deep central pit for the remaining three; search unvisited branches and verify each pickup in-game. Exact per-fragment coordinates are unavailable.
 2055	Belpoint - Northern Pier	Belpoint. Below the northern pier by the Santa decoration.	Guide-listed chunk #8; optional cash item; total unconfirmed.
-2056	Leonida Bay - SOS Sign	Leonida Bay. Lone western-bay island south of Bobcat Key.	Guide-listed chunk #9; check inside the O of the SOS sign. Optional cash item; total unconfirmed.
-2057	Leonida Bay - SOS Island Beach	Leonida Bay / island south of Bobcat Key	Guide-listed chunk #10; optional cash item; total unconfirmed. Across island on opposite beach from SOS sign.
+2056	Leonida Bay - SOS Sign	Leonida Bay. Lone western-bay island south of Bobcat Key.	Guide-listed chunk #9; check inside the O of the SOS sign. Look for #SendBeer nearby and a phone with a hidden video. Optional cash item; total unconfirmed.
+2057	Leonida Bay - SOS Island Beach	Leonida Bay / island south of Bobcat Key	Guide-listed chunk #10; optional cash item; total unconfirmed. Across island on opposite beach from SOS sign. Both meteorites glow at night.
 2058	Leonida Bay - Lighthouse	Leonida Bay	Guide-listed chunk #11; optional cash item; total unconfirmed. Below lighthouse on small isolated island.
 2059	Sandbars - South Island	Sandbars	Guide-listed chunk #12; optional cash item; total unconfirmed. North beach of southernmost island.
 2060	Sandbars - North Island Pier	Sandbars	Guide-listed chunk #13; optional cash item; total unconfirmed. Below pier on largest north island.
@@ -26,7 +26,7 @@
 2073	Waning Sands - Sands of Time	Waning Sands. Sands of Time retirement home.	Guide-listed chunk #26; inside the downstairs office of the Sands of Time retirement home, beyond the pool table. Another current route guide places a meteorite here; use Focus at night if it is hard to see. Full game total unconfirmed.
 2417	Derelict Spy Vessel - North Beach	On the east shore of the wreck island, roughly 100 feet north of the Derelict Spy Vessel.	Search the waterline.
 2418	Dudz Island - Metal Structure	Dudz Island, Watson Bay area. Below the center of the metal structure.	Optional meteorite pickup.
-2419	Capri - Beached Whale	Capri shoreline. At the mapped beached whale.	Approach the whale and look for the fragment after the encounter.
+2419	Capri - Beached Whale	Capri shoreline. At the mapped beached whale.	Approach the whale to trigger the reported burst; search the sand among the objects it expels.
 2420	C0-B8 Debris - Crater	Featherstone Islands. Center of the C0-B8 Debris impact crater.	The WAiNK debris scan and the fragment are separate finds.
 2421	C0-B8 Fairing - Crater	Featherstone Islands. Under a panel at the C0-B8 Fairing impact crater.	The fragment is beside the fairing used for the WAiNK scan.
 2512	Mount Kalaga - Crash Camp	Take the southeast summit trail south of Dawson Dam. Find the camp with a bicycle and abandoned phone.	Follow the southeast summit trail below Dawson Dam to the campsite with a bicycle and abandoned phone, then descend southeast to a second wrecked camp. Search the impact crater beside the damaged tents for the glowing fragment; night / Focus makes it easier to see.
@@ -56,3 +56,15 @@
 3599	Port Gellhorn Waterline Rock	Port Gellhorn: rocks beside waterline at meteorite pin #37.	GTABase community map location (pin noted in directions); verify the glow and pickup in-game. Total unconfirmed.
 3600	Port Gellhorn Wooden Crate	Port Gellhorn: inspect wooden box at meteorite pin #39.	GTABase community map location (pin noted in directions); verify the glow and pickup in-game. Total unconfirmed.
 3601	Waning Sands Wet Campsite	Waning Sands: shallow water near camp and wrecked boat at meteorite pin #49.	GTABase community map location (pin noted in directions); verify the glow and pickup in-game. Total unconfirmed.
+3643	Burg Industries - Safe	Submerged facility west of Mile Zero Air Station, south of Riquezas Keys.	Read the station logs and check painted runes; reported safe code 80085. The exact facility is disputed. Collect the fragment inside; the giant seabed meteorite is not a confirmed pickup.
+3644	Burg Industries - Eastern Kitchen	Yellow offshore platform east of Key Lento, near Little Hardin Island.	Enter through underside hatch; search the laboratory kitchen. Reported separate fragment; verify pickup before checking.
+3651	Capri - Trench 1	Capri, submerged trench. Bring scuba gear.	Search the first reported trench pickup; use Focus and look for the glow.
+3652	Capri - Trench 2	Capri, same submerged trench.	Continue along the trench for a second reported fragment, distinct from the first.
+3653	Capri - Trench Shelf	Capri, submerged trench.	Look beneath the underwater ledge for a third fragment.
+3654	Key Lento - Fatal Incursion Jet	Key Lento, Fatal Incursion aircraft dive site.	Enter the main fuselage and inspect the seating area. Map-reported pickup.
+3655	Key Lento - Sunken Vessel	Key Lento, submerged wreck.	Search the interior. A separate map describes a buoy beside a body and a helicopter wreck; compare locations before treating that as another fragment.
+3656	Waning Sands - Pool	Waning Sands, pool house with the pool-table office.	Search the outdoor pool behind the building. This is separate from the office fragment.
+3657	Waning Sands - Concrete Pipe	Waning Sands, tip of the rocky peninsula.	Look beneath the partially buried concrete pipe.
+3658	Ambrosia - Bell	Ambrosia, mapped bell structure.	Climb to the bell and check for the fragment; exact building not described.
+3659	Ambrosia - Fallen Tree Roots	Ambrosia, fallen tree at the mapped fragment site.	Inspect the roots beneath the trunk; compare with other tree-side fragments.
+3660	Ambrosia - Campfire Seat	Ambrosia, mapped campsite.	Search under the seat at the fire. Check against the separate Mount Kalaga impact camp.

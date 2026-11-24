@@ -23,13 +23,13 @@ The home screen has 16 icons across two pages. Icons appear in this order, from 
 | **Infinite Money Glitch** | A five-step cars-and-cocaine walkthrough using a registered 10-slot van and registered second car, warehouse respawn pickups, an explicitly unverified two-car Dunk drop-off claim, confirmed-balance checks, and manual-save fallback. |
 | **PS5 Cheats** | Reported PlayStation controller sequences, effects, unlock prerequisites, and unverified-input labels. |
 | **Xbox Cheats** | Reported Xbox inputs and effects, including confidence notes for converted sequences. |
-| **Collections** | Checklists and directions for collectible cards, WAiNK scans, art, treasure, flamingos, publications, styles, **43 reported special-weapon pickups and variants**, **32 individually tracked optional missions**, **6 Messages in Bottles**, **58 guide-reported meteorite sites**, **5 Missing Persons investigation stages**, 12 endings and proposed variations, stunt challenges, and 17 location search leads. **Activities / Robberies** covers bank jobs, operations, store robberies, drone trials, shooting, racing, arcade games, pool, golf, **100 numbered basketball hoops**, all **80 named Challenge objectives** alongside the existing 19 milestones, and all **15 Bret Target Decks** (three with published species and areas; 12 numbered tracking entries). |
-| **Safe & Door Codes** | 50 reported safe combinations, door codes, and puzzle passwords, with location clues and source-confidence labels. |
-| **Secret Missions** | 16 checkable optional encounters, hidden weapon finds, cash routes, stat rewards, and Easter eggs, grouped by the earliest reported story chapter. Uncertain unlocks appear at the end. |
+| **Collections** | Checklists and directions for collectible cards, WAiNK scans, art, treasure, flamingos, publications, styles, **63 reported special-weapon pickups and variants**, **32 individually tracked optional missions**, **6 Messages in Bottles**, **70 guide-reported meteorite sites**, **5 Missing Persons investigation stages**, 12 endings and proposed variations, stunt challenges, and 17 location search leads. **Activities / Robberies** covers bank jobs, operations, store robberies, drone trials, shooting, racing, arcade games, pool, golf, **100 numbered basketball hoops**, all **80 named Challenge objectives** alongside the existing 19 milestones, and all **15 Bret Target Decks** (three with published species and areas; 12 numbered tracking entries). |
+| **Safe & Door Codes** | 52 reported safe combinations, door codes, and puzzle passwords, with location clues and source-confidence labels. |
+| **Secret Missions** | 31 checkable optional encounters, hidden weapon finds, cash routes, stat rewards, and Easter eggs, grouped by the earliest reported story chapter. Uncertain unlocks appear at the end. |
 | **Randy's Wish List** | 22 vehicle requests with reported pickup clues, access conditions, and delivery progress. |
 | **Moses Drop-Offs** | Seven reported vehicle delivery jobs and their location clues. |
 | **Wyman's Classic Cars** | Four restoration checklists with directions to 15 wreck parts, plus a checklist entry for claiming the final car. |
-| **Standout Vehicles** | 280 trackable vehicle entries, including parked variants, the Annis Pixel Elegy in a Capri container (existing checklist entry enriched), the Maibatsu Sunset Sanchez at Grayson, aircraft, watercraft, mission and stunt rewards, and reported leads. |
+| **Standout Vehicles** | 281 trackable vehicle entries, including parked variants, the Annis Pixel Elegy in a Capri container (existing checklist entry enriched), the Maibatsu Sunset Sanchez at Grayson, aircraft, watercraft, mission and stunt rewards, and reported leads. |
 | **Garages** | 15 garage entries with location, capacity, acquisition cost, or unlock requirements where known. |
 | **Houses / Cribs** | Five story safehouses with locations, chapter access, and facilities. |
 | **Dispatch** | Region-based browsing of 865 indexed pickups and activities, with progress tracking and a next-unchecked shortcut. |
@@ -62,7 +62,7 @@ All populated entries in these areas have individual **Completed** checkmarks:
 
 Checklist progress is saved automatically to the Flipper Zero SD card. See **Saved progress and backups** below for file locations and upgrade behavior.
 
-For **Secret Missions**, press **OK** to read the walkthrough, **Right** to check or uncheck an entry in the list, or choose **Check / Uncheck** with **OK** in its detail view. The menu shows the number completed out of 16, and completion is restored when the app restarts.
+For **Secret Missions**, press **OK** to read the walkthrough, **Right** to check or uncheck an entry in the list, or choose **Check / Uncheck** with **OK** in its detail view. The menu shows the number completed out of 31, and completion is restored when the app restarts.
 
 ### Saved progress and backups
 
@@ -72,7 +72,7 @@ Collection and Dispatch checkmarks are saved in **`/ext/apps_data/gta_vi_cheats/
 
 ### Region-aware Dispatch
 
-Dispatch groups **865 location stops** into **Vice City**, **Leonida Keys**, **Grassrivers**, **Port Gellhorn**, **Ambrosia**, **Mount Kalaga**, **Other areas**, and **All regions**.
+Dispatch groups **872 location stops** into **Vice City**, **Leonida Keys**, **Grassrivers**, **Port Gellhorn**, **Ambrosia**, **Mount Kalaga**, **Other areas**, and **All regions**.
 
 Choose a region to open its first unchecked stop. Press **OK** to change the current stop's checkmark, **Right** to jump to the next unchecked stop, or **Back** to choose another region. To revisit a completed stop, open its collection or vehicle entry. Checkmarks are shared between the two menus.
 
@@ -104,7 +104,7 @@ The in-app guide now prioritizes the **cars-and-cocaine warehouse loop** using v
 
 ## Secret Missions and Easter eggs
 
-**Secret Missions** is a guide to 16 optional activities, hidden weapon pickups, cash opportunities, and Easter eggs. Entries are organized by the **earliest reported chapter or prerequisite**: Chapter 1 (with missable opportunities first), later Chapter 1 unlocks, Chapter 2 and its follow-ups, then locations with **unknown story requirements**. Within a chapter, exploration activities can usually be attempted in different orders. Check off activities as you finish them; you can uncheck any entry later. This is a discovery guide, **not** a required mission sequence. The menu uses `C1`, `C1+`, `C2`, and `C2+` for reported story windows; `?` means the chapter requirement has not been established.
+**Secret Missions** is a guide to 31 optional activities, hidden weapon pickups, cash opportunities, and Easter eggs. Entries are organized by the **earliest reported chapter or prerequisite**: Chapter 1 (with missable opportunities first), later Chapter 1 unlocks, Chapter 2 and its follow-ups, then locations with **unknown story requirements**. Within a chapter, exploration activities can usually be attempted in different orders. Check off activities as you finish them; you can uncheck any entry later. This is a discovery guide, **not** a required mission sequence. The menu uses `C1`, `C1+`, `C2`, `C2+`, and `C3` for reported story windows; `?` means the chapter requirement has not been established.
 
 | Earliest access | Hidden activity | Location / how to start | Outcome |
 | --- | --- | --- | --- |
@@ -124,6 +124,21 @@ The in-app guide now prioritizes the **cars-and-cocaine warehouse loop** using v
 | Port Gellhorn access, chapter uncertain | **Satan / Circles of Hell** | Open garage in northern Port Gellhorn from midnight to 4 AM, choose *Rock On* | Hellspawn Comshot 12, tattoo and shirt; **no verified health increase** |
 | Vice City access, chapter uncertain | **Secret radio stations** | WAiNK poster scans at The Vault and four La Perle/Crosstown shops | Hidden stations (reported) |
 | Vice City access, tower uncertain | **Literal Easter egg** | Nest atop a high broadcast tower | Short secret scene; no verified material reward |
+| Jason, after prologue (reported) | **The Backrooms** | Orange container at a dig site on east bank of Lake Tallaloko, north of Millport. | Reported permanent max stamina increase and Mind Maze tattoo (left leg). |
+| Lucia, Chapter 2; potentially missable | **Arthur Morgan Hat** | Southern Port Gellhorn yard sale. | Genuine Cowboy Hat in wardrobe. |
+| Return after the Chapter 1 fire; police zone clears around Chapter 3 | **Dolores the Snake** | Burned house, Key Lento. | Hidden encounter; no new reward reported. |
+| Jason; chapter unknown | **Backyard Wrestling** | Backyard American Mania ring behind a trailer in Hamlet. | Luchador Mask, Adrenaline and other stat items; card identity unconfirmed. |
+| Jason; after access to all substations | **Vice City Portal** | Badger R&D tower, Key Lento; Reactor 2, Turtle Head Power Station east of Hamlet. | Tommy Vercetti shirt and Malibu Zombie Bobber (see Standout Vehicles). |
+| Boat and diving access; chapter unknown | **Burg Industries Mystery** | Yellow platform east of Key Lento; second station west of Mile Zero Air Station. | Reported meteorite pickups and two Underwater Discoveries. |
+| Free roam; chapter unknown | **Ride Em Chihuahua** | Frontier Adventure Golf, south Waning Sands. | Animal log entry. |
+| Diving access | **Kraken Shipwreck** | Seabed southeast of Gloriana Key. | Easter egg; no confirmed collectible counter or reward. |
+| Free roam; chapter unknown | **Immortal Man** | Southern Key Lento, residential decks near Donnie's trailer. | No verified reward. |
+| Free roam; chapter unknown | **Deep Roots Memorial** | Deep Roots Memorial Sanctuary northeast of Hamlet, between town and airport. | Developer memorial; no reward. |
+| After police zone clears, around mid Chapter 3 | **Key Lento Rainy-Day Fund** | Jason's burned house, Key Lento. | Reported $5,000 regardless of earlier stash amount. |
+| After Clonin Keys, Makin GS; either protagonist | **Capital Offense** | Glass-fronted showroom in south Vice City; blue Banshee on display. | Capital Offense trophy. |
+| Lucia alone after Credit Check | **Bad Luck, I Guess** | Payday Loans store in Little Cuba from the opening mission. | Bad Luck, I Guess trophy. |
+| Night; reported around 1:30 AM | **Lighthouse Ghost Ship** | St. Lucia Lighthouse, Little Hardin Island. | Cursed Knife (Special Weapons); possible ghost scene. |
+| Boat access; chapter unknown | **SOS Island Phone** | Tiny island south of Bobcat Key, north of military air base, Leonida Bay. | Hidden video and two meteorites; no separate reward for the mystery. |
 
 The in-app entries contain the detailed steps and specific location clues. For the Hamlet cash route, the total combines several items and fences; it is **not** a guaranteed $20,000 cash pickup. The separate **Infinite Money Glitch** menu covers the disputed respawn/reset method. Some activities have a spoiler-heavy outcome, and certain Chapter 1 opportunities cannot be revisited after the story advances.
 
@@ -135,6 +150,8 @@ The in-app entries contain the detailed steps and specific location clues. For t
 - [GamesRadar+ - The Final Flush and permanent stamina](https://www.gamesradar.com/games/grand-theft-auto/gta-6-final-flush-increase-maximum-stamina/); [PowerPyx - optional mission chapter windows](https://www.powerpyx.com/gta-6-all-strangers-freaks-side-missions/); [Nexzy - missable optional missions](https://www.nexzyapp.com/games/grand-theft-auto-vi/guide/gta-6-optional-missions).
 - [The Big Lead - UFO dream, airfield keypad and stat rewards](https://www.thebiglead.com/gta-6-keypad-door-code-south-point-airfield/); [Vice City DB - alien rescue evidence](https://vicecitydb.org/easter-eggs/alien-rescue-dream-quest).
 - [Indiatimes - Satan ritual and reported shotgun reward](https://www.indiatimes.com/game-guides/how-to-summon-and-kill-satan-in-gta-6-satanist-locations-hell-mission-beelzebub-dave-encounter-and-exclusive-shotgun-reward-explained/articleshow/136066345.html); [GTA Scoop - additional secrets and hidden radio stations](https://gtascoop.com/guides/gta-6-easter-eggs-and-secrets/).
+- [GTA6Bugs - Burg Industries underwater labs and meteorite safe](https://gta6bugs.com/easter-eggs/burg-industries-underwater-facilities-meteorite); [GTA6.house - underwater research facility search leads](https://gta6.house/guides/gta-6-underwater-facilities-meteorite-safe-code).
+- [GTA Scoop - lighthouse ghost ship and Cursed Knife](https://gtascoop.com/guides/gta-6-ghost-ship-lighthouse/); [GTA Base - Cursed Knife](https://www.gtabase.com/gta-6/weapons/cursed-knife); [GTA Scoop - SOS Island](https://gtascoop.com/guides/gta-6-sos-island/); [Capital Offense and Bad Luck, I Guess](https://gtascoop.com/guides/gta-6-capital-offense-trophy/).
 
 **Source confidence:** These are third-party launch-period reports, not gameplay-tested by the companion. Names, spawns, unlock chapters, puzzle combinations and rewards can vary or be corrected by newer guides. Unknown requirements are explicitly labeled rather than inferred from their location.
 
@@ -157,7 +174,7 @@ These are **guide-reported story windows and rewards**. Check the in-game phone,
 
 ## Safe & Door Codes
 
-An offline catalog of **46 published codes and passwords**. Choose **All codes**, **Mission safes**, **Operations**, **Doors / garages**, **Puzzles / other**, **Browse by area**, or **Random safe tips**. The area browser groups codes into Vice-Dale / Balsero, Keys / islands, Port Gellhorn, Swamps / Grassrivers, Mariana County, Inland / north, and Other areas. Each entry shows the published combination, area, landmark or access instructions, story context when known, and a confidence label. Codes appear at the start of list rows so they are visible on the Flipper's small display.
+An offline catalog of **52 published codes and passwords**. Choose **All codes**, **Mission safes**, **Operations**, **Doors / garages**, **Puzzles / other**, **Browse by area**, or **Random safe tips**. The area browser groups codes into Vice-Dale / Balsero, Keys / islands, Port Gellhorn, Swamps / Grassrivers, Mariana County, Inland / north, and Other areas. Each entry shows the published combination, area, landmark or access instructions, story context when known, and a confidence label. Codes appear at the start of list rows so they are visible on the Flipper's small display.
 
 **Weapon access:** Black Eagle's Balsero warehouse office uses `789987`, and the safe inside uses `031462` to obtain the Kalinga .50. The Pelican Valley research outpost uses password `CLEAVES`, safe `0072`, and boathouse keypad `0212` for the Crabshack VF5. Published bunker clues connect the island door (`010317`) and safe (`2975`) to the IAA Black Site hatch (`085355`), reportedly holding the Cold War 556. The Marbelle Hotel safe (`955214`) is reported to contain a collectible watch. These combinations are also listed in the relevant weapon details. The Black Eagle M306 TMR has a separate reported access route through the stacked boxes and fence.
 
@@ -165,23 +182,28 @@ An offline catalog of **46 published codes and passwords**. Choose **All codes**
 | Category | Entries | Examples |
 | --- | ---: | --- |
 | **Mission safes** | **8** | Delights Cabaret `2008`; Donovan Banks & Co. `0104`. |
-| **Illegal Operations** | **14** | Nova Auto Junkyard `7777`; Kingpin Bowling `0300` (conflicting report). |
-| **Doors / garages** | **15** | Brian's Lockup `7700`; Key Lento Party House `092319`; Mount Kalaga Tower `69185` (conflicting report). |
-| **Puzzles / other** | **9** | Pelican Valley research codes and two text passwords. |
-| **Total** | **46** | Four- to six-digit PINs and text passwords. |
+| **Illegal Operations** | **16** | Nova Auto Junkyard `7777`; Kingpin Bowling `0300` (conflicting report). |
+| **Doors / garages** | **16** | Brian's Lockup `7700`; Key Lento Party House `092319`; Mount Kalaga Tower `69185` (conflicting report). |
+| **Puzzles / other** | **12** | Pelican Valley research codes and two text passwords. |
+| **Total** | **52** | Four- to six-digit PINs and text passwords. |
 
 At **Father Scrumpy's Red Apple Orchard**, enter `360782` at the farmhouse garage to claim the **Applesauce Bobcat**. At **Southside Storage**, enter `1010` after photographing all five **1010 Murals** to claim the **1010 Cheetah**. Both vehicles have entries in Standout Vehicles.
 
-At **Kingpin Bowling** in Port Gellhorn, the **Gutterball Moreland 850 shotgun is on the northeast pool table**. The **northeast office safe** (reported `0300`, with `0330` in a conflicting guide) holds cash and the southeast room holds the **Crowex Octane 'Orca'** luxury watch. At the **Cottonmouth Lake trailer** on the southwest spit, collectible **Laki Maivia (Bronze)** is in the **safe beneath the kitchen microwave**, opened with `44017`. The highlighted bedroom-wall photos/postcards give the clue. This card and safe already have entries; do not count either twice. [Kingpin Bowling watch](https://gta6.house/library/items/crowex-octane-orca-luxury-watch)
+At **Kingpin Bowling** in Port Gellhorn, the **Gutterball Moreland 850 shotgun is on the northeast pool table**. The **northeast office safe** (reported `0300`, with `0330` in a conflicting guide) holds cash and the southeast room holds the **Crowex Octane 'Orca'** luxury watch. At the **Cottonmouth Lake trailer** on the southwest spit, collectible **Laki Maivia (Bronze)** is in the **safe beneath the kitchen microwave**, opened with `44017`. The highlighted bedroom-wall photos/postcards give the clue. The card and cash are collected together from the microwave safe. [Kingpin Bowling watch](https://gta6.house/library/items/crowex-octane-orca-luxury-watch)
 
 **Vanessa's pink Pfister Growler:** Before **Chapter 3 ends**, inspect the memorial photo (**Muffins**), vanity sketch (**Queen**), and number **15** on Boobie Ike's laptop, enter `MuffinsQueen15`, and **read the WhatsUp message**. Then find the pink-bow garage on **Del Rio Blvd, La Perle**, through the run-down motel lot past Aline's Thrift Store near Auntie's Place; enter `92665` to claim the car. The garage keypad may not activate before reading the message. Access may be lost when Chapter 4 begins; the vehicle has its own existing Standout checklist entry. These are published walkthrough claims, not guaranteed access conditions.
 
-**Leading zeros matter.** Published sources disagree on Kingpin Bowling (`0300`/`0330`), Saber Shipping Facility (`1122`/`1965`), and Mount Kalaga Tower (`69185`/`691865`). South Point Airfield `2341` is also disputed. Certain robbery safes may randomize their combinations; if a number fails, look for an in-game note, computer, or other clue.
+**Leading zeros matter.** Published sources disagree on Kingpin Bowling (`0300`/`0330`), Saber Shipping Facility (`1122`/`1965`), and Mount Kalaga Tower (`69185`/`691865`). South Point Airfield `2341` is also disputed. Certain robbery safes may randomize their combinations; Avery Pawn has reported codes `6499` and `4768`. Search the back office, whiteboard, computer or guards; press both sticks (`L3 + R3`) for Focus Mode, use the “Safe Code?” prompt when available, or check Notes on the keypad. The Cigar Import Front door at Palmis Liquor uses `1426`; the cash safe inside is separate. The alien rescue lab code `2314` is a reported example: count the groups of lines in your dream to obtain the applicable code.
 
 **Confidence labels:** *Guide-tested* means the linked guide publisher reports testing it, not that the companion author tested it; *Multiple reports* means more than one published source; *Reported* means limited corroboration; *Variable* means the result may differ by session or replay; and *Conflicting* means sources disagree. A `?` beside a code signals uncertainty.
 
 ### Safe and door code sources
 
+- [GTA BOOM - codes and variable puzzle clues](https://www.gtaboom.com/gta-6-safe-door-garage-codes-43af).
+- [PC Gamer - Brooks Boatworks](https://www.pcgamer.com/games/grand-theft-auto/gta-6-brooks-boatworks-safe-code/).
+- [PC Gamer - La Cascara Motel](https://www.pcgamer.com/games/grand-theft-auto/gta-6-la-cascara-motel-safe-code/).
+- [PC Gamer - robbery safe clues](https://www.pcgamer.com/games/grand-theft-auto/gta-6-safe-codes-combinations/).
+- [GTA6.house - Cigar Import Front](https://gta6.house/guides/gta-6-cigar-import-front-safe-door-code).
 - [VICE - Illegal Operations safe codes](https://www.vice.com/en/article/all-gta-6-safe-codes-illegal-operations/).
 - [GamesRadar+ - safe codes](https://www.gamesradar.com/games/grand-theft-auto/gta-6-safe-codes/).
 - [GTA Guide - safes, doors, and garages](https://gta.guide/gta-6/guides/safe-door-garage-codes).
@@ -204,22 +226,26 @@ At **Kingpin Bowling** in Port Gellhorn, the **Gutterball Moreland 850 shotgun i
 
 ## Special Weapons
 
-Under **Collections → Special Weapons**, browse **43 individual guide-reported weapon pickups and variants** covering rifles, pistols, SMGs, shotguns, launchers, a knife, and a speargun lead. Each row has a name, location or access clue, and acquisition notes. Several entries share a location but have independent checkmarks. Locations without adequate corroboration are labeled **reported** or **unconfirmed**, rather than shown as established spawns.
+Under **Collections → Special Weapons**, browse **63 individual guide-reported weapon pickups and variants** covering rifles, pistols, SMGs, shotguns, launchers, a knife, and a speargun lead. Each row has a name, location or access clue, and acquisition notes. Several entries share a location but have independent checkmarks. Locations without adequate corroboration are labeled **reported** or **unconfirmed**, rather than shown as established spawns.
 
 **Mark acquired:** select a weapon and press **Right** to check or uncheck it. Press **OK** for details and choose **Check/Undo**. The status reads **Acquired**, the list shows progress, and checkmarks are saved to the app's SD-card progress files. Acquiring one of a paired set does not mark the other.
 
 Example searches include the **Assassin Nipper .38** on a Permit Keys wreck, the **Unpacked Comshot 12** inside a Key Lento house, the **Drug Mule KZ-59** near a sunken Riquezas Keys speedboat, and the **Deever Tech GLR40** plus **Cockroach Xtreme 556** at the Sunrise Motel in Tequesta. These are reported community discoveries, not guaranteed spawns.
 
-The expanded catalog also tracks **Kingfishers Akulus** (Sunrise RV Park), **Chromium W-10** (La Perle Trap House), **Zodiac Nipper .38** (Ocean Beach Lab), **Quarter Mile ES9** (Chatfield Storage on Waxman Island), **Killtelligence SM-69** (Bret Vogel's hunting strand), **Shark Knife** (a shark cage north of Saint Attaway Islands), **The Patriarch DRX** (submerged vehicle southwest of Kalaga Reservoir), **Deadringer 1992** and **Money Bag 1992** (Moreau River mobile-home area), **Cargo H&L .38** (yellow Scoop container at Port Vice City), **Couch Potato Mustang .357** (suspended couch off Tanglewood Lane), and **Pete's KZ-59 Assault Rifle** (Sundown Private Airfield hangar). These named variants are **guide-reported leads**. Some have broad search areas, conflicting variant names, or limited independent verification; do not interpret all 43 as confirmed free pickups.
+The expanded catalog also tracks **Kingfishers Akulus** (Sunrise RV Park), **Chromium W-10** (La Perle Trap House), **Zodiac Nipper .38** (Ocean Beach Lab), **Quarter Mile ES9** (Chatfield Storage on Waxman Island), **Killtelligence SM-69** (Bret Vogel's hunting strand), **Shark Knife** (a shark cage north of Saint Attaway Islands), **The Patriarch DRX** (submerged vehicle southwest of Kalaga Reservoir), **Deadringer 1992** and **Money Bag 1992** (Moreau River mobile-home area), **Cargo H&L .38** (yellow Scoop container at Port Vice City), **Couch Potato Mustang .357** (suspended couch off Tanglewood Lane), and **Pete's KZ-59 Assault Rifle** (Sundown Private Airfield hangar). These named variants are **guide-reported leads**. Some have broad search areas, conflicting variant names, or limited independent verification; not every entry is a confirmed free pickup.
 
 **Updated pickup directions:** The **Couch Potato Mustang .357** is hidden in a hanging couch by a mobile home off Tanglewood Ln in Port Gellhorn. Shoot the supporting ropes, then sit on the fallen couch to claim the revolver. The *Bombazo!* publication also has a copy at the Formosa Ave apartments in Hamlet, inside the second ground-floor unit from the right (on the toilet).
 
-**Keep rewards and codes distinct:** The **Gutterball Moreland 850** is on the northeast **pool table**, not in the Kingpin Bowling office safe. **Pete's KZ-59** is on the hangar backroom **table**, not in the `3718` safe. **Killtelligence SM-69** is described as a hunting-quest reward, not an Ammu-Nation purchase. Named shop-exclusive variants should not be mistaken for world pickups.
+**Keep rewards and codes distinct:** The Clunker 556 is in the smaller Brooks Boatworks building near the code map; safe `6823` is in the warehouse pool-table room. The Scrapper VF5C is beside the La Cascara Motel safe room, not inside safe `6969`. The San4San KZ-59 is by the TV in JanJak's adjoining office, and the Marabunta Grande KZ-59 is near the blue container at Nova Auto Junkyard. The Eris Fresh DSG is reported as an Ultimate Edition operation reward.  The **Gutterball Moreland 850** is on the northeast **pool table**, not in the Kingpin Bowling office safe. **Pete's KZ-59** is on the hangar backroom **table**, not in the `3718` safe. **Killtelligence SM-69** is described as a hunting-quest reward, not an Ammu-Nation purchase. Named shop-exclusive variants should not be mistaken for world pickups.
 
 A weapon's detail includes any required combination when known. For example, the Kalinga .50 gives both the office and safe codes; the Crabshack VF5 gives the dock code and optional puzzle chain; and Russo's Pistol and the Cold War 556 list their bunker combinations. Individual acquisition checkmarks are independent even when weapons share a building or puzzle.
 
 ### Special Weapons sources
 
+- [GamerHour - Nova Auto Junkyard valuables](https://gamerhour.net/guides/hamlet-nova-auto-junkyard-all-key-valuables-in-gta-6/)
+- [GTA Base - San4San KZ-59](https://www.gtabase.com/gta-6/weapons/san4san-kz-59)
+- [Sweat School - gang-operation valuables](https://sweatschool.app/gta-6/money/gang-operations/)
+- [Insider Gaming - Illegal Operations locations](https://insider-gaming.com/all-illegal-operations-locations-key-valuables-in-gta-6/)
 - [GTA6Bugs - unique weapon variants and locations](https://gta6bugs.com/collectibles/unique-weapon-variants)
 - [GTA Scoop - unique weapons and gang-operation rewards](https://gtascoop.com/guides/gta-6-unique-weapons/)
 - [GAMES.GG - unique weapons and pickup locations](https://games.gg/grand-theft-auto-vi/guides/grand-theft-auto-6-all-unique-weapons-where-to-get-them/)
@@ -270,17 +296,17 @@ Select **Collections** to browse categories and individual sets. Each entry prov
 | **AHOL Street Art** | **112 art scans** organized by art type, including an option to mark a whole type complete. |
 | **1010 Murals** | **5 photo locations** and framing clues. The reported completion reward is the 1010 Cheetah at Southside Storage, code `1010`. |
 | **Kenton's Treasures** | **7 named treasure sets** with item lists and dive-site clues. All five named wreck sets now include individual relic search directions. |
-| **Underwater Discoveries** | **6 named shipwrecks**, with individual relic or doubloon search routes for each. Belpoint Strait and Bobcat Dive Site are treasure-set dives, but **do not** count among these 33 discoveries. |
+| **Underwater Discoveries** | **8 reported discoveries**: six shipwrecks with relic routes and two Burg Industries labs. Belpoint Strait and Bobcat Dive Site are treasure-set dives, but **do not** count among these 33 discoveries. |
 | **Magazines, Books & Comics** | **27 reading entries**, including *Law & Litigation in Leonida*. That Hamlet copy has a published location and an unconfirmed contribution to the game's 27-title counter. |
 | **Book Swaps** | **7 Little Library locations**. |
 | **Meditations** | **18 character-specific completions** across **10 places**, with separate Jason and Lucia entries when applicable. |
-| **Cocaine Flamingos** | **43 reported pickups**, including the Cottonmouth trailer marsh, Watson Bay's table and candlelit room, the damaged wall, a Capri grill, a Port Gellhorn highway house, and the Mariana County sunburst doorway. Look for black-and-white beaks. |
+| **Cocaine Flamingos** | **48 reported pickups**, including the Cottonmouth trailer marsh, Watson Bay's table and candlelit room, the damaged wall, a Capri grill, a Port Gellhorn highway house, and the Mariana County sunburst doorway. Also search the north Key Lento bridge yard, Surfside Drive, a shed near Mile Zero and the island shack north of the runway. Look for black-and-white beaks. |
 | **Unique Playlists** | **2 playlists** and **5 related poster locations**. |
-| **Discovered Styles** | **35 checklist entries** across the four submenus. Jason's Magazine Styles has **4 of 13**, Lucia's has **6 of 15**, Magazine Tattoos has **12 of 17**, and Luxury Watches has **13 location entries** against the game's 34-watch total. The Bobby Ambrose watch is a documented Chapter 3 reward with unverified counter credit. |
+| **Discovered Styles** | **35 checklist entries** across the four submenus. Jason's Magazine Styles has **4 of 13**, Lucia's has **6 of 15**, Magazine Tattoos has **12 of 17**, and Luxury Watches has **13 location entries** against the game's 34-watch total. The Bobby Ambrose watch is a documented Chapter 3 reward with unverified counter credit. The Mind Maze tattoo is a Backrooms reward, not a confirmed magazine scan; see Secret Missions. |
 | **Optional Missions** | **32 mission and side-activity entries**, with character, earliest reported chapter, missability, and reward clues. Distinct from the Secret Missions home-menu guide. |
 | **Messages in Bottles** | **6 numbered shoreline pickups** around Key Lento and the Shoeless Keys. These have their own checklist and do not count toward publications or Book Swaps. |
 | **Missing Persons investigation** | **5 checkable investigation stages**: Starlet Motel poster and warehouse, three missing-tourist reports, and the optional warehouse/mine finale. The guide has **three victims, not five**. |
-| **Meteorite Chunks** | **58 guide-reported locations**, including five Selkie Hole tunnel finds, both C0-B8 impact craters, the Mount Kalaga crash camp, and separate grass-edge and tideline pickups at the Capri boat party. The full game total is unconfirmed. |
+| **Meteorite Chunks** | **70 guide-reported locations**, including five Selkie Hole tunnel finds, both C0-B8 impact craters, the Mount Kalaga crash camp, and separate grass-edge and tideline pickups at the Capri boat party. Includes three Capri trench finds, Key Lento aircraft and vessel dives, and additional Waning Sands and Ambrosia pickups. The full game total is unconfirmed. |
 | **Stunt Jumps** | **130 launch points** grouped by county, with reported launch directions and stunt goals. |
 | **Under the Bridge** | **202 bridge crossings**, with individual spans and nearby landmarks. |
 | **Knife Flights** | **40 aircraft gaps**. |
@@ -304,7 +330,7 @@ Select **Collections** to browse categories and individual sets. Each entry prov
 
 **Unique Playlist posters:** Four posters in La Perle/Crosstown unlock *The Sniper of La Perle* under **On Demand**. A Downtown nightclub poster unlocks *The Vault* under **Radio**. Use the five companion checkmarks to track scanned posters. [PowerPyx poster walkthrough](https://www.powerpyx.com/gta-6-all-unique-playlist-collectible-locations/).
 
-**Kenton's Treasures and underwater wrecks:** There are seven named Kenton sets; published completion guides call for five. The *Nuestra Senora del Ocio* wreck in *Island Dreams* yields 10 Gold Doubloons and counts as an underwater discovery, **not** an eighth Kenton set. **Belpoint Strait** and **Bobcat Dive Site** contain Kenton treasures but do not count toward the 33 underwater discoveries. Double-tap Triangle in Kenton's boat for autopilot; hold Left for the anchor through vehicle properties before diving. Each of the six identified wrecks now has a search route: Del Ocio (debris and pottery, northeast coral ridge, northern mushroom-shaped coral, inside the hull, and east-side rocks), La Noche (seven named relics), Etica Laxa (five), Cinco Torres (six), Lujuriosa (six), and Santa Sierra (six). Doubloon piles may award multiple coins. The wrecks retain their original checkmarks; relic names are directions within each discovery, not additional discovery checkmarks. See [Push Square's dive guide](https://www.pushsquare.com/guides/gta-6-underwater-discoveries-locations-and-kentons-treasures) and [Kenton's Treasures](https://www.nexzyapp.com/games/grand-theft-auto-vi/guide/kentons-treasures), and [GTA BOOM's dive route](https://www.gtaboom.com/gta-6-treasure-hunting-2b73/).
+**Kenton's Treasures and underwater wrecks:** There are seven named Kenton sets; published completion guides call for five. The *Nuestra Senora del Ocio* wreck in *Island Dreams* yields 10 Gold Doubloons and counts as an underwater discovery, **not** an eighth Kenton set. **Belpoint Strait** and **Bobcat Dive Site** contain Kenton treasures but do not count toward the 33 underwater discoveries. Double-tap Triangle in Kenton's boat for autopilot; hold Left for the anchor through vehicle properties before diving. Two Burg Industries labs are also mapped; see Secret Missions for the full investigation, and try safe code `80085` at the reported western lab. Each of the six identified wrecks has a search route: Del Ocio (debris and pottery, northeast coral ridge, northern mushroom-shaped coral, inside the hull, and east-side rocks), La Noche (seven named relics), Etica Laxa (five), Cinco Torres (six), Lujuriosa (six), and Santa Sierra (six). Doubloon piles may award multiple coins. The wrecks retain their original checkmarks; relic names are directions within each discovery, not additional discovery checkmarks. See [Push Square's dive guide](https://www.pushsquare.com/guides/gta-6-underwater-discoveries-locations-and-kentons-treasures) and [Kenton's Treasures](https://www.nexzyapp.com/games/grand-theft-auto-vi/guide/kentons-treasures), and [GTA BOOM's dive route](https://www.gtaboom.com/gta-6-treasure-hunting-2b73/).
 
 **Collection-specific techniques:** For **Cocaine Flamingos**, look for **black-and-white beaks** and destroy the figures; the published guide identifies black-and-yellow beaks as decoration, and collecting the loose cocaine is optional. For **Discovered Styles**, scan applicable magazines with the in-game phone, switch between **Jason and Lucia** for character-specific unlocks, and enter homes where the description calls for it. For **Underwater Discoveries**, finish **Island Dreams** to unlock diving, bring scuba gear, choose the **metal detector** from the lower-right weapon wheel, follow chest markers, and dig when its light turns **green**. The reported adjacent wrecks southeast of Key Lento can be explored during one dive route.
 
@@ -316,6 +342,7 @@ Select **Collections** to browse categories and individual sets. Each entry prov
 
 ### Collection and stunt sources
 
+- [GTA6Gang - meteorite map directions](https://gta6gang.com/guides/gta6-meteorites.html), [GTA6 GPS - meteorites](https://gta6gps.com/map/game/meteorites), [CutsceneWire - flamingo routes](https://cutscenewire.com/games/gta-6/collectibles/gta-6-all-cocaine-flamingo-locations/), and [Leonida Players - underwater research facilities](https://leonidaplayers.com/guides/gta-6-underwater-research-facilities-all-5-locations-meteorite-safe-code-80085).
 - [PowerPyx - GTA VI collectibles and Progress database](https://www.powerpyx.com/gta-6-collectible-guide-progress-database/) and [100% completion checklist](https://www.powerpyx.com/gta-6-100-completion-checklist-guide/).
 - [GTA Game Intel - interactive map](https://gtagameintel.com/en/interactive-map/) and [collection markers](https://gtagameintel.com/en/interactive-map/?location=community-1090704).
 - [GTA Base - stunt jump map](https://www.gtabase.com/gta-6/map/?feature=stunt-jumps), [WAiNK landmarks](https://www.gtabase.com/gta-6/map/?feature=waink-landmark), and [AHOL Street Art map](https://www.gtabase.com/gta-6/map/?feature=ahol-street-art).
@@ -366,7 +393,7 @@ The **Collections > Activities / Robberies** group contains guide-reported targe
 
 **Basketball Hoops** includes a hoop and ball location for each guide number from 0 to 99, including the four Hamlet Correctional baskets split between the prison wings and kitchen courts. Pick up the nearby ball, aim, and score before checking off that basket. The same court can have several numbered hoops. [The Games Wiki's numbered locations](https://thegameswiki.com/gta6/wiki/basketball-hoop-locations) and [GTA6Bugs county guide](https://gta6bugs.com/collectibles/basketball-hoops/).
 
-**Bret's Target Decks:** After Chapter 2 *Coffee Break*, meet Bret Vogel as Jason and complete *Veteran Hunted*. He sends hunting contracts in order by text. For the first three mapped decks: *Adrenal Glands and Venison* calls for a whitetail buck and doe near Mount Kalaga and the Abandoned Concrete Plant; *Hog Endocrine Glands* calls for a wild white tom turkey, eastern spotted skunk and wild boar around Adler Creek, Bonanza and Mount Kalaga; *Cane Toad Venom Glands* calls for a cane toad, nutria and Nile monitor in Buckskin Swamp and Pelican Valley. Bring a pickup truck and protect carcass quality with careful shots. All **15 decks** are required for 100%. Decks **4 through 15** have independent progress entries; use Bret's newest text to identify each requested animal and follow the purple **Map > Activities > Target Deck** markers. Their exact animal lists have not been published in the sources checked, so no species or fixed spawn is assumed. Mark each deck only after Bret accepts the full order. Track the in-game total under **Progress > Contacts > Bret Vogel**. [Bret hunting checklist](https://game-checklists.com/gta6/brets-target-decks-checklist/).
+**Bret's Target Decks:** After Chapter 2 *Coffee Break*, meet Bret Vogel as Jason and complete *Veteran Hunted*. He sends hunting contracts in order by text. For the first three mapped decks: *Adrenal Glands and Venison* calls for a whitetail buck and doe near Mount Kalaga and the Abandoned Concrete Plant; *Hog Endocrine Glands* calls for a wild white tom turkey, eastern spotted skunk and wild boar around Adler Creek, Bonanza and Mount Kalaga; *Cane Toad Venom Glands* calls for a cane toad, nutria and Nile monitor in Buckskin Swamp and Pelican Valley. Bring a pickup truck for smaller carcasses; For large animals, follow Bret's collection or photo/location prompt; reports differ by species. The Wortham W-22 is recommended for all three Deck 3 animals. Protect carcass quality with careful shots. All **15 decks** are required for 100%. Decks **4 through 15** have independent progress entries; use Bret's newest text to identify each requested animal and follow the purple **Map > Activities > Target Deck** markers. Their exact animal lists remain undocumented. A Fair Game walkthrough reports a killer panther hunt after Bret calls about a Snapmatic sighting; follow his text for the location. Mark each deck only after Bret accepts the full order. Track the in-game total under **Progress > Contacts > Bret Vogel**. [Bret hunting checklist](https://game-checklists.com/gta6/brets-target-decks-checklist/).
 
 **Challenge milestones:** The game lists **80 named Challenges across 8 families of 10**: Combat, Criminal, Exploration, Fitness, Shopping, Sports, Survival, and Vehicle. Their full objectives are under **Progress > Challenges**. The companion tracks **all 80 named objectives** individually in Challenge Objectives, plus the original **5/10 and 10/10 milestones for each family** and overall **50/70/80** thresholds. Completing an objective does not automatically check its associated milestone; mark milestones after verifying the game's progress count. Published guides associate the family milestones with vehicle cheat unlocks. Cheat use remains gated behind story completion, and the app does not activate cheats. For the full named objectives, see the Challenge sources below.
 
@@ -380,6 +407,7 @@ The **22 Bank Jobs** comprise **14 small banks** and **8 large vaults**. Some ba
 
 ### Activities and robbery source guides
 
+- [GTA6Walk - Bret hunting and Fair Game](https://www.gta6walk.com/activities/hunting/) and [Leonida Info - hunting contracts](https://www.leonidainfo.com/en/articles/gta-6-hunting-guide-bret-vogel/).
 - [Game Checklists: first 17 basketball-hoop locations](https://game-checklists.com/gta6/basketball-hoops-checklist/) and [Push Square: detailed hoop finding guide](https://www.pushsquare.com/guides/gta-6-basketball-hoop-locations).
 - [PowerPyx: all 80 named challenge objectives](https://www.powerpyx.com/gta-6-all-challenges-guide/); [Bret Target Deck checklist](https://game-checklists.com/gta6/brets-target-decks-checklist/) (all 15 trackable, three species lists documented).
 - [PowerPyx: 100% completion categories and thresholds](https://www.powerpyx.com/gta-6-100-completion-checklist-guide/)
@@ -394,7 +422,7 @@ The **22 Bank Jobs** comprise **14 small banks** and **8 large vaults**. Some ba
 - [PowerPyx: 42 drone time trials](https://www.powerpyx.com/gta-6-all-top-fun-drone-race-time-trial-locations/)
 - [PowerPyx: shooting-range gold medals](https://www.powerpyx.com/gta-6-all-shooting-range-gold-medal-challenges/)
 - [PowerPyx: race challenges](https://www.powerpyx.com/gta-6-all-race-challenge-locations-gold-medals/)
-- [PowerPyx: arcade games](https://www.powerpyx.com/gta-6-all-video-game-locations/)
+- [PowerPyx: arcade games](https://www.powerpyx.com/gta-6-all-video-game-locations/); [GTA Scoop - Tenebrae Lux puzzles](https://gtascoop.com/guides/gta-6-tenebrae-lux/)
 - [PowerPyx: pool opponents](https://www.powerpyx.com/gta-6-all-pool-opponent-locations/)
 - [PowerPyx: golf courses](https://www.powerpyx.com/gta-6-all-golf-course-locations/)
 - [PowerPyx: unique racing venues](https://www.powerpyx.com/gta-6-all-unique-race-locations-racing-activities/)
@@ -426,7 +454,7 @@ The game's **Map > Robberies** may offer more current hints for active jobs.
 
 ### Standout Vehicles
 
-The **280-entry vehicle catalog** covers distinctive cars, motorcycles, aircraft, watercraft, liveries, and mission and stunt rewards. Entries give a pickup landmark, search area, or reward requirement where published.
+The **281-entry vehicle catalog** covers distinctive cars, motorcycles, aircraft, watercraft, liveries, and mission and stunt rewards. Entries give a pickup landmark, search area, or reward requirement where published.
 
 Examples:
 
@@ -473,6 +501,7 @@ The **pink Pfister Growler** has a checkmark under Standout Vehicles; it is not 
 
 ### Vehicle and property sources
 
+- [Sportskeeda - hidden container vehicles](https://dujseks5cqq0r.cloudfront.net/gta/all-hidden-cars-shipping-containers-gta-6-find), [GAMES.GG - container access](https://games.gg/grand-theft-auto-vi/guides/grand-theft-auto-6-container-cars-locations-how-to-open-them/), and [GAMETA - Royal Sanchez](https://gameta.gg/gta6/vehicles/royal-sanchez/).
 - [GTA Base - Muckspreader Bandito](https://www.gtabase.com/gta-6/vehicles/muckspreader-bandito), [GTA6Wiki - Street Art Squalo](https://gta6wiki.eu/vehicles/street-art-squalo/), [PowerPyx - Peach! initiation](https://www.powerpyx.com/gta-6-peach-join-the-cellerica-initiation-walkthrough/), and [GTA6 GPS - vehicle access notes](https://gta6gps.com/map/game/unique-vehicles).
 - [GAMETA - mapped Standout Vehicles and named variants](https://gameta.gg/gta6/map/standout-vehicles/); [Ultimate Edition vehicle and reward timing](https://gameta.gg/gta6/guides/ultimate-edition-items/); [GTA Base - Standout locations](https://www.gtabase.com/gta-6/map/?feature=standout-vehicle).
 - [GTA6Wiki - competing Gold Rush Tempesta pickup sites](https://gta6wiki.eu/vehicles/gold-rush-tempesta/); [GTA6Wiki - Venomous Marshall](https://gta6wiki.eu/vehicles/venomous-marshall/); [GTA Base - Crosstown GTA+ bundle](https://www.gtabase.com/gta-6/properties/gta-plus-crosstown-garage).
@@ -493,7 +522,7 @@ The **pink Pfister Growler** has a checkmark under Standout Vehicles; it is not 
 
 ## PS5 and Xbox Cheats
 
-Choose **PS5 Cheats** or **Xbox Cheats** to browse **61 reported effects** grouped by type. The catalog includes **19 published D-pad inputs per platform**, unlock notes, warnings, and **28 screenshot-derived sequences marked unverified**. Twenty-four screenshot sequences appear in the separate **Unverified codes** list, while four correspond to main-catalog effects. Xbox labels translated from PS5 screenshots are not independently captured Xbox codes.
+Choose **PS5 Cheats** or **Xbox Cheats** to browse **61 reported effects** grouped by type. The catalog includes **21 corroborated D-pad inputs per platform** (including Videotape and Dark Mirror), unlock notes, warnings, and **28 screenshot-derived sequences marked unverified**. Twenty-four screenshot sequences appear in the separate **Unverified codes** list, while four correspond to main-catalog effects. Xbox labels translated from PS5 screenshots are not independently captured Xbox codes.
 
 Published guides describe entering cheats from the game's phone in free roam: **D-pad Up**, then **L1 + R1** on PS5 or **LB + RB** on Xbox, followed by the sequence. See the in-game **Progress > Cheats** area for availability and unlock information where applicable. Guides warn that using cheats may affect saving and trophies or achievements. **Save before enabling cheats.**
 
@@ -501,6 +530,7 @@ The app displays codes and instructions; it does not send controller inputs. Scr
 
 ### Cheat sources
 
+- [Dexerto - cheat list](https://www.dexerto.com/wikis/gta-6/cheat-codes/) (alternate Raise Wanted Level, Unlimited Focus and Cycle Weather sequences are reported in the app; primary inputs remain unchanged).
 - [PowerPyx - GTA VI cheat list](https://www.powerpyx.com/gta-6-all-cheats/).
 - [GamesRadar+ - cheat guide](https://www.gamesradar.com/games/grand-theft-auto/gta-6-cheats/).
 - [PC Gamer - cheat list](https://www.pcgamer.com/games/grand-theft-auto/gta-6-cheats-list/).
