@@ -1,0 +1,13 @@
+App(
+    appid="airrounds",
+    name="AirRounds",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="airrounds_app",
+    stack_size=4 * 1024,
+    fap_icon="icon_10x10.png",
+    fap_category="GPIO/ESP32",
+    fap_author="Pavel Zaitsau",
+    fap_weburl="https://github.com/pavelzaitsau/airrounds",
+    fap_version="0.2",
+    fap_description="Passive, receive-only Wi-Fi capture for Flipper Zero and the ESP32-S2 Wi-Fi Devboard.",
+)

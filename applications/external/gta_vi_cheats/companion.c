@@ -503,21 +503,35 @@ static const GtaWreckMap gta_riata_maps[] = {
 static const GtaWreckMap gta_mamba_maps[] = {
     {"Collapsed bridge", GTA_WRECK_PIN(918691), false},
     {"Emerald Springs (lead)", GTA_WRECK_PIN(918473), false},
-    {"All four wrecks - guide", "https://www.pcgamer.com/games/grand-theft-auto/gta-6-mamba-gt-locations/", true},
+    {"All four wrecks - guide",
+     "https://www.pcgamer.com/games/grand-theft-auto/gta-6-mamba-gt-locations/",
+     true},
 };
 static const GtaWreckMap gta_kit_maps[] = {
     {"Yellow container (probable)", GTA_WRECK_PIN(918731), false},
-    {"All five wrecks - guide", "https://www.pcgamer.com/games/grand-theft-auto/gta-6-kit-car-locations/", true},
+    {"All five wrecks - guide",
+     "https://www.pcgamer.com/games/grand-theft-auto/gta-6-kit-car-locations/",
+     true},
 };
 #undef GTA_WRECK_PIN
 
 static const GtaWreckMap* gta_wreck_maps(uint16_t id, size_t* count) {
     switch(id) {
-    case 64: *count = sizeof(gta_transgressor_maps) / sizeof(gta_transgressor_maps[0]); return gta_transgressor_maps;
-    case 65: *count = sizeof(gta_riata_maps) / sizeof(gta_riata_maps[0]); return gta_riata_maps;
-    case 66: *count = sizeof(gta_mamba_maps) / sizeof(gta_mamba_maps[0]); return gta_mamba_maps;
-    case 67: *count = sizeof(gta_kit_maps) / sizeof(gta_kit_maps[0]); return gta_kit_maps;
-    default: *count = 0; return NULL;
+    case 64:
+        *count = sizeof(gta_transgressor_maps) / sizeof(gta_transgressor_maps[0]);
+        return gta_transgressor_maps;
+    case 65:
+        *count = sizeof(gta_riata_maps) / sizeof(gta_riata_maps[0]);
+        return gta_riata_maps;
+    case 66:
+        *count = sizeof(gta_mamba_maps) / sizeof(gta_mamba_maps[0]);
+        return gta_mamba_maps;
+    case 67:
+        *count = sizeof(gta_kit_maps) / sizeof(gta_kit_maps[0]);
+        return gta_kit_maps;
+    default:
+        *count = 0;
+        return NULL;
     }
 }
 
@@ -541,8 +555,9 @@ static const GtaUrlLinks*
         const GtaWreckMap* maps = gta_wreck_maps(entry->id, &count);
         if(!maps || companion->wreck_index >= count) return NULL;
         static GtaUrlLinks wreck_link;
-        wreck_link = (GtaUrlLinks){.source = maps[companion->wreck_index].url,
-                                  .source_index = maps[companion->wreck_index].guide};
+        wreck_link = (GtaUrlLinks){
+            .source = maps[companion->wreck_index].url,
+            .source_index = maps[companion->wreck_index].guide};
         return &wreck_link;
     }
     const GtaCollection* collection = companion->dispatch ? companion->dispatch_collection :
@@ -591,8 +606,8 @@ static void gta_detail_button(GuiButtonType button, InputType type, void* contex
     } else if(button == GuiButtonTypeRight) {
         view_dispatcher_send_custom_event(companion->dispatcher, GtaDetailLinks);
     } else if(button == GuiButtonTypeLeft) {
-        view_dispatcher_send_custom_event(companion->dispatcher,
-                                          companion->dispatch ? GtaDispatchNext : GtaWreckPicker);
+        view_dispatcher_send_custom_event(
+            companion->dispatcher, companion->dispatch ? GtaDispatchNext : GtaWreckPicker);
     }
 }
 
@@ -600,7 +615,8 @@ static void gta_wreck_button(GuiButtonType button, InputType type, void* context
     GtaCompanion* companion = context;
     if(type != InputTypeShort) return;
     uint32_t event = button == GuiButtonTypeCenter ? GtaWreckEmulate :
-                     button == GuiButtonTypeLeft ? GtaWreckPrev : GtaWreckNext;
+                     button == GuiButtonTypeLeft   ? GtaWreckPrev :
+                                                     GtaWreckNext;
     view_dispatcher_send_custom_event(companion->dispatcher, event);
 }
 
@@ -621,15 +637,27 @@ static void gta_render_detail(GtaCompanion* companion) {
         const GtaWreckMap* maps = gta_wreck_maps(entry->id, &count);
         if(maps && companion->wreck_index < count) {
             const GtaWreckMap* map = &maps[companion->wreck_index];
-            furi_string_cat_printf(text, "%s\nWreck links %u/%u\n\n%s\n%s", entry->name,
-                (unsigned)(companion->wreck_index + 1), (unsigned)count, map->title,
+            furi_string_cat_printf(
+                text,
+                "%s\nWreck links %u/%u\n\n%s\n%s",
+                entry->name,
+                (unsigned)(companion->wreck_index + 1),
+                (unsigned)count,
+                map->title,
                 map->guide ? "Open component location guide." : "Open reported map location.");
             widget_add_text_scroll_element(detail, 0, 0, 128, 51, furi_string_get_cstr(text));
-            widget_add_button_element(detail, GuiButtonTypeCenter, map->guide ? "Guide" : "Map", gta_wreck_button, companion);
+            widget_add_button_element(
+                detail,
+                GuiButtonTypeCenter,
+                map->guide ? "Guide" : "Map",
+                gta_wreck_button,
+                companion);
             if(companion->wreck_index > 0)
-                widget_add_button_element(detail, GuiButtonTypeLeft, "Prev", gta_wreck_button, companion);
+                widget_add_button_element(
+                    detail, GuiButtonTypeLeft, "Prev", gta_wreck_button, companion);
             if(companion->wreck_index + 1 < count)
-                widget_add_button_element(detail, GuiButtonTypeRight, "Next", gta_wreck_button, companion);
+                widget_add_button_element(
+                    detail, GuiButtonTypeRight, "Next", gta_wreck_button, companion);
             return;
         }
         companion->wreck_picker = false;
@@ -673,7 +701,8 @@ static void gta_render_detail(GtaCompanion* companion) {
         } else {
             size_t count;
             if(gta_wreck_maps(entry->id, &count))
-                widget_add_button_element(detail, GuiButtonTypeLeft, "Wrecks", gta_detail_button, companion);
+                widget_add_button_element(
+                    detail, GuiButtonTypeLeft, "Wrecks", gta_detail_button, companion);
         }
         if(can_emulate) {
             widget_add_button_element(
@@ -726,7 +755,11 @@ static void gta_show_links(GtaCompanion* companion, const char* error) {
         companion->detail, 0, 0, 128, 51, furi_string_get_cstr(companion->text));
     if(left.url)
         widget_add_button_element(
-            companion->detail, GuiButtonTypeLeft, companion->guide_text ? "Map" : left.label, gta_link_button, companion);
+            companion->detail,
+            GuiButtonTypeLeft,
+            companion->guide_text ? "Map" : left.label,
+            gta_link_button,
+            companion);
     if(right.url)
         widget_add_button_element(
             companion->detail, GuiButtonTypeRight, right.label, gta_link_button, companion);
@@ -1280,7 +1313,8 @@ bool gta_companion_custom_event(GtaCompanion* companion, uint32_t event) {
         const GtaCollectionEntry* entry = gta_selected_entry(companion);
         size_t count = 0;
         if(entry) gta_wreck_maps(entry->id, &count);
-        if(event == GtaWreckEmulate && count) gta_open_links(companion);
+        if(event == GtaWreckEmulate && count)
+            gta_open_links(companion);
         else if(event == GtaWreckPrev && companion->wreck_index > 0) {
             --companion->wreck_index;
             gta_render_detail(companion);
