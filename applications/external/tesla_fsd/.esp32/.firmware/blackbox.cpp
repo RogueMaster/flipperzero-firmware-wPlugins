@@ -589,11 +589,21 @@ static bool blackbox_alloc_ring() {
     // (~4 s window) and the per-target save-copy cap — a shorter window on a
     // low-RAM board, which still records, beats no black box at all. bb_try_alloc
     // re-guards against the live heap and logs the chosen frame count / KB.
-    uint32_t frames = bb_ram_ring_frames(ESP.getFreeHeap(), BLACKBOX_HEAP_MARGIN,
-                                         sizeof(BBFrame), BB_MIN_INTERNAL_FRAMES,
-                                         BLACKBOX_FRAMES_INTERNAL);
-    if (frames == 0u) return false;   // margin + floor won't fit: genuinely too tight
-    return bb_try_alloc(false, frames);
+    uint32_t frames = bb_ram_ring_frames(ESP.getFreeHeap(), ESP.getMaxAllocHeap(),
+                                         BLACKBOX_HEAP_MARGIN, sizeof(BBFrame),
+                                         BB_MIN_INTERNAL_FRAMES, BLACKBOX_FRAMES_INTERNAL);
+    if (frames == 0u) return false;   // margin + floor won't fit, or heap too fragmented
+    // The size is an estimate: getMaxAllocHeap() can move between the measure and
+    // the malloc, and a live allocation can land in the block we were aiming at.
+    // Step the ring down toward the floor rather than giving up on the first miss,
+    // so a tight, fragmented board still gets the largest window it can actually
+    // hold instead of bouncing the toggle straight back off (#191).
+    for (;;) {
+        if (bb_try_alloc(false, frames)) return true;
+        if (frames <= BB_MIN_INTERNAL_FRAMES) return false;
+        frames /= 2u;
+        if (frames < BB_MIN_INTERNAL_FRAMES) frames = BB_MIN_INTERNAL_FRAMES;
+    }
 }
 
 // Free the ring and drop any pre-roll / armed capture (on disable).

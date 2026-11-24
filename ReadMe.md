@@ -96,6 +96,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [MTools v1.1 labels possible ISO15693 Gen1 tags (By MTools Tec)](https://github.com/mtoolstec/flipper-mtools)
 - Updated: [Badge Wallet v1.0 fixes long filenames and unsupported listeners (By lewisQ17)](https://github.com/lewisQ17/Momentum-Firmware)
 - Updated: [IR Remote Maker v1.0 rejects incomplete loads and preserves edited commands (By lewisQ17)](https://github.com/lewisQ17/Momentum-Firmware)
+- Updated: [Tesla Mod v2.17.0b7 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 
 <a name="release"></a>
 
@@ -1081,7 +1082,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Telemeter v1.1 (By alaviation)](https://github.com/alaviation/flipper-telemeter) - Light-to-sound distance calculator
 - [Telink SWS v0.1 (By ngxson)](https://github.com/ngxson/flipper-telink) `Req: Telink device`
 - [Temp Sensors Reader 2.1 (By quen0n)](https://github.com/quen0n/Unitemp-Flipper-Zero-Plugin) Req: [See App Readme For Supported Modules](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/applications/external/unitemp/README.md)
-- [Tesla Mod v2.17.0b6 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
+- [Tesla Mod v2.17.0b7 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 - [Text To SAM v1.5 (By RoundPi)](https://github.com/Round-Pi/flipperzero-text2sam)
 - [Text Viewer v1.7 (By WillyJL)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/ae4fc4a54febccb44b010c4025a99c2edef9a7f0)
 - [The C Prog. Language v0.2 (By armixz)](https://github.com/armixz/Flipper-Zero-The-C-Programming-Language)

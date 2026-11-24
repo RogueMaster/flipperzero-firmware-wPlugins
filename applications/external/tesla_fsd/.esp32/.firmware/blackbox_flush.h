@@ -53,16 +53,27 @@ static inline bool bb_ring_push(uint32_t cap, uint32_t &head, uint32_t &tail,
 // ESP32 that #191 was filed on has only ~80-90 KB free after the WiFi AP + web
 // server, so a fixed 3000-frame / 57 KB ring plus the 60 KB WiFi margin (117 KB)
 // never fit and enable was always refused; sizing the ring to the heap we have
-// lets the recorder run with a proportionally shorter window instead. Returns 0
-// — refuse, as before — when even the floor ring (min_frames, a ~4 s window)
-// plus the margin won't fit: that board is genuinely too tight for a black box.
-// Above the gate the computed count is > min_frames, so the lower clamp is a
-// safety net; the upper clamp holds the per-target save-copy cap (<= margin).
-static inline uint32_t bb_ram_ring_frames(size_t avail, size_t margin,
+// lets the recorder run with a proportionally shorter window instead.
+//
+// `avail` is the total free heap and `largest` the biggest *contiguous* block.
+// The ring is one allocation, so it can be no larger than `largest` — a board
+// can report 86 KB free yet have its heap so fragmented by the WiFi/web stack
+// that the biggest run is far smaller, which is why the first #191 fix (sized
+// off total free alone) still failed the malloc and the toggle kept bouncing
+// off. Returns 0 — refuse — when even the floor ring (min_frames, a ~4 s window)
+// won't fit either as total-free-minus-margin OR as one contiguous block: that
+// board is genuinely too tight for a black box. Above the gate the usable size
+// is >= the floor, so the lower clamp is a safety net; the upper clamp holds the
+// per-target save-copy cap (<= margin).
+static inline uint32_t bb_ram_ring_frames(size_t avail, size_t largest, size_t margin,
                                           size_t frame_size,
                                           uint32_t min_frames, uint32_t max_frames) {
-    if (avail <= margin + (size_t)min_frames * frame_size) return 0u;
-    uint32_t frames = (uint32_t)((avail - margin) / frame_size);
+    const size_t floor_bytes = (size_t)min_frames * frame_size;
+    if (avail <= margin + floor_bytes) return 0u;   // margin + floor won't fit in total free
+    if (largest < floor_bytes)         return 0u;   // heap too fragmented for even the floor
+    size_t usable = avail - margin;
+    if (usable > largest) usable = largest;         // can't allocate past the biggest block
+    uint32_t frames = (uint32_t)(usable / frame_size);
     if (frames > max_frames) frames = max_frames;
     if (frames < min_frames) frames = min_frames;
     return frames;
