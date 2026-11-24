@@ -1,4 +1,4 @@
-https://github.com/user-attachments/assets/16b59c75-5fc2-4f3a-b325-f7fb1d623210
+https://github.com/user-attachments/assets/69644aef-5a41-4e45-8968-f661dc2faf65
 
 # Sub-GHz .sub RAW Files Editor for Flipper Zero
 
@@ -12,23 +12,58 @@ find the actual signal hiding inside a long stretch of silence, slide two
 markers to the start and end of one clean frame, and save it as a new `.sub` -
 or cut an unwanted stretch out of the middle and keep editing.
 
-Built for cleaning up `Read RAW` captures before decoding or replaying them -
-a long recording full of repeats and noise becomes a single tidy frame.
-
-Tired of maintaining playlists to transmit multiple .sub files?
-Simply use merge feature to combine `.sub` files of **any type** into a single file
-and play it back by using main Sub-GHz app. No third party applications required.
-Combine any number of files you want, as long as the SD card has room.
+The app is integrated with the [Unleashed firmware](https://github.com/DarkFlippers/unleashed-firmware).
+With it installed, the Sub-GHz app's *More* menu of a RAW recording gets an
+*Edit* item that opens the recording here and returns to Sub-GHz afterwards.
 
 > **Receive/analysis only.** This app never transmits. It only reads, displays
 > and rewrites files you already have on the SD card.
 
+![GUI diagram](docs/images/07-gui-diagram.png)
+
 ## Supported protocols
+
 Sub-GHz-RAW-Edit allows you to view RAW signals and any other `.sub` protocols supported by your firmware.
 For all protocols other than RAW capture, this app uses the device's internal decoder.
 
 As the `Save` option always writes output `.sub` files in `RAW` format,
 its able to transform any already recognized signals back to `RAW` again.
+
+## Usage
+
+| Button       | Action                                          |
+|--------------|-------------------------------------------------|
+| Left / Right | Move the active cut marker (hold = move faster) |
+| Up / Down    | Zoom in / out (centered on the active marker)   |
+| OK (short)   | Switch the active marker between **A** and **B**|
+| OK (hold)    | Open the action menu (**Save / Decode / Cut / Undo**) |
+| Back         | Exit                                            |
+
+1. Launch **Sub-GHz RAW Edit** from *Apps -> Sub-GHz*.
+2. Pick any `.sub` file from `/ext/subghz`.
+3. The view opens centered on the detected frame. Zoom out (Down) to see the
+   whole signal, zoom in (Up) to see individual pulses.
+4. Place **A** at the start of one clean frame, press OK, place **B** at the
+   end.
+5. Hold **OK** to open the action menu and choose:
+   - **Save** - a name is suggested (`<name>_edit1`, the next free `_edit2`,
+     `_edit3`, ...; editing `<name>_edit1` continues with `<name>_edit2`).
+     Edit it if you like and confirm; the A..B selection is written to
+     `/ext/subghz/<name>.sub`. Typing a name that already exists asks
+     *Name exists, overwrite?*; the file currently open is never overwritten.
+   - **Decode** - every known protocol found in A..B is listed (skipped when
+     there is only one); choose an entry, read its details and press **Save**
+     to write it as a key file, or **Locate** to set A..B exactly on its first
+     frame (B keeps a bit of the gap after it). The suggested name is the protocol and, for
+     KeeLoq, its manufacturer (`KeeLoq_Verex`, then `KeeLoq_Verex_1`, `_2`, ...).
+     Shows *No known protocol* when nothing decodes.
+   - **Cut** - the stretch between A and B is removed from the working copy and
+     the two sides are joined. Re-place the markers and Cut again to clean up
+     further, or Save when you are happy. If a cut would leave nothing behind it
+     is refused and rolled back. What is cut goes to the clipboard, ready to
+     paste. **Left / Right** turn it into **Copy** (A..B to
+     the clipboard) or **Paste** (the clipboard in at the active marker).
+   - **Undo** - revert the last cut or paste, or pick from the history how far back to go.
 
 ## Screenshots
 
@@ -42,15 +77,6 @@ then a trimmed single frame decoding cleanly as the original remote:
 | Single signal frame | KeeLoq preambule waveform | Single waveform edge |
 |:---:|:---:|:---:|
 | ![Single signal frame](docs/images/04-single-signal-frame.png) | ![KeeLoq preambule waveform](docs/images/05-keeloq-preambule-waveform.png) | ![Single waveform edge](docs/images/06-single-waveform-edge.png) |
-
-## Why
-
-`Read RAW` on the Flipper records a continuous stream of pulse/gap durations. A
-single button press on a remote often lands in the middle of seconds of
-silence, repeated frames, and background noise. Most decoders work best on one
-clean copy of the frame. Trimming that by hand means editing the `.sub` text
-file on a computer and guessing where the signal starts. This app does it
-visually, on the device.
 
 ## Features
 
@@ -133,69 +159,6 @@ When loading any signal other than RAW, the app lets you choose which custom but
 |:---:|:---:|:---:|
 | ![Full](docs/images/11-cbtn-full.png) | ![Partial](docs/images/12-cbtn-partial.png) | ![Without defined names (raw hex)](docs/images/13-cbtn-hex.png) |
 
-## Controls
-
-| Button       | Action                                          |
-|--------------|-------------------------------------------------|
-| Left / Right | Move the active cut marker (hold = move faster) |
-| Up / Down    | Zoom in / out (centered on the active marker)   |
-| OK (short)   | Switch the active marker between **A** and **B**|
-| OK (hold)    | Open the action menu (**Save / Decode / Cut / Undo**) |
-| Back         | Exit                                            |
-
-In the action menu, **Up / Down** move between Save, Decode, Cut and Undo,
-**Left / Right** on Cut switch it to Copy or Paste, **OK** confirms the
-highlighted action and **Back** closes the menu without doing anything.
-
-The active marker is the one drawn as a solid line with a small box on top, and
-marked with `>` in the bottom bar. The other marker is dotted.
-
-![GUI diagram](docs/images/07-gui-diagram.png)
-
-## Usage
-
-1. Launch **Sub-GHz RAW Edit** from *Apps -> Sub-GHz*.
-2. Pick any `.sub` file from `/ext/subghz`.
-3. The view opens centered on the detected frame. Zoom out (Down) to see the
-   whole signal, zoom in (Up) to see individual pulses.
-4. Place **A** at the start of one clean frame, press OK, place **B** at the
-   end.
-5. Hold **OK** to open the action menu and choose:
-   - **Save** - a name is suggested (`<name>_edit1`, the next free `_edit2`,
-     `_edit3`, ...; editing `<name>_edit1` continues with `<name>_edit2`).
-     Edit it if you like and confirm; the A..B selection is written to
-     `/ext/subghz/<name>.sub`. Typing a name that already exists asks
-     *Name exists, overwrite?*; the file currently open is never overwritten.
-   - **Decode** - every known protocol found in A..B is listed (skipped when
-     there is only one); choose an entry, read its details and press **Save**
-     to write it as a key file, or **Locate** to set A..B exactly on its first
-     frame (B keeps a bit of the gap after it). The suggested name is the protocol and, for
-     KeeLoq, its manufacturer (`KeeLoq_Verex`, then `KeeLoq_Verex_1`, `_2`, ...).
-     Shows *No known protocol* when nothing decodes.
-   - **Cut** - the stretch between A and B is removed from the working copy and
-     the two sides are joined. Re-place the markers and Cut again to clean up
-     further, or Save when you are happy. If a cut would leave nothing behind it
-     is refused and rolled back. What is cut goes to the clipboard, ready to
-     paste. **Left / Right** turn it into **Copy** (A..B to
-     the clipboard) or **Paste** (the clipboard in at the active marker).
-   - **Undo** - revert the last cut or paste, or pick from the history how far back to go.
-
-## File format
-
-Reads and writes the standard Flipper RAW format:
-
-```
-Filetype: Flipper SubGhz RAW File
-Version: 1
-Frequency: 433920000
-Preset: FuriHalSubGhzPresetOok270Async
-Protocol: RAW
-RAW_Data: 257 -926 637 -526 ...
-```
-
-`Frequency` and `Preset` are carried over from the source file. Only the
-`RAW_Data` durations between the A and B markers are written.
-
 ## Build
 
 Works with the official firmware, Momentum, Unleashed and other forks.
@@ -230,13 +193,6 @@ ufbt                                 # builds dist/subghz_raw_edit.fap
 ufbt launch                          # builds + uploads + runs
 ```
 
-### On GitHub
-
-Every push and pull request is built with ufbt by GitHub Actions
-(`.github/workflows/build.yml`) against the official release and dev SDKs and
-the Unleashed release SDK; the `.fap` files are attached to each run as
-artifacts. The host tests run there too.
-
 ### Tests
 
 `tests/` holds host tests of the signal editing - loading a RAW `.sub` into the
@@ -256,10 +212,6 @@ launch it from **Apps -> Sub-GHz** on the Flipper.
 
 ## Notes & limitations
 
-- **`Read RAW` does not record silence.** It starts capturing at the first
-  detected pulse and stops shortly after the last one, so the empty seconds
-  before/after a button press never reach the file. The empty margins this app
-  shows when fully zoomed out are drawn for context - they are not stored data.
 - **No RSSI / signal strength.** The waveform here carries no power information.
   A `.sub` RAW file is only a list of pulse and gap *durations* - there is no
   amplitude or RSSI stored in the format at all. In the zoomed-out *envelope*
@@ -267,15 +219,6 @@ launch it from **Apps -> Sub-GHz** on the Flipper.
   switching over time), not signal power, so a taller bar means "more activity
   here", not "stronger signal". The zoomed-in *square wave* view is likewise
   just the high/low timing, not a measured level.
-- **The signal lives on the SD card.** Opening a file (or merging) writes the
-  whole signal into a binary working copy in the app's data folder
-  (`apps_data/subghz_raw_edit/tmp`), deleted when you leave the editor. The original
-  `.sub` is never touched. RAM holds a window of the working copy; times are
-  always counted from the start of the signal.
-- **Cut and Undo cost no RAM.** A cut rewrites the working copy without A..B and
-  moves the previous one to `tmp/undos/undo_<n>.bin`, a step of the Undo
-  history; going back is a rename. On a long signal a cut takes as long as
-  copying it on the card. The history keeps the last 32 steps.
 - Durations are clamped to +/-32 ms so the capture fits a compact buffer. This
   only ever touches inter-frame silence; the signal pulses themselves
   (hundreds of microseconds) are stored exactly.

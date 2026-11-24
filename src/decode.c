@@ -54,6 +54,11 @@ static void decode_rx_cb(SubGhzProtocolDecoderBase *dec, void *ctx)
     furi_string_reset(dc->text);
     subghz_protocol_decoder_base_get_string(dec, dc->text);
     uint32_t h = decoded_hash(furi_string_get_cstr(dc->text));
+#ifndef FW_ORIGIN_Official
+    // Custom firmware's KeeLoq sticks to the manufacturer (or "Unknown") of the
+    // first frame it decodes; remotes of other makes in A..B need all of them.
+    subghz_environment_reset_keeloq(dc->env);
+#endif
 
     if (dc->want)
     {

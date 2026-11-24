@@ -9,6 +9,7 @@
 - *Undo* keeps a history of the last 32 cuts and pastes: with more than one it lists them, newest first with the samples removed and where, and goes back to before the one picked.
 - Merging is bounded by the SD card instead of RAM.
 - *Decode* checks for the RAM it really takes (8 KB, in pieces of at most 2 KB) and reports *Low memory* with the free RAM instead of crashing. It skips BinRAW, which needs the receiver's RSSI, and drops the KeeLoq keystore again when loading it leaves too little.
+- *Decode* tries every manufacturer on each KeeLoq frame: on custom firmware a remote of another make after the first one in A..B came out as *Unknown*.
 - A file name too long for the top bar scrolls instead of losing its last letters.
 - *Decode*, *Save* and *Cut* no longer flash the main menu between their screens; *Decoding...* stays up until the list shows.
 - Loading a merge shows the same *Loading...* screen as loading a file.
