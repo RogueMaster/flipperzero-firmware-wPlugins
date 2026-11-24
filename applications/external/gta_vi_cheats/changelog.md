@@ -1,6 +1,7 @@
 # GTA VI Companion changelog
 
 ## v1.9.6 — Vehicles and Collection Updates
+- Enriched existing collectible-card, publication, meditation, meteorite and Challenge entries with detailed pickup routes, alternate-copy handling and Master shooting-range requirements.
 - Corrected Collections progress total to include Piccia Furia (ID 28), which was already tracked but omitted from the summary count; existing checkmarks and IDs are unchanged.
 - Added room-by-room Luxury Watch and gang-operation access routes, and cross-linked publication/card pickups at shared locations.
 - Improved Selkie Hole and Belville meteorite directions, and clarified Del Ocio's detector search and ten-doubloon clearing requirement without adding speculative wrecks.

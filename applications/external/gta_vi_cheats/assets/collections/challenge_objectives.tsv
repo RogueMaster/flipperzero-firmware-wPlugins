@@ -1,4 +1,4 @@
-3000	Combat: Speed Kills	Progress > Challenges > Combat	Defeat three enemies in 30 seconds.
+3000	Combat: Speed Kills	Progress > Challenges > Combat	Kill three enemies in under 30 seconds. Kills count; merely injuring or knocking out an enemy does not satisfy this challenge.
 3001	Combat: Melee Combat	Progress > Challenges > Combat	Kill or knock out five enemies consecutively with melee weapons, without dying.
 3002	Combat: Explosive Combat	Progress > Challenges > Combat	Kill or injure three enemies with one explosive blast.
 3003	Combat: Headshots	Progress > Challenges > Combat	Land four fatal headshots during one Combat Focus activation.
@@ -64,7 +64,7 @@
 3063	Survival: Catch of the Day	Progress > Challenges > Survival	Catch three fish with each lure type in one day.
 3064	Survival: Zoologist	Progress > Challenges > Survival	Study twenty different animal species using binoculars.
 3065	Survival: Angler	Progress > Challenges > Survival	Catch four fish species in under six minutes.
-3066	Survival: Pro Marksman	Progress > Challenges > Survival	Earn Gold medals in three shooting-range events consecutively; no failures or quitting.
+3066	Survival: Pro Marksman	Progress > Challenges > Survival	Earn Gold in the Master class of three different shooting-range events consecutively. Do not fail or quit between events; lower shooting-range difficulties do not fulfill this challenge.
 3067	Survival: Hunting Spree	Progress > Challenges > Survival	Hunt a boar, rattlesnake and panther in 15 minutes without taking damage.
 3068	Survival: Pro Angler	Progress > Challenges > Survival	Catch a specimen of each fish species.
 3069	Survival: Legendary Hunter	Progress > Challenges > Survival	Hunt all eight unique animals (not eight ordinary species).
@@ -72,7 +72,7 @@
 3071	Vehicle: Wheelie	Progress > Challenges > Vehicle	Ride a wheelie for one-quarter mile.
 3072	Vehicle: Winning Streak	Progress > Challenges > Vehicle	Win one race each in a muscle car, sports car and supercar.
 3073	Vehicle: Throttled	Progress > Challenges > Vehicle	Keep a road vehicle above 100 mph for two minutes.
-3074	Vehicle: Drawbridge Jump	Progress > Challenges > Vehicle	Jump 100 feet over a drawbridge three times without leaving the vehicle.
+3074	Vehicle: Drawbridge Jump	Progress > Challenges > Vehicle	Jump a motor vehicle more than 100 feet over a drawbridge three times, without exiting the vehicle between jumps.
 3075	Vehicle: Top Speed	Progress > Challenges > Vehicle	Reach 175 mph in a car, truck or motorcycle.
 3076	Vehicle: Train Landing	Progress > Challenges > Vehicle	Land a plane on a moving train without destroying the plane.
 3077	Vehicle: Oceanarium Jump	Progress > Challenges > Vehicle	Jump from an aircraft at least half a mile up, parachute into the Vice City Oceanarium dolphin or orca tank, and survive.

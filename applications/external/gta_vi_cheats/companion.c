@@ -142,9 +142,7 @@ static const struct {
 };
 
 bool gta_companion_progress_summary(
-    const GtaCompanion* companion,
-    size_t* total_items,
-    size_t* completed_items) {
+    const GtaCompanion* companion, size_t* total_items, size_t* completed_items) {
     if(!companion || !total_items || !completed_items || companion->progress_load_failed)
         return false;
 

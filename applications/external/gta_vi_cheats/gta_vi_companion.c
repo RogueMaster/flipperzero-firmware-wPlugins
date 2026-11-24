@@ -636,9 +636,10 @@ static void gta_guide(GtaApp* app) {
     size_t completed_items = 0;
     if(gta_companion_progress_summary(app->companion, &total_items, &completed_items)) {
         /* Hundredths of a percent, rounded: no floating-point printf needed. */
-        const uint32_t progress =
-            total_items ? (uint32_t)((completed_items * 10000u + total_items / 2u) / total_items) :
-                          0u;
+        const uint32_t progress = total_items ?
+                                      (uint32_t)((completed_items * 10000u + total_items / 2u) /
+                                                 total_items) :
+                                      0u;
         furi_string_cat_printf(
             app->content,
             "\n\nTotal Collection Items: %lu\n"
