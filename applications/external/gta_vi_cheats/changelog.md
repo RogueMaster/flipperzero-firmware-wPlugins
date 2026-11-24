@@ -1,6 +1,8 @@
 # GTA VI Companion changelog
 
 ## v1.9.9 — Memory Optimization + NFC Emulation Fixes
+- Added 41 individual GTA6GPS NFC item mappings (40 distinct pins): all 25 BASE jumps, five 1010 murals and the Cheetah reward garage, four Peewees billboards, two named mini-golf courses, the pink-car trunk investigation site, Lucia makeup and the shared Tarot tattoo magazine. Preserved all existing item IDs, links and map-image references. Corroborated the Belpoint flamingo route and retained 94 reported pickups and search leads.
+- Added 88 individual GTA6GPS NFC map pins for 30 WAiNK landmarks, all 35 curiosities and all 23 sculptures. Expanded Cocaine Flamingos to 94 reported pickups and search leads with an individual wrecked-car map marker; added that lead and the existing dockside lead to Regional Dispatch (921 stops). Retained existing progress IDs and source links.
 - Moved vehicle/property, cheat, safe code, secret mission, NFC link and Regional Dispatch catalogs to readable TSV assets. Build temporary row indexes on demand; edit catalog TSVs directly without conversion tools.
 - Load collection row offsets and IDs on demand, cache four visible labels, and read full details only when needed. Retain existing progress IDs, checkmarks, source links and menu order.
 - Allocate collection, secret mission, submenu and text views when needed; release inactive views, text and catalog buffers.
