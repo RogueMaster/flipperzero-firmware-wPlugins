@@ -1,3 +1,6 @@
 .vscode/
 dist/
 .headroom/
+tests/run_tests
+tests/run_tests.exe
+tests/out/

@@ -1,0 +1,48 @@
+name: Build
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  tests:
+    name: Host tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run the tests
+        run: make -C tests
+
+  build:
+    name: "ufbt: ${{ matrix.name }}"
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Official release
+            sdk-channel: release
+          - name: Official dev
+            sdk-channel: dev
+          - name: Unleashed release
+            sdk-channel: release
+            sdk-index-url: https://up.unleashedflip.com/directory.json
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build with ufbt
+        uses: flipperdevices/flipperzero-ufbt-action@v0.1
+        id: build-app
+        with:
+          sdk-channel: ${{ matrix.sdk-channel }}
+          sdk-index-url: ${{ matrix.sdk-index-url }}
+
+      - name: Upload the app
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ github.event.repository.name }}-${{ matrix.name == 'Unleashed release' && 'unleashed-' || '' }}${{ steps.build-app.outputs.suffix }}
+          path: ${{ steps.build-app.outputs.fap-artifacts }}
