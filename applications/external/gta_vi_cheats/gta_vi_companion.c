@@ -612,6 +612,19 @@ static void gta_guide(GtaApp* app) {
         "Optional Missions are a separate Collections checklist; Cal and Kirk already appear "
         "in Secret Missions. Messages in Bottles are optional reading, not part of 34 books "
         "and swaps. Extra unique weapon names are guide-reported, not game-verified.\n\n"
+        "Missables: keep a manual save before Tourist Trap (C1) and Checking Out (C2). "
+        "In C2 pay Linda before Slam Dunk, collect Starlet Motel cards and books, and help Wyman "
+        "at his car before moving. In C3 take Gil's pistol in Safe Word and Monty's pistol in The Missing Link. "
+        "Pete's rifle is a C4 mission pickup.\n\n"
+        "Moses: during Take a Vehicle to Moses (C2), bring an eligible tracker-free car for one free registration. "
+        "Bison has six cargo slots, Dominator two; Montagne XL waits behind Watkins Auto Parts. "
+        "Confirm Register shows Free before accepting. See Thrax for reported early access.\n\n"
+        "Fast Focus leveling: Rodgers Ranch Shooting Range, northeast Port Gellhorn (Kelly County). "
+        "Buy the $5 waiver and choose Market Range Beginner. Hit all six targets (about 5 sec). "
+        "Select Quit and back out to the range, then start again. Do NOT choose Restart on results. "
+        "Each exit is reported to grant permanent Focus; gains vary. Check Jason & Lucia > character > "
+        "purple eye stat until Level 4. Repeat for the other character after Coffee Break (C2). "
+        "No cheat activation needed. Patch behavior may change. See Shooting Gold Medals.\n\n"
         "Dispatch: pick a region for unchecked deliveries and collectibles. "
         "OK checks or undoes a stop. Right opens the next stop. "
         "Back returns to the region menu.\n\n"
@@ -636,10 +649,9 @@ static void gta_guide(GtaApp* app) {
     size_t completed_items = 0;
     if(gta_companion_progress_summary(app->companion, &total_items, &completed_items)) {
         /* Hundredths of a percent, rounded: no floating-point printf needed. */
-        const uint32_t progress = total_items ?
-                                      (uint32_t)((completed_items * 10000u + total_items / 2u) /
-                                                 total_items) :
-                                      0u;
+        const uint32_t progress =
+            total_items ? (uint32_t)((completed_items * 10000u + total_items / 2u) / total_items) :
+                          0u;
         furi_string_cat_printf(
             app->content,
             "\n\nTotal Collection Items: %lu\n"

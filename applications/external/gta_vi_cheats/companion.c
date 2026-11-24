@@ -118,7 +118,7 @@ static bool gta_is_checked(const uint8_t* checked, uint16_t id) {
     return (checked[id / 8u] & gta_entry_mask(id)) != 0;
 }
 
-/* Unique collection IDs in v1.9.6, from companion_catalog.c and every
+/* Unique collection IDs in v1.9.7, from companion_catalog.c and every
  * Collections TSV. Regenerate these ranges when adding or removing entries;
  * do not count the unlisted 4,096-bit progress capacity as collectibles. */
 static const struct {
@@ -137,12 +137,14 @@ static const struct {
     {1272, 2100},
     {2300, 2548},
     {3000, 3095},
-    {3582, 3661},
+    {3582, 3750},
     {3900, 3908},
 };
 
 bool gta_companion_progress_summary(
-    const GtaCompanion* companion, size_t* total_items, size_t* completed_items) {
+    const GtaCompanion* companion,
+    size_t* total_items,
+    size_t* completed_items) {
     if(!companion || !total_items || !completed_items || companion->progress_load_failed)
         return false;
 

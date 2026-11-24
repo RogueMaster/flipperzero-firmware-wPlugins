@@ -1,18 +1,18 @@
-1536	Belpoint Southeast Docks	Southeast Belpoint island, at the end of the docks.	Look along the dock planks at the water edge. One of six separate Belpoint pickups; shoot the black-and-white-beaked figure.
+1536	Belpoint Southeast Docks	Southeast Belpoint island, at the end of the docks.	Look along the dock planks at the water edge. One of six separate Belpoint pickups; shoot the black-and-white-beaked figure. Check beside the body at the pier tip.
 1537	Belpoint Big White House	Southeast Belpoint island, among the houses where flamingos are being burned.	Search in front of the large white house, away from the burning beach container. This is distinct from the small-white-house pickup.
 1538	Belpoint Small White House	Southeast Belpoint island, at the houses near the burning flamingos.	Check the outer corner of the smaller white house. The large white house has another separate flamingo.
 1539	Belpoint Beach Container	Southeast Belpoint, beach with the burning cargo container.	Look INSIDE the burning beach container; a separate pickup lies outside near the campfire and chair.
 1540	Belpoint Beach Campfire	Southeast Belpoint beach, outside the burning flamingo container.	On the ground near the fire, a body and an overturned camp chair; the pickup inside the container is separate.
 1541	Belpoint Yellow Container	Southeast Belpoint beach, shallow water beside the burning container.	Look ON TOP of the yellow shipping container in the water, not the burning one on shore. Distinct from the two shore pickups.
-1542	Watson Bay Motel	Eastern edge of Watson Bay, beside the motel building.	Search the motel southwest corner among trash. The table, candlelit room and damaged-wall flamingos elsewhere in Watson Bay have separate entries.
-1543	Key Lento Eccentric House	Garden of the eccentric house in central Key Lento.	In-game flamingo marker.
-1544	Capri Halloween House	Front garden in the street grid south of Tortoise Lake.	In-game flamingo marker.
-1545	Capri Volcano Coffee	Front garden of locked house immediately west of Volcano Coffee Co.	Clovis Way lawn northwest of La Costa is an alternate reported location; it may be the same figure.
+1542	Watson Bay Motel	Eastern edge of Watson Bay, beside the motel building.	Search the motel southwest corner among trash. The table, candlelit room and damaged-wall flamingos elsewhere in Watson Bay have separate entries. Look behind motel in rubbish heap.
+1543	Key Lento Eccentric House	Garden of the eccentric house in central Key Lento.	Eccentric house with lights, inflatables and lawn ornaments. Shoot the single black-and-white-beaked bird from the street; yellow-beaked figures are decorations.
+1544	Capri Halloween House	Front garden in the street grid south of Tortoise Lake.	In-game flamingo marker. GTADB identifies the street as Fortuna Street.
+1545	Capri Volcano Coffee	Front garden of locked house immediately west of Volcano Coffee Co.	Clovis Way lawn northwest of La Costa is an alternate reported location; it may be the same figure. The house is reported blue; inspect the middle of the lawn ornament group.
 1546	Capri La Costa	Outside La Costa, southwest Capri, about two blocks southwest of Hair By Clair.	Vela Rota Drive, in the lawn display outside La Costa; look for the white-and-black beak.
-1547	Watson Bay North Backyard	West side of the north end, in the yard beside the Chip card house.	In-game flamingo marker.
+1547	Watson Bay North Backyard	West side of the north end, in the yard beside the Chip card house.	In-game flamingo marker. Kingston Road: search behind the neighbouring house beside Chip's Standard card location.
 1548	Abismo Key Southeast Coast	Shoreline near the bridge toward Key Lento.	Also search a shoreline puddle on the small key toward Mile Zero; route reports may describe the same figure.
 1549	La Perle C-Shaped Building	La Perle, Vice City. Northwest of Tyrone's apartment, inside the C-shaped building's courtyard.	At ground level near the middle of the C-shaped block. Look for the black-and-white beak; do not confuse it with ordinary decorative flamingos.
-1550	Riquezas Keys SW Island	Riquezas Keys. Enter the house beside the radar dish on the large southwest island.	GTA6 GPS marker 918017.
+1550	Riquezas Keys SW Island	Riquezas Keys. Enter the house beside the radar dish on the large southwest island.	GTA6 GPS marker 918017. Alternate guide: middle building on island west of Mile Zero Air Station. Check the only accessible building beside the radar installation.
 1551	Cottonmouth Lake Sandbar	Island west of the largest sandbar south of the lake.	In-game flamingo marker.
 1552	Featherstone North Point	Northern tip of Featherstone's north island.	In-game flamingo marker.
 1553	Featherstone Southeast Coast	Southeast shore of Featherstone's north island.	In-game flamingo marker.
@@ -20,29 +20,44 @@
 1555	Meerwunder Beach 1	Beach beside wreck of Meerwunder on north side of southeast Featherstone island.	One of three nearby flamingos. In-game marker.
 1556	Meerwunder Beach 2	Beach beside wreck of Meerwunder on north side of southeast Featherstone island.	Second of three nearby flamingos. In-game marker.
 1557	Meerwunder Beach 3	Beach beside wreck of Meerwunder on north side of southeast Featherstone island.	Third of three nearby flamingos. In-game marker.
-1558	Watson Bay Beach Party	Watson Bay. Search the beach-party area.	The community map places a single flamingo at this site.
+1558	Watson Bay Beach Party	Watson Bay. Search the beach-party area.	The community map places a single flamingo at this site. A map labels a beach-party site on the narrow island east of Goose Key; compare before treating it as a separate figure.
 1559	Capri Dock 1	Capri waterfront party dock, beside a dead man.	First of three flamingos around the dock and nearby music; use Focus.
 1560	Capri Dock 2	Capri waterfront party dock; toward the source of the nearby music.	First of two flamingos closer to the music. Use Focus.
 1561	Capri Dock 3	Capri waterfront party dock; toward the source of the nearby music.	Second of two flamingos closer to the music. Use Focus.
-1562	Capri Wreck	Capri. Among decorative flamingos beside the sunken ship. Check by the yellow life ring.	Use Focus to pick out the breakable figure. The life-ring clue comes from the shipwreck pin.
+1562	Capri Wreck	Capri. Among decorative flamingos beside the sunken ship. Check by the yellow life ring.	Use Focus to pick out the breakable figure. The life-ring clue comes from the shipwreck pin. Another map places the sunken-ship ornament at Belpoint inner shore; compare before treating it as another pickup.
 1563	Port Gellhorn Dump	Port Gellhorn. Look under a discarded fridge atop the trash pile.	Community map pickup.
-1564	Capri Under Dock	Capri. Look beneath the dock.	GTABase community map pin; exact dock unverified.
+1564	Capri Under Dock	Capri. Look beneath the dock.	GTABase community map pin; exact dock unverified. A map also labels a northern Belpoint dock pickup; compare the landmark before marking separately.
 1565	Key Lento Beach	Key Lento. Look among the flamingos on the beach.	GTABase map pin. Do not conflate with the separate between-two-trees report.
 2412	Key Lento - Fire Hydrant	Key Lento. On the ground between two trees to the left of the fire hydrant.	Confirm the black-and-white beak.
 2413	Watson Bay - Roadside Cave	Watson Bay. Check the small cave just off the road.	Reported breakable flamingo inside the cave.
-2414	Hamlet - Hearts House	Hamlet. In front of the white-and-brick house decorated with hearts.	Confirm the black-and-white beak.
-2415	Vice City - Store Lockup	Vice City. Inside the store lockup at the marked Hidden Package pin.	Published map lead. The storefront name is unconfirmed.
+2414	Hamlet - Hearts House	Hamlet. In front of the white-and-brick house decorated with hearts.	Confirm the black-and-white beak. Another map places a matching heart-decorated house near the northern edge of Southside; check the in-game marker if Hamlet does not match.
+2415	Vice City - Store Lockup	Vice City. Inside the store lockup at the marked Hidden Package pin.	Published map lead. The storefront name is unconfirmed. Rockridge shop stockroom is a reported matching map lead. A matching map pin calls for picking the building lock.
 2416	Port Gellhorn - Rooftop	Port Gellhorn. On the roof at the marked Hidden Package pin.	Reported white-beaked flamingo. The building name is unconfirmed.
 2524	Cottonmouth Trailer Marsh	Cottonmouth Lake. Walk from the abandoned trailer with safe 44017 to the nearby marsh edge.	Search on the marsh bank for a black-and-white beak. The offshore sandbar has its own entry.
-2525	Watson Bay Damaged Wall	Watson Bay. Walk straight out of the small building toward the damaged wall and search to its far right.	Outdoor pickup at GTA Base Hidden Package pin 060.
+2525	Watson Bay Damaged Wall	Watson Bay. Walk straight out of the small building toward the damaged wall and search to its far right.	Outdoor pickup at GTA Base Hidden Package pin 060. Another map describes the matching broken wall by the Mile Zero bridge approach; check the location against your existing progress.
 2526	Capri Grill	Capri. Look behind the grill for the breakable flamingo.	GTA Base Hidden Package pin 068.
 2527	Port Gellhorn Highway House	Port Gellhorn. At the front of the house beside the highway.	GTA Base Hidden Package pin 074.
 2528	Mariana Sunburst House	Mariana County. Outside the house with a sunburst above the doorway.	GTA6 GPS marker 918042. Check for a black-and-white beak.
 3602	Goose Key Mile Zero Shore	Goose Key, near Mile Zero Air Station. Search among rocks along the shoreline.	Guide-reported cocaine flamingo; look for the black-and-white beak. Military-base proximity may attract attention.
-3907	Watson Bay - Table Inside Building	Watson Bay, Mariana County. Inside a small building, on the table.	Shoot the black-and-white-beaked flamingo on the tabletop. Different from the motel, north backyard, beach-party and damaged-wall pickups.
+3907	Watson Bay - Table Inside Building	Watson Bay, Mariana County. Inside a small building, on the table.	Shoot the black-and-white-beaked flamingo on the tabletop. Different from the motel, north backyard, beach-party and damaged-wall pickups. Another map labels the matching indoor table at the Mile Zero eastern bridge approach; verify the location in-game.
 3908	Watson Bay - Candlelit Room	Watson Bay, Mariana County. Southernmost building on the eastern side, inside the candlelit room.	Look among candles and the half brick of cocaine for the breakable flamingo. Distinct from the small-building table pickup.
 3645	Belpoint Lighthouse	Belpoint Island; climb the lighthouse.	Reported figure at the top; verify the black-and-white beak and destruction counter. Separate from the six southeast beach and house pickups.
 3647	Key Lento - North Bridge Yard	North end of Key Lento, just before the bridge.	Search the front yard at ground level; route-video report. Check the black-and-white beak.
 3648	Key Lento - Surfside Drive	Surfside Drive, south of the north-bridge yard.	Look outside the house for a standing flamingo. Route-video report; compare with the eccentric-house and fire-hydrant pickups.
 3649	Mile Zero - Island Shed	Small key between Key Lento and Mile Zero Air Station.	Inspect the stand inside the shed. The nearby shoreline puddle is an alternate search clue for the Abismo Key entry.
 3650	Mile Zero - North Island Shack	Small island north of the Mile Zero runway; arrive by boat.	Search immediately outside the shack. Separate reported site from the shed between the air station and Key Lento.
+3662	Hamlet - Central Courtyard	Central Hamlet, marked courtyard.	Search the ground-level courtyard; GTADB map lead. Confirm black-and-white beak.
+3663	Hamlet - North Rubbish Shack	Northern Hamlet, shack beside piled rubbish.	Check the exterior beside the rubbish; distinct from the central courtyard.
+3664	Port Gellhorn - South Yard	Southern Port Gellhorn, marked residential property.	Check the front yard; compare with the existing highway-side house before marking.
+3665	Port Gellhorn - Central Loop	Central Port Gellhorn, residential street loop.	Search around the house at the mapped property.
+3666	Port Gellhorn - West Garden	Western Port Gellhorn, small house.	Check the garden beside the house; not the rubbish-mound pickup.
+3667	Port Gellhorn - North Middle Building	Northern Port Gellhorn, marked property with several buildings.	Check around the middle building; ground-level map lead, separate from the rooftop.
+3668	Port Gellhorn - North Rear Garden	Northern Port Gellhorn, house with lawn ornaments.	Use Focus in the rear garden to identify the breakable figure.
+3669	Buckskin Swamp - Floating Ornament	Buckskin Swamp, marsh channel.	Look for the floating plastic figure, not a live bird.
+3670	Waning Sands - Coastal Garage	Coastal property south of Waning Sands.	Enter the garage and look behind the parked vehicle.
+3737	Lummox - Abandoned Train Car	Lummox County; north side of abandoned railcar.	Search beside the chair. Map-reported pin 918456.
+3738	Watson Bay - Construction Pit	Watson Bay; large excavation behind house.	Inspect the construction pit. Map-reported pin 918628.
+3739	Vice City - Warehouse	Vice City; warehouse at GPS pin 918460.	Search inside; exact warehouse name unreported.
+3740	Mariana - Pond Hole	Mariana County; pond at GPS pin 918184.	Look inside the hole in the pond. Map-reported location.
+3741	Mariana - Wooden Crate	Mariana County; paired flamingos at GPS pin 918457.	Look inside the wooden crate. One of two reported figures.
+3742	Mariana - Crate Companion	Same paired site as the wooden crate; GPS pin 918457.	Look around the crate for the second figure; verify both breakable birds separately.

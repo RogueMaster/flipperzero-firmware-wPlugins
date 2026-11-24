@@ -1,5 +1,22 @@
 # GTA VI Companion changelog
 
+## v1.9.7 — Collection and Secret Mission Updates
+- Added nine guide-reported Cocaine Flamingo search areas (57 total), including Hamlet, Port Gellhorn, Buckskin Swamp and the coast south of Waning Sands; refined ten existing entries with street, building and alternate map clues. Updated Regional Dispatch.
+- Added two reported meteorite sites (72 total) at Hyde Island and Featherstone; expanded existing Key Lento and Mount Kalaga directions.
+- Added Island Poacher FF-50 as an individual Special Weapons pickup (64 total); expanded the existing Hyde Island Manhunt with alternate entry, retry, gear retrieval and reported reward.
+- Added Royal Ruby Emerus gate-release instructions and clarified the Palmer warehouse gold KZ-59 pickup and safe clue.
+- Refined the Backrooms access and navigation, clarified active-character stamina and tattoo reward, and expanded Kyle chemical delivery options and Bret deer hunting instructions.
+- Preserved existing progress IDs, cheat inputs, menu order and save format.
+- Added 42 guide-reported Special Weapons entries (106 total), including 23 store-specific variants, hidden pickups, edition rewards and the missable Don Gone revolver. Identified the existing bunker Type 9 as Conspiracist Type 9; expanded paired weapon locations.
+- Expanded Gold Scarab Windsor specifications and two existing vehicle price/access descriptions; documented the shorter reported Attack Force alternative without replacing the primary code.
+- Expanded Andrew Node's Thrax with the Chapter 3 No Flusher headquarters clue route, conflicting keypad reports, and mansion access notes; retained ID 212 and all 15 scan IDs. Added the early phone-clipping garage entry method, normal registration and reported free Chapter 2 Moses tutorial registration; noted patch sensitivity.
+- Added 11 Legendary Animals entries covering nine Snapmatic hunts and two rare creatures; clarified the separate eight-animal challenge.
+- Added Brainwasher 1922 (107 Special Weapons), Brainwashed, plumber hats, Haymarket clown and Andrew Node walkthroughs (35 Secret Missions); added three access/puzzle credentials and eight variable bank-code examples (63 Safe & Door Codes). Refined diving controls and Avery Pawn alternatives.
+- Added five guide-reported Special Weapons (112 total), including Gun Nut SMS-01, two Chapter 3 missable pistols, Caminos Signature K17 and Mahi Nipper .38; added Royal Bay Marina variable safe clue (64 codes) and Marbelle Hotel fog walkthrough (36 Secret Missions). Expanded existing card, publication, bottle, watch and underwater directions; added Chapter 2 missable and free-registration tips.
+- Expanded Chatfield 5800, Quarter Mile ES9, Purple Drank Emerus and spy-vessel pistol instructions; added Pocketblast DSG (113 Special Weapons), three mapped meteorite search areas (75 total), a four-Up Body Armor alternate report, and more flamingo, diving, shooting-range and hunting details.
+- Added the reported Rodgers Ranch Market Range Beginner quit-and-repeat method for permanent Focus leveling, with instructions in Quick guide / warnings, Shooting Gold Medals and the Unlimited Focus cheat description.
+- Added six map-reported Cocaine Flamingo locations (63 total), four meteorite search areas (79 total), and four named Special Weapons (117 total). Added Misericordia game-map coordinates, refined the first two Bret decks, and preserved existing progress IDs and published cheat inputs.
+
 ## v1.9.6 — Vehicles and Collection Updates
 - Added four reported safe/door combinations (Chatfield 5800, Biker Hideout 1982, Stormy 7869, Big Day Motel 4242); documented Cottonmouth 44017 versus shortened 4017 and Palmer 1886/1887 discrepancies, with existing collection IDs and progress unchanged. Enriched eight Flamingo routes, Bret hunting conditions, and linked gang-operation, weapon and card locations.
 - Enriched existing collectible-card, publication, meditation, meteorite and Challenge entries with detailed pickup routes, alternate-copy handling and Master shooting-range requirements.
