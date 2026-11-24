@@ -1,5 +1,23 @@
 # GTA VI Companion changelog
 
+## v1.9.9 — Memory Optimization + NFC Emulation Fixes
+- Moved vehicle/property, cheat, safe code, secret mission, NFC link and Regional Dispatch catalogs to readable TSV assets. Build temporary row indexes on demand; edit catalog TSVs directly without conversion tools.
+- Load collection row offsets and IDs on demand, cache four visible labels, and read full details only when needed. Retain existing progress IDs, checkmarks, source links and menu order.
+- Allocate collection, secret mission, submenu and text views when needed; release inactive views, text and catalog buffers.
+- Keep NFC and mock loading plugins on demand; release detail text and URL data before NFC initialization and restore the previous detail or link selector on return.
+- Added opt-in RAM diagnostics for heap, memory-pool block size and stack watermark.
+- Added a Right Emulate action to linked item details; moved Dispatch Next to Left and preserved OK checkmarks. Embedded both FALs in the Companion FAP and resolve them through app-relative asset paths.
+- Fixed NFC URL emulation using the firmware's native NTAG215 generator and listener initialization, added magenta emulation LED feedback, and reduced temporary NFC memory allocations.
+- Use native tag accessors and specific initialization diagnostics for the embedded NFC module.
+- Expanded Cocaine Flamingos to 91 reported locations and search leads, with 73 individually linked NFC map locations. Added five Regional Dispatch entries and prioritized direct GTA6GPS and GTADB map pins over shared collection guides.
+- Expanded Cocaine Flamingos to 93 reported locations and search leads, integrated all 42 currently listed GTA6GPS pickup-related flamingo map pins, added 53 individual NFC map-pin mappings, expanded 175 individual source references and updated 70 collection-level map references.
+- Added 50 direct GTA6GPS NFC map links across 41 Standout Vehicles, five Meteorite Chunks and three Special Weapons, including alternate vehicle locations. Expanded source references for three existing Cocaine Flamingo entries.
+- Expanded Regional Dispatch to 919 indexed stops.
+- Added individual and alternate NFC map links for Standout Vehicles, Special Weapons, Meteorite Chunks, publications, garages, Wyman wrecks, Kenton dive sites, all seven book swaps and selected story safehouses. Prioritized exact pickup pins over shared maps.
+- Kept Special Weapons first and alphabetized the remaining top-level collection menus without changing progress IDs or Dispatch source indexes.
+- Added 44 individual GTA6GPS NFC source pins covering all seven Moses vehicle pickups, nine Randy vehicle requests, 26 gang operations, the Star Spangled 556 (listed as Stars and Stripes 556 on the map), and the alternate Key Lento helicopter-wreck meteorite location. Preserved existing collection IDs and map-image links.
+- Added 59 individual GTA6GPS NFC map pins for all 14 Small Bank Jobs, 5 Special Weapons, one Delights Dancer card, 18 Jack of Hearts Dancer cards and 21 Nine1Nine Dancer cards. Retained existing progress IDs and direct map-image links.
+
 ## v1.9.8 — Weapon and Meteorite Expansion
 - Expanded Special Weapons to 137 guide-reported pickups, variants and leads; added 20 named entries including Convict Kalinga .50, Mister Mangrove Laird 350 and additional character-associated weapons. Refined existing acquisition clues and mission missable warnings.
 - Expanded Meteorite Chunks to 82 reported locations; added Capri fallen trunk, Wetman Bay carcass and Port Gellhorn bones. Added approximate map landmarks to existing locations and retained overlapping reports as alternate clues.

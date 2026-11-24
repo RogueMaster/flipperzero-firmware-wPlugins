@@ -11,18 +11,38 @@
 
 /* Use the Hub's existing extracted mock-loader assets, never a second asset pack. */
 static const char* const dnd[] = {
-    "gta", "gta_v2", "original", "rogue", "wizard", "ranger", "paladin", "cleric",
-    "bard", "artificer", "druid", "monk", "sorcerer", "warlock", "barbarian",
+    "gta",
+    "gta_v2",
+    "original",
+    "rogue",
+    "wizard",
+    "ranger",
+    "paladin",
+    "cleric",
+    "bard",
+    "artificer",
+    "druid",
+    "monk",
+    "sorcerer",
+    "warlock",
+    "barbarian",
 };
 static const char* const gta[] = {
-    "lazer_vice_city", "speeder_waterfront", "carbon_rs_ocean_drive", "maverick_vice_city",
-    "rhino_air_station", "banshee_art_deco", "gauntlet_ambrosia", "airgator_grassrivers",
-    "ocean_drive_after_dark", "vice_beach_lifeguard", "leonida_keys_causeway", "grassrivers_gator",
-    "port_gellhorn_cranes", "vice_city_cafecito", "downtown_vice_elevated", "rearview_pursuit",
-    "flamingo_car_wash", "lowrider_meet", "midnight_drawbridge", "jet_ski_cutback",
-    "scrapyard_magnet", "seaplane_landing", "vice_boardwalk", "drive_in_double_feature",
-    "hurricane_watch", "mangrove_tunnel", "overpass_basketball", "mud_run",
-    "leonida_fire_tower", "rooftop_dj",
+    "lazer_vice_city",        "speeder_waterfront",
+    "carbon_rs_ocean_drive",  "maverick_vice_city",
+    "rhino_air_station",      "banshee_art_deco",
+    "gauntlet_ambrosia",      "airgator_grassrivers",
+    "ocean_drive_after_dark", "vice_beach_lifeguard",
+    "leonida_keys_causeway",  "grassrivers_gator",
+    "port_gellhorn_cranes",   "vice_city_cafecito",
+    "downtown_vice_elevated", "rearview_pursuit",
+    "flamingo_car_wash",      "lowrider_meet",
+    "midnight_drawbridge",    "jet_ski_cutback",
+    "scrapyard_magnet",       "seaplane_landing",
+    "vice_boardwalk",         "drive_in_double_feature",
+    "hurricane_watch",        "mangrove_tunnel",
+    "overpass_basketball",    "mud_run",
+    "leonida_fire_tower",     "rooftop_dj",
 };
 #define COUNT(a) (sizeof(a) / sizeof((a)[0]))
 
@@ -36,8 +56,9 @@ static bool read_exact(Storage* s, const char* path, void* out, size_t size) {
 }
 
 static uint8_t enabled_sets(Storage* s) {
-    const char* paths[] = {EXT_PATH("apps_data/gta_vi_cheats/mock_loaders.a"),
-                           EXT_PATH("apps_data/gta_vi_cheats/mock_loaders.b")};
+    const char* paths[] = {
+        EXT_PATH("apps_data/gta_vi_cheats/mock_loaders.a"),
+        EXT_PATH("apps_data/gta_vi_cheats/mock_loaders.b")};
     uint8_t mask = 2, generation = 0;
     bool found = false;
     for(size_t i = 0; i < COUNT(paths); ++i) {
@@ -68,7 +89,8 @@ typedef struct {
 static void paint(GtaLoading* l) {
     canvas_clear(l->canvas);
     canvas_set_color(l->canvas, ColorBlack);
-    if(l->bitmap) canvas_draw_xbm(l->canvas, 0, 0, 128, 64, l->bitmap);
+    if(l->bitmap)
+        canvas_draw_xbm(l->canvas, 0, 0, 128, 64, l->bitmap);
     else {
         canvas_set_font(l->canvas, FontSecondary);
         canvas_draw_str(l->canvas, 24, 32, "Loading...");
@@ -92,8 +114,10 @@ static void update(IconAnimation* animation, void* ctx) {
     GtaLoading* l = ctx;
     furi_check(furi_mutex_acquire(l->mutex, FuriWaitForever) == FuriStatusOk);
     if(l->active) {
-        if(furi_get_tick() - l->started >= furi_ms_to_ticks(10000)) release(l);
-        else paint(l);
+        if(furi_get_tick() - l->started >= furi_ms_to_ticks(10000))
+            release(l);
+        else
+            paint(l);
     }
     furi_check(furi_mutex_release(l->mutex) == FuriStatusOk);
 }
@@ -121,18 +145,25 @@ static void* begin(void) {
         return NULL;
     }
     GtaLoading* l = calloc(1, sizeof(*l));
-    if(!l) { furi_record_close(RECORD_STORAGE); return NULL; }
+    if(!l) {
+        furi_record_close(RECORD_STORAGE);
+        return NULL;
+    }
     uint32_t n = ((mask & 1) ? COUNT(dnd) : 0) + ((mask & 2) ? COUNT(gta) : 0);
     uint32_t random, limit = UINT32_MAX - UINT32_MAX % n;
-    do { random = furi_hal_random_get(); } while(random >= limit);
+    do {
+        random = furi_hal_random_get();
+    } while(random >= limit);
     size_t index = random % n;
     bool is_dnd = (mask & 1) && index < COUNT(dnd);
     if(!is_dnd && (mask & 1)) index -= COUNT(dnd);
     char path[128];
-    snprintf(path, sizeof(path),
-             is_dnd ? EXT_PATH("apps_assets/gta_vi_companion/mock_loaders/%s.bin") :
-                      EXT_PATH("apps_assets/gta_vi_companion/mock_loaders/gta_vi/%s_128x64.bin"),
-             is_dnd ? dnd[index] : gta[index]);
+    snprintf(
+        path,
+        sizeof(path),
+        is_dnd ? APP_ASSETS_PATH("mock_loaders/%s.bin") :
+                 APP_ASSETS_PATH("mock_loaders/gta_vi/%s_128x64.bin"),
+        is_dnd ? dnd[index] : gta[index]);
     l->bitmap = malloc(1024);
     if(l->bitmap && !read_exact(s, path, l->bitmap, 1024)) {
         free(l->bitmap);
@@ -157,5 +188,10 @@ fail:
     return NULL;
 }
 static const GtaLoadingApi api = {sizeof(GtaLoadingApi), begin, end};
-static const FlipperAppPluginDescriptor descriptor = {GTA_LOADING_ID, GTA_LOADING_API_VERSION, &api};
-const FlipperAppPluginDescriptor* gta_loading_ep(void) { return &descriptor; }
+static const FlipperAppPluginDescriptor descriptor = {
+    GTA_LOADING_ID,
+    GTA_LOADING_API_VERSION,
+    &api};
+const FlipperAppPluginDescriptor* gta_loading_ep(void) {
+    return &descriptor;
+}

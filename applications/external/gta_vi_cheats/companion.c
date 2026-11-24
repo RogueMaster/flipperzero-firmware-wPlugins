@@ -1,5 +1,6 @@
 #include "companion.h"
 #include "url_links.h"
+#include "gta_catalog_io.h"
 #include "gta_nfc_plugin.h"
 #include "gta_handoff.h"
 #include <flipper_application/flipper_application.h>
@@ -25,8 +26,8 @@ enum {
     GtaDetailLinks,
     GtaLinkSource,
     GtaLinkRight,
-    GtaExploreMaxAssetSize = 16 * 1024,
-    GtaExploreMaxRows = 128,
+    GtaExploreMaxAssetSize = 256 * 1024,
+    GtaExploreMaxRows = 4096,
     GtaAholFirstTypeId = 1376,
 };
 
@@ -83,7 +84,11 @@ typedef struct {
     const GtaCollection* collection;
     size_t selected;
     size_t checked_count;
-    uint8_t checked[GtaProgressBytes];
+    struct {
+        uint16_t id;
+        char name[64];
+        bool checked;
+    } rows[GtaListRows];
     bool save_error;
     const char* list_status;
 } GtaListModel;
@@ -104,12 +109,18 @@ struct GtaCompanion {
     const GtaExploreSection* explore_section;
     GtaCollection explore_list;
     size_t explore_selection;
-    char* explore_data;
-    GtaCollectionEntry* explore_rows;
+    const char* asset;
+    bool vehicle_asset;
+    uint32_t* row_offsets; // Built on demand from the active TSV
+    uint16_t* row_ids;
+    GtaRecord selected_record;
+    GtaCollectionEntry selected_entry;
+    size_t selected_row;
+    bool selected_valid;
     const char* list_status;
     const GtaCollectionEntry* dispatch_entry;
     const GtaCollection* dispatch_collection;
-    size_t dispatch_cursor;
+    uint32_t dispatch_cursor; // Byte offset in dispatch.tsv
     GtaDispatchRegion dispatch_region;
     bool dispatch_unavailable;
     bool detail_visible;
@@ -130,7 +141,7 @@ static bool gta_is_checked(const uint8_t* checked, uint16_t id) {
     return (checked[id / 8u] & gta_entry_mask(id)) != 0;
 }
 
-/* Unique collection IDs in v1.9.8, from companion_catalog.c and every
+/* Unique collection IDs, from companion_catalog.c and every
  * Collections TSV. Regenerate these ranges when adding or removing entries;
  * do not count the unlisted 4,096-bit progress capacity as collectibles. */
 static const struct {
@@ -150,11 +161,13 @@ static const struct {
     {2300, 2548},
     {3000, 3095},
     {3582, 3796},
-    {3900, 3908},
+    {3900, 3915},
 };
 
 bool gta_companion_progress_summary(
-    const GtaCompanion* companion, size_t* total_items, size_t* completed_items) {
+    const GtaCompanion* companion,
+    size_t* total_items,
+    size_t* completed_items) {
     if(!companion || !total_items || !completed_items || companion->progress_load_failed)
         return false;
 
@@ -396,33 +409,84 @@ static void gta_draw_list(Canvas* canvas, void* context) {
     const size_t first = model->selected / GtaListRows * GtaListRows;
     for(size_t row = 0; row < GtaListRows && first + row < collection->count; ++row) {
         const size_t index = first + row;
-        const GtaCollectionEntry* entry = &collection->entries[index];
+
         const uint8_t y = 20 + row * 10;
         if(index == model->selected) {
             canvas_draw_box(canvas, 0, y - 8, 128, 10);
             canvas_set_color(canvas, ColorWhite);
         }
         canvas_draw_frame(canvas, 3, y - 6, 7, 7);
-        if(gta_is_checked(model->checked, entry->id)) {
+        if(model->rows[row].checked) {
             canvas_draw_line(canvas, 4, y - 3, 6, y - 1);
             canvas_draw_line(canvas, 6, y - 1, 8, y - 5);
         }
-        gta_draw_label(canvas, 14, y, 111, entry->name);
+        gta_draw_label(canvas, 14, y, 111, model->rows[row].name);
         canvas_set_color(canvas, ColorBlack);
     }
     canvas_draw_line(canvas, 0, 53, 127, 53);
     canvas_draw_str(canvas, 2, 62, model->save_error ? "SD save failed" : "OK Info   > Check");
 }
 
-static const GtaCollectionEntry* gta_selected_entry(const GtaCompanion* companion) {
+static bool gta_read_collection_row(GtaCompanion* companion, size_t row, GtaRecord* record);
+static File* gta_open_tsv(GtaCompanion* companion);
+static bool
+    gta_read_collection_label(GtaCompanion* companion, size_t row, char* name, size_t capacity) {
+    if(row >= companion->explore_list.count || !capacity) return false;
+    // The TSV index was validated on open. Read only the name prefix (not its description).
+    File* file = gta_open_tsv(companion);
+    if(!file) return false;
+    uint32_t start = companion->row_offsets[row], end = companion->row_offsets[row + 1u];
+    char prefix[72];
+    size_t n = end - start < sizeof(prefix) ? end - start : sizeof(prefix);
+    bool ok = storage_file_seek(file, start, true) && storage_file_read(file, prefix, n) == n;
+    storage_file_free(file);
+    if(!ok) return false;
+    const char* tab = memchr(prefix, '\t', n);
+    if(!tab) return false;
+    const char* from = tab + 1;
+    size_t available = n - (size_t)(from - prefix);
+    const char* next = memchr(from, '\t', available);
+    if(next) available = (size_t)(next - from);
+    if(!available) return false;
+    if(available >= capacity) available = capacity - 1u;
+    if(companion->vehicle_asset && memchr(from, '\\', available)) {
+        GtaRecord record = {0};
+        bool decoded = gta_read_collection_row(companion, row, &record);
+        if(decoded) snprintf(name, capacity, "%s", record.field[1]);
+        gta_record_clear(&record);
+        return decoded;
+    }
+    memcpy(name, from, available);
+    name[available] = 0;
+    return true;
+}
+static const GtaCollectionEntry* gta_read_selected(GtaCompanion* companion, size_t row) {
+    if(companion->selected_valid && companion->selected_row == row)
+        return &companion->selected_entry;
+    companion->selected_valid = false;
+    if(!gta_read_collection_row(companion, row, &companion->selected_record)) return NULL;
+    if(strtoul(companion->selected_record.field[0], NULL, 10) != companion->row_ids[row]) {
+        gta_record_clear(&companion->selected_record);
+        return NULL;
+    }
+    char** f = companion->selected_record.field;
+    companion->selected_entry = (GtaCollectionEntry){
+        companion->row_ids[row], f[1], *f[2] ? f[2] : NULL, *f[3] ? f[3] : NULL};
+    companion->selected_row = row;
+    companion->selected_valid = true;
+    return &companion->selected_entry;
+}
+static const GtaCollectionEntry* gta_selected_entry(GtaCompanion* companion) {
     if(companion->dispatch) return companion->dispatch_entry;
-    if(companion->list->count == 0) return NULL;
-    return &companion->list->entries[*companion->selection];
+    if(!companion->list || !companion->list->count) return NULL;
+    return gta_read_selected(companion, *companion->selection);
 }
 
-static const GtaUrlLinks* gta_selected_links(const GtaCompanion* companion, const GtaCollectionEntry* entry) {
+static const GtaUrlLinks*
+    gta_selected_links(const GtaCompanion* companion, const GtaCollectionEntry* entry) {
     if(!entry) return NULL;
-    const GtaCollection* collection = companion->dispatch ? companion->dispatch_collection : companion->list;
+    const GtaCollection* collection = companion->dispatch ? companion->dispatch_collection :
+                                                            companion->list;
     return gta_url_links_resolve(
         entry->id,
         companion->explore_section ? companion->explore_section->asset : NULL,
@@ -433,9 +497,18 @@ static void gta_refresh_list(GtaCompanion* companion) {
     const GtaCollection* collection = companion->list;
     size_t checked_count = 0;
     for(size_t i = 0; i < collection->count; ++i) {
-        if(gta_is_checked(companion->save.checked, collection->entries[i].id)) ++checked_count;
+        if(gta_is_checked(companion->save.checked, companion->row_ids[i])) ++checked_count;
     }
-
+    size_t first = *companion->selection / GtaListRows * GtaListRows;
+    GtaListModel page = {0};
+    for(size_t row = 0; row < GtaListRows && first + row < collection->count; ++row) {
+        size_t i = first + row;
+        page.rows[row].id = companion->row_ids[i];
+        page.rows[row].checked = gta_is_checked(companion->save.checked, companion->row_ids[i]);
+        if(!gta_read_collection_label(
+               companion, i, page.rows[row].name, sizeof(page.rows[row].name)))
+            snprintf(page.rows[row].name, sizeof(page.rows[row].name), "Data unavailable");
+    }
     with_view_model(
         companion->list_view,
         GtaListModel * model,
@@ -443,7 +516,7 @@ static void gta_refresh_list(GtaCompanion* companion) {
             model->collection = collection;
             model->selected = *companion->selection;
             model->checked_count = checked_count;
-            memcpy(model->checked, companion->save.checked, sizeof(model->checked));
+            memcpy(model->rows, page.rows, sizeof(model->rows));
             model->save_error = companion->save_error;
             model->list_status = companion->list_status;
         },
@@ -452,14 +525,12 @@ static void gta_refresh_list(GtaCompanion* companion) {
 
 static void gta_detail_button(GuiButtonType button, InputType type, void* context) {
     GtaCompanion* companion = context;
-    if(button == GuiButtonTypeCenter && type == InputTypeLong) {
-        view_dispatcher_send_custom_event(companion->dispatcher, GtaDetailLinks);
-        return;
-    }
     if(type != InputTypeShort) return;
     if(button == GuiButtonTypeCenter) {
         view_dispatcher_send_custom_event(companion->dispatcher, GtaDetailToggle);
     } else if(button == GuiButtonTypeRight) {
+        view_dispatcher_send_custom_event(companion->dispatcher, GtaDetailLinks);
+    } else if(button == GuiButtonTypeLeft && companion->dispatch) {
         view_dispatcher_send_custom_event(companion->dispatcher, GtaDispatchNext);
     }
 }
@@ -483,8 +554,11 @@ static void gta_render_detail(GtaCompanion* companion) {
             text, "%s\n%s\n", entry->name, checked ? collection->checked_label : "Unchecked");
         if(companion->save_error) furi_string_cat_printf(text, "SD save failed. Try again.\n");
         const GtaUrlLinks* links = gta_selected_links(companion, entry);
-        if(links) furi_string_cat_printf(text, links->source_index && !links->source2 && !links->map_image ?
-            "Hold OK: NFC guide/index\n" : "Hold OK: NFC links\n");
+        const bool can_emulate = gta_url_links_choose(links, false).url ||
+                                 gta_url_links_choose(links, true).url;
+        if(can_emulate && links->source_index && !links->source2 && !links->map_image)
+            furi_string_cat_printf(text, "NFC: shared guide/index\n");
+        gta_url_links_release();
         furi_string_cat_printf(
             text, "\n%s", entry->location ? entry->location : "Location unconfirmed.");
         if(entry->notes) furi_string_cat_printf(text, "\n\n%s", entry->notes);
@@ -503,7 +577,11 @@ static void gta_render_detail(GtaCompanion* companion) {
             detail, GuiButtonTypeCenter, checked ? "Undo" : "Check", gta_detail_button, companion);
         if(companion->dispatch) {
             widget_add_button_element(
-                detail, GuiButtonTypeRight, "Next", gta_detail_button, companion);
+                detail, GuiButtonTypeLeft, "Next", gta_detail_button, companion);
+        }
+        if(can_emulate) {
+            widget_add_button_element(
+                detail, GuiButtonTypeRight, "Emulate", gta_detail_button, companion);
         }
     } else {
         furi_string_cat_printf(
@@ -529,12 +607,18 @@ static void gta_show_links(GtaCompanion* companion, const char* error) {
     const GtaUrlLinks* links = gta_selected_links(companion, entry);
     const GtaUrlChoice left = gta_url_links_choose(links, false);
     const GtaUrlChoice right = gta_url_links_choose(links, true);
-    if(!left.url && !right.url) return;
+    if(!left.url && !right.url) {
+        gta_url_links_release();
+        companion->links_visible = false;
+        gta_render_detail(companion);
+        return;
+    }
     companion->links_visible = true;
     widget_reset(companion->detail);
     furi_string_reset(companion->text);
     furi_string_cat_printf(companion->text, "NFC URL links\n%s\n", entry->name);
-    if(error) furi_string_cat_printf(companion->text, "%s\n", error);
+    if(error)
+        furi_string_cat_printf(companion->text, "%s\n", error);
     else {
         furi_string_cat_printf(companion->text, "Choose a link.\n");
         if(left.map_index)
@@ -550,6 +634,7 @@ static void gta_show_links(GtaCompanion* companion, const char* error) {
     if(right.url)
         widget_add_button_element(
             companion->detail, GuiButtonTypeRight, right.label, gta_link_button, companion);
+    gta_url_links_release();
 }
 
 /* Host owns the mapped module and releases it only after its view, timer and
@@ -569,24 +654,60 @@ static void gta_nfc_release(GtaCompanion* companion) {
 static void gta_emulate_link(GtaCompanion* companion, bool right) {
     const GtaCollectionEntry* entry = gta_selected_entry(companion);
     const GtaUrlChoice choice = gta_url_links_choose(gta_selected_links(companion, entry), right);
-    if(!entry || !choice.url || companion->nfc_module) return;
+    if(!entry || !choice.url || companion->nfc_module) {
+        gta_url_links_release();
+        return;
+    }
     if(strlen(choice.url) >= GTA_URL_MAX) {
         gta_show_links(companion, "Link unavailable.");
         return;
     }
     if(!storage_file_exists(companion->storage, GTA_NFC_PATH)) {
-        gta_show_links(companion, "Install GTA NFC Link FAL.");
+        FURI_LOG_E("GTA NFC", "Missing embedded plugin: %s", GTA_NFC_PATH);
+        gta_show_links(companion, "NFC plugin missing. Reinstall app.");
         return;
     }
+    char* url = strdup(choice.url);
+    if(!url) {
+        gta_show_links(companion, "Not enough memory.");
+        return;
+    }
+    uint16_t id = entry->id;
+    gta_url_links_release();
+    companion->selected_valid = false;
+    gta_record_clear(&companion->selected_record);
+    if(companion->dispatch) companion->dispatch_entry = NULL;
+    widget_reset(companion->detail);
+    furi_string_free(companion->text);
+    companion->text = furi_string_alloc();
+    if(companion->list_view) {
+        view_dispatcher_remove_view(companion->dispatcher, companion->list_view_id);
+        view_free(companion->list_view);
+        companion->list_view = NULL;
+    }
+    gta_ram_log("NFC before loading");
     GtaLoadingHandle* loading = gta_loading_show();
     const char* error = "Unable to load GTA NFC Link.";
     companion->nfc_module = flipper_application_alloc(companion->storage, firmware_api_interface);
     if(!companion->nfc_module) goto fail;
-    if(flipper_application_preload(companion->nfc_module, GTA_NFC_PATH) !=
-       FlipperApplicationPreloadStatusSuccess) goto fail;
-    if(!flipper_application_is_plugin(companion->nfc_module)) goto fail;
-    if(flipper_application_map_to_memory(companion->nfc_module) !=
-       FlipperApplicationLoadStatusSuccess) goto fail;
+    const FlipperApplicationPreloadStatus preload =
+        flipper_application_preload(companion->nfc_module, GTA_NFC_PATH);
+    if(preload != FlipperApplicationPreloadStatusSuccess) {
+        FURI_LOG_E("GTA NFC", "Plugin preload failed: %d", (int)preload);
+        error = "NFC plugin preload failed.";
+        goto fail;
+    }
+    if(!flipper_application_is_plugin(companion->nfc_module)) {
+        error = "Invalid NFC plugin.";
+        goto fail;
+    }
+    const FlipperApplicationLoadStatus mapped =
+        flipper_application_map_to_memory(companion->nfc_module);
+    if(mapped != FlipperApplicationLoadStatusSuccess) {
+        FURI_LOG_E("GTA NFC", "Plugin mapping failed: %d", (int)mapped);
+        error = "NFC plugin mapping failed.";
+        goto fail;
+    }
     const FlipperAppPluginDescriptor* descriptor =
         flipper_application_plugin_get_descriptor(companion->nfc_module);
     if(!descriptor || !descriptor->appid || strcmp(descriptor->appid, GTA_NFC_ID) ||
@@ -600,13 +721,17 @@ static void gta_emulate_link(GtaCompanion* companion, bool right) {
         error = "GTA NFC Link API mismatch.";
         goto fail;
     }
-    companion->nfc_session = companion->nfc_api->open(
-        companion->dispatcher, choice.url, entry->id, choice.kind);
+    companion->nfc_session = companion->nfc_api->open(companion->dispatcher, url, id, choice.kind);
     if(!companion->nfc_session) goto fail;
     gta_loading_hide(loading);
+    free(url);
+    gta_ram_log("NFC active");
     return;
 fail:
+    free(url);
     gta_nfc_release(companion);
+    if(companion->dispatch)
+        companion->dispatch_entry = gta_read_selected(companion, companion->selected_row);
     gta_show_links(companion, error);
     gta_loading_hide(loading);
 }
@@ -619,7 +744,16 @@ static void gta_nfc_return(GtaCompanion* companion, bool exit) {
     // removing the plugin's view; remove_view also synchronizes with GUI drawing.
     view_dispatcher_switch_to_view(companion->dispatcher, companion->detail_view_id);
     gta_nfc_release(companion);
+    if(!exit && companion->dispatch)
+        companion->dispatch_entry = gta_read_selected(companion, companion->selected_row);
+    if(!exit) {
+        if(companion->links_visible)
+            gta_show_links(companion, NULL);
+        else
+            gta_render_detail(companion);
+    }
     gta_loading_hide(loading);
+    gta_ram_log("NFC released");
     if(exit) view_dispatcher_stop(companion->dispatcher);
 }
 
@@ -632,10 +766,13 @@ static void gta_open_links(GtaCompanion* companion) {
         gta_show_links(companion, NULL);
     } else if(left.url || right.url) {
         gta_emulate_link(companion, right.url != NULL);
-    }
+    } else
+        gta_url_links_release();
 }
 
+static void gta_ensure_detail(GtaCompanion* companion);
 static void gta_show_detail(GtaCompanion* companion) {
+    gta_ensure_detail(companion);
     gta_render_detail(companion);
     companion->detail_visible = true;
     view_dispatcher_switch_to_view(companion->dispatcher, companion->detail_view_id);
@@ -650,18 +787,22 @@ static bool gta_input_list(InputEvent* event, void* context) {
 
     size_t* selected = companion->selection;
     if(event->key == InputKeyUp || event->key == InputKeyDown) {
+        size_t old_page = *selected / GtaListRows;
         if(event->key == InputKeyUp && *selected > 0) --*selected;
         if(event->key == InputKeyDown && *selected + 1 < companion->list->count) {
             ++*selected;
         }
-        with_view_model(
-            companion->list_view, GtaListModel * model, { model->selected = *selected; }, true);
+        if(old_page != *selected / GtaListRows)
+            gta_refresh_list(companion);
+        else
+            with_view_model(
+                companion->list_view, GtaListModel * model, { model->selected = *selected; }, true);
         return true;
     }
     if(event->type != InputTypeShort) return false;
 
     if(event->key == InputKeyRight) {
-        companion->save_error = !gta_save_checkmark(companion, gta_selected_entry(companion)->id);
+        companion->save_error = !gta_save_checkmark(companion, companion->row_ids[*selected]);
         gta_refresh_list(companion);
         return true;
     }
@@ -672,102 +813,151 @@ static bool gta_input_list(InputEvent* event, void* context) {
     return false;
 }
 
-static char* gta_take_field(char** line, char delimiter) {
-    if(!*line) return NULL;
-    char* field = *line;
-    char* end = strchr(field, delimiter);
-    if(!end) return NULL;
-    *end = '\0';
-    *line = end + 1;
-    return field;
-}
-
-static bool gta_parse_explore_asset(GtaCompanion* companion, char* data, size_t size) {
-    size_t rows = 0;
-    for(size_t i = 0; i < size; ++i) {
-        if(data[i] == '\n') ++rows;
+/* Build a temporary row index for the active TSV. Never hold a complete
+ * description file in the heap. */
+static File* gta_open_tsv(GtaCompanion* companion) {
+    char path[96];
+    int n = snprintf(
+        path,
+        sizeof(path),
+        APP_ASSETS_PATH("%s/%s"),
+        companion->vehicle_asset ? "catalogs" : "collections",
+        companion->asset);
+    if(n < 0 || (size_t)n >= sizeof(path)) return NULL;
+    File* f = storage_file_alloc(companion->storage);
+    if(!f) return NULL;
+    if(!storage_file_open(f, path, FSAM_READ, FSOM_OPEN_EXISTING)) {
+        storage_file_free(f);
+        return NULL;
     }
-    if(!rows || rows > GtaExploreMaxRows || data[size - 1] != '\n') return false;
-    GtaCollectionEntry* entries = calloc(rows, sizeof(*entries));
-    if(!entries) return false;
-
-    char* cursor = data;
-    for(size_t i = 0; i < rows; ++i) {
-        char* line = gta_take_field(&cursor, '\n');
-        const char* id = gta_take_field(&line, '\t');
-        const char* name = gta_take_field(&line, '\t');
-        const char* location = gta_take_field(&line, '\t');
-        char* end = NULL;
-        const unsigned long value = id ? strtoul(id, &end, 10) : 0;
-        if(!id || end == id || *end || value < GtaExploreFirstId ||
-           value >= GtaProgressBytes * 8 || !name || !*name || !location || strchr(line, '\t')) {
-            free(entries);
-            return false;
-        }
-        entries[i] = (GtaCollectionEntry){
-            .id = (uint16_t)value,
-            .name = name,
-            .location = *location ? location : NULL,
-            .notes = *line ? line : NULL,
-        };
-    }
-    companion->explore_rows = entries;
-    companion->explore_data = data;
-    companion->explore_list.entries = entries;
-    companion->explore_list.count = rows;
-    return true;
+    return f;
 }
-
+static bool gta_read_collection_row(GtaCompanion* companion, size_t row, GtaRecord* r) {
+    if(row >= companion->explore_list.count) return false;
+    gta_record_clear(r);
+    uint32_t start = companion->row_offsets[row], end = companion->row_offsets[row + 1];
+    if(end <= start || end - start > GTA_RECORD_MAX) return false;
+    File* f = gta_open_tsv(companion);
+    if(!f) return false;
+    size_t n = end - start;
+    r->data = malloc(n);
+    bool ok = r->data && storage_file_seek(f, start, true) &&
+              storage_file_read(f, r->data, n) == n && r->data[n - 1] == '\n';
+    storage_file_free(f);
+    if(ok) ok = gta_record_decode(r, n, 4, companion->vehicle_asset) && *r->field[1];
+    if(!ok) gta_record_clear(r);
+    return ok;
+}
 static bool gta_load_explore_asset(GtaCompanion* companion, const char* asset) {
-    char path[88];
-    const int length = snprintf(path, sizeof(path), APP_ASSETS_PATH("collections/%s"), asset);
-    if(length < 0 || (size_t)length >= sizeof(path)) return false;
-
-    File* file = storage_file_alloc(companion->storage);
-    char* data = NULL;
-    size_t size = 0;
-    if(storage_file_open(file, path, FSAM_READ, FSOM_OPEN_EXISTING)) {
-        const uint64_t file_size = storage_file_size(file);
-        if(file_size && file_size <= GtaExploreMaxAssetSize) {
-            size = (size_t)file_size;
-            data = malloc(size + 1);
-            if(data && storage_file_read(file, data, size) != size) {
-                free(data);
-                data = NULL;
+    companion->asset = asset;
+    File* file = gta_open_tsv(companion);
+    if(!file) return false;
+    uint64_t size = storage_file_size(file);
+    bool ok = size > 0 && size <= GtaExploreMaxAssetSize;
+    size_t rows = 0, capacity = 0;
+    uint32_t offset = 0, start = 0;
+    unsigned id = 0, digits = 0, tabs = 0;
+    bool name = false;
+    uint8_t chunk[256];
+    while(ok && offset < size) {
+        size_t n = size - offset > sizeof(chunk) ? sizeof(chunk) : (size_t)(size - offset);
+        if(storage_file_read(file, chunk, n) != n) {
+            ok = false;
+            break;
+        }
+        for(size_t j = 0; j < n && ok; ++j, ++offset) {
+            uint8_t ch = chunk[j];
+            if(!ch || offset - start >= GTA_RECORD_MAX) {
+                ok = false;
+                break;
             }
+            if(ch == '\n') {
+                if(tabs != 3 || !name ||
+                   id < (companion->vehicle_asset ? 1u : GtaExploreFirstId) ||
+                   id >= GtaProgressBytes * 8u || rows >= GtaExploreMaxRows) {
+                    ok = false;
+                    break;
+                }
+                if(rows == capacity) {
+                    size_t next = capacity ? capacity * 2u : 16u;
+                    uint32_t* offsets =
+                        realloc(companion->row_offsets, (next + 1u) * sizeof(uint32_t));
+                    if(!offsets) {
+                        ok = false;
+                        break;
+                    }
+                    companion->row_offsets = offsets;
+                    uint16_t* ids = realloc(companion->row_ids, next * sizeof(uint16_t));
+                    if(!ids) {
+                        ok = false;
+                        break;
+                    }
+                    companion->row_ids = ids;
+                    capacity = next;
+                }
+                companion->row_offsets[rows] = start;
+                companion->row_ids[rows++] = (uint16_t)id;
+                start = offset + 1u;
+                id = digits = tabs = 0;
+                name = false;
+            } else if(ch == '\t') {
+                if(++tabs > 3 || (tabs == 1 && !digits)) ok = false;
+            } else if(!tabs) {
+                if(ch < '0' || ch > '9' || ++digits > 4)
+                    ok = false;
+                else
+                    id = id * 10u + ch - '0';
+            } else if(tabs == 1)
+                name = true;
         }
     }
     storage_file_free(file);
-    if(!data) return false;
-
-    data[size] = '\0';
-    if(gta_parse_explore_asset(companion, data, size)) return true;
-    free(data);
-    return false;
+    if(!ok || !rows || start != size) {
+        free(companion->row_offsets);
+        free(companion->row_ids);
+        companion->row_offsets = NULL;
+        companion->row_ids = NULL;
+        return false;
+    }
+    companion->row_offsets[rows] = start;
+    // Keep only the used offsets and IDs after the streaming scan.
+    uint32_t* offsets = realloc(companion->row_offsets, (rows + 1u) * sizeof(uint32_t));
+    if(offsets) companion->row_offsets = offsets;
+    uint16_t* ids = realloc(companion->row_ids, rows * sizeof(uint16_t));
+    if(ids) companion->row_ids = ids;
+    companion->explore_list.count = rows;
+    return true;
 }
-
 static void gta_release_exploration(GtaCompanion* companion) {
-    if(!companion->explore_section) return;
-    // Draw callbacks hold the model lock while reading the asset-backed rows.
-    with_view_model(
-        companion->list_view, GtaListModel * model, { model->collection = NULL; }, false);
+    if(companion->list_view)
+        with_view_model(
+            companion->list_view, GtaListModel * model, { model->collection = NULL; }, false);
     companion->explore_section = NULL;
-    free(companion->explore_rows);
-    free(companion->explore_data);
-    companion->explore_rows = NULL;
-    companion->explore_data = NULL;
-    companion->explore_list.entries = NULL;
+    companion->asset = NULL;
+    companion->vehicle_asset = false;
+    companion->selected_valid = false;
+    gta_record_clear(&companion->selected_record);
+    gta_url_links_release();
+    free(companion->row_offsets);
+    free(companion->row_ids);
+    companion->row_offsets = NULL;
+    companion->row_ids = NULL;
     companion->explore_list.count = 0;
 }
-
+static bool gta_prepare_vehicle(GtaCompanion* companion, GtaCollectionId id) {
+    gta_release_exploration(companion);
+    companion->explore_list = gta_collection_catalog[id];
+    companion->explore_list.count = 0;
+    companion->asset = gta_vehicle_assets[id];
+    companion->vehicle_asset = true;
+    return gta_load_explore_asset(companion, companion->asset);
+}
 static bool gta_prepare_exploration(GtaCompanion* companion, const GtaExploreSection* section) {
     if(companion->explore_section == section) return companion->explore_list.count != 0;
     gta_release_exploration(companion);
     companion->explore_section = section;
-    companion->explore_list = (GtaCollection){
-        .title = section->title,
-        .checked_label = section->checked_label,
-    };
+    companion->explore_list =
+        (GtaCollection){.title = section->title, .checked_label = section->checked_label};
     return section->asset && gta_load_explore_asset(companion, section->asset);
 }
 
@@ -787,9 +977,11 @@ static const GtaExploreSection*
 
 static const GtaCollection* gta_dispatch_load_source(GtaCompanion* companion, uint8_t source) {
     if(source < GtaDispatchFirstAsset) {
-        gta_release_exploration(companion);
-        return &gta_collection_catalog
-            [source == GtaDispatchSourceMoses ? GtaCollectionMoses : GtaCollectionRandy];
+        return gta_prepare_vehicle(
+                   companion,
+                   source == GtaDispatchSourceMoses ? GtaCollectionMoses : GtaCollectionRandy) ?
+                   &companion->explore_list :
+                   NULL;
     }
     const GtaExploreSection* section = gta_find_explore_asset(
         gta_explore_sections,
@@ -808,10 +1000,30 @@ static void gta_dispatch_next(GtaCompanion* companion) {
     companion->dispatch_entry = NULL;
     companion->dispatch_collection = NULL;
     companion->dispatch_unavailable = false;
-    for(size_t tried = 0; tried < gta_dispatch_target_count; ++tried) {
-        const GtaDispatchTarget* target = &gta_dispatch_targets[companion->dispatch_cursor];
-        if(++companion->dispatch_cursor == gta_dispatch_target_count)
-            companion->dispatch_cursor = 0;
+    File* index = storage_file_alloc(companion->storage);
+    if(!index ||
+       !storage_file_open(
+           index, APP_ASSETS_PATH("catalogs/dispatch.tsv"), FSAM_READ, FSOM_OPEN_EXISTING)) {
+        if(index) storage_file_free(index);
+        companion->dispatch_unavailable = true;
+        return;
+    }
+    uint64_t size = storage_file_size(index);
+    if(!size || size > GtaExploreMaxAssetSize) {
+        storage_file_free(index);
+        companion->dispatch_unavailable = true;
+        return;
+    }
+    if(companion->dispatch_cursor >= size) companion->dispatch_cursor = 0;
+    const uint32_t first = companion->dispatch_cursor;
+    do {
+        GtaDispatchTarget value;
+        if(!gta_dispatch_read(index, &companion->dispatch_cursor, &value)) {
+            companion->dispatch_unavailable = true;
+            break;
+        }
+        if(companion->dispatch_cursor == size) companion->dispatch_cursor = 0;
+        const GtaDispatchTarget* target = &value;
         if((!all_regions && !(target->regions & region)) ||
            gta_is_checked(companion->save.checked, target->id)) {
             continue;
@@ -822,19 +1034,57 @@ static void gta_dispatch_next(GtaCompanion* companion) {
         }
         if(collection) {
             for(size_t i = 0; i < collection->count; ++i) {
-                const GtaCollectionEntry* entry = &collection->entries[i];
-                if(entry->id == target->id && entry->location) {
+                if(companion->row_ids[i] != target->id) continue;
+                const GtaCollectionEntry* entry = gta_read_selected(companion, i);
+                if(entry && entry->location) {
                     companion->dispatch_entry = entry;
                     companion->dispatch_collection = collection;
+                    storage_file_free(index);
                     return;
                 }
             }
         }
         companion->dispatch_unavailable = true;
-    }
+    } while(companion->dispatch_cursor != first);
+    storage_file_free(index);
     gta_release_exploration(companion);
 }
 
+static void gta_ensure_list(GtaCompanion* companion) {
+    if(companion->list_view) return;
+    companion->list_view = view_alloc();
+    view_set_context(companion->list_view, companion);
+    view_allocate_model(companion->list_view, ViewModelTypeLocking, sizeof(GtaListModel));
+    view_set_draw_callback(companion->list_view, gta_draw_list);
+    view_set_input_callback(companion->list_view, gta_input_list);
+    view_dispatcher_add_view(companion->dispatcher, companion->list_view_id, companion->list_view);
+}
+static void gta_ensure_detail(GtaCompanion* companion) {
+    if(!companion->detail) {
+        companion->detail = widget_alloc();
+        view_dispatcher_add_view(
+            companion->dispatcher, companion->detail_view_id, widget_get_view(companion->detail));
+    }
+    if(!companion->text) companion->text = furi_string_alloc();
+}
+void gta_companion_idle(GtaCompanion* companion) {
+    if(!companion || companion->nfc_session) return;
+    gta_release_exploration(companion);
+    if(companion->detail) {
+        view_dispatcher_remove_view(companion->dispatcher, companion->detail_view_id);
+        widget_free(companion->detail);
+        companion->detail = NULL;
+    }
+    if(companion->list_view) {
+        view_dispatcher_remove_view(companion->dispatcher, companion->list_view_id);
+        view_free(companion->list_view);
+        companion->list_view = NULL;
+    }
+    if(companion->text) {
+        furi_string_free(companion->text);
+        companion->text = NULL;
+    }
+}
 GtaCompanion* gta_companion_alloc(
     ViewDispatcher* dispatcher,
     uint32_t list_view_id,
@@ -844,29 +1094,15 @@ GtaCompanion* gta_companion_alloc(
     companion->dispatcher = dispatcher;
     companion->list_view_id = list_view_id;
     companion->detail_view_id = detail_view_id;
-    companion->list_view = view_alloc();
-    companion->detail = widget_alloc();
-    companion->text = furi_string_alloc();
     companion->storage = furi_record_open(RECORD_STORAGE);
     gta_load_progress(companion);
-
-    view_set_context(companion->list_view, companion);
-    view_allocate_model(companion->list_view, ViewModelTypeLocking, sizeof(GtaListModel));
-    view_set_draw_callback(companion->list_view, gta_draw_list);
-    view_set_input_callback(companion->list_view, gta_input_list);
-    view_dispatcher_add_view(dispatcher, list_view_id, companion->list_view);
-    view_dispatcher_add_view(dispatcher, detail_view_id, widget_get_view(companion->detail));
     return companion;
 }
-
 void gta_companion_free(GtaCompanion* companion) {
+    if(companion->nfc_session && companion->detail)
+        view_dispatcher_switch_to_view(companion->dispatcher, companion->detail_view_id);
     gta_nfc_release(companion);
-    view_dispatcher_remove_view(companion->dispatcher, companion->detail_view_id);
-    view_dispatcher_remove_view(companion->dispatcher, companion->list_view_id);
-    widget_free(companion->detail);
-    gta_release_exploration(companion);
-    view_free(companion->list_view);
-    furi_string_free(companion->text);
+    gta_companion_idle(companion);
     furi_record_close(RECORD_STORAGE);
     free(companion);
 }
@@ -876,20 +1112,26 @@ static void gta_open_checklist(
     const GtaCollection* list,
     size_t* selection,
     const char* status) {
+    gta_ensure_list(companion);
     companion->list = list;
     companion->selection = selection;
+    if(*selection >= list->count) *selection = 0;
     companion->list_status = status;
     companion->dispatch = false;
     companion->detail_visible = false;
     companion->save_error = false;
     gta_refresh_list(companion);
     view_dispatcher_switch_to_view(companion->dispatcher, companion->list_view_id);
+    gta_ram_log("collection open");
 }
 
 void gta_companion_open_list(GtaCompanion* companion, GtaCollectionId collection) {
-    gta_release_exploration(companion);
+    const bool loaded = gta_prepare_vehicle(companion, collection);
     gta_open_checklist(
-        companion, &gta_collection_catalog[collection], &companion->selections[collection], NULL);
+        companion,
+        &companion->explore_list,
+        &companion->selections[collection],
+        loaded ? NULL : "Collection unavailable");
 }
 
 void gta_companion_open_exploration(GtaCompanion* companion, const GtaExploreSection* section) {
@@ -956,14 +1198,24 @@ bool gta_companion_back(GtaCompanion* companion) {
     }
     if(companion->detail_visible && !companion->dispatch) {
         companion->detail_visible = false;
+        widget_reset(companion->detail);
+        gta_record_clear(&companion->selected_record);
+        companion->selected_valid = false;
+        gta_ensure_list(companion);
         gta_refresh_list(companion);
         view_dispatcher_switch_to_view(companion->dispatcher, companion->list_view_id);
+        view_dispatcher_remove_view(companion->dispatcher, companion->detail_view_id);
+        widget_free(companion->detail);
+        companion->detail = NULL;
+        furi_string_free(companion->text);
+        companion->text = NULL;
         return true;
     }
     companion->detail_visible = false;
     companion->dispatch = false;
     companion->dispatch_entry = NULL;
     companion->dispatch_collection = NULL;
+    if(companion->detail) widget_reset(companion->detail);
     gta_release_exploration(companion);
     return false;
 }

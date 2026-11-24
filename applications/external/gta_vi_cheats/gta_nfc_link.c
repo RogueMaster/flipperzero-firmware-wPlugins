@@ -8,7 +8,10 @@
 #include <string.h>
 #include <stdlib.h>
 
-enum {GtaNfcUrlWidth = 124, GtaNfcScrollPause = 5};
+enum {
+    GtaNfcUrlWidth = 124,
+    GtaNfcScrollPause = 5
+};
 typedef struct {
     const char* url;
     const char* error;
@@ -114,7 +117,8 @@ static void gta_nfc_close(void* context) {
     free(app);
 }
 
-static void* gta_nfc_open(ViewDispatcher* dispatcher, const char* url, uint16_t id, GtaUrlKind kind) {
+static void*
+    gta_nfc_open(ViewDispatcher* dispatcher, const char* url, uint16_t id, GtaUrlKind kind) {
     if(!dispatcher || !url || strlen(url) >= GTA_URL_MAX) return NULL;
     GtaNfcApp* app = calloc(1, sizeof(*app));
     if(!app) return NULL;
@@ -126,19 +130,30 @@ static void* gta_nfc_open(ViewDispatcher* dispatcher, const char* url, uint16_t 
     view_set_context(app->view, app);
     view_set_draw_callback(app->view, gta_draw_nfc);
     view_set_input_callback(app->view, input);
-    with_view_model(app->view, GtaNfcViewModel * model, {
-        *model = ((GtaNfcViewModel){.url = app->url, .pause = GtaNfcScrollPause,
-            .error = app->nfc ? NULL : "Unable to start NFC"});
-    }, false);
+    with_view_model(
+        app->view,
+        GtaNfcViewModel * model,
+        {
+            *model = ((GtaNfcViewModel){
+                .url = app->url,
+                .pause = GtaNfcScrollPause,
+                .error = app->nfc ? NULL : gta_url_nfc_error()});
+        },
+        false);
     app->timer = furi_event_loop_timer_alloc(
-        view_dispatcher_get_event_loop(dispatcher), gta_nfc_scroll,
-        FuriEventLoopTimerTypePeriodic, app);
+        view_dispatcher_get_event_loop(dispatcher),
+        gta_nfc_scroll,
+        FuriEventLoopTimerTypePeriodic,
+        app);
     view_dispatcher_add_view(dispatcher, GTA_NFC_VIEW_ID, app->view);
     view_dispatcher_switch_to_view(dispatcher, GTA_NFC_VIEW_ID);
     if(app->nfc) furi_event_loop_timer_start(app->timer, furi_ms_to_ticks(200));
     return app;
 }
 
-static const GtaNfcPluginApi api = {sizeof(GtaNfcPluginApi), gta_nfc_open, gta_nfc_stop, gta_nfc_close};
+static const GtaNfcPluginApi api =
+    {sizeof(GtaNfcPluginApi), gta_nfc_open, gta_nfc_stop, gta_nfc_close};
 static const FlipperAppPluginDescriptor descriptor = {GTA_NFC_ID, GTA_NFC_API_VERSION, &api};
-const FlipperAppPluginDescriptor* gta_nfc_link_ep(void) { return &descriptor; }
+const FlipperAppPluginDescriptor* gta_nfc_link_ep(void) {
+    return &descriptor;
+}

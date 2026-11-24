@@ -29,14 +29,16 @@ GtaLoadingHandle* gta_loading_show(void) {
     handle->module = flipper_application_alloc(handle->storage, firmware_api_interface);
     if(!handle->module) goto fail;
     if(flipper_application_preload(handle->module, GTA_LOADING_PATH) !=
-       FlipperApplicationPreloadStatusSuccess) goto fail;
+       FlipperApplicationPreloadStatusSuccess)
+        goto fail;
     if(!flipper_application_is_plugin(handle->module)) goto fail;
     if(flipper_application_map_to_memory(handle->module) != FlipperApplicationLoadStatusSuccess)
         goto fail;
     const FlipperAppPluginDescriptor* d =
         flipper_application_plugin_get_descriptor(handle->module);
-    if(!d || !d->appid || strcmp(d->appid, GTA_LOADING_ID) || d->ep_api_version != GTA_LOADING_API_VERSION ||
-       !d->entry_point) goto fail;
+    if(!d || !d->appid || strcmp(d->appid, GTA_LOADING_ID) ||
+       d->ep_api_version != GTA_LOADING_API_VERSION || !d->entry_point)
+        goto fail;
     handle->api = d->entry_point;
     if(handle->api->size < sizeof(GtaLoadingApi) || !handle->api->begin || !handle->api->end)
         goto fail;

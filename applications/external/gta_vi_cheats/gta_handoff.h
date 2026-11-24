@@ -1,7 +1,8 @@
 #pragma once
+#include <furi.h>
 #include <stdint.h>
-#define GTA_LOADING_PATH "/ext/apps_data/gta_vi_companion/plugins/gta_loading.fal"
-#define GTA_LOADING_ID "gta_loading"
+#define GTA_LOADING_PATH        APP_ASSETS_PATH("plugins/gta_loading.fal")
+#define GTA_LOADING_ID          "gta_loading"
 #define GTA_LOADING_API_VERSION 2u
 typedef struct {
     uint32_t size;
