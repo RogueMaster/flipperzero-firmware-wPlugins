@@ -35,7 +35,6 @@ typedef enum {
     ScreenList,
     ScreenDetail,
     ScreenGuide,
-    ScreenMoneyGlitch,
     ScreenSecretList,
     ScreenSecretDetail,
     ScreenSafeCategories,
@@ -780,11 +779,7 @@ static void gta_guide(GtaApp* app) {
     gta_show_text(app, ScreenGuide);
 }
 static void gta_money_glitch(GtaApp* app) {
-    gta_ensure_text(app);
-    text_box_reset(app->text);
-    furi_string_reset(app->content);
-    furi_string_cat_printf(
-        app->content,
+    static const char guide[] =
         "Cars + Cocaine Money Glitch\n\n"
         "Story Mode; reported exploit, not a cheat code. The reliable core is "
         "warehouse cocaine respawning while bags stay in vehicle storage. "
@@ -797,7 +792,7 @@ static void gta_money_glitch(GtaApp* app) {
         "Moses; do not rely on unregistered stolen vehicles.\n"
         "c) Keep a separate manual backup save; do not enable cheats.\n\n"
         "2. Fill with cocaine\n"
-        "a) Drive to Apollo Aggregates, red warehouse east of Hamlet.\n"
+        "a) Drive to Apollo Aggregates, red warehouse east of Hamlet, off Emory Ave. Press Map to emulate the warehouse location.\n"
         "b) Loot cocaine from the outside teddy-bear van, the inside van, "
         "office table and safe; take the center van's cash bag.\n"
         "c) Fill and stow bags in your 10-slot van, then your second car. "
@@ -822,8 +817,11 @@ static void gta_money_glitch(GtaApp* app) {
         "b) If the two-car claim fails, sell the filled van normally. "
         "Donnie/Dunk in early chapters or Tyrone (Ch3, best narcotics "
         "rate); Brian's Lockup uses keypad 7700 and pays later.\n"
-        "c) Exact prices, vehicle slots, respawns and patch status vary.");
-    gta_show_text(app, ScreenMoneyGlitch);
+        "c) Exact prices, vehicle slots, respawns and patch status vary.";
+    app->companion_back = ScreenHome;
+    app->screen = ScreenCompanion;
+    gta_companion_open_money_glitch(app->companion, guide);
+    gta_release_unused(app, ViewCollectionDetail);
 }
 static const char* gta_safe_status_name(GtaSafeStatus status) {
     switch(status) {
@@ -1085,7 +1083,6 @@ static bool gta_back(void* context) {
     case ScreenDispatchRegions:
     case ScreenMockLoaders:
     case ScreenMockLoaderSettings:
-    case ScreenMoneyGlitch:
     case ScreenSafeCategories:
     case ScreenSecretList:
         gta_show_menu(app, ScreenHome);

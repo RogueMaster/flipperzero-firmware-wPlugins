@@ -26,7 +26,7 @@ App(
     fap_category="NFC",
     fap_author="RogueMaster",
     fap_weburl="https://github.com/RogueMaster/GTA_VI_Companion",
-    fap_version="1.9.9",
+    fap_version="1.9.10",
     fap_description="GTA VI guides, secrets, vehicles and collection checklists",
 )
 
