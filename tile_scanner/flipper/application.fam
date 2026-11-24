@@ -7,7 +7,7 @@ App(
     stack_size=4 * 1024,
     fap_category="Bluetooth",
     # Optional values
-    fap_version="0.1",
+    fap_version="0.2",
     fap_icon="assets/tile_scanner.png",
     fap_author="Kyle Diller",
     fap_icon_assets="assets",

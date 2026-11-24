@@ -90,6 +90,18 @@ static void tile_scanner_callback(TileScannerEvent event, void* context) {
         TileScannerMacAddress* mac_address = event.data;
         recent_macs_handle_scanned_mac(mac_address, ui);
         
+        for(int i = 0; i < ui->known_mac_index; i++){
+            bool matched = true;
+            
+            for(int j = 0; j < MAC_ADDRESS_LENGTH; j++){
+                matched &= mac_address->mac_address[j] == ui->known_macs[i].mac_address[j];
+            }
+            
+            if(matched){
+                return;
+            }
+        }
+        
         notification_message(ui->notifications, &FOUND_TILE_NOTIFICATION_SEQUENCE);
     }
 }
