@@ -1,5 +1,23 @@
 # GTA VI Companion changelog
 
+## v1.9.8 — Weapon and Meteorite Expansion
+- Expanded Special Weapons to 137 guide-reported pickups, variants and leads; added 20 named entries including Convict Kalinga .50, Mister Mangrove Laird 350 and additional character-associated weapons. Refined existing acquisition clues and mission missable warnings.
+- Expanded Meteorite Chunks to 82 reported locations; added Capri fallen trunk, Wetman Bay carcass and Port Gellhorn bones. Added approximate map landmarks to existing locations and retained overlapping reports as alternate clues.
+- Split Special Weapons into three sublists and Meteorite Chunks into two sublists using the existing asset loader; preserved existing checkmarks, progress IDs, menu order and save format.
+- Expanded Cocaine Flamingos to 72 reported pickups, including Catalan Key, Southwind, Vice City, Port Gellhorn and Mount Kalaga; refined existing landmarks and alternate map reports. Added nine new and three previously unindexed flamingos to Regional Dispatch.
+- Added two tentative Shoeless Keys flamingo map leads (74 reported pickups and leads total); refined seven existing search descriptions and indexed both new leads in Regional Dispatch.
+- Expanded Cocaine Flamingos to 80 reported pickups and map leads, including six new tentative landmark-relative search areas; refined 18 existing descriptions using filmed routes and screenshot-based guides. Split the catalog into three regional sublists, retained all existing IDs and indexed the new leads in Regional Dispatch.
+- Refined 13 Cocaine Flamingo search descriptions, including Dorado Pawn Shop, Riquezas building B-207, Southwind shore camp and Meerwunder. Retained 80 reported pickups and leads and all existing checkmarks.
+- Added two separately mapped Key Lento shoreline search leads (82 reported pickups and leads total), with GTADB marker references and overlapping beach/yard clues. Added both to Regional Dispatch and preserved existing checkmarks.
+- Added hold-OK NFC URL links for supported collection and Dispatch details, with Source/Map selection and temporary NDEF URL emulation. Preserved short-OK checkmarks and existing save IDs; Back stops NFC. Shared map indexes are distinguished from individual markers.
+- Refined hold-OK NFC link selection: Source on Left when available; direct map image on Right, or Source 2 when no image is available. Retained interactive maps as source references and removed duplicate destinations.
+- Hold OK now starts NFC URL emulation immediately when only one link option is available; two options retain the selector. Back stops NFC and returns to the item or selector accordingly.
+- Added a fullscreen GTA-themed NFC emulation graphic with a bottom URL bar and automatic horizontal scrolling for long links.
+- Expanded Cocaine Flamingos to 86 reported pickups and map leads with four separately indexed Key Lento and Watson Bay search points; distinct counter credit remains unconfirmed. Added all four to Regional Dispatch.
+- Added shared source guide/index fallbacks for every Collections checklist and vehicle/property list, retaining individual URLs where available and preserving automatic single-link NFC emulation.
+- Added individual GTA6 GPS NFC map pins to ten Standout Vehicles, eight Cocaine Flamingo entries, the La Noche wreck in both Kenton and Underwater Discoveries, and the SOS Island meteorite. Added a shared Wyman wreck map; retained individual guides where available and preserved progress IDs.
+- Split NFC URL emulation into an on-demand GTA NFC Link FAL with fullscreen URL artwork and scrolling. Added a shared GTA loading FAL for randomized mock-loader transitions in both directions using the existing set preferences. Companion remains open; Back stops NFC and unloads the plugin, returning to the original item or link selector, and Hold Back exits to firmware.
+
 ## v1.9.7 — Collection and Secret Mission Updates
 - Added nine guide-reported Cocaine Flamingo search areas (57 total), including Hamlet, Port Gellhorn, Buckskin Swamp and the coast south of Waning Sands; refined ten existing entries with street, building and alternate map clues. Updated Regional Dispatch.
 - Added two reported meteorite sites (72 total) at Hyde Island and Featherstone; expanded existing Key Lento and Mount Kalaga directions.

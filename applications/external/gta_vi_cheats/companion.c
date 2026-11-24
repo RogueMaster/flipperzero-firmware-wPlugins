@@ -1,4 +1,9 @@
 #include "companion.h"
+#include "url_links.h"
+#include "gta_nfc_plugin.h"
+#include "gta_handoff.h"
+#include <flipper_application/flipper_application.h>
+#include <loader/firmware_api/firmware_api.h>
 
 #include <furi.h>
 #include <gui/canvas.h>
@@ -17,6 +22,9 @@ enum {
     GtaListRows = 4,
     GtaDetailToggle = 0x400,
     GtaDispatchNext,
+    GtaDetailLinks,
+    GtaLinkSource,
+    GtaLinkRight,
     GtaExploreMaxAssetSize = 16 * 1024,
     GtaExploreMaxRows = 128,
     GtaAholFirstTypeId = 1376,
@@ -105,6 +113,10 @@ struct GtaCompanion {
     GtaDispatchRegion dispatch_region;
     bool dispatch_unavailable;
     bool detail_visible;
+    bool links_visible;
+    FlipperApplication* nfc_module;
+    const GtaNfcPluginApi* nfc_api;
+    void* nfc_session;
     bool dispatch;
     bool save_error;
     bool progress_load_failed;
@@ -118,7 +130,7 @@ static bool gta_is_checked(const uint8_t* checked, uint16_t id) {
     return (checked[id / 8u] & gta_entry_mask(id)) != 0;
 }
 
-/* Unique collection IDs in v1.9.7, from companion_catalog.c and every
+/* Unique collection IDs in v1.9.8, from companion_catalog.c and every
  * Collections TSV. Regenerate these ranges when adding or removing entries;
  * do not count the unlisted 4,096-bit progress capacity as collectibles. */
 static const struct {
@@ -137,14 +149,12 @@ static const struct {
     {1272, 2100},
     {2300, 2548},
     {3000, 3095},
-    {3582, 3750},
+    {3582, 3796},
     {3900, 3908},
 };
 
 bool gta_companion_progress_summary(
-    const GtaCompanion* companion,
-    size_t* total_items,
-    size_t* completed_items) {
+    const GtaCompanion* companion, size_t* total_items, size_t* completed_items) {
     if(!companion || !total_items || !completed_items || companion->progress_load_failed)
         return false;
 
@@ -410,6 +420,15 @@ static const GtaCollectionEntry* gta_selected_entry(const GtaCompanion* companio
     return &companion->list->entries[*companion->selection];
 }
 
+static const GtaUrlLinks* gta_selected_links(const GtaCompanion* companion, const GtaCollectionEntry* entry) {
+    if(!entry) return NULL;
+    const GtaCollection* collection = companion->dispatch ? companion->dispatch_collection : companion->list;
+    return gta_url_links_resolve(
+        entry->id,
+        companion->explore_section ? companion->explore_section->asset : NULL,
+        collection ? collection->title : NULL);
+}
+
 static void gta_refresh_list(GtaCompanion* companion) {
     const GtaCollection* collection = companion->list;
     size_t checked_count = 0;
@@ -433,6 +452,10 @@ static void gta_refresh_list(GtaCompanion* companion) {
 
 static void gta_detail_button(GuiButtonType button, InputType type, void* context) {
     GtaCompanion* companion = context;
+    if(button == GuiButtonTypeCenter && type == InputTypeLong) {
+        view_dispatcher_send_custom_event(companion->dispatcher, GtaDetailLinks);
+        return;
+    }
     if(type != InputTypeShort) return;
     if(button == GuiButtonTypeCenter) {
         view_dispatcher_send_custom_event(companion->dispatcher, GtaDetailToggle);
@@ -459,6 +482,9 @@ static void gta_render_detail(GtaCompanion* companion) {
         furi_string_cat_printf(
             text, "%s\n%s\n", entry->name, checked ? collection->checked_label : "Unchecked");
         if(companion->save_error) furi_string_cat_printf(text, "SD save failed. Try again.\n");
+        const GtaUrlLinks* links = gta_selected_links(companion, entry);
+        if(links) furi_string_cat_printf(text, links->source_index && !links->source2 && !links->map_image ?
+            "Hold OK: NFC guide/index\n" : "Hold OK: NFC links\n");
         furi_string_cat_printf(
             text, "\n%s", entry->location ? entry->location : "Location unconfirmed.");
         if(entry->notes) furi_string_cat_printf(text, "\n\n%s", entry->notes);
@@ -487,6 +513,126 @@ static void gta_render_detail(GtaCompanion* companion) {
                                               "No unchecked stops with a location clue.");
     }
     widget_add_text_scroll_element(detail, 0, 0, 128, entry ? 51 : 64, furi_string_get_cstr(text));
+}
+
+static void gta_link_button(GuiButtonType button, InputType type, void* context) {
+    GtaCompanion* companion = context;
+    if(type != InputTypeShort) return;
+    if(button == GuiButtonTypeLeft)
+        view_dispatcher_send_custom_event(companion->dispatcher, GtaLinkSource);
+    else if(button == GuiButtonTypeRight)
+        view_dispatcher_send_custom_event(companion->dispatcher, GtaLinkRight);
+}
+
+static void gta_show_links(GtaCompanion* companion, const char* error) {
+    const GtaCollectionEntry* entry = gta_selected_entry(companion);
+    const GtaUrlLinks* links = gta_selected_links(companion, entry);
+    const GtaUrlChoice left = gta_url_links_choose(links, false);
+    const GtaUrlChoice right = gta_url_links_choose(links, true);
+    if(!left.url && !right.url) return;
+    companion->links_visible = true;
+    widget_reset(companion->detail);
+    furi_string_reset(companion->text);
+    furi_string_cat_printf(companion->text, "NFC URL links\n%s\n", entry->name);
+    if(error) furi_string_cat_printf(companion->text, "%s\n", error);
+    else {
+        furi_string_cat_printf(companion->text, "Choose a link.\n");
+        if(left.map_index)
+            furi_string_cat_printf(companion->text, "Source: shared guide/index.\n");
+        if(right.map_index)
+            furi_string_cat_printf(companion->text, "Source 2: shared guide/index.\n");
+    }
+    widget_add_text_scroll_element(
+        companion->detail, 0, 0, 128, 51, furi_string_get_cstr(companion->text));
+    if(left.url)
+        widget_add_button_element(
+            companion->detail, GuiButtonTypeLeft, left.label, gta_link_button, companion);
+    if(right.url)
+        widget_add_button_element(
+            companion->detail, GuiButtonTypeRight, right.label, gta_link_button, companion);
+}
+
+/* Host owns the mapped module and releases it only after its view, timer and
+ * NFC listener have been stopped and detached. No plugin callback unloads itself. */
+static void gta_nfc_release(GtaCompanion* companion) {
+    if(companion->nfc_session) {
+        companion->nfc_api->close(companion->nfc_session);
+        companion->nfc_session = NULL;
+    }
+    companion->nfc_api = NULL;
+    if(companion->nfc_module) {
+        flipper_application_free(companion->nfc_module);
+        companion->nfc_module = NULL;
+    }
+}
+
+static void gta_emulate_link(GtaCompanion* companion, bool right) {
+    const GtaCollectionEntry* entry = gta_selected_entry(companion);
+    const GtaUrlChoice choice = gta_url_links_choose(gta_selected_links(companion, entry), right);
+    if(!entry || !choice.url || companion->nfc_module) return;
+    if(strlen(choice.url) >= GTA_URL_MAX) {
+        gta_show_links(companion, "Link unavailable.");
+        return;
+    }
+    if(!storage_file_exists(companion->storage, GTA_NFC_PATH)) {
+        gta_show_links(companion, "Install GTA NFC Link FAL.");
+        return;
+    }
+    GtaLoadingHandle* loading = gta_loading_show();
+    const char* error = "Unable to load GTA NFC Link.";
+    companion->nfc_module = flipper_application_alloc(companion->storage, firmware_api_interface);
+    if(!companion->nfc_module) goto fail;
+    if(flipper_application_preload(companion->nfc_module, GTA_NFC_PATH) !=
+       FlipperApplicationPreloadStatusSuccess) goto fail;
+    if(!flipper_application_is_plugin(companion->nfc_module)) goto fail;
+    if(flipper_application_map_to_memory(companion->nfc_module) !=
+       FlipperApplicationLoadStatusSuccess) goto fail;
+    const FlipperAppPluginDescriptor* descriptor =
+        flipper_application_plugin_get_descriptor(companion->nfc_module);
+    if(!descriptor || !descriptor->appid || strcmp(descriptor->appid, GTA_NFC_ID) ||
+       descriptor->ep_api_version != GTA_NFC_API_VERSION || !descriptor->entry_point) {
+        error = "GTA NFC Link version mismatch.";
+        goto fail;
+    }
+    companion->nfc_api = descriptor->entry_point;
+    if(companion->nfc_api->size < sizeof(GtaNfcPluginApi) || !companion->nfc_api->open ||
+       !companion->nfc_api->stop || !companion->nfc_api->close) {
+        error = "GTA NFC Link API mismatch.";
+        goto fail;
+    }
+    companion->nfc_session = companion->nfc_api->open(
+        companion->dispatcher, choice.url, entry->id, choice.kind);
+    if(!companion->nfc_session) goto fail;
+    gta_loading_hide(loading);
+    return;
+fail:
+    gta_nfc_release(companion);
+    gta_show_links(companion, error);
+    gta_loading_hide(loading);
+}
+
+static void gta_nfc_return(GtaCompanion* companion, bool exit) {
+    if(!companion->nfc_session) return;
+    companion->nfc_api->stop(companion->nfc_session);
+    GtaLoadingHandle* loading = exit ? NULL : gta_loading_show();
+    // The detail widget and selector were never destroyed. Restore them before
+    // removing the plugin's view; remove_view also synchronizes with GUI drawing.
+    view_dispatcher_switch_to_view(companion->dispatcher, companion->detail_view_id);
+    gta_nfc_release(companion);
+    gta_loading_hide(loading);
+    if(exit) view_dispatcher_stop(companion->dispatcher);
+}
+
+static void gta_open_links(GtaCompanion* companion) {
+    const GtaCollectionEntry* entry = gta_selected_entry(companion);
+    const GtaUrlLinks* links = gta_selected_links(companion, entry);
+    const GtaUrlChoice left = gta_url_links_choose(links, false);
+    const GtaUrlChoice right = gta_url_links_choose(links, true);
+    if(left.url && right.url) {
+        gta_show_links(companion, NULL);
+    } else if(left.url || right.url) {
+        gta_emulate_link(companion, right.url != NULL);
+    }
 }
 
 static void gta_show_detail(GtaCompanion* companion) {
@@ -714,6 +860,7 @@ GtaCompanion* gta_companion_alloc(
 }
 
 void gta_companion_free(GtaCompanion* companion) {
+    gta_nfc_release(companion);
     view_dispatcher_remove_view(companion->dispatcher, companion->detail_view_id);
     view_dispatcher_remove_view(companion->dispatcher, companion->list_view_id);
     widget_free(companion->detail);
@@ -764,7 +911,22 @@ void gta_companion_open_dispatch(GtaCompanion* companion, GtaDispatchRegion regi
 }
 
 bool gta_companion_custom_event(GtaCompanion* companion, uint32_t event) {
+    if(companion->nfc_session) {
+        if(event == GTA_NFC_BACK_EVENT || event == GTA_NFC_EXIT_EVENT)
+            gta_nfc_return(companion, event == GTA_NFC_EXIT_EVENT);
+        return true;
+    }
+    if(event == GTA_NFC_BACK_EVENT || event == GTA_NFC_EXIT_EVENT) return true;
     if(!companion->detail_visible) return false;
+    if(companion->links_visible) {
+        if(event == GtaLinkSource || event == GtaLinkRight)
+            gta_emulate_link(companion, event == GtaLinkRight);
+        return true;
+    }
+    if(event == GtaDetailLinks) {
+        gta_open_links(companion);
+        return true;
+    }
     if(event == GtaDetailToggle) {
         const GtaCollectionEntry* entry = gta_selected_entry(companion);
         if(entry) {
@@ -783,6 +945,15 @@ bool gta_companion_custom_event(GtaCompanion* companion, uint32_t event) {
 }
 
 bool gta_companion_back(GtaCompanion* companion) {
+    if(companion->nfc_session) {
+        gta_nfc_return(companion, false);
+        return true;
+    }
+    if(companion->links_visible) {
+        companion->links_visible = false;
+        gta_render_detail(companion);
+        return true;
+    }
     if(companion->detail_visible && !companion->dispatch) {
         companion->detail_visible = false;
         gta_refresh_list(companion);

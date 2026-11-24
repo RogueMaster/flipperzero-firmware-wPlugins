@@ -596,7 +596,11 @@ static void gta_guide(GtaApp* app) {
         "Ordinary robbery safes often have a random code.\n\n"
         "Bridges, Cars, Stunts and Collections: each listed entry can be marked Completed. "
         "Right toggles a checkmark in its list; OK opens details, with Check/Undo at center. "
-        "Progress saves to SD and reloads automatically.\n\n"
+        "Progress saves to SD and reloads automatically. "
+        "Hold OK in a linked collection or Dispatch detail to emulate its only NFC link "
+        "immediately, or choose between two links. Left: Source. Right: Map image or Source 2 "
+        "if no image is available. Tap your unlocked phone. Back stops NFC and returns to "
+        "the item or link selector.\n\n"
         "Under the Bridge and Stunt Jumps are grouped by county in Collections; "
         "Knife Flights and Base Jumps are there too (397 stunts total). "
         "Cars include Randy, Moses, Wyman and Standout Vehicles. "
@@ -604,6 +608,8 @@ static void gta_guide(GtaApp* app) {
         "Any 300 stunts count toward 100%%.\n\n"
         "Cocaine Flamingos: destroy the figures with BLACK-WHITE beaks. "
         "Black-yellow beaks are decorative; collecting loose cocaine is optional. "
+        "82 reported pickups and leads across three regional lists; 100 of 125 count for "
+        "100%% completion. Verify the game counter at uncertain map stops. "
         "Magazine Styles: scan with the phone, switch to Jason/Lucia for character-specific "
         "unlocks, and inspect private houses when clues point inside.\n\n"
         "Diving: Island Dreams unlocks diving. Bring scuba gear, choose the metal detector "
@@ -649,9 +655,10 @@ static void gta_guide(GtaApp* app) {
     size_t completed_items = 0;
     if(gta_companion_progress_summary(app->companion, &total_items, &completed_items)) {
         /* Hundredths of a percent, rounded: no floating-point printf needed. */
-        const uint32_t progress =
-            total_items ? (uint32_t)((completed_items * 10000u + total_items / 2u) / total_items) :
-                          0u;
+        const uint32_t progress = total_items ?
+                                      (uint32_t)((completed_items * 10000u + total_items / 2u) /
+                                                 total_items) :
+                                      0u;
         furi_string_cat_printf(
             app->content,
             "\n\nTotal Collection Items: %lu\n"

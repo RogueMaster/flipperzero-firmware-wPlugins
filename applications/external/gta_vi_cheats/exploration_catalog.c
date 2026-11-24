@@ -82,8 +82,22 @@ static const GtaExploreSection activity_robberies[] = {
     GTA_LEAF("Basketball Hoops", "basketball_hoops", 100, "Scored"),
     GTA_LEAF("Hoop Search Leads", "basketball_hoop_leads", 0, "Checked"),
 };
+static const GtaExploreSection special_weapons[] = {
+    GTA_LEAF("World Finds & Leads", "special_weapons", 49, "Acquired"),
+    GTA_LEAF("Operation Weapons", "special_weapons_operations", 37, "Acquired"),
+    GTA_LEAF("Shops & Rewards", "special_weapons_rewards", 51, "Acquired"),
+};
+static const GtaExploreSection meteorite_chunks[] = {
+    GTA_LEAF("Keys, Coast & Islands", "meteorites", 0, "Found"),
+    GTA_LEAF("Mainland & Caves", "meteorites_mainland", 0, "Found"),
+};
+static const GtaExploreSection cocaine_flamingos[] = {
+    GTA_LEAF("Keys & South Coast", "flamingos", 0, "Destroyed"),
+    GTA_LEAF("Vice City & Inland", "flamingos_inland", 0, "Destroyed"),
+    GTA_LEAF("Northern Leonida", "flamingos_north", 0, "Destroyed"),
+};
 const GtaExploreSection gta_explore_sections[] = {
-    GTA_LEAF("Special Weapons", "special_weapons", 117, "Acquired"),
+    GTA_GROUP("Special Weapons", special_weapons),
     GTA_GROUP("Collectible Cards", card_sets),
     GTA_GROUP("WAiNK Locations", waink),
     GTA_GROUP("AHOL Street Art", ahol),
@@ -93,7 +107,7 @@ const GtaExploreSection gta_explore_sections[] = {
     GTA_LEAF("Magazines, Books & Comics", "publications", 27, "Read"),
     GTA_LEAF("Book Swaps", "book_swaps", 7, "Swapped"),
     GTA_LEAF("Meditations", "meditations", 18, "Completed"),
-    GTA_LEAF("Cocaine Flamingos", "flamingos", 125, "Destroyed"),
+    GTA_GROUP("Cocaine Flamingos", cocaine_flamingos),
     GTA_GROUP("Unique Playlists", playlists),
     GTA_GROUP("Discovered Styles", styles),
     GTA_GROUP("Stunt Jumps", stunt_jumps),
@@ -102,7 +116,7 @@ const GtaExploreSection gta_explore_sections[] = {
     GTA_LEAF("Base Jumps", "base_jumps", 25, "Completed"),
     GTA_LEAF("Optional Missions", "optional_missions", 32, "Completed"),
     GTA_LEAF("Missing Persons (5 steps)", "missing_persons", 5, "Investigated"),
-    GTA_LEAF("Meteorite Chunks (known)", "meteorites", 0, "Found"),
+    GTA_GROUP("Meteorite Chunks (known)", meteorite_chunks),
     GTA_LEAF("Messages in Bottles", "messages_bottles", 6, "Read"),
     GTA_GROUP("Activities / Robberies", activity_robberies),
     GTA_LEAF("Location Search Leads", "location_leads", 0, "Checked"),

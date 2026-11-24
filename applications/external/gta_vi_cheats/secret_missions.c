@@ -75,8 +75,9 @@ const GtaSecretMission gta_secret_missions[] = {
      "at night; investigate tracks and follow his drone. 3. After his text, find three carved "
      "tree effigies around Pelican Valley. 4. In Chapter 2 switch to Lucia and meet Kirk again at "
      "night for the concluding hunt.",
-     "Reported $1,000 and a Mister Mangrove Laird 350 rifle during the questline; later reward "
-     "choice varies.",
+     "Reported $1,000 in part one; receive the Mister Mangrove Laird 350 tranquilizer rifle "
+     "(Special Weapons) in the final hunt at Cottonmouth Lake. Keep the rifle in either ending; "
+     "$10,000 reported if you shoot Mr. Mangrove, no extra payout if spared.",
      "Multi-chapter optional line; sources disagree on best flyer location.",
      "PowerPyx / GTA Culture / GTA VI Forum",
      7},

@@ -3,13 +3,37 @@ App(
     name="GTA VI Companion",
     apptype=FlipperAppType.EXTERNAL,
     entry_point="gta_vi_companion_app",
-    stack_size=2 * 1024,
+    stack_size=3 * 1024,
+    sources=[
+        "gta_vi_companion.c", "companion.c", "companion_catalog.c",
+        "dispatch_catalog.c", "exploration_catalog.c", "cheat_catalog.c",
+        "safe_codes.c", "secret_missions.c", "secret_progress.c", "mock_loaders.c",
+        "url_links.c", "gta_handoff.c",
+    ],
     fap_icon="icon.png",
     fap_file_assets="assets",
     fap_icon_assets="menu_icons",
-    fap_category="Tools",
+    fap_category="NFC",
     fap_author="RogueMaster",
     fap_weburl="https://github.com/RogueMaster/GTA_VI_Companion",
-    fap_version="1.9.7",
+    fap_version="1.9.8",
     fap_description="GTA VI guides, secrets, vehicles and collection checklists",
+)
+
+App(
+    appid="gta_nfc_link",
+    name="GTA NFC Link",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="gta_nfc_link_ep",
+    requires=["gta_vi_companion"],
+    sources=["gta_nfc_link.c", "url_ndef.c", "url_nfc.c"],
+)
+
+App(
+    appid="gta_loading",
+    name="GTA Mock Loading",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="gta_loading_ep",
+    requires=["gta_vi_companion"],
+    sources=["gta_loading_fal.c"],
 )
