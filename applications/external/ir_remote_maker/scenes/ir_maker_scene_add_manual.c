@@ -98,13 +98,9 @@ void ir_maker_scene_add_manual_on_enter(void* context) {
     furi_assert(context);
     IrMakerApp* app = context;
 
-    /* When editing an existing button's signal, prefill from it. */
-    if(app->edit_mode == IrMakerEditModeSignal) {
-        const IrMakerButton* button = &app->draft->items[app->selected_button];
-        if(!infrared_signal_is_raw(button->signal)) {
-            app->edit_msg = *infrared_signal_get_message(button->signal);
-        }
-    }
+    /* edit_msg is seeded once by the caller (ButtonList for New, ButtonEdit for
+     * Edit signal). Re-seeding here would clobber edits made in the EditHex scene,
+     * whose return re-runs this on_enter. */
 
     ir_maker_scene_add_manual_populate(app);
     variable_item_list_set_selected_item(app->var_item_list, IrMakerAddItemProtocol);

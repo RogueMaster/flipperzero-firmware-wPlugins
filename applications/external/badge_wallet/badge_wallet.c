@@ -84,9 +84,11 @@ void badge_wallet_load_cards(BadgeWalletApp* app) {
     File* dir = storage_file_alloc(app->storage);
     if(storage_dir_open(dir, BADGE_WALLET_NFC_DIR)) {
         FileInfo info;
-        char name[BADGE_WALLET_NAME_MAX];
+        /* Heap, not stack: the app stack is only 3 KB. A 128-byte buffer
+         * truncated long names and dropped their ".nfc" suffix. */
+        char* name = malloc(BADGE_WALLET_NAME_MAX);
         while(app->card_count < BADGE_WALLET_MAX_CARDS &&
-              storage_dir_read(dir, &info, name, sizeof(name))) {
+              storage_dir_read(dir, &info, name, BADGE_WALLET_NAME_MAX)) {
             if(file_info_is_dir(&info)) continue;
 
             FuriString* fname = furi_string_alloc_set(name);
@@ -101,6 +103,7 @@ void badge_wallet_load_cards(BadgeWalletApp* app) {
             card->favorite = false;
             app->card_count++;
         }
+        free(name);
     }
     /* storage_dir_close must be called even if open failed. */
     storage_dir_close(dir);

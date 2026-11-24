@@ -11,6 +11,34 @@
  * only (the ST25R3916 IC), independent of the BLE stack, so it is brick-safe.
  */
 
+/* nfc_listener_alloc() furi_check()s that the protocol has a listener, and
+ * several protocols (MfDesfire, Emv, Ntag4xx, Iso14443_3b/4b, St25tb)
+ * have none -> device reset. Walk up to the nearest ancestor that does have one
+ * (Desfire/EMV/... -> Iso14443_4a: UID/ATS-only emulation, same as the stock NFC
+ * app does for Desfire). Mirrors nfc_listeners_api[] in
+ * lib/nfc/protocols/nfc_listener_defs.c. Returns NfcProtocolInvalid if none. */
+static NfcProtocol badge_wallet_listener_protocol(NfcProtocol p) {
+    while(p != NfcProtocolInvalid && p < NfcProtocolNum) {
+        switch(p) {
+        case NfcProtocolIso14443_3a:
+        case NfcProtocolIso14443_4a:
+        case NfcProtocolIso15693_3:
+        case NfcProtocolFelica:
+        case NfcProtocolMfUltralight:
+        case NfcProtocolMfClassic:
+        case NfcProtocolSlix:
+        case NfcProtocolType4Tag:
+        case NfcProtocolMfPlus:
+        case NfcProtocolTexkom:
+            return p;
+        default:
+            p = nfc_protocol_get_parent(p);
+            break;
+        }
+    }
+    return NfcProtocolInvalid;
+}
+
 void badge_wallet_scene_emulate_on_enter(void* context) {
     furi_assert(context);
     BadgeWalletApp* app = context;
@@ -25,9 +53,12 @@ void badge_wallet_scene_emulate_on_enter(void* context) {
     bool started = false;
     if(nfc_device_load(app->emulate_device, furi_string_get_cstr(card->path))) {
         NfcProtocol protocol = nfc_device_get_protocol(app->emulate_device);
-        if(protocol != NfcProtocolInvalid) {
+        NfcProtocol listener_protocol = badge_wallet_listener_protocol(protocol);
+        if(listener_protocol != NfcProtocolInvalid) {
             app->listener = nfc_listener_alloc(
-                app->nfc, protocol, nfc_device_get_data(app->emulate_device, protocol));
+                app->nfc,
+                listener_protocol,
+                nfc_device_get_data(app->emulate_device, listener_protocol));
             nfc_listener_start(app->listener, NULL, NULL);
             started = true;
         }
@@ -41,8 +72,8 @@ void badge_wallet_scene_emulate_on_enter(void* context) {
             furi_string_get_cstr(card->label));
         notification_message(app->notifications, &sequence_blink_start_cyan);
     } else {
-        /* Load failed or unsupported protocol: tear down the NFC we allocated
-         * and tell the user, rather than pretending to emulate. */
+        /* Load failed or no listener for this card type: tear down the NFC we
+         * allocated and tell the user, rather than pretending to emulate. */
         if(app->emulate_device) {
             nfc_device_free(app->emulate_device);
             app->emulate_device = NULL;
@@ -54,7 +85,7 @@ void badge_wallet_scene_emulate_on_enter(void* context) {
         snprintf(
             app->emulate_text,
             sizeof(app->emulate_text),
-            "Cannot emulate\n%s",
+            "Can't emulate this\ncard type\n%s",
             furi_string_get_cstr(card->label));
     }
 

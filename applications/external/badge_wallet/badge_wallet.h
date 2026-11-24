@@ -33,7 +33,8 @@
 #define BADGE_WALLET_MAX_CARDS   128U
 #define BADGE_WALLET_LABEL_MAX   64U
 #define BADGE_WALLET_UID_MAX_LEN 10U
-#define BADGE_WALLET_NAME_MAX    128U
+/* FAT LFN names reach 255 chars; heap-allocated in the dir scan (3 KB stack). */
+#define BADGE_WALLET_NAME_MAX    256U
 
 typedef enum {
     BadgeWalletViewSubmenu,
@@ -77,7 +78,7 @@ typedef struct {
     char label_buf[BADGE_WALLET_LABEL_MAX];
     /* Popup keeps the pointer we hand it (no copy), so this must outlive the
      * Emulate scene's popup view. */
-    char emulate_text[BADGE_WALLET_LABEL_MAX + 24];
+    char emulate_text[BADGE_WALLET_LABEL_MAX + 40];
 
     /* NFC emulation resources. Owned by the Emulate scene: allocated on enter,
      * fully torn down on exit, so the NFC HAL is only held while emulating. */

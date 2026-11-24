@@ -184,10 +184,22 @@ InfraredErrorCode ir_maker_draft_load(IrMakerDraft* draft, Storage* storage, con
 
         while(true) {
             const InfraredErrorCode read_error = infrared_signal_read(signal, ff, name);
-            if(INFRARED_ERROR_PRESENT(read_error)) break; // out of signals / EOF
+            if(INFRARED_ERROR_PRESENT(read_error)) {
+                // Clean EOF shows up as "no more name: key". Anything else is a
+                // malformed entry mid-file: refuse to open rather than silently
+                // dropping the rest (a later Save would overwrite the original).
+                if(!INFRARED_ERROR_CHECK(read_error, InfraredErrorCodeSignalNameNotFound)) {
+                    error = read_error;
+                }
+                break;
+            }
 
             if(!ir_maker_draft_add(draft, furi_string_get_cstr(name), signal)) {
-                break; // hit MAX_BUTTONS or the raw budget: keep what we have
+                // Too many buttons or over the raw-timing budget. Loading a
+                // truncated copy and letting the user Save would destroy the
+                // buttons we could not hold, so refuse to open the file instead.
+                error = InfraredErrorCodeFileOperationFailed;
+                break;
             }
         }
     } while(false);

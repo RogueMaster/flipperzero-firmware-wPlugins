@@ -110,6 +110,15 @@ bool ir_maker_scene_button_edit_on_event(void* context, SceneManagerEvent event)
         break;
     case IrMakerEditItemEditSignal:
         app->edit_mode = IrMakerEditModeSignal;
+        // Seed edit_msg from the button ONCE, here, not in AddManual's on_enter:
+        // returning from the shared EditHex scene re-runs that on_enter and would
+        // overwrite every address/command edit with the original again.
+        {
+            const IrMakerButton* button = &app->draft->items[app->selected_button];
+            if(!infrared_signal_is_raw(button->signal)) {
+                app->edit_msg = *infrared_signal_get_message(button->signal);
+            }
+        }
         scene_manager_next_scene(app->scene_manager, IrMakerSceneAddManual);
         consumed = true;
         break;
