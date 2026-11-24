@@ -2111,9 +2111,14 @@ static void test_blackbox_ram_ring_sizing(void) {
     const uint32_t MINF   = 800u;         // BB_MIN_INTERNAL_FRAMES
     const uint32_t MAXF   = 3000u;        // BLACKBOX_FRAMES_INTERNAL (classic)
 
+    // A contiguous block large enough is assumed unless a case says otherwise;
+    // BIG keeps `largest` out of the way so these cases exercise the total-free
+    // path, exactly as before the fragmentation parameter was added.
+    const size_t BIG = 1024u * 1024u;
+
     // Plenty of heap (e.g. an S3 or a freshly booted board): clamp to the cap,
     // never larger, so the one-window save still fits inside the margin.
-    CHECK(bb_ram_ring_frames(300u * 1024u, MARGIN, FSZ, MINF, MAXF) == MAXF,
+    CHECK(bb_ram_ring_frames(300u * 1024u, BIG, MARGIN, FSZ, MINF, MAXF) == MAXF,
           "sizing: ample heap clamps to the per-target cap");
 
     // The #191 board: ~86 KB free after WiFi + web. The OLD fixed-3000 ring
@@ -2122,7 +2127,7 @@ static void test_blackbox_ram_ring_sizing(void) {
     const size_t HEAP_191   = 86u * 1024u;
     const size_t FIXED_NEED = (size_t)MAXF * FSZ + MARGIN;
     CHECK(HEAP_191 < FIXED_NEED, "sizing: the fixed 3000 ring never fit the #191 heap");
-    uint32_t f191 = bb_ram_ring_frames(HEAP_191, MARGIN, FSZ, MINF, MAXF);
+    uint32_t f191 = bb_ram_ring_frames(HEAP_191, BIG, MARGIN, FSZ, MINF, MAXF);
     CHECK(f191 > MINF && f191 < MAXF,
           "sizing: #191 heap gives a shortened but usable ring (%lu frames)",
           (unsigned long)f191);
@@ -2130,17 +2135,36 @@ static void test_blackbox_ram_ring_sizing(void) {
           "sizing: the chosen ring still leaves the full margin free");
 
     // Just above the floor: the computed count lands at the minimum (~4 s).
-    CHECK(bb_ram_ring_frames(MARGIN + (size_t)MINF * FSZ + 10u, MARGIN, FSZ, MINF, MAXF) == MINF,
+    CHECK(bb_ram_ring_frames(MARGIN + (size_t)MINF * FSZ + 10u, BIG, MARGIN, FSZ, MINF, MAXF) == MINF,
           "sizing: just above the floor yields the minimum ring");
 
     // At and below the floor: margin + floor can't both be had → refuse (0),
     // exactly as the old code refused — the board is genuinely too tight.
-    CHECK(bb_ram_ring_frames(MARGIN + (size_t)MINF * FSZ, MARGIN, FSZ, MINF, MAXF) == 0u,
+    CHECK(bb_ram_ring_frames(MARGIN + (size_t)MINF * FSZ, BIG, MARGIN, FSZ, MINF, MAXF) == 0u,
           "sizing: margin + floor exactly won't fit, refuse");
-    CHECK(bb_ram_ring_frames(MARGIN, MARGIN, FSZ, MINF, MAXF) == 0u,
+    CHECK(bb_ram_ring_frames(MARGIN, BIG, MARGIN, FSZ, MINF, MAXF) == 0u,
           "sizing: only the margin free, refuse");
-    CHECK(bb_ram_ring_frames(0u, MARGIN, FSZ, MINF, MAXF) == 0u,
+    CHECK(bb_ram_ring_frames(0u, BIG, MARGIN, FSZ, MINF, MAXF) == 0u,
           "sizing: no heap, refuse");
+
+    // Fragmentation (the real #191 failure): total free is ample but the largest
+    // contiguous block is what a single malloc can take, so the ring is sized to
+    // the block, not the total.
+    const size_t FRAG_LARGEST = 40u * 1024u;   // biggest run < what total-free would allow
+    uint32_t ffrag = bb_ram_ring_frames(300u * 1024u, FRAG_LARGEST, MARGIN, FSZ, MINF, MAXF);
+    CHECK((size_t)ffrag * FSZ <= FRAG_LARGEST,
+          "sizing: ring never exceeds the largest contiguous block (%lu frames)",
+          (unsigned long)ffrag);
+    CHECK(ffrag >= MINF && ffrag < MAXF,
+          "sizing: a 40 KB block gives a usable sub-cap ring");
+
+    // Ample total free, but the heap is so fragmented the biggest run can't even
+    // hold the floor ring → refuse, rather than size off total free and then fail
+    // the malloc (the beta.5/6 behaviour that kept #191's toggle bouncing off).
+    CHECK(bb_ram_ring_frames(300u * 1024u, (size_t)MINF * FSZ - 1u, MARGIN, FSZ, MINF, MAXF) == 0u,
+          "sizing: largest block below the floor refuses even with ample total free");
+    CHECK(bb_ram_ring_frames(300u * 1024u, (size_t)MINF * FSZ, MARGIN, FSZ, MINF, MAXF) == MINF,
+          "sizing: largest block exactly the floor yields the minimum ring");
 }
 
 // ── #176: stale-frame TX gate ────────────────────────────────────────────────
