@@ -1,6 +1,122 @@
 # GTA VI Companion changelog
 
-## v1.9.4
+## v1.9.9 — Memory Optimization + NFC Emulation Fixes
+- Added 41 individual GTA6GPS NFC item mappings (40 distinct pins): all 25 BASE jumps, five 1010 murals and the Cheetah reward garage, four Peewees billboards, two named mini-golf courses, the pink-car trunk investigation site, Lucia makeup and the shared Tarot tattoo magazine. Preserved all existing item IDs, links and map-image references. Corroborated the Belpoint flamingo route and retained 94 reported pickups and search leads.
+- Added 88 individual GTA6GPS NFC map pins for 30 WAiNK landmarks, all 35 curiosities and all 23 sculptures. Expanded Cocaine Flamingos to 94 reported pickups and search leads with an individual wrecked-car map marker; added that lead and the existing dockside lead to Regional Dispatch (921 stops). Retained existing progress IDs and source links.
+- Moved vehicle/property, cheat, safe code, secret mission, NFC link and Regional Dispatch catalogs to readable TSV assets. Build temporary row indexes on demand; edit catalog TSVs directly without conversion tools.
+- Load collection row offsets and IDs on demand, cache four visible labels, and read full details only when needed. Retain existing progress IDs, checkmarks, source links and menu order.
+- Allocate collection, secret mission, submenu and text views when needed; release inactive views, text and catalog buffers.
+- Keep NFC and mock loading plugins on demand; release detail text and URL data before NFC initialization and restore the previous detail or link selector on return.
+- Added opt-in RAM diagnostics for heap, memory-pool block size and stack watermark.
+- Added a Right Emulate action to linked item details; moved Dispatch Next to Left and preserved OK checkmarks. Embedded both FALs in the Companion FAP and resolve them through app-relative asset paths.
+- Fixed NFC URL emulation using the firmware's native NTAG215 generator and listener initialization, added magenta emulation LED feedback, and reduced temporary NFC memory allocations.
+- Use native tag accessors and specific initialization diagnostics for the embedded NFC module.
+- Expanded Cocaine Flamingos to 91 reported locations and search leads, with 73 individually linked NFC map locations. Added five Regional Dispatch entries and prioritized direct GTA6GPS and GTADB map pins over shared collection guides.
+- Expanded Cocaine Flamingos to 93 reported locations and search leads, integrated all 42 currently listed GTA6GPS pickup-related flamingo map pins, added 53 individual NFC map-pin mappings, expanded 175 individual source references and updated 70 collection-level map references.
+- Added 50 direct GTA6GPS NFC map links across 41 Standout Vehicles, five Meteorite Chunks and three Special Weapons, including alternate vehicle locations. Expanded source references for three existing Cocaine Flamingo entries.
+- Expanded Regional Dispatch to 919 indexed stops.
+- Added individual and alternate NFC map links for Standout Vehicles, Special Weapons, Meteorite Chunks, publications, garages, Wyman wrecks, Kenton dive sites, all seven book swaps and selected story safehouses. Prioritized exact pickup pins over shared maps.
+- Kept Special Weapons first and alphabetized the remaining top-level collection menus without changing progress IDs or Dispatch source indexes.
+- Added 44 individual GTA6GPS NFC source pins covering all seven Moses vehicle pickups, nine Randy vehicle requests, 26 gang operations, the Star Spangled 556 (listed as Stars and Stripes 556 on the map), and the alternate Key Lento helicopter-wreck meteorite location. Preserved existing collection IDs and map-image links.
+- Added 59 individual GTA6GPS NFC map pins for all 14 Small Bank Jobs, 5 Special Weapons, one Delights Dancer card, 18 Jack of Hearts Dancer cards and 21 Nine1Nine Dancer cards. Retained existing progress IDs and direct map-image links.
+
+## v1.9.8 — Weapon and Meteorite Expansion
+- Expanded Special Weapons to 137 guide-reported pickups, variants and leads; added 20 named entries including Convict Kalinga .50, Mister Mangrove Laird 350 and additional character-associated weapons. Refined existing acquisition clues and mission missable warnings.
+- Expanded Meteorite Chunks to 82 reported locations; added Capri fallen trunk, Wetman Bay carcass and Port Gellhorn bones. Added approximate map landmarks to existing locations and retained overlapping reports as alternate clues.
+- Split Special Weapons into three sublists and Meteorite Chunks into two sublists using the existing asset loader; preserved existing checkmarks, progress IDs, menu order and save format.
+- Expanded Cocaine Flamingos to 72 reported pickups, including Catalan Key, Southwind, Vice City, Port Gellhorn and Mount Kalaga; refined existing landmarks and alternate map reports. Added nine new and three previously unindexed flamingos to Regional Dispatch.
+- Added two tentative Shoeless Keys flamingo map leads (74 reported pickups and leads total); refined seven existing search descriptions and indexed both new leads in Regional Dispatch.
+- Expanded Cocaine Flamingos to 80 reported pickups and map leads, including six new tentative landmark-relative search areas; refined 18 existing descriptions using filmed routes and screenshot-based guides. Split the catalog into three regional sublists, retained all existing IDs and indexed the new leads in Regional Dispatch.
+- Refined 13 Cocaine Flamingo search descriptions, including Dorado Pawn Shop, Riquezas building B-207, Southwind shore camp and Meerwunder. Retained 80 reported pickups and leads and all existing checkmarks.
+- Added two separately mapped Key Lento shoreline search leads (82 reported pickups and leads total), with GTADB marker references and overlapping beach/yard clues. Added both to Regional Dispatch and preserved existing checkmarks.
+- Added hold-OK NFC URL links for supported collection and Dispatch details, with Source/Map selection and temporary NDEF URL emulation. Preserved short-OK checkmarks and existing save IDs; Back stops NFC. Shared map indexes are distinguished from individual markers.
+- Refined hold-OK NFC link selection: Source on Left when available; direct map image on Right, or Source 2 when no image is available. Retained interactive maps as source references and removed duplicate destinations.
+- Hold OK now starts NFC URL emulation immediately when only one link option is available; two options retain the selector. Back stops NFC and returns to the item or selector accordingly.
+- Added a fullscreen GTA-themed NFC emulation graphic with a bottom URL bar and automatic horizontal scrolling for long links.
+- Expanded Cocaine Flamingos to 86 reported pickups and map leads with four separately indexed Key Lento and Watson Bay search points; distinct counter credit remains unconfirmed. Added all four to Regional Dispatch.
+- Added shared source guide/index fallbacks for every Collections checklist and vehicle/property list, retaining individual URLs where available and preserving automatic single-link NFC emulation.
+- Added individual GTA6 GPS NFC map pins to ten Standout Vehicles, eight Cocaine Flamingo entries, the La Noche wreck in both Kenton and Underwater Discoveries, and the SOS Island meteorite. Added a shared Wyman wreck map; retained individual guides where available and preserved progress IDs.
+- Split NFC URL emulation into an on-demand GTA NFC Link FAL with fullscreen URL artwork and scrolling. Added a shared GTA loading FAL for randomized mock-loader transitions in both directions using the existing set preferences. Companion remains open; Back stops NFC and unloads the plugin, returning to the original item or link selector, and Hold Back exits to firmware.
+
+## v1.9.7 — Collection and Secret Mission Updates
+- Added nine guide-reported Cocaine Flamingo search areas (57 total), including Hamlet, Port Gellhorn, Buckskin Swamp and the coast south of Waning Sands; refined ten existing entries with street, building and alternate map clues. Updated Regional Dispatch.
+- Added two reported meteorite sites (72 total) at Hyde Island and Featherstone; expanded existing Key Lento and Mount Kalaga directions.
+- Added Island Poacher FF-50 as an individual Special Weapons pickup (64 total); expanded the existing Hyde Island Manhunt with alternate entry, retry, gear retrieval and reported reward.
+- Added Royal Ruby Emerus gate-release instructions and clarified the Palmer warehouse gold KZ-59 pickup and safe clue.
+- Refined the Backrooms access and navigation, clarified active-character stamina and tattoo reward, and expanded Kyle chemical delivery options and Bret deer hunting instructions.
+- Preserved existing progress IDs, cheat inputs, menu order and save format.
+- Added 42 guide-reported Special Weapons entries (106 total), including 23 store-specific variants, hidden pickups, edition rewards and the missable Don Gone revolver. Identified the existing bunker Type 9 as Conspiracist Type 9; expanded paired weapon locations.
+- Expanded Gold Scarab Windsor specifications and two existing vehicle price/access descriptions; documented the shorter reported Attack Force alternative without replacing the primary code.
+- Expanded Andrew Node's Thrax with the Chapter 3 No Flusher headquarters clue route, conflicting keypad reports, and mansion access notes; retained ID 212 and all 15 scan IDs. Added the early phone-clipping garage entry method, normal registration and reported free Chapter 2 Moses tutorial registration; noted patch sensitivity.
+- Added 11 Legendary Animals entries covering nine Snapmatic hunts and two rare creatures; clarified the separate eight-animal challenge.
+- Added Brainwasher 1922 (107 Special Weapons), Brainwashed, plumber hats, Haymarket clown and Andrew Node walkthroughs (35 Secret Missions); added three access/puzzle credentials and eight variable bank-code examples (63 Safe & Door Codes). Refined diving controls and Avery Pawn alternatives.
+- Added five guide-reported Special Weapons (112 total), including Gun Nut SMS-01, two Chapter 3 missable pistols, Caminos Signature K17 and Mahi Nipper .38; added Royal Bay Marina variable safe clue (64 codes) and Marbelle Hotel fog walkthrough (36 Secret Missions). Expanded existing card, publication, bottle, watch and underwater directions; added Chapter 2 missable and free-registration tips.
+- Expanded Chatfield 5800, Quarter Mile ES9, Purple Drank Emerus and spy-vessel pistol instructions; added Pocketblast DSG (113 Special Weapons), three mapped meteorite search areas (75 total), a four-Up Body Armor alternate report, and more flamingo, diving, shooting-range and hunting details.
+- Added the reported Rodgers Ranch Market Range Beginner quit-and-repeat method for permanent Focus leveling, with instructions in Quick guide / warnings, Shooting Gold Medals and the Unlimited Focus cheat description.
+- Added six map-reported Cocaine Flamingo locations (63 total), four meteorite search areas (79 total), and four named Special Weapons (117 total). Added Misericordia game-map coordinates, refined the first two Bret decks, and preserved existing progress IDs and published cheat inputs.
+
+## v1.9.6 — Vehicles and Collection Updates
+- Added four reported safe/door combinations (Chatfield 5800, Biker Hideout 1982, Stormy 7869, Big Day Motel 4242); documented Cottonmouth 44017 versus shortened 4017 and Palmer 1886/1887 discrepancies, with existing collection IDs and progress unchanged. Enriched eight Flamingo routes, Bret hunting conditions, and linked gang-operation, weapon and card locations.
+- Enriched existing collectible-card, publication, meditation, meteorite and Challenge entries with detailed pickup routes, alternate-copy handling and Master shooting-range requirements.
+- Corrected Collections progress total to include Piccia Furia (ID 28), which was already tracked but omitted from the summary count; existing checkmarks and IDs are unchanged.
+- Added room-by-room Luxury Watch and gang-operation access routes, and cross-linked publication/card pickups at shared locations.
+- Improved Selkie Hole and Belville meteorite directions, and clarified Del Ocio's detector search and ten-doubloon clearing requirement without adding speculative wrecks.
+- Added collection-wide completion totals and percentage to the end of Quick guide / warnings, using saved checklist progress.
+- Added a checklist of all **80 named Challenge objectives**, grouped by game category with individual goals; retained the existing 19 challenge milestones and their saved checkmarks.
+- Added the first three location-documented **Bret Target Decks** with target species, hunting areas and carcass-quality tips; retained Bret's existing optional-mission entry and documented the remaining unmapped decks as incomplete research.
+- Corrected the No Flusher Tags collection total to **15**, matching the 15 existing WAiNK scan records without duplicating scans.
+- Added Lucia's **Buzz Cut** magazine-style pickup in Hamlet to the existing Lucia styles catalog, using its own progress ID.
+- Expanded the Bret Vogel mission's in-app guidance and updated the README to distinguish fully enumerated objectives from partially mapped discoveries.
+- Added all remaining twelve numbered Bret Target Deck checklists (15 total), preserving the first three named contracts and avoiding unsupported animal/spawn claims.
+- Added separate Watson Bay Cocaine Flamingos in the table-top room and candlelit east-side building (43 mapped pickups total).
+- Expanded all six existing Underwater Discoveries with wreck-specific relic or doubloon search directions, without changing wreck IDs or adding unverified discoveries.
+- Located all six Cinco Torres treasures and completed the individual La Noche, Santa Sierra and Lujuriosa search notes under the original Kenton sets.
+- Added Del Ocio search areas and clarified that its ten doubloons may be recovered in fewer digs; the story wreck remains separate from Kenton's seven sets.
+- Clarified timed, weapon, location and completion conditions for selected entries in the existing 80 Challenge objectives; retained all 19 milestone checkmarks.
+- Added 19 individually tracked Special Weapons variants, including the San4San and Marabunta Grande KZ-59 rifles, bringing the catalog to **62**; expanded gang-operation pickup directions and distinguished weapons from nearby cash safes.
+- Added Cigar Import Front door code `1426` (**51** code entries), expanded safe landmarks and Pelican Valley loot details, and clarified variable Avery Pawn and alien-lab codes plus robbery Focus Mode instructions.
+- Updated collection completion totals and README counts while retaining existing checklist IDs.
+- Added 15 Secret Missions and Easter egg walkthroughs (31 total), including the Backrooms, Backyard Wrestling, full Vice City Portal switch order, Burg Industries and the Key Lento rainy-day fund.
+- Added two reported underwater discoveries, two meteorite pickups and the Belpoint lighthouse flamingo; added safe code 80085 and expanded Kenton and Bret directions.
+- Added reported resale and registration prices to 20 Standout Vehicles and an alternate Revenant Gauntlet search area.
+- Added Videotape and Dark Mirror filter inputs, corroborated by PC Gamer and GamesRadar+ (21 published inputs); retained Pinhole and screenshot reports.
+- Added Cursed Knife (63 special weapons), lighthouse ghost and SOS Island walkthroughs, two hidden trophies, Tenebrae Lux puzzle instructions, and expanded Backrooms, wrestling, portal and Bret hunting directions.
+- Added the Royal Sanchez Standout (281 vehicle entries); expanded container routes for the Cuban Hermes, Blue Drake Penumbra and Caliente Picador.
+- Added four reported Cocaine Flamingo sites (48 total), ten meteorite search locations (70 total), alternate shoreline/lawn clues and additional Burg Industries directions; expanded Regional Dispatch and collection totals.
+- Clarified Bret carcass delivery and the reported Fair Game panther encounter; documented three conflicting Dexerto controller sequences without replacing the corroborated inputs.
+
+## v1.9.5 — Fences
+- Added seven individually checkable Fences under Collections, immediately before Endings, sorted by chapter unlock: Brian, Donnie, Moses, Dunk, Tyrone, Yasmani and Randy.
+- Added unlock missions, selling locations, goods accepted, story-related availability and delayed/direct payment details.
+- Identified Tyrone as the best reported narcotics buyer and second-best jewelry/marked-bills buyer; Yasmani as best for jewelry and marked bills and second-best for narcotics.
+- Distinguished Moses' untracked vehicle purchases from Randy's premium Wish List jobs, without inventing comparable payout percentages.
+- Added a Fences section to the README and retained saved checklist IDs and the Endings-last menu order.
+- Expanded the existing Annis Pixel Elegy entry with its container-entry route; added the Maibatsu Sunset Sanchez as a distinct Standout Vehicle.
+- Added four named luxury watches with hideout pickup directions; expanded the existing Ashore and Ambassador entries with additional reported locations.
+- Added 15 geographically distinct, guide-reported Meteorite Chunk locations to the existing meteorite checklist, with separate progress markers.
+- Added the Goose Key Mile Zero shoreline flamingo and expanded six existing Gang Operations with specific watch and key-valuable directions.
+- Expanded existing Gang Operations with guide-reported unique weapons, rare vehicles, watch cross-references and safe-access clues; no duplicate operation IDs or new menus.
+- Enriched existing Standout Vehicle entries with reported unlock, lock/alarm, associated hideout and transport details, without creating extra vehicle checkmarks.
+- Clarified existing Orca and Ashore watch locations and cross-linked four Underwater Discoveries to their existing Kenton treasure routes, preserving the original saved IDs.
+- Preserved existing collection IDs, previous release notes, and menu ordering.
+- Added **Annis Yago's Elegy** as one distinct Street Racer Standout (ID 3603), acquired during the Chapter 3 Yago finale; not a duplicate Akane, Pixel, Drifter or Chameleon Elegy. Standout count: 262.
+- Expanded four existing Yago mission entries with unlock sequence, Jason-only requirements, race time limit, shop build/nitrous instructions, reward, and finale location; retained all existing mission IDs.
+- Refined all five Wyman restoration entries with map landmarks and payment flow; clarified Chapter 3 cut-off tool gate for the Reynolds Kit Car and corrected final Deviant payment from $1,500 to $1,000.
+- Improved the existing anime-wrap Akane location/security and livery-preservation warning; enriched the existing GTA+ Crosstown garage with bundled Venturas BLVD Elegy, weapon locker and fencing access.
+- Updated README vehicle totals, guide and research links.
+- Identified the existing Chapter 1 impound Phoenix as **Blazin' Phoenix** without changing its saved progress ID (176).
+- Added 15 individually named Standout vehicles/rewards absent from the existing 262-entry catalog (now 277), including story, Ultimate Edition, GTA+, and rare bikes/aircraft; marked undocumented pickup sites rather than inventing directions.
+- Expanded existing Gold Rush Tempesta, Venomous Marshall, Erotic Journey, Pink Licorice Astron and Valiant Tempesta records with reported alternate pickup clues and access caveats.
+- Cross-linked Wyman restored vehicles to their existing salvage tasks and the GTA+ / Paradise garages to their respective unique vehicles.
+- Updated the Infinite Money Glitch screen to prioritize the Apollo Aggregates **cars-and-cocaine loop**: registered 10-slot van, **registered 6-slot car**, warehouse loot/vehicle storage, and character-switch warehouse refresh.
+- Documented the two-vehicle swap at Dunk's trailer as an **unverified community report**, including the alleged $13,200 payout, actual payment verification, and possible visual-only duplication.
+- Retained the owned-vehicle manual save/reload fallback, fence unlock/rate guidance, backup-save warnings and Chapter 1 money-loss caution; revised the README and sources without changing other release history.
+- Added three missing named Standout Vehicles to the existing catalog: Street Art Squalo (Key Lento), Muckspreader Bandito (Hamlet), and Cellerica Caddy (Belville); total now 280.
+- Expanded eight existing vehicle entries with precise acquisition, access, alarm and tracker information, including the Fruit Outlet Walton, Mountain Yosemite, Speedy Boomazoom, Westbound Azure, Brimstone Golfer, Rumpo, Taci Ragno and Searing Zombie Bobber.
+- Improved the existing Andy Peach! mission with the Cellerica Caddy pickup, added a Hamlet alternate copy for Bombazo!, and detailed the Couch Potato Mustang .357 hanging-couch pickup.
+- Retained earlier car and collection descriptions, alternate locations, saved progress IDs, Fences, Endings-last ordering, and all earlier changelog entries.
+
+## v1.9.4 - Expanded Locations and Collectibles
 - Added 26 separately checkable, guide-reported Meteorite Chunk locations; marked the total and completion status as unconfirmed.
 - Added a five-stage Missing Persons walkthrough, distinguishing the warehouse and mine finale from the three reported missing tourists.
 - Added 22 basketball hoop guide-number locations with ball pickup instructions, bringing the documented location records from 51 to 73; marked legacy crosswalk conflicts for continued review.
@@ -9,6 +125,18 @@
 - Added 55 individually checkable Standout Vehicle entries with reported locations, including rare cars, motorcycles, an aircraft, and mission rewards.
 - Added vehicle acquisition notes for shared spawns, story prerequisites, garage access, and Key Cloner requirements.
 - Added two reported garage combinations: Red Apple Orchard (`360782`) for the Applesauce Bobcat, and Southside Storage (`1010`) for the mural-reward Cheetah.
+- Added 46 additional Standout Vehicles, bringing the catalog to **260 vehicles**.
+- Expanded vehicle locations with additional garages, residential properties, racetracks, storage containers, mission rewards, and unique spawn points.
+- Improved vehicle acquisition instructions, including chapter requirements, Key Cloner access, special conditions, and alternate spawn locations.
+- Added 12 Meteorite Chunk locations, bringing the catalog to **43 locations**.
+- Added 5 Cocaine Flamingo locations, bringing the catalog to **40 locations**.
+- Added 3 Luxury Watch locations, bringing the catalog to **9 locations**.
+- Added 17 Location Search Leads for additional discoveries, including the Underwater Hotel and locations requiring further verification.
+- Expanded Kenton's Treasures with improved underwater directions for four shipwreck locations.
+- Updated Dispatch references and location details for additional collectible and vehicle discoveries.
+- Improved collection descriptions with additional landmarks, access instructions, and search areas.
+- Distinguished uncertain and potentially duplicate locations from established collectible entries.
+- Updated the README to reflect expanded collections, vehicle information, and location guidance.
 
 ## v1.9.3
 - Added 15 new collections

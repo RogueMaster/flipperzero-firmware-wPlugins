@@ -1,26 +1,51 @@
-2048	Belville - Garage Bed	Belville	Guide-listed chunk #1; optional cash item; total unconfirmed. Under bed inside garage on northern row; same room as Illuminaughty Purple card.
-2049	Killtelligence - Tower Rocks	Near Killtelligence Provisions	Guide-listed chunk #2; optional cash item; total unconfirmed. Among rocks below tower southeast of Provisions.
-2050	Selkie Hole - Chunk 1	Selkie Hole / Emerald Springs	Guide-listed chunk #3; optional cash item; total unconfirmed. Underwater passage, meteorite 1/5.
-2051	Selkie Hole - Chunk 2	Selkie Hole / Emerald Springs	Guide-listed chunk #4; optional cash item; total unconfirmed. Underwater passage, meteorite 2/5.
-2052	Selkie Hole - Chunk 3	Selkie Hole / Emerald Springs	Guide-listed chunk #5; optional cash item; total unconfirmed. Underwater passage, meteorite 3/5; use central cave hole.
-2053	Selkie Hole - Chunk 4	Selkie Hole / Emerald Springs	Guide-listed chunk #6; optional cash item; total unconfirmed. Underwater passage, meteorite 4/5; use central cave hole.
-2054	Selkie Hole - Chunk 5	Selkie Hole / Emerald Springs	Guide-listed chunk #7; optional cash item; total unconfirmed. Underwater passage, meteorite 5/5; use central cave hole.
-2055	Belpoint - Northern Pier	Belpoint	Guide-listed chunk #8; optional cash item; total unconfirmed. Below pier on northern part of island.
-2056	Leonida Bay - SOS Sign	Leonida Bay / island south of Bobcat Key	Guide-listed chunk #9; optional cash item; total unconfirmed. On SOS sign on lone western-bay island.
-2057	Leonida Bay - SOS Island Beach	Leonida Bay / island south of Bobcat Key	Guide-listed chunk #10; optional cash item; total unconfirmed. Across island on opposite beach from SOS sign.
+2055	Belpoint - Northern Pier	Belpoint. Below the northern pier by the Santa decoration.	Guide-listed chunk #8; optional cash item; total unconfirmed.
+2056	Leonida Bay - SOS Sign	Leonida Bay. Lone western-bay island south of Bobcat Key.	Guide-listed chunk #9; check inside the O of the SOS sign. Look for #SendBeer nearby and a phone with a hidden video. Optional cash item; total unconfirmed.
+2057	Leonida Bay - SOS Island Beach	Leonida Bay / island south of Bobcat Key	Guide-listed chunk #10; optional cash item; total unconfirmed. Across island on opposite beach from SOS sign. Both meteorites glow at night.
 2058	Leonida Bay - Lighthouse	Leonida Bay	Guide-listed chunk #11; optional cash item; total unconfirmed. Below lighthouse on small isolated island.
 2059	Sandbars - South Island	Sandbars	Guide-listed chunk #12; optional cash item; total unconfirmed. North beach of southernmost island.
 2060	Sandbars - North Island Pier	Sandbars	Guide-listed chunk #13; optional cash item; total unconfirmed. Below pier on largest north island.
 2061	Sandbars - Eastern Island Tip	Sandbars	Guide-listed chunk #14; optional cash item; total unconfirmed. Northernmost tip of easternmost island.
-2062	Sandbars - Eastern Tiny Island	Sandbars	Guide-listed chunk #15; optional cash item; total unconfirmed. South tip of tiny island at bottom of eastern cluster.
+2062	Sandbars - Eastern Tiny Island	Sandbars	Guide-listed chunk #15; optional cash item; total unconfirmed. South tip of tiny island at bottom of eastern cluster. Also search beneath a fallen pale tree on a small eastern sandbar; compare nearby eastern island pins.
 2063	Zephyr Islands - Grounded Boat	Zephyr Islands	Guide-listed chunk #16; optional cash item; total unconfirmed. Northeast shore of largest island by grounded luxury boat.
-2064	Featherstone - Meerwunder	Featherstone Islands	Guide-listed chunk #17; optional cash item; total unconfirmed. At Meerwunder wreck, under fallen mast.
+2064	Featherstone - Meerwunder	Featherstone Islands	Guide-listed chunk #17; optional cash item; total unconfirmed. At Meerwunder wreck, under fallen mast. A separate guide marks a Lummox wreck-side fragment on the ground; compare before counting another pickup.
 2065	Saint Attaway - West Island	Saint Attaway Islands	Guide-listed chunk #18; optional cash item; total unconfirmed. Small island at western edge of group.
-2066	Saint Attaway - SE Clifftop	Saint Attaway Islands	Guide-listed chunk #19; optional cash item; total unconfirmed. Trees on southeastern-island clifftop; cross fallen trees on foot.
-2067	Hyde Island - Inlet Bridge	Hyde Island	Guide-listed chunk #20; optional cash item; total unconfirmed. Under bridge north of small dock at western inlet.
-2068	Frampton - West Shore	Frampton Islands	Guide-listed chunk #21; optional cash item; total unconfirmed. Western shoreline of large island.
+2066	Saint Attaway - SE Clifftop	Saint Attaway Islands	Guide-listed fragment; total still unconfirmed. Climb the large cliff on the southeastern Saint Attaway island. Cross the fallen tree on foot to reach the south side, then inspect bushes at the clifftop.
+2067	Hyde Island - Inlet Bridge	Hyde Island	Guide-listed chunk #20; optional cash item; total unconfirmed. Under bridge north of small dock at western inlet. Map reference: approximately 550 m northeast of Saint Attaway Islands; search below the bridge.
+2068	Frampton - West Shore	Frampton Islands	Guide-listed chunk #21; optional cash item; total unconfirmed. Western shoreline of large island. Check shallow water by a stranded boat and campsite if not on the shore; compare nearby Frampton pins.
 2069	Frampton - North Cliff	Frampton Islands	Guide-listed chunk #22; optional cash item; total unconfirmed. North of preceding shoreline find by cliff.
 2070	Frampton - Southeast Island	Frampton Islands	Guide-listed chunk #23; optional cash item; total unconfirmed. Southeastern tip of southeastern island.
 2071	Frampton - South Island	Frampton Islands	Guide-listed chunk #24; optional cash item; total unconfirmed. Coast of island directly south of the preceding one.
 2072	East Lummox - Log Island	East Lummox County	Guide-listed chunk #25; optional cash item; total unconfirmed. On log on tiny island north of M of East Lummox County map label.
-2073	Waning Sands - Sands of Time	Waning Sands	Guide-listed chunk #26; optional cash item; total unconfirmed. Desk downstairs office beyond pool table in Sands of Time retirement home.
+2417	Derelict Spy Vessel - North Beach	On the east shore of the wreck island, roughly 100 feet north of the Derelict Spy Vessel.	Search the waterline.
+2418	Dudz Island - Metal Structure	Dudz Island, Watson Bay area. Below the center of the metal structure.	Optional meteorite pickup.
+2419	Capri - Beached Whale	Capri shoreline. At the mapped beached whale.	Approach the whale to trigger the reported burst; search the sand among the objects it expels.
+2513	Key Lento - Inlet Carcass	Key Lento. Search the sand beside the washed-up carcass near a small water inlet.	GTA Base meteorite pin 008. GTADB places the carcass at Abismo Key, near the inlet.
+2514	Goose Key - North Shore	Goose Key. North shore near Mile Zero Air Station.	Check next to the carcass used for the WAiNK scan. GTA Base pin 009. Also inspect trees by the air-station peninsula north-shore carcass. Map reference: about 500 m north of Weather Radar.
+2515	Watson Bay - Waterhole	Watson Bay. Look inside the small waterhole.	GTA Base meteorite pin 038. Map reference: about 250 m east of Riquezas Keys.
+2516	Capri - Riverside Camp	Capri. Abandoned campsite by the river. Check beneath the overturned boat beside the fire pit.	The camp is visible from the river. GTA Base pin 020. Map reference: about 400 m north of Tortoise Lake.
+2517	Capri Boat Party - Lawn	Capri. At the boat party, check the line where grass meets beach.	GTA Base pin 022. A second chunk is on the tideline. Map reference: about 200 m northeast of Capri Sound.
+2518	Capri Boat Party - Tideline	Capri. Go right from the boat party and check the wet sand at the water's edge.	GTA Base pin 023. The lawn pickup has its own entry. Map reference: about 250 m northeast of Capri Sound.
+2519	Capri Beach - Two Trees	Capri. Between two trees on the grass above the beach.	Look from the water for a clearer view. GTA Base pin 025. Map reference: about 350 m southeast of Berth.
+2520	Capri - Rocky Point	Capri. Between the rocks at the tip of the spit.	GTA Base meteorite pin 026. Map reference: about 200 m west of Berth.
+3587	Watson Bay Rock Cluster	Watson Bay: look among rocks at GTA Base meteorite pin #3.	GTABase community map location (pin noted in directions); verify the glow and pickup in-game. Total unconfirmed. Map reference: about 150 m north of Permit Keys.
+3588	Watson Bay Upturned Dinghy	Watson Bay beach: under an overturned wooden dinghy near a partly submerged boat; pin #4.	GTABase community map location (pin noted in directions); verify the glow and pickup in-game. Total unconfirmed. Map reference: about 350 m west of Permit Keys.
+3589	Watson Bay Dead Tree	Watson Bay: base of dead tree at meteorite pin #6.	GTABase community map location (pin noted in directions); verify the glow and pickup in-game. Total unconfirmed. Alternate guide: bleached fallen trunk on beach west of airport.
+3590	Key Lento Between Rocks	Key Lento: lodged between shoreline rocks at meteorite pin #9.	GTABase community map location (pin noted in directions); verify the glow and pickup in-game. Total unconfirmed. A newer map places the rock-gap pickup near the south end of the small island south of Key Lento.
+3591	Key Lento Shade Tree	Key Lento: beneath spreading tree canopy at meteorite pin #10.	GTABase community map location (pin noted in directions); verify the glow and pickup in-game. Total unconfirmed.
+3592	Key Lento Dead Tree	Key Lento: by dead tree at meteorite pin #11.	GTABase community map location (pin noted in directions); verify the glow and pickup in-game. Total unconfirmed. LootMapped places a dead-tree stop roughly 600 m south of Chip's Body Shop; compare the other tree stops.
+3593	Key Lento Fallen Log	Key Lento: beside a log at meteorite pin #12.	GTABase community map location (pin noted in directions); verify the glow and pickup in-game. Total unconfirmed. Search the narrow islet east of Key Lento beside driftwood on the sand. Map reference: about 450 m southeast of Wonder Whale.
+3594	Key Lento Campsite Tree	Key Lento: base of a tree near a campsite at meteorite pin #13.	GTABase community map location (pin noted in directions); verify the glow and pickup in-game. Total unconfirmed. Check the campsite tree on the eastern Key Lento islet. Map reference: about 500 m southeast of Key Lento Sign.
+3595	Capri Under Dock	Capri shoreline: dive or search below dock at meteorite pin #19.	GTABase community map location (pin noted in directions); verify the glow and pickup in-game. Total unconfirmed.
+3596	Capri Dead Tree	Capri: near dead tree at meteorite pin #21.	GTABase community map location (pin noted in directions); verify the glow and pickup in-game. Total unconfirmed.
+3643	Burg Industries - Safe	Submerged facility west of Mile Zero Air Station, south of Riquezas Keys.	Read the station logs and check painted runes; reported safe code 80085. The exact facility is disputed. Collect the fragment inside; the giant seabed meteorite is not a confirmed pickup.
+3644	Burg Industries - Eastern Kitchen	Yellow offshore platform east of Key Lento, near Little Hardin Island.	Enter through underside hatch; search the laboratory kitchen. Reported separate fragment; verify pickup before checking.
+3651	Capri - Trench 1	Capri, submerged trench. Bring scuba gear.	Search the first reported trench pickup; use Focus and look for the glow.
+3652	Capri - Trench 2	Capri, same submerged trench.	Continue along the trench for a second reported fragment, distinct from the first.
+3653	Capri - Trench Shelf	Capri, submerged trench.	Look beneath the underwater ledge for a third fragment.
+3654	Key Lento - Fatal Incursion Jet	Key Lento, Fatal Incursion aircraft dive site.	Enter the main fuselage and inspect the seating area. Map-reported pickup.
+3655	Key Lento - Sunken Vessel	Key Lento, submerged wreck.	Search the interior. A separate map describes a buoy beside a body and a helicopter wreck; compare locations before treating that as another fragment. Alternate helicopter-wreck clue: dive by the body beside the buoy (GTA6 GPS pin 918036).
+3671	Hyde Island - North Rowboat	Northern shore of Hyde Island.	Check beside the overturned white rowboat. Separate reported map stop from the western inlet bridge.
+3672	Featherstone - Channel Summit	Small rocky island in the Featherstone channel.	Climb to the summit and check for the glowing fragment; GTADB mapped search area.
+3736	Featherstone - Shoreline Boulder	Featherstone Islands, waterline.	GTADB mapped search area: inspect large boulder and adjoining crevice. Distinct search area from channel summit and Meerwunder mast; verify pickup.
+3771	Capri - Fallen Trunk	Capri; GTA6Gang Capri route 7.	Look beneath the fallen trunk; distinct map listing from the dead-tree stop (ID 3596). Reported pickup.
+3772	Watson Bay - Wetman Bay Carcass	Approx. 200 m NW of Wetman Bay on LootMapped map.	Search near the carcass. Separate mapped stop from Goose Key and the Key Lento inlet; verify in game.

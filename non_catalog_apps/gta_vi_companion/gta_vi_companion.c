@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "cheat_catalog.h"
+#include "gta_catalog_io.h"
 #include "companion.h"
 #include "gta_vi_companion_icons.h"
 #include "mock_loaders.h"
@@ -117,7 +118,10 @@ enum {
 typedef struct {
     size_t selected;
     size_t completed;
-    uint8_t checked[GtaSecretProgressBytes];
+    struct {
+        char title[60];
+        bool checked;
+    } rows[4];
     bool save_error;
 } GtaSecretListModel;
 typedef struct {
@@ -156,8 +160,10 @@ static const char* gta_sequence(const GtaApp* app, const GtaCheat* cheat) {
  * This name match DOES NOT validate the screenshot's button combination. */
 static const GtaScreenshotCode* gta_screenshot_match(const char* catalog_name) {
     for(size_t i = 0; i < gta_screenshot_count; i++) {
-        const char* linked = gta_screenshot_codes[i].main_catalog_name;
-        if(linked && strcmp(linked, catalog_name) == 0) return &gta_screenshot_codes[i];
+        const GtaScreenshotCode* entry = gta_screenshot_at(i, false);
+        if(entry && entry->main_catalog_name &&
+           strcmp(entry->main_catalog_name, catalog_name) == 0)
+            return gta_screenshot_at(i, true);
     }
     return NULL;
 }
@@ -229,15 +235,20 @@ static void gta_item(GtaApp* app, const char* label, uint32_t index) {
 }
 static size_t gta_published_count(const GtaApp* app) {
     size_t count = 0;
-    for(size_t i = 0; i < gta_cheat_count; i++)
-        if(gta_sequence(app, &gta_cheat_catalog[i])[0]) count++;
+    for(size_t i = 0; i < gta_cheat_count; i++) {
+        const GtaCheat* row = gta_cheat_at(i, false, 0);
+        if(row && gta_sequence(app, row)[0]) count++;
+    }
     return count;
 }
-static size_t gta_safe_filter_count(uint8_t category) {
-    size_t count = 0;
-    for(size_t i = 0; i < gta_safe_code_count; i++)
-        if(!category || gta_safe_codes[i].kind == (GtaSafeKind)(category - 1)) count++;
-    return count;
+static void gta_safe_filter_counts(size_t counts[5]) {
+    for(size_t i = 0; i < gta_safe_code_count; i++) {
+        const GtaSafeCode* row = gta_safe_at(i, false);
+        if(row) {
+            ++counts[0];
+            ++counts[row->kind + 1u];
+        }
+    }
 }
 static const char* gta_safe_category_name(uint8_t category) {
     static const char* const labels[] = {
@@ -246,21 +257,40 @@ static const char* gta_safe_category_name(uint8_t category) {
 }
 static void gta_secret_refresh(GtaApp* app) {
     size_t complete = 0;
-    for(size_t i = 0; i < gta_secret_mission_count; ++i) {
-        if(gta_secret_progress_is_checked(
-               &app->secret_progress, gta_secret_missions[i].progress_id))
-            ++complete;
-    }
+    size_t first = app->secret_index / 4u * 4u;
     with_view_model(
         app->secret_list,
         GtaSecretListModel * model,
         {
             model->selected = app->secret_index;
+            memset(model->rows, 0, sizeof(model->rows));
+            for(size_t i = 0; i < gta_secret_mission_count; ++i) {
+                const GtaSecretMission* entry = gta_secret_at(i, false);
+                bool checked = entry && gta_secret_progress_is_checked(
+                                            &app->secret_progress, entry->progress_id);
+                if(checked) ++complete;
+                if(i >= first && i < first + 4u) {
+                    size_t row = i - first;
+                    if(entry)
+                        snprintf(
+                            model->rows[row].title,
+                            sizeof(model->rows[row].title),
+                            "%s %s",
+                            entry->stage,
+                            entry->title);
+                    else
+                        snprintf(
+                            model->rows[row].title,
+                            sizeof(model->rows[row].title),
+                            "Data unavailable");
+                    model->rows[row].checked = checked;
+                }
+            }
             model->completed = complete;
-            memcpy(model->checked, app->secret_progress.save.checked, sizeof(model->checked));
             model->save_error = app->secret_progress.save_error;
         },
         true);
+    gta_catalog_release();
 }
 static void gta_secret_draw_label(Canvas* canvas, const char* name, int32_t x, int32_t y) {
     char buf[48];
@@ -289,21 +319,17 @@ static void gta_secret_list_draw(Canvas* canvas, void* context) {
     const size_t first = (model->selected / 4u) * 4u;
     for(size_t row = 0; row < 4 && first + row < gta_secret_mission_count; ++row) {
         const size_t i = first + row;
-        const GtaSecretMission* entry = &gta_secret_missions[i];
         const uint8_t y = (uint8_t)(20u + row * 10u);
         if(i == model->selected) {
             canvas_draw_box(canvas, 0, y - 8, 128, 10);
             canvas_set_color(canvas, ColorWhite);
         }
         canvas_draw_frame(canvas, 3, y - 6, 7, 7);
-        const uint8_t id = entry->progress_id;
-        if(model->checked[id / 8u] & (1u << (id % 8u))) {
+        if(model->rows[row].checked) {
             canvas_draw_line(canvas, 4, y - 3, 6, y - 1);
             canvas_draw_line(canvas, 6, y - 1, 8, y - 5);
         }
-        char title[60];
-        snprintf(title, sizeof(title), "%s %s", entry->stage, entry->title);
-        gta_secret_draw_label(canvas, title, 14, y);
+        gta_secret_draw_label(canvas, model->rows[row].title, 14, y);
         canvas_set_color(canvas, ColorBlack);
     }
     canvas_draw_line(canvas, 0, 53, 127, 53);
@@ -312,6 +338,7 @@ static void gta_secret_list_draw(Canvas* canvas, void* context) {
 static bool gta_secret_list_input(InputEvent* event, void* context) {
     GtaApp* app = context;
     if(event->type != InputTypeShort && event->type != InputTypeRepeat) return false;
+    size_t old_page = app->secret_index / 4u;
     switch(event->key) {
     case InputKeyUp:
         if(app->secret_index) app->secret_index--;
@@ -330,7 +357,14 @@ static bool gta_secret_list_input(InputEvent* event, void* context) {
     default:
         return false;
     }
-    gta_secret_refresh(app);
+    if(old_page != app->secret_index / 4u)
+        gta_secret_refresh(app);
+    else
+        with_view_model(
+            app->secret_list,
+            GtaSecretListModel * model,
+            { model->selected = app->secret_index; },
+            true);
     return true;
 }
 static void gta_secret_button_callback(GuiButtonType button, InputType type, void* context) {
@@ -339,28 +373,87 @@ static void gta_secret_button_callback(GuiButtonType button, InputType type, voi
         view_dispatcher_send_custom_event(app->dispatcher, ItemSecretToggleDetail);
     }
 }
+static void gta_ensure_menu(GtaApp* app) {
+    if(app->menu) return;
+    app->menu = submenu_alloc();
+    view_dispatcher_add_view(app->dispatcher, ViewMenu, submenu_get_view(app->menu));
+}
+static void gta_ensure_text(GtaApp* app) {
+    if(!app->content) app->content = furi_string_alloc();
+    if(!app->text) {
+        app->text = text_box_alloc();
+        view_dispatcher_add_view(app->dispatcher, ViewText, text_box_get_view(app->text));
+    }
+}
+static void gta_ensure_secrets(GtaApp* app) {
+    if(!app->secret_storage) {
+        app->secret_storage = furi_record_open(RECORD_STORAGE);
+        gta_secret_progress_load(&app->secret_progress, app->secret_storage);
+    }
+    if(!app->secret_list) {
+        app->secret_list = view_alloc();
+        view_allocate_model(app->secret_list, ViewModelTypeLocking, sizeof(GtaSecretListModel));
+        view_set_context(app->secret_list, app);
+        view_set_draw_callback(app->secret_list, gta_secret_list_draw);
+        view_set_input_callback(app->secret_list, gta_secret_list_input);
+        view_dispatcher_add_view(app->dispatcher, ViewSecretList, app->secret_list);
+    }
+}
+static void gta_release_unused(GtaApp* app, GtaView keep) {
+    if(keep != ViewMenu && app->menu) {
+        view_dispatcher_remove_view(app->dispatcher, ViewMenu);
+        submenu_free(app->menu);
+        app->menu = NULL;
+    }
+    if(keep != ViewText && app->text) {
+        view_dispatcher_remove_view(app->dispatcher, ViewText);
+        text_box_free(app->text);
+        app->text = NULL;
+    }
+    if(keep != ViewSecretDetail && app->secret_detail) {
+        view_dispatcher_remove_view(app->dispatcher, ViewSecretDetail);
+        widget_free(app->secret_detail);
+        app->secret_detail = NULL;
+    }
+    if(keep != ViewSecretList && app->secret_list) {
+        view_dispatcher_remove_view(app->dispatcher, ViewSecretList);
+        view_free(app->secret_list);
+        app->secret_list = NULL;
+    }
+    if(keep != ViewText && keep != ViewSecretDetail && app->content) {
+        furi_string_free(app->content);
+        app->content = NULL;
+    }
+    if(keep != ViewSecretList && keep != ViewSecretDetail && app->secret_storage) {
+        furi_record_close(RECORD_STORAGE);
+        app->secret_storage = NULL;
+    }
+    gta_catalog_release();
+}
 static void gta_show_menu(GtaApp* app, GtaScreen screen) {
     app->screen = screen;
     if(screen == ScreenHome) {
         view_dispatcher_switch_to_view(app->dispatcher, ViewHome);
+        gta_release_unused(app, ViewHome);
+        gta_ram_log("home");
         return;
     }
     if(screen == ScreenSecretList) {
+        gta_ensure_secrets(app);
         gta_secret_refresh(app);
         view_dispatcher_switch_to_view(app->dispatcher, ViewSecretList);
+        gta_release_unused(app, ViewSecretList);
         return;
     }
+    gta_ensure_menu(app);
     submenu_reset(app->menu);
     char label[64];
     if(screen == ScreenSafeCategories) {
         submenu_set_header(app->menu, "Safe & Door Codes");
+        size_t counts[5] = {0};
+        gta_safe_filter_counts(counts);
         for(uint8_t i = 0; i < 5; i++) {
-            snprintf(
-                label,
-                sizeof(label),
-                "%s (%zu)",
-                gta_safe_category_name(i),
-                gta_safe_filter_count(i));
+            snprintf(label, sizeof(label), "%s (%zu)", gta_safe_category_name(i), counts[i]);
             gta_item(app, label, ItemSafeAll + i);
         }
         gta_item(app, "Random safe tips", ItemSafeTips);
@@ -368,7 +461,8 @@ static void gta_show_menu(GtaApp* app, GtaScreen screen) {
     } else if(screen == ScreenSafeList) {
         submenu_set_header(app->menu, gta_safe_category_name(app->safe_category));
         for(size_t i = 0; i < gta_safe_code_count; i++) {
-            const GtaSafeCode* entry = &gta_safe_codes[i];
+            const GtaSafeCode* entry = gta_safe_at(i, false);
+            if(!entry) continue;
             if(app->safe_category && entry->kind != (GtaSafeKind)(app->safe_category - 1))
                 continue;
             /* Show the combination first: a long location name would hide it
@@ -409,20 +503,23 @@ static void gta_show_menu(GtaApp* app, GtaScreen screen) {
         snprintf(label, sizeof(label), "All GTA VI entries (%zu)", gta_cheat_count);
         gta_item(app, label, ItemAll);
         for(size_t start = 0; start < gta_cheat_count;) {
-            size_t end = start + 1;
-            while(end < gta_cheat_count &&
-                  strcmp(gta_cheat_catalog[start].category, gta_cheat_catalog[end].category) == 0)
-                end++;
-            size_t published = 0;
-            for(size_t i = start; i < end; i++)
-                if(gta_sequence(app, &gta_cheat_catalog[i])[0]) published++;
+            const GtaCheat* first = gta_cheat_at(start, false, 1);
+            if(!first) {
+                ++start;
+                continue;
+            }
+            size_t end = start, published = 0;
+            for(; end < gta_cheat_count; ++end) {
+                const GtaCheat* row = gta_cheat_at(end, false, 0);
+                if(!row || strcmp(first->category, row->category) != 0) break;
+                if(gta_sequence(app, row)[0]) ++published;
+            }
+            if(end == start) {
+                ++start;
+                continue;
+            }
             snprintf(
-                label,
-                sizeof(label),
-                "%s (%zu/%zu)",
-                gta_cheat_catalog[start].category,
-                published,
-                end - start);
+                label, sizeof(label), "%s (%zu/%zu)", first->category, published, end - start);
             gta_item(app, label, ItemRow + start);
             start = end;
         }
@@ -435,33 +532,34 @@ static void gta_show_menu(GtaApp* app, GtaScreen screen) {
         const char* header = "All GTA VI";
         if(app->list_mode == ListPublished)
             header = "Published inputs";
-        else if(app->list_mode == ListCategory)
-            header = gta_cheat_catalog[app->category].category;
-        else if(unverified)
+        else if(app->list_mode == ListCategory) {
+            const GtaCheat* category = gta_cheat_at(app->category, false, 1);
+            header = category ? category->category : "Data unavailable";
+        } else if(unverified)
             header = "Unverified codes";
         submenu_set_header(app->menu, header);
         bool any = false;
         if(unverified) {
             for(size_t i = 0; i < gta_screenshot_count; i++) {
-                if(gta_screenshot_codes[i].main_catalog_name) continue;
-                gta_item(app, gta_screenshot_codes[i].name, ItemRow + i);
+                const GtaScreenshotCode* entry = gta_screenshot_at(i, false);
+                if(!entry || entry->main_catalog_name) continue;
+                gta_item(app, entry->name, ItemRow + i);
                 any = true;
             }
         } else {
             for(size_t i = 0; i < gta_cheat_count; i++) {
-                const GtaCheat* cheat = &gta_cheat_catalog[i];
+                const GtaCheat* cheat = gta_cheat_at(i, false, 0);
+                if(!cheat) continue;
                 const bool has_input = gta_sequence(app, cheat)[0] != '\0';
                 if(app->list_mode == ListPublished && !has_input) continue;
-                if(app->list_mode == ListCategory &&
-                   strcmp(cheat->category, gta_cheat_catalog[app->category].category))
-                    continue;
+                if(app->list_mode == ListCategory && strcmp(cheat->category, header)) continue;
                 if(has_input) {
                     gta_item(app, cheat->name, ItemRow + i);
                 } else {
                     const char* marker = "[?]";
                     if(gta_reported_sequence(cheat)) {
                         marker = "[report]";
-                    } else if(gta_screenshot_match(cheat->name)) {
+                    } else if(cheat->effect[0]) {
                         marker = "[img?]";
                     }
                     snprintf(label, sizeof(label), "%s %s", cheat->name, marker);
@@ -475,11 +573,13 @@ static void gta_show_menu(GtaApp* app, GtaScreen screen) {
             submenu_set_selected_item(app->menu, app->list_selection);
     }
     view_dispatcher_switch_to_view(app->dispatcher, ViewMenu);
+    gta_release_unused(app, ViewMenu);
 }
 static void gta_show_text(GtaApp* app, GtaScreen screen) {
     app->screen = screen;
     text_box_set_text(app->text, furi_string_get_cstr(app->content));
     view_dispatcher_switch_to_view(app->dispatcher, ViewText);
+    gta_release_unused(app, ViewText);
 }
 /* Full controller tokens are essential: old first-letter rendering
  * collapsed R1/R2 and L1/L2 into indistinguishable R/L keys. */
@@ -519,6 +619,7 @@ static void gta_append_sequence(FuriString* content, const char* sequence, bool 
     }
 }
 static void gta_detail(GtaApp* app, const GtaCheat* cheat, const GtaScreenshotCode* screenshot) {
+    gta_ensure_text(app);
     text_box_reset(app->text);
     furi_string_reset(app->content);
     const bool screenshot_only = cheat == NULL;
@@ -580,9 +681,11 @@ static void gta_detail(GtaApp* app, const GtaCheat* cheat, const GtaScreenshotCo
         }
     }
     gta_show_text(app, ScreenDetail);
+    gta_catalog_release();
 }
 static void gta_guide(GtaApp* app) {
     app->guide_back = app->screen;
+    gta_ensure_text(app);
     text_box_reset(app->text);
     furi_string_reset(app->content);
     furi_string_cat_printf(
@@ -596,7 +699,11 @@ static void gta_guide(GtaApp* app) {
         "Ordinary robbery safes often have a random code.\n\n"
         "Bridges, Cars, Stunts and Collections: each listed entry can be marked Completed. "
         "Right toggles a checkmark in its list; OK opens details, with Check/Undo at center. "
-        "Progress saves to SD and reloads automatically.\n\n"
+        "Progress saves to SD and reloads automatically. "
+        "Hold OK in a linked collection or Dispatch detail to emulate its only NFC link "
+        "immediately, or choose between two links. Left: Source. Right: Map image or Source 2 "
+        "if no image is available. Tap your unlocked phone. Back stops NFC and returns to "
+        "the item or link selector.\n\n"
         "Under the Bridge and Stunt Jumps are grouped by county in Collections; "
         "Knife Flights and Base Jumps are there too (397 stunts total). "
         "Cars include Randy, Moses, Wyman and Standout Vehicles. "
@@ -604,6 +711,8 @@ static void gta_guide(GtaApp* app) {
         "Any 300 stunts count toward 100%%.\n\n"
         "Cocaine Flamingos: destroy the figures with BLACK-WHITE beaks. "
         "Black-yellow beaks are decorative; collecting loose cocaine is optional. "
+        "82 reported pickups and leads across three regional lists; 100 of 125 count for "
+        "100%% completion. Verify the game counter at uncertain map stops. "
         "Magazine Styles: scan with the phone, switch to Jason/Lucia for character-specific "
         "unlocks, and inspect private houses when clues point inside.\n\n"
         "Diving: Island Dreams unlocks diving. Bring scuba gear, choose the metal detector "
@@ -612,13 +721,26 @@ static void gta_guide(GtaApp* app) {
         "Optional Missions are a separate Collections checklist; Cal and Kirk already appear "
         "in Secret Missions. Messages in Bottles are optional reading, not part of 34 books "
         "and swaps. Extra unique weapon names are guide-reported, not game-verified.\n\n"
+        "Missables: keep a manual save before Tourist Trap (C1) and Checking Out (C2). "
+        "In C2 pay Linda before Slam Dunk, collect Starlet Motel cards and books, and help Wyman "
+        "at his car before moving. In C3 take Gil's pistol in Safe Word and Monty's pistol in The Missing Link. "
+        "Pete's rifle is a C4 mission pickup.\n\n"
+        "Moses: during Take a Vehicle to Moses (C2), bring an eligible tracker-free car for one free registration. "
+        "Bison has six cargo slots, Dominator two; Montagne XL waits behind Watkins Auto Parts. "
+        "Confirm Register shows Free before accepting. See Thrax for reported early access.\n\n"
+        "Fast Focus leveling: Rodgers Ranch Shooting Range, northeast Port Gellhorn (Kelly County). "
+        "Buy the $5 waiver and choose Market Range Beginner. Hit all six targets (about 5 sec). "
+        "Select Quit and back out to the range, then start again. Do NOT choose Restart on results. "
+        "Each exit is reported to grant permanent Focus; gains vary. Check Jason & Lucia > character > "
+        "purple eye stat until Level 4. Repeat for the other character after Coffee Break (C2). "
+        "No cheat activation needed. Patch behavior may change. See Shooting Gold Medals.\n\n"
         "Dispatch: pick a region for unchecked deliveries and collectibles. "
         "OK checks or undoes a stop. Right opens the next stop. "
         "Back returns to the region menu.\n\n"
         "61 GTA VI effects reported by game guides, but most inputs remain unpublished. "
         "[?] marks entries without a code.\n\n"
-        "19 inputs are corroborated in PS5 and Xbox guides, including Drunk. "
-        "Open Pinhole [report] under Filters for a single-source input. "
+        "21 inputs are corroborated in PS5 and Xbox guides, including Drunk. "
+        "Pinhole [report] under Filters has a single-source input. "
         "The app labels it unverified.\n\n"
         "To use: finish the story and the individual cheat's unlock challenge. "
         "Check Progress > Cheats. In free roam press D-pad Up to open phone. "
@@ -631,39 +753,76 @@ static void gta_guide(GtaApp* app) {
         "Effect matches do NOT verify the test inputs. "
         "Xbox equivalents are button-label conversions, not separately sourced codes. "
         "TRI=Triangle CIR=Circle SQR=Square; U/D/L/R=direction.");
+
+    size_t total_items = 0;
+    size_t completed_items = 0;
+    if(gta_companion_progress_summary(app->companion, &total_items, &completed_items)) {
+        /* Hundredths of a percent, rounded: no floating-point printf needed. */
+        const uint32_t progress =
+            total_items ? (uint32_t)((completed_items * 10000u + total_items / 2u) / total_items) :
+                          0u;
+        furi_string_cat_printf(
+            app->content,
+            "\n\nTotal Collection Items: %lu\n"
+            "Total Items Completed: %lu\n"
+            "Progress: %lu.%02lu%%",
+            (unsigned long)total_items,
+            (unsigned long)completed_items,
+            (unsigned long)(progress / 100u),
+            (unsigned long)(progress % 100u));
+    } else {
+        furi_string_cat_printf(
+            app->content,
+            "\n\nTotal Collection Items: Unavailable\n"
+            "Total Items Completed: Unavailable\n"
+            "Progress: Unavailable");
+    }
     gta_show_text(app, ScreenGuide);
 }
 static void gta_money_glitch(GtaApp* app) {
+    gta_ensure_text(app);
     text_box_reset(app->text);
     furi_string_reset(app->content);
     furi_string_cat_printf(
         app->content,
-        "Infinite Money Glitch\n\n"
-        "Story Mode only. Reported at launch; updates may patch the loop. "
-        "The reset can restore warehouse pickups while your stowed bags stay put. Repeat and sell the loot; it is not instant cash. "
-        "Keep a separate backup save. Chapter 1 transitions can discard money; "
-        "exploit results vary by update/save.\n\n"
-        "1. Find the warehouse\n"
-        "Use free roam with cheats off. A personal van with space is helpful. "
-        "Wait until Chapter 2, or back up your save before Tourist Trap; early earnings may be lost. "
-        "Go to Apollo Aggregates, east of Hamlet and north of Key Lento. Park by the red building.\n\n"
-        "2. Gather the loot\n"
-        "Check the teddy-bear van outside, the van inside, and the office table, safe and cash bag. "
-        "Keep track of which pickups come back.\n\n"
-        "3. Pack your vehicle\n"
-        "Carry BOTH loot bags back and put BOTH into your PERSONAL vehicle before saving. "
-        "Confirm vehicle storage holds them; nearby or generic vehicles may not persist.\n\n"
-        "4. Reset (choose one)\n"
-        "a) Drive about half a mile away, then return. Some one-time loot may not respawn.\n"
-        "b) After Coffee Break in Chapter 2, hold D-pad Right + R1 (PS5) or RB (Xbox) to switch. "
-        "Go from Lucia to Jason while he is far away, then switch back to Lucia.\n"
-        "c) With BOTH bags inside your personal vehicle, open Pause > Game > Save Game. "
-        "Make a MANUAL save in a separate slot, then reload that exact save. Return to Apollo "
-        "Aggregates and check whether the loot reset WITHOUT losing your stored bags.\n\n"
-        "5. Repeat or cash out\n"
-        "Repeat only if the loot respawns. Deliver it to Brian's Lockup once unlocked (door code 7700), "
-        "or use a fence available in your chapter. Check the safehouse mailbox after a few in-game days "
-        "for delayed payout from Brian. Amounts vary.");
+        "Cars + Cocaine Money Glitch\n\n"
+        "Story Mode; reported exploit, not a cheat code. The reliable core is "
+        "warehouse cocaine respawning while bags stay in vehicle storage. "
+        "A two-car payout loop at Dunk's is community-reported ONLY; confirm "
+        "real credits, not merely a changing counter. Back up your save.\n\n"
+        "1. Prepare two vehicles\n"
+        "a) Chapter 2 is safer: Chapter 1 story progress can take your cash.\n"
+        "b) Register BOTH vehicles before filling: a 10-slot van AND a "
+        "6-slot car. Use owned cars or register each at Pay n Spray or "
+        "Moses; do not rely on unregistered stolen vehicles.\n"
+        "c) Keep a separate manual backup save; do not enable cheats.\n\n"
+        "2. Fill with cocaine\n"
+        "a) Drive to Apollo Aggregates, red warehouse east of Hamlet.\n"
+        "b) Loot cocaine from the outside teddy-bear van, the inside van, "
+        "office table and safe; take the center van's cash bag.\n"
+        "c) Fill and stow bags in your 10-slot van, then your second car. "
+        "Leave the INSIDE warehouse van parked so its loot can reset.\n\n"
+        "3. Refresh by switching characters\n"
+        "a) Leave your collected cocaine stored in your vehicles. "
+        "Switch to the other playable character, then switch back.\n"
+        "b) Return to Apollo Aggregates and recheck the inside van and "
+        "office safe for respawned cocaine. Reload your vehicles; repeat.\n"
+        "c) If it does not reset, put bags in an owned vehicle, save to a "
+        "separate slot, reload, then return. Do not overwrite your backup.\n\n"
+        "4. Two-car Dunk's loop (UNVERIFIED)\n"
+        "a) At Dunk's trailer, reverse the FULL 10-slot van to the drop point "
+        "and unload its bags.\n"
+        "b) Move the van out, back the full 6-slot car into place, and unload.\n"
+        "c) A player claims that repeating character pickup/drop-off after "
+        "the swap keeps storage from depleting (~$13,200/drop). "
+        "This may be a VISUAL bug with no payout: test a small sale first.\n\n"
+        "5. Check payout or sell normally\n"
+        "a) Verify actual bank balance, pending payments and safehouse mail "
+        "before relying on repeat sales.\n"
+        "b) If the two-car claim fails, sell the filled van normally. "
+        "Donnie/Dunk in early chapters or Tyrone (Ch3, best narcotics "
+        "rate); Brian's Lockup uses keypad 7700 and pays later.\n"
+        "c) Exact prices, vehicle slots, respawns and patch status vary.");
     gta_show_text(app, ScreenMoneyGlitch);
 }
 static const char* gta_safe_status_name(GtaSafeStatus status) {
@@ -698,7 +857,9 @@ static const char* gta_safe_kind_name(GtaSafeKind kind) {
 }
 static void gta_safe_detail(GtaApp* app, size_t index) {
     if(index >= gta_safe_code_count) return;
-    const GtaSafeCode* entry = &gta_safe_codes[index];
+    const GtaSafeCode* entry = gta_safe_at(index, true);
+    if(!entry) return;
+    gta_ensure_text(app);
     text_box_reset(app->text);
     furi_string_reset(app->content);
     furi_string_cat_printf(
@@ -712,10 +873,13 @@ static void gta_safe_detail(GtaApp* app, size_t index) {
         entry->notes,
         gta_safe_status_name(entry->status));
     gta_show_text(app, ScreenSafeDetail);
+    gta_catalog_release();
 }
 static void gta_secret_detail(GtaApp* app, size_t index) {
     if(index >= gta_secret_mission_count) return;
-    const GtaSecretMission* entry = &gta_secret_missions[index];
+    const GtaSecretMission* entry = gta_secret_at(index, true);
+    if(!entry) return;
+    gta_ensure_text(app);
     text_box_reset(app->text);
     furi_string_reset(app->content);
     furi_string_cat_printf(
@@ -730,6 +894,11 @@ static void gta_secret_detail(GtaApp* app, size_t index) {
         entry->status,
         entry->sources);
     app->screen = ScreenSecretDetail;
+    if(!app->secret_detail) {
+        app->secret_detail = widget_alloc();
+        view_dispatcher_add_view(
+            app->dispatcher, ViewSecretDetail, widget_get_view(app->secret_detail));
+    }
     widget_reset(app->secret_detail);
     widget_add_text_scroll_element(
         app->secret_detail, 0, 0, 128, 52, furi_string_get_cstr(app->content));
@@ -741,8 +910,10 @@ static void gta_secret_detail(GtaApp* app, size_t index) {
         gta_secret_button_callback,
         app);
     view_dispatcher_switch_to_view(app->dispatcher, ViewSecretDetail);
+    gta_release_unused(app, ViewSecretDetail);
 }
 static void gta_safe_tips(GtaApp* app) {
+    gta_ensure_text(app);
     text_box_reset(app->text);
     furi_string_reset(app->content);
     furi_string_cat_printf(
@@ -751,15 +922,16 @@ static void gta_safe_tips(GtaApp* app) {
         "This list collects published fixed or reported combinations. "
         "Not all map safes have a reusable code. Many ordinary store and bank robbery "
         "safes change the code between runs or saves. Some mission codes also vary.\n\n"
-        "Find the clue: search the office, notepad, map, wall, computer, "
-        "guard or employee. Use Focus mode to highlight evidence. "
-        "You can threaten an employee for the current safe code when available.\n\n"
+        "Find the clue: check back-office notes, whiteboards, maps, computers or guards. "
+        "Press L3 + R3 (both sticks) to activate Focus Mode. "
+        "Use the Safe Code? dialogue prompt during a robbery when available. "
+        "Check Notes on the keypad if you already collected the clue.\n\n"
         "If a code fails, do not assume a game bug; check your local clue. "
         "Retain every leading zero. Some keypads accept five or six digits, "
         "and some computers accept words.\n\n"
         "Sticky bombs can force open some safes but attract enemies or police. "
         "Locked mission doors and garage keypads may not respond to explosives.\n\n"
-        "Entries are based on guides available 21 Nov 2026 and have not "
+        "Entries are based on published guides through 24 Nov 2026 and have not "
         "been independently tested by this app's maintainers.");
     gta_show_text(app, ScreenSafeTips);
 }
@@ -783,6 +955,7 @@ static bool gta_event(void* context, uint32_t event) {
             app->screen = ScreenCompanion;
             app->companion_back = ScreenHome;
             gta_companion_open_list(app->companion, (GtaCollectionId)(event - ItemCollection));
+            gta_release_unused(app, ViewCollection);
         } else if(event == ItemDispatch) {
             gta_show_menu(app, ScreenDispatchRegions);
         } else if(event == ItemCollections) {
@@ -790,27 +963,28 @@ static bool gta_event(void* context, uint32_t event) {
         } else if(event == ItemMockLoaders) {
             app->screen = ScreenMockLoaders;
             view_dispatcher_switch_to_view(app->dispatcher, ViewMockLoaders);
+            gta_release_unused(app, ViewMockLoaders);
         } else if(event == ItemMockLoaderSettings) {
             app->screen = ScreenMockLoaderSettings;
             view_dispatcher_switch_to_view(app->dispatcher, ViewMockLoaderSettings);
+            gta_release_unused(app, ViewMockLoaderSettings);
         }
     } else if(app->screen == ScreenSecretList) {
         if(event == ItemSecretOpen && app->secret_index < gta_secret_mission_count) {
             gta_secret_detail(app, app->secret_index);
         } else if(event == ItemSecretToggle && app->secret_index < gta_secret_mission_count) {
-            gta_secret_progress_toggle(
-                &app->secret_progress,
-                app->secret_storage,
-                gta_secret_missions[app->secret_index].progress_id);
+            const GtaSecretMission* row = gta_secret_at(app->secret_index, false);
+            if(row)
+                gta_secret_progress_toggle(
+                    &app->secret_progress, app->secret_storage, row->progress_id);
             gta_secret_refresh(app);
         }
     } else if(app->screen == ScreenSecretDetail) {
         if(event == ItemSecretToggleDetail && app->secret_index < gta_secret_mission_count) {
-            gta_secret_progress_toggle(
-                &app->secret_progress,
-                app->secret_storage,
-                gta_secret_missions[app->secret_index].progress_id);
-            gta_secret_refresh(app);
+            const GtaSecretMission* row = gta_secret_at(app->secret_index, false);
+            if(row)
+                gta_secret_progress_toggle(
+                    &app->secret_progress, app->secret_storage, row->progress_id);
             gta_secret_detail(app, app->secret_index);
         }
     } else if(app->screen == ScreenSafeCategories) {
@@ -826,8 +1000,9 @@ static bool gta_event(void* context, uint32_t event) {
     } else if(app->screen == ScreenSafeList) {
         if(event >= ItemSafeRow && event - ItemSafeRow < gta_safe_code_count) {
             const size_t index = event - ItemSafeRow;
-            if(!app->safe_category ||
-               gta_safe_codes[index].kind == (GtaSafeKind)(app->safe_category - 1)) {
+            const GtaSafeCode* row = gta_safe_at(index, false);
+            if(row &&
+               (!app->safe_category || row->kind == (GtaSafeKind)(app->safe_category - 1))) {
                 app->safe_list_selection = event;
                 gta_safe_detail(app, index);
             }
@@ -840,6 +1015,7 @@ static bool gta_event(void* context, uint32_t event) {
         app->companion_back = ScreenDispatchRegions;
         app->screen = ScreenCompanion;
         gta_companion_open_dispatch(app->companion, app->dispatch_region);
+        gta_release_unused(app, ViewCollectionDetail);
     } else if(app->screen == ScreenCollections || app->screen == ScreenCollectionGroup) {
         const bool root = app->screen == ScreenCollections;
         const GtaExploreSection* items = root ? gta_explore_sections :
@@ -860,6 +1036,7 @@ static bool gta_event(void* context, uint32_t event) {
             app->companion_back = app->screen;
             app->screen = ScreenCompanion;
             gta_companion_open_exploration(app->companion, selected);
+            gta_release_unused(app, ViewCollection);
         }
     } else if(app->screen == ScreenCategories) {
         app->category_selection = event;
@@ -878,17 +1055,20 @@ static bool gta_event(void* context, uint32_t event) {
         }
     } else if(app->screen == ScreenList && event >= ItemRow) {
         const size_t index = event - ItemRow;
-        if(app->list_mode == ListUnverified && index < gta_screenshot_count &&
-           !gta_screenshot_codes[index].main_catalog_name) {
-            app->list_selection = event;
-            gta_detail(app, NULL, &gta_screenshot_codes[index]);
+        if(app->list_mode == ListUnverified && index < gta_screenshot_count) {
+            const GtaScreenshotCode* shot = gta_screenshot_at(index, true);
+            if(shot && !shot->main_catalog_name) {
+                app->list_selection = event;
+                gta_detail(app, NULL, shot);
+            }
         } else if(app->list_mode != ListUnverified && index < gta_cheat_count) {
-            app->list_selection = event;
-            gta_detail(
-                app,
-                &gta_cheat_catalog[index],
-                gta_screenshot_match(gta_cheat_catalog[index].name));
+            const GtaCheat* cheat = gta_cheat_at(index, true, 0);
+            if(cheat) {
+                app->list_selection = event;
+                gta_detail(app, cheat, gta_screenshot_match(cheat->name));
+            }
         }
+        gta_catalog_release();
     }
     return true;
 }
@@ -932,7 +1112,10 @@ static bool gta_back(void* context) {
         gta_show_menu(app, app->guide_back);
         break;
     case ScreenCompanion:
-        if(!gta_companion_back(app->companion)) gta_show_menu(app, app->companion_back);
+        if(!gta_companion_back(app->companion)) {
+            gta_show_menu(app, app->companion_back);
+            gta_companion_idle(app->companion);
+        }
         break;
     case ScreenCollectionGroup:
         gta_show_menu(app, ScreenCollections);
@@ -945,23 +1128,13 @@ static void gta_finish_startup(void* context) {
 }
 int32_t gta_vi_companion_app(void* args) {
     UNUSED(args);
+    gta_ram_log("entry");
     GtaApp app = {
         .dispatcher = view_dispatcher_alloc(),
         .home = view_alloc(),
-        .menu = submenu_alloc(),
-        .text = text_box_alloc(),
-        .content = furi_string_alloc(),
         .explore_root_selection = ItemExploreRow,
         .safe_category_selection = ItemSafeAll,
     };
-    app.secret_storage = furi_record_open(RECORD_STORAGE);
-    gta_secret_progress_load(&app.secret_progress, app.secret_storage);
-    app.secret_list = view_alloc();
-    view_allocate_model(app.secret_list, ViewModelTypeLocking, sizeof(GtaSecretListModel));
-    view_set_context(app.secret_list, &app);
-    view_set_draw_callback(app.secret_list, gta_secret_list_draw);
-    view_set_input_callback(app.secret_list, gta_secret_list_input);
-    app.secret_detail = widget_alloc();
     Gui* gui = furi_record_open(RECORD_GUI);
     view_dispatcher_set_event_callback_context(app.dispatcher, &app);
     view_dispatcher_set_custom_event_callback(app.dispatcher, gta_event);
@@ -972,10 +1145,6 @@ int32_t gta_vi_companion_app(void* args) {
     view_set_draw_callback(app.home, gta_home_draw);
     view_set_input_callback(app.home, gta_home_input);
     view_dispatcher_add_view(app.dispatcher, ViewHome, app.home);
-    view_dispatcher_add_view(app.dispatcher, ViewSecretList, app.secret_list);
-    view_dispatcher_add_view(app.dispatcher, ViewSecretDetail, widget_get_view(app.secret_detail));
-    view_dispatcher_add_view(app.dispatcher, ViewMenu, submenu_get_view(app.menu));
-    view_dispatcher_add_view(app.dispatcher, ViewText, text_box_get_view(app.text));
     app.mock_loaders =
         gta_mock_loaders_alloc(app.dispatcher, ViewMockLoaders, ViewMockLoaderSettings);
     app.companion = gta_companion_alloc(app.dispatcher, ViewCollection, ViewCollectionDetail);
@@ -996,19 +1165,10 @@ int32_t gta_vi_companion_app(void* args) {
     if(startup_timer) furi_event_loop_timer_free(startup_timer);
     gta_companion_free(app.companion);
     gta_mock_loaders_free(app.mock_loaders);
-    view_dispatcher_remove_view(app.dispatcher, ViewText);
-    view_dispatcher_remove_view(app.dispatcher, ViewMenu);
+    gta_release_unused(&app, ViewHome);
     view_dispatcher_remove_view(app.dispatcher, ViewHome);
-    view_dispatcher_remove_view(app.dispatcher, ViewSecretList);
-    view_dispatcher_remove_view(app.dispatcher, ViewSecretDetail);
     view_dispatcher_free(app.dispatcher);
     view_free(app.home);
-    view_free(app.secret_list);
-    widget_free(app.secret_detail);
-    furi_record_close(RECORD_STORAGE);
-    text_box_free(app.text);
-    submenu_free(app.menu);
-    furi_string_free(app.content);
     furi_record_close(RECORD_GUI);
     return 0;
 }
