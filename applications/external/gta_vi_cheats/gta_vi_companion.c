@@ -631,6 +631,30 @@ static void gta_guide(GtaApp* app) {
         "Effect matches do NOT verify the test inputs. "
         "Xbox equivalents are button-label conversions, not separately sourced codes. "
         "TRI=Triangle CIR=Circle SQR=Square; U/D/L/R=direction.");
+
+    size_t total_items = 0;
+    size_t completed_items = 0;
+    if(gta_companion_progress_summary(app->companion, &total_items, &completed_items)) {
+        /* Hundredths of a percent, rounded: no floating-point printf needed. */
+        const uint32_t progress =
+            total_items ? (uint32_t)((completed_items * 10000u + total_items / 2u) / total_items) :
+                          0u;
+        furi_string_cat_printf(
+            app->content,
+            "\n\nTotal Collection Items: %lu\n"
+            "Total Items Completed: %lu\n"
+            "Progress: %lu.%02lu%%",
+            (unsigned long)total_items,
+            (unsigned long)completed_items,
+            (unsigned long)(progress / 100u),
+            (unsigned long)(progress % 100u));
+    } else {
+        furi_string_cat_printf(
+            app->content,
+            "\n\nTotal Collection Items: Unavailable\n"
+            "Total Items Completed: Unavailable\n"
+            "Progress: Unavailable");
+    }
     gta_show_text(app, ScreenGuide);
 }
 static void gta_money_glitch(GtaApp* app) {

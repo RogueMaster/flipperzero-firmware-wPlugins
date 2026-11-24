@@ -118,6 +118,52 @@ static bool gta_is_checked(const uint8_t* checked, uint16_t id) {
     return (checked[id / 8u] & gta_entry_mask(id)) != 0;
 }
 
+/* Unique collection IDs in v1.9.6, from companion_catalog.c and every
+ * Collections TSV. Regenerate these ranges when adding or removing entries;
+ * do not count the unlisted 4,096-bit progress capacity as collectibles. */
+static const struct {
+    uint16_t first;
+    uint16_t last;
+} gta_collection_id_ranges[] = {
+    {1, 7},
+    {16, 28},
+    {29, 34},
+    {64, 68},
+    {80, 94},
+    {112, 115},
+    {128, 233},
+    {400, 510},
+    {512, 1270},
+    {1272, 2100},
+    {2300, 2548},
+    {3000, 3095},
+    {3582, 3621},
+    {3900, 3908},
+};
+
+bool gta_companion_progress_summary(
+    const GtaCompanion* companion,
+    size_t* total_items,
+    size_t* completed_items) {
+    if(!companion || !total_items || !completed_items || companion->progress_load_failed)
+        return false;
+
+    size_t total = 0;
+    size_t completed = 0;
+    for(size_t i = 0; i < sizeof(gta_collection_id_ranges) / sizeof(gta_collection_id_ranges[0]);
+        ++i) {
+        for(uint16_t id = gta_collection_id_ranges[i].first;
+            id <= gta_collection_id_ranges[i].last;
+            ++id) {
+            ++total;
+            if(gta_is_checked(companion->save.checked, id)) ++completed;
+        }
+    }
+    *total_items = total;
+    *completed_items = completed;
+    return true;
+}
+
 static void gta_set_checked(uint8_t* checked, uint16_t id, bool value) {
     const uint8_t mask = gta_entry_mask(id);
     if(value) {

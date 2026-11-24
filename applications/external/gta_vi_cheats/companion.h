@@ -15,3 +15,8 @@ void gta_companion_open_exploration(GtaCompanion* companion, const GtaExploreSec
 void gta_companion_open_dispatch(GtaCompanion* companion, GtaDispatchRegion region);
 bool gta_companion_custom_event(GtaCompanion* companion, uint32_t event);
 bool gta_companion_back(GtaCompanion* companion);
+/* Counts unique, trackable Collections entries using their saved progress IDs. */
+bool gta_companion_progress_summary(
+    const GtaCompanion* companion,
+    size_t* total_items,
+    size_t* completed_items);

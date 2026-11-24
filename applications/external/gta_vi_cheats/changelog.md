@@ -1,6 +1,10 @@
 # GTA VI Companion changelog
 
 ## v1.9.6 — Vehicles and Collection Updates
+- Corrected Collections progress total to include Piccia Furia (ID 28), which was already tracked but omitted from the summary count; existing checkmarks and IDs are unchanged.
+- Added room-by-room Luxury Watch and gang-operation access routes, and cross-linked publication/card pickups at shared locations.
+- Improved Selkie Hole and Belville meteorite directions, and clarified Del Ocio's detector search and ten-doubloon clearing requirement without adding speculative wrecks.
+- Added collection-wide completion totals and percentage to the end of Quick guide / warnings, using saved checklist progress.
 - Added a checklist of all **80 named Challenge objectives**, grouped by game category with individual goals; retained the existing 19 challenge milestones and their saved checkmarks.
 - Added the first three location-documented **Bret Target Decks** with target species, hunting areas and carcass-quality tips; retained Bret's existing optional-mission entry and documented the remaining unmapped decks as incomplete research.
 - Corrected the No Flusher Tags collection total to **15**, matching the 15 existing WAiNK scan records without duplicating scans.
