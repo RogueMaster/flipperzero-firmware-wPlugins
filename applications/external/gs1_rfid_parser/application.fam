@@ -10,6 +10,6 @@ App(
     fap_category="GPIO",
     fap_author="Kyle Diller",
     fap_weburl="https://github.com/kdiller713/public-FlipperApps/tree/main/gs1_rfid_parser",
-    fap_version="0.2",
+    fap_version="0.3",
     fap_description="This is a GS1 UHF payload parser based on version 2.2 of the Tag Data Standard. This currently only supports parsing SGTIN formatted EPCs. Supporting other EPC formats is possible, but not currently planned. Req: U107 or YRM100.",
 )
