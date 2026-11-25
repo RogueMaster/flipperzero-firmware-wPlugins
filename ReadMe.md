@@ -99,6 +99,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [POCSAG TX v0.1 (By renaudgweb)](https://github.com/renaudgweb/Pocsag_TX)
 - Added: [AirRounds v0.2 (By pavelzaitsau)](https://github.com/pavelzaitsau/airrounds) - Passive Wi-Fi diagnostics `Req: ESP32-S2 WiFi DevBoard with AirRounds Firmware`
 - Updated: [GTA VI Companion v2.0 (By RogueMaster)](https://github.com/RogueMaster/GTA_VI_Companion)
+- Updated: [SIM800 v1.0 adds an SMS inbox and reader plugin, Cyrillic rendering, and modem controls (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/ebd1838e12aa83d88df848cd515b009a95c3882b) [Archive Phone tab integration (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/62ed7711ef072a9d0929225b74c68838fbb779e2)
+- Updated: [POCSAG Pager v2.0 adds a Send plugin, receive history improvements and saved settings (By xMasterX & Shmuma)](https://github.com/xMasterX/flipper-pager)
 
 <a name="release"></a>
 
@@ -953,8 +955,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Pocket Chords v0.1 (By rvonsch)](https://github.com/rvonsch/flipper-pocket-chords)
 - [Pocket CVSS v0.3 (By vavkamil)](https://github.com/vavkamil/pocket-cvss)
 - [PocketLab v1.6 (By PerfectoWeb)](https://github.com/PerfectoWeb/flipper-pocketlab) - Interactive Flipper learning labs
-- [POCSAG Pager v1.4 (By XMasterx & Shmuma)](https://github.com/xMasterX/flipper-pager)
-- [POCSAG TX v0.1 (By renaudgweb)](https://github.com/renaudgweb/Pocsag_TX) - POCSAG encoder and transmitter
+- [POCSAG Pager v2.0 (By XMasterx & Shmuma)](https://github.com/xMasterX/flipper-pager)
+- [POCSAG TX v0.1 (By RenaudG)](https://github.com/renaudgweb/Pocsag_TX) - POCSAG encoder and transmitter
 - [Pokemon Battle [GBC] v0.1 (By cycalo)](https://github.com/cycalo/Flipper-Zero-Game-Boy-Pokemon-Battle) `Req: Link Cable/Adaptor`
 - [Pokemon Trading v2.3 (By EstebanFuentealba & kbembedded)](https://github.com/EstebanFuentealba/Flipper-Zero-Game-Boy-Trading-Pokemons) `Req: Link Cable/Adaptor`
 - [Polk MagnifiMini Remote v1.0 (By varunyellina)](https://github.com/varunyellina/flipper-ir-remote-polkmagnifi)

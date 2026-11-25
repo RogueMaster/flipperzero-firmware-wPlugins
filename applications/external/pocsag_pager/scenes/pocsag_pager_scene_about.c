@@ -22,10 +22,10 @@ void pocsag_pager_scene_about_on_enter(void* context) {
     furi_string_cat_printf(temp_str, "\e#%s\n", "Description");
     furi_string_cat_printf(
         temp_str,
-        "Receiving POCSAG Pager \nmessages \nDefault frequency is set to\nDAPNET - 439987500\n\nUse Config button to set frequency\nCustom frequencies usually can be found in the end of the list - use right arrow button to scroll to the end\n\nTo add new modulations and\nfrequencies create file\n/pocsag/settings.txt\nAnd copy \nsubghz/assets/setting_user.example\ncontents into new\nsettings.txt\n\n");
+        "Receive and send POCSAG\npager messages.\nDefault frequency: DAPNET\n439.9875 MHz\n\nSettings, presets & cache:\napps_data/pocsag_pager/\n\nCustom RX freq list:\napps_data/pocsag_pager/\nsubghz_settings.txt\n\n");
 
     furi_string_cat_printf(
-        temp_str, "Supported protocols:\nPOCSAG 512\nPOCSAG 1200\nPOCSAG 2400\n");
+        temp_str, "Supported RX/TX speeds:\nPOCSAG 512\nPOCSAG 1200\nPOCSAG 2400\n");
 
     widget_add_text_box_element(
         app->widget,

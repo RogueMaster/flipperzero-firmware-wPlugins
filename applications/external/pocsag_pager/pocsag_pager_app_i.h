@@ -1,6 +1,7 @@
 #pragma once
 
 #include "helpers/pocsag_pager_types.h"
+#include "helpers/pocsag_pager_storage.h"
 #include "helpers/radio_device_loader.h"
 
 #include "scenes/pocsag_pager_scene.h"
@@ -11,14 +12,14 @@
 #include <gui/modules/variable_item_list.h>
 #include <gui/modules/widget.h>
 #include <notification/notification_messages.h>
+#include <storage/storage.h>
+#include <flipper_application/flipper_application.h>
 #include "views/pocsag_pager_receiver.h"
-#include "views/pocsag_pager_receiver_info.h"
 #include "pocsag_pager_history.h"
 
 #include <lib/subghz/subghz_setting.h>
 #include <lib/subghz/subghz_worker.h>
 #include <lib/subghz/receiver.h>
-#include <lib/subghz/transmitter.h>
 #include <lib/subghz/registry.h>
 #include <lib/subghz/devices/devices.h>
 
@@ -53,9 +54,16 @@ struct POCSAGPagerApp {
     Submenu* submenu;
     Widget* widget;
     PCSGReceiver* pcsg_receiver;
-    PCSGReceiverInfo* pcsg_receiver_info;
     PCSGLock lock;
     SubGhzSetting* setting;
+
+    PCSGSettings send_settings;
+
+    // On-demand loaded Send/TX .fal plugin handles (NULL during RX)
+    Storage* send_plugin_storage;
+    FlipperApplication* send_plugin_app;
+    const void* send_plugin_api;
+    void* send_plugin_ctx;
 };
 
 void pcsg_preset_init(

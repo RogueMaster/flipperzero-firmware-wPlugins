@@ -25,6 +25,7 @@ static void pocsag_pager_app_tick_event_callback(void* context) {
 
 POCSAGPagerApp* pocsag_pager_app_alloc() {
     POCSAGPagerApp* app = malloc(sizeof(POCSAGPagerApp));
+    memset(app, 0, sizeof(POCSAGPagerApp));
 
     // GUI
     app->gui = furi_record_open(RECORD_GUI);
@@ -58,7 +59,7 @@ POCSAGPagerApp* pocsag_pager_app_alloc() {
     view_dispatcher_add_view(
         app->view_dispatcher, POCSAGPagerViewSubmenu, submenu_get_view(app->submenu));
 
-    // Widget
+    // Widget (About + scrollable Receiver Info)
     app->widget = widget_alloc();
     view_dispatcher_add_view(
         app->view_dispatcher, POCSAGPagerViewWidget, widget_get_view(app->widget));
@@ -70,24 +71,24 @@ POCSAGPagerApp* pocsag_pager_app_alloc() {
         POCSAGPagerViewReceiver,
         pcsg_view_receiver_get_view(app->pcsg_receiver));
 
-    // Receiver Info
-    app->pcsg_receiver_info = pcsg_view_receiver_info_alloc();
-    view_dispatcher_add_view(
-        app->view_dispatcher,
-        POCSAGPagerViewReceiverInfo,
-        pcsg_view_receiver_info_get_view(app->pcsg_receiver_info));
-
-    //init setting
+    // Init setting (prefer apps_data/pocsag_pager/subghz_settings.txt, fallback to legacy path)
     app->setting = subghz_setting_alloc();
+    {
+        Storage* storage = furi_record_open(RECORD_STORAGE);
+        bool has_app_data_cfg = storage_file_exists(storage, APP_DATA_PATH("subghz_settings.txt"));
+        furi_record_close(RECORD_STORAGE);
+        subghz_setting_load(
+            app->setting,
+            has_app_data_cfg ? APP_DATA_PATH("subghz_settings.txt") :
+                               EXT_PATH("subghz/assets/setting_user.pocsag"));
+    }
 
-    //ToDo FIX  file name setting
-
-    subghz_setting_load(app->setting, EXT_PATH("subghz/assets/setting_user.pocsag"));
-
-    //init Worker & Protocol & History
+    // Init Worker & Protocol & History
     app->lock = PCSGLockOff;
     app->txrx = malloc(sizeof(POCSAGPagerTxRx));
+    memset(app->txrx, 0, sizeof(POCSAGPagerTxRx));
     app->txrx->preset = malloc(sizeof(SubGhzRadioPreset));
+    memset(app->txrx->preset, 0, sizeof(SubGhzRadioPreset));
     app->txrx->preset->name = furi_string_alloc();
 
     furi_hal_power_suppress_charge_enter();
@@ -101,7 +102,6 @@ POCSAGPagerApp* pocsag_pager_app_alloc() {
     subghz_devices_idle(app->txrx->radio_device);
 
     // Custom Presets load without using config file
-
     FlipperFormat* temp_fm_preset = flipper_format_string_alloc();
     flipper_format_write_string_cstr(
         temp_fm_preset,
@@ -109,12 +109,16 @@ POCSAGPagerApp* pocsag_pager_app_alloc() {
         (const char*)"02 0D 0B 06 08 32 07 04 14 00 13 02 12 04 11 83 10 67 15 24 18 18 19 16 1D 91 1C 00 1B 07 20 FB 22 10 21 56 00 00 C0 00 00 00 00 00 00 00");
     flipper_format_rewind(temp_fm_preset);
     subghz_setting_load_custom_preset(app->setting, (const char*)"FM95", temp_fm_preset);
-
     flipper_format_free(temp_fm_preset);
 
-    // custom presets loading - end
+    // Load saved settings (last used frequency, RIC, baud, message) from apps_data
+    pcsg_settings_init_defaults(&app->send_settings);
+    pcsg_settings_load(&app->send_settings);
+    if(!subghz_devices_is_frequency_valid(app->txrx->radio_device, app->send_settings.frequency)) {
+        app->send_settings.frequency = PCSG_DEFAULT_FREQ;
+    }
 
-    pcsg_preset_init(app, "FM95", 439987500, NULL, 0);
+    pcsg_preset_init(app, "FM95", app->send_settings.frequency, NULL, 0);
 
     app->txrx->hopper_state = PCSGHopperStateOFF;
     app->txrx->history = pcsg_history_alloc();
@@ -139,6 +143,9 @@ POCSAGPagerApp* pocsag_pager_app_alloc() {
 void pocsag_pager_app_free(POCSAGPagerApp* app) {
     furi_assert(app);
 
+    // Stop active scene (unloads Send .fal plugin if open)
+    scene_manager_stop(app->scene_manager);
+
     // Radio Devices sleep & off
     pcsg_sleep(app);
     radio_device_loader_end(app->txrx->radio_device);
@@ -153,7 +160,7 @@ void pocsag_pager_app_free(POCSAGPagerApp* app) {
     view_dispatcher_remove_view(app->view_dispatcher, POCSAGPagerViewVariableItemList);
     variable_item_list_free(app->variable_item_list);
 
-    //  Widget
+    // Widget
     view_dispatcher_remove_view(app->view_dispatcher, POCSAGPagerViewWidget);
     widget_free(app->widget);
 
@@ -161,14 +168,10 @@ void pocsag_pager_app_free(POCSAGPagerApp* app) {
     view_dispatcher_remove_view(app->view_dispatcher, POCSAGPagerViewReceiver);
     pcsg_view_receiver_free(app->pcsg_receiver);
 
-    // Receiver Info
-    view_dispatcher_remove_view(app->view_dispatcher, POCSAGPagerViewReceiverInfo);
-    pcsg_view_receiver_info_free(app->pcsg_receiver_info);
-
-    //setting
+    // Setting
     subghz_setting_free(app->setting);
 
-    //Worker & Protocol & History
+    // Worker & Protocol & History
     subghz_receiver_free(app->txrx->receiver);
     subghz_environment_free(app->txrx->environment);
     pcsg_history_free(app->txrx->history);

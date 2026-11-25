@@ -9,6 +9,10 @@ App(
     fap_icon_assets="icons",
     fap_icon_assets_symbol="sim800",
     fap_exclude_libs=["gcc"],
+    sources=[
+        "*.c",
+        "!plugins/*.c",
+    ],
     fap_category="GPIO",
     fap_author="xMasterX",
     fap_weburl="https://github.com/DarkFlippers/unleashed-firmware/tree/62ed7711ef072a9d0929225b74c68838fbb779e2/applications/system/sim800",
@@ -16,4 +20,13 @@ App(
     fap_description="Drive a SIM800 GSM module over the GPIO UART: place and receive voice "
     "calls, send SMS, keep a phonebook of numbers and SMS presets, and reach the module's "
     "network, inbox, USSD, DTMF, audio and power commands from one place",
+)
+
+App(
+    appid="sim800_sms_plugin",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="sim800_sms_plugin_ep",
+    requires=["sim800"],
+    sources=["plugins/sim800_sms_plugin.c"],
+    fal_embedded=True,
 )

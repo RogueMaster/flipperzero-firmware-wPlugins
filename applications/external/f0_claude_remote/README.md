@@ -76,4 +76,4 @@ See [Contributing](https://petr-korobeinikov.github.io/f0-claude-remote/contribu
 
 ## License
 
-[GPL-3.0](LICENSE). Copyright (C) 2026 Petr Korobeinikov.
+[GPL-3.0-only](LICENSE). Copyright (C) 2026 Petr Korobeinikov.
