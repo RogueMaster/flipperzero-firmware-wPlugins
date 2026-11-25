@@ -10,6 +10,6 @@ App(
     fap_icon="tpms_10px.png",
     fap_category="Sub-GHz",
     fap_icon_assets="images",
-    fap_version="4.5.2",
+    fap_version="4.5.3",
     fap_description="TPMS Editor: triggering, receiving and sending tire pressure sensor (TPMS) data for various brands"
 )
