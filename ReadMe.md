@@ -102,6 +102,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Sub-GHz: [Add Manually: `Alutech AT4L` (`Alutech AT-4N` protocol with `0x1Dxxxxxx` serial prefix) & Alutech AT-4N CounterMode 1 & 2 now transmit full smart clone packs - Mode 1 uses a 3-press cycle (`0x0000` x4, `0x0001` x4, then `0xFFFE` x4 + `0xFFFF` x4 in one press for MCSW-3.3M); Mode 2 sends `0x0000..0x0005` (14 frames) in a single press while preserving the file counter (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/34c2cf2d0b6917357c6304de295db2ac1f433203)
 - Updated: [SIM800 v1.0 - Fix SIM800C wake/baud/profile-store timeouts and persist audio settings; add embedded Cyrillic `.fal` viewer for SMS, history, and USSD with UCS2 decoding, cached chunked inbox, multipart SMS read/delete/history, delete confirmation, and incoming SMS alerts (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/ebd1838e12aa83d88df848cd515b009a95c3882b)
 - Updated: [MTools v1.2 (By MTools Tec)](https://github.com/mtoolstec/flipper-mtools)
+- Updated: [UHF Expansion v1.9 (By mtoolstec)](https://github.com/mtoolstec/fz-uhf-expansion)
 
 <a name="release"></a>
 
@@ -1121,7 +1122,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [UART Sniff v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
 - [UART Terminal v1.7 (By cool4uma)](https://github.com/cool4uma/UART_Terminal)
 - [UDECard v1.0.4 (By hahnworks)](https://github.com/hahnworks/UDECard) - Duisburg-Essen student card reader
-- [UHF Expansion v1.8 (By mtoolstec)](https://github.com/mtoolstec/fz-uhf-expansion)
+- [UHF Expansion v1.9 (By mtoolstec)](https://github.com/mtoolstec/fz-uhf-expansion)
 - [UHF RFID WIP v1.0 (By frux-c)](https://github.com/frux-c/uhf_rfid) `Req: M100 or QM100`
 - [UID Brute Smarter v1.1 (By fbettag)](https://github.com/fbettag/uid_brute_smarter)
 - [UL-C Bruteforce Optimized v1.0 (By noproto)](https://github.com/zc-public/breakme-resources/tree/main/flipper_apps)

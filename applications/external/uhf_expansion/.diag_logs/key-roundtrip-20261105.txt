@@ -1,0 +1,9 @@
+TEST 00000000 -> 13579BDF -> 00000000
+INVENTORY count=1
+EPC 000000000000000000000001
+INITIAL ok=1 value=00000000 status=Access key read: 4 bytes
+CHANGE ok=1 status=Key written and read back popup=Key written and read back
+VERIFY_NEW ok=1 value=13579BDF status=Access key read: 4 bytes
+RESET ok=1 status=Key reset; zero slot selected popup=Key reset; zero slot selected
+VERIFY_ZERO ok=1 value=00000000 status=Access key read: 4 bytes
+PASS
