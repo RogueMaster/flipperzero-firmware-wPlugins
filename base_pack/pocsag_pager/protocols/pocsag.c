@@ -11,14 +11,14 @@ static const SubGhzBlockConst pocsag_const = {
     .te_delta = 100,
 };
 static const SubGhzBlockConst pocsag512_const = {
-    .te_short = 1950,
-    .te_long = 1950,
+    .te_short = 1953,
+    .te_long = 1953,
     .te_delta = 120,
 };
 static const SubGhzBlockConst pocsag2400_const = {
-    .te_short = 410,
-    .te_long = 410,
-    .te_delta = 60,
+    .te_short = 417,
+    .te_long = 417,
+    .te_delta = 110,
 };
 
 // Minimal amount of sync bits (interleaving zeros and ones)
@@ -27,6 +27,7 @@ static const SubGhzBlockConst pocsag2400_const = {
 #define POCSAG_CW_MASK         0xFFFFFFFF
 #define POCSAG_FRAME_SYNC_CODE 0x7CD215D8
 #define POCSAG_IDLE_CODE_WORD  0x7A89C197
+#define POCSAG_RX_MAX_MSG_LEN  2048U
 
 #define POCSAG_FUNC_NUM      0
 #define POCSAG_FUNC_ALERT1   1
@@ -132,10 +133,17 @@ static bool decode_message_alphanumeric(SubGhzProtocolDecoderPocsag* instance, u
         }
         instance->char_bits++;
         if(instance->char_bits == 7) {
-            if(instance->char_data == 0) return false;
-            furi_string_push_back(instance->msg, instance->char_data);
+            uint8_t ch = instance->char_data;
             instance->char_data = 0;
             instance->char_bits = 0;
+            if(ch == 0) return false;
+            if(furi_string_size(instance->msg) < POCSAG_RX_MAX_MSG_LEN) {
+                if(ch == '\r') {
+                    furi_string_push_back(instance->msg, '\n');
+                } else if(ch == '\n' || (ch >= 0x20 && ch < 0x7F)) {
+                    furi_string_push_back(instance->msg, (char)ch);
+                }
+            }
         }
         data <<= 1;
     }
@@ -155,7 +163,9 @@ static void decode_message_numeric(SubGhzProtocolDecoderPocsag* instance, uint32
             val += '0';
         else
             val = bcd_chars[val - 10];
-        furi_string_push_back(instance->msg, val);
+        if(furi_string_size(instance->msg) < POCSAG_RX_MAX_MSG_LEN) {
+            furi_string_push_back(instance->msg, val);
+        }
     }
 }
 
@@ -179,17 +189,28 @@ static void pocsag_message_done(SubGhzProtocolDecoderPocsag* instance) {
     // append the message to the long-term storage string
     furi_string_printf(
         instance->generic.result_ric,
-        "[P%lu]\e#RIC: %" PRIu32 "\e# | ",
+        "[P%lu] RIC: %" PRIu32 " | ",
         instance->version,
         instance->ric);
     furi_string_cat_str(instance->generic.result_ric, func_msg[instance->func]);
-    if(instance->func != POCSAG_FUNC_ALERT1) {
-        furi_string_cat(instance->done_msg, instance->msg);
+    if(instance->func != POCSAG_FUNC_ALERT1 &&
+       furi_string_size(instance->done_msg) < POCSAG_RX_MAX_MSG_LEN) {
+        size_t avail = POCSAG_RX_MAX_MSG_LEN - furi_string_size(instance->done_msg);
+        if(furi_string_size(instance->msg) <= avail) {
+            furi_string_cat(instance->done_msg, instance->msg);
+        } else {
+            FuriString* clipped = furi_string_alloc_set(instance->msg);
+            furi_string_left(clipped, avail);
+            furi_string_cat(instance->done_msg, clipped);
+            furi_string_free(clipped);
+        }
     }
 
-    furi_string_cat_str(instance->done_msg, " ");
+    if(furi_string_size(instance->done_msg) < POCSAG_RX_MAX_MSG_LEN) {
+        furi_string_cat_str(instance->done_msg, " ");
+    }
 
-    furi_string_cat(instance->generic.result_msg, instance->done_msg);
+    furi_string_set(instance->generic.result_msg, instance->done_msg);
 
     // reset the state
     instance->char_bits = 0;
@@ -409,6 +430,20 @@ SubGhzProtocolStatus
         ret = SubGhzProtocolStatusOk;
     } while(false);
     return ret;
+}
+
+void pocsag_decoder_get_decoded_parts(
+    void* context,
+    const char** out_ric,
+    const char** out_msg) {
+    furi_assert(context);
+    SubGhzProtocolDecoderPocsag* instance = context;
+    if(out_ric) {
+        *out_ric = instance->generic.result_ric ? furi_string_get_cstr(instance->generic.result_ric) : "";
+    }
+    if(out_msg) {
+        *out_msg = instance->generic.result_msg ? furi_string_get_cstr(instance->generic.result_msg) : "";
+    }
 }
 
 void subhz_protocol_decoder_pocsag_get_string(void* context, FuriString* output) {

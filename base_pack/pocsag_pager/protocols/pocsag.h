@@ -11,3 +11,9 @@
 #define SUBGHZ_PROTOCOL_POCSAG_NAME "POCSAG"
 
 extern const SubGhzProtocol subghz_protocol_pocsag;
+
+/** Direct zero-copy access to decoded RIC header and message strings for SD offloading. */
+void pocsag_decoder_get_decoded_parts(
+    void* context,
+    const char** out_ric,
+    const char** out_msg);

@@ -1,33 +1,33 @@
-# Flipper POCSAG Receiver plugin
+# Flipper POCSAG Pager (RX & TX)
 
-## Protocol implementation made by @Shmuma + 512, 2400 speeds support by @htotoo
-Plugin based on [Weather Station](https://github.com/flipperdevices/flipperzero-firmware/tree/dev/applications/plugins/weather_station) from OFW
+## Credits
+- Protocol RX implementation by @Shmuma + 512/2400 baud support by @htotoo
+- TX encoder, UI, presets, and maintenance by @xMasterX
+- Keyboard module adapted from [ESP32 WiFi Marauder Companion](https://github.com/0xchocolate/flipperzero-wifi-marauder)
+- Icons by @Svaarich
+- Originally based on [Weather Station](https://github.com/flipperdevices/flipperzero-firmware/tree/dev/applications/plugins/weather_station) from OFW
 
-Icons by @Svaarich
+## Features
+- **Receive & Transmit POCSAG** (CCIR Rec. 584) at **512, 1200, and 2400 baud** on CC1101-supported frequencies (internal and external CC1101)
+- **Message types (TX & RX):** Alphanumeric (7-bit ASCII), Numeric (BCD), Tone Only (Alert 1), and Alert 2
+- **Polarity (TX):** Normal (standard CCIR 584) and Inverted
+- **2-FSK presets built-in:**
+  - RX: `FM95` (2-FSK ±9.5 kHz deviation)
+  - TX: 2-FSK ±4.76 kHz deviation via async GDO0 DMA modulation
+- **Regional TX check:** respects Flipper regional TX restrictions on Official Firmware (OFW) and frequency limits on Unleashed
+- **Live TX progress bar** with Cancel and Resend
+- **Persistent settings, presets & RX cache on microSD (`/ext/apps_data/pocsag_pager/`):**
+  - Last used frequency and TX fields: `/ext/apps_data/pocsag_pager/settings.txt`
+  - Named RIC & message presets: `/ext/apps_data/pocsag_pager/presets/<name>.txt`
+  - Offloaded RX long messages cache: `/ext/apps_data/pocsag_pager/rx_cache/`
 
-Includes new FM preset built into code - 2FSK with 9.5KHz freq deviation.
+Default frequency is set to DAPNET (`439.9875 MHz` / `439987500 Hz`).
 
-App supports POCSAG 512, POCSAG 1200, POCSAG 2400 decoding on CC1101 supported frequencies! 
-Check datasheet and add required frequency in config file (see details below)
+## Adding Custom RX Frequencies & Modulations
+To add custom frequencies or presets to the selector list, create `/ext/apps_data/pocsag_pager/subghz_settings.txt` (legacy `/ext/pocsag/settings.txt` is also supported as fallback) and copy the contents of [setting_user.example](https://github.com/flipperdevices/flipperzero-firmware/blob/dev/applications/main/subghz/resources/subghz/assets/setting_user.example) into it.
 
-Default frequency is set to DAPNET - "439987500"
-
-To add new presets and frequencies create file "yourMicroSD/pocsag/settings.txt"
-
-And put [THIS](https://github.com/flipperdevices/flipperzero-firmware/blob/dev/applications/main/subghz/resources/subghz/assets/setting_user.example) file contents into it, and edit this example for yourself, add needed frequencies
-
-Warning!!! This file is EXAMPLE! It contains frequencies that are commented with "#"
-
-"#" Is a comment symbol, if that symbol is present at the beggining of the line, that means this line will be ignored! 
-
-To add custom frequency you need to uncomment the line and edit numbers keeping its size (zeros at the end) "Frequency: 433000000" 
-
-To edit default freqency follow same procedure 
-
-All custom frequencies added from this file will be at the end of the list in the frequency selector in the app! Scroll frequencies to the end to find your custom freq. 
-
-Default list > Custom list
-
-
+- Lines starting with `#` are comments and ignored — remove `#` to enable a line (e.g. `Frequency: 433000000`).
+- Custom frequencies appear at the end of the frequency list (`Default list > Custom list`).
+- In **Send message**, press **OK** on `Freq (OK:edit)` to enter any custom frequency directly in MHz (e.g. `439.9875`) or Hz (`439987500`).
 
 All contributions are welcome!

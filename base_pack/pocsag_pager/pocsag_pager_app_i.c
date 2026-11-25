@@ -1,7 +1,6 @@
 #include "pocsag_pager_app_i.h"
 
 #define TAG "POCSAGPager"
-#include <flipper_format/flipper_format_i.h>
 
 void pcsg_preset_init(
     void* context,
@@ -41,7 +40,6 @@ void pcsg_begin(POCSAGPagerApp* app, uint8_t* preset_data) {
     subghz_devices_idle(app->txrx->radio_device);
     subghz_devices_load_preset(app->txrx->radio_device, FuriHalSubGhzPresetCustom, preset_data);
 
-    // furi_hal_gpio_init(furi_hal_subghz.cc1101_g0_pin, GpioModeInput, GpioPullNo, GpioSpeedLow);
     app->txrx->txrx_state = PCSGTxRxStateIDLE;
 }
 
@@ -55,9 +53,6 @@ uint32_t pcsg_rx(POCSAGPagerApp* app, uint32_t frequency) {
 
     subghz_devices_idle(app->txrx->radio_device);
     uint32_t value = subghz_devices_set_frequency(app->txrx->radio_device, frequency);
-
-    // Not need. init in subghz_devices_start_async_tx
-    // furi_hal_gpio_init(furi_hal_subghz.cc1101_g0_pin, GpioModeInput, GpioPullNo, GpioSpeedLow);
 
     subghz_devices_flush_rx(app->txrx->radio_device);
     subghz_devices_set_rx(app->txrx->radio_device);
@@ -89,6 +84,9 @@ void pcsg_rx_end(POCSAGPagerApp* app) {
 
 void pcsg_sleep(POCSAGPagerApp* app) {
     furi_assert(app);
+    if(app->txrx->txrx_state == PCSGTxRxStateRx) {
+        pcsg_rx_end(app);
+    }
     subghz_devices_sleep(app->txrx->radio_device);
     app->txrx->txrx_state = PCSGTxRxStateSleep;
 }

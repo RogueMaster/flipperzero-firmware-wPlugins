@@ -81,6 +81,7 @@ static void pocsag_pager_scene_receiver_config_set_frequency(VariableItem* item)
             (subghz_setting_get_frequency(app->setting, index) % 1000000) / 10000);
         variable_item_set_current_value_text(item, text_buf);
         app->txrx->preset->frequency = subghz_setting_get_frequency(app->setting, index);
+        app->send_settings.frequency = app->txrx->preset->frequency;
     } else {
         variable_item_set_current_value_index(
             item, subghz_setting_get_frequency_default_index(app->setting));
@@ -216,6 +217,7 @@ bool pocsag_pager_scene_receiver_config_on_event(void* context, SceneManagerEven
 
 void pocsag_pager_scene_receiver_config_on_exit(void* context) {
     POCSAGPagerApp* app = context;
+    pcsg_settings_save(&app->send_settings);
     variable_item_list_set_selected_item(app->variable_item_list, 0);
     variable_item_list_reset(app->variable_item_list);
 }

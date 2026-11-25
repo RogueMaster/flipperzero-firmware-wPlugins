@@ -2,6 +2,7 @@
 
 typedef enum {
     SubmenuIndexPOCSAGPagerReceiver,
+    SubmenuIndexPOCSAGPagerSend,
     SubmenuIndexPOCSAGPagerAbout,
 } SubmenuIndex;
 
@@ -11,7 +12,6 @@ void pocsag_pager_scene_start_submenu_callback(void* context, uint32_t index) {
 }
 
 void pocsag_pager_scene_start_on_enter(void* context) {
-    UNUSED(context);
     POCSAGPagerApp* app = context;
     Submenu* submenu = app->submenu;
 
@@ -19,6 +19,12 @@ void pocsag_pager_scene_start_on_enter(void* context) {
         submenu,
         "Receive messages",
         SubmenuIndexPOCSAGPagerReceiver,
+        pocsag_pager_scene_start_submenu_callback,
+        app);
+    submenu_add_item(
+        submenu,
+        "Send message",
+        SubmenuIndexPOCSAGPagerSend,
         pocsag_pager_scene_start_submenu_callback,
         app);
     submenu_add_item(
@@ -44,6 +50,9 @@ bool pocsag_pager_scene_start_on_event(void* context, SceneManagerEvent event) {
             consumed = true;
         } else if(event.event == SubmenuIndexPOCSAGPagerReceiver) {
             scene_manager_next_scene(app->scene_manager, POCSAGPagerSceneReceiver);
+            consumed = true;
+        } else if(event.event == SubmenuIndexPOCSAGPagerSend) {
+            scene_manager_next_scene(app->scene_manager, POCSAGPagerSceneSendHost);
             consumed = true;
         }
         scene_manager_set_scene_state(app->scene_manager, POCSAGPagerSceneStart, event.event);

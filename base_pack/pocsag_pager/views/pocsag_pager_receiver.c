@@ -257,7 +257,8 @@ void pcsg_view_receiver_draw(Canvas* canvas, PCSGReceiverModel* model) {
     case PCSGReceiverBarShowToUnlockPress:
         canvas_draw_str(canvas, 44, 62, furi_string_get_cstr(model->frequency_str));
         canvas_draw_str(canvas, 79, 62, furi_string_get_cstr(model->preset_str));
-        canvas_draw_str(canvas, 96, 62, furi_string_get_cstr(model->history_stat_str));
+        canvas_draw_str_aligned(
+            canvas, 127, 62, AlignRight, AlignBottom, furi_string_get_cstr(model->history_stat_str));
         canvas_set_font(canvas, FontSecondary);
         elements_bold_rounded_frame(canvas, 14, 8, 99, 48);
         elements_multiline_text(canvas, 65, 26, "To unlock\npress:");
@@ -274,7 +275,8 @@ void pcsg_view_receiver_draw(Canvas* canvas, PCSGReceiverModel* model) {
     default:
         canvas_draw_str(canvas, 44, 62, furi_string_get_cstr(model->frequency_str));
         canvas_draw_str(canvas, 79, 62, furi_string_get_cstr(model->preset_str));
-        canvas_draw_str(canvas, 96, 62, furi_string_get_cstr(model->history_stat_str));
+        canvas_draw_str_aligned(
+            canvas, 127, 62, AlignRight, AlignBottom, furi_string_get_cstr(model->history_stat_str));
         break;
     }
 }

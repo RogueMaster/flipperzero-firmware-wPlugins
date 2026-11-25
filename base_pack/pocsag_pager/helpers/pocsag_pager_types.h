@@ -37,8 +37,9 @@ typedef enum {
     POCSAGPagerViewVariableItemList,
     POCSAGPagerViewSubmenu,
     POCSAGPagerViewReceiver,
-    POCSAGPagerViewReceiverInfo,
     POCSAGPagerViewWidget,
+    // Reserved base ID for views dynamically registered by pocsag_pager_send.fal
+    POCSAGPagerViewSendPluginBase = 10,
 } POCSAGPagerView;
 
 /** POCSAGPagerTxRx state */

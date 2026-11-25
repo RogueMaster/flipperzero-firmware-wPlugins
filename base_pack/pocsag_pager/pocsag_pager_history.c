@@ -1,93 +1,131 @@
 #include "pocsag_pager_history.h"
-#include <flipper_format/flipper_format_i.h>
-#include <lib/toolbox/stream/stream.h>
-#include <lib/subghz/receiver.h>
+#include "protocols/pocsag.h"
 #include "protocols/pcsg_generic.h"
 
 #include <furi.h>
+#include <storage/storage.h>
+#include <lib/subghz/receiver.h>
+#include <m-array.h>
+#include <stdio.h>
+#include <string.h>
 
-#define PCSG_HISTORY_MAX 50
-#define TAG              "PCSGHistory"
+#define PCSG_HISTORY_MAX     100U
+#define PCSG_PREVIEW_MAX_LEN 40U
+#define PCSG_RX_CACHE_DIR    APP_DATA_PATH("rx_cache")
+#define TAG                  "PCSGHistory"
 
+// Minimal RAM footprint per message (~52 bytes); full payload lives on microSD.
 typedef struct {
-    FuriString* item_str;
-    FlipperFormat* flipper_string;
+    uint16_t file_id;
+    uint32_t frequency;
     uint8_t type;
-    SubGhzRadioPreset* preset;
+    bool on_sd;
+    char preview[PCSG_PREVIEW_MAX_LEN];
 } PCSGHistoryItem;
 
 ARRAY_DEF(PCSGHistoryItemArray, PCSGHistoryItem, M_POD_OPLIST)
-
 #define M_OPL_PCSGHistoryItemArray_t() ARRAY_OPLIST(PCSGHistoryItemArray, M_POD_OPLIST)
-
-typedef struct {
-    PCSGHistoryItemArray_t data;
-} PCSGHistoryStruct;
 
 struct PCSGHistory {
     uint32_t last_update_timestamp;
     uint16_t last_index_write;
+    uint16_t next_file_id;
     uint8_t code_last_hash_data;
-    FuriString* tmp_string;
-    PCSGHistoryStruct* history;
+    PCSGHistoryItemArray_t data;
 };
+
+static void pcsg_history_make_path(uint16_t file_id, char* buf, size_t buf_size) {
+    snprintf(buf, buf_size, "%s/%04u.txt", PCSG_RX_CACHE_DIR, (unsigned)file_id);
+}
+
+static void pcsg_history_clear_cache_dir(void) {
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    storage_simply_remove_recursive(storage, PCSG_RX_CACHE_DIR);
+    furi_record_close(RECORD_STORAGE);
+}
+
+static void pcsg_history_strip_escapes(const char* src, char* dst, size_t dst_size) {
+    size_t j = 0;
+    for(size_t i = 0; src[i] != '\0' && j + 1 < dst_size; i++) {
+        if(src[i] == '\e' && src[i + 1] != '\0') {
+            i++;
+            continue;
+        }
+        char c = src[i];
+        if(c == '\r' || c == '\n') c = ' ';
+        dst[j++] = c;
+    }
+    dst[j] = '\0';
+}
+
+static bool pcsg_history_write_sd(
+    uint16_t file_id,
+    uint32_t frequency,
+    const char* ric_header,
+    const char* message_body) {
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    storage_simply_mkdir(storage, STORAGE_APP_DATA_PATH_PREFIX);
+    storage_simply_mkdir(storage, PCSG_RX_CACHE_DIR);
+
+    char path[64];
+    pcsg_history_make_path(file_id, path, sizeof(path));
+
+    File* file = storage_file_alloc(storage);
+    bool ok = false;
+
+    if(storage_file_open(file, path, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
+        // Line 1: "[P1200] RIC: 123456 | Msg (439.9875 MHz)"
+        char clean_hdr[96];
+        pcsg_history_strip_escapes(ric_header ? ric_header : "", clean_hdr, sizeof(clean_hdr));
+        size_t hdr_len = strlen(clean_hdr);
+        while(hdr_len > 0 && (clean_hdr[hdr_len - 1] == ' ' || clean_hdr[hdr_len - 1] == ':')) {
+            clean_hdr[--hdr_len] = '\0';
+        }
+
+        char line1[128];
+        int n = snprintf(
+            line1,
+            sizeof(line1),
+            "%s  %lu.%04lu MHz\n",
+            clean_hdr,
+            (unsigned long)(frequency / 1000000U),
+            (unsigned long)((frequency % 1000000U) / 100U));
+
+        bool hdr_ok = (n > 0) && (storage_file_write(file, line1, (size_t)n) == (size_t)n);
+        size_t body_len = message_body ? strlen(message_body) : 0;
+        bool body_ok = (body_len == 0) ||
+                       (storage_file_write(file, message_body, body_len) == body_len);
+        ok = hdr_ok && body_ok;
+        storage_file_close(file);
+    }
+
+    storage_file_free(file);
+    furi_record_close(RECORD_STORAGE);
+    return ok;
+}
 
 PCSGHistory* pcsg_history_alloc(void) {
     PCSGHistory* instance = malloc(sizeof(PCSGHistory));
-    instance->tmp_string = furi_string_alloc();
-    instance->history = malloc(sizeof(PCSGHistoryStruct));
-    PCSGHistoryItemArray_init(instance->history->data);
+    memset(instance, 0, sizeof(PCSGHistory));
+    PCSGHistoryItemArray_init(instance->data);
+    pcsg_history_clear_cache_dir();
     return instance;
 }
 
 void pcsg_history_free(PCSGHistory* instance) {
     furi_assert(instance);
-    furi_string_free(instance->tmp_string);
-    for
-        M_EACH(item, instance->history->data, PCSGHistoryItemArray_t) {
-            furi_string_free(item->item_str);
-            furi_string_free(item->preset->name);
-            free(item->preset);
-            flipper_format_free(item->flipper_string);
-            item->type = 0;
-        }
-    PCSGHistoryItemArray_clear(instance->history->data);
-    free(instance->history);
+    PCSGHistoryItemArray_clear(instance->data);
+    pcsg_history_clear_cache_dir();
     free(instance);
-}
-
-uint32_t pcsg_history_get_frequency(PCSGHistory* instance, uint16_t idx) {
-    furi_assert(instance);
-    PCSGHistoryItem* item = PCSGHistoryItemArray_get(instance->history->data, idx);
-    return item->preset->frequency;
-}
-
-SubGhzRadioPreset* pcsg_history_get_radio_preset(PCSGHistory* instance, uint16_t idx) {
-    furi_assert(instance);
-    PCSGHistoryItem* item = PCSGHistoryItemArray_get(instance->history->data, idx);
-    return item->preset;
-}
-
-const char* pcsg_history_get_preset(PCSGHistory* instance, uint16_t idx) {
-    furi_assert(instance);
-    PCSGHistoryItem* item = PCSGHistoryItemArray_get(instance->history->data, idx);
-    return furi_string_get_cstr(item->preset->name);
 }
 
 void pcsg_history_reset(PCSGHistory* instance) {
     furi_assert(instance);
-    furi_string_reset(instance->tmp_string);
-    for
-        M_EACH(item, instance->history->data, PCSGHistoryItemArray_t) {
-            furi_string_free(item->item_str);
-            furi_string_free(item->preset->name);
-            free(item->preset);
-            flipper_format_free(item->flipper_string);
-            item->type = 0;
-        }
-    PCSGHistoryItemArray_reset(instance->history->data);
+    PCSGHistoryItemArray_reset(instance->data);
     instance->last_index_write = 0;
+    instance->next_file_id = 0;
     instance->code_last_hash_data = 0;
+    pcsg_history_clear_cache_dir();
 }
 
 uint16_t pcsg_history_get_item(PCSGHistory* instance) {
@@ -97,44 +135,32 @@ uint16_t pcsg_history_get_item(PCSGHistory* instance) {
 
 uint8_t pcsg_history_get_type_protocol(PCSGHistory* instance, uint16_t idx) {
     furi_assert(instance);
-    PCSGHistoryItem* item = PCSGHistoryItemArray_get(instance->history->data, idx);
+    PCSGHistoryItem* item = PCSGHistoryItemArray_get(instance->data, idx);
     return item->type;
 }
 
-const char* pcsg_history_get_protocol_name(PCSGHistory* instance, uint16_t idx) {
+uint32_t pcsg_history_get_frequency(PCSGHistory* instance, uint16_t idx) {
     furi_assert(instance);
-    PCSGHistoryItem* item = PCSGHistoryItemArray_get(instance->history->data, idx);
-    flipper_format_rewind(item->flipper_string);
-    if(!flipper_format_read_string(item->flipper_string, "Protocol", instance->tmp_string)) {
-        FURI_LOG_E(TAG, "Missing Protocol");
-        furi_string_reset(instance->tmp_string);
-    }
-    return furi_string_get_cstr(instance->tmp_string);
+    PCSGHistoryItem* item = PCSGHistoryItemArray_get(instance->data, idx);
+    return item->frequency;
 }
 
-FlipperFormat* pcsg_history_get_raw_data(PCSGHistory* instance, uint16_t idx) {
-    furi_assert(instance);
-    PCSGHistoryItem* item = PCSGHistoryItemArray_get(instance->history->data, idx);
-    if(item->flipper_string) {
-        return item->flipper_string;
-    } else {
-        return NULL;
-    }
-}
 bool pcsg_history_get_text_space_left(PCSGHistory* instance, FuriString* output) {
     furi_assert(instance);
-    if(instance->last_index_write == PCSG_HISTORY_MAX) {
-        if(output != NULL) furi_string_printf(output, "Memory is FULL");
+    if(instance->last_index_write >= PCSG_HISTORY_MAX) {
+        if(output != NULL) furi_string_printf(output, "History FULL");
         return true;
     }
-    if(output != NULL)
-        furi_string_printf(output, "%02u/%02u", instance->last_index_write, PCSG_HISTORY_MAX);
+    if(output != NULL) {
+        furi_string_printf(output, "Rx:%u", instance->last_index_write);
+    }
     return false;
 }
 
 void pcsg_history_get_text_item_menu(PCSGHistory* instance, FuriString* output, uint16_t idx) {
-    PCSGHistoryItem* item = PCSGHistoryItemArray_get(instance->history->data, idx);
-    furi_string_set(output, item->item_str);
+    furi_assert(instance);
+    PCSGHistoryItem* item = PCSGHistoryItemArray_get(instance->data, idx);
+    furi_string_set_str(output, item->preview);
 }
 
 PCSGHistoryStateAddKey
@@ -145,79 +171,105 @@ PCSGHistoryStateAddKey
     if(instance->last_index_write >= PCSG_HISTORY_MAX) return PCSGHistoryStateAddKeyOverflow;
 
     SubGhzProtocolDecoderBase* decoder_base = context;
-    if((instance->code_last_hash_data ==
-        subghz_protocol_decoder_base_get_hash_data(decoder_base)) &&
+    uint8_t hash = subghz_protocol_decoder_base_get_hash_data(decoder_base);
+    if((instance->code_last_hash_data == hash) &&
        ((furi_get_tick() - instance->last_update_timestamp) < 500)) {
         instance->last_update_timestamp = furi_get_tick();
         return PCSGHistoryStateAddKeyTimeOut;
     }
 
-    instance->code_last_hash_data = subghz_protocol_decoder_base_get_hash_data(decoder_base);
+    instance->code_last_hash_data = hash;
     instance->last_update_timestamp = furi_get_tick();
 
-    FlipperFormat* fff = flipper_format_string_alloc();
-    subghz_protocol_decoder_base_serialize(decoder_base, fff, preset);
+    const char* ric_cstr = "";
+    const char* msg_cstr = "";
+    if(decoder_base->protocol == &subghz_protocol_pocsag) {
+        pocsag_decoder_get_decoded_parts(decoder_base, &ric_cstr, &msg_cstr);
+    }
 
-    do {
-        if(!flipper_format_rewind(fff)) {
-            FURI_LOG_E(TAG, "Rewind error");
-            break;
-        }
-
-    } while(false);
-    flipper_format_free(fff);
-
-    PCSGHistoryItem* item = PCSGHistoryItemArray_push_raw(instance->history->data);
-    item->preset = malloc(sizeof(SubGhzRadioPreset));
+    PCSGHistoryItem* item = PCSGHistoryItemArray_push_raw(instance->data);
+    memset(item, 0, sizeof(PCSGHistoryItem));
+    item->file_id = instance->next_file_id++;
+    item->frequency = preset ? preset->frequency : 0;
     item->type = decoder_base->protocol->type;
-    item->preset->frequency = preset->frequency;
-    item->preset->name = furi_string_alloc();
-    furi_string_set(item->preset->name, preset->name);
-    item->preset->data = preset->data;
-    item->preset->data_size = preset->data_size;
 
-    item->item_str = furi_string_alloc();
-    item->flipper_string = flipper_format_string_alloc();
-    subghz_protocol_decoder_base_serialize(decoder_base, item->flipper_string, preset);
+    // History list shows only the message text (falls back to RIC/Alert for tone-only)
+    char clean_msg[PCSG_PREVIEW_MAX_LEN];
+    pcsg_history_strip_escapes(msg_cstr, clean_msg, sizeof(clean_msg));
+    const char* trimmed = clean_msg;
+    while(*trimmed == ' ') trimmed++;
+    if(*trimmed != '\0') {
+        strlcpy(item->preview, trimmed, sizeof(item->preview));
+    } else {
+        pcsg_history_strip_escapes(ric_cstr, item->preview, sizeof(item->preview));
+    }
 
-    do {
-        if(!flipper_format_rewind(item->flipper_string)) {
-            FURI_LOG_E(TAG, "Rewind error");
-            break;
-        }
-        if(!flipper_format_read_string(item->flipper_string, "Protocol", instance->tmp_string)) {
-            FURI_LOG_E(TAG, "Missing Protocol");
-            break;
-        }
+    // Offload full message payload straight to microSD
+    item->on_sd = pcsg_history_write_sd(item->file_id, item->frequency, ric_cstr, msg_cstr);
 
-        if(!flipper_format_rewind(item->flipper_string)) {
-            FURI_LOG_E(TAG, "Rewind error");
-            break;
-        }
-        FuriString* temp_ric = furi_string_alloc();
-        if(!flipper_format_read_string(item->flipper_string, "Ric", temp_ric)) {
-            FURI_LOG_E(TAG, "Missing Ric");
-            break;
-        }
-
-        FuriString* temp_message = furi_string_alloc();
-        if(!flipper_format_read_string(item->flipper_string, "Message", temp_message)) {
-            FURI_LOG_E(TAG, "Missing Message");
-            break;
-        }
-
-        furi_string_printf(
-            item->item_str,
-            "%s%s",
-            furi_string_get_cstr(temp_ric),
-            furi_string_get_cstr(temp_message));
-
-        furi_string_free(temp_message);
-        furi_string_free(temp_ric);
-
-    } while(false);
     instance->last_index_write++;
     return PCSGHistoryStateAddKeyNewDada;
+}
 
-    return PCSGHistoryStateAddKeyUnknown;
+bool pcsg_history_load_message(
+    PCSGHistory* instance,
+    uint16_t idx,
+    FuriString* out_header,
+    FuriString* out_body) {
+    furi_assert(instance);
+    furi_assert(out_header);
+    furi_assert(out_body);
+
+    furi_string_reset(out_header);
+    furi_string_reset(out_body);
+
+    if(idx >= instance->last_index_write) return false;
+    PCSGHistoryItem* item = PCSGHistoryItemArray_get(instance->data, idx);
+
+    if(!item->on_sd) {
+        furi_string_printf(
+            out_header,
+            "%lu.%04lu MHz",
+            (unsigned long)(item->frequency / 1000000U),
+            (unsigned long)((item->frequency % 1000000U) / 100U));
+        furi_string_set_str(out_body, item->preview);
+        return true;
+    }
+
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    File* file = storage_file_alloc(storage);
+    char path[64];
+    pcsg_history_make_path(item->file_id, path, sizeof(path));
+
+    bool ok = false;
+    if(storage_file_open(file, path, FSAM_READ, FSOM_OPEN_EXISTING)) {
+        char buf[128];
+        bool in_header = true;
+        size_t read_bytes = 0;
+        while((read_bytes = storage_file_read(file, buf, sizeof(buf))) > 0) {
+            for(size_t i = 0; i < read_bytes; i++) {
+                char c = buf[i];
+                if(in_header) {
+                    if(c == '\n') {
+                        in_header = false;
+                    } else {
+                        furi_string_push_back(out_header, c);
+                    }
+                } else {
+                    furi_string_push_back(out_body, c);
+                }
+            }
+        }
+        storage_file_close(file);
+        ok = true;
+    }
+
+    storage_file_free(file);
+    furi_record_close(RECORD_STORAGE);
+
+    if(!ok) {
+        furi_string_set_str(out_header, "SD read error");
+        furi_string_set_str(out_body, item->preview);
+    }
+    return ok;
 }
