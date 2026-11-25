@@ -99,7 +99,7 @@ size_t gta_record_count(Storage* storage, const char* asset) {
     storage_file_free(file);
     return count;
 }
-/* Split tabs first, then decode field escapes in place for guide catalogs. */
+/* Split tabs first, then decode field escapes in place for TSV catalogs. */
 bool gta_record_decode(GtaRecord* r, size_t size, size_t fields, bool escaped) {
     if(!r->data || !size || !fields || fields > GTA_RECORD_FIELDS || r->data[size - 1] != '\n' ||
        memchr(r->data, 0, size))
@@ -237,9 +237,9 @@ const GtaCheat* gta_cheat_at(size_t index, bool detail, unsigned slot) {
     (void)detail;
     slot = slot ? 1 : 0;
     GtaRecord* r = &cheat_records[slot];
-    if(!read("cheats.tsv", index, 7, r)) return NULL;
+    if(!read("cheats.tsv", index, 8, r)) return NULL;
     char** f = r->field;
-    cheats[slot] = (GtaCheat){f[0], f[1], f[2], f[3], f[4], f[5], f[6]};
+    cheats[slot] = (GtaCheat){f[0], f[1], f[2], f[3], f[4], f[5], f[6], f[7]};
     return &cheats[slot];
 }
 const GtaScreenshotCode* gta_screenshot_at(size_t index, bool detail) {

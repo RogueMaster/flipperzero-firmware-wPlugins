@@ -96,7 +96,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Tesla Mod v2.17.0b7 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 - Added: [POCSAG TX v0.1 (By renaudgweb)](https://github.com/renaudgweb/Pocsag_TX)
 - Added: [AirRounds v0.2 (By pavelzaitsau)](https://github.com/pavelzaitsau/airrounds) - Passive Wi-Fi diagnostics `Req: ESP32-S2 WiFi DevBoard with AirRounds Firmware`
-- Updated: [GTA VI Companion v2.0 (By RogueMaster)](https://github.com/RogueMaster/GTA_VI_Companion)
 - Updated: [POCSAG Pager v2.0 adds a Send plugin, receive history improvements and saved settings (By xMasterX & Shmuma)](https://github.com/xMasterX/flipper-pager)
 - Updated: [Sub-GHz RAW Edit v2.0 (By Lechnio)](https://github.com/Lechnio/SubGHz-RAW-Edit)
 - Sub-GHz: [Add Manually: `Alutech AT4L` (`Alutech AT-4N` protocol with `0x1Dxxxxxx` serial prefix) & Alutech AT-4N CounterMode 1 & 2 now transmit full smart clone packs - Mode 1 uses a 3-press cycle (`0x0000` x4, `0x0001` x4, then `0xFFFE` x4 + `0xFFFF` x4 in one press for MCSW-3.3M); Mode 2 sends `0x0000..0x0005` (14 frames) in a single press while preserving the file counter (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/34c2cf2d0b6917357c6304de295db2ac1f433203)
@@ -106,6 +105,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [GS1 Parser v0.3 (By kdiller713)](https://github.com/kdiller713/public-FlipperApps/tree/main/gs1_rfid_parser) `Req: U107 or YRM100`
 - Updated: [NFC Sniffer v0.3 (By kdiller713)](https://github.com/kdiller713/public-FlipperApps/tree/main/nfc_sniffer)
 - Added: [Tile Scanner v0.2 (By kdiller713)](https://github.com/kdiller713/public-FlipperApps/tree/main/tile_scanner) `Req: ESP32`
+- Updated: [GTA VI Companion v2.0 (By RogueMaster)](https://github.com/RogueMaster/GTA_VI_Companion)
 
 <a name="release"></a>
 

@@ -8,6 +8,7 @@ typedef struct {
     const char* effect;
     const char* unlock;
     const char* status;
+    const char* single_source; /* Optional, not an independently verified input. */
 } GtaCheat;
 extern const GtaCheat gta_cheat_catalog[];
 extern const size_t gta_cheat_count;

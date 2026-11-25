@@ -81,6 +81,7 @@ static const GtaExploreSection activity_robberies[] = {
     GTA_LEAF("Pool Opponents", "pool_opponents", 7, "Beaten"),
     GTA_LEAF("Golf Courses", "golf_courses", 5, "Played"),
     GTA_LEAF("Unique Race Venues", "unique_race_hubs", 13, "Visited"),
+    GTA_LEAF("Unique Race Wins", "unique_races", 40, "Won"),
     GTA_LEAF("Basketball Hoops", "basketball_gps", 100, "Scored"),
 };
 static const GtaExploreSection special_weapons[] = {

@@ -146,7 +146,8 @@ struct GtaCompanion {
     bool dispatch_unavailable;
     bool detail_visible;
     bool links_visible;
-    const char* guide_text;
+    bool money_guide;
+    char money_guide_label[64];
     Submenu* link_menu;
     size_t link_selected;
     FlipperApplication* nfc_module;
@@ -173,20 +174,20 @@ static bool gta_is_checked(const uint8_t* checked, uint16_t id) {
     return (checked[id / 8u] & gta_entry_mask(id)) != 0;
 }
 
-/* Unique collection IDs, from companion_catalog.c and every
- * Collections TSV. Regenerate these ranges when adding or removing entries;
- * do not count the unlisted 8,192-bit progress capacity as collectibles. */
-static const struct {
-    uint16_t first;
-    uint16_t last;
-} gta_collection_id_ranges[] = {
-    {1, 7},       {16, 34},     {64, 68},     {80, 94},     {112, 115},   {128, 233},
-    {400, 510},   {512, 1270},  {1272, 1340}, {1344, 1358}, {1368, 1371}, {1376, 1386},
-    {1392, 1396}, {1400, 1414}, {1416, 1445}, {1456, 1481}, {1483, 1483}, {1488, 1500},
-    {1504, 1595}, {1600, 1785}, {1790, 2078}, {2300, 2429}, {2466, 2552}, {3000, 3095},
-    {3582, 3796}, {3900, 4032}, {4096, 4251}, {4254, 4281}, {4285, 4307}, {4318, 4341},
-    {4348, 4363}, {4371, 4393}, {4399, 4502},
-};
+/* The progress ranges are derived from active catalog IDs and shipped in TSV.
+ * The save format, bit numbering and checked-state logic are unchanged. */
+static bool gta_progress_range_id(const char* field, uint16_t* id) {
+    if(!*field) return false;
+    unsigned n = 0;
+    while(*field) {
+        if(*field < '0' || *field > '9') return false;
+        n = n * 10u + (unsigned)(*field++ - '0');
+        if(n >= GtaProgressBytes * 8u) return false;
+    }
+    if(!n) return false;
+    *id = (uint16_t)n;
+    return true;
+}
 
 bool gta_companion_progress_summary(
     const GtaCompanion* companion,
@@ -195,17 +196,28 @@ bool gta_companion_progress_summary(
     if(!companion || !total_items || !completed_items || companion->progress_load_failed)
         return false;
 
+    const size_t count = gta_record_count(companion->storage, "progress_ranges.tsv");
+    bool ok = count > 0;
+    GtaRecord row = {0};
+    uint16_t previous = 0;
     size_t total = 0;
     size_t completed = 0;
-    for(size_t i = 0; i < sizeof(gta_collection_id_ranges) / sizeof(gta_collection_id_ranges[0]);
-        ++i) {
-        for(uint16_t id = gta_collection_id_ranges[i].first;
-            id <= gta_collection_id_ranges[i].last;
-            ++id) {
-            ++total;
-            if(gta_is_checked(companion->save.checked, id)) ++completed;
+    for(size_t i = 0; ok && i < count; ++i) {
+        uint16_t first = 0, last = 0;
+        ok = gta_record_read(companion->storage, "progress_ranges.tsv", i, 2, &row) &&
+             gta_progress_range_id(row.field[0], &first) &&
+             gta_progress_range_id(row.field[1], &last) && first > previous && last >= first;
+        if(ok) {
+            for(uint16_t id = first; id <= last; ++id) {
+                ++total;
+                if(gta_is_checked(companion->save.checked, id)) ++completed;
+            }
+            previous = last;
         }
+        gta_record_clear(&row);
     }
+    gta_record_index_release();
+    if(!ok) return false;
     *total_items = total;
     *completed_items = completed;
     return true;
@@ -504,8 +516,11 @@ static const GtaCollectionEntry* gta_read_selected(GtaCompanion* companion, size
     return &companion->selected_entry;
 }
 static const GtaCollectionEntry* gta_selected_entry(GtaCompanion* companion) {
-    static const GtaCollectionEntry money_entry = {222, "Apollo Aggregates", NULL, NULL};
-    if(companion->guide_text) return &money_entry;
+    if(companion->money_guide) {
+        companion->selected_entry =
+            (GtaCollectionEntry){222, companion->money_guide_label, NULL, NULL};
+        return &companion->selected_entry;
+    }
     if(companion->dispatch) return companion->dispatch_entry;
     if(!companion->list || !companion->list->count) return NULL;
     return gta_read_selected(companion, *companion->selection);
@@ -514,12 +529,15 @@ static const GtaCollectionEntry* gta_selected_entry(GtaCompanion* companion) {
 static const GtaUrlLinks*
     gta_selected_links(const GtaCompanion* companion, const GtaCollectionEntry* entry) {
     if(!entry) return NULL;
-    if(companion->guide_text) {
-        static const GtaUrlLinks money_map = {
-            .count = 1,
-            .choices = {
-                {"https://gta6gps.com/?p=pin-916938", "Apollo Aggregates", GtaUrlSource, false}}};
-        return &money_map;
+    if(companion->money_guide) {
+        /* The existing catalog already stores this warehouse pin under ID 222.
+         * Keep the money guide's original single-map behavior. */
+        GtaUrlLinks* links = gta_url_links_resolve(entry->id, NULL, NULL);
+        if(links && links->count) {
+            links->count = 1;
+            links->choices[0].label = entry->name;
+        }
+        return links;
     }
     const GtaCollection* collection = companion->dispatch ? companion->dispatch_collection :
                                                             companion->list;
@@ -575,8 +593,19 @@ static void gta_render_detail(GtaCompanion* companion) {
     const GtaCollectionEntry* entry = gta_selected_entry(companion);
     widget_reset(detail);
 
-    if(companion->guide_text) {
-        widget_add_text_scroll_element(detail, 0, 0, 128, 51, companion->guide_text);
+    if(companion->money_guide) {
+        GtaRecord guide = {0};
+        bool loaded =
+            gta_record_find(companion->storage, "guide_misc.tsv", "money_glitch", 3, &guide);
+        snprintf(
+            companion->money_guide_label,
+            sizeof(companion->money_guide_label),
+            "%s",
+            loaded ? guide.field[1] : "Map");
+        widget_add_text_scroll_element(
+            detail, 0, 0, 128, 51, loaded ? guide.field[2] : "Guide data unavailable.");
+        /* The widget copies text, as in the normal collection renderer. */
+        gta_record_clear(&guide);
         widget_add_button_element(detail, GuiButtonTypeRight, "Map", gta_detail_button, companion);
         return;
     }
@@ -814,7 +843,7 @@ static void gta_nfc_return(GtaCompanion* companion, bool exit, bool show_links) 
         } else {
             companion->links_visible = false;
             // Dispatch and the money guide have no originating checklist view.
-            if(companion->dispatch || companion->guide_text)
+            if(companion->dispatch || companion->money_guide)
                 gta_render_detail(companion);
             else
                 gta_companion_back(companion);
@@ -911,7 +940,7 @@ static bool gta_read_collection_row(GtaCompanion* companion, size_t row, GtaReco
     bool ok = r->data && storage_file_seek(f, start, true) &&
               storage_file_read(f, r->data, n) == n && r->data[n - 1] == '\n';
     storage_file_free(f);
-    if(ok) ok = gta_record_decode(r, n, 4, companion->vehicle_asset) && *r->field[1];
+    if(ok) ok = gta_record_decode(r, n, 4, true) && *r->field[1];
     if(!ok) gta_record_clear(r);
     return ok;
 }
@@ -973,7 +1002,8 @@ static bool gta_load_explore_asset(GtaCompanion* companion, const char* asset) {
     return true;
 }
 static void gta_release_exploration(GtaCompanion* companion) {
-    companion->guide_text = NULL;
+    companion->money_guide = false;
+    companion->money_guide_label[0] = 0;
     companion->links_visible = false;
     companion->link_selected = 0;
     if(companion->list_view)
@@ -1199,11 +1229,11 @@ void gta_companion_open_exploration_item(
     }
 }
 
-void gta_companion_open_money_glitch(GtaCompanion* companion, const char* text) {
+void gta_companion_open_money_glitch(GtaCompanion* companion) {
     gta_release_exploration(companion);
     companion->dispatch = false;
     companion->links_visible = false;
-    companion->guide_text = text;
+    companion->money_guide = true;
     gta_show_detail(companion);
 }
 
@@ -1232,7 +1262,7 @@ bool gta_companion_custom_event(GtaCompanion* companion, uint32_t event) {
             gta_emulate_link(companion, event - GtaLinkSelect);
         return true;
     }
-    if(companion->guide_text) {
+    if(companion->money_guide) {
         if(event == GtaDetailLinks) gta_open_links(companion);
         return true;
     }
@@ -1266,14 +1296,15 @@ bool gta_companion_back(GtaCompanion* companion) {
         companion->links_visible = false;
         view_dispatcher_switch_to_view(companion->dispatcher, companion->detail_view_id);
         gta_link_menu_release(companion);
-        if(companion->dispatch || companion->guide_text) {
+        if(companion->dispatch || companion->money_guide) {
             gta_render_detail(companion);
             return true;
         }
         // Fall through to the originating checklist with its selection intact.
     }
-    if(companion->guide_text) {
-        companion->guide_text = NULL;
+    if(companion->money_guide) {
+        if(companion->detail) widget_reset(companion->detail);
+        gta_release_exploration(companion);
         companion->detail_visible = false;
         return false;
     }
