@@ -32,9 +32,10 @@ env = ENV.Clone(
         Dir("applications"),
         # Not C code
         Dir("!applications/system/js_app/packages"),
-        Dir("!applications/external/nfc_sniffer"),
         Dir("!applications/external/gs1_rfid_parser"),
         Dir("!applications/external/hotspot_arcade/assets/packs"),
+        Dir("!applications/external/nfc_sniffer"),
+        Dir("!applications/external/tile_scanner"),
         # Avoid merge conflicts
         # Dir("!applications/external"),
     ],

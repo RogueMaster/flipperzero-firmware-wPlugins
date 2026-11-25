@@ -4,6 +4,11 @@ App(
     apptype=FlipperAppType.EXTERNAL,
     entry_point="tile_scanner_app",
     stack_size=4 * 1024,
+    sources=[
+        "*.c",
+        "!esp32",
+        "!js",
+    ],
     fap_icon="assets/tile_scanner.png",
     fap_icon_assets="assets",
     fap_category="GPIO/ESP32",
