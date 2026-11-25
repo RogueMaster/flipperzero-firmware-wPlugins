@@ -1,6 +1,6 @@
 # MTools for Flipper Zero
 
-MTools is a Flipper Zero NFC application for checking magic tags, changing UIDs, and opening the compatible-card URL with NDEF emulation. The build uses the Flipper SDK through `ufbt`.
+MTools is a Flipper Zero NFC application for checking MIFARE Classic, MIFARE Ultralight / NTAG, and ISO 15693 magic tags, changing UIDs, and opening the compatible-card URL with NDEF emulation. The build uses the Flipper SDK through `ufbt`.
 
 The app uses Flipper Zero's built-in NFC hardware and needs no expansion module.
 
@@ -27,8 +27,9 @@ MTools is distributed under the [GNU General Public License v3.0](LICENSE).
 | `mtools_app.c`, `mtools_app.h` | App allocation, scene routing, shared handles and state |
 | `features/magic_check.c` | Magic Check scan, probe and result timing |
 | `features/uid_changer.c` | UID Changer steps, input and read/write orchestration |
+| `features/bcc_recover.c` | BCC Recover state machine, diagnosis and recovery orchestration |
 | `features/about_ndef.c` | About page URL emulation |
-| `ui/mtools_ui.c` | Home, About and Magic Check drawing |
+| `ui/mtools_ui.c` | Home, About, Magic Check, and BCC Recover drawing |
 | `ui/uid_changer_ui.c` | UID Changer drawing and generation labels |
 | `ui/nfc_scan_art.c` | Shared Flipper, arrow, fob and card drawing |
 | `nfc/card_info.c` | Shared scanner protocol classification and ISO15 chip names |
@@ -36,6 +37,7 @@ MTools is distributed under the [GNU General Public License v3.0](LICENSE).
 | `nfc/magic_detector.c` | Read-only generation probes |
 | `nfc/magic_writer.c` | Generation-specific writes and readback verification |
 | `nfc/magic_tag.h` | Generation enum and detector/writer API |
+| `nfc/mfu_recovery.c` | Raw ISO14443-3A poller with forced anticollision for MFU BCC recovery |
 
 ## Adding a tool
 
@@ -71,7 +73,7 @@ therefore remain undetected.
 
 ## Asset attribution
 
-`images/NFC_manual_60x50.png` is the NFC manual illustration from [Flipper Zero firmware](https://github.com/flipperdevices/flipperzero-firmware/blob/dev/assets/icons/NFC/NFC_manual_60x50.png), which is licensed under GPL-3.0. Magic Check draws the original Flipper body and overlays a new card illustration at runtime.
+`images/NFC_manual_60x50.png` and `images/NFC_dolphin_emulation_51x64.png` are from [Flipper Zero firmware](https://github.com/flipperdevices/flipperzero-firmware), licensed under GPL-3.0. Magic Check draws the original Flipper body and overlays a new card illustration at runtime.
 
 ## DirectWrite MFU / NTAG UID changes
 
@@ -90,5 +92,34 @@ and does not reselect the card between writes. Page 2's internal and static
 lock bytes are preserved. It verifies pages 0–2 before stopping the poller,
 then starts a fresh RF session to check the anticollision UID. If a later page
 write fails, it attempts to restore the original UID pages in the same session.
-An interrupted RF field or unsuccessful restoration can still require UID/BCC
-recovery with a separate recovery tool.
+An interrupted RF field or unsuccessful restoration can leave corrupted BCC bytes,
+preventing standard ISO14443-A readers from selecting the card. Use the built-in
+**BCC Recover** tool to force cascade selection (ignoring invalid BCC bytes), diagnose
+the corrupted values, and restore valid BCC0 and BCC1 pages with DirectWrite `0xA2`.
+
+## ISO15693 Gen1 variants
+
+Magic Check does not identify Gen1 from IC reference, UID manufacturer, or
+28/56-block capacity alone. It checks the UID at fixed blocks `0x38`/`0x39`
+using unaddressed reads, only when these addresses are outside the advertised
+user memory. Matching hidden UID bytes are a fingerprint, not a guarantee that
+the UID can be changed. If no fingerprint matches, tags with 28 or 56
+four-byte blocks show `Possible ISO15 GEN1`, regardless of IC reference.
+This is a layout hint and does not confirm write capability; other unmatched
+layouts remain unconfirmed. UID Changer can use the manually selected
+ISO15693 Gen1 method on a known compatible tag.
+
+The Gen1 writer sends the optional unlock writes to `0x3E`/`0x3F`, then writes
+the UID in little-endian order to `0x38`/`0x39`. Some variants return `01 10`
+(block unavailable) for both unlock writes; the writer continues for that
+specific response. Other explicit errors, including `01 10` on a UID block,
+fail the write. Unlock timeouts are tolerated, but both UID block writes
+require explicit success responses. Success also requires the inventory UID
+to match after restarting the RF session. The same fixed addresses and UID
+byte order apply to both 28-block and 56-block variants.
+
+Writing the original UID back can test command compatibility, but unchanged
+inventory alone cannot prove the tag stored the bytes or can change its UID.
+This is an explicit write through UID Changer, not an automatic Magic Check
+probe. A full UID-change test requires a different UID and restoration of the
+original; the app does not perform that test automatically.

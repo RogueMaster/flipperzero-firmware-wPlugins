@@ -91,7 +91,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Barcode App v2.1 (By Kingal1337 & AzureSky)](https://github.com/Kingal1337/flipper-barcode-generator)
 - Added: [TommyBox Capture v1.0 (By mitchsurp)](https://github.com/mitchsurp/Tonies-Capture-Flipper)
 - Removed: Desktop: [Hold Right in the up-menu for brightness, volume and vibro controls (By xMasterX; RM adaptation by RogueMaster)](https://github.com/DarkFlippers/unleashed-firmware/commit/f587620ec563e84219ddf80aca157ee83f3a259a)
-- Updated: [MTools v1.1 labels possible ISO15693 Gen1 tags (By MTools Tec)](https://github.com/mtoolstec/flipper-mtools)
 - Updated: [Badge Wallet v1.0 fixes long filenames and unsupported listeners (By lewisQ17)](https://github.com/lewisQ17/Momentum-Firmware)
 - Updated: [IR Remote Maker v1.0 rejects incomplete loads and preserves edited commands (By lewisQ17)](https://github.com/lewisQ17/Momentum-Firmware)
 - Updated: [Tesla Mod v2.17.0b7 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
@@ -102,6 +101,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Sub-GHz RAW Edit v2.0 (By Lechnio)](https://github.com/Lechnio/SubGHz-RAW-Edit)
 - Sub-GHz: [Add Manually: `Alutech AT4L` (`Alutech AT-4N` protocol with `0x1Dxxxxxx` serial prefix) & Alutech AT-4N CounterMode 1 & 2 now transmit full smart clone packs - Mode 1 uses a 3-press cycle (`0x0000` x4, `0x0001` x4, then `0xFFFE` x4 + `0xFFFF` x4 in one press for MCSW-3.3M); Mode 2 sends `0x0000..0x0005` (14 frames) in a single press while preserving the file counter (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/34c2cf2d0b6917357c6304de295db2ac1f433203)
 - Updated: [SIM800 v1.0 - Fix SIM800C wake/baud/profile-store timeouts and persist audio settings; add embedded Cyrillic `.fal` viewer for SMS, history, and USSD with UCS2 decoding, cached chunked inbox, multipart SMS read/delete/history, delete confirmation, and incoming SMS alerts (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/ebd1838e12aa83d88df848cd515b009a95c3882b)
+- Updated: [MTools v1.2 (By MTools Tec)](https://github.com/mtoolstec/flipper-mtools)
 
 <a name="release"></a>
 
@@ -868,7 +868,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [MP3 Player v3.5 (By coolshrimp)](https://github.com/coolshrimp/flipperzero-mp3-player)
 - [MQ-3 Alcometer v1.0 (By serjantlk)](https://github.com/serjantlk/MQ-3-Alcometer) `Req: MQ-3 Breathalyzer` [Sold Here](https://flipperaddons.com/product/mq-3-alkotester)
 - [MR60FDA1 Radar v0.1 (By adamaratski)](https://github.com/adamaratski/flipperzero-r60afd1) `Req: MR60FDA1/MR60FDA2`
-- [MTools v1.1 (By mtoolstec)](https://github.com/mtoolstec/flipper-mtools)
+- [MTools v1.2 (By mtoolstec)](https://github.com/mtoolstec/flipper-mtools)
 - [Multi Converter v1.3 (By theisolinearchip)](https://github.com/theisolinearchip)
 - [Multi Tally v1.0 (By aseypalich1)](https://github.com/aseypalich1/flipper-multi-counter)
 - [MultiTimer v1.1 (By C0d3-5t3w)](https://github.com/C0d3-5t3w/flipper-multitimer)

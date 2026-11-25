@@ -16,14 +16,25 @@
 #include <nfc/protocols/iso15693_3/iso15693_3_poller.h>
 #include <notification/notification.h>
 #include "nfc/magic_tag.h"
+#include "nfc/mfu_recovery.h"
 
 typedef enum {
     MToolsSceneHome,
     MToolsSceneMagicType,
     MToolsSceneUidChange,
+    MToolsSceneBccRecover,
     MToolsSceneAbout,
     MToolsSceneCount,
 } MToolsScene;
+
+typedef enum {
+    BccRecoverStatePrompt,
+    BccRecoverStateReading,
+    BccRecoverStateDiagnosed,
+    BccRecoverStateWriting,
+    BccRecoverStateSuccess,
+    BccRecoverStateFailed,
+} BccRecoverState;
 
 typedef struct MToolsUidChanger MToolsUidChanger;
 
@@ -37,6 +48,7 @@ typedef struct MToolsApp {
     View* main_view;
     MToolsUidChanger* uid_changer;
     uint8_t selected_tool;
+    uint8_t home_window_offset;
     uint8_t active_scene;
     uint8_t about_page;
     uint8_t about_list_page;
@@ -65,6 +77,10 @@ typedef struct MToolsApp {
     uint8_t magic_uid_len;
     uint8_t magic_sak;
     uint8_t magic_atqa[2];
+    BccRecoverState bcc_state;
+    MfuRecoveryResult bcc_result;
+    FuriThread* bcc_thread;
+    bool bcc_worker_running;
 } MToolsApp;
 
 int32_t mtools_app(void* p);
