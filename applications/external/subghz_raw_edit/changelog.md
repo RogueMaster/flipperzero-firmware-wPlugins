@@ -1,15 +1,20 @@
-## v1.10
+## v2.0
 
 - Loading a decoded signal shows the loading screen instead of briefly flashing the main menu before the button picker.
 - *Config* shows, under a read-only line, whether custom buttons and keeping the rolling counter are available in this build.
-- The fixed 24000-sample limit is gone: how long a signal can be now depends on free RAM, always leaving room for Decode and Save. On Unleashed that is up to about 39000 samples.
-- A signal that doesn't fit in RAM is loaded up to that point with a *Signal truncated* warning instead of being cut silently.
-- *Cut* on a signal too big for an Undo copy asks *No RAM for Undo. Cut anyway?* instead of refusing.
-- *Decode* reports *Low memory* instead of crashing when free RAM is split into pieces too small for a decoder.
+- No length limit: the signal is kept in a working file on the SD card and RAM holds a window of it, as big as free RAM allows (up to about 38000 samples on a fresh boot), always leaving room for Decode and Save. Pushing A or B past the window's edge slides it a quarter further; zooming out stops at the window with *No RAM to zoom out*.
+- When RAM fits fewer than 15000 samples of a signal that doesn't fit whole, a *Low RAM* screen offers *Reboot* or *Continue*.
+- *Cut* and *Undo* work on the working file, so Undo is always available and takes no RAM.
+- Left/Right on *Cut* in the action menu switch it to *Copy* (A..B to a clipboard file) and *Paste* (the clipboard inserted at the active marker, then selected); *Cut* also puts what it removes on the clipboard, and Undo covers pastes too.
+- *Undo* keeps a history of the last 32 cuts and pastes: with more than one it lists them, newest first with the samples removed and where, and goes back to before the one picked.
+- Merging is bounded by the SD card instead of RAM.
+- *Decode* checks for the RAM it really takes (8 KB, in pieces of at most 2 KB) and reports *Low memory* with the free RAM instead of crashing. It skips BinRAW, which needs the receiver's RSSI, and drops the KeeLoq keystore again when loading it leaves too little.
+- *Decode* tries every manufacturer on each KeeLoq frame: on custom firmware a remote of another make after the first one in A..B came out as *Unknown*.
 - A file name too long for the top bar scrolls instead of losing its last letters.
 - *Decode*, *Save* and *Cut* no longer flash the main menu between their screens; *Decoding...* stays up until the list shows.
 - Loading a merge shows the same *Loading...* screen as loading a file.
 - A decoded entry has a *Locate* button that sets A..B exactly on its frame, the first one when it repeats.
+- The long-press menu sits on the left with a read-only panel beside it showing A..B's sample count, TE and line coding (PWM, PPM, Manchester, NRZ or 1:1).
 
 ## v1.9
 

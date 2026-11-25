@@ -2,7 +2,7 @@
 
 #include "app.h"
 
-static void fmt_time(int32_t us, char* out, size_t n) {
+void fmt_time(int32_t us, char* out, size_t n) {
     if(us < 0) us = 0;
 
     if(us < 1000) {
@@ -25,20 +25,28 @@ static int time_to_x(App* a, int32_t t) {
     return (int)(((int64_t)(t - a->view_start) * SCREEN_W_PX) / span);
 }
 
+// Markers stay in the RAM window.
 void clamp_marker(App* a, int idx) {
     int32_t* m = idx ? &a->marker_b : &a->marker_a;
-    if(*m < 0) *m = 0;
-    if(*m > a->sd.total_us) *m = a->sd.total_us;
+    int32_t lo = a->sd.win_t0, hi = lo + a->sd.win_us;
+    if(*m < lo) *m = lo;
+    if(*m > hi) *m = hi;
+}
+
+/* How far the view may reach: the RAM window, plus a margin past the signal's
+ * real start and end. */
+static int32_t view_bounds(const App* a, int32_t* lo, int32_t* hi) {
+    const SubData* sd = &a->sd;
+    int32_t w = sd->win_us > 0 ? sd->win_us : 1;
+    int32_t margin = w / 3 + 50000;
+    *lo = sd->win_s0 ? sd->win_t0 : -margin;
+    *hi = sd->win_t0 + w + (sd->win_s0 + sd->count < sd->file_count ? 0 : margin);
+    return *hi - *lo;
 }
 
 void clamp_view(App* a) {
-    int32_t total = a->sd.total_us;
-    if(total < 1) total = 1;
-
-    int32_t margin = total / 3 + 50000;
-    int32_t lo = -margin;
-    int32_t hi = total + margin;
-    int32_t fullspan = hi - lo;
+    int32_t lo, hi;
+    int32_t fullspan = view_bounds(a, &lo, &hi);
 
     int32_t span = a->view_end - a->view_start;
     if(span < 200) span = 200;
@@ -83,7 +91,7 @@ void recompute_activity(App* a) {
 
     a->wave_mode = (span <= 30000);
 
-    int32_t run = 0;
+    int32_t run = a->sd.win_t0;
     uint16_t mx = 0;
     for(size_t i = 0; i < a->sd.count; i++) {
         int32_t ad = iabs32(a->sd.data[i]);
@@ -109,34 +117,6 @@ void recompute_activity(App* a) {
     a->act_max = mx ? mx : 1;
 }
 
-void recompute_overview(App* a) {
-    memset(a->overview, 0, sizeof(a->overview));
-    int32_t total = a->sd.total_us;
-    if(total < 1) total = 1;
-
-    int32_t run = 0;
-    uint16_t mx = 0;
-    for(size_t i = 0; i < a->sd.count; i++) {
-        int32_t ad = iabs32(a->sd.data[i]);
-        int32_t s0 = run;
-        run += ad;
-
-        if(!sample_is_edge(&a->sd, i)) continue;
-
-        int x = (int)(((int64_t)s0 * SCREEN_W_PX) / total);
-
-        if(x < 0) x = 0;
-
-        if(x > SCREEN_W_PX - 1) x = SCREEN_W_PX - 1;
-
-        if(a->overview[x] < 65535) a->overview[x]++;
-
-        if(a->overview[x] > mx) mx = a->overview[x];
-    }
-
-    a->ov_max = mx ? mx : 1;
-}
-
 /* Select the frame start..end and frame the view around it. B extends into
  * the trailing inter-frame gap so the selection keeps the end-of-frame
  * silence that decoders (KeeLoq, ...) require to finalize a frame. Without it
@@ -156,8 +136,9 @@ __attribute__((noinline)) void select_frame(App* a, int32_t start, int32_t end, 
     clamp_view(a);
 }
 
+// Runs on a fresh window, which starts the signal.
 void auto_detect(App* a) {
-    int32_t total = a->sd.total_us;
+    int32_t total = a->sd.win_us;
 
     if(a->sd.synthesized) {
         a->marker_a = 0;
@@ -316,7 +297,7 @@ void draw_cb(Canvas* c, void* ctx) {
         int yhi = WAVE_TOP + 2;
         int ylo = WAVE_BOT - 2;
 
-        int32_t run = 0;
+        int32_t run = a->sd.win_t0;
         int prev_x = -1;
         int prev_y = ylo;
 
@@ -375,7 +356,7 @@ void draw_cb(Canvas* c, void* ctx) {
         canvas_draw_str_aligned(c, 0, (WAVE_TOP + WAVE_BOT) / 2, AlignLeft, AlignCenter, "<");
     }
 
-    if(a->view_end < a->sd.total_us || a->sd.truncated) {
+    if(a->view_end < a->sd.total_us) {
         canvas_draw_str_aligned(
             c, SCREEN_W_PX - 1, (WAVE_TOP + WAVE_BOT) / 2, AlignRight, AlignCenter, ">");
     }
@@ -416,27 +397,50 @@ void draw_cb(Canvas* c, void* ctx) {
         canvas_set_color(c, ColorBlack);
         canvas_draw_frame(c, 2, 22, w, 22);
 
-        const char* msg = a->status;
-        if(strncmp(msg, "Saved ", 6) == 0) {
-            canvas_draw_str_aligned(c, 64, 29, AlignCenter, AlignCenter, "Saved");
-            canvas_draw_str_aligned(c, 64, 38, AlignCenter, AlignCenter, msg + 6);
+        // One line, or two split at '\n'
+        char* nl = strchr(a->status, '\n');
+        if(nl) {
+            *nl = '\0';
+            canvas_draw_str_aligned(c, 64, 29, AlignCenter, AlignCenter, a->status);
+            canvas_draw_str_aligned(c, 64, 38, AlignCenter, AlignCenter, nl + 1);
+            *nl = '\n';
         } else {
-            canvas_draw_str_aligned(c, 64, 33, AlignCenter, AlignCenter, msg);
+            canvas_draw_str_aligned(c, 64, 33, AlignCenter, AlignCenter, a->status);
         }
     }
 
     if(a->mode == EditModeMenu) {
-        const int bx = 36, bw = 56, bh = MENU_ITEMS * 14 + 4, by = (SCREEN_H_PX - bh) / 2;
+        const int bx = 4, bw = 52, bh = MENU_ITEMS * 14 + 4, by = (SCREEN_H_PX - bh) / 2;
         canvas_set_color(c, ColorWhite);
         canvas_draw_box(c, bx, by, bw, bh);
         canvas_set_color(c, ColorBlack);
         canvas_draw_frame(c, bx, by, bw, bh);
 
-        const char* labels[MENU_ITEMS] = {"Save", "Decode", "Cut", "Undo"};
+        // Read-only A..B details on the right.
+        const int px = bx + bw + 3, pw = SCREEN_W_PX - 2 - px, ph = 3 * 10 + 6,
+                  py = (SCREEN_H_PX - ph) / 2;
+        canvas_set_color(c, ColorWhite);
+        canvas_draw_box(c, px, py, pw, ph);
+        canvas_set_color(c, ColorBlack);
+        canvas_draw_frame(c, px, py, pw, ph);
+
+        char info[3][20];
+        snprintf(info[0], sizeof(info[0]), "Spl: %lu", (unsigned long)a->info_spl);
+        if(a->info_te)
+            snprintf(info[1], sizeof(info[1]), "TE: %luus", (unsigned long)a->info_te);
+        else
+            snprintf(info[1], sizeof(info[1]), "TE: -");
+        snprintf(info[2], sizeof(info[2]), "Enc: %s", a->info_enc ? a->info_enc : "-");
+        for(int i = 0; i < 3; i++)
+            canvas_draw_str(c, px + 4, py + 3 + FONT_SIZE_PX + i * 10, info[i]);
+
+        static const char* const ops[EditOps] = {"Cut", "Copy", "Paste"};
+        const char* labels[MENU_ITEMS] = {"Save", "Decode", ops[a->edit_op], "Undo"};
         for(int i = 0; i < MENU_ITEMS; i++) {
             int ry = by + 2 + i * 14;
             int rh = 13;
-            bool disabled = (i == MENU_SEL_UNDO && !a->has_undo);
+            bool disabled = (i == MENU_SEL_UNDO && !a->undo_n) ||
+                            (i == MENU_SEL_CUT && a->edit_op == EditPaste && !a->clip_count);
 
             if(a->menu_sel == i) {
                 canvas_set_color(c, ColorBlack);
@@ -450,6 +454,15 @@ void draw_cb(Canvas* c, void* ctx) {
             canvas_draw_str_aligned(c, cx, ry + rh / 2 + 1, AlignCenter, AlignCenter, labels[i]);
 
             if(disabled) canvas_draw_line(c, cx - 13, ry + rh / 2, cx + 13, ry + rh / 2);
+
+            // Filled arrowheads: Left/Right switch Cut, Copy and Paste
+            if(i == MENU_SEL_CUT) {
+                int cy = ry + rh / 2;
+                for(int j = 0; j < 3; j++) {
+                    canvas_draw_line(c, bx + 5 + j, cy - j, bx + 5 + j, cy + j);
+                    canvas_draw_line(c, bx + bw - 6 - j, cy - j, bx + bw - 6 - j, cy + j);
+                }
+            }
         }
 
         canvas_set_color(c, ColorBlack);
@@ -469,8 +482,15 @@ void zoom(App* a, bool in) {
     int32_t nspan = in ? (span * 2 / 3) : (span * 3 / 2);
     if(nspan < 200) nspan = 200;
 
-    int32_t fullspan = a->sd.total_us + 2 * (a->sd.total_us / 3 + 50000);
-    if(nspan > fullspan) nspan = fullspan;
+    int32_t lo, hi;
+    int32_t fullspan = view_bounds(a, &lo, &hi);
+    if(nspan > fullspan) {
+        nspan = fullspan;
+        if(!in && work_windowed(&a->sd)) {
+            snprintf(a->status, sizeof(a->status), "No RAM to zoom out\nMove sideways");
+            a->status_until = furi_get_tick() + 1500;
+        }
+    }
 
     if(nspan < 1) nspan = 1;
 

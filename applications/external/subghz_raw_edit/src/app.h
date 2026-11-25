@@ -5,6 +5,10 @@
  * https://github.com/Lechnio/SubGHz-RAW-Edit
  */
 
+#ifdef HOST_TEST
+// tests/: the few firmware APIs the editing code needs, on the host
+#include "host.h"
+#else
 #include <furi.h>
 #include <gui/gui.h>
 #include <gui/elements.h>
@@ -36,6 +40,7 @@
 #endif
 
 #include "subghz_raw_edit_icons.h"
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -46,7 +51,7 @@
 #define NAME_SCROLL_HOLD_MS 1500
 #define NAME_SCROLL_STEP_MS 300
 #define DUR_CLAMP           32000
-#define LOAD_HEAP_RESERVE   16384 // Decode (DECODE_HEAP_RESERVE + its list), Save and dialogs
+#define LOAD_HEAP_RESERVE   10240 // Decode (DECODE_HEAP), Save (a 4 KB line) and dialogs
 #define LINE_RESERVE        4096 // Sub-GHz writes up to 512 RAW values (~3.5 KB) per line
 
 #define GAP_KEEP_MAX_US 1500
@@ -64,7 +69,7 @@
 #define MERGE_PATH_LEN       128
 #define MERGE_BUF_CHUNK      512
 
-#define APP_VERSION "1.10"
+#define APP_VERSION "2.0"
 #define APP_REPO    "github.com/Lechnio/SubGHz-RAW-Edit"
 #define APP_NAME    "Sub-GHz RAW Edit"
 
@@ -98,19 +103,36 @@ static_assert(LINE2_BASE <= SCREEN_H_PX);
 #define MENU_SEL_UNDO   3
 #define MENU_ITEMS      4
 
-#define DECODE_MAX          32
-#define DECODE_TAIL_US      100000
-#define DECODE_LEAD_MIN_US  2000
-#define DECODE_LEAD_MAX_US  DUR_CLAMP
-#define DECODE_LEAD_US      18500
-#define DECODE_HEAP_RESERVE 10240 // contiguous: the biggest decoder (BinRAW) takes ~8.8 KB
-#define DECODE_KEYS_HEAP    32768
+#define DECODE_MAX         32
+#define DECODE_TAIL_US     100000
+#define DECODE_LEAD_MIN_US 2000
+#define DECODE_LEAD_MAX_US DUR_CLAMP
+#define DECODE_LEAD_US     18500
+#define DECODE_START_TRIES 32 // Locate: bursts tried back from the end of a frame
+/* RAM Decode takes, from the sizes in the firmware's debug info plus 8 bytes of
+ * allocator header on each piece: list 1160, environment 64, text ~290, largest
+ * decoder (Security+ 1.0) 144, a rainbow-table read 1.2 K (FIL 608, LFN 520);
+ * then either the result list (32 items, ~5 K) or Save (~1.7 K). ~7 K in all,
+ * in pieces of at most the list. */
+#define DECODE_HEAP        8192
+#define DECODE_BLOCK       2048
+#define DECODE_RUN_HEAP    2048 // one decoder and a rainbow-table read
+#define DECODE_RUN_BLOCK   1024 // the FIL
+#define DECODE_KEYS_HEAP   32768
+#define DECODE_KEYS_BLOCK  8192 // the key array grows by copying: old and new at once
 
+/* The whole signal lives in a working file of int16 samples on the card; RAM
+ * holds a window of it: samples [win_s0, win_s0 + count). Times are always
+ * counted from the start of the signal, not of the window. */
 typedef struct {
     int16_t* data;
     size_t count;
     size_t cap;
-    size_t limit; // sample_budget() when loading started
+    size_t limit; // synthesis: sample_budget() when it started
+    size_t file_count; // samples in the working file
+    size_t win_s0;
+    int32_t win_t0; // time of data[0]
+    int32_t win_us; // time the window spans
     int32_t total_us;
     uint32_t frequency;
     char preset[48];
@@ -118,6 +140,57 @@ typedef struct {
     bool out_of_memory;
     bool synthesized;
 } SubData;
+
+typedef struct {
+    size_t file_count;
+    size_t win_s0;
+    int32_t win_t0;
+    int32_t total_us;
+    int32_t marker_a;
+    int32_t marker_b;
+    int32_t view_start;
+    int32_t view_end;
+    int active;
+} WorkState;
+
+// What the menu's third item does; Left/Right on it switch.
+typedef enum {
+    EditCut,
+    EditCopy,
+    EditPaste,
+    EditOps,
+} EditOp;
+
+// One step of the Undo history: the state before an edit, whose working file is undo_<id>.bin.
+typedef struct {
+    WorkState st;
+    uint32_t id;
+    int32_t spl; // samples the edit added, negative when it removed them
+    int32_t at_us; // where it happened
+    uint8_t op; // EditOp
+} UndoEntry;
+
+#define WORK_DIR            APP_DATA_PATH("tmp")
+#define WORK_PATH           WORK_DIR "/work.bin"
+#define WORK_NEW_PATH       WORK_DIR "/work.new"
+#define CLIP_PATH           WORK_DIR "/clip.bin"
+#define UNDO_DIR            WORK_DIR "/undos"
+#define UNDO_MAX            32 // the oldest step is dropped past this
+#define WORK_CHUNK          128 // samples per buffered file read or write
+#define WINDOW_WARN_SAMPLES 15000 // a fresh boot fits ~38000
+
+// Builds the working file sample by sample.
+typedef struct {
+    File* f;
+    size_t count;
+    int64_t total;
+    size_t tail; // first sample of the trailing silence (count when it ends on a pulse)
+    int32_t tail_us;
+    bool skip_lead; // drop silence until the first pulse
+    bool fail;
+    size_t n;
+    int16_t buf[WORK_CHUNK];
+} WorkWriter;
 
 typedef enum {
     EditModeEdit = 0,
@@ -150,16 +223,20 @@ typedef struct {
     int mode;
     int menu_sel;
 
-    int16_t* undo_data;
-    size_t undo_count;
-    int32_t undo_total_us;
-    int32_t undo_marker_a;
-    int32_t undo_marker_b;
-    int undo_active;
-    int32_t undo_view_start;
-    int32_t undo_view_end;
-    bool has_undo;
+    // A..B details shown beside the menu, filled when it opens
+    uint32_t info_spl;
+    uint32_t info_te;
+    const char* info_enc;
 
+    uint8_t edit_op; // EditOp
+    size_t clip_count; // samples copied to CLIP_PATH
+    int32_t clip_us;
+
+    UndoEntry* undo; // the Undo history, oldest first
+    size_t undo_n;
+    uint32_t undo_seq; // id of the next step
+
+    Storage* st;
     FuriMutex* mutex;
 } App;
 
@@ -221,6 +298,7 @@ typedef struct {
     size_t run, run_end; // the run being fed: samples [run, run_end)
     uint32_t run_gap; // its length when it is a gap, else 0
     bool hit;
+    size_t hit_last; // replay: last pulse of the frame that hit
     bool oom;
 } DecodeCtx;
 
@@ -239,6 +317,7 @@ typedef struct {
 
 // view.c
 extern const char busy_loading[];
+void fmt_time(int32_t us, char* out, size_t n);
 void clamp_marker(App* a, int idx);
 void clamp_view(App* a);
 void ensure_visible(App* a, int32_t m);
@@ -250,6 +329,9 @@ void draw_busy(Canvas* c, const char* text, const char* name);
 void draw_cb(Canvas* c, void* ctx);
 void input_cb(InputEvent* e, void* ctx);
 void zoom(App* a, bool in);
+
+// sel_info.c
+void selection_info(App* a);
 
 // load.c
 extern int32_t g_merge_repeat;
@@ -266,8 +348,8 @@ size_t duration_samples(int32_t mag);
 #ifndef FW_ORIGIN_Official
 void btn_probe(Storage* storage, const char* path, const char* protocol, BtnPick* out);
 #endif
-void normalize_jitter(SubData* sd);
-void recompute_total_us(SubData* sd);
+float jitter_te(const int16_t* d, size_t n);
+void jitter_apply(int16_t* d, size_t n, float te);
 bool parse_sub_meta(
     const char* s,
     uint32_t* freq,
@@ -275,16 +357,28 @@ bool parse_sub_meta(
     size_t preset_sz,
     char* protocol,
     size_t proto_sz);
-bool load_sub(Storage* storage, const char* path, SubData* sd);
 size_t count_sub_samples(
     Storage* storage,
     const char* path,
     uint32_t* freq,
     char* preset,
     size_t preset_sz);
-bool load_signal(Storage* storage, const char* path, SubData* out);
-void append_signal(SubData* dst, const SubData* sig, MergeJoin join);
-bool load_sub_repeated(Storage* storage, const char* path, SubData* out);
+WorkWriter* work_begin(Storage* st);
+bool work_add_sub(Storage* st, const char* path, WorkWriter* w, SubData* meta, MergeJoin join);
+bool work_end(WorkWriter* w, SubData* sd);
+
+// work.c
+int32_t samples_us(const int16_t* d, size_t n);
+bool work_windowed(const SubData* sd);
+bool work_load(App* a, size_t s0);
+bool work_slide(App* a, int dir);
+bool work_open(App* a);
+bool work_cut(App* a);
+bool clip_store(App* a);
+bool work_paste(App* a);
+bool work_undo(App* a, size_t k);
+void undo_label(const App* a, size_t k, char* out, size_t n);
+void work_cleanup(Storage* st);
 
 // edit_ops.c
 void propose_name(
@@ -297,8 +391,6 @@ void propose_name(
 void propose_edit_name(Storage* st, const App* a, char* out, size_t outlen);
 bool selection_range(const App* a, size_t* i0, size_t* i1);
 bool write_selection(Storage* st, App* a, const char* path);
-bool snapshot_take(App* a);
-void snapshot_restore(App* a);
 size_t cut_run(App* a, bool apply);
 void cut_compact(App* a);
 
@@ -333,6 +425,7 @@ void run_editor_session(
     DialogsApp* dialogs,
     App* app,
     bool auto_select);
+bool open_work(DialogsApp* dialogs, App* app);
 void run_editor(Storage* storage, DialogsApp* dialogs, const char* file);
 
 // merge.c

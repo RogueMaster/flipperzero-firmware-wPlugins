@@ -68,7 +68,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Marauder GUI v1.3 (By mel4mi & AzureSky)](https://github.com/mel4mi/Marauder-GUI-Flipper)
 - Furi: [Harden heap block size checks. (By jeje77131)](https://github.com/DarkFlippers/unleashed-firmware/pull/1243)
 - OFW: [Preserve BLE key storage callbacks across radio restarts. (By yorha59)](https://github.com/flipperdevices/flipperzero-firmware/pull/4515)
-- Updated: [Sub-GHz RAW Edit v1.10 (WIP) (By Lechnio)](https://github.com/Lechnio/SubGHz-RAW-Edit)
 - Updated: [AVR UPDI v0.2 documents supported chips and programming behavior (By gztproject)](https://github.com/gztproject/avr-updi) [AVR UPDI catalog submission (By gztproject)](https://github.com/flipperdevices/flipper-application-catalog/pull/1413)
 - Updated: [eReader v1.2.0 moves its default books folder into app data and adds a setup guide (By Daniel Baker)](https://github.com/daniebker/flipper_ereader)
 - Added: [RF Studio v0.1 (By Maurice Rogers)](https://github.com/cruzer45/rf-studio) - Build and operate virtual Sub-GHz remotes
@@ -99,8 +98,10 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [POCSAG TX v0.1 (By renaudgweb)](https://github.com/renaudgweb/Pocsag_TX)
 - Added: [AirRounds v0.2 (By pavelzaitsau)](https://github.com/pavelzaitsau/airrounds) - Passive Wi-Fi diagnostics `Req: ESP32-S2 WiFi DevBoard with AirRounds Firmware`
 - Updated: [GTA VI Companion v2.0 (By RogueMaster)](https://github.com/RogueMaster/GTA_VI_Companion)
-- Updated: [SIM800 v1.0 adds an SMS inbox and reader plugin, Cyrillic rendering, and modem controls (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/ebd1838e12aa83d88df848cd515b009a95c3882b) [Archive Phone tab integration (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/62ed7711ef072a9d0929225b74c68838fbb779e2)
 - Updated: [POCSAG Pager v2.0 adds a Send plugin, receive history improvements and saved settings (By xMasterX & Shmuma)](https://github.com/xMasterX/flipper-pager)
+- Updated: [Sub-GHz RAW Edit v2.0 (By Lechnio)](https://github.com/Lechnio/SubGHz-RAW-Edit)
+- Sub-GHz: [Add Manually: `Alutech AT4L` (`Alutech AT-4N` protocol with `0x1Dxxxxxx` serial prefix) & Alutech AT-4N CounterMode 1 & 2 now transmit full smart clone packs - Mode 1 uses a 3-press cycle (`0x0000` x4, `0x0001` x4, then `0xFFFE` x4 + `0xFFFF` x4 in one press for MCSW-3.3M); Mode 2 sends `0x0000..0x0005` (14 frames) in a single press while preserving the file counter (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/34c2cf2d0b6917357c6304de295db2ac1f433203)
+- Updated: [SIM800 v1.0 - Fix SIM800C wake/baud/profile-store timeouts and persist audio settings; add embedded Cyrillic `.fal` viewer for SMS, history, and USSD with UCS2 decoding, cached chunked inbox, multipart SMS read/delete/history, delete confirmation, and incoming SMS alerts (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/ebd1838e12aa83d88df848cd515b009a95c3882b)
 
 <a name="release"></a>
 
@@ -1060,7 +1061,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Sub-GHz Keystore Decryptor v1.1 (By Lechnio)](https://github.com/Lechnio/KeeLoq-Keystore-Decryptor)
 - [Sub-GHz Playlist Creator v0.2 (By coolerUA)](https://github.com/coolerUA/Sub-Ghz-Playlist-Creator)
 - [Sub-GHz Playlist v1.0.1 (By darmiel)](https://github.com/darmiel/flipper-playlist)
-- [Sub-GHz RAW Edit v1.10 (WIP) (By Lechnio)](https://github.com/Lechnio/SubGHz-RAW-Edit)
+- [Sub-GHz RAW Edit v2.0 (By Lechnio)](https://github.com/Lechnio/SubGHz-RAW-Edit)
 - [Sub-GHz Remote v1.9 (By gid9798)](https://github.com/DarkFlippers/SubGHz_Remote)
 - [Sub-GHz Rolling Flaws v1.5 (By jamisonderek)](https://github.com/jamisonderek/flipper-zero-tutorials)
 - [Sub-GHz Scheduler v3.5 (By shalebridge)](https://github.com/shalebridge/flipper-subghz-scheduler)

@@ -29,6 +29,7 @@ void run_merge(Storage* storage, DialogsApp* dialogs) {
 
     memset(app, 0, sizeof(App));
     app->mutex = furi_mutex_alloc(FuriMutexTypeNormal);
+    app->st = storage;
 
     // Packed buffer of file paths: <len_byte><path_bytes><len_byte>...<0>.
     // A 0 length byte marks the end (paths are never empty). Grows on demand so
@@ -114,20 +115,6 @@ void run_merge(Storage* storage, DialogsApp* dialogs) {
         size_t gap_chunks = duration_samples(g_merge_gap_ms * 1000);
         size_t extra = cnt * copies + (n > 0 ? gap_chunks : 0);
         size_t newtotal = total + extra;
-        size_t budget = sample_budget();
-        if(newtotal > budget) {
-            char msg[128];
-            snprintf(
-                msg,
-                sizeof(msg),
-                "Have %u, +%u.\nRAM fits %u.",
-                (unsigned)total,
-                (unsigned)extra,
-                (unsigned)budget);
-
-            show_message(dialogs, "Won't fit", msg, 34);
-            continue;
-        }
 
         const char* cstr = furi_string_get_cstr(path);
         size_t plen = strlen(cstr);
@@ -194,66 +181,52 @@ void run_merge(Storage* storage, DialogsApp* dialogs) {
         goto cleanup;
     }
 
-    app->sd.data = safe_malloc(total * sizeof(int16_t));
-    if(!app->sd.data) {
-        free(pbuf);
-        show_message(
-            dialogs, "Out of memory", "Not enough RAM to\nbuild the merge.\nReboot Flipper.", 32);
-        goto cleanup;
-    }
-
-    app->sd.cap = total;
-    app->sd.count = 0;
-    app->sd.frequency = freq;
-    strncpy(app->sd.preset, preset, sizeof(app->sd.preset) - 1);
-    app->sd.preset[sizeof(app->sd.preset) - 1] = '\0';
-
     gui_add_view_port(gui, load_vp, GuiLayerFullscreen);
     view_port_update(load_vp);
 
+    // Each file goes straight into the working file, so a merge is bounded by the card, not RAM.
+    WorkWriter* w = work_begin(storage);
+    bool built = w != NULL;
     char pathbuf[MERGE_PATH_LEN];
     size_t off = 0;
-    for(int i = 0; i < n; i++) {
+    for(int i = 0; built && i < n; i++) {
         size_t plen = pbuf[off++];
         memcpy(pathbuf, pbuf + off, plen);
         pathbuf[plen] = '\0';
         off += plen;
         g_custom_btn_id = pbuf[off++];
 
-        SubData sig = {0};
-        if(load_signal(storage, pathbuf, &sig) && sig.data) {
-            app->sd.synthesized |= sig.synthesized;
-
-            for(int r = 0; r < g_merge_repeat; r++) {
-                MergeJoin join = (i == 0 && r == 0) ? MergeJoinNone :
-                                 (r == 0)           ? MergeJoinManual :
-                                                      MergeJoinNative;
-                append_signal(&app->sd, &sig, join);
-            }
-        }
-
-        if(sig.data) free(sig.data);
+        // A file that fails to load is skipped, as before
+        work_add_sub(storage, pathbuf, w, &app->sd, i ? MergeJoinManual : MergeJoinNone);
+        built = !w->fail;
     }
 
-    if(g_normalize_jitter) normalize_jitter(&app->sd);
+    built = w && work_end(w, &app->sd) && built;
+
+    // The merge keeps the first file's settings
+    app->sd.frequency = freq;
+    strncpy(app->sd.preset, preset, sizeof(app->sd.preset) - 1);
 
     gui_remove_view_port(gui, load_vp);
     free(pbuf);
 
-    recompute_total_us(&app->sd);
     strncpy(app->basename, "merged", sizeof(app->basename) - 1);
 
-    ViewPort* vp = view_port_alloc();
-    FuriMessageQueue* queue = furi_message_queue_alloc(8, sizeof(InputEvent));
-    view_port_draw_callback_set(vp, draw_cb, app);
-    view_port_input_callback_set(vp, input_cb, queue);
-    gui_add_view_port(gui, vp, GuiLayerFullscreen);
+    if(!built)
+        show_message(dialogs, "Merge failed", "Out of RAM or\nSD card error.", 32);
+    else if(open_work(dialogs, app)) {
+        ViewPort* vp = view_port_alloc();
+        FuriMessageQueue* queue = furi_message_queue_alloc(8, sizeof(InputEvent));
+        view_port_draw_callback_set(vp, draw_cb, app);
+        view_port_input_callback_set(vp, input_cb, queue);
+        gui_add_view_port(gui, vp, GuiLayerFullscreen);
 
-    run_editor_session(gui, vp, queue, storage, dialogs, app, false);
+        run_editor_session(gui, vp, queue, storage, dialogs, app, false);
 
-    gui_remove_view_port(gui, vp);
-    view_port_free(vp);
-    furi_message_queue_free(queue);
+        gui_remove_view_port(gui, vp);
+        view_port_free(vp);
+        furi_message_queue_free(queue);
+    }
 
 cleanup:
     view_port_free(load_vp);
@@ -261,8 +234,8 @@ cleanup:
 
     if(app->sd.data) free(app->sd.data);
 
-    if(app->undo_data) free(app->undo_data);
-
+    free(app->undo);
+    work_cleanup(storage);
     furi_mutex_free(app->mutex);
     free(app);
 }
