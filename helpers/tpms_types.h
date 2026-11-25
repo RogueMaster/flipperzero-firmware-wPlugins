@@ -3,7 +3,7 @@
 #include <furi.h>
 #include <furi_hal.h>
 
-#define TPMS_VERSION_APP "4.5.2"
+#define TPMS_VERSION_APP "4.5.3"
 #define TPMS_DEVELOPED "ProtoView core + altruista86 UI + TxF bits"
 #define TPMS_GITHUB "https://github.com/teiksef/TPMS-Editor-TxF"
 

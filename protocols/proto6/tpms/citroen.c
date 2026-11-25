@@ -83,7 +83,8 @@ static void get_fields(ProtoViewFieldSet* fieldset) {
 
 static void build_message(RawSamplesBuffer* samples, ProtoViewFieldSet* fieldset) {
     const uint32_t te = 52U;
-    tpms_add_pattern(samples, "10101010101010110", te);
+    // we meed to send more than we expect to receive (55 55 55 56)
+    tpms_add_pattern(samples, "01010101010101010101010101010110", te);
 
     uint8_t data[10] = {0};
     const bool have_raw =
