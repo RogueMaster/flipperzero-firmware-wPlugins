@@ -105,17 +105,21 @@ void weather_station_scene_read_raw_on_enter(void* context) {
             app->widget, 64, 32, AlignCenter, AlignCenter, FontPrimary, "Decoding...");
         view_dispatcher_switch_to_view(app->view_dispatcher, WeatherStationViewWidget);
 
+        notification_message(app->notifications, &sequence_blink_start_cyan);
         const char* error = ws_scene_read_raw_decode(app, furi_string_get_cstr(app->file_path));
+        notification_message(app->notifications, &sequence_blink_stop);
         widget_reset(app->widget);
         if(!error && ws_history_get_item(app->txrx->history) == 0) {
             error = "No weather data\nfound in this file";
         }
         if(error) {
+            notification_message(app->notifications, &sequence_error);
             ws_history_reset(app->txrx->history);
             ws_scene_read_raw_show_message(error);
             scene_manager_previous_scene(app->scene_manager);
             return;
         }
+        notification_message(app->notifications, &sequence_success);
         app->txrx->idx_menu_chosen = 0;
         scene_manager_set_scene_state(app->scene_manager, WeatherStationSceneReadRaw, 1);
     }

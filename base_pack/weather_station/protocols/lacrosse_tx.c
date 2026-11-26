@@ -145,9 +145,13 @@ static bool ws_protocol_lacrosse_tx_check_crc(WSProtocolDecoderLaCrosse_TX* inst
 /**
  * Analysis of received data
  * @param instance Pointer to a WSBlockGeneric* instance
+ * @return false if the message type is unknown and the packet must be dropped
  */
-static void ws_protocol_lacrosse_tx_remote_controller(WSBlockGeneric* instance) {
+static bool ws_protocol_lacrosse_tx_remote_controller(WSBlockGeneric* instance) {
     uint8_t msg_type = (instance->data >> 32) & 0x0F;
+    if(msg_type != LACROSSE_TX_MSG_TYPE_TEMP && msg_type != LACROSSE_TX_MSG_TYPE_HUM) {
+        return false;
+    }
     instance->id = (((instance->data >> 28) & 0x0F) << 3) | (((instance->data >> 24) & 0x0F) >> 1);
 
     float msg_value = (float)((instance->data >> 20) & 0x0F) * 10.0f +
@@ -157,16 +161,15 @@ static void ws_protocol_lacrosse_tx_remote_controller(WSBlockGeneric* instance) 
     if(msg_type == LACROSSE_TX_MSG_TYPE_TEMP) { //-V1051
         instance->temp = msg_value - 50.0f;
         instance->humidity = WS_NO_HUMIDITY;
-    } else if(msg_type == LACROSSE_TX_MSG_TYPE_HUM) {
+    } else {
         //ToDo for verification, records are needed with sensors maintaining temperature and temperature for this standard
         instance->humidity = (uint8_t)msg_value;
-    } else {
-        furi_crash("WS: WSProtocolLaCrosse_TX incorrect msg_type.");
     }
 
     instance->btn = WS_NO_BTN;
     instance->battery_low = WS_NO_BATT;
     instance->channel = WS_NO_CHANNEL;
+    return true;
 }
 
 void ws_protocol_decoder_lacrosse_tx_feed(void* context, bool level, uint32_t duration) {
@@ -237,8 +240,8 @@ void ws_protocol_decoder_lacrosse_tx_feed(void* context, bool level, uint32_t du
                     if(ws_protocol_lacrosse_tx_check_crc(instance)) {
                         instance->generic.data = instance->decoder.decode_data;
                         instance->generic.data_count_bit = LACROSSE_TX_BIT_SIZE;
-                        ws_protocol_lacrosse_tx_remote_controller(&instance->generic);
-                        if(instance->base.callback)
+                        if(ws_protocol_lacrosse_tx_remote_controller(&instance->generic) &&
+                           instance->base.callback)
                             instance->base.callback(&instance->base, instance->base.context);
                     }
                 }
