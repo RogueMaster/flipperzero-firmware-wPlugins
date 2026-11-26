@@ -70,6 +70,11 @@ function volor_savanna_original()
         {
             the_mighty_lion()
         }
+
+        if (character == "the_mighty_terrain")
+        {
+            the_mighty_lion_terrain()
+        }
     }
 }
 
@@ -419,6 +424,37 @@ function the_mighty_lion()
                     location.reload();
                 });
             }
+
+            if (idx == "the_mighty_lion_2" && choice == "2")
+            {
+                document.getElementById("my_text").innerHTML = "You have chosen to go right.<br>There are zebras in front of you after only about an hour of walking.<br>Do you kill them for food?<br><br>1- Yes; 2- No<br>Make your choice " + user_name + ":<br>";
+                user_input = document.getElementById("choice_field").value;
+                document.querySelector("form").addEventListener("submit", function(event)
+                {
+                    localStorage.setItem("idx", "the_mighty_lion_4");
+                    localStorage.setItem("choice", user_input);
+                    location.reload();
+                });
+            }
+
+            if (idx == "the_mighty_lion_3" && choice == "1")
+            {
+                localStorage.setItem("character", "the_mighty_lion_terrain");
+                localStorage.removeItem("choice");
+                localStorage.removeItem("idx");
+                location.reload();
+            }
         }
     }
+}
+
+function the_mighty_lion_terrain()
+{
+    let rand = Math.floor(Math.random() * 2 ) + 1;
+
+    let user_name = localStorage.getItem("user_name");
+    let death_level = localStorage.getItem("death_level");
+    let victory_level = localStorage.getItem("victory_level");
+    let choice = localStorage.getItem("choice");
+    let idx = localStorage.getItem("idx");
 }
