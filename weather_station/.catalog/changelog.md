@@ -1,3 +1,5 @@
+## 2.2
+ - Add Read RAW File: decode weather sensors from a saved Sub-GHz RAW recording
 ## 2.1
  - Fix crash on LaCrosse TX packets with an unknown message type
 ## 2.0
