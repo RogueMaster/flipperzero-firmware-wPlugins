@@ -109,7 +109,7 @@ const GtaExploreSection gta_explore_sections[] = {
     GTA_GROUP("Collectible Cards", card_sets),
     GTA_GROUP("Discovered Styles", styles),
     GTA_LEAF("Easter Eggs", "easter_eggs", 0, "Visited"),
-    GTA_LEAF("Endings", "endings", 12, "Seen"),
+    GTA_LEAF("Endings", "endings", 13, "Seen"),
     GTA_LEAF("Fences", "fences", 7, "Unlocked"),
     GTA_LEAF("Kenton's Treasures", "kenton", 7, "Set complete"),
     GTA_LEAF("Knife Flights", "knife_flights", 40, "Completed"),

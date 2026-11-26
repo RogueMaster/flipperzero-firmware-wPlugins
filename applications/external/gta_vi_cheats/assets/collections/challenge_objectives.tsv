@@ -6,7 +6,7 @@
 3005	Combat: Stealth Sniping	Progress > Challenges > Combat	Kill seven unalerted enemies with a scoped sniper rifle; do not die or get arrested.
 3006	Combat: Incendiary	Progress > Challenges > Combat	Burn or injure five enemies with fire within 15 seconds.
 3007	Combat: Revolver Headshots	Progress > Challenges > Combat	Score six revolver headshot kills without reloading or changing weapons.
-3008	Combat: Long-Range Sniping	Progress > Challenges > Combat	Shoot three enemies in 10 seconds using a scoped rifle from at least 300 feet.
+3008	Combat: Long-Range Sniping	Progress > Challenges > Combat	Shoot three enemies in 10 seconds using a scoped rifle from at least 300 feet.\nRequirement is three kills, not merely hits (PowerPyx / gta.guide).
 3009	Combat: High Explosive	Progress > Challenges > Combat	Kill or injure eight enemies with explosives within 20 seconds without taking damage.
 3010	Criminal: Mugging	Progress > Challenges > Criminal	Rob five pedestrians.
 3011	Criminal: Stick Ups	Progress > Challenges > Criminal	Rob three stores in one game day without death or arrest.
@@ -27,14 +27,14 @@
 3026	Exploration: Underwater Treasures	Progress > Challenges > Exploration	Recover 85 underwater treasures.
 3027	Exploration: Black Hole Wrecks	Progress > Challenges > Exploration	Locate all 11 Black Hole wrecks.
 3028	Exploration: Road Trip	Progress > Challenges > Exploration	Drive through every Leonida city and town in one day; exit only to refuel.
-3029	Exploration: Helipad Flyovers	Progress > Challenges > Exploration	Fly at or below 100 feet over 41 helipads in Vice City and Vice Beach in ten minutes.
+3029	Exploration: Helipad Flyovers	Progress > Challenges > Exploration	Fly at or below 100 feet over 41 helipads in Vice City and Vice Beach in ten minutes.\nOptional for the 70-challenge completion target; Alcast identifies this as a particularly demanding objective.
 3030	Fitness: Gym Member	Progress > Challenges > Fitness	Purchase a membership at any gym.
 3031	Fitness: Foot Travel	Progress > Challenges > Fitness	Walk or run five miles during one in-game day.
 3032	Fitness: Pro Cyclist	Progress > Challenges > Fitness	Cycle 15 miles within one in-game day.
 3033	Fitness: Pro Swimmer	Progress > Challenges > Fitness	Swim three miles within one in-game day.
-3034	Fitness: Balanced Workout	Progress > Challenges > Fitness	Use each kind of gym equipment in a single day.
-3035	Fitness: Strength Regime	Progress > Challenges > Fitness	Keep both Jason and Lucia at Strength level four for five days running.
-3036	Fitness: Cardio Regime	Progress > Challenges > Fitness	Keep both characters at Cardio level four for five straight days.
+3034	Fitness: Balanced Workout	Progress > Challenges > Fitness	Use each kind of gym equipment in a single day.\nComplete each equipment workout rather than only starting the machine.
+3035	Fitness: Strength Regime	Progress > Challenges > Fitness	Keep both Jason and Lucia at Strength level four for five days running.\nBegin early; both characters must maintain the stat simultaneously throughout the five-day interval.
+3036	Fitness: Cardio Regime	Progress > Challenges > Fitness	Keep both characters at Cardio level four for five straight days.\nBegin early; both characters must maintain the stat simultaneously throughout the five-day interval.
 3037	Fitness: Waning Sands Run	Progress > Challenges > Fitness	Run from the Tip pier gate to Waning Sands in less than 13 minutes without taking damage.
 3038	Fitness: Tequesta Swim	Progress > Challenges > Fitness	Swim from Tequesta Retreat to Starfish Island in under 15 minutes.
 3039	Fitness: Southwind Cycle	Progress > Challenges > Fitness	Cycle from Williams Guest House in Grayson to Chicky's Tiki Bar, Southwind, in under 22 minutes without falling.
@@ -60,11 +60,11 @@
 3059	Sports: Double Hole In One	Progress > Challenges > Sports	Make two consecutive holes in one in the same round at King Gator or Frontier Adventure Golf.
 3060	Survival: Alligator Kills	Progress > Challenges > Survival	Hunt three wild alligators.
 3061	Survival: Big Fish	Progress > Challenges > Survival	Catch a fish weighing at least 20 pounds.
-3062	Survival: Marksman	Progress > Challenges > Survival	Earn a shooting-range medal at both ranges in one day.
+3062	Survival: Marksman	Progress > Challenges > Survival	Earn a shooting-range medal at both ranges in one day.\nReported prerequisite: purchase the $5 Waiver Pass from the clerk at each range to expose events (gta.guide).
 3063	Survival: Catch of the Day	Progress > Challenges > Survival	Catch three fish with each lure type in one day.
 3064	Survival: Zoologist	Progress > Challenges > Survival	Study twenty different animal species using binoculars.
 3065	Survival: Angler	Progress > Challenges > Survival	Catch four fish species in under six minutes.
-3066	Survival: Pro Marksman	Progress > Challenges > Survival	Earn Gold in the Master class of three different shooting-range events consecutively. Do not fail or quit between events; lower shooting-range difficulties do not fulfill this challenge.
+3066	Survival: Pro Marksman	Progress > Challenges > Survival	Earn Gold in the Master class of three different shooting-range events consecutively. Do not fail or quit between events; lower shooting-range difficulties do not fulfill this challenge.\nA $5 range waiver is reported to unlock events at each range; check Master difficulty availability first.
 3067	Survival: Hunting Spree	Progress > Challenges > Survival	Hunt a boar, rattlesnake and panther in 15 minutes without taking damage.
 3068	Survival: Pro Angler	Progress > Challenges > Survival	Catch a specimen of each fish species.
 3069	Survival: Legendary Hunter	Progress > Challenges > Survival	Hunt eight unique animals for this challenge. Nine Snapmatic hunts and two other rare creatures are listed under Activities / Robberies > Legendary Animals; not all necessarily count toward this objective. Check the in-game counter. Fair Game is reported for a first legendary hunt.
@@ -74,7 +74,7 @@
 3073	Vehicle: Throttled	Progress > Challenges > Vehicle	Keep a road vehicle above 100 mph for two minutes.
 3074	Vehicle: Drawbridge Jump	Progress > Challenges > Vehicle	Jump a motor vehicle more than 100 feet over a drawbridge three times, without exiting the vehicle between jumps.
 3075	Vehicle: Top Speed	Progress > Challenges > Vehicle	Reach 175 mph in a car, truck or motorcycle.
-3076	Vehicle: Train Landing	Progress > Challenges > Vehicle	Land a plane on a moving train without destroying the plane.
+3076	Vehicle: Train Landing	Progress > Challenges > Vehicle	Land a plane on a moving train without destroying the plane.\nOptional for the 70-challenge target; no need to complete it unless pursuing all vehicle cheat unlocks.
 3077	Vehicle: Oceanarium Jump	Progress > Challenges > Vehicle	Jump from an aircraft at least half a mile up, parachute into the Vice City Oceanarium dolphin or orca tank, and survive.
 3078	Vehicle: Rally Winner	Progress > Challenges > Vehicle	Win three straight races in one in-game day at Thrillbilly Mud Club, Gellhorn International Raceway and Boone Speedway; no quitting or restarting.
-3079	Vehicle: Train Jump	Progress > Challenges > Vehicle	Jump a motorcycle at least 75 feet onto a moving train twice within 20 minutes.
+3079	Vehicle: Train Jump	Progress > Challenges > Vehicle	Jump a motorcycle at least 75 feet onto a moving train twice within 20 minutes.\nOptional for the 70-challenge target; skipping it prevents the final Vehicle category cheat.
