@@ -106,6 +106,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [NFC Sniffer v0.3 (By kdiller713)](https://github.com/kdiller713/public-FlipperApps/tree/main/nfc_sniffer)
 - Added: [Tile Scanner v0.2 (By kdiller713)](https://github.com/kdiller713/public-FlipperApps/tree/main/tile_scanner) `Req: ESP32`
 - Updated: [GTA VI Companion v2.0 (By RogueMaster)](https://github.com/RogueMaster/GTA_VI_Companion)
+- Updated: [A/C Master v0.3 improves small-font readability and menu spacing (By Enlighten Tech)](https://github.com/gbhobbytech/flipper-ac-multi-remote)
 
 <a name="release"></a>
 

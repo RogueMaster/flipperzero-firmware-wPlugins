@@ -312,11 +312,6 @@ static void draw_header(Canvas* canvas, const char* heading) {
     canvas_draw_line(canvas, 4, 23, 123, 23);
 }
 
-static void draw_str_bold(Canvas* canvas, int32_t x, int32_t y, const char* text) {
-    canvas_draw_str(canvas, x, y, text);
-    canvas_draw_str(canvas, x + 1, y, text);
-}
-
 /* Direction arrows share the line style used for the main-screen controls. */
 static void draw_left_arrow(Canvas* canvas, int32_t x, int32_t cy) {
     canvas_draw_line(canvas, x + 4, cy, x, cy);
@@ -635,8 +630,8 @@ static void wizard_menu_label(
     }
 }
 
-/* Scrollable list: three rows, inverted highlight on the selection, and a
- * scroll bar on the right when the list is longer than the screen. */
+/* Scrollable list: three rows spaced 11 px apart for legible secondary-font
+ * labels, with an inverted highlight and a right-side scroll bar. */
 static void draw_wizard_menu(Canvas* canvas, const AcMultiRemoteState* state) {
     const size_t count = wizard_menu_count(state);
     const size_t selected = wizard_menu_selected(state);
@@ -646,13 +641,13 @@ static void draw_wizard_menu(Canvas* canvas, const AcMultiRemoteState* state) {
     canvas_set_font(canvas, FontSecondary);
     for(size_t row = 0; row < MENU_VISIBLE_ROWS && top + row < count; row++) {
         const size_t index = top + row;
-        const int32_t baseline = 33 + (int32_t)row * 9;
+        const int32_t baseline = 32 + (int32_t)row * 11;
         wizard_menu_label(state, index, label, sizeof(label));
 
         if(index == selected) {
             canvas_draw_rbox(canvas, 2, baseline - 7, 120, 9, 1);
             canvas_set_color(canvas, ColorWhite);
-            draw_str_bold(canvas, 5, baseline, label);
+            canvas_draw_str(canvas, 5, baseline, label);
             canvas_set_color(canvas, ColorBlack);
         } else {
             canvas_draw_str(canvas, 5, baseline, label);
@@ -685,7 +680,7 @@ static void draw_variant_name(Canvas* canvas, int32_t x, int32_t y, size_t varia
     char text[40];
     snprintf(
         text, sizeof(text), "%s %s", family ? family->name : "?", variant ? variant->name : "?");
-    draw_str_bold(canvas, x, y, text);
+    canvas_draw_str(canvas, x, y, text);
 }
 
 static void draw_learning_screen(Canvas* canvas, const AcMultiRemoteState* state) {
@@ -707,11 +702,11 @@ static void draw_learning_screen(Canvas* canvas, const AcMultiRemoteState* state
         }
         const char* const actions[] = {"RENAME", "DELETE"};
         for(size_t i = 0U; i < 2U; i++) {
-            const int32_t baseline = 45 + (int32_t)i * 10;
+            const int32_t baseline = 43 + (int32_t)i * 11;
             if(i == state->edit_menu_index) {
-                canvas_draw_rbox(canvas, 2, baseline - 8, 120, 10, 1);
+                canvas_draw_rbox(canvas, 2, baseline - 7, 120, 9, 1);
                 canvas_set_color(canvas, ColorWhite);
-                draw_str_bold(canvas, 5, baseline, actions[i]);
+                canvas_draw_str(canvas, 5, baseline, actions[i]);
                 canvas_set_color(canvas, ColorBlack);
             } else {
                 canvas_draw_str(canvas, 5, baseline, actions[i]);
