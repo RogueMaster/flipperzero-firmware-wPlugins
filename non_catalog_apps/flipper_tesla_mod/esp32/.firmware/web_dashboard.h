@@ -2,6 +2,7 @@
 
 #include "fsd_handler.h"
 #include "can_driver.h"
+#include "web_origin.h"
 #include <freertos/FreeRTOS.h>
 
 /**
@@ -32,3 +33,11 @@ void web_dashboard_init(FSDState *state,
 
 /** Service HTTP requests and WebSocket messages; broadcast state at 1 Hz. */
 void web_dashboard_update();
+
+/** Serial `debug`: log the size of each state push. Off at boot. */
+void web_dashboard_set_debug(bool on);
+
+/** Whether the CAN stream on :82 serves a request with these Origin and Host
+ *  headers (either may be empty), judged against the names the device has
+ *  right now: web_stream_access() in web_origin.h. */
+WebStreamAccess web_dashboard_stream_access(const char *origin, const char *host);

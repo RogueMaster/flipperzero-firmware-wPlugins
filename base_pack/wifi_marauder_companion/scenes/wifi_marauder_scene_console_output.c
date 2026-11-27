@@ -32,11 +32,10 @@ bool _wifi_marauder_is_saving_enabled(WifiMarauderApp* app) {
     if(!app->ok_to_save_pcaps) {
         return false;
     }
-    // If it is a sniff/wardrive/btwardrive/evilportal function
+    // If it is a sniff/wardrive/evilportal function
     return app->is_command && app->selected_tx_string &&
            (strncmp("sniff", app->selected_tx_string, strlen("sniff")) == 0 ||
             strncmp("wardrive", app->selected_tx_string, strlen("wardrive")) == 0 ||
-            strncmp("btwardrive", app->selected_tx_string, strlen("btwardrive")) == 0 ||
             strncmp("evilportal", app->selected_tx_string, strlen("evilportal")) == 0);
 }
 
@@ -97,7 +96,7 @@ void wifi_marauder_scene_console_output_on_enter(void* context) {
             app->text_box_store_strlen += strlen(help_msg);
         }
         // Stopscan message
-        if(app->show_stopscan_tip) {
+        if(app->stop_on_exit) {
             const char* help_msg = "Press BACK to send stopscan\n";
             furi_string_cat_str(app->text_box_store, help_msg);
             app->text_box_store_strlen += strlen(help_msg);
@@ -147,7 +146,7 @@ void wifi_marauder_scene_console_output_on_enter(void* context) {
             }
         }
 
-        // If it is a sniff/wardrive/btwardrive/evilportal function or script, open the capture file for recording
+        // If it is a sniff/wardrive/evilportal function or script, open the capture file for recording
         if(_wifi_marauder_is_saving_enabled(app)) {
             const char* folder = NULL;
             const char* extension = NULL;
@@ -227,9 +226,15 @@ bool wifi_marauder_scene_console_output_on_event(void* context, SceneManagerEven
 
 void wifi_marauder_scene_console_output_on_exit(void* context) {
     WifiMarauderApp* app = context;
+    const bool ran_script = app->script != NULL;
 
-    // Automatically stop the scan when exiting view
-    if(app->is_command) {
+    // Stop the worker before stopping any operation its final stage may have started.
+    if(app->script_worker) {
+        wifi_marauder_script_worker_free(app->script_worker);
+        app->script_worker = NULL;
+    }
+
+    if(app->stop_on_exit || ran_script) {
         wifi_marauder_uart_tx(app->uart, (uint8_t*)("stopscan\n"), strlen("stopscan\n"));
         furi_delay_ms(50);
     }
@@ -237,11 +242,6 @@ void wifi_marauder_scene_console_output_on_exit(void* context) {
     // Unregister rx callback
     wifi_marauder_uart_set_handle_rx_data_cb(app->uart, NULL);
     wifi_marauder_uart_set_handle_rx_pcap_cb(app->uart, NULL);
-
-    if(app->script_worker) {
-        wifi_marauder_script_worker_free(app->script_worker);
-        app->script_worker = NULL;
-    }
 
     app->is_writing_pcap = false;
     if(app->capture_file && storage_file_is_open(app->capture_file)) {

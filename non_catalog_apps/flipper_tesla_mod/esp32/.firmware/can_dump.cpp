@@ -31,31 +31,47 @@ static void syslog_open() {
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
+// Path levels rm_recursive() goes down, each one a frame on the loop task's
+// stack. The firmware writes three (/dumps/<n>/<file>); a directory this deep
+// in a tree someone else put on the card is left in place, and logged.
+#define RM_MAX_DEPTH 8u
+
 // Delete a path (file or directory tree) by repeatedly picking the first
-// remaining child — safe against iterator invalidation during deletion.
-static void rm_recursive(const char *path) {
+// remaining child — safe against iterator invalidation during deletion. A
+// child that stays (too deep, or the card refused) is skipped from then on.
+// `depth` is 1 for an entry in the root. False when anything was left.
+static bool rm_recursive(const char *path, uint8_t depth) {
     String p = path;
     if (!p.startsWith("/")) p = "/" + p;
 
     {
         File f = SD.open(p);
-        if (!f) return;
+        if (!f) return false;
         bool is_dir = f.isDirectory();
         f.close();
-        if (!is_dir) { SD.remove(p); return; }
+        if (!is_dir) return SD.remove(p);
     }
+    if (depth >= RM_MAX_DEPTH) {
+        Serial.printf("[SD] left %s: more than %u levels deep\n", p.c_str(), RM_MAX_DEPTH);
+        return false;
+    }
+    uint32_t kept = 0;   // children left so far: always the first ones listed
     for (;;) {
         File dir = SD.open(p);
         if (!dir) break;
         File child = dir.openNextFile();
+        for (uint32_t i = 0; child && i < kept; i++) {
+            child.close();
+            child = dir.openNextFile();
+        }
         if (!child) { dir.close(); break; }
         String cp = child.name();
         if (!cp.startsWith("/")) cp = p + "/" + cp;
         child.close();
         dir.close();
-        rm_recursive(cp.c_str());
+        if (!rm_recursive(cp.c_str(), depth + 1)) kept++;
     }
-    SD.rmdir(p);
+    return kept == 0 && SD.rmdir(p);
 }
 
 static uint32_t find_next_seq() {
@@ -256,6 +272,7 @@ String sd_format_card() {
     // Recursive wipe of all files/folders
     File root = SD.open("/");
     if (!root) return "{\"ok\":false,\"msg\":\"Could not open root\"}";
+    uint32_t left = 0;   // entries in the root not wholly deleted
 
     File f = root.openNextFile();
     while (f) {
@@ -270,7 +287,7 @@ String sd_format_card() {
         if (!is_sys) {
             Serial.printf("[SD] rm %s\n", path.c_str());
             f.close(); // Close before deleting
-            rm_recursive(path.c_str());
+            if (!rm_recursive(path.c_str(), 1)) left++;
         } else {
             Serial.printf("[SD] skip %s\n", path.c_str());
             f.close();
@@ -282,13 +299,18 @@ String sd_format_card() {
     uint64_t total_mb = SD.totalBytes() / (1024ULL * 1024ULL);
     uint64_t free_mb  = (SD.totalBytes() - SD.usedBytes()) / (1024ULL * 1024ULL);
     
-    Serial.printf("[SD] Wipe complete. %lluMB free\n", free_mb);
+    Serial.printf("[SD] Wipe complete. %lluMB free, %lu root entries left\n",
+                  free_mb, (unsigned long)left);
     syslog_open();
 
-    String r = "{\"ok\":true,\"msg\":\"SD card wiped clean\",\"total_mb\":";
+    String r = "{\"ok\":true,\"msg\":\"";
+    r += left ? "SD card wiped, but not everything could be deleted" : "SD card wiped clean";
+    r += "\",\"total_mb\":";
     r += (uint32_t)total_mb;
     r += ",\"free_mb\":";
     r += (uint32_t)free_mb;
+    r += ",\"left\":";
+    r += left;
     r += '}';
     return r;
 }

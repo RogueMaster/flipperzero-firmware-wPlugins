@@ -51,5 +51,8 @@ void bc_scanner_scene_work_on_enter(void* context) {
 void bc_scanner_scene_work_on_exit(void* context) {
     BarCodeApp* app = context;
     UNUSED(app);
-    bc_scanner_script_close(app->bc_scanner_script);
+    if(app->bc_scanner_script) {
+        bc_scanner_script_close(app->bc_scanner_script);
+        app->bc_scanner_script = NULL;
+    }
 }

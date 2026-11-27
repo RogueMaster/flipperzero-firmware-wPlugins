@@ -2,9 +2,8 @@
 #include <furi.h>
 #include <furi_hal.h>
 #include <storage/storage.h>
-#include <lib/toolbox/path.h>
 #include <expansion/expansion.h>
-
+#include <string.h>
 #define TAG        "BarCodeScanner"
 #define WORKER_TAG TAG "App"
 
@@ -26,13 +25,61 @@ static void bc_scanner_app_tick_event_callback(void* context) {
     scene_manager_handle_tick_event(app->scene_manager);
 }
 
+/**
+ * RPC event handler. Runs in the RPC thread; incoming bytes are forwarded to USB CDC and the
+ * command is confirmed so the phone learns whether delivery succeeded (FR-015).
+ */
+static void bc_scanner_app_rpc_callback(const RpcAppSystemEvent* event, void* context) {
+    furi_assert(context);
+    BarCodeApp* app = context;
+    furi_assert(app->rpc);
+
+    if(event->type == RpcAppEventTypeSessionClose) {
+        scene_manager_stop(app->scene_manager);
+        view_dispatcher_stop(app->view_dispatcher);
+        rpc_system_app_set_callback(app->rpc, NULL, NULL);
+        app->rpc = NULL;
+    } else if(event->type == RpcAppEventTypeAppExit) {
+        scene_manager_stop(app->scene_manager);
+        view_dispatcher_stop(app->view_dispatcher);
+        rpc_system_app_confirm(app->rpc, true);
+    } else if(event->type == RpcAppEventTypeDataExchange) {
+        bool ok = false;
+        if(event->data.type == RpcAppSystemEventDataTypeBytes) {
+            app->rpc_last_size = event->data.bytes.size;
+            app->rpc_status = BarCodeRpcStatusReceived;
+            view_dispatcher_send_custom_event(
+                app->view_dispatcher, BarCodeCustomEventRpcStatusUpdate);
+
+            if(app->bc_scanner_script) {
+                ok = bc_scanner_script_send_data(
+                    app->bc_scanner_script, event->data.bytes.ptr, event->data.bytes.size);
+            }
+            app->rpc_status = ok ? BarCodeRpcStatusSent : BarCodeRpcStatusError;
+            view_dispatcher_send_custom_event(
+                app->view_dispatcher, BarCodeCustomEventRpcStatusUpdate);
+        }
+        rpc_system_app_confirm(app->rpc, ok);
+    } else {
+        rpc_system_app_confirm(app->rpc, false);
+    }
+}
+
 BarCodeApp* bc_scanner_app_alloc(char* arg) {
     FURI_LOG_D(WORKER_TAG, "Start AppAlloc");
     BarCodeApp* app = malloc(sizeof(BarCodeApp));
 
     app->file_path = furi_string_alloc();
+    app->bc_scanner_script = NULL;
+    app->rpc = NULL;
+    app->rpc_status = BarCodeRpcStatusWaiting;
+    app->rpc_last_size = 0;
 
-    if(arg && strlen(arg)) {
+    // RPC mode is requested by the phone through StartRequest with args="RPC <hex-ptr>".
+    uint32_t rpc_ctx = 0;
+    bool rpc_mode = (arg && sscanf(arg, "RPC %lX", &rpc_ctx) == 1);
+
+    if(!rpc_mode && arg && strlen(arg)) {
         furi_string_set(app->file_path, arg);
         FURI_LOG_D(WORKER_TAG, "File Path Setted");
     }
@@ -64,7 +111,18 @@ BarCodeApp* bc_scanner_app_alloc(char* arg) {
 
     view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
 
-    if(furi_hal_usb_is_locked()) {
+    if(rpc_mode) {
+        app->rpc = (RpcAppSystem*)rpc_ctx;
+        rpc_system_app_set_callback(app->rpc, bc_scanner_app_rpc_callback, app);
+        rpc_system_app_send_started(app->rpc);
+
+        // USB CDC is needed to relay received bytes; a locked USB keeps the app in RPC mode but
+        // every data exchange is confirmed with an error.
+        if(!furi_hal_usb_is_locked()) {
+            app->bc_scanner_script = bc_scanner_script_open_rpc();
+        }
+        scene_manager_next_scene(app->scene_manager, BarCodeSceneRpc);
+    } else if(furi_hal_usb_is_locked()) {
         app->error = BarCodeAppErrorCloseRpc;
         scene_manager_next_scene(app->scene_manager, BarCodeSceneError);
     } else {
@@ -81,6 +139,17 @@ BarCodeApp* bc_scanner_app_alloc(char* arg) {
 
 void bc_scanner_app_free(BarCodeApp* app) {
     furi_assert(app);
+
+    if(app->bc_scanner_script) {
+        bc_scanner_script_close(app->bc_scanner_script);
+        app->bc_scanner_script = NULL;
+    }
+
+    if(app->rpc) {
+        rpc_system_app_set_callback(app->rpc, NULL, NULL);
+        rpc_system_app_send_exited(app->rpc);
+        app->rpc = NULL;
+    }
 
     // Views
     view_dispatcher_remove_view(app->view_dispatcher, BarCodeAppViewWork);

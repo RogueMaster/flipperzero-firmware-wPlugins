@@ -40,7 +40,6 @@ void cancommander_scene_debug_menu_on_enter(void* context) {
     App* app = context;
 
     variable_item_list_reset(app->var_list);
-    //variable_item_list_set_header(app->var_list, "Settings");
 
     /* Action items: num_values=0 means no left/right, just clickable */
     variable_item_list_add(app->var_list, "Connect/Reconnect", 0, NULL, app);

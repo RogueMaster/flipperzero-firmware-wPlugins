@@ -45,6 +45,10 @@ bool flipbip_scene_scene_1_on_event(void* context, SceneManagerEvent event) {
                    app->scene_manager, FlipBipSceneMenu)) {
                 scene_manager_stop(app->scene_manager);
                 view_dispatcher_stop(app->view_dispatcher);
+            } else if(app->suggest_enclave) {
+                // New wallet saved with legacy encryption: offer the enclave
+                app->encryption_target = FlipBipEncryptionEnclave;
+                scene_manager_next_scene(app->scene_manager, FlipBipSceneEncryption);
             }
             consumed = true;
             break;

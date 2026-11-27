@@ -7,7 +7,7 @@ static void
     // Creates new item
     WifiMarauderScriptStageListItem* new_item =
         (WifiMarauderScriptStageListItem*)malloc(sizeof(WifiMarauderScriptStageListItem));
-    new_item->value = malloc(64);
+    new_item->value = calloc(WIFI_MARAUDER_TEXT_INPUT_STORE_SIZE + 1, 1);
     new_item->next_item = NULL;
 
     if(app->script_stage_edit_first_item == NULL) {

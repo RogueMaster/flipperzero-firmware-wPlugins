@@ -3,6 +3,22 @@
 void wifi_marauder_scene_text_input_callback(void* context) {
     WifiMarauderApp* app = context;
 
+    const char filter_prefix[] = "select -a -f ";
+    if(strncmp(app->text_input_store, filter_prefix, strlen(filter_prefix)) == 0) {
+        const char* filter = app->text_input_store + strlen(filter_prefix);
+        char filter_copy[WIFI_MARAUDER_TEXT_INPUT_STORE_SIZE + 1];
+        snprintf(filter_copy, sizeof(filter_copy), "%s", filter);
+        const char quoted_prefix[] = "select -a -f \"";
+        const size_t prefix_length = strlen(quoted_prefix);
+        const size_t max_filter_length = sizeof(app->text_input_store) - prefix_length - 2;
+        size_t filter_length = strlen(filter_copy);
+        if(filter_length > max_filter_length) filter_length = max_filter_length;
+        memcpy(app->text_input_store, quoted_prefix, prefix_length);
+        memcpy(app->text_input_store + prefix_length, filter_copy, filter_length);
+        app->text_input_store[prefix_length + filter_length] = '\"';
+        app->text_input_store[prefix_length + filter_length + 1] = '\0';
+    }
+
     switch(app->special_case_input_step) {
     case 0: // most commands
         view_dispatcher_send_custom_event(app->view_dispatcher, WifiMarauderEventStartConsole);
@@ -54,12 +70,28 @@ void wifi_marauder_scene_text_input_on_enter(void* context) {
         wifi_text_input_set_header_text(text_input, "Enter SSID name to add");
     } else if(0 == strncmp("ssid -r", app->selected_tx_string, strlen("ssid -r"))) {
         wifi_text_input_set_header_text(text_input, "Remove target from SSID list");
+    } else if(0 == strcmp("select -a -f", app->selected_tx_string)) {
+        wifi_text_input_set_header_text(text_input, "equals/contains followed by text");
     } else if(0 == strncmp("select -a", app->selected_tx_string, strlen("select -a"))) {
-        wifi_text_input_set_header_text(text_input, "Add target from AP list");
+        wifi_text_input_set_header_text(text_input, "AP index(es), comma separated");
     } else if(0 == strncmp("select -s", app->selected_tx_string, strlen("select -s"))) {
         wifi_text_input_set_header_text(text_input, "Add target from SSID list");
     } else if(0 == strncmp("findmy -t", app->selected_tx_string, strlen("findmy -t"))) {
         wifi_text_input_set_header_text(text_input, "Enter FindMy device index");
+    } else if(0 == strncmp("remoteid track", app->selected_tx_string, strlen("remoteid track"))) {
+        wifi_text_input_set_header_text(text_input, "Enter Remote ID device index");
+    } else if(0 == strcmp("csimotion start", app->selected_tx_string)) {
+        wifi_text_input_set_header_text(text_input, "Enter AP index");
+    } else if(0 == strcmp("geofence set", app->selected_tx_string)) {
+        wifi_text_input_set_header_text(text_input, "slot lat lon radius name");
+    } else if(0 == strcmp("geofence clear", app->selected_tx_string)) {
+        wifi_text_input_set_header_text(text_input, "Enter geofence slot (1-5)");
+    } else if(0 == strcmp("add -a -b", app->selected_tx_string)) {
+        wifi_text_input_set_header_text(text_input, "MAC [-ch channel] [-e SSID]");
+    } else if(0 == strcmp("add -c -b", app->selected_tx_string)) {
+        wifi_text_input_set_header_text(text_input, "MAC -ap AP_index");
+    } else if(0 == strcmp("join -a", app->selected_tx_string)) {
+        wifi_text_input_set_header_text(text_input, "AP_index -p password");
     } else {
         wifi_text_input_set_header_text(text_input, "Add command arguments");
     }
@@ -136,7 +168,7 @@ bool wifi_marauder_scene_text_input_on_event(void* context, SceneManagerEvent ev
                 snprintf(
                     app->text_input_store,
                     WIFI_MARAUDER_TEXT_INPUT_STORE_SIZE,
-                    "attack -t deauth -s %18s -d %18s",
+                    "attack -t deauth -s %s -d %s",
                     app->special_case_input_src_addr,
                     app->special_case_input_dst_addr);
                 app->selected_tx_string = app->text_input_store;

@@ -12,6 +12,10 @@ static void nfc_stock_ui_submenu_callback(void* context, uint32_t index) {
 
 NfcStockUi* nfc_stock_ui_alloc(void) {
     NfcStockUi* ui = malloc(sizeof(NfcStockUi));
+    // furi's malloc crashes on exhaustion rather than returning NULL, so this
+    // only documents the invariant — but pass the pointer bare: cppcheck's
+    // value-flow keeps the null alive through `furi_check(ui != NULL)`.
+    furi_check(ui);
     ui->submenu = submenu_alloc();
     ui->widget = widget_alloc();
     ui->text_input = text_input_alloc();

@@ -1,10 +1,9 @@
 #include "dashboard_i.h"
+#include "../../libraries/missing_api.h"
 
 #include <ctype.h>
 #include <stdio.h>
 #include <string.h>
-
-#include "../../libraries/missing_api.h"
 
 #define DASH_OBD_DTC_STORED     0U
 #define DASH_OBD_DTC_PENDING    1U

@@ -12,4 +12,5 @@ void code_39_loader(BarcodeData* barcode_data);
 void code_128_loader(BarcodeData* barcode_data);
 void code_128c_loader(BarcodeData* barcode_data);
 void codabar_loader(BarcodeData* barcode_data);
+void qr_code_loader(BarcodeData* barcode_data);
 void barcode_loader(BarcodeData* barcode_data);

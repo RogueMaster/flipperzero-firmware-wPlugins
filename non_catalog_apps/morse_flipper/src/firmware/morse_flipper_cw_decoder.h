@@ -14,10 +14,10 @@
 
 typedef struct {
     uint16_t dit_ms;
-    uint16_t dit_samples[8];
-    size_t dit_sample_count;
-    int16_t pending_samples[64];
-    size_t pending_count;
+    uint8_t dit_sample_count;
+    uint16_t held_dit_ms;
+    uint16_t held_gap_ms;
+    uint16_t first_mark_ms;
     uint16_t symbol_code;
     size_t symbol_count;
     char output[96];
@@ -31,6 +31,10 @@ void morse_flipper_cw_decoder_init_fixed(MorseFlipperCwDecoder* decoder, uint16_
 void morse_flipper_cw_decoder_reset(MorseFlipperCwDecoder* decoder);
 void morse_flipper_cw_decoder_feed_mark(MorseFlipperCwDecoder* decoder, uint16_t ms);
 void morse_flipper_cw_decoder_feed_space(MorseFlipperCwDecoder* decoder, uint16_t ms);
+void morse_flipper_cw_decoder_feed_space_with_letter_gap(
+    MorseFlipperCwDecoder* decoder,
+    uint16_t ms,
+    uint16_t letter_gap_ms);
 bool morse_flipper_cw_decoder_timing_ready(const MorseFlipperCwDecoder* decoder);
 uint16_t morse_flipper_cw_decoder_dit_ms(const MorseFlipperCwDecoder* decoder);
 const char* morse_flipper_cw_decoder_output(const MorseFlipperCwDecoder* decoder);

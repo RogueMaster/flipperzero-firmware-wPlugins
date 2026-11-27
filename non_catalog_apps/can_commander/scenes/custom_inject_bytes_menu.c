@@ -1,10 +1,9 @@
 #include "../can_commander.h"
+#include "../libraries/missing_api.h"
 
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
-
-#include "../libraries/missing_api.h"
 
 typedef enum {
     CustomInjectBytesToInject = 0,

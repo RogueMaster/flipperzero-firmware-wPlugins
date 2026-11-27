@@ -41,7 +41,7 @@
  *         },
  *         "select": {
  *             "type": "ap" | "station" | "ssid",
- *             "filter": "all" | "contains -f '{SSID fragment}' or equals '{SSID}' or ...",
+ *             "filter": "all" | AP-only "contains {SSID fragment}" or "equals {SSID}",
  *             "indexes": [0, 1, 2, 3...],
  *         },
  *         "deauth": {
@@ -57,9 +57,6 @@
  *             "timeout": seconds
  *         },
  *         "sniffDeauth": {
- *             "timeout": seconds
- *         },
- *         "sniffEsp": {
  *             "timeout": seconds
  *         },
  *         "sniffPmkid": {

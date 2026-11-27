@@ -3,6 +3,13 @@
 All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.6] - 2026-07-15
+
+### Changed
+
+- Refreshed the catalog screenshots and store description. No functional changes
+  to the app itself.
+
 ## [1.5] - 2026-07-14
 
 ### Added

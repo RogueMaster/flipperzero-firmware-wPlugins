@@ -89,13 +89,24 @@ static inline int fsd_blackbox_format_json(char* out, int out_sz, const FSDBlack
 
     BB_APPEND("{\"trigger\":\"%s\",", trig);
     BB_APPEND("\"transition\":\"%u->%u\",", s->from_state, s->to_state);
-    BB_APPEND(
-        "\"detail\":\"%s %u->%u @ t=%lu.%03lus\",",
-        trig,
-        s->from_state,
-        s->to_state,
-        (unsigned long)sec,
-        (unsigned long)ms3);
+    // Injected events (manual mark, bus-off) carry from == to: no transition
+    // happened, so the detail names the AP state once.
+    if(s->from_state == s->to_state) {
+        BB_APPEND(
+            "\"detail\":\"%s AP state %u @ t=%lu.%03lus\",",
+            trig,
+            s->to_state,
+            (unsigned long)sec,
+            (unsigned long)ms3);
+    } else {
+        BB_APPEND(
+            "\"detail\":\"%s %u->%u @ t=%lu.%03lus\",",
+            trig,
+            s->from_state,
+            s->to_state,
+            (unsigned long)sec,
+            (unsigned long)ms3);
+    }
     BB_APPEND("\"trigger_ms\":%lu,", (unsigned long)s->trigger_rel_ms);
     BB_APPEND(
         "\"window\":{\"pre_ms\":%lu,\"post_ms\":%lu},",

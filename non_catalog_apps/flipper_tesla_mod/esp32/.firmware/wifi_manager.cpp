@@ -30,10 +30,13 @@ static bool wifi_sta_init(const FSDState *state) {
         return false;
     }
 
+    // The name the router lists for this device. The core applies it when the
+    // station interface comes up, so it has to be set before WiFi.mode().
+    if (state->wifi_hostname[0]) WiFi.setHostname(state->wifi_hostname);
     WiFi.mode(WIFI_STA);
     WiFi.begin(state->wifi_sta_ssid,
                state->wifi_sta_pass[0] == '\0' ? nullptr : state->wifi_sta_pass);
-    Serial.printf("[WiFi] Connecting to \"%s\"", state->wifi_sta_ssid);
+    Serial.printf("[WiFi] Connecting to \"%s\" as %s", state->wifi_sta_ssid, WiFi.getHostname());
 
     uint32_t start_ms = millis();
     while (WiFi.status() != WL_CONNECTED &&

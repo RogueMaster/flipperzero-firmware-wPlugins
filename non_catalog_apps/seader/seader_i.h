@@ -68,6 +68,7 @@
 #include "uhf_snmp_probe.h"
 #include "uhf_status_label.h"
 #include "hf_buffer_pool.h"
+#include "sam_reader.h"
 
 #define WORKER_ALL_RX_EVENTS                                                      \
     (WorkerEvtStop | WorkerEvtRxDone | WorkerEvtCfgChange | WorkerEvtLineCfgSet | \
@@ -221,6 +222,15 @@ struct Seader {
 
     APDULog* apdu_log;
     SeaderAPDURunnerContext apdu_runner_ctx;
+
+    // USB CCID reader-emulation session (NULL unless in reader mode)
+    SeaderReader* reader;
+    // Persisted, user-editable USB reader identity
+    char reader_manufacturer[SEADER_READER_NAME_MAX];
+    char reader_product[SEADER_READER_NAME_MAX];
+    char reader_manuf_edit[SEADER_READER_NAME_MAX];
+    char reader_name_edit[SEADER_READER_NAME_MAX];
+    uint16_t reader_pid;
 };
 
 struct SeaderPollerContainer {

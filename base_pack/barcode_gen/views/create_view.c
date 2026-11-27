@@ -6,6 +6,10 @@
 #define TEXT_PADDING     4
 #define TOTAL_MENU_ITEMS 5
 
+#define NUMERIC_BARCODE_CHARS "0123456789- "
+#define CODE39_CHARS          "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-. $/+%"
+#define CODABAR_CHARS         "0123456789-$:/.+ABCDabcd"
+
 typedef enum {
     TypeMenuItem,
     FileNameMenuItem,
@@ -146,6 +150,118 @@ static void app_draw_callback(Canvas* canvas, void* ctx) {
     }
 }
 
+static const char* barcode_allowed_characters(BarcodeType type) {
+    switch(type) {
+    case UPCA:
+    case EAN8:
+    case EAN13:
+    case CODE128C:
+        return NUMERIC_BARCODE_CHARS;
+    case CODE39:
+        return CODE39_CHARS;
+    case CODABAR:
+        return CODABAR_CHARS;
+    case CODE128:
+    case QRCODE:
+    case UNKNOWN:
+    default:
+        return NULL;
+    }
+}
+
+static const char* barcode_validation_message(BarcodeType type, ErrorCode reason) {
+    if(reason == WrongNumberOfDigits) {
+        switch(type) {
+        case UPCA:
+            return "UPC-A needs 11 or 12\ndigits (hyphens OK).";
+        case EAN8:
+            return "EAN-8 needs 7 or 8\ndigits (hyphens OK).";
+        case EAN13:
+            return "EAN-13 needs 12 or 13\ndigits (hyphens OK).";
+        case CODE128C:
+            return "Code 128C needs at least\none digit; odd counts pad\nwith a leading zero.";
+        case CODE39:
+            return "Code 39 needs a payload.\nOptional * guards are\nadded automatically.";
+        case CODE128:
+            return "Code 128 needs at least\none printable ASCII\ncharacter.";
+        case CODABAR:
+            return "Codabar needs a payload.\nA guards are added at\nboth ends automatically.";
+        case QRCODE:
+            return "QR v1 fits 41 digits,\n25 QR alphanumeric, or\n17 general ASCII chars.";
+        case UNKNOWN:
+        default:
+            return "Enter at least one\nbarcode character.";
+        }
+    }
+
+    if(reason == InvalidCharacters || reason == EncodingTableError) {
+        switch(type) {
+        case UPCA:
+        case EAN8:
+        case EAN13:
+        case CODE128C:
+            return "This format accepts\ndigits; hyphens/spaces\nare ignored.";
+        case CODE39:
+            return "Code 39: A-Z, 0-9,\nspace, and - . $ / + %.\n* guards are optional\nand added.";
+        case CODABAR:
+            return "Codabar: 0-9, - $ : / . +.\nA-D guards may\n surround the payload;\nmissing guards add.";
+        case CODE128:
+            return "Code 128 supports\nprintable ASCII\ncharacters (space\nthrough ~).";
+        case QRCODE:
+            return "QR Code accepts\nprintable ASCII\ncharacters(space\nthrough ~).";
+        case UNKNOWN:
+        default:
+            break;
+        }
+    }
+
+    return get_error_code_message(reason);
+}
+
+static bool
+    barcode_text_is_valid(BarcodeTypeObj* barcode_type, const char* text, ErrorCode* reason) {
+    BarcodeData data = {
+        .type_obj = barcode_type,
+        .check_digit = -1,
+        .raw_data = furi_string_alloc_set_str(text),
+        .correct_data = furi_string_alloc(),
+        .valid = true,
+        .reason = OKCode,
+    };
+
+    barcode_loader(&data);
+    bool valid = data.valid;
+    if(reason) *reason = data.reason;
+
+    furi_string_free(data.raw_data);
+    furi_string_free(data.correct_data);
+    return valid;
+}
+
+static bool barcode_text_input_validator(const char* text, FuriString* error, void* context) {
+    CreateView* create_view_object = context;
+    BarcodeTypeObj* barcode_type = NULL;
+
+    with_view_model(
+        create_view_object->view,
+        CreateViewModel * model,
+        { barcode_type = model->barcode_type; },
+        false);
+
+    if(barcode_type == NULL) {
+        furi_string_set_str(error, "Select a barcode type first.");
+        return false;
+    }
+
+    ErrorCode reason = OKCode;
+    if(!barcode_text_is_valid(barcode_type, text, &reason)) {
+        furi_string_set_str(error, barcode_validation_message(barcode_type->type, reason));
+        return false;
+    }
+
+    return true;
+}
+
 void text_input_callback(void* ctx) {
     CreateView* create_view_object = ctx;
 
@@ -162,6 +278,8 @@ void text_input_callback(void* ctx) {
         },
         true);
 
+    text_input_set_validator(create_view_object->barcode_app->text_input, NULL, NULL);
+    text_input_set_allowed_characters(create_view_object->barcode_app->text_input, NULL);
     text_input_show_illegal_symbols(create_view_object->barcode_app->text_input, true);
     view_dispatcher_switch_to_view(
         create_view_object->barcode_app->view_dispatcher, CreateBarcodeView);
@@ -234,6 +352,9 @@ static bool app_input_callback(InputEvent* input_event, void* ctx) {
                     false);
                 text_input_set_header_text(
                     create_view_object->barcode_app->text_input, "File Name");
+                text_input_set_validator(create_view_object->barcode_app->text_input, NULL, NULL);
+                text_input_set_allowed_characters(
+                    create_view_object->barcode_app->text_input, NULL);
                 text_input_show_illegal_symbols(
                     create_view_object->barcode_app->text_input, false);
                 view_dispatcher_switch_to_view(
@@ -257,7 +378,14 @@ static bool app_input_callback(InputEvent* input_event, void* ctx) {
                     //clear default text
                     false);
                 text_input_set_header_text(
-                    create_view_object->barcode_app->text_input, "Barcode Data");
+                    create_view_object->barcode_app->text_input, barcode_type->name);
+                text_input_set_validator(
+                    create_view_object->barcode_app->text_input,
+                    barcode_text_input_validator,
+                    create_view_object);
+                text_input_set_allowed_characters(
+                    create_view_object->barcode_app->text_input,
+                    barcode_allowed_characters(barcode_type->type));
                 text_input_show_illegal_symbols(create_view_object->barcode_app->text_input, true);
                 view_dispatcher_switch_to_view(
                     create_view_object->barcode_app->view_dispatcher, TextInputView);
@@ -399,6 +527,16 @@ void save_barcode(CreateView* create_view_object) {
         return;
     }
 
+    ErrorCode validation_reason = OKCode;
+    if(!barcode_text_is_valid(
+           barcode_type, furi_string_get_cstr(barcode_data), &validation_reason)) {
+        message_view_show(
+            message_view,
+            barcode_validation_message(barcode_type->type, validation_reason),
+            CreateBarcodeView);
+        return;
+    }
+
     //NULL while the save is still going fine
     const char* error_message = NULL;
 
@@ -453,14 +591,14 @@ void save_barcode(CreateView* create_view_object) {
             // Filetype: Barcode
             // Version: 1
 
-            // # Types - UPC-A, EAN-8, EAN-13, CODE-39, CODE-128, Codabar
+            // # Types - UPC-A, EAN-8, EAN-13, CODE-39, CODE-128, Codabar, QR Code
             // Type: CODE-39
             // Data: AB
             file_saved =
                 flipper_format_write_string_cstr(ff, "Filetype", "Barcode") &&
                 flipper_format_write_string_cstr(ff, "Version", FILE_VERSION) &&
                 flipper_format_write_comment_cstr(
-                    ff, "Types - UPC-A, EAN-8, EAN-13, CODE-39, CODE-128, Codabar") &&
+                    ff, "Types - UPC-A, EAN-8, EAN-13, CODE-39, CODE-128, Codabar, QR Code") &&
                 flipper_format_write_string_cstr(ff, "Type", barcode_type->name) &&
                 flipper_format_write_string_cstr(ff, "Data", furi_string_get_cstr(barcode_data));
             if(!file_saved) {

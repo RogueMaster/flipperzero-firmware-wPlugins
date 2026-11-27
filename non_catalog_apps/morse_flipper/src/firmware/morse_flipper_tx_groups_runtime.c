@@ -7,18 +7,6 @@
 
 #include "morse_flipper_app_i.h"
 
-static bool morse_flipper_tx_groups_sk_now(const MorseFlipperApp* app) {
-    if(app == NULL) return true;
-    if(app->input_source == MorseFlipperInputSourceStraight) return true;
-    if(app->input_source == MorseFlipperInputSourcePaddle &&
-       morse_flipper_gpio_probe_use_straight(app))
-        return true;
-    if(app->input_source == MorseFlipperInputSourceButtons &&
-       morse_flipper_straight_like_mode(app))
-        return true;
-    return false;
-}
-
 static uint8_t morse_flipper_txg_clean_difficulty(uint8_t difficulty) {
     return difficulty < MorseFlipperTxgDifficultyCount ? difficulty :
                                                          MorseFlipperTxgDifficultyCompetition;
@@ -52,7 +40,7 @@ void morse_flipper_reset_tx_groups_state(MorseFlipperApp* app, uint32_t now_ms) 
     app->txg_started = false;
     app->txg_wait_answer = false;
     app->txg_done = false;
-    app->txg_sk = morse_flipper_tx_groups_sk_now(app);
+    app->txg_sk = morse_flipper_input_is_straight(app);
     app->txg_start_holdoff = false;
     app->txg_wait_started_at = 0U;
     app->txg_last_input_at = 0U;
@@ -87,7 +75,7 @@ void morse_flipper_start_tx_groups_round(MorseFlipperApp* app, uint32_t now_ms) 
     app->txg_started = true;
     app->txg_wait_answer = true;
     app->txg_done = false;
-    app->txg_sk = morse_flipper_tx_groups_sk_now(app);
+    app->txg_sk = morse_flipper_input_is_straight(app);
     app->txg_start_holdoff = false;
     app->txg_wait_started_at = now_ms;
     app->txg_last_input_at = now_ms;
@@ -100,9 +88,9 @@ void morse_flipper_start_tx_groups_round(MorseFlipperApp* app, uint32_t now_ms) 
         morse_flipper_txg_range_high(app->txg_difficulty));
     morse_flipper_tx_group_start(&app->tx_group, app->txg_sk);
     morse_flipper_cw_decoder_init(&app->tx_decoder, morse_flipper_current_dit_ms(app));
-    app->rf_tx_edge_at = 0U;
-    app->rf_tx_gap_flushed = true;
-    app->rf_tx_level = false;
+    app->tx_edge_at = 0U;
+    app->tx_gap_flushed = true;
+    app->tx_level = false;
     morse_flipper_refresh_keyer(app, now_ms);
     morse_flipper_view_dirty(app);
 }

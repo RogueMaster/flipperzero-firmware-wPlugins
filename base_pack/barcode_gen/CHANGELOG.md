@@ -1,5 +1,33 @@
 # Changelog
 
+## 2.1
+
+- Remove exclamation point from validator dialog
+- Center validator error message for better readability
+- Adjust line breaks in validation messages to prevent text from clipping
+
+## 2.0
+
+- Add compact version 1 QR Code creation, validation, save/load, and display support with printable-ASCII keyboard input and capacity-specific hints
+- Keep restricted keyboards focused only on visible keys so numeric formats no longer appear frozen when selection lands on a hidden letter
+- Fix a one-byte text drawing buffer overflow and allow Back to leave while a validation hint is visible
+
+## 1.8
+
+- Fix the validation message overlay passing an invalid null icon to the graphics API, which could make the input view appear frozen after an invalid entry
+- Expand format-specific hints for empty and invalid data, including Code 39 guards, Code 128 printable ASCII, Code 128C leading-zero padding, and Codabar automatic guards
+
+## 1.7
+
+- Filter the data-entry keyboard by the selected barcode format so unsupported characters are no longer offered or accepted
+- Validate barcode data before saving, with format-specific guidance instead of discovering errors only when loading the saved file
+- UPC-A, EAN-8 and EAN-13 now ignore grouping hyphens/spaces while preserving their standards-required payload lengths and calculated check digits
+- Code 39 now normalizes lowercase input, adds required outer `*` guards automatically, and rejects reserved `*` characters inside the payload
+- Code 128 Set B now explicitly accepts the complete printable ASCII range supported by its encoding table
+- Code 128C now ignores grouping separators and accepts odd-length numbers by padding a leading zero before pair encoding
+- Codabar now adds valid `A` start/stop guards when omitted, preserves supplied `A-D` guards, and rejects guard characters inside the payload
+- Refresh the in-app format guide and README, including the previously omitted `code128c_encodings.txt` installation step
+
 ## 1.5
 
 - Fix the first save after a fresh install always failing with "A saving error has occurred": the barcodes folder was only created when the app exited; it is now created on startup and rechecked before every save

@@ -39,6 +39,14 @@ typedef struct {
         uint8_t buffer[MAX_LEN];
         uint8_t data[MAX_LEN];
     };
+    // Reception timestamp (ms) carried from the driver to the transmit
+    // decision so a read-modify-retransmit path can tell a freshly received
+    // frame from a backlogged one and never re-send a stale copy (see
+    // fsd_freshness.h). Stamped at reception, or at enqueue for a driver that
+    // buffers frames in a task queue. Trailing field: the existing id/dlc/data
+    // accessors and byte layout are unchanged. 0 = unstamped (treated as fresh);
+    // the Flipper build leaves it 0 and gates transmits structurally instead.
+    uint32_t rx_ms;
 } CANFRAME;
 
 // ── Hardware version (shared by both platforms) ───────────────────────────────

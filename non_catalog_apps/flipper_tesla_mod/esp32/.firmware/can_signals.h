@@ -114,14 +114,8 @@
 #define SIG_BMS_CURRENT_L_BYTE              2
 #define SIG_BMS_CURRENT_H_BYTE              3
 #define SIG_BMS_CURRENT_SCALE             0.1f
-#define SIG_BMS_SOC_UI_LOW_BYTE             1
-#define SIG_BMS_SOC_UI_HIGH_BYTE            2
-#define SIG_BMS_SOC_UI_LOW_SHIFT            2
-#define SIG_BMS_SOC_UI_MASK              0x03FFu
-#define SIG_BMS_SOC_SCALE                 0.1f
-#define SIG_BMS_TEMP_MIN_BYTE               4
-#define SIG_BMS_TEMP_MAX_BYTE               5
-#define SIG_BMS_TEMP_OFFSET                40
+// 0x292 SOC (BMS_socUI) and 0x312 pack temperature: fsd_logic/fsd_bms.h
+// (shared; the temperature plausibility-gated).
 
 // ESP_wheelSpeeds (0x175) — four 13-bit LE wheel speeds, factor 0.04 km/h,
 // offset 0 (opendbc tesla_model3_party BO_373). Bit positions in the 64-bit LE
@@ -238,8 +232,9 @@
 
 // ── Acceleration Mode override (#211) ───────────────────────────────────────
 // UI_powertrainControl (0x334), little-endian, GTW-forwarded UI frame, 500 ms:
-//   UI_pedalMap: bit5|2 (0 CHILL, 1 SPORT, 2 PERFORMANCE); bit7 is a separate
-//   signal (UI_enableRegenBackfill on newer firmware) and is kept.
+//   UI_pedalMap: bit5|2 (0 CHILL, 1 SPORT, 2 PERFORMANCE; the car's own UI
+//   calls 1 Standard); bit7 is a separate signal (UI_enableRegenBackfill on
+//   newer firmware) and is kept.
 //   UI_powertrainControlCounter: bit52|4 (byte6 high nibble), kept as received.
 //   UI_powertrainControlChecksum: byte7, additive over byte0..6 + id low/high
 //   (matches all 219 0x334 frames in the HW3 + HW4 Model 3 captures).

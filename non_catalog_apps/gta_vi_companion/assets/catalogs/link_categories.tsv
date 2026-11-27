@@ -9,8 +9,6 @@ ahol_pieces.tsv	https://www.gtabase.com/gta-6/map/?feature=ahol-street-art	https
 arcade_games.tsv	https://www.powerpyx.com/gta-6-all-video-game-locations/	https://gta6gps.com/map/game/arcade-games		1	1
 bank_vaults.tsv	https://www.powerpyx.com/gta-6-all-bank-jobs-locations-bank-vaults/	https://gta6gps.com/map/game/bank-jobs		1	1
 base_jumps.tsv	https://www.powerpyx.com/gta-6-all-base-jump-locations/	https://gta6gps.com/map/game/base-jumps		1	1
-basketball_hoop_leads.tsv	https://www.pushsquare.com/guides/gta-6-basketball-hoop-locations	https://gta6gps.com/map/game/basketball-hoops		1	1
-basketball_hoops.tsv	https://www.pushsquare.com/guides/gta-6-basketball-hoop-locations	https://gta6gps.com/map/game/basketball-hoops		1	1
 book_swaps.tsv	https://cutscenewire.com/games/gta-6/collectibles/gta-6-all-book-swap-locations/	https://gta6gps.com/map/game/books		1	1
 bret_target_decks.tsv	https://www.pushsquare.com/guides/gta-6-brets-hunting-target-deck-locations			1	0
 bridges_kelly.tsv	https://gta6-life.com/en/guides/gta-6-under-the-bridge-knife-flights/	https://gta6gps.com/map/game/aerial-stunts		1	1
@@ -35,6 +33,7 @@ cards_14.tsv	https://game-checklists.com/gta6/card-sets-checklist/	https://gta6g
 cards_15.tsv	https://game-checklists.com/gta6/card-sets-checklist/	https://gta6gps.com/map/game/collectible-cards		1	1
 cards_16.tsv	https://game-checklists.com/gta6/card-sets-checklist/	https://gta6gps.com/map/game/collectible-cards		1	1
 cards_17.tsv	https://game-checklists.com/gta6/card-sets-checklist/	https://gta6gps.com/map/game/collectible-cards		1	1
+card_pickups.tsv	https://gta6gps.com/map/game/collectible-cards			1	0
 cards_18.tsv	https://game-checklists.com/gta6/card-sets-checklist/	https://gta6gps.com/map/game/collectible-cards		1	1
 challenge_milestones.tsv	https://www.powerpyx.com/gta-6-all-challenges-guide/			1	0
 challenge_objectives.tsv	https://www.powerpyx.com/gta-6-all-challenges-guide/			1	0
@@ -54,6 +53,7 @@ jumps_lummox.tsv	https://www.gtabase.com/gta-6/map/?feature=stunt-jumps	https://
 jumps_mariana.tsv	https://www.gtabase.com/gta-6/map/?feature=stunt-jumps	https://gta6gps.com/map/game/stunt-jumps		1	1
 jumps_vice_dale.tsv	https://www.gtabase.com/gta-6/map/?feature=stunt-jumps	https://gta6gps.com/map/game/stunt-jumps		1	1
 kenton.tsv	https://www.nexzyapp.com/games/grand-theft-auto-vi/guide/kentons-treasures	https://gta6gps.com/map/game/kenton-sets		1	1
+kitty_litter_labs.tsv	https://www.pcgamer.com/games/grand-theft-auto/gta-6-kitty-litter-lab-locations/	https://gta6gps.com/map/game/kitty-litter-labs		1	1
 knife_flights.tsv	https://www.powerpyx.com/gta-6-all-knife-flight-locations/	https://gta6gps.com/map/game/aerial-stunts		1	1
 landmarks.tsv	https://www.gtabase.com/gta-6/map/?feature=waink-landmark	https://gta6gps.com/map/game/landmarks		1	1
 legendary_animals.tsv	https://allgtaworld.com/guides/gta-6-legendary-animals			1	0
@@ -83,7 +83,7 @@ stickup_leads.tsv	https://game-checklists.com/gta6/stick-ups-checklist/			1	0
 styles_jason.tsv	https://game-checklists.com/gta6/styles-checklist/	https://gta6gps.com/map/game/style-unlocks		1	1
 styles_lucia.tsv	https://game-checklists.com/gta6/styles-checklist/	https://gta6gps.com/map/game/style-unlocks		1	1
 tattoos.tsv	https://game-checklists.com/gta6/styles-checklist/	https://gta6gps.com/map/game/magazines		1	1
-underwater.tsv	https://www.pushsquare.com/guides/gta-6-underwater-discoveries-locations-and-kentons-treasures	https://gta6gps.com/map/game/underwater-discoveries		1	1
+underwater.tsv	https://www.powerpyx.com/gta-6-all-underwater-discoveries-locations/			1	0
 unique_race_hubs.tsv	https://www.powerpyx.com/gta-6-all-unique-race-locations-racing-activities/	https://gta6gps.com/map/game/races		1	1
 vault_poster.tsv	https://gta6gps.com/map/game/playlists			1	0
 watches.tsv	https://www.gtabase.com/gta-6/map/?feature=luxury-watch			1	0

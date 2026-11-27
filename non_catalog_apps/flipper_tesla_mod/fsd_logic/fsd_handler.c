@@ -2,6 +2,9 @@
 #include "fsd_checksum.h"
 #include "fsd_can_ops.h"
 #include "fsd_ota.h"
+#include "fsd_bms.h"
+#include "fsd_steer.h"
+#include "fsd_freshness.h" // shared nag fault/override guard (#176)
 #include <string.h>
 
 void fsd_state_init(FSDState* state, TeslaHWVersion hw) {
@@ -59,18 +62,14 @@ void fsd_handle_bms_hv(FSDState* state, const CANFRAME* frame) {
     state->bms_seen = true;
 }
 
+// SOC: BMS_socUI, bit 10|10 (fsd_bms.h, shared with the ESP32).
 void fsd_handle_bms_soc(FSDState* state, const CANFRAME* frame) {
-    if(frame->data_lenght < 2) return;
-    uint16_t raw = ((uint16_t)(frame->buffer[1] & 0x03) << 8) | frame->buffer[0];
-    state->soc_percent = raw * 0.1f;
-    state->bms_seen = true;
+    fsd_bms_soc_update(state, frame->buffer, frame->data_lenght);
 }
 
-void fsd_handle_bms_thermal(FSDState* state, const CANFRAME* frame) {
-    if(frame->data_lenght < 6) return;
-    state->batt_temp_min_c = (int8_t)(frame->buffer[4] - 40);
-    state->batt_temp_max_c = (int8_t)(frame->buffer[5] - 40);
-    state->bms_seen = true;
+// Pack temperature: layout unconfirmed, plausibility-gated (fsd_bms.h).
+void fsd_handle_bms_thermal(FSDState* state, const CANFRAME* frame, uint32_t now_ms) {
+    fsd_bms_thermal_update(state, frame->buffer, frame->data_lenght, now_ms);
 }
 
 // --- Precondition trigger ---
@@ -186,13 +185,19 @@ bool fsd_ap_first_allows(const FSDState* state, uint32_t now_ms) {
     return (now_ms - state->ap_unstable_tick_ms) >= AP_FIRST_STABLE_MS;
 }
 
-bool fsd_soft_engage_allows(FSDState* state) {
+bool fsd_soft_engage_allows(FSDState* state, uint32_t now_ms) {
     if(!state->soft_engage) return true; // gate off
     if(state->soft_engage_latched) return true; // already engaged this cycle
     // Hold until the wheel is near-centred so the DAS's path recompute at
-    // FSD-enable is small (the steer-jerk is worse on curves — #108). If 0x129
-    // isn't on the bus, steering_angle_deg stays 0 and this latches immediately
-    // (degrades to AP-First-only, no worse than before).
+    // FSD-enable is small (the steer-jerk is worse on curves — #108). No 0x129
+    // on this tap at all: latch at once (degrades to AP-First-only; the Tap Check
+    // reports Soft Engage missing). 0x129 present but no fresh valid angle
+    // (sensor INIT/fault, frames stopped): hold, never latch on an unknown angle.
+    if(!state->steering_angle_seen) {
+        state->soft_engage_latched = true;
+        return true;
+    }
+    if(!fsd_steer_known(state, now_ms)) return false;
     float a = state->steering_angle_deg;
     if(a < 0.0f) a = -a;
     if(a > SOFT_ENGAGE_ANGLE_DEG) return false; // turning — hold activation
@@ -248,7 +253,7 @@ bool fsd_handle_autopilot_frame(FSDState* state, CANFRAME* frame, uint32_t now_m
     if(!fsd_ap_first_allows(state, now_ms)) return false;
     // Soft Engage: additionally hold the first activation until the wheel is
     // centred, so FSD-enable's path recompute doesn't yank the steering (#108).
-    if(!fsd_soft_engage_allows(state)) return false;
+    if(!fsd_soft_engage_allows(state, now_ms)) return false;
     // Abort Guard: once the car has entered an abort state this engagement, stop
     // injecting so we don't feed/repeat the abort that snaps the wheel (#108).
     if(!fsd_abort_guard_allows(state)) return false;
@@ -412,7 +417,7 @@ bool fsd_handle_legacy_autopilot(FSDState* state, CANFRAME* frame, uint32_t now_
     // 0x399 DAS_status (Legacy/HW3).
     if(!fsd_ap_first_allows(state, now_ms)) return false;
     // Soft Engage: also hold the legacy activation until the wheel is centred (#108).
-    if(!fsd_soft_engage_allows(state)) return false;
+    if(!fsd_soft_engage_allows(state, now_ms)) return false;
     // Abort Guard: stop injecting once an abort was seen this engagement (#108).
     if(!fsd_abort_guard_allows(state)) return false;
     // Minimal Inject: stop modifying once this engagement's burst budget is spent,
@@ -808,15 +813,6 @@ bool fsd_handle_driver_assist_override(FSDState* state, CANFRAME* frame) {
     return modified;
 }
 
-// --- 0x33A Energy Consumption Parser ---
-
-void fsd_handle_energy_consumption(FSDState* state, const CANFRAME* frame) {
-    if(frame->data_lenght < 4) return;
-    uint16_t raw = ((uint16_t)frame->buffer[1] << 8) | frame->buffer[0];
-    state->energy_wh_per_km = raw * 0.1f;
-    state->energy_seen = true;
-}
-
 // --- TLSSC Restore (0x331 / 817) ---
 // Spoof DAS_autopilot + DAS_autopilotBase to SELF_DRIVING.
 // byte[0] lower 6 bits → 0x1B. Preserves upper 2 bits.
@@ -1073,15 +1069,11 @@ void fsd_handle_ui_warning(FSDState* state, const CANFRAME* frame) {
 }
 
 // --- SCCM_steeringAngleSensor (0x129) parser ---
-// opendbc doesn't have the main angle in Model 3 DBC but it's likely
-// similar to legacy: 14-bit signed value, factor 0.1 deg
-// For now parse the raw bytes — exact signal layout needs verification
+// SCCM_steeringAngle 16|14 (0.1, -819.2) deg, used only while
+// SCCM_steeringAngleValidity (30|2) is VALID; layout in fsd_steer.h.
 
-void fsd_handle_steering_angle(FSDState* state, const CANFRAME* frame) {
-    if(frame->data_lenght < 4) return;
-    // Common Tesla steering angle: 16-bit signed LE at byte0-1, factor 0.1
-    int16_t raw = (int16_t)(((uint16_t)frame->buffer[1] << 8) | frame->buffer[0]);
-    state->steering_angle_deg = raw * 0.1f;
+void fsd_handle_steering_angle(FSDState* state, const CANFRAME* frame, uint32_t now_ms) {
+    fsd_steer_update(state, frame->buffer, frame->data_lenght, now_ms);
 }
 
 // --- DAS_steeringControl (0x488) parser ---
@@ -1134,7 +1126,8 @@ static uint16_t nag_frames_until_exc = 175; // frames until next excursion
 // on 2026.14.x. Unlike the legacy killer (forces handsOnLevel=1 + steady torque),
 // this derives handsOnLevel FROM the synthetic torque magnitude so the frame is
 // internally consistent, escalates torque with DAS hands-on demand, and directs
-// it opposite the steering angle. Raw torque: 2048 = 0 Nm, raw = 2048 + Nm*100.
+// it opposite the steering angle (held near centre and while the angle is
+// unknown, fsd_steer_nag_dir). Raw torque: 2048 = 0 Nm, raw = 2048 + Nm*100.
 static uint8_t nag_hands_level_from_raw(int16_t raw) {
     int16_t a = (raw >= 2048) ? (raw - 2048) : (2048 - raw);
     if(a >= 200) return 2; // |torque| >= 2.0 Nm
@@ -1200,7 +1193,7 @@ static bool
         return false; // pass the real EPAS frame through unmodified
     }
 
-    int dir = (state->steering_angle_deg > 0.0f) ? -1 : 1; // oppose steering
+    int dir = fsd_steer_nag_dir(state, now_ms); // oppose steering
     int16_t torque;
     uint8_t level;
 
@@ -1299,11 +1292,19 @@ void fsd_apply_signal_config(FSDState* state, const CANFRAME* frame, uint32_t no
         state->das_ctx_seen_ms = now_ms;
     }
     if(state->cfg_steer_id != 0 && frame->canId == state->cfg_steer_id) {
-        if(state->cfg_steer_hi < 8 && state->cfg_steer_lo < 8 &&
-           frame->data_lenght > state->cfg_steer_hi && frame->data_lenght > state->cfg_steer_lo) {
+        if(frame->canId == CAN_ID_STEER_ANGLE) {
+            // 0x129 has one layout (fsd_steer.h): bytes 0-1 are its CRC and
+            // counter, and the angle counts only while its validity is VALID.
+            // hi/lo are for other frames.
+            if(frame->data_lenght >= FSD_STEER_MIN_DLC) state->steer_ctx_seen_ms = now_ms;
+            fsd_steer_update(state, frame->buffer, frame->data_lenght, now_ms);
+        } else if(
+            state->cfg_steer_hi != state->cfg_steer_lo && // equal = not mapped
+            state->cfg_steer_hi < 8 && state->cfg_steer_lo < 8 &&
+            frame->data_lenght > state->cfg_steer_hi && frame->data_lenght > state->cfg_steer_lo) {
             int16_t raw = (int16_t)(((uint16_t)frame->buffer[state->cfg_steer_hi] << 8) |
                                     frame->buffer[state->cfg_steer_lo]);
-            state->steering_angle_deg = (float)raw * 0.1f;
+            fsd_steer_set(state, (float)raw * 0.1f, now_ms);
             state->steer_ctx_seen_ms = now_ms;
         }
     }
@@ -1327,6 +1328,13 @@ bool fsd_handle_nag_killer(FSDState* state, const CANFRAME* frame, CANFRAME* out
     if(!fsd_das_ctx_fresh(state, now_ms)) return false;
     // Burst/pause: during the rest window, don't echo at all (gates both paths).
     if(state->nag_burst && nag_in_pause(now_ms)) return false;
+
+    // Fault / driver-override guard (#176): don't assert a spoofed hands-on while
+    // the car is aborting AP, or while the driver is clearly applying torque —
+    // either way the echo would fight the driver's own input instead of keeping a
+    // live engagement nag-free. torsion_bar_torque_nm is this frame's value:
+    // fsd_handle_epas_steering_mode runs just before the nag killer. Gates both.
+    if(fsd_nag_suppress_fault(state->das_ap_state, state->torsion_bar_torque_nm)) return false;
 
     // v2.17 EPAS-faithful (Mode-C) path takes over the whole decision.
     if(state->nag_epas_faithful) return nag_faithful_modec(state, frame, out, now_ms);

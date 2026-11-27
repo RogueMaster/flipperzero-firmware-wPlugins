@@ -21,3 +21,8 @@ void prefs_save(const FSDState *state);
 
 /** Erase all saved settings from NVS (factory reset). */
 void prefs_clear();
+
+/** Whether NVS has namespace @p ns. A read-only Preferences::begin() on one
+ *  that was never written fails with an error log (nvs_open NOT_FOUND), which
+ *  on a first boot is expected; this asks NVS without logging. */
+bool prefs_namespace_exists(const char *ns);

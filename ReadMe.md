@@ -13,7 +13,7 @@ Apps contains changes needed to compile them on latest firmware, fixes has been 
 
 The Flipper and its community wouldn't be as rich as it is without your contributions and support. Thank you for all you have done.
 
-### Apps checked & updated at `13 Nov 03:29 GMT +3`
+### Apps checked & updated at `27 Nov 05:50 GMT +3`
 
 
 # Default pack
@@ -437,9 +437,10 @@ The Flipper and its community wouldn't be as rich as it is without your contribu
 | USB Floppy | ![USB Badge] | [by piersroberts](https://github.com/piersroberts/flipperfloppy) | Emulates a USB floppy drive (UFI) from a 720K or 1.44M disk image on the SD card | ![None Badge] |
 | USB CD-ROM | ![USB Badge] | [by piersroberts](https://github.com/piersroberts/flippercd) | Emulates a USB CD/DVD-ROM drive from .iso images on the SD card | ![None Badge] |
 | USB Utility (Zero Buster) | ![USB Badge] | [by DonJulve](https://github.com/DonJulve/Zero_Buster) | Types a script as USB keyboard, then switches to CDC serial and logs the host reply to a timestamped file - stock BadUSB `.kl` layouts, spoofable VID/PID | ![None Badge] |
+| BadUSB MSC | ![USB Badge] | [by ZombieDolphin](https://github.com/ZombieDolphin/BadUSB_MSC) | Composite USB HID BadUSB + isolated FAT16 USB Mass Storage drive with on-device file manager. RAM/OOM, USB HID/MSC stability, FAT16 re-mount, `assets/layouts` & configurable storage name fixes by @xMasterX | ![None Badge] |
 
 
-#### Catalog links checked at `17 Feb 2026 00:01 GMT +3`
+#### Catalog links checked at `27 Nov 2026 05:50 GMT +3`
 
 --- 
 

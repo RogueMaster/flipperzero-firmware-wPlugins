@@ -6,6 +6,7 @@
  */
 
 #include "morse_flipper_app_i.h"
+#include "usb/morse_usb_ids.h"
 
 const char* morse_flipper_pc_state_name(const MorseFlipperApp* app) {
     bool up = false;
@@ -53,15 +54,11 @@ bool morse_flipper_transport_connected(const MorseFlipperApp* app) {
 }
 
 static uint8_t morse_flipper_keyboard_key_for_note(const MorseFlipperApp* app, uint8_t note) {
-    switch(note) {
-    case 0:
-        return morse_pc_straight_preset_key(app->pc_straight_preset);
-    case 1:
-    case 2:
-        return morse_pc_paddle_preset_key(app->pc_paddle_preset, note, false);
-    default:
-        return MorsePcKeyNone;
-    }
+    return morse_pc_keyboard_key_for_note(
+        app->pc_paddle_preset,
+        app->pc_straight_preset,
+        note,
+        morse_flipper_current_keyer_mode(app) == MorseKeyerModeStraight);
 }
 
 static uint16_t morse_flipper_hid_key_for_pc_key(uint8_t key) {
@@ -262,7 +259,11 @@ void morse_flipper_set_pc_mode(MorseFlipperApp* app, uint8_t mode) {
         furi_delay_ms(150U);
         furi_check(furi_hal_usb_set_config(&morse_usb_midi_interface, NULL));
     } else {
-        if(mode == MorseFlipperPcModeMouse) prod = "Morse Flipper Mouse";
+        app->hid_cfg.pid = MORSE_USB_KEYBOARD_PID;
+        if(mode == MorseFlipperPcModeMouse) {
+            prod = "Morse Flipper Mouse";
+            app->hid_cfg.pid = MORSE_USB_MOUSE_PID;
+        }
         snprintf(app->hid_cfg.product, sizeof(app->hid_cfg.product), "%s", prod);
         morse_usb_midi_set_rx_callback(NULL);
         morse_usb_midi_set_context(NULL);

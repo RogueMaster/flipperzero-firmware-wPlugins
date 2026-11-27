@@ -21,13 +21,20 @@ void wifi_marauder_select_stage_type_change_callback(VariableItem* item) {
     // Updates the attribute value of the current stage
     WifiMarauderScriptStageSelect* stage = app->script_edit_selected_stage->stage;
     stage->type = option_index;
+    if(stage->type != WifiMarauderScriptSelectTypeAp && stage->filter != NULL) {
+        free(stage->filter);
+        stage->filter = NULL;
+    }
 }
 
 void wifi_marauder_select_stage_filter_setup_callback(VariableItem* item) {
     WifiMarauderApp* app = variable_item_get_context(item);
     WifiMarauderScriptStageSelect* stage = app->script_edit_selected_stage->stage;
 
-    if(stage->filter != NULL) {
+    if(stage->type != WifiMarauderScriptSelectTypeAp) {
+        variable_item_set_current_value_index(item, 0);
+        variable_item_set_current_value_text(item, "AP only");
+    } else if(stage->filter != NULL) {
         variable_item_set_current_value_index(item, 0);
         variable_item_set_current_value_text(item, stage->filter);
     } else {
@@ -38,9 +45,14 @@ void wifi_marauder_select_stage_filter_setup_callback(VariableItem* item) {
 void wifi_marauder_select_stage_filter_change_callback(VariableItem* item) {
     WifiMarauderApp* app = variable_item_get_context(item);
     WifiMarauderScriptStageSelect* stage = app->script_edit_selected_stage->stage;
+    if(stage->type != WifiMarauderScriptSelectTypeAp) {
+        variable_item_set_current_value_text(item, "AP only");
+        return;
+    }
 
     // Clears the filter if you change the option. Flipper input box does not accept blank text
     if(variable_item_get_current_value_index(item) == 1) {
+        free(stage->filter);
         stage->filter = NULL;
         variable_item_set_current_value_index(item, 0);
         variable_item_set_values_count(item, 1);
@@ -56,8 +68,10 @@ void wifi_marauder_select_stage_filter_change_callback(VariableItem* item) {
 void wifi_marauder_select_stage_filter_select_callback(void* context) {
     WifiMarauderApp* app = context;
     WifiMarauderScriptStageSelect* stage_select = app->script_edit_selected_stage->stage;
+    app->user_input_string_reference = NULL;
+    if(stage_select->type != WifiMarauderScriptSelectTypeAp) return;
     if(stage_select->filter == NULL) {
-        stage_select->filter = malloc(128);
+        stage_select->filter = calloc(WIFI_MARAUDER_TEXT_INPUT_STORE_SIZE + 1, 1);
     }
     app->user_input_string_reference = &stage_select->filter;
 }

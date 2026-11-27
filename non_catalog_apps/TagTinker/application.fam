@@ -34,6 +34,7 @@ App(
         "views/numlock_input.c",
         "nfc/tagtinker_nfc.c",
         "scenes/tagtinker_scene_nfc_scan.c",
+        "scenes/tagtinker_scene_custom_size.c",
         "wifi/tagtinker_wifi.c",
         "wifi/tagtinker_wifi_bmp.c",
         "scenes/tagtinker_scene_wifi_plugins.c",

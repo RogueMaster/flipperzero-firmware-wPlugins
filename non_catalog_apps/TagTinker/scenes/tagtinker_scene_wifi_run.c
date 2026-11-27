@@ -289,13 +289,10 @@ static void start_run(TagTinkerApp* app) {
      * else fallback to a reasonable sane size. */
     uint16_t tw = app->esl_width ? app->esl_width : 296;
     uint16_t th = app->esl_height ? app->esl_height : 128;
-    /* Honour the tag's accent capability: red/yellow profiles get the
-     * accent plane, mono profiles stay mono. The BMP writer + the IR TX
-     * pipeline already understand 2-plane BMPs (same convention as the
-     * web image prep tool), so plugins can use the accent freely. */
     uint8_t accent = TT_ACCENT_NONE;
     if(app->selected_target >= 0 && app->selected_target < app->target_count) {
         const TagTinkerTarget* t = &app->targets[app->selected_target];
+        tagtinker_profile_glass_size(&t->profile, &tw, &th);
         if(tagtinker_target_supports_accent(t)) {
             accent = (t->profile.color == TagTinkerTagColorYellow) ? TT_ACCENT_YELLOW :
                                                                      TT_ACCENT_RED;

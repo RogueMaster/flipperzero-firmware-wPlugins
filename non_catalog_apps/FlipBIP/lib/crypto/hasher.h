@@ -26,9 +26,12 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "options.h"
+#if USE_EXTRA_HASHERS
 #include "blake256.h"
 #include "blake2b.h"
 #include "groestl.h"
+#endif
 #include "sha2.h"
 #include "sha3.h"
 
@@ -45,6 +48,7 @@ typedef enum {
     HASHER_SHA3K,
 #endif
 
+#if USE_EXTRA_HASHERS
     HASHER_BLAKE,
     HASHER_BLAKED,
     HASHER_BLAKE_RIPEMD,
@@ -53,6 +57,7 @@ typedef enum {
 
     HASHER_BLAKE2B,
     HASHER_BLAKE2B_PERSONAL,
+#endif
 } HasherType;
 
 typedef struct {
@@ -61,9 +66,11 @@ typedef struct {
     union {
         SHA256_CTX sha2; // for HASHER_SHA2{,D}
         SHA3_CTX sha3; // for HASHER_SHA3{,K}
+#if USE_EXTRA_HASHERS
         BLAKE256_CTX blake; // for HASHER_BLAKE{,D}
         GROESTL512_CTX groestl; // for HASHER_GROESTLD_TRUNC
         BLAKE2B_CTX blake2b; // for HASHER_BLAKE2B{,_PERSONAL}
+#endif
     } ctx;
 
     const void* param;

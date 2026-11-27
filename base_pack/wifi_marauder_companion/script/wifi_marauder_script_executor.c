@@ -30,12 +30,8 @@ void _wifi_marauder_script_execute_scan(
     if(stage->channel > 0) {
         _send_channel_select(worker, stage->channel);
     }
-    // Start scan
-    if(stage->type == WifiMarauderScriptScanTypeAp) {
-        snprintf(command, sizeof(command), "scanap\n");
-    } else {
-        snprintf(command, sizeof(command), "scansta\n");
-    }
+    // Firmware v1.20 consolidates AP/station discovery into scanall.
+    snprintf(command, sizeof(command), "scanall\n");
     wifi_marauder_uart_tx(worker->uart, (uint8_t*)(command), strlen(command));
     _wifi_marauder_script_delay(worker, stage->timeout);
     _send_stop(worker);
@@ -56,30 +52,42 @@ void _wifi_marauder_script_execute_select(
         select_type = "-s";
         break;
     default:
-        return; // invalid stage
+        return;
     }
 
     char command[256];
     size_t command_length = 0;
+    int written = 0;
 
     if(stage->indexes != NULL && stage->index_count > 0) {
-        command_length = snprintf(command, sizeof(command), "select %s ", select_type);
+        written = snprintf(command, sizeof(command), "select %s ", select_type);
+        if(written < 0 || (size_t)written >= sizeof(command)) return;
+        command_length = (size_t)written;
 
         for(int i = 0; i < stage->index_count; i++) {
-            int index = stage->indexes[i];
-            command_length += snprintf(
-                command + command_length, sizeof(command) - command_length, "%d, ", index);
+            written = snprintf(
+                command + command_length,
+                sizeof(command) - command_length,
+                "%s%d",
+                i == 0 ? "" : ",",
+                stage->indexes[i]);
+            if(written < 0 || (size_t)written >= sizeof(command) - command_length) return;
+            command_length += (size_t)written;
         }
 
-        // Remove the trailing comma and space
-        command_length -= 2;
-        command[command_length] = '\n';
-        command_length++;
+        if(command_length + 1 >= sizeof(command)) return;
+        command[command_length++] = '\n';
+        command[command_length] = '\0';
     } else if(stage->filter == NULL || strcmp(stage->filter, "all") == 0) {
-        command_length = snprintf(command, sizeof(command), "select %s all\n", select_type);
+        written = snprintf(command, sizeof(command), "select %s all\n", select_type);
+        if(written < 0 || (size_t)written >= sizeof(command)) return;
+        command_length = (size_t)written;
     } else {
-        command_length = snprintf(
+        if(stage->type != WifiMarauderScriptSelectTypeAp) return;
+        written = snprintf(
             command, sizeof(command), "select %s -f \"%s\"\n", select_type, stage->filter);
+        if(written < 0 || (size_t)written >= sizeof(command)) return;
+        command_length = (size_t)written;
     }
 
     wifi_marauder_uart_tx(worker->uart, (uint8_t*)command, command_length);
@@ -148,15 +156,9 @@ void _wifi_marauder_script_execute_sniff_deauth(
 void _wifi_marauder_script_execute_sniff_esp(
     WifiMarauderScriptStageSniffEsp* stage,
     WifiMarauderScriptWorker* worker) {
-    const char sniff_command[] = "sniffesp";
-    wifi_marauder_uart_tx(worker->uart, (uint8_t*)sniff_command, strlen(sniff_command));
-    if(((WifiMarauderScript*)worker->context)->save_pcap != WifiMarauderScriptBooleanFalse) {
-        wifi_marauder_uart_tx(worker->uart, (uint8_t*)(" -serial\n"), strlen(" -serial\n"));
-    } else {
-        wifi_marauder_uart_tx(worker->uart, (uint8_t*)("\n"), 1);
-    }
-    _wifi_marauder_script_delay(worker, stage->timeout);
-    _send_stop(worker);
+    // Retain the legacy stage type for old JSON compatibility, but v1.20 has no sniffesp command.
+    UNUSED(stage);
+    UNUSED(worker);
 }
 
 void _wifi_marauder_script_execute_sniff_pmkid(

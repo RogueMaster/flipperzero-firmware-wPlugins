@@ -5,9 +5,11 @@
 #define CAN_ID_TRIP_PLANNING  0x082u  // 130  - UI_tripPlanning: precondition trigger
 #define CAN_ID_ESP_STATUS     0x145u  // 325  - ESP_status: driver brake pedal state
 #define CAN_ID_ESP_WHEELSPD   0x175u  // 373  - ESP_wheelSpeeds: 4 wheel speeds (Party CAN, read-only)
+#define CAN_ID_VCSEC_TPMS     0x219u  // 537  - VCSEC_TPMSData: tyre pressures (Vehicle CAN, read-only)
 #define CAN_ID_STEER_ANGLE    0x129u  // 297  - SCCM_steeringAngleSensor (Soft Engage gate, #108)
 #define CAN_ID_BMS_HV_BUS     0x132u  // 306  - BMS_hvBusStatus: pack voltage / current
 #define CAN_ID_BMS_SOC        0x292u  // 658  - BMS_socStatus:   state of charge
+#define CAN_ID_UI_RANGE       0x33Au  // 826  - UI_range: SOC on the car's screen (#251)
 #define CAN_ID_BMS_THERMAL    0x312u  // 786  - BMS_thermalStatus: battery temp
 #define CAN_ID_GTW_CAR_STATE  0x318u  // 792  - GTW_carState:    OTA detection
 #define CAN_ID_UI_MAP_DATA    0x238u  // 568  - UI_driverAssistMapData: map speed limit
@@ -29,8 +31,10 @@
 #define CAN_ID_DAS_STATUS_HW4 0x39Bu  // 923  - DAS_status on HW4 AP/DAS
 #define CAN_ID_TRACK_MODE_SET 0x313u  // 787  - UI_trackModeSettings: track mode request (checksummed)
 #define CAN_ID_UI_POWERTRAIN  0x334u  // 820  - UI_powertrainControl: pedal map (Acceleration Mode override, #211)
+#define CAN_ID_CP_STATUS      0x25Du  // 605  - CP_status: charge-port type / plug state (Vehicle CAN, #228)
 // Same replacement list as fsd_logic/fsd_handler.h, so main.cpp seeing both is not a redefinition.
 #define CAN_ID_DI_SYS_STATUS  0x118  // 280  - DI_systemStatus: DI_gear (Acceleration Mode standstill gate)
+#define CAN_ID_VCLEFT_SWITCH  0x3C2  // 962  - VCLEFT_switchStatus: tap check bus hint (#218), RX only
 // Vehicle/body bus reachability probes (#128) — RX presence only, never actuated.
 #define CAN_ID_UI_VEHICLE_CTRL 0x273u // 627  - UI_vehicleControl: mirror fold/lock/wiper/horn/seat heat
 #define CAN_ID_VCLEFT_DOOR     0x102u // 258  - VCLEFT_doorStatus: mirror state/tilt read-back
@@ -40,7 +44,9 @@
 // ── Build identity ────────────────────────────────────────────────────────────
 // Board name for the boot banner and the dashboard — same wording as the board
 // table in esp32/README.md. One entry per BOARD_* flag in platformio.ini.
-#if defined(BOARD_LILYGO_T2CAN)
+#if defined(BOARD_LILYGO_T2CAN_FD)
+  #define BOARD_NAME "LilyGO T-2CAN FD"
+#elif defined(BOARD_LILYGO_T2CAN)
   #define BOARD_NAME "LilyGO T-2CAN"
 #elif defined(BOARD_LILYGO)
   #define BOARD_NAME "LilyGO T-CAN485"
@@ -77,10 +83,21 @@
   #define PIN_MCP_SCK        12
   #define PIN_MCP_MOSI       11
   #define PIN_MCP_MISO       13
-  #define PIN_MCP_RST        9
   #define PIN_MCP_INT        8
-  #ifndef MCP_CRYSTAL_MHZ
-  #define MCP_CRYSTAL_MHZ    MCP_16MHZ
+  #if defined(BOARD_LILYGO_T2CAN_FD)
+    // T-2CAN FD (H784-A): an MCP2518FD on the same SPI pins. It has no reset
+    // pin; GPIO 9 goes to its INT0/GPIO0/XSTBY pin and GPIO 3 (through the DIP
+    // switch) to INT1/GPIO1. The driver polls over SPI and drives neither.
+    // Crystal: 40 MHz on LilyGO's T-2Can-Fd_V1.0 schematic. The driver
+    // measures it before the controller may leave Listen-Only.
+    #ifndef MCP2518FD_OSC_HZ
+    #define MCP2518FD_OSC_HZ   40000000u
+    #endif
+  #else
+    #define PIN_MCP_RST        9
+    #ifndef MCP_CRYSTAL_MHZ
+    #define MCP_CRYSTAL_MHZ    MCP_16MHZ
+    #endif
   #endif
   #define PRECONDITION_TX_BUS_INDEX 0
 #elif defined(BOARD_LILYGO)
@@ -145,12 +162,20 @@
 
 // ── Generated TX routing ─────────────────────────────────────────────────────
 // Bus index: 0=can0, 1=can1. Single-CAN builds only have can0.
+// The Continuous AP 0x229 press only goes out on a bus where the car's own
+// 0x229 is live (gear_tx_route.h); this picks the bus when both carry it.
 #ifndef GEAR_LEVER_TX_BUS_INDEX
 #if defined(BOARD_LILYGO_T2CAN)
 #define GEAR_LEVER_TX_BUS_INDEX 1
 #else
 #define GEAR_LEVER_TX_BUS_INDEX 0
 #endif
+#endif
+
+// Builds with an MCP2515: can0 on the MCP2515 boards, can1 on the classic
+// T-2CAN (the T-2CAN FD has an MCP2518FD there instead).
+#if defined(CAN_DRIVER_MCP2515) || (defined(CAN_DRIVER_T2CAN_DUAL) && !defined(BOARD_LILYGO_T2CAN_FD))
+#define CAN_HAS_MCP2515 1
 #endif
 
 // MCP2515 oscillator. Generic breakout modules often use 8 MHz; the LilyGO
@@ -161,6 +186,7 @@
 
 // ── Timing ────────────────────────────────────────────────────────────────────
 #define WIRING_WARN_MS        5000u   // Red LED / serial warning if no CAN after this
+#define WIRING_WARN_REPEAT_MS 60000u  // ...then that bus's warning at most once a minute
 #define OTA_SELF_VERIFY_MS   15000u   // Runtime before a new web-OTA image is confirmed
 #define PRECOND_INTERVAL_MS    500u   // Re-inject 0x082 precondition every N ms
 #define BMS_PRINT_MS          1000u   // BMS serial print interval
@@ -171,6 +197,7 @@
 #define FACTORY_RESET_WINDOW_MS 20000u  // Clean-boot window during which reset is possible
 #define STATUS_PRINT_MS       5000u   // Periodic status line when Active
 #define WIFI_STA_CONNECT_TIMEOUT_MS 10000u  // Try saved infrastructure WiFi before AP fallback
+#define WIFI_HOSTNAME_DEFAULT "tesla-fsd"  // Station hostname until the user sets one
 #ifndef GEAR_LEVER_CACHED_COUNTER_MAX_AGE_MS
 #define GEAR_LEVER_CACHED_COUNTER_MAX_AGE_MS 500u  // Immediate 0x229 TX only if latest live counter is fresh
 #endif

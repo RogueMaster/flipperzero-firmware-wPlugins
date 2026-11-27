@@ -59,6 +59,17 @@ void tagtinker_target_refresh_profile(TagTinkerTarget* target) {
 
     memset(&target->profile, 0, sizeof(target->profile));
     tagtinker_barcode_to_profile(target->barcode, &target->profile);
+
+    /* If the barcode's type is not in the table but the user gave a size, build
+     * a profile from it. A real table profile is left untouched. */
+    if(!target->profile.known && target->custom_width > 0 && target->custom_height > 0) {
+        target->profile.width = target->custom_width;
+        target->profile.height = target->custom_height;
+        target->profile.color = (TagTinkerTagColor)target->custom_color;
+        target->profile.kind = TagTinkerTagKindDotMatrix;
+        target->profile.model_name = "Custom";
+        target->profile.known = true;
+    }
 }
 
 void tagtinker_target_set_default_name(TagTinkerApp* app, TagTinkerTarget* target) {
@@ -294,7 +305,10 @@ bool tagtinker_delete_target(TagTinkerApp* app, uint8_t index) {
 
 bool tagtinker_target_supports_graphics(const TagTinkerTarget* target) {
     if(!target) return false;
-    return target->profile.kind != TagTinkerTagKindSegment;
+    /* Only profile-table entries have real dimensions. A type code missing
+     * from the table leaves a zeroed profile (0x0, kind Unknown), so the app
+     * has no known display size to render text or images for. */
+    return target->profile.known && target->profile.kind == TagTinkerTagKindDotMatrix;
 }
 
 bool tagtinker_target_supports_accent(const TagTinkerTarget* target) {
@@ -360,7 +374,19 @@ void tagtinker_prepare_text_tx(TagTinkerApp* app, const uint8_t plid[4]) {
     memset(&app->image_tx_job, 0, sizeof(app->image_tx_job));
     app->image_tx_job.mode = TagTinkerTxModeTextImage;
     memcpy(app->image_tx_job.plid, plid, sizeof(app->image_tx_job.plid));
-    app->image_tx_job.page = (app->img_page > 0U) ? (uint8_t)(app->img_page - 1U) : 0U;
+    /* HD tags map UI page 1-8 to protocol 0-7. Color 2.6 uses the UI page
+     * number on the wire. Unspecified 0/1 become page 2 (image slot). */
+    {
+        const TagTinkerTagProfile* profile = NULL;
+        if(app->selected_target >= 0 && app->selected_target < app->target_count) {
+            profile = &app->targets[app->selected_target].profile;
+        }
+        if(tagtinker_profile_uses_ui_page(profile)) {
+            app->image_tx_job.page = tagtinker_color26_resolve_page(app->img_page);
+        } else {
+            app->image_tx_job.page = (app->img_page > 0U) ? (uint8_t)(app->img_page - 1U) : 0U;
+        }
+    }
     if(app->image_tx_job.page > 7U) app->image_tx_job.page = 7U;
     app->image_tx_job.width = app->esl_width;
     app->image_tx_job.height = app->esl_height;
@@ -388,6 +414,10 @@ void tagtinker_prepare_bmp_tx(
     app->image_tx_job.mode = TagTinkerTxModeBmpImage;
     memcpy(app->image_tx_job.plid, plid, sizeof(app->image_tx_job.plid));
     app->image_tx_job.page = page;
+    if(app->selected_target >= 0 && app->selected_target < app->target_count &&
+       tagtinker_profile_uses_ui_page(&app->targets[app->selected_target].profile)) {
+        app->image_tx_job.page = tagtinker_color26_resolve_page(page);
+    }
     app->image_tx_job.width = width;
     app->image_tx_job.height = height;
     app->image_tx_job.pos_x = app->draw_x;
@@ -499,21 +529,34 @@ void tagtinker_targets_load(TagTinkerApp* app) {
             if(nl) *nl = '\0';
 
             if(*line) {
-                char* sep = strchr(line, '|');
-                if(sep) *sep = '\0';
+                /* Split into up to 5 fields: barcode|name|cw|ch|ccolor.
+                 * Older files have only barcode|name; the rest default to 0. */
+                char* fields[5] = {line, NULL, NULL, NULL, NULL};
+                char* p = line;
+                for(uint8_t f = 1; f < 5; f++) {
+                    char* sep = strchr(p, '|');
+                    if(!sep) break;
+                    *sep = '\0';
+                    fields[f] = sep + 1;
+                    p = sep + 1;
+                }
 
-                if(tagtinker_barcode_to_plid(line, app->targets[app->target_count].plid)) {
+                if(tagtinker_barcode_to_plid(fields[0], app->targets[app->target_count].plid)) {
                     TagTinkerTarget* target = &app->targets[app->target_count];
-                    strncpy(target->barcode, line, TAGTINKER_BC_LEN);
+                    memset(target, 0, sizeof(*target));
+                    strncpy(target->barcode, fields[0], TAGTINKER_BC_LEN);
                     target->barcode[TAGTINKER_BC_LEN] = '\0';
-                    memset(target->name, 0, sizeof(target->name));
 
-                    if(sep && *(sep + 1)) {
-                        strncpy(target->name, sep + 1, TAGTINKER_TARGET_NAME_LEN);
+                    if(fields[1] && *fields[1]) {
+                        strncpy(target->name, fields[1], TAGTINKER_TARGET_NAME_LEN);
                         target->name[TAGTINKER_TARGET_NAME_LEN] = '\0';
                     } else {
                         tagtinker_target_set_default_name(app, target);
                     }
+
+                    if(fields[2]) target->custom_width = (uint16_t)atoi(fields[2]);
+                    if(fields[3]) target->custom_height = (uint16_t)atoi(fields[3]);
+                    if(fields[4]) target->custom_color = (uint8_t)atoi(fields[4]);
 
                     tagtinker_target_refresh_profile(target);
                     app->target_count++;
@@ -538,9 +581,16 @@ bool tagtinker_targets_save(const TagTinkerApp* app) {
     if(storage_file_open(file, APP_DATA_PATH("targets.txt"), FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
         ok = true;
         for(uint8_t i = 0; i < app->target_count; i++) {
-            char line[64];
+            char line[96];
             int len = snprintf(
-                line, sizeof(line), "%s|%s\n", app->targets[i].barcode, app->targets[i].name);
+                line,
+                sizeof(line),
+                "%s|%s|%u|%u|%u\n",
+                app->targets[i].barcode,
+                app->targets[i].name,
+                app->targets[i].custom_width,
+                app->targets[i].custom_height,
+                app->targets[i].custom_color);
 
             if(len <= 0 || !storage_file_write(file, line, (uint16_t)len)) {
                 ok = false;

@@ -89,8 +89,10 @@ static void dropped_images_load(TagTinkerApp* app) {
             if(file_info_is_dir(&info)) continue;
 
             TagTinkerSyncedImage entry;
-            if(!tagtinker_parse_dropped_filename(
-                   name, target->barcode, target->profile.width, target->profile.height, &entry)) {
+            uint16_t tw = target->profile.width;
+            uint16_t th = target->profile.height;
+            tagtinker_profile_glass_size(&target->profile, &tw, &th);
+            if(!tagtinker_parse_dropped_filename(name, target->barcode, tw, th, &entry)) {
                 continue;
             }
 

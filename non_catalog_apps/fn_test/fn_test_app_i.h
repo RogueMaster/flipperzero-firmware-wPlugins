@@ -19,6 +19,7 @@
 #include "ui/fn_text_model.h"
 #include "ui/fn_ui.h"
 #include "ui/views/fn_view_confirm.h"
+#include "ui/views/fn_view_language.h"
 #include "ui/views/fn_view_menu.h"
 #include "ui/views/fn_view_text.h"
 #include "ui/views/fn_view_wait.h"
@@ -30,6 +31,8 @@ typedef enum {
     FNAppCustomEventWorkerResult = 0x100,
     FNAppCustomEventConfirmAccepted = 0x101,
     FNAppCustomEventConfirmDeclined = 0x102,
+    FNAppCustomEventLanguageSelected = 0x103,
+    FNAppCustomEventLanguageCancelled = 0x104,
 } FNAppCustomEvent;
 
 /** Экраны приложения. */
@@ -38,6 +41,7 @@ typedef enum {
     FNAppViewWait,
     FNAppViewText,
     FNAppViewConfirm,
+    FNAppViewLanguage,
 } FNAppView;
 
 struct FNApp {
@@ -51,6 +55,11 @@ struct FNApp {
     FnWaitView* view_wait;
     FnTextView* view_text;
     FnConfirmView* view_confirm;
+    FnLanguageView* view_language;
+
+    FnLang lang; /**< язык интерфейса */
+    bool lang_selected; /**< язык уже выбран и сохранён */
+    FnLang pending_lang; /**< выбор экрана языка до обработки события */
 
     FnInfo* fn_info;
     FnLifeInfo* fn_life_info;

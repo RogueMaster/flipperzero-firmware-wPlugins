@@ -1,7 +1,54 @@
 #include "include/db.h"
 #include "include/fs_compat.h"
-#include <stdlib.h>
-#include <string.h>
+#include "include/stock_recovery.h"
+
+static StoreStat port_stat(void* ctx, const char* path) {
+    (void)ctx;
+    return fs_stat(path);
+}
+
+static bool port_exists(void* ctx, const char* path) {
+    (void)ctx;
+    return fs_exists(path);
+}
+
+static StockReadOutcome
+    port_read_all(void* ctx, const char* path, StockItem** out_items, size_t* out_count) {
+    (void)ctx;
+    return fs_read_all_stock_items_ex(path, out_items, out_count);
+}
+
+static bool port_write_all(void* ctx, const char* path, const StockItem* items, size_t count) {
+    (void)ctx;
+    return fs_write_replace(path, items, count * sizeof(StockItem));
+}
+
+static bool port_rename(void* ctx, const char* src, const char* dst) {
+    (void)ctx;
+    return fs_rename(src, dst);
+}
+
+static bool port_remove(void* ctx, const char* path) {
+    (void)ctx;
+    return fs_remove(path);
+}
+
+static bool port_read_raw(void* ctx, const char* path, uint8_t** out_bytes, size_t* out_len) {
+    (void)ctx;
+    return fs_read_raw_bytes(path, out_bytes, out_len);
+}
+
+static const StockStoragePort real_port = {
+    .ctx = NULL,
+    .max_bytes = STOCK_DB_MAX_BYTES,
+    .stat = port_stat,
+    .exists = port_exists,
+    .read_all = port_read_all,
+    .read_raw = port_read_raw,
+    .write_all = port_write_all,
+    .rename = port_rename,
+    .remove = port_remove,
+};
 
 bool stock_db_find_by_uid(
     const char* filepath,
@@ -11,38 +58,18 @@ bool stock_db_find_by_uid(
     return fs_find_stock_by_uid(filepath, uid, uid_len, found_item);
 }
 
-bool stock_db_upsert(const char* filepath, const StockItem* item) {
+StockWriteResult stock_db_upsert(const char* filepath, const StockItem* item) {
     if(!filepath || !item) {
-        return false;
+        StockWriteResult result = {StockWriteFailed, {0}};
+        return result;
     }
-    StockItem* items = NULL;
-    size_t count = 0;
-    if(!fs_read_all_stock_items(filepath, &items, &count)) {
-        return fs_write_replace(filepath, item, sizeof(StockItem));
+    return stock_recovery_upsert(&real_port, filepath, item);
+}
+
+StockWriteResult stock_db_delete_at(const char* filepath, size_t index) {
+    if(!filepath) {
+        StockWriteResult result = {StockWriteFailed, {0}};
+        return result;
     }
-    size_t idx = (size_t)-1;
-    for(size_t i = 0; i < count; i++) {
-        if(items[i].uid_len == item->uid_len &&
-           memcmp(items[i].uid, item->uid, item->uid_len) == 0) {
-            idx = i;
-            break;
-        }
-    }
-    StockItem* block = items;
-    size_t n = count;
-    if(idx == (size_t)-1) {
-        StockItem* grown = realloc(items, (count + 1) * sizeof(StockItem));
-        if(!grown) {
-            free(items);
-            return false;
-        }
-        block = grown;
-        block[count] = *item;
-        n = count + 1;
-    } else {
-        block[idx] = *item;
-    }
-    bool ok = fs_write_replace(filepath, block, n * sizeof(StockItem));
-    free(block);
-    return ok;
+    return stock_recovery_delete_at(&real_port, filepath, index);
 }

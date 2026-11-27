@@ -1,5 +1,6 @@
 #include "fn_test_app_i.h"
 
+#include "fn_settings.h"
 #include "ui/scenes/fn_scene.h"
 
 #ifdef FN_TESTS
@@ -84,11 +85,19 @@ FNApp* fn_test_app_alloc(void) {
     app->view_wait = fn_view_wait_alloc();
     app->view_text = fn_view_text_alloc();
     app->view_confirm = fn_view_confirm_alloc();
-    if(!app->view_menu || !app->view_wait || !app->view_text || !app->view_confirm) {
+    app->view_language = fn_view_language_alloc();
+    if(!app->view_menu || !app->view_wait || !app->view_text || !app->view_confirm ||
+       !app->view_language) {
         FURI_LOG_E(WORKER_TAG, "нет памяти под экраны");
         goto error;
     }
     fn_view_menu_set_callback(app->view_menu, fn_test_app_menu_callback, app);
+
+    /* Язык: при первом запуске спрашиваем и сохраняем выбор. */
+    app->lang = FN_LANG_DEFAULT;
+    app->lang_selected = fn_settings_load_lang(&app->lang);
+    app->pending_lang = app->lang;
+    fn_view_menu_set_language(app->view_menu, app->lang);
 
     app->worker = fn_worker_alloc();
     if(!app->worker) {
@@ -115,6 +124,8 @@ FNApp* fn_test_app_alloc(void) {
         app->view_dispatcher, FNAppViewText, fn_view_text_get_view(app->view_text));
     view_dispatcher_add_view(
         app->view_dispatcher, FNAppViewConfirm, fn_view_confirm_get_view(app->view_confirm));
+    view_dispatcher_add_view(
+        app->view_dispatcher, FNAppViewLanguage, fn_view_language_get_view(app->view_language));
 
     view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
     scene_manager_next_scene(app->scene_manager, FNAppSceneStart);
@@ -148,12 +159,15 @@ void fn_test_app_free(FNApp* app) {
         if(app->view_wait) view_dispatcher_remove_view(app->view_dispatcher, FNAppViewWait);
         if(app->view_text) view_dispatcher_remove_view(app->view_dispatcher, FNAppViewText);
         if(app->view_confirm) view_dispatcher_remove_view(app->view_dispatcher, FNAppViewConfirm);
+        if(app->view_language)
+            view_dispatcher_remove_view(app->view_dispatcher, FNAppViewLanguage);
     }
 
     fn_view_menu_free(app->view_menu);
     fn_view_wait_free(app->view_wait);
     fn_view_text_free(app->view_text);
     fn_view_confirm_free(app->view_confirm);
+    fn_view_language_free(app->view_language);
 
     if(app->worker) {
         if(!fn_worker_is_busy(app->worker)) {

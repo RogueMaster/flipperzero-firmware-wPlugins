@@ -90,20 +90,27 @@ static void format_line(FnTextSection* section, FnTextStyle style, const char* f
 }
 
 /** Строка «Подпись: значение»; NULL-значение показывается как «нет данных». */
-static void format_kv(FnTextSection* section, const char* label, const char* value) {
-    format_line(section, FnTextStyleNormal, "%s: %s", label, value ? value : FN_STR_NO_DATA);
+static void format_kv(FnTextSection* section, const char* label, const char* value, FnLang lang) {
+    format_line(
+        section, FnTextStyleNormal, "%s: %s", label, value ? value : fn_str(lang, FnStrNoData));
 }
 
 /** Текущий документ для ОФД и признак получения данных. */
-static void format_current_doc(FnTextSection* section, const FnStatus* status) {
-    format_line(section, FnTextStyleNormal, "%s", FN_STR_DOC_HEADER);
+static void format_current_doc(FnTextSection* section, const FnStatus* status, FnLang lang) {
+    format_line(section, FnTextStyleNormal, "%s", fn_str(lang, FnStrDocHeader));
 
     if(status->current_doc == FnDocUnknown) {
         format_line(
-            section, FnTextStyleNormal, FN_STR_DOC_UNKNOWN_FMT, (unsigned)status->current_doc_raw);
+            section,
+            FnTextStyleNormal,
+            fn_str(lang, FnStrDocUnknownFmt),
+            (unsigned)status->current_doc_raw);
     } else {
         format_line(
-            section, FnTextStyleNormal, FN_STR_INDENT_FMT, fn_doc_text(status->current_doc));
+            section,
+            FnTextStyleNormal,
+            fn_str(lang, FnStrIndentFmt),
+            fn_doc_text(status->current_doc, lang));
     }
 
     /* Для «документа нет» признак получения данных не имеет смысла. */
@@ -111,36 +118,37 @@ static void format_current_doc(FnTextSection* section, const FnStatus* status) {
         format_line(
             section,
             FnTextStyleNormal,
-            FN_STR_INDENT_FMT,
-            status->doc_data_received ? FN_STR_DOC_DATA_RECEIVED : FN_STR_DOC_NO_DATA);
+            fn_str(lang, FnStrIndentFmt),
+            status->doc_data_received ? fn_str(lang, FnStrDocDataReceived) :
+                                        fn_str(lang, FnStrDocNoData));
     }
 }
 
 /** Номер смены и чека — только для этапа 2 (FR-027). */
-static void format_session(FnTextSection* section, const FnInfo* info) {
+static void format_session(FnTextSection* section, const FnInfo* info, FnLang lang) {
     char value[FN_FORMAT_NUMBER_LEN];
 
     if(info->has_session) {
         snprintf(value, sizeof(value), "%u", (unsigned)info->session.shift_number);
-        format_kv(section, FN_STR_SHIFT, value);
+        format_kv(section, fn_str(lang, FnStrShift), value, lang);
 
         snprintf(value, sizeof(value), "%u", (unsigned)info->session.receipt_number);
-        format_kv(section, FN_STR_RECEIPT, value);
+        format_kv(section, fn_str(lang, FnStrReceipt), value, lang);
     } else {
-        format_kv(section, FN_STR_SHIFT, FN_STR_NO_DATA);
-        format_kv(section, FN_STR_RECEIPT, FN_STR_NO_DATA);
+        format_kv(section, fn_str(lang, FnStrShift), fn_str(lang, FnStrNoData), lang);
+        format_kv(section, fn_str(lang, FnStrReceipt), fn_str(lang, FnStrNoData), lang);
     }
 }
 
 /** Номер и дата последнего фискального документа — для этапов 2–3. */
-static void format_last_doc(FnTextSection* section, const FnStatus* status) {
+static void format_last_doc(FnTextSection* section, const FnStatus* status, FnLang lang) {
     char value[FN_FORMAT_DATE_LEN];
 
     if(status->has_last_doc_number) {
         snprintf(value, sizeof(value), "%lu", (unsigned long)status->last_doc_number);
-        format_kv(section, FN_STR_LAST_DOC, value);
+        format_kv(section, fn_str(lang, FnStrLastDoc), value, lang);
     } else {
-        format_kv(section, FN_STR_LAST_DOC, FN_STR_NO_DATA);
+        format_kv(section, fn_str(lang, FnStrLastDoc), fn_str(lang, FnStrNoData), lang);
     }
 
     if(status->has_last_doc) {
@@ -148,15 +156,15 @@ static void format_last_doc(FnTextSection* section, const FnStatus* status) {
         snprintf(
             value,
             sizeof(value),
-            FN_STR_DATE_FMT,
+            fn_str(lang, FnStrDateFmt),
             (unsigned)dt->date.year,
             (unsigned)dt->date.month,
             (unsigned)dt->date.day,
             (unsigned)dt->hour,
             (unsigned)dt->minute);
-        format_kv(section, FN_STR_LAST_DOC_DATE, value);
+        format_kv(section, fn_str(lang, FnStrLastDocDate), value, lang);
     } else {
-        format_kv(section, FN_STR_LAST_DOC_DATE, FN_STR_NO_DATA);
+        format_kv(section, fn_str(lang, FnStrLastDocDate), fn_str(lang, FnStrNoData), lang);
     }
 }
 
@@ -165,43 +173,44 @@ static bool format_stage_has_last_doc(FnStage stage) {
     return stage == FnStageRegistered || stage == FnStageArchiveClosed;
 }
 
-static void format_section_status(FnTextModel* model, const FnInfo* info) {
+static void format_section_status(FnTextModel* model, const FnInfo* info, FnLang lang) {
     const FnStatus* status = &info->status;
-    FnTextSection* section = format_section(model, FN_STR_SECTION_FN_STATUS);
+    FnTextSection* section = format_section(model, fn_str(lang, FnStrSectionFnStatus));
     if(!section) return;
 
     if(status->has_serial) {
-        format_kv(section, FN_STR_SN, status->serial);
+        format_kv(section, fn_str(lang, FnStrSn), status->serial, lang);
     } else {
-        format_kv(section, FN_STR_SN, FN_STR_NO_DATA);
+        format_kv(section, fn_str(lang, FnStrSn), fn_str(lang, FnStrNoData), lang);
     }
 
-    format_kv(section, FN_STR_STAGE, fn_stage_text(status->stage));
+    format_kv(section, fn_str(lang, FnStrStage), fn_stage_text(status->stage, lang), lang);
     format_kv(
         section,
-        FN_STR_SESSION,
-        status->session_open ? FN_STR_SESSION_OPEN : FN_STR_SESSION_CLOSED);
+        fn_str(lang, FnStrSession),
+        status->session_open ? fn_str(lang, FnStrSessionOpen) : fn_str(lang, FnStrSessionClosed),
+        lang);
 
-    format_current_doc(section, status);
+    format_current_doc(section, status, lang);
 
     if(status->stage == FnStageRegistered) {
-        format_session(section, info);
+        format_session(section, info, lang);
     }
     if(format_stage_has_last_doc(status->stage)) {
-        format_last_doc(section, status);
+        format_last_doc(section, status, lang);
     }
 }
 
 /** Блок предупреждений: только при ненулевых флагах (contracts/ui.md §8.1). */
-static void format_section_warnings(FnTextModel* model, const FnStatus* status) {
+static void format_section_warnings(FnTextModel* model, const FnStatus* status, FnLang lang) {
     if(status->warn_flags == 0) return;
 
-    FnTextSection* section = format_section(model, FN_STR_WARNINGS);
+    FnTextSection* section = format_section(model, fn_str(lang, FnStrWarnings));
     if(!section) return;
 
     for(uint8_t bit = 0x01; bit != 0; bit <<= 1) {
         if((status->warn_flags & bit) == 0) continue;
-        const char* text = fn_warn_flag_text(bit);
+        const char* text = fn_warn_flag_text(bit, lang);
         if(text) {
             format_line(section, FnTextStyleWarning, "%s", text);
         }
@@ -209,107 +218,121 @@ static void format_section_warnings(FnTextModel* model, const FnStatus* status) 
 
     const uint8_t unknown = fn_warn_flags_unknown(status->warn_flags);
     if(unknown != 0) {
-        format_line(section, FnTextStyleWarning, FN_STR_OTHER_WARNINGS, (unsigned)unknown);
+        format_line(
+            section, FnTextStyleWarning, fn_str(lang, FnStrOtherWarnings), (unsigned)unknown);
     }
 }
 
-static void format_section_ffd(FnTextModel* model, const FnInfo* info) {
-    FnTextSection* section = format_section(model, FN_STR_SECTION_FFD);
+static void format_section_ffd(FnTextModel* model, const FnInfo* info, FnLang lang) {
+    FnTextSection* section = format_section(model, fn_str(lang, FnStrSectionFfd));
     if(!section) return;
 
     if(!info->has_ffd) {
-        format_line(section, FnTextStyleNormal, "%s", FN_STR_NO_DATA);
+        format_line(section, FnTextStyleNormal, "%s", fn_str(lang, FnStrNoData));
         return;
     }
 
-    format_kv(section, FN_STR_FFD_CURRENT, fn_ffd_text(info->ffd.current));
-    format_kv(section, FN_STR_FFD_MAX, fn_ffd_text(info->ffd.max));
+    format_kv(section, fn_str(lang, FnStrFfdCurrent), fn_ffd_text(info->ffd.current, lang), lang);
+    format_kv(section, fn_str(lang, FnStrFfdMax), fn_ffd_text(info->ffd.max, lang), lang);
 }
 
-static void format_section_fw(FnTextModel* model, const FnInfo* info) {
-    FnTextSection* section = format_section(model, FN_STR_SECTION_FW);
+static void format_section_fw(FnTextModel* model, const FnInfo* info, FnLang lang) {
+    FnTextSection* section = format_section(model, fn_str(lang, FnStrSectionFw));
     if(!section) return;
 
     if(!info->has_fw) {
-        format_line(section, FnTextStyleNormal, "%s", FN_STR_NO_DATA);
+        format_line(section, FnTextStyleNormal, "%s", fn_str(lang, FnStrNoData));
         return;
     }
 
-    format_kv(section, FN_STR_FW, info->fw.version[0] ? info->fw.version : FN_STR_NO_DATA);
-    format_kv(section, FN_STR_MGM, info->fw.is_mgm ? FN_STR_MGM_YES : FN_STR_MGM_NO);
+    format_kv(
+        section,
+        fn_str(lang, FnStrFw),
+        info->fw.version[0] ? info->fw.version : fn_str(lang, FnStrNoData),
+        lang);
+    format_kv(
+        section,
+        fn_str(lang, FnStrMgm),
+        info->fw.is_mgm ? fn_str(lang, FnStrMgmYes) : fn_str(lang, FnStrMgmNo),
+        lang);
 }
 
-void fn_format_info(const FnInfo* info, FnTextModel* model) {
+void fn_format_info(const FnInfo* info, FnTextModel* model, FnLang lang) {
     if(!info || !model) return;
 
     memset(model, 0, sizeof(*model));
 
-    format_section_status(model, info);
-    format_section_warnings(model, &info->status);
-    format_section_ffd(model, info);
-    format_section_fw(model, info);
+    format_section_status(model, info, lang);
+    format_section_warnings(model, &info->status, lang);
+    format_section_ffd(model, info, lang);
+    format_section_fw(model, info, lang);
 }
 
-/** Согласование слова «день» с числом: 1 день, 2 дня, 360 дней. */
-static const char* format_days_word(unsigned days) {
+/** Согласование слова «день» с числом: 1 день, 2 дня, 360 дней; 1 day, 2 days. */
+static const char* format_days_word(unsigned days, FnLang lang) {
+    if(lang != FnLangRu) {
+        return (days == 1) ? fn_str(lang, FnStrDayOne) : fn_str(lang, FnStrDayMany);
+    }
+
     const unsigned mod100 = days % 100;
-    if(mod100 >= 11 && mod100 <= 14) return FN_STR_DAY_MANY;
+    if(mod100 >= 11 && mod100 <= 14) return fn_str(lang, FnStrDayMany);
 
     switch(days % 10) {
     case 1:
-        return FN_STR_DAY_ONE;
+        return fn_str(lang, FnStrDayOne);
     case 2:
     case 3:
     case 4:
-        return FN_STR_DAY_FEW;
+        return fn_str(lang, FnStrDayFew);
     default:
-        return FN_STR_DAY_MANY;
+        return fn_str(lang, FnStrDayMany);
     }
 }
 
 /** «Срок действия (32h)»: дата окончания и счетчики регистраций (FR-010). */
-static void format_section_life_date(FnTextModel* model, const FnLifeInfo* life) {
-    FnTextSection* section = format_section(model, FN_STR_SECTION_LIFE_DATE);
+static void format_section_life_date(FnTextModel* model, const FnLifeInfo* life, FnLang lang) {
+    FnTextSection* section = format_section(model, fn_str(lang, FnStrSectionLifeDate));
     if(!section) return;
 
     char value[FN_FORMAT_NUMBER_LEN];
 
     if(!life->has_date) {
-        format_kv(section, FN_STR_LIFE_END_DATE, FN_STR_NO_DATA);
-        format_kv(section, FN_STR_REG_DONE, FN_STR_NO_DATA);
-        format_kv(section, FN_STR_REG_LEFT, FN_STR_NO_DATA);
+        format_kv(section, fn_str(lang, FnStrLifeEndDate), fn_str(lang, FnStrNoData), lang);
+        format_kv(section, fn_str(lang, FnStrRegDone), fn_str(lang, FnStrNoData), lang);
+        format_kv(section, fn_str(lang, FnStrRegLeft), fn_str(lang, FnStrNoData), lang);
         return;
     }
 
     /* Нулевая дата — ФН ещё не активизирован, а не «нет данных». */
     if(life->date.end_date.year == 0) {
-        format_kv(section, FN_STR_LIFE_END_DATE, FN_STR_LIFE_NOT_ACTIVATED);
+        format_kv(
+            section, fn_str(lang, FnStrLifeEndDate), fn_str(lang, FnStrLifeNotActivated), lang);
     } else {
         const FnDate* date = &life->date.end_date;
         snprintf(
             value,
             sizeof(value),
-            FN_STR_SHORT_DATE_FMT,
+            fn_str(lang, FnStrShortDateFmt),
             (unsigned)date->day,
             (unsigned)date->month,
             (unsigned)date->year);
-        format_kv(section, FN_STR_LIFE_END_DATE, value);
+        format_kv(section, fn_str(lang, FnStrLifeEndDate), value, lang);
     }
 
     snprintf(value, sizeof(value), "%u", (unsigned)life->date.reg_done);
-    format_kv(section, FN_STR_REG_DONE, value);
+    format_kv(section, fn_str(lang, FnStrRegDone), value, lang);
 
     snprintf(value, sizeof(value), "%u", (unsigned)life->date.reg_remaining);
-    format_kv(section, FN_STR_REG_LEFT, value);
+    format_kv(section, fn_str(lang, FnStrRegLeft), value, lang);
 }
 
 /** «Остаток срока (3Bh)»: показывается всегда, нулевой остаток — «нет данных». */
-static void format_section_life_days(FnTextModel* model, const FnLifeInfo* life) {
-    FnTextSection* section = format_section(model, FN_STR_SECTION_LIFE_DAYS);
+static void format_section_life_days(FnTextModel* model, const FnLifeInfo* life, FnLang lang) {
+    FnTextSection* section = format_section(model, fn_str(lang, FnStrSectionLifeDays));
     if(!section) return;
 
     if(!life->has_days || !life->days.has_days) {
-        format_line(section, FnTextStyleNormal, "%s", FN_STR_NO_DATA);
+        format_line(section, FnTextStyleNormal, "%s", fn_str(lang, FnStrNoData));
         return;
     }
 
@@ -317,19 +340,19 @@ static void format_section_life_days(FnTextModel* model, const FnLifeInfo* life)
     snprintf(
         value,
         sizeof(value),
-        FN_STR_DAYS_FMT,
+        fn_str(lang, FnStrDaysFmt),
         (unsigned)life->days.days,
-        format_days_word(life->days.days));
+        format_days_word(life->days.days, lang));
     format_line(section, FnTextStyleNormal, "%s", value);
 }
 
 /** «Ресурс памяти (3Dh)»: 5-летний, 30-дневный и (при наличии) процент маркировки. */
-static void format_section_memory(FnTextModel* model, const FnLifeInfo* life) {
-    FnTextSection* section = format_section(model, FN_STR_SECTION_MEMORY);
+static void format_section_memory(FnTextModel* model, const FnLifeInfo* life, FnLang lang) {
+    FnTextSection* section = format_section(model, fn_str(lang, FnStrSectionMemory));
     if(!section) return;
 
     if(!life->has_memory) {
-        format_line(section, FnTextStyleNormal, "%s", FN_STR_NO_DATA);
+        format_line(section, FnTextStyleNormal, "%s", fn_str(lang, FnStrNoData));
         return;
     }
 
@@ -337,67 +360,75 @@ static void format_section_memory(FnTextModel* model, const FnLifeInfo* life) {
     snprintf(
         value,
         sizeof(value),
-        FN_STR_FIVE_YEAR_FMT,
+        fn_str(lang, FnStrFiveYearFmt),
         (unsigned long)life->memory.five_year_documents,
-        FN_STR_DOCUMENTS);
-    format_kv(section, FN_STR_MEM_FIVE_YEAR, value);
+        fn_str(lang, FnStrDocuments));
+    format_kv(section, fn_str(lang, FnStrMemFiveYear), value, lang);
 
     snprintf(
         value,
         sizeof(value),
-        FN_STR_THIRTY_DAY_FMT,
+        fn_str(lang, FnStrThirtyDayFmt),
         (unsigned long)life->memory.thirty_day_kb,
-        FN_STR_KB);
-    format_kv(section, FN_STR_MEM_THIRTY_DAY, value);
+        fn_str(lang, FnStrKb));
+    format_kv(section, fn_str(lang, FnStrMemThirtyDay), value, lang);
 
     /* Девятого байта нет — строки о маркировке нет вовсе (FR-028). */
     if(life->memory.has_marking) {
         format_line(
-            section, FnTextStyleNormal, FN_STR_MARKING_FMT, (unsigned)life->memory.marking_percent);
+            section,
+            FnTextStyleNormal,
+            fn_str(lang, FnStrMarkingFmt),
+            (unsigned)life->memory.marking_percent);
     }
 }
 
-void fn_format_life(const FnLifeInfo* life, FnTextModel* model) {
+void fn_format_life(const FnLifeInfo* life, FnTextModel* model, FnLang lang) {
     if(!life || !model) return;
 
     memset(model, 0, sizeof(*model));
 
     /* Блоки 32h/3Bh/3Dh выводятся всегда, независимо от ФФД и этапа. */
-    format_section_life_date(model, life);
-    format_section_life_days(model, life);
-    format_section_memory(model, life);
+    format_section_life_date(model, life, lang);
+    format_section_life_days(model, life, lang);
+    format_section_memory(model, life, lang);
 }
 
-/** Отказ ФН: русский заголовок, подсказка и код ответа (FR-014, FR-029). */
-static void format_result_refused(FnTextSection* section, FNError error) {
+/** Отказ ФН: заголовок, подсказка и код ответа (FR-014, FR-029). */
+static void format_result_refused(FnTextSection* section, FNError error, FnLang lang) {
     if(!fn_error_is_known(error)) {
-        format_line(section, FnTextStyleWarning, FN_STR_UNKNOWN_CODE_FMT, (unsigned)error);
+        format_line(
+            section, FnTextStyleWarning, fn_str(lang, FnStrUnknownCodeFmt), (unsigned)error);
         return;
     }
 
-    format_line(section, FnTextStyleWarning, "%s", fn_error_title(error));
-    const char* hint = fn_error_hint(error);
+    format_line(section, FnTextStyleWarning, "%s", fn_error_title(error, lang));
+    const char* hint = fn_error_hint(error, lang);
     if(hint && hint[0] != '\0') {
         format_line(section, FnTextStyleNormal, "%s", hint);
     }
-    format_line(section, FnTextStyleNormal, FN_STR_ERROR_CODE_FMT, (unsigned)error);
+    format_line(section, FnTextStyleNormal, fn_str(lang, FnStrErrorCodeFmt), (unsigned)error);
 }
 
-void fn_format_result(const FnOpResult* result, FnResultReason reason, FnTextModel* model) {
+void fn_format_result(
+    const FnOpResult* result,
+    FnResultReason reason,
+    FnTextModel* model,
+    FnLang lang) {
     if(!model) return;
 
     memset(model, 0, sizeof(*model));
 
-    FnTextSection* section = format_section(model, FN_STR_RESULT_TITLE);
+    FnTextSection* section = format_section(model, fn_str(lang, FnStrResultTitle));
     if(!section) return;
 
     if(reason == FnResultReasonNotMgm) {
-        format_line(section, FnTextStyleWarning, "%s", FN_STR_NOT_MGM);
+        format_line(section, FnTextStyleWarning, "%s", fn_str(lang, FnStrNotMgm));
         return;
     }
 
     if(!result) {
-        format_line(section, FnTextStyleNormal, "%s", FN_STR_NO_DATA);
+        format_line(section, FnTextStyleNormal, "%s", fn_str(lang, FnStrNoData));
         return;
     }
 
@@ -405,23 +436,23 @@ void fn_format_result(const FnOpResult* result, FnResultReason reason, FnTextMod
     case FnOpStatusOk:
         /* Успех показывается только для изменяющей команды. */
         if(result->kind == FnOpFlashMgm) {
-            format_line(section, FnTextStyleNormal, "%s", FN_STR_RESULT_OK);
+            format_line(section, FnTextStyleNormal, "%s", fn_str(lang, FnStrResultOk));
         } else {
-            format_line(section, FnTextStyleNormal, "%s", FN_STR_NO_DATA);
+            format_line(section, FnTextStyleNormal, "%s", fn_str(lang, FnStrNoData));
         }
         break;
     case FnOpStatusFnRefused:
-        format_result_refused(section, result->error);
+        format_result_refused(section, result->error, lang);
         break;
     case FnOpStatusNoResponse:
-        format_line(section, FnTextStyleWarning, "%s", FN_STR_NO_RESPONSE);
-        format_line(section, FnTextStyleNormal, "%s", FN_STR_NO_RESPONSE_HINT);
+        format_line(section, FnTextStyleWarning, "%s", fn_str(lang, FnStrNoResponse));
+        format_line(section, FnTextStyleNormal, "%s", fn_str(lang, FnStrNoResponseHint));
         break;
     case FnOpStatusBadFrame:
-        format_line(section, FnTextStyleWarning, "%s", FN_STR_BAD_FRAME);
+        format_line(section, FnTextStyleWarning, "%s", fn_str(lang, FnStrBadFrame));
         break;
     case FnOpStatusBusy:
-        format_line(section, FnTextStyleWarning, "%s", FN_STR_BUSY);
+        format_line(section, FnTextStyleWarning, "%s", fn_str(lang, FnStrBusy));
         break;
     case FnOpStatusInternalError:
         /* Для очистки МГМ внутренняя ошибка — единственная защита от отправки
@@ -430,12 +461,13 @@ void fn_format_result(const FnOpResult* result, FnResultReason reason, FnTextMod
             section,
             FnTextStyleWarning,
             "%s",
-            (result->kind == FnOpFlashMgm) ? FN_STR_NOT_MGM : FN_STR_PORT_BUSY);
+            (result->kind == FnOpFlashMgm) ? fn_str(lang, FnStrNotMgm) :
+                                             fn_str(lang, FnStrPortBusy));
         break;
     case FnOpStatusCancelled:
     default:
         /* Отменённая операция не показывает результат (пользователь уже в меню). */
-        format_line(section, FnTextStyleNormal, "%s", FN_STR_NO_DATA);
+        format_line(section, FnTextStyleNormal, "%s", fn_str(lang, FnStrNoData));
         break;
     }
 }

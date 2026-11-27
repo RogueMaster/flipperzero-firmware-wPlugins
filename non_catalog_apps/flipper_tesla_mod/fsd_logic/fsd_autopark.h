@@ -27,6 +27,12 @@
  * state 1 with byte3 0xE5 = waitingForBrake), so the maneuver bits — not
  * autoparkReady — are the Autopark-entry signal.
  *
+ * Entering 6 from <= 2 at a standstill with no maneuver bit still opens an
+ * episode (a maneuver bit can lag the jump), but it is also what HW3 does when
+ * FSD is engaged from a standstill in stop-and-go traffic (#176). Such an
+ * episode ends at FSD_AUTOPARK_RELEASE_NO_EVIDENCE_KPH; one a maneuver bit
+ * opened or confirmed keeps FSD_AUTOPARK_RELEASE_SPEED_KPH.
+ *
  * Header-only static inline (the ESP32 build compiles no fsd_logic source
  * files), so fsd_logic/fsd_handler.c and esp32/.firmware/fsd_handler.cpp share
  * this one copy (host-tested by test/test_fsd_core.c and test_esp32_core.cpp).
@@ -46,23 +52,36 @@
 
 // A maneuver bit seen this recently still opens an episode as the state rises
 // into 6 — the reporter's byte3 maneuver bits can lead the 1->6 jump by ~1 s.
-#define FSD_AUTOPARK_BIT_RECENT_MS     3000u
+#define FSD_AUTOPARK_BIT_RECENT_MS           3000u
 // Vehicle speed must be at least this fresh to be trusted (entry + release checks).
-#define FSD_AUTOPARK_SPEED_FRESH_MS    1000u
+#define FSD_AUTOPARK_SPEED_FRESH_MS          1000u
 // Autopark starts from a standstill; a fresh valid reading over this at the
 // entry into 6 means the car is already moving (AP/FSD engaging), not Autopark.
 // kph (#176).
-#define FSD_AUTOPARK_ENTRY_MAX_KPH     8.0f
+#define FSD_AUTOPARK_ENTRY_MAX_KPH           8.0f
 // Autopark never runs above parking speed; a fresh reading over this ends a
 // false episode for the rest of that state-6 period (#176). kph.
-#define FSD_AUTOPARK_RELEASE_SPEED_KPH 20.0f
+#define FSD_AUTOPARK_RELEASE_SPEED_KPH       20.0f
+// An episode no maneuver bit ever confirmed ends at this lower speed instead:
+// in-car Autopark and Smart Summon stay below it, while AP/FSD engaged from a
+// standstill in stop-and-go traffic passes it quickly. Without it such an
+// episode paused all TX, nag killer included, until 20 km/h (#176). kph.
+#define FSD_AUTOPARK_RELEASE_NO_EVIDENCE_KPH 12.0f
 // DI_vehicleSpeed max valid raw is 4062 (= 284.96 kph); raw 4095 is SNA and
 // decodes to 287.6 kph, which must NOT count as driving (it is unknown speed).
-#define FSD_DI_SPEED_MAX_VALID_KPH     284.96f
+#define FSD_DI_SPEED_MAX_VALID_KPH           284.96f
 
 // True for the engaged states (3..6), used wherever ap_active is derived.
 static inline bool fsd_das_state_engaged(uint8_t s) {
     return s >= FSD_DAS_ENGAGED_MIN && s <= FSD_DAS_ENGAGED_MAX;
+}
+
+// Fresh, valid vehicle speed: a 0x257 within FSD_AUTOPARK_SPEED_FRESH_MS that is
+// not SNA (raw 4095 = 287.6 kph) or above max valid.
+static inline bool fsd_speed_valid(const FSDState* s, uint32_t now_ms) {
+    return s->speed_seen &&
+           (uint32_t)(now_ms - s->last_speed_tick_ms) <= FSD_AUTOPARK_SPEED_FRESH_MS &&
+           s->vehicle_speed_kph <= FSD_DI_SPEED_MAX_VALID_KPH;
 }
 
 // Parse the three autopark bits from a DAS_status byte3 (same positions on
@@ -94,13 +113,18 @@ static inline bool fsd_autopark_maneuver_bit(const FSDState* s) {
 //    with only that bit is AP re-engaging near parked cars, not Autopark.
 //  - While in 6: only a maneuver bit starts/keeps an episode; autoparkReady
 //    alone does not.
-//  - Fresh, valid speed above FSD_AUTOPARK_RELEASE_SPEED_KPH ends the episode
-//    for the rest of this state-6 period: only a maneuver bit can open a new one
-//    before the state leaves 6 (slowing back down in traffic does not).
+//  - Maneuver evidence: an episode opened by a maneuver bit (now or recent), or
+//    one that sees a maneuver bit later, has evidence for the rest of it. The
+//    edge rule alone (prev <= 2 at a standstill) opens one without evidence.
+//  - Release: fresh, valid speed above FSD_AUTOPARK_RELEASE_SPEED_KPH ends an
+//    episode with evidence, above FSD_AUTOPARK_RELEASE_NO_EVIDENCE_KPH one
+//    without. Ending lasts for the rest of this state-6 period: only a maneuver
+//    bit can open a new one before the state leaves 6 (slowing back down in
+//    traffic does not).
 //  - Leaving state 6 ends the episode.
 //
-// Block = episode AND NOT (speed known, fresh, valid and clearly above parking
-// speed). Unknown, stale or SNA speed keeps the block (fail safe).
+// Block = episode AND NOT (speed known, fresh, valid and above the release
+// speed that applies). Unknown, stale or SNA speed keeps the block (fail safe).
 static inline void fsd_autopark_update(FSDState* s, uint32_t now_ms) {
     uint8_t prev = s->autopark_prev_ap_state;
     uint8_t cur = s->das_ap_state;
@@ -111,26 +135,32 @@ static inline void fsd_autopark_update(FSDState* s, uint32_t now_ms) {
                                FSD_AUTOPARK_BIT_RECENT_MS;
 
     // SNA (raw 4095 = 287.6 kph) and above-max readings are unknown speed.
-    bool speed_valid = s->speed_seen &&
-                       (uint32_t)(now_ms - s->last_speed_tick_ms) <= FSD_AUTOPARK_SPEED_FRESH_MS &&
-                       s->vehicle_speed_kph <= FSD_DI_SPEED_MAX_VALID_KPH;
+    bool speed_valid = fsd_speed_valid(s, now_ms);
     bool moving = speed_valid && s->vehicle_speed_kph > FSD_AUTOPARK_ENTRY_MAX_KPH;
-    bool driving = speed_valid && s->vehicle_speed_kph > FSD_AUTOPARK_RELEASE_SPEED_KPH;
 
     if(cur == FSD_DAS_ACTIVE_FSD) {
         if(prev != FSD_DAS_ACTIVE_FSD && !moving &&
            (prev <= 2u || fsd_autopark_maneuver_bit(s) || maneuver_recent)) {
             s->autopark_episode = true;
+            if(fsd_autopark_maneuver_bit(s) || maneuver_recent) s->autopark_evidence = true;
         }
-        if(fsd_autopark_maneuver_bit(s)) s->autopark_episode = true;
-        // End, not just suppress: the entry rule only fires on the edge into 6,
-        // so a released period stays released until a maneuver bit re-opens it.
-        if(driving) s->autopark_episode = false;
+        if(fsd_autopark_maneuver_bit(s)) {
+            s->autopark_episode = true;
+            s->autopark_evidence = true;
+        }
     } else {
         s->autopark_episode = false;
     }
 
-    s->autopark_tx_block = s->autopark_episode && !driving;
+    float release_kph = s->autopark_evidence ? FSD_AUTOPARK_RELEASE_SPEED_KPH :
+                                               FSD_AUTOPARK_RELEASE_NO_EVIDENCE_KPH;
+    bool released = speed_valid && s->vehicle_speed_kph > release_kph;
+    // End, not just suppress: the entry rule only fires on the edge into 6,
+    // so a released period stays released until a maneuver bit re-opens it.
+    if(released) s->autopark_episode = false;
+    if(!s->autopark_episode) s->autopark_evidence = false;
+
+    s->autopark_tx_block = s->autopark_episode && !released;
 
     s->autopark_prev_ap_state = cur;
 }

@@ -36,10 +36,12 @@ void wifi_marauder_scene_user_input_ok_callback(void* context) {
     // Writes the string value of the reference
     case WifiMarauderUserInputTypeString:
         if(app->user_input_string_reference != NULL) {
-            strncpy(
-                *app->user_input_string_reference,
-                app->text_input_store,
-                strlen(app->text_input_store) + 1);
+            size_t input_length = strlen(app->text_input_store);
+            char* resized_value = realloc(*app->user_input_string_reference, input_length + 1);
+            if(resized_value != NULL) {
+                memcpy(resized_value, app->text_input_store, input_length + 1);
+                *app->user_input_string_reference = resized_value;
+            }
             app->user_input_string_reference = NULL;
         }
         break;
@@ -102,11 +104,12 @@ void wifi_marauder_scene_user_input_on_enter(void* context) {
     case WifiMarauderUserInputTypeString:
         wifi_text_input_set_header_text(app->text_input, "Enter value:");
         wifi_text_input_set_validator(app->text_input, NULL, app);
-        if(app->user_input_string_reference != NULL) {
-            strncpy(
+        if(app->user_input_string_reference != NULL && *app->user_input_string_reference != NULL) {
+            snprintf(
                 app->text_input_store,
-                *app->user_input_string_reference,
-                strlen(*app->user_input_string_reference) + 1);
+                sizeof(app->text_input_store),
+                "%s",
+                *app->user_input_string_reference);
         }
         break;
     // Loads the numerical value of the reference

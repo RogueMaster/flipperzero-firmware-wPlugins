@@ -79,6 +79,25 @@ void process_duplicates(HashDatabase* db) {
     }
 }
 
+bool db_has_identical_peer(
+    const HashDatabase* db,
+    size_t selected,
+    FileRecordsEqual equal,
+    void* context) {
+    if(!db || !equal || selected >= db->count) return false;
+    for(size_t g = 0; g < db->num_groups; g++) {
+        const DuplicateGroup* group = &db->groups[g];
+        if(group->start_index > selected || group->start_index >= db->count ||
+           group->count > db->count - group->start_index ||
+           selected - group->start_index >= group->count)
+            continue;
+        for(size_t i = group->start_index; i < group->start_index + group->count; i++)
+            if(i != selected && equal(&db->records[selected], &db->records[i], context))
+                return true;
+    }
+    return false;
+}
+
 bool is_sub_file(const char* name) {
     size_t len = strlen(name);
     if(len < 4) return false;

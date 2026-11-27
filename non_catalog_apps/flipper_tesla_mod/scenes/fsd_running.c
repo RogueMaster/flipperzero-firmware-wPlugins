@@ -1,6 +1,7 @@
 #include "../tesla_fsd_app.h"
 #include "../scenes_config/app_scene_functions.h"
 #include "../fsd_logic/fsd_capture.h" // shared candump-ASCII formatter
+#include "../fsd_logic/fsd_bms.h" // 0x312 pack-temperature freshness
 #include <stdio.h>
 
 #define FSD_DISPLAY_REFRESH_MS 250
@@ -108,14 +109,20 @@ static void fsd_update_display(TeslaFSDApp* app, uint32_t uptime_ms) {
         snprintf(line4, sizeof(line4), "!14.x: TX may stop AP");
     } else if(state.bms_seen) {
         float kw = state.pack_voltage_v * state.pack_current_a / 1000.0f;
-        snprintf(
-            line4,
-            sizeof(line4),
-            "SoC:%.0f%% %.0fkW %d-%dC",
-            (double)state.soc_percent,
-            (double)kw,
-            state.batt_temp_min_c,
-            state.batt_temp_max_c);
+        // Pack temp only from a fresh, plausible 0x312 reading (fsd_bms.h).
+        if(fsd_bms_temp_fresh(&state, furi_get_tick())) {
+            snprintf(
+                line4,
+                sizeof(line4),
+                "SoC:%.0f%% %.0fkW %d-%dC",
+                (double)state.soc_percent,
+                (double)kw,
+                state.batt_temp_min_c,
+                state.batt_temp_max_c);
+        } else {
+            snprintf(
+                line4, sizeof(line4), "SoC:%.0f%% %.0fkW", (double)state.soc_percent, (double)kw);
+        }
     } else {
         snprintf(
             line4,
@@ -381,7 +388,7 @@ static int32_t fsd_running_worker(void* context) {
                 } else if(frame.canId == CAN_ID_BMS_SOC) {
                     fsd_handle_bms_soc(&state, &frame);
                 } else if(frame.canId == CAN_ID_BMS_THERMAL) {
-                    fsd_handle_bms_thermal(&state, &frame);
+                    fsd_handle_bms_thermal(&state, &frame, now);
                 }
                 // Extras: read-only vehicle state parsers (mode-independent)
                 else if(frame.canId == CAN_ID_DI_SYS_STATUS) {
@@ -404,8 +411,6 @@ static int32_t fsd_running_worker(void* context) {
                     if(fsd_handle_tlssc_restore(&state, &frame) && tx_allowed) {
                         send_can_frame(mcp, &frame);
                     }
-                } else if(frame.canId == CAN_ID_ENERGY_CONS) {
-                    fsd_handle_energy_consumption(&state, &frame);
                 } else if(frame.canId == CAN_ID_GTW_CONFIG_ETH) {
                     fsd_handle_gtw_autopilot_tier(&state, &frame);
                     // GTW Config Replay and Tier Override are mutually exclusive
@@ -435,7 +440,7 @@ static int32_t fsd_running_worker(void* context) {
                 } else if(frame.canId == CAN_ID_UI_WARNING) {
                     fsd_handle_ui_warning(&state, &frame);
                 } else if(frame.canId == CAN_ID_STEER_ANGLE) {
-                    fsd_handle_steering_angle(&state, &frame);
+                    fsd_handle_steering_angle(&state, &frame, now);
                 } else if(frame.canId == CAN_ID_DAS_STEER) {
                     fsd_handle_das_steering(&state, &frame);
                 }

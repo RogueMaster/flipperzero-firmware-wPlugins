@@ -1,4 +1,5 @@
 #include "can_commander.h"
+#include "libraries/missing_api.h"
 #include "views/dashboard/dashboard.h"
 
 #include <furi_hal_power.h>
@@ -9,8 +10,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-
-#include "libraries/missing_api.h"
 
 #define APP_MONITOR_KEEP_MAX  1500U
 #define APP_MONITOR_KEEP_TAIL 1000U

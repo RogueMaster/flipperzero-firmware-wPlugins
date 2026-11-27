@@ -13,26 +13,30 @@ bool fn_datetime_is_valid(const FnDateTime* date_time) {
     return date_time->hour <= 23 && date_time->minute <= 59;
 }
 
-const char* fn_stage_text(FnStage stage) {
+const char* fn_stage_text(FnStage stage, FnLang lang) {
+    const bool ru = (lang == FnLangRu);
+
     switch(stage) {
     case FnStageReadyRegistration:
-        return "Готов к регистрации";
+        return ru ? "Готов к регистрации" : "Ready for registration";
     case FnStageRegistered:
-        return "Зарегистрирован";
+        return ru ? "Зарегистрирован" : "Registered";
     case FnStageArchiveClosed:
-        return "Архив закрыт, ждет передачи в ОФД";
+        return ru ? "Архив закрыт, ждет передачи в ОФД" : "Archive closed, waiting for OFD";
     case FnStageArchiveClosedFinal:
-        return "Архив ФН закрыт";
+        return ru ? "Архив ФН закрыт" : "FN archive closed";
     case FnStageUnknown:
     default:
-        return "Неизвестный этап";
+        return ru ? "Неизвестный этап" : "Unknown stage";
     }
 }
 
-const char* fn_ffd_text(FnFfd ffd) {
+const char* fn_ffd_text(FnFfd ffd, FnLang lang) {
+    const bool ru = (lang == FnLangRu);
+
     switch(ffd) {
     case FnFfdNone:
-        return "Не активизирован";
+        return ru ? "Не активизирован" : "Not activated";
     case FnFfd1_05:
         return "1.05";
     case FnFfd1_1:
@@ -41,58 +45,62 @@ const char* fn_ffd_text(FnFfd ffd) {
         return "1.2";
     case FnFfdUnknown:
     default:
-        return "Неизвестно";
+        return ru ? "Неизвестно" : "Unknown";
     }
 }
 
-const char* fn_doc_text(FnDocCode doc) {
+const char* fn_doc_text(FnDocCode doc, FnLang lang) {
+    const bool ru = (lang == FnLangRu);
+
     switch(doc) {
     case FnDocNone:
-        return "Документа нет";
+        return ru ? "Документа нет" : "No document";
     case FnDocRegistration:
-        return "Отчет о регистрации";
+        return ru ? "Отчет о регистрации" : "Registration report";
     case FnDocSessionOpen:
-        return "Отчет об открытии смены";
+        return ru ? "Отчет об открытии смены" : "Shift open report";
     case FnDocReceipt:
-        return "Кассовый чек";
+        return ru ? "Кассовый чек" : "Receipt";
     case FnDocSessionClose:
-        return "Отчет о закрытии смены";
+        return ru ? "Отчет о закрытии смены" : "Shift close report";
     case FnDocFnClose:
-        return "Отчет о закрытии ФН";
+        return ru ? "Отчет о закрытии ФН" : "FN close report";
     case FnDocStrictReport:
-        return "Бланк строгой отчетности";
+        return ru ? "Бланк строгой отчетности" : "Strict reporting form";
     case FnDocRegChangeFnReplace:
-        return "Изменение регистрации при замене ФН";
+        return ru ? "Изменение регистрации при замене ФН" : "Registration change on FN replacement";
     case FnDocRegChange:
-        return "Изменение параметров регистрации";
+        return ru ? "Изменение параметров регистрации" : "Registration parameters change";
     case FnDocReceiptCorrection:
-        return "Кассовый чек коррекции";
+        return ru ? "Кассовый чек коррекции" : "Receipt correction";
     case FnDocStrictReportCorrection:
-        return "БСО коррекции";
+        return ru ? "БСО коррекции" : "Strict form correction";
     case FnDocCurrentSettlements:
-        return "Отчет о текущем состоянии расчетов";
+        return ru ? "Отчет о текущем состоянии расчетов" : "Current settlements report";
     case FnDocUnknown:
     default:
-        return "Неизвестный документ";
+        return ru ? "Неизвестный документ" : "Unknown document";
     }
 }
 
-const char* fn_warn_flag_text(uint8_t mask) {
+const char* fn_warn_flag_text(uint8_t mask, FnLang lang) {
+    const bool ru = (lang == FnLangRu);
+
     switch(mask) {
     case FnWarnReplaceSoon:
-        return "Срочная замена ФН (до 3 дней)";
+        return ru ? "Срочная замена ФН (до 3 дней)" : "FN replacement soon (up to 3 days)";
     case FnWarnResourceSoon:
-        return "Исчерпание ресурса ФН (до 30 дней)";
+        return ru ? "Исчерпание ресурса ФН (до 30 дней)" : "FN resource running out (up to 30 days)";
     case FnWarnMemoryFull:
-        return "Память ФН заполнена на 99%";
+        return ru ? "Память ФН заполнена на 99%" : "FN memory is 99% full";
     case FnWarnOfdTimeout:
-        return "Превышено время ожидания ОФД";
+        return ru ? "Превышено время ожидания ОФД" : "OFD timeout";
     case FnWarnOfdFormatLogic:
-        return "Отказ по форматно-логическому контролю";
+        return ru ? "Отказ по форматно-логическому контролю" : "Format-logic check failure";
     case FnWarnNeedSetup:
-        return "Требуется настройка ККТ";
+        return ru ? "Требуется настройка ККТ" : "Cash register setup required";
     case FnWarnOfdCancelled:
-        return "ОФД аннулирован";
+        return ru ? "ОФД аннулирован" : "OFD cancelled";
     default:
         return NULL;
     }

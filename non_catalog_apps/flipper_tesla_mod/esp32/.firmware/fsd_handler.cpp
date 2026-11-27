@@ -14,6 +14,10 @@
 #include "../../fsd_logic/fsd_checksum.h"  // shared Tesla additive checksum (single impl, both platforms)
 #include "../../fsd_logic/fsd_can_ops.h"   // shared stateless frame primitives (set_bit / mux / fsd-selected)
 #include "../../fsd_logic/fsd_ota.h"       // shared 0x318 OTA-install detection (flag vs rolling counter)
+#include "../../fsd_logic/fsd_cp_status.h" // shared 0x25D CP_status decode + EU rewrite predicate (#228)
+#include "../../fsd_logic/fsd_steer.h"     // shared 0x129 steering-angle decode + freshness
+#include "../../fsd_logic/fsd_bms.h"       // shared 0x292 SOC, 0x312 pack-temperature gate, 0x33A car SOC
+#include "../../fsd_logic/fsd_freshness.h" // shared nag fault/override guard (#176)
 #include <string.h>
 
 // ── Internal helpers ──────────────────────────────────────────────────────────
@@ -77,6 +81,7 @@ void fsd_state_init(FSDState *state, TeslaHWVersion hw) {
     state->wifi_hidden = false;
     state->wifi_sta_ssid[0] = '\0';
     state->wifi_sta_pass[0] = '\0';
+    strncpy(state->wifi_hostname, WIFI_HOSTNAME_DEFAULT, sizeof(state->wifi_hostname));
 }
 
 void fsd_apply_hw_version(FSDState *state, TeslaHWVersion hw) {
@@ -618,7 +623,8 @@ static uint32_t nag_xorshift32() {
 
 // EPAS-faithful (Mode-C) path — mirror of the Flipper fsd_handler.c logic (#100):
 // demand-state-driven torque, handsOnLevel derived from torque magnitude, direction
-// opposite steering. Raw 2048 = 0 Nm, raw = 2048 + Nm*100.
+// opposite steering (held near centre / while unknown, fsd_steer_nag_dir). Raw
+// 2048 = 0 Nm, raw = 2048 + Nm*100.
 static uint8_t nag_hands_level_from_raw(int16_t raw) {
     int16_t a = (raw >= 2048) ? (raw - 2048) : (2048 - raw);
     if (a >= 200) return 2;
@@ -662,11 +668,18 @@ void fsd_apply_signal_config(FSDState *state, const CanFrame *frame, uint32_t no
         state->das_ctx_seen_ms = now_ms;
     }
     if (state->cfg_steer_id != 0 && frame->id == state->cfg_steer_id) {
-        if (state->cfg_steer_hi < 8 && state->cfg_steer_lo < 8 &&
-            frame->dlc > state->cfg_steer_hi && frame->dlc > state->cfg_steer_lo) {
+        if (frame->id == CAN_ID_STEER_ANGLE) {
+            // 0x129 has one layout (fsd_steer.h): bytes 0-1 are its CRC and
+            // counter, and the angle counts only while its validity is VALID.
+            // hi/lo are for other frames.
+            if (frame->dlc >= FSD_STEER_MIN_DLC) state->steer_ctx_seen_ms = now_ms;
+            fsd_steer_update(state, frame->data, frame->dlc, now_ms);
+        } else if (state->cfg_steer_hi != state->cfg_steer_lo &&   // equal = not mapped
+                   state->cfg_steer_hi < 8 && state->cfg_steer_lo < 8 &&
+                   frame->dlc > state->cfg_steer_hi && frame->dlc > state->cfg_steer_lo) {
             int16_t raw = (int16_t)(((uint16_t)frame->data[state->cfg_steer_hi] << 8) |
                                     frame->data[state->cfg_steer_lo]);
-            state->steering_angle_deg = (float)raw * 0.1f;
+            fsd_steer_set(state, (float)raw * 0.1f, now_ms);
             state->steer_ctx_seen_ms = now_ms;
         }
     }
@@ -708,7 +721,7 @@ static bool nag_faithful_modec(FSDState *state, const CanFrame *frame,
         return false;
     }
 
-    int dir = (state->steering_angle_deg > 0.0f) ? -1 : 1;
+    int dir = fsd_steer_nag_dir(state, now_ms);
     int16_t torque;
     uint8_t level;
 
@@ -781,6 +794,14 @@ bool fsd_handle_nag_killer(FSDState *state, const CanFrame *frame, CanFrame *out
     if (!state->nag_killer) return false;
     if (!fsd_das_ctx_fresh(state, now_ms)) return false;        // cfg DAS stale -> no-op (#122)
     if (state->nag_burst && nag_in_pause(now_ms)) return false;  // burst/pause rest (#122)
+
+    // Fault / driver-override guard (#176): don't assert a spoofed hands-on while
+    // the car is aborting AP, or while the driver is clearly applying torque —
+    // either way the echo would fight the driver's own input instead of keeping a
+    // live engagement nag-free. torsion_bar_torque_nm is this frame's value:
+    // fsd_handle_epas_status runs just before the nag killer. Gates both paths.
+    if (fsd_nag_suppress_fault(state->das_ap_state, state->torsion_bar_torque_nm))
+        return false;
 
     if (state->nag_epas_faithful) return nag_faithful_modec(state, frame, out, now_ms);
 
@@ -875,10 +896,17 @@ void fsd_handle_epas_status(FSDState *state, const CanFrame *frame) {
     state->torsion_bar_torque_seen = true;
 }
 
-// Soft-Engage gate — mirror of the Flipper fsd_soft_engage_allows (#108).
-bool fsd_soft_engage_allows(FSDState *state) {
+// Soft-Engage gate — mirror of the Flipper fsd_soft_engage_allows (#108). No
+// 0x129 on this tap: latch (AP-First-only). 0x129 present but no fresh valid
+// angle: hold.
+bool fsd_soft_engage_allows(FSDState *state, uint32_t now_ms) {
     if (!state->soft_engage) return true;
     if (state->soft_engage_latched) return true;
+    if (!state->steering_angle_seen) {
+        state->soft_engage_latched = true;
+        return true;
+    }
+    if (!fsd_steer_known(state, now_ms)) return false;
     float a = state->steering_angle_deg;
     if (a < 0.0f) a = -a;
     if (a > SOFT_ENGAGE_ANGLE_DEG) return false;   // turning — hold activation
@@ -914,11 +942,17 @@ void fsd_handle_di_speed(FSDState *state, const CanFrame *frame) {
     state->speed_seen = true;
 }
 
-// SCCM_steeringAngleSensor (0x129): 16-bit signed LE at byte0-1, factor 0.1 deg.
-void fsd_handle_steering_angle(FSDState *state, const CanFrame *frame) {
-    if (frame->dlc < 4) return;
-    int16_t raw = (int16_t)(((uint16_t)frame->data[1] << 8) | frame->data[0]);
-    state->steering_angle_deg = (float)raw * 0.1f;
+// Performance read-out: feed the timers and est. G only a valid speed. SNA (raw
+// 4095) decodes to 287.6 km/h and would lock 0-50 / 0-60 mph / 0-100 at once.
+void fsd_perf_on_speed(FSDState *state, uint32_t now_ms) {
+    if (state->di_speed_raw > SIG_DI_SPEED_RAW_MAX_VALID) return;
+    fsd_perf_update(&state->perf, state->vehicle_speed_kph, now_ms);
+}
+
+// SCCM_steeringAngleSensor (0x129): SCCM_steeringAngle 16|14 (0.1, -819.2) deg,
+// used only while SCCM_steeringAngleValidity (30|2) is VALID — fsd_steer.h.
+void fsd_handle_steering_angle(FSDState *state, const CanFrame *frame, uint32_t now_ms) {
+    fsd_steer_update(state, frame->data, frame->dlc, now_ms);
 }
 
 void fsd_handle_esp_status(FSDState *state, const CanFrame *frame) {
@@ -945,25 +979,22 @@ void fsd_handle_bms_hv(FSDState *state, const CanFrame *frame) {
     state->bms_seen = true;
 }
 
+// SOC: BMS_socUI, bit 10|10, 0.1 %, refused above 100 (fsd_logic/fsd_bms.h,
+// shared with the Flipper). Not the car's screen figure: that is 0x33A below.
 void fsd_handle_bms_soc(FSDState *state, const CanFrame *frame) {
-    if (frame->dlc < 3) return;
-    // Car display SOC: SOCUI292, bit10|10, LSB = 0.1 %.
-    uint16_t raw =
-        (((uint16_t)frame->data[SIG_BMS_SOC_UI_HIGH_BYTE] << (8 - SIG_BMS_SOC_UI_LOW_SHIFT)) |
-         (frame->data[SIG_BMS_SOC_UI_LOW_BYTE] >> SIG_BMS_SOC_UI_LOW_SHIFT)) &
-        SIG_BMS_SOC_UI_MASK;
-    state->soc_percent = raw * SIG_BMS_SOC_SCALE;
-    state->bms_seen = true;
+    fsd_bms_soc_update(state, frame->data, frame->dlc);
 }
 
-void fsd_handle_bms_thermal(FSDState *state, const CanFrame *frame) {
-    if (frame->dlc < 6) return;
-    // Temperatures: raw byte − 40 = °C
-    state->batt_temp_min_c = (int8_t)((int)frame->data[SIG_BMS_TEMP_MIN_BYTE] -
-                                      SIG_BMS_TEMP_OFFSET);
-    state->batt_temp_max_c = (int8_t)((int)frame->data[SIG_BMS_TEMP_MAX_BYTE] -
-                                      SIG_BMS_TEMP_OFFSET);
-    state->bms_seen = true;
+// Car-displayed SOC (0x33A UI_range, bit 20, 7 bits, #251): read-only, kept apart
+// from soc_percent (0x292) — fsd_logic/fsd_bms.h.
+void fsd_handle_ui_range(FSDState *state, const CanFrame *frame) {
+    fsd_bms_ui_soc_update(state, frame->data, frame->dlc);
+}
+
+// Pack temperature: byte4/byte5 − 40 °C, layout unconfirmed, plausibility-gated
+// (fsd_logic/fsd_bms.h, shared with the Flipper).
+void fsd_handle_bms_thermal(FSDState *state, const CanFrame *frame, uint32_t now_ms) {
+    fsd_bms_thermal_update(state, frame->data, frame->dlc, now_ms);
 }
 
 // ── Wheel-speeds read-only parser (0x175 ESP_wheelSpeeds, Party CAN) ──────────
@@ -1258,5 +1289,34 @@ bool fsd_build_gear_lever_frame(CanFrame *frame, uint8_t gear_pos, uint8_t count
     frame->data[1] = (uint8_t)((gear_pos << SIG_GEAR_LEVER_POS_SHIFT) | counter);
     frame->data[2] = 0x00u;
     frame->data[0] = NEUTRAL_CRC_BY_COUNTER[counter] ^ POSITION_CRC_XOR[gear_pos];
+    return true;
+}
+
+// ── Charge-port type (CP_status 0x25D, Vehicle CAN, #228) ────────────────────
+// Read-only decode is always on; the rewrite is opt-in and goes through the
+// standard transmit gate. The plug state comes out of the same frame we would
+// copy, so it is never stale, and the rewrite is held unless that frame says the
+// car is unplugged (fail closed on an unknown plug state). The 6-byte 0x25D on
+// Party CAN decodes to nothing (dlc != 8). Idea + on-car validation:
+// @Tesla234987234sdf, discussion #228.
+bool fsd_handle_cp_type_rewrite(FSDState *state, CanFrame *frame, uint32_t now_ms) {
+    if (frame->dlc != 8) return false;   // short / 6-byte 0x25D: not CP_status
+
+    // Read-only decode (every mode, toggle-independent) so the dashboard shows
+    // the car's own charge-port type and plug state.
+    state->cp_type        = fsd_cp_type_value(frame->data[0]);
+    state->cp_plug_state  = (uint8_t)fsd_cp_plug_state(frame->data);
+    state->cp_status_seen = true;
+    state->cp_status_ms   = now_ms;
+
+    if (!state->cp_type_eu_rewrite || !fsd_can_transmit(state)) return false;
+    // Only a genuine US-type frame is eligible — never echo an already-EU frame
+    // or touch a non-US variant.
+    if (!fsd_cp_type_rewrite_eligible(frame->data, frame->dlc)) return false;
+    // Plug guard: no rewrite while a cable is present / charging, and fail closed
+    // when the plug state is unknown.
+    if (state->cp_plug_state != FSD_CP_PLUG_UNPLUGGED) return false;
+
+    frame->data[0] = fsd_cp_type_make_iec_ccs(frame->data[0]);
     return true;
 }

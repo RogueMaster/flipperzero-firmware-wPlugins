@@ -1172,6 +1172,9 @@ Seader* seader_alloc() {
     memset(&seader->hf_mode_ctx, 0, sizeof(seader->hf_mode_ctx));
     seader->hf_mode_active = false;
 
+    seader->reader = NULL;
+    seader_reader_settings_load(seader);
+
     seader->worker = seader_worker_alloc();
     seader->view_dispatcher = view_dispatcher_alloc();
     seader->scene_manager = scene_manager_alloc(&seader_scene_handlers, seader);

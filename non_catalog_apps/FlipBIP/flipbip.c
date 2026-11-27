@@ -14,12 +14,6 @@ bool flipbip_custom_event_callback(void* context, uint32_t event) {
     return scene_manager_handle_custom_event(app->scene_manager, event);
 }
 
-void flipbip_tick_event_callback(void* context) {
-    furi_assert(context);
-    FlipBip* app = context;
-    scene_manager_handle_tick_event(app->scene_manager);
-}
-
 //leave app if back button pressed
 bool flipbip_navigation_event_callback(void* context) {
     furi_assert(context);
@@ -30,62 +24,39 @@ bool flipbip_navigation_event_callback(void* context) {
 static void text_input_callback(void* context) {
     furi_assert(context);
     FlipBip* app = context;
-    bool handled = false;
+    const bool has_text = strlen(app->input_text) > 0;
 
-    // check that there is text in the input
-    if(strlen(app->input_text) > 0) {
-        if(app->input_state == FlipBipTextInputPassphrase) {
-            if(app->passphrase == FlipBipPassphraseOn) {
-                strcpy(app->passphrase_text, app->input_text);
+    if(app->input_state == FlipBipTextInputPassphrase) {
+        if(has_text && app->passphrase == FlipBipPassphraseOn) {
+            strcpy(app->passphrase_text, app->input_text);
+        }
+    } else if(app->input_state == FlipBipTextInputMnemonic) {
+        if(has_text && app->import_from_mnemonic == 1) {
+            // Validate and save straight from the input buffer
+            if(mnemonic_check(app->input_text) != 0 &&
+               flipbip_save_file_secure(app->input_text, app->encryption)) {
+                app->mnemonic_menu_text = MNEMONIC_MENU_SUCCESS;
+                flipbip_suggest_enclave(app);
+            } else {
+                app->mnemonic_menu_text = MNEMONIC_MENU_FAILURE;
             }
-            // clear input text
-            memzero(app->input_text, TEXT_BUFFER_SIZE);
-            // reset input state
-            app->input_state = FlipBipTextInputDefault;
-            handled = true;
-            // switch back to settings view
-            view_dispatcher_switch_to_view(app->view_dispatcher, FlipBipViewIdSettings);
-        } else if(app->input_state == FlipBipTextInputMnemonic) {
-            if(app->import_from_mnemonic == 1) {
-                strcpy(app->import_mnemonic_text, app->input_text);
-
-                int status = FlipBipStatusSuccess;
-                // Check if the mnemonic is valid
-                if(mnemonic_check(app->import_mnemonic_text) == 0)
-                    status = FlipBipStatusMnemonicCheckError; // 13 = mnemonic check error
-                // Save the mnemonic to persistent storage
-                else if(!flipbip_save_file_secure(app->import_mnemonic_text))
-                    status = FlipBipStatusSaveError; // 12 = save error
-
-                if(status == FlipBipStatusSuccess) {
-                    app->mnemonic_menu_text = MNEMONIC_MENU_SUCCESS;
-                    //notification_message(app->notification, &sequence_blink_cyan_100);
-                    //flipbip_play_happy_bump(app);
-                } else {
-                    app->mnemonic_menu_text = MNEMONIC_MENU_FAILURE;
-                    //notification_message(app->notification, &sequence_blink_red_100);
-                    //flipbip_play_long_bump(app);
-                }
-
-                memzero(app->import_mnemonic_text, TEXT_BUFFER_SIZE);
-            }
-            // clear input text
-            memzero(app->input_text, TEXT_BUFFER_SIZE);
-            // reset input state
-            app->input_state = FlipBipTextInputDefault;
-            handled = true;
-            // exit scene 1 instance that's being used for text input and go back to menu
-            scene_manager_previous_scene(app->scene_manager);
-            //view_dispatcher_switch_to_view(app->view_dispatcher, FlipBipViewIdMenu);
         }
     }
 
-    if(!handled) {
-        // clear input text
-        memzero(app->input_text, TEXT_BUFFER_SIZE);
-        // reset input state
-        app->input_state = FlipBipTextInputDefault;
-        // something went wrong, switch to menu view
+    const FlipBipTextInputState state = app->input_state;
+    memzero(app->input_text, TEXT_BUFFER_SIZE);
+    app->input_state = FlipBipTextInputDefault;
+
+    if(state == FlipBipTextInputMnemonic) {
+        // Leave the scene 1 instance used for text input, back to the menu
+        scene_manager_previous_scene(app->scene_manager);
+        if(app->suggest_enclave) {
+            app->encryption_target = FlipBipEncryptionEnclave;
+            scene_manager_next_scene(app->scene_manager, FlipBipSceneEncryption);
+        }
+    } else if(state == FlipBipTextInputPassphrase) {
+        view_dispatcher_switch_to_view(app->view_dispatcher, FlipBipViewIdSettings);
+    } else {
         view_dispatcher_switch_to_view(app->view_dispatcher, FlipBipViewIdMenu);
     }
 }
@@ -121,8 +92,6 @@ FlipBip* flipbip_app_alloc() {
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
     view_dispatcher_set_navigation_event_callback(
         app->view_dispatcher, flipbip_navigation_event_callback);
-    view_dispatcher_set_tick_event_callback(
-        app->view_dispatcher, flipbip_tick_event_callback, 100);
     view_dispatcher_set_custom_event_callback(app->view_dispatcher, flipbip_custom_event_callback);
     app->submenu = submenu_alloc();
 
@@ -130,8 +99,21 @@ FlipBip* flipbip_app_alloc() {
     app->bip39_strength = FlipBipStrength256; // 256 bits (24 words)
     app->passphrase = FlipBipPassphraseOff;
 
+    // Encryption follows the saved wallet. Without one, new wallets use the
+    // secure enclave, except on Flipper clones which do not have one.
+    app->enclave_available = flipbip_enclave_available();
+    flipbip_wallet_recover();
+    const FlipBipWalletFormat format = flipbip_wallet_format();
+    if(!app->enclave_available || format == FlipBipWalletLegacy) {
+        app->encryption = FlipBipEncryptionLegacy;
+    } else {
+        app->encryption = FlipBipEncryptionEnclave;
+    }
+    app->encryption_target = app->encryption;
+    app->suggest_enclave = false;
+
     // Main menu
-    app->bip44_coin = FlipBipCoinBTC0; // 0 (BTC)
+    app->coin_type = CoinTypeBTC0; // 0 (BTC)
     app->overwrite_saved_seed = 0;
     app->import_from_mnemonic = 0;
     app->mnemonic_menu_text = MNEMONIC_MENU_DEFAULT;
@@ -179,6 +161,12 @@ FlipBip* flipbip_app_alloc() {
     view_dispatcher_add_view(
         app->view_dispatcher, FlipBipViewRenewConfirm, dialog_ex_get_view(app->renew_dialog));
 
+    app->encryption_dialog = dialog_ex_alloc();
+    view_dispatcher_add_view(
+        app->view_dispatcher,
+        FlipBipViewEncryptionConfirm,
+        dialog_ex_get_view(app->encryption_dialog));
+
     // End Scene Additions
 
     return app;
@@ -190,26 +178,25 @@ void flipbip_app_free(FlipBip* app) {
     // Scene manager
     scene_manager_free(app->scene_manager);
 
-    text_input_free(app->text_input);
-
-    // View Dispatcher
+    // Views must be removed from the dispatcher before they are freed
     view_dispatcher_remove_view(app->view_dispatcher, FlipBipViewIdMenu);
     view_dispatcher_remove_view(app->view_dispatcher, FlipBipViewIdScene1);
     view_dispatcher_remove_view(app->view_dispatcher, FlipBipViewIdSettings);
     view_dispatcher_remove_view(app->view_dispatcher, FlipBipViewIdTextInput);
-    submenu_free(app->submenu);
-    variable_item_list_free(app->variable_item_list);
-
     view_dispatcher_remove_view(app->view_dispatcher, FlipBipViewRenewConfirm);
+    view_dispatcher_remove_view(app->view_dispatcher, FlipBipViewEncryptionConfirm);
+
+    submenu_free(app->submenu);
+    flipbip_scene_1_free(app->flipbip_scene_1);
+    variable_item_list_free(app->variable_item_list);
+    text_input_free(app->text_input);
     dialog_ex_free(app->renew_dialog);
+    dialog_ex_free(app->encryption_dialog);
 
     view_dispatcher_free(app->view_dispatcher);
     furi_record_close(RECORD_GUI);
 
-    app->gui = NULL;
-    //app->notification = NULL;
-
-    //Remove whatever is left
+    // Wipe passphrase / input buffers
     memzero(app, sizeof(FlipBip));
     free(app);
 }

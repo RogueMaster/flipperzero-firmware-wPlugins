@@ -27,8 +27,7 @@
 #include <lib/toolbox/path.h>
 #include <dialogs/dialogs.h>
 
-/* 34 upstream entries + Recon / SPIFFS / Protocol Info, added locally for Marauder fw v1.16.0 */
-#define NUM_MENU_ITEMS (37)
+#define NUM_MENU_ITEMS (44)
 
 #define WIFI_MARAUDER_TEXT_BOX_STORE_SIZE   (4096)
 #define WIFI_MARAUDER_TEXT_INPUT_STORE_SIZE (512)
@@ -89,6 +88,7 @@ struct WifiMarauderApp {
     bool is_custom_tx_string;
     bool focus_console_start;
     bool show_stopscan_tip;
+    bool stop_on_exit;
     bool is_writing_pcap;
     bool is_writing_log;
 

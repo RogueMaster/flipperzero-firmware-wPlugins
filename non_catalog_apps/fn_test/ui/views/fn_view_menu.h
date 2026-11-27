@@ -4,6 +4,8 @@
  */
 #pragma once
 
+#include "../../lib/fn/core/fn_lang.h"
+
 #include <gui/view.h>
 
 #include <stdint.h>
@@ -22,6 +24,7 @@ void fn_view_menu_free(FnMenuView* view);
 View* fn_view_menu_get_view(FnMenuView* view);
 
 void fn_view_menu_set_callback(FnMenuView* view, FnMenuCallback callback, void* context);
+void fn_view_menu_set_language(FnMenuView* view, FnLang lang);
 void fn_view_menu_set_selected(FnMenuView* view, uint8_t index);
 uint8_t fn_view_menu_get_selected(const FnMenuView* view);
 

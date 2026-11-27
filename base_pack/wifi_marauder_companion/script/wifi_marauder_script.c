@@ -1,6 +1,16 @@
 #include "../wifi_marauder_app_i.h"
 #include "wifi_marauder_script.h"
 
+static char* wifi_marauder_script_duplicate_editable_string(const char* value) {
+    size_t value_size = strlen(value) + 1;
+    size_t allocation_size = value_size > WIFI_MARAUDER_TEXT_INPUT_STORE_SIZE + 1 ?
+                                 value_size :
+                                 WIFI_MARAUDER_TEXT_INPUT_STORE_SIZE + 1;
+    char* copy = malloc(allocation_size);
+    if(copy != NULL) memcpy(copy, value, value_size);
+    return copy;
+}
+
 WifiMarauderScript* wifi_marauder_script_alloc() {
     WifiMarauderScript* script = (WifiMarauderScript*)malloc(sizeof(WifiMarauderScript));
     if(script == NULL) {
@@ -106,7 +116,10 @@ WifiMarauderScriptStageSelect* _wifi_marauder_script_get_stage_select(cJSON* sta
     } else {
         return NULL;
     }
-    char* filter_str = cJSON_IsString(filter_json) ? strdup(filter_json->valuestring) : NULL;
+    char* filter_str =
+        cJSON_IsString(filter_json) ?
+            wifi_marauder_script_duplicate_editable_string(filter_json->valuestring) :
+            NULL;
 
     WifiMarauderScriptStageSelect* stage_select =
         (WifiMarauderScriptStageSelect*)malloc(sizeof(WifiMarauderScriptStageSelect));
@@ -362,7 +375,10 @@ WifiMarauderScriptStageExec* _wifi_marauder_script_get_stage_exec(cJSON* stages)
     }
 
     cJSON* command_json = cJSON_GetObjectItemCaseSensitive(exec_stage_json, "command");
-    char* command_str = cJSON_IsString(command_json) ? strdup(command_json->valuestring) : NULL;
+    char* command_str =
+        cJSON_IsString(command_json) ?
+            wifi_marauder_script_duplicate_editable_string(command_json->valuestring) :
+            NULL;
 
     WifiMarauderScriptStageExec* exec_stage =
         (WifiMarauderScriptStageExec*)malloc(sizeof(WifiMarauderScriptStageExec));
@@ -441,11 +457,7 @@ void _wifi_marauder_script_load_stages(WifiMarauderScript* script, cJSON* stages
         script,
         WifiMarauderScriptStageTypeSniffDeauth,
         _wifi_marauder_script_get_stage_sniff_deauth(stages));
-    // Sniff esp stage
-    wifi_marauder_script_add_stage(
-        script,
-        WifiMarauderScriptStageTypeSniffEsp,
-        _wifi_marauder_script_get_stage_sniff_esp(stages));
+    // Legacy sniffEsp stages are intentionally ignored: Marauder v1.20 has no sniffesp command.
     // Sniff PMKID stage
     wifi_marauder_script_add_stage(
         script,

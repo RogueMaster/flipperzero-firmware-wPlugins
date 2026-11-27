@@ -1,6 +1,9 @@
 #include "http_can_stream.h"
 #include "can_capture_filter.h"
+#include "web_dashboard.h"   // web_dashboard_stream_access(): whose requests are served
+#include <freertos/FreeRTOS.h>   // portMUX for the ring (producer core 1 / consumer core 0)
 #include <WiFi.h>
+#include <esp_heap_caps.h>
 #include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
@@ -9,6 +12,10 @@
 #define HTTP_CAN_STREAM_RING_SIZE 3072u
 #define HTTP_CAN_STREAM_FLUSH_BUDGET 160u
 #define HTTP_CAN_STREAM_MAX_FILTER_IDS 32u
+// Longest Origin / Host value kept from a request. Ours are far shorter
+// (http:// and a 31-character hostname under a local domain); a longer one is
+// someone else's.
+#define HTTP_CAN_STREAM_HEADER_MAX 80u
 
 struct StreamFrame {
     uint32_t elapsed_ms;
@@ -27,7 +34,21 @@ static uint32_t   g_dropped = 0;
 static uint32_t   g_filtered = 0;
 static uint16_t   g_head = 0;
 static uint16_t   g_tail = 0;
-static StreamFrame g_ring[HTTP_CAN_STREAM_RING_SIZE];
+// The producer (http_can_stream_record, from process_frame on the CAN core) and
+// the consumer (flush_stream, from web_dashboard_update) both mutate g_tail —
+// the producer advances it on drop-oldest, the consumer on send. In the default
+// build both run in loop() on core 1, so there is no contention; with the web
+// server moved to its own core-0 task they run on different cores, which makes
+// g_tail a two-writer and lets write_frame read a slot the producer is
+// overwriting. This spinlock serialises the index mutations and makes the
+// consumer copy the slot out before its blocking send. It is only ever taken
+// while a capture is streaming (record() returns early otherwise), so the normal
+// CAN path pays nothing.
+static portMUX_TYPE g_ring_mux = portMUX_INITIALIZER_UNLOCKED;
+// On the heap, not in .bss: as a static array these 72 KB left the classic
+// ESP32 builds a few dozen bytes short of the static DRAM limit. Reserved once
+// at boot (http_can_stream_reserve) and never freed.
+static StreamFrame *g_ring = nullptr;
 static uint32_t   g_filter_ids[HTTP_CAN_STREAM_MAX_FILTER_IDS];
 static uint8_t    g_filter_count = 0;
 static bool       g_bus_filter_enabled = false;
@@ -224,11 +245,20 @@ static void close_stream() {
     ring_reset();
 }
 
-static void send_response(WiFiClient &client, int code, const char *status, const char *body) {
+// The dashboard page reads the stream from :80, so a reply to it names its
+// Origin; any other reply grants nobody (web_stream_access()).
+static void print_cors(WiFiClient &client, const char *allow_origin) {
+    if (!allow_origin || !allow_origin[0]) return;
+    client.printf("Access-Control-Allow-Origin: %s\r\n", allow_origin);
+    client.print("Vary: Origin\r\n");
+}
+
+static void send_response(WiFiClient &client, int code, const char *status, const char *body,
+                          const char *allow_origin = nullptr) {
     client.printf("HTTP/1.1 %d %s\r\n", code, status);
     client.print("Content-Type: text/plain; charset=utf-8\r\n");
     client.print("Cache-Control: no-store\r\n");
-    client.print("Access-Control-Allow-Origin: *\r\n");
+    print_cors(client, allow_origin);
     client.print("X-Content-Type-Options: nosniff\r\n");
     client.print("Connection: close\r\n\r\n");
     if (body != nullptr) client.print(body);
@@ -236,7 +266,7 @@ static void send_response(WiFiClient &client, int code, const char *status, cons
     client.stop();
 }
 
-static void begin_stream(WiFiClient &client) {
+static void begin_stream(WiFiClient &client, const char *allow_origin) {
     close_stream();
     g_client = client;
     g_client.setNoDelay(true);
@@ -249,7 +279,7 @@ static void begin_stream(WiFiClient &client) {
     g_client.print("HTTP/1.1 200 OK\r\n");
     g_client.print("Content-Type: text/plain; charset=utf-8\r\n");
     g_client.print("Cache-Control: no-store\r\n");
-    g_client.print("Access-Control-Allow-Origin: *\r\n");
+    print_cors(g_client, allow_origin);
     g_client.print("X-Content-Type-Options: nosniff\r\n");
     g_client.print("Connection: close\r\n\r\n");
     g_active = true;
@@ -281,9 +311,28 @@ static void begin_stream(WiFiClient &client) {
                   g_meta_enabled ? 1 : 0);
 }
 
-static bool parse_request_path(WiFiClient &client, char *path, size_t path_len) {
+// The value of header line `line` when it is `name`: copied to out, trimmed,
+// "?" when it does not fit (a value that is not ours). False for another header.
+static bool header_value(const String &line, const char *name, char *out, size_t out_len) {
+    size_t n = strlen(name);
+    if (line.length() <= n || line.charAt(n) != ':' ||
+        strncasecmp(line.c_str(), name, n) != 0) return false;
+    String v = line.substring(n + 1);
+    v.trim();
+    if (v.length() >= out_len) v = "?";
+    memcpy(out, v.c_str(), v.length() + 1);
+    return true;
+}
+
+// Request line and headers. Origin and Host are kept for
+// web_dashboard_stream_access(), empty when the request has none. False when
+// the request is not a GET, or its headers did not all arrive in time: then
+// whether it may have the stream cannot be told.
+static bool parse_request_path(WiFiClient &client, char *path, size_t path_len,
+                               char *origin, char *host, size_t header_len) {
     if (path_len == 0) return false;
     path[0] = '\0';
+    origin[0] = host[0] = '\0';
 
     client.setTimeout(20);
     String request_line = client.readStringUntil('\n');
@@ -300,26 +349,46 @@ static bool parse_request_path(WiFiClient &client, char *path, size_t path_len) 
     path[len] = '\0';
 
     uint32_t deadline = millis() + 20u;
-    while (client.connected() && millis() < deadline) {
-        if (!client.available()) break;
+    while ((int32_t)(millis() - deadline) < 0) {
+        if (!client.available()) {
+            if (!client.connected()) break;
+            delay(1);
+            continue;
+        }
         String header = client.readStringUntil('\n');
-        if (header == "\r" || header.length() == 0) break;
+        if (header == "\r" || header.length() == 0) return true;
+        if (!header_value(header, "Origin", origin, header_len))
+            header_value(header, "Host", host, header_len);
     }
-    return true;
+    return false;
 }
 
 static void accept_client() {
     WiFiClient incoming = g_server.available();
     if (!incoming) return;
 
-    if (!g_enabled) {
-        send_response(incoming, 409, "Conflict", "HTTP CAN log disabled in Active mode\n");
+    char path[256];
+    char origin[HTTP_CAN_STREAM_HEADER_MAX], host[HTTP_CAN_STREAM_HEADER_MAX];
+    if (!parse_request_path(incoming, path, sizeof(path), origin, host, sizeof(origin))) {
+        send_response(incoming, 400, "Bad Request", "Bad Request\n");
         return;
     }
+    // Before anything else: a refused request must not end the stream that is
+    // running or change its filters.
+    WebStreamAccess access = web_dashboard_stream_access(origin, host);
+    if (access == WEB_STREAM_REFUSE) {
+        Serial.printf("[HTTP-CAN] refused: Origin %.64s Host %.64s\n", origin, host);
+        send_response(incoming, 403, "Forbidden", "Forbidden\n");
+        return;
+    }
+    const char *grant = access == WEB_STREAM_SERVE_GRANT ? origin : nullptr;
 
-    char path[256];
-    if (!parse_request_path(incoming, path, sizeof(path))) {
-        send_response(incoming, 400, "Bad Request", "Bad Request\n");
+    if (!g_enabled) {
+        send_response(incoming, 409, "Conflict", "HTTP CAN log disabled in Active mode\n", grant);
+        return;
+    }
+    if (!g_ring) {
+        send_response(incoming, 503, "Service Unavailable", "No memory for the capture buffer\n", grant);
         return;
     }
 
@@ -336,7 +405,7 @@ static void accept_client() {
         g_bus_filter_enabled = old_bus_filter_enabled;
         g_bus_filter = old_bus_filter;
         g_meta_enabled = old_meta_enabled;
-        send_response(incoming, 400, "Bad Request", "Invalid stream filter\n");
+        send_response(incoming, 400, "Bad Request", "Invalid stream filter\n", grant);
         return;
     }
 
@@ -346,11 +415,11 @@ static void accept_client() {
         g_bus_filter_enabled = old_bus_filter_enabled;
         g_bus_filter = old_bus_filter;
         g_meta_enabled = old_meta_enabled;
-        send_response(incoming, 404, "Not Found", "Not Found\n");
+        send_response(incoming, 404, "Not Found", "Not Found\n", grant);
         return;
     }
 
-    begin_stream(incoming);
+    begin_stream(incoming, grant);
 }
 
 static bool write_all(const char *line, size_t len) {
@@ -404,16 +473,37 @@ static void flush_stream() {
 
     uint16_t budget = HTTP_CAN_STREAM_FLUSH_BUDGET;
     while (budget > 0) {
-        if (ring_empty()) return;
-        if (!write_frame(g_ring[g_tail])) return;
+        // Copy the oldest frame out under the lock so the producer can't
+        // overwrite the slot mid-send; advance g_tail (also under the lock)
+        // only after a successful write, so a busy client still back-pressures
+        // instead of losing the frame.
+        StreamFrame item;
+        portENTER_CRITICAL(&g_ring_mux);
+        bool have = !ring_empty();
+        if (have) item = g_ring[g_tail];
+        portEXIT_CRITICAL(&g_ring_mux);
+        if (!have) return;
+        if (!write_frame(item)) return;
+        portENTER_CRITICAL(&g_ring_mux);
         g_tail = ring_next(g_tail);
+        portEXIT_CRITICAL(&g_ring_mux);
         g_sent++;
         budget--;
     }
 }
 
+bool http_can_stream_reserve() {
+    if (g_ring) return true;
+    g_ring = (StreamFrame *)heap_caps_malloc(
+        sizeof(StreamFrame) * HTTP_CAN_STREAM_RING_SIZE,
+        MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+    if (!g_ring) Serial.println("[HTTP-CAN] No memory for the stream buffer, capture unavailable");
+    return g_ring != nullptr;
+}
+
 void http_can_stream_init() {
     if (g_started) return;
+    http_can_stream_reserve();
     g_server.begin();
     g_server.setNoDelay(true);
     g_started = true;
@@ -443,11 +533,14 @@ void http_can_stream_record(CanBusId bus, const CanFrame &frame) {
         return;
     }
 
+    // Fill the slot, then publish it by advancing g_head — all under the lock
+    // so the consumer (possibly on another core) never sees a half-written slot
+    // and the drop-oldest g_tail bump can't race the consumer's advance.
+    portENTER_CRITICAL(&g_ring_mux);
     if (ring_full()) {
         g_dropped++;
         g_tail = ring_next(g_tail);
     }
-
     StreamFrame &slot = g_ring[g_head];
     slot.elapsed_ms = millis() - g_start_ms;
     slot.bus = bus;
@@ -455,6 +548,7 @@ void http_can_stream_record(CanBusId bus, const CanFrame &frame) {
     slot.frame.dlc = frame.dlc > 8 ? 8 : frame.dlc;
     memcpy(slot.frame.data, frame.data, slot.frame.dlc);
     g_head = ring_next(g_head);
+    portEXIT_CRITICAL(&g_ring_mux);
 }
 
 void http_can_stream_set_enabled(bool enabled) {

@@ -32,6 +32,73 @@
 #include <storage/storage.h>
 #include <string.h>
 
+/* ----- Save/quarantine notices (shared by Details and Edit) ----- */
+
+/* Longest fixed message plus a full STOCK_PATH_MAX-sized kept_path basename. */
+#define NFC_STOCK_NOTICE_MAX 256
+
+static const char* nfc_stock_basename(const char* path) {
+    const char* slash = strrchr(path, '/');
+    return slash ? slash + 1 : path;
+}
+
+static void
+    nfc_stock_notice_for_write(const StockWriteResult* result, char* buf, size_t buf_size) {
+    switch(result->outcome) {
+    case StockWriteOk:
+        buf[0] = '\0';
+        return;
+    case StockWriteOkQuarantined:
+        snprintf(
+            buf,
+            buf_size,
+            "Couldn't read your saved data. A copy was kept as %s.",
+            nfc_stock_basename(result->kept_path));
+        return;
+    case StockWriteBlockedSlotsFull:
+        snprintf(
+            buf,
+            buf_size,
+            "Couldn't read your saved data, and every backup slot is full. "
+            "Changes won't be saved.");
+        return;
+    case StockWriteBlockedQuarantineFailed:
+        snprintf(buf, buf_size, "Couldn't protect your saved data. Changes won't be saved.");
+        return;
+    case StockWriteBlockedIoError:
+        snprintf(buf, buf_size, "Couldn't read your saved data. Changes won't be saved.");
+        return;
+    case StockWriteRefusedOverLimit:
+        snprintf(buf, buf_size, "That would make the database too large. Not saved.");
+        return;
+    case StockWriteFailed:
+        if(result->kept_path[0] != '\0') {
+            /* A corrupt file was already quarantined on disk before this save then
+       * failed on its own -- that must still reach the user, not just a bare
+       * "couldn't save". */
+            snprintf(
+                buf,
+                buf_size,
+                "Couldn't read your saved data (kept as %s), and the new save "
+                "also failed.",
+                nfc_stock_basename(result->kept_path));
+        } else {
+            snprintf(buf, buf_size, "Couldn't save.");
+        }
+        return;
+    default:
+        snprintf(buf, buf_size, "Couldn't save.");
+        return;
+    }
+}
+
+static void nfc_stock_show_write_notice(NfcStockApp* app, const char* message) {
+    widget_reset(app->ui->widget);
+    widget_add_text_box_element(
+        app->ui->widget, 0, 0, 128, 64, AlignLeft, AlignTop, message, false);
+    view_dispatcher_switch_to_view(app->view_dispatcher, NfcStockViewWidget);
+}
+
 /* ----- Scan ----- */
 
 typedef struct {
@@ -148,6 +215,13 @@ static bool nfc_stock_details_input_callback(InputEvent* event, void* context) {
 
 void nfc_stock_scene_details_on_enter(void* context) {
     NfcStockApp* app = (NfcStockApp*)context;
+    if(!app->edit_opened_from_details) {
+        /* A fresh entry (from Scan or Inventory): nothing pending yet. Returning
+     * from an Edit detour must not clear a still-unsaved Up/Down change. */
+        app->current_item_dirty = false;
+    }
+    app->edit_opened_from_details = false;
+    app->write_notice_shown = false;
     nfc_stock_ui_show_item(app->ui, &app->current_item);
     View* view = widget_get_view(app->ui->widget);
     view_set_context(view, app);
@@ -155,19 +229,58 @@ void nfc_stock_scene_details_on_enter(void* context) {
     view_dispatcher_switch_to_view(app->view_dispatcher, NfcStockViewWidget);
 }
 
+/** Saves only if Up/Down actually changed the item; pure viewing must not
+ * write. Returns true to consume Back and keep a notice on screen until the
+ * user dismisses it. */
+static bool nfc_stock_details_save_and_maybe_notify(NfcStockApp* app) {
+    if(!app->current_item_dirty) {
+        return false;
+    }
+    app->current_item_dirty = false;
+    const StockItem before_save = app->current_item;
+    StockWriteResult result = stock_db_upsert(app->active_db_path, &app->current_item);
+    if(result.outcome != StockWriteOk && result.outcome != StockWriteOkQuarantined) {
+        /* Not actually persisted: don't let the in-memory item claim a value the
+     * disk doesn't have. */
+        app->current_item = before_save;
+    }
+    char message[NFC_STOCK_NOTICE_MAX];
+    nfc_stock_notice_for_write(&result, message, sizeof(message));
+    if(message[0] == '\0') {
+        return false;
+    }
+    app->write_notice_shown = true;
+    nfc_stock_show_write_notice(app, message);
+    return true;
+}
+
 bool nfc_stock_scene_details_on_event(void* context, SceneManagerEvent event) {
     NfcStockApp* app = (NfcStockApp*)context;
+    if(event.type == SceneManagerEventTypeBack) {
+        if(app->write_notice_shown) {
+            app->write_notice_shown = false;
+            return false;
+        }
+        return nfc_stock_details_save_and_maybe_notify(app);
+    }
     if(event.type == SceneManagerEventTypeCustom) {
         if(event.event == NfcStockEventDetailsStockUp) {
             stock_item_update_quantity(&app->current_item, 1);
+            app->current_item_dirty = true;
         } else if(event.event == NfcStockEventDetailsStockDown) {
             stock_item_update_quantity(&app->current_item, -1);
+            app->current_item_dirty = true;
         } else if(event.event == NfcStockEventDetailsOpenEdit) {
+            app->edit_opened_from_details = true;
             scene_manager_next_scene(app->scene_manager, NfcStockSceneEdit);
             return true;
         } else {
             return false;
         }
+        /* Redrawing the item replaces whatever notice was on screen; a stale
+     * write_notice_shown would otherwise make the *next* Back dismiss it
+     * instead of saving this new change. */
+        app->write_notice_shown = false;
         nfc_stock_ui_show_item(app->ui, &app->current_item);
         return true;
     }
@@ -179,7 +292,6 @@ void nfc_stock_scene_details_on_exit(void* context) {
     View* view = widget_get_view(app->ui->widget);
     view_set_input_callback(view, NULL);
     view_set_context(view, NULL);
-    stock_db_upsert(app->active_db_path, &app->current_item);
 }
 /* ----- Edit ----- */
 
@@ -198,6 +310,7 @@ static void nfc_stock_edit_refresh_list(NfcStockApp* app);
 static void nfc_stock_edit_after_text_input(void* context) {
     NfcStockApp* app = (NfcStockApp*)context;
     app->edit_text_input_blocking_back = false;
+    app->edit_dirty = true;
     StockItem* it = &app->current_item;
 
     switch((EditFieldIndex)s_edit_field_index) {
@@ -296,18 +409,27 @@ static void nfc_stock_edit_refresh_list(NfcStockApp* app) {
 
 void nfc_stock_scene_edit_on_enter(void* context) {
     NfcStockApp* app = (NfcStockApp*)context;
+    app->write_notice_shown = false;
+    /* Arriving with an already-dirty item (an unsaved Details Up/Down change)
+   * must still be saved even if no field is touched here; otherwise backing
+   * straight out of Edit would silently drop it. */
+    app->edit_dirty = app->current_item_dirty;
     nfc_stock_edit_refresh_list(app);
     view_dispatcher_switch_to_view(app->view_dispatcher, NfcStockViewEdit);
 }
 
-bool nfc_stock_scene_edit_on_event(void* context, SceneManagerEvent event) {
-    UNUSED(context);
-    UNUSED(event);
-    return false;
-}
+/** Saves only for a new item (which must still register even untouched) or once
+ * a field was actually edited; backing out of an existing item unchanged must
+ * not write. Returns true to consume Back and keep a save/quarantine notice on
+ * screen until the user dismisses it. */
+static bool nfc_stock_edit_save_and_maybe_notify(NfcStockApp* app) {
+    if(!app->item_is_new && !app->edit_dirty) {
+        return false;
+    }
+    app->edit_dirty = false;
+    const StockItem before_save = app->current_item;
+    const bool was_new = app->item_is_new;
 
-void nfc_stock_scene_edit_on_exit(void* context) {
-    NfcStockApp* app = (NfcStockApp*)context;
     if(app->item_is_new) {
         if(strlen(app->current_item.name) == 0 || strcmp(app->current_item.name, "NEW") == 0) {
             snprintf(
@@ -318,7 +440,41 @@ void nfc_stock_scene_edit_on_exit(void* context) {
         }
         app->item_is_new = false;
     }
-    stock_db_upsert(app->active_db_path, &app->current_item);
+    StockWriteResult result = stock_db_upsert(app->active_db_path, &app->current_item);
+    if(result.outcome == StockWriteOk || result.outcome == StockWriteOkQuarantined) {
+        /* Persisted: any pending Details-level change (the reason this save ran at
+     * all, if item_is_new was false) is now on disk too. */
+        app->current_item_dirty = false;
+    } else {
+        /* Not actually persisted: undo the auto-naming (if any) too, so a still-new
+     * item stays new for the next attempt. */
+        app->current_item = before_save;
+        app->item_is_new = was_new;
+    }
+    char message[NFC_STOCK_NOTICE_MAX];
+    nfc_stock_notice_for_write(&result, message, sizeof(message));
+    if(message[0] == '\0') {
+        return false;
+    }
+    app->write_notice_shown = true;
+    nfc_stock_show_write_notice(app, message);
+    return true;
+}
+
+bool nfc_stock_scene_edit_on_event(void* context, SceneManagerEvent event) {
+    NfcStockApp* app = (NfcStockApp*)context;
+    if(event.type == SceneManagerEventTypeBack) {
+        if(app->write_notice_shown) {
+            app->write_notice_shown = false;
+            return false;
+        }
+        return nfc_stock_edit_save_and_maybe_notify(app);
+    }
+    return false;
+}
+
+void nfc_stock_scene_edit_on_exit(void* context) {
+    UNUSED(context);
 }
 
 bool nfc_stock_scene_edit_consume_nav_back(void* context) {
@@ -399,8 +555,14 @@ static void nfc_stock_inventory_action_callback(void* context, uint32_t index) {
             scene_manager_next_scene(app->scene_manager, NfcStockSceneEdit);
         }
     } else if(index == InvRow_Delete) {
-        fs_delete_stock_at_index(app->active_db_path, selected_index);
-        nfc_stock_inventory_refresh(app);
+        StockWriteResult result = stock_db_delete_at(app->active_db_path, selected_index);
+        char message[NFC_STOCK_NOTICE_MAX];
+        nfc_stock_notice_for_write(&result, message, sizeof(message));
+        if(message[0] != '\0') {
+            nfc_stock_show_write_notice(app, message);
+        } else {
+            nfc_stock_inventory_refresh(app);
+        }
     }
 }
 
@@ -465,6 +627,15 @@ static void nfc_stock_settings_build_db_path(char* out, size_t out_size, const c
     }
 }
 
+static void nfc_stock_settings_activate_db(NfcStockApp* app, const char* new_path) {
+    storage_helper_set_active_db(new_path);
+    strncpy(app->active_db_path, new_path, sizeof(app->active_db_path) - 1);
+    app->active_db_path[sizeof(app->active_db_path) - 1] = '\0';
+
+    nfc_stock_ui_configure_settings_menu(app->ui, app);
+    view_dispatcher_switch_to_view(app->view_dispatcher, NfcStockViewSubmenu);
+}
+
 static void nfc_stock_settings_apply_db_name(NfcStockApp* app) {
     if(s_db_name_buf[0] == '\0') {
         nfc_stock_ui_configure_settings_menu(app->ui, app);
@@ -476,26 +647,45 @@ static void nfc_stock_settings_apply_db_name(NfcStockApp* app) {
     char new_path[sizeof(app->active_db_path)];
     nfc_stock_settings_build_db_path(new_path, sizeof(new_path), s_db_name_buf);
 
-    if(s_db_action == SettingsDbActionRename && strcmp(new_path, app->active_db_path) != 0) {
+    if(strcmp(new_path, app->active_db_path) == 0) {
+        /* Renaming or "creating" to the name already active is a no-op: nothing to
+     * move, nothing to check. */
+        nfc_stock_settings_activate_db(app, new_path);
+        return;
+    }
+
+    const bool target_exists = fs_exists(new_path);
+
+    if(s_db_action == SettingsDbActionRename) {
+        if(target_exists) {
+            nfc_stock_show_write_notice(app, "A database with that name already exists.");
+            return;
+        }
         StockItem* items = NULL;
         size_t count = 0;
-        if(fs_read_all_stock_items(app->active_db_path, &items, &count)) {
-            fs_write_replace(new_path, items, count * sizeof(StockItem));
-            free(items);
-            fs_write_replace(app->active_db_path, "", 0);
-        } else {
-            fs_write_replace(new_path, "", 0);
+        if(!fs_read_all_stock_items(app->active_db_path, &items, &count)) {
+            nfc_stock_show_write_notice(
+                app, "Couldn't read the current database. Rename cancelled.");
+            return;
         }
+        const bool written = fs_write_replace(new_path, items, count * sizeof(StockItem));
+        free(items);
+        if(!written) {
+            nfc_stock_show_write_notice(
+                app, "Couldn't write the renamed database. Rename cancelled.");
+            return;
+        }
+        /* The new file is confirmed written; only now is it safe to remove the old
+     * one. */
+        fs_remove(app->active_db_path);
+    } else if(target_exists) {
+        nfc_stock_show_write_notice(app, "A database with that name already exists.");
+        return;
     } else {
         fs_write_replace(new_path, "", 0);
     }
 
-    storage_helper_set_active_db(new_path);
-    strncpy(app->active_db_path, new_path, sizeof(app->active_db_path) - 1);
-    app->active_db_path[sizeof(app->active_db_path) - 1] = '\0';
-
-    nfc_stock_ui_configure_settings_menu(app->ui, app);
-    view_dispatcher_switch_to_view(app->view_dispatcher, NfcStockViewSubmenu);
+    nfc_stock_settings_activate_db(app, new_path);
 }
 
 static void nfc_stock_settings_db_text_done(void* context) {

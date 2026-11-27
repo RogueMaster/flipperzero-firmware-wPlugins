@@ -126,6 +126,7 @@ static void
     } else if(menu_item->type == WifiMarauderScriptMenuItemTypeString) {
         // Accepts user string input, assigning the value to the reference passed as a parameter
         menu_item->select_callback(app);
+        if(app->user_input_string_reference == NULL) return;
         scene_manager_set_scene_state(app->scene_manager, WifiMarauderSceneScriptStageEdit, index);
         app->user_input_type = WifiMarauderUserInputTypeString;
         scene_manager_next_scene(app->scene_manager, WifiMarauderSceneUserInput);

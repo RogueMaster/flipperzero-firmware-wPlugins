@@ -7,7 +7,7 @@ void fn_scene_info_on_enter(void* context) {
     furi_assert(context);
     FNApp* app = context;
 
-    fn_format_info(app->fn_info, &app->text_model);
+    fn_format_info(app->fn_info, &app->text_model, app->lang);
     fn_view_text_set_model(app->view_text, &app->text_model);
     view_dispatcher_switch_to_view(app->view_dispatcher, FNAppViewText);
 }

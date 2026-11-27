@@ -22,6 +22,7 @@ static const GtaExploreSection card_sets[] = {
     GTA_LEAF("The Legends of Ratface", "cards_16", 36, "Collected"),
     GTA_LEAF("Right Wing: America's Hero", "cards_17", 36, "Collected"),
     GTA_LEAF("ED Comics Universe", "cards_18", 36, "Collected"),
+    GTA_LEAF("Random Card Pickups", "card_pickups", 0, "Checked"),
 };
 static const GtaExploreSection waink[] = {
     GTA_LEAF("Landmarks", "landmarks", 31, "Scanned"),
@@ -71,7 +72,8 @@ static const GtaExploreSection activity_robberies[] = {
     GTA_LEAF("Bret's Target Decks", "bret_target_decks", 15, "Completed"),
     GTA_LEAF("Legendary Animals", "legendary_animals", 11, "Logged"),
     GTA_LEAF("Smash and Grabs", "smash_grabs", 35, "Robbed"),
-    GTA_LEAF("Stick-Up Leads (partial)", "stickup_leads", 91, "Checked"),
+    GTA_LEAF("Stick-Up Store Leads", "stickup_leads", 0, "Checked"),
+    GTA_LEAF("Kitty Litter Labs", "kitty_litter_labs", 0, "Closed"),
     GTA_LEAF("Drone Time Trials", "drone_trials", 42, "Completed"),
     GTA_LEAF("Shooting Gold Medals", "shooting_gold", 42, "Gold"),
     GTA_LEAF("Race Challenges", "race_challenges", 13, "Gold"),
@@ -79,8 +81,8 @@ static const GtaExploreSection activity_robberies[] = {
     GTA_LEAF("Pool Opponents", "pool_opponents", 7, "Beaten"),
     GTA_LEAF("Golf Courses", "golf_courses", 5, "Played"),
     GTA_LEAF("Unique Race Venues", "unique_race_hubs", 13, "Visited"),
-    GTA_LEAF("Basketball Hoops", "basketball_hoops", 100, "Scored"),
-    GTA_LEAF("Hoop Search Leads", "basketball_hoop_leads", 0, "Checked"),
+    GTA_LEAF("Unique Race Wins", "unique_races", 40, "Won"),
+    GTA_LEAF("Basketball Hoops", "basketball_gps", 100, "Scored"),
 };
 static const GtaExploreSection special_weapons[] = {
     GTA_LEAF("World Finds & Leads", "special_weapons", 49, "Acquired"),
@@ -106,6 +108,7 @@ const GtaExploreSection gta_explore_sections[] = {
     GTA_GROUP("Cocaine Flamingos", cocaine_flamingos),
     GTA_GROUP("Collectible Cards", card_sets),
     GTA_GROUP("Discovered Styles", styles),
+    GTA_LEAF("Easter Eggs", "easter_eggs", 0, "Visited"),
     GTA_LEAF("Endings", "endings", 12, "Seen"),
     GTA_LEAF("Fences", "fences", 7, "Unlocked"),
     GTA_LEAF("Kenton's Treasures", "kenton", 7, "Set complete"),
@@ -116,10 +119,11 @@ const GtaExploreSection gta_explore_sections[] = {
     GTA_LEAF("Messages in Bottles", "messages_bottles", 6, "Read"),
     GTA_GROUP("Meteorite Chunks (known)", meteorite_chunks),
     GTA_LEAF("Missing Persons (5 steps)", "missing_persons", 5, "Investigated"),
-    GTA_LEAF("Optional Missions", "optional_missions", 32, "Completed"),
+    GTA_LEAF("Optional Missions", "optional_missions", 43, "Completed"),
     GTA_GROUP("Stunt Jumps", stunt_jumps),
     GTA_GROUP("Under the Bridge", bridges),
     GTA_LEAF("Underwater Discoveries", "underwater", 33, "Discovered"),
+    GTA_LEAF("Vice City Portal Route", "vice_city_portal", 14, "Completed"),
     GTA_GROUP("Unique Playlists", playlists),
     GTA_GROUP("WAiNK Locations", waink),
 };

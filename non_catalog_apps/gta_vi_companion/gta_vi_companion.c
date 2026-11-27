@@ -35,7 +35,7 @@ typedef enum {
     ScreenList,
     ScreenDetail,
     ScreenGuide,
-    ScreenMoneyGlitch,
+    ScreenGuideDetail,
     ScreenSecretList,
     ScreenSecretDetail,
     ScreenSafeCategories,
@@ -85,6 +85,8 @@ enum {
     ItemSecretOpen = 0x700,
     ItemSecretToggle,
     ItemSecretToggleDetail,
+    ItemSecretMaps,
+    ItemGuideSection = 0x800,
 };
 typedef struct {
     const Icon* icon;
@@ -115,6 +117,14 @@ enum {
     GtaHomeItemCount = sizeof(gta_home_items) / sizeof(gta_home_items[0]),
     GtaHomePageCount = (GtaHomeItemCount + GtaHomePageSize - 1) / GtaHomePageSize,
 };
+/* Gameplay guide text is stored in escaped TSV assets, not in the FAP image. */
+#define GTA_GUIDE_ASSET             "guide_sections.tsv"
+#define GTA_WILDLIFE_ASSET          "wildlife.tsv"
+#define GTA_GUIDE_MAX_TOPICS        256u
+#define GTA_GUIDE_MAX_WILDLIFE_PAGE 16u
+#define GTA_GUIDE_MAX_PAGE_BYTES    4096u
+#define GTA_GUIDE_TITLE_MAX         64u
+
 typedef struct {
     size_t selected;
     size_t completed;
@@ -139,6 +149,8 @@ typedef struct {
     GtaCompanion* companion;
     GtaScreen screen;
     GtaScreen guide_back;
+    uint32_t guide_selection;
+    size_t guide_count;
     GtaScreen companion_back;
     const GtaExploreSection* explore_group;
     GtaListMode list_mode;
@@ -368,10 +380,39 @@ static bool gta_secret_list_input(InputEvent* event, void* context) {
     return true;
 }
 static void gta_secret_button_callback(GuiButtonType button, InputType type, void* context) {
-    if(button == GuiButtonTypeCenter && type == InputTypeShort) {
-        GtaApp* app = context;
+    if(type != InputTypeShort) return;
+    GtaApp* app = context;
+    if(button == GuiButtonTypeCenter)
         view_dispatcher_send_custom_event(app->dispatcher, ItemSecretToggleDetail);
+    else if(button == GuiButtonTypeRight)
+        view_dispatcher_send_custom_event(app->dispatcher, ItemSecretMaps);
+}
+
+/* Secret progress IDs and collection progress IDs are independent. These are
+ * navigation references only; opening a map never changes either checkmark. */
+static const GtaExploreSection* gta_secret_map_target(uint8_t secret_id, uint16_t* id) {
+    char key[4];
+    snprintf(key, sizeof(key), "%u", (unsigned)secret_id);
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    GtaRecord row = {0};
+    const GtaExploreSection* target = NULL;
+    if(gta_record_find(storage, "secret_map_targets.tsv", key, 3, &row)) {
+        char* end = NULL;
+        unsigned long value = strtoul(row.field[2], &end, 10);
+        if(end != row.field[2] && !*end && value > 0 && value < GtaProgressBytes * 8u) {
+            for(size_t i = 0; i < gta_explore_section_count; ++i) {
+                const GtaExploreSection* section = &gta_explore_sections[i];
+                if(section->asset && !strcmp(section->asset, row.field[1])) {
+                    *id = (uint16_t)value;
+                    target = section;
+                    break;
+                }
+            }
+        }
     }
+    gta_record_clear(&row);
+    furi_record_close(RECORD_STORAGE);
+    return target;
 }
 static void gta_ensure_menu(GtaApp* app) {
     if(app->menu) return;
@@ -448,7 +489,28 @@ static void gta_show_menu(GtaApp* app, GtaScreen screen) {
     gta_ensure_menu(app);
     submenu_reset(app->menu);
     char label[64];
-    if(screen == ScreenSafeCategories) {
+    if(screen == ScreenGuide) {
+        submenu_set_header(app->menu, "Quick Guide / Warnings");
+        Storage* storage = furi_record_open(RECORD_STORAGE);
+        GtaRecord row = {0};
+        app->guide_count = gta_record_count(storage, GTA_GUIDE_ASSET);
+        if(app->guide_count > GTA_GUIDE_MAX_TOPICS) app->guide_count = 0;
+        size_t added = 0;
+        for(size_t i = 0; i < app->guide_count; ++i) {
+            if(gta_record_read(storage, GTA_GUIDE_ASSET, i, 5, &row) && *row.field[0] &&
+               strlen(row.field[0]) < GTA_GUIDE_TITLE_MAX) {
+                gta_item(app, row.field[0], ItemGuideSection + i);
+                ++added;
+            }
+            gta_record_clear(&row);
+        }
+        gta_record_index_release();
+        furi_record_close(RECORD_STORAGE);
+        if(!added)
+            gta_item(app, "Guide unavailable", ItemEmpty);
+        else
+            submenu_set_selected_item(app->menu, app->guide_selection);
+    } else if(screen == ScreenSafeCategories) {
         submenu_set_header(app->menu, "Safe & Door Codes");
         size_t counts[5] = {0};
         gta_safe_filter_counts(counts);
@@ -685,145 +747,106 @@ static void gta_detail(GtaApp* app, const GtaCheat* cheat, const GtaScreenshotCo
 }
 static void gta_guide(GtaApp* app) {
     app->guide_back = app->screen;
+    app->guide_selection = ItemGuideSection;
+    gta_show_menu(app, ScreenGuide);
+}
+
+/* Range fields address zero-based wildlife rows, not progress IDs. */
+static bool gta_guide_number(const char* field, size_t* value) {
+    if(!*field) return false;
+    size_t n = 0;
+    while(*field) {
+        if(*field < '0' || *field > '9' || n > GTA_CATALOG_MAX_ROWS / 10u) return false;
+        n = n * 10u + (size_t)(*field++ - '0');
+        if(n > GTA_CATALOG_MAX_ROWS) return false;
+    }
+    *value = n;
+    return true;
+}
+
+static void gta_guide_detail(GtaApp* app, size_t index) {
+    if(index >= app->guide_count) return;
     gta_ensure_text(app);
     text_box_reset(app->text);
     furi_string_reset(app->content);
-    furi_string_cat_printf(
-        app->content,
-        "Companion v" FAP_VERSION "\n\n"
-        "Secret Missions: optional finds by reported chapter. Right toggles checkmarks in the list; "
-        "OK opens details and Check/Uncheck toggles status. Progress saves on SD. "
-        "Chapter gates marked ? are uncertain. "
-        "Safe & Door Codes: browse published numeric codes and passwords by type. "
-        "[?] marks less-corroborated, conflicting or potentially changing reports. "
-        "Ordinary robbery safes often have a random code.\n\n"
-        "Bridges, Cars, Stunts and Collections: each listed entry can be marked Completed. "
-        "Right toggles a checkmark in its list; OK opens details, with Check/Undo at center. "
-        "Progress saves to SD and reloads automatically. "
-        "Hold OK in a linked collection or Dispatch detail to emulate its only NFC link "
-        "immediately, or choose between two links. Left: Source. Right: Map image or Source 2 "
-        "if no image is available. Tap your unlocked phone. Back stops NFC and returns to "
-        "the item or link selector.\n\n"
-        "Under the Bridge and Stunt Jumps are grouped by county in Collections; "
-        "Knife Flights and Base Jumps are there too (397 stunts total). "
-        "Cars include Randy, Moses, Wyman and Standout Vehicles. "
-        "Collections include cards, scans, flamingos and other finds. "
-        "Any 300 stunts count toward 100%%.\n\n"
-        "Cocaine Flamingos: destroy the figures with BLACK-WHITE beaks. "
-        "Black-yellow beaks are decorative; collecting loose cocaine is optional. "
-        "82 reported pickups and leads across three regional lists; 100 of 125 count for "
-        "100%% completion. Verify the game counter at uncertain map stops. "
-        "Magazine Styles: scan with the phone, switch to Jason/Lucia for character-specific "
-        "unlocks, and inspect private houses when clues point inside.\n\n"
-        "Diving: Island Dreams unlocks diving. Bring scuba gear, choose the metal detector "
-        "from lower-right weapon wheel, follow chest markers and dig once light turns GREEN. "
-        "The nearby wrecks southeast of Key Lento can be visited together.\n\n"
-        "Optional Missions are a separate Collections checklist; Cal and Kirk already appear "
-        "in Secret Missions. Messages in Bottles are optional reading, not part of 34 books "
-        "and swaps. Extra unique weapon names are guide-reported, not game-verified.\n\n"
-        "Missables: keep a manual save before Tourist Trap (C1) and Checking Out (C2). "
-        "In C2 pay Linda before Slam Dunk, collect Starlet Motel cards and books, and help Wyman "
-        "at his car before moving. In C3 take Gil's pistol in Safe Word and Monty's pistol in The Missing Link. "
-        "Pete's rifle is a C4 mission pickup.\n\n"
-        "Moses: during Take a Vehicle to Moses (C2), bring an eligible tracker-free car for one free registration. "
-        "Bison has six cargo slots, Dominator two; Montagne XL waits behind Watkins Auto Parts. "
-        "Confirm Register shows Free before accepting. See Thrax for reported early access.\n\n"
-        "Fast Focus leveling: Rodgers Ranch Shooting Range, northeast Port Gellhorn (Kelly County). "
-        "Buy the $5 waiver and choose Market Range Beginner. Hit all six targets (about 5 sec). "
-        "Select Quit and back out to the range, then start again. Do NOT choose Restart on results. "
-        "Each exit is reported to grant permanent Focus; gains vary. Check Jason & Lucia > character > "
-        "purple eye stat until Level 4. Repeat for the other character after Coffee Break (C2). "
-        "No cheat activation needed. Patch behavior may change. See Shooting Gold Medals.\n\n"
-        "Dispatch: pick a region for unchecked deliveries and collectibles. "
-        "OK checks or undoes a stop. Right opens the next stop. "
-        "Back returns to the region menu.\n\n"
-        "61 GTA VI effects reported by game guides, but most inputs remain unpublished. "
-        "[?] marks entries without a code.\n\n"
-        "21 inputs are corroborated in PS5 and Xbox guides, including Drunk. "
-        "Pinhole [report] under Filters has a single-source input. "
-        "The app labels it unverified.\n\n"
-        "To use: finish the story and the individual cheat's unlock challenge. "
-        "Check Progress > Cheats. In free roam press D-pad Up to open phone. "
-        "Hold L1 and R1 (PS5) or LB and RB (Xbox), then enter the D-pad code.\n\n"
-        "Save before cheats: outlets report no saving or trophies/achievements "
-        "once a cheat is active in that session. Story Mode only.\n\n"
-        "Test source: 28 PlayStation controller sequences transcribed, not GTA VI-tested. "
-        "24 screenshot-only entries show their sequences in Unverified codes. "
-        "Four matching effects show the test input as an alternate in the main catalog. "
-        "Effect matches do NOT verify the test inputs. "
-        "Xbox equivalents are button-label conversions, not separately sourced codes. "
-        "TRI=Triangle CIR=Circle SQR=Square; U/D/L/R=direction.");
-
-    size_t total_items = 0;
-    size_t completed_items = 0;
-    if(gta_companion_progress_summary(app->companion, &total_items, &completed_items)) {
-        /* Hundredths of a percent, rounded: no floating-point printf needed. */
-        const uint32_t progress =
-            total_items ? (uint32_t)((completed_items * 10000u + total_items / 2u) / total_items) :
-                          0u;
-        furi_string_cat_printf(
-            app->content,
-            "\n\nTotal Collection Items: %lu\n"
-            "Total Items Completed: %lu\n"
-            "Progress: %lu.%02lu%%",
-            (unsigned long)total_items,
-            (unsigned long)completed_items,
-            (unsigned long)(progress / 100u),
-            (unsigned long)(progress % 100u));
-    } else {
-        furi_string_cat_printf(
-            app->content,
-            "\n\nTotal Collection Items: Unavailable\n"
-            "Total Items Completed: Unavailable\n"
-            "Progress: Unavailable");
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    GtaRecord row = {0};
+    bool ok = gta_record_read(storage, GTA_GUIDE_ASSET, index, 5, &row) && *row.field[0] &&
+              strlen(row.field[0]) < GTA_GUIDE_TITLE_MAX;
+    char page_title[GTA_GUIDE_TITLE_MAX] = {0};
+    size_t page_bytes = 0;
+    if(ok) {
+        snprintf(page_title, sizeof(page_title), "%s", row.field[0]);
+        page_bytes = strlen(page_title) + 2u + strlen(row.field[2]);
+        ok = page_bytes <= GTA_GUIDE_MAX_PAGE_BYTES;
     }
-    gta_show_text(app, ScreenGuide);
+    if(ok) furi_string_cat_printf(app->content, "%s\n\n", page_title);
+    if(ok && !strcmp(row.field[1], "text")) {
+        furi_string_cat_printf(app->content, "%s", row.field[2]);
+    } else if(ok && !strcmp(row.field[1], "wildlife")) {
+        size_t first = 0, count = 0;
+        ok = gta_guide_number(row.field[3], &first) && gta_guide_number(row.field[4], &count) &&
+             count && count <= GTA_GUIDE_MAX_WILDLIFE_PAGE;
+        if(ok) furi_string_cat_printf(app->content, "%s", row.field[2]);
+        /* Keep only one decoded record and the current page in RAM. */
+        gta_record_clear(&row);
+        if(ok) {
+            size_t total = gta_record_count(storage, GTA_WILDLIFE_ASSET);
+            ok = first < total && count <= total - first;
+        }
+        for(size_t i = 0; ok && i < count; ++i) {
+            ok = gta_record_read(storage, GTA_WILDLIFE_ASSET, first + i, 3, &row) &&
+                 !strcmp(row.field[0], page_title) && *row.field[1];
+            if(ok) {
+                size_t extra = strlen(row.field[1]) + strlen(row.field[2]) + 3u;
+                ok = extra <= GTA_GUIDE_MAX_PAGE_BYTES - page_bytes;
+                if(ok) {
+                    furi_string_cat_printf(app->content, "\n\n%s\n%s", row.field[1], row.field[2]);
+                    page_bytes += extra;
+                }
+            }
+            gta_record_clear(&row);
+        }
+    } else if(ok && !strcmp(row.field[1], "progress")) {
+        furi_string_cat_printf(app->content, "Companion v" FAP_VERSION);
+        size_t total_items = 0;
+        size_t completed_items = 0;
+        if(gta_companion_progress_summary(app->companion, &total_items, &completed_items)) {
+            /* Hundredths of a percent, rounded: no floating-point printf needed. */
+            const uint32_t progress =
+                total_items ?
+                    (uint32_t)((completed_items * 10000u + total_items / 2u) / total_items) :
+                    0u;
+            furi_string_cat_printf(
+                app->content,
+                "\n\nTotal Collection Items: %lu\n"
+                "Total Items Completed: %lu\n"
+                "Progress: %lu.%02lu%%",
+                (unsigned long)total_items,
+                (unsigned long)completed_items,
+                (unsigned long)(progress / 100u),
+                (unsigned long)(progress % 100u));
+        } else {
+            furi_string_cat_printf(
+                app->content,
+                "\n\nTotal Collection Items: Unavailable\n"
+                "Total Items Completed: Unavailable\n"
+                "Progress: Unavailable");
+        }
+    } else {
+        ok = false;
+    }
+    gta_record_clear(&row);
+    gta_record_index_release();
+    furi_record_close(RECORD_STORAGE);
+    if(!ok) furi_string_cat_printf(app->content, "\n\nGuide data unavailable.");
+    gta_show_text(app, ScreenGuideDetail);
 }
 static void gta_money_glitch(GtaApp* app) {
-    gta_ensure_text(app);
-    text_box_reset(app->text);
-    furi_string_reset(app->content);
-    furi_string_cat_printf(
-        app->content,
-        "Cars + Cocaine Money Glitch\n\n"
-        "Story Mode; reported exploit, not a cheat code. The reliable core is "
-        "warehouse cocaine respawning while bags stay in vehicle storage. "
-        "A two-car payout loop at Dunk's is community-reported ONLY; confirm "
-        "real credits, not merely a changing counter. Back up your save.\n\n"
-        "1. Prepare two vehicles\n"
-        "a) Chapter 2 is safer: Chapter 1 story progress can take your cash.\n"
-        "b) Register BOTH vehicles before filling: a 10-slot van AND a "
-        "6-slot car. Use owned cars or register each at Pay n Spray or "
-        "Moses; do not rely on unregistered stolen vehicles.\n"
-        "c) Keep a separate manual backup save; do not enable cheats.\n\n"
-        "2. Fill with cocaine\n"
-        "a) Drive to Apollo Aggregates, red warehouse east of Hamlet.\n"
-        "b) Loot cocaine from the outside teddy-bear van, the inside van, "
-        "office table and safe; take the center van's cash bag.\n"
-        "c) Fill and stow bags in your 10-slot van, then your second car. "
-        "Leave the INSIDE warehouse van parked so its loot can reset.\n\n"
-        "3. Refresh by switching characters\n"
-        "a) Leave your collected cocaine stored in your vehicles. "
-        "Switch to the other playable character, then switch back.\n"
-        "b) Return to Apollo Aggregates and recheck the inside van and "
-        "office safe for respawned cocaine. Reload your vehicles; repeat.\n"
-        "c) If it does not reset, put bags in an owned vehicle, save to a "
-        "separate slot, reload, then return. Do not overwrite your backup.\n\n"
-        "4. Two-car Dunk's loop (UNVERIFIED)\n"
-        "a) At Dunk's trailer, reverse the FULL 10-slot van to the drop point "
-        "and unload its bags.\n"
-        "b) Move the van out, back the full 6-slot car into place, and unload.\n"
-        "c) A player claims that repeating character pickup/drop-off after "
-        "the swap keeps storage from depleting (~$13,200/drop). "
-        "This may be a VISUAL bug with no payout: test a small sale first.\n\n"
-        "5. Check payout or sell normally\n"
-        "a) Verify actual bank balance, pending payments and safehouse mail "
-        "before relying on repeat sales.\n"
-        "b) If the two-car claim fails, sell the filled van normally. "
-        "Donnie/Dunk in early chapters or Tyrone (Ch3, best narcotics "
-        "rate); Brian's Lockup uses keypad 7700 and pays later.\n"
-        "c) Exact prices, vehicle slots, respawns and patch status vary.");
-    gta_show_text(app, ScreenMoneyGlitch);
+    app->companion_back = ScreenHome;
+    app->screen = ScreenCompanion;
+    gta_companion_open_money_glitch(app->companion);
+    gta_release_unused(app, ViewCollectionDetail);
 }
 static const char* gta_safe_status_name(GtaSafeStatus status) {
     switch(status) {
@@ -909,6 +932,10 @@ static void gta_secret_detail(GtaApp* app, size_t index) {
                                                                                     "Check",
         gta_secret_button_callback,
         app);
+    uint16_t map_id;
+    if(gta_secret_map_target(entry->progress_id, &map_id))
+        widget_add_button_element(
+            app->secret_detail, GuiButtonTypeRight, "Maps", gta_secret_button_callback, app);
     view_dispatcher_switch_to_view(app->dispatcher, ViewSecretDetail);
     gta_release_unused(app, ViewSecretDetail);
 }
@@ -916,23 +943,14 @@ static void gta_safe_tips(GtaApp* app) {
     gta_ensure_text(app);
     text_box_reset(app->text);
     furi_string_reset(app->content);
-    furi_string_cat_printf(
-        app->content,
-        "Randomized safe codes\n\n"
-        "This list collects published fixed or reported combinations. "
-        "Not all map safes have a reusable code. Many ordinary store and bank robbery "
-        "safes change the code between runs or saves. Some mission codes also vary.\n\n"
-        "Find the clue: check back-office notes, whiteboards, maps, computers or guards. "
-        "Press L3 + R3 (both sticks) to activate Focus Mode. "
-        "Use the Safe Code? dialogue prompt during a robbery when available. "
-        "Check Notes on the keypad if you already collected the clue.\n\n"
-        "If a code fails, do not assume a game bug; check your local clue. "
-        "Retain every leading zero. Some keypads accept five or six digits, "
-        "and some computers accept words.\n\n"
-        "Sticky bombs can force open some safes but attract enemies or police. "
-        "Locked mission doors and garage keypads may not respond to explosives.\n\n"
-        "Entries are based on published guides through 24 Nov 2026 and have not "
-        "been independently tested by this app's maintainers.");
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    GtaRecord row = {0};
+    if(gta_record_find(storage, "guide_misc.tsv", "safe_tips", 3, &row))
+        furi_string_cat_printf(app->content, "%s", row.field[2]);
+    else
+        furi_string_cat_printf(app->content, "Guide data unavailable.");
+    gta_record_clear(&row);
+    furi_record_close(RECORD_STORAGE);
     gta_show_text(app, ScreenSafeTips);
 }
 static bool gta_event(void* context, uint32_t event) {
@@ -969,6 +987,10 @@ static bool gta_event(void* context, uint32_t event) {
             view_dispatcher_switch_to_view(app->dispatcher, ViewMockLoaderSettings);
             gta_release_unused(app, ViewMockLoaderSettings);
         }
+    } else if(app->screen == ScreenGuide) {
+        if(event < ItemGuideSection || event - ItemGuideSection >= app->guide_count) return false;
+        app->guide_selection = event;
+        gta_guide_detail(app, event - ItemGuideSection);
     } else if(app->screen == ScreenSecretList) {
         if(event == ItemSecretOpen && app->secret_index < gta_secret_mission_count) {
             gta_secret_detail(app, app->secret_index);
@@ -980,7 +1002,18 @@ static bool gta_event(void* context, uint32_t event) {
             gta_secret_refresh(app);
         }
     } else if(app->screen == ScreenSecretDetail) {
-        if(event == ItemSecretToggleDetail && app->secret_index < gta_secret_mission_count) {
+        if(event == ItemSecretMaps && app->secret_index < gta_secret_mission_count) {
+            const GtaSecretMission* row = gta_secret_at(app->secret_index, false);
+            uint16_t map_id = 0;
+            const GtaExploreSection* section =
+                row ? gta_secret_map_target(row->progress_id, &map_id) : NULL;
+            if(section) {
+                app->companion_back = ScreenSecretList;
+                app->screen = ScreenCompanion;
+                gta_companion_open_exploration_item(app->companion, section, map_id);
+                gta_release_unused(app, ViewCollectionDetail);
+            }
+        } else if(event == ItemSecretToggleDetail && app->secret_index < gta_secret_mission_count) {
             const GtaSecretMission* row = gta_secret_at(app->secret_index, false);
             if(row)
                 gta_secret_progress_toggle(
@@ -1021,8 +1054,10 @@ static bool gta_event(void* context, uint32_t event) {
         const GtaExploreSection* items = root ? gta_explore_sections :
                                                 app->explore_group->children;
         const size_t count = root ? gta_explore_section_count : app->explore_group->child_count;
-        if(event < ItemExploreRow || event - ItemExploreRow >= count) return false;
-        const GtaExploreSection* selected = &items[event - ItemExploreRow];
+        if(event < ItemExploreRow) return false;
+        const size_t index = event - ItemExploreRow;
+        if(index >= count) return false;
+        const GtaExploreSection* selected = &items[index];
         if(root) {
             app->explore_root_selection = event;
         } else {
@@ -1085,7 +1120,6 @@ static bool gta_back(void* context) {
     case ScreenDispatchRegions:
     case ScreenMockLoaders:
     case ScreenMockLoaderSettings:
-    case ScreenMoneyGlitch:
     case ScreenSafeCategories:
     case ScreenSecretList:
         gta_show_menu(app, ScreenHome);
@@ -1107,6 +1141,9 @@ static bool gta_back(void* context) {
         break;
     case ScreenDetail:
         gta_show_menu(app, ScreenList);
+        break;
+    case ScreenGuideDetail:
+        gta_show_menu(app, ScreenGuide);
         break;
     case ScreenGuide:
         gta_show_menu(app, app->guide_back);

@@ -4,6 +4,8 @@
  */
 #pragma once
 
+#include "../../lib/fn/core/fn_lang.h"
+
 #include <gui/view.h>
 
 #include <stdbool.h>
@@ -21,7 +23,7 @@ FnConfirmView* fn_view_confirm_alloc(void);
 void fn_view_confirm_free(FnConfirmView* view);
 View* fn_view_confirm_get_view(FnConfirmView* view);
 
-void fn_view_confirm_set(FnConfirmView* view, const char* title, const char* body);
+void fn_view_confirm_set(FnConfirmView* view, const char* title, const char* body, FnLang lang);
 void fn_view_confirm_set_callback(FnConfirmView* view, FnConfirmCallback callback, void* context);
 
 #ifdef __cplusplus

@@ -7,6 +7,8 @@
  */
 #pragma once
 
+#include "fn_lang.h"
+
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -81,20 +83,20 @@ bool fn_date_is_valid(const FnDate* date);
 /** Проверка даты и времени: дата + час 0–23 + минута 0–59. NULL → false. */
 bool fn_datetime_is_valid(const FnDateTime* date_time);
 
-/** Русский текст этапа (статическая строка, без malloc). */
-const char* fn_stage_text(FnStage stage);
+/** Текст этапа на выбранном языке (статическая строка, без malloc). */
+const char* fn_stage_text(FnStage stage, FnLang lang);
 
-/** Русский текст версии ФФД: «1.05» / «1.1» / «1.2» / «Не активизирован». */
-const char* fn_ffd_text(FnFfd ffd);
+/** Текст версии ФФД: «1.05» / «1.1» / «1.2» / «Not activated». */
+const char* fn_ffd_text(FnFfd ffd, FnLang lang);
 
-/** Русский текст документа для ОФД. */
-const char* fn_doc_text(FnDocCode doc);
+/** Текст документа для ОФД на выбранном языке. */
+const char* fn_doc_text(FnDocCode doc, FnLang lang);
 
 /**
  * Текст ровно одного описанного флага предупреждения.
  * @return строка для маски 0x01–0x40, иначе NULL
  */
-const char* fn_warn_flag_text(uint8_t mask);
+const char* fn_warn_flag_text(uint8_t mask, FnLang lang);
 
 /** Неописанные биты флагов (сейчас — только зарезервированный 0x80). */
 uint8_t fn_warn_flags_unknown(uint8_t flags);

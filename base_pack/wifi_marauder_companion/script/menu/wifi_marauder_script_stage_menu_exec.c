@@ -12,7 +12,7 @@ void wifi_marauder_exec_stage_filter_select_callback(void* context) {
     WifiMarauderApp* app = context;
     WifiMarauderScriptStageExec* stage_select = app->script_edit_selected_stage->stage;
     if(stage_select->command == NULL) {
-        stage_select->command = malloc(128);
+        stage_select->command = calloc(WIFI_MARAUDER_TEXT_INPUT_STORE_SIZE + 1, 1);
     }
     app->user_input_string_reference = &stage_select->command;
 }

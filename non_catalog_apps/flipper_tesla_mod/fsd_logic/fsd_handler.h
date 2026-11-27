@@ -45,7 +45,7 @@
 #define CAN_ID_STEER_ANGLE  0x129 // 297  - SCCM_steeringAngleSensor (steering angle — Party CAN)
 #define CAN_ID_DAS_STEER    0x488 // 1160 - DAS_steeringControl (DAS steering request — Party CAN)
 #define CAN_ID_APS_EACMON   0x27D // 637  - APS_eacMonitor (steering permission — Party CAN)
-#define CAN_ID_ENERGY_CONS  0x33A // 826  - UI_ratedConsumption (energy Wh/km — Party CAN)
+#define CAN_ID_UI_RANGE     0x33A // 826  - UI_range (car-displayed SOC, fsd_bms.h; ESP32 dashboard)
 #define CAN_ID_DRIVER_ASSIST \
     0x3F8 // 1016 - UI_driverAssistControl (also follow distance — Party CAN)
 #define CAN_ID_VCLEFT_SWITCH \
@@ -93,9 +93,11 @@ bool fsd_ap_first_allows(const FSDState* state, uint32_t now_ms);
 
 /** Soft-Engage gate. Returns true if injection may proceed: soft_engage off, or
  *  already latched this engagement, or the wheel is within SOFT_ENGAGE_ANGLE_DEG
- *  of centre (which latches it on). Mutates soft_engage_latched. Reset the latch
+ *  of centre (which latches it on), or no 0x129 was ever seen (latches; degrades
+ *  to AP-First-only). Holds while 0x129 is present but no fresh valid angle is
+ *  known (fsd_steer_known). Mutates soft_engage_latched. Reset the latch
  *  (soft_engage_latched=false) when AP drops (das_ap_state < DAS_APSTATE_ENGAGED). */
-bool fsd_soft_engage_allows(FSDState* state);
+bool fsd_soft_engage_allows(FSDState* state, uint32_t now_ms);
 
 // Abort Guard (#108): DAS_autopilotState values that mean the car is aborting an
 // engage — the moment linked to the steer-jerk in dunckencn's logs.
@@ -138,7 +140,10 @@ bool fsd_handle_isa_speed_chime(CANFRAME* frame);
 /** Apply the configurable signal mapping (#122): if cfg_das_id / cfg_steer_id are
  *  set and this frame matches, extract das_ap_state / das_hands_on_state /
  *  steering_angle_deg from the configured positions and stamp the freshness clock.
- *  No-op when the corresponding id is 0 (auto mode). Call from the RX path. */
+ *  No-op when the corresponding id is 0 (auto mode). Call from the RX path.
+ *  Steering: cfg_steer_id 0x129 is decoded as SCCM_steeringAngleSensor
+ *  (fsd_steer_update(), validity-aware), any other id as a signed 16-bit angle
+ *  at bytes cfg_steer_hi / cfg_steer_lo, 0.1 deg per bit (hi == lo: not mapped). */
 void fsd_apply_signal_config(FSDState* state, const CANFRAME* frame, uint32_t now_ms);
 
 /** True if the DAS context is fresh enough to inject: always true in auto mode
@@ -164,11 +169,12 @@ bool fsd_can_transmit(const FSDState* state);
 /** Parse a BMS HV bus frame (0x132) and update voltage/current/power. */
 void fsd_handle_bms_hv(FSDState* state, const CANFRAME* frame);
 
-/** Parse a BMS SoC frame (0x292) and update soc_percent. */
+/** Parse a BMS SoC frame (0x292) and update soc_percent from BMS_socUI (fsd_bms.h). */
 void fsd_handle_bms_soc(FSDState* state, const CANFRAME* frame);
 
-/** Parse a BMS thermal frame (0x312) and update battery temp min/max. */
-void fsd_handle_bms_thermal(FSDState* state, const CANFRAME* frame);
+/** Parse a BMS thermal frame (0x312) and update battery temp min/max when the
+ *  reading is plausible (fsd_bms.h); now_ms stamps its age. */
+void fsd_handle_bms_thermal(FSDState* state, const CANFRAME* frame, uint32_t now_ms);
 
 /** Build a UI_tripPlanning frame (0x082) to trigger precondition heating. */
 void fsd_build_precondition_frame(CANFRAME* frame);
@@ -261,9 +267,6 @@ bool fsd_handle_gtw_tier_override(FSDState* state, CANFRAME* frame);
  *  Returns true if frame was modified (caller should retransmit). */
 bool fsd_handle_driver_assist_override(FSDState* state, CANFRAME* frame);
 
-/** Parse 0x33A UI_ratedConsumption — energy Wh/km. */
-void fsd_handle_energy_consumption(FSDState* state, const CANFRAME* frame);
-
 /** Modify UI_trackModeSettings (0x313) to set track mode ON.
  *  byte[0] bits 1:0 = 0x01 (kTrackModeRequestOn) + recalc checksum byte[7].
  *  Source: ev-open-can-tools setTrackModeRequest(). */
@@ -315,8 +318,9 @@ void fsd_handle_di_torque(FSDState* state, const CANFRAME* frame);
 /** Parse UI_warning (0x311) — blinker, door, buckle, high beam status. */
 void fsd_handle_ui_warning(FSDState* state, const CANFRAME* frame);
 
-/** Parse SCCM_steeringAngleSensor (0x129) — steering wheel angle. */
-void fsd_handle_steering_angle(FSDState* state, const CANFRAME* frame);
+/** Parse SCCM_steeringAngleSensor (0x129) — steering wheel angle (fsd_steer.h);
+ *  now_ms stamps the angle's freshness. */
+void fsd_handle_steering_angle(FSDState* state, const CANFRAME* frame, uint32_t now_ms);
 
 /** Parse DAS_steeringControl (0x488) — DAS steering request type + angle. */
 void fsd_handle_das_steering(FSDState* state, const CANFRAME* frame);

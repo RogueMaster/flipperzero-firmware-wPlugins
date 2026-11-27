@@ -22,7 +22,8 @@ static void wifi_marauder_scene_script_stage_add_select_callback(void* context, 
     WifiMarauderScriptStageSelect* stage =
         (WifiMarauderScriptStageSelect*)malloc(sizeof(WifiMarauderScriptStageSelect));
     stage->type = WifiMarauderScriptSelectTypeAp;
-    stage->filter = strdup("all");
+    stage->filter = malloc(WIFI_MARAUDER_TEXT_INPUT_STORE_SIZE + 1);
+    if(stage->filter != NULL) strcpy(stage->filter, "all");
 
     wifi_marauder_script_add_stage(app->script, WifiMarauderScriptStageTypeSelect, stage);
     scene_manager_previous_scene(app->scene_manager);
@@ -92,19 +93,6 @@ static void
     stage->timeout = WIFI_MARAUDER_DEFAULT_TIMEOUT_SNIFF;
 
     wifi_marauder_script_add_stage(app->script, WifiMarauderScriptStageTypeSniffDeauth, stage);
-    scene_manager_previous_scene(app->scene_manager);
-}
-
-// Sniff Esp
-static void wifi_marauder_scene_script_stage_add_sniffesp_callback(void* context, uint32_t index) {
-    UNUSED(index);
-    WifiMarauderApp* app = context;
-
-    WifiMarauderScriptStageSniffEsp* stage =
-        (WifiMarauderScriptStageSniffEsp*)malloc(sizeof(WifiMarauderScriptStageSniffEsp));
-    stage->timeout = WIFI_MARAUDER_DEFAULT_TIMEOUT_SNIFF;
-
-    wifi_marauder_script_add_stage(app->script, WifiMarauderScriptStageTypeSniffEsp, stage);
     scene_manager_previous_scene(app->scene_manager);
 }
 
@@ -236,12 +224,6 @@ void wifi_marauder_scene_script_stage_add_on_enter(void* context) {
         "[+] Sniff Deauth",
         menu_index++,
         wifi_marauder_scene_script_stage_add_sniffdeauth_callback,
-        app);
-    submenu_add_item(
-        submenu,
-        "[+] Sniff Esp",
-        menu_index++,
-        wifi_marauder_scene_script_stage_add_sniffesp_callback,
         app);
     submenu_add_item(
         submenu,

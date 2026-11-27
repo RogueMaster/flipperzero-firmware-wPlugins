@@ -13,20 +13,25 @@
 void fn_scene_about_on_enter(void* context) {
     furi_assert(context);
     FNApp* app = context;
+    const FnLang lang = app->lang;
 
     fn_view_text_clear(app->view_text);
-    fn_view_text_add_section(app->view_text, FN_STR_ABOUT_TITLE);
-    fn_view_text_add_line(app->view_text, FnTextStyleNormal, "%s", FN_STR_ABOUT_APP);
+    fn_view_text_add_section(app->view_text, fn_str(lang, FnStrAboutTitle));
+    fn_view_text_add_line(app->view_text, FnTextStyleNormal, "%s", fn_str(lang, FnStrAboutApp));
     fn_view_text_add_line(
-        app->view_text, FnTextStyleNormal, FN_STR_ABOUT_VERSION_FMT, FAP_VERSION);
-    fn_view_text_add_line(app->view_text, FnTextStyleNormal, "%s", FN_STR_ABOUT_AUTHOR);
-    fn_view_text_add_line(app->view_text, FnTextStyleNormal, "%s", FN_STR_ABOUT_URL_1);
-    fn_view_text_add_line(app->view_text, FnTextStyleNormal, "%s", FN_STR_ABOUT_URL_2);
+        app->view_text, FnTextStyleNormal, fn_str(lang, FnStrAboutVersionFmt), FAP_VERSION);
+    fn_view_text_add_line(app->view_text, FnTextStyleNormal, "%s", fn_str(lang, FnStrAboutAuthor));
+    fn_view_text_add_line(app->view_text, FnTextStyleNormal, "%s", fn_str(lang, FnStrAboutUrl1));
+    fn_view_text_add_line(app->view_text, FnTextStyleNormal, "%s", fn_str(lang, FnStrAboutUrl2));
     fn_view_text_add_section(app->view_text, NULL);
-    fn_view_text_add_line(app->view_text, FnTextStyleNormal, "%s", FN_STR_ABOUT_DESCRIPTION_1);
-    fn_view_text_add_line(app->view_text, FnTextStyleNormal, "%s", FN_STR_ABOUT_DESCRIPTION_2);
-    fn_view_text_add_line(app->view_text, FnTextStyleNormal, "%s", FN_STR_ABOUT_DESCRIPTION_3);
-    fn_view_text_add_line(app->view_text, FnTextStyleNormal, "%s", FN_STR_ABOUT_DESCRIPTION_4);
+    fn_view_text_add_line(
+        app->view_text, FnTextStyleNormal, "%s", fn_str(lang, FnStrAboutDescription1));
+    fn_view_text_add_line(
+        app->view_text, FnTextStyleNormal, "%s", fn_str(lang, FnStrAboutDescription2));
+    fn_view_text_add_line(
+        app->view_text, FnTextStyleNormal, "%s", fn_str(lang, FnStrAboutDescription3));
+    fn_view_text_add_line(
+        app->view_text, FnTextStyleNormal, "%s", fn_str(lang, FnStrAboutDescription4));
     fn_view_text_commit(app->view_text);
 
     view_dispatcher_switch_to_view(app->view_dispatcher, FNAppViewText);

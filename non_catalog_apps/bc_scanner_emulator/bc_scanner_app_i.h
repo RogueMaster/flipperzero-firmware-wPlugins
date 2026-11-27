@@ -13,8 +13,8 @@
 #include <notification/notification_messages.h>
 #include <gui/modules/variable_item_list.h>
 #include <gui/modules/widget.h>
+#include <rpc/rpc_app.h>
 #include "views/bc_scanner_view.h"
-#include "bc_scanner_icons.h"
 
 #define RECORD_STORAGE             "storage"
 #define BC_SCANNER_APP_PATH_FOLDER ANY_PATH("bcscanner")
@@ -24,6 +24,19 @@ typedef enum {
     BarCodeAppErrorNoFiles,
     BarCodeAppErrorCloseRpc,
 } BarCodeAppError;
+
+/** Reception state shown on the RPC scene. */
+typedef enum {
+    BarCodeRpcStatusWaiting,
+    BarCodeRpcStatusReceived,
+    BarCodeRpcStatusSent,
+    BarCodeRpcStatusError,
+} BarCodeRpcStatus;
+
+/** Custom events dispatched through the view dispatcher (RPC mode). */
+typedef enum {
+    BarCodeCustomEventRpcStatusUpdate = 100,
+} BarCodeRpcCustomEvent;
 
 struct BarCodeApp {
     Gui* gui;
@@ -37,6 +50,11 @@ struct BarCodeApp {
     FuriString* file_path;
     BarCodeView* bc_scanner_view;
     BarCodeScript* bc_scanner_script;
+
+    /** RPC session context; non-NULL only in RPC mode. */
+    RpcAppSystem* rpc;
+    BarCodeRpcStatus rpc_status;
+    size_t rpc_last_size;
 };
 
 typedef enum {

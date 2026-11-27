@@ -1,5 +1,5 @@
 /*
- * Purpose: Define the straight trainer model and grading API.
+ * Purpose: Define the straight key trainer model and grading API.
  * Owns: target/answer buffers, metrics, settings, and trainer phase state.
  * Depends on: host-safe integer types only.
  * Tests: tests/test_straight_trainer.c.

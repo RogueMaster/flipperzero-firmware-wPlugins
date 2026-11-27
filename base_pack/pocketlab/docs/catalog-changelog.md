@@ -1,3 +1,7 @@
+## 1.6
+
+- Refreshed the screenshots and store description.
+
 ## 1.5
 
 - Russian language: the whole app plus all 36 labs and quizzes are translated.

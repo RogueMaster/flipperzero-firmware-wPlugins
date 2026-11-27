@@ -9,6 +9,7 @@
 #include "capability.h"
 #include "config.h"
 #include "../../fsd_logic/fsd_capability.h"  // fsd_capability_eval
+#include "../../fsd_logic/fsd_steer.h"       // fsd_steer_decode (0x129 validity)
 
 // Capability-relevant ids, in a fixed slot order. Kept local so the counting
 // table and the seen-set construction can't drift.
@@ -23,6 +24,7 @@ enum CapId : uint8_t {
     CAP_ID_BODY_DOOR,  // 0x102 VCLEFT_doorStatus
     CAP_ID_BODY_WINDOW,// 0x119 VCSEC_windowRequests
     CAP_ID_BODY_LIGHTS,// 0x3E9 DAS_bodyControls
+    CAP_ID_VCLEFT_SWITCH, // 0x3C2 VCLEFT_switchStatus (Vehicle CAN hint, #218)
     CAP_ID_COUNT,
 };
 
@@ -30,6 +32,7 @@ static const uint32_t kCapCanId[CAP_ID_COUNT] = {
     CAN_ID_EPAS_STATUS, CAN_ID_DAS_STATUS_HW4,  CAN_ID_DAS_STATUS_HW3,
     CAN_ID_AP_CONTROL,  CAN_ID_AP_LEGACY,       CAN_ID_STEER_ANGLE,
     CAN_ID_UI_VEHICLE_CTRL, CAN_ID_VCLEFT_DOOR, CAN_ID_VCSEC_WINDOW, CAN_ID_DAS_BODY,
+    CAN_ID_VCLEFT_SWITCH,
 };
 
 enum CapRunState : uint8_t { CAP_STATE_IDLE = 0, CAP_STATE_RUNNING, CAP_STATE_DONE };
@@ -40,6 +43,7 @@ static portMUX_TYPE*  g_state_mux = nullptr;
 static volatile uint8_t  g_cap_state = CAP_STATE_IDLE;
 static uint32_t          g_cap_deadline_ms = 0;
 static volatile uint16_t g_count[CAN_BUS_COUNT][CAP_ID_COUNT] = {};
+static volatile uint16_t g_steer_valid[CAN_BUS_COUNT] = {};  // 0x129 with a valid angle
 
 void capability_init(FSDState* state, portMUX_TYPE* state_mux) {
     g_state     = state;
@@ -48,8 +52,10 @@ void capability_init(FSDState* state, portMUX_TYPE* state_mux) {
 }
 
 void capability_start(uint32_t now_ms) {
-    for (uint8_t b = 0; b < CAN_BUS_COUNT; b++)
+    for (uint8_t b = 0; b < CAN_BUS_COUNT; b++) {
         for (uint8_t i = 0; i < CAP_ID_COUNT; i++) g_count[b][i] = 0;
+        g_steer_valid[b] = 0;
+    }
     g_cap_deadline_ms = now_ms + CAP_WINDOW_MS;
     g_cap_state = CAP_STATE_RUNNING;
 }
@@ -64,11 +70,19 @@ void capability_record(CanBusId bus, const CanFrame& frame, uint32_t now_ms) {
             break;
         }
     }
+    float deg;
+    if (frame.id == CAN_ID_STEER_ANGLE && fsd_steer_decode(frame.data, frame.dlc, &deg) &&
+        g_steer_valid[bus] < 0xFFFF)
+        g_steer_valid[bus]++;
 }
 
 void capability_tick(uint32_t now_ms) {
     if (g_cap_state == CAP_STATE_RUNNING && now_ms >= g_cap_deadline_ms)
         g_cap_state = CAP_STATE_DONE;
+}
+
+bool capability_running(void) {
+    return g_cap_state == CAP_STATE_RUNNING;
 }
 
 static FSDCapSeen seen_for_bus(uint8_t bus) {
@@ -79,10 +93,12 @@ static FSDCapSeen seen_for_bus(uint8_t bus) {
     s.ap_control = g_count[bus][CAP_ID_AP_CTRL]   >= CAP_MIN_FRAMES;
     s.ap_legacy  = g_count[bus][CAP_ID_AP_LEGACY] >= CAP_MIN_FRAMES;
     s.steer      = g_count[bus][CAP_ID_STEER]     >= CAP_MIN_FRAMES;
+    s.steer_valid = g_steer_valid[bus]            >= CAP_MIN_FRAMES;
     s.body_ui     = g_count[bus][CAP_ID_BODY_UI]     >= CAP_MIN_FRAMES;
     s.body_door   = g_count[bus][CAP_ID_BODY_DOOR]   >= CAP_MIN_FRAMES;
     s.body_window = g_count[bus][CAP_ID_BODY_WINDOW] >= CAP_MIN_FRAMES;
     s.body_lights = g_count[bus][CAP_ID_BODY_LIGHTS] >= CAP_MIN_FRAMES;
+    s.vcleft_switch = g_count[bus][CAP_ID_VCLEFT_SWITCH] >= CAP_MIN_FRAMES;
     return s;
 }
 
@@ -143,15 +159,19 @@ String capability_status_json() {
         j += "\"ap_ctrl\":";   j += seen.ap_control ? "true" : "false"; j += ',';
         j += "\"ap_legacy\":"; j += seen.ap_legacy  ? "true" : "false"; j += ',';
         j += "\"steer\":";     j += seen.steer      ? "true" : "false"; j += ',';
+        j += "\"steer_valid\":"; j += seen.steer_valid ? "true" : "false"; j += ',';
         j += "\"body_ui\":";     j += seen.body_ui     ? "true" : "false"; j += ',';
         j += "\"body_door\":";   j += seen.body_door   ? "true" : "false"; j += ',';
         j += "\"body_window\":"; j += seen.body_window ? "true" : "false"; j += ',';
-        j += "\"body_lights\":"; j += seen.body_lights ? "true" : "false"; j += "},";
+        j += "\"body_lights\":"; j += seen.body_lights ? "true" : "false"; j += ',';
+        j += "\"vcleft_switch\":"; j += seen.vcleft_switch ? "true" : "false"; j += "},";
         j += "\"nag_killer\":";     j += (int)r.nag_killer;     j += ',';
         j += "\"ap_first\":";       j += (int)r.ap_first;       j += ',';
         j += "\"fsd_activation\":"; j += (int)r.fsd_activation; j += ',';
         j += "\"soft_engage\":";    j += (int)r.soft_engage;    j += ',';
         j += "\"body_control\":";   j += (int)r.body_control;   j += ',';
+        j += "\"vehicle_hint\":";   j += (int)r.vehicle_hint;   j += ',';
+        j += "\"bus_hint\":";       j += (int)r.bus_hint;       j += ',';
         j += "\"hw_unconfirmed\":"; j += r.hw_unconfirmed ? "true" : "false"; j += ',';
         j += "\"hint\":\"";         j += hint_str(r.bus_hint);  j += "\"}";
     }

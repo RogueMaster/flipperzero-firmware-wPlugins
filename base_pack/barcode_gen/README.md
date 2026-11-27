@@ -1,85 +1,90 @@
-<p align="center">
-	<h1 align="center">Barcode Generator</h1>  
-  <p align="center">
+<h1 align="center">Barcode + QR Generator</h1>
 
-A barcode generator for the Flipper Zero that supports **UPC-A**, **EAN-8**, **EAN-13**, **Code-39**, **Codabar**, and **Code-128**[1]
-</p>
+A Flipper Zero app for creating, saving, editing, and displaying **UPC-A**, **EAN-8**, **EAN-13**, **Code 39**, **Codabar**, **Code 128**, **Code 128C**, and compact **QR Code** symbols.
 
-Note: Barcode save locations have been moved from `/barcodes` to `/apps_data/barcodes`
+## Version 2.0 highlights
 
-## Table of Contents
-- [Table of Contents](#table-of-contents)
-- [Installing](#installing)
-- [Building](#building)
-- [Usage](#usage)
-  - [Creating a barcode](#creating-a-barcode)
-  - [Editing a barcode](#editing-a-barcode)
-  - [Deleting a barcode](#deleting-a-barcode)
-  - [Viewing a barcode](#viewing-a-barcode)
-- [Screenshots](#screenshots)
-- [Credits](#credits)
-
+- Added compact QR Code generation with a full printable-ASCII keyboard.
+- Fixed restricted keyboards becoming unresponsive when focus landed on a hidden key.
+- Added format-specific keyboards, validation, and helpful input hints.
+- Fixed validation-overlay navigation and a one-byte text-rendering buffer overflow.
+- Preserved the original project attribution and added AzureSky's QR and keyboard revisions.
 
 ## Installing
-1) Download the `.zip` file from the release section
-2) Extract/unzip the `.zip` file onto your computer
-3) Open qFlipper and go to the file manager
-4) Navigate to the `apps` folder
-5) Drag & drop the `.fap` file into the `apps` folder
-6) Navigate back to the root folder of the SD card and create the folder `apps_data`, if not already there
-7) Navigate into `apps_data` and create another folder called `barcode_data`
-8) Navigate into `barcode_data`
-9) Drag & drop the encoding txts (`code39_encodings.txt`, `code128_encodings.txt` & `codabar_encodings.txt`) into the `barcode_data` folder
+
+Install the app package through your firmware's app catalog when available. For manual installation:
+
+1. Copy `barcode_app.fap` to the SD card's `apps/Tools` folder.
+2. Create `apps_data/barcode_data` if it does not already exist.
+3. Copy these files from `barcode_encoding_files` into `apps_data/barcode_data`:
+   - `code39_encodings.txt`
+   - `code128_encodings.txt`
+   - `code128c_encodings.txt`
+   - `codabar_encodings.txt`
+
+Saved barcode and QR entries are stored in `/apps_data/barcodes`.
 
 ## Building
-1) Clone the [flipperzero-firmware](https://github.com/flipperdevices/flipperzero-firmware) repository or a firmware of your choice
-2) Clone this repository and put it in the `applications_user` folder
-3) Build this app by using the command `./fbt fap_barcode_app`
-4) Copy the `.fap` from `build\f7-firmware-D\.extapps\Barcode_app.fap` to `apps\Tools` using the qFlipper app
+
+The simplest build method is [ufbt](https://github.com/flipperdevices/flipperzero-ufbt):
+
+```shell
+ufbt
+```
+
+The built app is written to `dist/barcode_app.fap`.
+
+For a firmware-tree build, place this repository in `applications_user`, then run:
+
+```shell
+./fbt fap_barcode_app
+```
 
 ## Usage
 
-### Creating a barcode
-1) To create a barcode click on `Create Barcode`
-2) Next select your type using the left and right arrows
-3) Enter your filename and then your barcode data
-4) Click save
+### Create
 
-**Note**: For Codabar barcodes, you must manually add the start and stop codes to the barcode data
-Start/Stop codes can be A, B, C, or D
-For example, if you wanted to represent `1234` as a barcode you will need to enter something like `A1234A`. (You can replace the letters A with either A, B, C, or D)
+1. Select `Create Barcode`.
+2. Choose a format with the left and right buttons.
+3. Enter a filename and the barcode or QR data.
+4. Select `Save`.
 
-![Codabar Data Example](screenshots/Codabar%20Data%20Example.png "Codabar Data Example")
+The data keyboard automatically exposes only characters supported by the selected format:
 
-### Editing a barcode
-1) To edit a barcode click on `Edit Barcode`
-2) Next select the barcode file you want to edit
-3) Edit the type, name, or data
-4) Click save
+- **UPC-A:** 11 or 12 digits.
+- **EAN-8:** 7 or 8 digits.
+- **EAN-13:** 12 or 13 digits.
+- **Code 39:** `A-Z`, `0-9`, space, `- . $ / + %`; outer `*` guards are optional.
+- **Code 128 (Set B):** printable ASCII.
+- **Code 128C:** digits; grouping spaces/hyphens are ignored and odd digit counts receive a leading zero.
+- **Codabar:** `0-9`, `- $ : / . +`, with optional `A-D` start/stop guards.
+- **QR Code:** printable ASCII. Version 1 is used for screen readability: up to 41 digits, 25 QR-alphanumeric characters, or 17 general ASCII characters.
 
-### Deleting a barcode
-1) To delete a barcode click on `Edit Barcode`
-2) Next select the barcode file you want to delete
-3) Scroll all the way to the bottom
-4) Click delete
+For UPC-A and EAN formats, the shorter accepted length receives a calculated check digit. Grouping spaces and hyphens are ignored.
 
-### Viewing a barcode
-1) To view a barcode click on `Load Barcode`
-2) Next select the barcode file you want to view
+### Edit or delete
+
+Select `Edit Barcode`, choose a saved entry, then change its format, name, or data. Scroll to the bottom of the form to delete it.
+
+### View
+
+Select `Load Barcode`, then choose a saved entry.
 
 ## Screenshots
+
 ![Barcode Create Screen](screenshots/Creating%20Barcode.png "Barcode Create Screen")
 
 ![Flipper Code-128 Barcode](screenshots/Flipper%20Barcode.png "Flipper Code-128 Barcode")
 
 ![Flipper Box EAN-13 Barcode](screenshots/Flipper%20Box%20Barcode.png "Flipper Box EAN-13 Barcode")
 
+![Flipper QR Code](screenshots/Flipper%20QR%20Code.png "Flipper QR Code")
+
 ## Credits
 
-- [Kingal1337](https://github.com/Kingal1337) - Developer
-- [Z0wl](https://github.com/Z0wl) - Added Code128-C Support
-- [@teeebor](https://github.com/teeebor) - Menu Code Snippet
-- [thevan4](https://github.com/thevan4) - Added custom keyboard
-
-
-[1] - supports Set B (only the characters from 0-94). Also supports Set C
+- [Kingal1337](https://github.com/Kingal1337) - Original developer
+- [AzureSky](https://github.com/AzzureSkyy/flipper-barcode-generator) - QR Code support and keyboard revisions
+- [Z0wl](https://github.com/Z0wl) - Code 128C support
+- [teeebor](https://github.com/teeebor) - Menu code snippet
+- [thevan4](https://github.com/thevan4) - Custom keyboard
+- [Project Nayuki](https://www.nayuki.io/page/qr-code-generator-library) - MIT-licensed QR Code generator library
