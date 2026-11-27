@@ -1,6 +1,6 @@
 ## Main changes
 - Current API: 88.27
-- Apps: Build tag (**25nov2026**) - **Check out more Apps updates and fixes by following** [this link](https://github.com/xMasterX/all-the-plugins/commits/dev)
+- Apps: Build tag (**27nov2026p3**) - **Check out more Apps updates and fixes by following** [this link](https://github.com/xMasterX/all-the-plugins/commits/dev)
 - SubGHz: **New protocol - BelKorn, 118 bits, rolling code with no encryption, 36 bit serial, with custom buttons** - (Korn, BelGate, Furniteh and other rebrands; the frame carries no manufacturer field, so they all read as `BelKorn`)
 - SubGHz: **Add Manually: `BelKorn`**
 - SubGHz: **The read list names the system a multi-system protocol decoded, instead of the protocol - CAME, Nice FloR-S, Faac SLH and KeeLoq**
@@ -23,6 +23,7 @@
 - OFW: fix: resolve PVS-Studio warnings reported on dev
 - OFW: Fix BLE key storage callback lifetime across radio restarts
 - OFW: Fix BadUSB `MOUSESCROLL`/`MOUSEMOVE` reading past end of line without arguments
+- OFW: Storage CLI: stop `storage write` and `read_chunks` when the host closes the session
 - NFC: **Fix third-party NFC apps reading the wrong NTAG/Ultralight pages (Weebo "Wrong password" on every amiibo) - the Ultralight AES fields no longer sit in the middle of `MfUltralightData`**
 - SubGHz: **Fix the read list beep going missing with `Delete old signals` on and memory full**
 - SubGHz: **A signal turned away by a full read list now buzzes with `Delete old signals` on too**
@@ -43,6 +44,7 @@
 - SubGHz: **Fix renaming a saved file with a 64+ character name dropping its `.sub` extension** (by @jeje77131 | PR #1242)
 - Furi: **`realloc()` copies only the old block when growing, and `calloc()` checks for overflow** (by @jeje77131 | PR #1243)
 - SIM800: **Fix SIM800C wake/baud/profile-store timeouts and persist audio settings; add embedded Cyrillic `.fal` viewer for SMS, history, and USSD with UCS2 decoding, cached chunked inbox, multipart SMS read/delete/history, delete confirmation, and incoming SMS alerts**
+- SubGHz: **Fix KeeLoq/KeeloqHR false positives on ~250us 66-bit remotes by tightening sync-gap bounds and validating bit period**
 <br><br>
 
 ----
