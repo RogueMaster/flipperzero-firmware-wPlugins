@@ -1,0 +1,11 @@
+# ufbt build output and editor config
+dist/
+.vscode/
+.ufbt/
+*.o
+
+# PC test binaries
+tests/*.exe
+tests/test_cepas
+.clang-format
+HANDOFF.md
