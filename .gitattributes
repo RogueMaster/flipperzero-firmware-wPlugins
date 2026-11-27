@@ -1,7 +1,36 @@
-* text=auto
-*.c text eol=lf
-*.h text eol=lf
-*.fam text eol=lf
-*.md text eol=lf
-*.sh text eol=lf
-*.png binary
+# Normalizacion de fin de linea: evita el ruido CRLF/LF en los diffs.
+* text=auto eol=lf
+
+# Scripts de Windows: mantener CRLF.
+*.bat  text eol=crlf
+*.cmd  text eol=crlf
+*.ps1  text eol=crlf
+
+# Binarios: no tocar el fin de linea.
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.webp binary
+*.bmp  binary
+*.pdf  binary
+*.zip  binary
+*.gz   binary
+*.tar  binary
+*.7z   binary
+*.bin  binary
+*.stl  binary
+*.fap  binary
+*.bm   binary
+*.pbm  binary
+*.cap  binary
+*.jks  binary
+*.keystore binary
+*.ttf  binary
+*.woff binary
+*.woff2 binary
+*.mp4  binary
+*.mov  binary
+*.xlsx binary
+*.docx binary
