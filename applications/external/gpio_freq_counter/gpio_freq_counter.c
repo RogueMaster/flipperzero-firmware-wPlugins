@@ -124,7 +124,8 @@ static void gpio_freq_counter_draw_callback(Canvas* canvas, void* ctx) {
 static void gpio_freq_counter_input_callback(InputEvent* event, void* ctx) {
     furi_assert(ctx);
     GpioFreqCounter* app = ctx;
-    furi_message_queue_put(app->input_queue, event, FuriWaitForever);
+    // GUI thread: never block here (full queue + exit would deadlock the GUI)
+    furi_message_queue_put(app->input_queue, event, 0);
 }
 
 int32_t gpio_freq_counter_app(void* p) {

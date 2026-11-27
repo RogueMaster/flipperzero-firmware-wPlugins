@@ -46,9 +46,17 @@ void nfc_compare_scene_result_on_enter(void* context) {
 }
 
 bool nfc_compare_scene_result_on_event(void* context, SceneManagerEvent event) {
-    UNUSED(context);
-    UNUSED(event);
-    return false;
+    furi_assert(context);
+    NfcCompareApp* app = context;
+    bool consumed = false;
+
+    if(event.type == SceneManagerEventTypeBack) {
+        // Back returns to the file chooser as the hint says (not into a new RF poll via the Read scene)
+        consumed = scene_manager_search_and_switch_to_previous_scene(
+            app->scene_manager, NfcCompareSceneFileSelect);
+    }
+
+    return consumed;
 }
 
 void nfc_compare_scene_result_on_exit(void* context) {

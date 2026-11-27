@@ -217,6 +217,8 @@ int32_t ir_maker_app(void* p) {
 
     scene_manager_next_scene(app->scene_manager, IrMakerSceneStart);
     view_dispatcher_run(app->view_dispatcher);
+    // run the active scene's on_exit also when closed via loader/RPC
+    scene_manager_stop(app->scene_manager);
 
     ir_maker_free(app);
     return 0;

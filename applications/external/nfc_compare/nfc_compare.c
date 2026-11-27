@@ -84,6 +84,9 @@ int32_t nfc_compare_app(void* p) {
 
     view_dispatcher_run(app->view_dispatcher);
 
+    // run the active scene's on_exit also when closed via loader/RPC
+    scene_manager_stop(app->scene_manager);
+
     nfc_compare_free(app);
     return 0;
 }

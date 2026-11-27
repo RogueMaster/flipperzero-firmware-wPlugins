@@ -27,7 +27,12 @@ void badge_wallet_scene_start_on_enter(void* context) {
         badge_wallet_scene_start_submenu_callback,
         app);
 
-    snprintf(label, sizeof(label), "All Badges (%u)", (unsigned)app->card_count);
+    snprintf(
+        label,
+        sizeof(label),
+        "All Badges (%u%s)",
+        (unsigned)app->card_count,
+        app->list_truncated ? "+" : "");
     submenu_add_item(
         app->submenu,
         label,

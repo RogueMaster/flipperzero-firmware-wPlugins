@@ -6,10 +6,7 @@ App(
     entry_point="weather_station_app",
     stack_size=4 * 1024,
     fap_icon="weather_station_10px.png",
-    fap_category="Sub-GHz",
     fap_icon_assets="images",
-    fap_version="2.1",
-    fap_description="Receive weather data from a wide range of supported Sub-1GHz remote sensor",
     #  1.8: [Solight TE44 recognition (By m7i-org)](https://github.com/Next-Flip/Momentum-Firmware/pull/183)
     #  1.9: [Added Bressner 3CH Protocol (By m7i-org)](https://github.com/Next-Flip/Momentum-Firmware/pull/217)
     #  1.9.1: [Bresser 3CH protocol: added V0 message format (By m7i-org)](https://github.com/Next-Flip/Momentum-Firmware/pull/245)
@@ -18,4 +15,9 @@ App(
     #  1.9.4: [BL999 (By gazirov)](https://github.com/xMasterX/all-the-plugins/commit/1d4135f18f3f3fd4a1ef97ebbdefb8ea9c895680)
     #  1.9.5: [Support for solight TE44 (By fersingb)](https://github.com/flipperdevices/flipperzero-good-faps/pull/285)
     #  2.0.1: [Weather Station: add Auriol HG02832/HG05124A protocol (By kjoxa)](https://github.com/Next-Flip/Momentum-Apps/pull/81)
+    fap_category="Sub-GHz",
+    fap_author="Skorpionm",
+    fap_weburl="https://github.com/flipperdevices/flipperzero-good-faps",
+    fap_version="2.2",
+    fap_description="Receive weather data from a wide range of supported Sub-1GHz remote sensor",
 )

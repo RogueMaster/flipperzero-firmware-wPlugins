@@ -55,7 +55,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Internet Bridge v0.5.1 (By mete888)](https://github.com/mete888/flipper_usb_to_wifi)
 - Added: [ServoMotor v1.0 (By alcdaniel)](https://github.com/alcdaniel/flipper-servo-tester-hw)
 - Added: [UART Logger v1.0 (By 2p4g0)](https://github.com/2p4g0/flipper-uart-logger)
-- Updated: [Weather Station v2.1 (By Skorpionm)-OFW](https://github.com/flipperdevices/flipperzero-good-faps/tree/dev/weather_station) [Add Read RAW to Weather Station v2.1 to decode weather readings from saved captures. (By Lechnio)](https://github.com/flipperdevices/flipperzero-good-faps/pull/314)
 - Sub-GHz: [Update Enhanced Sub-GHz Chat to v1.6 and fix NFC key sharing with the firmware NFC API. (By xMasterX)](https://github.com/xMasterX/all-the-plugins/commit/64182ebf87e21232a98e53c90ffd7a5de2d52c2e)
 - [Sub-GHz Chat reliability fixes & Weather Station RAW fixes (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/75db628d56ee3ab6968a3db3e06ed3d032d52a72)
 - Sub-GHz: [Two more frequencies in the default list - 317.0 and 336.1 MHz (By xMasterX)](https://github.com/xMasterX/all-the-plugins/commit/64182ebf87e21232a98e53c90ffd7a5de2d52c2e)
@@ -91,8 +90,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Barcode App v2.1 (By Kingal1337 & AzureSky)](https://github.com/Kingal1337/flipper-barcode-generator)
 - Added: [TommyBox Capture v1.0 (By mitchsurp)](https://github.com/mitchsurp/Tonies-Capture-Flipper)
 - Removed: Desktop: [Hold Right in the up-menu for brightness, volume and vibro controls (By xMasterX; RM adaptation by RogueMaster)](https://github.com/DarkFlippers/unleashed-firmware/commit/f587620ec563e84219ddf80aca157ee83f3a259a)
-- Updated: [Badge Wallet v1.0 fixes long filenames and unsupported listeners (By lewisQ17)](https://github.com/lewisQ17/Momentum-Firmware)
-- Updated: [IR Remote Maker v1.0 rejects incomplete loads and preserves edited commands (By lewisQ17)](https://github.com/lewisQ17/Momentum-Firmware)
 - Updated: [Tesla Mod v2.17.0b7 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 - Added: [POCSAG TX v0.1 (By renaudgweb)](https://github.com/renaudgweb/Pocsag_TX)
 - Added: [AirRounds v0.2 (By pavelzaitsau)](https://github.com/pavelzaitsau/airrounds) - Passive Wi-Fi diagnostics `Req: ESP32-S2 WiFi DevBoard with AirRounds Firmware`
@@ -105,8 +102,17 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [GS1 Parser v0.3 (By kdiller713)](https://github.com/kdiller713/public-FlipperApps/tree/main/gs1_rfid_parser) `Req: U107 or YRM100`
 - Updated: [NFC Sniffer v0.3 (By kdiller713)](https://github.com/kdiller713/public-FlipperApps/tree/main/nfc_sniffer)
 - Added: [Tile Scanner v0.2 (By kdiller713)](https://github.com/kdiller713/public-FlipperApps/tree/main/tile_scanner) `Req: ESP32`
-- Updated: [GTA VI Companion v2.0 (By RogueMaster)](https://github.com/RogueMaster/GTA_VI_Companion)
 - Updated: [A/C Master v0.3 improves small-font readability and menu spacing (By Enlighten Tech)](https://github.com/gbhobbytech/flipper-ac-multi-remote)
+- Updated: [GTA VI Companion v2.0.1 (By RogueMaster)](https://github.com/RogueMaster/GTA_VI_Companion)
+- Updated: [Badge Wallet v1.0 fixes long filenames and unsupported listeners, marks badge lists above 128 entries, and cleans up the active scene on close (By lewisQ17)](https://github.com/lewisQ17/Momentum-Firmware)
+- Updated: [GPIO Frequency Counter v1.0 keeps the input callback responsive when its queue is full (By lewisQ17)](https://github.com/lewisQ17/Momentum-Firmware)
+- Updated: [IR Remote Maker v1.0 rejects incomplete loads, preserves edited commands, reports save-close errors, and cleans up the active scene on close (By lewisQ17)](https://github.com/lewisQ17/Momentum-Firmware)
+- Updated: [NFC Compare v1.0 returns from results to the file chooser and cleans up the active scene on close (By lewisQ17)](https://github.com/lewisQ17/Momentum-Firmware)
+- Updated: Storage CLI: [Exit write and chunked-read commands when the host closes the session (By oliveiraantoniocc)](https://github.com/flipperdevices/flipperzero-firmware/pull/4529)
+- Updated: [Weather Station v2.2 (By Skorpionm)-OFW](https://github.com/flipperdevices/flipperzero-good-faps) [Read RAW (By Lechnio)](https://github.com/flipperdevices/flipperzero-good-faps/pull/314) [Ignore unknown LaCrosse TX packet types (By shubaly)](https://github.com/flipperdevices/flipperzero-good-faps/pull/315) [RAW decode notifications (By xMasterX)](https://github.com/xMasterX/all-the-plugins/commit/56b08cb8f99c910164d31846f8cbec9e205dbe5c) [RM RAW fixes (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/75db628d56ee3ab6968a3db3e06ed3d032d52a72)
+- Updated: GPIO: [USB-UART Bridge buffers UART bursts with a 2 KB buffer (By oliveiraantoniocc)](https://github.com/flipperdevices/flipperzero-firmware/pull/4528) and [starts the TX thread with a read (By oliveiraantoniocc)](https://github.com/flipperdevices/flipperzero-firmware/pull/4530)
+- Updated: Storage: [Bound CLI/RPC open and MD5 waits on busy files using internal timeout helpers (By oliveiraantoniocc)](https://github.com/flipperdevices/flipperzero-firmware/pull/4526)
+- Updated: Sub-GHz: [Reduce KeeLoq/KeeloqHR false positives with sync-gap bounds and bit-period validation (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/e924f7e45633dc9c1984f13a085ce2dd0183339d)
 
 <a name="release"></a>
 
@@ -722,7 +728,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [GPS v1.5 (By ezod)](https://github.com/ezod/flipperzero-gps) `Req: NMEA 0183`
 - [Gree AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac)
 - [GS1 Parser v0.3 (By kdiller713)](https://github.com/kdiller713/public-FlipperApps/tree/main/gs1_rfid_parser) `Req: U107 or YRM100`
-- [GTA VI Companion v2.0 (By RogueMaster)](https://github.com/RogueMaster/GTA_VI_Companion)
+- [GTA VI Companion v2.0.1 (By RogueMaster)](https://github.com/RogueMaster/GTA_VI_Companion)
 - [Guido Music Score Reader v0.1 (By fgreil)](https://github.com/fgreil/mitzi-guido)
 - [Guitar Chords v1.0 (By KingBoa / NoodleNugget-com)](https://github.com/NoodleNugget-com/flipper-guitar-chords)
 - [H1030L Writer v1.3 (By Zacvr)](https://github.com/Zacvr/h10301_writer)
@@ -1169,7 +1175,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Water Sensor Reader v1.0 (By MatveyStrelov)](https://github.com/MatveyStrelov/flipper-water-sensor)
 - [WAV Player v1.4 (By DrZlo13)](https://github.com/flipperdevices/flipperzero-firmware/tree/zlo/wav-player)
 - [WAV Recorder v0.2 (By scrolltex)](https://github.com/scrolltex/flipper-wav-recorder)
-- [Weather Station v2.1 (By Skorpionm)-OFW](https://github.com/flipperdevices/flipperzero-good-faps/tree/dev/weather_station)
+- [Weather Station v2.2 (By Skorpionm)-OFW](https://github.com/flipperdevices/flipperzero-good-faps)
 - [Web Crawler v1.0.1 (By jblanked)](https://github.com/jblanked/WebCrawler-FlipperZero) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
 - [Weebo v0.5.1 (By bettse)](https://github.com/bettse/weebo) `Req: key_retail.bin on SD card /nfc/assets` (Amiibo Remixer)
 - [Wendigo Bluetooth Tracker WIP v0.5.1 (By chris-bc)](https://github.com/chris-bc/wendigo) `WIP Req: ESP32`

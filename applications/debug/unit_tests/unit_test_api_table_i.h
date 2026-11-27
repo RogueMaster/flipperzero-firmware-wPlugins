@@ -9,6 +9,7 @@
 
 #include <lfrfid/tools/hitags.h>
 #include <rpc/rpc_i.h>
+#include <storage/storage_open_timeout.h>
 #include <flipper.pb.h>
 
 static constexpr auto unit_tests_api_table = sort(create_array_t<sym_entry>(
@@ -28,6 +29,14 @@ static constexpr auto unit_tests_api_table = sort(create_array_t<sym_entry>(
     API_METHOD(texkom_make_blank, bool, (TexkomData*, TexkomType)),
     API_METHOD(hitags_selftest, const char*, ()),
     API_METHOD(rpc_system_storage_get_error, PB_CommandStatus, (FS_Error)),
+    API_METHOD(
+        storage_file_open_timeout,
+        bool,
+        (File*, const char*, FS_AccessMode, FS_OpenMode, uint32_t)),
+    API_METHOD(
+        storage_file_md5_timeout,
+        bool,
+        (File*, const char*, FuriString*, FS_Error*, uint32_t)),
     API_METHOD(xQueueSemaphoreTake, BaseType_t, (QueueHandle_t, TickType_t)),
     API_METHOD(
         xTaskGenericNotify,

@@ -71,6 +71,7 @@ typedef struct {
 
     BadgeCard cards[BADGE_WALLET_MAX_CARDS];
     size_t card_count;
+    bool list_truncated; /**< more than BADGE_WALLET_MAX_CARDS .nfc files exist */
 
     BadgeWalletListMode list_mode;
     size_t selected_index; /**< index into cards[] for the card being acted on */

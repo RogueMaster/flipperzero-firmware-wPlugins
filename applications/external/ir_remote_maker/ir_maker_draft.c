@@ -153,7 +153,10 @@ InfraredErrorCode ir_maker_draft_save(IrMakerDraft* draft, Storage* storage, con
         }
     } while(false);
 
-    flipper_format_file_close(ff);
+    /* Close result is part of the outcome (flush can fail on a full/ejected SD). */
+    if(!flipper_format_file_close(ff) && !INFRARED_ERROR_PRESENT(error)) {
+        error = InfraredErrorCodeFileOperationFailed;
+    }
     flipper_format_free(ff);
     return error;
 }
