@@ -125,7 +125,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [UART Logger v1.0 wraps the save-dialog path before the filename (By 2p4g0)](https://github.com/2p4g0/flipper-uart-logger) [UL integration (By xMasterX)](https://github.com/xMasterX/all-the-plugins/commit/cc4edae5a3d5)
 - Added: [Guess The Number v1.2 (By Prevo128)](https://github.com/xMasterX/all-the-plugins/commit/7ad9eb834bde) - Player and computer guessing modes, saved statistics, and high scores
 - Updated: [ESP32CAM Marauder v0.7.6 (By 0xchocolate & eried)](https://github.com/eried/flipperzero-mayhem) `Req: ESP32-CAM (Mayhem)` - stop the script worker before the final stopscan on console exit and correct Sniff command mappings
-- Updated: [GTA VI Companion v2.0.1 (By RogueMaster)](https://github.com/RogueMaster/GTA_VI_Companion)
+- Updated: [GTA VI Companion v2.0.2 (By RogueMaster)](https://github.com/RogueMaster/GTA_VI_Companion)
 - Added: [CEPAS Reader v1.0 (By smolbun)](https://github.com/smolbun/flipper-cepas)
 - Updated: [TommyBox Capture v1.0 (By mitchsurp)](https://github.com/mitchsurp/Tonies-Capture-Flipper)
 
@@ -366,7 +366,6 @@ This software is for experimental purposes only and is not meant for any illegal
 | [Moon Lander v1.0 (By FToThe3rdPower)](https://github.com/FToThe3rdPower/flipperMoonLander) | `Games` |
 | [Morse Master v1.1 (By w84death)](https://github.com/w84death/morse-master) | `Games` |
 | [Morse Trainer v1.0 (By Baris Mert)](https://github.com/barismert98/flipper-morse-trainer) | `Games` |
-| [MTP WIP v1.0 (By Alex4386)](https://github.com/Alex4386/f0-mtp) | `USB` |
 | [Multi Counter v1.1 (By JadePossible)](https://github.com/JadePossible/Flipper-Multi-Counter) | `Games` |
 | [Mystic Balloon v3.0 (By apfxtech)](https://github.com/apfxtech/FlipperMysticBalloon) | `Games` |
 | [Nah 2 da Nah Nah Nah v0.2 (By DigiMancer3D)](https://github.com/DigiMancer3D/nah2nah3) | `Games` |
@@ -749,7 +748,7 @@ This software is for experimental purposes only and is not meant for any illegal
 | [GPS v1.5 (By ezod)](https://github.com/ezod/flipperzero-gps) `Req: NMEA 0183` | `GPIO/GPS` |
 | [Gree AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac) | `Infrared` |
 | [GS1 Parser v0.3 (By kdiller713)](https://github.com/kdiller713/public-FlipperApps/tree/main/gs1_rfid_parser) `Req: U107 or YRM100` | `GPIO` |
-| [GTA VI Companion v2.0.1 (By RogueMaster)](https://github.com/RogueMaster/GTA_VI_Companion) | `NFC` |
+| [GTA VI Companion v2.0.2 (By RogueMaster)](https://github.com/RogueMaster/GTA_VI_Companion) | `NFC` |
 | [Guido Music Score Reader v0.1 (By fgreil)](https://github.com/fgreil/mitzi-guido) | `Media` |
 | [Guitar Chords v1.0 (By KingBoa / NoodleNugget-com)](https://github.com/NoodleNugget-com/flipper-guitar-chords) | `Media` |
 | [H1030L Writer v1.3 (By Zacvr)](https://github.com/Zacvr/h10301_writer) | `RFID` |
@@ -901,6 +900,7 @@ This software is for experimental purposes only and is not meant for any illegal
 | [MQ-3 Alcometer v1.0 (By serjantlk)](https://github.com/serjantlk/MQ-3-Alcometer) `Req: MQ-3 Breathalyzer` [Sold Here](https://flipperaddons.com/product/mq-3-alkotester) | `GPIO` |
 | [MR60FDA1 Radar v0.1 (By adamaratski)](https://github.com/adamaratski/flipperzero-r60afd1) `Req: MR60FDA1/MR60FDA2` | `GPIO` |
 | [MTools v1.2 (By mtoolstec)](https://github.com/mtoolstec/flipper-mtools) | `NFC` |
+| [MTP WIP v1.0 (By Alex4386)](https://github.com/Alex4386/f0-mtp) | `USB` |
 | [Multi Converter v1.3 (By theisolinearchip)](https://github.com/theisolinearchip) | `Tools` |
 | [Multi Tally v1.0 (By aseypalich1)](https://github.com/aseypalich1/flipper-multi-counter) | `Tools` |
 | [MultiTimer v1.1 (By C0d3-5t3w)](https://github.com/C0d3-5t3w/flipper-multitimer) | `Tools` |
