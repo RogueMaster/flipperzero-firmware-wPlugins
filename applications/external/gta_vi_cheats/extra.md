@@ -1512,3 +1512,190 @@ Discovered Styles	text	Magazine Styles: scan with the phone, switch to Jason/Luc
 New named style leads	text	Pixie Cut (Lucia): Washington Beach, by Y Hotel; tiled hot-tub terrace. WAiNK the magazine, then buy at salon for $62 (Dexerto Nov 26). Verify the new name before checking another style.\nCrowex Ambassador Sprunk: reported gated cabin village in northern Leonida; exact cabin and separate credit unknown.\nWaning Sands Drone Trial bedroom watch: GTA6GPS 918949; model unknown.\nVice City purple house: third-floor Crowex Octane Pluto (reported).\nVice Beach morning: a dog on beach reportedly guides to a watch; model unknown.\nHamlet airport lost-and-found: black ceramic Ark Royal Ashore report; stay in front terminal.\nWaning Sands Ashore: bedroom dresser opposite bed.\nCapri Ambassador: upstairs TV stand. Capri Ashore Chrono: safe between bedrooms; compare Ashore safe naming.\nSunken yacht in Capri: reported safe watch. Compare existing dive sites; exact model unverified.\nThese are search leads, not newly assigned completion slots.\nSave-file key breakdown: The decoded save table lists 34 watch keys: 12 watchblancgiroux, 13 watchcrowex and 9 watchnovak. It also lists 7 female hair, 7 male hair, 8 makeup and 17 tattoo keys (39 magazine keys). The expected 45 magazine styles differ by six; Jason facial-hair slots are not separately named in this table. Do not infer ordinal-to-model assignments or treat this as a complete style-name roster.	0	0
 Additional magazine style routes	text	Jason Lumberjack: Balsero near Kitty Litter Lab 3, trailer couch beside blanket; $90 at barber. Jason Rose Buzz Cut: nearby trailer living-room oval coffee table by gray couch; $85. Lucia Smokey Blue Makeup: Easy Inn motel pool enclosure, Port Gellhorn / North Gellhorn Hills; scan floor magazine. Jason Mutton Chops: existing motel lead 4029; $60. These named leads are not newly allocated checklist IDs. See README for illustrated source links.\nNew reported Lucia makeup: Cat Eyes (Orange Neon & Purple), Ocean Beach, near LTD Gas. A named map pin exists, but room and separate unlock credit remain unconfirmed. Pixie Cut now has a map anchor by Albany Hotel; compare the earlier Y Hotel terrace report. Lumberjack has a Salton RON area pin; compare the Balsero trailer. Smokey Blue map anchor is near Easy Inn Motel. Another unnamed Jason hair marker is near Salton RON; compare Rose Buzz Cut, but the name is not verified. Individual links in README.	0	0
 ```
+
+
+## Hunting and activity reconciliation
+
+- Baseline: GTA_VI_Companion_2.0.2_Style_Rosters_Full_App.zip. No live repository tree obtained; no new progress IDs assigned.
+- GTA VI Explorer publishes 12 target messages and 12 named deck objectives but explicitly says order is inferred. First three correspond to existing named entries; golden fox/rattlesnake/armadillo corroborates the reported Deck 04 species, not its ordinal. Remaining eight complete combinations are new to the dedicated deck guide (some species appeared in regional leads). Title-to-message pairing is semantic. Keep all 15 tracked contracts unchanged; three requirement sets are missing.
+- Large-game pickup instructions are based on reported extracted help text. Cal’s weights are records, not confirmed challenge thresholds. Alternative fishing and meditation descriptions are community search areas, not verified pins.
+- Weapon menu ratings are configuration-sensitive. Existing discrepant ratings were not overwritten (IDs 415, 434, 3707, 435, 3688, 3767); check attachment configuration before reconciliation. D/A/H/R = damage, accuracy, handling, range.
+- No additional NFC or GPS links, firmware changes, compilation or hardware testing.
+- Edited catalog rows (including shared transport and checklist cross-references): wildlife.tsv: 24, bret_target_decks.tsv: 15, meditations.tsv: 11, special_weapons_operations.tsv: 5, special_weapons.tsv: 1, special_weapons_rewards.tsv: 6, race_challenges.tsv: 13, challenge_objectives.tsv: 12. Six new guide pages. Counts are not newly discovered collectibles.
+
+
+## Weapon appearance and wildlife identification reconciliation
+
+Existing IDs and displayed names were retained. The screenshot-derived weapon roster uses alternative 1922 and DW-9 spellings; conflicting older labels are retained as aliases until verified against the inventory. The eight reported unique-animal descriptions are not a verified mapping of all nine Snapmatic targets to the Legendary Hunter counter. No new IDs were allocated because the live authoritative repository could not be retrieved. Meteorite facility numbering and exterior scenery versus collectible credit remain unresolved; watch model roster remains incomplete. No new GPS links or new collectible identities. Source descriptions are reported, not hardware or in-game tested.
+
+Changes: 71 weapon variants, 34 wildlife guide, 6 legendary animals, 6 challenge objectives, 1 guide pages.
+
+- 403 Drug Mule KZ-59: Reported variant appearance: corroded finish.
+- 405 Smuggler Gorse 425: Reported variant appearance: La Polilla Negra markings.
+- 409 Soldier's Combat Knife: Reported variant appearance: old military-pattern blade.
+- 413 Crabshack VF5: Reported variant appearance: blood staining.
+- 419 Conspiracist Type 9: Reported variant appearance: cartoon artwork.
+- 438 Deadringer 1992: Reported variant appearance: silver engraving.
+- 439 Money Bag 1992: Reported variant appearance: engraved finish.
+- 440 Cargo H&L .38: Reported variant appearance: case-hardened finish.
+- 441 Couch Potato Mustang .357: Reported variant appearance: taped repairs.
+- 3646 Cursed Knife: Reported variant appearance: unusual symbols.
+- 3700 Martha's 1992: Reported variant appearance: antique styling.
+- 3702 Swamp Bait Akulus: Reported variant appearance: custom grip.
+- 3703 Double Cross Vatra: Reported variant appearance: heavy rust.
+- 3704 Hellspawn Comshot 12: Reported variant appearance: flesh motif.
+- 3705 Redneck W-22: Reported variant appearance: tire-tread pattern.
+- 3707 Cruel Huntsman's SM-69: Reported variant appearance: woodgrain finish.
+- 3711 Brontasaurus Bat: Reported variant appearance: dinosaur motif.
+- 3712 Explorer's Knife: Reported variant appearance: diving blade.
+- 3713 Tallaloko Knife: Reported variant appearance: decorated handle and occult inscription.
+- 3727 Brainwasher 1922: Reported variant appearance: psychedelic finish.
+- 3728 Gun Nut SMS-01: Reported variant appearance: patriotic wrap.
+- 3750 Candy Suxxx Bat: Reported variant appearance: signature on bat.
+- 3751 Brian's 1922: Reported variant appearance: worn finish.
+- 412 La Polilla Negra VF-G1: Reported variant appearance: gold plating and insignia.
+- 414 Kingfishers W-22: Reported variant appearance: swamp-pattern camouflage.
+- 417 Cockroach Xtreme 556: Reported variant appearance: urban camouflage.
+- 425 Clunker 556: Reported variant appearance: shortened rifle configuration.
+- 426 Scrapper VF5C: Reported variant appearance: rough graffiti.
+- 431 Kingfishers Akulus: Reported variant appearance: swamp camouflage and scope.
+- 432 Chromium W-10: Reported variant appearance: chrome finish.
+- 3623 Marabunta Grande KZ-59: Reported variant appearance: gold M7 engravings.
+- 3624 Kolt & Associates Vatra: Reported variant appearance: graffiti and decals.
+- 3625 Kolt & Associates 556: Reported variant appearance: worn finish.
+- 3626 Marabunta Grande Type 9: Reported variant appearance: gold finish.
+- 3627 Ride Free H&L .38: Reported variant appearance: textured finish.
+- 3628 Final Chapter Shortstraw: Reported variant appearance: ornate engraving.
+- 3629 Final Chapter KVGA-12: Reported variant appearance: Final Chapter markings.
+- 3630 San4San K17: Reported variant appearance: urban camouflage.
+- 3631 San4San Gorse 425: Reported variant appearance: rose-gold finish.
+- 3632 PTT Youngin$ K17: Reported variant appearance: graffiti artwork.
+- 3634 Guardia Brothers FRA: Reported variant appearance: Guardia markings.
+- 3635 Guardia Brothers VF5: Reported variant appearance: pink camouflage.
+- 3636 Hostile Super400: Reported variant appearance: graffiti wrap.
+- 3638 GRX 556: Reported variant appearance: camouflage finish.
+- 3747 Marabunta Grande Hobo: Reported variant appearance: fine engraving.
+- 3674 Iron & Oak WCR-1: Reported variant appearance: custom grip.
+- 3677 Moneymaker W-10: Reported variant appearance: gold barrel and pinstripes.
+- 3678 Mossy Mediator: Reported variant appearance: forest camouflage.
+- 3679 Fincredible Laird 350: Reported variant appearance: fish-scale pattern.
+- 3681 The Silver 1992: Reported variant appearance: silver grip.
+- 3684 Backdoor Hobo: Reported variant appearance: electrical tape repairs.
+- 3685 Spangled Vatra: Reported variant appearance: US flag wrap.
+- 3686 Woodhatch Longshot: Reported variant appearance: blue accents.
+- 3687 Star Spangled 556: Reported variant appearance: flag pattern.
+- 3689 Dazzler DQ-9: Reported variant appearance: camouflage finish.
+- 3690 Honky Tonk Mustang .357: Reported variant appearance: patriotic decoration.
+- 3691 Firebreak SM-69: Reported variant appearance: burnt-orange camouflage.
+- 3692 Rogue Alpha DRX: Reported variant appearance: optic-equipped configuration.
+- 3693 Nitepower AZ1200: Reported variant appearance: Black Eagle logos.
+- 3694 Vice City Heathen: Reported variant appearance: Vice City wrap.
+- 3695 Bruiser Super400: Reported variant appearance: wooden furniture.
+- 3696 Basher Gorse 425: Reported variant appearance: worn finish.
+- 3697 Nightmare KZ-59: Reported variant appearance: zombie-themed artwork.
+- 3698 Jack Sheepe H&L .38: Reported variant appearance: Jack Sheepe branding.
+- 3699 Duval Signature ES9: Reported variant appearance: Jason engraving on grip.
+- 3730 Monty's 1992: Reported variant appearance: gold engraving.
+- 3731 Caminos Signature K17: Reported variant appearance: Lucia name marking.
+- 3748 Shack Attack W-14: Reported variant appearance: tropical colors.
+- 3759 Furry DW-9: Reported variant appearance: furry artwork.
+- 3767 Mister Mangrove Laird 350: Reported variant appearance: swamp camouflage.
+- 3768 Francisco's LMG 6: Reported variant appearance: optic-equipped configuration.
+- Blotched Tabby: Broad swirled coat markings rather than narrow stripes.
+- Cream Longhair: Pale cream fur; distinguish from brown and orange longhairs.
+- Ginger Longhair: Orange long coat; contrast with the short-coated tabbies.
+- American Pit Bull Terrier: Stocky body and broad, tapering head.
+- Catahoula Cur: Muscular body and angular head.
+- Doberman Pinscher: Dark coat with tan markings; slimmer than a Rottweiler.
+- French Bulldog: Large upright ears distinguish it from other flat-faced dogs.
+- German Shepherd: Dense coat and elongated neck profile.
+- Rottweiler: Black-and-tan coloring and broad build.
+- Alpine Goat: Beard and horns.
+- American Yorkshire Pig: Pink, rounded body.
+- Chimpanzee: Research facilities are also a reported habitat; exact encounter unverified.
+- Gulf Coast Sheep: Bare face and lower legs contrast with woolly body.
+- Humpback Whale: Long flippers and knobby head.
+- Orca: Distinct black-and-white body pattern.
+- Rhesus Macaque: Pink face.
+- Atlantic Goliath Grouper: Large mottled-brown body.
+- Atlantic Sailfish: Tall dorsal sail and elongated bill.
+- Atlantic Stingray: Smaller profile than the larger regional rays.
+- Blue Land Crab: Blue shell.
+- Bull Shark: Stout body.
+- Giant Oceanic Manta Ray: Broad winglike fins.
+- Koi: Bright mottled coloring.
+- Leonida Stone Crab: Gray-brown shell.
+- Moon Jellyfish: Translucent bell with short tentacles.
+- North Atlantic Swordfish: Long swordlike bill.
+- Nurse Shark: Barbels near the mouth.
+- Spotted Eagle Ray: Long tail behind the spotted body.
+- Tiger Shark: Striped body.
+- Yellowtail Damselfish: Blue body and yellow tail.
+- Gopher Tortoise: May retract into shell.
+- Green Sea Turtle: Large hard-shelled turtle.
+- Green Tree Frog: Prominent eyes and slender limbs.
+- Southern Toad: May shelter in soft soil during daylight.
+- 3716 Snapmatic Buck: Large antlers; reported aggressive behavior.
+- 3717 Snapmatic Crocodile: Dark coloration; unusual protruding fangs.
+- 3719 Snapmatic Wild Boar: Damaged tusks distinguish this animal from ordinary boars.
+- 3720 Snapmatic Swamp Alligator: Scarring is another reported identifying feature.
+- 3722 Snapmatic Coyote: Orange-gold coloration.
+- 3724 Snapmatic Panther: Reported purple-toned coat.
+- 3023 Exploration: Encyclopedia: Use the study/identify prompt; boats and aircraft can also contribute to vehicle discoveries. Check progress after each new identity.
+- 3040 Shopping: Vehicle Modder: Inexpensive cosmetic changes are reported to count; check the challenge counter after purchase.
+- 3044 Shopping: Stylishly Armed: Reported eligible changes include cosmetic weapon customization; verify progress on both weapon classes.
+- 3061 Survival: Big Fish: Try offshore fishing with the medium saltwater lure; let the fish tire before reeling in.
+- 3063 Survival: Catch of the Day: A challenge guide reports three catches each with small freshwater, small saltwater and medium saltwater lures. Other lure sizes exist; check the active challenge counter for the required set.
+- 3069 Survival: Legendary Hunter: Eight named Unique animal descriptions are reported: Swamp Alligator, Black Bear, Wild Boar, Coyote, Crocodile, Buck, White Fox and Panther. Golf Course Alligator, Karkinos and Gang Panther remain separate tracked encounters; their credit toward this specific challenge is unverified.
+
+## 2026-11-27 — Vehicle, mural and card reconciliation
+
+- 30 existing catalog rows updated; two new read-only guide sections. No new progress IDs or GPS references. The 100-update target was not reached.
+- AHOL: the complete 112-item numbered roster is already present. FindLeonida lists 125 markers including unnamed/generic markers; do not promote them to independent collection identities.
+- GTABase meteorite search index showed 121 markers while the opened page reported 117 and exposed only the JavaScript map/comment section. Neither total is a confirmed unique collectible count.
+- The latest public watch guide still leaves identities unresolved; Bret guide still does not establish all numbered requirements. Do not assign new IDs without the full live source.
+- Git remote lookup for branch 420 failed because DNS resolution for github.com was unavailable; uploaded cumulative archive is the baseline.
+- Gold Leroy Rook: one roundup reports $8,500 as an individual price, but the GTA6Heists evidence is a total pawn-shop offer, not a standalone sale. Preserve uncertainty.
+- The Palm Underworld article describes the 200 discovered-vehicle target while Alcast distinguishes base-model and Standout counters. Do not treat 200 Standouts as mandatory.
+- No physical game verification, firmware build, or hardware testing.
+
+### Changed catalog records
+
+- `128` Airgator Dr Sheehan's Airboat: Nearby Pelican Valley jet skis can be visited in the same trip; each requires separate identification. ([source](https://www.gtavl.com/news/gta-6-standout-bikes-boats-aircraft/))
+- `169` Del Perro Midsummer Erode: The Bonanza Giant can also be scanned for the separate WAiNK landmark objective. ([source](https://www.gtavl.com/news/gta-6-standout-bikes-boats-aircraft/))
+- `182` Lapwing Stolen Valor 300-H: Reported unlocked at the hangar; the airport is also indexed as Watson Bay Airport. ([source](https://www.gtavl.com/news/gta-6-standout-bikes-boats-aircraft/))
+- `183` LCC Midnight Sun Avarus: Reported resale $2,475; registration $7,000. ([source](https://www.gtavl.com/news/gta-6-standout-bikes-boats-aircraft/))
+- `184` LCC Monarch Avarus: Reported resale $5,390; registration $2,100. ([source](https://www.gtavl.com/news/gta-6-standout-bikes-boats-aircraft/))
+- `186` Maibatsu MyWays Manchez: Reported resale $935; registration $2,700. ([source](https://www.gtavl.com/news/gta-6-standout-bikes-boats-aircraft/))
+- `190` Maibatsu Tropical Manchez: Reported resale $2,090; registration $800. Southeast loading door is locked from outside. ([source](https://www.gtavl.com/news/gta-6-standout-bikes-boats-aircraft/))
+- `192` Nagasaki Hung Carbon RS: Hung Carbos RS is an alternate published spelling; check the scan name. ([source](https://www.gtavl.com/news/gta-6-standout-bikes-boats-aircraft/))
+- `193` Nagasaki Rudolph Tao: Holiday House and the boat share a Christmas decoration theme. ([source](https://www.gtavl.com/news/gta-6-standout-bikes-boats-aircraft/))
+- `228` Western Magma Cliffhanger: Reported resale $2,805; registration $9,400. ([source](https://www.gtavl.com/news/gta-6-standout-bikes-boats-aircraft/))
+- `229` Western Searing Zombie Bobber: Reported resale $9,625; registration $3,750. ([source](https://www.gtavl.com/news/gta-6-standout-bikes-boats-aircraft/))
+- `5222` Benefactor Lagoon Schafter: Reported four seats; container is locked. ([source](https://game-checklists.com/gta6/standout-vehicles-checklist/))
+- `5223` Ubermacht Burning Cypher: Modern security reported; bring the key cloner if the scan requires it. ([source](https://game-checklists.com/gta6/standout-vehicles-checklist/))
+- `5224` Grotti Status RSX: Reported key-cloner access; check recovery trucks and vehicle carriers around the circuit. ([source](https://game-checklists.com/gta6/standout-vehicles-checklist/))
+- `5227` Bravado Bullion Gauntlet: Reported two-seat 1969 Gauntlet Custom with updated components. ([source](https://game-checklists.com/gta6/standout-vehicles-checklist/))
+- `5228` Dundreary Beast Chino: Reported privacy and protective modifications distinguish this Chino. ([source](https://game-checklists.com/gta6/standout-vehicles-checklist/))
+- `5230` Western Obsidian Sovereign: Search the upper SCOOP container above blue containers; use a tall vehicle as a climbing platform. ([source](https://game-checklists.com/gta6/standout-vehicles-checklist/))
+- `5234` Bravado Interdimensional Youga: Reported two-seat 1974 Youga with psychedelic artwork. ([source](https://game-checklists.com/gta6/standout-vehicles-checklist/))
+- `5235` Buckingham Lacewing Maverick: Reported four-seat Maverick. ([source](https://game-checklists.com/gta6/standout-vehicles-checklist/))
+- `5238` Nagasaki Chrome Street Blazer: Reported chrome finish; look for a roadside cargo container. ([source](https://game-checklists.com/gta6/standout-vehicles-checklist/))
+- `1392` Loophole Architecture: Use the apartment lobby elevator to reach the roof; aim the phone camera downward at the rainbow roof across the street. ([source](https://www.gtavl.com/news/gta-6-1010-murals/))
+- `1393` Extraction Service: Take the lobby elevator to the roof and use the marked corner; use the camera, not a WAiNK scan. ([source](https://www.gtavl.com/news/gta-6-1010-murals/))
+- `1394` You Signed the Terms & Conditions: Wait until the matching painted train is stopped at the station before photographing. ([source](https://www.gtavl.com/news/gta-6-1010-murals/))
+- `1395` Compliance Theater: Take the elevator to the roof, then climb the radio tower to the sign. ([source](https://www.gtavl.com/news/gta-6-1010-murals/))
+- `1396` Privatized Pains Socialized Gains: Use the mark beside the small parking lot; aim at the southeast corner of the public garage. ([source](https://www.gtavl.com/news/gta-6-1010-murals/))
+- `2315` Grotti 1010 Cheetah: The reward garage is east of the airport beside Slator Towing. All five camera photos, not WAiNK scans, must register; free garage access is also reported. ([source](https://www.gtavl.com/news/gta-6-1010-murals/))
+- `555` Leroy Rook (Gold): Night approach reported: back entrance, then low closet safe in the bedroom by the front door. Reported safe cash $178, separate from the card. Pawn Stash displayed $8,500 total collectible value, not an isolated card sale; treat $8,500 as a provisional upper bound. ([source](https://www.gta6heists.com/money/collectible-cards))
+- `570` Leroy Rook (Silver): A filmed Hamlet Pawn sale corroborates the $6,000 Silver variant price. ([source](https://www.gta6heists.com/money/collectible-cards))
+- `793` Victor Maravilla: An inventory screenshot corroborates the $20 Standard card value. ([source](https://www.gta6heists.com/money/collectible-cards))
+- `1006` Thelma: A pawn-shop map screenshot reports $20 after this pickup; the illustrated tower approach uses stairs and two ladders. ([source](https://www.gta6heists.com/money/collectible-cards))
+
+## 2026-11-27 — Tattoo, watch and restoration reconciliation
+- Baseline: cumulative 2.0.2 Vehicle, Mural and Card full app. No new progress IDs; complete live repository unavailable because GitHub DNS resolution failed. No NFC or GPS catalog changes.
+- Dexerto illustrated tattoo pages published Nov 26 establish character/placement/price for nine previously under-described tracked designs. High Priestess route corroborates prior Push Square price; shared Humanatee/Seductive Mermaid prop is a common pickup, not independent magazine evidence. One Life One Love remains a guide-only design with paired magazine; no assignment to Wandering Cowboy/Cowgirl.
+- Location conflicts retained: Beached Cargo Featherstone/Meerwunder versus Port Gellhorn; Freedom Raft Permit Keys versus Watson Bay/Southwind; Tee’d Off Dino Kelly patio versus Ambrosia/Frogswater. No existing map or progress entry relocated.
+- Man of Many and DigitalNexus contain overlapping watch reports; not independent corroboration. Forest Fern cottage/Sprunk may match Tallaloko house or Ambrosia Ambassador; do not allocate distinct credit. Salton Domestobot Submerge report has no verified Ratface finish. GTABase map count is not equivalent to the reported 34 unique watch styles.
+- Game Secret’s Wyman guide reports no final Deviant labor fee; prior guide records $1,000. Retain baseline estimate and warn player to verify payment prompt. Conflicting Mamba and Kit Car region descriptions were not used to relocate verified wrecks.
+- Research did not resolve the remaining Bret deck numbers, complete 34-watch roster, or duplicate meteorite/flamingo identities. Additional IDs withheld; no collection declared complete. Firmware and gameplay testing not performed.

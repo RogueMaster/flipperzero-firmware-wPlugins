@@ -5,6 +5,11 @@
 - Expanded all seven Book Swap shelf landmarks and controls; documented two alternate Chapter 3 publication pickups during Climbing the Cellerichain. Existing progress IDs and NFC links remain unchanged.
 - Added full reported Jason and Lucia magazine-style rosters to the Quick Guide; promoted Mutton Chops into the tracked collection using its existing progress ID, corrected a hairstyle label, and expanded tattoo discovery directions.
 - Expanded fishing lure availability and Cal’s catch requirements; split an oversized hunting guide page to fit the display buffer.
+- Expanded Bret’s hunting requirements to 12 reported species sets, clarified carcass collection, and added fishing identification, fitness and recovery guidance.
+- Refined meditation approaches, weapon ratings, race challenge scoring and challenge objectives.
+- Expanded distinctive weapon finishes and alternate inventory names, additional wildlife identification, legendary-hunt eligibility guidance and challenge completion tips.
+- Added vehicle resale and registration details, container access clues, complete 1010 mural camera instructions and collectible-card sale guidance.
+- Expanded tattoo magazine pickup instructions, character and body placement, salon prices, watch identification and uncertain watch locations; clarified the disputed final Wyman restoration fee.
 
 ## v2.0.1 — Collections and Gameplay Guides
 - Expanded collectible pickup and access details for all 18 card sets, flamingos, meteorites, AHOL artwork, wildlife, styles, watches and search leads; added card identification and resale information while retaining existing identities and progress IDs.

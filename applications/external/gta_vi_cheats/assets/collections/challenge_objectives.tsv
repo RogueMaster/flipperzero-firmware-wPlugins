@@ -18,10 +18,10 @@
 3017	Criminal: Cop Tow	Progress > Challenges > Criminal	Tow a police vehicle with someone inside for one uninterrupted mile.
 3018	Criminal: Carjacking Spree	Progress > Challenges > Criminal	Register or respray stolen vehicles from ten different manufacturers at Pay n Spray within 30 minutes; avoid death or arrest.
 3019	Criminal: Carjacking Pro	Progress > Challenges > Criminal	Earn $100,000 from vehicle fencing or Pay n Spray sales in one day; avoid death or arrest.
-3020	Exploration: WAiNK Locations	Progress > Challenges > Exploration	Use WAiNK on four distinct landmarks, curiosities or sculptures.
+3020	Exploration: WAiNK Locations	Progress > Challenges > Exploration	Use WAiNK on four distinct landmarks, curiosities or sculptures.\nUse the scan prompt; a convenient starting point is Wonder Whale or the Fatal Incursion plaque.
 3021	Exploration: Skyscrapers	Progress > Challenges > Exploration	Reach the top of each of Vice-Dale County's five highest towers.
-3022	Exploration: Collectible Cards	Progress > Challenges > Exploration	Find three collectible cards in every county.
-3023	Exploration: Encyclopedia	Progress > Challenges > Exploration	Discover 100 animals, vehicles and weapons in total.
+3022	Exploration: Collectible Cards	Progress > Challenges > Exploration	Find three collectible cards in every county.\n15 total across five counties; do not concentrate all pickups in one county.
+3023	Exploration: Encyclopedia	Progress > Challenges > Exploration	Discover 100 animals, vehicles and weapons in total.\nUse the study/identify prompt; boats and aircraft can also contribute to vehicle discoveries. Check progress after each new identity.
 3024	Exploration: Underwater Discoveries	Progress > Challenges > Exploration	Find and explore 25 distinct underwater discovery sites; the game lists 33 in total.
 3025	Exploration: Rail Tour	Progress > Challenges > Exploration	Ride a train for one mile in all five counties within a single day; do not skip.
 3026	Exploration: Underwater Treasures	Progress > Challenges > Exploration	Recover 85 underwater treasures.
@@ -38,37 +38,37 @@
 3037	Fitness: Waning Sands Run	Progress > Challenges > Fitness	Run from the Tip pier gate to Waning Sands in less than 13 minutes without taking damage.
 3038	Fitness: Tequesta Swim	Progress > Challenges > Fitness	Swim from Tequesta Retreat to Starfish Island in under 15 minutes.
 3039	Fitness: Southwind Cycle	Progress > Challenges > Fitness	Cycle from Williams Guest House in Grayson to Chicky's Tiki Bar, Southwind, in under 22 minutes without falling.
-3040	Shopping: Vehicle Modder	Progress > Challenges > Shopping	Buy five modifications for a vehicle at a mod shop.
+3040	Shopping: Vehicle Modder	Progress > Challenges > Shopping	Buy five modifications for a vehicle at a mod shop.\nInexpensive cosmetic changes are reported to count; check the challenge counter after purchase.
 3041	Shopping: Grocery Shopper	Progress > Challenges > Shopping	Spend more than $250 at food or liquor stores in one day.
 3042	Shopping: Well Armed	Progress > Challenges > Shopping	Buy three handguns and three long guns from Ammu-Nation.
 3043	Shopping: Well Groomed	Progress > Challenges > Shopping	Spend more than $1,000 at barbers or beauty salons.
-3044	Shopping: Stylishly Armed	Progress > Challenges > Shopping	Customize five handguns and five long guns at Ammu-Nation.
+3044	Shopping: Stylishly Armed	Progress > Challenges > Shopping	Customize five handguns and five long guns at Ammu-Nation.\nReported eligible changes include cosmetic weapon customization; verify progress on both weapon classes.
 3045	Shopping: Well Dressed	Progress > Challenges > Shopping	Spend more than $5,000 on clothes.
 3046	Shopping: Custom Ride	Progress > Challenges > Shopping	Spend over $20,000 during one vehicle-customization visit.
-3047	Shopping: Heavily Armed	Progress > Challenges > Shopping	Spend over $50,000 at Ammu-Nation.
-3048	Shopping: Serious Modder	Progress > Challenges > Shopping	Spend more than $125,000 at vehicle-modification shops.
-3049	Shopping: Nest Egg	Progress > Challenges > Shopping	Hold $1,500,000 in a BuckMe checking account.
-3050	Sports: Basketball Rookie	Progress > Challenges > Sports	Score at three different hoops in a single day.
+3047	Shopping: Heavily Armed	Progress > Challenges > Shopping	Spend over $50,000 at Ammu-Nation.\nReported cumulative spend across Ammu-Nation stores.
+3048	Shopping: Serious Modder	Progress > Challenges > Shopping	Spend more than $125,000 at vehicle-modification shops.\nReported cumulative spend across mod shops; a qualifying Custom Ride visit also contributes.
+3049	Shopping: Nest Egg	Progress > Challenges > Shopping	Hold $1,500,000 in a BuckMe checking account.\nDeposit into checking; carried cash does not meet the balance requirement.
+3050	Sports: Basketball Rookie	Progress > Challenges > Sports	Score at three different hoops in a single day.\nThe same numbered hoops can be used for the county and all-hoops objectives.
 3051	Sports: Golf Rookie	Progress > Challenges > Sports	Finish 18 holes at King Gator or Frontier Adventure Golf in under 30 minutes, at three under par or better.
 3052	Sports: Basketball Streak	Progress > Challenges > Sports	Sink ten basketball shots in a row within two minutes.
-3053	Sports: Pool Streak	Progress > Challenges > Sports	Win pool at three venues in one day, without losing or quitting.
-3054	Sports: Basketball Tour	Progress > Challenges > Sports	Score at least once in each county.
+3053	Sports: Pool Streak	Progress > Challenges > Sports	Win pool at three venues in one day, without losing or quitting.\nUse three distinct pool venues, not three games at one table.
+3054	Sports: Basketball Tour	Progress > Challenges > Sports	Score at least once in each county.\nHoops used for Rookie and Pro may overlap.
 3055	Sports: Golf Pro	Progress > Challenges > Sports	Finish 18 holes at BOTH King Gator and Frontier Adventure Golf in one in-game day, scoring par or better at each.
-3056	Sports: Triple Bank	Progress > Challenges > Sports	Pot a ball after banking the cue ball off three rails.
-3057	Sports: Basketball Pro	Progress > Challenges > Sports	Score a basket at all 100 numbered hoops.
+3056	Sports: Triple Bank	Progress > Challenges > Sports	Pot a ball after banking the cue ball off three rails.\nReportedly any pool table can count.
+3057	Sports: Basketball Pro	Progress > Challenges > Sports	Score a basket at all 100 numbered hoops.\nRookie and Tour hoops may also contribute.
 3058	Sports: 8-Ball Break	Progress > Challenges > Sports	Win a pool match by potting the eight ball on the break.
 3059	Sports: Double Hole In One	Progress > Challenges > Sports	Make two consecutive holes in one in the same round at King Gator or Frontier Adventure Golf.
 3060	Survival: Alligator Kills	Progress > Challenges > Survival	Hunt three wild alligators.
-3061	Survival: Big Fish	Progress > Challenges > Survival	Catch a fish weighing at least 20 pounds.
+3061	Survival: Big Fish	Progress > Challenges > Survival	Catch a fish weighing at least 20 pounds.\nTry offshore fishing with the medium saltwater lure; let the fish tire before reeling in.
 3062	Survival: Marksman	Progress > Challenges > Survival	Earn a shooting-range medal at both ranges in one day.\nReported prerequisite: purchase the $5 Waiver Pass from the clerk at each range to expose events (gta.guide).
-3063	Survival: Catch of the Day	Progress > Challenges > Survival	Catch three fish with each lure type in one day.
+3063	Survival: Catch of the Day	Progress > Challenges > Survival	Catch three fish with each lure type in one day.\nA challenge guide reports three catches each with small freshwater, small saltwater and medium saltwater lures. Other lure sizes exist; check the active challenge counter for the required set.
 3064	Survival: Zoologist	Progress > Challenges > Survival	Study twenty different animal species using binoculars.
 3065	Survival: Angler	Progress > Challenges > Survival	Catch four fish species in under six minutes.
 3066	Survival: Pro Marksman	Progress > Challenges > Survival	Earn Gold in the Master class of three different shooting-range events consecutively. Do not fail or quit between events; lower shooting-range difficulties do not fulfill this challenge.\nA $5 range waiver is reported to unlock events at each range; check Master difficulty availability first.
 3067	Survival: Hunting Spree	Progress > Challenges > Survival	Hunt a boar, rattlesnake and panther in 15 minutes without taking damage.
 3068	Survival: Pro Angler	Progress > Challenges > Survival	Catch a specimen of each fish species.
-3069	Survival: Legendary Hunter	Progress > Challenges > Survival	Hunt eight unique animals for this challenge. Nine Snapmatic hunts and two other rare creatures are listed under Activities / Robberies > Legendary Animals; not all necessarily count toward this objective. Check the in-game counter. Fair Game is reported for a first legendary hunt.
-3070	Vehicle: Vehicle Discovery	Progress > Challenges > Vehicle	Discover six distinct vehicles; WAiNK scans count.
+3069	Survival: Legendary Hunter	Progress > Challenges > Survival	Hunt eight unique animals for this challenge. Nine Snapmatic hunts and two other rare creatures are listed under Activities / Robberies > Legendary Animals; not all necessarily count toward this objective. Check the in-game counter. Fair Game is reported for a first legendary hunt.\nEight named Unique animal descriptions are reported: Swamp Alligator, Black Bear, Wild Boar, Coyote, Crocodile, Buck, White Fox and Panther. Golf Course Alligator, Karkinos and Gang Panther remain separate tracked encounters; their credit toward this specific challenge is unverified.
+3070	Vehicle: Vehicle Discovery	Progress > Challenges > Vehicle	Discover six distinct vehicles; WAiNK scans count.\nReportedly includes boats and aircraft; scan distinct discoveries.
 3071	Vehicle: Wheelie	Progress > Challenges > Vehicle	Ride a wheelie for one-quarter mile.
 3072	Vehicle: Winning Streak	Progress > Challenges > Vehicle	Win one race each in a muscle car, sports car and supercar.
 3073	Vehicle: Throttled	Progress > Challenges > Vehicle	Keep a road vehicle above 100 mph for two minutes.
@@ -76,5 +76,5 @@
 3075	Vehicle: Top Speed	Progress > Challenges > Vehicle	Reach 175 mph in a car, truck or motorcycle.
 3076	Vehicle: Train Landing	Progress > Challenges > Vehicle	Land a plane on a moving train without destroying the plane.\nOptional for the 70-challenge target; no need to complete it unless pursuing all vehicle cheat unlocks.
 3077	Vehicle: Oceanarium Jump	Progress > Challenges > Vehicle	Jump from an aircraft at least half a mile up, parachute into the Vice City Oceanarium dolphin or orca tank, and survive.
-3078	Vehicle: Rally Winner	Progress > Challenges > Vehicle	Win three straight races in one in-game day at Thrillbilly Mud Club, Gellhorn International Raceway and Boone Speedway; no quitting or restarting.
+3078	Vehicle: Rally Winner	Progress > Challenges > Vehicle	Win three straight races in one in-game day at Thrillbilly Mud Club, Gellhorn International Raceway and Boone Speedway; no quitting or restarting.\nUnlock and visit all three venues before attempting the streak.
 3079	Vehicle: Train Jump	Progress > Challenges > Vehicle	Jump a motorcycle at least 75 feet onto a moving train twice within 20 minutes.\nOptional for the 70-challenge target; skipping it prevents the final Vehicle category cheat.

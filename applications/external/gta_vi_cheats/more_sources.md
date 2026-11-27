@@ -850,3 +850,42 @@ Additional third-party guides, maps and walkthroughs referenced by the app. Thes
 - [Vice Keys — Grayson ghost cat and Zombie Deer](https://getvicekeys.com/guides/gta-6-grayson-ghost-cat-benson-rentals-zombie-deer)
 - [GTA6.house — Grayson tattoo lead](https://gta6.house/guides/gta-6-grayson-ghost-cat-zombie-deer-tattoo)
 - [GTA6 Player Tools — fishing](https://gta6playertools.com/collectibles/fish)
+
+## Hunting, fishing and activity references
+- [GTA VI Explorer — Bret target-deck texts and transport](https://six.mics.dev/extras/killtelligence)
+- [GTA VI Explorer — fish field guide and Cal’s catches](https://six.mics.dev/extras/fishing)
+- [GrandSix — fishing locations](https://grandsix.gg/guides/fishing-all-35-fish/)
+- [Leonida Guide — meditation](https://leonidaguide.gg/en/guides/gta-6-punti-meditazione/)
+- [GAMES.GG — weapon menu ratings](https://games.gg/grand-theft-auto-vi/guides/gta-6-weapon-stats-explained/)
+- [GTA VI Explorer — race and time trial descriptions](https://six.mics.dev/extras/races)
+- [Game Checklists — challenge objectives](https://game-checklists.com/gta6/challenges-checklist/)
+- [GTA VI Explorer — fitness](https://six.mics.dev/extras/fitness)
+
+## Weapon, wildlife and challenge comparisons
+- https://allthings.how/gta-6-how-many-weapons-guns-melee-explosives-variants/
+- https://allthings.how/gta-6-animals-list/
+- https://alcasthq.com/gta-6-weapons-list/
+- https://leonidaguide.gg/en/guides/gta-6-animali-leggendari/
+- https://game-checklists.com/gta6/meteorites-checklist/
+
+## Additional collection and activity guides
+- [Standout bikes, boats and aircraft](https://www.gtavl.com/news/gta-6-standout-bikes-boats-aircraft/)
+- [1010 mural photo walkthrough](https://www.gtavl.com/news/gta-6-1010-murals/)
+- [Collectible card locations and price evidence](https://www.gta6heists.com/money/collectible-cards)
+- [AHOL map directory (includes unnamed markers)](https://findleonida.com/en/collectibles/ahol-street-art/)
+
+## Tattoo awards, watch designs and restoration comparisons
+- https://www.dexerto.com/wikis/gta-6/tattoos/beached-cargo/
+- https://www.dexerto.com/wikis/gta-6/tattoos/circles-of-hell-skull/
+- https://www.dexerto.com/wikis/gta-6/tattoos/glide-or-die-hovercraft/
+- https://www.dexerto.com/wikis/gta-6/tattoos/graffiti-point/
+- https://www.dexerto.com/wikis/gta-6/tattoos/home-street-home/
+- https://www.dexerto.com/wikis/gta-6/tattoos/humanatee/
+- https://www.dexerto.com/wikis/gta-6/tattoos/one-life-one-love/
+- https://www.dexerto.com/wikis/gta-6/tattoos/teed-off-dino/
+- https://www.dexerto.com/wikis/gta-6/tattoos/the-bridge-to-enlightenment/
+- https://www.dexerto.com/wikis/gta-6/tattoos/the-freedom-raft/
+- https://www.dexerto.com/wikis/gta-6/tattoos/the-high-priestess-tarot/
+- https://www.dexerto.com/wikis/gta-6/tattoos/tag/unlock-magazine-tattoo/
+- https://digitalnexus.pl/en/gta-6/luxury-watch-locations/
+- https://game-secret.com/guides/grand-theft-auto-vi/all-wyman-car-locations-in-gta-6-find-cars-for-wym/
