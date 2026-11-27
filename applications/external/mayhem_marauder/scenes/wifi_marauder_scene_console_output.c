@@ -227,9 +227,14 @@ bool wifi_marauder_scene_console_output_on_event(void* context, SceneManagerEven
 
 void wifi_marauder_scene_console_output_on_exit(void* context) {
     WifiMarauderApp* app = context;
+    const bool ran_script = app->script != NULL;
 
-    // Automatically stop the scan when exiting view
-    if(app->is_command) {
+    if(app->script_worker) {
+        wifi_marauder_script_worker_free(app->script_worker);
+        app->script_worker = NULL;
+    }
+
+    if(app->is_command || ran_script) {
         wifi_marauder_uart_tx(app->uart, (uint8_t*)("stopscan\n"), strlen("stopscan\n"));
         furi_delay_ms(50);
     }
@@ -237,11 +242,6 @@ void wifi_marauder_scene_console_output_on_exit(void* context) {
     // Unregister rx callback
     wifi_marauder_uart_set_handle_rx_data_cb(app->uart, NULL);
     wifi_marauder_uart_set_handle_rx_pcap_cb(app->uart, NULL);
-
-    if(app->script_worker) {
-        wifi_marauder_script_worker_free(app->script_worker);
-        app->script_worker = NULL;
-    }
 
     app->is_writing_pcap = false;
     if(app->capture_file && storage_file_is_open(app->capture_file)) {

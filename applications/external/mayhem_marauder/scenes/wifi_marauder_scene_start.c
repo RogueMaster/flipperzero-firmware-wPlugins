@@ -175,6 +175,8 @@ const WifiMarauderItem items[NUM_MENU_ITEMS] = {
       "sniffskim",
       "sniffbt -t airtag",
       "sniffbt -t flipper",
+      "sniffbt -t flock",
+      "mactrack",
       "packetcount",
       "sniffpinescan",
       "sniffmultissid",

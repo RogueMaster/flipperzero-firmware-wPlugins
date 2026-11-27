@@ -125,6 +125,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Tesla Mod v2.17.0b7 restores the ESP32 dashboard generator and stack checker to RM's companion build directory (By hypery11; RM path adaptation by RogueMaster)](https://github.com/hypery11/flipper-tesla-fsd)
 - Updated: [UART Logger v1.0 wraps the save-dialog path before the filename (By 2p4g0)](https://github.com/2p4g0/flipper-uart-logger) [UL integration (By xMasterX)](https://github.com/xMasterX/all-the-plugins/commit/cc4edae5a3d5)
 - Added: [Guess The Number v1.2 (By Prevo128)](https://github.com/xMasterX/all-the-plugins/commit/7ad9eb834bde) - Player and computer guessing modes, saved statistics, and high scores
+- Updated: [ESP32CAM Marauder v0.7.6 (By 0xchocolate & eried)](https://github.com/eried/flipperzero-mayhem) `Req: ESP32-CAM (Mayhem)` - stop the script worker before the final stopscan on console exit and correct Sniff command mappings
 
 <a name="release"></a>
 
@@ -619,7 +620,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [ESP32 Gravity v1.0.1 (By chris-bc)](https://github.com/chris-bc/Flipper-Gravity) - Wireless exploration companion `Req: ESP32`
 - [ESP32 WIFI Mapping v0.2 (By carvilsi)](https://github.com/carvilsi/flipper0-wifi-map) `Req: ESP32` & [ESP32 FW](https://github.com/carvilsi/esp32-wifi-map)
 - [ESP32CAM Camera v1.0.0 (By Z4urce & eried)](https://github.com/eried/flipperzero-mayhem) `Req: ESP32-CAM (Mayhem)`
-- [ESP32CAM Marauder v0.7.5 (By 0xchocolate & eried)](https://github.com/eried/flipperzero-mayhem) `Req: ESP32-CAM (Mayhem)`
+- [ESP32CAM Marauder v0.7.6 (By 0xchocolate & eried)](https://github.com/eried/flipperzero-mayhem) `Req: ESP32-CAM (Mayhem)`
 - [ESP32CAM Morse Flasher v0.1 (By eried)](https://github.com/eried/flipperzero-mayhem) `Req: ESP32-CAM (Mayhem)`
 - [ESP32CAM Motion Detection v0.1 (By eried)](https://github.com/eried/flipperzero-mayhem) `Req: ESP32-CAM (Mayhem)`
 - [ESP32CAM Nanny Cam v0.1 (By eried)](https://github.com/eried/flipperzero-mayhem) `Req: ESP32-CAM (Mayhem)`
