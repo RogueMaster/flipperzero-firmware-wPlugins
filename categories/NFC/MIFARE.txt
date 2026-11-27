@@ -2,6 +2,7 @@
 mfc_editor
 mfp_reader
 mifare_fuzzer
+mtools
 nfc_magic
 ulc_brute
 ulc_relay

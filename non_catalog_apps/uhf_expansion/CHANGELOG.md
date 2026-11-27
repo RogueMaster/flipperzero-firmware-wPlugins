@@ -1,3 +1,11 @@
+v1.9:
+
+- Added support for blank/no-EPC tags in Inventory, displaying, decoding, and saving them by TID.
+- Improved TID decoding with automatic length truncation based on XTID header (e.g. 12-byte serial for UCODE 8).
+- Safer selective bank writing in Saved Tags: only writes the active non-empty bank (EPC, TID, or User) without overwriting other banks or altering PC bits.
+- Enforced length matching for EPC writes to protect target tag structure.
+- Enhanced Access Keys menu with quick slot cycling (Left) and direct key hex editing (Right).
+
 v1.8:
 
 - Added reader frequency queries and linked FCC, ETSI, CHN_1*, CHN_2, and Custom presets to Reader Settings. CHN_1* uses an explicitly labelled 840–845 MHz custom spectrum because its native channel index table is absent from the reader manual.
