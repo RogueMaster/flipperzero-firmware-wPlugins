@@ -1,11 +1,14 @@
 #include "../weather_station_app_i.h"
+#include "../protocols/ws_generic.h"
 #include <dialogs/dialogs.h>
 #include <flipper_format/flipper_format_i.h>
+#include <lib/subghz/types.h>
 #include <toolbox/path.h>
 #include <toolbox/stream/stream.h>
 #include <errno.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 
 #define WS_RAW_MAX_LINE_BYTES 8192U
 #define WS_RAW_PULSE_SPACES   " \t\r\n"
@@ -23,18 +26,21 @@ static bool ws_scene_read_raw_lines_fit(Stream* stream) {
     size_t count;
     while((count = stream_read(stream, chunk, sizeof(chunk))) != 0) {
         for(size_t i = 0; i < count; i++) {
-            if(chunk[i] == '\n') {
+            if(chunk[i] == 0) {
+                return false;
+            } else if(chunk[i] == '\n') {
                 line_bytes = 0;
             } else if(++line_bytes > WS_RAW_MAX_LINE_BYTES) {
                 return false;
             }
         }
     }
-    return stream_rewind(stream);
+    return stream_eof(stream) && stream_rewind(stream);
 }
 
 static bool
     ws_scene_read_raw_parse_pulse(const char* start, char** end, uint32_t* duration, bool* level) {
+    if((*start < '0' || *start > '9') && *start != '+' && *start != '-') return false;
     errno = 0;
     const long value = strtol(start, end, 10);
     if(*end == start || !strchr(WS_RAW_PULSE_SPACES, **end) || errno == ERANGE ||
@@ -106,7 +112,9 @@ static const char* ws_scene_read_raw_decode(WeatherStationApp* app, const char* 
             error = "Cannot read\nthis file";
             break;
         }
-        if(furi_string_cmp_str(ctx.preset.name, "FuriHalSubGhzPresetCustom") == 0) {
+        // Match the serializer's preset mapping, including short preset aliases.
+        ws_block_generic_get_preset_name(furi_string_get_cstr(ctx.preset.name), str);
+        if(furi_string_cmp_str(str, "FuriHalSubGhzPresetCustom") == 0) {
             uint32_t size = 0;
             if(!flipper_format_read_string(ff, "Custom_preset_module", str) ||
                furi_string_cmp_str(str, "CC1101") != 0 ||
@@ -117,7 +125,8 @@ static const char* ws_scene_read_raw_decode(WeatherStationApp* app, const char* 
             }
             app->raw_preset_data = malloc(size);
             if(!app->raw_preset_data ||
-               !flipper_format_read_hex(ff, "Custom_preset_data", app->raw_preset_data, size)) {
+               !flipper_format_read_hex(
+                   ff, "Custom_preset_data", app->raw_preset_data, (uint16_t)size)) {
                 error = "Cannot read\ncustom preset";
                 break;
             }
@@ -150,9 +159,11 @@ static const char* ws_scene_read_raw_decode(WeatherStationApp* app, const char* 
             }
             if(error) break;
         }
+        if(!error && !stream_eof(stream)) error = "Cannot read\nthis file";
         // A long silence lets decoders that wait for the end of a frame finish the last one
         if(!error) subghz_receiver_decode(app->txrx->receiver, false, 100000);
         subghz_receiver_set_rx_callback(app->txrx->receiver, NULL, NULL);
+        subghz_receiver_reset(app->txrx->receiver);
 
         // Show the age of each reading from the recording time, not from this decode
         uint32_t ts = 0;
