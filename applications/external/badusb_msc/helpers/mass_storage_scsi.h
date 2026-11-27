@@ -12,6 +12,7 @@
 
 typedef struct {
     void* ctx;
+    const char* product_id;
     bool (*read)(
         void* ctx,
         uint32_t lba,

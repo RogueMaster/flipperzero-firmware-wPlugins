@@ -44,6 +44,25 @@ static bool disk_read(File* disk, uint32_t offset, void* buf, size_t size) {
 static bool disk_write(File* disk, uint32_t offset, const void* buf, size_t size) {
     return storage_file_seek(disk, offset, true) && storage_file_write(disk, buf, size) == size;
 }
+void combo_fat16_format_label(const char* name, char out_label[11]) {
+    memset(out_label, ' ', 11);
+    size_t j = 0;
+    if(name) {
+        for(const unsigned char* p = (const unsigned char*)name; *p && j < 11; p++) {
+            unsigned char c = *p;
+            if((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') ||
+               c == '_' || c == '-' || c == ' ') {
+                out_label[j++] = (char)toupper(c);
+            }
+        }
+    }
+    while(j > 0 && out_label[j - 1] == ' ')
+        j--;
+    if(j == 0) {
+        memcpy(out_label, COMBO_IMAGE_LABEL, 11);
+    }
+}
+
 // Validate an image before it can be exposed as a USB disk. A nonempty,
 // invalid image is never overwritten: it may contain data worth recovering.
 static bool image_header_valid(Storage* storage, const char* path) {
@@ -52,21 +71,21 @@ static bool image_header_valid(Storage* storage, const char* path) {
     bool opened = storage_file_open(file, path, FSAM_READ, FSOM_OPEN_EXISTING);
     bool ok = opened;
     uint8_t boot[512];
-    uint8_t fat1[4], fat2[4], label[12];
+    uint8_t fat1[4], fat2[4];
     if(ok) {
         ok = storage_file_size(file) == COMBO_IMAGE_SIZE &&
              disk_read(file, 0, boot, sizeof(boot)) &&
              disk_read(file, FAT_START, fat1, sizeof(fat1)) &&
-             disk_read(file, FAT_START + FAT_SIZE, fat2, sizeof(fat2)) &&
-             disk_read(file, ROOT_START, label, sizeof(label));
+             disk_read(file, FAT_START + FAT_SIZE, fat2, sizeof(fat2));
         if(ok) {
+            // Host OSes flip FAT[1] dirty/clean bits (bytes 2-3) and may update root
+            // directory entries or volume labels, so validate BPB geometry and FAT[0].
             ok = boot[510] == 0x55 && boot[511] == 0xAA && get16(boot + 11) == 512 &&
                  boot[13] == 2 && get16(boot + 14) == 1 && boot[16] == 2 &&
                  get16(boot + 17) == 512 && get16(boot + 19) == 16384 && boot[21] == 0xF8 &&
-                 get16(boot + 22) == 32 && !memcmp(boot + 43, COMBO_IMAGE_LABEL, 11) &&
-                 !memcmp(boot + 54, "FAT16   ", 8) && !memcmp(fat1, "\xF8\xFF\xFF\xFF", 4) &&
-                 !memcmp(fat1, fat2, sizeof(fat1)) && !memcmp(label, COMBO_IMAGE_LABEL, 11) &&
-                 label[11] == 0x08;
+                 get16(boot + 22) == 32 && !memcmp(boot + 54, "FAT16   ", 8) && fat1[0] == 0xF8 &&
+                 fat1[1] == 0xFF && fat2[0] == 0xF8 && fat2[1] == 0xFF && fat1[2] == 0xFF &&
+                 (fat1[3] & 0x3F) == 0x3F && fat2[2] == 0xFF && (fat2[3] & 0x3F) == 0x3F;
         }
     }
     if(opened) storage_file_close(file);
@@ -81,12 +100,16 @@ bool combo_fat16_image_valid(Storage* storage, const char* image) {
 static bool combo_fat16_create_new(
     Storage* storage,
     const char* image,
+    const char* label,
     ComboFat16ProgressCallback callback,
     void* context) {
     File* disk = storage_file_alloc(storage);
+    if(!disk) return false;
     bool opened = storage_file_open(disk, image, FSAM_WRITE, FSOM_CREATE_NEW);
     bool ok = opened;
     uint8_t* block = opened ? malloc(4096) : NULL;
+    char vol_label[11];
+    combo_fat16_format_label(label, vol_label);
     if(!block) ok = false;
     if(ok) {
         if(callback) callback(0, context);
@@ -110,7 +133,7 @@ static bool combo_fat16_create_new(
                 block[36] = 0x80;
                 block[38] = 0x29;
                 put32(block + 39, 0xB170CAFE);
-                memcpy(block + 43, COMBO_IMAGE_LABEL, 11);
+                memcpy(block + 43, vol_label, 11);
                 memcpy(block + 54, "FAT16   ", 8);
                 block[510] = 0x55;
                 block[511] = 0xAA;
@@ -126,7 +149,7 @@ static bool combo_fat16_create_new(
                 block[515] = 0xFF;
             } else if(i == 8) {
                 // FAT root directory starts at sector 65.
-                memcpy(block + 512, COMBO_IMAGE_LABEL, 11);
+                memcpy(block + 512, vol_label, 11);
                 block[512 + 11] = 0x08;
             }
             if(storage_file_write(disk, block, 4096) != 4096) {
@@ -159,6 +182,7 @@ static bool combo_fat16_create_new(
 ComboFat16PrepareResult combo_fat16_prepare_with_progress(
     Storage* storage,
     const char* image,
+    const char* label,
     ComboFat16ProgressCallback callback,
     void* context) {
     FileInfo info;
@@ -176,12 +200,59 @@ ComboFat16PrepareResult combo_fat16_prepare_with_progress(
     } else if(storage_file_exists(storage, image)) {
         return ComboFat16PrepareIoError;
     }
-    return combo_fat16_create_new(storage, image, callback, context) ? ComboFat16PrepareReady :
-                                                                       ComboFat16PrepareIoError;
+    return combo_fat16_create_new(storage, image, label, callback, context) ?
+               ComboFat16PrepareReady :
+               ComboFat16PrepareIoError;
 }
 
 ComboFat16PrepareResult combo_fat16_prepare(Storage* storage, const char* image) {
-    return combo_fat16_prepare_with_progress(storage, image, NULL, NULL);
+    return combo_fat16_prepare_with_progress(storage, image, NULL, NULL, NULL);
+}
+
+bool combo_fat16_set_label(Storage* storage, const char* image, const char* name) {
+    if(!image_header_valid(storage, image)) return false;
+    char vol_label[11];
+    combo_fat16_format_label(name, vol_label);
+
+    File* disk = storage_file_alloc(storage);
+    uint8_t* root = malloc(ROOT_SIZE);
+    if(!disk || !root) {
+        if(disk) storage_file_free(disk);
+        free(root);
+        return false;
+    }
+    bool ok = false;
+    if(storage_file_open(disk, image, FSAM_READ | FSAM_WRITE, FSOM_OPEN_EXISTING)) {
+        if(disk_write(disk, 43, vol_label, 11) && disk_read(disk, ROOT_START, root, ROOT_SIZE)) {
+            int32_t label_idx = -1;
+            int32_t free_idx = -1;
+            for(uint16_t i = 0; i < MAX_ROOT_FILES; i++) {
+                uint8_t* ent = root + (uint32_t)i * 32u;
+                if(ent[0] == 0x00 || ent[0] == 0xE5) {
+                    if(free_idx < 0) free_idx = i;
+                    if(ent[0] == 0x00) break;
+                    continue;
+                }
+                if(ent[11] == 0x08) {
+                    label_idx = i;
+                    break;
+                }
+            }
+            if(label_idx < 0) label_idx = free_idx;
+            if(label_idx >= 0) {
+                uint8_t* ent = root + (uint32_t)label_idx * 32u;
+                memset(ent, 0, 32);
+                memcpy(ent, vol_label, 11);
+                ent[11] = 0x08;
+                ok = disk_write(disk, ROOT_START + (uint32_t)label_idx * 32u, ent, 32) &&
+                     storage_file_sync(disk);
+            }
+        }
+        storage_file_close(disk);
+    }
+    storage_file_free(disk);
+    free(root);
+    return ok;
 }
 
 static bool fat_open(ComboFat* fat, Storage* storage, const char* path) {
@@ -191,18 +262,26 @@ static bool fat_open(ComboFat* fat, Storage* storage, const char* path) {
     fat->disk = storage_file_alloc(storage);
     fat->fat = malloc(FAT_SIZE);
     fat->root = malloc(ROOT_SIZE);
-    if(!fat->fat || !fat->root ||
+    if(!fat->disk || !fat->fat || !fat->root ||
        !storage_file_open(fat->disk, path, FSAM_READ | FSAM_WRITE, FSOM_OPEN_EXISTING))
         return false;
     return disk_read(fat->disk, FAT_START, fat->fat, FAT_SIZE) &&
            disk_read(fat->disk, ROOT_START, fat->root, ROOT_SIZE);
 }
 static void fat_close(ComboFat* fat) {
-    if(fat->disk) storage_file_free(fat->disk);
+    if(fat->disk) {
+        storage_file_close(fat->disk);
+        storage_file_free(fat->disk);
+    }
     free(fat->fat);
     free(fat->root);
 }
 static bool fat_commit(ComboFat* fat) {
+    // Normalize FAT[0..1] to clean FAT16 state before committing both FAT copies.
+    fat->fat[0] = 0xF8;
+    fat->fat[1] = 0xFF;
+    fat->fat[2] = 0xFF;
+    fat->fat[3] = 0xFF;
     return disk_write(fat->disk, FAT_START, fat->fat, FAT_SIZE) &&
            disk_write(fat->disk, FAT_START + FAT_SIZE, fat->fat, FAT_SIZE) &&
            disk_write(fat->disk, ROOT_START, fat->root, ROOT_SIZE) && storage_file_sync(fat->disk);
@@ -308,8 +387,9 @@ static bool import_one(
     uint32_t remaining = size;
     uint16_t first = 0, prev = 0;
     bool ok = true;
-    uint8_t buf[CLUSTER_SIZE];
-    while(remaining) {
+    uint8_t* buf = malloc(CLUSTER_SIZE);
+    if(!buf) ok = false;
+    while(ok && remaining) {
         uint16_t cluster = fat_alloc_cluster(fat);
         if(!cluster) {
             ok = false;
@@ -319,15 +399,17 @@ static bool import_one(
         if(prev) fat_set(fat, prev, cluster);
         prev = cluster;
         size_t n = MIN(remaining, CLUSTER_SIZE);
-        memset(buf, 0, sizeof(buf));
+        memset(buf, 0, CLUSTER_SIZE);
         if(storage_file_read(src, buf, n) != n ||
            !disk_write(
-               fat->disk, DATA_START + (uint32_t)(cluster - 2) * CLUSTER_SIZE, buf, sizeof(buf))) {
+               fat->disk, DATA_START + (uint32_t)(cluster - 2) * CLUSTER_SIZE, buf, CLUSTER_SIZE)) {
             ok = false;
             break;
         }
         remaining -= n;
     }
+    free(buf);
+    storage_file_close(src);
     storage_file_free(src);
     if(!ok) {
         fat_free_chain(fat, first);
@@ -415,7 +497,11 @@ bool combo_fat16_export(Storage* storage, const char* image, const char* folder)
         fat_close(&fat);
         return false;
     }
-    uint8_t buf[CLUSTER_SIZE];
+    uint8_t* buf = malloc(CLUSTER_SIZE);
+    if(!buf) {
+        fat_close(&fat);
+        return false;
+    }
     for(uint16_t i = 0; i < MAX_ROOT_FILES; i++) {
         uint8_t* ent = fat.root + (uint32_t)i * 32u;
         if(!is_file(ent)) continue;
@@ -424,8 +510,8 @@ bool combo_fat16_export(Storage* storage, const char* image, const char* folder)
         snprintf(dest, sizeof(dest), "%s/%s", folder, name);
         snprintf(temp, sizeof(temp), "%s/.__combo_tmp", folder);
         File* dst = storage_file_alloc(storage);
-        if(!storage_file_open(dst, temp, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
-            storage_file_free(dst);
+        if(!dst || !storage_file_open(dst, temp, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
+            if(dst) storage_file_free(dst);
             result = false;
             break;
         }
@@ -443,7 +529,7 @@ bool combo_fat16_export(Storage* storage, const char* image, const char* folder)
                    fat.disk,
                    DATA_START + (uint32_t)(cluster - 2) * CLUSTER_SIZE,
                    buf,
-                   sizeof(buf)) ||
+                   CLUSTER_SIZE) ||
                storage_file_write(dst, buf, n) != n) {
                 ok = false;
                 break;
@@ -461,10 +547,12 @@ bool combo_fat16_export(Storage* storage, const char* image, const char* folder)
             ok = storage_common_rename(storage, temp, dest) == FSE_OK;
         }
         if(!ok) {
+            storage_common_remove(storage, temp);
             result = false;
             break;
         }
     }
+    free(buf);
     fat_close(&fat);
     return result;
 }

@@ -12,15 +12,18 @@ typedef enum {
 #define COMBO_FAT16_IMAGE_SIZE 8388608u
 
 // Creates drive.img only when missing (or when it is exactly zero bytes).
-// Validates the boot sector, FAT tables, volume label and exact file size.
+// Validates boot-sector geometry, reserved FAT entries and exact file size.
 typedef void (*ComboFat16ProgressCallback)(uint8_t percent, void* context);
 ComboFat16PrepareResult combo_fat16_prepare_with_progress(
     Storage* storage,
     const char* image,
+    const char* label,
     ComboFat16ProgressCallback callback,
     void* context);
 ComboFat16PrepareResult combo_fat16_prepare(Storage* storage, const char* image);
 bool combo_fat16_image_valid(Storage* storage, const char* image);
+void combo_fat16_format_label(const char* name, char out_label[11]);
+bool combo_fat16_set_label(Storage* storage, const char* image, const char* name);
 
 bool combo_fat16_import(Storage* storage, const char* image, const char* folder);
 bool combo_fat16_export(Storage* storage, const char* image, const char* folder);

@@ -5,6 +5,7 @@
 #include "usb.h"
 #include "usb_hid.h"
 
+#include "../ldtoypad.h"
 #include "../views/EmulateToyPad_scene.h"
 #include "../tea.h"
 #include "../burtle.h"
@@ -189,6 +190,12 @@ void hid_in_callback(usbd_device* dev, uint8_t event, uint8_t ep) {
     UNUSED(dev);
 
     // nothing to do here
+}
+
+static void usb_redraw_callback(void* context, uint32_t arg) {
+    UNUSED(context);
+    UNUSED(arg);
+    view_dispatcher_send_custom_event(get_view_dispatcher(), 0);
 }
 
 void hid_out_callback(usbd_device* dev, uint8_t event, uint8_t ep) {
@@ -423,6 +430,9 @@ void hid_out_callback(usbd_device* dev, uint8_t event, uint8_t ep) {
 
     // Send the response
     usbd_ep_write(dev, HID_EP_IN, res_buf, sizeof(res_buf));
+
+    // Defer screen redraw to timer thread context (not safe to call view_dispatcher from ISR)
+    furi_timer_pending_callback(usb_redraw_callback, NULL, 0);
 }
 
 /* Configure endpoints */

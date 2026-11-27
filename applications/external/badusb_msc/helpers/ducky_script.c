@@ -222,16 +222,16 @@ static int32_t ducky_parse_line(BadUsbScript* bad_usb, FuriString* line) {
     char next_char = *line_cstr;
     key = modifiers | ducky_get_keycode(bad_usb, line_cstr, false);
 
-    if(key == 0 && next_char) ducky_error(bad_usb, "No keycode defined for %s", line_cstr);
+    if(key == 0 && next_char) {
+        return ducky_error(bad_usb, "No keycode defined for %s", line_cstr);
+    }
 
     bad_usb->hid->kb_press(bad_usb->hid_inst, key);
     bad_usb->hid->kb_release(bad_usb->hid_inst, key);
     return 0;
 }
 
-static bool ducky_set_usb_id(BadUsbScript* bad_usb, const char* line) {
-    FuriHalUsbHidConfig* usb_hid_cfg = &bad_usb->hid_cfg->usb;
-
+static bool ducky_set_usb_id_cfg(FuriHalUsbHidConfig* usb_hid_cfg, const char* line) {
     if(sscanf(line, "%lX:%lX", &usb_hid_cfg->vid, &usb_hid_cfg->pid) == 2) {
         usb_hid_cfg->manuf[0] = '\0';
         usb_hid_cfg->product[0] = '\0';
@@ -254,6 +254,10 @@ static bool ducky_set_usb_id(BadUsbScript* bad_usb, const char* line) {
         return true;
     }
     return false;
+}
+
+static bool ducky_set_usb_id(BadUsbScript* bad_usb, const char* line) {
+    return ducky_set_usb_id_cfg(&bad_usb->hid_cfg->usb, line);
 }
 
 static bool ducky_set_ble_id(BadUsbScript* bad_usb, const char* line) {
@@ -294,9 +298,7 @@ bool bad_usb_script_preload_usb_identity(FuriString* script_path, BadUsbHidConfi
         }
         storage_file_close(file);
         if(strncmp(first_line, "ID ", 3) == 0) {
-            BadUsbScript config_parser = {0};
-            config_parser.hid_cfg = hid_cfg;
-            parsed = ducky_set_usb_id(&config_parser, first_line + 3);
+            parsed = ducky_set_usb_id_cfg(&hid_cfg->usb, first_line + 3);
         }
     }
     storage_file_free(file);
@@ -346,13 +348,16 @@ static bool ducky_script_preload(BadUsbScript* bad_usb, File* script_file) {
         const char* line_tmp = furi_string_get_cstr(bad_usb->line);
         BadUsbHidInterface interface = *bad_usb->interface;
         // Look for ID/BLE_ID/BT_ID command on first line
-        if(strncmp(line_tmp, ducky_cmd_id, strlen(ducky_cmd_id)) == 0) {
+        if(strncmp(line_tmp, ducky_cmd_id, strlen(ducky_cmd_id)) == 0 &&
+           line_tmp[strlen(ducky_cmd_id)] == ' ') {
             if(ducky_set_usb_id(bad_usb, &line_tmp[strlen(ducky_cmd_id) + 1])) {
                 interface = BadUsbHidInterfaceUsb;
             }
         } else if(
-            strncmp(line_tmp, ducky_cmd_ble_id, strlen(ducky_cmd_ble_id)) == 0 ||
-            strncmp(line_tmp, ducky_cmd_bt_id, strlen(ducky_cmd_bt_id)) == 0) {
+            (strncmp(line_tmp, ducky_cmd_ble_id, strlen(ducky_cmd_ble_id)) == 0 &&
+             line_tmp[strlen(ducky_cmd_ble_id)] == ' ') ||
+            (strncmp(line_tmp, ducky_cmd_bt_id, strlen(ducky_cmd_bt_id)) == 0 &&
+             line_tmp[strlen(ducky_cmd_bt_id)] == ' ')) {
             if(ducky_set_ble_id(bad_usb, &line_tmp[ducky_get_command_len(line_tmp) + 1])) {
                 interface = BadUsbHidInterfaceBle;
             }
@@ -366,6 +371,7 @@ static bool ducky_script_preload(BadUsbScript* bad_usb, File* script_file) {
     }
 
     bad_usb->hid_inst = bad_usb->hid->init(bad_usb->hid_cfg);
+    bad_usb->hid_initialized = true;
     bad_usb->hid->set_state_callback(bad_usb->hid_inst, bad_usb_hid_state_callback, bad_usb);
 
     storage_file_seek(script_file, 0, true);
@@ -734,9 +740,12 @@ static int32_t bad_usb_worker(void* context) {
     }
 
     // Closing the worker may interrupt a held key/mouse button: release it.
-    bad_usb->hid->release_all(bad_usb->hid_inst);
-    bad_usb->hid->set_state_callback(bad_usb->hid_inst, NULL, NULL);
-    bad_usb->hid->deinit(bad_usb->hid_inst);
+    if(bad_usb->hid_initialized) {
+        bad_usb->hid->release_all(bad_usb->hid_inst);
+        bad_usb->hid->set_state_callback(bad_usb->hid_inst, NULL, NULL);
+        bad_usb->hid->deinit(bad_usb->hid_inst);
+        bad_usb->hid_initialized = false;
+    }
 
     storage_file_close(script_file);
     storage_file_free(script_file);
@@ -764,7 +773,8 @@ BadUsbScript* bad_usb_script_open(
     bool load_id_cfg) {
     furi_assert(file_path);
 
-    BadUsbScript* bad_usb = malloc(sizeof(BadUsbScript));
+    BadUsbScript* bad_usb = calloc(1, sizeof(BadUsbScript));
+    furi_check(bad_usb);
     bad_usb->file_path = furi_string_alloc();
     furi_string_set(bad_usb->file_path, file_path);
     bad_usb_script_set_default_keyboard_layout(bad_usb);
@@ -782,7 +792,7 @@ BadUsbScript* bad_usb_script_open(
 } //-V773
 
 void bad_usb_script_close(BadUsbScript* bad_usb) {
-    furi_assert(bad_usb);
+    if(!bad_usb) return;
     furi_thread_flags_set(furi_thread_get_id(bad_usb->thread), WorkerEvtEnd);
     furi_thread_join(bad_usb->thread);
     furi_thread_free(bad_usb->thread);

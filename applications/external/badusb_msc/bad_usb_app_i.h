@@ -30,6 +30,8 @@
 #define BAD_USB_FILES_PAGE_SIZE   4096
 #define BAD_USB_FILES_EDIT_SIZE   8192
 #define BAD_USB_FILES_MAX_LINES   128
+#define BAD_USB_MSC_NAME_LEN      12
+#define BAD_USB_MSC_DEFAULT_NAME  "BADUSBMSC"
 
 #define BAD_USB_APP_BASE_FOLDER        EXT_PATH("badusb")
 #define BAD_USB_APP_PATH_LAYOUT_FOLDER BAD_USB_APP_BASE_FOLDER "/assets/layouts"
@@ -80,6 +82,8 @@ struct BadUsbApp {
     uint8_t ble_mac_buf[GAP_MAC_ADDR_SIZE];
     char usb_name_buf[HID_MANUF_PRODUCT_NAME_LEN];
     uint16_t usb_vidpid_buf[2];
+    char msc_name[BAD_USB_MSC_NAME_LEN];
+    char msc_name_buf[BAD_USB_MSC_NAME_LEN];
 
     BadUsbAppError error;
     FuriString* file_path;

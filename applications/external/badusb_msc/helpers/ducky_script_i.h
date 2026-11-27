@@ -27,6 +27,7 @@ struct BadUsbScript {
     bool load_id_cfg;
     const BadUsbHidApi* hid;
     void* hid_inst;
+    bool hid_initialized;
     FuriThread* thread;
     BadUsbState st;
 

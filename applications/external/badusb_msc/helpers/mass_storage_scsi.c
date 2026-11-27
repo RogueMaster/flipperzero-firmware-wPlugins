@@ -153,7 +153,13 @@ bool scsi_cmd_tx_data(SCSISession* scsi, uint8_t* data, uint32_t* len, uint32_t 
             data[6] = 0; // flags
             data[7] = 0; // flags
             memcpy(data + 8, "Flipper ", 8); // vendor id
-            memcpy(data + 16, "Mass Storage    ", 16); // product id
+            memset(data + 16, ' ', 16); // product id
+            const char* prod = (scsi->fn.product_id && scsi->fn.product_id[0]) ?
+                                   scsi->fn.product_id :
+                                   "Mass Storage";
+            size_t prod_len = strlen(prod);
+            if(prod_len > 16) prod_len = 16;
+            memcpy(data + 16, prod, prod_len);
             memcpy(data + 32, "0001", 4); // product revision level
             *len = 36;
             scsi->tx_done = true;

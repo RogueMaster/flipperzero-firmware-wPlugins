@@ -26,8 +26,6 @@ FuriHalUsbInterface* usb_mode_prev = NULL;
 
 struct LDToyPadSceneEmulate {
     View* view;
-
-    FuriTimer* timer; // Timer for redrawing the screen
 };
 
 // The selected pad on the toypad
@@ -309,11 +307,6 @@ static void ldtoypad_scene_emulate_draw_render_callback(Canvas* canvas, void* co
 
         // Give dolphin some xp for connecting the toypad
         dolphin_deed(DolphinDeedPluginStart);
-
-        if(toypadscene_instance->timer != NULL) {
-            furi_timer_stop(toypadscene_instance->timer);
-            furi_timer_start(toypadscene_instance->timer, furi_ms_to_ticks(5000));
-        }
     } else if(model->connected) {
         model->connection_status = "USB Connected";
     } else if(!model->connected) {
@@ -516,27 +509,6 @@ static uint32_t ldtoypad_scene_emulate_navigation_submenu_callback(void* context
     return ViewSubmenu;
 }
 
-void ldtoypad_scene_emulate_view_game_timer_callback(void* context) {
-    UNUSED(context);
-    view_dispatcher_send_custom_event(get_view_dispatcher(), 0);
-}
-
-void ldtoypad_scene_emulate_enter_callback(void* context) {
-    uint32_t period = furi_ms_to_ticks(200);
-    LDToyPadSceneEmulate* app = (LDToyPadSceneEmulate*)context;
-    furi_assert(app->timer == NULL);
-    app->timer = furi_timer_alloc(
-        ldtoypad_scene_emulate_view_game_timer_callback, FuriTimerTypePeriodic, app);
-    furi_timer_start(app->timer, period);
-}
-
-void ldtoypad_scene_emulate_exit_callback(void* context) {
-    LDToyPadSceneEmulate* app = (LDToyPadSceneEmulate*)context;
-    furi_timer_stop(app->timer);
-    furi_timer_free(app->timer);
-    app->timer = NULL;
-}
-
 static bool ldtoypad_scene_emulate_custom_event_callback(uint32_t event, void* context) {
     LDToyPadSceneEmulate* scene = (LDToyPadSceneEmulate*)context;
     switch(event) {
@@ -582,9 +554,6 @@ LDToyPadSceneEmulate* ldtoypad_scene_emulate_alloc(LDToyPadApp* new_app) {
     view_set_input_callback(instance->view, ldtoypad_scene_emulate_input_callback);
 
     view_set_previous_callback(instance->view, ldtoypad_scene_emulate_navigation_submenu_callback);
-
-    view_set_enter_callback(instance->view, ldtoypad_scene_emulate_enter_callback);
-    view_set_exit_callback(instance->view, ldtoypad_scene_emulate_exit_callback);
 
     view_set_custom_callback(instance->view, ldtoypad_scene_emulate_custom_event_callback);
 

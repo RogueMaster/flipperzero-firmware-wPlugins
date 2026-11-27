@@ -83,6 +83,18 @@ static void bad_usb_install_bundled_keyboard_layouts(void) {
         (unsigned)failed);
 }
 
+static void bad_usb_set_default_layout(BadUsbApp* app) {
+    uint16_t layout_check[128];
+    FuriString* default_path = furi_string_alloc_set(BAD_USB_SETTINGS_DEFAULT_LAYOUT);
+    if(bad_usb_keyboard_layout_read(default_path, layout_check)) {
+        furi_string_set(app->keyboard_layout, default_path);
+    } else {
+        // Built-in US layout when en-US.kl is not present under /ext/badusb/assets/layouts
+        furi_string_reset(app->keyboard_layout);
+    }
+    furi_string_free(default_path);
+}
+
 static bool bad_usb_app_custom_event_callback(void* context, uint32_t event) {
     furi_assert(context);
     BadUsbApp* app = context;
@@ -119,14 +131,15 @@ static void bad_usb_load_settings(BadUsbApp* app) {
 
             if(flipper_format_read_string(fff, "layout", temp_str)) {
                 furi_string_set(app->keyboard_layout, temp_str);
-                uint16_t layout_check[128];
-                if(!bad_usb_keyboard_layout_read(app->keyboard_layout, layout_check)) {
-                    // The displayed choice must never be a missing keyboard map.
-                    FURI_LOG_W("BadUSB", "Saved keyboard map unavailable; using US");
-                    furi_string_set(app->keyboard_layout, BAD_USB_SETTINGS_DEFAULT_LAYOUT);
+                if(!furi_string_empty(app->keyboard_layout)) {
+                    uint16_t layout_check[128];
+                    if(!bad_usb_keyboard_layout_read(app->keyboard_layout, layout_check)) {
+                        FURI_LOG_W("BadUSB", "Saved keyboard map unavailable; using default");
+                        bad_usb_set_default_layout(app);
+                    }
                 }
             } else {
-                furi_string_set(app->keyboard_layout, BAD_USB_SETTINGS_DEFAULT_LAYOUT);
+                bad_usb_set_default_layout(app);
                 flipper_format_rewind(fff);
             }
 
@@ -193,6 +206,14 @@ static void bad_usb_load_settings(BadUsbApp* app) {
                 flipper_format_rewind(fff);
             }
 
+            if(flipper_format_read_string(fff, "msc_name", temp_str) &&
+               !furi_string_empty(temp_str)) {
+                strlcpy(app->msc_name, furi_string_get_cstr(temp_str), sizeof(app->msc_name));
+            } else {
+                strlcpy(app->msc_name, BAD_USB_MSC_DEFAULT_NAME, sizeof(app->msc_name));
+                flipper_format_rewind(fff);
+            }
+
             loaded = true;
         } while(0);
     }
@@ -203,7 +224,7 @@ static void bad_usb_load_settings(BadUsbApp* app) {
     furi_record_close(RECORD_STORAGE);
 
     if(!loaded) {
-        furi_string_set(app->keyboard_layout, BAD_USB_SETTINGS_DEFAULT_LAYOUT);
+        bad_usb_set_default_layout(app);
         app->interface = BadUsbHidInterfaceUsb;
         hid_cfg->ble.name[0] = '\0';
         memset(hid_cfg->ble.mac, 0, sizeof(hid_cfg->ble.mac));
@@ -213,6 +234,7 @@ static void bad_usb_load_settings(BadUsbApp* app) {
         hid_cfg->usb.pid = 0;
         hid_cfg->usb.manuf[0] = '\0';
         hid_cfg->usb.product[0] = '\0';
+        strlcpy(app->msc_name, BAD_USB_MSC_DEFAULT_NAME, sizeof(app->msc_name));
     }
 }
 
@@ -242,6 +264,9 @@ void bad_usb_save_settings(BadUsbApp* app) {
             if(!flipper_format_write_string_cstr(fff, "usb_product", hid_cfg->usb.product)) break;
             if(!flipper_format_write_uint32(fff, "usb_vid", &hid_cfg->usb.vid, 1)) break;
             if(!flipper_format_write_uint32(fff, "usb_pid", &hid_cfg->usb.pid, 1)) break;
+            if(!flipper_format_write_string_cstr(
+                   fff, "msc_name", app->msc_name[0] ? app->msc_name : BAD_USB_MSC_DEFAULT_NAME))
+                break;
         } while(0);
     }
 
@@ -300,7 +325,7 @@ static int32_t bad_usb_storage_prepare_worker(void* context) {
         return ComboFat16PrepareIoError;
     }
     ComboFat16PrepareResult result = combo_fat16_prepare_with_progress(
-        storage, COMBO_IMAGE_PATH, bad_usb_storage_progress_callback, app);
+        storage, COMBO_IMAGE_PATH, app->msc_name, bad_usb_storage_progress_callback, app);
     furi_record_close(RECORD_STORAGE);
     // The GUI thread consumes the final status after joining this worker.
     return result;
@@ -312,32 +337,18 @@ void bad_usb_set_interface(BadUsbApp* app, BadUsbHidInterface interface) {
 }
 
 BadUsbApp* bad_usb_app_alloc(char* arg) {
-    BadUsbApp* app = malloc(sizeof(BadUsbApp));
+    BadUsbApp* app = calloc(1, sizeof(BadUsbApp));
+    furi_check(app);
 
-    app->bad_usb_script = NULL;
-    app->combo_runtime = NULL;
-    app->storage_prepare_thread = NULL;
-    app->storage_prepared = false;
     app->storage_prepare_result = ComboFat16PrepareIoError;
-    app->storage_percent = 0;
-    app->storage_show_progress = false;
-    app->storage_done_ticks = 0;
 
     app->file_path = furi_string_alloc();
     app->keyboard_layout = furi_string_alloc();
     app->storage_file_path = furi_string_alloc_set(BAD_USB_FILES_FOLDER);
-    app->read_buffer = malloc(BAD_USB_FILES_PAGE_SIZE + 180);
-    app->edit_buffer = malloc(BAD_USB_FILES_EDIT_SIZE + 1);
-    app->read_offset = 0;
-    app->selected_size = 0;
-    app->edit_length = 0;
-    app->edit_lines = 0;
     if(arg && strlen(arg)) {
         furi_string_set(app->file_path, arg);
     }
 
-    // Provision missing keyboard tables on EVERY start, including the first
-    // drive.img creation. Updates never erase/rebuild an existing MSC disk.
     bad_usb_install_bundled_keyboard_layouts();
     bad_usb_load_settings(app);
     // Keep the user's saved USB/BLE selection. MSC remains a USB function.
@@ -435,9 +446,11 @@ BadUsbApp* bad_usb_app_alloc(char* arg) {
         scene_manager_next_scene(app->scene_manager, BadUsbSceneError);
     } else {
         app->usb_if_prev = furi_hal_usb_get_config();
-        furi_check(furi_hal_usb_set_config(NULL, NULL));
-
-        if(!furi_string_empty(app->file_path)) {
+        if(!furi_hal_usb_set_config(NULL, NULL)) {
+            app->error = BadUsbAppErrorCloseRpc;
+            app->usb_if_prev = NULL;
+            scene_manager_next_scene(app->scene_manager, BadUsbSceneError);
+        } else if(!furi_string_empty(app->file_path)) {
             scene_manager_set_scene_state(app->scene_manager, BadUsbSceneWork, true);
             scene_manager_next_scene(app->scene_manager, BadUsbSceneWork);
         } else {
@@ -516,7 +529,7 @@ void bad_usb_app_free(BadUsbApp* app) {
     free(app->edit_buffer);
 
     if(app->usb_if_prev) {
-        furi_check(furi_hal_usb_set_config(app->usb_if_prev, NULL));
+        furi_hal_usb_set_config(app->usb_if_prev, NULL);
     }
 
     free(app);

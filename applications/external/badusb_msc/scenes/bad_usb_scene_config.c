@@ -2,6 +2,7 @@
 
 enum ConfigIndex {
     ConfigIndexKeyboardLayout,
+    ConfigIndexStorageName,
     ConfigIndexConnection,
 };
 
@@ -77,6 +78,9 @@ static void draw_menu(BadUsbApp* bad_usb) {
 
     variable_item_list_add(var_item_list, "Keyboard Layout (global)", 0, NULL, NULL);
 
+    item = variable_item_list_add(var_item_list, "Storage Name", 0, NULL, NULL);
+    variable_item_set_current_value_text(item, bad_usb->msc_name);
+
     item = variable_item_list_add(
         var_item_list, "Connection", 2, bad_usb_scene_config_connection_callback, bad_usb);
     variable_item_set_current_value_index(item, bad_usb->interface == BadUsbHidInterfaceBle);
@@ -151,6 +155,9 @@ bool bad_usb_scene_config_on_event(void* context, SceneManagerEvent event) {
         switch(event.event) {
         case ConfigIndexKeyboardLayout:
             scene_manager_next_scene(bad_usb->scene_manager, BadUsbSceneConfigLayout);
+            break;
+        case ConfigIndexStorageName:
+            scene_manager_next_scene(bad_usb->scene_manager, BadUsbSceneConfigMscName);
             break;
         case ConfigIndexConnection:
             // Refresh default values for new interface
@@ -243,6 +250,10 @@ bool bad_usb_scene_config_on_event(void* context, SceneManagerEvent event) {
                     &bad_usb->user_hid_cfg.usb,
                     &bad_usb->script_hid_cfg.usb,
                     sizeof(bad_usb->user_hid_cfg.usb));
+                strlcpy(bad_usb->msc_name, BAD_USB_MSC_DEFAULT_NAME, sizeof(bad_usb->msc_name));
+                Storage* storage = furi_record_open(RECORD_STORAGE);
+                combo_fat16_set_label(storage, COMBO_IMAGE_PATH, bad_usb->msc_name);
+                furi_record_close(RECORD_STORAGE);
                 scene_manager_next_scene(bad_usb->scene_manager, BadUsbSceneDone);
                 break;
             default:

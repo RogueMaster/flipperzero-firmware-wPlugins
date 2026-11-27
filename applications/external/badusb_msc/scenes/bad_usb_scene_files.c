@@ -51,6 +51,8 @@ void bad_usb_scene_home_on_enter(void* context) {
         app->submenu, "BadUSB", BadUsbFilesEventScripts, bad_usb_files_menu_callback, app);
     submenu_add_item(
         app->submenu, "Files", BadUsbFilesEventFiles, bad_usb_files_menu_callback, app);
+    submenu_add_item(
+        app->submenu, "Config", BadUsbFilesEventOptions, bad_usb_files_menu_callback, app);
     // Keyboard Layout remains available from BadUSB -> Config.
     if(app->storage_show_progress) {
         bad_usb_storage_progress_update(app, 0, 0);
@@ -102,6 +104,10 @@ bool bad_usb_scene_home_on_event(void* context, SceneManagerEvent event) {
     } else if(event.event == BadUsbFilesEventFiles) {
         furi_string_set(app->storage_file_path, BAD_USB_FILES_FOLDER);
         scene_manager_next_scene(app->scene_manager, BadUsbSceneFilesSelect);
+        return true;
+    } else if(event.event == BadUsbFilesEventOptions) {
+        scene_manager_set_scene_state(app->scene_manager, BadUsbSceneConfig, 0);
+        scene_manager_next_scene(app->scene_manager, BadUsbSceneConfig);
         return true;
     }
     return false;
@@ -167,6 +173,9 @@ static void files_refresh_size(BadUsbApp* app) {
 
 void bad_usb_scene_files_actions_on_enter(void* context) {
     BadUsbApp* app = context;
+    free(app->edit_buffer);
+    app->edit_buffer = NULL;
+    app->edit_length = 0;
     files_refresh_size(app);
     submenu_reset(app->submenu);
     submenu_set_header(app->submenu, files_name(app->storage_file_path));
@@ -255,11 +264,20 @@ void bad_usb_scene_files_read_on_enter(void* context) {
         scene_manager_previous_scene(app->scene_manager);
         return;
     }
+    if(!app->read_buffer) {
+        app->read_buffer = malloc(BAD_USB_FILES_PAGE_SIZE + 180);
+    }
+    if(!app->read_buffer) {
+        bad_usb_files_message(app, "Error", "Out of memory");
+        scene_manager_previous_scene(app->scene_manager);
+        return;
+    }
     Storage* storage = furi_record_open(RECORD_STORAGE);
     File* file = storage_file_alloc(storage);
     char* buf = app->read_buffer;
     size_t used = 0;
-    if(storage_file_open(
+    if(file &&
+       storage_file_open(
            file, furi_string_get_cstr(app->storage_file_path), FSAM_READ, FSOM_OPEN_EXISTING)) {
         uint64_t size = storage_file_size(file);
         if(app->read_offset >= size) app->read_offset = 0;
@@ -268,7 +286,7 @@ void bad_usb_scene_files_read_on_enter(void* context) {
         }
         storage_file_close(file);
     }
-    storage_file_free(file);
+    if(file) storage_file_free(file);
     furi_record_close(RECORD_STORAGE);
 
     // Replace control bytes so binary files can be previewed without crashing.
@@ -293,16 +311,24 @@ bool bad_usb_scene_files_read_on_event(void* context, SceneManagerEvent event) {
     return false;
 }
 void bad_usb_scene_files_read_on_exit(void* context) {
-    UNUSED(context);
+    BadUsbApp* app = context;
+    text_box_reset(app->text_box);
+    free(app->read_buffer);
+    app->read_buffer = NULL;
 }
 
 // -------------------------------- Edition ligne par ligne ----------------
 static bool files_load_for_edit(BadUsbApp* app) {
     if(!bad_usb_files_path_valid(app->storage_file_path)) return false;
+    if(!app->edit_buffer) {
+        app->edit_buffer = malloc(BAD_USB_FILES_EDIT_SIZE + 1);
+    }
+    if(!app->edit_buffer) return false;
     Storage* storage = furi_record_open(RECORD_STORAGE);
     File* file = storage_file_alloc(storage);
     bool ok = false;
-    if(storage_file_open(
+    if(file &&
+       storage_file_open(
            file, furi_string_get_cstr(app->storage_file_path), FSAM_READ, FSOM_OPEN_EXISTING)) {
         uint64_t size = storage_file_size(file);
         if(size <= BAD_USB_FILES_EDIT_SIZE) {
@@ -313,8 +339,13 @@ static bool files_load_for_edit(BadUsbApp* app) {
         }
         storage_file_close(file);
     }
-    storage_file_free(file);
+    if(file) storage_file_free(file);
     furi_record_close(RECORD_STORAGE);
+    if(!ok) {
+        free(app->edit_buffer);
+        app->edit_buffer = NULL;
+        app->edit_length = 0;
+    }
     return ok;
 }
 
@@ -385,6 +416,7 @@ void bad_usb_scene_files_lines_on_exit(void* context) {
 
 // Safe replacement: temporary file plus local backup.
 static bool files_save_line(BadUsbApp* app) {
+    if(!app->edit_buffer) return false;
     size_t pos = app->edit_line_starts[app->edit_line_index];
     size_t old_len = app->edit_line_lengths[app->edit_line_index];
     size_t new_len = strlen(app->line_buffer);
@@ -441,6 +473,10 @@ static bool files_save_line(BadUsbApp* app) {
 
 void bad_usb_scene_files_edit_on_enter(void* context) {
     BadUsbApp* app = context;
+    if(!app->edit_buffer) {
+        scene_manager_previous_scene(app->scene_manager);
+        return;
+    }
     size_t start = app->edit_line_starts[app->edit_line_index];
     size_t length = app->edit_line_lengths[app->edit_line_index];
     if(length >= sizeof(app->line_buffer)) length = sizeof(app->line_buffer) - 1;

@@ -15,7 +15,7 @@ import tempfile
 import zlib
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-ESP32 = os.path.join(ROOT, "esp32")
+ESP32 = os.path.join(ROOT, ".esp32")
 FIRMWARE = os.path.join(ESP32, ".firmware")
 sys.path.insert(0, ESP32)
 sys.dont_write_bytecode = True  # no __pycache__ in esp32/

@@ -8,5 +8,5 @@
 #define COMBO_IMAGE_PATH   COMBO_FOLDER "/drive.img"
 
 typedef struct ComboRuntime ComboRuntime;
-ComboRuntime* combo_runtime_start(const FuriHalUsbHidConfig* usb_cfg);
+ComboRuntime* combo_runtime_start(const FuriHalUsbHidConfig* usb_cfg, const char* msc_name);
 void combo_runtime_stop(ComboRuntime* runtime);

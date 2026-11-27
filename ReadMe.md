@@ -108,11 +108,23 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [GPIO Frequency Counter v1.0 keeps the input callback responsive when its queue is full (By lewisQ17)](https://github.com/lewisQ17/Momentum-Firmware)
 - Updated: [IR Remote Maker v1.0 rejects incomplete loads, preserves edited commands, reports save-close errors, and cleans up the active scene on close (By lewisQ17)](https://github.com/lewisQ17/Momentum-Firmware)
 - Updated: [NFC Compare v1.0 returns from results to the file chooser and cleans up the active scene on close (By lewisQ17)](https://github.com/lewisQ17/Momentum-Firmware)
-- Updated: Storage CLI: [Exit write and chunked-read commands when the host closes the session (By oliveiraantoniocc)](https://github.com/flipperdevices/flipperzero-firmware/pull/4529)
-- Updated: GPIO: [USB-UART Bridge buffers UART bursts with a 2 KB buffer (By oliveiraantoniocc)](https://github.com/flipperdevices/flipperzero-firmware/pull/4528) and [starts the TX thread with a read (By oliveiraantoniocc)](https://github.com/flipperdevices/flipperzero-firmware/pull/4530)
-- Updated: Storage: [Bound CLI/RPC open and MD5 waits on busy files using internal timeout helpers (By oliveiraantoniocc)](https://github.com/flipperdevices/flipperzero-firmware/pull/4526)
-- Updated: Sub-GHz: [Reduce KeeLoq/KeeloqHR false positives with sync-gap bounds and bit-period validation (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/e924f7e45633dc9c1984f13a085ce2dd0183339d)
+- Storage CLI: [Exit write and chunked-read commands when the host closes the session (By oliveiraantoniocc)](https://github.com/flipperdevices/flipperzero-firmware/pull/4529)
+- GPIO: [USB-UART Bridge buffers UART bursts with a 2 KB buffer (By oliveiraantoniocc)](https://github.com/flipperdevices/flipperzero-firmware/pull/4528) and [starts the TX thread with a read (By oliveiraantoniocc)](https://github.com/flipperdevices/flipperzero-firmware/pull/4530)
+- Storage: [Bound CLI/RPC open and MD5 waits on busy files using internal timeout helpers (By oliveiraantoniocc)](https://github.com/flipperdevices/flipperzero-firmware/pull/4526)
+- Sub-GHz: [Reduce KeeLoq/KeeloqHR false positives with sync-gap bounds and bit-period validation (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/e924f7e45633dc9c1984f13a085ce2dd0183339d)
 - Updated: [Weather Station v2.2 (By Skorpionm)-OFW](https://github.com/flipperdevices/flipperzero-good-faps) [Read RAW (By Lechnio)](https://github.com/flipperdevices/flipperzero-good-faps/pull/314) [Ignore unknown LaCrosse TX packet types (By shubaly)](https://github.com/flipperdevices/flipperzero-good-faps/pull/315) [RAW decode notifications (By xMasterX)](https://github.com/xMasterX/all-the-plugins/commit/56b08cb8f99c910164d31846f8cbec9e205dbe5c) [RM RAW fixes (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/75db628d56ee3ab6968a3db3e06ed3d032d52a72)
+- NFC: [Updated low-level NFC handling for Texkom protocol support, apply some tim16 bus fixes in texkom to avoid crashes due to busy bus (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/1ad182170dfe07948994ec8299aef5eb199668de)
+- Updated: [BadUSB MSC v0.1 adds configurable storage names, FAT16 host-label compatibility, lower memory use, and script/USB cleanup fixes (By ZombieDolphin)](https://github.com/ZombieDolphin/BadUSB_MSC) [UL app integration (By xMasterX)](https://github.com/xMasterX/all-the-plugins/commit/581c45ff79d9)
+- Updated: [BarCode ScannerE v0.5 disables expansion during scanner use (By polarikus)](https://github.com/polarikus/flipper-zero_bc_scanner_emulator) [UL app integration (By xMasterX)](https://github.com/xMasterX/all-the-plugins/commit/581c45ff79d9)
+- Updated: [CAN Commander v2.3.1 (By MatthewKuKanich)](https://github.com/MatthewKuKanich/CAN_Commander) `Req: CAN Commander Board`
+- Updated: [LEGO Dimensions Toy Pad v0.5 (By SegerEnd)](https://github.com/SegerEnd/Flipper-Zero-LD-Toypad-Emulator)
+- Updated: [NFC Maker v2.1 (by WillyJL)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/343cb39d08f60b75b537e1a31100707935cf6e9d)
+- Updated: [Programmer Calculator v0.9.2 (By armixz)](https://github.com/armixz/Flipper-Zero-Programmer-Calculator)
+- Updated: [Pwnpal v3.0.1 refreshes the displayed app and expected companion firmware revisions (By mrq1911)](https://github.com/mrq1911/pwnpal)
+- Updated: [TagTinker v2.1 exits from the main menu with Back and accepts Right on the final startup warning (By i12bp8)](https://github.com/i12bp8/TagTinker) [UL navigation fixes (By xMasterX)](https://github.com/xMasterX/all-the-plugins/commit/cc4edae5a3d5)
+- Updated: [Tesla Mod v2.17.0b7 restores the ESP32 dashboard generator and stack checker to RM's companion build directory (By hypery11; RM path adaptation by RogueMaster)](https://github.com/hypery11/flipper-tesla-fsd)
+- Updated: [UART Logger v1.0 wraps the save-dialog path before the filename (By 2p4g0)](https://github.com/2p4g0/flipper-uart-logger) [UL integration (By xMasterX)](https://github.com/xMasterX/all-the-plugins/commit/cc4edae5a3d5)
+- Added: [Guess The Number v1.2 (By Prevo128)](https://github.com/xMasterX/all-the-plugins/commit/7ad9eb834bde) - Player and computer guessing modes, saved statistics, and high scores
 
 <a name="release"></a>
 
@@ -311,6 +323,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Grimoire v0.1 (By rseufert)](https://github.com/rseufert/grimoire)
 - [Groks Adventure v0.15 (By DigiMancer3D)](https://github.com/DigiMancer3D/Groks_Adventure)
 - [Guess The Number v1.3 (By kWAYTV)](https://github.com/kWAYTV/guess-the-number-fz)
+- [Guess The Number v1.2 (By Prevo128)](https://github.com/xMasterX/all-the-plugins/tree/dev/non_catalog_apps/guess_the_number) - Player and computer guessing modes
 - [Gurpil v0.1.10 (By Endika)](https://github.com/Endika/flipper-gurpil)
 - [Hangman v1.5 (By Evgeny Stepanischev & Eva Stepanischeva)](https://github.com/bolknote/Flipper-Zero-Hangman-Game)
 - [Hanoi Towers v1.0 (By AlexTaran)](https://github.com/AlexTaran/flipperzero)

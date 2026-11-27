@@ -20,6 +20,8 @@ bool combo_hid_consumer_key_release_all(void);
 
 void hid_init(usbd_device* dev, FuriHalUsbInterface* intf, void* ctx);
 void hid_deinit(usbd_device* dev);
+// Call only after the script worker has joined and USB has been deinitialized.
+void combo_hid_free(void);
 void hid_on_wakeup(usbd_device* dev);
 void hid_on_suspend(usbd_device* dev);
 usbd_respond hid_ep_config(usbd_device* dev, uint8_t cfg);

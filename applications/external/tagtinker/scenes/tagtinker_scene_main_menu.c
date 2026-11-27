@@ -35,6 +35,11 @@ void tagtinker_scene_main_menu_on_enter(void* ctx) {
 
 bool tagtinker_scene_main_menu_on_event(void* ctx, SceneManagerEvent event) {
     TagTinkerApp* app = ctx;
+    if(event.type == SceneManagerEventTypeBack) {
+        scene_manager_stop(app->scene_manager);
+        view_dispatcher_stop(app->view_dispatcher);
+        return true;
+    }
     if(event.type != SceneManagerEventTypeCustom) return false;
 
     scene_manager_set_scene_state(app->scene_manager, TagTinkerSceneMainMenu, event.event);

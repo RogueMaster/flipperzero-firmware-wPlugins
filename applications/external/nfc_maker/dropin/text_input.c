@@ -47,6 +47,7 @@ typedef struct {
     bool validator_message_visible;
 
     bool illegal_symbols;
+    const char* allowed_characters;
     bool cursor_select;
     uint8_t selected_keyboard;
     size_t cursor_pos;
@@ -276,6 +277,39 @@ static char char_to_illegal_symbol(char original) {
     }
 }
 
+static bool text_input_char_allowed(const TextInputModel* model, char character) {
+    return model->allowed_characters == NULL ||
+           strchr(model->allowed_characters, character) != NULL;
+}
+
+static bool text_input_key_allowed(const TextInputModel* model, uint8_t row, uint8_t column) {
+    char character = get_row(keyboards[model->selected_keyboard], row)[column].text;
+    if(character == ENTER_KEY || character == BACKSPACE_KEY || character == SWITCH_KEYBOARD_KEY) {
+        return true;
+    }
+
+    bool symbols = model->selected_keyboard == symbol_keyboard.keyboard_index;
+    char mapped_character =
+        (symbols && model->illegal_symbols) ? char_to_illegal_symbol(character) : character;
+    return text_input_char_allowed(model, mapped_character) ||
+           (!symbols && text_input_char_allowed(model, char_to_uppercase(character)));
+}
+
+static void text_input_select_allowed_column(TextInputModel* model, int direction) {
+    const uint8_t column_count =
+        get_row_size(keyboards[model->selected_keyboard], model->selected_row);
+    for(uint8_t checked = 0; checked < column_count; checked++) {
+        if(text_input_key_allowed(model, model->selected_row, model->selected_column)) return;
+
+        if(direction < 0) {
+            model->selected_column = model->selected_column > 0 ? model->selected_column - 1 :
+                                                                  column_count - 1;
+        } else {
+            model->selected_column = (model->selected_column + 1) % column_count;
+        }
+    }
+}
+
 static void text_input_backspace_cb(TextInputModel* model) {
     if(model->clear_default_text) {
         model->text_buffer[0] = 0;
@@ -289,7 +323,7 @@ static void text_input_backspace_cb(TextInputModel* model) {
 
 static void text_input_view_draw_callback(Canvas* canvas, void* _model) {
     TextInputModel* model = _model;
-    uint8_t text_length = model->text_buffer ? strlen(model->text_buffer) : 0;
+    size_t text_length = model->text_buffer ? strlen(model->text_buffer) : 0;
     uint8_t needed_string_width = canvas_width(canvas) - 8;
     uint8_t start_pos = 4;
 
@@ -302,7 +336,8 @@ static void text_input_view_draw_callback(Canvas* canvas, void* _model) {
     canvas_draw_str(canvas, 2, 8, model->header);
     elements_slightly_rounded_frame(canvas, 1, 12, 126, 15);
 
-    char buf[text_length + 1];
+    char buf[text_length + 2];
+    buf[0] = '\0';
     if(model->text_buffer) {
         strlcpy(buf, model->text_buffer, sizeof(buf));
     }
@@ -368,6 +403,9 @@ static void text_input_view_draw_callback(Canvas* canvas, void* _model) {
                     keyboard_origin_y + keys[column].y,
                     icon);
             } else {
+                char glyph = keys[column].text;
+                if(!text_input_key_allowed(model, row, column)) continue;
+
                 if(selected) {
                     elements_slightly_rounded_box(
                         canvas,
@@ -378,7 +416,6 @@ static void text_input_view_draw_callback(Canvas* canvas, void* _model) {
                     canvas_set_color(canvas, ColorWhite);
                 }
 
-                char glyph = keys[column].text;
                 if(uppercase && !symbols) {
                     canvas_draw_glyph(
                         canvas,
@@ -405,7 +442,8 @@ static void text_input_view_draw_callback(Canvas* canvas, void* _model) {
         canvas_draw_icon(canvas, 10, 14, &I_WarningDolphin_45x42);
         canvas_draw_rframe(canvas, 8, 8, 112, 50, 3);
         canvas_draw_rframe(canvas, 9, 9, 110, 48, 2);
-        elements_multiline_text(canvas, 62, 20, furi_string_get_cstr(model->validator_text));
+        elements_multiline_text_aligned(
+            canvas, 62, 32, AlignCenter, AlignCenter, furi_string_get_cstr(model->validator_text));
         canvas_set_font(canvas, FontKeyboard);
     }
 }
@@ -426,6 +464,7 @@ static void text_input_handle_up(TextInput* text_input, TextInputModel* model) {
             else if(model->selected_column > 1)
                 model->selected_column += 1;
         }
+        text_input_select_allowed_column(model, 1);
     } else {
         model->cursor_select = true;
         model->clear_default_text = false;
@@ -436,6 +475,7 @@ static void text_input_handle_down(TextInput* text_input, TextInputModel* model)
     UNUSED(text_input);
     if(model->cursor_select) {
         model->cursor_select = false;
+        text_input_select_allowed_column(model, 1);
     } else if(model->selected_row < keyboard_row_count - 1) {
         model->selected_row++;
         if(model->selected_row == 1 &&
@@ -450,6 +490,7 @@ static void text_input_handle_down(TextInput* text_input, TextInputModel* model)
             else if(model->selected_column > 1)
                 model->selected_column -= 1;
         }
+        text_input_select_allowed_column(model, 1);
     }
 }
 
@@ -460,11 +501,12 @@ static void text_input_handle_left(TextInput* text_input, TextInputModel* model)
         if(model->cursor_pos > 0) {
             model->cursor_pos = CLAMP(model->cursor_pos - 1, strlen(model->text_buffer), 0u);
         }
-    } else if(model->selected_column > 0) {
-        model->selected_column--;
     } else {
-        model->selected_column =
-            get_row_size(keyboards[model->selected_keyboard], model->selected_row) - 1;
+        const uint8_t column_count =
+            get_row_size(keyboards[model->selected_keyboard], model->selected_row);
+        model->selected_column = model->selected_column > 0 ? model->selected_column - 1 :
+                                                              column_count - 1;
+        text_input_select_allowed_column(model, -1);
     }
 }
 
@@ -473,12 +515,11 @@ static void text_input_handle_right(TextInput* text_input, TextInputModel* model
     if(model->cursor_select) {
         model->clear_default_text = false;
         model->cursor_pos = CLAMP(model->cursor_pos + 1, strlen(model->text_buffer), 0u);
-    } else if(
-        model->selected_column <
-        get_row_size(keyboards[model->selected_keyboard], model->selected_row) - 1) {
-        model->selected_column++;
     } else {
-        model->selected_column = 0;
+        const uint8_t column_count =
+            get_row_size(keyboards[model->selected_keyboard], model->selected_row);
+        model->selected_column = (model->selected_column + 1) % column_count;
+        text_input_select_allowed_column(model, 1);
     }
 }
 
@@ -503,6 +544,7 @@ static void text_input_handle_ok(TextInput* text_input, TextInputModel* model, I
         }
     } else if(selected == SWITCH_KEYBOARD_KEY) {
         switch_keyboard(model);
+        text_input_select_allowed_column(model, 1);
     } else {
         if(selected == BACKSPACE_KEY) {
             text_input_backspace_cb(model);
@@ -518,6 +560,14 @@ static void text_input_handle_ok(TextInput* text_input, TextInputModel* model, I
                 if(model->selected_keyboard == symbol_keyboard.keyboard_index &&
                    model->illegal_symbols) {
                     selected = char_to_illegal_symbol(selected);
+                }
+                if(selected == '_' && text_input_char_allowed(model, ' ') &&
+                   !text_input_char_allowed(model, '_')) {
+                    selected = ' ';
+                }
+                if(!text_input_char_allowed(model, selected)) {
+                    model->clear_default_text = false;
+                    return;
                 }
                 if(model->clear_default_text) {
                     model->text_buffer[0] = selected;
@@ -547,7 +597,7 @@ static bool text_input_view_input_callback(InputEvent* event, void* context) {
     if((!(event->type == InputTypePress) && !(event->type == InputTypeRelease)) &&
        model->validator_message_visible) {
         model->validator_message_visible = false;
-        consumed = true;
+        consumed = event->key != InputKeyBack;
     } else if(event->type == InputTypeShort) {
         consumed = true;
         switch(event->key) {
@@ -656,6 +706,7 @@ TextInput* text_input_alloc(void) {
             model->validator_text = furi_string_alloc();
             model->minimum_length = 1;
             model->illegal_symbols = false;
+            model->allowed_characters = NULL;
             model->cursor_pos = 0;
             model->cursor_select = false;
         },
@@ -696,6 +747,7 @@ void text_input_reset(TextInput* text_input) {
             model->selected_keyboard = 0;
             model->minimum_length = 1;
             model->illegal_symbols = false;
+            model->allowed_characters = NULL;
             model->clear_default_text = false;
             model->cursor_pos = 0;
             model->cursor_select = false;
@@ -760,6 +812,18 @@ void text_input_show_illegal_symbols(TextInput* text_input, bool show) {
     furi_check(text_input);
     with_view_model(
         text_input->view, TextInputModel * model, { model->illegal_symbols = show; }, true);
+}
+
+void text_input_set_allowed_characters(TextInput* text_input, const char* allowed_characters) {
+    furi_check(text_input);
+    with_view_model(
+        text_input->view,
+        TextInputModel * model,
+        {
+            model->allowed_characters = allowed_characters;
+            text_input_select_allowed_column(model, 1);
+        },
+        true);
 }
 
 void text_input_set_validator(

@@ -1,12 +1,11 @@
 #include "can_commander_uart.h"
+#include "missing_api.h"
 
 #include <furi_hal.h>
 #include <furi_hal_serial.h>
 #include <furi_hal_serial_control.h>
 
 #include <string.h>
-
-#include "missing_api.h"
 
 #define CC_PACKET_RAW_MAX        (CC_MAX_PAYLOAD + 32U)
 #define CC_PACKET_ENC_MAX        (CC_MAX_PAYLOAD + 40U)

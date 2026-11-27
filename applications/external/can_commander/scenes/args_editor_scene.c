@@ -1,10 +1,9 @@
 #include "../can_commander.h"
+#include "../libraries/missing_api.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include "../libraries/missing_api.h"
 
 typedef struct {
     const char* value;
@@ -502,12 +501,6 @@ void cancommander_scene_args_editor_on_enter(void* context) {
     }
 
     variable_item_list_set_enter_callback(app->var_list, args_editor_item_enter_callback, app);
-
-    if(app->args_editor_title) {
-        variable_item_list_set_header(app->var_list, app->args_editor_title);
-    } else {
-        variable_item_list_set_header(app->var_list, "Args");
-    }
 
     if(app->args_editor_selected_index >= app->args_editor_count) {
         app->args_editor_selected_index = 0;

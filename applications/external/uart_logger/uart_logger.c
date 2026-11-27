@@ -413,9 +413,14 @@ static bool scene_log_event(void* ctx, SceneManagerEvent ev) {
 
         DialogsApp* dlg = furi_record_open(RECORD_DIALOGS);
         DialogMessage* m = dialog_message_alloc();
+        FuriString* display_path = furi_string_alloc_set(app->path);
+        size_t slash = furi_string_search_rchar(display_path, '/');
+        if(slash != FURI_STRING_FAILURE) {
+            furi_string_replace_at(display_path, slash, 1, "/\n");
+        }
         dialog_message_set_header(m, "Save log?", 64, 2, AlignCenter, AlignTop);
         dialog_message_set_text(
-            m, furi_string_get_cstr(app->path), 64, 32, AlignCenter, AlignCenter);
+            m, furi_string_get_cstr(display_path), 64, 32, AlignCenter, AlignCenter);
         dialog_message_set_buttons(m, "No", NULL, "Yes");
         if(dialog_message_show(dlg, m) == DialogMessageButtonRight) {
             dialog_message_set_header(m, "Saved to:", 64, 2, AlignCenter, AlignTop);
@@ -424,6 +429,7 @@ static bool scene_log_event(void* ctx, SceneManagerEvent ev) {
         } else {
             storage_simply_remove(app->storage, furi_string_get_cstr(app->path));
         }
+        furi_string_free(display_path);
         dialog_message_free(m);
         furi_record_close(RECORD_DIALOGS);
         return false;

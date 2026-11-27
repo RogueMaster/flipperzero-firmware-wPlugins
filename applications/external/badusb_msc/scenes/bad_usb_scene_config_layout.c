@@ -2,10 +2,21 @@
 #include <storage/storage.h>
 
 static void bad_usb_layout_select(BadUsbApp* app) {
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    bool dir_ok = storage_dir_exists(storage, BAD_USB_APP_PATH_LAYOUT_FOLDER);
+    bool cand_ok = !furi_string_empty(app->keyboard_layout) &&
+                   storage_file_exists(storage, furi_string_get_cstr(app->keyboard_layout));
+    furi_record_close(RECORD_STORAGE);
+
+    if(!dir_ok) {
+        bad_usb_files_message(app, "No layouts", "Missing assets/layouts");
+        return;
+    }
+
     FuriString* candidate = furi_string_alloc();
     furi_string_set(candidate, app->keyboard_layout);
     FuriString* browser_path = furi_string_alloc();
-    if(!furi_string_empty(candidate)) {
+    if(cand_ok) {
         furi_string_set(browser_path, candidate);
     } else {
         furi_string_set(browser_path, BAD_USB_APP_PATH_LAYOUT_FOLDER);

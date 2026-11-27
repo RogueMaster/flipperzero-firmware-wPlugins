@@ -10,6 +10,7 @@ struct ComboRuntime {
     File* image_file;
     MassStorageUsb* usb;
     FuriMutex* mutex;
+    char product_name[16];
 };
 
 static bool scsi_read(
@@ -54,41 +55,60 @@ static void scsi_eject(void* ctx) {
     FURI_LOG_I(TAG, "PC requested safe removal");
 }
 
-ComboRuntime* combo_runtime_start(const FuriHalUsbHidConfig* usb_cfg) {
-    ComboRuntime* rt = malloc(sizeof(ComboRuntime));
+ComboRuntime* combo_runtime_start(const FuriHalUsbHidConfig* usb_cfg, const char* msc_name) {
+    ComboRuntime* rt = calloc(1, sizeof(ComboRuntime));
+    if(!rt) return NULL;
+    const char* dev_name = (msc_name && msc_name[0]) ? msc_name : "BADUSBMSC";
+    strlcpy(rt->product_name, dev_name, sizeof(rt->product_name));
     rt->storage = furi_record_open(RECORD_STORAGE);
     storage_common_mkdir(rt->storage, COMBO_FOLDER);
     storage_common_mkdir(rt->storage, COMBO_FILES_FOLDER);
 
     // The image must already have been prepared by the startup worker.
     // Never create 8 MiB synchronously when a script is launched.
-    if(!combo_fat16_image_valid(rt->storage, COMBO_IMAGE_PATH) ||
-       !combo_fat16_import(rt->storage, COMBO_IMAGE_PATH, COMBO_FILES_FOLDER)) {
-        FURI_LOG_E(TAG, "Cannot prepare BADUSBMSC image in %s", COMBO_FOLDER);
+    if(!combo_fat16_image_valid(rt->storage, COMBO_IMAGE_PATH)) {
+        FURI_LOG_E(TAG, "Invalid FAT16 image in %s", COMBO_FOLDER);
+        furi_record_close(RECORD_STORAGE);
+        free(rt);
+        return NULL;
+    }
+    combo_fat16_set_label(rt->storage, COMBO_IMAGE_PATH, dev_name);
+    if(!combo_fat16_import(rt->storage, COMBO_IMAGE_PATH, COMBO_FILES_FOLDER)) {
+        FURI_LOG_E(TAG, "Cannot import staging files into %s", COMBO_IMAGE_PATH);
         furi_record_close(RECORD_STORAGE);
         free(rt);
         return NULL;
     }
 
     rt->image_file = storage_file_alloc(rt->storage);
-    if(!storage_file_open(
+    if(!rt->image_file ||
+       !storage_file_open(
            rt->image_file, COMBO_IMAGE_PATH, FSAM_READ | FSAM_WRITE, FSOM_OPEN_EXISTING)) {
-        storage_file_free(rt->image_file);
+        if(rt->image_file) storage_file_free(rt->image_file);
         furi_record_close(RECORD_STORAGE);
         free(rt);
         return NULL;
     }
     rt->mutex = furi_mutex_alloc(FuriMutexTypeNormal);
+    if(!rt->mutex) {
+        storage_file_close(rt->image_file);
+        storage_file_free(rt->image_file);
+        furi_record_close(RECORD_STORAGE);
+        free(rt);
+        return NULL;
+    }
     SCSIDeviceFunc fn = {
         .ctx = rt,
+        .product_id = rt->product_name,
         .read = scsi_read,
         .write = scsi_write,
         .num_blocks = scsi_num_blocks,
         .eject = scsi_eject,
     };
-    rt->usb = mass_storage_usb_start("BADUSBMSC", fn, usb_cfg);
+    rt->usb = mass_storage_usb_start(rt->product_name, fn, usb_cfg);
     if(!rt->usb) {
         furi_mutex_free(rt->mutex);
+        storage_file_close(rt->image_file);
         storage_file_free(rt->image_file);
         furi_record_close(RECORD_STORAGE);
         free(rt);

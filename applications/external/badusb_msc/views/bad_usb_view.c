@@ -35,7 +35,8 @@ static void bad_usb_draw_callback(Canvas* canvas, void* _model) {
         furi_string_printf(disp_str, "(%s)", model->layout);
     }
     uint32_t e = model->state.elapsed;
-    furi_string_cat_printf(disp_str, "  %02lu:%02lu.%ld", e / 60 / 1000, e / 1000, e % 1000);
+    furi_string_cat_printf(
+        disp_str, "  %02lu:%02lu.%03lu", e / 60 / 1000, (e / 1000) % 60, e % 1000);
     elements_string_fit_width(canvas, disp_str, 128 - 2);
     canvas_draw_str(
         canvas, 2, 8 + canvas_current_font_height(canvas), furi_string_get_cstr(disp_str));
@@ -114,7 +115,12 @@ static void bad_usb_draw_callback(Canvas* canvas, void* _model) {
             canvas, 124, 47, AlignRight, AlignBottom, furi_string_get_cstr(disp_str));
         canvas_set_font(canvas, FontBigNumbers);
         furi_string_printf(
-            disp_str, "%zu", ((model->state.line_cur - 1) * 100) / model->state.line_nb);
+            disp_str,
+            "%zu",
+            model->state.line_nb ?
+                (((model->state.line_cur ? model->state.line_cur - 1 : 0) * 100) /
+                 model->state.line_nb) :
+                0);
         canvas_draw_str_aligned(
             canvas, 112, 37, AlignRight, AlignBottom, furi_string_get_cstr(disp_str));
         canvas_draw_icon(canvas, 115, 23, &I_Percent_10x14);
@@ -143,7 +149,12 @@ static void bad_usb_draw_callback(Canvas* canvas, void* _model) {
             canvas, 124, 47, AlignRight, AlignBottom, furi_string_get_cstr(disp_str));
         canvas_set_font(canvas, FontBigNumbers);
         furi_string_printf(
-            disp_str, "%zu", ((model->state.line_cur - 1) * 100) / model->state.line_nb);
+            disp_str,
+            "%zu",
+            model->state.line_nb ?
+                (((model->state.line_cur ? model->state.line_cur - 1 : 0) * 100) /
+                 model->state.line_nb) :
+                0);
         canvas_draw_str_aligned(
             canvas, 112, 37, AlignRight, AlignBottom, furi_string_get_cstr(disp_str));
         canvas_draw_icon(canvas, 115, 23, &I_Percent_10x14);
@@ -161,7 +172,12 @@ static void bad_usb_draw_callback(Canvas* canvas, void* _model) {
             canvas, 124, 47, AlignRight, AlignBottom, furi_string_get_cstr(disp_str));
         canvas_set_font(canvas, FontBigNumbers);
         furi_string_printf(
-            disp_str, "%zu", ((model->state.line_cur - 1) * 100) / model->state.line_nb);
+            disp_str,
+            "%zu",
+            model->state.line_nb ?
+                (((model->state.line_cur ? model->state.line_cur - 1 : 0) * 100) /
+                 model->state.line_nb) :
+                0);
         canvas_draw_str_aligned(
             canvas, 112, 37, AlignRight, AlignBottom, furi_string_get_cstr(disp_str));
         canvas_draw_icon(canvas, 115, 23, &I_Percent_10x14);

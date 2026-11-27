@@ -4,11 +4,17 @@
 #include <furi_hal.h>
 #include "toolbox/path.h"
 
-// Confirm safe ejection before disconnecting the virtual disk to avoid cached Windows writes.
+// Confirm safe ejection before disconnecting the virtual disk to avoid cached OS writes.
 static bool combo_confirm_safe_eject(BadUsbApp* app) {
     DialogMessage* msg = dialog_message_alloc();
-    dialog_message_set_header(msg, "Eject BADUSBMSC", 64, 7, AlignCenter, AlignTop);
-    dialog_message_set_text(msg, "Ejected in Windows?", 64, 30, AlignCenter, AlignCenter);
+    char header[24];
+    snprintf(
+        header,
+        sizeof(header),
+        "Eject %s",
+        app->msc_name[0] ? app->msc_name : BAD_USB_MSC_DEFAULT_NAME);
+    dialog_message_set_header(msg, header, 64, 7, AlignCenter, AlignTop);
+    dialog_message_set_text(msg, "Ejected in OS?", 64, 30, AlignCenter, AlignCenter);
     dialog_message_set_buttons(msg, "No", NULL, "Yes");
     DialogMessageButton choice = dialog_message_show(app->dialogs, msg);
     dialog_message_free(msg);
@@ -27,7 +33,8 @@ bool bad_usb_scene_work_on_event(void* context, SceneManagerEvent event) {
 
     if(event.type == SceneManagerEventTypeCustom) {
         if(event.event == InputKeyLeft) {
-            if(bad_usb_view_is_idle_state(app->bad_usb_view) && combo_confirm_safe_eject(app)) {
+            if(app->bad_usb_script && bad_usb_view_is_idle_state(app->bad_usb_view) &&
+               combo_confirm_safe_eject(app)) {
                 bad_usb_script_close(app->bad_usb_script);
                 app->bad_usb_script = NULL;
 
@@ -36,12 +43,14 @@ bool bad_usb_scene_work_on_event(void* context, SceneManagerEvent event) {
             }
             consumed = true;
         } else if(event.event == InputKeyOk) {
-            bad_usb_script_start_stop(app->bad_usb_script);
+            if(app->bad_usb_script) {
+                bad_usb_script_start_stop(app->bad_usb_script);
+            }
             consumed = true;
         } else if(event.event == InputKeyRight) {
             // Restore the original BadUSB USB/BLE toggle while idle.
             // The MSC disk still uses USB; BLE carries only the HID reports.
-            if(bad_usb_view_is_idle_state(app->bad_usb_view)) {
+            if(app->bad_usb_script && bad_usb_view_is_idle_state(app->bad_usb_view)) {
                 bad_usb_set_interface(
                     app,
                     app->interface == BadUsbHidInterfaceBle ? BadUsbHidInterfaceUsb :
@@ -50,27 +59,32 @@ bool bad_usb_scene_work_on_event(void* context, SceneManagerEvent event) {
                 app->bad_usb_script = bad_usb_script_open(
                     app->file_path, &app->interface, &app->script_hid_cfg, false);
                 if(!bad_usb_script_set_keyboard_layout(app->bad_usb_script, app->keyboard_layout)) {
+                    bad_usb_script_close(app->bad_usb_script);
+                    app->bad_usb_script = NULL;
                     bad_usb_files_message(app, "Keyboard error", "Selected .kl not loaded");
                     scene_manager_search_and_switch_to_previous_scene(
                         app->scene_manager, BadUsbSceneHome);
                     return true;
                 }
                 bad_usb_save_settings(app);
-            } else {
+            } else if(app->bad_usb_script) {
                 bad_usb_script_pause_resume(app->bad_usb_script);
             }
             consumed = true;
         }
     } else if(event.type == SceneManagerEventTypeBack) {
         // Block navigation until the user confirms that the volume was ejected.
-        if(!bad_usb_view_is_idle_state(app->bad_usb_view)) return true;
+        if(app->bad_usb_script && !bad_usb_view_is_idle_state(app->bad_usb_view)) return true;
         if(combo_confirm_safe_eject(app)) {
             scene_manager_previous_scene(app->scene_manager);
         }
         return true;
     } else if(event.type == SceneManagerEventTypeTick) {
-        bad_usb_view_set_state(app->bad_usb_view, bad_usb_script_get_state(app->bad_usb_script));
-        bad_usb_view_set_interface(app->bad_usb_view, app->interface);
+        if(app->bad_usb_script) {
+            bad_usb_view_set_state(
+                app->bad_usb_view, bad_usb_script_get_state(app->bad_usb_script));
+            bad_usb_view_set_interface(app->bad_usb_view, app->interface);
+        }
     }
     return consumed;
 }
@@ -115,7 +129,9 @@ void bad_usb_scene_work_on_enter(void* context) {
     bad_usb_hid_get_interface(BadUsbHidInterfaceUsb)->adjust_config(&app->script_hid_cfg);
     // Start MSC only after the effective script/config USB identity is known.
     // Never recreate drive.img here; ComboRuntime uses the existing image.
-    if(!app->combo_runtime) app->combo_runtime = combo_runtime_start(&app->script_hid_cfg.usb);
+    if(!app->combo_runtime) {
+        app->combo_runtime = combo_runtime_start(&app->script_hid_cfg.usb, app->msc_name);
+    }
     if(!app->combo_runtime) {
         bad_usb_files_message(app, "Storage unavailable", "Check SD / disk image");
         scene_manager_search_and_switch_to_previous_scene(app->scene_manager, BadUsbSceneHome);
@@ -126,6 +142,8 @@ void bad_usb_scene_work_on_enter(void* context) {
     app->bad_usb_script = bad_usb_script_open(
         app->file_path, &app->interface, &app->script_hid_cfg, first_script_load);
     if(!bad_usb_script_set_keyboard_layout(app->bad_usb_script, app->keyboard_layout)) {
+        bad_usb_script_close(app->bad_usb_script);
+        app->bad_usb_script = NULL;
         bad_usb_files_message(app, "Keyboard error", "Selected .kl not loaded");
         scene_manager_search_and_switch_to_previous_scene(app->scene_manager, BadUsbSceneHome);
         return;
