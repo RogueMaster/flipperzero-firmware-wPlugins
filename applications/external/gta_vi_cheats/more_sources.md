@@ -834,3 +834,19 @@ Additional third-party guides, maps and walkthroughs referenced by the app. Thes
 - [Findora all 15 tags](https://findora.cirelay.com/gta-6/noflusher-tags)
 - [Bret deck status](https://leonidatracks.com/bret-hunting-decks)
 - [Watch video index](https://gta6cut.com/streamers/all-34-luxury-watch-locations)
+
+## Wildlife identification and reading locations
+
+- [GTA VI Database — hunting animal identification](https://gamesdb.gg/gta-6/wildlife/hunting)
+- [GTA VI Database — bird identification](https://gamesdb.gg/gta-6/wildlife/birds)
+- [GTA6Ops — Book Swap landmarks and alternate chapter pickups](https://gta6ops.com/collectibles/magazines-books-comics/)
+
+## Magazine rosters, tattoo discoveries and fishing
+
+- [GTA Vibes — complete style and tattoo magazine guide](https://www.gtavibes.com/guides/gta-6-style-magazines-locations-hairstyles-makeup)
+- [GTABase — named magazine map (French)](https://www.gtabase.com/fr/gta-6/carte/?feature=style-magazine)
+- [Jason styles video walkthrough](https://www.youtube.com/watch?v=pvjbP5wPoDs)
+- [Lucia styles video walkthrough](https://www.youtube.com/watch?v=pesPYIHWITw)
+- [Vice Keys — Grayson ghost cat and Zombie Deer](https://getvicekeys.com/guides/gta-6-grayson-ghost-cat-benson-rentals-zombie-deer)
+- [GTA6.house — Grayson tattoo lead](https://gta6.house/guides/gta-6-grayson-ghost-cat-zombie-deer-tattoo)
+- [GTA6 Player Tools — fishing](https://gta6playertools.com/collectibles/fish)

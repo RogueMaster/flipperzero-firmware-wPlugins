@@ -1,5 +1,11 @@
 # GTA VI Companion changelog
 
+## v2.0.2 — Wildlife, Reading and Style Guides
+- Added visual identification and behavior clues for all 61 hunting animals and 60 birds in the Quick Guide.
+- Expanded all seven Book Swap shelf landmarks and controls; documented two alternate Chapter 3 publication pickups during Climbing the Cellerichain. Existing progress IDs and NFC links remain unchanged.
+- Added full reported Jason and Lucia magazine-style rosters to the Quick Guide; promoted Mutton Chops into the tracked collection using its existing progress ID, corrected a hairstyle label, and expanded tattoo discovery directions.
+- Expanded fishing lure availability and Cal’s catch requirements; split an oversized hunting guide page to fit the display buffer.
+
 ## v2.0.1 — Collections and Gameplay Guides
 - Expanded collectible pickup and access details for all 18 card sets, flamingos, meteorites, AHOL artwork, wildlife, styles, watches and search leads; added card identification and resale information while retaining existing identities and progress IDs.
 - Expanded all 130 stunt jumps, 202 bridge crossings, 40 knife flights and 25 BASE jumps; added illustrated routes, county and landmark comparisons, and clarified shared completion tracking.

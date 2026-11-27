@@ -32,7 +32,7 @@ The home screen has 16 icons across two pages. Icons appear in this order, from 
 | **Standout Vehicles** | 299 trackable vehicle entries covering special liveries, cars, motorcycles, aircraft, watercraft, mission rewards, and alternate pickup locations. |
 | **Garages** | 16 garage entries with location, capacity, acquisition cost, or unlock requirements where known. |
 | **Houses / Cribs** | Five story safehouses with locations, chapter access, and facilities. |
-| **Dispatch** | Region-based browsing of 968 indexed pickups and activities, with progress tracking and a next-unchecked shortcut. |
+| **Dispatch** | Region-based browsing of 969 indexed pickups and activities, with progress tracking and a next-unchecked shortcut. |
 | **Mock Loaders** | Gallery of the enabled image sets. The app ships 30 GTA VI and 15 Dungeons & Dolphins images. |
 | **Mock Loader Settings** | Enable or disable each image set in the gallery, startup rotation and NFC module transitions. |
 | **Quick guide / warnings** | Selectable topic list: OK opens the chosen guide section; Back returns to the highlighted topic, then to the originating menu. Collection progress is a separate live summary. Includes controls, NFC maps, cheat warnings, missables, collection tips and wildlife/fishing references. |
@@ -90,7 +90,7 @@ Collection and Dispatch checkmarks are saved in **`/ext/apps_data/gta_vi_cheats/
 
 ### Region-aware Dispatch
 
-Dispatch groups **968 location stops** into **Vice City**, **Leonida Keys**, **Grassrivers**, **Port Gellhorn**, **Ambrosia**, **Mount Kalaga**, **Other areas**, and **All regions**.
+Dispatch groups **969 location stops** into **Vice City**, **Leonida Keys**, **Grassrivers**, **Port Gellhorn**, **Ambrosia**, **Mount Kalaga**, **Other areas**, and **All regions**.
 
 Choose a region to open its first unchecked stop. Press **OK** to toggle its checkmark, **Left (Next)** to advance to the next unchecked stop, **Right (Emulate)** to open its location reference, or **Back** to choose another region. Checkmarks are shared with the corresponding collection or vehicle entry.
 
@@ -289,7 +289,7 @@ Select **Collections** to browse categories and individual sets. Each entry prov
 | **Meditations** | **18 character-specific completions** across **10 places**, with separate Jason and Lucia entries when applicable. |
 | **Cocaine Flamingos** | **103 reported pickups and search leads**, grouped by geographic area with landmarks, access clues, and available map references. |
 | **Unique Playlists** | **2 playlists** and **5 related poster locations**. |
-| **Discovered Styles** | **50 entries**: 5 Jason magazine styles, 10 Lucia magazine styles, 17 reported magazine tattoos, and 18 luxury-watch pickups and leads. The Wandering Cowboy and Wandering Cowgirl share a reported Ambrosia church magazine; verify both unlocks. The [GTABase magazine directory](https://www.gtabase.com/gta-6/map/?feature=magazine) and [Tildrix magazine directory](https://maps.tildrix.dev/en/gta-6/magazines-books-and-comics) report the shared church location. The Hamlet buzz-cut legacy alias is retained under Location Search Leads; distinct watch credit is not established for every reported pickup. |
+| **Discovered Styles** | **51 entries**: 6 Jason magazine styles, 10 Lucia magazine styles, 17 reported magazine tattoos, and 18 luxury-watch pickups and leads. The Wandering Cowboy and Wandering Cowgirl share a reported Ambrosia church magazine; verify both unlocks. The [GTABase magazine directory](https://www.gtabase.com/gta-6/map/?feature=magazine) and [Tildrix magazine directory](https://maps.tildrix.dev/en/gta-6/magazines-books-and-comics) report the shared church location. The Hamlet buzz-cut legacy alias is retained under Location Search Leads; distinct watch credit is not established for every reported pickup. |
 | **Optional Missions** | **43 mission and side-activity entries**, with character, earliest reported chapter, missability, and reward clues. Distinct from the Secret Missions home-menu guide. |
 | **Messages in Bottles** | **6 numbered shoreline pickups** around Key Lento and the Shoeless Keys. These have their own checklist and do not count toward publications or Book Swaps. |
 | **Missing Persons investigation** | **5 checkable investigation stages**: Starlet Motel poster and warehouse, three missing-tourist reports, and the optional warehouse/mine finale. The guide has **three victims, not five**. |
@@ -298,7 +298,7 @@ Select **Collections** to browse categories and individual sets. Each entry prov
 | **Under the Bridge** | **202 bridge crossings**, with individual spans and nearby landmarks. |
 | **Knife Flights** | **40 aircraft gaps**. |
 | **Base Jumps** | **25 jump starts** with published par-time notes where available. |
-| **Location Search Leads** | **254 checkable leads** for map pins that may match an existing pickup or still need their unlock name or counter credit verified. Includes legacy lab leads, vehicle sightings, unmatched street art and lab markers, reported luxury-watch sites, six hunting-region references, optional roadside encounters and provisional flamingo map markers. Search leads include seven new provisional GPS markers (five style/watch, one flamingo, one underwater safe); these do not establish unique collectible credit. Search leads are not additional official collectible identities. |
+| **Location Search Leads** | **253 checkable leads** for map pins that may match an existing pickup or still need their unlock name or counter credit verified. Includes legacy lab leads, vehicle sightings, unmatched street art and lab markers, reported luxury-watch sites, six hunting-region references, optional roadside encounters and provisional flamingo map markers. Search leads include seven new provisional GPS markers (five style/watch, one flamingo, one underwater safe); these do not establish unique collectible credit. Search leads are not additional official collectible identities. |
 | **Easter Eggs** | 24 reported optional discoveries and secret-route references, separate from Secret Missions completion. |
 | **Vice City Portal Route** | 14 mapped steps: radio tower, 12 substations and Reactor 2. |
 | **Endings** | **13 finale outcomes and proposed variations**: ten reported outcomes or epilogues and three speculative savings-based variants, each with story choices, suggested prerequisites, and confidence notes. |
@@ -315,7 +315,7 @@ Select **Collections** to browse categories and individual sets. Each entry prov
 
 **Unique Race Wins:** Under **Collections → Activities / Robberies → Unique Race Wins**, 40 named events have independent completion IDs, reported payouts, lap counts, field sizes, rating and entry details where available, and NFC source links. Individual course markers are used where matched; otherwise the link is labeled as a shared venue or nearby marker in the notes. The fifth Keep It PG race is the three-lap Rallycross Loop; the introduction is not counted as a separate win. See the [Rallycross Loop guide](https://getvicekeys.com/guides/gta-6-gellhorn-rallycross-loop-dirt-route). Verify first place in Progress > Activities > Racing before checking. Sources: [race guide](https://cutscenewire.com/games/gta-6/side-content/gta-6-all-40-unique-race-locations-and-how-to-unlock-them/), [race terms](https://thegameswiki.com/gta6/wiki/racing), [GTA6GPS](https://gta6gps.com/map/game/races), [Ambrosia venue](https://warppipes.com/en/gta-6/races/racing-ambrosia-raceway).
 
-**Discovered Styles:** Scan applicable magazines and inspect luxury-watch pickups. Crowex Submerge 'Ratface' is listed in Luxury Watches. The [GTA6 Maps watch directory](https://gta6-maps.net/categories/luxury-watches) adds individual and alternate site maps; repeated names do not establish separate style credit. The [Book Swaps map](https://gta6-maps.net/categories/book-swaps) lists Killer Prom separately from Book Swap 1; [the seven-library guide](https://cutscenewire.com/games/gta-6/collectibles/gta-6-all-book-swap-locations/) identifies only one Key Lento shelf. Entries identify the style or watch where known; unidentified pickups remain labeled as search leads. Approximate named magazine maps and reported pickup guides supplement exact markers where those are unavailable.
+**Discovered Styles:** The Quick Guide includes the reported full rosters of 13 Jason and 15 Lucia magazine styles, with directions for the remaining 12 guide-only styles. Scan applicable magazines and inspect luxury-watch pickups. Crowex Submerge 'Ratface' is listed in Luxury Watches. The [GTA6 Maps watch directory](https://gta6-maps.net/categories/luxury-watches) adds individual and alternate site maps; repeated names do not establish separate style credit. The [Book Swaps map](https://gta6-maps.net/categories/book-swaps) lists Killer Prom separately from Book Swap 1; [the seven-library guide](https://cutscenewire.com/games/gta-6/collectibles/gta-6-all-book-swap-locations/) identifies only one Key Lento shelf. Entries identify the style or watch where known; unidentified pickups remain labeled as search leads. Approximate named magazine maps and reported pickup guides supplement exact markers where those are unavailable.
 
 **Missing Persons (story spoilers):** Follow the Starlet Motel poster, warehouse clues, three missing-tourist investigations, and the optional warehouse/mine finale. The five checklist stages represent three victims and related investigation tasks. Individual in-game maps are linked for the warehouse and each victim site. Some players report both protagonists must be active for the final tip-line call; solo and paired approaches may lead to different finales. Save before the return.
 
@@ -491,7 +491,8 @@ The catalog contains 10,150 distinct item-to-URL references across 2,877 linked 
 - Shooting Range: all 42 medal entries include reported target scores or times.
 - Drone Trials: 42 trial entries include published prize amounts and par times.
 - Race Challenges: all 13 entries include medal targets; Unique Race Wins tracks 40 separate races.
-- Wildlife: the Quick Guide lists 255 reported animal entries across eight groups.
+- Wildlife: the Quick Guide lists 255 reported animal entries across eight groups, including identification and behavior clues for all 61 hunting animals and 60 birds.
+- Book Swaps: all seven shelves have visual approach clues and reading controls; the publication guide includes alternate copies during Climbing the Cellerichain.
 - Kenton’s Treasures: all 41 reported relics are listed across seven sets, separate from the 33 underwater discoveries.
 - Standout Vehicles: available performance ratings, acquisition instructions, registration costs and tracker conditions are included where reported.
 - Luxury watches, meteorites, flamingos and search leads contain unresolved identities; check the in-game collection counter before treating alternate sightings as new collectibles.
