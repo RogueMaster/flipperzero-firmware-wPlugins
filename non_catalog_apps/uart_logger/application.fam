@@ -1,0 +1,14 @@
+App(
+    appid="uart_logger",
+    name="UART Logger",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="uart_logger_app",
+    requires=["gui", "storage", "expansion", "dialogs"],
+    stack_size=4 * 1024,
+    fap_category="GPIO",
+    fap_icon="uart_logger.png",
+    fap_version="1.0",
+    fap_description="Log UART (USART/LPUART) data to SD card in text or hex",
+    fap_author="2p4g0",
+    fap_weburl="https://github.com/2p4g0/flipper-uart-logger",
+)

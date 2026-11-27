@@ -93,7 +93,6 @@ static bool warning_input_cb(InputEvent* event, void* context) {
 
     switch(event->key) {
     case InputKeyDown:
-    case InputKeyRight:
         if(model->page + 1 < startup_warning_page_count) {
             model->page++;
             handled = true;
@@ -106,15 +105,17 @@ static bool warning_input_cb(InputEvent* event, void* context) {
             handled = true;
         }
         break;
+    case InputKeyRight:
     case InputKeyOk:
-        if(event->type == InputTypeShort) {
-            if(warning_is_unlocked(model)) {
-                handled = true;
+        if(warning_is_unlocked(model)) {
+            if(event->type == InputTypeShort) {
                 view_commit_model(app->warning_view, false);
                 view_dispatcher_send_custom_event(
                     app->view_dispatcher, TagTinkerStartupWarningContinue);
                 return true;
-            } else if(model->page + 1 < startup_warning_page_count) {
+            }
+        } else if(model->page + 1 < startup_warning_page_count) {
+            if(event->key == InputKeyRight || event->type == InputTypeShort) {
                 model->page++;
                 handled = true;
             }
