@@ -415,6 +415,8 @@ const char* get_country_string(int country_num) {
         return "France";
     case 376:
         return "Israel";
+    case 380:
+        return "Italy";
     default: {
         // Use static buffer to avoid memory leak - caller doesn't need to free
         static char country[8];
@@ -450,6 +452,8 @@ const char* get_network_string(CALYPSO_CARD_TYPE card_type) {
         return "Gironde";
     case CALYPSO_CARD_RAVKAV:
         return "Rav-Kav";
+    case CALYPSO_CARD_GTT:
+        return "GTT";
     default:
         return "Unknown";
     }

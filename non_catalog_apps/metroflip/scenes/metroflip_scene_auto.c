@@ -323,6 +323,12 @@ bool metroflip_scene_auto_on_event(void* context, SceneManagerEvent event) {
                     popup_set_header(
                         popup, "RENFE Regular\ndetected!", 68, 30, AlignLeft, AlignTop);
                     break;
+                case CARD_TYPE_SANTO_DOMINGO:
+                    app->card_type = "santo_domingo";
+                    FURI_LOG_I(TAG, "Detected: Santo Domingo");
+                    popup_set_header(
+                        popup, "Santo Domingo\ndetected!", 68, 30, AlignLeft, AlignTop);
+                    break;
                 case CARD_TYPE_UNKNOWN:
                     app->card_type = "Unknown Card";
                     popup_set_header(

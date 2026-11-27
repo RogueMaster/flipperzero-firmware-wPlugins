@@ -24,6 +24,8 @@ void metroflip_scene_supported_on_enter(void* context) {
         submenu, "Opus (Montreal)", 1, metroflip_scene_supported_submenu_callback, app);
     submenu_add_item(
         submenu, "Rav-Kav (Israel)", 2, metroflip_scene_supported_submenu_callback, app);
+    submenu_add_item(
+        submenu, "BIP GTT (Turin)", 20, metroflip_scene_supported_submenu_callback, app);
 
     /* MIFARE Classic */
     submenu_add_item(
@@ -40,6 +42,8 @@ void metroflip_scene_supported_on_enter(void* context) {
         submenu, "RENFE Suma 10 (Spain)", 8, metroflip_scene_supported_submenu_callback, app);
     submenu_add_item(
         submenu, "RENFE Regular (Spain)", 9, metroflip_scene_supported_submenu_callback, app);
+    submenu_add_item(
+        submenu, "Santo Domingo (Dom. Rep.)", 21, metroflip_scene_supported_submenu_callback, app);
 
     /* MIFARE DESFire */
     submenu_add_item(

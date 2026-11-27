@@ -103,6 +103,10 @@ void metroflip_scene_load_on_enter(void* context) {
                     case CARD_TYPE_TWO_CITIES:
                         app->card_type = "two_cities";
                         break;
+                    case CARD_TYPE_SANTO_DOMINGO:
+                        app->card_type = "santo_domingo";
+                        FURI_LOG_I(TAG, "Detected: Santo Domingo");
+                        break;
                     case CARD_TYPE_UNKNOWN:
                     default:
                         app->card_type = "unknown";

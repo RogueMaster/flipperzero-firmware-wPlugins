@@ -1,6 +1,7 @@
 #include "transit/navigo_i.h"
 #include "transit/ravkav_i.h"
 #include "transit/opus_i.h"
+#include "transit/gtt_i.h"
 #include <furi.h>
 
 #ifndef CALYPSO_I_H
@@ -24,6 +25,7 @@ typedef enum {
     CALYPSO_CARD_ENVIBUS,
     CALYPSO_CARD_GIRONDE,
     CALYPSO_CARD_RAVKAV,
+    CALYPSO_CARD_GTT,
     CALYPSO_CARD_UNKNOWN
 } CALYPSO_CARD_TYPE;
 
@@ -41,6 +43,7 @@ typedef struct {
     NavigoCardData* navigo;
     OpusCardData* opus;
     RavKavCardData* ravkav;
+    GttCardData* gtt;
 
     CALYPSO_CARD_TYPE card_type;
     unsigned int card_number;
