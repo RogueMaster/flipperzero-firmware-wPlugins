@@ -1,15 +1,22 @@
 """Make a throwaway copy of the app that shows a made-up card (for screenshots)."""
+
 import shutil, sys, os
 
 src, dst = sys.argv[1], sys.argv[2]
 if os.path.exists(dst):
     shutil.rmtree(dst)
-shutil.copytree(src, dst, ignore=shutil.ignore_patterns(".git", "dist", "tests", ".github", "tools", "screenshots"))
+shutil.copytree(
+    src,
+    dst,
+    ignore=shutil.ignore_patterns(
+        ".git", "dist", "tests", ".github", "tools", "screenshots"
+    ),
+)
 
 p = os.path.join(dst, "cepas_app.c")
 s = open(p, encoding="utf-8").read()
 
-demo = r'''
+demo = r"""
 /* DEMO ONLY: fake card for store screenshots. Not part of the real app. */
 static void demo_txn(CepasTxn* t, uint8_t type, int32_t amount, uint32_t time, const char* ud) {
     t->type = type;
@@ -46,7 +53,7 @@ static void demo_fill(App* app) {
     app->hist_sel = 0;
 }
 
-int32_t cepas_app(void* p) {'''
+int32_t cepas_app(void* p) {"""
 assert "int32_t cepas_app(void* p) {" in s
 s = s.replace("int32_t cepas_app(void* p) {", demo, 1)
 old = "    app->nfc = nfc_alloc();\n    start_scan(app);"

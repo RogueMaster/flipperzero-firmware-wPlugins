@@ -103,7 +103,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [NFC Sniffer v0.3 (By kdiller713)](https://github.com/kdiller713/public-FlipperApps/tree/main/nfc_sniffer)
 - Added: [Tile Scanner v0.2 (By kdiller713)](https://github.com/kdiller713/public-FlipperApps/tree/main/tile_scanner) `Req: ESP32`
 - Updated: [A/C Master v0.3 improves small-font readability and menu spacing (By Enlighten Tech)](https://github.com/gbhobbytech/flipper-ac-multi-remote)
-- Updated: [GTA VI Companion v2.0.1 (By RogueMaster)](https://github.com/RogueMaster/GTA_VI_Companion)
 - Updated: [Badge Wallet v1.0 fixes long filenames and unsupported listeners, marks badge lists above 128 entries, and cleans up the active scene on close (By lewisQ17)](https://github.com/lewisQ17/Momentum-Firmware)
 - Updated: [GPIO Frequency Counter v1.0 keeps the input callback responsive when its queue is full (By lewisQ17)](https://github.com/lewisQ17/Momentum-Firmware)
 - Updated: [IR Remote Maker v1.0 rejects incomplete loads, preserves edited commands, reports save-close errors, and cleans up the active scene on close (By lewisQ17)](https://github.com/lewisQ17/Momentum-Firmware)
@@ -126,6 +125,9 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [UART Logger v1.0 wraps the save-dialog path before the filename (By 2p4g0)](https://github.com/2p4g0/flipper-uart-logger) [UL integration (By xMasterX)](https://github.com/xMasterX/all-the-plugins/commit/cc4edae5a3d5)
 - Added: [Guess The Number v1.2 (By Prevo128)](https://github.com/xMasterX/all-the-plugins/commit/7ad9eb834bde) - Player and computer guessing modes, saved statistics, and high scores
 - Updated: [ESP32CAM Marauder v0.7.6 (By 0xchocolate & eried)](https://github.com/eried/flipperzero-mayhem) `Req: ESP32-CAM (Mayhem)` - stop the script worker before the final stopscan on console exit and correct Sniff command mappings
+- Updated: [GTA VI Companion v2.0.1 (By RogueMaster)](https://github.com/RogueMaster/GTA_VI_Companion)
+- Added: [CEPAS Reader v1.0 (By smolbun)](https://github.com/smolbun/flipper-cepas)
+- Updated: [TommyBox Capture v1.0 (By mitchsurp)](https://github.com/mitchsurp/Tonies-Capture-Flipper)
 
 <a name="release"></a>
 
@@ -542,6 +544,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [CatDriver v1.0 (By EVL87)](https://github.com/EVL87/catwardrive) - GPS Wi-Fi/BLE wardriving `Req: ESP32`
 - [CCID Emu v1.0 (By kidbomb)](https://github.com/kidbomb/flipper-ccid-app)
 - [CCID Emulator v1.1 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
+- [CEPAS Reader v1.0 (By smolbun)](https://github.com/smolbun/flipper-cepas)
 - [Cerberus v1.1 (By at0m-b0mb)](https://github.com/at0m-b0mb/flipper-cerberus) - Passive Sub-GHz anomaly monitor
 - [CFS Tag Writer v1.0 (By pwschattenberg)](https://github.com/pwschattenberg/cfs-tag-writer)
 - [CFS Tag Writer+ v1.5 (By BaniMun)](https://github.com/BaniMun/cfs-tag-writer)

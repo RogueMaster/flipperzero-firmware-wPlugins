@@ -3,6 +3,7 @@ screenshots (512x256, orange + black). Usage:
   flipshot.py OUTDIR name:keys name:keys ...
 keys: comma list of up,down,left,right,ok,back (empty = capture current screen).
 """
+
 import os, sys, time
 import serial
 from PIL import Image
@@ -76,24 +77,30 @@ class Rpc:
         while i < len(msg):
             key, shift = 0, 0
             while True:
-                b = msg[i]; i += 1
-                key |= (b & 0x7F) << shift; shift += 7
+                b = msg[i]
+                i += 1
+                key |= (b & 0x7F) << shift
+                shift += 7
                 if not b & 0x80:
                     break
             num, wt = key >> 3, key & 7
             if wt == 0:
                 v, shift = 0, 0
                 while True:
-                    b = msg[i]; i += 1
-                    v |= (b & 0x7F) << shift; shift += 7
+                    b = msg[i]
+                    i += 1
+                    v |= (b & 0x7F) << shift
+                    shift += 7
                     if not b & 0x80:
                         break
                 yield num, v
             elif wt == 2:
                 ln, shift = 0, 0
                 while True:
-                    b = msg[i]; i += 1
-                    ln |= (b & 0x7F) << shift; shift += 7
+                    b = msg[i]
+                    i += 1
+                    ln |= (b & 0x7F) << shift
+                    shift += 7
                     if not b & 0x80:
                         break
                 yield num, msg[i : i + ln]
