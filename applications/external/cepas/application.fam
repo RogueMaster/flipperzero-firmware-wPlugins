@@ -1,0 +1,16 @@
+App(
+    appid="cepas_reader",
+    name="CEPAS Reader",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="cepas_app",
+    requires=["gui", "storage", "notification"],
+    stack_size=4 * 1024,
+    fap_category="NFC",
+    fap_icon="cepas_reader.png",
+    fap_icon_assets="images",
+    fap_version="1.0",
+    fap_author="smolbun",
+    fap_weburl="https://github.com/smolbun/flipper-cepas",
+    fap_description="Shows the balance and recent transactions of Singapore EZ-Link and NETS FlashPay (CEPAS) cards.",
+    sources=["cepas.c", "cepas_stations.c", "cepas_app.c"],
+)
