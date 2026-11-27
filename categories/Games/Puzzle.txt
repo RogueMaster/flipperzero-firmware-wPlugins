@@ -13,3 +13,4 @@ rubiks_cube_scrambler
 simon_says
 sudoku
 tetris
+guess_the_number

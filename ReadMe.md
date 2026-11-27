@@ -202,6 +202,7 @@ The Flipper and its community wouldn't be as rich as it is without your contribu
 | Stack Attack | ![Games Badge] | [by Negenii](https://github.com/Negenii/flipper-stack-attack) | remake of the legendary Siemens mobile game | [![Author Badge]](https://lab.flipper.net/apps/stack_attack) |
 | Bounce | ![Games Badge] | [by tomxposed](https://github.com/tomxposed/flipper-bounce) | Nokia-style Bounce - roll, jump, collect every ring and reach the exit | [![Author Badge]](https://lab.flipper.net/apps/bounce) |
 | Stack | ![Games Badge] | [by bergr22](https://github.com/bergr22/Stack) | stack the falling blocks into the tallest tower - vibration, sound & LED effects | [![Author Badge]](https://lab.flipper.net/apps/stack_game) |
+| Guess The Number | ![Games Badge] | [by Prevo128](https://github.com/Prevo128/flipper-guess-the-number) | Guess the computer's number or let the computer guess yours, with custom ranges, stats & Hall of Fame | ![None Badge] |
 | Air Mouse | ![GPIO Badge] | [by ginkage](https://github.com/ginkage/FlippAirMouse/) |  | [![Author Badge]](https://lab.flipper.net/apps/air_mouse) |
 | Plantower PMSx003 sensor reader | ![GPIO Badge] | [by 3cky](https://github.com/3cky/flipperzero-airmon) |  | [![UFW Badge]](https://lab.flipper.net/apps/airmon) |
 | Bar code scanner emulator via COM port | ![GPIO Badge] | [by polarikus](https://github.com/polarikus/flipper-zero_bc_scanner_emulator) |  | [![Author Badge]](https://lab.flipper.net/apps/bc_scanner) |

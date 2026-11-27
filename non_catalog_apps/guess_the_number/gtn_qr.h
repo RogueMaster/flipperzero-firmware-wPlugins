@@ -1,0 +1,9 @@
+#pragma once
+#include <stdint.h>
+/* QR code for https://github.com/Prevo128, bit i of row = module x=i */
+#define GTN_QR_SIZE 25
+static const uint32_t gtn_qr_rows[GTN_QR_SIZE] = {
+    0x01FD347F, 0x0105C541, 0x0175505D, 0x0174375D, 0x0175225D, 0x0105FB41, 0x01FD557F,
+    0x00004E00, 0x00AADBDF, 0x008954AE, 0x01B89557, 0x010F102D, 0x01D66E7C, 0x00AA59A1,
+    0x01BEB2F5, 0x011C1A25, 0x005FE7ED, 0x00319F00, 0x01D5457F, 0x00B15641, 0x005FE75D,
+    0x01F65D5D, 0x0160615D, 0x01390B41, 0x01FC797F};
