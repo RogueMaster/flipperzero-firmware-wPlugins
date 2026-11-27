@@ -440,6 +440,7 @@ The Flipper and its community wouldn't be as rich as it is without your contribu
 | USB CD-ROM | ![USB Badge] | [by piersroberts](https://github.com/piersroberts/flippercd) | Emulates a USB CD/DVD-ROM drive from .iso images on the SD card | ![None Badge] |
 | USB Utility (Zero Buster) | ![USB Badge] | [by DonJulve](https://github.com/DonJulve/Zero_Buster) | Types a script as USB keyboard, then switches to CDC serial and logs the host reply to a timestamped file - stock BadUSB `.kl` layouts, spoofable VID/PID | ![None Badge] |
 | BadUSB MSC | ![USB Badge] | [by ZombieDolphin](https://github.com/ZombieDolphin/BadUSB_MSC) | Composite USB HID BadUSB + isolated FAT16 USB Mass Storage drive with on-device file manager. RAM/OOM, USB HID/MSC stability, FAT16 re-mount, `assets/layouts` & configurable storage name fixes by @xMasterX | ![None Badge] |
+| Controller Ducky | ![USB Badge] | [by eric-m-holub](https://github.com/eric-m-holub/controller-ducky) | USB wired game controller emulator (Switch Pro, DualSense, Xbox/XInput) with live input and Ducky gameplay automation scripts | ![None Badge] |
 
 
 #### Catalog links checked at `27 Nov 2026 05:50 GMT +3`
