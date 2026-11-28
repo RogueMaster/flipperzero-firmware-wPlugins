@@ -123,7 +123,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Tesla Mod v2.17.0b7 restores the ESP32 dashboard generator and stack checker to RM's companion build directory (By hypery11; RM path adaptation by RogueMaster)](https://github.com/hypery11/flipper-tesla-fsd)
 - Added: [Guess The Number v1.2 (By Prevo128)](https://github.com/xMasterX/all-the-plugins/commit/7ad9eb834bde) - Player and computer guessing modes, saved statistics, and high scores
 - Updated: [ESP32CAM Marauder v0.7.6 (By 0xchocolate & eried)](https://github.com/eried/flipperzero-mayhem) `Req: ESP32-CAM (Mayhem)` - stop the script worker before the final stopscan on console exit and correct Sniff command mappings
-- Updated: [GTA VI Companion v2.0.2 (By RogueMaster)](https://github.com/RogueMaster/GTA_VI_Companion)
 - Added: [CEPAS Reader v1.0 (By smolbun)](https://github.com/smolbun/flipper-cepas)
 - Updated: [TommyBox Capture v1.0 (By mitchsurp)](https://github.com/mitchsurp/Tonies-Capture-Flipper)
 - OFW: [BLE HID service only claims GATT writes to its own attributes (By SokolskyNikita)](https://github.com/flipperdevices/flipperzero-firmware/commit/be4fb60ebd1a37e6c7217093f7038694196e1723)
@@ -135,6 +134,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [UART Logger v1.0 wraps the save-dialog path before the filename and includes the author changelog (By 2p4g0)](https://github.com/2p4g0/flipper-uart-logger) [UL integration (By xMasterX)](https://github.com/xMasterX/all-the-plugins/commit/cc4edae5a3d5) [Save UART logs in app data. (By 2p4g0)](https://github.com/flipperdevices/flipper-application-catalog/pull/1415)
 - Added: [IR & Wii Mouse v1.0 maps IR remotes to BLE mouse and keyboard actions with an optional webcam pointer (By TheMajorFuego)](https://github.com/TheMajorFuego/FlipperApps)
 - UL: [Refresh SIM800 and Sub-GHz documentation, including Euro5 identification and signal-edit guidance (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/4c55ea75d09b37e646d24486addeadb7e076319f)
+- Updated: [GTA VI Companion v2.1 (By RogueMaster)](https://github.com/RogueMaster/GTA_VI_Companion)
 
 <a name="release"></a>
 
@@ -755,7 +755,7 @@ This software is for experimental purposes only and is not meant for any illegal
 | [GPS v1.5 (By ezod)](https://github.com/ezod/flipperzero-gps) `Req: NMEA 0183` | `GPIO/GPS` |
 | [Gree AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac) | `Infrared` |
 | [GS1 Parser v0.3 (By kdiller713)](https://github.com/kdiller713/public-FlipperApps/tree/main/gs1_rfid_parser) `Req: U107 or YRM100` | `GPIO` |
-| [GTA VI Companion v2.0.2 (By RogueMaster)](https://github.com/RogueMaster/GTA_VI_Companion) | `NFC` |
+| [GTA VI Companion v2.1 (By RogueMaster)](https://github.com/RogueMaster/GTA_VI_Companion) | `NFC` |
 | [Guido Music Score Reader v0.1 (By fgreil)](https://github.com/fgreil/mitzi-guido) | `Media` |
 | [Guitar Chords v1.0 (By KingBoa / NoodleNugget-com)](https://github.com/NoodleNugget-com/flipper-guitar-chords) | `Media` |
 | [H1030L Writer v1.3 (By Zacvr)](https://github.com/Zacvr/h10301_writer) | `RFID` |

@@ -119,7 +119,7 @@ const GtaExploreSection gta_explore_sections[] = {
     GTA_LEAF("Messages in Bottles", "messages_bottles", 6, "Read"),
     GTA_GROUP("Meteorite Chunks (known)", meteorite_chunks),
     GTA_LEAF("Missing Persons (5 steps)", "missing_persons", 5, "Investigated"),
-    GTA_LEAF("Optional Missions", "optional_missions", 43, "Completed"),
+    GTA_LEAF("Optional Missions", "optional_missions", 58, "Completed"),
     GTA_GROUP("Stunt Jumps", stunt_jumps),
     GTA_GROUP("Under the Bridge", bridges),
     GTA_LEAF("Underwater Discoveries", "underwater", 33, "Discovered"),

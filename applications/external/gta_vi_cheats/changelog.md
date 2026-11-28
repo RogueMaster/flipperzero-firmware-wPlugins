@@ -1,5 +1,24 @@
 # GTA VI Companion changelog
 
+## v2.1 — Expanded Collections, Glitches and Gameplay References
+- Added a dedicated Glitches menu and monochrome icon, with the Infinite Money Glitch warehouse walkthrough and NFC map shortcut.
+- Added Stash Bag Cash Duplication, First-Person Camera, Illegal Operation Raid Reset, Store Robbery Cooldown Reset, Xbox Series X Frame Rate, Phone Wall Clip, Prologue Chase Shortcut, Nude Bottoms and Nude Top guides; expanded cash duplication recovery instructions and glitch compatibility notes.
+- Organized Standout Vehicles into nine independently loaded categories and an alphabetical All Standout Vehicles checklist, with shared completion tracking and NFC links.
+- Added 32-topic Quick Guide pagination with selection restoration; retained the existing catalog memory safeguards.
+- Expanded Standout Vehicle acquisition directions, performance ratings and alternate pickup locations, including off-road ratings and third-party road comparison scores.
+- Documented all 13 Jason and 15 Lucia magazine styles and all 17 reported tattoo magazine sites, including paired designs, character-specific redemption instructions and Fairyland Forest Gnome.
+- Documented acquisition routes for all 34 named luxury watches, including Domestobot’s Crowex Submerge; separated alternate watch locations from the main checklist while retaining their progress IDs and NFC links. Expanded yacht safe and residential access directions, wildlife search areas, flamingo landmarks and underwater fragment routes, including Selkie Hole.
+- Documented all 15 Bret's Target Decks with target species, weapon choices, search areas, delivery requirements and rewards.
+- Added the Four Horsemen puzzle walkthrough and cabin door code, Cherry Popper T-shirt discovery, Big Day Motel safe contents and the reported Mall Rats outfit retention method.
+- Expanded collectible card pickup clues and resale values, including Maximus Goldbart (Yellow); refined the Beached Cargo route, ghost-cat encounter, Spaceship House scan and Hovercraft approach.
+- Refined collection, vehicle and gameplay descriptions, using concise Unconfirmed labels for uncertain locations. Existing saved progress, cheat inputs and NFC links remain compatible.
+- Added all three Dunk robbery stash routes, Scarlet Sun’s return visit and the In the Tall Grass encounter; expanded hidden weapon pickup directions and the KD’s SFB 1000 reward location.
+- Expanded Pilot Pete’s five-flight walkthrough with aircraft types, delivery deadlines and supplier approaches; refined watch pickup landmarks, missing-tourist investigation directions and hidden weapon locations.
+- Added an alternate two-bag cash duplication method.
+- Added the Police Truck Registration Glitch and refined hidden weapon and flamingo pickup directions.
+- Expanded Optional Missions with the five pre-release errands, Clock Out, Impounded Vehicle, Get Your Wheels, It’s a Date! and Bad Driver!; added race rental and reward details, refined hidden weapon directions and expanded the marked-bills duplication method.
+- Expanded Optional Missions with Find the Lost Drugs, Hit Avery Pawn, Hit Kingpin Bowling and Dre’Quan’s Gift; refined the Tallaloko bell chamber and spy-wreck meteorite directions and stash bag duplication method.
+
 ## v2.0.2 — Wildlife, Reading and Style Guides
 - Added visual identification and behavior clues for all 61 hunting animals and 60 birds in the Quick Guide.
 - Expanded all seven Book Swap shelf landmarks and controls; documented two alternate Chapter 3 publication pickups during Climbing the Cellerichain. Existing progress IDs and NFC links remain unchanged.

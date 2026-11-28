@@ -44,6 +44,7 @@ typedef enum {
     ScreenSafeTips,
     ScreenCompanion,
     ScreenCollections,
+    ScreenStandouts,
     ScreenCollectionGroup,
     ScreenDispatchRegions,
     ScreenMockLoaders,
@@ -66,6 +67,7 @@ enum {
     ItemMoneyGlitch,
     ItemSafeCodes,
     ItemSecretMissions,
+    ItemGlitches,
     ItemRow = 16,
     ItemCollection = 128,
     ItemDispatch = ItemCollection + GtaCollectionCount,
@@ -73,6 +75,7 @@ enum {
     ItemMockLoaders,
     ItemMockLoaderSettings,
     ItemExploreRow = 256,
+    ItemStandoutRow = 0x280,
     ItemDispatchRegion = 0x300,
     ItemSafeAll = 0x400,
     ItemSafeMission,
@@ -86,6 +89,8 @@ enum {
     ItemSecretToggle,
     ItemSecretToggleDetail,
     ItemSecretMaps,
+    ItemGuidePrev = 0x7fe,
+    ItemGuideNext = 0x7ff,
     ItemGuideSection = 0x800,
 };
 typedef struct {
@@ -94,7 +99,7 @@ typedef struct {
     const char* title;
 } GtaHomeItem;
 static const GtaHomeItem gta_home_items[] = {
-    {&I_menu_infinite_money_glitch_25x25, ItemMoneyGlitch, "Infinite Money Glitch"},
+    {&I_menu_glitches_25x25, ItemGlitches, "Glitches"},
     {&I_menu_ps5_cheats_25x25, ItemPs5, "PS5 Cheats"},
     {&I_menu_xbox_cheats_25x25, ItemXbox, "Xbox Cheats"},
     {&I_menu_collections_25x25, ItemCollections, "Collections"},
@@ -119,8 +124,9 @@ enum {
 };
 /* Gameplay guide text is stored in escaped TSV assets, not in the FAP image. */
 #define GTA_GUIDE_ASSET             "guide_sections.tsv"
+#define GTA_GLITCH_ASSET            "guide_glitches.tsv"
 #define GTA_WILDLIFE_ASSET          "wildlife.tsv"
-#define GTA_GUIDE_MAX_TOPICS        256u
+#define GTA_GUIDE_TOPICS_PER_MENU   32u
 #define GTA_GUIDE_MAX_WILDLIFE_PAGE 16u
 #define GTA_GUIDE_MAX_PAGE_BYTES    4096u
 #define GTA_GUIDE_TITLE_MAX         64u
@@ -151,6 +157,8 @@ typedef struct {
     GtaScreen guide_back;
     uint32_t guide_selection;
     size_t guide_count;
+    size_t guide_page;
+    bool guide_glitches;
     GtaScreen companion_back;
     const GtaExploreSection* explore_group;
     GtaListMode list_mode;
@@ -159,6 +167,7 @@ typedef struct {
     uint32_t category_selection;
     uint32_t list_selection;
     uint32_t explore_root_selection;
+    uint32_t standout_selection;
     uint32_t explore_group_selection;
     uint32_t safe_category_selection;
     uint32_t safe_list_selection;
@@ -490,26 +499,46 @@ static void gta_show_menu(GtaApp* app, GtaScreen screen) {
     submenu_reset(app->menu);
     char label[64];
     if(screen == ScreenGuide) {
-        submenu_set_header(app->menu, "Quick Guide / Warnings");
         Storage* storage = furi_record_open(RECORD_STORAGE);
         GtaRecord row = {0};
-        app->guide_count = gta_record_count(storage, GTA_GUIDE_ASSET);
-        if(app->guide_count > GTA_GUIDE_MAX_TOPICS) app->guide_count = 0;
+        const char* asset = app->guide_glitches ? GTA_GLITCH_ASSET : GTA_GUIDE_ASSET;
+        app->guide_count = gta_record_count(storage, asset);
+        /* Keep the SD row index, but allocate only one bounded menu of labels. */
+        const size_t pages = app->guide_count ?
+                                 (app->guide_count - 1u) / GTA_GUIDE_TOPICS_PER_MENU + 1u :
+                                 1u;
+        if(app->guide_page >= pages) app->guide_page = pages - 1u;
+        snprintf(label, sizeof(label), "%s %zu/%zu",
+                 app->guide_glitches ? "Glitches" : "Quick Guide", app->guide_page + 1u, pages);
+        submenu_set_header(app->menu, label);
+        const size_t first = app->guide_page * GTA_GUIDE_TOPICS_PER_MENU;
+        const size_t remaining = app->guide_count - first;
+        const size_t end = first + (remaining > GTA_GUIDE_TOPICS_PER_MENU ?
+                                        GTA_GUIDE_TOPICS_PER_MENU :
+                                        remaining);
         size_t added = 0;
-        for(size_t i = 0; i < app->guide_count; ++i) {
-            if(gta_record_read(storage, GTA_GUIDE_ASSET, i, 5, &row) && *row.field[0] &&
+        uint32_t selected = ItemEmpty;
+        if(app->guide_page) gta_item(app, "< Previous page", ItemGuidePrev);
+        const bool warehouse = app->guide_glitches && !app->guide_page;
+        if(warehouse) {
+            gta_item(app, "Infinite Money Glitch", ItemMoneyGlitch);
+            selected = ItemMoneyGlitch;
+        }
+        for(size_t i = first; i < end; ++i) {
+            if(gta_record_read(storage, asset, i, 5, &row) && *row.field[0] &&
                strlen(row.field[0]) < GTA_GUIDE_TITLE_MAX) {
-                gta_item(app, row.field[0], ItemGuideSection + i);
+                const uint32_t event = ItemGuideSection + i;
+                gta_item(app, row.field[0], event);
+                if((!added && !warehouse) || event == app->guide_selection) selected = event;
                 ++added;
             }
             gta_record_clear(&row);
         }
         gta_record_index_release();
         furi_record_close(RECORD_STORAGE);
-        if(!added)
-            gta_item(app, "Guide unavailable", ItemEmpty);
-        else
-            submenu_set_selected_item(app->menu, app->guide_selection);
+        if(!added && !warehouse) gta_item(app, "Guide unavailable", ItemEmpty);
+        if(app->guide_page + 1u < pages) gta_item(app, "Next page >", ItemGuideNext);
+        submenu_set_selected_item(app->menu, selected);
     } else if(screen == ScreenSafeCategories) {
         submenu_set_header(app->menu, "Safe & Door Codes");
         size_t counts[5] = {0};
@@ -541,6 +570,12 @@ static void gta_show_menu(GtaApp* app, GtaScreen screen) {
         if(app->safe_list_selection >= ItemSafeRow &&
            app->safe_list_selection - ItemSafeRow < gta_safe_code_count)
             submenu_set_selected_item(app->menu, app->safe_list_selection);
+    } else if(screen == ScreenStandouts) {
+        submenu_set_header(app->menu, "Standout Vehicles");
+        gta_item(app, "All Standout Vehicles", ItemStandoutRow);
+        for(size_t i = 0; i < GTA_STANDOUT_CATEGORY_COUNT; ++i)
+            gta_item(app, gta_standout_categories[i].title, ItemStandoutRow + 1u + i);
+        submenu_set_selected_item(app->menu, app->standout_selection);
     } else if(screen == ScreenCollections || screen == ScreenCollectionGroup) {
         const bool root = screen == ScreenCollections;
         const GtaExploreSection* items = root ? gta_explore_sections :
@@ -745,9 +780,11 @@ static void gta_detail(GtaApp* app, const GtaCheat* cheat, const GtaScreenshotCo
     gta_show_text(app, ScreenDetail);
     gta_catalog_release();
 }
-static void gta_guide(GtaApp* app) {
+static void gta_guide(GtaApp* app, bool glitches) {
     app->guide_back = app->screen;
-    app->guide_selection = ItemGuideSection;
+    app->guide_glitches = glitches;
+    app->guide_selection = glitches ? ItemMoneyGlitch : ItemGuideSection;
+    app->guide_page = 0;
     gta_show_menu(app, ScreenGuide);
 }
 
@@ -771,7 +808,8 @@ static void gta_guide_detail(GtaApp* app, size_t index) {
     furi_string_reset(app->content);
     Storage* storage = furi_record_open(RECORD_STORAGE);
     GtaRecord row = {0};
-    bool ok = gta_record_read(storage, GTA_GUIDE_ASSET, index, 5, &row) && *row.field[0] &&
+    const char* asset = app->guide_glitches ? GTA_GLITCH_ASSET : GTA_GUIDE_ASSET;
+    bool ok = gta_record_read(storage, asset, index, 5, &row) && *row.field[0] &&
               strlen(row.field[0]) < GTA_GUIDE_TITLE_MAX;
     char page_title[GTA_GUIDE_TITLE_MAX] = {0};
     size_t page_bytes = 0;
@@ -843,7 +881,7 @@ static void gta_guide_detail(GtaApp* app, size_t index) {
     gta_show_text(app, ScreenGuideDetail);
 }
 static void gta_money_glitch(GtaApp* app) {
-    app->companion_back = ScreenHome;
+    app->companion_back = ScreenGuide;
     app->screen = ScreenCompanion;
     gta_companion_open_money_glitch(app->companion);
     gta_release_unused(app, ViewCollectionDetail);
@@ -957,18 +995,20 @@ static bool gta_event(void* context, uint32_t event) {
     GtaApp* app = context;
     if(app->screen == ScreenCompanion) return gta_companion_custom_event(app->companion, event);
     if(app->screen == ScreenHome) {
-        if(event == ItemMoneyGlitch) {
-            gta_money_glitch(app);
+        if(event == ItemGlitches) {
+            gta_guide(app, true);
         } else if(event == ItemSafeCodes) {
             gta_show_menu(app, ScreenSafeCategories);
         } else if(event == ItemSecretMissions) {
             gta_show_menu(app, ScreenSecretList);
         } else if(event == ItemGuide) {
-            gta_guide(app);
+            gta_guide(app, false);
         } else if(event == ItemPs5 || event == ItemXbox) {
             app->xbox = event == ItemXbox;
             app->category_selection = ItemPublished;
             gta_show_menu(app, ScreenCategories);
+        } else if(event == ItemCollection + GtaCollectionStandout) {
+            gta_show_menu(app, ScreenStandouts);
         } else if(event >= ItemCollection && event < ItemDispatch) {
             app->screen = ScreenCompanion;
             app->companion_back = ScreenHome;
@@ -988,9 +1028,28 @@ static bool gta_event(void* context, uint32_t event) {
             gta_release_unused(app, ViewMockLoaderSettings);
         }
     } else if(app->screen == ScreenGuide) {
-        if(event < ItemGuideSection || event - ItemGuideSection >= app->guide_count) return false;
-        app->guide_selection = event;
-        gta_guide_detail(app, event - ItemGuideSection);
+        if(event == ItemMoneyGlitch && app->guide_glitches && !app->guide_page) {
+            app->guide_selection = ItemMoneyGlitch;
+            gta_money_glitch(app);
+        } else if(event == ItemGuidePrev || event == ItemGuideNext) {
+            if(event == ItemGuidePrev) {
+                if(!app->guide_page) return false;
+                --app->guide_page;
+            } else {
+                if(!app->guide_count ||
+                   app->guide_page >= (app->guide_count - 1u) / GTA_GUIDE_TOPICS_PER_MENU)
+                    return false;
+                ++app->guide_page;
+            }
+            app->guide_selection = ItemGuideSection + app->guide_page * GTA_GUIDE_TOPICS_PER_MENU;
+            gta_show_menu(app, ScreenGuide);
+        } else {
+            if(event < ItemGuideSection || event - ItemGuideSection >= app->guide_count ||
+               (event - ItemGuideSection) / GTA_GUIDE_TOPICS_PER_MENU != app->guide_page)
+                return false;
+            app->guide_selection = event;
+            gta_guide_detail(app, event - ItemGuideSection);
+        }
     } else if(app->screen == ScreenSecretList) {
         if(event == ItemSecretOpen && app->secret_index < gta_secret_mission_count) {
             gta_secret_detail(app, app->secret_index);
@@ -1049,6 +1108,13 @@ static bool gta_event(void* context, uint32_t event) {
         app->screen = ScreenCompanion;
         gta_companion_open_dispatch(app->companion, app->dispatch_region);
         gta_release_unused(app, ViewCollectionDetail);
+    } else if(app->screen == ScreenStandouts) {
+        if(event < ItemStandoutRow || event - ItemStandoutRow > GTA_STANDOUT_CATEGORY_COUNT) return false;
+        app->standout_selection = event;
+        app->companion_back = ScreenStandouts;
+        app->screen = ScreenCompanion;
+        gta_companion_open_standouts(app->companion, event - ItemStandoutRow);
+        gta_release_unused(app, ViewCollection);
     } else if(app->screen == ScreenCollections || app->screen == ScreenCollectionGroup) {
         const bool root = app->screen == ScreenCollections;
         const GtaExploreSection* items = root ? gta_explore_sections :
@@ -1076,7 +1142,7 @@ static bool gta_event(void* context, uint32_t event) {
     } else if(app->screen == ScreenCategories) {
         app->category_selection = event;
         if(event == ItemGuide) {
-            gta_guide(app);
+            gta_guide(app, false);
         } else if(
             event == ItemPublished || event == ItemAll || event == ItemUnverified ||
             (event >= ItemRow && event - ItemRow < gta_cheat_count)) {
@@ -1117,6 +1183,7 @@ static bool gta_back(void* context) {
         break;
     case ScreenCategories:
     case ScreenCollections:
+    case ScreenStandouts:
     case ScreenDispatchRegions:
     case ScreenMockLoaders:
     case ScreenMockLoaderSettings:
@@ -1170,6 +1237,7 @@ int32_t gta_vi_companion_app(void* args) {
         .dispatcher = view_dispatcher_alloc(),
         .home = view_alloc(),
         .explore_root_selection = ItemExploreRow,
+        .standout_selection = ItemStandoutRow,
         .safe_category_selection = ItemSafeAll,
     };
     Gui* gui = furi_record_open(RECORD_GUI);

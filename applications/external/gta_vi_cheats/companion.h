@@ -10,6 +10,7 @@ GtaCompanion*
 void gta_companion_free(GtaCompanion* companion);
 /* Called after switching away from collection views. Progress remains resident. */
 void gta_companion_idle(GtaCompanion* companion);
+void gta_companion_open_standouts(GtaCompanion* companion, size_t category);
 void gta_companion_open_list(GtaCompanion* companion, GtaCollectionId collection);
 void gta_companion_open_exploration(GtaCompanion* companion, const GtaExploreSection* section);
 void gta_companion_open_exploration_item(

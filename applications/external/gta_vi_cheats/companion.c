@@ -133,7 +133,10 @@ struct GtaCompanion {
     size_t explore_selection;
     const char* asset;
     bool vehicle_asset;
+    bool standout_view;
     uint32_t* rows; // ID and byte offset per row, followed by the end offset.
+    uint32_t* standout_ends; // All view: end offset and source file per row.
+    size_t standout_selections[GTA_STANDOUT_CATEGORY_COUNT + 1u];
     GtaRecord selected_record;
     GtaCollectionEntry selected_entry;
     size_t selected_row;
@@ -160,6 +163,11 @@ struct GtaCompanion {
 
 static uint32_t gta_row_offset(const GtaCompanion* companion, size_t row) {
     return companion->rows[row] & GtaRowOffsetMask;
+}
+
+static uint32_t gta_row_end(const GtaCompanion* companion, size_t row) {
+    return companion->standout_ends ? companion->standout_ends[row] & GtaRowOffsetMask :
+                                       gta_row_offset(companion, row + 1u);
 }
 
 static uint16_t gta_row_id(const GtaCompanion* companion, size_t row) {
@@ -467,13 +475,14 @@ static void gta_draw_list(Canvas* canvas, void* context) {
 
 static bool gta_read_collection_row(GtaCompanion* companion, size_t row, GtaRecord* record);
 static File* gta_open_tsv(GtaCompanion* companion);
+static File* gta_open_row(GtaCompanion* companion, size_t row);
 static bool
     gta_read_collection_label(GtaCompanion* companion, size_t row, char* name, size_t capacity) {
     if(row >= companion->explore_list.count || !capacity) return false;
     // The TSV index was validated on open. Read only the name prefix (not its description).
-    File* file = gta_open_tsv(companion);
+    File* file = gta_open_row(companion, row);
     if(!file) return false;
-    uint32_t start = gta_row_offset(companion, row), end = gta_row_offset(companion, row + 1u);
+    uint32_t start = gta_row_offset(companion, row), end = gta_row_end(companion, row);
     char prefix[72];
     size_t n = end - start < sizeof(prefix) ? end - start : sizeof(prefix);
     bool ok = storage_file_seek(file, start, true) && storage_file_read(file, prefix, n) == n;
@@ -544,7 +553,8 @@ static const GtaUrlLinks*
     return gta_url_links_resolve(
         entry->id,
         companion->explore_section ? companion->explore_section->asset : NULL,
-        collection ? collection->title : NULL);
+        companion->standout_view ? gta_collection_catalog[GtaCollectionStandout].title :
+                                   (collection ? collection->title : NULL));
 }
 
 static void gta_refresh_list(GtaCompanion* companion) {
@@ -911,14 +921,15 @@ static bool gta_input_list(InputEvent* event, void* context) {
 
 /* Build a temporary row index for the active TSV. Never hold a complete
  * description file in the heap. */
-static File* gta_open_tsv(GtaCompanion* companion) {
+static File* gta_open_tsv_asset(GtaCompanion* companion, const char* asset) {
+    if(!asset) return NULL;
     char path[96];
     int n = snprintf(
         path,
         sizeof(path),
         APP_ASSETS_PATH("%s/%s"),
         companion->vehicle_asset ? "catalogs" : "collections",
-        companion->asset);
+        asset);
     if(n < 0 || (size_t)n >= sizeof(path)) return NULL;
     File* f = storage_file_alloc(companion->storage);
     if(!f) return NULL;
@@ -928,12 +939,21 @@ static File* gta_open_tsv(GtaCompanion* companion) {
     }
     return f;
 }
+static File* gta_open_tsv(GtaCompanion* companion) {
+    return gta_open_tsv_asset(companion, companion->asset);
+}
+static File* gta_open_row(GtaCompanion* companion, size_t row) {
+    if(!companion->standout_ends) return gta_open_tsv(companion);
+    size_t source = companion->standout_ends[row] >> GtaRowOffsetBits;
+    if(source >= GTA_STANDOUT_CATEGORY_COUNT) return NULL;
+    return gta_open_tsv_asset(companion, gta_standout_categories[source].asset);
+}
 static bool gta_read_collection_row(GtaCompanion* companion, size_t row, GtaRecord* r) {
     if(row >= companion->explore_list.count) return false;
     gta_record_clear(r);
-    uint32_t start = gta_row_offset(companion, row), end = gta_row_offset(companion, row + 1u);
+    uint32_t start = gta_row_offset(companion, row), end = gta_row_end(companion, row);
     if(end <= start || end - start > GTA_RECORD_MAX) return false;
-    File* f = gta_open_tsv(companion);
+    File* f = gta_open_row(companion, row);
     if(!f) return false;
     size_t n = end - start;
     r->data = gta_try_alloc(n);
@@ -1012,20 +1032,93 @@ static void gta_release_exploration(GtaCompanion* companion) {
     companion->explore_section = NULL;
     companion->asset = NULL;
     companion->vehicle_asset = false;
+    companion->standout_view = false;
     companion->selected_valid = false;
     gta_record_clear(&companion->selected_record);
     gta_url_links_release();
     free(companion->rows);
     companion->rows = NULL;
+    free(companion->standout_ends);
+    companion->standout_ends = NULL;
     companion->explore_list.count = 0;
 }
+/* All Standouts is a virtual list. The small ID-only order file defines alphabetical
+ * order; every row's source/offset is resolved from the actual category at open time.
+ * Reject missing, duplicate or stale IDs instead of displaying mismatched checkmarks. */
+static bool gta_load_all_standouts(GtaCompanion* companion) {
+    File* order = gta_open_tsv_asset(companion, "standouts_order.tsv");
+    if(!order) return false;
+    const size_t count = gta_tsv_row_count(order);
+    uint32_t* rows = count ? gta_try_alloc(count * sizeof(*rows)) : NULL;
+    uint32_t* ends = count ? gta_try_alloc(count * sizeof(*ends)) : NULL;
+    bool ok = rows && ends && storage_file_seek(order, 0, true);
+    size_t used = 0;
+    for(size_t source = 0; ok && source < GTA_STANDOUT_CATEGORY_COUNT; ++source) {
+        ok = gta_load_explore_asset(companion, gta_standout_categories[source].asset);
+        if(ok && companion->explore_list.count <= count - used) {
+            for(size_t i = 0; i < companion->explore_list.count; ++i) {
+                rows[used] = companion->rows[i];
+                ends[used++] = ((uint32_t)source << GtaRowOffsetBits) |
+                               gta_row_offset(companion, i + 1u);
+            }
+        } else ok = false;
+        free(companion->rows);
+        companion->rows = NULL;
+        companion->explore_list.count = 0;
+    }
+    if(used != count) ok = false;
+    size_t out = 0;
+    unsigned id = 0, digits = 0;
+    uint8_t chunk[128];
+    uint64_t remaining = storage_file_size(order);
+    while(ok && remaining) {
+        size_t n = remaining > sizeof(chunk) ? sizeof(chunk) : (size_t)remaining;
+        if(storage_file_read(order, chunk, n) != n) { ok = false; break; }
+        remaining -= n;
+        for(size_t i = 0; ok && i < n; ++i) {
+            uint8_t ch = chunk[i];
+            if(ch == '\n') {
+                if(!digits || !id || id >= GtaProgressBytes * 8u || out >= count) {
+                    ok = false; break;
+                }
+                for(size_t previous = 0; previous < out; ++previous) {
+                    if((rows[previous] >> GtaRowOffsetBits) == id) {
+                        ok = false;
+                        break;
+                    }
+                }
+                if(!ok) break;
+                size_t match = out;
+                while(match < count && (rows[match] >> GtaRowOffsetBits) != id) ++match;
+                if(match == count) { ok = false; break; }
+                uint32_t swap = rows[out]; rows[out] = rows[match]; rows[match] = swap;
+                swap = ends[out]; ends[out] = ends[match]; ends[match] = swap;
+                ++out; id = digits = 0;
+            } else if(ch >= '0' && ch <= '9' && digits < 4u) {
+                id = id * 10u + ch - '0'; ++digits;
+            } else ok = false;
+        }
+    }
+    storage_file_free(order);
+    if(!ok || out != count || digits) {
+        free(rows); free(ends); return false;
+    }
+    companion->rows = rows;
+    companion->standout_ends = ends;
+    companion->explore_list.count = count;
+    companion->asset = NULL;
+    return true;
+}
+
 static bool gta_prepare_vehicle(GtaCompanion* companion, GtaCollectionId id) {
     gta_release_exploration(companion);
     companion->explore_list = gta_collection_catalog[id];
     companion->explore_list.count = 0;
     companion->asset = gta_vehicle_assets[id];
     companion->vehicle_asset = true;
-    return gta_load_explore_asset(companion, companion->asset);
+    companion->standout_view = id == GtaCollectionStandout;
+    return id == GtaCollectionStandout ? gta_load_all_standouts(companion) :
+                                         gta_load_explore_asset(companion, companion->asset);
 }
 static bool gta_prepare_exploration(GtaCompanion* companion, const GtaExploreSection* section) {
     if(companion->explore_section == section) return companion->explore_list.count != 0;
@@ -1194,6 +1287,24 @@ static void gta_open_checklist(
     gta_refresh_list(companion);
     view_dispatcher_switch_to_view(companion->dispatcher, companion->list_view_id);
     gta_ram_log("collection open");
+}
+
+void gta_companion_open_standouts(GtaCompanion* companion, size_t category) {
+    if(category > GTA_STANDOUT_CATEGORY_COUNT) return;
+    bool loaded;
+    if(!category) {
+        loaded = gta_prepare_vehicle(companion, GtaCollectionStandout);
+    } else {
+        gta_release_exploration(companion);
+        const GtaStandoutCategory* item = &gta_standout_categories[category - 1u];
+        companion->explore_list = (GtaCollection){.title = item->title, .checked_label = "Acquired"};
+        companion->vehicle_asset = true;
+        companion->standout_view = true;
+        loaded = gta_load_explore_asset(companion, item->asset);
+    }
+    gta_open_checklist(companion, &companion->explore_list,
+                       &companion->standout_selections[category],
+                       loaded ? NULL : "Collection unavailable");
 }
 
 void gta_companion_open_list(GtaCompanion* companion, GtaCollectionId collection) {

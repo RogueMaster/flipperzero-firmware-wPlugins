@@ -4,6 +4,10 @@ Additional third-party guides, maps and walkthroughs referenced by the app. Thes
 
 ## Money-glitch sources
 
+- [Insider Gaming - stash bag cash duplication, single and two bags (Nov 27)](https://insider-gaming.com/how-to-gta-6-money-glitch-stash-bag-duplication/)
+- [GTA6.house - drop/pickup controls, cycle cap and fencing](https://gta6.house/guides/gta-6-stash-bag-duplication-money-glitch)
+- [Leonida Notes - reported results and limitations](https://leonidanotes.com/guides/gta-6-stash-bag-duplication-money-glitch)
+
 - [VICE - Apollo Aggregates loot method](https://www.vice.com/en/article/gta-6-money-glitch/)
 - [character switching](https://www.vice.com/en/article/how-to-switch-characters-in-gta-6/)
 - [Games.gg - registered vehicle and Register service at Pay 'n' Spray or Moses](https://games.gg/grand-theft-auto-vi/guides/grand-theft-auto-6-money-glitch-warehouse-location-how-to-repeat/)
@@ -742,6 +746,7 @@ Additional third-party guides, maps and walkthroughs referenced by the app. Thes
 ## Project and community
 
 - [GTA Town standout menu ratings](https://gtatown.com/garage/best-cars/standout-car)
+- [GTA Town off-road standout ratings](https://gtatown.com/garage/best-off-road-standout-vehicles)
 - [Tildrix meteorite markers](https://maps.tildrix.dev/en/gta-6/meteorites)
 - [Tildrix hunting spots](https://maps.tildrix.dev/en/gta-6/hunting)
 - [Open GTA 6 Map](https://github.com/fbritoferreira)
@@ -889,3 +894,207 @@ Additional third-party guides, maps and walkthroughs referenced by the app. Thes
 - https://www.dexerto.com/wikis/gta-6/tattoos/tag/unlock-magazine-tattoo/
 - https://digitalnexus.pl/en/gta-6/luxury-watch-locations/
 - https://game-secret.com/guides/grand-theft-auto-vi/all-wyman-car-locations-in-gta-6-find-cars-for-wym/
+
+## Magazine roster and acquisition references
+- [Named magazine and collectible map directory](https://www.gta-maps.com/gta-6/leonida)
+- [Illustrated collectible routes](https://codexhq.gg/gta-vi/collectibles/)
+- [Discovered Styles scan guide](https://gta6ops.com/collectibles/discovered-styles/)
+
+## Tattoo pickup walkthroughs and map comparisons
+- [GameSpot WAiNK Curiosities (retrieved mirror; Spaceship House yard)](https://fandai.donguapan.workers.dev/https/www.gamespot.com/articles/all-waink-curiosities-in-gta-6/)
+- [Vice Keys — gameplay-based Hovercraft and Beached Cargo routes](https://getvicekeys.com/guides/gta-6-glide-or-die-and-beached-cargo-tattoos)
+- [The Click — Zombie Deer tattoo](https://www.theclick.gg/gta-6-zombie-deer-tattoo/)
+- [GTA Town — Stamped Magazine Tattoo Scan](https://gtatown.com/locations/stamped-magazine-tattoo-scan)
+- [Jeffed Studios — magazine and book directory](https://jeffed.studio/guides/gta-6/magazine-and-book/)
+- [GTA VI Atlas — four illustrated tattoo routes](https://linkleung310.github.io/gtavi-atlas/en/guides/collectibles/style-magazines-tattoos.html)
+- [GTA VI Atlas — Fairyland Forest 11:59 publication (not a tattoo)](https://linkleung310.github.io/gtavi-atlas/en/guides/collectibles/magazine-map-issues-p2.html)
+- [Vice Keys — Fairy Lane and Lovers Lookout curiosity scans](https://getvicekeys.com/guides/gta-6-fairy-lane-lovers-lookout-waink-scans)
+- [GTA6.house — Zombie Deer trigger and recovery](https://gta6.house/library/items/zombie-deer)
+- [GTA6 Field Guide — separate Deserted Home and Spaceship House landmarks](https://gtafieldguide.com/guides/waink-curiosities/)
+- [GTA6 Notebook — tattoo redemption](https://gta6notebook.com/guides/where-to-get-tattoos-in-gta-6/)
+- [Leonida Map — magazine route and bridge-marker comparison](https://leonidex.app/routes/magazines-books-and-comics/magazine/)
+- [Tildrix — WAiNK scans, including Zombie Deer](https://maps.tildrix.dev/en/gta-6/waink-scans?l=1)
+- [GTA6Bugs — alternate ghost-cat sightings](https://gta6bugs.com/easter-eggs/black-ghost-cat-grayson-zombie-deer-tattoo-pet-cemetery)
+- [GTA6Walk — cat tracking and candle encounter](https://www.gta6walk.com/guides/grayson-pet-cemetery-easter-egg/)
+- [eXputer — tattoo studio filtering and edition restrictions](https://gta.exputer.com/gta-6/guides/tattoos/)
+- [Lootmapped — approximate tattoo pickup landmarks](https://lootmapped.com/it/gta-6/mappa/)
+- [Lootmapped — tower, bridge and lovers camp landmarks](https://lootmapped.com/pt-br/gta-6/mapa/)
+- [GTA GetAway — reported tattoo completion target](https://www.getawayclips.com/guide/collectibles/magazine-tattoos/)
+
+## Additional card pickup illustrations
+- [LorenZone — collectible card images and location index](https://lorenzone.fr/blogs/news/gta-6-collectible-card-checklist-images-locations)
+
+
+### Additional wildlife and magazine references
+- https://www.gtasixmap.com/guides/magazines
+
+## Base-model scans and additional vehicle landmarks
+
+- [GTA6Gang – base vehicle scan ratings (Dexerto data)](https://gta6gang.com/wiki/vehicles.html)
+- [GTA Addict – base model index and Company Cars comparison](https://gtaaddict.com/gta-6/vehicles/)
+- [Alcast – Standout vehicle locations by set](https://alcasthq.com/gta-6-standout-vehicles/)
+- [PowerPyx – 100% completion checklist](https://www.powerpyx.com/gta-6-100-completion-checklist-guide)
+
+## Supplemental vehicle directory and scan references
+
+- [OpenLeonida – reported vehicle directory](https://openleonida.com/guides/gta-vi-confirmed-vehicles/)
+- [GTA Town – base vehicle ratings](https://gtatown.com/garage/vehicles)
+- [GTAFinder – vehicle registration and sale estimates](https://www.gtafinder.com/gta-6/guides/car-prices)
+- [GTA6Legit – reported individual PS5 vehicle scans](https://gta6legit.com/gta-6-car-stats/)
+
+## Style routes and shopping reference
+
+- [Palm Underworld: November 27 magazine roster](https://www.gtavl.com/news/gta-6-magazine-styles/)
+- [Palm Underworld: November 27 watch roster](https://www.gtavl.com/news/gta-6-luxury-watches/)
+- [GTA How To: watch access routes](https://www.gtahowto.com/gta6/all-luxury-watch-locations-in-gta-6)
+- [OP.GG: reported clothing stock](https://op.gg/gta6/appearance/clothing)
+- [GTA6Gang: shopping districts](https://gta6gang.com/pages/gta6-clothing-store-finder.html)
+
+## Additional watch, wildlife and meteorite references
+- [GTA Town watch map](https://gtatown.com/map/watches)
+- [LeonidaCheck later hunting deck claims (unverified)](https://leonidacheck.com/animals/brets-decks)
+
+- [GTA VI Explorer technical vehicle directory](https://six.mics.dev/vehicles/stats) — reported game-file performance and handling values.
+
+## Additional customization and collection references
+
+- [NiaDB: salon menus](https://meowdb.com/gta6/barbers) — screenshot-based prices and observed character access.
+- [Leonida Notebook: shop catalogue](https://leonidanotebook.com/catalogue/) — screenshot-backed in-game menu observations.
+- [Wantlas: flamingos](https://wantlas.com/locations/cocaine-flamingos/) — comparative location leads; possible aliases.
+- [Game Checklists: hunting decks](https://game-checklists.com/gta6/challenges-checklist/) — first three numbered contracts.
+
+## Standard armory, radio and hunting references
+- [Evergamer standard weapon menu comparison](https://gta6.evergamer.com/weapons)
+- [GTA6Gang weapon ratings and prices](https://gta6gang.com/wiki/weapons.html)
+- [GTA6 Check radio recording credits](https://gta6check.com/radio)
+- [Whatstheid station tracklists](https://whatstheid.com/gta-6-soundtrack)
+- [Rockstar game credits](https://www.rockstargames.com/VI/credits)
+- [EtalonGame candidate numbered hunting sequence](https://etalongame.com/en/gta-6-brets-target-decks/)
+- [GTA6 Field Guide hunting deck reports](https://gta6fg.com/missions/brets-hunting-decks/)
+- [GTA6-Help hunting guide](https://gta6-help.com/en/gta-6/animals/bret-hunting-target-decks/)
+- [GTABase meteorite directory](https://www.gtabase.com/gta-6/map/?feature=meteorite)
+- [Game Checklists flamingo locations](https://game-checklists.com/gta6/cocaine-flamingos-checklist/)
+
+## Expanded recording and collection reference sources
+
+- [Rockstar Games GTA VI credits](https://www.rockstargames.com/VI/credits)
+- [GTA6Gang recording directory](https://gta6gang.com/pages/gta6-song-finder.html)
+- [Flash FM recording metadata](https://www.gtavicecityhub.com/soundtrack/flash-fm)
+- [Dirty South Classics recording metadata](https://www.gtavicecityhub.com/soundtrack/dirty-south-classics)
+- [Emotion 98.3 recording metadata](https://www.gtavicecityhub.com/soundtrack/emotion-98-3)
+- [Gloriana Blues Radio recording metadata](https://www.gtavicecityhub.com/soundtrack/gloriana-blues-radio)
+- [Honey FM recording metadata](https://www.gtavicecityhub.com/soundtrack/honey-fm)
+- [Kaleidoscope FM recording metadata](https://www.gtavicecityhub.com/soundtrack/kaleidoscope-fm)
+- [Leonida Jazz Radio recording metadata](https://www.gtavicecityhub.com/soundtrack/leonida-jazz-radio)
+- [Radio La Ola recording metadata](https://www.gtavicecityhub.com/soundtrack/radio-la-ola)
+- [Radio On-U recording metadata](https://www.gtavicecityhub.com/soundtrack/radio-on-u)
+- [Stockyard FM recording metadata](https://www.gtavicecityhub.com/soundtrack/stockyard-fm)
+- [Symphony FM recording metadata](https://www.gtavicecityhub.com/soundtrack/symphony-fm)
+- [The Vault Radio recording metadata](https://www.gtavicecityhub.com/soundtrack/the-vault-radio)
+- [Vice City FM recording metadata](https://www.gtavicecityhub.com/soundtrack/vice-city-fm)
+- [V-Rock recording metadata](https://www.gtavicecityhub.com/soundtrack/v-rock)
+- [Worldwide FM recording metadata](https://www.gtavicecityhub.com/soundtrack/worldwide-fm)
+- [Vice City Rap Radio recording metadata](https://gta6gang.com/wiki/vcrr.html)
+- [The Sniper of La Perle recording metadata](https://gta6gang.com/wiki/the-sniper-of-la-perle.html)
+- [GTABase flamingo map](https://www.gtabase.com/gta-6/map/?feature=cocaine-flamingos)
+- [Hundo Maps wildlife checklist](https://hundomaps.com/animals/)
+- [The Stash collectible hints](https://thestashdaily.com/hints/collectible)
+
+## Glitch and technical comparison references
+
+- https://www.vicevaulted.com/d/gta6-first-person-camera-glitch
+- https://www.vicevaulted.com/d/gta6-illegal-operation-raid-reset-death-glitch
+- https://www.vicevaulted.com/d/gta6-store-robbery-reset-restart-mission-glitch
+- https://www.gta6heistguide.com/gta-6-glitches/
+- https://gtadb.net/gta-6/cheats/
+
+## Hunting quality and glitch references
+
+- https://six.mics.dev/hunting
+- https://www.reddit.com/r/gtaglitches/comments/1y6zydm/unlimited_easy_faster_money_glitch/
+- https://www.reddit.com/r/GTA6unmoderated/comments/1y6thtt/found_actual_money_glitch/
+- https://gta6pocket.com/en/wall-clip-glitch/
+- https://gta6ops.com/collectibles/meteorites/
+- https://gta6gps.com/map/game/flamingos
+- https://gtaaddict.com/gta-6/cheats/
+- https://vicedex.app/gta-6-cheats/
+
+## Clothing inventory and prologue route
+
+- https://gta6gps.com/map/game/clothing
+- https://gta6moneyglitch.com/gta-6-glitches/how-to-do-the-prologue-chase-time-skip-glitch-in-gta-6/
+- https://getvicekeys.com/guides/gta-6-prologue-lucia-escape-cops-jet-ski
+- https://gtaexp.com/guides/vehicles-equipment/gta-6-cuban-hermes-location
+
+## Wardrobe glitch sources
+
+- [Game Secret — lower-body wardrobe conflict (Nov 26)](https://game-secret.com/guides/grand-theft-auto-vi/gta-6-how-to-remove-lucias-pants-and-underwear/)
+- [Insider Gaming — updated upper-body wardrobe method (Nov 27)](https://insider-gaming.com/lucia-topless-glitch-gta-6/)
+- [GTA6.house — outfit and armor method after the first patch](https://gta6.house/guides/gta-6-lucia-topless-glitch)
+- [GTA6.house — underwear and regional clothing notes](https://gta6.house/library/items/underwear)
+
+
+## Technical and arcade reference sources
+
+- https://six.mics.dev/vehicles/stats
+- https://cutscenewire.com/games/gta-6/weapon-list/
+- https://six.mics.dev/extras/arcade-perks
+- https://www.gta6heistguide.com/gta-6-glitches/
+- https://gta6resell.com/cards
+- https://gta6ops.com/collectibles/meteorites/
+
+## Hunting and secret discovery sources
+
+- https://www.powerpyx.com/gta-6-all-brets-target-decks-locations-brets-hunts/
+- https://gameta.gg/gta6/guides/brets-target-decks/
+- https://leonidaplayers.com/guides/gta-6-four-horses-mystery-code-7304-tallaloko-cabin-secret-room-knife
+- https://criticalhits.com.br/dicas/gta-6-codigo-da-cabana-tallaloko-e-como-abrir-a-sala-ritual/
+- https://leonidaplayers.com/guides/gta-6-big-day-motel-room-115-switch-pistol-safe-code-shiesty-mask
+- https://leonidaplayers.com/guides/gta-6-ice-cream-truck-easter-egg-cherry-popper-t-shirt-grassrivers
+- https://gta6.house/guides/gta-6-lake-tallaloko-ritual-room-door-code
+- https://www.reddit.com/r/gtaglitches/comments/1y4gvl1/gta_6_working_glitches_thread/
+
+## Optional missions and hidden pickups
+
+- https://www.gtaboom.com/gta-6-dunk-robbery-guide-ce47/
+- https://gta6bugs.com/missions/dunks-robbery-tips
+- https://link-guide.app/en/gta/vi/unique-weapons/
+- https://gta6.house/library/items/scuba-gear
+- https://www.powerpyx.com/gta-6-scarlet-sun-return-to-scarlet-walkthrough
+- https://leonidaplayers.com/guides/gta-6-in-the-tall-grass-easter-egg-cane-fields-belville-night
+- https://www.powerpyx.com/gta-6-drequans-gift-walkthrough
+
+## Additional watch and mission walkthroughs
+
+- [The Games Wiki — luxury watch locations](https://thegameswiki.com/gta6/wiki/luxury-watches)
+- [MetaForge — Pilot Pete delivery flights](https://metaforge.app/gta-6/gta-6-pilot-pete-deliveries)
+- [Vice Hub — missing persons playthrough](https://vice-hub.com/gta-6-missing-persons-body-locations/)
+- [GTA How To — Chapter 1 missables](https://www.gtahowto.com/gta6/gta-6-chapter-1-missables-every-item-and-weapon-to-grab-before-chapter-2)
+- [GTA6Walk — glitch methods](https://www.gta6walk.com/guides/glitches-and-exploits/)
+
+## Weapon pickups and vehicle registration
+
+- https://gta6wiki.eu/guides/gta-6-keep-police-car/
+
+## Optional mission walkthroughs
+- https://www.powerpyx.com/gta-6-pick-up-groceries-walkthrough/
+- https://www.powerpyx.com/gta-6-buy-flowers-walkthrough/
+- https://www.powerpyx.com/gta-6-buy-lucia-a-necklace-walkthrough/
+- https://www.powerpyx.com/gta-6-get-the-chop-walkthrough/
+- https://www.powerpyx.com/gta-6-get-lucias-clothes-walkthrough/
+- https://www.powerpyx.com/gta-6-clock-out-walkthrough/
+- https://www.powerpyx.com/gta-6-impounded-vehicle-walkthrough/
+- https://www.powerpyx.com/gta-6-get-your-wheels-walkthrough/
+- https://www.watchpreviously.com/news/gta-6-walkthrough/side-optional-missions/
+- https://www.powerpyx.com/gta-6-bad-driver-find-felipe-walkthrough/
+- https://link-guide.app/en/gta/vi/locations/
+- https://www.reddit.com/r/GTA6unmoderated/comments/1y6thtt/found_actual_money_glitch/
+- https://www.powerpyx.com/gta-6-find-the-lost-drugs-walkthrough/
+- https://www.powerpyx.com/gta-6-hit-avery-pawn-walkthrough/
+- https://www.powerpyx.com/gta-6-drequans-gift-walkthrough/
+
+## Luxury watch locations
+- https://www.middleeastgamer.com/gta-6-domestobot-location/
+- https://gta6.house/library/items/crowex-submerge-watch
+- https://gta6tldr.com/video/95J9lMObago/gta-6-domestobot-location-secret-watch-easter-egg
+- https://gta6zero.com/pt/guias/relogios-de-luxo-no-gta-6-onde-achar-os-34-e-o-que-eles-dao

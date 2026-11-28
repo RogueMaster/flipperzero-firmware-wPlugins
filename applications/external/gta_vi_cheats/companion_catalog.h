@@ -33,3 +33,11 @@ enum {
 };
 
 extern const GtaCollection gta_collection_catalog[GtaCollectionCount];
+
+/* Standout categories are independent catalog files; index zero is the virtual All view. */
+typedef struct {
+    const char* title;
+    const char* asset;
+} GtaStandoutCategory;
+#define GTA_STANDOUT_CATEGORY_COUNT 9u
+extern const GtaStandoutCategory gta_standout_categories[GTA_STANDOUT_CATEGORY_COUNT];
