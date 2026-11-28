@@ -1,5 +1,5 @@
 
-## About
+# About
 
 This Flipper application reads data from automotive tire pressure sensors (TPMS), showing information on the pressure, tire temperature etc. It supports multiple manufacturer's protocols used across different car brands (Opel, Ford, Toyota, PSA/FCA, Renault/Nissan). The data can be saved, as well as modified and resent.
 
@@ -7,9 +7,9 @@ Apart from reading RF data (Radio Frequency, which for TPMS sensors is usually 4
 
 The app was created by altruista86, based on TPMS Reader (by wosk) and with ProtoView (by antirez) core. Currently maintained here (by TxF).
 
-## Usage:
+# Usage:
 
-### Receiving the data
+## Receiving the data
 
 By default, the TPMS Editor is listening on 433.92 MHz with FSK modulation. Just going to **Receiver** will start listening and will show data catched as a list of TPMS sensor type and ID pairs. The LED blinks in blue.
 
@@ -19,7 +19,7 @@ Clicking OK once again brings up a menu where you can save the signal, but you c
 
 By default, the TPMS Editor saves all decoded signals to an autosave directory to have data for analysis purposes (this can be turned off in settings).
 
-### Confguring the receiver
+## Confguring the receiver
 
 By pressing *Left* in the receiving mode or by going to **Settings**, you can change the receiver frequency (a lot of possible choices) and the modulation (between FSK, OOK and GFSK).
 
@@ -27,7 +27,7 @@ The frequency is usually 433.92 MHz in Europe. In the US market it tends to be 3
 
 Mostly used modulation schema is FSK (Ford, Stellantis, Renault/Nissan, Toyota), with OOK also used (Opel) and GFSK as well.
 
-### Triggering the sensor
+## Triggering the sensor
 
 For the triggering, go to **Settings** and then down to **Relearn**. Currently there are three types of Relearn modes supported:
  - **CW Relearn**: Common Wave Relearn, where just a sine wave of a particular frequency is send by the Low Frequency module
@@ -48,7 +48,7 @@ Wth the **Repeat mode** you choose if the trigger/relearn signal is sent once an
 
 Go to **START** to go to start triggering and receiving. The LED becomes green to inform that the Relearn signal is sent (note that all decoders are used while listening, and the TPMS Editor might also catch a signal which was not triggred by the app).
 
-### Sending the data
+## Sending the data
 
 There are two ways to send the data: using a saved signal or the **Simulation**.
 
@@ -56,7 +56,7 @@ In general, it is easier when you already have the signal your car "knows", that
 
 In the **Simulation** mode you have to know a little bit more - like the name of the protocol, ID, flags to be set. Apart from this, the menu looks the same as for sending loaded signals.
 
-### Other information
+## Other information
 
 The list of supported protocols is in **Info**.
 
