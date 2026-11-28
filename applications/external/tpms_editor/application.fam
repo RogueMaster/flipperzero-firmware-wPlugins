@@ -4,12 +4,12 @@ App(
     apptype=FlipperAppType.EXTERNAL,
     targets=["f7"],
     entry_point="tpms_app",
-    requires=["gui"],
     stack_size=8 * 1024,
-    order=50,
     fap_icon="tpms_10px.png",
-    fap_category="Sub-GHz",
     fap_icon_assets="images",
+    fap_category="Sub-GHz",
+    fap_author="teiksef",
+    fap_weburl="https://github.com/teiksef/TPMS-Editor-TxF",
     fap_version="4.5.3",
-    fap_description="TPMS Editor: triggering, receiving and sending tire pressure sensor (TPMS) data for various brands"
+    fap_description="TPMS Editor: triggering, receiving and sending tire pressure sensor (TPMS) data for various brands",
 )

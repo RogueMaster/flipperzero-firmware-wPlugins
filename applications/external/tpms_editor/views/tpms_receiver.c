@@ -10,12 +10,12 @@
 #define TAG "TPMSReceiver"
 
 #define FRAME_HEIGHT 12
-#define MAX_LEN_PX 112
-#define MENU_ITEMS 4u
-#define UNLOCK_CNT 3
+#define MAX_LEN_PX   112
+#define MENU_ITEMS   4u
+#define UNLOCK_CNT   3
 
 #define SUBGHZ_RAW_THRESHOLD_MIN -100.0f
-#define TPMS_RSSI_BAR_WIDTH 28U
+#define TPMS_RSSI_BAR_WIDTH      28U
 typedef struct {
     FuriString* item_str;
     uint8_t type;
@@ -99,8 +99,7 @@ void tpms_view_receiver_set_rssi(TPMSReceiver* instance, float rssi) {
                 model->u_rssi = 0U;
                 model->rssi_valid = false;
             } else {
-                const int16_t dbm =
-                    (int16_t)(rssi < 0.0f ? rssi - 0.5f : rssi + 0.5f);
+                const int16_t dbm = (int16_t)(rssi < 0.0f ? rssi - 0.5f : rssi + 0.5f);
                 model->rssi_dbm = dbm;
                 model->rssi_valid = true;
                 if(!model->rssi_max_valid || dbm > model->rssi_max_dbm) {
@@ -152,7 +151,6 @@ void tpms_view_receiver_set_lock(TPMSReceiver* tpms_receiver, TPMSLock lock) {
     }
 }
 
-
 void tpms_view_receiver_set_auto_rx(TPMSReceiver* tpms_receiver, bool auto_rx) {
     furi_assert(tpms_receiver);
     with_view_model(
@@ -161,7 +159,6 @@ void tpms_view_receiver_set_auto_rx(TPMSReceiver* tpms_receiver, bool auto_rx) {
         { model->relearn_auto_rx = auto_rx; },
         true);
 }
-
 
 void tpms_view_receiver_set_relearn_enabled(TPMSReceiver* tpms_receiver, bool enabled) {
     furi_assert(tpms_receiver);
@@ -177,25 +174,19 @@ void tpms_view_receiver_set_relearn_enabled(TPMSReceiver* tpms_receiver, bool en
         true);
 }
 
-void tpms_view_receiver_set_ford_profile(
-    TPMSReceiver* tpms_receiver,
-    TPMSFordLFProfile profile) {
+void tpms_view_receiver_set_ford_profile(TPMSReceiver* tpms_receiver, TPMSFordLFProfile profile) {
     furi_assert(tpms_receiver);
     if(profile >= TPMSFordLFProfileCount) profile = TPMSFordLFProfileAuto;
     tpms_receiver->relearn_ford_profile = profile;
 }
 
-void tpms_view_receiver_set_ford_duration(
-    TPMSReceiver* tpms_receiver,
-    uint32_t duration_ms) {
+void tpms_view_receiver_set_ford_duration(TPMSReceiver* tpms_receiver, uint32_t duration_ms) {
     furi_assert(tpms_receiver);
     if(duration_ms < 500U) duration_ms = TPMS_FORD_EL50449_DURATION_MS;
     tpms_receiver->relearn_ford_duration_ms = duration_ms;
 }
 
-void tpms_view_receiver_set_cw_frequency(
-    TPMSReceiver* tpms_receiver,
-    uint32_t frequency_hz) {
+void tpms_view_receiver_set_cw_frequency(TPMSReceiver* tpms_receiver, uint32_t frequency_hz) {
     furi_assert(tpms_receiver);
     if(frequency_hz != TPMS_LF_CARRIER_1342_HZ) frequency_hz = TPMS_LF_CARRIER_HZ;
     tpms_receiver->relearn_cw_frequency_hz = frequency_hz;
@@ -384,14 +375,12 @@ void tpms_view_receiver_draw(Canvas* canvas, TPMSReceiverModel* model) {
             48,
             9,
             model->relearn_active ?
-                (model->relearn_ford ?
-                     "FORD LF+RX" :
-                     (model->relearn_el50448 ? "EL50448+RX" : "CW LF + RX")) :
+                (model->relearn_ford ? "FORD LF+RX" :
+                                       (model->relearn_el50448 ? "EL50448+RX" : "CW LF + RX")) :
                 (model->relearn_repeat_available ?
                      "RIGHT/OK: REPEAT" :
-                     (model->relearn_auto_rx ?
-                          "AUTO RX" :
-                          (model->relearn_enabled ? "RIGHT: RELEARN" : ""))));
+                     (model->relearn_auto_rx ? "AUTO RX" :
+                                               (model->relearn_enabled ? "RIGHT: RELEARN" : ""))));
     }
 
     // Draw RSSI
@@ -489,8 +478,24 @@ static void tpms_ford_lf_byte(uint8_t value) {
 
 static void tpms_ford_lf_frame(TPMSFordLFProfile profile) {
     static const bool sync[] = {
-        true, true, true, false, false, false, true, false, true,
-        true, false, false, true, true, false, false, true, false,
+        true,
+        true,
+        true,
+        false,
+        false,
+        false,
+        true,
+        false,
+        true,
+        true,
+        false,
+        false,
+        true,
+        true,
+        false,
+        false,
+        true,
+        false,
     };
     static const uint8_t ford_5a5a[] = {0x5AU, 0x5AU, 0xABU, 0xAAU};
     static const uint8_t ford_vdo[] = {0x61U, 0x5EU, 0x13U, 0xC6U, 0x6CU, 0x39U};
@@ -545,8 +550,7 @@ static int32_t tpms_ford_lf_worker(void* context) {
      * is applied only with pause/continue; never restart the RFID timer for
      * individual pulses or symbols.
      */
-    furi_hal_rfid_tim_read_start(
-        TPMS_LF_CARRIER_HZ, TPMS_FORD_EL50449_CARRIER_DUTY);
+    furi_hal_rfid_tim_read_start(TPMS_LF_CARRIER_HZ, TPMS_FORD_EL50449_CARRIER_DUTY);
     furi_hal_rfid_tim_read_pause();
 
     TPMSFordLFProfile frame_profile = tpms_receiver->relearn_ford_profile;
@@ -554,8 +558,7 @@ static int32_t tpms_ford_lf_worker(void* context) {
        before starting the worker, so one LF cycle contains one family only. */
     if(frame_profile == TPMSFordLFProfileAuto) frame_profile = TPMSFordLFProfile5A5A;
 
-    while(!tpms_receiver->relearn_stop_requested &&
-          (int32_t)(furi_get_tick() - deadline) < 0) {
+    while(!tpms_receiver->relearn_stop_requested && (int32_t)(furi_get_tick() - deadline) < 0) {
         tpms_ford_lf_frame(frame_profile);
         if(tpms_receiver->relearn_stop_requested) break;
         furi_delay_ms(TPMS_FORD_EL50449_FRAME_GAP_MS);
@@ -612,9 +615,7 @@ void tpms_view_receiver_relearn_stop(TPMSReceiver* tpms_receiver) {
     tpms_relearn_stop(tpms_receiver);
 }
 
-void tpms_view_receiver_relearn_start(
-    TPMSReceiver* tpms_receiver,
-    TPMSRelearnType relearn_type) {
+void tpms_view_receiver_relearn_start(TPMSReceiver* tpms_receiver, TPMSRelearnType relearn_type) {
     furi_assert(tpms_receiver);
 
     /* TPMS 3.8: never truncate an LF transmission because the user pressed
@@ -655,12 +656,12 @@ void tpms_view_receiver_relearn_start(
        async RX remains active. EL-50448 is fixed to 125 kHz; CW Relearn may
        use 125.0 or 134.2 kHz. */
     /* EL-50449 and EL-50448 modes use 12.5% carrier duty, CW uses 50% */
-    const uint32_t duration_ms =
-        el50448 ? TPMS_EL50448_DURATION_MS : TPMS_RELEARN_COMMON_DURATION_MS;
-    const uint32_t carrier_hz =
-        el50448 ? TPMS_LF_CARRIER_HZ : tpms_receiver->relearn_cw_frequency_hz;
-    const float carrier_duty =
-        el50448 ? TPMS_EL50448_CARRIER_DUTY : TPMS_RELEARN_COMMON_CARRIER_DUTY;
+    const uint32_t duration_ms = el50448 ? TPMS_EL50448_DURATION_MS :
+                                           TPMS_RELEARN_COMMON_DURATION_MS;
+    const uint32_t carrier_hz = el50448 ? TPMS_LF_CARRIER_HZ :
+                                          tpms_receiver->relearn_cw_frequency_hz;
+    const float carrier_duty = el50448 ? TPMS_EL50448_CARRIER_DUTY :
+                                         TPMS_RELEARN_COMMON_CARRIER_DUTY;
     furi_hal_rfid_tim_read_start((float)carrier_hz, carrier_duty);
     furi_timer_start(tpms_receiver->relearn_timer, furi_ms_to_ticks(duration_ms));
 }
@@ -736,9 +737,8 @@ bool tpms_view_receiver_input(InputEvent* event, void* context) {
             TPMSReceiverModel * model,
             {
                 open_item = model->history_item != 0;
-                repeat_relearn =
-                    !open_item && model->relearn_enabled &&
-                    model->relearn_repeat_available && !model->relearn_active;
+                repeat_relearn = !open_item && model->relearn_enabled &&
+                                 model->relearn_repeat_available && !model->relearn_active;
             },
             false);
         if(open_item) {
@@ -880,8 +880,7 @@ View* tpms_view_receiver_get_view(TPMSReceiver* tpms_receiver) {
 uint16_t tpms_view_receiver_get_idx_menu(TPMSReceiver* tpms_receiver) {
     furi_assert(tpms_receiver);
     uint32_t idx = 0;
-    with_view_model(
-        tpms_receiver->view, TPMSReceiverModel * model, { idx = model->idx; }, false);
+    with_view_model(tpms_receiver->view, TPMSReceiverModel * model, { idx = model->idx; }, false);
     return idx;
 }
 

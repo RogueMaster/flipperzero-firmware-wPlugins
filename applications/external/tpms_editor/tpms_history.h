@@ -88,7 +88,6 @@ const char* tpms_history_get_protocol_name(TPMSHistory* instance, uint16_t idx);
  */
 void tpms_history_get_text_item_menu(TPMSHistory* instance, FuriString* output, uint16_t idx);
 
-
 /** Store/read RSSI captured for the most recently decoded TPMS frame. */
 bool tpms_history_set_frame_rssi(TPMSHistory* instance, uint16_t idx, float rssi);
 bool tpms_history_get_frame_rssi(TPMSHistory* instance, uint16_t idx, int16_t* rssi_dbm);

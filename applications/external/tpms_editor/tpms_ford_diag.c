@@ -61,13 +61,7 @@ bool tpms_ford_diag_append(
     if(!raw_payload || raw_payload_size < 8U) return false;
 
     const uint32_t signature = tpms_ford_diag_hash(
-        id,
-        frequency_hz,
-        radio_preset,
-        wake_profile,
-        wake_profile_valid,
-        raw_payload,
-        8U);
+        id, frequency_hz, radio_preset, wake_profile, wake_profile_valid, raw_payload, 8U);
     if(tpms_ford_diag_last_signature_valid && signature == tpms_ford_diag_last_signature) {
         return true;
     }
@@ -76,9 +70,9 @@ bool tpms_ford_diag_append(
     const uint8_t ff = raw_payload[6];
     const bool temp_valid = ((tt & 0x80U) == 0U) && ((ff & 0x0FU) != 0x0BU);
     const int temp_calc_c = (int)tt - 56;
-    const char* tt_mode = (tt & 0x80U) ? "SPECIAL_MSB" :
+    const char* tt_mode = (tt & 0x80U)            ? "SPECIAL_MSB" :
                           ((ff & 0x0FU) == 0x0BU) ? "FF_xB_NO_TEMP" :
-                          (temp_calc_c < -40 ? "TEMP_LOW?" : "TEMP");
+                                                    (temp_calc_c < -40 ? "TEMP_LOW?" : "TEMP");
     const char* rx_preset = tpms_radio_preset_name(radio_preset);
     const char* wake = wake_profile_valid ? tpms_wake_profile_short_name(wake_profile) : "-";
 
@@ -99,8 +93,10 @@ bool tpms_ford_diag_append(
     }
 
     char observed_temp[16];
-    if(temp_valid) snprintf(observed_temp, sizeof(observed_temp), "%.1f", (double)temperature_c);
-    else observed_temp[0] = '\0';
+    if(temp_valid)
+        snprintf(observed_temp, sizeof(observed_temp), "%.1f", (double)temperature_c);
+    else
+        observed_temp[0] = '\0';
 
     char line[400];
     const int line_len = snprintf(

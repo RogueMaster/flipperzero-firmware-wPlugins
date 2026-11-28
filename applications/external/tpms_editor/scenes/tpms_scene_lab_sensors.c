@@ -6,8 +6,8 @@
 #include <string.h>
 
 #define TPMS_LAB_LIST_PAGE_SIZE 5U
-#define TPMS_LAB_PREVIOUS 0xFFFFFFFEUL
-#define TPMS_LAB_NEXT 0xFFFFFFFFUL
+#define TPMS_LAB_PREVIOUS       0xFFFFFFFEUL
+#define TPMS_LAB_NEXT           0xFFFFFFFFUL
 
 static FuriString* tpms_lab_saved_paths[TPMS_LAB_LIST_PAGE_SIZE];
 static uint8_t tpms_lab_session_slots[TPMS_LAB_LIST_PAGE_SIZE];
@@ -29,9 +29,7 @@ static bool tpms_lab_has_tpl_extension(const char* name) {
     const size_t len = name ? strlen(name) : 0U;
     if(len < 4U) return false;
     const char* ext = name + len - 4U;
-    return ext[0] == '.' &&
-           (ext[1] == 't' || ext[1] == 'T') &&
-           (ext[2] == 'p' || ext[2] == 'P') &&
+    return ext[0] == '.' && (ext[1] == 't' || ext[1] == 'T') && (ext[2] == 'p' || ext[2] == 'P') &&
            (ext[3] == 'l' || ext[3] == 'L');
 }
 
@@ -53,12 +51,7 @@ static void tpms_lab_add_label(
     uint8_t local_index) {
     char label[64];
     if(user_label && user_label[0]) {
-        snprintf(
-            label,
-            sizeof(label),
-            "%s %08lX",
-            user_label,
-            (unsigned long)values->id);
+        snprintf(label, sizeof(label), "%s %08lX", user_label, (unsigned long)values->id);
     } else {
         snprintf(
             label,
@@ -109,7 +102,8 @@ static uint16_t tpms_lab_build_saved_page(TPMSApp* app) {
             if(file_info_is_dir(&info) || !tpms_lab_has_tpl_extension(name)) continue;
             const uint32_t global_index = total++;
             if(global_index < page_start || global_index >= page_end ||
-               tpms_lab_list_count >= TPMS_LAB_LIST_PAGE_SIZE) continue;
+               tpms_lab_list_count >= TPMS_LAB_LIST_PAGE_SIZE)
+                continue;
 
             FuriString* path = furi_string_alloc();
             if(!path) continue;
@@ -160,11 +154,11 @@ static void tpms_lab_build_list(TPMSApp* app) {
         tpms_lab_list_page = 0U;
         submenu_set_header(
             app->submenu,
-            app->lab_sensor_list_source == TPMSLabListSession ?
-                "None in this session" : "No saved IDs");
+            app->lab_sensor_list_source == TPMSLabListSession ? "None in this session" :
+                                                                "No saved IDs");
     } else {
-        const uint16_t pages = (uint16_t)((total + TPMS_LAB_LIST_PAGE_SIZE - 1U) /
-                                          TPMS_LAB_LIST_PAGE_SIZE);
+        const uint16_t pages =
+            (uint16_t)((total + TPMS_LAB_LIST_PAGE_SIZE - 1U) / TPMS_LAB_LIST_PAGE_SIZE);
         char header[32];
         snprintf(
             header,
@@ -175,9 +169,11 @@ static void tpms_lab_build_list(TPMSApp* app) {
             (unsigned)pages);
         submenu_set_header(app->submenu, header);
         if(tpms_lab_list_page > 0U)
-            submenu_add_item(app->submenu, "< Previous", TPMS_LAB_PREVIOUS, tpms_lab_sensors_callback, app);
+            submenu_add_item(
+                app->submenu, "< Previous", TPMS_LAB_PREVIOUS, tpms_lab_sensors_callback, app);
         if(tpms_lab_list_page + 1U < pages)
-            submenu_add_item(app->submenu, "Next >", TPMS_LAB_NEXT, tpms_lab_sensors_callback, app);
+            submenu_add_item(
+                app->submenu, "Next >", TPMS_LAB_NEXT, tpms_lab_sensors_callback, app);
     }
     view_dispatcher_switch_to_view(app->view_dispatcher, TPMSViewSubmenu);
 }
@@ -230,10 +226,7 @@ bool tpms_scene_lab_sensors_on_event(void* context, SceneManagerEvent event) {
             "%s",
             furi_string_get_cstr(tpms_lab_saved_paths[event.event]));
         ok = tpms_profile_load(
-            app->simulation_lab_path,
-            &app->simulation_prefill_values,
-            protocol,
-            sizeof(protocol));
+            app->simulation_lab_path, &app->simulation_prefill_values, protocol, sizeof(protocol));
         if(ok) app->simulation_lab_source = TPMSLabSimulationSaved;
     }
 

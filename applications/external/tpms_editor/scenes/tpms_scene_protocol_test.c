@@ -59,8 +59,7 @@ static void tpms_test_enter_callback(void* context, uint32_t index) {
         const bool ok = tpms_test_send_kind(app, kind);
         if(ok) {
             variable_item_set_current_value_text(
-                test_state.send_one_item,
-                tpms_radio_is_external(app) ? "TX EXT OK" : "TX INT OK");
+                test_state.send_one_item, tpms_radio_is_external(app) ? "TX EXT OK" : "TX INT OK");
         } else {
             variable_item_set_current_value_text(test_state.send_one_item, "TX ERROR");
         }
@@ -104,8 +103,7 @@ void tpms_scene_protocol_test_on_enter(void* context) {
         variable_item_list_add(app->variable_item_list, "Test 18 protocols", 1U, NULL, app);
     variable_item_set_current_value_text(test_state.send_all_item, "OK");
 
-    variable_item_list_set_enter_callback(
-        app->variable_item_list, tpms_test_enter_callback, app);
+    variable_item_list_set_enter_callback(app->variable_item_list, tpms_test_enter_callback, app);
     view_dispatcher_switch_to_view(app->view_dispatcher, TPMSViewVariableItemList);
 }
 

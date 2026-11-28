@@ -17,17 +17,11 @@ void tpms_view_receiver_set_auto_rx(TPMSReceiver* tpms_receiver, bool auto_rx);
 
 void tpms_view_receiver_set_relearn_enabled(TPMSReceiver* tpms_receiver, bool enabled);
 
-void tpms_view_receiver_set_ford_profile(
-    TPMSReceiver* tpms_receiver,
-    TPMSFordLFProfile profile);
+void tpms_view_receiver_set_ford_profile(TPMSReceiver* tpms_receiver, TPMSFordLFProfile profile);
 
-void tpms_view_receiver_set_ford_duration(
-    TPMSReceiver* tpms_receiver,
-    uint32_t duration_ms);
+void tpms_view_receiver_set_ford_duration(TPMSReceiver* tpms_receiver, uint32_t duration_ms);
 
-void tpms_view_receiver_set_cw_frequency(
-    TPMSReceiver* tpms_receiver,
-    uint32_t frequency_hz);
+void tpms_view_receiver_set_cw_frequency(TPMSReceiver* tpms_receiver, uint32_t frequency_hz);
 
 bool tpms_view_receiver_relearn_is_active(TPMSReceiver* tpms_receiver);
 
@@ -73,8 +67,6 @@ void tpms_view_receiver_set_idx_menu(TPMSReceiver* tpms_receiver, uint16_t idx);
    current telegram/carrier always completes normally. */
 void tpms_view_receiver_relearn_stop(TPMSReceiver* tpms_receiver);
 
-void tpms_view_receiver_relearn_start(
-    TPMSReceiver* tpms_receiver,
-    TPMSRelearnType relearn_type);
+void tpms_view_receiver_relearn_start(TPMSReceiver* tpms_receiver, TPMSRelearnType relearn_type);
 
 void tpms_view_receiver_exit(void* context);

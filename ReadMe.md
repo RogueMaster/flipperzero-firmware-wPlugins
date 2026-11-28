@@ -135,6 +135,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [IR & Wii Mouse v1.0 maps IR remotes to BLE mouse and keyboard actions with an optional webcam pointer (By TheMajorFuego)](https://github.com/TheMajorFuego/FlipperApps)
 - UL: [Refresh SIM800 and Sub-GHz documentation, including Euro5 identification and signal-edit guidance (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/4c55ea75d09b37e646d24486addeadb7e076319f)
 - Updated: [GTA VI Companion v2.1 (By RogueMaster)](https://github.com/RogueMaster/GTA_VI_Companion)
+- Added: [TPMS Editor v4.5.3 (By teiksef)](https://github.com/teiksef/TPMS-Editor-TxF)
 
 <a name="release"></a>
 
@@ -1147,6 +1148,7 @@ This software is for experimental purposes only and is not meant for any illegal
 | [TonUINO Writer v2.0 (By Bastelsaal)](https://github.com/Bastelsaal/tonuino-flipper-zero) | `NFC` |
 | [Toshiba AC v1.0 (By xMasterX)](https://github.com/xMasterX/flipper_ac) | `Infrared` |
 | [TPMS Bridge v1.1 (By VishovVladimir)](https://github.com/VishovVladimir/flipper-zero-tpms) | `Sub-GHz` |
+| [TPMS Editor v4.5.3 (By teiksef)](https://github.com/teiksef/TPMS-Editor-TxF) | `Sub-GHz` |
 | [TPMS Reader v1.0 (By wosk)](https://github.com/wosk/flipperzero-tpms) | `Sub-GHz` |
 | [Tree Identification v0.0.5 (By fgreil)](https://github.com/fgreil/mitzi-tree-ident) | `Tools` |
 | [Tricorder v0.3 (By rseufert)](https://github.com/rseufert/tricorder) - Multi-sensor signal scanner | `Tools` |

@@ -12,9 +12,9 @@
 
 #include "proto6_raw_samples.h"
 
-#define TAG "TPMSProto6"
+#define TAG                   "TPMSProto6"
 #define BITMAP_SEEK_NOT_FOUND UINT32_MAX
-#define DEBUG_MSG 0
+#define DEBUG_MSG             0
 
 typedef struct ProtoViewApp ProtoViewApp;
 typedef struct ProtoViewMsgInfo ProtoViewMsgInfo;
@@ -125,12 +125,7 @@ bool bitmap_match_bitmap(
     uint32_t b2len,
     uint32_t b2off,
     uint32_t cmplen);
-void bitmap_to_string(
-    char* dst,
-    uint8_t* b,
-    uint32_t blen,
-    uint32_t off,
-    uint32_t len);
+void bitmap_to_string(char* dst, uint8_t* b, uint32_t blen, uint32_t off, uint32_t len);
 uint32_t convert_signal_to_bits(
     uint8_t* b,
     uint32_t blen,

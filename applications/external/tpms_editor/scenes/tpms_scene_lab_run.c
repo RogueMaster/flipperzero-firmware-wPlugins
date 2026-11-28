@@ -2,7 +2,10 @@
 #include <stdio.h>
 #include <string.h>
 
-typedef enum { TpmsLabPhaseRx = 0, TpmsLabPhaseQuiet } TpmsLabPhase;
+typedef enum {
+    TpmsLabPhaseRx = 0,
+    TpmsLabPhaseQuiet
+} TpmsLabPhase;
 static TpmsLabPhase lab_phase = TpmsLabPhaseRx;
 static uint32_t lab_ui_tick = 0U;
 static uint32_t lab_led_tick = 0U;
@@ -61,7 +64,8 @@ static void tpms_lab_draw(TPMSApp* app) {
         (double)(app->lab_target_pressure_kpa / 100.0f),
         rf,
         app->lab_last_tx_kind != TpmsEncoderNone ?
-            tpms_encoder_display_name((TpmsEncoderKind)app->lab_last_tx_kind) : "---",
+            tpms_encoder_display_name((TpmsEncoderKind)app->lab_last_tx_kind) :
+            "---",
         last_tx,
         lab_phase == TpmsLabPhaseRx ? "LISTEN 5 s" : "QUIET 1 s",
         (unsigned long)app->lab_round,
@@ -126,8 +130,10 @@ bool tpms_scene_lab_run_on_event(void* context, SceneManagerEvent event) {
                     app->lab_phase_started_tick = furi_get_tick();
                 } else {
                     /* No sensor yet: rotate AUTO profile safely between RX windows. */
-                    if(tpms_lab_start_rx(app)) app->lab_phase_started_tick = furi_get_tick();
-                    else app->lab_phase_started_tick = now;
+                    if(tpms_lab_start_rx(app))
+                        app->lab_phase_started_tick = furi_get_tick();
+                    else
+                        app->lab_phase_started_tick = now;
                 }
             }
         } else if((now - app->lab_phase_started_tick) >= furi_ms_to_ticks(1000U)) {

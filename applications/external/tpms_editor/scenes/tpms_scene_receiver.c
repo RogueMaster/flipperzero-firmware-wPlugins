@@ -8,10 +8,10 @@
 
 static int16_t tpms_receiver_capture_buffer[TPMS_CAPTURE_MAX_SAMPLES];
 
-#define TPMS_RELEARN_AUTO_PROFILE_COUNT 6U
-#define TPMS_RELEARN_AUTO_DWELL_MS 100U
-#define TPMS_RELEARN_LED_INTERVAL_MS 500U
-#define TPMS_RX_AUTO_MOD_DWELL_MS 250U
+#define TPMS_RELEARN_AUTO_PROFILE_COUNT    6U
+#define TPMS_RELEARN_AUTO_DWELL_MS         100U
+#define TPMS_RELEARN_LED_INTERVAL_MS       500U
+#define TPMS_RX_AUTO_MOD_DWELL_MS          250U
 #define TPMS_RELEARN_WAKE_TRACE_MAX_AGE_MS 20000U
 
 static const NotificationSequence subghz_sequence_rx = {
@@ -57,8 +57,7 @@ static void tpms_scene_receiver_update_statusbar(void* context) {
         if(app->autosave_error_count > 0U) {
             furi_string_set_str(history_stat_str, "A!");
         } else if(app->autosave_saved_count < 1000U) {
-            furi_string_printf(
-                history_stat_str, "A%lu", (unsigned long)app->autosave_saved_count);
+            furi_string_printf(history_stat_str, "A%lu", (unsigned long)app->autosave_saved_count);
         } else {
             furi_string_set_str(history_stat_str, "A+");
         }
@@ -169,8 +168,7 @@ static void tpms_scene_receiver_normal_auto_advance(TPMSApp* app, uint32_t now) 
     app->receiver_modulation_auto_index =
         (uint8_t)((app->receiver_modulation_auto_index + 1U) % 3U);
     tpms_scene_receiver_apply_normal_modulation(app, app->receiver_modulation_auto_index);
-    app->receiver_modulation_auto_next_tick =
-        now + furi_ms_to_ticks(TPMS_RX_AUTO_MOD_DWELL_MS);
+    app->receiver_modulation_auto_next_tick = now + furi_ms_to_ticks(TPMS_RX_AUTO_MOD_DWELL_MS);
 }
 
 static bool tpms_scene_receiver_relearn_profile_allowed(const TPMSApp* app, uint8_t profile) {
@@ -197,8 +195,7 @@ static uint8_t tpms_scene_receiver_next_ford_lf_profile(TPMSApp* app) {
     const uint8_t start = app->relearn_ford_auto_lf_step % TPMS_RELEARN_AUTO_PROFILE_COUNT;
 
     for(uint8_t offset = 0U; offset < TPMS_RELEARN_AUTO_PROFILE_COUNT; offset++) {
-        const uint8_t order_index =
-            (uint8_t)((start + offset) % TPMS_RELEARN_AUTO_PROFILE_COUNT);
+        const uint8_t order_index = (uint8_t)((start + offset) % TPMS_RELEARN_AUTO_PROFILE_COUNT);
         const uint8_t candidate = order[order_index];
         if(!tpms_scene_receiver_relearn_profile_allowed(app, candidate)) continue;
 
@@ -223,10 +220,9 @@ static void tpms_scene_receiver_prepare_relearn_rx(TPMSApp* app, bool reuse_auto
     }
 
     uint8_t first_profile = 0U;
-    const bool ford_auto_selection =
-        app->relearn_type == TPMSRelearnTypeFordEL50449 &&
-        (app->relearn_rx_band_index == TPMSRelearnRXBandAuto ||
-         app->relearn_modulation_index == TPMSRelearnModAuto);
+    const bool ford_auto_selection = app->relearn_type == TPMSRelearnTypeFordEL50449 &&
+                                     (app->relearn_rx_band_index == TPMSRelearnRXBandAuto ||
+                                      app->relearn_modulation_index == TPMSRelearnModAuto);
 
     /* TPMS 3.8.5: never hot-switch CC1101 during the time-critical Ford LF
        waveform. AUTO chooses exactly one complete UHF profile BEFORE LF starts,
@@ -258,8 +254,7 @@ static void tpms_scene_receiver_prepare_relearn_rx(TPMSApp* app, bool reuse_auto
     app->relearn_auto_profile_index = first_profile;
     app->relearn_auto_rx = app->relearn_rx_band_index == TPMSRelearnRXBandAuto ||
                            app->relearn_modulation_index == TPMSRelearnModAuto;
-    app->relearn_auto_next_tick =
-        furi_get_tick() + furi_ms_to_ticks(TPMS_RELEARN_AUTO_DWELL_MS);
+    app->relearn_auto_next_tick = furi_get_tick() + furi_ms_to_ticks(TPMS_RELEARN_AUTO_DWELL_MS);
     tpms_view_receiver_set_auto_rx(app->tpms_receiver, app->relearn_auto_rx);
 }
 
@@ -272,12 +267,10 @@ static void tpms_scene_receiver_relearn_auto_advance(TPMSApp* app, uint32_t now)
        froze modulation only; hardware tests showed that 315 <-> 433 MHz
        switching can trigger the same furi_check. Freeze the ENTIRE UHF profile
        for the active LF burst. Once LF ends, normal RX18 AUTO rotation resumes. */
-    const bool ford_lf_active =
-        app->relearn_type == TPMSRelearnTypeFordEL50449 &&
-        tpms_view_receiver_relearn_is_active(app->tpms_receiver);
+    const bool ford_lf_active = app->relearn_type == TPMSRelearnTypeFordEL50449 &&
+                                tpms_view_receiver_relearn_is_active(app->tpms_receiver);
     if(ford_lf_active) {
-        app->relearn_auto_next_tick =
-            now + furi_ms_to_ticks(TPMS_RELEARN_AUTO_DWELL_MS);
+        app->relearn_auto_next_tick = now + furi_ms_to_ticks(TPMS_RELEARN_AUTO_DWELL_MS);
         return;
     }
 
@@ -305,9 +298,8 @@ static uint32_t tpms_scene_receiver_relearn_wait_ms(const TPMSApp* app) {
 }
 
 static uint32_t tpms_scene_receiver_cw_frequency_hz(const TPMSApp* app) {
-    return (app && app->relearn_cw_frequency == TPMSCWFrequency1342) ?
-               TPMS_LF_CARRIER_1342_HZ :
-               TPMS_LF_CARRIER_HZ;
+    return (app && app->relearn_cw_frequency == TPMSCWFrequency1342) ? TPMS_LF_CARRIER_1342_HZ :
+                                                                       TPMS_LF_CARRIER_HZ;
 }
 
 static uint8_t tpms_scene_receiver_wake_trace_profile(TPMSFordLFProfile profile) {
@@ -316,9 +308,8 @@ static uint8_t tpms_scene_receiver_wake_trace_profile(TPMSFordLFProfile profile)
     return TpmsWakeProfileAutoFordVDO;
 }
 
-static TPMSFordLFProfile tpms_scene_receiver_select_ford_wake_profile(
-    TPMSApp* app,
-    bool* reuse_auto_uhf_profile) {
+static TPMSFordLFProfile
+    tpms_scene_receiver_select_ford_wake_profile(TPMSApp* app, bool* reuse_auto_uhf_profile) {
     furi_assert(app);
     if(reuse_auto_uhf_profile) *reuse_auto_uhf_profile = false;
 
@@ -335,9 +326,7 @@ static TPMSFordLFProfile tpms_scene_receiver_select_ford_wake_profile(
     return vdo_cycle ? TPMSFordLFProfileVDO : TPMSFordLFProfile5A5A;
 }
 
-static void tpms_scene_receiver_start_configured_relearn(
-    TPMSApp* app,
-    bool user_requested) {
+static void tpms_scene_receiver_start_configured_relearn(TPMSApp* app, bool user_requested) {
     if(app->relearn != TPMSRelearnOn) return;
 
     /* Do not truncate a running LF wake-up. Extra RIGHT/OK presses while LF
@@ -364,29 +353,25 @@ static void tpms_scene_receiver_start_configured_relearn(
     /* Manual 433/315 + manual FSK/OOK/GFSK keeps the proven 5 s EL-50449
        burst. If either UHF band or modulation is AUTO, use 2.5 s per frozen
        profile so subsequent Relearn cycles cover the other candidates sooner. */
-    const bool ford_auto_selection =
-        app->relearn_type == TPMSRelearnTypeFordEL50449 &&
-        (app->relearn_rx_band_index == TPMSRelearnRXBandAuto ||
-         app->relearn_modulation_index == TPMSRelearnModAuto);
+    const bool ford_auto_selection = app->relearn_type == TPMSRelearnTypeFordEL50449 &&
+                                     (app->relearn_rx_band_index == TPMSRelearnRXBandAuto ||
+                                      app->relearn_modulation_index == TPMSRelearnModAuto);
     tpms_view_receiver_set_ford_duration(
         app->tpms_receiver,
-        ford_auto_selection ? TPMS_FORD_EL50449_AUTO_DURATION_MS :
-                              TPMS_FORD_EL50449_DURATION_MS);
+        ford_auto_selection ? TPMS_FORD_EL50449_AUTO_DURATION_MS : TPMS_FORD_EL50449_DURATION_MS);
 
     tpms_view_receiver_set_cw_frequency(
         app->tpms_receiver, tpms_scene_receiver_cw_frequency_hz(app));
     tpms_view_receiver_relearn_start(app->tpms_receiver, app->relearn_type);
 
-    const uint8_t wake_profile =
-        app->relearn_type == TPMSRelearnTypeFordEL50449 ?
-            tpms_scene_receiver_wake_trace_profile(active_ford_profile) :
-            TpmsWakeProfileNone;
+    const uint8_t wake_profile = app->relearn_type == TPMSRelearnTypeFordEL50449 ?
+                                     tpms_scene_receiver_wake_trace_profile(active_ford_profile) :
+                                     TpmsWakeProfileNone;
     app->relearn_last_wake_profile = wake_profile;
     app->relearn_last_wake_valid = wake_profile != TpmsWakeProfileNone;
     app->relearn_last_wake_tick = furi_get_tick();
 
-    app->relearn_cycle_was_active =
-        tpms_view_receiver_relearn_is_active(app->tpms_receiver);
+    app->relearn_cycle_was_active = tpms_view_receiver_relearn_is_active(app->tpms_receiver);
     app->relearn_led_green_phase = true;
     app->relearn_led_rx_on = false;
     app->relearn_led_next_tick = furi_get_tick();
@@ -398,8 +383,7 @@ static void tpms_scene_receiver_update_relearn_repeat(TPMSApp* app, uint32_t now
     if(app->relearn_cycle_was_active && !lf_active) {
         app->relearn_cycle_was_active = false;
 
-        if(app->relearn == TPMSRelearnOn &&
-           app->relearn_repeat_mode == TPMSRelearnRepeatAuto &&
+        if(app->relearn == TPMSRelearnOn && app->relearn_repeat_mode == TPMSRelearnRepeatAuto &&
            !app->relearn_auto_satisfied) {
             app->relearn_repeat_waiting = true;
             app->relearn_repeat_next_tick =
@@ -407,10 +391,8 @@ static void tpms_scene_receiver_update_relearn_repeat(TPMSApp* app, uint32_t now
         }
     }
 
-    if(app->relearn_repeat_waiting &&
-       app->relearn_repeat_mode == TPMSRelearnRepeatAuto &&
-       !app->relearn_auto_satisfied &&
-       !lf_active &&
+    if(app->relearn_repeat_waiting && app->relearn_repeat_mode == TPMSRelearnRepeatAuto &&
+       !app->relearn_auto_satisfied && !lf_active &&
        (int32_t)(now - app->relearn_repeat_next_tick) >= 0) {
         tpms_scene_receiver_start_configured_relearn(app, false);
     }
@@ -460,12 +442,11 @@ static bool tpms_scene_receiver_store_decoder(
     bool ford_diag_wake_valid = false;
 
     const uint32_t store_now = furi_get_tick();
-    const bool autosave_wake_valid =
-        app->relearn_last_wake_valid &&
-        (store_now - app->relearn_last_wake_tick) <=
-            furi_ms_to_ticks(TPMS_RELEARN_WAKE_TRACE_MAX_AGE_MS);
-    const uint8_t autosave_wake_profile =
-        autosave_wake_valid ? app->relearn_last_wake_profile : TpmsWakeProfileNone;
+    const bool autosave_wake_valid = app->relearn_last_wake_valid &&
+                                     (store_now - app->relearn_last_wake_tick) <=
+                                         furi_ms_to_ticks(TPMS_RELEARN_WAKE_TRACE_MAX_AGE_MS);
+    const uint8_t autosave_wake_profile = autosave_wake_valid ? app->relearn_last_wake_profile :
+                                                                TpmsWakeProfileNone;
 
     furi_mutex_acquire(app->history_mutex, FuriWaitForever);
     const TPMSHistoryStateAddKey state =
@@ -473,11 +454,9 @@ static bool tpms_scene_receiver_store_decoder(
 
     uint16_t affected_index = 0U;
     bool affected_valid = false;
-    if(state == TPMSHistoryStateAddKeyNewDada ||
-       state == TPMSHistoryStateAddKeyUpdateData ||
+    if(state == TPMSHistoryStateAddKeyNewDada || state == TPMSHistoryStateAddKeyUpdateData ||
        state == TPMSHistoryStateAddKeyReplaceData) {
-        affected_valid =
-            tpms_history_get_last_affected_index(app->txrx->history, &affected_index);
+        affected_valid = tpms_history_get_last_affected_index(app->txrx->history, &affected_index);
         if(affected_valid) {
             (void)tpms_history_set_frame_rssi(app->txrx->history, affected_index, frame_rssi);
             const uint32_t now = furi_get_tick();
@@ -520,15 +499,15 @@ static bool tpms_scene_receiver_store_decoder(
            unusual TT values. Exact duplicate payloads are filtered by the
            logger, while real state/pressure/TT changes remain visible. */
         if(affected_valid &&
-           strcmp(tpms_history_get_protocol_name(app->txrx->history, affected_index),
-                  "Ford TPMS") == 0) {
+           strcmp(
+               tpms_history_get_protocol_name(app->txrx->history, affected_index), "Ford TPMS") ==
+               0) {
             FlipperFormat* history_format =
                 tpms_history_get_raw_data(app->txrx->history, affected_index);
             if(history_format &&
                tpms_block_generic_deserialize(&ford_diag_generic, history_format) ==
                    SubGhzProtocolStatusOk &&
-               ford_diag_generic.raw_payload_valid &&
-               ford_diag_generic.raw_payload_size >= 8U) {
+               ford_diag_generic.raw_payload_valid && ford_diag_generic.raw_payload_size >= 8U) {
                 ford_diag_ready = true;
             }
         }
@@ -546,9 +525,10 @@ static bool tpms_scene_receiver_store_decoder(
 
         tpms_scene_receiver_update_statusbar(app);
         added = true;
-    } else if((state == TPMSHistoryStateAddKeyUpdateData ||
-               state == TPMSHistoryStateAddKeyReplaceData) &&
-              affected_valid) {
+    } else if(
+        (state == TPMSHistoryStateAddKeyUpdateData ||
+         state == TPMSHistoryStateAddKeyReplaceData) &&
+        affected_valid) {
         /* Keep the list RSSI current when the same sensor transmits again. */
         furi_string_reset(str_buff);
         tpms_history_get_text_item_menu(app->txrx->history, str_buff, affected_index);
@@ -563,8 +543,7 @@ static bool tpms_scene_receiver_store_decoder(
         }
     }
 
-    if(state == TPMSHistoryStateAddKeyNewDada ||
-       state == TPMSHistoryStateAddKeyUpdateData ||
+    if(state == TPMSHistoryStateAddKeyNewDada || state == TPMSHistoryStateAddKeyUpdateData ||
        state == TPMSHistoryStateAddKeyReplaceData) {
         app->txrx->rx_key_state = TPMSRxKeyStateAddKey;
     }
@@ -575,11 +554,7 @@ static bool tpms_scene_receiver_store_decoder(
        for protocol+ID are suppressed in-session. */
     const uint32_t autosave_errors_before = app->autosave_error_count;
     const bool autosaved = tpms_autosave_process_decoder(
-        app,
-        decoder_base,
-        frame_rssi,
-        autosave_wake_profile,
-        autosave_wake_valid);
+        app, decoder_base, frame_rssi, autosave_wake_profile, autosave_wake_valid);
     if(autosaved && autosave_wake_valid && app->relearn_last_wake_valid) {
         /* History may already be full, so let a successful Autosave consume
            the one-shot Wake trace as well. */
@@ -643,13 +618,11 @@ void tpms_scene_receiver_on_enter(void* context) {
 
     tpms_view_receiver_set_lock(app->tpms_receiver, app->lock);
     app->relearn_auto_rx = false;
-    const bool normal_auto =
-        app->receiver_modulation_auto && app->relearn == TPMSRelearnOff;
+    const bool normal_auto = app->receiver_modulation_auto && app->relearn == TPMSRelearnOff;
     tpms_view_receiver_set_auto_rx(app->tpms_receiver, normal_auto);
     app->receiver_modulation_auto_next_tick =
         furi_get_tick() + furi_ms_to_ticks(TPMS_RX_AUTO_MOD_DWELL_MS);
-    tpms_view_receiver_set_relearn_enabled(
-        app->tpms_receiver, app->relearn == TPMSRelearnOn);
+    tpms_view_receiver_set_relearn_enabled(app->tpms_receiver, app->relearn == TPMSRelearnOn);
     app->relearn_cycle_was_active = false;
     app->relearn_repeat_waiting = false;
     app->relearn_auto_satisfied = false;
@@ -686,9 +659,12 @@ void tpms_scene_receiver_on_enter(void* context) {
        replaced with ProtoView's TPMS decoder bank. */
     const char* preset_name = furi_string_get_cstr(app->txrx->preset->name);
     if(normal_auto) {
-        if(!strcmp(preset_name, "TPMS OOK")) app->receiver_modulation_auto_index = 1U;
-        else if(!strcmp(preset_name, "TPMS GFSK")) app->receiver_modulation_auto_index = 2U;
-        else app->receiver_modulation_auto_index = 0U;
+        if(!strcmp(preset_name, "TPMS OOK"))
+            app->receiver_modulation_auto_index = 1U;
+        else if(!strcmp(preset_name, "TPMS GFSK"))
+            app->receiver_modulation_auto_index = 2U;
+        else
+            app->receiver_modulation_auto_index = 0U;
     }
     if(!strcmp(preset_name, "AM270") || !strcmp(preset_name, "AM650") ||
        !strcmp(preset_name, "TPMS OOK")) {
@@ -788,17 +764,17 @@ bool tpms_scene_receiver_on_event(void* context, SceneManagerEvent event) {
             app->receiver_rssi_recent_start_tick = now;
             app->receiver_rssi_recent_peak = rssi;
             app->receiver_rssi_recent_valid = rssi > -127.0f && rssi <= 20.0f;
-        } else if(rssi > -127.0f && rssi <= 20.0f &&
-                  (!app->receiver_rssi_recent_valid || rssi > app->receiver_rssi_recent_peak)) {
+        } else if(
+            rssi > -127.0f && rssi <= 20.0f &&
+            (!app->receiver_rssi_recent_valid || rssi > app->receiver_rssi_recent_peak)) {
             app->receiver_rssi_recent_peak = rssi;
             app->receiver_rssi_recent_valid = true;
         }
 
         SubGhzProtocolDecoderBase* proto6_result = proto6_bridge_scan(app->txrx->proto6);
         if(proto6_result) {
-            const float frame_rssi = app->receiver_rssi_recent_valid ?
-                                         app->receiver_rssi_recent_peak :
-                                         rssi;
+            const float frame_rssi =
+                app->receiver_rssi_recent_valid ? app->receiver_rssi_recent_peak : rssi;
             const bool added = tpms_scene_receiver_store_decoder(app, proto6_result, frame_rssi);
             app->receiver_rssi_recent_start_tick = now;
             app->receiver_rssi_recent_peak = rssi;
@@ -821,7 +797,6 @@ bool tpms_scene_receiver_on_event(void* context, SceneManagerEvent event) {
         tpms_scene_receiver_relearn_auto_advance(app, now);
         tpms_scene_receiver_update_relearn_repeat(app, now);
         tpms_scene_receiver_update_led(app, now);
-
     }
     return consumed;
 }

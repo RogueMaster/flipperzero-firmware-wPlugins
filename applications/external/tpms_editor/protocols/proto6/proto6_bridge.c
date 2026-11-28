@@ -28,7 +28,8 @@ static SubGhzProtocolStatus proto6_result_serialize(
     void* context,
     FlipperFormat* flipper_format,
     SubGhzRadioPreset* preset);
-static SubGhzProtocolStatus proto6_result_deserialize(void* context, FlipperFormat* flipper_format);
+static SubGhzProtocolStatus
+    proto6_result_deserialize(void* context, FlipperFormat* flipper_format);
 static uint8_t proto6_result_hash(void* context);
 static void proto6_result_get_string(void* context, FuriString* output);
 static void* proto6_result_alloc(SubGhzEnvironment* environment);
@@ -97,7 +98,8 @@ static SubGhzProtocolStatus proto6_result_serialize(
     return tpms_block_generic_serialize(&result->generic, flipper_format, preset);
 }
 
-static SubGhzProtocolStatus proto6_result_deserialize(void* context, FlipperFormat* flipper_format) {
+static SubGhzProtocolStatus
+    proto6_result_deserialize(void* context, FlipperFormat* flipper_format) {
     Proto6ResultDecoder* result = context;
     return tpms_block_generic_deserialize(&result->generic, flipper_format);
 }
@@ -118,7 +120,8 @@ static uint32_t proto6_read_id(const ProtoViewField* field) {
     uint32_t id = 0U;
     uint32_t count = (field->len + 1U) / 2U;
     if(count > 4U) count = 4U;
-    for(uint32_t i = 0U; i < count; i++) id = (id << 8U) | field->bytes[i];
+    for(uint32_t i = 0U; i < count; i++)
+        id = (id << 8U) | field->bytes[i];
     return id;
 }
 
@@ -126,7 +129,8 @@ static uint64_t proto6_copy_signal_bits(const ProtoViewMsgInfo* info) {
     if(!info || !info->bits || info->bits_bytes == 0U) return 0U;
     uint64_t data = 0U;
     const uint32_t count = info->bits_bytes > 6U ? 6U : info->bits_bytes;
-    for(uint32_t i = 0U; i < count; i++) data = (data << 8U) | info->bits[i];
+    for(uint32_t i = 0U; i < count; i++)
+        data = (data << 8U) | info->bits[i];
     return data;
 }
 
@@ -135,8 +139,7 @@ static void proto6_copy_result(Proto6Bridge* bridge, const ProtoViewMsgInfo* inf
     memset(generic, 0, sizeof(*generic));
     generic->protocol_name = info->decoder ? info->decoder->name : "ProtoView TPMS6";
     generic->battery_low = TPMS_NO_BATT;
-    generic->data_count_bit =
-        (uint8_t)(info->pulses_count > 255U ? 255U : info->pulses_count);
+    generic->data_count_bit = (uint8_t)(info->pulses_count > 255U ? 255U : info->pulses_count);
 
     ProtoViewField* id = proto6_field_find(info->fieldset, "Tire ID");
     ProtoViewField* pressure_kpa = proto6_field_find(info->fieldset, "Pressure kpa");
@@ -147,8 +150,7 @@ static void proto6_copy_result(Proto6Bridge* bridge, const ProtoViewMsgInfo* inf
     ProtoViewField* status = proto6_field_find(info->fieldset, "Status");
     ProtoViewField* moving = proto6_field_find(info->fieldset, "Moving");
     ProtoViewField* repeat = proto6_field_find(info->fieldset, "Repeat");
-    ProtoViewField* temperature_f_raw =
-        proto6_field_find(info->fieldset, "Temperature F Raw");
+    ProtoViewField* temperature_f_raw = proto6_field_find(info->fieldset, "Temperature F Raw");
     ProtoViewField* raw_payload = proto6_field_find(info->fieldset, "Raw payload");
     ProtoViewField* raw_payload_bits = proto6_field_find(info->fieldset, "Raw payload bits");
 
@@ -166,10 +168,14 @@ static void proto6_copy_result(Proto6Bridge* bridge, const ProtoViewMsgInfo* inf
     }
 
     uint32_t edit_flags = 0U;
-    if(flags) edit_flags = (uint32_t)flags->uvalue;
-    else if(status) edit_flags = (uint32_t)status->uvalue;
-    else if(moving) edit_flags = (uint32_t)moving->uvalue;
-    else if(repeat) edit_flags = (uint32_t)repeat->uvalue;
+    if(flags)
+        edit_flags = (uint32_t)flags->uvalue;
+    else if(status)
+        edit_flags = (uint32_t)status->uvalue;
+    else if(moving)
+        edit_flags = (uint32_t)moving->uvalue;
+    else if(repeat)
+        edit_flags = (uint32_t)repeat->uvalue;
 
     if(raw_payload && raw_payload->type == FieldTypeBytes && raw_payload->bytes) {
         uint32_t bytes = (raw_payload->len + 1U) / 2U;
@@ -182,15 +188,13 @@ static void proto6_copy_result(Proto6Bridge* bridge, const ProtoViewMsgInfo* inf
     }
 
     if(info->decoder && strcmp(info->decoder->name, "Schrader EG53MA4 TPMS") == 0) {
-        const uint8_t temp_f_raw =
-            temperature_f_raw ? (uint8_t)temperature_f_raw->uvalue : 0U;
+        const uint8_t temp_f_raw = temperature_f_raw ? (uint8_t)temperature_f_raw->uvalue : 0U;
         /* EG53 needs all 32 status bits and the exact Fahrenheit byte for
          * lossless RX -> edit -> TX. ID and pressure already have dedicated
          * fields in TPMSBlockGeneric. */
         generic->data = ((uint64_t)edit_flags << 32U) | ((uint64_t)temp_f_raw << 24U);
     } else {
-        generic->data = ((uint64_t)(edit_flags & 0xFFFFU) << 48U) |
-                        proto6_copy_signal_bits(info);
+        generic->data = ((uint64_t)(edit_flags & 0xFFFFU) << 48U) | proto6_copy_signal_bits(info);
     }
 }
 
@@ -200,8 +204,8 @@ static void proto6_store_last_capture(Proto6Bridge* bridge) {
     if(!DetectedSamples || bridge->pv.signal_bestlen == 0U) return;
 
     const uint32_t full_count = bridge->pv.signal_bestlen;
-    const uint32_t copy_count =
-        full_count > TPMS_CAPTURE_MAX_SAMPLES ? TPMS_CAPTURE_MAX_SAMPLES : full_count;
+    const uint32_t copy_count = full_count > TPMS_CAPTURE_MAX_SAMPLES ? TPMS_CAPTURE_MAX_SAMPLES :
+                                                                        full_count;
 
     furi_mutex_acquire(DetectedSamples->mutex, FuriWaitForever);
     for(uint32_t i = 0U; i < copy_count; i++) {
@@ -209,8 +213,7 @@ static void proto6_store_last_capture(Proto6Bridge* bridge) {
         uint32_t duration = 0U;
         raw_samples_get_unlocked(DetectedSamples, i, &level, &duration);
         if(duration > 32767U) duration = 32767U;
-        bridge->last_capture[i] =
-            level ? (int16_t)duration : (int16_t)(-(int32_t)duration);
+        bridge->last_capture[i] = level ? (int16_t)duration : (int16_t)(-(int32_t)duration);
     }
     furi_mutex_release(DetectedSamples->mutex);
 
@@ -281,8 +284,8 @@ void proto6_bridge_rx_callback(bool level, uint32_t duration, void* context) {
 
 void proto6_bridge_set_mode(Proto6Bridge* bridge, Proto6Mode mode) {
     if(!bridge) return;
-    bridge->pv.modulation =
-        mode == Proto6ModeOOK ? ProtoTpmsModulationOOK : ProtoTpmsModulationFSK;
+    bridge->pv.modulation = mode == Proto6ModeOOK ? ProtoTpmsModulationOOK :
+                                                    ProtoTpmsModulationFSK;
 }
 
 SubGhzProtocolDecoderBase* proto6_bridge_scan(Proto6Bridge* bridge) {
@@ -316,15 +319,14 @@ SubGhzProtocolDecoderBase* proto6_bridge_scan(Proto6Bridge* bridge) {
     }
 
     const bool half_buffer_ready = delta >= total / 2U;
-    const bool quiet_burst_ready =
-        delta >= 18U && (now - bridge->last_progress_tick) >= furi_ms_to_ticks(50U);
+    const bool quiet_burst_ready = delta >= 18U &&
+                                   (now - bridge->last_progress_tick) >= furi_ms_to_ticks(50U);
     if(!half_buffer_ready && !quiet_burst_ready) return NULL;
 
     bridge->pv.signal_last_scan_idx = current_idx;
     scan_for_signal(&bridge->pv, RawSamples, 30U);
 
-    if(!bridge->pv.signal_decoded || !bridge->pv.msg_info ||
-       !bridge->pv.msg_info->decoder) {
+    if(!bridge->pv.signal_decoded || !bridge->pv.msg_info || !bridge->pv.msg_info->decoder) {
         return NULL;
     }
 
@@ -351,8 +353,7 @@ size_t proto6_bridge_copy_last_capture(
     if(count > capacity) count = capacity;
     memcpy(output, bridge->last_capture, count * sizeof(output[0]));
     if(truncated) {
-        *truncated = bridge->last_capture_truncated ||
-                     bridge->last_capture_count > capacity;
+        *truncated = bridge->last_capture_truncated || bridge->last_capture_count > capacity;
     }
     return count;
 }

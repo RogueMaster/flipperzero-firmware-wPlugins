@@ -6,10 +6,10 @@
 #include <string.h>
 
 #define TPMS_SAVED_PAGE_SIZE 5U
-#define TPMS_SAVED_PREVIOUS 0xFFFFFFFEUL
-#define TPMS_SAVED_NEXT 0xFFFFFFFFUL
-#define TPMS_SAVED_ORG 0xFFFFFFFCUL
-#define TPMS_SAVED_MOD 0xFFFFFFFDUL
+#define TPMS_SAVED_PREVIOUS  0xFFFFFFFEUL
+#define TPMS_SAVED_NEXT      0xFFFFFFFFUL
+#define TPMS_SAVED_ORG       0xFFFFFFFCUL
+#define TPMS_SAVED_MOD       0xFFFFFFFDUL
 
 typedef enum {
     TPMSSavedSourceNone = 0,
@@ -27,11 +27,8 @@ static bool tpms_saved_has_extension(const char* name) {
     const size_t len = name ? strlen(name) : 0U;
     if(len < 5U) return false;
     const char* ext = name + len - 5U;
-    return ext[0] == '.' &&
-           (ext[1] == 't' || ext[1] == 'T') &&
-           (ext[2] == 'p' || ext[2] == 'P') &&
-           (ext[3] == 'm' || ext[3] == 'M') &&
-           (ext[4] == 's' || ext[4] == 'S');
+    return ext[0] == '.' && (ext[1] == 't' || ext[1] == 'T') && (ext[2] == 'p' || ext[2] == 'P') &&
+           (ext[3] == 'm' || ext[3] == 'M') && (ext[4] == 's' || ext[4] == 'S');
 }
 
 static void tpms_saved_clear(void) {
@@ -57,8 +54,8 @@ static uint16_t tpms_saved_scan(TPMSApp* app) {
     storage_common_mkdir(storage, TPMS_PROFILE_FOLDER);
     storage_common_mkdir(storage, TPMS_PROFILE_RX_FOLDER);
     storage_common_mkdir(storage, TPMS_PROFILE_EDITED_FOLDER);
-    const char* folder = tpms_saved_source == TPMSSavedSourceMod ?
-                             TPMS_PROFILE_EDITED_FOLDER : TPMS_PROFILE_RX_FOLDER;
+    const char* folder = tpms_saved_source == TPMSSavedSourceMod ? TPMS_PROFILE_EDITED_FOLDER :
+                                                                   TPMS_PROFILE_RX_FOLDER;
 
     File* dir = storage_file_alloc(storage);
     uint16_t total = 0U;
@@ -83,7 +80,8 @@ static uint16_t tpms_saved_scan(TPMSApp* app) {
                 if(tpms_profile_read_label(
                        furi_string_get_cstr(path), label, sizeof(label), &saved_id)) {
                     if(saved_id != 0U)
-                        snprintf(display, sizeof(display), "%s %08lX", label, (unsigned long)saved_id);
+                        snprintf(
+                            display, sizeof(display), "%s %08lX", label, (unsigned long)saved_id);
                     else
                         snprintf(display, sizeof(display), "%s", label);
                     submenu_add_item(
@@ -118,7 +116,8 @@ static void tpms_saved_build_list(TPMSApp* app) {
         tpms_saved_page = 0U;
         submenu_set_header(app->submenu, "No saved TPMS");
     } else {
-        const uint16_t pages = (uint16_t)((total + TPMS_SAVED_PAGE_SIZE - 1U) / TPMS_SAVED_PAGE_SIZE);
+        const uint16_t pages =
+            (uint16_t)((total + TPMS_SAVED_PAGE_SIZE - 1U) / TPMS_SAVED_PAGE_SIZE);
         char header[32];
         snprintf(
             header,
@@ -129,7 +128,8 @@ static void tpms_saved_build_list(TPMSApp* app) {
             (unsigned)pages);
         submenu_set_header(app->submenu, header);
         if(tpms_saved_page > 0U) {
-            submenu_add_item(app->submenu, "< Previous", TPMS_SAVED_PREVIOUS, tpms_saved_callback, app);
+            submenu_add_item(
+                app->submenu, "< Previous", TPMS_SAVED_PREVIOUS, tpms_saved_callback, app);
         }
         if(tpms_saved_page + 1U < pages) {
             submenu_add_item(app->submenu, "Next >", TPMS_SAVED_NEXT, tpms_saved_callback, app);
@@ -168,8 +168,8 @@ bool tpms_scene_saved_on_event(void* context, SceneManagerEvent event) {
     }
     if(event.type != SceneManagerEventTypeCustom) return false;
     if(event.event == TPMS_SAVED_ORG || event.event == TPMS_SAVED_MOD) {
-        tpms_saved_source = event.event == TPMS_SAVED_MOD ?
-                                TPMSSavedSourceMod : TPMSSavedSourceOrg;
+        tpms_saved_source = event.event == TPMS_SAVED_MOD ? TPMSSavedSourceMod :
+                                                            TPMSSavedSourceOrg;
         tpms_saved_page = 0U;
         tpms_saved_build_list(app);
         return true;

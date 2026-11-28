@@ -7,16 +7,16 @@
 #include <stdio.h>
 #include <string.h>
 
-#define TPMS_SIM_TEMP_MIN_C (-50)
-#define TPMS_SIM_TEMP_MAX_C 150
-#define TPMS_SIM_PRESSURE_MIN_KPA 0
-#define TPMS_SIM_PRESSURE_MAX_KPA 700
-#define TPMS_SIM_ID_TEXT_SIZE 11U
-#define TPMS_SIM_FLAGS_TEXT_SIZE 4U
-#define TPMS_SIM_LAB_NAME_SIZE 25U
+#define TPMS_SIM_TEMP_MIN_C         (-50)
+#define TPMS_SIM_TEMP_MAX_C         150
+#define TPMS_SIM_PRESSURE_MIN_KPA   0
+#define TPMS_SIM_PRESSURE_MAX_KPA   700
+#define TPMS_SIM_ID_TEXT_SIZE       11U
+#define TPMS_SIM_FLAGS_TEXT_SIZE    4U
+#define TPMS_SIM_LAB_NAME_SIZE      25U
 #define TPMS_AUTO_TX_INTERVAL_MIN_S 1
 #define TPMS_AUTO_TX_INTERVAL_MAX_S 3600
-#define TPMS_AUTO_TX_PRESET_COUNT 6U
+#define TPMS_AUTO_TX_PRESET_COUNT   6U
 
 typedef enum {
     TPMSSimItemProtocol = 0,
@@ -67,9 +67,10 @@ static bool tpms_sim_number_input_open = false;
 static bool tpms_sim_lab_name_input_open = false;
 static uint32_t tpms_sim_number_target = TPMSSimItemPressure;
 
-static const uint16_t tpms_auto_tx_presets_s[TPMS_AUTO_TX_PRESET_COUNT] = {1U, 2U, 5U, 10U, 30U, 60U};
-static const char* const tpms_auto_tx_preset_text[TPMS_AUTO_TX_PRESET_COUNT] = {
-    "1 s", "2 s", "5 s", "10 s", "30 s", "60 s"};
+static const uint16_t tpms_auto_tx_presets_s[TPMS_AUTO_TX_PRESET_COUNT] =
+    {1U, 2U, 5U, 10U, 30U, 60U};
+static const char* const tpms_auto_tx_preset_text[TPMS_AUTO_TX_PRESET_COUNT] =
+    {"1 s", "2 s", "5 s", "10 s", "30 s", "60 s"};
 
 static void tpms_sim_set_auto_toggle_text(bool enabled) {
     if(!simulation_state.auto_toggle_item) return;
@@ -110,8 +111,8 @@ static void tpms_sim_auto_toggle_changed(VariableItem* item) {
     simulation_state.auto_tx_enabled = index == 1U;
     simulation_state.auto_tx_count = 0U;
     simulation_state.auto_tx_elapsed_ds = simulation_state.auto_tx_enabled ?
-                                               (uint32_t)simulation_state.auto_tx_interval_s * 10U :
-                                               0U;
+                                              (uint32_t)simulation_state.auto_tx_interval_s * 10U :
+                                              0U;
     tpms_sim_set_auto_toggle_text(simulation_state.auto_tx_enabled);
 }
 
@@ -158,7 +159,8 @@ static void tpms_sim_set_id_text(void) {
 static void tpms_sim_set_pressure_text(void) {
     if(!simulation_state.pressure_item) return;
     char text[20];
-    snprintf(text, sizeof(text), "%.2f bar", (double)(simulation_state.values.pressure_kpa / 100.0f));
+    snprintf(
+        text, sizeof(text), "%.2f bar", (double)(simulation_state.values.pressure_kpa / 100.0f));
     variable_item_set_current_value_text(simulation_state.pressure_item, text);
 }
 
@@ -179,7 +181,8 @@ static void tpms_sim_set_flags_text(void) {
 static void tpms_sim_refresh_values(void) {
     if(simulation_state.protocol_item) {
         variable_item_set_current_value_text(
-            simulation_state.protocol_item, tpms_encoder_display_name(simulation_state.values.kind));
+            simulation_state.protocol_item,
+            tpms_encoder_display_name(simulation_state.values.kind));
     }
     tpms_sim_set_id_text();
 
@@ -191,12 +194,16 @@ static void tpms_sim_refresh_values(void) {
         const uint8_t repeat_index = simulation_state.values.repeat_count == 10U ? 1U : 0U;
         simulation_state.values.repeat_count = repeat_index ? 10U : 3U;
         variable_item_set_current_value_index(simulation_state.repeat_item, repeat_index);
-        variable_item_set_current_value_text(simulation_state.repeat_item, repeat_index ? "10x" : "3x");
+        variable_item_set_current_value_text(
+            simulation_state.repeat_item, repeat_index ? "10x" : "3x");
     }
 
-    if(simulation_state.save_item) variable_item_set_current_value_text(simulation_state.save_item, "OK");
-    if(simulation_state.send_item) variable_item_set_current_value_text(simulation_state.send_item, "OK");
-    if(simulation_state.delete_item) variable_item_set_current_value_text(simulation_state.delete_item, "OK");
+    if(simulation_state.save_item)
+        variable_item_set_current_value_text(simulation_state.save_item, "OK");
+    if(simulation_state.send_item)
+        variable_item_set_current_value_text(simulation_state.send_item, "OK");
+    if(simulation_state.delete_item)
+        variable_item_set_current_value_text(simulation_state.delete_item, "OK");
 }
 
 static void tpms_sim_protocol_changed(VariableItem* item) {
@@ -230,18 +237,17 @@ static void tpms_sim_id_done(void* context) {
 static void tpms_sim_open_id_input(TPMSApp* app) {
     if(!app || !tpms_ensure_text_input(app)) return;
     tpms_sim_stop_auto_tx();
-    snprintf(tpms_sim_id_text, sizeof(tpms_sim_id_text), "%08lX", (unsigned long)simulation_state.values.id);
+    snprintf(
+        tpms_sim_id_text,
+        sizeof(tpms_sim_id_text),
+        "%08lX",
+        (unsigned long)simulation_state.values.id);
     text_input_reset(app->text_input);
     text_input_set_header_text(app->text_input, "Sensor ID HEX (0-9 A-F)");
     text_input_set_minimum_length(app->text_input, 1U);
     text_input_set_validator(app->text_input, tpms_sim_id_validator, app);
     text_input_set_result_callback(
-        app->text_input,
-        tpms_sim_id_done,
-        app,
-        tpms_sim_id_text,
-        sizeof(tpms_sim_id_text),
-        false);
+        app->text_input, tpms_sim_id_done, app, tpms_sim_id_text, sizeof(tpms_sim_id_text), false);
     tpms_sim_id_input_open = true;
     view_dispatcher_switch_to_view(app->view_dispatcher, TPMSViewTextInput);
 }
@@ -261,8 +267,8 @@ static void tpms_sim_flags_done(void* context) {
     if(!app) return;
     uint32_t low = simulation_state.values.flags & 0xFFU;
     if(tpms_sim_parse_id(tpms_sim_flags_text, &low) && low <= 0xFFU) {
-        simulation_state.values.flags =
-            (simulation_state.values.flags & 0xFFFFFF00U) | (low & 0xFFU);
+        simulation_state.values.flags = (simulation_state.values.flags & 0xFFFFFF00U) |
+                                        (low & 0xFFU);
         simulation_state.values.edit_mask |= TPMS_EDIT_FLAGS;
     }
     tpms_sim_flags_input_open = false;
@@ -327,8 +333,8 @@ static void tpms_sim_number_done(void* context, int32_t number) {
     tpms_sim_number_input_open = false;
     variable_item_list_set_selected_item(
         app->variable_item_list,
-        tpms_sim_number_target == TPMSSimItemAutoInterval ?
-            simulation_state.auto_interval_index : tpms_sim_number_target);
+        tpms_sim_number_target == TPMSSimItemAutoInterval ? simulation_state.auto_interval_index :
+                                                            tpms_sim_number_target);
     view_dispatcher_switch_to_view(app->view_dispatcher, TPMSViewVariableItemList);
 }
 
@@ -375,8 +381,8 @@ static bool tpms_sim_lab_name_validator(const char* text, FuriString* error, voi
     bool has_visible = false;
     for(size_t i = 0U; text[i]; i++) {
         const unsigned char c = (unsigned char)text[i];
-        if(c == '/' || c == '\\' || c == ':' || c == '*' || c == '?' || c == '"' ||
-           c == '<' || c == '>' || c == '|') {
+        if(c == '/' || c == '\\' || c == ':' || c == '*' || c == '?' || c == '"' || c == '<' ||
+           c == '>' || c == '|') {
             furi_string_set(error, "Bez / \\ : * ? \" < > |");
             return false;
         }
@@ -398,19 +404,15 @@ static void tpms_sim_lab_name_done(void* context) {
     const char* protocol = tpms_encoder_name(simulation_state.values.kind);
     bool ok = false;
     if(simulation_state.lab_source == TPMSLabSimulationSession) {
-        ok = tpms_lab_saved_store_named(
-            &simulation_state.values, protocol, tpms_sim_lab_name);
-    } else if(simulation_state.lab_source == TPMSLabSimulationSaved &&
-              simulation_state.lab_saved_path[0]) {
+        ok = tpms_lab_saved_store_named(&simulation_state.values, protocol, tpms_sim_lab_name);
+    } else if(
+        simulation_state.lab_source == TPMSLabSimulationSaved &&
+        simulation_state.lab_saved_path[0]) {
         ok = tpms_profile_save_to_path_named(
-            simulation_state.lab_saved_path,
-            &simulation_state.values,
-            protocol,
-            tpms_sim_lab_name);
+            simulation_state.lab_saved_path, &simulation_state.values, protocol, tpms_sim_lab_name);
     }
 
-    variable_item_set_current_value_text(
-        simulation_state.save_item, ok ? "ID SAVED" : "ERROR");
+    variable_item_set_current_value_text(simulation_state.save_item, ok ? "ID SAVED" : "ERROR");
     notification_message(
         app->notifications, ok ? &sequence_blink_green_10 : &sequence_blink_red_10);
     variable_item_list_set_selected_item(app->variable_item_list, TPMSSimItemSave);
@@ -481,8 +483,7 @@ static void tpms_sim_enter_callback(void* context, uint32_t index) {
         variable_item_set_current_value_text(simulation_state.save_item, "SAVING...");
         const char* protocol = tpms_encoder_name(simulation_state.values.kind);
         const bool ok = tpms_save_edited_raw(app, &simulation_state.values, protocol, NULL);
-        variable_item_set_current_value_text(
-            simulation_state.save_item, ok ? "SAVED" : "ERROR");
+        variable_item_set_current_value_text(simulation_state.save_item, ok ? "SAVED" : "ERROR");
         notification_message(
             app->notifications, ok ? &sequence_blink_green_10 : &sequence_blink_red_10);
         return;
@@ -493,11 +494,13 @@ static void tpms_sim_enter_callback(void* context, uint32_t index) {
         const bool ok = tpms_editor_send(app, &simulation_state.values);
         if(ok) {
             variable_item_set_current_value_text(
-                simulation_state.send_item, tpms_radio_is_external(app) ? "TX EXT OK" : "TX INT OK");
+                simulation_state.send_item,
+                tpms_radio_is_external(app) ? "TX EXT OK" : "TX INT OK");
         } else {
             variable_item_set_current_value_text(simulation_state.send_item, "TX ERROR");
         }
-        notification_message(app->notifications, ok ? &sequence_blink_green_10 : &sequence_blink_red_10);
+        notification_message(
+            app->notifications, ok ? &sequence_blink_green_10 : &sequence_blink_red_10);
         return;
     }
 
@@ -506,13 +509,15 @@ static void tpms_sim_enter_callback(void* context, uint32_t index) {
         bool ok = false;
         if(simulation_state.lab_source == TPMSLabSimulationSession) {
             ok = tpms_lab_session_delete(simulation_state.lab_session_slot);
-        } else if(simulation_state.lab_source == TPMSLabSimulationSaved &&
-                  simulation_state.lab_saved_path[0]) {
+        } else if(
+            simulation_state.lab_source == TPMSLabSimulationSaved &&
+            simulation_state.lab_saved_path[0]) {
             ok = tpms_lab_saved_delete(simulation_state.lab_saved_path);
         }
         variable_item_set_current_value_text(
             simulation_state.delete_item, ok ? "DELETED" : "ERROR");
-        notification_message(app->notifications, ok ? &sequence_blink_green_10 : &sequence_blink_red_10);
+        notification_message(
+            app->notifications, ok ? &sequence_blink_green_10 : &sequence_blink_red_10);
         if(ok) scene_manager_previous_scene(app->scene_manager);
         return;
     }
@@ -538,15 +543,21 @@ void tpms_scene_simulation_on_enter(void* context) {
     memset(&simulation_state, 0, sizeof(simulation_state));
     simulation_state.lab_source = lab_source;
     simulation_state.lab_session_slot = lab_session_slot;
-    snprintf(simulation_state.lab_saved_path, sizeof(simulation_state.lab_saved_path), "%s", lab_saved_path);
+    snprintf(
+        simulation_state.lab_saved_path,
+        sizeof(simulation_state.lab_saved_path),
+        "%s",
+        lab_saved_path);
     simulation_state.delete_index = UINT32_MAX;
     simulation_state.auto_tx_interval_s = 5U;
     tpms_sim_id_input_open = false;
     tpms_sim_flags_input_open = false;
     tpms_sim_number_input_open = false;
     tpms_sim_lab_name_input_open = false;
-    if(use_prefill) simulation_state.values = prefill_values;
-    else tpms_encoder_default_values(tpms_encoder_test_kind(0U), &simulation_state.values);
+    if(use_prefill)
+        simulation_state.values = prefill_values;
+    else
+        tpms_encoder_default_values(tpms_encoder_test_kind(0U), &simulation_state.values);
 
     VariableItemList* list = app->variable_item_list;
     variable_item_list_reset(list);
@@ -566,12 +577,11 @@ void tpms_scene_simulation_on_enter(void* context) {
 
     simulation_state.id_item = variable_item_list_add(list, "Sensor ID", 1U, NULL, app);
 
-    simulation_state.pressure_item =
-        variable_item_list_add(list, "Pressure", 1U, NULL, app);
-    simulation_state.temperature_item =
-        variable_item_list_add(list, "Temperature", 1U, NULL, app);
+    simulation_state.pressure_item = variable_item_list_add(list, "Pressure", 1U, NULL, app);
+    simulation_state.temperature_item = variable_item_list_add(list, "Temperature", 1U, NULL, app);
     simulation_state.flags_item = variable_item_list_add(list, "Flags", 1U, NULL, app);
-    simulation_state.repeat_item = variable_item_list_add(list, "Repeats", 2U, tpms_sim_repeat_changed, app);
+    simulation_state.repeat_item =
+        variable_item_list_add(list, "Repeats", 2U, tpms_sim_repeat_changed, app);
     simulation_state.save_item = variable_item_list_add(
         list, simulation_state.lab_source ? "Save ID" : "Save", 1U, NULL, app);
     simulation_state.send_item = variable_item_list_add(list, "Send", 1U, NULL, app);
@@ -582,7 +592,11 @@ void tpms_scene_simulation_on_enter(void* context) {
     }
     simulation_state.auto_interval_index = next_index++;
     simulation_state.auto_interval_item = variable_item_list_add(
-        list, "Auto TX interval", TPMS_AUTO_TX_PRESET_COUNT + 1U, tpms_sim_auto_interval_changed, app);
+        list,
+        "Auto TX interval",
+        TPMS_AUTO_TX_PRESET_COUNT + 1U,
+        tpms_sim_auto_interval_changed,
+        app);
     variable_item_set_current_value_index(simulation_state.auto_interval_item, 2U);
     variable_item_set_current_value_text(simulation_state.auto_interval_item, "5 s");
     simulation_state.auto_toggle_index = next_index;
@@ -622,7 +636,8 @@ bool tpms_scene_simulation_on_event(void* context, SceneManagerEvent event) {
         variable_item_list_set_selected_item(
             app->variable_item_list,
             tpms_sim_number_target == TPMSSimItemAutoInterval ?
-                simulation_state.auto_interval_index : tpms_sim_number_target);
+                simulation_state.auto_interval_index :
+                tpms_sim_number_target);
         view_dispatcher_switch_to_view(app->view_dispatcher, TPMSViewVariableItemList);
         return true;
     }
@@ -632,7 +647,8 @@ bool tpms_scene_simulation_on_event(void* context, SceneManagerEvent event) {
     }
     if(event.type == SceneManagerEventTypeTick && simulation_state.auto_tx_enabled) {
         const uint32_t interval_ds = (uint32_t)simulation_state.auto_tx_interval_s * 10U;
-        if(simulation_state.auto_tx_elapsed_ds < interval_ds) simulation_state.auto_tx_elapsed_ds++;
+        if(simulation_state.auto_tx_elapsed_ds < interval_ds)
+            simulation_state.auto_tx_elapsed_ds++;
         if(simulation_state.auto_tx_elapsed_ds >= interval_ds) {
             simulation_state.auto_tx_elapsed_ds = 0U;
             const bool ok = tpms_editor_send(app, &simulation_state.values);
@@ -640,7 +656,8 @@ bool tpms_scene_simulation_on_event(void* context, SceneManagerEvent event) {
                 simulation_state.auto_tx_count++;
                 tpms_sim_set_auto_toggle_text(true);
                 variable_item_set_current_value_text(
-                    simulation_state.send_item, tpms_radio_is_external(app) ? "AUTO EXT OK" : "AUTO INT OK");
+                    simulation_state.send_item,
+                    tpms_radio_is_external(app) ? "AUTO EXT OK" : "AUTO INT OK");
                 notification_message(app->notifications, &sequence_blink_green_10);
             } else {
                 tpms_sim_stop_auto_tx();

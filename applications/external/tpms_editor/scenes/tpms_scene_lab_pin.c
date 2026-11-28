@@ -18,5 +18,11 @@ void tpms_scene_lab_pin_on_enter(void* context) {
     number_input_set_result_callback(app->number_input, tpms_lab_pin_done, app, 0, 0, 9999);
     view_dispatcher_switch_to_view(app->view_dispatcher, TPMSViewNumberInput);
 }
-bool tpms_scene_lab_pin_on_event(void* context, SceneManagerEvent event) { UNUSED(context); UNUSED(event); return false; }
-void tpms_scene_lab_pin_on_exit(void* context) { UNUSED(context); }
+bool tpms_scene_lab_pin_on_event(void* context, SceneManagerEvent event) {
+    UNUSED(context);
+    UNUSED(event);
+    return false;
+}
+void tpms_scene_lab_pin_on_exit(void* context) {
+    UNUSED(context);
+}

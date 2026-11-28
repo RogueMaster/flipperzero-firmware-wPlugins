@@ -7,7 +7,7 @@
 #include <furi.h>
 
 #define TPMS_HISTORY_MAX 12
-#define TAG "TPMSHistory"
+#define TAG              "TPMSHistory"
 
 typedef struct {
     FuriString* item_str;
@@ -86,9 +86,10 @@ TPMSHistory* tpms_history_alloc(void) {
 void tpms_history_free(TPMSHistory* instance) {
     furi_assert(instance);
     furi_string_free(instance->tmp_string);
-    for M_EACH(item, instance->history->data, TPMSHistoryItemArray_t) {
-        tpms_history_item_free(item);
-    }
+    for
+        M_EACH(item, instance->history->data, TPMSHistoryItemArray_t) {
+            tpms_history_item_free(item);
+        }
     TPMSHistoryItemArray_clear(instance->history->data);
     free(instance->history);
     free(instance);
@@ -107,15 +108,17 @@ SubGhzRadioPreset* tpms_history_get_radio_preset(TPMSHistory* instance, uint16_t
 
 const char* tpms_history_get_preset(TPMSHistory* instance, uint16_t idx) {
     furi_assert(instance);
-    return furi_string_get_cstr(TPMSHistoryItemArray_get(instance->history->data, idx)->preset->name);
+    return furi_string_get_cstr(
+        TPMSHistoryItemArray_get(instance->history->data, idx)->preset->name);
 }
 
 void tpms_history_reset(TPMSHistory* instance) {
     furi_assert(instance);
     furi_string_reset(instance->tmp_string);
-    for M_EACH(item, instance->history->data, TPMSHistoryItemArray_t) {
-        tpms_history_item_free(item);
-    }
+    for
+        M_EACH(item, instance->history->data, TPMSHistoryItemArray_t) {
+            tpms_history_item_free(item);
+        }
     TPMSHistoryItemArray_reset(instance->history->data);
     instance->last_index_write = 0U;
     instance->last_key_hash = 0U;
@@ -148,7 +151,8 @@ FlipperFormat* tpms_history_get_raw_data(TPMSHistory* instance, uint16_t idx) {
 
 bool tpms_history_get_text_space_left(TPMSHistory* instance, FuriString* output) {
     furi_assert(instance);
-    if(output) furi_string_printf(output, "%02u/%02u", instance->last_index_write, TPMS_HISTORY_MAX);
+    if(output)
+        furi_string_printf(output, "%02u/%02u", instance->last_index_write, TPMS_HISTORY_MAX);
     return instance->last_index_write >= TPMS_HISTORY_MAX;
 }
 
@@ -173,8 +177,7 @@ bool tpms_history_set_frame_rssi(TPMSHistory* instance, uint16_t idx, float rssi
     return true;
 }
 
-bool tpms_history_get_frame_rssi(
-    TPMSHistory* instance, uint16_t idx, int16_t* rssi_dbm) {
+bool tpms_history_get_frame_rssi(TPMSHistory* instance, uint16_t idx, int16_t* rssi_dbm) {
     furi_assert(instance);
     if(idx >= instance->last_index_write || !rssi_dbm) return false;
     TPMSHistoryItem* item = TPMSHistoryItemArray_get(instance->history->data, idx);
@@ -183,10 +186,7 @@ bool tpms_history_get_frame_rssi(
     return true;
 }
 
-static bool tpms_history_read_key(
-    FlipperFormat* format,
-    FuriString* protocol,
-    uint32_t* id) {
+static bool tpms_history_read_key(FlipperFormat* format, FuriString* protocol, uint32_t* id) {
     if(!flipper_format_rewind(format)) return false;
     if(!flipper_format_read_string(format, "Protocol", protocol)) return false;
     if(!flipper_format_rewind(format)) return false;
@@ -194,7 +194,7 @@ static bool tpms_history_read_key(
 }
 
 TPMSHistoryStateAddKey
-tpms_history_add_to_history(TPMSHistory* instance, void* context, SubGhzRadioPreset* preset) {
+    tpms_history_add_to_history(TPMSHistory* instance, void* context, SubGhzRadioPreset* preset) {
     furi_assert(instance);
     furi_assert(context);
     furi_assert(preset);
@@ -263,8 +263,7 @@ tpms_history_add_to_history(TPMSHistory* instance, void* context, SubGhzRadioPre
             target_index = instance->next_overwrite_index % TPMS_HISTORY_MAX;
             item = TPMSHistoryItemArray_get(instance->history->data, target_index);
             tpms_history_item_free(item);
-            instance->next_overwrite_index =
-                (uint16_t)((target_index + 1U) % TPMS_HISTORY_MAX);
+            instance->next_overwrite_index = (uint16_t)((target_index + 1U) % TPMS_HISTORY_MAX);
         } else {
             item = TPMSHistoryItemArray_push_raw(instance->history->data);
         }
@@ -281,25 +280,20 @@ tpms_history_add_to_history(TPMSHistory* instance, void* context, SubGhzRadioPre
         item->protocol = furi_string_alloc_set(protocol);
         item->item_str = furi_string_alloc();
         furi_string_printf(
-            item->item_str,
-            "%s %lX",
-            tpms_protocol_list_name(furi_string_get_cstr(protocol)),
-            id);
+            item->item_str, "%s %lX", tpms_protocol_list_name(furi_string_get_cstr(protocol)), id);
         item->flipper_string = flipper_format_string_alloc();
         subghz_protocol_decoder_base_serialize(decoder_base, item->flipper_string, preset);
 
         instance->last_affected_index = target_index;
         instance->last_affected_valid = true;
         if(!replacing) instance->last_index_write++;
-        result = replacing ? TPMSHistoryStateAddKeyReplaceData :
-                             TPMSHistoryStateAddKeyNewDada;
+        result = replacing ? TPMSHistoryStateAddKeyReplaceData : TPMSHistoryStateAddKeyNewDada;
     } while(false);
 
     furi_string_free(protocol);
     flipper_format_free(serialized);
     return result;
 }
-
 
 bool tpms_history_get_last_affected_index(TPMSHistory* instance, uint16_t* idx) {
     furi_assert(instance);
@@ -356,7 +350,6 @@ bool tpms_history_copy_raw_capture(
     }
     return true;
 }
-
 
 bool tpms_history_set_wake_profile(TPMSHistory* instance, uint16_t idx, uint8_t wake_profile) {
     furi_assert(instance);

@@ -18,11 +18,7 @@ static void tpms_scene_settings_populate(TPMSApp* app) {
     submenu_reset(app->submenu);
 
     submenu_add_item(
-        app->submenu,
-        "Radio settings",
-        TPMSSettingsRadio,
-        tpms_scene_settings_callback,
-        app);
+        app->submenu, "Radio settings", TPMSSettingsRadio, tpms_scene_settings_callback, app);
 
     char autosave_label[32];
     snprintf(
@@ -31,24 +27,12 @@ static void tpms_scene_settings_populate(TPMSApp* app) {
         "Autosave: %s",
         app->autosave_enabled ? "ON" : "OFF");
     submenu_add_item(
-        app->submenu,
-        autosave_label,
-        TPMSSettingsAutosave,
-        tpms_scene_settings_callback,
-        app);
+        app->submenu, autosave_label, TPMSSettingsAutosave, tpms_scene_settings_callback, app);
 
     submenu_add_item(
-        app->submenu,
-        "Protocol list",
-        TPMSSettingsProtocolList,
-        tpms_scene_settings_callback,
-        app);
+        app->submenu, "Protocol list", TPMSSettingsProtocolList, tpms_scene_settings_callback, app);
     submenu_add_item(
-        app->submenu,
-        "Protocol test",
-        TPMSSettingsProtocolTest,
-        tpms_scene_settings_callback,
-        app);
+        app->submenu, "Protocol test", TPMSSettingsProtocolTest, tpms_scene_settings_callback, app);
 
     submenu_set_selected_item(
         app->submenu, scene_manager_get_scene_state(app->scene_manager, TPMSSceneSettings));

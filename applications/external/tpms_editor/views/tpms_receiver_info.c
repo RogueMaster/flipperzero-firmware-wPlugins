@@ -105,10 +105,7 @@ void tpms_view_receiver_info_draw(Canvas* canvas, TPMSReceiverInfoModel* model) 
     canvas_set_font(canvas, FontSecondary);
     if(model->wake_profile_valid && (model->curr_ts & 1U)) {
         snprintf(
-            buffer,
-            sizeof(buffer),
-            "Wake: %s",
-            tpms_wake_profile_short_name(model->wake_profile));
+            buffer, sizeof(buffer), "Wake: %s", tpms_wake_profile_short_name(model->wake_profile));
         canvas_draw_str(canvas, 0, 32, buffer);
     } else if(model->frame_rf_valid && model->frame_rssi_valid) {
         snprintf(

@@ -8,8 +8,8 @@
 #include "proto6_raw_samples.h"
 
 /* Allocate and initialize a samples buffer. */
-RawSamplesBuffer *raw_samples_alloc(void) {
-    RawSamplesBuffer *buf = malloc(sizeof(*buf));
+RawSamplesBuffer* raw_samples_alloc(void) {
+    RawSamplesBuffer* buf = malloc(sizeof(*buf));
     if(!buf) return NULL;
     buf->mutex = furi_mutex_alloc(FuriMutexTypeNormal);
     if(!buf->mutex) {
@@ -21,7 +21,7 @@ RawSamplesBuffer *raw_samples_alloc(void) {
 }
 
 /* Free a sample buffer. Should be called when the mutex is released. */
-void raw_samples_free(RawSamplesBuffer *s) {
+void raw_samples_free(RawSamplesBuffer* s) {
     if(!s) return;
     furi_mutex_free(s->mutex);
     free(s);
@@ -30,27 +30,27 @@ void raw_samples_free(RawSamplesBuffer *s) {
 /* This just set all the samples to zero and also resets the internal
  * index. There is no need to call it after raw_samples_alloc(), but only
  * when one wants to reset the whole buffer of samples. */
-void raw_samples_reset(RawSamplesBuffer *s) {
-    furi_mutex_acquire(s->mutex,FuriWaitForever);
+void raw_samples_reset(RawSamplesBuffer* s) {
+    furi_mutex_acquire(s->mutex, FuriWaitForever);
     s->total = RAW_SAMPLES_NUM;
     s->idx = 0;
     s->short_pulse_dur = 0;
-    memset(s->samples,0,sizeof(s->samples));
+    memset(s->samples, 0, sizeof(s->samples));
     furi_mutex_release(s->mutex);
 }
 
 /* Set the raw sample internal index so that what is currently at
  * offset 'offset', will appear to be at 0 index. */
-void raw_samples_center(RawSamplesBuffer *s, uint32_t offset) {
-    s->idx = (s->idx+offset) % RAW_SAMPLES_NUM;
+void raw_samples_center(RawSamplesBuffer* s, uint32_t offset) {
+    s->idx = (s->idx + offset) % RAW_SAMPLES_NUM;
 }
 
 /* Add the specified sample in the circular buffer. */
-void raw_samples_add(RawSamplesBuffer *s, bool level, uint32_t dur) {
-    furi_mutex_acquire(s->mutex,FuriWaitForever);
+void raw_samples_add(RawSamplesBuffer* s, bool level, uint32_t dur) {
+    furi_mutex_acquire(s->mutex, FuriWaitForever);
     s->samples[s->idx].level = level;
     s->samples[s->idx].dur = (uint16_t)(dur > 32767U ? 32767U : dur);
-    s->idx = (s->idx+1) % RAW_SAMPLES_NUM;
+    s->idx = (s->idx + 1) % RAW_SAMPLES_NUM;
     furi_mutex_release(s->mutex);
 }
 
@@ -62,52 +62,47 @@ void raw_samples_add(RawSamplesBuffer *s, bool level, uint32_t dur) {
  *
  * This function is a bit slower so the internal data sampling should
  * be performed with raw_samples_add(). */
-void raw_samples_add_or_update(RawSamplesBuffer *s, bool level, uint32_t dur) {
-    furi_mutex_acquire(s->mutex,FuriWaitForever);
-    uint32_t previdx = (s->idx-1) % RAW_SAMPLES_NUM;
-    if (s->samples[previdx].level == level &&
-        s->samples[previdx].dur != 0)
-    {
+void raw_samples_add_or_update(RawSamplesBuffer* s, bool level, uint32_t dur) {
+    furi_mutex_acquire(s->mutex, FuriWaitForever);
+    uint32_t previdx = (s->idx - 1) % RAW_SAMPLES_NUM;
+    if(s->samples[previdx].level == level && s->samples[previdx].dur != 0) {
         /* Update the last sample: it has the same level. */
-        s->samples[previdx].dur = (uint16_t)(((uint32_t)s->samples[previdx].dur + dur) > 32767U ? 32767U : ((uint32_t)s->samples[previdx].dur + dur));
+        s->samples[previdx].dur = (uint16_t)(((uint32_t)s->samples[previdx].dur + dur) > 32767U ?
+                                                 32767U :
+                                                 ((uint32_t)s->samples[previdx].dur + dur));
     } else {
         /* Add a new sample. */
         s->samples[s->idx].level = level;
         s->samples[s->idx].dur = (uint16_t)(dur > 32767U ? 32767U : dur);
-        s->idx = (s->idx+1) % RAW_SAMPLES_NUM;
+        s->idx = (s->idx + 1) % RAW_SAMPLES_NUM;
     }
     furi_mutex_release(s->mutex);
 }
 
 /* Get the sample from the buffer. It is possible to use out of range indexes
  * as 'idx' because the modulo operation will rewind back from the start. */
-void raw_samples_get(RawSamplesBuffer *s, uint32_t idx, bool *level, uint32_t *dur)
-{
-    furi_mutex_acquire(s->mutex,FuriWaitForever);
+void raw_samples_get(RawSamplesBuffer* s, uint32_t idx, bool* level, uint32_t* dur) {
+    furi_mutex_acquire(s->mutex, FuriWaitForever);
     idx = (s->idx + idx) % RAW_SAMPLES_NUM;
     *level = s->samples[idx].level;
     *dur = s->samples[idx].dur;
     furi_mutex_release(s->mutex);
 }
 
-void raw_samples_get_unlocked(
-    const RawSamplesBuffer* s,
-    uint32_t idx,
-    bool* level,
-    uint32_t* dur) {
+void raw_samples_get_unlocked(const RawSamplesBuffer* s, uint32_t idx, bool* level, uint32_t* dur) {
     idx = (s->idx + idx) % RAW_SAMPLES_NUM;
     *level = s->samples[idx].level;
     *dur = s->samples[idx].dur;
 }
 
 /* Copy one buffer to the other, including current index. */
-void raw_samples_copy(RawSamplesBuffer *dst, RawSamplesBuffer *src) {
-    furi_mutex_acquire(src->mutex,FuriWaitForever);
-    furi_mutex_acquire(dst->mutex,FuriWaitForever);
+void raw_samples_copy(RawSamplesBuffer* dst, RawSamplesBuffer* src) {
+    furi_mutex_acquire(src->mutex, FuriWaitForever);
+    furi_mutex_acquire(dst->mutex, FuriWaitForever);
     dst->idx = src->idx;
     dst->total = src->total;
     dst->short_pulse_dur = src->short_pulse_dur;
-    memcpy(dst->samples,src->samples,sizeof(dst->samples));
+    memcpy(dst->samples, src->samples, sizeof(dst->samples));
     furi_mutex_release(src->mutex);
     furi_mutex_release(dst->mutex);
 }

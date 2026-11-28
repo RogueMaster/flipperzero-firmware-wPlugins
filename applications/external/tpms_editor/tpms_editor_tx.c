@@ -4,7 +4,7 @@
 
 #include <lib/toolbox/level_duration.h>
 
-#define TAG "TPMSTX14"
+#define TAG                "TPMSTX14"
 #define TPMS_REPEAT_GAP_US 10000U
 
 static TpmsTxWave tx_wave;
@@ -63,8 +63,7 @@ static void tpms_restore_rx(TPMSApp* app) {
 bool tpms_editor_send(TPMSApp* app, const TpmsEditValues* values) {
     furi_assert(app);
     if(!values || values->kind == TpmsEncoderNone) return false;
-    if(!tpms_encoder_build(values, &tx_wave) || tx_wave.pulse_count == 0U ||
-       tx_wave.overflowed) {
+    if(!tpms_encoder_build(values, &tx_wave) || tx_wave.pulse_count == 0U || tx_wave.overflowed) {
         FURI_LOG_E(TAG, "Frame build failed");
         return false;
     }
@@ -80,7 +79,8 @@ bool tpms_editor_send(TPMSApp* app, const TpmsEditValues* values) {
     bool async_started = false;
     do {
         if(!tpms_radio_ensure_selected(app) || !app->txrx->radio_device) break;
-        if(!subghz_devices_is_frequency_valid(app->txrx->radio_device, tx_wave.frequency_hz)) break;
+        if(!subghz_devices_is_frequency_valid(app->txrx->radio_device, tx_wave.frequency_hz))
+            break;
 
         subghz_devices_reset(app->txrx->radio_device);
         subghz_devices_idle(app->txrx->radio_device);
@@ -100,8 +100,8 @@ bool tpms_editor_send(TPMSApp* app, const TpmsEditValues* values) {
         tx_context.repeat_target = repeat;
         app->txrx->txrx_state = TPMSTxRxStateTx;
 
-        async_started = subghz_devices_start_async_tx(
-            app->txrx->radio_device, tpms_tx_yield, &tx_context);
+        async_started =
+            subghz_devices_start_async_tx(app->txrx->radio_device, tpms_tx_yield, &tx_context);
         if(!async_started) {
             FURI_LOG_E(TAG, "Async TX start failed");
             break;

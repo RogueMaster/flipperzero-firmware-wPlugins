@@ -9,11 +9,11 @@
 
 typedef struct TPMSApp TPMSApp;
 
-#define TPMS_PROFILE_FOLDER EXT_PATH("apps_data/tpms_editor/profiles")
-#define TPMS_PROFILE_RX_FOLDER EXT_PATH("apps_data/tpms_editor/profiles/rx")
-#define TPMS_PROFILE_EDITED_FOLDER EXT_PATH("apps_data/tpms_editor/profiles/edited")
-#define TPMS_AUTOSAVE_FOLDER EXT_PATH("apps_data/tpms_editor/autosave")
-#define TPMS_AUTOSAVE_CONFIG EXT_PATH("apps_data/tpms_editor/autosave.cfg")
+#define TPMS_PROFILE_FOLDER           EXT_PATH("apps_data/tpms_editor/profiles")
+#define TPMS_PROFILE_RX_FOLDER        EXT_PATH("apps_data/tpms_editor/profiles/rx")
+#define TPMS_PROFILE_EDITED_FOLDER    EXT_PATH("apps_data/tpms_editor/profiles/edited")
+#define TPMS_AUTOSAVE_FOLDER          EXT_PATH("apps_data/tpms_editor/autosave")
+#define TPMS_AUTOSAVE_CONFIG          EXT_PATH("apps_data/tpms_editor/autosave.cfg")
 #define TPMS_AUTOSAVE_DEFAULT_ENABLED true
 
 /** Save the exact signed RAW timings retained for a received history item. */
@@ -58,11 +58,7 @@ bool tpms_profile_save_named(
     FuriString* saved_path);
 
 /** Read the optional user-facing label from a saved profile. */
-bool tpms_profile_read_label(
-    const char* path,
-    char* label,
-    size_t label_size,
-    uint32_t* id);
+bool tpms_profile_read_label(const char* path, char* label, size_t label_size, uint32_t* id);
 
 bool tpms_profile_load(
     const char* path,
@@ -72,7 +68,9 @@ bool tpms_profile_load(
 
 /** Save compact editable profile to an exact path (used by volatile LAB slots). */
 bool tpms_profile_save_to_path(
-    const char* path, const TpmsEditValues* values, const char* protocol);
+    const char* path,
+    const TpmsEditValues* values,
+    const char* protocol);
 
 /** Same exact-path save, with an optional persistent user-facing label. */
 bool tpms_profile_save_to_path_named(

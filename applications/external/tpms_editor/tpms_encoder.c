@@ -6,24 +6,15 @@
 #define PSI_TO_KPA 6.894757293168f
 
 static const TpmsEncoderKind test_kinds[] = {
-    TpmsEncoderRenault,
-    TpmsEncoderToyota,
-    TpmsEncoderSchrader,
-    TpmsEncoderSchraderEG53MA4,
-    TpmsEncoderCitroen,
-    TpmsEncoderFord,
-    TpmsEncoderBMWGen23,
-    TpmsEncoderElantra2012,
-    TpmsEncoderHyundaiVDO,
-    TpmsEncoderTruck,
-    TpmsEncoderRenault0435R,
-    TpmsEncoderHondaTRW,
-    TpmsEncoderPorsche,
-    TpmsEncoderKia,
-    TpmsEncoderPMV107J,
-    TpmsEncoderTG1C,
-    TpmsEncoderQ85,
-    TpmsEncoderMercedesSprinter,
+    TpmsEncoderRenault,      TpmsEncoderToyota,
+    TpmsEncoderSchrader,     TpmsEncoderSchraderEG53MA4,
+    TpmsEncoderCitroen,      TpmsEncoderFord,
+    TpmsEncoderBMWGen23,     TpmsEncoderElantra2012,
+    TpmsEncoderHyundaiVDO,   TpmsEncoderTruck,
+    TpmsEncoderRenault0435R, TpmsEncoderHondaTRW,
+    TpmsEncoderPorsche,      TpmsEncoderKia,
+    TpmsEncoderPMV107J,      TpmsEncoderTG1C,
+    TpmsEncoderQ85,          TpmsEncoderMercedesSprinter,
     TpmsEncoderNissan,
 };
 
@@ -81,8 +72,7 @@ static void set_builder_fields(ProtoViewFieldSet* fields, const TpmsEditValues* 
     if(field) {
         uint8_t temp_f = values->temperature_raw_f;
         if(!values->temperature_raw_f_valid) {
-            int32_t converted =
-                (int32_t)(values->temperature_c * 9.0f / 5.0f + 32.0f + 0.5f);
+            int32_t converted = (int32_t)(values->temperature_c * 9.0f / 5.0f + 32.0f + 0.5f);
             if(converted < 0) converted = 0;
             if(converted > 255) converted = 255;
             temp_f = (uint8_t)converted;
@@ -102,10 +92,7 @@ static void set_builder_fields(ProtoViewFieldSet* fields, const TpmsEditValues* 
     if(values->raw_payload_valid && values->raw_payload_size > 0U &&
        values->raw_payload_size <= sizeof(values->raw_payload)) {
         fieldset_add_bytes(
-            fields,
-            "Raw payload",
-            values->raw_payload,
-            (uint32_t)values->raw_payload_size * 2U);
+            fields, "Raw payload", values->raw_payload, (uint32_t)values->raw_payload_size * 2U);
         fieldset_add_uint(
             fields,
             "Raw payload bits",
@@ -117,26 +104,46 @@ static void set_builder_fields(ProtoViewFieldSet* fields, const TpmsEditValues* 
 
 const char* tpms_encoder_name(TpmsEncoderKind kind) {
     switch(kind) {
-    case TpmsEncoderRenault: return "Renault TPMS";
-    case TpmsEncoderToyota: return "Toyota TPMS";
-    case TpmsEncoderSchrader: return "Schrader TPMS";
-    case TpmsEncoderSchraderEG53MA4: return "Schrader EG53MA4 TPMS";
-    case TpmsEncoderCitroen: return "Citroen TPMS";
-    case TpmsEncoderFord: return "Ford TPMS";
-    case TpmsEncoderBMWGen23: return "BMW Gen2/3 EXP";
-    case TpmsEncoderElantra2012: return "Elantra/Honda EXP";
-    case TpmsEncoderHyundaiVDO: return "Hyundai VDO EXP";
-    case TpmsEncoderTruck: return "Truck Solar EXP";
-    case TpmsEncoderRenault0435R: return "Renault 0435R EXP";
-    case TpmsEncoderHondaTRW: return "Honda TRW EXP";
-    case TpmsEncoderPorsche: return "Porsche EXP";
-    case TpmsEncoderKia: return "Kia EXP";
-    case TpmsEncoderPMV107J: return "Toyota PMV-107J TEST";
-    case TpmsEncoderTG1C: return "VDO TG1C/Abarth TEST";
-    case TpmsEncoderQ85: return "Shenzhen Q85 TEST";
-    case TpmsEncoderMercedesSprinter: return "Mercedes Sprinter TEST";
-    case TpmsEncoderNissan: return "Nissan PMV-C811 TEST";
-    default: return "None";
+    case TpmsEncoderRenault:
+        return "Renault TPMS";
+    case TpmsEncoderToyota:
+        return "Toyota TPMS";
+    case TpmsEncoderSchrader:
+        return "Schrader TPMS";
+    case TpmsEncoderSchraderEG53MA4:
+        return "Schrader EG53MA4 TPMS";
+    case TpmsEncoderCitroen:
+        return "Citroen TPMS";
+    case TpmsEncoderFord:
+        return "Ford TPMS";
+    case TpmsEncoderBMWGen23:
+        return "BMW Gen2/3 EXP";
+    case TpmsEncoderElantra2012:
+        return "Elantra/Honda EXP";
+    case TpmsEncoderHyundaiVDO:
+        return "Hyundai VDO EXP";
+    case TpmsEncoderTruck:
+        return "Truck Solar EXP";
+    case TpmsEncoderRenault0435R:
+        return "Renault 0435R EXP";
+    case TpmsEncoderHondaTRW:
+        return "Honda TRW EXP";
+    case TpmsEncoderPorsche:
+        return "Porsche EXP";
+    case TpmsEncoderKia:
+        return "Kia EXP";
+    case TpmsEncoderPMV107J:
+        return "Toyota PMV-107J TEST";
+    case TpmsEncoderTG1C:
+        return "VDO TG1C/Abarth TEST";
+    case TpmsEncoderQ85:
+        return "Shenzhen Q85 TEST";
+    case TpmsEncoderMercedesSprinter:
+        return "Mercedes Sprinter TEST";
+    case TpmsEncoderNissan:
+        return "Nissan PMV-C811 TEST";
+    default:
+        return "None";
     }
 }
 
@@ -164,10 +171,14 @@ const char* tpms_protocol_list_name(const char* internal_name) {
 
 const char* tpms_radio_preset_name(uint8_t preset) {
     switch(preset) {
-    case TpmsRadioPresetFSK: return "FSK";
-    case TpmsRadioPresetOOK: return "OOK";
-    case TpmsRadioPresetGFSK: return "GFSK";
-    default: return "AUTO";
+    case TpmsRadioPresetFSK:
+        return "FSK";
+    case TpmsRadioPresetOOK:
+        return "OOK";
+    case TpmsRadioPresetGFSK:
+        return "GFSK";
+    default:
+        return "AUTO";
     }
 }
 
@@ -181,19 +192,27 @@ uint8_t tpms_radio_preset_from_name(const char* preset_name) {
 
 const char* tpms_wake_profile_name(uint8_t profile) {
     switch(profile) {
-    case TpmsWakeProfileFord5A5A: return "Ford 5A5A";
-    case TpmsWakeProfileVDOFCA615E: return "VDO/FCA 615E";
-    case TpmsWakeProfileAutoFordVDO: return "AUTO Ford+VDO";
-    default: return "NONE";
+    case TpmsWakeProfileFord5A5A:
+        return "Ford 5A5A";
+    case TpmsWakeProfileVDOFCA615E:
+        return "VDO/FCA 615E";
+    case TpmsWakeProfileAutoFordVDO:
+        return "AUTO Ford+VDO";
+    default:
+        return "NONE";
     }
 }
 
 const char* tpms_wake_profile_short_name(uint8_t profile) {
     switch(profile) {
-    case TpmsWakeProfileFord5A5A: return "Ford 5A5A";
-    case TpmsWakeProfileVDOFCA615E: return "VDO/FCA 615E";
-    case TpmsWakeProfileAutoFordVDO: return "AUTO Ford+VDO";
-    default: return "-";
+    case TpmsWakeProfileFord5A5A:
+        return "Ford 5A5A";
+    case TpmsWakeProfileVDOFCA615E:
+        return "VDO/FCA 615E";
+    case TpmsWakeProfileAutoFordVDO:
+        return "AUTO Ford+VDO";
+    default:
+        return "-";
     }
 }
 
@@ -206,13 +225,13 @@ TpmsEncoderKind tpms_encoder_for_model(const char* model) {
     for(size_t i = 0U; i < COUNT_OF(test_kinds); i++) {
         const TpmsEncoderKind kind = test_kinds[i];
         if(strcmp(model, tpms_encoder_name(kind)) == 0 ||
-           strcmp(model, tpms_encoder_display_name(kind)) == 0) return kind;
+           strcmp(model, tpms_encoder_display_name(kind)) == 0)
+            return kind;
     }
     return TpmsEncoderNone;
 }
 
 bool tpms_encoder_build(const TpmsEditValues* values, TpmsTxWave* wave) {
-
     if(!values || !wave || values->kind == TpmsEncoderNone) return false;
     memset(wave, 0, sizeof(*wave));
 
@@ -241,9 +260,8 @@ bool tpms_encoder_build(const TpmsEditValues* values, TpmsTxWave* wave) {
     furi_mutex_release(samples->mutex);
 
     wave->frequency_hz = values->frequency_hz ? values->frequency_hz : 433920000U;
-    wave->modulation =
-        tpms_decoder_modulation(decoder) == ProtoTpmsModulationOOK ? OOK_PULSE_PCM :
-                                                                    FSK_PULSE_PCM;
+    wave->modulation = tpms_decoder_modulation(decoder) == ProtoTpmsModulationOOK ? OOK_PULSE_PCM :
+                                                                                    FSK_PULSE_PCM;
     wave->logical_bits = wave->pulse_count;
 
     raw_samples_free(samples);
@@ -277,7 +295,8 @@ void tpms_encoder_default_values(TpmsEncoderKind kind, TpmsEditValues* values) {
     memset(values, 0, sizeof(*values));
     values->kind = kind;
     values->id = 0x12345678U;
-    if(kind == TpmsEncoderRenault || kind == TpmsEncoderSchraderEG53MA4 || kind == TpmsEncoderNissan) {
+    if(kind == TpmsEncoderRenault || kind == TpmsEncoderSchraderEG53MA4 ||
+       kind == TpmsEncoderNissan) {
         values->id = 0x00123456U;
     }
     values->pressure_kpa = 220.0f;
@@ -288,26 +307,54 @@ void tpms_encoder_default_values(TpmsEncoderKind kind, TpmsEditValues* values) {
     values->wake_profile = TpmsWakeProfileNone;
     values->wake_profile_valid = false;
     values->repeat_count = 3U;
-    values->frequency_hz =
-        kind == TpmsEncoderPMV107J ? 315000000U : 433920000U;
+    values->frequency_hz = kind == TpmsEncoderPMV107J ? 315000000U : 433920000U;
     values->edit_mask = TPMS_EDIT_ALL;
 
     switch(kind) {
-    case TpmsEncoderSchraderEG53MA4: values->flags = 0x4D030060U; break;
-    case TpmsEncoderBMWGen23: values->flags = 0xF802U; break;
-    case TpmsEncoderElantra2012: values->flags = 0x00C0U; break;
-    case TpmsEncoderHyundaiVDO: values->flags = 0x0000U; break;
-    case TpmsEncoderTruck: values->flags = 0x000BU; break;
-    case TpmsEncoderRenault0435R: values->flags = 0x00C0U; break;
-    case TpmsEncoderHondaTRW: values->flags = 0x00E1U; break;
-    case TpmsEncoderPorsche: values->flags = 0xBB02U; break;
-    case TpmsEncoderKia: values->flags = 0x000FU; break;
-    case TpmsEncoderPMV107J: values->flags = 0x0000U; break;
-    case TpmsEncoderTG1C: values->flags = 0x0000U; break;
-    case TpmsEncoderQ85: values->flags = 0x0000U; break;
-    case TpmsEncoderMercedesSprinter: values->flags = 0x836B00U; break;
-    case TpmsEncoderNissan: values->flags = 0x05U; break;
-    default: break;
+    case TpmsEncoderSchraderEG53MA4:
+        values->flags = 0x4D030060U;
+        break;
+    case TpmsEncoderBMWGen23:
+        values->flags = 0xF802U;
+        break;
+    case TpmsEncoderElantra2012:
+        values->flags = 0x00C0U;
+        break;
+    case TpmsEncoderHyundaiVDO:
+        values->flags = 0x0000U;
+        break;
+    case TpmsEncoderTruck:
+        values->flags = 0x000BU;
+        break;
+    case TpmsEncoderRenault0435R:
+        values->flags = 0x00C0U;
+        break;
+    case TpmsEncoderHondaTRW:
+        values->flags = 0x00E1U;
+        break;
+    case TpmsEncoderPorsche:
+        values->flags = 0xBB02U;
+        break;
+    case TpmsEncoderKia:
+        values->flags = 0x000FU;
+        break;
+    case TpmsEncoderPMV107J:
+        values->flags = 0x0000U;
+        break;
+    case TpmsEncoderTG1C:
+        values->flags = 0x0000U;
+        break;
+    case TpmsEncoderQ85:
+        values->flags = 0x0000U;
+        break;
+    case TpmsEncoderMercedesSprinter:
+        values->flags = 0x836B00U;
+        break;
+    case TpmsEncoderNissan:
+        values->flags = 0x05U;
+        break;
+    default:
+        break;
     }
 }
 
@@ -321,9 +368,8 @@ bool tpms_encoder_flags_editable(TpmsEncoderKind kind) {
      * builder owns its temperature/moving bits. The four V2.6 TEST codecs below
      * have independently documented status/state bytes and rebuild integrity. */
     return kind == TpmsEncoderRenault || kind == TpmsEncoderSchrader ||
-           kind == TpmsEncoderPMV107J || kind == TpmsEncoderTG1C ||
-           kind == TpmsEncoderQ85 || kind == TpmsEncoderMercedesSprinter ||
-           kind == TpmsEncoderNissan;
+           kind == TpmsEncoderPMV107J || kind == TpmsEncoderTG1C || kind == TpmsEncoderQ85 ||
+           kind == TpmsEncoderMercedesSprinter || kind == TpmsEncoderNissan;
 }
 
 bool tpms_encoder_is_experimental(TpmsEncoderKind kind) {
@@ -338,25 +384,40 @@ bool tpms_encoder_is_ook(TpmsEncoderKind kind) {
 float tpms_encoder_pressure_step_kpa(TpmsEncoderKind kind) {
     const float psi_to_kpa = 6.89475729f;
     switch(kind) {
-    case TpmsEncoderRenault: return 0.75f;
-    case TpmsEncoderToyota: return 0.25f * psi_to_kpa;
+    case TpmsEncoderRenault:
+        return 0.75f;
+    case TpmsEncoderToyota:
+        return 0.25f * psi_to_kpa;
     case TpmsEncoderSchrader:
     case TpmsEncoderSchraderEG53MA4:
     case TpmsEncoderBMWGen23:
-    case TpmsEncoderPorsche: return 2.5f;
-    case TpmsEncoderCitroen: return 1.364f;
-    case TpmsEncoderFord: return 0.25f * psi_to_kpa;
+    case TpmsEncoderPorsche:
+        return 2.5f;
+    case TpmsEncoderCitroen:
+        return 1.364f;
+    case TpmsEncoderFord:
+        return 0.25f * psi_to_kpa;
     case TpmsEncoderElantra2012:
-    case TpmsEncoderTruck: return 1.0f;
-    case TpmsEncoderHyundaiVDO: return 1.375f;
-    case TpmsEncoderRenault0435R: return 1.0f / 0.75f;
+    case TpmsEncoderTruck:
+        return 1.0f;
+    case TpmsEncoderHyundaiVDO:
+        return 1.375f;
+    case TpmsEncoderRenault0435R:
+        return 1.0f / 0.75f;
     case TpmsEncoderHondaTRW:
-    case TpmsEncoderKia: return 0.2f * psi_to_kpa;
-    case TpmsEncoderPMV107J: return 2.48f;
-    case TpmsEncoderTG1C: return 1.38f;
-    case TpmsEncoderQ85: return 3.0f;
-    case TpmsEncoderMercedesSprinter: return psi_to_kpa / 2.75f;
-    case TpmsEncoderNissan: return 0.25f * psi_to_kpa;
-    default: return 5.0f;
+    case TpmsEncoderKia:
+        return 0.2f * psi_to_kpa;
+    case TpmsEncoderPMV107J:
+        return 2.48f;
+    case TpmsEncoderTG1C:
+        return 1.38f;
+    case TpmsEncoderQ85:
+        return 3.0f;
+    case TpmsEncoderMercedesSprinter:
+        return psi_to_kpa / 2.75f;
+    case TpmsEncoderNissan:
+        return 0.25f * psi_to_kpa;
+    default:
+        return 5.0f;
     }
 }

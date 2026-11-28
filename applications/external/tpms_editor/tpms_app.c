@@ -6,8 +6,6 @@
 #include <stdlib.h>
 #include "protocols/proto6/custom_presets.h"
 
-
-
 bool tpms_ensure_text_input(TPMSApp* app) {
     if(!app || !app->view_dispatcher) return false;
     if(app->text_input) return true;

@@ -146,8 +146,7 @@ static void tpms_config_build_list(TPMSApp* app) {
         subghz_setting_get_frequency_count(app->setting),
         tpms_config_set_frequency,
         app);
-    const uint8_t frequency_index =
-        tpms_config_frequency_index(app, app->txrx->preset->frequency);
+    const uint8_t frequency_index = tpms_config_frequency_index(app, app->txrx->preset->frequency);
     variable_item_set_current_value_index(item, frequency_index);
     tpms_config_frequency_text(item, app->txrx->preset->frequency);
 
@@ -166,7 +165,8 @@ static void tpms_config_build_list(TPMSApp* app) {
     variable_item_set_current_value_index(item, modulation_index);
     variable_item_set_current_value_text(item, modulation_text[modulation_index]);
 
-    item = variable_item_list_add(app->variable_item_list, "Radio", 3U, tpms_config_set_radio, app);
+    item =
+        variable_item_list_add(app->variable_item_list, "Radio", 3U, tpms_config_set_radio, app);
     variable_item_set_current_value_index(item, (uint8_t)app->txrx->radio_mode);
     char radio_text[12];
     tpms_radio_get_setting_text(app, radio_text, sizeof(radio_text));
@@ -191,7 +191,8 @@ static void tpms_config_build_list(TPMSApp* app) {
     item = variable_item_list_add(app->variable_item_list, "Relearn", 1U, NULL, app);
     variable_item_set_current_value_text(item, tpms_config_relearn_text(app));
 
-    variable_item_list_set_enter_callback(app->variable_item_list, tpms_config_enter_callback, app);
+    variable_item_list_set_enter_callback(
+        app->variable_item_list, tpms_config_enter_callback, app);
 }
 
 void tpms_scene_receiver_config_on_enter(void* context) {

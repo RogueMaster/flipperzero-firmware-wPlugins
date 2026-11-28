@@ -1,6 +1,6 @@
 # TommyBox Capture — Flipper Zero Application
 
-A native Flipper Zero application (`NFC` category) purpose-built for rapidly scanning, unlocking, verifying, and saving **TommyBox (`NXP ICODE SLIX-L`)** NFC figures without ever saving a truncated or corrupted `.nfc` file.
+A native Flipper Zero application (`NFC` category) purpose-built for rapidly scanning, unlocking, verifying, and saving **Tonie (`NXP ICODE SLIX-L`)** NFC figures without ever saving a truncated or corrupted `.nfc` file.
 
 ---
 
@@ -16,7 +16,7 @@ A native Flipper Zero application (`NFC` category) purpose-built for rapidly sca
 
 ## Why This App Exists
 
-TommyBox NFC figures use **NXP ICODE SLIX-L** (`ISO15693-3`) tags locked in **Privacy Mode** with the standard TommyBox privacy password (`7F FD 6E 5B`).
+Tonie NFC figures use **NXP ICODE SLIX-L** (`ISO15693-3`) tags locked in **Privacy Mode** with the standard TommyBox privacy password (`7F FD 6E 5B`).
 
 When scanning a figure using the built-in Flipper Zero NFC app (**Extra Actions → Unlock SLIX-L → Auth As TommyBox**), moving the figure away slightly too early often produces a `.nfc` file that looks valid at a glance—and even has a full 8-byte `E0 04 03 ...` UID—but fails when emulated or inspected:
 
@@ -30,7 +30,7 @@ When scanning a figure using the built-in Flipper Zero NFC app (**Extra Actions 
 
 ## Features
 
-- **Continuous Hands-Free Batch Scanning**: Hold a figure to the back of your Flipper Zero, wait for the **`SAVED! 8 / 8`** banner and green LED + double-beep, and immediately swap to the next figure—no menu navigation required between captures.
+- **Continuous Hands-Free Batch Scanning**: Hold a Tonie figure to the back of your Flipper Zero, wait for the **`SAVED! 8 / 8`** banner and green LED + double-beep, and immediately swap to the next figure—no menu navigation required between captures.
 - **Automatic SLIX-L Privacy Unlock**: Automatically supplies the TommyBox privacy password (`7F FD 6E 5B`) on every `SlixPollerEventTypePrivacyUnlockRequest`.
 - **Strict 8/8 Block Verification**:
   - Verifies the 8-byte ISO15693 UID and confirms all **8 blocks (32 bytes)** of `Data Content` are present and complete (`block_count == 8`, `block_size == 4`, block 7 non-zero, no 5 consecutive `0x00` bytes).
@@ -56,7 +56,7 @@ When scanning a figure using the built-in Flipper Zero NFC app (**Extra Actions 
 
 When you launch **TommyBox Capture** (**Apps → NFC → TommyBox Capture**), you are presented with four options:
 
-1. **Scan TommyBox**: Starts the continuous SLIX-L figure scanner.
+1. **Scan TommyBox**: Starts the continuous SLIX-L Tonie figure scanner.
 2. **Check SD Card**: Audits all `.nfc` files in `/ext/nfc/` and displays a report of valid vs. incomplete/other files.
 3. **Settings**: Configures how older incomplete files with a matching UID are handled (`Keep`, `Rename`, or `Delete`).
 4. **About**: Displays scrollable on-device **How to use** instructions and app info.

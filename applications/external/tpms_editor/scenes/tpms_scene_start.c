@@ -17,23 +17,11 @@ void tpms_scene_start_on_enter(void* context) {
     TPMSApp* app = context;
 
     submenu_add_item(
-        app->submenu,
-        "Receiver",
-        SubmenuIndexTPMSReceiver,
-        tpms_scene_start_submenu_callback,
-        app);
+        app->submenu, "Receiver", SubmenuIndexTPMSReceiver, tpms_scene_start_submenu_callback, app);
     submenu_add_item(
-        app->submenu,
-        "Saved",
-        SubmenuIndexTPMSSaved,
-        tpms_scene_start_submenu_callback,
-        app);
+        app->submenu, "Saved", SubmenuIndexTPMSSaved, tpms_scene_start_submenu_callback, app);
     submenu_add_item(
-        app->submenu,
-        "Settings",
-        SubmenuIndexTPMSSettings,
-        tpms_scene_start_submenu_callback,
-        app);
+        app->submenu, "Settings", SubmenuIndexTPMSSettings, tpms_scene_start_submenu_callback, app);
     submenu_add_item(
         app->submenu,
         "Simulation",
@@ -41,11 +29,7 @@ void tpms_scene_start_on_enter(void* context) {
         tpms_scene_start_submenu_callback,
         app);
     submenu_add_item(
-        app->submenu,
-        "Info",
-        SubmenuIndexTPMSAbout,
-        tpms_scene_start_submenu_callback,
-        app);
+        app->submenu, "Info", SubmenuIndexTPMSAbout, tpms_scene_start_submenu_callback, app);
 
     submenu_set_selected_item(
         app->submenu, scene_manager_get_scene_state(app->scene_manager, TPMSSceneStart));

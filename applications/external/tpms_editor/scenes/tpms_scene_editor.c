@@ -10,16 +10,16 @@
 
 #define TAG "TPMSEditor6"
 
-#define TPMS_EDITOR_ID_TEXT_SIZE 11U
-#define TPMS_EDITOR_FLAGS_TEXT_SIZE 4U
-#define TPMS_EDITOR_SAVE_NAME_SIZE 40U
+#define TPMS_EDITOR_ID_TEXT_SIZE     11U
+#define TPMS_EDITOR_FLAGS_TEXT_SIZE  4U
+#define TPMS_EDITOR_SAVE_NAME_SIZE   40U
 #define TPMS_EDITOR_PRESSURE_MIN_KPA 0
 #define TPMS_EDITOR_PRESSURE_MAX_KPA 700
-#define TPMS_EDITOR_TEMP_MIN_C (-50)
-#define TPMS_EDITOR_TEMP_MAX_C 150
-#define TPMS_AUTO_TX_INTERVAL_MIN_S 1
-#define TPMS_AUTO_TX_INTERVAL_MAX_S 3600
-#define TPMS_AUTO_TX_PRESET_COUNT 6U
+#define TPMS_EDITOR_TEMP_MIN_C       (-50)
+#define TPMS_EDITOR_TEMP_MAX_C       150
+#define TPMS_AUTO_TX_INTERVAL_MIN_S  1
+#define TPMS_AUTO_TX_INTERVAL_MAX_S  3600
+#define TPMS_AUTO_TX_PRESET_COUNT    6U
 
 typedef enum {
     TPMSEditorItemProtocol = 0,
@@ -68,9 +68,10 @@ static bool tpms_editor_save_name_input_open = false;
 static bool tpms_editor_number_input_open = false;
 static uint32_t tpms_editor_number_target = TPMSEditorItemPressure;
 
-static const uint16_t tpms_auto_tx_presets_s[TPMS_AUTO_TX_PRESET_COUNT] = {1U, 2U, 5U, 10U, 30U, 60U};
-static const char* const tpms_auto_tx_preset_text[TPMS_AUTO_TX_PRESET_COUNT] = {
-    "1 s", "2 s", "5 s", "10 s", "30 s", "60 s"};
+static const uint16_t tpms_auto_tx_presets_s[TPMS_AUTO_TX_PRESET_COUNT] =
+    {1U, 2U, 5U, 10U, 30U, 60U};
+static const char* const tpms_auto_tx_preset_text[TPMS_AUTO_TX_PRESET_COUNT] =
+    {"1 s", "2 s", "5 s", "10 s", "30 s", "60 s"};
 
 /*
  * TPMS 4.0 quick-save keyboard helper.
@@ -124,10 +125,12 @@ static void tpms_editor_make_default_save_name(char* out, size_t out_size) {
             last_sep = true;
         }
     }
-    while(j > 0U && out[j - 1U] == '_') j--;
+    while(j > 0U && out[j - 1U] == '_')
+        j--;
     if(j == 0U) {
         const char fallback[] = "TPMS";
-        for(size_t i = 0U; fallback[i] && j + 1U < out_size; i++) out[j++] = fallback[i];
+        for(size_t i = 0U; fallback[i] && j + 1U < out_size; i++)
+            out[j++] = fallback[i];
     }
     if(j + 9U < out_size) {
         out[j++] = '_';
@@ -175,9 +178,8 @@ static void tpms_editor_auto_toggle_changed(VariableItem* item) {
     if(index > 1U || !editor_state.encoder_available) index = 0U;
     editor_state.auto_tx_enabled = index == 1U;
     editor_state.auto_tx_count = 0U;
-    editor_state.auto_tx_elapsed_ds = editor_state.auto_tx_enabled ?
-                                           (uint32_t)editor_state.auto_tx_interval_s * 10U :
-                                           0U;
+    editor_state.auto_tx_elapsed_ds =
+        editor_state.auto_tx_enabled ? (uint32_t)editor_state.auto_tx_interval_s * 10U : 0U;
     tpms_editor_set_auto_toggle_text(editor_state.auto_tx_enabled);
 }
 
@@ -255,7 +257,11 @@ static void tpms_editor_id_done(void* context) {
 static void tpms_editor_open_id_input(TPMSApp* app) {
     if(!app || !editor_state.encoder_available || !tpms_ensure_text_input(app)) return;
     tpms_editor_stop_auto_tx();
-    snprintf(tpms_editor_id_text, sizeof(tpms_editor_id_text), "%08lX", (unsigned long)editor_state.values.id);
+    snprintf(
+        tpms_editor_id_text,
+        sizeof(tpms_editor_id_text),
+        "%08lX",
+        (unsigned long)editor_state.values.id);
     text_input_reset(app->text_input);
     text_input_set_header_text(app->text_input, "Sensor ID HEX (0-9 A-F)");
     text_input_set_minimum_length(app->text_input, 1U);
@@ -286,8 +292,7 @@ static void tpms_editor_flags_done(void* context) {
     if(!app) return;
     uint32_t low = editor_state.values.flags & 0xFFU;
     if(tpms_editor_parse_id(tpms_editor_flags_text, &low) && low <= 0xFFU) {
-        editor_state.values.flags =
-            (editor_state.values.flags & 0xFFFFFF00U) | (low & 0xFFU);
+        editor_state.values.flags = (editor_state.values.flags & 0xFFFFFF00U) | (low & 0xFFU);
         editor_state.values.edit_mask |= TPMS_EDIT_FLAGS;
     }
     tpms_editor_flags_input_open = false;
@@ -302,7 +307,8 @@ static void tpms_editor_flags_done(void* context) {
 
 static void tpms_editor_open_flags_input(TPMSApp* app) {
     if(!app || !editor_state.encoder_available || !editor_state.flags_item ||
-       !tpms_ensure_text_input(app)) return;
+       !tpms_ensure_text_input(app))
+        return;
     tpms_editor_stop_auto_tx();
     snprintf(
         tpms_editor_flags_text,
@@ -333,7 +339,8 @@ static void tpms_editor_number_done(void* context, int32_t number) {
         editor_state.values.pressure_kpa = (float)number;
         editor_state.values.edit_mask |= TPMS_EDIT_PRESSURE;
         if(editor_state.pressure_item)
-            tpms_editor_format_pressure(editor_state.pressure_item, editor_state.values.pressure_kpa);
+            tpms_editor_format_pressure(
+                editor_state.pressure_item, editor_state.values.pressure_kpa);
     } else if(tpms_editor_number_target == TPMSEditorItemTemperature) {
         if(number < TPMS_EDITOR_TEMP_MIN_C) number = TPMS_EDITOR_TEMP_MIN_C;
         if(number > TPMS_EDITOR_TEMP_MAX_C) number = TPMS_EDITOR_TEMP_MAX_C;
@@ -405,8 +412,8 @@ static bool tpms_editor_save_name_validator(const char* text, FuriString* error,
     bool has_visible = false;
     for(size_t i = 0U; text[i]; i++) {
         const unsigned char c = (unsigned char)text[i];
-        if(c == '/' || c == '\\' || c == ':' || c == '*' || c == '?' || c == '"' ||
-           c == '<' || c == '>' || c == '|') {
+        if(c == '/' || c == '\\' || c == ':' || c == '*' || c == '?' || c == '"' || c == '<' ||
+           c == '>' || c == '|') {
             furi_string_set(error, "Bez / \\ : * ? \" < > |");
             return false;
         }
@@ -443,8 +450,7 @@ static void tpms_editor_save_named_done(void* context) {
             NULL);
 
     variable_item_set_current_value_text(
-        editor_state.save_signal_item,
-        ok ? (truncated ? "SAVED TRUNC" : "SAVED") : "ERROR");
+        editor_state.save_signal_item, ok ? (truncated ? "SAVED TRUNC" : "SAVED") : "ERROR");
     notification_message(
         app->notifications, ok ? &sequence_blink_green_10 : &sequence_blink_red_10);
     variable_item_list_set_selected_item(app->variable_item_list, TPMSEditorItemSaveSignal);
@@ -514,8 +520,8 @@ static void tpms_editor_enter_callback(void* context, uint32_t index) {
             return;
         }
         variable_item_set_current_value_text(editor_state.save_modified_item, "SAVING...");
-        const bool ok = tpms_save_edited_raw(
-            app, &editor_state.values, editor_state.protocol, NULL);
+        const bool ok =
+            tpms_save_edited_raw(app, &editor_state.values, editor_state.protocol, NULL);
         variable_item_set_current_value_text(
             editor_state.save_modified_item, ok ? "SAVED" : "ERROR");
         notification_message(
@@ -535,8 +541,7 @@ static void tpms_editor_enter_callback(void* context, uint32_t index) {
     const bool ok = tpms_editor_send(app, &editor_state.values);
     if(ok) {
         variable_item_set_current_value_text(
-            editor_state.send_item,
-            tpms_radio_is_external(app) ? "TX EXT OK" : "TX INT OK");
+            editor_state.send_item, tpms_radio_is_external(app) ? "TX EXT OK" : "TX INT OK");
     } else {
         variable_item_set_current_value_text(editor_state.send_item, "TX ERROR");
     }
@@ -548,7 +553,11 @@ static bool tpms_editor_load_selected(TPMSApp* app) {
     if(app->editor_profile_loaded) {
         editor_state.values = app->editor_profile_values;
         editor_state.original_values = app->editor_profile_values;
-        snprintf(editor_state.protocol, sizeof(editor_state.protocol), "%s", app->editor_profile_protocol);
+        snprintf(
+            editor_state.protocol,
+            sizeof(editor_state.protocol),
+            "%s",
+            app->editor_profile_protocol);
         editor_state.encoder_available = editor_state.values.kind != TpmsEncoderNone;
         editor_state.source_profile = true;
         return editor_state.encoder_available;
@@ -583,14 +592,10 @@ static bool tpms_editor_load_selected(TPMSApp* app) {
             tpms_history_get_preset(app->txrx->history, app->txrx->idx_menu_chosen));
         editor_state.values.rssi_dbm = -127;
         editor_state.values.rssi_valid = tpms_history_get_frame_rssi(
-            app->txrx->history,
-            app->txrx->idx_menu_chosen,
-            &editor_state.values.rssi_dbm);
+            app->txrx->history, app->txrx->idx_menu_chosen, &editor_state.values.rssi_dbm);
         editor_state.values.wake_profile = TpmsWakeProfileNone;
         editor_state.values.wake_profile_valid = tpms_history_get_wake_profile(
-            app->txrx->history,
-            app->txrx->idx_menu_chosen,
-            &editor_state.values.wake_profile);
+            app->txrx->history, app->txrx->idx_menu_chosen, &editor_state.values.wake_profile);
         editor_state.values.repeat_count = 3U;
         if(editor_state.values.kind == TpmsEncoderSchraderEG53MA4) {
             editor_state.values.flags = (uint32_t)(generic.data >> 32U);
@@ -608,10 +613,7 @@ static bool tpms_editor_load_selected(TPMSApp* app) {
         editor_state.values.raw_payload_bits = generic.raw_payload_bits;
         editor_state.values.raw_payload_valid = generic.raw_payload_valid;
         if(generic.raw_payload_valid && generic.raw_payload_size > 0U) {
-            memcpy(
-                editor_state.values.raw_payload,
-                generic.raw_payload,
-                generic.raw_payload_size);
+            memcpy(editor_state.values.raw_payload, generic.raw_payload, generic.raw_payload_size);
         }
         editor_state.original_values = editor_state.values;
         editor_state.source_profile = false;
@@ -644,7 +646,8 @@ void tpms_scene_editor_on_enter(void* context) {
     item = variable_item_list_add(app->variable_item_list, "Protocol", 1U, NULL, app);
     variable_item_set_current_value_text(item, tpms_protocol_display_name(editor_state.protocol));
 
-    editor_state.id_item = variable_item_list_add(app->variable_item_list, "Sensor ID", 1U, NULL, app);
+    editor_state.id_item =
+        variable_item_list_add(app->variable_item_list, "Sensor ID", 1U, NULL, app);
     tpms_editor_set_id_text();
 
     editor_state.pressure_item =
@@ -653,16 +656,15 @@ void tpms_scene_editor_on_enter(void* context) {
 
     editor_state.temperature_item =
         variable_item_list_add(app->variable_item_list, "Temperature", 1U, NULL, app);
-    if(editor_state.values.kind == TpmsEncoderFord &&
-       editor_state.values.raw_payload_valid && editor_state.values.raw_payload_size >= 6U) {
+    if(editor_state.values.kind == TpmsEncoderFord && editor_state.values.raw_payload_valid &&
+       editor_state.values.raw_payload_size >= 6U) {
         /* TPMS 4.4: Ford TT/FF observations show two states where a numeric
            temperature must not be presented: TT MSB=1 or FF ending in 0xB.
            Raw TT/FF stay visible below, so no diagnostic information is lost. */
         const uint8_t tt = editor_state.values.raw_payload[5];
-        const uint8_t ff = editor_state.values.raw_payload_size >= 7U ?
-                               editor_state.values.raw_payload[6] : 0U;
-        const bool temperature_valid =
-            ((tt & 0x80U) == 0U) && ((ff & 0x0FU) != 0x0BU);
+        const uint8_t ff =
+            editor_state.values.raw_payload_size >= 7U ? editor_state.values.raw_payload[6] : 0U;
+        const bool temperature_valid = ((tt & 0x80U) == 0U) && ((ff & 0x0FU) != 0x0BU);
         if(!temperature_valid) {
             variable_item_set_current_value_text(editor_state.temperature_item, "--");
         } else {
@@ -670,7 +672,8 @@ void tpms_scene_editor_on_enter(void* context) {
             snprintf(text, sizeof(text), temp_c < -40 ? "%d C ?" : "%d C", temp_c);
             variable_item_set_current_value_text(editor_state.temperature_item, text);
         }
-    } else if(editor_state.encoder_available && tpms_encoder_has_temperature(editor_state.values.kind)) {
+    } else if(
+        editor_state.encoder_available && tpms_encoder_has_temperature(editor_state.values.kind)) {
         tpms_editor_format_temperature(
             editor_state.temperature_item, editor_state.values.temperature_c);
     } else if(editor_state.encoder_available) {
@@ -684,24 +687,27 @@ void tpms_scene_editor_on_enter(void* context) {
     if(editor_state.values.kind == TpmsEncoderFord) diagnostic_label = "TT / FF";
     if(editor_state.values.kind == TpmsEncoderCitroen) diagnostic_label = "State / scale";
     if(editor_state.values.kind == TpmsEncoderNissan) diagnostic_label = "Mode";
-    editor_state.flags_item = variable_item_list_add(
-        app->variable_item_list, diagnostic_label, 1U, NULL, app);
+    editor_state.flags_item =
+        variable_item_list_add(app->variable_item_list, diagnostic_label, 1U, NULL, app);
     if(tpms_encoder_flags_editable(editor_state.values.kind)) {
         // for editable flags show all eight characters... unless it makes no real sense
         if(editor_state.values.kind == TpmsEncoderNissan) {
-            snprintf(text, sizeof(text), "%u%u%u",
-               (unsigned)(editor_state.values.flags>>2)&1U,
-               (unsigned)(editor_state.values.flags>>1)&1U,
-               (unsigned)(editor_state.values.flags)&1U);
+            snprintf(
+                text,
+                sizeof(text),
+                "%u%u%u",
+                (unsigned)(editor_state.values.flags >> 2) & 1U,
+                (unsigned)(editor_state.values.flags >> 1) & 1U,
+                (unsigned)(editor_state.values.flags) & 1U);
         } else {
-                snprintf(text, sizeof(text), "0x%08lX", (unsigned long)editor_state.values.flags);
+            snprintf(text, sizeof(text), "0x%08lX", (unsigned long)editor_state.values.flags);
         }
-    // non-editable
-    } else if (editor_state.values.kind == TpmsEncoderSchraderEG53MA4) {
+        // non-editable
+    } else if(editor_state.values.kind == TpmsEncoderSchraderEG53MA4) {
         snprintf(text, sizeof(text), "0x%08lX", (unsigned long)editor_state.values.flags);
-    } else if(editor_state.values.kind == TpmsEncoderFord &&
-              editor_state.values.raw_payload_valid &&
-              editor_state.values.raw_payload_size >= 7U) {
+    } else if(
+        editor_state.values.kind == TpmsEncoderFord && editor_state.values.raw_payload_valid &&
+        editor_state.values.raw_payload_size >= 7U) {
         snprintf(
             text,
             sizeof(text),
@@ -709,10 +715,11 @@ void tpms_scene_editor_on_enter(void* context) {
             editor_state.values.raw_payload[5],
             editor_state.values.raw_payload[6]);
     } else if(editor_state.values.kind == TpmsEncoderFord) {
-        snprintf(text, sizeof(text), "0x%04lX", (unsigned long)(editor_state.values.flags & 0xFFFFU));
-    } else if(editor_state.values.kind == TpmsEncoderCitroen &&
-              editor_state.values.raw_payload_valid &&
-              editor_state.values.raw_payload_size >= 1U) {
+        snprintf(
+            text, sizeof(text), "0x%04lX", (unsigned long)(editor_state.values.flags & 0xFFFFU));
+    } else if(
+        editor_state.values.kind == TpmsEncoderCitroen && editor_state.values.raw_payload_valid &&
+        editor_state.values.raw_payload_size >= 1U) {
         snprintf(
             text,
             sizeof(text),
@@ -720,10 +727,13 @@ void tpms_scene_editor_on_enter(void* context) {
             editor_state.values.raw_payload[0],
             editor_state.values.raw_payload[0] == 0xDCU ? 2U : 1U);
     } else if(editor_state.values.kind == TpmsEncoderNissan) {
-        snprintf(text, sizeof(text), "%u%u%u",
-           (unsigned)(editor_state.values.flags>>2)&1U,
-           (unsigned)(editor_state.values.flags>>1)&1U,
-           (unsigned)(editor_state.values.flags)&1U);
+        snprintf(
+            text,
+            sizeof(text),
+            "%u%u%u",
+            (unsigned)(editor_state.values.flags >> 2) & 1U,
+            (unsigned)(editor_state.values.flags >> 1) & 1U,
+            (unsigned)(editor_state.values.flags) & 1U);
     } else {
         snprintf(text, sizeof(text), "0x%02X", (unsigned)(editor_state.values.flags & 0xFFU));
     }
@@ -747,8 +757,8 @@ void tpms_scene_editor_on_enter(void* context) {
         editor_state.save_signal_item,
         (editor_state.data_loaded && !editor_state.source_profile) ? "OK" : "NO RX");
 
-    editor_state.save_modified_item = variable_item_list_add(
-        app->variable_item_list, "Save changes", 1U, NULL, app);
+    editor_state.save_modified_item =
+        variable_item_list_add(app->variable_item_list, "Save changes", 1U, NULL, app);
     variable_item_set_current_value_text(
         editor_state.save_modified_item, editor_state.encoder_available ? "OK" : "RX ONLY");
 
@@ -834,7 +844,8 @@ bool tpms_scene_editor_on_event(void* context, SceneManagerEvent event) {
                 editor_state.auto_tx_count++;
                 tpms_editor_set_auto_toggle_text(true);
                 variable_item_set_current_value_text(
-                    editor_state.send_item, tpms_radio_is_external(app) ? "AUTO EXT OK" : "AUTO INT OK");
+                    editor_state.send_item,
+                    tpms_radio_is_external(app) ? "AUTO EXT OK" : "AUTO INT OK");
                 notification_message(app->notifications, &sequence_blink_green_10);
             } else {
                 tpms_editor_stop_auto_tx();

@@ -144,8 +144,7 @@ static uint32_t tpms_relearn_start_item_index = UINT32_MAX;
 static void tpms_relearn_enter_callback(void* context, uint32_t index) {
     TPMSApp* app = context;
     if(index == tpms_relearn_start_item_index) {
-        view_dispatcher_send_custom_event(
-            app->view_dispatcher, TPMSCustomEventSceneRelearnStart);
+        view_dispatcher_send_custom_event(app->view_dispatcher, TPMSCustomEventSceneRelearnStart);
     }
 }
 
@@ -198,8 +197,7 @@ void tpms_scene_relearn_config_on_enter(void* context) {
         tpms_relearn_repeat_changed,
         app);
     variable_item_set_current_value_index(item, app->relearn_repeat_mode);
-    variable_item_set_current_value_text(
-        item, tpms_relearn_repeat_text[app->relearn_repeat_mode]);
+    variable_item_set_current_value_text(item, tpms_relearn_repeat_text[app->relearn_repeat_mode]);
 
     if(app->relearn_rx_wait >= TPMSRelearnRXWaitCount) {
         app->relearn_rx_wait = TPMSRelearnRXWait5;
@@ -211,18 +209,13 @@ void tpms_scene_relearn_config_on_enter(void* context) {
         tpms_relearn_rx_wait_changed,
         app);
     variable_item_set_current_value_index(item, app->relearn_rx_wait);
-    variable_item_set_current_value_text(
-        item, tpms_relearn_rx_wait_text[app->relearn_rx_wait]);
+    variable_item_set_current_value_text(item, tpms_relearn_rx_wait_text[app->relearn_rx_wait]);
 
     if(app->relearn_rx_band_index >= TPMSRelearnRXBandCount) {
         app->relearn_rx_band_index = TPMSRelearnRXBand433;
     }
     item = variable_item_list_add(
-        app->variable_item_list,
-        "RX band",
-        TPMSRelearnRXBandCount,
-        tpms_relearn_band_changed,
-        app);
+        app->variable_item_list, "RX band", TPMSRelearnRXBandCount, tpms_relearn_band_changed, app);
     variable_item_set_current_value_index(item, app->relearn_rx_band_index);
     variable_item_set_current_value_text(item, tpms_relearn_band_text[app->relearn_rx_band_index]);
 

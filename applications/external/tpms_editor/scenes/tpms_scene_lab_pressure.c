@@ -40,11 +40,7 @@ static bool tpms_lab_pressure_input_open = false;
 static void tpms_lab_pressure_set_text(TPMSApp* app) {
     if(!app || !tpms_lab_pressure_item) return;
     char text[20];
-    snprintf(
-        text,
-        sizeof(text),
-        "%.2f bar",
-        (double)(app->lab_target_pressure_kpa / 100.0f));
+    snprintf(text, sizeof(text), "%.2f bar", (double)(app->lab_target_pressure_kpa / 100.0f));
     variable_item_set_current_value_text(tpms_lab_pressure_item, text);
 }
 
@@ -115,8 +111,8 @@ void tpms_scene_lab_pressure_on_enter(void* context) {
 
     app->lab_target_pressure_kpa = 0.0f;
     tpms_lab_pressure_input_open = false;
-    tpms_lab_pressure_item = variable_item_list_add(
-        app->variable_item_list, "TX pressure", 1U, NULL, app);
+    tpms_lab_pressure_item =
+        variable_item_list_add(app->variable_item_list, "TX pressure", 1U, NULL, app);
     tpms_lab_pressure_set_text(app);
     VariableItem* item = NULL;
 
@@ -127,7 +123,11 @@ void tpms_scene_lab_pressure_on_enter(void* context) {
     tpms_lab_band_changed(item);
 
     item = variable_item_list_add(
-        app->variable_item_list, "RX modulation", COUNT_OF(lab_mod_text), tpms_lab_mod_changed, app);
+        app->variable_item_list,
+        "RX modulation",
+        COUNT_OF(lab_mod_text),
+        tpms_lab_mod_changed,
+        app);
     if(app->lab_modulation_index >= COUNT_OF(lab_mod_text)) app->lab_modulation_index = 0U;
     variable_item_set_current_value_index(item, app->lab_modulation_index);
     tpms_lab_mod_changed(item);

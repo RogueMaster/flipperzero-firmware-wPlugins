@@ -86,7 +86,7 @@ typedef struct {
 
     /* TPMS 2.3 lossless source payload. Up to 128 decoded bits covers all
      * currently registered protocols. For saving unknown data, at least 256 is needed */
-    uint8_t raw_payload[TPMS_RAWBITS_BUF/8];
+    uint8_t raw_payload[TPMS_RAWBITS_BUF / 8];
     uint8_t raw_payload_size;
     uint8_t raw_payload_bits;
     bool raw_payload_valid;

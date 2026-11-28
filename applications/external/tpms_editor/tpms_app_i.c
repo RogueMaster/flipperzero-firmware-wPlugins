@@ -46,10 +46,14 @@ void tpms_get_frequency_modulation(TPMSApp* app, FuriString* frequency, FuriStri
     }
     if(modulation != NULL) {
         const char* name = furi_string_get_cstr(app->txrx->preset->name);
-        if(strcmp(name, "TPMS OOK") == 0) furi_string_set_str(modulation, "PO");
-        else if(strcmp(name, "TPMS FSK") == 0) furi_string_set_str(modulation, "PF");
-        else if(strcmp(name, "TPMS GFSK") == 0) furi_string_set_str(modulation, "PG");
-        else furi_string_printf(modulation, "%.2s", name);
+        if(strcmp(name, "TPMS OOK") == 0)
+            furi_string_set_str(modulation, "PO");
+        else if(strcmp(name, "TPMS FSK") == 0)
+            furi_string_set_str(modulation, "PF");
+        else if(strcmp(name, "TPMS GFSK") == 0)
+            furi_string_set_str(modulation, "PG");
+        else
+            furi_string_printf(modulation, "%.2s", name);
     }
 }
 
@@ -61,8 +65,7 @@ void tpms_begin(TPMSApp* app, uint8_t* preset_data) {
 
     subghz_devices_reset(app->txrx->radio_device);
     subghz_devices_idle(app->txrx->radio_device);
-    subghz_devices_load_preset(
-        app->txrx->radio_device, FuriHalSubGhzPresetCustom, preset_data);
+    subghz_devices_load_preset(app->txrx->radio_device, FuriHalSubGhzPresetCustom, preset_data);
     app->txrx->txrx_state = TPMSTxRxStateIDLE;
 }
 

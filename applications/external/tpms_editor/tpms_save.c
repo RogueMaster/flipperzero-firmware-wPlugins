@@ -11,14 +11,14 @@
 #include <stdio.h>
 #include <string.h>
 
-#define TAG "TPMSSave"
-#define TPMS_SAVE_FOLDER EXT_PATH("subghz/TPMS_TEST")
-#define TPMS_SAVE_FOLDER_ORG EXT_PATH("subghz/TPMS_TEST/ORG")
-#define TPMS_SAVE_FOLDER_MOD EXT_PATH("subghz/TPMS_TEST/MOD")
-#define TPMS_RAW_FILE_TYPE "Flipper SubGhz RAW File"
+#define TAG                   "TPMSSave"
+#define TPMS_SAVE_FOLDER      EXT_PATH("subghz/TPMS_TEST")
+#define TPMS_SAVE_FOLDER_ORG  EXT_PATH("subghz/TPMS_TEST/ORG")
+#define TPMS_SAVE_FOLDER_MOD  EXT_PATH("subghz/TPMS_TEST/MOD")
+#define TPMS_RAW_FILE_TYPE    "Flipper SubGhz RAW File"
 #define TPMS_RAW_FILE_VERSION 1U
-#define TPMS_RAW_CHUNK 64U
-#define TPMS_REPEAT_GAP_US 10000U
+#define TPMS_RAW_CHUNK        64U
+#define TPMS_REPEAT_GAP_US    10000U
 
 typedef struct {
     FlipperFormat* format;
@@ -32,10 +32,10 @@ typedef struct {
 /* TPMS 4.3: optional, human-readable Ford RAW diagnostics. The canonical
    source remains RawPayload; these keys merely make field comparison easier
    outside the app and deliberately do not assign a meaning to 0x80/0x10. */
-static bool tpms_profile_write_ford_diagnostics(
-    FlipperFormat* format, const TpmsEditValues* values) {
-    if(!format || !values || values->kind != TpmsEncoderFord ||
-       !values->raw_payload_valid || values->raw_payload_size < 7U) {
+static bool
+    tpms_profile_write_ford_diagnostics(FlipperFormat* format, const TpmsEditValues* values) {
+    if(!format || !values || values->kind != TpmsEncoderFord || !values->raw_payload_valid ||
+       values->raw_payload_size < 7U) {
         return true;
     }
 
@@ -43,9 +43,9 @@ static bool tpms_profile_write_ford_diagnostics(
     const uint8_t ff = values->raw_payload[6];
     const bool temp_valid = ((tt & 0x80U) == 0U) && ((ff & 0x0FU) != 0x0BU);
     const int temp_calc_c = (int)tt - 56;
-    const char* tt_mode = (tt & 0x80U) ? "SPECIAL_MSB" :
+    const char* tt_mode = (tt & 0x80U)            ? "SPECIAL_MSB" :
                           ((ff & 0x0FU) == 0x0BU) ? "FF_xB_NO_TEMP" :
-                          (temp_calc_c < -40 ? "TEMP_LOW?" : "TEMP");
+                                                    (temp_calc_c < -40 ? "TEMP_LOW?" : "TEMP");
 
     uint32_t u32 = tt;
     if(!flipper_format_write_uint32(format, "FordTTRaw", &u32, 1U)) return false;
@@ -136,7 +136,8 @@ static void tpms_save_sanitize_label(const char* label, char* out, size_t out_si
             }
         }
     }
-    while(j > 0U && out[j - 1U] == '_') j--;
+    while(j > 0U && out[j - 1U] == '_')
+        j--;
     out[j] = '\0';
 }
 
@@ -203,8 +204,8 @@ static bool tpms_save_make_path(
 static bool tpms_raw_writer_flush_chunk(TpmsRawWriter* writer) {
     if(!writer || !writer->ok) return false;
     if(writer->count == 0U) return true;
-    writer->ok = flipper_format_write_int32(
-        writer->format, "RAW_Data", writer->chunk, writer->count);
+    writer->ok =
+        flipper_format_write_int32(writer->format, "RAW_Data", writer->chunk, writer->count);
     writer->count = 0U;
     return writer->ok;
 }
@@ -319,12 +320,9 @@ static bool tpms_save_write_original_file(
     return ok;
 }
 
-static const uint8_t* tpms_save_preset_data_for_wave(
-    const TpmsTxWave* wave,
-    size_t* preset_size) {
+static const uint8_t* tpms_save_preset_data_for_wave(const TpmsTxWave* wave, size_t* preset_size) {
     if(!wave || !preset_size) return NULL;
-    if(wave->modulation == OOK_PULSE_PCM ||
-       wave->modulation == OOK_PULSE_MANCHESTER_ZEROBIT) {
+    if(wave->modulation == OOK_PULSE_PCM || wave->modulation == OOK_PULSE_MANCHESTER_ZEROBIT) {
         *preset_size = protoview_subghz_tpms2_ook_async_regs_size;
         return (const uint8_t*)protoview_subghz_tpms2_ook_async_regs;
     }
@@ -352,11 +350,7 @@ static bool tpms_save_write_edited_file(
         opened = flipper_format_file_open_always(format, path);
         if(!opened) break;
         if(!tpms_save_write_header(
-               format,
-               wave->frequency_hz,
-               "FuriHalSubGhzPresetCustom",
-               preset_data,
-               preset_size)) {
+               format, wave->frequency_hz, "FuriHalSubGhzPresetCustom", preset_data, preset_size)) {
             break;
         }
 
@@ -376,9 +370,8 @@ static bool tpms_save_write_edited_file(
             for(size_t i = 0U; i < wave->pulse_count && writer.ok; i++) {
                 uint32_t duration = wave->pulses[i].duration_us;
                 if(duration > INT32_MAX) duration = INT32_MAX;
-                const int32_t signed_duration = wave->pulses[i].level ?
-                                                    (int32_t)duration :
-                                                    -(int32_t)duration;
+                const int32_t signed_duration = wave->pulses[i].level ? (int32_t)duration :
+                                                                        -(int32_t)duration;
                 (void)tpms_raw_writer_append(&writer, signed_duration);
             }
             if(r + 1U < repeat) {
@@ -497,11 +490,7 @@ bool tpms_profile_save(
     return tpms_profile_save_named(values, protocol, edited, NULL, saved_path);
 }
 
-bool tpms_profile_read_label(
-    const char* path,
-    char* label,
-    size_t label_size,
-    uint32_t* id) {
+bool tpms_profile_read_label(const char* path, char* label, size_t label_size, uint32_t* id) {
     if(!path || !label || label_size < 2U) return false;
     label[0] = '\0';
     if(id) *id = 0U;
@@ -598,8 +587,8 @@ bool tpms_profile_load(
         values->rssi_valid = false;
         if(flipper_format_rewind(format)) {
             int32_t rssi = -127;
-            if(flipper_format_read_int32(format, "RSSI_dBm", &rssi, 1U) &&
-               rssi >= -127 && rssi <= 20) {
+            if(flipper_format_read_int32(format, "RSSI_dBm", &rssi, 1U) && rssi >= -127 &&
+               rssi <= 20) {
                 values->rssi_dbm = (int16_t)rssi;
                 values->rssi_valid = true;
             }
@@ -609,8 +598,7 @@ bool tpms_profile_load(
         if(flipper_format_rewind(format)) {
             uint32_t wake_profile = TpmsWakeProfileNone;
             if(flipper_format_read_uint32(format, "WakeProfile", &wake_profile, 1U) &&
-               wake_profile <= TpmsWakeProfileAutoFordVDO &&
-               wake_profile != TpmsWakeProfileNone) {
+               wake_profile <= TpmsWakeProfileAutoFordVDO && wake_profile != TpmsWakeProfileNone) {
                 values->wake_profile = (uint8_t)wake_profile;
                 values->wake_profile_valid = true;
             }
@@ -645,7 +633,8 @@ bool tpms_profile_load(
                 if(flipper_format_rewind(format) &&
                    flipper_format_read_hex(format, "RawPayload", values->raw_payload, raw_size)) {
                     values->raw_payload_size = (uint8_t)raw_size;
-                    values->raw_payload_bits = (uint8_t)(raw_bits > TPMS_RAWBITS_BUF ? TPMS_RAWBITS_BUF : raw_bits);
+                    values->raw_payload_bits =
+                        (uint8_t)(raw_bits > TPMS_RAWBITS_BUF ? TPMS_RAWBITS_BUF : raw_bits);
                     values->raw_payload_valid = true;
                 }
             }
@@ -726,11 +715,7 @@ bool tpms_save_original_raw_named(
     bool ok = false;
     if(tpms_save_make_named_datetime_path(storage, TPMS_SAVE_FOLDER_ORG, label, "sub", path)) {
         ok = tpms_save_write_original_file(
-            storage,
-            furi_string_get_cstr(path),
-            &preset_copy,
-            samples,
-            sample_count);
+            storage, furi_string_get_cstr(path), &preset_copy, samples, sample_count);
     }
 
     if(!saved_path) furi_string_free(path);
@@ -780,8 +765,7 @@ bool tpms_save_edited_raw(
     FuriString* path = saved_path ? saved_path : furi_string_alloc();
     bool ok = false;
     if(tpms_save_make_path(storage, TPMS_SAVE_FOLDER_MOD, protocol, values->id, "EDIT", path)) {
-        ok = tpms_save_write_edited_file(
-            storage, furi_string_get_cstr(path), values, wave);
+        ok = tpms_save_write_edited_file(storage, furi_string_get_cstr(path), values, wave);
     }
 
     if(!saved_path) furi_string_free(path);
@@ -790,7 +774,6 @@ bool tpms_save_edited_raw(
     if(ok) ok = tpms_profile_save(values, protocol, true, NULL);
     return ok;
 }
-
 
 bool tpms_profile_save_to_path_named(
     const char* path,
@@ -809,8 +792,7 @@ bool tpms_profile_save_to_path_named(
         float f32;
         ok = flipper_format_write_header_cstr(format, "TPMS Editor Profile", 3U);
         if(ok) ok = flipper_format_write_string_cstr(format, "Protocol", protocol);
-        if(ok && label && label[0])
-            ok = flipper_format_write_string_cstr(format, "Label", label);
+        if(ok && label && label[0]) ok = flipper_format_write_string_cstr(format, "Label", label);
         u32 = (uint32_t)values->kind;
         if(ok) ok = flipper_format_write_uint32(format, "Kind", &u32, 1U);
         u32 = values->id;
@@ -868,16 +850,17 @@ bool tpms_profile_save_to_path_named(
 }
 
 bool tpms_profile_save_to_path(
-    const char* path, const TpmsEditValues* values, const char* protocol) {
+    const char* path,
+    const TpmsEditValues* values,
+    const char* protocol) {
     return tpms_profile_save_to_path_named(path, values, protocol, NULL);
 }
 
-
 /* ---- TPMS 4.5 automatic RX profile capture -------------------------------- */
 
-#define TPMS_AUTOSAVE_CONFIG_TYPE "TPMS Autosave Config"
+#define TPMS_AUTOSAVE_CONFIG_TYPE    "TPMS Autosave Config"
 #define TPMS_AUTOSAVE_CONFIG_VERSION 1U
-#define TPMS_AUTOSAVE_CACHE_SIZE 32U
+#define TPMS_AUTOSAVE_CACHE_SIZE     32U
 
 static uint32_t tpms_autosave_fnv1a(const void* data, size_t size, uint32_t seed) {
     const uint8_t* bytes = data;
@@ -898,8 +881,7 @@ static uint32_t tpms_autosave_payload_hash(const TPMSBlockGeneric* generic) {
     if(!generic) return 0U;
     uint32_t hash = UINT32_C(2166136261);
     if(generic->raw_payload_valid && generic->raw_payload_size > 0U) {
-        hash = tpms_autosave_fnv1a(
-            generic->raw_payload, generic->raw_payload_size, hash);
+        hash = tpms_autosave_fnv1a(generic->raw_payload, generic->raw_payload_size, hash);
         hash = tpms_autosave_fnv1a(
             &generic->raw_payload_bits, sizeof(generic->raw_payload_bits), hash);
         return hash;
@@ -911,20 +893,17 @@ static uint32_t tpms_autosave_payload_hash(const TPMSBlockGeneric* generic) {
     return hash;
 }
 
-static bool tpms_autosave_is_duplicate(
-    const TPMSApp* app, uint32_t key, uint32_t payload_hash) {
+static bool tpms_autosave_is_duplicate(const TPMSApp* app, uint32_t key, uint32_t payload_hash) {
     if(!app) return false;
     for(uint8_t i = 0U; i < app->autosave_cache_count; i++) {
-        if(app->autosave_cache_keys[i] == key &&
-           app->autosave_cache_hashes[i] == payload_hash) {
+        if(app->autosave_cache_keys[i] == key && app->autosave_cache_hashes[i] == payload_hash) {
             return true;
         }
     }
     return false;
 }
 
-static void tpms_autosave_remember(
-    TPMSApp* app, uint32_t key, uint32_t payload_hash) {
+static void tpms_autosave_remember(TPMSApp* app, uint32_t key, uint32_t payload_hash) {
     if(!app) return;
 
     /* Update an existing sensor slot first. A changed state for the same
@@ -948,8 +927,7 @@ static void tpms_autosave_remember(
     const uint8_t idx = app->autosave_cache_next % TPMS_AUTOSAVE_CACHE_SIZE;
     app->autosave_cache_keys[idx] = key;
     app->autosave_cache_hashes[idx] = payload_hash;
-    app->autosave_cache_next =
-        (uint8_t)((idx + 1U) % TPMS_AUTOSAVE_CACHE_SIZE);
+    app->autosave_cache_next = (uint8_t)((idx + 1U) % TPMS_AUTOSAVE_CACHE_SIZE);
 }
 
 void tpms_autosave_reset_session(TPMSApp* app) {
@@ -974,8 +952,7 @@ bool tpms_autosave_load_enabled(void) {
        persisted Enabled=0 remains authoritative after the user turns it off. */
     bool result = TPMS_AUTOSAVE_DEFAULT_ENABLED;
 
-    if(format && type &&
-       flipper_format_file_open_existing(format, TPMS_AUTOSAVE_CONFIG)) {
+    if(format && type && flipper_format_file_open_existing(format, TPMS_AUTOSAVE_CONFIG)) {
         if(flipper_format_read_header(format, type, &version) &&
            strcmp(furi_string_get_cstr(type), TPMS_AUTOSAVE_CONFIG_TYPE) == 0 &&
            version == TPMS_AUTOSAVE_CONFIG_VERSION &&
@@ -1037,7 +1014,8 @@ static void tpms_autosave_type_token(const char* protocol, char* out, size_t out
             separator = true;
         }
     }
-    while(j > 0U && out[j - 1U] == '_') j--;
+    while(j > 0U && out[j - 1U] == '_')
+        j--;
     out[j] = '\0';
     if(!out[0]) snprintf(out, out_size, "TPMS");
 }
@@ -1048,8 +1026,7 @@ bool tpms_autosave_process_decoder(
     float frame_rssi,
     uint8_t wake_profile,
     bool wake_profile_valid) {
-    if(!app || !app->autosave_enabled || !decoder_base_ptr || !app->txrx ||
-       !app->txrx->preset) {
+    if(!app || !app->autosave_enabled || !decoder_base_ptr || !app->txrx || !app->txrx->preset) {
         return false;
     }
 
@@ -1062,8 +1039,7 @@ bool tpms_autosave_process_decoder(
 
     do {
         if(!serialized || !protocol) break;
-        if(subghz_protocol_decoder_base_serialize(
-               decoder_base, serialized, app->txrx->preset) !=
+        if(subghz_protocol_decoder_base_serialize(decoder_base, serialized, app->txrx->preset) !=
            SubGhzProtocolStatusOk) {
             break;
         }
@@ -1071,8 +1047,7 @@ bool tpms_autosave_process_decoder(
            !flipper_format_read_string(serialized, "Protocol", protocol)) {
             break;
         }
-        if(tpms_block_generic_deserialize(&generic, serialized) !=
-           SubGhzProtocolStatusOk) {
+        if(tpms_block_generic_deserialize(&generic, serialized) != SubGhzProtocolStatusOk) {
             break;
         }
 
@@ -1084,10 +1059,8 @@ bool tpms_autosave_process_decoder(
         payload_hash = tpms_autosave_fnv1a(
             &app->txrx->preset->frequency, sizeof(app->txrx->preset->frequency), payload_hash);
         payload_hash = tpms_autosave_fnv1a(&rx_preset, sizeof(rx_preset), payload_hash);
-        const uint8_t wake_signature =
-            wake_profile_valid ? wake_profile : TpmsWakeProfileNone;
-        payload_hash =
-            tpms_autosave_fnv1a(&wake_signature, sizeof(wake_signature), payload_hash);
+        const uint8_t wake_signature = wake_profile_valid ? wake_profile : TpmsWakeProfileNone;
+        payload_hash = tpms_autosave_fnv1a(&wake_signature, sizeof(wake_signature), payload_hash);
         if(tpms_autosave_is_duplicate(app, key, payload_hash)) break;
 
         values.kind = tpms_encoder_for_model(protocol_cstr);
@@ -1096,12 +1069,10 @@ bool tpms_autosave_process_decoder(
         values.temperature_c = generic.temperature;
         values.frequency_hz = app->txrx->preset->frequency;
         values.radio_preset = rx_preset;
-        values.rssi_dbm =
-            (int16_t)(frame_rssi < 0.0f ? frame_rssi - 0.5f : frame_rssi + 0.5f);
+        values.rssi_dbm = (int16_t)(frame_rssi < 0.0f ? frame_rssi - 0.5f : frame_rssi + 0.5f);
         values.rssi_valid = frame_rssi > -127.0f && frame_rssi <= 20.0f;
         values.wake_profile = wake_profile_valid ? wake_profile : TpmsWakeProfileNone;
-        values.wake_profile_valid =
-            wake_profile_valid && wake_profile != TpmsWakeProfileNone;
+        values.wake_profile_valid = wake_profile_valid && wake_profile != TpmsWakeProfileNone;
         values.repeat_count = 3U;
         values.edit_mask = 0U;
 
@@ -1109,8 +1080,7 @@ bool tpms_autosave_process_decoder(
             values.flags = (uint32_t)(generic.data >> 32U);
             values.temperature_raw_f = (uint8_t)((generic.data >> 24U) & 0xFFU);
             values.temperature_raw_f_valid = true;
-            values.temperature_c =
-                ((float)values.temperature_raw_f - 32.0f) * (5.0f / 9.0f);
+            values.temperature_c = ((float)values.temperature_raw_f - 32.0f) * (5.0f / 9.0f);
         } else {
             values.flags = (uint32_t)((generic.data >> 48U) & 0xFFFFU);
             values.temperature_raw_f = 0U;
@@ -1134,23 +1104,15 @@ bool tpms_autosave_process_decoder(
         char type_token[24];
         char prefix[40];
         tpms_autosave_type_token(protocol_cstr, type_token, sizeof(type_token));
-        snprintf(
-            prefix,
-            sizeof(prefix),
-            "%s_%08lX",
-            type_token,
-            (unsigned long)generic.id);
+        snprintf(prefix, sizeof(prefix), "%s_%08lX", type_token, (unsigned long)generic.id);
 
         FuriString* path = furi_string_alloc();
-        const bool path_ok =
-            path &&
-            tpms_save_make_named_datetime_path(
-                storage, TPMS_AUTOSAVE_FOLDER, prefix, "tpms", path);
+        const bool path_ok = path && tpms_save_make_named_datetime_path(
+                                         storage, TPMS_AUTOSAVE_FOLDER, prefix, "tpms", path);
         furi_record_close(RECORD_STORAGE);
 
         if(path_ok) {
-            saved = tpms_profile_save_to_path(
-                furi_string_get_cstr(path), &values, protocol_cstr);
+            saved = tpms_profile_save_to_path(furi_string_get_cstr(path), &values, protocol_cstr);
         }
         if(path) furi_string_free(path);
 

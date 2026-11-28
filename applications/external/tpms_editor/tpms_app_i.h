@@ -179,7 +179,7 @@ void tpms_hopper_update(TPMSApp* app);
 
 /* Hidden AUTO LAB helpers. Session capture stays capped at 10, while
    explicitly saved profiles live in an SD-card library without a 10-item cap. */
-#define TPMS_LAB_MAX_SENSORS 10U
+#define TPMS_LAB_MAX_SENSORS  10U
 #define TPMS_LAB_SAVED_FOLDER EXT_PATH("apps_data/tpms_editor/lab_saved")
 
 typedef enum {
@@ -195,7 +195,10 @@ typedef enum {
 
 void tpms_lab_clear_session_files(void);
 bool tpms_lab_session_load(
-    uint8_t slot, TpmsEditValues* values, char* protocol, size_t protocol_size);
+    uint8_t slot,
+    TpmsEditValues* values,
+    char* protocol,
+    size_t protocol_size);
 bool tpms_lab_session_delete(uint8_t slot);
 uint8_t tpms_lab_session_count(void);
 bool tpms_lab_prepare(TPMSApp* app);
@@ -208,5 +211,7 @@ void tpms_lab_saved_migrate_legacy(void);
 uint16_t tpms_lab_saved_count(void);
 bool tpms_lab_saved_store(const TpmsEditValues* values, const char* protocol);
 bool tpms_lab_saved_store_named(
-    const TpmsEditValues* values, const char* protocol, const char* label);
+    const TpmsEditValues* values,
+    const char* protocol,
+    const char* label);
 bool tpms_lab_saved_delete(const char* path);

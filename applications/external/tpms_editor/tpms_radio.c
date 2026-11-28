@@ -4,7 +4,7 @@
 
 #include <stdio.h>
 
-#define TAG "TPMSRadio"
+#define TAG                         "TPMSRadio"
 #define TPMS_EXT_POWER_STABILIZE_MS 120U
 #define TPMS_DEVICE_CC1101_INT_NAME "cc1101_int"
 #define TPMS_DEVICE_CC1101_EXT_NAME "cc1101_ext"
@@ -57,8 +57,7 @@ static bool tpms_radio_use_internal(TPMSApp* app) {
     furi_assert(app);
     if(app->txrx->radio_external_active) tpms_radio_end_external(app);
 
-    const SubGhzDevice* internal =
-        subghz_devices_get_by_name(TPMS_DEVICE_CC1101_INT_NAME);
+    const SubGhzDevice* internal = subghz_devices_get_by_name(TPMS_DEVICE_CC1101_INT_NAME);
     if(!internal) {
         FURI_LOG_E(TAG, "Internal CC1101 device not found");
         app->txrx->radio_device = NULL;
@@ -86,8 +85,7 @@ static bool tpms_radio_try_external(TPMSApp* app) {
         return false;
     }
 
-    const SubGhzDevice* external =
-        subghz_devices_get_by_name(TPMS_DEVICE_CC1101_EXT_NAME);
+    const SubGhzDevice* external = subghz_devices_get_by_name(TPMS_DEVICE_CC1101_EXT_NAME);
     if(!external || !subghz_devices_is_connect(external)) {
         FURI_LOG_I(TAG, "External CC1101 not detected");
         tpms_radio_release_owned_power(app);

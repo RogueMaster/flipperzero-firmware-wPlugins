@@ -11,7 +11,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#define TPMS_LAB_PROFILE_COUNT 6U
+#define TPMS_LAB_PROFILE_COUNT    6U
 #define TPMS_LAB_LEGACY_SAVED_MAX 10U
 
 static void tpms_lab_slot_path(uint8_t slot, char* path, size_t size) {
@@ -45,9 +45,7 @@ static bool tpms_lab_has_tpl_extension(const char* name) {
     const size_t len = name ? strlen(name) : 0U;
     if(len < 4U) return false;
     const char* ext = name + len - 4U;
-    return ext[0] == '.' &&
-           (ext[1] == 't' || ext[1] == 'T') &&
-           (ext[2] == 'p' || ext[2] == 'P') &&
+    return ext[0] == '.' && (ext[1] == 't' || ext[1] == 'T') && (ext[2] == 'p' || ext[2] == 'P') &&
            (ext[3] == 'l' || ext[3] == 'L');
 }
 
@@ -56,7 +54,10 @@ static void tpms_lab_legacy_saved_slot_path(uint8_t slot, char* path, size_t siz
 }
 
 static void tpms_lab_saved_profile_path(
-    const TpmsEditValues* values, const char* protocol, char* path, size_t size) {
+    const TpmsEditValues* values,
+    const char* protocol,
+    char* path,
+    size_t size) {
     const uint32_t key = tpms_lab_hash(protocol, values ? values->id : 0U);
     snprintf(
         path,
@@ -68,7 +69,9 @@ static void tpms_lab_saved_profile_path(
 }
 
 static bool tpms_lab_saved_store_internal(
-    const TpmsEditValues* values, const char* protocol, const char* label) {
+    const TpmsEditValues* values,
+    const char* protocol,
+    const char* label) {
     if(!values || !protocol || !protocol[0]) return false;
     Storage* storage = furi_record_open(RECORD_STORAGE);
     if(!storage) return false;
@@ -143,7 +146,9 @@ bool tpms_lab_saved_store(const TpmsEditValues* values, const char* protocol) {
 }
 
 bool tpms_lab_saved_store_named(
-    const TpmsEditValues* values, const char* protocol, const char* label) {
+    const TpmsEditValues* values,
+    const char* protocol,
+    const char* label) {
     tpms_lab_saved_migrate_legacy();
     return tpms_lab_saved_store_internal(values, protocol, label);
 }
@@ -163,7 +168,10 @@ bool tpms_lab_saved_delete(const char* path) {
 }
 
 bool tpms_lab_session_load(
-    uint8_t slot, TpmsEditValues* values, char* protocol, size_t protocol_size) {
+    uint8_t slot,
+    TpmsEditValues* values,
+    char* protocol,
+    size_t protocol_size) {
     if(slot >= TPMS_LAB_MAX_SENSORS || !values || !protocol || protocol_size == 0U) return false;
     char path[96];
     tpms_lab_slot_path(slot, path, sizeof(path));
@@ -247,8 +255,10 @@ static bool tpms_lab_profile_matches(const TPMSApp* app, uint8_t profile) {
     const uint8_t mod = profile % 3U; /* 0 FSK, 1 OOK, 2 GFSK */
 
     bool band_ok = app->lab_band_index == 0U;
-    if(app->lab_band_index == 1U) band_ok = !band433;
-    else if(app->lab_band_index == 2U) band_ok = band433;
+    if(app->lab_band_index == 1U)
+        band_ok = !band433;
+    else if(app->lab_band_index == 2U)
+        band_ok = band433;
 
     bool mod_ok = app->lab_modulation_index == 0U;
     if(app->lab_modulation_index > 0U) mod_ok = (app->lab_modulation_index - 1U) == mod;
@@ -328,17 +338,20 @@ bool tpms_lab_start_rx(TPMSApp* app) {
 
 bool tpms_lab_capture_decoder(TPMSApp* app, SubGhzProtocolDecoderBase* decoder) {
     if(!app || !decoder || !app->lab_format || !app->lab_protocol || !app->txrx ||
-       !app->txrx->preset) return false;
+       !app->txrx->preset)
+        return false;
     Stream* stream = flipper_format_get_raw_stream(app->lab_format);
     if(stream) stream_clean(stream);
     if(subghz_protocol_decoder_base_serialize(decoder, app->lab_format, app->txrx->preset) !=
-       SubGhzProtocolStatusOk) return false;
+       SubGhzProtocolStatusOk)
+        return false;
     furi_string_reset(app->lab_protocol);
     flipper_format_rewind(app->lab_format);
     if(!flipper_format_read_string(app->lab_format, "Protocol", app->lab_protocol)) return false;
 
     TPMSBlockGeneric generic = {0};
-    if(tpms_block_generic_deserialize(&generic, app->lab_format) != SubGhzProtocolStatusOk) return false;
+    if(tpms_block_generic_deserialize(&generic, app->lab_format) != SubGhzProtocolStatusOk)
+        return false;
     const char* protocol = furi_string_get_cstr(app->lab_protocol);
     TpmsEditValues values = {0};
     values.kind = tpms_encoder_for_model(protocol);

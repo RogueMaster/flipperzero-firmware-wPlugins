@@ -25,8 +25,8 @@ static const TPMSProtocolListItem protocol_items[] = {
 void tpms_scene_protocol_list_on_enter(void* context) {
     TPMSApp* app = context;
     for(size_t i = 0U; i < COUNT_OF(protocol_items); i++) {
-        VariableItem* item = variable_item_list_add(
-            app->variable_item_list, protocol_items[i].name, 1U, NULL, app);
+        VariableItem* item =
+            variable_item_list_add(app->variable_item_list, protocol_items[i].name, 1U, NULL, app);
         variable_item_set_current_value_text(item, protocol_items[i].mode);
     }
     view_dispatcher_switch_to_view(app->view_dispatcher, TPMSViewVariableItemList);
