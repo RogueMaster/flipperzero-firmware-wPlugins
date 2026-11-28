@@ -9,11 +9,11 @@ typedef enum {
 } GtaSafeKind;
 
 typedef enum {
-    GtaSafeTested, /* Explicitly tested by a published guide */
-    GtaSafeCorroborated, /* Multiple published guides */
+    GtaSafeTested, /* Explicitly tested by a guide */
+    GtaSafeCorroborated, /* Multiple guides */
     GtaSafeReported, /* Limited evidence */
     GtaSafeVariable, /* May change per save or retry */
-    GtaSafeConflicting, /* Published sources disagree */
+    GtaSafeConflicting, /* Sources disagree */
 } GtaSafeStatus;
 
 typedef struct {

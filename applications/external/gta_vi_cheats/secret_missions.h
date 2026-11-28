@@ -1,7 +1,7 @@
 #pragma once
 #include <stddef.h>
 #include <stdint.h>
-/* Ordered by the earliest published availability, then by optional route.
+/* Ordered by the earliest documented availability, then by optional route.
  * A question mark means that the story gate has NOT been established. */
 typedef struct {
     const char* stage;
@@ -11,7 +11,7 @@ typedef struct {
     const char* steps;
     const char* reward;
     const char* status;
-    const char* sources;
+    const char* sources; /* Reserved legacy TSV field; no longer displayed. */
     /* Stable progress key: never reuse or renumber when the list is sorted. */
     uint8_t progress_id;
 } GtaSecretMission;

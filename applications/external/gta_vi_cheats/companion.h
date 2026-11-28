@@ -17,7 +17,7 @@ void gta_companion_open_exploration_item(
     GtaCompanion* companion,
     const GtaExploreSection* section,
     uint16_t id);
-void gta_companion_open_money_glitch(GtaCompanion* companion);
+void gta_companion_open_money_glitch(GtaCompanion* companion, size_t index);
 void gta_companion_open_dispatch(GtaCompanion* companion, GtaDispatchRegion region);
 bool gta_companion_custom_event(GtaCompanion* companion, uint32_t event);
 bool gta_companion_back(GtaCompanion* companion);

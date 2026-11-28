@@ -1,17 +1,17 @@
 # GTA VI Companion changelog
 
 ## v2.1 — Expanded Collections, Glitches and Gameplay References
-- Added a dedicated Glitches menu and monochrome icon, with the Infinite Money Glitch warehouse walkthrough and NFC map shortcut.
+- Added a dedicated Glitches menu and monochrome icon, with the Infinite Money Glitch warehouse walkthrough and NFC map shortcut; all glitch entries load from one catalog.
 - Added Stash Bag Cash Duplication, First-Person Camera, Illegal Operation Raid Reset, Store Robbery Cooldown Reset, Xbox Series X Frame Rate, Phone Wall Clip, Prologue Chase Shortcut, Nude Bottoms and Nude Top guides; expanded cash duplication recovery instructions and glitch compatibility notes.
 - Organized Standout Vehicles into nine independently loaded categories and an alphabetical All Standout Vehicles checklist, with shared completion tracking and NFC links.
-- Added 32-topic Quick Guide pagination with selection restoration; retained the existing catalog memory safeguards.
+- Streamlined Quick Guide to 18 practical topics covering controls, cheat use, live progress, missable rewards, randomized safe codes and completion mechanics; retained pagination, selection restoration and catalog memory safeguards.
 - Expanded Standout Vehicle acquisition directions, performance ratings and alternate pickup locations, including off-road ratings and third-party road comparison scores.
 - Documented all 13 Jason and 15 Lucia magazine styles and all 17 reported tattoo magazine sites, including paired designs, character-specific redemption instructions and Fairyland Forest Gnome.
 - Documented acquisition routes for all 34 named luxury watches, including Domestobot’s Crowex Submerge; separated alternate watch locations from the main checklist while retaining their progress IDs and NFC links. Expanded yacht safe and residential access directions, wildlife search areas, flamingo landmarks and underwater fragment routes, including Selkie Hole.
 - Documented all 15 Bret's Target Decks with target species, weapon choices, search areas, delivery requirements and rewards.
 - Added the Four Horsemen puzzle walkthrough and cabin door code, Cherry Popper T-shirt discovery, Big Day Motel safe contents and the reported Mall Rats outfit retention method.
 - Expanded collectible card pickup clues and resale values, including Maximus Goldbart (Yellow); refined the Beached Cargo route, ghost-cat encounter, Spaceship House scan and Hovercraft approach.
-- Refined collection, vehicle and gameplay descriptions, using concise Unconfirmed labels for uncertain locations. Existing saved progress, cheat inputs and NFC links remain compatible.
+- Streamlined catalog descriptions and map labels, removing repeated instructions and publisher names while retaining gameplay information, uncertainty labels, saved progress, cheat inputs and NFC links.
 - Added all three Dunk robbery stash routes, Scarlet Sun’s return visit and the In the Tall Grass encounter; expanded hidden weapon pickup directions and the KD’s SFB 1000 reward location.
 - Expanded Pilot Pete’s five-flight walkthrough with aircraft types, delivery deadlines and supplier approaches; refined watch pickup landmarks, missing-tourist investigation directions and hidden weapon locations.
 - Added an alternate two-bag cash duplication method.
@@ -35,7 +35,7 @@
 - Expanded all 130 stunt jumps, 202 bridge crossings, 40 knife flights and 25 BASE jumps; added illustrated routes, county and landmark comparisons, and clarified shared completion tracking.
 - Expanded Standout Vehicles with named variants, performance tiers, numeric ratings, set membership, tracker and registration details; refined Randy, Moses and Wyman acquisition and delivery instructions.
 - Expanded special weapon acquisition, safe and door codes, optional missions, Easter eggs, endings, wildlife encounters and Quick Guide information, including registration, bag overfill and Max Focus methods.
-- Completed published route coverage for 33 underwater discoveries and 41 Kenton relics; refined dive landmarks, treasure rewards and discovery conditions.
+- Completed route coverage for 33 underwater discoveries and 41 Kenton relics; refined dive landmarks, treasure rewards and discovery conditions.
 - Expanded activities and robbery information, including bank and store classifications, challenge targets, publications, Book Swaps, basketball, gang operations and the Kitty Litter route.
 - Completed scan-facing, approach and reward instructions for all four Peewees billboards; clarified the ten-scan No Flusher quest threshold and preserved all 15 tag entries.
 - Streamlined documentation, moved supplementary source links to more_sources.md and retained detailed catalog maintenance notes in extra.md. Existing progress IDs, save compatibility and NFC link catalogs are preserved.
@@ -69,7 +69,7 @@
 - Added 24 individual NFC location references: 12 Gang Operations, three golf courses, seven luxury watch entries and two publication titles. Corroborated two existing magazine links. Documented probable generic map matches, shared watch venues, alternate magazine copies and golf progress tracking. Preserved all progress IDs, existing links and collection counts.
 - Added nine GTA6 GPS item references and one Pop Star makeup guide reference. Identified and moved the reported Pop Star and Circles of Hell Skull search leads to the corresponding style and tattoo menus, preserving their IDs; indexed both in Regional Dispatch (923 stops). Expanded magazine, watch, arcade and hoop clues; noted uncertain style identities and alternate pickup reports. Corrected the Lucia style count in the README.
 - Added 21 individual NFC item mappings: all eight large bank vaults, five playlist poster entries and eight unique-animal search areas. Distinguished the Ocean Beach vault branches, expanded playlist and wildlife directions, documented alternate Vault posters without adding progress IDs, and refined the Gibson Brothers and Druthers bank locations. All 22 bank entries now have individual GTA6GPS references.
-- Added 14 NFC item references: four missing-person stages, three remaining legendary animals, five existing watch entries and two reported watch models (Ashure Chrono and Kaleidoscope). Added a shared victim-site map image to three investigation stages, a current GTA6GPS underwater lead pin, and the Casa Guardia alternate watch pin. Expanded access landmarks and alternate watch locations, corrected five invalid secondary URL fields, and extended progress tracking for the two new watch entries. Exact Vice Beach buildings and independent watch counter credit remain unconfirmed.
+- Added 14 NFC item references: four missing-person stages, three remaining legendary animals, five existing watch entries and two reported watch models (Ashure Chrono and Kaleidoscope). Added a shared victim-site map image to three investigation stages, a current GTA6GPS underwater lead pin, and the Casa Guardia alternate watch pin. Expanded access landmarks and alternate watch locations, corrected five invalid secondary URL fields, and extended progress tracking for the two new watch entries. Exact Vice Beach buildings and independent watch counter credit remain not established.
 - Added 99 NFC item references for the remaining basketball hoops: eight probable GTA6GPS pin matches and 91 numbered GTA6MAP.IO guide links. Added eleven direct hoop map previews (including the existing Catalan Key entry) and corrected two invalid secondary URL fields. All 100 hoops now have location references; guide links use browser text fragments and are not direct GPS pins.
 - Added item-specific named guide links for all 112 AHOL Street Art pieces, with the interactive category map as a secondary reference. Existing progress IDs and collection counts remain unchanged. The cumulative 1.9.10 release adds 880 NFC item records (1,515 total catalog records), including direct pins, targeted guide links and shared venue references.
 - Added 26 NFC item records and upgraded 23 existing records: 16 named cards (two GTA6GPS pins and 14 individual map screenshots), three race venues, the Ambrosia trial, Exotic Animals Front, Belpoint Lighthouse and four offshore search leads. Added individual atlas pins to 22 numbered AHOL pieces and a probable GTA6GPS pin for the Key Lento garage hoop. Retained the named guide and existing map image references; category maps remain in the README. Four new search-lead IDs are separate from the underwater discovery counter. The cumulative release adds 906 NFC records (1,541 total); 23 existing records were upgraded in this pass.
@@ -109,7 +109,7 @@
 - Refined hold-OK NFC link selection: Source on Left when available; direct map image on Right, or Source 2 when no image is available. Retained interactive maps as source references and removed duplicate destinations.
 - Hold OK now starts NFC URL emulation immediately when only one link option is available; two options retain the selector. Back stops NFC and returns to the item or selector accordingly.
 - Added a fullscreen GTA-themed NFC emulation graphic with a bottom URL bar and automatic horizontal scrolling for long links.
-- Expanded Cocaine Flamingos to 86 reported pickups and map leads with four separately indexed Key Lento and Watson Bay search points; distinct counter credit remains unconfirmed. Added all four to Regional Dispatch.
+- Expanded Cocaine Flamingos to 86 reported pickups and map leads with four separately indexed Key Lento and Watson Bay search points; distinct counter credit remains not established. Added all four to Regional Dispatch.
 - Added shared source guide/index fallbacks for every Collections checklist and vehicle/property list, retaining individual URLs where available and preserving automatic single-link NFC emulation.
 - Added individual GTA6 GPS NFC map pins to ten Standout Vehicles, eight Cocaine Flamingo entries, the La Noche wreck in both Kenton and Underwater Discoveries, and the SOS Island meteorite. Added a shared Wyman wreck map; retained individual guides where available and preserved progress IDs.
 - Split NFC URL emulation into an on-demand GTA NFC Link FAL with fullscreen URL artwork and scrolling. Added a shared GTA loading FAL for randomized mock-loader transitions in both directions using the existing set preferences. Companion remains open; Back stops NFC and unloads the plugin, returning to the original item or link selector, and Hold Back exits to firmware.
@@ -129,7 +129,7 @@
 - Added five guide-reported Special Weapons (112 total), including Gun Nut SMS-01, two Chapter 3 missable pistols, Caminos Signature K17 and Mahi Nipper .38; added Royal Bay Marina variable safe clue (64 codes) and Marbelle Hotel fog walkthrough (36 Secret Missions). Expanded existing card, publication, bottle, watch and underwater directions; added Chapter 2 missable and free-registration tips.
 - Expanded Chatfield 5800, Quarter Mile ES9, Purple Drank Emerus and spy-vessel pistol instructions; added Pocketblast DSG (113 Special Weapons), three mapped meteorite search areas (75 total), a four-Up Body Armor alternate report, and more flamingo, diving, shooting-range and hunting details.
 - Added the reported Rodgers Ranch Market Range Beginner quit-and-repeat method for permanent Focus leveling, with instructions in Quick guide / warnings, Shooting Gold Medals and the Unlimited Focus cheat description.
-- Added six map-reported Cocaine Flamingo locations (63 total), four meteorite search areas (79 total), and four named Special Weapons (117 total). Added Misericordia game-map coordinates, refined the first two Bret decks, and preserved existing progress IDs and published cheat inputs.
+- Added six map-reported Cocaine Flamingo locations (63 total), four meteorite search areas (79 total), and four named Special Weapons (117 total). Added Misericordia game-map coordinates, refined the first two Bret decks, and preserved existing progress IDs and cheat inputs.
 
 ## v1.9.6 — Vehicles and Collection Updates
 - Added four reported safe/door combinations (Chatfield 5800, Biker Hideout 1982, Stormy 7869, Big Day Motel 4242); documented Cottonmouth 44017 versus shortened 4017 and Palmer 1886/1887 discrepancies, with existing collection IDs and progress unchanged. Enriched eight Flamingo routes, Bret hunting conditions, and linked gang-operation, weapon and card locations.
@@ -155,7 +155,7 @@
 - Added 15 Secret Missions and Easter egg walkthroughs (31 total), including the Backrooms, Backyard Wrestling, full Vice City Portal switch order, Burg Industries and the Key Lento rainy-day fund.
 - Added two reported underwater discoveries, two meteorite pickups and the Belpoint lighthouse flamingo; added safe code 80085 and expanded Kenton and Bret directions.
 - Added reported resale and registration prices to 20 Standout Vehicles and an alternate Revenant Gauntlet search area.
-- Added Videotape and Dark Mirror filter inputs, corroborated by PC Gamer and GamesRadar+ (21 published inputs); retained Pinhole and screenshot reports.
+- Added Videotape and Dark Mirror filter inputs, corroborated by PC Gamer and GamesRadar+ (21 available inputs); retained Pinhole and screenshot reports.
 - Added Cursed Knife (63 special weapons), lighthouse ghost and SOS Island walkthroughs, two hidden trophies, Tenebrae Lux puzzle instructions, and expanded Backrooms, wrestling, portal and Bret hunting directions.
 - Added the Royal Sanchez Standout (281 vehicle entries); expanded container routes for the Cuban Hermes, Blue Drake Penumbra and Caliente Picador.
 - Added four reported Cocaine Flamingo sites (48 total), ten meteorite search locations (70 total), alternate shoreline/lawn clues and additional Burg Industries directions; expanded Regional Dispatch and collection totals.
@@ -193,7 +193,7 @@
 - Retained earlier car and collection descriptions, alternate locations, saved progress IDs, Fences, Endings-last ordering, and all earlier changelog entries.
 
 ## v1.9.4 - Expanded Locations and Collectibles
-- Added 26 separately checkable, guide-reported Meteorite Chunk locations; marked the total and completion status as unconfirmed.
+- Added 26 separately checkable, guide-reported Meteorite Chunk locations; marked the total and completion status as not established.
 - Added a five-stage Missing Persons walkthrough, distinguishing the warehouse and mine finale from the three reported missing tourists.
 - Added 22 basketball hoop guide-number locations with ball pickup instructions, bringing the documented location records from 51 to 73; marked legacy crosswalk conflicts for continued review.
 - Expanded the collection progress bitmap from 2,048 to 4,096 IDs. Added redundant `progress2.a` / `progress2.b` saves and read-only migration from `progress.a` / `progress.b` to retain existing checkmarks.
@@ -231,7 +231,7 @@
 - Added Collections > Endings with 12 independently checkable finale routes and epilogue variants, including descriptions of choices, preparation, and reported consequences.
 - Clearly distinguish nine reported outcomes/variants from three proposed but unverified savings-based epilogues; include a story-spoiler warning in the guide.
 - Endings use persistent collection checkmarks and stable IDs, without changing the save format, Dispatch, Secret Missions, or the home-screen controller.
-- Documented ending prerequisites and source references in the README, with an explicit explanation of differing published ending counts.
+- Documented ending prerequisites and source references in the README, with an explicit explanation of differing ending counts.
 
 ## v1.8 - Special Weapons and Code Navigation
 - Added two Black Eagle warehouse combinations (789987 office, 031462 safe) with Kalinga .50 access instructions.
@@ -253,7 +253,7 @@
 - Start-of-game and missable Chapter 1 finds are listed before Chapter 2 events; uncertain chapter gates are flagged rather than guessed.
 - Added Hyde Island's Island Poacher FF-50 Manhunt guide. Silencer/attachment not established by the sources.
 - Added reported Satan ritual, Hellspawn shotgun reward, and an explicit note that an extra-health reward is not substantiated.
-- Added the UFO-to-alien-rescue route, which published walkthroughs associate with permanent Health/Stamina/Focus increases.
+- Added the UFO-to-alien-rescue route, which walkthroughs associate with permanent Health/Stamina/Focus increases.
 - Added The Final Flush stamina reward, hidden radios, a tower egg, Chapter 1 cash routes and weapons.
 - Secret Mission checkmarks use independent save slots. Other checklists continue using the existing shared progress system, including bridges, stunts, vehicles, Collections and Dispatch.
 
@@ -268,7 +268,7 @@
 ## v1.5
 - Reordered safe-list labels to show combination first so long location names do not hide it.
 - Added **Safe & Door Codes** immediately after Infinite Money Glitch on the icon home menu, with its own vault icon.
-- Cataloged 38 published safe, mission, operation, keypad and puzzle combinations (including 4-, 5-, and 6-digit codes and two passwords). Locations, clues, chapters, and evidence-status details are browsable entirely offline.
+- Cataloged 38 safe, mission, operation, keypad and puzzle combinations (including 4-, 5-, and 6-digit codes and two passwords). Locations, clues, chapters, and evidence-status details are browsable entirely offline.
 - Added category filters and a code-first menu row for quick lookup; Back returns to the previous filter and retains the selected row.
 - Flagged variable, less-supported and contradictory reports rather than presenting every combination as certain. Specifically documents Kingpin Bowling (0300 vs 0330 in sources) and Saber Shipping Facility (1122 vs 1965).
 - Added a guide to randomized robbery safes, leading zeroes, employee clues and alternate opening methods. Updated the Quick Guide to mention the catalog.
@@ -278,13 +278,13 @@
 
 ## v1.3
 - Added checklists for all 397 stunts, including 130 Stunt Jumps, 202 Under the Bridge crossings, 40 Knife Flights, and 25 Base Jumps. Jumps and bridges are grouped by county. Entries include location clues, saved checkmarks, and reported bonus goals or par times. The game requires any 300 stunts for 100% completion.
-- Added John Morgan (Dusty Pink), completing the 480-card catalog across 18 sets. Casanova Island is the reported area. The exact pickup spot is unconfirmed.
+- Added John Morgan (Dusty Pink), completing the 480-card catalog across 18 sets. Casanova Island is the reported area. The exact pickup spot is not established.
 - Added flamingo locations in Capri and Key Lento and the Backyard Wrestling Belt and Luchadora tattoos in Hamlet. The app now lists 30 flamingo locations and 21 Discovered Styles. Dispatch now covers 839 stops.
 
 ## v1.2
 - Expanded the card checklists to 479 of 480 cards with reported location clues. Added all 112 individual AHOL Street Art locations with progress linked between pieces and their types.
 - Expanded coverage to 28 flamingo locations and 19 Discovered Styles. Added alternate pickup spots and chapter availability for reading items where reported, and refined WAiNK location clues.
-- Added the single-source Pinhole cheat under Filters with a report label. The **Published inputs** menu still lists 19 corroborated inputs per platform.
+- Added the single-source Pinhole cheat under Filters with a report label. The **Available inputs** menu still lists 19 corroborated inputs per platform.
 - Expanded location-based Dispatch to 835 stops.
 
 ## v1.1
@@ -308,7 +308,7 @@
 - Added Dispatch to cycle through unfinished Randy and Moses deliveries with known locations and share progress with their checklists.
 
 ## v0.3.1
-- Added the Xbox D-pad sequence for Drunk and updated the PS5 entry with corroborating reports. This brought the published catalog to 19 inputs per platform.
+- Added the Xbox D-pad sequence for Drunk and updated the PS5 entry with corroborating reports. This brought the catalog to 19 inputs per platform.
 
 ## v0.3
 - Expanded the catalog to 61 reported cheat effects with unlock requirements. Added the initial PS5 report for Drunk and displayed unavailable inputs as `[?]`.
@@ -316,8 +316,8 @@
 - Fixed button labels in sequences so inputs such as R1 and R2 stay distinct.
 
 ## v0.2
-- Added 18 published Story Mode D-pad sequences per platform, with effects, unlock requirements, sources, and cheat categories.
+- Added 18 Story Mode D-pad sequences per platform, with effects, unlock requirements, sources, and cheat categories.
 - Added the Quick guide / warnings screen with entry instructions and a note about saving and achievements. Moved the catalog into dedicated source files during the v0.2 updates.
 
 ## v0.1
-- Introduced GTA VI Cheats as an offline Flipper Zero reference with separate PS5 and Xbox Series X|S screens. The initial build shipped before the published cheat catalog was added.
+- Introduced GTA VI Cheats as an offline Flipper Zero reference with separate PS5 and Xbox Series X|S screens. The initial build shipped before the cheat catalog was added.

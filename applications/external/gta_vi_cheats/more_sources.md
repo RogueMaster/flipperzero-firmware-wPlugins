@@ -661,7 +661,7 @@ Additional third-party guides, maps and walkthroughs referenced by the app. Thes
 
 ## Area sweep references
 
-- [published progress-list positions](https://www.powerpyx.com/gta-6-all-collectible-card-sets-locations/)
+- [progress-list positions](https://www.powerpyx.com/gta-6-all-collectible-card-sets-locations/)
 - [Additional reported slot evidence](https://gta.exputer.com/gta-6/collectibles/collectible-card-locations/)
 
 ## Gameplay information

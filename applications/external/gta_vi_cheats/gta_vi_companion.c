@@ -41,7 +41,6 @@ typedef enum {
     ScreenSafeCategories,
     ScreenSafeList,
     ScreenSafeDetail,
-    ScreenSafeTips,
     ScreenCompanion,
     ScreenCollections,
     ScreenStandouts,
@@ -64,7 +63,6 @@ enum {
     ItemAll,
     ItemUnverified,
     ItemEmpty,
-    ItemMoneyGlitch,
     ItemSafeCodes,
     ItemSecretMissions,
     ItemGlitches,
@@ -82,7 +80,6 @@ enum {
     ItemSafeOperations,
     ItemSafeDoors,
     ItemSafePuzzles,
-    ItemSafeTips,
     ItemSafeRow = 0x500,
     ItemSecretRow = 0x600,
     ItemSecretOpen = 0x700,
@@ -124,7 +121,6 @@ enum {
 };
 /* Gameplay guide text is stored in escaped TSV assets, not in the FAP image. */
 #define GTA_GUIDE_ASSET             "guide_sections.tsv"
-#define GTA_GLITCH_ASSET            "guide_glitches.tsv"
 #define GTA_WILDLIFE_ASSET          "wildlife.tsv"
 #define GTA_GUIDE_TOPICS_PER_MENU   32u
 #define GTA_GUIDE_MAX_WILDLIFE_PAGE 16u
@@ -519,24 +515,19 @@ static void gta_show_menu(GtaApp* app, GtaScreen screen) {
         size_t added = 0;
         uint32_t selected = ItemEmpty;
         if(app->guide_page) gta_item(app, "< Previous page", ItemGuidePrev);
-        const bool warehouse = app->guide_glitches && !app->guide_page;
-        if(warehouse) {
-            gta_item(app, "Infinite Money Glitch", ItemMoneyGlitch);
-            selected = ItemMoneyGlitch;
-        }
         for(size_t i = first; i < end; ++i) {
             if(gta_record_read(storage, asset, i, 5, &row) && *row.field[0] &&
                strlen(row.field[0]) < GTA_GUIDE_TITLE_MAX) {
                 const uint32_t event = ItemGuideSection + i;
                 gta_item(app, row.field[0], event);
-                if((!added && !warehouse) || event == app->guide_selection) selected = event;
+                if(!added || event == app->guide_selection) selected = event;
                 ++added;
             }
             gta_record_clear(&row);
         }
         gta_record_index_release();
         furi_record_close(RECORD_STORAGE);
-        if(!added && !warehouse) gta_item(app, "Guide unavailable", ItemEmpty);
+        if(!added) gta_item(app, "Guide unavailable", ItemEmpty);
         if(app->guide_page + 1u < pages) gta_item(app, "Next page >", ItemGuideNext);
         submenu_set_selected_item(app->menu, selected);
     } else if(screen == ScreenSafeCategories) {
@@ -547,7 +538,6 @@ static void gta_show_menu(GtaApp* app, GtaScreen screen) {
             snprintf(label, sizeof(label), "%s (%zu)", gta_safe_category_name(i), counts[i]);
             gta_item(app, label, ItemSafeAll + i);
         }
-        gta_item(app, "Random safe tips", ItemSafeTips);
         submenu_set_selected_item(app->menu, app->safe_category_selection);
     } else if(screen == ScreenSafeList) {
         submenu_set_header(app->menu, gta_safe_category_name(app->safe_category));
@@ -595,7 +585,7 @@ static void gta_show_menu(GtaApp* app, GtaScreen screen) {
         submenu_set_selected_item(app->menu, ItemDispatchRegion + app->dispatch_region);
     } else if(screen == ScreenCategories) {
         submenu_set_header(app->menu, app->xbox ? "Xbox Series X|S" : "PlayStation 5");
-        snprintf(label, sizeof(label), "Published inputs (%zu)", gta_published_count(app));
+        snprintf(label, sizeof(label), "Available inputs (%zu)", gta_published_count(app));
         gta_item(app, label, ItemPublished);
         snprintf(label, sizeof(label), "All GTA VI entries (%zu)", gta_cheat_count);
         gta_item(app, label, ItemAll);
@@ -605,18 +595,18 @@ static void gta_show_menu(GtaApp* app, GtaScreen screen) {
                 ++start;
                 continue;
             }
-            size_t end = start, published = 0;
+            size_t end = start, available = 0;
             for(; end < gta_cheat_count; ++end) {
                 const GtaCheat* row = gta_cheat_at(end, false, 0);
                 if(!row || strcmp(first->category, row->category) != 0) break;
-                if(gta_sequence(app, row)[0]) ++published;
+                if(gta_sequence(app, row)[0]) ++available;
             }
             if(end == start) {
                 ++start;
                 continue;
             }
             snprintf(
-                label, sizeof(label), "%s (%zu/%zu)", first->category, published, end - start);
+                label, sizeof(label), "%s (%zu/%zu)", first->category, available, end - start);
             gta_item(app, label, ItemRow + start);
             start = end;
         }
@@ -628,7 +618,7 @@ static void gta_show_menu(GtaApp* app, GtaScreen screen) {
         const bool unverified = app->list_mode == ListUnverified;
         const char* header = "All GTA VI";
         if(app->list_mode == ListPublished)
-            header = "Published inputs";
+            header = "Available inputs";
         else if(app->list_mode == ListCategory) {
             const GtaCheat* category = gta_cheat_at(app->category, false, 1);
             header = category ? category->category : "Data unavailable";
@@ -720,7 +710,7 @@ static void gta_detail(GtaApp* app, const GtaCheat* cheat, const GtaScreenshotCo
     text_box_reset(app->text);
     furi_string_reset(app->content);
     const bool screenshot_only = cheat == NULL;
-    const char* reported = screenshot_only ? NULL : gta_reported_sequence(cheat);
+    const char* reported_sequence = screenshot_only ? NULL : gta_reported_sequence(cheat);
     const char* name = screenshot_only ? screenshot->name : cheat->name;
     furi_string_cat_printf(
         app->content, "%s\n%s\n\n", name, app->xbox ? "Xbox Series X|S" : "PlayStation 5");
@@ -730,12 +720,12 @@ static void gta_detail(GtaApp* app, const GtaCheat* cheat, const GtaScreenshotCo
             furi_string_cat_printf(app->content, "Reported GTA VI D-pad:\n");
             gta_append_sequence(app->content, sequence, app->xbox);
             furi_string_cat_printf(app->content, "\n\n");
-        } else if(reported) {
+        } else if(reported_sequence) {
             furi_string_cat_printf(app->content, "Single-source D-pad (unverified)\n");
-            gta_append_sequence(app->content, reported, app->xbox);
+            gta_append_sequence(app->content, reported_sequence, app->xbox);
             furi_string_cat_printf(app->content, "\n\n");
         } else {
-            furi_string_cat_printf(app->content, "GTA VI D-pad code: not published here.\n\n");
+            furi_string_cat_printf(app->content, "GTA VI D-pad code: not listed here.\n\n");
         }
     }
     if(screenshot) {
@@ -746,7 +736,7 @@ static void gta_detail(GtaApp* app, const GtaCheat* cheat, const GtaScreenshotCo
         if(app->xbox) {
             furi_string_cat_printf(
                 app->content,
-                "Xbox labels mapped from PS5 controls. Xbox input NOT independently published.\n\n");
+                "Xbox labels mapped from PS5 controls. Xbox input not independently verified.\n\n");
         }
         furi_string_cat_printf(app->content, "This INPUT is not verified for GTA VI.\n\n");
     }
@@ -759,7 +749,7 @@ static void gta_detail(GtaApp* app, const GtaCheat* cheat, const GtaScreenshotCo
     } else {
         furi_string_cat_printf(
             app->content,
-            "Unlock requirement:\n%s\n\nEffect:\n%s\n\nSource / status:\n%s",
+            "Unlock requirement:\n%s\n\nEffect:\n%s\n\nStatus:\n%s",
             cheat->unlock,
             cheat->effect,
             cheat->status);
@@ -783,7 +773,7 @@ static void gta_detail(GtaApp* app, const GtaCheat* cheat, const GtaScreenshotCo
 static void gta_guide(GtaApp* app, bool glitches) {
     app->guide_back = app->screen;
     app->guide_glitches = glitches;
-    app->guide_selection = glitches ? ItemMoneyGlitch : ItemGuideSection;
+    app->guide_selection = ItemGuideSection;
     app->guide_page = 0;
     gta_show_menu(app, ScreenGuide);
 }
@@ -803,14 +793,24 @@ static bool gta_guide_number(const char* field, size_t* value) {
 
 static void gta_guide_detail(GtaApp* app, size_t index) {
     if(index >= app->guide_count) return;
-    gta_ensure_text(app);
-    text_box_reset(app->text);
-    furi_string_reset(app->content);
     Storage* storage = furi_record_open(RECORD_STORAGE);
     GtaRecord row = {0};
     const char* asset = app->guide_glitches ? GTA_GLITCH_ASSET : GTA_GUIDE_ASSET;
     bool ok = gta_record_read(storage, asset, index, 5, &row) && *row.field[0] &&
               strlen(row.field[0]) < GTA_GUIDE_TITLE_MAX;
+    if(ok && app->guide_glitches && !strcmp(row.field[1], GTA_GUIDE_MONEY_MAP_MODE)) {
+        gta_record_clear(&row);
+        gta_record_index_release();
+        furi_record_close(RECORD_STORAGE);
+        app->companion_back = ScreenGuide;
+        app->screen = ScreenCompanion;
+        gta_companion_open_money_glitch(app->companion, index);
+        gta_release_unused(app, ViewCollectionDetail);
+        return;
+    }
+    gta_ensure_text(app);
+    text_box_reset(app->text);
+    furi_string_reset(app->content);
     char page_title[GTA_GUIDE_TITLE_MAX] = {0};
     size_t page_bytes = 0;
     if(ok) {
@@ -880,18 +880,12 @@ static void gta_guide_detail(GtaApp* app, size_t index) {
     if(!ok) furi_string_cat_printf(app->content, "\n\nGuide data unavailable.");
     gta_show_text(app, ScreenGuideDetail);
 }
-static void gta_money_glitch(GtaApp* app) {
-    app->companion_back = ScreenGuide;
-    app->screen = ScreenCompanion;
-    gta_companion_open_money_glitch(app->companion);
-    gta_release_unused(app, ViewCollectionDetail);
-}
 static const char* gta_safe_status_name(GtaSafeStatus status) {
     switch(status) {
     case GtaSafeTested:
         return "Guide-tested; not tested by this app";
     case GtaSafeCorroborated:
-        return "Multiple published reports";
+        return "Multiple reports";
     case GtaSafeVariable:
         return "May differ by robbery/save";
     case GtaSafeConflicting:
@@ -946,14 +940,13 @@ static void gta_secret_detail(GtaApp* app, size_t index) {
     furi_string_cat_printf(
         app->content,
         "%s\n\nEarliest access: %s\n\nLocation:\n%s\n\nSteps:\n%s\n\n"
-        "Reward:\n%s\n\nConfidence:\n%s\n\nSources:\n%s",
+        "Reward:\n%s\n\nConfidence:\n%s",
         entry->title,
         entry->when,
         entry->where,
         entry->steps,
         entry->reward,
-        entry->status,
-        entry->sources);
+        entry->status);
     app->screen = ScreenSecretDetail;
     if(!app->secret_detail) {
         app->secret_detail = widget_alloc();
@@ -976,20 +969,6 @@ static void gta_secret_detail(GtaApp* app, size_t index) {
             app->secret_detail, GuiButtonTypeRight, "Maps", gta_secret_button_callback, app);
     view_dispatcher_switch_to_view(app->dispatcher, ViewSecretDetail);
     gta_release_unused(app, ViewSecretDetail);
-}
-static void gta_safe_tips(GtaApp* app) {
-    gta_ensure_text(app);
-    text_box_reset(app->text);
-    furi_string_reset(app->content);
-    Storage* storage = furi_record_open(RECORD_STORAGE);
-    GtaRecord row = {0};
-    if(gta_record_find(storage, "guide_misc.tsv", "safe_tips", 3, &row))
-        furi_string_cat_printf(app->content, "%s", row.field[2]);
-    else
-        furi_string_cat_printf(app->content, "Guide data unavailable.");
-    gta_record_clear(&row);
-    furi_record_close(RECORD_STORAGE);
-    gta_show_text(app, ScreenSafeTips);
 }
 static bool gta_event(void* context, uint32_t event) {
     GtaApp* app = context;
@@ -1028,10 +1007,7 @@ static bool gta_event(void* context, uint32_t event) {
             gta_release_unused(app, ViewMockLoaderSettings);
         }
     } else if(app->screen == ScreenGuide) {
-        if(event == ItemMoneyGlitch && app->guide_glitches && !app->guide_page) {
-            app->guide_selection = ItemMoneyGlitch;
-            gta_money_glitch(app);
-        } else if(event == ItemGuidePrev || event == ItemGuideNext) {
+        if(event == ItemGuidePrev || event == ItemGuideNext) {
             if(event == ItemGuidePrev) {
                 if(!app->guide_page) return false;
                 --app->guide_page;
@@ -1080,10 +1056,7 @@ static bool gta_event(void* context, uint32_t event) {
             gta_secret_detail(app, app->secret_index);
         }
     } else if(app->screen == ScreenSafeCategories) {
-        if(event == ItemSafeTips) {
-            app->safe_category_selection = event;
-            gta_safe_tips(app);
-        } else if(event >= ItemSafeAll && event <= ItemSafePuzzles) {
+        if(event >= ItemSafeAll && event <= ItemSafePuzzles) {
             app->safe_category_selection = event;
             app->safe_category = (uint8_t)(event - ItemSafeAll);
             app->safe_list_selection = 0;
@@ -1199,9 +1172,6 @@ static bool gta_back(void* context) {
         break;
     case ScreenSafeDetail:
         gta_show_menu(app, ScreenSafeList);
-        break;
-    case ScreenSafeTips:
-        gta_show_menu(app, ScreenSafeCategories);
         break;
     case ScreenList:
         gta_show_menu(app, ScreenCategories);

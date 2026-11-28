@@ -150,6 +150,7 @@ struct GtaCompanion {
     bool detail_visible;
     bool links_visible;
     bool money_guide;
+    size_t money_guide_index;
     char money_guide_label[64];
     Submenu* link_menu;
     size_t link_selected;
@@ -605,17 +606,19 @@ static void gta_render_detail(GtaCompanion* companion) {
 
     if(companion->money_guide) {
         GtaRecord guide = {0};
-        bool loaded =
-            gta_record_find(companion->storage, "guide_misc.tsv", "money_glitch", 3, &guide);
+        bool loaded = gta_record_read(
+                          companion->storage, GTA_GLITCH_ASSET, companion->money_guide_index, 5, &guide) &&
+                      !strcmp(guide.field[1], GTA_GUIDE_MONEY_MAP_MODE) && *guide.field[3];
         snprintf(
             companion->money_guide_label,
             sizeof(companion->money_guide_label),
             "%s",
-            loaded ? guide.field[1] : "Map");
+            loaded ? guide.field[3] : "Map");
         widget_add_text_scroll_element(
             detail, 0, 0, 128, 51, loaded ? guide.field[2] : "Guide data unavailable.");
         /* The widget copies text, as in the normal collection renderer. */
         gta_record_clear(&guide);
+        gta_record_index_release();
         widget_add_button_element(detail, GuiButtonTypeRight, "Map", gta_detail_button, companion);
         return;
     }
@@ -639,7 +642,7 @@ static void gta_render_detail(GtaCompanion* companion) {
             furi_string_cat_printf(text, "NFC: %u links\n", (unsigned)link_count);
         gta_url_links_release();
         furi_string_cat_printf(
-            text, "\n%s", entry->location ? entry->location : "Location unconfirmed.");
+            text, "\n%s", entry->location ? entry->location : "Location not listed.");
         if(entry->notes) furi_string_cat_printf(text, "\n\n%s", entry->notes);
         if(companion->dispatch) {
             furi_string_cat_printf(text, "\n\n%s", collection->title);
@@ -1023,6 +1026,7 @@ static bool gta_load_explore_asset(GtaCompanion* companion, const char* asset) {
 }
 static void gta_release_exploration(GtaCompanion* companion) {
     companion->money_guide = false;
+    companion->money_guide_index = 0;
     companion->money_guide_label[0] = 0;
     companion->links_visible = false;
     companion->link_selected = 0;
@@ -1340,11 +1344,12 @@ void gta_companion_open_exploration_item(
     }
 }
 
-void gta_companion_open_money_glitch(GtaCompanion* companion) {
+void gta_companion_open_money_glitch(GtaCompanion* companion, size_t index) {
     gta_release_exploration(companion);
     companion->dispatch = false;
     companion->links_visible = false;
     companion->money_guide = true;
+    companion->money_guide_index = index;
     gta_show_detail(companion);
 }
 
