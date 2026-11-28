@@ -6,6 +6,8 @@
 #include "munit.h"
 #include "test_helpers.h"
 
+#include <string.h>
+
 #include <seos_iso14443_4.h>
 
 /* I-block, block number 0. Bit 2 is set in every PCB. */
@@ -350,6 +352,297 @@ static MunitResult test_payload_budget(const MunitParameter p[], void* d) {
     return MUNIT_OK;
 }
 
+/* ---- the card's side ---- */
+
+static const uint8_t CARD_ATS[] = {0x05, 0x78, 0x80, 0x70, 0x02};
+
+/* A card that has been through the request that starts the protocol, with the
+ * reader having given it card identifier 1. */
+static void card_begin(SeosIso14443_4Card* card) {
+    const uint8_t rats[] = {0xe0, 0x81};
+    const uint8_t* reply = NULL;
+    size_t reply_len = 0;
+    seos_iso14443_4_card_init(card, CARD_ATS, sizeof(CARD_ATS));
+    seos_iso14443_4_card_receive(card, rats, sizeof(rats), &reply, &reply_len);
+}
+
+static MunitResult test_card_start(const MunitParameter p[], void* d) {
+    (void)p;
+    (void)d;
+    SeosIso14443_4Card card;
+    const uint8_t* reply = NULL;
+    size_t reply_len = 0;
+    seos_iso14443_4_card_init(&card, CARD_ATS, sizeof(CARD_ATS));
+
+    /* The request to start is answered with what the card was given to say,
+     * and the identifier in it is kept. */
+    const uint8_t rats[] = {0xe0, 0x83};
+    munit_assert_int(
+        seos_iso14443_4_card_receive(&card, rats, sizeof(rats), &reply, &reply_len),
+        ==,
+        SeosIso14443_4CardReply);
+    munit_assert_size(reply_len, ==, sizeof(CARD_ATS));
+    munit_assert_memory_equal(reply_len, reply, CARD_ATS);
+    munit_assert_uint8(card.cid, ==, 3);
+
+    /* A change of speed is accepted by sending its first byte back. */
+    const uint8_t pps[] = {0xd3, 0x11, 0x00};
+    munit_assert_int(
+        seos_iso14443_4_card_receive(&card, pps, sizeof(pps), &reply, &reply_len),
+        ==,
+        SeosIso14443_4CardReply);
+    munit_assert_size(reply_len, ==, 1);
+    munit_assert_uint8(reply[0], ==, 0xd3);
+
+    /* Nothing at all gets nothing back. */
+    munit_assert_int(
+        seos_iso14443_4_card_receive(&card, pps, 0, &reply, &reply_len),
+        ==,
+        SeosIso14443_4CardSilent);
+    munit_assert_size(reply_len, ==, 0);
+
+    return MUNIT_OK;
+}
+
+/* A command in one block is handed over whole, with the start of the block
+ * that will answer it. */
+static MunitResult test_card_single_block(const MunitParameter p[], void* d) {
+    (void)p;
+    (void)d;
+    SeosIso14443_4Card card;
+    const uint8_t* reply = NULL;
+    size_t reply_len = 0;
+    card_begin(&card);
+
+    const uint8_t plain[] = {I_BLOCK_NUM1, 0x00, 0xca, 0x00, 0x00, 0x00};
+    munit_assert_int(
+        seos_iso14443_4_card_receive(&card, plain, sizeof(plain), &reply, &reply_len),
+        ==,
+        SeosIso14443_4CardCommand);
+    munit_assert_size(card.command_len, ==, 5);
+    munit_assert_memory_equal(5, card.command, plain + 1);
+    munit_assert_size(reply_len, ==, 1);
+    munit_assert_uint8(reply[0], ==, I_BLOCK_NUM1);
+
+    /* Reporting the answer makes room for the next command. */
+    const uint8_t answer[] = {I_BLOCK_NUM1, 0x90, 0x00};
+    seos_iso14443_4_card_answered(&card, answer, sizeof(answer));
+    munit_assert_size(card.command_len, ==, 0);
+
+    /* With a card identifier, the answer carries the one the reader assigned
+     * and the command starts after it. */
+    const uint8_t with_cid[] = {I_BLOCK_CID, 0x01, 0x00, 0xca};
+    munit_assert_int(
+        seos_iso14443_4_card_receive(&card, with_cid, sizeof(with_cid), &reply, &reply_len),
+        ==,
+        SeosIso14443_4CardCommand);
+    munit_assert_size(card.command_len, ==, 2);
+    munit_assert_memory_equal(2, card.command, with_cid + 2);
+    munit_assert_size(reply_len, ==, 2);
+    munit_assert_uint8(reply[0], ==, I_BLOCK_CID);
+    munit_assert_uint8(reply[1], ==, 1);
+
+    return MUNIT_OK;
+}
+
+/* A command sent in chained blocks is acknowledged a block at a time and
+ * handed over once, joined. */
+static MunitResult test_card_chained_command(const MunitParameter p[], void* d) {
+    (void)p;
+    (void)d;
+    SeosIso14443_4Card card;
+    const uint8_t* reply = NULL;
+    size_t reply_len = 0;
+    card_begin(&card);
+
+    const uint8_t first[] = {I_BLOCK_CHAIN, 0x00, 0xda, 0x00};
+    munit_assert_int(
+        seos_iso14443_4_card_receive(&card, first, sizeof(first), &reply, &reply_len),
+        ==,
+        SeosIso14443_4CardReply);
+    munit_assert_size(reply_len, ==, 1);
+    munit_assert_uint8(reply[0], ==, R_BLOCK_ACK);
+
+    /* The block number alternates, and the acknowledgement follows it. */
+    const uint8_t second[] = {I_BLOCK_CHAIN | 0x01, 0x00, 0x02};
+    munit_assert_int(
+        seos_iso14443_4_card_receive(&card, second, sizeof(second), &reply, &reply_len),
+        ==,
+        SeosIso14443_4CardReply);
+    munit_assert_uint8(reply[0], ==, R_BLOCK_ACK | 0x01);
+
+    const uint8_t last[] = {I_BLOCK, 0xaa, 0xbb};
+    munit_assert_int(
+        seos_iso14443_4_card_receive(&card, last, sizeof(last), &reply, &reply_len),
+        ==,
+        SeosIso14443_4CardCommand);
+    const uint8_t joined[] = {0x00, 0xda, 0x00, 0x00, 0x02, 0xaa, 0xbb};
+    munit_assert_size(card.command_len, ==, sizeof(joined));
+    munit_assert_memory_equal(sizeof(joined), card.command, joined);
+    munit_assert_uint8(reply[0], ==, I_BLOCK);
+
+    return MUNIT_OK;
+}
+
+/* A command longer than there is room for loses the pieces that do not fit;
+ * nothing is written past the end, and the reader still gets its replies. */
+static MunitResult test_card_command_too_long(const MunitParameter p[], void* d) {
+    (void)p;
+    (void)d;
+    SeosIso14443_4Card card;
+    const uint8_t* reply = NULL;
+    size_t reply_len = 0;
+    card_begin(&card);
+
+    uint8_t block[1 + 200];
+    memset(block, 0x5a, sizeof(block));
+    block[0] = I_BLOCK_CHAIN;
+    for(int i = 0; i < 4; i++) {
+        munit_assert_int(
+            seos_iso14443_4_card_receive(&card, block, sizeof(block), &reply, &reply_len),
+            ==,
+            SeosIso14443_4CardReply);
+        munit_assert_size(card.command_len, <=, SEOS_ISO14443_4_CARD_COMMAND_MAX);
+    }
+    block[0] = I_BLOCK;
+    munit_assert_int(
+        seos_iso14443_4_card_receive(&card, block, sizeof(block), &reply, &reply_len),
+        ==,
+        SeosIso14443_4CardCommand);
+    munit_assert_size(card.command_len, <=, SEOS_ISO14443_4_CARD_COMMAND_MAX);
+
+    return MUNIT_OK;
+}
+
+/* A block that claims a card identifier and stops there carries no command. */
+static MunitResult test_card_short_block(const MunitParameter p[], void* d) {
+    (void)p;
+    (void)d;
+    SeosIso14443_4Card card;
+    const uint8_t* reply = NULL;
+    size_t reply_len = 0;
+    card_begin(&card);
+
+    const uint8_t stub[] = {I_BLOCK_CID};
+    munit_assert_int(
+        seos_iso14443_4_card_receive(&card, stub, sizeof(stub), &reply, &reply_len),
+        ==,
+        SeosIso14443_4CardCommand);
+    munit_assert_size(card.command_len, ==, 0);
+
+    return MUNIT_OK;
+}
+
+/* An R-block gets the last answer again, exactly as it went out. */
+static MunitResult test_card_resend(const MunitParameter p[], void* d) {
+    (void)p;
+    (void)d;
+    SeosIso14443_4Card card;
+    const uint8_t* reply = NULL;
+    size_t reply_len = 0;
+    card_begin(&card);
+
+    /* Before anything has been answered there is nothing to send. */
+    const uint8_t nak[] = {R_BLOCK_NAK};
+    munit_assert_int(
+        seos_iso14443_4_card_receive(&card, nak, sizeof(nak), &reply, &reply_len),
+        ==,
+        SeosIso14443_4CardSilent);
+
+    const uint8_t command[] = {I_BLOCK, 0x00, 0xca, 0x00, 0x00, 0x00};
+    seos_iso14443_4_card_receive(&card, command, sizeof(command), &reply, &reply_len);
+    const uint8_t answer[] = {I_BLOCK, 0x44, 0x0a, 0x90, 0x00};
+    seos_iso14443_4_card_answered(&card, answer, sizeof(answer));
+
+    munit_assert_int(
+        seos_iso14443_4_card_receive(&card, nak, sizeof(nak), &reply, &reply_len),
+        ==,
+        SeosIso14443_4CardReply);
+    munit_assert_size(reply_len, ==, sizeof(answer));
+    munit_assert_memory_equal(sizeof(answer), reply, answer);
+
+    /* An answer too long to keep leaves the one before it in place. */
+    uint8_t huge[SEOS_ISO14443_4_CARD_ANSWER_MAX + 1] = {0};
+    seos_iso14443_4_card_answered(&card, huge, sizeof(huge));
+    seos_iso14443_4_card_receive(&card, nak, sizeof(nak), &reply, &reply_len);
+    munit_assert_size(reply_len, ==, sizeof(answer));
+
+    return MUNIT_OK;
+}
+
+/* S-blocks are sent back. Ending the exchange also ends a command that was
+ * partway in; asking for more time carries its multiplier back. */
+static MunitResult test_card_supervisory(const MunitParameter p[], void* d) {
+    (void)p;
+    (void)d;
+    SeosIso14443_4Card card;
+    const uint8_t* reply = NULL;
+    size_t reply_len = 0;
+    card_begin(&card);
+
+    const uint8_t first[] = {I_BLOCK_CHAIN, 0x00, 0xda};
+    seos_iso14443_4_card_receive(&card, first, sizeof(first), &reply, &reply_len);
+    munit_assert_size(card.command_len, ==, 2);
+
+    const uint8_t deselect[] = {S_BLOCK_DESELECT};
+    munit_assert_int(
+        seos_iso14443_4_card_receive(&card, deselect, sizeof(deselect), &reply, &reply_len),
+        ==,
+        SeosIso14443_4CardReply);
+    munit_assert_size(reply_len, ==, 1);
+    munit_assert_uint8(reply[0], ==, S_BLOCK_DESELECT);
+    munit_assert_size(card.command_len, ==, 0);
+
+    /* The top two bits of the multiplier byte are not part of it. */
+    const uint8_t wtx[] = {S_BLOCK_WTX, 0xc5};
+    munit_assert_int(
+        seos_iso14443_4_card_receive(&card, wtx, sizeof(wtx), &reply, &reply_len),
+        ==,
+        SeosIso14443_4CardReply);
+    munit_assert_size(reply_len, ==, 2);
+    munit_assert_uint8(reply[0], ==, S_BLOCK_WTX);
+    munit_assert_uint8(reply[1], ==, 0x05);
+
+    /* With a card identifier, the one the reader assigned goes back. */
+    const uint8_t deselect_cid[] = {S_BLOCK_DESELECT | 0x08, 0x01};
+    seos_iso14443_4_card_receive(&card, deselect_cid, sizeof(deselect_cid), &reply, &reply_len);
+    munit_assert_size(reply_len, ==, 2);
+    munit_assert_uint8(reply[1], ==, 1);
+
+    return MUNIT_OK;
+}
+
+/* The field going away mid-command leaves nothing of it for the next one. */
+static MunitResult test_card_drop_command(const MunitParameter p[], void* d) {
+    (void)p;
+    (void)d;
+    SeosIso14443_4Card card;
+    const uint8_t* reply = NULL;
+    size_t reply_len = 0;
+    card_begin(&card);
+
+    const uint8_t first[] = {I_BLOCK_CHAIN, 0x11, 0x22};
+    seos_iso14443_4_card_receive(&card, first, sizeof(first), &reply, &reply_len);
+    seos_iso14443_4_card_drop_command(&card);
+
+    const uint8_t whole[] = {I_BLOCK, 0x33};
+    munit_assert_int(
+        seos_iso14443_4_card_receive(&card, whole, sizeof(whole), &reply, &reply_len),
+        ==,
+        SeosIso14443_4CardCommand);
+    munit_assert_size(card.command_len, ==, 1);
+    munit_assert_uint8(card.command[0], ==, 0x33);
+
+    /* Starting the protocol again does the same. */
+    seos_iso14443_4_card_answered(&card, whole, sizeof(whole));
+    seos_iso14443_4_card_receive(&card, first, sizeof(first), &reply, &reply_len);
+    const uint8_t rats[] = {0xe0, 0x80};
+    seos_iso14443_4_card_receive(&card, rats, sizeof(rats), &reply, &reply_len);
+    munit_assert_size(card.command_len, ==, 0);
+
+    return MUNIT_OK;
+}
+
 static MunitTest test_iso14443_4_cases[] = {
     {(char*)"/classify", test_classify, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL},
     {(char*)"/classify/total", test_classify_is_total, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL},
@@ -394,6 +687,24 @@ static MunitTest test_iso14443_4_cases[] = {
      NULL},
     {(char*)"/response/nak", test_nak_pcb, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL},
     {(char*)"/payload-budget", test_payload_budget, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL},
+    {(char*)"/card/start", test_card_start, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL},
+    {(char*)"/card/single-block", test_card_single_block, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL},
+    {(char*)"/card/chained-command",
+     test_card_chained_command,
+     NULL,
+     NULL,
+     MUNIT_TEST_OPTION_NONE,
+     NULL},
+    {(char*)"/card/command-too-long",
+     test_card_command_too_long,
+     NULL,
+     NULL,
+     MUNIT_TEST_OPTION_NONE,
+     NULL},
+    {(char*)"/card/short-block", test_card_short_block, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL},
+    {(char*)"/card/resend", test_card_resend, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL},
+    {(char*)"/card/supervisory", test_card_supervisory, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL},
+    {(char*)"/card/drop-command", test_card_drop_command, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL},
     {NULL, NULL, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL},
 };
 

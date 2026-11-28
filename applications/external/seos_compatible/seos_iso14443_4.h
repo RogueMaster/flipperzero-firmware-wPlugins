@@ -72,6 +72,78 @@ uint8_t seos_iso14443_4_nak_pcb(uint8_t rx_pcb);
  * information. */
 size_t seos_iso14443_4_payload_budget(uint16_t frame_size_max);
 
+/* The card's side of the block protocol, for a listener that is handed raw
+ * frames and has to run the protocol itself.
+ *
+ * It answers the request that starts the protocol, joins a command sent in
+ * chained blocks back into one, keeps the last answer so it can be sent again,
+ * and echoes the blocks that only need echoing. What a command means and how
+ * it is answered stay with the caller.
+ */
+
+/* Longest command that is joined back together. */
+#define SEOS_ISO14443_4_CARD_COMMAND_MAX 512
+/* Longest answer kept for sending again. */
+#define SEOS_ISO14443_4_CARD_ANSWER_MAX  300
+
+typedef struct {
+    /* Sent in reply to the request that starts the protocol. Not copied: it
+     * has to outlive the card. */
+    const uint8_t* ats;
+    size_t ats_len;
+
+    /* Card identifier the reader assigned when it started the protocol. */
+    uint8_t cid;
+
+    /* The command being joined, complete once a block arrives that is not
+     * chained to another. */
+    uint8_t command[SEOS_ISO14443_4_CARD_COMMAND_MAX];
+    size_t command_len;
+
+    /* The last answer, as it went out. */
+    uint8_t answer[SEOS_ISO14443_4_CARD_ANSWER_MAX];
+    size_t answer_len;
+
+    /* Room for a reply short enough to build in place. */
+    uint8_t reply[3];
+} SeosIso14443_4Card;
+
+typedef enum {
+    /* Nothing is to be sent. */
+    SeosIso14443_4CardSilent,
+    /* The reply is complete and only needs sending. */
+    SeosIso14443_4CardReply,
+    /* A whole command has arrived and is in `command`. The reply is the start
+     * of the answering block: the caller adds its answer after it, sends the
+     * two together, and reports what it sent with
+     * seos_iso14443_4_card_answered. */
+    SeosIso14443_4CardCommand,
+} SeosIso14443_4CardResult;
+
+/* Starts a card with nothing received and nothing sent. */
+void seos_iso14443_4_card_init(SeosIso14443_4Card* card, const uint8_t* ats, size_t ats_len);
+
+/* Takes one received frame, without its checksum.
+ *
+ * `reply` points at what to send back, also without a checksum, and is valid
+ * until the next call on this card. `reply_len` is 0 when the result is
+ * SeosIso14443_4CardSilent. */
+SeosIso14443_4CardResult seos_iso14443_4_card_receive(
+    SeosIso14443_4Card* card,
+    const uint8_t* frame,
+    size_t frame_len,
+    const uint8_t** reply,
+    size_t* reply_len);
+
+/* Records the block sent in answer to a command, so it can be sent again, and
+ * makes room for the next command. An answer too long to keep leaves the one
+ * before it in place. */
+void seos_iso14443_4_card_answered(SeosIso14443_4Card* card, const uint8_t* block, size_t len);
+
+/* Forgets a command that was only partly received, as when the field goes
+ * away in the middle of one. */
+void seos_iso14443_4_card_drop_command(SeosIso14443_4Card* card);
+
 #ifdef __cplusplus
 }
 #endif

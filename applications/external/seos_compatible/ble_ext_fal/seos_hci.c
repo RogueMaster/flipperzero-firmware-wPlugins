@@ -1,4 +1,5 @@
 #include "seos_hci_i.h"
+#include "seos_att.h"
 
 #define TAG "SeosHci"
 
@@ -59,12 +60,10 @@
 #define CAP_APP_SPECIFIC 0x08
 #define CAP_ENHANCED_TAP 0x40
 
-static uint8_t seos_reader_service_backwards[] =
-    {0x02, 0x00, 0x00, 0x7a, 0x17, 0x00, 0x00, 0x80, 0x00, 0x10, 0x00, 0x00, 0x00, 0x98, 0x00, 0x00};
-static uint8_t seos_cred_service_backwards[] =
-    {0x02, 0x00, 0x00, 0x7a, 0x17, 0x00, 0x00, 0x80, 0x00, 0x10, 0x00, 0x00, 0x01, 0x98, 0x00, 0x00};
-
 static uint8_t empty_mac[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+/* Vendor command giving the dongle an address, sent when it reports none and
+ * again when a random address is asked for. */
+static const uint8_t vendor_set_addr[] = {0x06, 0xfc, 0x06, 0x0, 0x0, 0x1, 0x2, 0x21, 0xAD};
 
 // Occationally scan stop's completion doesn't get caught.
 // Use the timer callback to call it again
@@ -231,7 +230,6 @@ void seos_hci_handle_event_cmd_complete_ogf_info(SeosHci* seos_hci, uint16_t OCF
         // 040e0a05091000 e2f284 dad4d4
         FURI_LOG_D(TAG, "OCF_READ_BD_ADDR");
         if(memcmp(bit_buffer_get_data(frame) + 7, empty_mac, sizeof(empty_mac)) == 0) {
-            uint8_t vendor_set_addr[] = {0x06, 0xfc, 0x06, 0x0, 0x0, 0x1, 0x2, 0x21, 0xAD};
             bit_buffer_append_bytes(message, vendor_set_addr, sizeof(vendor_set_addr));
         } else {
             uint16_t opcode = BT_OP(OGF_LE_CTL, OCF_LE_READ_BUFFER_SIZE);
@@ -269,12 +267,14 @@ void seos_hci_handle_event_cmd_complete_ogf_le(SeosHci* seos_hci, uint16_t OCF, 
         seos_hci_enable_advertising(seos_hci, true);
         break;
     case OCF_LE_SET_SCAN_RESPONSE_DATA:
-        uint8_t flow_mode_byte = seos_hci->flow_mode == FLOW_READER ? 0x00 : 0x01;
-        // TODO: Use seos_reader_service_backwards
-        uint8_t adv_data[] = {0x08, 0x20, 0x20, 0x15,           0x02, 0x01, 0x06, 0x11, 0x07,
-                              0x02, 0x00, 0x00, 0x7a,           0x17, 0x00, 0x00, 0x80, 0x00,
-                              0x10, 0x00, 0x00, flow_mode_byte, 0x98, 0x00, 0x00, 0x00, 0x00,
-                              0x00, 0x00, 0x00, 0x00,           0x00, 0x00, 0x00, 0x00};
+        // The command and the two fields ahead of the service, then the
+        // service for the role being played, then padding.
+        uint8_t adv_data[35] = {0x08, 0x20, 0x20, 0x15, 0x02, 0x01, 0x06, 0x11, 0x07};
+        memcpy(
+            adv_data + 9,
+            seos_hci->flow_mode == FLOW_READER ? seos_reader_service_backwards :
+                                                 seos_cred_service_backwards,
+            sizeof(seos_reader_service_backwards));
         bit_buffer_append_bytes(message, adv_data, sizeof(adv_data));
         break;
     case OCF_LE_SET_ADVERTISE_ENABLE:
@@ -322,7 +322,6 @@ void seos_hci_handle_event_cmd_complete_ogf_le(SeosHci* seos_hci, uint16_t OCF, 
         break;
     case OCF_LE_SET_RANDOM_ADDRESS:
         // FURI_LOG_D(TAG, "opcode = %04x", BT_OP(0x3f, 0x0006)); <--- reverse this in byte array
-        uint8_t vendor_set_addr[] = {0x06, 0xfc, 0x06, 0x0, 0x0, 0x1, 0x2, 0x21, 0xAD};
         bit_buffer_append_bytes(message, vendor_set_addr, sizeof(vendor_set_addr));
         break;
     case OCF_LE_SET_ADVERTISING_PARAMETERS:

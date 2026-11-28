@@ -5,4 +5,5 @@
 - Bluetooth serial companion protocol and optional USB transport.
 - Manual refresh, unavailable-data handling and connection status.
 - Text startup screen and letter-based menu icon.
-- 24% idle backlight while the dashboard is open.
+- Keep the dashboard backlight on at the user's configured brightness; restore
+  automatic backlight management on exit without forcing a brightness override.

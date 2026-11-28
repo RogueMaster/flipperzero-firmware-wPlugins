@@ -47,10 +47,8 @@ void seos_scene_main_menu_on_enter(void* context) {
         SubmenuIndexScannerMenu,
         seos_scene_main_menu_submenu_callback,
         seos);
-    /*
     submenu_add_item(
         submenu, "Inspect", SubmenuIndexInspect, seos_scene_main_menu_submenu_callback, seos);
-    */
 
     if(storage_dir_exists(seos->credential->storage, SEADER_PATH)) {
         submenu_add_item(

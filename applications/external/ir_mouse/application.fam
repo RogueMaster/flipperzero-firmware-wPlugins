@@ -1,0 +1,15 @@
+App(
+    appid="ir_mouse",
+    name="IR & Wii Mouse",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="ir_mouse_app",
+    fap_icon="ir_mouse.png",
+    targets=["f7"],
+    stack_size=3 * 1024,
+    fap_libs=["infrared", "ble_profile"],
+    fap_category="Infrared",
+    fap_author="TheMajorFuego",
+    fap_weburl="https://github.com/TheMajorFuego/FlipperApps",
+    fap_version="1.0",
+    fap_description="Wireless BLE IR Remote & Webcam Wii Pointer",
+)

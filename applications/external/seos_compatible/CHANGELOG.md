@@ -1,4 +1,10 @@
-## Unreleased
+## 1.4
+ - Add Inspect: hold the Flipper to a HID reader to see its SAM and core
+   versions, its memory, and which credential types it has enabled
+ - Fix the external dongle never parsing a complete BLE message (the
+   end-of-message check was inverted)
+ - Fix loading keys.txt without a write key
+ - Disconnect when the other side rejects our ADF
  - Verify the message authentication code on received secure messages. It was
    never checked in either direction, so any message could be altered in flight
    and a session holding the wrong keys returned whatever the ciphertext

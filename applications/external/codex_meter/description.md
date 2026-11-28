@@ -8,7 +8,7 @@ allowance for both account quota windows and a live countdown to each reset.
 - Bluetooth LE or USB connection to the Windows or Linux companion.
 - Manual refresh with OK and remaining/used toggle with Left or Right.
 - Visible live, offline, stale, unavailable and API-error states.
-- Backlight dims to 24% instead of turning off while the app is open.
+- Backlight stays on at the user's configured brightness while the app is open.
 
 ## Requirements
 

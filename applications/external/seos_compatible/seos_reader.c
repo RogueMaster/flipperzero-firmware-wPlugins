@@ -7,10 +7,12 @@
 
 #define TAG "SeosReader"
 
-static uint8_t select[] =
-    {0x00, 0xa4, 0x04, 0x00, 0x0a, 0xa0, 0x00, 0x00, 0x04, 0x40, 0x00, 0x01, 0x01, 0x00, 0x01, 0x00};
-static uint8_t SEOS_APPLET_FCI[] =
-    {0x6F, 0x0C, 0x84, 0x0A, 0xA0, 0x00, 0x00, 0x04, 0x40, 0x00, 0x01, 0x01, 0x00, 0x01};
+/* SELECT by name, up to the AID; the AID and an expected length of 0 follow. */
+static const uint8_t select_header[] = {0x00, 0xa4, 0x04, 0x00, sizeof(standard_seos_aid)};
+/* What the answer to it starts with: a template holding the name, which is
+ * the AID again. */
+static const uint8_t applet_fci_header[] =
+    {0x6F, 2 + sizeof(standard_seos_aid), 0x84, sizeof(standard_seos_aid)};
 
 SeosReader* seos_reader_alloc(SeosCredential* credential, Iso14443_4aPoller* iso14443_4a_poller) {
     SeosReader* seos_reader = malloc(sizeof(SeosReader));
@@ -175,7 +177,9 @@ NfcCommand seos_reader_select_aid(SeosReader* seos_reader) {
     NfcCommand ret = NfcCommandContinue;
     Iso14443_4aError error;
 
-    bit_buffer_append_bytes(tx_buffer, select, sizeof(select));
+    bit_buffer_append_bytes(tx_buffer, select_header, sizeof(select_header));
+    bit_buffer_append_bytes(tx_buffer, standard_seos_aid, sizeof(standard_seos_aid));
+    bit_buffer_append_byte(tx_buffer, 0x00);
     seos_log_bitbuffer(TAG, "NFC transmit", tx_buffer);
     error = iso14443_4a_poller_send_block(iso14443_4a_poller, tx_buffer, rx_buffer);
     if(error != Iso14443_4aErrorNone) {
@@ -196,8 +200,12 @@ NfcCommand seos_reader_select_aid(SeosReader* seos_reader) {
         return NfcCommandStop;
     }
 
-    if(bit_buffer_get_size_bytes(rx_buffer) < sizeof(SEOS_APPLET_FCI) ||
-       memcmp(bit_buffer_get_data(rx_buffer), SEOS_APPLET_FCI, sizeof(SEOS_APPLET_FCI)) != 0) {
+    const uint8_t* fci = bit_buffer_get_data(rx_buffer);
+    if(bit_buffer_get_size_bytes(rx_buffer) <
+           sizeof(applet_fci_header) + sizeof(standard_seos_aid) ||
+       memcmp(fci, applet_fci_header, sizeof(applet_fci_header)) != 0 ||
+       memcmp(fci + sizeof(applet_fci_header), standard_seos_aid, sizeof(standard_seos_aid)) !=
+           0) {
         FURI_LOG_W(TAG, "Unexpected select AID response");
         return NfcCommandStop;
     }

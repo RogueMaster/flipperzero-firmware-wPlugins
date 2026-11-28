@@ -1,6 +1,6 @@
 # eReader
 
-Read plain-text (`.txt`) books on your Flipper Zero.
+Read plain-text (.txt) books on your Flipper Zero.
 
 ## Features
 
@@ -14,8 +14,8 @@ Read plain-text (`.txt`) books on your Flipper Zero.
 
 ## Getting started
 
-Copy your books to `SD:/apps_data/ereader/books/` (created on first
-launch). The file browser can also open `.txt` files anywhere on the card.
+Copy your books to SD:/apps_data/flip_eread/books/ (created on first
+launch). The file browser can also open .txt files anywhere on the card.
 
 ## Controls
 

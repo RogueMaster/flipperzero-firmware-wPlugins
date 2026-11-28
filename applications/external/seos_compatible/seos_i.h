@@ -13,6 +13,7 @@
 #include <gui/modules/text_input.h>
 #include <gui/modules/text_box.h>
 #include <gui/modules/widget.h>
+#include <gui/modules/variable_item_list.h>
 
 #include <input/input.h>
 
@@ -52,6 +53,7 @@ struct Seos {
     TextInput* text_input;
     TextBox* text_box;
     Widget* widget;
+    VariableItemList* variable_item_list;
 
     Nfc* nfc;
     NfcListener* listener;
@@ -84,6 +86,7 @@ typedef enum {
     SeosViewTextInput,
     SeosViewTextBox,
     SeosViewWidget,
+    SeosViewVariableItemList,
 } SeosView;
 
 void seos_text_store_set(Seos* seos, const char* text, ...);

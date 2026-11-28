@@ -38,6 +38,8 @@ enum SeosCustomEvent {
      * means we read one from a card: the two are opposite directions and the
      * scenes act on them differently. */
     SeosCustomEventSIOWritten,
+    // Reader inspection finished; its report is ready to show.
+    SeosCustomEventInspectDone,
 };
 
 /* Maps a secure messaging event to the view dispatcher event for it.

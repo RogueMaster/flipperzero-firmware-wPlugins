@@ -58,7 +58,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - Sub-GHz: [Update Enhanced Sub-GHz Chat to v1.6 and fix NFC key sharing with the firmware NFC API. (By xMasterX)](https://github.com/xMasterX/all-the-plugins/commit/64182ebf87e21232a98e53c90ffd7a5de2d52c2e)
 - [Sub-GHz Chat reliability fixes & Weather Station RAW fixes (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/75db628d56ee3ab6968a3db3e06ed3d032d52a72)
 - Sub-GHz: [Two more frequencies in the default list - 317.0 and 336.1 MHz (By xMasterX)](https://github.com/xMasterX/all-the-plugins/commit/64182ebf87e21232a98e53c90ffd7a5de2d52c2e)
-- Updated: [UART Logger v1.0 (By 2p4g0)](https://github.com/2p4g0/flipper-uart-logger) [Save UART logs in app data. (By 2p4g0)](https://github.com/flipperdevices/flipper-application-catalog/pull/1415)
 - Updated: [Ghost Tracker v1.1 (By Zinetick)](https://github.com/Zinetick/ghost_tracker) - RF and proximity instruments [Add FM reception and calibrate EMF. (By Zinetick)](https://github.com/flipperdevices/flipper-application-catalog/pull/1416)
 - Updated: [Quadrastic v1.1 (By ivanbarsukov)](https://github.com/ivanbarsukov/flipperzero-quadrastic) [Guard Quadrastic against GUI layout changes. (By xMasterX)](https://github.com/xMasterX/all-the-plugins/commit/981826ad5e4c94e210b16712f3bba92e7e0e7ecd)
 - Added: [Lanternfall v1.0, a lantern-lit procedural island RPG (By Dusk Engineering)](https://github.com/DuskEngServices/lanternfall-flipper)
@@ -122,12 +121,20 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Pwnpal v3.0.1 refreshes the displayed app and expected companion firmware revisions (By mrq1911)](https://github.com/mrq1911/pwnpal)
 - Updated: [TagTinker v2.1 exits from the main menu with Back and accepts Right on the final startup warning (By i12bp8)](https://github.com/i12bp8/TagTinker) [UL navigation fixes (By xMasterX)](https://github.com/xMasterX/all-the-plugins/commit/cc4edae5a3d5)
 - Updated: [Tesla Mod v2.17.0b7 restores the ESP32 dashboard generator and stack checker to RM's companion build directory (By hypery11; RM path adaptation by RogueMaster)](https://github.com/hypery11/flipper-tesla-fsd)
-- Updated: [UART Logger v1.0 wraps the save-dialog path before the filename (By 2p4g0)](https://github.com/2p4g0/flipper-uart-logger) [UL integration (By xMasterX)](https://github.com/xMasterX/all-the-plugins/commit/cc4edae5a3d5)
 - Added: [Guess The Number v1.2 (By Prevo128)](https://github.com/xMasterX/all-the-plugins/commit/7ad9eb834bde) - Player and computer guessing modes, saved statistics, and high scores
 - Updated: [ESP32CAM Marauder v0.7.6 (By 0xchocolate & eried)](https://github.com/eried/flipperzero-mayhem) `Req: ESP32-CAM (Mayhem)` - stop the script worker before the final stopscan on console exit and correct Sniff command mappings
 - Updated: [GTA VI Companion v2.0.2 (By RogueMaster)](https://github.com/RogueMaster/GTA_VI_Companion)
 - Added: [CEPAS Reader v1.0 (By smolbun)](https://github.com/smolbun/flipper-cepas)
 - Updated: [TommyBox Capture v1.0 (By mitchsurp)](https://github.com/mitchsurp/Tonies-Capture-Flipper)
+- OFW: [BLE HID service only claims GATT writes to its own attributes (By SokolskyNikita)](https://github.com/flipperdevices/flipperzero-firmware/commit/be4fb60ebd1a37e6c7217093f7038694196e1723)
+- Updated: [Codex Meter v1.4 keeps the configured backlight brightness and restores automatic management on exit (By kamylwnb)](https://github.com/kamylwnb/codex-monitor)
+- Updated: [Morse Flipper v0.3.0 includes the author changelog and removes obsolete RF sources after the radio plugin migration (By yo3gnd)](https://github.com/yo3gnd/morse-flipper)
+- Updated: [NFC Seader v4.2 includes the author changelog and removes unused ASN.1 skeleton source copies (By bettse)](https://github.com/bettse/seader)
+- Updated: [NFC Stock Manager v0.1.7 removes an obsolete host test after its source layout migration (By Endika)](https://github.com/Endika/flipper-nfc-stock) [UL source cleanup (By xMasterX)](https://github.com/xMasterX/all-the-plugins/commit/581c45ff79d9c086e1b46c012b213fad00535e71)
+- Updated: [Seos compatible v1.4 adds reader inspection, shares ISO-DEP card framing, and consolidates Seos AIDs and BLE UUIDs (By haw8411 & bettse)](https://github.com/bettse/seos_compatible)
+- Updated: [UART Logger v1.0 wraps the save-dialog path before the filename and includes the author changelog (By 2p4g0)](https://github.com/2p4g0/flipper-uart-logger) [UL integration (By xMasterX)](https://github.com/xMasterX/all-the-plugins/commit/cc4edae5a3d5) [Save UART logs in app data. (By 2p4g0)](https://github.com/flipperdevices/flipper-application-catalog/pull/1415)
+- Added: [IR & Wii Mouse v1.0 maps IR remotes to BLE mouse and keyboard actions with an optional webcam pointer (By TheMajorFuego)](https://github.com/TheMajorFuego/FlipperApps)
+- UL: [Refresh SIM800 and Sub-GHz documentation, including Euro5 identification and signal-edit guidance (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/4c55ea75d09b37e646d24486addeadb7e076319f)
 
 <a name="release"></a>
 
@@ -788,6 +795,7 @@ This software is for experimental purposes only and is not meant for any illegal
 | [Internet Bridge v0.5.1 (By mete888)](https://github.com/mete888/flipper_usb_to_wifi) | `Tools` |
 | [Internet Time Screen v0.2 (By sureserverman)](https://github.com/sureserverman/internet-time-screen) | `Tools` |
 | [Intervalometer v1.2 (By theageoflove)](https://github.com/theageoflove/flipperzero-zeitraffer) | `GPIO` |
+| [IR & Wii Mouse v1.0 (By TheMajorFuego)](https://github.com/TheMajorFuego/FlipperApps) - IR remote controls and optional webcam pointer | `Infrared` |
 | [IR Blaster v1.1 (By mateusz-szafraniec)](https://github.com/mateusz-szafraniec/flipperzero-IR_Blaster) | `Infrared` |
 | [IR Builder v3.2 (By sanoobis)](https://github.com/sanoobis/IR-Builder) | `Infrared` |
 | [IR Decoder v1.0 (By prplecake)](https://github.com/prplecake/f0/tree/master/infrared/apps/ir_decoder) | `Infrared` |
@@ -1047,7 +1055,7 @@ This software is for experimental purposes only and is not meant for any illegal
 | [Seed Capturer v1.2 (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/64d285c8e2a7eeef5f34cd5988d8506e2d730743) | `Sub-GHz` |
 | [Segment Clock v1.2 (By Sladkisnovraper)](https://github.com/Sladkisnovraper/Segment-Clock-For-Flipper-Zero) | `Tools` |
 | [Sentry Safe v2.0 (By H4ckd4ddy)](https://github.com/H4ckd4ddy/flipperzero-sentry-safe-plugin) ([Pin Out](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/tree/420/applications/external/sentry_safe) from [UberGuidoZ](https://github.com/UberGuidoZ/)) | `GPIO` |
-| [Seos compatible v1.3 (By bettse)](https://github.com/bettse/seos_compatible) - Access credential reader/emulator | `NFC` |
+| [Seos compatible v1.4 (By bettse)](https://github.com/bettse/seos_compatible) - Access credential reader/emulator | `NFC` |
 | [Serial Chat v1.0 (By Osman Gokce)](https://github.com/osmangokc/flipper_serial_chat) | `GPIO` |
 | [Servo Tester+ v0.5 (By Enlighten Tech)](https://github.com/gbhobbytech/flipper-servo-tester) | `GPIO` |
 | [ServoMotor v1.0 (By alcdaniel)](https://github.com/alcdaniel/flipper-servo-tester-hw) | `GPIO` |

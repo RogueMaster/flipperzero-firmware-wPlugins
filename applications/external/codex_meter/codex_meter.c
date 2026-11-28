@@ -15,20 +15,6 @@
 #define HELLO       "CODEXMETER 1\n"
 #define REFRESH     "R\n"
 
-/* Keep the internal backlight layer at 24%, beneath the normal timed layer.
- * Hardware key input still wakes the normal brightness and restarts the user's
- * configured timeout. When that timer expires, the light returns to this floor.
- * This override lasts only until the app releases its backlight lock on exit. */
-static const NotificationMessage message_idle_brightness = {
-    .type = NotificationMessageTypeForceDisplayBrightnessSetting,
-    .data.forced_settings.display_brightness = 0.24f,
-};
-static const NotificationSequence sequence_idle_floor = {
-    &message_idle_brightness,
-    &message_display_backlight_enforce_on,
-    NULL,
-};
-
 typedef struct {
     bool has_data;
     int16_t session_pct;
@@ -323,7 +309,8 @@ int32_t codex_meter_app(void* p) {
     app->started_tick = furi_get_tick();
     app->remaining = true;
     app->notifications = furi_record_open(RECORD_NOTIFICATION);
-    notification_message_block(app->notifications, &sequence_idle_floor);
+    /* Keep the dashboard lit at the user's configured brightness. */
+    notification_message_block(app->notifications, &sequence_display_backlight_enforce_on);
     notification_message(app->notifications, &sequence_display_backlight_on);
     app->mutex = furi_mutex_alloc(FuriMutexTypeNormal);
     app->input_queue = furi_message_queue_alloc(8, sizeof(InputEvent));

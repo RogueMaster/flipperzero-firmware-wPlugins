@@ -10,11 +10,14 @@
 
 #include "seos_service_uuid.inc"
 #include <stdint.h>
+#include <string.h>
+
+#include "seos_protocol.h"
 
 #define TAG "BtSeosSvc"
 
-static uint8_t select[] =
-    {0xc0, 0x00, 0xa4, 0x04, 0x00, 0x0a, 0xa0, 0x00, 0x00, 0x04, 0x40, 0x00, 0x01, 0x01, 0x00, 0x01};
+/* A whole message in one chunk, then SELECT by name up to the AID. */
+static const uint8_t select_header[] = {0xc0, 0x00, 0xa4, 0x04, 0x00, sizeof(standard_seos_aid)};
 
 typedef enum {
     SeosSvcGattCharacteristicRxTx = 0,
@@ -87,6 +90,12 @@ static BleEventAckStatus ble_svc_seos_event_handler(void* event, void* context) 
                     uint16_t* value = (uint16_t*)attribute_modified->Attr_Data;
                     if(*value == 1) { // ENABLE_NOTIFICATION_VALUE)
                         if(seos_svc->mode == FLOW_READER) {
+                            uint8_t select[sizeof(select_header) + sizeof(standard_seos_aid)];
+                            memcpy(select, select_header, sizeof(select_header));
+                            memcpy(
+                                select + sizeof(select_header),
+                                standard_seos_aid,
+                                sizeof(standard_seos_aid));
                             SeosSvcDataWrapper report_data = {
                                 .data_ptr = select, .data_len = sizeof(select)};
 

@@ -67,6 +67,7 @@ bool seos_scene_saved_menu_on_event(void* context, SceneManagerEvent event) {
         if(event.event == SubmenuIndexEmulate) {
             scene_manager_set_scene_state(
                 seos->scene_manager, SeosSceneSavedMenu, SubmenuIndexEmulate);
+            seos->flow_mode = FLOW_CRED;
             scene_manager_next_scene(seos->scene_manager, SeosSceneEmulate);
             consumed = true;
         } else if(event.event == SubmenuIndexBLEEmulateCentral) {

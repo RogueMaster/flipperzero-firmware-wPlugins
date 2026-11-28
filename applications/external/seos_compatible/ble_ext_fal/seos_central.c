@@ -7,8 +7,6 @@
 
 #define TAG "SeosCentral"
 
-static uint8_t standard_seos_aid[] = {0xa0, 0x00, 0x00, 0x04, 0x40, 0x00, 0x01, 0x01, 0x00, 0x01};
-
 SeosCentral* seos_central_alloc(Seos* seos) {
     SeosCentral* seos_central = malloc(sizeof(SeosCentral));
     memset(seos_central, 0, sizeof(SeosCentral));

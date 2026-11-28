@@ -77,5 +77,6 @@ static constexpr auto app_api_table = sort(create_array_t<sym_entry>(
     API_VARIABLE(SEOS_ADF_OID_LEN, size_t),
     API_VARIABLE(SEOS_SM_HEADER, const uint8_t[4]),
     API_VARIABLE(SEOS_GET_RESPONSE, const uint8_t[SEOS_GET_RESPONSE_LEN]),
+    API_VARIABLE(standard_seos_aid, const uint8_t[10]),
     API_VARIABLE(SEOS_SW_SUCCESS, const uint8_t[2]),
     API_VARIABLE(SEOS_SW_FILE_NOT_FOUND, const uint8_t[2])));

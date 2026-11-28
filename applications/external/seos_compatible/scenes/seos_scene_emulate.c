@@ -8,16 +8,28 @@ void seos_scene_emulate_on_enter(void* context) {
     Seos* seos = context;
     dolphin_deed(DolphinDeedNfcEmulate);
 
+    bool inspecting = seos->flow_mode == FLOW_INSPECT;
+
     // Setup view
     Popup* popup = seos->popup;
-    popup_set_header(popup, "Emulating", 68, 30, AlignLeft, AlignTop);
+    popup_set_header(popup, inspecting ? "Inspecting" : "Emulating", 68, 30, AlignLeft, AlignTop);
     popup_set_icon(popup, 0, 3, &I_RFIDDolphinSend_97x61);
 
-    nfc_device_load(seos->nfc_device, APP_ASSETS_PATH("seos.nfc"));
+    if(inspecting) {
+        // Present our own 3A card and run the T=CL block protocol ourselves.
+        seos_inspect_reset(&seos->seos_emulator->inspect);
+        seos->seos_emulator->inspect_3a = seos_inspect_make_3a_data();
+        seos->listener =
+            nfc_listener_alloc(seos->nfc, NfcProtocolIso14443_3a, seos->seos_emulator->inspect_3a);
+        nfc_listener_start(seos->listener, seos_inspect_listener_callback, seos);
+    } else {
+        nfc_device_load(seos->nfc_device, APP_ASSETS_PATH("seos.nfc"));
 
-    const Iso14443_4aData* data = nfc_device_get_data(seos->nfc_device, NfcProtocolIso14443_4a);
-    seos->listener = nfc_listener_alloc(seos->nfc, NfcProtocolIso14443_4a, data);
-    nfc_listener_start(seos->listener, seos_worker_listener_callback, seos);
+        const Iso14443_4aData* data =
+            nfc_device_get_data(seos->nfc_device, NfcProtocolIso14443_4a);
+        seos->listener = nfc_listener_alloc(seos->nfc, NfcProtocolIso14443_4a, data);
+        nfc_listener_start(seos->listener, seos_worker_listener_callback, seos);
+    }
 
     seos_blink_start(seos);
 
@@ -57,6 +69,10 @@ bool seos_scene_emulate_on_event(void* context, SceneManagerEvent event) {
                 AlignTop);
             notification_message(seos->notifications, &sequence_success);
             consumed = true;
+        } else if(event.event == SeosCustomEventInspectDone) {
+            notification_message(seos->notifications, &sequence_success);
+            scene_manager_next_scene(seos->scene_manager, SeosSceneInspectReport);
+            consumed = true;
         }
     }
 
@@ -70,6 +86,11 @@ void seos_scene_emulate_on_exit(void* context) {
         nfc_listener_stop(seos->listener);
         nfc_listener_free(seos->listener);
         seos->listener = NULL;
+    }
+
+    if(seos->seos_emulator->inspect_3a) {
+        iso14443_3a_free(seos->seos_emulator->inspect_3a);
+        seos->seos_emulator->inspect_3a = NULL;
     }
 
     // Clear view

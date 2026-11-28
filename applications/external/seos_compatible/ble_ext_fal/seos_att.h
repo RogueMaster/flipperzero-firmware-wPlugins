@@ -6,6 +6,11 @@
 #include "seos_l2cap.h"
 #include "seos_common.h"
 
+/* The reader and credential service UUIDs, in the byte order they go over the
+ * air. */
+extern const uint8_t seos_reader_service_backwards[16];
+extern const uint8_t seos_cred_service_backwards[16];
+
 #define ATT_ERROR_RSP              0x01
 #define ATT_EXCHANGE_MTU_REQ       0x02
 #define ATT_EXCHANGE_MTU_RSP       0x03
