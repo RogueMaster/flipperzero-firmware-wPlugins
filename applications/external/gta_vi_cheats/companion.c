@@ -168,7 +168,7 @@ static uint32_t gta_row_offset(const GtaCompanion* companion, size_t row) {
 
 static uint32_t gta_row_end(const GtaCompanion* companion, size_t row) {
     return companion->standout_ends ? companion->standout_ends[row] & GtaRowOffsetMask :
-                                       gta_row_offset(companion, row + 1u);
+                                      gta_row_offset(companion, row + 1u);
 }
 
 static uint16_t gta_row_id(const GtaCompanion* companion, size_t row) {
@@ -606,9 +606,10 @@ static void gta_render_detail(GtaCompanion* companion) {
 
     if(companion->money_guide) {
         GtaRecord guide = {0};
-        bool loaded = gta_record_read(
-                          companion->storage, GTA_GLITCH_ASSET, companion->money_guide_index, 5, &guide) &&
-                      !strcmp(guide.field[1], GTA_GUIDE_MONEY_MAP_MODE) && *guide.field[3];
+        bool loaded =
+            gta_record_read(
+                companion->storage, GTA_GLITCH_ASSET, companion->money_guide_index, 5, &guide) &&
+            !strcmp(guide.field[1], GTA_GUIDE_MONEY_MAP_MODE) && *guide.field[3];
         snprintf(
             companion->money_guide_label,
             sizeof(companion->money_guide_label),
@@ -1065,7 +1066,8 @@ static bool gta_load_all_standouts(GtaCompanion* companion) {
                 ends[used++] = ((uint32_t)source << GtaRowOffsetBits) |
                                gta_row_offset(companion, i + 1u);
             }
-        } else ok = false;
+        } else
+            ok = false;
         free(companion->rows);
         companion->rows = NULL;
         companion->explore_list.count = 0;
@@ -1077,13 +1079,17 @@ static bool gta_load_all_standouts(GtaCompanion* companion) {
     uint64_t remaining = storage_file_size(order);
     while(ok && remaining) {
         size_t n = remaining > sizeof(chunk) ? sizeof(chunk) : (size_t)remaining;
-        if(storage_file_read(order, chunk, n) != n) { ok = false; break; }
+        if(storage_file_read(order, chunk, n) != n) {
+            ok = false;
+            break;
+        }
         remaining -= n;
         for(size_t i = 0; ok && i < n; ++i) {
             uint8_t ch = chunk[i];
             if(ch == '\n') {
                 if(!digits || !id || id >= GtaProgressBytes * 8u || out >= count) {
-                    ok = false; break;
+                    ok = false;
+                    break;
                 }
                 for(size_t previous = 0; previous < out; ++previous) {
                     if((rows[previous] >> GtaRowOffsetBits) == id) {
@@ -1093,19 +1099,32 @@ static bool gta_load_all_standouts(GtaCompanion* companion) {
                 }
                 if(!ok) break;
                 size_t match = out;
-                while(match < count && (rows[match] >> GtaRowOffsetBits) != id) ++match;
-                if(match == count) { ok = false; break; }
-                uint32_t swap = rows[out]; rows[out] = rows[match]; rows[match] = swap;
-                swap = ends[out]; ends[out] = ends[match]; ends[match] = swap;
-                ++out; id = digits = 0;
+                while(match < count && (rows[match] >> GtaRowOffsetBits) != id)
+                    ++match;
+                if(match == count) {
+                    ok = false;
+                    break;
+                }
+                uint32_t swap = rows[out];
+                rows[out] = rows[match];
+                rows[match] = swap;
+                swap = ends[out];
+                ends[out] = ends[match];
+                ends[match] = swap;
+                ++out;
+                id = digits = 0;
             } else if(ch >= '0' && ch <= '9' && digits < 4u) {
-                id = id * 10u + ch - '0'; ++digits;
-            } else ok = false;
+                id = id * 10u + ch - '0';
+                ++digits;
+            } else
+                ok = false;
         }
     }
     storage_file_free(order);
     if(!ok || out != count || digits) {
-        free(rows); free(ends); return false;
+        free(rows);
+        free(ends);
+        return false;
     }
     companion->rows = rows;
     companion->standout_ends = ends;
@@ -1301,14 +1320,17 @@ void gta_companion_open_standouts(GtaCompanion* companion, size_t category) {
     } else {
         gta_release_exploration(companion);
         const GtaStandoutCategory* item = &gta_standout_categories[category - 1u];
-        companion->explore_list = (GtaCollection){.title = item->title, .checked_label = "Acquired"};
+        companion->explore_list =
+            (GtaCollection){.title = item->title, .checked_label = "Acquired"};
         companion->vehicle_asset = true;
         companion->standout_view = true;
         loaded = gta_load_explore_asset(companion, item->asset);
     }
-    gta_open_checklist(companion, &companion->explore_list,
-                       &companion->standout_selections[category],
-                       loaded ? NULL : "Collection unavailable");
+    gta_open_checklist(
+        companion,
+        &companion->explore_list,
+        &companion->standout_selections[category],
+        loaded ? NULL : "Collection unavailable");
 }
 
 void gta_companion_open_list(GtaCompanion* companion, GtaCollectionId collection) {

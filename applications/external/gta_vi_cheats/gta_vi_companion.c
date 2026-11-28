@@ -500,18 +500,22 @@ static void gta_show_menu(GtaApp* app, GtaScreen screen) {
         const char* asset = app->guide_glitches ? GTA_GLITCH_ASSET : GTA_GUIDE_ASSET;
         app->guide_count = gta_record_count(storage, asset);
         /* Keep the SD row index, but allocate only one bounded menu of labels. */
-        const size_t pages = app->guide_count ?
-                                 (app->guide_count - 1u) / GTA_GUIDE_TOPICS_PER_MENU + 1u :
-                                 1u;
+        const size_t pages =
+            app->guide_count ? (app->guide_count - 1u) / GTA_GUIDE_TOPICS_PER_MENU + 1u : 1u;
         if(app->guide_page >= pages) app->guide_page = pages - 1u;
-        snprintf(label, sizeof(label), "%s %zu/%zu",
-                 app->guide_glitches ? "Glitches" : "Quick Guide", app->guide_page + 1u, pages);
+        snprintf(
+            label,
+            sizeof(label),
+            "%s %zu/%zu",
+            app->guide_glitches ? "Glitches" : "Quick Guide",
+            app->guide_page + 1u,
+            pages);
         submenu_set_header(app->menu, label);
         const size_t first = app->guide_page * GTA_GUIDE_TOPICS_PER_MENU;
         const size_t remaining = app->guide_count - first;
-        const size_t end = first + (remaining > GTA_GUIDE_TOPICS_PER_MENU ?
-                                        GTA_GUIDE_TOPICS_PER_MENU :
-                                        remaining);
+        const size_t end =
+            first +
+            (remaining > GTA_GUIDE_TOPICS_PER_MENU ? GTA_GUIDE_TOPICS_PER_MENU : remaining);
         size_t added = 0;
         uint32_t selected = ItemEmpty;
         if(app->guide_page) gta_item(app, "< Previous page", ItemGuidePrev);
@@ -753,7 +757,7 @@ static void gta_detail(GtaApp* app, const GtaCheat* cheat, const GtaScreenshotCo
             cheat->unlock,
             cheat->effect,
             cheat->status);
-        if(gta_sequence(app, cheat)[0] || reported) {
+        if(gta_sequence(app, cheat)[0] || reported_sequence) {
             furi_string_cat_printf(
                 app->content,
                 "\n\nGTA VI code press-reported; not tested. "
@@ -1082,7 +1086,8 @@ static bool gta_event(void* context, uint32_t event) {
         gta_companion_open_dispatch(app->companion, app->dispatch_region);
         gta_release_unused(app, ViewCollectionDetail);
     } else if(app->screen == ScreenStandouts) {
-        if(event < ItemStandoutRow || event - ItemStandoutRow > GTA_STANDOUT_CATEGORY_COUNT) return false;
+        if(event < ItemStandoutRow || event - ItemStandoutRow > GTA_STANDOUT_CATEGORY_COUNT)
+            return false;
         app->standout_selection = event;
         app->companion_back = ScreenStandouts;
         app->screen = ScreenCompanion;

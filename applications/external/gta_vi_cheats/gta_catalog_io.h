@@ -9,12 +9,12 @@
 
 /* UTF-8 TSV: one escaped record per line. Build temporary row offsets on
  * demand; keep only the requested row in memory. */
-#define GTA_GLITCH_ASSET     "guide_glitches.tsv"
+#define GTA_GLITCH_ASSET         "guide_glitches.tsv"
 #define GTA_GUIDE_MONEY_MAP_MODE "money_map"
-#define GTA_RECORD_MAX       4096u
-#define GTA_RECORD_FIELDS    9u
-#define GTA_CATALOG_MAX_SIZE (256u * 1024u)
-#define GTA_CATALOG_MAX_ROWS 4096u
+#define GTA_RECORD_MAX           4096u
+#define GTA_RECORD_FIELDS        9u
+#define GTA_CATALOG_MAX_SIZE     (256u * 1024u)
+#define GTA_CATALOG_MAX_ROWS     4096u
 typedef struct {
     char* data;
     char* field[GTA_RECORD_FIELDS];
